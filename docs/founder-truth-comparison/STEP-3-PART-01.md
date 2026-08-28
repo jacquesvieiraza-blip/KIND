@@ -20,7 +20,7 @@
 | INV-00002 | CMP-0057 | LAUNCH-PAD vs PRODUCT-INVENTORY — the same items, two boards | `CLAUDE.md` |
 | INV-00003 | CMP-0067 | The four-doc contract and one-truth-per-doc | `CLAUDE.md` |
 | INV-00004 | CMP-0067 | The four-doc contract and one-truth-per-doc | `CLAUDE.md` |
-| INV-00005 | CMP-0063 | V2 non-FI roadmap and narrative material | `CLAUDE.md` |
+| INV-00005 | CMP-0067 | The four-doc contract and one-truth-per-doc | `CLAUDE.md` |
 | INV-00006 | CMP-0067 | The four-doc contract and one-truth-per-doc | `CLAUDE.md` |
 | INV-00007 | CMP-0025 | Pause — who may pause sending, and why | `CLAUDE.md` |
 | INV-00008 | CMP-0068 | Operating Protocol v1 — r1 … r22 | `CLAUDE.md` |
@@ -28,7 +28,7 @@
 | INV-00010 | CMP-0068 | Operating Protocol v1 — r1 … r22 | `CLAUDE.md` |
 | INV-00011 | CMP-0068 | Operating Protocol v1 — r1 … r22 | `CLAUDE.md` |
 | INV-00012 | CMP-0068 | Operating Protocol v1 — r1 … r22 | `CLAUDE.md` |
-| INV-00013 | CMP-0063 | V2 non-FI roadmap and narrative material | `CLAUDE.md` |
+| INV-00013 | CMP-0068 | Operating Protocol v1 — r1 … r22 | `CLAUDE.md` |
 | INV-00014 | CMP-0068 | Operating Protocol v1 — r1 … r22 | `CLAUDE.md` |
 | INV-00015 | CMP-0068 | Operating Protocol v1 — r1 … r22 | `CLAUDE.md` |
 | INV-00016 | CMP-0068 | Operating Protocol v1 — r1 … r22 | `CLAUDE.md` |
@@ -47,7 +47,7 @@
 | INV-00029 | CMP-0067 | The four-doc contract and one-truth-per-doc | `CLAUDE.md` |
 | INV-00030 | CMP-0057 | LAUNCH-PAD vs PRODUCT-INVENTORY — the same items, two boards | `CLAUDE.md` |
 | INV-00031 | CMP-0067 | The four-doc contract and one-truth-per-doc | `CLAUDE.md` |
-| INV-00032 | CMP-0063 | V2 non-FI roadmap and narrative material | `CLAUDE.md` |
+| INV-00032 | CMP-0067 | The four-doc contract and one-truth-per-doc | `CLAUDE.md` |
 | INV-00033 | CMP-0067 | The four-doc contract and one-truth-per-doc | `CLAUDE.md` |
 | INV-00034 | CMP-0057 | LAUNCH-PAD vs PRODUCT-INVENTORY — the same items, two boards | `CLAUDE.md` |
 | INV-00035 | CMP-0075 | The status dot ladder | `CLAUDE.md` |
@@ -57,7 +57,7 @@
 | INV-00039 | CMP-0073 | Session logging and the end-of-session ritual | `CLAUDE.md` |
 | INV-00040 | CMP-0057 | LAUNCH-PAD vs PRODUCT-INVENTORY — the same items, two boards | `CLAUDE.md` |
 | INV-00041 | CMP-0073 | Session logging and the end-of-session ritual | `CLAUDE.md` |
-| INV-00042 | CMP-0063 | V2 non-FI roadmap and narrative material | `CLAUDE.md` |
+| INV-00042 | CMP-0073 | Session logging and the end-of-session ritual | `CLAUDE.md` |
 | INV-00043 | CMP-0073 | Session logging and the end-of-session ritual | `CLAUDE.md` |
 | INV-00044 | CMP-0071 | GitHub Actions availability | `CLAUDE.md` |
 | INV-00045 | CMP-0066 | Steals — patterns taken from other tools | `CLAUDE.md` |
@@ -95,7 +95,7 @@
 | INV-00077 | CMP-0086 | Lead lifecycle and the lead desk | `docs/PRODUCT-RULES.md` |
 | INV-00078 | CMP-0016 | The wallet and the per-approval charge | `docs/PRODUCT-RULES.md` |
 | INV-00079 | SOURCE-SPECIFIC | — | `docs/PRODUCT-RULES.md` |
-| INV-00080 | CMP-0001 | The $299 onboarding pack | `docs/PRODUCT-RULES.md` |
+| INV-00080 | CMP-0136 | First 100 approved leads included — the legacy pack entitlement | `docs/PRODUCT-RULES.md` |
 | INV-00081 | CMP-0020 | Stripe as the payment gate | `docs/PRODUCT-RULES.md` |
 | INV-00082 | SOURCE-SPECIFIC | — | `docs/PRODUCT-RULES.md` |
 | INV-00083 | CMP-0032 | Meeting states — booked, unverified, held, no-show, reschedule | `docs/PRODUCT-RULES.md` |
@@ -204,7 +204,7 @@
 | INV-00186 | CMP-0090 | Dashboards, KPIs and reporting | `docs/PRODUCT-RULES.md` |
 | INV-00187 | CMP-0090 | Dashboards, KPIs and reporting | `docs/PRODUCT-RULES.md` |
 | INV-00188 | SOURCE-SPECIFIC | — | `docs/PRODUCT-RULES.md` |
-| INV-00189 | CMP-0066 | Steals — patterns taken from other tools | `docs/PRODUCT-RULES.md` |
+| INV-00189 | CMP-0196 | The stealth constraint (R2) | `docs/PRODUCT-RULES.md` |
 | INV-00190 | CMP-0118 | Prior audits and reconciliations | `docs/PRODUCT-RULES.md` |
 | INV-00191 | CMP-0076 | Preview before live | `docs/PRODUCT-RULES.md` |
 | INV-00192 | SOURCE-SPECIFIC | — | `docs/PRODUCT-RULES.md` |
@@ -231,7 +231,7 @@
 | INV-00213 | CMP-0085 | Deliverability, warm-up and sending domains | `docs/PRODUCT-RULES.md` |
 | INV-00214 | CMP-0102 | Marketing plan, content and the Drop | `docs/PRODUCT-RULES.md` |
 | INV-00215 | CMP-0102 | Marketing plan, content and the Drop | `docs/PRODUCT-RULES.md` |
-| INV-00216 | CMP-0102 | Marketing plan, content and the Drop | `docs/PRODUCT-RULES.md` |
+| INV-00216 | CMP-0193 | The Drop as a content programme | `docs/PRODUCT-RULES.md` |
 | INV-00217 | CMP-0102 | Marketing plan, content and the Drop | `docs/PRODUCT-RULES.md` |
 | INV-00218 | CMP-0102 | Marketing plan, content and the Drop | `docs/PRODUCT-RULES.md` |
 | INV-00219 | CMP-0102 | Marketing plan, content and the Drop | `docs/PRODUCT-RULES.md` |
@@ -241,7 +241,7 @@
 | INV-00223 | CMP-0039 | Vida — the operator console | `docs/PRODUCT-RULES.md` |
 | INV-00224 | CMP-0102 | Marketing plan, content and the Drop | `docs/PRODUCT-RULES.md` |
 | INV-00225 | CMP-0083 | Campaigns and the sequence builder | `docs/PRODUCT-RULES.md` |
-| INV-00226 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/PRODUCT-RULES.md` |
+| INV-00226 | CMP-0191 | The three-product model (R39) | `docs/PRODUCT-RULES.md` |
 | INV-00227 | CMP-0007 | Partner commission — 25% of paid lead sales | `docs/PRODUCT-RULES.md` |
 | INV-00228 | CMP-0069 | Merge authority — MERGE IS NEVER CLAUDE'S | `docs/PRODUCT-RULES.md` |
 | INV-00229 | CMP-0102 | Marketing plan, content and the Drop | `docs/PRODUCT-RULES.md` |
@@ -262,10 +262,10 @@
 | INV-00244 | CMP-0056 | The launch date | `docs/PRODUCT-RULES.md` |
 | INV-00245 | CMP-0113 | Error tracking and observability | `docs/PRODUCT-RULES.md` |
 | INV-00246 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/PRODUCT-RULES.md` |
-| INV-00247 | SOURCE-SPECIFIC | — | `docs/PRODUCT-RULES.md` |
+| INV-00247 | CMP-0194 | Day-1 post-launch operating-model session (R60) | `docs/PRODUCT-RULES.md` |
 | INV-00248 | SOURCE-SPECIFIC | — | `docs/PRODUCT-RULES.md` |
 | INV-00249 | CMP-0099 | WhatsApp and Africa-first channels | `docs/PRODUCT-RULES.md` |
-| INV-00250 | SOURCE-SPECIFIC | — | `docs/PRODUCT-RULES.md` |
+| INV-00250 | CMP-0180 | Website consistency pass (#698) | `docs/PRODUCT-RULES.md` |
 | INV-00251 | SOURCE-SPECIFIC | — | `docs/PRODUCT-RULES.md` |
 | INV-00252 | CMP-0025 | Pause — who may pause sending, and why | `docs/PRODUCT-RULES.md` |
 | INV-00253 | CMP-0056 | The launch date | `docs/PRODUCT-RULES.md` |
@@ -314,11 +314,11 @@
 | INV-00296 | CMP-0056 | The launch date | `docs/LAUNCH-PAD.md` |
 | INV-00297 | CMP-0056 | The launch date | `docs/LAUNCH-PAD.md` |
 | INV-00298 | CMP-0002 | The $4 per-approved-lead charge | `docs/LAUNCH-PAD.md` |
-| INV-00299 | CMP-0056 | The launch date | `docs/LAUNCH-PAD.md` |
-| INV-00300 | CMP-0056 | The launch date | `docs/LAUNCH-PAD.md` |
-| INV-00301 | CMP-0056 | The launch date | `docs/LAUNCH-PAD.md` |
+| INV-00299 | CMP-0165 | Recurrent proof runtime failure | `docs/LAUNCH-PAD.md` |
+| INV-00300 | CMP-0151 | Paid-provider go-live rule (PAID_PROVIDERS_ENABLED) | `docs/LAUNCH-PAD.md` |
+| INV-00301 | CMP-0177 | Pre-launch cleanup — delete fake and test data | `docs/LAUNCH-PAD.md` |
 | INV-00302 | CMP-0057 | LAUNCH-PAD vs PRODUCT-INVENTORY — the same items, two boards | `docs/LAUNCH-PAD.md` |
-| INV-00303 | CMP-0001 | The $299 onboarding pack | `docs/LAUNCH-PAD.md` |
+| INV-00303 | CMP-0136 | First 100 approved leads included — the legacy pack entitlement | `docs/LAUNCH-PAD.md` |
 | INV-00304 | CMP-0057 | LAUNCH-PAD vs PRODUCT-INVENTORY — the same items, two boards | `docs/LAUNCH-PAD.md` |
 | INV-00305 | CMP-0057 | LAUNCH-PAD vs PRODUCT-INVENTORY — the same items, two boards | `docs/LAUNCH-PAD.md` |
 | INV-00306 | CMP-0001 | The $299 onboarding pack | `docs/LAUNCH-PAD.md` |
@@ -356,7 +356,7 @@
 | INV-00338 | CMP-0057 | LAUNCH-PAD vs PRODUCT-INVENTORY — the same items, two boards | `docs/LAUNCH-PAD.md` |
 | INV-00339 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/PRODUCT-INVENTORY.md` |
 | INV-00340 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/PRODUCT-INVENTORY.md` |
-| INV-00341 | CMP-0001 | The $299 onboarding pack | `docs/PRODUCT-INVENTORY.md` |
+| INV-00341 | CMP-0136 | First 100 approved leads included — the legacy pack entitlement | `docs/PRODUCT-INVENTORY.md` |
 | INV-00342 | CMP-0075 | The status dot ladder | `docs/PRODUCT-INVENTORY.md` |
 | INV-00343 | CMP-0075 | The status dot ladder | `docs/PRODUCT-INVENTORY.md` |
 | INV-00344 | CMP-0083 | Campaigns and the sequence builder | `docs/PRODUCT-INVENTORY.md` |
@@ -396,7 +396,7 @@
 | INV-00378 | CMP-0111 | Testing, smoke tests and the walk | `docs/PRODUCT-INVENTORY.md` |
 | INV-00379 | CMP-0025 | Pause — who may pause sending, and why | `docs/PRODUCT-INVENTORY.md` |
 | INV-00380 | CMP-0084 | Unibox, replies and reply triage | `docs/PRODUCT-INVENTORY.md` |
-| INV-00381 | CMP-0001 | The $299 onboarding pack | `docs/PRODUCT-INVENTORY.md` |
+| INV-00381 | CMP-0136 | First 100 approved leads included — the legacy pack entitlement | `docs/PRODUCT-INVENTORY.md` |
 | INV-00382 | CMP-0039 | Vida — the operator console | `docs/PRODUCT-INVENTORY.md` |
 | INV-00383 | CMP-0039 | Vida — the operator console | `docs/PRODUCT-INVENTORY.md` |
 | INV-00384 | CMP-0039 | Vida — the operator console | `docs/PRODUCT-INVENTORY.md` |
@@ -497,11 +497,11 @@
 | INV-00479 | CMP-0025 | Pause — who may pause sending, and why | `docs/PRODUCT-INVENTORY.md` |
 | INV-00480 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/PRODUCT-INVENTORY.md` |
 | INV-00481 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/PRODUCT-INVENTORY.md` |
-| INV-00482 | CMP-0025 | Pause — who may pause sending, and why | `docs/PRODUCT-INVENTORY.md` |
+| INV-00482 | CMP-0148 | Programme pause — client control and material-ICP-change auto-pause | `docs/PRODUCT-INVENTORY.md` |
 | INV-00483 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/PRODUCT-INVENTORY.md` |
 | INV-00484 | CMP-0032 | Meeting states — booked, unverified, held, no-show, reschedule | `docs/PRODUCT-INVENTORY.md` |
-| INV-00485 | CMP-0025 | Pause — who may pause sending, and why | `docs/PRODUCT-INVENTORY.md` |
-| INV-00486 | CMP-0025 | Pause — who may pause sending, and why | `docs/PRODUCT-INVENTORY.md` |
+| INV-00485 | CMP-0148 | Programme pause — client control and material-ICP-change auto-pause | `docs/PRODUCT-INVENTORY.md` |
+| INV-00486 | CMP-0148 | Programme pause — client control and material-ICP-change auto-pause | `docs/PRODUCT-INVENTORY.md` |
 | INV-00487 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/PRODUCT-INVENTORY.md` |
 | INV-00488 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/PRODUCT-INVENTORY.md` |
 | INV-00489 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/PRODUCT-INVENTORY.md` |
@@ -693,7 +693,7 @@
 | INV-00675 | CMP-0088 | Admin console and the bookkeeper view | `docs/PRODUCT-INVENTORY.md` |
 | INV-00676 | CMP-0088 | Admin console and the bookkeeper view | `docs/PRODUCT-INVENTORY.md` |
 | INV-00677 | CMP-0088 | Admin console and the bookkeeper view | `docs/PRODUCT-INVENTORY.md` |
-| INV-00678 | CMP-0088 | Admin console and the bookkeeper view | `docs/PRODUCT-INVENTORY.md` |
+| INV-00678 | CMP-0193 | The Drop as a content programme | `docs/PRODUCT-INVENTORY.md` |
 | INV-00679 | CMP-0088 | Admin console and the bookkeeper view | `docs/PRODUCT-INVENTORY.md` |
 | INV-00680 | CMP-0088 | Admin console and the bookkeeper view | `docs/PRODUCT-INVENTORY.md` |
 | INV-00681 | CMP-0088 | Admin console and the bookkeeper view | `docs/PRODUCT-INVENTORY.md` |
@@ -777,7 +777,7 @@
 | INV-00759 | CMP-0088 | Admin console and the bookkeeper view | `docs/PRODUCT-INVENTORY.md` |
 | INV-00760 | CMP-0088 | Admin console and the bookkeeper view | `docs/PRODUCT-INVENTORY.md` |
 | INV-00761 | CMP-0088 | Admin console and the bookkeeper view | `docs/PRODUCT-INVENTORY.md` |
-| INV-00762 | CMP-0066 | Steals — patterns taken from other tools | `docs/PRODUCT-INVENTORY.md` |
+| INV-00762 | CMP-0196 | The stealth constraint (R2) | `docs/PRODUCT-INVENTORY.md` |
 | INV-00763 | CMP-0053 | The investor deck's money claims | `docs/PRODUCT-INVENTORY.md` |
 | INV-00764 | CMP-0088 | Admin console and the bookkeeper view | `docs/PRODUCT-INVENTORY.md` |
 | INV-00765 | CMP-0088 | Admin console and the bookkeeper view | `docs/PRODUCT-INVENTORY.md` |
@@ -912,7 +912,7 @@
 | INV-00894 | CMP-0088 | Admin console and the bookkeeper view | `docs/PRODUCT-INVENTORY.md` |
 | INV-00895 | CMP-0088 | Admin console and the bookkeeper view | `docs/PRODUCT-INVENTORY.md` |
 | INV-00896 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/PRODUCT-INVENTORY.md` |
-| INV-00897 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/PRODUCT-INVENTORY.md` |
+| INV-00897 | CMP-0190 | Alta parity — the unified data layer / shared agent brain | `docs/PRODUCT-INVENTORY.md` |
 | INV-00898 | CMP-0020 | Stripe as the payment gate | `docs/PRODUCT-INVENTORY.md` |
 | INV-00899 | CMP-0017 | The old pack model vs the wallet model | `docs/PRODUCT-INVENTORY.md` |
 | INV-00900 | CMP-0016 | The wallet and the per-approval charge | `docs/PRODUCT-INVENTORY.md` |
@@ -924,7 +924,7 @@
 | INV-00906 | CMP-0086 | Lead lifecycle and the lead desk | `docs/PRODUCT-INVENTORY.md` |
 | INV-00907 | CMP-0075 | The status dot ladder | `docs/PRODUCT-INVENTORY.md` |
 | INV-00908 | CMP-0118 | Prior audits and reconciliations | `docs/PRODUCT-INVENTORY.md` |
-| INV-00909 | CMP-0005 | The volume curve — $437.50 at 10 meetings, ~$400 floor at 50+ | `docs/PRODUCT-INVENTORY.md` |
+| INV-00909 | CMP-0137 | Programme working point — $437.50 effective at 10 meetings | `docs/PRODUCT-INVENTORY.md` |
 | INV-00910 | CMP-0026 | ICP changes and the widened-proof acceptance rule | `docs/PRODUCT-INVENTORY.md` |
 | INV-00911 | CMP-0049 | Jack & Jill direction | `docs/PRODUCT-INVENTORY.md` |
 | INV-00912 | CMP-0049 | Jack & Jill direction | `docs/PRODUCT-INVENTORY.md` |
@@ -979,7 +979,7 @@
 | INV-00961 | CMP-0111 | Testing, smoke tests and the walk | `docs/PRODUCT-INVENTORY.md` |
 | INV-00962 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/PRODUCT-INVENTORY.md` |
 | INV-00963 | CMP-0118 | Prior audits and reconciliations | `docs/PRODUCT-INVENTORY.md` |
-| INV-00964 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/PRODUCT-INVENTORY.md` |
+| INV-00964 | CMP-0191 | The three-product model (R39) | `docs/PRODUCT-INVENTORY.md` |
 | INV-00965 | CMP-0111 | Testing, smoke tests and the walk | `docs/PRODUCT-INVENTORY.md` |
 | INV-00966 | CMP-0048 | Onboarding and demo surfaces | `docs/PRODUCT-INVENTORY.md` |
 | INV-00967 | CMP-0048 | Onboarding and demo surfaces | `docs/PRODUCT-INVENTORY.md` |
@@ -1026,7 +1026,7 @@
 | INV-01008 | CMP-0040 | Proof review — the exhausted prospect becomes real work | `docs/PRODUCT-INVENTORY.md` |
 | INV-01009 | CMP-0040 | Proof review — the exhausted prospect becomes real work | `docs/PRODUCT-INVENTORY.md` |
 | INV-01010 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/PRODUCT-INVENTORY.md` |
-| INV-01011 | CMP-0040 | Proof review — the exhausted prospect becomes real work | `docs/PRODUCT-INVENTORY.md` |
+| INV-01011 | CMP-0180 | Website consistency pass (#698) | `docs/PRODUCT-INVENTORY.md` |
 | INV-01012 | CMP-0027 | AR5 — Apollo is ours, PDL and Hunter are the clients' | `docs/PRODUCT-INVENTORY.md` |
 | INV-01013 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/PRODUCT-INVENTORY.md` |
 | INV-01014 | CMP-0002 | The $4 per-approved-lead charge | `docs/PRODUCT-INVENTORY.md` |
@@ -1056,83 +1056,83 @@
 | INV-01038 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/PRODUCT-INVENTORY.md` |
 | INV-01039 | CMP-0131 | The engine — what FIGSY does under the pivot | `docs/PRODUCT-INVENTORY.md` |
 | INV-01040 | SOURCE-SPECIFIC | — | `docs/PRODUCT-INVENTORY.md` |
-| INV-01041 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/PRODUCT-INVENTORY.md` |
+| INV-01041 | CMP-0106 | Competitive landscape and teardowns | `docs/PRODUCT-INVENTORY.md` |
 | INV-01042 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/PRODUCT-INVENTORY.md` |
 | INV-01043 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/PRODUCT-INVENTORY.md` |
 | INV-01044 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/PRODUCT-INVENTORY.md` |
 | INV-01045 | CMP-0039 | Vida — the operator console | `docs/PRODUCT-INVENTORY.md` |
-| INV-01046 | CMP-0064 | Nexus — the per-client learning brain | `docs/PRODUCT-INVENTORY.md` |
+| INV-01046 | CMP-0190 | Alta parity — the unified data layer / shared agent brain | `docs/PRODUCT-INVENTORY.md` |
 | INV-01047 | CMP-0066 | Steals — patterns taken from other tools | `docs/PRODUCT-INVENTORY.md` |
 | INV-01048 | CMP-0077 | The migration seam — what actually executes | `docs/PRODUCT-INVENTORY.md` |
 | INV-01049 | CMP-0049 | Jack & Jill direction | `docs/PRODUCT-INVENTORY.md` |
-| INV-01050 | CMP-0005 | The volume curve — $437.50 at 10 meetings, ~$400 floor at 50+ | `docs/PRODUCT-INVENTORY.md` |
+| INV-01050 | CMP-0137 | Programme working point — $437.50 effective at 10 meetings | `docs/PRODUCT-INVENTORY.md` |
 | INV-01051 | SOURCE-SPECIFIC | — | `docs/PRODUCT-INVENTORY.md` |
 | INV-01052 | CMP-0057 | LAUNCH-PAD vs PRODUCT-INVENTORY — the same items, two boards | `docs/V2-TRACKER.md` |
 | INV-01053 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/V2-TRACKER.md` |
-| INV-01054 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01055 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01056 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01057 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
+| INV-01054 | SOURCE-SPECIFIC | — | `docs/V2-TRACKER.md` |
+| INV-01055 | CMP-0110 | Backup, restore and failover | `docs/V2-TRACKER.md` |
+| INV-01056 | CMP-0067 | The four-doc contract and one-truth-per-doc | `docs/V2-TRACKER.md` |
+| INV-01057 | CMP-0192 | Evidence-triggered phase ladder — PROVE IT / COMPOUND IT / SCALE IT | `docs/V2-TRACKER.md` |
 | INV-01058 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/V2-TRACKER.md` |
 | INV-01059 | CMP-0026 | ICP changes and the widened-proof acceptance rule | `docs/V2-TRACKER.md` |
 | INV-01060 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/V2-TRACKER.md` |
-| INV-01061 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01062 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01063 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
+| INV-01061 | CMP-0080 | Compliance drafts for counsel | `docs/V2-TRACKER.md` |
+| INV-01062 | CMP-0107 | Regions — SA, US, UK, EU expansion | `docs/V2-TRACKER.md` |
+| INV-01063 | CMP-0195 | Per-client data-retention controls | `docs/V2-TRACKER.md` |
 | INV-01064 | CMP-0033 | Google Calendar verification path | `docs/V2-TRACKER.md` |
-| INV-01065 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01066 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
+| INV-01065 | CMP-0180 | Website consistency pass (#698) | `docs/V2-TRACKER.md` |
+| INV-01066 | CMP-0194 | Day-1 post-launch operating-model session (R60) | `docs/V2-TRACKER.md` |
 | INV-01067 | CMP-0060 | Deployment verification and the SHA report | `docs/V2-TRACKER.md` |
-| INV-01068 | CMP-0113 | Error tracking and observability | `docs/V2-TRACKER.md` |
-| INV-01069 | CMP-0113 | Error tracking and observability | `docs/V2-TRACKER.md` |
-| INV-01070 | CMP-0113 | Error tracking and observability | `docs/V2-TRACKER.md` |
-| INV-01071 | CMP-0113 | Error tracking and observability | `docs/V2-TRACKER.md` |
-| INV-01072 | CMP-0113 | Error tracking and observability | `docs/V2-TRACKER.md` |
-| INV-01073 | CMP-0113 | Error tracking and observability | `docs/V2-TRACKER.md` |
-| INV-01074 | CMP-0113 | Error tracking and observability | `docs/V2-TRACKER.md` |
-| INV-01075 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01076 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01077 | CMP-0005 | The volume curve — $437.50 at 10 meetings, ~$400 floor at 50+ | `docs/V2-TRACKER.md` |
-| INV-01078 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01079 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01080 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01081 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01082 | CMP-0001 | The $299 onboarding pack | `docs/V2-TRACKER.md` |
-| INV-01083 | CMP-0003 | The $4 → $8 migration (R68 / T9) | `docs/V2-TRACKER.md` |
-| INV-01084 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01085 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01086 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01087 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01088 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01089 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
+| INV-01068 | CMP-0186 | Internal model routing and AI cost economics | `docs/V2-TRACKER.md` |
+| INV-01069 | CMP-0186 | Internal model routing and AI cost economics | `docs/V2-TRACKER.md` |
+| INV-01070 | CMP-0186 | Internal model routing and AI cost economics | `docs/V2-TRACKER.md` |
+| INV-01071 | CMP-0186 | Internal model routing and AI cost economics | `docs/V2-TRACKER.md` |
+| INV-01072 | CMP-0186 | Internal model routing and AI cost economics | `docs/V2-TRACKER.md` |
+| INV-01073 | CMP-0186 | Internal model routing and AI cost economics | `docs/V2-TRACKER.md` |
+| INV-01074 | CMP-0186 | Internal model routing and AI cost economics | `docs/V2-TRACKER.md` |
+| INV-01075 | CMP-0083 | Campaigns and the sequence builder | `docs/V2-TRACKER.md` |
+| INV-01076 | CMP-0192 | Evidence-triggered phase ladder — PROVE IT / COMPOUND IT / SCALE IT | `docs/V2-TRACKER.md` |
+| INV-01077 | CMP-0137 | Programme working point — $437.50 effective at 10 meetings | `docs/V2-TRACKER.md` |
+| INV-01078 | CMP-0192 | Evidence-triggered phase ladder — PROVE IT / COMPOUND IT / SCALE IT | `docs/V2-TRACKER.md` |
+| INV-01079 | CMP-0190 | Alta parity — the unified data layer / shared agent brain | `docs/V2-TRACKER.md` |
+| INV-01080 | CMP-0120 | Retired and tombstoned items | `docs/V2-TRACKER.md` |
+| INV-01081 | CMP-0084 | Unibox, replies and reply triage | `docs/V2-TRACKER.md` |
+| INV-01082 | CMP-0191 | The three-product model (R39) | `docs/V2-TRACKER.md` |
+| INV-01083 | CMP-0191 | The three-product model (R39) | `docs/V2-TRACKER.md` |
+| INV-01084 | CMP-0191 | The three-product model (R39) | `docs/V2-TRACKER.md` |
+| INV-01085 | CMP-0191 | The three-product model (R39) | `docs/V2-TRACKER.md` |
+| INV-01086 | CMP-0191 | The three-product model (R39) | `docs/V2-TRACKER.md` |
+| INV-01087 | CMP-0191 | The three-product model (R39) | `docs/V2-TRACKER.md` |
+| INV-01088 | CMP-0191 | The three-product model (R39) | `docs/V2-TRACKER.md` |
+| INV-01089 | CMP-0086 | Lead lifecycle and the lead desk | `docs/V2-TRACKER.md` |
 | INV-01090 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/V2-TRACKER.md` |
-| INV-01091 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
+| INV-01091 | CMP-0084 | Unibox, replies and reply triage | `docs/V2-TRACKER.md` |
 | INV-01092 | CMP-0039 | Vida — the operator console | `docs/V2-TRACKER.md` |
 | INV-01093 | CMP-0042 | Suppression, opt-out and DNC | `docs/V2-TRACKER.md` |
-| INV-01094 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/V2-TRACKER.md` |
-| INV-01095 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
+| INV-01094 | CMP-0190 | Alta parity — the unified data layer / shared agent brain | `docs/V2-TRACKER.md` |
+| INV-01095 | CMP-0106 | Competitive landscape and teardowns | `docs/V2-TRACKER.md` |
 | INV-01096 | CMP-0049 | Jack & Jill direction | `docs/V2-TRACKER.md` |
 | INV-01097 | CMP-0049 | Jack & Jill direction | `docs/V2-TRACKER.md` |
-| INV-01098 | CMP-0005 | The volume curve — $437.50 at 10 meetings, ~$400 floor at 50+ | `docs/V2-TRACKER.md` |
+| INV-01098 | CMP-0137 | Programme working point — $437.50 effective at 10 meetings | `docs/V2-TRACKER.md` |
 | INV-01099 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/V2-TRACKER.md` |
 | INV-01100 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/V2-TRACKER.md` |
 | INV-01101 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/V2-TRACKER.md` |
 | INV-01102 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/V2-TRACKER.md` |
-| INV-01103 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01104 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
+| INV-01103 | SOURCE-SPECIFIC | — | `docs/V2-TRACKER.md` |
+| INV-01104 | CMP-0125 | Support, help centre and status page | `docs/V2-TRACKER.md` |
 | INV-01105 | CMP-0060 | Deployment verification and the SHA report | `docs/V2-TRACKER.md` |
 | INV-01106 | CMP-0060 | Deployment verification and the SHA report | `docs/V2-TRACKER.md` |
-| INV-01107 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01108 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01109 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
+| INV-01107 | CMP-0075 | The status dot ladder | `docs/V2-TRACKER.md` |
+| INV-01108 | SOURCE-SPECIFIC | — | `docs/V2-TRACKER.md` |
+| INV-01109 | SOURCE-SPECIFIC | — | `docs/V2-TRACKER.md` |
 | INV-01110 | CMP-0059 | The sending spine — the reason a paying client could not be delivered | `docs/V2-TRACKER.md` |
-| INV-01111 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
+| INV-01111 | CMP-0084 | Unibox, replies and reply triage | `docs/V2-TRACKER.md` |
 | INV-01112 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/V2-TRACKER.md` |
 | INV-01113 | CMP-0057 | LAUNCH-PAD vs PRODUCT-INVENTORY — the same items, two boards | `docs/V2-TRACKER.md` |
 | INV-01114 | CMP-0057 | LAUNCH-PAD vs PRODUCT-INVENTORY — the same items, two boards | `docs/V2-TRACKER.md` |
 | INV-01115 | CMP-0022 | Who may start sourcing — Run, cron and top-up | `docs/V2-TRACKER.md` |
 | INV-01116 | CMP-0021 | Trial and freebies | `docs/V2-TRACKER.md` |
-| INV-01117 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
+| INV-01117 | CMP-0116 | Dated roadmap phases and timelines | `docs/V2-TRACKER.md` |
 | INV-01118 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/V2-TRACKER.md` |
 | INV-01119 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/V2-TRACKER.md` |
 | INV-01120 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/V2-TRACKER.md` |
@@ -1141,145 +1141,145 @@
 | INV-01123 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/V2-TRACKER.md` |
 | INV-01124 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/V2-TRACKER.md` |
 | INV-01125 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/V2-TRACKER.md` |
-| INV-01126 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01127 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01128 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
+| INV-01126 | CMP-0096 | Company engine, seats and the pool | `docs/V2-TRACKER.md` |
+| INV-01127 | CMP-0111 | Testing, smoke tests and the walk | `docs/V2-TRACKER.md` |
+| INV-01128 | CMP-0096 | Company engine, seats and the pool | `docs/V2-TRACKER.md` |
 | INV-01129 | CMP-0056 | The launch date | `docs/V2-TRACKER.md` |
 | INV-01130 | CMP-0039 | Vida — the operator console | `docs/V2-TRACKER.md` |
 | INV-01131 | CMP-0020 | Stripe as the payment gate | `docs/V2-TRACKER.md` |
 | INV-01132 | CMP-0026 | ICP changes and the widened-proof acceptance rule | `docs/V2-TRACKER.md` |
 | INV-01133 | CMP-0059 | The sending spine — the reason a paying client could not be delivered | `docs/V2-TRACKER.md` |
-| INV-01134 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01135 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01136 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01137 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01138 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01139 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
+| INV-01134 | CMP-0085 | Deliverability, warm-up and sending domains | `docs/V2-TRACKER.md` |
+| INV-01135 | CMP-0131 | The engine — what FIGSY does under the pivot | `docs/V2-TRACKER.md` |
+| INV-01136 | CMP-0085 | Deliverability, warm-up and sending domains | `docs/V2-TRACKER.md` |
+| INV-01137 | CMP-0085 | Deliverability, warm-up and sending domains | `docs/V2-TRACKER.md` |
+| INV-01138 | CMP-0085 | Deliverability, warm-up and sending domains | `docs/V2-TRACKER.md` |
+| INV-01139 | CMP-0085 | Deliverability, warm-up and sending domains | `docs/V2-TRACKER.md` |
 | INV-01140 | CMP-0051 | run-costs-and-cashflow as the price mirror | `docs/V2-TRACKER.md` |
-| INV-01141 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01142 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01143 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01144 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01145 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01146 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
+| INV-01141 | CMP-0099 | WhatsApp and Africa-first channels | `docs/V2-TRACKER.md` |
+| INV-01142 | CMP-0085 | Deliverability, warm-up and sending domains | `docs/V2-TRACKER.md` |
+| INV-01143 | CMP-0085 | Deliverability, warm-up and sending domains | `docs/V2-TRACKER.md` |
+| INV-01144 | CMP-0085 | Deliverability, warm-up and sending domains | `docs/V2-TRACKER.md` |
+| INV-01145 | CMP-0099 | WhatsApp and Africa-first channels | `docs/V2-TRACKER.md` |
+| INV-01146 | CMP-0101 | GTM strategy and the two-track market | `docs/V2-TRACKER.md` |
 | INV-01147 | CMP-0039 | Vida — the operator console | `docs/V2-TRACKER.md` |
-| INV-01148 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
+| INV-01148 | CMP-0096 | Company engine, seats and the pool | `docs/V2-TRACKER.md` |
 | INV-01149 | CMP-0007 | Partner commission — 25% of paid lead sales | `docs/V2-TRACKER.md` |
-| INV-01150 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01151 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
+| INV-01150 | CMP-0088 | Admin console and the bookkeeper view | `docs/V2-TRACKER.md` |
+| INV-01151 | CMP-0097 | Demo environments and the demo flow | `docs/V2-TRACKER.md` |
 | INV-01152 | CMP-0103 | Paid ads | `docs/V2-TRACKER.md` |
 | INV-01153 | CMP-0048 | Onboarding and demo surfaces | `docs/V2-TRACKER.md` |
-| INV-01154 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01155 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01156 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01157 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01158 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01159 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01160 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01161 | CMP-0026 | ICP changes and the widened-proof acceptance rule | `docs/V2-TRACKER.md` |
-| INV-01162 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
+| INV-01154 | CMP-0118 | Prior audits and reconciliations | `docs/V2-TRACKER.md` |
+| INV-01155 | SOURCE-SPECIFIC | — | `docs/V2-TRACKER.md` |
+| INV-01156 | CMP-0096 | Company engine, seats and the pool | `docs/V2-TRACKER.md` |
+| INV-01157 | CMP-0101 | GTM strategy and the two-track market | `docs/V2-TRACKER.md` |
+| INV-01158 | CMP-0101 | GTM strategy and the two-track market | `docs/V2-TRACKER.md` |
+| INV-01159 | CMP-0101 | GTM strategy and the two-track market | `docs/V2-TRACKER.md` |
+| INV-01160 | CMP-0101 | GTM strategy and the two-track market | `docs/V2-TRACKER.md` |
+| INV-01161 | CMP-0196 | The stealth constraint (R2) | `docs/V2-TRACKER.md` |
+| INV-01162 | CMP-0105 | Partner programme operations | `docs/V2-TRACKER.md` |
 | INV-01163 | CMP-0007 | Partner commission — 25% of paid lead sales | `docs/V2-TRACKER.md` |
-| INV-01164 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01165 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01166 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01167 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
+| INV-01164 | CMP-0105 | Partner programme operations | `docs/V2-TRACKER.md` |
+| INV-01165 | CMP-0105 | Partner programme operations | `docs/V2-TRACKER.md` |
+| INV-01166 | CMP-0114 | Cron jobs and scheduled work | `docs/V2-TRACKER.md` |
+| INV-01167 | CMP-0106 | Competitive landscape and teardowns | `docs/V2-TRACKER.md` |
 | INV-01168 | CMP-0048 | Onboarding and demo surfaces | `docs/V2-TRACKER.md` |
-| INV-01169 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01170 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01171 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01172 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
+| INV-01169 | SOURCE-SPECIFIC | — | `docs/V2-TRACKER.md` |
+| INV-01170 | SOURCE-SPECIFIC | — | `docs/V2-TRACKER.md` |
+| INV-01171 | SOURCE-SPECIFIC | — | `docs/V2-TRACKER.md` |
+| INV-01172 | CMP-0085 | Deliverability, warm-up and sending domains | `docs/V2-TRACKER.md` |
 | INV-01173 | CMP-0046 | Client-facing calculators | `docs/V2-TRACKER.md` |
-| INV-01174 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01175 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01176 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01177 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
+| INV-01174 | CMP-0116 | Dated roadmap phases and timelines | `docs/V2-TRACKER.md` |
+| INV-01175 | CMP-0064 | Nexus — the per-client learning brain | `docs/V2-TRACKER.md` |
+| INV-01176 | SOURCE-SPECIFIC | — | `docs/V2-TRACKER.md` |
+| INV-01177 | CMP-0095 | Knowledge, Compass and client training | `docs/V2-TRACKER.md` |
 | INV-01178 | CMP-0026 | ICP changes and the widened-proof acceptance rule | `docs/V2-TRACKER.md` |
-| INV-01179 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01180 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01181 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01182 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01183 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01184 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01185 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01186 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01187 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01188 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01189 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01190 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01191 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01192 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01193 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01194 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01195 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01196 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01197 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01198 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01199 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01200 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01201 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01202 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01203 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01204 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01205 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01206 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
+| INV-01179 | CMP-0085 | Deliverability, warm-up and sending domains | `docs/V2-TRACKER.md` |
+| INV-01180 | CMP-0098 | Integrations and CRM | `docs/V2-TRACKER.md` |
+| INV-01181 | CMP-0116 | Dated roadmap phases and timelines | `docs/V2-TRACKER.md` |
+| INV-01182 | CMP-0084 | Unibox, replies and reply triage | `docs/V2-TRACKER.md` |
+| INV-01183 | CMP-0116 | Dated roadmap phases and timelines | `docs/V2-TRACKER.md` |
+| INV-01184 | CMP-0116 | Dated roadmap phases and timelines | `docs/V2-TRACKER.md` |
+| INV-01185 | CMP-0106 | Competitive landscape and teardowns | `docs/V2-TRACKER.md` |
+| INV-01186 | CMP-0101 | GTM strategy and the two-track market | `docs/V2-TRACKER.md` |
+| INV-01187 | CMP-0101 | GTM strategy and the two-track market | `docs/V2-TRACKER.md` |
+| INV-01188 | CMP-0101 | GTM strategy and the two-track market | `docs/V2-TRACKER.md` |
+| INV-01189 | CMP-0101 | GTM strategy and the two-track market | `docs/V2-TRACKER.md` |
+| INV-01190 | CMP-0099 | WhatsApp and Africa-first channels | `docs/V2-TRACKER.md` |
+| INV-01191 | CMP-0101 | GTM strategy and the two-track market | `docs/V2-TRACKER.md` |
+| INV-01192 | CMP-0193 | The Drop as a content programme | `docs/V2-TRACKER.md` |
+| INV-01193 | CMP-0075 | The status dot ladder | `docs/V2-TRACKER.md` |
+| INV-01194 | CMP-0102 | Marketing plan, content and the Drop | `docs/V2-TRACKER.md` |
+| INV-01195 | CMP-0102 | Marketing plan, content and the Drop | `docs/V2-TRACKER.md` |
+| INV-01196 | CMP-0135 | Art of the possible and idea capture | `docs/V2-TRACKER.md` |
+| INV-01197 | CMP-0066 | Steals — patterns taken from other tools | `docs/V2-TRACKER.md` |
+| INV-01198 | CMP-0075 | The status dot ladder | `docs/V2-TRACKER.md` |
+| INV-01199 | SOURCE-SPECIFIC | — | `docs/V2-TRACKER.md` |
+| INV-01200 | SOURCE-SPECIFIC | — | `docs/V2-TRACKER.md` |
+| INV-01201 | CMP-0083 | Campaigns and the sequence builder | `docs/V2-TRACKER.md` |
+| INV-01202 | CMP-0066 | Steals — patterns taken from other tools | `docs/V2-TRACKER.md` |
+| INV-01203 | CMP-0102 | Marketing plan, content and the Drop | `docs/V2-TRACKER.md` |
+| INV-01204 | SOURCE-SPECIFIC | — | `docs/V2-TRACKER.md` |
+| INV-01205 | SOURCE-SPECIFIC | — | `docs/V2-TRACKER.md` |
+| INV-01206 | CMP-0120 | Retired and tombstoned items | `docs/V2-TRACKER.md` |
 | INV-01207 | CMP-0057 | LAUNCH-PAD vs PRODUCT-INVENTORY — the same items, two boards | `docs/V2-TRACKER.md` |
-| INV-01208 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01209 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/V2-TRACKER.md` |
-| INV-01210 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
+| INV-01208 | CMP-0108 | Hiring, comp plans and the team | `docs/V2-TRACKER.md` |
+| INV-01209 | CMP-0180 | Website consistency pass (#698) | `docs/V2-TRACKER.md` |
+| INV-01210 | SOURCE-SPECIFIC | — | `docs/V2-TRACKER.md` |
 | INV-01211 | CMP-0046 | Client-facing calculators | `docs/V2-TRACKER.md` |
 | INV-01212 | CMP-0020 | Stripe as the payment gate | `docs/V2-TRACKER.md` |
-| INV-01213 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
+| INV-01213 | SOURCE-SPECIFIC | — | `docs/V2-TRACKER.md` |
 | INV-01214 | CMP-0026 | ICP changes and the widened-proof acceptance rule | `docs/V2-TRACKER.md` |
-| INV-01215 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01216 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
+| INV-01215 | SOURCE-SPECIFIC | — | `docs/V2-TRACKER.md` |
+| INV-01216 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/V2-TRACKER.md` |
 | INV-01217 | CMP-0040 | Proof review — the exhausted prospect becomes real work | `docs/V2-TRACKER.md` |
 | INV-01218 | CMP-0039 | Vida — the operator console | `docs/V2-TRACKER.md` |
-| INV-01219 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
+| INV-01219 | CMP-0120 | Retired and tombstoned items | `docs/V2-TRACKER.md` |
 | INV-01220 | CMP-0039 | Vida — the operator console | `docs/V2-TRACKER.md` |
-| INV-01221 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01222 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
+| INV-01221 | CMP-0120 | Retired and tombstoned items | `docs/V2-TRACKER.md` |
+| INV-01222 | CMP-0098 | Integrations and CRM | `docs/V2-TRACKER.md` |
 | INV-01223 | CMP-0043 | Vida programme cockpit | `docs/V2-TRACKER.md` |
-| INV-01224 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01225 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01226 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01227 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01228 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01229 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01230 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01231 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01232 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01233 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01234 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
+| INV-01224 | CMP-0093 | Notifications and the notification centre | `docs/V2-TRACKER.md` |
+| INV-01225 | SOURCE-SPECIFIC | — | `docs/V2-TRACKER.md` |
+| INV-01226 | SOURCE-SPECIFIC | — | `docs/V2-TRACKER.md` |
+| INV-01227 | SOURCE-SPECIFIC | — | `docs/V2-TRACKER.md` |
+| INV-01228 | SOURCE-SPECIFIC | — | `docs/V2-TRACKER.md` |
+| INV-01229 | SOURCE-SPECIFIC | — | `docs/V2-TRACKER.md` |
+| INV-01230 | CMP-0108 | Hiring, comp plans and the team | `docs/V2-TRACKER.md` |
+| INV-01231 | CMP-0108 | Hiring, comp plans and the team | `docs/V2-TRACKER.md` |
+| INV-01232 | CMP-0108 | Hiring, comp plans and the team | `docs/V2-TRACKER.md` |
+| INV-01233 | SOURCE-SPECIFIC | — | `docs/V2-TRACKER.md` |
+| INV-01234 | SOURCE-SPECIFIC | — | `docs/V2-TRACKER.md` |
 | INV-01235 | CMP-0039 | Vida — the operator console | `docs/V2-TRACKER.md` |
 | INV-01236 | CMP-0039 | Vida — the operator console | `docs/V2-TRACKER.md` |
 | INV-01237 | CMP-0039 | Vida — the operator console | `docs/V2-TRACKER.md` |
-| INV-01238 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01239 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01240 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
+| INV-01238 | SOURCE-SPECIFIC | — | `docs/V2-TRACKER.md` |
+| INV-01239 | SOURCE-SPECIFIC | — | `docs/V2-TRACKER.md` |
+| INV-01240 | SOURCE-SPECIFIC | — | `docs/V2-TRACKER.md` |
 | INV-01241 | CMP-0043 | Vida programme cockpit | `docs/V2-TRACKER.md` |
 | INV-01242 | CMP-0048 | Onboarding and demo surfaces | `docs/V2-TRACKER.md` |
-| INV-01243 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01244 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01245 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01246 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01247 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01248 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01249 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
+| INV-01243 | CMP-0125 | Support, help centre and status page | `docs/V2-TRACKER.md` |
+| INV-01244 | CMP-0082 | The core-file register and the doc map | `docs/V2-TRACKER.md` |
+| INV-01245 | CMP-0110 | Backup, restore and failover | `docs/V2-TRACKER.md` |
+| INV-01246 | SOURCE-SPECIFIC | — | `docs/V2-TRACKER.md` |
+| INV-01247 | CMP-0111 | Testing, smoke tests and the walk | `docs/V2-TRACKER.md` |
+| INV-01248 | SOURCE-SPECIFIC | — | `docs/V2-TRACKER.md` |
+| INV-01249 | CMP-0082 | The core-file register and the doc map | `docs/V2-TRACKER.md` |
 | INV-01250 | CMP-0039 | Vida — the operator console | `docs/V2-TRACKER.md` |
 | INV-01251 | CMP-0039 | Vida — the operator console | `docs/V2-TRACKER.md` |
-| INV-01252 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01253 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01254 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01255 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01256 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
+| INV-01252 | SOURCE-SPECIFIC | — | `docs/V2-TRACKER.md` |
+| INV-01253 | CMP-0098 | Integrations and CRM | `docs/V2-TRACKER.md` |
+| INV-01254 | SOURCE-SPECIFIC | — | `docs/V2-TRACKER.md` |
+| INV-01255 | SOURCE-SPECIFIC | — | `docs/V2-TRACKER.md` |
+| INV-01256 | CMP-0180 | Website consistency pass (#698) | `docs/V2-TRACKER.md` |
 | INV-01257 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/V2-TRACKER.md` |
-| INV-01258 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01259 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
+| INV-01258 | SOURCE-SPECIFIC | — | `docs/V2-TRACKER.md` |
+| INV-01259 | SOURCE-SPECIFIC | — | `docs/V2-TRACKER.md` |
 | INV-01260 | CMP-0028 | Pool-first sourcing and cross-client reuse | `docs/V2-TRACKER.md` |
-| INV-01261 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01262 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01263 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01264 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
+| INV-01261 | SOURCE-SPECIFIC | — | `docs/V2-TRACKER.md` |
+| INV-01262 | SOURCE-SPECIFIC | — | `docs/V2-TRACKER.md` |
+| INV-01263 | CMP-0090 | Dashboards, KPIs and reporting | `docs/V2-TRACKER.md` |
+| INV-01264 | SOURCE-SPECIFIC | — | `docs/V2-TRACKER.md` |
 | INV-01265 | CMP-0007 | Partner commission — 25% of paid lead sales | `docs/V2-TRACKER.md` |
 | INV-01266 | CMP-0020 | Stripe as the payment gate | `docs/V2-TRACKER.md` |
 | INV-01267 | CMP-0026 | ICP changes and the widened-proof acceptance rule | `docs/V2-TRACKER.md` |
@@ -1288,138 +1288,138 @@
 | INV-01270 | CMP-0039 | Vida — the operator console | `docs/V2-TRACKER.md` |
 | INV-01271 | CMP-0040 | Proof review — the exhausted prospect becomes real work | `docs/V2-TRACKER.md` |
 | INV-01272 | CMP-0039 | Vida — the operator console | `docs/V2-TRACKER.md` |
-| INV-01273 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01274 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01275 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
+| INV-01273 | CMP-0090 | Dashboards, KPIs and reporting | `docs/V2-TRACKER.md` |
+| INV-01274 | CMP-0090 | Dashboards, KPIs and reporting | `docs/V2-TRACKER.md` |
+| INV-01275 | SOURCE-SPECIFIC | — | `docs/V2-TRACKER.md` |
 | INV-01276 | CMP-0113 | Error tracking and observability | `docs/V2-TRACKER.md` |
-| INV-01277 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01278 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01279 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01280 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01281 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
+| INV-01277 | CMP-0135 | Art of the possible and idea capture | `docs/V2-TRACKER.md` |
+| INV-01278 | CMP-0107 | Regions — SA, US, UK, EU expansion | `docs/V2-TRACKER.md` |
+| INV-01279 | SOURCE-SPECIFIC | — | `docs/V2-TRACKER.md` |
+| INV-01280 | SOURCE-SPECIFIC | — | `docs/V2-TRACKER.md` |
+| INV-01281 | SOURCE-SPECIFIC | — | `docs/V2-TRACKER.md` |
 | INV-01282 | CMP-0048 | Onboarding and demo surfaces | `docs/V2-TRACKER.md` |
-| INV-01283 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
+| INV-01283 | SOURCE-SPECIFIC | — | `docs/V2-TRACKER.md` |
 | INV-01284 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/V2-TRACKER.md` |
 | INV-01285 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/V2-TRACKER.md` |
-| INV-01286 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
+| INV-01286 | SOURCE-SPECIFIC | — | `docs/V2-TRACKER.md` |
 | INV-01287 | CMP-0048 | Onboarding and demo surfaces | `docs/V2-TRACKER.md` |
-| INV-01288 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01289 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01290 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01291 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01292 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01293 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01294 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01295 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01296 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01297 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01298 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01299 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01300 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01301 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01302 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01303 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
+| INV-01288 | SOURCE-SPECIFIC | — | `docs/V2-TRACKER.md` |
+| INV-01289 | SOURCE-SPECIFIC | — | `docs/V2-TRACKER.md` |
+| INV-01290 | SOURCE-SPECIFIC | — | `docs/V2-TRACKER.md` |
+| INV-01291 | SOURCE-SPECIFIC | — | `docs/V2-TRACKER.md` |
+| INV-01292 | SOURCE-SPECIFIC | — | `docs/V2-TRACKER.md` |
+| INV-01293 | SOURCE-SPECIFIC | — | `docs/V2-TRACKER.md` |
+| INV-01294 | CMP-0086 | Lead lifecycle and the lead desk | `docs/V2-TRACKER.md` |
+| INV-01295 | SOURCE-SPECIFIC | — | `docs/V2-TRACKER.md` |
+| INV-01296 | SOURCE-SPECIFIC | — | `docs/V2-TRACKER.md` |
+| INV-01297 | SOURCE-SPECIFIC | — | `docs/V2-TRACKER.md` |
+| INV-01298 | SOURCE-SPECIFIC | — | `docs/V2-TRACKER.md` |
+| INV-01299 | CMP-0115 | Seed data, wipes and Client Zero | `docs/V2-TRACKER.md` |
+| INV-01300 | SOURCE-SPECIFIC | — | `docs/V2-TRACKER.md` |
+| INV-01301 | SOURCE-SPECIFIC | — | `docs/V2-TRACKER.md` |
+| INV-01302 | SOURCE-SPECIFIC | — | `docs/V2-TRACKER.md` |
+| INV-01303 | SOURCE-SPECIFIC | — | `docs/V2-TRACKER.md` |
 | INV-01304 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/V2-TRACKER.md` |
-| INV-01305 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01306 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01307 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01308 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
+| INV-01305 | SOURCE-SPECIFIC | — | `docs/V2-TRACKER.md` |
+| INV-01306 | SOURCE-SPECIFIC | — | `docs/V2-TRACKER.md` |
+| INV-01307 | CMP-0089 | Credits, the two-pool model and holds | `docs/V2-TRACKER.md` |
+| INV-01308 | SOURCE-SPECIFIC | — | `docs/V2-TRACKER.md` |
 | INV-01309 | CMP-0022 | Who may start sourcing — Run, cron and top-up | `docs/V2-TRACKER.md` |
 | INV-01310 | CMP-0001 | The $299 onboarding pack | `docs/V2-TRACKER.md` |
 | INV-01311 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/V2-TRACKER.md` |
 | INV-01312 | CMP-0001 | The $299 onboarding pack | `docs/V2-TRACKER.md` |
 | INV-01313 | CMP-0031 | Customer / inbound and owned data as a source | `docs/V2-TRACKER.md` |
 | INV-01314 | CMP-0042 | Suppression, opt-out and DNC | `docs/V2-TRACKER.md` |
-| INV-01315 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
+| INV-01315 | SOURCE-SPECIFIC | — | `docs/V2-TRACKER.md` |
 | INV-01316 | CMP-0001 | The $299 onboarding pack | `docs/V2-TRACKER.md` |
 | INV-01317 | CMP-0031 | Customer / inbound and owned data as a source | `docs/V2-TRACKER.md` |
 | INV-01318 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/V2-TRACKER.md` |
-| INV-01319 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
+| INV-01319 | CMP-0072 | check.sh as the only gate | `docs/V2-TRACKER.md` |
 | INV-01320 | CMP-0037 | Milla conversational experience and the flywheel | `docs/V2-TRACKER.md` |
-| INV-01321 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01322 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
+| INV-01321 | SOURCE-SPECIFIC | — | `docs/V2-TRACKER.md` |
+| INV-01322 | CMP-0194 | Day-1 post-launch operating-model session (R60) | `docs/V2-TRACKER.md` |
 | INV-01323 | CMP-0046 | Client-facing calculators | `docs/V2-TRACKER.md` |
-| INV-01324 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01325 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01326 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01327 | CMP-0062 | The Founder Idea Bank FI-01 … FI-69 | `docs/V2-TRACKER.md` |
-| INV-01328 | CMP-0057 | LAUNCH-PAD vs PRODUCT-INVENTORY — the same items, two boards | `docs/V2-TRACKER.md` |
-| INV-01329 | CMP-0062 | The Founder Idea Bank FI-01 … FI-69 | `docs/V2-TRACKER.md` |
-| INV-01330 | CMP-0004 | Programme pricing ~$450 per targeted booked meeting | `docs/V2-TRACKER.md` |
-| INV-01331 | CMP-0062 | The Founder Idea Bank FI-01 … FI-69 | `docs/V2-TRACKER.md` |
+| INV-01324 | SOURCE-SPECIFIC | — | `docs/V2-TRACKER.md` |
+| INV-01325 | CMP-0106 | Competitive landscape and teardowns | `docs/V2-TRACKER.md` |
+| INV-01326 | CMP-0120 | Retired and tombstoned items | `docs/V2-TRACKER.md` |
+| INV-01327 | CMP-0135 | Art of the possible and idea capture | `docs/V2-TRACKER.md` |
+| INV-01328 | CMP-0165 | Recurrent proof runtime failure | `docs/V2-TRACKER.md` |
+| INV-01329 | CMP-0135 | Art of the possible and idea capture | `docs/V2-TRACKER.md` |
+| INV-01330 | CMP-0143 | Make-whole when K.I.N.D cannot deliver authorised units | `docs/V2-TRACKER.md` |
+| INV-01331 | CMP-0135 | Art of the possible and idea capture | `docs/V2-TRACKER.md` |
 | INV-01332 | CMP-0002 | The $4 per-approved-lead charge | `docs/V2-TRACKER.md` |
 | INV-01333 | CMP-0002 | The $4 per-approved-lead charge | `docs/V2-TRACKER.md` |
 | INV-01334 | CMP-0008 | ~7:1 observed sourcing attainment | `docs/V2-TRACKER.md` |
-| INV-01335 | CMP-0039 | Vida — the operator console | `docs/V2-TRACKER.md` |
-| INV-01336 | CMP-0039 | Vida — the operator console | `docs/V2-TRACKER.md` |
-| INV-01337 | CMP-0029 | Acquisition memory — retention is not contactability | `docs/V2-TRACKER.md` |
-| INV-01338 | CMP-0028 | Pool-first sourcing and cross-client reuse | `docs/V2-TRACKER.md` |
-| INV-01339 | CMP-0051 | run-costs-and-cashflow as the price mirror | `docs/V2-TRACKER.md` |
-| INV-01340 | CMP-0062 | The Founder Idea Bank FI-01 … FI-69 | `docs/V2-TRACKER.md` |
-| INV-01341 | CMP-0062 | The Founder Idea Bank FI-01 … FI-69 | `docs/V2-TRACKER.md` |
-| INV-01342 | CMP-0062 | The Founder Idea Bank FI-01 … FI-69 | `docs/V2-TRACKER.md` |
-| INV-01343 | CMP-0057 | LAUNCH-PAD vs PRODUCT-INVENTORY — the same items, two boards | `docs/V2-TRACKER.md` |
-| INV-01344 | CMP-0057 | LAUNCH-PAD vs PRODUCT-INVENTORY — the same items, two boards | `docs/V2-TRACKER.md` |
-| INV-01345 | CMP-0057 | LAUNCH-PAD vs PRODUCT-INVENTORY — the same items, two boards | `docs/V2-TRACKER.md` |
-| INV-01346 | CMP-0011 | ~150 accepted prospects per booked meeting (R69) | `docs/V2-TRACKER.md` |
-| INV-01347 | CMP-0032 | Meeting states — booked, unverified, held, no-show, reschedule | `docs/V2-TRACKER.md` |
-| INV-01348 | CMP-0062 | The Founder Idea Bank FI-01 … FI-69 | `docs/V2-TRACKER.md` |
-| INV-01349 | CMP-0026 | ICP changes and the widened-proof acceptance rule | `docs/V2-TRACKER.md` |
-| INV-01350 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/V2-TRACKER.md` |
-| INV-01351 | CMP-0062 | The Founder Idea Bank FI-01 … FI-69 | `docs/V2-TRACKER.md` |
-| INV-01352 | CMP-0062 | The Founder Idea Bank FI-01 … FI-69 | `docs/V2-TRACKER.md` |
-| INV-01353 | CMP-0113 | Error tracking and observability | `docs/V2-TRACKER.md` |
-| INV-01354 | CMP-0062 | The Founder Idea Bank FI-01 … FI-69 | `docs/V2-TRACKER.md` |
-| INV-01355 | CMP-0062 | The Founder Idea Bank FI-01 … FI-69 | `docs/V2-TRACKER.md` |
-| INV-01356 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/V2-TRACKER.md` |
-| INV-01357 | CMP-0062 | The Founder Idea Bank FI-01 … FI-69 | `docs/V2-TRACKER.md` |
-| INV-01358 | CMP-0062 | The Founder Idea Bank FI-01 … FI-69 | `docs/V2-TRACKER.md` |
-| INV-01359 | CMP-0002 | The $4 per-approved-lead charge | `docs/V2-TRACKER.md` |
+| INV-01335 | CMP-0162 | Vida Lead Pool operator view | `docs/V2-TRACKER.md` |
+| INV-01336 | CMP-0163 | Vida suppression / DNC operator visibility | `docs/V2-TRACKER.md` |
+| INV-01337 | CMP-0164 | Acquisition-memory operator visibility | `docs/V2-TRACKER.md` |
+| INV-01338 | CMP-0176 | Future sourcing architecture — pool first, then paid | `docs/V2-TRACKER.md` |
+| INV-01339 | CMP-0169 | Apollo economics planning case | `docs/V2-TRACKER.md` |
+| INV-01340 | CMP-0170 | Post-launch Apollo optimisation | `docs/V2-TRACKER.md` |
+| INV-01341 | CMP-0171 | Provider-neutral routing on cost and coverage | `docs/V2-TRACKER.md` |
+| INV-01342 | CMP-0172 | Additional future acquisition sources | `docs/V2-TRACKER.md` |
+| INV-01343 | CMP-0165 | Recurrent proof runtime failure | `docs/V2-TRACKER.md` |
+| INV-01344 | CMP-0151 | Paid-provider go-live rule (PAID_PROVIDERS_ENABLED) | `docs/V2-TRACKER.md` |
+| INV-01345 | CMP-0177 | Pre-launch cleanup — delete fake and test data | `docs/V2-TRACKER.md` |
+| INV-01346 | CMP-0157 | Booked → paying conversion tracking | `docs/V2-TRACKER.md` |
+| INV-01347 | CMP-0158 | 15% booked → paying planning hypothesis | `docs/V2-TRACKER.md` |
+| INV-01348 | CMP-0181 | Premium conversion-coaching product | `docs/V2-TRACKER.md` |
+| INV-01349 | CMP-0182 | Milla / AI conversion-coaching diagnostics | `docs/V2-TRACKER.md` |
+| INV-01350 | CMP-0184 | Glean investigation as a context layer | `docs/V2-TRACKER.md` |
+| INV-01351 | CMP-0185 | K.I.N.D multi-player AI | `docs/V2-TRACKER.md` |
+| INV-01352 | CMP-0185 | K.I.N.D multi-player AI | `docs/V2-TRACKER.md` |
+| INV-01353 | CMP-0186 | Internal model routing and AI cost economics | `docs/V2-TRACKER.md` |
+| INV-01354 | CMP-0186 | Internal model routing and AI cost economics | `docs/V2-TRACKER.md` |
+| INV-01355 | CMP-0187 | CodeRabbit as an independent second reviewer | `docs/V2-TRACKER.md` |
+| INV-01356 | CMP-0188 | Milla voice — speech-to-text and spoken replies | `docs/V2-TRACKER.md` |
+| INV-01357 | CMP-0189 | Slack as an interaction layer | `docs/V2-TRACKER.md` |
+| INV-01358 | CMP-0189 | Slack as an interaction layer | `docs/V2-TRACKER.md` |
+| INV-01359 | CMP-0004 | Programme pricing ~$450 per targeted booked meeting | `docs/V2-TRACKER.md` |
 | INV-01360 | CMP-0004 | Programme pricing ~$450 per targeted booked meeting | `docs/V2-TRACKER.md` |
 | INV-01361 | CMP-0051 | run-costs-and-cashflow as the price mirror | `docs/V2-TRACKER.md` |
 | INV-01362 | CMP-0010 | 1:1 commercial sourcing assumption (FI-29) | `docs/V2-TRACKER.md` |
-| INV-01363 | CMP-0032 | Meeting states — booked, unverified, held, no-show, reschedule | `docs/V2-TRACKER.md` |
+| INV-01363 | CMP-0159 | Milla meeting target — the client states the target | `docs/V2-TRACKER.md` |
 | INV-01364 | CMP-0004 | Programme pricing ~$450 per targeted booked meeting | `docs/V2-TRACKER.md` |
-| INV-01365 | CMP-0011 | ~150 accepted prospects per booked meeting (R69) | `docs/V2-TRACKER.md` |
-| INV-01366 | CMP-0011 | ~150 accepted prospects per booked meeting (R69) | `docs/V2-TRACKER.md` |
-| INV-01367 | CMP-0062 | The Founder Idea Bank FI-01 … FI-69 | `docs/V2-TRACKER.md` |
+| INV-01365 | CMP-0160 | Client-specific learning replaces the generic benchmark | `docs/V2-TRACKER.md` |
+| INV-01366 | CMP-0149 | Performance deterioration → stop / review | `docs/V2-TRACKER.md` |
+| INV-01367 | CMP-0161 | Benchmark transparency — starting vs actual | `docs/V2-TRACKER.md` |
 | INV-01368 | CMP-0046 | Client-facing calculators | `docs/V2-TRACKER.md` |
-| INV-01369 | CMP-0004 | Programme pricing ~$450 per targeted booked meeting | `docs/V2-TRACKER.md` |
-| INV-01370 | CMP-0004 | Programme pricing ~$450 per targeted booked meeting | `docs/V2-TRACKER.md` |
-| INV-01371 | CMP-0012 | 250 recommended leads per targeted booked meeting (seed) | `docs/V2-TRACKER.md` |
-| INV-01372 | CMP-0025 | Pause — who may pause sending, and why | `docs/V2-TRACKER.md` |
-| INV-01373 | CMP-0025 | Pause — who may pause sending, and why | `docs/V2-TRACKER.md` |
-| INV-01374 | CMP-0025 | Pause — who may pause sending, and why | `docs/V2-TRACKER.md` |
+| INV-01369 | CMP-0018 | 50/50 payment split and Approve & Go Live | `docs/V2-TRACKER.md` |
+| INV-01370 | CMP-0146 | Programme-level approval — one approval, not per lead | `docs/V2-TRACKER.md` |
+| INV-01371 | CMP-0147 | Controlled execution batches after Go Live | `docs/V2-TRACKER.md` |
+| INV-01372 | CMP-0147 | Controlled execution batches after Go Live | `docs/V2-TRACKER.md` |
+| INV-01373 | CMP-0148 | Programme pause — client control and material-ICP-change auto-pause | `docs/V2-TRACKER.md` |
+| INV-01374 | CMP-0148 | Programme pause — client control and material-ICP-change auto-pause | `docs/V2-TRACKER.md` |
 | INV-01375 | CMP-0023 | Programme authority over sourcing | `docs/V2-TRACKER.md` |
-| INV-01376 | CMP-0062 | The Founder Idea Bank FI-01 … FI-69 | `docs/V2-TRACKER.md` |
-| INV-01377 | CMP-0004 | Programme pricing ~$450 per targeted booked meeting | `docs/V2-TRACKER.md` |
-| INV-01378 | CMP-0004 | Programme pricing ~$450 per targeted booked meeting | `docs/V2-TRACKER.md` |
-| INV-01379 | CMP-0011 | ~150 accepted prospects per booked meeting (R69) | `docs/V2-TRACKER.md` |
-| INV-01380 | CMP-0032 | Meeting states — booked, unverified, held, no-show, reschedule | `docs/V2-TRACKER.md` |
-| INV-01381 | CMP-0026 | ICP changes and the widened-proof acceptance rule | `docs/V2-TRACKER.md` |
-| INV-01382 | CMP-0034 | Outlook / Zoho as a calendar and mail host | `docs/V2-TRACKER.md` |
+| INV-01376 | CMP-0141 | Unused programme value never expires | `docs/V2-TRACKER.md` |
+| INV-01377 | CMP-0142 | Programme refund boundary — the first 50% | `docs/V2-TRACKER.md` |
+| INV-01378 | CMP-0143 | Make-whole when K.I.N.D cannot deliver authorised units | `docs/V2-TRACKER.md` |
+| INV-01379 | CMP-0152 | Booked and Held as separate metrics | `docs/V2-TRACKER.md` |
+| INV-01380 | CMP-0153 | Booked — unverified as a new meeting state | `docs/V2-TRACKER.md` |
+| INV-01381 | CMP-0154 | Meeting counting rules — reschedules and no-shows | `docs/V2-TRACKER.md` |
+| INV-01382 | CMP-0156 | Native Microsoft / Outlook calendar support | `docs/V2-TRACKER.md` |
 | INV-01383 | CMP-0035 | Booking-link fallback | `docs/V2-TRACKER.md` |
-| INV-01384 | CMP-0014 | Booked → held → paying assumptions | `docs/V2-TRACKER.md` |
-| INV-01385 | CMP-0041 | Free proof — two passes, then a human | `docs/V2-TRACKER.md` |
-| INV-01386 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/V2-TRACKER.md` |
-| INV-01387 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/V2-TRACKER.md` |
+| INV-01384 | CMP-0155 | Manual meeting confirmation by the client | `docs/V2-TRACKER.md` |
+| INV-01385 | CMP-0166 | Proof pass-2 exhaustion must create real work | `docs/V2-TRACKER.md` |
+| INV-01386 | CMP-0168 | Preserve the Milla Jack-and-Jill conversational direction | `docs/V2-TRACKER.md` |
+| INV-01387 | CMP-0167 | Preserve the Vida conversational / operator direction | `docs/V2-TRACKER.md` |
 | INV-01388 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/V2-TRACKER.md` |
-| INV-01389 | CMP-0046 | Client-facing calculators | `docs/V2-TRACKER.md` |
-| INV-01390 | CMP-0002 | The $4 per-approved-lead charge | `docs/V2-TRACKER.md` |
-| INV-01391 | CMP-0004 | Programme pricing ~$450 per targeted booked meeting | `docs/V2-TRACKER.md` |
+| INV-01389 | CMP-0178 | Full-system sweep when the programme model lands | `docs/V2-TRACKER.md` |
+| INV-01390 | CMP-0179 | Re-record the demo video | `docs/V2-TRACKER.md` |
+| INV-01391 | CMP-0140 | Partner commission on programme revenue | `docs/V2-TRACKER.md` |
 | INV-01392 | CMP-0004 | Programme pricing ~$450 per targeted booked meeting | `docs/V2-TRACKER.md` |
-| INV-01393 | CMP-0027 | AR5 — Apollo is ours, PDL and Hunter are the clients' | `docs/V2-TRACKER.md` |
-| INV-01394 | CMP-0027 | AR5 — Apollo is ours, PDL and Hunter are the clients' | `docs/V2-TRACKER.md` |
-| INV-01395 | CMP-0062 | The Founder Idea Bank FI-01 … FI-69 | `docs/V2-TRACKER.md` |
+| INV-01393 | CMP-0174 | PDL as the launch external sourcing provider | `docs/V2-TRACKER.md` |
+| INV-01394 | CMP-0175 | Apollo live API parked for launch | `docs/V2-TRACKER.md` |
+| INV-01395 | CMP-0173 | Eligible K.I.N.D-owned Apollo pool data | `docs/V2-TRACKER.md` |
 | INV-01396 | CMP-0011 | ~150 accepted prospects per booked meeting (R69) | `docs/V2-TRACKER.md` |
-| INV-01397 | CMP-0062 | The Founder Idea Bank FI-01 … FI-69 | `docs/V2-TRACKER.md` |
-| INV-01398 | CMP-0016 | The wallet and the per-approval charge | `docs/V2-TRACKER.md` |
-| INV-01399 | CMP-0062 | The Founder Idea Bank FI-01 … FI-69 | `docs/V2-TRACKER.md` |
+| INV-01397 | CMP-0183 | Evidence-driven recommendations | `docs/V2-TRACKER.md` |
+| INV-01398 | CMP-0144 | Individual paid-lead accept-and-charge — superseded mechanic | `docs/V2-TRACKER.md` |
+| INV-01399 | CMP-0150 | One-by-one replacement approval at live volume — superseded | `docs/V2-TRACKER.md` |
 | INV-01400 | CMP-0008 | ~7:1 observed sourcing attainment | `docs/V2-TRACKER.md` |
-| INV-01401 | CMP-0002 | The $4 per-approved-lead charge | `docs/V2-TRACKER.md` |
-| INV-01402 | CMP-0062 | The Founder Idea Bank FI-01 … FI-69 | `docs/V2-TRACKER.md` |
+| INV-01401 | CMP-0139 | Flat $4 as the superseded commercial architecture | `docs/V2-TRACKER.md` |
+| INV-01402 | CMP-0145 | Source-first / pay-on-outcome — superseded mechanic | `docs/V2-TRACKER.md` |
 | INV-01403 | SOURCE-SPECIFIC | — | `docs/client-flow-sop.md` |
-| INV-01404 | CMP-0001 | The $299 onboarding pack | `docs/client-flow-sop.md` |
+| INV-01404 | CMP-0136 | First 100 approved leads included — the legacy pack entitlement | `docs/client-flow-sop.md` |
 | INV-01405 | CMP-0016 | The wallet and the per-approval charge | `docs/client-flow-sop.md` |
 | INV-01406 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/client-flow-sop.md` |
 | INV-01407 | CMP-0084 | Unibox, replies and reply triage | `docs/client-flow-sop.md` |
@@ -1470,7 +1470,7 @@
 | INV-01452 | CMP-0051 | run-costs-and-cashflow as the price mirror | `docs/run-costs-and-cashflow.md` |
 | INV-01453 | CMP-0051 | run-costs-and-cashflow as the price mirror | `docs/run-costs-and-cashflow.md` |
 | INV-01454 | CMP-0034 | Outlook / Zoho as a calendar and mail host | `docs/run-costs-and-cashflow.md` |
-| INV-01455 | CMP-0051 | run-costs-and-cashflow as the price mirror | `docs/run-costs-and-cashflow.md` |
+| INV-01455 | CMP-0193 | The Drop as a content programme | `docs/run-costs-and-cashflow.md` |
 | INV-01456 | CMP-0051 | run-costs-and-cashflow as the price mirror | `docs/run-costs-and-cashflow.md` |
 | INV-01457 | CMP-0051 | run-costs-and-cashflow as the price mirror | `docs/run-costs-and-cashflow.md` |
 | INV-01458 | CMP-0051 | run-costs-and-cashflow as the price mirror | `docs/run-costs-and-cashflow.md` |
@@ -1482,7 +1482,7 @@
 | INV-01464 | CMP-0051 | run-costs-and-cashflow as the price mirror | `docs/run-costs-and-cashflow.md` |
 | INV-01465 | CMP-0051 | run-costs-and-cashflow as the price mirror | `docs/run-costs-and-cashflow.md` |
 | INV-01466 | CMP-0020 | Stripe as the payment gate | `docs/run-costs-and-cashflow.md` |
-| INV-01467 | CMP-0005 | The volume curve — $437.50 at 10 meetings, ~$400 floor at 50+ | `docs/run-costs-and-cashflow.md` |
+| INV-01467 | CMP-0138 | Programme floor — ~$400 effective at 50+ meetings | `docs/run-costs-and-cashflow.md` |
 | INV-01468 | CMP-0009 | ~1.5:1 sourcing-precision improvement objective | `docs/run-costs-and-cashflow.md` |
 | INV-01469 | CMP-0051 | run-costs-and-cashflow as the price mirror | `docs/run-costs-and-cashflow.md` |
 | INV-01470 | CMP-0051 | run-costs-and-cashflow as the price mirror | `docs/run-costs-and-cashflow.md` |
@@ -1508,8 +1508,8 @@
 | INV-01490 | CMP-0051 | run-costs-and-cashflow as the price mirror | `docs/run-costs-and-cashflow.md` |
 | INV-01491 | CMP-0051 | run-costs-and-cashflow as the price mirror | `docs/run-costs-and-cashflow.md` |
 | INV-01492 | CMP-0051 | run-costs-and-cashflow as the price mirror | `docs/run-costs-and-cashflow.md` |
-| INV-01493 | CMP-0051 | run-costs-and-cashflow as the price mirror | `docs/run-costs-and-cashflow.md` |
-| INV-01494 | CMP-0051 | run-costs-and-cashflow as the price mirror | `docs/run-costs-and-cashflow.md` |
+| INV-01493 | CMP-0169 | Apollo economics planning case | `docs/run-costs-and-cashflow.md` |
+| INV-01494 | CMP-0170 | Post-launch Apollo optimisation | `docs/run-costs-and-cashflow.md` |
 | INV-01495 | CMP-0008 | ~7:1 observed sourcing attainment | `docs/run-costs-and-cashflow.md` |
 | INV-01496 | CMP-0051 | run-costs-and-cashflow as the price mirror | `docs/run-costs-and-cashflow.md` |
 | INV-01497 | CMP-0118 | Prior audits and reconciliations | `docs/FOUNDER-TRUTH-AUDIT-2026-08-28.md` |
@@ -1529,14 +1529,14 @@
 | INV-01511 | CMP-0118 | Prior audits and reconciliations | `docs/FOUNDER-TRUTH-AUDIT-2026-08-28.md` |
 | INV-01512 | CMP-0118 | Prior audits and reconciliations | `docs/FOUNDER-TRUTH-AUDIT-2026-08-28.md` |
 | INV-01513 | CMP-0002 | The $4 per-approved-lead charge | `docs/FOUNDER-TRUTH-AUDIT-2026-08-28.md` |
-| INV-01514 | CMP-0001 | The $299 onboarding pack | `docs/FOUNDER-TRUTH-AUDIT-2026-08-28.md` |
+| INV-01514 | CMP-0136 | First 100 approved leads included — the legacy pack entitlement | `docs/FOUNDER-TRUTH-AUDIT-2026-08-28.md` |
 | INV-01515 | CMP-0002 | The $4 per-approved-lead charge | `docs/FOUNDER-TRUTH-AUDIT-2026-08-28.md` |
 | INV-01516 | CMP-0004 | Programme pricing ~$450 per targeted booked meeting | `docs/FOUNDER-TRUTH-AUDIT-2026-08-28.md` |
-| INV-01517 | CMP-0002 | The $4 per-approved-lead charge | `docs/FOUNDER-TRUTH-AUDIT-2026-08-28.md` |
+| INV-01517 | CMP-0137 | Programme working point — $437.50 effective at 10 meetings | `docs/FOUNDER-TRUTH-AUDIT-2026-08-28.md` |
 | INV-01518 | CMP-0005 | The volume curve — $437.50 at 10 meetings, ~$400 floor at 50+ | `docs/FOUNDER-TRUTH-AUDIT-2026-08-28.md` |
 | INV-01519 | CMP-0118 | Prior audits and reconciliations | `docs/FOUNDER-TRUTH-AUDIT-2026-08-28.md` |
-| INV-01520 | CMP-0118 | Prior audits and reconciliations | `docs/FOUNDER-TRUTH-AUDIT-2026-08-28.md` |
-| INV-01521 | CMP-0086 | Lead lifecycle and the lead desk | `docs/FOUNDER-TRUTH-AUDIT-2026-08-28.md` |
+| INV-01520 | CMP-0018 | 50/50 payment split and Approve & Go Live | `docs/FOUNDER-TRUTH-AUDIT-2026-08-28.md` |
+| INV-01521 | CMP-0146 | Programme-level approval — one approval, not per lead | `docs/FOUNDER-TRUTH-AUDIT-2026-08-28.md` |
 | INV-01522 | CMP-0007 | Partner commission — 25% of paid lead sales | `docs/FOUNDER-TRUTH-AUDIT-2026-08-28.md` |
 | INV-01523 | CMP-0118 | Prior audits and reconciliations | `docs/FOUNDER-TRUTH-AUDIT-2026-08-28.md` |
 | INV-01524 | CMP-0118 | Prior audits and reconciliations | `docs/FOUNDER-TRUTH-AUDIT-2026-08-28.md` |
@@ -1548,14 +1548,14 @@
 | INV-01530 | CMP-0118 | Prior audits and reconciliations | `docs/FOUNDER-TRUTH-AUDIT-2026-08-28.md` |
 | INV-01531 | CMP-0118 | Prior audits and reconciliations | `docs/FOUNDER-TRUTH-AUDIT-2026-08-28.md` |
 | INV-01532 | CMP-0118 | Prior audits and reconciliations | `docs/FOUNDER-TRUTH-AUDIT-2026-08-28.md` |
-| INV-01533 | CMP-0086 | Lead lifecycle and the lead desk | `docs/FOUNDER-TRUTH-AUDIT-2026-08-28.md` |
-| INV-01534 | CMP-0025 | Pause — who may pause sending, and why | `docs/FOUNDER-TRUTH-AUDIT-2026-08-28.md` |
-| INV-01535 | CMP-0025 | Pause — who may pause sending, and why | `docs/FOUNDER-TRUTH-AUDIT-2026-08-28.md` |
+| INV-01533 | CMP-0147 | Controlled execution batches after Go Live | `docs/FOUNDER-TRUTH-AUDIT-2026-08-28.md` |
+| INV-01534 | CMP-0148 | Programme pause — client control and material-ICP-change auto-pause | `docs/FOUNDER-TRUTH-AUDIT-2026-08-28.md` |
+| INV-01535 | CMP-0148 | Programme pause — client control and material-ICP-change auto-pause | `docs/FOUNDER-TRUTH-AUDIT-2026-08-28.md` |
 | INV-01536 | CMP-0025 | Pause — who may pause sending, and why | `docs/FOUNDER-TRUTH-AUDIT-2026-08-28.md` |
 | INV-01537 | CMP-0023 | Programme authority over sourcing | `docs/FOUNDER-TRUTH-AUDIT-2026-08-28.md` |
 | INV-01538 | CMP-0016 | The wallet and the per-approval charge | `docs/FOUNDER-TRUTH-AUDIT-2026-08-28.md` |
 | INV-01539 | CMP-0022 | Who may start sourcing — Run, cron and top-up | `docs/FOUNDER-TRUTH-AUDIT-2026-08-28.md` |
-| INV-01540 | CMP-0118 | Prior audits and reconciliations | `docs/FOUNDER-TRUTH-AUDIT-2026-08-28.md` |
+| INV-01540 | CMP-0141 | Unused programme value never expires | `docs/FOUNDER-TRUTH-AUDIT-2026-08-28.md` |
 | INV-01541 | CMP-0041 | Free proof — two passes, then a human | `docs/FOUNDER-TRUTH-AUDIT-2026-08-28.md` |
 | INV-01542 | CMP-0041 | Free proof — two passes, then a human | `docs/FOUNDER-TRUTH-AUDIT-2026-08-28.md` |
 | INV-01543 | CMP-0041 | Free proof — two passes, then a human | `docs/FOUNDER-TRUTH-AUDIT-2026-08-28.md` |
@@ -1564,11 +1564,11 @@
 | INV-01546 | CMP-0028 | Pool-first sourcing and cross-client reuse | `docs/FOUNDER-TRUTH-AUDIT-2026-08-28.md` |
 | INV-01547 | CMP-0118 | Prior audits and reconciliations | `docs/FOUNDER-TRUTH-AUDIT-2026-08-28.md` |
 | INV-01548 | CMP-0118 | Prior audits and reconciliations | `docs/FOUNDER-TRUTH-AUDIT-2026-08-28.md` |
-| INV-01549 | CMP-0118 | Prior audits and reconciliations | `docs/FOUNDER-TRUTH-AUDIT-2026-08-28.md` |
+| INV-01549 | CMP-0151 | Paid-provider go-live rule (PAID_PROVIDERS_ENABLED) | `docs/FOUNDER-TRUTH-AUDIT-2026-08-28.md` |
 | INV-01550 | CMP-0118 | Prior audits and reconciliations | `docs/FOUNDER-TRUTH-AUDIT-2026-08-28.md` |
 | INV-01551 | CMP-0042 | Suppression, opt-out and DNC | `docs/FOUNDER-TRUTH-AUDIT-2026-08-28.md` |
-| INV-01552 | CMP-0014 | Booked → held → paying assumptions | `docs/FOUNDER-TRUTH-AUDIT-2026-08-28.md` |
-| INV-01553 | CMP-0032 | Meeting states — booked, unverified, held, no-show, reschedule | `docs/FOUNDER-TRUTH-AUDIT-2026-08-28.md` |
+| INV-01552 | CMP-0152 | Booked and Held as separate metrics | `docs/FOUNDER-TRUTH-AUDIT-2026-08-28.md` |
+| INV-01553 | CMP-0153 | Booked — unverified as a new meeting state | `docs/FOUNDER-TRUTH-AUDIT-2026-08-28.md` |
 | INV-01554 | CMP-0014 | Booked → held → paying assumptions | `docs/FOUNDER-TRUTH-AUDIT-2026-08-28.md` |
 | INV-01555 | CMP-0034 | Outlook / Zoho as a calendar and mail host | `docs/FOUNDER-TRUTH-AUDIT-2026-08-28.md` |
 | INV-01556 | CMP-0014 | Booked → held → paying assumptions | `docs/FOUNDER-TRUTH-AUDIT-2026-08-28.md` |
@@ -1668,7 +1668,7 @@
 | INV-01650 | SOURCE-SPECIFIC | — | `docs/KIND-MASTER.md` |
 | INV-01651 | SOURCE-SPECIFIC | — | `docs/KIND-MASTER.md` |
 | INV-01652 | CMP-0058 | Launch gates and blockers | `docs/KIND-MASTER.md` |
-| INV-01653 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/KIND-MASTER.md` |
+| INV-01653 | CMP-0076 | Preview before live | `docs/KIND-MASTER.md` |
 | INV-01654 | CMP-0119 | Founder open-item lists and checklists | `docs/KIND-MASTER.md` |
 | INV-01655 | CMP-0105 | Partner programme operations | `docs/KIND-MASTER.md` |
 | INV-01656 | CMP-0060 | Deployment verification and the SHA report | `docs/KIND-MASTER.md` |
@@ -1676,7 +1676,7 @@
 | INV-01658 | SOURCE-SPECIFIC | — | `docs/KIND-MASTER.md` |
 | INV-01659 | CMP-0073 | Session logging and the end-of-session ritual | `docs/KIND-MASTER.md` |
 | INV-01660 | CMP-0075 | The status dot ladder | `docs/KIND-MASTER.md` |
-| INV-01661 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/KIND-MASTER.md` |
+| INV-01661 | CMP-0066 | Steals — patterns taken from other tools | `docs/KIND-MASTER.md` |
 | INV-01662 | CMP-0022 | Who may start sourcing — Run, cron and top-up | `docs/KIND-MASTER.md` |
 | INV-01663 | SOURCE-SPECIFIC | — | `docs/KIND-MASTER.md` |
 | INV-01664 | CMP-0116 | Dated roadmap phases and timelines | `docs/KIND-MASTER.md` |
@@ -1735,24 +1735,24 @@
 | INV-01717 | SOURCE-SPECIFIC | — | `docs/KIND-MASTER.md` |
 | INV-01718 | CMP-0102 | Marketing plan, content and the Drop | `docs/KIND-MASTER.md` |
 | INV-01719 | CMP-0102 | Marketing plan, content and the Drop | `docs/KIND-MASTER.md` |
-| INV-01720 | CMP-0102 | Marketing plan, content and the Drop | `docs/KIND-MASTER.md` |
+| INV-01720 | CMP-0193 | The Drop as a content programme | `docs/KIND-MASTER.md` |
 | INV-01721 | CMP-0102 | Marketing plan, content and the Drop | `docs/KIND-MASTER.md` |
 | INV-01722 | CMP-0102 | Marketing plan, content and the Drop | `docs/KIND-MASTER.md` |
-| INV-01723 | CMP-0102 | Marketing plan, content and the Drop | `docs/KIND-MASTER.md` |
+| INV-01723 | CMP-0193 | The Drop as a content programme | `docs/KIND-MASTER.md` |
 | INV-01724 | CMP-0048 | Onboarding and demo surfaces | `docs/KIND-MASTER.md` |
 | INV-01725 | CMP-0102 | Marketing plan, content and the Drop | `docs/KIND-MASTER.md` |
 | INV-01726 | CMP-0075 | The status dot ladder | `docs/KIND-MASTER.md` |
-| INV-01727 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/KIND-MASTER.md` |
-| INV-01728 | CMP-0102 | Marketing plan, content and the Drop | `docs/KIND-MASTER.md` |
-| INV-01729 | CMP-0083 | Campaigns and the sequence builder | `docs/KIND-MASTER.md` |
+| INV-01727 | CMP-0193 | The Drop as a content programme | `docs/KIND-MASTER.md` |
+| INV-01728 | CMP-0193 | The Drop as a content programme | `docs/KIND-MASTER.md` |
+| INV-01729 | CMP-0193 | The Drop as a content programme | `docs/KIND-MASTER.md` |
 | INV-01730 | CMP-0102 | Marketing plan, content and the Drop | `docs/KIND-MASTER.md` |
 | INV-01731 | CMP-0102 | Marketing plan, content and the Drop | `docs/KIND-MASTER.md` |
 | INV-01732 | STRUCTURAL | — | `docs/KIND-MASTER.md` |
-| INV-01733 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/KIND-MASTER.md` |
+| INV-01733 | SOURCE-SPECIFIC | — | `docs/KIND-MASTER.md` |
 | INV-01734 | STRUCTURAL | — | `docs/KIND-MASTER.md` |
 | INV-01735 | CMP-0048 | Onboarding and demo surfaces | `docs/KIND-MASTER.md` |
 | INV-01736 | CMP-0048 | Onboarding and demo surfaces | `docs/KIND-MASTER.md` |
-| INV-01737 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/KIND-MASTER.md` |
+| INV-01737 | CMP-0083 | Campaigns and the sequence builder | `docs/KIND-MASTER.md` |
 | INV-01738 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/KIND-MASTER.md` |
 | INV-01739 | CMP-0096 | Company engine, seats and the pool | `docs/KIND-MASTER.md` |
 | INV-01740 | CMP-0048 | Onboarding and demo surfaces | `docs/KIND-MASTER.md` |
@@ -1785,7 +1785,7 @@
 | INV-01767 | CMP-0073 | Session logging and the end-of-session ritual | `docs/KIND-MASTER.md` |
 | INV-01768 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/KIND-MASTER.md` |
 | INV-01769 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/KIND-MASTER.md` |
-| INV-01770 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/KIND-MASTER.md` |
+| INV-01770 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/KIND-MASTER.md` |
 | INV-01771 | CMP-0082 | The core-file register and the doc map | `docs/KIND-MASTER.md` |
 | INV-01772 | CMP-0117 | Session logs and handoffs | `docs/KIND-MASTER.md` |
 | INV-01773 | CMP-0040 | Proof review — the exhausted prospect becomes real work | `docs/KIND-MASTER.md` |
@@ -1852,7 +1852,7 @@
 | INV-01834 | CMP-0117 | Session logs and handoffs | `docs/KIND-MASTER.md` |
 | INV-01835 | CMP-0092 | PWA, offline and mobile | `docs/KIND-MASTER.md` |
 | INV-01836 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/KIND-MASTER.md` |
-| INV-01837 | CMP-0102 | Marketing plan, content and the Drop | `docs/KIND-MASTER.md` |
+| INV-01837 | CMP-0193 | The Drop as a content programme | `docs/KIND-MASTER.md` |
 | INV-01838 | CMP-0117 | Session logs and handoffs | `docs/KIND-MASTER.md` |
 | INV-01839 | CMP-0085 | Deliverability, warm-up and sending domains | `docs/KIND-MASTER.md` |
 | INV-01840 | CMP-0117 | Session logs and handoffs | `docs/KIND-MASTER.md` |
@@ -1893,12 +1893,12 @@
 | INV-01875 | CMP-0085 | Deliverability, warm-up and sending domains | `docs/KIND-MASTER.md` |
 | INV-01876 | CMP-0096 | Company engine, seats and the pool | `docs/KIND-MASTER.md` |
 | INV-01877 | CMP-0101 | GTM strategy and the two-track market | `docs/KIND-MASTER.md` |
-| INV-01878 | CMP-0005 | The volume curve — $437.50 at 10 meetings, ~$400 floor at 50+ | `docs/KIND-MASTER.md` |
+| INV-01878 | CMP-0138 | Programme floor — ~$400 effective at 50+ meetings | `docs/KIND-MASTER.md` |
 | INV-01879 | CMP-0117 | Session logs and handoffs | `docs/KIND-MASTER.md` |
 | INV-01880 | CMP-0026 | ICP changes and the widened-proof acceptance rule | `docs/KIND-MASTER.md` |
 | INV-01881 | CMP-0075 | The status dot ladder | `docs/KIND-MASTER.md` |
 | INV-01882 | CMP-0117 | Session logs and handoffs | `docs/KIND-MASTER.md` |
-| INV-01883 | CMP-0083 | Campaigns and the sequence builder | `docs/KIND-MASTER.md` |
+| INV-01883 | CMP-0192 | Evidence-triggered phase ladder — PROVE IT / COMPOUND IT / SCALE IT | `docs/KIND-MASTER.md` |
 | INV-01884 | CMP-0117 | Session logs and handoffs | `docs/KIND-MASTER.md` |
 | INV-01885 | CMP-0066 | Steals — patterns taken from other tools | `docs/KIND-MASTER.md` |
 | INV-01886 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/KIND-MASTER.md` |
@@ -2046,10 +2046,10 @@
 | INV-02028 | CMP-0073 | Session logging and the end-of-session ritual | `docs/KIND-MASTER.md` |
 | INV-02029 | CMP-0073 | Session logging and the end-of-session ritual | `docs/KIND-MASTER.md` |
 | INV-02030 | CMP-0073 | Session logging and the end-of-session ritual | `docs/KIND-MASTER.md` |
-| INV-02031 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/KIND-MASTER.md` |
+| INV-02031 | CMP-0191 | The three-product model (R39) | `docs/KIND-MASTER.md` |
 | INV-02032 | CMP-0073 | Session logging and the end-of-session ritual | `docs/KIND-MASTER.md` |
 | INV-02033 | CMP-0073 | Session logging and the end-of-session ritual | `docs/KIND-MASTER.md` |
-| INV-02034 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/KIND-MASTER.md` |
+| INV-02034 | CMP-0073 | Session logging and the end-of-session ritual | `docs/KIND-MASTER.md` |
 | INV-02035 | CMP-0073 | Session logging and the end-of-session ritual | `docs/KIND-MASTER.md` |
 | INV-02036 | CMP-0073 | Session logging and the end-of-session ritual | `docs/KIND-MASTER.md` |
 | INV-02037 | CMP-0073 | Session logging and the end-of-session ritual | `docs/KIND-MASTER.md` |
@@ -2255,7 +2255,7 @@
 | INV-02237 | CMP-0024 | Spend fences — daily cap, month room, coverage | `docs/KIND-MASTER.md` |
 | INV-02238 | CMP-0051 | run-costs-and-cashflow as the price mirror | `docs/KIND-MASTER.md` |
 | INV-02239 | CMP-0073 | Session logging and the end-of-session ritual | `docs/KIND-MASTER.md` |
-| INV-02240 | CMP-0005 | The volume curve — $437.50 at 10 meetings, ~$400 floor at 50+ | `docs/KIND-MASTER.md` |
+| INV-02240 | CMP-0137 | Programme working point — $437.50 effective at 10 meetings | `docs/KIND-MASTER.md` |
 | INV-02241 | CMP-0073 | Session logging and the end-of-session ritual | `docs/KIND-MASTER.md` |
 | INV-02242 | CMP-0060 | Deployment verification and the SHA report | `docs/KIND-MASTER.md` |
 | INV-02243 | CMP-0016 | The wallet and the per-approval charge | `docs/KIND-MASTER.md` |
@@ -2294,7 +2294,7 @@
 | INV-02276 | CMP-0073 | Session logging and the end-of-session ritual | `docs/KIND-MASTER.md` |
 | INV-02277 | CMP-0073 | Session logging and the end-of-session ritual | `docs/KIND-MASTER.md` |
 | INV-02278 | CMP-0057 | LAUNCH-PAD vs PRODUCT-INVENTORY — the same items, two boards | `docs/KIND-MASTER.md` |
-| INV-02279 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/KIND-MASTER.md` |
+| INV-02279 | CMP-0073 | Session logging and the end-of-session ritual | `docs/KIND-MASTER.md` |
 | INV-02280 | CMP-0073 | Session logging and the end-of-session ritual | `docs/KIND-MASTER.md` |
 | INV-02281 | CMP-0043 | Vida programme cockpit | `docs/KIND-MASTER.md` |
 | INV-02282 | CMP-0073 | Session logging and the end-of-session ritual | `docs/KIND-MASTER.md` |
@@ -2339,7 +2339,7 @@
 | INV-02321 | CMP-0073 | Session logging and the end-of-session ritual | `docs/KIND-MASTER.md` |
 | INV-02322 | CMP-0057 | LAUNCH-PAD vs PRODUCT-INVENTORY — the same items, two boards | `docs/KIND-MASTER.md` |
 | INV-02323 | CMP-0048 | Onboarding and demo surfaces | `docs/KIND-MASTER.md` |
-| INV-02324 | CMP-0066 | Steals — patterns taken from other tools | `docs/KIND-MASTER.md` |
+| INV-02324 | CMP-0196 | The stealth constraint (R2) | `docs/KIND-MASTER.md` |
 | INV-02325 | CMP-0073 | Session logging and the end-of-session ritual | `docs/KIND-MASTER.md` |
 | INV-02326 | CMP-0073 | Session logging and the end-of-session ritual | `docs/KIND-MASTER.md` |
 | INV-02327 | CMP-0073 | Session logging and the end-of-session ritual | `docs/KIND-MASTER.md` |
@@ -2360,7 +2360,7 @@
 | INV-02342 | CMP-0073 | Session logging and the end-of-session ritual | `docs/KIND-MASTER.md` |
 | INV-02343 | CMP-0073 | Session logging and the end-of-session ritual | `docs/KIND-MASTER.md` |
 | INV-02344 | CMP-0073 | Session logging and the end-of-session ritual | `docs/KIND-MASTER.md` |
-| INV-02345 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/KIND-MASTER.md` |
+| INV-02345 | CMP-0190 | Alta parity — the unified data layer / shared agent brain | `docs/KIND-MASTER.md` |
 | INV-02346 | CMP-0073 | Session logging and the end-of-session ritual | `docs/KIND-MASTER.md` |
 | INV-02347 | CMP-0073 | Session logging and the end-of-session ritual | `docs/KIND-MASTER.md` |
 | INV-02348 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/KIND-MASTER.md` |
@@ -2519,8 +2519,8 @@
 | INV-02501 | CMP-0095 | Knowledge, Compass and client training | `docs/KIND-MASTER.md` |
 | INV-02502 | CMP-0111 | Testing, smoke tests and the walk | `docs/KIND-MASTER.md` |
 | INV-02503 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/KIND-MASTER.md` |
-| INV-02504 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/KIND-MASTER.md` |
-| INV-02505 | CMP-0005 | The volume curve — $437.50 at 10 meetings, ~$400 floor at 50+ | `docs/KIND-MASTER.md` |
+| INV-02504 | CMP-0064 | Nexus — the per-client learning brain | `docs/KIND-MASTER.md` |
+| INV-02505 | CMP-0137 | Programme working point — $437.50 effective at 10 meetings | `docs/KIND-MASTER.md` |
 | INV-02506 | SOURCE-SPECIFIC | — | `docs/KIND-MASTER.md` |
 | INV-02507 | CMP-0026 | ICP changes and the widened-proof acceptance rule | `docs/KIND-MASTER.md` |
 | INV-02508 | CMP-0060 | Deployment verification and the SHA report | `docs/KIND-MASTER.md` |
@@ -2570,7 +2570,7 @@
 | INV-02552 | CMP-0068 | Operating Protocol v1 — r1 … r22 | `docs/RULEBOOK.md` |
 | INV-02553 | SOURCE-SPECIFIC | — | `docs/RULEBOOK.md` |
 | INV-02554 | CMP-0066 | Steals — patterns taken from other tools | `docs/RULEBOOK.md` |
-| INV-02555 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/RULEBOOK.md` |
+| INV-02555 | CMP-0066 | Steals — patterns taken from other tools | `docs/RULEBOOK.md` |
 | INV-02556 | STRUCTURAL | — | `docs/RULEBOOK.md` |
 | INV-02557 | SOURCE-SPECIFIC | — | `docs/RULEBOOK.md` |
 | INV-02558 | CMP-0076 | Preview before live | `docs/RULEBOOK.md` |
@@ -2608,7 +2608,7 @@
 | INV-02590 | CMP-0068 | Operating Protocol v1 — r1 … r22 | `docs/RULEBOOK.md` |
 | INV-02591 | CMP-0068 | Operating Protocol v1 — r1 … r22 | `docs/RULEBOOK.md` |
 | INV-02592 | CMP-0068 | Operating Protocol v1 — r1 … r22 | `docs/RULEBOOK.md` |
-| INV-02593 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/RULEBOOK.md` |
+| INV-02593 | CMP-0068 | Operating Protocol v1 — r1 … r22 | `docs/RULEBOOK.md` |
 | INV-02594 | CMP-0068 | Operating Protocol v1 — r1 … r22 | `docs/RULEBOOK.md` |
 | INV-02595 | CMP-0068 | Operating Protocol v1 — r1 … r22 | `docs/RULEBOOK.md` |
 | INV-02596 | CMP-0057 | LAUNCH-PAD vs PRODUCT-INVENTORY — the same items, two boards | `docs/RULEBOOK.md` |
@@ -2616,7 +2616,7 @@
 | INV-02598 | CMP-0057 | LAUNCH-PAD vs PRODUCT-INVENTORY — the same items, two boards | `docs/RULEBOOK.md` |
 | INV-02599 | CMP-0068 | Operating Protocol v1 — r1 … r22 | `docs/RULEBOOK.md` |
 | INV-02600 | CMP-0068 | Operating Protocol v1 — r1 … r22 | `docs/RULEBOOK.md` |
-| INV-02601 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/RULEBOOK.md` |
+| INV-02601 | CMP-0068 | Operating Protocol v1 — r1 … r22 | `docs/RULEBOOK.md` |
 | INV-02602 | CMP-0068 | Operating Protocol v1 — r1 … r22 | `docs/RULEBOOK.md` |
 | INV-02603 | CMP-0068 | Operating Protocol v1 — r1 … r22 | `docs/RULEBOOK.md` |
 | INV-02604 | CMP-0068 | Operating Protocol v1 — r1 … r22 | `docs/RULEBOOK.md` |
@@ -2749,7 +2749,7 @@
 | INV-02731 | CMP-0050 | CASHFLOW-LAB as the money model of record | `docs/CASHFLOW-LAB.html` |
 | INV-02732 | CMP-0050 | CASHFLOW-LAB as the money model of record | `docs/CASHFLOW-LAB.html` |
 | INV-02733 | CMP-0001 | The $299 onboarding pack | `docs/CASHFLOW-LAB.html` |
-| INV-02734 | CMP-0050 | CASHFLOW-LAB as the money model of record | `docs/CASHFLOW-LAB.html` |
+| INV-02734 | CMP-0136 | First 100 approved leads included — the legacy pack entitlement | `docs/CASHFLOW-LAB.html` |
 | INV-02735 | CMP-0006 | Pack economics and the cost basis behind $299 | `docs/CASHFLOW-LAB.html` |
 | INV-02736 | CMP-0050 | CASHFLOW-LAB as the money model of record | `docs/CASHFLOW-LAB.html` |
 | INV-02737 | CMP-0001 | The $299 onboarding pack | `docs/CASHFLOW-LAB.html` |
@@ -3016,7 +3016,7 @@
 | INV-02998 | CMP-0105 | Partner programme operations | `docs/PARTNER-BRIEF.md` |
 | INV-02999 | CMP-0105 | Partner programme operations | `docs/PARTNER-BRIEF.md` |
 | INV-03000 | CMP-0105 | Partner programme operations | `docs/PARTNER-BRIEF.md` |
-| INV-03001 | CMP-0001 | The $299 onboarding pack | `docs/PARTNER-BRIEF.md` |
+| INV-03001 | CMP-0136 | First 100 approved leads included — the legacy pack entitlement | `docs/PARTNER-BRIEF.md` |
 | INV-03002 | CMP-0016 | The wallet and the per-approval charge | `docs/PARTNER-BRIEF.md` |
 | INV-03003 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/PARTNER-BRIEF.md` |
 | INV-03004 | CMP-0084 | Unibox, replies and reply triage | `docs/PARTNER-BRIEF.md` |
@@ -3042,7 +3042,7 @@
 | INV-03024 | CMP-0105 | Partner programme operations | `docs/PARTNER-BRIEF.md` |
 | INV-03025 | CMP-0002 | The $4 per-approved-lead charge | `docs/PARTNER-BRIEF.md` |
 | INV-03026 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/PARTNER-BRIEF.md` |
-| INV-03027 | CMP-0005 | The volume curve — $437.50 at 10 meetings, ~$400 floor at 50+ | `docs/PARTNER-BRIEF.md` |
+| INV-03027 | CMP-0138 | Programme floor — ~$400 effective at 50+ meetings | `docs/PARTNER-BRIEF.md` |
 | INV-03028 | CMP-0105 | Partner programme operations | `docs/PARTNER-BRIEF.md` |
 | INV-03029 | CMP-0002 | The $4 per-approved-lead charge | `docs/PARTNER-BRIEF.md` |
 | INV-03030 | CMP-0086 | Lead lifecycle and the lead desk | `docs/PARTNER-BRIEF.md` |
@@ -3052,8 +3052,8 @@
 | INV-03034 | CMP-0105 | Partner programme operations | `docs/PARTNER-BRIEF.md` |
 | INV-03035 | CMP-0105 | Partner programme operations | `docs/PARTNER-BRIEF.md` |
 | INV-03036 | CMP-0001 | The $299 onboarding pack | `docs/PARTNER-BRIEF.md` |
-| INV-03037 | CMP-0103 | Paid ads | `docs/PARTNER-BRIEF.md` |
-| INV-03038 | CMP-0103 | Paid ads | `docs/PARTNER-BRIEF.md` |
+| INV-03037 | CMP-0136 | First 100 approved leads included — the legacy pack entitlement | `docs/PARTNER-BRIEF.md` |
+| INV-03038 | CMP-0136 | First 100 approved leads included — the legacy pack entitlement | `docs/PARTNER-BRIEF.md` |
 | INV-03039 | CMP-0007 | Partner commission — 25% of paid lead sales | `docs/PARTNER-BRIEF.md` |
 | INV-03040 | CMP-0105 | Partner programme operations | `docs/PARTNER-BRIEF.md` |
 | INV-03041 | CMP-0105 | Partner programme operations | `docs/PARTNER-BRIEF.md` |
@@ -3070,7 +3070,7 @@
 | INV-03052 | CMP-0001 | The $299 onboarding pack | `docs/PARTNER-BRIEF.md` |
 | INV-03053 | CMP-0105 | Partner programme operations | `docs/PARTNER-BRIEF.md` |
 | INV-03054 | CMP-0105 | Partner programme operations | `docs/PARTNER-BRIEF.md` |
-| INV-03055 | CMP-0066 | Steals — patterns taken from other tools | `docs/PARTNER-BRIEF.md` |
+| INV-03055 | CMP-0196 | The stealth constraint (R2) | `docs/PARTNER-BRIEF.md` |
 | INV-03056 | CMP-0105 | Partner programme operations | `docs/PARTNER-BRIEF.md` |
 | INV-03057 | CMP-0105 | Partner programme operations | `docs/PARTNER-BRIEF.md` |
 | INV-03058 | CMP-0105 | Partner programme operations | `docs/PARTNER-BRIEF.md` |
@@ -3231,14 +3231,14 @@
 | INV-03213 | CMP-0094 | Documents — proposals, order forms, invoices | `docs/hiring/SELLER-ENGINE-MAP.md` |
 | INV-03214 | CMP-0094 | Documents — proposals, order forms, invoices | `docs/hiring/SELLER-ENGINE-MAP.md` |
 | INV-03215 | CMP-0007 | Partner commission — 25% of paid lead sales | `docs/hiring/SELLER-ENGINE-MAP.md` |
-| INV-03216 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/hiring/SELLER-ENGINE-MAP.md` |
+| INV-03216 | CMP-0108 | Hiring, comp plans and the team | `docs/hiring/SELLER-ENGINE-MAP.md` |
 | INV-03217 | CMP-0052 | The four hiring / partner / team calculators | `docs/hiring/SELLER-ENGINE-MAP.md` |
-| INV-03218 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/hiring/SELLER-ENGINE-MAP.md` |
+| INV-03218 | CMP-0088 | Admin console and the bookkeeper view | `docs/hiring/SELLER-ENGINE-MAP.md` |
 | INV-03219 | CMP-0048 | Onboarding and demo surfaces | `docs/hiring/SELLER-ENGINE-MAP.md` |
-| INV-03220 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/hiring/SELLER-ENGINE-MAP.md` |
+| INV-03220 | CMP-0105 | Partner programme operations | `docs/hiring/SELLER-ENGINE-MAP.md` |
 | INV-03221 | CMP-0046 | Client-facing calculators | `docs/hiring/SELLER-ENGINE-MAP.md` |
-| INV-03222 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/hiring/SELLER-ENGINE-MAP.md` |
-| INV-03223 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/hiring/SELLER-ENGINE-MAP.md` |
+| INV-03222 | CMP-0108 | Hiring, comp plans and the team | `docs/hiring/SELLER-ENGINE-MAP.md` |
+| INV-03223 | CMP-0095 | Knowledge, Compass and client training | `docs/hiring/SELLER-ENGINE-MAP.md` |
 | INV-03224 | CMP-0096 | Company engine, seats and the pool | `docs/hiring/SELLER-ENGINE-MAP.md` |
 | INV-03225 | CMP-0007 | Partner commission — 25% of paid lead sales | `docs/hiring/SELLER-ENGINE-MAP.md` |
 | INV-03226 | CMP-0096 | Company engine, seats and the pool | `docs/hiring/SELLER-ENGINE-MAP.md` |
@@ -3475,7 +3475,7 @@
 | INV-03457 | CMP-0057 | LAUNCH-PAD vs PRODUCT-INVENTORY — the same items, two boards | `docs/DOC-MAP.md` |
 | INV-03458 | CMP-0067 | The four-doc contract and one-truth-per-doc | `docs/DOC-MAP.md` |
 | INV-03459 | CMP-0067 | The four-doc contract and one-truth-per-doc | `docs/DOC-MAP.md` |
-| INV-03460 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/DOC-MAP.md` |
+| INV-03460 | CMP-0066 | Steals — patterns taken from other tools | `docs/DOC-MAP.md` |
 | INV-03461 | CMP-0050 | CASHFLOW-LAB as the money model of record | `docs/DOC-MAP.md` |
 | INV-03462 | CMP-0067 | The four-doc contract and one-truth-per-doc | `docs/DOC-MAP.md` |
 | INV-03463 | CMP-0067 | The four-doc contract and one-truth-per-doc | `docs/DOC-MAP.md` |
@@ -3579,7 +3579,7 @@
 | INV-03561 | CMP-0082 | The core-file register and the doc map | `docs/DOC-MAP.md` |
 | INV-03562 | CMP-0082 | The core-file register and the doc map | `docs/DOC-MAP.md` |
 | INV-03563 | CMP-0082 | The core-file register and the doc map | `docs/DOC-MAP.md` |
-| INV-03564 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/DOC-MAP.md` |
+| INV-03564 | CMP-0082 | The core-file register and the doc map | `docs/DOC-MAP.md` |
 | INV-03565 | CMP-0082 | The core-file register and the doc map | `docs/CORE-MAP.md` |
 | INV-03566 | CMP-0082 | The core-file register and the doc map | `docs/CORE-MAP.md` |
 | INV-03567 | CMP-0022 | Who may start sourcing — Run, cron and top-up | `docs/CORE-MAP.md` |
@@ -3859,7 +3859,7 @@
 | INV-03841 | CMP-0112 | Infrastructure, hosting and the stack | `docs/TECH-STACK.md` |
 | INV-03842 | CMP-0112 | Infrastructure, hosting and the stack | `docs/TECH-STACK.md` |
 | INV-03843 | CMP-0112 | Infrastructure, hosting and the stack | `docs/TECH-STACK.md` |
-| INV-03844 | CMP-0001 | The $299 onboarding pack | `docs/TECH-STACK.md` |
+| INV-03844 | CMP-0136 | First 100 approved leads included — the legacy pack entitlement | `docs/TECH-STACK.md` |
 | INV-03845 | CMP-0016 | The wallet and the per-approval charge | `docs/TECH-STACK.md` |
 | INV-03846 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/TECH-STACK.md` |
 | INV-03847 | CMP-0084 | Unibox, replies and reply triage | `docs/TECH-STACK.md` |
@@ -4170,7 +4170,7 @@
 | INV-04152 | CMP-0060 | Deployment verification and the SHA report | `docs/ENVIRONMENT.md` |
 | INV-04153 | CMP-0025 | Pause — who may pause sending, and why | `docs/ENVIRONMENT.md` |
 | INV-04154 | SOURCE-SPECIFIC | — | `docs/ENVIRONMENT.md` |
-| INV-04155 | CMP-0075 | The status dot ladder | `docs/ENVIRONMENT.md` |
+| INV-04155 | CMP-0151 | Paid-provider go-live rule (PAID_PROVIDERS_ENABLED) | `docs/ENVIRONMENT.md` |
 | INV-04156 | CMP-0060 | Deployment verification and the SHA report | `docs/ENVIRONMENT.md` |
 | INV-04157 | CMP-0060 | Deployment verification and the SHA report | `docs/ENVIRONMENT.md` |
 | INV-04158 | CMP-0060 | Deployment verification and the SHA report | `docs/ENVIRONMENT.md` |
@@ -4196,7 +4196,7 @@
 | INV-04178 | CMP-0060 | Deployment verification and the SHA report | `docs/ENVIRONMENT.md` |
 | INV-04179 | CMP-0060 | Deployment verification and the SHA report | `docs/ENVIRONMENT.md` |
 | INV-04180 | CMP-0022 | Who may start sourcing — Run, cron and top-up | `docs/ENVIRONMENT.md` |
-| INV-04181 | CMP-0060 | Deployment verification and the SHA report | `docs/ENVIRONMENT.md` |
+| INV-04181 | CMP-0189 | Slack as an interaction layer | `docs/ENVIRONMENT.md` |
 | INV-04182 | CMP-0060 | Deployment verification and the SHA report | `docs/ENVIRONMENT.md` |
 | INV-04183 | CMP-0060 | Deployment verification and the SHA report | `docs/ENVIRONMENT.md` |
 | INV-04184 | CMP-0085 | Deliverability, warm-up and sending domains | `docs/ENVIRONMENT.md` |
@@ -4398,10 +4398,10 @@
 | INV-04380 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/MILESTONE-0-CHECKLIST.md` |
 | INV-04381 | CMP-0058 | Launch gates and blockers | `docs/MILESTONE-0-CHECKLIST.md` |
 | INV-04382 | CMP-0058 | Launch gates and blockers | `docs/MILESTONE-0-CHECKLIST.md` |
-| INV-04383 | CMP-0058 | Launch gates and blockers | `docs/MILESTONE-0-CHECKLIST.md` |
-| INV-04384 | CMP-0026 | ICP changes and the widened-proof acceptance rule | `docs/MILESTONE-0-CHECKLIST.md` |
-| INV-04385 | CMP-0058 | Launch gates and blockers | `docs/MILESTONE-0-CHECKLIST.md` |
-| INV-04386 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/MILESTONE-0-CHECKLIST.md` |
+| INV-04383 | CMP-0193 | The Drop as a content programme | `docs/MILESTONE-0-CHECKLIST.md` |
+| INV-04384 | CMP-0193 | The Drop as a content programme | `docs/MILESTONE-0-CHECKLIST.md` |
+| INV-04385 | CMP-0193 | The Drop as a content programme | `docs/MILESTONE-0-CHECKLIST.md` |
+| INV-04386 | CMP-0193 | The Drop as a content programme | `docs/MILESTONE-0-CHECKLIST.md` |
 | INV-04387 | CMP-0058 | Launch gates and blockers | `docs/MILESTONE-0-CHECKLIST.md` |
 | INV-04388 | CMP-0044 | Two Terms of Service documents | `docs/MILESTONE-0-CHECKLIST.md` |
 | INV-04389 | CMP-0058 | Launch gates and blockers | `docs/MILESTONE-0-CHECKLIST.md` |
@@ -4431,7 +4431,7 @@
 | INV-04413 | CMP-0058 | Launch gates and blockers | `docs/MILESTONE-0-CHECKLIST.md` |
 | INV-04414 | CMP-0058 | Launch gates and blockers | `docs/MILESTONE-0-CHECKLIST.md` |
 | INV-04415 | CMP-0058 | Launch gates and blockers | `docs/MILESTONE-0-CHECKLIST.md` |
-| INV-04416 | CMP-0058 | Launch gates and blockers | `docs/MILESTONE-0-CHECKLIST.md` |
+| INV-04416 | CMP-0189 | Slack as an interaction layer | `docs/MILESTONE-0-CHECKLIST.md` |
 | INV-04417 | CMP-0058 | Launch gates and blockers | `docs/MILESTONE-0-CHECKLIST.md` |
 | INV-04418 | CMP-0022 | Who may start sourcing — Run, cron and top-up | `docs/MILESTONE-0-CHECKLIST.md` |
 | INV-04419 | CMP-0058 | Launch gates and blockers | `docs/MILESTONE-0-CHECKLIST.md` |
@@ -4645,14 +4645,14 @@
 | INV-04627 | CMP-0083 | Campaigns and the sequence builder | `docs/AFRICA-PLAYBOOK.md` |
 | INV-04628 | CMP-0098 | Integrations and CRM | `docs/AFRICA-PLAYBOOK.md` |
 | INV-04629 | CMP-0083 | Campaigns and the sequence builder | `docs/AFRICA-PLAYBOOK.md` |
-| INV-04630 | CMP-0066 | Steals — patterns taken from other tools | `docs/AFRICA-PLAYBOOK.md` |
-| INV-04631 | CMP-0066 | Steals — patterns taken from other tools | `docs/AFRICA-PLAYBOOK.md` |
-| INV-04632 | CMP-0066 | Steals — patterns taken from other tools | `docs/AFRICA-PLAYBOOK.md` |
-| INV-04633 | CMP-0066 | Steals — patterns taken from other tools | `docs/AFRICA-PLAYBOOK.md` |
-| INV-04634 | CMP-0066 | Steals — patterns taken from other tools | `docs/AFRICA-PLAYBOOK.md` |
-| INV-04635 | CMP-0066 | Steals — patterns taken from other tools | `docs/AFRICA-PLAYBOOK.md` |
-| INV-04636 | CMP-0066 | Steals — patterns taken from other tools | `docs/AFRICA-PLAYBOOK.md` |
-| INV-04637 | CMP-0066 | Steals — patterns taken from other tools | `docs/AFRICA-PLAYBOOK.md` |
+| INV-04630 | CMP-0196 | The stealth constraint (R2) | `docs/AFRICA-PLAYBOOK.md` |
+| INV-04631 | CMP-0196 | The stealth constraint (R2) | `docs/AFRICA-PLAYBOOK.md` |
+| INV-04632 | CMP-0196 | The stealth constraint (R2) | `docs/AFRICA-PLAYBOOK.md` |
+| INV-04633 | CMP-0196 | The stealth constraint (R2) | `docs/AFRICA-PLAYBOOK.md` |
+| INV-04634 | CMP-0196 | The stealth constraint (R2) | `docs/AFRICA-PLAYBOOK.md` |
+| INV-04635 | CMP-0196 | The stealth constraint (R2) | `docs/AFRICA-PLAYBOOK.md` |
+| INV-04636 | CMP-0196 | The stealth constraint (R2) | `docs/AFRICA-PLAYBOOK.md` |
+| INV-04637 | CMP-0196 | The stealth constraint (R2) | `docs/AFRICA-PLAYBOOK.md` |
 | INV-04638 | CMP-0085 | Deliverability, warm-up and sending domains | `docs/AFRICA-PLAYBOOK.md` |
 | INV-04639 | CMP-0042 | Suppression, opt-out and DNC | `docs/AFRICA-PLAYBOOK.md` |
 | INV-04640 | CMP-0083 | Campaigns and the sequence builder | `docs/AFRICA-PLAYBOOK.md` |
@@ -4734,7 +4734,7 @@
 | INV-04716 | STRUCTURAL | — | `docs/SEND-DAY-RUNBOOK.md` |
 | INV-04717 | CMP-0001 | The $299 onboarding pack | `docs/SEND-DAY-RUNBOOK.md` |
 | INV-04718 | CMP-0001 | The $299 onboarding pack | `docs/SEND-DAY-RUNBOOK.md` |
-| INV-04719 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/SEND-DAY-RUNBOOK.md` |
+| INV-04719 | CMP-0136 | First 100 approved leads included — the legacy pack entitlement | `docs/SEND-DAY-RUNBOOK.md` |
 | INV-04720 | CMP-0001 | The $299 onboarding pack | `docs/SEND-DAY-RUNBOOK.md` |
 | INV-04721 | CMP-0001 | The $299 onboarding pack | `docs/SEND-DAY-RUNBOOK.md` |
 | INV-04722 | STRUCTURAL | — | `docs/SEND-DAY-RUNBOOK.md` |
@@ -4978,7 +4978,7 @@
 | INV-04960 | CMP-0111 | Testing, smoke tests and the walk | `docs/LIVE-FEATURE-WALK.md` |
 | INV-04961 | CMP-0111 | Testing, smoke tests and the walk | `docs/LIVE-FEATURE-WALK.md` |
 | INV-04962 | CMP-0111 | Testing, smoke tests and the walk | `docs/LIVE-FEATURE-WALK.md` |
-| INV-04963 | CMP-0001 | The $299 onboarding pack | `docs/LIVE-FEATURE-WALK.md` |
+| INV-04963 | CMP-0136 | First 100 approved leads included — the legacy pack entitlement | `docs/LIVE-FEATURE-WALK.md` |
 | INV-04964 | CMP-0016 | The wallet and the per-approval charge | `docs/LIVE-FEATURE-WALK.md` |
 | INV-04965 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/LIVE-FEATURE-WALK.md` |
 | INV-04966 | CMP-0084 | Unibox, replies and reply triage | `docs/LIVE-FEATURE-WALK.md` |
@@ -5018,7 +5018,7 @@
 | INV-05000 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/LIVE-FEATURE-WALK.md` |
 | INV-05001 | CMP-0039 | Vida — the operator console | `docs/LIVE-FEATURE-WALK.md` |
 | INV-05002 | CMP-0075 | The status dot ladder | `docs/LIVE-FEATURE-WALK.md` |
-| INV-05003 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/LIVE-FEATURE-WALK.md` |
+| INV-05003 | CMP-0189 | Slack as an interaction layer | `docs/LIVE-FEATURE-WALK.md` |
 | INV-05004 | CMP-0090 | Dashboards, KPIs and reporting | `docs/LIVE-FEATURE-WALK.md` |
 | INV-05005 | CMP-0090 | Dashboards, KPIs and reporting | `docs/LIVE-FEATURE-WALK.md` |
 | INV-05006 | CMP-0046 | Client-facing calculators | `docs/LIVE-FEATURE-WALK.md` |
@@ -5529,7 +5529,7 @@
 | INV-05511 | CMP-0060 | Deployment verification and the SHA report | `docs/DEPLOYMENT_GUIDE.md` |
 | INV-05512 | CMP-0060 | Deployment verification and the SHA report | `docs/DEPLOYMENT_GUIDE.md` |
 | INV-05513 | CMP-0060 | Deployment verification and the SHA report | `docs/DEPLOYMENT_GUIDE.md` |
-| INV-05514 | CMP-0001 | The $299 onboarding pack | `docs/DEPLOYMENT_GUIDE.md` |
+| INV-05514 | CMP-0136 | First 100 approved leads included — the legacy pack entitlement | `docs/DEPLOYMENT_GUIDE.md` |
 | INV-05515 | CMP-0016 | The wallet and the per-approval charge | `docs/DEPLOYMENT_GUIDE.md` |
 | INV-05516 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/DEPLOYMENT_GUIDE.md` |
 | INV-05517 | CMP-0060 | Deployment verification and the SHA report | `docs/DEPLOYMENT_GUIDE.md` |
@@ -6016,7 +6016,7 @@
 | INV-05998 | CMP-0102 | Marketing plan, content and the Drop | `docs/legal.md` |
 | INV-05999 | CMP-0102 | Marketing plan, content and the Drop | `docs/legal.md` |
 | INV-06000 | CMP-0102 | Marketing plan, content and the Drop | `docs/legal.md` |
-| INV-06001 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/legal.md` |
+| INV-06001 | CMP-0102 | Marketing plan, content and the Drop | `docs/legal.md` |
 | INV-06002 | CMP-0123 | Data licensing and marketplace ideas | `docs/legal.md` |
 | INV-06003 | CMP-0123 | Data licensing and marketplace ideas | `docs/legal.md` |
 | INV-06004 | CMP-0123 | Data licensing and marketplace ideas | `docs/legal.md` |
@@ -6139,28 +6139,28 @@
 | INV-06121 | CMP-0080 | Compliance drafts for counsel | `docs/legal.md` |
 | INV-06122 | CMP-0107 | Regions — SA, US, UK, EU expansion | `docs/legal.md` |
 | INV-06123 | SOURCE-SPECIFIC | — | `docs/legal.md` |
-| INV-06124 | CMP-0005 | The volume curve — $437.50 at 10 meetings, ~$400 floor at 50+ | `docs/legal.md` |
-| INV-06125 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/legal.md` |
-| INV-06126 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/legal.md` |
-| INV-06127 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/legal.md` |
-| INV-06128 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/legal.md` |
-| INV-06129 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/legal.md` |
-| INV-06130 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/legal.md` |
-| INV-06131 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/legal.md` |
-| INV-06132 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/legal.md` |
-| INV-06133 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/legal.md` |
-| INV-06134 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/legal.md` |
-| INV-06135 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/legal.md` |
-| INV-06136 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/legal.md` |
+| INV-06124 | CMP-0138 | Programme floor — ~$400 effective at 50+ meetings | `docs/legal.md` |
+| INV-06125 | CMP-0106 | Competitive landscape and teardowns | `docs/legal.md` |
+| INV-06126 | CMP-0106 | Competitive landscape and teardowns | `docs/legal.md` |
+| INV-06127 | CMP-0106 | Competitive landscape and teardowns | `docs/legal.md` |
+| INV-06128 | CMP-0106 | Competitive landscape and teardowns | `docs/legal.md` |
+| INV-06129 | CMP-0106 | Competitive landscape and teardowns | `docs/legal.md` |
+| INV-06130 | CMP-0106 | Competitive landscape and teardowns | `docs/legal.md` |
+| INV-06131 | CMP-0106 | Competitive landscape and teardowns | `docs/legal.md` |
+| INV-06132 | CMP-0106 | Competitive landscape and teardowns | `docs/legal.md` |
+| INV-06133 | CMP-0105 | Partner programme operations | `docs/legal.md` |
+| INV-06134 | CMP-0106 | Competitive landscape and teardowns | `docs/legal.md` |
+| INV-06135 | CMP-0106 | Competitive landscape and teardowns | `docs/legal.md` |
+| INV-06136 | CMP-0106 | Competitive landscape and teardowns | `docs/legal.md` |
 | INV-06137 | CMP-0031 | Customer / inbound and owned data as a source | `docs/legal.md` |
 | INV-06138 | CMP-0048 | Onboarding and demo surfaces | `docs/legal.md` |
-| INV-06139 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/legal.md` |
-| INV-06140 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/legal.md` |
-| INV-06141 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/legal.md` |
-| INV-06142 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/legal.md` |
-| INV-06143 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/legal.md` |
-| INV-06144 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/legal.md` |
-| INV-06145 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/legal.md` |
+| INV-06139 | CMP-0106 | Competitive landscape and teardowns | `docs/legal.md` |
+| INV-06140 | CMP-0106 | Competitive landscape and teardowns | `docs/legal.md` |
+| INV-06141 | CMP-0106 | Competitive landscape and teardowns | `docs/legal.md` |
+| INV-06142 | CMP-0106 | Competitive landscape and teardowns | `docs/legal.md` |
+| INV-06143 | CMP-0106 | Competitive landscape and teardowns | `docs/legal.md` |
+| INV-06144 | CMP-0105 | Partner programme operations | `docs/legal.md` |
+| INV-06145 | CMP-0106 | Competitive landscape and teardowns | `docs/legal.md` |
 | INV-06146 | CMP-0128 | Company registration and corporate facts | `docs/legal/legal-pack.md` |
 | INV-06147 | CMP-0128 | Company registration and corporate facts | `docs/legal/legal-pack.md` |
 | INV-06148 | CMP-0128 | Company registration and corporate facts | `docs/legal/legal-pack.md` |
@@ -6828,7 +6828,7 @@
 | INV-06810 | STRUCTURAL | — | `docs/compliance/BREACH-RESPONSE-DRAFT.md` |
 | INV-06811 | STRUCTURAL | — | `docs/compliance/BREACH-RESPONSE-DRAFT.md` |
 | INV-06812 | SOURCE-SPECIFIC | — | `docs/compliance/BREACH-RESPONSE-DRAFT.md` |
-| INV-06813 | CMP-0093 | Notifications and the notification centre | `docs/compliance/BREACH-RESPONSE-DRAFT.md` |
+| INV-06813 | CMP-0189 | Slack as an interaction layer | `docs/compliance/BREACH-RESPONSE-DRAFT.md` |
 | INV-06814 | CMP-0060 | Deployment verification and the SHA report | `docs/compliance/BREACH-RESPONSE-DRAFT.md` |
 | INV-06815 | CMP-0093 | Notifications and the notification centre | `docs/compliance/BREACH-RESPONSE-DRAFT.md` |
 | INV-06816 | SOURCE-SPECIFIC | — | `docs/compliance/BREACH-RESPONSE-DRAFT.md` |
@@ -7104,7 +7104,7 @@
 | INV-07086 | CMP-0033 | Google Calendar verification path | `docs/runbooks/GOOGLE-VERIFICATION.md` |
 | INV-07087 | CMP-0033 | Google Calendar verification path | `docs/runbooks/GOOGLE-VERIFICATION.md` |
 | INV-07088 | CMP-0033 | Google Calendar verification path | `docs/runbooks/GOOGLE-VERIFICATION.md` |
-| INV-07089 | CMP-0033 | Google Calendar verification path | `docs/runbooks/GOOGLE-VERIFICATION.md` |
+| INV-07089 | CMP-0192 | Evidence-triggered phase ladder — PROVE IT / COMPOUND IT / SCALE IT | `docs/runbooks/GOOGLE-VERIFICATION.md` |
 | INV-07090 | CMP-0033 | Google Calendar verification path | `docs/runbooks/GOOGLE-VERIFICATION.md` |
 | INV-07091 | CMP-0033 | Google Calendar verification path | `docs/runbooks/GOOGLE-VERIFICATION.md` |
 | INV-07092 | CMP-0033 | Google Calendar verification path | `docs/runbooks/GOOGLE-VERIFICATION.md` |
@@ -7133,33 +7133,33 @@
 | INV-07115 | CMP-0033 | Google Calendar verification path | `docs/runbooks/GOOGLE-VERIFICATION.md` |
 | INV-07116 | CMP-0033 | Google Calendar verification path | `docs/runbooks/GOOGLE-VERIFICATION.md` |
 | INV-07117 | CMP-0033 | Google Calendar verification path | `docs/runbooks/GOOGLE-VERIFICATION.md` |
-| INV-07118 | CMP-0033 | Google Calendar verification path | `docs/runbooks/GOOGLE-VERIFICATION.md` |
+| INV-07118 | CMP-0192 | Evidence-triggered phase ladder — PROVE IT / COMPOUND IT / SCALE IT | `docs/runbooks/GOOGLE-VERIFICATION.md` |
 | INV-07119 | CMP-0033 | Google Calendar verification path | `docs/runbooks/GOOGLE-VERIFICATION.md` |
 | INV-07120 | CMP-0033 | Google Calendar verification path | `docs/runbooks/GOOGLE-VERIFICATION.md` |
 | INV-07121 | CMP-0033 | Google Calendar verification path | `docs/runbooks/GOOGLE-VERIFICATION.md` |
 | INV-07122 | CMP-0033 | Google Calendar verification path | `docs/runbooks/GOOGLE-VERIFICATION.md` |
 | INV-07123 | CMP-0033 | Google Calendar verification path | `docs/runbooks/GOOGLE-VERIFICATION.md` |
-| INV-07124 | CMP-0033 | Google Calendar verification path | `docs/runbooks/GOOGLE-VERIFICATION.md` |
+| INV-07124 | CMP-0192 | Evidence-triggered phase ladder — PROVE IT / COMPOUND IT / SCALE IT | `docs/runbooks/GOOGLE-VERIFICATION.md` |
 | INV-07125 | CMP-0033 | Google Calendar verification path | `docs/runbooks/GOOGLE-VERIFICATION.md` |
 | INV-07126 | CMP-0033 | Google Calendar verification path | `docs/runbooks/GOOGLE-VERIFICATION.md` |
 | INV-07127 | CMP-0033 | Google Calendar verification path | `docs/runbooks/GOOGLE-VERIFICATION.md` |
-| INV-07128 | CMP-0033 | Google Calendar verification path | `docs/runbooks/GOOGLE-VERIFICATION.md` |
+| INV-07128 | CMP-0192 | Evidence-triggered phase ladder — PROVE IT / COMPOUND IT / SCALE IT | `docs/runbooks/GOOGLE-VERIFICATION.md` |
 | INV-07129 | CMP-0033 | Google Calendar verification path | `docs/runbooks/GOOGLE-VERIFICATION.md` |
 | INV-07130 | CMP-0033 | Google Calendar verification path | `docs/runbooks/GOOGLE-VERIFICATION.md` |
 | INV-07131 | CMP-0033 | Google Calendar verification path | `docs/runbooks/GOOGLE-VERIFICATION.md` |
 | INV-07132 | CMP-0033 | Google Calendar verification path | `docs/runbooks/GOOGLE-VERIFICATION.md` |
 | INV-07133 | CMP-0033 | Google Calendar verification path | `docs/runbooks/GOOGLE-VERIFICATION.md` |
-| INV-07134 | CMP-0033 | Google Calendar verification path | `docs/runbooks/GOOGLE-VERIFICATION.md` |
+| INV-07134 | CMP-0192 | Evidence-triggered phase ladder — PROVE IT / COMPOUND IT / SCALE IT | `docs/runbooks/GOOGLE-VERIFICATION.md` |
 | INV-07135 | CMP-0033 | Google Calendar verification path | `docs/runbooks/GOOGLE-VERIFICATION.md` |
 | INV-07136 | CMP-0033 | Google Calendar verification path | `docs/runbooks/GOOGLE-VERIFICATION.md` |
 | INV-07137 | CMP-0033 | Google Calendar verification path | `docs/runbooks/GOOGLE-VERIFICATION.md` |
 | INV-07138 | CMP-0033 | Google Calendar verification path | `docs/runbooks/GOOGLE-VERIFICATION.md` |
-| INV-07139 | CMP-0033 | Google Calendar verification path | `docs/runbooks/GOOGLE-VERIFICATION.md` |
+| INV-07139 | CMP-0192 | Evidence-triggered phase ladder — PROVE IT / COMPOUND IT / SCALE IT | `docs/runbooks/GOOGLE-VERIFICATION.md` |
 | INV-07140 | CMP-0033 | Google Calendar verification path | `docs/runbooks/GOOGLE-VERIFICATION.md` |
 | INV-07141 | CMP-0033 | Google Calendar verification path | `docs/runbooks/GOOGLE-VERIFICATION.md` |
 | INV-07142 | CMP-0033 | Google Calendar verification path | `docs/runbooks/GOOGLE-VERIFICATION.md` |
 | INV-07143 | CMP-0033 | Google Calendar verification path | `docs/runbooks/GOOGLE-VERIFICATION.md` |
-| INV-07144 | CMP-0033 | Google Calendar verification path | `docs/runbooks/GOOGLE-VERIFICATION.md` |
+| INV-07144 | CMP-0192 | Evidence-triggered phase ladder — PROVE IT / COMPOUND IT / SCALE IT | `docs/runbooks/GOOGLE-VERIFICATION.md` |
 | INV-07145 | CMP-0033 | Google Calendar verification path | `docs/runbooks/GOOGLE-VERIFICATION.md` |
 | INV-07146 | CMP-0033 | Google Calendar verification path | `docs/runbooks/GOOGLE-VERIFICATION.md` |
 | INV-07147 | CMP-0033 | Google Calendar verification path | `docs/runbooks/GOOGLE-VERIFICATION.md` |
@@ -7173,7 +7173,7 @@
 | INV-07155 | CMP-0104 | Sales playbook and objection handling | `docs/sales-playbook.md` |
 | INV-07156 | CMP-0104 | Sales playbook and objection handling | `docs/sales-playbook.md` |
 | INV-07157 | CMP-0104 | Sales playbook and objection handling | `docs/sales-playbook.md` |
-| INV-07158 | CMP-0001 | The $299 onboarding pack | `docs/sales-playbook.md` |
+| INV-07158 | CMP-0136 | First 100 approved leads included — the legacy pack entitlement | `docs/sales-playbook.md` |
 | INV-07159 | CMP-0016 | The wallet and the per-approval charge | `docs/sales-playbook.md` |
 | INV-07160 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/sales-playbook.md` |
 | INV-07161 | CMP-0084 | Unibox, replies and reply triage | `docs/sales-playbook.md` |
@@ -7271,7 +7271,7 @@
 | INV-07253 | CMP-0083 | Campaigns and the sequence builder | `docs/sales-playbook.md` |
 | INV-07254 | CMP-0084 | Unibox, replies and reply triage | `docs/sales-playbook.md` |
 | INV-07255 | CMP-0094 | Documents — proposals, order forms, invoices | `docs/sales-playbook.md` |
-| INV-07256 | CMP-0001 | The $299 onboarding pack | `docs/sales-playbook.md` |
+| INV-07256 | CMP-0136 | First 100 approved leads included — the legacy pack entitlement | `docs/sales-playbook.md` |
 | INV-07257 | CMP-0089 | Credits, the two-pool model and holds | `docs/sales-playbook.md` |
 | INV-07258 | CMP-0094 | Documents — proposals, order forms, invoices | `docs/sales-playbook.md` |
 | INV-07259 | CMP-0026 | ICP changes and the widened-proof acceptance rule | `docs/sales-playbook.md` |
@@ -7337,7 +7337,7 @@
 | INV-07319 | CMP-0075 | The status dot ladder | `docs/art-of-possible.md` |
 | INV-07320 | CMP-0091 | Portal UI quality and the design system | `docs/art-of-possible.md` |
 | INV-07321 | CMP-0075 | The status dot ladder | `docs/art-of-possible.md` |
-| INV-07322 | CMP-0025 | Pause — who may pause sending, and why | `docs/art-of-possible.md` |
+| INV-07322 | CMP-0148 | Programme pause — client control and material-ICP-change auto-pause | `docs/art-of-possible.md` |
 | INV-07323 | CMP-0026 | ICP changes and the widened-proof acceptance rule | `docs/art-of-possible.md` |
 | INV-07324 | CMP-0083 | Campaigns and the sequence builder | `docs/art-of-possible.md` |
 | INV-07325 | CMP-0135 | Art of the possible and idea capture | `docs/art-of-possible.md` |
@@ -7399,7 +7399,7 @@
 | INV-07381 | CMP-0135 | Art of the possible and idea capture | `docs/art-of-possible.md` |
 | INV-07382 | CMP-0135 | Art of the possible and idea capture | `docs/art-of-possible.md` |
 | INV-07383 | CMP-0026 | ICP changes and the widened-proof acceptance rule | `docs/art-of-possible.md` |
-| INV-07384 | CMP-0022 | Who may start sourcing — Run, cron and top-up | `docs/art-of-possible.md` |
+| INV-07384 | CMP-0189 | Slack as an interaction layer | `docs/art-of-possible.md` |
 | INV-07385 | CMP-0135 | Art of the possible and idea capture | `docs/art-of-possible.md` |
 | INV-07386 | CMP-0091 | Portal UI quality and the design system | `docs/art-of-possible.md` |
 | INV-07387 | CMP-0135 | Art of the possible and idea capture | `docs/art-of-possible.md` |
@@ -7502,7 +7502,7 @@
 | INV-07484 | CMP-0085 | Deliverability, warm-up and sending domains | `docs/art-of-possible.md` |
 | INV-07485 | CMP-0085 | Deliverability, warm-up and sending domains | `docs/art-of-possible.md` |
 | INV-07486 | CMP-0081 | Environment variables and tiers | `docs/art-of-possible.md` |
-| INV-07487 | CMP-0022 | Who may start sourcing — Run, cron and top-up | `docs/art-of-possible.md` |
+| INV-07487 | CMP-0148 | Programme pause — client control and material-ICP-change auto-pause | `docs/art-of-possible.md` |
 | INV-07488 | CMP-0085 | Deliverability, warm-up and sending domains | `docs/art-of-possible.md` |
 | INV-07489 | CMP-0085 | Deliverability, warm-up and sending domains | `docs/art-of-possible.md` |
 | INV-07490 | CMP-0085 | Deliverability, warm-up and sending domains | `docs/art-of-possible.md` |
@@ -7536,7 +7536,7 @@
 | INV-07518 | CMP-0135 | Art of the possible and idea capture | `docs/art-of-possible.md` |
 | INV-07519 | CMP-0075 | The status dot ladder | `docs/art-of-possible.md` |
 | INV-07520 | CMP-0135 | Art of the possible and idea capture | `docs/art-of-possible.md` |
-| INV-07521 | CMP-0099 | WhatsApp and Africa-first channels | `docs/art-of-possible.md` |
+| INV-07521 | CMP-0189 | Slack as an interaction layer | `docs/art-of-possible.md` |
 | INV-07522 | CMP-0135 | Art of the possible and idea capture | `docs/art-of-possible.md` |
 | INV-07523 | CMP-0135 | Art of the possible and idea capture | `docs/art-of-possible.md` |
 | INV-07524 | CMP-0135 | Art of the possible and idea capture | `docs/art-of-possible.md` |
@@ -7571,7 +7571,7 @@
 | INV-07553 | CMP-0123 | Data licensing and marketplace ideas | `docs/RECORDING-SHOOTING-SCRIPT.md` |
 | INV-07554 | STRUCTURAL | — | `docs/RECORDING-SHOOTING-SCRIPT.md` |
 | INV-07555 | CMP-0129 | Brand, naming and voice | `docs/RECORDING-SHOOTING-SCRIPT.md` |
-| INV-07556 | CMP-0129 | Brand, naming and voice | `docs/RECORDING-SHOOTING-SCRIPT.md` |
+| INV-07556 | CMP-0193 | The Drop as a content programme | `docs/RECORDING-SHOOTING-SCRIPT.md` |
 | INV-07557 | SOURCE-SPECIFIC | — | `docs/RECORDING-SHOOTING-SCRIPT.md` |
 | INV-07558 | CMP-0129 | Brand, naming and voice | `docs/RECORDING-SHOOTING-SCRIPT.md` |
 | INV-07559 | CMP-0099 | WhatsApp and Africa-first channels | `docs/RECORDING-SHOOTING-SCRIPT.md` |
@@ -7705,27 +7705,27 @@
 | INV-07687 | CMP-0026 | ICP changes and the widened-proof acceptance rule | `docs/RECORDING-SHOOTING-SCRIPT.md` |
 | INV-07688 | CMP-0026 | ICP changes and the widened-proof acceptance rule | `docs/RECORDING-SHOOTING-SCRIPT.md` |
 | INV-07689 | CMP-0026 | ICP changes and the widened-proof acceptance rule | `docs/RECORDING-SHOOTING-SCRIPT.md` |
-| INV-07690 | CMP-0102 | Marketing plan, content and the Drop | `docs/RECORDING-SHOOTING-SCRIPT.md` |
-| INV-07691 | CMP-0102 | Marketing plan, content and the Drop | `docs/RECORDING-SHOOTING-SCRIPT.md` |
-| INV-07692 | CMP-0102 | Marketing plan, content and the Drop | `docs/RECORDING-SHOOTING-SCRIPT.md` |
-| INV-07693 | CMP-0102 | Marketing plan, content and the Drop | `docs/RECORDING-SHOOTING-SCRIPT.md` |
-| INV-07694 | CMP-0102 | Marketing plan, content and the Drop | `docs/RECORDING-SHOOTING-SCRIPT.md` |
-| INV-07695 | CMP-0102 | Marketing plan, content and the Drop | `docs/RECORDING-SHOOTING-SCRIPT.md` |
-| INV-07696 | CMP-0102 | Marketing plan, content and the Drop | `docs/RECORDING-SHOOTING-SCRIPT.md` |
-| INV-07697 | CMP-0102 | Marketing plan, content and the Drop | `docs/RECORDING-SHOOTING-SCRIPT.md` |
-| INV-07698 | CMP-0102 | Marketing plan, content and the Drop | `docs/RECORDING-SHOOTING-SCRIPT.md` |
-| INV-07699 | CMP-0102 | Marketing plan, content and the Drop | `docs/RECORDING-SHOOTING-SCRIPT.md` |
-| INV-07700 | CMP-0102 | Marketing plan, content and the Drop | `docs/RECORDING-SHOOTING-SCRIPT.md` |
-| INV-07701 | CMP-0102 | Marketing plan, content and the Drop | `docs/RECORDING-SHOOTING-SCRIPT.md` |
-| INV-07702 | CMP-0102 | Marketing plan, content and the Drop | `docs/RECORDING-SHOOTING-SCRIPT.md` |
-| INV-07703 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/RECORDING-SHOOTING-SCRIPT.md` |
+| INV-07690 | CMP-0193 | The Drop as a content programme | `docs/RECORDING-SHOOTING-SCRIPT.md` |
+| INV-07691 | CMP-0193 | The Drop as a content programme | `docs/RECORDING-SHOOTING-SCRIPT.md` |
+| INV-07692 | CMP-0193 | The Drop as a content programme | `docs/RECORDING-SHOOTING-SCRIPT.md` |
+| INV-07693 | CMP-0193 | The Drop as a content programme | `docs/RECORDING-SHOOTING-SCRIPT.md` |
+| INV-07694 | CMP-0193 | The Drop as a content programme | `docs/RECORDING-SHOOTING-SCRIPT.md` |
+| INV-07695 | CMP-0193 | The Drop as a content programme | `docs/RECORDING-SHOOTING-SCRIPT.md` |
+| INV-07696 | CMP-0193 | The Drop as a content programme | `docs/RECORDING-SHOOTING-SCRIPT.md` |
+| INV-07697 | CMP-0193 | The Drop as a content programme | `docs/RECORDING-SHOOTING-SCRIPT.md` |
+| INV-07698 | CMP-0193 | The Drop as a content programme | `docs/RECORDING-SHOOTING-SCRIPT.md` |
+| INV-07699 | CMP-0193 | The Drop as a content programme | `docs/RECORDING-SHOOTING-SCRIPT.md` |
+| INV-07700 | CMP-0193 | The Drop as a content programme | `docs/RECORDING-SHOOTING-SCRIPT.md` |
+| INV-07701 | CMP-0193 | The Drop as a content programme | `docs/RECORDING-SHOOTING-SCRIPT.md` |
+| INV-07702 | CMP-0193 | The Drop as a content programme | `docs/RECORDING-SHOOTING-SCRIPT.md` |
+| INV-07703 | CMP-0193 | The Drop as a content programme | `docs/RECORDING-SHOOTING-SCRIPT.md` |
 | INV-07704 | STRUCTURAL | — | `docs/RECORDING-SHOOTING-SCRIPT.md` |
 | INV-07705 | CMP-0037 | Milla conversational experience and the flywheel | `docs/RECORDING-SHOOTING-SCRIPT.md` |
 | INV-07706 | SOURCE-SPECIFIC | — | `docs/RECORDING-SHOOTING-SCRIPT.md` |
-| INV-07707 | SOURCE-SPECIFIC | — | `docs/RECORDING-SHOOTING-SCRIPT.md` |
+| INV-07707 | CMP-0193 | The Drop as a content programme | `docs/RECORDING-SHOOTING-SCRIPT.md` |
 | INV-07708 | SOURCE-SPECIFIC | — | `docs/RECORDING-SHOOTING-SCRIPT.md` |
 | INV-07709 | CMP-0037 | Milla conversational experience and the flywheel | `docs/RECORDING-SHOOTING-SCRIPT.md` |
-| INV-07710 | CMP-0102 | Marketing plan, content and the Drop | `docs/RECORDING-SHOOTING-SCRIPT.md` |
+| INV-07710 | CMP-0193 | The Drop as a content programme | `docs/RECORDING-SHOOTING-SCRIPT.md` |
 | INV-07711 | SOURCE-SPECIFIC | — | `docs/RECORDING-SHOOTING-SCRIPT.md` |
 | INV-07712 | SOURCE-SPECIFIC | — | `docs/RECORDING-SHOOTING-SCRIPT.md` |
 | INV-07713 | STRUCTURAL | — | `docs/RECORDING-SHOOTING-SCRIPT.md` |
@@ -8000,7 +8000,7 @@
 | INV-07982 | CMP-0098 | Integrations and CRM | `docs/strategy/README.md` |
 | INV-07983 | CMP-0039 | Vida — the operator console | `docs/strategy/README.md` |
 | INV-07984 | STRUCTURAL | — | `docs/strategy/README.md` |
-| INV-07985 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/strategy/README.md` |
+| INV-07985 | CMP-0106 | Competitive landscape and teardowns | `docs/strategy/README.md` |
 | INV-07986 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/strategy/README.md` |
 | INV-07987 | SOURCE-SPECIFIC | — | `docs/strategy/README.md` |
 | INV-07988 | STRUCTURAL | — | `docs/strategy/README.md` |
@@ -8024,7 +8024,7 @@
 | INV-08006 | CMP-0101 | GTM strategy and the two-track market | `docs/marketing/GTM-ONE-PAGE.md` |
 | INV-08007 | CMP-0101 | GTM strategy and the two-track market | `docs/marketing/GTM-ONE-PAGE.md` |
 | INV-08008 | CMP-0101 | GTM strategy and the two-track market | `docs/marketing/GTM-ONE-PAGE.md` |
-| INV-08009 | CMP-0001 | The $299 onboarding pack | `docs/marketing/GTM-ONE-PAGE.md` |
+| INV-08009 | CMP-0136 | First 100 approved leads included — the legacy pack entitlement | `docs/marketing/GTM-ONE-PAGE.md` |
 | INV-08010 | CMP-0101 | GTM strategy and the two-track market | `docs/marketing/GTM-ONE-PAGE.md` |
 | INV-08011 | CMP-0101 | GTM strategy and the two-track market | `docs/marketing/GTM-ONE-PAGE.md` |
 | INV-08012 | CMP-0101 | GTM strategy and the two-track market | `docs/marketing/GTM-ONE-PAGE.md` |
@@ -8040,7 +8040,7 @@
 | INV-08022 | CMP-0101 | GTM strategy and the two-track market | `docs/marketing/GTM-ONE-PAGE.md` |
 | INV-08023 | CMP-0084 | Unibox, replies and reply triage | `docs/marketing/GTM-ONE-PAGE.md` |
 | INV-08024 | CMP-0037 | Milla conversational experience and the flywheel | `docs/marketing/GTM-ONE-PAGE.md` |
-| INV-08025 | CMP-0101 | GTM strategy and the two-track market | `docs/marketing/GTM-ONE-PAGE.md` |
+| INV-08025 | CMP-0193 | The Drop as a content programme | `docs/marketing/GTM-ONE-PAGE.md` |
 | INV-08026 | CMP-0101 | GTM strategy and the two-track market | `docs/marketing/GTM-ONE-PAGE.md` |
 | INV-08027 | CMP-0048 | Onboarding and demo surfaces | `docs/marketing/GTM-ONE-PAGE.md` |
 | INV-08028 | CMP-0101 | GTM strategy and the two-track market | `docs/marketing/GTM-ONE-PAGE.md` |
@@ -8072,20 +8072,20 @@
 | INV-08054 | CMP-0101 | GTM strategy and the two-track market | `docs/marketing/GTM-STRATEGY.md` |
 | INV-08055 | CMP-0101 | GTM strategy and the two-track market | `docs/marketing/GTM-STRATEGY.md` |
 | INV-08056 | CMP-0048 | Onboarding and demo surfaces | `docs/marketing/GTM-STRATEGY.md` |
-| INV-08057 | CMP-0101 | GTM strategy and the two-track market | `docs/marketing/GTM-STRATEGY.md` |
-| INV-08058 | CMP-0056 | The launch date | `docs/marketing/GTM-STRATEGY.md` |
-| INV-08059 | CMP-0056 | The launch date | `docs/marketing/GTM-STRATEGY.md` |
-| INV-08060 | CMP-0056 | The launch date | `docs/marketing/GTM-STRATEGY.md` |
-| INV-08061 | CMP-0056 | The launch date | `docs/marketing/GTM-STRATEGY.md` |
-| INV-08062 | CMP-0056 | The launch date | `docs/marketing/GTM-STRATEGY.md` |
-| INV-08063 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/marketing/GTM-STRATEGY.md` |
-| INV-08064 | CMP-0056 | The launch date | `docs/marketing/GTM-STRATEGY.md` |
-| INV-08065 | CMP-0026 | ICP changes and the widened-proof acceptance rule | `docs/marketing/GTM-STRATEGY.md` |
-| INV-08066 | CMP-0056 | The launch date | `docs/marketing/GTM-STRATEGY.md` |
-| INV-08067 | CMP-0056 | The launch date | `docs/marketing/GTM-STRATEGY.md` |
-| INV-08068 | CMP-0056 | The launch date | `docs/marketing/GTM-STRATEGY.md` |
-| INV-08069 | CMP-0101 | GTM strategy and the two-track market | `docs/marketing/GTM-STRATEGY.md` |
-| INV-08070 | CMP-0003 | The $4 → $8 migration (R68 / T9) | `docs/marketing/GTM-STRATEGY.md` |
+| INV-08057 | CMP-0192 | Evidence-triggered phase ladder — PROVE IT / COMPOUND IT / SCALE IT | `docs/marketing/GTM-STRATEGY.md` |
+| INV-08058 | CMP-0192 | Evidence-triggered phase ladder — PROVE IT / COMPOUND IT / SCALE IT | `docs/marketing/GTM-STRATEGY.md` |
+| INV-08059 | CMP-0192 | Evidence-triggered phase ladder — PROVE IT / COMPOUND IT / SCALE IT | `docs/marketing/GTM-STRATEGY.md` |
+| INV-08060 | CMP-0192 | Evidence-triggered phase ladder — PROVE IT / COMPOUND IT / SCALE IT | `docs/marketing/GTM-STRATEGY.md` |
+| INV-08061 | CMP-0192 | Evidence-triggered phase ladder — PROVE IT / COMPOUND IT / SCALE IT | `docs/marketing/GTM-STRATEGY.md` |
+| INV-08062 | CMP-0192 | Evidence-triggered phase ladder — PROVE IT / COMPOUND IT / SCALE IT | `docs/marketing/GTM-STRATEGY.md` |
+| INV-08063 | CMP-0192 | Evidence-triggered phase ladder — PROVE IT / COMPOUND IT / SCALE IT | `docs/marketing/GTM-STRATEGY.md` |
+| INV-08064 | CMP-0192 | Evidence-triggered phase ladder — PROVE IT / COMPOUND IT / SCALE IT | `docs/marketing/GTM-STRATEGY.md` |
+| INV-08065 | CMP-0192 | Evidence-triggered phase ladder — PROVE IT / COMPOUND IT / SCALE IT | `docs/marketing/GTM-STRATEGY.md` |
+| INV-08066 | CMP-0192 | Evidence-triggered phase ladder — PROVE IT / COMPOUND IT / SCALE IT | `docs/marketing/GTM-STRATEGY.md` |
+| INV-08067 | CMP-0192 | Evidence-triggered phase ladder — PROVE IT / COMPOUND IT / SCALE IT | `docs/marketing/GTM-STRATEGY.md` |
+| INV-08068 | CMP-0192 | Evidence-triggered phase ladder — PROVE IT / COMPOUND IT / SCALE IT | `docs/marketing/GTM-STRATEGY.md` |
+| INV-08069 | CMP-0192 | Evidence-triggered phase ladder — PROVE IT / COMPOUND IT / SCALE IT | `docs/marketing/GTM-STRATEGY.md` |
+| INV-08070 | CMP-0192 | Evidence-triggered phase ladder — PROVE IT / COMPOUND IT / SCALE IT | `docs/marketing/GTM-STRATEGY.md` |
 | INV-08071 | CMP-0101 | GTM strategy and the two-track market | `docs/marketing/GTM-STRATEGY.md` |
 | INV-08072 | CMP-0101 | GTM strategy and the two-track market | `docs/marketing/GTM-STRATEGY.md` |
 | INV-08073 | CMP-0103 | Paid ads | `docs/marketing/GTM-STRATEGY.md` |
@@ -8110,18 +8110,18 @@
 | INV-08092 | CMP-0102 | Marketing plan, content and the Drop | `docs/marketing/MARKETING-PLAN.md` |
 | INV-08093 | CMP-0102 | Marketing plan, content and the Drop | `docs/marketing/MARKETING-PLAN.md` |
 | INV-08094 | CMP-0102 | Marketing plan, content and the Drop | `docs/marketing/MARKETING-PLAN.md` |
-| INV-08095 | CMP-0066 | Steals — patterns taken from other tools | `docs/marketing/MARKETING-PLAN.md` |
-| INV-08096 | CMP-0066 | Steals — patterns taken from other tools | `docs/marketing/MARKETING-PLAN.md` |
-| INV-08097 | CMP-0066 | Steals — patterns taken from other tools | `docs/marketing/MARKETING-PLAN.md` |
-| INV-08098 | CMP-0066 | Steals — patterns taken from other tools | `docs/marketing/MARKETING-PLAN.md` |
-| INV-08099 | CMP-0066 | Steals — patterns taken from other tools | `docs/marketing/MARKETING-PLAN.md` |
-| INV-08100 | CMP-0066 | Steals — patterns taken from other tools | `docs/marketing/MARKETING-PLAN.md` |
-| INV-08101 | CMP-0066 | Steals — patterns taken from other tools | `docs/marketing/MARKETING-PLAN.md` |
-| INV-08102 | CMP-0066 | Steals — patterns taken from other tools | `docs/marketing/MARKETING-PLAN.md` |
-| INV-08103 | CMP-0066 | Steals — patterns taken from other tools | `docs/marketing/MARKETING-PLAN.md` |
-| INV-08104 | CMP-0066 | Steals — patterns taken from other tools | `docs/marketing/MARKETING-PLAN.md` |
-| INV-08105 | CMP-0103 | Paid ads | `docs/marketing/MARKETING-PLAN.md` |
-| INV-08106 | CMP-0066 | Steals — patterns taken from other tools | `docs/marketing/MARKETING-PLAN.md` |
+| INV-08095 | CMP-0196 | The stealth constraint (R2) | `docs/marketing/MARKETING-PLAN.md` |
+| INV-08096 | CMP-0196 | The stealth constraint (R2) | `docs/marketing/MARKETING-PLAN.md` |
+| INV-08097 | CMP-0196 | The stealth constraint (R2) | `docs/marketing/MARKETING-PLAN.md` |
+| INV-08098 | CMP-0196 | The stealth constraint (R2) | `docs/marketing/MARKETING-PLAN.md` |
+| INV-08099 | CMP-0196 | The stealth constraint (R2) | `docs/marketing/MARKETING-PLAN.md` |
+| INV-08100 | CMP-0196 | The stealth constraint (R2) | `docs/marketing/MARKETING-PLAN.md` |
+| INV-08101 | CMP-0196 | The stealth constraint (R2) | `docs/marketing/MARKETING-PLAN.md` |
+| INV-08102 | CMP-0196 | The stealth constraint (R2) | `docs/marketing/MARKETING-PLAN.md` |
+| INV-08103 | CMP-0196 | The stealth constraint (R2) | `docs/marketing/MARKETING-PLAN.md` |
+| INV-08104 | CMP-0196 | The stealth constraint (R2) | `docs/marketing/MARKETING-PLAN.md` |
+| INV-08105 | CMP-0196 | The stealth constraint (R2) | `docs/marketing/MARKETING-PLAN.md` |
+| INV-08106 | CMP-0196 | The stealth constraint (R2) | `docs/marketing/MARKETING-PLAN.md` |
 | INV-08107 | CMP-0102 | Marketing plan, content and the Drop | `docs/marketing/MARKETING-PLAN.md` |
 | INV-08108 | CMP-0102 | Marketing plan, content and the Drop | `docs/marketing/MARKETING-PLAN.md` |
 | INV-08109 | CMP-0102 | Marketing plan, content and the Drop | `docs/marketing/MARKETING-PLAN.md` |
@@ -8133,7 +8133,7 @@
 | INV-08115 | CMP-0102 | Marketing plan, content and the Drop | `docs/marketing/MARKETING-PLAN.md` |
 | INV-08116 | CMP-0102 | Marketing plan, content and the Drop | `docs/marketing/MARKETING-PLAN.md` |
 | INV-08117 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/marketing/MARKETING-PLAN.md` |
-| INV-08118 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/marketing/MARKETING-PLAN.md` |
+| INV-08118 | CMP-0193 | The Drop as a content programme | `docs/marketing/MARKETING-PLAN.md` |
 | INV-08119 | CMP-0102 | Marketing plan, content and the Drop | `docs/marketing/MARKETING-PLAN.md` |
 | INV-08120 | CMP-0100 | Voice and AI calling | `docs/marketing/MARKETING-PLAN.md` |
 | INV-08121 | CMP-0102 | Marketing plan, content and the Drop | `docs/marketing/MARKETING-PLAN.md` |
@@ -8168,7 +8168,7 @@
 | INV-08150 | CMP-0102 | Marketing plan, content and the Drop | `docs/marketing/MARKETING-PLAN.md` |
 | INV-08151 | CMP-0102 | Marketing plan, content and the Drop | `docs/marketing/MARKETING-PLAN.md` |
 | INV-08152 | CMP-0102 | Marketing plan, content and the Drop | `docs/marketing/MARKETING-PLAN.md` |
-| INV-08153 | CMP-0046 | Client-facing calculators | `docs/marketing/MARKETING-PLAN.md` |
+| INV-08153 | CMP-0193 | The Drop as a content programme | `docs/marketing/MARKETING-PLAN.md` |
 | INV-08154 | CMP-0102 | Marketing plan, content and the Drop | `docs/marketing/MARKETING-PLAN.md` |
 | INV-08155 | CMP-0016 | The wallet and the per-approval charge | `docs/marketing/MARKETING-PLAN.md` |
 | INV-08156 | CMP-0090 | Dashboards, KPIs and reporting | `docs/marketing/MARKETING-PLAN.md` |
@@ -8188,21 +8188,21 @@
 | INV-08170 | CMP-0102 | Marketing plan, content and the Drop | `docs/marketing/MARKETING-PLAN.md` |
 | INV-08171 | CMP-0102 | Marketing plan, content and the Drop | `docs/marketing/MARKETING-PLAN.md` |
 | INV-08172 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/marketing/MARKETING-PLAN.md` |
-| INV-08173 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/marketing/MARKETING-PLAN.md` |
+| INV-08173 | CMP-0193 | The Drop as a content programme | `docs/marketing/MARKETING-PLAN.md` |
 | INV-08174 | CMP-0102 | Marketing plan, content and the Drop | `docs/marketing/MARKETING-PLAN.md` |
 | INV-08175 | CMP-0084 | Unibox, replies and reply triage | `docs/marketing/MARKETING-PLAN.md` |
 | INV-08176 | CMP-0102 | Marketing plan, content and the Drop | `docs/marketing/MARKETING-PLAN.md` |
 | INV-08177 | CMP-0102 | Marketing plan, content and the Drop | `docs/marketing/MARKETING-PLAN.md` |
 | INV-08178 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/marketing/MARKETING-PLAN.md` |
-| INV-08179 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/marketing/MARKETING-PLAN.md` |
-| INV-08180 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/marketing/MARKETING-PLAN.md` |
+| INV-08179 | CMP-0193 | The Drop as a content programme | `docs/marketing/MARKETING-PLAN.md` |
+| INV-08180 | CMP-0193 | The Drop as a content programme | `docs/marketing/MARKETING-PLAN.md` |
 | INV-08181 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/marketing/MARKETING-PLAN.md` |
 | INV-08182 | CMP-0102 | Marketing plan, content and the Drop | `docs/marketing/MARKETING-PLAN.md` |
 | INV-08183 | CMP-0102 | Marketing plan, content and the Drop | `docs/marketing/MARKETING-PLAN.md` |
 | INV-08184 | CMP-0102 | Marketing plan, content and the Drop | `docs/marketing/MARKETING-PLAN.md` |
 | INV-08185 | CMP-0102 | Marketing plan, content and the Drop | `docs/marketing/MARKETING-PLAN.md` |
-| INV-08186 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/marketing/MARKETING-PLAN.md` |
-| INV-08187 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/marketing/MARKETING-PLAN.md` |
+| INV-08186 | CMP-0193 | The Drop as a content programme | `docs/marketing/MARKETING-PLAN.md` |
+| INV-08187 | CMP-0193 | The Drop as a content programme | `docs/marketing/MARKETING-PLAN.md` |
 | INV-08188 | CMP-0084 | Unibox, replies and reply triage | `docs/marketing/MARKETING-PLAN.md` |
 | INV-08189 | CMP-0102 | Marketing plan, content and the Drop | `docs/marketing/MARKETING-PLAN.md` |
 | INV-08190 | CMP-0102 | Marketing plan, content and the Drop | `docs/marketing/MARKETING-PLAN.md` |
@@ -8291,21 +8291,21 @@
 | INV-08273 | CMP-0102 | Marketing plan, content and the Drop | `docs/marketing/DAILY-PLAYBOOK.md` |
 | INV-08274 | CMP-0102 | Marketing plan, content and the Drop | `docs/marketing/DAILY-PLAYBOOK.md` |
 | INV-08275 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/marketing/DAILY-PLAYBOOK.md` |
-| INV-08276 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/marketing/DAILY-PLAYBOOK.md` |
+| INV-08276 | CMP-0193 | The Drop as a content programme | `docs/marketing/DAILY-PLAYBOOK.md` |
 | INV-08277 | CMP-0102 | Marketing plan, content and the Drop | `docs/marketing/DAILY-PLAYBOOK.md` |
 | INV-08278 | CMP-0084 | Unibox, replies and reply triage | `docs/marketing/DAILY-PLAYBOOK.md` |
 | INV-08279 | CMP-0102 | Marketing plan, content and the Drop | `docs/marketing/DAILY-PLAYBOOK.md` |
 | INV-08280 | CMP-0102 | Marketing plan, content and the Drop | `docs/marketing/DAILY-PLAYBOOK.md` |
 | INV-08281 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/marketing/DAILY-PLAYBOOK.md` |
-| INV-08282 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/marketing/DAILY-PLAYBOOK.md` |
-| INV-08283 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/marketing/DAILY-PLAYBOOK.md` |
+| INV-08282 | CMP-0193 | The Drop as a content programme | `docs/marketing/DAILY-PLAYBOOK.md` |
+| INV-08283 | CMP-0193 | The Drop as a content programme | `docs/marketing/DAILY-PLAYBOOK.md` |
 | INV-08284 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/marketing/DAILY-PLAYBOOK.md` |
 | INV-08285 | CMP-0102 | Marketing plan, content and the Drop | `docs/marketing/DAILY-PLAYBOOK.md` |
 | INV-08286 | CMP-0102 | Marketing plan, content and the Drop | `docs/marketing/DAILY-PLAYBOOK.md` |
 | INV-08287 | CMP-0102 | Marketing plan, content and the Drop | `docs/marketing/DAILY-PLAYBOOK.md` |
 | INV-08288 | CMP-0102 | Marketing plan, content and the Drop | `docs/marketing/DAILY-PLAYBOOK.md` |
-| INV-08289 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/marketing/DAILY-PLAYBOOK.md` |
-| INV-08290 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/marketing/DAILY-PLAYBOOK.md` |
+| INV-08289 | CMP-0193 | The Drop as a content programme | `docs/marketing/DAILY-PLAYBOOK.md` |
+| INV-08290 | CMP-0193 | The Drop as a content programme | `docs/marketing/DAILY-PLAYBOOK.md` |
 | INV-08291 | CMP-0084 | Unibox, replies and reply triage | `docs/marketing/DAILY-PLAYBOOK.md` |
 | INV-08292 | CMP-0102 | Marketing plan, content and the Drop | `docs/marketing/DAILY-PLAYBOOK.md` |
 | INV-08293 | CMP-0102 | Marketing plan, content and the Drop | `docs/marketing/DAILY-PLAYBOOK.md` |
@@ -8319,75 +8319,75 @@
 | INV-08301 | CMP-0102 | Marketing plan, content and the Drop | `docs/marketing/DAILY-PLAYBOOK.md` |
 | INV-08302 | CMP-0102 | Marketing plan, content and the Drop | `docs/marketing/DAILY-PLAYBOOK.md` |
 | INV-08303 | CMP-0102 | Marketing plan, content and the Drop | `docs/marketing/DAILY-PLAYBOOK.md` |
-| INV-08304 | CMP-0102 | Marketing plan, content and the Drop | `docs/marketing/DAILY-PLAYBOOK.md` |
+| INV-08304 | CMP-0193 | The Drop as a content programme | `docs/marketing/DAILY-PLAYBOOK.md` |
 | INV-08305 | CMP-0102 | Marketing plan, content and the Drop | `docs/marketing/DAILY-PLAYBOOK.md` |
-| INV-08306 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/marketing/DAILY-PLAYBOOK.md` |
-| INV-08307 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/marketing/DAILY-PLAYBOOK.md` |
-| INV-08308 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/marketing/DAILY-PLAYBOOK.md` |
-| INV-08309 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/marketing/DAILY-PLAYBOOK.md` |
-| INV-08310 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/marketing/DAILY-PLAYBOOK.md` |
-| INV-08311 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/marketing/DAILY-PLAYBOOK.md` |
-| INV-08312 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/marketing/DAILY-PLAYBOOK.md` |
-| INV-08313 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/marketing/DAILY-PLAYBOOK.md` |
-| INV-08314 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/marketing/DAILY-PLAYBOOK.md` |
-| INV-08315 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/marketing/DAILY-PLAYBOOK.md` |
-| INV-08316 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/marketing/DAILY-PLAYBOOK.md` |
-| INV-08317 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/marketing/DAILY-PLAYBOOK.md` |
-| INV-08318 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/marketing/DAILY-PLAYBOOK.md` |
-| INV-08319 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/marketing/DAILY-PLAYBOOK.md` |
-| INV-08320 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/marketing/DAILY-PLAYBOOK.md` |
-| INV-08321 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/marketing/DAILY-PLAYBOOK.md` |
-| INV-08322 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/marketing/DAILY-PLAYBOOK.md` |
-| INV-08323 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/marketing/DAILY-PLAYBOOK.md` |
-| INV-08324 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/marketing/DAILY-PLAYBOOK.md` |
-| INV-08325 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/marketing/DAILY-PLAYBOOK.md` |
-| INV-08326 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/marketing/DAILY-PLAYBOOK.md` |
-| INV-08327 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/marketing/DAILY-PLAYBOOK.md` |
-| INV-08328 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/marketing/DAILY-PLAYBOOK.md` |
-| INV-08329 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/marketing/DAILY-PLAYBOOK.md` |
-| INV-08330 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/marketing/DAILY-PLAYBOOK.md` |
-| INV-08331 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/marketing/DAILY-PLAYBOOK.md` |
-| INV-08332 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/marketing/DAILY-PLAYBOOK.md` |
-| INV-08333 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/marketing/DAILY-PLAYBOOK.md` |
-| INV-08334 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/marketing/DAILY-PLAYBOOK.md` |
-| INV-08335 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/marketing/DAILY-PLAYBOOK.md` |
-| INV-08336 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/marketing/DAILY-PLAYBOOK.md` |
-| INV-08337 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/marketing/DAILY-PLAYBOOK.md` |
-| INV-08338 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/marketing/DAILY-PLAYBOOK.md` |
-| INV-08339 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/marketing/DAILY-PLAYBOOK.md` |
-| INV-08340 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/marketing/DAILY-PLAYBOOK.md` |
-| INV-08341 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/marketing/DAILY-PLAYBOOK.md` |
-| INV-08342 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/marketing/DAILY-PLAYBOOK.md` |
-| INV-08343 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/marketing/DAILY-PLAYBOOK.md` |
-| INV-08344 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/marketing/DAILY-PLAYBOOK.md` |
-| INV-08345 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/marketing/DAILY-PLAYBOOK.md` |
-| INV-08346 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/marketing/DAILY-PLAYBOOK.md` |
-| INV-08347 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/marketing/DAILY-PLAYBOOK.md` |
+| INV-08306 | CMP-0193 | The Drop as a content programme | `docs/marketing/DAILY-PLAYBOOK.md` |
+| INV-08307 | CMP-0193 | The Drop as a content programme | `docs/marketing/DAILY-PLAYBOOK.md` |
+| INV-08308 | CMP-0193 | The Drop as a content programme | `docs/marketing/DAILY-PLAYBOOK.md` |
+| INV-08309 | CMP-0193 | The Drop as a content programme | `docs/marketing/DAILY-PLAYBOOK.md` |
+| INV-08310 | CMP-0193 | The Drop as a content programme | `docs/marketing/DAILY-PLAYBOOK.md` |
+| INV-08311 | CMP-0193 | The Drop as a content programme | `docs/marketing/DAILY-PLAYBOOK.md` |
+| INV-08312 | CMP-0193 | The Drop as a content programme | `docs/marketing/DAILY-PLAYBOOK.md` |
+| INV-08313 | CMP-0193 | The Drop as a content programme | `docs/marketing/DAILY-PLAYBOOK.md` |
+| INV-08314 | CMP-0193 | The Drop as a content programme | `docs/marketing/DAILY-PLAYBOOK.md` |
+| INV-08315 | CMP-0193 | The Drop as a content programme | `docs/marketing/DAILY-PLAYBOOK.md` |
+| INV-08316 | CMP-0193 | The Drop as a content programme | `docs/marketing/DAILY-PLAYBOOK.md` |
+| INV-08317 | CMP-0193 | The Drop as a content programme | `docs/marketing/DAILY-PLAYBOOK.md` |
+| INV-08318 | CMP-0193 | The Drop as a content programme | `docs/marketing/DAILY-PLAYBOOK.md` |
+| INV-08319 | CMP-0193 | The Drop as a content programme | `docs/marketing/DAILY-PLAYBOOK.md` |
+| INV-08320 | CMP-0193 | The Drop as a content programme | `docs/marketing/DAILY-PLAYBOOK.md` |
+| INV-08321 | CMP-0193 | The Drop as a content programme | `docs/marketing/DAILY-PLAYBOOK.md` |
+| INV-08322 | CMP-0193 | The Drop as a content programme | `docs/marketing/DAILY-PLAYBOOK.md` |
+| INV-08323 | CMP-0193 | The Drop as a content programme | `docs/marketing/DAILY-PLAYBOOK.md` |
+| INV-08324 | CMP-0193 | The Drop as a content programme | `docs/marketing/DAILY-PLAYBOOK.md` |
+| INV-08325 | CMP-0193 | The Drop as a content programme | `docs/marketing/DAILY-PLAYBOOK.md` |
+| INV-08326 | CMP-0193 | The Drop as a content programme | `docs/marketing/DAILY-PLAYBOOK.md` |
+| INV-08327 | CMP-0193 | The Drop as a content programme | `docs/marketing/DAILY-PLAYBOOK.md` |
+| INV-08328 | CMP-0193 | The Drop as a content programme | `docs/marketing/DAILY-PLAYBOOK.md` |
+| INV-08329 | CMP-0193 | The Drop as a content programme | `docs/marketing/DAILY-PLAYBOOK.md` |
+| INV-08330 | CMP-0193 | The Drop as a content programme | `docs/marketing/DAILY-PLAYBOOK.md` |
+| INV-08331 | CMP-0193 | The Drop as a content programme | `docs/marketing/DAILY-PLAYBOOK.md` |
+| INV-08332 | CMP-0193 | The Drop as a content programme | `docs/marketing/DAILY-PLAYBOOK.md` |
+| INV-08333 | CMP-0193 | The Drop as a content programme | `docs/marketing/DAILY-PLAYBOOK.md` |
+| INV-08334 | CMP-0193 | The Drop as a content programme | `docs/marketing/DAILY-PLAYBOOK.md` |
+| INV-08335 | CMP-0193 | The Drop as a content programme | `docs/marketing/DAILY-PLAYBOOK.md` |
+| INV-08336 | CMP-0193 | The Drop as a content programme | `docs/marketing/DAILY-PLAYBOOK.md` |
+| INV-08337 | CMP-0193 | The Drop as a content programme | `docs/marketing/DAILY-PLAYBOOK.md` |
+| INV-08338 | CMP-0193 | The Drop as a content programme | `docs/marketing/DAILY-PLAYBOOK.md` |
+| INV-08339 | CMP-0193 | The Drop as a content programme | `docs/marketing/DAILY-PLAYBOOK.md` |
+| INV-08340 | CMP-0193 | The Drop as a content programme | `docs/marketing/DAILY-PLAYBOOK.md` |
+| INV-08341 | CMP-0193 | The Drop as a content programme | `docs/marketing/DAILY-PLAYBOOK.md` |
+| INV-08342 | CMP-0193 | The Drop as a content programme | `docs/marketing/DAILY-PLAYBOOK.md` |
+| INV-08343 | CMP-0193 | The Drop as a content programme | `docs/marketing/DAILY-PLAYBOOK.md` |
+| INV-08344 | CMP-0193 | The Drop as a content programme | `docs/marketing/DAILY-PLAYBOOK.md` |
+| INV-08345 | CMP-0193 | The Drop as a content programme | `docs/marketing/DAILY-PLAYBOOK.md` |
+| INV-08346 | CMP-0193 | The Drop as a content programme | `docs/marketing/DAILY-PLAYBOOK.md` |
+| INV-08347 | CMP-0193 | The Drop as a content programme | `docs/marketing/DAILY-PLAYBOOK.md` |
 | INV-08348 | CMP-0102 | Marketing plan, content and the Drop | `docs/marketing/DAILY-PLAYBOOK.md` |
-| INV-08349 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/marketing/DAILY-PLAYBOOK.md` |
+| INV-08349 | CMP-0193 | The Drop as a content programme | `docs/marketing/DAILY-PLAYBOOK.md` |
 | INV-08350 | CMP-0102 | Marketing plan, content and the Drop | `docs/marketing/DAILY-PLAYBOOK.md` |
 | INV-08351 | CMP-0042 | Suppression, opt-out and DNC | `docs/marketing/DAILY-PLAYBOOK.md` |
 | INV-08352 | CMP-0102 | Marketing plan, content and the Drop | `docs/marketing/DAILY-PLAYBOOK.md` |
 | INV-08353 | CMP-0102 | Marketing plan, content and the Drop | `docs/marketing/DAILY-PLAYBOOK.md` |
 | INV-08354 | CMP-0042 | Suppression, opt-out and DNC | `docs/marketing/DAILY-PLAYBOOK.md` |
 | INV-08355 | CMP-0102 | Marketing plan, content and the Drop | `docs/marketing/DAILY-PLAYBOOK.md` |
-| INV-08356 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/marketing/DAILY-PLAYBOOK.md` |
-| INV-08357 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/marketing/DAILY-PLAYBOOK.md` |
-| INV-08358 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/marketing/DAILY-PLAYBOOK.md` |
-| INV-08359 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/marketing/DAILY-PLAYBOOK.md` |
-| INV-08360 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/marketing/DAILY-PLAYBOOK.md` |
-| INV-08361 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/marketing/DAILY-PLAYBOOK.md` |
-| INV-08362 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/marketing/DAILY-PLAYBOOK.md` |
-| INV-08363 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/marketing/DAILY-PLAYBOOK.md` |
-| INV-08364 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/marketing/DAILY-PLAYBOOK.md` |
-| INV-08365 | CMP-0032 | Meeting states — booked, unverified, held, no-show, reschedule | `docs/marketing/DAILY-PLAYBOOK.md` |
-| INV-08366 | CMP-0032 | Meeting states — booked, unverified, held, no-show, reschedule | `docs/marketing/DAILY-PLAYBOOK.md` |
-| INV-08367 | CMP-0032 | Meeting states — booked, unverified, held, no-show, reschedule | `docs/marketing/DAILY-PLAYBOOK.md` |
-| INV-08368 | CMP-0032 | Meeting states — booked, unverified, held, no-show, reschedule | `docs/marketing/DAILY-PLAYBOOK.md` |
-| INV-08369 | CMP-0032 | Meeting states — booked, unverified, held, no-show, reschedule | `docs/marketing/DAILY-PLAYBOOK.md` |
-| INV-08370 | CMP-0032 | Meeting states — booked, unverified, held, no-show, reschedule | `docs/marketing/DAILY-PLAYBOOK.md` |
-| INV-08371 | CMP-0032 | Meeting states — booked, unverified, held, no-show, reschedule | `docs/marketing/DAILY-PLAYBOOK.md` |
-| INV-08372 | CMP-0032 | Meeting states — booked, unverified, held, no-show, reschedule | `docs/marketing/DAILY-PLAYBOOK.md` |
+| INV-08356 | CMP-0193 | The Drop as a content programme | `docs/marketing/DAILY-PLAYBOOK.md` |
+| INV-08357 | CMP-0193 | The Drop as a content programme | `docs/marketing/DAILY-PLAYBOOK.md` |
+| INV-08358 | CMP-0193 | The Drop as a content programme | `docs/marketing/DAILY-PLAYBOOK.md` |
+| INV-08359 | CMP-0193 | The Drop as a content programme | `docs/marketing/DAILY-PLAYBOOK.md` |
+| INV-08360 | CMP-0193 | The Drop as a content programme | `docs/marketing/DAILY-PLAYBOOK.md` |
+| INV-08361 | CMP-0193 | The Drop as a content programme | `docs/marketing/DAILY-PLAYBOOK.md` |
+| INV-08362 | CMP-0193 | The Drop as a content programme | `docs/marketing/DAILY-PLAYBOOK.md` |
+| INV-08363 | CMP-0193 | The Drop as a content programme | `docs/marketing/DAILY-PLAYBOOK.md` |
+| INV-08364 | CMP-0193 | The Drop as a content programme | `docs/marketing/DAILY-PLAYBOOK.md` |
+| INV-08365 | CMP-0193 | The Drop as a content programme | `docs/marketing/DAILY-PLAYBOOK.md` |
+| INV-08366 | CMP-0193 | The Drop as a content programme | `docs/marketing/DAILY-PLAYBOOK.md` |
+| INV-08367 | CMP-0193 | The Drop as a content programme | `docs/marketing/DAILY-PLAYBOOK.md` |
+| INV-08368 | CMP-0193 | The Drop as a content programme | `docs/marketing/DAILY-PLAYBOOK.md` |
+| INV-08369 | CMP-0193 | The Drop as a content programme | `docs/marketing/DAILY-PLAYBOOK.md` |
+| INV-08370 | CMP-0193 | The Drop as a content programme | `docs/marketing/DAILY-PLAYBOOK.md` |
+| INV-08371 | CMP-0193 | The Drop as a content programme | `docs/marketing/DAILY-PLAYBOOK.md` |
+| INV-08372 | CMP-0193 | The Drop as a content programme | `docs/marketing/DAILY-PLAYBOOK.md` |
 | INV-08373 | CMP-0102 | Marketing plan, content and the Drop | `docs/marketing/DAILY-PLAYBOOK.md` |
 | INV-08374 | CMP-0026 | ICP changes and the widened-proof acceptance rule | `docs/marketing/DAILY-PLAYBOOK.md` |
 | INV-08375 | CMP-0102 | Marketing plan, content and the Drop | `docs/marketing/DAILY-PLAYBOOK.md` |
@@ -8443,7 +8443,7 @@
 | INV-08425 | CMP-0102 | Marketing plan, content and the Drop | `docs/marketing/README-marketing.md` |
 | INV-08426 | CMP-0102 | Marketing plan, content and the Drop | `docs/marketing/README-marketing.md` |
 | INV-08427 | CMP-0101 | GTM strategy and the two-track market | `docs/marketing/README-marketing.md` |
-| INV-08428 | CMP-0100 | Voice and AI calling | `docs/marketing/README-marketing.md` |
+| INV-08428 | CMP-0193 | The Drop as a content programme | `docs/marketing/README-marketing.md` |
 | INV-08429 | CMP-0102 | Marketing plan, content and the Drop | `docs/marketing/README-marketing.md` |
 | INV-08430 | CMP-0102 | Marketing plan, content and the Drop | `docs/marketing/README-marketing.md` |
 | INV-08431 | CMP-0090 | Dashboards, KPIs and reporting | `docs/marketing/README-marketing.md` |
@@ -8490,10 +8490,10 @@
 | INV-08472 | CMP-0102 | Marketing plan, content and the Drop | `docs/marketing/CLAUDE-PROJECT-INSTRUCTIONS.md` |
 | INV-08473 | CMP-0102 | Marketing plan, content and the Drop | `docs/marketing/CLAUDE-PROJECT-INSTRUCTIONS.md` |
 | INV-08474 | CMP-0026 | ICP changes and the widened-proof acceptance rule | `docs/marketing/CLAUDE-PROJECT-INSTRUCTIONS.md` |
-| INV-08475 | CMP-0001 | The $299 onboarding pack | `docs/marketing/CLAUDE-PROJECT-INSTRUCTIONS.md` |
+| INV-08475 | CMP-0136 | First 100 approved leads included — the legacy pack entitlement | `docs/marketing/CLAUDE-PROJECT-INSTRUCTIONS.md` |
 | INV-08476 | CMP-0100 | Voice and AI calling | `docs/marketing/CLAUDE-PROJECT-INSTRUCTIONS.md` |
 | INV-08477 | CMP-0102 | Marketing plan, content and the Drop | `docs/marketing/CLAUDE-PROJECT-INSTRUCTIONS.md` |
-| INV-08478 | CMP-0046 | Client-facing calculators | `docs/marketing/CLAUDE-PROJECT-INSTRUCTIONS.md` |
+| INV-08478 | CMP-0193 | The Drop as a content programme | `docs/marketing/CLAUDE-PROJECT-INSTRUCTIONS.md` |
 | INV-08479 | CMP-0102 | Marketing plan, content and the Drop | `docs/marketing/CLAUDE-PROJECT-INSTRUCTIONS.md` |
 | INV-08480 | CMP-0102 | Marketing plan, content and the Drop | `docs/marketing/CLAUDE-PROJECT-INSTRUCTIONS.md` |
 | INV-08481 | CMP-0102 | Marketing plan, content and the Drop | `docs/marketing/CLAUDE-PROJECT-INSTRUCTIONS.md` |
@@ -8502,7 +8502,7 @@
 | INV-08484 | CMP-0102 | Marketing plan, content and the Drop | `docs/marketing/CLAUDE-PROJECT-INSTRUCTIONS.md` |
 | INV-08485 | CMP-0102 | Marketing plan, content and the Drop | `docs/marketing/CLAUDE-PROJECT-INSTRUCTIONS.md` |
 | INV-08486 | CMP-0102 | Marketing plan, content and the Drop | `docs/marketing/CLAUDE-PROJECT-INSTRUCTIONS.md` |
-| INV-08487 | CMP-0102 | Marketing plan, content and the Drop | `docs/marketing/CLAUDE-PROJECT-INSTRUCTIONS.md` |
+| INV-08487 | CMP-0193 | The Drop as a content programme | `docs/marketing/CLAUDE-PROJECT-INSTRUCTIONS.md` |
 | INV-08488 | CMP-0102 | Marketing plan, content and the Drop | `docs/marketing/CLAUDE-PROJECT-INSTRUCTIONS.md` |
 | INV-08489 | CMP-0096 | Company engine, seats and the pool | `docs/marketing/CLAUDE-PROJECT-INSTRUCTIONS.md` |
 | INV-08490 | CMP-0095 | Knowledge, Compass and client training | `docs/marketing/CLAUDE-PROJECT-INSTRUCTIONS.md` |
@@ -8540,7 +8540,7 @@
 | INV-08522 | CMP-0102 | Marketing plan, content and the Drop | `docs/marketing/beehiiv-setup-checklist.md` |
 | INV-08523 | CMP-0102 | Marketing plan, content and the Drop | `docs/marketing/beehiiv-setup-checklist.md` |
 | INV-08524 | CMP-0102 | Marketing plan, content and the Drop | `docs/marketing/beehiiv-setup-checklist.md` |
-| INV-08525 | CMP-0066 | Steals — patterns taken from other tools | `docs/marketing/beehiiv-setup-checklist.md` |
+| INV-08525 | CMP-0196 | The stealth constraint (R2) | `docs/marketing/beehiiv-setup-checklist.md` |
 | INV-08526 | CMP-0102 | Marketing plan, content and the Drop | `docs/marketing/beehiiv-setup-checklist.md` |
 | INV-08527 | CMP-0102 | Marketing plan, content and the Drop | `docs/marketing/beehiiv-setup-checklist.md` |
 | INV-08528 | CMP-0102 | Marketing plan, content and the Drop | `docs/marketing/beehiiv-setup-checklist.md` |
@@ -8604,7 +8604,7 @@
 | INV-08586 | CMP-0102 | Marketing plan, content and the Drop | `docs/marketing/beehiiv-setup-checklist.md` |
 | INV-08587 | CMP-0102 | Marketing plan, content and the Drop | `docs/marketing/founder-content-playbook.md` |
 | INV-08588 | CMP-0102 | Marketing plan, content and the Drop | `docs/marketing/founder-content-playbook.md` |
-| INV-08589 | CMP-0066 | Steals — patterns taken from other tools | `docs/marketing/founder-content-playbook.md` |
+| INV-08589 | CMP-0196 | The stealth constraint (R2) | `docs/marketing/founder-content-playbook.md` |
 | INV-08590 | CMP-0102 | Marketing plan, content and the Drop | `docs/marketing/founder-content-playbook.md` |
 | INV-08591 | CMP-0102 | Marketing plan, content and the Drop | `docs/marketing/founder-content-playbook.md` |
 | INV-08592 | CMP-0102 | Marketing plan, content and the Drop | `docs/marketing/founder-content-playbook.md` |
@@ -8662,75 +8662,75 @@
 | INV-08644 | CMP-0102 | Marketing plan, content and the Drop | `docs/marketing/founder-content-playbook.md` |
 | INV-08645 | CMP-0102 | Marketing plan, content and the Drop | `docs/marketing/founder-content-playbook.md` |
 | INV-08646 | CMP-0102 | Marketing plan, content and the Drop | `docs/marketing/founder-content-playbook.md` |
-| INV-08647 | CMP-0102 | Marketing plan, content and the Drop | `docs/marketing/founder-content-playbook.md` |
+| INV-08647 | CMP-0193 | The Drop as a content programme | `docs/marketing/founder-content-playbook.md` |
 | INV-08648 | CMP-0102 | Marketing plan, content and the Drop | `docs/marketing/founder-content-playbook.md` |
-| INV-08649 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/marketing/founder-content-playbook.md` |
-| INV-08650 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/marketing/founder-content-playbook.md` |
-| INV-08651 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/marketing/founder-content-playbook.md` |
-| INV-08652 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/marketing/founder-content-playbook.md` |
-| INV-08653 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/marketing/founder-content-playbook.md` |
-| INV-08654 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/marketing/founder-content-playbook.md` |
-| INV-08655 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/marketing/founder-content-playbook.md` |
-| INV-08656 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/marketing/founder-content-playbook.md` |
-| INV-08657 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/marketing/founder-content-playbook.md` |
-| INV-08658 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/marketing/founder-content-playbook.md` |
-| INV-08659 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/marketing/founder-content-playbook.md` |
-| INV-08660 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/marketing/founder-content-playbook.md` |
-| INV-08661 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/marketing/founder-content-playbook.md` |
-| INV-08662 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/marketing/founder-content-playbook.md` |
-| INV-08663 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/marketing/founder-content-playbook.md` |
-| INV-08664 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/marketing/founder-content-playbook.md` |
-| INV-08665 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/marketing/founder-content-playbook.md` |
-| INV-08666 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/marketing/founder-content-playbook.md` |
-| INV-08667 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/marketing/founder-content-playbook.md` |
-| INV-08668 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/marketing/founder-content-playbook.md` |
-| INV-08669 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/marketing/founder-content-playbook.md` |
-| INV-08670 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/marketing/founder-content-playbook.md` |
-| INV-08671 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/marketing/founder-content-playbook.md` |
-| INV-08672 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/marketing/founder-content-playbook.md` |
-| INV-08673 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/marketing/founder-content-playbook.md` |
-| INV-08674 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/marketing/founder-content-playbook.md` |
-| INV-08675 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/marketing/founder-content-playbook.md` |
-| INV-08676 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/marketing/founder-content-playbook.md` |
-| INV-08677 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/marketing/founder-content-playbook.md` |
-| INV-08678 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/marketing/founder-content-playbook.md` |
-| INV-08679 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/marketing/founder-content-playbook.md` |
-| INV-08680 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/marketing/founder-content-playbook.md` |
-| INV-08681 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/marketing/founder-content-playbook.md` |
-| INV-08682 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/marketing/founder-content-playbook.md` |
-| INV-08683 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/marketing/founder-content-playbook.md` |
-| INV-08684 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/marketing/founder-content-playbook.md` |
-| INV-08685 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/marketing/founder-content-playbook.md` |
-| INV-08686 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/marketing/founder-content-playbook.md` |
-| INV-08687 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/marketing/founder-content-playbook.md` |
-| INV-08688 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/marketing/founder-content-playbook.md` |
-| INV-08689 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/marketing/founder-content-playbook.md` |
-| INV-08690 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/marketing/founder-content-playbook.md` |
+| INV-08649 | CMP-0193 | The Drop as a content programme | `docs/marketing/founder-content-playbook.md` |
+| INV-08650 | CMP-0193 | The Drop as a content programme | `docs/marketing/founder-content-playbook.md` |
+| INV-08651 | CMP-0193 | The Drop as a content programme | `docs/marketing/founder-content-playbook.md` |
+| INV-08652 | CMP-0193 | The Drop as a content programme | `docs/marketing/founder-content-playbook.md` |
+| INV-08653 | CMP-0193 | The Drop as a content programme | `docs/marketing/founder-content-playbook.md` |
+| INV-08654 | CMP-0193 | The Drop as a content programme | `docs/marketing/founder-content-playbook.md` |
+| INV-08655 | CMP-0193 | The Drop as a content programme | `docs/marketing/founder-content-playbook.md` |
+| INV-08656 | CMP-0193 | The Drop as a content programme | `docs/marketing/founder-content-playbook.md` |
+| INV-08657 | CMP-0193 | The Drop as a content programme | `docs/marketing/founder-content-playbook.md` |
+| INV-08658 | CMP-0193 | The Drop as a content programme | `docs/marketing/founder-content-playbook.md` |
+| INV-08659 | CMP-0193 | The Drop as a content programme | `docs/marketing/founder-content-playbook.md` |
+| INV-08660 | CMP-0193 | The Drop as a content programme | `docs/marketing/founder-content-playbook.md` |
+| INV-08661 | CMP-0193 | The Drop as a content programme | `docs/marketing/founder-content-playbook.md` |
+| INV-08662 | CMP-0193 | The Drop as a content programme | `docs/marketing/founder-content-playbook.md` |
+| INV-08663 | CMP-0193 | The Drop as a content programme | `docs/marketing/founder-content-playbook.md` |
+| INV-08664 | CMP-0193 | The Drop as a content programme | `docs/marketing/founder-content-playbook.md` |
+| INV-08665 | CMP-0193 | The Drop as a content programme | `docs/marketing/founder-content-playbook.md` |
+| INV-08666 | CMP-0193 | The Drop as a content programme | `docs/marketing/founder-content-playbook.md` |
+| INV-08667 | CMP-0193 | The Drop as a content programme | `docs/marketing/founder-content-playbook.md` |
+| INV-08668 | CMP-0193 | The Drop as a content programme | `docs/marketing/founder-content-playbook.md` |
+| INV-08669 | CMP-0193 | The Drop as a content programme | `docs/marketing/founder-content-playbook.md` |
+| INV-08670 | CMP-0193 | The Drop as a content programme | `docs/marketing/founder-content-playbook.md` |
+| INV-08671 | CMP-0193 | The Drop as a content programme | `docs/marketing/founder-content-playbook.md` |
+| INV-08672 | CMP-0193 | The Drop as a content programme | `docs/marketing/founder-content-playbook.md` |
+| INV-08673 | CMP-0193 | The Drop as a content programme | `docs/marketing/founder-content-playbook.md` |
+| INV-08674 | CMP-0193 | The Drop as a content programme | `docs/marketing/founder-content-playbook.md` |
+| INV-08675 | CMP-0193 | The Drop as a content programme | `docs/marketing/founder-content-playbook.md` |
+| INV-08676 | CMP-0193 | The Drop as a content programme | `docs/marketing/founder-content-playbook.md` |
+| INV-08677 | CMP-0193 | The Drop as a content programme | `docs/marketing/founder-content-playbook.md` |
+| INV-08678 | CMP-0193 | The Drop as a content programme | `docs/marketing/founder-content-playbook.md` |
+| INV-08679 | CMP-0193 | The Drop as a content programme | `docs/marketing/founder-content-playbook.md` |
+| INV-08680 | CMP-0193 | The Drop as a content programme | `docs/marketing/founder-content-playbook.md` |
+| INV-08681 | CMP-0193 | The Drop as a content programme | `docs/marketing/founder-content-playbook.md` |
+| INV-08682 | CMP-0193 | The Drop as a content programme | `docs/marketing/founder-content-playbook.md` |
+| INV-08683 | CMP-0193 | The Drop as a content programme | `docs/marketing/founder-content-playbook.md` |
+| INV-08684 | CMP-0193 | The Drop as a content programme | `docs/marketing/founder-content-playbook.md` |
+| INV-08685 | CMP-0193 | The Drop as a content programme | `docs/marketing/founder-content-playbook.md` |
+| INV-08686 | CMP-0193 | The Drop as a content programme | `docs/marketing/founder-content-playbook.md` |
+| INV-08687 | CMP-0193 | The Drop as a content programme | `docs/marketing/founder-content-playbook.md` |
+| INV-08688 | CMP-0193 | The Drop as a content programme | `docs/marketing/founder-content-playbook.md` |
+| INV-08689 | CMP-0193 | The Drop as a content programme | `docs/marketing/founder-content-playbook.md` |
+| INV-08690 | CMP-0193 | The Drop as a content programme | `docs/marketing/founder-content-playbook.md` |
 | INV-08691 | CMP-0102 | Marketing plan, content and the Drop | `docs/marketing/founder-content-playbook.md` |
-| INV-08692 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/marketing/founder-content-playbook.md` |
+| INV-08692 | CMP-0193 | The Drop as a content programme | `docs/marketing/founder-content-playbook.md` |
 | INV-08693 | CMP-0102 | Marketing plan, content and the Drop | `docs/marketing/founder-content-playbook.md` |
 | INV-08694 | CMP-0042 | Suppression, opt-out and DNC | `docs/marketing/founder-content-playbook.md` |
 | INV-08695 | CMP-0102 | Marketing plan, content and the Drop | `docs/marketing/founder-content-playbook.md` |
 | INV-08696 | CMP-0102 | Marketing plan, content and the Drop | `docs/marketing/founder-content-playbook.md` |
 | INV-08697 | CMP-0042 | Suppression, opt-out and DNC | `docs/marketing/founder-content-playbook.md` |
 | INV-08698 | CMP-0102 | Marketing plan, content and the Drop | `docs/marketing/founder-content-playbook.md` |
-| INV-08699 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/marketing/founder-content-playbook.md` |
-| INV-08700 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/marketing/founder-content-playbook.md` |
-| INV-08701 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/marketing/founder-content-playbook.md` |
-| INV-08702 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/marketing/founder-content-playbook.md` |
-| INV-08703 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/marketing/founder-content-playbook.md` |
-| INV-08704 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/marketing/founder-content-playbook.md` |
-| INV-08705 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/marketing/founder-content-playbook.md` |
-| INV-08706 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/marketing/founder-content-playbook.md` |
-| INV-08707 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/marketing/founder-content-playbook.md` |
-| INV-08708 | CMP-0032 | Meeting states — booked, unverified, held, no-show, reschedule | `docs/marketing/founder-content-playbook.md` |
-| INV-08709 | CMP-0032 | Meeting states — booked, unverified, held, no-show, reschedule | `docs/marketing/founder-content-playbook.md` |
-| INV-08710 | CMP-0032 | Meeting states — booked, unverified, held, no-show, reschedule | `docs/marketing/founder-content-playbook.md` |
-| INV-08711 | CMP-0032 | Meeting states — booked, unverified, held, no-show, reschedule | `docs/marketing/founder-content-playbook.md` |
-| INV-08712 | CMP-0032 | Meeting states — booked, unverified, held, no-show, reschedule | `docs/marketing/founder-content-playbook.md` |
-| INV-08713 | CMP-0032 | Meeting states — booked, unverified, held, no-show, reschedule | `docs/marketing/founder-content-playbook.md` |
-| INV-08714 | CMP-0032 | Meeting states — booked, unverified, held, no-show, reschedule | `docs/marketing/founder-content-playbook.md` |
-| INV-08715 | CMP-0032 | Meeting states — booked, unverified, held, no-show, reschedule | `docs/marketing/founder-content-playbook.md` |
+| INV-08699 | CMP-0193 | The Drop as a content programme | `docs/marketing/founder-content-playbook.md` |
+| INV-08700 | CMP-0193 | The Drop as a content programme | `docs/marketing/founder-content-playbook.md` |
+| INV-08701 | CMP-0193 | The Drop as a content programme | `docs/marketing/founder-content-playbook.md` |
+| INV-08702 | CMP-0193 | The Drop as a content programme | `docs/marketing/founder-content-playbook.md` |
+| INV-08703 | CMP-0193 | The Drop as a content programme | `docs/marketing/founder-content-playbook.md` |
+| INV-08704 | CMP-0193 | The Drop as a content programme | `docs/marketing/founder-content-playbook.md` |
+| INV-08705 | CMP-0193 | The Drop as a content programme | `docs/marketing/founder-content-playbook.md` |
+| INV-08706 | CMP-0193 | The Drop as a content programme | `docs/marketing/founder-content-playbook.md` |
+| INV-08707 | CMP-0193 | The Drop as a content programme | `docs/marketing/founder-content-playbook.md` |
+| INV-08708 | CMP-0193 | The Drop as a content programme | `docs/marketing/founder-content-playbook.md` |
+| INV-08709 | CMP-0193 | The Drop as a content programme | `docs/marketing/founder-content-playbook.md` |
+| INV-08710 | CMP-0193 | The Drop as a content programme | `docs/marketing/founder-content-playbook.md` |
+| INV-08711 | CMP-0193 | The Drop as a content programme | `docs/marketing/founder-content-playbook.md` |
+| INV-08712 | CMP-0193 | The Drop as a content programme | `docs/marketing/founder-content-playbook.md` |
+| INV-08713 | CMP-0193 | The Drop as a content programme | `docs/marketing/founder-content-playbook.md` |
+| INV-08714 | CMP-0193 | The Drop as a content programme | `docs/marketing/founder-content-playbook.md` |
+| INV-08715 | CMP-0193 | The Drop as a content programme | `docs/marketing/founder-content-playbook.md` |
 | INV-08716 | CMP-0102 | Marketing plan, content and the Drop | `docs/marketing/founder-content-playbook.md` |
 | INV-08717 | CMP-0026 | ICP changes and the widened-proof acceptance rule | `docs/marketing/founder-content-playbook.md` |
 | INV-08718 | CMP-0102 | Marketing plan, content and the Drop | `docs/marketing/founder-content-playbook.md` |
@@ -8999,12 +8999,12 @@
 | INV-08981 | CMP-0100 | Voice and AI calling | `docs/marketing/voice.md` |
 | INV-08982 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/marketing/voice.md` |
 | INV-08983 | CMP-0100 | Voice and AI calling | `docs/marketing/voice.md` |
-| INV-08984 | CMP-0001 | The $299 onboarding pack | `docs/marketing/voice.md` |
+| INV-08984 | CMP-0136 | First 100 approved leads included — the legacy pack entitlement | `docs/marketing/voice.md` |
 | INV-08985 | CMP-0100 | Voice and AI calling | `docs/marketing/voice.md` |
 | INV-08986 | CMP-0100 | Voice and AI calling | `docs/marketing/voice.md` |
 | INV-08987 | CMP-0100 | Voice and AI calling | `docs/marketing/voice.md` |
 | INV-08988 | CMP-0100 | Voice and AI calling | `docs/marketing/voice.md` |
-| INV-08989 | CMP-0066 | Steals — patterns taken from other tools | `docs/marketing/voice.md` |
+| INV-08989 | CMP-0196 | The stealth constraint (R2) | `docs/marketing/voice.md` |
 | INV-08990 | CMP-0100 | Voice and AI calling | `docs/marketing/voice.md` |
 | INV-08991 | CMP-0100 | Voice and AI calling | `docs/marketing/voice.md` |
 | INV-08992 | CMP-0100 | Voice and AI calling | `docs/marketing/voice.md` |

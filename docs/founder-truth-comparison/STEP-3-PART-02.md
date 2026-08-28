@@ -32,7 +32,7 @@
 | INV-09014 | CMP-0100 | Voice and AI calling | `docs/marketing/voice.md` |
 | INV-09015 | CMP-0056 | The launch date | `docs/marketing/voice.md` |
 | INV-09016 | CMP-0100 | Voice and AI calling | `docs/marketing/voice.md` |
-| INV-09017 | CMP-0100 | Voice and AI calling | `docs/marketing/voice.md` |
+| INV-09017 | CMP-0193 | The Drop as a content programme | `docs/marketing/voice.md` |
 | INV-09018 | CMP-0100 | Voice and AI calling | `docs/marketing/voice.md` |
 | INV-09019 | CMP-0102 | Marketing plan, content and the Drop | `docs/marketing/warm-outreach-kit.md` |
 | INV-09020 | CMP-0102 | Marketing plan, content and the Drop | `docs/marketing/warm-outreach-kit.md` |
@@ -235,7 +235,7 @@
 | INV-09217 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/content/linkedin-playbook.md` |
 | INV-09218 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/content/linkedin-playbook.md` |
 | INV-09219 | CMP-0102 | Marketing plan, content and the Drop | `docs/content/linkedin-playbook.md` |
-| INV-09220 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/content/linkedin-playbook.md` |
+| INV-09220 | CMP-0193 | The Drop as a content programme | `docs/content/linkedin-playbook.md` |
 | INV-09221 | CMP-0102 | Marketing plan, content and the Drop | `docs/content/linkedin-playbook.md` |
 | INV-09222 | CMP-0102 | Marketing plan, content and the Drop | `docs/content/linkedin-playbook.md` |
 | INV-09223 | CMP-0031 | Customer / inbound and owned data as a source | `docs/content/linkedin-playbook.md` |
@@ -248,7 +248,7 @@
 | INV-09230 | CMP-0039 | Vida — the operator console | `docs/content/linkedin-playbook.md` |
 | INV-09231 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/content/linkedin-playbook.md` |
 | INV-09232 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/content/linkedin-playbook.md` |
-| INV-09233 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/content/linkedin-playbook.md` |
+| INV-09233 | CMP-0193 | The Drop as a content programme | `docs/content/linkedin-playbook.md` |
 | INV-09234 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/content/linkedin-playbook.md` |
 | INV-09235 | CMP-0085 | Deliverability, warm-up and sending domains | `docs/content/linkedin-playbook.md` |
 | INV-09236 | CMP-0102 | Marketing plan, content and the Drop | `docs/content/linkedin-playbook.md` |
@@ -641,9 +641,9 @@
 | INV-09623 | CMP-0073 | Session logging and the end-of-session ritual | `docs/README.md` |
 | INV-09624 | CMP-0117 | Session logs and handoffs | `docs/README.md` |
 | INV-09625 | STRUCTURAL | — | `docs/README.md` |
-| INV-09626 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/README.md` |
-| INV-09627 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/README.md` |
-| INV-09628 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/README.md` |
+| INV-09626 | STRUCTURAL | — | `docs/README.md` |
+| INV-09627 | CMP-0075 | The status dot ladder | `docs/README.md` |
+| INV-09628 | STRUCTURAL | — | `docs/README.md` |
 | INV-09629 | STRUCTURAL | — | `docs/README.md` |
 | INV-09630 | CMP-0057 | LAUNCH-PAD vs PRODUCT-INVENTORY — the same items, two boards | `docs/README.md` |
 | INV-09631 | SOURCE-SPECIFIC | — | `docs/README.md` |
@@ -662,7 +662,7 @@
 | INV-09644 | CMP-0057 | LAUNCH-PAD vs PRODUCT-INVENTORY — the same items, two boards | `README.md` |
 | INV-09645 | SOURCE-SPECIFIC | — | `README.md` |
 | INV-09646 | CMP-0073 | Session logging and the end-of-session ritual | `README.md` |
-| INV-09647 | CMP-0063 | V2 non-FI roadmap and narrative material | `README.md` |
+| INV-09647 | CMP-0066 | Steals — patterns taken from other tools | `README.md` |
 | INV-09648 | CMP-0082 | The core-file register and the doc map | `README.md` |
 | INV-09649 | STRUCTURAL | — | `AGENT_AVATARS.md` |
 | INV-09650 | CMP-0118 | Prior audits and reconciliations | `AGENT_AVATARS.md` |
@@ -1131,25 +1131,25 @@
 | INV-10113 | CMP-0048 | Onboarding and demo surfaces | `docs/client-onboarding-training.html` |
 | INV-10114 | CMP-0048 | Onboarding and demo surfaces | `docs/client-onboarding-training.html` |
 | INV-10115 | CMP-0048 | Onboarding and demo surfaces | `docs/client-onboarding-training.html` |
-| INV-10116 | CMP-0048 | Onboarding and demo surfaces | `docs/client-onboarding-training.html` |
-| INV-10117 | CMP-0002 | The $4 per-approved-lead charge | `docs/client-onboarding-training.html` |
-| INV-10118 | CMP-0048 | Onboarding and demo surfaces | `docs/client-onboarding-training.html` |
-| INV-10119 | CMP-0016 | The wallet and the per-approval charge | `docs/client-onboarding-training.html` |
-| INV-10120 | CMP-0048 | Onboarding and demo surfaces | `docs/client-onboarding-training.html` |
-| INV-10121 | CMP-0048 | Onboarding and demo surfaces | `docs/client-onboarding-training.html` |
-| INV-10122 | CMP-0048 | Onboarding and demo surfaces | `docs/client-onboarding-training.html` |
-| INV-10123 | CMP-0048 | Onboarding and demo surfaces | `docs/client-onboarding-training.html` |
-| INV-10124 | CMP-0048 | Onboarding and demo surfaces | `docs/client-onboarding-training.html` |
-| INV-10125 | CMP-0048 | Onboarding and demo surfaces | `docs/client-onboarding-training.html` |
-| INV-10126 | CMP-0048 | Onboarding and demo surfaces | `docs/client-onboarding-training.html` |
-| INV-10127 | CMP-0048 | Onboarding and demo surfaces | `docs/client-onboarding-training.html` |
-| INV-10128 | CMP-0048 | Onboarding and demo surfaces | `docs/client-onboarding-training.html` |
-| INV-10129 | CMP-0048 | Onboarding and demo surfaces | `docs/client-onboarding-training.html` |
-| INV-10130 | CMP-0048 | Onboarding and demo surfaces | `docs/client-onboarding-training.html` |
-| INV-10131 | CMP-0048 | Onboarding and demo surfaces | `docs/client-onboarding-training.html` |
-| INV-10132 | CMP-0048 | Onboarding and demo surfaces | `docs/client-onboarding-training.html` |
-| INV-10133 | CMP-0048 | Onboarding and demo surfaces | `docs/client-onboarding-training.html` |
-| INV-10134 | CMP-0048 | Onboarding and demo surfaces | `docs/client-onboarding-training.html` |
+| INV-10116 | CMP-0136 | First 100 approved leads included — the legacy pack entitlement | `docs/client-onboarding-training.html` |
+| INV-10117 | CMP-0136 | First 100 approved leads included — the legacy pack entitlement | `docs/client-onboarding-training.html` |
+| INV-10118 | CMP-0136 | First 100 approved leads included — the legacy pack entitlement | `docs/client-onboarding-training.html` |
+| INV-10119 | CMP-0136 | First 100 approved leads included — the legacy pack entitlement | `docs/client-onboarding-training.html` |
+| INV-10120 | CMP-0136 | First 100 approved leads included — the legacy pack entitlement | `docs/client-onboarding-training.html` |
+| INV-10121 | CMP-0136 | First 100 approved leads included — the legacy pack entitlement | `docs/client-onboarding-training.html` |
+| INV-10122 | CMP-0136 | First 100 approved leads included — the legacy pack entitlement | `docs/client-onboarding-training.html` |
+| INV-10123 | CMP-0136 | First 100 approved leads included — the legacy pack entitlement | `docs/client-onboarding-training.html` |
+| INV-10124 | CMP-0136 | First 100 approved leads included — the legacy pack entitlement | `docs/client-onboarding-training.html` |
+| INV-10125 | CMP-0136 | First 100 approved leads included — the legacy pack entitlement | `docs/client-onboarding-training.html` |
+| INV-10126 | CMP-0136 | First 100 approved leads included — the legacy pack entitlement | `docs/client-onboarding-training.html` |
+| INV-10127 | CMP-0136 | First 100 approved leads included — the legacy pack entitlement | `docs/client-onboarding-training.html` |
+| INV-10128 | CMP-0136 | First 100 approved leads included — the legacy pack entitlement | `docs/client-onboarding-training.html` |
+| INV-10129 | CMP-0136 | First 100 approved leads included — the legacy pack entitlement | `docs/client-onboarding-training.html` |
+| INV-10130 | CMP-0136 | First 100 approved leads included — the legacy pack entitlement | `docs/client-onboarding-training.html` |
+| INV-10131 | CMP-0136 | First 100 approved leads included — the legacy pack entitlement | `docs/client-onboarding-training.html` |
+| INV-10132 | CMP-0136 | First 100 approved leads included — the legacy pack entitlement | `docs/client-onboarding-training.html` |
+| INV-10133 | CMP-0136 | First 100 approved leads included — the legacy pack entitlement | `docs/client-onboarding-training.html` |
+| INV-10134 | CMP-0136 | First 100 approved leads included — the legacy pack entitlement | `docs/client-onboarding-training.html` |
 | INV-10135 | CMP-0001 | The $299 onboarding pack | `docs/client-onboarding-training.html` |
 | INV-10136 | CMP-0002 | The $4 per-approved-lead charge | `docs/client-onboarding-training.html` |
 | INV-10137 | CMP-0048 | Onboarding and demo surfaces | `docs/demo-walkthrough-script.html` |
@@ -1209,7 +1209,7 @@
 | INV-10191 | CMP-0102 | Marketing plan, content and the Drop | `docs/archive/MASTER.md` |
 | INV-10192 | CMP-0102 | Marketing plan, content and the Drop | `docs/archive/MASTER.md` |
 | INV-10193 | CMP-0102 | Marketing plan, content and the Drop | `docs/archive/MASTER.md` |
-| INV-10194 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
+| INV-10194 | CMP-0102 | Marketing plan, content and the Drop | `docs/archive/MASTER.md` |
 | INV-10195 | CMP-0102 | Marketing plan, content and the Drop | `docs/archive/MASTER.md` |
 | INV-10196 | CMP-0066 | Steals — patterns taken from other tools | `docs/archive/MASTER.md` |
 | INV-10197 | CMP-0102 | Marketing plan, content and the Drop | `docs/archive/MASTER.md` |
@@ -1315,7 +1315,7 @@
 | INV-10297 | CMP-0119 | Founder open-item lists and checklists | `docs/archive/MASTER.md` |
 | INV-10298 | CMP-0111 | Testing, smoke tests and the walk | `docs/archive/MASTER.md` |
 | INV-10299 | CMP-0048 | Onboarding and demo surfaces | `docs/archive/MASTER.md` |
-| INV-10300 | CMP-0111 | Testing, smoke tests and the walk | `docs/archive/MASTER.md` |
+| INV-10300 | CMP-0180 | Website consistency pass (#698) | `docs/archive/MASTER.md` |
 | INV-10301 | CMP-0119 | Founder open-item lists and checklists | `docs/archive/MASTER.md` |
 | INV-10302 | CMP-0060 | Deployment verification and the SHA report | `docs/archive/MASTER.md` |
 | INV-10303 | CMP-0060 | Deployment verification and the SHA report | `docs/archive/MASTER.md` |
@@ -1374,7 +1374,7 @@
 | INV-10356 | CMP-0020 | Stripe as the payment gate | `docs/archive/MASTER.md` |
 | INV-10357 | CMP-0116 | Dated roadmap phases and timelines | `docs/archive/MASTER.md` |
 | INV-10358 | CMP-0112 | Infrastructure, hosting and the stack | `docs/archive/MASTER.md` |
-| INV-10359 | CMP-0111 | Testing, smoke tests and the walk | `docs/archive/MASTER.md` |
+| INV-10359 | CMP-0180 | Website consistency pass (#698) | `docs/archive/MASTER.md` |
 | INV-10360 | CMP-0119 | Founder open-item lists and checklists | `docs/archive/MASTER.md` |
 | INV-10361 | CMP-0119 | Founder open-item lists and checklists | `docs/archive/MASTER.md` |
 | INV-10362 | CMP-0118 | Prior audits and reconciliations | `docs/archive/MASTER.md` |
@@ -1384,7 +1384,7 @@
 | INV-10366 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/archive/MASTER.md` |
 | INV-10367 | CMP-0119 | Founder open-item lists and checklists | `docs/archive/MASTER.md` |
 | INV-10368 | CMP-0119 | Founder open-item lists and checklists | `docs/archive/MASTER.md` |
-| INV-10369 | CMP-0075 | The status dot ladder | `docs/archive/MASTER.md` |
+| INV-10369 | CMP-0180 | Website consistency pass (#698) | `docs/archive/MASTER.md` |
 | INV-10370 | CMP-0119 | Founder open-item lists and checklists | `docs/archive/MASTER.md` |
 | INV-10371 | CMP-0102 | Marketing plan, content and the Drop | `docs/archive/MASTER.md` |
 | INV-10372 | CMP-0102 | Marketing plan, content and the Drop | `docs/archive/MASTER.md` |
@@ -1505,7 +1505,7 @@
 | INV-10487 | CMP-0102 | Marketing plan, content and the Drop | `docs/archive/MASTER.md` |
 | INV-10488 | CMP-0098 | Integrations and CRM | `docs/archive/MASTER.md` |
 | INV-10489 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/archive/MASTER.md` |
-| INV-10490 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
+| INV-10490 | CMP-0086 | Lead lifecycle and the lead desk | `docs/archive/MASTER.md` |
 | INV-10491 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/archive/MASTER.md` |
 | INV-10492 | CMP-0116 | Dated roadmap phases and timelines | `docs/archive/MASTER.md` |
 | INV-10493 | CMP-0116 | Dated roadmap phases and timelines | `docs/archive/MASTER.md` |
@@ -1528,19 +1528,19 @@
 | INV-10510 | CMP-0090 | Dashboards, KPIs and reporting | `docs/archive/MASTER.md` |
 | INV-10511 | CMP-0116 | Dated roadmap phases and timelines | `docs/archive/MASTER.md` |
 | INV-10512 | CMP-0099 | WhatsApp and Africa-first channels | `docs/archive/MASTER.md` |
-| INV-10513 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-10514 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
+| INV-10513 | CMP-0106 | Competitive landscape and teardowns | `docs/archive/MASTER.md` |
+| INV-10514 | CMP-0106 | Competitive landscape and teardowns | `docs/archive/MASTER.md` |
 | INV-10515 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/archive/MASTER.md` |
-| INV-10516 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
+| INV-10516 | CMP-0106 | Competitive landscape and teardowns | `docs/archive/MASTER.md` |
 | INV-10517 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/archive/MASTER.md` |
-| INV-10518 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-10519 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-10520 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-10521 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-10522 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-10523 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-10524 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-10525 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
+| INV-10518 | CMP-0106 | Competitive landscape and teardowns | `docs/archive/MASTER.md` |
+| INV-10519 | CMP-0106 | Competitive landscape and teardowns | `docs/archive/MASTER.md` |
+| INV-10520 | CMP-0106 | Competitive landscape and teardowns | `docs/archive/MASTER.md` |
+| INV-10521 | CMP-0106 | Competitive landscape and teardowns | `docs/archive/MASTER.md` |
+| INV-10522 | CMP-0106 | Competitive landscape and teardowns | `docs/archive/MASTER.md` |
+| INV-10523 | CMP-0106 | Competitive landscape and teardowns | `docs/archive/MASTER.md` |
+| INV-10524 | CMP-0106 | Competitive landscape and teardowns | `docs/archive/MASTER.md` |
+| INV-10525 | CMP-0106 | Competitive landscape and teardowns | `docs/archive/MASTER.md` |
 | INV-10526 | CMP-0116 | Dated roadmap phases and timelines | `docs/archive/MASTER.md` |
 | INV-10527 | CMP-0072 | check.sh as the only gate | `docs/archive/MASTER.md` |
 | INV-10528 | CMP-0098 | Integrations and CRM | `docs/archive/MASTER.md` |
@@ -1763,8 +1763,8 @@
 | INV-10745 | CMP-0020 | Stripe as the payment gate | `docs/archive/MASTER.md` |
 | INV-10746 | CMP-0102 | Marketing plan, content and the Drop | `docs/archive/MASTER.md` |
 | INV-10747 | CMP-0102 | Marketing plan, content and the Drop | `docs/archive/MASTER.md` |
-| INV-10748 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-10749 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
+| INV-10748 | CMP-0102 | Marketing plan, content and the Drop | `docs/archive/MASTER.md` |
+| INV-10749 | CMP-0100 | Voice and AI calling | `docs/archive/MASTER.md` |
 | INV-10750 | CMP-0102 | Marketing plan, content and the Drop | `docs/archive/MASTER.md` |
 | INV-10751 | CMP-0084 | Unibox, replies and reply triage | `docs/archive/MASTER.md` |
 | INV-10752 | CMP-0102 | Marketing plan, content and the Drop | `docs/archive/MASTER.md` |
@@ -2040,7 +2040,7 @@
 | INV-11022 | CMP-0116 | Dated roadmap phases and timelines | `docs/archive/MASTER.md` |
 | INV-11023 | CMP-0022 | Who may start sourcing — Run, cron and top-up | `docs/archive/MASTER.md` |
 | INV-11024 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/archive/MASTER.md` |
-| INV-11025 | CMP-0025 | Pause — who may pause sending, and why | `docs/archive/MASTER.md` |
+| INV-11025 | CMP-0148 | Programme pause — client control and material-ICP-change auto-pause | `docs/archive/MASTER.md` |
 | INV-11026 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/archive/MASTER.md` |
 | INV-11027 | CMP-0116 | Dated roadmap phases and timelines | `docs/archive/MASTER.md` |
 | INV-11028 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/archive/MASTER.md` |
@@ -2202,7 +2202,7 @@
 | INV-11184 | CMP-0066 | Steals — patterns taken from other tools | `docs/archive/MASTER.md` |
 | INV-11185 | CMP-0066 | Steals — patterns taken from other tools | `docs/archive/MASTER.md` |
 | INV-11186 | CMP-0066 | Steals — patterns taken from other tools | `docs/archive/MASTER.md` |
-| INV-11187 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
+| INV-11187 | CMP-0066 | Steals — patterns taken from other tools | `docs/archive/MASTER.md` |
 | INV-11188 | CMP-0042 | Suppression, opt-out and DNC | `docs/archive/MASTER.md` |
 | INV-11189 | CMP-0066 | Steals — patterns taken from other tools | `docs/archive/MASTER.md` |
 | INV-11190 | CMP-0066 | Steals — patterns taken from other tools | `docs/archive/MASTER.md` |
@@ -2282,7 +2282,7 @@
 | INV-11264 | CMP-0116 | Dated roadmap phases and timelines | `docs/archive/MASTER.md` |
 | INV-11265 | CMP-0075 | The status dot ladder | `docs/archive/MASTER.md` |
 | INV-11266 | CMP-0075 | The status dot ladder | `docs/archive/MASTER.md` |
-| INV-11267 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
+| INV-11267 | CMP-0106 | Competitive landscape and teardowns | `docs/archive/MASTER.md` |
 | INV-11268 | CMP-0116 | Dated roadmap phases and timelines | `docs/archive/MASTER.md` |
 | INV-11269 | CMP-0116 | Dated roadmap phases and timelines | `docs/archive/MASTER.md` |
 | INV-11270 | CMP-0026 | ICP changes and the widened-proof acceptance rule | `docs/archive/MASTER.md` |
@@ -2460,20 +2460,20 @@
 | INV-11442 | CMP-0116 | Dated roadmap phases and timelines | `docs/archive/MASTER.md` |
 | INV-11443 | CMP-0037 | Milla conversational experience and the flywheel | `docs/archive/MASTER.md` |
 | INV-11444 | CMP-0116 | Dated roadmap phases and timelines | `docs/archive/MASTER.md` |
-| INV-11445 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-11446 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-11447 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
+| INV-11445 | CMP-0106 | Competitive landscape and teardowns | `docs/archive/MASTER.md` |
+| INV-11446 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/archive/MASTER.md` |
+| INV-11447 | CMP-0084 | Unibox, replies and reply triage | `docs/archive/MASTER.md` |
 | INV-11448 | CMP-0032 | Meeting states — booked, unverified, held, no-show, reschedule | `docs/archive/MASTER.md` |
-| INV-11449 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-11450 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-11451 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-11452 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
+| INV-11449 | CMP-0075 | The status dot ladder | `docs/archive/MASTER.md` |
+| INV-11450 | CMP-0106 | Competitive landscape and teardowns | `docs/archive/MASTER.md` |
+| INV-11451 | CMP-0099 | WhatsApp and Africa-first channels | `docs/archive/MASTER.md` |
+| INV-11452 | CMP-0106 | Competitive landscape and teardowns | `docs/archive/MASTER.md` |
 | INV-11453 | CMP-0032 | Meeting states — booked, unverified, held, no-show, reschedule | `docs/archive/MASTER.md` |
-| INV-11454 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-11455 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
+| INV-11454 | CMP-0083 | Campaigns and the sequence builder | `docs/archive/MASTER.md` |
+| INV-11455 | CMP-0090 | Dashboards, KPIs and reporting | `docs/archive/MASTER.md` |
 | INV-11456 | CMP-0032 | Meeting states — booked, unverified, held, no-show, reschedule | `docs/archive/MASTER.md` |
-| INV-11457 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-11458 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
+| INV-11457 | CMP-0106 | Competitive landscape and teardowns | `docs/archive/MASTER.md` |
+| INV-11458 | CMP-0106 | Competitive landscape and teardowns | `docs/archive/MASTER.md` |
 | INV-11459 | CMP-0116 | Dated roadmap phases and timelines | `docs/archive/MASTER.md` |
 | INV-11460 | CMP-0116 | Dated roadmap phases and timelines | `docs/archive/MASTER.md` |
 | INV-11461 | CMP-0116 | Dated roadmap phases and timelines | `docs/archive/MASTER.md` |
@@ -2906,7 +2906,7 @@
 | INV-11888 | STRUCTURAL | — | `docs/archive/MASTER.md` |
 | INV-11889 | SOURCE-SPECIFIC | — | `docs/archive/MASTER.md` |
 | INV-11890 | CMP-0111 | Testing, smoke tests and the walk | `docs/archive/MASTER.md` |
-| INV-11891 | CMP-0025 | Pause — who may pause sending, and why | `docs/archive/MASTER.md` |
+| INV-11891 | CMP-0148 | Programme pause — client control and material-ICP-change auto-pause | `docs/archive/MASTER.md` |
 | INV-11892 | CMP-0083 | Campaigns and the sequence builder | `docs/archive/MASTER.md` |
 | INV-11893 | CMP-0084 | Unibox, replies and reply triage | `docs/archive/MASTER.md` |
 | INV-11894 | SOURCE-SPECIFIC | — | `docs/archive/MASTER.md` |
@@ -2949,7 +2949,7 @@
 | INV-11931 | CMP-0089 | Credits, the two-pool model and holds | `docs/archive/MASTER.md` |
 | INV-11932 | CMP-0022 | Who may start sourcing — Run, cron and top-up | `docs/archive/MASTER.md` |
 | INV-11933 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/archive/MASTER.md` |
-| INV-11934 | CMP-0025 | Pause — who may pause sending, and why | `docs/archive/MASTER.md` |
+| INV-11934 | CMP-0148 | Programme pause — client control and material-ICP-change auto-pause | `docs/archive/MASTER.md` |
 | INV-11935 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/archive/MASTER.md` |
 | INV-11936 | SOURCE-SPECIFIC | — | `docs/archive/MASTER.md` |
 | INV-11937 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/archive/MASTER.md` |
@@ -3103,9 +3103,9 @@
 | INV-12085 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/archive/MASTER.md` |
 | INV-12086 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/archive/MASTER.md` |
 | INV-12087 | CMP-0083 | Campaigns and the sequence builder | `docs/archive/MASTER.md` |
-| INV-12088 | CMP-0022 | Who may start sourcing — Run, cron and top-up | `docs/archive/MASTER.md` |
+| INV-12088 | CMP-0148 | Programme pause — client control and material-ICP-change auto-pause | `docs/archive/MASTER.md` |
 | INV-12089 | CMP-0083 | Campaigns and the sequence builder | `docs/archive/MASTER.md` |
-| INV-12090 | CMP-0025 | Pause — who may pause sending, and why | `docs/archive/MASTER.md` |
+| INV-12090 | CMP-0148 | Programme pause — client control and material-ICP-change auto-pause | `docs/archive/MASTER.md` |
 | INV-12091 | CMP-0020 | Stripe as the payment gate | `docs/archive/MASTER.md` |
 | INV-12092 | CMP-0020 | Stripe as the payment gate | `docs/archive/MASTER.md` |
 | INV-12093 | CMP-0020 | Stripe as the payment gate | `docs/archive/MASTER.md` |
@@ -3533,168 +3533,168 @@
 | INV-12515 | CMP-0116 | Dated roadmap phases and timelines | `docs/archive/MASTER.md` |
 | INV-12516 | CMP-0098 | Integrations and CRM | `docs/archive/MASTER.md` |
 | INV-12517 | CMP-0098 | Integrations and CRM | `docs/archive/MASTER.md` |
-| INV-12518 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12519 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12520 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12521 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12522 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12523 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12524 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12525 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12526 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12527 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
+| INV-12518 | CMP-0106 | Competitive landscape and teardowns | `docs/archive/MASTER.md` |
+| INV-12519 | CMP-0106 | Competitive landscape and teardowns | `docs/archive/MASTER.md` |
+| INV-12520 | CMP-0106 | Competitive landscape and teardowns | `docs/archive/MASTER.md` |
+| INV-12521 | CMP-0106 | Competitive landscape and teardowns | `docs/archive/MASTER.md` |
+| INV-12522 | CMP-0083 | Campaigns and the sequence builder | `docs/archive/MASTER.md` |
+| INV-12523 | CMP-0100 | Voice and AI calling | `docs/archive/MASTER.md` |
+| INV-12524 | CMP-0083 | Campaigns and the sequence builder | `docs/archive/MASTER.md` |
+| INV-12525 | CMP-0106 | Competitive landscape and teardowns | `docs/archive/MASTER.md` |
+| INV-12526 | CMP-0106 | Competitive landscape and teardowns | `docs/archive/MASTER.md` |
+| INV-12527 | CMP-0106 | Competitive landscape and teardowns | `docs/archive/MASTER.md` |
 | INV-12528 | CMP-0021 | Trial and freebies | `docs/archive/MASTER.md` |
-| INV-12529 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12530 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12531 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12532 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12533 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12534 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12535 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
+| INV-12529 | CMP-0106 | Competitive landscape and teardowns | `docs/archive/MASTER.md` |
+| INV-12530 | CMP-0106 | Competitive landscape and teardowns | `docs/archive/MASTER.md` |
+| INV-12531 | CMP-0106 | Competitive landscape and teardowns | `docs/archive/MASTER.md` |
+| INV-12532 | CMP-0106 | Competitive landscape and teardowns | `docs/archive/MASTER.md` |
+| INV-12533 | CMP-0106 | Competitive landscape and teardowns | `docs/archive/MASTER.md` |
+| INV-12534 | CMP-0090 | Dashboards, KPIs and reporting | `docs/archive/MASTER.md` |
+| INV-12535 | CMP-0095 | Knowledge, Compass and client training | `docs/archive/MASTER.md` |
 | INV-12536 | CMP-0026 | ICP changes and the widened-proof acceptance rule | `docs/archive/MASTER.md` |
-| INV-12537 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12538 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12539 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12540 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12541 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12542 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12543 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12544 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12545 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12546 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12547 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12548 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12549 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12550 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12551 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
+| INV-12537 | CMP-0083 | Campaigns and the sequence builder | `docs/archive/MASTER.md` |
+| INV-12538 | CMP-0098 | Integrations and CRM | `docs/archive/MASTER.md` |
+| INV-12539 | CMP-0104 | Sales playbook and objection handling | `docs/archive/MASTER.md` |
+| INV-12540 | CMP-0084 | Unibox, replies and reply triage | `docs/archive/MASTER.md` |
+| INV-12541 | CMP-0084 | Unibox, replies and reply triage | `docs/archive/MASTER.md` |
+| INV-12542 | CMP-0106 | Competitive landscape and teardowns | `docs/archive/MASTER.md` |
+| INV-12543 | CMP-0106 | Competitive landscape and teardowns | `docs/archive/MASTER.md` |
+| INV-12544 | CMP-0095 | Knowledge, Compass and client training | `docs/archive/MASTER.md` |
+| INV-12545 | CMP-0106 | Competitive landscape and teardowns | `docs/archive/MASTER.md` |
+| INV-12546 | CMP-0102 | Marketing plan, content and the Drop | `docs/archive/MASTER.md` |
+| INV-12547 | CMP-0083 | Campaigns and the sequence builder | `docs/archive/MASTER.md` |
+| INV-12548 | CMP-0106 | Competitive landscape and teardowns | `docs/archive/MASTER.md` |
+| INV-12549 | CMP-0106 | Competitive landscape and teardowns | `docs/archive/MASTER.md` |
+| INV-12550 | CMP-0102 | Marketing plan, content and the Drop | `docs/archive/MASTER.md` |
+| INV-12551 | CMP-0083 | Campaigns and the sequence builder | `docs/archive/MASTER.md` |
 | INV-12552 | CMP-0026 | ICP changes and the widened-proof acceptance rule | `docs/archive/MASTER.md` |
-| INV-12553 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12554 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12555 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12556 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12557 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12558 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12559 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12560 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12561 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12562 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12563 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12564 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12565 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12566 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12567 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
+| INV-12553 | CMP-0106 | Competitive landscape and teardowns | `docs/archive/MASTER.md` |
+| INV-12554 | CMP-0083 | Campaigns and the sequence builder | `docs/archive/MASTER.md` |
+| INV-12555 | CMP-0083 | Campaigns and the sequence builder | `docs/archive/MASTER.md` |
+| INV-12556 | CMP-0083 | Campaigns and the sequence builder | `docs/archive/MASTER.md` |
+| INV-12557 | CMP-0083 | Campaigns and the sequence builder | `docs/archive/MASTER.md` |
+| INV-12558 | CMP-0083 | Campaigns and the sequence builder | `docs/archive/MASTER.md` |
+| INV-12559 | CMP-0083 | Campaigns and the sequence builder | `docs/archive/MASTER.md` |
+| INV-12560 | CMP-0106 | Competitive landscape and teardowns | `docs/archive/MASTER.md` |
+| INV-12561 | CMP-0083 | Campaigns and the sequence builder | `docs/archive/MASTER.md` |
+| INV-12562 | CMP-0084 | Unibox, replies and reply triage | `docs/archive/MASTER.md` |
+| INV-12563 | CMP-0098 | Integrations and CRM | `docs/archive/MASTER.md` |
+| INV-12564 | CMP-0083 | Campaigns and the sequence builder | `docs/archive/MASTER.md` |
+| INV-12565 | CMP-0090 | Dashboards, KPIs and reporting | `docs/archive/MASTER.md` |
+| INV-12566 | CMP-0106 | Competitive landscape and teardowns | `docs/archive/MASTER.md` |
+| INV-12567 | CMP-0106 | Competitive landscape and teardowns | `docs/archive/MASTER.md` |
 | INV-12568 | CMP-0032 | Meeting states — booked, unverified, held, no-show, reschedule | `docs/archive/MASTER.md` |
-| INV-12569 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
+| INV-12569 | CMP-0083 | Campaigns and the sequence builder | `docs/archive/MASTER.md` |
 | INV-12570 | CMP-0032 | Meeting states — booked, unverified, held, no-show, reschedule | `docs/archive/MASTER.md` |
 | INV-12571 | CMP-0032 | Meeting states — booked, unverified, held, no-show, reschedule | `docs/archive/MASTER.md` |
-| INV-12572 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12573 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
+| INV-12572 | CMP-0083 | Campaigns and the sequence builder | `docs/archive/MASTER.md` |
+| INV-12573 | CMP-0083 | Campaigns and the sequence builder | `docs/archive/MASTER.md` |
 | INV-12574 | CMP-0032 | Meeting states — booked, unverified, held, no-show, reschedule | `docs/archive/MASTER.md` |
-| INV-12575 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12576 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12577 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12578 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12579 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12580 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12581 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12582 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12583 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12584 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12585 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12586 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12587 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12588 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12589 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12590 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
+| INV-12575 | CMP-0084 | Unibox, replies and reply triage | `docs/archive/MASTER.md` |
+| INV-12576 | CMP-0106 | Competitive landscape and teardowns | `docs/archive/MASTER.md` |
+| INV-12577 | CMP-0106 | Competitive landscape and teardowns | `docs/archive/MASTER.md` |
+| INV-12578 | CMP-0106 | Competitive landscape and teardowns | `docs/archive/MASTER.md` |
+| INV-12579 | CMP-0106 | Competitive landscape and teardowns | `docs/archive/MASTER.md` |
+| INV-12580 | CMP-0106 | Competitive landscape and teardowns | `docs/archive/MASTER.md` |
+| INV-12581 | CMP-0106 | Competitive landscape and teardowns | `docs/archive/MASTER.md` |
+| INV-12582 | CMP-0106 | Competitive landscape and teardowns | `docs/archive/MASTER.md` |
+| INV-12583 | CMP-0084 | Unibox, replies and reply triage | `docs/archive/MASTER.md` |
+| INV-12584 | CMP-0106 | Competitive landscape and teardowns | `docs/archive/MASTER.md` |
+| INV-12585 | CMP-0106 | Competitive landscape and teardowns | `docs/archive/MASTER.md` |
+| INV-12586 | CMP-0106 | Competitive landscape and teardowns | `docs/archive/MASTER.md` |
+| INV-12587 | CMP-0106 | Competitive landscape and teardowns | `docs/archive/MASTER.md` |
+| INV-12588 | CMP-0102 | Marketing plan, content and the Drop | `docs/archive/MASTER.md` |
+| INV-12589 | CMP-0100 | Voice and AI calling | `docs/archive/MASTER.md` |
+| INV-12590 | CMP-0106 | Competitive landscape and teardowns | `docs/archive/MASTER.md` |
 | INV-12591 | CMP-0039 | Vida — the operator console | `docs/archive/MASTER.md` |
-| INV-12592 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12593 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12594 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12595 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
+| INV-12592 | CMP-0106 | Competitive landscape and teardowns | `docs/archive/MASTER.md` |
+| INV-12593 | CMP-0106 | Competitive landscape and teardowns | `docs/archive/MASTER.md` |
+| INV-12594 | CMP-0106 | Competitive landscape and teardowns | `docs/archive/MASTER.md` |
+| INV-12595 | CMP-0083 | Campaigns and the sequence builder | `docs/archive/MASTER.md` |
 | INV-12596 | CMP-0026 | ICP changes and the widened-proof acceptance rule | `docs/archive/MASTER.md` |
-| INV-12597 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12598 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12599 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12600 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12601 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12602 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
+| INV-12597 | CMP-0083 | Campaigns and the sequence builder | `docs/archive/MASTER.md` |
+| INV-12598 | CMP-0083 | Campaigns and the sequence builder | `docs/archive/MASTER.md` |
+| INV-12599 | CMP-0106 | Competitive landscape and teardowns | `docs/archive/MASTER.md` |
+| INV-12600 | CMP-0083 | Campaigns and the sequence builder | `docs/archive/MASTER.md` |
+| INV-12601 | CMP-0095 | Knowledge, Compass and client training | `docs/archive/MASTER.md` |
+| INV-12602 | CMP-0106 | Competitive landscape and teardowns | `docs/archive/MASTER.md` |
 | INV-12603 | CMP-0052 | The four hiring / partner / team calculators | `docs/archive/MASTER.md` |
-| INV-12604 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12605 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12606 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12607 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12608 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12609 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12610 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12611 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12612 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12613 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12614 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12615 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12616 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12617 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
+| INV-12604 | CMP-0106 | Competitive landscape and teardowns | `docs/archive/MASTER.md` |
+| INV-12605 | CMP-0106 | Competitive landscape and teardowns | `docs/archive/MASTER.md` |
+| INV-12606 | CMP-0106 | Competitive landscape and teardowns | `docs/archive/MASTER.md` |
+| INV-12607 | CMP-0083 | Campaigns and the sequence builder | `docs/archive/MASTER.md` |
+| INV-12608 | CMP-0084 | Unibox, replies and reply triage | `docs/archive/MASTER.md` |
+| INV-12609 | CMP-0084 | Unibox, replies and reply triage | `docs/archive/MASTER.md` |
+| INV-12610 | CMP-0084 | Unibox, replies and reply triage | `docs/archive/MASTER.md` |
+| INV-12611 | CMP-0098 | Integrations and CRM | `docs/archive/MASTER.md` |
+| INV-12612 | CMP-0090 | Dashboards, KPIs and reporting | `docs/archive/MASTER.md` |
+| INV-12613 | CMP-0106 | Competitive landscape and teardowns | `docs/archive/MASTER.md` |
+| INV-12614 | CMP-0098 | Integrations and CRM | `docs/archive/MASTER.md` |
+| INV-12615 | CMP-0106 | Competitive landscape and teardowns | `docs/archive/MASTER.md` |
+| INV-12616 | CMP-0106 | Competitive landscape and teardowns | `docs/archive/MASTER.md` |
+| INV-12617 | CMP-0106 | Competitive landscape and teardowns | `docs/archive/MASTER.md` |
 | INV-12618 | CMP-0021 | Trial and freebies | `docs/archive/MASTER.md` |
-| INV-12619 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12620 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12621 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
+| INV-12619 | CMP-0106 | Competitive landscape and teardowns | `docs/archive/MASTER.md` |
+| INV-12620 | CMP-0106 | Competitive landscape and teardowns | `docs/archive/MASTER.md` |
+| INV-12621 | CMP-0080 | Compliance drafts for counsel | `docs/archive/MASTER.md` |
 | INV-12622 | CMP-0039 | Vida — the operator console | `docs/archive/MASTER.md` |
-| INV-12623 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12624 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12625 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12626 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12627 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12628 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12629 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
+| INV-12623 | CMP-0106 | Competitive landscape and teardowns | `docs/archive/MASTER.md` |
+| INV-12624 | CMP-0106 | Competitive landscape and teardowns | `docs/archive/MASTER.md` |
+| INV-12625 | CMP-0080 | Compliance drafts for counsel | `docs/archive/MASTER.md` |
+| INV-12626 | CMP-0086 | Lead lifecycle and the lead desk | `docs/archive/MASTER.md` |
+| INV-12627 | CMP-0099 | WhatsApp and Africa-first channels | `docs/archive/MASTER.md` |
+| INV-12628 | CMP-0106 | Competitive landscape and teardowns | `docs/archive/MASTER.md` |
+| INV-12629 | CMP-0083 | Campaigns and the sequence builder | `docs/archive/MASTER.md` |
 | INV-12630 | CMP-0032 | Meeting states — booked, unverified, held, no-show, reschedule | `docs/archive/MASTER.md` |
-| INV-12631 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12632 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12633 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12634 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12635 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
+| INV-12631 | CMP-0090 | Dashboards, KPIs and reporting | `docs/archive/MASTER.md` |
+| INV-12632 | CMP-0106 | Competitive landscape and teardowns | `docs/archive/MASTER.md` |
+| INV-12633 | CMP-0106 | Competitive landscape and teardowns | `docs/archive/MASTER.md` |
+| INV-12634 | CMP-0106 | Competitive landscape and teardowns | `docs/archive/MASTER.md` |
+| INV-12635 | CMP-0090 | Dashboards, KPIs and reporting | `docs/archive/MASTER.md` |
 | INV-12636 | CMP-0026 | ICP changes and the widened-proof acceptance rule | `docs/archive/MASTER.md` |
 | INV-12637 | CMP-0026 | ICP changes and the widened-proof acceptance rule | `docs/archive/MASTER.md` |
 | INV-12638 | CMP-0026 | ICP changes and the widened-proof acceptance rule | `docs/archive/MASTER.md` |
-| INV-12639 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12640 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12641 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12642 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12643 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
+| INV-12639 | CMP-0086 | Lead lifecycle and the lead desk | `docs/archive/MASTER.md` |
+| INV-12640 | CMP-0106 | Competitive landscape and teardowns | `docs/archive/MASTER.md` |
+| INV-12641 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/archive/MASTER.md` |
+| INV-12642 | CMP-0083 | Campaigns and the sequence builder | `docs/archive/MASTER.md` |
+| INV-12643 | CMP-0083 | Campaigns and the sequence builder | `docs/archive/MASTER.md` |
 | INV-12644 | CMP-0052 | The four hiring / partner / team calculators | `docs/archive/MASTER.md` |
-| INV-12645 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12646 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12647 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12648 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12649 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12650 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12651 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12652 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12653 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12654 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12655 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12656 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12657 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12658 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12659 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12660 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12661 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12662 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
+| INV-12645 | CMP-0083 | Campaigns and the sequence builder | `docs/archive/MASTER.md` |
+| INV-12646 | CMP-0095 | Knowledge, Compass and client training | `docs/archive/MASTER.md` |
+| INV-12647 | CMP-0083 | Campaigns and the sequence builder | `docs/archive/MASTER.md` |
+| INV-12648 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/archive/MASTER.md` |
+| INV-12649 | CMP-0084 | Unibox, replies and reply triage | `docs/archive/MASTER.md` |
+| INV-12650 | CMP-0106 | Competitive landscape and teardowns | `docs/archive/MASTER.md` |
+| INV-12651 | CMP-0106 | Competitive landscape and teardowns | `docs/archive/MASTER.md` |
+| INV-12652 | CMP-0106 | Competitive landscape and teardowns | `docs/archive/MASTER.md` |
+| INV-12653 | CMP-0098 | Integrations and CRM | `docs/archive/MASTER.md` |
+| INV-12654 | CMP-0075 | The status dot ladder | `docs/archive/MASTER.md` |
+| INV-12655 | CMP-0075 | The status dot ladder | `docs/archive/MASTER.md` |
+| INV-12656 | CMP-0075 | The status dot ladder | `docs/archive/MASTER.md` |
+| INV-12657 | CMP-0075 | The status dot ladder | `docs/archive/MASTER.md` |
+| INV-12658 | CMP-0075 | The status dot ladder | `docs/archive/MASTER.md` |
+| INV-12659 | CMP-0106 | Competitive landscape and teardowns | `docs/archive/MASTER.md` |
+| INV-12660 | CMP-0095 | Knowledge, Compass and client training | `docs/archive/MASTER.md` |
+| INV-12661 | CMP-0086 | Lead lifecycle and the lead desk | `docs/archive/MASTER.md` |
+| INV-12662 | CMP-0106 | Competitive landscape and teardowns | `docs/archive/MASTER.md` |
 | INV-12663 | CMP-0021 | Trial and freebies | `docs/archive/MASTER.md` |
-| INV-12664 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
+| INV-12664 | CMP-0086 | Lead lifecycle and the lead desk | `docs/archive/MASTER.md` |
 | INV-12665 | CMP-0048 | Onboarding and demo surfaces | `docs/archive/MASTER.md` |
-| INV-12666 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12667 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12668 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12669 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12670 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12671 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12672 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
+| INV-12666 | CMP-0080 | Compliance drafts for counsel | `docs/archive/MASTER.md` |
+| INV-12667 | CMP-0102 | Marketing plan, content and the Drop | `docs/archive/MASTER.md` |
+| INV-12668 | CMP-0100 | Voice and AI calling | `docs/archive/MASTER.md` |
+| INV-12669 | CMP-0106 | Competitive landscape and teardowns | `docs/archive/MASTER.md` |
+| INV-12670 | CMP-0106 | Competitive landscape and teardowns | `docs/archive/MASTER.md` |
+| INV-12671 | CMP-0106 | Competitive landscape and teardowns | `docs/archive/MASTER.md` |
+| INV-12672 | CMP-0106 | Competitive landscape and teardowns | `docs/archive/MASTER.md` |
 | INV-12673 | CMP-0019 | Refund, make-whole and unused value | `docs/archive/MASTER.md` |
-| INV-12674 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12675 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12676 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12677 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
+| INV-12674 | CMP-0080 | Compliance drafts for counsel | `docs/archive/MASTER.md` |
+| INV-12675 | CMP-0099 | WhatsApp and Africa-first channels | `docs/archive/MASTER.md` |
+| INV-12676 | CMP-0106 | Competitive landscape and teardowns | `docs/archive/MASTER.md` |
+| INV-12677 | CMP-0106 | Competitive landscape and teardowns | `docs/archive/MASTER.md` |
 | INV-12678 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/archive/MASTER.md` |
-| INV-12679 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
+| INV-12679 | CMP-0106 | Competitive landscape and teardowns | `docs/archive/MASTER.md` |
 | INV-12680 | STRUCTURAL | — | `docs/archive/MASTER.md` |
 | INV-12681 | SOURCE-SPECIFIC | — | `docs/archive/MASTER.md` |
 | INV-12682 | CMP-0017 | The old pack model vs the wallet model | `docs/archive/MASTER.md` |
@@ -3832,7 +3832,7 @@
 | INV-12814 | CMP-0075 | The status dot ladder | `docs/archive/MASTER.md` |
 | INV-12815 | CMP-0091 | Portal UI quality and the design system | `docs/archive/MASTER.md` |
 | INV-12816 | CMP-0075 | The status dot ladder | `docs/archive/MASTER.md` |
-| INV-12817 | CMP-0025 | Pause — who may pause sending, and why | `docs/archive/MASTER.md` |
+| INV-12817 | CMP-0148 | Programme pause — client control and material-ICP-change auto-pause | `docs/archive/MASTER.md` |
 | INV-12818 | CMP-0135 | Art of the possible and idea capture | `docs/archive/MASTER.md` |
 | INV-12819 | CMP-0083 | Campaigns and the sequence builder | `docs/archive/MASTER.md` |
 | INV-12820 | CMP-0135 | Art of the possible and idea capture | `docs/archive/MASTER.md` |
@@ -3887,7 +3887,7 @@
 | INV-12869 | CMP-0025 | Pause — who may pause sending, and why | `docs/archive/MASTER.md` |
 | INV-12870 | CMP-0083 | Campaigns and the sequence builder | `docs/archive/MASTER.md` |
 | INV-12871 | CMP-0135 | Art of the possible and idea capture | `docs/archive/MASTER.md` |
-| INV-12872 | CMP-0025 | Pause — who may pause sending, and why | `docs/archive/MASTER.md` |
+| INV-12872 | CMP-0148 | Programme pause — client control and material-ICP-change auto-pause | `docs/archive/MASTER.md` |
 | INV-12873 | CMP-0085 | Deliverability, warm-up and sending domains | `docs/archive/MASTER.md` |
 | INV-12874 | CMP-0135 | Art of the possible and idea capture | `docs/archive/MASTER.md` |
 | INV-12875 | CMP-0026 | ICP changes and the widened-proof acceptance rule | `docs/archive/MASTER.md` |
@@ -4003,7 +4003,7 @@
 | INV-12985 | CMP-0083 | Campaigns and the sequence builder | `docs/archive/MASTER.md` |
 | INV-12986 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/archive/MASTER.md` |
 | INV-12987 | CMP-0022 | Who may start sourcing — Run, cron and top-up | `docs/archive/MASTER.md` |
-| INV-12988 | CMP-0022 | Who may start sourcing — Run, cron and top-up | `docs/archive/MASTER.md` |
+| INV-12988 | CMP-0148 | Programme pause — client control and material-ICP-change auto-pause | `docs/archive/MASTER.md` |
 | INV-12989 | CMP-0026 | ICP changes and the widened-proof acceptance rule | `docs/archive/MASTER.md` |
 | INV-12990 | CMP-0026 | ICP changes and the widened-proof acceptance rule | `docs/archive/MASTER.md` |
 | INV-12991 | CMP-0026 | ICP changes and the widened-proof acceptance rule | `docs/archive/MASTER.md` |
@@ -4070,7 +4070,7 @@
 | INV-13052 | SOURCE-SPECIFIC | — | `docs/archive/MASTER.md` |
 | INV-13053 | STRUCTURAL | — | `docs/archive/MASTER.md` |
 | INV-13054 | CMP-0083 | Campaigns and the sequence builder | `docs/archive/MASTER.md` |
-| INV-13055 | CMP-0025 | Pause — who may pause sending, and why | `docs/archive/MASTER.md` |
+| INV-13055 | CMP-0148 | Programme pause — client control and material-ICP-change auto-pause | `docs/archive/MASTER.md` |
 | INV-13056 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/archive/MASTER.md` |
 | INV-13057 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/archive/MASTER.md` |
 | INV-13058 | CMP-0120 | Retired and tombstoned items | `docs/archive/MASTER.md` |
@@ -4114,7 +4114,7 @@
 | INV-13096 | CMP-0083 | Campaigns and the sequence builder | `docs/archive/MASTER.md` |
 | INV-13097 | CMP-0116 | Dated roadmap phases and timelines | `docs/archive/MASTER.md` |
 | INV-13098 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/archive/MASTER.md` |
-| INV-13099 | CMP-0025 | Pause — who may pause sending, and why | `docs/archive/MASTER.md` |
+| INV-13099 | CMP-0148 | Programme pause — client control and material-ICP-change auto-pause | `docs/archive/MASTER.md` |
 | INV-13100 | CMP-0120 | Retired and tombstoned items | `docs/archive/MASTER.md` |
 | INV-13101 | CMP-0116 | Dated roadmap phases and timelines | `docs/archive/MASTER.md` |
 | INV-13102 | CMP-0092 | PWA, offline and mobile | `docs/archive/MASTER.md` |
@@ -4155,7 +4155,7 @@
 | INV-13137 | CMP-0022 | Who may start sourcing — Run, cron and top-up | `docs/archive/MASTER.md` |
 | INV-13138 | CMP-0083 | Campaigns and the sequence builder | `docs/archive/MASTER.md` |
 | INV-13139 | CMP-0083 | Campaigns and the sequence builder | `docs/archive/MASTER.md` |
-| INV-13140 | CMP-0025 | Pause — who may pause sending, and why | `docs/archive/MASTER.md` |
+| INV-13140 | CMP-0148 | Programme pause — client control and material-ICP-change auto-pause | `docs/archive/MASTER.md` |
 | INV-13141 | CMP-0026 | ICP changes and the widened-proof acceptance rule | `docs/archive/MASTER.md` |
 | INV-13142 | CMP-0086 | Lead lifecycle and the lead desk | `docs/archive/MASTER.md` |
 | INV-13143 | SOURCE-SPECIFIC | — | `docs/archive/MASTER.md` |
@@ -4238,7 +4238,7 @@
 | INV-13220 | CMP-0083 | Campaigns and the sequence builder | `docs/archive/MASTER.md` |
 | INV-13221 | SOURCE-SPECIFIC | — | `docs/archive/MASTER.md` |
 | INV-13222 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/archive/MASTER.md` |
-| INV-13223 | CMP-0025 | Pause — who may pause sending, and why | `docs/archive/MASTER.md` |
+| INV-13223 | CMP-0148 | Programme pause — client control and material-ICP-change auto-pause | `docs/archive/MASTER.md` |
 | INV-13224 | CMP-0116 | Dated roadmap phases and timelines | `docs/archive/MASTER.md` |
 | INV-13225 | CMP-0022 | Who may start sourcing — Run, cron and top-up | `docs/archive/MASTER.md` |
 | INV-13226 | CMP-0116 | Dated roadmap phases and timelines | `docs/archive/MASTER.md` |
@@ -4268,7 +4268,7 @@
 | INV-13250 | CMP-0066 | Steals — patterns taken from other tools | `docs/archive/MASTER.md` |
 | INV-13251 | CMP-0066 | Steals — patterns taken from other tools | `docs/archive/MASTER.md` |
 | INV-13252 | CMP-0066 | Steals — patterns taken from other tools | `docs/archive/MASTER.md` |
-| INV-13253 | CMP-0022 | Who may start sourcing — Run, cron and top-up | `docs/archive/MASTER.md` |
+| INV-13253 | CMP-0148 | Programme pause — client control and material-ICP-change auto-pause | `docs/archive/MASTER.md` |
 | INV-13254 | CMP-0066 | Steals — patterns taken from other tools | `docs/archive/MASTER.md` |
 | INV-13255 | CMP-0066 | Steals — patterns taken from other tools | `docs/archive/MASTER.md` |
 | INV-13256 | CMP-0066 | Steals — patterns taken from other tools | `docs/archive/MASTER.md` |
@@ -4308,7 +4308,7 @@
 | INV-13290 | CMP-0022 | Who may start sourcing — Run, cron and top-up | `docs/archive/MASTER.md` |
 | INV-13291 | CMP-0066 | Steals — patterns taken from other tools | `docs/archive/MASTER.md` |
 | INV-13292 | CMP-0066 | Steals — patterns taken from other tools | `docs/archive/MASTER.md` |
-| INV-13293 | CMP-0025 | Pause — who may pause sending, and why | `docs/archive/MASTER.md` |
+| INV-13293 | CMP-0148 | Programme pause — client control and material-ICP-change auto-pause | `docs/archive/MASTER.md` |
 | INV-13294 | CMP-0026 | ICP changes and the widened-proof acceptance rule | `docs/archive/MASTER.md` |
 | INV-13295 | CMP-0066 | Steals — patterns taken from other tools | `docs/archive/MASTER.md` |
 | INV-13296 | CMP-0066 | Steals — patterns taken from other tools | `docs/archive/MASTER.md` |
@@ -4384,12 +4384,12 @@
 | INV-13366 | CMP-0106 | Competitive landscape and teardowns | `docs/archive/MASTER.md` |
 | INV-13367 | CMP-0084 | Unibox, replies and reply triage | `docs/archive/MASTER.md` |
 | INV-13368 | CMP-0106 | Competitive landscape and teardowns | `docs/archive/MASTER.md` |
-| INV-13369 | CMP-0099 | WhatsApp and Africa-first channels | `docs/archive/MASTER.md` |
+| INV-13369 | CMP-0189 | Slack as an interaction layer | `docs/archive/MASTER.md` |
 | INV-13370 | CMP-0090 | Dashboards, KPIs and reporting | `docs/archive/MASTER.md` |
 | INV-13371 | CMP-0102 | Marketing plan, content and the Drop | `docs/archive/MASTER.md` |
 | INV-13372 | CMP-0106 | Competitive landscape and teardowns | `docs/archive/MASTER.md` |
 | INV-13373 | CMP-0106 | Competitive landscape and teardowns | `docs/archive/MASTER.md` |
-| INV-13374 | CMP-0099 | WhatsApp and Africa-first channels | `docs/archive/MASTER.md` |
+| INV-13374 | CMP-0189 | Slack as an interaction layer | `docs/archive/MASTER.md` |
 | INV-13375 | CMP-0106 | Competitive landscape and teardowns | `docs/archive/MASTER.md` |
 | INV-13376 | CMP-0106 | Competitive landscape and teardowns | `docs/archive/MASTER.md` |
 | INV-13377 | CMP-0083 | Campaigns and the sequence builder | `docs/archive/MASTER.md` |
@@ -4419,7 +4419,7 @@
 | INV-13401 | CMP-0066 | Steals — patterns taken from other tools | `docs/archive/MASTER.md` |
 | INV-13402 | CMP-0106 | Competitive landscape and teardowns | `docs/archive/MASTER.md` |
 | INV-13403 | CMP-0106 | Competitive landscape and teardowns | `docs/archive/MASTER.md` |
-| INV-13404 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
+| INV-13404 | CMP-0084 | Unibox, replies and reply triage | `docs/archive/MASTER.md` |
 | INV-13405 | CMP-0083 | Campaigns and the sequence builder | `docs/archive/MASTER.md` |
 | INV-13406 | CMP-0086 | Lead lifecycle and the lead desk | `docs/archive/MASTER.md` |
 | INV-13407 | CMP-0106 | Competitive landscape and teardowns | `docs/archive/MASTER.md` |
@@ -4441,7 +4441,7 @@
 | INV-13423 | CMP-0026 | ICP changes and the widened-proof acceptance rule | `docs/archive/MASTER.md` |
 | INV-13424 | CMP-0086 | Lead lifecycle and the lead desk | `docs/archive/MASTER.md` |
 | INV-13425 | CMP-0083 | Campaigns and the sequence builder | `docs/archive/MASTER.md` |
-| INV-13426 | CMP-0025 | Pause — who may pause sending, and why | `docs/archive/MASTER.md` |
+| INV-13426 | CMP-0148 | Programme pause — client control and material-ICP-change auto-pause | `docs/archive/MASTER.md` |
 | INV-13427 | CMP-0106 | Competitive landscape and teardowns | `docs/archive/MASTER.md` |
 | INV-13428 | CMP-0106 | Competitive landscape and teardowns | `docs/archive/MASTER.md` |
 | INV-13429 | CMP-0099 | WhatsApp and Africa-first channels | `docs/archive/MASTER.md` |
@@ -4461,7 +4461,7 @@
 | INV-13443 | CMP-0085 | Deliverability, warm-up and sending domains | `docs/archive/MASTER.md` |
 | INV-13444 | CMP-0083 | Campaigns and the sequence builder | `docs/archive/MASTER.md` |
 | INV-13445 | CMP-0085 | Deliverability, warm-up and sending domains | `docs/archive/MASTER.md` |
-| INV-13446 | CMP-0025 | Pause — who may pause sending, and why | `docs/archive/MASTER.md` |
+| INV-13446 | CMP-0148 | Programme pause — client control and material-ICP-change auto-pause | `docs/archive/MASTER.md` |
 | INV-13447 | CMP-0085 | Deliverability, warm-up and sending domains | `docs/archive/MASTER.md` |
 | INV-13448 | CMP-0085 | Deliverability, warm-up and sending domains | `docs/archive/MASTER.md` |
 | INV-13449 | CMP-0084 | Unibox, replies and reply triage | `docs/archive/MASTER.md` |
@@ -4513,7 +4513,7 @@
 | INV-13495 | CMP-0083 | Campaigns and the sequence builder | `docs/archive/MASTER.md` |
 | INV-13496 | CMP-0084 | Unibox, replies and reply triage | `docs/archive/MASTER.md` |
 | INV-13497 | CMP-0084 | Unibox, replies and reply triage | `docs/archive/MASTER.md` |
-| INV-13498 | CMP-0025 | Pause — who may pause sending, and why | `docs/archive/MASTER.md` |
+| INV-13498 | CMP-0148 | Programme pause — client control and material-ICP-change auto-pause | `docs/archive/MASTER.md` |
 | INV-13499 | CMP-0084 | Unibox, replies and reply triage | `docs/archive/MASTER.md` |
 | INV-13500 | CMP-0084 | Unibox, replies and reply triage | `docs/archive/MASTER.md` |
 | INV-13501 | CMP-0084 | Unibox, replies and reply triage | `docs/archive/MASTER.md` |
@@ -4540,10 +4540,10 @@
 | INV-13522 | CMP-0106 | Competitive landscape and teardowns | `docs/archive/MASTER.md` |
 | INV-13523 | CMP-0099 | WhatsApp and Africa-first channels | `docs/archive/MASTER.md` |
 | INV-13524 | CMP-0066 | Steals — patterns taken from other tools | `docs/archive/MASTER.md` |
-| INV-13525 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
+| INV-13525 | CMP-0106 | Competitive landscape and teardowns | `docs/archive/MASTER.md` |
 | INV-13526 | CMP-0019 | Refund, make-whole and unused value | `docs/archive/MASTER.md` |
-| INV-13527 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-13528 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
+| INV-13527 | CMP-0106 | Competitive landscape and teardowns | `docs/archive/MASTER.md` |
+| INV-13528 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/archive/MASTER.md` |
 | INV-13529 | CMP-0037 | Milla conversational experience and the flywheel | `docs/archive/MASTER.md` |
 | INV-13530 | CMP-0037 | Milla conversational experience and the flywheel | `docs/archive/MASTER.md` |
 | INV-13531 | CMP-0037 | Milla conversational experience and the flywheel | `docs/archive/MASTER.md` |
@@ -4598,7 +4598,7 @@
 | INV-13580 | CMP-0120 | Retired and tombstoned items | `docs/archive/MASTER.md` |
 | INV-13581 | CMP-0060 | Deployment verification and the SHA report | `docs/archive/MASTER.md` |
 | INV-13582 | CMP-0120 | Retired and tombstoned items | `docs/archive/MASTER.md` |
-| INV-13583 | CMP-0120 | Retired and tombstoned items | `docs/archive/MASTER.md` |
+| INV-13583 | CMP-0189 | Slack as an interaction layer | `docs/archive/MASTER.md` |
 | INV-13584 | STRUCTURAL | — | `docs/archive/MASTER.md` |
 | INV-13585 | CMP-0135 | Art of the possible and idea capture | `docs/archive/MASTER.md` |
 | INV-13586 | CMP-0111 | Testing, smoke tests and the walk | `docs/archive/MASTER.md` |
@@ -4610,7 +4610,7 @@
 | INV-13592 | CMP-0075 | The status dot ladder | `docs/archive/MASTER.md` |
 | INV-13593 | CMP-0091 | Portal UI quality and the design system | `docs/archive/MASTER.md` |
 | INV-13594 | CMP-0075 | The status dot ladder | `docs/archive/MASTER.md` |
-| INV-13595 | CMP-0025 | Pause — who may pause sending, and why | `docs/archive/MASTER.md` |
+| INV-13595 | CMP-0148 | Programme pause — client control and material-ICP-change auto-pause | `docs/archive/MASTER.md` |
 | INV-13596 | CMP-0135 | Art of the possible and idea capture | `docs/archive/MASTER.md` |
 | INV-13597 | CMP-0083 | Campaigns and the sequence builder | `docs/archive/MASTER.md` |
 | INV-13598 | CMP-0135 | Art of the possible and idea capture | `docs/archive/MASTER.md` |
@@ -4665,7 +4665,7 @@
 | INV-13647 | CMP-0025 | Pause — who may pause sending, and why | `docs/archive/MASTER.md` |
 | INV-13648 | CMP-0083 | Campaigns and the sequence builder | `docs/archive/MASTER.md` |
 | INV-13649 | CMP-0135 | Art of the possible and idea capture | `docs/archive/MASTER.md` |
-| INV-13650 | CMP-0025 | Pause — who may pause sending, and why | `docs/archive/MASTER.md` |
+| INV-13650 | CMP-0148 | Programme pause — client control and material-ICP-change auto-pause | `docs/archive/MASTER.md` |
 | INV-13651 | CMP-0085 | Deliverability, warm-up and sending domains | `docs/archive/MASTER.md` |
 | INV-13652 | CMP-0135 | Art of the possible and idea capture | `docs/archive/MASTER.md` |
 | INV-13653 | CMP-0026 | ICP changes and the widened-proof acceptance rule | `docs/archive/MASTER.md` |
@@ -4781,7 +4781,7 @@
 | INV-13763 | CMP-0083 | Campaigns and the sequence builder | `docs/archive/MASTER.md` |
 | INV-13764 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/archive/MASTER.md` |
 | INV-13765 | CMP-0022 | Who may start sourcing — Run, cron and top-up | `docs/archive/MASTER.md` |
-| INV-13766 | CMP-0022 | Who may start sourcing — Run, cron and top-up | `docs/archive/MASTER.md` |
+| INV-13766 | CMP-0148 | Programme pause — client control and material-ICP-change auto-pause | `docs/archive/MASTER.md` |
 | INV-13767 | CMP-0026 | ICP changes and the widened-proof acceptance rule | `docs/archive/MASTER.md` |
 | INV-13768 | CMP-0026 | ICP changes and the widened-proof acceptance rule | `docs/archive/MASTER.md` |
 | INV-13769 | CMP-0026 | ICP changes and the widened-proof acceptance rule | `docs/archive/MASTER.md` |
@@ -4848,7 +4848,7 @@
 | INV-13830 | SOURCE-SPECIFIC | — | `docs/archive/MASTER.md` |
 | INV-13831 | STRUCTURAL | — | `docs/archive/MASTER.md` |
 | INV-13832 | CMP-0083 | Campaigns and the sequence builder | `docs/archive/MASTER.md` |
-| INV-13833 | CMP-0025 | Pause — who may pause sending, and why | `docs/archive/MASTER.md` |
+| INV-13833 | CMP-0148 | Programme pause — client control and material-ICP-change auto-pause | `docs/archive/MASTER.md` |
 | INV-13834 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/archive/MASTER.md` |
 | INV-13835 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/archive/MASTER.md` |
 | INV-13836 | CMP-0120 | Retired and tombstoned items | `docs/archive/MASTER.md` |
@@ -4892,7 +4892,7 @@
 | INV-13874 | CMP-0083 | Campaigns and the sequence builder | `docs/archive/MASTER.md` |
 | INV-13875 | CMP-0116 | Dated roadmap phases and timelines | `docs/archive/MASTER.md` |
 | INV-13876 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/archive/MASTER.md` |
-| INV-13877 | CMP-0025 | Pause — who may pause sending, and why | `docs/archive/MASTER.md` |
+| INV-13877 | CMP-0148 | Programme pause — client control and material-ICP-change auto-pause | `docs/archive/MASTER.md` |
 | INV-13878 | CMP-0120 | Retired and tombstoned items | `docs/archive/MASTER.md` |
 | INV-13879 | CMP-0116 | Dated roadmap phases and timelines | `docs/archive/MASTER.md` |
 | INV-13880 | CMP-0092 | PWA, offline and mobile | `docs/archive/MASTER.md` |
@@ -4933,7 +4933,7 @@
 | INV-13915 | CMP-0022 | Who may start sourcing — Run, cron and top-up | `docs/archive/MASTER.md` |
 | INV-13916 | CMP-0083 | Campaigns and the sequence builder | `docs/archive/MASTER.md` |
 | INV-13917 | CMP-0083 | Campaigns and the sequence builder | `docs/archive/MASTER.md` |
-| INV-13918 | CMP-0025 | Pause — who may pause sending, and why | `docs/archive/MASTER.md` |
+| INV-13918 | CMP-0148 | Programme pause — client control and material-ICP-change auto-pause | `docs/archive/MASTER.md` |
 | INV-13919 | CMP-0026 | ICP changes and the widened-proof acceptance rule | `docs/archive/MASTER.md` |
 | INV-13920 | CMP-0086 | Lead lifecycle and the lead desk | `docs/archive/MASTER.md` |
 | INV-13921 | SOURCE-SPECIFIC | — | `docs/archive/MASTER.md` |
@@ -5016,7 +5016,7 @@
 | INV-13998 | CMP-0083 | Campaigns and the sequence builder | `docs/archive/MASTER.md` |
 | INV-13999 | SOURCE-SPECIFIC | — | `docs/archive/MASTER.md` |
 | INV-14000 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/archive/MASTER.md` |
-| INV-14001 | CMP-0025 | Pause — who may pause sending, and why | `docs/archive/MASTER.md` |
+| INV-14001 | CMP-0148 | Programme pause — client control and material-ICP-change auto-pause | `docs/archive/MASTER.md` |
 | INV-14002 | CMP-0116 | Dated roadmap phases and timelines | `docs/archive/MASTER.md` |
 | INV-14003 | CMP-0022 | Who may start sourcing — Run, cron and top-up | `docs/archive/MASTER.md` |
 | INV-14004 | CMP-0116 | Dated roadmap phases and timelines | `docs/archive/MASTER.md` |
@@ -5138,7 +5138,7 @@
 | INV-14120 | CMP-0085 | Deliverability, warm-up and sending domains | `docs/archive/MASTER.md` |
 | INV-14121 | CMP-0083 | Campaigns and the sequence builder | `docs/archive/MASTER.md` |
 | INV-14122 | CMP-0084 | Unibox, replies and reply triage | `docs/archive/MASTER.md` |
-| INV-14123 | CMP-0025 | Pause — who may pause sending, and why | `docs/archive/MASTER.md` |
+| INV-14123 | CMP-0148 | Programme pause — client control and material-ICP-change auto-pause | `docs/archive/MASTER.md` |
 | INV-14124 | CMP-0084 | Unibox, replies and reply triage | `docs/archive/MASTER.md` |
 | INV-14125 | CMP-0084 | Unibox, replies and reply triage | `docs/archive/MASTER.md` |
 | INV-14126 | CMP-0083 | Campaigns and the sequence builder | `docs/archive/MASTER.md` |
@@ -5187,7 +5187,7 @@
 | INV-14169 | CMP-0086 | Lead lifecycle and the lead desk | `docs/archive/MASTER.md` |
 | INV-14170 | CMP-0106 | Competitive landscape and teardowns | `docs/archive/MASTER.md` |
 | INV-14171 | CMP-0106 | Competitive landscape and teardowns | `docs/archive/MASTER.md` |
-| INV-14172 | CMP-0025 | Pause — who may pause sending, and why | `docs/archive/MASTER.md` |
+| INV-14172 | CMP-0148 | Programme pause — client control and material-ICP-change auto-pause | `docs/archive/MASTER.md` |
 | INV-14173 | CMP-0106 | Competitive landscape and teardowns | `docs/archive/MASTER.md` |
 | INV-14174 | CMP-0084 | Unibox, replies and reply triage | `docs/archive/MASTER.md` |
 | INV-14175 | CMP-0084 | Unibox, replies and reply triage | `docs/archive/MASTER.md` |
@@ -5358,7 +5358,7 @@
 | INV-14340 | CMP-0119 | Founder open-item lists and checklists | `docs/archive/MASTER.md` |
 | INV-14341 | CMP-0083 | Campaigns and the sequence builder | `docs/archive/MASTER.md` |
 | INV-14342 | CMP-0119 | Founder open-item lists and checklists | `docs/archive/MASTER.md` |
-| INV-14343 | CMP-0025 | Pause — who may pause sending, and why | `docs/archive/MASTER.md` |
+| INV-14343 | CMP-0148 | Programme pause — client control and material-ICP-change auto-pause | `docs/archive/MASTER.md` |
 | INV-14344 | CMP-0116 | Dated roadmap phases and timelines | `docs/archive/MASTER.md` |
 | INV-14345 | CMP-0108 | Hiring, comp plans and the team | `docs/archive/MASTER.md` |
 | INV-14346 | CMP-0119 | Founder open-item lists and checklists | `docs/archive/MASTER.md` |
@@ -5413,7 +5413,7 @@
 | INV-14395 | CMP-0098 | Integrations and CRM | `docs/archive/MASTER.md` |
 | INV-14396 | CMP-0098 | Integrations and CRM | `docs/archive/MASTER.md` |
 | INV-14397 | CMP-0098 | Integrations and CRM | `docs/archive/MASTER.md` |
-| INV-14398 | CMP-0025 | Pause — who may pause sending, and why | `docs/archive/MASTER.md` |
+| INV-14398 | CMP-0148 | Programme pause — client control and material-ICP-change auto-pause | `docs/archive/MASTER.md` |
 | INV-14399 | CMP-0098 | Integrations and CRM | `docs/archive/MASTER.md` |
 | INV-14400 | CMP-0098 | Integrations and CRM | `docs/archive/MASTER.md` |
 | INV-14401 | CMP-0098 | Integrations and CRM | `docs/archive/MASTER.md` |
@@ -5543,7 +5543,7 @@
 | INV-14525 | CMP-0066 | Steals — patterns taken from other tools | `docs/archive/MASTER.md` |
 | INV-14526 | CMP-0066 | Steals — patterns taken from other tools | `docs/archive/MASTER.md` |
 | INV-14527 | CMP-0066 | Steals — patterns taken from other tools | `docs/archive/MASTER.md` |
-| INV-14528 | CMP-0025 | Pause — who may pause sending, and why | `docs/archive/MASTER.md` |
+| INV-14528 | CMP-0148 | Programme pause — client control and material-ICP-change auto-pause | `docs/archive/MASTER.md` |
 | INV-14529 | CMP-0027 | AR5 — Apollo is ours, PDL and Hunter are the clients' | `docs/archive/MASTER.md` |
 | INV-14530 | CMP-0066 | Steals — patterns taken from other tools | `docs/archive/MASTER.md` |
 | INV-14531 | CMP-0066 | Steals — patterns taken from other tools | `docs/archive/MASTER.md` |
@@ -5585,7 +5585,7 @@
 | INV-14567 | SOURCE-SPECIFIC | — | `docs/archive/MASTER.md` |
 | INV-14568 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/archive/MASTER.md` |
 | INV-14569 | CMP-0083 | Campaigns and the sequence builder | `docs/archive/MASTER.md` |
-| INV-14570 | CMP-0025 | Pause — who may pause sending, and why | `docs/archive/MASTER.md` |
+| INV-14570 | CMP-0148 | Programme pause — client control and material-ICP-change auto-pause | `docs/archive/MASTER.md` |
 | INV-14571 | CMP-0032 | Meeting states — booked, unverified, held, no-show, reschedule | `docs/archive/MASTER.md` |
 | INV-14572 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/archive/MASTER.md` |
 | INV-14573 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/archive/MASTER.md` |
@@ -5800,7 +5800,7 @@
 | INV-14782 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/archive/MASTER.md` |
 | INV-14783 | CMP-0111 | Testing, smoke tests and the walk | `docs/archive/MASTER.md` |
 | INV-14784 | CMP-0111 | Testing, smoke tests and the walk | `docs/archive/MASTER.md` |
-| INV-14785 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
+| INV-14785 | CMP-0084 | Unibox, replies and reply triage | `docs/archive/MASTER.md` |
 | INV-14786 | CMP-0032 | Meeting states — booked, unverified, held, no-show, reschedule | `docs/archive/MASTER.md` |
 | INV-14787 | CMP-0026 | ICP changes and the widened-proof acceptance rule | `docs/archive/MASTER.md` |
 | INV-14788 | CMP-0083 | Campaigns and the sequence builder | `docs/archive/MASTER.md` |
@@ -6096,7 +6096,7 @@
 | INV-15078 | CMP-0106 | Competitive landscape and teardowns | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-15079 | CMP-0083 | Campaigns and the sequence builder | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-15080 | CMP-0106 | Competitive landscape and teardowns | `docs/archive/KIND-MASTER-ARCHIVE.md` |
-| INV-15081 | CMP-0098 | Integrations and CRM | `docs/archive/KIND-MASTER-ARCHIVE.md` |
+| INV-15081 | CMP-0189 | Slack as an interaction layer | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-15082 | CMP-0084 | Unibox, replies and reply triage | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-15083 | CMP-0037 | Milla conversational experience and the flywheel | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-15084 | CMP-0106 | Competitive landscape and teardowns | `docs/archive/KIND-MASTER-ARCHIVE.md` |
@@ -6138,7 +6138,7 @@
 | INV-15120 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-15121 | SOURCE-SPECIFIC | — | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-15122 | SOURCE-SPECIFIC | — | `docs/archive/KIND-MASTER-ARCHIVE.md` |
-| INV-15123 | CMP-0066 | Steals — patterns taken from other tools | `docs/archive/KIND-MASTER-ARCHIVE.md` |
+| INV-15123 | CMP-0102 | Marketing plan, content and the Drop | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-15124 | CMP-0105 | Partner programme operations | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-15125 | SOURCE-SPECIFIC | — | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-15126 | SOURCE-SPECIFIC | — | `docs/archive/KIND-MASTER-ARCHIVE.md` |
@@ -6209,7 +6209,7 @@
 | INV-15191 | CMP-0058 | Launch gates and blockers | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-15192 | CMP-0085 | Deliverability, warm-up and sending domains | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-15193 | STRUCTURAL | — | `docs/archive/KIND-MASTER-ARCHIVE.md` |
-| INV-15194 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/archive/KIND-MASTER-ARCHIVE.md` |
+| INV-15194 | CMP-0116 | Dated roadmap phases and timelines | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-15195 | CMP-0110 | Backup, restore and failover | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-15196 | CMP-0075 | The status dot ladder | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-15197 | CMP-0086 | Lead lifecycle and the lead desk | `docs/archive/KIND-MASTER-ARCHIVE.md` |
@@ -6271,13 +6271,13 @@
 | INV-15253 | CMP-0084 | Unibox, replies and reply triage | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-15254 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-15255 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/archive/KIND-MASTER-ARCHIVE.md` |
-| INV-15256 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/KIND-MASTER-ARCHIVE.md` |
+| INV-15256 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-15257 | CMP-0105 | Partner programme operations | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-15258 | CMP-0116 | Dated roadmap phases and timelines | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-15259 | CMP-0084 | Unibox, replies and reply triage | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-15260 | CMP-0026 | ICP changes and the widened-proof acceptance rule | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-15261 | CMP-0066 | Steals — patterns taken from other tools | `docs/archive/KIND-MASTER-ARCHIVE.md` |
-| INV-15262 | CMP-0083 | Campaigns and the sequence builder | `docs/archive/KIND-MASTER-ARCHIVE.md` |
+| INV-15262 | CMP-0189 | Slack as an interaction layer | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-15263 | STRUCTURAL | — | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-15264 | CMP-0106 | Competitive landscape and teardowns | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-15265 | CMP-0090 | Dashboards, KPIs and reporting | `docs/archive/KIND-MASTER-ARCHIVE.md` |
@@ -6309,7 +6309,7 @@
 | INV-15291 | CMP-0116 | Dated roadmap phases and timelines | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-15292 | CMP-0026 | ICP changes and the widened-proof acceptance rule | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-15293 | CMP-0116 | Dated roadmap phases and timelines | `docs/archive/KIND-MASTER-ARCHIVE.md` |
-| INV-15294 | CMP-0116 | Dated roadmap phases and timelines | `docs/archive/KIND-MASTER-ARCHIVE.md` |
+| INV-15294 | CMP-0189 | Slack as an interaction layer | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-15295 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-15296 | CMP-0104 | Sales playbook and objection handling | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-15297 | CMP-0116 | Dated roadmap phases and timelines | `docs/archive/KIND-MASTER-ARCHIVE.md` |
@@ -6740,13 +6740,13 @@
 | INV-15722 | CMP-0084 | Unibox, replies and reply triage | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-15723 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-15724 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/archive/KIND-MASTER-ARCHIVE.md` |
-| INV-15725 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/KIND-MASTER-ARCHIVE.md` |
+| INV-15725 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-15726 | CMP-0105 | Partner programme operations | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-15727 | CMP-0106 | Competitive landscape and teardowns | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-15728 | CMP-0084 | Unibox, replies and reply triage | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-15729 | CMP-0026 | ICP changes and the widened-proof acceptance rule | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-15730 | CMP-0066 | Steals — patterns taken from other tools | `docs/archive/KIND-MASTER-ARCHIVE.md` |
-| INV-15731 | CMP-0083 | Campaigns and the sequence builder | `docs/archive/KIND-MASTER-ARCHIVE.md` |
+| INV-15731 | CMP-0189 | Slack as an interaction layer | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-15732 | CMP-0116 | Dated roadmap phases and timelines | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-15733 | CMP-0116 | Dated roadmap phases and timelines | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-15734 | CMP-0090 | Dashboards, KPIs and reporting | `docs/archive/KIND-MASTER-ARCHIVE.md` |
@@ -6795,7 +6795,7 @@
 | INV-15777 | CMP-0075 | The status dot ladder | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-15778 | CMP-0026 | ICP changes and the widened-proof acceptance rule | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-15779 | CMP-0075 | The status dot ladder | `docs/archive/KIND-MASTER-ARCHIVE.md` |
-| INV-15780 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/archive/KIND-MASTER-ARCHIVE.md` |
+| INV-15780 | CMP-0189 | Slack as an interaction layer | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-15781 | CMP-0075 | The status dot ladder | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-15782 | CMP-0075 | The status dot ladder | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-15783 | CMP-0116 | Dated roadmap phases and timelines | `docs/archive/KIND-MASTER-ARCHIVE.md` |
@@ -7017,7 +7017,7 @@
 | INV-15999 | CMP-0020 | Stripe as the payment gate | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-16000 | CMP-0075 | The status dot ladder | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-16001 | CMP-0075 | The status dot ladder | `docs/archive/KIND-MASTER-ARCHIVE.md` |
-| INV-16002 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/KIND-MASTER-ARCHIVE.md` |
+| INV-16002 | CMP-0075 | The status dot ladder | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-16003 | CMP-0075 | The status dot ladder | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-16004 | CMP-0075 | The status dot ladder | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-16005 | CMP-0075 | The status dot ladder | `docs/archive/KIND-MASTER-ARCHIVE.md` |
@@ -7041,7 +7041,7 @@
 | INV-16023 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-16024 | CMP-0084 | Unibox, replies and reply triage | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-16025 | CMP-0084 | Unibox, replies and reply triage | `docs/archive/KIND-MASTER-ARCHIVE.md` |
-| INV-16026 | CMP-0025 | Pause — who may pause sending, and why | `docs/archive/KIND-MASTER-ARCHIVE.md` |
+| INV-16026 | CMP-0148 | Programme pause — client control and material-ICP-change auto-pause | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-16027 | CMP-0022 | Who may start sourcing — Run, cron and top-up | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-16028 | CMP-0084 | Unibox, replies and reply triage | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-16029 | CMP-0042 | Suppression, opt-out and DNC | `docs/archive/KIND-MASTER-ARCHIVE.md` |
@@ -7242,23 +7242,23 @@
 | INV-16224 | CMP-0096 | Company engine, seats and the pool | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-16225 | CMP-0096 | Company engine, seats and the pool | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-16226 | CMP-0076 | Preview before live | `docs/archive/KIND-MASTER-ARCHIVE.md` |
-| INV-16227 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/KIND-MASTER-ARCHIVE.md` |
-| INV-16228 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/KIND-MASTER-ARCHIVE.md` |
-| INV-16229 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/KIND-MASTER-ARCHIVE.md` |
-| INV-16230 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/KIND-MASTER-ARCHIVE.md` |
-| INV-16231 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/KIND-MASTER-ARCHIVE.md` |
-| INV-16232 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/KIND-MASTER-ARCHIVE.md` |
-| INV-16233 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/KIND-MASTER-ARCHIVE.md` |
-| INV-16234 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/KIND-MASTER-ARCHIVE.md` |
-| INV-16235 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/KIND-MASTER-ARCHIVE.md` |
-| INV-16236 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/KIND-MASTER-ARCHIVE.md` |
-| INV-16237 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/KIND-MASTER-ARCHIVE.md` |
-| INV-16238 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/KIND-MASTER-ARCHIVE.md` |
+| INV-16227 | CMP-0083 | Campaigns and the sequence builder | `docs/archive/KIND-MASTER-ARCHIVE.md` |
+| INV-16228 | CMP-0083 | Campaigns and the sequence builder | `docs/archive/KIND-MASTER-ARCHIVE.md` |
+| INV-16229 | CMP-0083 | Campaigns and the sequence builder | `docs/archive/KIND-MASTER-ARCHIVE.md` |
+| INV-16230 | CMP-0083 | Campaigns and the sequence builder | `docs/archive/KIND-MASTER-ARCHIVE.md` |
+| INV-16231 | CMP-0083 | Campaigns and the sequence builder | `docs/archive/KIND-MASTER-ARCHIVE.md` |
+| INV-16232 | CMP-0083 | Campaigns and the sequence builder | `docs/archive/KIND-MASTER-ARCHIVE.md` |
+| INV-16233 | CMP-0083 | Campaigns and the sequence builder | `docs/archive/KIND-MASTER-ARCHIVE.md` |
+| INV-16234 | CMP-0083 | Campaigns and the sequence builder | `docs/archive/KIND-MASTER-ARCHIVE.md` |
+| INV-16235 | CMP-0066 | Steals — patterns taken from other tools | `docs/archive/KIND-MASTER-ARCHIVE.md` |
+| INV-16236 | CMP-0066 | Steals — patterns taken from other tools | `docs/archive/KIND-MASTER-ARCHIVE.md` |
+| INV-16237 | CMP-0066 | Steals — patterns taken from other tools | `docs/archive/KIND-MASTER-ARCHIVE.md` |
+| INV-16238 | CMP-0066 | Steals — patterns taken from other tools | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-16239 | CMP-0042 | Suppression, opt-out and DNC | `docs/archive/KIND-MASTER-ARCHIVE.md` |
-| INV-16240 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/KIND-MASTER-ARCHIVE.md` |
+| INV-16240 | CMP-0066 | Steals — patterns taken from other tools | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-16241 | CMP-0032 | Meeting states — booked, unverified, held, no-show, reschedule | `docs/archive/KIND-MASTER-ARCHIVE.md` |
-| INV-16242 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/KIND-MASTER-ARCHIVE.md` |
-| INV-16243 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/KIND-MASTER-ARCHIVE.md` |
+| INV-16242 | CMP-0066 | Steals — patterns taken from other tools | `docs/archive/KIND-MASTER-ARCHIVE.md` |
+| INV-16243 | CMP-0066 | Steals — patterns taken from other tools | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-16244 | CMP-0116 | Dated roadmap phases and timelines | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-16245 | CMP-0042 | Suppression, opt-out and DNC | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-16246 | CMP-0116 | Dated roadmap phases and timelines | `docs/archive/KIND-MASTER-ARCHIVE.md` |
@@ -7301,7 +7301,7 @@
 | INV-16283 | CMP-0073 | Session logging and the end-of-session ritual | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-16284 | CMP-0073 | Session logging and the end-of-session ritual | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-16285 | CMP-0060 | Deployment verification and the SHA report | `docs/archive/KIND-MASTER-ARCHIVE.md` |
-| INV-16286 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/KIND-MASTER-ARCHIVE.md` |
+| INV-16286 | CMP-0073 | Session logging and the end-of-session ritual | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-16287 | CMP-0073 | Session logging and the end-of-session ritual | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-16288 | CMP-0073 | Session logging and the end-of-session ritual | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-16289 | CMP-0073 | Session logging and the end-of-session ritual | `docs/archive/KIND-MASTER-ARCHIVE.md` |
@@ -7320,11 +7320,11 @@
 | INV-16302 | CMP-0073 | Session logging and the end-of-session ritual | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-16303 | CMP-0073 | Session logging and the end-of-session ritual | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-16304 | CMP-0073 | Session logging and the end-of-session ritual | `docs/archive/KIND-MASTER-ARCHIVE.md` |
-| INV-16305 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/archive/KIND-MASTER-ARCHIVE.md` |
+| INV-16305 | CMP-0073 | Session logging and the end-of-session ritual | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-16306 | CMP-0073 | Session logging and the end-of-session ritual | `docs/archive/KIND-MASTER-ARCHIVE.md` |
-| INV-16307 | CMP-0073 | Session logging and the end-of-session ritual | `docs/archive/KIND-MASTER-ARCHIVE.md` |
+| INV-16307 | CMP-0193 | The Drop as a content programme | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-16308 | CMP-0059 | The sending spine — the reason a paying client could not be delivered | `docs/archive/KIND-MASTER-ARCHIVE.md` |
-| INV-16309 | CMP-0073 | Session logging and the end-of-session ritual | `docs/archive/KIND-MASTER-ARCHIVE.md` |
+| INV-16309 | CMP-0193 | The Drop as a content programme | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-16310 | CMP-0073 | Session logging and the end-of-session ritual | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-16311 | CMP-0073 | Session logging and the end-of-session ritual | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-16312 | CMP-0073 | Session logging and the end-of-session ritual | `docs/archive/KIND-MASTER-ARCHIVE.md` |
@@ -7350,20 +7350,20 @@
 | INV-16332 | CMP-0073 | Session logging and the end-of-session ritual | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-16333 | CMP-0073 | Session logging and the end-of-session ritual | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-16334 | CMP-0073 | Session logging and the end-of-session ritual | `docs/archive/KIND-MASTER-ARCHIVE.md` |
-| INV-16335 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/KIND-MASTER-ARCHIVE.md` |
+| INV-16335 | CMP-0073 | Session logging and the end-of-session ritual | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-16336 | CMP-0073 | Session logging and the end-of-session ritual | `docs/archive/KIND-MASTER-ARCHIVE.md` |
-| INV-16337 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/KIND-MASTER-ARCHIVE.md` |
-| INV-16338 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/KIND-MASTER-ARCHIVE.md` |
+| INV-16337 | CMP-0068 | Operating Protocol v1 — r1 … r22 | `docs/archive/KIND-MASTER-ARCHIVE.md` |
+| INV-16338 | CMP-0066 | Steals — patterns taken from other tools | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-16339 | CMP-0060 | Deployment verification and the SHA report | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-16340 | CMP-0073 | Session logging and the end-of-session ritual | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-16341 | CMP-0073 | Session logging and the end-of-session ritual | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-16342 | CMP-0073 | Session logging and the end-of-session ritual | `docs/archive/KIND-MASTER-ARCHIVE.md` |
-| INV-16343 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/KIND-MASTER-ARCHIVE.md` |
+| INV-16343 | CMP-0073 | Session logging and the end-of-session ritual | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-16344 | CMP-0073 | Session logging and the end-of-session ritual | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-16345 | CMP-0073 | Session logging and the end-of-session ritual | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-16346 | CMP-0073 | Session logging and the end-of-session ritual | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-16347 | CMP-0073 | Session logging and the end-of-session ritual | `docs/archive/KIND-MASTER-ARCHIVE.md` |
-| INV-16348 | CMP-0066 | Steals — patterns taken from other tools | `docs/archive/KIND-MASTER-ARCHIVE.md` |
+| INV-16348 | CMP-0196 | The stealth constraint (R2) | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-16349 | CMP-0060 | Deployment verification and the SHA report | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-16350 | CMP-0073 | Session logging and the end-of-session ritual | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-16351 | CMP-0073 | Session logging and the end-of-session ritual | `docs/archive/KIND-MASTER-ARCHIVE.md` |
@@ -7670,7 +7670,7 @@
 | INV-16652 | CMP-0075 | The status dot ladder | `docs/archive/EVERYTHING.md` |
 | INV-16653 | CMP-0075 | The status dot ladder | `docs/archive/EVERYTHING.md` |
 | INV-16654 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/archive/EVERYTHING.md` |
-| INV-16655 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/EVERYTHING.md` |
+| INV-16655 | CMP-0075 | The status dot ladder | `docs/archive/EVERYTHING.md` |
 | INV-16656 | CMP-0075 | The status dot ladder | `docs/archive/EVERYTHING.md` |
 | INV-16657 | CMP-0075 | The status dot ladder | `docs/archive/EVERYTHING.md` |
 | INV-16658 | CMP-0075 | The status dot ladder | `docs/archive/EVERYTHING.md` |
@@ -7865,7 +7865,7 @@
 | INV-16847 | CMP-0048 | Onboarding and demo surfaces | `docs/archive/EVERYTHING.md` |
 | INV-16848 | CMP-0048 | Onboarding and demo surfaces | `docs/archive/EVERYTHING.md` |
 | INV-16849 | CMP-0115 | Seed data, wipes and Client Zero | `docs/archive/EVERYTHING.md` |
-| INV-16850 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/archive/EVERYTHING.md` |
+| INV-16850 | CMP-0180 | Website consistency pass (#698) | `docs/archive/EVERYTHING.md` |
 | INV-16851 | SOURCE-SPECIFIC | — | `docs/archive/EVERYTHING.md` |
 | INV-16852 | CMP-0102 | Marketing plan, content and the Drop | `docs/archive/EVERYTHING.md` |
 | INV-16853 | SOURCE-SPECIFIC | — | `docs/archive/EVERYTHING.md` |
@@ -7992,7 +7992,7 @@
 | INV-16974 | SOURCE-SPECIFIC | — | `docs/archive/EVERYTHING.md` |
 | INV-16975 | CMP-0083 | Campaigns and the sequence builder | `docs/archive/EVERYTHING.md` |
 | INV-16976 | CMP-0106 | Competitive landscape and teardowns | `docs/archive/EVERYTHING.md` |
-| INV-16977 | CMP-0098 | Integrations and CRM | `docs/archive/EVERYTHING.md` |
+| INV-16977 | CMP-0189 | Slack as an interaction layer | `docs/archive/EVERYTHING.md` |
 | INV-16978 | CMP-0084 | Unibox, replies and reply triage | `docs/archive/EVERYTHING.md` |
 | INV-16979 | CMP-0037 | Milla conversational experience and the flywheel | `docs/archive/EVERYTHING.md` |
 | INV-16980 | CMP-0125 | Support, help centre and status page | `docs/archive/EVERYTHING.md` |
@@ -8243,11 +8243,11 @@
 | INV-17225 | CMP-0025 | Pause — who may pause sending, and why | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
 | INV-17226 | CMP-0075 | The status dot ladder | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
 | INV-17227 | CMP-0075 | The status dot ladder | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
-| INV-17228 | CMP-0025 | Pause — who may pause sending, and why | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
+| INV-17228 | CMP-0148 | Programme pause — client control and material-ICP-change auto-pause | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
 | INV-17229 | CMP-0075 | The status dot ladder | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
 | INV-17230 | CMP-0032 | Meeting states — booked, unverified, held, no-show, reschedule | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
-| INV-17231 | CMP-0025 | Pause — who may pause sending, and why | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
-| INV-17232 | CMP-0025 | Pause — who may pause sending, and why | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
+| INV-17231 | CMP-0148 | Programme pause — client control and material-ICP-change auto-pause | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
+| INV-17232 | CMP-0148 | Programme pause — client control and material-ICP-change auto-pause | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
 | INV-17233 | CMP-0075 | The status dot ladder | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
 | INV-17234 | CMP-0075 | The status dot ladder | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
 | INV-17235 | CMP-0075 | The status dot ladder | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
@@ -8266,7 +8266,7 @@
 | INV-17248 | CMP-0075 | The status dot ladder | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
 | INV-17249 | CMP-0060 | Deployment verification and the SHA report | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
 | INV-17250 | CMP-0075 | The status dot ladder | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
-| INV-17251 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
+| INV-17251 | CMP-0075 | The status dot ladder | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
 | INV-17252 | CMP-0075 | The status dot ladder | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
 | INV-17253 | CMP-0075 | The status dot ladder | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
 | INV-17254 | CMP-0075 | The status dot ladder | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
@@ -8363,8 +8363,8 @@
 | INV-17345 | CMP-0060 | Deployment verification and the SHA report | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
 | INV-17346 | CMP-0060 | Deployment verification and the SHA report | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
 | INV-17347 | CMP-0025 | Pause — who may pause sending, and why | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
-| INV-17348 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
-| INV-17349 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
+| INV-17348 | CMP-0075 | The status dot ladder | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
+| INV-17349 | CMP-0075 | The status dot ladder | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
 | INV-17350 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
 | INV-17351 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
 | INV-17352 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
@@ -8450,7 +8450,7 @@
 | INV-17432 | CMP-0075 | The status dot ladder | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
 | INV-17433 | CMP-0075 | The status dot ladder | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
 | INV-17434 | CMP-0075 | The status dot ladder | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
-| INV-17435 | CMP-0075 | The status dot ladder | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
+| INV-17435 | CMP-0193 | The Drop as a content programme | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
 | INV-17436 | CMP-0075 | The status dot ladder | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
 | INV-17437 | CMP-0075 | The status dot ladder | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
 | INV-17438 | CMP-0075 | The status dot ladder | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
@@ -8534,7 +8534,7 @@
 | INV-17516 | CMP-0075 | The status dot ladder | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
 | INV-17517 | CMP-0075 | The status dot ladder | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
 | INV-17518 | CMP-0075 | The status dot ladder | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
-| INV-17519 | CMP-0066 | Steals — patterns taken from other tools | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
+| INV-17519 | CMP-0196 | The stealth constraint (R2) | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
 | INV-17520 | CMP-0053 | The investor deck's money claims | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
 | INV-17521 | CMP-0075 | The status dot ladder | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
 | INV-17522 | CMP-0075 | The status dot ladder | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
@@ -8669,8 +8669,8 @@
 | INV-17651 | CMP-0075 | The status dot ladder | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
 | INV-17652 | CMP-0075 | The status dot ladder | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
 | INV-17653 | CMP-0075 | The status dot ladder | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
-| INV-17654 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
-| INV-17655 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
+| INV-17654 | CMP-0075 | The status dot ladder | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
+| INV-17655 | CMP-0190 | Alta parity — the unified data layer / shared agent brain | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
 | INV-17656 | STRUCTURAL | — | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
 | INV-17657 | CMP-0020 | Stripe as the payment gate | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
 | INV-17658 | CMP-0017 | The old pack model vs the wallet model | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
@@ -8683,11 +8683,11 @@
 | INV-17665 | CMP-0075 | The status dot ladder | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
 | INV-17666 | CMP-0075 | The status dot ladder | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
 | INV-17667 | CMP-0075 | The status dot ladder | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
-| INV-17668 | CMP-0005 | The volume curve — $437.50 at 10 meetings, ~$400 floor at 50+ | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
+| INV-17668 | CMP-0137 | Programme working point — $437.50 effective at 10 meetings | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
 | INV-17669 | CMP-0026 | ICP changes and the widened-proof acceptance rule | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
 | INV-17670 | CMP-0049 | Jack & Jill direction | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
 | INV-17671 | CMP-0049 | Jack & Jill direction | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
-| INV-17672 | CMP-0025 | Pause — who may pause sending, and why | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
+| INV-17672 | CMP-0148 | Programme pause — client control and material-ICP-change auto-pause | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
 | INV-17673 | CMP-0037 | Milla conversational experience and the flywheel | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
 | INV-17674 | CMP-0049 | Jack & Jill direction | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
 | INV-17675 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
@@ -8738,7 +8738,7 @@
 | INV-17720 | CMP-0075 | The status dot ladder | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
 | INV-17721 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
 | INV-17722 | CMP-0075 | The status dot ladder | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
-| INV-17723 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
+| INV-17723 | CMP-0191 | The three-product model (R39) | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
 | INV-17724 | CMP-0075 | The status dot ladder | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
 | INV-17725 | CMP-0048 | Onboarding and demo surfaces | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
 | INV-17726 | CMP-0048 | Onboarding and demo surfaces | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
@@ -8749,7 +8749,7 @@
 | INV-17731 | CMP-0040 | Proof review — the exhausted prospect becomes real work | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
 | INV-17732 | CMP-0040 | Proof review — the exhausted prospect becomes real work | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
 | INV-17733 | CMP-0040 | Proof review — the exhausted prospect becomes real work | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
-| INV-17734 | CMP-0005 | The volume curve — $437.50 at 10 meetings, ~$400 floor at 50+ | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
+| INV-17734 | CMP-0137 | Programme working point — $437.50 effective at 10 meetings | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
 | INV-17735 | CMP-0040 | Proof review — the exhausted prospect becomes real work | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
 | INV-17736 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
 | INV-17737 | CMP-0040 | Proof review — the exhausted prospect becomes real work | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
@@ -8787,7 +8787,7 @@
 | INV-17769 | CMP-0040 | Proof review — the exhausted prospect becomes real work | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
 | INV-17770 | CMP-0040 | Proof review — the exhausted prospect becomes real work | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
 | INV-17771 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
-| INV-17772 | CMP-0040 | Proof review — the exhausted prospect becomes real work | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
+| INV-17772 | CMP-0180 | Website consistency pass (#698) | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
 | INV-17773 | CMP-0077 | The migration seam — what actually executes | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
 | INV-17774 | CMP-0077 | The migration seam — what actually executes | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
 | INV-17775 | CMP-0002 | The $4 per-approved-lead charge | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
@@ -8806,29 +8806,29 @@
 | INV-17788 | CMP-0077 | The migration seam — what actually executes | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
 | INV-17789 | CMP-0066 | Steals — patterns taken from other tools | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
 | INV-17790 | CMP-0066 | Steals — patterns taken from other tools | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
-| INV-17791 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
+| INV-17791 | CMP-0066 | Steals — patterns taken from other tools | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
 | INV-17792 | CMP-0031 | Customer / inbound and owned data as a source | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
-| INV-17793 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
-| INV-17794 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
-| INV-17795 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
-| INV-17796 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
-| INV-17797 | CMP-0001 | The $299 onboarding pack | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
-| INV-17798 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
-| INV-17799 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
-| INV-17800 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
-| INV-17801 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
-| INV-17802 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
-| INV-17803 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
-| INV-17804 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
-| INV-17805 | CMP-0001 | The $299 onboarding pack | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
-| INV-17806 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
-| INV-17807 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
-| INV-17808 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
-| INV-17809 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
-| INV-17810 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
-| INV-17811 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
-| INV-17812 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
-| INV-17813 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
+| INV-17793 | STRUCTURAL | — | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
+| INV-17794 | CMP-0191 | The three-product model (R39) | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
+| INV-17795 | CMP-0191 | The three-product model (R39) | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
+| INV-17796 | CMP-0191 | The three-product model (R39) | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
+| INV-17797 | CMP-0191 | The three-product model (R39) | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
+| INV-17798 | CMP-0191 | The three-product model (R39) | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
+| INV-17799 | CMP-0191 | The three-product model (R39) | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
+| INV-17800 | CMP-0191 | The three-product model (R39) | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
+| INV-17801 | CMP-0191 | The three-product model (R39) | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
+| INV-17802 | CMP-0191 | The three-product model (R39) | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
+| INV-17803 | CMP-0191 | The three-product model (R39) | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
+| INV-17804 | CMP-0191 | The three-product model (R39) | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
+| INV-17805 | CMP-0191 | The three-product model (R39) | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
+| INV-17806 | CMP-0191 | The three-product model (R39) | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
+| INV-17807 | CMP-0191 | The three-product model (R39) | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
+| INV-17808 | CMP-0191 | The three-product model (R39) | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
+| INV-17809 | CMP-0191 | The three-product model (R39) | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
+| INV-17810 | CMP-0191 | The three-product model (R39) | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
+| INV-17811 | CMP-0191 | The three-product model (R39) | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
+| INV-17812 | CMP-0191 | The three-product model (R39) | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
+| INV-17813 | CMP-0191 | The three-product model (R39) | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
 | INV-17814 | STRUCTURAL | — | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
 | INV-17815 | CMP-0058 | Launch gates and blockers | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
 | INV-17816 | CMP-0086 | Lead lifecycle and the lead desk | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
@@ -8843,17 +8843,17 @@
 | INV-17825 | CMP-0039 | Vida — the operator console | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
 | INV-17826 | CMP-0039 | Vida — the operator console | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
 | INV-17827 | CMP-0026 | ICP changes and the widened-proof acceptance rule | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
-| INV-17828 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
-| INV-17829 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
-| INV-17830 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
-| INV-17831 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
-| INV-17832 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
-| INV-17833 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
-| INV-17834 | CMP-0005 | The volume curve — $437.50 at 10 meetings, ~$400 floor at 50+ | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
+| INV-17828 | CMP-0106 | Competitive landscape and teardowns | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
+| INV-17829 | CMP-0106 | Competitive landscape and teardowns | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
+| INV-17830 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
+| INV-17831 | CMP-0100 | Voice and AI calling | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
+| INV-17832 | CMP-0190 | Alta parity — the unified data layer / shared agent brain | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
+| INV-17833 | CMP-0190 | Alta parity — the unified data layer / shared agent brain | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
+| INV-17834 | CMP-0137 | Programme working point — $437.50 effective at 10 meetings | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
 | INV-17835 | CMP-0049 | Jack & Jill direction | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
 | INV-17836 | CMP-0049 | Jack & Jill direction | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
 | INV-17837 | CMP-0049 | Jack & Jill direction | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
-| INV-17838 | CMP-0005 | The volume curve — $437.50 at 10 meetings, ~$400 floor at 50+ | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
+| INV-17838 | CMP-0137 | Programme working point — $437.50 effective at 10 meetings | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
 | INV-17839 | CMP-0026 | ICP changes and the widened-proof acceptance rule | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
 | INV-17840 | CMP-0049 | Jack & Jill direction | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
 | INV-17841 | CMP-0002 | The $4 per-approved-lead charge | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
@@ -8863,7 +8863,7 @@
 | INV-17845 | CMP-0049 | Jack & Jill direction | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
 | INV-17846 | CMP-0021 | Trial and freebies | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
 | INV-17847 | CMP-0021 | Trial and freebies | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
-| INV-17848 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
+| INV-17848 | STRUCTURAL | — | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
 | INV-17849 | CMP-0021 | Trial and freebies | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
 | INV-17850 | CMP-0022 | Who may start sourcing — Run, cron and top-up | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
 | INV-17851 | CMP-0026 | ICP changes and the widened-proof acceptance rule | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
@@ -8899,11 +8899,11 @@
 | INV-17881 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
 | INV-17882 | CMP-0057 | LAUNCH-PAD vs PRODUCT-INVENTORY — the same items, two boards | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
 | INV-17883 | CMP-0057 | LAUNCH-PAD vs PRODUCT-INVENTORY — the same items, two boards | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
-| INV-17884 | CMP-0057 | LAUNCH-PAD vs PRODUCT-INVENTORY — the same items, two boards | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
-| INV-17885 | CMP-0005 | The volume curve — $437.50 at 10 meetings, ~$400 floor at 50+ | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
+| INV-17884 | CMP-0190 | Alta parity — the unified data layer / shared agent brain | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
+| INV-17885 | CMP-0137 | Programme working point — $437.50 effective at 10 meetings | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
 | INV-17886 | CMP-0022 | Who may start sourcing — Run, cron and top-up | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
 | INV-17887 | CMP-0021 | Trial and freebies | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
-| INV-17888 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
+| INV-17888 | STRUCTURAL | — | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
 | INV-17889 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
 | INV-17890 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
 | INV-17891 | STRUCTURAL | — | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
@@ -8948,7 +8948,7 @@
 | INV-17930 | CMP-0085 | Deliverability, warm-up and sending domains | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
 | INV-17931 | CMP-0085 | Deliverability, warm-up and sending domains | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
 | INV-17932 | CMP-0085 | Deliverability, warm-up and sending domains | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
-| INV-17933 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
+| INV-17933 | CMP-0085 | Deliverability, warm-up and sending domains | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
 | INV-17934 | STRUCTURAL | — | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
 | INV-17935 | CMP-0085 | Deliverability, warm-up and sending domains | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
 | INV-17936 | CMP-0034 | Outlook / Zoho as a calendar and mail host | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
@@ -9003,7 +9003,7 @@
 | INV-17985 | CMP-0116 | Dated roadmap phases and timelines | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
 | INV-17986 | CMP-0085 | Deliverability, warm-up and sending domains | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
 | INV-17987 | CMP-0026 | ICP changes and the widened-proof acceptance rule | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
-| INV-17988 | CMP-0066 | Steals — patterns taken from other tools | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
+| INV-17988 | CMP-0196 | The stealth constraint (R2) | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
 | INV-17989 | CMP-0026 | ICP changes and the widened-proof acceptance rule | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
 | INV-17990 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
 | INV-17991 | CMP-0106 | Competitive landscape and teardowns | `docs/archive/V2-NARRATIVE-2026-08-21.md` |

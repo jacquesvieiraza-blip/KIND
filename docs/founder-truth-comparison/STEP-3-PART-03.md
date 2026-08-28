@@ -68,7 +68,7 @@
 | INV-18050 | CMP-0101 | GTM strategy and the two-track market | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
 | INV-18051 | CMP-0026 | ICP changes and the widened-proof acceptance rule | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
 | INV-18052 | CMP-0101 | GTM strategy and the two-track market | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
-| INV-18053 | CMP-0066 | Steals — patterns taken from other tools | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
+| INV-18053 | CMP-0196 | The stealth constraint (R2) | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
 | INV-18054 | CMP-0048 | Onboarding and demo surfaces | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
 | INV-18055 | CMP-0101 | GTM strategy and the two-track market | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
 | INV-18056 | CMP-0105 | Partner programme operations | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
@@ -108,7 +108,7 @@
 | INV-18090 | CMP-0075 | The status dot ladder | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
 | INV-18091 | STRUCTURAL | — | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
 | INV-18092 | SOURCE-SPECIFIC | — | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
-| INV-18093 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
+| INV-18093 | CMP-0189 | Slack as an interaction layer | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
 | INV-18094 | SOURCE-SPECIFIC | — | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
 | INV-18095 | CMP-0120 | Retired and tombstoned items | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
 | INV-18096 | CMP-0102 | Marketing plan, content and the Drop | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
@@ -118,7 +118,7 @@
 | INV-18100 | STRUCTURAL | — | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
 | INV-18101 | CMP-0096 | Company engine, seats and the pool | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
 | INV-18102 | CMP-0075 | The status dot ladder | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
-| INV-18103 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
+| INV-18103 | CMP-0084 | Unibox, replies and reply triage | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
 | INV-18104 | CMP-0096 | Company engine, seats and the pool | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
 | INV-18105 | SOURCE-SPECIFIC | — | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
 | INV-18106 | CMP-0116 | Dated roadmap phases and timelines | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
@@ -164,7 +164,7 @@
 | INV-18146 | CMP-0046 | Client-facing calculators | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
 | INV-18147 | CMP-0046 | Client-facing calculators | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
 | INV-18148 | CMP-0046 | Client-facing calculators | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
-| INV-18149 | CMP-0026 | ICP changes and the widened-proof acceptance rule | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
+| INV-18149 | CMP-0186 | Internal model routing and AI cost economics | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
 | INV-18150 | CMP-0046 | Client-facing calculators | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
 | INV-18151 | CMP-0095 | Knowledge, Compass and client training | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
 | INV-18152 | CMP-0095 | Knowledge, Compass and client training | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
@@ -248,7 +248,7 @@
 | INV-18230 | CMP-0099 | WhatsApp and Africa-first channels | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
 | INV-18231 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
 | INV-18232 | CMP-0101 | GTM strategy and the two-track market | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
-| INV-18233 | CMP-0048 | Onboarding and demo surfaces | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
+| INV-18233 | CMP-0193 | The Drop as a content programme | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
 | INV-18234 | CMP-0101 | GTM strategy and the two-track market | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
 | INV-18235 | CMP-0048 | Onboarding and demo surfaces | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
 | INV-18236 | CMP-0101 | GTM strategy and the two-track market | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
@@ -268,11 +268,11 @@
 | INV-18250 | CMP-0048 | Onboarding and demo surfaces | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
 | INV-18251 | CMP-0101 | GTM strategy and the two-track market | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
 | INV-18252 | CMP-0101 | GTM strategy and the two-track market | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
-| INV-18253 | CMP-0102 | Marketing plan, content and the Drop | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
-| INV-18254 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
-| INV-18255 | CMP-0102 | Marketing plan, content and the Drop | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
-| INV-18256 | CMP-0102 | Marketing plan, content and the Drop | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
-| INV-18257 | CMP-0102 | Marketing plan, content and the Drop | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
+| INV-18253 | CMP-0193 | The Drop as a content programme | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
+| INV-18254 | CMP-0193 | The Drop as a content programme | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
+| INV-18255 | CMP-0193 | The Drop as a content programme | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
+| INV-18256 | CMP-0193 | The Drop as a content programme | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
+| INV-18257 | CMP-0193 | The Drop as a content programme | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
 | INV-18258 | CMP-0066 | Steals — patterns taken from other tools | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
 | INV-18259 | CMP-0066 | Steals — patterns taken from other tools | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
 | INV-18260 | STRUCTURAL | — | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
@@ -295,12 +295,12 @@
 | INV-18277 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
 | INV-18278 | CMP-0066 | Steals — patterns taken from other tools | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
 | INV-18279 | CMP-0066 | Steals — patterns taken from other tools | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
-| INV-18280 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
+| INV-18280 | CMP-0066 | Steals — patterns taken from other tools | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
 | INV-18281 | CMP-0066 | Steals — patterns taken from other tools | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
 | INV-18282 | CMP-0026 | ICP changes and the widened-proof acceptance rule | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
 | INV-18283 | CMP-0066 | Steals — patterns taken from other tools | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
 | INV-18284 | CMP-0040 | Proof review — the exhausted prospect becomes real work | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
-| INV-18285 | CMP-0025 | Pause — who may pause sending, and why | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
+| INV-18285 | CMP-0148 | Programme pause — client control and material-ICP-change auto-pause | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
 | INV-18286 | CMP-0026 | ICP changes and the widened-proof acceptance rule | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
 | INV-18287 | CMP-0066 | Steals — patterns taken from other tools | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
 | INV-18288 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
@@ -309,7 +309,7 @@
 | INV-18291 | CMP-0066 | Steals — patterns taken from other tools | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
 | INV-18292 | CMP-0066 | Steals — patterns taken from other tools | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
 | INV-18293 | CMP-0066 | Steals — patterns taken from other tools | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
-| INV-18294 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
+| INV-18294 | CMP-0066 | Steals — patterns taken from other tools | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
 | INV-18295 | STRUCTURAL | — | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
 | INV-18296 | SOURCE-SPECIFIC | — | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
 | INV-18297 | CMP-0075 | The status dot ladder | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
@@ -483,7 +483,7 @@
 | INV-18465 | CMP-0057 | LAUNCH-PAD vs PRODUCT-INVENTORY — the same items, two boards | `docs/archive/LAUNCH-PAD-2026-08-21.md` |
 | INV-18466 | CMP-0020 | Stripe as the payment gate | `docs/archive/LAUNCH-PAD-2026-08-21.md` |
 | INV-18467 | CMP-0057 | LAUNCH-PAD vs PRODUCT-INVENTORY — the same items, two boards | `docs/archive/LAUNCH-PAD-2026-08-21.md` |
-| INV-18468 | CMP-0113 | Error tracking and observability | `docs/archive/LAUNCH-PAD-2026-08-21.md` |
+| INV-18468 | CMP-0186 | Internal model routing and AI cost economics | `docs/archive/LAUNCH-PAD-2026-08-21.md` |
 | INV-18469 | CMP-0057 | LAUNCH-PAD vs PRODUCT-INVENTORY — the same items, two boards | `docs/archive/LAUNCH-PAD-2026-08-21.md` |
 | INV-18470 | CMP-0057 | LAUNCH-PAD vs PRODUCT-INVENTORY — the same items, two boards | `docs/archive/LAUNCH-PAD-2026-08-21.md` |
 | INV-18471 | CMP-0057 | LAUNCH-PAD vs PRODUCT-INVENTORY — the same items, two boards | `docs/archive/LAUNCH-PAD-2026-08-21.md` |
@@ -1165,7 +1165,7 @@
 | INV-19147 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/archive/KIND_Roadmap.md` |
 | INV-19148 | CMP-0116 | Dated roadmap phases and timelines | `docs/archive/KIND_Roadmap.md` |
 | INV-19149 | CMP-0102 | Marketing plan, content and the Drop | `docs/archive/KIND_Roadmap.md` |
-| INV-19150 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/KIND_Roadmap.md` |
+| INV-19150 | CMP-0080 | Compliance drafts for counsel | `docs/archive/KIND_Roadmap.md` |
 | INV-19151 | CMP-0080 | Compliance drafts for counsel | `docs/archive/KIND_Roadmap.md` |
 | INV-19152 | CMP-0105 | Partner programme operations | `docs/archive/KIND_Roadmap.md` |
 | INV-19153 | CMP-0080 | Compliance drafts for counsel | `docs/archive/KIND_Roadmap.md` |
@@ -1261,7 +1261,7 @@
 | INV-19243 | CMP-0086 | Lead lifecycle and the lead desk | `docs/archive/KIND_Roadmap.md` |
 | INV-19244 | CMP-0086 | Lead lifecycle and the lead desk | `docs/archive/KIND_Roadmap.md` |
 | INV-19245 | CMP-0086 | Lead lifecycle and the lead desk | `docs/archive/KIND_Roadmap.md` |
-| INV-19246 | CMP-0005 | The volume curve — $437.50 at 10 meetings, ~$400 floor at 50+ | `docs/archive/KIND_Roadmap.md` |
+| INV-19246 | CMP-0138 | Programme floor — ~$400 effective at 50+ meetings | `docs/archive/KIND_Roadmap.md` |
 | INV-19247 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/archive/KIND_Roadmap.md` |
 | INV-19248 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/archive/KIND_Roadmap.md` |
 | INV-19249 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/archive/KIND_Roadmap.md` |
@@ -2295,7 +2295,7 @@
 | INV-20277 | CMP-0075 | The status dot ladder | `docs/archive/AUDIT-24JUN-RECONCILIATION.md` |
 | INV-20278 | CMP-0075 | The status dot ladder | `docs/archive/AUDIT-24JUN-RECONCILIATION.md` |
 | INV-20279 | CMP-0075 | The status dot ladder | `docs/archive/AUDIT-24JUN-RECONCILIATION.md` |
-| INV-20280 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/AUDIT-24JUN-RECONCILIATION.md` |
+| INV-20280 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/archive/AUDIT-24JUN-RECONCILIATION.md` |
 | INV-20281 | CMP-0118 | Prior audits and reconciliations | `docs/archive/AUDIT-24JUN-RECONCILIATION.md` |
 | INV-20282 | CMP-0118 | Prior audits and reconciliations | `docs/archive/AUDIT-24JUN-RECONCILIATION.md` |
 | INV-20283 | CMP-0075 | The status dot ladder | `docs/archive/AUDIT-24JUN-RECONCILIATION.md` |
@@ -2312,7 +2312,7 @@
 | INV-20294 | CMP-0020 | Stripe as the payment gate | `docs/archive/AUDIT-24JUN-RECONCILIATION.md` |
 | INV-20295 | CMP-0022 | Who may start sourcing — Run, cron and top-up | `docs/archive/AUDIT-24JUN-RECONCILIATION.md` |
 | INV-20296 | CMP-0118 | Prior audits and reconciliations | `docs/archive/AUDIT-24JUN-RECONCILIATION.md` |
-| INV-20297 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/AUDIT-24JUN-RECONCILIATION.md` |
+| INV-20297 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/archive/AUDIT-24JUN-RECONCILIATION.md` |
 | INV-20298 | CMP-0075 | The status dot ladder | `docs/archive/AUDIT-24JUN-RECONCILIATION.md` |
 | INV-20299 | CMP-0079 | RLS and data boundary | `docs/archive/AUDIT-24JUN-RECONCILIATION.md` |
 | INV-20300 | CMP-0118 | Prior audits and reconciliations | `docs/archive/AUDIT-24JUN-RECONCILIATION.md` |
@@ -2339,7 +2339,7 @@
 | INV-20321 | CMP-0118 | Prior audits and reconciliations | `docs/archive/AUDIT-24JUN-RECONCILIATION.md` |
 | INV-20322 | CMP-0118 | Prior audits and reconciliations | `docs/archive/AUDIT-24JUN-RECONCILIATION.md` |
 | INV-20323 | CMP-0118 | Prior audits and reconciliations | `docs/archive/AUDIT-24JUN-RECONCILIATION.md` |
-| INV-20324 | CMP-0102 | Marketing plan, content and the Drop | `docs/archive/AUDIT-24JUN-RECONCILIATION.md` |
+| INV-20324 | CMP-0193 | The Drop as a content programme | `docs/archive/AUDIT-24JUN-RECONCILIATION.md` |
 | INV-20325 | CMP-0053 | The investor deck's money claims | `docs/archive/AUDIT-24JUN-RECONCILIATION.md` |
 | INV-20326 | CMP-0101 | GTM strategy and the two-track market | `docs/archive/AUDIT-24JUN-RECONCILIATION.md` |
 | INV-20327 | CMP-0054 | SEIS advance assurance and funding | `docs/archive/AUDIT-24JUN-RECONCILIATION.md` |
@@ -2382,7 +2382,7 @@
 | INV-20364 | CMP-0088 | Admin console and the bookkeeper view | `docs/archive/ADMIN-BOOKKEEPER-AUDIT.md` |
 | INV-20365 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/ADMIN-BOOKKEEPER-AUDIT.md` |
 | INV-20366 | CMP-0088 | Admin console and the bookkeeper view | `docs/archive/ADMIN-BOOKKEEPER-AUDIT.md` |
-| INV-20367 | CMP-0005 | The volume curve — $437.50 at 10 meetings, ~$400 floor at 50+ | `docs/archive/ADMIN-BOOKKEEPER-AUDIT.md` |
+| INV-20367 | CMP-0138 | Programme floor — ~$400 effective at 50+ meetings | `docs/archive/ADMIN-BOOKKEEPER-AUDIT.md` |
 | INV-20368 | CMP-0045 | The 90-Day Pipeline Guarantee | `docs/archive/ADMIN-BOOKKEEPER-AUDIT.md` |
 | INV-20369 | CMP-0088 | Admin console and the bookkeeper view | `docs/archive/ADMIN-BOOKKEEPER-AUDIT.md` |
 | INV-20370 | CMP-0088 | Admin console and the bookkeeper view | `docs/archive/ADMIN-BOOKKEEPER-AUDIT.md` |
@@ -3560,7 +3560,7 @@
 | INV-21542 | CMP-0076 | Preview before live | `docs/previews/activity-feed-current.html` |
 | INV-21543 | CMP-0115 | Seed data, wipes and Client Zero | `docs/previews/activity-feed-current.html` |
 | INV-21544 | CMP-0084 | Unibox, replies and reply triage | `docs/previews/activity-feed-current.html` |
-| INV-21545 | CMP-0025 | Pause — who may pause sending, and why | `docs/previews/activity-feed-current.html` |
+| INV-21545 | CMP-0148 | Programme pause — client control and material-ICP-change auto-pause | `docs/previews/activity-feed-current.html` |
 | INV-21546 | CMP-0032 | Meeting states — booked, unverified, held, no-show, reschedule | `docs/previews/activity-feed-current.html` |
 | INV-21547 | SOURCE-SPECIFIC | — | `docs/previews/activity-feed-current.html` |
 | INV-21548 | CMP-0083 | Campaigns and the sequence builder | `docs/previews/activity-feed-current.html` |
@@ -3678,7 +3678,7 @@
 | INV-21660 | CMP-0048 | Onboarding and demo surfaces | `docs/previews/marketing-product-videos.html` |
 | INV-21661 | CMP-0102 | Marketing plan, content and the Drop | `docs/previews/marketing-product-videos.html` |
 | INV-21662 | CMP-0021 | Trial and freebies | `docs/previews/marketing-product-videos.html` |
-| INV-21663 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/previews/marketing-the-drop.html` |
+| INV-21663 | CMP-0193 | The Drop as a content programme | `docs/previews/marketing-the-drop.html` |
 | INV-21664 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/previews/marketing-the-drop.html` |
 | INV-21665 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/previews/marketing-the-drop.html` |
 | INV-21666 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/previews/marketing-the-drop.html` |
@@ -3831,7 +3831,7 @@
 | INV-21813 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/previews/v2-utility-screens.html` |
 | INV-21814 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/previews/v2-utility-screens.html` |
 | INV-21815 | CMP-0099 | WhatsApp and Africa-first channels | `docs/previews/v2-utility-screens.html` |
-| INV-21816 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/previews/v2-utility-screens.html` |
+| INV-21816 | CMP-0106 | Competitive landscape and teardowns | `docs/previews/v2-utility-screens.html` |
 | INV-21817 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/previews/v2-utility-screens.html` |
 | INV-21818 | CMP-0048 | Onboarding and demo surfaces | `docs/previews/welcome-concepts.html` |
 | INV-21819 | CMP-0048 | Onboarding and demo surfaces | `docs/previews/welcome-concepts.html` |
@@ -4041,7 +4041,7 @@
 | INV-22023 | CMP-0106 | Competitive landscape and teardowns | `docs/strategy/get-kind_competitive_market_benchmark_verification_log.html` |
 | INV-22024 | CMP-0106 | Competitive landscape and teardowns | `docs/strategy/get-kind_competitive_market_benchmark_verification_log.html` |
 | INV-22025 | CMP-0083 | Campaigns and the sequence builder | `docs/strategy/get-kind_competitive_market_benchmark_verification_log.html` |
-| INV-22026 | CMP-0106 | Competitive landscape and teardowns | `docs/strategy/get-kind_competitive_market_benchmark_verification_log.html` |
+| INV-22026 | CMP-0189 | Slack as an interaction layer | `docs/strategy/get-kind_competitive_market_benchmark_verification_log.html` |
 | INV-22027 | CMP-0106 | Competitive landscape and teardowns | `docs/strategy/get-kind_competitive_market_benchmark_verification_log.html` |
 | INV-22028 | CMP-0083 | Campaigns and the sequence builder | `docs/strategy/get-kind_competitive_market_benchmark_verification_log.html` |
 | INV-22029 | CMP-0106 | Competitive landscape and teardowns | `docs/strategy/get-kind_competitive_market_benchmark_verification_log.html` |
@@ -4878,7 +4878,7 @@
 | INV-22860 | CMP-0102 | Marketing plan, content and the Drop | `docs/marketing/bundle-source/free10-landing-page.html` |
 | INV-22861 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/marketing/bundle-source/free10-landing-page.html` |
 | INV-22862 | CMP-0102 | Marketing plan, content and the Drop | `docs/marketing/bundle-source/free10-landing-page.html` |
-| INV-22863 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/marketing/bundle-source/free10-landing-page.html` |
+| INV-22863 | CMP-0192 | Evidence-triggered phase ladder — PROVE IT / COMPOUND IT / SCALE IT | `docs/marketing/bundle-source/free10-landing-page.html` |
 | INV-22864 | CMP-0102 | Marketing plan, content and the Drop | `docs/marketing/bundle-source/linkedin-company-page.html` |
 | INV-22865 | CMP-0102 | Marketing plan, content and the Drop | `docs/marketing/bundle-source/linkedin-company-page.html` |
 | INV-22866 | CMP-0102 | Marketing plan, content and the Drop | `docs/marketing/bundle-source/linkedin-company-page.html` |
@@ -4892,8 +4892,8 @@
 | INV-22874 | CMP-0102 | Marketing plan, content and the Drop | `docs/marketing/bundle-source/marketing-agent-flow.html` |
 | INV-22875 | CMP-0093 | Notifications and the notification centre | `docs/marketing/bundle-source/marketing-agent-flow.html` |
 | INV-22876 | CMP-0102 | Marketing plan, content and the Drop | `docs/marketing/bundle-source/marketing-agent-flow.html` |
-| INV-22877 | CMP-0102 | Marketing plan, content and the Drop | `docs/marketing/bundle-source/marketing-agent-flow.html` |
-| INV-22878 | CMP-0102 | Marketing plan, content and the Drop | `docs/marketing/bundle-source/marketing-agent-flow.html` |
+| INV-22877 | CMP-0193 | The Drop as a content programme | `docs/marketing/bundle-source/marketing-agent-flow.html` |
+| INV-22878 | CMP-0193 | The Drop as a content programme | `docs/marketing/bundle-source/marketing-agent-flow.html` |
 | INV-22879 | CMP-0102 | Marketing plan, content and the Drop | `docs/marketing/bundle-source/marketing-agent-flow.html` |
 | INV-22880 | CMP-0103 | Paid ads | `docs/marketing/bundle-source/paid-ads-plan.html` |
 | INV-22881 | CMP-0103 | Paid ads | `docs/marketing/bundle-source/paid-ads-plan.html` |
@@ -5151,194 +5151,194 @@
 | INV-23133 | CMP-0127 | Privacy policy and data-processing agreements | `apps/website/dpa.html` |
 | INV-23134 | CMP-0127 | Privacy policy and data-processing agreements | `apps/website/dpa.html` |
 | INV-23135 | CMP-0002 | The $4 per-approved-lead charge | `apps/website/dpa.html` |
-| INV-23136 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-01.html` |
-| INV-23137 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-01.html` |
-| INV-23138 | CMP-0002 | The $4 per-approved-lead charge | `apps/website/drop-01.html` |
-| INV-23139 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-01.html` |
-| INV-23140 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-01.html` |
-| INV-23141 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-01.html` |
-| INV-23142 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-01.html` |
-| INV-23143 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-01.html` |
-| INV-23144 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-01.html` |
-| INV-23145 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-01.html` |
-| INV-23146 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-01.html` |
-| INV-23147 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-01.html` |
-| INV-23148 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-01.html` |
-| INV-23149 | CMP-0037 | Milla conversational experience and the flywheel | `apps/website/drop-01.html` |
-| INV-23150 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-01.html` |
-| INV-23151 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-01.html` |
-| INV-23152 | CMP-0002 | The $4 per-approved-lead charge | `apps/website/drop-01.html` |
-| INV-23153 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-01.html` |
-| INV-23154 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-01.html` |
-| INV-23155 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-01.html` |
-| INV-23156 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-01.html` |
-| INV-23157 | CMP-0002 | The $4 per-approved-lead charge | `apps/website/drop-01.html` |
-| INV-23158 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-02.html` |
-| INV-23159 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-02.html` |
-| INV-23160 | CMP-0002 | The $4 per-approved-lead charge | `apps/website/drop-02.html` |
-| INV-23161 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-02.html` |
-| INV-23162 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-02.html` |
-| INV-23163 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-02.html` |
-| INV-23164 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-02.html` |
-| INV-23165 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-02.html` |
-| INV-23166 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-02.html` |
-| INV-23167 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-02.html` |
-| INV-23168 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-02.html` |
-| INV-23169 | CMP-0037 | Milla conversational experience and the flywheel | `apps/website/drop-02.html` |
-| INV-23170 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-02.html` |
-| INV-23171 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-02.html` |
-| INV-23172 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-02.html` |
-| INV-23173 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-02.html` |
-| INV-23174 | CMP-0002 | The $4 per-approved-lead charge | `apps/website/drop-02.html` |
-| INV-23175 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-02.html` |
-| INV-23176 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-02.html` |
-| INV-23177 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-02.html` |
-| INV-23178 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-02.html` |
-| INV-23179 | CMP-0002 | The $4 per-approved-lead charge | `apps/website/drop-02.html` |
-| INV-23180 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-03.html` |
-| INV-23181 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-03.html` |
-| INV-23182 | CMP-0002 | The $4 per-approved-lead charge | `apps/website/drop-03.html` |
-| INV-23183 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-03.html` |
-| INV-23184 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-03.html` |
-| INV-23185 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-03.html` |
-| INV-23186 | CMP-0032 | Meeting states — booked, unverified, held, no-show, reschedule | `apps/website/drop-03.html` |
-| INV-23187 | CMP-0032 | Meeting states — booked, unverified, held, no-show, reschedule | `apps/website/drop-03.html` |
-| INV-23188 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-03.html` |
-| INV-23189 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-03.html` |
-| INV-23190 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-03.html` |
-| INV-23191 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-03.html` |
-| INV-23192 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-03.html` |
-| INV-23193 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-03.html` |
-| INV-23194 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-03.html` |
-| INV-23195 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-03.html` |
-| INV-23196 | CMP-0002 | The $4 per-approved-lead charge | `apps/website/drop-03.html` |
-| INV-23197 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-03.html` |
-| INV-23198 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-03.html` |
-| INV-23199 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-03.html` |
-| INV-23200 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-03.html` |
-| INV-23201 | CMP-0002 | The $4 per-approved-lead charge | `apps/website/drop-03.html` |
-| INV-23202 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-04.html` |
-| INV-23203 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-04.html` |
-| INV-23204 | CMP-0002 | The $4 per-approved-lead charge | `apps/website/drop-04.html` |
-| INV-23205 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-04.html` |
-| INV-23206 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-04.html` |
-| INV-23207 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-04.html` |
-| INV-23208 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-04.html` |
-| INV-23209 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-04.html` |
-| INV-23210 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-04.html` |
-| INV-23211 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-04.html` |
-| INV-23212 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-04.html` |
-| INV-23213 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-04.html` |
-| INV-23214 | CMP-0002 | The $4 per-approved-lead charge | `apps/website/drop-04.html` |
-| INV-23215 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-04.html` |
-| INV-23216 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-04.html` |
-| INV-23217 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-04.html` |
-| INV-23218 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-04.html` |
-| INV-23219 | CMP-0002 | The $4 per-approved-lead charge | `apps/website/drop-04.html` |
-| INV-23220 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-05.html` |
-| INV-23221 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-05.html` |
-| INV-23222 | CMP-0002 | The $4 per-approved-lead charge | `apps/website/drop-05.html` |
-| INV-23223 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-05.html` |
-| INV-23224 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-05.html` |
-| INV-23225 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-05.html` |
-| INV-23226 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-05.html` |
-| INV-23227 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-05.html` |
-| INV-23228 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-05.html` |
-| INV-23229 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-05.html` |
-| INV-23230 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-05.html` |
-| INV-23231 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-05.html` |
-| INV-23232 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-05.html` |
-| INV-23233 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-05.html` |
-| INV-23234 | CMP-0002 | The $4 per-approved-lead charge | `apps/website/drop-05.html` |
-| INV-23235 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-05.html` |
-| INV-23236 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-05.html` |
-| INV-23237 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-05.html` |
-| INV-23238 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-05.html` |
-| INV-23239 | CMP-0002 | The $4 per-approved-lead charge | `apps/website/drop-05.html` |
-| INV-23240 | CMP-0032 | Meeting states — booked, unverified, held, no-show, reschedule | `apps/website/drop-06.html` |
-| INV-23241 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-06.html` |
-| INV-23242 | CMP-0002 | The $4 per-approved-lead charge | `apps/website/drop-06.html` |
-| INV-23243 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-06.html` |
-| INV-23244 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-06.html` |
-| INV-23245 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-06.html` |
-| INV-23246 | CMP-0037 | Milla conversational experience and the flywheel | `apps/website/drop-06.html` |
-| INV-23247 | CMP-0037 | Milla conversational experience and the flywheel | `apps/website/drop-06.html` |
-| INV-23248 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-06.html` |
-| INV-23249 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-06.html` |
-| INV-23250 | CMP-0032 | Meeting states — booked, unverified, held, no-show, reschedule | `apps/website/drop-06.html` |
-| INV-23251 | CMP-0032 | Meeting states — booked, unverified, held, no-show, reschedule | `apps/website/drop-06.html` |
-| INV-23252 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-06.html` |
-| INV-23253 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-06.html` |
-| INV-23254 | CMP-0002 | The $4 per-approved-lead charge | `apps/website/drop-06.html` |
-| INV-23255 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-06.html` |
-| INV-23256 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-06.html` |
-| INV-23257 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-06.html` |
-| INV-23258 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-06.html` |
-| INV-23259 | CMP-0002 | The $4 per-approved-lead charge | `apps/website/drop-06.html` |
-| INV-23260 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-07.html` |
-| INV-23261 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-07.html` |
-| INV-23262 | CMP-0002 | The $4 per-approved-lead charge | `apps/website/drop-07.html` |
-| INV-23263 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-07.html` |
-| INV-23264 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-07.html` |
-| INV-23265 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-07.html` |
-| INV-23266 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-07.html` |
-| INV-23267 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-07.html` |
-| INV-23268 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-07.html` |
-| INV-23269 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-07.html` |
-| INV-23270 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-07.html` |
-| INV-23271 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-07.html` |
-| INV-23272 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-07.html` |
-| INV-23273 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-07.html` |
-| INV-23274 | CMP-0002 | The $4 per-approved-lead charge | `apps/website/drop-07.html` |
-| INV-23275 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-07.html` |
-| INV-23276 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-07.html` |
-| INV-23277 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-07.html` |
-| INV-23278 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-07.html` |
-| INV-23279 | CMP-0002 | The $4 per-approved-lead charge | `apps/website/drop-07.html` |
-| INV-23280 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-08.html` |
-| INV-23281 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-08.html` |
-| INV-23282 | CMP-0002 | The $4 per-approved-lead charge | `apps/website/drop-08.html` |
-| INV-23283 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-08.html` |
-| INV-23284 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-08.html` |
-| INV-23285 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-08.html` |
-| INV-23286 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-08.html` |
-| INV-23287 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-08.html` |
-| INV-23288 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-08.html` |
-| INV-23289 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-08.html` |
-| INV-23290 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-08.html` |
-| INV-23291 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-08.html` |
-| INV-23292 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-08.html` |
-| INV-23293 | CMP-0042 | Suppression, opt-out and DNC | `apps/website/drop-08.html` |
-| INV-23294 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-08.html` |
-| INV-23295 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-08.html` |
-| INV-23296 | CMP-0002 | The $4 per-approved-lead charge | `apps/website/drop-08.html` |
-| INV-23297 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-08.html` |
-| INV-23298 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-08.html` |
-| INV-23299 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-08.html` |
-| INV-23300 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-08.html` |
-| INV-23301 | CMP-0002 | The $4 per-approved-lead charge | `apps/website/drop-08.html` |
-| INV-23302 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-09.html` |
-| INV-23303 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-09.html` |
-| INV-23304 | CMP-0002 | The $4 per-approved-lead charge | `apps/website/drop-09.html` |
-| INV-23305 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-09.html` |
-| INV-23306 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-09.html` |
-| INV-23307 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-09.html` |
-| INV-23308 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-09.html` |
-| INV-23309 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-09.html` |
-| INV-23310 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-09.html` |
-| INV-23311 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-09.html` |
-| INV-23312 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-09.html` |
-| INV-23313 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-09.html` |
-| INV-23314 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-09.html` |
-| INV-23315 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-09.html` |
-| INV-23316 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-09.html` |
-| INV-23317 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-09.html` |
-| INV-23318 | CMP-0002 | The $4 per-approved-lead charge | `apps/website/drop-09.html` |
-| INV-23319 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-09.html` |
-| INV-23320 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-09.html` |
-| INV-23321 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-09.html` |
-| INV-23322 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-09.html` |
-| INV-23323 | CMP-0002 | The $4 per-approved-lead charge | `apps/website/drop-09.html` |
+| INV-23136 | CMP-0193 | The Drop as a content programme | `apps/website/drop-01.html` |
+| INV-23137 | CMP-0193 | The Drop as a content programme | `apps/website/drop-01.html` |
+| INV-23138 | CMP-0193 | The Drop as a content programme | `apps/website/drop-01.html` |
+| INV-23139 | CMP-0193 | The Drop as a content programme | `apps/website/drop-01.html` |
+| INV-23140 | CMP-0193 | The Drop as a content programme | `apps/website/drop-01.html` |
+| INV-23141 | CMP-0193 | The Drop as a content programme | `apps/website/drop-01.html` |
+| INV-23142 | CMP-0193 | The Drop as a content programme | `apps/website/drop-01.html` |
+| INV-23143 | CMP-0193 | The Drop as a content programme | `apps/website/drop-01.html` |
+| INV-23144 | CMP-0193 | The Drop as a content programme | `apps/website/drop-01.html` |
+| INV-23145 | CMP-0193 | The Drop as a content programme | `apps/website/drop-01.html` |
+| INV-23146 | CMP-0193 | The Drop as a content programme | `apps/website/drop-01.html` |
+| INV-23147 | CMP-0193 | The Drop as a content programme | `apps/website/drop-01.html` |
+| INV-23148 | CMP-0193 | The Drop as a content programme | `apps/website/drop-01.html` |
+| INV-23149 | CMP-0193 | The Drop as a content programme | `apps/website/drop-01.html` |
+| INV-23150 | CMP-0193 | The Drop as a content programme | `apps/website/drop-01.html` |
+| INV-23151 | CMP-0193 | The Drop as a content programme | `apps/website/drop-01.html` |
+| INV-23152 | CMP-0193 | The Drop as a content programme | `apps/website/drop-01.html` |
+| INV-23153 | CMP-0193 | The Drop as a content programme | `apps/website/drop-01.html` |
+| INV-23154 | CMP-0193 | The Drop as a content programme | `apps/website/drop-01.html` |
+| INV-23155 | CMP-0193 | The Drop as a content programme | `apps/website/drop-01.html` |
+| INV-23156 | CMP-0193 | The Drop as a content programme | `apps/website/drop-01.html` |
+| INV-23157 | CMP-0193 | The Drop as a content programme | `apps/website/drop-01.html` |
+| INV-23158 | CMP-0193 | The Drop as a content programme | `apps/website/drop-02.html` |
+| INV-23159 | CMP-0193 | The Drop as a content programme | `apps/website/drop-02.html` |
+| INV-23160 | CMP-0193 | The Drop as a content programme | `apps/website/drop-02.html` |
+| INV-23161 | CMP-0193 | The Drop as a content programme | `apps/website/drop-02.html` |
+| INV-23162 | CMP-0193 | The Drop as a content programme | `apps/website/drop-02.html` |
+| INV-23163 | CMP-0193 | The Drop as a content programme | `apps/website/drop-02.html` |
+| INV-23164 | CMP-0193 | The Drop as a content programme | `apps/website/drop-02.html` |
+| INV-23165 | CMP-0193 | The Drop as a content programme | `apps/website/drop-02.html` |
+| INV-23166 | CMP-0193 | The Drop as a content programme | `apps/website/drop-02.html` |
+| INV-23167 | CMP-0193 | The Drop as a content programme | `apps/website/drop-02.html` |
+| INV-23168 | CMP-0193 | The Drop as a content programme | `apps/website/drop-02.html` |
+| INV-23169 | CMP-0193 | The Drop as a content programme | `apps/website/drop-02.html` |
+| INV-23170 | CMP-0193 | The Drop as a content programme | `apps/website/drop-02.html` |
+| INV-23171 | CMP-0193 | The Drop as a content programme | `apps/website/drop-02.html` |
+| INV-23172 | CMP-0193 | The Drop as a content programme | `apps/website/drop-02.html` |
+| INV-23173 | CMP-0193 | The Drop as a content programme | `apps/website/drop-02.html` |
+| INV-23174 | CMP-0193 | The Drop as a content programme | `apps/website/drop-02.html` |
+| INV-23175 | CMP-0193 | The Drop as a content programme | `apps/website/drop-02.html` |
+| INV-23176 | CMP-0193 | The Drop as a content programme | `apps/website/drop-02.html` |
+| INV-23177 | CMP-0193 | The Drop as a content programme | `apps/website/drop-02.html` |
+| INV-23178 | CMP-0193 | The Drop as a content programme | `apps/website/drop-02.html` |
+| INV-23179 | CMP-0193 | The Drop as a content programme | `apps/website/drop-02.html` |
+| INV-23180 | CMP-0193 | The Drop as a content programme | `apps/website/drop-03.html` |
+| INV-23181 | CMP-0193 | The Drop as a content programme | `apps/website/drop-03.html` |
+| INV-23182 | CMP-0193 | The Drop as a content programme | `apps/website/drop-03.html` |
+| INV-23183 | CMP-0193 | The Drop as a content programme | `apps/website/drop-03.html` |
+| INV-23184 | CMP-0193 | The Drop as a content programme | `apps/website/drop-03.html` |
+| INV-23185 | CMP-0193 | The Drop as a content programme | `apps/website/drop-03.html` |
+| INV-23186 | CMP-0193 | The Drop as a content programme | `apps/website/drop-03.html` |
+| INV-23187 | CMP-0193 | The Drop as a content programme | `apps/website/drop-03.html` |
+| INV-23188 | CMP-0193 | The Drop as a content programme | `apps/website/drop-03.html` |
+| INV-23189 | CMP-0193 | The Drop as a content programme | `apps/website/drop-03.html` |
+| INV-23190 | CMP-0193 | The Drop as a content programme | `apps/website/drop-03.html` |
+| INV-23191 | CMP-0193 | The Drop as a content programme | `apps/website/drop-03.html` |
+| INV-23192 | CMP-0193 | The Drop as a content programme | `apps/website/drop-03.html` |
+| INV-23193 | CMP-0193 | The Drop as a content programme | `apps/website/drop-03.html` |
+| INV-23194 | CMP-0193 | The Drop as a content programme | `apps/website/drop-03.html` |
+| INV-23195 | CMP-0193 | The Drop as a content programme | `apps/website/drop-03.html` |
+| INV-23196 | CMP-0193 | The Drop as a content programme | `apps/website/drop-03.html` |
+| INV-23197 | CMP-0193 | The Drop as a content programme | `apps/website/drop-03.html` |
+| INV-23198 | CMP-0193 | The Drop as a content programme | `apps/website/drop-03.html` |
+| INV-23199 | CMP-0193 | The Drop as a content programme | `apps/website/drop-03.html` |
+| INV-23200 | CMP-0193 | The Drop as a content programme | `apps/website/drop-03.html` |
+| INV-23201 | CMP-0193 | The Drop as a content programme | `apps/website/drop-03.html` |
+| INV-23202 | CMP-0193 | The Drop as a content programme | `apps/website/drop-04.html` |
+| INV-23203 | CMP-0193 | The Drop as a content programme | `apps/website/drop-04.html` |
+| INV-23204 | CMP-0193 | The Drop as a content programme | `apps/website/drop-04.html` |
+| INV-23205 | CMP-0193 | The Drop as a content programme | `apps/website/drop-04.html` |
+| INV-23206 | CMP-0193 | The Drop as a content programme | `apps/website/drop-04.html` |
+| INV-23207 | CMP-0193 | The Drop as a content programme | `apps/website/drop-04.html` |
+| INV-23208 | CMP-0193 | The Drop as a content programme | `apps/website/drop-04.html` |
+| INV-23209 | CMP-0193 | The Drop as a content programme | `apps/website/drop-04.html` |
+| INV-23210 | CMP-0193 | The Drop as a content programme | `apps/website/drop-04.html` |
+| INV-23211 | CMP-0193 | The Drop as a content programme | `apps/website/drop-04.html` |
+| INV-23212 | CMP-0193 | The Drop as a content programme | `apps/website/drop-04.html` |
+| INV-23213 | CMP-0193 | The Drop as a content programme | `apps/website/drop-04.html` |
+| INV-23214 | CMP-0193 | The Drop as a content programme | `apps/website/drop-04.html` |
+| INV-23215 | CMP-0193 | The Drop as a content programme | `apps/website/drop-04.html` |
+| INV-23216 | CMP-0193 | The Drop as a content programme | `apps/website/drop-04.html` |
+| INV-23217 | CMP-0193 | The Drop as a content programme | `apps/website/drop-04.html` |
+| INV-23218 | CMP-0193 | The Drop as a content programme | `apps/website/drop-04.html` |
+| INV-23219 | CMP-0193 | The Drop as a content programme | `apps/website/drop-04.html` |
+| INV-23220 | CMP-0193 | The Drop as a content programme | `apps/website/drop-05.html` |
+| INV-23221 | CMP-0193 | The Drop as a content programme | `apps/website/drop-05.html` |
+| INV-23222 | CMP-0193 | The Drop as a content programme | `apps/website/drop-05.html` |
+| INV-23223 | CMP-0193 | The Drop as a content programme | `apps/website/drop-05.html` |
+| INV-23224 | CMP-0193 | The Drop as a content programme | `apps/website/drop-05.html` |
+| INV-23225 | CMP-0193 | The Drop as a content programme | `apps/website/drop-05.html` |
+| INV-23226 | CMP-0193 | The Drop as a content programme | `apps/website/drop-05.html` |
+| INV-23227 | CMP-0193 | The Drop as a content programme | `apps/website/drop-05.html` |
+| INV-23228 | CMP-0193 | The Drop as a content programme | `apps/website/drop-05.html` |
+| INV-23229 | CMP-0193 | The Drop as a content programme | `apps/website/drop-05.html` |
+| INV-23230 | CMP-0193 | The Drop as a content programme | `apps/website/drop-05.html` |
+| INV-23231 | CMP-0193 | The Drop as a content programme | `apps/website/drop-05.html` |
+| INV-23232 | CMP-0193 | The Drop as a content programme | `apps/website/drop-05.html` |
+| INV-23233 | CMP-0193 | The Drop as a content programme | `apps/website/drop-05.html` |
+| INV-23234 | CMP-0193 | The Drop as a content programme | `apps/website/drop-05.html` |
+| INV-23235 | CMP-0193 | The Drop as a content programme | `apps/website/drop-05.html` |
+| INV-23236 | CMP-0193 | The Drop as a content programme | `apps/website/drop-05.html` |
+| INV-23237 | CMP-0193 | The Drop as a content programme | `apps/website/drop-05.html` |
+| INV-23238 | CMP-0193 | The Drop as a content programme | `apps/website/drop-05.html` |
+| INV-23239 | CMP-0193 | The Drop as a content programme | `apps/website/drop-05.html` |
+| INV-23240 | CMP-0193 | The Drop as a content programme | `apps/website/drop-06.html` |
+| INV-23241 | CMP-0193 | The Drop as a content programme | `apps/website/drop-06.html` |
+| INV-23242 | CMP-0193 | The Drop as a content programme | `apps/website/drop-06.html` |
+| INV-23243 | CMP-0193 | The Drop as a content programme | `apps/website/drop-06.html` |
+| INV-23244 | CMP-0193 | The Drop as a content programme | `apps/website/drop-06.html` |
+| INV-23245 | CMP-0193 | The Drop as a content programme | `apps/website/drop-06.html` |
+| INV-23246 | CMP-0193 | The Drop as a content programme | `apps/website/drop-06.html` |
+| INV-23247 | CMP-0193 | The Drop as a content programme | `apps/website/drop-06.html` |
+| INV-23248 | CMP-0193 | The Drop as a content programme | `apps/website/drop-06.html` |
+| INV-23249 | CMP-0193 | The Drop as a content programme | `apps/website/drop-06.html` |
+| INV-23250 | CMP-0193 | The Drop as a content programme | `apps/website/drop-06.html` |
+| INV-23251 | CMP-0193 | The Drop as a content programme | `apps/website/drop-06.html` |
+| INV-23252 | CMP-0193 | The Drop as a content programme | `apps/website/drop-06.html` |
+| INV-23253 | CMP-0193 | The Drop as a content programme | `apps/website/drop-06.html` |
+| INV-23254 | CMP-0193 | The Drop as a content programme | `apps/website/drop-06.html` |
+| INV-23255 | CMP-0193 | The Drop as a content programme | `apps/website/drop-06.html` |
+| INV-23256 | CMP-0193 | The Drop as a content programme | `apps/website/drop-06.html` |
+| INV-23257 | CMP-0193 | The Drop as a content programme | `apps/website/drop-06.html` |
+| INV-23258 | CMP-0193 | The Drop as a content programme | `apps/website/drop-06.html` |
+| INV-23259 | CMP-0193 | The Drop as a content programme | `apps/website/drop-06.html` |
+| INV-23260 | CMP-0193 | The Drop as a content programme | `apps/website/drop-07.html` |
+| INV-23261 | CMP-0193 | The Drop as a content programme | `apps/website/drop-07.html` |
+| INV-23262 | CMP-0193 | The Drop as a content programme | `apps/website/drop-07.html` |
+| INV-23263 | CMP-0193 | The Drop as a content programme | `apps/website/drop-07.html` |
+| INV-23264 | CMP-0193 | The Drop as a content programme | `apps/website/drop-07.html` |
+| INV-23265 | CMP-0193 | The Drop as a content programme | `apps/website/drop-07.html` |
+| INV-23266 | CMP-0193 | The Drop as a content programme | `apps/website/drop-07.html` |
+| INV-23267 | CMP-0193 | The Drop as a content programme | `apps/website/drop-07.html` |
+| INV-23268 | CMP-0193 | The Drop as a content programme | `apps/website/drop-07.html` |
+| INV-23269 | CMP-0193 | The Drop as a content programme | `apps/website/drop-07.html` |
+| INV-23270 | CMP-0193 | The Drop as a content programme | `apps/website/drop-07.html` |
+| INV-23271 | CMP-0193 | The Drop as a content programme | `apps/website/drop-07.html` |
+| INV-23272 | CMP-0193 | The Drop as a content programme | `apps/website/drop-07.html` |
+| INV-23273 | CMP-0193 | The Drop as a content programme | `apps/website/drop-07.html` |
+| INV-23274 | CMP-0193 | The Drop as a content programme | `apps/website/drop-07.html` |
+| INV-23275 | CMP-0193 | The Drop as a content programme | `apps/website/drop-07.html` |
+| INV-23276 | CMP-0193 | The Drop as a content programme | `apps/website/drop-07.html` |
+| INV-23277 | CMP-0193 | The Drop as a content programme | `apps/website/drop-07.html` |
+| INV-23278 | CMP-0193 | The Drop as a content programme | `apps/website/drop-07.html` |
+| INV-23279 | CMP-0193 | The Drop as a content programme | `apps/website/drop-07.html` |
+| INV-23280 | CMP-0193 | The Drop as a content programme | `apps/website/drop-08.html` |
+| INV-23281 | CMP-0193 | The Drop as a content programme | `apps/website/drop-08.html` |
+| INV-23282 | CMP-0193 | The Drop as a content programme | `apps/website/drop-08.html` |
+| INV-23283 | CMP-0193 | The Drop as a content programme | `apps/website/drop-08.html` |
+| INV-23284 | CMP-0193 | The Drop as a content programme | `apps/website/drop-08.html` |
+| INV-23285 | CMP-0193 | The Drop as a content programme | `apps/website/drop-08.html` |
+| INV-23286 | CMP-0193 | The Drop as a content programme | `apps/website/drop-08.html` |
+| INV-23287 | CMP-0193 | The Drop as a content programme | `apps/website/drop-08.html` |
+| INV-23288 | CMP-0193 | The Drop as a content programme | `apps/website/drop-08.html` |
+| INV-23289 | CMP-0193 | The Drop as a content programme | `apps/website/drop-08.html` |
+| INV-23290 | CMP-0193 | The Drop as a content programme | `apps/website/drop-08.html` |
+| INV-23291 | CMP-0193 | The Drop as a content programme | `apps/website/drop-08.html` |
+| INV-23292 | CMP-0193 | The Drop as a content programme | `apps/website/drop-08.html` |
+| INV-23293 | CMP-0193 | The Drop as a content programme | `apps/website/drop-08.html` |
+| INV-23294 | CMP-0193 | The Drop as a content programme | `apps/website/drop-08.html` |
+| INV-23295 | CMP-0193 | The Drop as a content programme | `apps/website/drop-08.html` |
+| INV-23296 | CMP-0193 | The Drop as a content programme | `apps/website/drop-08.html` |
+| INV-23297 | CMP-0193 | The Drop as a content programme | `apps/website/drop-08.html` |
+| INV-23298 | CMP-0193 | The Drop as a content programme | `apps/website/drop-08.html` |
+| INV-23299 | CMP-0193 | The Drop as a content programme | `apps/website/drop-08.html` |
+| INV-23300 | CMP-0193 | The Drop as a content programme | `apps/website/drop-08.html` |
+| INV-23301 | CMP-0193 | The Drop as a content programme | `apps/website/drop-08.html` |
+| INV-23302 | CMP-0193 | The Drop as a content programme | `apps/website/drop-09.html` |
+| INV-23303 | CMP-0193 | The Drop as a content programme | `apps/website/drop-09.html` |
+| INV-23304 | CMP-0193 | The Drop as a content programme | `apps/website/drop-09.html` |
+| INV-23305 | CMP-0193 | The Drop as a content programme | `apps/website/drop-09.html` |
+| INV-23306 | CMP-0193 | The Drop as a content programme | `apps/website/drop-09.html` |
+| INV-23307 | CMP-0193 | The Drop as a content programme | `apps/website/drop-09.html` |
+| INV-23308 | CMP-0193 | The Drop as a content programme | `apps/website/drop-09.html` |
+| INV-23309 | CMP-0193 | The Drop as a content programme | `apps/website/drop-09.html` |
+| INV-23310 | CMP-0193 | The Drop as a content programme | `apps/website/drop-09.html` |
+| INV-23311 | CMP-0193 | The Drop as a content programme | `apps/website/drop-09.html` |
+| INV-23312 | CMP-0193 | The Drop as a content programme | `apps/website/drop-09.html` |
+| INV-23313 | CMP-0193 | The Drop as a content programme | `apps/website/drop-09.html` |
+| INV-23314 | CMP-0193 | The Drop as a content programme | `apps/website/drop-09.html` |
+| INV-23315 | CMP-0193 | The Drop as a content programme | `apps/website/drop-09.html` |
+| INV-23316 | CMP-0193 | The Drop as a content programme | `apps/website/drop-09.html` |
+| INV-23317 | CMP-0193 | The Drop as a content programme | `apps/website/drop-09.html` |
+| INV-23318 | CMP-0193 | The Drop as a content programme | `apps/website/drop-09.html` |
+| INV-23319 | CMP-0193 | The Drop as a content programme | `apps/website/drop-09.html` |
+| INV-23320 | CMP-0193 | The Drop as a content programme | `apps/website/drop-09.html` |
+| INV-23321 | CMP-0193 | The Drop as a content programme | `apps/website/drop-09.html` |
+| INV-23322 | CMP-0193 | The Drop as a content programme | `apps/website/drop-09.html` |
+| INV-23323 | CMP-0193 | The Drop as a content programme | `apps/website/drop-09.html` |
 | INV-23324 | CMP-0036 | Milla — the client portal and the masked lead desk | `apps/website/figsy.html` |
 | INV-23325 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/figsy.html` |
 | INV-23326 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/figsy.html` |
@@ -5355,7 +5355,7 @@
 | INV-23337 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/figsy.html` |
 | INV-23338 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/figsy.html` |
 | INV-23339 | CMP-0002 | The $4 per-approved-lead charge | `apps/website/figsy.html` |
-| INV-23340 | CMP-0001 | The $299 onboarding pack | `apps/website/figsy.html` |
+| INV-23340 | CMP-0136 | First 100 approved leads included — the legacy pack entitlement | `apps/website/figsy.html` |
 | INV-23341 | CMP-0002 | The $4 per-approved-lead charge | `apps/website/figsy.html` |
 | INV-23342 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/figsy.html` |
 | INV-23343 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/figsy.html` |
@@ -5415,7 +5415,7 @@
 | INV-23397 | STRUCTURAL | — | `apps/website/index.html` |
 | INV-23398 | SOURCE-SPECIFIC | — | `apps/website/index.html` |
 | INV-23399 | CMP-0002 | The $4 per-approved-lead charge | `apps/website/index.html` |
-| INV-23400 | CMP-0001 | The $299 onboarding pack | `apps/website/index.html` |
+| INV-23400 | CMP-0136 | First 100 approved leads included — the legacy pack entitlement | `apps/website/index.html` |
 | INV-23401 | CMP-0042 | Suppression, opt-out and DNC | `apps/website/index.html` |
 | INV-23402 | SOURCE-SPECIFIC | — | `apps/website/index.html` |
 | INV-23403 | CMP-0036 | Milla — the client portal and the masked lead desk | `apps/website/index.html` |
@@ -5653,12 +5653,12 @@
 | INV-23635 | CMP-0044 | Two Terms of Service documents | `apps/website/terms.html` |
 | INV-23636 | CMP-0044 | Two Terms of Service documents | `apps/website/terms.html` |
 | INV-23637 | CMP-0016 | The wallet and the per-approval charge | `apps/website/terms.html` |
-| INV-23638 | CMP-0001 | The $299 onboarding pack | `apps/website/terms.html` |
+| INV-23638 | CMP-0136 | First 100 approved leads included — the legacy pack entitlement | `apps/website/terms.html` |
 | INV-23639 | CMP-0016 | The wallet and the per-approval charge | `apps/website/terms.html` |
 | INV-23640 | CMP-0002 | The $4 per-approved-lead charge | `apps/website/terms.html` |
 | INV-23641 | CMP-0016 | The wallet and the per-approval charge | `apps/website/terms.html` |
 | INV-23642 | CMP-0016 | The wallet and the per-approval charge | `apps/website/terms.html` |
-| INV-23643 | CMP-0016 | The wallet and the per-approval charge | `apps/website/terms.html` |
+| INV-23643 | CMP-0136 | First 100 approved leads included — the legacy pack entitlement | `apps/website/terms.html` |
 | INV-23644 | CMP-0019 | Refund, make-whole and unused value | `apps/website/terms.html` |
 | INV-23645 | CMP-0002 | The $4 per-approved-lead charge | `apps/website/terms.html` |
 | INV-23646 | CMP-0044 | Two Terms of Service documents | `apps/website/terms.html` |
@@ -5668,7 +5668,7 @@
 | INV-23650 | CMP-0044 | Two Terms of Service documents | `apps/website/terms.html` |
 | INV-23651 | CMP-0026 | ICP changes and the widened-proof acceptance rule | `apps/website/terms.html` |
 | INV-23652 | CMP-0044 | Two Terms of Service documents | `apps/website/terms.html` |
-| INV-23653 | CMP-0001 | The $299 onboarding pack | `apps/website/terms.html` |
+| INV-23653 | CMP-0136 | First 100 approved leads included — the legacy pack entitlement | `apps/website/terms.html` |
 | INV-23654 | CMP-0044 | Two Terms of Service documents | `apps/website/terms.html` |
 | INV-23655 | CMP-0044 | Two Terms of Service documents | `apps/website/terms.html` |
 | INV-23656 | CMP-0044 | Two Terms of Service documents | `apps/website/terms.html` |
@@ -5676,7 +5676,7 @@
 | INV-23658 | CMP-0044 | Two Terms of Service documents | `apps/website/terms.html` |
 | INV-23659 | CMP-0016 | The wallet and the per-approval charge | `apps/website/terms.html` |
 | INV-23660 | CMP-0044 | Two Terms of Service documents | `apps/website/terms.html` |
-| INV-23661 | CMP-0001 | The $299 onboarding pack | `apps/website/terms.html` |
+| INV-23661 | CMP-0136 | First 100 approved leads included — the legacy pack entitlement | `apps/website/terms.html` |
 | INV-23662 | CMP-0044 | Two Terms of Service documents | `apps/website/terms.html` |
 | INV-23663 | CMP-0026 | ICP changes and the widened-proof acceptance rule | `apps/website/terms.html` |
 | INV-23664 | CMP-0044 | Two Terms of Service documents | `apps/website/terms.html` |
@@ -5735,7 +5735,7 @@
 | INV-23717 | CMP-0044 | Two Terms of Service documents | `apps/website/terms.html` |
 | INV-23718 | CMP-0002 | The $4 per-approved-lead charge | `apps/website/terms.html` |
 | INV-23719 | CMP-0001 | The $299 onboarding pack | `apps/website/terms.html` |
-| INV-23720 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/the-drop.html` |
+| INV-23720 | CMP-0193 | The Drop as a content programme | `apps/website/the-drop.html` |
 | INV-23721 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/the-drop.html` |
 | INV-23722 | CMP-0002 | The $4 per-approved-lead charge | `apps/website/the-drop.html` |
 | INV-23723 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/the-drop.html` |
@@ -6104,7 +6104,7 @@
 | INV-24086 | CMP-0048 | Onboarding and demo surfaces | `apps/landing/demo.html` |
 | INV-24087 | CMP-0048 | Onboarding and demo surfaces | `apps/landing/demo.html` |
 | INV-24088 | CMP-0048 | Onboarding and demo surfaces | `apps/landing/demo.html` |
-| INV-24089 | CMP-0025 | Pause — who may pause sending, and why | `apps/landing/demo.html` |
+| INV-24089 | CMP-0148 | Programme pause — client control and material-ICP-change auto-pause | `apps/landing/demo.html` |
 | INV-24090 | CMP-0048 | Onboarding and demo surfaces | `apps/landing/demo.html` |
 | INV-24091 | CMP-0007 | Partner commission — 25% of paid lead sales | `apps/landing/demo.html` |
 | INV-24092 | CMP-0048 | Onboarding and demo surfaces | `apps/landing/demo.html` |
@@ -6197,7 +6197,7 @@
 | INV-24179 | CMP-0036 | Milla — the client portal and the masked lead desk | `apps/landing/platform-video.html` |
 | INV-24180 | CMP-0035 | Booking-link fallback | `apps/landing/platform-video.html` |
 | INV-24181 | CMP-0084 | Unibox, replies and reply triage | `apps/landing/platform-video.html` |
-| INV-24182 | CMP-0025 | Pause — who may pause sending, and why | `apps/landing/platform-video.html` |
+| INV-24182 | CMP-0148 | Programme pause — client control and material-ICP-change auto-pause | `apps/landing/platform-video.html` |
 | INV-24183 | CMP-0037 | Milla conversational experience and the flywheel | `apps/landing/platform-video.html` |
 | INV-24184 | CMP-0036 | Milla — the client portal and the masked lead desk | `apps/landing/platform-video.html` |
 | INV-24185 | CMP-0007 | Partner commission — 25% of paid lead sales | `apps/landing/platform-video.html` |

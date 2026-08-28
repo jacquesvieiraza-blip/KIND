@@ -48,55 +48,60 @@ Operating Truth system · 8. Operate from it.
 ---
 ## STEP-3 SUMMARY
 
-### TOTAL CMP SUBJECTS = 135
+### TOTAL CMP SUBJECTS = 196
+
+**193 classifiable subjects + 3 retired structural groups (CMP-0062, CMP-0063, CMP-0065), whose IDs are
+preserved for lineage and never reused.**
 
 ### Relationship counts
 
+Counts cover the **193 classifiable subjects**; the 3 retired structural groups carry no relationship.
+
 | Relationship | Subjects |
 |---|---:|
-| AGREES | 15 |
-| PARTIAL OVERLAP | 80 |
-| DIFFERENT DIMENSIONS | 4 |
-| DIRECT CONFLICT | 8 |
-| POSSIBLE SUPERSESSION | 8 |
+| AGREES | 22 |
+| PARTIAL OVERLAP | 108 |
+| DIFFERENT DIMENSIONS | 6 |
+| DIRECT CONFLICT | 10 |
+| POSSIBLE SUPERSESSION | 12 |
 | DUPLICATE EXPRESSION | 6 |
 | SOURCE-SPECIFIC | 7 |
-| INSUFFICIENT EVIDENCE TO COMPARE | 7 |
-| **TOTAL** | **135** |
+| INSUFFICIENT EVIDENCE TO COMPARE | 22 |
+| **TOTAL** | **193** |
 
 ### Subjects per domain
 
 | Domain | Subjects |
 |---|---:|
+| Operating / governance | 23 |
 | Product surface | 23 |
-| Operating / governance | 19 |
+| Funnel / ratios | 13 |
+| V2 | 13 |
+| Pricing | 12 |
+| Providers | 12 |
+| Payments | 11 |
+| Sourcing authority | 11 |
+| Vida | 11 |
 | History / planning | 10 |
 | Company ops | 9 |
-| Funnel / ratios | 8 |
-| GTM | 8 |
-| Pricing | 7 |
-| Launch | 6 |
-| Money models | 6 |
-| Payments | 6 |
-| Website / public truth | 6 |
-| Providers | 5 |
-| Sourcing authority | 5 |
-| V2 | 5 |
-| Vida | 5 |
-| Meetings | 4 |
-| Milla | 3 |
+| GTM | 9 |
+| Meetings | 9 |
+| Launch | 8 |
+| Website / public truth | 8 |
+| Money models | 7 |
+| Milla | 4 |
 
 ### INV coverage
 
 | Bucket | Rows |
 |---|---:|
-| Mapped to a CMP subject | **21914** |
-| NON-TRUTH / STRUCTURAL SOURCE CONTENT | **918** |
-| SOURCE-SPECIFIC ITEM | **1477** |
+| Mapped to a CMP subject | **21849** |
+| NON-TRUTH / STRUCTURAL SOURCE CONTENT | **923** |
+| SOURCE-SPECIFIC ITEM | **1537** |
 | **TOTAL** | **24309** |
 | **MISSING** | **0** |
 
-**21914 + 918 + 1477 = 24309.** Every INV-00001 … INV-24309 row maps to exactly one bucket. The
+**21849 + 923 + 1537 = 24309.** Every INV-00001 … INV-24309 row maps to exactly one bucket. The
 row-by-row map is in the part file(s) listed below.
 
 ### The coverage map — ONE logical Step-3 artifact
@@ -127,6 +132,8 @@ Two or more sources make statements that cannot both be acted on as written. **N
 | **CMP-0044** | Two Terms of Service documents |
 | **CMP-0045** | The 90-Day Pipeline Guarantee |
 | **CMP-0056** | The launch date |
+| **CMP-0146** | Programme-level approval — one approval, not per lead |
+| **CMP-0195** | Per-client data-retention controls |
 
 ---
 
@@ -179,7 +186,7 @@ see them together. A subject's presence here says nothing about whether it is ri
 
 ---
 
-## Method — how 24,281 rows became 135 subjects without a pairwise dump
+## Method — how 24,281 rows became 196 subjects without a pairwise dump
 
 **No O(n²) comparison was performed.** Subjects were formed first, from the material business /
 product / operating topics the sources actually argue about, and every inventory row was then
@@ -189,7 +196,7 @@ mapped to exactly one bucket by a deterministic rule.
 |---|---|
 | 1 | The committed Step-2 artifact (11 files) is parsed back into 24309 rows. **It is never rewritten.** |
 | 2 | Each subject declares a set of match patterns over the row's own text — source path, section/heading, stable ID, short title and notes. |
-| 3 | Each row is tested against subjects **in a fixed order**; the first match wins, so every row lands in exactly one subject. Declaration order decides ties, except for 5 specific subjects listed as PRIORITY in the map so a broader subject cannot absorb them. |
+| 3 | Each row is tested against subjects **in a fixed order**; the first match wins, so every row lands in exactly one subject. Declaration order decides ties, except for 68 specific subjects listed as PRIORITY in the map so a broader subject cannot absorb them. |
 | 4 | A row matching no subject is **STRUCTURAL** when Step 2 captured it as scaffolding — a heading / page-title / screen-chrome marker, a table-of-contents or pointer line — and **SOURCE-SPECIFIC** otherwise. |
 | 5 | Coverage is asserted arithmetically: mapped + structural + source-specific = 24309, missing = 0. |
 
@@ -201,6 +208,41 @@ INV lineage.
 ⚠️ **What STRUCTURAL means here, precisely.** Step 2 deliberately captured document scaffolding so
 that no material item could hide behind a heading. Those scaffolding rows carry no independent
 claim of their own; the claims live in the rows beneath them, which are mapped normally.
+
+### The Step-3 granularity repair — what Step 4 exposed and what was changed
+
+Step 4 could not assign one truth verdict to **CMP-0062 (the Founder Idea Bank)** without flattening
+sixteen materially different truths under one row — superseded mechanics, current approved direction,
+launch-adjacent product truth and pure V2 ideas, together only because they share a document section.
+Step 4's own rule is to stop and report a Step-3 defect rather than invent a subject silently, so the
+repair happens here.
+
+**Three subjects are retired as aggregation containers.** Their IDs are *not* reused and *not*
+renumbered; they are recorded below as **STRUCTURAL GROUP — NOT CLASSIFIABLE AS ONE TRUTH**, and their
+material rows re-route to the underlying truth subjects:
+
+| Retired ID | Was | Why it could not carry one verdict |
+|---|---|---|
+| **CMP-0062** | The Founder Idea Bank FI-01 … FI-69 | A document section, not a truth. Held superseded mechanics (FI-66, FI-69) beside current direction (FI-34, FI-43) and pure V2 (FI-18, FI-22, FI-24). |
+| **CMP-0063** | V2 non-FI roadmap and narrative material | A document container. Held the three-product model, phase triggers, a website-consistency defect, a legal counsel rider and backup posture under one row. |
+| **CMP-0065** | Alta parity — voice and the unified data layer | Two named gaps (#475, #476) in one subject, and it had absorbed 174 archive rows of competitor data-strategy prose that belong to the competitive-landscape subject. |
+
+**61 new subjects, CMP-0136 … CMP-0196**, each representing one materially distinct truth, split out
+of those containers and out of four subjects that were quietly aggregating: the programme anchor
+(payment halves, approval, batches, pause, unused value, refund boundary, make-whole, contribution),
+the volume curve (mechanism, working point, floor), the legacy pack (door price vs the 100-lead
+entitlement) and the $4 subject (live runtime vs superseded architecture).
+
+**One further regex defect is corrected:** the steals subject matched the bare string `steal`, which
+also occurs inside **steal·th** — pulling the founder's live R2 stealth lock into a subject about
+copying patterns from other tools. It is now `steals?`, and the stealth constraint has its own
+subject.
+
+**Two proposed splits were withdrawn on the evidence.** The founder asked that *50% upfront* and *50%
+on Approve & Go Live* remain independently classifiable. Every source states them in a single sentence
+as one mechanism, and `CMP-0018` already exists for exactly that; splitting would have produced a
+subject with no evidence of its own. They are therefore one subject whose relationship and evidence
+name both halves — reported rather than manufactured.
 
 ### The Step-2 coverage repair, and the two mapping corrections it exposed
 
@@ -240,9 +282,9 @@ mapping correction, not a comparison conclusion.
 |---|---|
 | **Domain** | Pricing |
 | **Relationship** | **PARTIAL OVERLAP** |
-| **Inventory rows** | **85** — INV-00073, INV-00080, INV-00087, INV-00303, INV-00306, INV-00341, INV-00381, INV-00454, INV-00812, INV-01082, INV-01310, INV-01312, INV-01316, INV-01404 … +67 more ranges |
-| **Source documents** | 34 — `docs/KIND-MASTER.md` (8) · `docs/CASHFLOW-LAB.html` (7) · `docs/PRODUCT-INVENTORY.md` (4) · `docs/V2-TRACKER.md` (4) · `docs/run-costs-and-cashflow.md` (4) · `docs/SEND-DAY-RUNBOOK.md` (4) · `docs/sales-playbook.md` (4) · `docs/client-onboarding-training.html` (4) · +26 more source documents |
-| **Stable source IDs** | `#1159`, `#1253`, `#1299`, `#199`, `#299`, `#431`, `#492`, `#541`, `#562`, `#563`, `#607`, `#609`, `#619`, `5.6`, `6.2`, `6.5`, `FTA-002`, `M1`, `M2`, `M5`, `P1`, `PACK_PRICE`, `PR1`, `PR8` … +4 more |
+| **Inventory rows** | **62** — INV-00073, INV-00087, INV-00306, INV-00454, INV-00812, INV-01310, INV-01312, INV-01316, INV-01438, INV-01441–01442, INV-01479, INV-01615, INV-01627, INV-01786 … +44 more ranges |
+| **Source documents** | 27 — `docs/KIND-MASTER.md` (8) · `docs/CASHFLOW-LAB.html` (7) · `docs/run-costs-and-cashflow.md` (4) · `docs/SEND-DAY-RUNBOOK.md` (4) · `docs/client-onboarding-training.html` (4) · `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` (4) · `docs/V2-TRACKER.md` (3) · `docs/archive/LAUNCH-PAD-2026-08-21.md` (3) · +19 more source documents |
+| **Stable source IDs** | `#1159`, `#1253`, `#1299`, `#199`, `#299`, `#431`, `#492`, `#541`, `#562`, `#563`, `#607`, `#609`, `#619`, `5.6`, `6.2`, `6.5`, `M1`, `M5`, `PACK_PRICE`, `PR8`, `R11`, `R47`, `§1` |
 | **Runtime / code / schema evidence** | `packages/shared/src/constants/index.ts:217` `export const PACK_PRICE_USD = 299`, commented *"Founder-locked 3 Aug (was 99, 24–25 Jul)"*. `onboarding-pack.ts` re-exports rather than redeclaring. `docs/CASHFLOW-LAB.html` hard-codes its own `const PACK_PRICE = 299`. `apps/website/pricing.html` and 21 other live pages state $299 as text. |
 | **Founder-direction evidence** | PRODUCT-RULES records the 3 Aug re-lock from $99 to $299 (#609). The constant's own comment quotes the lock. |
 | **Historical / supersession evidence** | The $99 pack is visible in earlier sources (24–25 Jul, #562) and in archive documents; doc-lint bans `$99 pack` as a stale claim pattern. |
@@ -254,13 +296,13 @@ mapping correction, not a comparison conclusion.
 |---|---|
 | `docs/KIND-MASTER.md` (8 rows) | INV-01615 *The money, as it actually runs (locked 24–25 Jul, #492/#541): one dollar wallet per client · first purchase $299 = …* · INV-01627 *One price cannot express two buyers. The $299 pack + $4/approved model is a single dial (written when the pack was …* · INV-01786 *💰 THE MONEY MODEL (one wallet, 24–25 Jul; PRICE RE-LOCKED 3 AUG): first purchase $299 = the fully-onboarded pack wi…* |
 | `docs/CASHFLOW-LAB.html` (7 rows) | INV-02653 *Clients past their $299 pack — the steady-state book.* · INV-02684 *VAT charged to UK clients goes on top of the $299 and straight through to HMRC — it never touches the margin on thi…* · INV-02686 *Steady state — every client past their $299 pack, approving the average set above.* |
-| `docs/PRODUCT-INVENTORY.md` (4 rows) | INV-00341 *The money: $299 onboarding pack, first 100 approvals included, then $4 per approved lead* · INV-00381 *[MONEY] The $99 onboarding pack — 100 leads included, then $4 — (founder-locked 25 Jul, after w…* · INV-00454 *[MONEY · founder-locked 3 Aug] THE $299 SIGN-UP — the door stops costing the founder money — *(…* |
-| `docs/V2-TRACKER.md` (4 rows) | INV-01082 *P1 MANAGED (live) — $4/approved lead, $299 start incl. 100, usage only, we operate* · INV-01310 *Willingness-to-pay and value perception* · INV-01312 *The long-term move away from a flat $299 entry* |
 | `docs/run-costs-and-cashflow.md` (4 rows) | INV-01438 *Two numbers that changed how we sell — ~3 leads/mo pays a sender; $299 clears ≈ +$165 month one* · INV-01441 *One wallet · $299 onboarding pack · then $4 a lead* · INV-01442 *What the $299 pack costs us — ≈$134, leaving ≈$165 against ~$143 acquisition* |
 | `docs/SEND-DAY-RUNBOOK.md` (4 rows) | INV-04717 *This is the money walk — the one deliberately not done with a test card. When the first $299 lands, check all three…* · INV-04718 *[ ] Stripe dashboard: a $299 payment succeeded (not $99, not $299 minus something odd).* · INV-04720 *[ ] The wallet: the pack purchase does NOT credit the wallet — that is correct, not a bug (#562). The $299 buys the…* |
-| `docs/sales-playbook.md` (4 rows) | INV-07158 */ Price / $299 first purchase = the onboarding pack, 100 approved leads included, then $4 per approved lead. Review…* · INV-07164 *PRICING (locked 24–25 Jul, price re-locked 3 Aug): the first purchase is the $299 onboarding pack — 100 approved le…* · INV-07250 *Day 1 · You sign up — no card to sign up, no subscription; the $299 pack starts the work* |
 | `docs/client-onboarding-training.html` (4 rows) | INV-10079 *What your $299 covers* · INV-10080 *Nothing costs you money until you tap approve. You can look at every lead we find, read why we picked them, and pas…* · INV-10105 *This is the part clients don't know they need, so it's where a lot of the $299 is justified. If they ask about owne…* |
-| *+26 more source documents* | *full list via the coverage map* |
+| `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` (4 rows) | INV-17121 *541 · 🩷 · (🔴→🟡→🩷 26 Jul: shipped PR #1159, live. ⚠️ PRICE SUPERSEDED 3 Aug: the pack is now $299, not $99 — see #60…* · INV-17197 *609 · 🩷 · (🟡→🩷 3 Aug — MERGED TO MAIN = LIVE: the site, the portal, the consoles and the API gate all read $299. ⚠️…* · INV-17569 *299 · 🩷 · M3 · 🐛 6 dead icon imports in AdminSidebar.tsx — LayoutDashboard · Map · BookOpen · BarChart2 · Database …* |
+| `docs/V2-TRACKER.md` (3 rows) | INV-01310 *Willingness-to-pay and value perception* · INV-01312 *The long-term move away from a flat $299 entry* · INV-01316 *MUCH LATER — explore removing the $299 upfront fee entirely* |
+| `docs/archive/LAUNCH-PAD-2026-08-21.md` (3 rows) | INV-18366 *~~F7~~ · ✅ CLOSED 19 Aug — the founder ruled it in full and it is built. His verbatim words are now in R47: the $29…* · INV-18396 *~~A20~~ · ✅ CLOSED 11 Aug — MERGED AND THE MIGRATION IS APPLIED. Code merged 6 Aug in #1299; the founder ran the mi…* · INV-18475 *Money (current — ONE WALLET, 24–25 Jul; PRICE RE-LOCKED 3 AUG): one dollar wallet per client · first purchase $299 …* |
+| *+19 more source documents* | *full list via the coverage map* |
 
 ### CMP-0002 · The $4 per-approved-lead charge
 
@@ -268,9 +310,9 @@ mapping correction, not a comparison conclusion.
 |---|---|
 | **Domain** | Pricing |
 | **Relationship** | **DIRECT CONFLICT** |
-| **Inventory rows** | **199** — INV-00074, INV-00283, INV-00298, INV-00355, INV-00358, INV-00364, INV-00441–00442, INV-01000, INV-01014–01022, INV-01332–01333, INV-01359, INV-01390, INV-01401, INV-01412 … +150 more ranges |
-| **Source documents** | 66 — `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` (16) · `docs/PRODUCT-INVENTORY.md` (15) · `apps/website/pricing.html` (11) · `apps/website/vs-hiring-an-sdr.html` (6) · `docs/V2-TRACKER.md` (5) · `docs/KIND-MASTER.md` (5) · `docs/PARTNER-BRIEF.md` (5) · `docs/MILESTONE-0-CHECKLIST.md` (5) · +58 more source documents |
-| **Stable source IDs** | `#1`, `#288`, `#349`, `#394`, `#420`, `#421`, `#422`, `#423`, `#424`, `#425`, `#427`, `#428`, `#429`, `#440`, `#484`, `#487`, `#493`, `#541`, `#568`, `#569`, `#606`, `#623`, `#687`, `C3` … +9 more |
+| **Inventory rows** | **167** — INV-00074, INV-00283, INV-00298, INV-00355, INV-00358, INV-00364, INV-00441–00442, INV-01000, INV-01014–01022, INV-01332–01333, INV-01412, INV-01443, INV-01480, INV-01513 … +118 more ranges |
+| **Source documents** | 57 — `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` (16) · `docs/PRODUCT-INVENTORY.md` (15) · `apps/website/pricing.html` (11) · `apps/website/vs-hiring-an-sdr.html` (6) · `docs/KIND-MASTER.md` (5) · `docs/PARTNER-BRIEF.md` (5) · `docs/MILESTONE-0-CHECKLIST.md` (5) · `apps/website/pipeline-calculator.html` (4) · +49 more source documents |
+| **Stable source IDs** | `#1`, `#288`, `#349`, `#394`, `#420`, `#421`, `#422`, `#423`, `#424`, `#425`, `#427`, `#428`, `#429`, `#440`, `#484`, `#487`, `#493`, `#541`, `#568`, `#569`, `#606`, `#623`, `#687`, `C3` … +5 more |
 | **Runtime / code / schema evidence** | Three separate `= 4` literals exist: `packages/shared/src/constants/index.ts:219 LEAD_PRICE_USD = 4`, `apps/api/src/lib/integrity-checks.ts:50 LEAD_PRICE_USD = 4`, `apps/api/src/lib/approve-lead.ts:22 PRICE_PER_LEAD_USD = 4`. `approve-lead.ts:290` charges it via `try_charge_wallet`. 22 live client-facing pages state `$4` as text. |
 | **Founder-direction evidence** | V2-TRACKER FI-68 records flat $4 as superseded *as the intended architecture* while remaining live legacy runtime. R68 approves a future $8. R74/FI-26 record programme pricing as the current approved direction. |
 | **Historical / supersession evidence** | The chronology visible in the sources runs: flat $4 (live) → R68's $4→$8 (recorded as superseded future direction) → programme pricing (recorded as current direction). LAUNCH-PAD T9 carries the ⛓️ supersession chain mark. |
@@ -284,11 +326,11 @@ mapping correction, not a comparison conclusion.
 | `docs/PRODUCT-INVENTORY.md` (15 rows) | INV-00355 *[VIDA · Days 5–9] Pipeline board — Sourced → Needs approval → Sending → Replied → Qualified·$4,…* · INV-00358 *[ENGINE · Days 5–9] Approve-gated reveal ($4 trigger) — leads stay masked (no email, no charge)…* · INV-00364 *[VIDA · Days 10–13] Strip operator-spend + Booked column — delete Vida's "Approve — $4" (operat…* |
 | `apps/website/pricing.html` (11 rows) | INV-02908 *No. Reviewing is free, forever. Every lead we source lands masked in your Milla portal — you tap 👍 approve or ✕ pas…* · INV-02909 *One flat price, charged only when you tap approve. The $4 reveals the contact (a net-new, verified contact matched …* · INV-02912 *You're never charged for it. If a contact we reveal on your approval turns out to have a dead email, the $4 isn't t…* |
 | `apps/website/vs-hiring-an-sdr.html` (6 rows) | INV-23844 *You only pay $4 when you approve a lead. Reviewing is always free.* · INV-23846 *$4 per approved lead — one flat price, final. Reviewing is free, no subscriptions, no contracts.* · INV-23848 *Pay only when you approve a lead — a flat $4 to reveal it and work it end to end.* |
-| `docs/V2-TRACKER.md` (5 rows) | INV-01332 *THE PRICING CHRONOLOGY — three registers, not three options* · INV-01333 *The 27 Aug instruction was scoped to PR1A and PR2, not a decision to keep flat-$4* · INV-01359 *Programme pricing anchored around ~$450 per targeted booked meeting, replacing flat $4/approved…* |
 | `docs/KIND-MASTER.md` (5 rows) | INV-01971 *KIND-AE-COMP-PLAN.md — AE comp plan v3 (OTE $112.5k · $1,500 ARPU · $4,500/mo quota).* · INV-02145 *29 Jul (💸 #349 — the $4 left the wallet and nothing wrote it down, on the OTHER door): chargeFigsyEnroll decrements…* · INV-02255 *8 Jul (MONEY MODEL LOCKED → folded into all docs — $1 reveal + $3 work = $4): founder revived the original two-char…* |
 | `docs/PARTNER-BRIEF.md` (5 rows) | INV-03007 *PRICING (locked): per qualified lead, no subscriptions. Ladder: $1 reveal → +$3 FIGSY = $4 → +$1 Milla = $5 → +$1 D…* · INV-03025 *Reveal a verified contact — $1/lead. Add FIGSY drafted outreach for +$3 → $4/lead (a personalised multi-step sequen…* · INV-03029 *Lean · ~$120 · 20 fully-worked leads ($4/lead) + Milla & Denise layers (+$2/lead)* |
 | `docs/MILESTONE-0-CHECKLIST.md` (5 rows) | INV-04313 *This doc still prices the product on the retired ladder — $1 reveal + $3 work = $4, then +$1 Milla = $5, +$1 Denise…* · INV-04324 *+ FIGSY works it* · INV-04328 *Vida + Milla / + Denise* |
-| *+58 more source documents* | *full list via the coverage map* |
+| `apps/website/pipeline-calculator.html` (4 rows) | INV-02869 *You only pay $4 when you approve a lead. Reviewing is always free.* · INV-02872 *Leads you approve for us to work — at $4 each, one flat price. Reviewing is always free.* · INV-02878 *The managed lead service that finds your customers, gets your approval, and books your meetings. Reviewing is free …* |
+| *+49 more source documents* | *full list via the coverage map* |
 
 ### CMP-0003 · The $4 → $8 migration (R68 / T9)
 
@@ -296,9 +338,9 @@ mapping correction, not a comparison conclusion.
 |---|---|
 | **Domain** | Pricing |
 | **Relationship** | **POSSIBLE SUPERSESSION** |
-| **Inventory rows** | **18** — INV-00255, INV-01083, INV-01471, INV-01687, INV-01701, INV-01710, INV-01819, INV-02674, INV-02778, INV-08030, INV-08045, INV-08070, INV-12258, INV-20039 … +4 more ranges |
-| **Source documents** | 13 — `docs/KIND-MASTER.md` (4) · `docs/CASHFLOW-LAB.html` (2) · `docs/marketing/GTM-STRATEGY.md` (2) · `docs/PRODUCT-RULES.md` (1) · `docs/V2-TRACKER.md` (1) · `docs/run-costs-and-cashflow.md` (1) · `docs/marketing/GTM-ONE-PAGE.md` (1) · `docs/archive/MASTER.md` (1) · +5 more source documents |
-| **Stable source IDs** | `R39`, `R68` |
+| **Inventory rows** | **16** — INV-00255, INV-01471, INV-01687, INV-01701, INV-01710, INV-01819, INV-02674, INV-02778, INV-08030, INV-08045, INV-12258, INV-20039, INV-20232, INV-20852 … +2 more ranges |
+| **Source documents** | 12 — `docs/KIND-MASTER.md` (4) · `docs/CASHFLOW-LAB.html` (2) · `docs/PRODUCT-RULES.md` (1) · `docs/run-costs-and-cashflow.md` (1) · `docs/marketing/GTM-ONE-PAGE.md` (1) · `docs/marketing/GTM-STRATEGY.md` (1) · `docs/archive/MASTER.md` (1) · `docs/archive/CHANGELOG.md` (1) · +4 more source documents |
+| **Stable source IDs** | `R68` |
 | **Runtime / code / schema evidence** | No `8` price literal exists anywhere in `packages/shared` or `apps/api`. There is no migration entity, no price-version column, no programme table. |
 | **Founder-direction evidence** | PRODUCT-RULES R68 (26 Aug) approves $8 as ONE coordinated migration, never a partial one. V2-TRACKER's chronology block records R68 as *superseded future direction* by R74/FI-26. |
 | **Historical / supersession evidence** | LAUNCH-PAD T9 is marked ⛓️ *27 AUG — SUPERSEDED FUTURE D…*; V2-TRACKER line 1600 files R68/T9 under **SUPERSEDED HISTORY**. Both sources record the supersession explicitly rather than by inference. |
@@ -310,13 +352,13 @@ mapping correction, not a comparison conclusion.
 |---|---|
 | `docs/KIND-MASTER.md` (4 rows) | INV-01687 *[ ] 🧍 Smoke tests T3–T7, T9, T10 (you run, Claude fixes same-day)* · INV-01701 *Wed 17 🤝 · Smoke + builds · 🧍 smoke tests T3–T7, T9, T10 (Claude fixes same-day) · 🤖 continue locked-design builds …* · INV-01710 *Wed 17–Thu 18* |
 | `docs/CASHFLOW-LAB.html` (2 rows) | INV-02674 *Per client, per month — their own inbox 3 Aug $7/mo Google mailbox + ~$1/mo domain = ~$8 , on the client's OWN bran…* · INV-02778 *Page states the figure $8* |
-| `docs/marketing/GTM-STRATEGY.md` (2 rows) | INV-08045 *10 clients × 200* · INV-08070 *Stage 3 · 10 deep clients — $8,000/mo, +$5,908 net (lab defaults)* |
 | `docs/PRODUCT-RULES.md` (1 rows) | INV-00255 *THE RECURRING APPROVED-LEAD PRICE IS APPROVED TO BECOME $8 — ONE COORDINATED MIGRATION, NEVER A PARTIAL ONE (2…* |
-| `docs/V2-TRACKER.md` (1 rows) | INV-01083 *P2 COACHING — everything in P1 plus a named operator, plays, Nexus auto-tuning ON* |
 | `docs/run-costs-and-cashflow.md` (1 rows) | INV-01471 *A client must approve ~13 leads a month just to pay for their own inbox* |
 | `docs/marketing/GTM-ONE-PAGE.md` (1 rows) | INV-08030 *Cost to deliver* |
+| `docs/marketing/GTM-STRATEGY.md` (1 rows) | INV-08045 *10 clients × 200* |
 | `docs/archive/MASTER.md` (1 rows) | INV-12258 *Jun–Jul 2026 · $8,000 · 15 · 20* |
-| *+5 more source documents* | *full list via the coverage map* |
+| `docs/archive/CHANGELOG.md` (1 rows) | INV-20039 *T9 · Ask FIGSY button — opens, send message, receive response · ⬜* |
+| *+4 more source documents* | *full list via the coverage map* |
 
 ### CMP-0004 · Programme pricing ~$450 per targeted booked meeting
 
@@ -324,9 +366,9 @@ mapping correction, not a comparison conclusion.
 |---|---|
 | **Domain** | Pricing |
 | **Relationship** | **DIRECT CONFLICT** |
-| **Inventory rows** | **11** — INV-00261, INV-01330, INV-01360, INV-01364, INV-01369–01370, INV-01377–01378, INV-01391–01392, INV-01516 |
-| **Source documents** | 3 — `docs/V2-TRACKER.md` (9) · `docs/PRODUCT-RULES.md` (1) · `docs/FOUNDER-TRUTH-AUDIT-2026-08-28.md` (1) |
-| **Stable source IDs** | `FI-27`, `FI-31`, `FI-36`, `FI-37`, `FI-44`, `FI-45`, `FI-58`, `FI-59`, `FTA-004`, `R74` |
+| **Inventory rows** | **6** — INV-00261, INV-01359–01360, INV-01364, INV-01392, INV-01516 |
+| **Source documents** | 3 — `docs/V2-TRACKER.md` (4) · `docs/PRODUCT-RULES.md` (1) · `docs/FOUNDER-TRUTH-AUDIT-2026-08-28.md` (1) |
+| **Stable source IDs** | `FI-26`, `FI-27`, `FI-31`, `FI-59`, `FTA-004`, `R74` |
 | **Runtime / code / schema evidence** | **Zero implementation.** No `programmes` table, no batch entity, no go-live concept, no price-per-meeting constant anywhere in `apps/api`, `packages/shared` or `supabase/migrations`. Confirmed by the merged 28 Aug audit and by grep. |
 | **Founder-direction evidence** | PRODUCT-RULES **R74** and V2 **FI-26** record programme pricing anchored around ~$450 per targeted booked meeting as the **current founder-approved commercial direction, unimplemented**. |
 | **Historical / supersession evidence** | FI-26 is recorded as superseding FI-68 (flat $4 as architecture) and R68/T9 ($4→$8). |
@@ -336,7 +378,7 @@ mapping correction, not a comparison conclusion.
 
 | Source | Sample INV rows |
 |---|---|
-| `docs/V2-TRACKER.md` (9 rows) | INV-01330 *The programme commercial model (FI-26…FI-45) CONTRADICTS the current locked pricing* · INV-01360 *Automatic volume discounts at higher programme volume. Normal flow must not depend on manual ne…* · INV-01364 *Starting recommendation: 250 leads per targeted booked meeting (10 meetings → ~2,500 leads). No…* |
+| `docs/V2-TRACKER.md` (4 rows) | INV-01359 *Programme pricing anchored around ~$450 per targeted booked meeting, replacing flat $4/approved…* · INV-01360 *Automatic volume discounts at higher programme volume. Normal flow must not depend on manual ne…* · INV-01364 *Starting recommendation: 250 leads per targeted booked meeting (10 meetings → ~2,500 leads). No…* |
 | `docs/PRODUCT-RULES.md` (1 rows) | INV-00261 *THE PROGRAMME COMMERCIAL MODEL — CURRENT FOUNDER-APPROVED PRODUCT/COMMERCIAL DIRECTION, UNIMPLEMENTED (27 Aug)…* |
 | `docs/FOUNDER-TRUTH-AUDIT-2026-08-28.md` (1 rows) | INV-01516 *Programme pricing ~$450/targeted booked meeting* |
 
@@ -346,9 +388,9 @@ mapping correction, not a comparison conclusion.
 |---|---|
 | **Domain** | Pricing |
 | **Relationship** | **PARTIAL OVERLAP** |
-| **Inventory rows** | **19** — INV-00909, INV-01050, INV-01077, INV-01098, INV-01467, INV-01518, INV-01878, INV-02240, INV-02505, INV-03027, INV-06124, INV-17668, INV-17734, INV-17834 … +5 more ranges |
-| **Source documents** | 12 — `docs/KIND-MASTER.md` (3) · `docs/archive/V2-NARRATIVE-2026-08-21.md` (3) · `docs/PRODUCT-INVENTORY.md` (2) · `docs/V2-TRACKER.md` (2) · `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` (2) · `docs/run-costs-and-cashflow.md` (1) · `docs/FOUNDER-TRUTH-AUDIT-2026-08-28.md` (1) · `docs/PARTNER-BRIEF.md` (1) · +4 more source documents |
-| **Stable source IDs** | `#423`, `#437`, `#450`, `FTA-006`, `R7` |
+| **Inventory rows** | **2** — INV-01518, INV-18884 |
+| **Source documents** | 2 — `docs/FOUNDER-TRUTH-AUDIT-2026-08-28.md` (1) · `docs/archive/roadmap-audit-14-may-2026.md` (1) |
+| **Stable source IDs** | `FTA-006` |
 | **Runtime / code / schema evidence** | No discount logic exists in code. `constants/index.ts` states explicitly: *"DISCOUNTS ARE FOUNDER DISCRETION AND LIVE ONLY IN STRIPE… No discount logic belongs in code, on the website, or in the product."* |
 | **Founder-direction evidence** | FTA-005 records the working point: 10 meetings / 2,500 leads / $4,375 / $437.50 effective, floor ~$400 at 50+. FI-27 records automatic volume discounts as part of the programme direction. |
 | **Historical / supersession evidence** | — (no supersession evidence visible in the sources) |
@@ -358,15 +400,8 @@ mapping correction, not a comparison conclusion.
 
 | Source | Sample INV rows |
 |---|---|
-| `docs/KIND-MASTER.md` (3 rows) | INV-01878 *🇺🇸 US VERDICT: US-LATER, CLEARLY (sourced): ~110 AI-SDR vendors, $400M+ VC, median vendor revenue only ~$2.2M; 11x …* · INV-02240 *10 Jul (STEAL captured — Jack & Jill → FIGSY commercial judgment, #437–#443): founder brought the Jack & Jill teard…* · INV-02505 *Data-engine widening #450 #451 #452 · Alta-parity #475 #476 · Jack&Jill steals #437–#443* |
-| `docs/archive/V2-NARRATIVE-2026-08-21.md` (3 rows) | INV-17834 *░ 🥷 JACK & JILL STEAL — FIGSY: from workflow-executor to commercial judgment (captured 10 …* · INV-17838 *437 why-now surfaced (S–M — reasoning already stored; show it + event signals; AFTER quotas #423)* · INV-17885 *Jack & Jill steals #437–#443 — commercial-judgment deepening, §"🥷 JACK & JILL STEAL" above.* |
-| `docs/PRODUCT-INVENTORY.md` (2 rows) | INV-00909 *STEAL (Jack & Jill, 10 Jul) · "Why this lead, why now" surfaced — cheapest win of the steal: sc…* · INV-01050 *19 AUG HANDOFF-BUNDLE SWEEP — 8 new (655–662) + 4 MAPPED, not duplicated* |
-| `docs/V2-TRACKER.md` (2 rows) | INV-01077 *DEEPEN IT — trigger: client #1 retained, proof accumulating* · INV-01098 *Build order (Fable-ruled) — #437 → #438 → #439 → #440 → #442 → #443, #441 anywhere* |
-| `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` (2 rows) | INV-17668 *437 · 🔴 · STEAL (Jack & Jill, 10 Jul) · "Why this lead, why now" surfaced — cheapest win of the steal: score_reason…* · INV-17734 *660 · 🔴 · STEAL (Jack & Jill, 19 Aug) · ANTI-SIGNALS as first-class data — the product must learn why a prospect sh…* |
-| `docs/run-costs-and-cashflow.md` (1 rows) | INV-01467 *THE CASH LAYER — founder envelope ≈$400/month, NOT a permanent business ceiling* |
 | `docs/FOUNDER-TRUTH-AUDIT-2026-08-28.md` (1 rows) | INV-01518 *Automatic volume discount curve* |
-| `docs/PARTNER-BRIEF.md` (1 rows) | INV-03027 *Ready-made per-lead volume packs to quote (no monthly fee — e.g. 100 fully-worked leads ≈ $400; +Milla/+Denise laye…* |
-| *+4 more source documents* | *full list via the coverage map* |
+| `docs/archive/roadmap-audit-14-may-2026.md` (1 rows) | INV-18884 *20 · Volume discount calculator · Interactive slider on pricing page showing effective per-lead price* |
 
 ### CMP-0006 · Pack economics and the cost basis behind $299
 
@@ -493,9 +528,9 @@ mapping correction, not a comparison conclusion.
 |---|---|
 | **Domain** | Funnel / ratios |
 | **Relationship** | **DIRECT CONFLICT** |
-| **Inventory rows** | **9** — INV-00256, INV-01346, INV-01365–01366, INV-01379, INV-01396, INV-01461, INV-01527, INV-01593 |
-| **Source documents** | 4 — `docs/V2-TRACKER.md` (5) · `docs/FOUNDER-TRUTH-AUDIT-2026-08-28.md` (2) · `docs/PRODUCT-RULES.md` (1) · `docs/run-costs-and-cashflow.md` (1) |
-| **Stable source IDs** | `CONF-1`, `FI-13`, `FI-32`, `FI-33`, `FI-46`, `FI-63`, `FTA-015`, `R69` |
+| **Inventory rows** | **5** — INV-00256, INV-01396, INV-01461, INV-01527, INV-01593 |
+| **Source documents** | 4 — `docs/FOUNDER-TRUTH-AUDIT-2026-08-28.md` (2) · `docs/PRODUCT-RULES.md` (1) · `docs/V2-TRACKER.md` (1) · `docs/run-costs-and-cashflow.md` (1) |
+| **Stable source IDs** | `CONF-1`, `FI-63`, `FTA-015`, `R69` |
 | **Runtime / code / schema evidence** | No forecasting surface exists. No benchmark constant in code. |
 | **Founder-direction evidence** | PRODUCT-RULES **R69** (26 Aug) locks ~150 accepted prospects per booked meeting as a **planning benchmark, never a promise**; range 100–250; 250–300 triggers campaign review. |
 | **Historical / supersession evidence** | — (no supersession evidence visible in the sources) |
@@ -505,9 +540,9 @@ mapping correction, not a comparison conclusion.
 
 | Source | Sample INV rows |
 |---|---|
-| `docs/V2-TRACKER.md` (5 rows) | INV-01346 *Booked → paying conversion tracking, for both K.I.N.D acquisition and client programmes: accept…* · INV-01365 *Client-specific learning — replace the seed benchmark with the client's actual lead→booked perf…* · INV-01366 *Performance deterioration → stop/review. Never blindly recommend more spend.* |
 | `docs/FOUNDER-TRUTH-AUDIT-2026-08-28.md` (2 rows) | INV-01527 *150 accepted prospects per booked meeting* · INV-01593 *The benchmark — R69 ~150 accepted prospects vs the programme seed of 250 recommended leads* |
 | `docs/PRODUCT-RULES.md` (1 rows) | INV-00256 *THE FORECAST IS TO A BOOKED MEETING, NOT TO A SALE — ~150 ACCEPTED PROSPECTS PER BOOKED MEETING, AND IT IS A P…* |
+| `docs/V2-TRACKER.md` (1 rows) | INV-01396 *BDR comparison — K.I.N.D is sales capacity the customer funds upfront. Never imply guaranteed m…* |
 | `docs/run-costs-and-cashflow.md` (1 rows) | INV-01461 *RECONCILED BY R69 — ~1,000 contacted ≈ 1 client survives as a sales-planning assumption* |
 
 ### CMP-0012 · 250 recommended leads per targeted booked meeting (seed)
@@ -516,9 +551,9 @@ mapping correction, not a comparison conclusion.
 |---|---|
 | **Domain** | Funnel / ratios |
 | **Relationship** | **DIRECT CONFLICT** |
-| **Inventory rows** | **2** — INV-01371, INV-01528 |
-| **Source documents** | 2 — `docs/V2-TRACKER.md` (1) · `docs/FOUNDER-TRUTH-AUDIT-2026-08-28.md` (1) |
-| **Stable source IDs** | `FI-38`, `FTA-016` |
+| **Inventory rows** | **1** — INV-01528 |
+| **Source documents** | 1 — `docs/FOUNDER-TRUTH-AUDIT-2026-08-28.md` (1) |
+| **Stable source IDs** | `FTA-016` |
 | **Runtime / code / schema evidence** | No programme entity, no recommendation engine, no seed constant in code. |
 | **Founder-direction evidence** | R74 / FI-31 / the founder's 28 Aug input record 250 recommended leads per targeted booked meeting as the current approved seed (10 meetings → ~2,500 leads). |
 | **Historical / supersession evidence** | — (no supersession evidence visible in the sources) |
@@ -528,7 +563,6 @@ mapping correction, not a comparison conclusion.
 
 | Source | Sample INV rows |
 |---|---|
-| `docs/V2-TRACKER.md` (1 rows) | INV-01371 *Controlled execution batches after Go Live, ~250 leads, batch size configurable.* |
 | `docs/FOUNDER-TRUTH-AUDIT-2026-08-28.md` (1 rows) | INV-01528 *250 recommended leads per targeted booked meeting (seed)* |
 
 ### CMP-0013 · 1,000-prospects-to-a-customer planning history
@@ -558,9 +592,9 @@ mapping correction, not a comparison conclusion.
 |---|---|
 | **Domain** | Funnel / ratios |
 | **Relationship** | **PARTIAL OVERLAP** |
-| **Inventory rows** | **21** — INV-01384, INV-01505, INV-01552, INV-01554, INV-01556, INV-15097, INV-16078, INV-19706–19707, INV-19771, INV-19787, INV-22250, INV-22286–22291, INV-22301, INV-22318 … +1 more ranges |
-| **Source documents** | 6 — `docs/strategy/get-kind_data_sourcing_and_meeting_yield_verification_artifact.html` (9) · `docs/FOUNDER-TRUTH-AUDIT-2026-08-28.md` (4) · `docs/archive/BUILD-STATUS-26JUL.md` (4) · `docs/archive/KIND-MASTER-ARCHIVE.md` (2) · `docs/V2-TRACKER.md` (1) · `apps/portal/public/terms.html` (1) |
-| **Stable source IDs** | `#499m`, `FI-51`, `FTA-040`, `FTA-042`, `FTA-044` |
+| **Inventory rows** | **19** — INV-01505, INV-01554, INV-01556, INV-15097, INV-16078, INV-19706–19707, INV-19771, INV-19787, INV-22250, INV-22286–22291, INV-22301, INV-22318, INV-23994 |
+| **Source documents** | 5 — `docs/strategy/get-kind_data_sourcing_and_meeting_yield_verification_artifact.html` (9) · `docs/archive/BUILD-STATUS-26JUL.md` (4) · `docs/FOUNDER-TRUTH-AUDIT-2026-08-28.md` (3) · `docs/archive/KIND-MASTER-ARCHIVE.md` (2) · `apps/portal/public/terms.html` (1) |
+| **Stable source IDs** | `#499m`, `FTA-042`, `FTA-044` |
 | **Runtime / code / schema evidence** | `credit-holds.ts` implements a `held` credit-hold state (money), which is a DIFFERENT `held` from a held meeting. No meeting lifecycle table with held/no-show states was found. |
 | **Founder-direction evidence** | NO EXPLICIT CURRENT FOUNDER DIRECTION FOUND |
 | **Historical / supersession evidence** | — (no supersession evidence visible in the sources) |
@@ -571,10 +605,9 @@ mapping correction, not a comparison conclusion.
 | Source | Sample INV rows |
 |---|---|
 | `docs/strategy/get-kind_data_sourcing_and_meeting_yield_verification_artifact.html` (9 rows) | INV-22250 *A campaign that books many low-quality meetings can increase cancellations, no-shows and client churn. Meeting qual…* · INV-22286 *26. No-show reduction* · INV-22287 *Booked meetings are not enough. Verify whether the platform can improve held meeting rate .* |
-| `docs/FOUNDER-TRUTH-AUDIT-2026-08-28.md` (4 rows) | INV-01505 *Major APPROVED-BUT-UNBUILT truths — the entire programme model; Booked/Held/unverified; Outlook* · INV-01552 *Booked and Held separate* · INV-01554 *Counting rules: reschedule once; duplicate/spam/outside-ICP excluded; no-show stays Booked not …* |
 | `docs/archive/BUILD-STATUS-26JUL.md` (4 rows) | INV-19706 *499 · Bookings page + Mark no-show (state) · ✅ · 🩷* · INV-19707 *499m · No-show → 2 rebooks → keep the $3 (founder rule 24 Jul; $3 kept, no refund) · ✅ · 🩷* · INV-19771 *No-show → 2 rebooks → keep the $3 (#499m) · ✅ · 🩷* |
+| `docs/FOUNDER-TRUTH-AUDIT-2026-08-28.md` (3 rows) | INV-01505 *Major APPROVED-BUT-UNBUILT truths — the entire programme model; Booked/Held/unverified; Outlook* · INV-01554 *Counting rules: reschedule once; duplicate/spam/outside-ICP excluded; no-show stays Booked not …* · INV-01556 *Booking-link fallback; client confirms Held/No-show* |
 | `docs/archive/KIND-MASTER-ARCHIVE.md` (2 rows) | INV-15097 *Claimed: 10,000+ businesses. Law firm: $28K in 90 days. Plumbing: 28% no-shows → 6% in 60 days.* · INV-16078 *FIGSY (outcome): $40 / confirmed meeting (calendar event = billable, no-shows not refunded)* |
-| `docs/V2-TRACKER.md` (1 rows) | INV-01384 *Manual meeting confirmation — client can later mark Held or No-show.* |
 | `apps/portal/public/terms.html` (1 rows) | INV-23994 *A prospect who books and then does not attend ("no-show") still counts as a qualified meeting — FIGSY delivered the…* |
 
 ### CMP-0015 · MEETING_BOOKED as the downstream product-outcome boundary
@@ -615,9 +648,9 @@ mapping correction, not a comparison conclusion.
 |---|---|
 | **Domain** | Payments |
 | **Relationship** | **PARTIAL OVERLAP** |
-| **Inventory rows** | **128** — INV-00075–00076, INV-00078, INV-00267, INV-00363, INV-00435, INV-00440, INV-00517, INV-00571, INV-00721, INV-00813, INV-00822, INV-00833, INV-00836, INV-00847 … +102 more ranges |
-| **Source documents** | 39 — `docs/archive/MASTER.md` (17) · `docs/PRODUCT-INVENTORY.md` (13) · `docs/archive/roadmap-audit-14-may-2026.md` (13) · `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` (12) · `apps/website/terms.html` (7) · `docs/KIND-MASTER.md` (5) · `docs/archive/KIND-MASTER-ARCHIVE.md` (5) · `docs/PRODUCT-RULES.md` (4) · +31 more source documents |
-| **Stable source IDs** | `#166`, `#173`, `#27`, `#284`, `#303`, `#313`, `#315`, `#328`, `#334`, `#352`, `#374`, `#420`, `#447`, `#492`, `#556`, `#55c`, `#562`, `#567`, `#60`, `#607`, `#954`, `#985`, `FI-65`, `FTA-026` … +7 more |
+| **Inventory rows** | **125** — INV-00075–00076, INV-00078, INV-00267, INV-00363, INV-00435, INV-00440, INV-00517, INV-00571, INV-00721, INV-00813, INV-00822, INV-00833, INV-00836, INV-00847 … +100 more ranges |
+| **Source documents** | 37 — `docs/archive/MASTER.md` (17) · `docs/PRODUCT-INVENTORY.md` (13) · `docs/archive/roadmap-audit-14-may-2026.md` (13) · `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` (12) · `apps/website/terms.html` (6) · `docs/KIND-MASTER.md` (5) · `docs/archive/KIND-MASTER-ARCHIVE.md` (5) · `docs/PRODUCT-RULES.md` (4) · +29 more source documents |
+| **Stable source IDs** | `#166`, `#173`, `#27`, `#284`, `#303`, `#313`, `#315`, `#328`, `#334`, `#352`, `#374`, `#420`, `#447`, `#492`, `#556`, `#55c`, `#562`, `#567`, `#60`, `#607`, `#954`, `#985`, `FTA-026`, `M3` … +6 more |
 | **Runtime / code / schema evidence** | `approve-lead.ts` charges `PRICE_PER_LEAD_USD` through the `try_charge_wallet` RPC and reverses via `increment_wallet` on failure; the ledger row is `type: 'wallet_charge', plan: 'work_model'`. The RPC's `WHERE allowance >= granted` is the atomicity authority. |
 | **Founder-direction evidence** | The 24–25 Jul money model (#492/#541) recorded in KIND-MASTER: one dollar wallet, charge on approve. |
 | **Historical / supersession evidence** | The pack/wallet split (#562) is recorded: the $299 buys the pack, it does not fund the wallet — and the constants file names the client-facing sentence that got this wrong. |
@@ -631,11 +664,11 @@ mapping correction, not a comparison conclusion.
 | `docs/PRODUCT-INVENTORY.md` (13 rows) | INV-00363 *[ENGINE] ONE WALLET / WORK MODEL (founder-locked 24 Jul — supersedes the 23-Jul re-time) — a si…* · INV-00435 *[MONEY · CRITICAL] The $99 is paid out TWICE — the pack AND the wallet — *(found 26 Jul by READ…* · INV-00440 *[MONEY · CRITICAL] A repeat purchase sources NOBODY — the 200 is a lifetime cap, not a top-up —…* |
 | `docs/archive/roadmap-audit-14-may-2026.md` (13 rows) | INV-18551 *Paystack checkout initiation* · INV-18555 *Auto top-up settings* · INV-18592 *PATCH /clients/me/auto-topup — Set auto top-up threshold, plan, bundle size* |
 | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` (12 rows) | INV-17101 *492 · 🩷 · (🔴→🩷 26 Jul, STALE DOT corrected in the full sweep: ONE WALLET is LIVE — try_charge_wallet is called on t…* · INV-17178 *562 · 🩷 · [MONEY · CRITICAL] The $99 is paid out TWICE — the pack AND the wallet (found 26 Jul by READING stripe.ts…* · INV-17183 *567 · 🩷 · [MONEY · CRITICAL] A repeat purchase sources NOBODY — the 200 is a lifetime cap, not a top-up (found 26 J…* |
-| `apps/website/terms.html` (7 rows) | INV-23637 *K.I.N.D operates on a prepaid model with a single wallet — one balance, in US dollars. Nothing is ever charged unti…* · INV-23639 *Top-ups: after your first purchase you can add funds at any time, in any amount.* · INV-23641 *Wallet funds do not expire provided your account remains active.* |
+| `apps/website/terms.html` (6 rows) | INV-23637 *K.I.N.D operates on a prepaid model with a single wallet — one balance, in US dollars. Nothing is ever charged unti…* · INV-23639 *Top-ups: after your first purchase you can add funds at any time, in any amount.* · INV-23641 *Wallet funds do not expire provided your account remains active.* |
 | `docs/KIND-MASTER.md` (5 rows) | INV-01678 *[ ] 🧍 Stripe: create the pool-topup products once Claude's billing lands (lead-gen $1 · FIGSY $3)* · INV-01956 *Wk2 · Mon 22 – Fri 26 — COMPANY OS (staging). Slice 3 seat billing (per-seat wallets + company budget + request/app…* · INV-02210 *24 Jul (💰 MONEY MODEL REPLACED — ONE WALLET / work model, supersedes #492's 23-Jul hold re-time): founder replaced …* |
 | `docs/archive/KIND-MASTER-ARCHIVE.md` (5 rows) | INV-15090 *Credit wallets + usage-based: 43% of SaaS on hybrid models → 61% projected by year end* · INV-15358 *Billing: Stripe credit + subscriptions, auto-topup, trial overlay, credits-at-delivery, overspend fix, low-credit w…* · INV-16195 *💡 K.I.N.D already has a usage mechanism: the credits wallet (credit_transactions, debit-on-delivery, idempotent, au…* |
 | `docs/PRODUCT-RULES.md` (4 rows) | INV-00075 *The pack purchase buys the pack ONLY — never wallet credit as well. One payment must not pay out twice. ⛓️ *Wr…* · INV-00076 *ONE WALLET. One dollar wallet per client. No parallel credit columns.* · INV-00078 *Repeat business is wallet top-ups, not a second pack. *(Costed 25 Jul when a renewing pack lost money at ~$105…* |
-| *+31 more source documents* | *full list via the coverage map* |
+| *+29 more source documents* | *full list via the coverage map* |
 
 ### CMP-0017 · The old pack model vs the wallet model
 
@@ -671,9 +704,9 @@ mapping correction, not a comparison conclusion.
 |---|---|
 | **Domain** | Payments |
 | **Relationship** | **INSUFFICIENT EVIDENCE TO COMPARE** |
-| **Inventory rows** | **1** — INV-03095 |
-| **Source documents** | 1 — `docs/hiring/KIND-AE-COMP-PLAN.md` (1) |
-| **Stable source IDs** | (none carried by these rows) |
+| **Inventory rows** | **3** — INV-01369, INV-01520, INV-03095 |
+| **Source documents** | 3 — `docs/V2-TRACKER.md` (1) · `docs/FOUNDER-TRUTH-AUDIT-2026-08-28.md` (1) · `docs/hiring/KIND-AE-COMP-PLAN.md` (1) |
+| **Stable source IDs** | `FI-36`, `FTA-008` |
 | **Runtime / code / schema evidence** | **No implementation.** No go-live entity, no split-payment path, no programme invoice. `stripe.ts` creates checkout sessions for the pack and for wallet top-ups only. |
 | **Founder-direction evidence** | R74 records 50/50 payment and an Approve & Go Live gate as part of the programme direction. |
 | **Historical / supersession evidence** | — (no supersession evidence visible in the sources) |
@@ -683,6 +716,8 @@ mapping correction, not a comparison conclusion.
 
 | Source | Sample INV rows |
 |---|---|
+| `docs/V2-TRACKER.md` (1 rows) | INV-01369 *50/50 payment — 50% upfront authorises bounded sourcing/preparation; 50% at Approve & Go Live.* |
+| `docs/FOUNDER-TRUTH-AUDIT-2026-08-28.md` (1 rows) | INV-01520 *50% upfront / 50% at Go Live* |
 | `docs/hiring/KIND-AE-COMP-PLAN.md` (1 rows) | INV-03095 *OTE · $112,500 · 60/40 base/variable while the motion is young; move toward 50/50 as it matures* |
 
 ### CMP-0019 · Refund, make-whole and unused value
@@ -779,8 +814,8 @@ mapping correction, not a comparison conclusion.
 |---|---|
 | **Domain** | Sourcing authority |
 | **Relationship** | **PARTIAL OVERLAP** |
-| **Inventory rows** | **228** — INV-00138, INV-00444, INV-00500, INV-00577, INV-00596, INV-00794, INV-00814, INV-00841–00842, INV-01115, INV-01309, INV-01539, INV-01662, INV-01813, INV-02082 … +146 more ranges |
-| **Source documents** | 40 — `docs/archive/MASTER.md` (95) · `docs/archive/KIND_Roadmap.md` (15) · `docs/archive/roadmap-audit-14-may-2026.md` (11) · `docs/DEPLOYMENT_GUIDE.md` (10) · `docs/KIND-MASTER.md` (9) · `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` (9) · `docs/PRODUCT-INVENTORY.md` (8) · `docs/CORE-MAP.md` (8) · +32 more source documents |
+| **Inventory rows** | **222** — INV-00138, INV-00444, INV-00500, INV-00577, INV-00596, INV-00794, INV-00814, INV-00841–00842, INV-01115, INV-01309, INV-01539, INV-01662, INV-01813, INV-02082 … +142 more ranges |
+| **Source documents** | 39 — `docs/archive/MASTER.md` (91) · `docs/archive/KIND_Roadmap.md` (15) · `docs/archive/roadmap-audit-14-may-2026.md` (11) · `docs/DEPLOYMENT_GUIDE.md` (10) · `docs/KIND-MASTER.md` (9) · `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` (9) · `docs/PRODUCT-INVENTORY.md` (8) · `docs/CORE-MAP.md` (8) · +31 more source documents |
 | **Stable source IDs** | `#1085`, `#279`, `#304`, `#340`, `#342`, `#343`, `#391`, `#43`, `#470`, `#491`, `#494`, `#552`, `#567`, `#571`, `#611`, `#940`, `#97`, `5.5`, `A13`, `FTA-027`, `R2`, `§17` |
 | **Runtime / code / schema evidence** | `routes/icps.ts` holds `runIcpJob` and the proof routes; `start-work-sourcing.test.ts` guards the start path. A pending migration adds **cron slot claims (#343)** so *"two replicas can never run the same job twice"*. |
 | **Founder-direction evidence** | NO EXPLICIT CURRENT FOUNDER DIRECTION FOUND |
@@ -791,7 +826,7 @@ mapping correction, not a comparison conclusion.
 
 | Source | Sample INV rows |
 |---|---|
-| `docs/archive/MASTER.md` (95 rows) | INV-10250 *FIGSY — AI SDR, campaign orchestration, reply intelligence, FIGSY Memory, 19 API endpoints, 5 cron jobs* · INV-10257 *16 cron jobs running — campaign perf, lead drip, health, briefs, subscription expiry (the 3 status-snapshot crons w…* · INV-10560 *[x] Railway API env: set ADMIN_SECRET_KEY — ALL crons + admin portal skip without it. Every cron, self-outreach, an…* |
+| `docs/archive/MASTER.md` (91 rows) | INV-10250 *FIGSY — AI SDR, campaign orchestration, reply intelligence, FIGSY Memory, 19 API endpoints, 5 cron jobs* · INV-10257 *16 cron jobs running — campaign perf, lead drip, health, briefs, subscription expiry (the 3 status-snapshot crons w…* · INV-10560 *[x] Railway API env: set ADMIN_SECRET_KEY — ALL crons + admin portal skip without it. Every cron, self-outreach, an…* |
 | `docs/archive/KIND_Roadmap.md` (15 rows) | INV-19095 *Weekly Monday leads digest* · INV-19119 *Zero-credits warning emails* · INV-19124 *Weekly Monday digest* |
 | `docs/archive/roadmap-audit-14-may-2026.md` (11 rows) | INV-18633 *POST /figsy/send-due — Send next step emails for due enrollments (cron or manual)* · INV-18732 *Run ICP · ❌ Not done* · INV-18797 *Railway — Cron Jobs* |
 | `docs/DEPLOYMENT_GUIDE.md` (10 rows) | INV-05524 *MASTER.md is archived — current truth lives in the 4 core docs + TECH-STACK.md. The env-var/cron detail below is st…* · INV-05639 *Step 9: Railway Cron Jobs* · INV-05640 *Schedule · Endpoint · Purpose* |
@@ -799,7 +834,7 @@ mapping correction, not a comparison conclusion.
 | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` (9 rows) | INV-17187 *571 · 🩷 · [ENGINE] Two silent caps in sourcing (found 26 Jul reading start-work.ts end to end.) ① :87-89 sources fr…* · INV-17194 *607 · 🩷 · (🟡→🩷 2 Aug — MERGED TO MAIN = LIVE: signup writes paused, both trial crons are dead. Founder walk still o…* · INV-17246 *97 · 🩷 · A/B subject-testing backend (winner cron + variants) · 🤖* |
 | `docs/PRODUCT-INVENTORY.md` (8 rows) | INV-00444 *[ENGINE] Two silent caps in sourcing — *(found 26 Jul reading start-work.ts end to end.)* ① :87…* · INV-00500 *A/B subject-testing backend (winner cron + variants)* · INV-00577 *AR-61 MED · Cron JSONB clobber — adaptive-send/ab-winner write {...settings} wholesale, racing …* |
 | `docs/CORE-MAP.md` (8 rows) | INV-03567 *Generated, not judged. scripts/build-core-map.py starts at the REAL entry points — the API's index.ts and cron.ts, …* · INV-03711 *apps/api/src/lib/start-work.ts* · INV-03721 *API ENTRY — index, cron, middleware — 4 files, 573 lines* |
-| *+32 more source documents* | *full list via the coverage map* |
+| *+31 more source documents* | *full list via the coverage map* |
 
 ### CMP-0023 · Programme authority over sourcing
 
@@ -852,9 +887,9 @@ mapping correction, not a comparison conclusion.
 |---|---|
 | **Domain** | Sourcing authority |
 | **Relationship** | **PARTIAL OVERLAP** |
-| **Inventory rows** | **172** — INV-00007, INV-00091, INV-00252, INV-00323, INV-00379, INV-00388, INV-00402, INV-00437, INV-00479, INV-00482, INV-00485–00486, INV-00524, INV-00560, INV-00732 … +144 more ranges |
-| **Source documents** | 51 — `docs/archive/MASTER.md` (44) · `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` (18) · `docs/PRODUCT-INVENTORY.md` (14) · `docs/KIND-MASTER.md` (8) · `docs/CHURN-PREVENTION-PLAN.md` (8) · `docs/SEND-DAY-RUNBOOK.md` (6) · `docs/archive/V2-NARRATIVE-2026-08-21.md` (5) · `docs/archive/BUILD-STATUS-26JUL.md` (5) · +43 more source documents |
-| **Stable source IDs** | `#1151`, `#1159`, `#14`, `#17`, `#183`, `#190`, `#198`, `#20`, `#21`, `#262`, `#319`, `#344`, `#4`, `#45`, `#468`, `#532`, `#543`, `#552`, `#553`, `#564`, `#565`, `#584`, `#611`, `#618` … +16 more |
+| **Inventory rows** | **128** — INV-00007, INV-00091, INV-00252, INV-00323, INV-00379, INV-00388, INV-00402, INV-00437, INV-00479, INV-00524, INV-00560, INV-00732, INV-00781, INV-00826 … +106 more ranges |
+| **Source documents** | 47 — `docs/archive/MASTER.md` (18) · `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` (14) · `docs/PRODUCT-INVENTORY.md` (11) · `docs/KIND-MASTER.md` (8) · `docs/CHURN-PREVENTION-PLAN.md` (8) · `docs/SEND-DAY-RUNBOOK.md` (6) · `docs/archive/BUILD-STATUS-26JUL.md` (5) · `docs/archive/V2-NARRATIVE-2026-08-21.md` (4) · +39 more source documents |
+| **Stable source IDs** | `#1151`, `#1159`, `#14`, `#183`, `#190`, `#198`, `#262`, `#319`, `#344`, `#468`, `#532`, `#543`, `#552`, `#553`, `#564`, `#565`, `#584`, `#611`, `#618`, `#767`, `#769`, `#782`, `#959`, `FTA-024` … +6 more |
 | **Runtime / code / schema evidence** | `approve-lead.ts:67` **resumes** paused campaigns when a client approves anyone. `cold-client.ts:62` pauses sending after `COLD_DAYS` with no approvals: *"we pause rather than bill you for silence"*. A kill-switch is referenced in PRODUCT-INVENTORY #468 as having been bypassed by a Unibox manual-reply path. |
 | **Founder-direction evidence** | NO EXPLICIT CURRENT FOUNDER DIRECTION FOUND |
 | **Historical / supersession evidence** | — (no supersession evidence visible in the sources) |
@@ -864,15 +899,15 @@ mapping correction, not a comparison conclusion.
 
 | Source | Sample INV rows |
 |---|---|
-| `docs/archive/MASTER.md` (44 rows) | INV-10853 *Campaign pause emails* · INV-11025 *FIGSY escalation alerts* · INV-11353 *[CODE] Paused/low-perf campaigns keep sending (no campaign-status check in send loops; paused_low_performance viola…* |
-| `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` (18 rows) | INV-17119 *543 · 🩷 · (🔴→🩷 26 Jul: shipped PR #1159.) [MONEY] Cold clients — 30 days with no approvals suspends them — "we're n…* · INV-17128 *532 · 🩷 · (🔴→🟡→🩷 25 Jul: shipped PR #1151.) [VIDA · V13] Run it / pause it from the campaign row. · 🤖* · INV-17145 *553 · 🔴 · [SAFETY · A7] First-send ladder before the kill-switch flips — AUTO_OUTREACH_ENABLED is OFF and stays off…* |
-| `docs/PRODUCT-INVENTORY.md` (14 rows) | INV-00379 *[MONEY] Cold clients — 30 days with no approvals suspends them — *"we're not a free service."* …* · INV-00388 *[VIDA · V13] Run it / pause it — from the campaign row.* · INV-00402 *[SAFETY · A7] First-send ladder before the kill-switch flips — AUTO_OUTREACH_ENABLED is OFF and…* |
+| `docs/archive/MASTER.md` (18 rows) | INV-10853 *Campaign pause emails* · INV-11353 *[CODE] Paused/low-perf campaigns keep sending (no campaign-status check in send loops; paused_low_performance viola…* · INV-12078 *Campaign CRUD* |
+| `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` (14 rows) | INV-17119 *543 · 🩷 · (🔴→🩷 26 Jul: shipped PR #1159.) [MONEY] Cold clients — 30 days with no approvals suspends them — "we're n…* · INV-17128 *532 · 🩷 · (🔴→🟡→🩷 25 Jul: shipped PR #1151.) [VIDA · V13] Run it / pause it from the campaign row. · 🤖* · INV-17145 *553 · 🔴 · [SAFETY · A7] First-send ladder before the kill-switch flips — AUTO_OUTREACH_ENABLED is OFF and stays off…* |
+| `docs/PRODUCT-INVENTORY.md` (11 rows) | INV-00379 *[MONEY] Cold clients — 30 days with no approvals suspends them — *"we're not a free service."* …* · INV-00388 *[VIDA · V13] Run it / pause it — from the campaign row.* · INV-00402 *[SAFETY · A7] First-send ladder before the kill-switch flips — AUTO_OUTREACH_ENABLED is OFF and…* |
 | `docs/KIND-MASTER.md` (8 rows) | INV-01984 *21 Aug, evening entry (🛑 THE PAUSE, THE FULL-SYSTEM VERIFICATION, AND THE 25TH CUT — R65): The day nearly went wron…* · INV-02081 *5 Aug (🧊 #618 — THE COLD-CLIENT RULE STOPS POINTING AT US, and the reasoning that made it safe was mine and it was …* · INV-02189 *25 Jul (🚪 THE GATES THE MONEY MODEL NEEDS — minimum 20, cold clients suspended, and the last eight flow-v2 gaps clo…* |
 | `docs/CHURN-PREVENTION-PLAN.md` (8 rows) | INV-02973 *2 · Deliverability protection → ties to D9 (item 101) + kill-switch (183)* · INV-02974 *Hold D9 at 10/10; keep warmup ramping; never let a client's domain torch its reputation.* · INV-02975 *The account-wide campaign kill-switch (183) is a retention tool too: one runaway send can burn a domain and the rel…* |
 | `docs/SEND-DAY-RUNBOOK.md` (6 rows) | INV-04654 *AUTO_OUTREACH_ENABLED* · INV-04684 *[ ] Kill-switch chip in Vida reads Kill-switch OFF. Top bar of the Vida console. This is your starting state and it…* · INV-04693 *[ ] Confirm you can find the kill-switch in Railway in under 30 seconds. Open the variable now, look at it, close i…* |
-| `docs/archive/V2-NARRATIVE-2026-08-21.md` (5 rows) | INV-18263 *2 · Command palette (Cmd+K) — "New ICP / Pause FIGSY / Hot leads" · 1–3d · any* · INV-18285 *Instantly · Domain warming · auto-pause low performers · adaptive send volume (#45) · inbox rotation (#53)* · INV-18298 *▶️ BUILD STATUS (16 Jun) — PAUSED for launch · RESUME MON 22 (post-launch)* |
 | `docs/archive/BUILD-STATUS-26JUL.md` (5 rows) | INV-19638 *V4a · Campaign control — start · pause · resume (/operator/campaign/start · /:id/status) · ✅ · ⏳* · INV-19669 *V13 · Run it / pause it · Vida · Campaign · ✅ · 🩷* · INV-19696 *485 · Kill-switch + cap + health · ✅ · 🩷* |
-| *+43 more source documents* | *full list via the coverage map* |
+| `docs/archive/V2-NARRATIVE-2026-08-21.md` (4 rows) | INV-18263 *2 · Command palette (Cmd+K) — "New ICP / Pause FIGSY / Hot leads" · 1–3d · any* · INV-18298 *▶️ BUILD STATUS (16 Jun) — PAUSED for launch · RESUME MON 22 (post-launch)* · INV-18300 *⏳ B2 partial — 179 (shareable view) was already built (code-verified, PR #584); 183 kill-switch + 180 audit log sti…* |
+| *+39 more source documents* | *full list via the coverage map* |
 
 ### CMP-0026 · ICP changes and the widened-proof acceptance rule
 
@@ -880,9 +915,9 @@ mapping correction, not a comparison conclusion.
 |---|---|
 | **Domain** | Sourcing authority |
 | **Relationship** | **AGREES** |
-| **Inventory rows** | **770** — INV-00152, INV-00210, INV-00369, INV-00392, INV-00470, INV-00515, INV-00538, INV-00568, INV-00910, INV-01059, INV-01132, INV-01161, INV-01178, INV-01214 … +501 more ranges |
-| **Source documents** | 90 — `docs/archive/MASTER.md` (256) · `supabase/seeds/competitor_icps_readme.md` (50) · `docs/archive/roadmap-audit-14-may-2026.md` (39) · `docs/archive/KIND-MASTER-ARCHIVE.md` (36) · `docs/archive/EVERYTHING.md` (29) · `docs/sales-playbook.md` (26) · `docs/archive/V2-NARRATIVE-2026-08-21.md` (25) · `docs/RECORDING-SHOOTING-SCRIPT.md` (18) · +82 more source documents |
-| **Stable source IDs** | `#1151`, `#15`, `#156`, `#212`, `#24`, `#243`, `#26`, `#270`, `#31`, `#366`, `#37`, `#38`, `#40`, `#42`, `#429`, `#438`, `#445`, `#494`, `#5`, `#512`, `#52`, `#522`, `#536`, `#556` … +17 more |
+| **Inventory rows** | **764** — INV-00152, INV-00210, INV-00369, INV-00392, INV-00470, INV-00515, INV-00538, INV-00568, INV-00910, INV-01059, INV-01132, INV-01178, INV-01214, INV-01267–01268 … +495 more ranges |
+| **Source documents** | 90 — `docs/archive/MASTER.md` (256) · `supabase/seeds/competitor_icps_readme.md` (50) · `docs/archive/roadmap-audit-14-may-2026.md` (39) · `docs/archive/KIND-MASTER-ARCHIVE.md` (36) · `docs/archive/EVERYTHING.md` (29) · `docs/sales-playbook.md` (26) · `docs/archive/V2-NARRATIVE-2026-08-21.md` (24) · `docs/RECORDING-SHOOTING-SCRIPT.md` (18) · +82 more source documents |
+| **Stable source IDs** | `#1151`, `#15`, `#156`, `#212`, `#24`, `#243`, `#26`, `#270`, `#31`, `#366`, `#37`, `#38`, `#40`, `#42`, `#429`, `#438`, `#445`, `#494`, `#5`, `#512`, `#52`, `#522`, `#536`, `#556` … +15 more |
 | **Runtime / code / schema evidence** | `proof-candidate.ts` implements the 25 Aug founder ruling: when pass 2's exact targeting matches nobody and the widened fallback finds people, **the saved ICP is not changed** unless the client explicitly accepts with *"👍 Looks right"*, and then only in the two fields the widening dropped. State is `pending`/`accepted`, never a delete. |
 | **Founder-direction evidence** | Founder-ruled 25 Aug, quoted in the file header. |
 | **Historical / supersession evidence** | — (no supersession evidence visible in the sources) |
@@ -898,7 +933,7 @@ mapping correction, not a comparison conclusion.
 | `docs/archive/KIND-MASTER-ARCHIVE.md` (36 rows) | INV-15105 *ICP: Solopreneurs + small teams (1–10) in creator economy with existing followings.* · INV-15142 *V2-3 (conversational agent setup with Casey) — "describe your ICP, the agent configures* · INV-15176 *Tue 9 · Smoke Test 1A · ✅ · T2 ✅ (ICP→leads, re-verified 9 Jun) · T8 ✅ (deliverability/inbox) · T1 ✅ PASSED 10 Jun …* |
 | `docs/archive/EVERYTHING.md` (29 rows) | INV-16436 *Sidebar: ICP Builder above People (Lead Gen section).* · INV-16438 *ICP preview banner — show "20,000+ available · we deliver your 20/run" instead of the raw scary count.* · INV-16441 *ICP Builder "New ICP" — open the form at the top / modal (no scrolling past all existing cards).* |
 | `docs/sales-playbook.md` (26 rows) | INV-07169 *SECTION 1: ICP & QUALIFICATION* · INV-07170 *Our Ideal Customer Profile (ICP)* · INV-07171 *Attribute · Definition* |
-| `docs/archive/V2-NARRATIVE-2026-08-21.md` (25 rows) | INV-17817 *Current (M0 — live/building): ICP-matched B2B lead sourcing · AI lead score 0–100 · personalised outreach per lead …* · INV-17827 *M0 build scope (inbound engine, #429): qualifies inbound visitors against the same ICP rules · captures name/compan…* · INV-17839 *438 ICP interview → living customer model (M — conversational intake over existing chat + icps)* |
+| `docs/archive/V2-NARRATIVE-2026-08-21.md` (24 rows) | INV-17817 *Current (M0 — live/building): ICP-matched B2B lead sourcing · AI lead score 0–100 · personalised outreach per lead …* · INV-17827 *M0 build scope (inbound engine, #429): qualifies inbound visitors against the same ICP rules · captures name/compan…* · INV-17839 *438 ICP interview → living customer model (M — conversational intake over existing chat + icps)* |
 | `docs/RECORDING-SHOOTING-SCRIPT.md` (18 rows) | INV-07576 *RECORD: the /onboard conversation — it asks for your website, scans it, and pre-fills your ICP automatically (type …* · INV-07589 *Scene 2.1 — Conversational ICP builder (~14s)* · INV-07590 *SCREEN: /dashboard/leads/icp/builder* |
 | *+82 more source documents* | *full list via the coverage map* |
 
@@ -912,9 +947,9 @@ mapping correction, not a comparison conclusion.
 |---|---|
 | **Domain** | Providers |
 | **Relationship** | **AGREES** |
-| **Inventory rows** | **25** — INV-00143, INV-00153–00154, INV-00329, INV-00886, INV-01012, INV-01393–01394, INV-03673, INV-05210, INV-05306, INV-10959, INV-11312, INV-11719, INV-11852, INV-13472 … +8 more ranges |
-| **Source documents** | 10 — `docs/archive/MASTER.md` (9) · `docs/PRODUCT-RULES.md` (3) · `docs/PRODUCT-INVENTORY.md` (2) · `docs/V2-TRACKER.md` (2) · `docs/APOLLO-ENGINE.md` (2) · `docs/archive/KIND-MASTER-ARCHIVE.md` (2) · `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` (2) · `docs/LAUNCH-PAD.md` (1) · +2 more source documents |
-| **Stable source IDs** | `#16`, `#42`, `#432`, `#699`, `AR15`, `AR16`, `AR5`, `C2c`, `FI-60`, `FI-61`, `P2` |
+| **Inventory rows** | **23** — INV-00143, INV-00153–00154, INV-00329, INV-00886, INV-01012, INV-03673, INV-05210, INV-05306, INV-10959, INV-11312, INV-11719, INV-11852, INV-13472, INV-13560 … +7 more ranges |
+| **Source documents** | 9 — `docs/archive/MASTER.md` (9) · `docs/PRODUCT-RULES.md` (3) · `docs/PRODUCT-INVENTORY.md` (2) · `docs/APOLLO-ENGINE.md` (2) · `docs/archive/KIND-MASTER-ARCHIVE.md` (2) · `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` (2) · `docs/LAUNCH-PAD.md` (1) · `docs/CORE-MAP.md` (1) · +1 more source documents |
+| **Stable source IDs** | `#16`, `#42`, `#432`, `#699`, `AR15`, `AR16`, `AR5`, `C2c`, `P2` |
 | **Runtime / code / schema evidence** | `provider-boundary.ts` enforces AR5 in code. Its header records that until 21 Aug the rule was enforced only by labels in a document, and names the four live doors a 21-Aug audit found crossing it — Milla ICP sourcing, `/leads/find-at-companies`, `/lookalike/generate`, `/icps/preview-count` — and that the leak was `apollo_id` stamping, not money. |
 | **Founder-direction evidence** | PRODUCT-RULES **AR5**, founder-locked 30 Jul, re-affirmed 1 Aug (#606). |
 | **Historical / supersession evidence** | — (no supersession evidence visible in the sources) |
@@ -927,12 +962,12 @@ mapping correction, not a comparison conclusion.
 | `docs/archive/MASTER.md` (9 rows) | INV-10959 *C20 · Waterfall enrichment — Apollo → PDL → Hunter → Clearbit* · INV-11312 *C20 · Waterfall enrichment · Apollo → PDL → Hunter → Clearbit* · INV-11719 *Waterfall enrichment (Apollo → PDL → Hunter fallback)* |
 | `docs/PRODUCT-RULES.md` (3 rows) | INV-00143 *Apollo is OURS. PDL + Hunter are the CLIENTS'. The same mirror as Instantly/Smartlead. A 1-Aug audit tagged Ap…* · INV-00153 *THE LEGACY APOLLO DRAIN — a bounded, deliberate exception to AR5. Normal-client leads that already carry an ap…* · INV-00154 *HUNTER IS NOT FENCED OFF FROM THE HOUSE — a narrow clarification of AR5, not a change to it. AR5's *"PDL + Hun…* |
 | `docs/PRODUCT-INVENTORY.md` (2 rows) | INV-00886 *M0 CRITICAL · LEGAL — legal.md — 🟡 8 Jul: SUPERSEDE banner added (Apollo retired → PDL+Hunter; …* · INV-01012 *THE AR5 PROVIDER BOUNDARY — enforced in code, not in labels (21 Aug). — A read-only audit found…* |
-| `docs/V2-TRACKER.md` (2 rows) | INV-01393 *PDL remains the launch external sourcing provider.* · INV-01394 *Apollo live API remains parked for launch.* |
 | `docs/APOLLO-ENGINE.md` (2 rows) | INV-05210 *🎯 BANNER — CORRECTED 21 Aug. Apollo is OURS. [OUR HUNTING]* · INV-05306 *Wire into the product (API): Apollo (BYOK) · PDL · Hunter · Cognism (EMEA + verified mobiles) · Clearbit · Lusha · …* |
 | `docs/archive/KIND-MASTER-ARCHIVE.md` (2 rows) | INV-15250 *42 · ⬜ · Waterfall enrichment (Apollo → PDL → Hunter → Clearbit + Manus) · Fallback pipeline when Apollo returns <2…* · INV-15719 *42 · Waterfall enrichment · Apollo → PDL → Hunter → Clearbit (needs keys) · 🤖 · ⏸ · Month 2 · Clay moat · enterpris…* |
 | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` (2 rows) | INV-17643 *432 · 🟡 · M0 CRITICAL · LEGAL — legal.md — 🟡 8 Jul: SUPERSEDE banner added (Apollo retired → PDL+Hunter; 250M/FIGSY…* · INV-17644 *433 · 🟡 · M0 CRITICAL · LEGAL — legal/legal-pack.md — 🟡 8 Jul: DPA sub-processor list fixed (Apollo→PDL+Hunter+Flut…* |
 | `docs/LAUNCH-PAD.md` (1 rows) | INV-00329 *AR5 provider boundary (#699) — four live doors chose provider by which API keys existed* |
-| *+2 more source documents* | *full list via the coverage map* |
+| `docs/CORE-MAP.md` (1 rows) | INV-03673 *apps/api/src/lib/enrichment.ts* |
+| *+1 more source documents* | *full list via the coverage map* |
 
 ### CMP-0028 · Pool-first sourcing and cross-client reuse
 
@@ -940,9 +975,9 @@ mapping correction, not a comparison conclusion.
 |---|---|
 | **Domain** | Providers |
 | **Relationship** | **AGREES** |
-| **Inventory rows** | **34** — INV-00150, INV-00236, INV-00288, INV-00319, INV-00591, INV-00921, INV-01121, INV-01260, INV-01338, INV-01546, INV-02693, INV-04024, INV-06670, INV-06789 … +20 more ranges |
-| **Source documents** | 19 — `docs/runbooks/DSAR-ERASURE.md` (4) · `docs/archive/LAUNCH-PAD-2026-08-21.md` (4) · `docs/V2-TRACKER.md` (3) · `docs/PRODUCT-RULES.md` (2) · `docs/LAUNCH-PAD.md` (2) · `docs/PRODUCT-INVENTORY.md` (2) · `docs/strategy/MASTER_CONTEXT.md` (2) · `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` (2) · +11 more source documents |
-| **Stable source IDs** | `#1356`, `#449`, `#457–#459`, `#462`, `#679`, `#682`, `AR12`, `C8`, `F13`, `FI-05`, `FTA-034`, `P15`, `R49` |
+| **Inventory rows** | **33** — INV-00150, INV-00236, INV-00288, INV-00319, INV-00591, INV-00921, INV-01121, INV-01260, INV-01546, INV-02693, INV-04024, INV-06670, INV-06789, INV-07011 … +19 more ranges |
+| **Source documents** | 19 — `docs/runbooks/DSAR-ERASURE.md` (4) · `docs/archive/LAUNCH-PAD-2026-08-21.md` (4) · `docs/PRODUCT-RULES.md` (2) · `docs/LAUNCH-PAD.md` (2) · `docs/PRODUCT-INVENTORY.md` (2) · `docs/V2-TRACKER.md` (2) · `docs/strategy/MASTER_CONTEXT.md` (2) · `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` (2) · +11 more source documents |
+| **Stable source IDs** | `#1356`, `#449`, `#457–#459`, `#462`, `#679`, `#682`, `AR12`, `C8`, `F13`, `FTA-034`, `P15`, `R49` |
 | **Runtime / code / schema evidence** | `pool-sourcing.ts` (#449 part 3): a record bought once from PDL at $0.28 lands in `lead_pool` and is served at $0 marginal cost before any fresh PDL spend; `splitPoolAndRemainder` subtracts pool-served count from the PDL ask so the system cannot over-source. DB glue is `servePoolLeads` in `routes/icps.ts`. |
 | **Founder-direction evidence** | NO EXPLICIT CURRENT FOUNDER DIRECTION FOUND |
 | **Historical / supersession evidence** | — (no supersession evidence visible in the sources) |
@@ -954,10 +989,10 @@ mapping correction, not a comparison conclusion.
 |---|---|
 | `docs/runbooks/DSAR-ERASURE.md` (4 rows) | INV-07011 *lead_pool · email_norm, first_name, last_name, title, seniority, company, industry, company_size, country, linkedin…* · INV-07032 *Source · leads.source, lead_pool.source, leads.apollo_id — where we got them, which is the Art. 14 question they us…* · INV-07048 *lead_pool WHERE email_norm = → note it, this is the cross-client copy* |
 | `docs/archive/LAUNCH-PAD-2026-08-21.md` (4 rows) | INV-18353 *C8 · ⏳ Triggered, unchanged — A22 unlock pair · A23 pool-first proof · P15/P16 on counsel's word · 🧍 · on trigger* · INV-18367 *~~F8~~ · ✅ CLEARED by Fable, 19 Aug — repo-side complete, no sibling found. Every view in the migrations was enumer…* · INV-18372 *F13 · 🔴 PDL LICENCE — CROSS-CLIENT REUSE IS UNCONFIRMED AGAINST THE ORDER FORM. CLIENT-1 GATE. Pool-first is right …* |
-| `docs/V2-TRACKER.md` (3 rows) | INV-01121 *SPEC 1 — Milla business portal, three additive preview-first changes* · INV-01260 *Free-acquisition economics — $300/mo budget · PDL $0.28 · max 40 records · max $11.20 per prospect* · INV-01338 *Future sourcing architecture. Pool first → Apollo when it can produce a complete usable lead ch…* |
 | `docs/PRODUCT-RULES.md` (2 rows) | INV-00150 *POOL FIRST — FOR EVERYONE. Prospect sourcing serves matches from the lead pool we already own before any exter…* · INV-00236 *POOL-FIRST STANDS — AND CROSS-CLIENT SERVING IS GATED ON PDL's PAPER. The order the code executes is correct a…* |
 | `docs/LAUNCH-PAD.md` (2 rows) | INV-00288 *⏳ Triggered — A22 unlock pair · A23 pool-first proof · P15/P16 on counsel's word* · INV-00319 *PDL licence — cross-client reuse unconfirmed against the Order Form (counsel, W18)* |
 | `docs/PRODUCT-INVENTORY.md` (2 rows) | INV-00591 *SPRINT 8a/PR3+PR4 · LEAD POOL — records become inventory (cross-client reuse) — . ⛓️ RETIRED 24…* · INV-00921 *leads.source='vida' + pool fence — CHECK add 'vida'; a Vida match never enters lead_pool (a spe…* |
+| `docs/V2-TRACKER.md` (2 rows) | INV-01121 *SPEC 1 — Milla business portal, three additive preview-first changes* · INV-01260 *Free-acquisition economics — $300/mo budget · PDL $0.28 · max 40 records · max $11.20 per prospect* |
 | `docs/strategy/MASTER_CONTEXT.md` (2 rows) | INV-07791 *Treat PDL licence compatibility with cross-client reuse as a contractual launch/client-1 gate until K.I.N.D's actua…* · INV-07878 *PDL actual licence/Order Form for cross-client reuse is a priority legal/commercial check.* |
 | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` (2 rows) | INV-17680 *462 · 🔴 · leads.source='vida' + pool fence — CHECK add 'vida'; a Vida match never enters lead_pool (a specific pers…* · INV-17756 *682 · 🩷 · 🅰️ THE APOLLO POOL TRIPWIRE — a guard that refuses nothing today, which is the point (20 Aug, F15). lead_…* |
 | *+11 more source documents* | *full list via the coverage map* |
@@ -968,9 +1003,9 @@ mapping correction, not a comparison conclusion.
 |---|---|
 | **Domain** | Providers |
 | **Relationship** | **AGREES** |
-| **Inventory rows** | **3** — INV-00254, INV-00294, INV-01337 |
-| **Source documents** | 3 — `docs/PRODUCT-RULES.md` (1) · `docs/LAUNCH-PAD.md` (1) · `docs/V2-TRACKER.md` (1) |
-| **Stable source IDs** | `FI-04`, `R67`, `T5` |
+| **Inventory rows** | **2** — INV-00254, INV-00294 |
+| **Source documents** | 2 — `docs/PRODUCT-RULES.md` (1) · `docs/LAUNCH-PAD.md` (1) |
+| **Stable source IDs** | `R67`, `T5` |
 | **Runtime / code / schema evidence** | A pending migration creates `acquisition_memory` — *"every identity K.I.N.D paid a provider to acquire, retained before any client gate can discard it (R67). Retention is NOT contactability."* `acquisition-memory.ts` implements it. |
 | **Founder-direction evidence** | PRODUCT-RULES **R67**. |
 | **Historical / supersession evidence** | — (no supersession evidence visible in the sources) |
@@ -982,7 +1017,6 @@ mapping correction, not a comparison conclusion.
 |---|---|
 | `docs/PRODUCT-RULES.md` (1 rows) | INV-00254 *RETENTION IS NOT CONTACTABILITY — EVERY PAID PROVIDER RECORD IS REMEMBERED, AND DNC STILL NEVER GETS CONTACTED…* |
 | `docs/LAUNCH-PAD.md` (1 rows) | INV-00294 *ACQUISITION RETENTION (R67) — BUILT 26 Aug. acquisition_memory retains every paid identity befo…* |
-| `docs/V2-TRACKER.md` (1 rows) | INV-01337 *Acquisition-memory operator visibility. Keep acquisition_memory, the reusable serving pool and …* |
 
 ### CMP-0030 · Provider entitlement and free-proof PDL budget
 
@@ -1042,9 +1076,9 @@ mapping correction, not a comparison conclusion.
 |---|---|
 | **Domain** | Meetings |
 | **Relationship** | **INSUFFICIENT EVIDENCE TO COMPARE** |
-| **Inventory rows** | **172** — INV-00083, INV-00142, INV-00287, INV-00484, INV-00612, INV-01347, INV-01363, INV-01380, INV-01553, INV-03019, INV-03385, INV-03423–03425, INV-03734, INV-03738 … +123 more ranges |
-| **Source documents** | 60 — `docs/archive/MASTER.md` (35) · `docs/strategy/get-kind_meeting_booking_engine_strategy.html` (12) · `docs/marketing/DAILY-PLAYBOOK.md` (9) · `docs/RECORDING-SHOOTING-SCRIPT.md` (8) · `docs/marketing/founder-content-playbook.md` (8) · `docs/drafts/GTM_FUNNEL_INSTRUMENTATION.md` (8) · `docs/strategy/get-kind_data_sourcing_and_meeting_yield_verification_artifact.html` (7) · `docs/archive/KIND-MASTER-ARCHIVE.md` (6) · +52 more source documents |
-| **Stable source IDs** | `#19`, `#3`, `#361`, `#396`, `#507`, `#54`, `#60`, `AR4`, `C7`, `FI-14`, `FI-30`, `FI-47`, `FTA-041`, `PR4`, `R14` |
+| **Inventory rows** | **147** — INV-00083, INV-00142, INV-00287, INV-00484, INV-00612, INV-03019, INV-03385, INV-03423–03425, INV-03734, INV-03738, INV-03939, INV-04372, INV-04499, INV-04803 … +114 more ranges |
+| **Source documents** | 55 — `docs/archive/MASTER.md` (35) · `docs/strategy/get-kind_meeting_booking_engine_strategy.html` (12) · `docs/RECORDING-SHOOTING-SCRIPT.md` (8) · `docs/drafts/GTM_FUNNEL_INSTRUMENTATION.md` (8) · `docs/strategy/get-kind_data_sourcing_and_meeting_yield_verification_artifact.html` (7) · `docs/archive/KIND-MASTER-ARCHIVE.md` (6) · `docs/sales-playbook.md` (5) · `docs/archive/EVERYTHING.md` (4) · +47 more source documents |
+| **Stable source IDs** | `#19`, `#3`, `#361`, `#396`, `#507`, `#54`, `#60`, `AR4`, `C7`, `PR4`, `R14` |
 | **Runtime / code / schema evidence** | No meeting lifecycle enum was found in `apps/api` or `packages/shared`. `booking-token.ts` and `booking-walk.test.ts` cover the booking link; `calendar-probe.ts` probes calendar connectivity. |
 | **Founder-direction evidence** | NO EXPLICIT CURRENT FOUNDER DIRECTION FOUND |
 | **Historical / supersession evidence** | — (no supersession evidence visible in the sources) |
@@ -1056,13 +1090,13 @@ mapping correction, not a comparison conclusion.
 |---|---|
 | `docs/archive/MASTER.md` (35 rows) | INV-10504 *Outcome-based pricing ("per meeting booked")* · INV-10559 *[x] Run ALTER TABLE public.figsy_campaigns ADD COLUMN IF NOT EXISTS meetings_booked integer NOT NULL DEFAULT 0; in …* · INV-10674 *Watch replies land in portal inbox / admin Unibox, auto-classified 🔥hot/warm/etc. Mark hot ones booked → moves the …* |
 | `docs/strategy/get-kind_meeting_booking_engine_strategy.html` (12 rows) | INV-22482 *ELIGIBLE PROSPECTS ↓ DELIVERED ↓ POSITIVE RESPONSE ↓ MEETING INTENT ↓ MEETING BOOKED The key commercial equation is* · INV-22483 *BOOKED MEETINGS = eligible prospect volume × message relevance × positive response rate × positive-response → booki…* · INV-22494 *8. Positive reply → booked meeting is its own conversion engine* |
-| `docs/marketing/DAILY-PLAYBOOK.md` (9 rows) | INV-08296 *Thu 4 · POST 8 (From cold list to booked viewing — property vertical) ~~+ newsletter #3~~ (parked, R29). Then the M…* · INV-08365 *8 · From cold list to booked viewing · Pillar: Problem · → https://get-kind.com/drop-06 · …* · INV-08366 *Attach: gen-drop-06-f0.png — the episode's own artwork, so the feed and the site look like one brand. Save it from …* |
 | `docs/RECORDING-SHOOTING-SCRIPT.md` (8 rows) | INV-07625 *RECORD: show replies sorted hot / interested / opt-out; open a hot one → show the "Meeting booked" event (FIGSY boo…* · INV-07627 *SECTION 6 — CLOSE (Denise takes the booked meeting)* · INV-07628 *6-beat: A booked meeting isn't a closed deal (problem). After the call, the owner forgets to follow up, handle the …* |
-| `docs/marketing/founder-content-playbook.md` (8 rows) | INV-08708 *8 · From cold list to booked viewing · Pillar: Problem · → https://get-kind.com/drop-06 · …* · INV-08709 *Attach: gen-drop-06-f0.png — the episode's own artwork, so the feed and the site look like one brand. Save it from …* · INV-08710 *Most property teams sit on a list of names they know they should call.* |
 | `docs/drafts/GTM_FUNNEL_INSTRUMENTATION.md` (8 rows) | INV-09481 *Stage 5 — Demo booked* · INV-09482 *Metric: demos/meetings booked; reply → demo conversion.* · INV-09483 *Where it fires: two paths exist* |
 | `docs/strategy/get-kind_data_sourcing_and_meeting_yield_verification_artifact.html` (7 rows) | INV-22240 *Do not optimise the product for raw email volume, raw reply rate or even raw booked meetings alone. The retained-va…* · INV-22277 *clear confirmation and reschedule/cancel paths;* · INV-22282 *positive_reply_to_booking_rate = booked_meetings / qualified_positive_replies If this number is weak, the issue is …* |
 | `docs/archive/KIND-MASTER-ARCHIVE.md` (6 rows) | INV-15331 *DENISE Month 3 (#54) — extends FIGSY pipeline at the seam (booked → close). Highest leverage next agent. Build deep…* · INV-15506 *T4 · Book a meeting (connect Google Cal or "Mark as booked") → verify meetings_booked increments · All day* · INV-15510 *Log results · Document T4–T7 results: "T4-Step-14: ✅ Booked, meetings_booked=1" etc. · EOD* |
-| *+52 more source documents* | *full list via the coverage map* |
+| `docs/sales-playbook.md` (5 rows) | INV-07190 *Before the call: Review their LinkedIn, website, and any notes from how they booked (cold outreach? Referral? Inbou…* · INV-07263 *Rule: Always have a specific next step booked before ending a call. These templates are for when that falls through…* · INV-07268 *Next step: free sign-up (no card, pay per lead), onboarding call booked for [date if agreed] / [book here: link]* |
+| `docs/archive/EVERYTHING.md` (4 rows) | INV-16442 *"Pipeline Value" → relabel "Est. pipeline value" + tooltip (it's the sum of AI-estimated deal values, not booked re…* · INV-16675 *60 Outcome pricing (per meeting booked) — GATED on ≥28% gross margin data* · INV-16887 *The handoff seam she owns: Meeting booked → DENISE (today the client takes over here)* |
+| *+47 more source documents* | *full list via the coverage map* |
 
 ### CMP-0033 · Google Calendar verification path
 
@@ -1070,9 +1104,9 @@ mapping correction, not a comparison conclusion.
 |---|---|
 | **Domain** | Meetings |
 | **Relationship** | **AGREES** |
-| **Inventory rows** | **76** — INV-01064, INV-03553, INV-07082–07153, INV-07881, INV-18346 |
-| **Source documents** | 5 — `docs/runbooks/GOOGLE-VERIFICATION.md` (72) · `docs/V2-TRACKER.md` (1) · `docs/DOC-MAP.md` (1) · `docs/strategy/MASTER_CONTEXT.md` (1) · `docs/archive/LAUNCH-PAD-2026-08-21.md` (1) |
-| **Stable source IDs** | `#673`, `#683`, `L2/P47`, `P13`, `R55` |
+| **Inventory rows** | **69** — INV-01064, INV-03553, INV-07082–07088, INV-07090–07117, INV-07119–07123, INV-07125–07127, INV-07129–07133, INV-07135–07138, INV-07140–07143, INV-07145–07153, INV-07881, INV-18346 |
+| **Source documents** | 5 — `docs/runbooks/GOOGLE-VERIFICATION.md` (65) · `docs/V2-TRACKER.md` (1) · `docs/DOC-MAP.md` (1) · `docs/strategy/MASTER_CONTEXT.md` (1) · `docs/archive/LAUNCH-PAD-2026-08-21.md` (1) |
+| **Stable source IDs** | `#683`, `L2/P47`, `P13`, `R55` |
 | **Runtime / code / schema evidence** | `calendar-probe.ts` and `calendar-host-portability.test.ts` exist. The runbook records the founder hitting Google's wall on 20 Aug: app in **Testing**, **0 test users**, OAuth client on the wrong domain, with a dated 7-day clock and five stages. |
 | **Founder-direction evidence** | The founder walked the real booking flow on 20 Aug — recorded in `docs/runbooks/GOOGLE-VERIFICATION.md`. |
 | **Historical / supersession evidence** | — (no supersession evidence visible in the sources) |
@@ -1082,7 +1116,7 @@ mapping correction, not a comparison conclusion.
 
 | Source | Sample INV rows |
 |---|---|
-| `docs/runbooks/GOOGLE-VERIFICATION.md` (72 rows) | INV-07082 *Google Calendar — the verification path* · INV-07083 *Why this exists. The founder walked the real booking flow on 20 Aug and hit Google's wall* · INV-07084 *the app is in Testing, with 0 test users, and the OAuth client is registered on* |
+| `docs/runbooks/GOOGLE-VERIFICATION.md` (65 rows) | INV-07082 *Google Calendar — the verification path* · INV-07083 *Why this exists. The founder walked the real booking flow on 20 Aug and hit Google's wall* · INV-07084 *the app is in Testing, with 0 test users, and the OAuth client is registered on* |
 | `docs/V2-TRACKER.md` (1 rows) | INV-01064 *Google OAuth verification — the post-submission half is post-launch by nature* |
 | `docs/DOC-MAP.md` (1 rows) | INV-03553 *GOOGLE-VERIFICATION.md* |
 | `docs/strategy/MASTER_CONTEXT.md` (1 rows) | INV-07881 *Google OAuth verification status should be checked in the Cloud Console before client dependency on the integration…* |
@@ -1094,9 +1128,9 @@ mapping correction, not a comparison conclusion.
 |---|---|
 | **Domain** | Meetings |
 | **Relationship** | **PARTIAL OVERLAP** |
-| **Inventory rows** | **36** — INV-01382, INV-01454, INV-01555, INV-02665, INV-02714, INV-03850, INV-03858, INV-03860, INV-03870, INV-05521, INV-05621–05630, INV-05701, INV-14100, INV-14442 … +13 more ranges |
-| **Source documents** | 12 — `docs/DEPLOYMENT_GUIDE.md` (12) · `docs/archive/KIND-MASTER-ARCHIVE.md` (7) · `docs/TECH-STACK.md` (4) · `docs/CASHFLOW-LAB.html` (2) · `docs/archive/MASTER.md` (2) · `docs/archive/V2-NARRATIVE-2026-08-21.md` (2) · `docs/archive/SESSION-HANDOFF-7JUN.md` (2) · `docs/V2-TRACKER.md` (1) · +4 more source documents |
-| **Stable source IDs** | `#34`, `#36`, `#83`, `#88`, `FI-49`, `FTA-043`, `f_zoho`, `§9` |
+| **Inventory rows** | **35** — INV-01454, INV-01555, INV-02665, INV-02714, INV-03850, INV-03858, INV-03860, INV-03870, INV-05521, INV-05621–05630, INV-05701, INV-14100, INV-14442, INV-15235 … +12 more ranges |
+| **Source documents** | 11 — `docs/DEPLOYMENT_GUIDE.md` (12) · `docs/archive/KIND-MASTER-ARCHIVE.md` (7) · `docs/TECH-STACK.md` (4) · `docs/CASHFLOW-LAB.html` (2) · `docs/archive/MASTER.md` (2) · `docs/archive/V2-NARRATIVE-2026-08-21.md` (2) · `docs/archive/SESSION-HANDOFF-7JUN.md` (2) · `docs/run-costs-and-cashflow.md` (1) · +3 more source documents |
+| **Stable source IDs** | `#34`, `#36`, `#83`, `#88`, `FTA-043`, `f_zoho`, `§9` |
 | **Runtime / code / schema evidence** | `routes/integrations.ts:15,90` declares an `outlook_zoho` integration id named *"Outlook / Zoho"*. `mailer.ts:96` handles Microsoft/Outlook SMTP AUTH refusal explicitly. `CASHFLOW-LAB.html` carries a `f_zoho = 3` cost input. |
 | **Founder-direction evidence** | NO EXPLICIT CURRENT FOUNDER DIRECTION FOUND |
 | **Historical / supersession evidence** | — (no supersession evidence visible in the sources) |
@@ -1113,8 +1147,8 @@ mapping correction, not a comparison conclusion.
 | `docs/archive/MASTER.md` (2 rows) | INV-14100 *Dynamic ESP matching: sends from Gmail-type addresses to Gmail inboxes, Outlook to Outlook* · INV-14442 *Chrome extension: works inside Gmail, Outlook, Salesloft, Outreach* |
 | `docs/archive/V2-NARRATIVE-2026-08-21.md` (2 rows) | INV-17936 *B — CONNECT-YOUR-OWN (mid-market/enterprise, high ACV): attach the client's own Google/Outlook/SMTP via POST /email…* · INV-18130 *36 · Wire playbook email form (Zoho) · 🤖* |
 | `docs/archive/SESSION-HANDOFF-7JUN.md` (2 rows) | INV-20957 *Not just Google (Zoho/Calendly/Microsoft)* · INV-20962 *Calendar: keep booking_url field pre-launch + full Outlook/Zoho OAuth Month 2 (recommended) vs pull full multi-prov…* |
-| `docs/V2-TRACKER.md` (1 rows) | INV-01382 *Native Microsoft/Outlook calendar support.* |
-| *+4 more source documents* | *full list via the coverage map* |
+| `docs/run-costs-and-cashflow.md` (1 rows) | INV-01454 *NOW table — the pre-first-client spend, line by line* |
+| *+3 more source documents* | *full list via the coverage map* |
 
 ### CMP-0035 · Booking-link fallback
 
@@ -1154,9 +1188,9 @@ mapping correction, not a comparison conclusion.
 |---|---|
 | **Domain** | Milla |
 | **Relationship** | **PARTIAL OVERLAP** |
-| **Inventory rows** | **824** — INV-00139–00140, INV-00246, INV-00257–00258, INV-00339–00340, INV-00367, INV-00370, INV-00375, INV-00377, INV-00391, INV-00393, INV-00420, INV-00436, INV-00443, INV-00455–00469 … +454 more ranges |
-| **Source documents** | 98 — `docs/PRODUCT-INVENTORY.md` (162) · `docs/archive/MASTER.md` (92) · `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` (53) · `docs/archive/BUILD-STATUS-26JUL.md` (50) · `docs/CORE-MAP.md` (35) · `docs/V2-TRACKER.md` (27) · `scripts/core-files.txt` (22) · `docs/MILESTONE-0-CHECKLIST.md` (21) · +90 more source documents |
-| **Stable source IDs** | `#1`, `#10`, `#101`, `#103`, `#104`, `#11`, `#111`, `#112`, `#113`, `#113b`, `#114`, `#1151`, `#1161`, `#12`, `#120`, `#127`, `#13`, `#132`, `#139`, `#140`, `#141`, `#143`, `#144`, `#149` … +196 more |
+| **Inventory rows** | **811** — INV-00139–00140, INV-00246, INV-00257–00258, INV-00339–00340, INV-00367, INV-00370, INV-00375, INV-00377, INV-00391, INV-00393, INV-00420, INV-00436, INV-00443, INV-00455–00469 … +443 more ranges |
+| **Source documents** | 96 — `docs/PRODUCT-INVENTORY.md` (162) · `docs/archive/MASTER.md` (92) · `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` (53) · `docs/archive/BUILD-STATUS-26JUL.md` (50) · `docs/CORE-MAP.md` (35) · `scripts/core-files.txt` (22) · `docs/V2-TRACKER.md` (21) · `docs/MILESTONE-0-CHECKLIST.md` (21) · +88 more source documents |
+| **Stable source IDs** | `#1`, `#10`, `#101`, `#103`, `#104`, `#11`, `#111`, `#112`, `#113`, `#113b`, `#114`, `#1151`, `#1161`, `#12`, `#120`, `#127`, `#13`, `#132`, `#139`, `#140`, `#141`, `#143`, `#144`, `#149` … +190 more |
 | **Runtime / code / schema evidence** | `apps/portal` is the Milla surface; `routes/milla.ts` and `milla-summary.ts` back it. `first-run-milla.test.ts` guards first run. Leads arrive masked and reveal on approval — the approve-then-reveal model is implemented in `approve-lead.ts`. |
 | **Founder-direction evidence** | The 22 Jul pivot is recorded in KIND-MASTER and in `docs/mv-previews/README.md`: *"Milla = the client portal (client reviews masked leads and clicks 👍 approve / ✕ pass)"*. |
 | **Historical / supersession evidence** | `docs/mv-previews/README.md` records that `milla.html` is superseded by `milla2.html`, and that `docs/previews/` holds pre-pivot portal previews. |
@@ -1171,10 +1205,10 @@ mapping correction, not a comparison conclusion.
 | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` (53 rows) | INV-17075 *🧭 THE NEW MAP — read this first (Milla&Vida pivot, founder-locked 22 Jul)* · INV-17076 *Home · What it is · Old name it replaces* · INV-17077 *⚙️ FIGSY — THE ENGINE* |
 | `docs/archive/BUILD-STATUS-26JUL.md` (50 rows) | INV-19614 *What this was: the running, item-by-item state of the Milla&Vida build — every page and feature, whether the code w…* · INV-19619 *The agreed previews: Milla = rail / Milla as the centre SPINE / leads canvas. Vida = clients list / Vida scoped to …* · INV-19620 *Milla — client console* |
 | `docs/CORE-MAP.md` (35 rows) | INV-03593 *apps/portal/src/app/(dashboard)/dashboard/billing/page.tsx (487L)* · INV-03630 *apps/api/src/routes/milla.ts* · INV-03682 *apps/api/src/lib/milla.ts* |
-| `docs/V2-TRACKER.md` (27 rows) | INV-01053 *Seven named classes of known superseded language left in deliberately* · INV-01090 *Milla — lead intelligence layer, ten named per-lead capabilities* · INV-01094 *UNIFIED DATA LAYER / shared agent brain — THE moat* |
 | `scripts/core-files.txt` (22 rows) | INV-09774 *apps/api/src/lib/milla.ts* · INV-09855 *apps/api/src/routes/milla.ts* · INV-09887 *apps/portal/src/app/(milla)/layout.tsx* |
+| `docs/V2-TRACKER.md` (21 rows) | INV-01053 *Seven named classes of known superseded language left in deliberately* · INV-01090 *Milla — lead intelligence layer, ten named per-lead capabilities* · INV-01099 *Load-bearing risks (why parked) — sprint bleed · unit economics · autonomous replies · PDL spend · Milla boundary* |
 | `docs/MILESTONE-0-CHECKLIST.md` (21 rows) | INV-04325 *+ Milla · $5 · an understood lead (intelligence layer)* · INV-04326 *+ Milla + Denise* · INV-04329 *Two engines (FIGSY outbound · Vida inbound) × two layers (Milla intelligence · Denise action), each layer +$1/quali…* |
-| *+90 more source documents* | *full list via the coverage map* |
+| *+88 more source documents* | *full list via the coverage map* |
 
 ### CMP-0037 · Milla conversational experience and the flywheel
 
@@ -1182,8 +1216,8 @@ mapping correction, not a comparison conclusion.
 |---|---|
 | **Domain** | Milla |
 | **Relationship** | **INSUFFICIENT EVIDENCE TO COMPARE** |
-| **Inventory rows** | **169** — INV-00688, INV-00694, INV-00914, INV-00926, INV-01320, INV-01559–01560, INV-01580, INV-01848, INV-03393, INV-05073, INV-05961–05964, INV-05979, INV-07360, INV-07705 … +110 more ranges |
-| **Source documents** | 46 — `docs/archive/MASTER.md` (34) · `docs/strategy/MASTER_CONTEXT.md` (13) · `docs/previews/agent-panel-conversational.html` (13) · `docs/marketing/marketing-metrics-and-iteration.md` (12) · `docs/strategy/get-kind_milla_website_preview.html` (8) · `apps/website/index.html` (8) · `docs/marketing/paid-ads-phase-plan.md` (6) · `docs/portal-v2-layout.md` (5) · +38 more source documents |
+| **Inventory rows** | **165** — INV-00688, INV-00694, INV-00914, INV-00926, INV-01320, INV-01559–01560, INV-01580, INV-01848, INV-03393, INV-05073, INV-05961–05964, INV-05979, INV-07360, INV-07705 … +107 more ranges |
+| **Source documents** | 43 — `docs/archive/MASTER.md` (34) · `docs/strategy/MASTER_CONTEXT.md` (13) · `docs/previews/agent-panel-conversational.html` (13) · `docs/marketing/marketing-metrics-and-iteration.md` (12) · `docs/strategy/get-kind_milla_website_preview.html` (8) · `apps/website/index.html` (8) · `docs/marketing/paid-ads-phase-plan.md` (6) · `docs/portal-v2-layout.md` (5) · +35 more source documents |
 | **Stable source IDs** | `#113a`, `#121`, `#442`, `#463`, `#467`, `#60`, `6b.3`, `FRT-02`, `FTA-047`, `FTA-048`, `R25`, `§3` |
 | **Runtime / code / schema evidence** | `docs/previews/milla-chat-current.html` is a design surface, not wired to code. The merged audit records the conversational flywheel as a founder direction with the repo MISSING or PARTIAL. |
 | **Founder-direction evidence** | Recorded in the merged 28 Aug audit as VERIFIED CURRENT DIRECTION with the repo missing — a writing task, not a lost truth. |
@@ -1202,7 +1236,7 @@ mapping correction, not a comparison conclusion.
 | `apps/website/index.html` (8 rows) | INV-23385 *From conversation to meeting, in 5 steps.* · INV-23386 *One conversation* · INV-23388 *She learns what good looks like* |
 | `docs/marketing/paid-ads-phase-plan.md` (6 rows) | INV-08925 *4 · £25–40 · Scale the winner only if week 3's economics held · Stop entirely if no qualified conversation came fro…* · INV-08951 *Replies → conversations* · INV-08952 *Conversations → clients* |
 | `docs/portal-v2-layout.md` (5 rows) | INV-05961 *3. Conversational Agent Setup* · INV-05962 *"What kind of companies are you trying to reach?"* · INV-05963 *Agent asks 3-4 questions, fills the config behind the scenes* |
-| *+38 more source documents* | *full list via the coverage map* |
+| *+35 more source documents* | *full list via the coverage map* |
 
 ### CMP-0038 · Meet Milla — the website page
 
@@ -1242,9 +1276,9 @@ mapping correction, not a comparison conclusion.
 |---|---|
 | **Domain** | Vida |
 | **Relationship** | **PARTIAL OVERLAP** |
-| **Inventory rows** | **482** — INV-00120, INV-00223, INV-00233, INV-00327, INV-00368, INV-00371–00374, INV-00382–00387, INV-00389–00390, INV-00398, INV-00401, INV-00414, INV-00421, INV-00427, INV-00438 … +255 more ranges |
+| **Inventory rows** | **480** — INV-00120, INV-00223, INV-00233, INV-00327, INV-00368, INV-00371–00374, INV-00382–00387, INV-00389–00390, INV-00398, INV-00401, INV-00414, INV-00421, INV-00427, INV-00438 … +254 more ranges |
 | **Source documents** | 67 — `docs/archive/BUILD-STATUS-26JUL.md` (59) · `docs/archive/MASTER.md` (43) · `docs/PRODUCT-INVENTORY.md` (42) · `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` (40) · `docs/CORE-MAP.md` (30) · `scripts/core-files.txt` (28) · `docs/strategy/get-kind_vida_post_10_client_autonomy_verification.html` (27) · `docs/KIND-MASTER.md` (17) · +59 more source documents |
-| **Stable source IDs** | `#1`, `#1073`, `#1109`, `#1129`, `#1151`, `#1159`, `#128`, `#1341`, `#165`, `#178`, `#205`, `#270`, `#280`, `#359`, `#360`, `#362`, `#369`, `#429`, `#457`, `#459`, `#461`, `#463`, `#464`, `#465` … +68 more |
+| **Stable source IDs** | `#1`, `#1073`, `#1109`, `#1129`, `#1151`, `#1159`, `#128`, `#1341`, `#165`, `#178`, `#205`, `#270`, `#280`, `#359`, `#360`, `#362`, `#369`, `#429`, `#457`, `#459`, `#461`, `#463`, `#464`, `#465` … +66 more |
 | **Runtime / code / schema evidence** | `apps/admin` is the Vida surface; `routes/operator.ts` backs it; `proof-review-vida.ts`/`proof-review-vida-ui.test.ts` cover the proof-review queue; a pending migration creates the operator settings table (#627 — *"read for months, created by nobody"*). |
 | **Founder-direction evidence** | The 22 Jul pivot: *"Vida = the operator console (WE run ICP → source → draft → approve → send → triage → book)"*. |
 | **Historical / supersession evidence** | `vida.html` is recorded as superseded by `vida2.html` in the preview README. |
@@ -1270,9 +1304,9 @@ mapping correction, not a comparison conclusion.
 |---|---|
 | **Domain** | Vida |
 | **Relationship** | **AGREES** |
-| **Inventory rows** | **168** — INV-00969–00974, INV-00976–00990, INV-00992–00999, INV-01001–01009, INV-01011, INV-01217, INV-01271, INV-01561, INV-01754, INV-01773, INV-02017, INV-03281–03282, INV-03284–03285, INV-03294 … +25 more ranges |
-| **Source documents** | 12 — `docs/archive/SESSION-HANDOFF-7JUN.md` (72) · `docs/PRODUCT-INVENTORY.md` (39) · `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` (39) · `docs/hiring/KIND-CLAUDE-CODE-BRIEF.md` (5) · `docs/KIND-MASTER.md` (3) · `docs/archive/KIND-MASTER-ARCHIVE.md` (3) · `docs/V2-TRACKER.md` (2) · `docs/FOUNDER-TRUTH-AUDIT-2026-08-28.md` (1) · +4 more source documents |
-| **Stable source IDs** | `#1`, `#10`, `#17`, `#19`, `#2`, `#205`, `#27`, `#54`, `#55`, `#56`, `#59`, `#617`, `#620`, `#625`, `#656`, `#657`, `#658`, `#659`, `#660`, `#661`, `#663`, `#664`, `#665`, `#666` … +43 more |
+| **Inventory rows** | **166** — INV-00969–00974, INV-00976–00990, INV-00992–00999, INV-01001–01009, INV-01217, INV-01271, INV-01561, INV-01754, INV-01773, INV-02017, INV-03281–03282, INV-03284–03285, INV-03294, INV-10177 … +23 more ranges |
+| **Source documents** | 12 — `docs/archive/SESSION-HANDOFF-7JUN.md` (72) · `docs/PRODUCT-INVENTORY.md` (38) · `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` (38) · `docs/hiring/KIND-CLAUDE-CODE-BRIEF.md` (5) · `docs/KIND-MASTER.md` (3) · `docs/archive/KIND-MASTER-ARCHIVE.md` (3) · `docs/V2-TRACKER.md` (2) · `docs/FOUNDER-TRUTH-AUDIT-2026-08-28.md` (1) · +4 more source documents |
+| **Stable source IDs** | `#1`, `#10`, `#17`, `#19`, `#2`, `#205`, `#27`, `#54`, `#55`, `#56`, `#59`, `#617`, `#620`, `#625`, `#656`, `#657`, `#658`, `#659`, `#660`, `#661`, `#663`, `#664`, `#665`, `#666` … +41 more |
 | **Runtime / code / schema evidence** | `routes/icps.ts:3733` claims a pass via `try_claim_proof_pass`; on refusal it opens ONE proof-review handoff before returning 409. The SQL refuses at `v_done >= 2` and states *"two passes used: a human takes over"*. A pending migration adds the handoff column: *"the exhausted prospect becomes real work, not a promise"*. |
 | **Founder-direction evidence** | ⚑ 27 Aug (PR2) — recorded in the route comment as a founder-driven change: the promise becomes a piece of work. |
 | **Historical / supersession evidence** | The comment preserves what the branch used to do (return 409 and nothing else) rather than deleting it. |
@@ -1283,8 +1317,8 @@ mapping correction, not a comparison conclusion.
 | Source | Sample INV rows |
 |---|---|
 | `docs/archive/SESSION-HANDOFF-7JUN.md` (72 rows) | INV-20937 *ARCHIVED / HISTORICAL — superseded, kept for the record only. Product LAUNCHED 18 Jun 2026. This doc is pre-launch/…* · INV-20938 *📋 K.I.N.D — SESSION HANDOFF + FULL ROADMAP (7 Jun 2026)* · INV-20939 *⛔ SUPERSEDED (8 Jun 2026) — DO NOT USE. Single source of truth is now* |
-| `docs/PRODUCT-INVENTORY.md` (39 rows) | INV-00969 *STEAL (Alta, 19 Aug) · Condition-based campaign branching — a sequence that REACTS: positive → …* · INV-00970 *STEAL (Artisan, 19 Aug) · Re-engagement + cross-sell targeting from client CRM — closed-won acc…* · INV-00971 *STEAL (Unify, 19 Aug) · Signal-triggered plays — a signal (job change, hiring spike, funding, p…* |
-| `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` (39 rows) | INV-17727 *░ STEALS — the 19 Aug handoff-bundle sweep (RULEBOOK §9: logged in red, on sight) ░* · INV-17728 *Dot · Item · Owner* · INV-17730 *656 · 🔴 · STEAL (Alta, 19 Aug) · Condition-based campaign branching — a sequence that REACTS: positive → booking pa…* |
+| `docs/PRODUCT-INVENTORY.md` (38 rows) | INV-00969 *STEAL (Alta, 19 Aug) · Condition-based campaign branching — a sequence that REACTS: positive → …* · INV-00970 *STEAL (Artisan, 19 Aug) · Re-engagement + cross-sell targeting from client CRM — closed-won acc…* · INV-00971 *STEAL (Unify, 19 Aug) · Signal-triggered plays — a signal (job change, hiring spike, funding, p…* |
+| `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` (38 rows) | INV-17727 *░ STEALS — the 19 Aug handoff-bundle sweep (RULEBOOK §9: logged in red, on sight) ░* · INV-17728 *Dot · Item · Owner* · INV-17730 *656 · 🔴 · STEAL (Alta, 19 Aug) · Condition-based campaign branching — a sequence that REACTS: positive → booking pa…* |
 | `docs/hiring/KIND-CLAUDE-CODE-BRIEF.md` (5 rows) | INV-03281 *8. File map (in the kind handoff zip)* · INV-03282 *Spec & context: KIND-CLAUDE-CODE-BRIEF.md (this) · KIND-Live-System-Blueprint.html (data-flow) · KIND-Operating-Pla…* · INV-03284 *Hub: KIND-Command-Center.html (launcher; model the admin home on it) · KIND-Compensation-Command-Center.html (super…* |
 | `docs/KIND-MASTER.md` (3 rows) | INV-01754 *Supersedes EVERYTHING.md, SESSION-HANDOFF-7JUN.md, and all earlier roadmap fragments.* · INV-01773 *This block is the cold-start handoff. Any new chat or session must read this to know* · INV-02017 *20 Aug (📝 THE HANDOFF FINDINGS LOGGED — R49, the PDL three-gate, four Fable rows and the steals sweep): Fable read …* |
 | `docs/archive/KIND-MASTER-ARCHIVE.md` (3 rows) | INV-15073 *Synthesises EVERYTHING.md, SESSION-HANDOFF-7JUN.md, and 5 Jun competitive research.* · INV-15282 *56 · ⬜ · TONY — Operations (named after founder's father) — pipeline hygiene · handoffs · CRM cleanliness. After LE…* · INV-15820 *Quarterly review: Every 3 months, reconcile this against EVERYTHING.md + SESSION-HANDOFF* |
@@ -1298,9 +1332,9 @@ mapping correction, not a comparison conclusion.
 |---|---|
 | **Domain** | Vida |
 | **Relationship** | **AGREES** |
-| **Inventory rows** | **9** — INV-00156, INV-00259, INV-01385, INV-01417, INV-01541–01545 |
-| **Source documents** | 4 — `docs/FOUNDER-TRUTH-AUDIT-2026-08-28.md` (5) · `docs/PRODUCT-RULES.md` (2) · `docs/V2-TRACKER.md` (1) · `docs/client-flow-sop.md` (1) |
-| **Stable source IDs** | `AR18`, `FI-52`, `FTA-029`, `FTA-030`, `FTA-031`, `FTA-032`, `FTA-033`, `R72` |
+| **Inventory rows** | **8** — INV-00156, INV-00259, INV-01417, INV-01541–01545 |
+| **Source documents** | 3 — `docs/FOUNDER-TRUTH-AUDIT-2026-08-28.md` (5) · `docs/PRODUCT-RULES.md` (2) · `docs/client-flow-sop.md` (1) |
+| **Stable source IDs** | `AR18`, `FTA-029`, `FTA-030`, `FTA-031`, `FTA-032`, `FTA-033`, `R72` |
 | **Runtime / code / schema evidence** | `try_claim_proof_pass` returns the pass claimed (1 or 2) or 0. *"Pass 3 is always 0."* A pass is claimed BEFORE the batch starts so a pool-only batch consumes a pass exactly as a PDL-backed one does. If a technical failure happens after a claim the pass is spent and there is **no automatic retry** — recorded as the founder's chosen model. |
 | **Founder-direction evidence** | The recovery-is-human model is attributed in the SQL to a founder choice already made for a second miss. |
 | **Historical / supersession evidence** | — (no supersession evidence visible in the sources) |
@@ -1312,7 +1346,6 @@ mapping correction, not a comparison conclusion.
 |---|---|
 | `docs/FOUNDER-TRUTH-AUDIT-2026-08-28.md` (5 rows) | INV-01541 *Pass 1 ≤20 → one refinement → Pass 2 ≤20 → stop* · INV-01542 *No Pass 3* · INV-01543 *Proof exhaustion → real operator handoff* |
 | `docs/PRODUCT-RULES.md` (2 rows) | INV-00156 *FREE ACQUISITION AND PAID DELIVERY ARE SEPARATE BUDGETS — neither may starve the other. Free proof has its own…* · INV-00259 *PROOF PROVES FIT, AND PROOF IS NOT ACTIVATION (25 Aug). ① Free proof proves TARGETING FIT, not deliverability …* |
-| `docs/V2-TRACKER.md` (1 rows) | INV-01385 *Proof Pass-2 exhaustion must create a real Vida/human handoff, not customer-facing copy alone.* |
 | `docs/client-flow-sop.md` (1 rows) | INV-01417 *THE REPLACEMENT OPERATING SEQUENCE — free proof → accepted → payment → sender → campaign → K.I.N.D GO → controlled sen* |
 
 ### CMP-0042 · Suppression, opt-out and DNC
@@ -1321,8 +1354,8 @@ mapping correction, not a comparison conclusion.
 |---|---|
 | **Domain** | Vida |
 | **Relationship** | **PARTIAL OVERLAP** |
-| **Inventory rows** | **304** — INV-00095, INV-00165, INV-00311, INV-00316, INV-00857, INV-01093, INV-01314, INV-01551, INV-01812, INV-01815, INV-01891, INV-01895, INV-01927, INV-02002 … +245 more ranges |
-| **Source documents** | 77 — `docs/archive/MASTER.md` (36) · `docs/archive/roadmap-audit-14-may-2026.md` (19) · `docs/archive/KIND_SOP.md` (18) · `docs/archive/KIND_Roadmap.md` (16) · `docs/KIND-MASTER.md` (13) · `docs/archive/KIND-MASTER-ARCHIVE.md` (12) · `docs/strategy/MASTER_CONTEXT.md` (11) · `docs/archive/CHANGELOG.md` (11) · +69 more source documents |
+| **Inventory rows** | **303** — INV-00095, INV-00165, INV-00311, INV-00316, INV-00857, INV-01093, INV-01314, INV-01551, INV-01812, INV-01815, INV-01891, INV-01895, INV-01927, INV-02002 … +244 more ranges |
+| **Source documents** | 76 — `docs/archive/MASTER.md` (36) · `docs/archive/roadmap-audit-14-may-2026.md` (19) · `docs/archive/KIND_SOP.md` (18) · `docs/archive/KIND_Roadmap.md` (16) · `docs/KIND-MASTER.md` (13) · `docs/archive/KIND-MASTER-ARCHIVE.md` (12) · `docs/strategy/MASTER_CONTEXT.md` (11) · `docs/archive/CHANGELOG.md` (11) · +68 more source documents |
 | **Stable source IDs** | `#10`, `#1086`, `#11`, `#1358`, `#377`, `#475`, `#547`, `#565`, `#58`, `#617`, `#64`, `#665`, `#673`, `#677`, `#863`, `#953`, `6.3b`, `D16`, `F10`, `F2`, `FTA-039`, `P2`, `R25`, `R4` … +7 more |
 | **Runtime / code / schema evidence** | `suppression.ts` and `consent.ts` implement it, with `consent-claims.test.ts` and `consent-email-hc4.test.ts` as guards. `docs/compliance/UPSTREAM-DSR-PROPAGATION.md` records that Hunter's `451 claimed_email` is handled in code while `400 invalid_domain` is documented and deliberately not handled. |
 | **Founder-direction evidence** | V2 §6.3 states suppression, opt-out and DNC rules always apply, and that permission from the client is not consent from the prospect. |
@@ -1341,7 +1374,7 @@ mapping correction, not a comparison conclusion.
 | `docs/archive/KIND-MASTER-ARCHIVE.md` (12 rows) | INV-15186 *Sun 14 · Legal #10–14 · ⬜ · ICO (if not done) · SR01 suppression · registered office + service address · WHOIS priv…* · INV-15403 *Compliance suppression guard — hard-coded at all 6 outreach paths* · INV-15452 *suppressed entirely until a branded TRACKING_URL/API_URL is set (rather* |
 | `docs/strategy/MASTER_CONTEXT.md` (11 rows) | INV-07743 *Employer-floor suppression exists and is checked in sourcing/send paths.* · INV-07748 *RFC8058 unsubscribe + STOP/body opt-out routes converge into a global suppression structure.* · INV-07760 *HC-1 — suppression email normalisation* |
 | `docs/archive/CHANGELOG.md` (11 rows) | INV-19917 *Consented — consent_given status* · INV-19918 *In FIGSY — consent_given or consent_sent + Apollo badge* · INV-19921 *CampaignMicroBar component on consented leads: 3-segment progress bar derived from outreach_sent_at and crm_synced …* |
-| *+69 more source documents* | *full list via the coverage map* |
+| *+68 more source documents* | *full list via the coverage map* |
 
 ### CMP-0043 · Vida programme cockpit
 
@@ -1437,9 +1470,9 @@ mapping correction, not a comparison conclusion.
 |---|---|
 | **Domain** | Website / public truth |
 | **Relationship** | **PARTIAL OVERLAP** |
-| **Inventory rows** | **134** — INV-01173, INV-01211, INV-01323, INV-01368, INV-01389, INV-01566, INV-02704–02713, INV-02715–02727, INV-02729–02730, INV-02831–02835, INV-02837–02868, INV-02870–02871, INV-02873–02877, INV-02879–02887 … +42 more ranges |
-| **Source documents** | 22 — `docs/CASHFLOW-LAB.html` (25) · `docs/hiring/KIND-team-pnl-calculator.html` (22) · `apps/website/pipeline-calculator.html` (20) · `docs/hiring/KIND-partner-calculator.html` (13) · `docs/archive/MASTER.md` (9) · `docs/archive/V2-NARRATIVE-2026-08-21.md` (8) · `docs/hiring/SELLER-ENGINE-MAP.md` (6) · `docs/archive/KIND-MASTER-ARCHIVE.md` (6) · +14 more source documents |
-| **Stable source IDs** | `#17b`, `#46`, `#6`, `#61`, `#61a`, `#61f`, `7.2`, `FI-35`, `FI-56`, `FTA-054`, `R31`, `acq`, `aerate`, `arpu`, `c_acct`, `c_ch`, `c_ico`, `c_ins`, `c_overseas`, `c_soft`, `churn`, `churn0`, `churn1`, `clients` … +38 more |
+| **Inventory rows** | **131** — INV-01173, INV-01211, INV-01323, INV-01368, INV-01566, INV-02704–02713, INV-02715–02727, INV-02729–02730, INV-02831–02835, INV-02837–02868, INV-02870–02871, INV-02873–02877, INV-02879–02887, INV-02889–02890 … +39 more ranges |
+| **Source documents** | 20 — `docs/CASHFLOW-LAB.html` (25) · `docs/hiring/KIND-team-pnl-calculator.html` (22) · `apps/website/pipeline-calculator.html` (20) · `docs/hiring/KIND-partner-calculator.html` (13) · `docs/archive/MASTER.md` (9) · `docs/archive/V2-NARRATIVE-2026-08-21.md` (8) · `docs/hiring/SELLER-ENGINE-MAP.md` (6) · `docs/archive/KIND-MASTER-ARCHIVE.md` (6) · +12 more source documents |
+| **Stable source IDs** | `#17b`, `#46`, `#6`, `#61`, `#61a`, `#61f`, `7.2`, `FI-35`, `FTA-054`, `acq`, `aerate`, `arpu`, `c_acct`, `c_ch`, `c_ico`, `c_ins`, `c_overseas`, `c_soft`, `churn`, `churn0`, `churn1`, `clients`, `close`, `csm` … +36 more |
 | **Runtime / code / schema evidence** | `apps/website/pipeline-calculator.html` and the calculator inside `pricing.html` both default to `leads=300`, `deal=25000`, `reply=8`, `meeting=40`, `close=25` and display a $720,000 figure. |
 | **Founder-direction evidence** | FI-35 records a client-facing **programme** calculator as a direction, bound by R69/R71's no-guarantee discipline. |
 | **Historical / supersession evidence** | — (no supersession evidence visible in the sources) |
@@ -1457,7 +1490,7 @@ mapping correction, not a comparison conclusion.
 | `docs/archive/V2-NARRATIVE-2026-08-21.md` (8 rows) | INV-18143 *PHASE 1 — Foundations (the ROI ladder, cheapest + biggest first)* · INV-18144 *Rung · What · Effort · ROI* · INV-18145 *① Context / RAG ← start here* |
 | `docs/hiring/SELLER-ENGINE-MAP.md` (6 rows) | INV-03189 *"A live calculator for our teams. their own portal. all their legal contracts. comp plan. HR documents."* · INV-03194 *Each portal holds: live comp calculator · comp plan · legal contracts + HR docs · their book (clients) · earnings/p…* · INV-03200 *Command Centre = reference & compliance; owns tax rules, deadlines, calculators, compliance checklists, documents, …* |
 | `docs/archive/KIND-MASTER-ARCHIVE.md` (6 rows) | INV-15100 *Strategic read: Different buyer (appointment-driven services). Not direct competition. BUT: their messaging (ROI ca…* · INV-15134 *(dashboards, trackers, forms, portals, calculators) that runs on monday's infra, connects to* · INV-15286 *61 · ⬜ · Mobile app (iOS + Android) — if MRR >£8K. · Competitive hygiene. · Month 3+.* |
-| *+14 more source documents* | *full list via the coverage map* |
+| *+12 more source documents* | *full list via the coverage map* |
 
 ### CMP-0047 · Website money surface — 22 pages state $4
 
@@ -1465,9 +1498,9 @@ mapping correction, not a comparison conclusion.
 |---|---|
 | **Domain** | Website / public truth |
 | **Relationship** | **DUPLICATE EXPRESSION** |
-| **Inventory rows** | **477** — INV-00691, INV-01058, INV-01060, INV-01727, INV-01830, INV-01836, INV-04377, INV-04380, INV-04386, INV-04395, INV-04455, INV-07703, INV-08118, INV-08173 … +116 more ranges |
-| **Source documents** | 38 — `docs/marketing/DAILY-PLAYBOOK.md` (57) · `docs/marketing/founder-content-playbook.md` (52) · `apps/website/solutions.html` (29) · `apps/website/about.html` (27) · `apps/website/nexus.html` (24) · `apps/website/support.html` (20) · `apps/website/drop-09.html` (19) · `apps/website/drop-01.html` (18) · +30 more source documents |
-| **Stable source IDs** | `#1`, `#117`, `#122`, `#2`, `#3`, `#47`, `#883`, `#93`, `R37` |
+| **Inventory rows** | **204** — INV-00691, INV-01058, INV-01060, INV-01830, INV-01836, INV-04377, INV-04380, INV-04395, INV-04455, INV-09302, INV-09333, INV-10316, INV-10390, INV-10682 … +65 more ranges |
+| **Source documents** | 24 — `apps/website/solutions.html` (29) · `apps/website/about.html` (27) · `apps/website/nexus.html` (24) · `apps/website/support.html` (20) · `apps/website/vs-hiring-an-sdr.html` (17) · `docs/previews/marketing-the-drop.html` (15) · `apps/website/figsy.html` (15) · `apps/website/help-centre.html` (14) · +16 more source documents |
+| **Stable source IDs** | `#1`, `#117`, `#122`, `#3`, `#47`, `#883`, `#93`, `R37` |
 | **Runtime / code / schema evidence** | All nine Drop pages plus pricing, index, milla, vida, figsy, nexus, solutions, about, demo, support, help-centre, the-drop and vs-hiring-an-sdr state `$4`; most also state `$299`. |
 | **Founder-direction evidence** | Method rule 7: *"Money sentences are interpolated, never typed. Every price a client can read derives from the constants in `@kind/shared`."* |
 | **Historical / supersession evidence** | — (no supersession evidence visible in the sources) |
@@ -1477,15 +1510,15 @@ mapping correction, not a comparison conclusion.
 
 | Source | Sample INV rows |
 |---|---|
-| `docs/marketing/DAILY-PLAYBOOK.md` (57 rows) | INV-08276 *Thu 14 · POST 2 (Every reply, answered) — Thursday is the anchor day (W1) and stays the anchor day forever · gen-dr…* · INV-08282 *Tue 19 · POST 3 (Pay for results, not promises) · gen-drop-03-hero.png + get-kind.com/drop-03 · 10 min* · INV-08283 *Thu 21 · POST 4 (Why your emails never arrived) ~~+ send newsletter #1~~ (parked, R29) · gen-drop-04-hero.png + get…* |
-| `docs/marketing/founder-content-playbook.md` (52 rows) | INV-08649 *1 · The hour you never get back · Pillar: Problem · → https://get-kind.com/drop-02* · INV-08650 *Attach: gen-drop-02-hero.png — the episode's own artwork, so the feed and the site look like one brand. Save it fro…* · INV-08651 *The sharpest hour of your day is going into list-building.* |
 | `apps/website/solutions.html` (29 rows) | INV-23543 *Solutions — done-for-you outbound for your industry / K.I.N.D* · INV-23544 *We run it. You approve.* · INV-23546 *Fintech & Payments Trust-first outreach to finance buyers SaaS & Technology The funnel stays full while you ship Ag…* |
 | `apps/website/about.html` (27 rows) | INV-22941 *We run it. You approve.* · INV-22943 *Fintech & Payments Trust-first outreach to finance buyers SaaS & Technology The funnel stays full while you ship Ag…* · INV-22944 *A sales rep who got tired of the noise.* |
 | `apps/website/nexus.html` (24 rows) | INV-23424 *Nexus NEW Product &#x25BE; The product · your AI agents FIGSY Live The engine — finds, writes, follows up & books M…* · INV-23425 *Impact. The same lessons get re-learned again and again. Nothing accrues. Your outreach never gets smarter.* · INV-23426 *One private brain. Yours alone.* |
 | `apps/website/support.html` (20 rows) | INV-23589 *We run it. You approve.* · INV-23591 *Fintech & Payments Trust-first outreach to finance buyers SaaS & Technology The funnel stays full while you ship Ag…* · INV-23592 *Three ways to reach us.* |
-| `apps/website/drop-09.html` (19 rows) | INV-23302 *Drop 09 — The follow-up that knows the date · The Drop · K.I.N.D* · INV-23303 *We run it. You approve.* · INV-23305 *Fintech & Payments Trust-first outreach to finance buyers SaaS & Technology The funnel stays full while you ship Ag…* |
-| `apps/website/drop-01.html` (18 rows) | INV-23136 *Drop 01 — Filling roles while you sleep · The Drop · K.I.N.D* · INV-23137 *We run it. You approve.* · INV-23139 *Fintech & Payments Trust-first outreach to finance buyers SaaS & Technology The funnel stays full while you ship Ag…* |
-| *+30 more source documents* | *full list via the coverage map* |
+| `apps/website/vs-hiring-an-sdr.html` (17 rows) | INV-23842 *A managed outbound team vs hiring an SDR — K.I.N.D* · INV-23843 *We run it. You approve.* · INV-23845 *Fintech & Payments Trust-first outreach to finance buyers SaaS & Technology The funnel stays full while you ship Ag…* |
+| `docs/previews/marketing-the-drop.html` (15 rows) | INV-21664 *What we just shipped.* · INV-21665 *Not a roadmap of promises — a record of what's real, live, and in your hands. We ship constantly, and every drop is…* · INV-21666 *Drop 01 · June 2026* |
+| `apps/website/figsy.html` (15 rows) | INV-23325 *Nexus NEW Product &#x25BE; The product · your AI agents FIGSY Live The engine — finds, writes, follows up & books M…* · INV-23326 *Pipeline runs in the background while you build* · INV-23329 *You need pipeline without headcount risk.* |
+| `apps/website/help-centre.html` (14 rows) | INV-23348 *Help Centre — K.I.N.D* · INV-23349 *Nexus NEW Product &#x25BE; The product · your AI agents FIGSY Live The engine — finds, writes, follows up & books M…* · INV-23350 *We shape your Ideal Customer Profile with you* |
+| *+16 more source documents* | *full list via the coverage map* |
 
 ### CMP-0048 · Onboarding and demo surfaces
 
@@ -1493,8 +1526,8 @@ mapping correction, not a comparison conclusion.
 |---|---|
 | **Domain** | Website / public truth |
 | **Relationship** | **PARTIAL OVERLAP** |
-| **Inventory rows** | **653** — INV-00058, INV-00167, INV-00272, INV-00394–00397, INV-00399–00400, INV-00403–00413, INV-00415–00419, INV-00422–00426, INV-00428–00434, INV-00439, INV-00445–00450, INV-00452–00453, INV-00640, INV-00661 … +273 more ranges |
-| **Source documents** | 61 — `docs/onboarding-tour-buildplan.md` (77) · `docs/drafts/ONBOARDING_V2.md` (59) · `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` (59) · `docs/PRODUCT-INVENTORY.md` (55) · `docs/client-onboarding-training.html` (51) · `docs/archive/MASTER.md` (39) · `docs/previews/welcome-concepts.html` (22) · `docs/demo-walkthrough-script.html` (21) · +53 more source documents |
+| **Inventory rows** | **635** — INV-00058, INV-00167, INV-00272, INV-00394–00397, INV-00399–00400, INV-00403–00413, INV-00415–00419, INV-00422–00426, INV-00428–00434, INV-00439, INV-00445–00450, INV-00452–00453, INV-00640, INV-00661 … +270 more ranges |
+| **Source documents** | 61 — `docs/onboarding-tour-buildplan.md` (77) · `docs/drafts/ONBOARDING_V2.md` (59) · `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` (59) · `docs/PRODUCT-INVENTORY.md` (55) · `docs/archive/MASTER.md` (39) · `docs/client-onboarding-training.html` (34) · `docs/previews/welcome-concepts.html` (22) · `docs/demo-walkthrough-script.html` (21) · +53 more source documents |
 | **Stable source IDs** | `#100`, `#1057`, `#1167`, `#1178`, `#1240`, `#129`, `#131`, `#135`, `#174`, `#175`, `#192`, `#2`, `#202`, `#211`, `#212`, `#250`, `#26`, `#261`, `#27`, `#270`, `#28`, `#280`, `#29`, `#3` … +85 more |
 | **Runtime / code / schema evidence** | `routes/onboarding.ts` backs the product flow; `apps/website/demo.html` and `docs/demo-walkthrough-script.html` are the public surfaces; `docs/client-onboarding-training.html` is the training artifact; `onboarding-tour-buildplan.md` is the plan. |
 | **Founder-direction evidence** | NO EXPLICIT CURRENT FOUNDER DIRECTION FOUND |
@@ -1509,8 +1542,8 @@ mapping correction, not a comparison conclusion.
 | `docs/drafts/ONBOARDING_V2.md` (59 rows) | INV-09533 *Onboarding v2 + Loom slots + day-0/3/7 email sequence* · INV-09534 *🚧 DRAFT — FOUNDER REVIEW REQUIRED. DO NOT ACTIVATE.* · INV-09535 *This is the draft for Part 1 item #30 (Onboarding v2 + Loom slots + day-0/3/7 email sequence).* |
 | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` (59 rows) | INV-17069 *Rebuilt clean 25 Jun 2026 (code-verified walkthrough, evidence in LIVE-FEATURE-WALK.md); re-grouped by agent 21 Jul…* · INV-17134 *░ 📮 THE SENDING SPINE — the reason we cannot onboard a paying client (26 Jul · #547–#560) …* · INV-17135 *The finding, in one paragraph. apps/api/src/lib/figsy.ts:26 is const FROM = COLD_FROM — a module-level constant, us…* |
 | `docs/PRODUCT-INVENTORY.md` (55 rows) | INV-00394 *[ENGINE · A1] The send path resolves the account's own inbox — or does not send — the FROM modu…* · INV-00395 *[ENGINE · A2] A transport that can send AS a client mailbox — the physical gap behind #547: Res…* · INV-00396 *[ENGINE · A3] Instantly = OUR outreach, run INSIDE the product — Client Zero. ⛓️ "* This supers…* |
-| `docs/client-onboarding-training.html` (51 rows) | INV-10076 *Your K.I.N.D onboarding — the 20-minute walkthrough* · INV-10077 *Everything you need to work your pipeline* · INV-10078 *Your walkthrough, and the page to come back to afterwards. About twenty minutes.* |
 | `docs/archive/MASTER.md` (39 rows) | INV-10299 *[ ] Onboarding run-through (private, pre-Loom) — onboard yourself, note every friction point → Claude fixes → THEN …* · INV-10339 *[ ] YouTube channel — set up, plan 10 videos before recording one. Loom onboarding videos do double duty (record on…* · INV-10355 *[ ] Build onboarding v2 + Loom embed slots — (1) post-onboard Welcome screen + 3 action buttons, (2) inline Loom ca…* |
+| `docs/client-onboarding-training.html` (34 rows) | INV-10076 *Your K.I.N.D onboarding — the 20-minute walkthrough* · INV-10077 *Everything you need to work your pipeline* · INV-10078 *Your walkthrough, and the page to come back to afterwards. About twenty minutes.* |
 | `docs/previews/welcome-concepts.html` (22 rows) | INV-21818 *Onboarding Welcome — 3 concepts (item 99)* · INV-21819 *Onboarding welcome — three directions* · INV-21820 *Same flow (FIGSY greets, asks your company name first, 4-step progress). The difference is the feel . Pick one.* |
 | `docs/demo-walkthrough-script.html` (21 rows) | INV-10137 *K.I.N.D — Demo Walkthrough & Talk Track* · INV-10138 *Demo Walkthrough & Talk Track* · INV-10139 *The full client-facing demo, broken into elements — what's on screen, exactly what to say, and why it lands. Use it…* |
 | *+53 more source documents* | *full list via the coverage map* |
@@ -1553,9 +1586,9 @@ mapping correction, not a comparison conclusion.
 |---|---|
 | **Domain** | Money models |
 | **Relationship** | **PARTIAL OVERLAP** |
-| **Inventory rows** | **130** — INV-00085, INV-00335, INV-00345, INV-01434, INV-01607, INV-01616, INV-02122, INV-02190, INV-02487, INV-02650–02652, INV-02654–02664, INV-02666–02672, INV-02675–02679, INV-02682–02683 … +17 more ranges |
-| **Source documents** | 11 — `docs/CASHFLOW-LAB.html` (116) · `docs/KIND-MASTER.md` (5) · `docs/PRODUCT-RULES.md` (1) · `docs/LAUNCH-PAD.md` (1) · `docs/PRODUCT-INVENTORY.md` (1) · `docs/run-costs-and-cashflow.md` (1) · `docs/DOC-MAP.md` (1) · `docs/MILESTONE-0-CHECKLIST.md` (1) · +3 more source documents |
-| **Stable source IDs** | `#547`, `#556`, `PACK_LEADS`, `PR6`, `THRESHOLD`, `fact 1`, `hi`, `lo`, `§5` |
+| **Inventory rows** | **129** — INV-00085, INV-00335, INV-00345, INV-01434, INV-01607, INV-01616, INV-02122, INV-02190, INV-02487, INV-02650–02652, INV-02654–02664, INV-02666–02672, INV-02675–02679, INV-02682–02683 … +16 more ranges |
+| **Source documents** | 11 — `docs/CASHFLOW-LAB.html` (115) · `docs/KIND-MASTER.md` (5) · `docs/PRODUCT-RULES.md` (1) · `docs/LAUNCH-PAD.md` (1) · `docs/PRODUCT-INVENTORY.md` (1) · `docs/run-costs-and-cashflow.md` (1) · `docs/DOC-MAP.md` (1) · `docs/MILESTONE-0-CHECKLIST.md` (1) · +3 more source documents |
+| **Stable source IDs** | `#547`, `#556`, `PR6`, `THRESHOLD`, `fact 1`, `hi`, `lo`, `§5` |
 | **Runtime / code / schema evidence** | `docs/CASHFLOW-LAB.html` holds 27 editable inputs and hard-codes `PACK_PRICE=299`, `PACK_LEADS=100`, `PACK_SOURCE=200`, `THRESHOLD=120600` (£90,000 at $1.34), `lo=67000`, `hi=335000` in its own JavaScript rather than importing `@kind/shared`. |
 | **Founder-direction evidence** | #556 designates it the money model of record. |
 | **Historical / supersession evidence** | — (no supersession evidence visible in the sources) |
@@ -1565,7 +1598,7 @@ mapping correction, not a comparison conclusion.
 
 | Source | Sample INV rows |
 |---|---|
-| `docs/CASHFLOW-LAB.html` (116 rows) | INV-02650 *Can we scale? — M&V money model* · INV-02651 *Can we scale?* · INV-02652 *Two needles at the top, every cost line editable below. Change any number and the whole model — break-even, the 1-t…* |
+| `docs/CASHFLOW-LAB.html` (115 rows) | INV-02650 *Can we scale? — M&V money model* · INV-02651 *Can we scale?* · INV-02652 *Two needles at the top, every cost line editable below. Change any number and the whole model — break-even, the 1-t…* |
 | `docs/KIND-MASTER.md` (5 rows) | INV-01607 *🧭 Four-doc contract: KIND-MASTER (this doc) = strategy, decisions, why, dated session log · LAUNCH-PAD = daily exec…* · INV-01616 *The cost floor is $352/month all-in — $146 platform + $206 company. ⛓️ (This bullet read "~$457/month, not ~$190" o…* · INV-02122 *30 Jul (💸 INSTANTLY-FIRST — and the tier we were about to buy was the wrong one, on the vendor's own bad advice): f…* |
 | `docs/PRODUCT-RULES.md` (1 rows) | INV-00085 *CASHFLOW-LAB.html is the money model of record, in the repo — two needles at the top, every cost line an edita…* |
 | `docs/LAUNCH-PAD.md` (1 rows) | INV-00335 *Cost floor is $352/mo all-in — $146 platform + $206 company* |
@@ -1581,9 +1614,9 @@ mapping correction, not a comparison conclusion.
 |---|---|
 | **Domain** | Money models |
 | **Relationship** | **PARTIAL OVERLAP** |
-| **Inventory rows** | **97** — INV-00086, INV-01140, INV-01339, INV-01361, INV-01435–01437, INV-01439–01440, INV-01445–01446, INV-01448, INV-01450–01453, INV-01455–01459, INV-01463–01465, INV-01469–01470, INV-01472–01478, INV-01481–01482 … +28 more ranges |
-| **Source documents** | 18 — `docs/run-costs-and-cashflow.md` (41) · `docs/archive/MASTER.md` (19) · `docs/KIND-MASTER.md` (14) · `docs/V2-TRACKER.md` (3) · `docs/reports/PRODUCT-AUDIT-1AUG.md` (3) · `docs/marketing/GTM-STRATEGY.md` (3) · `docs/marketing/MARKETING-PLAN.md` (2) · `docs/archive/AUDIT-24JUN-RECONCILIATION.md` (2) · +10 more source documents |
-| **Stable source IDs** | `#1`, `#420`, `FI-06`, `FI-28`, `PR7`, `§0`, `§1` |
+| **Inventory rows** | **93** — INV-00086, INV-01140, INV-01361, INV-01435–01437, INV-01439–01440, INV-01445–01446, INV-01448, INV-01450–01453, INV-01456–01459, INV-01463–01465, INV-01469–01470, INV-01472–01478, INV-01481–01482, INV-01484–01487 … +27 more ranges |
+| **Source documents** | 18 — `docs/run-costs-and-cashflow.md` (38) · `docs/archive/MASTER.md` (19) · `docs/KIND-MASTER.md` (14) · `docs/reports/PRODUCT-AUDIT-1AUG.md` (3) · `docs/marketing/GTM-STRATEGY.md` (3) · `docs/V2-TRACKER.md` (2) · `docs/marketing/MARKETING-PLAN.md` (2) · `docs/archive/AUDIT-24JUN-RECONCILIATION.md` (2) · +10 more source documents |
+| **Stable source IDs** | `#1`, `#420`, `FI-28`, `PR7`, `§0`, `§1` |
 | **Runtime / code / schema evidence** | `cost-floor.ts` holds the $352/mo all-in floor ($146 platform + $206 company), guarded by `cost-floor-drift.test.ts`. doc-lint names `run-costs-and-cashflow.md §0` as the single mirror of the code price. |
 | **Founder-direction evidence** | NO EXPLICIT CURRENT FOUNDER DIRECTION FOUND |
 | **Historical / supersession evidence** | §6's break-even was written on a retired ~$40/mo inbox assumption; §5 now says ~$8. Both are in the document. |
@@ -1593,12 +1626,12 @@ mapping correction, not a comparison conclusion.
 
 | Source | Sample INV rows |
 |---|---|
-| `docs/run-costs-and-cashflow.md` (41 rows) | INV-01435 *CORRECTED — the floor is $352/month all-in ($146 platform + $206 company)* · INV-01436 *The $138 "verified" row was overstated by $87/mo against a real $50.59* · INV-01437 *The 3 Aug cuts and the deliberate keeps (Google Workspace +$28, Instantly $37)* |
+| `docs/run-costs-and-cashflow.md` (38 rows) | INV-01435 *CORRECTED — the floor is $352/month all-in ($146 platform + $206 company)* · INV-01436 *The $138 "verified" row was overstated by $87/mo against a real $50.59* · INV-01437 *The 3 Aug cuts and the deliberate keeps (Google Workspace +$28, Instantly $37)* |
 | `docs/archive/MASTER.md` (19 rows) | INV-10266 *Costs + cashflow rebuilt on actual numbers — docs/run-costs-and-cashflow.md §5b* · INV-11061 *Admin living docs viewer* · INV-11962 *Admin living docs viewer — /docs/ renders MASTER, run-costs, legal as markdown in admin* |
 | `docs/KIND-MASTER.md` (14 rows) | INV-02238 *10 Jul (cashflow doc re-verified against LIVE provider dashboards + code): Fable re-checked run-costs-and-cashflow.…* · INV-02365 *cost-floor headline ("~$146") is the PLATFORM half only — the all-in floor is $352* · INV-02366 *($146 platform + $206 company, cost-floor.ts) — and the migrations block says the Supabase* |
-| `docs/V2-TRACKER.md` (3 rows) | INV-01140 *Still owed by the founder — confirm ~$40/client/mo Smartlead figure; hand over Instantly credentials* · INV-01339 *Apollo economics planning case. 1,050 contacted · Apollo $65/mo · 2,500 credits · 1 contactable…* · INV-01361 *Contribution-margin protection ≈ 70%, eventually a real money guard, not spreadsheet commentary…* |
 | `docs/reports/PRODUCT-AUDIT-1AUG.md` (3 rows) | INV-05404 *docs/run-costs-and-cashflow.md §1 says it outright: "This section was stale until 25 Jul — it still described the r…* · INV-05485 *DOC-MAP.md:37 describes run-costs-and-cashflow.md as "§0 = the locked per-qualified-lead ladder". That doc's §1 has…* · INV-05491 *DOC-MAP.md:8 CI claim, :22 core count, :37 money model* |
 | `docs/marketing/GTM-STRATEGY.md` (3 rows) | INV-08042 *10 clients × 20 approvals* · INV-08043 *1 client × 200 approvals* · INV-08044 *4 clients × 200* |
+| `docs/V2-TRACKER.md` (2 rows) | INV-01140 *Still owed by the founder — confirm ~$40/client/mo Smartlead figure; hand over Instantly credentials* · INV-01361 *Contribution-margin protection ≈ 70%, eventually a real money guard, not spreadsheet commentary…* |
 | `docs/marketing/MARKETING-PLAN.md` (2 rows) | INV-08164 *M4 · Check marketing spend against the cost floor · The floor is $352/mo (the lab's fixed boxes at its defaults). b…* · INV-08245 *Total added to the cost floor* |
 | `docs/archive/AUDIT-24JUN-RECONCILIATION.md` (2 rows) | INV-20308 *run-costs-and-cashflow.md* · INV-20309 *run-costs · Resend cost conflict $20 (L30) vs $15.46 (L206) · internal* |
 | *+10 more source documents* | *full list via the coverage map* |
@@ -1724,9 +1757,9 @@ mapping correction, not a comparison conclusion.
 |---|---|
 | **Domain** | Launch |
 | **Relationship** | **DIRECT CONFLICT** |
-| **Inventory rows** | **53** — INV-00178, INV-00242, INV-00244, INV-00253, INV-00290–00293, INV-00295–00297, INV-00299–00301, INV-00322, INV-00332, INV-01129, INV-01610–01611, INV-01613, INV-01766, INV-01993 … +23 more ranges |
-| **Source documents** | 13 — `docs/LAUNCH-PAD.md` (12) · `docs/marketing/GTM-STRATEGY.md` (11) · `docs/archive/LAUNCH-PAD-2026-08-21.md` (6) · `docs/KIND-MASTER.md` (5) · `docs/strategy/get-kind_crm_expansion_reengagement_feasibility.html` (5) · `docs/PRODUCT-RULES.md` (4) · `docs/marketing/MARKETING-PLAN.md` (3) · `docs/archive/KIND-MASTER-ARCHIVE.md` (2) · +5 more source documents |
-| **Stable source IDs** | `#621`, `O9`, `P47`, `R14`, `R21`, `R27`, `R55`, `R57`, `R66`, `T1`, `T10`, `T11`, `T12`, `T2`, `T3`, `T4`, `T6`, `T7`, `T8` |
+| **Inventory rows** | **41** — INV-00178, INV-00242, INV-00244, INV-00253, INV-00290–00293, INV-00295–00297, INV-00322, INV-00332, INV-01129, INV-01610–01611, INV-01613, INV-01766, INV-01993, INV-03523 … +19 more ranges |
+| **Source documents** | 13 — `docs/LAUNCH-PAD.md` (9) · `docs/archive/LAUNCH-PAD-2026-08-21.md` (6) · `docs/KIND-MASTER.md` (5) · `docs/strategy/get-kind_crm_expansion_reengagement_feasibility.html` (5) · `docs/PRODUCT-RULES.md` (4) · `docs/marketing/MARKETING-PLAN.md` (3) · `docs/marketing/GTM-STRATEGY.md` (2) · `docs/archive/KIND-MASTER-ARCHIVE.md` (2) · +5 more source documents |
+| **Stable source IDs** | `#621`, `O9`, `P47`, `R14`, `R27`, `R55`, `R57`, `R66`, `T1`, `T2`, `T3`, `T4`, `T6`, `T7`, `T8` |
 | **Runtime / code / schema evidence** | No launch-date constant in code. `launch-target-fence.route.test.ts` and `launch-countries.test.ts` fence launch behaviour, not a date. |
 | **Founder-direction evidence** | R57 (20 Aug) locks 25 August, unconditional: *"i cant afford to wait longer. So we launch regardless."* O9 is the founder's own 31 Aug stop-line, recorded as **not** a product date. |
 | **Historical / supersession evidence** | KIND-MASTER's START HERE block is marked ⛓️ *RECONCILED 21 Aug — this block was written 26 Jul and its FRAMING is superseded.* Archive LAUNCH-PAD-2026-08-21 carries the same R57 banner. |
@@ -1736,13 +1769,13 @@ mapping correction, not a comparison conclusion.
 
 | Source | Sample INV rows |
 |---|---|
-| `docs/LAUNCH-PAD.md` (12 rows) | INV-00290 *PASS 1 IS NOT COMPLETE — do not mark it green on the 25 Aug live attempt. That run reserved 20 …* · INV-00291 *PASS 2 IS NOT COMPLETE — required journey end to end: pass 1 → refinement → exact pass-2 search…* · INV-00292 *PROOF TERMINAL STATE — BUILT 26 Aug (partial). The desk decided *"still finding"* from a URL fl…* |
-| `docs/marketing/GTM-STRATEGY.md` (11 rows) | INV-08037 *Built with the founder 12 Aug. Three decisions set the shape: (1) warm network now, dogfood cold from ~25 Aug · (2)…* · INV-08058 *Stage 0 · NOW → ~25 Aug — warm only* · INV-08059 *Warm-100 list, 5 personally-written messages a day* |
+| `docs/LAUNCH-PAD.md` (9 rows) | INV-00290 *PASS 1 IS NOT COMPLETE — do not mark it green on the 25 Aug live attempt. That run reserved 20 …* · INV-00291 *PASS 2 IS NOT COMPLETE — required journey end to end: pass 1 → refinement → exact pass-2 search…* · INV-00292 *PROOF TERMINAL STATE — BUILT 26 Aug (partial). The desk decided *"still finding"* from a URL fl…* |
 | `docs/archive/LAUNCH-PAD-2026-08-21.md` (6 rows) | INV-18337 *🚀 R57 (20 Aug): WE LAUNCH 25 AUGUST REGARDLESS OF STATE. Original date 31 May — the slip is on the record at the fo…* · INV-18339 *No dates on this page. The founder locked the outside edge — 31 Aug — and the order below is the order we work.* · INV-18354 *C9 · 🗓️ A14 — SEND DAY: execute docs/SEND-DAY-RUNBOOK.md, alone · 🧍 · 25 Aug* |
 | `docs/KIND-MASTER.md` (5 rows) | INV-01610 *The launch date is 25 AUGUST — R57 (20 Aug), unconditional: "i cant afford to wait longer. So we launch regardless …* · INV-01611 *31 Aug is NOT the launch date and is NOT the deadline driving this block. It is the founder's own standing stop-lin…* · INV-01613 *Written 26 Jul, in the founder's words: "on 31 aug if this is not all done i stop." That was the outside edge as of…* |
 | `docs/strategy/get-kind_crm_expansion_reengagement_feasibility.html` (5 rows) | INV-22088 *Planned action point: Post-launch — 25 August 2026.* · INV-22145 *12. Post-launch action — 25 August 2026* · INV-22146 *Run this read-only Claude Code verification after launch. The outcome should be an engineering decision document, n…* |
 | `docs/PRODUCT-RULES.md` (4 rows) | INV-00178 *31 Aug is the outside edge.* · INV-00242 *REAL CALENDAR BOOKING IS LAUNCH-REQUIRED — the client's calendar, written by us, visible to us, before 25 Aug.…* · INV-00244 *WE LAUNCH 25 AUGUST REGARDLESS OF STATE — and the slip from 31 May is ON THE RECORD. The original launch day w…* |
 | `docs/marketing/MARKETING-PLAN.md` (3 rows) | INV-08123 *Anything ever sent* · INV-08249 *Cold outreach becomes self-serving once the mailboxes warm (~25 Aug). That is the third Core Four engine switching …* · INV-08251 *But nothing sends before the ladder. Warm-up ends ~25 Aug. The newsletter is a different system on a different doma…* |
+| `docs/marketing/GTM-STRATEGY.md` (2 rows) | INV-08037 *Built with the founder 12 Aug. Three decisions set the shape: (1) warm network now, dogfood cold from ~25 Aug · (2)…* · INV-08090 *Cold outreach is unproven at our end. Nothing has ever been sent. Send-day (~25 Aug) is a real risk event, not a fo…* |
 | `docs/archive/KIND-MASTER-ARCHIVE.md` (2 rows) | INV-15398 *Launch date: Fri 19 Jun (firm, 12-day countdown).* · INV-15559 *Backup plan · If warmup not ready, shift launch date to Mon 22 (but don't) — should be ready · EOD* |
 | *+5 more source documents* | *full list via the coverage map* |
 
@@ -1752,9 +1785,9 @@ mapping correction, not a comparison conclusion.
 |---|---|
 | **Domain** | Launch |
 | **Relationship** | **DUPLICATE EXPRESSION** |
-| **Inventory rows** | **234** — INV-00002, INV-00009, INV-00030, INV-00034, INV-00040, INV-00048, INV-00064, INV-00279–00282, INV-00284–00286, INV-00289, INV-00302, INV-00304–00305, INV-00307, INV-00309–00310 … +100 more ranges |
-| **Source documents** | 20 — `docs/archive/LAUNCH-PAD-2026-08-21.md` (103) · `docs/KIND-MASTER.md` (38) · `docs/LAUNCH-PAD.md` (33) · `docs/archive/SYSTEM-HEALTH-AUDIT.md` (15) · `docs/V2-TRACKER.md` (8) · `CLAUDE.md` (7) · `docs/archive/V2-NARRATIVE-2026-08-21.md` (6) · `docs/README.md` (5) · +12 more source documents |
-| **Stable source IDs** | `#1002`, `#1269`, `#1302`, `#1353`, `#1355`, `#1421`, `#1427`, `#198`, `#211`, `#283`, `#293`, `#298`, `#301`, `#323`, `#350`, `#383`, `#413`, `#427`, `#450`, `#475`, `#511a`, `#511a–f`, `#547`, `#548` … +69 more |
+| **Inventory rows** | **229** — INV-00002, INV-00009, INV-00030, INV-00034, INV-00040, INV-00048, INV-00064, INV-00279–00282, INV-00284–00286, INV-00289, INV-00302, INV-00304–00305, INV-00307, INV-00309–00310 … +98 more ranges |
+| **Source documents** | 20 — `docs/archive/LAUNCH-PAD-2026-08-21.md` (103) · `docs/KIND-MASTER.md` (38) · `docs/LAUNCH-PAD.md` (33) · `docs/archive/SYSTEM-HEALTH-AUDIT.md` (15) · `CLAUDE.md` (7) · `docs/README.md` (5) · `docs/archive/V2-NARRATIVE-2026-08-21.md` (5) · `docs/V2-TRACKER.md` (4) · +12 more source documents |
+| **Stable source IDs** | `#1002`, `#1269`, `#1302`, `#1353`, `#1355`, `#1421`, `#1427`, `#198`, `#211`, `#283`, `#293`, `#298`, `#301`, `#323`, `#350`, `#383`, `#413`, `#427`, `#450`, `#511a`, `#511a–f`, `#547`, `#548`, `#549` … +65 more |
 | **Runtime / code / schema evidence** | `scripts/mirror-launchpad.sh` (chained inside `update-board.sh`) generates the LAUNCH-PAD stamp from the inventory dots; `doc-lint.sh` check 2 fails when the LAUNCH-PAD board line drifts from the derived board (*"it drifted 98→111 on 9 Jul"*). |
 | **Founder-direction evidence** | CLAUDE.md: LAUNCH-PAD rows MIRROR the inventory dots; status of record lives only in the inventory. |
 | **Historical / supersession evidence** | — (no supersession evidence visible in the sources) |
@@ -1768,10 +1801,10 @@ mapping correction, not a comparison conclusion.
 | `docs/KIND-MASTER.md` (38 rows) | INV-01612 *Current execution lives in LAUNCH-PAD.md; current status lives in PRODUCT-INVENTORY.md. Where this block and a dot …* · INV-01665 *DEMOTED — DAILY EXECUTION LIVES IN LAUNCH-PAD.md. The checklist + runway tables below are frozen dated history (kep…* · INV-01785 *LAUNCH-PAD = what to do now · PRODUCT-INVENTORY = what is built/live/left (the ONLY status home, script-counted) · …* |
 | `docs/LAUNCH-PAD.md` (33 rows) | INV-00279 *This page is a LIST, not a book* · INV-00280 *Board mirror: 🟢106 · 🩷308 · 🟣2 · 🟡51 · 🔴187 · ⏸6 · Σ660* · INV-00281 *Google Calendar runbook steps 3–5 — test connection · Search Console TXT · submit · add clien…* |
 | `docs/archive/SYSTEM-HEALTH-AUDIT.md` (15 rows) | INV-20563 *What this is: the evidence + file:line detail behind the P0 + T1–T5 fix plan in LAUNCH-PAD.md (the plan is owned th…* · INV-20572 *Findings → tier mapping (plan lives in LAUNCH-PAD)* · INV-20573 *PROGRESS (25 Jun): ✅ T1 done (#753) — H1 rate-limits · M3 CRM fail-closed · 611 dup deleted; M5 verified not-a-bug …* |
-| `docs/V2-TRACKER.md` (8 rows) | INV-01052 *This page is restored historical roadmap plus future thinking — NOT current truth* · INV-01113 *Nexus, the whole family — twelve items built and live, all default-deny* · INV-01114 *Data-engine widening #450 #451 #452 — fires when the pilot pays* |
 | `CLAUDE.md` (7 rows) | INV-00002 *LAUNCH-PAD is the ONLY home for today's / this week's execution* · INV-00009 *Current-truth authority: PRODUCT-RULES > LAUNCH-PAD > PRODUCT-INVENTORY > KIND-MASTER > V2-TRACKER* · INV-00030 *TODAY'S EXECUTION lives only in LAUNCH-PAD* |
-| `docs/archive/V2-NARRATIVE-2026-08-21.md` (6 rows) | INV-17880 *3b. 📥 RECEIVED FROM LAUNCH-PAD (26 Jul) — real work, none of it gets us live* · INV-17882 *🧠 Nexus, the whole family (#511a–#511f). All twelve items are built and live, every tuning path default-deny behind…* · INV-17883 *Data-engine widening #450 #451 #452 — fires when the pilot pays.* |
 | `docs/README.md` (5 rows) | INV-09612 *Simplest mental model: LAUNCH-PAD = today · INVENTORY = status · KIND-MASTER = why/where · V2 = future.* · INV-09614 *🚀 LAUNCH-PAD.md — your daily command sheet* · INV-09615 *The only doc you open day-to-day.* |
+| `docs/archive/V2-NARRATIVE-2026-08-21.md` (5 rows) | INV-17880 *3b. 📥 RECEIVED FROM LAUNCH-PAD (26 Jul) — real work, none of it gets us live* · INV-17882 *🧠 Nexus, the whole family (#511a–#511f). All twelve items are built and live, every tuning path default-deny behind…* · INV-17883 *Data-engine widening #450 #451 #452 — fires when the pilot pays.* |
+| `docs/V2-TRACKER.md` (4 rows) | INV-01052 *This page is restored historical roadmap plus future thinking — NOT current truth* · INV-01113 *Nexus, the whole family — twelve items built and live, all default-deny* · INV-01114 *Data-engine widening #450 #451 #452 — fires when the pilot pays* |
 | *+12 more source documents* | *full list via the coverage map* |
 
 ### CMP-0058 · Launch gates and blockers
@@ -1780,9 +1813,9 @@ mapping correction, not a comparison conclusion.
 |---|---|
 | **Domain** | Launch |
 | **Relationship** | **PARTIAL OVERLAP** |
-| **Inventory rows** | **246** — INV-00903, INV-01617, INV-01652, INV-01657, INV-01684, INV-01688, INV-01811, INV-01823–01824, INV-01899, INV-01905, INV-02094, INV-02102, INV-02258–02259, INV-02446–02447 … +86 more ranges |
-| **Source documents** | 18 — `docs/MILESTONE-0-CHECKLIST.md` (82) · `docs/PINK-WALK-CHECKLIST.md` (66) · `docs/archive/KIND-MASTER-ARCHIVE.md` (18) · `docs/KIND-MASTER.md` (16) · `docs/archive/SESSION-SUMMARY-13JUN.md` (13) · `docs/archive/V2-NARRATIVE-2026-08-21.md` (10) · `docs/archive/MASTER.md` (9) · `docs/SMOKE_TEST.md` (8) · +10 more source documents |
-| **Stable source IDs** | `#1`, `#10`, `#105`, `#15`, `#211`, `#268`, `#326`, `#330`, `#338`, `#339`, `#340`, `#343`, `#345`, `#346`, `#348`, `#349`, `#355`, `#366`, `#384`, `#385`, `#394`, `#398`, `#412`, `#415` … +30 more |
+| **Inventory rows** | **243** — INV-00903, INV-01617, INV-01652, INV-01657, INV-01684, INV-01688, INV-01811, INV-01823–01824, INV-01899, INV-01905, INV-02094, INV-02102, INV-02258–02259, INV-02446–02447 … +86 more ranges |
+| **Source documents** | 18 — `docs/MILESTONE-0-CHECKLIST.md` (79) · `docs/PINK-WALK-CHECKLIST.md` (66) · `docs/archive/KIND-MASTER-ARCHIVE.md` (18) · `docs/KIND-MASTER.md` (16) · `docs/archive/SESSION-SUMMARY-13JUN.md` (13) · `docs/archive/V2-NARRATIVE-2026-08-21.md` (10) · `docs/archive/MASTER.md` (9) · `docs/SMOKE_TEST.md` (8) · +10 more source documents |
+| **Stable source IDs** | `#1`, `#10`, `#105`, `#15`, `#211`, `#268`, `#326`, `#330`, `#338`, `#340`, `#343`, `#345`, `#346`, `#348`, `#349`, `#355`, `#366`, `#384`, `#385`, `#394`, `#398`, `#412`, `#415`, `#420` … +29 more |
 | **Runtime / code / schema evidence** | `MILESTONE-0-CHECKLIST.md` is marked HISTORICAL at the top, which exempts it from doc-lint's stale-claim patterns. `PINK-WALK-CHECKLIST.md` defines the 🩷→🟢 walk. `scripts/check.sh` is the only gate that runs. |
 | **Founder-direction evidence** | NO EXPLICIT CURRENT FOUNDER DIRECTION FOUND |
 | **Historical / supersession evidence** | Archive carries `DEPLOY-CHECKLIST.md`, `LAUNCH-AUDIT-12JUN.md`, `FULL_CHECK.md` and a Go/No-Go gate dated 18 Jun. |
@@ -1792,7 +1825,7 @@ mapping correction, not a comparison conclusion.
 
 | Source | Sample INV rows |
 |---|---|
-| `docs/MILESTONE-0-CHECKLIST.md` (82 rows) | INV-04310 *MILESTONE 0 — MASTER CHECKLIST (the FIGSY + Lead-Gen punch-list)* · INV-04311 *HISTORICAL (July M0 working list) — the pricing in this file is the RETIRED per-qualified-lead ladder ($1 reveal + …* · INV-04312 *SUPERSEDED 26 Jul 2026 — THE MONEY LADDER BELOW IS RETIRED (inventory #557)* |
+| `docs/MILESTONE-0-CHECKLIST.md` (79 rows) | INV-04310 *MILESTONE 0 — MASTER CHECKLIST (the FIGSY + Lead-Gen punch-list)* · INV-04311 *HISTORICAL (July M0 working list) — the pricing in this file is the RETIRED per-qualified-lead ladder ($1 reveal + …* · INV-04312 *SUPERSEDED 26 Jul 2026 — THE MONEY LADDER BELOW IS RETIRED (inventory #557)* |
 | `docs/PINK-WALK-CHECKLIST.md` (66 rows) | INV-04441 *PINK WALK — self-walk checklist* · INV-04443 *Reconciled 2 Jul PM to the board's 46 🩷 = 36 remaining from the original 58-item walk (Sections A+B walked 30 Jun; …* · INV-04444 *Portal = app.get-kind.com · Website = www.get-kind.com · Admin = admin.get-kind.com* |
 | `docs/archive/KIND-MASTER-ARCHIVE.md` (18 rows) | INV-15191 *Thu 18 · Go/No-Go + MERGE · ⬜ · Gates: D9 10/10 · Smoke Test 2 green · 2 keys rotated · legal #10–14 done · warmup …* · INV-15329 *Smoke Test 1 + 2 (Tue 9 – Sat 13) — one real failure un-fixed = launch blocker. T1 fresh signup (never tested), T2–…* · INV-15426 *Task · What · File/Action · Timeline · Blocker?* |
 | `docs/KIND-MASTER.md` (16 rows) | INV-01617 *THE BLOCKER — the ARCHITECTURE claim is superseded; the blocker is NOT fully closed. ⛓️ (26 Jul, superseded: "figsy…* · INV-01652 *2. FRI 19 JUN — 🚀 LAUNCH — the proven core already live on main (D9 · legal · smoke tests · Go/No-Go Thu 18).* · INV-01657 *3. Launch gate (by Fri 19): D9 10/10 · legal #10–14 · smoke tests T3–T10 · Go/No-Go Thu 18.* |
@@ -1836,8 +1869,8 @@ mapping correction, not a comparison conclusion.
 |---|---|
 | **Domain** | Launch |
 | **Relationship** | **PARTIAL OVERLAP** |
-| **Inventory rows** | **932** — INV-00037, INV-00118–00119, INV-00121, INV-00181, INV-00816–00819, INV-00827, INV-00881–00883, INV-01067, INV-01105–01106, INV-01575, INV-01597, INV-01634–01635, INV-01638, INV-01644 … +434 more ranges |
-| **Source documents** | 56 — `docs/archive/MASTER.md` (163) · `docs/DEPLOYMENT_GUIDE.md` (131) · `docs/archive/KIND-MASTER-ARCHIVE.md` (75) · `docs/ENVIRONMENT.md` (69) · `docs/archive/roadmap-audit-14-may-2026.md` (68) · `docs/archive/EVERYTHING.md` (51) · `docs/archive/DEPLOY-CHECKLIST.md` (47) · `docs/KIND-MASTER.md` (45) · +48 more source documents |
+| **Inventory rows** | **931** — INV-00037, INV-00118–00119, INV-00121, INV-00181, INV-00816–00819, INV-00827, INV-00881–00883, INV-01067, INV-01105–01106, INV-01575, INV-01597, INV-01634–01635, INV-01638, INV-01644 … +434 more ranges |
+| **Source documents** | 56 — `docs/archive/MASTER.md` (163) · `docs/DEPLOYMENT_GUIDE.md` (131) · `docs/archive/KIND-MASTER-ARCHIVE.md` (75) · `docs/ENVIRONMENT.md` (68) · `docs/archive/roadmap-audit-14-may-2026.md` (68) · `docs/archive/EVERYTHING.md` (51) · `docs/archive/DEPLOY-CHECKLIST.md` (47) · `docs/KIND-MASTER.md` (45) · +48 more source documents |
 | **Stable source IDs** | `#1`, `#1000`, `#1019`, `#1087`, `#1147`, `#2`, `#258`, `#264`, `#273`, `#279`, `#306`, `#307`, `#308`, `#309`, `#319`, `#321`, `#323`, `#329`, `#377`, `#417`, `#418`, `#419`, `#426`, `#431` … +34 more |
 | **Runtime / code / schema evidence** | `scripts/ship.sh` is the only deploy. `.github/workflows/test.yml` states it does **not** gate Railway's auto-deploy; `daily-audit.yml` states it is deliberately not push-triggered so it cannot gate Railway's *wait for CI*; `deploy-website-cloudflare.yml` publishes a Railway-independent copy of the marketing site. |
 | **Founder-direction evidence** | R61: `docs/` does not travel with the deployed apps. |
@@ -1851,7 +1884,7 @@ mapping correction, not a comparison conclusion.
 | `docs/archive/MASTER.md` (163 rows) | INV-10215 *FIX DNS — all custom domains (founder action in Railway + DNS provider — see DNS section below).* · INV-10244 *Paid upgrades: Supabase Pro $25 (daily backups), Railway Pro, Resend Pro $15.46, Apollo Basic $65 → floor ~$125/mo* · INV-10247 *Env confirmed in Railway API: ADMIN_SECRET_KEY, RESEND_WEBHOOK_SECRET* |
 | `docs/DEPLOYMENT_GUIDE.md` (131 rows) | INV-05510 *KIND AI Platform — Deployment Guide* · INV-05511 *TRUTH BANNER — 6 Aug 2026 (#629). READ BEFORE YOU QUOTE ANYTHING FROM THIS PAGE.* · INV-05512 *A full sweep of this document against the code on 6 Aug found 15 of 22 factual claims FALSE. They are being correct…* |
 | `docs/archive/KIND-MASTER-ARCHIVE.md` (75 rows) | INV-15165 *Mon 8 · D1–D5 · ✅ · Deliverability fixes — DEPLOYED + VERIFIED (T8 passed 9 Jun: real cold email from gettingkind.c…* · INV-15170 *Tue 9 · #7/8 · ✅ · DNS: app/api/admin.get-kind.com live (Railway) — all 4 services online. · 🧍 · Routing. (status. …* · INV-15172 *Tue 9 · Deploy pipeline · ✅ · "KIND System Audit" Action fixed — push-trigger already removed (no per-commit check …* |
-| `docs/ENVIRONMENT.md` (69 rows) | INV-04090 *Every environment variable the three deployed apps read, what breaks without it, and which Railway service holds it…* · INV-04105 *⚙️ platform · Railway or Node sets it; nothing to configure* · INV-04118 *ANTHROPIC_API_KEY* |
+| `docs/ENVIRONMENT.md` (68 rows) | INV-04090 *Every environment variable the three deployed apps read, what breaks without it, and which Railway service holds it…* · INV-04105 *⚙️ platform · Railway or Node sets it; nothing to configure* · INV-04118 *ANTHROPIC_API_KEY* |
 | `docs/archive/roadmap-audit-14-may-2026.md` (68 rows) | INV-18489 *Railway — Express API* · INV-18584 *SECTION 5 — API (Railway) — All Endpoints* · INV-18585 */auth* |
 | `docs/archive/EVERYTHING.md` (51 rows) | INV-16391 *Open-tracking pixel can point at a raw Railway URL. figsy.ts:363-365 — if API_URL unset, pixel src → kindapi-produc…* · INV-16407 *D3 fix tracking pixel — never fall back to the Railway URL; use the aligned tracking domain; make open-tracking opt…* · INV-16413 *Confirm API_URL set on Railway (kills the Railway-URL pixel fallback).* |
 | `docs/archive/DEPLOY-CHECKLIST.md` (47 rows) | INV-21103 *K.I.N.D — Deploy Checklist (🔨 BUILT → ✅ LIVE)* · INV-21104 *Goal: take branch claude/kind-carson-MYhSl from "built on branch" to "verified live" safely, in the right order. Th…* · INV-21105 *ORDER MATTERS: migrations before code · env vars before merge · post-deploy smoke before declaring anything ✅.* |
@@ -1884,13 +1917,17 @@ mapping correction, not a comparison conclusion.
 
 ### CMP-0062 · The Founder Idea Bank FI-01 … FI-69
 
+> ## 🗄 STRUCTURAL GROUP — NOT CLASSIFIABLE AS ONE TRUTH
+>
+> Retired in the Step-3 granularity repair. This ID is **preserved for lineage and never reused**. It held materially different truths that no single Step-4 verdict could carry, so its material rows were re-routed to the underlying truth subjects listed in the repair note above. **No row was deleted and no INV ID changed.**
+
 | Field | Value |
 |---|---|
 | **Domain** | V2 |
 | **Relationship** | **PARTIAL OVERLAP** |
-| **Inventory rows** | **19** — INV-01327, INV-01329, INV-01331, INV-01340–01342, INV-01348, INV-01351–01352, INV-01354–01355, INV-01357–01358, INV-01367, INV-01376, INV-01395, INV-01397, INV-01399, INV-01402 |
-| **Source documents** | 1 — `docs/V2-TRACKER.md` (19) |
-| **Stable source IDs** | `FI-07`, `FI-08`, `FI-09`, `FI-15`, `FI-18`, `FI-19`, `FI-21`, `FI-22`, `FI-24`, `FI-25`, `FI-34`, `FI-43`, `FI-62`, `FI-64`, `FI-66`, `FI-69` |
+| **Inventory rows** | **0** —  |
+| **Source documents** | 0 —  |
+| **Stable source IDs** | (none carried by these rows) |
 | **Runtime / code / schema evidence** | Most FI rows have no implementation; those that do are named in their own rows. |
 | **Founder-direction evidence** | Each FI row carries a canonical home and a class marker (MISSING / CONFLICT / SUPERSEDED / VCD) transcribed from V2-TRACKER. |
 | **Historical / supersession evidence** | FI-67 and FI-68 are the explicitly superseded rows and are preserved as history. |
@@ -1900,17 +1937,20 @@ mapping correction, not a comparison conclusion.
 
 | Source | Sample INV rows |
 |---|---|
-| `docs/V2-TRACKER.md` (19 rows) | INV-01327 *Why this section exists — 69 ideas that existed only in chat* · INV-01329 *NOTHING HERE IS BUILT — every entry is LOGGED, not started* · INV-01331 *Verified tally — FOUND 7 · PARTIAL 15 · MISSING 39 · CONFLICT 1 · SUPERSEDED 7 = 69* |
 
 ### CMP-0063 · V2 non-FI roadmap and narrative material
+
+> ## 🗄 STRUCTURAL GROUP — NOT CLASSIFIABLE AS ONE TRUTH
+>
+> Retired in the Step-3 granularity repair. This ID is **preserved for lineage and never reused**. It held materially different truths that no single Step-4 verdict could carry, so its material rows were re-routed to the underlying truth subjects listed in the repair note above. **No row was deleted and no INV ID changed.**
 
 | Field | Value |
 |---|---|
 | **Domain** | V2 |
 | **Relationship** | **PARTIAL OVERLAP** |
-| **Inventory rows** | **220** — INV-00005, INV-00013, INV-00032, INV-00042, INV-00226, INV-00964, INV-01054–01057, INV-01061–01063, INV-01065–01066, INV-01075–01076, INV-01078–01081, INV-01084–01089, INV-01091, INV-01095 … +63 more ranges |
-| **Source documents** | 13 — `docs/V2-TRACKER.md` (173) · `docs/archive/V2-NARRATIVE-2026-08-21.md` (19) · `docs/KIND-MASTER.md` (7) · `docs/hiring/SELLER-ENGINE-MAP.md` (5) · `CLAUDE.md` (4) · `docs/README.md` (3) · `docs/RULEBOOK.md` (2) · `docs/archive/KIND-MASTER-ARCHIVE.md` (2) · +5 more source documents |
-| **Stable source IDs** | `#200`, `#428`, `#511`, `#606`, `#608`, `#610`, `#651`, `#698`, `#712`, `#88`, `#93`, `1.1`, `1.2`, `1.3`, `3`, `3.10`, `3.11`, `3.12`, `3.13`, `3.14`, `3.15`, `3.16`, `3.17`, `3.18` … +45 more |
+| **Inventory rows** | **0** —  |
+| **Source documents** | 0 —  |
+| **Stable source IDs** | (none carried by these rows) |
 | **Runtime / code / schema evidence** | No implementation of the three-product future; `comp-engine.ts` still holds the legacy MRR model nothing in the current money model calls. |
 | **Founder-direction evidence** | R39 (15 Aug) records the three-product future: P1, P2 Coaching (*"$8 is the founder's EXAMPLE, not a locked price; usage only, never monthly"*), P3 monthly + usage. |
 | **Historical / supersession evidence** | `V2-NARRATIVE-2026-08-21.md` holds the sections moved out of V2-TRACKER verbatim when it became a row list. |
@@ -1920,15 +1960,6 @@ mapping correction, not a comparison conclusion.
 
 | Source | Sample INV rows |
 |---|---|
-| `docs/V2-TRACKER.md` (173 rows) | INV-01054 *This fence is a fence, not an edit — the body has NOT been re-fact-checked* · INV-01055 *Restored byte-for-byte from git after the 21-Aug S1 cut reduced it to a 690-word skeleton* · INV-01056 *Four-doc contract restated — no live status here* |
-| `docs/archive/V2-NARRATIVE-2026-08-21.md` (19 rows) | INV-17793 *V2 NARRATIVE — moved out of V2-TRACKER, 21 Aug 2026* · INV-17794 *░ 💼 THE THREE-PRODUCT FUTURE — one engine, three ways to pay (R39, founder-ruled 15 Aug) ░* · INV-17795 *This section was "THE TWO-MODEL FUTURE — Base + Advanced" (founder-locked 31 Jul, #608). R39 (15 Aug) did not repla…* |
-| `docs/KIND-MASTER.md` (7 rows) | INV-01661 */ V2-TRACKER.md / Future detail only — risk register · learning engine · GTM · steals. No build statuses /* · INV-01733 *The founder's-eye view of the next quarter. Item-level detail: PRODUCT-INVENTORY.md §3 + V2-TRACKER.md. Each phase …* · INV-01770 *docs/V2-TRACKER.md — FUTURE roadmap ONLY (post-launch: company engine #88, V2 experience, the itemised risk/fix reg…* |
-| `docs/hiring/SELLER-ENGINE-MAP.md` (5 rows) | INV-03216 *5. Build phases (the path — full detail in V2-TRACKER → "THE SELLER ENGINE")* · INV-03218 *Discovery & schema: audit today's partner portal/admin · design the shared seller seat (partner_paid/ae_free) + pay…* · INV-03220 *Partner portal + demo provisioning + sell-through.* |
-| `CLAUDE.md` (4 rows) | INV-00005 *V2-TRACKER is the ONLY home for future detail* · INV-00013 *V2-TRACKER is NOT read for current-product/launch work* · INV-00032 *FUTURE DETAIL lives only in V2-TRACKER* |
-| `docs/README.md` (3 rows) | INV-09626 *🎯 V2-TRACKER.md — the future* · INV-09627 *Holds: the forward roadmap + vision behind the 🔴 not-built items — seller engine, learning engine, GTM plan, risks,…* · INV-09628 *Open it for: "What's the longer-term plan?"* |
-| `docs/RULEBOOK.md` (2 rows) | INV-02593 *The founder has an idea but has NOT decided → log it in V2-TRACKER as UNRULED / DO NOT BUILD, in his own wording, w…* · INV-02601 *V2-TRACKER · Post-live roadmap and restored historical material. Fenced; never current authority.* |
-| `docs/archive/KIND-MASTER-ARCHIVE.md` (2 rows) | INV-15194 *Tracked here so it can't get lost. This is a live workstream, not a someday item. Detail/roadmap also in V2-TRACKER…* · INV-16305 *15 Jun (morning) — 🔴 Company Engine RLS + Access Control logged as a FAST-FOLLOW (inventory 55a / V2-TRACKER R11). …* |
-| *+5 more source documents* | *full list via the coverage map* |
 
 ### CMP-0064 · Nexus — the per-client learning brain
 
@@ -1936,8 +1967,8 @@ mapping correction, not a comparison conclusion.
 |---|---|
 | **Domain** | V2 |
 | **Relationship** | **PARTIAL OVERLAP** |
-| **Inventory rows** | **36** — INV-00141, INV-01031, INV-01046, INV-02112, INV-02217–02219, INV-02378, INV-02892, INV-03684–03685, INV-04031, INV-05181, INV-06665, INV-07751, INV-07816, INV-07958 … +13 more ranges |
-| **Source documents** | 19 — `docs/archive/BUILD-STATUS-26JUL.md` (10) · `docs/KIND-MASTER.md` (5) · `docs/PRODUCT-INVENTORY.md` (2) · `docs/CORE-MAP.md` (2) · `docs/strategy/MASTER_CONTEXT.md` (2) · `scripts/core-files.txt` (2) · `docs/PRODUCT-RULES.md` (1) · `apps/website/pricing.html` (1) · +11 more source documents |
+| **Inventory rows** | **37** — INV-00141, INV-01031, INV-01175, INV-02112, INV-02217–02219, INV-02378, INV-02504, INV-02892, INV-03684–03685, INV-04031, INV-05181, INV-06665, INV-07751, INV-07816 … +14 more ranges |
+| **Source documents** | 20 — `docs/archive/BUILD-STATUS-26JUL.md` (10) · `docs/KIND-MASTER.md` (6) · `docs/CORE-MAP.md` (2) · `docs/strategy/MASTER_CONTEXT.md` (2) · `scripts/core-files.txt` (2) · `docs/PRODUCT-RULES.md` (1) · `docs/PRODUCT-INVENTORY.md` (1) · `docs/V2-TRACKER.md` (1) · +12 more source documents |
 | **Stable source IDs** | `#511`, `#517`, `#560`, `#603`, `AR3` |
 | **Runtime / code / schema evidence** | `apps/website/nexus.html` is a live 776-line marketing page. #511 is the build item. |
 | **Founder-direction evidence** | The 22 Jul pivot names Nexus as the per-client private learning brain. |
@@ -1949,24 +1980,28 @@ mapping correction, not a comparison conclusion.
 | Source | Sample INV rows |
 |---|---|
 | `docs/archive/BUILD-STATUS-26JUL.md` (10 rows) | INV-19772 *511 · Nexus learning loop · ✅ · 🩷 COMPLETE — all 12 items, see the 🧠 NEXUS section* · INV-19789 *COMBINED · 🧠 NEXUS — per-client learning brain (#511, full build, phased)* · INV-19790 *Each client's private learning brain — learns on that client's results ONLY, never shared across clients (the fence…* |
-| `docs/KIND-MASTER.md` (5 rows) | INV-02112 *1 Aug (🧠 NEXUS IS BACK ON THE SITE — and the reason it was pulled had to be fixed before it could go back): the fou…* · INV-02217 *24 Jul (🧠 NEXUS Phase 3 guardrails built — the safety layer BEFORE any auto-tune): the write-back can't ship until …* · INV-02218 *24 Jul (🧠 NEXUS Phase 0+1 built — per-client learning brain, compute + surface): the first Nexus slice (511a·b·c·v·…* |
-| `docs/PRODUCT-INVENTORY.md` (2 rows) | INV-01031 *NEXUS — each client's private learning brain, never shared* · INV-01046 *Auth · billing · admin OS · infra · website · legal · partner · API · NEXUS (#476)* |
+| `docs/KIND-MASTER.md` (6 rows) | INV-02112 *1 Aug (🧠 NEXUS IS BACK ON THE SITE — and the reason it was pulled had to be fixed before it could go back): the fou…* · INV-02217 *24 Jul (🧠 NEXUS Phase 3 guardrails built — the safety layer BEFORE any auto-tune): the write-back can't ship until …* · INV-02218 *24 Jul (🧠 NEXUS Phase 0+1 built — per-client learning brain, compute + surface): the first Nexus slice (511a·b·c·v·…* |
 | `docs/CORE-MAP.md` (2 rows) | INV-03684 *apps/api/src/lib/nexus-guard.ts* · INV-03685 *apps/api/src/lib/nexus.ts* |
 | `docs/strategy/MASTER_CONTEXT.md` (2 rows) | INV-07751 *Tenant isolation includes a Nexus guard and RLS as a second layer.* · INV-07816 *tenant isolation / RLS / Nexus fencing;* |
 | `scripts/core-files.txt` (2 rows) | INV-09776 *apps/api/src/lib/nexus-guard.ts* · INV-09777 *apps/api/src/lib/nexus.ts* |
 | `docs/PRODUCT-RULES.md` (1 rows) | INV-00141 *THE NEXUS LOCK — no cross-client learning, EVER. What one client's data teaches may never reach another. #150 …* |
-| `apps/website/pricing.html` (1 rows) | INV-02892 *Nexus NEW Product &#x25BE; The product · your AI agents FIGSY Live The engine — finds, writes, follows up & books M…* |
-| *+11 more source documents* | *full list via the coverage map* |
+| `docs/PRODUCT-INVENTORY.md` (1 rows) | INV-01031 *NEXUS — each client's private learning brain, never shared* |
+| `docs/V2-TRACKER.md` (1 rows) | INV-01175 *Recall — two memory tiers, per-client and cross-segment (aggregate patterns ONLY)* |
+| *+12 more source documents* | *full list via the coverage map* |
 
 ### CMP-0065 · Alta parity — voice and the unified data layer
+
+> ## 🗄 STRUCTURAL GROUP — NOT CLASSIFIABLE AS ONE TRUTH
+>
+> Retired in the Step-3 granularity repair. This ID is **preserved for lineage and never reused**. It held materially different truths that no single Step-4 verdict could carry, so its material rows were re-routed to the underlying truth subjects listed in the repair note above. **No row was deleted and no INV ID changed.**
 
 | Field | Value |
 |---|---|
 | **Domain** | V2 |
 | **Relationship** | **PARTIAL OVERLAP** |
-| **Inventory rows** | **247** — INV-00897, INV-01041, INV-01653, INV-01737, INV-02345, INV-02555, INV-03564, INV-06001, INV-06125–06136, INV-06139–06145, INV-07985, INV-10194, INV-10490, INV-10513–10514 … +57 more ranges |
-| **Source documents** | 14 — `docs/archive/MASTER.md` (174) · `docs/archive/KIND-MASTER-ARCHIVE.md` (23) · `docs/legal.md` (20) · `docs/archive/V2-NARRATIVE-2026-08-21.md` (11) · `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` (6) · `docs/KIND-MASTER.md` (3) · `docs/PRODUCT-INVENTORY.md` (2) · `docs/archive/AUDIT-24JUN-RECONCILIATION.md` (2) · +6 more source documents |
-| **Stable source IDs** | `#1`, `#20`, `#3`, `#369`, `#388`, `#41`, `#429`, `#475`, `#476`, `#48`, `#5`, `#60`, `#627`, `#8`, `#88`, `#89`, `§15` |
+| **Inventory rows** | **0** —  |
+| **Source documents** | 0 —  |
+| **Stable source IDs** | (none carried by these rows) |
 | **Runtime / code / schema evidence** | No voice channel and no shared agent brain in code. |
 | **Founder-direction evidence** | Recorded from the 21 Jul competitive teardown as the two gaps to a complete product. |
 | **Historical / supersession evidence** | — (no supersession evidence visible in the sources) |
@@ -1976,15 +2011,6 @@ mapping correction, not a comparison conclusion.
 
 | Source | Sample INV rows |
 |---|---|
-| `docs/archive/MASTER.md` (174 rows) | INV-10194 *Alta AI SDR — Competitive Audit* · INV-10490 *Vapi voice calling* · INV-10513 *🎨 WEBSITE REDESIGN — break from Alta, own our look (decided 3 June)* |
-| `docs/archive/KIND-MASTER-ARCHIVE.md` (23 rows) | INV-15256 *48 · 🔄 · Vapi voice calling → DENISE owns it — code built (lib/vapi.ts), not live; re-attribute FIGSY→Denise in #54…* · INV-15725 *48 · Vapi voice calling → DENISE's channel · DENISE (closer) dials to confirm/close (built lib/vapi.ts, re-attribut…* · INV-16002 *Voice (Vapi) · Vapi keys · FIGSY voice calling · Month 2* |
-| `docs/legal.md` (20 rows) | INV-06001 *How Alta SDR and Competitors Handle This* · INV-06125 *3. HOW ALTA SDR AND COMPETITORS HANDLE THIS* · INV-06126 *The Venture-Backed Approach* |
-| `docs/archive/V2-NARRATIVE-2026-08-21.md` (11 rows) | INV-17828 *░ 🆚 ALTA PARITY — the two gaps to a COMPLETE product (21 Jul competitive teardown) ░* · INV-17829 *Context (founder-driven, 21 Jul): compared K.I.N.D's agents to Alta (altahq.com — $25M Series A, ~$15M ARR, Snowfla…* · INV-17830 *Most of parity is already documented — FIGSY multi-channel (LinkedIn #388) + calendar auto-book (#361, ~90% coded) …* |
-| `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` (6 rows) | INV-17251 *112 · 🩷 · Unibox inbox rebuild (Alta-style) — walk 26 Jun: founder unsure (no live reply to test); verify with a re…* · INV-17348 *↳ Alta-parity gaps (21 Jul competitive teardown — 🔴 net-new, absent from every doc before …* · INV-17349 *475 · 🔴 · VOICE / AI calling — the missing channel. Alta's Katie cold-calls and Alex qualifies inbound by voice; K.…* |
-| `docs/KIND-MASTER.md` (3 rows) | INV-01653 *3. POST-19 — everything else — all 25 release PRs · shell redesign · Alta-style inbox · the staging review queue. B…* · INV-01737 *Ship the locked design queue: Alta-style inbox rebuild (112) · agent "AI Family" cards (125) · sequence-builder rec…* · INV-02345 *21 Jul (cont.⁵) — 🆚 ALTA COMPETITIVE TEARDOWN → 2 parity gaps logged 🔴 (#475 voice · #476 unified data layer). Foun…* |
-| `docs/PRODUCT-INVENTORY.md` (2 rows) | INV-00897 *UNIFIED DATA LAYER / shared agent brain — THE moat. — Alta's real strength isn't three agents, …* · INV-01041 *Two capabilities that define Alta and that K.I.N.D has ZERO of* |
-| `docs/archive/AUDIT-24JUN-RECONCILIATION.md` (2 rows) | INV-20280 *FIGSY voice-calling backend* · INV-20297 *FIGSY voice-calling backend (voice.ts/vapi.ts, mounted index.ts:163) — built, no item (→ new item, gated on VAPI_AP…* |
-| *+6 more source documents* | *full list via the coverage map* |
 
 ### CMP-0066 · Steals — patterns taken from other tools
 
@@ -1992,9 +2018,9 @@ mapping correction, not a comparison conclusion.
 |---|---|
 | **Domain** | V2 |
 | **Relationship** | **PARTIAL OVERLAP** |
-| **Inventory rows** | **334** — INV-00045, INV-00189, INV-00762, INV-01047, INV-01885, INV-02324, INV-02554, INV-03055, INV-04630–04637, INV-05258, INV-08095–08104, INV-08106, INV-08525, INV-08589 … +105 more ranges |
-| **Source documents** | 18 — `docs/archive/MASTER.md` (213) · `docs/archive/KIND-MASTER-ARCHIVE.md` (46) · `docs/archive/V2-NARRATIVE-2026-08-21.md` (19) · `docs/archive/EVERYTHING.md` (17) · `docs/marketing/MARKETING-PLAN.md` (11) · `docs/AFRICA-PLAYBOOK.md` (8) · `docs/drafts/AI_REVENUE_OS_POSITIONING.md` (5) · `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` (3) · +10 more source documents |
-| **Stable source IDs** | `#1`, `#10`, `#2`, `#233`, `#24`, `#25`, `#27`, `#3`, `#31`, `#36`, `#37`, `#39`, `#4`, `#46`, `#5`, `#53`, `#58`, `#61`, `#61a`, `#61b`, `#61c`, `#61d`, `#61e`, `#61g` … +16 more |
+| **Inventory rows** | **321** — INV-00045, INV-01047, INV-01197, INV-01202, INV-01661, INV-01885, INV-02554–02555, INV-03460, INV-05258, INV-09437, INV-09439–09440, INV-09444, INV-09454, INV-09647 … +98 more ranges |
+| **Source documents** | 14 — `docs/archive/MASTER.md` (214) · `docs/archive/KIND-MASTER-ARCHIVE.md` (52) · `docs/archive/V2-NARRATIVE-2026-08-21.md` (19) · `docs/archive/EVERYTHING.md` (17) · `docs/drafts/AI_REVENUE_OS_POSITIONING.md` (5) · `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` (3) · `docs/V2-TRACKER.md` (2) · `docs/KIND-MASTER.md` (2) · +6 more source documents |
+| **Stable source IDs** | `#1`, `#10`, `#2`, `#24`, `#25`, `#27`, `#3`, `#31`, `#36`, `#37`, `#39`, `#4`, `#46`, `#5`, `#53`, `#58`, `#61`, `#61a`, `#61b`, `#61c`, `#61d`, `#61e`, `#61g`, `#62a` … +15 more |
 | **Runtime / code / schema evidence** | No code relationship. |
 | **Founder-direction evidence** | RULEBOOK §9 requires capture on sight, same session, logged in RED. |
 | **Historical / supersession evidence** | — (no supersession evidence visible in the sources) |
@@ -2004,15 +2030,15 @@ mapping correction, not a comparison conclusion.
 
 | Source | Sample INV rows |
 |---|---|
-| `docs/archive/MASTER.md` (213 rows) | INV-10196 *ClickUp Competitive Audit — Steal-Now Analysis* · INV-11099 *ClickUp competitive audit* · INV-11100 *Apex competitive audit* |
-| `docs/archive/KIND-MASTER-ARCHIVE.md` (46 rows) | INV-15064 *CHAPTER 1 — STRATEGY & COMPETITIVE (landscape, 5 reads, moat, funding, what to steal)* · INV-15068 *CHAPTER 5 — IMPLEMENTATION MAPS (how/what-it-takes for every future workstream: Intelligence, Steals, Agent Family,…* · INV-15111 *Strategic read: Different buyer (creator economy vs SMB). NOT direct threat yet. BUT: their coaching model (bundled…* |
-| `docs/archive/V2-NARRATIVE-2026-08-21.md` (19 rows) | INV-17866 *Work — builds, bugs, walks, rulings, steals* · INV-17988 *Africa partner recruiting (233 + PARTNER GTM below) = email + brand-led (stealth — NO founder identity/LinkedIn): s…* · INV-18053 *Channels (ranked) — ⚠️ STEALTH-CONSTRAINED (25 Jun): NO founder LinkedIn / no public founder identity (employer wou…* |
+| `docs/archive/MASTER.md` (214 rows) | INV-10196 *ClickUp Competitive Audit — Steal-Now Analysis* · INV-11099 *ClickUp competitive audit* · INV-11100 *Apex competitive audit* |
+| `docs/archive/KIND-MASTER-ARCHIVE.md` (52 rows) | INV-15064 *CHAPTER 1 — STRATEGY & COMPETITIVE (landscape, 5 reads, moat, funding, what to steal)* · INV-15068 *CHAPTER 5 — IMPLEMENTATION MAPS (how/what-it-takes for every future workstream: Intelligence, Steals, Agent Family,…* · INV-15111 *Strategic read: Different buyer (creator economy vs SMB). NOT direct threat yet. BUT: their coaching model (bundled…* |
+| `docs/archive/V2-NARRATIVE-2026-08-21.md` (19 rows) | INV-17866 *Work — builds, bugs, walks, rulings, steals* · INV-18132 *61e · Influencer/community distribution · 🧍* · INV-18133 *61g · Guarantee sharpened to 90d · 🤖* |
 | `docs/archive/EVERYTHING.md` (17 rows) | INV-16582 *28 · #62a trained-on hook · #62d "Revenue Blueprint Session" · ✅ · FIGSY+Denise trained-on lines (no fake numbers);…* · INV-16590 *Homepage outcome numbers (#62c) — hold the slot, populate with REAL numbers post-launch (no fabrication).* · INV-16620 *Daily client briefing email (Apex steal)* |
-| `docs/marketing/MARKETING-PLAN.md` (11 rows) | INV-08095 *LOCK 1 · R2 — stealth is narrowed, not lifted (6 Aug)* · INV-08096 *"Stealth is NARROWED, not lifted. A LinkedIn company page is allowed. No personal announcement. Outreach goes to fr…* · INV-08097 *Founder's words: "dont worry about me stealth. i wont publicy announce on linkdein. i will create a linkdein compan…* |
-| `docs/AFRICA-PLAYBOOK.md` (8 rows) | INV-04630 *🅑 ROUTE B — PARTNERS (stealth, email/brand-led) · item 233* · INV-04631 *🕵️ STEALTH CONSTRAINT (LOCKED 25 Jun): the founder cannot be publicly identified yet — the current employer would i…* · INV-04632 *Source an African agency partner database — marketing / lead-gen / web / digital agencies · consultants · BPOs acro…* |
 | `docs/drafts/AI_REVENUE_OS_POSITIONING.md` (5 rows) | INV-09437 *The one number we own (decision needed — ties to #61b)* · INV-09439 *"$1 a lead." (counters their $5,000 — our sharpest structural advantage) ✅ CHOSEN* · INV-09440 *"Every lead, every time." (consistency, not a fabricated metric)* |
-| `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` (3 rows) | INV-17519 *233 · 🔴 · EPIC — Partner-recruiting motion (stealth, email/brand-led) · 🤝* · INV-17789 *░ REFERENCE — STEALS CATALOG (who we learn from → what we take) ░* · INV-17790 *RULEBOOK §9: every steal is logged in red on sight (now items 205–210, 227 above). This catalog is the source ledge…* |
-| *+10 more source documents* | *full list via the coverage map* |
+| `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` (3 rows) | INV-17789 *░ REFERENCE — STEALS CATALOG (who we learn from → what we take) ░* · INV-17790 *RULEBOOK §9: every steal is logged in red on sight (now items 205–210, 227 above). This catalog is the source ledge…* · INV-17791 *Alta inbox blueprint (112) · template gallery · Train tabs · funnel dashboard · saved views · "Help me reply" · Cli…* |
+| `docs/V2-TRACKER.md` (2 rows) | INV-01197 *The steals catalog by source — 14 named sources and what we take from each* · INV-01202 *STEAL-SOURCED — 205 · 206 · 207 · 208 · 209 · 210 · 227* |
+| `docs/KIND-MASTER.md` (2 rows) | INV-01661 */ V2-TRACKER.md / Future detail only — risk register · learning engine · GTM · steals. No build statuses /* · INV-01885 *🚀 POST-19TH VELOCITY — THE FAST-FOLLOW IMPERATIVE + GLEAN STEALS (founder strategic call, 10 Jun): the market moves…* |
+| *+6 more source documents* | *full list via the coverage map* |
 
 ---
 
@@ -2024,8 +2050,8 @@ mapping correction, not a comparison conclusion.
 |---|---|
 | **Domain** | Operating / governance |
 | **Relationship** | **AGREES** |
-| **Inventory rows** | **23** — INV-00003–00004, INV-00006, INV-00029, INV-00031, INV-00033, INV-01784, INV-02232, INV-03455–03456, INV-03458–03459, INV-03462–03465, INV-03827, INV-07991, INV-09619, INV-10239 … +3 more ranges |
-| **Source documents** | 10 — `docs/DOC-MAP.md` (8) · `CLAUDE.md` (6) · `docs/KIND-MASTER.md` (2) · `docs/CORE-MAP.md` (1) · `docs/strategy/README.md` (1) · `docs/README.md` (1) · `docs/archive/MASTER.md` (1) · `docs/archive/EVERYTHING.md` (1) · +2 more source documents |
+| **Inventory rows** | **26** — INV-00003–00006, INV-00029, INV-00031–00033, INV-01056, INV-01784, INV-02232, INV-03455–03456, INV-03458–03459, INV-03462–03465, INV-03827, INV-07991, INV-09619, INV-10239, INV-16371 … +2 more ranges |
+| **Source documents** | 11 — `CLAUDE.md` (8) · `docs/DOC-MAP.md` (8) · `docs/KIND-MASTER.md` (2) · `docs/V2-TRACKER.md` (1) · `docs/CORE-MAP.md` (1) · `docs/strategy/README.md` (1) · `docs/README.md` (1) · `docs/archive/MASTER.md` (1) · +3 more source documents |
 | **Stable source IDs** | `#555`, `§11`, `§7` |
 | **Runtime / code / schema evidence** | `doc-lint.sh` enforces the status home (check 3: no `/ Status /` column outside PRODUCT-INVENTORY) and the board (checks 1–2). |
 | **Founder-direction evidence** | CLAUDE.md states the contract; RULEBOOK §4 details it; KIND-MASTER restates it in its own header. |
@@ -2036,15 +2062,15 @@ mapping correction, not a comparison conclusion.
 
 | Source | Sample INV rows |
 |---|---|
+| `CLAUDE.md` (8 rows) | INV-00003 *PRODUCT-INVENTORY is the ONLY home for product STATUS (one dot + one owner)* · INV-00004 *KIND-MASTER is the ONLY home for strategy, decisions, history, session log* · INV-00005 *V2-TRACKER is the ONLY home for future detail* |
 | `docs/DOC-MAP.md` (8 rows) | INV-03455 *THE 4 CANONICAL (CLAUDE.md) + 3 STANDING INSTRUMENTS — one truth each (always current)* · INV-03456 *Doc · Owns · Open it for* · INV-03458 *PRODUCT-INVENTORY.md* |
-| `CLAUDE.md` (6 rows) | INV-00003 *PRODUCT-INVENTORY is the ONLY home for product STATUS (one dot + one owner)* · INV-00004 *KIND-MASTER is the ONLY home for strategy, decisions, history, session log* · INV-00006 *No fifth core doc unless it replaces an old one* |
 | `docs/KIND-MASTER.md` (2 rows) | INV-01784 *🧭 WHICH DOC FOR WHAT — the four-doc system (this replaced "two docs" in July)* · INV-02232 *10 Jul (cashflow doc REBUILT clean — 857→217 lines, one truth per figure): Opus audited line-by-line vs code + Fabl…* |
+| `docs/V2-TRACKER.md` (1 rows) | INV-01056 *Four-doc contract restated — no live status here* |
 | `docs/CORE-MAP.md` (1 rows) | INV-03827 *apps/admin/src/lib/fx.ts* |
 | `docs/strategy/README.md` (1 rows) | INV-07991 *5 earlier source ledgers (Pasted markdown(4)…(9).md) — superseded by the current Ledger and the four canonical docs…* |
 | `docs/README.md` (1 rows) | INV-09619 *The single source of truth for status — every feature, one coloured dot, one owner.* |
 | `docs/archive/MASTER.md` (1 rows) | INV-10239 *NOTE: docs/EVERYTHING.md is now the single source of truth. This block is a historical snapshot — it superseded eve…* |
-| `docs/archive/EVERYTHING.md` (1 rows) | INV-16371 *⛔ SUPERSEDED (8 Jun 2026) — DO NOT USE. The single source of truth is now* |
-| *+2 more source documents* | *full list via the coverage map* |
+| *+3 more source documents* | *full list via the coverage map* |
 
 ### CMP-0068 · Operating Protocol v1 — r1 … r22
 
@@ -2052,9 +2078,9 @@ mapping correction, not a comparison conclusion.
 |---|---|
 | **Domain** | Operating / governance |
 | **Relationship** | **DUPLICATE EXPRESSION** |
-| **Inventory rows** | **93** — INV-00008, INV-00010–00012, INV-00014–00026, INV-00028, INV-00116, INV-00263–00265, INV-02166, INV-02552, INV-02564–02565, INV-02568–02569, INV-02576–02577, INV-02580, INV-02583–02592, INV-02594–02595 … +4 more ranges |
-| **Source documents** | 4 — `docs/RULEBOOK.md` (70) · `CLAUDE.md` (18) · `docs/PRODUCT-RULES.md` (4) · `docs/KIND-MASTER.md` (1) |
-| **Stable source IDs** | `O5`, `P10`, `P11`, `Protocol r10`, `Protocol r11`, `Protocol r12`, `Protocol r13`, `Protocol r14`, `Protocol r15`, `Protocol r16`, `Protocol r17`, `Protocol r18`, `Protocol r19`, `Protocol r2`, `Protocol r20`, `Protocol r22`, `Protocol r4`, `Protocol r5`, `Protocol r6`, `Protocol r8`, `Protocol r9`, `§13`, `§15`, `§15.12` … +5 more |
+| **Inventory rows** | **97** — INV-00008, INV-00010–00026, INV-00028, INV-00116, INV-00263–00265, INV-02166, INV-02552, INV-02564–02565, INV-02568–02569, INV-02576–02577, INV-02580, INV-02583–02595, INV-02597, INV-02599–02636 … +2 more ranges |
+| **Source documents** | 5 — `docs/RULEBOOK.md` (72) · `CLAUDE.md` (19) · `docs/PRODUCT-RULES.md` (4) · `docs/KIND-MASTER.md` (1) · `docs/archive/KIND-MASTER-ARCHIVE.md` (1) |
+| **Stable source IDs** | `O5`, `P10`, `P11`, `Protocol r10`, `Protocol r11`, `Protocol r12`, `Protocol r13`, `Protocol r14`, `Protocol r15`, `Protocol r16`, `Protocol r17`, `Protocol r18`, `Protocol r19`, `Protocol r2`, `Protocol r20`, `Protocol r22`, `Protocol r4`, `Protocol r5`, `Protocol r6`, `Protocol r7`, `Protocol r8`, `Protocol r9`, `§13`, `§15` … +6 more |
 | **Runtime / code / schema evidence** | No code enforces the protocol. |
 | **Founder-direction evidence** | Founder-locked 21 Aug 2026. CLAUDE.md carries the 22 numbered rules; RULEBOOK §15.1–§15.20 carries the full text. |
 | **Historical / supersession evidence** | The protocol explicitly REVERSES the older session-start instruction (read all five docs) rather than extending it — the sources mark the reversal. |
@@ -2064,10 +2090,11 @@ mapping correction, not a comparison conclusion.
 
 | Source | Sample INV rows |
 |---|---|
-| `docs/RULEBOOK.md` (70 rows) | INV-02552 *EXTENDED 21 Aug by §15.6. This reconciliation still runs at every session start — but the facts it establishes now …* · INV-02564 *A FULL AUDIT NEVER STARTS AUTOMATICALLY. Milestones, pre-release/pre-launch and major architecture, data or complia…* · INV-02565 *The WEEKLY audit is a different thing entirely — change-based from the last persisted audited-through SHA (§15.15) …* |
-| `CLAUDE.md` (18 rows) | INV-00008 *Every task has ONE MODE: READ-ONLY VERIFY · BUILD · DOC RECONCILIATION · FULL AUDIT* · INV-00010 *Historical / struck / quoted / chained / superseded text is NOT current truth because a search found it* · INV-00011 *BOOTSTRAP ONCE PER SESSION, anchored to the baseline origin/main SHA — ephemeral evidence ledger* |
+| `docs/RULEBOOK.md` (72 rows) | INV-02552 *EXTENDED 21 Aug by §15.6. This reconciliation still runs at every session start — but the facts it establishes now …* · INV-02564 *A FULL AUDIT NEVER STARTS AUTOMATICALLY. Milestones, pre-release/pre-launch and major architecture, data or complia…* · INV-02565 *The WEEKLY audit is a different thing entirely — change-based from the last persisted audited-through SHA (§15.15) …* |
+| `CLAUDE.md` (19 rows) | INV-00008 *Every task has ONE MODE: READ-ONLY VERIFY · BUILD · DOC RECONCILIATION · FULL AUDIT* · INV-00010 *Historical / struck / quoted / chained / superseded text is NOT current truth because a search found it* · INV-00011 *BOOTSTRAP ONCE PER SESSION, anchored to the baseline origin/main SHA — ephemeral evidence ledger* |
 | `docs/PRODUCT-RULES.md` (4 rows) | INV-00116 *Every prompt is answered with a CLAUSE TABLE — built before the work, reported after it. See §5a. A prompt is …* · INV-00263 *The CLAUSE TABLE is a REQUIRED ARTIFACT, not a promise* · INV-00264 *The 6-clause pasted template the founder puts before a work prompt* |
 | `docs/KIND-MASTER.md` (1 rows) | INV-02166 *26 Jul (📋 THE CLAUSE TABLE — the discipline made a required ARTIFACT rather than a promise): founder, after catchin…* |
+| `docs/archive/KIND-MASTER-ARCHIVE.md` (1 rows) | INV-16337 *8 Jun (late): 🎨 Added §15 Integrations Hub (#84) + §16 Smart Inbox to V2 preview, + flow chart section — from Alta …* |
 
 ### CMP-0069 · Merge authority — MERGE IS NEVER CLAUDE'S
 
@@ -2143,9 +2170,9 @@ mapping correction, not a comparison conclusion.
 |---|---|
 | **Domain** | Operating / governance |
 | **Relationship** | **PARTIAL OVERLAP** |
-| **Inventory rows** | **26** — INV-00060, INV-02570, INV-03452, INV-10527, INV-10686–10688, INV-10690–10694, INV-10697–10702, INV-10704, INV-10755, INV-10773, INV-10790, INV-24255, INV-24258–24259, INV-24267 |
-| **Source documents** | 6 — `docs/archive/MASTER.md` (19) · `.github/workflows/doc-lint.yml` (3) · `CLAUDE.md` (1) · `docs/RULEBOOK.md` (1) · `docs/DOC-MAP.md` (1) · `.github/workflows/test.yml` (1) |
-| **Stable source IDs** | `#1434`, `#608`, `#7`, `P2`, `method 5` |
+| **Inventory rows** | **27** — INV-00060, INV-01319, INV-02570, INV-03452, INV-10527, INV-10686–10688, INV-10690–10694, INV-10697–10702, INV-10704, INV-10755, INV-10773, INV-10790, INV-24255, INV-24258–24259 … +1 more ranges |
+| **Source documents** | 7 — `docs/archive/MASTER.md` (19) · `.github/workflows/doc-lint.yml` (3) · `CLAUDE.md` (1) · `docs/V2-TRACKER.md` (1) · `docs/RULEBOOK.md` (1) · `docs/DOC-MAP.md` (1) · `.github/workflows/test.yml` (1) |
+| **Stable source IDs** | `#1434`, `#608`, `#7`, `6b.2`, `P2`, `method 5` |
 | **Runtime / code / schema evidence** | `scripts/check.sh` runs locally and passed on this pass. `scripts/doc-lint.sh` checks board consistency, the status-column home, duplicate IDs in the COUNT region, and banned stale-claim patterns across a named list of 27 documents. |
 | **Founder-direction evidence** | CLAUDE.md: *"`scripts/check.sh` is not a belt over CI — it IS the only gate."* |
 | **Historical / supersession evidence** | — (no supersession evidence visible in the sources) |
@@ -2158,6 +2185,7 @@ mapping correction, not a comparison conclusion.
 | `docs/archive/MASTER.md` (19 rows) | INV-10527 *This is a real full-check — scripts/full-check.sh was RUN, not recalled. Results below are live.* · INV-10686 *🔍 FULL-CHECK AUDIT SNAPSHOT — 2 June 2026 (run via scripts/full-check.sh + FULL_CHECK.md)* · INV-10687 *Method: Ran the mandatory audit protocol. Every category below was checked* |
 | `.github/workflows/doc-lint.yml` (3 rows) | INV-24255 *The doc-drift firewall — runs scripts/doc-lint.sh so stale docs FAIL CI instead of surfacing weeks later* · INV-24258 *Path-filtered to `docs/**`, `scripts/count-inventory.sh` and `scripts/doc-lint.sh` only* · INV-24259 *Single step: `bash scripts/doc-lint.sh` — a non-zero exit fails the check* |
 | `CLAUDE.md` (1 rows) | INV-00060 *Builds: fresh branch · check.sh green both ends · red proof · one PR · prove ahead/behind* |
+| `docs/V2-TRACKER.md` (1 rows) | INV-01319 *check.sh / workspace preflight — an unbuilt package dist masquerades as hundreds of TS errors* |
 | `docs/RULEBOOK.md` (1 rows) | INV-02570 *One stale fact corrected in place: the evidence bar below says "pasted check.sh 6/6". The gate has been SEVEN stage…* |
 | `docs/DOC-MAP.md` (1 rows) | INV-03452 *scripts/doc-lint.sh is the firewall — fails any commit where a board drifts, a Status column appears outside the in…* |
 | `.github/workflows/test.yml` (1 rows) | INV-24267 *Runs `yarn workspace @kind/api test` only — the API workspace, not the full monorepo* |
@@ -2168,9 +2196,9 @@ mapping correction, not a comparison conclusion.
 |---|---|
 | **Domain** | Operating / governance |
 | **Relationship** | **PARTIAL OVERLAP** |
-| **Inventory rows** | **369** — INV-00039, INV-00041, INV-00043, INV-00063, INV-00071, INV-00126–00137, INV-01606, INV-01633, INV-01659, INV-01759, INV-01767, INV-01975–01983, INV-01985–01987, INV-01989 … +98 more ranges |
-| **Source documents** | 10 — `docs/KIND-MASTER.md` (256) · `docs/archive/KIND-MASTER-ARCHIVE.md` (90) · `docs/PRODUCT-RULES.md` (13) · `CLAUDE.md` (4) · `docs/runbooks/DSAR-ERASURE.md` (1) · `docs/marketing/README-marketing.md` (1) · `docs/README.md` (1) · `README.md` (1) · +2 more source documents |
-| **Stable source IDs** | `#1`, `#1001`, `#1009`, `#1013`, `#1021`, `#1057`, `#1079`, `#1085`, `#1146`, `#1151`, `#1152`, `#1178`, `#1240`, `#1241`, `#1265`, `#1289`, `#1308`, `#1326`, `#1353`, `#1438`, `#148`, `#15`, `#190`, `#199` … +189 more |
+| **Inventory rows** | **374** — INV-00039, INV-00041–00043, INV-00063, INV-00071, INV-00126–00137, INV-01606, INV-01633, INV-01659, INV-01759, INV-01767, INV-01975–01983, INV-01985–01987, INV-01989, INV-01992 … +93 more ranges |
+| **Source documents** | 10 — `docs/KIND-MASTER.md` (258) · `docs/archive/KIND-MASTER-ARCHIVE.md` (92) · `docs/PRODUCT-RULES.md` (13) · `CLAUDE.md` (5) · `docs/runbooks/DSAR-ERASURE.md` (1) · `docs/marketing/README-marketing.md` (1) · `docs/README.md` (1) · `README.md` (1) · +2 more source documents |
+| **Stable source IDs** | `#1`, `#1001`, `#1009`, `#1013`, `#1021`, `#1057`, `#1079`, `#1085`, `#1146`, `#1151`, `#1152`, `#1178`, `#1240`, `#1241`, `#1265`, `#1289`, `#1308`, `#1326`, `#1353`, `#1438`, `#148`, `#15`, `#190`, `#199` … +192 more |
 | **Runtime / code / schema evidence** | `inventory-autoflip.yml` would append the log line automatically; nothing else writes it. |
 | **Founder-direction evidence** | CLAUDE.md's ritual: flip the dots, overwrite the LAUNCH-PAD top, append one session-log line identical to the commit message, run doc-lint before committing. |
 | **Historical / supersession evidence** | — (no supersession evidence visible in the sources) |
@@ -2180,10 +2208,10 @@ mapping correction, not a comparison conclusion.
 
 | Source | Sample INV rows |
 |---|---|
-| `docs/KIND-MASTER.md` (256 rows) | INV-01606 *K.I.N.D — MASTER (strategy · decisions · history · session log)* · INV-01633 *SUPERSEDED by the 8-Jul locks (see SESSION LOG top) — this 6-Jul block is dated. CURRENT: sell FIGSY + Lead-Gen onl…* · INV-01659 */ THIS doc (KIND-MASTER.md) / The map — plan, your FOUNDER CHECKLIST, strategy, dated timeline, session log /* |
-| `docs/archive/KIND-MASTER-ARCHIVE.md` (90 rows) | INV-16257 *SESSION LOG — rotated from KIND-MASTER (24 Jun → 7 Jun)* · INV-16258 *Moved here 26 Jun 2026 to keep the live doc lean. Newest-first, as in the live log.* · INV-16259 *24 Jun (late) — ⚙️ APOLLO ENGINE captured: outbound-OS playbook → FIGSY + the data-depth concern. Apollo reseller A…* |
+| `docs/KIND-MASTER.md` (258 rows) | INV-01606 *K.I.N.D — MASTER (strategy · decisions · history · session log)* · INV-01633 *SUPERSEDED by the 8-Jul locks (see SESSION LOG top) — this 6-Jul block is dated. CURRENT: sell FIGSY + Lead-Gen onl…* · INV-01659 */ THIS doc (KIND-MASTER.md) / The map — plan, your FOUNDER CHECKLIST, strategy, dated timeline, session log /* |
+| `docs/archive/KIND-MASTER-ARCHIVE.md` (92 rows) | INV-16257 *SESSION LOG — rotated from KIND-MASTER (24 Jun → 7 Jun)* · INV-16258 *Moved here 26 Jun 2026 to keep the live doc lean. Newest-first, as in the live log.* · INV-16259 *24 Jun (late) — ⚙️ APOLLO ENGINE captured: outbound-OS playbook → FIGSY + the data-depth concern. Apollo reseller A…* |
 | `docs/PRODUCT-RULES.md` (13 rows) | INV-00071 *Same-session capture — a chat ruling becomes a row here that session* · INV-00126 *NOTHING about how we work changes before live. The GitHub board/issues migration was examined at length on 6 A…* · INV-00127 *The company-GitHub migration is the FIRST post-live project. An org owned by the Ltd, work as issues/board/mil…* |
-| `CLAUDE.md` (4 rows) | INV-00039 *Flip the dot(s) in PRODUCT-INVENTORY — the only status edit* · INV-00041 *Append one line to the KIND-MASTER session log = the git commit message* · INV-00043 *Any founder ruling in chat → a row in PRODUCT-RULES the SAME session* |
+| `CLAUDE.md` (5 rows) | INV-00039 *Flip the dot(s) in PRODUCT-INVENTORY — the only status edit* · INV-00041 *Append one line to the KIND-MASTER session log = the git commit message* · INV-00042 *Touch KIND-MASTER strategy or V2-TRACKER only when a decision actually changes* |
 | `docs/runbooks/DSAR-ERASURE.md` (1 rows) | INV-07076 *Log it — date received, date answered, what was done. There is no table for this yet; use the session log until the…* |
 | `docs/marketing/README-marketing.md` (1 rows) | INV-08449 *marketing-metrics-and-iteration.md* |
 | `docs/README.md` (1 rows) | INV-09623 *Holds: strategy · decisions · history · the session log (one line per work session).* |
@@ -2221,9 +2249,9 @@ mapping correction, not a comparison conclusion.
 |---|---|
 | **Domain** | Operating / governance |
 | **Relationship** | **AGREES** |
-| **Inventory rows** | **775** — INV-00035–00036, INV-00050, INV-00110, INV-00197, INV-00273, INV-00342–00343, INV-00655, INV-00741, INV-00771, INV-00773, INV-00775, INV-00783, INV-00832, INV-00874 … +294 more ranges |
-| **Source documents** | 30 — `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` (330) · `docs/archive/EVERYTHING.md` (108) · `docs/RLS-AUDIT.md` (47) · `docs/archive/KIND-MASTER-ARCHIVE.md` (37) · `docs/LIVE-FEATURE-WALK.md` (34) · `docs/archive/MASTER.md` (33) · `docs/archive/V2-NARRATIVE-2026-08-21.md` (32) · `docs/KIND-MASTER.md` (25) · +22 more source documents |
-| **Stable source IDs** | `#1`, `#10`, `#103`, `#1057`, `#1062`, `#1072`, `#1085`, `#108b`, `#1159`, `#1160`, `#1161`, `#123`, `#15`, `#199`, `#204`, `#21`, `#230`, `#237`, `#24`, `#251`, `#253`, `#255`, `#26`, `#261` … +172 more |
+| **Inventory rows** | **788** — INV-00035–00036, INV-00050, INV-00110, INV-00197, INV-00273, INV-00342–00343, INV-00655, INV-00741, INV-00771, INV-00773, INV-00775, INV-00783, INV-00832, INV-00874 … +298 more ranges |
+| **Source documents** | 31 — `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` (333) · `docs/archive/EVERYTHING.md` (109) · `docs/RLS-AUDIT.md` (47) · `docs/archive/MASTER.md` (38) · `docs/archive/KIND-MASTER-ARCHIVE.md` (38) · `docs/LIVE-FEATURE-WALK.md` (34) · `docs/archive/V2-NARRATIVE-2026-08-21.md` (32) · `docs/KIND-MASTER.md` (25) · +23 more source documents |
+| **Stable source IDs** | `#1`, `#10`, `#103`, `#1057`, `#1062`, `#1072`, `#1085`, `#108b`, `#1159`, `#1160`, `#1161`, `#123`, `#15`, `#199`, `#204`, `#21`, `#230`, `#237`, `#24`, `#251`, `#253`, `#255`, `#26`, `#261` … +173 more |
 | **Runtime / code / schema evidence** | `flip-dots.sh` enforces 🟢 as founder-only (`FOUNDER_FLIP=1`); `count-inventory.sh` counts the board. |
 | **Founder-direction evidence** | CLAUDE.md and RULEBOOK §3 state the same five states and the same ladder. |
 | **Historical / supersession evidence** | — (no supersession evidence visible in the sources) |
@@ -2233,15 +2261,15 @@ mapping correction, not a comparison conclusion.
 
 | Source | Sample INV rows |
 |---|---|
-| `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` (330 rows) | INV-17067 *Live + verified* · INV-17071 *Iron rule: nothing is 🟢 until walked live in production. Numbers are stable IDs, not sequence (links from other doc…* · INV-17116 *546 · 🩷 · (🔴→🩷 26 Jul: shipped PR #1161.) [AUDIT] Both consoles told the truth about themselves — a full audit foun…* |
-| `docs/archive/EVERYTHING.md` (108 rows) | INV-16385 *0. 🔴 DELIVERABILITY — #1 PRIORITY (diagnosed 7 Jun, verified in code)* · INV-16386 *Rule: no client email and no founder outreach may land in spam. This blocks launch.* · INV-16387 *Why #1 and why it moves the date: all mail — cold outreach AND transactional — currently sends from the single prim…* |
+| `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` (333 rows) | INV-17067 *Live + verified* · INV-17071 *Iron rule: nothing is 🟢 until walked live in production. Numbers are stable IDs, not sequence (links from other doc…* · INV-17116 *546 · 🩷 · (🔴→🩷 26 Jul: shipped PR #1161.) [AUDIT] Both consoles told the truth about themselves — a full audit foun…* |
+| `docs/archive/EVERYTHING.md` (109 rows) | INV-16385 *0. 🔴 DELIVERABILITY — #1 PRIORITY (diagnosed 7 Jun, verified in code)* · INV-16386 *Rule: no client email and no founder outreach may land in spam. This blocks launch.* · INV-16387 *Why #1 and why it moves the date: all mail — cold outreach AND transactional — currently sends from the single prim…* |
 | `docs/RLS-AUDIT.md` (47 rows) | INV-05149 *african_data_moat* · INV-05150 *agent_signals* · INV-05151 *calendar_bookings* |
-| `docs/archive/KIND-MASTER-ARCHIVE.md` (37 rows) | INV-15196 *Lead DISCOVERY (finding net-new prospects) = 🔴 Apollo ONLY. Both the search (lib/apollo.ts → searchPeopleWithFallba…* · INV-15683 *24 · Replace homepage hero animation · Real product loop (blocked on #23) · 🤖 · ⏸ · Week 1 · Authenticity* · INV-15696 *34 · Activate Flutterwave · Needs key (ZAR/NGN/KES/GHS) · 🧍 · ⏸ · Weeks 2–4 · Africa-first revenue* |
+| `docs/archive/MASTER.md` (38 rows) | INV-10410 *No paying clients yet* · INV-10423 *No trademark protection* · INV-10426 *CCPA implementation incomplete* |
+| `docs/archive/KIND-MASTER-ARCHIVE.md` (38 rows) | INV-15196 *Lead DISCOVERY (finding net-new prospects) = 🔴 Apollo ONLY. Both the search (lib/apollo.ts → searchPeopleWithFallba…* · INV-15683 *24 · Replace homepage hero animation · Real product loop (blocked on #23) · 🤖 · ⏸ · Week 1 · Authenticity* · INV-15696 *34 · Activate Flutterwave · Needs key (ZAR/NGN/KES/GHS) · 🧍 · ⏸ · Weeks 2–4 · Africa-first revenue* |
 | `docs/LIVE-FEATURE-WALK.md` (34 rows) | INV-04971 *How to use: walk each item on the live site, mark it, and tell me the IDs. ✅ works → I flip 🩷→🟢 · ⚠️ placeholder → …* · INV-04972 *Legend: ⬜ not yet walked · ✅ confirmed working · ⚠️ partial/placeholder · 🔴 broken. (Source dot: 🟢 = already verifi…* · INV-04980 */dashboard · 116 · ✅ Home · REAL · ✅ WALKED 25 Jun → 🟢* |
-| `docs/archive/MASTER.md` (33 rows) | INV-10369 *[ ] 47 — Surface comparison/use-case pages in nav — ⏸ FOLDED INTO website consistency pass (post-smoke-test). Addin…* · INV-10410 *No paying clients yet* · INV-10423 *No trademark protection* |
 | `docs/archive/V2-NARRATIVE-2026-08-21.md` (32 rows) | INV-17868 *Status ladder* · INV-18080 *Y6 · ⏸ DEFERRED post-launch (founder call) — needs a DB table + migration; same bucket as the Knowledge backend. Se…* · INV-18086 *Y15 · ⏸ POST-LAUNCH (founder call, 10 Jun) — integration tests on the money/credit paths (credit deduction · ledger…* |
 | `docs/KIND-MASTER.md` (25 rows) | INV-01641 *2 Jul (earlier) in one line: website repriced $1→$3 LIVE (#883, 🩷 walk owed) · webhook replay guard live (#884, ⛔ m…* · INV-01642 *1 Jul in one line: M2 security+sending sweep shipped (🟢 #266/#261/#263/#262 · 🩷 #260/#265/#267/#243) · M3 Admin Cen…* · INV-01660 */ 📋 PRODUCT-INVENTORY.md / THE status list — every item (165) with one dot (4 states, locked 13 Jun): 🟢 built+live …* |
-| *+22 more source documents* | *full list via the coverage map* |
+| *+23 more source documents* | *full list via the coverage map* |
 
 ### CMP-0076 · Preview before live
 
@@ -2249,8 +2277,8 @@ mapping correction, not a comparison conclusion.
 |---|---|
 | **Domain** | Operating / governance |
 | **Relationship** | **AGREES** |
-| **Inventory rows** | **278** — INV-00109, INV-00191, INV-00269, INV-00652, INV-01673–01674, INV-01679, INV-01691–01692, INV-01756, INV-01789, INV-01791–01792, INV-01794, INV-01796–01797, INV-01800–01801, INV-01803–01805 … +104 more ranges |
-| **Source documents** | 23 — `docs/archive/STAGING-REVIEW.md` (120) · `docs/KIND-MASTER.md` (26) · `docs/archive/KIND-MASTER-ARCHIVE.md` (25) · `docs/archive/SESSION-SUMMARY-13JUN.md` (23) · `docs/archive/COMPANY-ENGINE-TEST.md` (22) · `docs/archive/EVERYTHING.md` (15) · `docs/archive/BOOKMARK-week-plan.md` (15) · `docs/archive/V2-NARRATIVE-2026-08-21.md` (8) · +15 more source documents |
+| **Inventory rows** | **279** — INV-00109, INV-00191, INV-00269, INV-00652, INV-01653, INV-01673–01674, INV-01679, INV-01691–01692, INV-01756, INV-01789, INV-01791–01792, INV-01794, INV-01796–01797, INV-01800–01801 … +105 more ranges |
+| **Source documents** | 23 — `docs/archive/STAGING-REVIEW.md` (120) · `docs/KIND-MASTER.md` (27) · `docs/archive/KIND-MASTER-ARCHIVE.md` (25) · `docs/archive/SESSION-SUMMARY-13JUN.md` (23) · `docs/archive/COMPANY-ENGINE-TEST.md` (22) · `docs/archive/EVERYTHING.md` (15) · `docs/archive/BOOKMARK-week-plan.md` (15) · `docs/archive/V2-NARRATIVE-2026-08-21.md` (8) · +15 more source documents |
 | **Stable source IDs** | `#100`, `#102`, `#103`, `#104`, `#114`, `#48`, `#54`, `#69`, `#88`, `P4`, `R1`, `R10`, `R11`, `R15`, `R19`, `R21`, `R22`, `R23`, `R24`, `R4`, `R7`, `§11` |
 | **Runtime / code / schema evidence** | `freeze-website.sh` and `website-freeze.json` exist; no staging gate is enforced in code. |
 | **Founder-direction evidence** | CLAUDE.md and RULEBOOK §11: every client-facing build goes to the preview site first, founder approves (🟣), then it ships. |
@@ -2262,7 +2290,7 @@ mapping correction, not a comparison conclusion.
 | Source | Sample INV rows |
 |---|---|
 | `docs/archive/STAGING-REVIEW.md` (120 rows) | INV-20591 *🔍 K.I.N.D — STAGING REVIEW LOG* · INV-20592 *🗄️ HISTORICAL (22 Jun) — pre-launch staging review log. The product launched 18 Jun; live status now lives in PRODU…* · INV-20593 *Purpose: the founder walks every new feature on the isolated staging environment and records* |
-| `docs/KIND-MASTER.md` (26 rows) | INV-01673 *[ ] 🧍 Merge claude/kind-carson-MYhSl → staging (GitHub PR, base staging)* · INV-01674 *[ ] 🧍 Re-paste staging-schema.sql in kind-staging SQL editor → Run (adds enabled_agents)* · INV-01679 *[ ] 🧍 Ship to production: run 20260612_company_engine.sql on prod Supabase (idempotent, additive) → merge staging →…* |
+| `docs/KIND-MASTER.md` (27 rows) | INV-01653 *3. POST-19 — everything else — all 25 release PRs · shell redesign · Alta-style inbox · the staging review queue. B…* · INV-01673 *[ ] 🧍 Merge claude/kind-carson-MYhSl → staging (GitHub PR, base staging)* · INV-01674 *[ ] 🧍 Re-paste staging-schema.sql in kind-staging SQL editor → Run (adds enabled_agents)* |
 | `docs/archive/KIND-MASTER-ARCHIVE.md` (25 rows) | INV-15067 *CHAPTER 4 — OPERATIONS, LEGAL, INFRA & BUILT INVENTORY (4 legal rings, staging, recurring ops, blocked-on-creds, fu…* · INV-15711 *PREREQUISITE: Set up staging environment (Part 4B) before any V2 touches main.* · INV-15754 *Hard prerequisite — STAGING ENV (before any V2 touches prod): Supabase staging* |
 | `docs/archive/SESSION-SUMMARY-13JUN.md` (23 rows) | INV-20805 *88 per-rep schema finalization (prep for staging build)* · INV-20808 *Week 2 (Mon 22 – Fri 26) — PER-REP FOUNDATION ON STAGING* · INV-20809 *88 Per-Rep MVP build (staging)* |
 | `docs/archive/COMPANY-ENGINE-TEST.md` (22 rows) | INV-21195 *🏢 Company Engine (#88) — How to test on staging* · INV-21196 *Everything below runs on the sealed staging environment — fake data, cannot touch production.* · INV-21197 *The engine = each rep has their own workspace (own leads/campaigns/FIGSY), the owner funds a* |
@@ -2359,9 +2387,9 @@ mapping correction, not a comparison conclusion.
 |---|---|
 | **Domain** | Operating / governance |
 | **Relationship** | **PARTIAL OVERLAP** |
-| **Inventory rows** | **352** — INV-00232, INV-03158, INV-03166, INV-03538, INV-03545, INV-03547–03549, INV-03552, INV-05317, INV-06086, INV-06090, INV-06121, INV-06176–06177, INV-06179–06198, INV-06200–06203 … +139 more ranges |
-| **Source documents** | 37 — `docs/runbooks/DSAR-ERASURE.md` (73) · `docs/archive/MASTER.md` (53) · `docs/compliance/SA-PAIA-MANUAL-DRAFT.md` (48) · `docs/compliance/SA-S72-TRANSFER-MEMO-SKELETON.md` (33) · `docs/legal/legal-pack.md` (31) · `docs/compliance/SA-INFORMATION-OFFICER-CHECKLIST.md` (22) · `docs/strategy/MASTER_CONTEXT.md` (10) · `apps/website/trust.html` (8) · +29 more source documents |
-| **Stable source IDs** | `#10`, `R45`, `R56`, `§1.3`, `§2`, `§3`, `§4`, `§4.3`, `§4.4`, `§6` |
+| **Inventory rows** | **358** — INV-00232, INV-01061, INV-03158, INV-03166, INV-03538, INV-03545, INV-03547–03549, INV-03552, INV-05317, INV-06086, INV-06090, INV-06121, INV-06176–06177, INV-06179–06198 … +144 more ranges |
+| **Source documents** | 38 — `docs/runbooks/DSAR-ERASURE.md` (73) · `docs/archive/MASTER.md` (57) · `docs/compliance/SA-PAIA-MANUAL-DRAFT.md` (48) · `docs/compliance/SA-S72-TRANSFER-MEMO-SKELETON.md` (33) · `docs/legal/legal-pack.md` (31) · `docs/compliance/SA-INFORMATION-OFFICER-CHECKLIST.md` (22) · `docs/strategy/MASTER_CONTEXT.md` (10) · `apps/website/trust.html` (8) · +30 more source documents |
+| **Stable source IDs** | `#10`, `H30`, `R45`, `R56`, `§1.3`, `§2`, `§3`, `§4`, `§4.3`, `§4.4`, `§6` |
 | **Runtime / code / schema evidence** | `runbooks/DSAR-ERASURE.md` is verified against the schema; `consent.ts` and `suppression.ts` implement opt-out. |
 | **Founder-direction evidence** | NO EXPLICIT CURRENT FOUNDER DIRECTION FOUND |
 | **Historical / supersession evidence** | Each draft carries *"NOT FILED, NOT PUBLISHED, NOT RELIED ON"* at the top. |
@@ -2372,14 +2400,14 @@ mapping correction, not a comparison conclusion.
 | Source | Sample INV rows |
 |---|---|
 | `docs/runbooks/DSAR-ERASURE.md` (73 rows) | INV-06995 *🧾 DSAR & erasure runbook — one person, by email* · INV-06996 *⏱️ YOU HAVE ONE MONTH. UK/EU GDPR gives a controller one calendar month from receipt to respond to a subject access…* · INV-06997 *NO TOOLING EXISTS. Every step here is manual, run by the founder as a one-off against the database. There is no DSA…* |
-| `docs/archive/MASTER.md` (53 rows) | INV-10347 *[ ] AI Risk Register · GDPR/CCPA badges on trust page · compliance page in sales deck* · INV-10397 *Legally clean: US has no B2B-SaaS data-residency law; CCPA is about rights not location; POPIA satisfied by Cape To…* · INV-10416 *~~Supabase region~~* |
+| `docs/archive/MASTER.md` (57 rows) | INV-10347 *[ ] AI Risk Register · GDPR/CCPA badges on trust page · compliance page in sales deck* · INV-10397 *Legally clean: US has no B2B-SaaS data-residency law; CCPA is about rights not location; POPIA satisfied by Cape To…* · INV-10416 *~~Supabase region~~* |
 | `docs/compliance/SA-PAIA-MANUAL-DRAFT.md` (48 rows) | INV-06906 *DRAFT FOR COUNSEL — NOT FILED, NOT PUBLISHED, NOT RELIED ON* · INV-06907 *Nothing in this document has been filed with any authority, published to any client, or* · INV-06908 *acted on. It exists so counsel has a starting draft instead of a blank page. Every bracketed* |
 | `docs/compliance/SA-S72-TRANSFER-MEMO-SKELETON.md` (33 rows) | INV-06957 *DRAFT FOR COUNSEL — NOT FILED, NOT PUBLISHED, NOT RELIED ON* · INV-06958 *Nothing here has been filed, published or relied on. The s72(1) basis is left blank* · INV-06959 *deliberately: selecting it is counsel's decision, and a draft that guessed would be worse than* |
 | `docs/legal/legal-pack.md` (31 rows) | INV-06176 *2.1 UK GDPR + Data Protection Act 2018 (primary law — UK)* · INV-06177 *Applies to: All processing of personal data by a UK company, regardless of where the data subjects are located.* · INV-06179 *Privacy notice (✅ live at get-kind.com/privacy)* |
 | `docs/compliance/SA-INFORMATION-OFFICER-CHECKLIST.md` (22 rows) | INV-06863 *DRAFT FOR COUNSEL — NOT FILED, NOT PUBLISHED, NOT RELIED ON* · INV-06867 *is a UK company (No. 17260532). Whether POPIA's Information Officer duties attach to a* · INV-06873 *POPIA Information Officer — registration checklist and duties* |
 | `docs/strategy/MASTER_CONTEXT.md` (10 rows) | INV-07768 *UK GDPR processing* · INV-07769 *written LIA / legitimate interests assessment;* · INV-07770 *Article 14 transparency for indirectly sourced data;* |
 | `apps/website/trust.html` (8 rows) | INV-23742 *GDPR-aligned for international prospects.* · INV-23744 *Lawful basis for processing* · INV-23745 *Outbound B2B email operates under legitimate interest. K.I.N.D logs the legitimate interest assessment for each cam…* |
-| *+29 more source documents* | *full list via the coverage map* |
+| *+30 more source documents* | *full list via the coverage map* |
 
 ### CMP-0081 · Environment variables and tiers
 
@@ -2415,9 +2443,9 @@ mapping correction, not a comparison conclusion.
 |---|---|
 | **Domain** | Operating / governance |
 | **Relationship** | **PARTIAL OVERLAP** |
-| **Inventory rows** | **432** — INV-01411, INV-01648, INV-01771, INV-03436–03446, INV-03448–03450, INV-03453–03454, INV-03466–03484, INV-03486–03487, INV-03489–03490, INV-03533–03535, INV-03537, INV-03539–03544, INV-03546, INV-03550–03551 … +67 more ranges |
-| **Source documents** | 10 — `scripts/core-files.txt` (184) · `docs/CORE-MAP.md` (166) · `docs/DOC-MAP.md` (61) · `docs/reports/PRODUCT-AUDIT-1AUG.md` (13) · `docs/KIND-MASTER.md` (2) · `docs/archive/AUDIT-24JUN-RECONCILIATION.md` (2) · `docs/client-flow-sop.md` (1) · `docs/ENVIRONMENT.md` (1) · +2 more source documents |
-| **Stable source IDs** | `#1240`, `#17b`, `#182`, `#185`, `#264`, `#266`, `#278`, `#279`, `#281`, `#285`, `#306`, `#308`, `#321`, `#338`, `#345`, `#368`, `#369`, `#397`, `#404`, `#432`, `#448`, `#453`, `#477`, `#486` … +11 more |
+| **Inventory rows** | **435** — INV-01244, INV-01249, INV-01411, INV-01648, INV-01771, INV-03436–03446, INV-03448–03450, INV-03453–03454, INV-03466–03484, INV-03486–03487, INV-03489–03490, INV-03533–03535, INV-03537, INV-03539–03544 … +68 more ranges |
+| **Source documents** | 11 — `scripts/core-files.txt` (184) · `docs/CORE-MAP.md` (166) · `docs/DOC-MAP.md` (62) · `docs/reports/PRODUCT-AUDIT-1AUG.md` (13) · `docs/V2-TRACKER.md` (2) · `docs/KIND-MASTER.md` (2) · `docs/archive/AUDIT-24JUN-RECONCILIATION.md` (2) · `docs/client-flow-sop.md` (1) · +3 more source documents |
+| **Stable source IDs** | `#1240`, `#17b`, `#182`, `#185`, `#264`, `#266`, `#278`, `#279`, `#281`, `#285`, `#306`, `#308`, `#321`, `#338`, `#345`, `#368`, `#369`, `#397`, `#404`, `#432`, `#448`, `#453`, `#477`, `#486` … +13 more |
 | **Runtime / code / schema evidence** | `scripts/core-files.txt` (260 lines) is read by the gate scripts; `CORE-MAP.md` and `DOC-MAP.md` describe the same territory in prose. |
 | **Founder-direction evidence** | NO EXPLICIT CURRENT FOUNDER DIRECTION FOUND |
 | **Historical / supersession evidence** | DOC-MAP itself carried `$99 onboarding pack` as current five weeks after the 3 Aug re-lock — recorded in doc-lint's own comments as the reason it was added to the linted list. |
@@ -2429,13 +2457,13 @@ mapping correction, not a comparison conclusion.
 |---|---|
 | `scripts/core-files.txt` (184 rows) | INV-09666 *apps/admin/src/app/api/clients/[id]/order-form/route.ts* · INV-09667 *apps/admin/src/app/api/clients/route.ts* · INV-09668 *apps/admin/src/app/api/proxy/[...path]/route.ts* |
 | `docs/CORE-MAP.md` (166 rows) | INV-03565 *🗺️ THE CORE MAP — the code that actually runs the product* · INV-03566 *Why this exists. The repo is ~113,000 lines. Audits kept reporting coverage like "8.5% of 90k" — a number that is b…* · INV-03568 *That sentence was not true when this map first shipped, and the fix is worth recording. The script hardcoded ROOT =…* |
-| `docs/DOC-MAP.md` (61 rows) | INV-03436 *🗺️ K.I.N.D — DOC MAP (every doc · what it's for · how it stays honest)* · INV-03437 *The index of every doc in the repo. Three tiers: LIVING (maintained — must always match code + the locked model), A…* · INV-03438 *Last-restructured: 9 Jul 2026 (doc-management reset: status stripped from non-inventory docs, doc-lint firewall add…* |
+| `docs/DOC-MAP.md` (62 rows) | INV-03436 *🗺️ K.I.N.D — DOC MAP (every doc · what it's for · how it stays honest)* · INV-03437 *The index of every doc in the repo. Three tiers: LIVING (maintained — must always match code + the locked model), A…* · INV-03438 *Last-restructured: 9 Jul 2026 (doc-management reset: status stripped from non-inventory docs, doc-lint firewall add…* |
 | `docs/reports/PRODUCT-AUDIT-1AUG.md` (13 rows) | INV-05469 *FOUNDER DECISION — B3. Restate #560's percentage against the CORE-MAP denominator so the two docs stop disagreeing.* · INV-05474 *CORE-MAP was stale, and so was the manifest beside it* · INV-05475 *Docs on disk that DOC-MAP does not name — 84* |
+| `docs/V2-TRACKER.md` (2 rows) | INV-01244 *Four classes A/B/C/D for every mapped document and folder* · INV-01249 *RECONCILE THE EXISTING COMPANY — a Claude READ-ONLY sweep beginning at DOC-MAP* |
 | `docs/KIND-MASTER.md` (2 rows) | INV-01648 *Kept for the record: the 12-Jun launch plan, the founder checklist, the old doc-map. Current state is above + in LA…* · INV-01771 *docs/DOC-MAP.md — full audit/cross-reference of every doc in the repo (authoritative vs reference vs archive).* |
 | `docs/archive/AUDIT-24JUN-RECONCILIATION.md` (2 rows) | INV-20271 *Root cause of doc drift: the RULEBOOK §10 / DOC-MAP "main-4 feed the sub-docs" propagation discipline wasn't enforc…* · INV-20314 *DOC-MAP.md · 3 docs on disk unindexed: MCP-EXPLAINED.html, pwa-mockup.html, updates-live/client-journey-flowchart.h…* |
 | `docs/client-flow-sop.md` (1 rows) | INV-01411 *This is the SOP — it owns the procedures/flows; status lives in PRODUCT-INVENTORY* |
-| `docs/ENVIRONMENT.md` (1 rows) | INV-04241 *docs/CORE-MAP.md — which code runs at all.* |
-| *+2 more source documents* | *full list via the coverage map* |
+| *+3 more source documents* | *full list via the coverage map* |
 
 ---
 
@@ -2447,9 +2475,9 @@ mapping correction, not a comparison conclusion.
 |---|---|
 | **Domain** | Product surface |
 | **Relationship** | **PARTIAL OVERLAP** |
-| **Inventory rows** | **736** — INV-00158, INV-00162–00163, INV-00225, INV-00344, INV-00885, INV-00930, INV-01418, INV-01729, INV-01814, INV-01867, INV-01883, INV-01912, INV-01934–01936, INV-01939–01942 … +436 more ranges |
-| **Source documents** | 69 — `docs/archive/MASTER.md` (221) · `docs/strategy/get-kind_data_sourcing_and_meeting_yield_verification_artifact.html` (49) · `docs/archive/roadmap-audit-14-may-2026.md` (41) · `docs/archive/CHANGELOG.md` (34) · `docs/APOLLO-ENGINE.md` (28) · `docs/archive/AUDIT.md` (27) · `docs/KIND-MASTER.md` (24) · `docs/art-of-possible.md` (19) · +61 more source documents |
-| **Stable source IDs** | `#2`, `#346`, `#34a`, `#37`, `#38`, `#41`, `#426`, `#431`, `#45`, `#52`, `#54`, `#59`, `#6`, `#60`, `#612`, `#88`, `#89`, `D13`, `D14`, `D9`, `P3`, `R29`, `R38`, `§17` |
+| **Inventory rows** | **770** — INV-00158, INV-00162–00163, INV-00225, INV-00344, INV-00885, INV-00930, INV-01075, INV-01201, INV-01418, INV-01737, INV-01814, INV-01867, INV-01912, INV-01934–01936 … +455 more ranges |
+| **Source documents** | 70 — `docs/archive/MASTER.md` (248) · `docs/strategy/get-kind_data_sourcing_and_meeting_yield_verification_artifact.html` (49) · `docs/archive/roadmap-audit-14-may-2026.md` (41) · `docs/archive/CHANGELOG.md` (34) · `docs/APOLLO-ENGINE.md` (28) · `docs/archive/AUDIT.md` (27) · `docs/KIND-MASTER.md` (23) · `docs/archive/KIND-MASTER-ARCHIVE.md` (21) · +62 more source documents |
+| **Stable source IDs** | `#2`, `#346`, `#34a`, `#37`, `#38`, `#41`, `#426`, `#431`, `#45`, `#52`, `#54`, `#59`, `#6`, `#60`, `#612`, `#651`, `#88`, `#89`, `D13`, `D14`, `D9`, `P3`, `R29`, `R38` … +1 more |
 | **Runtime / code / schema evidence** | A pending migration adds campaign human-in-the-loop columns (`copilot_mode` + `approve_before_send`) — *"the demo rebuild and the first paying client both need them"*. `constants/index.ts` holds the sequence length locked at **7** (R3/R10, 6 Aug), and records that an audit found **four different limits live at once** because the number lived in four apps. |
 | **Founder-direction evidence** | Founder-locked 7 (6 Aug); the earlier #426 asked for 10 and is recorded as superseded. |
 | **Historical / supersession evidence** | #426's 10 is preserved as superseded in the constants comment. |
@@ -2459,15 +2487,15 @@ mapping correction, not a comparison conclusion.
 
 | Source | Sample INV rows |
 |---|---|
-| `docs/archive/MASTER.md` (221 rows) | INV-10383 *[x] ✅ #45 Honest proof block — removed a LIVE fabricated "4/8 replies closed" stat (dogfood campaign hasn't run); n…* · INV-10710 *Promise strip* · INV-10855 *Sequence branching* |
+| `docs/archive/MASTER.md` (248 rows) | INV-10383 *[x] ✅ #45 Honest proof block — removed a LIVE fabricated "4/8 replies closed" stat (dogfood campaign hasn't run); n…* · INV-10710 *Promise strip* · INV-10855 *Sequence branching* |
 | `docs/strategy/get-kind_data_sourcing_and_meeting_yield_verification_artifact.html` (49 rows) | INV-22242 *19. Campaign objective hierarchy* · INV-22243 *The campaign engine should optimise in this order* · INV-22244 *Qualified held meetings — primary optimisation target.* |
 | `docs/archive/roadmap-audit-14-may-2026.md` (41 rows) | INV-18566 *Campaign list and management* · INV-18568 *Enroll leads into campaign* · INV-18570 *Collapsible replies per campaign* |
 | `docs/archive/CHANGELOG.md` (34 rows) | INV-19881 *Commit 16e21f8 — Visual Sequence Builder + Campaign Detail Page* · INV-19882 *New page: /dashboard/figsy/[id] — Campaign detail with three tabs* · INV-19883 *Sequence Tab* |
 | `docs/APOLLO-ENGINE.md` (28 rows) | INV-05221 *TARGET → ENRICH → SEQUENCE → SEND → MEASURE → OPTIMISE. We have 1–3 partially; 4–6 are the gaps.* · INV-05235 *③ SEQUENCE — the proven blueprint (the biggest lesson)* · INV-05236 *Client-built, ≤10 steps, multi-channel, escalating: auto_email → auto_email → LinkedIn view-profile → LinkedIn mess…* |
 | `docs/archive/AUDIT.md` (27 rows) | INV-20085 *FIGSY nav: Home / Campaigns / Inbox / Performance / Knowledge* · INV-20105 *FIGSY at-a-glance panel (active campaigns, enrolled, sent, hot replies)* · INV-20116 *Mode toggle at top of campaigns page* |
-| `docs/KIND-MASTER.md` (24 rows) | INV-01729 *Sequence (now): ① build the Drop series (no video) · ② build the Prompt Library · ③ HOLD Watch/Product Video · ④ wi…* · INV-01814 *Signer locked — signer_name = "Jack from K.I.N.D" set in Supabase (real campaign emails sign off correctly).* · INV-01867 *Sequence LOCKED: warm (198) + engine (211) solid → THEN outreach (the Google/Yahoo crackdown punishes bad senders i…* |
-| `docs/art-of-possible.md` (19 rows) | INV-07324 *6 · Apollo · Lead data + sequences · Our supplier, partial competitor, and teacher · ✅ Integrated · May 2026* · INV-07330 *Sidebar is mission control — Live stats always visible. Credits. Active campaigns. Health of your revenue operation…* · INV-07336 *2. The visual sequence builder* |
-| *+61 more source documents* | *full list via the coverage map* |
+| `docs/KIND-MASTER.md` (23 rows) | INV-01737 *Ship the locked design queue: Alta-style inbox rebuild (112) · agent "AI Family" cards (125) · sequence-builder rec…* · INV-01814 *Signer locked — signer_name = "Jack from K.I.N.D" set in Supabase (real campaign emails sign off correctly).* · INV-01867 *Sequence LOCKED: warm (198) + engine (211) solid → THEN outreach (the Google/Yahoo crackdown punishes bad senders i…* |
+| `docs/archive/KIND-MASTER-ARCHIVE.md` (21 rows) | INV-15079 *Monday.com · Full relaunch as "AI Work Platform." Native agents any team member can configure — draft campaigns, qu…* · INV-15145 *Action: Month 2, build one MCP endpoint: "Start a FIGSY campaign." A Notion/Linear bot can trigger a K.I.N.D outrea…* · INV-15151 *≤5 tiles, all revenue: Agents · Leads · Campaigns · Inbox · Dashboards (+ Integrations).* |
+| *+62 more source documents* | *full list via the coverage map* |
 
 ### CMP-0084 · Unibox, replies and reply triage
 
@@ -2475,9 +2503,9 @@ mapping correction, not a comparison conclusion.
 |---|---|
 | **Domain** | Product surface |
 | **Relationship** | **PARTIAL OVERLAP** |
-| **Inventory rows** | **451** — INV-00099, INV-00164, INV-00380, INV-00637, INV-00648, INV-00684, INV-00795, INV-00927, INV-00941, INV-00958, INV-01028, INV-01407, INV-01413, INV-01669 … +314 more ranges |
-| **Source documents** | 68 — `docs/archive/MASTER.md` (137) · `docs/archive/KIND-MASTER-ARCHIVE.md` (27) · `docs/archive/CHANGELOG.md` (27) · `docs/archive/roadmap-audit-14-may-2026.md` (23) · `docs/content/blog-articles.md` (21) · `docs/previews/inbox-v2.html` (21) · `docs/archive/KIND_Roadmap.md` (12) · `docs/archive/EVERYTHING.md` (11) · +60 more source documents |
-| **Stable source IDs** | `#1`, `#107`, `#17b`, `#23`, `#25`, `#270`, `#280`, `#38`, `#39`, `#397`, `#428`, `#45`, `#50`, `#51`, `#517`, `#53`, `#54`, `#542`, `#600`, `#610`, `#624`, `#645`, `D15`, `D7` … +2 more |
+| **Inventory rows** | **468** — INV-00099, INV-00164, INV-00380, INV-00637, INV-00648, INV-00684, INV-00795, INV-00927, INV-00941, INV-00958, INV-01028, INV-01081, INV-01091, INV-01111 … +328 more ranges |
+| **Source documents** | 69 — `docs/archive/MASTER.md` (149) · `docs/archive/KIND-MASTER-ARCHIVE.md` (27) · `docs/archive/CHANGELOG.md` (27) · `docs/archive/roadmap-audit-14-may-2026.md` (23) · `docs/content/blog-articles.md` (21) · `docs/previews/inbox-v2.html` (21) · `docs/archive/KIND_Roadmap.md` (12) · `docs/archive/EVERYTHING.md` (11) · +61 more source documents |
+| **Stable source IDs** | `#1`, `#107`, `#17b`, `#23`, `#25`, `#270`, `#280`, `#38`, `#39`, `#397`, `#428`, `#45`, `#5`, `#50`, `#51`, `#517`, `#53`, `#54`, `#542`, `#600`, `#610`, `#624`, `#645`, `D15` … +3 more |
 | **Runtime / code / schema evidence** | `reply-fanout.route.test.ts` guards fan-out. PRODUCT-INVENTORY #468 records that `routes/figsy.ts:1980` sent a real 1:1 email via Resend guarded only by `requireAuth`, bypassing the kill-switch — marked 🩷 code-verified fixed, walk owed. |
 | **Founder-direction evidence** | NO EXPLICIT CURRENT FOUNDER DIRECTION FOUND |
 | **Historical / supersession evidence** | — (no supersession evidence visible in the sources) |
@@ -2487,7 +2515,7 @@ mapping correction, not a comparison conclusion.
 
 | Source | Sample INV rows |
 |---|---|
-| `docs/archive/MASTER.md` (137 rows) | INV-10343 *[ ] Google Workspace — PARKED (Cloudflare Email Routing forward covers inbox at $0)* · INV-10594 *[ ] Google Workspace (~$12/mo) — professional @get-kind.com email for your inbox. Without this, your email footprin…* · INV-10666 *Run supabase/migrations/20260603_schema_reconcile.sql in Supabase (send/reply/credit pipeline depends on it).* |
+| `docs/archive/MASTER.md` (149 rows) | INV-10343 *[ ] Google Workspace — PARKED (Cloudflare Email Routing forward covers inbox at $0)* · INV-10594 *[ ] Google Workspace (~$12/mo) — professional @get-kind.com email for your inbox. Without this, your email footprin…* · INV-10666 *Run supabase/migrations/20260603_schema_reconcile.sql in Supabase (send/reply/credit pipeline depends on it).* |
 | `docs/archive/KIND-MASTER-ARCHIVE.md` (27 rows) | INV-15082 *Linear · Linear Agent: triages new work, assesses it, routes to the right team, Code Intelligence (controlled codeb…* · INV-15180 *Thu 11 · 📬 DELIVERABILITY EVIDENCE TEST · ⬜ · The "is my mail REALLY landing in client inboxes?" verification (~1 h…* · INV-15187 *Sun 14 · D9 mail-tester · ⬜ · mail-tester.com → verify 10/10 → fix gaps. (Basic inbox passed 9 Jun; formal 10/10 ow…* |
 | `docs/archive/CHANGELOG.md` (27 rows) | INV-19924 *All newly shipped features marked with "New" badge: Three-panel inbox, Co-Pilot mode, Reply Assist, Knowledge/Compa…* · INV-19929 *Commit 850ac6e — Three-Panel Inbox, Knowledge/Compass, Performance v2, Co-Pilot, Ask FIGSY* · INV-19930 *Three-Panel Inbox (/dashboard/figsy/replies)* |
 | `docs/archive/roadmap-audit-14-may-2026.md` (23 rows) | INV-18572 *AI draft follow-up on interested reply* · INV-18575 *Credits remaining, emails sent, reply rates* · INV-18677 *Credits consumed only on positive reply* |
@@ -2495,7 +2523,7 @@ mapping correction, not a comparison conclusion.
 | `docs/previews/inbox-v2.html` (21 rows) | INV-21607 *K.I.N.D — Unibox (design preview)* · INV-21609 *K.I.N.D — Unibox (design preview)* · INV-21610 *K.I.N.D Unibox redesign (inventory item&nbsp;112) · Gmail-style multi-channel inbox · sample data · not wired to th…* |
 | `docs/archive/KIND_Roadmap.md` (12 rows) | INV-19106 *CRM deal push on "interested" reply (F2-2)* · INV-19112 *F2-3: AI reply suggestions* · INV-19194 *FIGSY inbound email setup (required for reply detection to work)* |
 | `docs/archive/EVERYTHING.md` (11 rows) | INV-16462 *Sun 14 · D9 inbox-placement test (mail-tester/GlockApps → 10/10) → fix auth gaps · 🤖* · INV-16471 *Ongoing ops begin: daily Admin/Unibox/founder-brief check (TTFL >4h → intervene); weekly Fri KPI/clients/roadmap/sc…* · INV-16484 *54 DENISE deep build (#1 priority) — Calendly auto-book on positive reply · call-join + transcription (notetaker) ·…* |
-| *+60 more source documents* | *full list via the coverage map* |
+| *+61 more source documents* | *full list via the coverage map* |
 
 ### CMP-0085 · Deliverability, warm-up and sending domains
 
@@ -2503,8 +2531,8 @@ mapping correction, not a comparison conclusion.
 |---|---|
 | **Domain** | Product surface |
 | **Relationship** | **PARTIAL OVERLAP** |
-| **Inventory rows** | **328** — INV-00055, INV-00096–00098, INV-00159–00160, INV-00182, INV-00199, INV-00201, INV-00212–00213, INV-00276, INV-01416, INV-01420, INV-01637, INV-01643, INV-01685, INV-01702 … +192 more ranges |
-| **Source documents** | 46 — `docs/archive/MASTER.md` (80) · `docs/archive/KIND-MASTER-ARCHIVE.md` (40) · `docs/archive/V2-NARRATIVE-2026-08-21.md` (30) · `docs/DELIVERABILITY-D9-CHECKLIST.md` (18) · `docs/KIND-MASTER.md` (17) · `docs/SEND-DAY-RUNBOOK.md` (12) · `docs/PRODUCT-RULES.md` (11) · `apps/website/trust.html` (11) · +38 more source documents |
+| **Inventory rows** | **339** — INV-00055, INV-00096–00098, INV-00159–00160, INV-00182, INV-00199, INV-00201, INV-00212–00213, INV-00276, INV-01134, INV-01136–01139, INV-01142–01144, INV-01172, INV-01179, INV-01416 … +197 more ranges |
+| **Source documents** | 47 — `docs/archive/MASTER.md` (80) · `docs/archive/KIND-MASTER-ARCHIVE.md` (40) · `docs/archive/V2-NARRATIVE-2026-08-21.md` (31) · `docs/DELIVERABILITY-D9-CHECKLIST.md` (18) · `docs/KIND-MASTER.md` (17) · `docs/SEND-DAY-RUNBOOK.md` (12) · `docs/PRODUCT-RULES.md` (11) · `apps/website/trust.html` (11) · +39 more source documents |
 | **Stable source IDs** | `#1`, `#18`, `#268`, `#43`, `#548`, `#593`, `#7`, `D1`, `D10`, `D11`, `D2`, `D6`, `O13`, `R12`, `R14`, `R25`, `R26`, `R7`, `§1.0`, `§12`, `§3` |
 | **Runtime / code / schema evidence** | `mailer.ts` handles SMTP auth failures per host. `client-flow-sop.md` records *"OUR OWN ENGINE over SMTP; Instantly warm-up only; Smartlead deferred and unpaid"*. `CASHFLOW-LAB.html` carries `f_instantly=37` and `f_sendinfra=28` as fixed costs. |
 | **Founder-direction evidence** | The 8 Jun design principle is recorded: deliverability is K.I.N.D's job, never the client's. |
@@ -2517,13 +2545,13 @@ mapping correction, not a comparison conclusion.
 |---|---|
 | `docs/archive/MASTER.md` (80 rows) | INV-10950 *C11 · Deliverability dashboard — SPF/DKIM/DMARC, bounce rate, blacklist per domain* · INV-11303 *C11 · Deliverability dashboard · SPF/DKIM/DMARC status, bounce rate, blacklist check per domain* · INV-11345 *[CODE] Client lead list/export ignores delivered_at → clients get ALL leads instantly, free, before any credit char…* |
 | `docs/archive/KIND-MASTER-ARCHIVE.md` (40 rows) | INV-15141 *deliverability + compliance moat. Transferable idea: Vibe's prompt-to-build UX validates* · INV-15153 *7. DESIGN PRINCIPLE — deliverability is K.I.N.D's job, NEVER the client's (locked 8 Jun).* · INV-15154 *Client's job: describe who to reach → approve emails → take meetings.* |
-| `docs/archive/V2-NARRATIVE-2026-08-21.md` (30 rows) | INV-17923 *░ ⚙️ THE ENGINE — the deliverability / sending architecture (item 211 · researched + decid…* · INV-17925 *THE SPEC BELOW IS GOOD. IT IS NOW LAUNCH WORK, NOT ROADMAP (26 Jul)* · INV-17929 *Still owed by the founder before #548 can be specified: confirm the ~$40/client/month Smartlead workspace figure (i…* |
+| `docs/archive/V2-NARRATIVE-2026-08-21.md` (31 rows) | INV-17923 *░ ⚙️ THE ENGINE — the deliverability / sending architecture (item 211 · researched + decid…* · INV-17925 *THE SPEC BELOW IS GOOD. IT IS NOW LAUNCH WORK, NOT ROADMAP (26 Jul)* · INV-17929 *Still owed by the founder before #548 can be specified: confirm the ~$40/client/month Smartlead workspace figure (i…* |
 | `docs/DELIVERABILITY-D9-CHECKLIST.md` (18 rows) | INV-04527 *Already correct in code (apps/api/src/lib/deliverability.ts)* · INV-04528 *List-Unsubscribe + one-click (RFC 8058) on every cold send — Gmail/Yahoo bulk-sender requirement. ✓* · INV-04529 *Visible unsubscribe footer (HTML) + plain-text footer. ✓* |
 | `docs/KIND-MASTER.md` (17 rows) | INV-01637 *6 Jul PM+ (one line): Solo M2 closes while founder sorts Smartlead — #268 approval-queue silent-fail FIXED (approve…* · INV-01643 *The strategic centre now = THE ENGINE (item 211, RULEBOOK §12) — the warmed deliverability/sending layer. No engine…* · INV-01685 *[ ] 🧍 D9 deliverability 10/10 — DELIVERABILITY-D9-CHECKLIST.md* |
 | `docs/SEND-DAY-RUNBOOK.md` (12 rows) | INV-04674 *1 · The warmup week (T-7 → T-1)* · INV-04675 *[ ] Every Monday — the Instantly glance. All 4 mailbox health scores rising or steady, and zero disconnects.* · INV-04676 *Bad looks like: any score falling two weeks running, or any box showing disconnected/auth-failed.* |
 | `docs/PRODUCT-RULES.md` (11 rows) | INV-00096 *CHAINED — read the whole chain before writing one word about Instantly. ~~26 Jul: *Instantly sends for US — ou…* · INV-00097 *Smartlead sends for CLIENTS — mailbox bought per client only when they pay. Built 27 Jul (#550) and NOT PROVEN…* · INV-00098 *The two routes are mutually exclusive by construction. canPushToInstantly refuses anything that is not the hou…* |
 | `apps/website/trust.html` (11 rows) | INV-23797 *Deliverability built on trust.* · INV-23798 *Compliant email requires more than legal wording — it requires infrastructure that major providers trust. K.I.N.D's…* · INV-23799 *Sending infrastructure* |
-| *+38 more source documents* | *full list via the coverage map* |
+| *+39 more source documents* | *full list via the coverage map* |
 
 ### CMP-0086 · Lead lifecycle and the lead desk
 
@@ -2531,9 +2559,9 @@ mapping correction, not a comparison conclusion.
 |---|---|
 | **Domain** | Product surface |
 | **Relationship** | **PARTIAL OVERLAP** |
-| **Inventory rows** | **338** — INV-00077, INV-00148, INV-00155, INV-00166, INV-00204, INV-00206, INV-00627, INV-00633, INV-00656, INV-00687, INV-00906, INV-00937, INV-00950–00951, INV-01410 … +267 more ranges |
-| **Source documents** | 71 — `docs/archive/MASTER.md` (78) · `docs/archive/KIND_Roadmap.md` (27) · `docs/archive/KIND_SOP.md` (18) · `docs/archive/roadmap-audit-14-may-2026.md` (17) · `docs/archive/ADMIN-BOOKKEEPER-AUDIT.md` (16) · `docs/reports/PRODUCT-AUDIT-1AUG.md` (11) · `docs/archive/KIND-MASTER-ARCHIVE.md` (10) · `docs/PRODUCT-INVENTORY.md` (8) · +63 more source documents |
-| **Stable source IDs** | `#110`, `#239`, `#28b`, `#29`, `#34`, `#361`, `#406`, `#420`, `#431`, `#56`, `#617`, `#620`, `#638`, `#639`, `AR10`, `AR17`, `CONF-2`, `FTA-009`, `FTA-021`, `M5`, `R1`, `R17`, `R19`, `R3` … +3 more |
+| **Inventory rows** | **343** — INV-00077, INV-00148, INV-00155, INV-00166, INV-00204, INV-00206, INV-00627, INV-00633, INV-00656, INV-00687, INV-00906, INV-00937, INV-00950–00951, INV-01089 … +272 more ranges |
+| **Source documents** | 72 — `docs/archive/MASTER.md` (83) · `docs/archive/KIND_Roadmap.md` (27) · `docs/archive/KIND_SOP.md` (18) · `docs/archive/roadmap-audit-14-may-2026.md` (17) · `docs/archive/ADMIN-BOOKKEEPER-AUDIT.md` (16) · `docs/reports/PRODUCT-AUDIT-1AUG.md` (11) · `docs/archive/KIND-MASTER-ARCHIVE.md` (10) · `docs/PRODUCT-INVENTORY.md` (8) · +64 more source documents |
+| **Stable source IDs** | `#110`, `#239`, `#28b`, `#29`, `#34`, `#361`, `#406`, `#420`, `#431`, `#56`, `#617`, `#620`, `#638`, `#639`, `3.11`, `AR10`, `AR17`, `CONF-2`, `M5`, `R1`, `R17`, `R19`, `R3`, `R380` … +2 more |
 | **Runtime / code / schema evidence** | `approve-lead.ts` is the money-and-state door; `routes/leads.ts` reads `proof_passes_done`; a pending migration adds `leads.source` (#599 — *"the column the CSV importer has always written and never had"*). |
 | **Founder-direction evidence** | NO EXPLICIT CURRENT FOUNDER DIRECTION FOUND |
 | **Historical / supersession evidence** | — (no supersession evidence visible in the sources) |
@@ -2543,7 +2571,7 @@ mapping correction, not a comparison conclusion.
 
 | Source | Sample INV rows |
 |---|---|
-| `docs/archive/MASTER.md` (78 rows) | INV-10344 *[ ] Vapi voice integration — Phase 2 (after lead quality baseline established)* · INV-10453 *Lead Gen credits: $1/credit — bundles: 20/$20 · 40/$40 · 100/$100* · INV-10468 *Outcome pricing — pay per lead delivered, not per seat* |
+| `docs/archive/MASTER.md` (83 rows) | INV-10344 *[ ] Vapi voice integration — Phase 2 (after lead quality baseline established)* · INV-10453 *Lead Gen credits: $1/credit — bundles: 20/$20 · 40/$40 · 100/$100* · INV-10468 *Outcome pricing — pay per lead delivered, not per seat* |
 | `docs/archive/KIND_Roadmap.md` (27 rows) | INV-19084 *Lead Gen (100% complete)* · INV-19088 *Lead scoring — Claude haiku 0–100 per lead* · INV-19092 *Usage counter per client per billing period* |
 | `docs/archive/KIND_SOP.md` (18 rows) | INV-19438 *3. Phase 1: Lead Generation & Qualification* · INV-19439 *Owner: Sales / Founder* · INV-19441 *3.1 Initial Qualification Checklist* |
 | `docs/archive/roadmap-audit-14-may-2026.md` (17 rows) | INV-18503 *Product cards* · INV-18505 *Pricing cards* · INV-18526 *Product cards (Lead Gen, VA, Chatbot)* |
@@ -2551,7 +2579,7 @@ mapping correction, not a comparison conclusion.
 | `docs/reports/PRODUCT-AUDIT-1AUG.md` (11 rows) | INV-05399 *D1 · The #420 family — the per-qualified-lead ladder (10 items)* · INV-05402 *Why it no longer holds. The founder replaced this 16 days later* · INV-05406 *Not everything in the family falls with it — two survive on their own merits* |
 | `docs/archive/KIND-MASTER-ARCHIVE.md` (10 rows) | INV-15140 *Someone can vibe a basic lead tracker; they cannot vibe a trained SDR with our data +* · INV-15178 *Wed 10 · Founder quick-wins · ⬜ · ICO £40 · get a free PDL key (→🤖 wires 2nd lead-discovery source) · decide key-ro…* · INV-15197 *Lead ENRICHMENT (filling missing fields on a lead already found) = a waterfall exists in lib/enrichment.ts (Apollo→…* |
 | `docs/PRODUCT-INVENTORY.md` (8 rows) | INV-00627 *CRITICAL real-money walk owed — prove lead usage deducts. — Code VERIFIED 30 Jun: prod DOES ded…* · INV-00633 *CMO (dogfood lead-gen)* · INV-00656 *Per-rep agent unlock (rolled-up bill) — OUT OF PLAY (sells non-FIGSY agents; FIGSY + Lead-Gen o…* |
-| *+63 more source documents* | *full list via the coverage map* |
+| *+64 more source documents* | *full list via the coverage map* |
 
 ### CMP-0087 · Agent family — FIGSY, Denise, Tony, Casey
 
@@ -2559,9 +2587,9 @@ mapping correction, not a comparison conclusion.
 |---|---|
 | **Domain** | Product surface |
 | **Relationship** | **POSSIBLE SUPERSESSION** |
-| **Inventory rows** | **654** — INV-00672, INV-00698, INV-00758, INV-00777, INV-00896, INV-01038, INV-01429, INV-01744, INV-01747–01751, INV-01753, INV-01755, INV-01757–01758, INV-01760, INV-01762–01764 … +466 more ranges |
-| **Source documents** | 79 — `docs/archive/MASTER.md` (175) · `docs/archive/EVERYTHING.md` (45) · `docs/archive/KIND-MASTER-ARCHIVE.md` (40) · `docs/archive/KIND_Roadmap.md` (33) · `docs/archive/AUDIT.md` (27) · `docs/archive/roadmap-audit-14-may-2026.md` (24) · `docs/KIND-MASTER.md` (21) · `docs/archive/CHANGELOG.md` (20) · +71 more source documents |
-| **Stable source IDs** | `#1`, `#125`, `#227`, `#257`, `#335`, `#38`, `#4`, `#46`, `#469`, `#54`, `#55`, `#56`, `#58`, `#6`, `#60`, `#606`, `#608`, `#62`, `#69`, `#85`, `#88`, `#9`, `P0`, `P1` … +14 more |
+| **Inventory rows** | **663** — INV-00672, INV-00698, INV-00758, INV-00777, INV-00896, INV-01038, INV-01216, INV-01429, INV-01744, INV-01747–01751, INV-01753, INV-01755, INV-01757–01758, INV-01760 … +476 more ranges |
+| **Source documents** | 80 — `docs/archive/MASTER.md` (179) · `docs/archive/EVERYTHING.md` (44) · `docs/archive/KIND-MASTER-ARCHIVE.md` (42) · `docs/archive/KIND_Roadmap.md` (33) · `docs/archive/AUDIT.md` (27) · `docs/archive/roadmap-audit-14-may-2026.md` (24) · `docs/KIND-MASTER.md` (22) · `docs/archive/CHANGELOG.md` (20) · +72 more source documents |
+| **Stable source IDs** | `#1`, `#125`, `#227`, `#257`, `#335`, `#38`, `#388`, `#4`, `#46`, `#469`, `#48`, `#54`, `#55`, `#56`, `#58`, `#6`, `#60`, `#606`, `#608`, `#62`, `#69`, `#85`, `#88`, `#9` … +17 more |
 | **Runtime / code / schema evidence** | `routes/denise.ts`, `routes/casey.ts` and `routes/figsy.ts` all exist. `AGENT_AVATARS.md` holds the avatar prompts. |
 | **Founder-direction evidence** | The 21 Jul regrouping records Denise and Tony as absorbing into MILLA, with a destination column; FIGSY is redesignated THE ENGINE (#606, 1 Aug). |
 | **Historical / supersession evidence** | The 9 Jul *"FIGSY-only / family frozen"* lock is recorded as retired on 21 Jul. |
@@ -2571,15 +2599,15 @@ mapping correction, not a comparison conclusion.
 
 | Source | Sample INV rows |
 |---|---|
-| `docs/archive/MASTER.md` (175 rows) | INV-10213 *Create dogfood account → ping Claude to grant FIGSY + credits.* · INV-10228 *Intent signal detection (job changes, funding, hiring → auto-trigger FIGSY) · 26. A/B subject line testing (auto-pi…* · INV-10236 *Month 3 · 50 + agent family live · ~£40,000* |
-| `docs/archive/EVERYTHING.md` (45 rows) | INV-16434 *Polish: "Sign emails as" sender-name setting (kills AI-invented "Thandeka"/"Thabo" signature — figsy.ts:445) · stri…* · INV-16485 *55 LENA · #56 OTTO · #57 multi-agent orchestration (shared memory) · #58 500+ FIGSY skill library · #60 outcome pri…* · INV-16494 *Competitive watch: monitor Revio changelog (if they add B2B cold outbound they enter FIGSY's lane); hold the specia…* |
-| `docs/archive/KIND-MASTER-ARCHIVE.md` (40 rows) | INV-15099 *Where we beat them: $29/mo vs $5,000+. Self-serve. Multi-agent + shared memory. DENISE. Full revenue lifecycle. Liv…* · INV-15110 *Watch signal: LinkedIn outreach on roadmap. If they ship B2B cold outreach, they enter FIGSY's territory.* · INV-15138 *an empty shell you must design + source data for + make compliant; K.I.N.D hands you FIGSY who* |
+| `docs/archive/MASTER.md` (179 rows) | INV-10213 *Create dogfood account → ping Claude to grant FIGSY + credits.* · INV-10228 *Intent signal detection (job changes, funding, hiring → auto-trigger FIGSY) · 26. A/B subject line testing (auto-pi…* · INV-10236 *Month 3 · 50 + agent family live · ~£40,000* |
+| `docs/archive/EVERYTHING.md` (44 rows) | INV-16434 *Polish: "Sign emails as" sender-name setting (kills AI-invented "Thandeka"/"Thabo" signature — figsy.ts:445) · stri…* · INV-16485 *55 LENA · #56 OTTO · #57 multi-agent orchestration (shared memory) · #58 500+ FIGSY skill library · #60 outcome pri…* · INV-16494 *Competitive watch: monitor Revio changelog (if they add B2B cold outbound they enter FIGSY's lane); hold the specia…* |
+| `docs/archive/KIND-MASTER-ARCHIVE.md` (42 rows) | INV-15099 *Where we beat them: $29/mo vs $5,000+. Self-serve. Multi-agent + shared memory. DENISE. Full revenue lifecycle. Liv…* · INV-15110 *Watch signal: LinkedIn outreach on roadmap. If they ship B2B cold outreach, they enter FIGSY's territory.* · INV-15138 *an empty shell you must design + source data for + make compliant; K.I.N.D hands you FIGSY who* |
 | `docs/archive/KIND_Roadmap.md` (33 rows) | INV-19096 *FIGSY Phase 1 (100% complete)* · INV-19100 *Step 2 + Step 3 send-due queue* · INV-19109 *FIGSY email generation humanised* |
 | `docs/archive/AUDIT.md` (27 rows) | INV-20079 *1. Sidebar — Agent Switcher & Navigation* · INV-20080 *File: apps/portal/src/components/layout/Sidebar.tsx* · INV-20081 *Agent persona card at top (avatar image + name + role + dropdown)* |
 | `docs/archive/roadmap-audit-14-may-2026.md` (24 rows) | INV-18495 *Anthropic API — AI drafting* · INV-18504 *FIGSY section* · INV-18517 *FIGSY character scroll animation* |
-| `docs/KIND-MASTER.md` (21 rows) | INV-01744 *The Learning Engine (build order: Train-FIGSY RAG → evals → outcome feedback loop → contextual bandit → recall/memo…* · INV-01747 *📅 MONTH 3 — THE AGENT FAMILY + PRICING (Aug → Sep · GATED on margin data)* · INV-01748 *Goal: expand the family and move toward outcome pricing. Trigger: proven unit margin ≥ ~28%.* |
+| `docs/KIND-MASTER.md` (22 rows) | INV-01744 *The Learning Engine (build order: Train-FIGSY RAG → evals → outcome feedback loop → contextual bandit → recall/memo…* · INV-01747 *📅 MONTH 3 — THE AGENT FAMILY + PRICING (Aug → Sep · GATED on margin data)* · INV-01748 *Goal: expand the family and move toward outcome pricing. Trigger: proven unit margin ≥ ~28%.* |
 | `docs/archive/CHANGELOG.md` (20 rows) | INV-19928 *Added fifth Compass step: "Train FIGSY — add your pitch & keywords" → /dashboard/knowledge* · INV-19959 *Context · Source URLs for FIGSY to train on (with training status)* · INV-19978 *Ask FIGSY (global)* |
-| *+71 more source documents* | *full list via the coverage map* |
+| *+72 more source documents* | *full list via the coverage map* |
 
 ### CMP-0088 · Admin console and the bookkeeper view
 
@@ -2587,9 +2615,9 @@ mapping correction, not a comparison conclusion.
 |---|---|
 | **Domain** | Product surface |
 | **Relationship** | **PARTIAL OVERLAP** |
-| **Inventory rows** | **842** — INV-00171, INV-00626, INV-00628–00632, INV-00634–00635, INV-00638–00639, INV-00642–00644, INV-00646–00647, INV-00649, INV-00651, INV-00653, INV-00658–00660, INV-00662–00671, INV-00673–00683, INV-00685–00686 … +308 more ranges |
-| **Source documents** | 36 — `docs/archive/MASTER.md` (313) · `docs/PRODUCT-INVENTORY.md` (176) · `docs/archive/ADMIN-BOOKKEEPER-AUDIT.md` (148) · `docs/portal-admin-failover.md` (46) · `docs/admin-centre-spec.md` (42) · `docs/archive/KIND-MASTER-ARCHIVE.md` (17) · `docs/archive/roadmap-audit-14-may-2026.md` (16) · `docs/archive/KIND_Roadmap.md` (11) · +28 more source documents |
-| **Stable source IDs** | `#100`, `#102`, `#106`, `#108`, `#109`, `#115`, `#116`, `#118`, `#119`, `#122`, `#123`, `#124`, `#126`, `#130`, `#131`, `#133`, `#134`, `#136a`, `#138`, `#142`, `#146`, `#147`, `#148`, `#158` … +167 more |
+| **Inventory rows** | **843** — INV-00171, INV-00626, INV-00628–00632, INV-00634–00635, INV-00638–00639, INV-00642–00644, INV-00646–00647, INV-00649, INV-00651, INV-00653, INV-00658–00660, INV-00662–00671, INV-00673–00677, INV-00679–00683 … +311 more ranges |
+| **Source documents** | 37 — `docs/archive/MASTER.md` (313) · `docs/PRODUCT-INVENTORY.md` (175) · `docs/archive/ADMIN-BOOKKEEPER-AUDIT.md` (148) · `docs/portal-admin-failover.md` (46) · `docs/admin-centre-spec.md` (42) · `docs/archive/KIND-MASTER-ARCHIVE.md` (17) · `docs/archive/roadmap-audit-14-may-2026.md` (16) · `docs/archive/KIND_Roadmap.md` (11) · +29 more source documents |
+| **Stable source IDs** | `#100`, `#102`, `#106`, `#108`, `#109`, `#115`, `#116`, `#118`, `#119`, `#122`, `#123`, `#124`, `#126`, `#130`, `#131`, `#133`, `#134`, `#136a`, `#138`, `#142`, `#146`, `#147`, `#148`, `#158` … +166 more |
 | **Runtime / code / schema evidence** | `routes/admin.ts` exists; `admin-centre-spec.md` is the spec; a pending migration creates the operator settings table (#627). |
 | **Founder-direction evidence** | NO EXPLICIT CURRENT FOUNDER DIRECTION FOUND |
 | **Historical / supersession evidence** | `ADMIN-BOOKKEEPER-AUDIT.md` (14 Jun) lists 13 named gaps for bookkeeper use, including an invisible two-pool credit model and no refund audit trail. |
@@ -2600,14 +2628,14 @@ mapping correction, not a comparison conclusion.
 | Source | Sample INV rows |
 |---|---|
 | `docs/archive/MASTER.md` (313 rows) | INV-10208 *Admin Portal Playbook — How to Use Every Route* · INV-10248 *TSC clean (portal/api/admin), 0 TODO/FIXME in source* · INV-10275 *[ ] ANTHROPIC_API_KEY · RESEND_API_KEY · RESEND_WEBHOOK_SECRET · APOLLO_API_KEY · HUBSPOT_API_KEY · ADMIN_SECRET_KE…* |
-| `docs/PRODUCT-INVENTORY.md` (176 rows) | INV-00626 *Usage tracking per client — *displays, but founder unsure it's calculating right → NOT verified…* · INV-00628 *Admin OS — dark shell, key-protected (constant-time)* · INV-00629 *Clients list + per-client management…* |
+| `docs/PRODUCT-INVENTORY.md` (175 rows) | INV-00626 *Usage tracking per client — *displays, but founder unsure it's calculating right → NOT verified…* · INV-00628 *Admin OS — dark shell, key-protected (constant-time)* · INV-00629 *Clients list + per-client management…* |
 | `docs/archive/ADMIN-BOOKKEEPER-AUDIT.md` (148 rows) | INV-20340 *📊 Admin Portal Bookkeeper Audit — Current State + Gaps* · INV-20341 *Scope: Client billing management, credit tracking, revenue per client, plan management* · INV-20342 *Goal: Transform admin portal from visibility tool → operational bookkeeper dashboard* |
 | `docs/portal-admin-failover.md` (46 rows) | INV-05766 *Portal + Admin Redundancy — Render Warm Standby + Cloudflare Load Balancer* · INV-05768 *AUDIT 24 Jun — config contradiction (code-fix, deferred under freeze): render.yaml:169 declares NEXT_PUBLIC_ADMIN_K…* · INV-05769 *Is this worth it? The API is the critical shared dependency — if it's down,* |
 | `docs/admin-centre-spec.md` (42 rows) | INV-04865 *🖥️ K.I.N.D — Admin Centre spec (Milestone 3)* · INV-04868 *The problem it solves* · INV-04869 *Target shape — 3 layers* |
 | `docs/archive/KIND-MASTER-ARCHIVE.md` (17 rows) | INV-15273 *V2-9 · ⬜ · Teams Hub (members, activity, per-person usage). · Admin oversight. · Linear/Notion. → folds into #88 ow…* · INV-15359 *Admin (13 routes) + Portal (15 routes) + Website (30+ pages) + PWA.* · INV-15623 *7/8 (DNS: app/api/admin/status + NEXT_PUBLIC_API_URL)* |
 | `docs/archive/roadmap-audit-14-may-2026.md` (16 rows) | INV-18487 *Monorepo (Turborepo + Yarn workspaces)* · INV-18491 *Vercel — Admin (admin.get-kind.com)* · INV-18576 *SECTION 4 — ADMIN PORTAL (admin.get-kind.com)* |
 | `docs/archive/KIND_Roadmap.md` (11 rows) | INV-19074 *Monorepo — portal, admin, API, DB, shared* · INV-19079 *Demo Environments* · INV-19161 *Admin* |
-| *+28 more source documents* | *full list via the coverage map* |
+| *+29 more source documents* | *full list via the coverage map* |
 
 ### CMP-0089 · Credits, the two-pool model and holds
 
@@ -2615,9 +2643,9 @@ mapping correction, not a comparison conclusion.
 |---|---|
 | **Domain** | Product surface |
 | **Relationship** | **PARTIAL OVERLAP** |
-| **Inventory rows** | **147** — INV-00146, INV-00904, INV-01427, INV-01431, INV-03263, INV-03874, INV-05230, INV-05260, INV-05285, INV-05362, INV-06108, INV-06309, INV-07224, INV-07244–07247 … +112 more ranges |
-| **Source documents** | 31 — `docs/archive/MASTER.md` (63) · `docs/archive/roadmap-audit-14-may-2026.md` (18) · `docs/archive/KIND-MASTER-ARCHIVE.md` (8) · `docs/sales-playbook.md` (6) · `docs/archive/EVERYTHING.md` (5) · `docs/archive/KIND_Roadmap.md` (5) · `docs/archive/COMPANY-ENGINE-TEST.md` (5) · `docs/previews/referral-current.html` (5) · +23 more source documents |
-| **Stable source IDs** | `#108b`, `#3`, `#305`, `AR8`, `R19`, `§12` |
+| **Inventory rows** | **148** — INV-00146, INV-00904, INV-01307, INV-01427, INV-01431, INV-03263, INV-03874, INV-05230, INV-05260, INV-05285, INV-05362, INV-06108, INV-06309, INV-07224 … +113 more ranges |
+| **Source documents** | 32 — `docs/archive/MASTER.md` (63) · `docs/archive/roadmap-audit-14-may-2026.md` (18) · `docs/archive/KIND-MASTER-ARCHIVE.md` (8) · `docs/sales-playbook.md` (6) · `docs/archive/EVERYTHING.md` (5) · `docs/archive/KIND_Roadmap.md` (5) · `docs/archive/COMPANY-ENGINE-TEST.md` (5) · `docs/previews/referral-current.html` (5) · +24 more source documents |
+| **Stable source IDs** | `#108b`, `#3`, `#305`, `5.3`, `AR8`, `R19`, `§12` |
 | **Runtime / code / schema evidence** | `credit-holds.ts` holds $3 on send and captures on a confirmed booking, releasing on terminal transitions; TTL default 60 days. It names #349 as an unchecked path that could double-credit. |
 | **Founder-direction evidence** | NO EXPLICIT CURRENT FOUNDER DIRECTION FOUND |
 | **Historical / supersession evidence** | The 22 Jun billing-correctness build (items 166–171) is recorded as live: one-charge-one-wallet, separate pools, atomic credits. |
@@ -2635,7 +2663,7 @@ mapping correction, not a comparison conclusion.
 | `docs/archive/KIND_Roadmap.md` (5 rows) | INV-19169 *C1 · Run 20260518_credit_transactions_rls.sql · Supabase → SQL Editor · CRITICAL — financial data exposed to cross-…* · INV-19207 *Referral program* · INV-19214 *L5: Overage billing* |
 | `docs/archive/COMPANY-ENGINE-TEST.md` (5 rows) | INV-21224 *Header: MaceyLuxe · 3 seats, pool credits, active count, requests count* · INV-21226 *2 pending credit requests waiting for you* · INV-21227 *STEP 2 — Approve / deny a credit request* |
 | `docs/previews/referral-current.html` (5 rows) | INV-21728 *Refer a business, earn free credits* · INV-21729 *Share your unique link. When a business signs up and pays their first invoice, you both get 100 free credits.* · INV-21732 *Refer a business, earn free credits* |
-| *+23 more source documents* | *full list via the coverage map* |
+| *+24 more source documents* | *full list via the coverage map* |
 
 ### CMP-0090 · Dashboards, KPIs and reporting
 
@@ -2643,8 +2671,8 @@ mapping correction, not a comparison conclusion.
 |---|---|
 | **Domain** | Product surface |
 | **Relationship** | **PARTIAL OVERLAP** |
-| **Inventory rows** | **331** — INV-00184–00187, INV-00266, INV-01781, INV-03046, INV-03050, INV-04749, INV-04802, INV-04859, INV-04864, INV-04956, INV-04981–04982, INV-04985–04986, INV-04997–04998, INV-05004–05005 … +170 more ranges |
-| **Source documents** | 36 — `docs/archive/MASTER.md` (67) · `docs/marketing/marketing-metrics-and-iteration.md` (51) · `docs/archive/KIND_Roadmap.md` (27) · `docs/archive/CHANGELOG.md` (25) · `docs/LIVE-FEATURE-WALK.md` (24) · `docs/archive/KIND-MASTER-ARCHIVE.md` (18) · `docs/sales-playbook.md` (16) · `docs/setup-dashboard-preview.html` (15) · +28 more source documents |
+| **Inventory rows** | **340** — INV-00184–00187, INV-00266, INV-01263, INV-01273–01274, INV-01781, INV-03046, INV-03050, INV-04749, INV-04802, INV-04859, INV-04864, INV-04956, INV-04981–04982, INV-04985–04986 … +178 more ranges |
+| **Source documents** | 37 — `docs/archive/MASTER.md` (73) · `docs/marketing/marketing-metrics-and-iteration.md` (51) · `docs/archive/KIND_Roadmap.md` (27) · `docs/archive/CHANGELOG.md` (25) · `docs/LIVE-FEATURE-WALK.md` (24) · `docs/archive/KIND-MASTER-ARCHIVE.md` (18) · `docs/sales-playbook.md` (16) · `docs/setup-dashboard-preview.html` (15) · +29 more source documents |
 | **Stable source IDs** | `#13`, `#2`, `#88`, `R1`, `R171`, `R247`, `R29`, `R342`, `R38`, `R494`, `R9`, `R95`, `RPT1`, `RPT2`, `RPT3`, `RPT4`, `§1`, `§2` |
 | **Runtime / code / schema evidence** | Portal and admin dashboards exist; the merged audit records portal UI quality as a founder direction the repo does not fully express. |
 | **Founder-direction evidence** | NO EXPLICIT CURRENT FOUNDER DIRECTION FOUND |
@@ -2655,7 +2683,7 @@ mapping correction, not a comparison conclusion.
 
 | Source | Sample INV rows |
 |---|---|
-| `docs/archive/MASTER.md` (67 rows) | INV-10190 *Revenue Targets & KPIs* · INV-10510 *Partner program dashboard* · INV-10553 *[x] Run apps/api/src/migrations/20260602_calendar_bookings.sql — booking KPI tracking* |
+| `docs/archive/MASTER.md` (73 rows) | INV-10190 *Revenue Targets & KPIs* · INV-10510 *Partner program dashboard* · INV-10553 *[x] Run apps/api/src/migrations/20260602_calendar_bookings.sql — booking KPI tracking* |
 | `docs/marketing/marketing-metrics-and-iteration.md` (51 rows) | INV-08811 *Marketing Metrics & Iteration* · INV-08812 *20 minutes, every Monday. This is where marketing decisions get made — and the only place. Nothing changes mid-week…* · INV-08813 *You have zero clients and zero sends. Every conversion rate in any plan — including mine — is a guess until you hav…* |
 | `docs/archive/KIND_Roadmap.md` (27 rows) | INV-19160 *Support widget* · INV-19270 *REVENUE TARGETS & KPIs* · INV-19271 *Month-by-Month MRR Targets (Year 1)* |
 | `docs/archive/CHANGELOG.md` (25 rows) | INV-19927 *Dashboard Home* · INV-19953 *Knowledge & Compass (/dashboard/knowledge)* · INV-19954 *Pitch · Company name, core pitch, pain points, differentiators* |
@@ -2663,7 +2691,7 @@ mapping correction, not a comparison conclusion.
 | `docs/archive/KIND-MASTER-ARCHIVE.md` (18 rows) | INV-15171 *Tue 9 · #2 · 🔁 · ~~Delete dormant Portal-V2~~ → CHANGED: we are building V2 on the gated /dashboard/v2 route (Comma…* · INV-15265 *V2-1 · 🔄 · Agent card grid (dashboard home) — scaffolded in /dashboard/v2/page.tsx. · Show all agents in a card gri…* · INV-15276 *V2-12 · 🔄 · Strong client dashboards (Monday-style) — Command Centre/funnel shell built in /dashboard/v2/company. ·…* |
 | `docs/sales-playbook.md` (16 rows) | INV-07252 *Day 3–5 · First batch of scored leads delivered to your dashboard* · INV-07286 *SECTION 8: WIN METRICS* · INV-07287 *Weekly Targets* |
 | `docs/setup-dashboard-preview.html` (15 rows) | INV-21978 *K.I.N.D — Setup* · INV-21979 *Welcome to K.I.N.D, Northwind Labs 👋* · INV-21980 *Let's get your AI revenue team working. ~10 minutes.* |
-| *+28 more source documents* | *full list via the coverage map* |
+| *+29 more source documents* | *full list via the coverage map* |
 
 ### CMP-0091 · Portal UI quality and the design system
 
@@ -2725,9 +2753,9 @@ mapping correction, not a comparison conclusion.
 |---|---|
 | **Domain** | Product surface |
 | **Relationship** | **SOURCE-SPECIFIC** |
-| **Inventory rows** | **50** — INV-01807, INV-01844, INV-05032, INV-05042, INV-05376, INV-06219, INV-06247, INV-06464, INV-06466, INV-06802, INV-06813, INV-06815, INV-06828–06829, INV-07377–07378 … +33 more ranges |
-| **Source documents** | 19 — `docs/archive/MASTER.md` (19) · `docs/compliance/BREACH-RESPONSE-DRAFT.md` (5) · `docs/previews/notification-centre-current.html` (4) · `docs/KIND-MASTER.md` (2) · `docs/LIVE-FEATURE-WALK.md` (2) · `docs/legal/legal-pack.md` (2) · `docs/legal/it-security-pack.md` (2) · `docs/art-of-possible.md` (2) · +11 more source documents |
-| **Stable source IDs** | `#338`, `#339`, `#506`, `P6` |
+| **Inventory rows** | **50** — INV-01224, INV-01807, INV-01844, INV-05032, INV-05042, INV-05376, INV-06219, INV-06247, INV-06464, INV-06466, INV-06802, INV-06815, INV-06828–06829, INV-07377–07378 … +33 more ranges |
+| **Source documents** | 20 — `docs/archive/MASTER.md` (19) · `docs/compliance/BREACH-RESPONSE-DRAFT.md` (4) · `docs/previews/notification-centre-current.html` (4) · `docs/KIND-MASTER.md` (2) · `docs/LIVE-FEATURE-WALK.md` (2) · `docs/legal/legal-pack.md` (2) · `docs/legal/it-security-pack.md` (2) · `docs/art-of-possible.md` (2) · +12 more source documents |
+| **Stable source IDs** | `#338`, `#506`, `P46`, `P6` |
 | **Runtime / code / schema evidence** | `docs/previews/notification-centre-current.html` is a mockup. |
 | **Founder-direction evidence** | NO EXPLICIT CURRENT FOUNDER DIRECTION FOUND |
 | **Historical / supersession evidence** | — (no supersession evidence visible in the sources) |
@@ -2738,14 +2766,14 @@ mapping correction, not a comparison conclusion.
 | Source | Sample INV rows |
 |---|---|
 | `docs/archive/MASTER.md` (19 rows) | INV-10500 *OTTO (Ops & Analytics Agent)* · INV-10590 *[ ] Set up UptimeRobot (free) — monitor /health on all 3 services. SMS alert on down. Takes 5 min.* · INV-10859 *NotificationBell* |
-| `docs/compliance/BREACH-RESPONSE-DRAFT.md` (5 rows) | INV-06802 *Counsel words both notification thresholds. They are stated here as different from each* · INV-06813 *Founder alerts* · INV-06815 *Operator audit gaps* |
+| `docs/compliance/BREACH-RESPONSE-DRAFT.md` (4 rows) | INV-06802 *Counsel words both notification thresholds. They are stated here as different from each* · INV-06815 *Operator audit gaps* · INV-06828 *4. Who decides notification* |
 | `docs/previews/notification-centre-current.html` (4 rows) | INV-21704 *Notification Centre — current (item 89 / #103)* · INV-21705 *Notification Centre — current (item 89 / #103)* · INV-21707 *(item 89 · #103) · bell shown open, one of each type* |
 | `docs/KIND-MASTER.md` (2 rows) | INV-01807 *Waves 1–2 pre-built: PRs #506–#525 (R1 demo-bounce guard → R20 job-change alerts). Every branch independently re-ve…* · INV-01844 *M6 Notification centre — bell icon + slide-out panel, hooks into existing events.* |
 | `docs/LIVE-FEATURE-WALK.md` (2 rows) | INV-05032 *Team (80) — 3 of 4 tabs say "coming soon"; "Create team" is a browser alert().* · INV-05042 *👀 NEEDS-LIVE / walk to settle: 106 invite-email sending · 109 owner↔rep notifications · 75 internal evals · 67 save…* |
 | `docs/legal/legal-pack.md` (2 rows) | INV-06219 *Breach notification to ODPC within 72 hours* · INV-06247 *Covers: Scope of processing, data subject rights obligations, sub-processor list, breach notification obligations, …* |
 | `docs/legal/it-security-pack.md` (2 rows) | INV-06464 *ICO notification: Required within 72 hours if personal data (T2) was breached and poses a risk to individuals. Repo…* · INV-06466 *Data subject notification: Required if the breach poses a high risk to individuals (identity theft, financial harm)…* |
 | `docs/art-of-possible.md` (2 rows) | INV-07377 *Piece 4 — Notification Centre* · INV-07378 *3 days. Build any time.* |
-| *+11 more source documents* | *full list via the coverage map* |
+| *+12 more source documents* | *full list via the coverage map* |
 
 ### CMP-0094 · Documents — proposals, order forms, invoices
 
@@ -2781,8 +2809,8 @@ mapping correction, not a comparison conclusion.
 |---|---|
 | **Domain** | Product surface |
 | **Relationship** | **PARTIAL OVERLAP** |
-| **Inventory rows** | **69** — INV-02501, INV-03185, INV-05030, INV-06263, INV-06663, INV-07501, INV-07652–07654, INV-07656, INV-07659, INV-07662, INV-07664–07666, INV-07668–07669, INV-07831, INV-07956 … +31 more ranges |
-| **Source documents** | 19 — `docs/archive/V2-NARRATIVE-2026-08-21.md` (19) · `docs/archive/MASTER.md` (14) · `docs/RECORDING-SHOOTING-SCRIPT.md` (11) · `docs/archive/AUDIT.md` (8) · `docs/archive/BUILD_STATUS.md` (3) · `docs/KIND-MASTER.md` (1) · `docs/hiring/PARTNER-CONDUCT-POLICY.md` (1) · `docs/LIVE-FEATURE-WALK.md` (1) · +11 more source documents |
+| **Inventory rows** | **76** — INV-01177, INV-02501, INV-03185, INV-03223, INV-05030, INV-06263, INV-06663, INV-07501, INV-07652–07654, INV-07656, INV-07659, INV-07662, INV-07664–07666, INV-07668–07669 … +38 more ranges |
+| **Source documents** | 21 — `docs/archive/MASTER.md` (19) · `docs/archive/V2-NARRATIVE-2026-08-21.md` (19) · `docs/RECORDING-SHOOTING-SCRIPT.md` (11) · `docs/archive/AUDIT.md` (8) · `docs/archive/BUILD_STATUS.md` (3) · `docs/V2-TRACKER.md` (1) · `docs/KIND-MASTER.md` (1) · `docs/hiring/PARTNER-CONDUCT-POLICY.md` (1) · +13 more source documents |
 | **Stable source IDs** | `#46`, `P2` |
 | **Runtime / code / schema evidence** | `docs/client-onboarding-training.html` is the current artifact; archive records a 7-tab Knowledge & Compass page built in May. |
 | **Founder-direction evidence** | NO EXPLICIT CURRENT FOUNDER DIRECTION FOUND |
@@ -2793,15 +2821,15 @@ mapping correction, not a comparison conclusion.
 
 | Source | Sample INV rows |
 |---|---|
+| `docs/archive/MASTER.md` (19 rows) | INV-10861 *Knowledge base page* · INV-11258 *P2 · Knowledge base all 7 tabs → API · Done — GET on load, POST on save, all tabs* · INV-12535 *Compass / Agent Training* |
 | `docs/archive/V2-NARRATIVE-2026-08-21.md` (19 rows) | INV-17869 *Knowledge · A docs library — cashflow, research, runbooks, decisions · See the sorting rule below* · INV-18139 *🧠 AGENT TRAINING & INTELLIGENCE — THE LEARNING ENGINE (strategy · logged 10 Jun)* · INV-18140 *Two honest truths (read first)* |
-| `docs/archive/MASTER.md` (14 rows) | INV-10861 *Knowledge base page* · INV-11258 *P2 · Knowledge base all 7 tabs → API · Done — GET on load, POST on save, all tabs* · INV-14620 *10. THE KNOWLEDGE BUSINESS* |
 | `docs/RECORDING-SHOOTING-SCRIPT.md` (11 rows) | INV-07652 *SECTION 9 — RUN IT (billing · knowledge · integrations · settings)* · INV-07653 *6-beat: Tools nickel-and-dime you for seats whether they work or not (problem/pain). You pay for software, not resu…* · INV-07654 *Scene 9.1 — Outcome billing (+ pay-time terms) (~9s)* |
 | `docs/archive/AUDIT.md` (8 rows) | INV-20138 *9. Knowledge & Compass — 7-tab Training Page* · INV-20140 *Pitch: company name, core pitch, pain points, differentiators* · INV-20141 *Keywords: job titles, industries, positive/negative signals* |
 | `docs/archive/BUILD_STATUS.md` (3 rows) | INV-19821 *5 · Setup Compass — 5-step checklist with completion state · b97cbcf* · INV-19827 *10 · Knowledge/Compass page — 7-tab training layer · 850ac6e* · INV-19830 *17 · Source URL training / Context tab · 850ac6e* |
+| `docs/V2-TRACKER.md` (1 rows) | INV-01177 *2b → 2c — where real model training finally earns it* |
 | `docs/KIND-MASTER.md` (1 rows) | INV-02501 *Day-0 confirms that are already done (Google OAuth, TRAINING_LIVE, replica count, the three June/July migrations)* |
 | `docs/hiring/PARTNER-CONDUCT-POLICY.md` (1 rows) | INV-03185 *Acknowledgement* |
-| `docs/LIVE-FEATURE-WALK.md` (1 rows) | INV-05030 *Knowledge (74) — TRAINING_LIVE=false; every Save silently does nothing, despite the inventory saying the backend li…* |
-| *+11 more source documents* | *full list via the coverage map* |
+| *+13 more source documents* | *full list via the coverage map* |
 
 ### CMP-0096 · Company engine, seats and the pool
 
@@ -2809,8 +2837,8 @@ mapping correction, not a comparison conclusion.
 |---|---|
 | **Domain** | Product surface |
 | **Relationship** | **PARTIAL OVERLAP** |
-| **Inventory rows** | **96** — INV-00268, INV-00933, INV-01739, INV-01790, INV-01808, INV-01876, INV-01890, INV-01962–01963, INV-03014, INV-03065, INV-03067, INV-03099, INV-03132, INV-03192 … +53 more ranges |
-| **Source documents** | 22 — `docs/archive/V2-NARRATIVE-2026-08-21.md` (19) · `docs/archive/KIND-MASTER-ARCHIVE.md` (14) · `docs/CLIENT_FLOW_PER_REP.html` (8) · `docs/KIND-MASTER.md` (7) · `docs/RECORDING-SHOOTING-SCRIPT.md` (6) · `docs/archive/MASTER.md` (6) · `docs/hiring/SELLER-ENGINE-MAP.md` (5) · `docs/marketing/CLAUDE-PROJECT-INSTRUCTIONS.md` (5) · +14 more source documents |
+| **Inventory rows** | **100** — INV-00268, INV-00933, INV-01126, INV-01128, INV-01148, INV-01156, INV-01739, INV-01790, INV-01808, INV-01876, INV-01890, INV-01962–01963, INV-03014, INV-03065 … +57 more ranges |
+| **Source documents** | 23 — `docs/archive/V2-NARRATIVE-2026-08-21.md` (19) · `docs/archive/KIND-MASTER-ARCHIVE.md` (14) · `docs/CLIENT_FLOW_PER_REP.html` (8) · `docs/KIND-MASTER.md` (7) · `docs/RECORDING-SHOOTING-SCRIPT.md` (6) · `docs/archive/MASTER.md` (6) · `docs/hiring/SELLER-ENGINE-MAP.md` (5) · `docs/marketing/CLAUDE-PROJECT-INSTRUCTIONS.md` (5) · +15 more source documents |
 | **Stable source IDs** | `#5`, `#616`, `#85`, `#86`, `#88`, `R29` |
 | **Runtime / code / schema evidence** | `routes/company.ts` exists; a pending migration moves the company pool atomically (#316 — *"the .sql existed since 6 Jul but was never in the runner, so it never ran"*). |
 | **Founder-direction evidence** | NO EXPLICIT CURRENT FOUNDER DIRECTION FOUND |
@@ -2829,7 +2857,7 @@ mapping correction, not a comparison conclusion.
 | `docs/archive/MASTER.md` (6 rows) | INV-13115 *Guest seat cost* · INV-13232 *Per-client seat cost* · INV-13893 *Guest seat cost* |
 | `docs/hiring/SELLER-ENGINE-MAP.md` (5 rows) | INV-03192 *One seat primitive, two types: partner_paid / ae_free.* · INV-03224 *6. Open decisions (founder) — must resolve before issuing seats* · INV-03226 *THE BUILD (item 203): the founder's authoritative build brief (KIND-CLAUDE-CODE-BRIEF.md) turns all of this into a …* |
 | `docs/marketing/CLAUDE-PROJECT-INSTRUCTIONS.md` (5 rows) | INV-08466 *Regenerated 12 Aug for R29–R33 and the corrected seat model (the Project produces the assets; Claude Code does not …* · INV-08489 *The five seats — know whose job is whose* · INV-08491 *Content Manager = YOU. Asked "what do I do today?" with a date → give that day's row from DAILY-PLAYBOOK.md plus th…* |
-| *+14 more source documents* | *full list via the coverage map* |
+| *+15 more source documents* | *full list via the coverage map* |
 
 ### CMP-0097 · Demo environments and the demo flow
 
@@ -2837,8 +2865,8 @@ mapping correction, not a comparison conclusion.
 |---|---|
 | **Domain** | Product surface |
 | **Relationship** | **SOURCE-SPECIFIC** |
-| **Inventory rows** | **15** — INV-00103, INV-01619, INV-03116, INV-12024, INV-12124–12125, INV-12127–12129, INV-12717, INV-15984, INV-18012, INV-20853, INV-21279–21280 |
-| **Source documents** | 8 — `docs/archive/MASTER.md` (7) · `docs/archive/SMOKE-BILLING-166-173.md` (2) · `docs/PRODUCT-RULES.md` (1) · `docs/KIND-MASTER.md` (1) · `docs/hiring/KIND-PARTNER-COMP-PLAN.md` (1) · `docs/archive/KIND-MASTER-ARCHIVE.md` (1) · `docs/archive/V2-NARRATIVE-2026-08-21.md` (1) · `docs/archive/SESSION-SUMMARY-13JUN.md` (1) |
+| **Inventory rows** | **16** — INV-00103, INV-01151, INV-01619, INV-03116, INV-12024, INV-12124–12125, INV-12127–12129, INV-12717, INV-15984, INV-18012, INV-20853, INV-21279–21280 |
+| **Source documents** | 9 — `docs/archive/MASTER.md` (7) · `docs/archive/SMOKE-BILLING-166-173.md` (2) · `docs/PRODUCT-RULES.md` (1) · `docs/V2-TRACKER.md` (1) · `docs/KIND-MASTER.md` (1) · `docs/hiring/KIND-PARTNER-COMP-PLAN.md` (1) · `docs/archive/KIND-MASTER-ARCHIVE.md` (1) · `docs/archive/V2-NARRATIVE-2026-08-21.md` (1) · +1 more source documents |
 | **Stable source IDs** | `#544`, `X1` |
 | **Runtime / code / schema evidence** | Archive describes Admin → Demo Environments → create demo → Open Demo. |
 | **Founder-direction evidence** | NO EXPLICIT CURRENT FOUNDER DIRECTION FOUND |
@@ -2852,11 +2880,12 @@ mapping correction, not a comparison conclusion.
 | `docs/archive/MASTER.md` (7 rows) | INV-12024 *Demo Environments* · INV-12124 *Demo Environments* · INV-12125 *Creates real Supabase user + client + all 4 products* |
 | `docs/archive/SMOKE-BILLING-166-173.md` (2 rows) | INV-21279 *Verified so far (in-sandbox)* · INV-21280 *@kind/api type-check passes · ✅ @kind/portal type-check passes (TS 5.9.3).* |
 | `docs/PRODUCT-RULES.md` (1 rows) | INV-00103 *One demo environment, always: MBF. The demo factory is gone.* |
+| `docs/V2-TRACKER.md` (1 rows) | INV-01151 *What every seller gets — portal · demo environments · sell-through-the-product · enablement* |
 | `docs/KIND-MASTER.md` (1 rows) | INV-01619 *What we CAN do today: demo. MBF (#544) is one fixed demo environment, always — 40 invented people, no migration nee…* |
 | `docs/hiring/KIND-PARTNER-COMP-PLAN.md` (1 rows) | INV-03116 *a demo environment to sell with,* |
 | `docs/archive/KIND-MASTER-ARCHIVE.md` (1 rows) | INV-15984 *Create a demo environment (isolated demo data)* |
 | `docs/archive/V2-NARRATIVE-2026-08-21.md` (1 rows) | INV-18012 *Demo environment(s): provision a seeded demo per seller to run live demos while selling (re-uses the 188 demo-seed …* |
-| `docs/archive/SESSION-SUMMARY-13JUN.md` (1 rows) | INV-20853 *[ ] T10 partner referral (auto-sandbox + partner portal)* |
+| *+1 more source documents* | *full list via the coverage map* |
 
 ### CMP-0098 · Integrations and CRM
 
@@ -2864,9 +2893,9 @@ mapping correction, not a comparison conclusion.
 |---|---|
 | **Domain** | Product surface |
 | **Relationship** | **PARTIAL OVERLAP** |
-| **Inventory rows** | **202** — INV-03877, INV-04628, INV-05033, INV-05100, INV-05269, INV-05281, INV-05287, INV-05307, INV-05311, INV-05319, INV-05383, INV-06059, INV-06267, INV-06433 … +127 more ranges |
-| **Source documents** | 29 — `docs/archive/MASTER.md` (77) · `docs/strategy/get-kind_crm_expansion_reengagement_feasibility.html` (39) · `docs/archive/KIND-MASTER-ARCHIVE.md` (17) · `docs/archive/roadmap-audit-14-may-2026.md` (13) · `docs/strategy/MASTER_CONTEXT.md` (8) · `docs/APOLLO-ENGINE.md` (6) · `docs/archive/EVERYTHING.md` (6) · `docs/archive/KIND_Roadmap.md` (6) · +21 more source documents |
-| **Stable source IDs** | `#59`, `#6`, `#60`, `§2` |
+| **Inventory rows** | **208** — INV-01180, INV-01222, INV-01253, INV-03877, INV-04628, INV-05033, INV-05100, INV-05269, INV-05281, INV-05287, INV-05307, INV-05311, INV-05319, INV-05383 … +133 more ranges |
+| **Source documents** | 30 — `docs/archive/MASTER.md` (82) · `docs/strategy/get-kind_crm_expansion_reengagement_feasibility.html` (39) · `docs/archive/KIND-MASTER-ARCHIVE.md` (16) · `docs/archive/roadmap-audit-14-may-2026.md` (13) · `docs/strategy/MASTER_CONTEXT.md` (8) · `docs/APOLLO-ENGINE.md` (6) · `docs/archive/KIND_Roadmap.md` (6) · `docs/archive/EVERYTHING.md` (5) · +22 more source documents |
+| **Stable source IDs** | `#59`, `#6`, `#60`, `P37`, `§2` |
 | **Runtime / code / schema evidence** | `routes/integrations.ts` declares integration ids including `outlook_zoho`; `crm.ts:256` holds a free-mail-domain list. |
 | **Founder-direction evidence** | V2 §6.3 records CRM reactivation as permission-gated and pricing-undecided. |
 | **Historical / supersession evidence** | — (no supersession evidence visible in the sources) |
@@ -2876,15 +2905,15 @@ mapping correction, not a comparison conclusion.
 
 | Source | Sample INV rows |
 |---|---|
-| `docs/archive/MASTER.md` (77 rows) | INV-10214 *Review + merge branch claude/ai-business-roadmap-U3OWJ — contains Calendly fix, CRM dedup feature (needs migration …* · INV-10351 *[x] ✅ BUILT: Client CRM dedup (HubSpot + Pipedrive) — 4 Jun, on branch, tsc clean. Backend checkCrmDuplicate() (Hub…* · INV-10428 *🔌 INTEGRATIONS — FULL STATUS* |
+| `docs/archive/MASTER.md` (82 rows) | INV-10214 *Review + merge branch claude/ai-business-roadmap-U3OWJ — contains Calendly fix, CRM dedup feature (needs migration …* · INV-10351 *[x] ✅ BUILT: Client CRM dedup (HubSpot + Pipedrive) — 4 Jun, on branch, tsc clean. Backend checkCrmDuplicate() (Hub…* · INV-10428 *🔌 INTEGRATIONS — FULL STATUS* |
 | `docs/strategy/get-kind_crm_expansion_reengagement_feasibility.html` (39 rows) | INV-22085 *Get-Kind — CRM Expansion & Re-Engagement Feasibility Verification* · INV-22086 *Get-Kind — CRM Expansion & Re-Engagement Feasibility Verification* · INV-22087 *Purpose: ask Claude Code to verify whether the current Get-Kind architecture can support native client CRM connecti…* |
-| `docs/archive/KIND-MASTER-ARCHIVE.md` (17 rows) | INV-15081 *Notion · Custom Agents (team-wide bots on schedules + triggers). MCP-native: Linear, HubSpot, Figma, Slack, Attio C…* · INV-15102 *Revio (getrevio.com) — AI Social Selling CRM* · INV-15103 *What: Instagram/Facebook DM automation for creators/coaches. Scores leads, auto-sends DMs, AI co-pilot suggests rep…* |
+| `docs/archive/KIND-MASTER-ARCHIVE.md` (16 rows) | INV-15102 *Revio (getrevio.com) — AI Social Selling CRM* · INV-15103 *What: Instagram/Facebook DM automation for creators/coaches. Scores leads, auto-sends DMs, AI co-pilot suggests rep…* · INV-15104 *Pricing: ~$500/mo (no public pricing). High-touch sales.* |
 | `docs/archive/roadmap-audit-14-may-2026.md` (13 rows) | INV-18759 *SECTION 13 — CALENDAR INTEGRATION (NOT BUILT — MUST ADD TO ROADMAP)* · INV-18760 *Current state* · INV-18761 *There is NO calendar integration anywhere in the codebase* |
 | `docs/strategy/MASTER_CONTEXT.md` (8 rows) | INV-07727 *CRM expansion, Social Intent, larger autonomy, Meeting Graph and AI-to-AI buyer introductions are post-launch capab…* · INV-07869 *21. CRM strategy* · INV-07870 *CRM remains system of record;* |
 | `docs/APOLLO-ENGINE.md` (6 rows) | INV-05269 *Schedules · Email-Accounts · Tasks · Contacts · Accounts* · INV-05281 *What an aggregator buys us: a higher email/phone fill-rate behind our existing dedup'd waterfall — one integration …* · INV-05287 *Clay ❌ out for us* |
-| `docs/archive/EVERYTHING.md` (6 rows) | INV-16971 *Source: deep research run 5 Jun covering Glean, Monday.com, ClickUp, Notion, Linear, Salesforce Agentforce, Interco…* · INV-16977 *Notion · Custom Agents (team-wide bots on schedules + triggers). MCP-native: Linear, HubSpot, Figma, Slack, Attio C…* · INV-16990 *3. MCP is being pulled forward — it's distribution, not just product. Glean, Notion, Linear, Salesforce are all wir…* |
 | `docs/archive/KIND_Roadmap.md` (6 rows) | INV-19313 *Built-in CRM (basic) — clients stop needing HubSpot for K.I.N.D workflows* · INV-19322 *Zapier integration* · INV-19326 *Built-in CRM — clients stop needing Salesforce or HubSpot* |
-| *+21 more source documents* | *full list via the coverage map* |
+| `docs/archive/EVERYTHING.md` (5 rows) | INV-16971 *Source: deep research run 5 Jun covering Glean, Monday.com, ClickUp, Notion, Linear, Salesforce Agentforce, Interco…* · INV-16990 *3. MCP is being pulled forward — it's distribution, not just product. Glean, Notion, Linear, Salesforce are all wir…* · INV-17007 *What they are: AI social selling CRM for Instagram/Facebook-native coaches, consultants, and creators. Scans existi…* |
+| *+22 more source documents* | *full list via the coverage map* |
 
 ### CMP-0099 · WhatsApp and Africa-first channels
 
@@ -2892,8 +2921,8 @@ mapping correction, not a comparison conclusion.
 |---|---|
 | **Domain** | Product surface |
 | **Relationship** | **POSSIBLE SUPERSESSION** |
-| **Inventory rows** | **321** — INV-00241, INV-00249, INV-01866, INV-01869–01870, INV-01873, INV-01930, INV-04262, INV-04265, INV-04282, INV-04592, INV-04613–04626, INV-04641–04642, INV-04644–04645, INV-04647 … +182 more ranges |
-| **Source documents** | 30 — `docs/archive/MASTER.md` (159) · `docs/content/blog-articles.md` (28) · `docs/APOLLO-ENGINE.md` (21) · `docs/AFRICA-PLAYBOOK.md` (19) · `docs/archive/KIND-MASTER-ARCHIVE.md` (13) · `docs/content/youtube-plan.md` (10) · `docs/archive/KIND_Roadmap.md` (10) · `docs/archive/V2-NARRATIVE-2026-08-21.md` (7) · +22 more source documents |
+| **Inventory rows** | **324** — INV-00241, INV-00249, INV-01141, INV-01145, INV-01190, INV-01866, INV-01869–01870, INV-01873, INV-01930, INV-04262, INV-04265, INV-04282, INV-04592, INV-04613–04626 … +185 more ranges |
+| **Source documents** | 31 — `docs/archive/MASTER.md` (160) · `docs/content/blog-articles.md` (28) · `docs/APOLLO-ENGINE.md` (21) · `docs/AFRICA-PLAYBOOK.md` (19) · `docs/archive/KIND-MASTER-ARCHIVE.md` (13) · `docs/content/youtube-plan.md` (10) · `docs/archive/KIND_Roadmap.md` (10) · `docs/archive/V2-NARRATIVE-2026-08-21.md` (7) · +23 more source documents |
 | **Stable source IDs** | `#19`, `#20`, `#22`, `#27`, `#32`, `#33`, `#42`, `#46`, `#47`, `#63`, `#8`, `R54`, `R62`, `§4` |
 | **Runtime / code / schema evidence** | No WhatsApp channel in code. |
 | **Founder-direction evidence** | V2 records WhatsApp client notifications as opt-in pings, never outreach (founder idea, logged 15 Aug). |
@@ -2904,7 +2933,7 @@ mapping correction, not a comparison conclusion.
 
 | Source | Sample INV rows |
 |---|---|
-| `docs/archive/MASTER.md` (159 rows) | INV-10181 *Business: K.I.N.D TECHNOLOGIES LTD — company number 17260532, registered England & Wales ✅ · Platform: Africa-first…* · INV-10187 *Market Expansion — US, UK & Africa* · INV-10224 *10 warm personal outreach messages (LinkedIn/WhatsApp) · 10. LinkedIn founder content: 1 post/day from day 1 — dogf…* |
+| `docs/archive/MASTER.md` (160 rows) | INV-10181 *Business: K.I.N.D TECHNOLOGIES LTD — company number 17260532, registered England & Wales ✅ · Platform: Africa-first…* · INV-10187 *Market Expansion — US, UK & Africa* · INV-10224 *10 warm personal outreach messages (LinkedIn/WhatsApp) · 10. LinkedIn founder content: 1 post/day from day 1 — dogf…* |
 | `docs/content/blog-articles.md` (28 rows) | INV-09121 *WhatsApp for B2B Sales in Africa: Hype vs. Reality* · INV-09122 *Slug: whatsapp-b2b-sales-africa-hype-vs-reality* · INV-09123 *Meta description: WhatsApp dominates African consumer apps — but does it belong in your B2B outbound stack? Here's …* |
 | `docs/APOLLO-ENGINE.md` (21 rows) | INV-05284 *Tool · Providers · Embeddable API? · Entry price · Africa-relevant edge* · INV-05289 *Africa reality (sets expectations)* · INV-05298 *3B. DATA SOURCES — 🎯 THE FOCUS (founder, 25 Jun): use ALL sources to penetrate Africa DIRE…* |
 | `docs/AFRICA-PLAYBOOK.md` (19 rows) | INV-04613 *🌍 K.I.N.D — THE AFRICA PLAYBOOK (the one-click Africa GTM)* · INV-04614 *What this is: the single home for how we win Africa — the thesis, the two routes (direct-data + partners), how we s…* · INV-04615 *One-fact-one-home: status → PRODUCT-INVENTORY (item IDs in brackets) · strategy/decisions → KIND-MASTER · future de…* |
@@ -2912,7 +2941,7 @@ mapping correction, not a comparison conclusion.
 | `docs/content/youtube-plan.md` (10 rows) | INV-09356 *🌍 GTM note (25 Jun): under the two-track GTM this channel intentionally targets the AFRICA audience (content/SEO/aw…* · INV-09357 *Channel Goal: Build authority for KIND AI among African B2B founders and sales leaders, drive trial sign-ups, estab…* · INV-09359 *Title: "Why African Businesses Lose Deals Before They Even Start"* |
 | `docs/archive/KIND_Roadmap.md` (10 rows) | INV-19311 *Chatbot live for 20+ clients (website inbound, WhatsApp qualification)* · INV-19319 *Chatbot · Inbound qualifier for website + WhatsApp · July 2026* · INV-19330 *Pan-African launch: Nigeria, Kenya, Ghana, Egypt* |
 | `docs/archive/V2-NARRATIVE-2026-08-21.md` (7 rows) | INV-17961 *🌍 AFRICA → DIRECT (data-powered) + PARTNERS (sharpened 25 Jun — NOT partners-only). Two routes: (1) direct — stack …* · INV-17966 *Africa = channel country. Research: reseller/partner channels are "particularly well suited to the African business…* · INV-18097 *Manus — African-SMB deep-research fallback (the potential moat; async, needs dedup+verification). Post-launch.* |
-| *+22 more source documents* | *full list via the coverage map* |
+| *+23 more source documents* | *full list via the coverage map* |
 
 ### CMP-0100 · Voice and AI calling
 
@@ -2920,9 +2949,9 @@ mapping correction, not a comparison conclusion.
 |---|---|
 | **Domain** | Product surface |
 | **Relationship** | **PARTIAL OVERLAP** |
-| **Inventory rows** | **121** — INV-00220, INV-07367, INV-07393, INV-07561, INV-08038, INV-08075, INV-08120, INV-08127, INV-08140, INV-08197, INV-08300, INV-08391–08397, INV-08399–08401, INV-08403–08407 … +48 more ranges |
-| **Source documents** | 19 — `docs/marketing/voice.md` (33) · `docs/marketing/DAILY-PLAYBOOK.md` (19) · `docs/marketing/warm-outreach-kit.md` (18) · `docs/archive/MASTER.md` (12) · `docs/marketing/bundle-source/cowork-agent-SKILL.md` (8) · `docs/marketing/MARKETING-PLAN.md` (4) · `docs/content/linkedin-playbook.md` (4) · `docs/archive/KIND-MASTER-ARCHIVE.md` (4) · +11 more source documents |
-| **Stable source IDs** | `#48`, `R1`, `R11`, `R2`, `R21`, `R22`, `R24`, `R27`, `R31`, `R33`, `§3` |
+| **Inventory rows** | **124** — INV-00220, INV-07367, INV-07393, INV-07561, INV-08038, INV-08075, INV-08120, INV-08127, INV-08140, INV-08197, INV-08300, INV-08391–08397, INV-08399–08401, INV-08403–08407 … +53 more ranges |
+| **Source documents** | 18 — `docs/marketing/voice.md` (32) · `docs/marketing/DAILY-PLAYBOOK.md` (19) · `docs/marketing/warm-outreach-kit.md` (18) · `docs/archive/MASTER.md` (16) · `docs/marketing/bundle-source/cowork-agent-SKILL.md` (8) · `docs/marketing/MARKETING-PLAN.md` (4) · `docs/content/linkedin-playbook.md` (4) · `docs/archive/KIND-MASTER-ARCHIVE.md` (4) · +10 more source documents |
+| **Stable source IDs** | `#475`, `#48`, `R1`, `R11`, `R2`, `R22`, `R24`, `R27`, `R31`, `R33`, `§3` |
 | **Runtime / code / schema evidence** | No voice channel in code. |
 | **Founder-direction evidence** | #475 records voice/AI calling as the missing channel from the 21 Jul Alta teardown. |
 | **Historical / supersession evidence** | Archive `client-journey-flowchart.html` describes an AI Cold Caller on Vapi.ai + Twilio SA as part of the May model. |
@@ -2932,15 +2961,15 @@ mapping correction, not a comparison conclusion.
 
 | Source | Sample INV rows |
 |---|---|
-| `docs/marketing/voice.md` (33 rows) | INV-08973 *The Brand Voice — how M&V sounds in public* · INV-08974 *Origin: distilled 12 Aug from the Cowork bundle's SKILL.md — the strongest single asset the parallel marketing sess…* · INV-08976 *Locked brand facts (never contradict)* |
+| `docs/marketing/voice.md` (32 rows) | INV-08973 *The Brand Voice — how M&V sounds in public* · INV-08974 *Origin: distilled 12 Aug from the Cowork bundle's SKILL.md — the strongest single asset the parallel marketing sess…* · INV-08976 *Locked brand facts (never contradict)* |
 | `docs/marketing/DAILY-PLAYBOOK.md` (19 rows) | INV-08300 *Never claim our system found the reader until it has (R27, 12 Aug) · no unverified numbers (R11) · brand voice, com…* · INV-08391 *Engine 2 · Content posts — public, brand-voiced (company page — R2)* · INV-08392 *The best salesperson in most agencies is the founder.* |
 | `docs/marketing/warm-outreach-kit.md` (18 rows) | INV-09034 *Engine 2 · Content posts — public, brand-voiced (company page — R2)* · INV-09035 *The best salesperson in most agencies is the founder.* · INV-09036 *Who's also far too busy delivering to actually sell.* |
-| `docs/archive/MASTER.md` (12 rows) | INV-10911 *14 · Vapi.ai Voice · VAPI_API_KEY + VAPI_PHONE_NUMBER_ID + VAPI_ASSISTANT_ID + VAPI_WEBHOOK_SECRET* · INV-11045 *Web Speech API voice input* · INV-11499 *Web Speech API voice input* |
+| `docs/archive/MASTER.md` (16 rows) | INV-10749 *Alta advantages still outstanding: LinkedIn live (KIND has backend, needs PhantomBuster keys), voice channel (not b…* · INV-10911 *14 · Vapi.ai Voice · VAPI_API_KEY + VAPI_PHONE_NUMBER_ID + VAPI_ASSISTANT_ID + VAPI_WEBHOOK_SECRET* · INV-11045 *Web Speech API voice input* |
 | `docs/marketing/bundle-source/cowork-agent-SKILL.md` (8 rows) | INV-09082 *Voice rules* · INV-09083 *Plain, founder-to-founder, outcome-first. Short sentences. Generous whitespace.* · INV-09084 *Quietly confident. Never hypey. If a line sounds like a brochure, cut it.* |
 | `docs/marketing/MARKETING-PLAN.md` (4 rows) | INV-08120 *The message · ✅ CONSISTENT · Site H1 "We find your leads. You approve. That's it." = the GTM wedge = voice.md's one…* · INV-08127 *2 · Build beehiiv (~3 hrs, $0) · It is the CTA voice.md mandates for public posts, and the one audience we would ow…* · INV-08140 *Voice · ONE voice for everything public — voice.md (absorbed 12 Aug from the Cowork bundle, its best asset)* |
 | `docs/content/linkedin-playbook.md` (4 rows) | INV-09174 *1. Anonymity (founder-locked): post everything as the company page, in the "we" voice. The village family is brand …* · INV-09186 *Voice + anonymity rules* · INV-09187 *Post as the K.I.N.D company page, "we" voice. Never a personal profile. (Don't list K.I.N.D on any personal profile…* |
 | `docs/archive/KIND-MASTER-ARCHIVE.md` (4 rows) | INV-15094 *Two agents: (1) Demand Creation (CTV ads), (2) Demand Response (voice AI + iMessage at 92% open rate)* · INV-16136 *Vapi voice keys (Part D)* · INV-16154 *volume (10+ clients for L2, 50+ for L4) · ④ founder creds (enrichment, Vapi,* |
-| *+11 more source documents* | *full list via the coverage map* |
+| *+10 more source documents* | *full list via the coverage map* |
 
 ---
 
@@ -2952,8 +2981,8 @@ mapping correction, not a comparison conclusion.
 |---|---|
 | **Domain** | GTM |
 | **Relationship** | **PARTIAL OVERLAP** |
-| **Inventory rows** | **179** — INV-01703, INV-01711, INV-01868, INV-01877, INV-04263, INV-08001–08008, INV-08010–08015, INV-08017, INV-08019–08022, INV-08025–08026, INV-08028, INV-08032, INV-08034–08036, INV-08039 … +79 more ranges |
-| **Source documents** | 13 — `docs/archive/MASTER.md` (64) · `docs/archive/V2-NARRATIVE-2026-08-21.md` (29) · `docs/marketing/GTM-STRATEGY.md` (27) · `docs/marketing/GTM-ONE-PAGE.md` (25) · `docs/archive/roadmap-audit-14-may-2026.md` (22) · `docs/KIND-MASTER.md` (4) · `docs/drafts/GTM_FUNNEL_INSTRUMENTATION.md` (2) · `docs/SYSTEM-FLOW.md` (1) · +5 more source documents |
+| **Inventory rows** | **186** — INV-01146, INV-01157–01160, INV-01186–01189, INV-01191, INV-01703, INV-01711, INV-01868, INV-01877, INV-04263, INV-08001–08008, INV-08010–08015, INV-08017, INV-08019–08022, INV-08026 … +81 more ranges |
+| **Source documents** | 14 — `docs/archive/MASTER.md` (64) · `docs/archive/V2-NARRATIVE-2026-08-21.md` (29) · `docs/marketing/GTM-STRATEGY.md` (25) · `docs/marketing/GTM-ONE-PAGE.md` (24) · `docs/archive/roadmap-audit-14-may-2026.md` (22) · `docs/V2-TRACKER.md` (10) · `docs/KIND-MASTER.md` (4) · `docs/drafts/GTM_FUNNEL_INSTRUMENTATION.md` (2) · +6 more source documents |
 | **Stable source IDs** | `#1`, `#19`, `#25`, `#35`, `#435`, `R1`, `R21`, `R22`, `R23`, `R25`, `R29` |
 | **Runtime / code / schema evidence** | No code relationship. |
 | **Founder-direction evidence** | The two-track GTM is recorded as decided 25 Jun by the founder. |
@@ -2966,13 +2995,13 @@ mapping correction, not a comparison conclusion.
 |---|---|
 | `docs/archive/MASTER.md` (64 rows) | INV-10331 *⚪ TIER 5 — GTM (after smoke tests pass)* · INV-10333 *[ ] 10 warm outreach messages to personal network (this is how client 1 arrives)* · INV-10335 *[ ] Design partners — 1–2 companies, free/discounted access in exchange for testimonials + feedback* |
 | `docs/archive/V2-NARRATIVE-2026-08-21.md` (29 rows) | INV-17956 *░ 🌍 MARKET STRATEGY — TWO-TRACK GTM (decided 25 Jun · founder) ░* · INV-17957 *The frame for ALL go-to-market. Strategy of record → KIND-MASTER; this is the future-detail + market evidence behin…* · INV-17959 *Match the GTM motion to how each market actually buys* |
-| `docs/marketing/GTM-STRATEGY.md` (27 rows) | INV-08036 *🎯 GO-TO-MARKET — the strategy* · INV-08039 *1 · The money — four numbers, from the founder's own lab* · INV-08041 *Scenario · Revenue / mo · Cost to deliver · Fixed / mo · Net / month* |
-| `docs/marketing/GTM-ONE-PAGE.md` (25 rows) | INV-08001 *📄 GTM — ONE PAGE* · INV-08002 *The doing page. Who we sell to, what we sell, the four channels, the daily numbers, the money. Nothing else.* · INV-08003 *The why lives in GTM-STRATEGY.md — read it once, then work from here. This page holds no status (that is PRODUCT-IN…* |
+| `docs/marketing/GTM-STRATEGY.md` (25 rows) | INV-08036 *🎯 GO-TO-MARKET — the strategy* · INV-08039 *1 · The money — four numbers, from the founder's own lab* · INV-08041 *Scenario · Revenue / mo · Cost to deliver · Fixed / mo · Net / month* |
+| `docs/marketing/GTM-ONE-PAGE.md` (24 rows) | INV-08001 *📄 GTM — ONE PAGE* · INV-08002 *The doing page. Who we sell to, what we sell, the four channels, the daily numbers, the money. Nothing else.* · INV-08003 *The why lives in GTM-STRATEGY.md — read it once, then work from here. This page holds no status (that is PRODUCT-IN…* |
 | `docs/archive/roadmap-audit-14-may-2026.md` (22 rows) | INV-18950 *SECTION 18 — GO-TO-MARKET STRATEGY* · INV-18951 *Target Live Date: Sunday 31 May 2026* · INV-18960 *Positioning* |
+| `docs/V2-TRACKER.md` (10 rows) | INV-01146 *What it changes in the roadmap — 211+198 rise to the unlock; park the heavy parallel builds* · INV-01157 *3–5 STRONG partners, not 10 thin ones — depth over volume* · INV-01158 *The "strong" bar — four conditions a partner must clear* |
 | `docs/KIND-MASTER.md` (4 rows) | INV-01703 *Fri 19 🚀 · LAUNCH · Proven core already live on main. Go. Then week-1 GTM begins.* · INV-01711 *Fri 19 · 🚀 LAUNCH + (if recorded) drop Drop 01 video. Then leave for the weekend. · stand up week-1 GTM support · m…* · INV-01868 *🌍 RE-CONFIRMED 10 Jun (founder, after US-now question + ToS/GTM review) — ⚠️ SUPERSEDED 25 Jun (see above): "We go …* |
 | `docs/drafts/GTM_FUNNEL_INSTRUMENTATION.md` (2 rows) | INV-09456 *GTM Funnel Instrumentation — Scaffold* · INV-09457 *🚧 DRAFT / SCAFFOLD — NEEDS FOUNDER ANALYTICS DECISIONS.* |
-| `docs/SYSTEM-FLOW.md` (1 rows) | INV-04263 *4. THE TWO GTM TRACKS — mapped onto the flow* |
-| *+5 more source documents* | *full list via the coverage map* |
+| *+6 more source documents* | *full list via the coverage map* |
 
 ### CMP-0102 · Marketing plan, content and the Drop
 
@@ -2980,9 +3009,9 @@ mapping correction, not a comparison conclusion.
 |---|---|
 | **Domain** | GTM |
 | **Relationship** | **PARTIAL OVERLAP** |
-| **Inventory rows** | **986** — INV-00084, INV-00193, INV-00207–00209, INV-00214–00219, INV-00221–00222, INV-00224, INV-00229–00231, INV-00956, INV-01640, INV-01686, INV-01718–01723, INV-01725, INV-01728, INV-01730–01731 … +362 more ranges |
-| **Source documents** | 64 — `docs/archive/MASTER.md` (131) · `docs/marketing/MARKETING-PLAN.md` (113) · `docs/marketing/founder-content-playbook.md` (80) · `docs/marketing/paid-ads-phase-plan.md` (57) · `docs/marketing/beehiiv-setup-checklist.md` (56) · `docs/marketing/founder-led-marketing-system.md` (55) · `docs/marketing/DAILY-PLAYBOOK.md` (50) · `docs/content/website-video-plan.md` (37) · +56 more source documents |
-| **Stable source IDs** | `#1`, `#10`, `#14`, `#15`, `#17`, `#18`, `#19`, `#2`, `#20`, `#21`, `#23`, `#25`, `#26`, `#27`, `#28`, `#29`, `#3`, `#30`, `#31`, `#32`, `#33`, `#34`, `#35`, `#4` … +48 more |
+| **Inventory rows** | **968** — INV-00084, INV-00193, INV-00207–00209, INV-00214–00215, INV-00217–00219, INV-00221–00222, INV-00224, INV-00229–00231, INV-00956, INV-01194–01195, INV-01203, INV-01640, INV-01686, INV-01718–01719 … +367 more ranges |
+| **Source documents** | 65 — `docs/archive/MASTER.md` (137) · `docs/marketing/MARKETING-PLAN.md` (113) · `docs/marketing/founder-content-playbook.md` (79) · `docs/marketing/paid-ads-phase-plan.md` (57) · `docs/marketing/beehiiv-setup-checklist.md` (56) · `docs/marketing/founder-led-marketing-system.md` (55) · `docs/marketing/DAILY-PLAYBOOK.md` (49) · `docs/content/website-video-plan.md` (37) · +57 more source documents |
+| **Stable source IDs** | `#1`, `#10`, `#14`, `#15`, `#17`, `#18`, `#19`, `#2`, `#20`, `#21`, `#23`, `#25`, `#26`, `#27`, `#28`, `#29`, `#3`, `#30`, `#31`, `#32`, `#33`, `#34`, `#35`, `#4` … +47 more |
 | **Runtime / code / schema evidence** | Nine `drop-0*.html` pages and `the-drop.html` are live. |
 | **Founder-direction evidence** | NO EXPLICIT CURRENT FOUNDER DIRECTION FOUND |
 | **Historical / supersession evidence** | — (no supersession evidence visible in the sources) |
@@ -2992,15 +3021,15 @@ mapping correction, not a comparison conclusion.
 
 | Source | Sample INV rows |
 |---|---|
-| `docs/archive/MASTER.md` (131 rows) | INV-10182 *TABLE OF CONTENTS* · INV-10183 *Current Status — What's Live* · INV-10184 *What Founder Needs To Do* |
+| `docs/archive/MASTER.md` (137 rows) | INV-10182 *TABLE OF CONTENTS* · INV-10183 *Current Status — What's Live* · INV-10184 *What Founder Needs To Do* |
 | `docs/marketing/MARKETING-PLAN.md` (113 rows) | INV-08091 *📣 MARKETING PLAN — how K.I.N.D gets known* · INV-08092 *This is the doc you open for marketing. It holds the plan and the recurring actions — daily, weekly, monthly. It ho…* · INV-08093 *Inventory id: #632 (reserved by R6, 6 Aug, for exactly this). Detail files live in this folder — see README-marketi…* |
-| `docs/marketing/founder-content-playbook.md` (80 rows) | INV-08587 *Founder Content Playbook* · INV-08588 *THE PUBLIC HALF OF THIS DOCUMENT IS GATED* · INV-08590 *What runs today: §1 (your POV), §2 (the pillars), §3 (the content bank — the most important section here), and post…* |
+| `docs/marketing/founder-content-playbook.md` (79 rows) | INV-08587 *Founder Content Playbook* · INV-08588 *THE PUBLIC HALF OF THIS DOCUMENT IS GATED* · INV-08590 *What runs today: §1 (your POV), §2 (the pillars), §3 (the content bank — the most important section here), and post…* |
 | `docs/marketing/paid-ads-phase-plan.md` (57 rows) | INV-08888 *1 · The prerequisites — all six, no exceptions* · INV-08889 *☐ · Prerequisite · Why it is non-negotiable* · INV-08891 *☐ · R2 lifted · Ads are public* |
 | `docs/marketing/beehiiv-setup-checklist.md` (56 rows) | INV-08508 *beehiiv Setup Checklist* · INV-08509 *Tick these off in order. Roughly 3 hours end to end, splittable across a week.* · INV-08510 *Pricing is UNVERIFIED. beehiiv.com is blocked by this environment's egress proxy, so no price on this page has been…* |
 | `docs/marketing/founder-led-marketing-system.md` (55 rows) | INV-08739 *Founder-Led Marketing System* · INV-08740 *What this is: the strategy, in plain language, for a technical founder who does not do marketing.* · INV-08741 *Status of the public half: GATED. R2 (6 Aug) holds — re-affirmed by the founder on 11 Aug. No personal public posti…* |
-| `docs/marketing/DAILY-PLAYBOOK.md` (50 rows) | INV-08268 *🎛 M&V — THE DAILY PLAYBOOK (GENERATED by scripts/build-playbook.sh — edit the SOURCE docs,…* · INV-08269 *For the M&V Marketing Claude Project. Ask "what do I do today?" with the date — the answer is the calendar row for …* · INV-08270 *3b · 📆 THE 30-DAY CALENDAR — dated, concrete, assets named (added 12 Aug on the founder's …* |
+| `docs/marketing/DAILY-PLAYBOOK.md` (49 rows) | INV-08268 *🎛 M&V — THE DAILY PLAYBOOK (GENERATED by scripts/build-playbook.sh — edit the SOURCE docs,…* · INV-08269 *For the M&V Marketing Claude Project. Ask "what do I do today?" with the date — the answer is the calendar row for …* · INV-08270 *3b · 📆 THE 30-DAY CALENDAR — dated, concrete, assets named (added 12 Aug on the founder's …* |
 | `docs/content/website-video-plan.md` (37 rows) | INV-09296 *K.I.N.D — Website Video Content Plan* · INV-09297 *What we're building* · INV-09298 *Why: Video is the highest-converting content format for a product like KIND. Founders and sales leaders watch a 90-…* |
-| *+56 more source documents* | *full list via the coverage map* |
+| *+57 more source documents* | *full list via the coverage map* |
 
 ### CMP-0103 · Paid ads
 
@@ -3008,8 +3037,8 @@ mapping correction, not a comparison conclusion.
 |---|---|
 | **Domain** | GTM |
 | **Relationship** | **PARTIAL OVERLAP** |
-| **Inventory rows** | **30** — INV-00211, INV-01152, INV-02939, INV-03037–03038, INV-03195, INV-03209, INV-06039, INV-06543, INV-08018, INV-08073, INV-08105, INV-08113, INV-08234, INV-08246 … +9 more ranges |
-| **Source documents** | 16 — `docs/marketing/paid-ads-phase-plan.md` (6) · `docs/marketing/MARKETING-PLAN.md` (5) · `docs/marketing/founder-led-marketing-system.md` (3) · `docs/PARTNER-BRIEF.md` (2) · `docs/hiring/SELLER-ENGINE-MAP.md` (2) · `docs/marketing/bundle-source/paid-ads-plan.html` (2) · `docs/PRODUCT-RULES.md` (1) · `docs/V2-TRACKER.md` (1) · +8 more source documents |
+| **Inventory rows** | **27** — INV-00211, INV-01152, INV-02939, INV-03195, INV-03209, INV-06039, INV-06543, INV-08018, INV-08073, INV-08113, INV-08234, INV-08246, INV-08263, INV-08444 … +7 more ranges |
+| **Source documents** | 15 — `docs/marketing/paid-ads-phase-plan.md` (6) · `docs/marketing/MARKETING-PLAN.md` (4) · `docs/marketing/founder-led-marketing-system.md` (3) · `docs/hiring/SELLER-ENGINE-MAP.md` (2) · `docs/marketing/bundle-source/paid-ads-plan.html` (2) · `docs/PRODUCT-RULES.md` (1) · `docs/V2-TRACKER.md` (1) · `docs/SALARY-BREAKEVEN-PLAN.md` (1) · +7 more source documents |
 | **Stable source IDs** | `R2`, `R24`, `R47`, `R7`, `§1` |
 | **Runtime / code / schema evidence** | No code relationship. |
 | **Founder-direction evidence** | NO EXPLICIT CURRENT FOUNDER DIRECTION FOUND |
@@ -3021,14 +3050,14 @@ mapping correction, not a comparison conclusion.
 | Source | Sample INV rows |
 |---|---|
 | `docs/marketing/paid-ads-phase-plan.md` (6 rows) | INV-08883 *Paid Ads — Phase Plan* · INV-08884 *GATED TWICE. NOTHING HERE RUNS YET.* · INV-08885 *R7 (6 Aug): real money must move and there is none — "when i get paid".* |
-| `docs/marketing/MARKETING-PLAN.md` (5 rows) | INV-08105 *Paid ads (they are public by definition)* · INV-08113 *R7 (6 Aug) — real money waits* · INV-08234 *Paid ads before revenue* |
+| `docs/marketing/MARKETING-PLAN.md` (4 rows) | INV-08113 *R7 (6 Aug) — real money waits* · INV-08234 *Paid ads before revenue* · INV-08246 *Paid ads · £0 until gated open · R7* |
 | `docs/marketing/founder-led-marketing-system.md` (3 rows) | INV-08751 *Warm · Public content · Paid ads* · INV-08767 *Part D — 🔒 Paid ads (gated on R2 + R7)* · INV-08768 *Job: buy more of a message that already works.* |
-| `docs/PARTNER-BRIEF.md` (2 rows) | INV-03037 *25% of the client's approved-lead spend, after their included first 100 — the only thing that pays.* · INV-03038 *$0 of the $299 setup pack · $0 on the included first 100 approvals · then 25% of paid approved-lead spend thereafte…* |
 | `docs/hiring/SELLER-ENGINE-MAP.md` (2 rows) | INV-03195 *26 Aug: the PARTNER half of this line is superseded by R47 — a partner earns 25% of approved-lead spend after the i…* · INV-03209 *Partner Comp Plan* |
 | `docs/marketing/bundle-source/paid-ads-plan.html` (2 rows) | INV-22880 *M&V — Paid Ads Plan* · INV-22881 *Paid Ads Plan — lean test ~£400/month (about £13/day). Built to learn what works before you scale. The first weeks …* |
 | `docs/PRODUCT-RULES.md` (1 rows) | INV-00211 *PAID ADS AND THE ACTRESS ARE PARKED UNTIL REVENUE — R7 stands. The bundle's ~£400/mo plan and on-camera actres…* |
 | `docs/V2-TRACKER.md` (1 rows) | INV-01152 *The money — partner R47 25% of paid approved-lead spend (current); AE comp plan* |
-| *+8 more source documents* | *full list via the coverage map* |
+| `docs/SALARY-BREAKEVEN-PLAN.md` (1 rows) | INV-02939 *Book (repeat buyers at ~£155/mo lead spend)* |
+| *+7 more source documents* | *full list via the coverage map* |
 
 ### CMP-0104 · Sales playbook and objection handling
 
@@ -3036,8 +3065,8 @@ mapping correction, not a comparison conclusion.
 |---|---|
 | **Domain** | GTM |
 | **Relationship** | **PARTIAL OVERLAP** |
-| **Inventory rows** | **91** — INV-03008–03009, INV-06038, INV-06207, INV-07154–07157, INV-07163, INV-07165, INV-07189, INV-07191–07204, INV-07206, INV-07208, INV-07210, INV-07212, INV-07214–07218, INV-07220 … +26 more ranges |
-| **Source documents** | 10 — `docs/sales-playbook.md` (48) · `docs/archive/MASTER.md` (19) · `docs/archive/KIND_SOP.md` (15) · `docs/PARTNER-BRIEF.md` (2) · `docs/archive/KIND-MASTER-ARCHIVE.md` (2) · `docs/legal.md` (1) · `docs/legal/legal-pack.md` (1) · `docs/MCP-EXPLAINED.html` (1) · +2 more source documents |
+| **Inventory rows** | **92** — INV-03008–03009, INV-06038, INV-06207, INV-07154–07157, INV-07163, INV-07165, INV-07189, INV-07191–07204, INV-07206, INV-07208, INV-07210, INV-07212, INV-07214–07218, INV-07220 … +27 more ranges |
+| **Source documents** | 10 — `docs/sales-playbook.md` (48) · `docs/archive/MASTER.md` (20) · `docs/archive/KIND_SOP.md` (15) · `docs/PARTNER-BRIEF.md` (2) · `docs/archive/KIND-MASTER-ARCHIVE.md` (2) · `docs/legal.md` (1) · `docs/legal/legal-pack.md` (1) · `docs/MCP-EXPLAINED.html` (1) · +2 more source documents |
 | **Stable source IDs** | `#629`, `#70` |
 | **Runtime / code / schema evidence** | No code relationship. |
 | **Founder-direction evidence** | NO EXPLICIT CURRENT FOUNDER DIRECTION FOUND |
@@ -3049,7 +3078,7 @@ mapping correction, not a comparison conclusion.
 | Source | Sample INV rows |
 |---|---|
 | `docs/sales-playbook.md` (48 rows) | INV-07154 *KIND Sales Playbook* · INV-07155 *TRUTH BANNER — 6 Aug 2026 (#629). READ BEFORE YOU QUOTE ANYTHING FROM THIS PAGE.* · INV-07156 *A full sweep of this document against the code on 6 Aug found 15 of 22 factual claims FALSE. They are being correct…* |
-| `docs/archive/MASTER.md` (19 rows) | INV-11835 *Do NOT send a deck. Do NOT send a pitch. Send a message that sounds like you.* · INV-11848 *Book first discovery call* · INV-12291 *Phase 2: Discovery Call (30–45 min)* |
+| `docs/archive/MASTER.md` (20 rows) | INV-11835 *Do NOT send a deck. Do NOT send a pitch. Send a message that sounds like you.* · INV-11848 *Book first discovery call* · INV-12291 *Phase 2: Discovery Call (30–45 min)* |
 | `docs/archive/KIND_SOP.md` (15 rows) | INV-19452 *4. Phase 2: Discovery Call* · INV-19453 *Duration: 30–45 minutes* · INV-19454 *Goal: Understand the problem, validate fit, identify which products apply* |
 | `docs/PARTNER-BRIEF.md` (2 rows) | INV-03008 *What K.I.N.D is (the 20-second pitch)* · INV-03009 *An AI sales team for small businesses. Four AI agents find leads, draft personalised outreach and follow-ups, and d…* |
 | `docs/archive/KIND-MASTER-ARCHIVE.md` (2 rows) | INV-15296 *70 · ⬜ · Meeting notetaker (auto-transcribe, live objections). · Capture every call. · Glean/Linear. Year 2+.* · INV-15989 *Log objections (feeds sales SOP + product priorities)* |
@@ -3064,9 +3093,9 @@ mapping correction, not a comparison conclusion.
 |---|---|
 | **Domain** | GTM |
 | **Relationship** | **PARTIAL OVERLAP** |
-| **Inventory rows** | **205** — INV-01655, INV-01698, INV-01856, INV-01972, INV-02997–03000, INV-03006, INV-03015, INV-03020–03021, INV-03023–03024, INV-03028, INV-03034–03035, INV-03040–03041, INV-03043, INV-03047–03049 … +115 more ranges |
-| **Source documents** | 27 — `docs/PARTNER-BRIEF.md` (28) · `docs/hiring/PARTNER-CONDUCT-POLICY.md` (22) · `docs/archive/MASTER.md` (21) · `docs/legal/partner-agreement.md` (20) · `docs/hiring/CLIENT-PARTNER-JD.md` (16) · `docs/strategy/MASTER_CONTEXT.md` (13) · `docs/hiring/KIND-PARTNER-COMP-PLAN.md` (11) · `docs/legal.md` (11) · +19 more source documents |
-| **Stable source IDs** | `#1`, `#10`, `#27`, `#29`, `#49`, `#629`, `#712`, `#81`, `R47`, `§3` |
+| **Inventory rows** | **211** — INV-01162, INV-01164–01165, INV-01655, INV-01698, INV-01856, INV-01972, INV-02997–03000, INV-03006, INV-03015, INV-03020–03021, INV-03023–03024, INV-03028, INV-03034–03035, INV-03040–03041 … +120 more ranges |
+| **Source documents** | 28 — `docs/PARTNER-BRIEF.md` (28) · `docs/hiring/PARTNER-CONDUCT-POLICY.md` (22) · `docs/archive/MASTER.md` (21) · `docs/legal/partner-agreement.md` (20) · `docs/hiring/CLIENT-PARTNER-JD.md` (16) · `docs/legal.md` (13) · `docs/strategy/MASTER_CONTEXT.md` (13) · `docs/hiring/KIND-PARTNER-COMP-PLAN.md` (11) · +20 more source documents |
+| **Stable source IDs** | `#1`, `#10`, `#200`, `#27`, `#29`, `#49`, `#629`, `#712`, `#81`, `R47`, `§3` |
 | **Runtime / code / schema evidence** | Pending migrations create the Client Partner seat (R40), partner contact details, the partner onboarding flow (R42 — *"they sign. i recieve docs i sign and they then go live"*), and the seller ramp (#654 — *"A NOTEBOOK, NEVER LEAD-GEN (R40), and personal data: the operator console shows counts only, never names."*). |
 | **Founder-direction evidence** | Founder 16 Aug, quoted in the migration titles. |
 | **Historical / supersession evidence** | `partners.retain_rate` (R40's 8%/5%) is recorded as untouched legacy. |
@@ -3081,10 +3110,10 @@ mapping correction, not a comparison conclusion.
 | `docs/archive/MASTER.md` (21 rows) | INV-10233 *Week 2-3 · 2-3 design partners · ~£2,500* · INV-10459 *🌍 CHANNEL PARTNERS* · INV-10460 *Partner · Region · Status · Action* |
 | `docs/legal/partner-agreement.md` (20 rows) | INV-06527 *K.I.N.D — Partner Agreement (DRAFT TEMPLATE)* · INV-06528 *Source of truth for the commercial terms: item 197 (PRODUCT-INVENTORY) + docs/hiring/KIND-PARTNER-COMP-PLAN.md + co…* · INV-06530 *Referral & Payout Terms* |
 | `docs/hiring/CLIENT-PARTNER-JD.md` (16 rows) | INV-03134 *Client Partner — role description* · INV-03136 *turn-key; the founder creates it the day she starts. Nothing about this role appears on the* · INV-03137 *The role in one line* |
+| `docs/legal.md` (13 rows) | INV-05988 *1. Contact Apollo partnerships* · INV-05989 *2. Evaluate data source migration* · INV-05991 *4. Decision: Apollo partner OR client API keys* |
 | `docs/strategy/MASTER_CONTEXT.md` (13 rows) | INV-07865 *partners/resellers become distribution;* · INV-07883 *24. Client contract / partner contract issues* · INV-07885 *client's responsibility for product/service claim truth;* |
 | `docs/hiring/KIND-PARTNER-COMP-PLAN.md` (11 rows) | INV-03103 *K.I.N.D — Partner Compensation Plan* · INV-03104 *SUPERSEDED 19 Aug 2026 BY R47 — RE-CONFIRMED 26 Aug. THIS PLAN IS HISTORY, NOT CURRENT PARTNER TRUTH.* · INV-03106 *Nothing on this page may be quoted to a partner. It is retained because the 19-Jun reasoning and the modelling behi…* |
-| `docs/legal.md` (11 rows) | INV-05988 *1. Contact Apollo partnerships* · INV-05989 *2. Evaluate data source migration* · INV-05991 *4. Decision: Apollo partner OR client API keys* |
-| *+19 more source documents* | *full list via the coverage map* |
+| *+20 more source documents* | *full list via the coverage map* |
 
 ### CMP-0106 · Competitive landscape and teardowns
 
@@ -3092,9 +3121,9 @@ mapping correction, not a comparison conclusion.
 |---|---|
 | **Domain** | GTM |
 | **Relationship** | **PARTIAL OVERLAP** |
-| **Inventory rows** | **246** — INV-04110, INV-07343–07345, INV-07350–07351, INV-07355–07356, INV-07678, INV-07861, INV-07863, INV-07867–07868, INV-08000, INV-09412, INV-09417, INV-10219, INV-10937, INV-11101 … +120 more ranges |
-| **Source documents** | 16 — `docs/archive/MASTER.md` (119) · `docs/strategy/get-kind_competitive_market_benchmark_verification_log.html` (63) · `docs/archive/KIND-MASTER-ARCHIVE.md` (24) · `docs/archive/EVERYTHING.md` (11) · `docs/art-of-possible.md` (7) · `docs/archive/apollo-reseller-call-prep.md` (5) · `docs/strategy/MASTER_CONTEXT.md` (4) · `docs/archive/V2-NARRATIVE-2026-08-21.md` (3) · +8 more source documents |
-| **Stable source IDs** | `#10`, `#50` |
+| **Inventory rows** | **356** — INV-01041, INV-01095, INV-01167, INV-01185, INV-01325, INV-04110, INV-06125–06132, INV-06134–06136, INV-06139–06143, INV-06145, INV-07343–07345, INV-07350–07351, INV-07355–07356, INV-07678 … +171 more ranges |
+| **Source documents** | 20 — `docs/archive/MASTER.md` (204) · `docs/strategy/get-kind_competitive_market_benchmark_verification_log.html` (62) · `docs/archive/KIND-MASTER-ARCHIVE.md` (24) · `docs/legal.md` (17) · `docs/archive/EVERYTHING.md` (11) · `docs/art-of-possible.md` (7) · `docs/archive/V2-NARRATIVE-2026-08-21.md` (5) · `docs/archive/apollo-reseller-call-prep.md` (5) · +12 more source documents |
+| **Stable source IDs** | `#1`, `#10`, `#50` |
 | **Runtime / code / schema evidence** | No code relationship. |
 | **Founder-direction evidence** | NO EXPLICIT CURRENT FOUNDER DIRECTION FOUND |
 | **Historical / supersession evidence** | The 5 Jun landscape read is in the archive; the 21 Jul Alta teardown is in the current inventory. |
@@ -3104,15 +3133,15 @@ mapping correction, not a comparison conclusion.
 
 | Source | Sample INV rows |
 |---|---|
-| `docs/archive/MASTER.md` (119 rows) | INV-10219 *Everything previously labelled Year 2 or Year 3 is now Month 3. Only ISO certifications remain Year 2. Speed is the…* · INV-10937 *DONE THIS SESSION — removed from queue (were previously listed as pending)* · INV-11101 *Full competitor landscape* |
-| `docs/strategy/get-kind_competitive_market_benchmark_verification_log.html` (63 rows) | INV-21999 *Get-Kind — Competitive Market Benchmark Verification & Capability Log* · INV-22000 *Get-Kind — Competitive Market Benchmark Verification & Capability Log* · INV-22001 *Market snapshot: 17 August 2026. Purpose: give Claude Code a read-only benchmark of the current outbound / AI SDR /…* |
+| `docs/archive/MASTER.md` (204 rows) | INV-10219 *Everything previously labelled Year 2 or Year 3 is now Month 3. Only ISO certifications remain Year 2. Speed is the…* · INV-10513 *🎨 WEBSITE REDESIGN — break from Alta, own our look (decided 3 June)* · INV-10514 *Why: the site was visually too close to Alta (code literally said "Alta-style" + "like Alta"). The cheaper challeng…* |
+| `docs/strategy/get-kind_competitive_market_benchmark_verification_log.html` (62 rows) | INV-21999 *Get-Kind — Competitive Market Benchmark Verification & Capability Log* · INV-22000 *Get-Kind — Competitive Market Benchmark Verification & Capability Log* · INV-22001 *Market snapshot: 17 August 2026. Purpose: give Claude Code a read-only benchmark of the current outbound / AI SDR /…* |
 | `docs/archive/KIND-MASTER-ARCHIVE.md` (24 rows) | INV-15070 *CHAPTER 1 — STRATEGY & COMPETITIVE* · INV-15072 *Source of truth for competitive positioning, future builds, and strategic priorities.* · INV-15075 *🌍 THE COMPETITIVE LANDSCAPE (What the World Shipped in May–Jun 2026)* |
+| `docs/legal.md` (17 rows) | INV-06125 *3. HOW ALTA SDR AND COMPETITORS HANDLE THIS* · INV-06126 *The Venture-Backed Approach* · INV-06127 *They do not hold their own contact database* |
 | `docs/archive/EVERYTHING.md` (11 rows) | INV-16781 *Also: rendered the previously-invisible Run-result banner; added preview diagnostics (to be stripped — see §CLEANUP…* · INV-16970 *PART 5B — COMPETITIVE LANDSCAPE + STRATEGIC POSITION (synthesised 5 Jun)* · INV-16976 *ClickUp · Acquired Codegen (Cursor competitor). "Super Agents" — autonomous project completion, 500+ work skills, h…* |
 | `docs/art-of-possible.md` (7 rows) | INV-07343 *Teacher 3 — Apollo: Supplier, Competitor, and Teacher* · INV-07344 *What Apollo actually is* · INV-07345 *Contact database — 275M+ professional contacts. (K.I.N.D's own sourcing is PDL Full + Hunter; Apollo is optional BY…* |
+| `docs/archive/V2-NARRATIVE-2026-08-21.md` (5 rows) | INV-17828 *░ 🆚 ALTA PARITY — the two gaps to a COMPLETE product (21 Jul competitive teardown) ░* · INV-17829 *Context (founder-driven, 21 Jul): compared K.I.N.D's agents to Alta (altahq.com — $25M Series A, ~$15M ARR, Snowfla…* · INV-17991 *PARKED — Qualified competitor analysis (Manus, 25 Jun)* |
 | `docs/archive/apollo-reseller-call-prep.md` (5 rows) | INV-21396 *Their one concern: competitive overlap — they think K.I.N.D might compete with Apollo.* · INV-21412 *3. Why there's no competitive overlap (the heart of the call)* · INV-21414 *Different layer of the stack. Apollo = the data + tooling layer the user operates. K.I.N.D = the autonomous executi…* |
-| `docs/strategy/MASTER_CONTEXT.md` (4 rows) | INV-07861 *20. Competitive / aggressive business vision* · INV-07863 *first 10 clients teach operational edge cases;* · INV-07867 *future machine-readable Buyer Pack / Offer Passport;* |
-| `docs/archive/V2-NARRATIVE-2026-08-21.md` (3 rows) | INV-17991 *PARKED — Qualified competitor analysis (Manus, 25 Jun)* · INV-17994 *3 cheap wins to mine when we revisit: fix website timing inconsistency (10min/24h/5d) · a "K.I.N.D vs Qualified" co…* · INV-17995 *Useful as-is: independent outside-in confirmation that (a) our positioning is distinct, (b) our proof gap is visibl…* |
-| *+8 more source documents* | *full list via the coverage map* |
+| *+12 more source documents* | *full list via the coverage map* |
 
 ### CMP-0107 · Regions — SA, US, UK, EU expansion
 
@@ -3120,8 +3149,8 @@ mapping correction, not a comparison conclusion.
 |---|---|
 | **Domain** | GTM |
 | **Relationship** | **PARTIAL OVERLAP** |
-| **Inventory rows** | **180** — INV-00936, INV-01865, INV-01974, INV-03211, INV-03898, INV-03902, INV-04587–04588, INV-04591, INV-04594, INV-04596, INV-04599, INV-04601–04604, INV-04606, INV-04612 … +89 more ranges |
-| **Source documents** | 25 — `docs/archive/MASTER.md` (72) · `docs/strategy/get-kind_crm_expansion_reengagement_feasibility.html` (31) · `docs/archive/KIND_Roadmap.md` (16) · `docs/DATA-RESIDENCY-PLAYBOOK.md` (12) · `docs/legal/legal-pack.md` (10) · `docs/archive/KIND-MASTER-ARCHIVE.md` (5) · `docs/legal.md` (4) · `docs/legal/it-security-pack.md` (3) · +17 more source documents |
+| **Inventory rows** | **182** — INV-00936, INV-01062, INV-01278, INV-01865, INV-01974, INV-03211, INV-03898, INV-03902, INV-04587–04588, INV-04591, INV-04594, INV-04596, INV-04599, INV-04601–04604 … +91 more ranges |
+| **Source documents** | 26 — `docs/archive/MASTER.md` (72) · `docs/strategy/get-kind_crm_expansion_reengagement_feasibility.html` (31) · `docs/archive/KIND_Roadmap.md` (16) · `docs/DATA-RESIDENCY-PLAYBOOK.md` (12) · `docs/legal/legal-pack.md` (10) · `docs/archive/KIND-MASTER-ARCHIVE.md` (5) · `docs/legal.md` (4) · `docs/legal/it-security-pack.md` (3) · +18 more source documents |
 | **Stable source IDs** | `#10`, `#2`, `#617`, `R56` |
 | **Runtime / code / schema evidence** | `launch-countries.test.ts` and `canonicalLaunchCountry` in `@kind/shared` fence launch countries; `pool-country-contract.test.ts` guards pool country handling. |
 | **Founder-direction evidence** | NO EXPLICIT CURRENT FOUNDER DIRECTION FOUND |
@@ -3140,7 +3169,7 @@ mapping correction, not a comparison conclusion.
 | `docs/archive/KIND-MASTER-ARCHIVE.md` (5 rows) | INV-15307 *Moat: Generalists (Monday/ClickUp) can't replicate this without years of regional presence* · INV-15552 *10 · ICO registration (ico.org.uk £40) · Morning* · INV-15659 *10 · ICO registration (£40) · ico.org.uk before launch · 🧍 · ⬜ · Sun 14 · None* |
 | `docs/legal.md` (4 rows) | INV-06073 *Does Apollo's data include any EU/UK personal data that would require a Data Processing Agreement (DPA) between K.I…* · INV-06099 *Strong US and UK coverage — important for K.I.N.D's Phase 2 market expansion* · INV-06101 *When to trigger: Phase 2 US/UK expansion (after 5 paying clients), evaluated alongside Cognism.* |
 | `docs/legal/it-security-pack.md` (3 rows) | INV-06439 *Billing records* · INV-06443 *Subject Access Requests (SARs): Any individual requesting their data must receive a full export within 30 days (UK …* · INV-06488 *Phase 2 (Month 2): CDN failover via Cloudflare, standby region — see docs/render-cloudflare-failover.md* |
-| *+17 more source documents* | *full list via the coverage map* |
+| *+18 more source documents* | *full list via the coverage map* |
 
 ---
 
@@ -3152,9 +3181,9 @@ mapping correction, not a comparison conclusion.
 |---|---|
 | **Domain** | Company ops |
 | **Relationship** | **PARTIAL OVERLAP** |
-| **Inventory rows** | **87** — INV-00205, INV-01425, INV-01969, INV-03064, INV-03066, INV-03083–03084, INV-03086–03088, INV-03090–03092, INV-03096–03098, INV-03101, INV-03186–03188, INV-03190–03191, INV-03197, INV-03202–03205 … +30 more ranges |
-| **Source documents** | 15 — `docs/hiring/KIND-CLAUDE-CODE-BRIEF.md` (33) · `docs/hiring/KIND-AE-COMP-PLAN.md` (14) · `docs/hiring/SELLER-ENGINE-MAP.md` (14) · `docs/legal/legal-pack.md` (8) · `docs/archive/MASTER.md` (5) · `docs/archive/KIND_Roadmap.md` (3) · `docs/archive/roadmap-audit-14-may-2026.md` (2) · `docs/PRODUCT-RULES.md` (1) · +7 more source documents |
-| **Stable source IDs** | `R18`, `§6`, `§9` |
+| **Inventory rows** | **93** — INV-00205, INV-01208, INV-01230–01232, INV-01425, INV-01969, INV-03064, INV-03066, INV-03083–03084, INV-03086–03088, INV-03090–03092, INV-03096–03098, INV-03101, INV-03186–03188, INV-03190–03191 … +34 more ranges |
+| **Source documents** | 16 — `docs/hiring/KIND-CLAUDE-CODE-BRIEF.md` (33) · `docs/hiring/SELLER-ENGINE-MAP.md` (16) · `docs/hiring/KIND-AE-COMP-PLAN.md` (14) · `docs/legal/legal-pack.md` (8) · `docs/archive/MASTER.md` (5) · `docs/V2-TRACKER.md` (4) · `docs/archive/KIND_Roadmap.md` (3) · `docs/archive/roadmap-audit-14-may-2026.md` (2) · +8 more source documents |
+| **Stable source IDs** | `R18`, `order 1`, `§6`, `§9` |
 | **Runtime / code / schema evidence** | No code relationship. |
 | **Founder-direction evidence** | NO EXPLICIT CURRENT FOUNDER DIRECTION FOUND |
 | **Historical / supersession evidence** | — (no supersession evidence visible in the sources) |
@@ -3165,14 +3194,14 @@ mapping correction, not a comparison conclusion.
 | Source | Sample INV rows |
 |---|---|
 | `docs/hiring/KIND-CLAUDE-CODE-BRIEF.md` (33 rows) | INV-03234 *K.I.N.D — Build Brief for Claude Code (the live Comp Engine + P&L + portals)* · INV-03235 *Provenance: authored by the founder, pasted 19 Jun 2026. The full artifact set (this brief + the xlsx tracker + ~15…* · INV-03236 *0. What to do with this folder* |
+| `docs/hiring/SELLER-ENGINE-MAP.md` (16 rows) | INV-03186 *K.I.N.D — SELLER & TEAM ENGINE — the full map* · INV-03187 *CORRECTION (23 Jun): there is NO kind-ops repo — it was never created (verified: the account has one repo, KIND). E…* · INV-03188 *1. The vision (founder, 18 Jun)* |
 | `docs/hiring/KIND-AE-COMP-PLAN.md` (14 rows) | INV-03064 *K.I.N.D — Account Executive Compensation Plan* · INV-03066 *1. Role & scope* · INV-03083 *4. Guarantee schedule — from your Smartsheet plan* |
-| `docs/hiring/SELLER-ENGINE-MAP.md` (14 rows) | INV-03186 *K.I.N.D — SELLER & TEAM ENGINE — the full map* · INV-03187 *CORRECTION (23 Jun): there is NO kind-ops repo — it was never created (verified: the account has one repo, KIND). E…* · INV-03188 *1. The vision (founder, 18 Jun)* |
 | `docs/legal/legal-pack.md` (8 rows) | INV-06281 *5.2 Before Hiring Anyone (Employee or Contractor)* · INV-06282 *Employees: Require a written employment contract, National Insurance contributions, statutory rights (holiday, sick…* · INV-06283 *Contractors/freelancers: Require a written services agreement with* |
 | `docs/archive/MASTER.md` (5 rows) | INV-10953 *C14 · Intent signal detection — job changes, funding, hiring trigger outreach* · INV-11616 *27 · Answer 5 sales questions · When you have 20 min — becomes the AE playbook* · INV-12134 *AE: trial expiry* |
+| `docs/V2-TRACKER.md` (4 rows) | INV-01208 *Founder-Operator OS — the operational fix (incl. hiring / scale triggers)* · INV-01230 *Six questions the OS must make operational, not merely written down* · INV-01231 *The Company Operating Map is also the future org chart* |
 | `docs/archive/KIND_Roadmap.md` (3 rows) | INV-19137 *AE: check-in draft* · INV-19138 *AE: trial expiry* · INV-19358 *Industry-specific agents* |
 | `docs/archive/roadmap-audit-14-may-2026.md` (2 rows) | INV-18718 *At-risk client detection* · INV-18720 *Trial nurture (day 1/3/5/7/10)* |
-| `docs/PRODUCT-RULES.md` (1 rows) | INV-00205 *HIRING GOES IN CRITICAL STAGES — never a SaaS peak-and-cut. Past 45–50 clients and still growing, hire to matc…* |
-| *+7 more source documents* | *full list via the coverage map* |
+| *+8 more source documents* | *full list via the coverage map* |
 
 ### CMP-0109 · Security, key rotation and secrets
 
@@ -3208,8 +3237,8 @@ mapping correction, not a comparison conclusion.
 |---|---|
 | **Domain** | Company ops |
 | **Relationship** | **PARTIAL OVERLAP** |
-| **Inventory rows** | **109** — INV-00038, INV-00124, INV-00183, INV-01802, INV-02377, INV-03864, INV-04236, INV-04829–04831, INV-04836–04841, INV-04843–04851, INV-04856–04858, INV-04860–04861, INV-04863, INV-04952 … +47 more ranges |
-| **Source documents** | 22 — `docs/BACKUP-RESTORE-DRILL.md` (24) · `docs/render-cloudflare-failover.md` (23) · `docs/archive/MASTER.md` (15) · `docs/legal/restore-runbook.md` (10) · `docs/legal/it-security-pack.md` (8) · `docs/strategy/MASTER_CONTEXT.md` (6) · `docs/archive/KIND-MASTER-ARCHIVE.md` (4) · `docs/archive/SESSION-SUMMARY-13JUN.md` (3) · +14 more source documents |
+| **Inventory rows** | **111** — INV-00038, INV-00124, INV-00183, INV-01055, INV-01245, INV-01802, INV-02377, INV-03864, INV-04236, INV-04829–04831, INV-04836–04841, INV-04843–04851, INV-04856–04858, INV-04860–04861 … +49 more ranges |
+| **Source documents** | 23 — `docs/BACKUP-RESTORE-DRILL.md` (24) · `docs/render-cloudflare-failover.md` (23) · `docs/archive/MASTER.md` (15) · `docs/legal/restore-runbook.md` (10) · `docs/legal/it-security-pack.md` (8) · `docs/strategy/MASTER_CONTEXT.md` (6) · `docs/archive/KIND-MASTER-ARCHIVE.md` (4) · `docs/archive/SESSION-SUMMARY-13JUN.md` (3) · +15 more source documents |
 | **Stable source IDs** | `#298`, `#604`, `O14`, `O7` |
 | **Runtime / code / schema evidence** | `deploy-website-cloudflare.yml` publishes a Railway-independent copy of the marketing site and documents the DNS failover. `BACKUP-RESTORE-DRILL.md` and `legal/restore-runbook.md` describe the drill. |
 | **Founder-direction evidence** | NO EXPLICIT CURRENT FOUNDER DIRECTION FOUND |
@@ -3228,7 +3257,7 @@ mapping correction, not a comparison conclusion.
 | `docs/strategy/MASTER_CONTEXT.md` (6 rows) | INV-07801 *12. Data locations, storage, logs, backups and AI vendors* · INV-07802 *Supabase primary DB and backups/PITR;* · INV-07803 *Anthropic API processing;* |
 | `docs/archive/KIND-MASTER-ARCHIVE.md` (4 rows) | INV-15195 *THE REALITY (verified in code 10 Jun): there are TWO different things, and only one has a backup today* · INV-15198 *So multi-source is NOT done. The enrichment hedge is off, and discovery has zero backup.* · INV-15880 *BCP (Business Continuity Plan) — RTO 4h / RPO 24h / daily backups 30-day retention* |
 | `docs/archive/SESSION-SUMMARY-13JUN.md` (3 rows) | INV-20826 *[x] Homepage scroll section renders correctly (chrome, firefox, safari, mobile)* · INV-20828 *[x] 3D chips render at correct size and depth (no rendering artifacts)* · INV-20887 *Mobile & desktop rendering* |
-| *+14 more source documents* | *full list via the coverage map* |
+| *+15 more source documents* | *full list via the coverage map* |
 
 ### CMP-0111 · Testing, smoke tests and the walk
 
@@ -3236,9 +3265,9 @@ mapping correction, not a comparison conclusion.
 |---|---|
 | **Domain** | Company ops |
 | **Relationship** | **PARTIAL OVERLAP** |
-| **Inventory rows** | **248** — INV-00194, INV-00376, INV-00378, INV-00940, INV-00961, INV-00965, INV-01036, INV-01860, INV-01916, INV-01931, INV-02489–02490, INV-02494–02495, INV-02497, INV-02502 … +159 more ranges |
-| **Source documents** | 26 — `docs/archive/MASTER.md` (102) · `docs/LIVE-FEATURE-WALK.md` (27) · `docs/archive/KIND-MASTER-ARCHIVE.md` (27) · `docs/archive/EVERYTHING.md` (14) · `docs/archive/BUILD-STATUS-26JUL.md` (13) · `docs/KIND-MASTER.md` (9) · `docs/compliance/TRUST-ROOM.md` (8) · `docs/archive/roadmap-audit-14-may-2026.md` (7) · +18 more source documents |
-| **Stable source IDs** | `#1`, `#16`, `#17`, `#263`, `#520`, `#544`, `#546`, `#580`, `#623`, `#629`, `#648`, `#652`, `P1`, `R7` |
+| **Inventory rows** | **248** — INV-00194, INV-00376, INV-00378, INV-00940, INV-00961, INV-00965, INV-01036, INV-01127, INV-01247, INV-01860, INV-01916, INV-01931, INV-02489–02490, INV-02494–02495 … +159 more ranges |
+| **Source documents** | 27 — `docs/archive/MASTER.md` (100) · `docs/LIVE-FEATURE-WALK.md` (27) · `docs/archive/KIND-MASTER-ARCHIVE.md` (27) · `docs/archive/EVERYTHING.md` (14) · `docs/archive/BUILD-STATUS-26JUL.md` (13) · `docs/KIND-MASTER.md` (9) · `docs/compliance/TRUST-ROOM.md` (8) · `docs/archive/roadmap-audit-14-may-2026.md` (7) · +19 more source documents |
+| **Stable source IDs** | `#1`, `#16`, `#17`, `#263`, `#520`, `#544`, `#546`, `#580`, `#623`, `#629`, `#648`, `#652`, `P1`, `Pass 1`, `R7` |
 | **Runtime / code / schema evidence** | `.github/workflows/test.yml` runs `yarn workspace @kind/api test` on push and PR. `scripts/check.sh` runs the full gate locally. |
 | **Founder-direction evidence** | Method rule 6: the founder's screenshots are production evidence — a human walking the real path outranks the gate. |
 | **Historical / supersession evidence** | — (no supersession evidence visible in the sources) |
@@ -3248,7 +3277,7 @@ mapping correction, not a comparison conclusion.
 
 | Source | Sample INV rows |
 |---|---|
-| `docs/archive/MASTER.md` (102 rows) | INV-10298 *[ ] Smoke tests — docs/SMOKE_TEST.md, Saturday + Sunday, log failures as T#-Step# → Claude fixes same day* · INV-10300 *[ ] 🎨 After smoke tests → ping Claude: "do website consistency pass" — Claude will make all 32 website pages fully …* · INV-10349 *[x] ✅ Walked founder through Resend inbound webhook setup — wired + verified 4 Jun* |
+| `docs/archive/MASTER.md` (100 rows) | INV-10298 *[ ] Smoke tests — docs/SMOKE_TEST.md, Saturday + Sunday, log failures as T#-Step# → Claude fixes same day* · INV-10349 *[x] ✅ Walked founder through Resend inbound webhook setup — wired + verified 4 Jun* · INV-10354 *[ ] Fix smoke test failures as reported Saturday/Sunday (same-day turnaround)* |
 | `docs/LIVE-FEATURE-WALK.md` (27 rows) | INV-04959 *🚶 K.I.N.D — LIVE-FEATURE WALK (the verification checklist)* · INV-04960 *TRUTH BANNER — 6 Aug 2026 (#629). READ BEFORE YOU QUOTE ANYTHING FROM THIS PAGE.* · INV-04961 *A full sweep of this document against the code on 6 Aug found 7 of 12 factual claims FALSE. They are being correcte…* |
 | `docs/archive/KIND-MASTER-ARCHIVE.md` (27 rows) | INV-15185 *Sat 13 · Smoke Test 2 · ⬜ · Full recorded re-run T1–T7 green. · 🤝 · Verification.* · INV-15335 *Smoke Test 2 green (T1–T7 all pass)* · INV-15391 *Next Update: After Smoke Test 2 passes (expected Sat 13 Jun)* |
 | `docs/archive/EVERYTHING.md` (14 rows) | INV-16381 *Paid path + full client-journey verification — Smoke Test 1 + 2 (T1–T7).* · INV-16424 *Sat 13 Jun · Smoke Test 2 (full clean re-run T1–T7) · Run all 7 green · Fix any straggler same-day* · INV-16460 *Sat 13 · ST2 Smoke Test 2 — full clean re-run T1–T7 green · 🤝* |
@@ -3256,7 +3285,7 @@ mapping correction, not a comparison conclusion.
 | `docs/KIND-MASTER.md` (9 rows) | INV-01860 *▶️ RESUME 9AM TUE 9 JUN (fresh start) — ⚠️ 9-Jun snapshot, superseded (T8 + T1 have since PASSED; current status is…* · INV-01916 *Smoke tests T1–T7 not started. The real end-to-end verification hasn't begun. T1 (fresh signup) has never been run,…* · INV-01931 *🧪 16 automated tests PASSING (vitest, npm test in apps/api) — unit-verifies the pure logic: unsubscribe tokens · ht…* |
 | `docs/compliance/TRUST-ROOM.md` (8 rows) | INV-06718 *DRAFT — counsel blesses the legal rows; the founder walks the FAQ before any client sees it* · INV-06723 *THE TRUST ROOM — index and walk-through* · INV-06742 *How to walk it* |
 | `docs/archive/roadmap-audit-14-may-2026.md` (7 rows) | INV-18726 *SECTION 11 — PHASE 7: SMOKE TEST + GO-LIVE* · INV-18727 *Step · Status · Blocked by* · INV-18729 *Confirm email* |
-| *+18 more source documents* | *full list via the coverage map* |
+| *+19 more source documents* | *full list via the coverage map* |
 
 ### CMP-0112 · Infrastructure, hosting and the stack
 
@@ -3292,9 +3321,9 @@ mapping correction, not a comparison conclusion.
 |---|---|
 | **Domain** | Company ops |
 | **Relationship** | **SOURCE-SPECIFIC** |
-| **Inventory rows** | **22** — INV-00245, INV-00803, INV-00867, INV-00872, INV-01068–01074, INV-01276, INV-01353, INV-01991, INV-03726, INV-06711, INV-06715, INV-17560, INV-17624, INV-17629 … +2 more ranges |
-| **Source documents** | 9 — `docs/V2-TRACKER.md` (9) · `docs/PRODUCT-INVENTORY.md` (3) · `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` (3) · `docs/compliance/SECURITY-TOMS.md` (2) · `docs/PRODUCT-RULES.md` (1) · `docs/KIND-MASTER.md` (1) · `docs/CORE-MAP.md` (1) · `docs/archive/LAUNCH-PAD-2026-08-21.md` (1) · +1 more source documents |
-| **Stable source IDs** | `#290`, `#390`, `#402`, `#686`, `FI-20`, `P48`, `R58`, `§6` |
+| **Inventory rows** | **13** — INV-00245, INV-00803, INV-00867, INV-00872, INV-01276, INV-01991, INV-03726, INV-06711, INV-06715, INV-17560, INV-17624, INV-17629, INV-19766 |
+| **Source documents** | 8 — `docs/PRODUCT-INVENTORY.md` (3) · `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` (3) · `docs/compliance/SECURITY-TOMS.md` (2) · `docs/PRODUCT-RULES.md` (1) · `docs/V2-TRACKER.md` (1) · `docs/KIND-MASTER.md` (1) · `docs/CORE-MAP.md` (1) · `docs/archive/BUILD-STATUS-26JUL.md` (1) |
+| **Stable source IDs** | `#290`, `#390`, `#402`, `P48`, `R58`, `§6` |
 | **Runtime / code / schema evidence** | A pending migration creates the error-events table — *"the table the 500-handler writes to"*. |
 | **Founder-direction evidence** | NO EXPLICIT CURRENT FOUNDER DIRECTION FOUND |
 | **Historical / supersession evidence** | — (no supersession evidence visible in the sources) |
@@ -3304,15 +3333,14 @@ mapping correction, not a comparison conclusion.
 
 | Source | Sample INV rows |
 |---|---|
-| `docs/V2-TRACKER.md` (9 rows) | INV-01068 *Everything designed; three items built and REVERTED unbuilt on the founder's ruling* · INV-01069 *The finding that reorders the thesis — the decision that won a meeting is destroyed by the next rescore* · INV-01070 *The immutable chain diagram — leads → lead_decisions → approvals/enrollments → replies → bookings* |
 | `docs/PRODUCT-INVENTORY.md` (3 rows) | INV-00803 *M3 · Error tracking — ⚠️ DESCRIPTION WAS FALSE until 25 Jul (it read *"exceptions vanish into R…* · INV-00867 *AR-60 MED · Observability gaps — no dead-letter/retry table; dashboards don't distinguish real/…* · INV-00872 *AR-65 LOW · Auth/observability nits — team invite role unvalidated (team.ts:32); /company/overv…* |
 | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` (3 rows) | INV-17560 *290 · 🟡 · M3 · Error tracking — ⚠️ DESCRIPTION WAS FALSE until 25 Jul (it read "exceptions vanish into Railway logs…* · INV-17624 *390 · 🩷 · AR-60 MED · Observability gaps — no dead-letter/retry table; dashboards don't distinguish real/demo/faile…* · INV-17629 *402 · 🩷 · AR-65 LOW · Auth/observability nits — team invite role unvalidated (team.ts:32); /company/overview lets a…* |
 | `docs/compliance/SECURITY-TOMS.md` (2 rows) | INV-06711 *12 · Logging · ❌ NOT YET · ⚠️ Recounted live, 20 Aug: 105 console lines in apps/api/src reference an email, name or…* · INV-06715 *Logging (12) — personal data reaches application logs in 105 places, and we cannot yet* |
 | `docs/PRODUCT-RULES.md` (1 rows) | INV-00245 *THE FIGSY OBSERVABILITY WORK IS DESIGNED, DOCUMENTED AND NOT BUILT — post-launch, for review (20 Aug). Three b…* |
+| `docs/V2-TRACKER.md` (1 rows) | INV-01276 *Logging an idea does not adopt it — the founder must explicitly decide* |
 | `docs/KIND-MASTER.md` (1 rows) | INV-01991 *20 Aug, twenty-seventh entry (🔬 FIGSY OBSERVABILITY — DESIGNED, THEN RULED POST-LAUNCH AND REVERTED UNBUILT): Three…* |
 | `docs/CORE-MAP.md` (1 rows) | INV-03726 *apps/api/src/middleware/error.ts* |
-| `docs/archive/LAUNCH-PAD-2026-08-21.md` (1 rows) | INV-18468 *686–#696 · 🔬 FIGSY OBSERVABILITY + MODEL ROUTING — designed, documented, NOT built (R58). The founder gave the go o…* |
-| *+1 more source documents* | *full list via the coverage map* |
+| `docs/archive/BUILD-STATUS-26JUL.md` (1 rows) | INV-19766 *classifyReply + logging · ✅ · 🩷* |
 
 ### CMP-0114 · Cron jobs and scheduled work
 
@@ -3320,8 +3348,8 @@ mapping correction, not a comparison conclusion.
 |---|---|
 | **Domain** | Company ops |
 | **Relationship** | **PARTIAL OVERLAP** |
-| **Inventory rows** | **10** — INV-13048, INV-13103, INV-13826, INV-13881, INV-18074–18075, INV-18085, INV-21514, INV-22592, INV-24231 |
-| **Source documents** | 5 — `docs/archive/MASTER.md` (4) · `docs/archive/V2-NARRATIVE-2026-08-21.md` (3) · `docs/archive/roadmap-flowchart.html` (1) · `docs/strategy/get-kind_social_intent_feasibility_verification.html` (1) · `.github/workflows/daily-audit.yml` (1) |
+| **Inventory rows** | **11** — INV-01166, INV-13048, INV-13103, INV-13826, INV-13881, INV-18074–18075, INV-18085, INV-21514, INV-22592, INV-24231 |
+| **Source documents** | 6 — `docs/archive/MASTER.md` (4) · `docs/archive/V2-NARRATIVE-2026-08-21.md` (3) · `docs/V2-TRACKER.md` (1) · `docs/archive/roadmap-flowchart.html` (1) · `docs/strategy/get-kind_social_intent_feasibility_verification.html` (1) · `.github/workflows/daily-audit.yml` (1) |
 | **Stable source IDs** | (none carried by these rows) |
 | **Runtime / code / schema evidence** | A pending migration adds cron slot claims (#343) so two replicas cannot run the same job twice; another records that the lapse cron *"has 500'd daily since it was written"* (#342). |
 | **Founder-direction evidence** | NO EXPLICIT CURRENT FOUNDER DIRECTION FOUND |
@@ -3334,6 +3362,7 @@ mapping correction, not a comparison conclusion.
 |---|---|
 | `docs/archive/MASTER.md` (4 rows) | INV-13048 *Proactive scheduled triggers* · INV-13103 *Gap summary: ClickUp's memory model (3 types) is far more granular. We have 1 flat table. Their scheduled triggers …* · INV-13826 *Proactive scheduled triggers* |
 | `docs/archive/V2-NARRATIVE-2026-08-21.md` (3 rows) | INV-18074 *YELLOW — scheduled (post-launch / quick wins)* · INV-18075 *Y1 · ✅ DONE — rate-limited signup(10/min)·demo-request·subscribe(5/min)·unsubscribe(100/min, generous for complianc…* · INV-18085 *Y11 · ✅ DONE — Meetings card "No data yet" subtitle only shows when value is 0. · 🤖* |
+| `docs/V2-TRACKER.md` (1 rows) | INV-01166 *Full-system audit 10 Jun — RED this week, YELLOW scheduled* |
 | `docs/archive/roadmap-flowchart.html` (1 rows) | INV-21514 *● S4: Scheduled report emails — weekly client digest (4h)* |
 | `docs/strategy/get-kind_social_intent_feasibility_verification.html` (1 rows) | INV-22592 *Verify whether the architecture can support near-real-time or scheduled ingestion of public intent events without c…* |
 | `.github/workflows/daily-audit.yml` (1 rows) | INV-24231 *Named "KIND System Audit" — a scheduled whole-system audit* |
@@ -3344,9 +3373,9 @@ mapping correction, not a comparison conclusion.
 |---|---|
 | **Domain** | Company ops |
 | **Relationship** | **PARTIAL OVERLAP** |
-| **Inventory rows** | **53** — INV-00172, INV-01529, INV-04551–04561, INV-04564–04570, INV-04572, INV-04575–04577, INV-04579–04582, INV-04584–04586, INV-10421, INV-10659, INV-10661–10663, INV-10665, INV-10668, INV-10675 … +14 more ranges |
-| **Source documents** | 9 — `docs/SEED-WIPE-PLAN.md` (29) · `docs/archive/MASTER.md` (12) · `docs/archive/KIND-MASTER-ARCHIVE.md` (4) · `docs/archive/EVERYTHING.md` (3) · `docs/PRODUCT-RULES.md` (1) · `docs/FOUNDER-TRUTH-AUDIT-2026-08-28.md` (1) · `docs/archive/V2-NARRATIVE-2026-08-21.md` (1) · `docs/archive/COMPANY-ENGINE-TEST.md` (1) · +1 more source documents |
-| **Stable source IDs** | `#17`, `#19`, `#329`, `#45`, `FTA-017`, `S13` |
+| **Inventory rows** | **54** — INV-00172, INV-01299, INV-01529, INV-04551–04561, INV-04564–04570, INV-04572, INV-04575–04577, INV-04579–04582, INV-04584–04586, INV-10421, INV-10659, INV-10661–10663, INV-10665, INV-10668 … +15 more ranges |
+| **Source documents** | 10 — `docs/SEED-WIPE-PLAN.md` (29) · `docs/archive/MASTER.md` (12) · `docs/archive/KIND-MASTER-ARCHIVE.md` (4) · `docs/archive/EVERYTHING.md` (3) · `docs/PRODUCT-RULES.md` (1) · `docs/V2-TRACKER.md` (1) · `docs/FOUNDER-TRUTH-AUDIT-2026-08-28.md` (1) · `docs/archive/V2-NARRATIVE-2026-08-21.md` (1) · +2 more source documents |
+| **Stable source IDs** | `#17`, `#19`, `#329`, `#45`, `3.16`, `FTA-017`, `S13` |
 | **Runtime / code / schema evidence** | `supabase/seeds/competitor_icps_readme.md` documents the seed; `SEED-WIPE-PLAN.md` is the plan. |
 | **Founder-direction evidence** | NO EXPLICIT CURRENT FOUNDER DIRECTION FOUND |
 | **Historical / supersession evidence** | — (no supersession evidence visible in the sources) |
@@ -3361,10 +3390,10 @@ mapping correction, not a comparison conclusion.
 | `docs/archive/KIND-MASTER-ARCHIVE.md` (4 rows) | INV-15216 *17 · ⬜ · 10 warm outreach messages (network) · 🧍 · Seed launches, accelerate launches.* · INV-15579 *Fresh signup · Founder signs up with NEW email (not dogfood, not test) · Morning · 🧍* · INV-15678 *19 · 10 warm outreach messages · Network → seed launches + accelerators · 🧍 · ⬜ · Week 1 · Quick wins* |
 | `docs/archive/EVERYTHING.md` (3 rows) | INV-16716 *~~Create dogfood account~~ ✅ Done 6 Jun (hello@get-kind.com).* · INV-16722 *~~Dogfood account~~ ✅ Done — hello@get-kind.com set up 6 Jun.* · INV-16849 *31 · Populate proof block with real dogfood numbers (#45 block is built) · 🤖* |
 | `docs/PRODUCT-RULES.md` (1 rows) | INV-00172 *The go-live seed wipe is FOUNDER-ONLY, and exclusion beats deletion. Four protections checked in order — real …* |
+| `docs/V2-TRACKER.md` (1 rows) | INV-01299 *K.I.N.D runs on K.I.N.D — dogfooding is learning evidence, not customer proof* |
 | `docs/FOUNDER-TRUTH-AUDIT-2026-08-28.md` (1 rows) | INV-01529 *Client actual benchmark replaces the seed* |
 | `docs/archive/V2-NARRATIVE-2026-08-21.md` (1 rows) | INV-18111 *19 · 10 warm outreach messages (network seed) · 🧍* |
-| `docs/archive/COMPANY-ENGINE-TEST.md` (1 rows) | INV-21244 *Winning Plays tab → see the 2 seeded plays → Push to all → marks it shared across the company.* |
-| *+1 more source documents* | *full list via the coverage map* |
+| *+2 more source documents* | *full list via the coverage map* |
 
 ---
 
@@ -3376,9 +3405,9 @@ mapping correction, not a comparison conclusion.
 |---|---|
 | **Domain** | History / planning |
 | **Relationship** | **POSSIBLE SUPERSESSION** |
-| **Inventory rows** | **841** — INV-00001, INV-01664, INV-01696, INV-01742–01743, INV-01746, INV-04254, INV-04593, INV-06079, INV-06172, INV-06221, INV-06278, INV-06310, INV-06496–06499, INV-06505–06509 … +497 more ranges |
-| **Source documents** | 24 — `docs/archive/MASTER.md` (372) · `docs/archive/KIND-MASTER-ARCHIVE.md` (134) · `docs/archive/roadmap-audit-14-may-2026.md` (113) · `docs/archive/KIND_Roadmap.md` (63) · `docs/archive/EVERYTHING.md` (30) · `docs/archive/V2-NARRATIVE-2026-08-21.md` (25) · `docs/archive/CHANGELOG.md` (24) · `docs/archive/KIND_SOP.md` (17) · +16 more source documents |
-| **Stable source IDs** | `#1`, `#12`, `#13`, `#17`, `#21`, `#22`, `#23`, `#33`, `#37`, `#38`, `#39`, `#41`, `#426`, `#44`, `#45`, `#49`, `#50`, `#51`, `#55`, `#57`, `#59`, `#60`, `#64`, `#65` … +18 more |
+| **Inventory rows** | **846** — INV-00001, INV-01117, INV-01174, INV-01181, INV-01183–01184, INV-01664, INV-01696, INV-01742–01743, INV-01746, INV-04254, INV-04593, INV-06079, INV-06172, INV-06221 … +502 more ranges |
+| **Source documents** | 25 — `docs/archive/MASTER.md` (372) · `docs/archive/KIND-MASTER-ARCHIVE.md` (134) · `docs/archive/roadmap-audit-14-may-2026.md` (113) · `docs/archive/KIND_Roadmap.md` (63) · `docs/archive/EVERYTHING.md` (30) · `docs/archive/V2-NARRATIVE-2026-08-21.md` (25) · `docs/archive/CHANGELOG.md` (24) · `docs/archive/KIND_SOP.md` (17) · +17 more source documents |
+| **Stable source IDs** | `#1`, `#12`, `#13`, `#17`, `#21`, `#22`, `#23`, `#33`, `#37`, `#38`, `#39`, `#41`, `#426`, `#44`, `#45`, `#49`, `#50`, `#51`, `#55`, `#57`, `#59`, `#60`, `#64`, `#65` … +17 more |
 | **Runtime / code / schema evidence** | No code relationship. |
 | **Founder-direction evidence** | NO EXPLICIT CURRENT FOUNDER DIRECTION FOUND |
 | **Historical / supersession evidence** | Multiple roadmaps exist with different launch dates: 31 May (`KIND_Roadmap.md`), 19 Jun (`EVERYTHING.md`), 18 Jun (recorded as the launch that happened), 25 Aug (R57). |
@@ -3396,7 +3425,7 @@ mapping correction, not a comparison conclusion.
 | `docs/archive/V2-NARRATIVE-2026-08-21.md` (25 rows) | INV-17985 *What it changes in the roadmap* · INV-18106 *░ PART 2 — FULL ROADMAP (101 items, by horizon) ░* · INV-18176 *📍 MONTH 2 (Late Jul–Aug · GATED 10+ clients) — 38 items* |
 | `docs/archive/CHANGELOG.md` (24 rows) | INV-19878 *Sprint: AI Business Roadmap* · INV-19879 *Branch: claude/ai-business-roadmap-U3OWJ* · INV-19880 *Commits: b97cbcf → 16e21f8* |
 | `docs/archive/KIND_SOP.md` (17 rows) | INV-19506 *7. Phase 5: Payment Activation* · INV-19507 *Platform: KIND Client Portal → Billing tab* · INV-19509 *7.1 Client Payment Flow* |
-| *+16 more source documents* | *full list via the coverage map* |
+| *+17 more source documents* | *full list via the coverage map* |
 
 ### CMP-0117 · Session logs and handoffs
 
@@ -3429,9 +3458,9 @@ mapping correction, not a comparison conclusion.
 |---|---|
 | **Domain** | History / planning |
 | **Relationship** | **PARTIAL OVERLAP** |
-| **Inventory rows** | **302** — INV-00112, INV-00173, INV-00190, INV-00902, INV-00908, INV-00949, INV-00953–00955, INV-00963, INV-01497–01503, INV-01507, INV-01511–01512, INV-01519–01520, INV-01523–01525, INV-01530–01532 … +133 more ranges |
-| **Source documents** | 30 — `docs/archive/AUDIT.md` (49) · `docs/reports/PRODUCT-AUDIT-1AUG.md` (44) · `docs/FOUNDER-TRUTH-AUDIT-2026-08-28.md` (40) · `docs/AUDIT-8JUL-DEEP.md` (25) · `docs/archive/AUDIT-24JUN-RECONCILIATION.md` (25) · `docs/AUDIT-PROMPT.md` (21) · `docs/archive/LAUNCH-AUDIT-12JUN.md` (20) · `docs/archive/MASTER.md` (18) · +22 more source documents |
-| **Stable source IDs** | `#1`, `#10`, `#103`, `#176`, `#2`, `#230`, `#237`, `#331`, `#338`, `#348`, `#403`, `#404`, `#560`, `#561`, `#6`, `#637`, `#641`, `#642`, `#643`, `#650`, `#92`, `ADJ-1`, `FTA-007`, `FTA-008` … +28 more |
+| **Inventory rows** | **300** — INV-00112, INV-00173, INV-00190, INV-00902, INV-00908, INV-00949, INV-00953–00955, INV-00963, INV-01154, INV-01497–01503, INV-01507, INV-01511–01512, INV-01519, INV-01523–01525 … +134 more ranges |
+| **Source documents** | 31 — `docs/archive/AUDIT.md` (49) · `docs/reports/PRODUCT-AUDIT-1AUG.md` (44) · `docs/FOUNDER-TRUTH-AUDIT-2026-08-28.md` (37) · `docs/AUDIT-8JUL-DEEP.md` (25) · `docs/archive/AUDIT-24JUN-RECONCILIATION.md` (25) · `docs/AUDIT-PROMPT.md` (21) · `docs/archive/LAUNCH-AUDIT-12JUN.md` (20) · `docs/archive/MASTER.md` (18) · +23 more source documents |
+| **Stable source IDs** | `#1`, `#10`, `#103`, `#176`, `#2`, `#230`, `#237`, `#331`, `#338`, `#348`, `#403`, `#404`, `#560`, `#561`, `#6`, `#637`, `#641`, `#642`, `#643`, `#650`, `#92`, `ADJ-1`, `FTA-007`, `FTA-011` … +25 more |
 | **Runtime / code / schema evidence** | `scripts/audit.ts` is run by `daily-audit.yml`. `AUDIT-PROMPT.md` is the standing prompt. |
 | **Founder-direction evidence** | NO EXPLICIT CURRENT FOUNDER DIRECTION FOUND |
 | **Historical / supersession evidence** | Six prior audits exist across archive and current docs, dated 14 May to 1 Aug, plus the merged 28 Aug audit. |
@@ -3443,13 +3472,13 @@ mapping correction, not a comparison conclusion.
 |---|---|
 | `docs/archive/AUDIT.md` (49 rows) | INV-20074 *K.I.N.D Portal — Full Sprint Audit* · INV-20076 *Latest commit: 670e273* · INV-20077 *TypeScript: ✅ Clean on every commit* |
 | `docs/reports/PRODUCT-AUDIT-1AUG.md` (44 rows) | INV-05389 *🔍 PRODUCT AUDIT — 1 Aug 2026* · INV-05390 *THIS IS A REPORT, NOT A PURGE. Nothing in the inventory was removed, re-scoped, archived or re-dotted by this audit…* · INV-05391 *ARTIFACT — dated one-off, frozen. Read it as the state of the docs on 1 Aug 2026, not as current.* |
-| `docs/FOUNDER-TRUTH-AUDIT-2026-08-28.md` (40 rows) | INV-01497 *This file is an AUDIT, not a source of truth* · INV-01498 *Audited origin/main SHA fecaefde; branch claude/founder-truth-audit, 0 ahead / 0 behind* · INV-01499 *Scope and not-in-scope stated explicitly* |
+| `docs/FOUNDER-TRUTH-AUDIT-2026-08-28.md` (37 rows) | INV-01497 *This file is an AUDIT, not a source of truth* · INV-01498 *Audited origin/main SHA fecaefde; branch claude/founder-truth-audit, 0 ahead / 0 behind* · INV-01499 *Scope and not-in-scope stated explicitly* |
 | `docs/AUDIT-8JUL-DEEP.md` (25 rows) | INV-05341 *🔍 K.I.N.D — DEEP AUDIT + ARCHITECTURE DECISION (8 Jul 2026)* · INV-05342 *Trust rule: every verdict is CODE-CONFIRMED (read on origin/main) unless marked otherwise: Prod-DB-Confirmed (found…* · INV-05343 *1. EXECUTIVE TRUTH* |
 | `docs/archive/AUDIT-24JUN-RECONCILIATION.md` (25 rows) | INV-20263 *🔬 K.I.N.D — FULL DOC↔CODE RECONCILIATION (24 Jun 2026)* · INV-20264 *What this is: the complete, single-source result of a full audit of every doc (4 canonical + ~40 sub-docs) and all …* · INV-20267 *HEADLINE* |
 | `docs/AUDIT-PROMPT.md` (21 rows) | INV-04930 *🔬 THE DEEP-AUDIT PROMPT — paste this when you want a real audit* · INV-04931 *Why this file exists. Every audit I ran by searching the code came back "clean" and then the founder found somethin…* · INV-04932 *Founder-requested 26 Jul: "in the future give me the prompt for you to do a deep audit."* |
 | `docs/archive/LAUNCH-AUDIT-12JUN.md` (20 rows) | INV-21070 *ARCHIVED / HISTORICAL — superseded, kept for the record only. Product LAUNCHED 18 Jun 2026. This doc is pre-launch/…* · INV-21071 *🔍 PRE-LAUNCH AUDIT — 12 Jun 2026 (16:20 UTC)* · INV-21072 *Verified against git, code, builds, tests — not memory. For the Monday Company-Engine launch + the 19 Jun launch.* |
 | `docs/archive/MASTER.md` (18 rows) | INV-10362 *Legal pages (terms, privacy, dpa, dpa-us) need footer link audit* · INV-11536 *Daily automated audit — 04:00 + 16:00 SAST* · INV-11569 *Known Technical Debt (audit findings — log for later)* |
-| *+22 more source documents* | *full list via the coverage map* |
+| *+23 more source documents* | *full list via the coverage map* |
 
 ### CMP-0119 · Founder open-item lists and checklists
 
@@ -3485,9 +3514,9 @@ mapping correction, not a comparison conclusion.
 |---|---|
 | **Domain** | History / planning |
 | **Relationship** | **PARTIAL OVERLAP** |
-| **Inventory rows** | **41** — INV-00051, INV-00176, INV-00196, INV-01034, INV-01631, INV-02509, INV-04106, INV-04206–04207, INV-05217, INV-05981, INV-12190–12191, INV-12193–12194, INV-12200, INV-13058 … +19 more ranges |
-| **Source documents** | 12 — `docs/archive/MASTER.md` (20) · `docs/archive/KIND-MASTER-ARCHIVE.md` (5) · `docs/ENVIRONMENT.md` (3) · `docs/PRODUCT-RULES.md` (2) · `docs/KIND-MASTER.md` (2) · `docs/archive/EVERYTHING.md` (2) · `docs/archive/V2-NARRATIVE-2026-08-21.md` (2) · `CLAUDE.md` (1) · +4 more source documents |
-| **Stable source IDs** | `#601`, `P16`, `R9` |
+| **Inventory rows** | **45** — INV-00051, INV-00176, INV-00196, INV-01034, INV-01080, INV-01206, INV-01219, INV-01221, INV-01326, INV-01631, INV-02509, INV-04106, INV-04206–04207, INV-05217 … +24 more ranges |
+| **Source documents** | 13 — `docs/archive/MASTER.md` (19) · `docs/V2-TRACKER.md` (5) · `docs/archive/KIND-MASTER-ARCHIVE.md` (5) · `docs/ENVIRONMENT.md` (3) · `docs/PRODUCT-RULES.md` (2) · `docs/KIND-MASTER.md` (2) · `docs/archive/EVERYTHING.md` (2) · `docs/archive/V2-NARRATIVE-2026-08-21.md` (2) · +5 more source documents |
+| **Stable source IDs** | `#601`, `#610`, `P16`, `P34`, `P36`, `R9` |
 | **Runtime / code / schema evidence** | The inventory keeps 14 tombstoned rows below the COUNT markers, deliberately excluded from the board count. |
 | **Founder-direction evidence** | CLAUDE.md's chain rule: superseding an existing rule chains it, never deletes it. |
 | **Historical / supersession evidence** | — (no supersession evidence visible in the sources) |
@@ -3497,15 +3526,15 @@ mapping correction, not a comparison conclusion.
 
 | Source | Sample INV rows |
 |---|---|
-| `docs/archive/MASTER.md` (20 rows) | INV-12190 *7. WILL NOT BUILD YET* · INV-12191 *Item · Why · Revisit when* · INV-12193 *50+ data sources* |
+| `docs/archive/MASTER.md` (19 rows) | INV-12190 *7. WILL NOT BUILD YET* · INV-12191 *Item · Why · Revisit when* · INV-12193 *50+ data sources* |
+| `docs/V2-TRACKER.md` (5 rows) | INV-01080 *Settle, don't build — deletes wearing red dots, doc-truth fixes, orphans to re-home* · INV-01206 *Multi-mailbox sending (4+ boxes/client) — blocked on the frozen schema* · INV-01219 *P34's screens — PR #1427, OPEN and PARKED* |
 | `docs/archive/KIND-MASTER-ARCHIVE.md` (5 rows) | INV-15361 *WILL NOT BUILD* · INV-15803 *WILL NOT BUILD* · INV-15813 *Won't build · — · — · 🚫 Out of scope* |
 | `docs/ENVIRONMENT.md` (3 rows) | INV-04106 *🅿️ parked · deliberately unset — presence is the fault, not absence* · INV-04206 *🅿️ Parked — deliberately UNSET, and presence is the fault* · INV-04207 *Variable · Apps · Tier · What breaks when unset · Where it is set* |
 | `docs/PRODUCT-RULES.md` (2 rows) | INV-00176 *One method for every model. The Fable/Opus split is retired; the discipline lives in CLAUDE.md for whoever run…* · INV-00196 *The M&V brand hierarchy on the site is KILLED — not parked, not deferred. Cosmetic, adds nothing pre-revenue, …* |
 | `docs/KIND-MASTER.md` (2 rows) | INV-01631 *Coaching stays exactly as it is. The tabbed Coaching rebuild (#601, PR #1239) is parked on founder hold — not cance…* · INV-02509 *BLOCK M — the measurement system (retired 6 Aug — all four instruments are built and in da…* |
 | `docs/archive/EVERYTHING.md` (2 rows) | INV-16496 *WILL NOT BUILD / PARKED (Part 6)* · INV-17032 *PART 6 — WILL NOT BUILD / PARKED* |
 | `docs/archive/V2-NARRATIVE-2026-08-21.md` (2 rows) | INV-17864 *Why the repo transfer is PARKED until after live* · INV-18095 *PDL Full is the primary discovery source behind searchPeopleWithFallback (Apollo retired from the data path; Hunter…* |
-| `CLAUDE.md` (1 rows) | INV-00051 *Labels: verify · fix · ship · blocked · parked · post-launch* |
-| *+4 more source documents* | *full list via the coverage map* |
+| *+5 more source documents* | *full list via the coverage map* |
 
 ### CMP-0121 · The moat and defensibility
 
@@ -3604,8 +3633,8 @@ mapping correction, not a comparison conclusion.
 |---|---|
 | **Domain** | Product surface |
 | **Relationship** | **PARTIAL OVERLAP** |
-| **Inventory rows** | **28** — INV-09633, INV-09637–09638, INV-16980, INV-21161, INV-22238, INV-22387, INV-22398, INV-22469, INV-22583, INV-22587, INV-22594, INV-22601, INV-22651, INV-22658 … +9 more ranges |
-| **Source documents** | 11 — `apps/website/status.html` (7) · `docs/strategy/get-kind_social_intent_feasibility_verification.html` (6) · `docs/README.md` (3) · `docs/strategy/get-kind_website_positioning_simplicity_verification.html` (3) · `docs/strategy/get-kind_jack_and_jill_product_model_verification.html` (2) · `docs/strategy/get-kind_vida_post_10_client_autonomy_verification.html` (2) · `docs/archive/EVERYTHING.md` (1) · `docs/archive/FULL_CHECK.md` (1) · +3 more source documents |
+| **Inventory rows** | **30** — INV-01104, INV-01243, INV-09633, INV-09637–09638, INV-16980, INV-21161, INV-22238, INV-22387, INV-22398, INV-22469, INV-22583, INV-22587, INV-22594, INV-22601 … +11 more ranges |
+| **Source documents** | 12 — `apps/website/status.html` (7) · `docs/strategy/get-kind_social_intent_feasibility_verification.html` (6) · `docs/README.md` (3) · `docs/strategy/get-kind_website_positioning_simplicity_verification.html` (3) · `docs/V2-TRACKER.md` (2) · `docs/strategy/get-kind_jack_and_jill_product_model_verification.html` (2) · `docs/strategy/get-kind_vida_post_10_client_autonomy_verification.html` (2) · `docs/archive/EVERYTHING.md` (1) · +4 more source documents |
 | **Stable source IDs** | (none carried by these rows) |
 | **Runtime / code / schema evidence** | `apps/website/support.html`, `help-centre.html` and `status.html` are live; `routes/support.ts` backs the product side. |
 | **Founder-direction evidence** | NO EXPLICIT CURRENT FOUNDER DIRECTION FOUND |
@@ -3620,11 +3649,11 @@ mapping correction, not a comparison conclusion.
 | `docs/strategy/get-kind_social_intent_feasibility_verification.html` (6 rows) | INV-22583 *Purpose: read-only Claude Code verification of whether the current Get-Kind architecture can support a future Socia…* · INV-22587 *Your task is to verify whether the existing architecture can support a future Social Intent capability and identify…* · INV-22594 *Verify whether existing per-client credential and webhook patterns could support Meta-owned account data.* |
 | `docs/README.md` (3 rows) | INV-09633 *🗂️ Supporting files (not daily reading)* · INV-09637 *../CLAUDE.md — agent config: how the assistant operates this repo. Not a tracker.* · INV-09638 *RULEBOOK.md — detailed working rules (PRs, merge discipline, the stranded-commit gate, the script-counted board).* |
 | `docs/strategy/get-kind_website_positioning_simplicity_verification.html` (3 rows) | INV-22809 *Precise, supportable privacy/compliance language* · INV-22822 *Preferred direction for claims that are supportable before full global permission-engine completion* · INV-22835 *CLAIM WHERE IT APPEARS CURRENT SUPPORTING CODE/BEHAVIOUR VERDICT: SUPPORTED / PARTIALLY SUPPORTED / OVERSTATED / UN…* |
+| `docs/V2-TRACKER.md` (2 rows) | INV-01104 *Why an ORG — the company should own its own asset; a fresh org is the only chance of reviving CI* · INV-01243 *ONE ACCOUNTABLE OWNER PER FUNCTION — support is not co-ownership* |
 | `docs/strategy/get-kind_jack_and_jill_product_model_verification.html` (2 rows) | INV-22398 *Your task is to inspect what exists today, determine how much of this product model is already supported, and ident…* · INV-22469 *Meaningful plumbing exists but does not yet support the full target.* |
 | `docs/strategy/get-kind_vida_post_10_client_autonomy_verification.html` (2 rows) | INV-22690 *Claude should verify which level the current code can safely support today and what is missing for later levels.* · INV-22771 *READY IN PRINCIPLE Current architecture can support bounded autonomy after operational policies are learned from th…* |
 | `docs/archive/EVERYTHING.md` (1 rows) | INV-16980 *Intercom Fin · $0.99 per fully-resolved support ticket. Zero cost if unresolved. Pure outcome model. Working. · The…* |
-| `docs/archive/FULL_CHECK.md` (1 rows) | INV-21161 *[ ] Is there a status page clients see during downtime?* |
-| *+3 more source documents* | *full list via the coverage map* |
+| *+4 more source documents* | *full list via the coverage map* |
 
 ---
 
@@ -3726,8 +3755,8 @@ mapping correction, not a comparison conclusion.
 |---|---|
 | **Domain** | Product surface |
 | **Relationship** | **PARTIAL OVERLAP** |
-| **Inventory rows** | **40** — INV-00169, INV-01419, INV-04763, INV-05985, INV-05990, INV-05992, INV-05994–05995, INV-05997, INV-06271, INV-07448, INV-07526, INV-07555–07556, INV-07558, INV-10050 … +19 more ranges |
-| **Source documents** | 15 — `docs/archive/MASTER.md` (11) · `docs/legal.md` (6) · `docs/archive/EVERYTHING.md` (5) · `docs/archive/FULL_CHECK.md` (4) · `docs/RECORDING-SHOOTING-SCRIPT.md` (3) · `docs/art-of-possible.md` (2) · `docs/PRODUCT-RULES.md` (1) · `docs/client-flow-sop.md` (1) · +7 more source documents |
+| **Inventory rows** | **39** — INV-00169, INV-01419, INV-04763, INV-05985, INV-05990, INV-05992, INV-05994–05995, INV-05997, INV-06271, INV-07448, INV-07526, INV-07555, INV-07558, INV-10050 … +19 more ranges |
+| **Source documents** | 15 — `docs/archive/MASTER.md` (11) · `docs/legal.md` (6) · `docs/archive/EVERYTHING.md` (5) · `docs/archive/FULL_CHECK.md` (4) · `docs/art-of-possible.md` (2) · `docs/RECORDING-SHOOTING-SCRIPT.md` (2) · `docs/PRODUCT-RULES.md` (1) · `docs/client-flow-sop.md` (1) · +7 more source documents |
 | **Stable source IDs** | `S10` |
 | **Runtime / code / schema evidence** | `apps/website/about.html` states *"We trade as Milla & Vida."* |
 | **Founder-direction evidence** | NO EXPLICIT CURRENT FOUNDER DIRECTION FOUND |
@@ -3742,8 +3771,8 @@ mapping correction, not a comparison conclusion.
 | `docs/legal.md` (6 rows) | INV-05985 *⚡ 50-CLIENT TRIGGER — ACTION REQUIRED AT THIS MILESTONE* · INV-05990 *3. Lawyer review — client agreements* · INV-05992 *CORRECTION (10 Jun, verified ToS research — the "50 clients" framing below was WRONG)* |
 | `docs/archive/EVERYTHING.md` (5 rows) | INV-16549 *Logo = logo-k.png image (from homepage), everywhere — website + portal. No ⚡ emoji.* · INV-16557 *3 · Logo inconsistent (⚡ emoji vs image) · ✅ · all 36 website pages → logo-k.png* · INV-16743 *Brand purple: #7C3AED everywhere. No stray hex variants.* |
 | `docs/archive/FULL_CHECK.md` (4 rows) | INV-21186 *7. BRAND / CONSISTENCY (KIND-specific locks)* · INV-21187 *[ ] Zero non-purple blues across all HTML? (#7c3aed only)* · INV-21188 *[ ] Agent images Pixar 3D, not photorealistic, not cropped?* |
-| `docs/RECORDING-SHOOTING-SCRIPT.md` (3 rows) | INV-07555 *Cold open (5–8s) — hybrid: graphic animated logo + a one-line hook by default; your face (one clean window-lit shot…* · INV-07556 *Title card + music sting — K.I.N.D logo animates in + "Drop 0X · [episode title]". Reuse the same template + same m…* · INV-07558 *Outro card — logo + "Start free · get-kind.com" + music tail.* |
 | `docs/art-of-possible.md` (2 rows) | INV-07448 *Social proof — logos, numbers, client quotes* · INV-07526 *Dan Martell's personal brand is the distribution engine* |
+| `docs/RECORDING-SHOOTING-SCRIPT.md` (2 rows) | INV-07555 *Cold open (5–8s) — hybrid: graphic animated logo + a one-line hook by default; your face (one clean window-lit shot…* · INV-07558 *Outro card — logo + "Start free · get-kind.com" + music tail.* |
 | `docs/PRODUCT-RULES.md` (1 rows) | INV-00169 *No fake logos, quotes or numbers ship. The whole social-proof system ships hidden until real data exists. Unbu…* |
 | `docs/client-flow-sop.md` (1 rows) | INV-01419 *The sender concept restated — pooled → branded warms alongside → safe switch → pooled released* |
 | *+7 more source documents* | *full list via the coverage map* |
@@ -3784,8 +3813,8 @@ mapping correction, not a comparison conclusion.
 |---|---|
 | **Domain** | Product surface |
 | **Relationship** | **PARTIAL OVERLAP** |
-| **Inventory rows** | **6** — INV-01039, INV-03880, INV-04672, INV-17199–17200, INV-17955 |
-| **Source documents** | 5 — `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` (2) · `docs/PRODUCT-INVENTORY.md` (1) · `docs/TECH-STACK.md` (1) · `docs/SEND-DAY-RUNBOOK.md` (1) · `docs/archive/V2-NARRATIVE-2026-08-21.md` (1) |
+| **Inventory rows** | **7** — INV-01039, INV-01135, INV-03880, INV-04672, INV-17199–17200, INV-17955 |
+| **Source documents** | 6 — `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` (2) · `docs/PRODUCT-INVENTORY.md` (1) · `docs/V2-TRACKER.md` (1) · `docs/TECH-STACK.md` (1) · `docs/SEND-DAY-RUNBOOK.md` (1) · `docs/archive/V2-NARRATIVE-2026-08-21.md` (1) |
 | **Stable source IDs** | `#606` |
 | **Runtime / code / schema evidence** | `routes/engine.ts` exists; PRODUCT-INVENTORY files FIGSY under *⚙️ FIGSY — THE ENGINE*. |
 | **Founder-direction evidence** | 1 Aug (#606): FIGSY is redesignated from the agent era to the engine. |
@@ -3798,6 +3827,7 @@ mapping correction, not a comparison conclusion.
 |---|---|
 | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` (2 rows) | INV-17199 *↳ THE BRAIN — redesignated from the agent era (founder, 1 Aug · #606)* · INV-17200 *Dot · Item · Owner* |
 | `docs/PRODUCT-INVENTORY.md` (1 rows) | INV-01039 *14 agent-era rows redesignated to THE BRAIN under THE ENGINE* |
+| `docs/V2-TRACKER.md` (1 rows) | INV-01135 *The two operational models — A MANAGED (SMB) · B CONNECT-YOUR-OWN (mid-market/enterprise)* |
 | `docs/TECH-STACK.md` (1 rows) | INV-03880 *Google Workspace* |
 | `docs/SEND-DAY-RUNBOOK.md` (1 rows) | INV-04672 *All four mailboxes are already in the engine. There is no "2-box limit" in the code — it uses every mailbox that is…* |
 | `docs/archive/V2-NARRATIVE-2026-08-21.md` (1 rows) | INV-17955 *Migration of existing Resend clients → the engine.* |
@@ -3884,8 +3914,8 @@ mapping correction, not a comparison conclusion.
 |---|---|
 | **Domain** | History / planning |
 | **Relationship** | **PARTIAL OVERLAP** |
-| **Inventory rows** | **170** — INV-00262, INV-07307–07313, INV-07317–07318, INV-07325–07326, INV-07329, INV-07331, INV-07333–07335, INV-07337–07339, INV-07357, INV-07363, INV-07370–07376, INV-07379–07382, INV-07385, INV-07387 … +67 more ranges |
-| **Source documents** | 4 — `docs/art-of-possible.md` (97) · `docs/archive/MASTER.md` (71) · `docs/PRODUCT-RULES.md` (1) · `docs/archive/KIND-MASTER-ARCHIVE.md` (1) |
+| **Inventory rows** | **175** — INV-00262, INV-01196, INV-01277, INV-01327, INV-01329, INV-01331, INV-07307–07313, INV-07317–07318, INV-07325–07326, INV-07329, INV-07331, INV-07333–07335, INV-07337–07339, INV-07357 … +72 more ranges |
+| **Source documents** | 5 — `docs/art-of-possible.md` (97) · `docs/archive/MASTER.md` (71) · `docs/V2-TRACKER.md` (5) · `docs/PRODUCT-RULES.md` (1) · `docs/archive/KIND-MASTER-ARCHIVE.md` (1) |
 | **Stable source IDs** | `#1`, `R75` |
 | **Runtime / code / schema evidence** | No code relationship. |
 | **Founder-direction evidence** | RULEBOOK §9 and CLAUDE.md require same-session capture of steals and ideas. |
@@ -3898,8 +3928,1430 @@ mapping correction, not a comparison conclusion.
 |---|---|
 | `docs/art-of-possible.md` (97 rows) | INV-07307 *K.I.N.D — Art of the Possible* · INV-07308 *Future vision. Inspiration log. Nothing here is built yet unless marked ✅.* · INV-07309 *THE ONE RULE* |
 | `docs/archive/MASTER.md` (71 rows) | INV-12810 *24. ART OF POSSIBLE — PRODUCTS WE STUDY* · INV-12811 *The one rule: Build the foundation. Prove the loop. Then build the palace.* · INV-12812 *Gate: 20+ paying clients with the core loop proven before any V2 feature is touched.* |
+| `docs/V2-TRACKER.md` (5 rows) | INV-01196 *The 15 Pieces (post-loop-proven build list) plus Revenue Mission Control* · INV-01277 *⚠️ This bank is NOT the numbered ladder and must never be read as an extension of it* · INV-01327 *Why this section exists — 69 ideas that existed only in chat* |
 | `docs/PRODUCT-RULES.md` (1 rows) | INV-00262 *NO MATERIAL FOUNDER IDEA OR DECISION MAY EXIST ONLY IN CHAT (27 Aug). Every material idea, direction or decisi…* |
 | `docs/archive/KIND-MASTER-ARCHIVE.md` (1 rows) | INV-16118 *2. Active internal docs* |
+
+---
+
+## Domain — Pricing
+
+### CMP-0136 · First 100 approved leads included — the legacy pack entitlement
+
+| Field | Value |
+|---|---|
+| **Domain** | Pricing |
+| **Relationship** | **AGREES** |
+| **Inventory rows** | **44** — INV-00080, INV-00303, INV-00341, INV-00381, INV-01404, INV-01514, INV-02734, INV-03001, INV-03037–03038, INV-03844, INV-04719, INV-04963, INV-05514, INV-07158 … +11 more ranges |
+| **Source documents** | 19 — `docs/client-onboarding-training.html` (19) · `apps/website/terms.html` (4) · `docs/PARTNER-BRIEF.md` (3) · `docs/PRODUCT-INVENTORY.md` (2) · `docs/sales-playbook.md` (2) · `docs/PRODUCT-RULES.md` (1) · `docs/LAUNCH-PAD.md` (1) · `docs/client-flow-sop.md` (1) · +11 more source documents |
+| **Stable source IDs** | `#541`, `FTA-002`, `M2`, `PACK_LEADS`, `PR1` |
+| **Runtime / code / schema evidence** | `PACK_LEADS = 100` in `@kind/shared`; `integrity-checks.ts:162` gates on `approvalCount < PACK_LEADS`; `onboarding-pack.ts` re-exports rather than redeclaring. |
+| **Founder-direction evidence** | The constants file states it explicitly: *"`PACK_LEADS` is still 100 … Anything that reads '100 included' is still correct."* |
+| **Historical / supersession evidence** | — (no supersession evidence visible in the sources) |
+| **Questions exposed** | The entitlement is a separate mechanism from the $299 door price and from the $4 charge, and a programme migration would have to decide its fate independently. |
+
+**What each source says — representative rows, transcribed:**
+
+| Source | Sample INV rows |
+|---|---|
+| `docs/client-onboarding-training.html` (19 rows) | INV-10116 *After your first 100* · INV-10117 *Once your included 100 are used, you top up your wallet whenever you choose and each approved lead draws a flat $4 …* · INV-10118 *We never charge automatically — approving is always your action.* |
+| `apps/website/terms.html` (4 rows) | INV-23638 *Getting started: your first purchase is $299 — the onboarding pack, which includes your first 100 approved leads an…* · INV-23643 *Your wallet can be topped up manually at any time via the Billing page in your dashboard. Once your 100 included ap…* · INV-23653 *Any of the first 100 approvals included in your $299 onboarding pack* |
+| `docs/PARTNER-BRIEF.md` (3 rows) | INV-03001 */ Price / $299 first purchase = the onboarding pack, 100 approved leads included, then $4 per approved lead. Review…* · INV-03037 *25% of the client's approved-lead spend, after their included first 100 — the only thing that pays.* · INV-03038 *$0 of the $299 setup pack · $0 on the included first 100 approvals · then 25% of paid approved-lead spend thereafte…* |
+| `docs/PRODUCT-INVENTORY.md` (2 rows) | INV-00341 *The money: $299 onboarding pack, first 100 approvals included, then $4 per approved lead* · INV-00381 *[MONEY] The $99 onboarding pack — 100 leads included, then $4 — (founder-locked 25 Jul, after w…* |
+| `docs/sales-playbook.md` (2 rows) | INV-07158 */ Price / $299 first purchase = the onboarding pack, 100 approved leads included, then $4 per approved lead. Review…* · INV-07256 *No card to sign up, no subscription — the first purchase is the $299 onboarding pack (100 approved leads included),…* |
+| `docs/PRODUCT-RULES.md` (1 rows) | INV-00080 *The first purchase is $299 — the fully-onboarded pack, 100 approved leads included, then $4 each. ~~*24–25 Jul…* |
+| `docs/LAUNCH-PAD.md` (1 rows) | INV-00303 *Per-client economics — $299 · first 100 approved included · $4 after · provider/data cost · mai…* |
+| `docs/client-flow-sop.md` (1 rows) | INV-01404 *Price — $299 first purchase, 100 approved leads included, then $4; reviewing is FREE* |
+| *+11 more source documents* | *full list via the coverage map* |
+
+### CMP-0137 · Programme working point — $437.50 effective at 10 meetings
+
+| Field | Value |
+|---|---|
+| **Domain** | Pricing |
+| **Relationship** | **PARTIAL OVERLAP** |
+| **Inventory rows** | **12** — INV-00909, INV-01050, INV-01077, INV-01098, INV-01517, INV-02240, INV-02505, INV-17668, INV-17734, INV-17834, INV-17838, INV-17885 |
+| **Source documents** | 6 — `docs/archive/V2-NARRATIVE-2026-08-21.md` (3) · `docs/PRODUCT-INVENTORY.md` (2) · `docs/V2-TRACKER.md` (2) · `docs/KIND-MASTER.md` (2) · `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` (2) · `docs/FOUNDER-TRUTH-AUDIT-2026-08-28.md` (1) |
+| **Stable source IDs** | `#423`, `#437`, `#450`, `FTA-005` |
+| **Runtime / code / schema evidence** | No implementation found in `apps/api`, `packages/shared` or `supabase/migrations`. |
+| **Founder-direction evidence** | FTA-005 records the working point: 10 meetings / 2,500 leads / $4,375 / $437.50 effective. |
+| **Historical / supersession evidence** | — (no supersession evidence visible in the sources) |
+| **Questions exposed** | A single modelled point on the curve, stated once. Whether it survives FD-C01's benchmark decision is not settled anywhere. |
+
+**What each source says — representative rows, transcribed:**
+
+| Source | Sample INV rows |
+|---|---|
+| `docs/archive/V2-NARRATIVE-2026-08-21.md` (3 rows) | INV-17834 *░ 🥷 JACK & JILL STEAL — FIGSY: from workflow-executor to commercial judgment (captured 10 …* · INV-17838 *437 why-now surfaced (S–M — reasoning already stored; show it + event signals; AFTER quotas #423)* · INV-17885 *Jack & Jill steals #437–#443 — commercial-judgment deepening, §"🥷 JACK & JILL STEAL" above.* |
+| `docs/PRODUCT-INVENTORY.md` (2 rows) | INV-00909 *STEAL (Jack & Jill, 10 Jul) · "Why this lead, why now" surfaced — cheapest win of the steal: sc…* · INV-01050 *19 AUG HANDOFF-BUNDLE SWEEP — 8 new (655–662) + 4 MAPPED, not duplicated* |
+| `docs/V2-TRACKER.md` (2 rows) | INV-01077 *DEEPEN IT — trigger: client #1 retained, proof accumulating* · INV-01098 *Build order (Fable-ruled) — #437 → #438 → #439 → #440 → #442 → #443, #441 anywhere* |
+| `docs/KIND-MASTER.md` (2 rows) | INV-02240 *10 Jul (STEAL captured — Jack & Jill → FIGSY commercial judgment, #437–#443): founder brought the Jack & Jill teard…* · INV-02505 *Data-engine widening #450 #451 #452 · Alta-parity #475 #476 · Jack&Jill steals #437–#443* |
+| `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` (2 rows) | INV-17668 *437 · 🔴 · STEAL (Jack & Jill, 10 Jul) · "Why this lead, why now" surfaced — cheapest win of the steal: score_reason…* · INV-17734 *660 · 🔴 · STEAL (Jack & Jill, 19 Aug) · ANTI-SIGNALS as first-class data — the product must learn why a prospect sh…* |
+| `docs/FOUNDER-TRUTH-AUDIT-2026-08-28.md` (1 rows) | INV-01517 *Working point: 10 meetings / 2,500 leads / $4,375 / $437.50 effective; floor ~$400 at 50+* |
+
+### CMP-0138 · Programme floor — ~$400 effective at 50+ meetings
+
+| Field | Value |
+|---|---|
+| **Domain** | Pricing |
+| **Relationship** | **PARTIAL OVERLAP** |
+| **Inventory rows** | **6** — INV-01467, INV-01878, INV-03027, INV-06124, INV-19246, INV-20367 |
+| **Source documents** | 6 — `docs/run-costs-and-cashflow.md` (1) · `docs/KIND-MASTER.md` (1) · `docs/PARTNER-BRIEF.md` (1) · `docs/legal.md` (1) · `docs/archive/KIND_Roadmap.md` (1) · `docs/archive/ADMIN-BOOKKEEPER-AUDIT.md` (1) |
+| **Stable source IDs** | `R7` |
+| **Runtime / code / schema evidence** | No implementation found in `apps/api`, `packages/shared` or `supabase/migrations`. |
+| **Founder-direction evidence** | FTA-005 records a ~$400 effective floor at 50+ meetings. |
+| **Historical / supersession evidence** | — (no supersession evidence visible in the sources) |
+| **Questions exposed** | The floor and the working point are two different commitments; only the floor bounds the discount curve. |
+
+**What each source says — representative rows, transcribed:**
+
+| Source | Sample INV rows |
+|---|---|
+| `docs/run-costs-and-cashflow.md` (1 rows) | INV-01467 *THE CASH LAYER — founder envelope ≈$400/month, NOT a permanent business ceiling* |
+| `docs/KIND-MASTER.md` (1 rows) | INV-01878 *🇺🇸 US VERDICT: US-LATER, CLEARLY (sourced): ~110 AI-SDR vendors, $400M+ VC, median vendor revenue only ~$2.2M; 11x …* |
+| `docs/PARTNER-BRIEF.md` (1 rows) | INV-03027 *Ready-made per-lead volume packs to quote (no monthly fee — e.g. 100 fully-worked leads ≈ $400; +Milla/+Denise laye…* |
+| `docs/legal.md` (1 rows) | INV-06124 *Hunter · Email only · Permissive · Good · $400–1,200 · Supplementary only* |
+| `docs/archive/KIND_Roadmap.md` (1 rows) | INV-19246 *K.I.N.D AI (Lead Gen)* |
+| `docs/archive/ADMIN-BOOKKEEPER-AUDIT.md` (1 rows) | INV-20367 *ARPU tiers: Starter ($20), Growth ($160), Scale ($400) — hardcoded reference* |
+
+### CMP-0139 · Flat $4 as the superseded commercial architecture
+
+| Field | Value |
+|---|---|
+| **Domain** | Pricing |
+| **Relationship** | **POSSIBLE SUPERSESSION** |
+| **Inventory rows** | **1** — INV-01401 |
+| **Source documents** | 1 — `docs/V2-TRACKER.md` (1) |
+| **Stable source IDs** | `FI-68` |
+| **Runtime / code / schema evidence** | `LEAD_PRICE_USD = 4` remains live in three files — the runtime is not superseded. |
+| **Founder-direction evidence** | FI-68 records flat $4 as superseded **as the intended architecture**, by FI-26/FI-27. |
+| **Historical / supersession evidence** | FI-68 is one of the two explicitly superseded FI rows and states its own successor. |
+| **Questions exposed** | The architecture status and the runtime status of the same number are different truths; this subject is the architecture status only, CMP-0002 is the runtime. |
+
+**What each source says — representative rows, transcribed:**
+
+| Source | Sample INV rows |
+|---|---|
+| `docs/V2-TRACKER.md` (1 rows) | INV-01401 *Flat $4 pricing at all volumes — the commercial *architecture** |
+
+### CMP-0140 · Partner commission on programme revenue
+
+| Field | Value |
+|---|---|
+| **Domain** | Pricing |
+| **Relationship** | **PARTIAL OVERLAP** |
+| **Inventory rows** | **1** — INV-01391 |
+| **Source documents** | 1 — `docs/V2-TRACKER.md` (1) |
+| **Stable source IDs** | `FI-58` |
+| **Runtime / code / schema evidence** | `PARTNER_COMMISSION_PCT = 25` is derived from `LEAD_PRICE_USD`, i.e. from the legacy per-approval price. |
+| **Founder-direction evidence** | FI-58 records partner commission = 25% of programme revenue. |
+| **Historical / supersession evidence** | — (no supersession evidence visible in the sources) |
+| **Questions exposed** | The live commission base is a per-lead charge; the recorded direction bases it on programme revenue. Different bases, same rate. |
+
+**What each source says — representative rows, transcribed:**
+
+| Source | Sample INV rows |
+|---|---|
+| `docs/V2-TRACKER.md` (1 rows) | INV-01391 *Partner commission = 25% of programme CONTRIBUTION, not of gross programme revenue.* |
+
+---
+
+## Domain — Payments
+
+### CMP-0141 · Unused programme value never expires
+
+| Field | Value |
+|---|---|
+| **Domain** | Payments |
+| **Relationship** | **PARTIAL OVERLAP** |
+| **Inventory rows** | **2** — INV-01376, INV-01540 |
+| **Source documents** | 2 — `docs/V2-TRACKER.md` (1) · `docs/FOUNDER-TRUTH-AUDIT-2026-08-28.md` (1) |
+| **Stable source IDs** | `FI-43`, `FTA-028` |
+| **Runtime / code / schema evidence** | The wallet has no expiry logic; `credit-holds.ts` releases holds after a 60-day TTL, which is a different mechanism. |
+| **Founder-direction evidence** | FI-43 records that unused programme value never expires. |
+| **Historical / supersession evidence** | — (no supersession evidence visible in the sources) |
+| **Questions exposed** | A non-expiry promise and a 60-day hold TTL coexist in the sources without either referencing the other. |
+
+**What each source says — representative rows, transcribed:**
+
+| Source | Sample INV rows |
+|---|---|
+| `docs/V2-TRACKER.md` (1 rows) | INV-01376 *Unused programme value never expires.* |
+| `docs/FOUNDER-TRUTH-AUDIT-2026-08-28.md` (1 rows) | INV-01540 *Unused programme value never expires* |
+
+### CMP-0142 · Programme refund boundary — the first 50%
+
+| Field | Value |
+|---|---|
+| **Domain** | Payments |
+| **Relationship** | **PARTIAL OVERLAP** |
+| **Inventory rows** | **1** — INV-01377 |
+| **Source documents** | 1 — `docs/V2-TRACKER.md` (1) |
+| **Stable source IDs** | `FI-44` |
+| **Runtime / code / schema evidence** | No programme refund path. `stripe-settlement.ts` resolves refunds against checkout sessions. |
+| **Founder-direction evidence** | FI-44 records the first 50% as non-refundable once authorised. |
+| **Historical / supersession evidence** | — (no supersession evidence visible in the sources) |
+| **Questions exposed** | Distinct from CMP-0019: that subject is the contradiction between two live Terms documents; this is the unbuilt programme boundary. |
+
+**What each source says — representative rows, transcribed:**
+
+| Source | Sample INV rows |
+|---|---|
+| `docs/V2-TRACKER.md` (1 rows) | INV-01377 *Refund/payment boundary — first 50% non-refundable once sourcing is authorised; second 50% not …* |
+
+### CMP-0143 · Make-whole when K.I.N.D cannot deliver authorised units
+
+| Field | Value |
+|---|---|
+| **Domain** | Payments |
+| **Relationship** | **INSUFFICIENT EVIDENCE TO COMPARE** |
+| **Inventory rows** | **2** — INV-01330, INV-01378 |
+| **Source documents** | 1 — `docs/V2-TRACKER.md` (2) |
+| **Stable source IDs** | `FI-45` |
+| **Runtime / code / schema evidence** | No implementation found in `apps/api`, `packages/shared` or `supabase/migrations`. |
+| **Founder-direction evidence** | FI-45 records a make-whole obligation if authorised units cannot be delivered. |
+| **Historical / supersession evidence** | — (no supersession evidence visible in the sources) |
+| **Questions exposed** | No live surface states a make-whole obligation, so there is nothing to compare it against. |
+
+**What each source says — representative rows, transcribed:**
+
+| Source | Sample INV rows |
+|---|---|
+| `docs/V2-TRACKER.md` (2 rows) | INV-01330 *The programme commercial model (FI-26…FI-45) CONTRADICTS the current locked pricing* · INV-01378 *If K.I.N.D cannot deliver authorised undelivered value, make the client whole for it.* |
+
+### CMP-0144 · Individual paid-lead accept-and-charge — superseded mechanic
+
+| Field | Value |
+|---|---|
+| **Domain** | Payments |
+| **Relationship** | **POSSIBLE SUPERSESSION** |
+| **Inventory rows** | **1** — INV-01398 |
+| **Source documents** | 1 — `docs/V2-TRACKER.md` (1) |
+| **Stable source IDs** | `FI-65` |
+| **Runtime / code / schema evidence** | The live path IS individual accept-and-charge (`approve-lead.ts`), so the superseded mechanic is the running one. |
+| **Founder-direction evidence** | FI-65 records it as superseded by FI-37 (programme-level approval). |
+| **Historical / supersession evidence** | Explicitly filed under V2's *EXPLICITLY SUPERSEDED — preserve as history* section. |
+| **Questions exposed** | A mechanic recorded as superseded is simultaneously the live runtime. Both statements are in the sources. |
+
+**What each source says — representative rows, transcribed:**
+
+| Source | Sample INV rows |
+|---|---|
+| `docs/V2-TRACKER.md` (1 rows) | INV-01398 *Individual paid-lead Accept → charge at live scale* |
+
+### CMP-0145 · Source-first / pay-on-outcome — superseded mechanic
+
+| Field | Value |
+|---|---|
+| **Domain** | Payments |
+| **Relationship** | **POSSIBLE SUPERSESSION** |
+| **Inventory rows** | **1** — INV-01402 |
+| **Source documents** | 1 — `docs/V2-TRACKER.md` (1) |
+| **Stable source IDs** | `FI-69` |
+| **Runtime / code / schema evidence** | No implementation found in `apps/api`, `packages/shared` or `supabase/migrations`. |
+| **Founder-direction evidence** | FI-69 records source-first / pay-on-outcome as superseded by FI-36 (50/50). |
+| **Historical / supersession evidence** | Explicitly filed under the superseded section, with its successor named. |
+| **Questions exposed** | Never built and already superseded — the sources preserve it for lineage only. |
+
+**What each source says — representative rows, transcribed:**
+
+| Source | Sample INV rows |
+|---|---|
+| `docs/V2-TRACKER.md` (1 rows) | INV-01402 *Source-first / pay-on-outcome mechanics* |
+
+---
+
+## Domain — Sourcing authority
+
+### CMP-0146 · Programme-level approval — one approval, not per lead
+
+| Field | Value |
+|---|---|
+| **Domain** | Sourcing authority |
+| **Relationship** | **DIRECT CONFLICT** |
+| **Inventory rows** | **2** — INV-01370, INV-01521 |
+| **Source documents** | 2 — `docs/V2-TRACKER.md` (1) · `docs/FOUNDER-TRUTH-AUDIT-2026-08-28.md` (1) |
+| **Stable source IDs** | `FI-37`, `FTA-009` |
+| **Runtime / code / schema evidence** | The live product charges and reveals **per lead** on each 👍 (`approve-lead.ts`). Programme-level approval would replace that event. |
+| **Founder-direction evidence** | FI-37 records programme-level approval as the direction. |
+| **Historical / supersession evidence** | FI-37 is marked SUPERSEDED in its own row while also being the successor named by FI-65 — both markers are transcribed as found. |
+| **Questions exposed** | One approval event and per-lead approval cannot both be the charging trigger. The sources state both without ranking them. |
+
+**What each source says — representative rows, transcribed:**
+
+| Source | Sample INV rows |
+|---|---|
+| `docs/V2-TRACKER.md` (1 rows) | INV-01370 *Programme-level approval — one approval, not thousands of individual paid-lead approvals.* |
+| `docs/FOUNDER-TRUTH-AUDIT-2026-08-28.md` (1 rows) | INV-01521 *Programme-level approval, not per-lead* |
+
+### CMP-0147 · Controlled execution batches after Go Live
+
+| Field | Value |
+|---|---|
+| **Domain** | Sourcing authority |
+| **Relationship** | **INSUFFICIENT EVIDENCE TO COMPARE** |
+| **Inventory rows** | **3** — INV-01371–01372, INV-01533 |
+| **Source documents** | 2 — `docs/V2-TRACKER.md` (2) · `docs/FOUNDER-TRUTH-AUDIT-2026-08-28.md` (1) |
+| **Stable source IDs** | `FI-38`, `FI-39`, `FTA-021` |
+| **Runtime / code / schema evidence** | No implementation found in `apps/api`, `packages/shared` or `supabase/migrations`. Sourcing today is per-run and fenced by `sourcing-fences.ts`, with no batch entity. |
+| **Founder-direction evidence** | FI-38 records ~250-lead configurable batches; FI-39 records healthy-batch progression. |
+| **Historical / supersession evidence** | — (no supersession evidence visible in the sources) |
+| **Questions exposed** | Batch sizing reuses the 250 figure that CMP-0012 records as conflicting. |
+
+**What each source says — representative rows, transcribed:**
+
+| Source | Sample INV rows |
+|---|---|
+| `docs/V2-TRACKER.md` (2 rows) | INV-01371 *Controlled execution batches after Go Live, ~250 leads, batch size configurable.* · INV-01372 *Batch progression — healthy batch continues automatically; material problem auto-pauses for rev…* |
+| `docs/FOUNDER-TRUTH-AUDIT-2026-08-28.md` (1 rows) | INV-01533 *250-lead controlled batches, configurable* |
+
+### CMP-0148 · Programme pause — client control and material-ICP-change auto-pause
+
+| Field | Value |
+|---|---|
+| **Domain** | Sourcing authority |
+| **Relationship** | **PARTIAL OVERLAP** |
+| **Inventory rows** | **48** — INV-00482, INV-00485–00486, INV-01373–01374, INV-01534–01535, INV-07322, INV-07487, INV-11025, INV-11891, INV-11934, INV-12088, INV-12090, INV-12817, INV-12872, INV-12988 … +30 more ranges |
+| **Source documents** | 11 — `docs/archive/MASTER.md` (30) · `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` (4) · `docs/PRODUCT-INVENTORY.md` (3) · `docs/V2-TRACKER.md` (2) · `docs/FOUNDER-TRUTH-AUDIT-2026-08-28.md` (2) · `docs/art-of-possible.md` (2) · `docs/archive/KIND-MASTER-ARCHIVE.md` (1) · `docs/archive/V2-NARRATIVE-2026-08-21.md` (1) · +3 more source documents |
+| **Stable source IDs** | `#17`, `#20`, `#21`, `#4`, `#45`, `FI-40`, `FI-41`, `FTA-022`, `FTA-023` |
+| **Runtime / code / schema evidence** | `cold-client.ts` pauses on inactivity and `approve-lead.ts` resumes on approval — neither is client-controlled, and neither reacts to an ICP change. |
+| **Founder-direction evidence** | FI-40 records a client Pause Programme control; FI-41 records that a material ICP change auto-pauses future batches. |
+| **Historical / supersession evidence** | — (no supersession evidence visible in the sources) |
+| **Questions exposed** | Three pause mechanisms now appear across the sources — inactivity, operator kill-switch and programme pause — and this is the only client-controlled one. |
+
+**What each source says — representative rows, transcribed:**
+
+| Source | Sample INV rows |
+|---|---|
+| `docs/archive/MASTER.md` (30 rows) | INV-11025 *FIGSY escalation alerts* · INV-11891 *2 · AI reply categorisation · Extend auto-pause: hot/warm/cold/wrong person/OOO — each routes differently · Day 1* · INV-11934 *FIGSY escalation alerts — auto-pauses campaigns <1% reply rate* |
+| `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` (4 rows) | INV-17228 *17 · 🟢 · Reply classification hot/warm/cold/opt-out (auto-pause on hot)* · INV-17231 *20 · 🟢 · Deliverability suite D1–D5 (List-Unsub, plain-text, cold-FROM, warmup ramp, auto-pause)* · INV-17232 *21 · 🟢 · Warmup live + auto-pause hotfix* |
+| `docs/PRODUCT-INVENTORY.md` (3 rows) | INV-00482 *Reply classification hot/warm/cold/opt-out (auto-pause on hot)* · INV-00485 *Deliverability suite D1–D5 (List-Unsub, plain-text, cold-FROM, warmup ramp, auto-pause)* · INV-00486 *Warmup live + auto-pause hotfix…* |
+| `docs/V2-TRACKER.md` (2 rows) | INV-01373 *Client Pause Programme control — must stop sourcing and sending.* · INV-01374 *Material ICP change auto-pauses future sourcing until reconfirmed or reviewed.* |
+| `docs/FOUNDER-TRUTH-AUDIT-2026-08-28.md` (2 rows) | INV-01534 *Healthy batch continues / material issue auto-pauses* · INV-01535 *Client Pause Programme stops sourcing and sending* |
+| `docs/art-of-possible.md` (2 rows) | INV-07322 *4 · Instantly · Cold email at scale · Campaign auto-pause + domain warming · ✅ Built · May 2026* · INV-07487 *Campaign auto-pause on low performance — daily cron pauses <1% reply rate campaigns ✅ Built* |
+| `docs/archive/KIND-MASTER-ARCHIVE.md` (1 rows) | INV-16026 *paused_low_performance (auto-pause underperforming campaigns)* |
+| `docs/archive/V2-NARRATIVE-2026-08-21.md` (1 rows) | INV-18285 *Instantly · Domain warming · auto-pause low performers · adaptive send volume (#45) · inbox rotation (#53)* |
+| *+3 more source documents* | *full list via the coverage map* |
+
+### CMP-0149 · Performance deterioration → stop / review
+
+| Field | Value |
+|---|---|
+| **Domain** | Sourcing authority |
+| **Relationship** | **PARTIAL OVERLAP** |
+| **Inventory rows** | **1** — INV-01366 |
+| **Source documents** | 1 — `docs/V2-TRACKER.md` (1) |
+| **Stable source IDs** | `FI-33` |
+| **Runtime / code / schema evidence** | No performance-triggered stop exists. R69's 250–300 range triggers a campaign review by rule, not by code. |
+| **Founder-direction evidence** | FI-33 records a stop/review trigger on deteriorating performance. |
+| **Historical / supersession evidence** | — (no supersession evidence visible in the sources) |
+| **Questions exposed** | A rule-level review trigger and an automated stop are different mechanisms for the same intent. |
+
+**What each source says — representative rows, transcribed:**
+
+| Source | Sample INV rows |
+|---|---|
+| `docs/V2-TRACKER.md` (1 rows) | INV-01366 *Performance deterioration → stop/review. Never blindly recommend more spend.* |
+
+### CMP-0150 · One-by-one replacement approval at live volume — superseded
+
+| Field | Value |
+|---|---|
+| **Domain** | Sourcing authority |
+| **Relationship** | **POSSIBLE SUPERSESSION** |
+| **Inventory rows** | **1** — INV-01399 |
+| **Source documents** | 1 — `docs/V2-TRACKER.md` (1) |
+| **Stable source IDs** | `FI-66` |
+| **Runtime / code / schema evidence** | No implementation found in `apps/api`, `packages/shared` or `supabase/migrations`. |
+| **Founder-direction evidence** | FI-66 records it as superseded by FI-38/FI-39 (batches). |
+| **Historical / supersession evidence** | Filed under the explicitly-superseded section with its successor named. |
+| **Questions exposed** | Preserved for lineage; nothing compares against it. |
+
+**What each source says — representative rows, transcribed:**
+
+| Source | Sample INV rows |
+|---|---|
+| `docs/V2-TRACKER.md` (1 rows) | INV-01399 *One-by-one replacement approval at live scale* |
+
+### CMP-0151 · Paid-provider go-live rule (PAID_PROVIDERS_ENABLED)
+
+| Field | Value |
+|---|---|
+| **Domain** | Sourcing authority |
+| **Relationship** | **PARTIAL OVERLAP** |
+| **Inventory rows** | **4** — INV-00300, INV-01344, INV-01549, INV-04155 |
+| **Source documents** | 4 — `docs/LAUNCH-PAD.md` (1) · `docs/V2-TRACKER.md` (1) · `docs/FOUNDER-TRUTH-AUDIT-2026-08-28.md` (1) · `docs/ENVIRONMENT.md` (1) |
+| **Stable source IDs** | `FI-11`, `FTA-037`, `R66`, `T11` |
+| **Runtime / code / schema evidence** | `paid-provider-guard.ts` exists and `proof-provider-off.test.ts` guards the proof path against paid providers. |
+| **Founder-direction evidence** | FI-11 records the paid-provider go-live rule. |
+| **Historical / supersession evidence** | — (no supersession evidence visible in the sources) |
+| **Questions exposed** | A guard exists in code and a rule exists in V2; no source states whether they are the same rule. |
+
+**What each source says — representative rows, transcribed:**
+
+| Source | Sample INV rows |
+|---|---|
+| `docs/LAUNCH-PAD.md` (1 rows) | INV-00300 *THE CONTROLLED EXIT FROM ZERO-SPEND (FI-11). PAID_PROVIDERS_ENABLED stays OFF for all safe pr…* |
+| `docs/V2-TRACKER.md` (1 rows) | INV-01344 *Paid-provider go-live rule. PAID_PROVIDERS_ENABLED stays OFF through safe proof testing. Before…* |
+| `docs/FOUNDER-TRUTH-AUDIT-2026-08-28.md` (1 rows) | INV-01549 *PAID_PROVIDERS_ENABLED OFF; controlled exit condition* |
+| `docs/ENVIRONMENT.md` (1 rows) | INV-04155 *PAID_PROVIDERS_ENABLED* |
+
+---
+
+## Domain — Meetings
+
+### CMP-0152 · Booked and Held as separate metrics
+
+| Field | Value |
+|---|---|
+| **Domain** | Meetings |
+| **Relationship** | **PARTIAL OVERLAP** |
+| **Inventory rows** | **2** — INV-01379, INV-01552 |
+| **Source documents** | 2 — `docs/V2-TRACKER.md` (1) · `docs/FOUNDER-TRUTH-AUDIT-2026-08-28.md` (1) |
+| **Stable source IDs** | `FI-46`, `FTA-040` |
+| **Runtime / code / schema evidence** | No held metric exists. The only `held` in code is the `credit_holds` money state. |
+| **Founder-direction evidence** | FI-46 records Booked and Held as separate metrics. |
+| **Historical / supersession evidence** | — (no supersession evidence visible in the sources) |
+| **Questions exposed** | The word `held` carries two unrelated meanings across the sources and the code. |
+
+**What each source says — representative rows, transcribed:**
+
+| Source | Sample INV rows |
+|---|---|
+| `docs/V2-TRACKER.md` (1 rows) | INV-01379 *Booked and Held are separate metrics.* |
+| `docs/FOUNDER-TRUTH-AUDIT-2026-08-28.md` (1 rows) | INV-01552 *Booked and Held separate* |
+
+### CMP-0153 · Booked — unverified as a new meeting state
+
+| Field | Value |
+|---|---|
+| **Domain** | Meetings |
+| **Relationship** | **INSUFFICIENT EVIDENCE TO COMPARE** |
+| **Inventory rows** | **2** — INV-01380, INV-01553 |
+| **Source documents** | 2 — `docs/V2-TRACKER.md` (1) · `docs/FOUNDER-TRUTH-AUDIT-2026-08-28.md` (1) |
+| **Stable source IDs** | `FI-47`, `FTA-041` |
+| **Runtime / code / schema evidence** | No meeting-state enum exists to add a state to. |
+| **Founder-direction evidence** | FI-47 records a new *Booked — unverified* state for prospect-side bookings. |
+| **Historical / supersession evidence** | — (no supersession evidence visible in the sources) |
+| **Questions exposed** | A proposed state for a model that does not exist yet. |
+
+**What each source says — representative rows, transcribed:**
+
+| Source | Sample INV rows |
+|---|---|
+| `docs/V2-TRACKER.md` (1 rows) | INV-01380 *New state: Booked — unverified (prospect agreed a date/time, no native verification).* |
+| `docs/FOUNDER-TRUTH-AUDIT-2026-08-28.md` (1 rows) | INV-01553 *Booked — unverified state* |
+
+### CMP-0154 · Meeting counting rules — reschedules and no-shows
+
+| Field | Value |
+|---|---|
+| **Domain** | Meetings |
+| **Relationship** | **INSUFFICIENT EVIDENCE TO COMPARE** |
+| **Inventory rows** | **1** — INV-01381 |
+| **Source documents** | 1 — `docs/V2-TRACKER.md` (1) |
+| **Stable source IDs** | `FI-48` |
+| **Runtime / code / schema evidence** | No counting rules in code. |
+| **Founder-direction evidence** | FI-48 records how reschedules and no-shows should count. |
+| **Historical / supersession evidence** | — (no supersession evidence visible in the sources) |
+| **Questions exposed** | Counting rules presuppose the state model in CMP-0032. |
+
+**What each source says — representative rows, transcribed:**
+
+| Source | Sample INV rows |
+|---|---|
+| `docs/V2-TRACKER.md` (1 rows) | INV-01381 *Meeting counting rules — reschedules count once · duplicates, spam and outside-ICP do not count…* |
+
+### CMP-0155 · Manual meeting confirmation by the client
+
+| Field | Value |
+|---|---|
+| **Domain** | Meetings |
+| **Relationship** | **PARTIAL OVERLAP** |
+| **Inventory rows** | **1** — INV-01384 |
+| **Source documents** | 1 — `docs/V2-TRACKER.md` (1) |
+| **Stable source IDs** | `FI-51` |
+| **Runtime / code / schema evidence** | `booking-token.ts` handles the booking link; no manual confirmation path exists. |
+| **Founder-direction evidence** | FI-51 records client-side manual confirmation. |
+| **Historical / supersession evidence** | — (no supersession evidence visible in the sources) |
+| **Questions exposed** | A manual confirmation is the fallback for the same gap CMP-0033's Google block creates. |
+
+**What each source says — representative rows, transcribed:**
+
+| Source | Sample INV rows |
+|---|---|
+| `docs/V2-TRACKER.md` (1 rows) | INV-01384 *Manual meeting confirmation — client can later mark Held or No-show.* |
+
+### CMP-0156 · Native Microsoft / Outlook calendar support
+
+| Field | Value |
+|---|---|
+| **Domain** | Meetings |
+| **Relationship** | **PARTIAL OVERLAP** |
+| **Inventory rows** | **1** — INV-01382 |
+| **Source documents** | 1 — `docs/V2-TRACKER.md` (1) |
+| **Stable source IDs** | `FI-49` |
+| **Runtime / code / schema evidence** | `integrations.ts` declares an `outlook_zoho` id; no calendar implementation behind it. |
+| **Founder-direction evidence** | FI-49 records native Microsoft/Outlook calendar support as a direction. |
+| **Historical / supersession evidence** | — (no supersession evidence visible in the sources) |
+| **Questions exposed** | An integration id exists without the capability it names. |
+
+**What each source says — representative rows, transcribed:**
+
+| Source | Sample INV rows |
+|---|---|
+| `docs/V2-TRACKER.md` (1 rows) | INV-01382 *Native Microsoft/Outlook calendar support.* |
+
+---
+
+## Domain — Funnel / ratios
+
+### CMP-0157 · Booked → paying conversion tracking
+
+| Field | Value |
+|---|---|
+| **Domain** | Funnel / ratios |
+| **Relationship** | **PARTIAL OVERLAP** |
+| **Inventory rows** | **1** — INV-01346 |
+| **Source documents** | 1 — `docs/V2-TRACKER.md` (1) |
+| **Stable source IDs** | `FI-13` |
+| **Runtime / code / schema evidence** | No conversion tracking beyond the booking event. Protocol r21 makes MEETING_BOOKED the outcome boundary. |
+| **Founder-direction evidence** | FI-13 records booked → paying conversion tracking as a direction. |
+| **Historical / supersession evidence** | — (no supersession evidence visible in the sources) |
+| **Questions exposed** | Tracking past the booked boundary is in tension with r21, which fixes that boundary; neither source references the other. |
+
+**What each source says — representative rows, transcribed:**
+
+| Source | Sample INV rows |
+|---|---|
+| `docs/V2-TRACKER.md` (1 rows) | INV-01346 *Booked → paying conversion tracking, for both K.I.N.D acquisition and client programmes: accept…* |
+
+### CMP-0158 · 15% booked → paying planning hypothesis
+
+| Field | Value |
+|---|---|
+| **Domain** | Funnel / ratios |
+| **Relationship** | **DIFFERENT DIMENSIONS** |
+| **Inventory rows** | **1** — INV-01347 |
+| **Source documents** | 1 — `docs/V2-TRACKER.md` (1) |
+| **Stable source IDs** | `FI-14` |
+| **Runtime / code / schema evidence** | No conversion assumption in code. |
+| **Founder-direction evidence** | FI-14 records 15% as a planning hypothesis, explicitly labelled a hypothesis. |
+| **Historical / supersession evidence** | — (no supersession evidence visible in the sources) |
+| **Questions exposed** | A hypothesis, not a benchmark and not an observation — a seventh distinct ratio concept, kept apart from the six in CMP-0008…CMP-0013. |
+
+**What each source says — representative rows, transcribed:**
+
+| Source | Sample INV rows |
+|---|---|
+| `docs/V2-TRACKER.md` (1 rows) | INV-01347 *15% booked → paying. Planning hypothesis only — must NOT be locked as a benchmark.* |
+
+### CMP-0159 · Milla meeting target — the client states the target
+
+| Field | Value |
+|---|---|
+| **Domain** | Funnel / ratios |
+| **Relationship** | **INSUFFICIENT EVIDENCE TO COMPARE** |
+| **Inventory rows** | **1** — INV-01363 |
+| **Source documents** | 1 — `docs/V2-TRACKER.md` (1) |
+| **Stable source IDs** | `FI-30` |
+| **Runtime / code / schema evidence** | No target field on any client record. |
+| **Founder-direction evidence** | FI-30 records the client stating a meeting target in Milla. |
+| **Historical / supersession evidence** | — (no supersession evidence visible in the sources) |
+| **Questions exposed** | The programme price is per targeted meeting, so the target is the quantity being sold; nothing implements it. |
+
+**What each source says — representative rows, transcribed:**
+
+| Source | Sample INV rows |
+|---|---|
+| `docs/V2-TRACKER.md` (1 rows) | INV-01363 *Milla meeting target — the client tells Milla how many targeted booked meetings they want.* |
+
+### CMP-0160 · Client-specific learning replaces the generic benchmark
+
+| Field | Value |
+|---|---|
+| **Domain** | Funnel / ratios |
+| **Relationship** | **PARTIAL OVERLAP** |
+| **Inventory rows** | **1** — INV-01365 |
+| **Source documents** | 1 — `docs/V2-TRACKER.md` (1) |
+| **Stable source IDs** | `FI-32` |
+| **Runtime / code / schema evidence** | No per-client benchmark store. Nexus (#511) is the recorded home for per-client learning and is phased. |
+| **Founder-direction evidence** | FI-32 records replacing the generic benchmark with client-specific learning. |
+| **Historical / supersession evidence** | — (no supersession evidence visible in the sources) |
+| **Questions exposed** | This would retire the very benchmark FD-C01 is being asked to settle. |
+
+**What each source says — representative rows, transcribed:**
+
+| Source | Sample INV rows |
+|---|---|
+| `docs/V2-TRACKER.md` (1 rows) | INV-01365 *Client-specific learning — replace the seed benchmark with the client's actual lead→booked perf…* |
+
+### CMP-0161 · Benchmark transparency — starting vs actual
+
+| Field | Value |
+|---|---|
+| **Domain** | Funnel / ratios |
+| **Relationship** | **PARTIAL OVERLAP** |
+| **Inventory rows** | **1** — INV-01367 |
+| **Source documents** | 1 — `docs/V2-TRACKER.md` (1) |
+| **Stable source IDs** | `FI-34` |
+| **Runtime / code / schema evidence** | No benchmark surface exists. |
+| **Founder-direction evidence** | FI-34 records showing the client both the starting benchmark and their actual one. |
+| **Historical / supersession evidence** | — (no supersession evidence visible in the sources) |
+| **Questions exposed** | Showing a starting benchmark publishes the number FD-C01 has not settled. |
+
+**What each source says — representative rows, transcribed:**
+
+| Source | Sample INV rows |
+|---|---|
+| `docs/V2-TRACKER.md` (1 rows) | INV-01367 *Benchmark transparency — show the starting benchmark and the client's actual benchmark.* |
+
+---
+
+## Domain — Vida
+
+### CMP-0162 · Vida Lead Pool operator view
+
+| Field | Value |
+|---|---|
+| **Domain** | Vida |
+| **Relationship** | **PARTIAL OVERLAP** |
+| **Inventory rows** | **1** — INV-01335 |
+| **Source documents** | 1 — `docs/V2-TRACKER.md` (1) |
+| **Stable source IDs** | `FI-02` |
+| **Runtime / code / schema evidence** | `pool-sourcing.ts` and `lead_pool` exist; no operator surface reads them. |
+| **Founder-direction evidence** | FI-02 records a Vida lead-pool view with counts. |
+| **Historical / supersession evidence** | — (no supersession evidence visible in the sources) |
+| **Questions exposed** | The pool is the cost saver in CMP-0028 and the operator cannot currently see it. |
+
+**What each source says — representative rows, transcribed:**
+
+| Source | Sample INV rows |
+|---|---|
+| `docs/V2-TRACKER.md` (1 rows) | INV-01335 *Vida Lead Pool operator view — counts · filters · provenance · usability · contactability · wha…* |
+
+### CMP-0163 · Vida suppression / DNC operator visibility
+
+| Field | Value |
+|---|---|
+| **Domain** | Vida |
+| **Relationship** | **PARTIAL OVERLAP** |
+| **Inventory rows** | **1** — INV-01336 |
+| **Source documents** | 1 — `docs/V2-TRACKER.md` (1) |
+| **Stable source IDs** | `FI-03` |
+| **Runtime / code / schema evidence** | `ImportLeads.tsx` shows a skipped/suppressed table on import — *"the skipped table is not a detail"*. No standing suppression view. |
+| **Founder-direction evidence** | FI-03 records operator visibility of suppression / DNC. |
+| **Historical / supersession evidence** | — (no supersession evidence visible in the sources) |
+| **Questions exposed** | Import-time visibility exists; standing visibility does not. Whether that gap is a launch safety requirement is a Step-4 question, not settled here. |
+
+**What each source says — representative rows, transcribed:**
+
+| Source | Sample INV rows |
+|---|---|
+| `docs/V2-TRACKER.md` (1 rows) | INV-01336 *Vida suppression / DNC visibility — operator view of suppression, DNC and opt-out state/invento…* |
+
+### CMP-0164 · Acquisition-memory operator visibility
+
+| Field | Value |
+|---|---|
+| **Domain** | Vida |
+| **Relationship** | **PARTIAL OVERLAP** |
+| **Inventory rows** | **1** — INV-01337 |
+| **Source documents** | 1 — `docs/V2-TRACKER.md` (1) |
+| **Stable source IDs** | `FI-04` |
+| **Runtime / code / schema evidence** | `acquisition-memory.ts` exists and its table is a pending migration; no operator surface. |
+| **Founder-direction evidence** | FI-04 records operator visibility of acquisition memory. |
+| **Historical / supersession evidence** | — (no supersession evidence visible in the sources) |
+| **Questions exposed** | R67 separates retention from contactability; without a surface an operator cannot see which is which. |
+
+**What each source says — representative rows, transcribed:**
+
+| Source | Sample INV rows |
+|---|---|
+| `docs/V2-TRACKER.md` (1 rows) | INV-01337 *Acquisition-memory operator visibility. Keep acquisition_memory, the reusable serving pool and …* |
+
+### CMP-0165 · Recurrent proof runtime failure
+
+| Field | Value |
+|---|---|
+| **Domain** | Vida |
+| **Relationship** | **PARTIAL OVERLAP** |
+| **Inventory rows** | **3** — INV-00299, INV-01328, INV-01343 |
+| **Source documents** | 2 — `docs/V2-TRACKER.md` (2) · `docs/LAUNCH-PAD.md` (1) |
+| **Stable source IDs** | `FI-10`, `T10` |
+| **Runtime / code / schema evidence** | A pending migration adds `icp_run_outcomes.status = 'failed'` — *"a crashed proof run is a terminal fact, not a silent spinner (R72)"*. |
+| **Founder-direction evidence** | FI-10 records recurrent proof runtime failure as an open operational problem. |
+| **Historical / supersession evidence** | — (no supersession evidence visible in the sources) |
+| **Questions exposed** | A terminal-state column is the recorded fix; whether it has executed is not observable from the repository. |
+
+**What each source says — representative rows, transcribed:**
+
+| Source | Sample INV rows |
+|---|---|
+| `docs/V2-TRACKER.md` (2 rows) | INV-01328 *This section sits below the "nothing above is launch scope" line and does NOT inherit it* · INV-01343 *Recurrent proof runtime failure — the full path: proof claim → job dispatch → pool lookup → pai…* |
+| `docs/LAUNCH-PAD.md` (1 rows) | INV-00299 *PROOF RUNTIME FAILURE — THE WHOLE PATH, NOT A SEGMENT (FI-10). It has failed more than once, …* |
+
+### CMP-0166 · Proof pass-2 exhaustion must create real work
+
+| Field | Value |
+|---|---|
+| **Domain** | Vida |
+| **Relationship** | **AGREES** |
+| **Inventory rows** | **1** — INV-01385 |
+| **Source documents** | 1 — `docs/V2-TRACKER.md` (1) |
+| **Stable source IDs** | `FI-52` |
+| **Runtime / code / schema evidence** | Implemented: the atomic claim refuses, ONE proof-review handoff opens, then the 409. `20260827_proof_review_handoff` is the migration. |
+| **Founder-direction evidence** | FI-52 records the requirement; the 27 Aug PR2 comment in `routes/icps.ts` records the same intent verbatim. |
+| **Historical / supersession evidence** | — (no supersession evidence visible in the sources) |
+| **Questions exposed** | Rule and code agree. The open question is whether the journey has been walked end to end. |
+
+**What each source says — representative rows, transcribed:**
+
+| Source | Sample INV rows |
+|---|---|
+| `docs/V2-TRACKER.md` (1 rows) | INV-01385 *Proof Pass-2 exhaustion must create a real Vida/human handoff, not customer-facing copy alone.* |
+
+### CMP-0167 · Preserve the Vida conversational / operator direction
+
+| Field | Value |
+|---|---|
+| **Domain** | Vida |
+| **Relationship** | **INSUFFICIENT EVIDENCE TO COMPARE** |
+| **Inventory rows** | **1** — INV-01387 |
+| **Source documents** | 1 — `docs/V2-TRACKER.md` (1) |
+| **Stable source IDs** | `FI-54` |
+| **Runtime / code / schema evidence** | No conversational operator surface exists. |
+| **Founder-direction evidence** | FI-54 records preserving the Vida conversational direction. |
+| **Historical / supersession evidence** | — (no supersession evidence visible in the sources) |
+| **Questions exposed** | Recorded as a direction to preserve rather than a specification to build against. |
+
+**What each source says — representative rows, transcribed:**
+
+| Source | Sample INV rows |
+|---|---|
+| `docs/V2-TRACKER.md` (1 rows) | INV-01387 *Preserve the Vida conversational/operator shell; add evidence and controls around it.* |
+
+---
+
+## Domain — Milla
+
+### CMP-0168 · Preserve the Milla Jack-and-Jill conversational direction
+
+| Field | Value |
+|---|---|
+| **Domain** | Milla |
+| **Relationship** | **PARTIAL OVERLAP** |
+| **Inventory rows** | **1** — INV-01386 |
+| **Source documents** | 1 — `docs/V2-TRACKER.md` (1) |
+| **Stable source IDs** | `FI-53` |
+| **Runtime / code / schema evidence** | No conversational client surface is wired; `milla-chat-current.html` is a mockup. |
+| **Founder-direction evidence** | FI-53 records preserving the Milla Jack-and-Jill conversational direction. |
+| **Historical / supersession evidence** | — (no supersession evidence visible in the sources) |
+| **Questions exposed** | Overlaps CMP-0037 (the flywheel) and CMP-0049 (Jack & Jill) as a direction to preserve, not a third design. |
+
+**What each source says — representative rows, transcribed:**
+
+| Source | Sample INV rows |
+|---|---|
+| `docs/V2-TRACKER.md` (1 rows) | INV-01386 *Preserve the Milla Jack-and-Jill conversational shell. Programme actions execute around the con…* |
+
+---
+
+## Domain — Money models
+
+### CMP-0169 · Apollo economics planning case
+
+| Field | Value |
+|---|---|
+| **Domain** | Money models |
+| **Relationship** | **DIFFERENT DIMENSIONS** |
+| **Inventory rows** | **2** — INV-01339, INV-01493 |
+| **Source documents** | 2 — `docs/V2-TRACKER.md` (1) · `docs/run-costs-and-cashflow.md` (1) |
+| **Stable source IDs** | `FI-06` |
+| **Runtime / code / schema evidence** | `apollo.ts` exists; Apollo People Search is free and the credit is the reveal (`provider-boundary.ts`). |
+| **Founder-direction evidence** | FI-06 records the Apollo economics planning case (≈1,050 records). |
+| **Historical / supersession evidence** | — (no supersession evidence visible in the sources) |
+| **Questions exposed** | A planning case, not a live cost line; `CASHFLOW-LAB.html` carries `f_apollo = 0`. |
+
+**What each source says — representative rows, transcribed:**
+
+| Source | Sample INV rows |
+|---|---|
+| `docs/V2-TRACKER.md` (1 rows) | INV-01339 *Apollo economics planning case. 1,050 contacted · Apollo $65/mo · 2,500 credits · 1 contactable…* |
+| `docs/run-costs-and-cashflow.md` (1 rows) | INV-01493 *The Apollo economics planning case — ≈$32.50 data CAC/client vs $147 on PDL* |
+
+---
+
+## Domain — Providers
+
+### CMP-0170 · Post-launch Apollo optimisation
+
+| Field | Value |
+|---|---|
+| **Domain** | Providers |
+| **Relationship** | **INSUFFICIENT EVIDENCE TO COMPARE** |
+| **Inventory rows** | **2** — INV-01340, INV-01494 |
+| **Source documents** | 2 — `docs/V2-TRACKER.md` (1) · `docs/run-costs-and-cashflow.md` (1) |
+| **Stable source IDs** | `FI-07` |
+| **Runtime / code / schema evidence** | No optimisation routing exists. |
+| **Founder-direction evidence** | FI-07 records Apollo as an optimisation / discovery source post-launch. |
+| **Historical / supersession evidence** | — (no supersession evidence visible in the sources) |
+| **Questions exposed** | Distinct from AR5's ownership rule, which governs whose credits are spent rather than what Apollo is used for. |
+
+**What each source says — representative rows, transcribed:**
+
+| Source | Sample INV rows |
+|---|---|
+| `docs/V2-TRACKER.md` (1 rows) | INV-01340 *Post-launch Apollo optimisation — as an optimisation source, a search/discovery source, and a c…* |
+| `docs/run-costs-and-cashflow.md` (1 rows) | INV-01494 *What the 27 Aug diagnostic proved — Apollo returns only has_country booleans* |
+
+### CMP-0171 · Provider-neutral routing on cost and coverage
+
+| Field | Value |
+|---|---|
+| **Domain** | Providers |
+| **Relationship** | **INSUFFICIENT EVIDENCE TO COMPARE** |
+| **Inventory rows** | **1** — INV-01341 |
+| **Source documents** | 1 — `docs/V2-TRACKER.md` (1) |
+| **Stable source IDs** | `FI-08` |
+| **Runtime / code / schema evidence** | Routing today is pool-first then PDL, fenced by AR5. No cost/coverage router. |
+| **Founder-direction evidence** | FI-08 records provider-neutral routing on cost · completeness · geography · reliability. |
+| **Historical / supersession evidence** | — (no supersession evidence visible in the sources) |
+| **Questions exposed** | A router would change which of AR5's boundaries applies per call. |
+
+**What each source says — representative rows, transcribed:**
+
+| Source | Sample INV rows |
+|---|---|
+| `docs/V2-TRACKER.md` (1 rows) | INV-01341 *Provider-neutral routing on cost · completeness · geography · reliability · actual usable outpu…* |
+
+### CMP-0172 · Additional future acquisition sources
+
+| Field | Value |
+|---|---|
+| **Domain** | Providers |
+| **Relationship** | **INSUFFICIENT EVIDENCE TO COMPARE** |
+| **Inventory rows** | **1** — INV-01342 |
+| **Source documents** | 1 — `docs/V2-TRACKER.md` (1) |
+| **Stable source IDs** | `FI-09` |
+| **Runtime / code / schema evidence** | No LinkedIn, social or intent source in code. |
+| **Founder-direction evidence** | FI-09 records LinkedIn · social · YouTube · other public/intent sources as future acquisition. |
+| **Historical / supersession evidence** | — (no supersession evidence visible in the sources) |
+| **Questions exposed** | Each named source carries its own compliance question that no source states. |
+
+**What each source says — representative rows, transcribed:**
+
+| Source | Sample INV rows |
+|---|---|
+| `docs/V2-TRACKER.md` (1 rows) | INV-01342 *Additional future acquisition sources — LinkedIn · social · YouTube · other public/intent sourc…* |
+
+### CMP-0173 · Eligible K.I.N.D-owned Apollo pool data
+
+| Field | Value |
+|---|---|
+| **Domain** | Providers |
+| **Relationship** | **PARTIAL OVERLAP** |
+| **Inventory rows** | **1** — INV-01395 |
+| **Source documents** | 1 — `docs/V2-TRACKER.md` (1) |
+| **Stable source IDs** | `FI-62` |
+| **Runtime / code / schema evidence** | `lead_pool` holds owned records; `provider-boundary.ts` records that the pre-21-Aug leak was `apollo_id` stamping on client leads. |
+| **Founder-direction evidence** | FI-62 records that eligible K.I.N.D-owned Apollo pool data remains usable under geography and provenance rules. |
+| **Historical / supersession evidence** | — (no supersession evidence visible in the sources) |
+| **Questions exposed** | Ownership of a record and permission to use it for a client are separate questions that AR5 and R67 answer differently. |
+
+**What each source says — representative rows, transcribed:**
+
+| Source | Sample INV rows |
+|---|---|
+| `docs/V2-TRACKER.md` (1 rows) | INV-01395 *Eligible K.I.N.D-owned Apollo pool data remains usable under normal geography, provenance, qual…* |
+
+### CMP-0174 · PDL as the launch external sourcing provider
+
+| Field | Value |
+|---|---|
+| **Domain** | Providers |
+| **Relationship** | **AGREES** |
+| **Inventory rows** | **1** — INV-01393 |
+| **Source documents** | 1 — `docs/V2-TRACKER.md` (1) |
+| **Stable source IDs** | `FI-60` |
+| **Runtime / code / schema evidence** | `sourcing-fences.ts` prices PDL at $0.28/record and the free-proof ledger fences PDL spend; PDL is the only paid path in the proof and paid routes. |
+| **Founder-direction evidence** | FI-60 records PDL as the launch external sourcing provider. |
+| **Historical / supersession evidence** | — (no supersession evidence visible in the sources) |
+| **Questions exposed** | Code and direction agree on the launch provider. |
+
+**What each source says — representative rows, transcribed:**
+
+| Source | Sample INV rows |
+|---|---|
+| `docs/V2-TRACKER.md` (1 rows) | INV-01393 *PDL remains the launch external sourcing provider.* |
+
+### CMP-0175 · Apollo live API parked for launch
+
+| Field | Value |
+|---|---|
+| **Domain** | Providers |
+| **Relationship** | **AGREES** |
+| **Inventory rows** | **1** — INV-01394 |
+| **Source documents** | 1 — `docs/V2-TRACKER.md` (1) |
+| **Stable source IDs** | `FI-61` |
+| **Runtime / code / schema evidence** | `CASHFLOW-LAB.html` carries `f_apollo = 0`; the AR5 boundary keeps Apollo on the K.I.N.D side only. |
+| **Founder-direction evidence** | FI-61 records the Apollo live API as parked for launch. |
+| **Historical / supersession evidence** | — (no supersession evidence visible in the sources) |
+| **Questions exposed** | Parked is a state both the money model and the boundary code are consistent with. |
+
+**What each source says — representative rows, transcribed:**
+
+| Source | Sample INV rows |
+|---|---|
+| `docs/V2-TRACKER.md` (1 rows) | INV-01394 *Apollo live API remains parked for launch.* |
+
+### CMP-0176 · Future sourcing architecture — pool first, then paid
+
+| Field | Value |
+|---|---|
+| **Domain** | Providers |
+| **Relationship** | **AGREES** |
+| **Inventory rows** | **1** — INV-01338 |
+| **Source documents** | 1 — `docs/V2-TRACKER.md` (1) |
+| **Stable source IDs** | `FI-05` |
+| **Runtime / code / schema evidence** | `pool-sourcing.ts` already serves pool first and sends only the remainder to the fenced PDL path. |
+| **Founder-direction evidence** | FI-05 records the future sourcing architecture as pool-first. |
+| **Historical / supersession evidence** | — (no supersession evidence visible in the sources) |
+| **Questions exposed** | The recorded future architecture is what the code already does for the pool step. |
+
+**What each source says — representative rows, transcribed:**
+
+| Source | Sample INV rows |
+|---|---|
+| `docs/V2-TRACKER.md` (1 rows) | INV-01338 *Future sourcing architecture. Pool first → Apollo when it can produce a complete usable lead ch…* |
+
+---
+
+## Domain — Launch
+
+### CMP-0177 · Pre-launch cleanup — delete fake and test data
+
+| Field | Value |
+|---|---|
+| **Domain** | Launch |
+| **Relationship** | **PARTIAL OVERLAP** |
+| **Inventory rows** | **2** — INV-00301, INV-01345 |
+| **Source documents** | 2 — `docs/LAUNCH-PAD.md` (1) · `docs/V2-TRACKER.md` (1) |
+| **Stable source IDs** | `FI-12`, `T12` |
+| **Runtime / code / schema evidence** | `SEED-WIPE-PLAN.md` is the plan; `dead-surfaces.sh` exists; no evidence of execution is observable from the repository. |
+| **Founder-direction evidence** | FI-12 records pre-launch deletion of fake/test data. |
+| **Historical / supersession evidence** | — (no supersession evidence visible in the sources) |
+| **Questions exposed** | Overlaps CMP-0115 (seed data and wipes) as the same requirement stated from the V2 side. |
+
+**What each source says — representative rows, transcribed:**
+
+| Source | Sample INV rows |
+|---|---|
+| `docs/LAUNCH-PAD.md` (1 rows) | INV-00301 *PRE-LAUNCH CLEANUP — AUDIT BEFORE DELETE (FI-12). Production must start clean of fake/test ac…* |
+| `docs/V2-TRACKER.md` (1 rows) | INV-01345 *Pre-launch cleanup — delete fake/test accounts and data so production starts clean. First: audi…* |
+
+### CMP-0178 · Full-system sweep when the programme model lands
+
+| Field | Value |
+|---|---|
+| **Domain** | Launch |
+| **Relationship** | **INSUFFICIENT EVIDENCE TO COMPARE** |
+| **Inventory rows** | **1** — INV-01389 |
+| **Source documents** | 1 — `docs/V2-TRACKER.md` (1) |
+| **Stable source IDs** | `FI-56` |
+| **Runtime / code / schema evidence** | No programme model exists to sweep for. |
+| **Founder-direction evidence** | FI-56 records a full-system sweep of every surface when the programme model lands. |
+| **Historical / supersession evidence** | — (no supersession evidence visible in the sources) |
+| **Questions exposed** | The sweep's size is set by CMP-0047's finding that 22 live pages hard-state the current price. |
+
+**What each source says — representative rows, transcribed:**
+
+| Source | Sample INV rows |
+|---|---|
+| `docs/V2-TRACKER.md` (1 rows) | INV-01389 *Full-system sweep when the programme model is implemented — website pricing · public calculator…* |
+
+---
+
+## Domain — Website / public truth
+
+### CMP-0179 · Re-record the demo video
+
+| Field | Value |
+|---|---|
+| **Domain** | Website / public truth |
+| **Relationship** | **PARTIAL OVERLAP** |
+| **Inventory rows** | **1** — INV-01390 |
+| **Source documents** | 1 — `docs/V2-TRACKER.md` (1) |
+| **Stable source IDs** | `FI-57` |
+| **Runtime / code / schema evidence** | `docs/demo-walkthrough-script.html` and `apps/landing/*-video.html` exist; the video assets are binary and not inventoried. |
+| **Founder-direction evidence** | FI-57 records that the current demo video no longer matches the product. |
+| **Historical / supersession evidence** | — (no supersession evidence visible in the sources) |
+| **Questions exposed** | A public asset that states product truth and is outside every lint and gate. |
+
+**What each source says — representative rows, transcribed:**
+
+| Source | Sample INV rows |
+|---|---|
+| `docs/V2-TRACKER.md` (1 rows) | INV-01390 *Re-record the demo video — the current Pick / Not-a-fit + $4 paid flow becomes false under the …* |
+
+### CMP-0180 · Website consistency pass (#698)
+
+| Field | Value |
+|---|---|
+| **Domain** | Website / public truth |
+| **Relationship** | **PARTIAL OVERLAP** |
+| **Inventory rows** | **10** — INV-00250, INV-01011, INV-01065, INV-01209, INV-01256, INV-10300, INV-10359, INV-10369, INV-16850, INV-17772 |
+| **Source documents** | 6 — `docs/V2-TRACKER.md` (3) · `docs/archive/MASTER.md` (3) · `docs/PRODUCT-RULES.md` (1) · `docs/PRODUCT-INVENTORY.md` (1) · `docs/archive/EVERYTHING.md` (1) · `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` (1) |
+| **Stable source IDs** | `#698`, `R63`, `order 2` |
+| **Runtime / code / schema evidence** | 29 live pages exist under `apps/website`. |
+| **Founder-direction evidence** | #698 records that *"the homepage and the other 28 pages are two different sites"*. |
+| **Historical / supersession evidence** | — (no supersession evidence visible in the sources) |
+| **Questions exposed** | A stated inconsistency across the live public surface, distinct from the money-sentence duplication in CMP-0047. |
+
+**What each source says — representative rows, transcribed:**
+
+| Source | Sample INV rows |
+|---|---|
+| `docs/V2-TRACKER.md` (3 rows) | INV-01065 *WEBSITE CONSISTENCY PASS — the homepage and the other 28 pages are two different sites* · INV-01209 *Website consistency / cleanup (incl. the Milla + Vida homepage)* · INV-01256 *One end-to-end pass — messaging, terminology, structure, tone, hierarchy, CTA, pricing, agent descriptions* |
+| `docs/archive/MASTER.md` (3 rows) | INV-10300 *[ ] 🎨 After smoke tests → ping Claude: "do website consistency pass" — Claude will make all 32 website pages fully …* · INV-10359 *[ ] 🎨 FULL WEBSITE CONSISTENCY PASS — do immediately after smoke tests pass* · INV-10369 *[ ] 47 — Surface comparison/use-case pages in nav — ⏸ FOLDED INTO website consistency pass (post-smoke-test). Addin…* |
+| `docs/PRODUCT-RULES.md` (1 rows) | INV-00250 *THE WEBSITE CONVERGES ON THE APPROVED HOMEPAGE — five pages before launch, the rest after (21 Aug, item #698).…* |
+| `docs/PRODUCT-INVENTORY.md` (1 rows) | INV-01011 *WEBSITE CONSISTENCY PASS — PHASE 1 BUILT 21 Aug, on branch, pending the founder's preview (R63)…* |
+| `docs/archive/EVERYTHING.md` (1 rows) | INV-16850 *32 · Website consistency pass — ✅ DONE 5 Jun: logo (35 pages), colors (#7C3AED), Denise site-wide, demo/platform-vi…* |
+| `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` (1 rows) | INV-17772 *698 · 🟡 · 🎨 WEBSITE CONSISTENCY PASS — PHASE 1 BUILT 21 Aug, on branch, pending the founder's preview (R63). ⚠️ Pha…* |
+
+---
+
+## Domain — V2
+
+### CMP-0181 · Premium conversion-coaching product
+
+| Field | Value |
+|---|---|
+| **Domain** | V2 |
+| **Relationship** | **INSUFFICIENT EVIDENCE TO COMPARE** |
+| **Inventory rows** | **1** — INV-01348 |
+| **Source documents** | 1 — `docs/V2-TRACKER.md` (1) |
+| **Stable source IDs** | `FI-15` |
+| **Runtime / code / schema evidence** | No implementation found in `apps/api`, `packages/shared` or `supabase/migrations`. |
+| **Founder-direction evidence** | FI-15 records a premium conversion-coaching product beyond the core. |
+| **Historical / supersession evidence** | — (no supersession evidence visible in the sources) |
+| **Questions exposed** | A second product line; R39's three-product model describes a different split. |
+
+**What each source says — representative rows, transcribed:**
+
+| Source | Sample INV rows |
+|---|---|
+| `docs/V2-TRACKER.md` (1 rows) | INV-01348 *Premium conversion-coaching product. Core K.I.N.D = targeting → approved leads → outreach → boo…* |
+
+### CMP-0182 · Milla / AI conversion-coaching diagnostics
+
+| Field | Value |
+|---|---|
+| **Domain** | V2 |
+| **Relationship** | **INSUFFICIENT EVIDENCE TO COMPARE** |
+| **Inventory rows** | **1** — INV-01349 |
+| **Source documents** | 1 — `docs/V2-TRACKER.md` (1) |
+| **Stable source IDs** | `FI-16` |
+| **Runtime / code / schema evidence** | No implementation found in `apps/api`, `packages/shared` or `supabase/migrations`. |
+| **Founder-direction evidence** | FI-16 records AI diagnostics for conversion coaching. |
+| **Historical / supersession evidence** | — (no supersession evidence visible in the sources) |
+| **Questions exposed** | Depends on booked → paying data that CMP-0157 records as untracked. |
+
+**What each source says — representative rows, transcribed:**
+
+| Source | Sample INV rows |
+|---|---|
+| `docs/V2-TRACKER.md` (1 rows) | INV-01349 *Milla/AI conversion coaching — diagnose funnel leakage · learn which ICPs, messages and meeting…* |
+
+### CMP-0183 · Evidence-driven recommendations
+
+| Field | Value |
+|---|---|
+| **Domain** | V2 |
+| **Relationship** | **PARTIAL OVERLAP** |
+| **Inventory rows** | **1** — INV-01397 |
+| **Source documents** | 1 — `docs/V2-TRACKER.md` (1) |
+| **Stable source IDs** | `FI-64` |
+| **Runtime / code / schema evidence** | No recommendation engine. |
+| **Founder-direction evidence** | FI-64 records increasingly client-specific recommendations replacing generic industry advice. |
+| **Historical / supersession evidence** | — (no supersession evidence visible in the sources) |
+| **Questions exposed** | Same underlying move as CMP-0160 (client-specific learning) applied to advice rather than benchmarks. |
+
+**What each source says — representative rows, transcribed:**
+
+| Source | Sample INV rows |
+|---|---|
+| `docs/V2-TRACKER.md` (1 rows) | INV-01397 *Evidence-driven recommendations — increasingly client-specific rather than generic industry ass…* |
+
+### CMP-0184 · Glean investigation as a context layer
+
+| Field | Value |
+|---|---|
+| **Domain** | V2 |
+| **Relationship** | **INSUFFICIENT EVIDENCE TO COMPARE** |
+| **Inventory rows** | **1** — INV-01350 |
+| **Source documents** | 1 — `docs/V2-TRACKER.md` (1) |
+| **Stable source IDs** | `FI-17` |
+| **Runtime / code / schema evidence** | No Glean integration. |
+| **Founder-direction evidence** | FI-17 records a Glean investigation as a possible context layer. |
+| **Historical / supersession evidence** | The archive records Glean steals from a 4 Jun site review — an earlier, different use of the same name. |
+| **Questions exposed** | Two Glean references exist ten weeks apart meaning different things. |
+
+**What each source says — representative rows, transcribed:**
+
+| Source | Sample INV rows |
+|---|---|
+| `docs/V2-TRACKER.md` (1 rows) | INV-01350 *Glean investigation as a possible context layer under Milla — internal K.I.N.D knowledge, later…* |
+
+### CMP-0185 · K.I.N.D multi-player AI
+
+| Field | Value |
+|---|---|
+| **Domain** | V2 |
+| **Relationship** | **INSUFFICIENT EVIDENCE TO COMPARE** |
+| **Inventory rows** | **2** — INV-01351–01352 |
+| **Source documents** | 1 — `docs/V2-TRACKER.md` (2) |
+| **Stable source IDs** | `FI-18`, `FI-19` |
+| **Runtime / code / schema evidence** | No implementation found in `apps/api`, `packages/shared` or `supabase/migrations`. |
+| **Founder-direction evidence** | FI-18 records multi-player AI as VERY IMPORTANT V2/PREMIUM; FI-19 records its core features. |
+| **Historical / supersession evidence** | — (no supersession evidence visible in the sources) |
+| **Questions exposed** | A team workspace product with no second source describing it. |
+
+**What each source says — representative rows, transcribed:**
+
+| Source | Sample INV rows |
+|---|---|
+| `docs/V2-TRACKER.md` (2 rows) | INV-01351 *K.I.N.D Multi-player AI (VERY IMPORTANT V2/PREMIUM). A team workspace where multiple humans and…* · INV-01352 *Multi-player AI core features — interactive dashboard · proactive task management · team chat ·…* |
+
+### CMP-0186 · Internal model routing and AI cost economics
+
+| Field | Value |
+|---|---|
+| **Domain** | V2 |
+| **Relationship** | **PARTIAL OVERLAP** |
+| **Inventory rows** | **11** — INV-01068–01074, INV-01353–01354, INV-18149, INV-18468 |
+| **Source documents** | 3 — `docs/V2-TRACKER.md` (9) · `docs/archive/V2-NARRATIVE-2026-08-21.md` (1) · `docs/archive/LAUNCH-PAD-2026-08-21.md` (1) |
+| **Stable source IDs** | `#686`, `FI-20`, `FI-21`, `R58` |
+| **Runtime / code / schema evidence** | `CASHFLOW-LAB.html` carries `f_claude = 10` as a fixed monthly line; no routing or token-budget control exists. |
+| **Founder-direction evidence** | FI-20 records internal model routing; FI-21 records retrieval-first context, caching and token budgets. |
+| **Historical / supersession evidence** | — (no supersession evidence visible in the sources) |
+| **Questions exposed** | A fixed $10 cost line and an unbuilt cost-control programme describe the same spend from two directions. |
+
+**What each source says — representative rows, transcribed:**
+
+| Source | Sample INV rows |
+|---|---|
+| `docs/V2-TRACKER.md` (9 rows) | INV-01068 *Everything designed; three items built and REVERTED unbuilt on the founder's ruling* · INV-01069 *The finding that reorders the thesis — the decision that won a meeting is destroyed by the next rescore* · INV-01070 *The immutable chain diagram — leads → lead_decisions → approvals/enrollments → replies → bookings* |
+| `docs/archive/V2-NARRATIVE-2026-08-21.md` (1 rows) | INV-18149 *⑤ Model routing* |
+| `docs/archive/LAUNCH-PAD-2026-08-21.md` (1 rows) | INV-18468 *686–#696 · 🔬 FIGSY OBSERVABILITY + MODEL ROUTING — designed, documented, NOT built (R58). The founder gave the go o…* |
+
+---
+
+## Domain — Operating / governance
+
+### CMP-0187 · CodeRabbit as an independent second reviewer
+
+| Field | Value |
+|---|---|
+| **Domain** | Operating / governance |
+| **Relationship** | **PARTIAL OVERLAP** |
+| **Inventory rows** | **1** — INV-01355 |
+| **Source documents** | 1 — `docs/V2-TRACKER.md` (1) |
+| **Stable source IDs** | `FI-22` |
+| **Runtime / code / schema evidence** | No second automated reviewer. Protocol r20 routes review through the founder and GPT-5.6. |
+| **Founder-direction evidence** | FI-22 records evaluating CodeRabbit as an independent machine reviewer after Claude-generated PRs. |
+| **Historical / supersession evidence** | — (no supersession evidence visible in the sources) |
+| **Questions exposed** | The governance model already names a second reviewer; this would add a third, machine one. |
+
+**What each source says — representative rows, transcribed:**
+
+| Source | Sample INV rows |
+|---|---|
+| `docs/V2-TRACKER.md` (1 rows) | INV-01355 *CodeRabbit evaluation as an independent second machine reviewer after Claude-generated PRs. Ass…* |
+
+---
+
+## Domain — V2
+
+### CMP-0188 · Milla voice — speech-to-text and spoken replies
+
+| Field | Value |
+|---|---|
+| **Domain** | V2 |
+| **Relationship** | **INSUFFICIENT EVIDENCE TO COMPARE** |
+| **Inventory rows** | **1** — INV-01356 |
+| **Source documents** | 1 — `docs/V2-TRACKER.md` (1) |
+| **Stable source IDs** | `FI-23` |
+| **Runtime / code / schema evidence** | No implementation found in `apps/api`, `packages/shared` or `supabase/migrations`. |
+| **Founder-direction evidence** | FI-23 records Milla voice — speech-to-text and spoken replies. |
+| **Historical / supersession evidence** | — (no supersession evidence visible in the sources) |
+| **Questions exposed** | Distinct from CMP-0100's AI cold-calling: this is voice **in the portal**, not voice **as a channel**. |
+
+**What each source says — representative rows, transcribed:**
+
+| Source | Sample INV rows |
+|---|---|
+| `docs/V2-TRACKER.md` (1 rows) | INV-01356 *Milla voice — speech-to-text · spoken responses · seamless voice/text switching inside the same…* |
+
+### CMP-0189 · Slack as an interaction layer
+
+| Field | Value |
+|---|---|
+| **Domain** | V2 |
+| **Relationship** | **PARTIAL OVERLAP** |
+| **Inventory rows** | **19** — INV-01357–01358, INV-04181, INV-04416, INV-05003, INV-06813, INV-07384, INV-07521, INV-13369, INV-13374, INV-13583, INV-15081, INV-15262, INV-15294, INV-15731 … +4 more ranges |
+| **Source documents** | 11 — `docs/archive/KIND-MASTER-ARCHIVE.md` (5) · `docs/archive/MASTER.md` (3) · `docs/V2-TRACKER.md` (2) · `docs/art-of-possible.md` (2) · `docs/ENVIRONMENT.md` (1) · `docs/MILESTONE-0-CHECKLIST.md` (1) · `docs/LIVE-FEATURE-WALK.md` (1) · `docs/compliance/BREACH-RESPONSE-DRAFT.md` (1) · +3 more source documents |
+| **Stable source IDs** | `#339`, `#59`, `#68`, `FI-24`, `FI-25` |
+| **Runtime / code / schema evidence** | No Slack integration. |
+| **Founder-direction evidence** | FI-24 records Slack as an internal operational layer; FI-25 records the stronger direction — Slack as the **primary** interaction layer for clients and team. |
+| **Historical / supersession evidence** | — (no supersession evidence visible in the sources) |
+| **Questions exposed** | Two different ambitions under one name: an internal notification channel and a primary product surface. |
+
+**What each source says — representative rows, transcribed:**
+
+| Source | Sample INV rows |
+|---|---|
+| `docs/archive/KIND-MASTER-ARCHIVE.md` (5 rows) | INV-15081 *Notion · Custom Agents (team-wide bots on schedules + triggers). MCP-native: Linear, HubSpot, Figma, Slack, Attio C…* · INV-15262 *59 (pulled fwd)* · INV-15294 *68 · ⬜ · In-portal messaging (Slack-style). · Team chat. · Monday/Notion. Year 2+.* |
+| `docs/archive/MASTER.md` (3 rows) | INV-13369 *Messaging · Monitors Slack / WhatsApp / Telegram — responds, filters noise* · INV-13374 *Channels · Single agent across email + voice + Slack + WhatsApp* · INV-13583 *Internal team chat* |
+| `docs/V2-TRACKER.md` (2 rows) | INV-01357 *Slack integration (initial idea) — internal communication layer for operational events, alerts,…* · INV-01358 *Slack as the primary interaction layer (stronger direction). Clients and internal team talk to …* |
+| `docs/art-of-possible.md` (2 rows) | INV-07384 *Actions: create HubSpot deal, send Slack notification, pause/resume campaign, run ICP, webhook.* · INV-07521 *Stack: Self-hosted, multi-channel (Slack, email, WhatsApp, voice), 88,000+ lines of custom code, approval mode → gr…* |
+| `docs/ENVIRONMENT.md` (1 rows) | INV-04181 *SLACK_WEBHOOK_URL* |
+| `docs/MILESTONE-0-CHECKLIST.md` (1 rows) | INV-04416 *[ ] #339 — sendFounderAlert checks its own send result + durable store + Slack fallback.* |
+| `docs/LIVE-FEATURE-WALK.md` (1 rows) | INV-05003 */dashboard/notetaker* |
+| `docs/compliance/BREACH-RESPONSE-DRAFT.md` (1 rows) | INV-06813 *Founder alerts* |
+| *+3 more source documents* | *full list via the coverage map* |
+
+### CMP-0190 · Alta parity — the unified data layer / shared agent brain
+
+| Field | Value |
+|---|---|
+| **Domain** | V2 |
+| **Relationship** | **PARTIAL OVERLAP** |
+| **Inventory rows** | **9** — INV-00897, INV-01046, INV-01079, INV-01094, INV-02345, INV-17655, INV-17832–17833, INV-17884 |
+| **Source documents** | 5 — `docs/archive/V2-NARRATIVE-2026-08-21.md` (3) · `docs/PRODUCT-INVENTORY.md` (2) · `docs/V2-TRACKER.md` (2) · `docs/KIND-MASTER.md` (1) · `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` (1) |
+| **Stable source IDs** | `#429`, `#475`, `#476` |
+| **Runtime / code / schema evidence** | No shared brain; Nexus (#511) is per-client, which is a different architecture. |
+| **Founder-direction evidence** | #476 records the unified data layer as **THE moat** from the 21 Jul Alta teardown. |
+| **Historical / supersession evidence** | — (no supersession evidence visible in the sources) |
+| **Questions exposed** | A cross-client shared brain and a per-client private brain are opposite architectures; both are recorded as direction. |
+
+**What each source says — representative rows, transcribed:**
+
+| Source | Sample INV rows |
+|---|---|
+| `docs/archive/V2-NARRATIVE-2026-08-21.md` (3 rows) | INV-17832 *476 — UNIFIED DATA LAYER / shared agent brain (THE moat)* · INV-17833 *Both queue behind the SPRINT (first paying client). Logged now so completeness is a build path, not a blind spot. F…* · INV-17884 *Alta parity #475 (voice/AI calling) · #476 (unified data layer) — the competitive gaps, §"🆚 ALTA PARITY" above.* |
+| `docs/PRODUCT-INVENTORY.md` (2 rows) | INV-00897 *UNIFIED DATA LAYER / shared agent brain — THE moat. — Alta's real strength isn't three agents, …* · INV-01046 *Auth · billing · admin OS · infra · website · legal · partner · API · NEXUS (#476)* |
+| `docs/V2-TRACKER.md` (2 rows) | INV-01079 *SCALE IT — trigger: ~10 clients, real outcome data flowing* · INV-01094 *UNIFIED DATA LAYER / shared agent brain — THE moat* |
+| `docs/KIND-MASTER.md` (1 rows) | INV-02345 *21 Jul (cont.⁵) — 🆚 ALTA COMPETITIVE TEARDOWN → 2 parity gaps logged 🔴 (#475 voice · #476 unified data layer). Foun…* |
+| `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` (1 rows) | INV-17655 *476 · 🔴 · UNIFIED DATA LAYER / shared agent brain — THE moat. Alta's real strength isn't three agents, it's one sha…* |
+
+### CMP-0191 · The three-product model (R39)
+
+| Field | Value |
+|---|---|
+| **Domain** | V2 |
+| **Relationship** | **PARTIAL OVERLAP** |
+| **Inventory rows** | **31** — INV-00226, INV-00964, INV-01082–01088, INV-02031, INV-17723, INV-17794–17813 |
+| **Source documents** | 6 — `docs/archive/V2-NARRATIVE-2026-08-21.md` (20) · `docs/V2-TRACKER.md` (7) · `docs/PRODUCT-RULES.md` (1) · `docs/PRODUCT-INVENTORY.md` (1) · `docs/KIND-MASTER.md` (1) · `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` (1) |
+| **Stable source IDs** | `#606`, `#608`, `#651`, `P1`, `P3`, `R38`, `R39` |
+| **Runtime / code / schema evidence** | One product runs: pack + per-approval wallet. `comp-engine.ts` holds a legacy MRR model nothing calls. |
+| **Founder-direction evidence** | R39 (founder-ruled 15 Aug) records P1 · P2 Coaching (*"$8 is the founder's EXAMPLE, not a locked price; usage only, never monthly"*) · P3 full SaaS (monthly + usage). |
+| **Historical / supersession evidence** | — (no supersession evidence visible in the sources) |
+| **Questions exposed** | R39's P2/P3 and R74's programme model are two different commercial futures recorded five days apart; neither references the other. |
+
+**What each source says — representative rows, transcribed:**
+
+| Source | Sample INV rows |
+|---|---|
+| `docs/archive/V2-NARRATIVE-2026-08-21.md` (20 rows) | INV-17794 *░ 💼 THE THREE-PRODUCT FUTURE — one engine, three ways to pay (R39, founder-ruled 15 Aug) ░* · INV-17795 *This section was "THE TWO-MODEL FUTURE — Base + Advanced" (founder-locked 31 Jul, #608). R39 (15 Aug) did not repla…* · INV-17796 */ / P1 · MANAGED (live) / P2 · COACHING (the second paid product) / P3 · FULL SaaS (later) /* |
+| `docs/V2-TRACKER.md` (7 rows) | INV-01082 *P1 MANAGED (live) — $4/approved lead, $299 start incl. 100, usage only, we operate* · INV-01083 *P2 COACHING — everything in P1 plus a named operator, plays, Nexus auto-tuning ON* · INV-01084 *P3 FULL SaaS — monthly + a usage rate, the client operates it themselves* |
+| `docs/PRODUCT-RULES.md` (1 rows) | INV-00226 *THE THREE-PRODUCT MODEL — one engine, three ways to pay, and the client pays on APPROVAL at every tier. P1 · M…* |
+| `docs/PRODUCT-INVENTORY.md` (1 rows) | INV-00964 *[ENGINE · R38-amended + R39, founder-ruled 15 Aug] THE INDUSTRY/PURPOSE SEQUENCING ENGINE — seq…* |
+| `docs/KIND-MASTER.md` (1 rows) | INV-02031 *15 Aug, fourth entry (💼 THE THREE-PRODUCT MODEL — R39, and sequencing is core to ALL of it): the founder settled wh…* |
+| `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` (1 rows) | INV-17723 *651 · 🩷 · [ENGINE · R38-amended + R39, founder-ruled 15 Aug] THE INDUSTRY/PURPOSE SEQUENCING ENGINE — sequencing is…* |
+
+### CMP-0192 · Evidence-triggered phase ladder — PROVE IT / COMPOUND IT / SCALE IT
+
+| Field | Value |
+|---|---|
+| **Domain** | V2 |
+| **Relationship** | **AGREES** |
+| **Inventory rows** | **26** — INV-01057, INV-01076, INV-01078, INV-01883, INV-07089, INV-07118, INV-07124, INV-07128, INV-07134, INV-07139, INV-07144, INV-08057–08070, INV-22863 |
+| **Source documents** | 5 — `docs/marketing/GTM-STRATEGY.md` (14) · `docs/runbooks/GOOGLE-VERIFICATION.md` (7) · `docs/V2-TRACKER.md` (3) · `docs/KIND-MASTER.md` (1) · `docs/marketing/bundle-source/free10-landing-page.html` (1) |
+| **Stable source IDs** | `#673`, `R21` |
+| **Runtime / code / schema evidence** | No phase gate in code. |
+| **Founder-direction evidence** | V2 records *"Phases are triggered by EVIDENCE, never by date"* with named triggers: client #1 paying · 4 clients ≈400 approvals/mo · ~10 clients with outcome data. |
+| **Historical / supersession evidence** | — (no supersession evidence visible in the sources) |
+| **Questions exposed** | The evidence triggers are stated in client and approval counts that the live board can already produce. |
+
+**What each source says — representative rows, transcribed:**
+
+| Source | Sample INV rows |
+|---|---|
+| `docs/marketing/GTM-STRATEGY.md` (14 rows) | INV-08057 *4 · The stages — triggered by evidence, never by date* · INV-08058 *Stage 0 · NOW → ~25 Aug — warm only* · INV-08059 *Warm-100 list, 5 personally-written messages a day* |
+| `docs/runbooks/GOOGLE-VERIFICATION.md` (7 rows) | INV-07089 *Every step says how we prove it happened — a value you can read, not "looks fine".* · INV-07118 *Prove it: the address appears in the Test users list, and they reach the consent screen* · INV-07124 *Prove it · dig +short api.get-kind.com returns the Railway target. From this machine: curl -sI https://api.get-kind…* |
+| `docs/V2-TRACKER.md` (3 rows) | INV-01057 *Phases are triggered by EVIDENCE, never by date* · INV-01076 *PROVE IT — trigger: client #1 in the works → paying* · INV-01078 *COMPOUND IT — trigger: 4 clients · ~400 approvals/mo (the R15/R16 line)* |
+| `docs/KIND-MASTER.md` (1 rows) | INV-01883 *How we target: ① dogfood — FIGSY sells K.I.N.D (warmup campaign IS this; scale it) · ② replicate the Demmy partner …* |
+| `docs/marketing/bundle-source/free10-landing-page.html` (1 rows) | INV-22863 *No card required. Nothing is sent until you approve it inside Milla.* |
+
+---
+
+## Domain — GTM
+
+### CMP-0193 · The Drop as a content programme
+
+| Field | Value |
+|---|---|
+| **Domain** | GTM |
+| **Relationship** | **PARTIAL OVERLAP** |
+| **Inventory rows** | **374** — INV-00216, INV-00678, INV-01192, INV-01455, INV-01720, INV-01723, INV-01727–01729, INV-01837, INV-04383–04386, INV-07556, INV-07690–07703, INV-07707, INV-07710, INV-08025 … +32 more ranges |
+| **Source documents** | 31 — `docs/marketing/DAILY-PLAYBOOK.md` (66) · `docs/marketing/founder-content-playbook.md` (61) · `apps/website/drop-01.html` (22) · `apps/website/drop-02.html` (22) · `apps/website/drop-03.html` (22) · `apps/website/drop-08.html` (22) · `apps/website/drop-09.html` (22) · `apps/website/drop-05.html` (20) · +23 more source documents |
+| **Stable source IDs** | `#1`, `#2`, `#503`, `#544`, `#554`, `#93`, `R21`, `R29`, `R31` |
+| **Runtime / code / schema evidence** | Nine `drop-0*.html` pages plus `the-drop.html` are live; R29 parks the newsletter and moves the channel to YouTube; R37 binds a Drop to every finished phase. |
+| **Founder-direction evidence** | R29, R31, R34 and R37 are founder rules governing cadence, channel and what earns a Drop. |
+| **Historical / supersession evidence** | R29 supersedes the newsletter channel; the beehiiv setup checklist predates it. |
+| **Questions exposed** | Nine live pages exist for a programme whose channel rule changed after they shipped. |
+
+**What each source says — representative rows, transcribed:**
+
+| Source | Sample INV rows |
+|---|---|
+| `docs/marketing/DAILY-PLAYBOOK.md` (66 rows) | INV-08276 *Thu 14 · POST 2 (Every reply, answered) — Thursday is the anchor day (W1) and stays the anchor day forever · gen-dr…* · INV-08282 *Tue 19 · POST 3 (Pay for results, not promises) · gen-drop-03-hero.png + get-kind.com/drop-03 · 10 min* · INV-08283 *Thu 21 · POST 4 (Why your emails never arrived) ~~+ send newsletter #1~~ (parked, R29) · gen-drop-04-hero.png + get…* |
+| `docs/marketing/founder-content-playbook.md` (61 rows) | INV-08647 *These are not ideas. They are posts. Each one is built from a DROP episode that is already live on our own site, so…* · INV-08649 *1 · The hour you never get back · Pillar: Problem · → https://get-kind.com/drop-02* · INV-08650 *Attach: gen-drop-02-hero.png — the episode's own artwork, so the feed and the site look like one brand. Save it fro…* |
+| `apps/website/drop-01.html` (22 rows) | INV-23136 *Drop 01 — Filling roles while you sleep · The Drop · K.I.N.D* · INV-23137 *We run it. You approve.* · INV-23138 *You only pay $4 when you approve a lead. Reviewing is always free.* |
+| `apps/website/drop-02.html` (22 rows) | INV-23158 *Drop 02 — The hour you never get back · The Drop · K.I.N.D* · INV-23159 *We run it. You approve.* · INV-23160 *You only pay $4 when you approve a lead. Reviewing is always free.* |
+| `apps/website/drop-03.html` (22 rows) | INV-23180 *Drop 03 — Pay for results, not promises · The Drop · K.I.N.D* · INV-23181 *We run it. You approve.* · INV-23182 *You only pay $4 when you approve a lead. Reviewing is always free.* |
+| `apps/website/drop-08.html` (22 rows) | INV-23280 *Drop 08 — Compliant by default, not by accident · The Drop · K.I.N.D* · INV-23281 *We run it. You approve.* · INV-23282 *You only pay $4 when you approve a lead. Reviewing is always free.* |
+| `apps/website/drop-09.html` (22 rows) | INV-23302 *Drop 09 — The follow-up that knows the date · The Drop · K.I.N.D* · INV-23303 *We run it. You approve.* · INV-23304 *You only pay $4 when you approve a lead. Reviewing is always free.* |
+| `apps/website/drop-05.html` (20 rows) | INV-23220 *Drop 05 — Every reply, answered · The Drop · K.I.N.D* · INV-23221 *We run it. You approve.* · INV-23222 *You only pay $4 when you approve a lead. Reviewing is always free.* |
+| *+23 more source documents* | *full list via the coverage map* |
+
+---
+
+## Domain — Operating / governance
+
+### CMP-0194 · Day-1 post-launch operating-model session (R60)
+
+| Field | Value |
+|---|---|
+| **Domain** | Operating / governance |
+| **Relationship** | **AGREES** |
+| **Inventory rows** | **3** — INV-00247, INV-01066, INV-01322 |
+| **Source documents** | 2 — `docs/V2-TRACKER.md` (2) · `docs/PRODUCT-RULES.md` (1) |
+| **Stable source IDs** | `7.1`, `R60` |
+| **Runtime / code / schema evidence** | No code relationship. |
+| **Founder-direction evidence** | R60 records a day-1 post-launch operating-model session before any new build. |
+| **Historical / supersession evidence** | — (no supersession evidence visible in the sources) |
+| **Questions exposed** | A rule that fires the day after the date CMP-0056 cannot establish. |
+
+**What each source says — representative rows, transcribed:**
+
+| Source | Sample INV rows |
+|---|---|
+| `docs/V2-TRACKER.md` (2 rows) | INV-01066 *DAY 1 POST-LAUNCH — the operating-model session, before any new build* · INV-01322 *What the operating model has to cover — nineteen named areas* |
+| `docs/PRODUCT-RULES.md` (1 rows) | INV-00247 *DAY 1 POST-LAUNCH: WE REDESIGN HOW WE OPERATE — founder standing order (20 Aug, end of the P30 day). His words…* |
+
+### CMP-0195 · Per-client data-retention controls
+
+| Field | Value |
+|---|---|
+| **Domain** | Operating / governance |
+| **Relationship** | **DIRECT CONFLICT** |
+| **Inventory rows** | **1** — INV-01063 |
+| **Source documents** | 1 — `docs/V2-TRACKER.md` (1) |
+| **Stable source IDs** | (none carried by these rows) |
+| **Runtime / code / schema evidence** | No per-client retention setting exists in schema or code. |
+| **Founder-direction evidence** | NO EXPLICIT CURRENT FOUNDER DIRECTION FOUND |
+| **Historical / supersession evidence** | — (no supersession evidence visible in the sources) |
+| **Questions exposed** | V2 records that *"the site promised a setting that does not exist"* — a live public promise against an absent capability. |
+
+**What each source says — representative rows, transcribed:**
+
+| Source | Sample INV rows |
+|---|---|
+| `docs/V2-TRACKER.md` (1 rows) | INV-01063 *Per-client retention controls — the site promised a setting that does not exist* |
+
+### CMP-0196 · The stealth constraint (R2)
+
+| Field | Value |
+|---|---|
+| **Domain** | Operating / governance |
+| **Relationship** | **PARTIAL OVERLAP** |
+| **Inventory rows** | **32** — INV-00189, INV-00762, INV-01161, INV-02324, INV-03055, INV-04630–04637, INV-08095–08106, INV-08525, INV-08589, INV-08989, INV-16348, INV-17519, INV-17988, INV-18053 |
+| **Source documents** | 13 — `docs/marketing/MARKETING-PLAN.md` (12) · `docs/AFRICA-PLAYBOOK.md` (8) · `docs/archive/V2-NARRATIVE-2026-08-21.md` (2) · `docs/PRODUCT-RULES.md` (1) · `docs/PRODUCT-INVENTORY.md` (1) · `docs/V2-TRACKER.md` (1) · `docs/KIND-MASTER.md` (1) · `docs/PARTNER-BRIEF.md` (1) · +5 more source documents |
+| **Stable source IDs** | `#233`, `R2`, `R7`, `§9` |
+| **Runtime / code / schema evidence** | No code relationship. The website carries no founder identity. |
+| **Founder-direction evidence** | R2, locked 25 Jun and re-affirmed 6 Aug: *"Stealth is NARROWED, not lifted. A LinkedIn company page is allowed. No personal announcement."* The founder's words are quoted: *"dont worry about me stealth. i wont publicy announce on linkdein."* |
+| **Historical / supersession evidence** | The 25 Jun stealth pivot moved partner recruiting from founder-LinkedIn to email, brand-led; R20 re-affirms rather than lifts. |
+| **Questions exposed** | The marketing plan's centre — founder-led public posting 3–5×/week — is blocked by this lock, and both are current. |
+
+**What each source says — representative rows, transcribed:**
+
+| Source | Sample INV rows |
+|---|---|
+| `docs/marketing/MARKETING-PLAN.md` (12 rows) | INV-08095 *LOCK 1 · R2 — stealth is narrowed, not lifted (6 Aug)* · INV-08096 *"Stealth is NARROWED, not lifted. A LinkedIn company page is allowed. No personal announcement. Outreach goes to fr…* · INV-08097 *Founder's words: "dont worry about me stealth. i wont publicy announce on linkdein. i will create a linkdein compan…* |
+| `docs/AFRICA-PLAYBOOK.md` (8 rows) | INV-04630 *🅑 ROUTE B — PARTNERS (stealth, email/brand-led) · item 233* · INV-04631 *🕵️ STEALTH CONSTRAINT (LOCKED 25 Jun): the founder cannot be publicly identified yet — the current employer would i…* · INV-04632 *Source an African agency partner database — marketing / lead-gen / web / digital agencies · consultants · BPOs acro…* |
+| `docs/archive/V2-NARRATIVE-2026-08-21.md` (2 rows) | INV-17988 *Africa partner recruiting (233 + PARTNER GTM below) = email + brand-led (stealth — NO founder identity/LinkedIn): s…* · INV-18053 *Channels (ranked) — ⚠️ STEALTH-CONSTRAINED (25 Jun): NO founder LinkedIn / no public founder identity (employer wou…* |
+| `docs/PRODUCT-RULES.md` (1 rows) | INV-00189 *Stealth is NARROWED, not lifted. A LinkedIn company page is allowed. No personal announcement. Outreach goes t…* |
+| `docs/PRODUCT-INVENTORY.md` (1 rows) | INV-00762 *EPIC — Partner-recruiting motion (stealth, email/brand-led)* |
+| `docs/V2-TRACKER.md` (1 rows) | INV-01161 *Partner ICP and the pitch; channels ranked, STEALTH-CONSTRAINED* |
+| `docs/KIND-MASTER.md` (1 rows) | INV-02324 *25 Jun (cont.⁸) — 🕵️ STEALTH DECISION (founder, LOCKED): partner recruiting pivots founder-LinkedIn → EMAIL/brand-l…* |
+| `docs/PARTNER-BRIEF.md` (1 rows) | INV-03055 *STEALTH PIVOT (25 Jun): channel changed from founder-LinkedIn → EMAIL, brand-led (faceless K.I.N.D). The founder ca…* |
+| *+5 more source documents* | *full list via the coverage map* |
+
+---
+
+## Proof — the repaired Step 3 can distinguish the six FI states
+
+The founder's requirement is that Step 3 be granular enough for Step 4 to classify these apart.
+Each class below is derived from the **markers the Step-2 rows already carry**, and each lands in a
+different set of comparison subjects. **No verdict is assigned here** — this is a distinguishability
+proof, nothing more.
+
+| FI class | FI items | Distinct CMP subjects they land in |
+|---|---|---:|
+| **Explicitly SUPERSEDED / HISTORY** | FI-29, FI-37, FI-65, FI-66, FI-67, FI-68, FI-69 | 7 |
+| **Carries an unresolved question** | FI-31 | 1 |
+| **Observational rather than implemented** | FI-01 | 1 |
+| **Current approved direction** | FI-26, FI-27, FI-28, FI-30, FI-32, FI-33, FI-34, FI-35, FI-36, FI-38, FI-39, FI-40, FI-41, FI-42, FI-43, FI-44, FI-45, FI-60, FI-61, FI-62 | 17 |
+| **Overlaps launch / product subjects** | FI-02, FI-03, FI-04, FI-05, FI-07, FI-08, FI-09, FI-10, FI-11, FI-12, FI-46, FI-47, FI-48, FI-49, FI-50, FI-51, FI-52, FI-53, FI-54, FI-55, FI-56, FI-57, FI-58, FI-59 | 24 |
+| **Genuinely remaining V2** | FI-06, FI-13, FI-14, FI-15, FI-16, FI-17, FI-18, FI-19, FI-20, FI-21, FI-22, FI-23, FI-24, FI-25, FI-63, FI-64 | 13 |
+
+**All 69 FI items are individually traceable, none sits in a retired container, and they are spread across 60 distinct comparison subjects** — where CMP-0062 alone previously held 16 of them.
+
+---
+
+# ░ RECORDED INPUTS FOR THE STEP-4 RERUN ░
+
+Step 4 must be re-run against this repaired comparison set. **Three inputs are recorded here by the
+founder's instruction and are NOT classified in this pass** — Step 3 compares, it does not decide.
+
+## A · The launch date is fixed
+
+**The founder has fixed the launch as FRIDAY 4 SEPTEMBER 2026.** The rerun must **not** ask him to
+choose the date again. What remains is a classification task: **R57's 25 August must be classified
+against that current founder direction**, and the chain rule applied so the register records the
+date the company is actually working to. `CMP-0056` holds the evidence — R57 (20 Aug, unconditional),
+O9 (a 31 Aug stop-line explicitly not a product date), and the absence of any rule stating 4 September.
+
+## B · The programme model may not be post-launch
+
+The current founder-approved commercial direction **is** the programme model. Step 4 placed
+`CMP-0004` and its mechanics at POST-LAUNCH CRITICAL on the reasoning that the legacy runtime can
+carry a launch. **The rerun must re-evaluate that** against a different question: *is the programme
+model required for the launch commercial experience?* — because a client who buys on 4 September buys
+something, and what they buy is either the legacy per-approval model or the programme. The mechanics
+are now individually classifiable (`CMP-0136` … `CMP-0152` and the authority subjects), so the rerun
+can answer it per mechanism rather than for the programme as a block. **Not decided here.**
+
+## C · Proof exhaustion → Vida → resolve has not been walked end to end
+
+The journey is **built** — the atomic claim refuses at two passes, ONE handoff opens, the 409 returns,
+and `20260827_proof_review_handoff` is founder-reported applied — but **it has never been walked E2E**,
+and its full-suite guard `proof-review-handoff.test.ts` failed **twice in eight runs** during this
+session, passing the other six including on a clean tree at `origin/main`. The rerun must assess
+`CMP-0040`, `CMP-0041` and `CMP-0180` explicitly against the RED definition — *must resolve, build,
+correct or test before launch* — rather than treating "built" as sufficient. **Not classified here.**
 
 ---
 

@@ -1488,6 +1488,179 @@ An adopted change must materially support at least one of **REVENUE · RETENTION
 
 ---
 
+---
+
+# ░ 📥 27 AUG — THE FOUNDER IDEA BANK (FI-01 … FI-69) — master control record ░
+
+⛓️ **WHY THIS SECTION EXISTS.** On 27 Aug the founder listed sixty-nine ideas, directions and supersessions that existed **only in chat**. A ruling that lives only in a transcript is a ruling that will be contradicted — the transcript is not read at session start and cannot be grepped, which is exactly how #549 was contradicted on 6 Aug. This section is the **master backlog entry for every one of them**; where an item has a canonical home elsewhere, the home is named and the detail lives there, not here.
+
+⚠️ **NOTHING HERE IS BUILT, AND NOTHING HERE IS LAUNCH SCOPE** unless the *Canonical home* column says LAUNCH-PAD. Reading an item here is not permission to build it. Every entry is **LOGGED**, not started.
+
+⚠️ **THE PROGRAMME COMMERCIAL MODEL (FI-26 … FI-45) CONTRADICTS THE CURRENT LOCKED PRICING** ($299 pack · 100 included · $4 per approved lead). Both are preserved. The reconciliation is **PRODUCT-RULES R74**, and it is a founder decision, not a documentation one.
+
+**Classification used below:** `FOUND` (already correctly recorded — left alone) · `PARTIAL` (existed, completed here) · `MISSING` (added here) · `CONFLICT` (both sides preserved, founder must decide) · `SUPERSEDED` (older direction kept, chained forward).
+
+---
+
+## A · SOURCING — post-launch / V2
+
+| ID | Item | Class | Canonical home | Notes · open questions |
+|----|------|-------|----------------|------------------------|
+| **FI-01** | **Sourcing attainment.** Move from ~**7 sourced → 1 usable/accepted** toward ~**1.5 → 1**, long-term as close to **1:1** as real data allows. Major economics/workflow project. **Does not block launch.** | CONFLICT | V2 (here) · `run-costs-and-cashflow.md` | ⚠️ The 7:1 figure appears nowhere in the repo as a sourcing ratio — the only `7:1` hit is unrelated (`PARTNER-BRIEF.md`). So the **baseline is unverified in-repo**; it is the founder's field observation. Conflicts with **FI-29** (1:1 for commercial planning) unless the two are read as *today's reality* vs *planning assumption* — **FOUNDER RECONCILIATION REQUIRED** |
+| **FI-02** | **Vida Lead Pool operator view** — counts · filters · provenance · usability · contactability · what can actually be served. | MISSING | V2 (here) | Builds on the #1458 pool/geography/provenance contract. No operator surface exists today |
+| **FI-03** | **Vida suppression / DNC visibility** — operator view of suppression, DNC and opt-out state/inventory. | MISSING | V2 (here) | `opt_out_blocklist` exists in schema; no operator view reads it |
+| **FI-04** | **Acquisition-memory operator visibility.** Keep **acquisition_memory**, the **reusable serving pool** and **suppression/DNC/opt-out** as three visibly separate concepts. **Do not collapse them.** | MISSING | V2 (here) | A real design constraint, not a feature: they answer different questions (what we bought · what we may serve · who we must never contact) |
+| **FI-05** | **Future sourcing architecture.** Pool first → **Apollo** when it can produce a complete usable lead cheaply → **PDL** as fallback/completion → pool all eligible K.I.N.D-owned reusable data. | PARTIAL | V2 (here) · PRODUCT-RULES **R49**, **R73** | Pool-first is R49 and is BUILT. The Apollo-before-PDL ordering is new and **reverses the current launch boundary (AR5)** — post-launch only |
+| **FI-06** | **Apollo economics planning case.** 1,050 contacted · Apollo $65/mo · 2,500 credits · 1 contactable = 1 credit → 1,050 used, 1,450 left · 2 clients → **≈$32.50 data CAC/client**. PDL comparison: 1,050 × $0.28 = **$294** → **$147/client**. | MISSING | `run-costs-and-cashflow.md` ← detail · V2 (here) ← index | **A planning example, never a guaranteed runtime outcome.** Key insight: **Apollo was parked for geography/completeness reliability, NOT for poor economics** |
+| **FI-07** | **Post-launch Apollo optimisation** — as an optimisation source, a search/discovery source, and a cheaper complete-data source where reliable. | MISSING | V2 (here) | Requires the geography problem proved on 27 Aug to be solved first: Apollo's no-credit search returns only `has_country` booleans, never a country value |
+| **FI-08** | **Provider-neutral routing** on cost · completeness · geography · reliability · actual usable output. **Do not hard-code artificial provider/client segmentation long-term.** | MISSING | V2 (here) | ⚠️ Directly supersedes **AR5** (`audience === 'house' ? 'apollo' : 'pdl'`) as a long-term shape. AR5 remains current truth for launch |
+| **FI-09** | **Additional future acquisition sources** — LinkedIn · social · YouTube · other public/intent sources, where rights and economics permit. Goal is **timing, fit, win rate and margin**, not raw volume. | PARTIAL | V2 (here) · V2 §data-engine widening (**#452**) | #452 already covers "2–3 discovery engines beyond PDL". This extends it to intent/social sources and restates the goal as margin, not volume |
+
+## B · LAUNCH / PROOF / OPERATING
+
+| ID | Item | Class | Canonical home | Notes · open questions |
+|----|------|-------|----------------|------------------------|
+| **FI-10** | **Recurrent proof runtime failure** — the full path: proof claim → job dispatch → pool lookup → paid-provider guard → failure boundary → `icp_run_outcomes` persistence → Milla summary → portal terminal state. **Has happened more than once. Do not mark resolved without repo evidence.** | PARTIAL | **LAUNCH-PAD** ← current work · PRODUCT-RULES **R72③** | R72③ already carries the terminal-state defect as OPEN. The end-to-end path is now named in LAUNCH-PAD so it cannot be closed a segment at a time |
+| **FI-11** | **Paid-provider go-live rule.** `PAID_PROVIDERS_ENABLED` stays **OFF** through safe proof testing. Before the first deliberate real sourcing test: enable **only** under controlled K.I.N.D house use, founder-approved, accepting real spend. | MISSING | **LAUNCH-PAD** · PRODUCT-RULES **R66** | R66 is the zero-spend guard; this is the **controlled exit condition** from it, which was never written down |
+| **FI-12** | **Pre-launch cleanup** — delete fake/test accounts and data so production starts clean. **First**: audit which are fake, inspect cascade records, identify launch evidence to preserve, and only then delete, **with founder approval**. | PARTIAL | **LAUNCH-PAD** · `SEED-WIPE-PLAN.md` | A seed-wipe plan already exists; this adds the **audit-before-delete** discipline and the founder-approval gate |
+
+## C · FUNNEL / PREMIUM PRODUCT
+
+| ID | Item | Class | Canonical home | Notes · open questions |
+|----|------|-------|----------------|------------------------|
+| **FI-13** | **Booked → paying conversion tracking**, for both K.I.N.D acquisition and client programmes: accepted/contacted → booked → held → opportunity/proposal → paying. | PARTIAL | PRODUCT-RULES **R69** · V2 (here) | R69 already requires booked → held → paying tracked separately. **New here:** the *opportunity/proposal* stage |
+| **FI-14** | **~15% booked → paying.** **Planning hypothesis only — must NOT be locked as a benchmark.** | MISSING | V2 (here) | Recorded deliberately as a hypothesis so it cannot later be quoted as a rate |
+| **FI-15** | **Premium conversion-coaching product.** Core K.I.N.D = targeting → approved leads → outreach → **booked meeting**. Premium layer = booked → held → opportunity → **won customer**. | MISSING | V2 (here) | ⚠️ Extends past **MEETING_BOOKED**, which CLAUDE.md holds as the hard downstream product boundary. **The boundary move is a founder decision** |
+| **FI-16** | **Milla/AI conversion coaching** — diagnose funnel leakage · learn which ICPs, messages and meetings convert · coach before and after meetings. Likely **subscription/premium economics**, not per-lead. | MISSING | V2 (here) | Depends on FI-13 data existing first |
+
+## D · GLEAN / CONTEXT / MULTI-PLAYER AI
+
+| ID | Item | Class | Canonical home | Notes · open questions |
+|----|------|-------|----------------|------------------------|
+| **FI-17** | **Glean investigation** as a possible context layer under Milla — internal K.I.N.D knowledge, later premium client CRM context, sales notes, calls, documents. **Not a dependency. Not a replacement for Milla.** | PARTIAL | V2 §competitor bank · V2 (here) | ⚠️ V2 already states *"Glean is an external product reference and nothing more… NOT roadmap authority"*. This entry does not change that — it logs an **investigation**, and the non-dependency wording is carried through deliberately |
+| **FI-18** | **⭐ K.I.N.D Multi-player AI (VERY IMPORTANT V2/PREMIUM).** A team workspace where **multiple humans and multiple AI agents** work from one shared company/customer context — reps, founders, managers, marketers. Shared intelligence across targeting · outreach · meetings · objections · CRM outcomes · coaching. | MISSING | V2 (here) | Nearest existing relative is **#476 "unified data layer / shared agent brain (THE moat)"** — this is the **human-plus-agent workspace** on top of it, which #476 does not describe |
+| **FI-19** | **Multi-player AI core features** — interactive dashboard · proactive task management · team chat · shared AI context · role-aware collaboration. | MISSING | V2 (here) | Strong strategic fit with **FI-25** (Slack as the front door) |
+
+## E · MODEL ROUTING / AI ECONOMICS
+
+| ID | Item | Class | Canonical home | Notes · open questions |
+|----|------|-------|----------------|------------------------|
+| **FI-20** | **Internal model routing** — cheaper/faster models for routine work; frontier models where intelligence changes the outcome (nuanced ICP reasoning · conversion diagnosis · meeting coaching · multi-source synthesis · high-stakes decisions). | FOUND | V2 §"FIGSY observability + model routing" (**R58**, 20 Aug) | Already recorded as post-launch. The five frontier-worthy cases are added here as the concrete list R58 lacked |
+| **FI-21** | **AI economics controls** — retrieval-first context · caching · context reuse · token budgets · escalation rules · cost monitoring **per workflow, per customer, per agent**. | PARTIAL | V2 §R58 · V2 (here) | Per-customer and per-agent cost attribution is new |
+
+## F · ENGINEERING OPS
+
+| ID | Item | Class | Canonical home | Notes · open questions |
+|----|------|-------|----------------|------------------------|
+| **FI-22** | **CodeRabbit evaluation** as an independent second machine reviewer after Claude-generated PRs. Assess security/privacy · GitHub integration · pricing · false-positive rate · usefulness for migrations, security review and runtime review. **Do not adopt automatically — this is evaluation work.** | MISSING | V2 (here) | Relevant to Protocol r20 (merge is never Claude's): a second machine reviewer is **not** a substitute for the founder's authorisation or GPT-5.6 review |
+
+## G · MILLA VOICE
+
+| ID | Item | Class | Canonical home | Notes · open questions |
+|----|------|-------|----------------|------------------------|
+| **FI-23** | **Milla voice** — speech-to-text · spoken responses · seamless voice/text switching inside the same conversation and context. | PARTIAL | V2 **#475** (voice / AI calling) · V2 (here) | #475 is **outbound AI calling**; this is **Milla's own conversational voice**, a different feature. Both kept |
+
+## H · SLACK
+
+| ID | Item | Class | Canonical home | Notes · open questions |
+|----|------|-------|----------------|------------------------|
+| **FI-24** | **Slack integration (initial idea)** — internal communication layer for operational events, alerts, team discussion, future agent activity. | MISSING | V2 (here) | Existing Slack hits in the repo are environment/config references, not a product direction |
+| **FI-25** | **Slack as the primary interaction layer (stronger direction).** Clients and internal team talk to Milla directly · review/approve work · request refinements · ask for intros/next actions · receive briefings · discuss campaign and meeting outcomes · trigger workflows · keep humans **and** AI agents in one conversation. **Architecture: Slack = front door / conversational work surface · Portal = deeper dashboard / control surface.** Especially for team accounts. | MISSING | V2 (here) | ⚠️ **Materially changes where the product lives.** Strong fit with **FI-18/FI-19**. Open question: how the **Jack + Jill Milla shell** relates to a Slack front door — the two must not become two competing product surfaces |
+
+## I · PROGRAMME COMMERCIAL MODEL — current unbuilt direction
+
+> ⚠️ **THE WHOLE OF THIS BLOCK CONFLICTS WITH CURRENT LOCKED PRICING AND IS NOT BUILT.** Current truth remains **$299 pack · first 100 approvals included · $4 per approved lead**. The supersession is recorded as **PRODUCT-RULES R74** and requires a founder decision to become current. Nothing in this block may be quoted to a client.
+
+| ID | Item | Class | Canonical home | Notes · open questions |
+|----|------|-------|----------------|------------------------|
+| **FI-26** | **Programme pricing** anchored around **~$450 per targeted booked meeting**, replacing flat $4/approved lead as the commercial anchor. | CONFLICT | PRODUCT-RULES **R74** ← the supersession · V2 (here) | **FOUNDER RECONCILIATION REQUIRED** against the 3 Aug $299/$4 lock |
+| **FI-27** | **Automatic volume discounts** at higher programme volume. Normal flow must not depend on manual negotiation. | CONFLICT | PRODUCT-RULES **R74** | ⚠️ Contradicts the 3 Aug lock in `constants/index.ts`: *"No discount logic belongs in code, on the website, or in the product."* **FOUNDER RECONCILIATION REQUIRED** |
+| **FI-28** | **Contribution-margin protection ≈ 70%**, eventually a **real money guard**, not spreadsheet commentary. | MISSING | `run-costs-and-cashflow.md` · V2 (here) | Arithmetic recorded in run-costs: at 250:1 and 1:1 sourcing, PDL alone is ~$70 of a ~$135 COGS ceiling |
+| **FI-29** | **Commercial sourcing assumption = 1:1** (1 provider result ≈ 1 usable/contacted lead). **Supersedes the old 2:1 / 7:1 commercial planning logic.** | SUPERSEDED | `run-costs-and-cashflow.md` · V2 (here) | Chains **FI-01**. In code the old 2:1 still lives as `PACK_SOURCE_TARGET = PACK_LEADS × 2` — unchanged, and now flagged |
+| **FI-30** | **Milla meeting target** — the client tells Milla how many targeted booked meetings they want. | MISSING | V2 (here) | No such input exists |
+| **FI-31** | **Starting recommendation: 250 leads per targeted booked meeting** (10 meetings → ~2,500 leads). Not a guarantee. | CONFLICT | PRODUCT-RULES **R69** · V2 (here) | ⚠️ **DIRECT CONFLICT WITH R69 (26 Aug)**, which locks the centre case at **~150 accepted prospects per booked meeting**, range 100–250, and makes **250–300 with no booked meeting a campaign-review trigger**. Seeding at 250 sits **at the review threshold**. **FOUNDER RECONCILIATION REQUIRED** |
+| **FI-32** | **Client-specific learning** — replace the seed benchmark with the client's actual lead→booked performance once evidence is sufficient. | FOUND | PRODUCT-RULES **R69** | R69 already says real data supersedes the benchmark. No change needed |
+| **FI-33** | **Performance deterioration → stop/review.** Never blindly recommend more spend. | FOUND | PRODUCT-RULES **R69** | R69: *"do NOT automatically tell the client to buy more."* Already locked |
+| **FI-34** | **Benchmark transparency** — show the starting benchmark **and** the client's actual benchmark. | MISSING | V2 (here) | Extends R69 from an internal planning rule to a **client-facing disclosure** |
+| **FI-35** | **Client-facing programme calculator** — targeted meetings · recommended leads · automated discount · programme price · effective cost per targeted meeting · average customer value · meeting→client conversion · expected clients · expected revenue · ROI · starting benchmark · actual benchmark. **No guarantees.** | MISSING | V2 (here) | ⚠️ Must obey R69's *"never promise X leads = Y meetings"* and R71's no-guarantee discipline |
+| **FI-36** | **50/50 payment** — 50% upfront authorises bounded sourcing/preparation; 50% at **Approve & Go Live**. | MISSING | PRODUCT-RULES **R74** · V2 (here) | No programme, deposit or go-live concept exists in schema |
+| **FI-37** | **Programme-level approval** — one approval, not thousands of individual paid-lead approvals. | SUPERSEDED | PRODUCT-RULES **R74** | Supersedes **FI-65** |
+| **FI-38** | **Controlled execution batches** after Go Live, ~**250 leads**, batch size **configurable**. | MISSING | V2 (here) | Today `start-work.ts` tops a desk to 200 with no batch entity |
+| **FI-39** | **Batch progression** — healthy batch continues automatically; material problem auto-pauses for review. | MISSING | V2 (here) | |
+| **FI-40** | **Client Pause Programme control** — must stop **sourcing and sending**. | MISSING | V2 (here) | No client-level sourcing pause exists; campaign pause ≠ sourcing pause |
+| **FI-41** | **Material ICP change auto-pauses future sourcing** until reconfirmed or reviewed. | MISSING | V2 (here) | `PATCH /icps/:id` writes and nothing else |
+| **FI-42** | **Programme authority** — no sourcing or spend outside explicit programme authority. | PARTIAL | V2 (here) · **PR #1459** | PR1A removed the unattended nightly top-up — the first step toward this. The authority object itself does not exist |
+| **FI-43** | **Unused programme value never expires.** | PARTIAL | V2 (here) | Credits already never expire (no expiry logic anywhere). **Programme value** is a different concept and is unrepresentable today |
+| **FI-44** | **Refund/payment boundary** — first 50% non-refundable once sourcing is authorised; second 50% not charged if paused before Go Live. | MISSING | PRODUCT-RULES **R74** · legal sweep **FI-56** | ⚠️ Terms currently describe the wallet/$4 model. Legal copy change required before this is real |
+| **FI-45** | **If K.I.N.D cannot deliver** authorised undelivered value, **make the client whole** for it. | MISSING | PRODUCT-RULES **R74** · **FI-56** | Only a Stripe refund claw-back exists today |
+
+## J · MEETING TRUTH / CALENDAR
+
+| ID | Item | Class | Canonical home | Notes · open questions |
+|----|------|-------|----------------|------------------------|
+| **FI-46** | **Booked and Held are separate metrics.** | PARTIAL | PRODUCT-RULES **R69** · V2 (here) | R69 tracks them as separate rates; the **schema cannot express it** — `calendar_bookings.status` is `pending\|confirmed\|cancelled` |
+| **FI-47** | **New state: Booked — unverified** (prospect agreed a date/time, no native verification). | MISSING | V2 (here) | Requires a CHECK-constraint widening |
+| **FI-48** | **Meeting counting rules** — reschedules count once · duplicates, spam and outside-ICP do not count · **no-show stays Booked, not Held**. | MISSING | V2 (here) | The definition of BOOKED MEETING itself: *qualified prospect inside the approved ICP agrees a specific date/time and is recorded through the K.I.N.D campaign* |
+| **FI-49** | **Native Microsoft/Outlook calendar support.** | MISSING | V2 (here) | ⚠️ Does not exist in any form — the only `outlook` token in the repo is a CRM integration id |
+| **FI-50** | **Other calendars** — client booking-link fallback where native support is unavailable. | PARTIAL | V2 (here) | A booking-link path exists (`/book/[token]`); it is not positioned as the fallback tier |
+| **FI-51** | **Manual meeting confirmation** — client can later mark **Held** or **No-show**. | PARTIAL | V2 (here) | `no_show_at` exists (operator-set); client-side confirmation does not |
+
+## K · MILLA / VIDA PRODUCT SURFACES
+
+| ID | Item | Class | Canonical home | Notes · open questions |
+|----|------|-------|----------------|------------------------|
+| **FI-52** | **Proof Pass-2 exhaustion must create a real Vida/human handoff**, not customer-facing copy alone. | PARTIAL | **PR #1460** (open, unmerged) · PRODUCT-RULES **R72** | Built and under review: persisted review state, single operator alert, Vida visibility and a resolve control. **Not merged, migration not applied** |
+| **FI-53** | **Preserve the Milla Jack-and-Jill conversational shell.** Programme actions execute **around** the conversation. Do not redesign unnecessarily. | MISSING | V2 (here) | Recorded as a **standing design constraint** on all programme work |
+| **FI-54** | **Preserve the Vida conversational/operator shell**; add evidence and controls around it. | MISSING | V2 (here) | Same constraint, operator side |
+| **FI-55** | **Vida programme cockpit** — programme state · batch state · payment state · remaining programme value · sourcing authority · pause/review reason. | MISSING | V2 (here) | Depends on FI-36 … FI-42 existing |
+
+## L · PUBLIC / PRODUCT TRUTH SWEEP
+
+| ID | Item | Class | Canonical home | Notes · open questions |
+|----|------|-------|----------------|------------------------|
+| **FI-56** | **Full-system sweep when the programme model is implemented** — website pricing · public calculator · Terms · legal/payment/refund/pause language · FAQs · onboarding · emails · notifications · help · demo video · reporting labels · tests · fixtures · seed/demo data. | MISSING | V2 (here) | The 27 Aug audit found the old model in **43 files**, including `apps/website/terms.html` and `apps/portal/src/app/(legal)/terms/page.tsx`. ⚠️ **Legal copy is the highest-risk surface** |
+| **FI-57** | **Re-record the demo video** — the current Pick / Not-a-fit + $4 paid flow becomes false under the programme model. | MISSING | V2 (here) · `RECORDING-SHOOTING-SCRIPT.md` | Only after FI-26 is decided |
+
+## M · PARTNER
+
+| ID | Item | Class | Canonical home | Notes · open questions |
+|----|------|-------|----------------|------------------------|
+| **FI-58** | **Partner commission = 25% of programme CONTRIBUTION**, not 25% of gross programme revenue. | CONFLICT | PRODUCT-RULES **R47**, **R74** | ⚠️ **R47 currently pays 25% of the $4 approved-lead spend**, and `PARTNER_COMMISSION_PER_LEAD_USD` is derived from `LEAD_PRICE_USD`. Changing the price silently changes partner earnings. **FOUNDER RECONCILIATION REQUIRED** |
+| **FI-59** | **"Programme contribution" must be defined explicitly** before implementation. **Not invented here.** | MISSING | V2 (here) | **OPEN QUESTION owned by the founder.** Until defined, FI-58 cannot be built or quoted to a partner |
+
+## N · LAUNCH PROVIDER TRUTH
+
+| ID | Item | Class | Canonical home | Notes · open questions |
+|----|------|-------|----------------|------------------------|
+| **FI-60** | **PDL remains the launch external sourcing provider.** | FOUND | PRODUCT-RULES **AR5** | Current truth, enforced in `provider-boundary.ts` |
+| **FI-61** | **Apollo live API remains parked for launch.** | FOUND | PRODUCT-RULES **AR5** · **R66** | Enforced by the fail-closed paid-provider guard |
+| **FI-62** | **Eligible K.I.N.D-owned Apollo pool data remains usable** under normal geography, provenance, quality and suppression safeguards. | FOUND | PRODUCT-RULES **R73** | R73 (27 Aug) and `POOL_ELIGIBLE_SOURCES = ['pdl','apollo']`. **No change needed** |
+
+## O · VALUE PROPOSITION / RECOMMENDATIONS
+
+| ID | Item | Class | Canonical home | Notes · open questions |
+|----|------|-------|----------------|------------------------|
+| **FI-63** | **BDR comparison** — K.I.N.D is **sales capacity the customer funds upfront**. **Never imply guaranteed meeting outcomes.** | PARTIAL | V2 (here) · PRODUCT-RULES **R69** | The no-guarantee half is R69. The positioning sentence is recorded here for the first time |
+| **FI-64** | **Evidence-driven recommendations** — increasingly client-specific rather than generic industry assumptions. | FOUND | PRODUCT-RULES **R71** | R71: recommendations must rest on observed data and never be phrased as guarantees |
+
+## P · EXPLICITLY SUPERSEDED — preserve as history, do not build
+
+> ⚠️ **These are recorded so nobody rebuilds them, and NOT deleted so the chronology survives.** Each names what replaced it.
+
+| ID | Superseded direction | Superseded by | Notes |
+|----|----------------------|---------------|-------|
+| **FI-65** | Individual paid-lead **Accept → charge** at live scale | **FI-37** (one programme-level approval) | The per-lead charge (`try_charge_wallet`) is **still current truth today** and still the only money model in code |
+| **FI-66** | **One-by-one replacement approval** at live scale | **FI-38/FI-39** (controlled batches, auto-progression) | |
+| **FI-67** | The old **7:1 sourcing assumption** | **FI-29** (1:1 for commercial planning) | ⚠️ In code the live assumption is **2:1** (`PACK_SOURCE_TARGET`), not 7:1 — see FI-01 |
+| **FI-68** | **Flat $4 pricing at all volumes** | **FI-26/FI-27** (programme price + automatic volume discounts) | ⚠️ **STILL CURRENT TRUTH UNTIL R74 IS DECIDED.** `LEAD_PRICE_USD = 4` |
+| **FI-69** | **Source-first / pay-on-outcome** mechanics | **FI-36** (50/50 authorised programme) | |
+
+### ⛓️ The "do not change pricing yet" reconciliation
+
+Earlier in the 27 Aug session the founder instructed: *"Do not change pricing. Do not change Stripe. Do not change `$4` logic yet."* That instruction was **scoped to PR1A and PR2** and is **not** a decision to keep flat-$4 permanently. The **later programme-model direction (FI-26 … FI-45) supersedes flat-$4 as the intended commercial architecture**, while flat-$4 **remains the current built and locked truth** until R74 is decided. Both are true at once: *don't change it yet* and *it is not the destination*. **The chronology is preserved deliberately — neither statement is deleted.**
+
+---
+
 ## 🛑 NOTHING ABOVE IS LAUNCH SCOPE *(founder-restated 22 Aug, when this list was written)*
 
 Every item on this page is parked. **No entry above converts into launch scope**, and reading one here is not permission to build it. Launch remains exactly:

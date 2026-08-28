@@ -1433,7 +1433,7 @@ operatorRouter.get('/alerts', async (_req: Request, res: Response) => {
     // the people who had waited longest. This predicate is bounded by the number of OPEN
     // reviews instead, which is the handful actually owed, and is served by the partial index
     // `clients_proof_review_open_idx`.
-    const { data: proofReviews } = await db.from('clients')
+    const { data: proofReviews, error: proofReviewErr } = await db.from('clients')
       .select('id, company_name, is_demo, proof_review_requested_at, proof_review_icp_id')
       .not('proof_review_requested_at', 'is', null)
       .is('proof_review_resolved_at', null)
@@ -1505,7 +1505,31 @@ operatorRouter.get('/alerts', async (_req: Request, res: Response) => {
       })
     }
 
-    res.json({ success: true, data: [...proofOut, ...out] })
+    // ⚠️ A RETURNED `error` MUST NEVER READ AS "NO REVIEWS OWED".
+    //
+    // supabase-js resolves with `{ data: null, error }` for a missing column or a permission
+    // refusal — it does not reject. Reading only `data` made `(proofReviews ?? [])` an empty
+    // list, so a FAILED query and a genuinely empty queue produced the identical screen: a
+    // quiet Vida. That is the same silence this whole PR exists to remove, in the one surface
+    // that had not been hardened — and it is exactly what happens while the
+    // 20260827_proof_review_handoff migration is still unapplied.
+    //
+    // ⚠️ IT DEGRADES, IT DOES NOT FAIL. The rest of the feed is real and still useful, so it
+    // is returned as normal; only the proof-review section is unknown. `degraded` says so,
+    // and the admin console raises the EXISTING red "part of this console could not load"
+    // banner from it — whose copy already reads *"a quiet bell does NOT mean there is nothing
+    // wrong"*. No new alert subsystem, and deliberately NO `sendFounderAlert`: this endpoint
+    // is polled, and an email per poll would be alert spam, not a signal.
+    if (proofReviewErr) {
+      console.error('[operator/alerts] PROOF-REVIEW QUERY FAILED — the queue could not be checked:', proofReviewErr.message)
+    }
+    res.json({
+      success: true,
+      data: [...proofOut, ...out],
+      ...(proofReviewErr
+        ? { degraded: { proof_review: `Proof-review queue could not be checked — operator review state may be incomplete. Do NOT read an empty list as "nobody is waiting". Check the database and whether 20260827_proof_review_handoff has been run (Vida → Engine). Reason: ${proofReviewErr.message}` } }
+        : {}),
+    })
   } catch (err) { console.error('[operator/alerts]', err); res.status(500).json({ success: false, error: 'Failed to load alerts' }) }
 })
 

@@ -20,7 +20,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
 type Row = Record<string, any>
-type Store = { clients: Row[]; icps: Row[]; figsy_campaigns: Row[]; figsy_replies: Row[]; updateError?: { message: string } | null }
+type Store = { clients: Row[]; icps: Row[]; figsy_campaigns: Row[]; figsy_replies: Row[]; updateError?: { message: string } | null; selectError?: { message: string } | null }
 
 const OPEN_REVIEW = {
   id: 'c-old', company_name: 'Waited Longest', is_demo: false, created_at: '2020-01-01T00:00:00.000Z',
@@ -37,7 +37,7 @@ function newStore(): Store {
     created_at: `2026-08-${String((i % 27) + 1).padStart(2, '0')}T00:00:00.000Z`,
     proof_review_requested_at: null, proof_review_resolved_at: null, proof_review_icp_id: null,
   }))
-  return { clients: [...filler, { ...OPEN_REVIEW }], icps: [], figsy_campaigns: [], figsy_replies: [], updateError: null }
+  return { clients: [...filler, { ...OPEN_REVIEW }], icps: [], figsy_campaigns: [], figsy_replies: [], updateError: null, selectError: null }
 }
 
 function installDb(store: Store) {
@@ -53,7 +53,11 @@ function installDb(store: Store) {
       q.eq  = (c: string, v: unknown) => { preds.push(r => r[c] === v); return q }
       q.neq = (c: string, v: unknown) => { preds.push(r => r[c] !== v); return q }
       q.is  = (c: string, _v: unknown) => { preds.push(r => r[c] === null || r[c] === undefined); return q }
-      q.not = (c: string, _o: string, _v: unknown) => { preds.push(r => r[c] !== null && r[c] !== undefined); return q }
+      let isProofReviewRead = false
+      q.not = (c: string, _o: string, _v: unknown) => {
+        if (c === 'proof_review_requested_at') isProofReviewRead = true   // tags THIS query only
+        preds.push(r => r[c] !== null && r[c] !== undefined); return q
+      }
       q.or  = () => q
       q.limit = (n: number) => { lim = n; return q }
       q.order = (c: string, o?: { ascending?: boolean }) => { orderCol = c; asc = o?.ascending !== false; return q }
@@ -66,7 +70,14 @@ function installDb(store: Store) {
       }
       q.maybeSingle = async () => ({ data: matched()[0] ?? null, error: null })
       q.single      = async () => ({ data: matched()[0] ?? null, error: null })
-      q.then = (res: (v: unknown) => void) => res({ data: matched(), count: matched().length, error: null })
+      q.then = (res: (v: unknown) => void) => {
+        // The SELECT returned-error shape: data null, error set, NOTHING thrown. Tagged by
+        // the `.not('proof_review_requested_at', …)` call so ONLY the proof-review read fails —
+        // otherwise the fixture would break every unrelated feed query and the "ordinary feed
+        // survives" assertion would pass for the wrong reason.
+        if (store.selectError && isProofReviewRead) { res({ data: null, count: 0, error: store.selectError }); return }
+        res({ data: matched(), count: matched().length, error: null })
+      }
       q.update = (patch: Row) => {
         const up: Array<(r: Row) => boolean> = []
         const chain: any = {}
@@ -117,11 +128,14 @@ let store: Store
 beforeEach(() => { vi.resetModules(); store = newStore(); installDb(store) })
 afterEach(() => { vi.restoreAllMocks(); vi.resetModules() })
 
-async function alerts(): Promise<Row[]> {
+async function alertsBody(): Promise<Row> {
   const h = await handlerFor('/alerts', 'get')
   const { req, res } = reqres()
   await h(req, res)
-  return (res.body?.data ?? []) as Row[]
+  return res.body as Row
+}
+async function alerts(): Promise<Row[]> {
+  return ((await alertsBody())?.data ?? []) as Row[]
 }
 const proofAlerts = (a: Row[]) => a.filter(x => x.kind === 'proof_review')
 
@@ -233,5 +247,83 @@ describe('a FAILED resolve must never look like a handled one', () => {
     const all = await alerts()
     expect(proofAlerts(all)).toHaveLength(0)
     expect(Array.isArray(all)).toBe(true)
+  })
+})
+
+describe('a proof-review query that FAILS must never read as "nobody is waiting"', () => {
+  // ⚑ THE LAST UNHARDENED SUPABASE CALL. The other two writes in this PR check their returned
+  // `error`; this read did not, so `(proofReviews ?? [])` turned a FAILED query into an empty
+  // list — a failed check and a genuinely empty queue produced the identical quiet console.
+  // That is the silence this PR exists to remove, in the one surface that still had it.
+  //
+  // ⚠️ The mock's `q.then` is the SELECT path (the update path is `chain.select`), so
+  // `selectError` reproduces exactly the shape supabase-js returns: data null, error set, no
+  // throw. Set on the store so only this describe uses it.
+  function failSelect(message: string) {
+    store.selectError = { message }
+  }
+
+  it('the returned error is detected — the response is degraded, not silently empty', async () => {
+    failSelect('column clients.proof_review_requested_at does not exist')
+    const body = await alertsBody()
+    expect(body.success).toBe(true)
+    expect(body.degraded?.proof_review, 'the failure must be reported').toBeTruthy()
+    expect(String(body.degraded.proof_review)).toContain('could not be checked')
+    expect(String(body.degraded.proof_review)).toContain('does not exist')
+    expect(String(body.degraded.proof_review)).toContain('20260827_proof_review_handoff')
+  })
+
+  it('it never claims zero reviews, and never claims one is resolved', async () => {
+    failSelect('permission denied for table clients')
+    const body = await alertsBody()
+    const text = String(body.degraded.proof_review).toLowerCase()
+    expect(text).toContain('do not read an empty list')
+    expect(text).not.toContain('no reviews')
+    expect(text).not.toContain('resolved')
+    // and nothing was fabricated into the feed
+    expect(proofAlerts((body.data ?? []) as Row[])).toHaveLength(0)
+  })
+
+  it('the ordinary operator feed still survives — the console degrades, it does not fail', async () => {
+    // A client that genuinely produces a DERIVED alert: it must sit inside the route's
+    // newest-200 `clients` window, so it is given the newest date in the fixture. (An earlier
+    // draft used `c-new-1` at 2026-08-02, which falls outside that window — the assertion then
+    // compared two empty lists and would have passed with the fallback deleted.)
+    const carrier = store.clients.find(c => c.id === 'c-new-0')!
+    carrier.created_at = '2026-08-28T00:00:00.000Z'
+    store.icps.push({ client_id: 'c-new-0', created_at: '2026-08-27T00:00:00.000Z', updated_at: null, is_active: true })
+
+    const clean = (await alertsBody()).data as Row[]
+    const cleanOther = clean.filter(a => a.kind !== 'proof_review')
+    expect(cleanOther.length, 'the fixture must produce a real unrelated alert').toBeGreaterThan(0)
+    expect(clean.filter(a => a.kind === 'proof_review')).toHaveLength(1)
+
+    failSelect('boom')
+    const body = await alertsBody()
+    const degraded = (body.data ?? []) as Row[]
+    expect(body.success).toBe(true)
+    // The unrelated half is untouched...
+    expect(degraded.filter(a => a.kind !== 'proof_review')).toEqual(cleanOther)
+    // ...the proof half is absent rather than fabricated...
+    expect(degraded.filter(a => a.kind === 'proof_review')).toHaveLength(0)
+    // ...and the operator is TOLD it is absent.
+    expect(body.degraded?.proof_review).toBeTruthy()
+  })
+
+  it('the degraded message carries NO customer PII', async () => {
+    failSelect('column does not exist')
+    const text = String((await alertsBody()).degraded.proof_review)
+    // The open-review fixture's identifying fields must not appear.
+    expect(text).not.toContain('Waited Longest')          // company name
+    expect(text).not.toContain('c-old')                   // client id
+    expect(text).not.toContain('icp-abcdef12-3456')       // icp id
+    expect(text).not.toMatch(/@/)                         // no email-shaped token
+  })
+
+  it('the SUCCESS path is unchanged — no degraded key, review still listed', async () => {
+    const body = await alertsBody()
+    expect(body.success).toBe(true)
+    expect(body.degraded).toBeUndefined()
+    expect(proofAlerts((body.data ?? []) as Row[])).toHaveLength(1)
   })
 })

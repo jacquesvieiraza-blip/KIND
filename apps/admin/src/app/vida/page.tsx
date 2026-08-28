@@ -816,7 +816,7 @@ export default function VidaConsolePage() {
   // left the state at its initial empty value and the console rendered a calm, confident
   // "nothing to do" over an endpoint that was down — on the screen whose entire job is
   // telling the operator what to work on next. Each failure is now captured and shown.
-  const [loadFail, setLoadFail] = useState<{ status?: string; alerts?: string; worklist?: string; asks?: string }>({})
+  const [loadFail, setLoadFail] = useState<{ status?: string; alerts?: string; worklist?: string; asks?: string; proofReview?: string }>({})
 
   useEffect(() => {
     const fail = (k: 'status' | 'alerts' | 'worklist') => (e: unknown) =>
@@ -826,7 +826,16 @@ export default function VidaConsolePage() {
       .then(j => { if (j?.success) setStatus(j.data); else throw new Error(j?.error || 'the API returned no data') })
       .catch(fail('status'))
     fetch('/api/proxy/operator/alerts').then(r => r.json())
-      .then(j => { if (j?.success) setAlerts(j.data); else throw new Error(j?.error || 'the API returned no data') })
+      .then(j => {
+        if (!j?.success) throw new Error(j?.error || 'the API returned no data')
+        setAlerts(j.data)
+        // ⚑ 27 Aug (PR2) — A PARTIAL FEED MUST SAY SO. The endpoint answers 200 with the
+        // alerts it CAN trust and `degraded.proof_review` when the proof-review queue could
+        // not be read. Without this the operator sees a quiet console and reasonably
+        // concludes nobody is waiting — the exact wrong conclusion. Raised through the
+        // existing loadFail banner rather than a new surface.
+        setLoadFail(f => ({ ...f, proofReview: j?.degraded?.proof_review ?? undefined }))
+      })
       .catch(fail('alerts'))
     fetch('/api/proxy/operator/worklist').then(r => r.json())
       .then(j => { if (j?.success) { setWork(j.data); setBookRatio(j.meta?.ratio ?? null) } else throw new Error(j?.error || 'the API returned no data') })
@@ -1130,11 +1139,12 @@ export default function VidaConsolePage() {
         {/* The other two loads fail independently — and each says so rather than leaving the
             header quietly wrong. An operator who cannot see alerts must know that, not infer
             it from a bell that never rings. */}
-        {(loadFail.status || loadFail.alerts) && (
+        {(loadFail.status || loadFail.alerts || loadFail.proofReview) && (
           <div className="mx-[18px] mb-2.5 rounded-xl border-2 border-red-300 bg-red-50 px-3 py-2">
             <b className="block text-[12px] text-red-900">Part of this console could not load</b>
             {loadFail.status && <p className="text-[11.5px] text-red-800 mt-0.5">Couldn&apos;t load the status header — {loadFail.status}</p>}
             {loadFail.alerts && <p className="text-[11.5px] text-red-800 mt-0.5">Couldn&apos;t load alerts — a quiet bell does NOT mean there is nothing wrong. {loadFail.alerts}</p>}
+            {loadFail.proofReview && <p className="text-[11.5px] text-red-800 mt-0.5"><b>Proof-review queue could not be checked.</b> {loadFail.proofReview}</p>}
           </div>
         )}
         {/* Sorted by who needs you, not alphabetically — and each row says WHY in words. */}

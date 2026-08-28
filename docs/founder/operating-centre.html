@@ -1,0 +1,490 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>K.I.N.D — Founder Operating Centre</title>
+<style>
+  :root{
+    --g1:#F5179B; --g2:#A62AD1; --g3:#4B2BE0;
+    --grad:linear-gradient(135deg,#F5179B 0%,#A62AD1 52%,#4B2BE0 100%);
+    --bg:#FBF7F4; --card:#FFFFFF; --ink:#1A1526; --muted:#6B6280;
+    --line:#EDE6F2; --green:#0E9F6E; --amber:#C77700; --red:#D6285B;
+    --shadow:0 1px 2px rgba(26,21,38,.04),0 8px 24px rgba(75,43,224,.06);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:15px/1.55 ui-sans-serif,-apple-system,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased}
+  .wrap{max-width:1180px;margin:0 auto;padding:0 20px 72px}
+  a{color:var(--g3)}
+
+  /* ── header ─────────────────────────────────────────── */
+  header{background:var(--grad);color:#fff;padding:30px 0 26px;margin-bottom:26px}
+  header .wrap{padding-bottom:0}
+  .eyebrow{font-size:11px;letter-spacing:.14em;text-transform:uppercase;opacity:.85;font-weight:700}
+  h1{margin:8px 0 4px;font-size:29px;letter-spacing:-.02em}
+  .sub{opacity:.92;font-size:14px;margin:0}
+  .srcbar{margin-top:16px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.28);
+    border-radius:12px;padding:11px 14px;font-size:12.5px;line-height:1.75}
+  .srcbar b{font-weight:700}
+  .sha{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11.5px;
+    background:rgba(0,0,0,.18);padding:2px 7px;border-radius:5px;word-break:break-all}
+  .noncanon{display:inline-block;margin-top:10px;background:#fff;color:#4B2BE0;font-weight:800;
+    font-size:11px;letter-spacing:.08em;text-transform:uppercase;padding:6px 11px;border-radius:7px}
+
+  /* ── structure ──────────────────────────────────────── */
+  section{margin:30px 0}
+  h2{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);
+    margin:0 0 12px;font-weight:800;display:flex;align-items:center;gap:9px}
+  h2::before{content:"";width:22px;height:3px;border-radius:2px;background:var(--grad);flex:none}
+  .grid{display:grid;gap:14px}
+  .g2{grid-template-columns:repeat(auto-fit,minmax(290px,1fr))}
+  .g3{grid-template-columns:repeat(auto-fit,minmax(215px,1fr))}
+  .g4{grid-template-columns:repeat(auto-fit,minmax(168px,1fr))}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;
+    padding:16px 17px;box-shadow:var(--shadow)}
+  .card h3{margin:0 0 9px;font-size:14.5px;letter-spacing:-.01em}
+  .card p{margin:0 0 8px;font-size:13.5px;color:#3A3348}
+  .card p:last-child{margin-bottom:0}
+  ul{margin:6px 0 0;padding-left:17px}
+  li{font-size:13.5px;margin-bottom:5px;color:#3A3348}
+  li:last-child{margin-bottom:0}
+  .tr{font-family:ui-monospace,Menlo,monospace;font-size:11px;color:var(--g3);
+    background:#F4F0FE;padding:1px 5px;border-radius:4px;white-space:nowrap}
+
+  /* ── hero answers ───────────────────────────────────── */
+  .hero{background:var(--card);border:1px solid var(--line);border-radius:16px;
+    padding:4px 0;box-shadow:var(--shadow);overflow:hidden}
+  .qrow{display:grid;grid-template-columns:186px 1fr;gap:14px;padding:14px 18px;
+    border-bottom:1px solid var(--line);align-items:start}
+  .qrow:last-child{border-bottom:0}
+  .q{font-size:11px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);padding-top:2px}
+  .a{font-size:14px}
+  .a b{font-weight:700}
+
+  /* ── status ─────────────────────────────────────────── */
+  .pill{display:inline-block;font-size:10.5px;font-weight:800;letter-spacing:.07em;
+    text-transform:uppercase;padding:3px 9px;border-radius:20px;white-space:nowrap}
+  .p-green{background:#E4F6EE;color:var(--green)}
+  .p-amber{background:#FDF1DF;color:var(--amber)}
+  .p-red{background:#FDE7EE;color:var(--red)}
+  .p-grey{background:#F1EEF6;color:var(--muted)}
+  .legend{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:12px;font-size:12.5px;color:var(--muted)}
+  .legend span{display:flex;align-items:center;gap:6px}
+  .dot{width:9px;height:9px;border-radius:50%;display:inline-block}
+  .d-green{background:var(--green)} .d-amber{background:var(--amber)} .d-red{background:var(--red)}
+  .lc{position:relative}
+  .lc .pill{position:absolute;top:15px;right:15px}
+  .lc h3{padding-right:96px}
+
+  /* ── week ───────────────────────────────────────────── */
+  .day{background:var(--card);border:1px solid var(--line);border-radius:13px;padding:14px;
+    box-shadow:var(--shadow);display:flex;flex-direction:column}
+  .day.today{border-color:var(--g1);box-shadow:0 0 0 3px rgba(245,23,155,.10),var(--shadow)}
+  .day.big{background:linear-gradient(180deg,#fff 0%,#FDF4FA 100%);border-color:#F6C9E4}
+  .dname{font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+  .hrs{display:inline-block;margin:7px 0 8px;font-size:19px;font-weight:800;
+    background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .day ul{padding-left:15px;margin-top:4px}
+  .day li{font-size:12.5px}
+  .note{font-size:11.5px;color:var(--muted);margin-top:9px;font-style:italic}
+
+  /* ── flow ───────────────────────────────────────────── */
+  .flow{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:center;
+    background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px 16px;box-shadow:var(--shadow)}
+  .step{background:var(--grad);color:#fff;font-size:11.5px;font-weight:700;letter-spacing:.05em;
+    padding:8px 13px;border-radius:20px;white-space:nowrap}
+  .arw{color:var(--g2);font-weight:800;font-size:15px}
+  .chain{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:center;margin-top:14px}
+  .link{border:2px solid var(--g2);color:var(--g3);background:#fff;font-size:12.5px;font-weight:800;
+    padding:8px 15px;border-radius:9px}
+
+  /* ── decisions ──────────────────────────────────────── */
+  .fd{border-left:4px solid var(--red)}
+  .fd h3{color:var(--red)}
+  .vs{display:grid;grid-template-columns:1fr auto 1fr;gap:11px;align-items:center;
+    background:#FDF7F9;border:1px solid #F6DCE5;border-radius:10px;padding:12px;margin:10px 0}
+  .vs div{text-align:center;font-size:13px}
+  .vs .n{display:block;font-size:24px;font-weight:800;background:var(--grad);
+    -webkit-background-clip:text;background-clip:text;color:transparent;line-height:1.15}
+  .vsx{font-weight:800;color:var(--muted);font-size:12px}
+
+  /* ── money ──────────────────────────────────────────── */
+  .kv{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px dashed var(--line);font-size:13.5px}
+  .kv:last-child{border-bottom:0}
+  .kv b{font-weight:700;text-align:right}
+  .warn{background:#FDF1DF;border:1px solid #F3DDB6;border-radius:11px;padding:13px 15px;font-size:13.5px}
+  .warn b{color:var(--amber)}
+  .danger{background:#FDE7EE;border:1px solid #F6C6D5;border-radius:11px;padding:13px 15px;font-size:13.5px}
+  .danger b{color:var(--red)}
+
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th{text-align:left;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);
+    padding:8px 10px;border-bottom:2px solid var(--line);font-weight:800}
+  td{padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+  tr:last-child td{border-bottom:0}
+  .scroll{overflow-x:auto;background:var(--card);border:1px solid var(--line);
+    border-radius:14px;box-shadow:var(--shadow);padding:4px 6px}
+
+  footer{margin-top:38px;padding-top:20px;border-top:1px solid var(--line);
+    font-size:12.5px;color:var(--muted);text-align:center}
+  @media (max-width:640px){
+    .qrow{grid-template-columns:1fr;gap:4px}
+    .vs{grid-template-columns:1fr}
+    h1{font-size:23px}
+    .lc h3{padding-right:0} .lc .pill{position:static;display:inline-block;margin-bottom:7px}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <div class="eyebrow">K.I.N.D</div>
+    <h1>Founder Operating Centre</h1>
+    <p class="sub">28 August 2026 — what I am doing, what is true, what is blocked, what needs me.</p>
+    <div class="srcbar">
+      <b>SOURCE:</b> <a href="../FOUNDER-OPERATING-TRUTH.md" style="color:#fff">FOUNDER-OPERATING-TRUTH.md</a>
+      &nbsp;·&nbsp; <a href="../FOUNDER-TRUTH-REGISTER.md" style="color:#fff">FOUNDER-TRUTH-REGISTER.md</a><br>
+      <b>SNAPSHOT MAIN SHA:</b> <span class="sha">299b2e823b5da4ff2dad45e5e20be12d7186e932</span>
+      <div class="noncanon">Visual control surface — canonical truth remains in markdown</div>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <!-- ── HERO ─────────────────────────────────────────── -->
+  <section>
+    <div class="hero">
+      <div class="qrow"><div class="q">What am I doing?</div><div class="a">
+        <b>Building the Founder Operating Truth system.</b> No proof-pass testing until it is merged.</div></div>
+      <div class="qrow"><div class="q">What is true?</div><div class="a">
+        Runtime is still the <b>legacy $299 + $4 per approved lead</b> model. The programme model is
+        <b>approved and unbuilt</b>. These are never the same thing.</div></div>
+      <div class="qrow"><div class="q">What is blocked?</div><div class="a">
+        <span class="pill p-red">Failed</span> <code>20260727_pdl_cursor</code> migration, cause undiagnosed
+        &nbsp;·&nbsp; proof exhaustion → Vida → resolve <b>never walked end to end</b>
+        &nbsp;·&nbsp; the <i>programme</i> stage does not exist, so website → Milla → programme → Vida cannot be consistent yet.</div></div>
+      <div class="qrow"><div class="q">What needs my decision?</div><div class="a">
+        <b>FD-01</b> 150 vs 250 benchmark &nbsp;·&nbsp; <b>FD-02</b> definition of programme contribution
+        &nbsp;·&nbsp; <b>FD-03</b> portal UI acceptance bar. Plus <b>7 promotion candidates</b> below.</div></div>
+      <div class="qrow"><div class="q">This week?</div><div class="a">
+        Truth foundation today, then <b>12 hours Saturday</b> and <b>12 hours Sunday</b>. The rest is a working roadmap you may reprioritise.</div></div>
+    </div>
+  </section>
+
+  <!-- ── TODAY ────────────────────────────────────────── -->
+  <section>
+    <h2>Today</h2>
+    <div class="grid g3">
+      <div class="card" style="border-color:var(--g1)">
+        <h3>Current task</h3>
+        <p><b>Build the Founder Operating Truth system.</b></p>
+        <p style="color:var(--red);font-weight:700">🛑 No more proof-pass testing until this is merged.</p>
+      </div>
+      <div class="card">
+        <h3>Bounded sequence</h3>
+        <ul>
+          <li>Truth foundation <span class="pill p-amber">in progress</span></li>
+          <li>Review truth / register</li>
+          <li>Decide launch promotions</li>
+          <li>Decide financial reconciliation order</li>
+          <li>Lock the weekend roadmap</li>
+          <li>Then product / E2E work</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Launch state</h3>
+        <p>Free proof is <b>live and capped at two passes</b>. The <b>programme model is unbuilt</b>.</p>
+        <p>Public surfaces still sell the legacy model. <span class="tr">TR-053</span> <span class="tr">TR-054</span> <span class="tr">TR-055</span></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── WEEK ─────────────────────────────────────────── -->
+  <section>
+    <h2>This week</h2>
+    <div class="grid g4">
+      <div class="day today">
+        <div class="dname">Fri 28</div>
+        <ul><li>Truth foundation</li><li>Reconcile operating view</li><li>Promotion review</li><li>Financial planning</li></ul>
+      </div>
+      <div class="day big">
+        <div class="dname">Sat 29</div>
+        <div class="hrs">12 HOURS</div>
+        <ul><li>Programme / product architecture</li><li>Bounded launch-critical builds</li></ul>
+        <div class="note">Exact tasks founder-controlled</div>
+      </div>
+      <div class="day big">
+        <div class="dname">Sun 30</div>
+        <div class="hrs">12 HOURS</div>
+        <ul><li>Programme money</li><li>Execution engine acceleration</li></ul>
+        <div class="note">Exact tasks founder-controlled</div>
+      </div>
+      <div class="day"><div class="dname">Mon</div><ul><li>Milla + Vida experience</li><li>Portal UI</li></ul></div>
+      <div class="day"><div class="dname">Tue</div><ul><li>Meetings</li><li>Operator truth</li></ul></div>
+      <div class="day"><div class="dname">Wed</div><ul><li>Website</li><li>Public truth</li></ul></div>
+      <div class="day"><div class="dname">Thu</div><ul><li>Full E2E</li><li>Launch gates</li></ul></div>
+      <div class="day"><div class="dname">Fri</div><ul><li>Controlled production</li><li>Contingency</li></ul></div>
+    </div>
+    <div class="note" style="margin-top:10px;text-align:center">
+      Monday → Friday is a <b>WORKING ROADMAP — FOUNDER MAY REPRIORITISE</b>.
+    </div>
+  </section>
+
+  <!-- ── TRUTH LAYERS ─────────────────────────────────── -->
+  <section>
+    <h2>Truth layers</h2>
+    <div class="grid g4">
+      <div class="card"><h3>Live now <span class="pill p-green">19</span></h3>
+        <p>$299 + $4 runtime · pool-first · PDL launch provider · Apollo parked · two-pass proof, no Pass 3 · nightly top-up removed.</p></div>
+      <div class="card"><h3>Approved / unbuilt <span class="pill p-amber">22</span></h3>
+        <p>The whole programme model: $450 anchor, 50/50, batches, authority, pause, Booked vs Held, Outlook.</p></div>
+      <div class="card"><h3>Approved / partial <span class="pill p-amber">13</span></h3>
+        <p>Proof handoff built but unwalked · flywheel partly present · programme authority partly fenced.</p></div>
+      <div class="card"><h3>Unresolved <span class="pill p-red">3</span></h3>
+        <p>150 vs 250 · programme contribution · portal UI bar.</p></div>
+      <div class="card"><h3>Superseded / history <span class="pill p-grey">6</span></h3>
+        <p>$4→$8 migration · legacy public pricing, calculator, Terms, demo · trial-based client flow.</p></div>
+      <div class="card"><h3>Observational <span class="pill p-grey">1</span></h3>
+        <p>~7 sourced → 1 usable. Founder-reported, <b>no telemetry</b>. Not a planning input.</p></div>
+    </div>
+  </section>
+
+  <!-- ── LAUNCH CONTROL ───────────────────────────────── -->
+  <section>
+    <h2>Launch control</h2>
+    <div class="legend">
+      <span><i class="dot d-green"></i> Green — verified live</span>
+      <span><i class="dot d-amber"></i> Amber — partial or unverified</span>
+      <span><i class="dot d-red"></i> Red — not built or blocked</span>
+    </div>
+    <div class="grid g3">
+      <div class="card lc"><span class="pill p-red">Red</span><h3>Product</h3>
+        <p>No programme entity, batch, go-live or authority object exists.</p>
+        <p><span class="tr">TR-020</span> <span class="tr">TR-021</span> <span class="tr">TR-025</span></p></div>
+      <div class="card lc"><span class="pill p-amber">Amber</span><h3>Milla</h3>
+        <p>Shell preserved. Flywheel's <b>recommendation and learning loops do not exist</b>.</p>
+        <p><span class="tr">TR-046</span> <span class="tr">TR-048</span></p></div>
+      <div class="card lc"><span class="pill p-amber">Amber</span><h3>Vida</h3>
+        <p>Shell preserved; proof-review handoff built and deployed but <b>not walked</b>.</p>
+        <p><span class="tr">TR-031</span> <span class="tr">TR-047</span></p></div>
+      <div class="card lc"><span class="pill p-red">Red</span><h3>UI</h3>
+        <p>Launch-critical by direction, but <b>no acceptance bar exists</b> to build against.</p>
+        <p><span class="tr">TR-051</span> · FD-03</p></div>
+      <div class="card lc"><span class="pill p-red">Red</span><h3>Website</h3>
+        <p>Pricing, calculator and Terms state a superseded model. “Meet Vida” appears once, not on the homepage.</p>
+        <p><span class="tr">TR-053</span> <span class="tr">TR-056</span></p></div>
+      <div class="card lc"><span class="pill p-red">Red</span><h3>Money</h3>
+        <p>Programme pricing unbuilt; five financial artifacts still legacy-only.</p>
+        <p><span class="tr">TR-004</span> <span class="tr">TR-007</span> <span class="tr">TR-011</span></p></div>
+      <div class="card lc"><span class="pill p-red">Red</span><h3>Meetings</h3>
+        <p>Schema cannot express Held. No Booked-unverified. <b>No Outlook at all.</b></p>
+        <p><span class="tr">TR-040</span> <span class="tr">TR-043</span></p></div>
+      <div class="card lc"><span class="pill p-amber">Amber</span><h3>Safety / E2E</h3>
+        <p>Provider guard live and fail-closed. Proof path unwalked; test-account cleanup pending; deploy unverifiable.</p>
+        <p><span class="tr">TR-037</span> <span class="tr">TR-062</span> <span class="tr">TR-063</span></p></div>
+    </div>
+  </section>
+
+  <!-- ── EXPERIENCE ───────────────────────────────────── -->
+  <section>
+    <h2>Experience flow</h2>
+    <div class="flow">
+      <span class="step">CONVERSATION</span><span class="arw">→</span>
+      <span class="step">UNDERSTANDING</span><span class="arw">→</span>
+      <span class="step">RECOMMENDATION</span><span class="arw">→</span>
+      <span class="step">DECISION</span><span class="arw">→</span>
+      <span class="step">ACTION</span><span class="arw">→</span>
+      <span class="step">FEEDBACK</span><span class="arw">→</span>
+      <span class="step">LEARNING</span>
+    </div>
+    <div class="chain">
+      <span class="link">WEBSITE</span><span class="arw">→</span>
+      <span class="link">MILLA</span><span class="arw">→</span>
+      <span class="link">PROGRAMME</span><span class="arw">→</span>
+      <span class="link">VIDA</span>
+    </div>
+    <div class="grid g2" style="margin-top:14px">
+      <div class="card"><h3>Never</h3>
+        <p><b>Give information → handoff → wait.</b> That is the pattern the whole principle exists to prevent.</p></div>
+      <div class="card"><h3>Not satisfiable today</h3>
+        <p>The <b>programme</b> stage does not exist in code or schema, so the four-stage chain cannot yet be consistent. <span class="tr">TR-052</span></p></div>
+    </div>
+  </section>
+
+  <!-- ── DECISIONS ────────────────────────────────────── -->
+  <section>
+    <h2>Founder decisions</h2>
+    <div class="grid g3">
+      <div class="card fd"><h3>FD-01 — the benchmark</h3>
+        <div class="vs">
+          <div><span class="n">150</span>accepted prospects<br>per booked meeting (R69)</div>
+          <div class="vsx">VS</div>
+          <div><span class="n">250</span>recommended leads<br>per targeted meeting</div>
+        </div>
+        <p>Different stages — <b>except the 1:1 planning assumption collapses them onto the same denominator</b>. They are comparable and they disagree.</p>
+        <p>At 500 leads per meeting, <b>contribution goes negative</b>.</p>
+        <p><span class="pill p-red">Unresolved — do not silently reconcile</span> <span class="tr">TR-015</span> <span class="tr">TR-016</span></p></div>
+      <div class="card fd"><h3>FD-02 — programme contribution</h3>
+        <p>Direction settled: <b>contribution, not gross</b>. What counts as contribution is not: which costs, at what point, per programme or per period.</p>
+        <p>Until defined it cannot be built or quoted to a partner.</p>
+        <p><span class="pill p-red">Unresolved</span> <span class="tr">TR-011</span></p></div>
+      <div class="card fd"><h3>FD-03 — portal UI bar</h3>
+        <p>Quality is launch-critical and settled. <b>The decision needed is what “good enough to launch” means.</b></p>
+        <p>Three UI docs exist; none records a bar, so no build can be judged complete.</p>
+        <p><span class="pill p-red">Unresolved — a decision, not an unknown</span> <span class="tr">TR-051</span></p></div>
+    </div>
+  </section>
+
+  <!-- ── MONEY ────────────────────────────────────────── -->
+  <section>
+    <h2>Money truth</h2>
+    <div class="grid g2">
+      <div class="card">
+        <h3>Programme direction — approved, unbuilt</h3>
+        <div class="kv"><span>Anchor</span><b>~$450 / targeted booked meeting</b></div>
+        <div class="kv"><span>Working point</span><b>10 meetings · 2,500 leads</b></div>
+        <div class="kv"><span>Programme price</span><b>$4,375</b></div>
+        <div class="kv"><span>Effective per meeting</span><b>$437.50</b></div>
+        <div class="kv"><span>Working floor at 50+</span><b>~$400 / meeting</b></div>
+        <div class="kv"><span>Payment</span><b>50% upfront · 50% at Go Live</b></div>
+        <div class="kv"><span>Margin guard</span><b>~70% contribution</b></div>
+        <div class="kv"><span>Partner</span><b>25% of programme contribution</b></div>
+        <div class="kv"><span>Unresolved</span><b style="color:var(--red)">contribution definition</b></div>
+      </div>
+      <div>
+        <div class="danger" style="margin-bottom:13px">
+          <b>Legacy runtime ≠ programme direction.</b><br>
+          What runs today is <b>$299 + $4 per approved lead</b>. It stays operational until a coordinated
+          programme migration is built, tested, founder-approved and deployed. Never read the legacy
+          architecture as the intended product.
+        </div>
+        <div class="card">
+          <h3>Stale-model sweep still required</h3>
+          <p><code>$299</code> · <code>$4</code> · <code>$8</code> · per-lead accept-and-charge · <b>2:1</b> pack sourcing
+             · <b>7:1</b> observational baseline <i>(not a planning input)</i> · old partner commission · old payment flow
+             · old dollar-derived sourcing authority.</p>
+          <p style="margin-top:9px">Still legacy-only: <code>pricing.html</code>, <code>pipeline-calculator.html</code>,
+             <code>CASHFLOW-LAB.html</code>, <code>SALARY-BREAKEVEN-PLAN.md</code>, <code>PARTNER-BRIEF.md</code>,
+             <code>terms.html</code> + the portal's <b>two</b> copies of Terms.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── KNOWN ISSUES ─────────────────────────────────── -->
+  <section>
+    <h2>Known issues — established facts, follow-up owed</h2>
+    <div class="warn" style="margin-bottom:13px">
+      <b>These are not “recovery required” and not unknown truth.</b> Each is a fact that is established, with work still owed.
+    </div>
+    <div class="scroll">
+      <table>
+        <tr><th>Item</th><th>Established</th><th>Not established</th><th></th></tr>
+        <tr><td><b>pdl_cursor migration</b></td><td>Failed in the 28 Aug run (36 of 37 applied)</td><td>Why, and what it leaves unbuilt</td><td><span class="tr">TR-064</span></td></tr>
+        <tr><td><b>Proof exhaustion E2E</b></td><td>Built, deployed, migration applied</td><td>The production journey has not been walked</td><td><span class="tr">TR-031</span></td></tr>
+        <tr><td><b>Sourcing telemetry</b></td><td>Founder-reported ≈ 7 → 1 baseline</td><td>No metric measures the real ratio</td><td><span class="tr">TR-014</span></td></tr>
+        <tr><td><b>Portal UI bar</b></td><td>Direction is launch-critical</td><td>No bar defined — this is FD-03</td><td><span class="tr">TR-051</span></td></tr>
+        <tr><td><b>SOURCING ANYWAY</b></td><td>Sources for clients who cannot send</td><td>Whether it has cost anything</td><td><span class="tr">TR-023</span></td></tr>
+        <tr><td><b>Unrestricted Run</b></td><td>Run button sources outside programme authority</td><td>—</td><td><span class="tr">TR-027</span></td></tr>
+        <tr><td><b>Proof runtime path</b></td><td>Named end to end in LAUNCH-PAD T10</td><td>Whether it is actually closed</td><td><span class="tr">TR-033</span></td></tr>
+        <tr><td><b>Duplicate Terms</b></td><td>Two copies live in the portal</td><td>Which is served</td><td><span class="tr">TR-055</span></td></tr>
+        <tr><td><b>Deploy verifiability</b></td><td><code>RAILWAY_GIT_COMMIT_SHA</code> unset; <code>/health</code> says <code>commit: unknown</code></td><td>Which build is running</td><td><span class="tr">TR-063</span></td></tr>
+      </table>
+    </div>
+  </section>
+
+  <!-- ── PROMOTIONS ───────────────────────────────────── -->
+  <section>
+    <h2>Possible launch promotions — founder review only</h2>
+    <div class="scroll">
+      <table>
+        <tr><th>Candidate</th><th>Current</th><th>Why it may block launch</th><th>Decision</th></tr>
+        <tr><td><b>Booked / Held / unverified + Outlook</b></td><td>V2</td>
+            <td>If meetings are the commercial unit at ~$450, <b>the product cannot measure the thing it charges for</b></td>
+            <td><span class="pill p-red">Pending</span></td></tr>
+        <tr><td><b>Vida lead-pool visibility</b></td><td>V2</td>
+            <td>Operator cannot see servable inventory before PDL is enabled</td><td><span class="pill p-red">Pending</span></td></tr>
+        <tr><td><b>Suppression / DNC visibility</b></td><td>V2 — enforcement live, visibility not</td>
+            <td>Cannot show who was suppressed and why before a first real send</td><td><span class="pill p-red">Pending</span></td></tr>
+        <tr><td><b>Conversational flywheel</b></td><td>Unclassified before 28 Aug</td>
+            <td>The core differentiator</td><td><span class="pill p-amber">Already launch-critical</span></td></tr>
+        <tr><td><b>Meet Milla / Meet Vida</b></td><td>Not recorded</td>
+            <td>Asymmetric product story on the public site</td><td><span class="pill p-amber">Already launch-critical</span></td></tr>
+        <tr><td><b>Money / margin visibility</b></td><td>V2</td>
+            <td>Programme could be sold below contribution undetected</td><td><span class="pill p-red">Pending</span></td></tr>
+        <tr><td><b>Portal UI quality bar</b></td><td>Not on LAUNCH-PAD</td>
+            <td>First impression; no bar exists to build against</td><td><span class="pill p-amber">Launch-critical · FD-03 pending</span></td></tr>
+      </table>
+    </div>
+  </section>
+
+  <!-- ── RECENT ───────────────────────────────────────── -->
+  <section>
+    <h2>Recent changes — 28 August</h2>
+    <div class="grid g4">
+      <div class="card"><h3>#1459 <span class="pill p-green">Merged</span></h3><p>Nightly unattended paid sourcing top-up retired.</p></div>
+      <div class="card"><h3>#1460 <span class="pill p-amber">Deployed</span></h3><p>Proof exhaustion → Vida handoff. Migration applied. <b>E2E not walked.</b></p></div>
+      <div class="card"><h3>#1461 <span class="pill p-green">Merged</span></h3><p>69 founder ideas logged into V2 (FI-01 … FI-69).</p></div>
+      <div class="card"><h3>#1462 <span class="pill p-green">Merged</span></h3><p>Founder truth audit — 64 material items.</p></div>
+    </div>
+  </section>
+
+  <!-- ── IDEA INBOX ───────────────────────────────────── -->
+  <section>
+    <h2>Idea inbox — no material idea may live only in chat</h2>
+    <div class="scroll">
+      <table>
+        <tr><th>ID</th><th>Idea</th><th>State</th><th>Likely home</th></tr>
+        <tr><td>IN-01</td><td>Meet Milla / Meet Vida — Jack &amp; Jill structure</td><td>Approved · repo partial</td><td>PRODUCT-RULES + website</td></tr>
+        <tr><td>IN-02</td><td>Conversational flywheel principle</td><td>Approved · repo missing</td><td><b>PRODUCT-RULES — new rule</b></td></tr>
+        <tr><td>IN-03</td><td>Founder Operating Truth</td><td>Being satisfied by this PR</td><td>This file + register</td></tr>
+        <tr><td>IN-04</td><td>Portal UI quality</td><td>Approved · bar undefined</td><td>DESIGN-REFERENCE (FD-03)</td></tr>
+        <tr><td>IN-05</td><td>Website → Milla → programme → Vida consistency</td><td>Approved · repo missing</td><td>PRODUCT-RULES</td></tr>
+        <tr><td>IN-06</td><td>Four operating bands</td><td>Approved</td><td>⚠️ three other taxonomies live</td></tr>
+        <tr><td>IN-07</td><td>One indexed view</td><td>Being satisfied by this PR</td><td>FOUNDER-TRUTH-REGISTER</td></tr>
+        <tr><td>IN-08</td><td>Financial docs reconciled to programme</td><td>Approved · repo partial</td><td>run-costs + 5 artifacts</td></tr>
+        <tr><td>IN-09</td><td>Weekend capacity 12h + 12h</td><td>Current planning truth</td><td>LAUNCH-PAD</td></tr>
+        <tr><td>IN-10</td><td>Working point $4,375 / $437.50 / ~$400 floor</td><td>Approved · repo missing</td><td>run-costs-and-cashflow</td></tr>
+        <tr><td>IN-11</td><td>V2 promotion review</td><td>Awaiting founder decisions</td><td>This file</td></tr>
+      </table>
+    </div>
+  </section>
+
+  <!-- ── LINKS ────────────────────────────────────────── -->
+  <section>
+    <h2>Canonical files — the real truth lives here</h2>
+    <div class="grid g3">
+      <div class="card"><h3>Operating layer</h3><ul>
+        <li><a href="../FOUNDER-OPERATING-TRUTH.md">Founder Operating Truth</a></li>
+        <li><a href="../FOUNDER-TRUTH-REGISTER.md">Founder Truth Register</a></li>
+        <li><a href="../FOUNDER-TRUTH-AUDIT-2026-08-28.md">Truth Audit (28 Aug)</a></li>
+        <li><a href="../SESSION-BOOTSTRAP.md">Session Bootstrap</a></li>
+      </ul></div>
+      <div class="card"><h3>Canonical docs</h3><ul>
+        <li><a href="../PRODUCT-RULES.md">Product Rules</a> — founder rulings</li>
+        <li><a href="../LAUNCH-PAD.md">Launch Pad</a> — today's execution</li>
+        <li><a href="../PRODUCT-INVENTORY.md">Product Inventory</a> — status of record</li>
+        <li><a href="../V2-TRACKER.md">V2 Tracker</a> — future detail</li>
+      </ul></div>
+      <div class="card"><h3>Money &amp; journey</h3><ul>
+        <li><a href="../run-costs-and-cashflow.md">Run costs &amp; cashflow</a></li>
+        <li><a href="../client-flow-sop.md">Client flow SOP</a> <span class="pill p-red">Stale</span></li>
+        <li><a href="../CASHFLOW-LAB.html">Cashflow lab</a> <span class="pill p-red">Stale</span></li>
+        <li><a href="../PARTNER-BRIEF.md">Partner brief</a> <span class="pill p-red">Stale</span></li>
+      </ul></div>
+    </div>
+  </section>
+
+  <footer>
+    <b>Visual control surface — canonical truth remains in markdown.</b><br>
+    Generated 28 Aug 2026 from the merged audit at <span style="font-family:ui-monospace,Menlo,monospace">299b2e82</span>.
+    Nothing here decides anything; the founder controls priority and merge.
+  </footer>
+
+</div>
+</body>
+</html>

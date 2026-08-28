@@ -48,14 +48,14 @@ Operating Truth system · 8. Operate from it.
 ---
 ## STEP-3 SUMMARY
 
-### TOTAL CMP SUBJECTS = 196
+### TOTAL CMP SUBJECTS = 197
 
-**193 classifiable subjects + 3 retired structural groups (CMP-0062, CMP-0063, CMP-0065), whose IDs are
+**194 classifiable subjects + 3 retired structural groups (CMP-0062, CMP-0063, CMP-0065), whose IDs are
 preserved for lineage and never reused.**
 
 ### Relationship counts
 
-Counts cover the **193 classifiable subjects**; the 3 retired structural groups carry no relationship.
+Counts cover the **194 classifiable subjects**; the 3 retired structural groups carry no relationship.
 
 | Relationship | Subjects |
 |---|---:|
@@ -66,8 +66,8 @@ Counts cover the **193 classifiable subjects**; the 3 retired structural groups 
 | POSSIBLE SUPERSESSION | 12 |
 | DUPLICATE EXPRESSION | 6 |
 | SOURCE-SPECIFIC | 7 |
-| INSUFFICIENT EVIDENCE TO COMPARE | 22 |
-| **TOTAL** | **193** |
+| INSUFFICIENT EVIDENCE TO COMPARE | 23 |
+| **TOTAL** | **194** |
 
 ### Subjects per domain
 
@@ -87,8 +87,8 @@ Counts cover the **193 classifiable subjects**; the 3 retired structural groups 
 | GTM | 9 |
 | Meetings | 9 |
 | Launch | 8 |
+| Money models | 8 |
 | Website / public truth | 8 |
-| Money models | 7 |
 | Milla | 4 |
 
 ### INV coverage
@@ -186,7 +186,7 @@ see them together. A subject's presence here says nothing about whether it is ri
 
 ---
 
-## Method — how 24,281 rows became 196 subjects without a pairwise dump
+## Method — how 24,281 rows became 197 subjects without a pairwise dump
 
 **No O(n²) comparison was performed.** Subjects were formed first, from the material business /
 product / operating topics the sources actually argue about, and every inventory row was then
@@ -243,6 +243,36 @@ on Approve & Go Live* remain independently classifiable. Every source states the
 as one mechanism, and `CMP-0018` already exists for exactly that; splitting would have produced a
 subject with no evidence of its own. They are therefore one subject whose relationship and evidence
 name both halves — reported rather than manufactured.
+
+### The narrow repair Step 4 asked for — CMP-0197
+
+The Step-4 rerun reported that **no comparison subject owned the underlying truth "what amount or
+base is meant by programme contribution?"**. Its evidence sat across the programme-price,
+partner-commission and financial-model subjects, so the founder decision on it had no clean subject
+to anchor to. Step 4's rule is to report a missing subject rather than invent one, and this is the
+repair it asked for.
+
+**CMP-0197 · PROGRAMME CONTRIBUTION — DEFINITION** is appended. It owns **only** the definition
+question. Four rows move to it, assigned by **explicit INV id** rather than by keyword, because the
+word *contribution* also appears in margin-target, partner-rate and legacy per-lead rows that must
+not move:
+
+| INV | From | Why it moves |
+|---|---|---|
+| INV-01392 | CMP-0004 | FI-59 — *"'Programme contribution' must be defined explicitly before implementation. Not invented here."* |
+| INV-01465 | CMP-0051 | The vocabulary rule — *"a partial lead contribution is NEVER called 'net margin'"* — which constrains what the term may mean |
+| INV-01523 | CMP-0118 | FTA-011 — *"Definition of 'programme contribution'"* |
+| INV-01594 | CMP-0086 | CONF-2 — *"the direction is settled, the accounting definition is not"* |
+
+⚠️ **Two of the four came from subjects outside the four named in the request** (CMP-0118 and
+CMP-0086). They are moved because their claim *is* the definition, and leaving them behind would
+have left CMP-0197 owning the question only partially. Stated rather than done quietly.
+
+**What deliberately did NOT move**, so price, margin, partner rate and definition stay four separate
+truths: INV-01391 and INV-01522 (*partner commission = 25% of programme contribution*) stay with the
+partner subjects — their claim is the **rate and its base**, not the definition; INV-01361, INV-01496,
+INV-01519 and INV-01591 (the ≈70% target and its arithmetic) stay with the margin subject; INV-01480
+and INV-12333 (legacy per-lead and per-client contribution figures) stay where they are.
 
 ### The Step-2 coverage repair, and the two mapping corrections it exposed
 
@@ -366,9 +396,9 @@ mapping correction, not a comparison conclusion.
 |---|---|
 | **Domain** | Pricing |
 | **Relationship** | **DIRECT CONFLICT** |
-| **Inventory rows** | **6** — INV-00261, INV-01359–01360, INV-01364, INV-01392, INV-01516 |
-| **Source documents** | 3 — `docs/V2-TRACKER.md` (4) · `docs/PRODUCT-RULES.md` (1) · `docs/FOUNDER-TRUTH-AUDIT-2026-08-28.md` (1) |
-| **Stable source IDs** | `FI-26`, `FI-27`, `FI-31`, `FI-59`, `FTA-004`, `R74` |
+| **Inventory rows** | **5** — INV-00261, INV-01359–01360, INV-01364, INV-01516 |
+| **Source documents** | 3 — `docs/V2-TRACKER.md` (3) · `docs/PRODUCT-RULES.md` (1) · `docs/FOUNDER-TRUTH-AUDIT-2026-08-28.md` (1) |
+| **Stable source IDs** | `FI-26`, `FI-27`, `FI-31`, `FTA-004`, `R74` |
 | **Runtime / code / schema evidence** | **Zero implementation.** No `programmes` table, no batch entity, no go-live concept, no price-per-meeting constant anywhere in `apps/api`, `packages/shared` or `supabase/migrations`. Confirmed by the merged 28 Aug audit and by grep. |
 | **Founder-direction evidence** | PRODUCT-RULES **R74** and V2 **FI-26** record programme pricing anchored around ~$450 per targeted booked meeting as the **current founder-approved commercial direction, unimplemented**. |
 | **Historical / supersession evidence** | FI-26 is recorded as superseding FI-68 (flat $4 as architecture) and R68/T9 ($4→$8). |
@@ -378,7 +408,7 @@ mapping correction, not a comparison conclusion.
 
 | Source | Sample INV rows |
 |---|---|
-| `docs/V2-TRACKER.md` (4 rows) | INV-01359 *Programme pricing anchored around ~$450 per targeted booked meeting, replacing flat $4/approved…* · INV-01360 *Automatic volume discounts at higher programme volume. Normal flow must not depend on manual ne…* · INV-01364 *Starting recommendation: 250 leads per targeted booked meeting (10 meetings → ~2,500 leads). No…* |
+| `docs/V2-TRACKER.md` (3 rows) | INV-01359 *Programme pricing anchored around ~$450 per targeted booked meeting, replacing flat $4/approved…* · INV-01360 *Automatic volume discounts at higher programme volume. Normal flow must not depend on manual ne…* · INV-01364 *Starting recommendation: 250 leads per targeted booked meeting (10 meetings → ~2,500 leads). No…* |
 | `docs/PRODUCT-RULES.md` (1 rows) | INV-00261 *THE PROGRAMME COMMERCIAL MODEL — CURRENT FOUNDER-APPROVED PRODUCT/COMMERCIAL DIRECTION, UNIMPLEMENTED (27 Aug)…* |
 | `docs/FOUNDER-TRUTH-AUDIT-2026-08-28.md` (1 rows) | INV-01516 *Programme pricing ~$450/targeted booked meeting* |
 
@@ -1614,8 +1644,8 @@ mapping correction, not a comparison conclusion.
 |---|---|
 | **Domain** | Money models |
 | **Relationship** | **PARTIAL OVERLAP** |
-| **Inventory rows** | **93** — INV-00086, INV-01140, INV-01361, INV-01435–01437, INV-01439–01440, INV-01445–01446, INV-01448, INV-01450–01453, INV-01456–01459, INV-01463–01465, INV-01469–01470, INV-01472–01478, INV-01481–01482, INV-01484–01487 … +27 more ranges |
-| **Source documents** | 18 — `docs/run-costs-and-cashflow.md` (38) · `docs/archive/MASTER.md` (19) · `docs/KIND-MASTER.md` (14) · `docs/reports/PRODUCT-AUDIT-1AUG.md` (3) · `docs/marketing/GTM-STRATEGY.md` (3) · `docs/V2-TRACKER.md` (2) · `docs/marketing/MARKETING-PLAN.md` (2) · `docs/archive/AUDIT-24JUN-RECONCILIATION.md` (2) · +10 more source documents |
+| **Inventory rows** | **92** — INV-00086, INV-01140, INV-01361, INV-01435–01437, INV-01439–01440, INV-01445–01446, INV-01448, INV-01450–01453, INV-01456–01459, INV-01463–01464, INV-01469–01470, INV-01472–01478, INV-01481–01482, INV-01484–01487 … +27 more ranges |
+| **Source documents** | 18 — `docs/run-costs-and-cashflow.md` (37) · `docs/archive/MASTER.md` (19) · `docs/KIND-MASTER.md` (14) · `docs/reports/PRODUCT-AUDIT-1AUG.md` (3) · `docs/marketing/GTM-STRATEGY.md` (3) · `docs/V2-TRACKER.md` (2) · `docs/marketing/MARKETING-PLAN.md` (2) · `docs/archive/AUDIT-24JUN-RECONCILIATION.md` (2) · +10 more source documents |
 | **Stable source IDs** | `#1`, `#420`, `FI-28`, `PR7`, `§0`, `§1` |
 | **Runtime / code / schema evidence** | `cost-floor.ts` holds the $352/mo all-in floor ($146 platform + $206 company), guarded by `cost-floor-drift.test.ts`. doc-lint names `run-costs-and-cashflow.md §0` as the single mirror of the code price. |
 | **Founder-direction evidence** | NO EXPLICIT CURRENT FOUNDER DIRECTION FOUND |
@@ -1626,7 +1656,7 @@ mapping correction, not a comparison conclusion.
 
 | Source | Sample INV rows |
 |---|---|
-| `docs/run-costs-and-cashflow.md` (38 rows) | INV-01435 *CORRECTED — the floor is $352/month all-in ($146 platform + $206 company)* · INV-01436 *The $138 "verified" row was overstated by $87/mo against a real $50.59* · INV-01437 *The 3 Aug cuts and the deliberate keeps (Google Workspace +$28, Instantly $37)* |
+| `docs/run-costs-and-cashflow.md` (37 rows) | INV-01435 *CORRECTED — the floor is $352/month all-in ($146 platform + $206 company)* · INV-01436 *The $138 "verified" row was overstated by $87/mo against a real $50.59* · INV-01437 *The 3 Aug cuts and the deliberate keeps (Google Workspace +$28, Instantly $37)* |
 | `docs/archive/MASTER.md` (19 rows) | INV-10266 *Costs + cashflow rebuilt on actual numbers — docs/run-costs-and-cashflow.md §5b* · INV-11061 *Admin living docs viewer* · INV-11962 *Admin living docs viewer — /docs/ renders MASTER, run-costs, legal as markdown in admin* |
 | `docs/KIND-MASTER.md` (14 rows) | INV-02238 *10 Jul (cashflow doc re-verified against LIVE provider dashboards + code): Fable re-checked run-costs-and-cashflow.…* · INV-02365 *cost-floor headline ("~$146") is the PLATFORM half only — the all-in floor is $352* · INV-02366 *($146 platform + $206 company, cost-floor.ts) — and the migrations block says the Supabase* |
 | `docs/reports/PRODUCT-AUDIT-1AUG.md` (3 rows) | INV-05404 *docs/run-costs-and-cashflow.md §1 says it outright: "This section was stale until 25 Jul — it still described the r…* · INV-05485 *DOC-MAP.md:37 describes run-costs-and-cashflow.md as "§0 = the locked per-qualified-lead ladder". That doc's §1 has…* · INV-05491 *DOC-MAP.md:8 CI claim, :22 core count, :37 money model* |
@@ -2559,9 +2589,9 @@ mapping correction, not a comparison conclusion.
 |---|---|
 | **Domain** | Product surface |
 | **Relationship** | **PARTIAL OVERLAP** |
-| **Inventory rows** | **343** — INV-00077, INV-00148, INV-00155, INV-00166, INV-00204, INV-00206, INV-00627, INV-00633, INV-00656, INV-00687, INV-00906, INV-00937, INV-00950–00951, INV-01089 … +272 more ranges |
-| **Source documents** | 72 — `docs/archive/MASTER.md` (83) · `docs/archive/KIND_Roadmap.md` (27) · `docs/archive/KIND_SOP.md` (18) · `docs/archive/roadmap-audit-14-may-2026.md` (17) · `docs/archive/ADMIN-BOOKKEEPER-AUDIT.md` (16) · `docs/reports/PRODUCT-AUDIT-1AUG.md` (11) · `docs/archive/KIND-MASTER-ARCHIVE.md` (10) · `docs/PRODUCT-INVENTORY.md` (8) · +64 more source documents |
-| **Stable source IDs** | `#110`, `#239`, `#28b`, `#29`, `#34`, `#361`, `#406`, `#420`, `#431`, `#56`, `#617`, `#620`, `#638`, `#639`, `3.11`, `AR10`, `AR17`, `CONF-2`, `M5`, `R1`, `R17`, `R19`, `R3`, `R380` … +2 more |
+| **Inventory rows** | **342** — INV-00077, INV-00148, INV-00155, INV-00166, INV-00204, INV-00206, INV-00627, INV-00633, INV-00656, INV-00687, INV-00906, INV-00937, INV-00950–00951, INV-01089 … +271 more ranges |
+| **Source documents** | 71 — `docs/archive/MASTER.md` (83) · `docs/archive/KIND_Roadmap.md` (27) · `docs/archive/KIND_SOP.md` (18) · `docs/archive/roadmap-audit-14-may-2026.md` (17) · `docs/archive/ADMIN-BOOKKEEPER-AUDIT.md` (16) · `docs/reports/PRODUCT-AUDIT-1AUG.md` (11) · `docs/archive/KIND-MASTER-ARCHIVE.md` (10) · `docs/PRODUCT-INVENTORY.md` (8) · +63 more source documents |
+| **Stable source IDs** | `#110`, `#239`, `#28b`, `#29`, `#34`, `#361`, `#406`, `#420`, `#431`, `#56`, `#617`, `#620`, `#638`, `#639`, `3.11`, `AR10`, `AR17`, `M5`, `R1`, `R17`, `R19`, `R3`, `R380`, `R760` … +1 more |
 | **Runtime / code / schema evidence** | `approve-lead.ts` is the money-and-state door; `routes/leads.ts` reads `proof_passes_done`; a pending migration adds `leads.source` (#599 — *"the column the CSV importer has always written and never had"*). |
 | **Founder-direction evidence** | NO EXPLICIT CURRENT FOUNDER DIRECTION FOUND |
 | **Historical / supersession evidence** | — (no supersession evidence visible in the sources) |
@@ -2579,7 +2609,7 @@ mapping correction, not a comparison conclusion.
 | `docs/reports/PRODUCT-AUDIT-1AUG.md` (11 rows) | INV-05399 *D1 · The #420 family — the per-qualified-lead ladder (10 items)* · INV-05402 *Why it no longer holds. The founder replaced this 16 days later* · INV-05406 *Not everything in the family falls with it — two survive on their own merits* |
 | `docs/archive/KIND-MASTER-ARCHIVE.md` (10 rows) | INV-15140 *Someone can vibe a basic lead tracker; they cannot vibe a trained SDR with our data +* · INV-15178 *Wed 10 · Founder quick-wins · ⬜ · ICO £40 · get a free PDL key (→🤖 wires 2nd lead-discovery source) · decide key-ro…* · INV-15197 *Lead ENRICHMENT (filling missing fields on a lead already found) = a waterfall exists in lib/enrichment.ts (Apollo→…* |
 | `docs/PRODUCT-INVENTORY.md` (8 rows) | INV-00627 *CRITICAL real-money walk owed — prove lead usage deducts. — Code VERIFIED 30 Jun: prod DOES ded…* · INV-00633 *CMO (dogfood lead-gen)* · INV-00656 *Per-rep agent unlock (rolled-up bill) — OUT OF PLAY (sells non-FIGSY agents; FIGSY + Lead-Gen o…* |
-| *+64 more source documents* | *full list via the coverage map* |
+| *+63 more source documents* | *full list via the coverage map* |
 
 ### CMP-0087 · Agent family — FIGSY, Denise, Tony, Casey
 
@@ -3458,9 +3488,9 @@ mapping correction, not a comparison conclusion.
 |---|---|
 | **Domain** | History / planning |
 | **Relationship** | **PARTIAL OVERLAP** |
-| **Inventory rows** | **300** — INV-00112, INV-00173, INV-00190, INV-00902, INV-00908, INV-00949, INV-00953–00955, INV-00963, INV-01154, INV-01497–01503, INV-01507, INV-01511–01512, INV-01519, INV-01523–01525 … +134 more ranges |
-| **Source documents** | 31 — `docs/archive/AUDIT.md` (49) · `docs/reports/PRODUCT-AUDIT-1AUG.md` (44) · `docs/FOUNDER-TRUTH-AUDIT-2026-08-28.md` (37) · `docs/AUDIT-8JUL-DEEP.md` (25) · `docs/archive/AUDIT-24JUN-RECONCILIATION.md` (25) · `docs/AUDIT-PROMPT.md` (21) · `docs/archive/LAUNCH-AUDIT-12JUN.md` (20) · `docs/archive/MASTER.md` (18) · +23 more source documents |
-| **Stable source IDs** | `#1`, `#10`, `#103`, `#176`, `#2`, `#230`, `#237`, `#331`, `#338`, `#348`, `#403`, `#404`, `#560`, `#561`, `#6`, `#637`, `#641`, `#642`, `#643`, `#650`, `#92`, `ADJ-1`, `FTA-007`, `FTA-011` … +25 more |
+| **Inventory rows** | **299** — INV-00112, INV-00173, INV-00190, INV-00902, INV-00908, INV-00949, INV-00953–00955, INV-00963, INV-01154, INV-01497–01503, INV-01507, INV-01511–01512, INV-01519, INV-01524–01525 … +134 more ranges |
+| **Source documents** | 31 — `docs/archive/AUDIT.md` (49) · `docs/reports/PRODUCT-AUDIT-1AUG.md` (44) · `docs/FOUNDER-TRUTH-AUDIT-2026-08-28.md` (36) · `docs/AUDIT-8JUL-DEEP.md` (25) · `docs/archive/AUDIT-24JUN-RECONCILIATION.md` (25) · `docs/AUDIT-PROMPT.md` (21) · `docs/archive/LAUNCH-AUDIT-12JUN.md` (20) · `docs/archive/MASTER.md` (18) · +23 more source documents |
+| **Stable source IDs** | `#1`, `#10`, `#103`, `#176`, `#2`, `#230`, `#237`, `#331`, `#338`, `#348`, `#403`, `#404`, `#560`, `#561`, `#6`, `#637`, `#641`, `#642`, `#643`, `#650`, `#92`, `ADJ-1`, `FTA-007`, `FTA-012` … +24 more |
 | **Runtime / code / schema evidence** | `scripts/audit.ts` is run by `daily-audit.yml`. `AUDIT-PROMPT.md` is the standing prompt. |
 | **Founder-direction evidence** | NO EXPLICIT CURRENT FOUNDER DIRECTION FOUND |
 | **Historical / supersession evidence** | Six prior audits exist across archive and current docs, dated 14 May to 1 Aug, plus the merged 28 Aug audit. |
@@ -3472,7 +3502,7 @@ mapping correction, not a comparison conclusion.
 |---|---|
 | `docs/archive/AUDIT.md` (49 rows) | INV-20074 *K.I.N.D Portal — Full Sprint Audit* · INV-20076 *Latest commit: 670e273* · INV-20077 *TypeScript: ✅ Clean on every commit* |
 | `docs/reports/PRODUCT-AUDIT-1AUG.md` (44 rows) | INV-05389 *🔍 PRODUCT AUDIT — 1 Aug 2026* · INV-05390 *THIS IS A REPORT, NOT A PURGE. Nothing in the inventory was removed, re-scoped, archived or re-dotted by this audit…* · INV-05391 *ARTIFACT — dated one-off, frozen. Read it as the state of the docs on 1 Aug 2026, not as current.* |
-| `docs/FOUNDER-TRUTH-AUDIT-2026-08-28.md` (37 rows) | INV-01497 *This file is an AUDIT, not a source of truth* · INV-01498 *Audited origin/main SHA fecaefde; branch claude/founder-truth-audit, 0 ahead / 0 behind* · INV-01499 *Scope and not-in-scope stated explicitly* |
+| `docs/FOUNDER-TRUTH-AUDIT-2026-08-28.md` (36 rows) | INV-01497 *This file is an AUDIT, not a source of truth* · INV-01498 *Audited origin/main SHA fecaefde; branch claude/founder-truth-audit, 0 ahead / 0 behind* · INV-01499 *Scope and not-in-scope stated explicitly* |
 | `docs/AUDIT-8JUL-DEEP.md` (25 rows) | INV-05341 *🔍 K.I.N.D — DEEP AUDIT + ARCHITECTURE DECISION (8 Jul 2026)* · INV-05342 *Trust rule: every verdict is CODE-CONFIRMED (read on origin/main) unless marked otherwise: Prod-DB-Confirmed (found…* · INV-05343 *1. EXECUTIVE TRUTH* |
 | `docs/archive/AUDIT-24JUN-RECONCILIATION.md` (25 rows) | INV-20263 *🔬 K.I.N.D — FULL DOC↔CODE RECONCILIATION (24 Jun 2026)* · INV-20264 *What this is: the complete, single-source result of a full audit of every doc (4 canonical + ~40 sub-docs) and all …* · INV-20267 *HEADLINE* |
 | `docs/AUDIT-PROMPT.md` (21 rows) | INV-04930 *🔬 THE DEEP-AUDIT PROMPT — paste this when you want a real audit* · INV-04931 *Why this file exists. Every audit I ran by searching the code came back "clean" and then the founder found somethin…* · INV-04932 *Founder-requested 26 Jul: "in the future give me the prompt for you to do a deep audit."* |
@@ -5301,6 +5331,32 @@ mapping correction, not a comparison conclusion.
 
 ---
 
+## Domain — Money models
+
+### CMP-0197 · PROGRAMME CONTRIBUTION — DEFINITION
+
+| Field | Value |
+|---|---|
+| **Domain** | Money models |
+| **Relationship** | **INSUFFICIENT EVIDENCE TO COMPARE** |
+| **Inventory rows** | **4** — INV-01392, INV-01465, INV-01523, INV-01594 |
+| **Source documents** | 3 — `docs/FOUNDER-TRUTH-AUDIT-2026-08-28.md` (2) · `docs/V2-TRACKER.md` (1) · `docs/run-costs-and-cashflow.md` (1) |
+| **Stable source IDs** | `CONF-2`, `FI-59`, `FTA-011` |
+| **Runtime / code / schema evidence** | No implementation. The only contribution figure that exists in the repository is the **legacy per-lead** derivation in `run-costs` §8B — `$4.00 − PDL $0.56 − work $0.06 − reveal $0.01 − Stripe $0.20 = $3.17` (INV-01480, which stays with CMP-0002). There is no programme entity, so no programme contribution is computed anywhere. |
+| **Founder-direction evidence** | FI-59 records that *"'Programme contribution' must be defined explicitly before implementation. Not invented here."* CONF-2 records that *"the direction is settled, the accounting definition is not"*, and adds the consequence: *"any per-lead price change silently rewrites partner earnings."* FTA-011 lists the definition as one of the two genuine conflicts requiring the founder. |
+| **Historical / supersession evidence** | — (no supersession evidence visible in the sources) |
+| **Questions exposed** | **The relationship is INSUFFICIENT EVIDENCE TO COMPARE rather than DIRECT CONFLICT, and the distinction is deliberate:** no two sources state competing definitions. Every source agrees the term is undefined and says so explicitly. What exists is one **exclusion** — FI-58 states the partner 25% is *"of programme CONTRIBUTION, not of gross programme revenue"* — and a vocabulary rule (INV-01465) that a partial lead contribution is never called net margin. The base itself is stated nowhere. |
+
+**What each source says — representative rows, transcribed:**
+
+| Source | Sample INV rows |
+|---|---|
+| `docs/FOUNDER-TRUTH-AUDIT-2026-08-28.md` (2 rows) | INV-01523 *Definition of "programme contribution"* · INV-01594 *"Programme contribution" — the direction is settled, the accounting definition is not* |
+| `docs/V2-TRACKER.md` (1 rows) | INV-01392 *"Programme contribution" must be defined explicitly before implementation. Not invented here.* |
+| `docs/run-costs-and-cashflow.md` (1 rows) | INV-01465 *LANGUAGE RULE — a partial lead contribution is NEVER called "net margin"* |
+
+---
+
 ## Proof — the repaired Step 3 can distinguish the six FI states
 
 The founder's requirement is that Step 3 be granular enough for Step 4 to classify these apart.
@@ -5314,10 +5370,10 @@ proof, nothing more.
 | **Carries an unresolved question** | FI-31 | 1 |
 | **Observational rather than implemented** | FI-01 | 1 |
 | **Current approved direction** | FI-26, FI-27, FI-28, FI-30, FI-32, FI-33, FI-34, FI-35, FI-36, FI-38, FI-39, FI-40, FI-41, FI-42, FI-43, FI-44, FI-45, FI-60, FI-61, FI-62 | 17 |
-| **Overlaps launch / product subjects** | FI-02, FI-03, FI-04, FI-05, FI-07, FI-08, FI-09, FI-10, FI-11, FI-12, FI-46, FI-47, FI-48, FI-49, FI-50, FI-51, FI-52, FI-53, FI-54, FI-55, FI-56, FI-57, FI-58, FI-59 | 24 |
-| **Genuinely remaining V2** | FI-06, FI-13, FI-14, FI-15, FI-16, FI-17, FI-18, FI-19, FI-20, FI-21, FI-22, FI-23, FI-24, FI-25, FI-63, FI-64 | 13 |
+| **Overlaps launch / product subjects** | FI-02, FI-03, FI-04, FI-05, FI-07, FI-08, FI-09, FI-10, FI-11, FI-12, FI-46, FI-47, FI-48, FI-49, FI-50, FI-51, FI-52, FI-53, FI-54, FI-55, FI-56, FI-57, FI-58 | 23 |
+| **Genuinely remaining V2** | FI-06, FI-13, FI-14, FI-15, FI-16, FI-17, FI-18, FI-19, FI-20, FI-21, FI-22, FI-23, FI-24, FI-25, FI-59, FI-63, FI-64 | 14 |
 
-**All 69 FI items are individually traceable, none sits in a retired container, and they are spread across 60 distinct comparison subjects** — where CMP-0062 alone previously held 16 of them.
+**All 69 FI items are individually traceable, none sits in a retired container, and they are spread across 61 distinct comparison subjects** — where CMP-0062 alone previously held 16 of them.
 
 ---
 

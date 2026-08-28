@@ -1407,7 +1407,7 @@
 | INV-01389 | CMP-0178 | Full-system sweep when the programme model lands | `docs/V2-TRACKER.md` |
 | INV-01390 | CMP-0179 | Re-record the demo video | `docs/V2-TRACKER.md` |
 | INV-01391 | CMP-0140 | Partner commission on programme revenue | `docs/V2-TRACKER.md` |
-| INV-01392 | CMP-0004 | Programme pricing ~$450 per targeted booked meeting | `docs/V2-TRACKER.md` |
+| INV-01392 | CMP-0197 | PROGRAMME CONTRIBUTION — DEFINITION | `docs/V2-TRACKER.md` |
 | INV-01393 | CMP-0174 | PDL as the launch external sourcing provider | `docs/V2-TRACKER.md` |
 | INV-01394 | CMP-0175 | Apollo live API parked for launch | `docs/V2-TRACKER.md` |
 | INV-01395 | CMP-0173 | Eligible K.I.N.D-owned Apollo pool data | `docs/V2-TRACKER.md` |
@@ -1480,7 +1480,7 @@
 | INV-01462 | CMP-0020 | Stripe as the payment gate | `docs/run-costs-and-cashflow.md` |
 | INV-01463 | CMP-0051 | run-costs-and-cashflow as the price mirror | `docs/run-costs-and-cashflow.md` |
 | INV-01464 | CMP-0051 | run-costs-and-cashflow as the price mirror | `docs/run-costs-and-cashflow.md` |
-| INV-01465 | CMP-0051 | run-costs-and-cashflow as the price mirror | `docs/run-costs-and-cashflow.md` |
+| INV-01465 | CMP-0197 | PROGRAMME CONTRIBUTION — DEFINITION | `docs/run-costs-and-cashflow.md` |
 | INV-01466 | CMP-0020 | Stripe as the payment gate | `docs/run-costs-and-cashflow.md` |
 | INV-01467 | CMP-0138 | Programme floor — ~$400 effective at 50+ meetings | `docs/run-costs-and-cashflow.md` |
 | INV-01468 | CMP-0009 | ~1.5:1 sourcing-precision improvement objective | `docs/run-costs-and-cashflow.md` |
@@ -1538,7 +1538,7 @@
 | INV-01520 | CMP-0018 | 50/50 payment split and Approve & Go Live | `docs/FOUNDER-TRUTH-AUDIT-2026-08-28.md` |
 | INV-01521 | CMP-0146 | Programme-level approval — one approval, not per lead | `docs/FOUNDER-TRUTH-AUDIT-2026-08-28.md` |
 | INV-01522 | CMP-0007 | Partner commission — 25% of paid lead sales | `docs/FOUNDER-TRUTH-AUDIT-2026-08-28.md` |
-| INV-01523 | CMP-0118 | Prior audits and reconciliations | `docs/FOUNDER-TRUTH-AUDIT-2026-08-28.md` |
+| INV-01523 | CMP-0197 | PROGRAMME CONTRIBUTION — DEFINITION | `docs/FOUNDER-TRUTH-AUDIT-2026-08-28.md` |
 | INV-01524 | CMP-0118 | Prior audits and reconciliations | `docs/FOUNDER-TRUTH-AUDIT-2026-08-28.md` |
 | INV-01525 | CMP-0118 | Prior audits and reconciliations | `docs/FOUNDER-TRUTH-AUDIT-2026-08-28.md` |
 | INV-01526 | CMP-0008 | ~7:1 observed sourcing attainment | `docs/FOUNDER-TRUTH-AUDIT-2026-08-28.md` |
@@ -1609,7 +1609,7 @@
 | INV-01591 | CMP-0118 | Prior audits and reconciliations | `docs/FOUNDER-TRUTH-AUDIT-2026-08-28.md` |
 | INV-01592 | CMP-0118 | Prior audits and reconciliations | `docs/FOUNDER-TRUTH-AUDIT-2026-08-28.md` |
 | INV-01593 | CMP-0011 | ~150 accepted prospects per booked meeting (R69) | `docs/FOUNDER-TRUTH-AUDIT-2026-08-28.md` |
-| INV-01594 | CMP-0086 | Lead lifecycle and the lead desk | `docs/FOUNDER-TRUTH-AUDIT-2026-08-28.md` |
+| INV-01594 | CMP-0197 | PROGRAMME CONTRIBUTION — DEFINITION | `docs/FOUNDER-TRUTH-AUDIT-2026-08-28.md` |
 | INV-01595 | CMP-0118 | Prior audits and reconciliations | `docs/FOUNDER-TRUTH-AUDIT-2026-08-28.md` |
 | INV-01596 | CMP-0118 | Prior audits and reconciliations | `docs/FOUNDER-TRUTH-AUDIT-2026-08-28.md` |
 | INV-01597 | CMP-0060 | Deployment verification and the SHA report | `docs/FOUNDER-TRUTH-AUDIT-2026-08-28.md` |

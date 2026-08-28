@@ -4,7 +4,7 @@
 >
 > **This is a full rerun.** The first Step-4 pass classified against comparison subjects that were
 > too coarse — one verdict was being asked to cover sixteen different truths in the V2 idea bank.
-> Step 3 has been repaired (196 CMP IDs, 193 classifiable, 3 retired structural groups) and this file
+> Step 3 has been repaired (197 CMP IDs, 194 classifiable, 3 retired structural groups) and this file
 > is rewritten from the corrected model. **No count from the previous pass was patched forward.**
 >
 > | Not done here | Where it belongs |
@@ -37,7 +37,7 @@
 | | |
 |---|---|
 | **Baseline `origin/main` SHA** | `299b2e823b5da4ff2dad45e5e20be12d7186e932` |
-| **Inputs** | Step-2 inventory (245 sources · 24,309 rows) · **repaired** Step-3 comparison (196 CMP IDs) · the merged 28 Aug audit · `origin/main` runtime evidence |
+| **Inputs** | Step-2 inventory (245 sources · 24,309 rows) · **repaired** Step-3 comparison (197 CMP IDs) · the merged 28 Aug audit · `origin/main` runtime evidence |
 | **Step-2 artifact changed** | **no** |
 | **Step-3 artifact changed** | **no** |
 | **Canonical source documents changed** | **none** |
@@ -58,11 +58,11 @@ green to make the board look better, and no launch-path subject was demoted to m
 
 | Colour | Subjects |
 |---|---:|
-| 🔴 **RED** | **42** |
+| 🔴 **RED** | **43** |
 | 🟠 **AMBER** | **28** |
 | 🟢 **GREEN** | **20** |
 | ⚪ **LATER** | **103** |
-| **TOTAL** | **193** |
+| **TOTAL** | **194** |
 
 ### 🔴 RED — what must become true before Friday 4 September
 
@@ -110,10 +110,11 @@ green to make the board look better, and no launch-path subject was demoted to m
 | **CMP-0179** | Re-record the demo video | The live demo video states a product that no longer exists. | Re-recorded or withdrawn. |
 | **CMP-0180** | Website consistency pass (#698) | The homepage and the other 28 pages are two different sites. | One consistent public surface. |
 | **CMP-0195** | Per-client data-retention controls | FD-04 — the site promises a per-client retention control that does not exist. | FD-04 answered: build the control or correct the page. |
+| **CMP-0197** | PROGRAMME CONTRIBUTION — DEFINITION | FD-02 — the base for programme contribution is stated nowhere, and the partner 25% depends on it. | FD-02 answered and the base recorded. |
 
 ### What the board says about 4 September — stated plainly
 
-**42 red items.** They are not one problem, and the shape matters more than the count:
+**43 red items.** They are not one problem, and the shape matters more than the count:
 
 * **16 of them are the programme commercial model itself** — the anchor price, 50/50 payment,
   programme authority, programme-level approval, batches, pause, unused value, the refund boundary,
@@ -147,11 +148,11 @@ raises that is not already in the decision pack.
 | VERIFIED CURRENT DIRECTION | 64 |
 | PARTIAL | 60 |
 | STALE | 12 |
-| CONFLICT | 2 |
+| CONFLICT | 3 |
 | SUPERSEDED / HISTORY | 17 |
 | OBSERVATIONAL / UNVERIFIED | 4 |
 | UNKNOWN | 0 |
-| **TOTAL** | **193** |
+| **TOTAL** | **194** |
 
 ### Truth layers
 
@@ -160,10 +161,10 @@ raises that is not already in the decision pack.
 | LIVE NOW | 34 |
 | CURRENT APPROVED DIRECTION — UNBUILT | 60 |
 | CURRENT APPROVED DIRECTION — PARTIAL | 76 |
-| UNRESOLVED | 2 |
+| UNRESOLVED | 3 |
 | SUPERSEDED / HISTORY | 17 |
 | OBSERVATIONAL / UNVERIFIED | 4 |
-| **TOTAL** | **193** |
+| **TOTAL** | **194** |
 
 ### Implementation states
 
@@ -174,21 +175,21 @@ raises that is not already in the decision pack.
 | UNBUILT | 57 |
 | BLOCKED | 1 |
 | SUPERSEDED | 8 |
-| NOT APPLICABLE | 32 |
-| **TOTAL** | **193** |
+| NOT APPLICABLE | 33 |
+| **TOTAL** | **194** |
 
 ### Priorities
 
 | Priority | Subjects |
 |---|---:|
-| CRITICAL NOW | 9 |
+| CRITICAL NOW | 10 |
 | LAUNCH CRITICAL | 81 |
 | POST-LAUNCH CRITICAL | 65 |
 | V2 | 20 |
 | HISTORY | 18 |
-| **TOTAL** | **193** |
+| **TOTAL** | **194** |
 
-**Founder decision required: 6 of 193.**
+**Founder decision required: 7 of 194.**
 
 ---
 
@@ -206,20 +207,22 @@ re-routed to the underlying truth subjects.
 
 ---
 
-## ⚠️ One Step-3 defect exposed by this rerun — reported, not silently repaired
+## The Step-3 defect this rerun exposed — now repaired
 
-**There is no comparison subject that owns the definition of "programme contribution".** Its rows are
-scattered: INV-01392 (*"programme contribution must be defined explicitly before implementation"*) sits
-in CMP-0004, INV-01522 (partner 25% of contribution) in CMP-0007, INV-01391 in CMP-0140, and the ≈70%
-margin arithmetic in CMP-0051. **FD-02 is therefore anchored to four subjects rather than one.**
+The first rerun reported that **no comparison subject owned the definition of "programme
+contribution"**, which left FD-02 anchored to four mixed subjects. Step 4's rule is to report a
+missing subject rather than invent one, and Step 3 has since been repaired.
 
-Step 4's rule is to report a missing comparison subject rather than invent a CMP silently, so that is
-what this is. It does not block the classification — every row is classified — but a later pass may
-want a dedicated subject.
+**CMP-0197 · PROGRAMME CONTRIBUTION — DEFINITION** now owns that question alone. Four rows moved to
+it by explicit INV id — INV-01392 (FI-59, *"must be defined explicitly before implementation"*),
+INV-01465 (the never-called-net-margin vocabulary rule), INV-01523 (FTA-011) and INV-01594 (CONF-2).
+The partner-rate rows (INV-01391, INV-01522), the ≈70% margin rows and the legacy per-lead
+contribution figure stayed where they were, so **price, margin, partner rate and definition are now
+four separate classifiable truths**. FD-02 anchors to CMP-0197.
 
 ---
 
-## The classification — 193 subjects
+## The classification — 194 subjects
 
 | CMP | Subject | Domain | Truth verdict | Truth layer | Implementation | Priority | Gate | FD | Canonical home |
 |---|---|---|---|---|---|---|:--:|:--:|---|
@@ -416,6 +419,7 @@ want a dedicated subject.
 | **CMP-0194** | Day-1 post-launch operating-model session (R60) | Operating / governance | **VERIFIED CURRENT DIRECTION** | CURRENT APPROVED DIRECTION — UNBUILT | NOT APPLICABLE | POST-LAUNCH CRITICAL | ⚪ | NO | PRODUCT-RULES |
 | **CMP-0195** | Per-client data-retention controls | Operating / governance | **STALE** | CURRENT APPROVED DIRECTION — PARTIAL | UNBUILT | LAUNCH CRITICAL | 🔴 | YES | website / legal source |
 | **CMP-0196** | The stealth constraint (R2) | Operating / governance | **VERIFIED LIVE** | LIVE NOW | NOT APPLICABLE | LAUNCH CRITICAL | 🟢 | NO | PRODUCT-RULES |
+| **CMP-0197** | PROGRAMME CONTRIBUTION — DEFINITION | Money models | **CONFLICT** | UNRESOLVED | NOT APPLICABLE | CRITICAL NOW | 🔴 | YES | run-costs-and-cashflow |
 
 ---
 
@@ -435,7 +439,7 @@ want a dedicated subject.
 
 > R68 approved $8 as one coordinated migration; V2 line 1600 files R68/T9 under SUPERSEDED HISTORY and LAUNCH-PAD T9 carries the ⛓️ chain mark. No `8` literal exists. Superseded by source statement, not by age.
 
-**CMP-0004 · Programme pricing ~$450 per targeted booked meeting** — VERIFIED CURRENT DIRECTION · CURRENT APPROVED DIRECTION — UNBUILT · UNBUILT · LAUNCH CRITICAL · 🔴 · FD **NO** · home: PRODUCT-RULES · 6 INV rows
+**CMP-0004 · Programme pricing ~$450 per targeted booked meeting** — VERIFIED CURRENT DIRECTION · CURRENT APPROVED DIRECTION — UNBUILT · UNBUILT · LAUNCH CRITICAL · 🔴 · FD **NO** · home: PRODUCT-RULES · 5 INV rows
 
 > R74 / FI-26 record ~$450 per targeted booked meeting as the founder-approved commercial direction. **Zero implementation** — no `programmes` table, no batch entity, no go-live concept. Assessed against the locked direction: the **programme model is the launch commercial direction**. A client buying on 4 Sep buys a programme, so the anchor price must exist.
 
@@ -641,7 +645,7 @@ want a dedicated subject.
 
 > Designated the money model of record (#556) yet it hard-codes `PACK_PRICE`, `PACK_LEADS`, `PACK_SOURCE`, `THRESHOLD` in its own JavaScript, and models only the legacy per-approval economics. The merged audit already marks it 🔴 STALE.
 
-**CMP-0051 · run-costs-and-cashflow as the price mirror** — PARTIAL · CURRENT APPROVED DIRECTION — PARTIAL · BUILT · LAUNCH CRITICAL · 🟠 · FD **NO** · home: run-costs-and-cashflow · 93 INV rows
+**CMP-0051 · run-costs-and-cashflow as the price mirror** — PARTIAL · CURRENT APPROVED DIRECTION — PARTIAL · BUILT · LAUNCH CRITICAL · 🟠 · FD **NO** · home: run-costs-and-cashflow · 92 INV rows
 
 > `cost-floor.ts` + `cost-floor-drift.test.ts` guard the $352 all-in floor and doc-lint names §0 as the single price mirror. The document also carries the ≈70% contribution-margin target and the ~$135 COGS ceiling per meeting — the arithmetic the programme price rests on. **Its contribution definition is FD-02.**
 
@@ -777,7 +781,7 @@ want a dedicated subject.
 
 > `client-flow-sop` records *"OUR OWN ENGINE over SMTP; Instantly warm-up only; Smartlead deferred and unpaid"*. Deliverability is K.I.N.D's job by the 8 Jun principle, and inbox placement decides whether the launch delivers anything.
 
-**CMP-0086 · Lead lifecycle and the lead desk** — VERIFIED LIVE · LIVE NOW · BUILT · LAUNCH CRITICAL · 🟢 · FD **NO** · home: PRODUCT-INVENTORY · 343 INV rows
+**CMP-0086 · Lead lifecycle and the lead desk** — VERIFIED LIVE · LIVE NOW · BUILT · LAUNCH CRITICAL · 🟢 · FD **NO** · home: PRODUCT-INVENTORY · 342 INV rows
 
 > `approve-lead.ts` is the money-and-state door; masking and approve-then-reveal are implemented. `leads.source` is a pending migration for a column the importer already writes.
 
@@ -911,7 +915,7 @@ want a dedicated subject.
 
 > The live KIND-MASTER session log and four archive session documents record overlapping days; the archive copies are explicitly historical.
 
-**CMP-0118 · Prior audits and reconciliations** — SUPERSEDED / HISTORY · SUPERSEDED / HISTORY · NOT APPLICABLE · HISTORY · ⚪ · FD **NO** · home: KIND-MASTER · 300 INV rows
+**CMP-0118 · Prior audits and reconciliations** — SUPERSEDED / HISTORY · SUPERSEDED / HISTORY · NOT APPLICABLE · HISTORY · ⚪ · FD **NO** · home: KIND-MASTER · 299 INV rows
 
 > Six prior audits from 14 May to 1 Aug plus the merged 28 Aug audit. Only the 28 Aug one is current input.
 
@@ -1275,6 +1279,12 @@ want a dedicated subject.
 
 > R2 (25 Jun, re-affirmed 6 Aug): *"Stealth is NARROWED, not lifted. A LinkedIn company page is allowed. No personal announcement."* It blocks the founder-led public posting at the centre of the marketing plan, and both are current — a live constraint on launch GTM.
 
+### Domain — Money models
+
+**CMP-0197 · PROGRAMME CONTRIBUTION — DEFINITION** — CONFLICT · UNRESOLVED · NOT APPLICABLE · CRITICAL NOW · 🔴 · FD **YES** · home: run-costs-and-cashflow · 4 INV rows
+
+> **The base is stated nowhere.** FI-59: *"Programme contribution must be defined explicitly before implementation. Not invented here."* CONF-2: *"the direction is settled, the accounting definition is not"*, with the consequence *"any per-lead price change silently rewrites partner earnings."* FTA-011 lists it as one of the two genuine conflicts requiring the founder. The only exclusion any source states is FI-58's *"not of gross programme revenue"*, plus the vocabulary rule that a partial lead contribution is never called net margin. **Step-3 relationship is INSUFFICIENT EVIDENCE TO COMPARE because no two sources state competing definitions; the Step-4 verdict is CONFLICT because the evidence leaves a genuine unresolved choice.** FD-02.
+
 ---
 
 # ░ STEP 5 — FOUNDER DECISIONS REQUIRED ░
@@ -1298,18 +1308,18 @@ meeting-state model and the programme-as-launch-direction were **not** returned 
 | **Confidence** | n/a |
 | **Blocked until answered** | The programme anchor price (CMP-0004), the quoted working point (CMP-0137), batch sizing (CMP-0147), benchmark transparency (CMP-0161) and every client-facing projection. |
 
-## FD-02 — CMP-0007 · CMP-0140 · CMP-0051 · CMP-0004
+## FD-02 — CMP-0197 · CMP-0140 · CMP-0007
 
 | | |
 |---|---|
-| **Question** | What exactly is "programme contribution", and is the partner 25% taken on contribution or on gross programme revenue? |
-| **Option A** | Contribution = programme price less direct delivery cost (records, inbox, sending, work); partner 25% on that. |
-| **Option B** | Contribution = programme price less direct delivery cost **and** an allocated share of fixed company cost; partner 25% on that. |
-| **Factual effect** | A: a higher contribution, a larger partner payment, and a curve that can float below true break-even at volume. B: a lower contribution, a smaller partner payment, and a floor closer to the real $352 all-in cost. |
-| **Evidence** | INV-01522 records partner commission at **25% of programme contribution, not gross**. INV-01392 records that *"programme contribution must be defined explicitly before implementation"*. `run-costs` carries the ≈70% contribution-margin target and a ~$135 COGS ceiling per meeting. The live constant derives the partner payment from the per-lead price instead. |
-| **Recommendation** | None — the definition is the founder's to set. |
+| **Question** | What exactly is "programme contribution" — which amount is the 25% partner commission, the ≈70% margin guard and the volume curve all measured against? |
+| **Option A** | Programme revenue less **directly attributable delivery and acquisition cost** — records, inbox, sending, work, card fees. This is the shape `run-costs` already computes for the legacy lead ($4.00 − PDL $0.56 − work $0.06 − reveal $0.01 − Stripe $0.20 = $3.17) and the shape the ~$135 COGS ceiling per meeting is expressed in. |
+| **Option B** | Programme revenue less directly attributable cost **and an allocated share of fixed company cost** — the $352/month all-in floor. This is the shape the ≈70% contribution-margin *protection* implies if the guard is meant to cover the rent rather than only the delivery. |
+| **Factual effect** | A: a larger contribution, a larger partner payment on the same programme, and a volume curve that can float below true break-even once fixed cost is counted. B: a smaller contribution, a smaller partner payment, and a floor that already carries the company cost — `run-costs` records that at 500 leads per meeting contribution goes negative under either reading. |
+| **Evidence** | **No source states the base.** FI-59: *"must be defined explicitly before implementation. Not invented here."* CONF-2: *"the direction is settled, the accounting definition is not"* — and *"any per-lead price change silently rewrites partner earnings."* FTA-011 lists it as a genuine founder conflict. ⚠️ **One base is explicitly excluded by the sources:** FI-58 states the partner 25% is *"of programme CONTRIBUTION, **not of gross programme revenue**"*, so gross is not an available option. A vocabulary rule (INV-01465) adds that a partial lead contribution is never called net margin. |
+| **Recommendation** | None — the sources exclude gross and define nothing further. Both remaining options are evidenced shapes, and choosing between them is an accounting decision only the founder can make. |
 | **Confidence** | n/a |
-| **Blocked until answered** | Partner economics (CMP-0007, CMP-0140), the margin guard (CMP-0051), the volume curve (CMP-0005) and the ~$400 floor (CMP-0138). |
+| **Blocked until answered** | **CMP-0197** (the definition itself) · **CMP-0140** and **CMP-0007** (what the partner 25% is actually taken on) · **CMP-0051** (the ≈70% margin guard) · **CMP-0005** and **CMP-0138** (the volume curve and the ~$400 floor it protects). |
 
 ## FD-03 — CMP-0091
 

@@ -1,3 +1,5 @@
+// BUILD-003 item 6 — the one suppression gate every send path asks.
+import { checkSendAllowed } from './send-gate'
 import Anthropic from '@anthropic-ai/sdk'
 import { db } from '@kind/db'
 
@@ -17,6 +19,18 @@ export async function sendTextMessage(to: string, body: string): Promise<string 
   const token = getToken()
   const phoneNumberId = getPhoneNumberId()
   if (!token || !phoneNumberId) return null
+
+  // ── SUPPRESSION (BUILD-003 item 6) ────────────────────────────────────────────────────
+  // ⚠️ THIS CHANNEL HAD NO SUPPRESSION CHECK, on a table that has carried a
+  // `whatsapp_number` column all along — routes/whatsapp.ts WRITES an opt-out there when
+  // someone replies STOP, and nothing ever read it back. A person could opt out on WhatsApp
+  // and keep receiving WhatsApp messages, which is the one failure the blocklist exists to
+  // prevent, on the channel where it is most obvious to the person receiving it.
+  const verdict = await checkSendAllowed({ phone: to })
+  if (!verdict.allowed) {
+    console.error(`[whatsapp] refused (${verdict.reason}): ${verdict.message}`)
+    return null
+  }
 
   try {
     const res = await fetch(`${BASE_URL}/${phoneNumberId}/messages`, {
@@ -55,6 +69,14 @@ export async function sendTemplateMessage(
   languageCode: string,
   components: any[],
 ): Promise<string | null> {
+  // Same gate as sendTextMessage — a template message reaches the same person, and a channel
+  // with two doors needs the check on both.
+  const verdict = await checkSendAllowed({ phone: to })
+  if (!verdict.allowed) {
+    console.error(`[whatsapp] template refused (${verdict.reason}): ${verdict.message}`)
+    return null
+  }
+
   const token = getToken()
   const phoneNumberId = getPhoneNumberId()
   if (!token || !phoneNumberId) return null

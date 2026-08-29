@@ -16,6 +16,8 @@
 // the failure mode of guessing wrong is emailing real people from the wrong account.
 
 import { db } from '@kind/db'
+// BUILD-003 item 6 — the one suppression gate every send path asks.
+import { checkSendAllowed } from './send-gate'
 import { canPushToInstantly, refusalLabel, toInstantlyLead, toInstantlySequence, type PushRefusal } from './instantly-map'
 import { instantlyConfigured, listCampaigns, createCampaign, addLead } from './instantly'
 import type { SequenceStep } from './sequence-apply'
@@ -58,6 +60,26 @@ export async function pushApprovedLeadToInstantly(leadId: string, clientId: stri
     leadEmail: (lead as { email?: string | null } | null)?.email ?? null,
   })
   if (!gate.ok) return { pushed: false, reason: gate.reason, detail: gate.detail }
+
+  // ── SUPPRESSION (BUILD-003 item 6) ────────────────────────────────────────────────────
+  // ⚠️ THIS PATH HAD NO SUPPRESSION CHECK AT ALL — not the do-not-contact floor, not the
+  // opt-out blocklist. It is dormant today (INSTANTLY_API_KEY is unset), which is exactly
+  // why the gate goes in NOW: the day somebody sets that key, the first thing this code
+  // would otherwise do is push people who told us to stop into an engine that mails them
+  // from its own copy of the lead, where our blocklist has no reach at all.
+  //
+  // Placed AFTER the config gate so a dormant install does no database work, and BEFORE the
+  // sequence render so a suppressed person is refused before we spend anything on them.
+  const leadRow = lead as { email?: string | null; company?: string | null } | null
+  const verdict = await checkSendAllowed({
+    email:   leadRow?.email ?? null,
+    company: leadRow?.company ?? null,
+    isDemo:  (client as { is_demo?: boolean } | null)?.is_demo === true,
+  })
+  if (!verdict.allowed) {
+    return { pushed: false, reason: verdict.reason === 'do_not_contact' ? 'do_not_contact' : 'opted_out',
+      detail: `${verdict.message} Refused before the push: Instantly sends from its own copy of the lead, so this is the last gate before a real person.` }
+  }
 
   // Our own sequence copy — Instantly sends OUR words, it does not write them.
   const { data: seq } = await db.from('figsy_sequences')

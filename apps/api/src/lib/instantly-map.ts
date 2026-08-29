@@ -25,6 +25,11 @@ export type PushRefusal =
   | 'is_demo'
   | 'not_house_client'
   | 'no_email'
+  // BUILD-003 item 6 — this path had NO suppression check at all until 29 Aug. These two
+  // are refused by the shared send gate, not by canPushToInstantly, because the gate reads
+  // the database and this function is deliberately pure.
+  | 'do_not_contact'
+  | 'opted_out'
 
 export type PushDecision =
   | { ok: true }
@@ -80,6 +85,8 @@ export function refusalLabel(r: PushRefusal): string {
     case 'is_demo':          return 'demo account — can never send'
     case 'not_house_client': return 'not the house client — clients send via Smartlead'
     case 'no_email':         return 'lead has no email address'
+    case 'do_not_contact':   return 'on the do-not-contact list — never contacted on any channel'
+    case 'opted_out':        return 'this person opted out — suppression is global across K.I.N.D'
   }
 }
 

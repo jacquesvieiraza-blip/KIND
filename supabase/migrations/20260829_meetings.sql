@@ -2,8 +2,8 @@
 -- BUILD-003 · item 2 — public.meetings, THE SOLE SOURCE OF MEETING TRUTH
 --
 -- ⚠️ NOT GATED BY R2. Split out from delivery_rls on purpose: R2 gates browser access, and
--- meeting truth must not wait behind it. This migration grants the browser nothing beyond a
--- tenant-scoped read of a table that does not exist yet.
+-- meeting truth must not wait behind it. This migration grants the browser NOTHING AT ALL —
+-- the table is RLS-enabled with no policy, so it is service-role only.
 --
 -- WHAT IT REPLACES. Meeting truth today is `figsy_replies.meeting_booked_at` — a nullable
 -- timestamp on a REPLY row — and the count is re-derived independently in at least six
@@ -176,8 +176,16 @@ CREATE TRIGGER meetings_detach_erased_lead_trg
   BEFORE DELETE ON public.leads
   FOR EACH ROW EXECUTE FUNCTION public.meetings_detach_erased_lead();
 
--- Meetings are tenant data: a client reads their own, and the browser never writes them.
+-- ── RLS ON, ZERO BROWSER POLICIES — service-role only ──────────────────────────────────
+--
+-- ⛓️ CORRECTED 29 Aug. The first cut of this file gave meetings a tenant-scoped SELECT
+-- policy so a client's browser could read its own meetings. The accepted spec is stricter
+-- and this follows it: RLS enabled with NO policy, which for `authenticated` IS the deny,
+-- while the service role bypasses it — the same shape as lead_pool and sourcing_ledger.
+--
+-- The consequence is deliberate: meeting truth reaches a client through the API, which can
+-- apply the counting rules (exclusions, supersessions, the four states) rather than handing
+-- a browser raw rows it would have to interpret for itself. Direct table access is exactly
+-- how six call sites each grew their own definition of "does this count".
 ALTER TABLE public.meetings ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "meetings_own" ON public.meetings;
-CREATE POLICY "meetings_own" ON public.meetings
-  FOR SELECT TO authenticated USING (client_id = public.current_client_id());

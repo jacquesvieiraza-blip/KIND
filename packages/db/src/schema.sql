@@ -765,6 +765,16 @@ create table if not exists public.programmes (
   contribution_cents        int,                  -- NULL while live: never persist a provisional figure
   contribution_finalised_at timestamptz,
   disputed_at               timestamptz,
+  -- ── BUILD-003 PR2 · the review hold (20260829_programme_delivery_control) ────────────
+  -- REVIEW IS NOT PAUSE and is deliberately NOT a status: a programme under review must keep
+  -- the state it returns to, exactly as `paused_at` is orthogonal rather than a status value.
+  -- It holds the NEXT NEW BATCH only — in-flight sequences finish, replies and meetings keep
+  -- ingesting. 250 leads per targeted meeting is a PLANNING BENCHMARK (R77), not a guarantee:
+  -- these columns promise no meeting, no refund and no credit.
+  review_required_at        timestamptz,
+  review_reason             text,
+  review_resolved_at        timestamptz,
+  review_resolution         text,
   created_at                timestamptz not null default now(),
   updated_at                timestamptz not null default now()
 );
@@ -784,6 +794,17 @@ create table if not exists public.programme_batches (
 
 alter table public.icps
   add column if not exists programme_id uuid;
+
+-- ── BUILD-003 PR2 · attribution at its source (20260829_programme_delivery_control) ──────
+-- Without these the PR-1 attribution columns on `figsy_enrollments` had nothing to read FROM:
+-- `leads` recorded who we bought and never which programme or batch bought them. Resolving an
+-- enrollment's programme from "whatever the client's programme is today" would silently
+-- re-attribute a lead sourced under batch 1 to batch 7 — confidently wrong, which is worse
+-- than null. Nullable and never backfilled: legacy leads belong to no programme, and a guessed
+-- batch is worse than an honest absence.
+alter table public.leads
+  add column if not exists programme_id uuid,
+  add column if not exists batch_id     uuid;
 
 -- ⚠️ `sourcing_ledger.programme_id`, `partner_commissions.programme_id` and
 -- `partner_commissions.basis` are ADDED BY THE MIGRATION AND ARE DELIBERATELY NOT DECLARED

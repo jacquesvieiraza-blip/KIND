@@ -12,6 +12,7 @@ const REPO = join(__dirname, '../../../..')
 const SQL = readFileSync(join(REPO, 'supabase/migrations/20260828_programme_money_engine.sql'), 'utf8')
 const RUNNER = readFileSync(join(REPO, 'apps/api/src/lib/pending-migrations.ts'), 'utf8')
 const START_WORK = readFileSync(join(__dirname, 'start-work.ts'), 'utf8')
+const AUTHORITY = readFileSync(join(__dirname, 'programme-authority.ts'), 'utf8')
 const STRIPE_ROUTE = readFileSync(join(__dirname, '../routes/stripe.ts'), 'utf8')
 const PROG_ROUTE = readFileSync(join(__dirname, '../routes/programme.ts'), 'utf8')
 const ICPS = readFileSync(join(__dirname, '../routes/icps.ts'), 'utf8')
@@ -89,22 +90,38 @@ describe('GAP 2 · a single grant can never exceed the controlled batch size', (
 // shape AR8 already proved fails: `lookalike/generate` had no fence for months precisely
 // because it was the caller nobody remembered.
 describe('GAP 3 · no programme client reaches sending before Go Live', () => {
+  // ⛓️ REWRITTEN 29 Aug (BUILD-003 PR2). These three assertions used to pin the SHAPE OF THE
+  // INLINE GATE'S SOURCE inside start-work.ts — `if (activate) { ... from('programmes')`,
+  // `if (p.paused_at)`, `if (progErr)`. That gate was a SECOND COPY of a rule
+  // `programme.ts` already exported and nothing consumed, and PR2 replaced it with one
+  // action-aware module. Pinning a regex to a deleted `if` would have made this file fail for
+  // the right reason and the wrong cause, and "restore the duplicate" would have been the
+  // obvious way to make it pass — the exact wrong lesson.
+  //
+  // What matters has not changed and is still asserted: the gate fires on the ACTIVATE path
+  // only, and it refuses when paused, when not live/paid, and when the state cannot be read.
+  // The BEHAVIOUR of each of those refusals is proved against the real decision function in
+  // `programme-authority.test.ts`; what is proved HERE is that start-work CONSUMES it.
   it('the gate is inside ensureCampaignForIcp, on the activate path only', () => {
-    expect(START_WORK).toMatch(/THE PROGRAMME GO-LIVE GATE \(BUILD-002\)/)
+    expect(START_WORK).toMatch(/if \(activate\) \{[\s\S]{0,1200}checkProgrammeAuthority\(/)
     // Scaffolding stays open: `activate: false` creates a draft, which sends nothing.
     // Blocking it would stop Milla persisting a client's ICP at all.
-    expect(START_WORK).toMatch(/if \(activate\) \{[\s\S]{0,400}from\('programmes'\)/)
+    expect(START_WORK).toMatch(/if \(!activate\)[\s\S]{0,400}'draft'/)
   })
 
-  it('⚠️ NOT LIVE, NOT PAID, OR PAUSED — all three refuse', () => {
-    expect(START_WORK).toMatch(/if \(p\.paused_at\)[\s\S]{0,200}programme_paused/)
-    expect(START_WORK).toMatch(/if \(!p\.second_paid_at \|\| p\.status !== 'LIVE'\)[\s\S]{0,260}programme_not_live/)
+  it('⚠️ NOT LIVE, NOT PAID, OR PAUSED — all three still refuse, through the one module', () => {
+    // OUTREACH is the action that requires approval + Payment 2 + LIVE. Asking for SOURCING
+    // here would let a Payment-1 programme activate a sending campaign.
+    expect(START_WORK).toMatch(/checkProgrammeAuthority\(clientId, 'OUTREACH'\)/)
+    expect(START_WORK).toMatch(/programme_paused/)
+    expect(START_WORK).toMatch(/programme_not_live/)
   })
 
   it('⚠️ A READ ERROR REFUSES TOO — not knowing is not the same as knowing it is fine', () => {
     // The cost of a wrong refusal is a delayed campaign. The cost of a wrong activation is
-    // sending on a programme nobody paid for.
-    expect(START_WORK).toMatch(/if \(progErr\)[\s\S]{0,300}programme_state_unreadable/)
+    // sending on a programme nobody paid for. `programme_unresolvable` is the module's name
+    // for "could not read"; it maps onto this function's existing refusal vocabulary.
+    expect(START_WORK).toMatch(/programme_unresolvable[\s\S]{0,200}programme_state_unreadable/)
   })
 
   it('⚠️ THE ONE startWorkForClient CALLER REFUSES A PROGRAMME CLIENT AT THE DOOR', () => {
@@ -276,7 +293,15 @@ describe('GAP 3 · behavioural — ensureCampaignForIcp actually refuses', () =>
 
   it('⚠️ NON-VACUOUS: a LIVE, PAID programme is NOT refused by this gate', async () => {
     // Without this the three tests above would all pass on a function that refuses everything.
-    dbState.programmes.push({ id: 'p1', client_id: 'c1', status: 'LIVE', second_paid_at: 'x', paused_at: null })
+    //
+    // ⛓️ `approved_at` and `second_payment_ref` ADDED 29 Aug (BUILD-003 PR2), and the addition
+    // is a real TIGHTENING rather than fixture maintenance. The old inline gate read status,
+    // pause and `second_paid_at` only — so a programme that reached LIVE and was paid for
+    // WITHOUT AN APPROVAL ROW would have activated a sending campaign. "One programme
+    // approval" is a founder lock, not a side effect of the status column, so the canonical
+    // gate checks it and this fixture now has to be a genuinely complete programme to pass.
+    dbState.programmes.push({ id: 'p1', client_id: 'c1', status: 'LIVE', second_paid_at: 'x',
+      second_payment_ref: 'cs_2', approved_at: 'x', first_paid_at: 'x', paused_at: null })
     const { ensureCampaignForIcp } = await import('./start-work')
     const r = await ensureCampaignForIcp('c1', 'icp-1', 'ICP', { activate: true })
     const reason = (r as { refused?: { reason?: string } }).refused?.reason
@@ -323,8 +348,14 @@ describe('GAP 4D · migration-first, and the code proves why', () => {
 
   it('the API really does read `programmes` on the activate path for EVERY client', () => {
     // ② — the read is not inside a "if this client has a programme" branch; it IS that check.
-    expect(START_WORK).toMatch(/if \(activate\) \{[\s\S]{0,400}from\('programmes'\)/)
-    expect(START_WORK).toMatch(/if \(progErr\)[\s\S]{0,300}return \{ refused/)
+    //
+    // ⛓️ REPOINTED 29 Aug (BUILD-003 PR2). The `programmes` read moved out of start-work into
+    // `programme-authority.ts` when the duplicated gate was collapsed into one module, so this
+    // now asserts the same fact one level down: start-work calls the gate unconditionally on
+    // the activate path, and the gate is what reads `programmes` for EVERY client.
+    expect(START_WORK).toMatch(/if \(activate\) \{[\s\S]{0,1200}checkProgrammeAuthority\(/)
+    expect(AUTHORITY).toMatch(/from\('programmes'\)/)
+    expect(START_WORK).toMatch(/if \(!verdict\.allowed\)[\s\S]{0,600}return \{ refused/)
   })
 
   it('⚠️ THE TWO-ARG OVERLOAD IS DROPPED — so an old API\'s two-arg call is not ambiguous', () => {

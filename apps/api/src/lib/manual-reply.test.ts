@@ -37,6 +37,13 @@ vi.mock('@kind/db', () => ({
       const q: Record<string, unknown> = {
         select() { return q },
         eq() { return q },
+        // `not()` / `limit()` added 29 Aug (BUILD-003 PR2): the programme-authority read uses
+        // `.not('status','in',...).limit(1)` to skip terminal programmes. Without them the
+        // chain throws, the reply gate fails CLOSED — correctly — and every reply 409s for the
+        // wrong reason. `programmes` returns null below: this client is LEGACY, which is what
+        // this file has always been about.
+        not() { return q },
+        limit() { return q },
         insert(row: Record<string, unknown>) {
           state.inserted.push({ ...row, __table: table })
           return Promise.resolve({ data: null, error: null })

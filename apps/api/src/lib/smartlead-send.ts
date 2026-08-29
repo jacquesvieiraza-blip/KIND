@@ -67,6 +67,25 @@ export async function hasSmartleadInbox(clientId: string): Promise<boolean> {
  * one import away from being called by something new that forgot one.
  */
 export async function pushApprovedLeadToSmartlead(leadId: string, clientId: string): Promise<SmartleadPushResult> {
+  // ══ THE PROGRAMME OUTREACH GATE (BUILD-003 PR2) ═══════════════════════════════════════
+  //
+  // 🛑 FIRST STATEMENT IN THE FUNCTION, AND THAT POSITION IS THE POINT. Smartlead keeps its
+  // OWN copy of the lead and sends from it on its own schedule — our blocklist has no reach
+  // inside it, which is the whole reason `provider-eviction` exists. So a push is not "queue
+  // an email", it is handing a real person to an engine we do not control. Once they are in,
+  // pausing the programme here does nothing to them.
+  //
+  // Both live callers funnel through this one function — `approve-lead.ts` (the live path) and
+  // `smartlead-backfill.ts` — so one gate covers both, and the backfill cannot become the door
+  // that a paused programme walks out of.
+  const { checkProgrammeAuthority } = await import('./programme-authority')
+  const authority = await checkProgrammeAuthority(clientId, 'OUTREACH')
+  if (!authority.allowed) {
+    console.warn(`[smartlead] push REFUSED for lead ${leadId} — programme authority (${authority.reason}). ${authority.message}`)
+    return { pushed: false, reason: 'programme_not_authorised',
+      detail: `${authority.message} Refused before the push: Smartlead sends from its own copy of the lead, so this is the last gate that can stop it.` }
+  }
+
   const { data: client } = await db.from('clients')
     .select('id, is_demo, company_name').eq('id', clientId).maybeSingle()
 

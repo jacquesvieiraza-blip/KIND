@@ -73,6 +73,20 @@ export interface ProgrammeRow {
   contribution_cents: number | null
   contribution_finalised_at: string | null
   disputed_at: string | null
+  // ── BUILD-003 PR 2 · the review hold (20260829_programme_delivery_control) ────────────
+  //
+  // ⚠️ OPTIONAL BECAUSE THEY ARE NEW COLUMNS, and every existing `select('*')` in this file
+  // returns rows that predate them. Marking them required would make TypeScript lie about
+  // rows read before the migration ran.
+  //
+  // ⚠️ REVIEW IS NOT PAUSE AND IS NOT A STATUS. It is a hold on the NEXT NEW BATCH only —
+  // in-flight sequences finish, replies and meetings keep ingesting. Putting it in `status`
+  // would force every transition rule to double and would lose the state the programme must
+  // return to, which is the same reason `paused_at` is orthogonal rather than a status.
+  review_required_at?: string | null
+  review_reason?: string | null
+  review_resolved_at?: string | null
+  review_resolution?: string | null
 }
 
 export interface ProgrammeResult { ok: boolean; reason?: string; programme?: ProgrammeRow }
@@ -384,15 +398,48 @@ export function nextBatchSize(p: ProgrammeRow): number {
   return Math.min(PROGRAMME_BATCH_SIZE, room)
 }
 
+/**
+ * CLAIM the programme's open batch — return the one already running, or create exactly one.
+ *
+ * ⛓️ 29 Aug (BUILD-003 PR2) — THIS WAS A READ-MAX-THEN-INSERT, AND CHECK-THEN-ACT WAS THE BUG.
+ * It read `MAX(seq)`, added one and inserted. `(programme_id, seq)` is unique
+ * (`programme_batches_seq_uidx`, 20260828), so a straight race produced one winner and one
+ * unique violation — and this function returned `null` on error, which reads as "could not
+ * open a batch". A caller that RETRIED then read the NEW max, computed seq+1, and inserted
+ * successfully: **two batches in status 'running' on one programme, each holding its own
+ * reservation against the client's paid ceiling.** No unique key on `(programme_id, seq)`
+ * could ever have caught that — the second batch has a legitimately different seq.
+ *
+ * 🛑 A cron re-fire, a redelivered Stripe webhook and an operator clicking twice are all that
+ * retry. None of them looks like an error anywhere.
+ *
+ * The fix is database truth, in two layers that fail in different directions:
+ *   · `claim_programme_batch` serialises claimers with `FOR UPDATE` on the programme row and
+ *     returns the existing running batch instead of failing — so a retry is IDEMPOTENT.
+ *   · `programme_batches_one_running_uidx` (partial unique on programme_id where running) is
+ *     the backstop if anything ever writes the table without the RPC.
+ *
+ * Still returns `null` on failure — every caller already treats null as "not done", and that
+ * contract is unchanged.
+ */
 export async function openBatch(programmeId: string, requested: number, granted: number): Promise<BatchRow | null> {
-  const { data: last } = await db.from('programme_batches').select('seq')
-    .eq('programme_id', programmeId).order('seq', { ascending: false }).limit(1).maybeSingle()
-  const seq = ((last as { seq?: number } | null)?.seq ?? 0) + 1
-  const { data, error } = await db.from('programme_batches')
-    .insert({ programme_id: programmeId, seq, requested, granted, status: 'running' })
-    .select().single()
-  if (error) return null
-  return data as BatchRow
+  const { data, error } = await db.rpc('claim_programme_batch', {
+    p_programme_id: programmeId, p_requested: requested, p_granted: granted,
+  })
+  if (error) {
+    // ⚠️ NOT SILENT. A batch that cannot be claimed means paid sourcing does not start, and
+    // the old code's bare `return null` gave an operator nothing to look at.
+    console.error(`[programme] could not claim a batch for programme ${programmeId}:`, error.message)
+    return null
+  }
+  // supabase-js returns a composite-returning function as the row itself, or as a one-row
+  // array depending on the driver path. Both are handled rather than assumed.
+  const row = Array.isArray(data) ? data[0] : data
+  if (!row) {
+    console.error(`[programme] claim_programme_batch returned no row for programme ${programmeId}`)
+    return null
+  }
+  return row as BatchRow
 }
 
 /**

@@ -21,6 +21,8 @@ import { splitPoolAndRemainder, poolWriteAllowed, splitPoolEligible, poolRefusal
 import { toMemoryRecord, rememberAcquiredIdentities, type AcquisitionMemoryRecord, type SuppressionReason } from '../lib/acquisition-memory'
 import { rethrowIfProviderBlocked, isPaidProviderBlocked } from '../lib/paid-provider-guard'
 import { deriveRunStatus, runOutcomeMessage, type RunStatus } from '../lib/run-outcome'
+import { authorityFor, ProgrammeAuthorityError } from '../lib/programme-authority'
+import type { ProgrammeRow } from '../lib/programme'
 import {
   decideCursor, nextCursorState, exhaustedMessage, exhaustedAlertLines,
   type CursorQuery, type StoredCursor,
@@ -567,9 +569,63 @@ export async function runIcpJob(
   // BUILD-002 — the open programme batch for this run, if this is programme sourcing.
   // Settled once the provider returns, which is what releases unused reservation.
   let programmeBatch: { id: string } | null = null
+  // BUILD-003 PR2-E — the programme this run draws on, and the instant its batch opened.
+  // The instant is what makes attribution PRECISE rather than inferred: only leads created
+  // after the batch opened belong to it, so an earlier unattributed run for the same ICP is
+  // never swept in.
+  let programmeIdForRun: string | null = null
+  let batchOpenedAt: string | null = null
   const { data: icp, error: icpErr } = await db
     .from('icps').select('*').eq('id', icpId).eq('client_id', clientId).single()
   if (icpErr || !icp) throw new Error('ICP not found')
+
+  // ══ THE PROGRAMME SOURCING GATE (BUILD-003 PR2) ═══════════════════════════════════════
+  //
+  // ⚠️ IT IS HERE, AND NOT AT THE CALL SITES, ON PURPOSE. Eight paths reach this function —
+  // the Stripe webhook via startWorkForClient, the client's Run button, ICP create, the proof
+  // pass, operator run, operator bulk, admin and partners. `cron.ts:373-377` already wrote
+  // down that "programme authority has to be applied at each entry point, or below both in
+  // runIcpJob", and gating eight entry points individually is the AR8 shape that has already
+  // failed once here: `lookalike/generate` had no fence because it was the caller nobody
+  // remembered. One door, one gate.
+  //
+  // ⚠️ PROOF RUNS ARE EXEMPT, AND THAT IS NOT A LOOPHOLE. A free-proof pass is pre-programme
+  // acquisition: the prospect has no programme, has paid nothing, and the pass was already
+  // claimed atomically by `try_claim_proof_pass` before this call. It is fenced by its own
+  // ledger and its own monthly cap. Running it through programme authority would refuse every
+  // proof for want of a programme that by definition does not exist yet.
+  //
+  // ⚠️ RESOLVED FROM THE ICP ROW, NEVER FROM THE CLIENT — the same rule `try_spend_sourcing`
+  // already follows below. A client may hold one programme and several ICPs, and only the
+  // ICPs actually attached to it draw on its authority.
+  if (!proofMode) {
+    const programmeId = (icp as { programme_id?: string | null }).programme_id ?? null
+    if (programmeId) {
+      const { data: prog, error: progErr } = await db.from('programmes')
+        .select('*').eq('id', programmeId).maybeSingle()
+
+      // 🛑 FAIL CLOSED ON A BROKEN LINK (founder decision, 29 Aug). An ICP that NAMES a
+      // programme we cannot read, or one that belongs to a different client, must never fall
+      // back to the legacy path — that is precisely how programme work would escape every
+      // control in this file while looking like an ordinary legacy run in every log.
+      if (progErr) throw new ProgrammeAuthorityError('programme_unresolvable',
+        `ICP ${icpId} is linked to programme ${programmeId}, which could not be read (${progErr.message}). Nothing was sourced.`)
+      if (!prog) throw new ProgrammeAuthorityError('programme_unresolvable',
+        `ICP ${icpId} names programme ${programmeId}, which does not exist. Nothing was sourced.`)
+      if ((prog as { client_id: string }).client_id !== clientId) throw new ProgrammeAuthorityError('programme_unresolvable',
+        `ICP ${icpId} (client ${clientId}) names a programme owned by another client. Nothing was sourced.`)
+
+      // NEXT_BATCH, not SOURCING: a run IS the opening of a new batch of work, so the review
+      // hold and the remaining ceiling both apply. Payment 2 deliberately does NOT — Payment 1
+      // authorises sourcing and preparation, and demanding the second payment here would make
+      // it impossible to prepare the programme the client is being asked to approve.
+      const verdict = authorityFor(prog as unknown as ProgrammeRow, 'NEXT_BATCH')
+      if (!verdict.allowed) {
+        console.warn(`[icp] sourcing REFUSED for icp ${icpId} / programme ${programmeId}: ${verdict.reason}`)
+        throw new ProgrammeAuthorityError(verdict.reason, verdict.message)
+      }
+    }
+  }
 
   // `leads_per_run` is the client's own per-run preference for a SELF-SERVE run — the
   // default when nobody has said how many to fetch. It is NOT a ceiling on an explicit
@@ -866,7 +922,9 @@ export async function runIcpJob(
       // volume the client paid for. The batch row is the record that lets it be released.
       if (programmeId && grantedSize > 0) {
         const { openBatch } = await import('../lib/programme')
+        batchOpenedAt = new Date().toISOString()
         programmeBatch = await openBatch(programmeId, pdlRemainder, grantedSize)
+        programmeIdForRun = programmeId
       }
     }
     if (grantedSize <= 0) {
@@ -1170,6 +1228,32 @@ export async function runIcpJob(
       // paying the client twice for the same shortfall, in the wrong currency of value.
       let programmeSettled = false
       if (programmeBatch) {
+        // ══ ATTRIBUTION IS STAMPED BEFORE THE BATCH IS SETTLED (BUILD-003 PR2-E) ═══════
+        //
+        // ⚠️ ORDER MATTERS. Once `settleBatch` runs, the batch stops being the open one and a
+        // later "which batch bought this person?" question has nothing to key on. Stamping
+        // first means every lead this run inserted carries its own provenance, and
+        // `resolveLeadAttribution` reads it straight off the person rather than inferring it
+        // from whatever the client's programme happens to be later.
+        //
+        // ⚠️ ONLY THE LEADS THIS RUN INSERTED, and only where the stamp is still empty — this
+        // never re-attributes a person an earlier batch already paid for.
+        //
+        // ⚠️ A FAILED STAMP DOES NOT FAIL THE RUN. The people are real, bought and delivered;
+        // losing their attribution is a reporting gap, not a reason to throw away sourcing the
+        // client paid for. It is logged loudly instead of swallowed.
+        if (batchOpenedAt && programmeIdForRun) {
+          const { error: attrErr } = await db.from('leads')
+            .update({ programme_id: programmeIdForRun, batch_id: programmeBatch.id })
+            .eq('client_id', clientId)
+            .eq('icp_id', icpId)
+            .gte('created_at', batchOpenedAt)
+            .is('batch_id', null)
+          if (attrErr) {
+            console.error(`[icp] PROGRAMME attribution NOT stamped for batch ${programmeBatch.id}: ${attrErr.message}. The leads are delivered; their batch provenance is missing and cannot be reconstructed later.`)
+          }
+        }
+
         const { settleBatch } = await import('../lib/programme')
         const r = await settleBatch(programmeBatch.id, returnedCount)
         programmeSettled = true
@@ -1178,6 +1262,22 @@ export async function runIcpJob(
           // and alerted — the client's entitlement is reserved but recoverable, and there is
           // a row to find it by. Never swallowed.
           console.error(`[icp] PROGRAMME batch ${programmeBatch.id} could not be settled — marked stranded; ${grantedSize - returnedCount} record(s) stay reserved until reconciled.`)
+        }
+
+        // ══ THE REVIEW TRIGGER (BUILD-003 PR2-D) ══════════════════════════════════════
+        //
+        // Checked HERE because settling is the only moment `sourced_used` moves — so this is
+        // the first instant the benchmark can have been crossed, and checking anywhere else
+        // would either miss it or re-ask on every unrelated request.
+        //
+        // ⚠️ IT HOLDS THE NEXT BATCH AND NOTHING ELSE. No meeting is created, no refund is
+        // computed, no status changes, and delivery already in flight is untouched. Awaited
+        // rather than fired-and-forgotten: a hold that lost a race with the next run would be
+        // a hold that did not hold.
+        if (programmeIdForRun) {
+          const { raiseReviewIfNeeded } = await import('../lib/programme-authority')
+          await raiseReviewIfNeeded(programmeIdForRun).catch(e =>
+            console.error(`[icp] review-trigger check failed for programme ${programmeIdForRun}:`, e))
         }
       }
 

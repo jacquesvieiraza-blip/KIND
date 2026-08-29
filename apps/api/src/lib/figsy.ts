@@ -7,6 +7,7 @@ import { sequencePlan, normalisePurpose, normaliseDepth, type SequencePurpose, t
 import { Resend } from 'resend'
 import { logOutcomeEvent } from './outcomes'
 import { isSuppressed } from './suppression'
+import { resolveLeadAttribution } from './programme-authority'
 // BUILD-003 item 2 — meetings_booked is a derived cache of public.meetings, and this is the
 // one function that knows the counting rules (exclusions, supersessions, the four states).
 import { campaignMeetingCount } from './meeting-truth'
@@ -701,6 +702,45 @@ export async function sendSequenceEmail(
           'a launch-country hold was suppressed but not stood down — it stays due and will be re-processed on every send run')
       }
       return 'suppressed'
+    }
+  }
+
+  // ══ THE PROGRAMME OUTREACH GATE (BUILD-003 PR2) ═══════════════════════════════════════
+  //
+  // ⚠️ HERE BECAUSE THIS FUNCTION IS THE SINGLE CHOKEPOINT, as the demo backstop above already
+  // says in its own words: every real sequence-step send funnels through it and the three cron
+  // paths call it directly. So day-1 outreach, `/figsy/send-due-all` every two hours, and
+  // every step-1/2/3 send are all covered by this one check. Gating the callers instead would
+  // leave whichever one nobody remembered.
+  //
+  // ⚠️ THIS IS THE **OUTREACH** ACTION, WHICH IS STRICTLY HARDER THAN SOURCING. It requires
+  // programme approval AND the second payment AND status LIVE — because Payment 1 authorises
+  // preparation only, and an email to a real prospect is not preparation. The sourcing gate in
+  // `runIcpJob` deliberately does not require any of that.
+  //
+  // ⚠️ A REFUSAL **DEFERS**, IT DOES NOT CONSUME THE STEP. `deferred` leaves the enrollment due
+  // with its state untouched, exactly like the kill-switch above — so a paused programme that
+  // resumes picks up where it stopped, and a client loses no sequence step to a pause. Marking
+  // it `suppressed` would stand the enrollment down permanently, which is a different and
+  // irreversible product decision.
+  //
+  // ⛓️ ORDERED **BELOW** EVERY PERMANENT SUPPRESSION GATE, AND THAT ORDER IS A DECISION.
+  // The first cut sat above them, and it was wrong: a person on the do-not-contact list or the
+  // opt-out blocklist inside a PAUSED programme would have been DEFERRED rather than SUPPRESSED
+  // — so their enrollment stayed due and every cron run re-picked it forever, and the day the
+  // programme resumed they would be first in the queue. Suppression is permanent and is about
+  // the PERSON; programme authority is temporary and about the WORK. The permanent answer must
+  // be recorded first. Found by `launch-hold.figsy.test.ts` and `review-gate-fail-closed.test.ts`
+  // going red — the existing suites caught the precedence, not me.
+  //
+  // ⚠️ THE FOUNDER'S OWN PREVIEW IS EXEMPT — a 1:1 test to their own inbox is not programme
+  // delivery to a prospect, the same exemption the kill-switch and demo backstop already make.
+  if (!opts?.isPreview && enrollmentId) {
+    const { checkEnrollmentAuthority } = await import('./programme-authority')
+    const verdict = await checkEnrollmentAuthority(enrollmentId, 'OUTREACH', lead.client_id ?? null)
+    if (!verdict.allowed) {
+      console.warn(`[figsy] sendSequenceEmail: step ${step} to ${lead.email} DEFERRED — programme authority refused (${verdict.reason}). ${verdict.message}`)
+      return 'deferred'
     }
   }
 
@@ -2094,12 +2134,30 @@ export async function autoEnrollLead(leadId: string, clientId: string, opts?: { 
     // drop, unexpected client error) after a successful charge would otherwise land in
     // the outer catch as a SILENT credit leak (charged, never enrolled, never refunded).
     // Guard the insert: on a throw, return the credit before bailing.
+    // ══ DELIVERY ATTRIBUTION (BUILD-003 PR2-E) ═══════════════════════════════════════════
+    //
+    // PR 1 added `figsy_enrollments.programme_id` and `.batch_id`, both nullable and indexed,
+    // and NOTHING wrote them. This is the wiring: every enrollment created from here on
+    // records which programme and which batch produced it.
+    //
+    // ⚠️ RESOLVED FROM THE LEAD'S OWN BATCH, NOT GUESSED FROM THE CLIENT. `leads.programme_id`
+    // and `leads.batch_id` are stamped by the sourcing run that bought that person, so the
+    // attribution follows the actual person rather than "whatever the client's programme is
+    // today" — which would silently re-attribute a lead to a later batch.
+    //
+    // ⚠️ NO BACKFILL, AND NULL IS AN HONEST ANSWER. A lead sourced before attribution existed
+    // has no batch, and inventing one would manufacture a certainty we do not have. Legacy
+    // (non-programme) work is null here for the same reason: it belongs to no programme.
+    const attribution = await resolveLeadAttribution(leadId)
+
     let insertRes
     try {
       insertRes = await db.from('figsy_enrollments').insert({
         campaign_id:    campaign.id,
         lead_id:        leadId,
         client_id:      clientId,
+        programme_id:   attribution.programmeId,
+        batch_id:       attribution.batchId,
         status:         'enrolled',
         current_step:   0,
         // #453 — demo enrollments never send, so leave next_send_at null (the cron

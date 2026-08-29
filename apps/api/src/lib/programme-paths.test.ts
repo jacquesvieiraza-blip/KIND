@@ -298,15 +298,70 @@ describe('⑨ DELIVERY ATTRIBUTION', () => {
     expect(body).toContain('resolveLeadAttribution(')
   })
 
-  it('the sourcing run stamps the lead BEFORE the batch is settled', () => {
-    // Order matters: once settleBatch runs the batch is no longer the open one, and a later
-    // "which batch bought this person?" has nothing to key on.
+  // ⛓️ THIS ASSERTION USED TO SAY THE OPPOSITE, AND IT IS WHY I SHIPPED A STAMP THAT MATCHED
+  // NOTHING. It read: "the sourcing run stamps the lead BEFORE the batch is settled", and it
+  // passed by comparing two `indexOf` positions in the source — the stamp WAS textually above
+  // the settle, which is exactly the bug. A batch settles on what the PROVIDER RETURNED, so
+  // settling happens before the insert loop; a stamp above it runs when the rows do not exist.
+  // The structural test pinned my mistaken belief instead of the behaviour, and passed for the
+  // one reason that should have failed it. The invariant below is the real one.
+  it('attribution runs AFTER every insert, not at settle time', () => {
     const src = code(join(ROUTES, 'icps.ts'))
-    const stamp = src.indexOf('batch_id: programmeBatch.id')
-    const settle = src.indexOf('settleBatch(programmeBatch.id')
+    const lastInsert = src.lastIndexOf('pdlInsertedIds.push(')
+    const settle     = src.indexOf('settleBatch(programmeBatch.id')
+    const stamp      = src.indexOf("update({ programme_id: programmeIdForRun })")
+    expect(lastInsert, 'the provider insert no longer records its ids').toBeGreaterThan(0)
     expect(stamp, 'the attribution stamp is missing from runIcpJob').toBeGreaterThan(0)
-    expect(settle).toBeGreaterThan(0)
-    expect(stamp, 'attribution is stamped AFTER the batch is settled — provenance is lost').toBeLessThan(settle)
+    expect(stamp, 'attribution runs before the provider inserts — it would match zero rows').toBeGreaterThan(lastInsert)
+    expect(stamp, 'attribution is back inside the settle block, where the rows do not exist yet').toBeGreaterThan(settle)
+  })
+
+  it('🛑 attribution uses EXACT ROW IDS — no timestamp or window inference survives', () => {
+    const src = code(join(ROUTES, 'icps.ts'))
+    // The two writes are keyed by id list, and nothing else.
+    expect(src).toMatch(/update\(\{ programme_id: programmeIdForRun \}\)\s*\.in\('id', insertedIds\)/)
+    expect(src).toMatch(/update\(\{ batch_id: programmeBatch\.id \}\)\s*\.in\('id', pdlInsertedIds\)/)
+    // ⚠️ THE REGRESSION THIS CATCHES BY NAME. A window filter on the attribution write is what
+    // allowed a concurrent free-proof run to be swept into a paid batch.
+    const stampRegion = src.slice(src.indexOf("update({ programme_id: programmeIdForRun })") - 200,
+                                  src.indexOf("update({ batch_id: programmeBatch.id })") + 400)
+    for (const inferred of ['created_at', 'batchOpenedAt', "gte(", "eq('icp_id'"]) {
+      expect(stampRegion, `attribution re-introduced inference (${inferred}) instead of exact ids`).not.toContain(inferred)
+    }
+  })
+
+  it('FREE PROOF can never acquire a programme identity — the gate sets it, and proof skips the gate', () => {
+    // 🛑 THE CONCURRENCY ANSWER. Nothing serialises two runs on one ICP, and a proof run is
+    // deliberately exempt from programme authority while inserting through the SAME loop with
+    // the same icp_id. Exact ids make timing irrelevant — but the stronger guarantee is that a
+    // proof run never even has a programme id to stamp with.
+    const src = code(join(ROUTES, 'icps.ts'))
+    const gateStart = src.indexOf('if (!proofMode) {')
+    const assign    = src.indexOf('programmeIdForRun = programmeId')
+    expect(gateStart, 'the proofMode exemption is gone').toBeGreaterThan(0)
+    expect(assign, 'programme identity is no longer assigned').toBeGreaterThan(0)
+    expect(assign, 'programme identity is assigned OUTSIDE the !proofMode gate — a free-proof run could be stamped as paid programme delivery').toBeGreaterThan(gateStart)
+    // And it is assigned exactly once, so no other branch can set it.
+    expect(src.split('programmeIdForRun = programmeId').length - 1).toBe(1)
+  })
+
+  it('POOL rows get programme_id but NOT batch_id — two columns, two questions', () => {
+    // programme_id answers "which programme execution served this lead?" — pool copies
+    // included. batch_id answers "which batch's reserved PROVIDER volume bought it?" — and a
+    // pool copy cost the batch nothing. Stamping it would make count(leads by batch) disagree
+    // with programme_batches.delivered, which is BUILD-002's own accounting.
+    const src = code(join(ROUTES, 'icps.ts'))
+    expect(src).toContain(".in('id', insertedIds)")      // programme_id: every inserted row
+    expect(src).toContain(".in('id', pdlInsertedIds)")   // batch_id: provider rows only
+    expect(src).not.toContain(".update({ batch_id: programmeBatch.id })\n      .in('id', insertedIds)")
+  })
+
+  it('the two id lists are genuinely different — pool ids reach one and not the other', () => {
+    const src = code(join(ROUTES, 'icps.ts'))
+    // Pool ids join `insertedIds` only; provider ids join both. If pdlInsertedIds ever
+    // received the pool spread, batch accounting would silently start over-counting.
+    expect(src).toContain('insertedIds.push(...pool.insertedIds)')
+    expect(src).not.toContain('pdlInsertedIds.push(...pool.insertedIds)')
   })
 
   it('meetings truth is NOT touched — public.meetings stays the sole meeting authority', () => {

@@ -573,8 +573,16 @@ export async function runIcpJob(
   // The instant is what makes attribution PRECISE rather than inferred: only leads created
   // after the batch opened belong to it, so an earlier unattributed run for the same ICP is
   // never swept in.
+  // ⛓️ 29 Aug — PROGRAMME IDENTITY IS SET AT THE **GATE**, NOT AT THE BATCH.
+  // The first cut set it beside `openBatch`, which is inside the PDL branch — so a
+  // POOL-ONLY programme run (no provider remainder, therefore no batch) left it null and
+  // those leads carried no programme at all, despite being programme delivery.
   let programmeIdForRun: string | null = null
-  let batchOpenedAt: string | null = null
+  /**
+   * Rows THIS invocation inserted from the PROVIDER. Kept apart from `insertedIds` because
+   * `batch_id` and `programme_id` answer different questions — see the stamp below.
+   */
+  const pdlInsertedIds: string[] = []
   const { data: icp, error: icpErr } = await db
     .from('icps').select('*').eq('id', icpId).eq('client_id', clientId).single()
   if (icpErr || !icp) throw new Error('ICP not found')
@@ -624,6 +632,9 @@ export async function runIcpJob(
         console.warn(`[icp] sourcing REFUSED for icp ${icpId} / programme ${programmeId}: ${verdict.reason}`)
         throw new ProgrammeAuthorityError(verdict.reason, verdict.message)
       }
+      // Authorised: THIS invocation is programme delivery. Recorded here, after validation and
+      // inside `if (!proofMode)`, so a free-proof run can never acquire a programme identity.
+      programmeIdForRun = programmeId
     }
   }
 
@@ -922,9 +933,7 @@ export async function runIcpJob(
       // volume the client paid for. The batch row is the record that lets it be released.
       if (programmeId && grantedSize > 0) {
         const { openBatch } = await import('../lib/programme')
-        batchOpenedAt = new Date().toISOString()
         programmeBatch = await openBatch(programmeId, pdlRemainder, grantedSize)
-        programmeIdForRun = programmeId
       }
     }
     if (grantedSize <= 0) {
@@ -1228,32 +1237,12 @@ export async function runIcpJob(
       // paying the client twice for the same shortfall, in the wrong currency of value.
       let programmeSettled = false
       if (programmeBatch) {
-        // ══ ATTRIBUTION IS STAMPED BEFORE THE BATCH IS SETTLED (BUILD-003 PR2-E) ═══════
-        //
-        // ⚠️ ORDER MATTERS. Once `settleBatch` runs, the batch stops being the open one and a
-        // later "which batch bought this person?" question has nothing to key on. Stamping
-        // first means every lead this run inserted carries its own provenance, and
-        // `resolveLeadAttribution` reads it straight off the person rather than inferring it
-        // from whatever the client's programme happens to be later.
-        //
-        // ⚠️ ONLY THE LEADS THIS RUN INSERTED, and only where the stamp is still empty — this
-        // never re-attributes a person an earlier batch already paid for.
-        //
-        // ⚠️ A FAILED STAMP DOES NOT FAIL THE RUN. The people are real, bought and delivered;
-        // losing their attribution is a reporting gap, not a reason to throw away sourcing the
-        // client paid for. It is logged loudly instead of swallowed.
-        if (batchOpenedAt && programmeIdForRun) {
-          const { error: attrErr } = await db.from('leads')
-            .update({ programme_id: programmeIdForRun, batch_id: programmeBatch.id })
-            .eq('client_id', clientId)
-            .eq('icp_id', icpId)
-            .gte('created_at', batchOpenedAt)
-            .is('batch_id', null)
-          if (attrErr) {
-            console.error(`[icp] PROGRAMME attribution NOT stamped for batch ${programmeBatch.id}: ${attrErr.message}. The leads are delivered; their batch provenance is missing and cannot be reconstructed later.`)
-          }
-        }
-
+        // ⛓️ THE ATTRIBUTION STAMP USED TO SIT HERE, AND IT MATCHED NOTHING.
+        // It ran at settle time — which is BEFORE the PDL insert loop, because a batch settles
+        // on what the PROVIDER RETURNED, not on what survived dedupe. So the rows it meant to
+        // stamp did not exist yet, and the pool rows that did exist were inserted before its
+        // time window opened. Zero rows, every run, silently. The stamp now runs after every
+        // insert and keys on the exact ids this invocation created — see below.
         const { settleBatch } = await import('../lib/programme')
         const r = await settleBatch(programmeBatch.id, returnedCount)
         programmeSettled = true
@@ -1521,6 +1510,8 @@ export async function runIcpJob(
           pdlKept++
           inserted++
           insertedIds.push(newLead.id)
+          // The exact provider row, recorded at the moment it exists. No window, no inference.
+          pdlInsertedIds.push(newLead.id)
           const en = normalizeRevealEmail(contact.email)
           if (en) poolUpserts.push({
             email_norm:       en,
@@ -1655,6 +1646,62 @@ export async function runIcpJob(
   // current balance. Any remainder stays undelivered for the daily drip. The
   // atomic `.is('delivered_at', null)` claim inside keeps it idempotent (no
   // double-charge with the drip).
+  // ══ DELIVERY ATTRIBUTION (BUILD-003 PR2-E) — EXACT ROW IDS, NOTHING INFERRED ═══════════
+  //
+  // Placed HERE because every insert this invocation performs is now complete: the pool serve
+  // (pushed into `insertedIds` above) and the provider loop (pushed into both lists). Nothing
+  // below inserts a lead.
+  //
+  // ⛓️ THE VERSION THIS REPLACES MATCHED ZERO ROWS. It ran inside the settle block, which
+  // executes BEFORE the provider insert loop — a batch settles on what the PROVIDER RETURNED,
+  // not on what survived dedupe — and it selected rows by `icp_id` plus a `created_at >=
+  // batchOpenedAt` window. At that moment the provider rows did not exist and the pool rows
+  // predated the window. It never stamped anything, and null columns look deliberate.
+  //
+  // 🛑 AND THE WINDOW WAS UNSAFE EVEN WITH THE ORDER FIXED. Nothing serialises two runs on one
+  // ICP — no advisory lock, no run claim — and a FREE PROOF run is deliberately exempt from
+  // programme authority while inserting through this same loop with the same `icp_id`. Its
+  // rows would have been swept into the paid batch by any overlapping window. Exact ids remove
+  // the question: a run can only stamp rows it created itself.
+  //
+  // ⚠️ TWO COLUMNS, TWO DIFFERENT QUESTIONS — and this is why they are stamped separately:
+  //
+  //   programme_id  "which programme execution produced or served this lead?"
+  //                 → EVERY row this invocation inserted, pool copies included. A pool lead
+  //                   delivered by a programme run IS programme delivery.
+  //
+  //   batch_id      "which batch's reserved PROVIDER volume bought this lead?"
+  //                 → provider rows only. BUILD-002 accounts a batch in provider volume:
+  //                   `requested`/`granted` are what was reserved and `settleBatch` converts
+  //                   what the provider returned. A pool copy cost the batch nothing, so
+  //                   stamping it would make `count(leads where batch_id = X)` disagree with
+  //                   `programme_batches.delivered` for X — a number that reads as truth and
+  //                   is not. Pool rows keep batch_id NULL, and that null is accurate.
+  //
+  // ⚠️ FREE PROOF CANNOT BE STAMPED AT ALL: `programmeIdForRun` is set only inside the
+  // `if (!proofMode)` gate above, so a proof run reaches here with it null and both writes are
+  // skipped. Legacy/non-programme runs are null for the same reason. Historical rows are never
+  // touched — this only names ids created seconds ago by this call.
+  //
+  // ⚠️ A FAILED STAMP DOES NOT FAIL THE RUN. The people are real, bought and delivered; losing
+  // provenance is a reporting gap, not a reason to discard sourcing the client paid for.
+  if (programmeIdForRun && insertedIds.length > 0) {
+    const { error: progErr2 } = await db.from('leads')
+      .update({ programme_id: programmeIdForRun })
+      .in('id', insertedIds)
+    if (progErr2) {
+      console.error(`[icp] PROGRAMME attribution NOT stamped on ${insertedIds.length} lead(s) for programme ${programmeIdForRun}: ${progErr2.message}. The leads are delivered; their programme provenance is missing and cannot be reconstructed later.`)
+    }
+    if (programmeBatch && pdlInsertedIds.length > 0) {
+      const { error: batchErr } = await db.from('leads')
+        .update({ batch_id: programmeBatch.id })
+        .in('id', pdlInsertedIds)
+      if (batchErr) {
+        console.error(`[icp] BATCH attribution NOT stamped on ${pdlInsertedIds.length} provider lead(s) for batch ${programmeBatch.id}: ${batchErr.message}.`)
+      }
+    }
+  }
+
   // ── ⚑ 24 Aug — FREE PROOF NEVER ENTERS THE PAID DELIVERY PATH (founder-ruled) ────────
   //
   // ⚠️ THIS GUARD IS THE WHOLE FIX, AND ITS ABSENCE WAS A LIVE DEFECT. This block read

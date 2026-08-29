@@ -59,7 +59,8 @@ describe('DELIVERY_RLS IS NOT IN THE PENDING SET', () => {
   it('and its SQL does not reach the runner by any other route', () => {
     // A future edit could paste the statements into another entry's template rather than
     // adding a key. The distinctive policy names are what that would carry with it.
-    for (const marker of ['figsy_sent_emails_own', 'blocklist_own', 'lead_pool_no_browser']) {
+    for (const marker of ['clients see own campaigns', 'clients see own sent emails',
+                          'DROP POLICY IF EXISTS "blocklist_read"']) {
       expect(RUNNER, `delivery_rls SQL appears inside another runner entry (${marker})`).not.toContain(marker)
     }
   })
@@ -84,12 +85,18 @@ describe('THE FILE IS PRESERVED, NOT DELETED', () => {
   it('its content is intact — every policy the review accepted', () => {
     // The follow-up PR adds a runner entry. It does NOT rewrite the migration, and this is
     // what would fail if someone "tidied" it in the meantime.
+    // ⛓️ MARKERS REWRITTEN 29 Aug with the migration itself. The old list pinned policy
+    // names I had INVENTED and no-op ALTERs for tables production already had right — so it
+    // was guarding the wrong file's content. It now pins the REAL production names, which
+    // are the load-bearing detail: get one wrong and the DROP misses, the CREATE adds, and
+    // access widens while the migration claims to narrow it.
     for (const marker of [
-      'figsy_campaigns_own', 'figsy_enrollments_own', 'figsy_replies_own', 'figsy_sent_emails_own',
-      'blocklist_own', 'DROP POLICY IF EXISTS "blocklist_read"', 'DROP POLICY IF EXISTS "blocklist_write"',
-      'ALTER TABLE public.lead_pool       ENABLE ROW LEVEL SECURITY',
-      'ALTER TABLE public.sourcing_ledger ENABLE ROW LEVEL SECURITY',
-      'CREATE OR REPLACE FUNCTION public.current_client_id',
+      'DROP POLICY IF EXISTS "clients see own campaigns"',
+      'DROP POLICY IF EXISTS "clients see own enrollments"',
+      'DROP POLICY IF EXISTS "clients see own replies"',
+      'DROP POLICY IF EXISTS "clients see own sent emails"',
+      'DROP POLICY IF EXISTS "blocklist_read"', 'DROP POLICY IF EXISTS "blocklist_write"',
+      'FOR SELECT TO authenticated USING (client_id = public.current_client_id())',
     ]) {
       expect(sqlOrNull() ?? '', `delivery_rls lost: ${marker}`).toContain(marker)
     }

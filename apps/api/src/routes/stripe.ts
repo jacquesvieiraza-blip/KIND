@@ -328,10 +328,65 @@ stripeRouter.post('/webhook', async (req: Request, res: Response) => {
     if (event.type === 'checkout.session.completed') {
       const session = event.data.object as {
         id: string
-        metadata?: { clientId?: string; credits?: string; creditType?: string; product?: string; type?: string; amountUsd?: string }
+        metadata?: { clientId?: string; credits?: string; creditType?: string; product?: string; type?: string; amountUsd?: string; programmeId?: string; meetings?: string }
         subscription?: string
       }
       const meta = session.metadata || {}
+
+      // ── PROGRAMME PAYMENTS (BUILD-002) ────────────────────────────────────────────
+      //
+      // ⚠️ FIRST, BECAUSE PROGRAMME MONEY MUST NEVER FALL THROUGH INTO A LEGACY BRANCH. A
+      // programme stage that reached the wallet handler would credit a wallet the programme
+      // model does not use and call `startWorkForClient` — turning "authorise sourcing" into
+      // "start sourcing now", which is precisely the coupling the programme breaks.
+      //
+      // ⚠️ AND THE CHECKOUT URL IS NOT AUTHORITY. Both handlers RE-READ programme state
+      // (`recordFirstPayment` / `recordSecondPayment`): a session created while APPROVED can
+      // be paid after the client pauses, and arrival order must never override state.
+      const programmeStage = meta.type === 'programme_first' || meta.type === 'programme_second'
+        ? meta.type : null
+      if (programmeStage && meta.programmeId) {
+        const { recordFirstPayment, recordSecondPayment } = await import('../lib/programme')
+        // Kept as a refund/dispute handle: those events arrive keyed on the payment intent,
+        // not the checkout session, and #317 already had to resolve one from the other.
+        const rawIntent = (session as unknown as { payment_intent?: unknown }).payment_intent
+        const intentId = typeof rawIntent === 'string' ? rawIntent : null
+
+        if (programmeStage === 'programme_first') {
+          const r = await recordFirstPayment({ programmeId: meta.programmeId, sessionId: session.id, paymentIntentId: intentId })
+          if (!r.ok) {
+            // The money arrived and we could not record it. 500 so Stripe retries — the
+            // ref-based idempotency makes the retry safe.
+            console.error(`[Stripe] programme first payment could not be recorded — 500 for retry. ${r.reason}`)
+            void sendFounderAlert('payment_failed', 'Programme FIRST payment could not be recorded', [
+              `Programme ${meta.programmeId} (client ${meta.clientId}) paid session ${session.id}.`,
+              `Reason: ${r.reason}`,
+              'The client has paid. Stripe will retry; if the retries exhaust, record it by hand.',
+            ])
+            res.status(500).json({ error: 'programme first payment record failed — retry' }); return
+          }
+          // ⚠️ NO startWorkForClient CALL HERE, DELIBERATELY. The first 50% buys AUTHORITY to
+          // source up to the full recommended volume, executed in controlled ~250 batches
+          // under K.I.N.D's GO — not an immediate run (founder lock 4).
+          console.log(`[Stripe] programme ${meta.programmeId} first payment ${r.alreadyRecorded ? 'already recorded (replay)' : 'recorded'} — sourcing authorised, NOT started.`)
+          res.sendStatus(200); return
+        }
+
+        const r = await recordSecondPayment({ programmeId: meta.programmeId, sessionId: session.id, paymentIntentId: intentId })
+        if (!r.ok) {
+          console.error(`[Stripe] programme second payment could not be recorded — 500 for retry. ${r.reason}`)
+          void sendFounderAlert('payment_failed', 'Programme SECOND payment could not be recorded', [
+            `Programme ${meta.programmeId} (client ${meta.clientId}) paid session ${session.id}.`,
+            `Reason: ${r.reason}`,
+            'The client has paid. Stripe will retry; if the retries exhaust, record it by hand.',
+          ])
+          res.status(500).json({ error: 'programme second payment record failed — retry' }); return
+        }
+        console.log(r.recordedNotLive
+          ? `[Stripe] programme ${meta.programmeId} second payment RECORDED but NOT taken live — state refused it. Founder alerted.`
+          : `[Stripe] programme ${meta.programmeId} second payment ${r.alreadyRecorded ? 'already recorded (replay)' : 'recorded'} — programme is LIVE.`)
+        res.sendStatus(200); return
+      }
 
       if (meta.type === 'subscription' && meta.clientId && meta.product) {
         // Subscription checkout completed — subscription activation handled
@@ -446,6 +501,29 @@ stripeRouter.post('/webhook', async (req: Request, res: Response) => {
         // retry a payment that already succeeded. Buying the INBOX stays manual on purpose —
         // it spends real money, so it surfaces as the operator's next action instead.
         void (async () => {
+          // ── PROGRAMME CLIENTS DO NOT START WORK FROM A LEGACY PAYMENT (BUILD-002) ──────
+          //
+          // ⚠️ THIS IS THE ONE EXECUTABLE `startWorkForClient` CALLER IN THE PRODUCT, and it
+          // is the legacy coupling "money arrived → start sourcing". A client who is on a
+          // programme but tops up a legacy wallet would otherwise enter sourcing and sending
+          // through this door, entirely outside programme authority and before Go Live.
+          //
+          // The sourcing gate would refuse their PDL spend (a programme client passed a NULL
+          // programme id gets 0) — but `startWorkForClient` also reaches campaign activation,
+          // and relying on a downstream refusal to protect an upstream door is how the
+          // AR8 lookalike hole survived. Refuse at the door, and say so.
+          const { data: openProg } = await db.from('programmes')
+            .select('id, status').eq('client_id', clientId)
+            .not('status', 'in', '(COMPLETED,CANCELLED)').limit(1).maybeSingle()
+          if (openProg) {
+            console.log(`[stripe] client ${clientId} is on programme ${(openProg as { id: string }).id} — legacy payment did NOT start work. Programme sourcing is authorised by the programme's own first payment.`)
+            void sendFounderAlert('new_signup', 'Legacy payment received from a PROGRAMME client — work NOT started', [
+              `Client ${clientId} paid $${amountUsd} through the legacy wallet path while holding an open programme.`,
+              'No sourcing and no campaign were started: a programme is authorised by its own first payment and goes live only at its second.',
+              'Decide whether this money belongs to the programme or is a genuine legacy top-up.',
+            ])
+            return
+          }
           const { startWorkForClient } = await import('../lib/start-work')
           const r = await startWorkForClient(clientId)
           console.log('[stripe] payment started work for', clientId, JSON.stringify(r))

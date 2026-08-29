@@ -25,6 +25,7 @@ import { calendarRouter } from './routes/calendar'
 import { millaRouter } from './routes/milla'
 import { vidaRouter } from './routes/vida'
 import { operatorRouter } from './routes/operator'
+import { programmeRouter } from './routes/programme'
 import { formsRouter } from './routes/forms'
 import { companyRouter } from './routes/company'
 import { deniseRouter } from './routes/denise'
@@ -202,6 +203,8 @@ app.use('/calendar',      calendarRouter)
 app.use('/milla',         millaRouter)
 app.use('/vida',          vidaRouter)
 app.use('/operator',      operatorRouter)
+// BUILD-002 — the programme money engine. Admin-key gated, same as /operator.
+app.use('/programmes',    programmeRouter)
 app.use('/forms',         formsRouter)
 app.use('/company',       companyRouter)
 app.use('/denise',        deniseRouter)

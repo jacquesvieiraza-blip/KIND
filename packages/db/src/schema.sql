@@ -611,3 +611,76 @@ alter table public.icp_run_outcomes
 
 comment on column public.icp_run_outcomes.status is
   'Terminal outcome of one ICP run. served = leads delivered. no_match = the query ran and matched nobody. audience_exhausted = the query ran and we already hold everyone in it. quota_exhausted = refused before it could run. demo = pool-only run. failed = THE RUN CRASHED — written only at the crash boundary, never derived, and never shown to a client as the word "failed" (they see the approved recovery copy). A crash must never be recorded as no_match: that would claim the targeting matched nobody when the query never completed.';
+
+-- ═══════════════════════════════════════════════════════════════════════════════════════
+-- BUILD-002 · THE PROGRAMME COMMERCIAL + MONEY ENGINE (28 Aug 2026)
+-- Canonical migration: supabase/migrations/20260828_programme_money_engine.sql
+--
+-- ⚠️ DECLARED HERE BECAUSE schema.sql MUST NOT FALL BEHIND ITS OWN MIGRATIONS. The drift
+-- guard exists because a column that lives only in a migration is a column no reader of this
+-- file knows about — and supabase-js returns { error } rather than throwing, so a query
+-- against a column this file never declared renders exactly like an empty result.
+--
+-- ⚠️ NOT LIVE COMMERCIAL TRUTH. $299 pack · first 100 approvals included · $4 per approved
+-- lead is what runs. These tables are inert until a programme row exists.
+-- ═══════════════════════════════════════════════════════════════════════════════════════
+
+create table if not exists public.programmes (
+  id                        uuid primary key default gen_random_uuid(),
+  client_id                 uuid not null references public.clients(id) on delete cascade,
+  status                    text not null default 'DRAFT',
+  meeting_target            int  not null,
+  recommended_volume        int  not null,        -- meeting_target × 250 (R77)
+  price_per_meeting_cents   int  not null,        -- from the R81 curve, stored at creation
+  price_total_cents         int  not null,
+  first_payment_cents       int  not null,        -- floor(total/2)
+  second_payment_cents      int  not null,        -- total − first; the odd cent lands here
+  first_payment_ref         text,                 -- Stripe session id = webhook idempotency key
+  second_payment_ref        text,
+  first_payment_intent_id   text,                 -- refunds/disputes key on the intent, not the session
+  second_payment_intent_id  text,
+  first_paid_at             timestamptz,
+  second_paid_at            timestamptz,
+  sourcing_ceiling          int  not null default 0,   -- set to recommended_volume by the first payment
+  sourced_used              int  not null default 0,   -- provider actually delivered
+  sourced_reserved          int  not null default 0,   -- granted, not yet delivered
+  approved_at               timestamptz,
+  went_live_at              timestamptz,
+  paused_at                 timestamptz,          -- pause is ORTHOGONAL to status, not a status
+  pause_reason              text,                 -- client | quality | icp_change
+  value_settled_at          timestamptz,          -- unused value never expires; a human settles it
+  make_whole_cents          int  not null default 0,
+  contribution_cents        int,                  -- NULL while live: never persist a provisional figure
+  contribution_finalised_at timestamptz,
+  disputed_at               timestamptz,
+  created_at                timestamptz not null default now(),
+  updated_at                timestamptz not null default now()
+);
+
+create table if not exists public.programme_batches (
+  id             uuid primary key default gen_random_uuid(),
+  programme_id   uuid not null references public.programmes(id) on delete cascade,
+  seq            int  not null,
+  requested      int  not null,
+  granted        int  not null default 0,
+  delivered      int,
+  status         text not null default 'running',  -- running | served | released | stranded
+  reservation_id uuid,
+  created_at     timestamptz not null default now(),
+  settled_at     timestamptz
+);
+
+alter table public.icps
+  add column if not exists programme_id uuid;
+
+-- ⚠️ `sourcing_ledger.programme_id`, `partner_commissions.programme_id` and
+-- `partner_commissions.basis` are ADDED BY THE MIGRATION AND ARE DELIBERATELY NOT DECLARED
+-- HERE. Neither table is declared in this file at all — they live in supabase/migrations —
+-- and `schema-drift.test.ts` reads an ALTER as a declaration: naming them here would put
+-- both tables in this file's scope and demand every one of their eighteen columns, which is
+-- a schema-consolidation job, not part of BUILD-002. The migration is their home.
+
+comment on table public.programmes is
+  'BUILD-002 · the targeted booked-meeting programme (R74/R77/R78/R81). Money in integer cents. Pause is orthogonal to status. contribution_cents stays NULL until the programme is terminal AND its value is settled — a partner is never paid from a provisional figure.';
+comment on table public.programme_batches is
+  'Controlled ~250-lead execution batches. Authority is RESERVED at grant and converted to used only on delivery, so a provider returning zero cannot burn paid entitlement. status=stranded is the dead-letter queue for a release that itself failed.';

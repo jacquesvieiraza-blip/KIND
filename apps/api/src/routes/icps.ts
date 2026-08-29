@@ -538,6 +538,9 @@ export async function runIcpJob(
   opts?: { proofPass: number },
 ): Promise<{ inserted: number; skipped: number; relaxed: string | null }> {
   const proofMode = (opts?.proofPass ?? 0) > 0
+  // BUILD-002 — the open programme batch for this run, if this is programme sourcing.
+  // Settled once the provider returns, which is what releases unused reservation.
+  let programmeBatch: { id: string } | null = null
   const { data: icp, error: icpErr } = await db
     .from('icps').select('*').eq('id', icpId).eq('client_id', clientId).single()
   if (icpErr || !icp) throw new Error('ICP not found')
@@ -817,10 +820,28 @@ export async function runIcpJob(
       grantedSize = proofReserved
       console.log(`[icp] FREE PROOF run for prospect ${clientId} — reserved ${proofReserved} of ${pdlRemainder} PDL record(s) (reservation ${proofReservationId ?? 'none'}, ${proofReason}) against the acquisition fence (40 lifetime, $300/mo).`)
     } else {
+      // ── PROGRAMME AUTHORITY (BUILD-002) ─────────────────────────────────────────────
+      // The programme comes from the ICP ROW, never from the client. A programme may hold
+      // several ICPs, so deriving it from the client would guess as soon as there is more
+      // than one — and `icp` is already loaded with select('*') above, so this is a read of
+      // data the job is holding, not a second query that could disagree with it.
+      //
+      // ⚠️ PASSING NULL IS NOT A FALLBACK. If this client HAS an open programme, the RPC
+      // returns 0 for a NULL id rather than quietly spending their legacy wallet. The gate
+      // decides which regime applies from the database, so a caller that forgets is refused
+      // instead of silently sourcing outside programme authority.
+      const programmeId = (icp as { programme_id?: string | null }).programme_id ?? null
       const { data: granted } = await db.rpc('try_spend_sourcing', {
-        p_client_id: clientId, p_requested: pdlRemainder,
+        p_client_id: clientId, p_requested: pdlRemainder, p_programme_id: programmeId,
       })
       grantedSize = typeof granted === 'number' ? granted : 0
+      // Reserve/release: authority is RESERVED at grant and converted to used only when the
+      // provider actually delivers, so a provider returning zero cannot permanently burn
+      // volume the client paid for. The batch row is the record that lets it be released.
+      if (programmeId && grantedSize > 0) {
+        const { openBatch } = await import('../lib/programme')
+        programmeBatch = await openBatch(programmeId, pdlRemainder, grantedSize)
+      }
     }
     if (grantedSize <= 0) {
       // (Fable F3) the alarm must also run on the REFUSED path — at 100% of the global
@@ -1108,7 +1129,33 @@ export async function runIcpJob(
       // run that cost no PDL. The reconcile belongs to the fence, so it lives with it.
       const returnedCount = Math.min(contacts.length, grantedSize)
       const unusedGrant = audience === 'house' ? 0 : grantedSize - returnedCount
-      if (unusedGrant > 0) {
+
+      // ── PROGRAMME RESERVE → USED, AND RELEASE THE REST (BUILD-002) ──────────────────
+      //
+      // A programme's authority was RESERVED at grant. Settling converts the delivered part
+      // into `sourced_used` and RELEASES the remainder, so the client keeps entitlement for
+      // volume a provider never returned. This runs even when `unusedGrant` is 0, because
+      // the reserved→used conversion has to happen either way — a batch left `running`
+      // would hold the reservation open and shrink the client's usable ceiling forever.
+      //
+      // ⚠️ AND IT REPLACES THE LEGACY REFUND, IT DOES NOT RUN ALONGSIDE IT. Programme
+      // sourcing never touched `clients.sourcing_allowance`, so calling
+      // `add_sourcing_allowance` here would credit a wallet the programme never debited —
+      // paying the client twice for the same shortfall, in the wrong currency of value.
+      let programmeSettled = false
+      if (programmeBatch) {
+        const { settleBatch } = await import('../lib/programme')
+        const r = await settleBatch(programmeBatch.id, returnedCount)
+        programmeSettled = true
+        if (!r.ok) {
+          // Stranded: the release itself failed. `settleBatch` has already marked the batch
+          // and alerted — the client's entitlement is reserved but recoverable, and there is
+          // a row to find it by. Never swallowed.
+          console.error(`[icp] PROGRAMME batch ${programmeBatch.id} could not be settled — marked stranded; ${grantedSize - returnedCount} record(s) stay reserved until reconciled.`)
+        }
+      }
+
+      if (unusedGrant > 0 && !programmeSettled) {
         if (proofMode) {
           // FREE PROOF reconcile — reserve 40, PDL returns 25, release 15 AGAINST THE
           // RESERVATION MADE ABOVE, by its id. The RPC marks that row reconciled and will
@@ -3931,9 +3978,18 @@ icpRouter.patch('/:id/activate', async (req: AuthRequest, res) => {
     // on it; this wakes THAT row rather than creating a second one.
     const camp = await ensureCampaignForIcp(clientId, req.params.id, (icpRow as { name?: string | null }).name ?? null, { activate: true })
     if (camp && 'refused' in camp && camp.refused) {
+      // ⚠️ TWO DIFFERENT REFUSALS, AND THE OPERATOR MUST BE ABLE TO TELL THEM APART.
+      // "You already have a live campaign" is a scheduling problem the operator can fix in
+      // a minute. "This programme has not been paid for" is a money problem they must not
+      // work around — collapsing both into one sentence is how someone tries the wrong fix.
+      const r = camp.refused
+      if ('reason' in r) {
+        res.status(409).json({ success: false, error: r.message, refusal: r.reason })
+        return
+      }
       res.status(409).json({
         success: false,
-        error: `This client already has a live campaign${camp.refused.blockingName ? ` ("${camp.refused.blockingName}")` : ''}. One client runs ONE active campaign — pause it first, then activate this one.`,
+        error: `This client already has a live campaign${r.blockingName ? ` ("${r.blockingName}")` : ''}. One client runs ONE active campaign — pause it first, then activate this one.`,
       })
       return
     }

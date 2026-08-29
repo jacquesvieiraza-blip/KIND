@@ -250,8 +250,22 @@ export async function addLeads(campaignId: string, leadList: unknown[]): Promise
  * The endpoint takes a mixed list of emails and domains. We send addresses only — suppressing
  * a whole domain because one person opted out would silence colleagues who never asked.
  *
- * `client_id: null` is Smartlead's whitelabel-client scope: null means the WHOLE workspace,
- * which is what "global" has to mean for a suppression that must outlive any one campaign.
+ * ⚠️ `client_id: null` IS NOT "THE WHOLE WORKSPACE", AND MY FIRST COMMENT HERE SAID IT WAS.
+ * Smartlead's documentation is the opposite: a null-scoped block-list entry applies only to
+ * campaigns with NO Smartlead client assigned, and does NOT reach campaigns inside client
+ * sub-accounts. Blocking across sub-accounts needs one client-scoped entry each.
+ *
+ * IT IS STILL THE CORRECT SCOPE HERE, but for a reason that has to be stated rather than
+ * assumed: EVERY K.I.N.D CAMPAIGN IS UNASSIGNED. `createCampaign` posts `{ name }` and no
+ * client scope; `addLeads` posts no client scope; `SmartleadCampaign` does not even model
+ * one; and no client-create, client-list or client-assign call exists anywhere in this
+ * integration. Our tenancy is carried by the campaign NAME — `K.I.N.D — <uuid>` — where that
+ * uuid is K.I.N.D's OWN `clients.id`, which is not Smartlead's whitelabel client id and must
+ * never be confused with it.
+ *
+ * 🛑 IF THAT EVER CHANGES, THIS CALL SILENTLY STOPS WORKING and suppressed people keep
+ * receiving mail with nothing failing. `smartlead-client-scope.test.ts` fails the build the
+ * moment a campaign write gains a client scope, precisely so the change cannot be quiet.
  *
  * ⚠️ CODE VERIFIED, RUNTIME UNVERIFIED. Written to the documented contract; both Smartlead doc
  * hosts return 403 to this environment, so the request SHAPE cannot be confirmed from here.

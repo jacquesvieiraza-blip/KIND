@@ -31,7 +31,13 @@ export type SmartleadPushResult =
   | { pushed: false; reason: SmartleadRefusal | 'no_sequence' | 'api_error'; detail: string }
 
 /**
- * One campaign per client, inside the client's own Smartlead workspace view.
+ * One campaign per client — named for them, NOT inside a Smartlead client sub-account.
+ *
+ * ⛓️ The phrase "inside the client's own Smartlead workspace view" stood here and is
+ * corrected 29 Aug: it reads as though we assign campaigns to Smartlead whitelabel clients.
+ * We do not. Every K.I.N.D campaign is UNASSIGNED, and the client identity below is
+ * K.I.N.D's own `clients.id`, not Smartlead's client id. The distinction decides whether a
+ * null-scoped block-list entry actually suppresses anyone — see `addToGlobalBlockList`.
  *
  * Named from the client id rather than the company name. A company name is a label a human
  * edits — and renaming a client would orphan their campaign and silently start a second one,

@@ -123,6 +123,32 @@ function previewCacheSet(key: string, result: PreviewResult): void {
 }
 
 export const icpRouter = Router()
+
+// ── THE ONE OPERATOR ROUTE ON THIS CLIENT ROUTER — REGISTERED BEFORE `requireAuth` ──────
+//
+// Every other route below belongs to the CLIENT and is authenticated by their JWT. GO is
+// not theirs: K.I.N.D owns it (22 Aug), and its authentication is the ADMIN KEY, checked
+// inside the handler exactly the way `routes/lookalike.ts` checks it.
+//
+// Registered here, three lines above `icpRouter.use(requireAuth)`, because Express runs
+// router middleware only for the routes registered AFTER it. Registered below, this route
+// demanded a client JWT the operator does not have and never should: Vida's proxy holds a
+// verified operator session and the admin key, no client account and no client token, so
+// the founder pressing GO in production got `401 {"error":"Missing auth token"}` and the
+// admin check — and the BUILD-002 Go-Live gate behind it — were never reached.
+//
+// This does not weaken the door, it stops guarding the wrong one. A client JWT was never a
+// second factor here: anyone can sign up and get one, so the only secret on this route was
+// always the admin key, and the admin key is unchanged. What the JWT actually excluded was
+// the one caller the route exists for.
+//
+// ⚠️ THE ORDER IS THE FIX. Moving this registration down to sit with the other routes puts
+// the 401 straight back — `icps-activate-auth.route.test.ts` asserts the order and
+// dispatches through a real Express app to prove it, because every handler-level test
+// reaches into `icpRouter.stack` and calls the handler directly, which is precisely how the
+// middleware layer that broke this went untested.
+icpRouter.patch('/:id/activate', activateIcpHandler)
+
 icpRouter.use(requireAuth)
 
 // After scoring completes, auto-send consent to leads scored >= 60 that have email + haven't been contacted
@@ -3941,7 +3967,10 @@ icpRouter.post('/:id/proof', async (req: AuthRequest, res) => {
 // the same one-ICP-one-campaign creation, the same never-run auto-sourcing. Only WHO may
 // trigger it moved. The Vida control ships in this same PR — a gate without a control would
 // strand every new ICP.
-icpRouter.patch('/:id/activate', async (req: AuthRequest, res) => {
+// A named declaration, not an inline arrow, ONLY so the registration at the top of this file
+// — which must sit above `icpRouter.use(requireAuth)` — can reference it. Function
+// declarations hoist; the handler stays here with the rest of the route logic.
+async function activateIcpHandler(req: AuthRequest, res: Response) {
   try {
     if (!adminKeyValid(req.headers['x-admin-key'])) {
       res.status(403).json({
@@ -3950,10 +3979,21 @@ icpRouter.patch('/:id/activate', async (req: AuthRequest, res) => {
       })
       return
     }
+    // ⚠️ THE OPERATOR NAMES THE CLIENT. This used to fall back to `getClientId(req.userId!)`
+    // — the caller's own client record — which only ever had a value because `requireAuth`
+    // had run. On an operator route that fallback is not a convenience, it is the WRONG
+    // CLIENT: it would resolve to whatever account the person pressing GO happened to own.
+    // Vida always sends `client_id`; anything that does not is refused rather than guessed.
     const clientId = typeof req.body?.client_id === 'string' && req.body.client_id
       ? req.body.client_id
-      : await getClientId(req.userId!)
-    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+      : null
+    if (!clientId) {
+      res.status(400).json({
+        success: false,
+        error: 'client_id is required — K.I.N.D activates an ICP on a named client\'s behalf.',
+      })
+      return
+    }
 
     // ── ONE CLIENT → ONE ACTIVE CAMPAIGN, ANSWERED BEFORE ANYTHING FLIPS (round 4) ──
     //
@@ -4062,8 +4102,14 @@ icpRouter.patch('/:id/activate', async (req: AuthRequest, res) => {
       const { data: bal } = await db.from('clients')
         .select('credit_balance, first_icp_run_at, user_id').eq('id', clientId).single()
       const credits = bal?.credit_balance ?? 0
-      const ownerUserId = (bal?.user_id as string | null) ?? req.userId!
-      if (credits > 0 || !bal?.first_icp_run_at) {
+      // ⛓️ THE `?? req.userId!` FALLBACK IS GONE WITH THE CLIENT JWT. There is no operator
+      // user id to fall back to any more — and there never should have been, per the comment
+      // above. A client row with no owner therefore starts NOTHING: sourcing whose "your
+      // first leads are ready" email has no recipient is spend the client never learns about.
+      const ownerUserId = (bal?.user_id as string | null) ?? null
+      if (!ownerUserId) {
+        console.error(`[icps/activate] client ${clientId} has no owner user_id — the ICP is live but no first run was started, because the leads email would have nowhere to go.`)
+      } else if (credits > 0 || !bal?.first_icp_run_at) {
         started = true
         runIcpJob(req.params.id, clientId, ownerUserId, credits > 0 ? credits : 20)
           .catch(e => console.error('[icps/activate] auto-run failed:', e))
@@ -4073,4 +4119,4 @@ icpRouter.patch('/:id/activate', async (req: AuthRequest, res) => {
     // "ICP is live" are different events and the operator pressed the same button for both.
     res.json({ success: true, data, sourcing: started, applied_revision: applied.applied === true })
   } catch (err) { console.error(err); res.status(500).json({ success: false, error: 'Failed to activate ICP' }) }
-})
+}

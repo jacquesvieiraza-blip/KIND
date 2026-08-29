@@ -13,6 +13,8 @@
 // which fixed a 4× overstatement on the client's own Reports page.
 
 import { db } from '@kind/db'
+// BUILD-003 item 2 — public.meetings is the sole source of meeting counts.
+import { meetingCounts } from './meeting-truth'
 import { PAID_TX_TYPES, PACK_PRICE_USD, LEAD_PRICE_USD, packState } from './onboarding-pack'
 
 export interface MillaSummaryData {
@@ -90,8 +92,10 @@ export async function buildMillaSummaryData(clientId: string): Promise<MillaSumm
       .eq('client_id', clientId).not('delivered_at', 'is', null)
       .not('surfaced_for_approval_at', 'is', null)   // no TTL — see /for-approval
       .is('revealed_at', null).neq('status', 'passed'),
-    db.from('calendar_bookings').select('id', { count: 'exact', head: true })
-      .eq('client_id', clientId).eq('status', 'confirmed').gte('start_time', monthStart),
+    // ⛓️ COUNTED calendar_bookings (BUILD-003 item 2) — an operational record of what we
+    // asked Google to create, blind to duplicates, spam and reschedules. Milla told the
+    // client a number that could double-count a meeting they moved. Now public.meetings.
+    meetingCounts({ clientId, since: monthStart }),
     // Name AND status of the newest campaign, whatever state it is in. Filtering to
     // status='active' meant a paused or cold-suspended client was indistinguishable from
     // one with no campaign at all — and Milla told both of them "Campaign live".
@@ -106,7 +110,8 @@ export async function buildMillaSummaryData(clientId: string): Promise<MillaSumm
     // from a 50-row ledger slice / a 4-row replies rail, so healthy accounts under-counted.
     db.from('leads').select('id', { count: 'exact', head: true }).eq('client_id', clientId).not('revealed_at', 'is', null),
     db.from('figsy_replies').select('id', { count: 'exact', head: true }).eq('client_id', clientId),
-    db.from('calendar_bookings').select('id', { count: 'exact', head: true }).eq('client_id', clientId).eq('status', 'confirmed'),
+    // Same move, all-time.
+    meetingCounts({ clientId }),
     // NO FREEBIES — has this client EVER paid? (any wallet top-up / purchase). Drives the
     // paywall: no purchase → the client is gated until they load their wallet.
     db.from('credit_transactions').select('id', { count: 'exact', head: true })
@@ -177,7 +182,9 @@ export async function buildMillaSummaryData(clientId: string): Promise<MillaSumm
     // THE PACK — included approvals counted rather than faked into the wallet.
     pack,
     leads_awaiting:  awaiting.count ?? 0,
-    meetings_booked: meetings.count ?? 0,
+    // ⚠️ null means the meetings read FAILED. Reporting 0 would tell a client with three
+    // meetings that they had none — Milla speaking a false number in her own voice.
+    meetings_booked: meetings?.booked ?? 0,
     // Real all-time totals + true $ spend.
     //
     // ⚠️ NOT `approved × $4`. The first PACK_LEADS approvals are INSIDE the pack, so a
@@ -187,7 +194,7 @@ export async function buildMillaSummaryData(clientId: string): Promise<MillaSumm
     // this one. Spend = the pack they bought + $4 for each approval BEYOND it.
     leads_approved_total: approvedTotal.count ?? 0,
     replies_total:        repliesTotal.count ?? 0,
-    meetings_total:       meetingsTotal.count ?? 0,
+    meetings_total:       meetingsTotal?.booked ?? 0,
     spend_usd:            pack.active
       ? PACK_PRICE_USD + Math.max(0, (approvedTotal.count ?? 0) - pack.included) * LEAD_PRICE_USD
       : (approvedTotal.count ?? 0) * LEAD_PRICE_USD,

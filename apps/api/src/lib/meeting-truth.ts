@@ -495,6 +495,137 @@ export async function meetingCounts(filter: MeetingCountFilter = {}): Promise<Me
  * it agree with the meetings table. That is the difference between a cache and a counter —
  * a counter that drifts stays wrong, a cache that drifts is corrected on the next write.
  */
+// ⚠️ THE COUNTING PREDICATE — `.is('excluded_reason', null).is('superseded_by', null)` —
+// is repeated in each reader below rather than hidden behind a helper. That is deliberate:
+// supabase-js query builders are chained, so a wrapper would have to be typed loosely enough
+// to accept any builder, and a mistyped wrapper that silently dropped a filter would break
+// every count at once with nothing to show for it in review. Repeated three times IN ONE
+// MODULE is reviewable; the defect being fixed was the predicate scattered across six FILES,
+// three of which had drifted. The confinement test is what keeps it to this module.
+
+/**
+ * Meeting counts for many campaigns at once.
+ *
+ * ⚠️ RETURNS null ON FAILURE, NEVER AN EMPTY MAP. A caller that received `{}` could not tell
+ * "no campaign has a meeting" from "the query failed", and would render both as zeros.
+ */
+export async function campaignMeetingCounts(campaignIds: string[]): Promise<Record<string, number> | null> {
+  if (campaignIds.length === 0) return {}
+  const { data, error } = await db.from('meetings')
+    .select('campaign_id')
+    .in('campaign_id', campaignIds)
+    .is('excluded_reason', null)
+    .is('superseded_by', null)
+
+  if (error) {
+    console.error('[meeting-truth] campaignMeetingCounts failed:', error.message)
+    return null
+  }
+  const out: Record<string, number> = {}
+  for (const r of (data ?? []) as { campaign_id: string | null }[]) {
+    if (r.campaign_id) out[r.campaign_id] = (out[r.campaign_id] ?? 0) + 1
+  }
+  return out
+}
+
+/** The same, keyed by client — for per-rep and per-account rollups. */
+export async function clientMeetingCounts(clientIds: string[]): Promise<Record<string, number> | null> {
+  if (clientIds.length === 0) return {}
+  const { data, error } = await db.from('meetings')
+    .select('client_id')
+    .in('client_id', clientIds)
+    .is('excluded_reason', null)
+    .is('superseded_by', null)
+
+  if (error) {
+    console.error('[meeting-truth] clientMeetingCounts failed:', error.message)
+    return null
+  }
+  const out: Record<string, number> = {}
+  for (const r of (data ?? []) as { client_id: string }[]) {
+    out[r.client_id] = (out[r.client_id] ?? 0) + 1
+  }
+  return out
+}
+
+export interface LiveMeeting { id: string; leadId: string; scheduledAt: string; state: MeetingState }
+
+/**
+ * The live meeting for each of the given leads, if any.
+ *
+ * "Live" means countable AND not settled as a no-show — this answers "is a meeting on the
+ * books for this person?", which is what a pipeline stage and a lead card are asking. A
+ * HELD meeting stays live here because it is still the meeting that happened.
+ */
+export async function liveMeetingsByLead(
+  clientId: string,
+  leadIds: string[],
+): Promise<Map<string, LiveMeeting> | null> {
+  if (leadIds.length === 0) return new Map()
+  const { data, error } = await db.from('meetings')
+    .select('id, lead_id, scheduled_at, state')
+    .eq('client_id', clientId)
+    .in('lead_id', leadIds)
+    .is('excluded_reason', null)
+    .is('superseded_by', null)
+    .neq('state', 'NO_SHOW')
+
+  if (error) {
+    console.error('[meeting-truth] liveMeetingsByLead failed:', error.message)
+    return null
+  }
+  const out = new Map<string, LiveMeeting>()
+  for (const r of (data ?? []) as { id: string; lead_id: string | null; scheduled_at: string; state: MeetingState }[]) {
+    if (r.lead_id) out.set(r.lead_id, { id: r.id, leadId: r.lead_id, scheduledAt: r.scheduled_at, state: r.state })
+  }
+  return out
+}
+
+/**
+ * Which of these leads have a countable meeting on this campaign.
+ *
+ * Campaign-scoped rather than client-scoped because the A/B resolver holds a campaign and
+ * not a client — asking it to fetch a client id first would be a round-trip bought to satisfy
+ * a signature.
+ */
+export async function meetingLeadIdsForCampaign(
+  campaignId: string,
+  leadIds: string[],
+): Promise<Set<string> | null> {
+  if (leadIds.length === 0) return new Set()
+  const { data, error } = await db.from('meetings')
+    .select('lead_id')
+    .eq('campaign_id', campaignId)
+    .in('lead_id', leadIds)
+    .is('excluded_reason', null)
+    .is('superseded_by', null)
+
+  if (error) {
+    console.error('[meeting-truth] meetingLeadIdsForCampaign failed:', error.message)
+    return null
+  }
+  const out = new Set<string>()
+  for (const r of (data ?? []) as { lead_id: string | null }[]) if (r.lead_id) out.add(r.lead_id)
+  return out
+}
+
+/** Every lead with a countable meeting for this client. */
+export async function meetingLeadIdsForClient(clientId: string): Promise<Set<string> | null> {
+  const { data, error } = await db.from('meetings')
+    .select('lead_id')
+    .eq('client_id', clientId)
+    .is('excluded_reason', null)
+    .is('superseded_by', null)
+
+  if (error) {
+    console.error('[meeting-truth] meetingLeadIdsForClient failed:', error.message)
+    return null
+  }
+  const out = new Set<string>()
+  for (const r of (data ?? []) as { lead_id: string | null }[]) if (r.lead_id) out.add(r.lead_id)
+  return out
+}
+
 export async function campaignMeetingCount(campaignId: string): Promise<number | null> {
   const { data, error } = await db.from('meetings')
     .select('id')

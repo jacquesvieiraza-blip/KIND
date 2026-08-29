@@ -9,6 +9,8 @@ import { db } from '@kind/db'
 import { requireAuth, AuthRequest } from '../middleware/auth'
 import { generateSequence, getClientKnowledgeForOutreach, sendSequenceEmail, enrollmentStep, autoEnrollLead, applyReplyBranching, campaignReadyLeadIds, recomputeCampaignCounters, personalizationSignals, chargeFigsyEnroll, refundFigsyEnroll, updateEnrollmentState } from '../lib/figsy'
 import type { Lead, SendOutcome } from '../lib/figsy'
+// BUILD-003 item 2 — meeting counts come from public.meetings, never from reply timestamps.
+import { campaignMeetingCounts } from '../lib/meeting-truth'
 import { bookingUrlForLead } from '../lib/booking-token'
 import { canEnroll } from '../lib/billing-rules'
 import { isDemoClient } from '../lib/demo'
@@ -986,25 +988,38 @@ async function reconcileCampaignCounters(
   const repliesTotal: Record<string, number> = {}
   const repliesInterested: Record<string, number> = {}
   const optedOut: Record<string, number> = {}
-  const meetings: Record<string, number> = {}
   for (const r of (repliesRes.data ?? []) as { campaign_id: string | null; classification: string | null; meeting_booked_at: string | null }[]) {
     if (!r.campaign_id) continue
     repliesTotal[r.campaign_id] = (repliesTotal[r.campaign_id] ?? 0) + 1
     if (r.classification === 'hot' || r.classification === 'interested') repliesInterested[r.campaign_id] = (repliesInterested[r.campaign_id] ?? 0) + 1
     if (r.classification === 'opt_out' || r.classification === 'unsubscribe') optedOut[r.campaign_id] = (optedOut[r.campaign_id] ?? 0) + 1
-    if (r.meeting_booked_at) meetings[r.campaign_id] = (meetings[r.campaign_id] ?? 0) + 1
+    // ⛓️ `if (r.meeting_booked_at) meetings[...]++` USED TO BE HERE (BUILD-003 item 2).
+    // The number now comes from public.meetings, below, through the one module that knows
+    // the counting rules — this loop could not exclude a duplicate or a spam booking, and
+    // counted a reschedule twice.
   }
   const enrolled: Record<string, number> = {}
   for (const r of (enrollRes.data ?? []) as { campaign_id: string | null }[]) {
     if (r.campaign_id) enrolled[r.campaign_id] = (enrolled[r.campaign_id] ?? 0) + 1
   }
   const n = (v: unknown) => (typeof v === 'number' ? v : 0)
+
+  // BUILD-003 item 2 — the meeting number comes from public.meetings, never from replies.
+  const meetings = await campaignMeetingCounts(campaigns.map(c => c.id as string))
+
   for (const c of campaigns) {
     c.emails_sent        = Math.max(sent[c.id] ?? 0,              n(c.emails_sent))
     c.replies_total      = Math.max(repliesTotal[c.id] ?? 0,      n(c.replies_total))
     c.replies_interested = Math.max(repliesInterested[c.id] ?? 0, n(c.replies_interested))
     c.opted_out          = Math.max(optedOut[c.id] ?? 0,          n(c.opted_out))
-    c.meetings_booked    = Math.max(meetings[c.id] ?? 0,          n(c.meetings_booked))
+    // ⚠️ NOT Math.max — and that is the fix, the same one recomputeCampaignCounters needed.
+    // Every other counter here ratchets so a partial recount cannot lose data. Ratcheting
+    // the meeting number would make it one-way: excluding a spam or duplicate booking could
+    // never bring it DOWN, so the exclusion feature would be silently inert on the one
+    // number the commercial model is judged on.
+    // A null map means the query FAILED — the cached value is left alone rather than
+    // overwritten with 0, because "unreadable" must never render as "none".
+    c.meetings_booked    = meetings === null ? n(c.meetings_booked) : (meetings[c.id as string] ?? 0)
     c.leads_enrolled     = Math.max(enrolled[c.id] ?? 0,          n(c.leads_enrolled))
   }
 }

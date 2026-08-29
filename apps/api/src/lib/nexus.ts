@@ -1,4 +1,6 @@
 import { db } from '@kind/db'
+// BUILD-003 item 2 — public.meetings is the sole source of meeting outcomes.
+import { meetingLeadIdsForClient } from './meeting-truth'
 
 // #511 NEXUS · Phase 0/1 — the per-client learning brain (compute + read).
 //
@@ -36,7 +38,11 @@ export async function computeNexusProfile(clientId: string): Promise<NexusProfil
   const [worked, replies, bookings, memory] = await Promise.all([
     db.from('figsy_enrollments').select('lead_id', { count: 'exact' }).eq('client_id', clientId).limit(5000),
     db.from('figsy_replies').select('lead_id, classification, subject').eq('client_id', clientId).limit(5000),
-    db.from('calendar_bookings').select('lead_id').eq('client_id', clientId).eq('status', 'confirmed').limit(2000),
+    // ⛓️ READ calendar_bookings (BUILD-003 item 2). This drives "which subjects earned
+    // meetings", and a winning subject becomes what every future prospect receives — so a
+    // duplicate or a rescheduled booking counted twice would train the engine on noise.
+    // public.meetings applies the exclusion rules; calendar_bookings never could.
+    meetingLeadIdsForClient(clientId),
     db.from('figsy_memory').select('last_winning_angle, best_subject_lines').eq('client_id', clientId).maybeSingle(),
   ])
 
@@ -44,7 +50,16 @@ export async function computeNexusProfile(clientId: string): Promise<NexusProfil
   const sampleWorked = worked.count ?? workedLeadIds.size
   const replyRows = (replies.data ?? []) as { lead_id: string | null; classification: string | null; subject: string | null }[]
   const repliedLeadIds = new Set(replyRows.map(r => r.lead_id).filter(Boolean) as string[])
-  const bookedLeadIds = Array.from(new Set(((bookings.data ?? []) as { lead_id: string | null }[]).map(r => r.lead_id).filter(Boolean) as string[]))
+  // ⚠️ THROWS RATHER THAN SCORING ON A FAILED READ. null means the meetings query failed;
+  // treating it as "no meetings" would give every subject a 0% meeting rate and train the
+  // engine on a query error — and this profile decides which subject every future prospect
+  // receives. The house pattern (BUILD-002's ProgrammeStorageError) is to throw on a storage
+  // failure and return a value only when the answer is real; `internal.ts`'s recompute loop
+  // already catches per-client and counts failures, so a bad read is reported, not absorbed.
+  if (bookings === null) {
+    throw new Error(`[nexus] meeting truth unreadable for client ${clientId} — profile not computed`)
+  }
+  const bookedLeadIds = Array.from(bookings)
 
   // Clamp to [0,1] — sampleWorked is the exact enrollment count while replied/booked come from
   // bounded fetches, and replies can exist for leads without an enrollment row, so the raw ratio

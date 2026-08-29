@@ -34,8 +34,24 @@ vi.mock('@kind/db', () => {
     const self = () => q as never
     Object.assign(q, {
       select: (_c?: string, opts?: { head?: boolean; count?: string }) => {
+        const v = state.meetingsCount
+        // ⛓️ THE MEETING NUMBER MOVED (BUILD-003 item 2). It came from a head-count on
+        // `calendar_bookings`; it now comes from ROWS of `public.meetings`, read through
+        // meetingCounts(). The fake follows the code rather than the code following the
+        // fake — `meetingsCount` still means "how many meetings this week", so every
+        // assertion below is unchanged.
+        if (table === 'meetings') {
+          if (typeof v !== 'number') {
+            result = { data: null, count: null, error: { message: v.error } }
+          } else if (opts?.head) {
+            // The exclusions count — a separate query, and none are excluded here.
+            result = { count: 0, error: null }
+          } else {
+            result = { data: Array.from({ length: v }, () => ({ state: 'BOOKED' })), error: null }
+          }
+          return self()
+        }
         if (opts?.head) {
-          const v = state.meetingsCount
           result = typeof v === 'number'
             ? { count: v, error: null }
             : { count: null, error: { message: v.error } }

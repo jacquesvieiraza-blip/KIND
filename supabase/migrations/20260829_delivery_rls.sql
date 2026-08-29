@@ -1,13 +1,24 @@
 -- ═══════════════════════════════════════════════════════════════════════════════════════
--- 🛑 HELD OUT OF THE RUNNER ON PURPOSE — DO NOT ADD A PENDING_MIGRATIONS ENTRY FOR THIS.
+-- ⛓️ RELEASED INTO THE RUNNER — 29 Aug 2026. R2 IS CLOSED.
 --
--- This file is COMPLETE and reviewed. It is deliberately absent from
--- `apps/api/src/lib/pending-migrations.ts`, which is the list Vida applies, because Vida
--- applies ALL pending migrations together and this one must not go out with the other four.
--- It stays held until R2 is fully closed — the four production policy names below were read
--- off pg_policies by hand, and applying on a name that has since changed would silently
--- WIDEN access instead of narrowing it.
--- `delivery-rls-held.test.ts` fails the build if an entry appears.
+-- ⛓️ THIS FILE WAS HELD until now, and the hold was not bureaucracy. Vida applies ALL pending
+-- migrations in one action, so "hold this one back" could not be a note in a PR body — it had
+-- to be the absence of a runner entry. The condition for release was never a date: it was that
+-- the five policy names this migration DROPS be read off `pg_policies` immediately before
+-- applying. A DROP naming a policy that does not exist is a silent no-op, the CREATE that
+-- follows then ADDS beside whatever was already there, and because PostgreSQL ORs permissive
+-- policies the result is STRICTLY MORE access while the migration claims to narrow it.
+--
+-- ✅ THE FOUNDER RE-VERIFIED PRODUCTION AT RELEASE. All five names below were confirmed live
+-- immediately before this entry was added. That inspection also surfaced a SECOND service-role
+-- policy per figsy table (`service_role_bypass`, alongside the named
+-- `service role bypass campaigns` and its siblings) — recorded below, untouched by this file,
+-- and the reason the "what is deliberately not touched" note was corrected rather than left
+-- to read as though one bypass existed per table.
+--
+-- ⚠️ THE SQL BELOW IS UNCHANGED from the version reviewed under PR #1607. Only comments were
+-- edited at release. `delivery-rls-release.test.ts` asserts the runner entry and the canonical
+-- file carry byte-identical executable SQL, so the two homes cannot drift.
 -- ═══════════════════════════════════════════════════════════════════════════════════════
 
 -- ═══════════════════════════════════════════════════════════════════════════════════════
@@ -39,8 +50,14 @@
 --   leads, icps            tenant-scoped policies already exist
 --   lead_pool              RLS on, zero policies — browser already denied
 --   sourcing_ledger        RLS on, zero policies — browser already denied
---   service_role bypasses  "service role bypass campaigns" and its three siblings
---                          (002_figsy.sql:150-161). The API depends on them. Not referenced.
+--   service_role bypasses  TWO per figsy table, both confirmed live at release:
+--                          "service role bypass campaigns" and its three siblings
+--                          (002_figsy.sql:150-161), AND a second policy named
+--                          "service_role_bypass" on each of the four. The API reads every one
+--                          of these tables on the service role, so both must survive. This
+--                          migration names neither in any DROP — it drops only the four
+--                          "clients see own ..." policies — so both are untouched by
+--                          construction, not by luck.
 --   current_client_id()    already exists and is already used by leads_own/icps_own, so it
 --                          works and `authenticated` can execute it. This migration needs no
 --                          correction to it and makes none — replacing a function that live
@@ -125,7 +142,12 @@ DROP POLICY IF EXISTS "blocklist_own"   ON public.opt_out_blocklist;
 -- intended state for all four, and the previous draft's ALTER/DROP lines for them were pure
 -- no-ops that made the migration look like it was doing nine tables' worth of work.
 --
--- ⚠️ RUNTIME UNVERIFIED. Written against the founder's direct inspection of production on
--- 29 Aug. The policy names above are the load-bearing detail: if any differs, its DROP
--- silently misses and its CREATE adds rather than replaces — the exact failure this rewrite
--- exists to remove. Confirm the four names in pg_policies before applying.
+-- ⚠️ CLAIM BOUNDARY AT RELEASE. The five policy names are RUNTIME VERIFIED — the founder read
+-- them off production immediately before this entry was added, which is the condition the hold
+-- existed to enforce. What this migration DOES to the browser's access once applied remains
+-- RUNTIME UNVERIFIED until it has actually run: no test in this repo executes SQL, and the
+-- portal evidence behind "safe to narrow ALL → SELECT" is a static read of `apps/portal/src`,
+-- not an observation of production traffic.
+--
+-- The names remain the load-bearing detail. If one is ever changed again, its DROP silently
+-- misses and its CREATE adds rather than replaces. Re-read `pg_policies` before any re-apply.

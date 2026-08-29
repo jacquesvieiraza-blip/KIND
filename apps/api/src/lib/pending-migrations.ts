@@ -2924,6 +2924,75 @@ COMMENT ON COLUMN public.leads.provider_eviction_required_at IS
   'BUILD-003 item 6: this person is suppressed AND was already inside a provider that sends from its own copy. Raised automatically on suppression; cleared only when an operator confirms removal. A raised blocker means delivery may still be happening — it records the risk, it does not close it.';
 `.trim(),
   },
+  {
+    key: '20260829_delivery_rls',
+    title: 'delivery RLS — the four figsy client policies narrow from ALL to SELECT, and the browser loses its unscoped read/write on the global blocklist (R2 closed)',
+    sql: `
+-- ── DELIVERY RLS — canonical copy: supabase/migrations/20260829_delivery_rls.sql
+--
+-- ⛓️ RELEASED 29 Aug AFTER R2 CLOSED. This entry did not exist while the migration was held.
+-- Vida applies ALL pending migrations in one action, so the hold could only ever be the
+-- ABSENCE of this entry — not a note in a PR body or an instruction remembered on the day.
+--
+-- ✅ THE RELEASE CONDITION, AND IT WAS MET. The five policy names dropped below were read off
+-- pg_policies in production by the founder IMMEDIATELY before this entry was added. That is
+-- the whole reason for the hold: a DROP naming a policy that does not exist is a silent no-op,
+-- the CREATE that follows then ADDS beside whatever was already there, and PostgreSQL ORs
+-- permissive policies — so a stale name does not fail, it WIDENS access while the migration
+-- claims to narrow it. Narrowing is only possible via a DROP that actually bites.
+--
+-- WHAT THIS DOES:
+--   · figsy_campaigns / _enrollments / _replies / _sent_emails — the client policy goes from
+--     FOR ALL to FOR SELECT. These are delivery RECORDS: what we sent, who replied, what a
+--     campaign did. FOR ALL let a signed-in client UPDATE and DELETE the evidence behind their
+--     own invoice and the outcome numbers the commercial model is judged on. No product
+--     feature ever used that write access; it was granted by default, not by decision.
+--   · opt_out_blocklist — blocklist_read and blocklist_write are REMOVED WITH NO REPLACEMENT.
+--     Both lacked a tenant predicate on a table that HAS blocked_by_client_id, so any signed-in
+--     client could read EVERY suppressed address on the platform and INSERT arbitrary ones.
+--     Suppression is globally effective across every send path, so that insert let a client
+--     silence anyone they chose and have it look like ordinary use.
+--
+-- ⚠️ NO REPLACEMENT SELECT POLICY IS A DECISION, NOT AN OVERSIGHT. apps/portal/src contains
+-- ZERO references to opt_out_blocklist — no live customer path reads it. RLS on with no policy
+-- IS the deny for authenticated; the service role bypasses it and every send gate reads the
+-- whole table exactly as before. A client-facing suppression view, if ever wanted, returns as
+-- a controlled API surface — never as direct table access.
+--
+-- ⚠️ NOT TOUCHED, BY CONSTRUCTION: both service-role bypass policies per figsy table
+-- ("service role bypass campaigns" and its siblings, AND "service_role_bypass"), leads, icps,
+-- lead_pool, sourcing_ledger, and public.current_client_id() — which already exists, already
+-- works, and is already used by leads_own/icps_own. Replacing a function live policies depend
+-- on, to change nothing, is risk bought for nothing.
+--
+-- ⚠️ A PRODUCT RULE. No claim of legal sufficiency, and no PECR compliance asserted.
+--
+-- Safe to re-run: every DROP is IF EXISTS, and the CREATEs restore the same names.
+
+DROP POLICY IF EXISTS "clients see own campaigns"   ON public.figsy_campaigns;
+DROP POLICY IF EXISTS "clients see own enrollments" ON public.figsy_enrollments;
+DROP POLICY IF EXISTS "clients see own replies"     ON public.figsy_replies;
+DROP POLICY IF EXISTS "clients see own sent emails" ON public.figsy_sent_emails;
+
+CREATE POLICY "clients see own campaigns" ON public.figsy_campaigns
+  FOR SELECT TO authenticated USING (client_id = public.current_client_id());
+
+CREATE POLICY "clients see own enrollments" ON public.figsy_enrollments
+  FOR SELECT TO authenticated USING (client_id = public.current_client_id());
+
+CREATE POLICY "clients see own replies" ON public.figsy_replies
+  FOR SELECT TO authenticated USING (client_id = public.current_client_id());
+
+CREATE POLICY "clients see own sent emails" ON public.figsy_sent_emails
+  FOR SELECT TO authenticated USING (client_id = public.current_client_id());
+
+DROP POLICY IF EXISTS "blocklist_read"  ON public.opt_out_blocklist;
+DROP POLICY IF EXISTS "blocklist_write" ON public.opt_out_blocklist;
+-- Defensive: an earlier draft of this migration created "blocklist_own". If any environment
+-- ran that version, remove it too so the end state is the same everywhere.
+DROP POLICY IF EXISTS "blocklist_own"   ON public.opt_out_blocklist;
+`.trim(),
+  },
 ]
 
 // Runs the statements against DATABASE_URL. Uses node-postgres because the Supabase JS

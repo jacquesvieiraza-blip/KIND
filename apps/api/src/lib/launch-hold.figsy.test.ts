@@ -42,6 +42,10 @@ vi.mock('@kind/db', () => ({
       const q: Record<string, unknown> = {
         select() { return q },
         eq() { return q }, is() { return q }, in() { return q },
+        // `not()` added 29 Aug (BUILD-003 PR2): the programme-authority read uses
+        // `.not('status','in',...)` to skip terminal programmes. Without it the chain throws,
+        // the gate fails CLOSED — correctly — and every send here defers for the wrong reason.
+        not() { return q },
         order() { return q }, limit() { return q },
         // Chainable AND awaitable: `figsy_sent_emails` is written as
         // `.insert(row).select('id').single()`, and an insert mock that returns a bare Promise

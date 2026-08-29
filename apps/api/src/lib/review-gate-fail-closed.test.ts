@@ -44,6 +44,12 @@ vi.mock('@kind/db', () => ({
         in() { return q },
         order() { return q },
         limit() { return q },
+        // `not()` added 29 Aug (BUILD-003 PR2): the programme-authority read uses
+        // `.not('status','in',...)` to skip terminal programmes, and it now runs immediately
+        // before this file's C7 gate. Without it the chain throws, programme authority fails
+        // CLOSED — correctly — and the send defers before C7 is ever reached, so this file's
+        // assertions would have been testing the wrong gate.
+        not() { return q },
         insert(row: Record<string, unknown>) {
           if (table === 'figsy_approval_queue') state.queueInserts.push(row)
           return Promise.resolve({ data: null, error: null })

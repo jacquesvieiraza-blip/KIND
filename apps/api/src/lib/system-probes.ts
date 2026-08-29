@@ -320,6 +320,16 @@ const REQUIRED_FUNCTIONS: FunctionProbe[] = [
     migration: '20260711_sourcing_fences',
   },
   {
+    // BUILD-003 PR2 — the atomic batch claim. Probed with a UUID that matches no programme, so
+    // the `FOR UPDATE` locks nothing and the INSERT fails its foreign key without ever creating
+    // a batch. What is being asked is only "does this function exist?" — if it does not,
+    // `openBatch` returns null on every call and programme sourcing silently never starts.
+    name: 'claim_programme_batch',
+    args: { p_programme_id: NO_SUCH_ROW_UUID, p_requested: 0, p_granted: 0 },
+    why: 'the atomic programme batch claim — without it every batch claim fails, programme sourcing never starts, and (if an older read-MAX-then-insert were restored) two workers could open two running batches against one paid ceiling',
+    migration: '20260829_programme_delivery_control',
+  },
+  {
     // BUILD-002 — the reserve/release settle. Probed with a UUID that matches no batch, so
     // the `IF v_prog IS NULL THEN RETURN 0` guard answers without touching any programme.
     name: 'settle_programme_batch',

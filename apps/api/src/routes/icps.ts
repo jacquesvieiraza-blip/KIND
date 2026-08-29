@@ -21,6 +21,8 @@ import { splitPoolAndRemainder, poolWriteAllowed, splitPoolEligible, poolRefusal
 import { toMemoryRecord, rememberAcquiredIdentities, type AcquisitionMemoryRecord, type SuppressionReason } from '../lib/acquisition-memory'
 import { rethrowIfProviderBlocked, isPaidProviderBlocked } from '../lib/paid-provider-guard'
 import { deriveRunStatus, runOutcomeMessage, type RunStatus } from '../lib/run-outcome'
+import { authorityFor, ProgrammeAuthorityError } from '../lib/programme-authority'
+import type { ProgrammeRow } from '../lib/programme'
 import {
   decideCursor, nextCursorState, exhaustedMessage, exhaustedAlertLines,
   type CursorQuery, type StoredCursor,
@@ -567,9 +569,72 @@ export async function runIcpJob(
   // BUILD-002 — the open programme batch for this run, if this is programme sourcing.
   // Settled once the provider returns, which is what releases unused reservation.
   let programmeBatch: { id: string } | null = null
+  // BUILD-003 PR2-E — the programme this invocation draws on.
+  //
+  // ⛓️ 29 Aug — PROGRAMME IDENTITY IS SET AT THE **GATE**, NOT AT THE BATCH.
+  // The first cut set it beside `openBatch`, which is inside the PDL branch — so a
+  // POOL-ONLY programme run (no provider remainder, therefore no batch) left it null and
+  // those leads carried no programme at all, despite being programme delivery.
+  let programmeIdForRun: string | null = null
+  /**
+   * Rows THIS invocation inserted from the PROVIDER. Kept apart from `insertedIds` because
+   * `batch_id` and `programme_id` answer different questions — see the stamp below.
+   */
+  const pdlInsertedIds: string[] = []
   const { data: icp, error: icpErr } = await db
     .from('icps').select('*').eq('id', icpId).eq('client_id', clientId).single()
   if (icpErr || !icp) throw new Error('ICP not found')
+
+  // ══ THE PROGRAMME SOURCING GATE (BUILD-003 PR2) ═══════════════════════════════════════
+  //
+  // ⚠️ IT IS HERE, AND NOT AT THE CALL SITES, ON PURPOSE. Eight paths reach this function —
+  // the Stripe webhook via startWorkForClient, the client's Run button, ICP create, the proof
+  // pass, operator run, operator bulk, admin and partners. `cron.ts:373-377` already wrote
+  // down that "programme authority has to be applied at each entry point, or below both in
+  // runIcpJob", and gating eight entry points individually is the AR8 shape that has already
+  // failed once here: `lookalike/generate` had no fence because it was the caller nobody
+  // remembered. One door, one gate.
+  //
+  // ⚠️ PROOF RUNS ARE EXEMPT, AND THAT IS NOT A LOOPHOLE. A free-proof pass is pre-programme
+  // acquisition: the prospect has no programme, has paid nothing, and the pass was already
+  // claimed atomically by `try_claim_proof_pass` before this call. It is fenced by its own
+  // ledger and its own monthly cap. Running it through programme authority would refuse every
+  // proof for want of a programme that by definition does not exist yet.
+  //
+  // ⚠️ RESOLVED FROM THE ICP ROW, NEVER FROM THE CLIENT — the same rule `try_spend_sourcing`
+  // already follows below. A client may hold one programme and several ICPs, and only the
+  // ICPs actually attached to it draw on its authority.
+  if (!proofMode) {
+    const programmeId = (icp as { programme_id?: string | null }).programme_id ?? null
+    if (programmeId) {
+      const { data: prog, error: progErr } = await db.from('programmes')
+        .select('*').eq('id', programmeId).maybeSingle()
+
+      // 🛑 FAIL CLOSED ON A BROKEN LINK (founder decision, 29 Aug). An ICP that NAMES a
+      // programme we cannot read, or one that belongs to a different client, must never fall
+      // back to the legacy path — that is precisely how programme work would escape every
+      // control in this file while looking like an ordinary legacy run in every log.
+      if (progErr) throw new ProgrammeAuthorityError('programme_unresolvable',
+        `ICP ${icpId} is linked to programme ${programmeId}, which could not be read (${progErr.message}). Nothing was sourced.`)
+      if (!prog) throw new ProgrammeAuthorityError('programme_unresolvable',
+        `ICP ${icpId} names programme ${programmeId}, which does not exist. Nothing was sourced.`)
+      if ((prog as { client_id: string }).client_id !== clientId) throw new ProgrammeAuthorityError('programme_unresolvable',
+        `ICP ${icpId} (client ${clientId}) names a programme owned by another client. Nothing was sourced.`)
+
+      // NEXT_BATCH, not SOURCING: a run IS the opening of a new batch of work, so the review
+      // hold and the remaining ceiling both apply. Payment 2 deliberately does NOT — Payment 1
+      // authorises sourcing and preparation, and demanding the second payment here would make
+      // it impossible to prepare the programme the client is being asked to approve.
+      const verdict = authorityFor(prog as unknown as ProgrammeRow, 'NEXT_BATCH')
+      if (!verdict.allowed) {
+        console.warn(`[icp] sourcing REFUSED for icp ${icpId} / programme ${programmeId}: ${verdict.reason}`)
+        throw new ProgrammeAuthorityError(verdict.reason, verdict.message)
+      }
+      // Authorised: THIS invocation is programme delivery. Recorded here, after validation and
+      // inside `if (!proofMode)`, so a free-proof run can never acquire a programme identity.
+      programmeIdForRun = programmeId
+    }
+  }
 
   // `leads_per_run` is the client's own per-run preference for a SELF-SERVE run — the
   // default when nobody has said how many to fetch. It is NOT a ceiling on an explicit
@@ -1170,6 +1235,12 @@ export async function runIcpJob(
       // paying the client twice for the same shortfall, in the wrong currency of value.
       let programmeSettled = false
       if (programmeBatch) {
+        // ⛓️ THE ATTRIBUTION STAMP USED TO SIT HERE, AND IT MATCHED NOTHING.
+        // It ran at settle time — which is BEFORE the PDL insert loop, because a batch settles
+        // on what the PROVIDER RETURNED, not on what survived dedupe. So the rows it meant to
+        // stamp did not exist yet, and the pool rows that did exist were inserted before its
+        // time window opened. Zero rows, every run, silently. The stamp now runs after every
+        // insert and keys on the exact ids this invocation created — see below.
         const { settleBatch } = await import('../lib/programme')
         const r = await settleBatch(programmeBatch.id, returnedCount)
         programmeSettled = true
@@ -1178,6 +1249,22 @@ export async function runIcpJob(
           // and alerted — the client's entitlement is reserved but recoverable, and there is
           // a row to find it by. Never swallowed.
           console.error(`[icp] PROGRAMME batch ${programmeBatch.id} could not be settled — marked stranded; ${grantedSize - returnedCount} record(s) stay reserved until reconciled.`)
+        }
+
+        // ══ THE REVIEW TRIGGER (BUILD-003 PR2-D) ══════════════════════════════════════
+        //
+        // Checked HERE because settling is the only moment `sourced_used` moves — so this is
+        // the first instant the benchmark can have been crossed, and checking anywhere else
+        // would either miss it or re-ask on every unrelated request.
+        //
+        // ⚠️ IT HOLDS THE NEXT BATCH AND NOTHING ELSE. No meeting is created, no refund is
+        // computed, no status changes, and delivery already in flight is untouched. Awaited
+        // rather than fired-and-forgotten: a hold that lost a race with the next run would be
+        // a hold that did not hold.
+        if (programmeIdForRun) {
+          const { raiseReviewIfNeeded } = await import('../lib/programme-authority')
+          await raiseReviewIfNeeded(programmeIdForRun).catch(e =>
+            console.error(`[icp] review-trigger check failed for programme ${programmeIdForRun}:`, e))
         }
       }
 
@@ -1421,6 +1508,8 @@ export async function runIcpJob(
           pdlKept++
           inserted++
           insertedIds.push(newLead.id)
+          // The exact provider row, recorded at the moment it exists. No window, no inference.
+          pdlInsertedIds.push(newLead.id)
           const en = normalizeRevealEmail(contact.email)
           if (en) poolUpserts.push({
             email_norm:       en,
@@ -1555,6 +1644,62 @@ export async function runIcpJob(
   // current balance. Any remainder stays undelivered for the daily drip. The
   // atomic `.is('delivered_at', null)` claim inside keeps it idempotent (no
   // double-charge with the drip).
+  // ══ DELIVERY ATTRIBUTION (BUILD-003 PR2-E) — EXACT ROW IDS, NOTHING INFERRED ═══════════
+  //
+  // Placed HERE because every insert this invocation performs is now complete: the pool serve
+  // (pushed into `insertedIds` above) and the provider loop (pushed into both lists). Nothing
+  // below inserts a lead.
+  //
+  // ⛓️ THE VERSION THIS REPLACES MATCHED ZERO ROWS. It ran inside the settle block, which
+  // executes BEFORE the provider insert loop — a batch settles on what the PROVIDER RETURNED,
+  // not on what survived dedupe — and it selected rows by `icp_id` plus a `created_at >=
+  // batchOpenedAt` window. At that moment the provider rows did not exist and the pool rows
+  // predated the window. It never stamped anything, and null columns look deliberate.
+  //
+  // 🛑 AND THE WINDOW WAS UNSAFE EVEN WITH THE ORDER FIXED. Nothing serialises two runs on one
+  // ICP — no advisory lock, no run claim — and a FREE PROOF run is deliberately exempt from
+  // programme authority while inserting through this same loop with the same `icp_id`. Its
+  // rows would have been swept into the paid batch by any overlapping window. Exact ids remove
+  // the question: a run can only stamp rows it created itself.
+  //
+  // ⚠️ TWO COLUMNS, TWO DIFFERENT QUESTIONS — and this is why they are stamped separately:
+  //
+  //   programme_id  "which programme execution produced or served this lead?"
+  //                 → EVERY row this invocation inserted, pool copies included. A pool lead
+  //                   delivered by a programme run IS programme delivery.
+  //
+  //   batch_id      "which batch's reserved PROVIDER volume bought this lead?"
+  //                 → provider rows only. BUILD-002 accounts a batch in provider volume:
+  //                   `requested`/`granted` are what was reserved and `settleBatch` converts
+  //                   what the provider returned. A pool copy cost the batch nothing, so
+  //                   stamping it would make `count(leads where batch_id = X)` disagree with
+  //                   `programme_batches.delivered` for X — a number that reads as truth and
+  //                   is not. Pool rows keep batch_id NULL, and that null is accurate.
+  //
+  // ⚠️ FREE PROOF CANNOT BE STAMPED AT ALL: `programmeIdForRun` is set only inside the
+  // `if (!proofMode)` gate above, so a proof run reaches here with it null and both writes are
+  // skipped. Legacy/non-programme runs are null for the same reason. Historical rows are never
+  // touched — this only names ids created seconds ago by this call.
+  //
+  // ⚠️ A FAILED STAMP DOES NOT FAIL THE RUN. The people are real, bought and delivered; losing
+  // provenance is a reporting gap, not a reason to discard sourcing the client paid for.
+  if (programmeIdForRun && insertedIds.length > 0) {
+    const { error: progErr2 } = await db.from('leads')
+      .update({ programme_id: programmeIdForRun })
+      .in('id', insertedIds)
+    if (progErr2) {
+      console.error(`[icp] PROGRAMME attribution NOT stamped on ${insertedIds.length} lead(s) for programme ${programmeIdForRun}: ${progErr2.message}. The leads are delivered; their programme provenance is missing and cannot be reconstructed later.`)
+    }
+    if (programmeBatch && pdlInsertedIds.length > 0) {
+      const { error: batchErr } = await db.from('leads')
+        .update({ batch_id: programmeBatch.id })
+        .in('id', pdlInsertedIds)
+      if (batchErr) {
+        console.error(`[icp] BATCH attribution NOT stamped on ${pdlInsertedIds.length} provider lead(s) for batch ${programmeBatch.id}: ${batchErr.message}.`)
+      }
+    }
+  }
+
   // ── ⚑ 24 Aug — FREE PROOF NEVER ENTERS THE PAID DELIVERY PATH (founder-ruled) ────────
   //
   // ⚠️ THIS GUARD IS THE WHOLE FIX, AND ITS ABSENCE WAS A LIVE DEFECT. This block read

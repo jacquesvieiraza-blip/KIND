@@ -2993,6 +2993,132 @@ DROP POLICY IF EXISTS "blocklist_write" ON public.opt_out_blocklist;
 DROP POLICY IF EXISTS "blocklist_own"   ON public.opt_out_blocklist;
 `.trim(),
   },
+  {
+    key: '20260829_programme_delivery_control',
+    title: 'BUILD-003 PR2 — atomic programme batch claim (at most ONE running batch per programme) + the review hold. Additive; no existing row is written.',
+    sql: `
+-- ── PROGRAMME DELIVERY CONTROL — canonical copy:
+--    supabase/migrations/20260829_programme_delivery_control.sql
+--
+-- THE RACE. (programme_id, seq) is ALREADY unique (programme_batches_seq_uidx, added by
+-- 20260828_programme_money_engine). That makes a double-INSERT impossible and closes nothing
+-- that matters: openBatch reads MAX(seq), adds one, inserts. Two workers racing leave one
+-- winner and one unique violation, openBatch returns null, and a caller that RETRIES then
+-- reads the new max and inserts successfully -- TWO batches in status 'running' on one
+-- programme, each holding its own reservation against the client's paid ceiling. No unique
+-- key on (programme_id, seq) could ever have stopped that: the second batch has a legitimately
+-- different seq. So the constraint that matters is ONE RUNNING BATCH PER PROGRAMME, enforced
+-- by the database rather than by a check-then-act in application code -- check-then-act is
+-- the bug.
+--
+-- State names are read off programme_batches_status_check (running/served/released/stranded).
+-- 'running' is the only open state. Nothing is invented.
+--
+-- REVIEW IS NOT PAUSE. Four nullable columns, no second state machine. Pause is the hard stop;
+-- review holds the NEXT NEW BATCH only, so an in-flight sequence finishes its story and
+-- replies and meetings keep ingesting. 250 leads per targeted meeting is a PLANNING BENCHMARK
+-- (R77), not a guarantee: nothing here stores money, promises a refund or creates a meeting.
+-- public.meetings remains the sole meeting truth.
+--
+-- Additive and idempotent. No statement writes, deletes or rewrites an existing row.
+--
+-- RUNTIME NOTE: the partial unique index is built against live data and FAILS (rolling the
+-- migration back) if a programme already has two running batches. That is the correct
+-- outcome -- it would mean the race already happened and needs a human. Repo evidence says it
+-- cannot have: the programme tables are inert until a programme row exists and no real
+-- customer payment has been taken.
+
+CREATE UNIQUE INDEX IF NOT EXISTS programme_batches_one_running_uidx
+  ON public.programme_batches (programme_id)
+  WHERE status = 'running';
+
+ALTER TABLE public.programmes
+  ADD COLUMN IF NOT EXISTS review_required_at timestamptz,
+  ADD COLUMN IF NOT EXISTS review_reason      text,
+  ADD COLUMN IF NOT EXISTS review_resolved_at timestamptz,
+  ADD COLUMN IF NOT EXISTS review_resolution  text;
+
+COMMENT ON COLUMN public.programmes.review_required_at IS
+  'BUILD-003 PR2. Set when the programme reached the R77 planning benchmark (250 delivered leads per targeted meeting) with no live booked meeting. Holds the NEXT NEW BATCH only — it is NOT a pause: in-flight sequence steps finish, replies and meetings keep ingesting. A planning benchmark is not a guarantee: this column promises no meeting, no refund and no credit.';
+COMMENT ON COLUMN public.programmes.review_resolved_at IS
+  'Set when a human resolved the review. Only an explicit operator decision clears the hold — nothing on a clock, and no background job.';
+
+CREATE INDEX IF NOT EXISTS programmes_review_open_idx
+  ON public.programmes (review_required_at)
+  WHERE review_required_at IS NOT NULL AND review_resolved_at IS NULL;
+
+CREATE OR REPLACE FUNCTION public.claim_programme_batch(
+  p_programme_id uuid,
+  p_requested    int,
+  p_granted      int
+) RETURNS public.programme_batches
+LANGUAGE plpgsql
+AS $$
+DECLARE
+  v_existing public.programme_batches;
+  v_next_seq int;
+  v_row      public.programme_batches;
+BEGIN
+  -- PERFORM ... FOR UPDATE on the programme row is the serialiser: two callers arriving
+  -- together are ordered by that lock, so the second one's SELECT runs after the first one's
+  -- INSERT is visible to it. That is what makes "reuse the existing batch" true rather than
+  -- hopeful. Without it both SELECTs could find nothing, both INSERT, and the partial unique
+  -- index would reject one -- safe, but not idempotent.
+  PERFORM 1 FROM public.programmes WHERE id = p_programme_id FOR UPDATE;
+
+  SELECT * INTO v_existing
+  FROM public.programme_batches
+  WHERE programme_id = p_programme_id AND status = 'running'
+  LIMIT 1;
+
+  IF FOUND THEN
+    RETURN v_existing;
+  END IF;
+
+  SELECT COALESCE(MAX(seq), 0) + 1 INTO v_next_seq
+  FROM public.programme_batches
+  WHERE programme_id = p_programme_id;
+
+  INSERT INTO public.programme_batches (programme_id, seq, requested, granted, status)
+  VALUES (p_programme_id, v_next_seq, p_requested, p_granted, 'running')
+  RETURNING * INTO v_row;
+
+  RETURN v_row;
+END;
+$$;
+
+COMMENT ON FUNCTION public.claim_programme_batch(uuid, int, int) IS
+  'BUILD-003 PR2. Atomically claim the programme''s open batch: returns the one already running, or creates exactly one. Serialised by FOR UPDATE on the programme row, and backstopped by programme_batches_one_running_uidx. Replaces a read-MAX-then-insert in openBatch whose loser could retry into a SECOND running batch, each holding its own reservation against the client''s paid ceiling.';
+
+-- ── 4 · ATTRIBUTION AT ITS SOURCE: leads.programme_id / leads.batch_id ─────────────────
+--
+-- ⚠️ WITHOUT THIS THE ATTRIBUTION CHAIN HAS NO BEGINNING. PR 1 added programme_id and batch_id
+-- to figsy_enrollments and nothing wrote them, because there was nowhere to read them FROM:
+-- leads records who we bought and never which programme or batch bought them. Resolving an
+-- enrollment's programme from "whatever the client's programme is today" would silently
+-- re-attribute a lead sourced under batch 1 to batch 7, which is worse than null.
+--
+-- So the person carries their own provenance, stamped by the sourcing run that paid for them,
+-- and the enrollment copies it from the lead.
+--
+-- ⚠️ NULLABLE AND NEVER BACKFILLED. Every lead sourced before today has no batch, and that is
+-- the honest answer — inventing one would manufacture certainty we do not have. Legacy
+-- non-programme leads stay null permanently, because they belong to no programme.
+--
+-- ON DELETE SET NULL, not CASCADE: deleting a programme must never delete the people.
+
+ALTER TABLE public.leads
+  ADD COLUMN IF NOT EXISTS programme_id uuid REFERENCES public.programmes(id)       ON DELETE SET NULL,
+  ADD COLUMN IF NOT EXISTS batch_id     uuid REFERENCES public.programme_batches(id) ON DELETE SET NULL;
+
+COMMENT ON COLUMN public.leads.programme_id IS
+  'BUILD-003 PR2. The programme whose authority paid to source this person. NULL for legacy/non-programme leads and for everyone sourced before attribution existed — never backfilled, because a guessed batch is worse than an honest null.';
+
+CREATE INDEX IF NOT EXISTS leads_programme_idx ON public.leads (programme_id) WHERE programme_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS leads_batch_idx     ON public.leads (batch_id)     WHERE batch_id IS NOT NULL;
+
+`.trim(),
+  },
 ]
 
 // Runs the statements against DATABASE_URL. Uses node-postgres because the Supabase JS

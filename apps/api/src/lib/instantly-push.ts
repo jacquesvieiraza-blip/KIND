@@ -61,6 +61,22 @@ export async function pushApprovedLeadToInstantly(leadId: string, clientId: stri
   })
   if (!gate.ok) return { pushed: false, reason: gate.reason, detail: gate.detail }
 
+  // ══ THE PROGRAMME OUTREACH GATE (BUILD-003 PR2) ═══════════════════════════════════════
+  //
+  // Instantly is dormant today (INSTANTLY_API_KEY unset) — which is exactly why the gate goes
+  // in NOW rather than on the day somebody sets that key. Like Smartlead, Instantly keeps its
+  // own copy of the lead and sends from it, so a push made while a programme is paused cannot
+  // be recalled by pausing anything here afterwards.
+  //
+  // Placed AFTER the config gate so a dormant install does no database work, and BEFORE the
+  // suppression check so an unauthorised programme is refused before we look anyone up.
+  const { checkProgrammeAuthority } = await import('./programme-authority')
+  const programmeVerdict = await checkProgrammeAuthority(clientId, 'OUTREACH')
+  if (!programmeVerdict.allowed) {
+    console.warn(`[instantly] push REFUSED for lead ${leadId} — programme authority (${programmeVerdict.reason}).`)
+    return { pushed: false, reason: 'programme_not_authorised', detail: programmeVerdict.message }
+  }
+
   // ── SUPPRESSION (BUILD-003 item 6) ────────────────────────────────────────────────────
   // ⚠️ THIS PATH HAD NO SUPPRESSION CHECK AT ALL — not the do-not-contact floor, not the
   // opt-out blocklist. It is dormant today (INSTANTLY_API_KEY is unset), which is exactly

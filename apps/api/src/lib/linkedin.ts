@@ -72,7 +72,30 @@ export async function dispatchLinkedInStep(queueId: string): Promise<{ sent: boo
   // request, on a channel where the approach is more personal, not less. The shared gate
   // asks both, and it is global: it does not matter which client is asking.
   const { data: liLead } = await db.from('leads')
-    .select('email, company, linkedin_url').eq('id', step.lead_id).maybeSingle()
+    .select('email, company, linkedin_url, client_id').eq('id', step.lead_id).maybeSingle()
+
+  // ══ THE PROGRAMME OUTREACH GATE (BUILD-003 PR2) ═══════════════════════════════════════
+  //
+  // ⚠️ LINKEDIN IS PROGRAMME DELIVERY, not a side channel. A connection request to a prospect
+  // is a touch on the client's behalf, and a paused programme that keeps sending them is
+  // exactly the "forgotten path" leak the pause is supposed to prevent — more visible, not
+  // less, because the approach is personal.
+  //
+  // Read from the LEAD's client rather than a queue column, because `figsy_linkedin_queue`
+  // does not carry one; the lead is the only place the tenant is recorded on this path.
+  const liClientId = (liLead as { client_id?: string | null } | null)?.client_id ?? null
+  if (liClientId) {
+    const { checkProgrammeAuthority } = await import('./programme-authority')
+    const prog = await checkProgrammeAuthority(liClientId, 'OUTREACH')
+    if (!prog.allowed) {
+      console.warn(`[linkedin] dispatch REFUSED — programme authority (${prog.reason}) for lead ${step.lead_id}`)
+      // Left PENDING, not failed: a pause is temporary and a resumed programme must be able to
+      // pick this step up. Marking it `failed` — as the suppression branch below correctly
+      // does, because suppression is permanent — would discard the step for good.
+      return { sent: false, method: 'manual' }
+    }
+  }
+
   const verdict = await checkSendAllowed({
     email:    liLead?.email ?? null,
     company:  liLead?.company ?? null,

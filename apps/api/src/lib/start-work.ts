@@ -111,34 +111,25 @@ export async function ensureCampaignForIcp(
   // we refuse rather than activate: the cost of a wrong refusal is a delayed campaign, and
   // the cost of a wrong activation is sending on a programme that has not been paid for.
   if (activate) {
-    const { data: prog, error: progErr } = await db.from('programmes')
-      .select('id, status, second_paid_at, paused_at')
-      .eq('client_id', clientId)
-      .not('status', 'in', '(COMPLETED,CANCELLED)')
-      .limit(1).maybeSingle()
-
-    if (progErr) {
-      console.error(`[start-work] could not read programme state for client ${clientId} — refusing to activate (fail closed):`, progErr)
-      return { refused: {
-        reason: 'programme_state_unreadable',
-        message: 'K.I.N.D could not confirm this client\'s programme state, so nothing was activated. Nothing was sent.',
-      } }
-    }
-
-    if (prog) {
-      const p = prog as { id: string; status: string; second_paid_at: string | null; paused_at: string | null }
-      if (p.paused_at) {
-        return { refused: {
-          reason: 'programme_paused',
-          message: 'This client\'s programme is paused, so no campaign was activated. Pause stops sourcing AND sending.',
-        } }
-      }
-      if (!p.second_paid_at || p.status !== 'LIVE') {
-        return { refused: {
-          reason: 'programme_not_live',
-          message: `This client is on a programme that is ${p.status} and has not completed its second payment, so no campaign was activated. A programme campaign starts only at Go Live.`,
-        } }
-      }
+    // ⛓️ 29 Aug (BUILD-003 PR2) — THIS BLOCK USED TO RE-IMPLEMENT THE RULE INLINE, and it was
+    // the second copy of a decision `programme.ts` already exported as `mayStartCampaign` and
+    // nothing consumed. Two copies of one rule, in two shapes, with two different sentences
+    // for the client — which is exactly the drift the founder's "do not scatter slightly
+    // different gate logic through multiple routes" forbids.
+    //
+    // It now calls the ONE module. Behaviour is preserved and slightly tightened: the old copy
+    // never checked `approved_at`, so a programme that reached LIVE and was paid for without an
+    // approval row would have activated a campaign. "One programme approval" is a founder lock.
+    const { checkProgrammeAuthority } = await import('./programme-authority')
+    const verdict = await checkProgrammeAuthority(clientId, 'OUTREACH')
+    if (!verdict.allowed) {
+      // Mapped onto this function's existing refusal vocabulary so every caller's branching
+      // keeps working. `programme_unresolvable` lands on the fail-closed reason it always had.
+      const reason =
+        verdict.reason === 'programme_paused' ? 'programme_paused' as const
+        : verdict.reason === 'programme_unresolvable' ? 'programme_state_unreadable' as const
+        : 'programme_not_live' as const
+      return { refused: { reason, message: verdict.message } }
     }
   }
 

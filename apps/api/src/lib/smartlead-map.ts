@@ -29,6 +29,10 @@ export type SmartleadRefusal =
   | 'is_house_client'
   | 'no_smartlead_inbox'
   | 'no_email'
+  // BUILD-003 PR2 — the programme is paused, terminal, unapproved, unpaid for Go Live, or its
+  // link could not be resolved. A refusal here is the LAST gate before Smartlead takes its own
+  // copy of the lead and sends from it on its own schedule, beyond our reach.
+  | 'programme_not_authorised'
   // ── HC-3, 20 Aug — THE FOUR SUPPRESSION GATES THIS PATH NEVER HAD ────────────────────────
   //
   // ⚠️ READ THIS BEFORE TOUCHING ANY OF THEM. Smartlead is the R25 month-one send path for
@@ -167,6 +171,7 @@ export function smartleadRefusalLabel(r: SmartleadRefusal): string {
     case 'do_not_contact':      return 'on the do-not-contact list'
     case 'pecr_individual_risk':return 'UK individual-subscriber risk (PECR)'
     case 'launch_hold':         return 'outside the launch countries'
+    case 'programme_not_authorised': return 'the programme does not authorise outreach (paused, terminal, unapproved, or Go-Live payment outstanding)'
   }
 }
 

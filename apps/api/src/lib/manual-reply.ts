@@ -53,6 +53,25 @@ export async function sendManualReply(
   // RESEND_API_KEY; it now sends over SMTP through the client's own mailbox, so the
   // credential that matters is the mailbox's, checked by `resolveSendingInbox` below.
 
+  // ══ PROGRAMME PAUSE REACHES REPLIES TOO (BUILD-003 PR2) ═══════════════════════════════
+  //
+  // ⚠️ THIS IS THE **REPLY** RULE, NOT THE OUTREACH RULE, AND THE DIFFERENCE IS DELIBERATE.
+  // A manual reply is CONVERSATION: it can only exist because outreach we were already
+  // authorised to send arrived and a person answered it. Gating it on approval and Payment 2
+  // would mean a prospect who wrote to us during preparation gets silence — the worst possible
+  // outcome of a gate meant to protect them. So `mayReplyToProspect` forgives the money and
+  // approval refusals.
+  //
+  // 🛑 PAUSE AND TERMINAL STILL BITE. Pause is the hard stop — no new programme sends through
+  // any supported path — and a paused programme must not be quietly emailing prospects because
+  // the message happens to be a reply.
+  const { checkReplyAuthority } = await import('./programme-authority')
+  const replyAuthority = await checkReplyAuthority(clientId)
+  if (!replyAuthority.allowed) {
+    console.warn(`[manual-reply] REFUSED for client ${clientId} — ${replyAuthority.reason}`)
+    return { ok: false, status: 409, error: replyAuthority.message }
+  }
+
   // #453 — a demo client must never email a real person.
   if (await isDemoClient(clientId)) {
     console.log(`[demo] prospect send suppressed for client ${clientId} — manual reply to ${reply.from_email} NOT sent (demo).`)

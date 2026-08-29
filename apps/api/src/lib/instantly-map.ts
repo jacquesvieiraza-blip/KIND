@@ -25,6 +25,10 @@ export type PushRefusal =
   | 'is_demo'
   | 'not_house_client'
   | 'no_email'
+  // BUILD-003 PR2 — the programme is paused, terminal, unapproved, unpaid for Go Live, or its
+  // link could not be resolved. Instantly keeps its own copy of the lead, so this is the last
+  // gate that can stop a send once the push has happened.
+  | 'programme_not_authorised'
   // BUILD-003 item 6 — this path had NO suppression check at all until 29 Aug. These two
   // are refused by the shared send gate, not by canPushToInstantly, because the gate reads
   // the database and this function is deliberately pure.
@@ -87,6 +91,7 @@ export function refusalLabel(r: PushRefusal): string {
     case 'no_email':         return 'lead has no email address'
     case 'do_not_contact':   return 'on the do-not-contact list — never contacted on any channel'
     case 'opted_out':        return 'this person opted out — suppression is global across K.I.N.D'
+    case 'programme_not_authorised': return 'the programme does not authorise outreach (paused, terminal, unapproved, or Go-Live payment outstanding)'
   }
 }
 

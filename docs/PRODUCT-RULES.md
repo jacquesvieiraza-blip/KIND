@@ -414,6 +414,30 @@ and my next steps.
 
 ---
 
+## 18 · THE OPERATING AUTHORITY — GitHub holds the live item record *(29 Aug, captured same-session, ritual 4b)*
+
+> The founder ruled that actionable work stops living in Markdown status pages and lives in GitHub. This section records that one authority change and nothing else.
+
+| # | Rule | The founder's words | Source | Enforced by |
+|---|---|---|---|---|
+| **R85** | 🧭 **GITHUB HOLDS THE LIVE ITEM RECORD — THE REPO STILL HOLDS CANONICAL TRUTH.** | *"GitHub becomes the live status/inventory for ITEMS."* · *"Canonical assets remain real repository files."* | Founder ruling, 29 Aug | The K.I.N.D GitHub Project + `kind-inventory` issues |
+
+**R85, in full:**
+
+1. **K.I.N.D has two operating layers: Company Brain and Product System.**
+2. **Canonical assets remain real repository files and artifacts.** They are sources of truth, **not tasks**.
+3. **A required change to a canonical asset becomes a GitHub item linked to that asset** — the asset is never converted into a task.
+4. **GitHub Issues are the live records for actionable items.**
+5. **The K.I.N.D GitHub Project is the live operating/status surface** for those items.
+6. **An item may belong to Company Brain, Product System, or Both.**
+7. **Legacy backlog/status sources — including `PRODUCT-INVENTORY.md`, `V2-TRACKER.md`, `LAUNCH-PAD.md` and the roadmaps — are preserved as evidence and history once retired, and must not continue as competing live status systems.**
+8. ⚠️ **They are NOT retired yet.** Retirement requires the GitHub Project to exist.
+9. **Conflicts become Review/Reconcile items. Unknown remains unknown. Historical evidence is preserved.**
+
+⛓️ **This amends, and does not delete, the earlier single-status rule.** `CLAUDE.md`'s *"STATUS lives only in PRODUCT-INVENTORY"* and Protocol rule 22 (*no new current-truth surface without an explicit rule change*) were written before this ruling and stand as history; **R85 is the explicit rule change they required.** Chained per R82, latest wins.
+
+---
+
 ## Open — the founder has not ruled on these
 
 Written down rather than assumed, per P9.

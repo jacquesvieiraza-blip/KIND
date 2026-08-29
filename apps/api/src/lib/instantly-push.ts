@@ -77,6 +77,15 @@ export async function pushApprovedLeadToInstantly(leadId: string, clientId: stri
     isDemo:  (client as { is_demo?: boolean } | null)?.is_demo === true,
   })
   if (!verdict.allowed) {
+    // ⚠️ REFUSING ENTRY IS NOT THE SAME AS PREVENTING RETENTION. If this lead is already
+    // inside a provider — pushed before they became suppressed — the refusal here changes
+    // nothing for them: that engine keeps its own copy and keeps sending. Raise the operator
+    // blocker so a suppressed person already in a campaign is COUNTED rather than assumed
+    // handled by the fact that we just said no.
+    if (leadRow?.email) {
+      const { raiseProviderEviction } = await import('./provider-eviction')
+      await raiseProviderEviction(leadRow.email, `instantly_push_refused:${verdict.reason}`)
+    }
     return { pushed: false, reason: verdict.reason === 'do_not_contact' ? 'do_not_contact' : 'opted_out',
       detail: `${verdict.message} Refused before the push: Instantly sends from its own copy of the lead, so this is the last gate before a real person.` }
   }

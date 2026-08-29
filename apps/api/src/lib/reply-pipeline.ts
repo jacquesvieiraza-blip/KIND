@@ -55,6 +55,20 @@ export type ReplyContext = {
    */
   bodyFetchAttempted?: boolean
   bodyFetchFailure?: string | null
+  /**
+   * The provider event key this webhook already deduped on — `replyEventKey`'s output:
+   * provider message id, else the transport's delivery id, else null, namespaced by provider.
+   *
+   * ⚠️ THE KEY, NOT THE RAW DELIVERY ID, AND THAT IS THE POINT. The route computes it once
+   * and hands it over, so the database's partial unique index protects EXACTLY the value
+   * `isDuplicateWebhookEvent` compared. Recomputing it here from parts would create two
+   * places that decide what "the same reply" means, which is the drift this build keeps
+   * removing rather than adding.
+   *
+   * null when no provider event exists at all — an operator's typed reply, demo seeding.
+   * That is the deliberate fail-open case; see 20260829_reply_idempotency.sql.
+   */
+  eventKey?: string | null
 }
 
 export type ReplyResult =
@@ -166,6 +180,14 @@ export async function processInboundReply(
     classification,
     classification_reasoning:    reasoning,
     raw_payload:                 ctx.rawPayload,
+    // ── IDEMPOTENCY BACKSTOP (BUILD-003 item 7) ───────────────────────────────────────
+    // The same key the application already reasons about: provider message id, else the
+    // transport's delivery id, else NULL — namespaced by provider so two vendors' counters
+    // cannot collide. A partial unique index on this column makes a redelivered webhook lose
+    // at COMMIT, which is the only place it can be caught: application dedupe protects the
+    // insert sites its author remembered, and there are three of them.
+    // ⚠️ NULL stays deliberately fail-open — see 20260829_reply_idempotency.sql.
+    provider_event_key:          ctx.eventKey ?? null,
     processed_at:                new Date().toISOString(),
     received_at:                 new Date().toISOString(),
   }).select('id').single()

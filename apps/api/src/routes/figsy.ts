@@ -130,6 +130,12 @@ async function recordUnsubscribe(email: string): Promise<void> {
   const { alertSmartleadStillSending } = await import('../lib/smartlead-send')
   await alertSmartleadStillSending(addr, 'list_unsubscribe')
 
+  // Both suppression doors raise the blocker, not just one. An opt-out that is tracked on
+  // reply-STOP and untracked on one-click unsubscribe is a hole shaped exactly like the
+  // door people actually use.
+  const { raiseProviderEviction } = await import('../lib/provider-eviction')
+  await raiseProviderEviction(addr, 'list_unsubscribe')
+
   void logOutcomeEvent({
     client_id: null, campaign_id: null, lead_id: null, enrollment_id: null,
     event_type: 'opt_out', channel: 'email',
@@ -352,6 +358,9 @@ figsyRouter.post('/replies/inbound', async (req, res) => {
       // FETCH rather than an empty reply — and the alert has to be able to say which.
       bodyFetchAttempted: fetchAttempted,
       bodyFetchFailure: fetchFailure,
+      // BUILD-003 item 7 — the exact key this route deduped on, so the database's unique
+      // index protects the same identity rather than a second opinion about it.
+      eventKey: dedupKey,
     })
     if (!result.ok) { res.status(200).json({ received: true, dropped: result.dropped }); return }
     res.status(200).json({ received: true, id: result.replyId, clients: result.clients })
@@ -435,7 +444,9 @@ figsyRouter.post('/replies/smartlead', unsubscribeLimiter, async (req, res) => {
 
     // Smartlead delivers the body inline, so there is no fetch to diagnose — the Resend-only
     // body-fetch fields stay at their defaults.
-    const result = await processInboundReply(inbound, { rawPayload: raw })
+    // BUILD-003 item 7 — the exact key this route deduped on, passed through so the database
+    // backstop protects the same identity the application reasons about.
+    const result = await processInboundReply(inbound, { rawPayload: raw, eventKey: dedupKey })
     if (!result.ok) { res.status(200).json({ received: true, dropped: result.dropped }); return }
     res.status(200).json({ received: true, id: result.replyId, clients: result.clients })
   } catch (err) {
@@ -2309,6 +2320,10 @@ figsyRouter.post('/replies/seed-demo', async (req: AuthRequest, res) => {
     const jobTitle  = lead?.job_title ?? 'CEO'
     const company   = lead?.company ?? 'Acme Corp'
 
+    // ⚠️ NO provider_event_key, DELIBERATELY. This is demo seeding: it fabricates a reply
+    // that no provider ever delivered, so there is no message id and no delivery id to key
+    // on. That is exactly the fail-open case the partial unique index is built for — see
+    // 20260829_reply_idempotency.sql.
     const { data: reply, error } = await db.from('figsy_replies').insert({
       campaign_id:              campaign?.id ?? null,
       lead_id:                  lead?.id ?? null,

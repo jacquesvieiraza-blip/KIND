@@ -111,6 +111,10 @@ export async function sendManualReply(
 
   // Recorded against the mailbox it actually left from — the bare address, not the display
   // header, so this column keeps matching `client_inboxes.email`.
+  // ⚠️ NO provider_event_key, DELIBERATELY. This row is an OPERATOR'S OUTBOUND reply
+  // (classification 'sent_reply'), not an inbound provider event — there is no provider
+  // message id and no delivery id, because no provider delivered anything to us. Keying it
+  // on something synthetic would be inventing an identity to satisfy a column.
   await db.from('figsy_replies').insert({
     client_id: clientId, from_email: resolved.inbox.email, subject: reSubject, body: replyBody,
     classification: 'sent_reply', processed_at: new Date().toISOString(), lead_id: reply.lead_id,

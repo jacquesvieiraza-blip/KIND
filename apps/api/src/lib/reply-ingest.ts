@@ -169,6 +169,16 @@ export async function suppressOptOut(
   const { alertSmartleadStillSending } = await import('./smartlead-send')
   await alertSmartleadStillSending(email, reason)
 
+  // ── THE BLOCKER (BUILD-003 item 6 completion) ────────────────────────────────────────
+  // The alert above pages the founder. It stops no delivery, and an EMAIL IS NOT A TRACKED
+  // BLOCKER: if it fails, lands in spam, or is simply missed, nothing anywhere records that
+  // a suppressed person is still sitting in a live Smartlead campaign. This persists it, so
+  // the risk is countable and stays raised until a human confirms the removal.
+  // ⚠️ It does not CLOSE the risk — no confirmable remove endpoint exists (403 from here,
+  // founder-ruled 20 Aug "yes alert not api"). It makes the risk visible.
+  const { raiseProviderEviction } = await import('./provider-eviction')
+  await raiseProviderEviction(email, reason)
+
   if (failures.length > 0) {
     await sendFounderAlert('support_escalation',
       `🛑 OPT-OUT NOT FULLY APPLIED — ${email}`, [

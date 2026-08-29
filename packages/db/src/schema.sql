@@ -238,6 +238,24 @@ create index if not exists order_forms_client_id_idx on public.order_forms(clien
 create index if not exists order_forms_status_idx    on public.order_forms(status);
 
 -- ─────────────────────────────────────────────
+-- PROVIDER-EVICTION BLOCKER  (BUILD-003 item 6, 29 Aug)
+-- ─────────────────────────────────────────────
+-- A person suppressed AFTER they were already pushed into a provider that sends from its own
+-- copy of the lead. Our send gate cannot reach them; only a human, in the provider's own
+-- dashboard, can. Raised automatically at suppression and cleared only on a NAMED
+-- confirmation. ⚠️ A raised blocker means delivery may STILL be happening — it records the
+-- risk, it does not close it.
+alter table public.leads add column if not exists provider_eviction_required_at timestamptz;
+alter table public.leads add column if not exists provider_eviction_provider text;
+alter table public.leads add column if not exists provider_eviction_reason text;
+alter table public.leads add column if not exists provider_evicted_at timestamptz;
+alter table public.leads add column if not exists provider_evicted_by text;
+
+create index if not exists leads_provider_eviction_pending_idx
+  on public.leads (provider_eviction_required_at)
+  where provider_eviction_required_at is not null and provider_evicted_at is null;
+
+-- ─────────────────────────────────────────────
 -- MEETINGS  (BUILD-003, 29 Aug)
 -- ─────────────────────────────────────────────
 -- The SOLE source of meeting state and count truth. Replaces

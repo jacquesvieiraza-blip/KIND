@@ -37,6 +37,12 @@ function query(table: string) {
     _count: false,
     select(_c?: string, opts?: { count?: string; head?: boolean }) { (q as { _count: boolean })._count = !!opts?.count; return q },
     eq() { return q }, in() { return q }, neq() { return q }, is() { return q },
+    // ⛓️ 28 Aug — `not()` added when the wallet webhook began asking whether the client is
+    // on a programme before it writes anything (BUILD-002 walkthrough fix). Without it the
+    // chain returned undefined and the handler threw, which read as "the ledger row was
+    // never written" — a mock gap wearing the costume of a real defect. supabase-js
+    // returns the builder here, so this models it exactly.
+    not() { return q },
     order() { return q }, limit() { return q },
     async maybeSingle() { return { data: null, error: null } },
     async single() { return { data: null, error: null } },

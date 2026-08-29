@@ -112,10 +112,14 @@ describe('GAP 3 · no programme client reaches sending before Go Live', () => {
     // reaches campaign activation, and relying on a downstream refusal to protect an upstream
     // door is exactly how the AR8 hole survived.
     expect(STRIPE_ROUTE).toMatch(/PROGRAMME CLIENTS DO NOT START WORK FROM A LEGACY PAYMENT/)
-    expect(STRIPE_ROUTE).toMatch(/const \{ data: openProg \}[\s\S]{0,200}from\('programmes'\)/)
+    // ⛓️ 28 Aug WALKTHROUGH FIX — the destructure now reads the error too. This assertion
+    // pinned the `{ data: openProg }` form and correctly went red when the fail-closed
+    // error branch was added, which is the test doing its job. Reasoning:
+    // `programme-walkthrough-fix.test.ts` DEFECT 2.
+    expect(STRIPE_ROUTE).toMatch(/const \{ data: openProg, error: progErr \}[\s\S]{0,200}from\('programmes'\)/)
     expect(STRIPE_ROUTE).toMatch(/if \(openProg\)[\s\S]{0,900}did NOT start work/)
     // and the refusal happens BEFORE the import that starts work
-    const gateAt = STRIPE_ROUTE.indexOf('const { data: openProg }')
+    const gateAt = STRIPE_ROUTE.indexOf('const { data: openProg, error: progErr }')
     const startAt = STRIPE_ROUTE.indexOf("const { startWorkForClient } = await import")
     expect(gateAt).toBeGreaterThan(0)
     expect(gateAt, 'the programme check must come BEFORE startWorkForClient is imported').toBeLessThan(startAt)

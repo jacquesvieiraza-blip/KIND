@@ -201,6 +201,22 @@ const REQUIRED_SCHEMA: Array<{ table: string; column?: string; why: string; migr
   // that with a COLUMN error — and the old failure branch called every error "MISSING in
   // production". The founder ran all 14 migrations on 6 Aug, watched them succeed, and this row
   // still told him the double-send guard was absent.
+  // ⚑ 28 Aug — BUILD-002, ADDED AFTER THE FOUNDER'S LIVE WALKTHROUGH FOUND THEM MISSING.
+  // The programme migration registered `settle_programme_batch` in REQUIRED_FUNCTIONS but
+  // put neither table here, so System reported the function green while saying nothing at
+  // all about the two tables the whole commercial model is stored in. That is this list's
+  // recurring failure mode, and the `copilot_mode` note above records the last time: a green
+  // schema section is never a statement about the schema, only about the lines on this list.
+  //
+  // ⚠️ AND THE FUNCTION PROBE DOES NOT COVER THEM EITHER — not even by accident.
+  // `settle_programme_batch` is probed with a uuid matching no batch. Its first statement
+  // reads `programme_batches`, so a green there does incidentally prove THAT table exists —
+  // but it then hits `IF v_prog IS NULL THEN RETURN 0` and returns BEFORE the
+  // `UPDATE public.programmes`, so it proves nothing whatsoever about `programmes`.
+  // Relying on that would be inferring a table's existence from a code path that never
+  // touches it.
+  { table: 'programmes', column: 'sourcing_ceiling', why: 'BUILD-002 — the programme itself: price, payment stages and the sourcing authority a client paid for. Without it every programme read fails and no programme can be created', migration: '20260828_programme_money_engine' },
+  { table: 'programme_batches', column: 'granted', why: 'BUILD-002 — controlled ~250-lead execution. Without it a reservation can never be settled, so delivered volume is never converted and released entitlement is stranded', migration: '20260828_programme_money_engine' },
   { table: 'cron_claims', column: 'job', why: 'the cron single-run guard — without it two replicas double every email and every charge', migration: '20260727_cron_claims' },
 ]
 

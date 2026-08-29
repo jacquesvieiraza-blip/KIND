@@ -569,10 +569,8 @@ export async function runIcpJob(
   // BUILD-002 — the open programme batch for this run, if this is programme sourcing.
   // Settled once the provider returns, which is what releases unused reservation.
   let programmeBatch: { id: string } | null = null
-  // BUILD-003 PR2-E — the programme this run draws on, and the instant its batch opened.
-  // The instant is what makes attribution PRECISE rather than inferred: only leads created
-  // after the batch opened belong to it, so an earlier unattributed run for the same ICP is
-  // never swept in.
+  // BUILD-003 PR2-E — the programme this invocation draws on.
+  //
   // ⛓️ 29 Aug — PROGRAMME IDENTITY IS SET AT THE **GATE**, NOT AT THE BATCH.
   // The first cut set it beside `openBatch`, which is inside the PDL branch — so a
   // POOL-ONLY programme run (no provider remainder, therefore no batch) left it null and

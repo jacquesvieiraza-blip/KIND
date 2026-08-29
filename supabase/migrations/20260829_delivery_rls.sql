@@ -1,4 +1,27 @@
 -- ═══════════════════════════════════════════════════════════════════════════════════════
+-- 🛑 HELD OUT OF THE RUNNER ON PURPOSE — DO NOT ADD A PENDING_MIGRATIONS ENTRY FOR THIS.
+--
+-- This file is COMPLETE, reviewed and ready. It is deliberately absent from
+-- `apps/api/src/lib/pending-migrations.ts`, which is the list Vida applies, because Vida
+-- applies ALL pending migrations together and this one must not go out with the other four.
+--
+-- WHY IT IS SEPARATED. Every other BUILD-003 PR 1 migration is additive and inert — new
+-- tables and nullable columns nothing reads yet. THIS one changes what a signed-in BROWSER
+-- can read on nine live tables, and whether anything else in production reads them on the
+-- anon/authenticated role is unverified. That is R2, and R2 is a RUNTIME question no test in
+-- this repo can answer.
+--
+-- ⚠️ ADDING A RUNNER ENTRY FOR THIS FILE PUTS IT IN THE NEXT "APPLY ALL PENDING" CLICK.
+-- `delivery-rls-held.test.ts` fails the build if that happens, because the mistake would be
+-- invisible until a client's dashboard went blank.
+--
+-- HOW IT SHIPS: after the founder closes R2 on the live walkthrough, a small follow-up PR —
+-- still BUILD-003 PR 1, not a new build number — adds the runner entry for this file and
+-- nothing else. Content below is unchanged and must stay that way; the follow-up adds the
+-- entry, it does not rewrite the migration.
+-- ═══════════════════════════════════════════════════════════════════════════════════════
+
+-- ═══════════════════════════════════════════════════════════════════════════════════════
 -- BUILD-003 · item 1 — TENANT ISOLATION ON THE NINE DELIVERY TABLES
 --
 -- ⚠️ R2 GATES APPLYING THIS FILE, AND ONLY THIS FILE. It is split out from meetings,

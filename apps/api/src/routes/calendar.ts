@@ -7,6 +7,8 @@ import { requireAuth, AuthRequest } from '../middleware/auth'
 import { rateLimit } from '../lib/rate-limit'
 import { logOutcomeEvent } from '../lib/outcomes'
 import { recomputeCampaignCounters } from '../lib/figsy'
+// BUILD-003 item 2 — the ONE place a meeting is created. Never `.from('meetings')` here.
+import { recordBooking } from '../lib/meeting-truth'
 import {
   getAuthUrl,
   exchangeCodeForTokens,
@@ -146,7 +148,40 @@ async function performBooking(params: {
       return { ok: false, status: 400, error: 'Google Calendar is not connected.' }
     }
     console.error('[calendar/performBooking] createMeeting failed after retries:', err)
-    return { ok: false, status: 502, error: 'Could not create the calendar event — please try again.' }
+
+    // ── CALENDAR FALLBACK (BUILD-003 item 8) ──────────────────────────────────────────
+    //
+    // ⚠️ THIS USED TO LOSE THE BOOKING. Google was unreachable, so we returned 502 and
+    // recorded NOTHING — and a prospect who had just agreed to meet vanished from the one
+    // number the commercial model is judged on, with no trace that they ever said yes.
+    // The retry ladder above reduces how often that happens; it cannot make it never happen.
+    //
+    // A booking we cannot prove is not the same as no booking. It is recorded as
+    // BOOKED_UNVERIFIED — honest about the missing calendar entry, countable as the outcome
+    // it is, and reconcilable later by verifyBooking() once an event id exists.
+    //
+    // An AUTH failure deliberately does NOT reach here: a disconnected calendar is a
+    // configuration problem the client must fix, not a transient one to work around, and
+    // recording bookings against a calendar nobody is watching would hide it.
+    const fallback = await recordBooking({
+      clientId:     params.clientId,
+      leadId:       params.leadId,
+      scheduledAt:  params.start,
+      enrollmentId: params.enrollmentId ?? null,
+      googleEventId: null,
+    })
+    if (!fallback.ok && fallback.refused.reason === 'already_booked') {
+      return { ok: false, status: 409, error: 'That lead already has a confirmed booking.' }
+    }
+    if (!fallback.ok) {
+      console.error('[calendar/performBooking] fallback booking could not be recorded:', fallback.refused.message)
+      return { ok: false, status: 502, error: 'Could not create the calendar event — please try again.' }
+    }
+    return {
+      ok: false,
+      status: 202,
+      error: 'The meeting is booked, but the calendar entry could not be created — we have recorded it and will add the invite. Please confirm the time with the prospect directly.',
+    }
   }
 
   const { error: insertErr } = await db.from('calendar_bookings').insert({
@@ -200,19 +235,43 @@ async function performBooking(params: {
         .select('campaign_id').eq('lead_id', params.leadId).order('enrolled_at', { ascending: false }).limit(1).maybeSingle()
       campaignId = enr?.campaign_id ?? null
     }
-    const { data: stamped } = await db.from('figsy_replies')
+    // ── MEETING TRUTH (BUILD-003 item 2) ────────────────────────────────────────────
+    // The authoritative record. Everything below this line is history and cache.
+    const recorded = await recordBooking({
+      clientId:      params.clientId,
+      leadId:        params.leadId,
+      scheduledAt:   params.start,
+      campaignId,
+      enrollmentId:  params.enrollmentId ?? null,
+      googleEventId: eventId,
+    })
+    if (!recorded.ok && recorded.refused.reason !== 'already_booked') {
+      console.error('[calendar/performBooking] meeting truth not recorded:', recorded.refused.message)
+    }
+
+    // RETAINED AS HISTORY (founder-locked 29 Aug). `meeting_booked_at` is still stamped
+    // where it always was — it is a real historical fact about a reply, and deleting the
+    // stamp would destroy history to make a point. ⚠️ It is no longer READ for any count or
+    // state: public.meetings is the sole truth, and this is a footprint, not a source.
+    await db.from('figsy_replies')
       .update({ meeting_booked_at: new Date().toISOString() })
       .eq('lead_id', params.leadId).is('meeting_booked_at', null)
       .in('classification', ['hot', 'warm'])
       .select('id')
+
     if (campaignId) {
-      if (!stamped || stamped.length === 0) {
-        const { data: camp } = await db.from('figsy_campaigns').select('meetings_booked').eq('id', campaignId).maybeSingle()
-        const { error: bumpErr } = await db.from('figsy_campaigns')
-          .update({ meetings_booked: (camp?.meetings_booked ?? 0) + 1 })
-          .eq('id', campaignId)
-        if (bumpErr) console.error('[calendar] meetings_booked bump failed:', bumpErr.message, 'campaign', campaignId)
-      }
+      // ⛓️ THE READ-MODIFY-WRITE IS GONE. This used to
+      //     select meetings_booked → update meetings_booked = value + 1
+      // which is a lost update the instant two bookings land together: both read N, both
+      // write N+1, and one real meeting disappears from the cache permanently, with nothing
+      // to reconcile it against because the counter WAS the record.
+      //
+      // `figsy_campaigns.meetings_booked` is now a DERIVED CACHE, recomputed from
+      // public.meetings and never incremented. That is the difference that matters: a
+      // counter that drifts stays wrong; a cache that drifts is corrected on the next write.
+      // One write, not two: recomputeCampaignCounters now derives meetings_booked from
+      // public.meetings itself, so calling the meeting-cache helper as well would simply
+      // write the same value twice.
       await recomputeCampaignCounters(campaignId)
     }
   } catch (kpiErr) {

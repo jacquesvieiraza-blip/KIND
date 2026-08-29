@@ -7,6 +7,9 @@ import { sequencePlan, normalisePurpose, normaliseDepth, type SequencePurpose, t
 import { Resend } from 'resend'
 import { logOutcomeEvent } from './outcomes'
 import { isSuppressed } from './suppression'
+// BUILD-003 item 2 — meetings_booked is a derived cache of public.meetings, and this is the
+// one function that knows the counting rules (exclusions, supersessions, the four states).
+import { campaignMeetingCount } from './meeting-truth'
 import { canEnroll } from './billing-rules'
 import { sendFounderAlert } from './alerts'
 import { interpretSend } from './resend-checked'
@@ -1245,21 +1248,36 @@ export async function recomputeCampaignCounters(campaignId: string): Promise<Cam
         .select('emails_sent, replies_total, replies_interested, opted_out, meetings_booked, leads_enrolled')
         .eq('id', campaignId).maybeSingle(),
     ])
-    let repliesTotal = 0, repliesInterested = 0, optedOut = 0, meetings = 0
+    let repliesTotal = 0, repliesInterested = 0, optedOut = 0
     for (const r of (repliesRes.data ?? []) as { classification: string | null; meeting_booked_at: string | null }[]) {
       repliesTotal++
       if (r.classification === 'hot' || r.classification === 'interested') repliesInterested++
       if (r.classification === 'opt_out' || r.classification === 'unsubscribe') optedOut++
-      if (r.meeting_booked_at) meetings++
+      // ⛓️ `if (r.meeting_booked_at) meetings++` USED TO BE HERE (BUILD-003 item 2).
+      // meeting_booked_at is RETAINED AS HISTORY and is still selected above for the reply
+      // counts, but it is no longer a source of meeting truth: it cannot tell HELD from
+      // NO_SHOW, cannot exclude a duplicate or a spam booking, and counts a reschedule twice.
+      // The number now comes from public.meetings, through the one function that knows the
+      // counting rules.
     }
     const cur = (campRes.data ?? {}) as Record<string, number | null>
     const mx = (a: number, b: number | null | undefined) => Math.max(a, typeof b === 'number' ? b : 0)
+
+    // ⚠️ NOT RATCHETED, AND THAT IS THE FIX. Every other counter here takes max(computed,
+    // current) so a partial recount cannot lose data. Applying that to meetings would make
+    // the number one-way: excluding a spam or duplicate booking could never bring it DOWN,
+    // so the exclusion feature would be silently inert. `meetings_booked` is a derived cache
+    // of public.meetings, so it takes the derived value exactly — up or down.
+    // A read failure returns null and leaves the cached value ALONE rather than writing 0:
+    // "we could not read the meetings table" must never render as "there were no meetings".
+    const derivedMeetings = await campaignMeetingCount(campaignId)
+
     const next: CampaignCounters = {
       emails_sent:        mx(sentRes.count ?? 0,   cur.emails_sent),
       replies_total:      mx(repliesTotal,         cur.replies_total),
       replies_interested: mx(repliesInterested,    cur.replies_interested),
       opted_out:          mx(optedOut,             cur.opted_out),
-      meetings_booked:    mx(meetings,             cur.meetings_booked),
+      meetings_booked:    derivedMeetings ?? (typeof cur.meetings_booked === 'number' ? cur.meetings_booked : 0),
       leads_enrolled:     mx(enrollRes.count ?? 0, cur.leads_enrolled),
     }
     const { error } = await db.from('figsy_campaigns').update(next).eq('id', campaignId)

@@ -441,22 +441,79 @@ describe('the derived cache is derived, and the read-modify-write is gone', () =
 describe('a calendar failure records the booking instead of losing it', () => {
   const calendar = stripCommentsForEnvScan(readFileSync(join(__dirname, '../routes/calendar.ts'), 'utf8'))
 
-  it('the Google-failure branch calls recordBooking with NO event id', () => {
+  it('the Google-failure branch records the booking rather than dropping it', () => {
     const branch = calendar.slice(calendar.indexOf('createMeeting failed after retries'))
     const upTo = branch.slice(0, branch.indexOf('const { error: insertErr }'))
-    expect(upTo).toContain('recordBooking')
-    expect(upTo).toMatch(/googleEventId:\s*null/)
+    // Routed through the one helper — see the "no event id, no claimed verification" test
+    // below, which is where that guarantee is actually asserted.
+    expect(upTo).toContain('recordUnverifiedBooking')
   })
 
-  it('an AUTH failure still fails closed — it never becomes a fallback booking', () => {
-    // A disconnected calendar is a configuration problem the client must fix, not a
-    // transient one to work around. Recording bookings against a calendar nobody watches
-    // would hide it.
-    const branch = calendar.slice(calendar.indexOf('createMeeting failed after retries') - 400)
-    const authIdx = branch.indexOf('isGoogleAuthError')
-    const fallbackIdx = branch.indexOf('recordBooking')
-    expect(authIdx).toBeGreaterThan(-1)
-    expect(authIdx).toBeLessThan(fallbackIdx)
-    expect(branch.slice(authIdx, fallbackIdx)).toContain('markDisconnected')
+  // ⛓️ THE ASSERTION THAT STOOD HERE ASSERTED THE OPPOSITE, and it was wrong.
+  //
+  // It proved that a Google AUTH error did NOT reach the fallback, on my reasoning that a
+  // disconnected calendar is a configuration problem rather than a transient one. The
+  // founder's ruling is that the distinction I drew was drawn in the wrong place:
+  //
+  //   K.I.N.D APPLICATION auth/authorisation → fail closed, no booking, no meeting
+  //   GOOGLE calendar auth / connection      → never make the prospect disappear
+  //
+  // A green test asserting the wrong rule is worse than no test, because it defends the
+  // mistake. It is replaced, not amended.
+
+  it('EVERY GOOGLE-SIDE FAILURE RECORDS THE BOOKING — NOTHING RETURNS BEFORE THE FALLBACK', () => {
+    // ⚠️ THIS ASSERTION WAS REWRITTEN AFTER ITS OWN RED PROOF EXPOSED IT AS VACUOUS.
+    // The first version checked that the three cause strings appeared in the file and that
+    // the helper was called. Reverting the code to the WRONG rule — an early
+    // `if (isGoogleAuthError(err)) return { status: 400 }` at the top of the catch — left
+    // every one of those facts true, so the guard passed while defending the bug it exists
+    // to stop. Presence proves nothing about ORDER; this checks the order.
+    const catchStart = calendar.indexOf('} catch (err) {', calendar.indexOf('async function performBooking'))
+    const body = calendar.slice(catchStart, calendar.indexOf('recordUnverifiedBooking', catchStart))
+    expect(catchStart).toBeGreaterThan(-1)
+    expect(body, 'a Google-side failure must not return before the booking is recorded — that is how the prospect disappears')
+      .not.toMatch(/\breturn\b/)
+    // And all three causes route through the one helper, so none grows its own policy.
+    for (const cause of ['calendar_not_connected', 'google_auth_failed', 'google_unavailable']) {
+      expect(calendar, `${cause} must reach the unverified-booking path`).toContain(cause)
+    }
+  })
+
+  it('A GOOGLE AUTH FAILURE STILL SURFACES RECONNECTION — recorded AND reported', () => {
+    // Recording the booking must not swallow the configuration problem: the client still
+    // has to reconnect, and markDisconnected is what makes status/slots say so.
+    const branch = calendar.slice(calendar.indexOf('createMeeting failed after retries') - 900)
+    const upToFallback = branch.slice(0, branch.indexOf('recordUnverifiedBooking'))
+    expect(upToFallback).toContain('markDisconnected')
+    expect(calendar).toMatch(/Google Calendar is not connected — reconnect it/)
+  })
+
+  it('A DISCONNECTED CALENDAR NO LONGER RETURNS 400 AND RECORDS NOTHING', () => {
+    // The old pre-check rejected outright, before the lead was even loaded, so an accepted
+    // booking vanished with no trace. The check is not skipped — it is deferred past the
+    // lead and duplicate checks so the refusal can record what actually happened.
+    expect(calendar).toContain('const calendarConnected =')
+    const guard = calendar.slice(calendar.indexOf('if (!calendarConnected)'))
+    expect(guard.slice(0, 300)).toContain('recordUnverifiedBooking')
+  })
+
+  it('K.I.N.D APPLICATION AUTH FAILS CLOSED — an unauthenticated caller cannot reach the booking core', () => {
+    // The strongest form of "fails closed": the path does not exist for them. `requireAuth`
+    // gates the authed route and a signed token gates the public one, both BEFORE
+    // performBooking, so no unauthenticated request can create a fallback meeting.
+    expect(calendar).toMatch(/calendarRouter\.post\('\/book',[^)]*requireAuth/s)
+    expect(calendar).toContain('verifyBookingToken')
+    // And performBooking itself never authenticates a caller — it is only ever reached by
+    // one that already has been.
+    const core = calendar.slice(calendar.indexOf('async function performBooking'))
+    expect(core.slice(0, core.indexOf('recordUnverifiedBooking'))).not.toContain('requireAuth')
+  })
+
+  it('NO FALLBACK EVER INVENTS AN EVENT ID OR CLAIMS VERIFICATION', () => {
+    const helper = calendar.slice(calendar.indexOf('async function recordUnverifiedBooking'))
+    const body = helper.slice(0, helper.indexOf('\n}'))
+    expect(body).toMatch(/googleEventId:\s*null/)
+    expect(body).not.toMatch(/verified_at/)
+    expect(body).not.toMatch(/state:\s*'BOOKED'/)
   })
 })

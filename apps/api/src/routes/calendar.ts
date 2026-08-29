@@ -51,6 +51,59 @@ type BookingResult =
   | { ok: true; meetLink: string | null; eventId: string }
   | { ok: false; status: number; error: string; existing?: { start: string | null; meetLink: string | null } }
 
+/**
+ * Record a booking we cannot verify, for every GOOGLE-side failure.
+ *
+ * ⚠️ THE DISTINCTION THIS FUNCTION EXISTS TO HOLD (founder-corrected 29 Aug):
+ *
+ *   K.I.N.D APPLICATION auth/authorisation fails → fail closed. No booking, no meeting.
+ *     Enforced BEFORE this file's booking core is ever entered — `requireAuth` on the authed
+ *     route, a signed booking token on the public one — so an unauthenticated caller cannot
+ *     reach any code that could create a fallback. That is the strongest possible form of
+ *     "fails closed": the path does not exist for them.
+ *
+ *   GOOGLE calendar auth/connection fails → the prospect must not disappear. They accepted a
+ *     time; the only thing missing is our ability to prove a calendar entry.
+ *
+ * Returns a BookingResult to send back, or null if the caller should fall through to its own
+ * error — null means we could not even record the fallback, which must not be reported as a
+ * successfully-captured booking.
+ */
+async function recordUnverifiedBooking(
+  params: { clientId: string; leadId: string; enrollmentId?: string | null; start: string },
+  cause: 'calendar_not_connected' | 'google_auth_failed' | 'google_unavailable',
+): Promise<BookingResult | null> {
+  const recorded = await recordBooking({
+    clientId:      params.clientId,
+    leadId:        params.leadId,
+    scheduledAt:   params.start,
+    enrollmentId:  params.enrollmentId ?? null,
+    // ⚠️ NEVER AN INVENTED ID. No event id means BOOKED_UNVERIFIED and verified_at NULL —
+    // the row says exactly what we know and nothing we do not.
+    googleEventId: null,
+  })
+
+  if (!recorded.ok) {
+    if (recorded.refused.reason === 'already_booked') {
+      return { ok: false, status: 409, error: 'That lead already has a confirmed booking.' }
+    }
+    console.error(`[calendar/performBooking] fallback booking (${cause}) could not be recorded:`, recorded.refused.message)
+    return null
+  }
+
+  // Reconnection is surfaced in the message rather than buried in a log, because the person
+  // who can fix it is the one reading this response.
+  const reconnect = cause === 'google_unavailable'
+    ? 'We will add the calendar invite once Google is reachable.'
+    : 'Google Calendar is not connected — reconnect it and we will add the invite.'
+
+  return {
+    ok: false,
+    status: 202,
+    error: `The meeting is booked, but the calendar entry could not be created. ${reconnect} Please confirm the time with the prospect directly.`,
+  }
+}
+
 async function performBooking(params: {
   clientId:      string
   leadId:        string
@@ -64,9 +117,19 @@ async function performBooking(params: {
     .eq('id', params.clientId)
     .single()
 
-  if (!client?.calendar_booking_enabled || !client?.google_calendar_access_token || !client?.google_calendar_refresh_token) {
-    return { ok: false, status: 400, error: 'Google Calendar is not connected.' }
-  }
+  // ⛓️ THIS USED TO RETURN 400 HERE AND END THE STORY (corrected 29 Aug, BUILD-003 item 8).
+  //
+  // A DISCONNECTED CALENDAR IS A GOOGLE-SIDE FAILURE, NOT A REASON TO LOSE THE PROSPECT.
+  // The person has chosen a slot and submitted it — the booking has been ACCEPTED. Refusing
+  // outright meant they vanished from the one number the commercial model is judged on, and
+  // the client found out only if they happened to read a support ticket.
+  //
+  // So the decision is deferred: validate the lead and the no-duplicate rule first, then
+  // record BOOKED_UNVERIFIED and tell the client to reconnect. The rejection is not skipped
+  // — it is moved to where it can be honest about what happened.
+  const calendarConnected = !!client?.calendar_booking_enabled
+    && !!client?.google_calendar_access_token
+    && !!client?.google_calendar_refresh_token
 
   const { data: lead } = await db.from('leads')
     .select('id, first_name, last_name, email')
@@ -94,6 +157,15 @@ async function performBooking(params: {
       ok: false, status: 409, error: 'A meeting is already booked for this lead.',
       existing: { start: existing.start_time ?? null, meetLink: existing.meeting_link ?? null },
     }
+  }
+
+  // ── GOOGLE CALENDAR NOT CONNECTED — record, then ask them to reconnect ────────────────
+  // The lead is real and there is no existing booking, both checked above, so this is a
+  // genuine accepted booking we simply cannot put in a calendar.
+  if (!calendarConnected) {
+    const fallback = await recordUnverifiedBooking(params, 'calendar_not_connected')
+    if (fallback) return fallback
+    return { ok: false, status: 400, error: 'Google Calendar is not connected.' }
   }
 
   const leadName    = `${lead.first_name ?? ''} ${lead.last_name ?? ''}`.trim() || 'Prospect'
@@ -143,45 +215,43 @@ async function performBooking(params: {
     meetLink = created.meetLink
     eventId  = created.eventId
   } catch (err) {
-    if (isGoogleAuthError(err)) {
+    // ── EVERY GOOGLE-SIDE FAILURE RECORDS THE BOOKING (BUILD-003 item 8) ───────────────
+    //
+    // ⛓️ CORRECTED 29 Aug. The first cut sent Google AUTH errors down a separate path that
+    // returned 400 and recorded nothing, on the reasoning that a disconnected calendar is a
+    // configuration problem rather than a transient one. The founder's ruling is that the
+    // distinction I drew was the wrong one:
+    //
+    //   K.I.N.D APPLICATION auth/authorisation failure  → fail closed, NO booking, NO meeting
+    //   GOOGLE calendar auth / connection failure       → never make the prospect disappear
+    //
+    // Application auth is enforced by `requireAuth` on the route and by the signed booking
+    // token on the public route — neither reaches this function at all, so failing closed
+    // there is already absolute. Everything that reaches THIS catch is Google's side:
+    // disconnected, token expired, event not created or not read back, provider down. All of
+    // it is a booking the prospect has already accepted and we merely cannot verify.
+    //
+    // The retry ladder above reduces how often this happens; it cannot make it never happen.
+    // Recording BOOKED_UNVERIFIED is honest about the missing calendar entry, countable as
+    // the outcome it is, and reconcilable by verifyBooking() once an event id exists.
+    //
+    // ⚠️ WE NEVER PRETEND IT IS VERIFIED: no event id is invented, verified_at stays NULL,
+    // and the caller is told the invite is missing.
+    const authFailure = isGoogleAuthError(err)
+    if (authFailure) {
+      // Still surfaced as a configuration problem — the client must reconnect, and the flag
+      // is what makes status/slots report disconnected instead of erroring forever.
       await markDisconnected(params.clientId)
-      return { ok: false, status: 400, error: 'Google Calendar is not connected.' }
     }
     console.error('[calendar/performBooking] createMeeting failed after retries:', err)
 
-    // ── CALENDAR FALLBACK (BUILD-003 item 8) ──────────────────────────────────────────
-    //
-    // ⚠️ THIS USED TO LOSE THE BOOKING. Google was unreachable, so we returned 502 and
-    // recorded NOTHING — and a prospect who had just agreed to meet vanished from the one
-    // number the commercial model is judged on, with no trace that they ever said yes.
-    // The retry ladder above reduces how often that happens; it cannot make it never happen.
-    //
-    // A booking we cannot prove is not the same as no booking. It is recorded as
-    // BOOKED_UNVERIFIED — honest about the missing calendar entry, countable as the outcome
-    // it is, and reconcilable later by verifyBooking() once an event id exists.
-    //
-    // An AUTH failure deliberately does NOT reach here: a disconnected calendar is a
-    // configuration problem the client must fix, not a transient one to work around, and
-    // recording bookings against a calendar nobody is watching would hide it.
-    const fallback = await recordBooking({
-      clientId:     params.clientId,
-      leadId:       params.leadId,
-      scheduledAt:  params.start,
-      enrollmentId: params.enrollmentId ?? null,
-      googleEventId: null,
-    })
-    if (!fallback.ok && fallback.refused.reason === 'already_booked') {
-      return { ok: false, status: 409, error: 'That lead already has a confirmed booking.' }
-    }
-    if (!fallback.ok) {
-      console.error('[calendar/performBooking] fallback booking could not be recorded:', fallback.refused.message)
-      return { ok: false, status: 502, error: 'Could not create the calendar event — please try again.' }
-    }
-    return {
-      ok: false,
-      status: 202,
-      error: 'The meeting is booked, but the calendar entry could not be created — we have recorded it and will add the invite. Please confirm the time with the prospect directly.',
-    }
+    const fallback = await recordUnverifiedBooking(
+      params, authFailure ? 'google_auth_failed' : 'google_unavailable')
+    if (fallback) return fallback
+
+    return authFailure
+      ? { ok: false, status: 400, error: 'Google Calendar is not connected.' }
+      : { ok: false, status: 502, error: 'Could not create the calendar event — please try again.' }
   }
 
   const { error: insertErr } = await db.from('calendar_bookings').insert({

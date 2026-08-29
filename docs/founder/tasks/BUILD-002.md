@@ -9,10 +9,11 @@
 | **TASK ID** | **BUILD-002** |
 | **TITLE** | Programme Commercial + Money Engine |
 | **Founder state** | NOW |
-| **Conveyor state** | **BUILDER RETURNED** *(state 8 of 12)* |
-| **State history** | NOT SCOUTED → SCOUTING → SCOUT RETURNED → GPT VERIFIED → FOUNDER APPROVED → READY FOR BUILDER → BUILDING → **BUILDER RETURNED** |
-| **Next action** | **GPT VERIFICATION** (stage 9), then the founder's merge |
+| **Conveyor state** | **COMPLETE** *(state 12 of 12)* — under the evidence boundary recorded in §9 |
+| **State history** | NOT SCOUTED → SCOUTING → SCOUT RETURNED → GPT VERIFIED → FOUNDER APPROVED → READY FOR BUILDER → BUILDING → BUILDER RETURNED → GPT VERIFIED → FOUNDER MERGED → DEPLOY VERIFIED → **COMPLETE** |
+| **Next action** | None. ⚠️ **COMPLETE is not "the programme model is now what clients buy"** — see §9. |
 | **Opened** | 28 August 2026 |
+| **Closed** | 29 August 2026 |
 
 ---
 
@@ -114,17 +115,37 @@ Not noise — every one of them wanted something genuine, and one of them caught
 
 ---
 
-## 5 · MERGE / DEPLOY — **PENDING**
+## 5 · MERGE / DEPLOY — **COMPLETE**
+
+⛓️ **SUPERSEDED 29 Aug.** The table below is the state as it stood on 28 August and is kept because it is what the packet claimed while it was true. **It is no longer current** — the migration has since been applied, the API deployed and every stage merged. The current table follows it.
+
+> ~~**PENDING**~~
+>
+> | Field | State (28 Aug — HISTORICAL) |
+> |---|---|
+> | GPT verification (Builder stage, conveyor 9) | ⏳ ~~PENDING~~ |
+> | Founder merged (conveyor 10) | ⏳ ~~PENDING~~ |
+> | Merge SHA | ⏳ ~~pending~~ |
+> | Deploy verified (conveyor 11) | ⏳ ~~PENDING~~ — ⚠️ ~~the migration has NOT been applied to production.~~ 🚀 **RUN THE MIGRATION FIRST (Vida → Engine, O3: no ad-hoc SQL), THEN DEPLOY THE API.** ⛓️ *This reverses the first submission's instruction, which was wrong — see §7.* **The instruction itself was correct and was followed — only its "not yet applied" status is stale.** |
+> | Complete (conveyor 12) | ⏳ ~~PENDING~~ |
+
+**CURRENT — 29 August 2026:**
 
 | Field | State |
 |---|---|
-| GPT verification (Builder stage, conveyor 9) | ⏳ **PENDING** |
-| Founder merged (conveyor 10) | ⏳ **PENDING** |
-| Merge SHA | ⏳ pending |
-| Deploy verified (conveyor 11) | ⏳ **PENDING** — ⚠️ **the migration has NOT been applied to production.** 🚀 **RUN THE MIGRATION FIRST (Vida → Engine, O3: no ad-hoc SQL), THEN DEPLOY THE API.** ⛓️ *This reverses the first submission's instruction, which was wrong — see §7.* |
-| Complete (conveyor 12) | ⏳ **PENDING** |
+| GPT verification (Builder stage, conveyor 9) | ✅ **SATISFIED** — closure pass §7, four evidence gaps; two were real and were patched |
+| Founder merged (conveyor 10) | ✅ **MERGED** |
+| Merge SHAs | `a77752b0` (PR **#1466** — the build) · `2c56f201` (PR **#1595** — walkthrough defects) · `1769e18c` (PR **#1597** — the Vida GO auth defect + proxy boundary proof) |
+| Migration applied (conveyor 11a) | ✅ **APPLIED to production** via Vida → Engine, migration-first, before the API deploy — the order §7 GAP 4·D corrected |
+| Deploy verified (conveyor 11b) | ✅ **API deployed on Railway** |
+| Founder live walkthrough (conveyor 11c) | ✅ **COMPLETE** — evidence boundary in §9 |
+| Complete (conveyor 12) | ✅ **COMPLETE** — under the §9 evidence boundary, not unconditionally |
 
-⚠️ **NOTHING IN THIS BUILD IS LIVE COMMERCIAL TRUTH.** The programme model is code that exists, not a model that runs. **The live commercial truth remains $299 pack · first 100 approvals included · $4 per approved lead**, and none of the programme model may be quoted to a client, a partner or the website until the founder ships it.
+⛓️ **AMENDED 29 Aug — one half of this warning has been overtaken, the other half has NOT.**
+
+~~*"NOTHING IN THIS BUILD IS LIVE COMMERCIAL TRUTH. The programme model is code that exists, not a model that runs."*~~ — **no longer accurate.** The migration is applied, the API is deployed, and the pre-payment half has been walked in production (§9). It is now a model that runs.
+
+**What has NOT changed, and is the operative sentence:** ⚠️ **The live commercial truth remains `$299 pack · first 100 approvals included · $4 per approved lead`.** That is still the public and client-facing experience. **None of the programme model may be quoted to a client, a partner or the website** until the later experience/public work replaces it. **BUILD-002 COMPLETE means the build is complete — it does not make the programme model sellable.**
 
 ---
 
@@ -201,6 +222,64 @@ The first submission said *"API first, migration second."* **That would have tak
 | Legacy webhook gate | replaced the programme check with `if (false)` | **failed** |
 | Non-vacuity | a LIVE+paid programme, and a legacy client, must **not** be refused | both assert the gate lets them through — without these, a gate that refused everyone would pass |
 
-**8 · APPEND LOG**
+### 8 · APPEND LOG
 
 - **28 Aug — GPT closure pass.** Two real gaps found and patched (controlled batching; fail-open checkout email). One wrong instruction corrected (deployment order) plus a function-overload ambiguity it exposed. Full-suite RED excluded from BUILD-002 by construction and pinned as a test; the flake itself remains unreproduced and unexplained.
+- **29 Aug — merged, migration applied, API deployed.** Migration-first, the order GAP 4·D corrected. Merge SHAs `a77752b0` · `2c56f201` · `1769e18c`.
+- **29 Aug — two walkthrough defect passes (PR #1595).** Vida → System could not prove either programme table, and the programme reads dropped their database error so a broken query was indistinguishable from a client with no programme. Both fixed; the Stripe webhook made retry-safe on a programme storage failure rather than acknowledging 200.
+- **29 Aug — the live walkthrough found an auth defect the whole suite had missed (PR #1597).** `PATCH /icps/:id/activate` sat below `icpRouter.use(requireAuth)`, so the operator was answered `401 Missing auth token` and **the Go-Live gate was unreachable — not wrong, unreached.** Every existing test called the handler directly out of `icpRouter.stack`, so the one middleware layer that rejected every real request was the one layer no test ran. ⚠️ **A gate that cannot be reached is not a gate, and no amount of green proved otherwise.** The proxy boundary it depends on was then proven by RUNNING it, not by reading it — anonymous and non-operator callers produce zero upstream calls, checked against three deliberately broken states.
+- **29 Aug — durable closure.** Conveyor → COMPLETE with the two-part evidence boundary recorded in §9. The 28-Aug MERGE/DEPLOY table is kept struck rather than deleted; the "$299 / first-100 / $4 remains the live client experience" warning is kept **operative**, and only the "nothing here runs" half of it was retired.
+
+---
+
+## 9 · FOUNDER LIVE WALKTHROUGH — AND THE EVIDENCE BOUNDARY BUILD-002 CLOSES UNDER (29 Aug)
+
+The founder walked BUILD-002 in production with **no real payment**: no Stripe charge, no fabricated payment, no manual DB state, no provider spend. That constraint is not a shortcut — it is the boundary, and it divides this build cleanly in two. Everything downstream of money is triggered by a Stripe webhook carrying a real event, and **no zero-money route reaches it.** So the honest state of BUILD-002 is not one label but two, and they are recorded separately here rather than blurred into a single ✅.
+
+**This is a P v1 rule 13 distinction** — implementation, deployment and runtime claims carry CODE VERIFIED / RUNTIME VERIFIED / RUNTIME UNVERIFIED, and **runtime truth is never inferred from code.**
+
+### ✅ RUNTIME VERIFIED — the pre-payment half
+
+Walked by the founder against production.
+
+| # | Proven live |
+|---|---|
+| 1 | Programme schema present *(Vida → System reports `programmes`, `programme_batches` and `settle_programme_batch`)* |
+| 2 | Pricing curve |
+| 3 | 50/50 split |
+| 4 | Odd-cent rule *(the odd cent goes to payment two)* |
+| 5 | Programme creation |
+| 6 | RECOMMENDED state |
+| 7 | **No sourcing authority before the first payment** |
+| 8 | Checkout **fail-closed** without a contact email |
+| 9 | Second-payment refusal *(not APPROVED)* |
+| 10 | Pause / resume |
+| 11 | **Vida GO auth path** *(PR #1597 — the operator reaches the handler at all)* |
+| 12 | **`programme_not_live` activation refusal** — the Go-Live gate, refusing |
+
+### ⚠️ CODE VERIFIED / RUNTIME UNVERIFIED — the post-payment half
+
+Built, tested and merged. **Not observed running in production, and not observable without a real customer payment.**
+
+| # | Awaiting the first real payment |
+|---|---|
+| 1 | First-payment webhook |
+| 2 | `sourcing_ceiling = recommended_volume` |
+| 3 | A real non-zero **250-batch grant** *(untestable at `sourcing_ceiling = 0`)* |
+| 4 | Second-payment webhook → **LIVE** |
+| 5 | **Allowed** programme campaign activation — the gate's permitting half, of which only the refusal is proven |
+| 6 | Live batch settlement |
+| 7 | Post-Go-Live pause *(a different path from the pre-Go-Live pause proven above)* |
+| 8 | Final contribution |
+| 9 | Partner commission |
+| 10 | Programme completion / make-whole |
+
+### What COMPLETE means here, stated so it cannot be misread later
+
+**BUILD-002 COMPLETE = the build is complete under the agreed zero-money evidence boundary.** It does **NOT** mean:
+
+- ❌ that the post-payment half has been seen working — it has not, and saying so would be inferring runtime truth from code;
+- ❌ that the programme model is the public or client-facing commercial truth. **The `$299 pack · first 100 approvals included · $4 per approved lead` model remains the live client experience** until the later experience/public work replaces it.
+
+⚠️ **Nothing in the post-payment half may reach 🟢 in PRODUCT-INVENTORY**, which requires verification live in production. That half has never run in production and cannot until a customer pays.
+

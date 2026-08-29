@@ -400,6 +400,40 @@ stripeRouter.post('/webhook', async (req: Request, res: Response) => {
         const amountUsd = parseFloat(meta.amountUsd)
         if (!Number.isFinite(amountUsd) || amountUsd <= 0) { res.sendStatus(200); return }
 
+        // ── IS THIS A PROGRAMME CLIENT? ASKED FIRST, BEFORE ANYTHING IS WRITTEN ──────────
+        //
+        // ⚠️ THE POSITION OF THIS READ IS THE WHOLE FIX, AND IT USED TO BE IN THE WRONG PLACE.
+        // It lived inside the fire-and-forget `void (async () => {…})()` further down, so a
+        // storage failure could only `return` out of that IIFE — the outer handler carried on
+        // to `res.sendStatus(200)` and Stripe was told the event was handled. The event is
+        // then permanently consumed while we never determined whether this client was on a
+        // programme.
+        //
+        // ⚠️ AND MOVING IT MERELY *EARLIER* WOULD NOT HAVE BEEN ENOUGH — it had to move BEFORE
+        // THE LEDGER INSERT. A non-2xx returned after the wallet was credited is retried by
+        // Stripe, the retry hits the ledger's 23505 unique-reference guard, and that branch
+        // answers 200 and returns — skipping start-work entirely. The retry would look
+        // successful and do nothing. Asking here, before any row is written, means a retry
+        // re-runs this branch cleanly from the top.
+        const { data: openProg, error: progErr } = await db.from('programmes')
+          .select('id, status').eq('client_id', clientId)
+          .not('status', 'in', '(COMPLETED,CANCELLED)').limit(1).maybeSingle()
+
+        if (progErr) {
+          // FAIL CLOSED, AND ASK STRIPE TO COME BACK. Nothing has been written: no ledger
+          // row, no wallet credit, no allowance, no work. 503 keeps the event eligible for
+          // retry rather than burning it on an answer we could not determine.
+          console.error(`[Stripe] programme state unreadable for client ${clientId} — refusing the event so Stripe retries (nothing written):`, progErr)
+          void sendFounderAlert('payment_failed', 'Payment received but programme state was unreadable — event REFUSED for retry', [
+            `Client ${clientId} paid $${amountUsd} (session ${session.id}), and K.I.N.D could not determine whether they are on a programme.`,
+            `Reason: ${progErr.message}`,
+            'NOTHING was written — no wallet credit, no sourcing allowance, no work started — and Stripe was given a 503 so it will retry the event.',
+            'If the retries exhaust, the payment exists in Stripe and must be reconciled by hand.',
+          ])
+          res.status(503).json({ error: 'programme state unreadable — retry' })
+          return
+        }
+
         const { error: ledgerErr } = await db.from('credit_transactions').insert({
           client_id: clientId, type: 'wallet_topup', amount: amountUsd, plan: 'work_model',
           reference: session.id, note: `Wallet top-up $${amountUsd} via Stripe`,
@@ -513,24 +547,11 @@ stripeRouter.post('/webhook', async (req: Request, res: Response) => {
           // and relying on a downstream refusal to protect an upstream door is how the
           // AR8 lookalike hole survived. Refuse at the door, and say so.
           //
-          // ⚠️ AND THE ERROR IS READ, NOT DROPPED. Destructuring only `{ data }` here made a
-          // failed read look identical to "this client has no programme" — and the fail-OPEN
-          // consequence was the dangerous one: on a storage error a PROGRAMME client would
-          // fall straight through into `startWorkForClient` and begin sourcing and sending
-          // outside programme authority. Not knowing is not permission.
-          const { data: openProg, error: progErr } = await db.from('programmes')
-            .select('id, status').eq('client_id', clientId)
-            .not('status', 'in', '(COMPLETED,CANCELLED)').limit(1).maybeSingle()
-          if (progErr) {
-            console.error(`[stripe] could not read programme state for client ${clientId} — legacy work NOT started (fail closed):`, progErr)
-            void sendFounderAlert('payment_failed', 'Payment received but programme state was unreadable — work NOT started', [
-              `Client ${clientId} paid $${amountUsd}, and K.I.N.D could not determine whether they are on a programme.`,
-              `Reason: ${progErr.message}`,
-              'Nothing was sourced and no campaign was started, because starting work for a programme client through the legacy path would source outside programme authority.',
-              'The payment is recorded. Resolve the read failure, then decide what this money belongs to.',
-            ])
-            return
-          }
+          // ⚠️ NO SECOND READ. `openProg` was resolved at the TOP of this branch, before
+          // anything was written, and a storage failure there already refused the event with
+          // a 503 so Stripe retries. Re-reading here would reintroduce the exact defect:
+          // this IIFE is fire-and-forget, so an error inside it cannot change the response
+          // Stripe has already been given.
           if (openProg) {
             console.log(`[stripe] client ${clientId} is on programme ${(openProg as { id: string }).id} — legacy payment did NOT start work. Programme sourcing is authorised by the programme's own first payment.`)
             void sendFounderAlert('new_signup', 'Legacy payment received from a PROGRAMME client — work NOT started', [

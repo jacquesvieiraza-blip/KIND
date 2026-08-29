@@ -170,8 +170,7 @@ describe('② the legacy payment webhook reads the error too — and fails CLOSE
     // into startWorkForClient and began sourcing and sending outside programme authority.
     // RED PROOF: remove the `if (progErr)` block and a read failure silently starts work.
     expect(STRIPE_ROUTE).toMatch(/const \{ data: openProg, error: progErr \}/)
-    expect(STRIPE_ROUTE).toMatch(/if \(progErr\)[\s\S]{0,1200}return$/m)
-    expect(STRIPE_ROUTE).toMatch(/programme state was unreadable — work NOT started/)
+    expect(STRIPE_ROUTE).toMatch(/if \(progErr\)[\s\S]{0,1600}return$/m)
   })
 
   it('the refusal happens BEFORE startWorkForClient is imported', () => {
@@ -180,8 +179,78 @@ describe('② the legacy payment webhook reads the error too — and fails CLOSE
     expect(errAt).toBeGreaterThan(0)
     expect(errAt).toBeLessThan(startAt)
   })
+})
 
-  it('⚠️ NOT KNOWING IS NOT PERMISSION — the comment states the rule it enforces', () => {
-    expect(STRIPE_ROUTE).toMatch(/Not knowing is not permission/)
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// ③ THE WEBHOOK EVENT MUST STAY RETRY-ELIGIBLE ON A STORAGE FAILURE
+// ═══════════════════════════════════════════════════════════════════════════════════════
+//
+// ⚠️ THE FIRST FIX WAS NOT RETRY-SAFE, AND THE REASON IS WORTH KEEPING. The programme read
+// sat inside `void (async () => {…})()` — fire-and-forget. `return` there exits only the
+// IIFE; the outer handler carried on to `res.sendStatus(200)`. Stripe was told the event was
+// handled, so it was PERMANENTLY CONSUMED while we had never determined whether the client
+// was on a programme. An async block cannot change a response that has already been sent.
+//
+// ⚠️ AND MOVING THE READ MERELY EARLIER WOULD NOT HAVE FIXED IT EITHER. A non-2xx returned
+// AFTER the wallet was credited is retried — and the retry hits the ledger's 23505
+// unique-reference guard, which answers 200 and returns, skipping start-work entirely. The
+// retry would look successful and do nothing. The read has to precede every write.
+describe('③ a programme storage failure refuses the event so Stripe retries', () => {
+  // ⚠️ ORDERING IS ASSERTED AGAINST CODE, NOT PROSE. These comments quote the very
+  // constructs being checked — the note explaining the old defect contains the literal
+  // `void (async () => {…})()` — so searching the raw file finds an explanation and calls it
+  // an implementation. Line comments are stripped first; blanked rather than deleted so
+  // every offset still lines up with the real file.
+  const CODE = STRIPE_ROUTE.split('\n').map(l => (l.trim().startsWith('//') ? '' : l)).join('\n')
+  const at = (needle: string) => CODE.indexOf(needle)
+
+  it('⚠️ THE RESPONSE IS NON-2XX — a 200 here would burn the Stripe event', () => {
+    // RED PROOF: change this to `res.sendStatus(200)` and this test fails.
+    expect(STRIPE_ROUTE).toMatch(/res\.status\(503\)\.json\(\{ error: 'programme state unreadable — retry' \}\)/)
+    // and the refusal is a real early return, not a fallthrough
+    expect(STRIPE_ROUTE).toMatch(/programme state unreadable — retry' \}\)\n\s*return/)
+  })
+
+  it('⚠️ THE READ HAPPENS BEFORE EVERY WRITE — so a retry re-runs cleanly', () => {
+    // This is the assertion that makes the retry meaningful rather than nominal. If the
+    // read moved below any of these, the retry would short-circuit on 23505 and do nothing.
+    const read = at("const { data: openProg, error: progErr } = await db.from('programmes')")
+    expect(read, 'the programme read was not found').toBeGreaterThan(0)
+
+    const branch = at("} else if (meta.type === 'wallet_topup' && meta.clientId && meta.amountUsd) {")
+    expect(read, 'the read must be inside the wallet_topup branch').toBeGreaterThan(branch)
+
+    for (const write of [
+      "type: 'wallet_topup', amount: amountUsd",        // the ledger insert (23505 guard)
+      "add_sourcing_allowance",                          // the sourcing accrual
+      "const { startWorkForClient } = await import",     // legacy work
+    ]) {
+      const w = CODE.indexOf(write, branch)
+      expect(w, `write not found: ${write}`).toBeGreaterThan(0)
+      expect(read, `the programme read must precede: ${write}`).toBeLessThan(w)
+    }
+  })
+
+  it('⚠️ THE READ IS NOT INSIDE THE FIRE-AND-FORGET IIFE — that was the original defect', () => {
+    // RED PROOF: move the read back inside `void (async () => {` and this fails.
+    const read = at("const { data: openProg, error: progErr } = await db.from('programmes')")
+    const iife = CODE.indexOf('void (async () => {', at("} else if (meta.type === 'wallet_topup'"))
+    expect(iife).toBeGreaterThan(0)
+    expect(read, 'the read must be OUTSIDE (before) the fire-and-forget block').toBeLessThan(iife)
+    // and nothing re-reads programmes inside it
+    const iifeEnd = CODE.indexOf("})().catch", iife)
+    const body = CODE.slice(iife, iifeEnd)
+    expect(body, 'the IIFE must not re-read programmes — an error there cannot change the response')
+      .not.toMatch(/from\('programmes'\)/)
+  })
+
+  it('nothing is written on the refusal path, and the alert says so', () => {
+    expect(STRIPE_ROUTE).toMatch(/event REFUSED for retry/)
+    expect(STRIPE_ROUTE).toMatch(/NOTHING was written — no wallet credit, no sourcing allowance, no work started/)
+    expect(STRIPE_ROUTE).toMatch(/Stripe was given a 503 so it will retry/)
+  })
+
+  it('⚠️ NOT KNOWING IS NOT PERMISSION — the rule is stated where it is enforced', () => {
+    expect(STRIPE_ROUTE).toMatch(/FAIL CLOSED, AND ASK STRIPE TO COME BACK/)
   })
 })

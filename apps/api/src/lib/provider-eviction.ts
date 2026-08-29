@@ -15,11 +15,17 @@
 //   NO SAFE EVICTION MECHANISM     fail closed + an operator-visible blocker,
 //                                  and do NOT pretend the risk is closed
 //
-//   SMARTLEAD   ⚠️ NO SAFE EVICTION MECHANISM. api.smartlead.ai returns 403 from this
-//               environment, so no remove endpoint could ever be confirmed, and the founder
-//               ruled 20 Aug — "yes alert not api" — that guessing at one is not acceptable
-//               on a path that touches real people. Removal is MANUAL, in their dashboard.
-//               → blocker raised, and it stays raised until a human confirms.
+//   SMARTLEAD   ⛓️ CORRECTED 29 Aug. This module first said "NO SAFE EVICTION MECHANISM".
+//               That was true of THIS REPO and I stated it as though it were true of
+//               SMARTLEAD. It is not: their API supports pausing a lead, unsubscribing it
+//               from a campaign, unsubscribing it globally, and adding an EMAIL to the
+//               workspace GLOBAL BLOCK LIST. The 403 that blocked reading their docs from
+//               here became, in my write-up, a claim about the provider's capability.
+//               → K.I.N.D suppression is written FIRST and stays authoritative, then
+//                 `addToGlobalBlockList` is called. Success resolves the blocker with the
+//                 evidence retained; FAILURE leaves it standing for a named human.
+//               ⚠️ CODE VERIFIED against the documented contract; RUNTIME UNVERIFIED until a
+//                 live workspace walk. Mocked tests prove OUR half, never Smartlead's.
 //
 //   INSTANTLY   NOT YET IN PROVIDER today — dormant, INSTANTLY_API_KEY unset, no lead has
 //               ever been pushed. The send gate in `instantly-push.ts` stops a suppressed
@@ -39,6 +45,23 @@ import { db } from '@kind/db'
 import { normalizeRevealEmail } from './billing-rules'
 
 export type EvictionProvider = 'smartlead' | 'instantly'
+
+/**
+ * What happened when K.I.N.D suppression was propagated to the providers.
+ *
+ * `openBlockers === null` means we could not even establish the position — ⚠️ NOT zero. "We
+ * could not tell whether this person is still in a campaign" is the most dangerous possible
+ * answer to render as "they are not".
+ */
+export interface ProviderSuppressionOutcome {
+  /** Was a provider actually called? False when the person is in no provider at all. */
+  attempted: boolean
+  /** Did the provider accept the suppression? */
+  providerOk: boolean
+  /** Blockers left open for a human. null = unknown. */
+  openBlockers: number | null
+  detail?: string
+}
 
 export interface PendingEviction {
   leadId: string
@@ -61,23 +84,22 @@ export interface PendingEviction {
  * — ⚠️ null is NOT zero. "We could not tell whether this person is still in a campaign" is the
  * most dangerous possible answer to render as "they are not".
  */
-export async function raiseProviderEviction(email: string, reason: string): Promise<number | null> {
+export async function propagateSuppressionToProviders(email: string, reason: string): Promise<ProviderSuppressionOutcome> {
   try {
-    return await raiseProviderEvictionInner(email, reason)
+    return await propagateInner(email, reason)
   } catch (err) {
-    // ⚠️ THE SUPPRESSION ITSELF HAS ALREADY HAPPENED, AND IT IS WHAT MATTERS. This runs after
-    // the blocklist write on both doors, so a throw here must never unwind it — the same
-    // reason `alertSmartleadStillSending` has always been wrapped. Losing the blocker means
-    // an untracked risk; losing the blocklist write means we keep emailing someone who said
-    // stop. Report loudly and return null (which is NOT zero — see below).
-    console.error('[provider-eviction] blocker could not be raised —', email, err instanceof Error ? err.message : err)
-    return null
+    // ⚠️ THE K.I.N.D SUPPRESSION HAS ALREADY BEEN WRITTEN, AND IT IS AUTHORITATIVE. This runs
+    // after the blocklist write on every door, so a throw here must never unwind it. Losing
+    // the provider call means an untracked risk we can retry; losing the blocklist write
+    // means we keep emailing someone who said stop. The two are not close.
+    console.error('[provider-eviction] provider suppression threw —', email, err instanceof Error ? err.message : err)
+    return { attempted: false, providerOk: false, openBlockers: null, detail: err instanceof Error ? err.message : String(err) }
   }
 }
 
-async function raiseProviderEvictionInner(email: string, reason: string): Promise<number | null> {
+async function propagateInner(email: string, reason: string): Promise<ProviderSuppressionOutcome> {
   const key = normalizeRevealEmail(email)
-  if (!key) return 0
+  if (!key) return { attempted: false, providerOk: false, openBlockers: 0 }
 
   // `leads.email` is stored raw (HC-1/F10), so match case-insensitively — an opt-out that
   // misses here is an opt-out nobody ever actions.
@@ -88,7 +110,7 @@ async function raiseProviderEvictionInner(email: string, reason: string): Promis
 
   if (error) {
     console.error('[provider-eviction] could not check provider membership —', key, error.message)
-    return null
+    return { attempted: false, providerOk: false, openBlockers: null, detail: error.message }
   }
 
   const rows = (data ?? []) as {
@@ -96,17 +118,28 @@ async function raiseProviderEvictionInner(email: string, reason: string): Promis
     provider_eviction_required_at: string | null
     provider_evicted_at: string | null
   }[]
-  if (rows.length === 0) return 0
+
+  // NOT YET IN PROVIDER. The send gate is the whole answer for this person — there is nothing
+  // on Smartlead's side to stop, and calling the API would be noise.
+  if (rows.length === 0) return { attempted: false, providerOk: false, openBlockers: 0 }
+
+  // ⚠️ IDEMPOTENT. Every row already resolved means this address is already on Smartlead's
+  // global block list; a repeated STOP must not call again, must not reset any clock, and
+  // must never look like a new incident.
+  const unresolved = rows.filter(r => !r.provider_evicted_at)
+  if (unresolved.length === 0) return { attempted: false, providerOk: true, openBlockers: 0 }
 
   const now = new Date().toISOString()
-  let open = 0
-  for (const r of rows) {
-    open++
-    // Already raised and not yet cleared — leave the original timestamp standing. Refreshing
-    // it would reset the clock on how long this person has been at risk, which is the one
-    // thing the operator most needs to see.
-    if (r.provider_eviction_required_at && !r.provider_evicted_at) continue
 
+  // ── STEP 1 · RAISE FIRST, CALL SECOND ────────────────────────────────────────────────
+  // The blocker is written BEFORE the provider call, not after. If the process dies mid-call
+  // the risk is recorded; raising it afterwards would mean a crash leaves a suppressed person
+  // in a live campaign with nothing anywhere saying so.
+  // ⚠️ An already-raised blocker keeps its ORIGINAL timestamp — its age is how long this
+  // person may have been receiving mail, and refreshing it on every retry erases exactly the
+  // number an operator needs.
+  for (const r of unresolved) {
+    if (r.provider_eviction_required_at) continue
     const { error: upErr } = await db.from('leads').update({
       provider_eviction_required_at: now,
       provider_eviction_provider:    'smartlead',
@@ -114,13 +147,55 @@ async function raiseProviderEvictionInner(email: string, reason: string): Promis
       provider_evicted_at:           null,
       provider_evicted_by:           null,
     }).eq('id', r.id)
-
     if (upErr) {
       console.error('[provider-eviction] could not raise blocker for lead', r.id, upErr.message)
-      return null
+      return { attempted: false, providerOk: false, openBlockers: null, detail: upErr.message }
     }
   }
-  return open
+
+  // ── STEP 2 · TELL SMARTLEAD ──────────────────────────────────────────────────────────
+  const { addToGlobalBlockList } = await import('./smartlead')
+  const res = await addToGlobalBlockList([key])
+
+  if (!res.ok) {
+    // ⚠️ K.I.N.D SUPPRESSION IS NOT ROLLED BACK. It never depended on this call succeeding.
+    // The blocker stays open, the founder is paged, and the person remains suppressed on
+    // every K.I.N.D path — what is unresolved is only the provider's own copy.
+    console.error('[provider-eviction] Smartlead global block list FAILED —', key, res.error)
+    try {
+      const { sendFounderAlert } = await import('./alerts')
+      await sendFounderAlert('support_escalation',
+        `🛑 SMARTLEAD SUPPRESSION FAILED — ${key}`, [
+          `${key} opted out (${reason}) and is in ${unresolved.length === 1 ? 'a live Smartlead campaign' : `${unresolved.length} live Smartlead campaigns`}.`,
+          'K.I.N.D suppression HELD — we will not email them. Smartlead was NOT told and sends from its own copy.',
+          `The API call failed: ${res.error}`,
+          '',
+          'Add them to the Smartlead global block list by hand, then clear the blocker.',
+        ])
+    } catch (alertErr) {
+      console.error('[provider-eviction] alert failed too —', alertErr instanceof Error ? alertErr.message : alertErr)
+    }
+    return { attempted: true, providerOk: false, openBlockers: unresolved.length, detail: res.error }
+  }
+
+  // ── STEP 3 · RESOLVE, KEEPING THE EVIDENCE ───────────────────────────────────────────
+  // The rows are NOT cleared to null: `provider_eviction_required_at` stays, so the record
+  // still says this person was in a campaign when they opted out and how long the gap was.
+  // Resolution is a stamp on top of history, never an erasure of it.
+  for (const r of unresolved) {
+    const { error: doneErr } = await db.from('leads').update({
+      provider_evicted_at: now,
+      provider_evicted_by: 'smartlead-api:global_block_list',
+    }).eq('id', r.id)
+    if (doneErr) {
+      // The provider DID accept it; we simply failed to record that. Leaving the blocker open
+      // is the safe direction — a human re-checking a person already blocked costs a minute.
+      console.error('[provider-eviction] Smartlead accepted but the blocker could not be cleared —', r.id, doneErr.message)
+      return { attempted: true, providerOk: true, openBlockers: unresolved.length, detail: doneErr.message }
+    }
+  }
+
+  return { attempted: true, providerOk: true, openBlockers: 0 }
 }
 
 /**

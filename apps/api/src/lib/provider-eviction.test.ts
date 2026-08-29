@@ -45,23 +45,42 @@ const readRaw = (f: string) => readFileSync(join(API, f), 'utf8')
 // ═══════════════════════════════════════════════════════════════════════════════════════
 
 describe('every provider path is classified, and the classification matches the code', () => {
-  it('SMARTLEAD — no safe eviction mechanism, so a blocker is raised instead of a claim', () => {
-    // The existing helper ALERTS. It sends an email naming who to remove by hand. It issues
-    // no stop, pause or delete call, because none can be confirmed from here.
+  it('SMARTLEAD — the provider IS told, via its global block list', () => {
+    // ⛓️ THIS ASSERTION REPLACES ONE THAT WAS WRONG. It used to prove that only an ALERT
+    // existed, and cited that as evidence of "no safe eviction mechanism". That was true of
+    // this repo and I stated it as a fact about Smartlead, whose API supports pause,
+    // unsubscribe-from-campaign, global unsubscribe and a workspace global block list. A
+    // green test asserting the wrong claim defends it, so it is replaced, not amended.
+    expect(read('lib/smartlead.ts')).toContain('addToGlobalBlockList')
+    expect(read('lib/provider-eviction.ts')).toContain('addToGlobalBlockList')
+  })
+
+  it('the endpoint chosen matches our suppression IDENTITY and SEMANTICS', () => {
+    const sl = read('lib/smartlead.ts')
+    const fn = sl.slice(sl.indexOf('export async function addToGlobalBlockList'))
+    const body = fn.slice(0, fn.indexOf('\n}'))
+    // Email, not a stored Smartlead lead id we may never have.
+    expect(body).toContain('domain_block_list')
+    // Workspace-wide: null client scope. Global has to outlive any one campaign.
+    expect(body).toContain('client_id: null')
+    // ⚠️ ADDRESSES ONLY — never a bare domain. Suppressing a whole company because one
+    // person opted out would silence colleagues who never asked.
+    expect(body).not.toMatch(/split\(['"]@['"]\)/)
+  })
+
+  it('THE 20-AUG ALERT IS KEPT ALONGSIDE, not replaced', () => {
+    // It is the human-readable half. The API call is the tracked half. Removing the alert to
+    // "tidy up" would take away the thing a person actually reads.
     const alertFn = read('lib/smartlead-send.ts')
-    const body = alertFn.slice(alertFn.indexOf('export async function alertSmartleadStillSending'))
-    const upToEnd = body.slice(0, body.indexOf('\n}'))
-    expect(upToEnd).toContain('sendFounderAlert')
-    // ⚠️ It must NOT be quietly upgraded to a guessed API call — writing an unverified
-    // endpoint on a path that touches real people is what the 20 Aug ruling forbids.
-    expect(upToEnd).not.toMatch(/fetch\(['"`]https:\/\/api\.smartlead/)
+    expect(alertFn).toContain('alertSmartleadStillSending')
+    expect(alertFn).toContain('sendFounderAlert')
   })
 
   it('SMARTLEAD — the blocker is raised on BOTH suppression doors, not just one', () => {
     // An opt-out tracked on reply-STOP and untracked on one-click unsubscribe is a hole
     // shaped exactly like the door people actually use.
-    expect(read('lib/reply-ingest.ts')).toContain('raiseProviderEviction')
-    expect(read('routes/figsy.ts')).toContain('raiseProviderEviction')
+    expect(read('lib/reply-ingest.ts')).toContain('propagateSuppressionToProviders')
+    expect(read('routes/figsy.ts')).toContain('propagateSuppressionToProviders')
   })
 
   it('INSTANTLY — dormant, so entry is refused AND retention is still counted', () => {
@@ -70,7 +89,7 @@ describe('every provider path is classified, and the classification matches the 
     // Refusing entry changes nothing for someone already inside a provider, so the refusal
     // path raises the blocker too. A revival must not be able to retain a suppressed person.
     const refusal = src.slice(src.indexOf('if (!verdict.allowed)'))
-    expect(refusal.slice(0, 700)).toContain('raiseProviderEviction')
+    expect(refusal.slice(0, 700)).toContain('propagateSuppressionToProviders')
   })
 
   it('WHATSAPP and LINKEDIN — no provider-side sequence exists to continue', () => {
@@ -87,13 +106,15 @@ describe('every provider path is classified, and the classification matches the 
     expect(doc).toContain('LINKEDIN')
   })
 
-  it('THE RISK IS NOT DESCRIBED AS CLOSED, anywhere', () => {
-    // The founder's instruction: "do not pretend the risk is closed". Asserted as text,
-    // because the wording is the control — a surface that reads as a tidy task queue would
-    // imply the risk is managed.
-    const src = readRaw('lib/provider-eviction.ts')
-    expect(src).toMatch(/does not close it|does not CLOSE the risk|not the same thing/i)
-    expect(src).toMatch(/NO LEGAL OR COMPLIANCE CLAIM/i)
+  it('THE CLAIM BOUNDARY IS STATED — code verified is not runtime verified', () => {
+    // The provider call is written to the DOCUMENTED contract; both Smartlead doc hosts
+    // return 403 from here, so the request shape cannot be confirmed. Mocked tests prove OUR
+    // half and never Smartlead's, and every file that carries the call says so — because the
+    // failure this repo keeps finding is a green suite read as a runtime guarantee.
+    for (const f of ['lib/provider-eviction.ts', 'lib/smartlead.ts']) {
+      expect(readRaw(f), `${f} must carry the claim boundary`).toMatch(/RUNTIME UNVERIFIED/)
+    }
+    expect(readRaw('lib/provider-eviction.ts')).toMatch(/NO LEGAL OR COMPLIANCE CLAIM/i)
   })
 })
 
@@ -101,7 +122,19 @@ describe('every provider path is classified, and the classification matches the 
 // B · THE FAILURE MATRIX — suppressed after enrol, before send
 // ═══════════════════════════════════════════════════════════════════════════════════════
 
-type Rec = { leads: Record<string, unknown>[]; updates: Record<string, unknown>[]; readError: { message: string } | null }
+type Rec = {
+  leads: Record<string, unknown>[]
+  updates: Record<string, unknown>[]
+  readError: { message: string } | null
+  /** What Smartlead's global block list answers. */
+  provider: { ok: true; data: unknown } | { ok: false; status: number | null; error: string }
+  providerCalls: string[][]
+  alerts: string[]
+}
+
+function fresh(): Rec {
+  return { leads: [], updates: [], readError: null, provider: { ok: true, data: {} }, providerCalls: [], alerts: [] }
+}
 
 async function withDb(rec: Rec) {
   vi.resetModules()
@@ -122,81 +155,201 @@ async function withDb(rec: Rec) {
       return q
     } },
   }))
+  vi.doMock('./smartlead', () => ({
+    addToGlobalBlockList: async (emails: string[]) => { rec.providerCalls.push(emails); return rec.provider },
+  }))
+  vi.doMock('./alerts', () => ({
+    sendFounderAlert: async (_k: string, subject: string) => { rec.alerts.push(subject) },
+  }))
   return import('./provider-eviction')
 }
 
-describe('SUPPRESSED AFTER ENROL — the blocker is raised, and it says what it means', () => {
-  let rec: Rec
-  beforeEach(() => { rec = { leads: [], updates: [], readError: null } })
-  afterEach(() => { vi.doUnmock('@kind/db'); vi.resetModules() })
+const inCampaign = (over: Record<string, unknown> = {}) => ({
+  id: 'l-1', smartlead_campaign_id: 'camp-9',
+  provider_eviction_required_at: null, provider_evicted_at: null, ...over,
+})
 
-  it('a suppressed person ALREADY IN a campaign raises a blocker', async () => {
-    rec.leads = [{ id: 'l-1', smartlead_campaign_id: 'camp-9', provider_eviction_required_at: null, provider_evicted_at: null }]
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// THE ACCEPTANCE MATRIX — A through F
+// ═══════════════════════════════════════════════════════════════════════════════════════
+
+describe('A · SUPPRESSED BEFORE THE PROVIDER PUSH — never pushed', () => {
+  it('a person in no provider triggers no provider call at all', async () => {
+    // The send gate refuses the push; there is nothing on Smartlead's side to stop, and
+    // calling their API for someone who was never there is noise, not safety.
+    const rec = fresh()
     const m = await withDb(rec)
-    const open = await m.raiseProviderEviction('stop@example.com', 'replied_opt_out')
-    expect(open).toBe(1)
+    const out = await m.propagateSuppressionToProviders('never-pushed@example.com', 'list_unsubscribe')
+    expect(out.attempted).toBe(false)
+    expect(out.openBlockers).toBe(0)
+    expect(rec.providerCalls).toHaveLength(0)
+    expect(rec.updates).toHaveLength(0)
+  })
+
+  it('the entry gate itself is the send gate — asserted where it lives', () => {
+    const push = read('lib/instantly-push.ts')
+    expect(push).toContain('checkSendAllowed')
+    expect(read('lib/smartlead-send.ts')).toContain('opt_out_blocklist')
+  })
+})
+
+describe('B · SUPPRESSED AFTER ENROLMENT — ours stops, and Smartlead is TOLD', () => {
+  it('THE PROVIDER SUPPRESSION REQUEST IS ACTUALLY MADE, with the email', async () => {
+    const rec = fresh()
+    rec.leads = [inCampaign()]
+    const m = await withDb(rec)
+    const out = await m.propagateSuppressionToProviders('Stop@Example.com', 'replied_opt_out')
+    expect(out.attempted).toBe(true)
+    expect(rec.providerCalls).toEqual([['stop@example.com']])
+  })
+
+  it('THE BLOCKER IS RAISED BEFORE THE CALL, not after', async () => {
+    // If the process dies mid-call the risk must already be recorded. Raising it afterwards
+    // means a crash leaves a suppressed person in a live campaign with nothing saying so.
+    const rec = fresh()
+    rec.leads = [inCampaign()]
+    const m = await withDb(rec)
+    await m.propagateSuppressionToProviders('stop@example.com', 'replied_opt_out')
     expect(rec.updates[0].provider_eviction_required_at).toBeTruthy()
     expect(rec.updates[0].provider_eviction_provider).toBe('smartlead')
-    expect(rec.updates[0].provider_eviction_reason).toBe('replied_opt_out')
   })
+})
 
-  it('a suppressed person NOT in any campaign raises nothing — the send gate is sufficient', async () => {
-    rec.leads = []
+describe('C · PROVIDER SUPPRESSION SUCCEEDS — resolved, with the evidence kept', () => {
+  it('no unresolved blocker remains', async () => {
+    const rec = fresh()
+    rec.leads = [inCampaign()]
     const m = await withDb(rec)
-    expect(await m.raiseProviderEviction('never-pushed@example.com', 'list_unsubscribe')).toBe(0)
-    expect(rec.updates).toHaveLength(0)
+    const out = await m.propagateSuppressionToProviders('stop@example.com', 'replied_opt_out')
+    expect(out.providerOk).toBe(true)
+    expect(out.openBlockers).toBe(0)
+    const resolve = rec.updates.find(u => u.provider_evicted_at)!
+    expect(resolve.provider_evicted_by).toBe('smartlead-api:global_block_list')
   })
 
-  it('RE-RAISING DOES NOT RESET THE CLOCK — the blocker\'s age is the operator signal', async () => {
-    // How long a suppressed person may have been receiving mail is the single most useful
-    // number here. Refreshing the timestamp on every re-check would erase it.
-    rec.leads = [{ id: 'l-1', smartlead_campaign_id: 'camp-9', provider_eviction_required_at: '2026-08-01T00:00:00Z', provider_evicted_at: null }]
+  it('HISTORY IS RETAINED — the raise is not erased by the resolution', async () => {
+    // The record must still say this person WAS in a campaign when they opted out, and how
+    // long the gap was. Resolution is a stamp on top of history, never an erasure of it.
+    const rec = fresh()
+    rec.leads = [inCampaign()]
     const m = await withDb(rec)
-    expect(await m.raiseProviderEviction('stop@example.com', 'again')).toBe(1)
-    expect(rec.updates).toHaveLength(0)
+    await m.propagateSuppressionToProviders('stop@example.com', 'replied_opt_out')
+    const resolve = rec.updates.find(u => u.provider_evicted_at)!
+    expect(resolve).not.toHaveProperty('provider_eviction_required_at')
   })
 
-  it('A THROW NEVER UNWINDS THE SUPPRESSION — the blocklist write has already happened', async () => {
-    // ⚠️ THIS IS A REGRESSION GUARD FOR A DEFECT I INTRODUCED, caught by check.sh at the
-    // final gate. The first cut of raiseProviderEviction had no try/catch, so an unexpected
-    // throw — a mock gap exposed it, but a schema change or a driver error would do the same
-    // — propagated out of suppressOptOut AFTER the blocklist row was written, taking the
-    // rest of the opt-out path down with it. alertSmartleadStillSending has always been
-    // wrapped for exactly this reason and I did not copy the reasoning with the pattern.
-    //
-    // Losing the blocker is an untracked risk. Losing the suppression means we keep emailing
-    // someone who said stop. The two are not close.
-    vi.resetModules()
-    vi.doMock('@kind/db', () => ({
-      db: { from: () => { throw new Error('driver exploded') } },
-    }))
-    const m = await import('./provider-eviction')
-    await expect(m.raiseProviderEviction('stop@example.com', 'replied_opt_out')).resolves.toBeNull()
-    vi.doUnmock('@kind/db')
+  it('no founder alert is raised on the happy path — an alert per opt-out is noise', async () => {
+    const rec = fresh()
+    rec.leads = [inCampaign()]
+    const m = await withDb(rec)
+    await m.propagateSuppressionToProviders('stop@example.com', 'replied_opt_out')
+    expect(rec.alerts).toHaveLength(0)
+  })
+})
+
+describe('D · PROVIDER SUPPRESSION FAILS — ours holds, the blocker stands', () => {
+  it('K.I.N.D SUPPRESSION IS NOT ROLLED BACK, and nothing here can unwind it', async () => {
+    // The blocklist write happened before this function was called and never depended on it.
+    // Asserted at the call site, because that ordering is the guarantee.
+    const src = read('lib/reply-ingest.ts')
+    const blocklistAt = src.indexOf("from('opt_out_blocklist')")
+    const providerAt = src.indexOf('propagateSuppressionToProviders')
+    expect(blocklistAt).toBeGreaterThan(-1)
+    expect(providerAt).toBeGreaterThan(blocklistAt)
   })
 
-  it('AN UNREADABLE CHECK RETURNS null, NEVER 0', async () => {
-    // "We could not tell whether this person is still in a campaign" is the most dangerous
-    // possible answer to render as "they are not".
+  it('a failed provider call leaves the blocker OPEN and pages the founder', async () => {
+    const rec = fresh()
+    rec.leads = [inCampaign()]
+    rec.provider = { ok: false, status: 401, error: 'HTTP 401 — the key was rejected' }
+    const m = await withDb(rec)
+    const out = await m.propagateSuppressionToProviders('stop@example.com', 'replied_opt_out')
+    expect(out.providerOk).toBe(false)
+    expect(out.openBlockers).toBe(1)
+    expect(rec.updates.some(u => u.provider_evicted_at)).toBe(false)
+    expect(rec.alerts[0]).toMatch(/SMARTLEAD SUPPRESSION FAILED/)
+  })
+
+  it('an unreadable membership check returns null blockers — NEVER zero', async () => {
+    const rec = fresh()
     rec.readError = { message: 'permission denied' }
     const m = await withDb(rec)
-    expect(await m.raiseProviderEviction('stop@example.com', 'replied_opt_out')).toBeNull()
+    const out = await m.propagateSuppressionToProviders('stop@example.com', 'replied_opt_out')
+    expect(out.openBlockers).toBeNull()
+    expect(rec.providerCalls).toHaveLength(0)
   })
 
-  it('the operator queue lists what is raised and NOT yet cleared', async () => {
+  it('A THROW NEVER UNWINDS THE SUPPRESSION', async () => {
+    // ⚠️ REGRESSION GUARD for a defect I introduced and check.sh caught: the first cut had no
+    // try/catch, so a throw propagated out of suppressOptOut AFTER the blocklist row was
+    // written, taking the rest of the opt-out path with it.
+    vi.resetModules()
+    vi.doMock('@kind/db', () => ({ db: { from: () => { throw new Error('driver exploded') } } }))
+    const m = await import('./provider-eviction')
+    const out = await m.propagateSuppressionToProviders('stop@example.com', 'replied_opt_out')
+    expect(out.openBlockers).toBeNull()
+    expect(out.providerOk).toBe(false)
+    vi.doUnmock('@kind/db')
+  })
+})
+
+describe('E · REPEATED SUPPRESSION IS IDEMPOTENT', () => {
+  it('an already-resolved person is NOT re-sent to the provider', async () => {
+    const rec = fresh()
+    rec.leads = [inCampaign({ provider_eviction_required_at: '2026-08-01T00:00:00Z', provider_evicted_at: '2026-08-01T01:00:00Z' })]
+    const m = await withDb(rec)
+    const out = await m.propagateSuppressionToProviders('stop@example.com', 'replied_opt_out')
+    expect(out.attempted).toBe(false)
+    expect(out.providerOk).toBe(true)
+    expect(rec.providerCalls).toHaveLength(0)
+    expect(rec.updates).toHaveLength(0)
+  })
+
+  it('AN OPEN BLOCKER KEEPS ITS ORIGINAL CLOCK on a retry', async () => {
+    // Its age is how long this person may have been receiving mail — the single most useful
+    // number here, and refreshing it on every retry erases exactly that.
+    const rec = fresh()
+    rec.leads = [inCampaign({ provider_eviction_required_at: '2026-08-01T00:00:00Z' })]
+    const m = await withDb(rec)
+    await m.propagateSuppressionToProviders('stop@example.com', 'again')
+    expect(rec.updates.some(u => u.provider_eviction_required_at)).toBe(false)
+  })
+
+  it('a retry after a failure DOES call the provider again — that is the recovery path', async () => {
+    const rec = fresh()
+    rec.leads = [inCampaign({ provider_eviction_required_at: '2026-08-01T00:00:00Z' })]
+    const m = await withDb(rec)
+    await m.propagateSuppressionToProviders('stop@example.com', 'again')
+    expect(rec.providerCalls).toEqual([['stop@example.com']])
+  })
+
+  it('nothing here resumes a lead or clears a local suppression', async () => {
+    const rec = fresh()
+    rec.leads = [inCampaign()]
+    const m = await withDb(rec)
+    await m.propagateSuppressionToProviders('stop@example.com', 'replied_opt_out')
+    for (const u of rec.updates) {
+      expect(Object.keys(u)).not.toContain('status')
+      expect(Object.keys(u)).not.toContain('opted_out_at')
+      expect(Object.keys(u)).not.toContain('opted_back_in_at')
+    }
+  })
+})
+
+describe('the operator queue and its named-human resolution', () => {
+  it('lists what is raised and NOT yet cleared', async () => {
+    const rec = fresh()
     rec.leads = [{ id: 'l-1', client_id: 'c1', email: 'stop@example.com', smartlead_campaign_id: 'camp-9',
       provider_eviction_provider: 'smartlead', provider_eviction_reason: 'replied_opt_out',
       provider_eviction_required_at: '2026-08-01T00:00:00Z' }]
     const m = await withDb(rec)
     const pending = await m.pendingProviderEvictions()
-    expect(pending).not.toBeNull()
     expect(pending![0].campaignId).toBe('camp-9')
     expect(pending![0].raisedAt).toBe('2026-08-01T00:00:00Z')
   })
 
   it('A BLOCKER CANNOT BE CLEARED WITHOUT A NAMED HUMAN', async () => {
-    // "The system cleared it" confirms nothing. A blocker closeable without a name is a
-    // blocker that gets closed to tidy the list.
+    const rec = fresh()
     const m = await withDb(rec)
     expect(await m.markProviderEvicted('l-1', '   ')).toBe(false)
     expect(rec.updates).toHaveLength(0)
@@ -220,7 +373,7 @@ describe('OUR OWN continuation is stopped — the half that IS fully closed', ()
     // The suppression itself is the thing that matters and must not be held hostage to a
     // membership check — an alert or blocker failure must never take the opt-out down with it.
     const blocklistAt = src.indexOf("from('opt_out_blocklist')")
-    const blockerAt = src.indexOf('raiseProviderEviction')
+    const blockerAt = src.indexOf('propagateSuppressionToProviders')
     expect(blocklistAt).toBeGreaterThan(-1)
     expect(blockerAt).toBeGreaterThan(blocklistAt)
   })

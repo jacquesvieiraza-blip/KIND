@@ -133,8 +133,8 @@ async function recordUnsubscribe(email: string): Promise<void> {
   // Both suppression doors raise the blocker, not just one. An opt-out that is tracked on
   // reply-STOP and untracked on one-click unsubscribe is a hole shaped exactly like the
   // door people actually use.
-  const { raiseProviderEviction } = await import('../lib/provider-eviction')
-  await raiseProviderEviction(addr, 'list_unsubscribe')
+  const { propagateSuppressionToProviders } = await import('../lib/provider-eviction')
+  await propagateSuppressionToProviders(addr, 'list_unsubscribe')
 
   void logOutcomeEvent({
     client_id: null, campaign_id: null, lead_id: null, enrollment_id: null,

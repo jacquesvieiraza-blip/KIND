@@ -21,7 +21,10 @@ const alerts: Array<{ kind: string; subject: string; lines: string[] }> = []
 function makeQuery(table: string) {
   const q: Record<string, unknown> = {}
   const chain = () => q
-  for (const m of ['select', 'eq', 'in', 'not', 'order', 'limit', 'gte']) q[m] = chain
+  // `ilike` added 29 Aug (BUILD-003 item 6): the provider-eviction blocker matches
+  // `leads.email` case-insensitively, because leads store the raw address (HC-1/F10) and an
+  // opt-out that misses on case is an opt-out nobody ever actions.
+  for (const m of ['select', 'eq', 'in', 'not', 'order', 'limit', 'gte', 'ilike']) q[m] = chain
   // `select(...).eq(...).limit(...)` is awaited directly — resolve as a thenable.
   q.then = (resolve: (v: unknown) => void) => {
     if (table === 'leads') resolve({ data: leadsByEmail, error: leadsError })

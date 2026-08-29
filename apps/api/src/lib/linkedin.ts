@@ -1,6 +1,8 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { db } from '@kind/db'
-import { isSuppressed } from './suppression'
+// BUILD-003 item 6 — the one suppression gate every send path asks: DNC floor AND the
+// global opt-out blocklist, which this path never read.
+import { checkSendAllowed } from './send-gate'
 
 const anthropic = new Anthropic()
 
@@ -59,12 +61,25 @@ export async function dispatchLinkedInStep(queueId: string): Promise<{ sent: boo
 
   if (!step) return { sent: false, method: 'manual' }
 
-  // DO-NOT-CONTACT: final hard gate before any LinkedIn touch — never message
-  // anyone connected to the founder's employer.
+  // ── SUPPRESSION: the final hard gate before any LinkedIn touch ────────────────────────
+  //
+  // ⛓️ THIS CHECKED ONLY HALF THE QUESTION (corrected 29 Aug, BUILD-003 item 6). It called
+  // `isSuppressed` — the do-not-contact FLOOR, the founder's employer and its sister brands
+  // — and never read `opt_out_blocklist`. Those answer different questions: the floor is
+  // "we never contact these companies"; the blocklist is "this PERSON told us to stop".
+  //
+  // So someone who replied STOP to an email could still be sent a LinkedIn connection
+  // request, on a channel where the approach is more personal, not less. The shared gate
+  // asks both, and it is global: it does not matter which client is asking.
   const { data: liLead } = await db.from('leads')
     .select('email, company, linkedin_url').eq('id', step.lead_id).maybeSingle()
-  if (liLead && isSuppressed({ email: liLead.email, company: liLead.company, linkedin: liLead.linkedin_url || step.linkedin_url })) {
-    console.warn(`[linkedin] dispatch blocked — lead ${step.lead_id} is on the do-not-contact list`)
+  const verdict = await checkSendAllowed({
+    email:    liLead?.email ?? null,
+    company:  liLead?.company ?? null,
+    linkedin: liLead?.linkedin_url || step.linkedin_url,
+  })
+  if (!verdict.allowed) {
+    console.warn(`[linkedin] dispatch blocked (${verdict.reason}) — lead ${step.lead_id}: ${verdict.message}`)
     await db.from('figsy_linkedin_queue').update({ status: 'failed' }).eq('id', queueId)
     return { sent: false, method: 'manual' }
   }

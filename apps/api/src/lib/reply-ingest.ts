@@ -169,6 +169,17 @@ export async function suppressOptOut(
   const { alertSmartleadStillSending } = await import('./smartlead-send')
   await alertSmartleadStillSending(email, reason)
 
+  // ── PROVIDER-SIDE SUPPRESSION (BUILD-003 item 6 completion) ──────────────────────────
+  // ⚠️ ORDER IS THE DESIGN. The K.I.N.D blocklist write happened ABOVE and is authoritative;
+  // it never depended on any provider being reachable. Only then do we tell Smartlead, whose
+  // engine holds its own copy of the lead and would otherwise keep sending.
+  //
+  // A failure here does NOT roll back the suppression — it leaves a persistent operator
+  // blocker and pages the founder. The 20-Aug alert is kept alongside, not replaced: it is
+  // the human-readable half, and this is the tracked half.
+  const { propagateSuppressionToProviders } = await import('./provider-eviction')
+  await propagateSuppressionToProviders(email, reason)
+
   if (failures.length > 0) {
     await sendFounderAlert('support_escalation',
       `🛑 OPT-OUT NOT FULLY APPLIED — ${email}`, [

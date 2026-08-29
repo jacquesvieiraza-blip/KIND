@@ -238,6 +238,112 @@ create index if not exists order_forms_client_id_idx on public.order_forms(clien
 create index if not exists order_forms_status_idx    on public.order_forms(status);
 
 -- ─────────────────────────────────────────────
+-- PROVIDER-EVICTION BLOCKER  (BUILD-003 item 6, 29 Aug)
+-- ─────────────────────────────────────────────
+-- A person suppressed AFTER they were already pushed into a provider that sends from its own
+-- copy of the lead. Our send gate cannot reach them; only a human, in the provider's own
+-- dashboard, can. Raised automatically at suppression and cleared only on a NAMED
+-- confirmation. ⚠️ A raised blocker means delivery may STILL be happening — it records the
+-- risk, it does not close it.
+alter table public.leads add column if not exists provider_eviction_required_at timestamptz;
+alter table public.leads add column if not exists provider_eviction_provider text;
+alter table public.leads add column if not exists provider_eviction_reason text;
+alter table public.leads add column if not exists provider_evicted_at timestamptz;
+alter table public.leads add column if not exists provider_evicted_by text;
+
+create index if not exists leads_provider_eviction_pending_idx
+  on public.leads (provider_eviction_required_at)
+  where provider_eviction_required_at is not null and provider_evicted_at is null;
+
+-- ─────────────────────────────────────────────
+-- MEETINGS  (BUILD-003, 29 Aug)
+-- ─────────────────────────────────────────────
+-- The SOLE source of meeting state and count truth. Replaces
+-- `figsy_replies.meeting_booked_at` — a nullable timestamp on a REPLY row that six call sites
+-- each re-counted, and which could not tell HELD from NO_SHOW, exclude a duplicate, or record
+-- a failed calendar write. MEETING_BOOKED is the hard product-outcome boundary (P v1 r21).
+--
+-- ⚠️ CANONICAL TRUTH FOR EXECUTION IS supabase/migrations/20260829_meetings.sql, which also
+-- carries the erasure trigger on public.leads. This snapshot reflects the TABLE, as the
+-- accepted file map requires — it is not a second place to change the schema.
+
+create table if not exists public.meetings (
+  id                   uuid primary key default gen_random_uuid(),
+  -- RESTRICT: a client with meeting history is not deleted out from under the outcome record.
+  client_id            uuid not null references public.clients(id) on delete restrict,
+  -- The prospect by REFERENCE ONLY — no name, email or phone is stored here, so erasing the
+  -- lead leaves no second copy of the person behind.
+  lead_id              uuid references public.leads(id)             on delete set null,
+  campaign_id          uuid references public.figsy_campaigns(id)   on delete set null,
+  enrollment_id        uuid references public.figsy_enrollments(id) on delete set null,
+  programme_id         uuid references public.programmes(id)        on delete set null,
+  state                text not null
+                         check (state in ('BOOKED', 'BOOKED_UNVERIFIED', 'HELD', 'NO_SHOW')),
+  google_event_id      text,
+  scheduled_at         timestamptz not null,
+  booked_at            timestamptz not null default now(),
+  verified_at          timestamptz,
+  held_confirmed_at    timestamptz,
+  no_show_confirmed_at timestamptz,
+  confirmed_by         text,
+  rescheduled_from     uuid references public.meetings(id) on delete set null,
+  superseded_by        uuid references public.meetings(id) on delete set null,
+  excluded_reason      text check (excluded_reason in ('duplicate', 'spam', 'outside_icp')),
+  excluded_at          timestamptz,
+  excluded_note        text,
+  created_at           timestamptz not null default now(),
+  updated_at           timestamptz not null default now(),
+
+  -- HELD and NO_SHOW are never inferred from the clock — a meeting whose time has passed is
+  -- not evidence that anyone attended it.
+  constraint meetings_held_requires_confirmation
+    check (state <> 'HELD' or held_confirmed_at is not null),
+  constraint meetings_no_show_requires_confirmation
+    check (state <> 'NO_SHOW' or no_show_confirmed_at is not null),
+  constraint meetings_held_stamp_matches_state
+    check (held_confirmed_at is null or state = 'HELD'),
+  constraint meetings_no_show_stamp_matches_state
+    check (no_show_confirmed_at is null or state = 'NO_SHOW'),
+  constraint meetings_not_both_outcomes
+    check (held_confirmed_at is null or no_show_confirmed_at is null),
+  -- BOOKED requires verified_at and NOT google_event_id: erasure clears the event pointer
+  -- while the booking stays verified, because that a booking WAS verified is historical
+  -- outcome evidence.
+  constraint meetings_booked_requires_verification
+    check (state <> 'BOOKED' or verified_at is not null),
+  constraint meetings_unverified_carries_no_proof
+    check (state <> 'BOOKED_UNVERIFIED' or verified_at is null),
+  -- No orphan event pointer. A google_event_id resolves inside Google to an invitee's
+  -- address, so an event id with no lead points back at a person this row must not identify.
+  -- This also backstops the erasure trigger: lead_id is ON DELETE SET NULL, so if that
+  -- trigger is dropped, deleting a lead fails HERE rather than leaving the pointer behind.
+  constraint meetings_no_orphan_event_pointer
+    check (google_event_id is null or lead_id is not null),
+  constraint meetings_exclusion_is_complete
+    check ((excluded_reason is null) = (excluded_at is null)),
+  constraint meetings_not_rescheduled_from_self
+    check (rescheduled_from is null or rescheduled_from <> id)
+);
+
+create unique index if not exists meetings_google_event_id_key
+  on public.meetings (google_event_id) where google_event_id is not null;
+
+-- One live booking per lead, enforced by the DATABASE: two replies arriving at once would
+-- otherwise each read "no meeting yet" and each insert one, inflating the single number the
+-- commercial model is judged on.
+create unique index if not exists meetings_one_live_booking_per_lead
+  on public.meetings (lead_id)
+  where lead_id is not null
+    and state in ('BOOKED', 'BOOKED_UNVERIFIED')
+    and superseded_by is null
+    and excluded_reason is null;
+
+create index if not exists meetings_client_idx    on public.meetings (client_id, scheduled_at desc);
+create index if not exists meetings_programme_idx on public.meetings (programme_id) where programme_id is not null;
+create index if not exists meetings_lead_idx      on public.meetings (lead_id) where lead_id is not null;
+create index if not exists meetings_state_idx     on public.meetings (client_id, state);
+
+-- ─────────────────────────────────────────────
 -- ROW LEVEL SECURITY
 -- ─────────────────────────────────────────────
 -- Enable RLS on all tables. Each client can only see their own data.
@@ -252,6 +358,12 @@ alter table public.chatbot_configs  enable row level security;
 alter table public.usage_metrics         enable row level security;
 alter table public.agreement_templates   enable row level security;
 alter table public.order_forms           enable row level security;
+-- ⚠️ meetings gets NO policy, deliberately: RLS on with no policy IS the deny for
+-- `authenticated`, and the service role bypasses it. Meeting truth reaches a client through
+-- the API, which applies the counting rules (exclusions, supersessions, the four states),
+-- rather than handing a browser raw rows it would have to interpret — which is precisely how
+-- six call sites each grew their own definition of "does this count".
+alter table public.meetings              enable row level security;
 
 -- Helper: resolve current user's client id
 create or replace function public.current_client_id()

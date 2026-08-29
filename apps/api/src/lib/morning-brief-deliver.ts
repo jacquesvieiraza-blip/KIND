@@ -11,6 +11,8 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { db } from '@kind/db'
+// BUILD-003 item 2 — public.meetings is the sole source of meeting counts.
+import { meetingCounts } from './meeting-truth'
 import {
   BRIEF_KIND, briefTag, composeBrief, londonDay, londonWeekStart,
 } from './morning-brief'
@@ -65,18 +67,22 @@ export async function ensureTodaysBrief(clientId: string, now: Date = new Date()
     // own greeting already reports it, from a query that mirrors this one's
     // sibling exactly — so printing it again put the same number in two
     // consecutive messages. Founder's call: the greeting keeps it.
-    const meetings = await db.from('calendar_bookings')
-      .select('id', { count: 'exact', head: true })
-      .eq('client_id', clientId)
-      .eq('status', 'confirmed')
-      .gte('start_time', weekStart)
+    // ⛓️ THIS COUNTED `calendar_bookings` (BUILD-003 item 2). That table is an operational
+    // record of what we asked Google to create — it has no notion of a duplicate, a spam
+    // booking or a reschedule, so a client whose meeting moved twice was told they had three.
+    // public.meetings is the sole count truth, and it knows all three.
+    const counts = await meetingCounts({ clientId, since: weekStart })
 
     // #136a — a number we could not measure must not render as zero. A failed
     // count is not "no meetings"; treating it as one would report a quiet week
     // to a client who had three. No brief beats a false brief.
-    if (meetings.error) return { status: 'failed', reason: `meetings count: ${meetings.error.message}` }
+    // #136a — a number we could not measure must not render as zero. A failed count is not
+    // "no meetings"; treating it as one would report a quiet week to a client who had three.
+    // No brief beats a false brief — which is exactly why meetingCounts returns null rather
+    // than an empty result on failure.
+    if (counts === null) return { status: 'failed', reason: 'meetings count unreadable' }
 
-    const text = composeBrief({ meetingsThisWeek: meetings.count ?? 0 })
+    const text = composeBrief({ meetingsThisWeek: counts.booked })
     // Nothing worth saying today. The greeting already stands on its own, so
     // silence here is the product working, not a failure — and stamping no row
     // means tomorrow gets a fresh chance to have news.

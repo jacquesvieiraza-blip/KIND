@@ -231,6 +231,54 @@ export async function addLeads(campaignId: string, leadList: unknown[]): Promise
   )
 }
 
+/**
+ * Add an address to SMARTLEAD'S OWN GLOBAL BLOCK LIST.
+ *
+ * ⚠️ THIS IS THE PROVIDER-SIDE HALF OF K.I.N.D GLOBAL SUPPRESSION. Our `opt_out_blocklist`
+ * stops OUR sends; Smartlead sends from its own engine with its own copy of the lead, so
+ * without this call a person who says STOP is suppressed everywhere except the one place
+ * still emailing them.
+ *
+ * WHY THE BLOCK LIST AND NOT pause/unsubscribe-in-campaign:
+ *   · our suppression identity is an EMAIL — this endpoint takes one directly and needs no
+ *     Smartlead lead id, which we may never have stored;
+ *   · its semantics are the ones we mean: GLOBAL and forward-looking, not per-campaign, so a
+ *     future campaign cannot re-add the same person;
+ *   · `addLeads` already sends `ignore_global_block_list: false`, so an address on this list
+ *     is refused at the door on every subsequent push. The two halves were built to meet.
+ *
+ * The endpoint takes a mixed list of emails and domains. We send addresses only — suppressing
+ * a whole domain because one person opted out would silence colleagues who never asked.
+ *
+ * ⚠️ `client_id: null` IS NOT "THE WHOLE WORKSPACE", AND MY FIRST COMMENT HERE SAID IT WAS.
+ * Smartlead's documentation is the opposite: a null-scoped block-list entry applies only to
+ * campaigns with NO Smartlead client assigned, and does NOT reach campaigns inside client
+ * sub-accounts. Blocking across sub-accounts needs one client-scoped entry each.
+ *
+ * IT IS STILL THE CORRECT SCOPE HERE, but for a reason that has to be stated rather than
+ * assumed: EVERY K.I.N.D CAMPAIGN IS UNASSIGNED. `createCampaign` posts `{ name }` and no
+ * client scope; `addLeads` posts no client scope; `SmartleadCampaign` does not even model
+ * one; and no client-create, client-list or client-assign call exists anywhere in this
+ * integration. Our tenancy is carried by the campaign NAME — `K.I.N.D — <uuid>` — where that
+ * uuid is K.I.N.D's OWN `clients.id`, which is not Smartlead's whitelabel client id and must
+ * never be confused with it.
+ *
+ * 🛑 IF THAT EVER CHANGES, THIS CALL SILENTLY STOPS WORKING and suppressed people keep
+ * receiving mail with nothing failing. `smartlead-client-scope.test.ts` fails the build the
+ * moment a campaign write gains a client scope, precisely so the change cannot be quiet.
+ *
+ * ⚠️ CODE VERIFIED, RUNTIME UNVERIFIED. Written to the documented contract; both Smartlead doc
+ * hosts return 403 to this environment, so the request SHAPE cannot be confirmed from here.
+ * It must be walked against a live workspace before the first client send. Failure is
+ * surfaced, never swallowed — see `provider-eviction.ts`, where a failed call leaves a
+ * persistent operator blocker rather than a silent no-op.
+ */
+export async function addToGlobalBlockList(emails: string[]): Promise<SmartleadResult<unknown>> {
+  const list = emails.map(e => e.trim().toLowerCase()).filter(Boolean)
+  if (list.length === 0) return { ok: true, data: {} }
+  return write('/leads/add-domain-block-list', { domain_block_list: list, client_id: null })
+}
+
 /** List campaigns — the write half needs this to find an existing campaign by name. */
 export async function listCampaignsTyped(): Promise<SmartleadResult<SmartleadCampaign[]>> {
   const r = await get('/campaigns/')
@@ -268,7 +316,7 @@ export const NOT_POSSIBLE: { what: string; why: string }[] = [
   },
   {
     what: 'Removing or stopping a lead in a campaign when they opt out (HC-3)',
-    why: 'THE GAP THAT MATTERS MOST IN THIS LIST, because it is the one with a person on the other end. Smartlead sends from its own engine with its own copy of the lead, so `opt_out_blocklist` — which every one of OUR send paths re-reads — does nothing to it. A person who replies STOP is suppressed everywhere except the one place still emailing them. There is NO remove/stop/lead-lookup endpoint in this file to call, and api.smartlead.ai returns 403 to this environment so no URL can be confirmed; writing one would be guessing an endpoint, which is what the replies entry below already refuses to do. Founder-ruled 20 Aug — *"yes alert not api"*. So `alertSmartleadStillSending` in `smartlead-send.ts` reads `leads.smartlead_campaign_id` and pages the founder with the person and the campaign to remove by hand, on BOTH suppression doors (reply-STOP and one-click unsubscribe). That works today; the API call gets written the day the workspace is live, which is also the first day it could be tested. ⚠️ NOT a silent no-op — a silent one would make the product LOOK like it propagates opt-outs while a suppressed person kept receiving mail.',
+    why: '⛓️ SUPERSEDED 29 Aug — THIS ENTRY WAS WRONG ABOUT SMARTLEAD, AND THE ERROR IS WORTH KEEPING. It said there is no remove/stop endpoint to call. That was true of THIS FILE and was written as though it were true of SMARTLEAD, which it is not: the provider API supports pausing a lead, unsubscribing it from a campaign, unsubscribing it globally, and adding an EMAIL to the workspace global block list. The 403 from this environment blocked reading the docs and I recorded the limit as a provider limitation instead of ours — the exact shape of mistake this register exists to prevent. `addToGlobalBlockList` now calls it, and `provider-eviction.ts` keeps the operator blocker as the FAILURE path rather than the normal end state. The founder-ruled 20-Aug alert is retained alongside, not replaced. ⚠️ The call is CODE VERIFIED against the documented contract and RUNTIME UNVERIFIED until a live workspace walk. HISTORICAL TEXT FOLLOWS: THE GAP THAT MATTERS MOST IN THIS LIST, because it is the one with a person on the other end. Smartlead sends from its own engine with its own copy of the lead, so `opt_out_blocklist` — which every one of OUR send paths re-reads — does nothing to it. A person who replies STOP is suppressed everywhere except the one place still emailing them. There is NO remove/stop/lead-lookup endpoint in this file to call, and api.smartlead.ai returns 403 to this environment so no URL can be confirmed; writing one would be guessing an endpoint, which is what the replies entry below already refuses to do. Founder-ruled 20 Aug — *"yes alert not api"*. So `alertSmartleadStillSending` in `smartlead-send.ts` reads `leads.smartlead_campaign_id` and pages the founder with the person and the campaign to remove by hand, on BOTH suppression doors (reply-STOP and one-click unsubscribe). That works today; the API call gets written the day the workspace is live, which is also the first day it could be tested. ⚠️ NOT a silent no-op — a silent one would make the product LOOK like it propagates opt-outs while a suppressed person kept receiving mail.',
   },
   {
     what: 'Respecting a published rate limit',

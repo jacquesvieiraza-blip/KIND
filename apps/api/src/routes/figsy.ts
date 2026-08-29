@@ -9,6 +9,8 @@ import { db } from '@kind/db'
 import { requireAuth, AuthRequest } from '../middleware/auth'
 import { generateSequence, getClientKnowledgeForOutreach, sendSequenceEmail, enrollmentStep, autoEnrollLead, applyReplyBranching, campaignReadyLeadIds, recomputeCampaignCounters, personalizationSignals, chargeFigsyEnroll, refundFigsyEnroll, updateEnrollmentState } from '../lib/figsy'
 import type { Lead, SendOutcome } from '../lib/figsy'
+// BUILD-003 item 2 — meeting counts come from public.meetings, never from reply timestamps.
+import { campaignMeetingCounts } from '../lib/meeting-truth'
 import { bookingUrlForLead } from '../lib/booking-token'
 import { canEnroll } from '../lib/billing-rules'
 import { isDemoClient } from '../lib/demo'
@@ -127,6 +129,12 @@ async function recordUnsubscribe(email: string): Promise<void> {
   // environment and is registered in NOT_POSSIBLE rather than guessed.
   const { alertSmartleadStillSending } = await import('../lib/smartlead-send')
   await alertSmartleadStillSending(addr, 'list_unsubscribe')
+
+  // Both suppression doors raise the blocker, not just one. An opt-out that is tracked on
+  // reply-STOP and untracked on one-click unsubscribe is a hole shaped exactly like the
+  // door people actually use.
+  const { propagateSuppressionToProviders } = await import('../lib/provider-eviction')
+  await propagateSuppressionToProviders(addr, 'list_unsubscribe')
 
   void logOutcomeEvent({
     client_id: null, campaign_id: null, lead_id: null, enrollment_id: null,
@@ -350,6 +358,9 @@ figsyRouter.post('/replies/inbound', async (req, res) => {
       // FETCH rather than an empty reply — and the alert has to be able to say which.
       bodyFetchAttempted: fetchAttempted,
       bodyFetchFailure: fetchFailure,
+      // BUILD-003 item 7 — the exact key this route deduped on, so the database's unique
+      // index protects the same identity rather than a second opinion about it.
+      eventKey: dedupKey,
     })
     if (!result.ok) { res.status(200).json({ received: true, dropped: result.dropped }); return }
     res.status(200).json({ received: true, id: result.replyId, clients: result.clients })
@@ -433,7 +444,9 @@ figsyRouter.post('/replies/smartlead', unsubscribeLimiter, async (req, res) => {
 
     // Smartlead delivers the body inline, so there is no fetch to diagnose — the Resend-only
     // body-fetch fields stay at their defaults.
-    const result = await processInboundReply(inbound, { rawPayload: raw })
+    // BUILD-003 item 7 — the exact key this route deduped on, passed through so the database
+    // backstop protects the same identity the application reasons about.
+    const result = await processInboundReply(inbound, { rawPayload: raw, eventKey: dedupKey })
     if (!result.ok) { res.status(200).json({ received: true, dropped: result.dropped }); return }
     res.status(200).json({ received: true, id: result.replyId, clients: result.clients })
   } catch (err) {
@@ -986,25 +999,38 @@ async function reconcileCampaignCounters(
   const repliesTotal: Record<string, number> = {}
   const repliesInterested: Record<string, number> = {}
   const optedOut: Record<string, number> = {}
-  const meetings: Record<string, number> = {}
   for (const r of (repliesRes.data ?? []) as { campaign_id: string | null; classification: string | null; meeting_booked_at: string | null }[]) {
     if (!r.campaign_id) continue
     repliesTotal[r.campaign_id] = (repliesTotal[r.campaign_id] ?? 0) + 1
     if (r.classification === 'hot' || r.classification === 'interested') repliesInterested[r.campaign_id] = (repliesInterested[r.campaign_id] ?? 0) + 1
     if (r.classification === 'opt_out' || r.classification === 'unsubscribe') optedOut[r.campaign_id] = (optedOut[r.campaign_id] ?? 0) + 1
-    if (r.meeting_booked_at) meetings[r.campaign_id] = (meetings[r.campaign_id] ?? 0) + 1
+    // ⛓️ `if (r.meeting_booked_at) meetings[...]++` USED TO BE HERE (BUILD-003 item 2).
+    // The number now comes from public.meetings, below, through the one module that knows
+    // the counting rules — this loop could not exclude a duplicate or a spam booking, and
+    // counted a reschedule twice.
   }
   const enrolled: Record<string, number> = {}
   for (const r of (enrollRes.data ?? []) as { campaign_id: string | null }[]) {
     if (r.campaign_id) enrolled[r.campaign_id] = (enrolled[r.campaign_id] ?? 0) + 1
   }
   const n = (v: unknown) => (typeof v === 'number' ? v : 0)
+
+  // BUILD-003 item 2 — the meeting number comes from public.meetings, never from replies.
+  const meetings = await campaignMeetingCounts(campaigns.map(c => c.id as string))
+
   for (const c of campaigns) {
     c.emails_sent        = Math.max(sent[c.id] ?? 0,              n(c.emails_sent))
     c.replies_total      = Math.max(repliesTotal[c.id] ?? 0,      n(c.replies_total))
     c.replies_interested = Math.max(repliesInterested[c.id] ?? 0, n(c.replies_interested))
     c.opted_out          = Math.max(optedOut[c.id] ?? 0,          n(c.opted_out))
-    c.meetings_booked    = Math.max(meetings[c.id] ?? 0,          n(c.meetings_booked))
+    // ⚠️ NOT Math.max — and that is the fix, the same one recomputeCampaignCounters needed.
+    // Every other counter here ratchets so a partial recount cannot lose data. Ratcheting
+    // the meeting number would make it one-way: excluding a spam or duplicate booking could
+    // never bring it DOWN, so the exclusion feature would be silently inert on the one
+    // number the commercial model is judged on.
+    // A null map means the query FAILED — the cached value is left alone rather than
+    // overwritten with 0, because "unreadable" must never render as "none".
+    c.meetings_booked    = meetings === null ? n(c.meetings_booked) : (meetings[c.id as string] ?? 0)
     c.leads_enrolled     = Math.max(enrolled[c.id] ?? 0,          n(c.leads_enrolled))
   }
 }
@@ -2294,6 +2320,10 @@ figsyRouter.post('/replies/seed-demo', async (req: AuthRequest, res) => {
     const jobTitle  = lead?.job_title ?? 'CEO'
     const company   = lead?.company ?? 'Acme Corp'
 
+    // ⚠️ NO provider_event_key, DELIBERATELY. This is demo seeding: it fabricates a reply
+    // that no provider ever delivered, so there is no message id and no delivery id to key
+    // on. That is exactly the fail-open case the partial unique index is built for — see
+    // 20260829_reply_idempotency.sql.
     const { data: reply, error } = await db.from('figsy_replies').insert({
       campaign_id:              campaign?.id ?? null,
       lead_id:                  lead?.id ?? null,

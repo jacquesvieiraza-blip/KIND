@@ -16,6 +16,8 @@
 import { Router, Request, Response } from 'express'
 import crypto from 'crypto'
 import { db } from '@kind/db'
+// BUILD-003 item 2 — public.meetings is the sole source of meeting outcomes.
+import { meetingLeadIdsForCampaign } from '../lib/meeting-truth'
 import { normalizeRevealEmail } from '../lib/billing-rules'
 import { PACK_PRICE_USD, PACK_LEADS, LEAD_PRICE_USD } from '@kind/shared'
 import Anthropic from '@anthropic-ai/sdk'
@@ -2529,9 +2531,28 @@ internalRouter.post('/figsy/ab-winner-check', async (_req: Request, res: Respons
       const meetingsByLead = new Set<string>()
       const positiveByLead = new Set<string>()
       for (const r of (outcomeRows ?? []) as { lead_id: string; classification: string | null; meeting_booked_at: string | null }[]) {
-        if (r.meeting_booked_at) meetingsByLead.add(r.lead_id)
+        // ⛓️ `if (r.meeting_booked_at) meetingsByLead.add(...)` USED TO BE HERE
+        // (BUILD-003 item 2). A/B variants were judged on reply timestamps, so a variant
+        // could look like a winner on meetings that were duplicates, spam, or the same
+        // meeting rescheduled — and a winning variant becomes what every future prospect
+        // receives. The set now comes from public.meetings.
         if (r.classification === 'interested') positiveByLead.add(r.lead_id)
       }
+
+      // ⚠️ NEVER RESOLVE ON A FAILED READ. A null set means the meetings query failed, and
+      // scoring every variant at zero meetings would make the comparison meaningless while
+      // looking perfectly healthy — then lock a "winner" in for every future lead on this
+      // campaign. This is the #392 guard (never resolve on zero data) applied to the signal
+      // the decision now actually uses.
+      //
+      // We are inside `for (const campaign of campaigns)`, so this SKIPS THIS CAMPAIGN
+      // rather than answering the request: one unreadable campaign must not abandon the rest.
+      const meetingLeads = await meetingLeadIdsForCampaign(campaign.id as string, allLeadIds)
+      if (meetingLeads === null) {
+        console.error('[internal/ab] meeting truth unreadable — variant outcomes not scored for campaign', campaign.id)
+        continue
+      }
+      for (const leadId of meetingLeads) meetingsByLead.add(leadId)
 
       const outcomes: VariantOutcome[] = activeVariants.map(([label, emails]) => {
         const leadIds = variantLeadIds.get(label) ?? []

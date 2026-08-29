@@ -13,6 +13,8 @@ import { Router } from 'express'
 import { z } from 'zod'
 import crypto from 'crypto'
 import { db } from '@kind/db'
+// BUILD-003 item 2 — public.meetings is the sole source of meeting counts.
+import { clientMeetingCounts } from '../lib/meeting-truth'
 import { requireAuth, AuthRequest } from '../middleware/auth'
 import { sendSeatInviteEmail } from '../lib/email'
 
@@ -79,7 +81,20 @@ async function repStats(repIds: string[]): Promise<Record<string, { contacted: n
   for (const r of (repliesRes.data ?? []) as any[]) {
     if (!stats[r.client_id]) continue
     stats[r.client_id].replies++
-    if (r.meeting_booked_at) stats[r.client_id].booked++
+    // ⛓️ `if (r.meeting_booked_at) stats[...].booked++` USED TO BE HERE (BUILD-003 item 2).
+    // A rep's booked count came from reply timestamps, so it counted a reschedule twice and
+    // could not drop a duplicate or a spam booking. It now comes from public.meetings.
+  }
+
+  // BUILD-003 item 2 — the meeting number, from the one place that knows the counting rules.
+  // ⚠️ A null map means the query FAILED. The counts are left at whatever they were rather
+  // than written as zeros, because telling a company every rep booked nothing is a worse
+  // answer than telling them nothing at all.
+  const bookedByRep = await clientMeetingCounts(repIds)
+  if (bookedByRep) {
+    for (const id of repIds) if (stats[id]) stats[id].booked = bookedByRep[id] ?? 0
+  } else {
+    console.error('[company] meeting counts unreadable — booked figures left unchanged')
   }
 
   // Sent (contacted) is keyed by campaign → map campaign back to its rep.

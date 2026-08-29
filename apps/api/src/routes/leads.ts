@@ -1,6 +1,8 @@
 import { Router } from 'express'
 import { z } from 'zod'
 import { db } from '@kind/db'
+// BUILD-003 item 2 — public.meetings is the sole source of meeting state.
+import { liveMeetingsByLead } from '../lib/meeting-truth'
 import { normalizeRevealEmail, normalizeRevealEmails } from '../lib/billing-rules'
 import { requireAuth, AuthRequest } from '../middleware/auth'
 import { rateLimit } from '../lib/rate-limit'
@@ -426,13 +428,22 @@ leadRouter.get('/pipeline', async (req: AuthRequest, res) => {
       db.from('figsy_enrollments').select('lead_id, current_step, status').in('lead_id', safeIds),
       db.from('figsy_replies').select('lead_id, classification, received_at, meeting_booked_at')
         .eq('client_id', clientId).in('lead_id', safeIds),
-      db.from('calendar_bookings').select('lead_id, start_time, status')
-        .eq('client_id', clientId).in('lead_id', safeIds),
+      // ⛓️ THIS READ `calendar_bookings` (BUILD-003 item 2). That table records what we
+      // asked Google to create; it has no notion of a duplicate, a spam booking or a
+      // reschedule, so a lead whose meeting moved twice appeared booked twice over. The
+      // pipeline stage now comes from public.meetings.
+      liveMeetingsByLead(clientId, safeIds),
     ])
 
     const contactedIds = new Set((enrolled.data ?? []).filter((e: { current_step?: number }) => (e.current_step ?? 0) > 0).map((e: { lead_id: string }) => e.lead_id))
     const repliedMap = new Map((replies.data ?? []).map((r: { lead_id: string }) => [r.lead_id, r]))
-    const bookedMap = new Map((bookings.data ?? []).map((b: { lead_id: string }) => [b.lead_id, b]))
+    // ⚠️ null means the meetings read FAILED. An empty map would silently move every booked
+    // lead back to "replied", which reads to the client as meetings that un-happened.
+    if (bookings === null) {
+      res.status(503).json({ success: false, error: 'Meeting truth is unreadable — the pipeline was not built.' })
+      return
+    }
+    const bookedMap = bookings
 
     const card = (l: Record<string, unknown>) => ({
       id: l.id, name: [l.first_name, l.last_name].filter(Boolean).join(' ').trim() || 'Lead',
@@ -442,7 +453,7 @@ leadRouter.get('/pipeline', async (req: AuthRequest, res) => {
     for (const l of (approved ?? []) as Record<string, unknown>[]) {
       const id = l.id as string
       const b = bookedMap.get(id)
-      if (b) { stages.booked.push({ ...card(l), start_time: (b as { start_time?: string }).start_time ?? null }); continue }
+      if (b) { stages.booked.push({ ...card(l), start_time: b.scheduledAt ?? null }); continue }
       const r = repliedMap.get(id)
       if (r) { stages.replied.push({ ...card(l), classification: (r as { classification?: string }).classification ?? null }); continue }
       if (contactedIds.has(id)) { stages.contacted.push(card(l)); continue }

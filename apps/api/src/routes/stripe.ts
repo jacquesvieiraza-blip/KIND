@@ -512,9 +512,25 @@ stripeRouter.post('/webhook', async (req: Request, res: Response) => {
           // programme id gets 0) — but `startWorkForClient` also reaches campaign activation,
           // and relying on a downstream refusal to protect an upstream door is how the
           // AR8 lookalike hole survived. Refuse at the door, and say so.
-          const { data: openProg } = await db.from('programmes')
+          //
+          // ⚠️ AND THE ERROR IS READ, NOT DROPPED. Destructuring only `{ data }` here made a
+          // failed read look identical to "this client has no programme" — and the fail-OPEN
+          // consequence was the dangerous one: on a storage error a PROGRAMME client would
+          // fall straight through into `startWorkForClient` and begin sourcing and sending
+          // outside programme authority. Not knowing is not permission.
+          const { data: openProg, error: progErr } = await db.from('programmes')
             .select('id, status').eq('client_id', clientId)
             .not('status', 'in', '(COMPLETED,CANCELLED)').limit(1).maybeSingle()
+          if (progErr) {
+            console.error(`[stripe] could not read programme state for client ${clientId} — legacy work NOT started (fail closed):`, progErr)
+            void sendFounderAlert('payment_failed', 'Payment received but programme state was unreadable — work NOT started', [
+              `Client ${clientId} paid $${amountUsd}, and K.I.N.D could not determine whether they are on a programme.`,
+              `Reason: ${progErr.message}`,
+              'Nothing was sourced and no campaign was started, because starting work for a programme client through the legacy path would source outside programme authority.',
+              'The payment is recorded. Resolve the read failure, then decide what this money belongs to.',
+            ])
+            return
+          }
           if (openProg) {
             console.log(`[stripe] client ${clientId} is on programme ${(openProg as { id: string }).id} — legacy payment did NOT start work. Programme sourcing is authorised by the programme's own first payment.`)
             void sendFounderAlert('new_signup', 'Legacy payment received from a PROGRAMME client — work NOT started', [

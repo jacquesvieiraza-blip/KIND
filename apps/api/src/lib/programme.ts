@@ -77,17 +77,46 @@ export interface ProgrammeRow {
 
 export interface ProgrammeResult { ok: boolean; reason?: string; programme?: ProgrammeRow }
 
-/** The client's single open programme, or null. Terminal programmes are not "open". */
+/**
+ * Programme storage could not be read. NOT the same as "there is no programme".
+ *
+ * ⚠️ THIS EXISTS BECAUSE THE FOUNDER'S LIVE WALKTHROUGH FOUND THE TWO INDISTINGUISHABLE.
+ * Both readers below destructured only `{ data }` and dropped the error, so a missing table,
+ * a broken connection or a rejected query all returned `null` — exactly what a client with
+ * no programme returns. Every caller then reported "no programme exists" and carried on.
+ *
+ * That is the same defect shape this repo keeps finding — `.data ?? []` rendering a rejected
+ * query as an empty result — pointed at the table the entire commercial model lives in. On a
+ * money path, "I could not read it" and "it is not there" must never render the same.
+ */
+export class ProgrammeStorageError extends Error {
+  constructor(detail: string) {
+    super(`Programme storage could not be read: ${detail}`)
+    this.name = 'ProgrammeStorageError'
+  }
+}
+
+/**
+ * The client's single open programme, or null.
+ *
+ * ⚠️ `null` MEANS ONE THING ONLY: THE QUERY RAN AND MATCHED NO ROW. A database, query or
+ * schema error THROWS `ProgrammeStorageError` and never returns null — because a caller
+ * reading null decides "this is a legacy client" and proceeds, which is the wrong decision
+ * to make on missing information.
+ */
 export async function openProgrammeForClient(clientId: string): Promise<ProgrammeRow | null> {
-  const { data } = await db.from('programmes').select('*')
+  const { data, error } = await db.from('programmes').select('*')
     .eq('client_id', clientId)
     .not('status', 'in', `(${TERMINAL_STATUSES.join(',')})`)
     .maybeSingle()
+  if (error) throw new ProgrammeStorageError(`open programme for client ${clientId} — ${error.message}`)
   return (data as ProgrammeRow | null) ?? null
 }
 
+/** One programme by id, or null for a genuine no-row. Throws on a storage error — see above. */
 export async function getProgramme(programmeId: string): Promise<ProgrammeRow | null> {
-  const { data } = await db.from('programmes').select('*').eq('id', programmeId).maybeSingle()
+  const { data, error } = await db.from('programmes').select('*').eq('id', programmeId).maybeSingle()
+  if (error) throw new ProgrammeStorageError(`programme ${programmeId} — ${error.message}`)
   return (data as ProgrammeRow | null) ?? null
 }
 

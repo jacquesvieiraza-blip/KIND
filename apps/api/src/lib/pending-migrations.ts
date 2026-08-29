@@ -578,16 +578,15 @@ COMMENT ON COLUMN public.icps.pdl_scroll_query IS
 COMMENT ON COLUMN public.icps.pdl_exhausted_at IS
   'When the data source last reported it has nobody left matching this exact query. Cleared automatically when the ICP is widened.';
 
-do $$
-begin
-  if exists (select 1 from pg_constraint where conname = 'icp_run_outcomes_status_check') then
-    alter table public.icp_run_outcomes drop constraint icp_run_outcomes_status_check;
-  end if;
-end $$;
-
-alter table public.icp_run_outcomes
-  add constraint icp_run_outcomes_status_check
-  check (status in ('served','no_match','quota_exhausted','demo','audience_exhausted'));
+-- ⛓️ 29 Aug (R3) — THE CONSTRAINT BLOCK THAT USED TO SIT HERE IS GONE. Full reasoning in the
+-- canonical file. In short: this entry is #15 in the array and '20260826_run_outcome_failed'
+-- is #2, so the OLDER five-value definition ran LAST and overwrote the newer six-value one.
+-- Against production, which holds 'failed' rows, that ADD CONSTRAINT failed and rolled the
+-- whole entry back on every deploy. Against a database with no 'failed' row yet it would
+-- SUCCEED and silently narrow the constraint, after which every crashed run's outcome is
+-- rejected by the database with no error anywhere (#342 / R72).
+-- 'audience_exhausted' is not lost — it is inside the six values the OWNER declares.
+-- Do not restore this block. One constraint, one owner; constraint-ownership.test.ts enforces it.
 `.trim(),
   },
   {

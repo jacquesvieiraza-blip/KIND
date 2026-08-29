@@ -1,173 +1,131 @@
 -- ═══════════════════════════════════════════════════════════════════════════════════════
 -- 🛑 HELD OUT OF THE RUNNER ON PURPOSE — DO NOT ADD A PENDING_MIGRATIONS ENTRY FOR THIS.
 --
--- This file is COMPLETE, reviewed and ready. It is deliberately absent from
+-- This file is COMPLETE and reviewed. It is deliberately absent from
 -- `apps/api/src/lib/pending-migrations.ts`, which is the list Vida applies, because Vida
 -- applies ALL pending migrations together and this one must not go out with the other four.
---
--- WHY IT IS SEPARATED. Every other BUILD-003 PR 1 migration is additive and inert — new
--- tables and nullable columns nothing reads yet. THIS one changes what a signed-in BROWSER
--- can read on nine live tables, and whether anything else in production reads them on the
--- anon/authenticated role is unverified. That is R2, and R2 is a RUNTIME question no test in
--- this repo can answer.
---
--- ⚠️ ADDING A RUNNER ENTRY FOR THIS FILE PUTS IT IN THE NEXT "APPLY ALL PENDING" CLICK.
--- `delivery-rls-held.test.ts` fails the build if that happens, because the mistake would be
--- invisible until a client's dashboard went blank.
---
--- HOW IT SHIPS: after the founder closes R2 on the live walkthrough, a small follow-up PR —
--- still BUILD-003 PR 1, not a new build number — adds the runner entry for this file and
--- nothing else. Content below is unchanged and must stay that way; the follow-up adds the
--- entry, it does not rewrite the migration.
+-- It stays held until R2 is fully closed — the four production policy names below were read
+-- off pg_policies by hand, and applying on a name that has since changed would silently
+-- WIDEN access instead of narrowing it.
+-- `delivery-rls-held.test.ts` fails the build if an entry appears.
 -- ═══════════════════════════════════════════════════════════════════════════════════════
 
 -- ═══════════════════════════════════════════════════════════════════════════════════════
--- BUILD-003 · item 1 — TENANT ISOLATION ON THE NINE DELIVERY TABLES
+-- BUILD-003 · item 1 — TENANT ISOLATION, RECONCILED AGAINST ACTUAL PRODUCTION
 --
--- ⚠️ R2 GATES APPLYING THIS FILE, AND ONLY THIS FILE. It is split out from meetings,
--- reply idempotency and delivery attribution precisely so the runtime gate on browser
--- access does not also hold those three hostage. Nothing here is applied until the founder
--- has verified what production actually serves on the anon/authenticated role.
+-- ⛓️ THIS FILE WAS REWRITTEN 29 Aug. The first version was built from the REPO's migration
+-- history and got production wrong in two ways that mattered:
 --
--- The API connects with SUPABASE_SERVICE_ROLE_KEY (packages/db/src/client.ts:16), which
--- BYPASSES RLS entirely. So none of this touches the backend. This is exactly and only the
--- boundary for what a signed-in client's BROWSER may read on the anon key.
+--   · It said `figsy_campaigns`, `figsy_enrollments`, `figsy_replies` and
+--     `figsy_sent_emails` had ZERO policies. They have four, created outside the migration
+--     record, named "clients see own campaigns" and so on — all command ALL.
+--   · It therefore DROPPED policy names I had invented. Those DROPs would have matched
+--     nothing, the CREATEs would have ADDED a second policy beside each real one, and
+--     because PostgreSQL ORs permissive policies together the result would have been
+--     STRICTLY MORE access, not less — while the PR claimed the tables were now SELECT-only.
 --
--- FOUR STATES WERE FOUND, NOT ONE, so this migration does four different things:
---   · leads, icps                       RLS on, correct policy      → PRESERVED untouched
---   · figsy_campaigns, figsy_enrollments,
---     figsy_replies, figsy_sent_emails  RLS on, ZERO policies       → policies ADDED
---   · opt_out_blocklist                 RLS on, DEFECTIVE policies  → REPLACED
---   · lead_pool, sourcing_ledger        RLS off                     → ENABLED, browser denied
+-- A migration that runs without error and achieves the opposite of its description is worse
+-- than one that fails, so the whole file is rebuilt against the state the founder read off
+-- production directly.
+--
+-- ⚠️ WHY THIS IS SAFE TO NARROW ALL → SELECT. Verified before writing a line: NO portal
+-- browser code writes any of these four tables. Every reference in `apps/portal/src` is a
+-- `.select(...)` — seven of them, six inside the retired `(dashboard)` route group that the
+-- portal middleware redirects to `/milla` for every signed-in client, and one under `/v2`,
+-- which is gated behind the `V2_PREVIEW_EMAILS` allowlist (unset = nobody). The live Milla
+-- console reads through the API on the service role, which bypasses RLS entirely.
+--
+-- WHAT IS DELIBERATELY NOT TOUCHED, because production is already correct:
+--   leads, icps            tenant-scoped policies already exist
+--   lead_pool              RLS on, zero policies — browser already denied
+--   sourcing_ledger        RLS on, zero policies — browser already denied
+--   service_role bypasses  "service role bypass campaigns" and its three siblings
+--                          (002_figsy.sql:150-161). The API depends on them. Not referenced.
+--   current_client_id()    already exists and is already used by leads_own/icps_own, so it
+--                          works and `authenticated` can execute it. This migration needs no
+--                          correction to it and makes none — replacing a function that live
+--                          policies depend on, to change nothing, is risk bought for nothing.
 --
 -- Safe to re-run.
 -- ═══════════════════════════════════════════════════════════════════════════════════════
 
--- The helper already exists (packages/db/src/schema.sql:256). Restated with the hardening
--- the rest of BUILD-003 uses, and not loosened: SECURITY INVOKER so it resolves as the
--- caller and can never become a privilege ladder, and an empty search_path so no
--- attacker-controlled schema can shadow `clients` or `auth.uid`.
-CREATE OR REPLACE FUNCTION public.current_client_id()
-RETURNS uuid
-LANGUAGE sql
-STABLE
-SECURITY INVOKER
-SET search_path = ''
-AS $$
-  SELECT c.id FROM public.clients c WHERE c.user_id = auth.uid() LIMIT 1;
-$$;
 
-REVOKE ALL ON FUNCTION public.current_client_id() FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION public.current_client_id() TO authenticated;
-
--- ── 1 · THE FOUR RLS-ON, ZERO-POLICY TABLES ─────────────────────────────────────────────
+-- ── 1 · THE FOUR REAL POLICIES: ALL → SELECT ────────────────────────────────────────────
 --
--- ⚠️ THIS IS A RESTORATION, NOT A TIGHTENING. RLS with no policy denies every row to the
--- authenticated role, and PostgREST reports that denial as an EMPTY SUCCESS — `{data: [],
--- error: null}`, `count: 0`. The client dashboard reads all four of these from the browser
--- (DashboardLive.tsx) and takes the empty result as truth: `if (count !== null)
--- setTotalSent(count)` writes ZERO. So these tables do not leak today — they silently answer
--- nothing, and the dashboard's own server-rendered figures are overwritten with zeros on
--- hydration. The policy is what lets a client see their own data again while still denying
--- it to everyone else.
+-- ⚠️ DROPPED BY THEIR REAL PRODUCTION NAMES. This is the whole correction. A DROP that names
+-- a policy which does not exist is a silent no-op, and the CREATE that follows then ADDS to
+-- whatever was already there — permissive policies are ORed, so narrowing by addition is
+-- impossible. Only a DROP that actually bites can narrow anything.
 --
--- CODE VERIFIED. Whether production has 002_figsy.sql's RLS statements applied is R2 and is
--- RUNTIME UNVERIFIED — it is not asserted here.
+-- WHY NARROW AT ALL. These are delivery RECORDS: what we sent, who replied, what a campaign
+-- did. `FOR ALL` lets a signed-in client UPDATE and DELETE them — the evidence behind their
+-- own invoice, and the source of the outcome numbers the commercial model is judged on. No
+-- product feature has ever used that write access; it was granted by default rather than by
+-- decision.
 
-ALTER TABLE public.figsy_campaigns   ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.figsy_enrollments ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.figsy_replies     ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.figsy_sent_emails ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "clients see own campaigns"   ON public.figsy_campaigns;
+DROP POLICY IF EXISTS "clients see own enrollments" ON public.figsy_enrollments;
+DROP POLICY IF EXISTS "clients see own replies"     ON public.figsy_replies;
+DROP POLICY IF EXISTS "clients see own sent emails" ON public.figsy_sent_emails;
 
-DROP POLICY IF EXISTS "figsy_campaigns_own"   ON public.figsy_campaigns;
-DROP POLICY IF EXISTS "figsy_enrollments_own" ON public.figsy_enrollments;
-DROP POLICY IF EXISTS "figsy_replies_own"     ON public.figsy_replies;
-DROP POLICY IF EXISTS "figsy_sent_emails_own" ON public.figsy_sent_emails;
-
--- ⚠️ SELECT ONLY, DELIBERATELY — "no unnecessary browser mutation rights". These four are
--- delivery RECORDS: what we sent, who replied, what a campaign did. A client editing their
--- own reply history or send log would be editing the evidence behind their own invoice.
--- Every writer in the repo is already server-side on the service role.
-CREATE POLICY "figsy_campaigns_own" ON public.figsy_campaigns
+-- Re-created under the SAME NAMES, so this migration is idempotent against its own result
+-- and so anyone reading pg_policies sees the name they expect with a narrower command.
+CREATE POLICY "clients see own campaigns" ON public.figsy_campaigns
   FOR SELECT TO authenticated USING (client_id = public.current_client_id());
 
-CREATE POLICY "figsy_enrollments_own" ON public.figsy_enrollments
+CREATE POLICY "clients see own enrollments" ON public.figsy_enrollments
   FOR SELECT TO authenticated USING (client_id = public.current_client_id());
 
-CREATE POLICY "figsy_replies_own" ON public.figsy_replies
+CREATE POLICY "clients see own replies" ON public.figsy_replies
   FOR SELECT TO authenticated USING (client_id = public.current_client_id());
 
--- #637 added figsy_sent_emails.client_id so this table could be attributed at all, and the
--- dashboard's sent counter filters on it. Without that column this policy could only be a
--- two-hop join through enrollments.
-CREATE POLICY "figsy_sent_emails_own" ON public.figsy_sent_emails
+CREATE POLICY "clients see own sent emails" ON public.figsy_sent_emails
   FOR SELECT TO authenticated USING (client_id = public.current_client_id());
 
--- ── 2 · opt_out_blocklist — THE DEFECTIVE POLICIES, REPLACED ────────────────────────────
+
+-- ── 2 · opt_out_blocklist — THE ONE REAL DEFECT ────────────────────────────────────────
 --
--- 🔴 DISCOVERED DEFECT (BUILD-003 item 1, found by the Builder while scoping, recorded as
--- founder-directed evidence). packages/db/src/schema.sql:288-291 shipped:
+-- 🔴 PRODUCTION CARRIES BOTH OF THESE, CONFIRMED BY DIRECT INSPECTION:
+--     "blocklist_read"   FOR SELECT USING (auth.role() = 'authenticated')
+--     "blocklist_write"  FOR INSERT WITH CHECK (auth.role() = 'authenticated')
 --
---     create policy "blocklist_read"  on public.opt_out_blocklist
---       for select using (auth.role() = 'authenticated');
---     create policy "blocklist_write" on public.opt_out_blocklist
---       for insert with check (auth.role() = 'authenticated');
+-- Neither has a tenant predicate, on a table that HAS `blocked_by_client_id`. So today any
+-- signed-in client can read EVERY suppressed address on the platform — other clients'
+-- prospects, by email — and can INSERT arbitrary addresses. Suppression takes effect across
+-- every K.I.N.D send path, so that insert is globally effective: a client could silence
+-- anyone they chose, and it would look like ordinary use.
 --
--- Neither carries a tenant predicate, on a table that HAS `blocked_by_client_id`. Any
--- signed-in client could read EVERY suppressed address on the platform — other clients'
--- prospects, by email — and could INSERT arbitrary addresses.
+-- FOUNDER RULING, 29 Aug — suppression EFFECT is global, blocklist VISIBILITY is not, and a
+-- browser must not write global suppression at all. Scoping the write to
+-- `blocked_by_client_id = current_client_id()` would NOT be sufficient: the row would still
+-- suppress that person for every client.
 --
--- FOUNDER RULING, 29 Aug — suppression EFFECT is global, blocklist VISIBILITY is not:
---   · a legitimately suppressed address is blocked on every K.I.N.D send path, and a later
---     client cannot cause us to contact that person again;
---   · no client may browse, enumerate or infer another client's suppressed addresses — the
---     raw global list is operational infrastructure, not shared client data;
---   · a browser must not write global suppression AT ALL. Scoping the write to
---     `blocked_by_client_id = current_client_id()` is NOT sufficient: the row would still be
---     globally effective, so a malicious client could submit any person's address and
---     suppress them everywhere while looking perfectly well-behaved.
+-- ⚠️ NO REPLACEMENT SELECT POLICY, AND THAT IS A DECISION. The first draft kept a
+-- tenant-local read. Checked before writing this: `apps/portal/src` contains ZERO references
+-- to `opt_out_blocklist` — no live customer path reads it. A policy granting access nobody
+-- uses is attack surface with no product behind it, so the raw list stays backend-only. RLS
+-- on with no policy IS the deny for `authenticated`; the service role bypasses it, and every
+-- send gate reads the whole table exactly as before.
 --
--- ⚠️ A PRODUCT RULE. This says nothing about legal sufficiency and claims no PECR compliance.
+-- If a client-facing suppression view is ever wanted, it comes back as a controlled API
+-- surface, not as direct table access.
 --
--- Verified before removing the INSERT policy, per the founder's stop-condition: NO browser or
--- portal code writes this table. Every writer is server-side on the service role —
--- routes/leads.ts:71,776 · routes/figsy.ts:81,241 · routes/whatsapp.ts:103,112. Removing the
--- browser write breaks no existing workflow.
+-- ⚠️ A PRODUCT RULE. No claim of legal sufficiency, and no PECR compliance asserted.
 
 DROP POLICY IF EXISTS "blocklist_read"  ON public.opt_out_blocklist;
 DROP POLICY IF EXISTS "blocklist_write" ON public.opt_out_blocklist;
+-- Defensive: the earlier draft of this migration created "blocklist_own". If any environment
+-- ran that version, remove it too so the end state is the same everywhere.
 DROP POLICY IF EXISTS "blocklist_own"   ON public.opt_out_blocklist;
 
--- Customer visibility is TENANT-LOCAL: a client sees only what their own activity produced,
--- never the global list and never a global row carrying another tenant's address. Backend
--- enforcement stays GLOBAL — the service role bypasses this policy and every send gate reads
--- the whole table.
-CREATE POLICY "blocklist_own" ON public.opt_out_blocklist
-  FOR SELECT TO authenticated USING (blocked_by_client_id = public.current_client_id());
 
--- No INSERT/UPDATE/DELETE policy for `authenticated` exists, by design. A suppression
--- request goes through the API, which verifies the caller and that the address belongs to a
--- contact that client is entitled to act on, and only then writes the globally-effective row.
-
--- ── 3 · THE TWO RLS-OFF TABLES — BROWSER DENIED OUTRIGHT ────────────────────────────────
+-- ── 3 · NOTHING ELSE ───────────────────────────────────────────────────────────────────
 --
--- Neither is client-facing and neither gets a policy: RLS enabled with no policy IS the deny
--- for `authenticated`, while the service role bypasses it. That is exactly the boundary.
+-- No statements for leads, icps, lead_pool or sourcing_ledger. Production is already in the
+-- intended state for all four, and the previous draft's ALTER/DROP lines for them were pure
+-- no-ops that made the migration look like it was doing nine tables' worth of work.
 --
--- lead_pool has NO tenant column at all — it is the shared pool by design, so no per-tenant
--- predicate could be written even if we wanted one; exposing it would expose every other
--- client's pooled identities.
---
--- sourcing_ledger DOES have client_id and is still denied, because it carries `cost_usd` —
--- our provider cost per record. A per-tenant read policy would hand every client our internal
--- economics on their own leads.
-
-ALTER TABLE public.lead_pool       ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.sourcing_ledger ENABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS "lead_pool_no_browser"       ON public.lead_pool;
-DROP POLICY IF EXISTS "sourcing_ledger_no_browser" ON public.sourcing_ledger;
-
--- leads and icps are deliberately NOT touched: `leads_own` and `icps_own` already carry the
--- correct `client_id = public.current_client_id()` predicate. Re-issuing them here would risk
--- narrowing a working policy for the sake of tidiness.
+-- ⚠️ RUNTIME UNVERIFIED. Written against the founder's direct inspection of production on
+-- 29 Aug. The policy names above are the load-bearing detail: if any differs, its DROP
+-- silently misses and its CREATE adds rather than replaces — the exact failure this rewrite
+-- exists to remove. Confirm the four names in pg_policies before applying.

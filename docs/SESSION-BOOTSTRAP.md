@@ -25,10 +25,10 @@
 - **Builder** builds a **frozen** scope. Does not renegotiate it, does not merge.
 
 ## Where the work is right now
-- **Current Builder task:** **BUILD-002 · Programme Commercial + Money Engine** — conveyor **BUILDER RETURNED**, awaiting **GPT verification** (PR #1466) → `docs/founder/tasks/BUILD-002.md`
+- **Current Builder task:** none open. **BUILD-002 · Programme Commercial + Money Engine** closed **COMPLETE** 29 Aug → `docs/founder/tasks/BUILD-002.md`. ⚠️ **COMPLETE under a zero-money evidence boundary:** pre-payment half **RUNTIME VERIFIED**, post-payment half **CODE VERIFIED / RUNTIME UNVERIFIED** until a real customer payment (packet §9). **It did not make the programme model client-facing — `$299 / first 100 included / $4` is still what clients get.**
 - **Current Scout task:** none open — BUILD-002's scouting completed and was consumed by the build.
 - **Next READY task:** **NONE.** The queue is empty.
-- **Open PRs (verified live 28 Aug):** **#1466** BUILD-002 · **#1463** parked, do not merge as-is · **#1436** · **#1427**. **#1464** and **#1465** are merged (`5dfd34dc`).
+- **Open PRs (verified live 29 Aug):** **#1596** · **#1463** parked, do not merge as-is · **#1436** · **#1427**. BUILD-002's three PRs — **#1466**, **#1595**, **#1597** — are all **merged** (`main` at `1769e18c`), as are **#1464** and **#1465**.
 - ⚠️ **Never name a PR number you have not just re-verified is open.**
 
 ## Two laws that override your instincts

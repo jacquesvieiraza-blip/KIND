@@ -16,9 +16,9 @@
 |---|---|
 | **Launch date** | **Friday 4 September 2026** — unconditional (**R76**, supersedes R57's 25 Aug) |
 | **Current objective** | Finish the launch experience to **one finished, premium, conversational standard** across Milla, Vida and the website (**R79** — quality is NOT V2) |
-| **Current Builder task** | **BUILD-002 · Programme Commercial + Money Engine** — packet at [`founder/tasks/BUILD-002.md`](./founder/tasks/BUILD-002.md) · conveyor state **BUILDER RETURNED** · next: **GPT verification (stage 9)** |
+| **Current Builder task** | *none open* — **BUILD-002 · Programme Commercial + Money Engine** closed **COMPLETE** on 29 Aug. Packet: [`founder/tasks/BUILD-002.md`](./founder/tasks/BUILD-002.md) ⚠️ **COMPLETE under a zero-money evidence boundary** — the pre-payment half is RUNTIME VERIFIED, the post-payment half is CODE VERIFIED / RUNTIME UNVERIFIED until a real customer payment (packet §9) |
 | **Current Scout task** | *none open* — BUILD-002's scouting completed and was consumed by the build |
-| **Next READY task** | **NONE.** The READY FOR BUILDER queue is empty. ⚠️ **BUILD-002 is NOT ready** — it is still being scouted, and scouting is four conveyor stages short of READY |
+| **Next READY task** | **NONE.** The READY FOR BUILDER queue is empty. ⛓️ *Corrected 29 Aug: this row previously read "BUILD-002 is NOT ready — it is still being scouted", which contradicted the row above it on the same day it was written. BUILD-002 was never re-scouted; it built, merged and closed.* |
 | **Board** | 🟢106 · 🩷309 · 🟣2 · 🟡51 · 🔴191 · ⏸7 · **Σ666** *(status of record: PRODUCT-INVENTORY · live count: `scripts/count-inventory.sh`)* |
 
 ## 📅 THIS WEEK
@@ -77,7 +77,7 @@ The Scout/Builder execution lifecycle, **underneath** the six states. This is ne
 
 | Task | Founder state | Conveyor state |
 |---|---|---|
-| **BUILD-002** · Programme Commercial + Money Engine | **NOW** | **BUILDER RETURNED** — next: GPT verification |
+| **BUILD-002** · Programme Commercial + Money Engine | DONE/LEARNED | **COMPLETE** *(merged `a77752b0` · `2c56f201` · `1769e18c`; migration applied; live walkthrough done — under the §9 evidence boundary)* |
 | **BUILD-001** · Step 7 Founder Truth System | DONE/LEARNED | **FOUNDER MERGED** *(in `main` at `5dfd34dc`)* |
 | **#704** · retention duration | **WAITING** | **FOUNDER DECISION REQUIRED** |
 | **#706** · AE playbook trial script | **WAITING** | **NOT SCOUTED** — waiting on the programme model, not on a decision |
@@ -117,7 +117,7 @@ The Scout/Builder execution lifecycle, **underneath** the six states. This is ne
 
 | PR | What | Conveyor state | Note |
 |---|---|---|---|
-| **#1466** | **BUILD-002 · Programme commercial + money engine** | **BUILDER RETURNED** → next **GPT verification** | ⚠️ **The migration is NOT applied to production.** Nothing in it is live commercial truth — $299/100/$4 still runs |
+| ~~#1466~~ ~~#1595~~ ~~#1597~~ | **BUILD-002 · Programme commercial + money engine** (build · walkthrough defects · Vida GO auth) | **COMPLETE** | ✅ Merged `a77752b0` · `2c56f201` · `1769e18c`. **The migration IS applied** and the API is deployed. ⛓️ *The "migration is NOT applied" note here was true when written on 28 Aug and is now history.* ⚠️ **Still true and still operative: none of the programme model is client-facing truth — $299 / 100 included / $4 is what clients get** |
 | ~~#1465~~ | BUILD-001 · Step 7 founder truth system | **FOUNDER MERGED** | ✅ **Independent review returned PASS, subject to operating-state corrections — all applied.** `check.sh` **ACCEPTED AMBER**: the only failure was the known intermittent `proof-review-handoff` assertion, and BUILD-001 changes `docs/**` only. **Awaiting the founder's merge.** |
 | **#1463** | Founder Operating Truth — register, operating view, bootstrap, visual surface | **PARKED** | ⚠️ **Do not merge as-is.** Its second parallel ID series is superseded; only its **visual shell** was reused (see BUILD-001) |
 | **#1436** | Log the post-launch Founder-Operator OS idea | **BUILDER RETURNED** | Not touched by Step 7 |

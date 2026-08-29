@@ -1,191 +1,249 @@
 // ═══════════════════════════════════════════════════════════════════════════════════════
-// TENANT ISOLATION — the NINE delivery tables (BUILD-003 item 1).
+// TENANT ISOLATION — reconciled against ACTUAL PRODUCTION (BUILD-003 item 1).
 //
-// EIGHT WERE SCOUTED; THE NINTH WAS FOUND DURING THE BUILD. `figsy_sent_emails` is read
-// directly by the browser at four call sites in DashboardLive.tsx, carries `client_id`, and
-// had no policy — locking the other three portal-read tables while leaving it open would
-// have closed three doors on a room with a fourth. The founder approved it as the ninth.
+// ⛓️ THIS SUITE WAS REWRITTEN 29 Aug, and the reason is the most useful thing in it.
 //
-// ⚠️ WHAT THESE ASSERTIONS DO AND DO NOT PROVE, stated plainly rather than implied.
+// The first version asserted a migration built from the REPO's migration history. The
+// founder then inspected production directly, and two of the nine classifications were
+// wrong: the four `figsy_*` tables do NOT have zero policies — they have four, created
+// outside the migration record, named "clients see own campaigns" and so on, all command
+// ALL. My migration dropped names I had invented, which would have matched nothing, and its
+// CREATEs would have ADDED a second policy beside each real one. PostgreSQL ORs permissive
+// policies, so the result would have been STRICTLY MORE access while the PR claimed
+// SELECT-only.
 //
-// There is no Postgres in this suite, so nothing here executes a cross-tenant query. What is
-// proven is that every one of the nine tables HAS a policy, that each policy's predicate is
-// the tenant one, and that the set cannot silently shrink. That is the failure mode that
-// actually happens: a table added to the product and forgotten here, or a predicate quietly
-// widened in a diff nobody reads closely.
+// The old suite passed against that. It could not have caught it: it read my own file and
+// checked my own names against themselves. A guard that only compares a migration to itself
+// proves the migration is self-consistent and nothing about the database.
 //
-// That RLS is ENFORCED — that Client A's query really does return zero rows of Client B's
-// data — is a RUNTIME claim and belongs to the live walkthrough. It is R2, and R2 gates
-// applying the migration at all.
+// So this suite now asserts the REAL production policy names. If a name is wrong, its DROP
+// silently misses and its CREATE adds rather than replaces — the exact failure mode, and the
+// only thing standing between the intent and the opposite of it.
 //
-// ⚠️ THE LIST MUST NOT BE EMPTY. A sweep over zero tables passes forever and proves only
-// that nobody wrote it correctly. Asserted first, as the acceptance matrix requires.
+// ⚠️ CLAIM BOUNDARY, UNCHANGED AND WORTH REPEATING. There is no Postgres here. These prove
+// the migration NAMES what production actually has and narrows it in the intended direction.
+// That the database enforces the result is RUNTIME UNVERIFIED.
 // ═══════════════════════════════════════════════════════════════════════════════════════
 
 import { describe, it, expect } from 'vitest'
-import { readFileSync } from 'fs'
+import { readFileSync, readdirSync, statSync } from 'fs'
 import { join } from 'path'
 import { stripCommentsForEnvScan } from './env-inventory'
 
-const RLS = stripCommentsForEnvScan(
-  readFileSync(join(__dirname, '../../../../supabase/migrations/20260829_delivery_rls.sql'), 'utf8'))
-const SCHEMA = stripCommentsForEnvScan(
-  readFileSync(join(__dirname, '../../../../packages/db/src/schema.sql'), 'utf8'))
+const RAW = readFileSync(join(__dirname, '../../../../supabase/migrations/20260829_delivery_rls.sql'), 'utf8')
 
 /**
- * The nine, and how each is protected. Three shapes, because three things are true:
+ * SQL with its `--` comment lines removed.
  *
- *   tenant   the client reads their own rows — `client_id = current_client_id()`
- *   own-only the client reads only what their own activity produced (the blocklist, whose
- *            EFFECT is global but whose VISIBILITY is not)
- *   denied   the browser gets nothing at all; service-role only
+ * ⚠️ `stripCommentsForEnvScan` DOES NOT DO THIS — it strips JS/TS comments, and against a
+ * .sql file it returns the input unchanged (verified: 8041 chars in, 8041 out). Two guards
+ * below passed the wrong text because of that and then failed on the file's own prose: the
+ * header EXPLAINS that service_role is deliberately untouched, and a statement-level check
+ * reading the whole file saw the word and called it a violation. Seventh time in this repo a
+ * guard has tripped over its own documentation, and the fix is the same every time — assert
+ * against the statements, keep the prose.
  */
-const PROTECTED: { table: string; shape: 'tenant' | 'own-only' | 'denied'; why: string }[] = [
-  { table: 'leads',             shape: 'tenant',   why: 'pre-existing leads_own, preserved' },
-  { table: 'icps',              shape: 'tenant',   why: 'pre-existing icps_own, preserved' },
-  { table: 'figsy_campaigns',   shape: 'tenant',   why: 'RLS was ON with ZERO policies' },
-  { table: 'figsy_enrollments', shape: 'tenant',   why: 'RLS was ON with ZERO policies' },
-  { table: 'figsy_replies',     shape: 'tenant',   why: 'RLS was ON with ZERO policies' },
-  { table: 'figsy_sent_emails', shape: 'tenant',   why: 'THE NINTH — found during the build' },
-  { table: 'opt_out_blocklist', shape: 'own-only', why: 'both prior policies were defective' },
-  { table: 'lead_pool',         shape: 'denied',   why: 'shared pool — has no tenant column at all' },
-  { table: 'sourcing_ledger',   shape: 'denied',   why: 'carries cost_usd — our margin, not theirs' },
+const STATEMENTS = RAW.split('\n').filter(l => !l.trimStart().startsWith('--')).join('\n')
+  .replace(/[ \t]+/g, ' ')
+/**
+ * Whitespace-normalised.
+ *
+ * ⚠️ The first cut matched the exact bytes and failed against my own file, because the DROP
+ * statements are COLUMN-ALIGNED — two spaces before `ON`, not one. A guard that depends on
+ * the formatting of the thing it guards fails on a reformat and tells you nothing about the
+ * SQL. Runs of whitespace are collapsed so the assertions test the STATEMENT.
+ */
+const RLS = RAW.replace(/[ \t]+/g, ' ')
+
+/**
+ * The four policies PRODUCTION actually has, by their real names, and what they must become.
+ *
+ * ⚠️ THESE STRINGS ARE THE MIGRATION'S LOAD-BEARING DETAIL. They came from the founder
+ * reading `pg_policies` on 29 Aug, not from this repository — the repository never recorded
+ * whatever created them, which is precisely how the first version got it wrong.
+ */
+const REAL_POLICIES = [
+  { table: 'figsy_campaigns',   name: 'clients see own campaigns' },
+  { table: 'figsy_enrollments', name: 'clients see own enrollments' },
+  { table: 'figsy_replies',     name: 'clients see own replies' },
+  { table: 'figsy_sent_emails', name: 'clients see own sent emails' },
+]
+
+/** Tables production is ALREADY correct on. The migration must not mention them at all. */
+const LEAVE_ALONE = ['leads', 'icps', 'lead_pool', 'sourcing_ledger']
+
+/** The service-role bypasses the API depends on (002_figsy.sql:150-161). */
+const SERVICE_ROLE_POLICIES = [
+  'service role bypass campaigns',
+  'service role bypass enrollments',
+  'service role bypass sent emails',
+  'service role bypass replies',
 ]
 
 describe('the sweep is not vacuous', () => {
-  it('THERE ARE PROTECTED TABLES TO CHECK — a sweep over an empty list proves nothing', () => {
-    expect(PROTECTED.length).toBeGreaterThan(0)
+  it('there are real policies to reconcile', () => {
+    expect(REAL_POLICIES.length).toBe(4)
   })
 
-  it('ALL NINE ARE LISTED — eight scouted plus the one found during the build', () => {
-    expect(PROTECTED).toHaveLength(9)
-    expect(PROTECTED.map(p => p.table)).toContain('figsy_sent_emails')
-  })
-
-  it('no table appears twice (a duplicate would hide a missing one behind the count)', () => {
-    expect(new Set(PROTECTED.map(p => p.table)).size).toBe(PROTECTED.length)
+  it('the migration is not empty (a no-op file would pass every check below)', () => {
+    expect(RLS.replace(/\s/g, '').length).toBeGreaterThan(200)
   })
 })
 
-describe('EVERY PROTECTED TABLE HAS ROW LEVEL SECURITY ENABLED', () => {
-  for (const { table, why } of PROTECTED) {
-    it(`${table} — ${why}`, () => {
-      // Enabled either by this migration or by an earlier one recorded in the snapshot.
-      const enabled = new RegExp(`(ALTER|alter) TABLE (public\\.)?${table}\\s+(ENABLE|enable) ROW LEVEL SECURITY`, 'i')
+describe('THE FOUR REAL POLICIES ARE DROPPED BY THEIR REAL NAMES', () => {
+  for (const { table, name } of REAL_POLICIES) {
+    it(`${table} — "${name}" is dropped, so the DROP actually bites`, () => {
       expect(
-        enabled.test(RLS) || enabled.test(SCHEMA),
-        `${table} has no ENABLE ROW LEVEL SECURITY anywhere — without it the policy below is decoration`,
-      ).toBe(true)
+        RLS,
+        `The DROP must name the policy PRODUCTION has. A DROP naming something else is a silent no-op, and the CREATE then ADDS a second policy — permissive policies are ORed, so access WIDENS while the migration claims to narrow it.`,
+      ).toContain(`DROP POLICY IF EXISTS "${name}" ON public.${table};`)
     })
   }
-})
 
-describe('EVERY TENANT TABLE IS SCOPED TO THE CALLER, AND NOTHING WIDER', () => {
-  for (const { table, shape } of PROTECTED.filter(p => p.shape === 'tenant')) {
-    it(`${table} is readable only where client_id = current_client_id()`, () => {
-      const policy = policyFor(table)
-      expect(policy, `${table} has no policy — RLS with no policy denies the CLIENT their own data`).not.toBeNull()
-      expect(policy!).toContain('current_client_id()')
-      expect(policy!).toMatch(/client_id\s*=\s*public\.current_client_id\(\)/)
-      // ⚠️ `auth.role() = 'authenticated'` is what the defective blocklist policy used: it is
-      // true for EVERY signed-in user, so it is not a tenant predicate at all.
-      expect(policy!, `${table} would be readable by any signed-in user`).not.toContain("auth.role()")
-    })
-    void shape
-  }
-
-  it('the four restored tables are SELECT-only — a client does not edit their own delivery record', () => {
-    // These are delivery RECORDS: what we sent, who replied, what a campaign did. A client
-    // editing them would be editing the evidence behind their own invoice.
-    for (const t of ['figsy_campaigns', 'figsy_enrollments', 'figsy_replies', 'figsy_sent_emails']) {
-      const policy = policyFor(t)!
-      expect(policy, `${t} grants more than SELECT`).toContain('FOR SELECT')
-      expect(policy).not.toContain('FOR ALL')
+  it('NO INVENTED NAME SURVIVES from the first version', () => {
+    // These were mine. Every one of them would have missed.
+    for (const invented of ['figsy_campaigns_own', 'figsy_enrollments_own',
+                            'figsy_replies_own', 'figsy_sent_emails_own', 'blocklist_own"']) {
+      expect(RLS, `invented policy name still present: ${invented}`).not.toContain(`CREATE POLICY "${invented.replace('"', '')}"`)
     }
   })
 })
 
-describe('THE BLOCKLIST — global in EFFECT, tenant-local in VISIBILITY', () => {
-  it('the defective policies are dropped by name, not merely superseded', () => {
-    // A CREATE POLICY with a different name would leave the old permissive one in place and
-    // Postgres ORs policies together — the hole would survive the fix that was meant to close
-    // it, and every test asserting the new policy would still pass.
+describe('EACH IS RECREATED AS TENANT-SCOPED AND SELECT-ONLY', () => {
+  for (const { table, name } of REAL_POLICIES) {
+    it(`${table} — SELECT only, scoped to the caller`, () => {
+      const stmt = createStatementFor(name)
+      expect(stmt, `no CREATE POLICY "${name}"`).not.toBeNull()
+      expect(stmt!).toContain('FOR SELECT')
+      expect(stmt!, 'ALL would keep the client\'s UPDATE/DELETE on their own delivery record').not.toContain('FOR ALL')
+      expect(stmt!).toMatch(/client_id\s*=\s*public\.current_client_id\(\)/)
+      // `auth.role() = 'authenticated'` is true for EVERY signed-in user — not a tenant
+      // predicate at all, and exactly what made the blocklist policies defective.
+      expect(stmt!).not.toContain('auth.role()')
+      expect(stmt!).toContain('TO authenticated')
+    })
+  }
+
+  it('the name is REUSED, so the migration is idempotent against its own result', () => {
+    for (const { name } of REAL_POLICIES) {
+      expect(RLS).toContain(`DROP POLICY IF EXISTS "${name}"`)
+      expect(RLS).toContain(`CREATE POLICY "${name}"`)
+    }
+  })
+})
+
+describe('THE SERVICE ROLE IS NOT TOUCHED — the API depends on it', () => {
+  for (const name of SERVICE_ROLE_POLICIES) {
+    it(`"${name}" is neither dropped nor recreated`, () => {
+      // STATEMENTS, not the whole file: the header names these four precisely to record that
+      // they are left alone, and that documentation must not read as a violation.
+      expect(STATEMENTS, `dropping ${name} would cut the API off from the table`).not.toContain(name)
+    })
+  }
+
+  it('no STATEMENT mentions service_role — the comments deliberately do', () => {
+    expect(STATEMENTS).not.toContain('service_role')
+    // And the reasoning stays on the record, where the next reader will find it.
+    expect(RAW).toContain('service_role bypasses')
+  })
+})
+
+describe('opt_out_blocklist — BOTH DEFECTIVE POLICIES REMOVED, NOTHING PUT BACK', () => {
+  it('blocklist_read is dropped — any signed-in client could read every suppressed address', () => {
     expect(RLS).toContain('DROP POLICY IF EXISTS "blocklist_read"')
+  })
+
+  it('blocklist_write is dropped — and a tenant-scoped INSERT would NOT have been enough', () => {
+    // The row suppresses that person for EVERY client, so scoping the write by
+    // blocked_by_client_id leaves it globally effective. There is no safe browser write.
     expect(RLS).toContain('DROP POLICY IF EXISTS "blocklist_write"')
   })
 
-  it('the replacement is scoped to what this client\'s own activity produced', () => {
-    const policy = policyFor('opt_out_blocklist')!
-    expect(policy).toMatch(/blocked_by_client_id\s*=\s*public\.current_client_id\(\)/)
+  it('NO REPLACEMENT POLICY IS CREATED — the raw list stays backend-only', () => {
+    // Verified before deciding: apps/portal/src contains ZERO references to
+    // opt_out_blocklist, so no live customer path reads it. A policy granting access nobody
+    // uses is attack surface with no product behind it.
+    const creates = [...RLS.matchAll(/CREATE POLICY "([^"]+)" ON public\.opt_out_blocklist/g)]
+    expect(creates.map(m => m[1]), 'a policy was created on opt_out_blocklist').toEqual([])
   })
 
-  it('NO BROWSER WRITE EXISTS — a tenant-scoped INSERT would still be globally effective', () => {
-    // Scoping the write to blocked_by_client_id is NOT sufficient: the row suppresses that
-    // person for EVERY client, so a malicious tenant could submit any address and suppress
-    // them everywhere while looking perfectly well-behaved.
-    const blocklistPolicies = allPoliciesFor('opt_out_blocklist')
-    for (const p of blocklistPolicies) {
-      expect(p, 'a browser INSERT/UPDATE/DELETE policy exists on the blocklist').not.toMatch(/FOR (INSERT|UPDATE|DELETE|ALL)/)
-    }
+  it('and the earlier draft\'s "blocklist_own" is dropped defensively', () => {
+    // If any environment ran the first version, the end state must still match.
+    expect(RLS).toContain('DROP POLICY IF EXISTS "blocklist_own"')
   })
 })
 
-describe('THE TWO DENIED TABLES GET NO POLICY — that IS the deny', () => {
-  for (const { table, why } of PROTECTED.filter(p => p.shape === 'denied')) {
-    it(`${table} — ${why}`, () => {
-      // RLS enabled with no policy denies `authenticated` outright, while the service role
-      // bypasses it. Adding a policy here would be the mistake, not the fix.
-      expect(policyFor(table), `${table} has a policy — the browser should get nothing`).toBeNull()
+describe('WHAT PRODUCTION ALREADY HAS RIGHT IS LEFT ENTIRELY ALONE', () => {
+  for (const table of LEAVE_ALONE) {
+    it(`${table} — no statement of any kind`, () => {
+      // The previous draft carried ALTER/DROP lines for all four. They were pure no-ops that
+      // made the migration look like nine tables' worth of work while changing nothing.
+      expect(STATEMENTS, `${table} is already correct in production and must not be touched`)
+        .not.toMatch(new RegExp(`(ALTER TABLE|DROP POLICY|CREATE POLICY)[^;]*\\bpublic\\.${table}\\b`))
     })
   }
 
-  it('sourcing_ledger is denied DESPITE having client_id — cost_usd is not the client\'s business', () => {
-    // It would be easy and wrong to give this the tenant shape: it has the column. A per-tenant
-    // read policy would hand every client our provider cost on their own leads.
-    expect(RLS).toMatch(/ALTER TABLE public\.sourcing_ledger\s+ENABLE ROW LEVEL SECURITY/)
-    expect(policyFor('sourcing_ledger')).toBeNull()
+  it('current_client_id() is NOT replaced', () => {
+    // It already exists, leads_own and icps_own already use it, so `authenticated` can
+    // execute it. Replacing a function live policies depend on, to change nothing, is risk
+    // bought for nothing.
+    expect(STATEMENTS).not.toContain('CREATE OR REPLACE FUNCTION')
+    // ...but the new policies still call it, which is why it must keep working.
+    expect(STATEMENTS).toContain('public.current_client_id()')
   })
 })
 
-describe('the tenant helper cannot become a privilege ladder', () => {
-  it('current_client_id is SECURITY INVOKER with an empty search_path', () => {
-    const fn = RLS.slice(RLS.indexOf('CREATE OR REPLACE FUNCTION public.current_client_id'))
-    const decl = fn.slice(0, fn.indexOf('$$;') + 3)
-    expect(decl).toContain('SECURITY INVOKER')
-    expect(decl).toContain("SET search_path = ''")
-    expect(decl).toContain('public.clients')   // fully qualified — nothing resolves otherwise
+describe('NO PORTAL BROWSER WRITE DEPENDS ON THE ALL GRANT', () => {
+  // The precondition for narrowing ALL → SELECT, asserted rather than remembered.
+  const PORTAL = join(__dirname, '../../../../apps/portal/src')
+
+  function browserWrites(): string[] {
+    const hits: string[] = []
+    const walk = (d: string) => {
+      for (const f of readdirSync(d)) {
+        const p = join(d, f)
+        if (statSync(p).isDirectory()) { walk(p); continue }
+        if (!/\.(ts|tsx)$/.test(f)) continue
+        const src = stripCommentsForEnvScan(readFileSync(p, 'utf8'))
+        for (const { table } of REAL_POLICIES) {
+          const re = new RegExp(`from\\('${table}'\\)[\\s\\S]{0,80}?\\.(insert|update|upsert|delete)\\(`)
+          if (re.test(src)) hits.push(`${p.slice(PORTAL.length + 1)} → ${table}`)
+        }
+      }
+    }
+    walk(PORTAL)
+    return hits
+  }
+
+  it('the checker detects a write when one exists (not vacuous)', () => {
+    const re = /from\('figsy_replies'\)[\s\S]{0,80}?\.(insert|update|upsert|delete)\(/
+    expect(re.test("supabase.from('figsy_replies')\n  .update({ classification: 'hot' })")).toBe(true)
+    expect(re.test("supabase.from('figsy_replies').select('classification')")).toBe(false)
   })
 
-  it('PUBLIC cannot execute it', () => {
-    expect(RLS).toContain('REVOKE ALL ON FUNCTION public.current_client_id() FROM PUBLIC')
+  it('THE PORTAL WRITES NONE OF THE FOUR TABLES FROM THE BROWSER', () => {
+    const writes = browserWrites()
+    expect(
+      writes,
+      `Narrowing ALL → SELECT would break these: ${writes.join(', ')}. Either the write moves behind the API, or the policy cannot narrow.`,
+    ).toEqual([])
   })
 })
 
 // ── helpers ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Every CREATE POLICY statement whose ON clause names this table.
+ * The single CREATE POLICY statement with this name, or null.
  *
- * ⚠️ PARSED ONE STATEMENT AT A TIME, not matched with a lazy regex across the file. The first
- * version used `CREATE POLICY[\s\S]*?ON <table>` and matched from one policy's CREATE to a
- * LATER statement that merely mentioned the table — so `lead_pool`, which has no policy at
- * all, appeared to have `figsy_campaigns_own`. The guard reported the opposite of the truth
- * and did it while looking perfectly reasonable.
+ * Parsed one statement at a time rather than with a lazy regex across the file — the earlier
+ * version of this suite used `CREATE POLICY[\s\S]*?ON <table>` and matched from one
+ * policy's CREATE to a LATER statement mentioning the table, reporting a policy on a table
+ * that had none.
  */
-function allPoliciesFor(table: string): string[] {
-  const out: string[] = []
-  for (const src of [RLS, SCHEMA]) {
-    for (const chunk of src.split(/create policy/i).slice(1)) {
-      const stmt = chunk.slice(0, chunk.indexOf(';') + 1)
-      // The ON clause is the first `on <table>` in the statement, before USING/WITH CHECK.
-      const on = /\bon\s+(?:public\.)?([a-z_]+)/i.exec(stmt)
-      if (on && on[1] === table) out.push('CREATE POLICY' + stmt)
-    }
+function createStatementFor(name: string): string | null {
+  for (const chunk of RLS.split(/CREATE POLICY/i).slice(1)) {
+    const stmt = chunk.slice(0, chunk.indexOf(';') + 1)
+    if (stmt.trimStart().startsWith(`"${name}"`)) return 'CREATE POLICY' + stmt
   }
-  return out
-}
-
-function policyFor(table: string): string | null {
-  const all = allPoliciesFor(table)
-  return all.length > 0 ? all.join('\n') : null
+  return null
 }

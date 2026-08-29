@@ -871,7 +871,13 @@ describe('GO applies a revision atomically — or not at all', () => {
     const { readFileSync } = require('fs') as typeof import('fs')
     const { join } = require('path') as typeof import('path')
     const src = readFileSync(join(__dirname, '../routes/icps.ts'), 'utf8')
-    const go = src.slice(src.indexOf("icpRouter.patch('/:id/activate'"))
+    // ⛓️ ANCHOR MOVED (29 Aug). This used to slice from the ROUTE REGISTRATION, which was
+    // also where the handler body began. The registration now sits at the top of the file —
+    // it must precede `icpRouter.use(requireAuth)` or the operator's GO is answered 401 —
+    // so slicing from it would take almost the whole file and this guard would report every
+    // unrelated `figsy_campaigns` write in `icps.ts` as a returned defect. Anchored on the
+    // handler instead, which is what it was always reading.
+    const go = src.slice(src.indexOf('async function activateIcpHandler('))
     expect(go).toContain('apply_pending_revision')
     expect(go).not.toMatch(/from\('figsy_campaigns'\)\s*\n?\s*\.update/)
   })

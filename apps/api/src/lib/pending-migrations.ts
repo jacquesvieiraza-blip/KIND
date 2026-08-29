@@ -2523,6 +2523,496 @@ COMMENT ON TABLE public.programme_batches IS
   'Controlled ~250-lead execution batches. reserve at grant, convert to used on delivery, release on provider failure. status=stranded is the dead-letter queue for a release that itself failed.';
 `.trim(),
   },
+  {
+    // ⚑ 29 Aug — BUILD-003 · TENANT ISOLATION. Canonical file:
+    // supabase/migrations/20260829_delivery_rls.sql.
+    //
+    // ⚠️ R2 GATES APPLYING THIS MIGRATION, AND ONLY THIS ONE. It was split away from
+    // meetings, reply idempotency and delivery attribution precisely so a runtime gate on
+    // BROWSER access does not also hold those three hostage. Do not run it until the
+    // founder has verified what production serves on the anon/authenticated role.
+    //
+    // Four different states were found and each gets a different action — see the .sql
+    // header. The API uses the service role and bypasses RLS, so nothing here touches the
+    // backend; this is only what a signed-in browser may read.
+    key: '20260829_delivery_rls',
+    title: 'tenant isolation on the nine delivery tables (BUILD-003 item 1 — ⚠️ R2 GATES APPLYING THIS ONE)',
+    sql: `
+-- ═══════════════════════════════════════════════════════════════════════════════════════
+-- BUILD-003 · item 1 — TENANT ISOLATION ON THE NINE DELIVERY TABLES
+--
+-- ⚠️ R2 GATES APPLYING THIS FILE, AND ONLY THIS FILE. It is split out from meetings,
+-- reply idempotency and delivery attribution precisely so the runtime gate on browser
+-- access does not also hold those three hostage. Nothing here is applied until the founder
+-- has verified what production actually serves on the anon/authenticated role.
+--
+-- The API connects with SUPABASE_SERVICE_ROLE_KEY (packages/db/src/client.ts:16), which
+-- BYPASSES RLS entirely. So none of this touches the backend. This is exactly and only the
+-- boundary for what a signed-in client's BROWSER may read on the anon key.
+--
+-- FOUR STATES WERE FOUND, NOT ONE, so this migration does four different things:
+--   · leads, icps                       RLS on, correct policy      → PRESERVED untouched
+--   · figsy_campaigns, figsy_enrollments,
+--     figsy_replies, figsy_sent_emails  RLS on, ZERO policies       → policies ADDED
+--   · opt_out_blocklist                 RLS on, DEFECTIVE policies  → REPLACED
+--   · lead_pool, sourcing_ledger        RLS off                     → ENABLED, browser denied
+--
+-- Safe to re-run.
+-- ═══════════════════════════════════════════════════════════════════════════════════════
+
+-- The helper already exists (packages/db/src/schema.sql:256). Restated with the hardening
+-- the rest of BUILD-003 uses, and not loosened: SECURITY INVOKER so it resolves as the
+-- caller and can never become a privilege ladder, and an empty search_path so no
+-- attacker-controlled schema can shadow \`clients\` or \`auth.uid\`.
+CREATE OR REPLACE FUNCTION public.current_client_id()
+RETURNS uuid
+LANGUAGE sql
+STABLE
+SECURITY INVOKER
+SET search_path = ''
+AS $$
+  SELECT c.id FROM public.clients c WHERE c.user_id = auth.uid() LIMIT 1;
+$$;
+
+REVOKE ALL ON FUNCTION public.current_client_id() FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.current_client_id() TO authenticated;
+
+-- ── 1 · THE FOUR RLS-ON, ZERO-POLICY TABLES ─────────────────────────────────────────────
+--
+-- ⚠️ THIS IS A RESTORATION, NOT A TIGHTENING. RLS with no policy denies every row to the
+-- authenticated role, and PostgREST reports that denial as an EMPTY SUCCESS — \`{data: [],
+-- error: null}\`, \`count: 0\`. The client dashboard reads all four of these from the browser
+-- (DashboardLive.tsx) and takes the empty result as truth: \`if (count !== null)
+-- setTotalSent(count)\` writes ZERO. So these tables do not leak today — they silently answer
+-- nothing, and the dashboard's own server-rendered figures are overwritten with zeros on
+-- hydration. The policy is what lets a client see their own data again while still denying
+-- it to everyone else.
+--
+-- CODE VERIFIED. Whether production has 002_figsy.sql's RLS statements applied is R2 and is
+-- RUNTIME UNVERIFIED — it is not asserted here.
+
+ALTER TABLE public.figsy_campaigns   ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.figsy_enrollments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.figsy_replies     ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.figsy_sent_emails ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "figsy_campaigns_own"   ON public.figsy_campaigns;
+DROP POLICY IF EXISTS "figsy_enrollments_own" ON public.figsy_enrollments;
+DROP POLICY IF EXISTS "figsy_replies_own"     ON public.figsy_replies;
+DROP POLICY IF EXISTS "figsy_sent_emails_own" ON public.figsy_sent_emails;
+
+-- ⚠️ SELECT ONLY, DELIBERATELY — "no unnecessary browser mutation rights". These four are
+-- delivery RECORDS: what we sent, who replied, what a campaign did. A client editing their
+-- own reply history or send log would be editing the evidence behind their own invoice.
+-- Every writer in the repo is already server-side on the service role.
+CREATE POLICY "figsy_campaigns_own" ON public.figsy_campaigns
+  FOR SELECT TO authenticated USING (client_id = public.current_client_id());
+
+CREATE POLICY "figsy_enrollments_own" ON public.figsy_enrollments
+  FOR SELECT TO authenticated USING (client_id = public.current_client_id());
+
+CREATE POLICY "figsy_replies_own" ON public.figsy_replies
+  FOR SELECT TO authenticated USING (client_id = public.current_client_id());
+
+-- #637 added figsy_sent_emails.client_id so this table could be attributed at all, and the
+-- dashboard's sent counter filters on it. Without that column this policy could only be a
+-- two-hop join through enrollments.
+CREATE POLICY "figsy_sent_emails_own" ON public.figsy_sent_emails
+  FOR SELECT TO authenticated USING (client_id = public.current_client_id());
+
+-- ── 2 · opt_out_blocklist — THE DEFECTIVE POLICIES, REPLACED ────────────────────────────
+--
+-- 🔴 DISCOVERED DEFECT (BUILD-003 item 1, found by the Builder while scoping, recorded as
+-- founder-directed evidence). packages/db/src/schema.sql:288-291 shipped:
+--
+--     create policy "blocklist_read"  on public.opt_out_blocklist
+--       for select using (auth.role() = 'authenticated');
+--     create policy "blocklist_write" on public.opt_out_blocklist
+--       for insert with check (auth.role() = 'authenticated');
+--
+-- Neither carries a tenant predicate, on a table that HAS \`blocked_by_client_id\`. Any
+-- signed-in client could read EVERY suppressed address on the platform — other clients'
+-- prospects, by email — and could INSERT arbitrary addresses.
+--
+-- FOUNDER RULING, 29 Aug — suppression EFFECT is global, blocklist VISIBILITY is not:
+--   · a legitimately suppressed address is blocked on every K.I.N.D send path, and a later
+--     client cannot cause us to contact that person again;
+--   · no client may browse, enumerate or infer another client's suppressed addresses — the
+--     raw global list is operational infrastructure, not shared client data;
+--   · a browser must not write global suppression AT ALL. Scoping the write to
+--     \`blocked_by_client_id = current_client_id()\` is NOT sufficient: the row would still be
+--     globally effective, so a malicious client could submit any person's address and
+--     suppress them everywhere while looking perfectly well-behaved.
+--
+-- ⚠️ A PRODUCT RULE. This says nothing about legal sufficiency and claims no PECR compliance.
+--
+-- Verified before removing the INSERT policy, per the founder's stop-condition: NO browser or
+-- portal code writes this table. Every writer is server-side on the service role —
+-- routes/leads.ts:71,776 · routes/figsy.ts:81,241 · routes/whatsapp.ts:103,112. Removing the
+-- browser write breaks no existing workflow.
+
+DROP POLICY IF EXISTS "blocklist_read"  ON public.opt_out_blocklist;
+DROP POLICY IF EXISTS "blocklist_write" ON public.opt_out_blocklist;
+DROP POLICY IF EXISTS "blocklist_own"   ON public.opt_out_blocklist;
+
+-- Customer visibility is TENANT-LOCAL: a client sees only what their own activity produced,
+-- never the global list and never a global row carrying another tenant's address. Backend
+-- enforcement stays GLOBAL — the service role bypasses this policy and every send gate reads
+-- the whole table.
+CREATE POLICY "blocklist_own" ON public.opt_out_blocklist
+  FOR SELECT TO authenticated USING (blocked_by_client_id = public.current_client_id());
+
+-- No INSERT/UPDATE/DELETE policy for \`authenticated\` exists, by design. A suppression
+-- request goes through the API, which verifies the caller and that the address belongs to a
+-- contact that client is entitled to act on, and only then writes the globally-effective row.
+
+-- ── 3 · THE TWO RLS-OFF TABLES — BROWSER DENIED OUTRIGHT ────────────────────────────────
+--
+-- Neither is client-facing and neither gets a policy: RLS enabled with no policy IS the deny
+-- for \`authenticated\`, while the service role bypasses it. That is exactly the boundary.
+--
+-- lead_pool has NO tenant column at all — it is the shared pool by design, so no per-tenant
+-- predicate could be written even if we wanted one; exposing it would expose every other
+-- client's pooled identities.
+--
+-- sourcing_ledger DOES have client_id and is still denied, because it carries \`cost_usd\` —
+-- our provider cost per record. A per-tenant read policy would hand every client our internal
+-- economics on their own leads.
+
+ALTER TABLE public.lead_pool       ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.sourcing_ledger ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "lead_pool_no_browser"       ON public.lead_pool;
+DROP POLICY IF EXISTS "sourcing_ledger_no_browser" ON public.sourcing_ledger;
+
+-- leads and icps are deliberately NOT touched: \`leads_own\` and \`icps_own\` already carry the
+-- correct \`client_id = public.current_client_id()\` predicate. Re-issuing them here would risk
+-- narrowing a working policy for the sake of tidiness.
+`.trim(),
+  },
+  {
+    // ⚑ 29 Aug — BUILD-003 · MEETING TRUTH. Canonical file:
+    // supabase/migrations/20260829_meetings.sql.
+    //
+    // Replaces figsy_replies.meeting_booked_at — a nullable timestamp on a REPLY row, with
+    // the count re-derived in six places — which cannot tell HELD from NO_SHOW, cannot
+    // exclude a duplicate, counts a reschedule twice, and cannot record a failed calendar
+    // write. MEETING_BOOKED is the hard product-outcome boundary (P v1 r21).
+    //
+    // ⚠️ NOT gated by R2. Adds a table nothing reads yet plus a BEFORE DELETE trigger on
+    // leads; existing behaviour is unchanged until meeting-truth.ts writes to it.
+    key: '20260829_meetings',
+    title: 'public.meetings — the sole source of meeting truth (BUILD-003 item 2)',
+    sql: `
+-- ═══════════════════════════════════════════════════════════════════════════════════════
+-- BUILD-003 · item 2 — public.meetings, THE SOLE SOURCE OF MEETING TRUTH
+--
+-- ⚠️ NOT GATED BY R2. Split out from delivery_rls on purpose: R2 gates browser access, and
+-- meeting truth must not wait behind it. This migration grants the browser nothing beyond a
+-- tenant-scoped read of a table that does not exist yet.
+--
+-- WHAT IT REPLACES. Meeting truth today is \`figsy_replies.meeting_booked_at\` — a nullable
+-- timestamp on a REPLY row — and the count is re-derived independently in at least six
+-- places (figsy.ts:1253, figsy.ts:819, company.ts:82, company.ts:259, leads.ts:427,
+-- morning-brief-deliver.ts:61), each as \`if (r.meeting_booked_at) n++\`. That shape cannot
+-- express what the founder actually needs: it cannot tell a HELD meeting from a NO_SHOW,
+-- cannot exclude a duplicate or a spam booking, counts a reschedule twice, and has nowhere
+-- to record that a calendar write failed.
+--
+-- MEETING_BOOKED is the hard downstream product-outcome boundary (P v1 rule 21), so the
+-- number this table produces is the number the commercial model is judged on.
+--
+-- Safe to re-run.
+-- ═══════════════════════════════════════════════════════════════════════════════════════
+
+CREATE TABLE IF NOT EXISTS public.meetings (
+  id                   uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+
+  -- ⚠️ RESTRICT, NOT CASCADE. A client with meeting history cannot be deleted out from under
+  -- the outcome record. Deleting the client is refused at the database, loudly, rather than
+  -- silently taking the evidence with it — and this FK is the ONLY prohibition needed, so no
+  -- second custom delete trigger exists on this table.
+  client_id            uuid NOT NULL REFERENCES public.clients(id) ON DELETE RESTRICT,
+
+  -- The prospect, by REFERENCE ONLY. ⚠️ No name, no email, no phone is stored here: meeting
+  -- truth adds NO additional persisted prospect identifier, so erasing the lead does not
+  -- leave a second copy of the person behind on this row.
+  lead_id              uuid REFERENCES public.leads(id)            ON DELETE SET NULL,
+  campaign_id          uuid REFERENCES public.figsy_campaigns(id)  ON DELETE SET NULL,
+  enrollment_id        uuid REFERENCES public.figsy_enrollments(id) ON DELETE SET NULL,
+  programme_id         uuid REFERENCES public.programmes(id)       ON DELETE SET NULL,
+
+  -- ── THE FOUR STATES ──────────────────────────────────────────────────────────────────
+  -- BOOKED             a booking we have CONFIRMED against the calendar
+  -- BOOKED_UNVERIFIED  the prospect accepted, but the calendar write failed or is unproven.
+  --                    ⚠️ A SEPARATE STATE ON PURPOSE. Recording it as BOOKED would claim a
+  --                    calendar entry that may not exist; dropping it would lose a real
+  --                    meeting. It is a booking we cannot yet prove, and it says so.
+  -- HELD               the meeting happened — explicit confirmation only
+  -- NO_SHOW            it did not — explicit confirmation only
+  state                text NOT NULL
+                         CHECK (state IN ('BOOKED', 'BOOKED_UNVERIFIED', 'HELD', 'NO_SHOW')),
+
+  google_event_id      text,
+  scheduled_at         timestamptz NOT NULL,
+  booked_at            timestamptz NOT NULL DEFAULT now(),
+  verified_at          timestamptz,
+  held_confirmed_at    timestamptz,
+  no_show_confirmed_at timestamptz,
+  confirmed_by         text,
+
+  -- A reschedule INSERTS a new row and points back; the old row is stamped \`superseded_by\`.
+  -- History is preserved — both rows survive, so "this meeting moved twice" stays answerable
+  -- — while only the surviving row counts.
+  rescheduled_from     uuid REFERENCES public.meetings(id) ON DELETE SET NULL,
+  superseded_by        uuid REFERENCES public.meetings(id) ON DELETE SET NULL,
+
+  -- A duplicate, a spam booking or someone outside the ICP is still a real row: deleting it
+  -- would destroy the evidence of why the number moved. It simply does not count.
+  excluded_reason      text CHECK (excluded_reason IN ('duplicate', 'spam', 'outside_icp')),
+  excluded_at          timestamptz,
+  excluded_note        text,
+
+  created_at           timestamptz NOT NULL DEFAULT now(),
+  updated_at           timestamptz NOT NULL DEFAULT now(),
+
+  -- ── CONSTRAINTS — the invariant, as CHECKs rather than a trigger ─────────────────────
+
+  -- HELD and NO_SHOW REQUIRE EXPLICIT CONFIRMATION. Neither may be inferred from the clock:
+  -- a meeting whose time has passed is not evidence that anyone attended it.
+  CONSTRAINT meetings_held_requires_confirmation
+    CHECK (state <> 'HELD' OR held_confirmed_at IS NOT NULL),
+  CONSTRAINT meetings_no_show_requires_confirmation
+    CHECK (state <> 'NO_SHOW' OR no_show_confirmed_at IS NOT NULL),
+
+  -- A confirmation without its state is a half-written record — the shape that turns a HELD
+  -- meeting into one merely counted as booked.
+  CONSTRAINT meetings_held_stamp_matches_state
+    CHECK (held_confirmed_at IS NULL OR state = 'HELD'),
+  CONSTRAINT meetings_no_show_stamp_matches_state
+    CHECK (no_show_confirmed_at IS NULL OR state = 'NO_SHOW'),
+  CONSTRAINT meetings_not_both_outcomes
+    CHECK (held_confirmed_at IS NULL OR no_show_confirmed_at IS NULL),
+
+  -- BOOKED MEANS VERIFIED. This is the whole point of splitting the two booked states.
+  -- ⚠️ It requires \`verified_at\` and NOT \`google_event_id\`: erasure clears the event pointer
+  -- while the booking stays verified, because THAT A BOOKING WAS VERIFIED IS HISTORICAL
+  -- OUTCOME EVIDENCE. Requiring the event id here would make erasure impossible without
+  -- falsifying the outcome.
+  CONSTRAINT meetings_booked_requires_verification
+    CHECK (state <> 'BOOKED' OR verified_at IS NOT NULL),
+  CONSTRAINT meetings_unverified_carries_no_proof
+    CHECK (state <> 'BOOKED_UNVERIFIED' OR verified_at IS NULL),
+
+  -- ⚠️ NO ORPHAN EVENT POINTER — and this constraint is load-bearing twice over.
+  -- A google_event_id resolves, inside Google, to an invitee's email address. So an event id
+  -- with no lead is a pointer back to a person this row is not supposed to identify.
+  -- It is ALSO the backstop for the erasure trigger below: \`lead_id\` is ON DELETE SET NULL,
+  -- so if that trigger is ever dropped, deleting a lead nulls \`lead_id\` while leaving
+  -- \`google_event_id\` behind — and this CHECK makes the DELETE ITSELF FAIL, loudly, instead
+  -- of quietly leaving a route back to an erased person.
+  CONSTRAINT meetings_no_orphan_event_pointer
+    CHECK (google_event_id IS NULL OR lead_id IS NOT NULL),
+
+  -- An exclusion must say why AND when; a reason with no timestamp is unauditable.
+  CONSTRAINT meetings_exclusion_is_complete
+    CHECK ((excluded_reason IS NULL) = (excluded_at IS NULL)),
+
+  CONSTRAINT meetings_not_rescheduled_from_self
+    CHECK (rescheduled_from IS NULL OR rescheduled_from <> id)
+);
+
+-- DUPLICATE google_event_id IS REJECTED. Partial, so the many rows with no calendar entry —
+-- every BOOKED_UNVERIFIED, and every erased row — do not collide with each other on NULL.
+CREATE UNIQUE INDEX IF NOT EXISTS meetings_google_event_id_key
+  ON public.meetings (google_event_id) WHERE google_event_id IS NOT NULL;
+
+-- ⚠️ LIVE-BOOKING UNIQUENESS — one live booking per lead, enforced by the DATABASE.
+-- Two replies arriving at once, or a provider redelivering a webhook, would otherwise each
+-- read "no meeting yet" and each insert one: the classic read-then-write race, and here it
+-- inflates the single number the commercial model is judged on. A partial unique index makes
+-- the second writer lose at commit rather than at a check it never ran.
+-- Superseded (rescheduled) and excluded rows are outside the index, so a reschedule and an
+-- excluded duplicate can both coexist with the live booking they relate to.
+CREATE UNIQUE INDEX IF NOT EXISTS meetings_one_live_booking_per_lead
+  ON public.meetings (lead_id)
+  WHERE lead_id IS NOT NULL
+    AND state IN ('BOOKED', 'BOOKED_UNVERIFIED')
+    AND superseded_by IS NULL
+    AND excluded_reason IS NULL;
+
+CREATE INDEX IF NOT EXISTS meetings_client_idx    ON public.meetings (client_id, scheduled_at DESC);
+CREATE INDEX IF NOT EXISTS meetings_programme_idx ON public.meetings (programme_id) WHERE programme_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS meetings_lead_idx      ON public.meetings (lead_id) WHERE lead_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS meetings_state_idx     ON public.meetings (client_id, state);
+
+-- ── ERASURE — THE POINTER GOES, THE OUTCOME STAYS ──────────────────────────────────────
+--
+-- Fires BEFORE a lead is deleted. It nulls \`lead_id\` and \`google_event_id\` together, which
+-- is the only pair that satisfies meetings_no_orphan_event_pointer.
+--
+-- ⚠️ WHAT IT DELIBERATELY DOES NOT DO: it does not demote BOOKED to BOOKED_UNVERIFIED and it
+-- does not clear \`verified_at\`. The booking WAS verified; that is historical outcome evidence
+-- and erasing it would falsify the record rather than protect the person. What disappears is
+-- the route back to the prospect and to the calendar event — not the fact that a meeting
+-- happened.
+--
+-- ⚠️ Data hygiene, not a legal claim. This makes NO assertion of sufficiency for any erasure
+-- regime, and #704 (retention duration) remains unresolved and untouched.
+CREATE OR REPLACE FUNCTION public.meetings_detach_erased_lead()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY INVOKER
+SET search_path = ''
+AS $$
+BEGIN
+  UPDATE public.meetings
+     SET lead_id         = NULL,
+         google_event_id = NULL,
+         updated_at      = now()
+   WHERE lead_id = OLD.id;
+  RETURN OLD;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.meetings_detach_erased_lead() FROM PUBLIC;
+
+DROP TRIGGER IF EXISTS meetings_detach_erased_lead_trg ON public.leads;
+CREATE TRIGGER meetings_detach_erased_lead_trg
+  BEFORE DELETE ON public.leads
+  FOR EACH ROW EXECUTE FUNCTION public.meetings_detach_erased_lead();
+
+-- Meetings are tenant data: a client reads their own, and the browser never writes them.
+ALTER TABLE public.meetings ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "meetings_own" ON public.meetings;
+CREATE POLICY "meetings_own" ON public.meetings
+  FOR SELECT TO authenticated USING (client_id = public.current_client_id());
+`.trim(),
+  },
+  {
+    // ⚑ 29 Aug — BUILD-003 · REPLY IDEMPOTENCY. Canonical file:
+    // supabase/migrations/20260829_reply_idempotency.sql.
+    //
+    // Keys on provider_event_key (replyEventKey: message id → delivery id → NULL), NOT on
+    // provider_message_id, which would drop the delivery-id fallback that a webhook retry
+    // actually carries. The index is PARTIAL: NULL is deliberately fail-open, because
+    // dedupe on (campaign, lead, body) would discard a real second 'yes'.
+    //
+    // ⚠️ NOT gated by R2. One nullable column and one partial index.
+    key: '20260829_reply_idempotency',
+    title: 'figsy_replies.provider_event_key + partial unique index (BUILD-003 item 7)',
+    sql: `
+-- ═══════════════════════════════════════════════════════════════════════════════════════
+-- BUILD-003 · item 7 — REPLY IDEMPOTENCY, A DATABASE BACKSTOP
+--
+-- ⚠️ NOT GATED BY R2 — split out from delivery_rls so the browser-access gate does not hold
+-- back a duplicate-suppression guard. This file grants no browser access at all.
+--
+-- A provider redelivering a webhook must not create a second reply. A duplicate reply is a
+-- duplicate classification, a duplicate meeting and a duplicate outcome — and outcomes are
+-- what the commercial model is judged on.
+--
+-- ⚠️ WHY THE DATABASE AND NOT THE APPLICATION. There are three insert sites today —
+-- reply-pipeline.ts:156, manual-reply.ts:114 and routes/figsy.ts:2297 — and the fourth one
+-- somebody adds will not know about the other three. Application dedupe protects the paths
+-- its author remembered; a unique index protects the paths nobody has written yet.
+--
+-- Safe to re-run.
+-- ═══════════════════════════════════════════════════════════════════════════════════════
+
+-- ⚠️ provider_event_key, NOT provider_message_id — and the difference is the whole design.
+--
+-- \`replyEventKey\` (reply-ingest.ts:346) already resolves the intended hierarchy:
+--
+--     provider message id  →  fallback provider delivery id  →  NULL if neither exists
+--
+-- and namespaces the result by provider, so \`smartlead:123\` and \`instantly:123\` are
+-- different events rather than a collision between two vendors' counters.
+--
+-- Keying the index on \`provider_message_id\` alone would throw away the delivery-id fallback:
+-- every redelivery that carries only a delivery id would slip past the backstop, which is
+-- exactly the case a webhook retry produces. The column stores the KEY the application
+-- already computes, so the database protects the same identity the code reasons about
+-- instead of a narrower one.
+ALTER TABLE public.figsy_replies
+  ADD COLUMN IF NOT EXISTS provider_event_key text;
+
+-- ⚠️ PARTIAL, SO NULL IS DELIBERATELY FAIL-OPEN — this is a decision, not an oversight.
+--
+-- A reply with neither a provider message id nor a delivery id (an operator typing a manual
+-- reply, a provider that sends no identifier) is NOT deduplicated. The alternative is worse:
+-- keying on something synthetic like (campaign, lead, body) would silently DISCARD a real
+-- second reply from a person who wrote the same short line twice — "yes", "thanks", "ok".
+--
+-- Losing a genuine reply is a worse failure than storing a rare duplicate, because a lost
+-- reply is a lost meeting and nobody ever sees that it happened. So the backstop protects
+-- exactly the case where the provider hands us something authoritative to key on, and
+-- declines to guess in the case where it does not.
+CREATE UNIQUE INDEX IF NOT EXISTS figsy_replies_provider_event_key_key
+  ON public.figsy_replies (provider_event_key) WHERE provider_event_key IS NOT NULL;
+
+COMMENT ON COLUMN public.figsy_replies.provider_event_key IS
+  'Provider-namespaced event key from replyEventKey() — message id, else delivery id, else NULL. Unique when present; NULL is deliberately NOT deduplicated (see 20260829_reply_idempotency.sql).';
+`.trim(),
+  },
+  {
+    // ⚑ 29 Aug — BUILD-003 · DELIVERY ATTRIBUTION. Canonical file:
+    // supabase/migrations/20260829_delivery_attribution.sql.
+    //
+    // BUILD-002 gave a programme its SOURCING authority; nothing recorded what it
+    // DELIVERED. Without these two columns PR 2 cannot enforce Go-Live or a coordinated
+    // pause on delivery, because delivery cannot say whose authority it is spending.
+    //
+    // ⚠️ ADDITIVE AND INERT, and NOT gated by R2: both columns are nullable with no
+    // backfill, every existing enrolment keeps NULL (the legacy $299/$4 path), and
+    // nothing reads them until PR 2. Applying this changes no behaviour.
+    key: '20260829_delivery_attribution',
+    title: 'figsy_enrollments.programme_id + batch_id (BUILD-003 — the foundation PR 2 needs)',
+    sql: `
+-- ═══════════════════════════════════════════════════════════════════════════════════════
+-- BUILD-003 · DELIVERY ATTRIBUTION — which programme, and which batch, put this person
+-- into a sequence
+--
+-- ⚠️ NOT GATED BY R2 — split out from delivery_rls so PR 2's foundation is not held behind
+-- the browser-access gate. Two nullable columns and two partial indexes; it grants nothing.
+--
+-- WHY IT EXISTS. BUILD-002 gave a programme its authority (\`try_spend_sourcing\` carries
+-- \`p_programme_id\`) and its sourcing ledger, so we can say what a programme SOURCED. Nothing
+-- records what it DELIVERED: \`figsy_enrollments\` is where a lead becomes an outreach
+-- sequence, and it carries no programme. Without these two columns, PR 2 cannot enforce
+-- Go-Live or a coordinated pause on delivery, because delivery cannot say which programme's
+-- authority it is spending — and a programme could never be judged on the meetings it
+-- actually produced.
+--
+-- ⚠️ ADDITIVE AND INERT. Both columns are nullable with no default and no backfill. Every
+-- existing enrolment keeps \`NULL\`, which is the legacy $299/$4 path, and nothing reads these
+-- columns until PR 2 does. Applying this file changes no behaviour.
+--
+-- Safe to re-run.
+-- ═══════════════════════════════════════════════════════════════════════════════════════
+
+-- SET NULL, not CASCADE: deleting a programme must never delete the record that a person was
+-- enrolled and emailed. The attribution goes; the delivery history stays.
+ALTER TABLE public.figsy_enrollments
+  ADD COLUMN IF NOT EXISTS programme_id uuid REFERENCES public.programmes(id) ON DELETE SET NULL;
+
+ALTER TABLE public.figsy_enrollments
+  ADD COLUMN IF NOT EXISTS batch_id uuid REFERENCES public.programme_batches(id) ON DELETE SET NULL;
+
+-- Partial, because the overwhelming majority of rows are legacy and carry NULL — indexing
+-- those would be paying for a value nothing queries.
+CREATE INDEX IF NOT EXISTS figsy_enrollments_programme_idx
+  ON public.figsy_enrollments (programme_id) WHERE programme_id IS NOT NULL;
+
+CREATE INDEX IF NOT EXISTS figsy_enrollments_batch_idx
+  ON public.figsy_enrollments (batch_id) WHERE batch_id IS NOT NULL;
+
+COMMENT ON COLUMN public.figsy_enrollments.programme_id IS
+  'The programme whose authority paid for this enrolment. NULL = legacy $299/$4 path (BUILD-003).';
+COMMENT ON COLUMN public.figsy_enrollments.batch_id IS
+  'The controlled ~250 batch this enrolment belongs to. NULL = legacy path (BUILD-003).';
+`.trim(),
+  },
 ]
 
 // Runs the statements against DATABASE_URL. Uses node-postgres because the Supabase JS

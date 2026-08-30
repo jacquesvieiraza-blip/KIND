@@ -9,7 +9,7 @@ import ProductTour from '@/components/ProductTour'
 // screen. They are the $299-pack and $4-per-lead economics, and the live customer path has no
 // legacy customers left to serve them to. `shortfallMessage` stays imported only where the
 // wallet top-up still belongs (it does not appear on this home any more).
-import { MILLA_FAILURE_COPY } from '@kind/shared'
+import { MILLA_FAILURE_COPY, type MillaStage } from '@kind/shared'
 import ProgrammeWorkspace, { nextActionFor, type CustomerProgramme } from '@/components/milla/ProgrammeWorkspace'
 import { proofWaitState, invalidateProofSnapshot, classifyClaimFailure, isReconciling, PROOF_WAIT_MS } from '@/lib/proof-start'
 
@@ -100,7 +100,11 @@ async function token(): Promise<string | undefined> {
 const CHIPS = [
   'Which of these look strongest?',
   'Please find more like these',
-  'Please pause my campaign',
+  // ⛓️ 30 Aug (BUILD-004A-1 live-walk) — "campaign" → "programme". The customer product is
+  // the PROGRAMME; "campaign" is the internal delivery object (`figsy_campaigns`) and is not
+  // the customer's word for what they bought. Terminology only — this chip still just sends
+  // a message to Milla, and the request it makes is unchanged.
+  'Please pause my programme',
   'How is my ROI looking?',
 ]
 
@@ -232,7 +236,10 @@ export default function MillaHomePage() {
   // proof wait bound both read it, and because a reveal arriving from anywhere else must
   // still take that lead off the calibration set rather than showing it again.
   const [revealed] = useState<Record<string, Revealed>>({})
-  const [topUp, setTopUp] = useState<string | null>(null)
+  // ⛓️ 30 Aug (BUILD-004A-1 live-walk) — THE `topUp` STATE IS GONE. It held the wallet
+  // shortfall message raised by the paid approve paths; those were removed with the desk, so
+  // nothing has been able to set it since. A state that can only ever be null is a rendered
+  // wallet prompt waiting for someone to re-wire it.
   const [error, setError] = useState<string | null>(null)
 
   // ── ⚑ 24 Aug — BATCH REFINEMENT (founder-ruled): pass 1 → "these aren't right" → pass 2.
@@ -749,7 +756,7 @@ export default function MillaHomePage() {
   // reaction with it, a flow the founder's spec keeps. No price on any button — "Looks right"
   // writes no approval, reveals nothing, charges nothing, and what follows is a conversation.
   async function acceptProof(id: string) {
-    setActing(id); setTopUp(null); setError(null)
+    setActing(id); setError(null)
     try {
       await api.post(`/leads/${id}/proof-accept`, {}, await token())
       // ⛓️ 30 Aug — THE PACK CHECKOUT IS NOT THE NEXT STEP. "Looks right" used to push
@@ -1112,16 +1119,46 @@ export default function MillaHomePage() {
   // mirrored lib/approval-batch.ts so the browser could explain a paid batch refusal. The
   // server rule is untouched and still refuses under 20 wherever a paid batch is attempted;
   // what is removed is this screen's ability to attempt one.
-  // What is actually happening with their sending, in the client's words. Ordered by what
-  // matters most to them: unpaid beats paused, because paying is what unblocks it.
+  // ── ⚑ 30 Aug (BUILD-004A-1 live-walk) — THE STAGE DECIDES WHETHER SENDING IS A FACT YET ──
+  //
+  // 🛑 WHAT THE FOUNDER SAW, AND WHY IT WAS NOT A COPY BUG. The conversation header read
+  // "Paused — we'll tell you why" while the Stage card two inches above read "Proof — current"
+  // and three calibration prospects sat waiting for him. One screen, two contradictory claims.
+  //
+  // THE CAUSE IS TWO INDEPENDENT SOURCES, ONE OF WHICH IS NOT ABOUT THE PROGRAMME AT ALL:
+  //   · `prog.stage` comes from `/my/programme` → `millaStage(programmes.status)`, and NO
+  //     programme row is a real answer meaning Proof (my-programme.ts:107).
+  //   · this widget comes from `summary.campaign_status` — the newest `figsy_campaigns` row
+  //     (milla-summary.ts:102), the internal OUTREACH object, which every legacy client has
+  //     regardless of whether a programme exists.
+  //
+  // So a client with a legacy purchase and no programme row is at stage Proof with a stale
+  // `figsy_campaigns` row sitting at `paused`. `needsGoLive` does not catch it either: it
+  // reads `has_funded`, which is TRUE for exactly that client, so the guard above falls
+  // through to the campaign status.
+  //
+  // ⚠️ AND `paused` THERE IS NOT A PROGRAMME PAUSE. Programme pause is `programmes.paused_at`
+  // — deliberately NOT a stage, because pause is orthogonal to the journey
+  // (programme-stage.ts:76) — and it is a different state again from a REVIEW hold. Reading a
+  // campaign row's status as "your programme is paused" collapses three distinct facts into
+  // one sentence, and tells a customer we stopped something we never started.
+  //
+  // THE FIX IS THE GATE, NOT THE WORDS. Before outreach can have run, this widget states the
+  // function's own existing default. Every label below is unchanged; what changed is which
+  // stages are allowed to reach the campaign-derived ones.
+  const OUTREACH_STAGES: MillaStage[] = ['Live', 'Review', 'Completion']
   const sendState = (() => {
+    const idle = { label: 'Nothing sending yet', tone: 'text-[#5c5279]', dot: 'bg-[#b3a9cc]' }
+    // ⚠️ ONLY WHEN THE STAGE IS KNOWN. While `/my/programme` is still loading — or has failed
+    // — this must not start asserting things it cannot know, so the existing behaviour stands.
+    if (prog && !OUTREACH_STAGES.includes(prog.stage)) return idle
     if (needsGoLive) return { label: 'Not started', tone: 'text-[#b45309]', dot: 'bg-amber-500' }
     const st = summary?.campaign_status
     if (st === 'active') return { label: 'Campaign live', tone: 'text-[#059669]', dot: 'bg-emerald-500' }
     if (st === 'paused' || st === 'paused_low_performance') return { label: 'Paused — we\u2019ll tell you why', tone: 'text-[#b45309]', dot: 'bg-amber-500' }
     if (st === 'completed' || st === 'archived') return { label: 'Campaign finished', tone: 'text-[#5c5279]', dot: 'bg-[#b3a9cc]' }
     if (st === 'draft') return { label: 'Being set up', tone: 'text-[#5c5279]', dot: 'bg-[#b3a9cc]' }
-    return { label: 'Nothing sending yet', tone: 'text-[#5c5279]', dot: 'bg-[#b3a9cc]' }
+    return idle
   })()
 
   const rich = (t: string) => t.split(/(\*\*[^*]+\*\*)/g).map((p, i) => p.startsWith('**') && p.endsWith('**')
@@ -1447,8 +1484,29 @@ export default function MillaHomePage() {
         </aside>
       </div>
 
-      {/* #511f — what Milla's learning for this client (the flywheel) */}
-      {nexus && nexus.sample_worked > 0 && (
+      {/* #511f — what Milla's learning for this client (the flywheel)
+          ── ⚑ 30 Aug (BUILD-004A-1 live-walk) — STAGE-GATED. ────────────────────────────
+          🛑 WHAT THE FOUNDER SAW AT PROOF: "Milla is learning which messages land best for
+          you", beside "Reply rate 0.4%" and "Meeting rate 0%". At Proof nothing has been
+          sent, so none of those three is a fact about this customer's programme.
+
+          THE CAUSE IS THAT THIS CARD HAS NO STAGE AT ALL. Every field it renders comes from
+          `/leads/nexus-summary` → `getNexusProfile`, which is entirely OUTREACH performance:
+          reply rate, meeting rate, best-converting persona, winning subject lines. Its only
+          condition is `sample_worked > 0` — a lifetime count — so a client carrying legacy
+          outreach history is shown message-performance learning at a stage where no message
+          exists. The branch that produced that exact sentence is `sample_worked >= 20` with
+          no persona resolved (leads.ts:392).
+
+          SO IT IS GATED, NOT RE-WORDED. Outreach learning renders once outreach is a real
+          thing — Live, Review, Completion — and the numbers it shows are then true.
+
+          ⚠️ WHAT THIS DELIBERATELY DOES NOT DO. It does not substitute a Proof-stage learning
+          sentence about who looks right and how the ICP is being refined. That is the right
+          card and the founder has approved no wording for it, so it is returned for sign-off
+          rather than invented here. Showing nothing states nothing false; showing a sentence
+          I wrote would put my words in Milla's voice on the customer's first screen. */}
+      {nexus && nexus.sample_worked > 0 && prog && OUTREACH_STAGES.includes(prog.stage) && (
         <div className="mt-4 bg-gradient-to-br from-[#faf7ff] to-white border border-[#ece5fb] rounded-2xl px-5 py-4">
           <div className="flex items-center gap-2 mb-1.5">
             <span className="text-[16px]">🧠</span>

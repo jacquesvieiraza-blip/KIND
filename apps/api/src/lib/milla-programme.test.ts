@@ -470,3 +470,83 @@ describe('🛑 NO LEGACY MONEY TRUTH SURVIVES ON THE MILLA HOME', () => {
     }
   })
 })
+
+// ═══ THE LIVE WALK (30 Aug) — FOUR THINGS THE GATE PASSED AND A HUMAN DID NOT ═══════════
+//
+// 🛑 EVERY GUARD IN THIS FILE WAS GREEN when the founder opened the deployed `/milla` and
+// found: "$4,000 wallet" in the top bar of every screen · "Paused — we'll tell you why" two
+// inches above "Proof — current" · outreach-performance learning at a stage where nothing has
+// been sent · "Please pause my campaign" on a product renamed Programme.
+//
+// The reason each survived is the same: the guards above assert about ONE FILE, the home, and
+// three of these four live outside it or arrive from an endpoint the home does not own. This
+// block asserts across the surface a customer actually sees.
+describe('THE MILLA SHELL CARRIES NO RETIRED COMMERCIAL TRUTH', () => {
+  const SHELL = readFileSync(join(PORTAL, 'components/milla/MillaShell.tsx'), 'utf8')
+  const SHELL_CODE = strip(SHELL)
+
+  it('the sweep is not vacuous — the shell loads and is the real file', () => {
+    expect(SHELL_CODE).toContain('export function MillaShell')
+  })
+
+  it('① the wallet balance is gone from the top bar', () => {
+    // It rendered on EVERY Milla screen, which makes it the most-read stale claim there was.
+    expect(SHELL_CODE, 'the wallet chip is back in the Milla top bar').not.toContain('wallet_balance_usd')
+    expect(SHELL_CODE, 'the word "wallet" is back in the Milla shell').not.toMatch(/wallet/i)
+  })
+
+  it('② and nothing was invented to fill the corner it left', () => {
+    // The fix is a REMOVAL. A "programme value" or "next payment" chip put there to balance
+    // the layout would be a new visible decision nobody approved.
+    for (const invented of ['programme value', 'next payment', 'amount due', 'balance']) {
+      expect(SHELL_CODE.toLowerCase(), `invented top-bar copy: ${invented}`).not.toContain(invented)
+    }
+    // The Account dropdown keeps its position and its contents.
+    expect(SHELL_CODE).toContain('Account <ChevronDown')
+    expect(SHELL_CODE).toContain("['/milla/settings', 'Settings', User]")
+  })
+})
+
+describe('THE HOME STATES NOTHING THAT ITS STAGE CANNOT SUPPORT', () => {
+  // ⚠️ THE SHAPE OF ALL THREE. Each is a claim about OUTREACH — sending, pausing, reply
+  // rates — rendered on a screen whose stage says outreach has not started. The fix in every
+  // case is the GATE, never the words: no label, sentence or number below was rewritten.
+  it('③ the send-state header is gated on the programme stage, not on a campaign row', () => {
+    expect(HOME_CODE, 'the outreach-stage gate is gone from sendState')
+      .toContain("const OUTREACH_STAGES: MillaStage[] = ['Live', 'Review', 'Completion']")
+    expect(HOME_CODE, 'sendState reads campaign_status at every stage again')
+      .toMatch(/if \(prog && !OUTREACH_STAGES\.includes\(prog\.stage\)\) return idle[\s\S]{0,120}?if \(needsGoLive\)/)
+    // 🛑 THE CONTRADICTION ITSELF: "Paused" must be unreachable before Live. The gate returns
+    // first, so the paused branch cannot be evaluated at Proof, Recommendation, Sourcing or
+    // Approval — which is the whole finding.
+    const from = HOME_CODE.indexOf('const sendState = (() => {')
+    const gate = HOME_CODE.indexOf('OUTREACH_STAGES.includes(prog.stage)', from)
+    // ⚠️ THE LITERAL BACKSLASH-u, because that is what the source file contains — the .tsx
+    // writes the apostrophe as an escape. Searching for the decoded character finds
+    // nothing, and the vacuity assertion below is what caught exactly that.
+    const paused = HOME_CODE.indexOf('Paused — we\\u2019ll tell you why', from)
+    expect(from, 'sendState is gone').toBeGreaterThan(-1)
+    expect(paused, 'the paused label is gone — this guard would pass vacuously').toBeGreaterThan(-1)
+    expect(gate, 'the stage gate no longer precedes the paused branch').toBeGreaterThan(from)
+    expect(paused, 'the paused branch can be reached before the stage gate').toBeGreaterThan(gate)
+  })
+
+  it('④ the outreach-learning card does not render before outreach exists', () => {
+    // `/leads/nexus-summary` is entirely outreach performance — reply rate, meeting rate,
+    // best-converting persona. Its only condition was a LIFETIME sample count, so legacy
+    // history rendered message-performance learning at Proof.
+    expect(HOME_CODE, 'the learning card lost its stage gate')
+      .toContain('{nexus && nexus.sample_worked > 0 && prog && OUTREACH_STAGES.includes(prog.stage) && (')
+  })
+
+  it('⑤ the customer product is called a programme where the founder named it', () => {
+    expect(HOME_CODE, 'the pause chip says "campaign" again').toContain("'Please pause my programme'")
+    expect(HOME_CODE, 'the retired chip wording is back').not.toContain('Please pause my campaign')
+  })
+
+  it('⑥ the wallet top-up state cannot be re-wired on the home', () => {
+    // It could only ever be null once the paid approve paths went; what it rendered was a
+    // wallet shortfall prompt.
+    expect(HOME_CODE, 'the wallet top-up state is back on the home').not.toContain('setTopUp')
+  })
+})

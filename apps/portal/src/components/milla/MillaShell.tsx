@@ -11,12 +11,21 @@ import {
 } from 'lucide-react'
 
 // #490/#510 — the Milla client shell (docs/mv-previews/milla2.html): slim top bar (brand +
-// live wallet balance chip + notification + account dropdown), a full client rail
-// (New leads · Meetings · My campaign · Reports · INSIGHTS · COMPANY · RECENT REPLIES from
-// LIVE data), and the working area. Insights/Company link the client's existing real pages.
+// account dropdown), a full client rail (Home · Meetings · Programme · Reports · RECENT
+// REPLIES from LIVE data), and the working area.
+//
+// ⛓️ 30 Aug (BUILD-004A-1 live-walk) — THE WALLET CHIP IS GONE FROM THE TOP BAR. It read
+// "$4,000 wallet" on the founder's own live walk. There is no wallet in the programme model:
+// no balance, no top-ups, and money is the two 50% programme payments. A retired number in
+// the top-right corner of EVERY screen is the most-read stale claim in the product.
+//
+// ⚠️ NOTHING REPLACES IT. The corner is left to the Account dropdown, which keeps its
+// position and design. Inventing a "programme value" or "next payment" chip to fill the gap
+// would be a new visible decision nobody approved — and the top bar is not where a customer
+// should learn what they owe.
 
 type Summary = {
-  wallet_balance_usd: number; leads_awaiting: number; meetings_booked: number
+  leads_awaiting: number; meetings_booked: number
   recent_replies: { name: string; classification: string }[]
 }
 
@@ -95,7 +104,8 @@ export function MillaShell({ children }: { children: React.ReactNode }) {
           <span className="text-[16px] font-extrabold">Milla<span className="text-[#9b8ec4] font-semibold text-[13.5px]">&amp;Vida</span></span>
         </Link>
         <div className="ml-auto flex items-center gap-3.5">
-          <span className="text-[14.5px] font-extrabold text-[#7C3AED]">${s ? s.wallet_balance_usd.toLocaleString() : '…'} <span className="text-[#9b8ec4] font-semibold text-[13px]">wallet</span></span>
+          {/* ⛓️ THE WALLET BALANCE STOOD HERE. Removed, not replaced — see the note at the
+              top of this file. */}
           {/* #406 — A BELL ICON USED TO SIT HERE. It had no onClick, no href, no badge and no
               menu: a notification bell that could not be clicked and never showed a count, in
               the top bar of every screen. There is no notification centre behind it — the

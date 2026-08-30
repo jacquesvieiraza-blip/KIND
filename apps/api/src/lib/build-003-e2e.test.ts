@@ -270,3 +270,144 @@ describe('⑤ THE READ MODEL IS READ-ONLY, BY CONSTRUCTION', () => {
     }
   })
 })
+
+// ══ PR4 — THE GUARD THAT WOULD HAVE CAUGHT PR3's MISS ═══════════════════════════════════
+//
+// 🛑 WHAT WENT WRONG, STATED PLAINLY. PR3 built `GET /operator/pool/summary` and
+// `GET /operator/programme/exceptions`, asserted that both ROUTES EXIST — and rendered
+// neither. The only way to read them was a raw API call. That is precisely the failure PR3
+// was written to fix, one level up.
+//
+// And the miss happened three tests above an assertion that says, in its own comment: *"every
+// piece can be correct while the button that reaches them does not exist, and no unit test
+// would notice."* I wrote that for the proof-review chain and did not apply it to the two
+// surfaces I had just built.
+//
+// ⚠️ SO THE RULE IS NOW GENERAL, NOT PER-FEATURE: every operator READ endpoint must be reached
+// by the UI. The sweep below is derived from the route list, so a NEW endpoint added later is
+// covered without anyone remembering to add a test for it.
+describe('PR4 — EVERY OPERATOR READ SURFACE IS REACHABLE BY CLICKING', () => {
+  /** Operator GET routes that exist to be looked at by a human. */
+  const READ_SURFACES: { route: string; mustRender: string[] }[] = [
+    { route: '/operator/programme', mustRender: ['room_remaining', 'Batches'] },
+    { route: '/operator/pool/summary', mustRender: ['by_source', 'by_country', 'breakdown_sample'] },
+    { route: '/operator/programme/exceptions', mustRender: ['stranded_batches', 'open_evictions', 'failed_runs', 'debris_icps'] },
+  ]
+
+  for (const s of READ_SURFACES) {
+    it(`${s.route} is CALLED by Vida`, () => {
+      expect(
+        VIDA,
+        `${s.route} exists in the API and NOTHING in Vida calls it. An operator cannot reach it by clicking — this is the PR3 miss repeating.`,
+      ).toContain(`/api/proxy${s.route}`)
+    })
+
+    it(`${s.route} has its truth RENDERED, not just fetched`, () => {
+      // Fetching without rendering is the same invisibility with extra steps.
+      for (const field of s.mustRender) {
+        expect(VIDA, `${s.route} is fetched but "${field}" is never rendered`).toContain(field)
+      }
+    })
+  }
+
+  it('both new surfaces are reachable TABS, not dead state', () => {
+    // A loader with no tab is unreachable. The tab list and the panel condition must both name
+    // them, or the fetch above proves nothing.
+    //
+    // ⛓️ TIGHTENED AFTER A RED PROOF DID NOT GO RED. The first cut asserted `tab === 'Pool'`
+    // appeared SOMEWHERE in the file — and it does, inside the loader effect. So disabling the
+    // panel itself (`{false && (<>`) left this green while the surface became unreachable: the
+    // exact PR3 failure, passing its own guard. The assertion now pins the PANEL OPENER, which
+    // is the only occurrence that means the thing renders.
+    for (const t of ['Pool', 'Exceptions']) {
+      expect(VIDA, `no '${t}' tab exists in the tab strip`).toContain(`'${t}'`)
+      expect(
+        VIDA,
+        `the '${t}' PANEL is not rendered. A loader with no panel fetches data nobody sees — and a grep for "tab === '${t}'" alone passes on that, because the loader effect contains it too.`,
+      ).toContain(`{tab === '${t}' && (<>`)
+    }
+  })
+
+  it('the tabs actually TRIGGER their loaders', () => {
+    // A tab that renders an empty panel because nothing ever fetched is the third way to be
+    // invisible. The effect that fires on tab change is the wire.
+    expect(VIDA).toMatch(/if \(tab === 'Pool'\)\s*void loadPool\(\)/)
+    expect(VIDA).toMatch(/if \(tab === 'Exceptions'\)\s*void loadExceptions\(\)/)
+  })
+})
+
+describe('PR4 — THE POOL PANEL CANNOT LIE ABOUT AN UNKNOWN COUNT', () => {
+  it('🛑 a null total renders as UNKNOWN and explicitly NOT zero', () => {
+    // Rendering a failed count as 0 would tell an operator the inventory is empty — a
+    // decision-changing lie on the surface that decides whether to buy more data.
+    expect(VIDA).toContain('pool.total === null')
+    expect(VIDA).toContain('This is NOT zero')
+  })
+
+  it('the null branch comes BEFORE any numeric formatting', () => {
+    // `null.toLocaleString()` would throw, and a `?? 0` would silently render zero. The order
+    // is what makes the honest branch unreachable-past.
+    const nullAt = VIDA.indexOf('pool.total === null')
+    const fmtAt = VIDA.indexOf('pool.total.toLocaleString()')
+    expect(nullAt).toBeGreaterThan(0)
+    expect(fmtAt).toBeGreaterThan(nullAt)
+    expect(VIDA, 'the pool total is coerced with ?? 0 — a failed count would render as an empty pool').not.toContain('pool.total ?? 0')
+  })
+
+  it('the breakdown SAMPLE SIZE is shown, so a partial cannot pose as the whole pool', () => {
+    expect(VIDA).toContain('breakdown_sample')
+    expect(VIDA).toMatch(/not the whole pool/)
+  })
+
+  it('no invented pool metric reaches the panel', () => {
+    for (const fake of ['health_score', 'healthScore', 'fill_rate', 'fillRate', 'projected', 'coverage_pct']) {
+      expect(VIDA, `the pool panel invented a metric: ${fake}`).not.toContain(fake)
+    }
+  })
+})
+
+describe('PR4 — DEGRADED STATE STAYS VISIBLE ON BOTH NEW PANELS', () => {
+  it('each panel renders its degraded list', () => {
+    // On an operator console an empty screen reads as "nothing is wrong". A degraded read must
+    // never be indistinguishable from a clean one.
+    expect(VIDA).toContain('pool?.degraded')
+    expect(VIDA).toContain('exc?.degraded')
+  })
+
+  it('each panel renders its own load error', () => {
+    expect(VIDA).toContain('poolErr')
+    expect(VIDA).toContain('excErr')
+  })
+})
+
+describe('PR4 — THE EXCEPTIONS PANEL NAMES WHO EACH PROBLEM BELONGS TO', () => {
+  it('every exception row shows a client, so an operator can act rather than hunt', () => {
+    // A list of ids with no owner is a list nobody can act on.
+    //
+    // ⛓️ COUNTED FILE-WIDE, NOT INSIDE A SLICED PANEL. The first cut sliced from
+    // `tab === 'Exceptions'` to the first `</>)}` — which closes a NESTED fragment long before
+    // the rows, so the body was empty and the assertion read zero. A slice that silently ends
+    // early makes a real assertion report a false absence, and only the failure exposed it.
+    // `client_id?.slice` appears nowhere else in this file, so the count is unambiguous.
+    expect((VIDA.match(/client_id\?\.slice/g) ?? []).length,
+      'the exception rows do not name their client').toBeGreaterThanOrEqual(3)
+  })
+
+  it('the crashed-run window is stated in the UI, not silently applied', () => {
+    expect(VIDA).toContain('failed_run_window_days')
+  })
+
+  it('🛑 THE ONLY CLEANUP ACTION IS REVERSIBLE RETIREMENT — no destructive control exists', () => {
+    // The founder locked production cleanup to non-destructive tooling. Asserted on the UI as
+    // well as the route, because a delete button is a delete regardless of what the API allows.
+    expect(VIDA).toContain('/retire')
+    expect(VIDA).toContain('Restore')
+    for (const d of ['/delete', 'Delete', 'Purge', 'Wipe']) {
+      expect(VIDA, `the exceptions panel offers a destructive control: ${d}`).not.toContain(d)
+    }
+  })
+
+  it('debris is labelled a CANDIDATE, never a verdict', () => {
+    expect(VIDA).toMatch(/debris ICP candidates/i)
+  })
+})

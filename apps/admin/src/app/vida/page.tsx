@@ -63,7 +63,14 @@ type Blockers = { send_gate: number; money_gate: number; unsent_sourced: number;
 // ⚑ 30 Aug (BUILD-003 PR3) — 'Programme' added. Everything PR2 built was invisible here:
 // status, pause, the review hold, the sourcing ceiling, batches, stranded batches. A control
 // nobody can see is not a control.
-type CockpitTab = 'Inbox' | 'Approvals' | 'People' | 'Campaign' | 'ICP' | 'Sequence' | 'Asks' | 'Bookings' | 'Programme'
+// ⚑ 30 Aug (BUILD-003 PR4) — 'Pool' and 'Exceptions' added. PR3 built both endpoints and
+// rendered NEITHER, so the only way to read them was a raw API call. That is the same defect
+// PR3 existed to fix, one level up: a truth nobody can click to is a truth nobody has.
+//
+// ⚠️ BOTH ARE PLATFORM-WIDE, not per-client, and the panels say so. They live in the cockpit
+// tab strip because that is where an operator already is — a separate page would be a second
+// place to remember, and the thing that goes unlooked-at is the thing you have to navigate to.
+type CockpitTab = 'Inbox' | 'Approvals' | 'People' | 'Campaign' | 'ICP' | 'Sequence' | 'Asks' | 'Bookings' | 'Programme' | 'Pool' | 'Exceptions'
 type CampaignRow = {
   id: string; name: string; status: string; leads_enrolled: number; emails_sent: number
   replies_total: number; replies_interested: number; created_at: string | null
@@ -287,6 +294,64 @@ export default function VidaConsolePage() {
     } catch (e) { setProgErr(e instanceof Error ? e.message : 'Failed to load programme'); setProg(null) }
   }, [])
 
+  // ⚑ 30 Aug (BUILD-003 PR4) — POOL + EXCEPTIONS. Platform-wide, so they load independently of
+  // the selected client and are refreshed when their tab is opened.
+  type PoolSummary = {
+    total: number | null
+    by_source: { source: string; count: number }[]
+    by_country: { country: string; count: number }[]
+    breakdown_sample: number
+    degraded: string[]
+  }
+  type Exceptions = {
+    stranded_batches: { id: string; seq: number; programme_id: string; client_id: string | null; granted: number; delivered: number | null; created_at: string | null }[]
+    open_evictions: { lead_id: string; client_id: string | null; provider: string | null; reason: string | null; required_at: string }[]
+    failed_runs: { icp_id: string; client_id: string | null; message: string | null; created_at: string }[]
+    failed_run_window_days: number
+    debris_icps: { id: string; client_id: string | null; name: string | null; is_active: boolean; created_at: string | null }[]
+    degraded: string[]
+  }
+  const [pool, setPool] = useState<PoolSummary | null>(null)
+  const [poolErr, setPoolErr] = useState<string | null>(null)
+  const loadPool = useCallback(async () => {
+    setPoolErr(null)
+    try {
+      const j = await fetch('/api/proxy/operator/pool/summary').then(r => r.json())
+      if (!j?.success) throw new Error(j?.error || 'Failed to load the pool summary')
+      setPool(j.data as PoolSummary)
+    } catch (e) { setPoolErr(e instanceof Error ? e.message : 'Failed to load the pool summary'); setPool(null) }
+  }, [])
+
+  const [exc, setExc] = useState<Exceptions | null>(null)
+  const [excErr, setExcErr] = useState<string | null>(null)
+  const [retireBusy, setRetireBusy] = useState<string | null>(null)
+  const loadExceptions = useCallback(async () => {
+    setExcErr(null)
+    try {
+      const j = await fetch('/api/proxy/operator/programme/exceptions').then(r => r.json())
+      if (!j?.success) throw new Error(j?.error || 'Failed to load exceptions')
+      setExc(j.data as Exceptions)
+    } catch (e) { setExcErr(e instanceof Error ? e.message : 'Failed to load exceptions'); setExc(null) }
+  }, [])
+
+  // ⚠️ THE ONLY CLEANUP ACTION, AND IT IS REVERSIBLE. `is_active = false` — never a delete.
+  // The route refuses with 409 if the ICP belongs to a live unpaused programme, and that
+  // refusal is surfaced verbatim rather than swallowed into a generic failure.
+  const retireIcp = useCallback(async (icpId: string, active: boolean) => {
+    setRetireBusy(icpId)
+    try {
+      const j = await fetch(`/api/proxy/operator/icp/${encodeURIComponent(icpId)}/retire`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ active }),
+      }).then(r => r.json())
+      setSaveMsg(j?.success ? notice.ok(j.data?.headline ?? 'Done.') : notice.error(j?.error ?? 'Could not change the ICP.'))
+      if (j?.success) await loadExceptions()
+    } catch (e) {
+      setSaveMsg(notice.error(e instanceof Error ? e.message : 'Could not change the ICP.'))
+    }
+    setRetireBusy(null)
+  }, [loadExceptions])
+
   // Inbox thread — open a prospect reply, draft an answer in the client's voice, send it.
   const [openReply, setOpenReply] = useState<string | null>(null)
   const [thread, setThread] = useState<{ reply: Record<string, unknown>; lead: Record<string, unknown> | null } | null>(null)
@@ -324,6 +389,17 @@ export default function VidaConsolePage() {
     loadCockpit(selected)
     loadProgramme(selected)
   }, [selected, loadCockpit, loadProgramme])
+
+  // ⚑ 30 Aug (BUILD-003 PR4) — POOL AND EXCEPTIONS LOAD WHEN THEIR TAB IS OPENED.
+  //
+  // ⚠️ NOT ON CLIENT SELECTION, because neither is scoped to a client — firing them on every
+  // client switch would be two platform-wide queries per click for data nobody is looking at.
+  // Opening the tab is the moment the operator wants it, and re-opening refreshes it, which is
+  // what an exceptions list needs: a stale one is worse than none.
+  useEffect(() => {
+    if (tab === 'Pool') void loadPool()
+    if (tab === 'Exceptions') void loadExceptions()
+  }, [tab, loadPool, loadExceptions])
 
   async function openThread(id: string) {
     if (!selected) return
@@ -1697,7 +1773,7 @@ export default function VidaConsolePage() {
               )}
 
               <div className="shrink-0 flex items-end gap-0.5 px-3 pt-2.5 border-b border-[#eee7f7] overflow-x-auto">
-                {(['Inbox', 'Approvals', 'People', 'Campaign', 'ICP', 'Sequence', 'Asks', 'Bookings', 'Programme'] as CockpitTab[]).map(t => {
+                {(['Inbox', 'Approvals', 'People', 'Campaign', 'ICP', 'Sequence', 'Asks', 'Bookings', 'Programme', 'Pool', 'Exceptions'] as CockpitTab[]).map(t => {
                   const on = tab === t
                   const n = t === 'Inbox' ? (cockpit?.replies.filter(r => !r.qualified_at && !r.meeting_booked_at).length ?? 0)
                     : t === 'Approvals' ? (cols?.needs_approval.count ?? 0)
@@ -2486,6 +2562,128 @@ export default function VidaConsolePage() {
             </aside>
           </div>
         </>)}
+
+                {/* ⚑ 30 Aug (BUILD-003 PR4) — LEAD POOL. Platform-wide.
+                    Every value is a count of rows that exist. No health score, no fill rate,
+                    no projection: an operator acting on a number we made up is worse off than
+                    one acting on nothing. */}
+                {tab === 'Pool' && (<>
+                  <p className="text-[11.5px] text-[#9b8ec4] mb-2">Platform-wide — not scoped to this client.</p>
+                  {poolErr && <p className="text-[12.5px] font-semibold text-red-600 mb-2">Pool summary could not be loaded: {poolErr}</p>}
+                  {(pool?.degraded ?? []).map((d, i) => (
+                    <p key={i} className="text-[12.5px] font-semibold text-red-600 mb-2">⚠️ {d}</p>
+                  ))}
+
+                  {!pool ? <p className="text-[13.5px] text-[#9b8ec4] text-center py-8">Loading…</p> : (<>
+                    <div className="border border-[#eee7f7] rounded-xl px-3 py-2.5 mb-3">
+                      <b className="text-[13px] block mb-1">Records in the pool</b>
+                      {/* 🛑 null IS "THE COUNT FAILED", NEVER ZERO. Rendering it as 0 would tell an
+                          operator the inventory is empty — a decision-changing lie on the surface
+                          that decides whether to buy more data. */}
+                      {pool.total === null
+                        ? <span className="text-[13.5px] font-bold text-red-700">UNKNOWN — the count failed. This is NOT zero.</span>
+                        : <span className="text-[15px] font-extrabold">{pool.total.toLocaleString()}</span>}
+                    </div>
+
+                    <p className="text-[11.5px] text-[#9b8ec4] mb-2">
+                      Breakdowns below are from a sample of <b>{pool.breakdown_sample.toLocaleString()}</b> record(s), not the whole pool.
+                    </p>
+
+                    <b className="text-[13px] block mb-1">By source</b>
+                    {pool.by_source.length === 0
+                      ? <p className="text-[12.5px] text-[#9b8ec4] mb-2">Nothing to break down.</p>
+                      : pool.by_source.map(r => (
+                        <div key={r.source} className="flex items-center justify-between border border-[#eee7f7] rounded-xl px-3 py-1.5 mb-1">
+                          <span className="text-[12.5px]">{r.source}</span>
+                          <span className="text-[12.5px] font-bold">{r.count.toLocaleString()}</span>
+                        </div>
+                      ))}
+
+                    <b className="text-[13px] block mb-1 mt-3">By country</b>
+                    {pool.by_country.length === 0
+                      ? <p className="text-[12.5px] text-[#9b8ec4]">Nothing to break down.</p>
+                      : pool.by_country.map(r => (
+                        <div key={r.country} className="flex items-center justify-between border border-[#eee7f7] rounded-xl px-3 py-1.5 mb-1">
+                          <span className="text-[12.5px]">{r.country}</span>
+                          <span className="text-[12.5px] font-bold">{r.count.toLocaleString()}</span>
+                        </div>
+                      ))}
+                  </>)}
+                </>)}
+
+                {/* ⚑ 30 Aug (BUILD-003 PR4) — EXCEPTIONS. Platform-wide.
+                    Four states that each mean a person or a client is worse off right now, and
+                    which before PR3 alerted by EMAIL or not at all. Each row names WHO it belongs
+                    to, so an operator can act rather than go hunting. */}
+                {tab === 'Exceptions' && (<>
+                  <p className="text-[11.5px] text-[#9b8ec4] mb-2">Platform-wide — not scoped to this client.</p>
+                  {saveMsg && <p className={`text-[12.5px] font-semibold mb-2 ${noticeClass(saveMsg.tone)}`}>{saveMsg.text}</p>}
+                  {excErr && <p className="text-[12.5px] font-semibold text-red-600 mb-2">Exceptions could not be loaded: {excErr}</p>}
+                  {(exc?.degraded ?? []).map((d, i) => (
+                    <p key={i} className="text-[12.5px] font-semibold text-red-600 mb-2">⚠️ {d}</p>
+                  ))}
+
+                  {!exc ? <p className="text-[13.5px] text-[#9b8ec4] text-center py-8">Loading…</p> : (<>
+                    <b className="text-[13px] block mb-1">Stranded batches</b>
+                    {exc.stranded_batches.length === 0
+                      ? <p className="text-[12.5px] text-[#9b8ec4] mb-3">None.</p>
+                      : exc.stranded_batches.map(b => (
+                        <div key={b.id} className="border border-red-300 bg-red-50/60 rounded-xl px-3 py-2 mb-1.5">
+                          <b className="text-[12.5px] block">Batch #{b.seq} · programme {b.programme_id.slice(0, 8)}</b>
+                          <span className="text-[12px] text-red-800">
+                            {b.granted - (b.delivered ?? 0)} record(s) of PAID volume reserved and unusable. Client {b.client_id?.slice(0, 8) ?? 'unknown'}. Needs reconciling by hand.
+                          </span>
+                        </div>
+                      ))}
+
+                    <b className="text-[13px] block mb-1 mt-3">Someone opted out and is still inside a provider</b>
+                    {exc.open_evictions.length === 0
+                      ? <p className="text-[12.5px] text-[#9b8ec4] mb-3">None.</p>
+                      : exc.open_evictions.map(e => (
+                        <div key={e.lead_id} className="border border-red-300 bg-red-50/60 rounded-xl px-3 py-2 mb-1.5">
+                          <b className="text-[12.5px] block">Lead {e.lead_id.slice(0, 8)} · {e.provider ?? 'provider unknown'}</b>
+                          <span className="text-[12px] text-red-800">
+                            Eviction required since {fmtDate(e.required_at)}{e.reason ? ` — ${e.reason}` : ''}. They may still be receiving mail. Client {e.client_id?.slice(0, 8) ?? 'unknown'}.
+                          </span>
+                        </div>
+                      ))}
+
+                    <b className="text-[13px] block mb-1 mt-3">Crashed runs (last {exc.failed_run_window_days} days)</b>
+                    {exc.failed_runs.length === 0
+                      ? <p className="text-[12.5px] text-[#9b8ec4] mb-3">None.</p>
+                      : exc.failed_runs.map((f, i) => (
+                        <div key={`${f.icp_id}-${i}`} className="border border-amber-300 bg-amber-50/60 rounded-xl px-3 py-2 mb-1.5">
+                          <b className="text-[12.5px] block">ICP {f.icp_id.slice(0, 8)} · {fmtDate(f.created_at)}</b>
+                          <span className="text-[12px] text-amber-900">
+                            The run crashed. The prospect was shown the recovery copy and promised a human. Client {f.client_id?.slice(0, 8) ?? 'unknown'}. Re-run sourcing from the People tab (it previews the cost first).
+                          </span>
+                        </div>
+                      ))}
+
+                    <b className="text-[13px] block mb-1 mt-3">Test / debris ICP candidates</b>
+                    {/* ⚠️ CANDIDATES, NOT A CLASSIFICATION. A human decides. The only action is
+                        reversible retirement — is_active = false, never a delete. */}
+                    {exc.debris_icps.length === 0
+                      ? <p className="text-[12.5px] text-[#9b8ec4]">None.</p>
+                      : exc.debris_icps.map(d => (
+                        <div key={d.id} className="flex items-center justify-between border border-[#eee7f7] rounded-xl px-3 py-2 mb-1.5">
+                          <div className="min-w-0">
+                            <b className="text-[12.5px] block truncate">{d.name ?? d.id}</b>
+                            <span className="text-[11.5px] text-[#9b8ec4]">
+                              {d.is_active ? 'ACTIVE — still sourced' : 'retired'} · client {d.client_id?.slice(0, 8) ?? 'unknown'}
+                            </span>
+                          </div>
+                          <button
+                            onClick={() => retireIcp(d.id, !d.is_active)}
+                            disabled={retireBusy === d.id}
+                            className="shrink-0 border border-[#ece5fb] rounded-xl px-3 py-1.5 text-[12px] font-bold disabled:opacity-40">
+                            {retireBusy === d.id ? '…' : d.is_active ? 'Retire' : 'Restore'}
+                          </button>
+                        </div>
+                      ))}
+                  </>)}
+                </>)}
+
       </div>
     </div>
   )

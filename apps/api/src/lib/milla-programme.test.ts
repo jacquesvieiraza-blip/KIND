@@ -470,3 +470,228 @@ describe('🛑 NO LEGACY MONEY TRUTH SURVIVES ON THE MILLA HOME', () => {
     }
   })
 })
+
+// ═══ THE LIVE WALK (30 Aug) — FOUR THINGS THE GATE PASSED AND A HUMAN DID NOT ═══════════
+//
+// 🛑 EVERY GUARD IN THIS FILE WAS GREEN when the founder opened the deployed `/milla` and
+// found: "$4,000 wallet" in the top bar of every screen · "Paused — we'll tell you why" two
+// inches above "Proof — current" · outreach-performance learning at a stage where nothing has
+// been sent · "Please pause my campaign" on a product renamed Programme.
+//
+// The reason each survived is the same: the guards above assert about ONE FILE, the home, and
+// three of these four live outside it or arrive from an endpoint the home does not own. This
+// block asserts across the surface a customer actually sees.
+describe('THE MILLA SHELL CARRIES NO RETIRED COMMERCIAL TRUTH', () => {
+  const SHELL = readFileSync(join(PORTAL, 'components/milla/MillaShell.tsx'), 'utf8')
+  const SHELL_CODE = strip(SHELL)
+
+  it('the sweep is not vacuous — the shell loads and is the real file', () => {
+    expect(SHELL_CODE).toContain('export function MillaShell')
+  })
+
+  it('① the wallet balance is gone from the top bar', () => {
+    // It rendered on EVERY Milla screen, which makes it the most-read stale claim there was.
+    expect(SHELL_CODE, 'the wallet chip is back in the Milla top bar').not.toContain('wallet_balance_usd')
+    expect(SHELL_CODE, 'the word "wallet" is back in the Milla shell').not.toMatch(/wallet/i)
+  })
+
+  // ── ⚑ FOUNDER DECISION 1 (30 Aug) — THE FLOW BAR IS DERIVED, NOT WRITTEN ─────────────
+  //
+  // 🛑 THE RIBBON WAS A SECOND STAGE VOCABULARY. A hardcoded array — Sign up › Build plan ›
+  // We reach out › Replies › You approve › Follow-up › Meeting booked › Results — rendered
+  // two inches from the Stage card that already showed the approved seven. Nothing kept the
+  // two in step, and `You approve` was the per-lead approval the programme model removed.
+  //
+  // These guards exist because "derive it from the constant" is a promise that decays the
+  // moment somebody adds one convenient extra step to the array.
+  describe('THE FLOW BAR IS THE APPROVED LIFECYCLE, AND ONLY THAT', () => {
+    it('⑦ it is sourced from MILLA_STAGES, and the shared constant is the seven stages', () => {
+      expect(SHELL_CODE, 'the FLOW bar no longer maps the shared stage constant')
+        .toContain('{MILLA_STAGES.map((label, i, arr) => {')
+      expect(SHELL_CODE, 'MILLA_STAGES is not imported from the shared package')
+        .toMatch(/import \{[^}]*MILLA_STAGES[^}]*\} from '@kind\/shared'/)
+      // ⚠️ AND THE CONSTANT IS THE REAL ONE. A guard that only checks the shell would pass if
+      // someone declared a local `MILLA_STAGES` beside it — which is the exact defect (a
+      // second vocabulary) this decision removed.
+      expect(SHELL_CODE, 'the shell declares its own MILLA_STAGES').not.toMatch(/const MILLA_STAGES/)
+      expect(MILLA_STAGES).toEqual(
+        ['Proof', 'Recommendation', 'Sourcing', 'Approval', 'Live', 'Review', 'Completion'])
+    })
+
+    it('⑧ the retired journey cannot silently return — no label is typed into the ribbon', () => {
+      // Every step of the old array, forbidden by name. `Replies` is deliberately NOT in this
+      // list: it is a legitimate rail entry on this same file, and forbidding the word would
+      // guard the wrong thing.
+      for (const retired of ['Sign up', 'Build plan', 'We reach out', 'You approve', 'Follow-up', 'Results']) {
+        expect(SHELL_CODE, `the retired FLOW step "${retired}" is back in the shell`).not.toContain(retired)
+      }
+      // And no stage name is hand-typed either — the whole point is that they are derived.
+      for (const stage of MILLA_STAGES) {
+        expect(SHELL_CODE, `the stage "${stage}" is hand-typed into the shell instead of derived`)
+          .not.toContain(`'${stage}'`)
+      }
+      // The per-lead approval count has no home here any more, badge or otherwise.
+      expect(SHELL_CODE, 'the retired per-lead approval count is back in the shell')
+        .not.toContain('leads_awaiting')
+    })
+
+    it('⑨ the ACTUAL programme stage drives the current step, from the same endpoint as the rest', () => {
+      // One source of stage truth. The home, /milla/programme and this ribbon all read
+      // /my/programme, so the ribbon cannot say one thing while the Stage card says another —
+      // which was the shape of the "Paused vs Proof — current" finding.
+      expect(SHELL_CODE, 'the shell no longer reads the programme stage').toContain("'/my/programme'")
+      expect(SHELL_CODE, 'the current step is not derived from the live stage')
+        .toContain('const at = stage ? arr.indexOf(stage) : -1')
+      expect(SHELL_CODE).toContain('const isCurrent = at >= 0 && i === at')
+      // 🛑 AN UNKNOWN STAGE MARKS NOTHING CURRENT. Defaulting to index 0 would tell every
+      // client whose read failed that they are at Proof — a claim about their programme made
+      // from a network error.
+      expect(SHELL_CODE, 'a failed stage read now defaults to a stage').not.toMatch(/indexOf\(stage\)\s*(?:\|\||\?\?)\s*0/)
+      expect(SHELL_CODE, 'the stage is set from something other than the programme read')
+        .toMatch(/if \(pr\.status === 'fulfilled'\) setStage\(pr\.value\.data\.stage\)/)
+    })
+
+    it('⑩ the ribbon keeps its design and placement — this was not a redesign', () => {
+      // Same container, same numbering, same chevrons, same FLOW label, same position:
+      // directly after the top bar's </header> and before the rail.
+      expect(SHELL_CODE).toContain('bg-[#2a1747] text-white')
+      expect(SHELL_CODE).toContain('text-[#b9a6e6] mr-2.5">FLOW<')
+      expect(SHELL_CODE).toContain('{i + 1}')
+      expect(SHELL_CODE).toContain('text-[#5b4785] px-0.5">›<')
+      expect(SHELL_CODE.indexOf('</header>')).toBeLessThan(SHELL_CODE.indexOf('MILLA_STAGES.map'))
+      expect(SHELL_CODE.indexOf('MILLA_STAGES.map')).toBeLessThan(SHELL_CODE.indexOf('<aside'))
+      // The current marker reuses the ribbon's OWN existing accent — no new colour entered
+      // the design to satisfy "show the current stage".
+      expect(SHELL_CODE).toContain("isCurrent ? 'bg-[#EC4899]' : 'bg-[#3d2a63]'")
+    })
+  })
+
+  it('② and nothing was invented to fill the corner it left', () => {
+    // The fix is a REMOVAL. A "programme value" or "next payment" chip put there to balance
+    // the layout would be a new visible decision nobody approved.
+    for (const invented of ['programme value', 'next payment', 'amount due', 'balance']) {
+      expect(SHELL_CODE.toLowerCase(), `invented top-bar copy: ${invented}`).not.toContain(invented)
+    }
+    // The Account dropdown keeps its position and its contents.
+    expect(SHELL_CODE).toContain('Account <ChevronDown')
+    expect(SHELL_CODE).toContain("['/milla/settings', 'Settings', User]")
+  })
+})
+
+describe('THE HOME STATES NOTHING THAT ITS STAGE CANNOT SUPPORT', () => {
+  // ⚠️ THE SHAPE OF ALL THREE. Each is a claim about OUTREACH — sending, pausing, reply
+  // rates — rendered on a screen whose stage says outreach has not started. The fix in every
+  // case is the GATE, never the words: no label, sentence or number below was rewritten.
+  it('③ the send-state header is gated on the programme stage, not on a campaign row', () => {
+    expect(HOME_CODE, 'the outreach-stage gate is gone from sendState')
+      .toContain("const OUTREACH_STAGES: MillaStage[] = ['Live', 'Review', 'Completion']")
+    expect(HOME_CODE, 'sendState reads campaign_status at every stage again')
+      .toMatch(/if \(prog && !OUTREACH_STAGES\.includes\(prog\.stage\)\) return idle[\s\S]{0,120}?if \(needsGoLive\)/)
+    // 🛑 THE CONTRADICTION ITSELF: "Paused" must be unreachable before Live. The gate returns
+    // first, so the paused branch cannot be evaluated at Proof, Recommendation, Sourcing or
+    // Approval — which is the whole finding.
+    const from = HOME_CODE.indexOf('const sendState = (() => {')
+    const gate = HOME_CODE.indexOf('OUTREACH_STAGES.includes(prog.stage)', from)
+    // ⚠️ THE LITERAL BACKSLASH-u, because that is what the source file contains — the .tsx
+    // writes the apostrophe as an escape. Searching for the decoded character finds
+    // nothing, and the vacuity assertion below is what caught exactly that.
+    const paused = HOME_CODE.indexOf('Paused — we\\u2019ll tell you why', from)
+    expect(from, 'sendState is gone').toBeGreaterThan(-1)
+    expect(paused, 'the paused label is gone — this guard would pass vacuously').toBeGreaterThan(-1)
+    expect(gate, 'the stage gate no longer precedes the paused branch').toBeGreaterThan(from)
+    expect(paused, 'the paused branch can be reached before the stage gate').toBeGreaterThan(gate)
+  })
+
+  it('④ the outreach-learning card does not render before outreach exists', () => {
+    // `/leads/nexus-summary` is entirely outreach performance — reply rate, meeting rate,
+    // best-converting persona. Its only condition was a LIFETIME sample count, so legacy
+    // history rendered message-performance learning at Proof.
+    expect(HOME_CODE, 'the learning card lost its stage gate')
+      .toContain('{nexus && nexus.sample_worked > 0 && prog && OUTREACH_STAGES.includes(prog.stage) && (')
+  })
+
+  it('⑤ the customer product is called a programme where the founder named it', () => {
+    expect(HOME_CODE, 'the pause chip says "campaign" again').toContain("'Please pause my programme'")
+    expect(HOME_CODE, 'the retired chip wording is back').not.toContain('Please pause my campaign')
+  })
+
+  it('⑥ the wallet top-up state cannot be re-wired on the home', () => {
+    // It could only ever be null once the paid approve paths went; what it rendered was a
+    // wallet shortfall prompt.
+    expect(HOME_CODE, 'the wallet top-up state is back on the home').not.toContain('setTopUp')
+  })
+
+  // ── ⚑ FOUNDER DECISION 3 (30 Aug) — THE CUSTOMER BOUGHT A PROGRAMME ──────────────────
+  //
+  // "Campaign" is OUR word for how we run the work — `figsy_campaigns` is a real internal
+  // object and its name is untouched. These two labels are the only place a CUSTOMER read it
+  // on this header, and they now say what the customer bought.
+  it('⑪ the send-state header names the programme, not the campaign', () => {
+    expect(HOME_CODE, 'the live label reverted to "Campaign live"').toContain("label: 'Programme live'")
+    expect(HOME_CODE, 'the finished label reverted to "Campaign finished"').toContain("label: 'Programme finished'")
+    // ⚠️ STRIPPED SOURCE. A comment on this same file legitimately QUOTES the retired
+    // hardcoded "● Campaign live" it replaced (the history of why this widget reads real
+    // state at all), so an unstripped scan binds to the explanation instead of the code.
+    expect(HOME_CODE, '"Campaign live" is back as customer-facing header copy')
+      .not.toContain('Campaign live')
+    expect(HOME_CODE, '"Campaign finished" is back as customer-facing header copy')
+      .not.toContain('Campaign finished')
+    // 🛑 AND THE RENAME DID NOT LEAK INWARDS. The state still comes from the campaign object;
+    // renaming the READ would have been the blind rename the founder ruled out.
+    expect(HOME_CODE, 'the internal campaign read was renamed along with the label')
+      .toContain('const st = summary?.campaign_status')
+  })
+
+  // ── ⚑ FOUNDER DECISION 2 (30 Aug) — PROOF LEARNING STAYS HIDDEN ──────────────────────
+  //
+  // APPROVED AS THE ANSWER, not as a placeholder: `/leads/nexus-summary` is outreach
+  // performance and is not truthful during calibration. So the guard is that nothing was
+  // built to fill the gap — no Proof metric, no new sentence, no new data model in 4A-1.
+  it('⑫ no Proof-stage learning metric or sentence was invented to fill the hidden card', () => {
+    // The gate itself is guard ④; this is the other half — that it stayed a GATE.
+    expect(HOME_CODE, 'a second learning surface appeared on the home')
+      .not.toMatch(/calibration (?:score|progress|confidence)|learning (?:score|progress)/i)
+    // The endpoint gained no proof branch, and the home reads no new learning field.
+    const NEXUS = strip(readFileSync(join(__dirname, '../routes/leads.ts'), 'utf8'))
+    const from = NEXUS.indexOf("leadRouter.get('/nexus-summary'")
+    expect(from, 'the nexus route is gone').toBeGreaterThan(-1)
+    const body = NEXUS.slice(from, from + 2_000)
+    expect(body, 'a Proof/calibration branch was added to the outreach-learning endpoint')
+      .not.toMatch(/proof|calibrat|stage/i)
+  })
+})
+
+// ── ⚑ FOUNDER DECISION 4 (30 Aug) — THE FIRST SCREEN OF THE PRODUCT ────────────────────
+//
+// 🛑 A PROSPECT MET THE RETIRED ECONOMICS BEFORE THEY HAD SEEN A SINGLE PERSON. The welcome
+// proposal panel read "a recommended **credit plan** here. You approve before anything
+// starts." — wrong on both counts: "credit plan" is the wallet/pack model the programme
+// replaced, and "You approve" is the per-lead approval it also removed.
+describe('THE WELCOME PANEL STATES THE PROGRAMME, NOT THE RETIRED CREDIT MODEL', () => {
+  const WELCOME = readFileSync(join(PORTAL, 'app/(milla)/milla/welcome/page.tsx'), 'utf8')
+  const WELCOME_CODE = strip(WELCOME)
+
+  it('the sweep is not vacuous — the welcome page loads and is the real file', () => {
+    expect(WELCOME_CODE).toContain('export default function')
+  })
+
+  it('⑬ the approved sentence is present, word for word', () => {
+    expect(WELCOME_CODE, "the founder's approved welcome copy is not on the page").toContain(
+      'As we chat, Milla builds your <b>ICP</b> (who to target) and a recommended <b>programme</b> here. You&rsquo;ll review it before anything starts.')
+  })
+
+  it('⑭ the stale credit-plan copy cannot return', () => {
+    expect(WELCOME_CODE, 'the retired credit-plan sentence is back on the welcome page')
+      .not.toContain('credit plan')
+    expect(WELCOME_CODE, 'the per-lead approval promise is back on the welcome page')
+      .not.toContain('You approve before anything starts')
+  })
+
+  it('⑮ and no retired money truth came back with it', () => {
+    // The panel is the FIRST thing a prospect reads. None of these may appear on it.
+    for (const forbidden of ['credit plan', 'wallet', '$299', '$4', 'PACK_PRICE_USD', 'PACK_LEADS']) {
+      expect(WELCOME_CODE, `retired money truth on the welcome panel: ${forbidden}`)
+        .not.toContain(forbidden)
+    }
+  })
+})

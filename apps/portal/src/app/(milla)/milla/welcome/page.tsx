@@ -558,7 +558,15 @@ export default function MillaWelcomePage() {
           {!proposed ? (
             <div className="p-6 text-[13px] text-[#9b8ec4] leading-relaxed">
               <div className="text-[15px] font-bold text-[#1f1235] mb-2">Your targeting plan</div>
-              As we chat, Milla builds your <b>ICP</b> (who to target) and a recommended <b>credit plan</b> here. You approve before anything starts.
+              {/* ⛓️ 30 Aug (BUILD-004A-1 live-walk, FOUNDER DECISION 4) — FOUNDER'S EXACT
+                  WORDS. This read: "a recommended **credit plan** here. You approve before
+                  anything starts." Retired on both counts — "credit plan" is the wallet/pack
+                  economics the programme model removed, and "You approve" is the per-lead
+                  approval it also removed. A prospect met both on the FIRST screen of the
+                  product, before they had seen a single person.
+                  ⚠️ `&rsquo;` not a literal ’ — this is a JSX text node and every other
+                  apostrophe in this file is written the same way. */}
+              As we chat, Milla builds your <b>ICP</b> (who to target) and a recommended <b>programme</b> here. You&rsquo;ll review it before anything starts.
             </div>
           ) : (
             <div className="p-6">

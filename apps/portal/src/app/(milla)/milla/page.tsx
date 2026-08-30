@@ -9,7 +9,7 @@ import ProductTour from '@/components/ProductTour'
 // screen. They are the $299-pack and $4-per-lead economics, and the live customer path has no
 // legacy customers left to serve them to. `shortfallMessage` stays imported only where the
 // wallet top-up still belongs (it does not appear on this home any more).
-import { MILLA_FAILURE_COPY, type MillaStage } from '@kind/shared'
+import { MILLA_FAILURE_COPY, STAGE_QUICK_ACTION, type MillaStage } from '@kind/shared'
 import ProgrammeWorkspace, { nextActionFor, type CustomerProgramme } from '@/components/milla/ProgrammeWorkspace'
 import { proofWaitState, invalidateProofSnapshot, classifyClaimFailure, isReconciling, PROOF_WAIT_MS } from '@/lib/proof-start'
 
@@ -97,9 +97,32 @@ async function token(): Promise<string | undefined> {
 // as buttons that did those things — they don't, and the message went into a table nobody
 // read. It now pages the operator and appears in Vida → Asks, so these are honest REQUESTS
 // rather than controls: phrased as asking us, because that is what actually happens.
-const CHIPS = [
+// ── ⚑ 30 Aug (BUILD-004A-2) — THE CHIPS ARE STAGE-AWARE ────────────────────────────────
+//
+// 🛑 THE LIVE ACCOUNT IS AT RECOMMENDATION AND WAS BEING OFFERED PROOF CHIPS. "Which of
+// these look strongest?" and "Please find more like these" are calibration questions: they
+// make sense while a client is reacting to a proof set and make none once we have proposed a
+// programme. The row was a flat constant with no notion of stage at all.
+//
+// ⚠️ NOT ONE CHIP IS NEW WORDING. The stage-specific chip is `STAGE_QUICK_ACTION[stage]` —
+// the founder's verbatim per-stage conversation accelerator from @kind/shared, already the
+// approved text for exactly this job and already rendered by the Programme workspace. The
+// other three are the existing approved chips; what changed is WHEN each is offered.
+//
+// ⚠️ "CONTEXTUALLY VALID" IS THE TEST THE FOUNDER SET for the last two. Offering "Please
+// pause my programme" to someone at Proof invites them to pause a programme that does not
+// exist; offering "How is my ROI looking?" before anything has been sent asks Milla for a
+// return on nothing. Both are the same defect as the proof chips, in the other direction.
+const PROOF_CHIPS = [
   'Which of these look strongest?',
   'Please find more like these',
+]
+/** Only where a programme exists and is running — not before it starts, not once it ends. */
+const PAUSE_STAGES: MillaStage[] = ['Sourcing', 'Approval', 'Live', 'Review']
+/** Only once outreach has had the chance to produce something to measure. */
+const ROI_STAGES:   MillaStage[] = ['Live', 'Review', 'Completion']
+const CHIPS = [
+  ...PROOF_CHIPS,
   // ⛓️ 30 Aug (BUILD-004A-1 live-walk) — "campaign" → "programme". The customer product is
   // the PROGRAMME; "campaign" is the internal delivery object (`figsy_campaigns`) and is not
   // the customer's word for what they bought. Terminology only — this chip still just sends
@@ -1147,6 +1170,15 @@ export default function MillaHomePage() {
   // function's own existing default. Every label below is unchanged; what changed is which
   // stages are allowed to reach the campaign-derived ones.
   const OUTREACH_STAGES: MillaStage[] = ['Live', 'Review', 'Completion']
+  // ⚠️ AN UNKNOWN STAGE FALLS BACK TO THE FLAT LIST, deliberately. While `/my/programme` is
+  // loading — or has failed — the row must not silently become a different set of questions,
+  // and a chip that merely does not apply is a far smaller harm than a chip row that flickers.
+  const chips = !prog ? CHIPS : [
+    STAGE_QUICK_ACTION[prog.stage],
+    ...(prog.stage === 'Proof' ? PROOF_CHIPS : []),
+    ...(PAUSE_STAGES.includes(prog.stage) ? ['Please pause my programme'] : []),
+    ...(ROI_STAGES.includes(prog.stage) ? ['How is my ROI looking?'] : []),
+  ]
   const sendState = (() => {
     const idle = { label: 'Nothing sending yet', tone: 'text-[#5c5279]', dot: 'bg-[#b3a9cc]' }
     // ⚠️ ONLY WHEN THE STAGE IS KNOWN. While `/my/programme` is still loading — or has failed
@@ -1247,7 +1279,7 @@ export default function MillaHomePage() {
           </div>
           <div className="px-4 py-3 border-t border-[#eee7f7]">
             <div className="flex flex-wrap gap-1.5 mb-2">
-              {CHIPS.map(c => <button key={c} onClick={() => send(c)} disabled={sending} className="text-[12.5px] font-semibold text-[#7C3AED] bg-[#f3ecff] border border-[#e4d4fb] rounded-full px-3 py-1 hover:bg-[#ebe0fc] disabled:opacity-50">{c}</button>)}
+              {chips.map(c => <button key={c} onClick={() => send(c)} disabled={sending} className="text-[12.5px] font-semibold text-[#7C3AED] bg-[#f3ecff] border border-[#e4d4fb] rounded-full px-3 py-1 hover:bg-[#ebe0fc] disabled:opacity-50">{c}</button>)}
             </div>
             <form onSubmit={e => { e.preventDefault(); send(input) }} className="flex gap-2">
               <input value={input} onChange={e => setInput(e.target.value)} placeholder="Ask Milla, request leads, or give feedback…" className="flex-1 text-[14px] rounded-xl border border-[#e4dcf7] px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#7C3AED]/30" />

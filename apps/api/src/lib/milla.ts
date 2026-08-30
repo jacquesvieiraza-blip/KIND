@@ -146,7 +146,10 @@ export async function chat(params: ChatParams): Promise<ChatResult> {
   // edge. Adding the snapshot SERIALLY pushed first questions over it, and the
   // client saw "I hit a snag reaching the engine". Parallel = the snapshot costs
   // ~nothing; the model swap below buys the rest of the margin back.
-  const [chunks, snapshot] = await Promise.all([
+  // ⚑ 30 Aug (BUILD-004A-2) — THE PROGRAMME JOINS THE SAME PARALLEL BATCH. It is one row
+  // read, so it costs nothing against the 15s bound, and putting it here rather than after
+  // the chunk search keeps that margin intact.
+  const [chunks, snapshot, programme] = await Promise.all([
     searchChunks(clientId, userMessage),
     (async (): Promise<import('./milla-chat-system').MillaSnapshot | null> => {
       try {
@@ -154,6 +157,15 @@ export async function chat(params: ChatParams): Promise<ChatResult> {
         return await buildMillaSummaryData(clientId)
       } catch (e) {
         console.error('[milla/chat] snapshot lookup failed — answering without live numbers', e)
+        return null
+      }
+    })(),
+    (async (): Promise<import('./customer-programme').CustomerProgramme | null> => {
+      try {
+        const { readCustomerProgramme } = await import('./customer-programme')
+        return await readCustomerProgramme(clientId)
+      } catch (e) {
+        console.error('[milla/chat] programme lookup failed — answering without it', e)
         return null
       }
     })(),
@@ -176,16 +188,21 @@ export async function chat(params: ChatParams): Promise<ChatResult> {
   // a chat that answers without numbers beats a chat that is down.
   const { buildMillaChatSystem } = await import('./milla-chat-system')
   const systemPrompt =
-    buildMillaChatSystem(snapshot) +
+    buildMillaChatSystem(snapshot, programme) +
     '\n\n' +
     (hasContext
       ? 'The client has uploaded business documents, and relevant excerpts are provided below. ' +
         'When the answer is found in those documents, ground your response in them and prefer that ' +
         'information over general knowledge.'
-      : 'No uploaded documents matched this question. Still be genuinely helpful with general ' +
-        'lead-gen, ICP and outreach guidance — but never invent client-specific facts, and never ' +
-        'ask the client to upload data the product already shows (their live numbers are above; ' +
-        'anything beyond them lives on the Reports page).')
+      // ⛓️ 30 Aug — "general lead-gen guidance" WAS THE OPENING FOR THE RETIRED MODEL. It is
+      // the one line that invited her to answer as a generic lead-gen chatbot, which is
+      // where cost-per-lead and campaign metrics came from on the founder's walk. She is
+      // still told to be helpful; what she is helpful ABOUT is now the programme.
+      : 'No uploaded documents matched this question. Still be genuinely helpful — about their ' +
+        'outcome, their programme and their targeting — but never invent client-specific facts, ' +
+        'never fall back on generic lead-gen or campaign framing, and never ask the client to ' +
+        'upload data the product already shows (their live numbers are above; anything beyond ' +
+        'them lives on the Reports page).')
 
   // Build message history for Claude (last N turns already filtered by caller)
   const history: Anthropic.Messages.MessageParam[] = messageHistory

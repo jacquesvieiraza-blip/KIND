@@ -1,0 +1,139 @@
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// THE CUSTOMER'S PROGRAMME — ONE READER, EVERY CUSTOMER-FACING DOOR.
+//
+// ⚑ 30 Aug (BUILD-004A-2). Lifted out of `routes/my-programme.ts` UNCHANGED, because Milla's
+// chat now needs the same facts the workspace renders and a second reader would be a second
+// truth. That is not hypothetical here: the whole shape of the 4A-1 live walk was two
+// independent sources disagreeing on one screen — the header said "Paused" from a campaign
+// row while the Stage card said "Proof — current" from the programme.
+//
+// So there is one function. The `/my/programme` route serves it to the browser; the chat
+// system prompt describes it to the model. Neither can learn a fact the other does not have.
+//
+// ⚠️ READ-ONLY, AND SCOPED BY CLIENT ID THE CALLER ALREADY RESOLVED FROM A SESSION. This
+// module never reads a request, so there is no tenancy decision to get wrong in it.
+//
+// ⚠️ `null` IS "UNKNOWN", NEVER "FINE". A failed read returns `null` and every caller must
+// treat that as unreadable — never as "this client has no programme". A client who has paid
+// being told their programme does not exist is a lie with their money in it.
+// ═══════════════════════════════════════════════════════════════════════════════════════
+
+import { db } from '@kind/db'
+import {
+  millaStage, type MillaStage, STAGE_QUICK_ACTION, MILLA_FAILURE_COPY,
+  type EngineProgrammeStatus,
+} from '@kind/shared'
+
+/**
+ * What the customer's workspace needs to render one stage.
+ *
+ * ⚠️ EVERY FIELD IS A ROW THAT EXISTS OR A SUBTRACTION OF TWO. No projected completion date,
+ * no confidence score, no "on track" — the same rule the operator read model follows, applied
+ * where it matters more: a made-up number in front of a client is a promise.
+ */
+export type CustomerProgramme = {
+  stage: MillaStage
+  quickAction: string
+  /** Orthogonal to stage — a paused programme keeps the stage it will return to. */
+  paused: boolean
+  /** LOCKED founder copy, sent from the server so the client cannot drift from it. */
+  pausedCopy: string | null
+  /** A review decision is waiting. Distinct from paused: live delivery continues. */
+  reviewOpen: boolean
+  outcome: {
+    /** 'meetings' today; anything else was captured conversationally and routed to a human. */
+    kind: 'meetings' | 'other'
+    target: number | null
+  }
+  progress: {
+    /** Delivered against what the programme authorised. Both straight off the row. */
+    delivered: number
+    authorised: number
+    /** Booked meetings — from public.meetings, the sole meeting truth. null = unreadable. */
+    outcomesAchieved: number | null
+  }
+  money: {
+    totalCents: number
+    firstPaidAt: string | null
+    secondPaidAt: string | null
+  }
+  approvedAt: string | null
+  wentLiveAt: string | null
+}
+
+/** No programme row is a REAL answer, not a failure: this client is at Proof. */
+export const NO_PROGRAMME: CustomerProgramme = {
+  stage: 'Proof',
+  quickAction: STAGE_QUICK_ACTION.Proof,
+  paused: false, pausedCopy: null, reviewOpen: false,
+  outcome: { kind: 'meetings', target: null },
+  progress: { delivered: 0, authorised: 0, outcomesAchieved: 0 },
+  money: { totalCents: 0, firstPaidAt: null, secondPaidAt: null },
+  approvedAt: null, wentLiveAt: null,
+}
+
+/**
+ * Read this client's programme.
+ *
+ * @returns the programme, `NO_PROGRAMME` when they have not started one, or `null` when the
+ *   read FAILED — which callers must render as the locked failure sentence, never as absence.
+ */
+export async function readCustomerProgramme(clientId: string): Promise<CustomerProgramme | null> {
+  const { data, error } = await db.from('programmes')
+    .select('id, status, meeting_target, price_total_cents, sourcing_ceiling, sourced_used, ' +
+            'first_paid_at, second_paid_at, approved_at, went_live_at, paused_at, ' +
+            'review_required_at, review_resolved_at')
+    .eq('client_id', clientId)
+    .not('status', 'in', '(COMPLETED,CANCELLED)')
+    .limit(1).maybeSingle()
+
+  // 🛑 supabase-js RETURNS `{ error }` RATHER THAN THROWING. A `data ?? []` shorthand here
+  // would turn a database failure into "no programme" silently — the recurring defect shape
+  // in this codebase, and the one that matters most on this particular row.
+  if (error) {
+    console.error('[customer-programme] read failed for client', clientId, error.message)
+    return null
+  }
+  if (!data) return NO_PROGRAMME
+
+  const p = data as unknown as Record<string, unknown>
+  const reviewOpen = Boolean(p.review_required_at) && !p.review_resolved_at
+  const stage = millaStage({ status: p.status as EngineProgrammeStatus, reviewOpen })
+
+  // ⚠️ MEETINGS COME FROM `public.meetings` AND NOWHERE ELSE — the sole meeting truth
+  // (BUILD-003 PR1). `null` means unreadable and is passed through as null: rendering a
+  // storage failure as "0 meetings booked" would tell a client their programme has produced
+  // nothing, which is the most damaging possible false statement on this screen.
+  let outcomesAchieved: number | null = null
+  try {
+    const { clientMeetingCounts } = await import('./meeting-truth')
+    const counts = await clientMeetingCounts([clientId])
+    outcomesAchieved = counts === null ? null : (counts[clientId] ?? 0)
+  } catch (err) {
+    console.error('[customer-programme] meeting counts unreadable for', clientId, err)
+  }
+
+  return {
+    stage,
+    quickAction: STAGE_QUICK_ACTION[stage],
+    paused: Boolean(p.paused_at),
+    pausedCopy: p.paused_at ? MILLA_FAILURE_COPY.sourcingPaused : null,
+    reviewOpen,
+    // Option C: only a meetings programme exists in the engine today. A non-meeting outcome
+    // is captured in conversation and routed to a human — it never reaches this row, so a
+    // row that exists is always a meetings programme. Stated as data rather than assumed.
+    outcome: { kind: 'meetings', target: Number(p.meeting_target ?? 0) || null },
+    progress: {
+      delivered: Number(p.sourced_used ?? 0),
+      authorised: Number(p.sourcing_ceiling ?? 0),
+      outcomesAchieved,
+    },
+    money: {
+      totalCents: Number(p.price_total_cents ?? 0),
+      firstPaidAt: (p.first_paid_at as string | null) ?? null,
+      secondPaidAt: (p.second_paid_at as string | null) ?? null,
+    },
+    approvedAt: (p.approved_at as string | null) ?? null,
+    wentLiveAt: (p.went_live_at as string | null) ?? null,
+  }
+}

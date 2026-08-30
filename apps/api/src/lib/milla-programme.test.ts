@@ -64,6 +64,16 @@ const ROUTE = readFileSync(join(__dirname, '../routes/my-programme.ts'), 'utf8')
 /** Executable code only — what the customer's browser and the server actually run. */
 const PAGE_CODE = strip(PROGRAMME_PAGE)
 const ROUTE_CODE = strip(ROUTE)
+// ⛓️ 30 Aug (BUILD-004A-2) — THE READ MOVED, THE RULES DID NOT. Milla's chat now needs the
+// same programme facts this route serves, so the query was lifted into a shared reader; a
+// second reader would have been a second truth. These guards follow the LOGIC to where it
+// lives rather than being deleted for pointing at a file that no longer holds it — the whole
+// pattern this repo keeps paying for is a guard re-aimed at nothing.
+const READER = readFileSync(join(__dirname, 'customer-programme.ts'), 'utf8')
+const READER_CODE = strip(READER)
+/** The customer programme READ, wherever it lives: the route and the reader it delegates to. */
+const CUSTOMER_READ = ROUTE + '\n' + READER
+const CUSTOMER_READ_CODE = ROUTE_CODE + '\n' + READER_CODE
 const SHELL_CODE = strip(SHELL)
 
 describe('the suite is not vacuous', () => {
@@ -134,7 +144,7 @@ describe('🛑 THE LOCKED CUSTOMER COPY IS EXACT — never paraphrased, never re
   })
 
   it('the SERVER sends the pause sentence — the client cannot drift from it', () => {
-    expect(ROUTE).toContain('MILLA_FAILURE_COPY.sourcingPaused')
+    expect(CUSTOMER_READ).toContain('MILLA_FAILURE_COPY.sourcingPaused')
     expect(PAGE_CODE, 'the page hard-codes the pause sentence instead of rendering the server\'s')
       .not.toContain('Sourcing is paused while we recover.')
     // ⛓️ REPOINTED: the pause banner moved into the shared ProgrammeWorkspace when the home
@@ -155,26 +165,33 @@ describe('A FAILED READ IS NEVER AN EMPTY PROGRAMME', () => {
     // So deleting the read-error branch entirely and returning `{ success: true, data: null }`
     // left this green, on the single most damaging failure this file exists to prevent. The
     // assertion now pins the `if (error)` BRANCH, and separately forbids a null success body.
-    const errBranch = ROUTE_CODE.slice(ROUTE_CODE.indexOf('if (error) {'))
-    expect(ROUTE_CODE, 'the read-error branch is gone').toContain('if (error) {')
-    expect(errBranch.slice(0, 500), 'a failed programme read no longer answers 503')
-      .toContain('res.status(503)')
-    expect(errBranch.slice(0, 500), 'the 503 no longer carries the locked sentence')
+    // ⛓️ THE BRANCH IS NOW IN TWO HALVES, AND BOTH ARE PINNED. The reader turns a failed
+    // query into `null`; the route turns `null` into the 503 with the locked sentence. Either
+    // half collapsing back to "no programme" is the same defect it always was.
+    const errBranch = READER_CODE.slice(READER_CODE.indexOf('if (error) {'))
+    expect(READER_CODE, 'the read-error branch is gone from the reader').toContain('if (error) {')
+    expect(errBranch.slice(0, 400), 'a failed read no longer returns null (unknown)')
+      .toContain('return null')
+    expect(ROUTE_CODE, 'the route no longer answers 503 on an unreadable programme')
+      .toMatch(/if \(data === null\) \{[\s\S]{0,200}?res\.status\(503\)/)
+    expect(ROUTE_CODE, 'the 503 no longer carries the locked sentence')
       .toContain('MILLA_FAILURE_COPY.pipelineFailed')
     // 🛑 AND NEVER A SUCCESSFUL NULL. `{ success: true, data: null }` renders the Proof stage to
     // somebody who has paid — the exact shape RED 1 introduced and this missed.
-    expect(ROUTE_CODE, 'the route can answer success with a null programme')
+    expect(CUSTOMER_READ_CODE, 'the route can answer success with a null programme')
       .not.toMatch(/success: true, data: null/)
   })
 
   it('a genuinely absent programme is still a 200 — Proof, not an error', () => {
     // The other half. A prospect with no programme is not a failure state.
-    expect(ROUTE).toContain("stage: 'Proof' as MillaStage")
+    // The reader names it: no row is a real answer, and it is Proof.
+    expect(CUSTOMER_READ).toContain("stage: 'Proof'")
+    expect(READER_CODE).toContain('if (!data) return NO_PROGRAMME')
   })
 
   it('unreadable meeting counts pass through as null, never as 0', () => {
-    expect(ROUTE).toContain('outcomesAchieved: number | null')
-    expect(ROUTE).toMatch(/counts === null \? null/)
+    expect(CUSTOMER_READ).toContain('outcomesAchieved: number | null')
+    expect(CUSTOMER_READ).toMatch(/counts === null \? null/)
     // ⛓️ REPOINTED: the figure moved into the shared ProgrammeWorkspace, and the HOME renders
     // its own card from the same rule — so both are asserted. The page no longer contains it.
     const ws = strip(readFileSync(join(PORTAL, 'components/milla/ProgrammeWorkspace.tsx'), 'utf8'))
@@ -189,7 +206,7 @@ describe('A FAILED READ IS NEVER AN EMPTY PROGRAMME', () => {
   })
 
   it('meetings come from public.meetings — the sole meeting truth', () => {
-    expect(ROUTE).toContain('clientMeetingCounts')
+    expect(CUSTOMER_READ).toContain('clientMeetingCounts')
   })
 })
 

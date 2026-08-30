@@ -1523,11 +1523,58 @@ operatorRouter.get('/alerts', async (_req: Request, res: Response) => {
     if (proofReviewErr) {
       console.error('[operator/alerts] PROOF-REVIEW QUERY FAILED — the queue could not be checked:', proofReviewErr.message)
     }
+
+    // ══ BUILD-003 PR3 — PROGRAMME EXCEPTIONS REACH THE BELL ═══════════════════════════════
+    //
+    // 🛑 THESE TWO STATES ALERTED BY EMAIL AND NOWHERE ELSE. A stranded batch holds a client's
+    // PAID volume in reserve where they cannot use it; an unclosed provider eviction is a real
+    // person still receiving mail from a provider's own copy of their record after asking us
+    // to stop. Both had a database index built for exactly this query and no reader, and an
+    // email is read once or not at all. Neither is a state anyone should have to remember.
+    //
+    // ⚠️ PUSHED AHEAD OF THE DERIVED ALERTS, like the proof reviews, for the same reason: a
+    // person who is still being emailed after opting out outranks a state we merely noticed.
+    const programmeOut: typeof out = []
+    const programmeDegraded: string[] = []
+    try {
+      const { strandedBatches, openEvictions } = await import('../lib/operator-programme')
+      const [stranded, evictions] = await Promise.all([strandedBatches(), openEvictions()])
+      if (stranded.degraded) programmeDegraded.push(stranded.degraded)
+      if (evictions.degraded) programmeDegraded.push(evictions.degraded)
+
+      for (const b of stranded.rows) {
+        if (b.client_id && excluded.has(b.client_id)) continue
+        programmeOut.push({
+          client_id: b.client_id ?? '',
+          company_name: null,
+          kind: 'stranded_batch',
+          label: `Programme batch ${b.seq} is STRANDED — ${b.granted - (b.delivered ?? 0)} record(s) of paid volume are reserved and unusable until reconciled by hand.`,
+          severity: 'high',
+        })
+      }
+      for (const e of evictions.rows) {
+        if (e.client_id && excluded.has(e.client_id)) continue
+        programmeOut.push({
+          client_id: e.client_id ?? '',
+          company_name: null,
+          kind: 'provider_eviction',
+          label: `Someone who opted out is still inside ${e.provider ?? 'a provider'} — eviction required since ${e.required_at}${e.reason ? ` (${e.reason})` : ''}. They may still be receiving mail.`,
+          severity: 'high',
+        })
+      }
+    } catch (err) {
+      // Never let the new section break the existing feed. Degrade, say so, carry on.
+      programmeDegraded.push(`Programme exceptions could not be checked (${err instanceof Error ? err.message : String(err)}).`)
+    }
+
     res.json({
       success: true,
-      data: [...proofOut, ...out],
-      ...(proofReviewErr
-        ? { degraded: { proof_review: `Proof-review queue could not be checked — operator review state may be incomplete. Do NOT read an empty list as "nobody is waiting". Check the database and whether 20260827_proof_review_handoff has been run (Vida → Engine). Reason: ${proofReviewErr.message}` } }
+      data: [...proofOut, ...programmeOut, ...out],
+      ...(proofReviewErr || programmeDegraded.length > 0
+        ? { degraded: {
+            ...(proofReviewErr ? { proof_review: `Proof-review queue could not be checked — operator review state may be incomplete. Do NOT read an empty list as "nobody is waiting". Check the database and whether 20260827_proof_review_handoff has been run (Vida → Engine). Reason: ${proofReviewErr.message}` } : {}),
+            ...(programmeDegraded.length > 0 ? { programme: programmeDegraded.join(' ') } : {}),
+          } }
         : {}),
     })
   } catch (err) { console.error('[operator/alerts]', err); res.status(500).json({ success: false, error: 'Failed to load alerts' }) }
@@ -1544,6 +1591,154 @@ operatorRouter.get('/alerts', async (_req: Request, res: Response) => {
 // double-click cannot overwrite the first operator's timestamp with a later one, and it can
 // never invent a resolution for a client who never asked. A second click reports
 // `already_resolved` rather than failing — the operator's intent was satisfied either way.
+// ══ BUILD-003 PR3 — OPERATOR PROGRAMME TRUTH ═══════════════════════════════════════════
+//
+// 🛑 EVERYTHING PR2 BUILT WAS INVISIBLE. No admin page referenced `programmes` and no operator
+// endpoint returned one, so programme status, pause, the review hold, the sourcing ceiling,
+// batches and stranded batches could not be seen by the people who operate them. The founder
+// created a test ICP against a live programme and could not find where it was meant to appear
+// — because for programme state there was nowhere. These routes are that nowhere, filled in.
+//
+// ⚠️ READ-ONLY except for the ONE reversible action at the end of this block.
+operatorRouter.get('/programme', async (req: Request, res: Response) => {
+  try {
+    if (!adminKeyValid(req.headers['x-admin-key'])) {
+      res.status(403).json({ success: false, error: 'Operator key required' })
+      return
+    }
+    const clientId = String(req.query.client_id ?? '').trim()
+    if (!clientId) {
+      res.status(400).json({ success: false, error: 'client_id is required' })
+      return
+    }
+    const { programmeTruthFor } = await import('../lib/operator-programme')
+    const truth = await programmeTruthFor(clientId)
+    res.json({ success: true, data: truth })
+  } catch (err) {
+    console.error('[operator/programme]', err)
+    res.status(500).json({ success: false, error: 'Failed to load programme truth' })
+  }
+})
+
+// Platform-wide exceptions: stranded batches and unclosed provider evictions. Both had a
+// database index built for exactly this query and no reader — a stranded batch alerted by
+// EMAIL, which is read once or not at all, and an open eviction is a real person still
+// receiving mail they asked us to stop.
+operatorRouter.get('/programme/exceptions', async (req: Request, res: Response) => {
+  try {
+    if (!adminKeyValid(req.headers['x-admin-key'])) {
+      res.status(403).json({ success: false, error: 'Operator key required' })
+      return
+    }
+    const { strandedBatches, openEvictions, debrisIcps, failedRuns } = await import('../lib/operator-programme')
+    const [stranded, evictions, debris, failed] = await Promise.all([strandedBatches(), openEvictions(), debrisIcps(), failedRuns()])
+    res.json({
+      success: true,
+      data: {
+        stranded_batches: stranded.rows,
+        open_evictions: evictions.rows,
+        debris_icps: debris.rows,
+        // A prospect whose run CRASHED is sitting on the approved recovery copy having been
+        // promised a human. R72 recorded the crash honestly; nothing told anybody.
+        failed_runs: failed.rows,
+        failed_run_window_days: failed.windowDays,
+        // ⚠️ A POPULATED `degraded` MEANS THE EMPTY LISTS ABOVE ARE UNKNOWN, NOT NONE.
+        degraded: [stranded.degraded, evictions.degraded, debris.degraded, failed.degraded].filter(Boolean),
+      },
+    })
+  } catch (err) {
+    console.error('[operator/programme/exceptions]', err)
+    res.status(500).json({ success: false, error: 'Failed to load programme exceptions' })
+  }
+})
+
+// The lead pool, summarised truthfully. Counts of rows that exist — no fill-rate, no health
+// score, no projected coverage. `money-path` renders "Pool data unavailable" today.
+operatorRouter.get('/pool/summary', async (req: Request, res: Response) => {
+  try {
+    if (!adminKeyValid(req.headers['x-admin-key'])) {
+      res.status(403).json({ success: false, error: 'Operator key required' })
+      return
+    }
+    const { poolSummary } = await import('../lib/operator-programme')
+    res.json({ success: true, data: await poolSummary() })
+  } catch (err) {
+    console.error('[operator/pool/summary]', err)
+    res.status(500).json({ success: false, error: 'Failed to summarise the lead pool' })
+  }
+})
+
+// ── THE ONE WRITE PR3 ADDS: REVERSIBLE ICP RETIREMENT ────────────────────────────────────
+//
+// 🛑 DEACTIVATE, NEVER DELETE, AND THAT IS THE WHOLE DESIGN. `is_active = false` takes an ICP
+// out of sourcing (`startWorkForClient` selects `.eq('is_active', true)`) while leaving every
+// row it ever produced intact and every historical attribution readable. A delete would cascade
+// through `icp_run_outcomes` and orphan the leads it sourced, and it would destroy the record
+// of a test that a runtime verification depends on.
+//
+// ⚠️ REVERSIBLE ON PURPOSE: `active: true` in the body restores it. An operator who retires the
+// wrong ICP must be one click from undoing it, not one support ticket.
+//
+// ⚠️ IT REFUSES TO TOUCH AN ICP THAT BELONGS TO A LIVE PROGRAMME unless the caller says so
+// explicitly. Retiring the ICP a paid programme sources against would silently stop that
+// client's delivery with no error anywhere — the exact invisible failure this PR exists to end.
+operatorRouter.post('/icp/:icpId/retire', async (req: Request, res: Response) => {
+  try {
+    if (!adminKeyValid(req.headers['x-admin-key'])) {
+      res.status(403).json({ success: false, error: 'Operator key required' })
+      return
+    }
+    const active = req.body?.active === true          // default false = retire
+    const force  = req.body?.force === true
+    const icpId  = req.params.icpId
+
+    const { data: icp, error: readErr } = await db.from('icps')
+      .select('id, client_id, name, is_active, programme_id').eq('id', icpId).maybeSingle()
+    if (readErr) {
+      res.status(500).json({ success: false, error: `Could not read the ICP — nothing changed. ${readErr.message}` })
+      return
+    }
+    if (!icp) { res.status(404).json({ success: false, error: 'No such ICP' }); return }
+
+    const programmeId = (icp as { programme_id?: string | null }).programme_id ?? null
+    if (!active && programmeId && !force) {
+      const { data: prog } = await db.from('programmes')
+        .select('id, status, paused_at').eq('id', programmeId).maybeSingle()
+      const p = prog as { status?: string; paused_at?: string | null } | null
+      const live = p && !p.paused_at && !['COMPLETED', 'CANCELLED'].includes(String(p.status))
+      if (live) {
+        res.status(409).json({
+          success: false,
+          error: `This ICP belongs to programme ${programmeId.slice(0, 8)}, which is ${p?.status} and not paused. ` +
+            'Retiring it would stop that programme sourcing with no error anywhere. Pause the programme first, or re-send with force:true.',
+        })
+        return
+      }
+    }
+
+    const { data: updated, error: upErr } = await db.from('icps')
+      .update({ is_active: active }).eq('id', icpId).select('id, name, is_active')
+    if (upErr) {
+      console.error('[operator/icp/retire] update failed for', icpId, upErr.message)
+      res.status(500).json({ success: false, error: `Could not change the ICP — it is unchanged. ${upErr.message}` })
+      return
+    }
+    const row = ((updated ?? []) as { id: string; name: string | null; is_active: boolean }[])[0] ?? null
+    res.json({
+      success: true,
+      data: {
+        icp: row,
+        headline: active
+          ? `"${row?.name ?? icpId}" is ACTIVE again and will be sourced.`
+          : `"${row?.name ?? icpId}" is RETIRED — it will not be sourced. Nothing was deleted; every lead it produced is untouched and this is reversible.`,
+      },
+    })
+  } catch (err) {
+    console.error('[operator/icp/retire]', err)
+    res.status(500).json({ success: false, error: 'Failed to change the ICP' })
+  }
+})
+
 operatorRouter.post('/proof-review/:clientId/resolve', async (req: Request, res: Response) => {
   try {
     if (!adminKeyValid(req.headers['x-admin-key'])) {

@@ -60,7 +60,10 @@ type CmdMsg = { role: 'operator' | 'vida'; text: string; link?: string | null }
 type Blockers = { send_gate: number; money_gate: number; unsent_sourced: number; replies_to_triage: number }
 
 // Per-client cockpit (GET /operator/cockpit) — the ICP/campaign/sequence/inbox surfaces.
-type CockpitTab = 'Inbox' | 'Approvals' | 'People' | 'Campaign' | 'ICP' | 'Sequence' | 'Asks' | 'Bookings'
+// ⚑ 30 Aug (BUILD-003 PR3) — 'Programme' added. Everything PR2 built was invisible here:
+// status, pause, the review hold, the sourcing ceiling, batches, stranded batches. A control
+// nobody can see is not a control.
+type CockpitTab = 'Inbox' | 'Approvals' | 'People' | 'Campaign' | 'ICP' | 'Sequence' | 'Asks' | 'Bookings' | 'Programme'
 type CampaignRow = {
   id: string; name: string; status: string; leads_enrolled: number; emails_sent: number
   replies_total: number; replies_interested: number; created_at: string | null
@@ -257,6 +260,33 @@ export default function VidaConsolePage() {
     setCockpitLoading(false)
   }, [])
 
+  // ⚑ 30 Aug (BUILD-003 PR3) — PROGRAMME TRUTH. Loaded separately from the cockpit so a
+  // programme read failure can never blank the tabs an operator uses every day.
+  type ProgrammeTruth = {
+    programme: null | {
+      id: string; status: string; state: string; meeting_target: number
+      sourcing_ceiling: number; sourced_used: number; sourced_reserved: number; room_remaining: number
+      paused_at: string | null; pause_reason: string | null
+      approved_at: string | null; second_paid_at: string | null
+      review_required_at: string | null; review_reason: string | null; review_resolved_at: string | null
+      review_trigger_leads: number; batch_size: number
+    }
+    batches: { id: string; seq: number; status: string; requested: number; granted: number; delivered: number | null; created_at: string | null }[]
+    stranded: { id: string; seq: number }[]
+    blockers: { kind: string; detail: string }[]
+    degraded: string[]
+  }
+  const [prog, setProg] = useState<ProgrammeTruth | null>(null)
+  const [progErr, setProgErr] = useState<string | null>(null)
+  const loadProgramme = useCallback(async (clientId: string) => {
+    setProgErr(null)
+    try {
+      const j = await fetch(`/api/proxy/operator/programme?client_id=${encodeURIComponent(clientId)}`).then(r => r.json())
+      if (!j?.success) throw new Error(j?.error || 'Failed to load programme')
+      setProg(j.data as ProgrammeTruth)
+    } catch (e) { setProgErr(e instanceof Error ? e.message : 'Failed to load programme'); setProg(null) }
+  }, [])
+
   // Inbox thread — open a prospect reply, draft an answer in the client's voice, send it.
   const [openReply, setOpenReply] = useState<string | null>(null)
   const [thread, setThread] = useState<{ reply: Record<string, unknown>; lead: Record<string, unknown> | null } | null>(null)
@@ -290,8 +320,10 @@ export default function VidaConsolePage() {
     setTestResult(null); setEnrollView(null)
     setIcpMode('list'); setIcpChat([]); setIcpInput(''); setIcpProposal(null)
     setSeqPreview(null); setAsks(null); setFromClient([]); setAskInput(''); setSaveMsg(null)
+    setProg(null); setProgErr(null)
     loadCockpit(selected)
-  }, [selected, loadCockpit])
+    loadProgramme(selected)
+  }, [selected, loadCockpit, loadProgramme])
 
   async function openThread(id: string) {
     if (!selected) return
@@ -1665,7 +1697,7 @@ export default function VidaConsolePage() {
               )}
 
               <div className="shrink-0 flex items-end gap-0.5 px-3 pt-2.5 border-b border-[#eee7f7] overflow-x-auto">
-                {(['Inbox', 'Approvals', 'People', 'Campaign', 'ICP', 'Sequence', 'Asks', 'Bookings'] as CockpitTab[]).map(t => {
+                {(['Inbox', 'Approvals', 'People', 'Campaign', 'ICP', 'Sequence', 'Asks', 'Bookings', 'Programme'] as CockpitTab[]).map(t => {
                   const on = tab === t
                   const n = t === 'Inbox' ? (cockpit?.replies.filter(r => !r.qualified_at && !r.meeting_booked_at).length ?? 0)
                     : t === 'Approvals' ? (cols?.needs_approval.count ?? 0)
@@ -2374,6 +2406,82 @@ export default function VidaConsolePage() {
                       )
                     })}
                 </>)}
+
+                {/* ⚑ 30 Aug (BUILD-003 PR3) — PROGRAMME TRUTH.
+                    Every value here is a row that exists or a subtraction of two of them.
+                    No health score, no projection, no invented metric: an operator acting on a
+                    number we made up is worse off than one acting on nothing. */}
+                {tab === 'Programme' && (<>
+                  {progErr && <p className="text-[12.5px] font-semibold text-red-600 mb-2">Programme could not be loaded: {progErr}</p>}
+                  {/* ⚠️ A DEGRADED READ IS NOT AN EMPTY ONE. Said loudly, because a quiet
+                      console reads as "nothing is wrong" — the exact failure this panel exists
+                      to end. */}
+                  {(prog?.degraded ?? []).map((d, i) => (
+                    <p key={i} className="text-[12.5px] font-semibold text-red-600 mb-2">⚠️ {d}</p>
+                  ))}
+
+                  {!prog ? <p className="text-[13.5px] text-[#9b8ec4] text-center py-8">Loading…</p>
+                   : !prog.programme ? (
+                    <p className="text-[13.5px] text-[#9b8ec4] text-center py-8">
+                      No programme for this client. They are on the legacy model ($299 pack · 100 included · $4 per approved lead), which is unaffected by programme controls.
+                    </p>
+                   ) : (<>
+                    <div className={`border rounded-xl px-3 py-2.5 mb-3 ${
+                      prog.programme.state === 'paused' ? 'border-amber-300 bg-amber-50/60'
+                      : prog.programme.state === 'blocked' ? 'border-red-300 bg-red-50/60'
+                      : prog.programme.state === 'review_required' ? 'border-amber-300 bg-amber-50/60'
+                      : prog.programme.state === 'completed' ? 'border-[#eee7f7] bg-[#faf8ff]'
+                      : 'border-emerald-200 bg-emerald-50/40'}`}>
+                      <b className="text-[13.5px] block">{prog.programme.state.replace('_', ' ').toUpperCase()}</b>
+                      <span className="text-[12px] text-[#6b5f8c]">
+                        status {prog.programme.status} · target {prog.programme.meeting_target} meeting(s) · batch size {prog.programme.batch_size}
+                      </span>
+                      {prog.programme.paused_at && (
+                        <p className="text-[12px] text-amber-800 mt-1">
+                          Paused {fmtDate(prog.programme.paused_at)}{prog.programme.pause_reason ? ` — ${prog.programme.pause_reason}` : ''}.
+                          Pause stops new sourcing AND new sending.
+                        </p>
+                      )}
+                      {prog.programme.review_required_at && !prog.programme.review_resolved_at && (
+                        <p className="text-[12px] text-amber-800 mt-1">
+                          REVIEW HELD since {fmtDate(prog.programme.review_required_at)} — {prog.programme.review_reason}
+                          {' '}This holds the NEXT NEW BATCH only; delivery already in flight continues. The {prog.programme.review_trigger_leads}-lead figure is a planning benchmark, not a guarantee.
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="border border-[#eee7f7] rounded-xl px-3 py-2.5 mb-3">
+                      <b className="text-[13px] block mb-1">Delivery against authorised volume</b>
+                      <span className="text-[12.5px] text-[#6b5f8c]">
+                        {prog.programme.sourced_used} used · {prog.programme.sourced_reserved} reserved · {prog.programme.room_remaining} left of {prog.programme.sourcing_ceiling}
+                      </span>
+                      <p className="text-[11.5px] text-[#9b8ec4] mt-1">Unused value never expires. Opening more is a human decision.</p>
+                    </div>
+
+                    {prog.blockers.length > 0 && (
+                      <div className="border border-red-200 bg-red-50/50 rounded-xl px-3 py-2.5 mb-3">
+                        <b className="text-[13px] block mb-1">Blockers</b>
+                        {prog.blockers.map((b, i) => (
+                          <p key={i} className="text-[12.5px] text-red-800 mb-1">· {b.detail}</p>
+                        ))}
+                      </div>
+                    )}
+
+                    <b className="text-[13px] block mb-1">Batches</b>
+                    {prog.batches.length === 0
+                      ? <p className="text-[12.5px] text-[#9b8ec4] mb-2">No batch has been opened yet.</p>
+                      : prog.batches.map(b => (
+                        <div key={b.id} className={`flex items-center justify-between border rounded-xl px-3 py-2 mb-1.5 ${
+                          b.status === 'stranded' ? 'border-red-300 bg-red-50/60' : 'border-[#eee7f7]'}`}>
+                          <span className="text-[12.5px]">
+                            <b>#{b.seq}</b> {b.status} · requested {b.requested} · granted {b.granted} · delivered {b.delivered ?? '—'}
+                          </span>
+                          <span className="text-[11.5px] text-[#9b8ec4]">{b.created_at ? fmtDate(b.created_at) : ''}</span>
+                        </div>
+                      ))}
+                   </>)}
+                </>)}
+
               </div>
             </aside>
           </div>

@@ -1,4 +1,5 @@
 // Option A (verified leads campaign-ready) + Railway build fix — deploy trigger.
+import { createHash } from 'node:crypto'
 import 'dotenv/config'
 import { runStartupCheck } from './lib/startup-check'
 runStartupCheck()
@@ -147,6 +148,26 @@ app.use(express.json())
 // ⚠️ 'unknown' IS NOT 'verified'. Off-platform (local, CI) the variable is absent and this
 // reports `unknown` rather than inventing a value — a build that cannot name itself must not
 // read as one that matched.
+/**
+ * A deterministic, non-sensitive fingerprint of the Milla lifecycle prompt this build runs.
+ *
+ * ⚠️ NO PROMPT TEXT LEAVES THIS FUNCTION. Only the step count and a truncated hash, so a
+ * deploy can be identified without publishing what we tell the model.
+ */
+function millaPromptFingerprint(): { steps: number; rules: number; fp: string } {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { PROGRAMME_LIFECYCLE, LIFECYCLE_RULES } = require('./lib/milla-chat-system')
+    const joined = [...PROGRAMME_LIFECYCLE, ...LIFECYCLE_RULES].join('|')
+    const fp = createHash('sha256').update(joined).digest('hex').slice(0, 12)
+    return { steps: PROGRAMME_LIFECYCLE.length, rules: LIFECYCLE_RULES.length, fp }
+  } catch {
+    // A build that cannot name its own prompt reports so rather than inventing a value —
+    // the same rule `commit` follows two lines below.
+    return { steps: 0, rules: 0, fp: 'unknown' }
+  }
+}
+
 app.get('/health', async (_req, res) => {
   const v = '2026-06-22-health'
   const commit = process.env.RAILWAY_GIT_COMMIT_SHA?.slice(0, 7) || 'unknown'
@@ -176,6 +197,17 @@ app.get('/health', async (_req, res) => {
     v,
     // The deployed commit — the only field here that changes when the code does.
     commit,
+    // ⚑ 31 Aug — WHICH MILLA PROMPT IS THIS BUILD RUNNING?
+    //
+    // 🛑 #1616 merged and deployed, and both live accounts still answered the old way. There
+    // was no way to tell from outside whether the box was running the new prompt or an older
+    // build — so the first hour went on a question a single field answers.
+    //
+    // ⚠️ A FINGERPRINT, NOT THE PROMPT. `steps` is a count and `fp` is a short digest of the
+    // lifecycle constants. Neither carries customer data, message content, a secret, or the
+    // prompt text itself — it is only enough to say "this box has the ordered lifecycle, and
+    // it is the same one as that box". Deterministic, so two deploys agree or they do not.
+    millaPrompt: millaPromptFingerprint(),
     checks: { db, email },
     ts: new Date().toISOString(),
   })

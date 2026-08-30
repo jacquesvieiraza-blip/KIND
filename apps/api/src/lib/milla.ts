@@ -212,10 +212,21 @@ export async function chat(params: ChatParams): Promise<ChatResult> {
       content: m.content.slice(0, MAX_TURN_CHARS),
     }))
 
-  // Add the current user turn with injected context
+  // ⚑ 31 Aug — THE LIFECYCLE IS RE-ASSERTED HERE, AND THE POSITION IS THE WHOLE FIX.
+  //
+  // 🛑 #1616 put the ordered lifecycle in the system prompt and BOTH live accounts still
+  // answered the old way. The route-level test captured the real payload and showed why: the
+  // prompt was correct, and the ten replayed thread messages above are Milla's OWN pre-#1616
+  // answers stating the wrong sequence. Ten agreeing assistant turns outweigh one system
+  // block, so the correction has to be the LAST thing read — not louder, later.
+  //
+  // ⚠️ THE QUESTION STAYS AT THE END. Appending the re-assertion after it buries what the
+  // client actually asked, which is its own defect; the guard asserts this ordering.
+  const { buildLifecycleReassertion } = await import('./milla-chat-system')
   history.push({
     role:    'user',
-    content: `Context from documents:\n${contextText}\n\nQuestion: ${userMessage.slice(0, MAX_TURN_CHARS)}`,
+    content: `${buildLifecycleReassertion()}\n\nContext from documents:\n${contextText}\n\n` +
+             `Question: ${userMessage.slice(0, MAX_TURN_CHARS)}`,
   })
 
   // Haiku, same as the stateless panel: with the client's numbers injected the desk

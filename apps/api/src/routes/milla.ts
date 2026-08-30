@@ -466,9 +466,15 @@ millaRouter.post('/chat', async (req: AuthRequest, res) => {
       return
     }
 
+    // ⚑ 31 Aug — SAME RE-ASSERTION AS THE DESK CHAT, AND FOR THE SAME REASON. This door
+    // replays `history` from the request body, so it carries the identical exposure: prior
+    // assistant turns stating the pre-#1616 sequence sit AFTER the system prompt in the
+    // payload and outweigh it. The correction goes in the final user turn, with the client's
+    // question still last.
+    const { buildLifecycleReassertion } = await import('../lib/milla-chat-system')
     const messages: Anthropic.MessageParam[] = [
       ...(history ?? []).map(m => ({ role: m.role, content: m.content })),
-      { role: 'user' as const, content: message },
+      { role: 'user' as const, content: `${buildLifecycleReassertion()}\n\nQuestion: ${message}` },
     ]
 
     // Same fail-soft snapshot as the desk chat — one builder, every door.

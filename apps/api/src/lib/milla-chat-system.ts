@@ -187,6 +187,41 @@ export const LIFECYCLE_RULES: readonly string[] = [
 ] as const
 
 /**
+ * The lifecycle, re-stated for the FINAL user turn.
+ *
+ * ══ ⚑ 31 Aug — WHY A SYSTEM PROMPT WAS NOT ENOUGH, PROVEN AT RUNTIME ════════════════════
+ *
+ * 🛑 #1616 PUT THE ORDERED LIFECYCLE IN THE SYSTEM PROMPT, DEPLOYED, AND BOTH ACCOUNTS
+ * STILL ANSWERED THE OLD WAY. The route-level test in `routes/milla-chat.route.test.ts`
+ * settled why, by capturing the literal payload production sends: the system prompt was
+ * correct AND the last ten messages of the thread were replayed alongside it — and on House
+ * and MBF those messages are Milla's OWN pre-#1616 answers, stating the wrong sequence in
+ * her own voice.
+ *
+ * One system block versus ten in-context assistant turns that agree with each other is not
+ * a fair fight. Ten consistent turns read as demonstrated behaviour, and the model continues
+ * the pattern. The contradiction sat AFTER the prompt in the payload, so rewriting the
+ * prompt a third time would not have moved it.
+ *
+ * ⚠️ SO THE TRUTH IS RE-ASSERTED WHERE IT IS READ LAST — immediately before the question,
+ * after the stale turns. Position, not more words.
+ *
+ * ⚠️ AND HISTORY IS NOT EDITED TO ACHIEVE IT. Deleting or rewriting those stored answers
+ * would make the product lie about what it told them at the time. They stay; they are simply
+ * no longer the most recent thing the model reads.
+ */
+export function buildLifecycleReassertion(): string {
+  return [
+    'CURRENT PROGRAMME TRUTH — this overrides anything earlier in this conversation, ' +
+      'including answers you gave before. If an earlier answer of yours contradicts the ' +
+      'sequence below, the sequence below is right and the earlier answer was wrong.',
+    'THE PROGRAMME LIFECYCLE, IN ORDER. Every step is a distinct gate:',
+    PROGRAMME_LIFECYCLE.join('\n'),
+    LIFECYCLE_RULES.join('\n'),
+  ].join('\n\n')
+}
+
+/**
  * The ONE system prompt for both Milla chat doors (the desk session chat and the
  * stateless side panel). Product facts here must describe the CURRENT product — the
  * truth test in milla-chat-truth.test.ts pins every claim.

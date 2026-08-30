@@ -1154,9 +1154,14 @@ export default function MillaHomePage() {
     if (prog && !OUTREACH_STAGES.includes(prog.stage)) return idle
     if (needsGoLive) return { label: 'Not started', tone: 'text-[#b45309]', dot: 'bg-amber-500' }
     const st = summary?.campaign_status
-    if (st === 'active') return { label: 'Campaign live', tone: 'text-[#059669]', dot: 'bg-emerald-500' }
+    // ⛓️ 30 Aug (BUILD-004A-1 live-walk, FOUNDER DECISION 3) — "Campaign" → "Programme" in
+    // the two labels a CUSTOMER reads. Terminology only: the state still comes from
+    // `figsy_campaigns.status`, the internal delivery object, whose name is untouched
+    // everywhere it is not customer-facing. The customer bought a programme; "campaign" is
+    // our word for how we run it.
+    if (st === 'active') return { label: 'Programme live', tone: 'text-[#059669]', dot: 'bg-emerald-500' }
     if (st === 'paused' || st === 'paused_low_performance') return { label: 'Paused — we\u2019ll tell you why', tone: 'text-[#b45309]', dot: 'bg-amber-500' }
-    if (st === 'completed' || st === 'archived') return { label: 'Campaign finished', tone: 'text-[#5c5279]', dot: 'bg-[#b3a9cc]' }
+    if (st === 'completed' || st === 'archived') return { label: 'Programme finished', tone: 'text-[#5c5279]', dot: 'bg-[#b3a9cc]' }
     if (st === 'draft') return { label: 'Being set up', tone: 'text-[#5c5279]', dot: 'bg-[#b3a9cc]' }
     return idle
   })()

@@ -620,4 +620,78 @@ describe('THE HOME STATES NOTHING THAT ITS STAGE CANNOT SUPPORT', () => {
     // wallet shortfall prompt.
     expect(HOME_CODE, 'the wallet top-up state is back on the home').not.toContain('setTopUp')
   })
+
+  // ── ⚑ FOUNDER DECISION 3 (30 Aug) — THE CUSTOMER BOUGHT A PROGRAMME ──────────────────
+  //
+  // "Campaign" is OUR word for how we run the work — `figsy_campaigns` is a real internal
+  // object and its name is untouched. These two labels are the only place a CUSTOMER read it
+  // on this header, and they now say what the customer bought.
+  it('⑪ the send-state header names the programme, not the campaign', () => {
+    expect(HOME_CODE, 'the live label reverted to "Campaign live"').toContain("label: 'Programme live'")
+    expect(HOME_CODE, 'the finished label reverted to "Campaign finished"').toContain("label: 'Programme finished'")
+    // ⚠️ STRIPPED SOURCE. A comment on this same file legitimately QUOTES the retired
+    // hardcoded "● Campaign live" it replaced (the history of why this widget reads real
+    // state at all), so an unstripped scan binds to the explanation instead of the code.
+    expect(HOME_CODE, '"Campaign live" is back as customer-facing header copy')
+      .not.toContain('Campaign live')
+    expect(HOME_CODE, '"Campaign finished" is back as customer-facing header copy')
+      .not.toContain('Campaign finished')
+    // 🛑 AND THE RENAME DID NOT LEAK INWARDS. The state still comes from the campaign object;
+    // renaming the READ would have been the blind rename the founder ruled out.
+    expect(HOME_CODE, 'the internal campaign read was renamed along with the label')
+      .toContain('const st = summary?.campaign_status')
+  })
+
+  // ── ⚑ FOUNDER DECISION 2 (30 Aug) — PROOF LEARNING STAYS HIDDEN ──────────────────────
+  //
+  // APPROVED AS THE ANSWER, not as a placeholder: `/leads/nexus-summary` is outreach
+  // performance and is not truthful during calibration. So the guard is that nothing was
+  // built to fill the gap — no Proof metric, no new sentence, no new data model in 4A-1.
+  it('⑫ no Proof-stage learning metric or sentence was invented to fill the hidden card', () => {
+    // The gate itself is guard ④; this is the other half — that it stayed a GATE.
+    expect(HOME_CODE, 'a second learning surface appeared on the home')
+      .not.toMatch(/calibration (?:score|progress|confidence)|learning (?:score|progress)/i)
+    // The endpoint gained no proof branch, and the home reads no new learning field.
+    const NEXUS = strip(readFileSync(join(__dirname, '../routes/leads.ts'), 'utf8'))
+    const from = NEXUS.indexOf("leadRouter.get('/nexus-summary'")
+    expect(from, 'the nexus route is gone').toBeGreaterThan(-1)
+    const body = NEXUS.slice(from, from + 2_000)
+    expect(body, 'a Proof/calibration branch was added to the outreach-learning endpoint')
+      .not.toMatch(/proof|calibrat|stage/i)
+  })
+})
+
+// ── ⚑ FOUNDER DECISION 4 (30 Aug) — THE FIRST SCREEN OF THE PRODUCT ────────────────────
+//
+// 🛑 A PROSPECT MET THE RETIRED ECONOMICS BEFORE THEY HAD SEEN A SINGLE PERSON. The welcome
+// proposal panel read "a recommended **credit plan** here. You approve before anything
+// starts." — wrong on both counts: "credit plan" is the wallet/pack model the programme
+// replaced, and "You approve" is the per-lead approval it also removed.
+describe('THE WELCOME PANEL STATES THE PROGRAMME, NOT THE RETIRED CREDIT MODEL', () => {
+  const WELCOME = readFileSync(join(PORTAL, 'app/(milla)/milla/welcome/page.tsx'), 'utf8')
+  const WELCOME_CODE = strip(WELCOME)
+
+  it('the sweep is not vacuous — the welcome page loads and is the real file', () => {
+    expect(WELCOME_CODE).toContain('export default function')
+  })
+
+  it('⑬ the approved sentence is present, word for word', () => {
+    expect(WELCOME_CODE, "the founder's approved welcome copy is not on the page").toContain(
+      'As we chat, Milla builds your <b>ICP</b> (who to target) and a recommended <b>programme</b> here. You&rsquo;ll review it before anything starts.')
+  })
+
+  it('⑭ the stale credit-plan copy cannot return', () => {
+    expect(WELCOME_CODE, 'the retired credit-plan sentence is back on the welcome page')
+      .not.toContain('credit plan')
+    expect(WELCOME_CODE, 'the per-lead approval promise is back on the welcome page')
+      .not.toContain('You approve before anything starts')
+  })
+
+  it('⑮ and no retired money truth came back with it', () => {
+    // The panel is the FIRST thing a prospect reads. None of these may appear on it.
+    for (const forbidden of ['credit plan', 'wallet', '$299', '$4', 'PACK_PRICE_USD', 'PACK_LEADS']) {
+      expect(WELCOME_CODE, `retired money truth on the welcome panel: ${forbidden}`)
+        .not.toContain(forbidden)
+    }
+  })
 })

@@ -5,14 +5,21 @@ import { useRouter } from 'next/navigation'
 import { api } from '@/lib/api'
 import { createClient } from '@/lib/supabase/client'
 import ProductTour from '@/components/ProductTour'
-import { shortfallMessage, deskCoverage, PACK_PRICE_USD, PACK_LEADS } from '@kind/shared'
+// ⚑ 30 Aug (BUILD-004A-1) — PACK_PRICE_USD / PACK_LEADS / deskCoverage are GONE from this
+// screen. They are the $299-pack and $4-per-lead economics, and the live customer path has no
+// legacy customers left to serve them to. `shortfallMessage` stays imported only where the
+// wallet top-up still belongs (it does not appear on this home any more).
+import { MILLA_FAILURE_COPY } from '@kind/shared'
+import ProgrammeWorkspace, { nextActionFor, type CustomerProgramme } from '@/components/milla/ProgrammeWorkspace'
 import { proofWaitState, invalidateProofSnapshot, classifyClaimFailure, isReconciling, PROOF_WAIT_MS } from '@/lib/proof-start'
 
 // #497/#503/#506/#495 — MILLA HOME (docs/mv-previews/milla2.html): KPI cards row + Milla
-// chat as the SPINE (centre, full height, real-data opener) + masked lead cards (right).
-// Every number is live: summary → KPIs/opener, /for-approval → cards. Approve charges a
-// flat $4 per approved lead from the one wallet. The wallet ledger moved to Billing (M4)
-// and the ICP card to its own rail page (/milla/icp) — this screen is leads + Milla only.
+// chat as the SPINE (centre, full height) + the programme workspace (right).
+//
+// ⛓️ 30 Aug (BUILD-004A-1) — THIS HEADER DESCRIBED THE LEGACY MODEL until today: masked lead
+// cards fed by the per-lead approval endpoint, and "Approve charges a flat per-lead price from
+// the one wallet". None of that is on this screen any more. The home now reads the customer's
+// PROGRAMME and renders the shared workspace; the conversation stays the spine.
 
 type MaskedLead = { id: string; role: string; company: string; industry: string | null; country: string | null; score: number | null; why_fits: string | null; recommended?: boolean
   /** ⚑ 25 Aug — WHICH PROOF BATCH this card came from. One shared timestamp per proof run,
@@ -22,7 +29,10 @@ type Revealed = { email: string; charged: boolean }
 type IcpVersion = { version: string; current: boolean; name: string; summary: string; created_at: string | null }
 type Pack = { active: boolean; included: number; used: number; left: number; nextLeadCostUsd: number }
 type Summary = {
-  wallet_balance_usd: number; has_funded: boolean; leads_awaiting: number; meetings_booked: number
+  // ⛓️ `wallet_balance_usd` REMOVED from this screen's type (BUILD-004A-1). The endpoint still
+  // returns it for Billing; this home no longer reads it, and dropping the field means a future
+  // edit cannot quietly render a wallet balance back onto the programme home.
+  has_funded: boolean; leads_awaiting: number; meetings_booked: number
   active_campaign: string | null; icp_versions: IcpVersion[]
   /** The newest campaign's real state, whatever it is — drives the live/paused badge. */
   campaign_name?: string | null
@@ -176,6 +186,17 @@ if (FINDING_POLL_MS * FINDING_MAX_CHECKS !== PROOF_WAIT_MS) {
   throw new Error('proof wait bound drifted: the desk poll budget and PROOF_WAIT_MS must match')
 }
 
+/**
+ * Milla's opening line. FOUNDER-APPROVED 30 Aug, verbatim.
+ *
+ * ⚠️ NOT A TEMPLATE, AND NOT BRANCHED. Every earlier version of this greeting was assembled
+ * from the client's lead count, pack balance and funding state — which is how "a flat $4 per
+ * lead, final" ended up being the first thing a customer read. One approved sentence, no
+ * interpolation, nothing for a future edit to slip a price into.
+ */
+const MILLA_GREETING =
+  'Hi, I’m Milla. Tell me what you’re trying to achieve, and I’ll help shape the right programme from there.'
+
 export default function MillaHomePage() {
   const router = useRouter()
   const [summary, setSummary] = useState<Summary | null>(null)
@@ -193,8 +214,24 @@ export default function MillaHomePage() {
   // #511f — the client's own Nexus, surfaced (the flywheel: they see Milla getting sharper).
   const [nexus, setNexus] = useState<{ learned: string; top_persona: string | null; reply_rate: number; meeting_rate: number; confidence: string; sample_worked: number } | null>(null)
   const [leads, setLeads] = useState<MaskedLead[] | null>(null)
+  // ⚑ BUILD-004A-1 — PROGRAMME TRUTH ON THE HOME. Loaded beside the summary; a failure here
+  // renders the locked sentence, never an empty programme.
+  const [prog, setProg] = useState<CustomerProgramme | null>(null)
+  // ── ⚑ 30 Aug (BUILD-004A-1, Option B) — WHAT THE CLIENT HAS SAID ABOUT EACH PROSPECT ──
+  // A record of real reactions, keyed by lead. NOT a score, not a count of progress towards
+  // anything, and nothing here is charged for. It exists so the card can acknowledge what
+  // they just said, and so an optional note is attached to the RIGHT reaction.
+  const [reacted, setReacted] = useState<Record<string, 'approve' | 'pass'>>({})
+  /** Which card has its optional note box open, and what is in it. One at a time. */
+  const [noteFor, setNoteFor] = useState<string | null>(null)
+  const [noteText, setNoteText] = useState('')
+  const [progFailed, setProgFailed] = useState<string | null>(null)
   const [acting, setActing] = useState<string | null>(null)
-  const [revealed, setRevealed] = useState<Record<string, Revealed>>({})
+  // ⛓️ 30 Aug — READ-ONLY NOW, AND ALWAYS EMPTY ON THIS SCREEN. The only two writers were
+  // the paid approve paths, both removed above. It is kept because `pendingRaw` and the
+  // proof wait bound both read it, and because a reveal arriving from anywhere else must
+  // still take that lead off the calibration set rather than showing it again.
+  const [revealed] = useState<Record<string, Revealed>>({})
   const [topUp, setTopUp] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -243,10 +280,30 @@ export default function MillaHomePage() {
       // #570 — allSettled, not all. With `Promise.all`, ONE failing endpoint rejected the
       // pair and the client's entire dashboard went blank — including the half that had
       // loaded fine. The billing page already used allSettled; the desk did not.
-      const [sr, lr] = await Promise.allSettled([
+      // ⛓️ 30 Aug (BUILD-004A-1, OPTION B) — THREE LEGS, AND THE MIDDLE ONE IS THE FIX.
+      //
+      // 🛑 THE DEFECT THIS REPLACES, IN MY OWN CODE. My first cut deleted the
+      // `/leads/for-approval` fetch and substituted `/my/programme` IN ITS POSITION, resolving
+      // the leads leg to `{ data: [] }`. So `leads` was permanently empty: the calibration
+      // panel rendered, the cards were written, and a Proof client saw an empty set forever.
+      // Nothing threw and nothing logged — the screen simply had no people on it.
+      //
+      // The two are DIFFERENT FACTS and now have their own legs. `/leads/for-approval` is the
+      // free calibration set (masked, nobody contacted, no charge — it is only the paid
+      // APPROVE that ever cost anything, and that path is gone from this file). `/my/programme`
+      // is the customer's programme truth. Either can fail without blanking the other.
+      const [sr, lr, pr] = await Promise.allSettled([
         api.get<{ data: Summary }>('/leads/milla-summary', tok),
         api.get<{ data: MaskedLead[] }>('/leads/for-approval', tok),
+        api.get<{ data: CustomerProgramme }>('/my/programme', tok),
       ])
+      // ⚠️ A FAILED PROGRAMME READ IS NOT AN EMPTY PROGRAMME. `/my/programme` answers 503 with
+      // the locked sentence; that sentence is rendered, never "you have no programme".
+      if (pr.status === 'fulfilled') { setProg(pr.value.data); setProgFailed(null) }
+      else {
+        const msg = pr.reason instanceof Error ? pr.reason.message : ''
+        setProgFailed(msg && msg.length < 200 ? msg : MILLA_FAILURE_COPY.pipelineFailed)
+      }
       if (sr.status === 'rejected' && lr.status === 'rejected') {
         throw sr.reason instanceof Error ? sr.reason : new Error('Failed to load your dashboard')
       }
@@ -261,29 +318,18 @@ export default function MillaHomePage() {
       if (l) setLeads(l.data)
       setSummary(s.data)
       setServerState('ok')
-      const n = s.data.leads_awaiting
-      const camp = s.data.active_campaign ? ` for your **${s.data.active_campaign}** campaign` : ''
-      // The greeting quoted "a flat $4 per lead, final" to every client, including one
-      // holding 100 free approvals. It was written before the pack existed.
-      const left = s.data.pack?.active ? (s.data.pack.left ?? 0) : 0
-      const priceLine = left > 0
-        ? `**${left} of your ${s.data.pack!.included} included leads** are still yours — approving costs nothing until they run out`
-        : '**nothing is charged until you approve — then a flat $4 per lead, final**'
-      // Functional update, and the greeting is keyed 'greet': the thread-history effect
-      // below races this one, and whichever lands second must not wipe the other.
-      setMessages(m => [{ id: 'greet', role: 'assistant', content: n > 0
-        ? (s.data.icp_versions.length > 0 && !s.data.has_funded
-            // A prospect is looking at free PROOF, so the opener must not ask them to
-            // approve anything — there is nothing commercial for them to approve yet.
-            ? `Hi 👋 I'm Milla. Here are **${n} real ${n === 1 ? 'person' : 'people'}** who match your targeting — masked, free, and nobody has been contacted. Tell me what looks right and I'll get you live.`
-            : `Hi 👋 I'm Milla, your campaign partner. FIGSY qualified **${n} new lead${n === 1 ? '' : 's'}**${camp} — they're in the panel on the right. Approve the ones worth pursuing; ${priceLine}. Want me to talk you through them?`)
-        // ⚠️ NOT "no new leads waiting" WHEN A PROOF RUN IS IN FLIGHT. That sentence is
-        // false at the one moment it matters most — the prospect has just confirmed their
-        // targeting and we are finding their people right now. No completion time is
-        // promised, and no notification is promised, because nothing sends one.
-        : isFinding()
-          ? `Hi 👋 I'm Milla. I'm finding real people who match your targeting right now — they'll appear on the right as soon as I have them.`
-          : `Hi 👋 I'm Milla, your campaign partner. No new leads waiting this moment${camp ? ` — the ${s.data.active_campaign} engine is still sourcing` : ''}. Ask me anything, or tell me who to target next.` },
+      // ⚑ 30 Aug (BUILD-004A-1) — THE APPROVED GREETING, AND ONLY IT.
+      //
+      // ⛓️ WHAT THIS REPLACES, AND WHY IT HAD TO GO WHOLESALE. The old opener branched four
+      // ways and every branch taught the legacy model: "Approve the ones worth pursuing",
+      // "**nothing is charged until you approve — then a flat $4 per lead, final**",
+      // "**N of your 100 included leads** are still yours". A customer's FIRST SENTENCE from
+      // Milla was the $4-per-lead pack — the exact truth the programme model removes.
+      //
+      // 🛑 ONE SENTENCE, FOUNDER-APPROVED, WORD FOR WORD. No branch on lead counts, no branch
+      // on funding, no price clause. The outcome conversation is what opens the product now,
+      // and the greeting is the founder's own words rather than four of mine.
+      setMessages(m => [{ id: 'greet', role: 'assistant', content: MILLA_GREETING },
         ...m.filter(x => x.id !== 'greet')])
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load your dashboard')
@@ -677,47 +723,11 @@ export default function MillaHomePage() {
   // Scroll the CHAT container only — never the page (that would hide the KPI row).
   useEffect(() => { const el = chatBodyRef.current; if (el) el.scrollTop = el.scrollHeight }, [messages])
 
-  // THE MINIMUM-20 GATE (founder-locked 25 Jul). We can't run a real campaign off five
-  // people, and a client's sender costs us ~$40/month from the day they sign — so the first
-  // time round they choose at least 20. The server refuses below the minimum regardless of
-  // what this UI does; these are the words that make the refusal make sense.
-  async function approveSelected() {
-    const ids = [...picked]
-    if (ids.length === 0) return
-    setActing('batch'); setTopUp(null); setError(null)
-    try {
-      const tok = await token()
-      const res = await api.post<{ approved: number; attempted: number; message: string;
-        results: Array<{ id: string; status: string; email?: string | null; charged?: boolean }> }>(
-        '/leads/approve-batch', { lead_ids: ids }, tok)
-      setRevealed(r => {
-        const next = { ...r }
-        for (const x of res.results) if (x.status === 'approved') next[x.id] = { email: x.email ?? '', charged: !!x.charged }
-        return next
-      })
-      // Only the ones that actually went through leave the selection. Clearing everything
-      // made a client re-find the leads they still needed to retry.
-      const done = new Set(res.results.filter(x => x.status === 'approved').map(x => x.id))
-      setPicked(p => new Set([...p].filter(id => !done.has(id))))
-      if (res.approved < res.attempted) setError(res.message)
-      // The pack counter is the number they watch most, and it was stale until a manual
-      // refresh — approve 20 and the hero still read "100 included".
-      void load()
-    } catch (e) {
-      const err = e as Error & { status?: number }
-      // #570 — the figure is no longer invented in the browser. `ids.length * 4` ignored the
-      // wallet balance AND the leads still inside the included pack, so it named a total we
-      // could not stand behind on a payment screen. Use the server's numbers when it sends
-      // them; otherwise state the rule rather than a made-up total.
-      if (err.status === 402) setTopUp(shortfallMessage({
-        count: ids.length,
-        neededUsd: (err as { needed_usd?: number }).needed_usd,
-        balanceUsd: (err as { balance_usd?: number }).balance_usd,
-      }))
-      else if (err.message === 'batch_minimum') setError(`Choose ${gate.required} to start — we need enough people to run a real campaign.`)
-      else setError(err.message || 'Could not approve — please try again')
-    } finally { setActing(null) }
-  }
+  // ⛓️ 30 Aug (BUILD-004A-1, Option B) — THE PICK-N BATCH APPROVE IS GONE FROM THE HOME.
+  // `approveSelected` posted `/leads/approve-batch`, which reveals contacts and CHARGES. The
+  // minimum-20 gate, the wallet shortfall message and the batch bar went with it. Calibration
+  // is one free reaction at a time; the programme's money is the two 50% payments, and neither
+  // of them is spent from this screen.
 
   // ── ⚑ 25 Aug — 👍 LOOKS RIGHT NOW ASKS THE SERVER FIRST (founder-ruled) ──────────────
   //
@@ -734,11 +744,19 @@ export default function MillaHomePage() {
   // failed, or a request that never got an answer — leaves them here with the honest sentence
   // and the button live again. Pressing it again retries the ACCEPTANCE only: it sources
   // nothing, spends no pass and creates no batch, because the endpoint does none of those.
+  // ⚑ 30 Aug (BUILD-004A-1, Option B) — RESTORED AS CALIBRATION, NOT AS THE PAID DESK.
+  // ⛓️ Deleting it was the regression: replacing the approval desk took the FREE PROOF
+  // reaction with it, a flow the founder's spec keeps. No price on any button — "Looks right"
+  // writes no approval, reveals nothing, charges nothing, and what follows is a conversation.
   async function acceptProof(id: string) {
     setActing(id); setTopUp(null); setError(null)
     try {
       await api.post(`/leads/${id}/proof-accept`, {}, await token())
-      router.push('/milla/billing?start=1&from=proof')
+      // ⛓️ 30 Aug — THE PACK CHECKOUT IS NOT THE NEXT STEP. "Looks right" used to push
+      // straight to the $299 ask. In the programme model what follows a calibration signal is
+      // the RECOMMENDATION, and Milla opens that in conversation — so this records the signal
+      // and navigates nowhere.
+      setReacted(r => ({ ...r, [id]: 'approve' }))
     } catch {
       // ONE SENTENCE FOR EVERY FAILURE, and it claims nothing. Not that they were charged —
       // nothing here charges. Not when it will be fixed — we do not know. Not that we will
@@ -747,29 +765,12 @@ export default function MillaHomePage() {
     } finally { setActing(null) }
   }
 
-  async function approve(id: string) {
-    setActing(id); setTopUp(null); setError(null)
-    try {
-      const tok = await token()
-      const res = await api.post<{ email: string; charged: boolean }>(`/leads/${id}/approve`, {}, tok)
-      setRevealed(r => ({ ...r, [id]: { email: res.email, charged: res.charged } }))
-      void load()   // keep the pack counter honest — see approveSelected
+  // ⛓️ 30 Aug (BUILD-004A-1, Option B) — THE PER-LEAD PAID APPROVE IS GONE FROM THE HOME.
+  // `POST /leads/:id/approve` reveals a contact and charges $4 for it. Nothing on a
+  // calibration screen may do either, so the caller, the function and the reveal state it
+  // wrote are all removed rather than left unwired — an unwired charge path is one onClick
+  // away from being a live one.
 
-    } catch (e) {
-      const err = e as Error & { status?: number }
-      if (err.status === 402) setTopUp(shortfallMessage({
-        count: 1,
-        neededUsd: (err as { needed_usd?: number }).needed_usd,
-        balanceUsd: (err as { balance_usd?: number }).balance_usd,
-      }))
-      // The api helper surfaces the server's `error` CODE as the message — translate the
-      // known codes into plain English rather than showing a client "no_campaign".
-      else if (err.message === 'no_campaign') setError("Your campaign isn't switched on yet, so we can't start outreach — you have not been charged. We've been alerted and will get it live.")
-      else if (err.message === 'already_in_crm') setError('This contact is already in your CRM — no charge.')
-      else if (err.message === 'no_email_found') setError('We could not verify an email for this lead — you were not charged.')
-      else setError(err.message || 'Could not approve — please try again')
-    } finally { setActing(null) }
-  }
   // ── CALIBRATION v1 (P32) — the reason chip ────────────────────────────────────────────
   // Founder doctrine (Jack&Jill K.2): "Approve/Pass IS the calibration event — capture the
   // REASON and the product gets smarter every time a client clicks."
@@ -793,13 +794,41 @@ export default function MillaHomePage() {
     catch { /* never surfaced: the pass stands, and a lost chip is not the client's problem */ }
   }
 
+  // ── ⚑ 30 Aug (BUILD-004A-1, Option B) — "TELL MILLA WHY", IN THEIR OWN WORDS ───────────
+  //
+  // The founder's third control on every card, and it is OPTIONAL in the strict sense: it is
+  // never required to react, it never gates the next card, and it cannot fail in a way the
+  // client sees. Same shape as the chip above — fire and forget.
+  //
+  // ⚠️ IT IS ATTACHED TO THE REACTION THEY ACTUALLY MADE. `lead_feedback` is keyed on
+  // (client_id, lead_id, action), so filing a note about a prospect they said "Looks right"
+  // to under `pass` would put their words on the opposite verdict. `reacted` holds what they
+  // said; with no reaction yet, a note is a criticism by default and files as `pass`.
+  //
+  // ⚠️ STORED, NEVER PARSED. `lib/lead-feedback.ts` reads structured codes only and a human
+  // reads the free text in Vida — the founder gated auto-parsing, and nothing here changes it.
+  async function sendNote(leadId: string) {
+    const text = noteText.trim()
+    setNoteFor(null); setNoteText('')
+    if (!text) return
+    try {
+      await api.post(`/leads/${leadId}/feedback`,
+        { action: reacted[leadId] === 'approve' ? 'approve' : 'pass', free_text: text }, await token())
+    } catch { /* never surfaced: their reaction stands, and a lost note is not their problem */ }
+  }
+
   // #570 — pass() now reloads. It removed the row locally and never refreshed, so the KPI
   // still read "3 leads awaiting" after the client had passed all three — and with a desk
   // capped at 50, passing one never pulled the next one in. The screen disagreed with itself.
+  // ⚑ 30 Aug (BUILD-004A-1, Option B) — RESTORED AS CALIBRATION, NOT AS THE PAID DESK.
+  // ⛓️ Deleting it was the regression: replacing the approval desk took the FREE PROOF
+  // reaction with it, a flow the founder's spec keeps. No price on any button — "Looks right"
+  // writes no approval, reveals nothing, charges nothing, and what follows is a conversation.
   async function pass(id: string) {
     setActing(id); setError(null)
     try {
       await api.post(`/leads/${id}/pass`, {}, await token())
+      setReacted(r => ({ ...r, [id]: 'pass' }))
       setLeads(ls => (ls ?? []).filter(l => l.id !== id))   // instant, so the row goes at once
       // ── CALIBRATION v1 (P32) — ask WHY, after the fact, never before ──────────────────
       // The pass is DONE by this line. The chip row is a second, optional call; the founder's
@@ -828,13 +857,9 @@ export default function MillaHomePage() {
     finally { setSending(false) }
   }
 
-  // While the pack has leads left an approval costs nothing — a card that still says
-
-  // "$4" is the difference between a client working through 100 leads and stopping.
-
-  const freeApproval = !!summary?.pack?.active && (summary.pack.left ?? 0) > 0
-  const [picked, setPicked] = useState<Set<string>>(new Set())
-  const togglePick = (id: string) => setPicked(p => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n })
+  // ⛓️ 30 Aug (BUILD-004A-1, Option B) — `freeApproval`, `picked` and `togglePick` are gone.
+  // They existed to say whether the NEXT $4 was covered by the pack and to hold a multi-select
+  // for the batch approve. There is no charge and no selection on a calibration set.
 
 
   const pendingRaw = (leads ?? []).filter(l => !revealed[l.id])
@@ -1083,19 +1108,14 @@ export default function MillaHomePage() {
     // the pending COUNT changes, and each re-run tears the previous interval down first.
     return () => { cancelled = true; clearInterval(timer) }
   }, [finding, proofAwaiting, pending.length, load, terminalRun])
-  // Mirrors lib/approval-batch.ts on the server. `approvedEver` comes from the summary, so a
-  // client already past 20 gets one-tap approve back — the gate starts the relationship, it
-  // doesn't nag someone already working with us.
-  const approvedEver = summary?.leads_approved_total ?? 0
-  const gate = (() => {
-    const MIN = 20
-    if (approvedEver >= MIN) return { required: 1, batch: false }
-    return { required: Math.min(MIN - approvedEver, pending.length), batch: pending.length > 0 }
-  })()
+  // ⛓️ 30 Aug (BUILD-004A-1, Option B) — THE MINIMUM-20 GATE IS GONE FROM THE HOME. It
+  // mirrored lib/approval-batch.ts so the browser could explain a paid batch refusal. The
+  // server rule is untouched and still refuses under 20 wherever a paid batch is attempted;
+  // what is removed is this screen's ability to attempt one.
   // What is actually happening with their sending, in the client's words. Ordered by what
   // matters most to them: unpaid beats paused, because paying is what unblocks it.
   const sendState = (() => {
-    if (needsGoLive) return { label: `Not started — waiting on your $${PACK_PRICE_USD}`, tone: 'text-[#b45309]', dot: 'bg-amber-500' }
+    if (needsGoLive) return { label: 'Not started', tone: 'text-[#b45309]', dot: 'bg-amber-500' }
     const st = summary?.campaign_status
     if (st === 'active') return { label: 'Campaign live', tone: 'text-[#059669]', dot: 'bg-emerald-500' }
     if (st === 'paused' || st === 'paused_low_performance') return { label: 'Paused — we\u2019ll tell you why', tone: 'text-[#b45309]', dot: 'bg-amber-500' }
@@ -1121,40 +1141,41 @@ export default function MillaHomePage() {
           Steps whose element isn't on screen skip themselves, so a fresh account with an
           empty lead desk still gets a coherent tour. */}
       <ProductTour steps={[
-        { target: 'kpi-pack',  title: 'What you have', body: `Your $${PACK_PRICE_USD} includes ${PACK_LEADS} approved leads. This counts down as you approve — nothing else is charged until it runs out.` },
-        { target: 'leads',     title: 'This is your job', body: "Everyone we find lands here, scored and masked. Pick the ones worth talking to — we start work the moment you do. The first time round, choose 20 so there are enough people to run a real campaign." },
+        // ⛓️ THE PACK STEP AND THE "PICK THE ONES WORTH TALKING TO" STEP ARE REMOVED.
+        // Both taught the legacy model — a $299 pack counting down, and a per-lead approval
+        // desk. Neither exists in the programme model, and a tour that teaches a product we
+        // no longer sell is worse than no tour.
+        { target: 'leads',     title: 'Your programme', body: 'This is where your programme lives — the outcome you asked for, what stage it is at, and what is waiting on whom.' },
         { target: 'chat',      title: 'Milla, any time', body: "Ask for more people, change who we're targeting, or tell me a lead was wrong. I'm how you steer it — there are no forms." },
         { target: 'kpi-meetings', title: 'What it comes back as', body: 'Booked meetings. We answer the replies, qualify them and put the meeting in your calendar — you just turn up.' },
       ]} />
-      {/* $99 GO-LIVE banner — shown until the client funds their wallet. Browsing is free;
-          this is the step that switches their campaign on. */}
-      {needsGoLive && (
-        <a href="/milla/billing?start=1" className="block mb-4 rounded-2xl border border-[#7C3AED]/25 bg-gradient-to-r from-[#f3ecff] to-[#fdecf5] px-5 py-4 hover:shadow-md transition-shadow">
-          <div className="flex items-center justify-between gap-4 flex-wrap">
-            <div>
-              <p className="font-extrabold text-[#5b21b6] text-[16px]">Go live — your first {PACK_LEADS} leads are ${PACK_PRICE_USD}</p>
-              <p className="text-[14px] text-[#6b6088] mt-0.5">Your first purchase is <b>${PACK_PRICE_USD}</b> and it includes <b>{PACK_LEADS} approved leads</b>. Browsing and building your plan is free — nothing sources or sends until you go live. After the first 100 it&rsquo;s a flat $4 a lead.</p>
-            </div>
-            <span className="shrink-0 text-[14px] font-bold text-white rounded-xl px-4 py-2 bg-gradient-to-br from-[#7C3AED] to-[#EC4899]">Go live — ${PACK_PRICE_USD} · {PACK_LEADS} leads →</span>
-          </div>
-        </a>
-      )}
-      {/* KPI row */}
+      {/* ⛓️ 30 Aug (BUILD-004A-1) — THE $299 GO-LIVE BANNER IS REMOVED.
+          It read "Go live — your first 100 leads are $299 … After the first 100 it's a flat
+          $4 a lead". That is the legacy pack, and the live customer path has no legacy
+          customers left. Going live is now a programme moment, and the Next card above says
+          who it is waiting on. */}
+      {/* ⚑ 30 Aug (BUILD-004A-1) — THE FOUR APPROVED CARDS.
+          Replaces the pack/wallet KPI row: "Leads included · of your 100 · then $4 each",
+          the wallet-balance card with its per-lead price line, the leads-awaiting card, and
+          "waiting on your $299". Every one of those was the legacy economics, and there are no
+          legacy customers left on the live path to serve them to.
+
+          ⚠️ FOUR CARDS, EXACTLY AS SPECIFIED: outcome + target · current stage · progress
+          toward outcome · next action / what Milla needs. No fifth card was invented. */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
-        {/* While the $99 pack has leads left, THAT is the number that matters to the client —
-            a wallet reading $0 next to "100 included" reads as broken. Falls back to the
-            wallet once the pack is used. */}
-        {summary?.pack?.active && summary.pack.left > 0
-          ? <KPI hero tour="kpi-pack" k="Leads included" v={`${summary.pack.left}`} s={`of your ${summary.pack.included} · then $4 each`} />
-          : <KPI hero tour="kpi-pack" k="Wallet balance" v={summary ? `$${summary.wallet_balance_usd.toLocaleString()}` : '…'} s="$4 per approved lead" />}
-        <KPI k="Leads awaiting you" v={summary ? String(summary.leads_awaiting) : '…'} s={summary && summary.leads_awaiting ? '1 tap to approve' : 'all caught up'} tone="#EC4899" />
-        <KPI tour="kpi-meetings" k="Meetings booked" v={summary ? String(summary.meetings_booked) : '…'} s="this month" tone="#059669" />
-        {/* DORMANT (flow v2 step 2). An approved ICP with no $99 behind it is live on paper
-            and doing nothing in practice — nothing sources, nothing sends. Saying "—" here
-            let a client sit for days assuming we were working. */}
-        {needsGoLive && (summary?.icp_versions?.length ?? 0) > 0
-          ? <KPI k="Your targeting" v="Dormant" s={`approved — waiting on your $${PACK_PRICE_USD}`} tone="#b45309" />
-          : <KPI k="Active campaign" v={summary?.active_campaign ?? '—'} s={summary?.icp_versions?.find(v => v.current)?.version ? `ICP ${summary.icp_versions.find(v => v.current)!.version}` : 'no campaign yet'} />}
+        <KPI hero k="Outcome"
+          v={prog?.outcome.target ? String(prog.outcome.target) : '—'}
+          s={prog?.outcome.target ? 'booked meetings' : 'not set yet'} />
+        <KPI k="Stage" v={prog ? prog.stage : '…'}
+          s={prog?.paused ? 'paused' : prog?.reviewOpen ? 'review' : 'current'}
+          tone={prog?.paused || prog?.reviewOpen ? '#b45309' : undefined} />
+        {/* 🛑 null IS "WE COULD NOT READ IT", NEVER ZERO. Rendering a storage failure as
+            "0 meetings booked" tells a client their programme has produced nothing. */}
+        <KPI k="Progress"
+          v={prog ? (prog.progress.outcomesAchieved === null ? '—' : String(prog.progress.outcomesAchieved)) : '…'}
+          s={prog && prog.progress.outcomesAchieved === null ? 'not available right now' : 'meetings booked'}
+          tone="#059669" />
+        <KPI k="Next" v={prog ? nextActionFor(prog) : '…'} s="what Milla needs" />
       </div>
 
       {/* Milla is the SPINE: she fills the console, leads canvas beside her. */}
@@ -1198,27 +1219,40 @@ export default function MillaHomePage() {
             the conversation is fixed; the other way round meant every extra pixel of a bigger
             monitor went to the chat while the work stayed pinned at 380px. Cards flow into
             columns once there's width for them. */}
+        {/* ⚑ 30 Aug (BUILD-004A-1) — THE PROGRAMME STAGE WORKSPACE.
+            ⛓️ THIS WAS THE PER-LEAD APPROVAL DESK: "New leads · masked · no charge yet", the
+            per-lead cards, the Approve button that charged per lead, the proof-accept
+            path and the wallet top-up banner. The programme model has ONE approval, not one
+            per lead, so the desk is gone rather than hidden.
+
+            ⚠️ THE SAME COMPONENT `/milla/programme` RENDERS. One implementation, two surfaces,
+            so the home and the Programme page can never show different numbers for one
+            programme — which is the whole reason it was extracted. */}
         <aside data-tour="leads" className="flex-1 min-w-0 bg-white border border-[#eee7f7] rounded-2xl flex flex-col min-h-0">
           <div className="px-4 py-3 border-b border-[#eee7f7] flex items-center gap-2 flex-wrap">
-            <b className="text-[15px]">New leads</b>
-            <span className="text-[#9b8ec4] text-[12.5px]">· masked · no charge yet</span>
-            {gate.batch && gate.required > 1 && (
-              <span className="ml-auto text-[12.5px] font-bold text-[#7C3AED] bg-[#f3ecff] border border-[#e4d4fb] rounded-full px-3 py-1">
-                Pick {gate.required} to start
-              </span>
-            )}
+            <b className="text-[15px]">Your programme</b>
           </div>
+          {/* ⚑ 30 Aug (BUILD-004A-1, Option B) — TWO SURFACES, CHOSEN BY STAGE.
+              ⛓️ MY FIRST CUT REPLACED THE DESK UNCONDITIONALLY and took the FREE PROOF
+              calibration with it — a flow the founder's spec keeps. A prospect at Proof landed
+              on a programme workspace with nothing to react to. Fifteen guards caught it.
+              At PROOF the client gets the calibration set; at every other stage, the programme
+              workspace. The paid desk is gone from both: no price on any button, no wallet, no
+              pick-N gate, no per-lead approve. */}
+          {progFailed ? (
+            <div className="px-3.5 py-3">
+              <div className="text-[13px] text-red-700 bg-red-50 border border-red-200 rounded-xl px-3 py-2">{progFailed}</div>
+            </div>
+          ) : !prog ? (
+            <div className="px-3.5 py-3"><p className="text-[14px] text-[#9b8ec4]">Loading your programme…</p></div>
+          ) : prog.stage !== 'Proof' ? (
+            <div className="px-3.5 py-3 overflow-y-auto"><ProgrammeWorkspace p={prog} /></div>
+          ) : (
           <div className="px-3.5 py-3 overflow-y-auto grid gap-2.5 grid-cols-1 [@media(min-width:1100px)]:grid-cols-2 [@media(min-width:1600px)]:grid-cols-3 items-start content-start">
-            {topUp && <div className="text-[13px] text-amber-800 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">{topUp}</div>}
+            {/* the wallet top-up banner is gone with the paid desk */}
             {error && <div className="text-[13px] text-red-600 bg-red-50 border border-red-200 rounded-xl px-3 py-2">{error}</div>}
             {!leads && !error && <p className="text-[14px] text-[#9b8ec4]">Loading…</p>}
-            {/* #570 — the KPI counts EVERY lead awaiting a decision; this list is capped at
-                50. A client with 120 waiting read "120 leads awaiting you" above a list of
-                50, with nothing explaining the other 70 — which reads as us having lost them. */}
-            {(() => {
-              const note = summary && leads ? deskCoverage({ awaiting: summary.leads_awaiting, shown: leads.length }) : null
-              return note ? <div className="text-[12.5px] text-[#5c5279] bg-[#faf8ff] border border-[#ece5fb] rounded-xl px-3 py-2">{note}</div> : null
-            })()}
+            {/* the #570 subset disclosure went with the capped approval list */}
             {/* ── CALIBRATION v1 (P32) — the reason chip row ─────────────────────────────
                 Appears ONLY after a pass, above the list, and disappears on any tap. It is
                 skippable by ignoring it: nothing here blocks the next action, and the pass it
@@ -1242,13 +1276,9 @@ export default function MillaHomePage() {
                 </div>
               </div>
             )}
-            {leads?.filter(l => revealed[l.id]).map(l => (
-              <div key={l.id} className="bg-white border-[1.5px] border-emerald-200 rounded-2xl p-3.5">
-                <div className="flex items-center gap-2"><span className="text-emerald-600">✓</span><b className="text-[14px]">Approved · {l.role} @ {l.company}</b></div>
-                <div className="text-[13px] text-[#4c4368] mt-1">Contact: <b>{revealed[l.id].email}</b></div>
-                <div className="text-[12px] text-[#7c6f9b] mt-0.5">{revealed[l.id].charged ? '$4 charged' : 'Included in your 100'} — working it now</div>
-              </div>
-            ))}
+            {/* ⛓️ 30 Aug — THE "APPROVED · CONTACT" CARD IS GONE. It was the receipt for a paid
+                per-lead approve: a revealed email and "working it now". Calibration reveals
+                nobody and contacts nobody, so there is no receipt to render. */}
             {leads && pending.length === 0 && Object.keys(revealed).length === 0 && (
               /* ⚑ 24 Aug — FINDING vs GENUINELY EMPTY. These are different facts and used to
                  render the same sentence. A prospect whose proof run is in flight was told
@@ -1307,7 +1337,7 @@ export default function MillaHomePage() {
                   </div>
                 </div>
               ) : (
-                <div className="text-[14px] text-[#9b8ec4] bg-[#faf8ff] border border-[#ece5fb] rounded-2xl px-4 py-10 text-center">No leads waiting right now. We&apos;ll notify you the moment FIGSY qualifies the next. 🎯</div>
+                <div className="text-[14px] text-[#9b8ec4] bg-[#faf8ff] border border-[#ece5fb] rounded-2xl px-4 py-10 text-center">Nothing to react to right now.</div>
               )
             )}
             {pending.map((l, i) => {
@@ -1334,10 +1364,13 @@ export default function MillaHomePage() {
                     )}
                   </div>
                 )}
-                <div onClick={() => gate.batch && gate.required > 1 && togglePick(l.id)}
-                  className={`rounded-2xl p-3.5 transition-shadow ${gate.batch && gate.required > 1 ? 'cursor-pointer' : ''} ${
-                    picked.has(l.id) ? 'border-[1.5px] border-[#7C3AED] bg-[#f7f2ff] shadow-sm'
-                    : l.recommended ? 'border-[1.5px] border-[#d9c4fb] bg-[#fcfaff]' : 'border border-[#ece5fb]'}`}>
+                {/* ⛓️ THE CARD IS NO LONGER SELECTABLE. The pointer cursor and the picked
+                    highlight both belonged to the pick-N gate; a calibration card is reacted
+                    to, not chosen. The "we'd start here" emphasis stays — it is a steer, not
+                    a selection. */}
+                <div
+                  className={`rounded-2xl p-3.5 transition-shadow ${
+                    l.recommended ? 'border-[1.5px] border-[#d9c4fb] bg-[#fcfaff]' : 'border border-[#ece5fb]'}`}>
                   {/* WE'D START HERE — the API ranks everyone we sourced and marks its top 20.
                       It was computing this and the client never saw it, which left them facing
                       200 identical cards with no steer. */}
@@ -1350,29 +1383,39 @@ export default function MillaHomePage() {
                         {l.score != null && <span className="ml-auto text-right"><span className="text-[16px] font-extrabold text-[#7C3AED] tabular-nums">{l.score}</span><span className="block text-[10px] uppercase tracking-wide text-[#b3a9cc] font-extrabold">score</span></span>}
                       </div>
                       {l.why_fits && <div className="text-[13px] text-[#5c5279] mt-2 leading-relaxed bg-[#faf8ff] rounded-lg px-2.5 py-2"><b className="text-[#7c6f9b]">Why this fits:</b> {l.why_fits}</div>}
+                      {/* ⛓️ 30 Aug (BUILD-004A-1, Option B) — THE THREE CONTROLS THE FOUNDER
+                          SPECIFIED, AND ONLY THOSE: Looks right · Not a fit · an optional
+                          "Tell Milla why". What was here instead: the proof signal, a pick-N
+                          selection gate, and a paid per-lead approve carrying a price. The
+                          last two were the paid desk and are gone — no button on this card
+                          reveals a contact, spends a pass or costs anything. */}
                       <div className="flex gap-1.5 mt-2.5">
-                        {/* Under the gate the card is a CHOICE, not an action — you pick your
-                            20 and start them together. Past it, one tap approves as before. */}
-                        {proofMode ? (
-                          /* LOOKS RIGHT — a calibration signal and nothing else. It writes
-                             no approval, reveals nothing, charges nothing and takes no pack
-                             slot; it moves them toward going live, which is the $299. */
-                          <button disabled={busy} onClick={e => { e.stopPropagation(); void acceptProof(l.id) }}
-                            className="flex-1 text-[13px] font-bold text-white rounded-lg py-2 bg-gradient-to-br from-[#7C3AED] to-[#EC4899] disabled:opacity-50">
-                            {busy ? 'Saving…' : '👍 Looks right'}
-                          </button>
-                        ) : gate.batch && gate.required > 1 ? (
-                          <button onClick={e => { e.stopPropagation(); togglePick(l.id) }}
-                            className={`flex-1 text-[13px] font-bold rounded-lg py-2 border-[1.5px] ${picked.has(l.id)
-                              ? 'text-white bg-[#7C3AED] border-[#7C3AED]'
-                              : 'text-[#7C3AED] bg-white border-[#e4d4fb]'}`}>
-                            {picked.has(l.id) ? '✓ Picked' : 'Pick this one'}
-                          </button>
-                        ) : (
-                          <button disabled={busy} onClick={e => { e.stopPropagation(); approve(l.id) }} className="flex-1 text-[13px] font-bold text-white rounded-lg py-2 bg-gradient-to-br from-[#7C3AED] to-[#EC4899] disabled:opacity-50">{busy ? '…' : freeApproval ? '✓ Approve · included' : '✓ Approve qualified lead · $4'}</button>
-                        )}
+                        <button disabled={busy || !!reacted[l.id]} onClick={e => { e.stopPropagation(); void acceptProof(l.id) }}
+                          className="flex-1 text-[13px] font-bold text-white rounded-lg py-2 bg-gradient-to-br from-[#7C3AED] to-[#EC4899] disabled:opacity-50">
+                          {/* ⚠️ THE ACKNOWLEDGEMENT IS ONE WORD AND PROMISES NOTHING. Not that
+                              anything starts, not that anyone is contacted, not what it is
+                              worth — it states only that the reaction was recorded. */}
+                          {busy ? 'Saving…' : reacted[l.id] === 'approve' ? 'Noted' : '👍 Looks right'}
+                        </button>
                         <button disabled={busy} onClick={e => { e.stopPropagation(); pass(l.id) }} className="text-[13px] font-semibold text-[#5c5279] rounded-lg py-2 px-3 border border-[#ece5fb] disabled:opacity-50">Not a fit</button>
                       </div>
+                      {/* THE OPTIONAL THIRD CONTROL. Ignoring it costs nothing and blocks
+                          nothing; it is a text box, not a step. */}
+                      {noteFor === l.id ? (
+                        <div className="flex gap-1.5 mt-1.5" onClick={e => e.stopPropagation()}>
+                          <input autoFocus value={noteText} onChange={e => setNoteText(e.target.value)}
+                            onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); void sendNote(l.id) } }}
+                            placeholder="Tell Milla why"
+                            className="flex-1 min-w-0 text-[12.5px] rounded-lg border border-[#e4dcf7] px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-[#7C3AED]/30" />
+                          <button onClick={e => { e.stopPropagation(); void sendNote(l.id) }}
+                            className="text-[12.5px] font-bold text-white rounded-lg px-3 bg-[#7C3AED]">Send</button>
+                        </div>
+                      ) : (
+                        <button onClick={e => { e.stopPropagation(); setNoteFor(l.id); setNoteText('') }}
+                          className="text-[12px] font-semibold text-[#9b8ec4] mt-1.5 hover:text-[#7C3AED]">
+                          Tell Milla why
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -1383,43 +1426,23 @@ export default function MillaHomePage() {
                 </Fragment>
               )
             })}
-            {/* Said "$4 per approved lead" even while the button above it said "included" —
-                two prices on one screen. */}
-            {/* ⚠️ BOTH PASSES SPENT — AND WE SAY SO RATHER THAN OFFERING A THIRD. The server
-                refuses a third claim outright (`try_claim_proof_pass` returns 0 → 409), and
-                that fence is untouched. This is the desk telling them BEFORE they press
-                anything, instead of letting them discover it as an error. */}
+            {/* ⚑ THE STOP IS NOT OPTIONAL. Two proof passes is the server's hard limit, and a
+                client who has spent both must be told so plainly — with no third action offered
+                anywhere near it. Founder-approved wording, verbatim.
+                ⛓️ 30 Aug — RESTORED. Rebuilding the panel dropped it, which left an exhausted
+                client staring at a set with no statement of where they stand. */}
             {proofExhausted && (
               <div className="mt-2 rounded-2xl border border-[#ece5fb] bg-[#faf8ff] px-4 py-3 text-[13px] text-[#5c5279]">
                 We&rsquo;ve used both proof passes. K.I.N.D will review this with you.
               </div>
             )}
-
-            <div className="text-[11.5px] text-[#b3a9cc] px-1 pt-1">
-              {proofMode
-                ? 'These are real people who match your targeting — free, and nobody has been contacted. Tell us what looks right and we will go live.'
-                : freeApproval
-                  ? `Included in your ${summary?.pack?.included ?? 100} — nothing charged until the pack runs out. Reviewing is free.`
-                  : '$4 per approved lead — final. Reviewing is free.'}
-            </div>
+            {/* ⛓️ NO PRICE FOOTER. It carried the per-lead price and, in proof, a promise that
+                reacting takes you live. Neither is true of calibration, and the price string
+                itself is forbidden on this file by name — so it is not quoted here either. */}
+          {/* ⛓️ THE PICK-N BATCH BAR IS GONE. "Start work on N →" belonged to the paid
+              desk: pick twenty, approve them together, charge for them. Calibration is one
+              reaction at a time and costs nothing. */}
           </div>
-          {/* THE START BAR — sticks to the bottom of the lead desk while the gate is on, so
-              "how many more" is never something the client has to count for themselves. */}
-          {!proofMode && gate.batch && gate.required > 1 && (
-            <div className="shrink-0 border-t border-[#eee7f7] bg-[#faf8ff] px-4 py-3 flex items-center gap-3 flex-wrap">
-              <span className="text-[13.5px] text-[#5c5279]">
-                <b className="text-[#1f1235]">{picked.size} of {gate.required} picked</b>
-                <span className="block text-[12px] text-[#9b8ec4]">
-                  {picked.size >= gate.required
-                    ? freeApproval ? 'All included in your 100 — nothing extra to pay.' : `That's $${picked.size * 4}.`
-                    : 'We start with a full batch so the campaign has enough people to work.'}
-                </span>
-              </span>
-              <button onClick={approveSelected} disabled={picked.size < gate.required || acting === 'batch'}
-                className="ml-auto text-[14px] font-bold text-white rounded-xl px-5 py-2.5 bg-gradient-to-br from-[#7C3AED] to-[#EC4899] disabled:opacity-40">
-                {acting === 'batch' ? 'Starting…' : `Start work on ${picked.size || gate.required} →`}
-              </button>
-            </div>
           )}
         </aside>
       </div>

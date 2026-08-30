@@ -129,17 +129,38 @@ describe('the desk tells the client when it is showing a subset', () => {
   const routeRaw = readFileSync(join(__dirname, '../routes/leads.ts'), 'utf8')
   const route = strip(routeRaw)
 
-  it('the coverage note is WIRED into the desk, not just exported', () => {
-    // A pure function nobody calls is the same as no function. This is the assertion that
-    // makes #570③ "disclosed" rather than "silent".
-    expect(desk).toContain('deskCoverage(')
-    expect(desk).toContain('leads_awaiting')
-  })
-
-  it('it compares the KPI against what is actually RENDERED, not against the cap', () => {
-    // Passing a hardcoded 50 would keep saying "top 50" on a page showing 12 after some were
-    // approved. It must read the real list length.
-    expect(desk).toMatch(/deskCoverage\(\{\s*awaiting:\s*summary\.leads_awaiting,\s*shown:\s*leads\.length/)
+  // ⛓️ 30 Aug — RE-AIMED TWICE IN ONE DAY, AND THE SECOND TIME IS THE HONEST ONE.
+  //
+  // #570③ was "the DESK must disclose when it is showing a subset", because
+  // `/leads/for-approval` is capped at 50 and the home rendered it as if it were everything.
+  //
+  // 4A-1's first cut deleted that fetch, and this guard was inverted to forbid it by name —
+  // reasoning that a deleted screen owes no disclosure. That reasoning was sound about the
+  // PAID desk and wrong about the file: the same fetch is the FREE PROOF calibration set,
+  // which the founder's spec keeps, and forbidding it by name is part of what made deleting
+  // the customer's reaction look like passing the guards. Option B brought it back.
+  //
+  // 🛑 SO WHY IS NO DISCLOSURE OWED NOW? Because the cap cannot bite on the surface that
+  // renders it. The calibration set is shown ONLY at stage Proof, and proof is fenced at two
+  // passes of 20 (40 lifetime records) against a route limit of 50 — so the list is complete
+  // by construction, never a subset. That is asserted below rather than asserted about, and
+  // if any of those three numbers moves, this fails and the disclosure is owed again.
+  //
+  // `deskCoverage` stays exported and correct — it is the right answer the day a capped list
+  // genuinely needs disclosing. What is guarded is that it is not needed here.
+  it('the calibration set is complete by construction, so no subset disclosure is owed', () => {
+    expect(desk, 'the calibration set is no longer fetched at all').toContain('/leads/for-approval')
+    // The panel is stage-gated to Proof — the only stage where the proof fences apply.
+    expect(desk, 'the calibration set is rendered outside the Proof stage').toContain("prog.stage !== 'Proof'")
+    // Route cap …
+    expect(routeRaw, 'the /for-approval cap moved').toContain('.limit(50)')
+    // … versus the most a proof client can ever have. 2 × 20 = 40 < 50.
+    const icps = strip(readFileSync(join(__dirname, '../routes/icps.ts'), 'utf8'))
+    expect(icps, 'the per-pass proof size moved').toContain('const PROOF_PASS_LEADS = 20')
+    expect(icps, 'the lifetime proof record fence moved').toContain('PROOF_CLIENT_RECORD_CAP = 40')
+    // And nothing on the home claims a coverage figure it has no cap to report.
+    expect(desk, 'deskCoverage is being called on a list that cannot be capped')
+      .not.toContain('deskCoverage(')
   })
 
   // TWO VIEWS OF THE SAME FILE, and the split is the point. A "no longer claims X" assertion

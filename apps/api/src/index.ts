@@ -11,6 +11,7 @@ import { clientRouter } from './routes/clients'
 import { subscriptionRouter } from './routes/subscriptions'
 import { leadRouter } from './routes/leads'
 import { icpRouter } from './routes/icps'
+import { myProgrammeRouter } from './routes/my-programme'
 import { creditRouter } from './routes/credits'
 import { errorHandler, captureProcessError } from './middleware/error'
 import { adminRouter } from './routes/admin'
@@ -190,6 +191,9 @@ app.use('/clients',       clientRouter)
 app.use('/subscriptions', subscriptionRouter)
 app.use('/leads',         leadRouter)
 app.use('/icps',          icpRouter)
+// BUILD-004A — the CUSTOMER's own programme truth. Session-scoped, read-only, and separate
+// from the admin-key-gated /programmes operator surface.
+app.use('/my/programme',  myProgrammeRouter)
 app.use('/credits',       creditRouter)
 app.use('/admin',         adminRouter)
 app.use('/figsy',         figsyRouter)

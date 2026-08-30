@@ -56,7 +56,12 @@ describe('#644 — the client can find replies without already knowing where the
 
   it('Replies sits in the rail nav alongside the other workspace destinations', () => {
     const nav = shell.slice(shell.indexOf("link('/milla',"), shell.indexOf("section('Recent replies')"))
-    for (const dest of ['New leads', 'Pipeline', 'Meetings', 'My campaign', 'Replies']) {
+    // ⛓️ 30 Aug (BUILD-004A-1) — TWO LABELS RENAMED BY FOUNDER RULING, NOT BY ME.
+    // 'New leads' → 'Home' (ruling 1: it was the per-lead approval desk, and the programme
+    // model has no per-lead approval) and 'My campaign' → 'Programme' (approved nav rename).
+    // #644's actual invariant is untouched and is what this still tests: a client can REACH
+    // replies from the rail without already knowing where they are.
+    for (const dest of ['Home', 'Pipeline', 'Meetings', 'Programme', 'Replies']) {
       expect(nav, `${dest} must be reachable from the rail`).toContain(dest)
     }
   })

@@ -665,25 +665,56 @@ describe('the surrounding product is untouched', () => {
     expect(icps()).toContain('if (!proofMode && insertedIds.length > 0) {')
   })
 
-  it('Looks right calls the server FIRST, and navigates only on success', () => {
+  // ⛓️ 30 Aug (BUILD-004A-1, OPTION B) — THIS GUARD IS INVERTED WHERE IT NAMED THE CHECKOUT,
+  // AND TIGHTENED EVERYWHERE ELSE. Its whole subject used to be an ORDERING: the pack
+  // checkout must not fire before the server answered. The founder removed the destination —
+  // "Looks right" is a free calibration signal and what follows it is a conversation with
+  // Milla, not a $299 ask — so the ordering rule now has no navigation left to order.
+  //
+  // 🛑 WHAT IT STILL PROTECTS, AND WHY THAT MATTERS MORE THAN THE PUSH DID: the signal is
+  // still sent to the server before anything is claimed on screen, the acknowledgement is
+  // still recorded only on SUCCESS, and the refusal still says the honest sentence. A failure
+  // that silently marked the card "Noted" would tell a client we had their verdict when we
+  // had thrown it away.
+  it('Looks right calls the server FIRST, acknowledges only on success, and navigates nowhere', () => {
     const src = portal()
-    // ⚠️ THE ORDER IS THE GUARD. The push must be INSIDE the try, after the await — a push
-    // before it, or in a `finally`, would navigate on a refusal.
-    expect(src).toContain('await api.post(`/leads/${id}/proof-accept`, {}, await token())\n      router.push(\'/milla/billing?start=1&from=proof\')')
-    // Exactly one navigation to billing from the desk, and it is that one.
-    expect((src.match(/router\.push\('\/milla\/billing\?start=1&from=proof'\)/g) ?? [])).toHaveLength(1)
-    // The button no longer navigates by itself.
+    // ⚠️ THE ORDER IS STILL THE GUARD. The acknowledgement must be INSIDE the try, after the
+    // await — before it, or in a `finally`, and a refusal reads as recorded.
+    expect(src).toContain("await api.post(`/leads/${id}/proof-accept`, {}, await token())")
+    expect(src).toMatch(/await api\.post\(`\/leads\/\$\{id\}\/proof-accept`[\s\S]{0,600}?setReacted\(r => \(\{ \.\.\.r, \[id\]: 'approve' \}\)\)/)
+    // 🛑 AND IT GOES NOWHERE. Not to the pack checkout, not to billing, not anywhere.
+    expect(src, 'the pack checkout is back behind "Looks right"').not.toContain("from=proof")
+    // ⚠️ ANCHORED ON A REAL CALL, NOT THE WORD. The comment above `acceptProof` quotes the
+    // route it used to push to (`router.push('/milla/billing…')`); matching that prose would
+    // bind this guard to a comment — the failure mode this file has hit four times.
+    expect((src.match(/router\.push\('\/milla\/billing\?/g) ?? []), 'the desk navigates to billing again').toHaveLength(0)
+    // The button still calls the handler rather than acting by itself.
     expect(src).toContain("onClick={e => { e.stopPropagation(); void acceptProof(l.id) }}")
     expect(src).toContain('👍 Looks right')
     // The refusal copy, and no promise in it.
     expect(src).toContain('K.I.N.D couldn’t save what worked in that proof yet. K.I.N.D needs to check this before you go live.')
     // ⚠️ THE HANDLER SENDS NO TARGETING. The server would ignore it, but sending it would
     // invite the next reader to believe it matters.
+    // ⛓️ THE END ANCHOR MOVED because `approve()` — the paid per-lead reveal — no longer
+    // exists on this screen. Anchored on the next declaration that does.
     const from = src.indexOf('async function acceptProof(')
-    const to   = src.indexOf('async function approve(', from)
+    const to   = src.indexOf('async function sendReason(', from)
+    expect(from, 'acceptProof is gone from the home').toBeGreaterThan(-1)
+    expect(to, 'the slice anchor is gone — this guard would read the rest of the file')
+      .toBeGreaterThan(from)
     const body = src.slice(from, to)
     expect(body).not.toMatch(/seniority_levels|company_sizes|job_titles|widened/)
     expect(body, 'no sourcing, no proof pass').not.toMatch(/\/proof['`]|icps\//)
+    // ⚠️ AND NO MONEY. The signal is free; a charge introduced inside this handler is the
+    // one change that would turn calibration back into the paid desk.
+    //
+    // ⛓️ CODE ONLY. This slice's own comments legitimately NAME what was removed — the $299
+    // ask, the $4 reveal, "nothing here charges" — so an unstripped scan binds to the
+    // explanation instead of the code. Fifth time in this build; stripped by line, which can
+    // only ever under-strip, never hide a real statement.
+    const code = body.split('\n').filter(l => !l.trim().startsWith('//')).join('\n')
+    expect(code, 'the slice stripped to nothing — this guard would pass vacuously').toContain('api.post')
+    expect(code, 'a charge appeared inside the calibration signal').not.toMatch(/\$\s?\d|charge|wallet|stripe|billing/i)
   })
 
   it('the migration is recorded AND runnable — a file alone runs nothing', () => {

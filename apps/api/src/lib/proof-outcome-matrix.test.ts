@@ -601,12 +601,21 @@ describe('G · a clean URL cannot strand the first client — and cannot cry fai
   })
 
   it('backend truth and real leads still render before the wait card', () => {
+    // ⛓️ 30 Aug (BUILD-004A-1, OPTION B) — THE ANCHOR MOVED, THE RULE DID NOT. The generic
+    // empty state used to read "No leads waiting right now. We'll notify you…" — paid-desk
+    // copy carrying a notification promise nothing in the product sends. Option B's panel
+    // states the same fact and promises nothing. The ORDERING this guards is untouched: the
+    // server's terminal verdict first, then the bounded wait, then — and only then — the
+    // claim that there is genuinely nothing to react to.
     const t = portalSrc.indexOf('terminalRun ? (')
     const wait = portalSrc.indexOf('proofAwaiting ? (')
-    const generic = portalSrc.indexOf('No leads waiting right now')
+    const generic = portalSrc.indexOf('Nothing to react to right now')
     expect(t).toBeGreaterThan(-1)
+    expect(generic, 'the generic empty state is gone — this guard would pass vacuously').toBeGreaterThan(-1)
     expect(wait, 'the wait must be evaluated after the terminal state').toBeGreaterThan(t)
     expect(generic, 'and before the generic empty state').toBeGreaterThan(wait)
+    // ⚠️ AND IT MAKES NO PROMISE. The retired line said we would notify them; nothing does.
+    expect(portalSrc, "the empty state promises a notification again").not.toContain("We'll notify you")
   })
 
   it('the poll keeps checking while waiting — so an in-flight run resolves it, and a late one still can', () => {

@@ -695,17 +695,16 @@ describe('free proof runs before the client is ever asked to pay', () => {
   it('the $299 pack ask is gone from the Milla home — no route to retired pricing', () => {
     const deskSrc = read(join(PORTAL, 'app/(milla)/milla/page.tsx'))
     expect(deskSrc, 'the pack ask is back on the home').not.toContain("billing?start=1")
-    expect(deskSrc, 'the per-lead approval desk is back on the home').not.toContain('👍 Looks right')
-    // ⛓️ THE TAIL OF THIS ASSERTION IS INVERTED TOO. It required the per-lead calibration
-    // ("Not a fit" → POST /leads/{id}/pass) to survive — but that lived ON the approval desk,
-    // so it went with the desk and its writer was left orphaned. The endpoint is untouched;
-    // only this home's door to it is shut.
-    //
-    // ⚠️ REPORTED, NOT ASSERTED AWAY: the founder's Free Proof spec keeps the customer
-    // reaction ("fit / not fit / why") — conversationally, with Milla. That is 4A scope and is
-    // NOT rebuilt here. 4A-1 removed the desk; nothing yet replaces the reaction.
-    expect(deskSrc, 'the per-lead pass writer is back on the home')
-      .not.toContain('await api.post(`/leads/${id}/pass`')
+    // ⛓️ 30 Aug (BUILD-004A-1, OPTION B) — THE TAIL OF THIS ASSERTION IS INVERTED BACK, AND
+    // THE DEBT IT RECORDED IS PAID. Its previous form forbade "👍 Looks right" and the pass
+    // writer outright, because 4A-1's first cut replaced the approval desk and took the FREE
+    // PROOF reaction with it. The note directly below said so in as many words: *"the founder's
+    // Free Proof spec keeps the customer reaction (fit / not fit / why) … nothing yet replaces
+    // the reaction."* Option B replaced it. So the reaction is REQUIRED here again — while
+    // everything that made the old surface a PAID desk stays forbidden by name below.
+    expect(deskSrc, 'the calibration reaction is gone from the home again').toContain('👍 Looks right')
+    expect(deskSrc, 'the per-lead pass writer is gone from the home')
+      .toContain('await api.post(`/leads/${id}/pass`')
   })
 
   it('the CTA asks to be shown people, and offers no price', () => {
@@ -961,9 +960,18 @@ describe('the desk shows an honest finding state and refreshes itself', () => {
   // ⚠️ REPORTED, NOT ASSERTED AWAY: the free-proof REACTION ("fit / not fit / why") is founder
   // scope and is NOT rebuilt in 4A-1 — it is conversational and belongs with the Milla thread.
   // This asserts only that the retired surface has not crept back.
-  it('the per-lead proof desk is gone — pack ask, Looks right / Not a fit, per-lead pass', () => {
-    for (const gone of ["billing?start=1", '👍 Looks right', '/leads/${id}/pass']) {
-      expect(deskSrc, `the retired per-lead desk is back on the home: ${gone}`).not.toContain(gone)
+  // ⛓️ 30 Aug (BUILD-004A-1, OPTION B) — RE-AIMED, NOT DELETED. What this named as "the
+  // retired per-lead desk" was three different things in one list: the PACK ASK (retired —
+  // still forbidden), and the two CALIBRATION controls (kept by the founder's Free Proof spec
+  // — now required). Lumping them together is what let 4A-1's first cut delete the reaction
+  // and still read as correct. They are separated here so each is guarded for what it is.
+  it('the retired PACK ASK is gone from the home', () => {
+    expect(deskSrc, 'the pack ask is back on the home').not.toContain('billing?start=1')
+  })
+
+  it('and the free calibration reaction is NOT — Looks right, Not a fit, and the pass writer', () => {
+    for (const kept of ['👍 Looks right', 'Not a fit', '/leads/${id}/pass']) {
+      expect(deskSrc, `the calibration reaction is gone from the home: ${kept}`).toContain(kept)
     }
   })
 })

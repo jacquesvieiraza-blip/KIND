@@ -375,12 +375,93 @@ describe('🛑 NO LEGACY MONEY TRUTH SURVIVES ON THE MILLA HOME', () => {
     })
   }
 
-  it('🛑 THE PER-LEAD APPROVAL DESK CANNOT RETURN SILENTLY', () => {
-    // The desk was `/leads/for-approval` fetched into cards with an Approve button that
-    // charged $4 a lead. The programme model has ONE approval, not one per lead. Both the
-    // fetch and the accept path are forbidden by name so a re-add cannot slip in unnoticed.
-    expect(HOME_CODE, 'the per-lead approval desk is back on the home').not.toContain('/leads/for-approval')
-    expect(HOME_CODE, 'the proof-accept path is back on the home').not.toContain('proof-accept')
+  it('🛑 THE PAID PER-LEAD APPROVAL DESK CANNOT RETURN SILENTLY', () => {
+    // ⛓️ 30 Aug (OPTION B) — THIS GUARD WAS TOO WIDE, AND ITS WIDTH WAS A DEFECT, NOT RIGOUR.
+    // Its first form forbade `/leads/for-approval` and `proof-accept` outright. But those two
+    // are the FREE PROOF CALIBRATION's fetch and signal — they carry no money at all — so
+    // forbidding them by name is what made deleting the customer's reaction look like passing
+    // the guard. What actually made that screen a DESK was the paid half: revealing a contact
+    // and charging $4 for it, one lead at a time, plus the batch approve and its wallet.
+    //
+    // So the paid half is named, and only the paid half.
+    expect(HOME_CODE, 'the per-lead paid approve is back on the home').not.toContain('/approve`')
+    expect(HOME_CODE, 'the paid batch approve is back on the home').not.toContain('/leads/approve-batch')
+    expect(HOME_CODE, 'the batch approve handler is back on the home').not.toContain('approveSelected')
+    expect(HOME_CODE, 'the minimum-20 paid gate is back on the home').not.toContain('batch_minimum')
+    // The reveal is the charge made visible — a contact address on a calibration card means
+    // somebody paid for it. No writer for `revealed` may exist on this screen.
+    expect(HOME_CODE, 'a reveal writer is back on the home').not.toContain('setRevealed')
+    // And no paid approval LANGUAGE, whatever the code does. The founder forbade these words
+    // on this surface by name; the calibration verbs are "Looks right" and "Not a fit".
+    expect(HOME_CODE, 'paid approval language is back on the home').not.toMatch(/approve qualified lead/i)
+    expect(HOME_CODE, 'the paid approve receipt is back on the home').not.toContain('Approved · ')
+  })
+
+  // ── ⚑ 30 Aug (BUILD-004A-1, OPTION B) — THE CONVERSATIONAL CALIBRATION IS GUARDED ────────
+  //
+  // 🛑 WHAT THESE EXIST FOR. Removing the approval desk removed the Free Proof reaction with
+  // it — fifteen guards went red and the founder ruled the rebuild (Option B). A guard that
+  // only ever says "the desk is gone" cannot tell an intentional replacement from a deletion.
+  // These say what must be THERE, so the same regression cannot recur silently.
+  describe('AT PROOF THE CLIENT CAN STILL REACT — AND IT COSTS NOTHING', () => {
+    it('a Proof-stage client is given a calibration surface, not the programme workspace', () => {
+      // The stage is what chooses. Without this branch a prospect at Proof lands on a
+      // workspace describing a programme they have not bought, with nothing to react to.
+      expect(HOME_CODE, 'the home no longer branches on the Proof stage').toContain("prog.stage !== 'Proof'")
+      expect(HOME_CODE, 'the calibration set is not fetched').toContain('/leads/for-approval')
+    })
+
+    it('the three founder-specified controls are on every card', () => {
+      // ⚠️ PINNED TO THE CONTROL, NOT THE STRING. A first cut asserted `toContain('Tell Milla
+      // why')` and PASSED with the button deleted — the same words survive as the input's
+      // placeholder attribute, so the guard matched a hint on a box nothing could open. Each
+      // of the three is anchored on the element that actually does the thing.
+      expect(HOME_CODE, '"Looks right" is gone from the calibration card')
+        .toMatch(/>\s*\{busy \? 'Saving…' : reacted\[l\.id\] === 'approve' \? 'Noted' : '👍 Looks right'\}\s*</)
+      expect(HOME_CODE, '"Not a fit" is gone from the calibration card')
+        .toMatch(/pass\(l\.id\)[\s\S]{0,200}?>Not a fit<\/button>/)
+      expect(HOME_CODE, '"Tell Milla why" is gone from the calibration card')
+        .toMatch(/>\s*Tell Milla why\s*<\/button>/)
+      // …and the control it opens actually files something.
+      expect(HOME_CODE, 'the note box opens nothing').toContain("setNoteFor(l.id); setNoteText('')")
+    })
+
+    it('"Looks right" records the signal and takes the client nowhere', () => {
+      // The signal is `proof-accept`, which reveals nothing and charges nothing. What it must
+      // NOT do is what it used to: push straight to the $299 pack checkout.
+      expect(HOME_CODE).toContain('/proof-accept`')
+      expect(HOME_CODE, 'the pack checkout is back behind "Looks right"').not.toContain('from=proof')
+      expect(HOME_CODE, 'the pack checkout is back behind "Looks right"').not.toContain('billing?start=1')
+    })
+
+    it('"Tell Milla why" is optional, free text, and attached to the right verdict', () => {
+      expect(HOME_CODE).toContain('async function sendNote')
+      expect(HOME_CODE, 'the note is not sent as free text').toContain('free_text: text')
+      // Filing a note about a prospect they LIKED under `pass` puts their words on the
+      // opposite verdict — `lead_feedback` is keyed on (client_id, lead_id, action).
+      expect(HOME_CODE, 'the note is filed against a fixed verdict')
+        .toContain("action: reacted[leadId] === 'approve' ? 'approve' : 'pass'")
+      // Optional in the strict sense: nothing waits on it and no failure reaches the client.
+      expect(HOME_CODE, 'a failed note now surfaces an error to the client')
+        .not.toMatch(/sendNote[\s\S]{0,600}catch\s*\{[^}]*setError/)
+    })
+
+    it('the two-pass stop is stated, and offers no third action', () => {
+      // The server grants exactly two proof passes. A client who has spent both is told so
+      // here — rebuilding the panel dropped this once already.
+      expect(HOME_CODE).toContain('proofExhausted &&')
+      expect(strip(HOME).includes('We’ve used both proof passes. K.I.N.D will review this with you.')
+          || HOME.includes('We&rsquo;ve used both proof passes. K.I.N.D will review this with you.'))
+        .toBe(true)
+    })
+
+    it('the terminal and recovery states still win over the calibration set', () => {
+      // A finished or crashed run is the server's verdict and outranks anything this screen
+      // would otherwise render. Deleting these is how a client gets a spinner forever.
+      expect(HOME_CODE).toContain('terminalRun ?')
+      expect(HOME_CODE).toContain('proofAwaiting ?')
+      expect(HOME_CODE).toContain('We hit a snag confirming your matches')
+    })
   })
 
   it('the workspace carries no legacy money truth either', () => {

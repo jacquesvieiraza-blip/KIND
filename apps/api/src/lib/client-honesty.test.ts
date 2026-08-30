@@ -129,21 +129,37 @@ describe('the desk tells the client when it is showing a subset', () => {
   const routeRaw = readFileSync(join(__dirname, '../routes/leads.ts'), 'utf8')
   const route = strip(routeRaw)
 
-  // ⛓️ 30 Aug (BUILD-004A-1) — THESE TWO ASSERTIONS ARE INVERTED, NOT DELETED.
+  // ⛓️ 30 Aug — RE-AIMED TWICE IN ONE DAY, AND THE SECOND TIME IS THE HONEST ONE.
   //
-  // #570③ was "the DESK must disclose when it is showing a subset". The founder's programme
-  // model removed the per-lead approval desk from the Milla home entirely, so the surface
-  // those assertions guarded no longer exists — and a guard pinned to a deleted screen fails
-  // for the right reason and the wrong cause, with "restore the desk" as the obvious way to
-  // make it pass. That is precisely the wrong lesson.
+  // #570③ was "the DESK must disclose when it is showing a subset", because
+  // `/leads/for-approval` is capped at 50 and the home rendered it as if it were everything.
   //
-  // The PURE function keeps every assertion above: `deskCoverage` is still exported, still
-  // correct, and still the right answer the day a capped list needs disclosing again. What
-  // changes is where it must NOT appear.
-  it('the per-lead approval desk is GONE from the Milla home, so there is no subset to disclose', () => {
-    expect(desk, 'the approval desk is back on the Milla home — #570 disclosure would be owed again')
-      .not.toContain('/leads/for-approval')
-    expect(desk, 'deskCoverage is being called on a home that no longer has a lead desk')
+  // 4A-1's first cut deleted that fetch, and this guard was inverted to forbid it by name —
+  // reasoning that a deleted screen owes no disclosure. That reasoning was sound about the
+  // PAID desk and wrong about the file: the same fetch is the FREE PROOF calibration set,
+  // which the founder's spec keeps, and forbidding it by name is part of what made deleting
+  // the customer's reaction look like passing the guards. Option B brought it back.
+  //
+  // 🛑 SO WHY IS NO DISCLOSURE OWED NOW? Because the cap cannot bite on the surface that
+  // renders it. The calibration set is shown ONLY at stage Proof, and proof is fenced at two
+  // passes of 20 (40 lifetime records) against a route limit of 50 — so the list is complete
+  // by construction, never a subset. That is asserted below rather than asserted about, and
+  // if any of those three numbers moves, this fails and the disclosure is owed again.
+  //
+  // `deskCoverage` stays exported and correct — it is the right answer the day a capped list
+  // genuinely needs disclosing. What is guarded is that it is not needed here.
+  it('the calibration set is complete by construction, so no subset disclosure is owed', () => {
+    expect(desk, 'the calibration set is no longer fetched at all').toContain('/leads/for-approval')
+    // The panel is stage-gated to Proof — the only stage where the proof fences apply.
+    expect(desk, 'the calibration set is rendered outside the Proof stage').toContain("prog.stage !== 'Proof'")
+    // Route cap …
+    expect(routeRaw, 'the /for-approval cap moved').toContain('.limit(50)')
+    // … versus the most a proof client can ever have. 2 × 20 = 40 < 50.
+    const icps = strip(readFileSync(join(__dirname, '../routes/icps.ts'), 'utf8'))
+    expect(icps, 'the per-pass proof size moved').toContain('const PROOF_PASS_LEADS = 20')
+    expect(icps, 'the lifetime proof record fence moved').toContain('PROOF_CLIENT_RECORD_CAP = 40')
+    // And nothing on the home claims a coverage figure it has no cap to report.
+    expect(desk, 'deskCoverage is being called on a list that cannot be capped')
       .not.toContain('deskCoverage(')
   })
 

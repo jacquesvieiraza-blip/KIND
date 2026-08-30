@@ -9,6 +9,7 @@ import {
   Sparkles, CalendarCheck, Target, FileBarChart, LogOut, TrendingUp, LineChart, Gem, Crosshair, Workflow, GraduationCap,
   LayoutGrid, Users, Star, User, CreditCard, Gauge, FileText, Gift, ChevronDown, MessageSquare,
 } from 'lucide-react'
+import { MILLA_STAGES, type MillaStage } from '@kind/shared'
 
 // #490/#510 — the Milla client shell (docs/mv-previews/milla2.html): slim top bar (brand +
 // account dropdown), a full client rail (Home · Meetings · Programme · Reports · RECENT
@@ -25,7 +26,11 @@ import {
 // should learn what they owe.
 
 type Summary = {
-  leads_awaiting: number; meetings_booked: number
+  // ⛓️ `leads_awaiting` IS NOT READ HERE ANY MORE. It badged the rail's "New leads" (removed
+  // by 4A-1 ruling 1) and then the FLOW bar's "You approve" (removed by Decision 1). The
+  // endpoint still returns it; this shell no longer has a place to put a per-lead approval
+  // count, and leaving it in the type is an invitation to find one.
+  meetings_booked: number
   recent_replies: { name: string; classification: string }[]
 }
 
@@ -42,12 +47,28 @@ const REPLY_TONE: Record<string, string> = {
 export function MillaShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const [s, setS] = useState<Summary | null>(null)
+  // ⚑ 30 Aug (BUILD-004A-1 live-walk, founder Decision 1) — the FLOW bar's ONE fact. The
+  // stage comes from the same endpoint the home and the Programme page read, so the ribbon
+  // cannot say one thing while the Stage card says another — which was finding 5's shape.
+  const [stage, setStage] = useState<MillaStage | null>(null)
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     ;(async () => {
-      try { const r = await api.get<{ data: Summary }>('/leads/milla-summary', await token()); setS(r.data) } catch { /* chips degrade */ }
+      const tok = await token()
+      // ⚠️ SETTLED SEPARATELY. The rail's live counts and the programme stage are different
+      // facts; one failing must not blank the other.
+      const [sr, pr] = await Promise.allSettled([
+        api.get<{ data: Summary }>('/leads/milla-summary', tok),
+        api.get<{ data: { stage: MillaStage } }>('/my/programme', tok),
+      ])
+      if (sr.status === 'fulfilled') setS(sr.value.data)
+      // ⚠️ A FAILED READ LEAVES THE STAGE UNKNOWN, NOT "Proof". The ribbon then marks NO
+      // step current rather than asserting a stage nobody confirmed — the same rule the
+      // Programme page follows, and the reason a 503 there renders the locked sentence
+      // instead of an empty programme.
+      if (pr.status === 'fulfilled') setStage(pr.value.data.stage)
     })()
   }, [])
 
@@ -142,22 +163,59 @@ export function MillaShell({ children }: { children: React.ReactNode }) {
         </div>
       </header>
 
-      {/* #501 flow ribbon — the client's journey, with live badges */}
+      {/* #501 flow ribbon — the client's journey.
+          ── ⚑ 30 Aug (BUILD-004A-1 live-walk, FOUNDER DECISION 1) ────────────────────────
+          🛑 THE RIBBON WAS A HARDCODED ARRAY OF THE RETIRED JOURNEY, and it sat two inches
+          from the Stage card that already showed the approved lifecycle. It read:
+
+            Sign up › Build plan › We reach out › Replies › You approve › Follow-up ›
+            Meeting booked › Results
+
+          Two things were wrong with it. `You approve` is the PER-LEAD approval the programme
+          model removed — badged with `leads_awaiting`, the very count 4A-1 had already
+          deleted from the rail. And the whole list was a SECOND, INDEPENDENT stage vocabulary
+          living beside the approved one, with nothing keeping the two in step.
+
+          THE BAR IS NOW DERIVED, NOT WRITTEN. `MILLA_STAGES` is the single approved
+          seven-stage lifecycle (@kind/shared/programme-stage) — the same constant the
+          Programme workspace builds its strip from — so there is exactly one place a stage
+          name can be added, renamed or reordered, and both surfaces move together.
+
+          ⚠️ NOT ONE LABEL IS TYPED HERE. Nothing is mapped, aliased or supplemented: what
+          renders is what the constant holds, in its order. Adding a step that is not a stage
+          is what produced the retired list in the first place.
+
+          ⚠️ AND THE BADGES ARE GONE WITH THE STEPS THEY BELONGED TO. `leads_awaiting` badged
+          `You approve`, which no longer exists; `meetings_booked` badged `Meeting booked`,
+          which is not a stage in the approved lifecycle. Hanging either count on a stage the
+          founder did not map it to would be inventing the mapping — so they are dropped
+          rather than relocated. Both remain live in the rail, which is where they were
+          already read.
+
+          The design, placement, colours, numbering and chevrons are untouched: the current
+          step is marked using the ribbon's own existing accent, which is the only thing the
+          old bar could not do. */}
       <div className="shrink-0 flex items-center gap-1 overflow-x-auto px-5 py-2 bg-[#2a1747] text-white">
         <span className="text-[11px] font-extrabold tracking-[0.1em] text-[#b9a6e6] mr-2.5">FLOW</span>
-        {[
-          ['Sign up'], ['Build plan'], ['We reach out'], ['Replies'],
-          ['You approve', s?.leads_awaiting], ['Follow-up'], ['Meeting booked', s?.meetings_booked], ['Results'],
-        ].map(([label, badge], i, arr) => (
-          <span key={label as string} className="flex items-center shrink-0">
-            <span className="flex items-center gap-1.5 text-[13px] font-semibold text-[#d9cef2] px-1">
-              <span className="w-[18px] h-[18px] rounded-full bg-[#3d2a63] text-white text-[11px] font-extrabold flex items-center justify-center">{i + 1}</span>
-              {label as string}
-              {typeof badge === 'number' && badge > 0 && <span className="text-[10px] font-extrabold bg-[#EC4899] text-white rounded-full px-1.5">{badge}</span>}
+        {MILLA_STAGES.map((label, i, arr) => {
+          // ⚠️ -1 WHEN THE STAGE IS UNKNOWN, and that is a real state, not a default. A
+          // failed or still-loading `/my/programme` marks NOTHING current — the ribbon shows
+          // the journey without claiming where the client is in it.
+          const at = stage ? arr.indexOf(stage) : -1
+          const isCurrent = at >= 0 && i === at
+          const isDone    = at >= 0 && i < at
+          return (
+            <span key={label} className="flex items-center shrink-0">
+              <span className={`flex items-center gap-1.5 text-[13px] px-1 ${
+                isCurrent ? 'font-extrabold text-white' : isDone ? 'font-semibold text-[#d9cef2]' : 'font-semibold text-[#9c8ac4]'}`}>
+                <span className={`w-[18px] h-[18px] rounded-full text-white text-[11px] font-extrabold flex items-center justify-center ${
+                  isCurrent ? 'bg-[#EC4899]' : 'bg-[#3d2a63]'}`}>{i + 1}</span>
+                {label}
+              </span>
+              {i < arr.length - 1 && <span className="text-[#5b4785] px-0.5">›</span>}
             </span>
-            {i < arr.length - 1 && <span className="text-[#5b4785] px-0.5">›</span>}
-          </span>
-        ))}
+          )
+        })}
       </div>
 
       <div className="flex-1 flex overflow-hidden">

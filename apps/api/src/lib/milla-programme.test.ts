@@ -495,6 +495,77 @@ describe('THE MILLA SHELL CARRIES NO RETIRED COMMERCIAL TRUTH', () => {
     expect(SHELL_CODE, 'the word "wallet" is back in the Milla shell').not.toMatch(/wallet/i)
   })
 
+  // ── ⚑ FOUNDER DECISION 1 (30 Aug) — THE FLOW BAR IS DERIVED, NOT WRITTEN ─────────────
+  //
+  // 🛑 THE RIBBON WAS A SECOND STAGE VOCABULARY. A hardcoded array — Sign up › Build plan ›
+  // We reach out › Replies › You approve › Follow-up › Meeting booked › Results — rendered
+  // two inches from the Stage card that already showed the approved seven. Nothing kept the
+  // two in step, and `You approve` was the per-lead approval the programme model removed.
+  //
+  // These guards exist because "derive it from the constant" is a promise that decays the
+  // moment somebody adds one convenient extra step to the array.
+  describe('THE FLOW BAR IS THE APPROVED LIFECYCLE, AND ONLY THAT', () => {
+    it('⑦ it is sourced from MILLA_STAGES, and the shared constant is the seven stages', () => {
+      expect(SHELL_CODE, 'the FLOW bar no longer maps the shared stage constant')
+        .toContain('{MILLA_STAGES.map((label, i, arr) => {')
+      expect(SHELL_CODE, 'MILLA_STAGES is not imported from the shared package')
+        .toMatch(/import \{[^}]*MILLA_STAGES[^}]*\} from '@kind\/shared'/)
+      // ⚠️ AND THE CONSTANT IS THE REAL ONE. A guard that only checks the shell would pass if
+      // someone declared a local `MILLA_STAGES` beside it — which is the exact defect (a
+      // second vocabulary) this decision removed.
+      expect(SHELL_CODE, 'the shell declares its own MILLA_STAGES').not.toMatch(/const MILLA_STAGES/)
+      expect(MILLA_STAGES).toEqual(
+        ['Proof', 'Recommendation', 'Sourcing', 'Approval', 'Live', 'Review', 'Completion'])
+    })
+
+    it('⑧ the retired journey cannot silently return — no label is typed into the ribbon', () => {
+      // Every step of the old array, forbidden by name. `Replies` is deliberately NOT in this
+      // list: it is a legitimate rail entry on this same file, and forbidding the word would
+      // guard the wrong thing.
+      for (const retired of ['Sign up', 'Build plan', 'We reach out', 'You approve', 'Follow-up', 'Results']) {
+        expect(SHELL_CODE, `the retired FLOW step "${retired}" is back in the shell`).not.toContain(retired)
+      }
+      // And no stage name is hand-typed either — the whole point is that they are derived.
+      for (const stage of MILLA_STAGES) {
+        expect(SHELL_CODE, `the stage "${stage}" is hand-typed into the shell instead of derived`)
+          .not.toContain(`'${stage}'`)
+      }
+      // The per-lead approval count has no home here any more, badge or otherwise.
+      expect(SHELL_CODE, 'the retired per-lead approval count is back in the shell')
+        .not.toContain('leads_awaiting')
+    })
+
+    it('⑨ the ACTUAL programme stage drives the current step, from the same endpoint as the rest', () => {
+      // One source of stage truth. The home, /milla/programme and this ribbon all read
+      // /my/programme, so the ribbon cannot say one thing while the Stage card says another —
+      // which was the shape of the "Paused vs Proof — current" finding.
+      expect(SHELL_CODE, 'the shell no longer reads the programme stage').toContain("'/my/programme'")
+      expect(SHELL_CODE, 'the current step is not derived from the live stage')
+        .toContain('const at = stage ? arr.indexOf(stage) : -1')
+      expect(SHELL_CODE).toContain('const isCurrent = at >= 0 && i === at')
+      // 🛑 AN UNKNOWN STAGE MARKS NOTHING CURRENT. Defaulting to index 0 would tell every
+      // client whose read failed that they are at Proof — a claim about their programme made
+      // from a network error.
+      expect(SHELL_CODE, 'a failed stage read now defaults to a stage').not.toMatch(/indexOf\(stage\)\s*(?:\|\||\?\?)\s*0/)
+      expect(SHELL_CODE, 'the stage is set from something other than the programme read')
+        .toMatch(/if \(pr\.status === 'fulfilled'\) setStage\(pr\.value\.data\.stage\)/)
+    })
+
+    it('⑩ the ribbon keeps its design and placement — this was not a redesign', () => {
+      // Same container, same numbering, same chevrons, same FLOW label, same position:
+      // directly after the top bar's </header> and before the rail.
+      expect(SHELL_CODE).toContain('bg-[#2a1747] text-white')
+      expect(SHELL_CODE).toContain('text-[#b9a6e6] mr-2.5">FLOW<')
+      expect(SHELL_CODE).toContain('{i + 1}')
+      expect(SHELL_CODE).toContain('text-[#5b4785] px-0.5">›<')
+      expect(SHELL_CODE.indexOf('</header>')).toBeLessThan(SHELL_CODE.indexOf('MILLA_STAGES.map'))
+      expect(SHELL_CODE.indexOf('MILLA_STAGES.map')).toBeLessThan(SHELL_CODE.indexOf('<aside'))
+      // The current marker reuses the ribbon's OWN existing accent — no new colour entered
+      // the design to satisfy "show the current stage".
+      expect(SHELL_CODE).toContain("isCurrent ? 'bg-[#EC4899]' : 'bg-[#3d2a63]'")
+    })
+  })
+
   it('② and nothing was invented to fill the corner it left', () => {
     // The fix is a REMOVAL. A "programme value" or "next payment" chip put there to balance
     // the layout would be a new visible decision nobody approved.

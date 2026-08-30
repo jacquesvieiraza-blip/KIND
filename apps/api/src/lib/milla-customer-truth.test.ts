@@ -17,6 +17,7 @@ import { readFileSync } from 'fs'
 import { join } from 'path'
 import { MILLA_STAGES, STAGE_QUICK_ACTION } from '@kind/shared'
 import { briefIsRepeat, composeBrief, londonDay, londonWeekStart } from './morning-brief'
+import { buildMillaChatSystem, PROGRAMME_LIFECYCLE, LIFECYCLE_RULES } from './milla-chat-system'
 
 const REPO   = join(__dirname, '../../../..')
 const PORTAL = join(REPO, 'apps/portal/src')
@@ -89,6 +90,107 @@ describe('§1 — MILLA CANNOT TEACH THE RETIRED MODEL IN HER OWN VOICE', () => 
       expect(src, `${f} mutates stored conversation rows`)
         .not.toMatch(/from\('milla_messages'\)[\s\S]{0,200}?\.(update|delete)\(/)
     }
+  })
+})
+
+// ════════════════════════════════════════════════════════════════════════════════════════
+// §1b — THE ORDERED LIFECYCLE (31 Aug live walk).
+//
+// 🛑 THE DEFECT WAS A GAP, NOT A FALSEHOOD. Milla was given the stage ORDER in one paragraph
+// and the payment RULE in another, with nothing mapping the payments onto the order. Both
+// sentences were true; the join between them was missing, so she interpolated and told the
+// founder we "move into sourcing and outreach" and that outreach follows approval which
+// follows Proof.
+//
+// ⚠️ THESE GUARDS ASSERT ORDER BY INDEX, NOT PRESENCE. Every step could appear in the prompt
+// in the wrong sequence and a `toContain` sweep would stay green — which is precisely how a
+// list of true sentences produced a false answer.
+describe('§1b — THE PROGRAMME LIFECYCLE IS ORDERED, AND ITS GATES ARE DISTINCT', () => {
+  const sys = buildMillaChatSystem(null, null)
+  /** Where each step's text starts inside the assembled prompt. -1 if absent. */
+  const at = (needle: string) => sys.indexOf(needle)
+
+  it('the sweep is not vacuous — the lifecycle really is in the assembled prompt', () => {
+    expect(sys).toContain('THE PROGRAMME LIFECYCLE, IN ORDER')
+    for (const step of PROGRAMME_LIFECYCLE) {
+      expect(sys, `a lifecycle step is missing from the prompt: ${step.slice(0, 24)}…`).toContain(step)
+    }
+    for (const rule of LIFECYCLE_RULES) {
+      expect(sys, `a sequencing rule is missing: ${rule.slice(0, 24)}…`).toContain(rule)
+    }
+  })
+
+  it('🛑 the founder-locked order holds, step by step', () => {
+    // Proof → Recommendation → Payment 1 → Sourcing/preparation → client review →
+    // ONE approval → Payment 2 → Live/outreach.
+    const order = [
+      '1. PROOF', '2. RECOMMENDATION', '3. PAYMENT 1', '4. SOURCING / PREPARATION',
+      '5. THE CLIENT REVIEWS', '6. APPROVAL', '7. PAYMENT 2', '8. LIVE',
+    ]
+    for (const label of order) expect(at(label), `missing lifecycle step: ${label}`).toBeGreaterThan(-1)
+    for (let i = 1; i < order.length; i++) {
+      expect(at(order[i]), `${order[i]} does not follow ${order[i - 1]}`)
+        .toBeGreaterThan(at(order[i - 1]))
+    }
+  })
+
+  it('🛑 SOURCING AND OUTREACH ARE TWO GATES, NOT ONE TRANSITION', () => {
+    // The exact false sentence: "we'll move into sourcing and outreach".
+    expect(sys).toContain('SOURCING AND OUTREACH ARE NOT THE SAME TRANSITION and never begin together')
+    expect(sys).toContain('Never say we "move into sourcing and outreach"')
+    // Payment 1 authorises sourcing ONLY; Payment 2 is what authorises outreach.
+    expect(sys).toMatch(/PAYMENT 1 — the first 50%\. It authorises SOURCING AND PREPARATION ONLY/)
+    expect(sys).toMatch(/PAYMENT 2 — the remaining 50%[\s\S]{0,80}?THIS is what authorises outreach/)
+    // And four steps genuinely sit between them in the text.
+    expect(at('7. PAYMENT 2') - at('3. PAYMENT 1')).toBeGreaterThan(0)
+    for (const between of ['4. SOURCING / PREPARATION', '5. THE CLIENT REVIEWS', '6. APPROVAL']) {
+      expect(at(between)).toBeGreaterThan(at('3. PAYMENT 1'))
+      expect(at(between)).toBeLessThan(at('7. PAYMENT 2'))
+    }
+  })
+
+  it('🛑 APPROVAL DOES NOT FOLLOW PROOF', () => {
+    expect(sys).toContain('APPROVAL DOES NOT FOLLOW PROOF')
+    // Three gates sit between them, and the prompt says which.
+    for (const between of ['2. RECOMMENDATION', '3. PAYMENT 1', '4. SOURCING / PREPARATION', '5. THE CLIENT REVIEWS']) {
+      expect(at(between), `${between} is not placed between Proof and Approval`)
+        .toBeGreaterThan(at('1. PROOF'))
+      expect(at(between)).toBeLessThan(at('6. APPROVAL'))
+    }
+  })
+
+  it('🛑 PAYMENT 2 IS NEVER DESCRIBED WITHOUT WHAT PRECEDES IT', () => {
+    expect(sys).toContain('NEVER DESCRIBE PAYMENT 2 OR OUTREACH WITHOUT THE STEPS THAT PRECEDE THEM')
+    expect(sys).toMatch(/name Payment 1, sourcing\/preparation and the approval that come first/)
+  })
+
+  it('🛑 NOTHING IS CONTACTED BEFORE PAYMENT 2 — including after Payment 1', () => {
+    expect(sys).toContain('NOTHING IS CONTACTED BEFORE PAYMENT 2')
+    expect(sys).toMatch(/Not during Proof, not after Payment 1, not during sourcing/)
+    // Payment 1's own step says it too, so the rule is not the only place it is stated.
+    expect(sys).toMatch(/No outreach is authorised by it and nobody is contacted after it/)
+  })
+
+  it('the client\'s REVIEW of the prepared work is not the Review STAGE', () => {
+    // 🛑 THE TRAP IN THIS SEQUENCE. Step 5 is the client reading what we prepared, before
+    // approving. The `Review` stage is a hold on an already-LIVE programme. Merging them is
+    // the same class of error as merging sourcing and outreach.
+    expect(sys).toContain('This is NOT the "Review" stage, which is a hold raised later on an already-live programme')
+  })
+
+  it('the per-client payment lines name the SAME steps as the lifecycle', () => {
+    // Two vocabularies for one gate is how the 4A-1 walk produced "Paused" beside "Proof".
+    const PROMPT = code(join(API, 'lib/milla-chat-system.ts'))
+    expect(PROMPT).toContain('Payment 1 (step 3 — authorises sourcing and preparation only)')
+    expect(PROMPT).toContain('Payment 2 (step 7 — after the programme approval at step 6; authorises outreach)')
+  })
+
+  it('and the ROI answer that PASSED is not regressed', () => {
+    // The House walk got this right: Proof recognised, no target invented, no CPL, no wallet.
+    expect(sys).toMatch(/Judge the work by the OUTCOME/)
+    expect(sys).toMatch(/never by cost per lead or leads approved/)
+    const proofish = buildMillaChatSystem(null, null)
+    expect(proofish).toContain('do NOT say they have no programme')
   })
 })
 

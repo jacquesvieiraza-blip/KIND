@@ -85,12 +85,13 @@ describe('the prompt describes the CURRENT product, never the retired one', () =
   it('the programme model is what she is taught instead', () => {
     expect(sys).toContain("programme partner")
     expect(sys).toMatch(/the client tells you the OUTCOME they want/)
-    // The seven approved stages, in order, and ONE approval of the whole programme.
-    expect(sys).toContain('Proof, Recommendation, Sourcing, Approval, Live, Review, Completion')
+    // ⛓️ 31 Aug — RE-AIMED. This asserted the bare stage list and the bare money rule as two
+    // SEPARATE sentences, which is exactly the shape that left the gap she interpolated
+    // across. The ordered lifecycle replaces both, and is asserted by step in the block below.
     expect(sys).toMatch(/ONE approval of the whole programme, not a decision per person/)
-    // The money RULE, with no figure typed into it — the amounts come from their own row.
-    expect(sys).toMatch(/Payment 1 \(50%\) authorises sourcing and preparation/)
-    expect(sys).toMatch(/Payment 2 \(the remaining 50%\) authorises outreach/)
+    expect(sys).toContain('THE PROGRAMME LIFECYCLE, IN ORDER')
+    // The money is still the RULE with no figure typed into it, now anchored to the steps.
+    expect(sys).toMatch(/a programme has ONE price, paid in two halves — Payment 1 at step 3 and Payment 2 at step 7/)
   })
 
   it('meetings are one outcome, and a non-meeting outcome is never priced', () => {
@@ -139,8 +140,10 @@ describe('the live context block — the fix for "I don\'t have access to your d
     expect(block).toContain('Meetings booked so far: 3')
     // Money derived from the row in cents, never typed.
     expect(block).toContain('Programme value: $4,800 total, paid in two halves of $2,400')
-    expect(block).toContain('Payment 1 (authorises sourcing and preparation): PAID')
-    expect(block).toContain('Payment 2 (due after they approve the programme; authorises outreach): not paid yet')
+    // ⛓️ 31 Aug — the per-client block now names the SAME step numbers as the lifecycle, so
+    // the two cannot describe one gate in two different ways.
+    expect(block).toContain('Payment 1 (step 3 — authorises sourcing and preparation only): PAID')
+    expect(block).toContain('Payment 2 (step 7 — after the programme approval at step 6; authorises outreach): not paid yet')
   })
 
   it('and the outcomes it has produced', () => {

@@ -94,8 +94,10 @@ export function describeProgramme(prog: CustomerProgramme | null): string {
   // The two 50% payments — the entire customer commercial model.
   if (prog.money.totalCents > 0) {
     lines.push(`- Programme value: ${money(prog.money.totalCents)} total, paid in two halves of ${money(prog.money.totalCents / 2)}`)
-    lines.push(`- Payment 1 (authorises sourcing and preparation): ${prog.money.firstPaidAt ? 'PAID' : 'not paid yet'}`)
-    lines.push(`- Payment 2 (due after they approve the programme; authorises outreach): ${prog.money.secondPaidAt ? 'PAID' : 'not paid yet'}`)
+    // ⚠️ TIED TO THE LIFECYCLE STEP NUMBERS, so this per-client block and the sequence above
+    // cannot describe the same gate two different ways — the gap that caused the 31 Aug walk.
+    lines.push(`- Payment 1 (step 3 — authorises sourcing and preparation only): ${prog.money.firstPaidAt ? 'PAID' : 'not paid yet'}`)
+    lines.push(`- Payment 2 (step 7 — after the programme approval at step 6; authorises outreach): ${prog.money.secondPaidAt ? 'PAID' : 'not paid yet'}`)
   } else {
     lines.push('- No programme price has been set yet — do NOT quote any figure.')
   }
@@ -115,6 +117,74 @@ export function describeOutcomes(snap: MillaSnapshot | null): string {
     `- Meetings all-time: ${snap.meetings_total} (${snap.meetings_booked} this month)`,
   ].join('\n')
 }
+
+// ══ ⚑ 31 Aug (BUILD-004A-2A live walk) — THE ORDERED LIFECYCLE, WITH ITS GATES ═════════
+//
+// 🛑 WHAT WENT WRONG, AND IT WAS A GAP RATHER THAN A FALSEHOOD. The prompt gave Milla two
+// separate lists and no mapping between them:
+//
+//   · the stage ORDER — "Proof, Recommendation, Sourcing, Approval, Live, Review, Completion"
+//   · the money RULE  — "Payment 1 (50%) authorises sourcing and preparation. After the
+//                        client approves the programme, Payment 2 … authorises outreach."
+//
+// Both sentences are true. Neither says WHERE the payments sit inside the order, so she
+// interpolated — which is what a model does with a gap — and produced, on the founder's own
+// walk:
+//
+//   ✗ "Once that's done and you've approved the programme direction, we'll move into
+//      sourcing and outreach."          → sourcing and outreach collapsed into one step
+//   ✗ "Outreach starts after two things happen: 1. You approve the programme 2. Payment 2
+//      lands"                            → approval placed directly after Proof, skipping
+//                                          Recommendation, Payment 1, sourcing and review
+//
+// ⚠️ THE FIX IS ONE SEQUENCE, NOT A BAN LIST. Stages and gates are interleaved in a single
+// ordered list, so there is no gap left to interpolate across. Hard-coding answers to those
+// two questions would have fixed two sentences and left every neighbouring question wrong.
+//
+// ⚠️ THE TWO "REVIEWS" ARE DIFFERENT THINGS, and this is the trap in the sequence. Step 5 is
+// the CLIENT reading what we prepared, before they approve. The `Review` STAGE is something
+// else entirely: a hold raised on an already-LIVE programme (programme-stage.ts:80). Naming
+// them apart here is what stops her merging them the way she merged sourcing and outreach.
+
+/** The customer-facing lifecycle, in order, with the gate at each step. Founder-locked. */
+export const PROGRAMME_LIFECYCLE: readonly string[] = [
+  '1. PROOF — a small free calibration set: real people who match their targeting, masked, ' +
+    'nobody contacted. They react "looks right" or "not a fit" so we learn what they mean by ' +
+    'a good prospect. Nothing is paid and nothing is sent.',
+  '2. RECOMMENDATION — we propose the programme: the outcome, the shape of the work, the price.',
+  '3. PAYMENT 1 — the first 50%. It authorises SOURCING AND PREPARATION ONLY. No outreach ' +
+    'is authorised by it and nobody is contacted after it.',
+  '4. SOURCING / PREPARATION — we source the people and prepare the programme. Still no outreach.',
+  '5. THE CLIENT REVIEWS what we have prepared. (This is NOT the "Review" stage, which is a ' +
+    'hold raised later on an already-live programme.)',
+  '6. APPROVAL — ONE approval of the whole programme, not a decision per person.',
+  '7. PAYMENT 2 — the remaining 50%, after that approval. THIS is what authorises outreach.',
+  '8. LIVE — outreach runs and the outcome is worked.',
+  '9. REVIEW / COMPLETION — a review hold can pause decisions on a live programme; ' +
+    'completion is the end of the programme.',
+] as const
+
+/**
+ * The sequencing rules that stop the two collapses the founder caught.
+ *
+ * ⚠️ STATED AS PROHIBITIONS AS WELL AS ORDER. The ordered list alone is not enough: she had
+ * an ordered list before and still merged two of its steps, because nothing said they were
+ * distinct gates rather than one transition described twice.
+ */
+export const LIFECYCLE_RULES: readonly string[] = [
+  'SOURCING AND OUTREACH ARE NOT THE SAME TRANSITION and never begin together. Sourcing is ' +
+    'authorised by Payment 1 (step 3). Outreach is authorised by Payment 2 (step 7). Four ' +
+    'steps sit between them. Never say we "move into sourcing and outreach".',
+  'APPROVAL DOES NOT FOLLOW PROOF. Between Proof and the programme approval come the ' +
+    'Recommendation, Payment 1, the sourcing and preparation work, and the client reading ' +
+    'what we prepared. Never present approval as the next thing after Proof.',
+  'NEVER DESCRIBE PAYMENT 2 OR OUTREACH WITHOUT THE STEPS THAT PRECEDE THEM. If asked when ' +
+    'outreach starts, name Payment 1, sourcing/preparation and the approval that come first.',
+  'NOTHING IS CONTACTED BEFORE PAYMENT 2. Not during Proof, not after Payment 1, not during ' +
+    'sourcing.',
+  'Answer from the step the client is actually on. Their current stage is in their programme ' +
+    'block below; describe what is next for THEM, not the whole list, unless they ask for it.',
+] as const
 
 /**
  * The ONE system prompt for both Milla chat doors (the desk session chat and the
@@ -136,16 +206,17 @@ export function buildMillaChatSystem(
     'THE PRODUCT: the client tells you the OUTCOME they want. K.I.N.D designs a PROGRAMME to ' +
       'deliver it, sources the right people, runs the outreach and books the outcome. The ' +
       'client does not work a queue of prospects and does not configure how we deliver.',
-    'The programme moves through seven stages, in this order: Proof, Recommendation, ' +
-      'Sourcing, Approval, Live, Review, Completion. Proof is a small free calibration set — ' +
-      'real people who match their targeting, masked, nobody contacted — where they react ' +
-      '"looks right" or "not a fit" so we learn what they mean by a good prospect. Approval ' +
-      'is ONE approval of the whole programme, not a decision per person.',
-    // The money, stated as the RULE rather than as a figure — the amounts come from their
-    // own programme row above, so a client without a price set is never quoted one.
-    'THE MONEY: a programme has one price, paid in two halves. Payment 1 (50%) authorises ' +
-      'sourcing and preparation. After the client approves the programme, Payment 2 (the ' +
-      'remaining 50%) authorises outreach. There is no subscription.',
+    // ⛓️ 31 Aug — ONE SEQUENCE REPLACES TWO UNCONNECTED LISTS. The stage order and the money
+    // rule used to be separate paragraphs; she was never told where the payments sat inside
+    // the order, so she guessed. See the note above PROGRAMME_LIFECYCLE.
+    'THE PROGRAMME LIFECYCLE, IN ORDER. Every step is a distinct gate — do not merge two of ' +
+      'them, and do not skip any when explaining what happens next:\n' +
+      PROGRAMME_LIFECYCLE.join('\n'),
+    // The money is the RULE, never a figure — the amounts come from their own programme row
+    // below, so a client without a price set is never quoted one.
+    'THE MONEY: a programme has ONE price, paid in two halves — Payment 1 at step 3 and ' +
+      'Payment 2 at step 7 above. There is no subscription.',
+    LIFECYCLE_RULES.join('\n'),
 
     // 🛑 THE RETIRED MODEL, NAMED SO SHE CANNOT REACH FOR IT. She is fluent in generic
     // lead-gen and will default to it the moment the prompt leaves a gap — which is exactly

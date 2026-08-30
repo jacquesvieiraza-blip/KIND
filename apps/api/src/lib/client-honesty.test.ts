@@ -129,17 +129,22 @@ describe('the desk tells the client when it is showing a subset', () => {
   const routeRaw = readFileSync(join(__dirname, '../routes/leads.ts'), 'utf8')
   const route = strip(routeRaw)
 
-  it('the coverage note is WIRED into the desk, not just exported', () => {
-    // A pure function nobody calls is the same as no function. This is the assertion that
-    // makes #570③ "disclosed" rather than "silent".
-    expect(desk).toContain('deskCoverage(')
-    expect(desk).toContain('leads_awaiting')
-  })
-
-  it('it compares the KPI against what is actually RENDERED, not against the cap', () => {
-    // Passing a hardcoded 50 would keep saying "top 50" on a page showing 12 after some were
-    // approved. It must read the real list length.
-    expect(desk).toMatch(/deskCoverage\(\{\s*awaiting:\s*summary\.leads_awaiting,\s*shown:\s*leads\.length/)
+  // ⛓️ 30 Aug (BUILD-004A-1) — THESE TWO ASSERTIONS ARE INVERTED, NOT DELETED.
+  //
+  // #570③ was "the DESK must disclose when it is showing a subset". The founder's programme
+  // model removed the per-lead approval desk from the Milla home entirely, so the surface
+  // those assertions guarded no longer exists — and a guard pinned to a deleted screen fails
+  // for the right reason and the wrong cause, with "restore the desk" as the obvious way to
+  // make it pass. That is precisely the wrong lesson.
+  //
+  // The PURE function keeps every assertion above: `deskCoverage` is still exported, still
+  // correct, and still the right answer the day a capped list needs disclosing again. What
+  // changes is where it must NOT appear.
+  it('the per-lead approval desk is GONE from the Milla home, so there is no subset to disclose', () => {
+    expect(desk, 'the approval desk is back on the Milla home — #570 disclosure would be owed again')
+      .not.toContain('/leads/for-approval')
+    expect(desk, 'deskCoverage is being called on a home that no longer has a lead desk')
+      .not.toContain('deskCoverage(')
   })
 
   // TWO VIEWS OF THE SAME FILE, and the split is the point. A "no longer claims X" assertion

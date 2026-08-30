@@ -42,7 +42,12 @@ function strip(src: string): string {
   let inBlock = false
   return src.split('\n').map(l => {
     const t = l.trim()
-    if (inBlock) { if (t.endsWith('*/')) inBlock = false; return '' }
+    // ⛓️ THE EXIT MUST ACCEPT `*/}` TOO. JSX comments close with `*/}`, not `*/`, so an exit
+    // testing only `*/` never fires: the stripper enters the block and eats the ENTIRE REST OF
+    // THE FILE. The `outcomesAchieved === null` guard then failed on a line that was right
+    // there. Seventh time a comment-handling bug in this repo has produced a false result —
+    // and the fifth where the stripper itself was the fault, not the code it was reading.
+    if (inBlock) { if (t.endsWith('*/') || t.endsWith('*/}')) inBlock = false; return '' }
     if (t.startsWith('/*')) { if (!t.endsWith('*/')) inBlock = true; return '' }
     if (t.startsWith('{/*')) { if (!t.endsWith('*/}')) inBlock = true; return '' }
     const i = l.search(/(?<!:)\/\//)
@@ -132,7 +137,10 @@ describe('🛑 THE LOCKED CUSTOMER COPY IS EXACT — never paraphrased, never re
     expect(ROUTE).toContain('MILLA_FAILURE_COPY.sourcingPaused')
     expect(PAGE_CODE, 'the page hard-codes the pause sentence instead of rendering the server\'s')
       .not.toContain('Sourcing is paused while we recover.')
-    expect(PROGRAMME_PAGE).toContain('p.pausedCopy')
+    // ⛓️ REPOINTED: the pause banner moved into the shared ProgrammeWorkspace when the home
+    // and the Programme page were made to render one implementation.
+    expect(strip(readFileSync(join(PORTAL, 'components/milla/ProgrammeWorkspace.tsx'), 'utf8')))
+      .toContain('p.pausedCopy')
   })
 })
 
@@ -167,9 +175,17 @@ describe('A FAILED READ IS NEVER AN EMPTY PROGRAMME', () => {
   it('unreadable meeting counts pass through as null, never as 0', () => {
     expect(ROUTE).toContain('outcomesAchieved: number | null')
     expect(ROUTE).toMatch(/counts === null \? null/)
-    expect(PROGRAMME_PAGE).toContain('p.progress.outcomesAchieved === null')
-    expect(PROGRAMME_PAGE, 'a failed meeting count is coerced to zero on screen')
-      .not.toMatch(/outcomesAchieved \?\? 0/)
+    // ⛓️ REPOINTED: the figure moved into the shared ProgrammeWorkspace, and the HOME renders
+    // its own card from the same rule — so both are asserted. The page no longer contains it.
+    const ws = strip(readFileSync(join(PORTAL, 'components/milla/ProgrammeWorkspace.tsx'), 'utf8'))
+    const home = strip(readFileSync(join(PORTAL, 'app/(milla)/milla/page.tsx'), 'utf8'))
+    expect(ws).toContain('p.progress.outcomesAchieved === null')
+    expect(home, 'the home card does not distinguish an unreadable meeting count from zero')
+      .toContain('prog.progress.outcomesAchieved === null')
+    for (const src of [ws, home]) {
+      expect(src, 'a failed meeting count is coerced to zero on screen')
+        .not.toMatch(/outcomesAchieved \?\? 0/)
+    }
   })
 
   it('meetings come from public.meetings — the sole meeting truth', () => {
@@ -278,6 +294,98 @@ describe('OPTION C — ANY OUTCOME IS CAPTURED, ONLY MEETINGS ARE AUTO-PRICED', 
     const shared = strip(readFileSync(join(__dirname, '../../../../packages/shared/src/programme-stage.ts'), 'utf8'))
     for (const invented of ['quoteProgramme(', 'meetingEquivalent', 'pricePerMeeting', 'LEADS_PER_TARGETED_MEETING']) {
       expect(shared, `the stage module reaches into pricing: ${invented}`).not.toContain(invented)
+    }
+  })
+})
+
+// ══ THE HOME ITSELF — THE GUARDS WHOSE ABSENCE LET ME REPORT 4A-1 AS DONE ═══════════════
+//
+// 🛑 THE MISS THIS EXISTS FOR. PR #1613's first cut built the stage model, the customer
+// endpoint and a NEW `/milla/programme` page — and never touched `/milla/page.tsx`, the screen
+// a customer actually lands on. The PR body said "Home replaces New leads", which described a
+// RAIL LABEL, and I let that stand in for the home rebuild in my own report. The founder caught
+// it from the changed-file list.
+//
+// Meanwhile the live landing screen still read: "Your $299 includes 100 approved leads", "a
+// flat $4 per lead, final" IN MILLA'S OPENING GREETING, a wallet balance, and the per-lead
+// approval desk the programme model removes. Every one of those was one merge from a customer.
+//
+// So the home is now asserted directly, by file, and the legacy symbols are forbidden by name.
+const HOME = readFileSync(join(PORTAL, 'app/(milla)/milla/page.tsx'), 'utf8')
+const HOME_CODE = strip(HOME)
+const WORKSPACE = readFileSync(join(PORTAL, 'components/milla/ProgrammeWorkspace.tsx'), 'utf8')
+const WORKSPACE_CODE = strip(WORKSPACE)
+const PROG_PAGE_CODE = strip(PROGRAMME_PAGE)
+
+describe('THE MILLA HOME IS THE PROGRAMME HOME', () => {
+  it('the sweep is not vacuous — the home loads and is the real file', () => {
+    expect(HOME.length).toBeGreaterThan(20_000)
+    expect(HOME_CODE).toContain('export default function')
+  })
+
+  it('① the home CALLS /my/programme', () => {
+    expect(HOME_CODE, 'the landing screen does not load programme truth at all — this is the PR #1613 miss')
+      .toContain("'/my/programme'")
+  })
+
+  it('② the four approved cards render — outcome, stage, progress, next', () => {
+    // Exactly the four the founder specified. A fifth would be an invented card.
+    for (const card of ['"Outcome"', '"Stage"', '"Progress"', '"Next"']) {
+      expect(HOME_CODE, `the ${card} card is missing from the home`).toContain(`k=${card}`)
+    }
+  })
+
+  it('③ the home renders the SHARED ProgrammeWorkspace', () => {
+    expect(HOME_CODE).toContain('<ProgrammeWorkspace')
+    expect(HOME_CODE).toContain("from '@/components/milla/ProgrammeWorkspace'")
+  })
+
+  it('④ /milla/programme renders the SAME component — the two cannot drift', () => {
+    // 🛑 TWO RENDERINGS OF ONE TRUTH DRIFT. One gets a fix, the other does not, and the
+    // customer sees different numbers for one programme depending which screen they are on.
+    expect(PROG_PAGE_CODE).toContain('<ProgrammeWorkspace')
+    // ...and the workspace is the only place the stage strip is built.
+    expect(WORKSPACE_CODE).toContain('MILLA_STAGES.indexOf')
+    expect(HOME_CODE, 'the home re-implements the stage strip instead of using the component')
+      .not.toContain('MILLA_STAGES.indexOf')
+  })
+
+  it('⑤ the approved greeting is used EXACTLY, and is not assembled from anything', () => {
+    expect(HOME_CODE).toContain('Hi, I’m Milla. Tell me what you’re trying to achieve, and I’ll help shape the right programme from there.')
+    // Not a template: no interpolation, so no future edit can slip a price back into it.
+    expect(HOME_CODE).toContain('const MILLA_GREETING')
+    expect(HOME_CODE).not.toMatch(/MILLA_GREETING\s*=\s*`/)
+  })
+})
+
+describe('🛑 NO LEGACY MONEY TRUTH SURVIVES ON THE MILLA HOME', () => {
+  // Every one of these was rendering on the live landing screen when the founder asked.
+  const FORBIDDEN: [string, string][] = [
+    ['PACK_PRICE_USD',  'the $299 pack price'],
+    ['PACK_LEADS',      'the 100-included-leads pack'],
+    ['wallet_balance',  'the wallet balance'],
+    ['shortfallMessage','the wallet top-up prompt'],
+    ['deskCoverage',    'the lead-desk coverage figure'],
+    ['$299',            'the pack price in copy'],
+    ['$4',              'the per-lead price in copy'],
+  ]
+  for (const [symbol, what] of FORBIDDEN) {
+    it(`${what} is gone from the home`, () => {
+      expect(HOME_CODE, `${what} (${symbol}) is still rendered on the Milla home`).not.toContain(symbol)
+    })
+  }
+
+  it('🛑 THE PER-LEAD APPROVAL DESK CANNOT RETURN SILENTLY', () => {
+    // The desk was `/leads/for-approval` fetched into cards with an Approve button that
+    // charged $4 a lead. The programme model has ONE approval, not one per lead. Both the
+    // fetch and the accept path are forbidden by name so a re-add cannot slip in unnoticed.
+    expect(HOME_CODE, 'the per-lead approval desk is back on the home').not.toContain('/leads/for-approval')
+    expect(HOME_CODE, 'the proof-accept path is back on the home').not.toContain('proof-accept')
+  })
+
+  it('the workspace carries no legacy money truth either', () => {
+    for (const [symbol] of FORBIDDEN) {
+      expect(WORKSPACE_CODE, `legacy money truth in the shared workspace: ${symbol}`).not.toContain(symbol)
     }
   })
 })

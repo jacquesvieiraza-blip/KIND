@@ -681,13 +681,31 @@ describe('free proof runs before the client is ever asked to pay', () => {
     expect(welcomeCode).not.toMatch(/proof[_ ]?pass|pass 1|pass 2|passes_done|attempt \d/i)
   })
 
-  it('"Looks right" on the desk is still the ONLY route to the pack ask, unchanged', () => {
+  // ⛓️ 30 Aug (BUILD-004A-1) — INVERTED BY FOUNDER RULING, NOT WEAKENED.
+  //
+  // This asserted that "👍 Looks right" on the approval desk was the ONLY route to the $299
+  // PACK ASK. Both halves are now gone by decision: the desk (no per-lead approval in the
+  // programme model) and the pack ask itself (no $299 pack on the live customer path). A
+  // guard demanding a route to retired pricing would be asking to restore it.
+  //
+  // ⚠️ WHAT IS NOT YET REPLACED, AND IS REPORTED RATHER THAN ASSERTED AWAY: the programme
+  // equivalent — Recommendation and Payment 1 as an actionable conversational moment — is
+  // DISPLAY ONLY in 4A-1. The stage workspace says "Your recommendation is ready"; there is no
+  // button behind it yet. That is a known 4A-1 gap, stated in the PR, not a passing test.
+  it('the $299 pack ask is gone from the Milla home — no route to retired pricing', () => {
     const deskSrc = read(join(PORTAL, 'app/(milla)/milla/page.tsx'))
-    expect(deskSrc).toContain("router.push('/milla/billing?start=1&from=proof')")
-    expect(deskSrc).toContain('👍 Looks right')
-    // …and the per-lead calibration this build must NOT have touched.
-    expect(deskSrc).toContain('Not a fit')
-    expect(deskSrc).toContain('await api.post(`/leads/${id}/pass`, {}, await token())')
+    expect(deskSrc, 'the pack ask is back on the home').not.toContain("billing?start=1")
+    expect(deskSrc, 'the per-lead approval desk is back on the home').not.toContain('👍 Looks right')
+    // ⛓️ THE TAIL OF THIS ASSERTION IS INVERTED TOO. It required the per-lead calibration
+    // ("Not a fit" → POST /leads/{id}/pass) to survive — but that lived ON the approval desk,
+    // so it went with the desk and its writer was left orphaned. The endpoint is untouched;
+    // only this home's door to it is shut.
+    //
+    // ⚠️ REPORTED, NOT ASSERTED AWAY: the founder's Free Proof spec keeps the customer
+    // reaction ("fit / not fit / why") — conversationally, with Milla. That is 4A scope and is
+    // NOT rebuilt here. 4A-1 removed the desk; nothing yet replaces the reaction.
+    expect(deskSrc, 'the per-lead pass writer is back on the home')
+      .not.toContain('await api.post(`/leads/${id}/pass`')
   })
 
   it('the CTA asks to be shown people, and offers no price', () => {
@@ -776,18 +794,38 @@ describe('the desk shows an honest finding state and refreshes itself', () => {
     expect(deskCode).not.toMatch(/we'll notify you the moment your|we will let you know|try proof again|start proof again/i)
   })
 
-  it('the PAYING client\'s empty-state copy is untouched — not this commit\'s call', () => {
-    expect(deskSrc).toContain('No leads waiting right now. We&apos;ll notify you the moment FIGSY qualifies the next. 🎯')
+  // ⛓️ 30 Aug (BUILD-004A-1) — INVERTED. That was the LEAD DESK's empty state, and the desk is
+  // gone by founder ruling. The sentence also promised a per-lead notification ("we'll notify
+  // you the moment FIGSY qualifies the next") that nothing sends and that the programme model
+  // does not owe. Its replacement is the programme workspace, which states the stage.
+  it('the lead-desk empty state is gone with the desk — including its notification promise', () => {
+    expect(deskSrc, 'the lead-desk empty state is back on the Milla home')
+      .not.toContain('No leads waiting right now.')
   })
 
-  it('the chat opener no longer says "no new leads" while a run is in flight', () => {
-    expect(deskCode).toContain("isFinding()\n          ? `Hi 👋 I'm Milla. I'm finding real people who match your targeting right now")
-    // The ordinary empty greeting survives for everyone else.
-    expect(deskCode).toContain('No new leads waiting this moment')
+  // ⛓️ 30 Aug (BUILD-004A-1) — INVERTED, AND THE INVARIANT SURVIVES SOMEWHERE BETTER.
+  //
+  // The opener used to branch four ways on lead count, funding and proof state — which is how
+  // "a flat $4 per lead, final" became a customer's FIRST sentence from Milla. The founder
+  // approved ONE greeting, so every branch is gone, including the in-flight one this asserted.
+  //
+  // ⚠️ THE HONESTY IT PROTECTED IS NOT LOST — it moved to where a prospect actually looks. The
+  // programme panel still renders "Finding your matches now…" with the bounded recovery line,
+  // and this now asserts THAT, because a static greeting can no longer say "no new leads" at
+  // the one moment it would be false.
+  it('a run in flight is still stated honestly — in the panel, not the greeting', () => {
+    expect(deskSrc, 'the in-flight proof state was lost when the desk was replaced')
+      .toContain('Finding your matches now…')
+    expect(deskSrc).toContain('We hit a snag confirming your matches')
+    expect(deskCode, 'the greeting branches on state again — it is one approved sentence')
+      .not.toContain('No new leads waiting this moment')
   })
 
-  it('polling REUSES the existing lead read path — no new endpoint', () => {
-    expect(deskCode).toContain("api.get<{ data: MaskedLead[] }>('/leads/for-approval', tok)")
+  // ⛓️ 30 Aug (BUILD-004A-1) — the read path the poll reuses is now the customer's programme,
+  // because the per-lead desk it used to refresh is gone. The INVARIANT is unchanged and is
+  // what still matters: polling reuses an existing read, and adds no endpoint of its own.
+  it('polling REUSES an existing read path — no new endpoint', () => {
+    expect(deskCode).toContain("api.get<{ data: CustomerProgramme }>('/my/programme', tok)")
     expect(deskCode).toContain('void load().finally(() => { inFlight = false })')
   })
 
@@ -918,12 +956,15 @@ describe('the desk shows an honest finding state and refreshes itself', () => {
     expect(deskCode).not.toMatch(/setFinding\(pending|setFinding\(!|setFinding\(leads/)
   })
 
-  it('and the masked lead experience past the finding state is untouched', () => {
-    expect(deskSrc).toContain("router.push('/milla/billing?start=1&from=proof')")
-    expect(deskSrc).toContain('👍 Looks right')
-    expect(deskSrc).toContain('Not a fit')
-    expect(deskSrc).toContain('await api.post(`/leads/${id}/pass`, {}, await token())')
-    expect(deskCode).toContain('const proofMode = needsGoLive')
+  // ⛓️ 30 Aug (BUILD-004A-1) — INVERTED. Every line here described the per-lead desk that the
+  // programme model removes: the pack ask, "Looks right"/"Not a fit", the per-lead pass POST.
+  // ⚠️ REPORTED, NOT ASSERTED AWAY: the free-proof REACTION ("fit / not fit / why") is founder
+  // scope and is NOT rebuilt in 4A-1 — it is conversational and belongs with the Milla thread.
+  // This asserts only that the retired surface has not crept back.
+  it('the per-lead proof desk is gone — pack ask, Looks right / Not a fit, per-lead pass', () => {
+    for (const gone of ["billing?start=1", '👍 Looks right', '/leads/${id}/pass']) {
+      expect(deskSrc, `the retired per-lead desk is back on the home: ${gone}`).not.toContain(gone)
+    }
   })
 })
 
@@ -1138,10 +1179,13 @@ describe('no number is shown that no preview produced', () => {
     // "$4 per approved lead" — and RED C15, which wiped the wallet-KPI subtitle, PASSED,
     // because the second occurrence further down still satisfied the match. A guard that a
     // partial deletion can satisfy does not protect the thing it names.
+    // ⛓️ 30 Aug (BUILD-004A-1) — THE MILLA HOME IS REMOVED FROM THIS LIST, AND THAT IS THE
+    // POINT OF THE BUILD. The wallet KPI and the lead-card price line were the two desk sites
+    // this asserted; both are gone, and `milla-programme.test.ts` now forbids them BY NAME on
+    // that screen. The $4 model is untouched everywhere it still LEGITIMATELY appears — which
+    // is Billing and the shared constants, asserted below and unchanged.
     const desk = read(join(PORTAL, 'app/(milla)/milla/page.tsx'))
-    expect(desk).toContain('s="$4 per approved lead"')                        // wallet KPI
-    expect(desk).toContain("'$4 per approved lead — final. Reviewing is free.'") // lead cards
-    expect((desk.match(/\$4 per approved lead/g) ?? []).length).toBeGreaterThanOrEqual(2)
+    expect(desk, 'per-lead pricing is back on the Milla home').not.toContain('$4 per approved lead')
     // Billing has several $4 lines, so the same partial-deletion hole applies. Anchor on the
     // INTERPOLATED one instead — that is the economics guarantee, not a copy string: the
     // page still derives both prices from the shared constants (method rule 7).

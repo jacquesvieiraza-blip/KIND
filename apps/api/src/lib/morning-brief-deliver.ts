@@ -14,7 +14,7 @@ import { db } from '@kind/db'
 // BUILD-003 item 2 — public.meetings is the sole source of meeting counts.
 import { meetingCounts } from './meeting-truth'
 import {
-  BRIEF_KIND, briefTag, composeBrief, londonDay, londonWeekStart,
+  BRIEF_KIND, briefIsRepeat, briefTag, composeBrief, londonDay, londonWeekStart,
 } from './morning-brief'
 export type EnsureBriefResult =
   | { status: 'created';   day: string; text: string }
@@ -107,11 +107,22 @@ export async function ensureTodaysBrief(clientId: string, now: Date = new Date()
     // ⚠️ NO MIGRATION, AND NO HISTORICAL ROW IS TOUCHED. The existing per-day index stays
     // exactly as it is and remains the race guarantee; this is a second, cheaper test in
     // front of it. Messages already in the thread are the record of what we told them then.
+    //
+    // ⛓️ CORRECTED BEFORE MERGE (GPT review). My first cut compared the text against the last
+    // brief with NO WINDOW — which suppressed the real duplicate and also suppressed a
+    // legitimate Week-2 brief that truthfully reported the same number. Content-only dedup
+    // never decays. The window is one London week, because the fact is weekly.
     const { data: lastBrief } = await db.from('milla_messages')
-      .select('content').eq('client_id', clientId)
+      .select('content, sources').eq('client_id', clientId)
       .eq('sources->>kind', BRIEF_KIND)
       .order('created_at', { ascending: false }).limit(1).maybeSingle()
-    if (lastBrief && (lastBrief as { content?: string | null }).content === text) {
+    const prev = lastBrief
+      ? {
+          content: String((lastBrief as { content?: string | null }).content ?? ''),
+          day: ((lastBrief as { sources?: { day?: string } | null }).sources?.day) ?? null,
+        }
+      : null
+    if (briefIsRepeat(text, prev, londonDay(londonWeekStart(now)))) {
       return { status: 'skipped', reason: 'nothing_new' }
     }
 

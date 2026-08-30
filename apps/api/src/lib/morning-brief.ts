@@ -148,3 +148,42 @@ export function composeBrief(n: BriefNumbers): string | null {
 export function briefTag(day: string): { kind: string; day: string } {
   return { kind: BRIEF_KIND, day }
 }
+
+// ── ⚑ 30 Aug (BUILD-004A-2A) — IS THIS BRIEF NEWS, OR THE SAME NEWS AGAIN? ──────────────
+//
+// 🛑 THE DEFECT THIS REPLACES WAS MY OWN, AND GPT'S REVIEW CAUGHT IT. The first cut of the
+// duplicate fix compared the composed text against the most recent brief with no window at
+// all. That suppressed the real duplicate — Monday/Tuesday/Wednesday of one week all saying
+// "2 meetings booked this week" — and ALSO suppressed a legitimate, truthful Week-2 brief
+// that happened to report 2 again. Content-only dedup does not decay: the client would never
+// hear that number again until it changed.
+//
+// ⚠️ THE PERIOD IS THE POINT. The fact this brief reports is WEEKLY (`meetingsThisWeek`), so
+// the window in which a repeat is "the same news" is exactly one London week. Two identical
+// sentences inside one week are one piece of news. The same sentence in a later week is a
+// new, true statement about a different week and must always be allowed through.
+//
+// ⚠️ PURE, so both halves are provable without a database — the rule this file exists under
+// (the DB half lives in `morning-brief-deliver.ts`). The suppression and the release are each
+// one assertion.
+//
+// ⚠️ FAILS OPEN. An absent or unparseable stamp on the previous brief means we cannot say it
+// belongs to this week, so it does not suppress. A duplicate is a small harm; silently
+// withholding a client's real news is a larger one.
+
+export type LastBrief = { content: string; day: string | null } | null
+
+/**
+ * Should this brief be suppressed as a repeat of one already sent THIS WEEK?
+ *
+ * @param text          the brief just composed
+ * @param last          the most recent brief already in the thread, with its London-day stamp
+ * @param weekStartDay  `YYYY-MM-DD` of the current London week's Monday
+ */
+export function briefIsRepeat(text: string, last: LastBrief, weekStartDay: string): boolean {
+  if (!last || last.content !== text) return false
+  // ISO `YYYY-MM-DD` compares correctly as text, so no date parsing is needed — and a stamp
+  // that is not that shape is treated as unknown rather than coerced into a comparison.
+  if (!last.day || !/^\d{4}-\d{2}-\d{2}$/.test(last.day)) return false
+  return last.day >= weekStartDay
+}

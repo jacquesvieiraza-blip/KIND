@@ -16,6 +16,7 @@ import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'fs'
 import { join } from 'path'
 import { MILLA_STAGES, STAGE_QUICK_ACTION } from '@kind/shared'
+import { briefIsRepeat, composeBrief, londonDay, londonWeekStart } from './morning-brief'
 
 const REPO   = join(__dirname, '../../../..')
 const PORTAL = join(REPO, 'apps/portal/src')
@@ -137,12 +138,75 @@ describe('§2 — THE SUGGESTION CHIPS KNOW WHAT STAGE THE CLIENT IS IN', () => 
 describe('§3 — ONE PIECE OF NEWS IS NOT THREE MESSAGES', () => {
   const DELIVER = code(join(API, 'lib/morning-brief-deliver.ts'))
 
+  // ── ⛓️ CORRECTED BEFORE MERGE (GPT review) — THE WINDOW IS THE WHOLE FIX ──────────────
+  //
+  // 🛑 MY FIRST CUT WAS GLOBAL CONTENT-ONLY, and it traded one defect for a worse one. It
+  // suppressed the real duplicate — three days of one week each saying "2 meetings booked
+  // this week" — and ALSO suppressed a legitimate Week-2 brief that truthfully reported 2
+  // again. Content-only dedup does not decay: the client would never hear that number again
+  // until it changed. Suppressing a client's real news is a larger harm than repeating it.
+  //
+  // These two assertions are the pair. Neither is meaningful without the other, and the
+  // second one is the one my implementation failed.
+  describe('the repeat window is ONE LONDON WEEK — the period the fact belongs to', () => {
+    const WEEK_1_MON = new Date('2026-08-17T09:00:00Z')
+    const WEEK_1_WED = new Date('2026-08-19T09:00:00Z')
+    const WEEK_2_MON = new Date('2026-08-24T09:00:00Z')
+    const text = composeBrief({ meetingsThisWeek: 2 })!
+    const weekStart = (at: Date) => londonDay(londonWeekStart(at))
+
+    it('the fixture is real — this is the exact sentence the founder saw three times', () => {
+      expect(text).toBe("Morning. 2 meetings booked this week — they're in your Meetings tab.")
+      // And the two dates really are in different London weeks, or the pair below proves nothing.
+      expect(weekStart(WEEK_1_MON)).toBe(weekStart(WEEK_1_WED))
+      expect(weekStart(WEEK_2_MON)).not.toBe(weekStart(WEEK_1_MON))
+    })
+
+    it('③ SUPPRESSED: the same sentence again inside the same week is one piece of news', () => {
+      const monday = { content: text, day: londonDay(WEEK_1_MON) }
+      expect(briefIsRepeat(text, monday, weekStart(WEEK_1_WED)), 'Wednesday repeated Monday')
+        .toBe(true)
+    })
+
+    it('④ ALLOWED: the same sentence in a LATER week is a new, true statement', () => {
+      // 🛑 THE ASSERTION MY IMPLEMENTATION FAILED. Two meetings in week 2 is not week 1's news.
+      const lastWeek = { content: text, day: londonDay(WEEK_1_WED) }
+      expect(briefIsRepeat(text, lastWeek, weekStart(WEEK_2_MON)), 'a truthful week-2 brief was suppressed')
+        .toBe(false)
+    })
+
+    it('different news in the same week always goes out', () => {
+      const monday = { content: text, day: londonDay(WEEK_1_MON) }
+      const three = composeBrief({ meetingsThisWeek: 3 })!
+      expect(briefIsRepeat(three, monday, weekStart(WEEK_1_WED))).toBe(false)
+    })
+
+    it('FAILS OPEN: an unknown or malformed stamp never suppresses', () => {
+      // Withholding real news on a stamp we cannot read is the larger harm.
+      for (const day of [null, '', 'yesterday', '2026-8-1']) {
+        expect(briefIsRepeat(text, { content: text, day }, weekStart(WEEK_1_WED)),
+          `a ${JSON.stringify(day)} stamp suppressed a brief`).toBe(false)
+      }
+      expect(briefIsRepeat(text, null, weekStart(WEEK_1_WED))).toBe(false)
+    })
+
+    it('the deliverer passes the CURRENT week start, not a rolling window', () => {
+      expect(DELIVER).toContain('briefIsRepeat(text, prev, londonDay(londonWeekStart(now)))')
+      // And it reads the stamp it compares against, rather than assuming one.
+      expect(DELIVER).toContain(".select('content, sources')")
+    })
+  })
+
   it('a brief identical to the last one is not posted again', () => {
     // 🛑 THE MISMATCH: the uniqueness key is (client, kind, DAY) while the fact reported is
     // WEEKLY. Monday, Tuesday and Wednesday each composed a byte-identical sentence, each
     // passed the per-day index, and each posted. Three "news" messages, one piece of news.
     expect(DELIVER).toContain(".eq('sources->>kind', BRIEF_KIND)")
-    expect(DELIVER).toMatch(/lastBrief[\s\S]{0,120}?\.content === text[\s\S]{0,160}?status: 'skipped'/)
+    expect(DELIVER).toMatch(/briefIsRepeat\([\s\S]{0,120}?status: 'skipped'/)
+    // 🛑 AND IT IS NOT GLOBAL CONTENT-ONLY. That shape suppresses a truthful later week
+    // forever — the defect GPT's review caught in my first cut.
+    expect(DELIVER, 'the dedupe compares content with no period window')
+      .not.toMatch(/\.content === text/)
   })
 
   it('the per-day index is still the race guarantee — this is a test in front of it', () => {

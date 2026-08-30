@@ -11,3 +11,4 @@ export * from './run-outcome-banner'
 // Exported so the API and admin share one curve; the legacy money constants above remain
 // the LIVE model and the two may never import each other (programme-legacy-fence.test.ts).
 export * from './programme-pricing'
+export * from './programme-stage'

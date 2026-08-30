@@ -154,10 +154,15 @@ export function MillaShell({ children }: { children: React.ReactNode }) {
         {/* rail */}
         <aside className="w-[260px] shrink-0 border-r border-[#eee7f7] bg-[#fdfcff] flex flex-col px-3 py-4 overflow-y-auto">
           <nav>
-            {link('/milla', 'New leads', Sparkles, isLeads, s?.leads_awaiting || undefined)}
+            {/* ⚑ 30 Aug (BUILD-004A, founder ruling 1) — "New leads" IS now HOME.
+                It was the per-lead approval desk, badged with `leads_awaiting`, and the
+                programme model has no per-lead approval — so the badge is gone with it. The
+                route is unchanged: /milla was always the landing page, and it is now the
+                conversational programme home. */}
+            {link('/milla', 'Home', Sparkles, isLeads)}
             {link('/milla/pipeline', 'Pipeline', Workflow, pathname.startsWith('/milla/pipeline'))}
             {link('/milla/meetings', 'Meetings', CalendarCheck, pathname.startsWith('/milla/meetings'), s?.meetings_booked || undefined)}
-            {link('/milla/campaign', 'My campaign', Target, pathname.startsWith('/milla/campaign'))}
+            {link('/milla/programme', 'Programme', Target, pathname.startsWith('/milla/programme'))}
             {/* #644 — THE RAIL HAD NO WAY TO REACH A REPLY. The client could see that a
                 prospect had replied (the Recent replies list below) and could not open it:
                 that list was plain text, and no rail entry led anywhere near the inbox. The
@@ -192,7 +197,7 @@ export function MillaShell({ children }: { children: React.ReactNode }) {
               </Link>
             ))}
           </div>
-          <div className="mt-auto pt-4 text-[12px] text-[#b3a9cc] px-2 leading-relaxed">We run your outbound. You just approve the leads worth pursuing.</div>
+          <div className="mt-auto pt-4 text-[12px] text-[#b3a9cc] px-2 leading-relaxed">Tell Milla the outcome. We’ll do the work.</div>
         </aside>
         <main className="flex-1 overflow-hidden">{children}</main>
       </div>

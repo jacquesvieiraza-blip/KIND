@@ -479,12 +479,22 @@ millaRouter.post('/chat', async (req: AuthRequest, res) => {
     } catch (e) {
       console.error('[milla/chat stateless] snapshot lookup failed — answering without live numbers', e)
     }
+    // ⚑ 30 Aug (BUILD-004A-2) — HER PROGRAMME TRUTH, from the SAME reader the workspace
+    // uses. Fail-soft in its own right: `null` tells her she cannot see it, which is very
+    // different from telling a paying client they have no programme.
+    let programme = null as import('../lib/customer-programme').CustomerProgramme | null
+    try {
+      const { readCustomerProgramme } = await import('../lib/customer-programme')
+      programme = await readCustomerProgramme(access.clientId)
+    } catch (e) {
+      console.error('[milla/chat stateless] programme lookup failed — answering without it', e)
+    }
     const { buildMillaChatSystem } = await import('../lib/milla-chat-system')
 
     const response = await anthropic.messages.create({
       model: 'claude-haiku-4-5-20251001',
       max_tokens: 600,
-      system: buildMillaChatSystem(snapshot),
+      system: buildMillaChatSystem(snapshot, programme),
       messages,
     })
 

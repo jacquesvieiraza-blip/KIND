@@ -38,7 +38,11 @@ import { useEffect, useState } from 'react'
 import { api } from '@/lib/api'
 import { createClient } from '@/lib/supabase/client'
 import { MILLA_FAILURE_COPY } from '@kind/shared'
-import { programmeMoney, type CustomerProgramme } from '@/components/milla/ProgrammeWorkspace'
+import { type CustomerProgramme } from '@/components/milla/ProgrammeWorkspace'
+// ⛓️ 31 Aug — ONE MONEY MODULE. `halves` used to be defined in this file and
+// `programmeMoney` imported from the workspace; the split and the way it is written down
+// are one rule and now live together, where the suite can execute both.
+import { halves, programmeMoney } from '@/lib/programme-money'
 
 /** Stripe's own record, read-only. We issue nothing here and store no card. */
 type Invoice = {
@@ -54,18 +58,6 @@ type Invoice = {
 
 async function token(): Promise<string | undefined> {
   try { const { data } = await createClient().auth.getSession(); return data.session?.access_token } catch { return undefined }
-}
-
-/**
- * The two halves, derived — never typed, and never rounded apart.
- *
- * ⚠️ THE SECOND HALF IS THE REMAINDER, NOT A SECOND DIVISION. On an odd number of cents
- * `half + half` would be a cent short of the programme value, and a client who adds the two
- * figures on their own screen must get the total back.
- */
-function halves(totalCents: number): { first: number; second: number } {
-  const first = Math.floor(totalCents / 2)
-  return { first, second: totalCents - first }
 }
 
 export default function MillaBillingPage() {

@@ -99,9 +99,11 @@ describe('BILLING — PROGRAMME PAYMENTS, AND WHAT EACH AUTHORISES', () => {
     expect(BILLING).toContain("api.get<{ data: CustomerProgramme }>('/my/programme', tok)")
     expect(BILLING).toContain('programmeMoney(p.money.totalCents)')
     // 🛑 DERIVED, NEVER TYPED. A hardcoded figure on a payment screen is the 3-Aug bug.
-    expect(BILLING).toContain('function halves(totalCents: number)')
-    expect(BILLING, 'the second half is a fresh division rather than the remainder')
-      .toContain('return { first, second: totalCents - first }')
+    // ⛓️ 31 Aug — THE SPLIT MOVED TO `@/lib/programme-money` so the suite could execute it.
+    // The rule is asserted by RUNNING it in the reconciliation block above; here we only pin
+    // that Billing still uses the shared one rather than growing a second copy.
+    expect(BILLING).toContain("import { halves, programmeMoney } from '@/lib/programme-money'")
+    expect(BILLING, 'Billing declared its own split again').not.toContain('function halves(')
     expect(BILLING, 'a price figure is hardcoded on the billing page').not.toMatch(/\$\s?\d/)
   })
 
@@ -210,6 +212,95 @@ describe('USAGE — PROGRAMME DELIVERY, NOT A SECOND BILLING PAGE', () => {
 
   it('a failed programme read renders the locked sentence', () => {
     expect(USAGE).toContain('MILLA_FAILURE_COPY.pipelineFailed')
+  })
+})
+
+// ════════════════════════════════════════════════════════════════════════════════════════
+// 🛑 THE MONEY RECONCILES ON SCREEN — AND THIS GUARD RUNS THE ARITHMETIC.
+//
+// FOUND LIVE ON MBF HOLDINGS. A $4,375 programme rendered "Programme value $4,375", "Payment
+// 1 $2,188", "Payment 2 $2,188" — two halves adding to $4,376. Nothing stored or computed was
+// wrong: `halves(437500)` returns 218750 + 218750, exactly $2,187.50 each. The FORMATTER
+// rounded each half independently to whole dollars, and two half-cent roundings in the same
+// direction put a dollar on a payment screen that nobody is charging.
+//
+// ⚠️ EVERY OTHER GUARD IN THIS FILE READS SOURCE AS A STRING, AND NOT ONE OF THEM COULD HAVE
+// SEEN THIS. The formatter's source was unremarkable; the defect was arithmetic. So this block
+// imports the real module and RUNS it — which is why `programmeMoney` and `halves` were moved
+// into a plain module a suite can execute instead of living inside a JSX component.
+describe('🛑 THE DISPLAYED HALVES RECONCILE TO THE DISPLAYED TOTAL', () => {
+  /** Read a rendered figure back to cents, the way a client reading the screen would. */
+  const toCents = (s: string) => Math.round(Number(s.replace(/[$,]/g, '')) * 100)
+
+  it('the module is the real one, not a copy that could drift', async () => {
+    const mod = await import('../../../portal/src/lib/programme-money')
+    expect(typeof mod.programmeMoney).toBe('function')
+    expect(typeof mod.halves).toBe('function')
+    // The two surfaces render it, so a fix here reaches both.
+    expect(BILLING).toContain("from '@/lib/programme-money'")
+    const ws = strip(readFileSync(join(PORTAL, 'components/milla/ProgrammeWorkspace.tsx'), 'utf8'))
+    expect(ws).toContain("from '@/lib/programme-money'")
+  })
+
+  it('🛑 $4,375 — the founder\'s live case — reconciles exactly', async () => {
+    const { programmeMoney, halves } = await import('../../../portal/src/lib/programme-money')
+    const total = 437_500
+    const { first, second } = halves(total)
+    // The underlying split was never wrong.
+    expect(first + second, 'the split itself lost money').toBe(total)
+    expect(first).toBe(218_750)
+    expect(second).toBe(218_750)
+    // 🛑 AND NOW WHAT THE CLIENT READS ADDS UP. This is the assertion the live screen failed:
+    // it displayed $2,188 + $2,188 = $4,376 against a $4,375 total.
+    expect(programmeMoney(first)).toBe('$2,187.50')
+    expect(programmeMoney(second)).toBe('$2,187.50')
+    expect(programmeMoney(total)).toBe('$4,375')
+    expect(
+      toCents(programmeMoney(first)) + toCents(programmeMoney(second)),
+      'the two DISPLAYED halves do not add up to the DISPLAYED programme value',
+    ).toBe(toCents(programmeMoney(total)))
+  })
+
+  it('and neither half is falsely rounded', async () => {
+    const { programmeMoney, halves } = await import('../../../portal/src/lib/programme-money')
+    const { first, second } = halves(437_500)
+    for (const [label, cents] of [['Payment 1', first], ['Payment 2', second]] as const) {
+      expect(toCents(programmeMoney(cents)), `${label} is displayed as a different amount than it is`)
+        .toBe(cents)
+    }
+  })
+
+  it('every total reconciles on screen — odd, even, and awkward', async () => {
+    const { programmeMoney, halves } = await import('../../../portal/src/lib/programme-money')
+    // ⚠️ SWEPT, NOT SAMPLED. A single fixture proves one number; the rule is about all of them.
+    for (const total of [437_500, 480_000, 100_000, 33_333, 1, 2, 99, 101, 999_999]) {
+      const { first, second } = halves(total)
+      expect(first + second, `the split lost money at ${total}`).toBe(total)
+      expect(
+        toCents(programmeMoney(first)) + toCents(programmeMoney(second)),
+        `the displayed halves do not reconcile at ${total} cents`,
+      ).toBe(toCents(programmeMoney(total)))
+    }
+  })
+
+  it('whole-dollar amounts are NOT given cosmetic cents', async () => {
+    // "Always two decimals" would also have reconciled — and would have changed every screen
+    // that was already telling the truth. The narrowest fix moves only what was wrong.
+    const { programmeMoney } = await import('../../../portal/src/lib/programme-money')
+    expect(programmeMoney(480_000)).toBe('$4,800')
+    expect(programmeMoney(240_000)).toBe('$2,400')
+    expect(programmeMoney(0)).toBe('$0')
+  })
+
+  it('the split was not altered for presentation', async () => {
+    // The founder's rule: fix the display, do not touch the money model. `halves` still takes
+    // the floor and gives the remainder to the second payment, exactly as before.
+    const src = readFileSync(join(PORTAL, 'lib/programme-money.ts'), 'utf8')
+    expect(src).toContain('const first = Math.floor(totalCents / 2)')
+    expect(src).toContain('return { first, second: totalCents - first }')
+    // And no rounding crept into the split itself.
+    expect(src, 'the split now rounds — presentation leaked into the money model')
+      .not.toMatch(/first = Math\.round/)
   })
 })
 

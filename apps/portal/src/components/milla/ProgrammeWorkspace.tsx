@@ -36,8 +36,15 @@ export type CustomerProgramme = {
   wentLiveAt: string | null
 }
 
-export const programmeMoney = (cents: number) =>
-  `$${(cents / 100).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
+// ⛓️ 31 Aug (BUILD-004A-2B live walk) — MOVED TO `@/lib/programme-money`, AND FIXED THERE.
+// This formatter rounded to whole dollars, so a $4,375 programme showed two halves of
+// "$2,188" that add up to $4,376. Re-exported rather than relocated-and-renamed so every
+// existing importer is untouched; the rule now lives in a plain module the suite can RUN,
+// because a rounding defect cannot be caught by reading source as a string.
+// ⚠️ IMPORTED **AND** RE-EXPORTED. A bare `export … from` re-exports without binding the
+// name locally, and this component calls `programmeMoney` itself — tsc caught it at once.
+import { programmeMoney } from '@/lib/programme-money'
+export { programmeMoney }
 
 /**
  * What Milla needs next, derived from the stage.

@@ -1,34 +1,32 @@
 'use client'
 
 // ═══════════════════════════════════════════════════════════════════════════════════════
-// PERFORMANCE — MILLA-NATIVE. THE PROGRAMME AGAINST ITS TARGET.
+// PERFORMANCE — MILLA-NATIVE. THE PROGRAMME AGAINST WHAT IT WAS BOUGHT TO DELIVER.
 //
-// ⚑ 31 Aug (BUILD-004A-2C). This file WAS a 13-line wrapper around
-// `(dashboard)/dashboard/kpis/page.tsx` — 908 lines of the old portal's campaign KPI screen,
-// which is a separately-routed live product and cannot be edited here.
+// ⚑ 31 Aug — VISUAL RECOVERY. My first cut was one card and a sentence. The founder:
+// *"This feels very shallow. It is very flat."* He is right, and the error was specific: I
+// removed the BenchmarkRow COMPONENT because the `industryAvg={0.071}` fed into it was
+// invented. The bar was never the lie — the constant was.
 //
-// 🛑 WHAT CAME WITH IT, AND WHY IT IS NOT REBUILT. That screen's centrepiece is a
-// BenchmarkRow set — reply rate against `industryAvg={0.071}`, open rate against `{0.42}`,
-// interested rate against `{0.020}` — hardcoded constants presented beside a client's own
-// numbers as though we had measured an industry. They are planning figures. Printed as a
-// comparison on a customer's performance page they become a claim about how they are doing
-// against everybody else, which nothing in this product can support.
+// So the presentation is back: hero card, icon tiles, progress bars, the stage rail, the
+// gradient panel. All of it lifted from the old `(dashboard)/kpis` and `/roi` screens.
+// ⚠️ WHAT IS NOT BACK: any benchmark input. `ProgressBar` cannot take one — it draws a ratio
+// of two real numbers, so there is nowhere for a made-up comparison to enter.
 //
-// ⚠️ SO PERFORMANCE ANSWERS ONE QUESTION HONESTLY: how is this programme doing against the
-// target it was bought to hit. Delivered against authorised, meetings against target. No
-// score, no grade, no index, no benchmark — and no revenue.
-//
-// ⚠️ PROGRESS IS ARITHMETIC ON TWO REAL NUMBERS, never a projection. "N of M" is a fact;
-// "on track" would be a forecast, and this page makes none.
+// ⚠️ AND NOTHING CLAIMS OUTREACH IT HAS NOT DONE. At Recommendation this page is genuinely
+// rich — target, stage rail, sourcing authorisation — while stating plainly that sending has
+// not begun. Rich and honest are not in tension; treating them as though they were is what
+// produced the flat version.
 // ═══════════════════════════════════════════════════════════════════════════════════════
 
 import { useEffect, useState } from 'react'
 import { api } from '@/lib/api'
 import { createClient } from '@/lib/supabase/client'
-import { MILLA_FAILURE_COPY } from '@kind/shared'
+import { MILLA_FAILURE_COPY, MILLA_STAGES } from '@kind/shared'
 import { type CustomerProgramme } from '@/components/milla/ProgrammeWorkspace'
-import { ProgrammeStat, ProgrammeHeader } from '@/components/milla/ProgrammeStat'
-import { outreachHasRun, sourcingHasRun } from '@/lib/programme-report'
+import { ValueCard, ProgressBar, Panel, StageRail, PreLiveState, ProgrammeHeader } from '@/components/milla/ProgrammeStat'
+import { outreachHasRun } from '@/lib/programme-report'
+import { Target, CalendarCheck, MessageSquare, Users } from 'lucide-react'
 
 type Outcomes = { replies_total: number; meetings_total: number; meetings_booked: number }
 
@@ -59,9 +57,11 @@ export default function MillaPerformancePage() {
     })()
   }, [])
 
+  const live = !!p && outreachHasRun(p.stage)
+
   return (
     <div className="h-full overflow-y-auto px-6 py-6">
-      <div className="max-w-3xl">
+      <div className="max-w-4xl">
         <ProgrammeHeader title="Performance" sub="How your programme is doing against what it set out to deliver." />
 
         {loading && <p className="text-sm text-[#9b8ec4] mt-4">Loading your programme…</p>}
@@ -73,59 +73,86 @@ export default function MillaPerformancePage() {
 
         {p && (
           <>
-            <div className="mt-4 bg-white border border-[#eee7f7] rounded-2xl px-5 py-4">
-              <div className="text-[11.5px] uppercase tracking-wide text-[#9b8ec4] font-bold mb-1.5">Programme</div>
-              <div className="text-[15px] font-extrabold text-[#1f1235]">
-                {p.stage}{p.paused ? ' · paused' : ''}
-              </div>
-              <div className="text-[12.5px] text-[#6b5f8c] mt-0.5">
-                {p.outcome.target ? `${p.outcome.target} booked meetings` : 'No target is set yet'}
-              </div>
-              {p.paused && p.pausedCopy && (
-                <p className="text-[12.5px] text-[#b45309] mt-2">{p.pausedCopy}</p>
-              )}
+            {/* ── THE HEADLINE GRID. Hero = the outcome they bought. */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-5">
+              <ValueCard
+                hero
+                label="Booked meetings targeted"
+                value={p.outcome.target}
+                sub={p.outcome.target ? `${p.stage}${p.paused ? ' · paused' : ''}` : 'No target is set yet'}
+                icon={<Target className="w-6 h-6" />}
+              />
+              <ValueCard
+                label="Meetings booked"
+                value={p.progress.outcomesAchieved}
+                sub={p.progress.outcomesAchieved === null ? 'not available right now' : 'on this programme'}
+                icon={<CalendarCheck className="w-4.5 h-4.5" />}
+                tone="emerald"
+              />
+              <ValueCard
+                label="People sourced"
+                value={p.progress.authorised > 0 ? p.progress.delivered : null}
+                sub={p.progress.authorised > 0 ? `of ${p.progress.authorised.toLocaleString()} authorised` : 'sourcing not authorised yet'}
+                icon={<Users className="w-4.5 h-4.5" />}
+              />
             </div>
 
-            {/* ⚠️ MEETINGS AGAINST THE TARGET — the only "performance" this product can state,
-                and only when BOTH halves are real. A target with no achieved count, or an
-                achieved count with no target, is not a ratio. */}
-            {p.outcome.target && p.progress.outcomesAchieved !== null && (
-              <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                <ProgrammeStat
-                  v={`${p.progress.outcomesAchieved} of ${p.outcome.target}`}
-                  k="Meetings booked against target"
-                />
+            {/* ── WHERE THE PROGRAMME IS, DRAWN. The seven approved stages. */}
+            <div className="mt-4">
+              <Panel title="Programme" chip={p.paused ? 'Paused' : p.reviewOpen ? 'Review open' : undefined}>
+                <StageRail stages={MILLA_STAGES} current={p.stage} />
+                {p.paused && p.pausedCopy && (
+                  <p className="text-[12.5px] text-[#b45309] mt-3">{p.pausedCopy}</p>
+                )}
+              </Panel>
+            </div>
+
+            {/* ── PROGRESS BARS — ratios of two real numbers, no benchmark input. */}
+            {(p.outcome.target || p.progress.authorised > 0) && (
+              <div className="mt-4 rounded-2xl border border-purple-100/60 bg-white p-6 space-y-4">
+                <p className="text-xs font-semibold text-[#9B8EC4] uppercase tracking-wider">Progress</p>
+                {p.outcome.target && p.progress.outcomesAchieved !== null && (
+                  <ProgressBar
+                    label="Meetings booked against target"
+                    value={p.progress.outcomesAchieved}
+                    max={p.outcome.target}
+                    color="bg-emerald-500"
+                  />
+                )}
                 {p.progress.authorised > 0 && (
-                  <ProgrammeStat
-                    v={`${p.progress.delivered.toLocaleString()} of ${p.progress.authorised.toLocaleString()}`}
-                    k="People sourced of authorised"
+                  <ProgressBar
+                    label="People sourced of authorised"
+                    value={p.progress.delivered}
+                    max={p.progress.authorised}
                   />
                 )}
               </div>
             )}
 
-            {/* Sourcing on its own, when there is no target to measure meetings against. */}
-            {!p.outcome.target && sourcingHasRun(p.stage) && p.progress.authorised > 0 && (
-              <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                <ProgrammeStat
-                  v={`${p.progress.delivered.toLocaleString()} of ${p.progress.authorised.toLocaleString()}`}
-                  k="People sourced of authorised"
+            {/* ── OUTREACH — real once it has run; an intentional pre-live state before. */}
+            <div className="mt-4">
+              {live ? (
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <ValueCard
+                    label="Replies, all time"
+                    value={o === null ? null : o.replies_total}
+                    icon={<MessageSquare className="w-4.5 h-4.5" />}
+                    tone="amber"
+                  />
+                  <ValueCard
+                    label="Meetings, all time"
+                    value={o === null ? null : o.meetings_total}
+                    icon={<CalendarCheck className="w-4.5 h-4.5" />}
+                    tone="emerald"
+                  />
+                </div>
+              ) : (
+                <PreLiveState
+                  what="Outreach starts once the programme is approved and the second payment lands. From then on this is where its performance appears."
+                  measures={['Replies', 'Meetings booked', 'Outreach activity', 'Progress against target']}
                 />
-              </div>
-            )}
-
-            {outreachHasRun(p.stage) && (
-              <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                <ProgrammeStat v={o === null ? null : o.replies_total} k="Replies, all time" />
-                <ProgrammeStat v={o === null ? null : o.meetings_total} k="Meetings, all time" />
-              </div>
-            )}
-
-            {!outreachHasRun(p.stage) && (
-              <p className="mt-3 text-[12.5px] text-[#9b8ec4]">
-                Outreach has not started, so there is no sending performance to show yet.
-              </p>
-            )}
+              )}
+            </div>
           </>
         )}
       </div>

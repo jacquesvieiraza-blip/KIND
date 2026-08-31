@@ -1,36 +1,36 @@
 'use client'
 
 // ═══════════════════════════════════════════════════════════════════════════════════════
-// ANALYTICS — MILLA-NATIVE. THE PROGRAMME'S OWN SHAPE, AND ONLY WHAT IS MEASURED.
+// ANALYTICS — MILLA-NATIVE. WHAT IS MEASURED, DRAWN PROPERLY.
 //
-// ⚑ 31 Aug (BUILD-004A-2C). This file WAS a 13-line wrapper around
-// `(dashboard)/dashboard/analytics/page.tsx` — 568 lines of the old portal's campaign
-// analytics, a separately-routed live product that cannot be edited here.
+// ⚑ 31 Aug — VISUAL RECOVERY. The flat version collapsed this page to two cards and a
+// sentence. The founder was right that it reads as a stripped admin screen.
 //
-// 🛑 EVERY CHART ON THAT SCREEN WAS TRACED INDIVIDUALLY (the table is in the PR). Three
-// findings decided this page:
+// 🛑 THE DISTINCTION I GOT WRONG THE FIRST TIME. The old page's charts were a mix:
+//   · the leads/replies bar strip — a REAL chart of real counts, good design
+//   · open rate — a permanently blank card, because it is not tracked on cold email
+//   · leads-by-ICP bars — real counts, but of the leads table rather than a programme
+//   · a reply rate whose denominator no customer route can produce truthfully
+// I deleted all four. Only the last three were lies; the FIRST was the presentation itself.
 //
-//   · OPEN RATE is not measured on cold email. The old screen knows this — it carries a
-//     `trackingOff` flag and renders `null` — but the card survives as a permanent blank
-//     beside real numbers, which reads as "zero opens" rather than "not tracked".
-//   · The LEADS-BY-ICP and INDUSTRY bars are real counts, but they are counts of the LEADS
-//     TABLE, not of a programme. For a programme client they describe a different object.
-//   · An invented unsubscribe count (`replies * 0.05`) was removed from that file back in
-//     #406 — the same class of defect, caught once already on the same screen.
+// ⚠️ SO THE BAR TREATMENT IS BACK — the same `h-2.5 bg-gray-100 rounded-full` strip — drawing
+// the funnel this programme genuinely has: sourced → replies → meetings, each a counted row.
+// ⚠️ AND THE THREE FALSEHOODS STAY OUT. No open rate, no reply rate without a real
+// denominator, no benchmark, no leads-table chart wearing a programme's name.
 //
-// ⚠️ SO NOTHING IS REBUILT SPECULATIVELY. What survives is what is genuinely counted for THIS
-// client and belongs to THIS programme. Where a chart had no truthful source it is not
-// rendered, and the gap is reported rather than filled — a chart is a claim, and a
-// good-looking one with no source is the most persuasive kind of lie this product can tell.
+// ⚠️ THE PRE-LIVE STATE IS DESIGNED, NOT EMPTY. Before outreach the panel stays and names
+// what this area will measure — without a single zero, because "0 replies" reads as failure
+// when the truth is that sending has not been authorised.
 // ═══════════════════════════════════════════════════════════════════════════════════════
 
 import { useEffect, useState } from 'react'
 import { api } from '@/lib/api'
 import { createClient } from '@/lib/supabase/client'
-import { MILLA_FAILURE_COPY } from '@kind/shared'
+import { MILLA_FAILURE_COPY, MILLA_STAGES } from '@kind/shared'
 import { type CustomerProgramme } from '@/components/milla/ProgrammeWorkspace'
-import { ProgrammeStat, ProgrammeHeader } from '@/components/milla/ProgrammeStat'
+import { ValueCard, ProgressBar, Panel, StageRail, PreLiveState, ProgrammeHeader } from '@/components/milla/ProgrammeStat'
 import { outreachHasRun } from '@/lib/programme-report'
+import { Users, MessageSquare, CalendarCheck } from 'lucide-react'
 
 type Outcomes = { replies_total: number; meetings_total: number; meetings_booked: number }
 
@@ -61,13 +61,11 @@ export default function MillaAnalyticsPage() {
     })()
   }, [])
 
-  /** A proportion of two REAL counts. Never rendered when the denominator is not real. */
-  const share = (part: number, whole: number) =>
-    whole > 0 ? `${Math.round((part / whole) * 100)}%` : null
+  const live = !!p && outreachHasRun(p.stage)
 
   return (
     <div className="h-full overflow-y-auto px-6 py-6">
-      <div className="max-w-3xl">
+      <div className="max-w-4xl">
         <ProgrammeHeader title="Analytics" sub="What has been measured on your programme." />
 
         {loading && <p className="text-sm text-[#9b8ec4] mt-4">Loading your programme…</p>}
@@ -79,44 +77,68 @@ export default function MillaAnalyticsPage() {
 
         {p && (
           <>
-            {/* ── SOURCING SHARE — two numbers off the programme row, and their ratio.
-                ⚠️ NOT A "COMPLETION" FIGURE. It is delivered against what was authorised, and
-                it says nothing about whether the outcome will be hit. */}
-            {p.progress.authorised > 0 && (
-              <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                <ProgrammeStat
-                  v={p.progress.delivered}
-                  k={`People sourced of ${p.progress.authorised.toLocaleString()} authorised`}
-                />
-                <ProgrammeStat
-                  v={share(p.progress.delivered, p.progress.authorised)}
-                  k="Of the sourcing authorised so far"
-                />
-              </div>
-            )}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-5">
+              <ValueCard
+                hero
+                label="People sourced"
+                value={p.progress.authorised > 0 ? p.progress.delivered : null}
+                sub={p.progress.authorised > 0
+                  ? `of ${p.progress.authorised.toLocaleString()} authorised for this programme`
+                  : 'sourcing not authorised yet'}
+                icon={<Users className="w-6 h-6" />}
+              />
+              <ValueCard
+                label="Replies"
+                value={live ? (o === null ? null : o.replies_total) : null}
+                sub={live ? 'all time' : 'once outreach starts'}
+                icon={<MessageSquare className="w-4.5 h-4.5" />}
+                tone="amber"
+              />
+              <ValueCard
+                label="Meetings booked"
+                value={p.progress.outcomesAchieved}
+                sub={p.progress.outcomesAchieved === null ? 'not available right now' : 'on this programme'}
+                icon={<CalendarCheck className="w-4.5 h-4.5" />}
+                tone="emerald"
+              />
+            </div>
 
-            {/* ── WHAT OUTREACH PRODUCED. Counts only, and only once outreach has run.
-                🛑 NO REPLY RATE. A rate needs a denominator of MESSAGES SENT, and no
-                client-scoped sent count reaches these routes that is not gated on the retired
-                paid approve — so the rate the old screen showed cannot be reproduced
-                truthfully here. Reported rather than approximated. */}
-            {outreachHasRun(p.stage) ? (
-              <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                <ProgrammeStat v={o === null ? null : o.replies_total} k="Replies, all time" />
-                <ProgrammeStat v={o === null ? null : o.meetings_total} k="Meetings, all time" />
-                <ProgrammeStat
-                  v={o === null ? null : o.meetings_booked}
-                  k="Meetings booked this month"
-                />
-                <ProgrammeStat
-                  v={p.progress.outcomesAchieved}
-                  k={p.progress.outcomesAchieved === null ? 'Meetings — not available right now' : 'Meetings on this programme'}
-                />
+            <div className="mt-4">
+              <Panel title="Programme" chip={p.paused ? 'Paused' : undefined}>
+                <StageRail stages={MILLA_STAGES} current={p.stage} />
+              </Panel>
+            </div>
+
+            {/* ── THE FUNNEL, DRAWN. The bar treatment from the old page, on counted rows.
+                ⚠️ EACH BAR IS A COUNT AGAINST THE SAME REAL DENOMINATOR — people sourced —
+                so the widths are comparable and no rate is invented to produce them. */}
+            {live ? (
+              <div className="mt-4 rounded-2xl border border-purple-100/60 bg-white p-6 space-y-4">
+                <p className="text-xs font-semibold text-[#9B8EC4] uppercase tracking-wider">
+                  From sourced to booked
+                </p>
+                {p.progress.authorised > 0 && (
+                  <ProgressBar label="People sourced" value={p.progress.delivered} max={p.progress.authorised} />
+                )}
+                {o !== null && p.progress.delivered > 0 && (
+                  <ProgressBar label="Replies" value={o.replies_total} max={p.progress.delivered} color="bg-amber-400" />
+                )}
+                {p.progress.outcomesAchieved !== null && p.progress.delivered > 0 && (
+                  <ProgressBar
+                    label="Meetings booked"
+                    value={p.progress.outcomesAchieved}
+                    max={p.progress.delivered}
+                    color="bg-emerald-500"
+                  />
+                )}
               </div>
             ) : (
-              <p className="mt-3 text-[12.5px] text-[#9b8ec4]">
-                Outreach has not started, so there is nothing measured from sending yet.
-              </p>
+              <div className="mt-4">
+                <PreLiveState
+                  what="Nothing has been sent yet, so there is nothing measured from outreach. Once the programme goes live this is what this page will track."
+                  measures={['People contacted', 'Replies', 'Meetings booked', 'Activity over time']}
+                />
+              </div>
             )}
           </>
         )}

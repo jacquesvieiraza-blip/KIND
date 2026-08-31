@@ -1,45 +1,35 @@
 'use client'
 
 // ═══════════════════════════════════════════════════════════════════════════════════════
-// YOUR ROI — MILLA-NATIVE. WHAT WE DID, WHAT IT COST, AND WHY WE DO NOT CLAIM A RETURN.
+// YOUR ROI — MILLA-NATIVE. WHAT WE DELIVERED, WHAT IT COST, AND THE ONE THING WE CANNOT SAY.
 //
-// ⚑ 31 Aug (BUILD-004A-2C). This file WAS a 13-line wrapper around
-// `(dashboard)/dashboard/roi/page.tsx`, the old portal's "What K.I.N.D did for you" screen.
+// ⚑ 31 Aug — VISUAL RECOVERY. The founder's brief puts it exactly right: *"The fact that ROI
+// cannot yet be calculated should be a WELL-DESIGNED state, not the reason the entire page
+// becomes flat."* My first cut made the absence of a number into the absence of a page.
 //
-// 🛑 THE FINDING OF THIS SLICE, AND IT WAS THE HERO CARD. That page led with
-// "Pipeline value touched", a dollar figure from `/leads/stats.pipeline_value_usd`, which is
+// 🛑 THE FINDING FROM #1620 STANDS AND IS UNCHANGED. The old hero card, "Pipeline value
+// touched", came from `SUM(leads.estimated_deal_value_usd)`, written at `lib/scoring.ts:221`
+// as `r.score * 100` — a fit score times a hundred, printed as money. That number is still
+// gone, and its writer is PARKED as a separate defect by founder decision.
 //
-//     SUM(leads.estimated_deal_value_usd)
+// ⚠️ WHAT COMES BACK IS THE CARD, NOT THE NUMBER. The hero ValueCard now holds the programme
+// value, which is real and sits on the programme row. Same treatment, honest input — which is
+// the whole lesson of this repair: the component was never the lie.
 //
-// and that column is written in exactly one place — `apps/api/src/lib/scoring.ts:221`:
-//
-//     estimated_deal_value_usd: r.score * 100
-//
-// The lead's FIT SCORE multiplied by one hundred. A prospect scored 85 became "$8,500 of
-// pipeline value". Summed across a client's leads and printed as the headline of the page
-// that exists to tell them what they got for their money. It measures nothing. It is the
-// scoring model wearing a currency symbol.
-//
-// ⚠️ SO THIS PAGE COMPUTES NO RETURN, AND SAYS WHY. A return needs what the work is worth to
-// THEM — deal value, close rate, revenue attributed to a meeting we booked — and the product
-// holds none of it. Nobody has ever asked a client what a meeting is worth, and no column
-// stores the answer.
-//
-// ⚠️ AND IT AGREES WITH MILLA. Asked about ROI on the House walk she correctly said she needs
-// a target outcome to measure against. A page claiming a return while she says she cannot
-// compute one is the product contradicting itself in front of the customer.
-//
-// WHAT IS SHOWN INSTEAD IS ALL TRUE: what the programme cost, and what it produced.
+// ⚠️ THE RETURN SECTION IS DESIGNED, NOT APOLOGETIC. It states what we know, what we do not,
+// and exactly which three numbers only the customer has — and it agrees with Milla, who
+// correctly told the founder she needs a target outcome to measure against.
 // ═══════════════════════════════════════════════════════════════════════════════════════
 
 import { useEffect, useState } from 'react'
 import { api } from '@/lib/api'
 import { createClient } from '@/lib/supabase/client'
-import { MILLA_FAILURE_COPY } from '@kind/shared'
+import { MILLA_FAILURE_COPY, MILLA_STAGES } from '@kind/shared'
 import { type CustomerProgramme } from '@/components/milla/ProgrammeWorkspace'
 import { programmeMoney } from '@/lib/programme-money'
-import { ProgrammeStat, ProgrammeHeader } from '@/components/milla/ProgrammeStat'
+import { ValueCard, ProgressBar, Panel, StageRail, ProgrammeHeader } from '@/components/milla/ProgrammeStat'
 import { canComputeRoi, ROI_MISSING_INPUTS, outreachHasRun } from '@/lib/programme-report'
+import { Gem, Target, CalendarCheck, MessageSquare, HelpCircle } from 'lucide-react'
 
 type Outcomes = { replies_total: number; meetings_total: number; meetings_booked: number }
 
@@ -70,9 +60,11 @@ export default function MillaRoiPage() {
     })()
   }, [])
 
+  const live = !!p && outreachHasRun(p.stage)
+
   return (
     <div className="h-full overflow-y-auto px-6 py-6">
-      <div className="max-w-3xl">
+      <div className="max-w-4xl">
         <ProgrammeHeader title="Your ROI" sub="What your programme cost, and what it has produced." />
 
         {loading && <p className="text-sm text-[#9b8ec4] mt-4">Loading your programme…</p>}
@@ -84,49 +76,96 @@ export default function MillaRoiPage() {
 
         {p && (
           <>
-            {/* ── WHAT IT COST — the programme price, straight off the row. */}
-            {p.money.totalCents > 0 && (
-              <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                <ProgrammeStat v={programmeMoney(p.money.totalCents)} k="Programme value" />
-                <ProgrammeStat
-                  v={p.outcome.target ? `${p.outcome.target}` : null}
-                  k={p.outcome.target ? 'Booked meetings targeted' : 'No target is set yet'}
+            {/* ── THE HEADLINE GRID. Hero = the programme's real price. */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-5">
+              <ValueCard
+                hero
+                label="Programme value"
+                value={p.money.totalCents > 0 ? programmeMoney(p.money.totalCents) : null}
+                sub={p.money.totalCents > 0
+                  ? `${p.money.firstPaidAt ? 'First 50% paid' : 'First 50% not yet paid'} · ${p.money.secondPaidAt ? 'second 50% paid' : 'second 50% not yet paid'}`
+                  : 'No programme price has been set yet'}
+                icon={<Gem className="w-6 h-6" />}
+              />
+              <ValueCard
+                label="Booked meetings targeted"
+                value={p.outcome.target}
+                sub={p.outcome.target ? 'the outcome you asked for' : 'no target is set yet'}
+                icon={<Target className="w-4.5 h-4.5" />}
+              />
+              <ValueCard
+                label="Meetings booked"
+                value={p.progress.outcomesAchieved}
+                sub={p.progress.outcomesAchieved === null ? 'not available right now' : 'delivered so far'}
+                icon={<CalendarCheck className="w-4.5 h-4.5" />}
+                tone="emerald"
+              />
+            </div>
+
+            <div className="mt-4">
+              <Panel title="Programme" chip={p.paused ? 'Paused' : undefined}>
+                <StageRail stages={MILLA_STAGES} current={p.stage} />
+                {p.outcome.target && p.progress.outcomesAchieved !== null && (
+                  <div className="mt-4">
+                    <ProgressBar
+                      label="Meetings booked against target"
+                      value={p.progress.outcomesAchieved}
+                      max={p.outcome.target}
+                      color="bg-emerald-500"
+                    />
+                  </div>
+                )}
+              </Panel>
+            </div>
+
+            {live && (
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4">
+                <ValueCard
+                  label="Replies, all time"
+                  value={o === null ? null : o.replies_total}
+                  icon={<MessageSquare className="w-4.5 h-4.5" />}
+                  tone="amber"
+                />
+                <ValueCard
+                  label="Meetings, all time"
+                  value={o === null ? null : o.meetings_total}
+                  icon={<CalendarCheck className="w-4.5 h-4.5" />}
+                  tone="emerald"
                 />
               </div>
             )}
 
-            {/* ── WHAT IT PRODUCED — counts, never converted into money. */}
-            {outreachHasRun(p.stage) && (
-              <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                <ProgrammeStat v={p.progress.outcomesAchieved} k="Meetings booked on this programme" />
-                <ProgrammeStat v={o === null ? null : o.replies_total} k="Replies, all time" />
-              </div>
-            )}
-
-            {/* ── 🛑 WHY THERE IS NO RETURN FIGURE HERE ────────────────────────────────
-                Stated plainly rather than implied by an absence, because a page called
-                "Your ROI" with no ROI on it needs to say why. It names what is missing
-                rather than apologising, and promises nothing about when it might exist. */}
+            {/* ── 🛑 THE RETURN SECTION — a designed state, not an apology.
+                The approved wording is unchanged; only its placement and treatment moved. */}
             {!canComputeRoi() && (
-              <div className="mt-3 bg-white border border-[#eee7f7] rounded-2xl px-5 py-4">
-                <div className="text-[11.5px] uppercase tracking-wide text-[#9b8ec4] font-bold mb-1.5">
-                  Return
+              <div className="mt-4 rounded-2xl border-2 border-[#7C3AED]/20 bg-[#F5F0FF] p-6">
+                <div className="flex items-start gap-4">
+                  <div className="w-12 h-12 rounded-2xl bg-[#7C3AED]/10 flex items-center justify-center shrink-0 text-[#7C3AED]">
+                    <HelpCircle className="w-6 h-6" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs font-semibold text-[#7C3AED] uppercase tracking-wider mb-1">
+                      Return
+                    </p>
+                    <p className="text-[13.5px] text-[#5c5279] leading-relaxed">
+                      We can show you what your programme cost and what it produced. We can&rsquo;t
+                      work out a return, because that depends on numbers only you have:
+                    </p>
+                    <div className="mt-3 grid gap-2 sm:grid-cols-3">
+                      {ROI_MISSING_INPUTS.map(x => (
+                        <div key={x} className="rounded-xl border border-[#7C3AED]/15 bg-white/70 px-3.5 py-2.5">
+                          <span className="text-[12.5px] text-[#5c5279]">{x}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <a
+                      href={`/milla?ask=${encodeURIComponent('How is my ROI looking?')}`}
+                      className="inline-flex items-center gap-1.5 mt-4 px-4 py-2 text-sm font-semibold text-white bg-[#7C3AED] hover:bg-[#6D28D9] rounded-xl transition-colors"
+                    >
+                      How is my ROI looking?
+                    </a>
+                  </div>
                 </div>
-                <p className="text-[13px] text-[#5c5279] leading-relaxed">
-                  We can show you what your programme cost and what it produced. We can&rsquo;t
-                  work out a return, because that depends on numbers only you have:
-                </p>
-                <ul className="mt-2 space-y-1">
-                  {ROI_MISSING_INPUTS.map(x => (
-                    <li key={x} className="text-[12.5px] text-[#9b8ec4]">· {x}</li>
-                  ))}
-                </ul>
-                <a
-                  href={`/milla?ask=${encodeURIComponent('How is my ROI looking?')}`}
-                  className="inline-block border border-[#ece5fb] rounded-xl px-4 py-2.5 text-[13.5px] font-bold text-[#5c5279] hover:bg-[#f6f1ff] transition-colors mt-3"
-                >
-                  How is my ROI looking?
-                </a>
               </div>
             )}
           </>

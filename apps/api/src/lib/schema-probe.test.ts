@@ -152,11 +152,18 @@ describe('the probe list is fixed, and covers what the doc asked', () => {
     // code reads and no migration created — every one silent, because supabase-js returns
     // { error } and the call sites read `.data ?? []`. `20260806_audit_columns` creates them;
     // these rows are how production is PROVEN to have converged rather than assumed to have.
+    // ⛓️ +3 on 31 Aug (BUILD-004A-2D): the notification-preference columns and the referral
+    // handoff marker, probed in the same commit that reads them. #383 is why they are here on
+    // day one rather than after a symptom — a column live code selects, registered in no
+    // runner, silently absent for 33 days while every screen looked fine.
     expect(PROBES.map(p => p.id).sort()).toEqual([
+      'clients.campaign_paused_emails_enabled',
       'clients.contact_email',
       'clients.last_low_credit_email_at',
       'clients.last_seen_at',
       'clients.leads_per_run',
+      'clients.referral_handoff_at',
+      'clients.weekly_digest_enabled',
       'figsy_sent_emails.client_id',
       'figsy_sent_emails.status',
       'leads.source',

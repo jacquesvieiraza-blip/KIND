@@ -170,6 +170,13 @@ clientRouter.patch('/me', async (req: AuthRequest, res) => {
       // R2 (#27): opt in/out of Milla's daily morning brief. Honoured by the
       // morning-brief cron (apps/api/src/routes/internal.ts).
       daily_brief_enabled: z.boolean().optional(),
+      // ⚑ 31 Aug (BUILD-004A-2D, founder decision D1) — the two switches that were labelled
+      // "Soon" while their crons sent every week. They are preferences the SERVER has to read,
+      // so they cannot live in localStorage the way the other panel rows did: the thing that
+      // must obey them is a cron, and a cron cannot open a browser. Honoured at the send site
+      // in `internal.ts` via `mayNotify` (`lib/programme-notifications.ts`).
+      campaign_paused_emails_enabled: z.boolean().optional(),
+      weekly_digest_enabled:          z.boolean().optional(),
     }).parse(req.body)
     // Upsert: creates the row if none exists (partner accounts have no client row by default)
     const { data, error } = await db.from('clients')

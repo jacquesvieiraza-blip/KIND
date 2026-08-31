@@ -394,8 +394,27 @@ describe('ISOLATION — THIS SLICE CHANGED NOTHING OUTSIDE MILLA', () => {
     expect(home).toContain("'Please pause my programme'")
   })
 
-  it('no migration was added by this slice', () => {
+  // ⛓️ 31 Aug (BUILD-004A-2D) — REWRITTEN, BECAUSE THE ORIGINAL ASSERTED THE WRONG THING.
+  //
+  // It read `expect(pending).not.toContain('20260831')` — a DATE prefix. It was written to
+  // prove that the 4A-2B billing/usage slice had shipped without a schema change, and on the
+  // day it was written that was the same sentence. It is not: as soon as any later slice adds
+  // a migration dated 31 Aug, this goes red for a reason that has nothing to do with billing
+  // or usage. 4A-2D did exactly that (two notification columns and a referral handoff marker),
+  // and the guard fired at a change it was never meant to see.
+  //
+  // ⚠️ THE INTENT IS KEPT AND MADE LITERAL: no migration touches billing, usage, the wallet or
+  // the per-lead economics. That is what "this slice added no migration" was protecting, and
+  // unlike a date it stays true next month.
+  it('no migration touches billing, the wallet or the per-lead economics', () => {
     const pending = readFileSync(join(REPO, 'apps/api/src/lib/pending-migrations.ts'), 'utf8')
-    expect(pending).not.toContain('20260831')
+    const keys = (pending.match(/key:\s*'([^']+)'/g) ?? []).map(m => m.slice(m.indexOf("'") + 1, -1))
+    expect(keys.length).toBeGreaterThan(0)                       // vacuity
+    // ⚠️ SCOPED TO THE MILLA CUSTOMER-EXPERIENCE ARC (30 Aug onward). The money model has its
+    // own history — `20260726_wallet_tx_types` is a July migration and is not what this guard
+    // is about. What it protects is that no MILLA slice quietly reshapes billing.
+    const mine = keys.filter(k => /^2026(083[01]|09)/.test(k))
+    const offenders = mine.filter(k => /billing|wallet|usage|credit|lead_price|pack/i.test(k))
+    expect(offenders, `a Milla slice migrated the money model: ${offenders.join(', ')}`).toEqual([])
   })
 })

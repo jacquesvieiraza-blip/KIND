@@ -534,6 +534,16 @@ alter table public.clients
   add column if not exists onboarding_version               int NOT NULL DEFAULT 1,
   add column if not exists plan                             text NOT NULL DEFAULT 'lead_gen',  -- CHECK constraint lives in 20260616_billing_correctness.sql
   add column if not exists referral_bonus_paid_at           timestamptz,
+  -- BUILD-004A-2D (31 Aug) — mirrors 20260831_notification_prefs_and_referral_handoff.
+  -- NULLABLE WITH NO DEFAULT, unlike daily_brief_enabled above: null means "never chose",
+  -- which the send paths read as "keep doing what we do today". A DEFAULT here would stamp
+  -- every historic row with a preference nobody made (#599).
+  add column if not exists campaign_paused_emails_enabled   boolean,
+  add column if not exists weekly_digest_enabled            boolean,
+  -- The automatic $45 referral bonus is retired (D2); referrals are handled by a human. This
+  -- marks that one was RAISED, and is deliberately NOT referral_bonus_paid_at, which the
+  -- refund claw-back reads to reverse money that was actually paid.
+  add column if not exists referral_handoff_at              timestamptz,
   add column if not exists referred_by                      uuid REFERENCES public.clients(id) ON DELETE SET NULL,
   add column if not exists seat_accepted_at                 timestamptz,
   add column if not exists seat_active                      boolean not null default true,

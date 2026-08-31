@@ -63,9 +63,15 @@ export function canComputeRoi(): false {
   return false
 }
 
-/** Inputs a real return would need. Kept as a list so "we don't have it" is specific. */
+/**
+ * Inputs a real return would need. Kept as a list so "we don't have it" is specific.
+ *
+ * ⛓️ 31 Aug — "worth to THEM" → "worth to YOU" (founder). These were written as a note about
+ * a customer and are READ BY that customer: the third person turned a plain admission into
+ * something overheard. The meaning is unchanged and nothing was added.
+ */
 export const ROI_MISSING_INPUTS = [
-  'what a booked meeting is worth to them',
+  'what a booked meeting is worth to you',
   'how many of those meetings become customers',
   'revenue attributed to a meeting we booked',
 ] as const

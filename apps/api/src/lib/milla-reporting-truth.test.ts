@@ -128,6 +128,63 @@ describe('YOUR ROI — IT DOES NOT CLAIM A RETURN IT CANNOT COMPUTE', () => {
 })
 
 // ════════════════════════════════════════════════════════════════════════════════════════
+// THE FOUNDER-APPROVED COPY, 31 Aug. Five of the six items were "keep exactly as built", which
+// is only worth anything if something stops them drifting. These are that something.
+describe('THE APPROVED CUSTOMER COPY IS EXACT', () => {
+  const SUBTITLES: [string, string, string][] = [
+    ['reports',     REPORTS,     'What your programme set out to do, and what it has produced.'],
+    ['performance', PERFORMANCE, 'How your programme is doing against what it set out to deliver.'],
+    ['analytics',   ANALYTICS,   'What has been measured on your programme.'],
+    ['roi',         ROI,         'What your programme cost, and what it has produced.'],
+  ]
+
+  for (const [route, src, sub] of SUBTITLES) {
+    it(`the ${route} subtitle is the approved one, word for word`, () => {
+      expect(src, `the approved ${route} subtitle changed`).toContain(`sub="${sub}"`)
+    })
+  }
+
+  it('the Return heading and body are exact', () => {
+    expect(ROI, 'the Return heading changed').toMatch(/>\s*Return\s*</)
+    // ⚠️ THE APOSTROPHE IS `&rsquo;` — this is a JSX text node and every other apostrophe on
+    // these pages is written the same way. A literal ’ here would render identically and
+    // break the file's convention; a straight ' would not match the approved copy at all.
+    expect(ROI, 'the approved Return body changed').toContain(
+      'We can show you what your programme cost and what it produced. We can&rsquo;t')
+    expect(ROI).toContain('work out a return, because that depends on numbers only you have:')
+  })
+
+  it('🛑 the three ROI input bullets are exact, and address the customer directly', async () => {
+    // ⛓️ 31 Aug — THE FOUNDER'S CORRECTION. These were written as a note ABOUT a customer and
+    // are READ BY that customer; "worth to them" turned a plain admission into something
+    // overheard. Asserted on the EXPORTED ARRAY rather than the file, because the module's
+    // own comments legitimately still discuss "a client" in the third person — a file-level
+    // scan would bind to the explanation instead of the copy.
+    const { ROI_MISSING_INPUTS } = await import('../../../portal/src/lib/programme-report')
+    expect([...ROI_MISSING_INPUTS]).toEqual([
+      'what a booked meeting is worth to you',
+      'how many of those meetings become customers',
+      'revenue attributed to a meeting we booked',
+    ])
+    for (const line of ROI_MISSING_INPUTS) {
+      expect(line, `a bullet speaks about the customer in the third person: "${line}"`)
+        .not.toMatch(/\b(them|their|they)\b/)
+    }
+    // And the page renders that array rather than a local copy that could drift from it.
+    expect(ROI).toContain('ROI_MISSING_INPUTS.map')
+  })
+
+  it('🛑 the score×100 estimate cannot surface as money or ROI inside Milla', () => {
+    // PARKED as a separate defect by the founder: the writer stays, Milla's protection stays.
+    for (const [name, src] of ALL) {
+      for (const rx of [/estimated_deal_value/i, /pipeline value|value touched/i, /\/leads\/stats/]) {
+        expect(src, `the score×100 estimate can reach the Milla ${name} page`).not.toMatch(rx)
+      }
+    }
+  })
+})
+
+// ════════════════════════════════════════════════════════════════════════════════════════
 describe('STAGE AWARENESS — NO ACTIVITY IS CLAIMED BEFORE IT WAS AUTHORISED', () => {
   it('the rules are shared and executable, not re-decided per page', async () => {
     const { outreachHasRun, sourcingHasRun } = await import('../../../portal/src/lib/programme-report')

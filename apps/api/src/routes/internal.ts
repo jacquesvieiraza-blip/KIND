@@ -202,7 +202,7 @@ internalRouter.post('/digest/weekly', async (_req: Request, res: Response) => {
         const [totalRes, newRes, avgRes, consentedRes, figsySentRes, figsyRepliesRes, figsyInterestedRes, figsyCampaignsRes] = await Promise.all([
           db.from('leads').select('id', { count: 'exact', head: true }).eq('client_id', client.id),
           db.from('leads').select('id', { count: 'exact', head: true }).eq('client_id', client.id).gte('created_at', weekStart),
-          db.from('leads').select('score, estimated_deal_value_usd').eq('client_id', client.id).not('score', 'is', null),
+          db.from('leads').select('score').eq('client_id', client.id).not('score', 'is', null),
           db.from('leads').select('id', { count: 'exact', head: true }).eq('client_id', client.id).eq('status', 'consent_given'),
           db.from('figsy_sent_emails').select('id', { count: 'exact', head: true }).in('campaign_id', campFilter).gte('sent_at', weekStart),
           db.from('figsy_replies').select('id', { count: 'exact', head: true }).eq('client_id', client.id).gte('received_at', weekStart),
@@ -210,11 +210,15 @@ internalRouter.post('/digest/weekly', async (_req: Request, res: Response) => {
           db.from('figsy_campaigns').select('id', { count: 'exact', head: true }).eq('client_id', client.id).eq('status', 'active'),
         ])
 
-        const scores = (avgRes.data ?? []) as { score: number; estimated_deal_value_usd: number | null }[]
+        const scores = (avgRes.data ?? []) as { score: number }[]
         const avgScore = scores.length
           ? Math.round(scores.reduce((s, l) => s + l.score, 0) / scores.length)
           : 0
-        const pipelineValue = scores.reduce((s, l) => s + (l.estimated_deal_value_usd ?? 0), 0)
+        // ⛓️ 31 Aug (4A-2D amendment) — `pipelineValue` REMOVED, and the column is no longer
+        // even SELECTED. It summed `leads.estimated_deal_value_usd`, written at
+        // `lib/scoring.ts:221` as `r.score * 100` — a fit score times a hundred, mailed to a
+        // customer with a dollar sign on it every Monday. Dropping it from the query too, so
+        // the fabricated figure is not merely unsent but uncomputed and unread.
 
         const { data: topLeads } = await db.from('leads')
           .select('first_name, last_name, job_title, company, score, linkedin_url')
@@ -227,7 +231,6 @@ internalRouter.post('/digest/weekly', async (_req: Request, res: Response) => {
           total_leads:    totalRes.count    ?? 0,
           new_this_week:  newRes.count      ?? 0,
           avg_score:      avgScore,
-          pipeline_value: pipelineValue,
           consented:      consentedRes.count ?? 0,
         }, topLeads ?? [], {
           emails_sent:        figsySentRes.count      ?? 0,

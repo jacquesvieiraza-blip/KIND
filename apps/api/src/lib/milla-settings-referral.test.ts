@@ -361,6 +361,105 @@ describe('D3 — Lead Delivery keeps its section and loses its levers', () => {
 })
 
 // ═══════════════════════════════════════════════════════════════════════════════════════
+// FOUNDER AMENDMENTS — 31 Aug, on top of #1622
+//
+// ⚠️ THE EXACT SENTENCES ARE PINNED, NOT PARAPHRASED. Approved copy is a founder decision;
+// a guard that checks for "roughly this wording" is a guard that lets the wording drift.
+// ═══════════════════════════════════════════════════════════════════════════════════════
+
+describe('amendment — the founder-approved copy is exact', () => {
+  it('the Lead Delivery subtitle is his wording, not mine', () => {
+    expect(SETTINGS).toContain(
+      'How your programme is being delivered. We handle sourcing and delivery for you.',
+    )
+    // The draft it replaced must be gone, or both could sit in the file at once.
+    expect(SETTINGS).not.toMatch(/K\.I\.N\.D runs sourcing and delivery/)
+  })
+
+  it('Referral step 3 is his wording, with the repo’s string-literal apostrophe', () => {
+    expect(REFERRAL).toContain(
+      'We handle every referral personally. If there’s a next step, we’ll agree it with you directly.',
+    )
+    // ⚠️ THE ENTITY FORM WOULD RENDER LITERALLY HERE. This is a JS string, not JSX text —
+    // `&rsquo;` inside it reaches the customer as the six characters `&rsquo;`.
+    const step3 = REFERRAL.match(/title: 'We take it from there'[\s\S]{0,400}/)?.[0] ?? ''
+    expect(step3).not.toBe('')                                  // vacuity
+    expect(step3).not.toMatch(/&rsquo;|&apos;|&#39;/)
+    expect(REFERRAL).not.toMatch(/not automatically\. Anything that follows/)   // the draft
+  })
+
+  it('and the amended step still promises nothing — the D2 rules did not lapse', () => {
+    expect(REFERRAL).not.toMatch(/\$\s?\d/)
+    expect(REFERRAL).not.toMatch(/\bcredit/i)
+    expect(REFERRAL).not.toMatch(/\breward\b|\bearn\b|\bbonus\b/i)
+  })
+
+  it('the retired CRM credits clause is absent, and the rest of the sentence survives', () => {
+    expect(SETTINGS).not.toMatch(/spend credits on people you already know/)
+    // ⚠️ THE OTHER HALF OF THE ASSERTION IS THE POINT. "Remove only the retired wording" —
+    // so the surviving sentence has to still be here, or this passed by deleting the control.
+    expect(SETTINGS).toContain('Never contact people already in my')
+    expect(SETTINGS).toContain('so we never cold-email your customers')
+  })
+})
+
+describe('amendment — no customer email prices a lead by its score', () => {
+  const email = strip(raw(join(API, 'lib/email.ts')))
+
+  it('the digest header cannot be handed a pipeline value at all', () => {
+    // 🛑 REMOVED FROM THE SIGNATURE, not from one call site. `digestHeader` has TWO callers
+    // and both mailed the same invented number; deleting the argument in one would have left
+    // the other shipping it, and passed a narrower guard while doing so.
+    expect(email).toMatch(/function digestHeader\(companyName: string, totalLeads: number, avgScore: number\): string/)
+    expect(email).not.toMatch(/pipelineValue/)
+    expect(email).not.toMatch(/Pipeline value/)
+  })
+
+  it('neither caller computes or passes one', () => {
+    // ⚠️ CALL SITES ONLY — `digestHeader\(` also matches the DEFINITION, whose three typed
+    // parameters happen to split into three the same way the arguments do. The first draft of
+    // this guard counted the definition as a caller and asserted 3; anchoring on the `${`
+    // interpolation is what makes it count renders rather than mentions.
+    const calls = email.match(/\$\{digestHeader\([^)]*\)/g) ?? []
+    expect(calls.length).toBe(2)                                // vacuity: both still render
+    for (const c of calls) expect(c.split(',')).toHaveLength(3) // company, count, score
+    // The inline fabrication in sendFirstLeadsReadyEmail.
+    expect(email).not.toMatch(/\(l\.score \?\? 0\) \* 100/)
+    expect(email).not.toMatch(/pipeline_value/)
+  })
+
+  it('the weekly digest route neither selects nor sends the fabricated column', () => {
+    const digest = INTERNAL.match(/internalRouter\.post\('\/digest\/weekly'[\s\S]*?\n\}\)/)?.[0] ?? ''
+    expect(digest).not.toBe('')                                 // vacuity
+    expect(digest).not.toMatch(/estimated_deal_value_usd/)
+    expect(digest).not.toMatch(/pipeline_value|pipelineValue/)
+  })
+
+  it('and NOTHING invented was put in its place', () => {
+    // The founder's rule: no replacement metric, no deal value, no revenue, no ROI. The
+    // header row is two real cells now — a count and a score — and must stay that way.
+    const header = email.match(/function digestHeader[\s\S]*?\n\}/)?.[0] ?? ''
+    expect(header).not.toBe('')                                 // vacuity
+    expect(header).not.toMatch(/\$\$\{|revenue|ROI|deal value|value|worth/i)
+    const cells = header.match(/<td align="center"/g) ?? []
+    expect(cells).toHaveLength(2)
+  })
+
+  it('the digest itself still exists — this was a metric removal, not a feature removal', () => {
+    expect(email).toMatch(/export async function sendWeeklyLeadsDigest/)
+    expect(email).toMatch(/Total leads/)
+    expect(email).toMatch(/Avg score/)
+    expect(email).toMatch(/FIGSY Outreach This Week/)
+    expect(INTERNAL).toMatch(/sendWeeklyLeadsDigest\(/)
+  })
+
+  it('the score×100 writer is STILL untouched — it stays parked', () => {
+    const scoring = raw(join(API, 'lib/scoring.ts'))
+    expect(scoring).toMatch(/estimated_deal_value_usd:\s*r\.score \* 100/)
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
 // D4 · FIGSY NAMING
 // ═══════════════════════════════════════════════════════════════════════════════════════
 

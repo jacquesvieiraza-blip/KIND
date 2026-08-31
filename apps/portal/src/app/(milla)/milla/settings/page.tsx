@@ -204,9 +204,11 @@ function LeadDeliverySection({ p, failed }: { p: CustomerProgramme | null; faile
         <Truck className="w-4 h-4 text-[#9B8EC4]" />
         <h2 className="text-lg font-semibold text-gray-900">Lead Delivery</h2>
       </div>
-      {/* ⚠️ NEW COPY — flagged for the founder. It replaces "Control how many leads you receive
-          and how fast they arrive", which described a control the customer no longer has. */}
-      <p className="text-gray-500 text-sm mt-0.5 mb-5">How your programme is being delivered. K.I.N.D runs sourcing and delivery for you.</p>
+      {/* ⛓️ 31 Aug — FOUNDER-APPROVED COPY, exact. It replaces "Control how many leads you
+          receive and how fast they arrive", which described a control the customer no longer
+          has. My draft read "K.I.N.D runs sourcing and delivery for you"; the founder's
+          wording says "We", which is how the rest of this product speaks to a customer. */}
+      <p className="text-gray-500 text-sm mt-0.5 mb-5">How your programme is being delivered. We handle sourcing and delivery for you.</p>
 
       {failed && (
         <div className="border border-red-200 bg-red-50/60 rounded-xl px-4 py-3">

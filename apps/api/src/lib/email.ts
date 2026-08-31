@@ -134,7 +134,29 @@ function leadCard(lead: LeadRow): string {
     </tr>`
 }
 
-function digestHeader(companyName: string, totalLeads: number, avgScore: number, pipelineValue: number): string {
+// ⛓️ 31 Aug (BUILD-004A-2D amendment, founder decision) — THE "PIPELINE VALUE" CELL IS GONE.
+//
+// 🛑 IT WAS NOT A MEASUREMENT. The figure was `SUM(leads.estimated_deal_value_usd)`, a column
+// written in exactly one place — `lib/scoring.ts:221`, as `estimated_deal_value_usd:
+// r.score * 100`. A prospect scored 85 became "$8,500 of pipeline". It is the fit-scoring
+// model wearing a currency symbol, and it was printed in a purple stat cell, in dollars, in a
+// customer's inbox, every Monday.
+//
+// ⚠️ THE SECOND CALLER WAS WORSE AND IS WHY THE PARAMETER HAD TO GO RATHER THAN THE ARGUMENT.
+// `sendFirstLeadsReadyEmail` did not even read the column — it computed
+// `topLeads.reduce((s, l) => s + (l.score ?? 0) * 100, 0)` inline. One shared header, two
+// customer emails, the same invented number. A fix applied to the digest alone would have
+// left the identical figure shipping from the same function, and passed a guard while doing
+// it. So the header no longer accepts the value at all: there is nowhere for it to re-enter.
+//
+// ⚠️ NOTHING REPLACED IT, DELIBERATELY. The founder's rule was explicit — do not substitute
+// another invented metric, no deal value, no revenue, no ROI. The row is now two real cells
+// (a count and a score) instead of two real cells and one fabricated one. Both remain
+// centred with their divider, so this is a shorter row and not a gap.
+//
+// ⚠️ AND THE WRITER AT `scoring.ts:221` IS UNTOUCHED — it stays PARKED as its own defect.
+// This removes the customer-facing money claim; it does not pretend to have fixed the column.
+function digestHeader(companyName: string, totalLeads: number, avgScore: number): string {
   return `
     <div style="background:#7C3AED;border-radius:12px 12px 0 0;padding:28px 32px">
       <p style="margin:0;color:rgba(255,255,255,0.7);font-size:0.8rem;letter-spacing:1px;text-transform:uppercase">K.I.N.D Lead Report</p>
@@ -150,10 +172,6 @@ function digestHeader(companyName: string, totalLeads: number, avgScore: number,
           <td align="center" style="padding:8px;border-left:1px solid #e8f0fe">
             <p style="margin:0;font-size:1.5rem;font-weight:700;color:#111">${avgScore}</p>
             <p style="margin:2px 0 0;font-size:0.75rem;color:#888">Avg score</p>
-          </td>
-          <td align="center" style="padding:8px;border-left:1px solid #e8f0fe">
-            <p style="margin:0;font-size:1.5rem;font-weight:700;color:#111">$${pipelineValue.toLocaleString()}</p>
-            <p style="margin:2px 0 0;font-size:0.75rem;color:#888">Pipeline value</p>
           </td>
         </tr>
       </table>
@@ -478,7 +496,10 @@ export async function sendFirstLeadsReadyEmail(
   const avgScore = topLeads.length
     ? Math.round(topLeads.reduce((s, l) => s + (l.score ?? 0), 0) / topLeads.length)
     : 0
-  const pipelineValue = topLeads.reduce((s, l) => s + (l.score ?? 0) * 100, 0)
+  // ⛓️ 31 Aug — `const pipelineValue = topLeads.reduce((s, l) => s + (l.score ?? 0) * 100, 0)`
+  // WAS HERE, and it is the clearest statement of the defect anywhere in the repo: a fit score
+  // multiplied by a hundred, summed, and printed to a customer with a dollar sign. Deleted
+  // rather than left unused — an unread variable reads as live to the next person.
 
   const leadsHtml = topLeads.length
     ? `
@@ -494,7 +515,7 @@ export async function sendFirstLeadsReadyEmail(
     subject: `Your first ${leadCount} leads are ready — K.I.N.D`,
     html: `
       <div style="font-family:sans-serif;max-width:560px;margin:0 auto;color:#111;border:1px solid #e8f0fe;border-radius:12px;overflow:hidden">
-        ${digestHeader(companyName, leadCount, avgScore, pipelineValue)}
+        ${digestHeader(companyName, leadCount, avgScore)}
         <div style="padding:24px 32px">
           <p style="color:#555;line-height:1.6;margin-top:0">
             We've found <strong>${leadCount} leads</strong> matching your ICP — scored, ranked, and ready.
@@ -831,7 +852,10 @@ export async function sendWeeklyLeadsDigest(
     total_leads:       number
     new_this_week:     number
     avg_score:         number
-    pipeline_value:    number
+    // ⛓️ 31 Aug — `pipeline_value` REMOVED FROM THE TYPE, not merely unrendered. A field the
+    // signature still accepts is a field the next edit can put back on the screen; a field
+    // that is not there cannot be. Same reasoning as removing `wallet_balance_usd` from the
+    // Milla home's Summary type in 4A-1.
     consented:         number
   },
   topLeads: LeadRow[],
@@ -886,7 +910,7 @@ export async function sendWeeklyLeadsDigest(
     subject: `Your K.I.N.D weekly leads report — ${weekOf}`,
     html: `
       <div style="font-family:sans-serif;max-width:560px;margin:0 auto;color:#111;border:1px solid #e8f0fe;border-radius:12px;overflow:hidden">
-        ${digestHeader(companyName, stats.total_leads, stats.avg_score, stats.pipeline_value)}
+        ${digestHeader(companyName, stats.total_leads, stats.avg_score)}
         <div style="padding:24px 32px">
           <p style="color:#888;font-size:0.8rem;margin-top:0">Week of ${weekOf}</p>
 

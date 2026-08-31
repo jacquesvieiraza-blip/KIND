@@ -149,11 +149,18 @@ export default function MillaReferralPage() {
               // stops. Writing "we'll reward you" here would have invented the scheme the
               // ruling forbids; writing nothing at all would have left the step blank.
               title: 'We take it from there',
-              // ⚠️ "credited" WAS THE FIRST DRAFT AND ITS OWN GUARD CAUGHT IT. The sentence
-              // was denying an automatic reward, but it still put the retired currency's word
-              // in front of the customer — and "no credits" was the ruling, not "no credits
-              // except when we are explaining that there aren't any".
-              description: 'Referrals are handled personally, not automatically. Anything that follows a referral is agreed with you directly.',
+              // ⛓️ 31 Aug — FOUNDER-APPROVED COPY, exact.
+              //
+              // ⚠️ THE DRAFT BEFORE IT SAID "credited", AND ITS OWN GUARD CAUGHT THAT. The
+              // sentence was denying an automatic reward, but it still put the retired
+              // currency's word in front of the customer — and "no credits" was the ruling,
+              // not "no credits except while explaining that there aren't any".
+              //
+              // ⚠️ `’`, NOT A RAW APOSTROPHE — this is a JS string literal, and that is
+              // the convention this repo uses in one (`milla/page.tsx:1195`). JSX *text* uses
+              // `&rsquo;`; the two are not interchangeable and picking the wrong one here
+              // would render the entity literally to the customer.
+              description: 'We handle every referral personally. If there’s a next step, we’ll agree it with you directly.',
             },
           ].map((item, i) => (
             <div key={item.step} className="flex items-start gap-4">

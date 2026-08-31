@@ -214,6 +214,70 @@ describe('USAGE — PROGRAMME DELIVERY, NOT A SECOND BILLING PAGE', () => {
 })
 
 // ════════════════════════════════════════════════════════════════════════════════════════
+// FOUNDER DECISIONS, 31 Aug. Three were "keep exactly what is there" — which is only worth
+// anything if something stops it drifting. These are that something.
+describe('THE APPROVED CUSTOMER LABELS AND SUBTITLES', () => {
+  const WORKSPACE = strip(readFileSync(join(PORTAL, 'components/milla/ProgrammeWorkspace.tsx'), 'utf8'))
+
+  it('🛑 `sourced_used` is labelled "People sourced" everywhere it is rendered', () => {
+    // 🛑 DECISION 2 — A FACTUAL CORRECTION. The field counts people SOURCED; sourcing is
+    // authorised by Payment 1, four gates before anybody is contacted. "People reached"
+    // claimed outreach that had not been authorised, on the screen a client reads to find out
+    // whether it had.
+    //
+    // ⚠️ BOTH SURFACES, because one field with two labels is the drift this build keeps
+    // paying for. The workspace and Usage render the same number and now say the same words.
+    expect(WORKSPACE, 'the workspace no longer labels the sourced count').toContain('People sourced of ')
+    expect(USAGE, 'Usage no longer labels the sourced count').toContain('People sourced of ')
+    for (const [name, src] of [['workspace', WORKSPACE], ['usage', USAGE]] as const) {
+      expect(src, `the retired "People reached" label is back on the ${name}`)
+        .not.toContain('People reached')
+    }
+    // Vacuity: both must still be rendering the field this label describes.
+    expect(WORKSPACE).toContain('p.progress.delivered')
+    expect(USAGE).toContain('p.progress.delivered')
+  })
+
+  it('and a GENUINE contacted metric keeps its own name', () => {
+    // The founder's ruling is narrow: correct the label for `sourced_used`, do not rename
+    // metrics backed by actual outreach. Pipeline's column is `figsy_enrollments.current_step
+    // > 0` — real sending — and must not be swept up in this.
+    const pipeline = strip(readFileSync(join(PORTAL, 'app/(milla)/milla/pipeline/page.tsx'), 'utf8'))
+    expect(pipeline, 'a real outreach metric was renamed along with the sourced label')
+      .toContain("label: 'Contacted'")
+  })
+
+  it('🛑 DECISION 1 — Billing still offers no payment action of any kind', () => {
+    // Approved for MVP: Billing is a truthful status surface and nothing else.
+    //
+    // ⛓️ TIGHTENED AFTER A RED PROOF DID NOT GO RED. The first cut forbade the checkout
+    // calls and the words "pay now" — and a `const payNow = () => { /* Pay now */ }` walked
+    // straight through it: the comment was stripped before the scan (correctly), and the
+    // identifier is camelCase so no spaced phrase matched. A word list cannot guard a
+    // capability.
+    //
+    // THE INVARIANT IS STRUCTURAL INSTEAD: a status surface has no button. Billing renders
+    // exactly one interactive element type — links, to Stripe's hosted invoice and to
+    // Documents — and a payment action of any name needs something to press.
+    expect(BILLING, 'Billing rendered a button — it is a status surface').not.toContain('<button')
+    for (const forbidden of ['/stripe/checkout', '/stripe/subscribe', 'api.post', 'onClick']) {
+      expect(BILLING, `a payment action returned to Billing: ${forbidden}`).not.toContain(forbidden)
+    }
+    // Belt as well as braces: the vocabulary, spaced or camelCased.
+    expect(BILLING).not.toMatch(/pay ?now|retry ?payment|update ?card|top ?up|checkout|subscribe/i)
+  })
+
+  it('DECISIONS 3 and 4 — both approved subtitles are exact', () => {
+    // Approved verbatim. A guard is the only thing that makes "keep it as it is" mean
+    // anything a week from now.
+    expect(BILLING, 'the approved Billing subtitle changed')
+      .toContain('Your programme payments, and what each one authorises.')
+    expect(USAGE, 'the approved Usage subtitle changed')
+      .toContain('What your programme has delivered so far.')
+  })
+})
+
+// ════════════════════════════════════════════════════════════════════════════════════════
 describe('ISOLATION — THIS SLICE CHANGED NOTHING OUTSIDE MILLA', () => {
   it('🛑 the shared /dashboard pages still carry their own truth, untouched', () => {
     // If this slice had "helpfully" cleaned them, the OLD portal — a separately-routed live

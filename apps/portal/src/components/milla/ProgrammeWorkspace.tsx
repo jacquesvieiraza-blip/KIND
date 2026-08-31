@@ -112,8 +112,17 @@ export default function ProgrammeWorkspace({ p }: { p: CustomerProgramme }) {
             </div>
             <div>
               <div className="text-[15px] font-extrabold">{p.progress.delivered.toLocaleString()}</div>
+              {/* ⛓️ 31 Aug (BUILD-004A-2B, founder decision 2) — "People reached" → "People
+                  sourced". A FACTUAL CORRECTION, not a rename for tidiness: the field is
+                  `programmes.sourced_used`, which counts people we SOURCED. Sourcing is
+                  authorised by Payment 1 and happens four gates before anybody is contacted,
+                  so "reached" claimed outreach that had not been authorised — on the screen a
+                  client reads to find out whether it had.
+                  ⚠️ GENUINE CONTACTED METRICS ARE NOT TOUCHED. Pipeline's "Contacted" column
+                  is backed by `figsy_enrollments.current_step > 0` — real outreach — and
+                  keeps its name. */}
               <div className="text-[12px] text-[#9b8ec4]">
-                People reached of {p.progress.authorised.toLocaleString()} authorised
+                People sourced of {p.progress.authorised.toLocaleString()} authorised
               </div>
             </div>
           </div>

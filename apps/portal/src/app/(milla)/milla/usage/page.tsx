@@ -126,7 +126,7 @@ export default function MillaUsagePage() {
                 anybody has been contacted. */}
             {p.progress.authorised > 0 && (
               <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                <Stat v={p.progress.delivered.toLocaleString()} k={`Sourced of ${p.progress.authorised.toLocaleString()} authorised`} />
+                <Stat v={p.progress.delivered.toLocaleString()} k={`People sourced of ${p.progress.authorised.toLocaleString()} authorised`} />
                 <Stat
                   v={p.progress.outcomesAchieved === null ? '—' : String(p.progress.outcomesAchieved)}
                   k={p.progress.outcomesAchieved === null ? 'Meetings — not available right now' : 'Meetings booked'}

@@ -22,7 +22,11 @@ import { api } from '@/lib/api'
 import { createClient } from '@/lib/supabase/client'
 import { MILLA_FAILURE_COPY } from '@kind/shared'
 import { type CustomerProgramme } from '@/components/milla/ProgrammeWorkspace'
-import { ProgrammeStat, ProgrammeHeader } from '@/components/milla/ProgrammeStat'
+// ⛓️ 31 Aug (visual recovery) — LIKE-FOR-LIKE PRIMITIVE SWAP, NOTHING ELSE. `ProgrammeStat`
+// became `ValueCard` when the shared kit was restored to the old portal's treatment. Reports'
+// truth, structure, sections and copy are untouched — the founder's brief scoped this repair
+// to Performance, Analytics and ROI, and this is the one edit the shared primitive forced.
+import { ValueCard, ProgrammeHeader } from '@/components/milla/ProgrammeStat'
 import { outreachHasRun, sourcingHasRun } from '@/lib/programme-report'
 
 type Outcomes = { replies_total: number; meetings_total: number; meetings_booked: number }
@@ -102,20 +106,20 @@ export default function MillaReportsPage() {
               ) : (
                 <div className="grid gap-3 sm:grid-cols-2">
                   {p.progress.authorised > 0 && (
-                    <ProgrammeStat
-                      v={p.progress.delivered}
-                      k={`People sourced of ${p.progress.authorised.toLocaleString()} authorised`}
+                    <ValueCard
+                      value={p.progress.delivered}
+                      label={`People sourced of ${p.progress.authorised.toLocaleString()} authorised`}
                     />
                   )}
-                  <ProgrammeStat
-                    v={p.progress.outcomesAchieved}
-                    k={p.progress.outcomesAchieved === null ? 'Meetings — not available right now' : 'Meetings booked'}
+                  <ValueCard
+                    value={p.progress.outcomesAchieved}
+                    label={p.progress.outcomesAchieved === null ? 'Meetings — not available right now' : 'Meetings booked'}
                   />
                   {outreachHasRun(p.stage) && (
-                    <ProgrammeStat v={o === null ? null : o.replies_total} k="Replies, all time" />
+                    <ValueCard value={o === null ? null : o.replies_total} label="Replies, all time" />
                   )}
                   {outreachHasRun(p.stage) && (
-                    <ProgrammeStat v={o === null ? null : o.meetings_total} k="Meetings, all time" />
+                    <ValueCard value={o === null ? null : o.meetings_total} label="Meetings, all time" />
                   )}
                 </div>
               )}

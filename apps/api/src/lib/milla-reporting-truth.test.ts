@@ -185,6 +185,100 @@ describe('THE APPROVED CUSTOMER COPY IS EXACT', () => {
 })
 
 // ════════════════════════════════════════════════════════════════════════════════════════
+// 🛑 THE VISUAL RECOVERY (31 Aug). The founder on the live walk: *"The Performance, Analytics
+// and ROI from the previous version was way better. We had graphs and colours. This feels very
+// shallow. It is very flat."*
+//
+// He was right, and the mistake has a precise shape: I treated "this metric is not truthful"
+// as "delete the component". The `industryAvg={0.071}` was false — the BenchmarkRow drawing it
+// was not. "Pipeline value touched" was fabricated — the hero ValueCard was not.
+//
+// ⚠️ SO THIS BLOCK GUARDS BOTH DIRECTIONS AT ONCE. Every other guard in this file says what
+// must NOT be there; without these, the cheapest way to pass all of them is to delete the page
+// again. A truth suite that cannot tell a rebuilt product from a stripped one is how the flat
+// version shipped green.
+describe('THE PAGES LOOK LIKE THE PRODUCT — RICHNESS IS GUARDED, NOT JUST TRUTH', () => {
+  const KIT = strip(readFileSync(join(PORTAL, 'components/milla/ProgrammeStat.tsx'), 'utf8'))
+  const RICH = [['performance', PERFORMANCE], ['analytics', ANALYTICS], ['roi', ROI]] as const
+
+  it('the visual kit carries the old portal\'s treatment, not a reinterpretation', () => {
+    // Lifted verbatim from `(dashboard)/roi` and `/kpis` so this IS the brand.
+    expect(KIT, 'the hero card lost the old treatment')
+      .toContain('rounded-2xl border-2 border-[#7C3AED]/20 bg-[#F5F0FF] p-6')
+    expect(KIT, 'the standard card lost the old treatment')
+      .toContain('rounded-xl border border-purple-100/60 bg-white p-5')
+    expect(KIT, 'the bar treatment is gone').toContain('h-2.5 bg-gray-100 rounded-full overflow-hidden')
+    expect(KIT, 'the gradient panel is gone').toContain('bg-gradient-to-br from-[#F5F0FF]/60 to-white')
+  })
+
+  it('🛑 each page renders a real visual composition, not a list of facts', () => {
+    for (const [name, src] of RICH) {
+      expect(src, `${name} has no hero card`).toContain('<ValueCard')
+      expect(src, `${name} lost its hero`).toContain('hero')
+      expect(src, `${name} has no card grid`).toMatch(/grid-cols-2 sm:grid-cols-4/)
+      expect(src, `${name} has no stage visualisation`).toContain('<StageRail')
+      expect(src, `${name} has no panel`).toContain('<Panel')
+      expect(src, `${name} uses no icons`).toMatch(/from 'lucide-react'/)
+    }
+    // ⛓️ COUNTED, NOT MERELY PRESENT. My first cut asserted each page `toContain('<ProgressBar')`
+    // — and a RED proof that deleted one of Analytics' three funnel bars passed, because two
+    // remained. "Has at least one chart" is not a richness floor; it is the state the flat
+    // version could have reached by keeping a single bar. Each page declares how much
+    // composition it owes.
+    const atLeast = (src: string, needle: string) => (src.split(needle).length - 1)
+    for (const [name, src, cards, bars] of [
+      ['performance', PERFORMANCE, 3, 2],
+      ['analytics',   ANALYTICS,   3, 3],
+      ['roi',         ROI,         3, 1],
+    ] as const) {
+      expect(atLeast(src, '<ValueCard'), `${name} lost its card grid — only ${atLeast(src, '<ValueCard')} cards`)
+        .toBeGreaterThanOrEqual(cards)
+      expect(atLeast(src, '<ProgressBar'), `${name} lost its charts — only ${atLeast(src, '<ProgressBar')} bars`)
+        .toBeGreaterThanOrEqual(bars)
+    }
+  })
+
+  it('🛑 the pre-live state is DESIGNED, and contains no zeros', () => {
+    // The founder's instruction: keep the richer shell and show an intentional pre-live state
+    // inside it, rather than collapsing the page into one sentence. And never invent zeroes as
+    // results — "0 replies" reads as failure when the truth is "not authorised yet".
+    expect(PERFORMANCE).toContain('<PreLiveState')
+    expect(ANALYTICS).toContain('<PreLiveState')
+    // ⛓️ SCOPED TO THE SIGNATURE, NOT THE SOURCE. My first cut scanned the component body for
+    // `\b0\b` — and Tailwind class names are full of digits (`gray-50`, `border-gray-100`,
+    // `py-2.5`), so it was testing the stylesheet, not the claim. The honest test is that the
+    // component CANNOT RECEIVE a number: its props are a sentence and a list of labels, so
+    // there is no way to pass it a result to render.
+    const pre = KIT.slice(KIT.indexOf('export function PreLiveState'))
+    expect(pre).toContain('{ what, measures }: { what: string; measures: string[] }')
+    expect(pre, 'the pre-live state can now be handed a number').not.toMatch(/:\s*number/)
+    expect(pre, 'the pre-live state lost its measure list').toContain('measures.map')
+  })
+
+  it('🛑 the restored hero holds a REAL figure on every page', () => {
+    // The lesson of the repair: the card was never the lie, the input was. Each hero is
+    // pinned to the programme row so the treatment cannot come back carrying a fabrication.
+    expect(PERFORMANCE, 'the Performance hero is not the real target').toMatch(/hero[\s\S]{0,200}?p\.outcome\.target/)
+    expect(ANALYTICS, 'the Analytics hero is not real sourcing').toMatch(/hero[\s\S]{0,240}?p\.progress\.delivered/)
+    expect(ROI, 'the ROI hero is not the real programme value').toMatch(/hero[\s\S]{0,220}?programmeMoney\(p\.money\.totalCents\)/)
+  })
+
+  it('the Return section is a designed state and keeps the approved wording', () => {
+    // Approved copy unchanged; only placement and treatment moved.
+    expect(ROI).toContain('rounded-2xl border-2 border-[#7C3AED]/20 bg-[#F5F0FF] p-6')
+    expect(ROI).toContain('We can show you what your programme cost and what it produced. We can&rsquo;t')
+    expect(ROI).toContain('ROI_MISSING_INPUTS.map')
+  })
+
+  it('🛑 and no chart takes a benchmark, so none can carry an invented one', () => {
+    // `ProgressBar` draws a ratio of two real numbers. There is no `industryAvg` prop to pass.
+    const bar = KIT.slice(KIT.indexOf('export function ProgressBar'))
+    expect(bar, 'the progress bar accepts a benchmark again').not.toMatch(/benchmark|industry|avg|target\?:/i)
+    expect(bar).toContain('max > 0 ? Math.min(100, Math.round((value / max) * 100)) : 0')
+  })
+})
+
+// ════════════════════════════════════════════════════════════════════════════════════════
 describe('STAGE AWARENESS — NO ACTIVITY IS CLAIMED BEFORE IT WAS AUTHORISED', () => {
   it('the rules are shared and executable, not re-decided per page', async () => {
     const { outreachHasRun, sourcingHasRun } = await import('../../../portal/src/lib/programme-report')
@@ -208,8 +302,9 @@ describe('STAGE AWARENESS — NO ACTIVITY IS CLAIMED BEFORE IT WAS AUTHORISED', 
 
   it('an unreadable count is a dash, never a zero', () => {
     // Rendering a failed read as "0 replies" tells a client with six that they have none.
+    // ⛓️ THE PROP RENAMED WITH THE VISUAL RECOVERY (`v` → `value`); the RULE did not move.
     const stat = strip(readFileSync(join(PORTAL, 'components/milla/ProgrammeStat.tsx'), 'utf8'))
-    expect(stat).toContain("v === null ? '—'")
+    expect(stat, 'a failed read no longer renders as a dash').toContain("value === null ? '—'")
     for (const [name, src] of ALL) {
       expect(src, `${name} coerces a failed count to zero`).not.toMatch(/\?\?\s*0\b/)
     }

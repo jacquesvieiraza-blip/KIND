@@ -1,119 +1,148 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// REPORTS — MILLA-NATIVE, OUTCOME-LED.
+//
+// ⚑ 31 Aug (BUILD-004A-2C). This page was already Milla-native and already stale. On the
+// founder's walk it read: "Leads approved", "Spend — your $299, 88 included leads left",
+// "Cost per meeting", "Your <name> campaign is live" — the retired per-lead economics, on the
+// screen a client opens to find out what they got for their money.
+//
+// ⚠️ THE STRUCTURE IS THE FOUNDER'S SIX QUESTIONS, not headings I chose: what were we trying
+// to achieve · what happened · what worked · what did not · what did Milla learn · what
+// happens next. Sections whose answer has no truthful source are NOT rendered — a report that
+// invents a narrative from zeros is worse than a short one.
+//
+// ⚠️ NOTHING IS DERIVED INTO MONEY. No spend, no cost per meeting, no pipeline value. Billing
+// is where money lives; this page answers what the work produced.
+// ═══════════════════════════════════════════════════════════════════════════════════════
+
+import { useEffect, useState } from 'react'
 import { api } from '@/lib/api'
 import { createClient } from '@/lib/supabase/client'
-import { PACK_PRICE_USD, LEAD_PRICE_USD } from '@kind/shared'
+import { MILLA_FAILURE_COPY } from '@kind/shared'
+import { type CustomerProgramme } from '@/components/milla/ProgrammeWorkspace'
+import { ProgrammeStat, ProgrammeHeader } from '@/components/milla/ProgrammeStat'
+import { outreachHasRun, sourcingHasRun } from '@/lib/programme-report'
 
-// #516 — MILLA CLIENT REPORT. The client-facing "what happened" page: meetings booked,
-// leads approved, spend, and a plain-language summary — all from LIVE data (summary +
-// meetings + ledger). No fabricated metrics; every number traces to a real row.
-
-type Summary = { meetings_booked: number; active_campaign: string | null; recent_replies: { name: string; classification: string }[]; leads_approved_total?: number; replies_total?: number; meetings_total?: number; spend_usd?: number; pack?: { active: boolean; included: number; used: number; left: number } }
-type LedgerEntry = { amount: number; type: string; note: string | null; created_at: string | null }
-type Ledger = { wallet_balance_usd: number; transactions: LedgerEntry[] }
-type Meeting = { id: string; title: string; start_time: string | null; status: string; name: string; company: string | null }
+type Outcomes = { replies_total: number; meetings_total: number; meetings_booked: number }
 
 async function token(): Promise<string | undefined> {
   try { const { data } = await createClient().auth.getSession(); return data.session?.access_token } catch { return undefined }
 }
-function when(iso: string | null): string {
-  if (!iso) return '—'; const d = new Date(iso); return isNaN(d.getTime()) ? '—'
-    : d.toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
-}
 
 export default function MillaReportsPage() {
-  const [summary, setSummary] = useState<Summary | null>(null)
-  const [ledger, setLedger] = useState<Ledger | null>(null)
-  const [meetings, setMeetings] = useState<Meeting[] | null>(null)
-  const [error, setError] = useState<string | null>(null)
+  const [p, setP] = useState<CustomerProgramme | null>(null)
+  const [o, setO] = useState<Outcomes | null>(null)
+  const [failed, setFailed] = useState<string | null>(null)
+  const [loading, setLoading] = useState(true)
 
-  const load = useCallback(async () => {
-    try {
+  useEffect(() => {
+    ;(async () => {
       const tok = await token()
-      const [s, g, m] = await Promise.all([
-        api.get<{ data: Summary }>('/leads/milla-summary', tok),
-        api.get<{ data: Ledger }>('/leads/ledger', tok),
-        api.get<{ data: Meeting[] }>('/leads/meetings', tok),
+      const [pr, sr] = await Promise.allSettled([
+        api.get<{ data: CustomerProgramme }>('/my/programme', tok),
+        api.get<{ data: Outcomes }>('/leads/milla-summary', tok),
       ])
-      setSummary(s.data); setLedger(g.data); setMeetings(m.data)
-    } catch (e) { setError(e instanceof Error ? e.message : 'Failed to load your report') }
+      if (pr.status === 'fulfilled') setP(pr.value.data)
+      else {
+        const msg = pr.reason instanceof Error ? pr.reason.message : ''
+        setFailed(msg && msg.length < 200 ? msg : MILLA_FAILURE_COPY.pipelineFailed)
+      }
+      setO(sr.status === 'fulfilled' ? sr.value.data : null)
+      setLoading(false)
+    })()
   }, [])
-  useEffect(() => { load() }, [load])
 
-  // (audit fix) Use the REAL server-computed all-time totals, not a capped 50-row ledger slice /
-  // 4-row replies rail. Spend is true dollars — a flat $4 per approved lead, final. Meetings are
-  // reported, never a money condition.
-  const approved = summary?.leads_approved_total ?? 0
-  const meetingCount = summary?.meetings_total ?? summary?.meetings_booked ?? 0
-  // The fallback used to be `approved * 4`, which is the same 4× overstatement the server
-  // had: the first 100 approvals are inside the $99. If the server didn't send a figure we
-  // show nothing rather than invent one — a wrong number about their money is worse than
-  // a dash.
-  const spend = summary?.spend_usd ?? null
-  const replies = summary?.replies_total ?? summary?.recent_replies?.length ?? 0
-  const packIncluded = summary?.pack?.included ?? 100
-  const packLeft = summary?.pack?.active ? (summary.pack.left ?? 0) : 0
-  const costPerMeeting = spend != null && meetingCount > 0 ? Math.round(spend / meetingCount) : null
-
-  const KPI = ({ k, v, s, tone }: { k: string; v: string; s: string; tone?: string }) => (
-    <div className="bg-white border border-[#eee7f7] rounded-2xl px-4 py-4">
-      <div className="text-[9.5px] font-extrabold uppercase tracking-wide text-[#b3a9cc]">{k}</div>
-      <div className="text-[24px] font-extrabold mt-1 leading-none" style={tone ? { color: tone } : undefined}>{v}</div>
-      <div className="text-[10.5px] text-[#9b8ec4] mt-1">{s}</div>
+  const Section = ({ q, children }: { q: string; children: React.ReactNode }) => (
+    <div className="mt-5">
+      <div className="text-[11.5px] uppercase tracking-wide text-[#9b8ec4] font-bold mb-2">{q}</div>
+      {children}
     </div>
   )
 
   return (
     <div className="h-full overflow-y-auto px-6 py-6">
-      <div className="max-w-4xl">
-        <h1 className="text-2xl font-bold text-[#1f1235]">Your results</h1>
-        <p className="text-sm text-[#7c6f9b] mt-0.5">What your campaign has produced — every number here is real, straight from your account.</p>
+      <div className="max-w-3xl">
+        <ProgrammeHeader title="Reports" sub="What your programme set out to do, and what it has produced." />
 
-        {error && <div className="mt-4 text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl px-4 py-3">{error}</div>}
-        {!summary && !error && <p className="text-sm text-[#9b8ec4] mt-4">Loading your report…</p>}
+        {loading && <p className="text-sm text-[#9b8ec4] mt-4">Loading your programme…</p>}
+        {failed && (
+          <div className="mt-4 border border-red-200 bg-red-50/60 rounded-2xl px-4 py-3">
+            <p className="text-[13.5px] font-semibold text-red-800">{failed}</p>
+          </div>
+        )}
 
-        {summary && (
+        {p && (
           <>
-            <div className="grid grid-cols-2 lg:grid-cols-5 gap-3.5 mt-5">
-              <KPI k="Meetings booked" v={String(summary.meetings_booked)} s="this month" tone="#EC4899" />
-              <KPI k="Leads approved" v={String(approved)} s="you chose to pursue" />
-              <KPI k="Replies in" v={String(replies)} s="total" tone="#059669" />
-              {/* The caption used to read "N leads approved × $4", which is only true once
-                  the included pack is used up. It now says which regime they're in. */}
-              <KPI k="Spend" v={spend == null ? '—' : `$${spend.toLocaleString()}`}
-                s={packLeft > 0 ? `your $${PACK_PRICE_USD} — ${packLeft} included leads left` : `$${PACK_PRICE_USD} pack + $${LEAD_PRICE_USD} per lead beyond it`} />
-              <KPI k="Cost per meeting" v={costPerMeeting == null ? '—' : `$${costPerMeeting}`} s={meetingCount > 0 ? `across ${meetingCount} meeting${meetingCount === 1 ? '' : 's'}` : 'no meetings yet'} />
-            </div>
-
-            <div className="flex flex-col lg:flex-row gap-4 mt-4">
-              <div className="flex-1 bg-white border border-[#eee7f7] rounded-2xl overflow-hidden">
-                <div className="px-4 py-3 border-b border-[#eee7f7] text-[13.5px] font-bold">Meetings booked for you</div>
-                {(meetings ?? []).filter(m => m.status === 'confirmed' || m.status === 'completed').length === 0 ? (
-                  <div className="px-4 py-8 text-center text-[13px] text-[#9b8ec4]">No meetings yet — approve leads and FIGSY works them to a booking.</div>
-                ) : (meetings ?? []).filter(m => m.status === 'confirmed' || m.status === 'completed').slice(0, 8).map(m => (
-                  <div key={m.id} className="flex items-center gap-3 px-4 py-3 border-t border-[#f4eefb] first:border-t-0">
-                    <span className="w-8 h-8 rounded-lg bg-[#efeafc] text-[#7C3AED] text-[10px] font-extrabold flex items-center justify-center shrink-0">
-                      {(m.name || '?').split(/\s+/).map(p => p[0]).slice(0, 2).join('').toUpperCase()}
-                    </span>
-                    <div className="min-w-0 flex-1"><b className="text-[13px]">{m.name}</b><span className="block text-[11.5px] text-[#9b8ec4]">{[m.company, when(m.start_time)].filter(Boolean).join(' · ')}</span></div>
-                    <span className="text-[10.5px] font-extrabold text-emerald-700 bg-emerald-50 rounded-full px-2.5 py-1">{m.status === 'completed' ? 'Completed' : 'Confirmed'}</span>
-                  </div>
-                ))}
-              </div>
-
-              <div className="flex-1 bg-white border border-[#eee7f7] rounded-2xl overflow-hidden">
-                <div className="px-4 py-3 border-b border-[#eee7f7] text-[13.5px] font-bold">Summary</div>
-                <div className="px-4 py-4 text-[13px] leading-relaxed text-[#4c4368]">
-                  {summary.active_campaign ? <>Your <b className="text-[#7C3AED]">{summary.active_campaign}</b> campaign is live. </> : <>Your campaign is being set up. </>}
-                  You&apos;ve approved <b>{approved}</b> lead{approved === 1 ? '' : 's'}, {replies} repl{replies === 1 ? 'y has' : 'ies have'} come back, and <b>{summary.meetings_booked}</b> meeting{summary.meetings_booked === 1 ? '' : 's'} {summary.meetings_booked === 1 ? 'has' : 'have'} booked this month.{' '}
-                  {packLeft > 0
-                    ? <>Your <b>${PACK_PRICE_USD}</b> covers your first <b>{packIncluded}</b> approvals — <b>{packLeft}</b> still to use, so nothing extra has been charged.</>
-                    : <>Your <b>${PACK_PRICE_USD}</b> covered the first <b>{packIncluded}</b>; it&apos;s a flat <b>${LEAD_PRICE_USD}</b> a lead after that. Total so far: <b>{spend == null ? '—' : `$${spend.toLocaleString()}`}</b>.</>}
-                  {meetingCount > 0 && costPerMeeting != null && <> That&apos;s about <b>${costPerMeeting}</b> per meeting booked.</>}
+            {/* 1 · WHAT WERE WE TRYING TO ACHIEVE? */}
+            <Section q="What were we trying to achieve?">
+              <div className="bg-white border border-[#eee7f7] rounded-2xl px-5 py-4">
+                <div className="text-[15px] font-extrabold text-[#1f1235]">
+                  {p.outcome.target ? `${p.outcome.target} booked meetings` : 'No target is set yet'}
                 </div>
+                <div className="text-[12.5px] text-[#6b5f8c] mt-0.5">
+                  {p.stage}{p.paused ? ' · paused' : ''}{p.reviewOpen ? ' · a review decision is waiting' : ''}
+                </div>
+                {p.paused && p.pausedCopy && (
+                  <p className="text-[12.5px] text-[#b45309] mt-2">{p.pausedCopy}</p>
+                )}
               </div>
-            </div>
+            </Section>
+
+            {/* 2 · WHAT HAPPENED?
+                ⚠️ EACH FIGURE IS GATED ON WHETHER ITS WORK COULD HAVE HAPPENED. Sourcing is
+                authorised by Payment 1; outreach by Payment 2. Showing a zero for work that
+                was never authorised reads as failure rather than as sequence. */}
+            <Section q="What happened?">
+              {!sourcingHasRun(p.stage) ? (
+                <p className="text-[13px] text-[#9b8ec4]">
+                  Nothing has been sourced or sent yet — the programme has not reached that step.
+                </p>
+              ) : (
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {p.progress.authorised > 0 && (
+                    <ProgrammeStat
+                      v={p.progress.delivered}
+                      k={`People sourced of ${p.progress.authorised.toLocaleString()} authorised`}
+                    />
+                  )}
+                  <ProgrammeStat
+                    v={p.progress.outcomesAchieved}
+                    k={p.progress.outcomesAchieved === null ? 'Meetings — not available right now' : 'Meetings booked'}
+                  />
+                  {outreachHasRun(p.stage) && (
+                    <ProgrammeStat v={o === null ? null : o.replies_total} k="Replies, all time" />
+                  )}
+                  {outreachHasRun(p.stage) && (
+                    <ProgrammeStat v={o === null ? null : o.meetings_total} k="Meetings, all time" />
+                  )}
+                </div>
+              )}
+            </Section>
+
+            {/* 3–5 · WHAT WORKED · WHAT DID NOT · WHAT MILLA LEARNED
+                🛑 NOT RENDERED, AND THAT IS THE HONEST ANSWER RATHER THAN A GAP.
+                "What worked" needs per-message or per-segment outcome attribution; "what did
+                not" needs the same in reverse; "what Milla learned" is the Nexus profile,
+                which is OUTREACH-performance learning and is not truthful before outreach has
+                run (the 4A-1 finding that hid that card at Proof). None of the three has a
+                client-scoped source these routes can read today, and manufacturing a
+                narrative out of a reply count would be exactly the invention the brief
+                forbids. Reported as a gap for the founder rather than filled. */}
+
+            {/* 6 · WHAT HAPPENS NEXT?
+                ⚠️ THE STAGE, STATED — not a promise and not a date. `quickAction` is the
+                founder's own per-stage wording, already approved and already used on the
+                workspace, so this invents nothing. */}
+            <Section q="What happens next?">
+              <a
+                href={`/milla?ask=${encodeURIComponent(p.quickAction)}`}
+                className="inline-block border border-[#ece5fb] rounded-xl px-4 py-2.5 text-[13.5px] font-bold text-[#5c5279] hover:bg-[#f6f1ff] transition-colors"
+              >
+                {p.quickAction}
+              </a>
+            </Section>
           </>
         )}
       </div>

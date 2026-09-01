@@ -72,10 +72,42 @@ function orPred(expr: string): Pred {
   return r => preds.some(f => f(r))
 }
 
-function installDb(store: Store, rec: Rec) {
+/**
+ * ── TEST ISOLATION — THE ONE INDIRECTION THAT MAKES A STALE BINDING HARMLESS ──────────────
+ *
+ * 🛑 THE MEASURED DEFECT. On a failing run, stamping each store with an id showed:
+ *
+ *     rpc store=3   rpc store=3   rpc store=3      <- the three requests
+ *     assert store=4 passes=0                      <- what the assertion read
+ *
+ * The handler wrote to the PREVIOUS test's store while the assertion read the current one.
+ * Response codes were still `[200, 200, 409]`, so the Proof rules themselves were correct
+ * throughout — this was never a product bug.
+ *
+ * ⚠️ WHY IT HAPPENED. `installDb` used to close over its `store` PARAMETER, so each
+ * `vi.doMock` factory was permanently welded to the store that existed when it was
+ * registered. `vi.resetModules()` plus vitest's dynamic-import sequencing could hand a later
+ * test a `@kind/db` built by an earlier factory — and that module then wrote, correctly and
+ * invisibly, into an abandoned store.
+ *
+ * ⚠️ THE FIX IS TO REMOVE THE WELD, NOT TO CHASE THE SEQUENCING. The factory now reads
+ * through `ctx`, a single object that outlives every reset; `beforeEach` swaps its CONTENTS.
+ * So a stale `@kind/db` binding — however it arises — still reads the CURRENT store, and the
+ * route and the assertion cannot disagree about which store they are looking at. That is a
+ * property of the harness, not a race that has to be won.
+ *
+ * ⚠️ NOTHING ABOUT THE MOCK'S BEHAVIOUR CHANGES. Same predicate engine, same conditional
+ * UPDATE semantics, same `try_claim_proof_pass` ceiling. Only the lookup is indirect.
+ */
+const ctx: { store: Store; rec: Rec } = {
+  store: newStore(),
+  rec: { rpcs: [], alerts: [], runs: 0, updateError: null },
+}
+
+function installDb() {
   vi.doMock('@kind/db', () => {
     const build = (table: string) => {
-      const rows = (): Row[] => (store as any)[table] ?? []
+      const rows = (): Row[] => (ctx.store as any)[table] ?? []
       const preds: Pred[] = []
       const q: any = {}
       for (const m of ['select', 'in', 'gte', 'lte', 'limit', 'order']) q[m] = () => q
@@ -105,7 +137,7 @@ function installDb(store: Store, rec: Rec) {
         }
         chain.select = () => ({ then: (r: (v: unknown) => void) => {
           // The returned-error shape: data null, error set, NOTHING written, no throw.
-          if (rec.updateError) { r({ data: null, error: rec.updateError }); return }
+          if (ctx.rec.updateError) { r({ data: null, error: ctx.rec.updateError }); return }
           r({ data: apply(), error: null })
         } })
         chain.then = (r: (v: unknown) => void) => { apply(); r({ error: null }) }
@@ -119,9 +151,9 @@ function installDb(store: Store, rec: Rec) {
       db: {
         from: (t: string) => build(t),
         rpc: async (fn: string, args: Row) => {
-          rec.rpcs.push({ fn, args })
+          ctx.rec.rpcs.push({ fn, args })
           if (fn === 'try_claim_proof_pass') {
-            const c = store.clients[0]
+            const c = ctx.store.clients[0]
             const done = c.proof_passes_done ?? 0
             if (done >= 2) return { data: 0, error: null }      // the real ceiling: no pass 3
             c.proof_passes_done = done + 1
@@ -135,7 +167,7 @@ function installDb(store: Store, rec: Rec) {
 
   vi.doMock('./alerts', () => ({
     sendFounderAlert: async (kind: string, subject: string, lines: string[]) => {
-      rec.alerts.push({ kind, subject, lines }); return undefined
+      ctx.rec.alerts.push({ kind, subject, lines }); return undefined
     },
   }))
   // The same module set `launch-journey.test.ts` neutralises before importing the ICP routes.
@@ -172,18 +204,17 @@ function reqres(icpId = 'icp-1') {
   return { req: { params: { id: icpId }, userId: 'u1', body: {}, headers: {} }, res }
 }
 
-let store: Store
-let rec: Rec
-
 beforeEach(() => {
   vi.resetModules()
-  store = newStore()
-  rec = { rpcs: [], alerts: [], runs: 0, updateError: null }
-  installDb(store, rec)
+  // ⚠️ THE HOLDER IS NEVER REPLACED — only what it holds. Reassigning `ctx` would recreate
+  // the exact weld this design removes: the factory would keep pointing at the old object.
+  ctx.store = newStore()
+  ctx.rec = { rpcs: [], alerts: [], runs: 0, updateError: null }
+  installDb()
 })
 afterEach(() => { vi.restoreAllMocks(); vi.resetModules() })
 
-const client = () => store.clients[0]
+const client = () => ctx.store.clients[0]
 const open = () =>
   client().proof_review_requested_at !== null && client().proof_review_resolved_at === null
 
@@ -197,7 +228,7 @@ const open = () =>
  * fire-and-forget crash alerts had resolved by the time it ran: flaky, and measuring the
  * wrong thing. The claim under test is "the OPERATOR HANDOFF is raised once".
  */
-const escalations = () => rec.alerts.filter(a => a.kind === 'support_escalation')
+const escalations = () => ctx.rec.alerts.filter(a => a.kind === 'support_escalation')
 
 // ────────────────────────────────────────────────────────────────────────────
 // THE FALSE POSITIVES — a generated pass is not a cry for help
@@ -349,7 +380,7 @@ describe('asking for a third set creates exactly one review', () => {
     await h(...Object.values(reqres()) as [Row, Row])
     await h(...Object.values(reqres()) as [Row, Row])
 
-    rec.updateError = { message: 'column clients.proof_review_requested_at does not exist' }
+    ctx.rec.updateError = { message: 'column clients.proof_review_requested_at does not exist' }
 
     const { req, res } = reqres()
     await h(req, res)
@@ -367,7 +398,7 @@ describe('asking for a third set creates exactly one review', () => {
 
   it('pass 3 remains impossible — no run is ever started for the refused attempt', async () => {
     await exhaust(4)
-    const claims = rec.rpcs.filter(r => r.fn === 'try_claim_proof_pass')
+    const claims = ctx.rec.rpcs.filter(r => r.fn === 'try_claim_proof_pass')
     expect(claims).toHaveLength(4)
     expect(client().proof_passes_done).toBe(2)
   })
@@ -381,16 +412,16 @@ describe('the handoff costs nothing and sends nothing', () => {
     const h = await proofHandler()
     await h(...Object.values(reqres()) as [Row, Row])
     await h(...Object.values(reqres()) as [Row, Row])
-    const before = rec.rpcs.length
+    const before = ctx.rec.rpcs.length
     const { req, res } = reqres()
     await h(req, res)                                     // the refused third attempt
 
-    const after = rec.rpcs.slice(before)
+    const after = ctx.rec.rpcs.slice(before)
     // The ONLY database call the refused branch may make is the claim that refused it.
     expect(after.map(r => r.fn)).toEqual(['try_claim_proof_pass'])
     for (const banned of ['try_spend_sourcing', 'try_reserve_proof_records', 'try_charge_wallet',
                           'increment_wallet', 'add_sourcing_allowance', 'release_proof_records']) {
-      expect(rec.rpcs.map(r => r.fn)).not.toContain(banned)
+      expect(ctx.rec.rpcs.map(r => r.fn)).not.toContain(banned)
     }
   })
 

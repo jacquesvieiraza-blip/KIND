@@ -118,7 +118,7 @@ export default function MillaReferralPage() {
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Refer a business</h1>
         <p className="text-[#7B6FA0] text-sm mt-1">
-          Share your unique link with a business that would get value from K.I.N.D. We handle every referral personally.
+          Share your unique link with a business that would get value from M&amp;V. We handle every referral personally.
         </p>
       </div>
 
@@ -131,7 +131,7 @@ export default function MillaReferralPage() {
             {
               step: '1',
               title: 'Share your link',
-              description: 'Copy your unique referral link below and share it with businesses that could benefit from K.I.N.D.',
+              description: 'Copy your unique referral link below and share it with businesses that could benefit from M&V.',
             },
             {
               step: '2',
@@ -266,7 +266,7 @@ export default function MillaReferralPage() {
           <div className="bg-white rounded-xl border border-dashed border-purple-100/80 p-10 text-center">
             <Gift className="w-8 h-8 text-gray-300 mx-auto mb-3" />
             <p className="text-sm font-medium text-[#7B6FA0]">No referrals yet</p>
-            <p className="text-xs text-[#9B8EC4] mt-1">Share your link above to introduce a business to K.I.N.D.</p>
+            <p className="text-xs text-[#9B8EC4] mt-1">Share your link above to introduce a business to M&amp;V.</p>
           </div>
         )}
       </div>

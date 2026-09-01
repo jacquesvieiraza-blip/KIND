@@ -143,7 +143,7 @@ function NotificationPreferences({ server, onServerToggle }: {
           </span>
         )}
       </div>
-      <p className="text-sm text-[#9B8EC4] mb-4">Choose which notifications you receive from K.I.N.D.</p>
+      <p className="text-sm text-[#9B8EC4] mb-4">Choose which notifications you receive from M&amp;V.</p>
       <div className="space-y-3">
         {items.map(({ key, label, desc, live }) => (
           <div key={key} className="flex items-center justify-between gap-4">
@@ -1126,7 +1126,7 @@ export default function MillaSettingsPage() {
           </span>
         </div>
         <p className="text-sm text-[#9B8EC4] mb-3">
-          Running K.I.N.D for your own clients, under your own brand, is something we are building — it is not available yet.
+          Running M&amp;V for your own clients, under your own brand, is something we are building — it is not available yet.
         </p>
         <p className="text-xs text-[#9B8EC4]">
           Want to be told when it is ready? Email <span className="text-[#7C3AED]">hello@get-kind.com</span> with subject &quot;Agency partnership&quot; and we will come back to you with terms when there are terms to give.

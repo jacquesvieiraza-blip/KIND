@@ -460,6 +460,99 @@ describe('amendment — no customer email prices a lead by its score', () => {
 })
 
 // ═══════════════════════════════════════════════════════════════════════════════════════
+// BRAND — M&V is the PRODUCT, FIGSY is the ENGINE, K.I.N.D is the COMPANY
+//
+// ⛓️ 1 Sep, founder-ruled after the live walk: *"M&V / Milla & Vida = customer-facing product
+// brand. FIGSY = engine where technically relevant. K.I.N.D Technologies Limited =
+// company/legal entity only. Do NOT globally replace K.I.N.D."*
+//
+// ⚠️ THE DANGEROUS EDIT HERE IS THE EASY ONE. A blanket find-and-replace of "K.I.N.D" would
+// satisfy every "is it M&V now?" assertion below and simultaneously rename the company on its
+// own legal surfaces and inside the engine's own vocabulary. So these guards check BOTH
+// directions: the product sentences moved, and the ones that must not move did not.
+// ═══════════════════════════════════════════════════════════════════════════════════════
+
+describe('brand — the customer-facing product sentences say M&V', () => {
+  it('Settings: the notification panel', () => {
+    expect(SETTINGS).toContain('Choose which notifications you receive from M&amp;V.')
+    expect(SETTINGS).not.toContain('notifications you receive from K.I.N.D')
+  })
+
+  it('Settings: agency & white-label speaks about running the PRODUCT', () => {
+    expect(SETTINGS).toContain('Running M&amp;V for your own clients')
+    expect(SETTINGS).not.toContain('Running K.I.N.D for your own clients')
+  })
+
+  it('Referral: the header, step 1 and the empty state', () => {
+    expect(REFERRAL).toContain('would get value from M&amp;V.')
+    expect(REFERRAL).toContain('could benefit from M&V.')      // JS string literal, bare &
+    expect(REFERRAL).toContain('introduce a business to M&amp;V.')
+    expect(REFERRAL).not.toMatch(/value from K\.I\.N\.D|benefit from K\.I\.N\.D|business to K\.I\.N\.D/)
+  })
+
+  it('the entity form matches its context — JSX text vs JS string', () => {
+    // ⚠️ A BARE `&` IN JSX TEXT AND `&amp;` IN A JS STRING ARE BOTH WRONG, IN OPPOSITE WAYS:
+    // the first is fragile markup, the second reaches the customer as the five literal
+    // characters `&amp;`. The repo's own convention is `Agency &amp; white-label` in JSX.
+    const jsxLines = REFERRAL.split('\n').filter(l => /M&/.test(l) && !/description:/.test(l))
+    for (const l of jsxLines) expect(l, `JSX text must use &amp;: ${l.trim()}`).toContain('M&amp;V')
+    const literal = REFERRAL.split('\n').find(l => /description:.*M&/.test(l)) ?? ''
+    expect(literal).toContain('M&V.')
+    expect(literal, 'a JS string literal would print &amp; verbatim').not.toContain('M&amp;V')
+  })
+})
+
+describe('brand — and NOTHING was globally replaced', () => {
+  it('🛑 K.I.N.D SURVIVES WHERE IT IS THE COMPANY', () => {
+    // The floor. If a blanket replace ran, this disappears and this test is the only thing
+    // that notices — every assertion above would still pass.
+    expect(SETTINGS, 'the company contact address was rewritten').toContain('hello@get-kind.com')
+  })
+
+  // ⛓️ 1 Sep — FOUNDER-DECIDED, the two items returned from the first brand pass.
+  it('the lead-capture snippet is PRODUCT attribution — M&V, with a bare ampersand', () => {
+    // ⚠️ BARE `&`, NOT `&amp;`, AND THIS ONE MATTERS TWICE OVER. The snippet is a JS template
+    // literal rendered as a React TEXT node inside `<pre><code>{snippet}</code></pre>`, AND it
+    // is raw HTML the customer pastes onto their own website. In both places `&amp;` would
+    // reach a reader as the five literal characters — on their site, permanently.
+    expect(SETTINGS).toContain('<!-- M&V lead-capture form -->')
+    expect(SETTINGS).not.toContain('<!-- K.I.N.D lead-capture form -->')
+    expect(SETTINGS, 'the entity form would be pasted verbatim onto a customer site')
+      .not.toContain('<!-- M&amp;V lead-capture form -->')
+  })
+
+  it('the signer placeholder is the CUSTOMER’s identity — neither K.I.N.D nor M&V', () => {
+    // 🛑 THE ONE FIELD WHERE THE BRAND WOULD BE ACTIVELY WRONG. "Sign emails as" is the name
+    // the customer's own prospects see at the bottom of their outreach. The customer is not
+    // M&V and is not K.I.N.D, so the example carries no brand at all.
+    expect(SETTINGS).toContain('placeholder="e.g. Jack"')
+    expect(SETTINGS).not.toContain('Jack from K.I.N.D')
+    expect(SETTINGS, 'the brand was substituted into the customer’s own sender identity')
+      .not.toMatch(/Jack from M&(amp;)?V/)
+  })
+
+  it('the FIGSY engine vocabulary is untouched', () => {
+    for (const s of ['FIGSY — Outreach Control', 'FIGSY Writing Style', 'supercharge FIGSY', 'FIGSY sends']) {
+      expect(SETTINGS, `FIGSY reference lost: ${s}`).toContain(s)
+    }
+    expect((SETTINGS.match(/FIGSY/g) ?? []).length).toBeGreaterThanOrEqual(6)
+  })
+
+  it('no OTHER Milla surface was touched by this copy pass', () => {
+    // Scope was Settings + Referral only. A stray replace elsewhere shows up here.
+    for (const route of ['billing', 'usage', 'reports', 'performance', 'analytics', 'roi']) {
+      expect(millaPage(route), `${route} was edited by a brand pass`).not.toMatch(/M&amp;V|M&V/)
+    }
+  })
+
+  it('and the shared dashboard keeps its own wording entirely', () => {
+    const d = raw(join(PORTAL, 'app/(dashboard)/dashboard/settings/page.tsx'))
+    expect(d).toContain('Choose which notifications you receive from K.I.N.D.')
+    expect(d).not.toMatch(/M&amp;V|M&V/)
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
 // D4 · FIGSY NAMING
 // ═══════════════════════════════════════════════════════════════════════════════════════
 

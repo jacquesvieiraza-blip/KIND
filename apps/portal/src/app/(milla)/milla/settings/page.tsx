@@ -143,7 +143,7 @@ function NotificationPreferences({ server, onServerToggle }: {
           </span>
         )}
       </div>
-      <p className="text-sm text-[#9B8EC4] mb-4">Choose which notifications you receive from K.I.N.D.</p>
+      <p className="text-sm text-[#9B8EC4] mb-4">Choose which notifications you receive from M&amp;V.</p>
       <div className="space-y-3">
         {items.map(({ key, label, desc, live }) => (
           <div key={key} className="flex items-center justify-between gap-4">
@@ -326,7 +326,7 @@ function LeadCaptureFormSection({ clientId }: { clientId: string }) {
   const [copied, setCopied] = useState(false)
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://kindapi-production-e64c.up.railway.app'
 
-  const snippet = `<!-- K.I.N.D lead-capture form -->
+  const snippet = `<!-- M&V lead-capture form -->
 <form id="kind-lead-form" style="max-width:380px;font-family:sans-serif;display:flex;flex-direction:column;gap:10px">
   <input name="name" placeholder="Your name" style="padding:10px;border:1px solid #ddd;border-radius:8px" />
   <input name="email" type="email" required placeholder="Email" style="padding:10px;border:1px solid #ddd;border-radius:8px" />
@@ -876,7 +876,7 @@ export default function MillaSettingsPage() {
               value={signerName}
               onChange={e => setSignerName(e.target.value)}
               maxLength={120}
-              placeholder="e.g. Jack from K.I.N.D"
+              placeholder="e.g. Jack"
               className="flex-1 border border-purple-100/80 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#7C3AED]"
             />
             <button
@@ -1126,7 +1126,7 @@ export default function MillaSettingsPage() {
           </span>
         </div>
         <p className="text-sm text-[#9B8EC4] mb-3">
-          Running K.I.N.D for your own clients, under your own brand, is something we are building — it is not available yet.
+          Running M&amp;V for your own clients, under your own brand, is something we are building — it is not available yet.
         </p>
         <p className="text-xs text-[#9B8EC4]">
           Want to be told when it is ready? Email <span className="text-[#7C3AED]">hello@get-kind.com</span> with subject &quot;Agency partnership&quot; and we will come back to you with terms when there are terms to give.

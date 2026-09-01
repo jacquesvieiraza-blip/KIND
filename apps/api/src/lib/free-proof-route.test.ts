@@ -44,6 +44,22 @@ const ICP_ROW = {
  * @param pass    what try_claim_proof_pass returns
  * @param reserve what try_reserve_proof_records returns
  */
+/**
+ * ── TEST ISOLATION — the same weld, the same removal as proof-review-handoff.test.ts ──────
+ *
+ * 🛑 `runJob(opts, rec)` used to call `vi.resetModules()` and then register a `vi.doMock`
+ * factory that closed over its PARAMETERS. Every mock was therefore welded to the `opts`/`rec`
+ * pair that existed when it was registered, and vitest's dynamic-import sequencing can hand a
+ * later test a module built by an earlier factory — which then records, correctly and
+ * invisibly, into an abandoned `rec`. Observed as `expected 20 to be 12`: a reservation read
+ * off the wrong run.
+ *
+ * ⚠️ The holder below outlives every reset and `runJob` swaps its CONTENTS, so a stale binding
+ * still reads the CURRENT run's inputs and writes the CURRENT run's record. No behaviour of
+ * the mock changes — only the lookup is indirect.
+ */
+const jctx: { opts: Record<string, any>; rec: Rec } = { opts: {}, rec: emptyRec() }
+
 async function runJob(opts: {
   funded: 'real' | null
   pass?: number
@@ -62,24 +78,26 @@ async function runJob(opts: {
   /** Simulate an ICP that does not exist for this client (or belongs to someone else). */
   icpMissing?: boolean
 }, rec: Rec) {
+  jctx.opts = opts as Record<string, any>
+  jctx.rec = rec
   vi.resetModules()
 
   vi.doMock('@kind/db', () => {
     const singleFor = (t: string) => {
-      if (t === 'icps') return opts.icpMissing ? null : ICP_ROW
+      if (t === 'icps') return jctx.opts.icpMissing ? null : ICP_ROW
       if (t === 'clients') return { id: 'c1', leads_per_run: null, is_demo: false, user_id: 'u1', credit_balance: 0 }
       return null
     }
     const makeQuery = (table: string) => {
       const q: Record<string, unknown> = {}
       for (const m of ['select', 'in', 'is', 'neq', 'not', 'order', 'or', 'gte', 'lte']) q[m] = () => q
-      q.eq = (col: string, val: unknown) => { rec.eqs.push({ table, col, val }); return q }
+      q.eq = (col: string, val: unknown) => { jctx.rec.eqs.push({ table, col, val }); return q }
       q.limit       = async (n?: number) => {
         if (table === 'lead_pool') {
           // servePoolLeads pulls a buffer of max(cap*5, 50) then .slice(0, cap). Recording
           // n lets the test read back the cap the proof path actually handed the pool.
-          if (typeof n === 'number') rec.poolCap = n >= 50 ? Math.round(n / 5) : null
-          const rows = Array.from({ length: opts.pool ?? 0 }, (_, i) => ({
+          if (typeof n === 'number') jctx.rec.poolCap = n >= 50 ? Math.round(n / 5) : null
+          const rows = Array.from({ length: jctx.opts.pool ?? 0 }, (_, i) => ({
             email_norm: `pool${i}@acme.co`, first_name: 'P', last_name: String(i),
             title: 'CTO', seniority: 'C-Suite', company: 'Acme', industry: 'SaaS',
             company_size: '11-50', country: 'United Kingdom', linkedin_url: null,
@@ -96,7 +114,7 @@ async function runJob(opts: {
       q.single      = async () => ({ data: singleFor(table), error: null })
       q.maybeSingle = async () => ({ data: singleFor(table), error: null })
       q.update      = (patch: Record<string, unknown>) => {
-        if (table === 'leads') rec.leadUpdates.push(patch)
+        if (table === 'leads') jctx.rec.leadUpdates.push(patch)
         const chain: Record<string, unknown> = {}
         for (const m of ['eq', 'in', 'is', 'neq']) chain[m] = () => chain
         ;(chain as { then: unknown }).then = (r: (v: unknown) => void) => r({ error: null })
@@ -104,10 +122,10 @@ async function runJob(opts: {
       }
       q.upsert = async () => ({ error: null })
       q.insert = (rows?: unknown) => {
-        if (table === 'leads') rec.leadInserts += Array.isArray(rows) ? rows.length : 1
+        if (table === 'leads') jctx.rec.leadInserts += Array.isArray(rows) ? rows.length : 1
         return {
           select: () => ({
-            single: async () => ({ data: { id: `lead-${rec.leadInserts}` }, error: null }),
+            single: async () => ({ data: { id: `lead-${jctx.rec.leadInserts}` }, error: null }),
             then:   (r: (v: unknown) => void) => r({
               data: Array.isArray(rows) ? rows.map((_, i) => ({ id: `lead-${i}` })) : [], error: null,
             }),
@@ -119,7 +137,7 @@ async function runJob(opts: {
       // real money; no rows at all is a prospect.
       q.then = (r: (v: unknown) => void) => r({
         data: table === 'credit_transactions'
-          ? (opts.funded === 'real' ? [{ type: 'purchase', reference: 'cs_live_123' }] : [])
+          ? (jctx.opts.funded === 'real' ? [{ type: 'purchase', reference: 'cs_live_123' }] : [])
           : [],
         count: 0, error: null,
       })
@@ -129,17 +147,17 @@ async function runJob(opts: {
       db: {
         from: (t: string) => makeQuery(t),
         rpc: async (fn: string, args: Record<string, unknown>) => {
-          rec.rpcs.push({ fn, args })
-          if (fn === 'try_claim_proof_pass')       return { data: opts.pass ?? 1, error: null }
+          jctx.rec.rpcs.push({ fn, args })
+          if (fn === 'try_claim_proof_pass')       return { data: jctx.opts.pass ?? 1, error: null }
           // The corrected contract (22 Aug round 2): reserve returns jsonb with the
           // reservation's identity, and release must address that identity.
-          if (fn === 'try_reserve_proof_records' && opts.reserveNoAnswer) return { data: null, error: null }
+          if (fn === 'try_reserve_proof_records' && jctx.opts.reserveNoAnswer) return { data: null, error: null }
           if (fn === 'try_reserve_proof_records')  return { data: {
-            granted: opts.reserve ?? 10,
-            reservation_id: (opts.reserve ?? 10) > 0 ? 'res-1' : null,
-            reason: opts.reserveReason ?? ((opts.reserve ?? 10) > 0 ? 'GRANTED' : 'MONTHLY_PROOF_BUDGET_REACHED'),
+            granted: jctx.opts.reserve ?? 10,
+            reservation_id: (jctx.opts.reserve ?? 10) > 0 ? 'res-1' : null,
+            reason: jctx.opts.reserveReason ?? ((jctx.opts.reserve ?? 10) > 0 ? 'GRANTED' : 'MONTHLY_PROOF_BUDGET_REACHED'),
           }, error: null }
-          if (fn === 'try_spend_sourcing')         return { data: opts.grant ?? 10, error: null }
+          if (fn === 'try_spend_sourcing')         return { data: jctx.opts.grant ?? 10, error: null }
           return { data: null, error: null }
         },
         auth: { admin: {
@@ -152,7 +170,7 @@ async function runJob(opts: {
 
   vi.doMock('./alerts', () => ({
     sendFounderAlert: async (_k: string, subject: string, lines: string[]) => {
-      rec.alerts.push({ subject, lines })
+      jctx.rec.alerts.push({ subject, lines })
     },
   }))
 
@@ -163,7 +181,7 @@ async function runJob(opts: {
     return { ...real, audienceForClient: async () => 'client', audienceForUser: async () => 'client' }
   })
 
-  const contacts = Array.from({ length: opts.contacts ?? 0 }, (_, i) => ({
+  const contacts = Array.from({ length: jctx.opts.contacts ?? 0 }, (_, i) => ({
     id: `pdl_${i}`, first_name: 'A', last_name: 'B', email: null, email_status: null,
     linkedin_url: null, title: null, seniority: null, country: null,
     organization_name: null, organization: null,
@@ -174,7 +192,7 @@ async function runJob(opts: {
   // free-proof run reaching it is the defect this file now guards. Mocked so the guard reads
   // WHETHER it was called, and so no test can ever touch a real enrichment path.
   vi.doMock('./lead-delivery', () => ({
-    enrichAndDeliverLeads: async (_clientId: string, ids: string[]) => { rec.enrich.push(ids); return 0 },
+    enrichAndDeliverLeads: async (_clientId: string, ids: string[]) => { jctx.rec.enrich.push(ids); return 0 },
   }))
 
   vi.doMock('./apollo', () => ({
@@ -184,9 +202,9 @@ async function runJob(opts: {
   }))
 
   const { runIcpJob } = await import('../routes/icps')
-  return runIcpJob('icp-1', 'c1', 'u1', opts.maxLeads ?? 20,
+  return runIcpJob('icp-1', 'c1', 'u1', jctx.opts.maxLeads ?? 20,
     // The route claims the pass and hands the claim over; a run without it is normal.
-    ...(opts.proof ? [{ proofPass: opts.proof }] as const : []))
+    ...(jctx.opts.proof ? [{ proofPass: jctx.opts.proof }] as const : []))
 }
 
 /**

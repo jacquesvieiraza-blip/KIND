@@ -1762,7 +1762,21 @@ export async function runIcpJob(
     // must obey the same kill-switch as outreach. Previously they sent unconditionally
     // (outside the AUTO_OUTREACH_ENABLED gate below), so a "safe test" ICP run still
     // cold-emailed real execs a consent request. Gate the consent send on the switch.
-    scoreLeadsForIcp(insertedIds, icp, clientRow?.company_name ?? '', clientId)
+    // ⚑ 1 Sep — THE ESCAPING CHILD, AND IT IS THE WHOLE REMAINDER OF THE PROOF RACE.
+    //
+    // 🛑 `if (inserted > 0)` HAS NO `proofMode` GUARD — unlike the delivery block directly
+    // above it — so a PROOF run that serves pool leads fires this chain too. It is fully
+    // un-awaited, so `runIcpJob` RESOLVES while `scoreLeadsForIcp` is still running: the
+    // tracked parent drains, the boundary reports "nothing outstanding", and this child keeps
+    // going straight through the next test's `vi.resetModules()`. `scoring.ts` writes to
+    // `leads` and calls the model, so it is long-lived and it touches the db mock — which is
+    // exactly how a later request ended up bound to an earlier store and
+    // `proof_passes_done` read 0 instead of 2.
+    //
+    // ⚠️ OWNED, NOT AWAITED. The route is unchanged and still answers immediately; scoring
+    // still happens in the background. What changes is that the background lifecycle can now
+    // see it, so "the job is done" means the job AND its descendants are done.
+    trackBackground(scoreLeadsForIcp(insertedIds, icp, clientRow?.company_name ?? '', clientId)
       .then(() => {
         if (process.env.AUTO_OUTREACH_ENABLED === 'true') {
           return autoConsentScoredLeads(insertedIds, clientRow?.company_name ?? '', clientId)
@@ -1770,7 +1784,7 @@ export async function runIcpJob(
         console.log(`[icp] auto-consent SKIPPED (AUTO_OUTREACH_ENABLED != true) — ${insertedIds.length} leads scored, no consent emails sent`)
         return undefined
       })
-      .catch(console.error)
+      .catch(console.error))
 
     // S5 — FIGSY auto-start: enroll all scored leads (POPIA legitimate interest — no consent gate needed)
     // If client has no active FIGSY campaign, send Lead Gen Pro Day 1 outreach instead.

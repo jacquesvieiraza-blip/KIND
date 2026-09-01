@@ -503,11 +503,32 @@ describe('brand — the customer-facing product sentences say M&V', () => {
 })
 
 describe('brand — and NOTHING was globally replaced', () => {
-  it('🛑 K.I.N.D SURVIVES WHERE IT IS THE COMPANY OR THE INTEGRATION', () => {
-    // The floor. If a blanket replace ran, these disappear and this test is the only thing
+  it('🛑 K.I.N.D SURVIVES WHERE IT IS THE COMPANY', () => {
+    // The floor. If a blanket replace ran, this disappears and this test is the only thing
     // that notices — every assertion above would still pass.
-    expect(SETTINGS, 'the lead-capture snippet lost its integration label').toContain('<!-- K.I.N.D lead-capture form -->')
     expect(SETTINGS, 'the company contact address was rewritten').toContain('hello@get-kind.com')
+  })
+
+  // ⛓️ 1 Sep — FOUNDER-DECIDED, the two items returned from the first brand pass.
+  it('the lead-capture snippet is PRODUCT attribution — M&V, with a bare ampersand', () => {
+    // ⚠️ BARE `&`, NOT `&amp;`, AND THIS ONE MATTERS TWICE OVER. The snippet is a JS template
+    // literal rendered as a React TEXT node inside `<pre><code>{snippet}</code></pre>`, AND it
+    // is raw HTML the customer pastes onto their own website. In both places `&amp;` would
+    // reach a reader as the five literal characters — on their site, permanently.
+    expect(SETTINGS).toContain('<!-- M&V lead-capture form -->')
+    expect(SETTINGS).not.toContain('<!-- K.I.N.D lead-capture form -->')
+    expect(SETTINGS, 'the entity form would be pasted verbatim onto a customer site')
+      .not.toContain('<!-- M&amp;V lead-capture form -->')
+  })
+
+  it('the signer placeholder is the CUSTOMER’s identity — neither K.I.N.D nor M&V', () => {
+    // 🛑 THE ONE FIELD WHERE THE BRAND WOULD BE ACTIVELY WRONG. "Sign emails as" is the name
+    // the customer's own prospects see at the bottom of their outreach. The customer is not
+    // M&V and is not K.I.N.D, so the example carries no brand at all.
+    expect(SETTINGS).toContain('placeholder="e.g. Jack"')
+    expect(SETTINGS).not.toContain('Jack from K.I.N.D')
+    expect(SETTINGS, 'the brand was substituted into the customer’s own sender identity')
+      .not.toMatch(/Jack from M&(amp;)?V/)
   })
 
   it('the FIGSY engine vocabulary is untouched', () => {

@@ -42,6 +42,40 @@ export type PendingMigration = { key: string; title: string; sql: string }
 
 export const PENDING_MIGRATIONS: PendingMigration[] = [
   {
+    key: '20260831_notification_prefs_and_referral_handoff',
+    title: 'clients gains two real notification switches and a referral handoff marker (BUILD-004A-2D)',
+    sql: `
+-- ── NOTIFICATION PREFERENCES + REFERRAL HANDOFF — canonical copy:
+--    supabase/migrations/20260831_notification_prefs_and_referral_handoff.sql
+--
+-- WHAT WAS BROKEN (the 4A-2D audit). The Settings notification panel showed three rows badged
+-- "Soon" with DISABLED switches — and the crons behind them ran anyway: /digest/weekly every
+-- Monday and /figsy/check-performance every morning. A client was receiving email the product
+-- told them did not exist yet, with no way to stop it. #326 wrote "Soon" when those toggles
+-- genuinely did nothing; the emails were built afterwards and nobody returned to the switch.
+--
+-- ⚠️ THE PREFERENCE MUST BE A COLUMN, NOT localStorage. The other panel rows stored their
+-- state in the browser, which is exactly why they never worked: the thing that has to obey a
+-- notification preference is a cron, and a cron cannot read a browser. \`daily_brief_enabled\`
+-- is already a column for this precise reason (R2/#27) — these two join it.
+--
+-- ⚠️ NULLABLE, NO DEFAULT — the #599 precedent. A DEFAULT would stamp every historic row with
+-- a preference nobody chose. NULL means "never chose", and the code reads NULL as "keep doing
+-- what we do today", so applying this migration changes nobody's mail on its own.
+--
+-- ⚠️ \`referral_handoff_at\` IS A NEW COLUMN AND NOT A REUSE OF \`referral_bonus_paid_at\`,
+-- WHICH IS THE WHOLE POINT. The automatic $45 wallet credit is retired (founder decision D2),
+-- but the refund path still reads \`referral_bonus_paid_at\` to decide whether to claw $45
+-- back out of a wallet. Marking new, unpaid referrals with that column would make the first
+-- refund reclaim money that was never granted. Historic paid referrals keep their marker and
+-- keep reversing correctly; new ones are marked here instead.
+ALTER TABLE public.clients
+  ADD COLUMN IF NOT EXISTS campaign_paused_emails_enabled boolean,
+  ADD COLUMN IF NOT EXISTS weekly_digest_enabled          boolean,
+  ADD COLUMN IF NOT EXISTS referral_handoff_at            timestamptz;
+`.trim(),
+  },
+  {
     key: '20260827_proof_review_handoff',
     title: 'clients gains a proof-review handoff — the exhausted prospect becomes real work, not a promise',
     sql: `

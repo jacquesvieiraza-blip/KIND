@@ -23,6 +23,9 @@ import { PACK_PRICE_USD, PACK_LEADS, LEAD_PRICE_USD } from '@kind/shared'
 import Anthropic from '@anthropic-ai/sdk'
 import { Resend } from 'resend'
 import { sendWeeklyLeadsDigest, sendZeroCreditsWarning, sendLowCreditsWarning, sendCampaignPausedEmail, isRealRecipient, sendOnboardingEmail, lifecycleEmailsEnabled } from '../lib/email'
+// BUILD-004A-2D — who may be emailed what. One rule set, executable, so the suite can RUN the
+// decision rather than read this file as a string.
+import { mayNotify, programmeClientIds, onProgramme } from '../lib/programme-notifications'
 import { KIND_BRAND, findKindProspects } from '../lib/cmo'
 import { isPlaceholderEmail } from '../lib/email-hygiene'
 import { scoreLeadsForIcp } from '../lib/scoring'
@@ -171,7 +174,11 @@ internalRouter.post('/digest/weekly', async (_req: Request, res: Response) => {
     const weekStart = new Date(now.getTime() - 7 * 86400000).toISOString()
 
     const { data: clients } = await db.from('clients')
-      .select('id, company_name, user_id')
+      // ⚑ 31 Aug (BUILD-004A-2D, D1) — the preference joins the select. Until this slice the
+      // Settings panel showed this row as "Soon" with a DISABLED switch while this cron ran
+      // every Monday: the client was receiving a digest the product told them did not exist
+      // yet, and could not turn it off.
+      .select('id, company_name, user_id, weekly_digest_enabled')
       .not('user_id', 'is', null)
 
     let sent = 0
@@ -179,6 +186,14 @@ internalRouter.post('/digest/weekly', async (_req: Request, res: Response) => {
 
     for (const client of clients ?? []) {
       try {
+        // ⚠️ THE PREFERENCE IS CHECKED BEFORE THE USER LOOKUP, not after the email is built.
+        // An opted-out client should cost us nothing and, more to the point, a gate placed
+        // after the send is not a gate.
+        if (!mayNotify('weekly_digest', {
+          onProgramme: null,   // irrelevant: the digest is not a retired-wallet notification
+          pref: (client as { weekly_digest_enabled?: boolean | null }).weekly_digest_enabled,
+        })) continue
+
         const { data: { user } } = await db.auth.admin.getUserById(client.user_id!)
         const email = user?.email
         if (!email) continue
@@ -187,7 +202,7 @@ internalRouter.post('/digest/weekly', async (_req: Request, res: Response) => {
         const [totalRes, newRes, avgRes, consentedRes, figsySentRes, figsyRepliesRes, figsyInterestedRes, figsyCampaignsRes] = await Promise.all([
           db.from('leads').select('id', { count: 'exact', head: true }).eq('client_id', client.id),
           db.from('leads').select('id', { count: 'exact', head: true }).eq('client_id', client.id).gte('created_at', weekStart),
-          db.from('leads').select('score, estimated_deal_value_usd').eq('client_id', client.id).not('score', 'is', null),
+          db.from('leads').select('score').eq('client_id', client.id).not('score', 'is', null),
           db.from('leads').select('id', { count: 'exact', head: true }).eq('client_id', client.id).eq('status', 'consent_given'),
           db.from('figsy_sent_emails').select('id', { count: 'exact', head: true }).in('campaign_id', campFilter).gte('sent_at', weekStart),
           db.from('figsy_replies').select('id', { count: 'exact', head: true }).eq('client_id', client.id).gte('received_at', weekStart),
@@ -195,11 +210,15 @@ internalRouter.post('/digest/weekly', async (_req: Request, res: Response) => {
           db.from('figsy_campaigns').select('id', { count: 'exact', head: true }).eq('client_id', client.id).eq('status', 'active'),
         ])
 
-        const scores = (avgRes.data ?? []) as { score: number; estimated_deal_value_usd: number | null }[]
+        const scores = (avgRes.data ?? []) as { score: number }[]
         const avgScore = scores.length
           ? Math.round(scores.reduce((s, l) => s + l.score, 0) / scores.length)
           : 0
-        const pipelineValue = scores.reduce((s, l) => s + (l.estimated_deal_value_usd ?? 0), 0)
+        // ⛓️ 31 Aug (4A-2D amendment) — `pipelineValue` REMOVED, and the column is no longer
+        // even SELECTED. It summed `leads.estimated_deal_value_usd`, written at
+        // `lib/scoring.ts:221` as `r.score * 100` — a fit score times a hundred, mailed to a
+        // customer with a dollar sign on it every Monday. Dropping it from the query too, so
+        // the fabricated figure is not merely unsent but uncomputed and unread.
 
         const { data: topLeads } = await db.from('leads')
           .select('first_name, last_name, job_title, company, score, linkedin_url')
@@ -212,7 +231,6 @@ internalRouter.post('/digest/weekly', async (_req: Request, res: Response) => {
           total_leads:    totalRes.count    ?? 0,
           new_this_week:  newRes.count      ?? 0,
           avg_score:      avgScore,
-          pipeline_value: pipelineValue,
           consented:      consentedRes.count ?? 0,
         }, topLeads ?? [], {
           emails_sent:        figsySentRes.count      ?? 0,
@@ -1038,8 +1056,19 @@ internalRouter.post('/figsy/check-performance', async (_req: Request, res: Respo
         // Notify the client their campaign was auto-paused (best-effort — never block the loop)
         try {
           const { data: client } = await db.from('clients')
-            .select('company_name, user_id').eq('id', campaign.client_id).maybeSingle()
-          if (client?.user_id) {
+            .select('company_name, user_id, campaign_paused_emails_enabled').eq('id', campaign.client_id).maybeSingle()
+          // ⚑ 31 Aug (BUILD-004A-2D, D1) — the client's switch, honoured here.
+          //
+          // ⚠️ THE CAMPAIGN PAUSE IS NOT A PROGRAMME PAUSE, AND THE COPY IS NOT RENAMED. The
+          // founder was explicit: do not relabel this "Programme paused" unless the event
+          // genuinely means the whole programme stopped. It does not — this fires when ONE
+          // `figsy_campaigns` row crosses the <1% reply-rate floor and is set to
+          // `paused_low_performance`. A programme pause is `programmes.paused_at`, a different
+          // row with its own locked copy. Calling this one a programme pause would tell a
+          // client their whole engagement had stopped because one campaign underperformed.
+          const paused_pref = (client as { campaign_paused_emails_enabled?: boolean | null } | null)
+            ?.campaign_paused_emails_enabled
+          if (client?.user_id && mayNotify('campaign_paused', { onProgramme: null, pref: paused_pref })) {
             const { data: { user } } = await db.auth.admin.getUserById(client.user_id)
             if (user?.email) {
               await sendCampaignPausedEmail(user.email, client.company_name ?? '', campaign.name, replyRate)
@@ -1149,8 +1178,28 @@ internalRouter.post('/ae/zero-credits', async (_req: Request, res: Response) => 
 
     let sent = 0
 
+    // ⚑ 31 Aug (BUILD-004A-2D, founder decision D1) — PROGRAMME CUSTOMERS ARE FENCED OUT OF
+    // BOTH SWEEPS IN THIS ROUTE.
+    //
+    // 🛑 THE CONTRADICTION THIS ENDS. `/milla/billing` tells a programme customer, in as many
+    // words, that there is no wallet, no pack and no per-lead price — and this cron emailed
+    // the same person "you have run out of credits, top up to keep outreach running". Two
+    // products, one inbox, and the one they can act on is the retired one.
+    //
+    // ⚠️ THE LEGACY RUNTIME IS NOT BEING SWITCHED OFF. R74 keeps $299/100/$4 live until the
+    // coordinated migration ships, so a legacy client still gets these warnings. What changes
+    // is only that a programme customer stops receiving them.
+    //
+    // ⚠️ ONE READ FOR THE WHOLE ROUTE, DELIBERATELY. Both sweeps below share it: a per-client
+    // query inside two loops is the same decision made twice, and two copies of a rule is how
+    // they drift apart.
+    const zeroIds = (clients ?? []).map((c: { id: string }) => c.id)
+    const zeroProgrammes = await programmeClientIds(zeroIds)
+
     for (const client of clients ?? []) {
       try {
+        if (!mayNotify('zero_credits', { onProgramme: onProgramme(zeroProgrammes, client.id) })) continue
+
         // Find when credits last hit zero (the last time money left the wallet).
         //
         // This filtered on type='deduction', which NOTHING in the codebase has ever
@@ -1193,8 +1242,12 @@ internalRouter.post('/ae/zero-credits', async (_req: Request, res: Response) => 
       .lte('figsy_credits_remaining', 5)
       .not('user_id', 'is', null)
 
+    // The second sweep gets the same fence — see the note above the zero-credit loop.
+    const lowProgrammes = await programmeClientIds((lowClients ?? []).map((c: { id: string }) => c.id))
+
     for (const client of lowClients ?? []) {
       try {
+        if (!mayNotify('low_credits', { onProgramme: onProgramme(lowProgrammes, client.id) })) continue
         if (client.low_credit_warned_at && client.low_credit_warned_at > sevenDaysAgo) continue
 
         const { data: { user } } = await db.auth.admin.getUserById(client.user_id!)

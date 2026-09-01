@@ -272,6 +272,25 @@ export const PROBES: ProbeSpec[] = [
     question: 'Does clients.contact_email exist?',
     ifMissing: 'routes/lookalike.ts selects it and THROWS on error, so the admin "Clone my best client" button returns 500. The only one of these that fails loudly. Fix: 20260806_audit_columns.',
   },
+  // ⚑ 31 Aug (BUILD-004A-2D) — probed on day one, deliberately. #383 is the precedent: a
+  // column referenced by live code, registered in no runner, silently absent for 33 days
+  // while every screen looked fine. These three are declared in the same commit that reads
+  // them, so the probe exists before the drift can.
+  {
+    kind: 'column', id: 'clients.campaign_paused_emails_enabled', table: 'clients', column: 'campaign_paused_emails_enabled',
+    question: 'Does clients.campaign_paused_emails_enabled exist?',
+    ifMissing: 'internal.ts /figsy/check-performance selects it, so the whole client select fails and NO pause email is sent at all — a client whose campaign stopped is told nothing. Fix: 20260831_notification_prefs_and_referral_handoff.',
+  },
+  {
+    kind: 'column', id: 'clients.weekly_digest_enabled', table: 'clients', column: 'weekly_digest_enabled',
+    question: 'Does clients.weekly_digest_enabled exist?',
+    ifMissing: 'internal.ts /digest/weekly selects it; a missing column fails the select and the Monday digest stops for everyone. Fix: 20260831_notification_prefs_and_referral_handoff.',
+  },
+  {
+    kind: 'column', id: 'clients.referral_handoff_at', table: 'clients', column: 'referral_handoff_at',
+    question: 'Does clients.referral_handoff_at exist?',
+    ifMissing: 'stripe.ts handOffReferralToFounder claims it to raise a referral exactly once. Missing → the claim errors, the founder is alerted that it failed, and referrals must be found by hand. No money moves either way. Fix: 20260831_notification_prefs_and_referral_handoff.',
+  },
 ]
 
 /**

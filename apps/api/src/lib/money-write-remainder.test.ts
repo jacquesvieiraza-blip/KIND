@@ -40,25 +40,40 @@ describe('a client who paid is always credited — the two Stripe rollbacks', ()
   })
 })
 
-describe('the referral payout cannot fail in silence, and its alerts cannot lie', () => {
+// ⛓️ 31 Aug (BUILD-004A-2D, founder decision D2) — RETARGETED, NOT WEAKENED.
+//
+// This block guarded `payReferrerOnFirstPurchase`: #349's finding that its atomic claim
+// swallowed its own error (leaving the referrer silently unpaid) and that its rollback alerts
+// asserted a clean undo whether or not one had happened.
+//
+// THAT FUNCTION NO LONGER EXISTS. The automatic $45 wallet credit is retired — referrals are
+// handled by a human — so there is no payout, no ledger row and no rollback to guard. The
+// assertions about `delErr`/`resetErr`/"THE ROLLBACK DID NOT FULLY SUCCEED" were removed
+// because the code they described was deleted, and a guard pointed at nothing passes for the
+// wrong reason.
+//
+// ⚠️ #349'S ACTUAL LESSON SURVIVES AND IS ASSERTED BELOW, on the function that replaced it.
+// The failure was never "the payout was wrong" — it was "the step deciding whether anything
+// runs did not check its error". The handoff makes exactly the same atomic claim, and under a
+// human-handled model an unchecked failure there means a referral nobody is ever told about.
+describe('the referral handoff cannot fail in silence', () => {
   const stripe = code('routes/stripe.ts')
 
   it('the atomic claim checks its error', () => {
-    // An errored UPDATE left `claimed` undefined, which is indistinguishable from losing the
-    // race — so the function returned and the referrer was simply never paid. Every other
-    // step in that function alerts loudly; the one deciding whether they run did not.
-    expect(stripe).toMatch(/const \{ data: claimed, error: claimErr \}/)
-    expect(stripe).toContain('Referral payout NOT attempted')
+    expect(stripe).toMatch(/const \{ data: handed, error: handErr \}/)
+    expect(stripe).toContain('Referral NOT raised — claim failed')
   })
 
-  it('and every rollback reports whether it actually rolled back', () => {
-    // The alerts asserted "the payout marker was reset" whether or not it had been. A failed
-    // reset leaves the marker SET, so no future purchase retries — and the operator has been
-    // told the opposite, which is worse than saying nothing.
-    expect(stripe).toMatch(/const \{ error: resetErr \}/)
-    expect(stripe).toMatch(/const \{ error: delErr \}/)
-    expect(stripe).toContain('THE ROLLBACK DID NOT FULLY SUCCEED')
-    expect(stripe).toContain('AND THE MARKER RESET ALSO FAILED')
+  it('and a lost claim is distinguished from a failed one', () => {
+    // The #349 shape precisely: `handed` being empty means someone else won the race, which
+    // is fine. It must never be how an ERROR reads.
+    expect(stripe).toMatch(/if \(handErr\)/)
+    expect(stripe).toMatch(/if \(!handed \|\| handed\.length === 0\) return/)
+  })
+
+  it('and nothing about a referral touches money any more', () => {
+    expect(stripe).not.toMatch(/payReferrerOnFirstPurchase/)
+    expect(stripe).not.toMatch(/type:\s*'referral_bonus'/)
   })
 })
 

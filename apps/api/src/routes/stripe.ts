@@ -61,89 +61,76 @@ import { mapStripeStatus, isEnumRejection } from '../lib/subscription-status'
 // runs it fire-and-forget so a payout failure can't break the payment webhook.
 // ONE WALLET (W2) — the referral bonus is paid in wallet dollars, not the retired
 // FIGSY credit column. ~$45 (was 15 FIGSY credits × $3).
+// ⛓️ 31 Aug (D2) — THIS CONSTANT NO LONGER PAYS ANYBODY. Its only remaining reader is the
+// refund/chargeback claw-back at the bottom of this file, which must still be able to reverse
+// a $45 bonus that was genuinely paid before today. It is not a live reward.
 const REFERRAL_BONUS_USD = 45
-async function payReferrerOnFirstPurchase(referredClientId: string) {
+
+// ⛓️ 31 Aug (BUILD-004A-2D, FOUNDER DECISION D2) — THE AUTOMATIC PAYOUT IS RETIRED. THE
+// REFERRAL IS NOT.
+//
+// The founder's ruling: *"MVP REFERRAL MODEL: HUMAN-HANDLED … no $45 promise, no wallet, no
+// 11 approved leads, no $299 onboarding, no credits, no automatic monetary reward. The
+// existing backend automatic $45 wallet-credit side effect must NOT execute for the new Milla
+// referral journey. Do not delete historical referral evidence."*
+//
+// 🛑 WHAT WAS ACTUALLY WRONG, AND IT WAS NOT THE CODE. Everything below this comment used to
+// work exactly as written: `REFERRAL_BONUS_USD = 45` really did credit the referrer's wallet
+// on a referred client's first purchase, and the audit confirmed it. The defect was that
+// `/milla/billing` tells a programme customer there is **no wallet**, while `/milla/referral`,
+// two rail items away, promised to put $45 into it and called that "11 approved leads on us".
+// Both sentences were true against different halves of a product mid-migration. A customer
+// cannot hold both.
+//
+// ⚠️ SO THE MONEY PATH IS GONE AND THE EVIDENCE PATH STAYS. No wallet RPC, no ledger row, no
+// promise. What replaces it is the founder being TOLD, because "human-handled" is only a
+// model if a human actually hears about it — the alternative is a referral that silently
+// reaches nobody, which is worse than the wrong reward.
+//
+// ⚠️ AND `referral_bonus_paid_at` IS DELIBERATELY LEFT ALONE — a NEW column marks the handoff.
+// That marker is what the refund path at the bottom of this file reads to decide whether to
+// claw $45 back out of a wallet. If this function set it without paying, the first refund
+// would take $45 that was never given, from a wallet the customer's own billing page says
+// does not exist. Historic referrals that WERE paid keep their marker and keep clawing back
+// correctly; new ones never set it, so the claw-back correctly no-ops.
+async function handOffReferralToFounder(referredClientId: string) {
   const { data: client } = await db.from('clients')
-    .select('id, company_name, referred_by, referral_bonus_paid_at')
+    .select('id, company_name, referred_by, referral_handoff_at')
     .eq('id', referredClientId)
     .maybeSingle()
 
-  if (!client?.referred_by || client.referral_bonus_paid_at) return // no referrer, or already paid
+  if (!client?.referred_by || client.referral_handoff_at) return // no referrer, or already raised
 
-  // Atomic claim: only the first winner flips the marker from null.
   const now = new Date().toISOString()
-  // #349 — THE CLAIM USED TO SWALLOW ITS ERROR, and that is the one failure this whole
-  // function is built to prevent. supabase-js RETURNS the error, so an errored UPDATE left
-  // `claimed` undefined — indistinguishable from losing the race — and the function returned
-  // silently. Everything below alerts loudly on failure; the step that decides whether any of
-  // it runs did not. A referrer would simply never be paid, with nothing to notice.
-  const { data: claimed, error: claimErr } = await db.from('clients')
-    .update({ referral_bonus_paid_at: now })
-    .eq('id', referredClientId)
-    .is('referral_bonus_paid_at', null)
-    .select('id')
-  if (claimErr) {
-    void sendFounderAlert('payment_failed', 'Referral payout NOT attempted', [
-      `Referrer: ${client.referred_by}`,
-      `Referred client ${referredClientId} made their first purchase, but claiming the payout marker failed: ${claimErr.message}`,
-      `Nothing was written and nobody was paid. The marker is still null, so a future purchase retries — but if this client never buys again, pay the referrer $${REFERRAL_BONUS_USD} by hand.`,
-    ])
-    return
-  }
-  if (!claimed || claimed.length === 0) return // lost the race — someone else is paying
 
-  // Ledger row first (audit trail), then the atomic FIGSY credit grant.
-  // P3 — the marker is already claimed at this point, so a claim-then-fail here
-  // would leave the marker set + the ledger lying + no payout, with NO retry ever.
-  // Guard BOTH steps: on any failure, undo whatever was written and reset the
-  // marker to NULL so the referrer's NEXT purchase retries the payout cleanly.
-  const ledgerRef = `referral_bonus_${referredClientId}`
-  const { error: ledgerErr } = await db.from('credit_transactions').insert({
-    client_id: client.referred_by,
-    type:      'referral_bonus',
-    amount:    REFERRAL_BONUS_USD,
-    plan:      'work_model',
-    reference: ledgerRef,
-    note:      `Referral bonus — ${client.company_name ?? 'a referred client'} made their first purchase`,
-    created_at: now,
-  })
-  if (ledgerErr) {
-    // #349 — the reset's own error was swallowed, so the alert below promised "the marker was
-    // reset" whether or not it had been. A failed reset leaves the marker SET, which means the
-    // payout can never retry — and the operator has been told the opposite. Report what
-    // actually happened.
-    const { error: resetErr } = await db.from('clients')
-      .update({ referral_bonus_paid_at: null }).eq('id', referredClientId)
-    void sendFounderAlert('payment_failed', 'Referral payout failed', [
+  // Atomic claim on the HANDOFF marker — same idempotency shape the payout used, for the same
+  // reason: a retried or concurrent webhook must raise this with the founder exactly once.
+  const { data: handed, error: handErr } = await db.from('clients')
+    .update({ referral_handoff_at: now })
+    .eq('id', referredClientId)
+    .is('referral_handoff_at', null)
+    .select('id')
+  if (handErr) {
+    // #349's lesson, kept: the claim's own error must never be swallowed. An errored UPDATE
+    // is indistinguishable from losing the race unless we read it, and a referral nobody is
+    // told about is precisely the failure the human-handled model cannot absorb.
+    void sendFounderAlert('payment_failed', 'Referral NOT raised — claim failed', [
       `Referrer: ${client.referred_by}`,
-      `Referred client ${referredClientId} made their first purchase, but writing the referral-bonus ledger row failed: ${ledgerErr.message}`,
-      resetErr
-        ? `⚠️ AND THE MARKER RESET ALSO FAILED (${resetErr.message}) — it is still set, so NO future purchase will retry this. Clear clients.referral_bonus_paid_at for ${referredClientId} by hand, then pay the referrer $${REFERRAL_BONUS_USD}.`
-        : `The payout marker was reset — a future purchase will retry. Add $${REFERRAL_BONUS_USD} to the referrer's wallet manually if needed.`,
+      `Referred client ${referredClientId} made their first purchase, but claiming the handoff marker failed: ${handErr.message}`,
+      'Nobody was paid (the automatic bonus is retired — D2) and nothing was written. Handle this referral by hand.',
     ])
     return
   }
-  const { error: rpcErr } = await db.rpc('increment_wallet', {
-    p_client_id: client.referred_by,
-    p_amount:    REFERRAL_BONUS_USD,
-  })
-  if (rpcErr) {
-    // #349 — both rollbacks swallowed their errors. A failed ledger delete leaves a row
-    // claiming a $45 payout that never happened (the ledger lies about money); a failed marker
-    // reset stops any retry. Either way the alert must say so rather than assert a clean undo.
-    const { error: delErr } = await db.from('credit_transactions').delete().eq('reference', ledgerRef)
-    const { error: resetErr } = await db.from('clients')
-      .update({ referral_bonus_paid_at: null }).eq('id', referredClientId)
-    void sendFounderAlert('payment_failed', 'Referral payout failed', [
-      `Referrer: ${client.referred_by}`,
-      `Referred client ${referredClientId} made their first purchase, but the wallet grant RPC failed: ${rpcErr.message}`,
-      delErr || resetErr
-        ? `⚠️ THE ROLLBACK DID NOT FULLY SUCCEED.${delErr ? ` The ledger row ${ledgerRef} could NOT be deleted (${delErr.message}) — it now claims a $${REFERRAL_BONUS_USD} payout that never happened.` : ''}${resetErr ? ` The payout marker could NOT be reset (${resetErr.message}) — no future purchase will retry.` : ''} Fix by hand before trusting the ledger.`
-        : `The ledger row was rolled back and the payout marker reset — a future purchase will retry. Add $${REFERRAL_BONUS_USD} to the referrer's wallet manually if needed.`,
-    ])
-    return
-  }
+  if (!handed || handed.length === 0) return // lost the race — someone else raised it
+
+  void sendFounderAlert('churn_risk', 'Referral to handle — a referred client just paid', [
+    `Referrer: ${client.referred_by}`,
+    `Referred client: ${client.company_name ?? referredClientId} (${referredClientId})`,
+    'The automatic $45 wallet credit is RETIRED (founder decision D2, 31 Aug) — nothing was paid and nothing was promised on the referral page.',
+    'MVP referral is handled personally: decide what, if anything, this referrer receives and arrange it directly with them.',
+  ])
 }
+
 
 export const stripeRouter = Router()
 
@@ -518,7 +505,7 @@ stripeRouter.post('/webhook', async (req: Request, res: Response) => {
             `Their sourcing allowance (+${Math.round(amountUsd * 2)} records) failed to accrue: ${allowErr.message}`,
           ])
         }
-        void payReferrerOnFirstPurchase(clientId).catch(err => console.error('[Stripe] referrer payout failed (non-fatal):', err))
+        void handOffReferralToFounder(clientId).catch(err => console.error('[Stripe] referral handoff failed (non-fatal):', err))
 
         // ── PAYMENT STARTS THE WORK (flow v2) ──────────────────────────────────────
         // The client approved their ICP on day one and it then sat dormant, because nothing
@@ -697,10 +684,12 @@ stripeRouter.post('/webhook', async (req: Request, res: Response) => {
           }
         }
 
-        // #336 — pay the referrer on this client's FIRST purchase (see helper).
-        // Fire-and-forget: a payout failure must never break the paid webhook.
-        void payReferrerOnFirstPurchase(clientId).catch(err =>
-          console.error('[Stripe] referral bonus payout failed (non-fatal):', err))
+        // #336 → D2 (31 Aug) — RAISE the referral with the founder on this client's FIRST
+        // purchase. No wallet credit: the automatic bonus is retired and referral is
+        // human-handled. Fire-and-forget for the same reason as before — nothing about a
+        // referral may break the paid webhook.
+        void handOffReferralToFounder(clientId).catch(err =>
+          console.error('[Stripe] referral handoff failed (non-fatal):', err))
 
         // #613 — the same settlement stamp on the credit-purchase path. LAST, after every
         // money write has completed, so a Stripe read failure can cost nothing but a note.

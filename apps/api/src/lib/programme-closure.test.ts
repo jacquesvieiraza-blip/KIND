@@ -210,10 +210,21 @@ describe('GAP 4 · payment identifiers persist, and a missing email fails closed
 // ⚠️ THAT IS AN ARGUMENT ABOUT STRUCTURE, SO IT IS PINNED AS STRUCTURE. If someone later
 // awaits `runIcpJob` here, the argument silently stops holding — and this test goes red.
 describe('GAP 1 · the activate route computes `sourcing` independently of the job', () => {
+  // ⛓️ 1 Sep — PATTERN UPDATED, INTENT UNCHANGED AND NOW STRICTER. This assertion went red
+  // on the fire-and-forget ownership fix, and it was RIGHT to: the call site literally
+  // changed shape. The claim it defends — *the activate route does not await the job* — is
+  // exactly what that fix preserves, so the regex is widened to accept the wrapper and the
+  // forbidden forms are widened with it. **This guard caught a real edit to the line it
+  // guards, which is the system working rather than a test to relax.**
   it('⚠️ runIcpJob IS NOT AWAITED BY THE ACTIVATE ROUTE — fire-and-forget with a .catch', () => {
-    expect(ICPS).toMatch(/started = true\n\s*runIcpJob\(req\.params\.id, clientId, ownerUserId[^\n]*\)\n\s*\.catch\(/)
+    expect(ICPS).toMatch(
+      /started = true\n\s*(?:trackBackground\()?runIcpJob\(req\.params\.id, clientId, ownerUserId[^\n]*\)\n\s*\.catch\(/,
+    )
     expect(ICPS, 'awaiting it would put every runIcpJob failure into the route response')
       .not.toMatch(/started = true\n\s*await runIcpJob\(/)
+    // The wrapper must not become a blocking await either — same harm, new spelling.
+    expect(ICPS, 'awaiting the tracked job blocks the response just as awaiting the job would')
+      .not.toMatch(/started = true\n\s*await trackBackground\(/)
   })
 
   it('`sourcing` is the local flag, assigned before the job is called', () => {

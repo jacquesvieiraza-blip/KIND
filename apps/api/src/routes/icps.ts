@@ -39,6 +39,14 @@ import { adminKeyValid } from './admin'
 // inventing a second notion of "has this account paid us".
 import { fundedVia } from '../lib/onboarding-pack'
 
+// ⚑ 1 Sep — FIRE-AND-FORGET WORK GETS AN OWNER. Every un-awaited `runIcpJob` below is
+// wrapped in `trackBackground`. The route still does NOT await it and the client still
+// gets an instant answer; what changes is that the promise is registered, so a caller
+// that needs a boundary can ask whether it is still running. See lib/background.ts for
+// the failure this closes (a leaked job racing `vi.resetModules()` through one of
+// runIcpJob's four dynamic imports, which bound a later request to an earlier db mock).
+import { trackBackground } from '../lib/background'
+
 // PR-A — record ONE honest outcome row per ICP run so the client learns WHY a run
 // produced no leads (quota outage vs narrow ICP). Best-effort: a write failure here
 // must never break the run itself, so it swallows errors (the run already happened).
@@ -3776,12 +3784,12 @@ icpRouter.post('/:id/run', rateLimit({ limit: 10, windowMs: 60_000, key: 'icp-ru
     // appear. Mirrors the fire-and-forget pattern in /activate. Apollo/credit errors
     // surface in the logs (and as "no new leads"), not as a request error.
     // Credits are deducted at DELIVERY inside the job, not at insertion.
-    runIcpJob(req.params.id, clientId, req.userId!, effectiveBalance)
+    trackBackground(runIcpJob(req.params.id, clientId, req.userId!, effectiveBalance)
       .catch((err) => {
         if (err instanceof ApolloCreditsExhaustedError) console.error('[icps/run] Apollo search credits exhausted')
         else if (err instanceof ApolloRateLimitError)   console.error('[icps/run] Apollo rate limit hit')
         else console.error('[icps/run] background job failed:', err)
-      })
+      }))
 
     res.json({ success: true, data: { started: true } })
   } catch (err) {
@@ -4071,7 +4079,7 @@ icpRouter.post('/:id/proof', async (req: AuthRequest, res) => {
     // prospect their targeting matched nobody when we never actually asked — a lie, and the
     // precise class of lie R72 forbids. A truthful failure state needs a founder decision
     // (a new status + its client sentence); until then a HUMAN is told, immediately.
-    runIcpJob(req.params.id, clientId, req.userId!, PROOF_PASS_LEADS, { proofPass: claimed })
+    trackBackground(runIcpJob(req.params.id, clientId, req.userId!, PROOF_PASS_LEADS, { proofPass: claimed })
       .catch(async e => {
         console.error('[icps/proof] proof run failed:', e)
         // ⚑ 26 Aug — PERSIST THE CRASH AS A TERMINAL FACT (founder-approved `failed`).
@@ -4086,7 +4094,7 @@ icpRouter.post('/:id/proof', async (req: AuthRequest, res) => {
           'Their proof pass is CONSUMED and no run outcome was recorded, so the desk shows no terminal state for this attempt.',
           'If this reads SAFE_TEST_MODE / PAID_PROVIDERS_ENABLED, the guard refused to spend — that is correct behaviour, not a bug.',
         ]).catch(() => {})
-      })
+      }))
 
     res.json({ success: true, data: { pass: claimed, of: 2, finding: true } })
   } catch (err) {
@@ -4256,8 +4264,8 @@ async function activateIcpHandler(req: AuthRequest, res: Response) {
         console.error(`[icps/activate] client ${clientId} has no owner user_id — the ICP is live but no first run was started, because the leads email would have nowhere to go.`)
       } else if (credits > 0 || !bal?.first_icp_run_at) {
         started = true
-        runIcpJob(req.params.id, clientId, ownerUserId, credits > 0 ? credits : 20)
-          .catch(e => console.error('[icps/activate] auto-run failed:', e))
+        trackBackground(runIcpJob(req.params.id, clientId, ownerUserId, credits > 0 ? credits : 20)
+          .catch(e => console.error('[icps/activate] auto-run failed:', e)))
       }
     }
     // `applied_revision` so Vida can say what actually happened — "revision applied" and

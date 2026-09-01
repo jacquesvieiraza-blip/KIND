@@ -33,3 +33,41 @@ for (const key of PROVIDER_KEYS) delete process.env[key]
 process.env.PAID_PROVIDERS_ENABLED = 'true'
 
 export { PROVIDER_KEYS }
+
+// ── FIRE-AND-FORGET WORK CANNOT OUTLIVE ITS TEST (1 Sep) ────────────────────────────────
+//
+// 🛑 THE SHIP BLOCKER THIS CLOSES. `ship.sh` went red on ONE test in 4,762:
+//
+//     proof-review-handoff.test.ts › the third attempt is refused 409 and persists ONE open
+//     review  —  expected client().proof_passes_done to be 2, received 0
+//
+// **Zero, not one and not three.** Nothing decremented the counter — all three requests
+// incremented a store the assertion was no longer looking at.
+//
+// ⚠️ THE MECHANISM. `POST /icps/:id/proof` starts `runIcpJob` without awaiting it (correct —
+// the prospect gets an instant answer). `runIcpJob` then performs four dynamic
+// `await import(...)` calls inside its body, the first early on. Nothing held that promise,
+// so the leaked job was still touching the module registry when the NEXT test ran
+// `vi.resetModules()` and re-imported `routes/icps` — and the re-imported route could bind to
+// the PREVIOUS test's `@kind/db` mock. Every write then landed in the previous test's store.
+//
+// ⚠️ WHY THIS IS GLOBAL AND NOT THREE `afterEach` HOOKS. **Thirty test files import
+// `routes/icps`.** Draining in the three that happened to go red would fix those three and
+// leave the same race live in twenty-seven others — and three hand-copied hooks is the
+// "second copy of a rule" defect this repo logs over and over. One boundary, applied to every
+// test file, including every future one nobody remembers to instrument.
+//
+// ⚠️ NO SLEEP, NO TIMER, NO RETRY. It awaits the actual promises. The registry lives on
+// `globalThis` precisely so this still sees work started before a `vi.resetModules()`.
+// ⚠️ STATICALLY IMPORTED, AND THE FIRST DRAFT'S DYNAMIC `await import(...)` WAS A REAL
+// MISTAKE. Importing inside the hook ran a module-registry operation in the teardown of every
+// one of the 222 test files — including the ones that call `vi.resetModules()` — so the fix
+// was performing the very kind of action whose race it exists to close. Measured: it made
+// shuffled-order runs worse, not better. The registry lives on `globalThis`, so a static
+// import here reads the same set no matter how many times modules are reset.
+import { afterEach } from 'vitest'
+import { settleBackgroundWork } from './apps/api/src/lib/background'
+
+afterEach(async () => {
+  await settleBackgroundWork()
+})

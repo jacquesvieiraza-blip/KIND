@@ -170,7 +170,12 @@ describe('the overview hands the UI what it needs to warn', () => {
 })
 
 describe('the dead "Add member" button points somewhere real', () => {
-  const team = stripCommentsForEnvScan(readFileSync(join(__dirname, '../../../../apps/portal/src/app/(dashboard)/dashboard/team/page.tsx'), 'utf8'))
+  // ⛓️ 1 Sep — REPOINTED, INTENT UNCHANGED. The Teams Hub markup moved from the route file to
+  // `components/TeamsHub.tsx` so `/milla/teams` could render the SAME component with a
+  // truthful label (Next.js forbids a page exporting anything but the route). The button this
+  // guard protects moved with it; the route file is now a ten-line wrapper. Reading the
+  // wrapper would have made this pass by finding nothing, so it reads the component.
+  const team = stripCommentsForEnvScan(readFileSync(join(__dirname, '../../../../apps/portal/src/components/TeamsHub.tsx'), 'utf8'))
 
   it('no longer navigates to a settings anchor nothing handles', () => {
     expect(team).not.toContain('/milla/settings#team')

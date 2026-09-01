@@ -410,10 +410,39 @@ leadRouter.get('/pipeline', async (req: AuthRequest, res) => {
     const clientId = await getClientId(req.userId!)
     if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
 
-    // Approved = the client paid the $4 and we revealed it (revealed_at is the claim).
-    const { data: approved } = await db.from('leads')
+    // ⚑ 1 Sep (HOUSE READINESS) — THE PIPELINE IS SCOPED TO THE CURRENT PROGRAMME.
+    //
+    // 🛑 THE BLEED THIS CLOSES, FOUND ON THE FOUNDER'S OWN ACCOUNT. This selected
+    // `client_id = ? AND revealed_at IS NOT NULL` and stopped — and `revealed_at` is the
+    // LEGACY claim ("the client paid $4 and we unmasked this person"). On Client Zero that
+    // returned 161 historical rows, which the page rendered as **Approved 16 · Contacted 145**
+    // on an account sitting at Proof with no sourcing authority and no outreach. Nothing new
+    // had happened; the programme was being credited with a retired desk's work.
+    //
+    // ⚠️ ATTRIBUTION IS POSITIVE. A lead counts only if it CARRIES this programme's id.
+    // `programme_id IS NULL` is pre-programme history, not "probably current" — treating null
+    // as a match is the bleed itself.
+    //
+    // ⚠️ A LEGACY CLIENT'S PIPELINE IS UNTOUCHED. With no programme row the scope is
+    // `legacy` and the query is byte-for-byte what it was — R74 keeps that runtime live, and
+    // silently emptying a paying legacy client's pipeline would be a far worse defect than
+    // the one being fixed.
+    const { readCustomerProgramme } = await import('../lib/customer-programme')
+    const { scopeFor } = await import('../lib/programme-scope')
+    const prog = await readCustomerProgramme(clientId)
+    // `null` = the programme read FAILED. Falling through to `legacy` would re-open the bleed
+    // on exactly the error path nobody watches, so an unreadable programme refuses instead.
+    if (prog === null) {
+      res.status(503).json({ success: false, error: 'Your programme could not be read, so the pipeline was not built.' })
+      return
+    }
+    const scope = scopeFor(prog.programmeId)
+
+    let approvedQ = db.from('leads')
       .select('id, first_name, last_name, company, job_title, score, revealed_at')
       .eq('client_id', clientId).not('revealed_at', 'is', null)
+    if (scope.mode === 'programme') approvedQ = approvedQ.eq('programme_id', scope.programmeId)
+    const { data: approved } = await approvedQ
       .order('revealed_at', { ascending: false }).limit(200)
     const approvedIds = (approved ?? []).map((l: { id: string }) => l.id)
     const safeIds = approvedIds.length ? approvedIds : ['00000000-0000-0000-0000-000000000000']

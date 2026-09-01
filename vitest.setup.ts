@@ -65,8 +65,31 @@ export { PROVIDER_KEYS }
 // was performing the very kind of action whose race it exists to close. Measured: it made
 // shuffled-order runs worse, not better. The registry lives on `globalThis`, so a static
 // import here reads the same set no matter how many times modules are reset.
-import { afterEach } from 'vitest'
+// ⚠️ BOTH HOOKS, AND `beforeEach` IS THE ONE THAT ACTUALLY CLOSES THE RACE.
+//
+// 🛑 THE afterEach ALONE WAS ON THE WRONG SIDE OF THE RESET. Vitest runs `afterEach` hooks in
+// REVERSE registration order, so this file's hook — registered first, before any test file's
+// own — runs LAST: *after* `proof-review-handoff.test.ts` has already called
+// `vi.resetModules()` in its own teardown. The leaked job was therefore still in flight
+// across the exact reset whose race it was supposed to fence, and the suite stayed red at
+// roughly one run in fourteen. Measured, not reasoned about.
+//
+// `beforeEach` hooks run in REGISTRATION order, so this one runs FIRST — before any test
+// file's own `beforeEach` calls `vi.resetModules()` and re-imports `routes/icps`. That is the
+// guarantee that matters: **no background work is ever in flight at the moment a module graph
+// is reset and rebuilt.**
+//
+// The `afterEach` is kept as well. It is not redundant: it stops the last test of a file
+// leaving work running into the next file's environment, and it keeps the registry empty for
+// anything that inspects it. Belt and braces on opposite ends of the same boundary.
+//
+// ⚠️ NO SLEEP, NO TIMER, NO RETRY, ANYWHERE. Both hooks await the real promises.
+import { afterEach, beforeEach } from 'vitest'
 import { settleBackgroundWork } from './apps/api/src/lib/background'
+
+beforeEach(async () => {
+  await settleBackgroundWork()
+})
 
 afterEach(async () => {
   await settleBackgroundWork()

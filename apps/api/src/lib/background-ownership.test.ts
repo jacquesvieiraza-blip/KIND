@@ -181,6 +181,15 @@ describe('every fire-and-forget runIcpJob is owned — the structural guard', ()
       .split('\n').filter(l => !l.trim().startsWith('//')).join('\n')
     expect(setup, 'the global drain is gone from vitest.setup.ts').toContain('settleBackgroundWork()')
     expect(setup).toMatch(/afterEach\(async \(\) => \{[\s\S]{0,240}await settleBackgroundWork\(\)/)
+
+    // 🛑 `beforeEach` IS THE HOOK THAT ACTUALLY CLOSES THE RACE, AND ITS ABSENCE IS WHY THE
+    // FIRST ATTEMPT STAYED RED AT ~1 RUN IN 14. Vitest runs `afterEach` in REVERSE
+    // registration order, so this file's teardown drain runs LAST — after a test file's own
+    // `afterEach` has already called `vi.resetModules()`. `beforeEach` runs in registration
+    // order, so it runs FIRST: no background work is ever in flight at the moment a module
+    // graph is reset and rebuilt. Delete this hook and the flake comes straight back.
+    expect(setup, 'the beforeEach drain is gone — the afterEach alone runs after resetModules')
+      .toMatch(/beforeEach\(async \(\) => \{[\s\S]{0,240}await settleBackgroundWork\(\)/)
   })
 
   it('the registry survives vi.resetModules() — otherwise the drain is a no-op', () => {

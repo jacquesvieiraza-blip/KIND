@@ -113,6 +113,10 @@ export default function VidaEnginePage() {
   // let us in. Keyed by inbox id so two open cards can't overwrite each other's answer.
   const [cred, setCred] = useState<CredForm | null>(null)
   const [checked, setChecked] = useState<Record<string, { ok: boolean; message: string }>>({})
+  // #553 — which mailbox row has its test-send box open, and the address typed into it.
+  // Opening is a separate act from sending, so a real message is never one stray click away.
+  const [testFor, setTestFor] = useState<string | null>(null)
+  const [testTo, setTestTo] = useState<Record<string, string>>({})
   // Shown only after the database REJECTS a password: the escape hatch for "the stored
   // password is stale and the Supabase dashboard that could reset it is unreachable" (GitHub
   // removed the Supabase OAuth app entirely). Used for one run, never stored anywhere.
@@ -323,6 +327,33 @@ export default function VidaEnginePage() {
       setChecked(prev => ({ ...prev, [inbox.id]: j.data }))
     } catch (err) {
       setChecked(prev => ({ ...prev, [inbox.id]: { ok: false, message: err instanceof Error ? err.message : 'Could not check the mailbox' } }))
+    }
+    setBusy(null)
+  }
+
+  // #553 — SEND ONE DIAGNOSTIC THROUGH THIS EXACT MAILBOX.
+  //
+  // `verify` above proves the password and nothing else. The ladder wants a message that
+  // LANDS, per mailbox — and the campaign test-send cannot answer that, because it goes out
+  // through Resend/COLD_FROM rather than the Google box FIGSY will use.
+  //
+  // ⚠️ The mailbox id is the sender. No rotation, no ranking — on a two-box client the
+  // ranked picker would answer the branded/active box however hard you tried to test the
+  // other one, which is exactly the mistake this control exists to make impossible.
+  async function testSend(inbox: Inbox) {
+    const to = (testTo[inbox.id] ?? '').trim()
+    setBusy(`t-${inbox.id}`); setError(null)
+    try {
+      const j = await fetch(`/api/proxy/operator/inboxes/${inbox.id}/test-send`, {
+        method: 'POST', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ client_id: inbox.client_id, to_email: to }),
+      }).then(r => r.json())
+      if (!j?.success) throw new Error(j?.error || 'Could not send the test')
+      // Same panel the verify result uses, so a mailbox never shows two verdicts at once.
+      setChecked(prev => ({ ...prev, [inbox.id]: { ok: !!j.data?.sent, message: j.data?.message ?? 'Sent.' } }))
+      if (j.data?.sent) setTestFor(null)
+    } catch (err) {
+      setChecked(prev => ({ ...prev, [inbox.id]: { ok: false, message: err instanceof Error ? err.message : 'Could not send the test' } }))
     }
     setBusy(null)
   }
@@ -868,6 +899,17 @@ export default function VidaEnginePage() {
                         {busy === `v-${i.id}` ? 'Checking…' : 'Test connection'}
                       </button>
                     )}
+                    {/* #553 — "Test connection" authenticates and sends nothing; this sends a
+                        real message THROUGH THIS MAILBOX, which is the only way to answer the
+                        ladder's "did it land in the inbox?" per box. Shown wherever credentials
+                        exist, INCLUDING a warming box: a mailbox cannot be proven while warming
+                        and cannot leave warming until it is proven. */}
+                    {i.has_smtp && i.status !== 'released' && i.status !== 'retired' && (
+                      <button onClick={() => setTestFor(testFor === i.id ? null : i.id)}
+                        className="text-[11.5px] font-bold text-[#7C3AED] border border-[#e4dcf7] rounded-lg px-2.5 py-1 hover:bg-[#f7f4fd]">
+                        {testFor === i.id ? 'Cancel test' : 'Send test'}
+                      </button>
+                    )}
                     {i.kind === 'pooled' && (
                       <button onClick={() => setBrandFor({ clientId: i.client_id, email: '' })}
                         className="text-[11.5px] font-bold text-[#7C3AED] border border-[#e4dcf7] rounded-lg px-2.5 py-1 hover:bg-[#f7f4fd]">
@@ -886,6 +928,30 @@ export default function VidaEnginePage() {
                     )}
                   </div>
                 </div>
+
+                {/* #553 — THE TEST SEND. A real email leaves from THIS mailbox, so the
+                    address is typed deliberately and the button says what will happen. */}
+                {testFor === i.id && (
+                  <div className="mt-2 rounded-lg border border-[#e4dcf7] bg-[#faf8fe] px-2.5 py-2">
+                    <p className="text-[11px] text-[#5c5279] leading-relaxed mb-1.5">
+                      Sends <b>one</b> plain diagnostic email from <b>{i.smtp_user ?? i.email}</b>. No campaign, no
+                      enrolment, no outreach is enabled. Send it somewhere you can read the result — your own inbox,
+                      or the address mail-tester.com gives you.
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <input
+                        value={testTo[i.id] ?? ''}
+                        onChange={ev => setTestTo(prev => ({ ...prev, [i.id]: ev.target.value }))}
+                        placeholder="you@yourdomain.com"
+                        className="flex-1 text-[12px] border border-[#e4dcf7] rounded-lg px-2.5 py-1.5 bg-white" />
+                      <button onClick={() => testSend(i)}
+                        disabled={busy === `t-${i.id}` || !(testTo[i.id] ?? '').trim()}
+                        className="shrink-0 text-[11.5px] font-bold text-white bg-[#7C3AED] rounded-lg px-3 py-1.5 disabled:opacity-50">
+                        {busy === `t-${i.id}` ? 'Sending…' : 'Send test email'}
+                      </button>
+                    </div>
+                  </div>
+                )}
 
                 {/* The result of asking the mailbox. Kept until the next check so a long error
                     can be read, and never auto-cleared by a reload. */}

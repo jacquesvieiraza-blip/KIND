@@ -49,10 +49,12 @@ const dbState: {
   updatedRows: Record<string, unknown>[] | null
   icpClientFilter: string | null
   icpListError: { message: string } | null
+  campaigns: Record<string, unknown>[]
+  campaignsError: { message: string } | null
 } = {
   enrollment: null, programme: null, icp: null, icpList: [],
   leadCount: 0, leadCountError: null, writes: [], updatedRows: null,
-  icpClientFilter: null, icpListError: null,
+  icpClientFilter: null, icpListError: null, campaigns: [], campaignsError: null,
 }
 
 vi.mock('@kind/db', () => ({
@@ -64,7 +66,7 @@ vi.mock('@kind/db', () => ({
           if (table === 'icps' && col === 'client_id') dbState.icpClientFilter = String(val)
           return q
         },
-        not: () => q, limit: () => q, order: () => q, is: () => q, in: () => q,
+        not: () => q, neq: () => q, limit: () => q, order: () => q, is: () => q, in: () => q,
         update: (patch: Record<string, unknown>) => { dbState.writes.push({ table, patch }); return q },
         insert: (patch: Record<string, unknown>) => { dbState.writes.push({ table, patch }); return q },
         async maybeSingle() {
@@ -78,6 +80,10 @@ vi.mock('@kind/db', () => ({
           if (table === 'leads') {
             // `markReadyForApproval` uses a head count: `{ count, error }`, no rows.
             return res({ data: null, count: dbState.leadCount, error: dbState.leadCountError })
+          }
+          if (table === 'figsy_campaigns') {
+            if (dbState.campaignsError) return res({ data: null, error: dbState.campaignsError })
+            return res({ data: dbState.campaigns, error: null })
           }
           if (table === 'icps') {
             if (dbState.icpListError) return res({ data: null, error: dbState.icpListError })
@@ -136,6 +142,7 @@ beforeEach(() => {
   dbState.icpList = []; dbState.leadCount = 0; dbState.leadCountError = null
   dbState.writes = []; dbState.updatedRows = null
   dbState.icpClientFilter = null; dbState.icpListError = null
+  dbState.campaigns = []; dbState.campaignsError = null
 })
 
 // ═══════════════════════════════════════════════════════════════════════════════════════
@@ -1078,15 +1085,43 @@ describe('⑲ readiness reuses the existing reviewable-lead definition', () => {
     expect(f).toContain(".not('surfaced_for_approval_at', 'is', null)")
   })
 
-  it('and it deliberately does NOT copy the two "still outstanding" filters', () => {
-    // `revealed_at IS NULL` and `status != 'passed'` answer a different question. Copying them
-    // would make a programme whose leads the client has already worked through read as having
-    // nothing to review — the opposite of the truth.
+  it('🛑 AND IT COPIES ALL FOUR — the predicate IS the review query, not an approximation', () => {
+    // ⛓️ CORRECTED. The first version omitted `revealed_at IS NULL` and `status != 'passed'`,
+    // arguing they answer "what is still outstanding" rather than "what can ever appear".
+    // That is wrong at THIS transition: the client has not reviewed anything yet — that is the
+    // step this status hands them — so a lead already revealed or passed went through the
+    // legacy per-lead path and will never appear in their list. Counting one would let
+    // READY_FOR_APPROVAL succeed while Milla opens empty.
     const src = strip(raw(join(API, 'lib/programme.ts')))
     const at = src.indexOf('export async function markReadyForApproval')
-    const f = src.slice(at, at + 2600)
-    expect(f).not.toContain("revealed_at")
-    expect(f).not.toContain("'passed'")
+    const f = src.slice(at, at + 3400)
+    expect(f).toContain(".is('revealed_at', null)")
+    expect(f).toContain(".neq('status', 'passed')")
+  })
+
+  it('🛑 READY ⇒ THE REAL REVIEW SET IS NON-EMPTY — the two predicates cannot disagree', () => {
+    // Both conditions, read off the two call sites and compared as sets. If either side ever
+    // gains or loses a filter, these stop matching and this test names it.
+    const progSrc = strip(raw(join(API, 'lib/programme.ts')))
+    const at = progSrc.indexOf('export async function markReadyForApproval')
+    const readiness = progSrc.slice(at, at + 3400)
+    const leads = strip(raw(join(API, 'routes/leads.ts')))
+    const rAt = leads.indexOf("leadRouter.get('/for-approval'")
+    const review = leads.slice(rAt, rAt + 1600)
+
+    const conditions = [
+      ".not('delivered_at', 'is', null)",
+      ".not('surfaced_for_approval_at', 'is', null)",
+      ".is('revealed_at', null)",
+      ".neq('status', 'passed')",
+    ]
+    for (const c of conditions) {
+      expect(readiness, `readiness must apply ${c}`).toContain(c)
+      expect(review, `the review set must apply ${c}`).toContain(c)
+    }
+    // …and readiness additionally scopes to the programme, which the client route scopes by
+    // client instead — the one deliberate difference between them.
+    expect(readiness).toContain(".eq('programme_id', programmeId)")
   })
 
   it('the same definition is the one the customer route uses', () => {
@@ -1189,5 +1224,100 @@ describe('㉑ authority is product permission, never a send', () => {
       expect(src, `${f} must not write enrolment attribution`)
         .not.toMatch(/from\('figsy_enrollments'\)[\s\S]{0,120}\.update\(/)
     }
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// ㉒ THE SAME-ICP HISTORICAL CAMPAIGN — the case "by construction" did NOT cover
+// ═══════════════════════════════════════════════════════════════════════════════════════
+//
+// ⛓️ THIS BLOCK EXISTS BECAUSE A PREVIOUS CLAIM OF MINE WAS WRONG. I reported that an
+// ICP-matched campaign is "programme-correct by construction, one ICP = one campaign". Two
+// facts falsify it:
+//
+//   ① NO UNIQUE INDEX. `002_figsy.sql` creates `figsy_campaigns_client_id_idx` and
+//      `_status_idx` and nothing else — there is no `unique (client_id, icp_id)`. One ICP can
+//      carry several campaigns; the "one campaign" rule is a convention `ensureCampaignForIcp`
+//      maintains, not something the database enforces.
+//   ② `ensureCampaignForIcp` REUSES AND RE-ACTIVATES. Given an existing campaign for the ICP
+//      it returns it, and if that campaign is paused it sets it back to `active`.
+//
+// So House attaching its EXISTING ICP would have meant: Go Live re-activates the ICP's
+// pre-programme campaign, and `autoEnrollLead`'s PRIMARY lookup hands that old campaign — and
+// its old sequence — to a brand-new programme lead. The legacy-fallback fence cannot help,
+// because the primary lookup succeeds and the fallback never runs.
+describe('㉒ a programme can never inherit a pre-programme campaign through a shared ICP', () => {
+  const attachable = P({ status: 'SOURCING_AUTHORISED', client_id: 'H' })
+  const icpI = { id: 'I', client_id: 'H', name: 'Founders', is_active: true, programme_id: null }
+
+  it('🛑 ATTACHING AN ICP THAT ALREADY HAS A CAMPAIGN IS REFUSED', async () => {
+    dbState.programme = asRow(attachable)
+    dbState.icp = icpI
+    dbState.campaigns = [{ id: 'C_OLD', name: 'SaaS Trial Push', status: 'active' }]
+    const r = await attachIcpToProgramme('prog-1', 'I')
+    expect(r.ok).toBe(false)
+    expect(r.ok === false && r.reason).toMatch(/already has a campaign from before the programme/)
+    expect(dbState.writes.filter(w => w.table === 'icps'), 'nothing may be attached').toHaveLength(0)
+  })
+
+  it('…and a PAUSED or DRAFT historical campaign counts too — ensureCampaignForIcp would wake it', async () => {
+    for (const status of ['paused', 'draft', 'archived']) {
+      dbState.programme = asRow(attachable)
+      dbState.icp = { ...icpI }
+      dbState.campaigns = [{ id: 'C_OLD', name: 'Warmup test', status }]
+      dbState.writes = []
+      const r = await attachIcpToProgramme('prog-1', 'I')
+      expect(r.ok, `a ${status} campaign must still block the attach`).toBe(false)
+      expect(dbState.writes.filter(w => w.table === 'icps')).toHaveLength(0)
+    }
+  })
+
+  it('🛑 NOTHING HISTORICAL IS TOUCHED BY THE REFUSAL — the old campaign is left exactly as it was', async () => {
+    dbState.programme = asRow(attachable)
+    dbState.icp = { ...icpI }
+    dbState.campaigns = [{ id: 'C_OLD', name: 'SaaS Trial Push', status: 'active' }]
+    await attachIcpToProgramme('prog-1', 'I')
+    // Retiring or rewriting C_OLD would mutate history and could strand its enrolments.
+    expect(dbState.writes.filter(w => w.table === 'figsy_campaigns')).toHaveLength(0)
+    expect(dbState.writes.filter(w => w.table === 'leads')).toHaveLength(0)
+    expect(dbState.writes.filter(w => w.table === 'figsy_enrollments')).toHaveLength(0)
+  })
+
+  it('a CLEAN ICP — no campaign of any kind — attaches normally', async () => {
+    // The other half. A guard that refused every attach would satisfy everything above.
+    dbState.programme = asRow(attachable)
+    dbState.icp = { ...icpI }
+    dbState.campaigns = []
+    dbState.updatedRows = [{ id: 'I', name: 'Founders' }]
+    const r = await attachIcpToProgramme('prog-1', 'I')
+    expect(r.ok).toBe(true)
+    expect(dbState.writes.find(w => w.table === 'icps')?.patch).toMatchObject({ programme_id: 'prog-1' })
+  })
+
+  it('an unreadable campaign check refuses — a wrong yes hands over a pre-programme sequence', async () => {
+    dbState.programme = asRow(attachable)
+    dbState.icp = { ...icpI }
+    dbState.campaignsError = { message: 'connection reset' }
+    const r = await attachIcpToProgramme('prog-1', 'I')
+    expect(r.ok).toBe(false)
+    expect(dbState.writes.filter(w => w.table === 'icps')).toHaveLength(0)
+  })
+
+  it('the check is scoped to the programme\'s OWN client and that ICP', () => {
+    const src = strip(raw(join(API, 'lib/programme-icp.ts')))
+    expect(src).toContain(".eq('client_id', p.client_id).eq('icp_id', icpId)")
+  })
+
+  it('🛑 AND THE INVARIANT IT BUYS IS STRUCTURAL, not conventional', () => {
+    // An ICP that had no campaign when it joined can only acquire one afterwards, from
+    // `ensureCampaignForIcp` — which is gated by programme authority. THAT is what makes the
+    // ICP-matched campaign genuinely the programme's, and it is now enforced rather than
+    // assumed. Recorded here with the two facts that falsified the earlier claim.
+    const figsyMig = raw(join(API, '../../../supabase/migrations/002_figsy.sql'))
+    expect(figsyMig, 'there is still no unique (client_id, icp_id) index to lean on')
+      .not.toMatch(/unique[\s\S]{0,80}figsy_campaigns[\s\S]{0,80}icp_id/i)
+    const sw = strip(raw(join(API, 'lib/start-work.ts')))
+    expect(sw, 'ensureCampaignForIcp still reuses and re-activates — which is why attach must refuse')
+      .toContain("update({ status: 'active' }).eq('id', existing.id)")
   })
 })

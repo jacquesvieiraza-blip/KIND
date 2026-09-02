@@ -524,15 +524,27 @@ export async function markReadyForApproval(programmeId: string): Promise<Program
   // already uses — `delivered_at` (we have a contactable person) and `surfaced_for_approval_at`
   // (#493: an operator has actually Sent it to the client).
   //
-  // 🛑 THE OTHER TWO FILTERS ON THAT ROUTE ARE DELIBERATELY NOT COPIED. `revealed_at IS NULL`
-  // and `status != 'passed'` answer "what is still OUTSTANDING", not "what can ever appear" —
-  // reusing them would make a programme whose leads the client has already worked through read
-  // as having nothing to review, which is the opposite of the truth.
+  // ⛓️ CORRECTED. An earlier version copied only the first two filters, reasoning that
+  // `revealed_at IS NULL` and `status != 'passed'` answer "what is still OUTSTANDING" rather
+  // than "what can ever appear". That reasoning is wrong AT THIS TRANSITION, and the
+  // difference matters: the client has not reviewed anything yet — that is the step this
+  // status hands them — so a lead that is already revealed or already passed was disposed of
+  // through the legacy per-lead path and will NEVER appear in their review set.
+  //
+  // Counting one would let READY_FOR_APPROVAL succeed while Milla opens on an empty list: the
+  // exact failure the guard exists to prevent, arrived at by being clever about it.
+  //
+  // 🛑 SO THE PREDICATE IS THE REVIEW QUERY, NOT AN APPROXIMATION OF IT. All four conditions
+  // from `/leads/for-approval`, in the same order, so "ready" and "there is something to
+  // review" cannot answer differently. No new customer-facing rule is invented here — every
+  // condition is lifted from the route that already defines the set.
   const { count, error } = await db.from('leads')
     .select('id', { count: 'exact', head: true })
     .eq('programme_id', programmeId)
     .not('delivered_at', 'is', null)
     .not('surfaced_for_approval_at', 'is', null)
+    .is('revealed_at', null)
+    .neq('status', 'passed')
   // A read failure is "we cannot tell", never "there is nothing" — the recurring `?? []`
   // defect in this codebase, applied to a gate.
   if (error) {

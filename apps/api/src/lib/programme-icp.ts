@@ -116,6 +116,50 @@ export async function attachIcpToProgramme(programmeId: string, icpId: string): 
     }
   }
 
+  // ── 🛑 AN ICP THAT ALREADY HAS A CAMPAIGN MAY NOT JOIN A PROGRAMME ────────────────────
+  //
+  // THE DEFECT THIS CLOSES, AND IT IS THE ONE I PREVIOUSLY CLAIMED WAS IMPOSSIBLE.
+  // "One ICP = one campaign, so an ICP-matched campaign is programme-correct by
+  // construction" is FALSE. Two facts break it:
+  //
+  //   ① There is NO unique index on `figsy_campaigns (client_id, icp_id)` — only
+  //      `figsy_campaigns_client_id_idx` and `_status_idx` (002_figsy.sql). "One campaign per
+  //      ICP" is a convention `ensureCampaignForIcp` maintains, never a database invariant.
+  //   ② `ensureCampaignForIcp` REUSES what it finds: given an existing campaign for that ICP
+  //      it returns it, and if that campaign is paused it RE-ACTIVATES it. It does not create
+  //      a new one.
+  //
+  // So attaching a HISTORICAL ICP would have meant: at Go Live the programme re-activates the
+  // ICP's pre-programme campaign, and `autoEnrollLead`'s PRIMARY lookup
+  // (`client_id + icp_id + active`) hands that old campaign — and its old sequence — to a
+  // brand-new, correctly-attributed programme lead. The legacy-fallback fence in `figsy.ts`
+  // does not help: the primary lookup succeeds, so the fallback never runs.
+  //
+  // ⚠️ REFUSING AT ATTACH IS WHAT MAKES THE INVARIANT STRUCTURAL. An ICP that had no campaign
+  // when it joined can only ever acquire one afterwards, from `ensureCampaignForIcp`, which is
+  // gated by programme authority. So the campaign found by ICP genuinely IS the programme's.
+  //
+  // ⚠️ AND NOTHING HISTORICAL IS TOUCHED. The alternative — retiring or rewriting the old
+  // campaign — would mutate history and could strand its existing enrolments. This refuses
+  // instead, and says what to do: give the programme its own ICP.
+  const { data: existingCampaigns, error: campErr } = await db.from('figsy_campaigns')
+    .select('id, name, status').eq('client_id', p.client_id).eq('icp_id', icpId).limit(1)
+  // "We cannot tell" is not "there is none" — on this question a wrong yes hands a programme
+  // a pre-programme sequence.
+  if (campErr) {
+    return { ok: false, reason: `Could not check this ICP's existing campaigns, so nothing was changed. (${campErr.message})` }
+  }
+  const priorCampaign = (existingCampaigns ?? [])[0] as { id: string; name: string | null; status: string } | undefined
+  if (priorCampaign) {
+    return {
+      ok: false,
+      reason:
+        `This ICP already has a campaign from before the programme ("${priorCampaign.name ?? 'Outbound campaign'}", ${priorCampaign.status}). ` +
+        'Attaching it would let the programme re-use that campaign and its sequence for new programme work. ' +
+        'Create a new ICP for this programme and attach that instead — the existing ICP and its campaign are left exactly as they are.',
+    }
+  }
+
   // ⚠️ COMPARE-AND-SET on `programme_id` being null, so two operators pressing at once cannot
   // both win, and the loser updates zero rows rather than overwriting.
   const { data: updated, error: upErr } = await db.from('icps')

@@ -49,6 +49,7 @@ function makeTable(name: keyof typeof state) {
       const set = String(list).replace(/[()]/g, '').split(',')
       this._filters.push(r => !set.includes(String(r[col]))); return this
     },
+    neq(col: string, val: unknown) { this._filters.push(r => r[col] !== val); return this },
     order() { return this },
     limit() { return this },
     insert(payload: Row) { this._mode = 'insert'; this._payload = payload; return this },
@@ -304,7 +305,13 @@ describe('⑤ approval is ONE programme-level decision', () => {
     // ⚑ AND IT MUST BE REVIEWABLE — delivered, and Sent to the client (#493). The guard
     // reuses `/leads/for-approval`'s own definition, so a lead that could never appear in
     // the customer's review set cannot make a programme ready.
-    state.leads.push({ id: 'lead-1', programme_id: p.id, delivered_at: 'd', surfaced_for_approval_at: 's' })
+    // ⛓️ AND NOT YET REVEALED OR PASSED. The readiness predicate is now the review query
+    // itself — all four conditions — so a lead already disposed of through the legacy
+    // per-lead path cannot make a programme ready while Milla would open on nothing.
+    state.leads.push({
+      id: 'lead-1', programme_id: p.id, delivered_at: 'd', surfaced_for_approval_at: 's',
+      revealed_at: null, status: 'scored',
+    })
     return markReadyForApproval(p.id)
       .then(() => approveProgramme(p.id))
       .then(r => {

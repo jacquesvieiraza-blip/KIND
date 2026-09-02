@@ -61,6 +61,8 @@ async function callProxy(opts: {
   key?: string
   /** Forward upstream into a live local Express app instead of answering with a canned 200. */
   upstreamPort?: number
+  /** ⚑ PR A2 — the programme lifecycle routes are POSTs, so the verb is a parameter now. */
+  method?: 'PATCH' | 'POST'
 }): Promise<{ status: number; json: any; upstream: Upstream }> {
   vi.resetModules()
   const upstream: Upstream = { calls: [] }
@@ -96,8 +98,9 @@ async function callProxy(opts: {
 
   try {
     const mod = await import(PROXY)
-    const res = await mod.PATCH(
-      proxyRequest(opts.body === undefined ? { client_id: 'c1' } : opts.body),
+    const verb = opts.method ?? 'PATCH'
+    const res = await mod[verb](
+      proxyRequest(opts.body === undefined ? { client_id: 'c1' } : opts.body, verb),
       { params: { path: opts.path ?? ['icps', 'icp-1', 'activate'] } },
     )
     return { status: res.status, json: await res.json(), upstream }
@@ -455,6 +458,88 @@ describe('END TO END — the operator presses GO and lands on the BUILD-002 gate
       expect(rec.rpcs).toHaveLength(0)
     } finally {
       await new Promise<void>(r => server.close(() => r()))
+    }
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// ⚑ PR A2 — THE PROGRAMME LIFECYCLE ROUTES SIT BEHIND THE SAME ONE BOUNDARY
+// ═══════════════════════════════════════════════════════════════════════════════════════
+//
+// 🛑 "THE MILLA UI CONTAINS NO BUTTON" IS NOT A SECURITY PROPERTY. `/programmes/*` is
+// authenticated by `x-admin-key` alone, and the only thing that can produce that header is
+// this proxy. So the question is not whether a customer has a link — it is what the proxy
+// does when an authenticated NON-OPERATOR asks it to authorise a programme.
+//
+// ⚠️ AND THE GATE IS NOT "A VALID SUPABASE SESSION". It is `isAllowedAdminEmail(user?.email)`
+// — an explicit allowlist (`ADMIN_ALLOWED_EMAILS`, founder-only by default). A signed-in
+// customer has a perfectly valid session and is still refused. The real function decides;
+// only `createClient` is stubbed.
+describe('a signed-in CUSTOMER cannot reach the programme lifecycle through the proxy', () => {
+  const INTERNAL_ROUTES: string[][] = [
+    ['programmes', 'prog-1', 'authorise', 'first'],
+    ['programmes', 'prog-1', 'authorise', 'second'],
+    ['programmes', 'prog-1', 'go-live'],
+    ['programmes', 'prog-1', 'attach-icp'],
+    ['programmes', 'prog-1', 'await-first-payment'],
+    ['programmes', 'prog-1', 'ready-for-approval'],
+    ['programmes', 'prog-1', 'recommend'],
+    ['programmes'],
+  ]
+
+  for (const path of INTERNAL_ROUTES) {
+    it(`/${path.join('/')} — anonymous is refused, and the admin key never leaves this process`, async () => {
+      const r = await callProxy({ user: null, method: 'POST', path, body: { icp_id: 'icp-1' } })
+      expect(r.status).toBe(401)
+      expect(r.upstream.calls, 'no upstream call may be made at all').toHaveLength(0)
+    })
+
+    it(`/${path.join('/')} — an authenticated ORDINARY CUSTOMER is refused`, async () => {
+      const r = await callProxy({
+        user: { email: 'buyer@somecompany.com' }, method: 'POST', path, body: { icp_id: 'icp-1' },
+      })
+      expect(r.status).toBe(401)
+      expect(r.json.error).toBe('Unauthorized')
+      // ⚠️ THE ASSERTION THAT MATTERS: refused BEFORE the key left the process. A proxy that
+      // called upstream and discarded the answer would still have performed the mutation.
+      expect(r.upstream.calls, 'a customer session must never produce an operator call').toHaveLength(0)
+    })
+  }
+
+  it('a demo / MBF customer session is refused exactly the same way', async () => {
+    for (const email of ['demo@trykind.org', 'ops@mbf.example', 'someone@kindoutreach.com']) {
+      const r = await callProxy({
+        user: { email }, method: 'POST',
+        path: ['programmes', 'prog-1', 'go-live'], body: {},
+      })
+      expect(r.status, `${email} must not be an operator`).toBe(401)
+      expect(r.upstream.calls).toHaveLength(0)
+    }
+  })
+
+  it('🛑 THE FOUNDER IS ALLOWED — and only then does the admin key go upstream', async () => {
+    // The other half: a gate that refused everybody would pass every assertion above.
+    const r = await callProxy({
+      user: { email: OPERATOR }, method: 'POST',
+      path: ['programmes', 'prog-1', 'authorise', 'first'], body: {},
+    })
+    expect(r.status).toBe(200)
+    expect(r.upstream.calls).toHaveLength(1)
+    expect(r.upstream.calls[0].url).toContain('/programmes/prog-1/authorise/first')
+    expect(r.upstream.calls[0].headers['x-admin-key']).toBe(ADMIN_KEY)
+    // …and the operator is named from the VERIFIED session, so the audit row cannot be spoofed.
+    expect(r.upstream.calls[0].headers['x-operator-email']).toBe(OPERATOR)
+  })
+
+  it('the allowlist is what decides, and it is founder-only by default', async () => {
+    const { adminAllowedEmails } = await import('../../../admin/src/lib/supabase/server')
+    const prev = process.env.ADMIN_ALLOWED_EMAILS
+    delete process.env.ADMIN_ALLOWED_EMAILS
+    try {
+      expect(adminAllowedEmails()).toEqual(['jacques.vieiraza@gmail.com'])
+    } finally {
+      if (prev === undefined) delete process.env.ADMIN_ALLOWED_EMAILS
+      else process.env.ADMIN_ALLOWED_EMAILS = prev
     }
   })
 })

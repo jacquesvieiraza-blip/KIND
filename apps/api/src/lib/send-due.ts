@@ -28,6 +28,7 @@
 // ═══════════════════════════════════════════════════════════════════════════════════════
 
 import { db } from '@kind/db'
+import { openProgrammeFor } from './programme-authority'
 import type { InboxRow } from './sending-inbox'
 
 /**
@@ -153,9 +154,45 @@ export async function runSendDue(mode: SendDueMode): Promise<SendDueResult> {
     .order('next_send_at', { ascending: true })
     .limit(fetchCeil)
 
+  // ── ⚑ POSITIVE ATTRIBUTION AT THE SELECTION LAYER ───────────────────────────────────────
+  //
+  // 🛑 TWO INDEPENDENT GATES, AND BOTH ARE REQUIRED. `checkEnrollmentAuthority` refuses
+  // history at send time; this one stops it ever being OFFERED. Relying on authority alone
+  // would mean every one of House's ~263 legacy enrollments entered the candidate set on
+  // every run, consumed budget accounting, and was refused one by one — and a single gap in
+  // the authority path would put a real historical person back in a live send queue.
+  //
+  // The rule matches the authority layer exactly, so the two can never disagree:
+  //   • client has an open programme → the enrollment must NAME that programme;
+  //   • client has none             → genuine legacy, selected exactly as before;
+  //   • programme state unreadable  → FAIL CLOSED, select nothing for that client.
+  //
+  // ⚠️ ONE READ PER CLIENT, not one per enrollment — a per-row read would issue hundreds of
+  // queries per run for the exact case this exists to reject.
+  const openProgrammeByClient = new Map<string, string | null>()
+  for (const cid of new Set((due ?? []).map(e => (e as { client_id?: string | null }).client_id).filter(Boolean))) {
+    try {
+      const open = await openProgrammeFor(cid as string)
+      openProgrammeByClient.set(cid as string, open?.id ?? null)
+    } catch (err) {
+      // `openProgrammeFor` THROWS on a read error rather than returning null, precisely so a
+      // database hiccup cannot read as "legacy client, proceed". Honour that here.
+      console.error(`[send-due] programme state unreadable for client ${cid} — selecting nothing for them this run:`, err)
+      openProgrammeByClient.set(cid as string, '__unreadable__')
+    }
+  }
+
+  const dueRows = (due ?? []).filter(e => {
+    const cid = (e as { client_id?: string | null }).client_id ?? null
+    if (!cid) return false
+    const openId = openProgrammeByClient.get(cid)
+    if (openId === '__unreadable__') return false          // fail closed
+    if (openId == null) return true                        // genuine legacy client — unchanged
+    return (e as { programme_id?: string | null }).programme_id === openId
+  })
+
   // FAIR ORDER (#320): group by client, then interleave round-robin so one client's backlog
   // cannot starve another under the shared cap.
-  const dueRows = due ?? []
   const byClient = new Map<string, typeof dueRows>()
   for (const e of dueRows) {
     const cid = ((e as { client_id?: string | null }).client_id) ?? 'unknown'

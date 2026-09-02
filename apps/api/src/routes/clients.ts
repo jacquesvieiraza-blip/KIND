@@ -269,7 +269,21 @@ clientRouter.get('/me/notifications', async (req: AuthRequest, res) => {
     const now = new Date()
 
     // Low credits
-    if ((client.credit_balance ?? 0) < 10) {
+    //
+    // ── ⚑ R87 — A PROGRAMME CUSTOMER NEVER SEES THE RETIRED WALLET NUDGE ─────────────────
+    //
+    // 🛑 THIS IS A LOW-CREDIT PATH THAT SENDS NO EMAIL, WHICH IS EXACTLY WHY IT WAS MISSED.
+    // The two email sweeps in `internal.ts` were fenced; this one renders the same retired
+    // sentence — "Top up to keep outreach running" — inside the product, to a customer whose
+    // own billing page says they are on a programme and owe nothing. Fencing only the paths
+    // that happen to use `resend` would have left the contradiction on screen.
+    //
+    // Same helper, same fail-closed asymmetry: an unreadable programme state withholds the
+    // notice rather than showing a programme customer a credit balance they do not spend.
+    const { mayNotify, programmeClientIds } = await import('../lib/programme-notifications')
+    const onProgrammeIds = await programmeClientIds([client.id as string])
+    const onProgramme = onProgrammeIds === null ? null : onProgrammeIds.has(client.id as string)
+    if ((client.credit_balance ?? 0) < 10 && mayNotify('low_credits', { onProgramme })) {
       notifications.push({ id: 'low_credits', type: 'low_credits', title: 'Low credit balance', message: `You have ${client.credit_balance ?? 0} credits remaining. Top up to keep outreach running.`, created_at: now.toISOString() })
     }
 

@@ -59,8 +59,27 @@ export interface ProgrammeRow {
   second_payment_cents: number
   first_payment_ref: string | null
   second_payment_ref: string | null
+  // ⚠️ THE INTENT IDS ARE PAYMENT EVIDENCE, and the XOR guards below read them. A stage
+  // holding a Stripe payment intent is a paid stage even before its session ref lands, so
+  // omitting them from the row would leave the internal-authority guards blind to the exact
+  // window the refund/dispute path cares about.
+  first_payment_intent_id: string | null
+  second_payment_intent_id: string | null
   first_paid_at: string | null
   second_paid_at: string | null
+  // ── PR A1/A2 · INTERNAL AUTHORITY (20260902_programme_internal_authority) ──────────────
+  //
+  // 🛑 SEPARATE FROM `first_paid_at` ON PURPOSE. That column is simultaneously the sourcing
+  // key AND the revenue trigger — `computeContribution` reads it — so authorising House by
+  // stamping it would have invented revenue, an invoice figure and a partner commission on
+  // an account that has paid nothing. Authority and money are different facts; only one of
+  // them is money.
+  //
+  // PER STAGE, not per programme: a House programme authorised internally at P1 may take a
+  // genuine payment at P2, and one programme-level `authority_source` enum could only lie
+  // about that row. Two DB CHECKs enforce that a single stage never holds both.
+  first_authorised_at: string | null
+  second_authorised_at: string | null
   sourcing_ceiling: number
   sourced_used: number
   sourced_reserved: number
@@ -189,6 +208,140 @@ export async function awaitFirstPayment(programmeId: string): Promise<ProgrammeR
   return { ok: true }
 }
 
+// ── STAGE AUTHORITY — ONE DEFINITION, TWO SOURCES ────────────────────────────────────────
+//
+// A stage is authorised by a PAYMENT or by INTERNAL AUTHORITY, never by both, and every
+// caller must ask the same question. These two functions are that question.
+//
+// 🛑 WHY THEY EXIST AS FUNCTIONS. Before them, `mayStartCampaign` restated
+// `second_paid_at && second_payment_ref` inline while `goLiveProgramme` asked something
+// else — so a programme could reach LIVE through one gate and be refused by the other about
+// the identical fact. Restating a rule is how two gates come to disagree.
+
+/**
+ * P1: sourcing and preparation are authorised.
+ *
+ * ⚠️ `first_paid_at` ALONE IS THE PAID TEST, deliberately unlike P2. `recordFirstPayment`
+ * writes ref, intent and timestamp in one compare-and-set update, so the timestamp cannot
+ * exist without the ref — and `computeContribution` already reads exactly this column for
+ * revenue, so agreeing with it keeps money and authority reading the same fact.
+ */
+export function p1Authorised(p: ProgrammeRow): boolean {
+  return !!(p.first_paid_at || p.first_authorised_at)
+}
+
+/**
+ * P2: outreach and Go Live are authorised.
+ *
+ * ⚠️ THE PAID TEST REQUIRES BOTH `second_paid_at` AND `second_payment_ref` — this preserves
+ * `mayStartCampaign`'s original wording exactly. It is stricter than P1's on purpose: the
+ * second payment is the gate on emailing real prospects, and it is the one place a partially
+ * written row must not be read as authority.
+ */
+export function p2Authorised(p: ProgrammeRow): boolean {
+  return !!((p.second_paid_at && p.second_payment_ref) || p.second_authorised_at)
+}
+
+/**
+ * INTERNAL P1 — the House / Client Zero equivalent of the first payment.
+ *
+ * Does exactly what `recordFirstPayment` does to the programme's STATE, and nothing at all to
+ * money: no `first_paid_at`, no ref, no intent, no Stripe call, no invoice, no wallet
+ * movement, and `computeContribution` never reads the column it writes.
+ *
+ * ⚠️ AWAITING_FIRST_PAYMENT ONLY. The paid path reaches `recordFirstPayment` only after
+ * `/checkout/first` has called `awaitFirstPayment`, so the internal path must not be allowed
+ * to skip what the paid path cannot skip. A UI-only rule would not be a control: a route is
+ * callable without the screen that hides its button.
+ */
+export async function authoriseFirstInternal(programmeId: string): Promise<ProgrammeResult> {
+  const p = await getProgramme(programmeId)
+  if (!p) return { ok: false, reason: 'No such programme.' }
+  if (TERMINAL_STATUSES.includes(p.status)) return { ok: false, reason: `This programme is ${p.status}.` }
+  if (p.paused_at) return { ok: false, reason: 'Cannot authorise a paused programme.' }
+  if (p.status !== 'AWAITING_FIRST_PAYMENT') {
+    return { ok: false, reason: `Internal P1 authority may only be recorded from AWAITING_FIRST_PAYMENT, not ${p.status}.` }
+  }
+  if (p.first_authorised_at) return { ok: true }   // idempotent: already internally authorised
+  // 🛑 XOR, INCLUDING THE INTENT ID — a stage holding ANY payment evidence is a paid stage.
+  if (p.first_paid_at || p.first_payment_ref || p.first_payment_intent_id) {
+    return { ok: false, reason: 'This programme already has P1 PAYMENT evidence. A stage cannot hold both a payment and internal authority.' }
+  }
+
+  // Compare-and-set on the column itself: two concurrent presses cannot both win.
+  const { error } = await db.from('programmes').update({
+    first_authorised_at: new Date().toISOString(),
+    // ⚠️ THE CEILING COMES FROM recommended_volume, exactly as the paid path does it — the
+    // internal route must authorise the same volume a payment would, or House is not walking
+    // the customer's lifecycle at all.
+    sourcing_ceiling: p.recommended_volume,
+    status: 'SOURCING_AUTHORISED',
+    updated_at: new Date().toISOString(),
+  }).eq('id', programmeId).is('first_authorised_at', null).select()
+  if (error) return { ok: false, reason: error.message }
+  return { ok: true }
+}
+
+/**
+ * INTERNAL P2 — the House equivalent of the second payment.
+ *
+ * ⚠️ STATUS AND `went_live_at` ARE ABSENT FROM THIS UPDATE ON PURPOSE. The paid path takes an
+ * APPROVED programme live inside `recordSecondPayment` because the money arriving IS the last
+ * event. Internally there is no such event, and collapsing "authorise P2" into "go live"
+ * would take two separate founder decisions and make them one keystroke.
+ */
+export async function authoriseSecondInternal(programmeId: string): Promise<ProgrammeResult> {
+  const p = await getProgramme(programmeId)
+  if (!p) return { ok: false, reason: 'No such programme.' }
+  if (TERMINAL_STATUSES.includes(p.status)) return { ok: false, reason: `This programme is ${p.status}.` }
+  if (p.paused_at) return { ok: false, reason: 'Cannot authorise a paused programme.' }
+  if (p.status !== 'APPROVED' || !p.approved_at) {
+    return { ok: false, reason: 'Internal P2 authority requires an APPROVED programme with an approval recorded. Approval comes first.' }
+  }
+  if (p.second_authorised_at) return { ok: true }   // idempotent
+  if (p.second_paid_at || p.second_payment_ref || p.second_payment_intent_id) {
+    return { ok: false, reason: 'This programme already has P2 PAYMENT evidence. A stage cannot hold both a payment and internal authority.' }
+  }
+
+  const { error } = await db.from('programmes').update({
+    second_authorised_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  }).eq('id', programmeId).is('second_authorised_at', null).select()
+  if (error) return { ok: false, reason: error.message }
+  return { ok: true }
+}
+
+/**
+ * THE EXPLICIT GO-LIVE — the last product control before outreach is permitted.
+ *
+ * ⚠️ ALREADY-LIVE IS A SUCCESS THAT WRITES NOTHING. "Requires `went_live_at` to be null" and
+ * "idempotent" are different claims, and both are true of different branches: a programme that
+ * is legitimately live returns success without touching the row — so no timestamp is rewritten
+ * and no second transition is recorded — and only a genuine transition writes, guarded by
+ * `.is('went_live_at', null)` so two concurrent presses cannot both stamp a time.
+ */
+export async function goLiveProgramme(programmeId: string): Promise<ProgrammeResult & { alreadyLive?: boolean }> {
+  const p = await getProgramme(programmeId)
+  if (!p) return { ok: false, reason: 'No such programme.' }
+  if (p.status === 'LIVE' && p.went_live_at) return { ok: true, alreadyLive: true }
+  if (TERMINAL_STATUSES.includes(p.status)) return { ok: false, reason: `This programme is ${p.status}.` }
+  if (p.paused_at) return { ok: false, reason: 'Cannot go live while the programme is paused.' }
+  if (p.status !== 'APPROVED') return { ok: false, reason: `Cannot go live from ${p.status}. Approval comes first.` }
+  if (!p.approved_at) return { ok: false, reason: 'This programme has no approval recorded, so it cannot go live.' }
+  if (!p2Authorised(p)) {
+    return { ok: false, reason: 'P2 authority is missing. Payment 1 authorises sourcing and preparation only.' }
+  }
+
+  const { data, error } = await db.from('programmes').update({
+    status: 'LIVE',
+    went_live_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  }).eq('id', programmeId).is('went_live_at', null).select()
+  if (error) return { ok: false, reason: error.message }
+  if (!data || data.length === 0) return { ok: true, alreadyLive: true }
+  return { ok: true }
+}
+
 // ── PAYMENTS ─────────────────────────────────────────────────────────────────────────────
 
 /**
@@ -214,6 +367,12 @@ export async function recordFirstPayment(params: {
   if (p.first_payment_ref === params.sessionId) return { ok: true, alreadyRecorded: true }
   if (p.first_payment_ref) {
     return { ok: false, reason: 'This programme already has a different first payment recorded.' }
+  }
+  // 🛑 XOR. A stage holds ONE authority. The DB CHECK would reject this write anyway —
+  // refusing here turns a constraint violation into a sentence a human can read, and keeps
+  // the webhook's own error path in charge rather than a 500 from Postgres.
+  if (p.first_authorised_at) {
+    return { ok: false, reason: 'This programme already has INTERNAL P1 authority. A stage cannot hold both internal authority and a payment.' }
   }
 
   // The `.is('first_payment_ref', null)` guard makes this a compare-and-set: two concurrent
@@ -258,6 +417,10 @@ export async function recordSecondPayment(params: {
   }
   if (p.second_payment_ref) {
     return { ok: false, reason: 'This programme already has a different second payment recorded.' }
+  }
+  // 🛑 XOR — see recordFirstPayment.
+  if (p.second_authorised_at) {
+    return { ok: false, reason: 'This programme already has INTERNAL P2 authority. A stage cannot hold both internal authority and a payment.' }
   }
 
   // Record the money first, in every case. What differs is whether we then go live.
@@ -321,6 +484,32 @@ export async function markReadyForApproval(programmeId: string): Promise<Program
   if (p.status !== 'SOURCING' && p.status !== 'SOURCING_AUTHORISED') {
     return { ok: false, reason: `Cannot ready-for-approval from ${p.status}.` }
   }
+
+  // 🛑 THERE MUST BE SOMETHING TO REVIEW. Before this, a programme could go
+  // P1 → Ready for approval with nothing sourced at all, and the client would be asked to
+  // approve an empty programme.
+  //
+  // ⚠️ NO NEW THRESHOLD IS INVENTED HERE, and that is deliberate. The rule is the smallest
+  // one existing truth can answer: does ANY lead positively carry this programme's id? Not a
+  // volume, not a percentage of the ceiling, not a ratio anybody has to agree — a count of
+  // zero versus more than zero. `sourced_used` is NOT used for this: it counts what the
+  // PROVIDER delivered, so a programme served entirely from the pool would read zero while
+  // holding real reviewable people.
+  //
+  // ⚠️ AND IT COUNTS POSITIVE ATTRIBUTION, which is the same rule the send layers use. Work
+  // that carries no programme id is history; it cannot make a new programme reviewable.
+  const { count, error } = await db.from('leads')
+    .select('id', { count: 'exact', head: true })
+    .eq('programme_id', programmeId)
+  // A read failure is "we cannot tell", never "there is nothing" — the recurring `?? []`
+  // defect in this codebase, applied to a gate.
+  if (error) {
+    return { ok: false, reason: `Could not read this programme's delivered work, so it was not moved. Nothing changed. (${error.message})` }
+  }
+  if (!count || count <= 0) {
+    return { ok: false, reason: 'No sourced work carries this programme yet, so there is nothing for the client to review. Attach an ICP to the programme and source at least once first.' }
+  }
+
   await setStatus(programmeId, 'READY_FOR_APPROVAL')
   return { ok: true }
 }
@@ -332,7 +521,11 @@ export async function markReadyForApproval(programmeId: string): Promise<Program
  */
 export function mayStartCampaign(p: ProgrammeRow): { allowed: boolean; reason?: string } {
   if (p.paused_at) return { allowed: false, reason: 'The programme is paused.' }
-  if (!p.second_paid_at || !p.second_payment_ref) {
+  // ⚑ P2 is satisfied by a payment OR internal authority, and `p2Authorised` is the ONE
+  // definition of that. Restating the paid test here would let a programme reach LIVE through
+  // `goLiveProgramme` (which uses the helper) and then be refused by this gate — two gates
+  // disagreeing about one fact.
+  if (!p2Authorised(p)) {
     return { allowed: false, reason: 'The second payment has not been received.' }
   }
   if (p.status !== 'LIVE') return { allowed: false, reason: `The programme is ${p.status}, not LIVE.` }

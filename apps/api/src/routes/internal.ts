@@ -1565,8 +1565,23 @@ internalRouter.post('/ae/low-credits', async (_req: Request, res: Response) => {
 
     let sent = 0
 
+    // ── ⚑ R87 — THE SAME FENCE THE OTHER TWO LOW-CREDIT PATHS HAVE ─────────────────────
+    //
+    // 🛑 THIS ROUTE IS A SEPARATE SWEEP FROM THE FIGSY ONE, on its own cron ('40 7 * * *'),
+    // with its own table columns (`credit_balance` / `last_low_credit_email_at` rather than
+    // `figsy_credits_remaining` / `low_credit_warned_at`). Fixing the sibling did not fix
+    // this, and a programme customer would still have received "Low credits — N remaining"
+    // the next morning: a retired product contradicting their own billing page, in an email
+    // that cannot be recalled.
+    //
+    // `programmeClientIds` returns null on a READ FAILURE, and that null is passed straight
+    // through — `mayNotify` withholds on it, deliberately. Collapsing it to an empty set here
+    // would turn a database hiccup into "nobody is on a programme" and send to all of them.
+    const lowProgrammes = await programmeClientIds((clients ?? []).map((c: { id: string }) => c.id))
+
     for (const client of clients ?? []) {
       try {
+        if (!mayNotify('low_credits', { onProgramme: onProgramme(lowProgrammes, client.id) })) continue
         // Don't spam — max once per 24 hours
         if (client.last_low_credit_email_at && client.last_low_credit_email_at > oneDayAgo) continue
 

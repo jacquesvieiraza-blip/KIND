@@ -15,8 +15,12 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 // ── a small in-memory stand-in for the programmes table ─────────────────────────────────
 type Row = Record<string, unknown>
-const state: { programmes: Row[]; batches: Row[]; commissions: Row[]; ledger: Row[]; alerts: string[] } = {
-  programmes: [], batches: [], commissions: [], ledger: [], alerts: [],
+// ⚑ `leads` ADDED BY PR A2. `markReadyForApproval` now asks whether ANY lead positively
+// carries the programme — a programme with nothing sourced cannot be put to a client for
+// approval. Before this the fake mapped every unknown table onto `programmes`, so the head
+// count came back with no `count` at all and the transition was refused for the wrong reason.
+const state: { programmes: Row[]; batches: Row[]; commissions: Row[]; ledger: Row[]; leads: Row[]; alerts: string[] } = {
+  programmes: [], batches: [], commissions: [], ledger: [], leads: [], alerts: [],
 }
 
 /**
@@ -30,7 +34,11 @@ function makeTable(name: keyof typeof state) {
     _filters: [] as Array<(r: Row) => boolean>,
     _payload: null as Row | null,
     _mode: '' as '' | 'update' | 'insert' | 'select',
-    select() { if (this._mode === '') this._mode = 'select'; return this },
+    _headCount: false,
+    select(_cols?: string, opts?: { count?: string; head?: boolean }) {
+      if (opts?.head) this._headCount = true
+      if (this._mode === '') this._mode = 'select'; return this
+    },
     eq(col: string, val: unknown) { this._filters.push(r => r[col] === val); return this },
     is(col: string, val: unknown) { this._filters.push(r => (r[col] ?? null) === val); return this },
     not(col: string, _op: string, list: string) {
@@ -64,7 +72,13 @@ function makeTable(name: keyof typeof state) {
       for (const r of hit) Object.assign(r, this._payload)
       return { data: hit, error: null }
     },
-    then(res: (v: { data: unknown; error: unknown }) => unknown) { return Promise.resolve(this._run()).then(res) },
+    then(res: (v: { data: unknown; error: unknown }) => unknown) {
+      // A head count returns `{ data: null, count }` and no rows — the exact supabase-js
+      // shape `markReadyForApproval` reads. Answering with rows and no count would make a
+      // populated programme look empty.
+      if (this._headCount) return Promise.resolve({ data: null, count: this._matched().length, error: null }).then(res)
+      return Promise.resolve(this._run()).then(res)
+    },
   }
   return q
 }
@@ -73,7 +87,8 @@ vi.mock('@kind/db', () => ({
   db: {
     from: (t: string) => makeTable(t === 'programme_batches' ? 'batches'
       : t === 'partner_commissions' ? 'commissions'
-      : t === 'sourcing_ledger' ? 'ledger' : 'programmes'),
+      : t === 'sourcing_ledger' ? 'ledger'
+      : t === 'leads' ? 'leads' : 'programmes'),
     rpc: async (fn: string, args: Record<string, unknown>) => {
       if (fn === 'settle_programme_batch') {
         const b = state.batches.find(x => x.id === args.p_batch_id) as Row | undefined
@@ -122,7 +137,7 @@ function seed(over: Partial<ProgrammeRow> = {}): ProgrammeRow {
   return p as unknown as ProgrammeRow
 }
 
-beforeEach(() => { state.programmes = []; state.batches = []; state.commissions = []; state.ledger = []; state.alerts = [] })
+beforeEach(() => { state.programmes = []; state.batches = []; state.commissions = []; state.ledger = []; state.leads = []; state.alerts = [] })
 
 describe('① the lifecycle has no PAUSED status — pause is orthogonal', () => {
   it('PAUSED is not a status, and every status is one of the ten', () => {
@@ -280,6 +295,9 @@ describe('⑤ approval is ONE programme-level decision', () => {
 
   it('READY_FOR_APPROVAL → APPROVED stamps approved_at', () => {
     const p = seed({ status: 'SOURCING' })
+    // ⚑ PR A2 — there must be something to review. One positively-attributed lead is the
+    // whole rule: zero versus more than zero, no invented volume threshold.
+    state.leads.push({ id: 'lead-1', programme_id: p.id })
     return markReadyForApproval(p.id)
       .then(() => approveProgramme(p.id))
       .then(r => {

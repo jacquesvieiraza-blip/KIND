@@ -1613,7 +1613,13 @@ operatorRouter.get('/programme', async (req: Request, res: Response) => {
     }
     const { programmeTruthFor } = await import('../lib/operator-programme')
     const truth = await programmeTruthFor(clientId)
-    res.json({ success: true, data: truth })
+    // ⚑ PR A2 — the programme's ICP section, on the endpoint the panel already calls rather
+    // than a second API. Which targeting feeds a programme is programme truth: without it the
+    // screen cannot show why a programme is sourcing nothing, and the operator would be left
+    // to infer the one link that decides all downstream attribution.
+    const { programmeIcps } = await import('../lib/programme-icp')
+    const icps = await programmeIcps(clientId, truth.programme?.id ?? null)
+    res.json({ success: true, data: { ...truth, icps } })
   } catch (err) {
     console.error('[operator/programme]', err)
     res.status(500).json({ success: false, error: 'Failed to load programme truth' })

@@ -60,6 +60,8 @@ import {
   SOURCING_AUTHORISED_STATUSES,
   TERMINAL_STATUSES,
   mayStartCampaign,
+  p1Authorised,
+  p2Authorised,
 } from './programme'
 
 /** The three things a programme can authorise. Nothing else asks this module anything. */
@@ -75,6 +77,14 @@ export type AuthorityRefusal =
   | 'second_payment_missing'
   | 'review_required'
   | 'sourcing_ceiling_reached'
+  /** ⚑ The work carries no programme attribution and the client HAS an open programme, so it
+   *  is pre-programme history. Its OWN code, not `programme_unresolvable`: nothing is broken
+   *  or unreadable here — the answer is known, and it is "not this programme's work", which a
+   *  caller may reasonably want to branch on differently from a read failure. */
+  | 'not_this_programme'
+  /** ⚑ A sourcing run was asked for from an ICP that belongs to no programme, for a client
+   *  who has one. Raised BEFORE the pool is served and before any provider is called. */
+  | 'icp_not_attached_to_programme'
   | 'programme_unresolvable'
 
 export type AuthorityVerdict =
@@ -145,7 +155,9 @@ export function authorityFor(
         return refuse('programme_not_approved',
           'This programme has not been approved, so no outreach may start. Approval comes before Go Live.')
       }
-      if (!p.second_paid_at || !p.second_payment_ref) {
+      // ⚑ P2 may be a payment OR internal authority (House). One helper, so this gate and
+      // go-live can never disagree about what "P2 is satisfied" means.
+      if (!p2Authorised(p)) {
         return refuse('second_payment_missing',
           'The second payment has not been received, so no outreach may start. Payment 1 authorises sourcing and preparation only.')
       }
@@ -171,7 +183,7 @@ export function authorityFor(
     return refuse('programme_not_sourcing_authorised',
       `This programme is ${p.status}, which carries no sourcing authority yet.`)
   }
-  if (!p.first_paid_at) {
+  if (!p1Authorised(p)) {
     return refuse('first_payment_missing',
       'The first payment has not been received, so no sourcing is authorised.')
   }
@@ -226,7 +238,10 @@ function unresolvable(detail: string): AuthorityVerdict {
 const PROGRAMME_COLUMNS =
   'id, client_id, status, meeting_target, recommended_volume, first_paid_at, second_paid_at, ' +
   'first_payment_ref, second_payment_ref, sourcing_ceiling, sourced_used, sourced_reserved, ' +
-  'approved_at, went_live_at, paused_at, pause_reason, review_required_at, review_reason, review_resolved_at'
+  'approved_at, went_live_at, paused_at, pause_reason, review_required_at, review_reason, review_resolved_at, ' +
+  // ⚑ read so `p1Authorised`/`p2Authorised` can see internal authority. Without them every
+  // internally-authorised programme would read as unauthorised at every gate in this file.
+  'first_payment_intent_id, second_payment_intent_id, first_authorised_at, second_authorised_at'
 
 /**
  * The client's open (non-terminal) programme, or null if they have none.
@@ -321,6 +336,38 @@ export async function checkEnrollmentAuthority(
     }
 
     if (!e.client_id) return unresolvable(`enrollment ${enrollmentId} has neither a programme nor a client`)
+
+    // ── ⚑ ATTRIBUTION IS POSITIVE. THIS REVERSES A DOCUMENTED DECISION. ──────────────────
+    //
+    // What this line used to do: fall through to `checkProgrammeAuthority(client)`, so a
+    // null-attributed enrollment INHERITED whatever programme the client happened to have
+    // open. For a client mid-migration that was deliberate and defensible.
+    //
+    // 🛑 IT IS NOT DEFENSIBLE FOR A CLIENT WITH HISTORY. House carries ~263 enrollments and
+    // ~166 leads from a RETIRED legacy desk, every one `programme_id = NULL`. The moment its
+    // new programme reached LIVE, every one of them would have been authorised by it —
+    // history re-sent as current work, with a real person at the far end of each.
+    //
+    // So the question is asked the other way round. Not "can this client's programme cover
+    // this work?" but "does this work say which programme it belongs to?" Work that cannot
+    // name its programme is history, and history is not authorised by a programme that never
+    // paid for it and never sourced it.
+    //
+    // ⚠️ LEGACY IS NOT NARROWED. A client with NO open programme still resolves exactly as
+    // before — `checkProgrammeAuthority` returns `mode: 'legacy'` for them, and the $299 pack
+    // model, which is what is actually selling, is every one of those clients.
+    const open = await openProgrammeFor(e.client_id)
+    if (open) {
+      return {
+        allowed: false,
+        reason: 'not_this_programme',
+        message:
+          'This work carries no programme attribution and the client has an open programme, so it is historical — ' +
+          'it predates the programme, and the programme did not pay for it or source it. New programme work is ' +
+          'sourced under the programme and carries its id.',
+        programme: open,
+      }
+    }
     return await checkProgrammeAuthority(e.client_id, action)
   } catch (err) {
     return unresolvable(err instanceof Error ? err.message : String(err))

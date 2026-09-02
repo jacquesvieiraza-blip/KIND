@@ -70,6 +70,17 @@ export type OperatorAction =
                             // the building: #564's lesson is that a log which reuses a
                             // neighbouring label ends up describing something that did not
                             // happen. No campaign, no enrolment, no lead, no spend.
+  // ── PR A2 · the House / Client Zero programme lifecycle ────────────────────────────────
+  //
+  // ⚠️ THESE ARE MATERIAL AND THEY MOVE NO MONEY, which is exactly why they must be audited.
+  // A payment leaves a Stripe object and a ledger row behind it; internal authority leaves
+  // one timestamp. Without an audit row there would be no record of WHO authorised a
+  // programme to source, or when, or why — and "the row says authorised" is not an answer to
+  // either question.
+  | 'programme_lifecycle'    // DRAFT → RECOMMENDED → AWAITING_FIRST_PAYMENT → READY_FOR_APPROVAL
+  | 'programme_internal_authority'  // internal P1 / P2 — authority WITHOUT a payment
+  | 'programme_go_live'      // the explicit, separate Go Live. Never a side effect of P2.
+  | 'programme_icp_attached' // the ONLY writer of icps.programme_id — what future sourcing feeds
   | 'run_migration'         // ran the committed pending migrations from Vida (no SQL editor access)
   | 'backup_manifest'       // #298 — took a table/row-count snapshot. Recorded because the
                             // WHEN is half the value: a restore is compared against the last

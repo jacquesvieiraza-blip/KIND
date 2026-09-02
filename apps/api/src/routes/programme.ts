@@ -23,6 +23,7 @@ import { quoteProgramme } from '@kind/shared'
 import {
   createProgramme, getProgramme, openProgrammeForClient, recommendProgramme,
   awaitFirstPayment, markReadyForApproval, approveProgramme, pauseProgramme, resumeProgramme,
+  authoriseFirstInternal, authoriseSecondInternal, goLiveProgramme,
   maySecondCharge, mayStartCampaign, mayComplete, completeProgramme,
   computeContribution, finaliseContribution, writeProgrammePartnerCommission,
   recordMakeWhole, nextBatchSize, ProgrammeStorageError,
@@ -149,6 +150,7 @@ programmeRouter.get('/:id', guard(async (req: Request, res: Response) => {
 
 programmeRouter.post('/:id/recommend', guard(async (req: Request, res: Response) => {
   const r = await recommendProgramme(req.params.id)
+  if (r.ok) await auditProgramme(req, 'programme_lifecycle', req.params.id, { from: 'DRAFT', to: 'RECOMMENDED' })
   res.status(r.ok ? 200 : 400).json({ success: r.ok, error: r.reason })
 }))
 
@@ -178,6 +180,7 @@ programmeRouter.post('/:id/checkout/first', guard(async (req: Request, res: Resp
 
 programmeRouter.post('/:id/ready-for-approval', guard(async (req: Request, res: Response) => {
   const r = await markReadyForApproval(req.params.id)
+  if (r.ok) await auditProgramme(req, 'programme_lifecycle', req.params.id, { to: 'READY_FOR_APPROVAL', next: 'the client approves in Milla — Vida cannot' })
   res.status(r.ok ? 200 : 400).json({ success: r.ok, error: r.reason })
 }))
 
@@ -235,6 +238,134 @@ programmeRouter.post('/:id/pause', guard(async (req: Request, res: Response) => 
 programmeRouter.post('/:id/resume', guard(async (req: Request, res: Response) => {
   const r = await resumeProgramme(req.params.id)
   res.status(r.ok ? 200 : 400).json({ success: r.ok, error: r.reason })
+}))
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// PR A2 · THE INTERNAL LIFECYCLE — House / Client Zero walks the customer's path, unpaid
+// ═══════════════════════════════════════════════════════════════════════════════════════
+
+/** Who pressed it. Same header the operator console already sends; never trusted for auth. */
+function pressedBy(req: Request): string {
+  const h = req.headers['x-operator-email']
+  return (typeof h === 'string' && h.trim()) ? h.trim() : 'unknown-operator'
+}
+
+async function auditProgramme(
+  req: Request, action: 'programme_lifecycle' | 'programme_internal_authority' | 'programme_go_live' | 'programme_icp_attached',
+  programmeId: string, detail: Record<string, unknown>,
+) {
+  const { writeOperatorAudit } = await import('../lib/operator-audit')
+  const p = await getProgramme(programmeId).catch(() => null)
+  await writeOperatorAudit({
+    operatorEmail: pressedBy(req),
+    clientId: p?.client_id ?? null,
+    action,
+    subjectType: 'programme',
+    subjectId: programmeId,
+    detail,
+  })
+}
+
+/**
+ * MOVE TO P1 — RECOMMENDED only, and this route is stricter than the function it calls.
+ *
+ * ⚠️ `awaitFirstPayment` ACCEPTS DRAFT TOO, and that is left alone on purpose: the paid
+ * checkout path has always been able to reach it from DRAFT, and narrowing a function the
+ * Stripe flow depends on to fix an operator screen would be changing paying-client behaviour
+ * to solve an internal problem. The restriction belongs to the NEW action, so it is enforced
+ * here — in the route, not in the UI, because a route is callable without the screen that
+ * hides its button.
+ *
+ * Creates no checkout, no session, and records no payment. The name says so: "Move to P1",
+ * never "Pay".
+ */
+programmeRouter.post('/:id/await-first-payment', guard(async (req: Request, res: Response) => {
+  const p = await getProgramme(req.params.id)
+  if (!p) { res.status(404).json({ success: false, error: 'No such programme.' }); return }
+  if (p.status !== 'RECOMMENDED') {
+    res.status(400).json({
+      success: false,
+      error: `This action is only available from RECOMMENDED, not ${p.status}. Recommendation is not a step to skip — it is where the programme is priced and put to the client.`,
+    })
+    return
+  }
+  const r = await awaitFirstPayment(req.params.id)
+  if (r.ok) await auditProgramme(req, 'programme_lifecycle', req.params.id, { from: 'RECOMMENDED', to: 'AWAITING_FIRST_PAYMENT', money: 'none — no checkout created, no payment recorded' })
+  res.status(r.ok ? 200 : 400).json({ success: r.ok, error: r.reason })
+}))
+
+/**
+ * INTERNAL P1 — authority without money.
+ *
+ * The response says `money: 'none'` explicitly, because the one thing an operator must never
+ * have to infer from this screen is whether pressing it charged somebody.
+ */
+programmeRouter.post('/:id/authorise/first', guard(async (req: Request, res: Response) => {
+  const r = await authoriseFirstInternal(req.params.id)
+  if (r.ok) {
+    await auditProgramme(req, 'programme_internal_authority', req.params.id, {
+      stage: 'P1', by: pressedBy(req),
+      money: 'none — no Stripe object, no invoice, no revenue, no commission, no wallet movement',
+    })
+  }
+  res.status(r.ok ? 200 : 400).json({ success: r.ok, error: r.reason, money: 'none' })
+}))
+
+/**
+ * INTERNAL P2 — authority without money, and WITHOUT going live.
+ *
+ * ⚠️ THE RESPONSE SAYS SO. Collapsing "P2 authorised" into "live" would take two separate
+ * founder decisions and make them one keystroke; saying it in the payload keeps the screen
+ * honest about what just happened.
+ */
+programmeRouter.post('/:id/authorise/second', guard(async (req: Request, res: Response) => {
+  const r = await authoriseSecondInternal(req.params.id)
+  if (r.ok) {
+    await auditProgramme(req, 'programme_internal_authority', req.params.id, {
+      stage: 'P2', by: pressedBy(req),
+      money: 'none — no Stripe object, no invoice, no revenue, no commission, no wallet movement',
+      live: false,
+    })
+  }
+  res.status(r.ok ? 200 : 400).json({
+    success: r.ok, error: r.reason, money: 'none',
+    note: 'P2 authority is not Go Live. The programme goes live only when a human presses Make live.',
+  })
+}))
+
+/** THE EXPLICIT GO LIVE. Idempotent: an already-live programme succeeds and writes nothing. */
+programmeRouter.post('/:id/go-live', guard(async (req: Request, res: Response) => {
+  const r = await goLiveProgramme(req.params.id)
+  // ⚠️ NO AUDIT ROW FOR A NO-OP. An already-live programme did not transition, and recording
+  // a second "went live" would put an event in the log that never happened.
+  if (r.ok && !r.alreadyLive) await auditProgramme(req, 'programme_go_live', req.params.id, { by: pressedBy(req) })
+  res.status(r.ok ? 200 : 400).json({ success: r.ok, error: r.reason, already_live: r.alreadyLive ?? false })
+}))
+
+/**
+ * ATTACH ONE ICP TO THIS PROGRAMME — the only writer of `icps.programme_id` in the product.
+ *
+ * ⚠️ ONE ICP PER CALL, DELIBERATELY. There is no "attach all": which targeting feeds a
+ * programme is a decision about what the client will be shown and billed for, and a bulk
+ * button turns that decision into a reflex.
+ */
+programmeRouter.post('/:id/attach-icp', guard(async (req: Request, res: Response) => {
+  const icpId = typeof req.body?.icp_id === 'string' ? req.body.icp_id : ''
+  if (!icpId) { res.status(400).json({ success: false, error: 'icp_id is required.' }); return }
+  const { attachIcpToProgramme } = await import('../lib/programme-icp')
+  const r = await attachIcpToProgramme(req.params.id, icpId)
+  if (r.ok && !r.alreadyAttached) {
+    await auditProgramme(req, 'programme_icp_attached', req.params.id, {
+      icp_id: icpId, icp_name: r.icp.name, by: pressedBy(req),
+      effect: 'future sourcing from this ICP belongs to this programme; no historical lead, enrollment or campaign was changed',
+    })
+  }
+  res.status(r.ok ? 200 : 400).json({
+    success: r.ok,
+    error: r.ok ? undefined : r.reason,
+    already_attached: r.ok ? (r.alreadyAttached ?? false) : false,
+    note: 'Only future sourcing is affected. Existing leads and enrolments keep the attribution they already had.',
+  })
 }))
 
 /**

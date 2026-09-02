@@ -120,6 +120,7 @@ const REQUIRED_VARS: VarSpec[] = [
   // Feature switches. Unset is a VALID configured state for every one of these, and for the
   // first it is the SAFE one — so they are optional and their default is stated.
   { key: 'AUTO_OUTREACH_ENABLED',     level: 'optional',  description: 'The kill-switch. Unset/false = nothing sends automatically — the correct state until the #553 ladder passes' },
+  { key: 'FIGSY_OPERATOR_SEND_ENABLED', level: 'optional', description: 'Arms the Vida Run-once control ONLY. Unset/false = the operator route refuses. It authorises nothing on its own — a founder must still press the button, for one named client, with an explicit max_sends' },
   { key: 'SAFE_TEST_MODE',          level: 'optional',  description: 'The zero-spend guard (R66). Set = every paid provider call throws instead of spending; launch testing uses mocks/fixtures/pool only. Unset = normal production behaviour.' },
   { key: 'PAID_PROVIDERS_ENABLED', level: 'important', description: 'The deliberate path to provider spend (R66). Paid providers are OFF by default; live sourcing does not run until this is set to true. A test runner ignores it and is always safe.' },
   { key: 'VITEST',                 level: 'optional',  description: 'Set by vitest inside its own process — never configured by hand. The zero-spend guard reads it so a test run can never reach a paid provider (R66).' },

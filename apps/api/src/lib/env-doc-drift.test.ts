@@ -69,9 +69,13 @@ describe('every variable the code reads is in ENVIRONMENT.md', () => {
     // partner" link in the alert email. Documented in ENVIRONMENT.md and given a tier in
     // startup-check in the same change — an undocumented variable is precisely the drift
     // this file exists to catch, and it caught this one.
-    expect(ALL.size).toBe(104)   // 101 → 102 (26 Aug, R66): SAFE_TEST_MODE, the zero-spend guard
-    expect(API_VARS.length).toBe(87)   // +1 26 Aug (R66): SAFE_TEST_MODE, the zero-spend guard
-    expect(doc()).toContain('**104 distinct variables**')
+    // 104 → 105 (2 Sep): FIGSY_OPERATOR_SEND_ENABLED, the second send authority. It arms the
+    // Vida Run-once control and nothing else — documented and tiered in the same change,
+    // because an undocumented switch that can make real mail leave is exactly the drift this
+    // file exists to catch.
+    expect(ALL.size).toBe(105)   // 101 → 102 (26 Aug, R66): SAFE_TEST_MODE, the zero-spend guard
+    expect(API_VARS.length).toBe(88)   // +1 26 Aug (R66): SAFE_TEST_MODE · +1 2 Sep: FIGSY_OPERATOR_SEND_ENABLED
+    expect(doc()).toContain('**105 distinct variables**')
   })
 
   it('NO variable is missing from the doc — checked against the TABLE, not the prose', () => {

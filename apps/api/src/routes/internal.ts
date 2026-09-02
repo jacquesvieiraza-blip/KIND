@@ -860,155 +860,17 @@ internalRouter.post('/cmo/prospect', async (_req: Request, res: Response) => {
 // Call every 2 hours. Sends due FIGSY sequence emails across all active campaigns.
 internalRouter.post('/figsy/send-due-all', async (_req: Request, res: Response) => {
   try {
-    const dailyLimit = process.env.FIGSY_DAILY_SEND_LIMIT ? parseInt(process.env.FIGSY_DAILY_SEND_LIMIT, 10) : 200
-    const todayUTC = new Date()
-    todayUTC.setUTCHours(0, 0, 0, 0)
-
-    const { count: sentToday } = await db.from('figsy_sent_emails')
-      .select('id', { count: 'exact', head: true })
-      .gte('sent_at', todayUTC.toISOString())
-
-    const remaining = Math.max(0, dailyLimit - (sentToday ?? 0))
-    if (remaining === 0) {
-      res.json({ success: true, data: { sent: 0, capped: true, daily_limit: dailyLimit } })
-      return
-    }
-
-    // Only send for ACTIVE campaigns — paused / archived / low-performance
-    // campaigns must stop sending. Pull each active campaign's client + settings so
-    // we can (a) enforce its per-campaign daily_send_limit and (b) spread the shared
-    // budget FAIRLY across clients instead of letting one client's backlog drain it.
-    const { data: activeCamps } = await db.from('figsy_campaigns')
-      .select('id, client_id, settings')
-      .eq('status', 'active')
-    const activeCampaignIds = (activeCamps ?? []).map((c: { id: string }) => c.id)
-    if (activeCampaignIds.length === 0) {
-      res.json({ success: true, data: { sent: 0, no_active_campaigns: true } })
-      return
-    }
-
-    // Per-campaign daily cap (#320): `settings.daily_send_limit` was written by the UI
-    // + the auto-tuner but never read on the send path. A numeric value caps that
-    // campaign's sends for the UTC day (0 = paused for today); null/absent = no
-    // per-campaign cap (only the global cap applies).
-    const campaignLimit = new Map<string, number | null>()
-    for (const c of activeCamps ?? []) {
-      const dl = (c as { settings?: { daily_send_limit?: unknown } | null }).settings?.daily_send_limit
-      campaignLimit.set((c as { id: string }).id, typeof dl === 'number' && dl >= 0 ? dl : null)
-    }
-
-    // SEND WINDOW (settings.send_days / settings.send_hour_utc) — same bug class as the
-    // per-campaign cap above: the UI has written these for months and NOTHING on the send
-    // path ever read them, so a "Mon–Thu from 07:00" window was decorative. Now honoured.
-    // Fails OPEN (no window, or one we can't parse, means send) — the kill-switch, the caps
-    // and the approval queue are the real safety gates, and a garbled preference field must
-    // never silently halt a client's outreach.
-    const { withinSendWindow } = await import('../lib/campaign-settings')
-    const windowNow = new Date()
-    const outsideWindow = new Set<string>()
-    for (const c of activeCamps ?? []) {
-      const row = c as { id: string; settings?: unknown }
-      if (!withinSendWindow(row.settings, windowNow)) outsideWindow.add(row.id)
-    }
-
-    // How many each campaign has ALREADY sent today, to enforce the per-campaign cap.
-    const { data: sentRows } = await db.from('figsy_sent_emails')
-      .select('campaign_id')
-      .gte('sent_at', todayUTC.toISOString())
-      .in('campaign_id', activeCampaignIds)
-    const sentByCampaign = new Map<string, number>()
-    for (const r of sentRows ?? []) {
-      const cid = (r as { campaign_id: string | null }).campaign_id
-      if (cid) sentByCampaign.set(cid, (sentByCampaign.get(cid) ?? 0) + 1)
-    }
-
-    // Pull a WIDE window of due enrollments (more than the global budget) so the fair
-    // scheduler has candidates from every client to interleave, oldest-due first.
-    // Capped so a huge backlog can't blow memory.
-    const now = new Date().toISOString()
-    const fetchCeil = Math.min(Math.max(remaining, 1) * 5, 2000)
-    const { data: due } = await db.from('figsy_enrollments')
-      .select('*, leads(id,first_name,last_name,email,job_title,company,industry,seniority,country,tech_stack,score,score_reasoning)')
-      .in('status', ['enrolled', 'in_progress'])
-      .in('campaign_id', activeCampaignIds)
-      .lte('next_send_at', now)
-      .order('next_send_at', { ascending: true })
-      .limit(fetchCeil)
-
-    // FAIR ORDER (#320): group due enrollments by client, then interleave round-robin —
-    // every client's Nth email is only reached after every client's (N-1)th. So a
-    // client with 500 due leads can't send its 3rd before another client with 5 due
-    // gets its 1st. Prevents one backlog starving everyone under the shared cap.
-    const dueRows = due ?? []
-    const byClient = new Map<string, typeof dueRows>()
-    for (const e of dueRows) {
-      const cid = ((e as { client_id?: string | null }).client_id) ?? 'unknown'
-      if (!byClient.has(cid)) byClient.set(cid, [])
-      byClient.get(cid)!.push(e)
-    }
-    const clientQueues = [...byClient.values()]
-    const maxLen = clientQueues.reduce((m, q) => Math.max(m, q.length), 0)
-    const fairOrder: typeof dueRows = []
-    for (let i = 0; i < maxLen; i++) {
-      for (const q of clientQueues) {
-        if (i < q.length) fairOrder.push(q[i])
-      }
-    }
-
-    const { sendSequenceEmail, applyReplyBranching, enrollmentStep } = await import('../lib/figsy')
-
-    const stepsCache = new Map<string, { step: number; on_reply?: 'stop' | 'skip_next' | 'continue' }[] | null>()
-    let sent = 0
-    let campaignCappedSkips = 0
-    let windowSkips = 0
-    for (const enrollment of fairOrder) {
-      if (sent >= remaining) break   // shared daily budget spent
-      const lead = Array.isArray(enrollment.leads) ? enrollment.leads[0] : enrollment.leads
-      if (!lead?.email) continue
-      // #212 — walk the full ≤7-step sequence via enrollmentStep (jsonb `steps`,
-      // else legacy step1-3 columns). null = past the last usable step (skip).
-      const nextStep = enrollment.current_step + 1
-      const stepView = enrollmentStep(enrollment, nextStep)
-      if (!stepView) continue
-
-      // Per-campaign daily cap — skip if this campaign hit its own limit today.
-      const campId = enrollment.campaign_id as string
-      const capForCampaign = campaignLimit.get(campId)
-      if (capForCampaign != null && (sentByCampaign.get(campId) ?? 0) >= capForCampaign) {
-        campaignCappedSkips++
-        continue
-      }
-
-      // Outside this campaign's configured send window — leave it due and pick it up on the
-      // next run inside the window. Nothing is lost: next_send_at is untouched.
-      if (outsideWindow.has(campId)) { windowSkips++; continue }
-
-      // Honour the step's on_reply setting if the lead has replied since last send
-      try {
-        if (await applyReplyBranching(enrollment, stepsCache) === 'skip') continue
-      } catch (err) {
-        console.error('[figsy/send-due-all] branching', enrollment.id, ':', err)
-      }
-
-      try {
-        // #15 — count ONLY a real 'sent' against the shared daily budget and the
-        // per-campaign tally. A co-pilot campaign's steps come back 'queued' (draft
-        // enqueued for review, nothing sent) — if those burned budget slots, one
-        // co-pilot campaign could eat the whole day's budget and starve every
-        // auto-pilot campaign. Deferred/suppressed/failed likewise sent nothing.
-        const outcome = await sendSequenceEmail(enrollment.id, lead, nextStep, stepView.subject, stepView.body, enrollment.campaign_id, { totalSteps: stepView.total, waitDaysNext: stepView.wait_days })
-        if (outcome === 'sent') {
-          sent++
-          sentByCampaign.set(campId, (sentByCampaign.get(campId) ?? 0) + 1)
-        }
-      } catch (err) {
-        console.error('[figsy/send-due-all] enrollment', enrollment.id, ':', err)
-      }
-    }
-
-    // window_skips is reported, not swallowed: "sent 0" with a window set must be
-    // explainable, or it looks like the engine died.
-    res.json({ success: true, data: { sent, remaining_today: remaining - sent, daily_limit: dailyLimit, clients_served: byClient.size, campaign_capped_skips: campaignCappedSkips, window_skips: windowSkips, campaigns_outside_window: outsideWindow.size } })
+    // ⚑ 2 Sep — THE BODY OF THIS ROUTE MOVED TO `lib/send-due.ts` AND NOTHING ELSE CHANGED
+    // for the scheduled path. It still runs under AUTOMATIC authority, so it still sends
+    // nothing unless `AUTO_OUTREACH_ENABLED` is `'true'` — the founder's Run-once authority
+    // is a different entry point and this route cannot reach it.
+    //
+    // It was extracted rather than copied because the operator run must execute THE SAME
+    // gates: two send implementations is how one of them quietly stops honouring a rule the
+    // other still has.
+    const { runSendDue } = await import('../lib/send-due')
+    const data = await runSendDue({ mode: 'automatic' })
+    res.json({ success: true, data })
   } catch (err) {
     console.error('[figsy/send-due-all]', err)
     res.status(500).json({ success: false, error: 'FIGSY send-due-all failed' })

@@ -213,7 +213,11 @@ describe('C7 GUARD — the error cannot be dropped again', () => {
   // Anchor inside sendSequenceEmail, NOT on the first `figsy_campaigns` read in the file. The
   // first one is a different function (the on-reply steps lookup) — the guard's first version
   // pointed at it and reported the fix missing while it was sitting right there.
-  const fn = src.slice(src.indexOf('export async function sendSequenceEmail'))
+  // ⚑ 2 Sep — ANCHORED ON THE PRIVATE CORE. `sendSequenceEmail` is now a thin wrapper that
+  // pins `authority: 'automatic'`; the gates this guard exists to protect live in
+  // `sendSequenceEmailCore`, which the operator run shares. Anchoring on the wrapper would
+  // slice ten lines and report every gate missing while all of them sat right there.
+  const fn = src.slice(src.indexOf('async function sendSequenceEmailCore'))
   const body = fn.slice(0, fn.indexOf('export async function', 20))
   const at = body.indexOf("from('figsy_campaigns')")
   const gate = body.slice(at - 900, at + 1200)

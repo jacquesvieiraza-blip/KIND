@@ -138,7 +138,11 @@ describe('both enrol routes ask, BEFORE the charge', () => {
 
 describe('the send-time safety net', () => {
   const src = stripCommentsForEnvScan(readFileSync(join(__dirname, 'figsy.ts'), 'utf8'))
-  const fn = src.slice(src.indexOf('export async function sendSequenceEmail'))
+  // ⚑ 2 Sep — ANCHORED ON THE PRIVATE CORE. `sendSequenceEmail` is now a thin wrapper that
+  // pins `authority: 'automatic'`; the gates this guard exists to protect live in
+  // `sendSequenceEmailCore`, which the operator run shares. Anchoring on the wrapper would
+  // slice ten lines and report every gate missing while all of them sat right there.
+  const fn = src.slice(src.indexOf('async function sendSequenceEmailCore'))
   const body = fn.slice(0, fn.indexOf('export async function', 20))
 
   it('sendSequenceEmail asks PECR — it catches rows the enrol gate never saw', () => {

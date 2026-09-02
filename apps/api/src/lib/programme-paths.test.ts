@@ -51,7 +51,7 @@ describe('the sweep is not vacuous', () => {
   it('sources load and the function extractor finds real bodies', () => {
     const figsy = code(join(LIB, 'figsy.ts'))
     expect(figsy.length).toBeGreaterThan(1000)
-    expect(fnBody(figsy, 'sendSequenceEmail').length).toBeGreaterThan(200)
+    expect(fnBody(figsy, 'sendSequenceEmailCore').length).toBeGreaterThan(200)
   })
 
   it('the comment stripper works — prose about a gate is not a gate', () => {
@@ -72,7 +72,9 @@ describe('⑩ PATH COVERAGE — no execution path bypasses programme authority',
     { path: 'sourcing (all 8 entry points)', file: join(ROUTES, 'icps.ts'), fn: 'runIcpJob', call: 'authorityFor(' },
     // OUTREACH — sendSequenceEmail is the single chokepoint every sequence step funnels
     // through, including day-1 and the three cron paths.
-    { path: 'email outreach + cron send-due-all', file: join(LIB, 'figsy.ts'), fn: 'sendSequenceEmail', call: 'checkEnrollmentAuthority(' },
+    // ⚑ 2 Sep — the gates moved into the shared private core; the two exported entry points
+    // are thin wrappers over it, so the chokepoint to assert on is the core itself.
+    { path: 'email outreach + cron send-due-all', file: join(LIB, 'figsy.ts'), fn: 'sendSequenceEmailCore', call: 'checkEnrollmentAuthority(' },
     // Provider pushes — the last gate before an engine takes its own copy of the lead.
     { path: 'Smartlead push (live + backfill)', file: join(LIB, 'smartlead-send.ts'), fn: 'pushApprovedLeadToSmartlead', call: 'checkProgrammeAuthority(' },
     { path: 'Instantly push', file: join(LIB, 'instantly-push.ts'), fn: 'pushApprovedLeadToInstantly', call: 'checkProgrammeAuthority(' },

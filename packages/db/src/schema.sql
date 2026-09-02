@@ -785,6 +785,17 @@ create table if not exists public.programmes (
   review_reason             text,
   review_resolved_at        timestamptz,
   review_resolution         text,
+  -- ── PR A1 · internal authority (20260902_programme_internal_authority) ───────────────
+  -- House is Client Zero and walks the SAME lifecycle a paying client walks while paying
+  -- nothing. Authority and PAYMENT are separate facts, and only payment is money:
+  -- `computeContribution` reads `first_paid_at`/`second_paid_at` and nothing else, so a
+  -- programme authorised through these columns produces £0 revenue and £0 commission.
+  -- PER STAGE, not per programme — a House programme authorised internally at P1 may take a
+  -- genuine payment at P2, and one programme-level column could not describe that row.
+  -- Two DB CHECKs (`programmes_p1_authority_xor`, `programmes_p2_authority_xor`) enforce that
+  -- a single stage never holds both a payment and internal authority.
+  first_authorised_at       timestamptz,
+  second_authorised_at      timestamptz,
   created_at                timestamptz not null default now(),
   updated_at                timestamptz not null default now()
 );

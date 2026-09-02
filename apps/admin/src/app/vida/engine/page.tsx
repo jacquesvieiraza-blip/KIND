@@ -916,27 +916,36 @@ export default function VidaEnginePage() {
                         They paid — add branded
                       </button>
                     )}
-                    {/* ⚑ 2 Sep — THE `branded` RESTRICTION IS GONE, AND IT WAS OBSOLETE, NOT PROTECTIVE.
-                        It was written when `pooled` could only mean a RENTED VENDOR box that gets
-                        released back to a pool — a box we would never promote, because the whole
-                        point of the lifecycle was to switch a client OFF it onto their branded
-                        domain around day 29. Promotion genuinely made no sense for that.
+                    {/* ⚑ 2 Sep — ACTIVATION ELIGIBILITY IS `status`, AND ONLY `status`. Both halves
+                        of the old gate (`kind === 'branded' && … && warmup_ready`) were stale, and
+                        each was stale for its own reason.
 
-                        🛑 THEN #610 REDEFINED `pooled` ON 4 AUG and this line was not revisited.
-                        Founder-ruled *"inbox x 2 yes for now but volume is key"*: `pooled` now ALSO
-                        means **the client's second slot** — even when it is our own Google box on
-                        our own domain, because the unique index allows one live box per kind. So
-                        `hello@kindoutreach.com`, a House launch sender we bought and warmed
-                        ourselves, sat in the one class of mailbox the product would never offer to
-                        promote. The API has always accepted the transition; only this line refused
-                        to show it, which made a hidden hand-rolled API call the only way through.
+                        🛑 `kind` — written when `pooled` could only mean a RENTED VENDOR box,
+                        released back to a pool as the client switched onto their branded domain
+                        around day 29. You would never promote one of those. **#610 redefined
+                        `pooled` on 4 Aug** — *"inbox x 2 yes for now but volume is key"* — so it now
+                        ALSO means the client's SECOND slot, even when it is our own Google box on
+                        our own domain. This line was never revisited, so a mailbox we bought and
+                        warmed ourselves sat in the one class the product would never offer to promote.
 
-                        ⚠️ THE OTHER TWO CONDITIONS ARE DELIBERATELY UNTOUCHED. `status === 'warming'`
-                        keeps this a promotion rather than a general status editor, and `warmup_ready`
-                        keeps the row's own dates in charge of when it is offered. Removing either
-                        would turn an eligibility fix into an automatic readiness system, which this
-                        is not. Pressing it stays an explicit human act. */}
-                    {i.status === 'warming' && i.warmup_ready && (
+                        🛑 `warmup_ready` — advisory, and the repo already says so. `client-flow-sop.md`:
+                        *"THE WARM-UP CLOCK IS A REMINDER, NOT A GATE… every reader displays it."*
+                        `house-client.ts`: *"It is still only a REMINDER. #553's ladder decides when a
+                        mailbox sends — not a date arithmetic produced."* Nothing in the send path
+                        reads it, and `POST /inboxes/:id/status` never consults a date. It also
+                        measures the wrong thing: the clock starts when the row is typed into Vida,
+                        not when the mailbox actually began warming, and its two writers disagree
+                        (14 days vs 21). Enforcing it here made the ONE date-based read in the
+                        product the thing standing between an operator and a proven mailbox.
+
+                        ⚠️ WHAT REMAINS, AND WHY IT IS ENOUGH. `status === 'warming'` keeps this a
+                        promotion rather than a general status editor. Pressing it stays an explicit
+                        human act — nothing promotes on verify, on the diagnostic send, on Instantly
+                        health or on a date. Send eligibility is still `SENDABLE_STATUSES`, which
+                        excludes `warming`, so a mailbox sends only once a person has decided it
+                        should. The readiness EVIDENCE is #553's ladder, which is deliberately not
+                        encoded here: it is an operator judgement, not a checkbox. */}
+                    {i.status === 'warming' && (
                       <button onClick={() => post(`inboxes/${i.id}/status`, { client_id: i.client_id, status: 'active' }, i.id)} disabled={busy === i.id}
                         className="text-[11.5px] font-bold text-white bg-emerald-600 rounded-lg px-2.5 py-1 disabled:opacity-50">
                         Switch live

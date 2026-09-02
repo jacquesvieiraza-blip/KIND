@@ -14,10 +14,20 @@
 // box on our own domain. The gate was never revisited. The API accepted the transition all
 // along; only the UI refused to show it, which left a hand-rolled API call as the only route.
 //
-// ⚠️ THIS IS AN ELIGIBILITY CORRECTION, NOT A READINESS SYSTEM. The other two conditions stay:
-// `status === 'warming'` (so this is a promotion, not a general status editor) and
-// `warmup_ready` (so the row's own dates decide when it is offered). Pressing it is still an
-// explicit human act, and nothing promotes a mailbox automatically.
+// 🛑 AND THE SECOND HALF OF THE GATE WAS STALE TOO. `warmup_ready` is advisory, and the repo
+// says so in its own words — `client-flow-sop.md`: *"THE WARM-UP CLOCK IS A REMINDER, NOT A
+// GATE… every reader displays it."* `house-client.ts`: *"It is still only a REMINDER. #553's
+// ladder decides when a mailbox sends — not a date arithmetic produced."* Nothing in the send
+// path reads it and `POST /inboxes/:id/status` never consults a date, so enforcing it in this
+// one JSX line made the product's ONLY date-based gate the thing standing between an operator
+// and a mailbox. It also measures the wrong thing: the clock starts when the row is typed into
+// Vida, not when the mailbox began warming, and its two writers disagree (14 days vs 21).
+//
+// ⚠️ THIS IS AN ELIGIBILITY CORRECTION, NOT A READINESS SYSTEM. One condition remains —
+// `status === 'warming'` — so this is a promotion rather than a general status editor.
+// Pressing it is an explicit human act, and nothing promotes a mailbox automatically. The
+// readiness EVIDENCE is #553's ladder, deliberately NOT encoded here: it is an operator
+// judgement, and turning it into a checkbox is the readiness framework this must not become.
 //
 // ⚠️ AND THE LINE THAT MUST NOT MOVE: production sending still refuses `warming`. A test that
 // only proved "pooled can be promoted" would pass just as happily if someone had reached that
@@ -68,43 +78,68 @@ const box = (over: Partial<InboxRow> & { id: string }): InboxRow => ({
 } as InboxRow)
 
 // ── THE CONTROL'S ELIGIBILITY ────────────────────────────────────────────────────────────
-describe('the Switch live control is offered by STATUS, not by kind', () => {
+//
+// The gate is ONE positive condition on `status`, so the whole eligibility table can be
+// derived from it rather than asserted case by case against a hand-written list. That matters:
+// a list somebody must remember to extend is how `released` quietly became eligible the day a
+// sixth status is added.
+describe('the Switch live control is offered by STATUS, and by nothing else', () => {
+  /** Evaluate the real gate against a row's status — the guard, applied. */
+  const offered = (status: string) => new Function('i', `return !!(${switchLiveGate().slice(1)}true)`)({ status })
+
   it('🛑 the branded-only restriction is gone', () => {
-    // The exact obsolete clause, named so a future re-introduction fails loudly rather than
-    // quietly hiding the control from House's second sender again.
+    // Named exactly, so a future re-introduction fails loudly rather than quietly hiding the
+    // control from House's second sender again.
     expect(switchLiveGate()).not.toMatch(/kind\s*===\s*'branded'/)
+    expect(switchLiveGate(), 'the gate must not consult kind in either direction').not.toMatch(/kind/)
   })
 
-  it('a POOLED warming mailbox now qualifies — this is the House defect', () => {
-    const gate = switchLiveGate()
-    expect(gate).toContain("i.status === 'warming'")
-    expect(gate).toContain('i.warmup_ready')
-    // Nothing in the gate may consult kind at all, in either direction.
-    expect(gate).not.toMatch(/kind/)
+  it('🛑 `warmup_ready` is gone — the repo documents that clock as a REMINDER, NOT A GATE', () => {
+    // `client-flow-sop.md:53` and `house-client.ts:146` both say so, nothing in the send path
+    // reads it, and the status route never consults a date. This was the product's only
+    // date-based gate and it measured the wrong thing.
+    expect(switchLiveGate()).not.toMatch(/warmup_ready/)
   })
 
-  it('a BRANDED warming mailbox still qualifies exactly as before — nothing was traded away', () => {
-    // Both conditions a branded box satisfied are still the only two conditions, so a branded
-    // box's behaviour is unchanged by construction.
-    const gate = switchLiveGate()
-    expect(gate.match(/i\.\w+/g)).toEqual(['i.status', 'i.warmup_ready'])
-  })
-
-  it('the two legitimate conditions were PRESERVED, not removed alongside the third', () => {
-    // The failure mode this catches: "make it work for hello@" by deleting the whole guard,
-    // which would offer promotion on active, released and retired rows too.
-    const gate = switchLiveGate()
-    expect(gate, 'status must still gate it').toMatch(/status\s*===\s*'warming'/)
-    expect(gate, "the row's own warm-up dates must still gate it").toMatch(/warmup_ready/)
-  })
-
-  it('released and retired rows gain nothing — they are not `warming`', () => {
-    // The guard is positive on 'warming', so every other status is excluded by construction
-    // rather than by a list somebody must remember to extend.
-    for (const status of ['released', 'retired', 'active', 'assigned']) {
-      expect(status).not.toBe('warming')
-    }
+  it('the gate is exactly one condition, on status — nothing else grants or removes eligibility', () => {
+    expect(switchLiveGate().match(/i\.\w+/g)).toEqual(['i.status'])
     expect(switchLiveGate()).toMatch(/status\s*===\s*'warming'/)
+  })
+
+  it('A · BRANDED + warming → the control is available', () => {
+    expect(offered('warming')).toBe(true)
+  })
+
+  it('B · POOLED + warming → the control is available (the House defect, closed)', () => {
+    // The gate no longer reads `kind`, so pooled and branded resolve identically. Asserted as
+    // behaviour rather than as an absence, because "kind is not mentioned" and "a pooled box
+    // is actually offered the control" are different claims.
+    expect(offered('warming')).toBe(true)
+  })
+
+  it('C · warming + `warmup_ready` FALSE → the control is STILL available', () => {
+    // The whole point of the correction. A row whose Vida clock has not elapsed — because the
+    // row was typed in last week while the mailbox warmed in Instantly for a month — must not
+    // be blocked by that arithmetic.
+    const gate = switchLiveGate()
+    expect(gate).not.toMatch(/warmup_ready/)
+    expect(new Function('i', `return !!(${gate.slice(1)}true)`)({ status: 'warming', warmup_ready: false })).toBe(true)
+  })
+
+  it('D · active → no control (it is already live; this is a promotion, not a status editor)', () => {
+    expect(offered('active')).toBe(false)
+  })
+
+  it('E · released → no control', () => {
+    expect(offered('released')).toBe(false)
+  })
+
+  it('F · retired → no control', () => {
+    expect(offered('retired')).toBe(false)
+  })
+
+  it('and `assigned` is not offered either — every non-warming status is excluded by construction', () => {
+    expect(offered('assigned')).toBe(false)
   })
 })
 

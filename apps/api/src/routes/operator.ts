@@ -2270,6 +2270,108 @@ operatorRouter.post('/inboxes/:id/verify', async (req: Request, res: Response) =
   } catch (err) { console.error('[operator/inbox-verify]', err); res.status(500).json({ success: false, error: 'Failed to check the mailbox' }) }
 })
 
+// ── #553 — DOES THIS ONE MAILBOX ACTUALLY DELIVER? ──────────────────────────────────
+//
+// `/verify` above authenticates and sends NOTHING, which proves the password and proves
+// nothing about deliverability. #553's ladder asks for something `/verify` cannot answer:
+// *"a test send lands in a real inbox (not Promotions, not spam) · mail-tester ≥9/10"*, and
+// the runbook adds *"run this once per sending mailbox you intend to use, not just the
+// first one."*
+//
+// 🛑 AND THE CONTROL THE RUNBOOK POINTS AT TESTS THE WRONG SENDER. `/campaign/:id/test`
+// sends through **Resend from `COLD_FROM`** — our shared `gettingkind.com` identity. It
+// never opens `client_inboxes` and never calls `mailer.ts`. So following the runbook
+// literally scores a mailbox that will not be sending, and a Google box could fail
+// placement with every check on the board green. This route is the missing one.
+//
+// ⚠️ THE MAILBOX IS NAMED, NEVER CHOSEN. `pickSendingInbox` exists to decide WHICH box
+// sends, and for a diagnostic that is exactly the wrong behaviour: it ranks active before
+// assigned and branded before pooled, so on a two-box client it would answer `jacques@`
+// however hard you tried to test `hello@`. This path resolves the row by its own id and
+// hands it straight to `sendAs`, which takes an InboxRow and consults no ranking. **There
+// is no rotation here and there must never be.**
+//
+// ⚠️ WHY `warming` IS ALLOWED HERE AND NOWHERE ELSE. `SENDABLE_STATUSES` excludes warming
+// because *sending on a warming mailbox is what un-warms it* — true of campaign volume, and
+// the reason that rule is untouched by this file. One operator-initiated diagnostic to an
+// address the operator typed is not campaign volume, and refusing it would make #553's
+// ladder impossible to climb: a mailbox cannot leave `warming` until it is proven, and it
+// could not be proven until it left `warming`. The exception is bounded by this handler —
+// `pickSendingInbox` is not called, not modified, and still refuses warming everywhere else.
+//
+// ⚠️ NOT RECORDED IN `figsy_sent_emails`, DELIBERATELY. That table's `lead_id` is NOT NULL
+// against `leads`, so a diagnostic could only be stored by inventing a lead — and #637 lists
+// five surfaces that read it as the CLIENT'S OWN sent-counter, including their dashboard.
+// A test would inflate a client's own numbers with mail no prospect received. There is no
+// column distinguishing diagnostic from campaign and inventing one is a schema change this
+// build was not given. The operator audit log is the right home and already exists.
+operatorRouter.post('/inboxes/:id/test-send', async (req: Request, res: Response) => {
+  try {
+    const { client_id, to_email } = (req.body ?? {}) as { client_id?: string; to_email?: string }
+    const client = await requireClient(client_id)
+    if (!client) { res.status(404).json({ success: false, error: 'Unknown client_id' }); return }
+
+    // A typo'd recipient on a warmed mailbox is a real bounce against real reputation, so
+    // the address is checked before anything connects rather than left to the mail server.
+    const to = String(to_email ?? '').trim()
+    if (!to || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) {
+      res.status(400).json({ success: false, error: 'Enter the address to send the test to — a full email address, e.g. you@yourdomain.com.' })
+      return
+    }
+
+    // ⚠️ SCOPED BY ID *AND* CLIENT. `.eq('id')` alone would let one client's console send
+    // through another client's authenticated mailbox — the exact cross-client leak the
+    // per-send transport in `mailer.ts` was written to prevent.
+    const { data: inbox, error } = await db.from('client_inboxes')
+      .select('id, email, kind, status, smtp_host, smtp_port, smtp_secure, smtp_user, smtp_pass_enc, from_name')
+      .eq('id', req.params.id).eq('client_id', client.id).maybeSingle()
+    if (error) throw error
+    if (!inbox) { res.status(404).json({ success: false, error: 'Inbox not found for this client' }); return }
+
+    const box = inbox as { email: string; status: string; smtp_host: string | null; smtp_user: string | null; smtp_pass_enc: string | null }
+    if (!box.smtp_host || !box.smtp_user || !box.smtp_pass_enc) {
+      res.status(400).json({ success: false, error: `${box.email} has no SMTP details saved, so there is nothing to send through. Add the host, username and app password first.` })
+      return
+    }
+    // A released or retired mailbox is one we have deliberately stopped using. Testing it
+    // would put mail on a reputation we no longer own the story of.
+    if (box.status === 'released' || box.status === 'retired') {
+      res.status(409).json({ success: false, error: `${box.email} is ${box.status} — a mailbox taken out of service is not tested back into one.` })
+      return
+    }
+
+    // Plain text, no HTML, no pixel, no unsubscribe furniture, no template. Every one of
+    // those changes what a spam filter scores, and the whole point of this message is to
+    // measure the MAILBOX rather than our cold-email markup.
+    const sender = String(box.smtp_user)
+    const { sendAs } = await import('../lib/mailer')
+    const sent = await sendAs(inbox as never, {
+      to,
+      subject: `M&V mailbox test — ${sender}`,
+      text: `This is a controlled M&V mailbox delivery test from ${sender}.\nNo campaign or outreach has been enabled.\n`,
+    })
+
+    await writeOperatorAudit({
+      operatorEmail: operatorEmail(req), clientId: client.id, action: 'mailbox_test_send',
+      subjectType: 'inbox', subjectId: req.params.id,
+      detail: { from: sender, to, status: box.status, delivered: sent.ok },
+    })
+
+    if (!sent.ok) {
+      // 200, like `/verify`: "we asked and the mail server said no" is a completed check,
+      // and a 500 would read on the board as OUR fault rather than the mailbox's.
+      const why = sent.error instanceof Error ? sent.error.message : String(sent.error ?? 'unknown error')
+      res.json({ success: true, data: { sent: false, from: sender, to, message: `${sender} could not send to ${to}. ${why}` } })
+      return
+    }
+
+    res.json({ success: true, data: { sent: true, from: sender, to, message: `Test email sent from ${sender} to ${to}. Check that it arrived in the inbox — not Promotions, not spam.` } })
+  } catch (err) {
+    console.error('[operator/inbox-test-send]', err)
+    res.status(500).json({ success: false, error: 'Failed to send the test' })
+  }
+})
+
 // ── A22 / R25 — THE UNLOCK-DAY BACKFILL ─────────────────────────────────────────────
 // Re-offers leads that were approved BEFORE the Smartlead key existed. Without this, every
 // lead approved before unlock day stays un-pushed forever — charged, revealed, enrolled and

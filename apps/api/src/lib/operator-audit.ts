@@ -58,6 +58,12 @@ export type OperatorAction =
   | 'start_campaign'        // created + activated a client's campaign (managed model, no spend)
   | 'send_reply'            // answered a prospect on the client's behalf from Vida's Inbox
   | 'assign_inbox'          // V9 #270/#271 — pooled/branded sending inbox lifecycle
+  | 'mailbox_test_send'     // #553 ladder — sent ONE diagnostic email through ONE named
+                            // mailbox's own SMTP, to prove that mailbox delivers. Its own
+                            // action rather than `assign_inbox` because a real message left
+                            // the building: #564's lesson is that a log which reuses a
+                            // neighbouring label ends up describing something that did not
+                            // happen. No campaign, no enrolment, no lead, no spend.
   | 'run_migration'         // ran the committed pending migrations from Vida (no SQL editor access)
   | 'backup_manifest'       // #298 — took a table/row-count snapshot. Recorded because the
                             // WHEN is half the value: a restore is compared against the last

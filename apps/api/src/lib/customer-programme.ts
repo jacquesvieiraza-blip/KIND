@@ -32,6 +32,14 @@ import {
  * where it matters more: a made-up number in front of a client is a promise.
  */
 export type CustomerProgramme = {
+  /**
+   * ⚑ 1 Sep — THE PROGRAMME'S OWN ID, exposed so surfaces can SCOPE to it.
+   *
+   * `null` when this client has no programme (NO_PROGRAMME below). That is the value the
+   * isolation rule keys on: with no programme there is nothing to attribute activity to, so
+   * `lib/programme-scope.ts` leaves a legacy client's screens exactly as they were.
+   */
+  programmeId: string | null
   stage: MillaStage
   quickAction: string
   /** Orthogonal to stage — a paused programme keeps the stage it will return to. */
@@ -63,6 +71,7 @@ export type CustomerProgramme = {
 
 /** No programme row is a REAL answer, not a failure: this client is at Proof. */
 export const NO_PROGRAMME: CustomerProgramme = {
+  programmeId: null,
   stage: 'Proof',
   quickAction: STAGE_QUICK_ACTION.Proof,
   paused: false, pausedCopy: null, reviewOpen: false,
@@ -114,6 +123,7 @@ export async function readCustomerProgramme(clientId: string): Promise<CustomerP
   }
 
   return {
+    programmeId: String(p.id),
     stage,
     quickAction: STAGE_QUICK_ACTION[stage],
     paused: Boolean(p.paused_at),

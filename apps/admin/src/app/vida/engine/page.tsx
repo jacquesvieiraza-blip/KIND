@@ -916,7 +916,27 @@ export default function VidaEnginePage() {
                         They paid — add branded
                       </button>
                     )}
-                    {i.kind === 'branded' && i.status === 'warming' && i.warmup_ready && (
+                    {/* ⚑ 2 Sep — THE `branded` RESTRICTION IS GONE, AND IT WAS OBSOLETE, NOT PROTECTIVE.
+                        It was written when `pooled` could only mean a RENTED VENDOR box that gets
+                        released back to a pool — a box we would never promote, because the whole
+                        point of the lifecycle was to switch a client OFF it onto their branded
+                        domain around day 29. Promotion genuinely made no sense for that.
+
+                        🛑 THEN #610 REDEFINED `pooled` ON 4 AUG and this line was not revisited.
+                        Founder-ruled *"inbox x 2 yes for now but volume is key"*: `pooled` now ALSO
+                        means **the client's second slot** — even when it is our own Google box on
+                        our own domain, because the unique index allows one live box per kind. So
+                        `hello@kindoutreach.com`, a House launch sender we bought and warmed
+                        ourselves, sat in the one class of mailbox the product would never offer to
+                        promote. The API has always accepted the transition; only this line refused
+                        to show it, which made a hidden hand-rolled API call the only way through.
+
+                        ⚠️ THE OTHER TWO CONDITIONS ARE DELIBERATELY UNTOUCHED. `status === 'warming'`
+                        keeps this a promotion rather than a general status editor, and `warmup_ready`
+                        keeps the row's own dates in charge of when it is offered. Removing either
+                        would turn an eligibility fix into an automatic readiness system, which this
+                        is not. Pressing it stays an explicit human act. */}
+                    {i.status === 'warming' && i.warmup_ready && (
                       <button onClick={() => post(`inboxes/${i.id}/status`, { client_id: i.client_id, status: 'active' }, i.id)} disabled={busy === i.id}
                         className="text-[11.5px] font-bold text-white bg-emerald-600 rounded-lg px-2.5 py-1 disabled:opacity-50">
                         Switch live

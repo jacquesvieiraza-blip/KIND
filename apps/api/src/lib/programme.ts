@@ -267,6 +267,24 @@ export async function authoriseFirstInternal(programmeId: string): Promise<Progr
   if (p.first_paid_at || p.first_payment_ref || p.first_payment_intent_id) {
     return { ok: false, reason: 'This programme already has P1 PAYMENT evidence. A stage cannot hold both a payment and internal authority.' }
   }
+  // 🛑 NEVER OPEN A CEILING FROM A FIGURE THAT ISN'T ONE. The next statement writes
+  // `sourcing_ceiling = recommended_volume`, so a row carrying 0 — or anything non-positive —
+  // would transition to SOURCING_AUTHORISED with no authority to source at all: a programme
+  // that reads as authorised and can deliver nothing, which is worse than one that refuses.
+  //
+  // ⚠️ THIS SHOULD BE UNREACHABLE, AND IS GUARDED ANYWAY. `createProgramme` is the only writer
+  // and derives the value through `assertMeetings` (whole number ≥ 1) × 250, and the column is
+  // `int NOT NULL`, so neither NULL nor 0 can be produced by the product today. The guard costs
+  // one comparison and covers hand-written rows, a future writer, and any relaxation of the
+  // curve — none of which the paid path would catch either (it is noted as a shared, currently
+  // theoretical exposure rather than silently fixed here, because changing `recordFirstPayment`
+  // changes paying-client behaviour).
+  if (!Number.isInteger(p.recommended_volume) || p.recommended_volume <= 0) {
+    return {
+      ok: false,
+      reason: `This programme has no valid recommended volume (${p.recommended_volume}), so there is no ceiling to authorise. Nothing was changed.`,
+    }
+  }
 
   // Compare-and-set on the column itself: two concurrent presses cannot both win.
   const { error } = await db.from('programmes').update({
@@ -498,9 +516,23 @@ export async function markReadyForApproval(programmeId: string): Promise<Program
   //
   // ⚠️ AND IT COUNTS POSITIVE ATTRIBUTION, which is the same rule the send layers use. Work
   // that carries no programme id is history; it cannot make a new programme reviewable.
+  // ⚠️ AND IT COUNTS ONLY WHAT COULD EVER BE REVIEWED. `programme_id` alone would count a lead
+  // that failed enrichment or was never sent to the client — a record that can never appear in
+  // the customer's review set, so a programme could be declared ready on work nobody can see.
+  //
+  // The two filters are NOT invented here: they are the existing definition `/leads/for-approval`
+  // already uses — `delivered_at` (we have a contactable person) and `surfaced_for_approval_at`
+  // (#493: an operator has actually Sent it to the client).
+  //
+  // 🛑 THE OTHER TWO FILTERS ON THAT ROUTE ARE DELIBERATELY NOT COPIED. `revealed_at IS NULL`
+  // and `status != 'passed'` answer "what is still OUTSTANDING", not "what can ever appear" —
+  // reusing them would make a programme whose leads the client has already worked through read
+  // as having nothing to review, which is the opposite of the truth.
   const { count, error } = await db.from('leads')
     .select('id', { count: 'exact', head: true })
     .eq('programme_id', programmeId)
+    .not('delivered_at', 'is', null)
+    .not('surfaced_for_approval_at', 'is', null)
   // A read failure is "we cannot tell", never "there is nothing" — the recurring `?? []`
   // defect in this codebase, applied to a gate.
   if (error) {

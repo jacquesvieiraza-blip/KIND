@@ -47,16 +47,24 @@ const dbState: {
   leadCountError: { message: string } | null
   writes: { table: string; patch: Record<string, unknown> }[]
   updatedRows: Record<string, unknown>[] | null
+  icpClientFilter: string | null
+  icpListError: { message: string } | null
 } = {
   enrollment: null, programme: null, icp: null, icpList: [],
   leadCount: 0, leadCountError: null, writes: [], updatedRows: null,
+  icpClientFilter: null, icpListError: null,
 }
 
 vi.mock('@kind/db', () => ({
   db: {
     from: (table: string) => {
       const q: Record<string, unknown> = {
-        select: () => q, eq: () => q, not: () => q, limit: () => q, order: () => q, is: () => q, in: () => q,
+        select: () => q,
+        eq: (col: string, val: unknown) => {
+          if (table === 'icps' && col === 'client_id') dbState.icpClientFilter = String(val)
+          return q
+        },
+        not: () => q, limit: () => q, order: () => q, is: () => q, in: () => q,
         update: (patch: Record<string, unknown>) => { dbState.writes.push({ table, patch }); return q },
         insert: (patch: Record<string, unknown>) => { dbState.writes.push({ table, patch }); return q },
         async maybeSingle() {
@@ -71,7 +79,14 @@ vi.mock('@kind/db', () => ({
             // `markReadyForApproval` uses a head count: `{ count, error }`, no rows.
             return res({ data: null, count: dbState.leadCount, error: dbState.leadCountError })
           }
-          if (table === 'icps') return res({ data: dbState.updatedRows ?? dbState.icpList, error: null })
+          if (table === 'icps') {
+            if (dbState.icpListError) return res({ data: null, error: dbState.icpListError })
+            // `programmeIcps` filters by client in the QUERY; the fake honours that filter so a
+            // tenancy test is real work rather than a list nobody narrowed.
+            const rows = dbState.updatedRows
+              ?? dbState.icpList.filter(r => !dbState.icpClientFilter || r.client_id === dbState.icpClientFilter)
+            return res({ data: rows, error: null })
+          }
           return res({ data: dbState.updatedRows ?? [{ id: 'prog-1' }], error: null })
         },
       }
@@ -87,7 +102,7 @@ import {
   mayStartCampaign, type ProgrammeRow,
 } from './programme'
 import { authorityFor, checkEnrollmentAuthority, type AuthorityVerdict } from './programme-authority'
-import { attachIcpToProgramme } from './programme-icp'
+import { attachIcpToProgramme, programmeIcps } from './programme-icp'
 
 const API = join(__dirname, '..')
 const raw = (p: string) => readFileSync(p, 'utf8')
@@ -120,6 +135,7 @@ beforeEach(() => {
   dbState.enrollment = null; dbState.programme = null; dbState.icp = null
   dbState.icpList = []; dbState.leadCount = 0; dbState.leadCountError = null
   dbState.writes = []; dbState.updatedRows = null
+  dbState.icpClientFilter = null; dbState.icpListError = null
 })
 
 // ═══════════════════════════════════════════════════════════════════════════════════════
@@ -836,5 +852,342 @@ describe('⑭ every control is re-decided by a route that a UI cannot bypass', (
     expect(routes).not.toMatch(/approveProgramme\(/g === null ? /x^/ : /auditProgramme\(req, 'programme_lifecycle'[^)]*APPROVED/)
     const vida = strip(raw(join(API, '../../admin/src/app/vida/page.tsx')))
     expect(vida).not.toContain('/approve')
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// ⑮ CAMPAIGN SAFETY — RIGHT ATTRIBUTION IS NOT ENOUGH
+// ═══════════════════════════════════════════════════════════════════════════════════════
+//
+// 🛑 THE DEFECT THIS BLOCK EXISTS FOR, AND IT SURVIVED THE FIRST A2 BUILD. `autoEnrollLead`
+// resolves a campaign from the lead's ICP, and falls back to the client's NEWEST ACTIVE
+// campaign when it finds none. House carries historical campaigns. So a lead sourced under
+// the new programme, correctly stamped `programme_id`, could be enrolled into an OLD campaign
+// and sent that campaign's sequence.
+//
+// ⚠️ EVERY DOWNSTREAM GATE WOULD HAVE ALLOWED IT. The enrollment copies `programme_id` from
+// the lead, so send SELECTION matches and send AUTHORITY matches — neither has any opinion
+// about which campaign the row points at. Attribution being CORRECT is what made this
+// invisible: the row is programme work, and it would have told the wrong story.
+describe('⑮ programme work never inherits a historical campaign', () => {
+  const fig = strip(raw(join(API, 'lib/figsy.ts')))
+
+  it('the campaign is resolved from the LEAD\'S ICP first — one ICP, one campaign', () => {
+    expect(fig).toContain(".eq('client_id', clientId).eq('icp_id', leadIcp.icp_id).eq('status', 'active')")
+  })
+
+  it('🛑 A PROGRAMME LEAD MAY NOT FALL BACK to the newest active campaign', () => {
+    // The fallback is legacy-only. Matched whole: `if (!campaign)` and
+    // `if (!campaign && leadProgrammeId)` share a substring, so the ORDER and the guard both
+    // have to be read, not just the presence of the words.
+    const guard = fig.indexOf('if (!campaign && leadProgrammeId) {')
+    const fallback = fig.indexOf("      const { data: newest } = await db.from('figsy_campaigns')")
+    expect(guard, 'the programme guard must exist').toBeGreaterThan(-1)
+    expect(fallback, 'the legacy fallback must still exist').toBeGreaterThan(-1)
+    expect(guard, 'and the guard must come BEFORE the fallback').toBeLessThan(fallback)
+    // It RETURNS. Falling through to any other campaign is the whole defect.
+    const block = fig.slice(guard, fallback)
+    expect(block, 'a programme lead with no ICP campaign must enrol in nothing').toMatch(/\n\s*return\n/)
+  })
+
+  it('the programme id is read from the LEAD, in the query already being made', () => {
+    // No extra round trip, and read from the person rather than guessed from the client —
+    // the same rule `resolveLeadAttribution` follows.
+    expect(fig).toContain("db.from('leads').select('icp_id, programme_id')")
+  })
+
+  it('a LEGACY lead keeps the fallback exactly as before', () => {
+    // The $299 model has null-attributed leads and one campaign; narrowing this would break
+    // the model that is actually selling.
+    const fallback = fig.slice(fig.indexOf('if (!campaign) {', fig.indexOf('if (!campaign && leadProgrammeId)')))
+    expect(fallback).toContain(".eq('client_id', clientId).eq('status', 'active')")
+    expect(fallback).toContain("order('created_at', { ascending: false })")
+  })
+
+  it('and activation of ANY campaign still runs through the one programme gate', () => {
+    // `ensureCampaignForIcp` is the only door to `status: 'active'`, and it asks
+    // `mayStartCampaign` — so an old campaign cannot be re-activated for a programme client
+    // that is not LIVE with P2, and a new one cannot be activated early.
+    const sw = strip(raw(join(API, 'lib/start-work.ts')))
+    expect(sw).toContain('export async function ensureCampaignForIcp')
+    // ⚠️ THE REAL CALL, NOT THE COMMENT ABOUT IT. `ensureCampaignForIcp` reaches the one
+    // authority module through `checkProgrammeAuthority(clientId, 'OUTREACH')`, which is
+    // `mayStartCampaign` plus the approval check — the first version of this assertion matched
+    // the word `mayStartCampaign` inside a comment and proved nothing.
+    expect(sw).toContain("const verdict = await checkProgrammeAuthority(clientId, 'OUTREACH')")
+    // and OUTREACH authority is where `p2Authorised` is consulted
+    const auth = strip(raw(join(API, 'lib/programme-authority.ts')))
+    expect(auth).toContain('const verdict = mayStartCampaign(p)')
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// ⑯ mayStartCampaign — THE FULL AUTHORITY MATRIX, BEHAVIOURALLY
+// ═══════════════════════════════════════════════════════════════════════════════════════
+describe('⑯ the campaign gate answers the same way for every programme state', () => {
+  // Each row: the programme shape, and whether a campaign may start.
+  const paidP2 = { second_paid_at: 'x', second_payment_ref: 'cs_2' }
+  const cases: [string, Partial<ProgrammeRow>, boolean][] = [
+    ['DRAFT',                        { status: 'DRAFT' }, false],
+    ['RECOMMENDED',                  { status: 'RECOMMENDED' }, false],
+    ['AWAITING_FIRST_PAYMENT',       { status: 'AWAITING_FIRST_PAYMENT' }, false],
+    ['SOURCING_AUTHORISED',          { status: 'SOURCING_AUTHORISED', first_authorised_at: 'i' }, false],
+    ['SOURCING',                     { status: 'SOURCING', first_authorised_at: 'i' }, false],
+    ['READY_FOR_APPROVAL',           { status: 'READY_FOR_APPROVAL', first_authorised_at: 'i' }, false],
+    ['APPROVED without P2',          { status: 'APPROVED', approved_at: 'a' }, false],
+    ['APPROVED + internal P2',       { status: 'APPROVED', approved_at: 'a', second_authorised_at: 'i' }, false],
+    ['APPROVED + paid P2',           { status: 'APPROVED', approved_at: 'a', ...paidP2 }, false],
+    ['LIVE + internal P2',           { status: 'LIVE', approved_at: 'a', went_live_at: 'w', second_authorised_at: 'i' }, true],
+    ['LIVE + paid P2',               { status: 'LIVE', approved_at: 'a', went_live_at: 'w', ...paidP2 }, true],
+    ['LIVE + paid timestamp only',   { status: 'LIVE', approved_at: 'a', second_paid_at: 'x' }, false],
+    ['LIVE but PAUSED',              { status: 'LIVE', approved_at: 'a', went_live_at: 'w', second_authorised_at: 'i', paused_at: 'p' }, false],
+    ['COMPLETED',                    { status: 'COMPLETED', approved_at: 'a', second_authorised_at: 'i' }, false],
+    ['CANCELLED',                    { status: 'CANCELLED', approved_at: 'a', second_authorised_at: 'i' }, false],
+  ]
+
+  for (const [label, over, allowed] of cases) {
+    it(`${label} → ${allowed ? 'may' : 'may NOT'} start`, () => {
+      expect(mayStartCampaign(P(over)).allowed, label).toBe(allowed)
+    })
+  }
+
+  it('a genuine legacy client is not gated by this at all', () => {
+    // `mayStartCampaign` takes a programme ROW; a legacy client has none, and the callers
+    // reach it only through `authorityFor`, which answers `mode: 'legacy'` for null.
+    expect(authorityFor(null, 'OUTREACH')).toEqual({ allowed: true, mode: 'legacy', programme: null })
+  })
+
+  it('🛑 WHY IT HAD TO CHANGE IN A2 — the two gates would otherwise disagree', () => {
+    // It restated `second_paid_at && second_payment_ref` inline. `goLiveProgramme` uses
+    // `p2Authorised`. So an internally-authorised programme could be taken LIVE by one gate
+    // and refused by the other about the identical fact — LIVE, and unable to send.
+    const internallyLive = P({ status: 'LIVE', approved_at: 'a', went_live_at: 'w', second_authorised_at: 'i' })
+    expect(p2Authorised(internallyLive)).toBe(true)
+    expect(mayStartCampaign(internallyLive).allowed).toBe(true)
+    expect(authorityFor(internallyLive, 'OUTREACH').allowed).toBe(true)
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// ⑰ THE PAYING CLIENT'S STRIPE LIFECYCLE IS UNCHANGED
+// ═══════════════════════════════════════════════════════════════════════════════════════
+describe('⑰ nothing House needed altered what a paying client experiences', () => {
+  it('P1 payment records the same evidence and opens the same ceiling', async () => {
+    dbState.programme = asRow(P({ status: 'AWAITING_FIRST_PAYMENT', recommended_volume: 1000 }))
+    const r = await recordFirstPayment({ programmeId: 'prog-1', sessionId: 'cs_1', paymentIntentId: 'pi_1' })
+    expect(r.ok).toBe(true)
+    const patch = dbState.writes[0].patch
+    expect(patch).toMatchObject({
+      first_payment_ref: 'cs_1', first_payment_intent_id: 'pi_1',
+      sourcing_ceiling: 1000, status: 'SOURCING_AUTHORISED',
+    })
+    expect(patch.first_paid_at).toBeTruthy()
+    expect(patch, 'the paid path never writes internal authority').not.toHaveProperty('first_authorised_at')
+  })
+
+  it('🛑 P2 PAYMENT STILL TAKES AN APPROVED PROGRAMME LIVE, and still stamps went_live_at', async () => {
+    // The existing product truth: for a PAYING client the money arriving IS the last event.
+    // A2 must not have quietly moved that behind the new Make live control.
+    dbState.programme = asRow(P({ status: 'APPROVED', approved_at: 'a', paused_at: null }))
+    const r = await recordSecondPayment({ programmeId: 'prog-1', sessionId: 'cs_2', paymentIntentId: 'pi_2' })
+    expect(r.ok).toBe(true)
+    const patch = dbState.writes[0].patch
+    expect(patch).toMatchObject({
+      second_payment_ref: 'cs_2', second_payment_intent_id: 'pi_2', status: 'LIVE',
+    })
+    expect(patch.second_paid_at).toBeTruthy()
+    expect(patch.went_live_at, 'the paid path still stamps went_live_at itself').toBeTruthy()
+    expect(patch).not.toHaveProperty('second_authorised_at')
+  })
+
+  it('P2 arriving on a paused or non-APPROVED programme still records money WITHOUT going live', async () => {
+    // The pre-existing refusal shape: money that arrived is a fact regardless of whether we
+    // may act on it. Unchanged by A2.
+    for (const over of [{ status: 'APPROVED' as const, approved_at: 'a', paused_at: 'p' }, { status: 'SOURCING' as const }]) {
+      dbState.programme = asRow(P(over)); dbState.writes = []
+      const r = await recordSecondPayment({ programmeId: 'prog-1', sessionId: 'cs_2' })
+      expect(r.ok).toBe(true)
+      expect(r.recordedNotLive).toBe(true)
+      const patch = dbState.writes[0].patch
+      expect(patch.second_payment_ref).toBe('cs_2')
+      expect(patch, 'a blocked P2 must not go live').not.toHaveProperty('status')
+      expect(patch).not.toHaveProperty('went_live_at')
+    }
+  })
+
+  it('the refusals fire ONLY on internal authority, never on an ordinary payment', async () => {
+    dbState.programme = asRow(P({ status: 'AWAITING_FIRST_PAYMENT' }))
+    expect((await recordFirstPayment({ programmeId: 'prog-1', sessionId: 'cs_1' })).ok).toBe(true)
+    dbState.programme = asRow(P({ status: 'APPROVED', approved_at: 'a' })); dbState.writes = []
+    expect((await recordSecondPayment({ programmeId: 'prog-1', sessionId: 'cs_2' })).ok).toBe(true)
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// ⑱ THE P1 CEILING INVARIANT
+// ═══════════════════════════════════════════════════════════════════════════════════════
+describe('⑱ internal P1 never opens a ceiling from a figure that is not one', () => {
+  for (const bad of [0, -1, -250]) {
+    it(`refuses recommended_volume = ${bad}`, async () => {
+      dbState.programme = asRow(P({ status: 'AWAITING_FIRST_PAYMENT', recommended_volume: bad }))
+      const r = await authoriseFirstInternal('prog-1')
+      expect(r.ok).toBe(false)
+      expect(r.reason).toMatch(/no valid recommended volume/)
+      expect(dbState.writes, 'a refused authorisation must not write').toHaveLength(0)
+    })
+  }
+
+  it('refuses a NULL/absent recommended_volume', async () => {
+    // The column is `int NOT NULL`, so this is defence against a future writer rather than a
+    // state the product can reach today — which is why it is a guard and not a migration.
+    dbState.programme = asRow(P({ status: 'AWAITING_FIRST_PAYMENT', recommended_volume: null as unknown as number }))
+    const r = await authoriseFirstInternal('prog-1')
+    expect(r.ok).toBe(false)
+    expect(dbState.writes).toHaveLength(0)
+  })
+
+  it('allows a positive volume, and the ceiling is that number', async () => {
+    dbState.programme = asRow(P({ status: 'AWAITING_FIRST_PAYMENT', recommended_volume: 750 }))
+    const r = await authoriseFirstInternal('prog-1')
+    expect(r.ok).toBe(true)
+    expect(dbState.writes[0].patch).toMatchObject({ sourcing_ceiling: 750, status: 'SOURCING_AUTHORISED' })
+  })
+
+  it('and the figure is never re-derived here — it comes off the row', () => {
+    const src = strip(raw(join(API, 'lib/programme.ts')))
+    const at = src.indexOf('export async function authoriseFirstInternal')
+    const f = src.slice(at, at + 2600)
+    expect(f).toContain('sourcing_ceiling: p.recommended_volume')
+    expect(f, 'no second copy of the R77 curve').not.toMatch(/\*\s*250|LEADS_PER_TARGETED_MEETING/)
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// ⑲ READY FOR APPROVAL COUNTS ONLY WHAT A CLIENT COULD EVER SEE
+// ═══════════════════════════════════════════════════════════════════════════════════════
+describe('⑲ readiness reuses the existing reviewable-lead definition', () => {
+  it('🛑 IT FILTERS ON delivered_at AND surfaced_for_approval_at', () => {
+    // Not invented here: this is exactly what `/leads/for-approval` already requires. A lead
+    // that failed enrichment, or that no operator has Sent to the client, can never appear in
+    // the review set — so it must never be the reason a programme is declared ready.
+    const src = strip(raw(join(API, 'lib/programme.ts')))
+    const at = src.indexOf('export async function markReadyForApproval')
+    const f = src.slice(at, at + 2600)
+    expect(f).toContain(".eq('programme_id', programmeId)")
+    expect(f).toContain(".not('delivered_at', 'is', null)")
+    expect(f).toContain(".not('surfaced_for_approval_at', 'is', null)")
+  })
+
+  it('and it deliberately does NOT copy the two "still outstanding" filters', () => {
+    // `revealed_at IS NULL` and `status != 'passed'` answer a different question. Copying them
+    // would make a programme whose leads the client has already worked through read as having
+    // nothing to review — the opposite of the truth.
+    const src = strip(raw(join(API, 'lib/programme.ts')))
+    const at = src.indexOf('export async function markReadyForApproval')
+    const f = src.slice(at, at + 2600)
+    expect(f).not.toContain("revealed_at")
+    expect(f).not.toContain("'passed'")
+  })
+
+  it('the same definition is the one the customer route uses', () => {
+    const leads = strip(raw(join(API, 'routes/leads.ts')))
+    const at = leads.indexOf("leadRouter.get('/for-approval'")
+    const f = leads.slice(at, at + 1600)
+    expect(f).toContain(".not('delivered_at', 'is', null)")
+    expect(f).toContain(".not('surfaced_for_approval_at', 'is', null)")
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// ⑳ THE VIDA ICP LISTS ARE TENANT-SAFE
+// ═══════════════════════════════════════════════════════════════════════════════════════
+describe('⑳ one client never sees another client\'s targeting', () => {
+  const H = 'house', M = 'mbf'
+  const seed = () => { dbState.icpList = [
+    { id: 'ICP_H_NULL',  client_id: H, name: 'H null',  is_active: true, programme_id: null },
+    { id: 'ICP_H_PNEW',  client_id: H, name: 'H pnew',  is_active: true, programme_id: 'P_NEW' },
+    { id: 'ICP_H_OTHER', client_id: H, name: 'H other', is_active: true, programme_id: 'P_OLD' },
+    { id: 'ICP_M_NULL',  client_id: M, name: 'M null',  is_active: true, programme_id: null },
+  ] }
+
+  it('🛑 attached holds only this programme\'s OWN ICPs, and never another client\'s', async () => {
+    seed()
+    const r = await programmeIcps(H, 'P_NEW')
+    expect(r.attached.map(i => i.id)).toEqual(['ICP_H_PNEW'])
+    expect(r.attached.map(i => i.id)).not.toContain('ICP_M_NULL')
+  })
+
+  it('eligible holds unattached ICPs of this client only — never another programme\'s, never another client\'s', async () => {
+    seed()
+    const r = await programmeIcps(H, 'P_NEW')
+    expect(r.eligible.map(i => i.id)).toEqual(['ICP_H_NULL'])
+    // ⚠️ ICP_H_OTHER belongs to another programme, so it appears in NEITHER list. Offering it
+    // would render a button whose only possible outcome is a refusal.
+    expect(r.eligible.map(i => i.id)).not.toContain('ICP_H_OTHER')
+    expect(r.eligible.map(i => i.id)).not.toContain('ICP_M_NULL')
+  })
+
+  it('the query itself is narrowed by client — the filter is not applied after the fact', async () => {
+    seed()
+    await programmeIcps(H, 'P_NEW')
+    expect(dbState.icpClientFilter, 'the read must be scoped to the client').toBe(H)
+  })
+
+  it('a tenancy mismatch fails closed rather than borrowing another client\'s programme', async () => {
+    seed()
+    const r = await programmeIcps(H, 'P_OF_ANOTHER_CLIENT')
+    expect(r.attached, 'no ICP of this client belongs to that programme').toEqual([])
+  })
+
+  it('🛑 A READ FAILURE NEVER CLAIMS THERE ARE ZERO ICPs', async () => {
+    dbState.icpListError = { message: 'connection reset' }
+    const r = await programmeIcps(H, 'P_NEW')
+    expect(r.unreadable).toBe(true)
+    expect(r.attached).toEqual([])
+    expect(r.eligible).toEqual([])
+    // …and Vida says so on screen rather than rendering an empty list as "none attached".
+    expect(raw(join(API, '../../admin/src/app/vida/page.tsx')))
+      .toContain('This is NOT evidence that none are attached')
+  })
+
+  it('these lists reach the OPERATOR endpoint only — no customer surface returns them', () => {
+    const op = strip(raw(join(API, 'routes/operator.ts')))
+    expect(op).toContain('programmeIcps(clientId, truth.programme?.id ?? null)')
+    // The customer programme reader has no ICP list at all.
+    const cust = strip(raw(join(API, 'lib/customer-programme.ts')))
+    expect(cust).not.toContain('programmeIcps')
+    expect(cust).not.toMatch(/from\('icps'\)/)
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// ㉑ DEPLOYING THIS PR ALONE CANNOT SEND ANYTHING
+// ═══════════════════════════════════════════════════════════════════════════════════════
+describe('㉑ authority is product permission, never a send', () => {
+  it('A2 reads no send/provider kill-switch, and changes none', () => {
+    const changed = [
+      'lib/programme.ts', 'lib/programme-icp.ts', 'lib/programme-authority.ts',
+      'lib/send-due.ts', 'lib/operator-programme.ts', 'routes/programme.ts',
+    ]
+    for (const f of changed) {
+      const src = strip(raw(join(API, f)))
+      for (const env of ['AUTO_OUTREACH_ENABLED', 'PAID_PROVIDERS_ENABLED', 'FIGSY_OPERATOR_SEND_ENABLED']) {
+        expect(src, `${f} must not read or set ${env}`).not.toContain(env)
+      }
+    }
+  })
+
+  it('the kill-switches still stand where they always did', () => {
+    expect(strip(raw(join(API, 'lib/paid-provider-guard.ts')))).toContain('PAID_PROVIDERS_ENABLED')
+    expect(strip(raw(join(API, 'lib/figsy.ts')))).toContain('outreachEnabled()')
+    expect(strip(raw(join(API, 'lib/figsy.ts')))).toContain('operatorSendEnabled()')
+  })
+
+  it('and nothing in this PR mutates a historical enrolment into current programme work', () => {
+    for (const f of ['lib/programme.ts', 'lib/programme-icp.ts', 'lib/programme-authority.ts', 'lib/send-due.ts']) {
+      const src = strip(raw(join(API, f)))
+      expect(src, `${f} must not write enrolment attribution`)
+        .not.toMatch(/from\('figsy_enrollments'\)[\s\S]{0,120}\.update\(/)
+    }
   })
 })

@@ -41,8 +41,12 @@ function makeTable(name: keyof typeof state) {
     },
     eq(col: string, val: unknown) { this._filters.push(r => r[col] === val); return this },
     is(col: string, val: unknown) { this._filters.push(r => (r[col] ?? null) === val); return this },
-    not(col: string, _op: string, list: string) {
-      const set = list.replace(/[()]/g, '').split(',')
+    not(col: string, op: string, list: string | null) {
+      // ⚑ `.not(col, 'is', null)` — "IS NOT NULL" — is a different shape from
+      // `.not('status', 'in', '(A,B)')`, and the list form would throw on a null argument.
+      // `markReadyForApproval` uses the first form to count only reviewable leads.
+      if (op === 'is' && list === null) { this._filters.push(r => (r[col] ?? null) !== null); return this }
+      const set = String(list).replace(/[()]/g, '').split(',')
       this._filters.push(r => !set.includes(String(r[col]))); return this
     },
     order() { return this },
@@ -297,7 +301,10 @@ describe('⑤ approval is ONE programme-level decision', () => {
     const p = seed({ status: 'SOURCING' })
     // ⚑ PR A2 — there must be something to review. One positively-attributed lead is the
     // whole rule: zero versus more than zero, no invented volume threshold.
-    state.leads.push({ id: 'lead-1', programme_id: p.id })
+    // ⚑ AND IT MUST BE REVIEWABLE — delivered, and Sent to the client (#493). The guard
+    // reuses `/leads/for-approval`'s own definition, so a lead that could never appear in
+    // the customer's review set cannot make a programme ready.
+    state.leads.push({ id: 'lead-1', programme_id: p.id, delivered_at: 'd', surfaced_for_approval_at: 's' })
     return markReadyForApproval(p.id)
       .then(() => approveProgramme(p.id))
       .then(r => {

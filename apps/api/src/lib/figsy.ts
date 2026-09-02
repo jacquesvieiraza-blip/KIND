@@ -1997,7 +1997,8 @@ export async function autoEnrollLead(leadId: string, clientId: string, opts?: { 
     // ONE ICP = ONE CAMPAIGN (flow v2). A lead's campaign is decided by the ICP that found
     // them — `leads.icp_id` — not by "whichever campaign happens to be newest and active",
     // which silently ignored the campaign you meant the moment a client had two.
-    const { data: leadIcp } = await db.from('leads').select('icp_id').eq('id', leadId).maybeSingle()
+    const { data: leadIcp } = await db.from('leads').select('icp_id, programme_id').eq('id', leadId).maybeSingle()
+    const leadProgrammeId = (leadIcp as { programme_id?: string | null } | null)?.programme_id ?? null
     let campaign: { id: string; name?: string; campaign_intent?: string | null; settings?: unknown } | null = null
     if (leadIcp?.icp_id) {
       const { data: byIcp } = await db.from('figsy_campaigns')
@@ -2006,8 +2007,39 @@ export async function autoEnrollLead(leadId: string, clientId: string, opts?: { 
         .limit(1).maybeSingle()
       campaign = byIcp ?? null
     }
+    if (!campaign && leadProgrammeId) {
+      // ── ⚑ 2 Sep (PR A2) — THE FALLBACK IS NOT AVAILABLE TO PROGRAMME WORK ──────────────
+      //
+      // 🛑 THE DEFECT THIS CLOSES, EXACTLY. The fallback below picks the client's NEWEST
+      // ACTIVE campaign — any campaign, no ICP, no programme. House carries historical
+      // campaigns from a retired desk. So a lead correctly sourced under the new programme,
+      // correctly stamped `programme_id`, could be enrolled into an OLD campaign and sent
+      // that campaign's sequence: right attribution, wrong story, real prospect.
+      //
+      // Every gate downstream would have allowed it. The enrollment copies `programme_id`
+      // from the lead, so send SELECTION matches and send AUTHORITY matches — both are
+      // satisfied by a programme-attributed row, and neither has any opinion about which
+      // campaign the row points at. Attribution being right is precisely what made this
+      // invisible.
+      //
+      // ⚠️ THE ICP IS THE ONLY HONEST LINK, and it already exists. One ICP = one campaign,
+      // and an ICP belongs to exactly one programme (`icps.programme_id`, written only by the
+      // attach action). So the campaign found BY ICP above is programme-correct by
+      // construction — while "newest active" is a guess that happens to be right for a client
+      // with one campaign and silently wrong for a client with history. No campaign column is
+      // needed to tell them apart.
+      //
+      // Not finding one is a refusal, never a substitute: the lead stays enrolled in nothing,
+      // which is recoverable. Enrolling it in the wrong sequence is not.
+      console.error(
+        `[figsy] autoEnrollLead: lead ${leadId} belongs to programme ${leadProgrammeId} and its ICP has no active campaign. ` +
+        'NOT falling back to the newest active campaign — that campaign predates the programme. Nothing was enrolled.',
+      )
+      return
+    }
     if (!campaign) {
-      // Fallback for leads sourced before ICPs carried a campaign.
+      // Fallback for leads sourced before ICPs carried a campaign. Legacy work only — a
+      // client with no programme attribution on the lead, exactly as before.
       const { data: newest } = await db.from('figsy_campaigns')
         .select('id, name, campaign_intent, settings')
         .eq('client_id', clientId).eq('status', 'active')

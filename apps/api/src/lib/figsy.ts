@@ -8,6 +8,7 @@ import { Resend } from 'resend'
 import { logOutcomeEvent } from './outcomes'
 import { isSuppressed } from './suppression'
 import { resolveLeadAttribution } from './programme-authority'
+import type { InboxRow } from './sending-inbox'
 // BUILD-003 item 2 — meetings_booked is a derived cache of public.meetings, and this is the
 // one function that knows the counting rules (exclusions, supersessions, the four states).
 import { campaignMeetingCount } from './meeting-truth'
@@ -580,14 +581,58 @@ export function enrollmentStep(
 // Existing callers that ignore the return value keep compiling unchanged.
 export type SendOutcome = 'sent' | 'queued' | 'deferred' | 'suppressed' | 'failed'
 
-export async function sendSequenceEmail(
+/**
+ * 🔐 THE SECOND SEND AUTHORITY — a founder-pressed run, and NOTHING else.
+ *
+ * ⚑ 2 Sep. `AUTO_OUTREACH_ENABLED` is one global switch that arms every automatic path at
+ * once: the 2-hourly campaign cron across EVERY client, day-1 batches, co-pilot releases and
+ * (with its own second key) the Instantly push. For a launch canary the founder needs the
+ * opposite of that — one client, one run, pressed by hand, with the global switch still off.
+ *
+ * ⚠️ WHY THIS IS A SEPARATE FUNCTION AND NOT A BOOLEAN ON `sendSequenceEmail`. An
+ * `opts.operatorAuthorised` flag would be a generic bypass sitting on a function five other
+ * call sites already use — and the next caller to want "just this once" would reach for it.
+ * The authority instead travels through a DIFFERENT NAMED ENTRY POINT
+ * (`sendSequenceEmailOperatorRun`), so gaining it requires deliberately calling a function
+ * whose name says what it does. A source guard pins its production callers.
+ *
+ * ⚠️ AND IT IS DOUBLE-KEYED. The entry point alone is not enough: the env must ALSO be
+ * `'true'`. So a stray caller of the operator function, on a deployment where the founder
+ * has not deliberately armed it, still sends nothing.
+ *
+ * Absent, empty, `'TRUE'`, `'1'` or anything but the exact string is OFF — same shape as
+ * `outreachEnabled()`, deliberately, so the two switches cannot be reasoned about differently.
+ */
+export function operatorSendEnabled(): boolean {
+  return process.env.FIGSY_OPERATOR_SEND_ENABLED === 'true'
+}
+
+/** Which authority is asking? `automatic` is every existing caller; nothing else opts in. */
+type SendAuthority = 'automatic' | 'operator_run'
+
+type CoreOpts = {
+  totalSteps?: number
+  waitDaysNext?: number
+  isPreview?: boolean
+  skipReview?: boolean
+  /** #610 — the mailbox the RUN chose. Absent = resolve the client's top-ranked box, as before. */
+  inbox?: InboxRow
+  authority: SendAuthority
+}
+
+/**
+ * THE ONE SEND IMPLEMENTATION. Private on purpose: `authority` is not a knob any caller may
+ * set, it is decided by WHICH exported function you called. There is no second copy of this
+ * logic anywhere — the operator run and the cron execute these exact gates.
+ */
+async function sendSequenceEmailCore(
   enrollmentId: string,
   lead: Lead,
   step: number,
   subject: string,
   body: string,
   campaignId: string,
-  opts?: { totalSteps?: number; waitDaysNext?: number; isPreview?: boolean; skipReview?: boolean },
+  opts: CoreOpts,
 ): Promise<SendOutcome> {
   if (!lead.email) throw new Error('Lead has no email')
 
@@ -595,7 +640,14 @@ export async function sendSequenceEmail(
   // change → the enrollment stays due and resumes when the switch is turned back on).
   // The founder's test-email path (isPreview) is a deliberate 1:1 send to their own
   // inbox, so it bypasses the switch.
-  if (!opts?.isPreview && !outreachEnabled()) {
+  //
+  // ⚑ 2 Sep — AND THE OPERATOR RUN IS THE SECOND, NARROWER AUTHORITY. It is not a bypass of
+  // this gate so much as a different key to the same door: it requires the caller to have
+  // come through `sendSequenceEmailOperatorRun` AND `FIGSY_OPERATOR_SEND_ENABLED === 'true'`.
+  // Either one alone sends nothing. `outreachEnabled()` itself is unchanged, so every
+  // automatic path behaves exactly as it did.
+  const operatorAuthorised = opts.authority === 'operator_run' && operatorSendEnabled()
+  if (!opts?.isPreview && !operatorAuthorised && !outreachEnabled()) {
     console.warn(`[figsy] sendSequenceEmail: AUTO_OUTREACH_ENABLED != true — step ${step} to ${lead.email} DEFERRED (kill-switch off).`)
     return 'deferred'
   }
@@ -896,7 +948,16 @@ export async function sendSequenceEmail(
     ])
     return 'deferred'
   }
-  const sendingInbox = resolved.inbox
+  // ⚑ 2 Sep — THE RUN MAY NAME THE MAILBOX. `resolveSendingInbox` above still runs and still
+  // owns the refusal, the rollback and the founder alert — this only decides WHICH box
+  // carries the message once sending is allowed at all.
+  //
+  // 🛑 WHY IT HAD TO BECOME OVERRIDABLE. `pickSendingInbox` ranks active-before-assigned and
+  // branded-before-pooled and returns ONE row, and this line is reached ONCE PER EMAIL — so
+  // on a two-box client every message resolved to the same top-ranked box and the client's
+  // second mailbox never sent at all. Rotation existed (`nextFromRotation`) but only
+  // `sendDay1OutreachBatch` ever called it. The run now decides and passes it in.
+  const sendingInbox = opts.inbox ?? resolved.inbox
 
   // Insert the DB record first so we have the emailId for the tracking pixel
   const { data: emailRecord } = await db.from('figsy_sent_emails').insert({
@@ -1065,6 +1126,54 @@ export async function sendSequenceEmail(
   }
 
   return 'sent'
+}
+
+/**
+ * SEND ONE SEQUENCE STEP — the ordinary path, under ordinary authority.
+ *
+ * Byte-for-byte the behaviour every existing caller already has: it needs
+ * `AUTO_OUTREACH_ENABLED`, and there is no option it can pass to obtain any other authority.
+ * `authority: 'automatic'` is fixed here and is not reachable from the argument list.
+ */
+export async function sendSequenceEmail(
+  enrollmentId: string,
+  lead: Lead,
+  step: number,
+  subject: string,
+  body: string,
+  campaignId: string,
+  opts?: { totalSteps?: number; waitDaysNext?: number; isPreview?: boolean; skipReview?: boolean },
+): Promise<SendOutcome> {
+  return sendSequenceEmailCore(enrollmentId, lead, step, subject, body, campaignId, {
+    ...opts, authority: 'automatic',
+  })
+}
+
+/**
+ * 🔐 SEND ONE SEQUENCE STEP UNDER AN EXPLICIT, FOUNDER-PRESSED OPERATOR RUN.
+ *
+ * Identical logic — the SAME private core, so suppression, PECR, country, demo backstop,
+ * programme authority, the caps, the review queue, the atomic claim and the rollback are all
+ * exactly the ones the cron uses. **The only difference is which authority opens the
+ * kill-switch gate**, and that requires `FIGSY_OPERATOR_SEND_ENABLED === 'true'` as well as
+ * arriving through this function.
+ *
+ * ⚠️ ITS ONLY PRODUCTION CALLER IS `lib/send-due.ts`, and a source guard in
+ * `send-due-run-once.route.test.ts` holds that. If you are adding a second caller, you are
+ * widening a launch-safety boundary and the guard is there to make you say so out loud.
+ */
+export async function sendSequenceEmailOperatorRun(
+  enrollmentId: string,
+  lead: Lead,
+  step: number,
+  subject: string,
+  body: string,
+  campaignId: string,
+  opts?: { totalSteps?: number; waitDaysNext?: number; skipReview?: boolean; inbox?: InboxRow },
+): Promise<SendOutcome> {
+  return sendSequenceEmailCore(enrollmentId, lead, step, subject, body, campaignId, {
+    ...opts, authority: 'operator_run',
+  })
 }
 
 // #310/#332 — charge 1 FIGSY credit for one enrollment, FAIL-CLOSED. The

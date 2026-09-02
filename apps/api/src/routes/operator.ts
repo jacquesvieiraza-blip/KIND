@@ -2270,6 +2270,65 @@ operatorRouter.post('/inboxes/:id/verify', async (req: Request, res: Response) =
   } catch (err) { console.error('[operator/inbox-verify]', err); res.status(500).json({ success: false, error: 'Failed to check the mailbox' }) }
 })
 
+// ── 🔐 THE FOUNDER-PRESSED SEND RUN — one client, one ceiling, one press ─────────────
+//
+// ⚑ 2 Sep. `AUTO_OUTREACH_ENABLED` is a single global switch that arms EVERY automatic path
+// at once — the 2-hourly campaign cron across every client, day-1 batches, co-pilot releases.
+// A launch canary needs the opposite of that: one client, a number the founder chose, sent
+// when they press the button, with the global switch still off.
+//
+// ⚠️ DOUBLE-KEYED, AND BOTH KEYS ARE REQUIRED. Admin auth (the router-level guard) AND
+// `FIGSY_OPERATOR_SEND_ENABLED === 'true'`. The env alone sends nothing — it authorises a
+// route nobody has called yet. Arriving here alone sends nothing either.
+//
+// ⚠️ NO DEFAULTS ANYWHERE. `client_id` and `max_sends` are both required and both refused
+// when absent: an unscoped run and an unbounded run are the two mistakes this control exists
+// to make impossible, and a default is how either one arrives by accident. `max_sends` is
+// also NOT derived from the mailbox caps — those are a separate, second boundary.
+//
+// It calls the SAME `runSendDue` the cron calls, so suppression, PECR, country, the demo
+// backstop, programme authority, the review queue, the atomic claim, the global cap, the
+// per-client cap, the per-campaign cap and the send window are all the cron's own gates.
+operatorRouter.post('/send-due/run-once', async (req: Request, res: Response) => {
+  try {
+    const { operatorSendEnabled } = await import('../lib/figsy')
+    if (!operatorSendEnabled()) {
+      res.status(503).json({ success: false, error:
+        'Manual sending is switched off. FIGSY_OPERATOR_SEND_ENABLED is not set to "true" on the API, so no run can be started. Nothing was sent.' })
+      return
+    }
+
+    const b = (req.body ?? {}) as Record<string, unknown>
+    const client = await requireClient(b.client_id as string | undefined)
+    if (!client) { res.status(404).json({ success: false, error: 'Unknown client_id. A run must name exactly one client — there is no all-clients mode.' }); return }
+
+    // A whole positive number, and nothing else. `Number('')` is 0 and `Number(undefined)` is
+    // NaN, so both are tested rather than trusted — the same lesson as `normalisePort`.
+    const raw = b.max_sends
+    const n = typeof raw === 'number' ? raw : Number(String(raw ?? '').trim())
+    if (!Number.isInteger(n) || n < 1) {
+      res.status(400).json({ success: false, error:
+        'max_sends is required and must be a whole number of 1 or more — the most successful sends this run may produce. Nothing was sent.' })
+      return
+    }
+
+    const { runSendDue } = await import('../lib/send-due')
+    const data = await runSendDue({ mode: 'operator_run', clientId: client.id, maxSends: n })
+
+    await writeOperatorAudit({
+      operatorEmail: operatorEmail(req), clientId: client.id, action: 'operator_send_run',
+      subjectType: 'client', subjectId: client.id,
+      detail: { max_sends: n, sent: data.sent, attempted: data.attempted, failed: data.failed,
+                per_mailbox: data.per_mailbox, exhausted: data.exhausted_clients.length > 0 },
+    })
+
+    res.json({ success: true, data })
+  } catch (err) {
+    console.error('[operator/send-due-run-once]', err)
+    res.status(500).json({ success: false, error: 'The send run failed to complete' })
+  }
+})
+
 // ── #553 — DOES THIS ONE MAILBOX ACTUALLY DELIVER? ──────────────────────────────────
 //
 // `/verify` above authenticates and sends NOTHING, which proves the password and proves

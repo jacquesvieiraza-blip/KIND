@@ -58,6 +58,12 @@ export type OperatorAction =
   | 'start_campaign'        // created + activated a client's campaign (managed model, no spend)
   | 'send_reply'            // answered a prospect on the client's behalf from Vida's Inbox
   | 'assign_inbox'          // V9 #270/#271 — pooled/branded sending inbox lifecycle
+  | 'operator_send_run'     // ⚑ 2 Sep — the founder pressed Run-once: ONE client, an explicit
+                            // max_sends ceiling, real campaign sends under the operator send
+                            // authority while AUTO_OUTREACH_ENABLED stays off. Audited because
+                            // it is the one way real prospect mail can leave with the global
+                            // switch down, and the row records who, which client, the ceiling
+                            // asked for and what actually went.
   | 'mailbox_test_send'     // #553 ladder — sent ONE diagnostic email through ONE named
                             // mailbox's own SMTP, to prove that mailbox delivers. Its own
                             // action rather than `assign_inbox` because a real message left

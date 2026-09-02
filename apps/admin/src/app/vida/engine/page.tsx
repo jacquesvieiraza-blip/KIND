@@ -117,6 +117,10 @@ export default function VidaEnginePage() {
   // Opening is a separate act from sending, so a real message is never one stray click away.
   const [testFor, setTestFor] = useState<string | null>(null)
   const [testTo, setTestTo] = useState<Record<string, string>>({})
+  // ⚑ 2 Sep — the founder's Run-once ceiling and result, per client. Kept as strings so an
+  // empty box is empty rather than 0, which would read as "send nothing" and disable nothing.
+  const [runMax, setRunMax] = useState<Record<string, string>>({})
+  const [runResult, setRunResult] = useState<Record<string, { ok: boolean; message: string }>>({})
   // Shown only after the database REJECTS a password: the escape hatch for "the stored
   // password is stale and the Supabase dashboard that could reset it is unreachable" (GitHub
   // removed the Supabase OAuth app entirely). Used for one run, never stored anywhere.
@@ -358,6 +362,36 @@ export default function VidaEnginePage() {
     setBusy(null)
   }
 
+  // ⚑ 2 Sep — RUN ONE SEND NOW, for ONE client.
+  //
+  // ⚠️ THE CONFIRMATION NAMES BOTH THE CLIENT AND THE CEILING, because "Run campaign?" tells
+  // the founder neither of the two things that decide whether pressing it is safe. Real mail
+  // reaches real prospects the moment this returns.
+  async function runOnce(clientId: string, clientName: string) {
+    const max = (runMax[clientId] ?? '').trim()
+    if (!max) return
+    if (!window.confirm(`Run up to ${max} campaign sends for ${clientName} now?\n\nReal emails go to real prospects. This runs once and stops — it does not switch scheduled sending on.`)) return
+    setBusy(`r-${clientId}`); setError(null)
+    try {
+      const j = await fetch('/api/proxy/operator/send-due/run-once', {
+        method: 'POST', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ client_id: clientId, max_sends: Number(max) }),
+      }).then(r => r.json())
+      if (!j?.success) throw new Error(j?.error || 'The run could not be started')
+      const d = j.data ?? {}
+      const per = Object.entries(d.per_mailbox ?? {}).map(([k, v]) => `${k}: ${v}`).join(' · ')
+      setRunResult(prev => ({ ...prev, [clientId]: { ok: true, message:
+        `Sent ${d.sent ?? 0} of up to ${d.requested_max_sends ?? max}. ${per || 'No mailbox sent.'}`
+        + (d.failed ? ` · ${d.failed} failed` : '')
+        + (d.exhausted_clients?.length ? ' · every mailbox reached its daily cap' : '')
+        + (d.no_active_campaigns ? ' · this client has no active campaign' : '') } }))
+      await load()
+    } catch (err) {
+      setRunResult(prev => ({ ...prev, [clientId]: { ok: false, message: err instanceof Error ? err.message : 'The run could not be started' } }))
+    }
+    setBusy(null)
+  }
+
   const kpi = (label: string, value: string, sub: string, tone = '#1f1235') => (
     <div className="bg-white border border-[#eee7f7] rounded-xl px-4 py-3">
       <div className="text-[9.5px] font-bold uppercase tracking-wide text-[#b3a9cc]">{label}</div>
@@ -368,6 +402,20 @@ export default function VidaEnginePage() {
 
   // A bounce rate over ~3% is the classic "you are burning the domain" signal.
   const bounceTone = !e ? '#1f1235' : e.totals.bounce_rate >= 3 ? '#dc2626' : e.totals.bounce_rate >= 1.5 ? '#b45309' : '#059669'
+
+  // ⚑ 2 Sep — the distinct CLIENTS that have a recorded mailbox, each of which gets one
+  // Run-once control. Derived from the inbox list rather than a second fetch: a client with
+  // no mailbox has nothing to send through, so offering them a run would be a button that
+  // can only fail.
+  const runClients = (() => {
+    const seen = new Map<string, { clientId: string; name: string; boxes: number }>()
+    for (const i of e?.inboxes ?? []) {
+      const cur = seen.get(i.client_id)
+      if (cur) cur.boxes++
+      else seen.set(i.client_id, { clientId: i.client_id, name: i.company_name || 'Unnamed client', boxes: 1 })
+    }
+    return [...seen.values()]
+  })()
 
   return (
     <div className="h-full overflow-y-auto px-6 py-5">
@@ -836,6 +884,51 @@ export default function VidaEnginePage() {
                 )}
               </div>
             ))}
+          </div>
+        )}
+
+        {/* ⚑ 2 Sep — THE FOUNDER-PRESSED SEND RUN, one control per CLIENT.
+            `AUTO_OUTREACH_ENABLED` arms every automatic path for every client at once; this
+            runs ONE client's campaign now, bounded by a number typed here, with that global
+            switch still off. A run is a client-level act, so the control is per client and
+            not per mailbox — the run decides which mailbox carries each message.
+            ⚠️ Nothing here fires on render, on an effect or on a poll: one confirmed click
+            makes exactly one request, and the button is disabled while it is in flight. */}
+        {runClients.length > 0 && (
+          <div className="mb-4">
+            <h2 className="text-[11px] font-extrabold uppercase tracking-[0.08em] text-[#b3a9cc] mb-2">Send now · founder-controlled</h2>
+            <div className="space-y-2">
+              {runClients.map(c => (
+                <div key={c.clientId} className="bg-white border border-[#eee7f7] rounded-xl px-4 py-3">
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <b className="text-[13px]">{c.name}</b>
+                    <span className="text-[11.5px] text-[#9b8ec4]">{c.boxes} mailbox{c.boxes === 1 ? '' : 'es'} recorded</span>
+                    <div className="ml-auto flex items-center gap-2">
+                      <label className="text-[11.5px] text-[#5c5279]">Max sends</label>
+                      <input
+                        value={runMax[c.clientId] ?? ''}
+                        onChange={ev => setRunMax(prev => ({ ...prev, [c.clientId]: ev.target.value.replace(/[^0-9]/g, '') }))}
+                        placeholder="e.g. 10" inputMode="numeric"
+                        className="w-20 text-[12px] border border-[#e4dcf7] rounded-lg px-2 py-1 bg-white" />
+                      <button onClick={() => runOnce(c.clientId, c.name)}
+                        disabled={busy === `r-${c.clientId}` || !(runMax[c.clientId] ?? '').trim()}
+                        className="text-[11.5px] font-bold text-white bg-emerald-600 rounded-lg px-3 py-1.5 disabled:opacity-50">
+                        {busy === `r-${c.clientId}` ? 'Sending…' : 'Run one send now'}
+                      </button>
+                    </div>
+                  </div>
+                  <p className="text-[11px] text-[#9b8ec4] mt-1.5 leading-relaxed">
+                    Sends real campaign email to real prospects, now. Scheduled sending is <b>not</b> switched on by this —
+                    it runs once, up to the number above, and stops.
+                  </p>
+                  {runResult[c.clientId] && (
+                    <p className={`text-[11.5px] font-semibold mt-2 leading-relaxed rounded-lg px-2.5 py-2 border ${runResult[c.clientId].ok ? 'text-emerald-800 bg-emerald-50 border-emerald-200' : 'text-red-800 bg-red-50 border-red-200'}`}>
+                      {runResult[c.clientId].message}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
         )}
 

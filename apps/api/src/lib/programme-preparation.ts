@@ -255,8 +255,10 @@ export async function prepareProgrammeOutreach(programmeId: string): Promise<Pre
   // report, so the bound is the fix and the proof.
   let pagesLeft = Math.ceil(PREPARE_BUDGET / PAGE) + 2
 
+  let budgetExhausted = false
+
   for (;;) {
-    if (budgetLeft <= 0) break
+    if (budgetLeft <= 0) { budgetExhausted = true; break }
     if (pagesLeft-- <= 0) {
       out.problems.push('Preparation stopped after its page budget — the lead cursor did not advance. Nothing further was enrolled.')
       break
@@ -331,7 +333,7 @@ export async function prepareProgrammeOutreach(programmeId: string): Promise<Pre
 
     for (const lead of eligible) {
       if (existing.has(lead.id)) { out.alreadyEnrolled++; continue }
-      if (budgetLeft <= 0) { out.remaining++; continue }
+      if (budgetLeft <= 0) { budgetExhausted = true; out.remaining++; continue }
       budgetLeft--
       try {
         await autoEnrollLead(lead.id, p.client_id, { programmeFulfilment: { programmeId } })
@@ -354,9 +356,39 @@ export async function prepareProgrammeOutreach(programmeId: string): Promise<Pre
     if (rows.length < PAGE) break
   }
 
-  // 🛑 ANYTHING LEFT MEANS NOT COMPLETE, AND NOT COMPLETE MEANS NOT LIVE. A budget exhausted
-  // mid-programme is reported, never rounded up into success — 2,500 eligible and 2,000
-  // prepared is exactly the silent truncation this replaces.
+  // ── 🛑 A BUDGET THAT RAN OUT MUST SAY WHAT IS LEFT, NOT STOP COUNTING ────────────────
+  //
+  // ⚠️ THIS WAS A REAL BUG, and it was invisible until the test fake honoured `limit`. The
+  // loop broke out the moment the budget hit zero, so every row after the cursor was never
+  // seen — `total` stopped growing, `remaining` read 0, and `complete` could come out TRUE
+  // with hundreds of prospects unprepared. That is precisely the silent truncation this file
+  // exists to prevent, reintroduced by the bound meant to prevent it.
+  //
+  // A head count is used rather than another read of the rows: it answers "how many are still
+  // out there" without loading them, and it is deliberately an UPPER BOUND — it applies the
+  // cheap filters only, so a row that would later prove suppressed still counts here. Over-
+  // reporting what is left is safe; under-reporting it is the failure.
+  if (budgetExhausted) {
+    const { count: left, error: leftErr } = await db.from('leads')
+      .select('id', { count: 'exact', head: true })
+      .eq('programme_id', programmeId)
+      .eq('client_id', p.client_id)
+      .not('delivered_at', 'is', null)
+      .gt('id', after)
+    if (leftErr) {
+      // Cannot count ⇒ cannot claim completeness. Fail closed on the number, not on the work.
+      out.problems.push(`Preparation reached its budget and the outstanding count could not be read (${leftErr.message}).`)
+      out.remaining = Math.max(out.remaining, 1)
+    } else {
+      out.remaining += left ?? 0
+    }
+    out.problems.push(
+      `Preparation reached its budget of ${PREPARE_BUDGET} prospect(s) in one run. ` +
+      'The programme is NOT live. Press Make live again to continue — preparation is idempotent and resumes where it stopped.',
+    )
+  }
+
+  // 🛑 ANYTHING LEFT MEANS NOT COMPLETE, AND NOT COMPLETE MEANS NOT LIVE.
   out.remaining += out.failed.length
   const prepared = out.enrolled.length + out.alreadyEnrolled
   if (out.total > 0 && prepared < out.total) out.remaining = Math.max(out.remaining, out.total - prepared)

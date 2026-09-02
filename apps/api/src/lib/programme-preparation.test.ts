@@ -41,10 +41,23 @@ function table(name: keyof typeof state) {
       const set = String(v).replace(/[()]/g, '').split(',')
       q._f.push((r: Row) => !set.includes(String(r[c]))); return q
     },
-    order() { return q }, limit() { return q },
+    order() { return q },
+    // ⚠️ THE FAKE HONOURS `limit`, AND IT DID NOT BEFORE. A no-op `limit()` returned the WHOLE
+    // matching set as "one page", so every pagination test passed without pagination ever
+    // running — including the 2,500-lead case this file exists for. Found by a RED proof that
+    // stayed green when the loop was cut to a single page: a test that cannot see the bug it
+    // was written for is worse than no test.
+    limit(n: number) { q._limit = n; return q },
+    _limit: 0,
     insert(p: Row) { q._mode = 'insert'; q._payload = p; return q },
     update(p: Row) { q._mode = 'update'; q._payload = p; return q },
-    _hit() { return rows().filter(r => q._f.every(f => f(r))) },
+    _hit() {
+      const all = rows().filter(r => q._f.every(f => f(r)))
+      // Ordered by id when the caller asked for it, so keyset pagination behaves as it does
+      // against Postgres rather than against insertion order.
+      all.sort((x, y) => String(x.id) > String(y.id) ? 1 : String(x.id) < String(y.id) ? -1 : 0)
+      return q._limit > 0 ? all.slice(0, q._limit) : all
+    },
     async maybeSingle() { return { data: q._hit()[0] ?? null, error: null } },
     async single() { return q._mode === 'insert' ? q._run() : { data: q._hit()[0] ?? null, error: null } },
     _run() {

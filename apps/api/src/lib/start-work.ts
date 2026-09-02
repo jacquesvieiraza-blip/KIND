@@ -91,7 +91,7 @@ export async function ensureCampaignForIcp(
   clientId: string,
   icpId: string,
   icpName?: string | null,
-  opts?: { activate?: boolean },
+  opts?: { activate?: boolean; goingLive?: { programmeId: string } },
 ): Promise<EnsureCampaignResult> {
   const activate = opts?.activate === true
 
@@ -110,6 +110,22 @@ export async function ensureCampaignForIcp(
   // ⚠️ FAIL CLOSED ON A READ ERROR. If we cannot tell whether a programme gates this client,
   // we refuse rather than activate: the cost of a wrong refusal is a delayed campaign, and
   // the cost of a wrong activation is sending on a programme that has not been paid for.
+  // ── ⚑ 2 Sep (PR A2) — "GOING LIVE RIGHT NOW" SATISFIES THIS GATE, AND DOES NOT BYPASS IT.
+  //
+  // 🛑 THE PROBLEM. The gate asks for status LIVE. Preparation must happen BEFORE that status
+  // is written, because LIVE is durable evidence that preparation SUCCEEDED — preparing after
+  // the transition would leave a LIVE row behind a failed preparation, which every later
+  // reader believes. But preparing first asks this gate for a status nobody has written yet.
+  //
+  // ⚠️ SO THE CONDITION IS RE-PROVEN, NEVER WAIVED. `assertGoingLive` re-reads the programme
+  // and requires everything LIVE would have required — APPROVED, an approval recorded, P2
+  // authority, not paused, not terminal, and that the caller named THIS client's programme.
+  // Only the label is missing, and this call is a step towards writing it. `goingLive` is set
+  // by `programme-preparation.ts` alone, and is verified here rather than believed.
+  //
+  // ⚠️ IT IS A NARROWER FALLBACK, NOT A SHORT-CIRCUIT: the ordinary `checkProgrammeAuthority`
+  // gate below runs FIRST and always, and `assertGoingLive` is consulted only after it has
+  // already refused. Nothing skips the normal rule.
   if (activate) {
     // ⛓️ 29 Aug (BUILD-003 PR2) — THIS BLOCK USED TO RE-IMPLEMENT THE RULE INLINE, and it was
     // the second copy of a decision `programme.ts` already exported as `mayStartCampaign` and
@@ -122,6 +138,9 @@ export async function ensureCampaignForIcp(
     // approval row would have activated a campaign. "One programme approval" is a founder lock.
     const { checkProgrammeAuthority } = await import('./programme-authority')
     const verdict = await checkProgrammeAuthority(clientId, 'OUTREACH')
+    const goingLiveOk = !verdict.allowed && opts?.goingLive
+      ? (await (await import('./programme-preparation')).assertGoingLive(clientId, opts.goingLive.programmeId)).ok
+      : false
     if (!verdict.allowed) {
       // Mapped onto this function's existing refusal vocabulary so every caller's branching
       // keeps working. `programme_unresolvable` lands on the fail-closed reason it always had.
@@ -129,7 +148,7 @@ export async function ensureCampaignForIcp(
         verdict.reason === 'programme_paused' ? 'programme_paused' as const
         : verdict.reason === 'programme_unresolvable' ? 'programme_state_unreadable' as const
         : 'programme_not_live' as const
-      return { refused: { reason, message: verdict.message } }
+      if (!goingLiveOk) return { refused: { reason, message: verdict.message } }
     }
   }
 

@@ -112,6 +112,22 @@ vi.mock('@kind/db', () => ({
   },
 }))
 
+// ⚑ PR A2 — OUTREACH PREPARATION IS STUBBED HERE, DELIBERATELY. This file is about what the
+// payment and lifecycle writers do to the programme ROW. Whether a programme can actually be
+// made operable — campaigns, enrolments, eligibility, pagination — is proved against the real
+// implementation in `programme-preparation.test.ts`. Stubbing it lets both BRANCHES of the new
+// rule be exercised here: LIVE only when preparation completes, and APPROVED when it does not.
+const prep: { complete: boolean } = { complete: true }
+vi.mock('./programme-preparation', () => ({
+  prepareProgrammeOutreach: async () => ({
+    ok: prep.complete, complete: prep.complete, remaining: prep.complete ? 0 : 3, total: 3,
+    campaigns: ['camp-1'], enrolled: prep.complete ? ['l1'] : [], alreadyEnrolled: 0,
+    skipped: 0, failed: [], problems: prep.complete ? [] : ['No ICP is attached to this programme.'],
+  }),
+  assertGoingLive: async () => ({ ok: true }),
+  verifyProgrammeFulfilment: async () => ({ ok: true }),
+}))
+
 vi.mock('./alerts', () => ({
   sendFounderAlert: (_k: string, subject: string) => { state.alerts.push(subject); return Promise.resolve() },
 }))
@@ -121,7 +137,7 @@ import {
   markReadyForApproval, pauseProgramme, mayStartCampaign, maySecondCharge, mayComplete,
   completeProgramme, settleBatch, computeContribution, finaliseContribution,
   writeProgrammePartnerCommission, recordDispute, recordMakeWhole, nextBatchSize,
-  PROGRAMME_STATUSES, type ProgrammeRow,
+  PROGRAMME_STATUSES, type ProgrammeRow, goLiveProgramme,
 } from './programme'
 
 function seed(over: Partial<ProgrammeRow> = {}): ProgrammeRow {
@@ -205,6 +221,7 @@ describe('② first payment — replay, ceiling, and NOT starting work', () => {
 
 describe('③ second payment — Go Live, and every reason not to', () => {
   it('from APPROVED and unpaused it records and goes LIVE', () => {
+    prep.complete = true
     const p = seed({ status: 'APPROVED', approved_at: 'x' })
     return recordSecondPayment({ programmeId: p.id, sessionId: 'cs_2' }).then(r => {
       expect(r.ok).toBe(true)
@@ -212,6 +229,39 @@ describe('③ second payment — Go Live, and every reason not to', () => {
       expect(state.programmes[0].status).toBe('LIVE')
       expect(state.programmes[0].went_live_at).not.toBeNull()
     })
+  })
+
+  it('🛑 BUT IF OUTREACH PREPARATION CANNOT COMPLETE, IT RECORDS AND DOES NOT GO LIVE', () => {
+    // ⚑ PR A2. LIVE is durable evidence that the programme can actually work its leads, so a
+    // paid programme that could not be prepared stays APPROVED — every later reader (Vida,
+    // Milla, `mayStartCampaign`, send authority) sees the truth rather than a label.
+    //
+    // ⚠️ AND THE MONEY IS UNTOUCHED BY THAT. Payment truth and operational truth are separate
+    // writes; nothing is refunded, reversed or invented.
+    prep.complete = false
+    const p = seed({ status: 'APPROVED', approved_at: 'x' })
+    return recordSecondPayment({ programmeId: p.id, sessionId: 'cs_2', paymentIntentId: 'pi_2' }).then(r => {
+      expect(r.ok).toBe(true)
+      expect(r.preparationIncomplete).toBe(true)
+      expect(state.programmes[0].second_payment_ref, 'the payment is recorded in full').toBe('cs_2')
+      expect(state.programmes[0].second_paid_at).not.toBeNull()
+      expect(state.programmes[0].second_payment_intent_id).toBe('pi_2')
+      expect(state.programmes[0].status, 'it must NOT be live').toBe('APPROVED')
+      expect(state.programmes[0].went_live_at ?? null, 'and must not claim a go-live').toBeNull()
+    })
+  })
+
+  it('…and a retry once preparation can complete takes it live, without a second payment', () => {
+    prep.complete = false
+    const p = seed({ status: 'APPROVED', approved_at: 'x' })
+    return recordSecondPayment({ programmeId: p.id, sessionId: 'cs_2' })
+      .then(() => { prep.complete = true; return goLiveProgramme(p.id) })
+      .then(r => {
+        expect(r.ok).toBe(true)
+        expect(state.programmes[0].status).toBe('LIVE')
+        expect(state.programmes[0].went_live_at).not.toBeNull()
+        expect(state.programmes[0].second_payment_ref, 'the original payment still stands').toBe('cs_2')
+      })
   })
 
   it('⚠️ A STALE CHECKOUT PAID WHILE PAUSED RECORDS THE MONEY AND DOES NOT GO LIVE', () => {

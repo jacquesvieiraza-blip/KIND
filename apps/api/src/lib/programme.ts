@@ -350,38 +350,42 @@ export async function goLiveProgramme(programmeId: string): Promise<ProgrammeRes
     return { ok: false, reason: 'P2 authority is missing. Payment 1 authorises sourcing and preparation only.' }
   }
 
+  // ── ⚑ PREPARE FIRST. LIVE IS DURABLE EVIDENCE THAT PREPARATION SUCCEEDED ─────────────
+  //
+  // ⛓️ CORRECTED. An earlier version wrote LIVE and prepared afterwards, returning an error
+  // when preparation failed. That is not enough: the RESPONSE is read once, by one caller,
+  // while the ROW is read by every later reader — Vida, Milla, `mayStartCampaign`, the send
+  // authority. A failed preparation left a durable LIVE that all of them believed.
+  //
+  // Preparation therefore runs while the row still says APPROVED. `ensureCampaignForIcp`
+  // normally demands status LIVE, so it is given `goingLive`, which re-proves every
+  // substantive condition LIVE would have proven — approval, P2, not paused, not terminal —
+  // and refuses on its own if any is missing. The label is written last, not relied upon.
+  const { prepareProgrammeOutreach } = await import('./programme-preparation')
+  const prep = await prepareProgrammeOutreach(programmeId)
+  if (!prep.complete) {
+    // 🛑 NOT LIVE. The programme stays APPROVED with its P2 authority intact, so it has
+    // gained NO send authority: `mayStartCampaign` refuses anything that is not LIVE, and
+    // any campaign or enrolment already created sits inert behind that gate. Pressing Make
+    // live again re-runs preparation and completes what is outstanding.
+    return {
+      ok: false,
+      preparation: prep,
+      reason:
+        'The programme was NOT taken live because outreach preparation did not complete: ' +
+        prep.problems.join(' ') +
+        (prep.remaining > 0 ? ` ${prep.remaining} eligible prospect(s) still need preparing.` : '') +
+        ' It remains APPROVED and can send nothing. Press Make live again — preparation is idempotent and continues where it stopped.',
+    }
+  }
+
   const { data, error } = await db.from('programmes').update({
     status: 'LIVE',
     went_live_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   }).eq('id', programmeId).is('went_live_at', null).select()
-  if (error) return { ok: false, reason: error.message }
-  if (!data || data.length === 0) return { ok: true, alreadyLive: true }
-
-  // ── ⚑ LIVE MUST MEAN OPERABLE, NOT A STATUS LABEL ────────────────────────────────────
-  //
-  // 🛑 THE STATUS IS WRITTEN FIRST, ON PURPOSE. Preparation needs the programme to BE live —
-  // `ensureCampaignForIcp` asks `mayStartCampaign`, which requires LIVE — so preparing before
-  // the transition would refuse itself. The order is therefore: transition, then prepare,
-  // then tell the truth about what actually happened.
-  //
-  // ⚠️ A PARTIAL RESULT IS REPORTED AS A FAILURE, and the row stays LIVE. Rolling the status
-  // back would be worse: `went_live_at` is the compare-and-set key, so un-setting it would
-  // hand a second press a fresh transition and a second audit event for a go-live that
-  // already happened. Instead the programme is genuinely live, genuinely not yet operable,
-  // and the caller is told exactly which part is missing — and pressing Make live again
-  // re-runs preparation and completes what is outstanding, because preparation is idempotent.
-  const { prepareProgrammeOutreach } = await import('./programme-preparation')
-  const prep = await prepareProgrammeOutreach(programmeId)
-  if (!prep.ok) {
-    return {
-      ok: false,
-      preparation: prep,
-      reason:
-        'The programme is LIVE but is NOT yet operable: ' + prep.problems.join(' ') +
-        ' Nothing has been sent. Fix the cause and press Make live again — preparation is idempotent and will complete what is missing.',
-    }
-  }
+  if (error) return { ok: false, preparation: prep, reason: error.message }
+  if (!data || data.length === 0) return { ok: true, alreadyLive: true, preparation: prep }
   return { ok: true, preparation: prep }
 }
 
@@ -484,8 +488,19 @@ export async function recordSecondPayment(params: {
   // never overrides state.
   const blocked = p.paused_at !== null || p.status !== 'APPROVED'
 
+  // ── ⚑ THE MONEY IS RECORDED ON ITS OWN, AND THE STATUS IS NOT PART OF IT ─────────────
+  //
+  // ⛓️ CORRECTED. This update used to write `status: 'LIVE'` and `went_live_at` in the same
+  // statement as the payment. That made LIVE a consequence of the money arriving rather than
+  // of the programme being operable — so a paid programme whose preparation then failed was
+  // durably LIVE, and every later reader believed it.
+  //
+  // 🛑 PAYMENT TRUTH AND OPERATIONAL TRUTH ARE NOW SEPARATE WRITES. Money that arrived is a
+  // fact and is committed here unconditionally; nothing below can reverse it, and there is no
+  // refund, no rollback and no new payment state. Going live is decided afterwards, by
+  // whether preparation actually completed.
   const { data, error } = await db.from('programmes')
-    .update(blocked ? base : { ...base, status: 'LIVE', went_live_at: new Date().toISOString() })
+    .update(base)
     .eq('id', params.programmeId).is('second_payment_ref', null).select()
 
   if (error) return { ok: false, reason: error.message }
@@ -517,14 +532,30 @@ export async function recordSecondPayment(params: {
   // one that drifted would be the one nobody walked.
   const { prepareProgrammeOutreach } = await import('./programme-preparation')
   const prep = await prepareProgrammeOutreach(params.programmeId)
-  if (!prep.ok) {
+  if (!prep.complete) {
     // Loud, because the client has now paid in full for a programme that cannot yet work.
     void sendFounderAlert('payment_failed',
-      'Programme second payment recorded and LIVE — but outreach preparation did NOT complete', [
-        `Programme ${params.programmeId} (client ${p.client_id}) is paid and LIVE.`,
-        `Preparation did not complete: ${prep.problems.join(' ')}`,
-        'The payment is recorded correctly and nothing was refunded or reversed.',
-        'Press Make live in Vida to retry — preparation is idempotent and completes what is missing.',
+      'Programme second payment recorded — but the programme did NOT go live', [
+        `Programme ${params.programmeId} (client ${p.client_id}) is PAID IN FULL and remains APPROVED.`,
+        `Outreach preparation did not complete: ${prep.problems.join(' ')}`,
+        prep.remaining > 0 ? `${prep.remaining} eligible prospect(s) still need preparing.` : '',
+        'The payment is recorded correctly. Nothing was refunded, reversed or invented.',
+        'The programme is NOT live and can send nothing. Press Make live in Vida to retry — preparation is idempotent and continues where it stopped.',
+      ].filter(Boolean))
+    return { ok: true, preparation: prep, preparationIncomplete: true }
+  }
+
+  // ⚑ PREPARATION COMPLETED — the successful paid path still auto-goes-live, exactly as it
+  // always has. Compare-and-set on `went_live_at` so a retry cannot transition twice.
+  const { error: liveErr } = await db.from('programmes').update({
+    status: 'LIVE', went_live_at: new Date().toISOString(), updated_at: new Date().toISOString(),
+  }).eq('id', params.programmeId).is('went_live_at', null).select()
+  if (liveErr) {
+    void sendFounderAlert('payment_failed',
+      'Programme is paid and prepared, but the LIVE transition failed', [
+        `Programme ${params.programmeId} (client ${p.client_id}) is paid and fully prepared.`,
+        `The status write failed: ${liveErr.message}`,
+        'The payment is recorded correctly. Press Make live in Vida to complete it.',
       ])
     return { ok: true, preparation: prep, preparationIncomplete: true }
   }

@@ -40,21 +40,55 @@
 
 import { db } from '@kind/db'
 import { getProgramme, TERMINAL_STATUSES, p2Authorised, type ProgrammeRow } from './programme'
+import { normalizeRevealEmail, normalizeRevealEmails } from './billing-rules'
 
 /** Statuses in which outreach preparation is meaningful. */
 const PREPARABLE: string[] = ['APPROVED', 'LIVE']
 
 export type PrepareResult = {
+  /** Fully prepared: every eligible lead enrolled, nothing outstanding, no problems. */
   ok: boolean
+  /**
+   * ⚑ `complete === false` MEANS THE PROGRAMME MUST NOT GO LIVE. It is separate from `ok`
+   * because they answer different questions: `ok` is "did everything I attempted succeed",
+   * `complete` is "is there anything LEFT". A run that succeeded on every lead it touched and
+   * still has 500 to go is `ok`-shaped and emphatically not finished.
+   */
+  complete: boolean
+  /** Eligible leads still awaiting an enrolment. `remaining > 0` ⇒ never LIVE. */
+  remaining: number
+  /** Eligible leads seen across every page. */
+  total: number
   /** Campaign ids now available, one per attached ICP. */
   campaigns: string[]
   /** Leads that gained a programme enrolment on THIS run. */
   enrolled: string[]
   /** Leads already enrolled — counted, never re-enrolled. */
   alreadyEnrolled: number
+  /** Leads deliberately not enrolled because existing rules make them ineligible. */
+  skipped: number
+  /** Leads that were attempted and did not produce an enrolment row. */
+  failed: string[]
   /** Everything that could not be completed. A non-empty list means NOT fully operable. */
   problems: string[]
 }
+
+/**
+ * How many leads one preparation call will process.
+ *
+ * ⚠️ A BUDGET, NOT A CAP THAT LIES. A programme is sized at 250 prospects per targeted meeting
+ * (R77), so a ten-meeting programme is 2,500 people — the previous hard `.limit(2000)` would
+ * have prepared 2,000 of them and reported success. This budget is deliberately larger than
+ * the realistic single-programme set, AND anything left over is reported as `remaining` and
+ * blocks the LIVE transition. Silent truncation is the failure being designed out; a bounded
+ * run that says what is left is not truncation.
+ *
+ * The bound exists because this also runs inside the Stripe webhook, where an unbounded loop
+ * is its own outage.
+ */
+export const PREPARE_BUDGET = 5000
+/** Rows per page. Keyset pagination on `id`, so pages cannot overlap or skip. */
+const PAGE = 500
 
 /**
  * Is this lead genuinely programme fulfilment for this programme?
@@ -105,6 +139,28 @@ export async function verifyProgrammeFulfilment(
 }
 
 /**
+ * Everything status LIVE would have proven, proven again while the row still says APPROVED.
+ *
+ * ⚠️ THIS IS WHAT LETS PREPARATION RUN BEFORE THE TRANSITION. `ensureCampaignForIcp` requires
+ * LIVE; LIVE must be durable evidence that preparation succeeded; both cannot be true unless
+ * the substantive conditions can be checked without the label. They can — the label is the
+ * last thing written, not the thing that grants authority.
+ */
+export async function assertGoingLive(
+  clientId: string, programmeId: string,
+): Promise<{ ok: true } | { ok: false; reason: string }> {
+  const p = await getProgramme(programmeId)
+  if (!p) return { ok: false, reason: 'no such programme' }
+  if (p.client_id !== clientId) return { ok: false, reason: 'programme belongs to a different client' }
+  if (TERMINAL_STATUSES.includes(p.status)) return { ok: false, reason: `programme is ${p.status}` }
+  if (p.paused_at) return { ok: false, reason: 'programme is paused' }
+  if (!p.approved_at) return { ok: false, reason: 'programme has no approval recorded' }
+  if (!PREPARABLE.includes(p.status)) return { ok: false, reason: `programme is ${p.status}, not APPROVED or LIVE` }
+  if (!p2Authorised(p)) return { ok: false, reason: 'programme has no P2 authority' }
+  return { ok: true }
+}
+
+/**
  * Make a programme operable: a programme-safe campaign per attached ICP, and a programme
  * enrolment for every eligible lead the programme sourced.
  *
@@ -116,7 +172,10 @@ export async function verifyProgrammeFulfilment(
  * must be able to keep that fact while knowing preparation did not finish.
  */
 export async function prepareProgrammeOutreach(programmeId: string): Promise<PrepareResult> {
-  const out: PrepareResult = { ok: false, campaigns: [], enrolled: [], alreadyEnrolled: 0, problems: [] }
+  const out: PrepareResult = {
+    ok: false, complete: false, remaining: 0, total: 0,
+    campaigns: [], enrolled: [], alreadyEnrolled: 0, skipped: 0, failed: [], problems: [],
+  }
 
   const p = await getProgramme(programmeId)
   if (!p) { out.problems.push('No such programme.'); return out }
@@ -149,7 +208,11 @@ export async function prepareProgrammeOutreach(programmeId: string): Promise<Pre
       out.problems.push(`ICP ${icp.id.slice(0, 8)} names this programme but belongs to another client — skipped.`)
       continue
     }
-    const camp = await ensureCampaignForIcp(p.client_id, icp.id, icp.name, { activate: true })
+    // ⚑ `goingLive` carries the authority this programme already holds; `ensureCampaignForIcp`
+    // re-proves it rather than believing it. Idempotent: an existing campaign is returned.
+    const camp = await ensureCampaignForIcp(p.client_id, icp.id, icp.name, {
+      activate: true, goingLive: { programmeId },
+    })
     if (!camp || !('id' in camp) || typeof camp.id !== 'string') {
       // ⚠️ THE TWO REFUSAL SHAPES SAY DIFFERENT THINGS, and an operator needs to know which.
       // "Another campaign is already live" is a one-active-campaign collision they can resolve
@@ -174,53 +237,133 @@ export async function prepareProgrammeOutreach(programmeId: string): Promise<Pre
 
   // ── ② A PROGRAMME ENROLMENT FOR EVERY ELIGIBLE LEAD THIS PROGRAMME SOURCED ────────────
   //
-  // ⚠️ SELECTED BY POSITIVE ATTRIBUTION, never by client. `programme_id = this programme` is
-  // the whole filter — House's ~166 historical leads carry NULL and are not in this set at
-  // all, so they cannot be enrolled by a bug in a later condition.
+  // ⚠️ KEYSET PAGINATION ON `id`, NOT `.limit(2000)`. A programme is sized at 250 prospects
+  // per targeted meeting (R77), so ten meetings is 2,500 people — the previous single-page
+  // limit would have prepared 2,000 of them and called the programme operable. Pages are
+  // ordered by `id` and each asks for rows STRICTLY AFTER the last one seen, so a page can
+  // neither overlap nor skip, and an enrolment written mid-run cannot shift the window.
   //
-  // The eligibility conditions are the existing ones, not new ones: delivered (a contactable
-  // person), not opted out, not rejected, not already worked.
-  const { data: leadRows, error: leadErr } = await db.from('leads')
-    .select('id, status')
-    .eq('programme_id', programmeId)
-    .eq('client_id', p.client_id)
-    .not('delivered_at', 'is', null)
-    .not('status', 'in', '(opted_out,rejected,passed)')
-    .limit(2000)
-  if (leadErr) { out.problems.push(`Could not read the programme's leads (${leadErr.message}).`); return out }
-  const leads = (leadRows ?? []) as { id: string }[]
+  // ⚠️ EVERY PAGE RE-APPLIES THE FULL FILTER — `programme_id` AND `client_id`. Narrowing on
+  // the first page only is how a paginated query drifts into another tenant.
+  const { autoEnrollLead } = await import('./figsy')
+  let after = ''
+  let budgetLeft = PREPARE_BUDGET
+  // ⚠️ A PAGE BOUND AS WELL AS A ROW BUDGET. The loop advances by keyset cursor, so a cursor
+  // that failed to advance — a bug, or a page of rows whose ids sort unexpectedly — would spin
+  // forever inside a Stripe webhook. Found by mutating `gt('id', after)` to a constant, which
+  // hung the suite rather than failing it: a mutation that hangs is one the RED proof cannot
+  // report, so the bound is the fix and the proof.
+  let pagesLeft = Math.ceil(PREPARE_BUDGET / PAGE) + 2
 
-  // Already-enrolled leads are skipped rather than re-enrolled — this runs again on every
-  // retry and on a second Make Live.
-  const existing = new Set<string>()
-  if (leads.length > 0) {
+  for (;;) {
+    if (budgetLeft <= 0) break
+    if (pagesLeft-- <= 0) {
+      out.problems.push('Preparation stopped after its page budget — the lead cursor did not advance. Nothing further was enrolled.')
+      break
+    }
+    const { data: page, error: pageErr } = await db.from('leads')
+      .select('id, email, status, opted_out_at, provider_eviction_required_at')
+      .eq('programme_id', programmeId)
+      .eq('client_id', p.client_id)
+      .not('delivered_at', 'is', null)
+      .gt('id', after)
+      .order('id', { ascending: true })
+      .limit(PAGE)
+    if (pageErr) { out.problems.push(`Could not read the programme's leads (${pageErr.message}).`); return out }
+    const rows = (page ?? []) as {
+      id: string; email: string | null; status: string | null
+      opted_out_at: string | null; provider_eviction_required_at: string | null
+    }[]
+    if (rows.length === 0) break
+    after = rows[rows.length - 1].id
+
+    // ── ELIGIBILITY, FROM THE EXISTING RULES ONLY ──────────────────────────────────────
+    //
+    // 🛑 NO PARALLEL SUPPRESSION SEMANTICS ARE INVENTED HERE. Each condition is one the
+    // product already treats as permanently disqualifying:
+    //   • `status` opted_out / rejected / passed — the client or the engine has disposed of it
+    //   • `opted_out_at`                          — the person asked us to stop
+    //   • `provider_eviction_required_at`         — we owe a provider a removal for this person
+    //   • no email                                — `autoEnrollLead` cannot enrol them anyway
+    // Anything excluded here would otherwise become an ACTIVE enrolment for somebody already
+    // known to be permanently ineligible, which is the thing that must never be manufactured.
+    const candidates = rows.filter(r => {
+      if (!r.email) return false
+      if (r.status === 'opted_out' || r.status === 'rejected' || r.status === 'passed') return false
+      if (r.opted_out_at) return false
+      if (r.provider_eviction_required_at) return false
+      return true
+    })
+    out.skipped += rows.length - candidates.length
+    if (candidates.length === 0) continue
+
+    // 🛑 THE CROSS-CLIENT BLOCKLIST, checked per page against the SAME table the send path
+    // uses. A person who opted out through any client is suppressed for all of them, and that
+    // fact lives in `opt_out_blocklist` rather than on the lead row.
+    // ⚠️ NORMALISED, NOT `.toLowerCase()` — HC-1. The blocklist is deduped on a normalised
+    // address, so a raw comparison can miss a case- or dot-variant of somebody who opted out.
+    // `blocklist-case.test.ts` enforces this on every probe in the repo, and it caught this one.
+    const programmeEmails = normalizeRevealEmails(candidates.map(c => c.email))
+    const blocked = new Set<string>()
+    if (programmeEmails.length > 0) {
+      const { data: bl, error: blErr } = await db.from('opt_out_blocklist')
+        .select('email').in('email', programmeEmails)
+      // ⚠️ FAIL CLOSED. Not knowing whether somebody opted out is not permission to enrol them.
+      if (blErr) { out.problems.push(`Could not read the opt-out blocklist (${blErr.message}). Nothing further was enrolled.`); return out }
+      for (const b of (bl ?? []) as { email: string | null }[]) {
+        const k = normalizeRevealEmail(b.email)
+        if (k) blocked.add(k)
+      }
+    }
+
+    const eligible = candidates.filter(c => { const k = normalizeRevealEmail(c.email); return !k || !blocked.has(k) })
+    out.skipped += candidates.length - eligible.length
+    out.total += eligible.length
+    if (eligible.length === 0) continue
+
+    // Already-enrolled leads are skipped rather than re-enrolled — this runs again on every
+    // retry and on a second Make live.
+    const existing = new Set<string>()
     const { data: enr, error: enrErr } = await db.from('figsy_enrollments')
-      .select('lead_id').in('lead_id', leads.map(l => l.id))
+      .select('lead_id').in('lead_id', eligible.map(l => l.id))
     if (enrErr) { out.problems.push(`Could not read existing enrolments (${enrErr.message}).`); return out }
     for (const e of (enr ?? []) as { lead_id: string }[]) existing.add(e.lead_id)
-  }
 
-  const { autoEnrollLead } = await import('./figsy')
-  for (const lead of leads) {
-    if (existing.has(lead.id)) { out.alreadyEnrolled++; continue }
-    try {
-      await autoEnrollLead(lead.id, p.client_id, { programmeFulfilment: { programmeId } })
-    } catch (err) {
-      out.problems.push(`Lead ${lead.id.slice(0, 8)} could not be enrolled: ${err instanceof Error ? err.message : String(err)}`)
-      continue
+    for (const lead of eligible) {
+      if (existing.has(lead.id)) { out.alreadyEnrolled++; continue }
+      if (budgetLeft <= 0) { out.remaining++; continue }
+      budgetLeft--
+      try {
+        await autoEnrollLead(lead.id, p.client_id, { programmeFulfilment: { programmeId } })
+      } catch (err) {
+        out.failed.push(lead.id)
+        out.problems.push(`Lead ${lead.id.slice(0, 8)} could not be enrolled: ${err instanceof Error ? err.message : String(err)}`)
+        continue
+      }
+      // ⚠️ VERIFIED, NEVER ASSUMED. `autoEnrollLead` returns void and several of its refusals
+      // are a bare `return` — #625 is exactly the defect of reporting success from a call that
+      // quietly did nothing. A "worked" verdict here means a row exists.
+      const { data: made } = await db.from('figsy_enrollments')
+        .select('id').eq('lead_id', lead.id).limit(1).maybeSingle()
+      if (made) out.enrolled.push(lead.id)
+      else {
+        out.failed.push(lead.id)
+        out.problems.push(`Lead ${lead.id.slice(0, 8)} was not enrolled — no enrolment row exists after the attempt.`)
+      }
     }
-    // ⚠️ VERIFIED, NEVER ASSUMED. `autoEnrollLead` returns void and several of its refusals
-    // are a bare `return` — #625 is exactly the defect of reporting success from a call that
-    // quietly did nothing. A "worked" verdict here means a row exists.
-    const { data: made } = await db.from('figsy_enrollments')
-      .select('id').eq('lead_id', lead.id).limit(1).maybeSingle()
-    if (made) out.enrolled.push(lead.id)
-    else out.problems.push(`Lead ${lead.id.slice(0, 8)} was not enrolled — no enrolment row exists after the attempt.`)
+    if (rows.length < PAGE) break
   }
 
-  out.ok = out.problems.length === 0 && (out.enrolled.length + out.alreadyEnrolled) > 0
-  if (out.enrolled.length + out.alreadyEnrolled === 0 && out.problems.length === 0) {
+  // 🛑 ANYTHING LEFT MEANS NOT COMPLETE, AND NOT COMPLETE MEANS NOT LIVE. A budget exhausted
+  // mid-programme is reported, never rounded up into success — 2,500 eligible and 2,000
+  // prepared is exactly the silent truncation this replaces.
+  out.remaining += out.failed.length
+  const prepared = out.enrolled.length + out.alreadyEnrolled
+  if (out.total > 0 && prepared < out.total) out.remaining = Math.max(out.remaining, out.total - prepared)
+  out.complete = out.problems.length === 0 && out.remaining === 0 && prepared > 0
+  if (prepared === 0 && out.problems.length === 0) {
     out.problems.push('No eligible programme lead was found to enrol, so this programme has nothing to send.')
   }
+  out.ok = out.complete
   return out
 }

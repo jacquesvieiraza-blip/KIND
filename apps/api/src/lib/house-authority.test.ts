@@ -66,7 +66,7 @@ vi.mock('@kind/db', () => ({
           if (table === 'icps' && col === 'client_id') dbState.icpClientFilter = String(val)
           return q
         },
-        not: () => q, neq: () => q, limit: () => q, order: () => q, is: () => q, in: () => q,
+        not: () => q, neq: () => q, gt: () => q, limit: () => q, order: () => q, is: () => q, in: () => q,
         update: (patch: Record<string, unknown>) => { dbState.writes.push({ table, patch }); return q },
         insert: (patch: Record<string, unknown>) => { dbState.writes.push({ table, patch }); return q },
         async maybeSingle() {
@@ -301,9 +301,14 @@ describe('④ the Stripe writers refuse when internal authority already exists',
     dbState.programme = asRow(P({ status: 'APPROVED', approved_at: 'a' })); dbState.writes = []
     const r2 = await recordSecondPayment({ programmeId: 'prog-1', sessionId: 'cs_2', paymentIntentId: 'pi_2' })
     expect(r2.ok).toBe(true)
-    expect(dbState.writes[0].patch, 'the paid path still auto-goes-live').toMatchObject({
-      second_payment_ref: 'cs_2', status: 'LIVE',
-    })
+    // ⛓️ THE MONEY IS ITS OWN WRITE NOW. Payment truth is committed unconditionally; the LIVE
+    // transition is a SECOND write that happens only once preparation completes. This fixture
+    // has no attached ICP, so preparation legitimately cannot complete — the payment is still
+    // recorded in full, which is the property this test is about.
+    expect(dbState.writes[0].patch).toMatchObject({ second_payment_ref: 'cs_2' })
+    expect(dbState.writes[0].patch.second_paid_at).toBeTruthy()
+    expect(dbState.writes[0].patch, 'the money write carries no status').not.toHaveProperty('status')
+    expect(r2.preparationIncomplete, 'and it says the programme is not operable').toBe(true)
   })
 
   it('🛑 REVENUE READS PAYMENT ONLY — internal authority contributes nothing', () => {
@@ -356,13 +361,16 @@ describe('⑤ Make live is its own act, and repeating it rewrites nothing', () =
     ]) {
       dbState.programme = asRow(P({ status: 'APPROVED', approved_at: 'a', ...over })); dbState.writes = []
       const r = await goLiveProgramme('prog-1')
-      // ⛓️ `ok` NOW MEANS OPERABLE, NOT MERELY TRANSITIONED. This fixture has no attached ICP,
-      // so preparation legitimately cannot complete and the call reports that — which is the
-      // whole point of the change. What THIS test is about is the AUTHORITY decision, so it
-      // asserts the transition write and that the refusal is about preparation, never about P2.
-      expect(dbState.writes[0].patch).toMatchObject({ status: 'LIVE' })
-      expect(dbState.writes[0].patch.went_live_at).toBeTruthy()
-      if (!r.ok) expect(r.reason, 'P2 must not be the reason').toMatch(/NOT yet operable/)
+      // ⛓️ NOTHING IS WRITTEN UNTIL PREPARATION COMPLETES, which is the correction: LIVE is
+      // durable evidence that preparation succeeded. This fixture has no attached ICP, so the
+      // call correctly refuses AND leaves the row untouched.
+      //
+      // What THIS test is about is the AUTHORITY decision, so it asserts that P2 was accepted:
+      // the refusal names preparation, never the second payment.
+      expect(r.ok).toBe(false)
+      expect(r.reason, 'P2 must not be the reason').toMatch(/outreach preparation did not complete/)
+      expect(r.reason, 'and it must say it is not live').toMatch(/remains APPROVED/)
+      expect(dbState.writes, 'no status may be written on a refused go-live').toHaveLength(0)
     }
   })
 
@@ -378,15 +386,18 @@ describe('⑤ Make live is its own act, and repeating it rewrites nothing', () =
     const src = strip(raw(join(API, 'lib/programme.ts')))
     const at = src.indexOf('export async function goLiveProgramme')
     const f = src.slice(at, at + 1200)
-    expect(f, 'the update must be guarded on went_live_at being null').toContain(".is('went_live_at', null)")
+    const f2 = src.slice(at, at + 3200)
+    expect(f2, 'the update must be guarded on went_live_at being null').toContain(".is('went_live_at', null)")
   })
 
-  it('the loser of that race gets success, not a false failure', async () => {
-    dbState.programme = asRow(P({ status: 'APPROVED', approved_at: 'a', second_authorised_at: 'i' }))
-    dbState.updatedRows = []   // compare-and-set matched zero rows: somebody else won
-    const r = await goLiveProgramme('prog-1')
-    expect(r.ok).toBe(true)
-    expect(r.alreadyLive).toBe(true)
+  it('the loser of that race gets success, not a false failure', () => {
+    // ⛓️ ASSERTED ON THE SOURCE, because the transition now happens only AFTER preparation
+    // completes and this fixture has no ICP to prepare. The rule itself is unchanged: a
+    // compare-and-set that matches zero rows means somebody else won, which is success.
+    const src = strip(raw(join(API, 'lib/programme.ts')))
+    const at = src.indexOf('export async function goLiveProgramme')
+    const f = src.slice(at, at + 3200)
+    expect(f).toContain('if (!data || data.length === 0) return { ok: true, alreadyLive: true, preparation: prep }')
   })
 
   it('and the route records no second audit event for a no-op', () => {
@@ -1017,12 +1028,18 @@ describe('⑰ nothing House needed altered what a paying client experiences', ()
     const r = await recordSecondPayment({ programmeId: 'prog-1', sessionId: 'cs_2', paymentIntentId: 'pi_2' })
     expect(r.ok).toBe(true)
     const patch = dbState.writes[0].patch
-    expect(patch).toMatchObject({
-      second_payment_ref: 'cs_2', second_payment_intent_id: 'pi_2', status: 'LIVE',
-    })
+    expect(patch).toMatchObject({ second_payment_ref: 'cs_2', second_payment_intent_id: 'pi_2' })
     expect(patch.second_paid_at).toBeTruthy()
-    expect(patch.went_live_at, 'the paid path still stamps went_live_at itself').toBeTruthy()
     expect(patch).not.toHaveProperty('second_authorised_at')
+    // ⛓️ `went_live_at` MOVED TO A SECOND WRITE, on purpose: LIVE is now durable evidence that
+    // preparation succeeded, so the money arriving no longer sets it by itself. The paid path
+    // STILL auto-goes-live when preparation completes — proved in `programme-preparation.test.ts`
+    // and asserted here against the source, because this fixture cannot prepare.
+    expect(patch, 'the money write no longer carries the transition').not.toHaveProperty('went_live_at')
+    const prog = strip(raw(join(API, 'lib/programme.ts')))
+    const at = prog.indexOf('export async function recordSecondPayment')
+    expect(prog.slice(at, at + 4600), 'the successful paid path still transitions')
+      .toContain("status: 'LIVE', went_live_at: new Date().toISOString()")
   })
 
   it('P2 arriving on a paused or non-APPROVED programme still records money WITHOUT going live', async () => {

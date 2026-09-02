@@ -315,10 +315,13 @@ describe('④ the currently deployed application behaves exactly as before', () 
     const r = await recordSecondPayment({ programmeId: 'prog-1', sessionId: 'cs_2', paymentIntentId: 'pi_2' })
     expect(r.ok).toBe(true)
     const patch = dbState.writes[0]
-    expect(patch).toMatchObject({
-      second_payment_ref: 'cs_2', second_payment_intent_id: 'pi_2',
-      status: 'LIVE',
-    })
+    // ⛓️ THE MONEY WRITE NO LONGER CARRIES THE STATUS (PR A2). Payment truth and operational
+    // truth are separate writes: the payment is committed unconditionally, and the LIVE
+    // transition is a second write that happens only once outreach preparation completes —
+    // so a paid programme whose preparation failed is never durably LIVE. What this A1 test
+    // is about is unchanged and still asserted: the payment records fully and never touches
+    // internal authority.
+    expect(patch).toMatchObject({ second_payment_ref: 'cs_2', second_payment_intent_id: 'pi_2' })
     expect(patch.second_paid_at).toBeTruthy()
     expect(patch, 'a payment must never write internal authority').not.toHaveProperty('second_authorised_at')
   })

@@ -170,7 +170,7 @@ describe('HC-1 GUARD — every opt_out_blocklist email comparison goes through t
   // The three probes that pass a variable rather than a call. Each is proven normalised at its
   // definition by the test below — listing them here rather than pattern-matching keeps the
   // guard honest: a NEW variable name is an offender until someone adds it deliberately.
-  const NORMALISED_VARS = new Set(['batchEmails', 'candEmails', 'emailKey', 'consentKey'])
+  const NORMALISED_VARS = new Set(['batchEmails', 'candEmails', 'emailKey', 'consentKey', 'programmeEmails'])
 
   it('every variable on that allowlist is built by the normaliser at its definition', () => {
     // `singular` distinguishes the one-address probe from the batch ones. Both forms are
@@ -186,6 +186,10 @@ describe('HC-1 GUARD — every opt_out_blocklist email comparison goes through t
       // S6: opt-outs are global, so a person sourced afresh for another client must not be
       // asked for consent they already refused. One address, so the singular normaliser.
       { file: 'lib/email.ts',          name: 'consentKey', singular: true },
+      // ⚑ PR A2 — programme outreach preparation probes the blocklist before creating an
+      // enrolment, so a person who opted out through ANY client is never enrolled into a
+      // programme sequence. A page of addresses, so the batch normaliser.
+      { file: 'lib/programme-preparation.ts', name: 'programmeEmails' },
     ]
     for (const { file, name, singular } of defs) {
       const text = readFileSync(join(API_SRC, file), 'utf8')

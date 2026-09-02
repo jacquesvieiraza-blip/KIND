@@ -19,10 +19,10 @@ type Row = Record<string, unknown>
 const state: {
   programmes: Row[]; icps: Row[]; leads: Row[]; campaigns: Row[]; enrollments: Row[]; clients: Row[]
   charges: string[]; sends: string[]; ensureCalls: { clientId: string; icpId: string; activate: boolean }[]
-  ensureRefuses: boolean
+  ensureRefuses: boolean; blocklist: Row[]
 } = {
   programmes: [], icps: [], leads: [], campaigns: [], enrollments: [], clients: [],
-  charges: [], sends: [], ensureCalls: [], ensureRefuses: false,
+  charges: [], sends: [], ensureCalls: [], ensureRefuses: false, blocklist: [],
 }
 
 /** A tiny in-memory Supabase stand-in that honours eq / in / not / limit. */
@@ -32,6 +32,7 @@ function table(name: keyof typeof state) {
     _f: [] as ((r: Row) => boolean)[], _mode: '' as string, _payload: null as Row | null,
     select() { return q },
     eq(c: string, v: unknown) { q._f.push((r: Row) => r[c] === v); return q },
+    gt(c: string, v: unknown) { q._f.push((r: Row) => String(r[c]) > String(v)); return q },
     neq(c: string, v: unknown) { q._f.push((r: Row) => r[c] !== v); return q },
     is(c: string, v: unknown) { q._f.push((r: Row) => (r[c] ?? null) === v); return q },
     in(c: string, list: unknown[]) { q._f.push((r: Row) => list.includes(r[c] as never)); return q },
@@ -63,7 +64,8 @@ vi.mock('@kind/db', () => ({
   db: {
     from: (t: string) => table(
       t === 'programmes' ? 'programmes' : t === 'icps' ? 'icps' : t === 'leads' ? 'leads'
-      : t === 'figsy_campaigns' ? 'campaigns' : t === 'figsy_enrollments' ? 'enrollments' : 'clients',
+      : t === 'figsy_campaigns' ? 'campaigns' : t === 'figsy_enrollments' ? 'enrollments'
+      : t === 'opt_out_blocklist' ? 'blocklist' : 'clients',
     ),
     rpc: async () => ({ data: null, error: null }),
   },
@@ -110,7 +112,7 @@ vi.mock('./figsy', () => ({
   },
 }))
 
-import { prepareProgrammeOutreach, verifyProgrammeFulfilment } from './programme-preparation'
+import { prepareProgrammeOutreach, verifyProgrammeFulfilment, PREPARE_BUDGET } from './programme-preparation'
 
 const P_NEW = 'P_NEW'
 const H = 'house'
@@ -130,12 +132,17 @@ function seedProgrammeReadyForLive(over: Row = {}) {
   state.clients.push({ id: H, figsy_credits_remaining: 0, is_demo: false })
 }
 const newLead = (id: string, over: Row = {}) =>
-  state.leads.push({ id, client_id: H, icp_id: 'ICP_NEW', programme_id: P_NEW, delivered_at: 'd', status: 'scored', ...over })
+  state.leads.push({
+    id, client_id: H, icp_id: 'ICP_NEW', programme_id: P_NEW, delivered_at: 'd',
+    status: 'scored', email: `${id.toLowerCase()}@example.com`,
+    opted_out_at: null, provider_eviction_required_at: null, ...over,
+  })
 
 beforeEach(() => {
   state.programmes = []; state.icps = []; state.leads = []; state.campaigns = []
   state.enrollments = []; state.clients = []
   state.charges = []; state.sends = []; state.ensureCalls = []; state.ensureRefuses = false
+  state.blocklist = []
 })
 
 // ═══════════════════════════════════════════════════════════════════════════════════════
@@ -150,7 +157,8 @@ describe('① a House programme becomes OPERABLE, and costs nothing to do so', (
 
     const r = await prepareProgrammeOutreach(P_NEW)
 
-    expect(r.ok, r.problems.join(' | ')).toBe(true)
+    expect(r.complete, r.problems.join(' | ')).toBe(true)
+    expect(r.remaining).toBe(0)
     expect(r.campaigns).toHaveLength(1)
     expect(r.enrolled).toEqual(['L_NEW_1', 'L_NEW_2'])
     // Included fulfilment: no wallet charge, and the balance is not consulted as a gate.
@@ -215,7 +223,7 @@ describe('① a House programme becomes OPERABLE, and costs nothing to do so', (
     expect(first.enrolled).toHaveLength(2)
 
     const second = await prepareProgrammeOutreach(P_NEW)
-    expect(second.ok).toBe(true)
+    expect(second.complete).toBe(true)
     expect(second.enrolled, 'nothing new on a repeat').toEqual([])
     expect(second.alreadyEnrolled).toBe(2)
     expect(state.enrollments, 'no duplicate enrolment row').toHaveLength(2)
@@ -301,7 +309,7 @@ describe('③ a programme that could not be prepared never reports itself operab
   it('a programme with no eligible lead is NOT operable — nothing to send is not success', async () => {
     seedProgrammeReadyForLive({ status: 'LIVE', went_live_at: 'w' })
     const r = await prepareProgrammeOutreach(P_NEW)
-    expect(r.ok).toBe(false)
+    expect(r.complete).toBe(false)
     expect(r.problems.join(' ')).toMatch(/nothing to send/)
   })
 
@@ -314,7 +322,7 @@ describe('③ a programme that could not be prepared never reports itself operab
 
     state.ensureRefuses = false            // the operator fixed the cause
     const retry = await prepareProgrammeOutreach(P_NEW)
-    expect(retry.ok, retry.problems.join(' | ')).toBe(true)
+    expect(retry.complete, retry.problems.join(' | ')).toBe(true)
     expect(retry.enrolled).toEqual(['L1'])
     expect(state.enrollments).toHaveLength(1)
     expect(state.campaigns).toHaveLength(1)
@@ -367,11 +375,13 @@ describe('⑤ both Live paths reach the same preparation', () => {
     const at = prog.indexOf('export async function goLiveProgramme')
     const f = prog.slice(at, at + 3000)
     expect(f).toContain('const prep = await prepareProgrammeOutreach(programmeId)')
-    // The status write must come FIRST — `ensureCampaignForIcp` requires LIVE, so preparing
-    // before the transition would refuse itself.
-    expect(f.indexOf("status: 'LIVE'")).toBeLessThan(f.indexOf('prepareProgrammeOutreach'))
-    expect(f, 'a partial preparation is a failure, not a success').toContain('if (!prep.ok)')
-    expect(f).toContain('is LIVE but is NOT yet operable')
+    // ⛓️ THE ORDER IS NOW THE OTHER WAY, and that is the correction. LIVE is durable evidence
+    // that preparation SUCCEEDED, so it is written last — a response saying "preparation
+    // failed" is read once by one caller, while the ROW is read by every later reader.
+    expect(f.indexOf('prepareProgrammeOutreach')).toBeLessThan(f.indexOf("status: 'LIVE'"))
+    expect(f, 'an incomplete preparation must not transition').toContain('if (!prep.complete)')
+    expect(f).toContain('was NOT taken live because outreach preparation did not complete')
+    expect(f, 'it stays APPROVED and can send nothing').toContain('It remains APPROVED and can send nothing')
   })
 
   it('🛑 recordSecondPayment (paying client) prepares too — the same function', () => {
@@ -379,6 +389,11 @@ describe('⑤ both Live paths reach the same preparation', () => {
     const f = prog.slice(at, at + 4200)
     expect(f).toContain('const prep = await prepareProgrammeOutreach(params.programmeId)')
     expect(f, 'the paid path must report an incomplete preparation').toContain('preparationIncomplete: true')
+    // The money write no longer carries the status — payment truth and operational truth are
+    // two separate writes now.
+    expect(f).toContain('.update(base)')
+    expect(f.indexOf('.update(base)')).toBeLessThan(f.indexOf('prepareProgrammeOutreach'))
+    expect(f.indexOf('prepareProgrammeOutreach')).toBeLessThan(f.indexOf("status: 'LIVE', went_live_at"))
   })
 
   it('🛑 AND THE PAYMENT IS NEVER ROLLED BACK BY A PREPARATION FAILURE', () => {
@@ -386,13 +401,17 @@ describe('⑤ both Live paths reach the same preparation', () => {
     const f = prog.slice(at, at + 4200)
     // The money write commits before preparation is even called.
     expect(f.indexOf('second_payment_ref: params.sessionId')).toBeLessThan(f.indexOf('prepareProgrammeOutreach'))
+    // ⚠️ ASSERTED ON CODE, NOT PROSE — `strip()` removes comments, so a phrase from one can
+    // never be the evidence. The money update is unconditional: `.update(base)` with no
+    // ternary, unlike the old `blocked ? base : {...base, status:'LIVE'}` it replaced.
+    expect(f, 'the money write must carry no status branch').not.toMatch(/\.update\(blocked \?/)
     // …and nothing undoes it.
     // ⚠️ THE ASSERTION IS ABOUT THE WRITE, NOT THE PROSE. A first version also forbade the
     // word "refund", which matched the honest alert sentence "nothing was refunded or
     // reversed" — a check that failed on the very text proving the property.
     expect(f, 'the payment fields are never un-written').not.toMatch(/second_payment_ref:\s*null/)
     expect(f, 'the paid timestamp is never un-written').not.toMatch(/second_paid_at:\s*null/)
-    expect(f).toContain('nothing was refunded or reversed')
+    expect(f, 'the alert says plainly that nothing was reversed').toContain('Nothing was refunded, reversed or invented')
   })
 
   it('🛑 PREPARATION NEVER PASSES `force` — it is fulfilment, not a purchase', () => {
@@ -415,5 +434,179 @@ describe('⑤ both Live paths reach the same preparation', () => {
   it('there is ONE preparation implementation, not two', () => {
     const calls = (prog.match(/prepareProgrammeOutreach\(/g) ?? [])
     expect(calls.length, 'both Live paths, one function').toBe(2)
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// ⑥ VOLUME — 2,000 MUST NEVER SILENTLY MEAN "COMPLETE"
+// ═══════════════════════════════════════════════════════════════════════════════════════
+//
+// R77 sizes a programme at 250 prospects per targeted meeting, so a ten-meeting programme is
+// 2,500 people. The first version of this file stopped at a hard `.limit(2000)` and reported
+// the programme operable — 500 real prospects prepared for nobody, and a LIVE label over them.
+describe('⑥ the full eligible set is prepared, and anything left blocks LIVE', () => {
+  const seedN = (n: number) => { for (let i = 0; i < n; i++) newLead(`L${String(i).padStart(6, '0')}`) }
+
+  it('0 eligible leads → NOT complete, and it says there is nothing to send', async () => {
+    seedProgrammeReadyForLive({ status: 'LIVE', went_live_at: 'w' })
+    const r = await prepareProgrammeOutreach(P_NEW)
+    expect(r.complete).toBe(false)
+    expect(r.total).toBe(0)
+    expect(r.problems.join(' ')).toMatch(/nothing to send/)
+  })
+
+  it('1 eligible lead → complete, nothing remaining', async () => {
+    seedProgrammeReadyForLive({ status: 'LIVE', went_live_at: 'w' })
+    seedN(1)
+    const r = await prepareProgrammeOutreach(P_NEW)
+    expect(r.complete).toBe(true)
+    expect(r.total).toBe(1); expect(r.enrolled).toHaveLength(1); expect(r.remaining).toBe(0)
+  })
+
+  it('🛑 EXACTLY 2,000 — the old cap boundary — is prepared IN FULL', async () => {
+    seedProgrammeReadyForLive({ status: 'LIVE', went_live_at: 'w' })
+    seedN(2000)
+    const r = await prepareProgrammeOutreach(P_NEW)
+    expect(r.total).toBe(2000)
+    expect(r.enrolled).toHaveLength(2000)
+    expect(r.remaining).toBe(0)
+    expect(r.complete).toBe(true)
+  })
+
+  it('🛑 2,001 — one past the old cap — is NOT silently truncated', async () => {
+    seedProgrammeReadyForLive({ status: 'LIVE', went_live_at: 'w' })
+    seedN(2001)
+    const r = await prepareProgrammeOutreach(P_NEW)
+    expect(r.total).toBe(2001)
+    expect(r.enrolled, 'the 2,001st must not be dropped').toHaveLength(2001)
+    expect(r.remaining).toBe(0)
+    expect(r.complete).toBe(true)
+  })
+
+  it('🛑 2,500 — a real ten-meeting programme — is prepared IN FULL', async () => {
+    seedProgrammeReadyForLive({ status: 'LIVE', went_live_at: 'w' })
+    seedN(2500)
+    const r = await prepareProgrammeOutreach(P_NEW)
+    expect(r.total).toBe(2500)
+    expect(r.enrolled).toHaveLength(2500)
+    expect(r.remaining).toBe(0)
+    expect(r.complete).toBe(true)
+    // Pagination must not duplicate across page boundaries.
+    expect(new Set(state.enrollments.map(e => e.lead_id)).size).toBe(2500)
+    expect(state.enrollments).toHaveLength(2500)
+    // …and still no wallet, still no send.
+    expect(state.charges).toEqual([]); expect(state.sends).toEqual([])
+  })
+
+  it('🛑 BEYOND THE BUDGET → remaining > 0 AND complete === false', async () => {
+    // The invariant the founder set: `remaining > 0` ⇒ never LIVE. Proved at the budget
+    // boundary rather than assumed, because this is the branch that used to lie.
+    seedProgrammeReadyForLive({ status: 'LIVE', went_live_at: 'w' })
+    seedN(PREPARE_BUDGET + 25)
+    const r = await prepareProgrammeOutreach(P_NEW)
+    expect(r.enrolled).toHaveLength(PREPARE_BUDGET)
+    expect(r.remaining, 'the overflow is reported, never rounded up').toBe(25)
+    expect(r.complete).toBe(false)
+  })
+
+  it('…and a retry finishes the overflow without duplicating anything', async () => {
+    seedProgrammeReadyForLive({ status: 'LIVE', went_live_at: 'w' })
+    seedN(PREPARE_BUDGET + 25)
+    await prepareProgrammeOutreach(P_NEW)
+    const retry = await prepareProgrammeOutreach(P_NEW)
+    expect(retry.enrolled).toHaveLength(25)
+    expect(retry.alreadyEnrolled).toBe(PREPARE_BUDGET)
+    expect(retry.remaining).toBe(0)
+    expect(retry.complete).toBe(true)
+    expect(new Set(state.enrollments.map(e => e.lead_id)).size).toBe(PREPARE_BUDGET + 25)
+  })
+
+  it('every page re-applies the programme AND client filter', async () => {
+    // A paginated query that narrows only on its first page is how one drifts into another
+    // tenant. Two full pages of foreign rows sit either side of the real ones by id order.
+    seedProgrammeReadyForLive({ status: 'LIVE', went_live_at: 'w' })
+    seedN(1200)
+    for (let i = 0; i < 600; i++) {
+      state.leads.push({ id: `A${String(i).padStart(6, '0')}`, client_id: H, icp_id: 'ICP_NEW', programme_id: 'P_OTHER', delivered_at: 'd', status: 'scored', email: `a${i}@x.com`, opted_out_at: null, provider_eviction_required_at: null })
+      state.leads.push({ id: `Z${String(i).padStart(6, '0')}`, client_id: 'mbf', icp_id: 'ICP_NEW', programme_id: P_NEW, delivered_at: 'd', status: 'scored', email: `z${i}@x.com`, opted_out_at: null, provider_eviction_required_at: null })
+    }
+    const r = await prepareProgrammeOutreach(P_NEW)
+    expect(r.total).toBe(1200)
+    expect(r.enrolled).toHaveLength(1200)
+    for (const e of state.enrollments) expect(e.programme_id).toBe(P_NEW)
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// ⑦ ELIGIBILITY — NO ACTIVE ENROLMENT FOR SOMEBODY PERMANENTLY INELIGIBLE
+// ═══════════════════════════════════════════════════════════════════════════════════════
+describe('⑦ preparation reuses the existing suppression truth', () => {
+  beforeEach(() => seedProgrammeReadyForLive({ status: 'LIVE', went_live_at: 'w' }))
+
+  const excluded: [string, Row][] = [
+    ['status opted_out', { status: 'opted_out' }],
+    ['status rejected', { status: 'rejected' }],
+    ['status passed', { status: 'passed' }],
+    ['opted_out_at set', { opted_out_at: 'now' }],
+    ['provider eviction owed', { provider_eviction_required_at: 'now' }],
+    ['no email address', { email: null }],
+    ['not delivered', { delivered_at: null }],
+  ]
+  for (const [label, over] of excluded) {
+    it(`🛑 excludes ${label}`, async () => {
+      newLead('L_OK'); newLead('L_BAD', over)
+      const r = await prepareProgrammeOutreach(P_NEW)
+      expect(r.enrolled, label).toEqual(['L_OK'])
+      expect(state.enrollments.map(e => e.lead_id)).toEqual(['L_OK'])
+    })
+  }
+
+  it('🛑 excludes anyone on the CROSS-CLIENT opt-out blocklist', async () => {
+    // A person who opted out through any client is suppressed for all of them, and that fact
+    // lives in `opt_out_blocklist`, not on the lead row — the same table the send path reads.
+    newLead('L_OK'); newLead('L_BLOCKED')
+    state.blocklist.push({ email: 'l_blocked@example.com' })
+    const r = await prepareProgrammeOutreach(P_NEW)
+    expect(r.enrolled).toEqual(['L_OK'])
+    expect(r.skipped).toBe(1)
+  })
+
+  it('an unreadable blocklist FAILS CLOSED — not knowing is not permission', async () => {
+    newLead('L1')
+    const realFrom = (await import('@kind/db')).db.from
+    ;(await import('@kind/db')).db.from = ((t: string) =>
+      t === 'opt_out_blocklist'
+        ? ({ select: () => ({ in: async () => ({ data: null, error: { message: 'reset' } }) }) } as never)
+        : realFrom(t)) as typeof realFrom
+    try {
+      const r = await prepareProgrammeOutreach(P_NEW)
+      expect(r.complete).toBe(false)
+      expect(r.problems.join(' ')).toMatch(/opt-out blocklist/)
+      expect(state.enrollments).toHaveLength(0)
+    } finally { (await import('@kind/db')).db.from = realFrom }
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// ⑧ A PARTIALLY PREPARED PROGRAMME GAINS NO SEND AUTHORITY
+// ═══════════════════════════════════════════════════════════════════════════════════════
+describe('⑧ partial preparation cannot be sent, by anyone, until it completes', () => {
+  it('🛑 CAMPAIGN + SOME ENROLMENTS + A FAILURE → still APPROVED, and no send authority', async () => {
+    const { mayStartCampaign, authorityFor } = await import('./programme')
+      .then(async m => ({ mayStartCampaign: m.mayStartCampaign, authorityFor: (await import('./programme-authority')).authorityFor }))
+    // The programme is APPROVED with P2 — everything except the transition.
+    const row = {
+      id: P_NEW, client_id: H, status: 'APPROVED', approved_at: 'a', went_live_at: null,
+      second_authorised_at: 'i', second_paid_at: null, second_payment_ref: null,
+      paused_at: null,
+    } as never
+    // Neither gate grants anything to a non-LIVE programme, however many rows already exist.
+    expect(mayStartCampaign(row).allowed, 'the campaign gate refuses a non-LIVE programme').toBe(false)
+    expect(authorityFor(row, 'OUTREACH').allowed, 'outreach authority refuses it too').toBe(false)
+  })
+
+  it('and the send-selection layer only ever offers the OPEN programme\'s own work', () => {
+    const sd = readFileSync(join(join(__dirname, '..'), 'lib/send-due.ts'), 'utf8')
+    expect(sd).toContain("return (e as { programme_id?: string | null }).programme_id === openId")
   })
 })

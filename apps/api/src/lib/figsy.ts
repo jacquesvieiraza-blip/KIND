@@ -1976,7 +1976,24 @@ export async function campaignReadyLeadIds(clientId: string): Promise<string[]> 
     .map((l: { id: string }) => l.id)
 }
 
-export async function autoEnrollLead(leadId: string, clientId: string, opts?: { force?: boolean; prepaid?: boolean }): Promise<void> {
+/**
+ * ⚑ 2 Sep (PR A2) — `programmeFulfilment` IS ITS OWN MODE, NEVER `force`.
+ *
+ * 🛑 WHY NOT REUSE `force`. That flag means "a human approval BOUGHT this work" — the
+ * per-lead $4 approval. Reusing it for programme delivery would make every log line, every
+ * alert and every future reader of this function believe a client had approved and paid for
+ * an individual lead. Programme enrolment is INCLUDED FULFILMENT: the programme's own P1/P2
+ * economics already paid for delivery, and there is no per-lead purchase to represent. A flag
+ * that lies about why work happened is how the next defect gets built on top of it.
+ */
+export type EnrolMode = {
+  force?: boolean
+  prepaid?: boolean
+  /** The programme this enrolment is fulfilment for. Verified here, never trusted. */
+  programmeFulfilment?: { programmeId: string }
+}
+
+export async function autoEnrollLead(leadId: string, clientId: string, opts?: EnrolMode): Promise<void> {
   try {
     // #344 (AR-07) — KILL-SWITCH, checked BEFORE the charge. autoEnrollLead charges a
     // FIGSY credit then sends step 1; if the switch is off, sendSequenceEmail would defer
@@ -1989,9 +2006,34 @@ export async function autoEnrollLead(leadId: string, clientId: string, opts?: { 
     // has its OWN kill-switch check that returns 'deferred' without sending or advancing.
     // Net: approve charges $3 + creates the enrolment now; nothing leaves until the
     // switch is turned on. The auto (non-approve) path is unchanged — it still bails here.
-    if (!opts?.force && !outreachEnabled()) {
+    // ⚑ PROGRAMME FULFILMENT PREPARES WHILE THE SWITCH IS OFF, AND THAT IS THE POINT.
+    // `AUTO_OUTREACH_ENABLED` is the AUTOMATIC SEND control. Making a programme operable is
+    // preparation, not sending — and the send at the bottom of this function still consults
+    // the switch itself, so a prepared programme with the switch off has enrolments and has
+    // sent nothing. Every other caller keeps the original bail unchanged.
+    if (!opts?.force && !opts?.programmeFulfilment && !outreachEnabled()) {
       console.warn(`[figsy] autoEnrollLead: AUTO_OUTREACH_ENABLED != true — not enrolling/charging lead ${leadId} (kill-switch off).`)
       return
+    }
+
+    // ── 🛑 PROGRAMME AUTHORITY IS RE-PROVED HERE, NOT TAKEN ON TRUST ────────────────────
+    //
+    // The caller (`programme-preparation.ts`) has already checked all of this. It is checked
+    // AGAIN because a guard that depends on another guard having run is not a guard — and the
+    // thing being unlocked is the wallet bypass. If this claim were ever wrong, a legacy lead
+    // would be enrolled for free against a programme it does not belong to.
+    //
+    // Everything here is read from the DATABASE, never from the caller's argument: the lead's
+    // own `programme_id`, its client, and the programme row itself.
+    let programmeFulfilment: { programmeId: string } | null = null
+    if (opts?.programmeFulfilment) {
+      const { verifyProgrammeFulfilment } = await import('./programme-preparation')
+      const v = await verifyProgrammeFulfilment(leadId, clientId, opts.programmeFulfilment.programmeId)
+      if (!v.ok) {
+        console.warn(`[figsy] autoEnrollLead: programme fulfilment REFUSED for lead ${leadId} — ${v.reason}. Nothing enrolled, nothing charged.`)
+        return
+      }
+      programmeFulfilment = opts.programmeFulfilment
     }
 
     // ONE ICP = ONE CAMPAIGN (flow v2). A lead's campaign is decided by the ICP that found
@@ -2162,7 +2204,15 @@ export async function autoEnrollLead(leadId: string, clientId: string, opts?: { 
     // Billing gate (item 166): FIGSY is charged at ENROLLMENT — one FIGSY credit =
     // one lead enrolled. Don't enroll (or spend a Claude draft) when the FIGSY pool
     // is empty; upstream delivery is already capped by this pool — this is the backstop.
-    if (!isDemo && !canEnroll(client?.figsy_credits_remaining)) {
+    // ⚑ PROGRAMME FULFILMENT DOES NOT CONSULT THE LEGACY WALLET (founder ruling, 2 Sep):
+    // "P1/P2 programme economics pay for programme delivery. Enrolment is NOT separately
+    // billable." A programme client holding zero FIGSY credits has still paid in full, and
+    // for a PAYING programme client this gate would have charged them a second time for
+    // delivery their programme price already covers.
+    //
+    // ⚠️ THE GATE IS UNTOUCHED FOR EVERYONE ELSE. A client with no programme reaches it
+    // exactly as before — the $299 pack model is what is actually selling.
+    if (!isDemo && !programmeFulfilment && !canEnroll(client?.figsy_credits_remaining)) {
       console.warn(`[figsy] autoEnrollLead: client ${clientId} has no FIGSY credits — skipping enrollment for lead ${leadId}.`)
       return
     }
@@ -2265,7 +2315,7 @@ export async function autoEnrollLead(leadId: string, clientId: string, opts?: { 
     // = demo or already-paid (never refund — nothing taken here); 'failed' = wallet too
     // low (don't enrol, don't refund).
     const chargeResult: EnrollChargeResult =
-      (isDemo || opts?.prepaid) ? 'skipped' : await chargeFigsyEnroll(clientId, lead)
+      (isDemo || opts?.prepaid || programmeFulfilment) ? 'skipped' : await chargeFigsyEnroll(clientId, lead)
     if (chargeResult === 'failed') {
       console.warn(`[figsy] autoEnrollLead: charge failed for lead ${leadId} — not enrolling (nothing charged).`)
       return

@@ -356,9 +356,13 @@ describe('⑤ Make live is its own act, and repeating it rewrites nothing', () =
     ]) {
       dbState.programme = asRow(P({ status: 'APPROVED', approved_at: 'a', ...over })); dbState.writes = []
       const r = await goLiveProgramme('prog-1')
-      expect(r.ok).toBe(true)
+      // ⛓️ `ok` NOW MEANS OPERABLE, NOT MERELY TRANSITIONED. This fixture has no attached ICP,
+      // so preparation legitimately cannot complete and the call reports that — which is the
+      // whole point of the change. What THIS test is about is the AUTHORITY decision, so it
+      // asserts the transition write and that the refusal is about preparation, never about P2.
       expect(dbState.writes[0].patch).toMatchObject({ status: 'LIVE' })
       expect(dbState.writes[0].patch.went_live_at).toBeTruthy()
+      if (!r.ok) expect(r.reason, 'P2 must not be the reason').toMatch(/NOT yet operable/)
     }
   })
 
@@ -386,8 +390,22 @@ describe('⑤ Make live is its own act, and repeating it rewrites nothing', () =
   })
 
   it('and the route records no second audit event for a no-op', () => {
+    // ⛓️ The condition gained a second arm: a go-live whose PREPARATION failed is also worth
+    // recording, because "live but not operable" is exactly the event somebody must find
+    // later. An already-live no-op still writes nothing — it has neither a transition nor a
+    // preparation result.
     const routes = strip(raw(join(API, 'routes/programme.ts')))
-    expect(routes).toMatch(/if \(r\.ok && !r\.alreadyLive\) await auditProgramme\(req, 'programme_go_live'/)
+    expect(routes).toContain("if (r.preparation || (r.ok && !r.alreadyLive)) {")
+    expect(routes).toContain("auditProgramme(req, 'programme_go_live'")
+    // ⚠️ SCOPED TO THE RESPONSE. `operable: r.ok` also appears in the audit detail, so an
+    // unscoped substring check stayed green while the payload was hardcoded to `true`.
+    // Scoped to the go-live route itself, from its definition to the end of its response.
+    const route = routes.indexOf("programmeRouter.post('/:id/go-live'")
+    expect(route, 'the go-live route must be found').toBeGreaterThan(-1)
+    const at = routes.indexOf('already_live:', route)
+    expect(at, 'the go-live response must be found').toBeGreaterThan(-1)
+    const payload = routes.slice(at, at + 200)
+    expect(payload, 'the response must say whether it is operable, not just live').toContain('operable: r.ok')
   })
 })
 
@@ -1319,5 +1337,88 @@ describe('㉒ a programme can never inherit a pre-programme campaign through a s
     const sw = strip(raw(join(API, 'lib/start-work.ts')))
     expect(sw, 'ensureCampaignForIcp still reuses and re-activates — which is why attach must refuse')
       .toContain("update({ status: 'active' }).eq('id', existing.id)")
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// ㉓ PROGRAMME ENROLMENT IS INCLUDED FULFILMENT — the wallet is not consulted, nor spent
+// ═══════════════════════════════════════════════════════════════════════════════════════
+//
+// Founder ruling, 2 Sep: "P1/P2 programme economics pay for programme delivery. Enrolment is
+// NOT separately billable." Proved against the real `autoEnrollLead` source, because the three
+// facts that matter are all conditions inside it.
+describe('㉓ the legacy wallet is bypassed for programme work and untouched for everyone else', () => {
+  const fig = strip(raw(join(API, 'lib/figsy.ts')))
+
+  it('🛑 `programmeFulfilment` IS ITS OWN MODE — `force` is not reused', () => {
+    // `force` means "a human approval BOUGHT this work" — the per-lead $4 semantics. Reusing
+    // it would make every log line and alert claim a purchase that never happened.
+    expect(fig).toContain('programmeFulfilment?: { programmeId: string }')
+    expect(fig).toContain('export type EnrolMode')
+  })
+
+  it('the wallet GATE is skipped only for proven programme fulfilment', () => {
+    expect(fig).toContain('if (!isDemo && !programmeFulfilment && !canEnroll(client?.figsy_credits_remaining))')
+  })
+
+  it('the wallet CHARGE is skipped only for proven programme fulfilment', () => {
+    expect(fig).toContain("(isDemo || opts?.prepaid || programmeFulfilment) ? 'skipped' : await chargeFigsyEnroll(clientId, lead)")
+  })
+
+  it('🛑 THE BYPASS IS UNLOCKED BY A DATABASE CHECK, NOT BY THE CALLER\'S ARGUMENT', () => {
+    // A guard that depends on another guard having run is not a guard — and what is being
+    // unlocked here is free enrolment.
+    expect(fig).toContain('const { verifyProgrammeFulfilment } = await import(\'./programme-preparation\')')
+    expect(fig).toContain('const v = await verifyProgrammeFulfilment(leadId, clientId, opts.programmeFulfilment.programmeId)')
+    // …and a refusal returns before anything is written.
+    const at = fig.indexOf('if (!v.ok) {')
+    const gate = fig.indexOf('canEnroll(client?.figsy_credits_remaining)')
+    expect(at).toBeGreaterThan(-1)
+    expect(at, 'the verification must precede the wallet decision').toBeLessThan(gate)
+  })
+
+  it('preparation is allowed while AUTO_OUTREACH_ENABLED is off — but the SEND still is not', () => {
+    // Preparing is not sending. The bail is relaxed for programme fulfilment; the send at the
+    // bottom of the function still consults `sendSequenceEmail`, which has its own switch.
+    expect(fig).toContain('if (!opts?.force && !opts?.programmeFulfilment && !outreachEnabled())')
+    expect(fig, 'the send path is untouched').toContain('await sendSequenceEmail(')
+  })
+
+  it('and no programme path creates revenue, a payment or an invoice', () => {
+    const prep = strip(raw(join(API, 'lib/programme-preparation.ts')))
+    for (const forbidden of ['chargeFigsyEnroll', 'figsy_credits_remaining', 'credit_transactions', 'stripe', 'invoice']) {
+      expect(prep, `preparation must never touch ${forbidden}`).not.toMatch(new RegExp(forbidden, 'i'))
+    }
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// ㉔ THE FRIDAY RUNBOOK — programme first, then the fresh ICP
+// ═══════════════════════════════════════════════════════════════════════════════════════
+describe('㉔ the fresh-ICP ordering is a real property of the code, not a hope', () => {
+  it('🛑 CREATING AN ICP ATTEMPTS A CAMPAIGN IMMEDIATELY — which is why order matters', () => {
+    const op = strip(raw(join(API, 'routes/operator.ts')))
+    expect(op).toContain("void ensureCampaignForIcp(client.id, data.id, data.name, { activate: true })")
+  })
+
+  it('…and that attempt is REFUSED for a client whose programme is not yet LIVE', () => {
+    // So an ICP created AFTER the programme exists stays campaign-clean, and can be attached.
+    // The refusal happens before any insert — the programme gate sits above the try block.
+    const sw = strip(raw(join(API, 'lib/start-work.ts')))
+    const gate = sw.indexOf("const verdict = await checkProgrammeAuthority(clientId, 'OUTREACH')")
+    const insert = sw.indexOf("db.from('figsy_campaigns')")
+    expect(gate, 'the programme gate must exist').toBeGreaterThan(-1)
+    expect(gate, 'and must precede any campaign write').toBeLessThan(insert)
+    expect(sw).toContain('return { refused:')
+  })
+
+  it('an ICP created BEFORE the programme keeps its campaign, and attach then refuses it', async () => {
+    // The operator-error case. Not redesigned for Friday — refused clearly instead.
+    dbState.programme = asRow(P({ status: 'SOURCING_AUTHORISED', client_id: 'H' }))
+    dbState.icp = { id: 'I_EARLY', client_id: 'H', name: 'Made too early', is_active: true, programme_id: null }
+    dbState.campaigns = [{ id: 'C', name: 'Outbound campaign', status: 'active' }]
+    const r = await attachIcpToProgramme('prog-1', 'I_EARLY')
+    expect(r.ok).toBe(false)
+    expect(r.ok === false && r.reason).toMatch(/Create a new ICP for this programme/)
   })
 })

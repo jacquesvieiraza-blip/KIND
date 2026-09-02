@@ -367,7 +367,13 @@ export default function VidaConsolePage() {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}',
       }).then(r => r.json())
       if (!j?.success) throw new Error(j?.error || `${label} failed`)
-      setLcMsg(`${label} — done.`)
+      // ⚑ "Live" is not the same claim as "operable", so the screen says both. A go-live that
+      // prepared nothing is the exact state an operator must not read as finished.
+      const prep = j?.preparation as { campaigns: string[]; enrolled: string[]; alreadyEnrolled: number } | null | undefined
+      setLcMsg(prep
+        ? `${label} — done. ${prep.campaigns.length} campaign(s) ready · ${prep.enrolled.length} prospect(s) enrolled` +
+          `${prep.alreadyEnrolled ? ` · ${prep.alreadyEnrolled} already enrolled` : ''}. Nothing has been sent.`
+        : `${label} — done.`)
       // Re-read rather than patching local state: the row is the truth, and a screen that
       // guesses the new state is a screen that can be wrong about it.
       if (selected) await loadProgramme(selected)

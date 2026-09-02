@@ -338,7 +338,7 @@ export async function authoriseSecondInternal(programmeId: string): Promise<Prog
  * and no second transition is recorded — and only a genuine transition writes, guarded by
  * `.is('went_live_at', null)` so two concurrent presses cannot both stamp a time.
  */
-export async function goLiveProgramme(programmeId: string): Promise<ProgrammeResult & { alreadyLive?: boolean }> {
+export async function goLiveProgramme(programmeId: string): Promise<ProgrammeResult & { alreadyLive?: boolean; preparation?: import('./programme-preparation').PrepareResult }> {
   const p = await getProgramme(programmeId)
   if (!p) return { ok: false, reason: 'No such programme.' }
   if (p.status === 'LIVE' && p.went_live_at) return { ok: true, alreadyLive: true }
@@ -357,7 +357,32 @@ export async function goLiveProgramme(programmeId: string): Promise<ProgrammeRes
   }).eq('id', programmeId).is('went_live_at', null).select()
   if (error) return { ok: false, reason: error.message }
   if (!data || data.length === 0) return { ok: true, alreadyLive: true }
-  return { ok: true }
+
+  // ── ⚑ LIVE MUST MEAN OPERABLE, NOT A STATUS LABEL ────────────────────────────────────
+  //
+  // 🛑 THE STATUS IS WRITTEN FIRST, ON PURPOSE. Preparation needs the programme to BE live —
+  // `ensureCampaignForIcp` asks `mayStartCampaign`, which requires LIVE — so preparing before
+  // the transition would refuse itself. The order is therefore: transition, then prepare,
+  // then tell the truth about what actually happened.
+  //
+  // ⚠️ A PARTIAL RESULT IS REPORTED AS A FAILURE, and the row stays LIVE. Rolling the status
+  // back would be worse: `went_live_at` is the compare-and-set key, so un-setting it would
+  // hand a second press a fresh transition and a second audit event for a go-live that
+  // already happened. Instead the programme is genuinely live, genuinely not yet operable,
+  // and the caller is told exactly which part is missing — and pressing Make live again
+  // re-runs preparation and completes what is outstanding, because preparation is idempotent.
+  const { prepareProgrammeOutreach } = await import('./programme-preparation')
+  const prep = await prepareProgrammeOutreach(programmeId)
+  if (!prep.ok) {
+    return {
+      ok: false,
+      preparation: prep,
+      reason:
+        'The programme is LIVE but is NOT yet operable: ' + prep.problems.join(' ') +
+        ' Nothing has been sent. Fix the cause and press Make live again — preparation is idempotent and will complete what is missing.',
+    }
+  }
+  return { ok: true, preparation: prep }
 }
 
 // ── PAYMENTS ─────────────────────────────────────────────────────────────────────────────
@@ -427,7 +452,12 @@ export async function recordSecondPayment(params: {
   programmeId: string
   sessionId: string
   paymentIntentId?: string | null
-}): Promise<{ ok: boolean; alreadyRecorded?: boolean; recordedNotLive?: boolean; reason?: string }> {
+}): Promise<{
+  ok: boolean; alreadyRecorded?: boolean; recordedNotLive?: boolean; reason?: string
+  /** ⚑ What preparation achieved. `preparationIncomplete` means PAID + LIVE but not operable. */
+  preparation?: import('./programme-preparation').PrepareResult
+  preparationIncomplete?: boolean
+}> {
   const p = await getProgramme(params.programmeId)
   if (!p) return { ok: false, reason: 'No such programme.' }
   if (p.second_payment_ref === params.sessionId) {
@@ -473,7 +503,32 @@ export async function recordSecondPayment(params: {
       ])
     return { ok: true, recordedNotLive: true }
   }
-  return { ok: true }
+
+  // ── ⚑ THE PAID PATH USES THE SAME PREPARATION AS MAKE LIVE ───────────────────────────
+  //
+  // 🛑 THE PAYMENT IS ALREADY RECORDED AND IS NEVER UNDONE BY WHAT HAPPENS NEXT. The update
+  // above committed `second_payment_ref`, `second_paid_at`, the intent and the LIVE
+  // transition; money that arrived is a fact regardless of whether the machinery that follows
+  // succeeds. There is no rollback, no fake refund and no reversal here — the worst outcome is
+  // a paid, live, not-yet-operable programme, and a human being told so.
+  //
+  // ⚠️ ONE MECHANISM, BOTH PATHS. House reaches this through Make live; a paying client
+  // reaches it through this webhook. Two implementations of "operable" would drift, and the
+  // one that drifted would be the one nobody walked.
+  const { prepareProgrammeOutreach } = await import('./programme-preparation')
+  const prep = await prepareProgrammeOutreach(params.programmeId)
+  if (!prep.ok) {
+    // Loud, because the client has now paid in full for a programme that cannot yet work.
+    void sendFounderAlert('payment_failed',
+      'Programme second payment recorded and LIVE — but outreach preparation did NOT complete', [
+        `Programme ${params.programmeId} (client ${p.client_id}) is paid and LIVE.`,
+        `Preparation did not complete: ${prep.problems.join(' ')}`,
+        'The payment is recorded correctly and nothing was refunded or reversed.',
+        'Press Make live in Vida to retry — preparation is idempotent and completes what is missing.',
+      ])
+    return { ok: true, preparation: prep, preparationIncomplete: true }
+  }
+  return { ok: true, preparation: prep }
 }
 
 /** Which Stripe stage a metadata blob describes, or null if it is not a programme payment. */

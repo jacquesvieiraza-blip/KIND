@@ -338,8 +338,27 @@ programmeRouter.post('/:id/go-live', guard(async (req: Request, res: Response) =
   const r = await goLiveProgramme(req.params.id)
   // ⚠️ NO AUDIT ROW FOR A NO-OP. An already-live programme did not transition, and recording
   // a second "went live" would put an event in the log that never happened.
-  if (r.ok && !r.alreadyLive) await auditProgramme(req, 'programme_go_live', req.params.id, { by: pressedBy(req) })
-  res.status(r.ok ? 200 : 400).json({ success: r.ok, error: r.reason, already_live: r.alreadyLive ?? false })
+  //
+  // ⚑ THE AUDIT RECORDS WHAT PREPARATION ACHIEVED, including a partial one. A go-live that
+  // left the programme unable to work its leads is exactly the event somebody will need to
+  // find later, so it is written whether or not preparation completed.
+  if (r.preparation || (r.ok && !r.alreadyLive)) {
+    await auditProgramme(req, 'programme_go_live', req.params.id, {
+      by: pressedBy(req),
+      operable: r.ok,
+      campaigns: r.preparation?.campaigns.length ?? 0,
+      enrolled: r.preparation?.enrolled.length ?? 0,
+      already_enrolled: r.preparation?.alreadyEnrolled ?? 0,
+      problems: r.preparation?.problems ?? [],
+      sent: 'nothing — preparation creates campaigns and enrolments only',
+    })
+  }
+  res.status(r.ok ? 200 : 400).json({
+    success: r.ok, error: r.reason, already_live: r.alreadyLive ?? false,
+    // 🛑 THE SCREEN MUST NOT BE ABLE TO SAY "LIVE" WITHOUT SAYING WHETHER IT WORKS.
+    operable: r.ok,
+    preparation: r.preparation ?? null,
+  })
 }))
 
 /**

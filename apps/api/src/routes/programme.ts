@@ -23,6 +23,7 @@ import { quoteProgramme } from '@kind/shared'
 import {
   createProgramme, getProgramme, openProgrammeForClient, recommendProgramme,
   awaitFirstPayment, markReadyForApproval, approveProgramme, pauseProgramme, resumeProgramme,
+  authoriseFirstInternal, authoriseSecondInternal, goLiveProgramme,
   maySecondCharge, mayStartCampaign, mayComplete, completeProgramme,
   computeContribution, finaliseContribution, writeProgrammePartnerCommission,
   recordMakeWhole, nextBatchSize, ProgrammeStorageError,
@@ -174,6 +175,40 @@ programmeRouter.post('/:id/checkout/first', guard(async (req: Request, res: Resp
   if (!r.url) { res.status(502).json({ success: false, error: r.error ?? 'Could not create checkout.' }); return }
   await awaitFirstPayment(p.id)
   res.json({ success: true, url: r.url, sessionId: r.sessionId })
+}))
+
+/**
+ * RECOMMENDED → AWAITING_FIRST_PAYMENT, WITHOUT minting a Stripe checkout.
+ *
+ * ⚑ 2 Sep. `awaitFirstPayment` had no route of its own — it existed only as a side-effect of
+ * `/checkout/first`, which creates a Stripe session. House must reach this state and must
+ * never create a checkout, so the transition needed a door of its own. It creates no session,
+ * records no payment and writes no money: it is the status move and nothing else.
+ */
+programmeRouter.post('/:id/await-first-payment', guard(async (req: Request, res: Response) => {
+  const r = await awaitFirstPayment(req.params.id)
+  res.status(r.ok ? 200 : 400).json({ success: r.ok, error: r.reason })
+}))
+
+/**
+ * 🔐 INTERNAL P1 AUTHORITY — sourcing authorised without money (House / Client Zero).
+ * The valid state is enforced in `authoriseFirstInternal`, not here and not in the button.
+ */
+programmeRouter.post('/:id/authorise/first', guard(async (req: Request, res: Response) => {
+  const r = await authoriseFirstInternal(req.params.id)
+  res.status(r.ok ? 200 : 400).json({ success: r.ok, error: r.reason })
+}))
+
+/** 🔐 INTERNAL P2 AUTHORITY. Does NOT make the programme live — that is `/go-live`. */
+programmeRouter.post('/:id/authorise/second', guard(async (req: Request, res: Response) => {
+  const r = await authoriseSecondInternal(req.params.id)
+  res.status(r.ok ? 200 : 400).json({ success: r.ok, error: r.reason })
+}))
+
+/** The explicit Make Live. Already-live returns success and writes nothing. */
+programmeRouter.post('/:id/go-live', guard(async (req: Request, res: Response) => {
+  const r = await goLiveProgramme(req.params.id)
+  res.status(r.ok ? 200 : 400).json({ success: r.ok, error: r.reason, data: { alreadyLive: r.alreadyLive === true } })
 }))
 
 programmeRouter.post('/:id/ready-for-approval', guard(async (req: Request, res: Response) => {

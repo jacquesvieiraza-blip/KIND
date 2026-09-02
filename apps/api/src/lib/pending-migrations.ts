@@ -3153,6 +3153,74 @@ CREATE INDEX IF NOT EXISTS leads_batch_idx     ON public.leads (batch_id)     WH
 
 `.trim(),
   },
+  {
+    // ⚑ 2 Sep — INTERNAL PROGRAMME AUTHORITY, for House / Client Zero.
+    //
+    // 🛑 THE PROBLEM. `first_paid_at` is simultaneously the sourcing key AND the revenue
+    // trigger: `computeContribution` reads `(first_paid_at ? first_payment_cents : 0)`. So
+    // authorising House by setting it would invent revenue on a client that has paid nothing
+    // — and a partner's commission derives from that same figure.
+    //
+    // Two nullable timestamps separate AUTHORITY from MONEY. No `authority_source` column:
+    // P1 and P2 are independent authorities and could legitimately differ in source, so one
+    // programme-level enum could only lie about a mixed programme. The source is DERIVED per
+    // stage — `first_paid_at` means paid, `first_authorised_at` means internal — and the
+    // operator audit log carries who and why.
+    key: '20260902_programme_internal_authority',
+    title: 'Internal programme authority (House P1/P2 without fake money) + per-stage XOR',
+    sql: `
+ALTER TABLE public.programmes
+  ADD COLUMN IF NOT EXISTS first_authorised_at  timestamptz,
+  ADD COLUMN IF NOT EXISTS second_authorised_at timestamptz;
+
+COMMENT ON COLUMN public.programmes.first_authorised_at IS
+  'Internal P1 authority (House / Client Zero). Set ONLY by the operator route, never by Stripe. Carries no money: no first_paid_at, no first_payment_ref, and computeContribution never reads it.';
+COMMENT ON COLUMN public.programmes.second_authorised_at IS
+  'Internal P2 authority. Does NOT make the programme live — went_live_at is a separate, explicit founder action.';
+
+-- ── PER-STAGE XOR, CREATED ONLY IF MISSING ───────────────────────────────────────────────
+--
+-- ⚠️ NOT "DROP CONSTRAINT IF EXISTS; ADD CONSTRAINT". The runner has no ledger and executes
+-- every entry on every run, and \`ADD CONSTRAINT ... CHECK\` takes an ACCESS EXCLUSIVE lock and
+-- revalidates the whole table. Dropping and re-adding would pay that cost on each run AND
+-- leave a window with no constraint at all, during which a concurrent write could insert the
+-- very row that then makes the re-ADD fail. The RLS policies elsewhere in this file use
+-- DROP/CREATE safely because a policy is catalogue-only; a CHECK is not.
+--
+-- SAFE ON A POPULATED TABLE: both columns are added NULL with no default and no backfill, so
+-- \`*_authorised_at IS NULL\` short-circuits the OR for every existing row.
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+     WHERE conrelid = 'public.programmes'::regclass
+       AND conname  = 'programmes_p1_authority_xor'
+  ) THEN
+    ALTER TABLE public.programmes
+      ADD CONSTRAINT programmes_p1_authority_xor CHECK (
+        first_authorised_at IS NULL
+        OR (first_paid_at IS NULL
+            AND first_payment_ref IS NULL
+            AND first_payment_intent_id IS NULL)
+      );
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+     WHERE conrelid = 'public.programmes'::regclass
+       AND conname  = 'programmes_p2_authority_xor'
+  ) THEN
+    ALTER TABLE public.programmes
+      ADD CONSTRAINT programmes_p2_authority_xor CHECK (
+        second_authorised_at IS NULL
+        OR (second_paid_at IS NULL
+            AND second_payment_ref IS NULL
+            AND second_payment_intent_id IS NULL)
+      );
+  END IF;
+END $$;
+`.trim(),
+  },
 ]
 
 // Runs the statements against DATABASE_URL. Uses node-postgres because the Supabase JS

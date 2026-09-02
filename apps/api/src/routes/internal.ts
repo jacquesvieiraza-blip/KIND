@@ -1565,8 +1565,31 @@ internalRouter.post('/ae/low-credits', async (_req: Request, res: Response) => {
 
     let sent = 0
 
+    // ⚑ 2 Sep — R87 · THE PROGRAMME FENCE THIS ROUTE NEVER GOT, AND IT IS A LIVE BREACH.
+    //
+    // 🛑 THE 31-AUG FENCE LANDED ON THE SIBLING. `/ae/zero-credits` carries BOTH its sweeps
+    // behind `mayNotify` — but this is a SEPARATE route with its own daily cron (`40 7 * * *`),
+    // and it sends the same retired sentence with no fence at all: *"You have N lead credits
+    // remaining. Top up now to keep your ICP running."*
+    //
+    // Founder ruling D1 (R87): *"Remove Low credits from the Milla programme experience.
+    // Milla programme customers must not receive retired low-credit emails."* A programme
+    // customer's own billing page tells them there is no wallet, no pack and no per-lead
+    // price — and this cron was emailing that same person about their credit balance every
+    // morning. Truth per-page is not truth per-customer.
+    //
+    // ⚠️ HOUSE IS PROTECTED BY ACCIDENT TODAY, NOT BY RULE: its ~$4k legacy wallet is far above
+    // the `credit_balance < 5` filter. Zeroing that wallet — a locked House action — would put
+    // it back in range the next morning. The fence is the rule; the balance was luck.
+    //
+    // ⚠️ FAILS CLOSED on an unreadable programme table, exactly as the sibling does. A retired
+    // email in a programme customer's inbox cannot be recalled; a missed nudge to a legacy
+    // client is a delay.
+    const lowProgrammes = await programmeClientIds((clients ?? []).map((c: { id: string }) => c.id))
+
     for (const client of clients ?? []) {
       try {
+        if (!mayNotify('low_credits', { onProgramme: onProgramme(lowProgrammes, client.id) })) continue
         // Don't spam — max once per 24 hours
         if (client.last_low_credit_email_at && client.last_low_credit_email_at > oneDayAgo) continue
 

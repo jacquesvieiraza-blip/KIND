@@ -275,6 +275,13 @@ export default function VidaConsolePage() {
       sourcing_ceiling: number; sourced_used: number; sourced_reserved: number; room_remaining: number
       paused_at: string | null; pause_reason: string | null
       approved_at: string | null; second_paid_at: string | null
+      // ⚑ 2 Sep — the seven values the lifecycle controls need to decide visibility.
+      // ⚠️ `*_payment_intent_id` is deliberately absent: the backend guards read it from the
+      // full row, and the panel has no honest use for it.
+      recommended_volume: number
+      first_paid_at: string | null; first_payment_ref: string | null
+      second_payment_ref: string | null; went_live_at: string | null
+      first_authorised_at: string | null; second_authorised_at: string | null
       review_required_at: string | null; review_reason: string | null; review_resolved_at: string | null
       review_trigger_leads: number; batch_size: number
     }
@@ -285,6 +292,11 @@ export default function VidaConsolePage() {
   }
   const [prog, setProg] = useState<ProgrammeTruth | null>(null)
   const [progErr, setProgErr] = useState<string | null>(null)
+  // ⚑ 2 Sep — the programme lifecycle controls. `lcMeetings` has NO default: the meeting
+  // target fixes the sourcing ceiling and the price curve, so it must be chosen, not inherited.
+  const [lcMeetings, setLcMeetings] = useState('')
+  const [lcBusy, setLcBusy] = useState<string | null>(null)
+  const [lcMsg, setLcMsg] = useState<{ ok: boolean; text: string } | null>(null)
   const loadProgramme = useCallback(async (clientId: string) => {
     setProgErr(null)
     try {
@@ -293,6 +305,67 @@ export default function VidaConsolePage() {
       setProg(j.data as ProgrammeTruth)
     } catch (e) { setProgErr(e instanceof Error ? e.message : 'Failed to load programme'); setProg(null) }
   }, [])
+
+  // ⚑ 2 Sep — WHICH LIFECYCLE CONTROL IS OFFERED, mirroring each backend function's own valid
+  // state. The backend re-checks every one of these; this decides what a human is SHOWN.
+  //
+  // 🛑 THERE IS NO 'approve' CASE. The one programme approval belongs to the customer in Milla.
+  function lcCan(action: string): boolean {
+    const p = prog?.programme
+    if (!p) return action === 'create'
+    if (p.paused_at) return false
+    if (p.status === 'COMPLETED' || p.status === 'CANCELLED') return false
+    const p1Paid = !!(p.first_paid_at || p.first_payment_ref)
+    const p2Paid = !!(p.second_paid_at || p.second_payment_ref)
+    const p2Ok = !!(p.second_authorised_at || (p.second_paid_at && p.second_payment_ref))
+    switch (action) {
+      case 'recommend':            return p.status === 'DRAFT'
+      case 'await-first-payment':  return p.status === 'RECOMMENDED'
+      // The paid path passes through AWAITING_FIRST_PAYMENT, so the internal one may not skip it.
+      case 'authorise/first':      return p.status === 'AWAITING_FIRST_PAYMENT' && !p1Paid && !p.first_authorised_at
+      case 'ready-for-approval':   return p.status === 'SOURCING_AUTHORISED' || p.status === 'SOURCING'
+      case 'authorise/second':     return p.status === 'APPROVED' && !!p.approved_at && !p2Paid && !p.second_authorised_at
+      // Live needs P2 authority AND an approval — never P2 alone.
+      case 'go-live':              return p.status === 'APPROVED' && !!p.approved_at && !p.went_live_at && p2Ok
+      default:                     return false
+    }
+  }
+
+  /**
+   * One confirmed click → one request. Every action names the client, and the two internal
+   * authority actions say in the dialog that no money is recorded — because the single worst
+   * outcome here is an operator believing a payment happened.
+   */
+  async function lifecycle(action: string, label: string) {
+    const p = prog?.programme
+    const name = (clients ?? []).find(c => c.id === selected)?.company_name || 'this client'
+    let confirmText = `${label} for ${name}?`
+    if (action === 'create') confirmText = `Create a programme for ${name} with a target of ${lcMeetings} meeting(s)?\n\nNo money is charged and no invoice is created. It starts at Proof with no authority.`
+    if (action === 'await-first-payment') confirmText = `Move ${name}'s programme to Awaiting Payment 1?\n\nNo checkout is created and no payment is requested — this is the status move only.`
+    if (action === 'authorise/first') confirmText = `Record INTERNAL P1 authority for ${name}?\n\nThis authorises sourcing and preparation up to ${p?.recommended_volume ?? '?'} prospects. No money is recorded, no invoice is created and no revenue is counted.`
+    if (action === 'authorise/second') confirmText = `Record INTERNAL P2 authority for ${name}?\n\nThis does NOT make the programme live — Make Live is a separate action. No money is recorded.`
+    if (action === 'go-live') confirmText = `Make ${name}'s programme LIVE?\n\nOutreach becomes permitted for this programme. Sending still requires the outreach switch and every send-safety gate.`
+    if (!window.confirm(confirmText)) return
+
+    setLcBusy(action); setLcMsg(null)
+    try {
+      const url = action === 'create'
+        ? '/api/proxy/programmes'
+        : `/api/proxy/programmes/${p!.id}/${action}`
+      const body = action === 'create'
+        ? { client_id: selected, meetings: Number(lcMeetings) }
+        : {}
+      const j = await fetch(url, {
+        method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body),
+      }).then(r => r.json())
+      if (!j?.success) throw new Error(j?.error || `${label} failed`)
+      setLcMsg({ ok: true, text: `${label} — done.` })
+      if (selected) await loadProgramme(selected)
+    } catch (e) {
+      setLcMsg({ ok: false, text: e instanceof Error ? e.message : `${label} failed` })
+    }
+    setLcBusy(null)
+  }
 
   // ⚑ 30 Aug (BUILD-003 PR4) — POOL + EXCEPTIONS. Platform-wide, so they load independently of
   // the selected client and are refreshed when their tab is opened.
@@ -2498,10 +2571,94 @@ export default function VidaConsolePage() {
 
                   {!prog ? <p className="text-[13.5px] text-[#9b8ec4] text-center py-8">Loading…</p>
                    : !prog.programme ? (
-                    <p className="text-[13.5px] text-[#9b8ec4] text-center py-8">
-                      No programme for this client. They are on the legacy model ($299 pack · 100 included · $4 per approved lead), which is unaffected by programme controls.
-                    </p>
+                    <div className="text-center py-8">
+                      <p className="text-[13.5px] text-[#9b8ec4]">
+                        No programme for this client. They are on the legacy model ($299 pack · 100 included · $4 per approved lead), which is unaffected by programme controls.
+                      </p>
+                      {/* ⚑ 2 Sep — the ONLY way to open a programme in the product. Before this
+                          the whole lifecycle was reachable by API call alone. The meeting target
+                          has NO default on purpose: it fixes the sourcing ceiling and the price
+                          curve, and a number nobody chose is a number nobody owns. */}
+                      <div className="mt-4 inline-flex items-center gap-2">
+                        <label className="text-[12px] text-[#5c5279]">Meeting target</label>
+                        <input value={lcMeetings} onChange={e => setLcMeetings(e.target.value.replace(/[^0-9]/g, ''))}
+                          placeholder="e.g. 4" inputMode="numeric"
+                          className="w-20 text-[12px] border border-[#e4dcf7] rounded-lg px-2 py-1 bg-white" />
+                        <button onClick={() => lifecycle('create', 'Create programme')}
+                          disabled={lcBusy !== null || !lcMeetings.trim()}
+                          className="text-[11.5px] font-bold text-white bg-[#7C3AED] rounded-lg px-3 py-1.5 disabled:opacity-50">
+                          {lcBusy === 'create' ? 'Creating…' : 'Create programme'}
+                        </button>
+                      </div>
+                      {lcMsg && <p className={`text-[11.5px] font-semibold mt-2 ${lcMsg.ok ? 'text-emerald-700' : 'text-red-600'}`}>{lcMsg.text}</p>}
+                    </div>
                    ) : (<>
+                    {/* ⚑ 2 Sep — THE PROGRAMME LIFECYCLE, OPERABLE IN THE PRODUCT.
+                        Every transition below already existed as a backend function; NONE had a
+                        frontend caller anywhere in the repo, so the whole lifecycle was reachable
+                        only by hand-issued API calls. These are the missing controls.
+
+                        🛑 THERE IS DELIBERATELY NO APPROVE BUTTON. The locked lifecycle is
+                        client review → ONE programme approval → P2, and that approval belongs to
+                        the CUSTOMER in Milla. House is Client Zero precisely so the real customer
+                        experience gets proved, and an operator approval here would be a
+                        workaround that skips the thing we are trying to test. Vida stops at
+                        READY_FOR_APPROVAL and waits.
+
+                        ⚠️ VISIBILITY MIRRORS THE BACKEND GATES, IT DOES NOT REPLACE THEM. Every
+                        function re-checks its own valid state — a hidden button is presentation,
+                        and a route is callable without the screen. */}
+                    <div className="border border-[#eee7f7] rounded-xl px-3 py-2.5 mb-3 bg-white">
+                      <p className="text-[10px] font-extrabold uppercase tracking-[0.08em] text-[#b3a9cc] mb-2">Lifecycle</p>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {lcCan('recommend') && (
+                          <button onClick={() => lifecycle('recommend', 'Recommend')} disabled={lcBusy !== null}
+                            className="text-[11.5px] font-bold text-[#7C3AED] border border-[#e4dcf7] rounded-lg px-2.5 py-1 hover:bg-[#f7f4fd] disabled:opacity-50">
+                            {lcBusy === 'recommend' ? '…' : 'Recommend'}</button>
+                        )}
+                        {lcCan('await-first-payment') && (
+                          <button onClick={() => lifecycle('await-first-payment', 'Move to P1')} disabled={lcBusy !== null}
+                            className="text-[11.5px] font-bold text-[#7C3AED] border border-[#e4dcf7] rounded-lg px-2.5 py-1 hover:bg-[#f7f4fd] disabled:opacity-50">
+                            {lcBusy === 'await-first-payment' ? '…' : 'Move to P1'}</button>
+                        )}
+                        {lcCan('authorise/first') && (
+                          <button onClick={() => lifecycle('authorise/first', 'Authorise P1 internally')} disabled={lcBusy !== null}
+                            className="text-[11.5px] font-bold text-white bg-[#7C3AED] rounded-lg px-2.5 py-1 disabled:opacity-50">
+                            {lcBusy === 'authorise/first' ? '…' : 'Authorise P1 internally'}</button>
+                        )}
+                        {lcCan('ready-for-approval') && (
+                          <button onClick={() => lifecycle('ready-for-approval', 'Ready for approval')} disabled={lcBusy !== null}
+                            className="text-[11.5px] font-bold text-[#7C3AED] border border-[#e4dcf7] rounded-lg px-2.5 py-1 hover:bg-[#f7f4fd] disabled:opacity-50">
+                            {lcBusy === 'ready-for-approval' ? '…' : 'Ready for approval'}</button>
+                        )}
+                        {lcCan('authorise/second') && (
+                          <button onClick={() => lifecycle('authorise/second', 'Authorise P2 internally')} disabled={lcBusy !== null}
+                            className="text-[11.5px] font-bold text-white bg-[#7C3AED] rounded-lg px-2.5 py-1 disabled:opacity-50">
+                            {lcBusy === 'authorise/second' ? '…' : 'Authorise P2 internally'}</button>
+                        )}
+                        {lcCan('go-live') && (
+                          <button onClick={() => lifecycle('go-live', 'Make programme Live')} disabled={lcBusy !== null}
+                            className="text-[11.5px] font-bold text-white bg-emerald-600 rounded-lg px-2.5 py-1 disabled:opacity-50">
+                            {lcBusy === 'go-live' ? '…' : 'Make programme Live'}</button>
+                        )}
+                        {prog.programme.status === 'READY_FOR_APPROVAL' && (
+                          <span className="text-[11.5px] font-semibold text-[#b45309] bg-[#fffbeb] border border-[#fcd34d] rounded-lg px-2.5 py-1">
+                            Awaiting client approval in Milla
+                          </span>
+                        )}
+                      </div>
+                      {/* State, said truthfully. "internal authority" — never "paid". */}
+                      <p className="text-[11px] text-[#9b8ec4] mt-2 leading-relaxed">
+                        P1 — {prog.programme.first_authorised_at ? <b>internal authority</b>
+                          : prog.programme.first_paid_at ? 'payment recorded' : 'not authorised'}
+                        {' · '}
+                        P2 — {prog.programme.second_authorised_at ? <b>internal authority</b>
+                          : prog.programme.second_paid_at ? 'payment recorded' : 'not authorised'}
+                        {prog.programme.went_live_at && ' · LIVE'}
+                      </p>
+                      {lcMsg && <p className={`text-[11.5px] font-semibold mt-2 ${lcMsg.ok ? 'text-emerald-700' : 'text-red-600'}`}>{lcMsg.text}</p>}
+                    </div>
+
                     <div className={`border rounded-xl px-3 py-2.5 mb-3 ${
                       prog.programme.state === 'paused' ? 'border-amber-300 bg-amber-50/60'
                       : prog.programme.state === 'blocked' ? 'border-red-300 bg-red-50/60'

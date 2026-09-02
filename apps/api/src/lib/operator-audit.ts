@@ -58,6 +58,16 @@ export type OperatorAction =
   | 'start_campaign'        // created + activated a client's campaign (managed model, no spend)
   | 'send_reply'            // answered a prospect on the client's behalf from Vida's Inbox
   | 'assign_inbox'          // V9 #270/#271 — pooled/branded sending inbox lifecycle
+  | 'programme_lifecycle'   // ⚑ 2 Sep — an operator moved a programme between lifecycle
+                            // states from Vida (create · recommend · move to P1 · ready for
+                            // approval). No money, no send.
+  | 'programme_internal_authority' // ⚑ 2 Sep — INTERNAL P1 or P2 authority recorded for House.
+                            // Its own action because it is the one way a programme gains
+                            // sourcing or go-live authority WITHOUT a payment: the row is the
+                            // only record that a human, not Stripe, opened that door.
+  | 'programme_go_live'     // ⚑ 2 Sep — the explicit Make Live. Separate from P2 on purpose:
+                            // for House they are two founder decisions, and this is the last
+                            // product control before outreach is permitted at all.
   | 'operator_send_run'     // ⚑ 2 Sep — the founder pressed Run-once: ONE client, an explicit
                             // max_sends ceiling, real campaign sends under the operator send
                             // authority while AUTO_OUTREACH_ENABLED stays off. Audited because

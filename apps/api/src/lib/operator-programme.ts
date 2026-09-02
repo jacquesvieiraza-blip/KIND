@@ -78,6 +78,16 @@ export type ProgrammeTruth = {
     pause_reason: string | null
     approved_at: string | null
     second_paid_at: string | null
+    // ⚑ 2 Sep — the seven values the Vida lifecycle controls need to decide visibility.
+    // ⚠️ `*_payment_intent_id` is deliberately NOT here: the backend guards inspect it from the
+    // full row, and the panel has no honest use for it.
+    recommended_volume: number
+    first_paid_at: string | null
+    first_payment_ref: string | null
+    second_payment_ref: string | null
+    went_live_at: string | null
+    first_authorised_at: string | null
+    second_authorised_at: string | null
     review_required_at: string | null
     review_reason: string | null
     review_resolved_at: string | null
@@ -99,7 +109,8 @@ export type ProgrammeTruth = {
 const PROGRAMME_COLUMNS =
   'id, client_id, status, meeting_target, recommended_volume, first_paid_at, second_paid_at, ' +
   'first_payment_ref, second_payment_ref, sourcing_ceiling, sourced_used, sourced_reserved, ' +
-  'approved_at, went_live_at, paused_at, pause_reason, review_required_at, review_reason, review_resolved_at'
+  'approved_at, went_live_at, paused_at, pause_reason, review_required_at, review_reason, review_resolved_at, ' +
+  'first_payment_intent_id, second_payment_intent_id, first_authorised_at, second_authorised_at'
 
 const BATCH_COLUMNS = 'id, programme_id, seq, status, requested, granted, delivered, created_at, settled_at'
 
@@ -218,6 +229,13 @@ export async function programmeTruthFor(clientId: string): Promise<ProgrammeTrut
       pause_reason: p.pause_reason,
       approved_at: p.approved_at,
       second_paid_at: p.second_paid_at,
+      recommended_volume: p.recommended_volume,
+      first_paid_at: p.first_paid_at,
+      first_payment_ref: p.first_payment_ref,
+      second_payment_ref: p.second_payment_ref,
+      went_live_at: p.went_live_at,
+      first_authorised_at: p.first_authorised_at,
+      second_authorised_at: p.second_authorised_at,
       review_required_at: p.review_required_at ?? null,
       review_reason: p.review_reason ?? null,
       review_resolved_at: p.review_resolved_at ?? null,

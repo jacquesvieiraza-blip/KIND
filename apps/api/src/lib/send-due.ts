@@ -143,6 +143,34 @@ export async function runSendDue(mode: SendDueMode): Promise<SendDueResult> {
     if (cid) sentByCampaign.set(cid, (sentByCampaign.get(cid) ?? 0) + 1)
   }
 
+  // ── ⚑ 2 Sep · POSITIVE PROGRAMME ATTRIBUTION AT SELECTION ───────────────────────────────
+  //
+  // 🛑 A CLIENT_ID IS NOT A PROGRAMME. House carries ~263 enrollments and ~166 leads from a
+  // RETIRED legacy desk, every one with `programme_id = NULL`. Selecting by client alone puts
+  // that history into the candidate set of the new programme's first real run — and a real
+  // prospect is at the other end of each one.
+  //
+  // ⚠️ SO ATTRIBUTION MUST BE POSITIVE, NOT INFERRED. Where the client has an OPEN programme,
+  // only rows carrying THAT programme's id are candidates. A null id is not "probably current";
+  // it is pre-programme history, and treating null as a match IS the bleed.
+  //
+  // ⚠️ AND LEGACY IS UNTOUCHED. A client with no open programme selects exactly as before —
+  // the $299 pack model is what is actually selling, and this narrows nothing for it. The
+  // authority layer applies the identical rule, so a row that slipped past here would still be
+  // refused; this filter is what stops it being offered in the first place.
+  const openProgrammeByClient = new Map<string, string | null>()
+  for (const cid of new Set((activeCamps ?? []).map((c: { client_id: string }) => c.client_id))) {
+    const { openProgrammeFor } = await import('./programme-authority')
+    try {
+      const open = await openProgrammeFor(cid as string)
+      openProgrammeByClient.set(cid as string, open?.id ?? null)
+    } catch {
+      // Unreadable programme state is NOT "no programme" — it is "we cannot tell". Excluding
+      // the client is the fail-closed answer; the alternative silently grants legacy freedom.
+      openProgrammeByClient.set(cid as string, '__unreadable__')
+    }
+  }
+
   const now = new Date().toISOString()
   const fetchCeil = Math.min(Math.max(budget, 1) * 5, 2000)
   const { data: due } = await db.from('figsy_enrollments')
@@ -155,7 +183,14 @@ export async function runSendDue(mode: SendDueMode): Promise<SendDueResult> {
 
   // FAIR ORDER (#320): group by client, then interleave round-robin so one client's backlog
   // cannot starve another under the shared cap.
-  const dueRows = due ?? []
+  const dueRows = (due ?? []).filter(e => {
+    const cid = (e as { client_id?: string | null }).client_id ?? null
+    if (!cid) return false
+    const openId = openProgrammeByClient.get(cid)
+    if (openId === '__unreadable__') return false          // fail closed
+    if (openId == null) return true                        // genuine legacy client — unchanged
+    return (e as { programme_id?: string | null }).programme_id === openId
+  })
   const byClient = new Map<string, typeof dueRows>()
   for (const e of dueRows) {
     const cid = ((e as { client_id?: string | null }).client_id) ?? 'unknown'

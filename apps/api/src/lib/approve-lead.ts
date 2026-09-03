@@ -28,6 +28,9 @@ export type ApproveOutcome =
   | { status: 'insufficient_funds'; revealed: false } // wallet < $4 — nothing moved (402)
   | { status: 'no_campaign'; revealed: false }     // no active campaign → can't work it → NOT charged
   | { status: 'launch_hold'; revealed: false; country: string | null } // outside the launch allowlist → NOT charged
+  // The client has an OPEN PROGRAMME, so the legacy per-lead commercial path is closed to
+  // them (founder-locked 3 Sep). Nothing revealed, nothing charged, nothing enrolled.
+  | { status: 'programme_fenced'; revealed: false; message: string }
   | { status: 'not_found'; revealed: false }
 
 // ── #625 — THE NO-CAMPAIGN RULE, IN ONE PLACE ─────────────────────────────────────────────
@@ -105,6 +108,29 @@ async function refuseNoCampaign(
 
 export async function approveLead(leadId: string, clientId: string): Promise<ApproveOutcome> {
   const now = new Date().toISOString()
+
+  // ── 🛑 0. THE PROGRAMME FENCE — BEFORE THE CLAIM, WHICH MEANS BEFORE EVERYTHING ───────
+  //
+  // Founder-locked 3 Sep: a client with an OPEN PROGRAMME may not use the legacy per-lead
+  // commercial paths. `batchGate` already refuses all three routes that reach this function,
+  // and this is the SECOND layer rather than a duplicate of the first.
+  //
+  // ⚠️ WHY BOTH. The route gate protects the three doors that exist today; this protects the
+  // function itself, so a fourth caller added later inherits the refusal instead of having to
+  // remember it. The repository's own history is the argument: `approveLead` is described as
+  // "shared with the operator-on-behalf path in Vida", and a shared money function whose only
+  // guard lives in one of its callers is one import away from being unguarded.
+  //
+  // ⚠️ AND IT IS THE FIRST STATEMENT IN THE BODY, deliberately. The very next thing this
+  // function does is stamp `revealed_at` — the claim below is a WRITE, not a read — so any
+  // position after it would mutate programme work before refusing. Nothing above this line
+  // touches the database.
+  const { checkLegacyPerLeadAuthority } = await import('./programme-authority')
+  const fence = await checkLegacyPerLeadAuthority(clientId)
+  if (!fence.allowed) {
+    console.warn(`[approve] lead ${leadId} NOT approved — ${fence.code}; client ${clientId} has an open programme, so the legacy per-lead path is closed. Nothing revealed, nothing charged.`)
+    return { status: 'programme_fenced', revealed: false, message: fence.message }
+  }
 
   // 1. Atomic claim — only the FIRST approve of this lead wins. This is the
   //    once-per-lead gate for the $4 charge.

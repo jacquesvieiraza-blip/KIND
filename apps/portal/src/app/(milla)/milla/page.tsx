@@ -11,6 +11,10 @@ import ProductTour from '@/components/ProductTour'
 // wallet top-up still belongs (it does not appear on this home any more).
 import { MILLA_FAILURE_COPY, STAGE_QUICK_ACTION, type MillaStage } from '@kind/shared'
 import ProgrammeWorkspace, { nextActionFor, type CustomerProgramme } from '@/components/milla/ProgrammeWorkspace'
+// ⚑ 3 Sep (PR B) — THE CUSTOMER'S REVIEW AND THEIR ONE APPROVAL (R39, 15 Aug: "the client
+// approves in Milla"). ADDITIVE: it renders BELOW the existing workspace and only at the
+// Approval stage, so every other stage's screen is byte-for-byte what it was.
+import ProgrammeReview from '@/components/milla/ProgrammeReview'
 import { proofWaitState, invalidateProofSnapshot, classifyClaimFailure, isReconciling, PROOF_WAIT_MS } from '@/lib/proof-start'
 
 // #497/#503/#506/#495 — MILLA HOME (docs/mv-previews/milla2.html): KPI cards row + Milla
@@ -1320,7 +1324,21 @@ export default function MillaHomePage() {
           ) : !prog ? (
             <div className="px-3.5 py-3"><p className="text-[14px] text-[#9b8ec4]">Loading your programme…</p></div>
           ) : prog.stage !== 'Proof' ? (
-            <div className="px-3.5 py-3 overflow-y-auto"><ProgrammeWorkspace p={prog} /></div>
+            <div className="px-3.5 py-3 overflow-y-auto">
+              <ProgrammeWorkspace p={prog} />
+              {/* ⚑ 3 Sep (PR B) — REVIEW + THE ONE APPROVAL, AT THE APPROVAL STAGE ONLY.
+                  `millaStage` maps BOTH `READY_FOR_APPROVAL` and `APPROVED` to 'Approval', so
+                  this covers the before and the after of the customer's single act: the
+                  prospects and the button, then the approved state and the same prospects.
+                  ⚠️ THE WORKSPACE ABOVE IS UNTOUCHED. It still renders exactly as it did at
+                  every stage including this one — the review is added beneath it, never in
+                  place of it, because the stage rail and the money facts are still true. */}
+              {prog.stage === 'Approval' && (
+                <div className="mt-4 pt-4 border-t border-[#eee7f7]">
+                  <ProgrammeReview token={token} />
+                </div>
+              )}
+            </div>
           ) : (
           <div className="px-3.5 py-3 overflow-y-auto grid gap-2.5 grid-cols-1 [@media(min-width:1100px)]:grid-cols-2 [@media(min-width:1600px)]:grid-cols-3 items-start content-start">
             {/* the wallet top-up banner is gone with the paid desk */}

@@ -68,3 +68,114 @@ myProgrammeRouter.get('/', async (req: AuthRequest, res) => {
     res.status(503).json({ success: false, error: MILLA_FAILURE_COPY.pipelineFailed })
   }
 })
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// THE CUSTOMER'S REVIEW, AND THE ONE APPROVAL THEY GIVE
+//
+// R39, founder-locked 15 Aug: **"We run it in Vida; the client approves in Milla."**
+//
+// ⚠️ THE ROUTER'S EXISTING PROMISE IS NARROWED HERE, DELIBERATELY AND ONCE. Its header says
+// "READ-ONLY. This router performs no writes at all." That was correct when the only customer
+// programme act was reading, and it is no longer the whole truth: the customer's ONE approval
+// is a write, it is theirs, and R39 says it happens in Milla. Everything else stays true —
+// there is still exactly one write in this file, it moves no money, and payment and go-live
+// keep their own routes and their own guards.
+//
+// 🛑 AND THE ADMIN SURFACE IS UNTOUCHED. `routes/programme.ts` still gates every operator route
+// behind `adminKeyValid`; `POST /programmes/:id/approve` still exists for the operator. This is
+// not a loosening of that gate — it is a second door with its own, weaker, correctly-scoped
+// authority: a session that proves it owns the client, and nothing else.
+// ═══════════════════════════════════════════════════════════════════════════════════════
+
+/**
+ * The programme this customer may review or approve, resolved from THEIR OWN session.
+ *
+ * ⚠️ THE PROGRAMME IS NEVER TAKEN FROM THE REQUEST. There is no `:id` in these routes and no
+ * body field that names a programme — the client comes from the session and the programme comes
+ * from the client. A customer who wants to approve somebody else's programme has nowhere to put
+ * the id. That is stronger than validating one, because there is no parameter to get wrong.
+ */
+async function openProgrammeForSession(clientId: string) {
+  const { openProgrammeForClient } = await import('../lib/programme')
+  return openProgrammeForClient(clientId)
+}
+
+// ── GET /my/programme/review — the masked prospects for THIS programme ─────────────────
+myProgrammeRouter.get('/review', async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+
+    const p = await openProgrammeForSession(clientId)
+    if (!p) { res.json({ success: true, data: { programme: null, prospects: [], total: 0, canApprove: false } }); return }
+
+    const { readProgrammeReviewSet } = await import('../lib/programme-review')
+    const set = await readProgrammeReviewSet(clientId, p.id)
+
+    res.json({
+      success: true,
+      data: {
+        programme: {
+          id: p.id,
+          status: p.status,
+          meeting_target: p.meeting_target ?? null,
+          approved_at: p.approved_at ?? null,
+          paused: !!p.paused_at,
+        },
+        prospects: set.prospects,
+        total: set.total,
+        // ⚠️ THE BUTTON'S ENABLED-NESS IS DECIDED SERVER-SIDE, and re-decided by the POST. This
+        // is what the UI renders from; it is NOT what authorises anything.
+        canApprove: p.status === 'READY_FOR_APPROVAL' && !p.paused_at && set.total > 0,
+      },
+    })
+  } catch (err) {
+    // 🛑 A FAILED READ IS NOT AN EMPTY DESK. Returning `[]` here would render "we found nobody"
+    // to a customer whose programme is full of people — and then offer them an approval button
+    // for a set they cannot see. 503 and the locked sentence instead.
+    console.error('[programme/me/review]', err)
+    res.status(503).json({ success: false, error: MILLA_FAILURE_COPY.pipelineFailed })
+  }
+})
+
+// ── POST /my/programme/approve — THE ONE CUSTOMER APPROVAL ─────────────────────────────
+//
+// 🛑 WHAT THIS IS NOT: it is not P2, it is not go-live, it is not send authority, and it is not
+// a per-lead approval. It writes `status = APPROVED` and `approved_at`, and every one of those
+// other things keeps its own separate act with its own separate guard.
+myProgrammeRouter.post('/approve', async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+
+    const p = await openProgrammeForSession(clientId)
+    if (!p) { res.status(404).json({ success: false, error: 'not_found', message: 'No such programme.' }); return }
+
+    const { approveProgrammeAsCustomer } = await import('../lib/programme')
+    const r = await approveProgrammeAsCustomer(clientId, p.id)
+
+    if (!r.ok) {
+      // ⚠️ THE STATUS CODE CARRIES THE MEANING, so Milla can tell "not yet" from "broken".
+      // `nothing_to_review` is a 409, not a 200 with a sad message: the founder's rule is that
+      // a READY_FOR_APPROVAL programme with an empty desk must FAIL VISIBLY.
+      const code = r.code === 'not_found' ? 404
+        : r.code === 'unreadable' ? 503
+        : 409
+      res.status(code).json({ success: false, error: r.code, message: r.reason })
+      return
+    }
+
+    res.json({
+      success: true,
+      data: {
+        id: r.programme.id,
+        status: r.programme.status,
+        approved_at: r.programme.approved_at ?? null,
+        already_approved: r.alreadyApproved,
+      },
+    })
+  } catch (err) {
+    console.error('[programme/me/approve]', err)
+    res.status(503).json({ success: false, error: MILLA_FAILURE_COPY.pipelineFailed })
+  }
+})

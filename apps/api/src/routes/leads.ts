@@ -823,12 +823,18 @@ leadRouter.post('/:id/reveal', rateLimit({ limit: 60, windowMs: 60_000, key: 'le
     if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
     // The minimum-20 gate applies to every door into the money path, or it isn't a gate.
     const revealGate = await batchGate(clientId, [req.params.id])
+    // ⚠️ THE FENCE IS ANSWERED BEFORE THE BATCH MINIMUM, because they are different refusals:
+    // "choose 20" invites them to do more of a thing they may no longer do at all.
+    if ('fenced' in revealGate) { res.status(409).json({ success: false, error: revealGate.fenced.code, message: revealGate.fenced.message }); return }
     if ('refusal' in revealGate) { res.status(409).json({ success: false, error: 'batch_minimum', required: revealGate.refusal.required, message: revealGate.refusal.reason }); return }
     // ONE WALLET — reveal and approve are the SAME money event now: a single flat $4
     // charged once per lead. Delegate to approveLead so there is exactly one money path.
     const { approveLead } = await import('../lib/approve-lead')
     const outcome = await approveLead(req.params.id, clientId)
     if (outcome.status === 'not_found') { res.status(404).json({ success: false, error: 'Lead not found' }); return }
+    // The function's own programme fence. `batchGate` above already refused this client, so
+    // reaching here would mean the two layers disagree — answered identically either way.
+    if (outcome.status === 'programme_fenced') { res.status(409).json({ success: false, error: 'programme_open', message: outcome.message }); return }
     if (outcome.status === 'insufficient_funds') { res.status(402).json({ success: false, error: 'insufficient_funds', message: 'You need $4 in your wallet to approve. Top up to continue.' }); return }
     if (outcome.status === 'no_email') { res.status(422).json({ success: false, error: 'no_email_found', message: 'We could not find a verified email for this lead — you were not charged.' }); return }
     if (outcome.status === 'already_in_crm') { res.status(409).json({ success: false, error: 'already_in_crm', message: 'This contact is already in your CRM — no charge.' }); return }
@@ -897,7 +903,22 @@ const COLD_MAIL_OFF = {
 async function batchGate(
   clientId: string,
   requestedIds: string[],
-): Promise<{ refusal: BatchCheck } | { valid: string[] }> {
+): Promise<{ fenced: { code: string; message: string } } | { refusal: BatchCheck } | { valid: string[] }> {
+  // 🛑 THE PROGRAMME FENCE COMES FIRST, AND BEFORE EVERY OTHER LINE IN THIS FUNCTION.
+  //
+  // Founder-locked 3 Sep: a client with an OPEN PROGRAMME may not use the legacy per-lead
+  // commercial paths at all. This is the single chokepoint all three of them share — approve,
+  // reveal and approve-batch each call `batchGate` before they call `approveLead` — so placing
+  // it here fences all three with one line that cannot be forgotten on a fourth route.
+  //
+  // ⚠️ ITS POSITION IS THE GUARANTEE. Everything that mutates or charges happens inside
+  // `approveLead`, which runs only after this function returns something other than a refusal.
+  // So the refusal lands before `revealed_at`, before the pack row, before `try_charge_wallet`,
+  // before `autoEnrollLead` — not "early in the flow" but strictly before the first of them.
+  const { checkLegacyPerLeadAuthority } = await import('../lib/programme-authority')
+  const fence = await checkLegacyPerLeadAuthority(clientId)
+  if (!fence.allowed) return { fenced: { code: fence.code, message: fence.message } }
+
   const { checkBatch } = await import('../lib/approval-batch')
 
   // Which of the submitted ids are genuinely approvable RIGHT NOW, for THIS client.
@@ -927,6 +948,7 @@ leadRouter.post('/:id/approve', rateLimit({ limit: 60, windowMs: 60_000, key: 'l
     const clientId = await getClientId(req.userId!)
     if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
     const gate = await batchGate(clientId, [req.params.id])
+    if ('fenced' in gate) { res.status(409).json({ success: false, error: gate.fenced.code, message: gate.fenced.message }); return }
     if ('refusal' in gate) { res.status(409).json({ success: false, error: 'batch_minimum', required: gate.refusal.required, message: gate.refusal.reason }); return }
     const { approveLead } = await import('../lib/approve-lead')
     const outcome = await approveLead(req.params.id, clientId)
@@ -975,6 +997,7 @@ leadRouter.post('/approve-batch', rateLimit({ limit: 12, windowMs: 60_000, key: 
     if (ids.length > 200) { res.status(400).json({ success: false, error: 'Too many at once — 200 max.' }); return }
 
     const gate = await batchGate(clientId, ids)
+    if ('fenced' in gate) { res.status(409).json({ success: false, error: gate.fenced.code, message: gate.fenced.message }); return }
     if ('refusal' in gate) { res.status(409).json({ success: false, error: 'batch_minimum', required: gate.refusal.required, message: gate.refusal.reason }); return }
     // Work on what the gate VALIDATED, not on what was posted. Anything the client sent
     // that wasn't theirs, wasn't surfaced or was already decided is simply not here.

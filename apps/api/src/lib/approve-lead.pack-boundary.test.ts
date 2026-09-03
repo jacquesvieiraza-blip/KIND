@@ -46,6 +46,14 @@ function makeQuery(table: string) {
     neq() { return q }, is() { return q }, in() { return q }, not() { return q },
     order() { return q }, limit() { return q },
     async maybeSingle() {
+      // ⚑ 3 Sep (PR B) — THIS FIXTURE'S CLIENT IS A LEGACY PACK CLIENT WITH NO PROGRAMME, and
+      // it now has to SAY so. `approveLead` opens with the legacy per-lead fence, which reads
+      // `programmes` for an open row and FAILS CLOSED on anything it cannot interpret. The
+      // fallthrough below answered every unknown table with `leadRow`, so the fence read a
+      // lead as a programme and refused — a fixture gap, not a behaviour change. The $299 pack
+      // model this file tests is exactly the no-programme case the founder locked as
+      // UNCHANGED, so the honest answer here is "no programme", stated rather than implied.
+      if (table === 'programmes') return { data: null, error: null }
       if (table === 'figsy_campaigns') return { data: { id: 'camp1' }, error: null }
       // The re-approve path asks the ledger "was a wallet charge written for this lead?"
       if (table === 'credit_transactions') return { data: existingChargeRow, error: null }

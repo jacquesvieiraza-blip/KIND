@@ -59,6 +59,13 @@ function makeQuery(table: string) {
     insert() { return { then: (r: (v: unknown) => unknown) => r({ error: null }) } },
     delete() { return { eq: () => ({ then: (r: (v: unknown) => unknown) => r({ error: null }) }) } },
     async maybeSingle() {
+      // ⚑ 3 Sep (PR B) — A LEGACY CLIENT WITH NO PROGRAMME, STATED RATHER THAN IMPLIED.
+      // `approveLead` now opens with the legacy per-lead fence, which reads `programmes` and
+      // fails closed on anything it cannot interpret. Without this line the fallthrough
+      // answered that read with `LEAD` and the fence saw a lead as an open programme. These
+      // tests are the paid per-lead model — the no-programme case the founder locked as
+      // UNCHANGED — so "no programme" is the honest fixture answer.
+      if (table === 'programmes') return { data: null, error: null }
       if (table === 'figsy_campaigns') return { data: { id: 'camp1' }, error: null }
       if (table === 'credit_transactions') return { data: null, error: null }
       if (table === 'clients') return { data: { id: 'c1', user_id: 'u1', leads_per_run: 200, sourcing_allowance: 0 }, error: null }

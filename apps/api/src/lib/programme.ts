@@ -582,6 +582,122 @@ export async function approveProgramme(programmeId: string): Promise<ProgrammeRe
   return { ok: true }
 }
 
+/**
+ * ── THE CUSTOMER'S OWN APPROVAL — THE ONE COMMERCIAL ACTION THEY TAKE ───────────────────
+ *
+ * R39 (founder-locked 15 Aug): *"We run it in Vida; the client approves in Milla."* This is
+ * that sentence as a function, and it is deliberately NOT `approveProgramme` with a client
+ * argument bolted on.
+ *
+ * ⚠️ WHY A SEPARATE FUNCTION AT ALL. `approveProgramme` takes a programme id and nothing else,
+ * which is correct behind `routes/programme.ts`'s router-level `adminKeyValid` — an operator
+ * who already proved admin authority is not also proving tenancy. A customer proves the
+ * opposite: they have no admin authority and their ONLY claim is ownership. Adding an optional
+ * client parameter to the operator function would make tenancy something a caller can forget
+ * to pass; here it is the first argument and there is no shape of this call without it.
+ *
+ * 🛑 IT WRITES EXACTLY TWO COLUMNS: `status` and `approved_at`. Not P2, not `went_live_at`, not
+ * a payment, not a wallet, not an invoice. Programme approval ≠ P2 ≠ Live ≠ send authority, and
+ * this function is where that sentence has to be true rather than documented.
+ *
+ * ⚠️ IDEMPOTENT BY COMPARE-AND-SET, NOT BY RE-READING. The status guard below is a READ, and a
+ * read cannot make two concurrent double-clicks safe: both would see READY_FOR_APPROVAL and
+ * both would write, and the second write would REPLACE `approved_at` with a later timestamp —
+ * a moved audit date on the one act the customer performed. So the write itself carries
+ * `.eq('status', 'READY_FOR_APPROVAL')`: the database decides the winner, and the loser gets
+ * `already_approved` from the re-read rather than a second write. The pre-read stays because
+ * it is what produces a HONEST REFUSAL REASON for every other state.
+ */
+export type CustomerApproval =
+  | { ok: true; programme: ProgrammeRow; alreadyApproved: boolean }
+  | { ok: false; code: CustomerApprovalRefusal; reason: string }
+
+export type CustomerApprovalRefusal =
+  | 'not_found'          // no such programme, or not this client's — deliberately the same code
+  | 'paused'
+  | 'terminal'
+  | 'wrong_state'
+  | 'nothing_to_review'
+  | 'unreadable'
+
+export async function approveProgrammeAsCustomer(
+  clientId: string, programmeId: string,
+): Promise<CustomerApproval> {
+  let p: ProgrammeRow | null
+  try {
+    p = await getProgramme(programmeId)
+  } catch (err) {
+    // A storage error is "we cannot tell", never "no". Approving on an unreadable programme,
+    // or refusing as though it did not exist, are both wrong for different reasons.
+    return { ok: false, code: 'unreadable', reason: err instanceof Error ? err.message : String(err) }
+  }
+
+  // 🛑 TENANCY, AND IT ANSWERS IDENTICALLY TO "NO SUCH PROGRAMME". A customer who guesses
+  // another tenant's programme id must not be able to tell a real id they do not own from an
+  // id that does not exist — the difference is an enumeration oracle, and there is nothing a
+  // legitimate customer can do with the distinction.
+  if (!p || p.client_id !== clientId) {
+    return { ok: false, code: 'not_found', reason: 'No such programme.' }
+  }
+
+  // ⚠️ ALREADY APPROVED IS A SUCCESS, NOT A REFUSAL — but only for THIS client's own programme,
+  // which the check above has already established. A repeated request after a successful
+  // approval is a double-click, a retry or a refresh, and the honest answer is "yes, it is
+  // approved" with the ORIGINAL `approved_at` untouched.
+  if (p.status === 'APPROVED') return { ok: true, programme: p, alreadyApproved: true }
+
+  if (TERMINAL_STATUSES.includes(p.status)) {
+    return { ok: false, code: 'terminal', reason: `This programme is ${p.status}.` }
+  }
+  if (p.paused_at) return { ok: false, code: 'paused', reason: 'This programme is paused.' }
+  if (p.status !== 'READY_FOR_APPROVAL') {
+    return { ok: false, code: 'wrong_state', reason: `This programme is not ready to approve yet (${p.status}).` }
+  }
+
+  // 🛑 THERE MUST BE SOMETHING THEY COULD ACTUALLY HAVE REVIEWED.
+  //
+  // `markReadyForApproval` proved this on the way IN, but the two moments are days apart and
+  // the set can empty between them — every prospect passed, or opted out, or evicted. A
+  // programme sitting in READY_FOR_APPROVAL with an empty desk is an inconsistency, and the
+  // founder's rule is that it must FAIL VISIBLY rather than present a successful approval of
+  // nothing. Same predicate as the review read, so the desk and the gate cannot disagree.
+  let reviewable: number
+  try {
+    const { countProgrammeReviewable } = await import('./programme-review')
+    reviewable = await countProgrammeReviewable(clientId, programmeId)
+  } catch (err) {
+    return { ok: false, code: 'unreadable', reason: err instanceof Error ? err.message : String(err) }
+  }
+  if (reviewable <= 0) {
+    return {
+      ok: false, code: 'nothing_to_review',
+      reason: 'This programme has no prospects to review, so it cannot be approved yet.',
+    }
+  }
+
+  // ── THE WRITE. TWO COLUMNS, ONE CONDITIONAL UPDATE ─────────────────────────────────────
+  const { data: won, error: writeErr } = await db.from('programmes')
+    .update({ status: 'APPROVED', approved_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+    .eq('id', programmeId)
+    .eq('client_id', clientId)
+    // 🛑 THE RACE GUARD. Only a row still in READY_FOR_APPROVAL is claimed, so of two
+    // simultaneous approvals exactly one writes and `approved_at` is set once, ever.
+    .eq('status', 'READY_FOR_APPROVAL')
+    .select('*')
+  if (writeErr) return { ok: false, code: 'unreadable', reason: writeErr.message }
+
+  const row = (won ?? [])[0] as ProgrammeRow | undefined
+  if (row) return { ok: true, programme: row, alreadyApproved: false }
+
+  // Lost the claim. Somebody else approved it between the read and the write — which is the
+  // same outcome the customer wanted, so report the state rather than an error.
+  const after = await getProgramme(programmeId).catch(() => null)
+  if (after && after.client_id === clientId && after.status === 'APPROVED') {
+    return { ok: true, programme: after, alreadyApproved: true }
+  }
+  return { ok: false, code: 'wrong_state', reason: 'This programme changed while you were approving it. Reload and try again.' }
+}
+
 export async function markReadyForApproval(programmeId: string): Promise<ProgrammeResult> {
   const p = await getProgramme(programmeId)
   if (!p) return { ok: false, reason: 'No such programme.' }

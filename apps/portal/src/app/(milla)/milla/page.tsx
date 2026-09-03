@@ -1184,7 +1184,9 @@ export default function MillaHomePage() {
     ...(ROI_STAGES.includes(prog.stage) ? ['How is my ROI looking?'] : []),
   ]
   const sendState = (() => {
-    const idle = { label: 'Nothing sending yet', tone: 'text-[#5c5279]', dot: 'bg-[#b3a9cc]' }
+    // Founder-locked wording, 3 Sep. CUSTOMER-FACING ONLY — Vida/operator terminology is
+    // untouched, and this constant is not shared with it.
+    const idle = { label: 'Outreach hasn’t started', tone: 'text-[#5c5279]', dot: 'bg-[#b3a9cc]' }
     // ⛓️ CORRECTED 3 Sep — "ONLY WHEN THE STAGE IS KNOWN" DID THE OPPOSITE OF WHAT IT SAID.
     // The guard was `prog && !OUTREACH_STAGES...`, so an UNKNOWN programme — still loading, or
     // the read failed — skipped it entirely and fell through to the campaign-derived labels.
@@ -1371,20 +1373,10 @@ export default function MillaHomePage() {
                 does not. */}
             {leads && leads.length > 0 && (
               <div className="[@media(min-width:1100px)]:col-span-2 [@media(min-width:1600px)]:col-span-3 bg-[#faf8ff] border border-[#ece5fb] rounded-2xl px-4 py-3">
-                <div className="text-[13px] text-[#4c4368] font-semibold">Earlier activity — not a programme</div>
+                {/* Founder-locked wording, 3 Sep. Verbatim — no extra explanation. */}
+                <div className="text-[13px] text-[#4c4368] font-semibold">Earlier activity</div>
                 <div className="text-[12.5px] text-[#6b6288] mt-0.5">
-                  You don’t have a programme yet, so nothing here is being worked.
-                  {/* 🛑 THE SUBSET DISCLOSURE, AND IT IS OWED. `/leads/for-approval` caps at 50.
-                      The old guard argued no disclosure was needed because the calibration set
-                      is only shown at stage Proof and proof is fenced at 40 lifetime records —
-                      true of a genuine proof prospect, and FALSE of a client with history:
-                      House holds ~166 and would have been shown 50 of them with nothing saying
-                      so. A count is not available on this route, so the sentence says "some"
-                      rather than inventing a total. */}
-                  {leads && leads.length >= 50
-                    ? ' These are some of the people we’ve shown you before — '
-                    : ' These are people we’ve shown you before — '}
-                  telling us what fits sharpens what we find next.
+                  You don’t have an active programme yet. These are examples you’ve previously reviewed to help Milla learn what fits.
                 </div>
               </div>
             )}

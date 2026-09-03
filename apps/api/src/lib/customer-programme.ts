@@ -70,6 +70,20 @@ export type CustomerProgramme = {
     totalCents: number
     firstPaidAt: string | null
     secondPaidAt: string | null
+    /**
+     * ⚑ 3 Sep — INTERNAL AUTHORITY IS NOT A PAYMENT, AND THE WORKSPACE HAD NO WAY TO SAY SO.
+     *
+     * House / Client Zero runs on internal P1/P2 authority and makes NO Stripe payment — the
+     * founder's standing rule that House must never create a fake payment, invoice or revenue.
+     * `money` carried only the two paid timestamps, so House rendered "First 50% not yet paid"
+     * for the life of the programme: no fake payment language, and no truth either — it states
+     * that money is outstanding when nothing is owed.
+     *
+     * These are the same two columns A2 added and the authority helpers already read. A
+     * PAYING client's fields are untouched and their copy is unchanged.
+     */
+    firstAuthorisedAt: string | null
+    secondAuthorisedAt: string | null
   }
   approvedAt: string | null
   wentLiveAt: string | null
@@ -84,7 +98,7 @@ export const NO_PROGRAMME: CustomerProgramme = {
   paused: false, pausedCopy: null, reviewOpen: false,
   outcome: { kind: 'meetings', target: null },
   progress: { delivered: 0, authorised: 0, outcomesAchieved: 0 },
-  money: { totalCents: 0, firstPaidAt: null, secondPaidAt: null },
+  money: { totalCents: 0, firstPaidAt: null, secondPaidAt: null, firstAuthorisedAt: null, secondAuthorisedAt: null },
   approvedAt: null, wentLiveAt: null,
 }
 
@@ -97,7 +111,8 @@ export const NO_PROGRAMME: CustomerProgramme = {
 export async function readCustomerProgramme(clientId: string): Promise<CustomerProgramme | null> {
   const { data, error } = await db.from('programmes')
     .select('id, status, meeting_target, price_total_cents, sourcing_ceiling, sourced_used, ' +
-            'first_paid_at, second_paid_at, approved_at, went_live_at, paused_at, ' +
+            'first_paid_at, second_paid_at, first_authorised_at, second_authorised_at, ' +
+            'approved_at, went_live_at, paused_at, ' +
             'review_required_at, review_resolved_at')
     .eq('client_id', clientId)
     .not('status', 'in', '(COMPLETED,CANCELLED)')
@@ -157,6 +172,8 @@ export async function readCustomerProgramme(clientId: string): Promise<CustomerP
       totalCents: Number(p.price_total_cents ?? 0),
       firstPaidAt: (p.first_paid_at as string | null) ?? null,
       secondPaidAt: (p.second_paid_at as string | null) ?? null,
+      firstAuthorisedAt: (p.first_authorised_at as string | null) ?? null,
+      secondAuthorisedAt: (p.second_authorised_at as string | null) ?? null,
     },
     approvedAt: (p.approved_at as string | null) ?? null,
     wentLiveAt: (p.went_live_at as string | null) ?? null,

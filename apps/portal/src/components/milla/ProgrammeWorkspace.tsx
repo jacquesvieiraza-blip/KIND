@@ -34,7 +34,14 @@ export type CustomerProgramme = {
   reviewOpen: boolean
   outcome: { kind: 'meetings' | 'other'; target: number | null }
   progress: { delivered: number; authorised: number; outcomesAchieved: number | null }
-  money: { totalCents: number; firstPaidAt: string | null; secondPaidAt: string | null }
+  money: {
+    totalCents: number
+    firstPaidAt: string | null
+    secondPaidAt: string | null
+    /** Internal P1/P2 authority — House runs on this and makes no payment. */
+    firstAuthorisedAt?: string | null
+    secondAuthorisedAt?: string | null
+  }
   approvedAt: string | null
   wentLiveAt: string | null
 }
@@ -71,6 +78,9 @@ export function nextActionFor(p: CustomerProgramme): string {
 
 export default function ProgrammeWorkspace({ p }: { p: CustomerProgramme }) {
   const stageIndex = MILLA_STAGES.indexOf(p.stage)
+  // Is this programme running on INTERNAL authority rather than money? True for House, and
+  // false for every paying client — whose `firstPaidAt` is what actually authorised them.
+  const internallyAuthorised = !p.money.firstPaidAt && !!p.money.firstAuthorisedAt
   return (
     <div className="max-w-3xl">
         {/* ── WHERE THE PROGRAMME IS ─────────────────────────────────────────────────
@@ -143,16 +153,34 @@ export default function ProgrammeWorkspace({ p }: { p: CustomerProgramme }) {
         <div className="border border-[#eee7f7] rounded-2xl px-4 py-3.5 mb-3">
           <div className="text-[11.5px] uppercase tracking-wide text-[#9b8ec4] font-bold mb-1.5">Programme</div>
           <div className="text-[15px] font-extrabold mb-1">{programmeMoney(p.money.totalCents)}</div>
+          {/* ⚑ 3 Sep — A PROGRAMME CAN BE AUTHORISED WITHOUT BEING PAID, AND THIS NOW SAYS SO.
+              House / Client Zero runs on internal P1/P2 authority and makes NO Stripe payment.
+              With only the paid timestamps to read, this line said "First 50% not yet paid"
+              for the life of the programme — never a fake payment, and never the truth either:
+              it states that money is outstanding when nothing is owed.
+              🛑 A PAYING CLIENT IS BYTE-FOR-BYTE UNCHANGED. `firstPaidAt` wins wherever it is
+              set, and the authorisation wording is reachable only when a half was authorised
+              internally — which no paying client's row ever is. */}
           <div className="text-[12.5px] text-[#6b5f8c]">
-            {p.money.firstPaidAt ? 'First 50% paid' : 'First 50% not yet paid'}
+            {p.money.firstPaidAt ? 'First 50% paid'
+              : p.money.firstAuthorisedAt ? 'First 50% authorised internally'
+              : 'First 50% not yet paid'}
             {' · '}
-            {p.money.secondPaidAt ? 'Second 50% paid' : 'Second 50% not yet paid'}
+            {p.money.secondPaidAt ? 'Second 50% paid'
+              : p.money.secondAuthorisedAt ? 'Second 50% authorised internally'
+              // An internally-authorised programme owes no money, so its outstanding half is
+              // awaiting AUTHORISATION, not payment.
+              : internallyAuthorised ? 'Second 50% not yet authorised'
+              : 'Second 50% not yet paid'}
           </div>
-          {!p.money.secondPaidAt && (
-            // The founder's own framing of what Payment 1 buys, stated as fact rather than as
-            // marketing: it authorises sourcing and preparation, and outreach has not started.
+          {!p.money.secondPaidAt && !p.money.secondAuthorisedAt && (
+            // The founder's own framing of what the first half buys, stated as fact rather than
+            // as marketing: it authorises sourcing and preparation, and outreach has not
+            // started. The noun follows what actually happened — nothing else about it moved.
             <p className="text-[12.5px] text-[#9b8ec4] mt-1.5">
-              The first payment authorises sourcing and preparation. Outreach has not started.
+              {internallyAuthorised
+                ? 'The first authorisation covers sourcing and preparation. Outreach has not started.'
+                : 'The first payment authorises sourcing and preparation. Outreach has not started.'}
             </p>
           )}
         </div>

@@ -83,6 +83,27 @@ vi.mock('./alerts', () => ({ sendFounderAlert: () => Promise.resolve() }))
 
 import { readCustomerProgramme, NO_PROGRAMME } from './customer-programme'
 
+/**
+ * Executable JSX only.
+ *
+ * ⚠️ A LINE FILTER CANNOT DO THIS, and mine proved it: the "no Stripe vocabulary" assertion
+ * failed on the workspace's own COMMENT explaining that House makes no Stripe payment. Prose
+ * about a rule is not a violation of it, and `{/* … *\/}` continuation lines start with
+ * neither `//` nor `*`. Block-aware, line-anchored.
+ */
+function jsxCode(src: string): string {
+  let inBlock = false
+  return src.split('\n').map(l => {
+    const t = l.trim()
+    if (inBlock) { if (t.endsWith('*/') || t.endsWith('*/}')) inBlock = false; return '' }
+    if (t.startsWith('{/*')) { if (!t.endsWith('*/}')) inBlock = true; return '' }
+    if (t.startsWith('/*')) { if (!t.endsWith('*/')) inBlock = true; return '' }
+    if (t.startsWith('//') || t.startsWith('*')) return ''
+    const i = l.search(/(?<!:)\/\//)
+    return i >= 0 ? l.slice(0, i) : l
+  }).join('\n')
+}
+
 const HOUSE = 'house'
 const MBF = 'mbf'
 const P_NEW = 'P_NEW'
@@ -282,8 +303,9 @@ describe('④ Milla Home no longer claims a programme that does not exist', () =
   })
 
   it('🛑 the pre-programme set is LABELLED as earlier activity, and nothing is hidden', () => {
-    expect(visible).toContain('Earlier activity — not a programme')
-    expect(visible).toContain('You don’t have a programme yet, so nothing here is being worked.')
+    // Founder-locked wording, 3 Sep — pinned verbatim so it cannot drift back into a claim.
+    expect(visible).toContain('Earlier activity')
+    expect(visible).toContain('You don’t have an active programme yet. These are examples you’ve previously reviewed to help Milla learn what fits.')
     // The cards themselves still render — the founder ruled that data is preserved, and the
     // free-proof calibration set legitimately lives on this screen.
     expect(visible).toContain('/leads/for-approval')
@@ -442,5 +464,93 @@ describe('⑥ a historical campaign is never presented as current programme trut
     expect(state.meetings).toHaveLength(1)
     expect(state.campaigns).toHaveLength(1)
     expect(state.leads[0].programme_id, 'no backfill').toBeNull()
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// ⑦ HOUSE IS AUTHORISED, NOT PAID — AND THE WORKSPACE NOW SAYS SO
+//
+// 🛑 THE FOUNDER'S STANDING RULE: House must NEVER create a fake Stripe payment, invoice,
+// customer revenue or paid label. It runs on internal P1/P2 authority.
+//
+// ⚠️ WHAT THE WORKSPACE ACTUALLY DID — and it was neither of the two things a reviewer might
+// assume. It did NOT show House as paid: `first_paid_at` is null, so it rendered "First 50%
+// NOT YET PAID". That is not a fake payment, and it is not the truth either — it states that
+// money is outstanding when nothing is owed, for the life of the programme. The `money` object
+// simply had no way to express "authorised without payment".
+//
+// The two columns already existed (A2) and the authority helpers already read them; the
+// customer read never selected them.
+//
+// 🛑 A PAYING CLIENT IS BYTE-FOR-BYTE UNCHANGED. `firstPaidAt` wins wherever it is set, and no
+// paying client's row ever carries an internal authorisation.
+// ═══════════════════════════════════════════════════════════════════════════════════════
+describe('⑦ internal authority is reported as authority, never as payment', () => {
+  it('🛑 HOUSE AFTER INTERNAL P1 — no payment language, and no false "not yet paid" either', async () => {
+    houseProgramme({ status: 'SOURCING', first_paid_at: null, first_authorised_at: 'a1' })
+    const p = await readCustomerProgramme(HOUSE)
+    expect(p!.money.firstPaidAt, 'House never has a payment').toBeNull()
+    expect(p!.money.firstAuthorisedAt, 'it has internal authority instead').toBe('a1')
+    expect(p!.money.secondAuthorisedAt).toBeNull()
+  })
+
+  it('🛑 HOUSE AFTER INTERNAL P2 — both halves authorised, neither paid', async () => {
+    houseProgramme({ status: 'APPROVED', first_paid_at: null, first_authorised_at: 'a1', second_authorised_at: 'a2' })
+    const p = await readCustomerProgramme(HOUSE)
+    expect(p!.money.firstPaidAt).toBeNull()
+    expect(p!.money.secondPaidAt).toBeNull()
+    expect(p!.money.firstAuthorisedAt).toBe('a1')
+    expect(p!.money.secondAuthorisedAt).toBe('a2')
+  })
+
+  it('a PAYING client carries payments and no internal authority — the fields cannot collide', async () => {
+    houseProgramme({ first_paid_at: 'p1', first_authorised_at: null })
+    const p = await readCustomerProgramme(HOUSE)
+    expect(p!.money.firstPaidAt).toBe('p1')
+    expect(p!.money.firstAuthorisedAt).toBeNull()
+  })
+
+  it('🛑 the workspace renders AUTHORITY for House and PAYMENT for a paying client', () => {
+    const ws = readFileSync(join(__dirname, '../../../portal/src/components/milla/ProgrammeWorkspace.tsx'), 'utf8')
+    const visible = jsxCode(ws)
+    // Paid wins first, always — so a paying client's copy is untouched.
+    expect(visible).toContain("{p.money.firstPaidAt ? 'First 50% paid'")
+    expect(visible).toContain("p.money.firstAuthorisedAt ? 'First 50% authorised internally'")
+    expect(visible).toContain("p.money.secondAuthorisedAt ? 'Second 50% authorised internally'")
+    // An internally-authorised programme owes no money, so its outstanding half awaits
+    // AUTHORISATION, not payment.
+    expect(visible).toContain("internallyAuthorised ? 'Second 50% not yet authorised'")
+    expect(visible).toContain("const internallyAuthorised = !p.money.firstPaidAt && !!p.money.firstAuthorisedAt")
+    // And the footnote's noun follows what actually happened.
+    expect(visible).toContain("'The first authorisation covers sourcing and preparation. Outreach has not started.'")
+    expect(visible).toContain("'The first payment authorises sourcing and preparation. Outreach has not started.'")
+  })
+
+  it('🛑 THE FOUNDER-LOCKED SENDING COPY, PINNED — customer-facing only', () => {
+    // Locked 3 Sep: "Nothing sending yet" → "Outreach hasn't started". A RED proof found this
+    // unguarded: reverting the string changed nothing, because nothing asserted it.
+    const page = readFileSync(join(__dirname, '../../../portal/src/app/(milla)/milla/page.tsx'), 'utf8')
+    const visible = jsxCode(page)
+    expect(visible).toContain("label: 'Outreach hasn\u2019t started'")
+    expect(visible, 'the old customer-facing wording is back').not.toContain("label: 'Nothing sending yet'")
+    // ⚠️ VIDA IS UNTOUCHED, and that is asserted rather than assumed — the founder scoped this
+    // change to the customer surface alone.
+    const vida = readFileSync(join(__dirname, '../../../admin/src/app/vida/page.tsx'), 'utf8')
+    expect(vida, 'operator terminology must not have been rewritten').not.toContain('Outreach hasn\u2019t started')
+  })
+
+  it('🛑 NO FAKE PAYMENT VOCABULARY ANYWHERE IN THE CUSTOMER WORKSPACE', () => {
+    const ws = readFileSync(join(__dirname, '../../../portal/src/components/milla/ProgrammeWorkspace.tsx'), 'utf8')
+    const visible = jsxCode(ws)
+    for (const banned of ['Payment received', 'payment received', 'Invoice paid', 'invoice paid', 'Stripe', 'Charged', 'Receipt']) {
+      expect(visible, `"${banned}" must not appear`).not.toContain(banned)
+    }
+  })
+
+  it('the customer read actually SELECTS the authority columns — the fields are not always null', () => {
+    // ⚠️ A COLUMN THAT IS NEVER SELECTED READS AS NULL FOREVER, and every assertion above would
+    // pass vacuously against a fixture that supplies it directly. Pinned to the query.
+    const src = readFileSync(join(__dirname, 'customer-programme.ts'), 'utf8')
+    expect(src).toContain("'first_paid_at, second_paid_at, first_authorised_at, second_authorised_at, '")
   })
 })

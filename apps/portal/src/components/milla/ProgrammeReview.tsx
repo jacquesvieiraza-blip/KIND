@@ -49,6 +49,8 @@ export type ReviewPayload = {
   programme: { id: string; status: string; meeting_target: number | null; approved_at: string | null; paused: boolean } | null
   prospects: ReviewProspect[]
   total: number
+  /** false ⟹ the server stopped counting at its scan budget: the total is a floor, not a count. */
+  complete?: boolean
   canApprove: boolean
 }
 
@@ -148,7 +150,7 @@ export default function ProgrammeReview({ token }: { token: () => Promise<string
           {approved ? 'You approved this programme' : 'Review the prospects for your programme'}
         </div>
         <div className="text-[12.5px] text-[#6b6288] mt-1">
-          {d.total} prospect{d.total === 1 ? '' : 's'} ready
+          {d.total}{d.complete === false ? '+' : ''} prospect{d.total === 1 ? '' : 's'} ready
           {d.programme.meeting_target ? ` · ${d.programme.meeting_target} meeting target` : ''}
           {d.prospects.length < d.total ? ` · showing the top ${d.prospects.length}` : ''}
         </div>

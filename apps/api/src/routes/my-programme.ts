@@ -124,6 +124,12 @@ myProgrammeRouter.get('/review', async (req: AuthRequest, res) => {
         },
         prospects: set.prospects,
         total: set.total,
+        // ⚠️ `complete: false` MEANS "AT LEAST `total`". The scan is bounded at
+        // REVIEW_SCAN_BUDGET rows, so a very large programme reports a floor rather than a
+        // number it did not finish counting. The UI renders "N+" for that case — telling a
+        // customer "5,000 prospects" when we stopped counting at 5,000 would be a made-up
+        // figure, and telling them exactly 5,000 when there are 6,200 is worse.
+        complete: set.complete,
         // ⚠️ THE BUTTON'S ENABLED-NESS IS DECIDED SERVER-SIDE, and re-decided by the POST. This
         // is what the UI renders from; it is NOT what authorises anything.
         canApprove: p.status === 'READY_FOR_APPROVAL' && !p.paused_at && set.total > 0,

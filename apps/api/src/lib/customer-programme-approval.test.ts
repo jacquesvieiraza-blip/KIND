@@ -25,29 +25,34 @@ type Row = Record<string, unknown>
 
 const state: {
   programmes: Row[]; leads: Row[]; clients: Row[]
+  /** The cross-client suppression table: hard bounce, spam complaint, and anyone who said STOP. */
+  blocklist: Row[]
   written: string[]; rpcs: string[]
   /** Fires immediately before any UPDATE on `programmes`, to simulate a concurrent writer. */
   beforeProgrammeUpdate: null | (() => void)
   /** Tables whose reads must fail, to prove "cannot tell" is never "nothing". */
   readFails: Set<string>
 } = {
-  programmes: [], leads: [], clients: [], written: [], rpcs: [],
+  programmes: [], leads: [], clients: [], blocklist: [], written: [], rpcs: [],
   beforeProgrammeUpdate: null, readFails: new Set(),
 }
 
 function table(name: string) {
   const rows = (): Row[] =>
-    name === 'programmes' ? state.programmes : name === 'leads' ? state.leads : state.clients
+    name === 'programmes' ? state.programmes : name === 'leads' ? state.leads
+    : name === 'opt_out_blocklist' ? state.blocklist : state.clients
   const q: any = {
     _f: [] as ((r: Row) => boolean)[], _mode: '', _payload: null as Row | null,
     _limit: 0, _count: false, _order: null as { col: string; asc: boolean } | null,
     select(_c?: string, opts?: { count?: string; head?: boolean }) { if (opts?.count) q._count = true; return q },
     eq(c: string, v: unknown) { q._f.push((r: Row) => r[c] === v); return q },
     neq(c: string, v: unknown) { q._f.push((r: Row) => r[c] !== v); return q },
+    gt(c: string, v: unknown) { q._f.push((r: Row) => String(r[c]) > String(v)); return q },
     is(c: string, v: unknown) { q._f.push((r: Row) => (r[c] ?? null) === v); return q },
     in(c: string, l: unknown[]) { q._f.push((r: Row) => l.includes(r[c] as never)); return q },
     not(c: string, op: string, v: unknown) {
       if (op === 'is' && v === null) { q._f.push((r: Row) => (r[c] ?? null) !== null); return q }
+      // `not(col, 'in', '(a,b,c)')` — the PostgREST spelling the suppression filter uses.
       const set = String(v).replace(/[()]/g, '').split(',')
       q._f.push((r: Row) => !set.includes(String(r[c]))); return q
     },
@@ -117,13 +122,15 @@ const prospect = (id: string, over: Row = {}) =>
   state.leads.push({
     id, client_id: C, programme_id: P, delivered_at: 'd', surfaced_for_approval_at: 's',
     revealed_at: null, status: 'scored', score: 80,
+    // The permanent prospect-level suppression columns, in their CLEAN state.
+    email: `${id.toLowerCase()}@example.com`, opted_out_at: null, provider_eviction_required_at: null,
     first_name: 'Ada', last_name: 'Lovelace', job_title: 'CTO', company: 'Acme',
     industry: 'Software', country: 'GB', score_reasoning: 'Ada Lovelace runs engineering at Acme.',
     created_at: 'c', ...over,
   })
 
 beforeEach(() => {
-  state.programmes = []; state.leads = []; state.clients = []
+  state.programmes = []; state.leads = []; state.clients = []; state.blocklist = []
   state.written = []; state.rpcs = []
   state.beforeProgrammeUpdate = null; state.readFails = new Set()
 })
@@ -208,7 +215,14 @@ describe('① the review set is this programme\'s work, not this client\'s histo
     seedProgramme(); prospect('L1')
     state.readFails.add('leads')
     await expect(readProgrammeReviewSet(C, P)).rejects.toThrow(/review read failed/)
-    await expect(countProgrammeReviewable(C, P)).rejects.toThrow(/count failed/)
+    await expect(countProgrammeReviewable(C, P)).rejects.toThrow(/review read failed/)
+  })
+
+  it('🛑 AN UNREADABLE BLOCKLIST THROWS TOO — not knowing is never "nobody is suppressed"', async () => {
+    seedProgramme(); prospect('L1')
+    state.readFails.add('opt_out_blocklist')
+    await expect(readProgrammeReviewSet(C, P)).rejects.toThrow(/opt-out blocklist unreadable/)
+    await expect(countProgrammeReviewable(C, P)).rejects.toThrow(/opt-out blocklist unreadable/)
   })
 
   it('the page is capped but the total is honest', async () => {
@@ -463,21 +477,29 @@ describe('⑤ Milla and Vida read the same programme record', () => {
     expect(asVidaSeesIt!.second_authorised_at ?? null).toBeNull()
   })
 
-  it('🛑 the review read and the approval gate use the SAME predicate', () => {
+  it('🛑 the desk and the approval gate run the SAME FUNCTION, not the same conditions twice', () => {
     const src = readFileSync(join(__dirname, 'programme-review.ts'), 'utf8')
     const body = src.split('\n').filter(l => !l.trim().startsWith('//') && !l.trim().startsWith('*')).join('\n')
-    // Five conditions, twice — once for the page, once for the head count. If these ever
-    // diverge, a customer can be shown cards they cannot approve, or approve an empty desk.
+    // ⛓️ STRONGER THAN THE ASSERTION THIS REPLACES. That one counted each condition twice —
+    // once per query — which proves the two queries LOOK alike, not that they ARE alike. Two
+    // copies of a predicate is exactly the shape that drifts. There is now ONE query, in one
+    // function, and both callers go through it.
     for (const cond of [
-      ".eq('client_id', clientId)",
-      ".eq('programme_id', programmeId)",
-      ".not('delivered_at', 'is', null)",
-      ".not('surfaced_for_approval_at', 'is', null)",
-      ".is('revealed_at', null)",
-      ".neq('status', 'passed')",
+      ".eq('client_id', clientId)", ".eq('programme_id', programmeId)",
+      ".not('delivered_at', 'is', null)", ".not('surfaced_for_approval_at', 'is', null)",
+      ".is('revealed_at', null)", ".not('status', 'in'", ".is('opted_out_at', null)",
+      ".is('provider_eviction_required_at', null)", ".not('email', 'is', null)",
     ]) {
-      expect(body.split(cond).length - 1, `${cond} must appear in BOTH reads`).toBe(2)
+      expect(body.split(cond).length - 1, `${cond} must exist exactly ONCE`).toBe(1)
     }
+    expect(body).toContain('async function scanEligible(')
+    // Both public readers delegate to it.
+    const read = body.slice(body.indexOf('export async function readProgrammeReviewSet'))
+    const count = body.slice(body.indexOf('export async function countProgrammeReviewable'))
+    expect(read).toContain('scanEligible(clientId, programmeId')
+    expect(count).toContain('scanEligible(clientId, programmeId')
+    // And neither builds a query of its own.
+    expect(count.split("db.from(").length - 1, 'the gate owns no query').toBe(0)
   })
 })
 
@@ -538,5 +560,176 @@ describe('⑥ Milla presents ONE programme approval and no legacy economics', ()
     expect(page).toContain('<ProgrammeWorkspace p={prog} />')
     expect(page).toContain("prog.stage === 'Approval' && (")
     expect(page).toContain('<ProgrammeReview token={token} />')
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// ⑦ THE SUPPRESSION CONTRADICTION — RESOLVED, AND PROVED PER STATE
+//
+// 🛑 THE FOUNDER'S INVARIANT: "A programme must not be customer-approved solely because the
+// review desk contains records already known to be permanently ineligible for programme
+// outreach."
+//
+// ⛓️ THE FIRST VERSION OF THIS FILE FAILED THAT INVARIANT, and my own return said otherwise.
+// The predicate was `/leads/for-approval`'s four conditions, and I described it as excluding
+// opted-out, rejected and bounced prospects. It excluded NONE of them: `status != 'passed'`
+// is one status, not a suppression rule.
+//
+// 🛑 AND THE STATES ARE REACHABLE. `surfaceEverything` — the act that writes BOTH stamps — has
+// no email filter and no suppression filter, so every state below can be delivered and
+// surfaced exactly like a good prospect. These are not impossible states proved for form.
+//
+// ⚠️ NOTHING SEND-TIME IS TESTED HERE. Mailbox caps, warm-up, PECR and launch-country holds are
+// properties of a send, not of a prospect, and freezing one into a review desk would tell a
+// customer somebody is unusable when they are merely not sendable today.
+// ═══════════════════════════════════════════════════════════════════════════════════════
+describe('⑦ permanently ineligible prospects cannot form a review or approval population', () => {
+  /** A · appears on the desk? · B · counts toward the gate? · C · could it allow approval? */
+  async function outcome(id: string) {
+    const set = await readProgrammeReviewSet(C, P)
+    const onDesk = set.prospects.some(p => p.id === id)
+    const counted = (await countProgrammeReviewable(C, P)) > 0
+    const approval = await approveProgrammeAsCustomer(C, P)
+    return { onDesk, counted, approved: approval.ok, total: set.total }
+  }
+
+  it('① a VALID surfaced programme prospect is reviewable, counted, and can carry the approval', async () => {
+    seedProgramme(); prospect('L_GOOD')
+    const r = await outcome('L_GOOD')
+    expect(r).toMatchObject({ onDesk: true, counted: true, approved: true, total: 1 })
+  })
+
+  it('🛑 ② OPTED OUT by status — off the desk, uncounted, cannot carry the approval', async () => {
+    seedProgramme(); prospect('L_OPTED', { status: 'opted_out' })
+    const r = await outcome('L_OPTED')
+    expect(r).toMatchObject({ onDesk: false, counted: false, approved: false, total: 0 })
+    expect(state.programmes[0].status).toBe('READY_FOR_APPROVAL')
+  })
+
+  it('🛑 ② OPTED OUT by timestamp — `opted_out_at` alone is enough, whatever the status says', async () => {
+    // The person asked us to stop. A status that has not caught up is not a second opinion.
+    seedProgramme(); prospect('L_OPTED_AT', { status: 'scored', opted_out_at: '2026-08-01T00:00:00Z' })
+    const r = await outcome('L_OPTED_AT')
+    expect(r).toMatchObject({ onDesk: false, counted: false, approved: false, total: 0 })
+  })
+
+  it('🛑 ③ REJECTED — the engine disqualified it', async () => {
+    seedProgramme(); prospect('L_REJ', { status: 'rejected' })
+    const r = await outcome('L_REJ')
+    expect(r).toMatchObject({ onDesk: false, counted: false, approved: false, total: 0 })
+  })
+
+  it('🛑 ③ PASSED — the customer already said no to this one', async () => {
+    seedProgramme(); prospect('L_PASS', { status: 'passed' })
+    const r = await outcome('L_PASS')
+    expect(r).toMatchObject({ onDesk: false, counted: false, approved: false, total: 0 })
+  })
+
+  it('🛑 ④ HARD BOUNCED — the blocklist is consulted, and it is not a lead column', async () => {
+    // A hard bounce is recorded as `opt_out_blocklist.reason='hard_bounce'` by the Resend/Svix
+    // webhook. No column filter can reach it, so the scan reads the table per page.
+    seedProgramme(); prospect('L_BOUNCED')
+    state.blocklist.push({ email: 'l_bounced@example.com', reason: 'hard_bounce' })
+    const r = await outcome('L_BOUNCED')
+    expect(r).toMatchObject({ onDesk: false, counted: false, approved: false, total: 0 })
+  })
+
+  it('🛑 ④ SPAM COMPLAINT — same door', async () => {
+    seedProgramme(); prospect('L_COMPLAINED')
+    state.blocklist.push({ email: 'l_complained@example.com', reason: 'spam_complaint' })
+    const r = await outcome('L_COMPLAINED')
+    expect(r).toMatchObject({ onDesk: false, counted: false, approved: false, total: 0 })
+  })
+
+  it('🛑 ④ CROSS-CLIENT opt-out — suppressed here even though they said STOP to somebody else', async () => {
+    seedProgramme(); prospect('L_OTHERSTOP')
+    state.blocklist.push({ email: 'l_otherstop@example.com', reason: 'list_unsubscribe' })
+    const r = await outcome('L_OTHERSTOP')
+    expect(r).toMatchObject({ onDesk: false, counted: false, approved: false, total: 0 })
+  })
+
+  it('🛑 ④ the blocklist probe is NORMALISED — a case variant does not slip through (HC-1)', async () => {
+    // The blocklist is deduped on a normalised address, so a raw comparison misses
+    // `L_Case@Example.com` against a stored `l_case@example.com`. `normalizeRevealEmails` is
+    // the one definition of "the same email" in this repository, and this read uses it.
+    seedProgramme(); prospect('L_CASE', { email: 'L_Case@Example.COM' })
+    state.blocklist.push({ email: 'l_case@example.com', reason: 'hard_bounce' })
+    const r = await outcome('L_CASE')
+    expect(r).toMatchObject({ onDesk: false, counted: false, approved: false, total: 0 })
+  })
+
+  it('🛑 ⑤ PROVIDER-EVICTED — we owe a provider a removal for this person', async () => {
+    seedProgramme(); prospect('L_EVICT', { provider_eviction_required_at: '2026-08-20T00:00:00Z' })
+    const r = await outcome('L_EVICT')
+    expect(r).toMatchObject({ onDesk: false, counted: false, approved: false, total: 0 })
+  })
+
+  it('🛑 NO EMAIL — nothing can ever be sent to them, so they are not a reviewable prospect', async () => {
+    // ⚠️ AND THIS IS REACHABLE. `surfaceEverything` has no email filter, so an unemailable lead
+    // is surfaced and delivered like anybody else.
+    seedProgramme(); prospect('L_NOEMAIL', { email: null })
+    const r = await outcome('L_NOEMAIL')
+    expect(r).toMatchObject({ onDesk: false, counted: false, approved: false, total: 0 })
+  })
+
+  it('🛑 ⑥ A DESK OF ONLY PERMANENTLY INELIGIBLE PROSPECTS REFUSES THE APPROVAL', async () => {
+    // The invariant in its sharpest form: eight surfaced, delivered, correctly-attributed
+    // programme leads, every one permanently unworkable. The old predicate counted eight
+    // reviewable prospects and would have approved the programme on them.
+    seedProgramme()
+    prospect('S1', { status: 'opted_out' })
+    prospect('S2', { status: 'rejected' })
+    prospect('S3', { status: 'passed' })
+    prospect('S4', { opted_out_at: 'x' })
+    prospect('S5', { provider_eviction_required_at: 'x' })
+    prospect('S6', { email: null })
+    prospect('S7'); state.blocklist.push({ email: 's7@example.com', reason: 'hard_bounce' })
+    prospect('S8'); state.blocklist.push({ email: 's8@example.com', reason: 'spam_complaint' })
+
+    const set = await readProgrammeReviewSet(C, P)
+    expect(set.prospects, 'no card is fabricated').toEqual([])
+    expect(set.total).toBe(0)
+
+    const r = await approveProgrammeAsCustomer(C, P)
+    expect(r.ok).toBe(false)
+    expect(!r.ok && r.code).toBe('nothing_to_review')
+    expect(state.programmes[0].status, 'nothing moved').toBe('READY_FOR_APPROVAL')
+    expect(state.written).toEqual([])
+  })
+
+  it('🛑 ⑥ ONE good prospect among eight dead ones IS enough — the gate is not all-or-nothing', async () => {
+    seedProgramme()
+    prospect('S1', { status: 'opted_out' }); prospect('S2', { status: 'rejected' })
+    prospect('S3', { opted_out_at: 'x' });   prospect('S4', { provider_eviction_required_at: 'x' })
+    prospect('S5', { email: null })
+    prospect('S6'); state.blocklist.push({ email: 's6@example.com', reason: 'hard_bounce' })
+    prospect('Z_GOOD')
+
+    const set = await readProgrammeReviewSet(C, P)
+    expect(set.prospects.map(p => p.id)).toEqual(['Z_GOOD'])
+    expect(set.total).toBe(1)
+    const r = await approveProgrammeAsCustomer(C, P)
+    expect(r.ok, !r.ok ? r.reason : '').toBe(true)
+  })
+
+  it('🛑 THE DESK IS THE POPULATION A2 WILL WORK — the two eligibility rules are the same list', () => {
+    // ⚠️ ASSERTED AGAINST A2's OWN SOURCE, not against a copy of it. `prepareProgrammeOutreach`
+    // is what actually enrols these people; if its filter ever gains a condition this desk does
+    // not have, the customer is reviewing prospects the engine will silently drop.
+    const prep = readFileSync(join(__dirname, 'programme-preparation.ts'), 'utf8')
+    const rev = readFileSync(join(__dirname, 'programme-review.ts'), 'utf8')
+    for (const rule of ['opted_out', 'rejected', 'passed']) {
+      expect(prep, `A2 suppresses ${rule}`).toContain(`'${rule}'`)
+      expect(rev, `review must suppress ${rule} too`).toContain(rule)
+    }
+    for (const col of ['opted_out_at', 'provider_eviction_required_at']) {
+      expect(prep).toContain(col)
+      expect(rev, `review must suppress ${col} too`).toContain(col)
+    }
+    // Both consult the same blocklist table through the same normaliser.
+    for (const src of [prep, rev]) {
+      expect(src).toContain("db.from('opt_out_blocklist')")
+      expect(src).toContain('normalizeRevealEmails')
+    }
   })
 })

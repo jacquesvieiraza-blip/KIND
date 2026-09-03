@@ -34,6 +34,20 @@ import {
 export type CustomerProgramme = {
   stage: MillaStage
   quickAction: string
+  /**
+   * 🛑 DOES A PROGRAMME ROW ACTUALLY EXIST? `stage` CANNOT ANSWER THIS, and that is the whole
+   * reason this field had to be added.
+   *
+   * `millaStage` maps a DRAFT programme AND no programme at all to the same stage, 'Proof' —
+   * correct as a customer-journey stage, and useless as a fact. Milla Home was branching on
+   * `stage !== 'Proof'` to decide whether to render the programme workspace or the legacy
+   * client-scoped desk, so House — which has no programme — fell into the legacy desk and its
+   * ~166 retired leads rendered under a heading that said "Your programme". A DRAFT programme
+   * would have done exactly the same.
+   */
+  hasProgramme: boolean
+  /** The open programme's id when one exists — so a surface can positively attribute to it. */
+  programmeId: string | null
   /** Orthogonal to stage — a paused programme keeps the stage it will return to. */
   paused: boolean
   /** LOCKED founder copy, sent from the server so the client cannot drift from it. */
@@ -56,6 +70,34 @@ export type CustomerProgramme = {
     totalCents: number
     firstPaidAt: string | null
     secondPaidAt: string | null
+    /**
+     * ⚑ 3 Sep — INTERNAL AUTHORITY IS NOT A PAYMENT, AND THE WORKSPACE HAD NO WAY TO SAY SO.
+     *
+     * House / Client Zero runs on internal P1/P2 authority and makes NO Stripe payment — the
+     * founder's standing rule that House must never create a fake payment, invoice or revenue.
+     * `money` carried only the two paid timestamps, so House rendered "First 50% not yet paid"
+     * for the life of the programme: no fake payment language, and no truth either — it states
+     * that money is outstanding when nothing is owed.
+     *
+     * These are the same two columns A2 added and the authority helpers already read. A
+     * PAYING client's fields are untouched and their copy is unchanged.
+     */
+    firstAuthorisedAt: string | null
+    secondAuthorisedAt: string | null
+    /**
+     * 🛑 THIS PROGRAMME IS SETTLED BY INTERNAL AUTHORITY, NOT BY MONEY.
+     *
+     * True only for the house account. Before internal P1 both authority stamps are null, so
+     * without this the money card fell to its default and told House "First 50% not yet paid"
+     * — a debt to itself that does not exist. Nothing on the programmes row can answer it:
+     * paid-or-authorised is an operator act taken later, and a paying client's DRAFT row is
+     * byte-identical to House's.
+     *
+     * Identity is the one this repo already settled (#593): the auth user behind
+     * `HOUSE_ACCOUNT_EMAIL`, the same discriminator that keeps Client Zero out of every revenue
+     * figure. Never a name, never `HOUSE_CLIENT_ID`, never an env flag.
+     */
+    internalBilling: boolean
   }
   approvedAt: string | null
   wentLiveAt: string | null
@@ -65,10 +107,15 @@ export type CustomerProgramme = {
 export const NO_PROGRAMME: CustomerProgramme = {
   stage: 'Proof',
   quickAction: STAGE_QUICK_ACTION.Proof,
+  hasProgramme: false,
+  programmeId: null,
   paused: false, pausedCopy: null, reviewOpen: false,
   outcome: { kind: 'meetings', target: null },
   progress: { delivered: 0, authorised: 0, outcomesAchieved: 0 },
-  money: { totalCents: 0, firstPaidAt: null, secondPaidAt: null },
+  money: {
+    totalCents: 0, firstPaidAt: null, secondPaidAt: null,
+    firstAuthorisedAt: null, secondAuthorisedAt: null, internalBilling: false,
+  },
   approvedAt: null, wentLiveAt: null,
 }
 
@@ -81,7 +128,8 @@ export const NO_PROGRAMME: CustomerProgramme = {
 export async function readCustomerProgramme(clientId: string): Promise<CustomerProgramme | null> {
   const { data, error } = await db.from('programmes')
     .select('id, status, meeting_target, price_total_cents, sourcing_ceiling, sourced_used, ' +
-            'first_paid_at, second_paid_at, approved_at, went_live_at, paused_at, ' +
+            'first_paid_at, second_paid_at, first_authorised_at, second_authorised_at, ' +
+            'approved_at, went_live_at, paused_at, ' +
             'review_required_at, review_resolved_at')
     .eq('client_id', clientId)
     .not('status', 'in', '(COMPLETED,CANCELLED)')
@@ -104,11 +152,29 @@ export async function readCustomerProgramme(clientId: string): Promise<CustomerP
   // (BUILD-003 PR1). `null` means unreadable and is passed through as null: rendering a
   // storage failure as "0 meetings booked" would tell a client their programme has produced
   // nothing, which is the most damaging possible false statement on this screen.
+  //
+  // ⛓️ POSITIVELY ATTRIBUTED (3 Sep). This counted EVERY meeting the client has ever booked —
+  // `clientMeetingCounts([clientId])`, no programme filter — so House's historical meetings
+  // would have been reported as the new programme's progress the moment it was created. The
+  // meetings table already carries `programme_id` and `meetingCounts` already accepts it; the
+  // filter was simply never passed. History is preserved and still counted everywhere it
+  // legitimately belongs (Reports, all-time totals) — it is just not this programme's result.
+  // ⚠️ RESOLVED ONCE, ALONGSIDE THE MEETING COUNT. Fails open to `false` — a wrong `true`
+  // would tell a PAYING client they owe us nothing, which is a false statement about their
+  // money; a wrong `false` shows House the wording it has had all along.
+  let internalBilling = false
+  try {
+    const { isHouseClient } = await import('./house-client')
+    internalBilling = await isHouseClient(clientId)
+  } catch (err) {
+    console.error('[customer-programme] house check failed for', clientId, err)
+  }
+
   let outcomesAchieved: number | null = null
   try {
-    const { clientMeetingCounts } = await import('./meeting-truth')
-    const counts = await clientMeetingCounts([clientId])
-    outcomesAchieved = counts === null ? null : (counts[clientId] ?? 0)
+    const { meetingCounts } = await import('./meeting-truth')
+    const counts = await meetingCounts({ clientId, programmeId: p.id as string })
+    outcomesAchieved = counts === null ? null : counts.booked
   } catch (err) {
     console.error('[customer-programme] meeting counts unreadable for', clientId, err)
   }
@@ -116,6 +182,8 @@ export async function readCustomerProgramme(clientId: string): Promise<CustomerP
   return {
     stage,
     quickAction: STAGE_QUICK_ACTION[stage],
+    hasProgramme: true,
+    programmeId: (p.id as string | null) ?? null,
     paused: Boolean(p.paused_at),
     pausedCopy: p.paused_at ? MILLA_FAILURE_COPY.sourcingPaused : null,
     reviewOpen,
@@ -132,6 +200,9 @@ export async function readCustomerProgramme(clientId: string): Promise<CustomerP
       totalCents: Number(p.price_total_cents ?? 0),
       firstPaidAt: (p.first_paid_at as string | null) ?? null,
       secondPaidAt: (p.second_paid_at as string | null) ?? null,
+      firstAuthorisedAt: (p.first_authorised_at as string | null) ?? null,
+      secondAuthorisedAt: (p.second_authorised_at as string | null) ?? null,
+      internalBilling,
     },
     approvedAt: (p.approved_at as string | null) ?? null,
     wentLiveAt: (p.went_live_at as string | null) ?? null,

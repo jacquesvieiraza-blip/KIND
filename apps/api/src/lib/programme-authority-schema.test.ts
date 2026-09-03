@@ -388,6 +388,17 @@ describe('⑤ internal authority is reachable only from the approved modules', (
     'apps/api/src/lib/programme-authority.ts',  // the gates that read authority
     'apps/api/src/lib/operator-programme.ts',   // operator truth for Vida
     'apps/admin/src/app/vida/page.tsx',         // the operator console (admin-key gated)
+    // ⚑ 3 Sep — READ ONLY, AND PROVED READ-ONLY BY THE TEST BELOW.
+    //
+    // House runs on internal P1/P2 authority and makes no payment, so the customer workspace
+    // rendered "First 50% not yet paid" for the life of its programme — never a fake payment,
+    // and never the truth either: it states money is outstanding when nothing is owed. Saying
+    // "authorised internally" requires the customer read to SEE the fact.
+    //
+    // 🛑 SEEING IS NOT SETTING. This module performs no writes at all, and the write ban below
+    // still covers it — narrowed from "must not mention" to "must not write", which is what
+    // that test's own title always claimed.
+    'apps/api/src/lib/customer-programme.ts',   // READS internal authority to render it honestly
   ]
 
   it('the sweep actually reads files — a zero-file scan proves nothing', () => {
@@ -418,9 +429,47 @@ describe('⑤ internal authority is reachable only from the approved modules', (
       f.endsWith('apps/api/src/routes/icps.ts') ||
       f.endsWith('apps/api/src/lib/customer-programme.ts'))
     expect(customerSurfaces.length, 'the customer-surface list must not be empty').toBeGreaterThan(3)
+
+    // ⛓️ NARROWED 3 Sep FROM "MUST NOT MENTION" TO "MUST NOT WRITE" — which is what this
+    // test's own title has always claimed, and the property that actually matters. A client
+    // browser reaching a WRITE would let a customer authorise their own programme, the exact
+    // thing K.I.N.D owns (AR9). READING the fact is what makes House's workspace honest:
+    // without it, it says "not yet paid" about money nobody owes.
+    //
+    // ⚠️ THIS IS NOT A RELAXATION FOR EVERYONE. Every surface except the one customer READER
+    // keeps the blanket ban — a portal file or a lead route has no business naming these
+    // columns at all — and the reader is separately proved to name them only inside a select.
+    const READ_ONLY = 'apps/api/src/lib/customer-programme.ts'
     for (const f of customerSurfaces) {
-      expect(read(f), `${f} must not touch internal authority`).not.toMatch(/first_authorised_at|second_authorised_at/)
+      const src = read(f)
+      if (!f.endsWith(READ_ONLY)) {
+        expect(src, `${f} must not touch internal authority`).not.toMatch(/first_authorised_at|second_authorised_at/)
+        continue
+      }
+      // The reader: no write of any kind may carry an authority column. Each `.update(` /
+      // `.insert(` / `.upsert(` is inspected over the statement that follows it.
+      for (const m of src.matchAll(/\.(update|insert|upsert)\(/g)) {
+        const window = src.slice(m.index!, m.index! + 400)
+        expect(window, `${f} writes internal authority`).not.toMatch(/first_authorised_at|second_authorised_at/)
+      }
     }
+  })
+
+  it('🛑 the customer reader names the authority columns ONLY inside a select', () => {
+    // ⚠️ THE POSITIVE HALF. The write ban above proves nothing about a mention that is neither
+    // a write nor a read — a stray literal, a helper, a string built for some other purpose.
+    // Every occurrence in this module must sit in the select list or in the mapping that
+    // copies the value onto the response, and there must BE occurrences.
+    const src = read(appFiles.find(f => f.endsWith('apps/api/src/lib/customer-programme.ts'))!)
+    const code = src.split('\n').filter(l => !l.trim().startsWith('//') && !l.trim().startsWith('*')).join('\n')
+    const lines = code.split('\n').filter(l => /first_authorised_at|second_authorised_at/.test(l))
+    expect(lines.length, 'the reader does not read them at all').toBeGreaterThan(0)
+    for (const l of lines) {
+      expect(l, `unexpected use of internal authority: ${l.trim()}`)
+        .toMatch(/'first_paid_at, second_paid_at, first_authorised_at, second_authorised_at, '|p\.(first|second)_authorised_at as string \| null/)
+    }
+    // And the module writes nothing whatsoever — it is a read model.
+    expect(code, 'the customer reader must perform no writes').not.toMatch(/\.(update|insert|upsert|delete)\(/)
   })
 
   it('the internal writers live behind the admin-key router, not anywhere else', () => {

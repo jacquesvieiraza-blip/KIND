@@ -422,9 +422,13 @@ describe('🛑 NO LEGACY MONEY TRUTH SURVIVES ON THE MILLA HOME', () => {
   // These say what must be THERE, so the same regression cannot recur silently.
   describe('AT PROOF THE CLIENT CAN STILL REACT — AND IT COSTS NOTHING', () => {
     it('a Proof-stage client is given a calibration surface, not the programme workspace', () => {
-      // The stage is what chooses. Without this branch a prospect at Proof lands on a
-      // workspace describing a programme they have not bought, with nothing to react to.
-      expect(HOME_CODE, 'the home no longer branches on the Proof stage').toContain("prog.stage !== 'Proof'")
+      // ⛓️ CORRECTED 3 Sep — THE STAGE WAS NEVER THE RIGHT QUESTION. `millaStage` maps a DRAFT
+      // programme AND no programme at all to 'Proof', so branching on the stage sent a client
+      // WITH a programme into the legacy client-scoped desk and rendered their history as
+      // current programme work. What this guard actually protects is unchanged: a prospect who
+      // has NOT bought a programme must land on the calibration surface, not on a workspace
+      // describing a programme they do not have. `hasProgramme` is that question, asked directly.
+      expect(HOME_CODE, 'the home no longer branches on whether a programme exists').toContain('prog.hasProgramme !== false')
       expect(HOME_CODE, 'the calibration set is not fetched').toContain('/leads/for-approval')
     })
 
@@ -602,8 +606,14 @@ describe('THE HOME STATES NOTHING THAT ITS STAGE CANNOT SUPPORT', () => {
   it('③ the send-state header is gated on the programme stage, not on a campaign row', () => {
     expect(HOME_CODE, 'the outreach-stage gate is gone from sendState')
       .toContain("const OUTREACH_STAGES: MillaStage[] = ['Live', 'Review', 'Completion']")
+    // ⛓️ TIGHTENED 3 Sep — THE GATE WAS `prog && !OUTREACH_STAGES...`, WHICH SKIPPED ITSELF
+    // WHEN `prog` WAS NULL. While `/my/programme` was loading or after it failed, the guard
+    // did not run and the campaign-derived labels were reached — the one moment we knew least
+    // was the moment it asserted most. Unknown is now idle, and a client with NO programme is
+    // idle whatever their stage says (DRAFT and none are both 'Proof'). This assertion is
+    // STRICTER than the one it replaces: it requires both refusals ahead of `needsGoLive`.
     expect(HOME_CODE, 'sendState reads campaign_status at every stage again')
-      .toMatch(/if \(prog && !OUTREACH_STAGES\.includes\(prog\.stage\)\) return idle[\s\S]{0,120}?if \(needsGoLive\)/)
+      .toMatch(/if \(!prog \|\| !OUTREACH_STAGES\.includes\(prog\.stage\)\) return idle[\s\S]{0,400}?if \(prog\.hasProgramme === false\) return idle[\s\S]{0,200}?if \(needsGoLive\)/)
     // 🛑 THE CONTRADICTION ITSELF: "Paused" must be unreachable before Live. The gate returns
     // first, so the paused branch cannot be evaluated at Proof, Recommendation, Sourcing or
     // Approval — which is the whole finding.

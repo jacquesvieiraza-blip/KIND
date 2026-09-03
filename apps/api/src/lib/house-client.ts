@@ -323,3 +323,60 @@ export function nextStepFor(reason: string | null | undefined): string {
     default:               return 'Nothing outstanding.'
   }
 }
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// ⑤ IS THIS CLIENT THE HOUSE ACCOUNT? — the existing identity, reused, never re-invented
+//
+// 🛑 WHY THIS QUESTION HAD TO BE ASKED AT ALL. House runs its programme on internal P1/P2
+// authority and never pays itself. Before internal P1 the programme row carries neither a
+// payment stamp nor an authority stamp — so Milla's money card fell to its default and told
+// House **"First 50% not yet paid"**, a debt to itself that does not exist. Nothing on the
+// programmes row can answer this: whether a programme will be PAID or AUTHORISED is an
+// operator act taken later, not a property the row holds at DRAFT. A paying client's row at
+// DRAFT is byte-identical to House's.
+//
+// ⚠️ THE STAMP COLUMNS ARE DELIBERATELY NOT NAMED IN THIS FILE. `programme-authority-schema`
+// keeps a founder-locked allowlist of the modules that may name them, and this module is not
+// on it — correctly, because it must never read or write one. It answers "who is this client",
+// and nothing about authority.
+//
+// ── WHAT IS REUSED, AND WHY IT IS THE SAFE ONE ──────────────────────────────────────────
+//
+// `HOUSE_ACCOUNT_EMAIL` — the founder's own login — already IS the house discriminator in this
+// repository: `computeExcludedClientIds` uses it to keep Client Zero out of every revenue
+// figure. "House is never revenue" and "House owes no payment" are the same fact, and this
+// reuses the identity rather than minting a second one that could disagree.
+//
+// 🛑 AND IT IS THE IDENTITY THE FOUNDER SETTLED. #584/#582 were both caused by matching an
+// account on its COMPANY NAME, and #593 closed it: **identity is the auth user, never the
+// name.** So this resolves `clients.user_id → auth user → email`, exactly as `real-clients.ts`
+// does. It does NOT read `HOUSE_CLIENT_ID` (which must stay unset — see the notice above), does
+// NOT introduce an env flag, does NOT add a column, and does NOT match on a name.
+//
+// ⚠️ FAILS OPEN TO `false`, DELIBERATELY, AND THAT IS THE SAFE DIRECTION HERE. A wrong `true`
+// would tell a PAYING client their programme is "authorised internally" — that they owe us
+// nothing — which is a false statement about their money. A wrong `false` shows House the
+// wording it has had all along. `real-clients.ts` fails open the same way for the same reason.
+// ═══════════════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Does this client belong to the house account?
+ *
+ * Two reads: the client's `user_id`, then that auth user's email. Called once per customer
+ * programme read — a page load, not a hot path.
+ */
+export async function isHouseClient(clientId: string): Promise<boolean> {
+  try {
+    const { db } = await import('@kind/db')
+    const { data: client, error } = await db.from('clients')
+      .select('user_id').eq('id', clientId).maybeSingle()
+    if (error || !client) return false
+    const userId = (client as { user_id: string | null }).user_id
+    if (!userId) return false
+    const { data } = await db.auth.admin.getUserById(userId)
+    return (data?.user?.email ?? '').trim().toLowerCase() === HOUSE_ACCOUNT_EMAIL
+  } catch (err) {
+    console.warn('[house-client] isHouseClient failed — treated as NOT house:', err)
+    return false
+  }
+}

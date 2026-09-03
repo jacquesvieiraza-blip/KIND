@@ -150,8 +150,30 @@ describe('the desk tells the client when it is showing a subset', () => {
   // genuinely needs disclosing. What is guarded is that it is not needed here.
   it('the calibration set is complete by construction, so no subset disclosure is owed', () => {
     expect(desk, 'the calibration set is no longer fetched at all').toContain('/leads/for-approval')
-    // The panel is stage-gated to Proof — the only stage where the proof fences apply.
-    expect(desk, 'the calibration set is rendered outside the Proof stage').toContain("prog.stage !== 'Proof'")
+    // ⛓️ CORRECTED 3 Sep — THE "COMPLETE BY CONSTRUCTION" ARGUMENT WAS FALSE FOR A CLIENT WITH
+    // HISTORY, and a founder screenshot of House proved it. The panel is gated to clients with
+    // NO PROGRAMME (it was gated on `stage !== 'Proof'`, which could not tell a DRAFT programme
+    // from none at all). That set is NOT bounded by the proof fences: House holds ~166 records
+    // and would have been shown 50 of them with nothing saying so. So the completeness argument
+    // below still holds for a genuine proof prospect, AND the disclosure is now actually made
+    // when the list reaches the route cap — which is what this test should have required.
+    expect(desk, 'the calibration panel is no longer gated on the absence of a programme').toContain("prog.hasProgramme !== false")
+    // ⛓️ FOUNDER-LOCKED 3 Sep — THE DISCLOSURE SENTENCE WAS REPLACED, AND THIS RECORDS THE
+    // TRADE HE MADE RATHER THAN PRETENDING IT DID NOT HAPPEN.
+    //
+    // I had added "These are SOME of the people we've shown you before" when the list reached
+    // the 50-row cap. He locked the panel copy verbatim and ruled "do not add more
+    // explanation", which removes that clause. What survives is stronger than what the
+    // sentence bought: the panel no longer claims to be a programme at all, and the locked
+    // words — "examples you've previously reviewed" — do not assert completeness either.
+    //
+    // ⚠️ SO THE CAP IS STILL UNDISCLOSED, and that is a founder decision on record, not an
+    // oversight. This assertion pins the locked copy so the claim can never grow back into
+    // one that implies the list is everything.
+    expect(desk, 'the founder-locked panel copy moved').toContain('Earlier activity')
+    expect(desk, 'the locked explanation moved')
+      .toContain('You don’t have an active programme yet. These are examples you’ve previously reviewed to help Milla learn what fits.')
+    expect(desk, 'the panel must not claim the list is complete').not.toMatch(/all of the people|every prospect we/i)
     // Route cap …
     expect(routeRaw, 'the /for-approval cap moved').toContain('.limit(50)')
     // … versus the most a proof client can ever have. 2 × 20 = 40 < 50.

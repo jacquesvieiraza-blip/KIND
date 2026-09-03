@@ -150,13 +150,17 @@ export default function ProgrammeReview({ token }: { token: () => Promise<string
           {approved ? 'You approved this programme' : 'Review the prospects for your programme'}
         </div>
         <div className="text-[12.5px] text-[#6b6288] mt-1">
-          {d.total}{d.complete === false ? '+' : ''} prospect{d.total === 1 ? '' : 's'} ready
+          {/* ⚠️ THOUSANDS-SEPARATED. A programme is 250 prospects per targeted meeting (R77), so
+              a ten-meeting programme is four digits and `2500` reads as a reference number
+              rather than a count. `toLocaleString` on a locale-free render would vary by the
+              viewer's browser, so the locale is pinned. */}
+          {d.total.toLocaleString('en-GB')}{d.complete === false ? '+' : ''} prospect{d.total === 1 ? '' : 's'} selected
           {d.programme.meeting_target ? ` · ${d.programme.meeting_target} meeting target` : ''}
           {d.prospects.length < d.total ? ` · showing the top ${d.prospects.length}` : ''}
         </div>
         {!approved && (
           <div className="text-[12.5px] text-[#6b6288] mt-1.5">
-            One approval covers the whole programme. There is nothing to pay and nothing to approve one at a time.
+            One approval covers the whole programme. There is nothing to pay and nothing to approve individually.
           </div>
         )}
       </div>

@@ -82,6 +82,65 @@ export interface MillaSummaryData {
 }
 
 /**
+ * The campaign to report as CURRENT for this client.
+ *
+ * ── THE BLEED ───────────────────────────────────────────────────────────────────────────
+ *
+ * This read was `client_id` + newest row + ANY state. `figsy_campaigns` has no `programme_id`
+ * column, so nothing in it distinguished a programme's campaign from a retired one — and Milla
+ * renders `campaign_status` as **"Programme live" / "Paused — we'll tell you why" / "Programme
+ * finished"**. A client whose only campaign is a retired legacy row would have been told their
+ * programme was live, or paused, on the strength of a campaign the programme never created.
+ *
+ * ── THE RULE (founder, 3 Sep) ───────────────────────────────────────────────────────────
+ *
+ * 🛑 **"If there is no positively programme-safe campaign truth available for Milla, show no
+ * current campaign rather than infer one."** So when a programme is open, the campaign must
+ * BELONG to it, and `null` is the honest answer when none does.
+ *
+ * ⚠️ ATTRIBUTION IS DERIVED, NOT ADDED. A campaign belongs to a programme when its ICP does:
+ * `attachIcpToProgramme` is the only writer of `icps.programme_id`, and it REFUSES any ICP that
+ * already carries a campaign — so an attached ICP provably had none when it joined, and the
+ * only campaign it can hold was created after attachment, for that programme. No column, no
+ * migration, no backfill.
+ *
+ * ⚠️ LEGACY IS UNTOUCHED. A client with no open programme takes the identical query it always
+ * took: their campaign is their campaign. The widget that renders this is separately gated to
+ * the outreach stages, so a legacy campaign cannot be read as programme truth at Proof either.
+ */
+async function campaignFor(clientId: string) {
+  const newest = () => db.from('figsy_campaigns').select('name, status').eq('client_id', clientId)
+    .order('created_at', { ascending: false }).limit(1).maybeSingle()
+
+  let programmeId: string | null = null
+  try {
+    const { openProgrammeForClient } = await import('./programme')
+    programmeId = (await openProgrammeForClient(clientId))?.id ?? null
+  } catch (err) {
+    // ⚠️ FAIL-CLOSED HERE, UNLIKE THE REPLIES RAIL, AND THE DIFFERENCE IS DELIBERATE. A missing
+    // reply is a rail that looks quiet; a wrong campaign status is a SENTENCE — "Programme
+    // live" — asserting that outreach is running. Not knowing is never grounds to say that.
+    console.error('[milla-summary] programme state unreadable for', clientId, err)
+    return { data: null, error: null }
+  }
+  if (!programmeId) return newest()
+
+  const { data: icpRows, error: icpErr } = await db.from('icps')
+    .select('id').eq('client_id', clientId).eq('programme_id', programmeId)
+  if (icpErr) {
+    console.error('[milla-summary] programme ICPs unreadable for', clientId, icpErr.message)
+    return { data: null, error: null }
+  }
+  const icpIds = (icpRows ?? []).map((r: { id: string }) => r.id)
+  // No attached ICP means no programme campaign can exist yet. That is a real answer.
+  if (icpIds.length === 0) return { data: null, error: null }
+
+  return db.from('figsy_campaigns').select('name, status')
+    .eq('client_id', clientId).in('icp_id', icpIds)
+    .order('created_at', { ascending: false }).limit(1).maybeSingle()
+}
+
+/**
  * The replies to show as CURRENT activity for this client.
  *
  * 🛑 THE RULE: an open programme means the rail shows that programme's replies. No programme
@@ -144,8 +203,7 @@ export async function buildMillaSummaryData(clientId: string): Promise<MillaSumm
     // Name AND status of the newest campaign, whatever state it is in. Filtering to
     // status='active' meant a paused or cold-suspended client was indistinguishable from
     // one with no campaign at all — and Milla told both of them "Campaign live".
-    db.from('figsy_campaigns').select('name, status').eq('client_id', clientId)
-      .order('created_at', { ascending: false }).limit(1).maybeSingle(),
+    campaignFor(clientId),
     // ⛓️ SCOPED TO THE OPEN PROGRAMME WHEN ONE EXISTS (3 Sep). This was `client_id` alone, and
     // `figsy_replies` carries no `programme_id` column — so House's historical replies would
     // have kept sitting in the rail as current activity the moment a new programme was created,

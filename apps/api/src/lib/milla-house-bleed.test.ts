@@ -37,13 +37,18 @@ type Row = Record<string, unknown>
 
 const state: {
   programmes: Row[]; leads: Row[]; clients: Row[]; replies: Row[]; meetings: Row[]
+  campaigns: Row[]; icps: Row[]
   programmesUnreadable: boolean
-} = { programmes: [], leads: [], clients: [], replies: [], meetings: [], programmesUnreadable: false }
+} = {
+  programmes: [], leads: [], clients: [], replies: [], meetings: [],
+  campaigns: [], icps: [], programmesUnreadable: false,
+}
 
 function table(name: string) {
   const rows = (): Row[] =>
     name === 'programmes' ? state.programmes : name === 'leads' ? state.leads
     : name === 'figsy_replies' ? state.replies : name === 'meetings' ? state.meetings
+    : name === 'figsy_campaigns' ? state.campaigns : name === 'icps' ? state.icps
     : state.clients
   const q: any = {
     _f: [] as ((r: Row) => boolean)[], _limit: 0,
@@ -103,6 +108,7 @@ const meeting = (id: string, programmeId: string | null, clientId = HOUSE) =>
 
 beforeEach(() => {
   state.programmes = []; state.leads = []; state.clients = []; state.replies = []; state.meetings = []
+  state.campaigns = []; state.icps = []
   state.programmesUnreadable = false
 })
 
@@ -308,5 +314,133 @@ describe('⑤ history is preserved, and the all-time surfaces still read it', ()
     // programme doing". Narrowing those would be deleting history from the reports.
     const src = readFileSync(join(__dirname, 'milla-summary.ts'), 'utf8')
     expect(src).toContain("db.from('figsy_replies').select('id', { count: 'exact', head: true }).eq('client_id', clientId)")
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// ⑥ CAMPAIGN STATUS — THE LAST SURFACE OF THE SAME CLASS
+//
+// 🛑 WHY THIS ONE IS THE SHARPEST. Milla renders `campaign_status` as a SENTENCE, not a number:
+// **"Programme live"**, **"Paused — we'll tell you why"**, **"Programme finished"**. The read was
+// `client_id` + newest row + ANY state, and `figsy_campaigns` has no `programme_id` column — so
+// a client whose only campaign is a retired legacy row would have been told their programme was
+// live, on the strength of a campaign the programme never created.
+//
+// ⚠️ ATTRIBUTION IS DERIVED, NOT ADDED. A campaign belongs to a programme when its ICP does.
+// `attachIcpToProgramme` is the only writer of `icps.programme_id` and REFUSES an ICP that
+// already carries a campaign — so an attached ICP's campaign was provably created for that
+// programme. No column, no migration, no backfill.
+// ═══════════════════════════════════════════════════════════════════════════════════════
+describe('⑥ a historical campaign is never presented as current programme truth', () => {
+  async function campaignStatus(clientId: string) {
+    const { buildMillaSummaryData } = await import('./milla-summary')
+    return (await buildMillaSummaryData(clientId)).campaign_status
+  }
+  const legacyCampaign = (id: string, status: string, clientId = HOUSE) =>
+    state.campaigns.push({ id, client_id: clientId, icp_id: `ICP_OLD_${id}`, name: id, status, created_at: '2025-01-01' })
+  const programmeCampaign = (id: string, status: string, icpId = 'ICP_NEW') =>
+    state.campaigns.push({ id, client_id: HOUSE, icp_id: icpId, name: id, status, created_at: '2026-09-01' })
+  const attachedIcp = (id = 'ICP_NEW', programmeId = P_NEW, clientId = HOUSE) =>
+    state.icps.push({ id, client_id: clientId, programme_id: programmeId })
+
+  it('🛑 NO PROGRAMME + a historical campaign → legacy truth is returned, and the WIDGET refuses to read it', async () => {
+    // The summary still answers honestly for a legacy client — their campaign is their
+    // campaign, and the $299 pack clients must keep it. What changed is that Milla will not
+    // render it as programme status: the widget is gated on the outreach stages AND on
+    // `hasProgramme`, both proved below against the real source.
+    legacyCampaign('C_OLD', 'paused')
+    expect(await campaignStatus(HOUSE), 'legacy is untouched').toBe('paused')
+
+    const page = readFileSync(join(__dirname, '../../../portal/src/app/(milla)/milla/page.tsx'), 'utf8')
+    const visible = page.split('\n').filter(l => !l.trim().startsWith('//') && !l.trim().startsWith('*')).join('\n')
+    expect(visible, 'no programme ⇒ no programme status').toContain('if (prog.hasProgramme === false) return idle')
+  })
+
+  it('🛑 DRAFT P_NEW + a historical campaign → the historical campaign is EXCLUDED', async () => {
+    houseProgramme({ status: 'DRAFT' })
+    legacyCampaign('C_OLD', 'active')          // the retired desk's campaign
+    // No ICP is attached to the DRAFT programme yet, so no programme campaign can exist.
+    expect(await campaignStatus(HOUSE), 'show none rather than infer one').toBeNull()
+    expect(state.campaigns, 'and the historical row is preserved').toHaveLength(1)
+  })
+
+  it('🛑 an OPEN programme with an attached ICP but no campaign yet → still null, never the legacy row', async () => {
+    houseProgramme()
+    attachedIcp()
+    legacyCampaign('C_OLD', 'active')
+    expect(await campaignStatus(HOUSE)).toBeNull()
+  })
+
+  it('the programme\'s OWN campaign is reported, once it exists', async () => {
+    houseProgramme()
+    attachedIcp()
+    legacyCampaign('C_OLD', 'paused')
+    programmeCampaign('C_NEW', 'active')
+    expect(await campaignStatus(HOUSE)).toBe('active')
+  })
+
+  it('🛑 a campaign on an ICP attached to ANOTHER programme is excluded', async () => {
+    houseProgramme()
+    attachedIcp('ICP_NEW', P_NEW)
+    attachedIcp('ICP_WRONG', 'P_SOMETHING_ELSE')
+    programmeCampaign('C_WRONG', 'active', 'ICP_WRONG')
+    expect(await campaignStatus(HOUSE)).toBeNull()
+  })
+
+  it('🛑 MBF\'s campaign is excluded, even on an ICP naming this programme', async () => {
+    houseProgramme()
+    state.icps.push({ id: 'ICP_MBF', client_id: MBF, programme_id: P_NEW })
+    state.campaigns.push({ id: 'C_MBF', client_id: MBF, icp_id: 'ICP_MBF', name: 'C_MBF', status: 'active', created_at: '2026-09-01' })
+    expect(await campaignStatus(HOUSE)).toBeNull()
+  })
+
+  it('🛑 TENANCY IS RE-APPLIED ON THE CAMPAIGN ROW, not inherited from the ICP list', async () => {
+    // ⚠️ DEFENCE IN DEPTH, AND A RED PROOF IS WHAT REVEALED IT WAS UNTESTED. The ICP ids are
+    // already client-scoped, so dropping the campaign query's own `client_id` filter changed
+    // nothing in an honest fixture and the mutation stayed green. A corrupt row tells them
+    // apart: a campaign on House's attached ICP that carries MBF's client_id is a broken link,
+    // and it must not become either tenant's "Programme live".
+    houseProgramme()
+    attachedIcp()
+    state.campaigns.push({ id: 'C_CORRUPT', client_id: MBF, icp_id: 'ICP_NEW', name: 'C_CORRUPT', status: 'active', created_at: '2026-09-02' })
+    expect(await campaignStatus(HOUSE)).toBeNull()
+  })
+
+  it('🛑 TENANCY IS APPLIED ON THE ICP LOOKUP TOO — a foreign ICP cannot widen the campaign set', async () => {
+    // The mirror of the above: House's own campaign hanging off ANOTHER tenant's ICP. If the
+    // ICP lookup dropped `client_id`, that foreign ICP would enter the id list and carry this
+    // campaign in with it.
+    houseProgramme()
+    state.icps.push({ id: 'ICP_FOREIGN', client_id: MBF, programme_id: P_NEW })
+    state.campaigns.push({ id: 'C_VIA_FOREIGN', client_id: HOUSE, icp_id: 'ICP_FOREIGN', name: 'C_VIA_FOREIGN', status: 'active', created_at: '2026-09-02' })
+    expect(await campaignStatus(HOUSE)).toBeNull()
+  })
+
+  it('🛑 an unreadable programme state returns NULL — it never guesses "Programme live"', async () => {
+    // ⚠️ FAIL-CLOSED HERE, UNLIKE THE REPLIES RAIL. A missing reply is a quiet rail; a wrong
+    // campaign status is a sentence asserting that outreach is running.
+    legacyCampaign('C_OLD', 'active')
+    state.programmesUnreadable = true
+    expect(await campaignStatus(HOUSE)).toBeNull()
+  })
+
+  it('🛑 the widget cannot assert a campaign-derived label while the programme is UNKNOWN', () => {
+    const page = readFileSync(join(__dirname, '../../../portal/src/app/(milla)/milla/page.tsx'), 'utf8')
+    const visible = page.split('\n').filter(l => !l.trim().startsWith('//') && !l.trim().startsWith('*')).join('\n')
+    // The old guard was `prog && !OUTREACH_STAGES...`, which SKIPPED itself when `prog` was
+    // null — asserting most at the moment it knew least.
+    expect(visible).toContain('if (!prog || !OUTREACH_STAGES.includes(prog.stage)) return idle')
+    expect(visible).not.toContain('if (prog && !OUTREACH_STAGES.includes(prog.stage)) return idle')
+  })
+
+  it('history is preserved across all of it — leads, replies, meetings, campaigns', async () => {
+    houseProgramme()
+    historicalLead('L_OLD'); reply('R_OLD', 'L_OLD'); meeting('M_OLD', null); legacyCampaign('C_OLD', 'active')
+    await campaignStatus(HOUSE)
+    expect(state.leads).toHaveLength(1)
+    expect(state.replies).toHaveLength(1)
+    expect(state.meetings).toHaveLength(1)
+    expect(state.campaigns).toHaveLength(1)
+    expect(state.leads[0].programme_id, 'no backfill').toBeNull()
   })
 })

@@ -606,8 +606,14 @@ describe('THE HOME STATES NOTHING THAT ITS STAGE CANNOT SUPPORT', () => {
   it('③ the send-state header is gated on the programme stage, not on a campaign row', () => {
     expect(HOME_CODE, 'the outreach-stage gate is gone from sendState')
       .toContain("const OUTREACH_STAGES: MillaStage[] = ['Live', 'Review', 'Completion']")
+    // ⛓️ TIGHTENED 3 Sep — THE GATE WAS `prog && !OUTREACH_STAGES...`, WHICH SKIPPED ITSELF
+    // WHEN `prog` WAS NULL. While `/my/programme` was loading or after it failed, the guard
+    // did not run and the campaign-derived labels were reached — the one moment we knew least
+    // was the moment it asserted most. Unknown is now idle, and a client with NO programme is
+    // idle whatever their stage says (DRAFT and none are both 'Proof'). This assertion is
+    // STRICTER than the one it replaces: it requires both refusals ahead of `needsGoLive`.
     expect(HOME_CODE, 'sendState reads campaign_status at every stage again')
-      .toMatch(/if \(prog && !OUTREACH_STAGES\.includes\(prog\.stage\)\) return idle[\s\S]{0,120}?if \(needsGoLive\)/)
+      .toMatch(/if \(!prog \|\| !OUTREACH_STAGES\.includes\(prog\.stage\)\) return idle[\s\S]{0,400}?if \(prog\.hasProgramme === false\) return idle[\s\S]{0,200}?if \(needsGoLive\)/)
     // 🛑 THE CONTRADICTION ITSELF: "Paused" must be unreachable before Live. The gate returns
     // first, so the paused branch cannot be evaluated at Proof, Recommendation, Sourcing or
     // Approval — which is the whole finding.

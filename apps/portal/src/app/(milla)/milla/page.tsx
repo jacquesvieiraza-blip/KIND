@@ -1185,9 +1185,16 @@ export default function MillaHomePage() {
   ]
   const sendState = (() => {
     const idle = { label: 'Nothing sending yet', tone: 'text-[#5c5279]', dot: 'bg-[#b3a9cc]' }
-    // ⚠️ ONLY WHEN THE STAGE IS KNOWN. While `/my/programme` is still loading — or has failed
-    // — this must not start asserting things it cannot know, so the existing behaviour stands.
-    if (prog && !OUTREACH_STAGES.includes(prog.stage)) return idle
+    // ⛓️ CORRECTED 3 Sep — "ONLY WHEN THE STAGE IS KNOWN" DID THE OPPOSITE OF WHAT IT SAID.
+    // The guard was `prog && !OUTREACH_STAGES...`, so an UNKNOWN programme — still loading, or
+    // the read failed — skipped it entirely and fell through to the campaign-derived labels.
+    // The one moment we know least is the one moment it asserted most: a legacy client with a
+    // stale `figsy_campaigns` row would flash "Programme live" while `/my/programme` was in
+    // flight. Unknown now means idle, which is the only honest thing this widget can say.
+    if (!prog || !OUTREACH_STAGES.includes(prog.stage)) return idle
+    // 🛑 AND NO PROGRAMME MEANS NO PROGRAMME STATUS, whatever campaign rows exist. `stage`
+    // cannot say this — DRAFT and none are both 'Proof' — so it is asked directly.
+    if (prog.hasProgramme === false) return idle
     if (needsGoLive) return { label: 'Not started', tone: 'text-[#b45309]', dot: 'bg-amber-500' }
     const st = summary?.campaign_status
     // ⛓️ 30 Aug (BUILD-004A-1 live-walk, FOUNDER DECISION 3) — "Campaign" → "Programme" in

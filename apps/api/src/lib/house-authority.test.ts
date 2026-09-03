@@ -330,7 +330,18 @@ describe('④ the Stripe writers refuse when internal authority already exists',
     const sql = mig.slice(at, end).split('\n').filter(l => !l.trim().startsWith('--')).join('\n')
     expect(sql).toContain('ADD CONSTRAINT programmes_p1_authority_xor CHECK (')
     expect(sql).toContain('ADD CONSTRAINT programmes_p2_authority_xor CHECK (')
-    expect((mig.match(/key:\s*'[^']+'/g) ?? []), 'A2 must add no runner entry').toHaveLength(46)
+    // ⛓️ RE-AIMED 3 Sep (PR C1). This read `toHaveLength(46)` with the message "A2 must add no
+    // runner entry" — a snapshot that encoded "no migration has been added since A1", which is
+    // a DIFFERENT claim from the one it is named for. A2 adding none is a fact about A2 and is
+    // settled; pinning a global count made this file go red for any unrelated migration
+    // anywhere in the product, which is not what it guards.
+    //
+    // 🛑 THE INVARIANT THAT MATTERS IS ABOVE: A1's two XOR constraints are intact. Here the
+    // narrow, durable version — A1 appears exactly once, so nothing has re-migrated it — plus
+    // the count as the repository's usual "adding a migration is never silent" tripwire.
+    expect((mig.match(/20260902_programme_internal_authority/g) ?? []).length,
+      'A1 must appear exactly once — a second entry would re-migrate columns production has run').toBe(1)
+    expect((mig.match(/key:\s*'[^']+'/g) ?? []), 'a migration was added').toHaveLength(47)   // ⛓️ 46 → 47 on 3 Sep (PR C1 · SCHEMA FIRST): +1 20260903_client_commercial_model — one NULLABLE text column on clients, NO DEFAULT, NO BACKFILL, plus a CHECK admitting NULL / 'programme' / 'legacy'. NULL is the migrated state for the whole existing book and resolves to exactly today's behaviour, so no row is written and nobody is reclassified. Nothing in C1 reads or writes it (expand/contract).   
   })
 })
 

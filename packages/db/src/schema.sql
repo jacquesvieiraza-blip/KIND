@@ -533,6 +533,13 @@ alter table public.clients
   add column if not exists onboarding_step                  text,
   add column if not exists onboarding_version               int NOT NULL DEFAULT 1,
   add column if not exists plan                             text NOT NULL DEFAULT 'lead_gen',  -- CHECK constraint lives in 20260616_billing_correctness.sql
+  -- ⚑ 3 Sep (PR C1) — which COMMERCIAL MODEL governs this client. NULLABLE with NO DEFAULT and
+  -- no backfill: NULL means unclassified and resolves to the behaviour the product had before
+  -- the column existed. Values are 'programme' or 'legacy'; the CHECK lives in
+  -- 20260903_client_commercial_model.sql. NOT the same question as `plan` above, which selects
+  -- a WALLET POOL (lead_gen | figsy) and is read by normalizePlan, canEnroll and
+  -- deliveryCapBalance.
+  add column if not exists commercial_model                 text,
   add column if not exists referral_bonus_paid_at           timestamptz,
   -- BUILD-004A-2D (31 Aug) — mirrors 20260831_notification_prefs_and_referral_handoff.
   -- NULLABLE WITH NO DEFAULT, unlike daily_brief_enabled above: null means "never chose",

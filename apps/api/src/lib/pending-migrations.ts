@@ -3221,6 +3221,82 @@ BEGIN
 END $$;
 `.trim(),
   },
+  {
+    // ⚑ 3 Sep — THE CLIENT COMMERCIAL MODEL, DECLARED RATHER THAN INFERRED (PR C1).
+    //
+    // 🛑 THE PROBLEM THIS COLUMN EXISTS FOR. `authorityFor(null)` in programme-authority.ts
+    // returns `{ allowed: true, mode: 'legacy' }` — so the ABSENCE of a programme row is being
+    // read as the positive assertion "this client is legacy", and every commercial decision in
+    // the product inherits it: the per-lead approve/reveal routes open, the wallet gates
+    // enrolment, low-credit emails send, and Vida tells the operator the account is on the
+    // $299 pack. Absence of X cannot mean "is Y". The same absence also describes a programme
+    // client before their first programme, between two, or after one completes.
+    //
+    // Founder-locked 3 Sep: House and MBF are PROGRAMME-MODEL clients, and having no active
+    // programme must not make either of them legacy.
+    //
+    // ── THREE STATES, AND THE NULLABILITY IS THE WHOLE SAFETY ARGUMENT ───────────────────
+    //
+    //   NULL          unclassified. Resolves to EXACTLY the behaviour the product has today.
+    //   'programme'   programme economics, whether or not a programme row exists.
+    //   'legacy'      the retired per-lead model, chosen by a human and never by inference.
+    //
+    // 🛑 NO DEFAULT, AND THAT IS DELIBERATE. This repository already paid for that lesson:
+    // programme-notifications.ts records the #599 precedent verbatim — a DEFAULT stamps
+    // historic rows with a claim nobody checked. A default of 'programme' would silently
+    // convert the entire existing book and strip wallet economics from paying legacy clients;
+    // a default of 'legacy' would assert about every account that nobody has reviewed. NULL
+    // asserts nothing, so this migration changes no row and no behaviour.
+    //
+    // ⚠️ NOT ON `clients.plan`. That column is lead_gen or figsy — WHICH WALLET POOL — and is
+    // read by normalizePlan, canEnroll and deliveryCapBalance. Overloading it with a second,
+    // unrelated meaning is how one column starts answering two questions and gets one wrong.
+    //
+    // ⚠️ NO INDEX. The resolver reads one client by primary key; nothing filters or groups by
+    // this column on the launch path, and an index nobody can prove is needed is a cost with
+    // no reader.
+    //
+    // ⚑ SHIPPED AHEAD OF ITS APPLICATION CODE, ON PURPOSE (expand/contract, the PR A1 lesson).
+    // PENDING_MIGRATIONS is a TypeScript constant compiled into the DEPLOYED API, so a
+    // migration can NEVER be applied before the build that carries it. NO application code in
+    // this PR reads or writes this column; the deployed product behaves exactly as before.
+    key: '20260903_client_commercial_model',
+    title: 'Client commercial model (programme | legacy), nullable and unclassified by default',
+    sql: `
+ALTER TABLE public.clients
+  ADD COLUMN IF NOT EXISTS commercial_model text;
+
+COMMENT ON COLUMN public.clients.commercial_model IS
+  'Which commercial model governs this client. NULL means UNCLASSIFIED and resolves to the behaviour the product had before this column existed. programme means programme economics whether or not a programme row is open. legacy means the retired per-lead model. Never inferred from a company name, an email, an env id, or the presence of a programme row. Never backfilled.';
+
+-- ── THE CHECK, CREATED ONLY IF MISSING ───────────────────────────────────────────────────
+--
+-- The runner has no ledger and executes every entry on every run, so this must be idempotent.
+-- Guarded on pg_constraint rather than written as DROP + ADD: ADD CONSTRAINT ... CHECK takes
+-- an ACCESS EXCLUSIVE lock and revalidates the whole table, so DROP/ADD would pay that on
+-- every run AND leave a window with no constraint at all, during which a concurrent write
+-- could insert the very row that then makes the re-ADD fail. The A1 entry above carries the
+-- same reasoning for the same reason.
+--
+-- SAFE ON A POPULATED TABLE: the column is added NULL with no default and no backfill, so
+-- commercial_model IS NULL short-circuits the OR for every existing row and validation cannot
+-- fail against the book as it stands.
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+     WHERE conrelid = 'public.clients'::regclass
+       AND conname  = 'clients_commercial_model_check'
+  ) THEN
+    ALTER TABLE public.clients
+      ADD CONSTRAINT clients_commercial_model_check CHECK (
+        commercial_model IS NULL
+        OR commercial_model IN ('programme', 'legacy')
+      );
+  END IF;
+END $$;
+`.trim(),
+  },
 ]
 
 // Runs the statements against DATABASE_URL. Uses node-postgres because the Supabase JS

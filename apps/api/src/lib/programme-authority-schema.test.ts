@@ -482,17 +482,49 @@ describe('⑤ internal authority is reachable only from the approved modules', (
     }
   })
 
-  it("🛑 A2 ADDS NO MIGRATION, and A1's SQL is byte-for-byte unchanged", () => {
+  it("🛑 NOTHING RE-MIGRATES THE PROGRAMME AUTHORITY COLUMNS, and A1's SQL is byte-for-byte unchanged", () => {
     // The expand/contract contract: the schema shipped in A1 and production has already run
     // it. A second migration touching these columns would mean the founder must run something
     // again — and the whole reason for the split was that he should not have to.
-    const keys = RUNNER.match(/key:\s*'[^']+'/g) ?? []
-    expect(keys, 'the runner must still carry exactly the 46 A1 entries').toHaveLength(46)
+    //
+    // ⛓️ RE-AIMED 3 Sep (PR C1). This asserted absolute snapshot counts — 46 runner entries,
+    // 159 canonical files — which encoded "no migration has been added since A1". That is a
+    // DIFFERENT claim from the one the test is named for, and C1 falsifies it deliberately by
+    // adding `clients.commercial_model`. Pinning a global count here also meant this file went
+    // red for any unrelated migration anywhere in the product, which is not what it guards.
+    //
+    // 🛑 THE REAL INVARIANT IS NARROWER AND STRONGER: A1's entry appears exactly ONCE, its two
+    // XOR constraints are intact, and NO OTHER runner entry touches `public.programmes` at all.
+    // That stays true however many unrelated migrations are added later, and it fails the
+    // moment somebody re-migrates these columns — which is the thing worth catching.
     expect((RUNNER.match(/20260902_programme_internal_authority/g) ?? []).length).toBe(1)
-    expect(readdirSync(join(REPO, 'supabase/migrations')).filter(f => f.endsWith('.sql'))).toHaveLength(159)
-    // And the DB XOR is still the structural protection underneath the code-level guards.
+    expect(readdirSync(join(REPO, 'supabase/migrations')))
+      .toContain('20260902_programme_internal_authority.sql')
+    // The DB XOR is still the structural protection underneath the code-level guards.
     expect(RUN_EXEC).toContain('ADD CONSTRAINT programmes_p1_authority_xor CHECK (')
     expect(RUN_EXEC).toContain('ADD CONSTRAINT programmes_p2_authority_xor CHECK (')
+
+    // ⚠️ AND NO ENTRY ADDED *AFTER* A1 MAY ALTER `programmes`. Scoped to what comes after,
+    // deliberately: `20260828_programme_money_engine` CREATED the table and
+    // `20260829_programme_delivery_control` added the review-hold columns, both legitimately
+    // and both already run in production. The thing worth refusing is a NEW migration reaching
+    // back to these columns — which would mean the founder has to run something again, and the
+    // whole reason for the expand/contract split was that he should not have to.
+    //
+    // Keys are date-prefixed and the array is chronological, so a plain string compare against
+    // A1's key is the ordering. A future entry dated after 2 Sep that touches `programmes`
+    // fails here by name.
+    const A1 = '20260902_programme_internal_authority'
+    const later = (RUNNER.split(/key:\s*'/).slice(1))
+      .map(b => ({ key: b.slice(0, b.indexOf("'")), body: b }))
+      .filter(e => e.key > A1)
+    const offenders = later
+      .filter(e => /alter\s+table\s+(?:if\s+exists\s+)?public\.programmes\b/i.test(e.body))
+      .map(e => e.key)
+    expect(offenders, `runner entries added after A1 that ALTER public.programmes: ${offenders.join(', ')}`)
+      .toEqual([])
+    // Vacuity guard: this proves nothing if nothing sorts after A1. C1 does.
+    expect(later.length, 'no entry sorts after A1 — the sweep above checked nothing').toBeGreaterThan(0)
   })
 
   it('🛑 `icps.programme_id` has exactly ONE writer, and it is the dedicated action', () => {

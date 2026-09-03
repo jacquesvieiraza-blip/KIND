@@ -571,15 +571,21 @@ describe('⑧ an unattached ICP cannot source for a programme client', () => {
     // `audience !== 'house'` skipped the spend RPC entirely (Apollo is prepaid, so there was
     // no PDL cash to fence) and with it the programme check inside. House is Client Zero: the
     // one client the programme was built for was the one client the fence did not cover.
+    // ⛓️ 3 Sep (C2) — ~~`openProgrammeForClient` / `if (openProgramme) {`.~~ THIS GUARD WAS
+    // RIGHT ABOUT THE PROPERTY AND THE PROPERTY WAS TOO NARROW. Asking "is a programme open"
+    // covered House only while House HAD one — and House and MBF are declared programme
+    // clients with no programme open today, so the refusal did not fire for either of them and
+    // the House branch reached Apollo with no gate at all. The question is now the declared
+    // commercial model; everything this test asserts about POSITION is unchanged.
     const look = strip(raw(join(API, 'routes/lookalike.ts')))
-    const fence = look.indexOf('openProgrammeForClient')
-    expect(fence, 'the lookalike route must check for an open programme').toBeGreaterThan(-1)
-    // ⚠️ THE CONDITION IS MATCHED WHOLE. `if (openProgramme) {` and `if (false && openProgramme) {`
+    const fence = look.indexOf('clientCommercialModel(String(client_id))')
+    expect(fence, 'the lookalike route must resolve the commercial model').toBeGreaterThan(-1)
+    // ⚠️ THE CONDITION IS MATCHED WHOLE. `if (!mayUse…(model)) {` and `if (false && !mayUse…)`
     // both contain the identifier, so asserting its PRESENCE proves only that somebody typed
     // the word. The neutered version was written and this test stayed green until it read the
     // actual condition.
-    expect(look, 'the refusal must be conditioned on the open programme itself')
-      .toMatch(/\n\s*if \(openProgramme\) \{/)
+    expect(look, 'the refusal must be conditioned on the model itself')
+      .toMatch(/\n\s*if \(!mayUseLegacyCommercialPath\(model\)\) \{/)
     expect(fence, 'and it must do so BEFORE the house-audience branch')
       .toBeLessThan(look.indexOf("if (audience !== 'house')"))
     expect(fence, 'and before any lead is inserted').toBeLessThan(look.indexOf("from('leads').insert"))

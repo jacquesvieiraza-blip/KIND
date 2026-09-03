@@ -314,9 +314,82 @@ describe('④ the resolver is consumed at every path that sources, sends, enrols
       .toBeGreaterThan(fn.indexOf("if (model?.model === 'programme')"))
   })
 
+  it('🛑 LOOKALIKE — refused before the RPC, before the provider, before any lead insert', () => {
+    // ⛓️ 3 Sep — THE DOOR THAT WAS STILL OPEN AFTER THE FIRST C2 PASS. This route asked
+    // `openProgrammeForClient` and refused only when a programme was OPEN, so House and MBF —
+    // declared programme, no programme open — fell straight through. House skips the AR8 spend
+    // fence entirely (Apollo is prepaid), so it reached the provider with NO gate at all.
+    const look = strip(raw('routes/lookalike.ts'))
+    const at = look.indexOf('clientCommercialModel(String(client_id))')
+    expect(at, 'the route must resolve the commercial model').toBeGreaterThan(-1)
+    expect(look, 'the old question must be gone')
+      .not.toContain('const openProgramme = await openProgrammeForClient(String(client_id))')
+    expect(at, 'before the sourcing spend RPC').toBeLessThan(look.indexOf("db.rpc('try_spend_sourcing'"))
+    expect(at, 'before Apollo — the House path, which skips the RPC entirely')
+      .toBeLessThan(look.indexOf('await searchPeople(searchBody)'))
+    expect(at, 'before PDL').toBeLessThan(look.indexOf('pdlSearchPeople'))
+    expect(at, 'before any lead is written').toBeLessThan(look.indexOf("from('leads')"))
+    // ⚠️ THE CONDITION IS THE BARE NEGATION, WITH A RETURN — not merely a mention.
+    expect(look.slice(at - 60)).toMatch(/if \(!mayUseLegacyCommercialPath\(model\)\) \{[\s\S]{0,1400}return res\.json/)
+  })
+
+  it('🛑 CAMPAIGN ACTIVATION — the one door consults the model, and every activating caller uses it', () => {
+    const sw = strip(raw('lib/start-work.ts'))
+    const fn = sw.slice(sw.indexOf('export async function ensureCampaignForIcp'))
+    // ⚠️ THE GATE IS ON THE ACTIVATE PATH, and `checkProgrammeAuthority` is what C2 made
+    // model-aware — so a declared programme client with no programme is refused here without
+    // this file needing its own copy of the rule.
+    expect(fn).toMatch(/if \(activate\) \{[\s\S]{0,2000}checkProgrammeAuthority\(clientId, 'OUTREACH'\)/)
+    expect(fn, 'a refused verdict must return, not fall through to the insert')
+      .toMatch(/if \(!verdict\.allowed\) \{[\s\S]{0,900}return \{ refused/)
+    // ⚠️ AND THE GATE PRECEDES EVERY CAMPAIGN WRITE, including the wake of a paused row.
+    const gateAt = fn.indexOf("checkProgrammeAuthority(clientId, 'OUTREACH')")
+    expect(gateAt).toBeLessThan(fn.indexOf("status: 'active'"))
+    expect(gateAt).toBeLessThan(fn.indexOf("update({ status: 'active' })"))
+
+    // 🛑 EVERY PRODUCTION CALLER THAT ACTIVATES IS ACCOUNTED FOR. A new one that passes
+    // `activate: true` is fine — it inherits the gate — but a new FILE reaching this function
+    // is a door nobody reviewed, so the file list is pinned.
+    const files = ['routes/icps.ts', 'routes/operator.ts', 'lib/programme-preparation.ts']
+    for (const f of files) expect(strip(raw(f)), f).toContain('ensureCampaignForIcp')
+  })
+
+  it('🛑 THE RETIRED /dashboard SHELL TEACHES A PROGRAMME CLIENT NOTHING — one rule, one place', () => {
+    // ⛓️ 3 Sep — `middleware.ts` sends every signed-in client from /dashboard into /milla EXCEPT
+    // three persona sub-trees (partner · developer · client-partner), and `(milla)/layout.tsx`
+    // actively SENDS a seat holder there. So this shell is reachable, and it was rendering
+    // "Low credits · Top up now", "Your wallet is empty … a flat $4 per approved lead",
+    // "Add credits to continue" and a chip whose tooltip reads "$4 per approved lead".
+    const LAYOUT = join(__dirname, '../../../../apps/portal/src/app/(dashboard)/layout.tsx')
+    const layout = strip(readFileSync(LAYOUT, 'utf8'))
+    expect(layout, 'the model is read once, in its own isolated query')
+      .toMatch(/from\('clients'\)\.select\('commercial_model'\)/)
+    expect(layout).toMatch(/commercial_model !== 'programme'/)
+    // ONE boolean, and every retired-economics element obeys it.
+    for (const el of ['<TrialExpiredOverlay', '<LowCreditsNotice', '<KeepFigsyFundedNudge']) {
+      const i = layout.indexOf(el)
+      expect(i, el).toBeGreaterThan(-1)
+      expect(layout.slice(Math.max(0, i - 90), i), `${el} must obey the one rule`)
+        .toContain('retiredWalletChrome')
+    }
+    expect(layout, 'the slim header chip too').toMatch(/retiredWalletChrome && \(\s*<span/)
+    expect(layout, 'and the sidebar is told').toContain('showWallet={retiredWalletChrome}')
+
+    // ⚠️ AN UNREADABLE MODEL SUPPRESSES — the same direction as every other C2 decision.
+    expect(layout).toMatch(/retiredWalletChrome = !modelErr && !!modelRow/)
+    expect(layout).toMatch(/catch \{ retiredWalletChrome = false \}/)
+
+    // ⚠️ AND NOTHING IS REMOVED FOR A LEGACY CLIENT. The sidebar prop defaults to `true`, so
+    // every unclassified client — the whole live book — sees the shell exactly as today.
+    const side = strip(readFileSync(join(__dirname, '../../../../apps/portal/src/components/layout/Sidebar.tsx'), 'utf8'))
+    expect(side).toContain('showWallet = true')
+    expect(side, 'both chips and the label obey it').toSatisfy((x: string) => [...x.matchAll(/showWallet &&/g)].length === 3)
+  })
+
   it('⚠️ NON-VACUOUS: every file above was actually loaded and is not a stub', () => {
     for (const f of ['routes/icps.ts', 'lib/figsy.ts', 'routes/stripe.ts', 'lib/send-due.ts',
-                     'lib/programme-authority.ts', 'lib/programme-notifications.ts']) {
+                     'lib/programme-authority.ts', 'lib/programme-notifications.ts',
+                     'routes/lookalike.ts', 'lib/start-work.ts']) {
       expect(raw(f).length, f).toBeGreaterThan(1000)
     }
   })
@@ -379,7 +452,11 @@ describe('⑥ no surface asserts the legacy model at a programme client any more
   it('🛑 THE WALLET CHIP NO LONGER STANDS UNQUALIFIED BESIDE A PROGRAMME CLIENT', () => {
     expect(vida).toContain('wallet')
     expect(vida, 'the chip must know whether the wallet governs this account')
-      .toMatch(/programmeModel \? ' · not used' : ''/)
+      .toMatch(/r === 'programme' \|\| r === 'compat_programme' \? ' · not used'/)
+    // 🛑 AND AN UNRESOLVED MODEL IS QUALIFIED TOO. Caught on the founder screenshot pass: the
+    // conflict state rendered an ordinary purple balance beside a red panel saying nothing was
+    // authorised. An unqualified balance IS a claim that it is spendable.
+    expect(vida).toMatch(/r === 'unreadable' \? ' · model unresolved'/)
     // ⚠️ THE ELEMENT IS PRESERVED, not removed — the founder's brand rule for Vida.
     expect(vida).toContain('.wallet_balance_usd ?? 0).toLocaleString()')
   })

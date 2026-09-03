@@ -355,6 +355,30 @@ describe('④ Milla\'s "Looks right", pass and feedback are untouched', () => {
   const leadsSrc = readFileSync(join(join(__dirname, '..'), 'routes/leads.ts'), 'utf8')
   const code = leadsSrc.split('\n').filter(l => !l.trim().startsWith('//') && !l.trim().startsWith('*')).join('\n')
 
+  it('🛑 THE ENROL DOOR IS FENCED TOO — it charges $4 without going through batchGate', () => {
+    // ⛓️ 3 Sep (C2) — A DOOR PR B MISSED. `POST /figsy/webhook/enrol` and
+    // `POST /figsy/campaigns/:id/enroll` call `chargeFigsyEnroll` DIRECTLY, which takes a flat
+    // $4 from the wallet per lead. Neither goes through `batchGate`, so the client-level rule
+    // PR B locked was enforced on three routes and not on these two.
+    const figsyRoutes = readFileSync(join(join(__dirname, '..'), 'routes/figsy.ts'), 'utf8')
+      .split('\n').filter(l => !l.trim().startsWith('//') && !l.trim().startsWith('*')).join('\n')
+    const fences = [...figsyRoutes.matchAll(/const fence = await checkLegacyPerLeadAuthority\(clientId\)/g)]
+    expect(fences, 'both enrol loops carry the fence').toHaveLength(2)
+    // ⚠️ AND EACH ONE LANDS BEFORE THE CHARGE. The charge is what this is protecting against,
+    // so a fence after it would refuse a client who had already been billed.
+    const charges = [...figsyRoutes.matchAll(/await chargeFigsyEnroll\(clientId, lead\)/g)]
+    expect(charges).toHaveLength(2)
+    for (let i = 0; i < 2; i++) {
+      expect(fences[i].index, 'the fence precedes its charge').toBeLessThan(charges[i].index!)
+    }
+    // 🛑 DEMO IS EXEMPT BY THE DEMO FLAG, NEVER BY THE COMMERCIAL MODEL. MBF is both a demo and
+    // a programme client; `chargeFigsyEnroll` is already off-ledger for a demo, so fencing it
+    // would break the demo to protect money that never moves.
+    expect([...figsyRoutes.matchAll(/if \(!\(await isDemoClient\(clientId\)\)\) \{/g)]).toHaveLength(2)
+    expect(figsyRoutes, 'the refusal carries the verdict code, never a hardcoded one')
+      .toContain('res.status(409).json({ success: false, error: fence.code, message: fence.message })')
+  })
+
   it('🛑 exactly THREE routes are fenced, and they are the three commercial ones', () => {
     // `batchGate` is the shared chokepoint; every route that calls it is fenced, and no route
     // that does not call it is.

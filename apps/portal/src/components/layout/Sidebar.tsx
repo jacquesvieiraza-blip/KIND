@@ -85,9 +85,21 @@ export function Sidebar({
   creditBalance = 0,
   hasFigsy = false,
   isPartner = false,
+  showWallet = true,
 }: {
   userEmail: string
   creditBalance?: number
+  /**
+   * ⚑ 3 Sep (C2) — SHOW THE WALLET CHIP AT ALL?
+   *
+   * The chip states a balance in the retired per-lead model and its tooltip says so out loud:
+   * "Wallet — $4 per approved lead". For a client DECLARED on the programme model that is a
+   * sentence about a product they are not on, so the shell decides once and this obeys.
+   *
+   * ⚠️ DEFAULT `true` — every legacy and unclassified client, which is the whole live book,
+   * sees the sidebar exactly as they do today. Only the shell can turn it off.
+   */
+  showWallet?: boolean
   /** @deprecated one-wallet model — retained so callers still compile; ignored. */
   figsyCredits?: number
   hasFigsy?: boolean
@@ -173,12 +185,14 @@ export function Sidebar({
           <span className="text-[#1E1152] font-bold text-sm tracking-tight">K.I.N.D</span>
         </div>
         {/* One wallet — a single $ balance. $4 per approved lead, final. */}
-        <div className="flex items-center gap-1.5">
-          <div className="flex items-center gap-1 bg-purple-50 border border-purple-200/60 rounded-full px-2 py-0.5" title="Wallet — $4 per approved lead">
-            <Zap className="w-3 h-3 text-[#7C3AED]" />
-            <span className="text-[11px] font-bold text-[#7C3AED]">${creditBalance}</span>
+        {showWallet && (
+          <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1 bg-purple-50 border border-purple-200/60 rounded-full px-2 py-0.5" title="Wallet — $4 per approved lead">
+              <Zap className="w-3 h-3 text-[#7C3AED]" />
+              <span className="text-[11px] font-bold text-[#7C3AED]">${creditBalance}</span>
+            </div>
           </div>
-        </div>
+        )}
       </header>
 
       {/* ── Mobile backdrop ──────────────────────────────────────────── */}
@@ -303,16 +317,20 @@ export function Sidebar({
             <p className="text-[#7C3AED]/35 text-[11px] truncate">{userEmail}</p>
             <div className="flex items-center gap-1.5 shrink-0 ml-2">
               <NotificationBell />
-              <div className="flex items-center gap-1 bg-purple-50 border border-purple-200/60 rounded-full px-2 py-0.5" title="Wallet — $4 per approved lead">
-                <Zap className="w-3 h-3 text-[#7C3AED]" />
-                <span className="text-[11px] font-bold text-[#7C3AED]">${creditBalance}</span>
-              </div>
+              {showWallet && (
+                <div className="flex items-center gap-1 bg-purple-50 border border-purple-200/60 rounded-full px-2 py-0.5" title="Wallet — $4 per approved lead">
+                  <Zap className="w-3 h-3 text-[#7C3AED]" />
+                  <span className="text-[11px] font-bold text-[#7C3AED]">${creditBalance}</span>
+                </div>
+              )}
             </div>
           </div>
           {/* One wallet label so the balance reads clearly */}
-          <div className="px-3 flex items-center justify-end gap-3 text-[9px] font-semibold uppercase tracking-wide">
-            <span className="text-[#7C3AED]/60">Wallet</span>
-          </div>
+          {showWallet && (
+            <div className="px-3 flex items-center justify-end gap-3 text-[9px] font-semibold uppercase tracking-wide">
+              <span className="text-[#7C3AED]/60">Wallet</span>
+            </div>
+          )}
           <StatusBar />
           <button
             onClick={handleSignOut}

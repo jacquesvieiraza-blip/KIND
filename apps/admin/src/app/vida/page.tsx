@@ -1578,16 +1578,28 @@ export default function VidaConsolePage() {
                     client can still hold one from before); what it no longer does is stand
                     unqualified beside an account the wallet does not govern. */}
                 {(() => {
-                  const programmeModel = prog?.commercial?.resolved === 'programme' || prog?.commercial?.resolved === 'compat_programme'
+                  // ⚠️ THE CHIP IS QUALIFIED FOR EVERY MODEL THAT IS NOT LEGACY, and that
+                  // includes UNRESOLVED. The first cut qualified only `programme` and
+                  // `compat_programme`, so a client whose model could not be resolved — the
+                  // declared-legacy-with-an-open-programme conflict — was shown an ordinary
+                  // purple balance beside a red panel saying nothing is authorised. An
+                  // unqualified balance IS a claim that it is spendable, and "we could not
+                  // tell" must never render as that claim.
+                  const r = prog?.commercial?.resolved
+                  const suffix = r === 'programme' || r === 'compat_programme' ? ' · not used'
+                    : r === 'unreadable' ? ' · model unresolved'
+                    : ''
                   return (
                     <span
-                      title={programmeModel
+                      title={suffix === ' · not used'
                         ? 'Programme client — the wallet does not gate their sourcing, sending or enrolment. Shown because the balance is real, not because it applies.'
-                        : 'Wallet balance'}
+                        : suffix
+                          ? 'The commercial model for this client could not be resolved, so whether this balance governs anything is unknown. Nothing is authorised until an operator resolves it.'
+                          : 'Wallet balance'}
                       className={`shrink-0 text-[12.5px] font-bold rounded-full px-2.5 py-1 ${cockpit ? '' : 'ml-auto'} ${
-                        programmeModel ? 'text-[#9b8ec4] bg-[#f7f4fd]' : 'text-[#7C3AED] bg-[#f3ecff]'}`}>
+                        suffix ? 'text-[#9b8ec4] bg-[#f7f4fd]' : 'text-[#7C3AED] bg-[#f3ecff]'}`}>
                       ${(selectedClient?.wallet_balance_usd ?? 0).toLocaleString()} wallet
-                      {programmeModel ? ' · not used' : ''}
+                      {suffix}
                     </span>
                   )
                 })()}

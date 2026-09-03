@@ -37,6 +37,10 @@ import { join } from 'path'
 vi.mock('@kind/db', () => ({ db: {} }))
 
 const REPO = join(__dirname, '../../../..')
+/** Source with `//`, ` *` and `{/*` comment lines removed. */
+const stripComments = (src: string) => src.split('\n')
+  .filter(l => { const t = l.trim(); return !t.startsWith('//') && !t.startsWith('*') && !t.startsWith('{/*') && !t.startsWith('/*') })
+  .join('\n')
 const KEY = '20260903_client_commercial_model'
 const RUNNER = readFileSync(join(__dirname, 'pending-migrations.ts'), 'utf8')
 const CANON = readFileSync(join(REPO, `supabase/migrations/${KEY}.sql`), 'utf8')
@@ -209,7 +213,16 @@ describe('④ the runner entry, the canonical file and schema.sql all agree', ()
       'apps/api/src/routes/operator.ts',
       // The wallet endpoint, which reports whether the wallet governs this client at all.
       'apps/api/src/routes/credits.ts',
+      // The retired /dashboard shell. Its ONE rule decides whether the wallet/credit chrome is
+      // rendered at all — the only customer-facing surface that reads the column directly.
+      'apps/portal/src/app/(dashboard)/layout.tsx',
     ].sort()
+
+    // ⚠️ THIS LIST IS THE FILES THAT NAME THE COLUMN, NOT THE FILES THAT OBEY IT. Every
+    // consequential path — icps, figsy, send-due, stripe, lookalike, programme-authority — goes
+    // through `clientCommercialModel`, and that is the point: exactly one module reads the
+    // column, and everything else asks it a question. A path appearing HERE would mean it had
+    // started reading the raw column for itself, which is how a second interpretation begins.
 
     const walk = (dir: string, out: string[] = []): string[] => {
       for (const name of readdirSync(dir, { withFileTypes: true })) {
@@ -226,7 +239,13 @@ describe('④ the runner entry, the canonical file and schema.sql all agree', ()
       ...walk(join(REPO, 'apps/portal/src')),
       ...walk(join(REPO, 'apps/admin/src')),
       ...walk(join(REPO, 'packages')),
-    ].filter(f => /commercial_model|commercialModel/.test(readFileSync(f, 'utf8')))
+    ]
+      // ⚠️ COMMENTS ARE STRIPPED, and that narrows this guard to the property it names. The
+      // first version scanned raw text and fired on `routes/figsy.ts` for a chained note whose
+      // whole point was to say the column is NOT read there — a guard reporting prose as code,
+      // which is exactly the failure A2's authority-column guard already taught. What is
+      // protected is a file that READS or WRITES the column, not one that discusses it.
+      .filter(f => /commercial_model|commercialModel/.test(stripComments(readFileSync(f, 'utf8'))))
       .map(f => f.replace(REPO + '/', '')).sort()
 
     expect(readers, 'a new file names the commercial model — review it, then add it here').toEqual(ALLOWED)

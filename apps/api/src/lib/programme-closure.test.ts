@@ -331,6 +331,41 @@ describe('GAP 3 · behavioural — ensureCampaignForIcp actually refuses', () =>
     expect(reason).toBeUndefined()
   })
 
+  // ⛓️ 3 Sep (C2) — THE CLIENT THIS GATE COULD NOT SEE.
+  //
+  // 🛑 Before the commercial model existed, a client with no programme row reached
+  // `authorityFor(null)` → `{ allowed: true, mode: 'legacy' }` and this gate ACTIVATED a
+  // campaign for them. That is correct for a legacy client and wrong for House and MBF, which
+  // are declared programme clients that simply have no programme open today.
+  it('🛑 refuses to activate for a DECLARED PROGRAMME client with NO programme — House today', async () => {
+    dbState.clients = [{ id: 'c1', commercial_model: 'programme' }]
+    const { ensureCampaignForIcp } = await import('./start-work')
+    const r = await ensureCampaignForIcp('c1', 'icp-1', 'ICP', { activate: true })
+    expect('refused' in r! && r!.refused, 'no programme row must not mean "legacy, go ahead"').toBeTruthy()
+    // ⚠️ AND NOTHING WAS WRITTEN. The campaign table is the fixture's own array, so an
+    // activation would be visible here as a row.
+    expect(dbState.campaigns, 'no campaign may be created or woken').toEqual([])
+  })
+
+  it('🛑 refuses when the commercial model cannot be resolved — the client row is missing', async () => {
+    dbState.clients = []
+    const { ensureCampaignForIcp } = await import('./start-work')
+    const r = await ensureCampaignForIcp('c1', 'icp-1', 'ICP', { activate: true })
+    expect('refused' in r! && r!.refused).toBeTruthy()
+    expect((r as { refused: { reason: string } }).refused.reason).toBe('programme_state_unreadable')
+    expect(dbState.campaigns).toEqual([])
+  })
+
+  it('⚠️ NON-VACUOUS: a DECLARED LEGACY client with no programme still activates', async () => {
+    // Without this, both refusals above would pass against a gate that refused everybody —
+    // which on Friday would stop every existing client sending.
+    dbState.clients = [{ id: 'c1', commercial_model: 'legacy' }]
+    const { ensureCampaignForIcp } = await import('./start-work')
+    const r = await ensureCampaignForIcp('c1', 'icp-1', 'ICP', { activate: true })
+    expect((r as { refused?: unknown }).refused).toBeUndefined()
+    expect(dbState.campaigns.length, 'the campaign really was created').toBe(1)
+  })
+
   it('scaffolding (activate:false) is never gated — a draft sends nothing', async () => {
     dbState.programmes.push({ id: 'p1', client_id: 'c1', status: 'DRAFT', second_paid_at: null, paused_at: null })
     const { ensureCampaignForIcp } = await import('./start-work')

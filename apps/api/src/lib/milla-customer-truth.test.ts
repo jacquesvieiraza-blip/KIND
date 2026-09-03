@@ -209,11 +209,37 @@ describe('§2 — THE SUGGESTION CHIPS KNOW WHAT STAGE THE CLIENT IS IN', () => 
     }
   })
 
-  it('the calibration chips are offered at Proof and nowhere else', () => {
+  it('the calibration chips are offered at Proof AND ONLY WHEN A SET IS ON THE DESK', () => {
     // The live account sat at Recommendation being asked "Which of these look strongest?" —
     // a question about a proof set it no longer has.
-    expect(HOME).toContain("...(prog.stage === 'Proof' ? PROOF_CHIPS : [])")
+    //
+    // ⛓️ TIGHTENED 3 Sep — ~~`...(prog.stage === 'Proof' ? PROOF_CHIPS : [])`~~. The stage
+    // guard was necessary and not sufficient: House IS at Proof and has NO set, and was
+    // offered all three example chips on the founder's clean-baseline walk. The fact that
+    // matters is what is ON THE DESK, not where the programme is — so the condition now
+    // carries both, and `STAGE_QUICK_ACTION.Proof` ("Show me stronger examples") is inside
+    // the same gate because it names examples too.
+    expect(HOME).toContain("...(prog.stage === 'Proof' && proofSetOnDesk ? PROOF_CHIPS : [])")
+    expect(HOME).toContain("...(prog.stage === 'Proof' && !proofSetOnDesk ? [] : [STAGE_QUICK_ACTION[prog.stage]])")
     expect(HOME).toContain("'Which of these look strongest?'")
+    // 🛑 AND THE DESK FACT IS THE SERVER'S, not a guess from a stage or a spinner.
+    expect(HOME).toContain('summary?.calibration_set_on_desk')
+  })
+
+  it('🛑 AN EMPTY CHIP ROW DOES NOT RENDER AS AN EMPTY ROW', () => {
+    // Zero honest chips is the right answer for a desk with nothing on it; a bordered strip
+    // with no buttons in it is not, and would read as a broken layout on the one screen whose
+    // job is to look calm.
+    expect(HOME).toContain('{chips.length > 0 && (')
+  })
+
+  it('🛑 THE EMPTY PROOF DESK POINTS SOMEWHERE, and it does it in approved words', () => {
+    // "Nothing to react to right now." is true and stays for every other case. At Proof it is
+    // a dead end on the one screen meant to start the conversation, so the per-stage sentence
+    // the programme workspace already renders is reused — no new copy is written here.
+    expect(HOME).toContain("prog?.stage === 'Proof' ? nextActionFor(prog) : 'Nothing to react to right now.'")
+    const ws = readFileSync(join(PORTAL, 'components/milla/ProgrammeWorkspace.tsx'), 'utf8')
+    expect(ws, 'the reused sentence must be the approved one').toContain("case 'Proof':          return 'Tell Milla the outcome you want'")
   })
 
   it('pause and ROI are offered only where they are contextually valid', () => {

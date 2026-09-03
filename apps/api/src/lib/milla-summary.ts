@@ -79,6 +79,23 @@ export interface MillaSummaryData {
    * "still running". The desk pairs this with the run it started; see `finished_at`.
    */
   proof_run: { status: string; message: string; total_inserted: number; finished_at: string | null } | null
+  /**
+   * ⚑ 3 Sep — IS THERE ANYTHING ON THEIR DESK RIGHT NOW?
+   *
+   * 🛑 ONE BOOLEAN, AND IT EXISTS BECAUSE MILLA WAS DESCRIBING A SET NOBODY COULD SEE. The
+   * chat prompt told her the STAGE and nothing about the DESK, so at Proof she read step 1 of
+   * the lifecycle — *"a small free calibration set: real people who match their targeting,
+   * masked"* — and stated it in the present tense to a client looking at an empty screen. She
+   * had no fact with which to say otherwise. That is a gap, not a hallucination, and the fix
+   * is the missing fact rather than a longer prohibition.
+   *
+   * ⚠️ IT IS NOT `leads_awaiting` UNDER ANOTHER NAME, and the difference is the point.
+   * `MillaSnapshot` deliberately excludes the per-lead counts so the retired ECONOMICS cannot
+   * reach the model; a yes/no about whether the desk currently holds anything carries no
+   * price, no wallet and no queue. It is derived from the SAME bounded count the cards use,
+   * so the sentence she speaks and the screen beside her cannot disagree.
+   */
+  calibration_set_on_desk: boolean
 }
 
 /**
@@ -362,6 +379,59 @@ export async function buildMillaSummaryData(clientId: string): Promise<MillaSumm
     proof_run: (() => {
       const r = (lastRun as { data?: Record<string, unknown> | null } | null)?.data
       if (!r) return null
+
+      // ── 🛑 3 Sep — THE ONE CURRENT-WORK READ THE C2 SWEEP MISSED ────────────────────────
+      //
+      // ⛓️ THIS RETURNED THE NEWEST `icp_run_outcomes` ROW FOR THE CLIENT, UNBOUNDED. Every
+      // other current-work read in this file was given a workspace boundary on 3 Sep; this one
+      // was not, and it is the same `if (!programmeId) return everything()` shape in its last
+      // hiding place. The founder's screenshot of the clean House desk is what found it: with
+      // the three historical cards and the historical reply correctly gone, the desk still
+      // rendered **"No matches this time"** and the server's canonical quota sentence —
+      // *"Sourcing capacity is temporarily out … your credits are untouched"* — from a run that
+      // finished long ago, for a retired motion, mentioning a wallet the product no longer has.
+      //
+      // 🛑 THREE FALSE CLAIMS IN ONE CARD, and not one of them was invented copy: a sourcing
+      // failure that is not happening, a provider outage that is not happening, and credits
+      // that do not exist. An honest sentence about a past run becomes a lie the moment it is
+      // presented as the present.
+      //
+      // ⚠️ FAIL-CLOSED ON UNREADABLE, for the same reason `campaignFor` is. A run outcome is an
+      // ASSERTION — "your search failed", "nobody matched" — and not knowing the workspace is
+      // never grounds to make one.
+      if (summaryScope.kind === 'unreadable') return null
+
+      // ── THE PROOF CASE, AND WHY THIS IS NOT THE WITHDRAWN COUNTER RETURNING ────────────
+      //
+      // 🛑 THE QUESTION HERE IS NOT "WHICH ROWS ARE CURRENT WORK". That question is per-row and
+      // is answered by `leads.proof_pass` — using an account-level counter for it is exactly
+      // what R90 withdrew. The question here is *"is there a proof RUN whose outcome is
+      // current?"*, which is an ACCOUNT-LEVEL EVENT, and `proof_started_at` is the product's own
+      // record of it: `try_claim_proof_pass` writes it in the SAME atomic statement that
+      // authorises the run, and its migration calls it "the authoritative clock for the proof
+      // desk's bounded wait". Answering an account-level question with an account-level fact is
+      // not the error R90 names; answering a per-row question with one is.
+      //
+      // ⚠️ SO A CLIENT WITH NO RECORDED PROOF SESSION HAS NO RUN TO BE WAITING ON, and a
+      // historical outcome may not stand in for one. That is House: `proof_started_at` is null,
+      // and the desk's own guard (`finishedAt >= serverProofStartedAt`) FAILS OPEN on null —
+      // `finishedAt >= 0` is true of every row ever written — which is precisely how a
+      // months-old outcome reached the screen.
+      //
+      // ⚠️ AND THE PASS-BOUNDARY COMPARISON IS DELIBERATELY *NOT* DUPLICATED HERE. Deciding
+      // WHICH pass an outcome belongs to is the desk's job and the desk already does it
+      // correctly whenever the stamp is non-null. Two copies of that rule is the drift this
+      // file's own header warns about; this gate answers only "is there a session at all".
+      //
+      // ⚠️ ROWS PREDATING THE 26-AUG COLUMN READ NULL and therefore lose the terminal card.
+      // That is accepted rather than overlooked: the founder's production audit (R93) found
+      // exactly three such accounts — Disrupt Shop and Glean — and ruled all of them demo/test
+      // whose current workspace may go quiet. No row is touched either way.
+      if (summaryScope.kind === 'proof') {
+        const startedAt = (client as Record<string, unknown> | null)?.proof_started_at
+        if (typeof startedAt !== 'string' || startedAt.length === 0) return null
+      }
+
       return {
         status:         String(r.status ?? ''),
         message:        String(r.message ?? ''),
@@ -375,6 +445,10 @@ export async function buildMillaSummaryData(clientId: string): Promise<MillaSumm
     // THE PACK — included approvals counted rather than faked into the wallet.
     pack,
     leads_awaiting:  awaiting.count ?? 0,
+    // ⚑ 3 Sep — DERIVED FROM THE SAME BOUNDED COUNT THE CARDS USE, so what Milla says about
+    // the desk and what the desk shows cannot disagree. See the field's note above for why it
+    // is a boolean rather than the number.
+    calibration_set_on_desk: (awaiting.count ?? 0) > 0,
     // ⚠️ null means the meetings read FAILED. Reporting 0 would tell a client with three
     // meetings that they had none — Milla speaking a false number in her own voice.
     meetings_booked: meetings?.booked ?? 0,

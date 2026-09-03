@@ -167,13 +167,16 @@ const FLOW_STEPS: [number, string][] = [
 // exactly as they do today.
 function flowStepLabel(
   step: number, label: string, via: FundedVia | undefined,
-  view: 'programme' | 'legacy' | 'unresolved' = 'legacy',
+  view: 'programme' | 'legacy' | 'unresolved' | 'loading' = 'legacy',
 ): string {
   if (step !== 2) return label
   if (view === 'programme') return 'Programme'
   // 🛑 AND AN UNRESOLVED MODEL IS NOT A PAYMENT EITHER. Falling through to `label` here printed
   // "Paid $299" for a client whose commercial model we had explicitly failed to resolve.
   if (view === 'unresolved') return 'Model unresolved'
+  // ⚠️ AND NEITHER IS A MODEL WE HAVE NOT FINISHED READING. Founder-ruled: unknown must never
+  // be presented as legacy, and that includes the first moment of a page load.
+  if (view === 'loading') return 'Checking…'
   return via === 'comp' ? 'Comped' : label
 }
 // V4 — the pool the operator picks from.
@@ -1417,25 +1420,40 @@ export default function VidaConsolePage() {
    * ⚠️ AND FALSE FOR EVERY LEGACY AND UNCLASSIFIED CLIENT, which is the entire live book — so
    * every sentence below reads exactly as it does today for all of them.
    */
-  const modelView: 'programme' | 'legacy' | 'unresolved' =
-    prog?.commercial?.resolved === 'programme' || prog?.commercial?.resolved === 'compat_programme' ? 'programme'
-    // 🛑 UNREADABLE IS ITS OWN PRESENTATION, NOT THE ABSENCE OF PROGRAMME. This was a BOOLEAN,
-    // and a boolean has only one else — so an unresolved model (a failed read, a missing row, or
-    // the declared-legacy-with-an-open-programme CONFLICT) fell through to the legacy arm of
-    // every sentence below and was shown "✓ Paid $299", the pack quota and the $4 copy. That is
-    // the original C2 defect reproduced one level up: "we could not tell" rendering as a
-    // positive claim that this client is legacy.
-    : prog?.commercial?.resolved === 'unreadable' ? 'unresolved'
-    // ⚠️ A FAILED PROGRAMME READ COUNTS AS UNRESOLVED TOO. `progErr` means the panel itself would
-    // not load, so the model was never resolved either — and the same rule applies to not
-    // knowing for that reason as for any other. The red "Programme could not be loaded" banner
-    // sits directly beside these, so the operator is told why rather than shown a payment.
-    : progErr ? 'unresolved'
-    // Declared legacy, UNCLASSIFIED, or the panel has simply not answered yet — every one of
-    // which is today's behaviour, and today's behaviour is the whole live book.
-    : 'legacy'
-  const programmeModel  = modelView === 'programme'
-  const unresolvedModel = modelView === 'unresolved'
+  // —— 🛑 3 Sep (C2) · WHICH COMMERCIAL MODEL IS THIS CONSOLE ALLOWED TO TALK ABOUT? —————
+  //
+  // ⛓️ REWRITTEN TWICE, AND BOTH TIMES FOR THE SAME REASON. It started as a BOOLEAN, and a
+  // boolean has only one else — so everything that was not programme took the LEGACY arm of every
+  // sentence below. First that swallowed the CONFLICT and the unreadable model; then, once those
+  // had their own state, it still swallowed LOADING and a response with the field missing.
+  //
+  // 🛑 FOUNDER-RULED: **UNKNOWN MUST NEVER BE PRESENTED AS LEGACY.** So the derivation is
+  // POSITIVE and exhaustive: only a successfully resolved answer that actually SAYS legacy is
+  // rendered as legacy. Everything else — loading, a failed read, a missing field, an unreadable
+  // model, the declared-legacy-with-an-open-programme conflict, and any state a future resolver
+  // adds — lands on a neutral treatment that asserts nothing about money.
+  //
+  // ⚠️ A MISSING FIELD IS NOT NULL. `commercial_model: null` is an explicit database value and
+  // means UNCLASSIFIED, which the API returns as `compat_legacy`; a response with no `commercial`
+  // block at all is an absence of truth. Reading the second as the first is the C2 defect in
+  // miniature, so the two cannot share a branch: `compat_legacy` is named, absence is not.
+  //
+  // ⚠️ LOADING IS ITS OWN LABEL, not an error. It is neutral for the same reason the others
+  // are, but "Checking…" is what is true for the first moment of a page rather than
+  // "Model unresolved" — a short honest transient beats a false commercial claim either way.
+  const modelResolved = prog?.commercial?.resolved
+  const modelView: 'programme' | 'legacy' | 'unresolved' | 'loading' =
+      modelResolved === 'programme' || modelResolved === 'compat_programme' ? 'programme'
+    : modelResolved === 'legacy'    || modelResolved === 'compat_legacy'    ? 'legacy'
+    : (!prog && !progErr) ? 'loading'
+    : 'unresolved'
+  const programmeModel = modelView === 'programme'
+  /**
+   * ⚠️ LOADING IS FOLDED IN HERE ON PURPOSE. Every money sentence treats "still checking" and
+   * "could not resolve" identically — both say nothing — so the seven branches below stay
+   * three-way and only the two LABELS (the rail step and the wallet chip) tell them apart.
+   */
+  const unresolvedModel = modelView === 'unresolved' || modelView === 'loading'
   const cols = board?.columns
   // Worklist lookups. The list is already urgency-sorted by the API, so we only filter here.
   const workById = (work ?? []).reduce<Record<string, WorkRow>>((m, r) => { m[r.id] = r; return m }, {})
@@ -1663,24 +1681,33 @@ export default function VidaConsolePage() {
                   //
                   // ⚠️ NOTHING IS DELETED OR ZEROED. The balance is rendered in full; the ledger
                   // is untouched. What changed is one word of framing.
-                  const r = prog?.commercial?.resolved
-                  const programmeWallet = r === 'programme' || r === 'compat_programme'
-                  const unresolvedWallet = r === 'unreadable'
-                  const muted = programmeWallet || unresolvedWallet
+                  // ⛓️ NOW READ FROM `modelView`, not from a second copy of the same question.
+                  // The chip derived its own `r === 'unreadable'` while the rest of the console
+                  // used `modelView`, so the two could disagree — and they DID: a loading or
+                  // field-missing response left the chip fully active while every other sentence
+                  // had already gone neutral. One derivation, one answer.
+                  const programmeWallet  = modelView === 'programme'
+                  const unresolvedWallet = modelView === 'unresolved'
+                  const loadingWallet    = modelView === 'loading'
+                  const muted = programmeWallet || unresolvedWallet || loadingWallet
                   return (
                     <span
                       title={programmeWallet
                         ? 'Historical. This client is on the programme model, so the wallet gates nothing — not sourcing, not sending, not enrolment. The balance is shown because it is real, not because it applies.'
                         : unresolvedWallet
                           ? 'The commercial model for this client could not be resolved, so whether this balance governs anything is unknown. Nothing is authorised until an operator resolves it.'
-                          : 'Wallet balance'}
+                          : loadingWallet
+                            ? 'Still reading this client’s commercial model. Until it is known, no claim is made about whether this balance applies.'
+                            : 'Wallet balance'}
                       className={`shrink-0 text-[12.5px] rounded-full px-2.5 py-1 ${cockpit ? '' : 'ml-auto'} ${
                         muted ? 'font-semibold text-[#a9a2bd] bg-[#f5f4f8] border border-[#e8e5ef]' : 'font-bold text-[#7C3AED] bg-[#f3ecff]'}`}>
                       {programmeWallet
                         ? `$${(selectedClient?.wallet_balance_usd ?? 0).toLocaleString()} historical wallet · inactive`
                         : unresolvedWallet
                           ? `$${(selectedClient?.wallet_balance_usd ?? 0).toLocaleString()} wallet · model unresolved`
-                          : `$${(selectedClient?.wallet_balance_usd ?? 0).toLocaleString()} wallet`}
+                          : loadingWallet
+                            ? `$${(selectedClient?.wallet_balance_usd ?? 0).toLocaleString()} wallet · checking…`
+                            : `$${(selectedClient?.wallet_balance_usd ?? 0).toLocaleString()} wallet`}
                     </span>
                   )
                 })()}
@@ -2864,13 +2891,21 @@ export default function VidaConsolePage() {
                           unclassified one the product is still treating as legacy, gets the
                           per-lead sentence. */}
                       <p className="text-[13.5px] text-[#9b8ec4] text-center py-6">
+                        {/* ⛓️ 3 Sep (C2) — REORDERED SO THE FALL-THROUGH IS NEUTRAL, NOT LEGACY.
+                            This chain ended on the UNCLASSIFIED sentence, which names the $299
+                            pack and the $4 per-lead price — so a resolved response carrying NO
+                            `commercial` block at all (an older API against a newer UI) printed
+                            legacy economics as this client's current state, and pointed at a
+                            control that was not rendered. Founder-ruled: a MISSING FIELD IS NOT
+                            NULL. `compat_legacy` is an explicit database NULL and keeps its own
+                            sentence, named; absence of the field is an absence of truth. */}
                         {prog.commercial?.resolved === 'programme'
                           ? 'No active programme for this client. They are a PROGRAMME client — programme economics apply, and none of the legacy per-lead charging does.'
-                         : prog.commercial?.resolved === 'unreadable'
-                          ? 'No active programme, and the commercial model for this client could not be resolved. Nothing will source, send, enrol or charge for them until it is.'
                          : prog.commercial?.resolved === 'legacy'
                           ? 'No programme for this client. They are declared legacy ($299 pack · 100 included · $4 per approved lead), which is unaffected by programme controls.'
-                          : 'No programme for this client, and no commercial model has been declared. Until one is, they behave as legacy ($299 pack · 100 included · $4 per approved lead) — declare the model above if that is wrong.'}
+                         : prog.commercial?.resolved === 'compat_legacy'
+                          ? 'No programme for this client, and no commercial model has been declared. Until one is, they behave as legacy ($299 pack · 100 included · $4 per approved lead) — declare the model above if that is wrong.'
+                          : 'No active programme, and the commercial model for this client could not be resolved. Nothing will source, send, enrol or charge for them until it is.'}
                       </p>
                       {/* ⚠️ NO DEFAULT TARGET. The meeting target prices the entire programme
                           off the shared curve, so it is typed by a human every time. */}

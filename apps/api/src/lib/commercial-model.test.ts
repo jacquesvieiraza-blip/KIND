@@ -478,10 +478,21 @@ describe('⑥ no surface asserts the legacy model at a programme client any more
     // inferred from an absence, to the one person who acts on it.
     expect(vida, 'the unconditional sentence must be gone')
       .not.toContain('No programme for this client. They are on the legacy model')
-    // It is replaced by four branches, one per resolved state.
+    // It is replaced by four branches, one per resolved state — and the ORDER is the point:
+    // every legacy sentence is reached by NAMING a resolved state, and the fall-through is the
+    // neutral one. It used to end on the UNCLASSIFIED sentence, which names the $299 pack and
+    // the $4 price, so a response carrying no `commercial` block at all printed legacy
+    // economics and pointed at a control that was not rendered.
     expect(vida).toMatch(/prog\.commercial\?\.resolved === 'programme'/)
-    expect(vida).toMatch(/prog\.commercial\?\.resolved === 'unreadable'/)
     expect(vida).toMatch(/prog\.commercial\?\.resolved === 'legacy'/)
+    expect(vida, 'an explicit database NULL keeps its own named branch')
+      .toMatch(/prog\.commercial\?\.resolved === 'compat_legacy'/)
+    const panel = vida.slice(vida.indexOf("prog.commercial?.resolved === 'programme'"))
+      .slice(0, 1600)
+    expect(panel, 'the last branch must claim nothing about money')
+      .toMatch(/: 'No active programme, and the commercial model for this client could not be resolved\./)
+    expect(panel.lastIndexOf('$299'), 'no $299 sentence may sit in the fall-through position')
+      .toBeLessThan(panel.indexOf('could not be resolved'))
     // ⚠️ AND THE LEGACY SENTENCE STILL EXISTS for a client who IS legacy. Deleting it would
     // hide the truth from the accounts it is true for.
     expect(vida).toContain('$299 pack · 100 included · $4 per approved lead')
@@ -499,9 +510,10 @@ describe('⑥ no surface asserts the legacy model at a programme client any more
     expect(vida).toContain('wallet · model unresolved')
     // ⚠️ AND IT IS VISUALLY MUTED, not merely relabelled — the founder asked for both.
     expect(vida).toMatch(/muted \? 'font-semibold text-\[#a9a2bd\][^']*' : 'font-bold text-\[#7C3AED\]/)
-    // ⚠️ NOTHING IS DELETED OR ZEROED. The real balance is still rendered, in full, in all three
-    // states — the founder's rule is that history is preserved, not hidden.
-    expect([...vida.matchAll(/wallet_balance_usd \?\? 0\)\.toLocaleString\(\)/g)]).toHaveLength(3)
+    // ⚠️ NOTHING IS DELETED OR ZEROED. The real balance is still rendered, in full, in all FOUR
+    // states — programme, unresolved, loading and legacy. The founder's rule is that history is
+    // preserved, not hidden; what changes between them is one word of framing, never the number.
+    expect([...vida.matchAll(/wallet_balance_usd \?\? 0\)\.toLocaleString\(\)/g)]).toHaveLength(4)
   })
 
   it('🛑 VIDA NEVER TELLS A PROGRAMME CLIENT THEY PAID $299, OR OWE $4', () => {
@@ -513,14 +525,29 @@ describe('⑥ no surface asserts the legacy model at a programme client any more
     // (a failed read, a missing row, or the declared-legacy-with-an-open-programme conflict)
     // therefore fell into the LEGACY arm of every sentence and was shown "Paid $299", the pack
     // quota and the $4 copy — the original C2 defect reproduced one level up. Three states now.
-    expect(vida, 'the presentation state is three-way, not a boolean')
-      .toMatch(/const modelView: 'programme' \| 'legacy' \| 'unresolved' =/)
-    expect(vida).toMatch(/resolved === 'unreadable' \? 'unresolved'/)
-    expect(vida, 'a failed programme read is unresolved too, not legacy').toMatch(/: progErr \? 'unresolved'/)
-    expect(vida).toContain("const unresolvedModel = modelView === 'unresolved'")
+    // 🛑 THE DERIVATION IS POSITIVE AND EXHAUSTIVE — that is the whole correctness of it.
+    // Founder-ruled: UNKNOWN MUST NEVER BE PRESENTED AS LEGACY. So `legacy` is reached only by a
+    // resolved answer that actually says legacy, and every other state — loading, a failed read,
+    // a missing field, unreadable, the conflict, and anything a future resolver adds — falls to a
+    // neutral treatment. The earlier versions had it the other way round and swallowed, in turn,
+    // the conflict, then loading and a response with no `commercial` block at all.
+    expect(vida, 'four presentation states, and legacy is only ever reached positively')
+      .toMatch(/const modelView: 'programme' \| 'legacy' \| 'unresolved' \| 'loading' =/)
+    expect(vida).toMatch(/modelResolved === 'programme' \|\| modelResolved === 'compat_programme' \? 'programme'/)
+    expect(vida).toMatch(/modelResolved === 'legacy'\s*\|\| modelResolved === 'compat_legacy'\s*\? 'legacy'/)
+    expect(vida, 'still loading is its own label, and it is not legacy')
+      .toMatch(/\(!prog && !progErr\) \? 'loading'/)
+    expect(vida, 'and everything else — read failure, missing field, unreadable — is neutral')
+      .toMatch(/: 'unresolved'/)
+    // ⚠️ AND THE FALL-THROUGH IS NEVER LEGACY. A `: 'legacy'` at the end of that chain is exactly
+    // the defect this was rewritten to remove, twice.
+    const chain = vida.slice(vida.indexOf('const modelView:'), vida.indexOf('const programmeModel'))
+    expect(chain, 'the default must not be legacy').not.toMatch(/:\s*'legacy'\s*$/m)
+    expect(vida).toContain("const unresolvedModel = modelView === 'unresolved' || modelView === 'loading'")
     // ① the rail
     expect(vida).toContain("if (view === 'programme') return 'Programme'")
     expect(vida).toContain("if (view === 'unresolved') return 'Model unresolved'")
+    expect(vida).toContain("if (view === 'loading') return 'Checking…'")
     expect(vida).toContain('flowStepLabel(n, label, selectedWork.funded_via, modelView)')
     // ② the message an operator TYPES TO THE CLIENT — the sharpest of them
     expect(vida).toMatch(/programmeModel\s*\?\s*'Quick nudge — your programme is ready/)
@@ -576,8 +603,16 @@ describe('⑥ no surface asserts the legacy model at a programme client any more
     expect(vida).toContain("'Marked a no-show.'")
     expect(vida).toContain("'Second attempt used. The client has been told.'")
     expect(vida).toContain("'Two attempts used — the client has been told.'")
-    // ⑧ the wallet chip, which already had one
+    // ⑧ the wallet chip, which already had one — and now reads from the SAME derivation as the
+    // rest of the console rather than asking `resolved === 'unreadable'` for itself. The two
+    // copies had already drifted: a loading or field-missing response left the chip fully active
+    // and purple while every other sentence on the screen had gone neutral.
     expect(vida).toContain('wallet · model unresolved')
+    expect(vida).toContain('wallet · checking…')
+    expect(vida).toContain("const programmeWallet  = modelView === 'programme'")
+    expect(vida).toContain("const unresolvedWallet = modelView === 'unresolved'")
+    expect(vida, 'the chip must not re-derive the model for itself')
+      .not.toMatch(/const r = prog\?\.commercial\?\.resolved/)
 
     // 🛑 EVERY `programmeModel ?` TERNARY IN THIS FILE HAS AN `unresolvedModel` ARM. The sweep is
     // the guard: a NEW money sentence added with two branches instead of three fails here.

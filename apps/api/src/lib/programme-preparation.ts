@@ -102,16 +102,31 @@ export async function verifyProgrammeFulfilment(
   leadId: string, clientId: string, programmeId: string,
 ): Promise<{ ok: true; programme: ProgrammeRow } | { ok: false; reason: string }> {
   const { data: lead, error: leadErr } = await db.from('leads')
-    .select('id, client_id, icp_id, programme_id').eq('id', leadId).maybeSingle()
+    .select('id, client_id, icp_id, programme_id, surfaced_for_approval_at').eq('id', leadId).maybeSingle()
   if (leadErr) return { ok: false, reason: `lead read failed: ${leadErr.message}` }
   if (!lead) return { ok: false, reason: 'no such lead' }
-  const l = lead as { client_id: string | null; icp_id: string | null; programme_id: string | null }
+  const l = lead as {
+    client_id: string | null; icp_id: string | null; programme_id: string | null
+    surfaced_for_approval_at: string | null
+  }
 
   // 🛑 POSITIVE ATTRIBUTION. A null-attributed lead is history — House carries ~166 of them —
   // and history is never fulfilment for a programme that did not source it.
   if (!l.programme_id) return { ok: false, reason: 'lead carries no programme attribution' }
   if (l.programme_id !== programmeId) return { ok: false, reason: 'lead belongs to a different programme' }
   if (l.client_id !== clientId) return { ok: false, reason: 'lead belongs to a different client' }
+
+  // 🛑 THE REVIEW BOUNDARY. Belonging to the programme is NOT enough. `surfaced_for_approval_at`
+  // is the stamp that says an operator actually put this person in front of the customer (#493),
+  // and it is the discriminator `/leads/for-approval` and `batchGate` both require — so a lead
+  // without it was never in the set the customer could see, review, or decide on.
+  //
+  // ⚠️ AND `delivered_at` DOES NOT IMPLY IT. `enrichAndDeliverLeads` (the on-run delivery a
+  // programme sourcing run calls, and the daily drip) stamps `delivered_at` ALONE; the surfacing
+  // stamp is written later and separately by `surfaceEverything`, which is the operator's Send
+  // act. Between those two acts a programme lead is delivered and invisible — and preparation
+  // used to enrol exactly those people. That is outreach to somebody the customer never saw.
+  if (!l.surfaced_for_approval_at) return { ok: false, reason: 'lead was never surfaced to the customer for review' }
 
   const p = await getProgramme(programmeId)
   if (!p) return { ok: false, reason: 'no such programme' }
@@ -237,6 +252,28 @@ export async function prepareProgrammeOutreach(programmeId: string): Promise<Pre
 
   // ── ② A PROGRAMME ENROLMENT FOR EVERY ELIGIBLE LEAD THIS PROGRAMME SOURCED ────────────
   //
+  // 🛑 THE REVIEW BOUNDARY COMES FIRST — `surfaced_for_approval_at` IS NOT NULL.
+  //
+  // ⛓️ THIS WAS A REAL DEFECT. The filter was `programme_id` + `client_id` + `delivered_at`,
+  // and `delivered_at` does NOT imply the customer ever saw the person. Two different acts
+  // write the two stamps: `enrichAndDeliverLeads` — which a programme sourcing run calls
+  // directly (`routes/icps.ts`, the on-run delivery) and the daily drip calls again — writes
+  // `delivered_at` ALONE, while `surfaced_for_approval_at` is written later by
+  // `surfaceEverything`, the operator's "Send to client" act. A programme sourced 2,500 people,
+  // an operator surfaced 50, `markReadyForApproval` passed on those 50, the customer approved
+  // the programme — and preparation enrolled all 2,500. The other 2,450 would have been mailed
+  // without ever appearing in anybody's review set.
+  //
+  // ⚠️ `revealed_at` IS DELIBERATELY NOT REQUIRED NULL, and that is not an oversight.
+  // `markReadyForApproval` needs it because it asks "is there anything LEFT to review". This
+  // asks a different question — "was this person part of the reviewable set" — and a revealed
+  // lead is one the customer looked at and said YES to. Excluding it would invert the invariant.
+  // It is also structurally redundant: every door to `approveLead` (`/leads/:id/approve`,
+  // `/leads/:id/reveal`, the batch route) goes through `batchGate`, which itself requires
+  // `surfaced_for_approval_at` NOT NULL, and nothing ever clears that stamp — so revealed
+  // leads are a SUBSET of surfaced ones. `status = 'passed'` (the customer said no) is excluded
+  // below, with the other permanent disqualifiers.
+  //
   // ⚠️ KEYSET PAGINATION ON `id`, NOT `.limit(2000)`. A programme is sized at 250 prospects
   // per targeted meeting (R77), so ten meetings is 2,500 people — the previous single-page
   // limit would have prepared 2,000 of them and called the programme operable. Pages are
@@ -268,6 +305,7 @@ export async function prepareProgrammeOutreach(programmeId: string): Promise<Pre
       .eq('programme_id', programmeId)
       .eq('client_id', p.client_id)
       .not('delivered_at', 'is', null)
+      .not('surfaced_for_approval_at', 'is', null)
       .gt('id', after)
       .order('id', { ascending: true })
       .limit(PAGE)
@@ -374,6 +412,10 @@ export async function prepareProgrammeOutreach(programmeId: string): Promise<Pre
       .eq('programme_id', programmeId)
       .eq('client_id', p.client_id)
       .not('delivered_at', 'is', null)
+      // ⚠️ THE SAME POPULATION THE LOOP READ. An upper bound is safe; a bound over a WIDER set
+      // is not — counting never-surfaced leads here would leave `remaining > 0` permanently and
+      // make LIVE unreachable for a programme that is in fact fully prepared.
+      .not('surfaced_for_approval_at', 'is', null)
       .gt('id', after)
     if (leftErr) {
       // Cannot count ⇒ cannot claim completeness. Fail closed on the number, not on the work.

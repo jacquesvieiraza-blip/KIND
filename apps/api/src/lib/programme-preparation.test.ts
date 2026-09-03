@@ -148,6 +148,10 @@ const newLead = (id: string, over: Row = {}) =>
   state.leads.push({
     id, client_id: H, icp_id: 'ICP_NEW', programme_id: P_NEW, delivered_at: 'd',
     status: 'scored', email: `${id.toLowerCase()}@example.com`,
+    // ⚠️ SURFACED BY DEFAULT, because the default lead here is a NORMAL programme prospect: one
+    // an operator has put in front of the customer. `delivered_at` alone is a different and
+    // narrower state — the one ⑨ below proves must never become outreach.
+    surfaced_for_approval_at: 's', revealed_at: null,
     opted_out_at: null, provider_eviction_required_at: null, ...over,
   })
 
@@ -621,5 +625,177 @@ describe('⑧ partial preparation cannot be sent, by anyone, until it completes'
   it('and the send-selection layer only ever offers the OPEN programme\'s own work', () => {
     const sd = readFileSync(join(join(__dirname, '..'), 'lib/send-due.ts'), 'utf8')
     expect(sd).toContain("return (e as { programme_id?: string | null }).programme_id === openId")
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// ⑨ THE REVIEW BOUNDARY — BELONGING TO THE PROGRAMME IS NOT PERMISSION TO MAIL SOMEBODY
+//
+// 🛑 THE INVARIANT (founder, 2 Sep): "NO prospect may become a programme outreach enrolment
+// merely because it belongs to the programme if that prospect was never part of the
+// customer-reviewable programme set."
+//
+// ⛓️ THIS WAS A LIVE DEFECT, NOT A HYPOTHETICAL. Preparation filtered on `programme_id` +
+// `client_id` + `delivered_at`, and `delivered_at` does not mean the customer ever saw the
+// person. `enrichAndDeliverLeads` — which a programme sourcing run calls on-run, and the daily
+// drip calls again — stamps `delivered_at` ALONE. `surfaced_for_approval_at` is written later,
+// by a different act: `surfaceEverything`, the operator's Send to client. Between the two, a
+// programme lead is delivered and invisible, and preparation enrolled it.
+//
+// The scale is the point. `markReadyForApproval` needs ONE reviewable lead; a programme sized
+// at 2,500 whose operator surfaced 50 would pass it, be approved on those 50, and go LIVE with
+// 2,450 enrolments for people nobody ever reviewed.
+// ═══════════════════════════════════════════════════════════════════════════════════════
+describe('⑨ only genuinely review-surfaced programme work is prepared for outreach', () => {
+  it('① delivered AND surfaced → eligible, and enrolled', async () => {
+    seedProgrammeReadyForLive({ status: 'LIVE', went_live_at: 'w' })
+    newLead('L1', { delivered_at: 'd', surfaced_for_approval_at: 's' })
+
+    const r = await prepareProgrammeOutreach(P_NEW)
+    expect(r.complete, r.problems.join(' | ')).toBe(true)
+    expect(r.enrolled).toEqual(['L1'])
+  })
+
+  it('🛑 ② delivered but NEVER SURFACED → NOT outreach-authorised, and it blocks nothing', async () => {
+    seedProgrammeReadyForLive({ status: 'LIVE', went_live_at: 'w' })
+    newLead('L1', { delivered_at: 'd', surfaced_for_approval_at: 's' })
+    // L2 is the founder's scenario: same programme, same client, delivered — and the customer
+    // has never seen it, because no operator has Sent it to them.
+    newLead('L2', { delivered_at: 'd', surfaced_for_approval_at: null })
+
+    const r = await prepareProgrammeOutreach(P_NEW)
+
+    expect(r.enrolled, 'only the reviewed prospect is enrolled').toEqual(['L1'])
+    expect(state.enrollments.map(e => e.lead_id), 'L2 must hold NO enrolment row').toEqual(['L1'])
+    // ⚠️ AND IT IS NOT COUNTED AS OUTSTANDING EITHER. An un-surfaced lead is outside the set,
+    // not inside it and pending — otherwise `remaining > 0` would make LIVE permanently
+    // unreachable for a programme that is in fact fully prepared.
+    expect(r.remaining).toBe(0)
+    expect(r.total).toBe(1)
+    expect(r.complete, r.problems.join(' | ')).toBe(true)
+  })
+
+  it('🛑 ② and the door `autoEnrollLead` itself uses refuses L2 by name', async () => {
+    seedProgrammeReadyForLive({ status: 'LIVE', went_live_at: 'w' })
+    newLead('L2', { delivered_at: 'd', surfaced_for_approval_at: null })
+    // `verifyProgrammeFulfilment` is the check that unlocks the wallet bypass. Preparation's
+    // query is not the only way in, so the refusal has to live here too.
+    const v = await verifyProgrammeFulfilment('L2', H, P_NEW)
+    expect(v.ok).toBe(false)
+    expect((v as { reason: string }).reason).toMatch(/never surfaced/)
+  })
+
+  it('③ a historical NULL-attributed lead is excluded even when it IS surfaced', async () => {
+    seedProgrammeReadyForLive({ status: 'LIVE', went_live_at: 'w' })
+    newLead('L1')
+    // House's retired desk: surfaced and delivered long ago, belonging to no programme.
+    newLead('L_OLD', { programme_id: null })
+
+    const r = await prepareProgrammeOutreach(P_NEW)
+    expect(r.enrolled).toEqual(['L1'])
+    expect(state.enrollments.map(e => e.lead_id)).toEqual(['L1'])
+    // ⚠️ NOT IN THE SET AT ALL — not "in the set and refused at the door". The second door
+    // (`verifyProgrammeFulfilment`, inside `autoEnrollLead`) does refuse it, and that defence
+    // is real; but if it were the ONLY thing stopping it, `total` would count the historical
+    // lead, the attempt would be recorded as a FAILURE, and the programme could never go LIVE.
+    expect(r.total, 'a historical lead is outside the population, not a pending member of it').toBe(1)
+    expect(r.failed).toEqual([])
+    expect(r.complete, r.problems.join(' | ')).toBe(true)
+  })
+
+  it('④ passed and rejected are excluded — the customer, or the engine, already disposed of them', async () => {
+    seedProgrammeReadyForLive({ status: 'LIVE', went_live_at: 'w' })
+    newLead('L1')
+    newLead('L_PASSED', { status: 'passed' })      // the customer said no
+    newLead('L_REJECTED', { status: 'rejected' })  // the engine disqualified it
+
+    const r = await prepareProgrammeOutreach(P_NEW)
+    expect(r.enrolled).toEqual(['L1'])
+    expect(r.skipped).toBe(2)
+    expect(state.enrollments.map(e => e.lead_id)).toEqual(['L1'])
+  })
+
+  it('⑤ KNOWN INVALID — a placeholder/unemailable prospect never reaches preparation, and one with no address is skipped', async () => {
+    // ⚠️ THERE IS NO `invalid` LEAD STATUS IN THIS REPO, and none is invented here. The
+    // `leads.status` CHECK is (pending, scored, consent_sent, consent_given, exported,
+    // rejected, opted_out). "Known invalid" is expressed two ways, and both are already fatal
+    // BEFORE preparation ever sees the row:
+    //   • `isPlaceholderEmail` (email-hygiene.ts) drops Apollo's synthetic addresses at the
+    //     source, so they are never stored as a contactable email;
+    //   • an unrevealed address leaves `email` NULL, and `enrichAndDeliverLeads` refuses to
+    //     stamp `delivered_at` on a lead with no email at all.
+    // What preparation owns is the residue: a surfaced programme lead carrying no address.
+    seedProgrammeReadyForLive({ status: 'LIVE', went_live_at: 'w' })
+    newLead('L1')
+    newLead('L_NO_EMAIL', { email: null })
+
+    const r = await prepareProgrammeOutreach(P_NEW)
+    expect(r.enrolled).toEqual(['L1'])
+    expect(state.enrollments.map(e => e.lead_id)).toEqual(['L1'])
+    expect(r.complete, r.problems.join(' | ')).toBe(true)
+  })
+
+  it('🛑 ⑥ KNOWN BOUNCED — a hard bounce is a blocklist entry, and preparation refuses to enrol it', async () => {
+    // ⚠️ THERE IS NO `bounced` LEAD STATUS EITHER. A hard bounce arrives on the Resend/Svix
+    // webhook (`routes/figsy.ts`) and is recorded as `opt_out_blocklist.reason='hard_bounce'`
+    // — the same table every send path re-reads. Preparation reads it per page, so a person
+    // whose address has already bounced cannot be given a fresh programme enrolment.
+    seedProgrammeReadyForLive({ status: 'LIVE', went_live_at: 'w' })
+    newLead('L1')
+    newLead('L_BOUNCED')
+    state.blocklist.push({ email: 'l_bounced@example.com', reason: 'hard_bounce' })
+
+    const r = await prepareProgrammeOutreach(P_NEW)
+    expect(r.enrolled).toEqual(['L1'])
+    expect(state.enrollments.map(e => e.lead_id), 'a bounced address gains no enrolment').toEqual(['L1'])
+    expect(r.skipped).toBe(1)
+  })
+
+  it('⑥ and a spam complaint suppresses through the same door', async () => {
+    seedProgrammeReadyForLive({ status: 'LIVE', went_live_at: 'w' })
+    newLead('L1')
+    newLead('L_COMPLAINED')
+    state.blocklist.push({ email: 'l_complained@example.com', reason: 'spam_complaint' })
+
+    const r = await prepareProgrammeOutreach(P_NEW)
+    expect(r.enrolled).toEqual(['L1'])
+    expect(r.skipped).toBe(1)
+  })
+
+  it('⚠️ a REVEALED lead is still prepared — it is the one the customer said YES to', async () => {
+    // `revealed_at IS NULL` is deliberately NOT a preparation condition. It belongs to
+    // `markReadyForApproval`, which asks "is there anything LEFT to review". This asks
+    // "was this person part of the reviewable set", and a revealed lead emphatically was.
+    seedProgrammeReadyForLive({ status: 'LIVE', went_live_at: 'w' })
+    newLead('L_REVEALED', { revealed_at: 'r' })
+
+    const r = await prepareProgrammeOutreach(P_NEW)
+    expect(r.enrolled).toEqual(['L_REVEALED'])
+    expect(r.complete, r.problems.join(' | ')).toBe(true)
+  })
+
+  it('🛑 revealed ⊆ surfaced is STRUCTURAL — every door to approveLead goes through batchGate', () => {
+    // The claim above ("excluding revealed leads would exclude what the customer approved")
+    // only holds if a lead cannot be revealed without first being surfaced. It cannot: all
+    // three portal doors — approve, reveal, and the batch route — call `batchGate`, and
+    // `batchGate` requires the surfacing stamp. Nothing anywhere clears it.
+    const lr = readFileSync(join(join(__dirname, '..'), 'routes/leads.ts'), 'utf8')
+    const gate = lr.slice(lr.indexOf('async function batchGate'), lr.indexOf('leadRouter.post(\'/:id/approve\''))
+    expect(gate).toContain(".not('surfaced_for_approval_at', 'is', null)")
+    // Each of the three money doors is gated by it.
+    expect(lr).toContain("const gate = await batchGate(clientId, [req.params.id])")
+    expect(lr).toContain("const revealGate = await batchGate(clientId, [req.params.id])")
+    expect(lr).toContain("const gate = await batchGate(clientId, ids)")
+    // And the reveal stamp is never unwritten alongside a surfacing clear.
+    expect(lr).not.toContain('surfaced_for_approval_at: null')
+  })
+
+  it('🛑 the query itself carries the review boundary, on BOTH reads', () => {
+    const f = readFileSync(join(__dirname, 'programme-preparation.ts'), 'utf8')
+    const body = f.split('\n').filter(l => !l.trim().startsWith('//')).join('\n')
+    // The page read and the budget-exhaustion head count must describe the SAME population.
+    const occurrences = body.split(".not('surfaced_for_approval_at', 'is', null)").length - 1
+    expect(occurrences, 'both the page read and the outstanding head count').toBe(2)
+    expect(body).toContain("if (!l.surfaced_for_approval_at) return { ok: false, reason: 'lead was never surfaced to the customer for review' }")
   })
 })

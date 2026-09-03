@@ -15,8 +15,12 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 // ── a small in-memory stand-in for the programmes table ─────────────────────────────────
 type Row = Record<string, unknown>
-const state: { programmes: Row[]; batches: Row[]; commissions: Row[]; ledger: Row[]; alerts: string[] } = {
-  programmes: [], batches: [], commissions: [], ledger: [], alerts: [],
+// ⚑ `leads` ADDED BY PR A2. `markReadyForApproval` now asks whether ANY lead positively
+// carries the programme — a programme with nothing sourced cannot be put to a client for
+// approval. Before this the fake mapped every unknown table onto `programmes`, so the head
+// count came back with no `count` at all and the transition was refused for the wrong reason.
+const state: { programmes: Row[]; batches: Row[]; commissions: Row[]; ledger: Row[]; leads: Row[]; alerts: string[] } = {
+  programmes: [], batches: [], commissions: [], ledger: [], leads: [], alerts: [],
 }
 
 /**
@@ -30,13 +34,22 @@ function makeTable(name: keyof typeof state) {
     _filters: [] as Array<(r: Row) => boolean>,
     _payload: null as Row | null,
     _mode: '' as '' | 'update' | 'insert' | 'select',
-    select() { if (this._mode === '') this._mode = 'select'; return this },
+    _headCount: false,
+    select(_cols?: string, opts?: { count?: string; head?: boolean }) {
+      if (opts?.head) this._headCount = true
+      if (this._mode === '') this._mode = 'select'; return this
+    },
     eq(col: string, val: unknown) { this._filters.push(r => r[col] === val); return this },
     is(col: string, val: unknown) { this._filters.push(r => (r[col] ?? null) === val); return this },
-    not(col: string, _op: string, list: string) {
-      const set = list.replace(/[()]/g, '').split(',')
+    not(col: string, op: string, list: string | null) {
+      // ⚑ `.not(col, 'is', null)` — "IS NOT NULL" — is a different shape from
+      // `.not('status', 'in', '(A,B)')`, and the list form would throw on a null argument.
+      // `markReadyForApproval` uses the first form to count only reviewable leads.
+      if (op === 'is' && list === null) { this._filters.push(r => (r[col] ?? null) !== null); return this }
+      const set = String(list).replace(/[()]/g, '').split(',')
       this._filters.push(r => !set.includes(String(r[col]))); return this
     },
+    neq(col: string, val: unknown) { this._filters.push(r => r[col] !== val); return this },
     order() { return this },
     limit() { return this },
     insert(payload: Row) { this._mode = 'insert'; this._payload = payload; return this },
@@ -64,7 +77,13 @@ function makeTable(name: keyof typeof state) {
       for (const r of hit) Object.assign(r, this._payload)
       return { data: hit, error: null }
     },
-    then(res: (v: { data: unknown; error: unknown }) => unknown) { return Promise.resolve(this._run()).then(res) },
+    then(res: (v: { data: unknown; error: unknown }) => unknown) {
+      // A head count returns `{ data: null, count }` and no rows — the exact supabase-js
+      // shape `markReadyForApproval` reads. Answering with rows and no count would make a
+      // populated programme look empty.
+      if (this._headCount) return Promise.resolve({ data: null, count: this._matched().length, error: null }).then(res)
+      return Promise.resolve(this._run()).then(res)
+    },
   }
   return q
 }
@@ -73,7 +92,8 @@ vi.mock('@kind/db', () => ({
   db: {
     from: (t: string) => makeTable(t === 'programme_batches' ? 'batches'
       : t === 'partner_commissions' ? 'commissions'
-      : t === 'sourcing_ledger' ? 'ledger' : 'programmes'),
+      : t === 'sourcing_ledger' ? 'ledger'
+      : t === 'leads' ? 'leads' : 'programmes'),
     rpc: async (fn: string, args: Record<string, unknown>) => {
       if (fn === 'settle_programme_batch') {
         const b = state.batches.find(x => x.id === args.p_batch_id) as Row | undefined
@@ -92,6 +112,22 @@ vi.mock('@kind/db', () => ({
   },
 }))
 
+// ⚑ PR A2 — OUTREACH PREPARATION IS STUBBED HERE, DELIBERATELY. This file is about what the
+// payment and lifecycle writers do to the programme ROW. Whether a programme can actually be
+// made operable — campaigns, enrolments, eligibility, pagination — is proved against the real
+// implementation in `programme-preparation.test.ts`. Stubbing it lets both BRANCHES of the new
+// rule be exercised here: LIVE only when preparation completes, and APPROVED when it does not.
+const prep: { complete: boolean } = { complete: true }
+vi.mock('./programme-preparation', () => ({
+  prepareProgrammeOutreach: async () => ({
+    ok: prep.complete, complete: prep.complete, remaining: prep.complete ? 0 : 3, total: 3,
+    campaigns: ['camp-1'], enrolled: prep.complete ? ['l1'] : [], alreadyEnrolled: 0,
+    skipped: 0, failed: [], problems: prep.complete ? [] : ['No ICP is attached to this programme.'],
+  }),
+  assertGoingLive: async () => ({ ok: true }),
+  verifyProgrammeFulfilment: async () => ({ ok: true }),
+}))
+
 vi.mock('./alerts', () => ({
   sendFounderAlert: (_k: string, subject: string) => { state.alerts.push(subject); return Promise.resolve() },
 }))
@@ -101,7 +137,7 @@ import {
   markReadyForApproval, pauseProgramme, mayStartCampaign, maySecondCharge, mayComplete,
   completeProgramme, settleBatch, computeContribution, finaliseContribution,
   writeProgrammePartnerCommission, recordDispute, recordMakeWhole, nextBatchSize,
-  PROGRAMME_STATUSES, type ProgrammeRow,
+  PROGRAMME_STATUSES, type ProgrammeRow, goLiveProgramme,
 } from './programme'
 
 function seed(over: Partial<ProgrammeRow> = {}): ProgrammeRow {
@@ -122,7 +158,7 @@ function seed(over: Partial<ProgrammeRow> = {}): ProgrammeRow {
   return p as unknown as ProgrammeRow
 }
 
-beforeEach(() => { state.programmes = []; state.batches = []; state.commissions = []; state.ledger = []; state.alerts = [] })
+beforeEach(() => { state.programmes = []; state.batches = []; state.commissions = []; state.ledger = []; state.leads = []; state.alerts = [] })
 
 describe('① the lifecycle has no PAUSED status — pause is orthogonal', () => {
   it('PAUSED is not a status, and every status is one of the ten', () => {
@@ -185,6 +221,7 @@ describe('② first payment — replay, ceiling, and NOT starting work', () => {
 
 describe('③ second payment — Go Live, and every reason not to', () => {
   it('from APPROVED and unpaused it records and goes LIVE', () => {
+    prep.complete = true
     const p = seed({ status: 'APPROVED', approved_at: 'x' })
     return recordSecondPayment({ programmeId: p.id, sessionId: 'cs_2' }).then(r => {
       expect(r.ok).toBe(true)
@@ -192,6 +229,39 @@ describe('③ second payment — Go Live, and every reason not to', () => {
       expect(state.programmes[0].status).toBe('LIVE')
       expect(state.programmes[0].went_live_at).not.toBeNull()
     })
+  })
+
+  it('🛑 BUT IF OUTREACH PREPARATION CANNOT COMPLETE, IT RECORDS AND DOES NOT GO LIVE', () => {
+    // ⚑ PR A2. LIVE is durable evidence that the programme can actually work its leads, so a
+    // paid programme that could not be prepared stays APPROVED — every later reader (Vida,
+    // Milla, `mayStartCampaign`, send authority) sees the truth rather than a label.
+    //
+    // ⚠️ AND THE MONEY IS UNTOUCHED BY THAT. Payment truth and operational truth are separate
+    // writes; nothing is refunded, reversed or invented.
+    prep.complete = false
+    const p = seed({ status: 'APPROVED', approved_at: 'x' })
+    return recordSecondPayment({ programmeId: p.id, sessionId: 'cs_2', paymentIntentId: 'pi_2' }).then(r => {
+      expect(r.ok).toBe(true)
+      expect(r.preparationIncomplete).toBe(true)
+      expect(state.programmes[0].second_payment_ref, 'the payment is recorded in full').toBe('cs_2')
+      expect(state.programmes[0].second_paid_at).not.toBeNull()
+      expect(state.programmes[0].second_payment_intent_id).toBe('pi_2')
+      expect(state.programmes[0].status, 'it must NOT be live').toBe('APPROVED')
+      expect(state.programmes[0].went_live_at ?? null, 'and must not claim a go-live').toBeNull()
+    })
+  })
+
+  it('…and a retry once preparation can complete takes it live, without a second payment', () => {
+    prep.complete = false
+    const p = seed({ status: 'APPROVED', approved_at: 'x' })
+    return recordSecondPayment({ programmeId: p.id, sessionId: 'cs_2' })
+      .then(() => { prep.complete = true; return goLiveProgramme(p.id) })
+      .then(r => {
+        expect(r.ok).toBe(true)
+        expect(state.programmes[0].status).toBe('LIVE')
+        expect(state.programmes[0].went_live_at).not.toBeNull()
+        expect(state.programmes[0].second_payment_ref, 'the original payment still stands').toBe('cs_2')
+      })
   })
 
   it('⚠️ A STALE CHECKOUT PAID WHILE PAUSED RECORDS THE MONEY AND DOES NOT GO LIVE', () => {
@@ -280,6 +350,18 @@ describe('⑤ approval is ONE programme-level decision', () => {
 
   it('READY_FOR_APPROVAL → APPROVED stamps approved_at', () => {
     const p = seed({ status: 'SOURCING' })
+    // ⚑ PR A2 — there must be something to review. One positively-attributed lead is the
+    // whole rule: zero versus more than zero, no invented volume threshold.
+    // ⚑ AND IT MUST BE REVIEWABLE — delivered, and Sent to the client (#493). The guard
+    // reuses `/leads/for-approval`'s own definition, so a lead that could never appear in
+    // the customer's review set cannot make a programme ready.
+    // ⛓️ AND NOT YET REVEALED OR PASSED. The readiness predicate is now the review query
+    // itself — all four conditions — so a lead already disposed of through the legacy
+    // per-lead path cannot make a programme ready while Milla would open on nothing.
+    state.leads.push({
+      id: 'lead-1', programme_id: p.id, delivered_at: 'd', surfaced_for_approval_at: 's',
+      revealed_at: null, status: 'scored',
+    })
     return markReadyForApproval(p.id)
       .then(() => approveProgramme(p.id))
       .then(r => {

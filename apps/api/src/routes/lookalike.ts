@@ -106,6 +106,30 @@ router.post('/generate', async (req: Request, res: Response) => {
     // ⚠️ HOUSE IS NOT FENCED BY IT. Client Zero's lookalikes come from Apollo — ours,
     // already prepaid — so there is no PDL record to pre-fund (AR5/AR16).
     let grantedSize = LOOKALIKE_TARGET
+
+    // ── ⚑ POSITIVE ATTRIBUTION APPLIES TO HOUSE TOO ──────────────────────────────────────
+    //
+    // 🛑 THE `audience !== 'house'` EXEMPTION BELOW IS ABOUT CASH, NOT ATTRIBUTION, and until
+    // now it silently covered both. House's lookalikes come from Apollo, already prepaid, so
+    // there is no PDL spend to fence (AR5/AR16) — correct. But skipping the RPC also skipped
+    // the programme check inside it, and House is Client Zero: the one client the programme
+    // was built for was the one client no attribution gate covered.
+    //
+    // This route holds no ICP, so a lead it creates can never be positively attributed. For a
+    // client with an open programme that means it can only manufacture work the send gates
+    // will refuse — so it is refused here instead, before any provider call or lead insert.
+    // A client with no open programme is untouched: genuine legacy behaviour, unchanged.
+    const { openProgrammeForClient } = await import('../lib/programme')
+    const openProgramme = await openProgrammeForClient(String(client_id))
+    if (openProgramme) {
+      console.log(`[lookalike] refused for client ${client_id} — on programme ${openProgramme.id.slice(0, 8)}; this route cannot attribute leads to a programme. No sourcing, no spend.`)
+      return res.json({
+        found: 0, inserted: 0, refused: 'programme_attribution',
+        message: 'This client is on a programme. Lookalikes cannot be attributed to it, so nothing was sourced — source from an ICP attached to the programme instead.',
+        icp_used: { industries: icp.industries, titles: icp.job_titles, locations: icp.geographies },
+      })
+    }
+
     if (audience !== 'house') {
       // ── PROGRAMME AUTHORITY (BUILD-002) ─────────────────────────────────────────
       // This route has no ICP in hand, so there is no programme id to pass — and that is

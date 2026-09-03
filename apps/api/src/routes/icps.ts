@@ -22,7 +22,7 @@ import { toMemoryRecord, rememberAcquiredIdentities, type AcquisitionMemoryRecor
 import { rethrowIfProviderBlocked, isPaidProviderBlocked } from '../lib/paid-provider-guard'
 import { deriveRunStatus, runOutcomeMessage, type RunStatus } from '../lib/run-outcome'
 import { authorityFor, ProgrammeAuthorityError } from '../lib/programme-authority'
-import type { ProgrammeRow } from '../lib/programme'
+import { openProgrammeForClient, type ProgrammeRow } from '../lib/programme'
 import {
   decideCursor, nextCursorState, exhaustedMessage, exhaustedAlertLines,
   type CursorQuery, type StoredCursor,
@@ -606,6 +606,44 @@ export async function runIcpJob(
   // ICPs actually attached to it draw on its authority.
   if (!proofMode) {
     const programmeId = (icp as { programme_id?: string | null }).programme_id ?? null
+
+    // ── ⚑ POSITIVE ATTRIBUTION AT THE SOURCING LAYER ─────────────────────────────────────
+    //
+    // 🛑 AN UNATTACHED ICP MAY NOT SOURCE FOR A PROGRAMME CLIENT. Until now the only thing
+    // stopping that was `try_spend_sourcing`, which returns 0 when a programme client passes
+    // a NULL programme id — and that is not enough, for two reasons this run reaches FIRST:
+    //
+    //   ① `servePoolLeads` runs BEFORE the provider gate and inserts leads regardless of what
+    //      the RPC would have said. A programme client running an unattached ICP therefore
+    //      still got real people into their pipeline, every one stamped `programme_id = NULL`,
+    //      because the stamp below requires `programmeIdForRun`.
+    //   ② `audience === 'house'` skips the RPC entirely (AR5/AR8: Apollo is already prepaid,
+    //      so there is no PDL cash to fence). House is Client Zero. The one client whose
+    //      programme this was built for was the one client the existing fence did not cover.
+    //
+    // Work created that way is unusable: the send layers refuse null-attributed work for a
+    // client that has an open programme, and rightly so. Producing it would spend real
+    // sourcing to manufacture prospects nobody may ever contact — so the run is refused
+    // BEFORE the pool is served and before any provider is called.
+    //
+    // ⚠️ THE LEGACY PATH IS UNTOUCHED. This asks about the CLIENT'S open programme; a client
+    // with none behaves exactly as before, which is what the $299 pack model still is.
+    const open = await openProgrammeForClient(clientId)
+    if (open && !programmeId) {
+      throw new ProgrammeAuthorityError('icp_not_attached_to_programme',
+        `This client is on programme ${open.id.slice(0, 8)}, and ICP ${icpId} is not attached to it. ` +
+        'Sourcing from an unattached ICP would create work belonging to no programme, which the ' +
+        'send gates then refuse. Attach the ICP to the programme first. Nothing was sourced.')
+    }
+    // 🛑 AND A MISMATCH IS NEVER "CLOSE ENOUGH" — neither silently used nor silently rewritten.
+    // The dedicated attach action is the only thing that may assign attribution.
+    if (open && programmeId && programmeId !== open.id) {
+      throw new ProgrammeAuthorityError('programme_unresolvable',
+        `ICP ${icpId} is attached to programme ${programmeId.slice(0, 8)}, but the open programme for ` +
+        `this client is ` +
+        `${open.id.slice(0, 8)}. Attribution is ambiguous, so nothing was sourced.`)
+    }
+
     if (programmeId) {
       const { data: prog, error: progErr } = await db.from('programmes')
         .select('*').eq('id', programmeId).maybeSingle()

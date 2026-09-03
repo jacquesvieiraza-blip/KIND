@@ -277,11 +277,25 @@ export default function VidaConsolePage() {
       approved_at: string | null; second_paid_at: string | null
       review_required_at: string | null; review_reason: string | null; review_resolved_at: string | null
       review_trigger_leads: number; batch_size: number
+      // ⚑ PR A2 — the seven fields the lifecycle controls need. `first_authorised_at` and
+      // `second_authorised_at` are what let this screen say "internal authority" instead of
+      // "paid", which for House is the difference between a true sentence and a false one.
+      recommended_volume: number
+      first_paid_at: string | null; first_payment_ref: string | null
+      second_payment_ref: string | null; went_live_at: string | null
+      first_authorised_at: string | null; second_authorised_at: string | null
     }
     batches: { id: string; seq: number; status: string; requested: number; granted: number; delivered: number | null; created_at: string | null }[]
     stranded: { id: string; seq: number }[]
     blockers: { kind: string; detail: string }[]
     degraded: string[]
+    // ⚑ PR A2 — which targeting feeds this programme. `unreadable` is carried rather than
+    // collapsed: an empty list because the read failed must not render as "no ICPs".
+    icps?: {
+      attached: { id: string; name: string | null; is_active: boolean }[]
+      eligible: { id: string; name: string | null; is_active: boolean }[]
+      unreadable: boolean
+    }
   }
   const [prog, setProg] = useState<ProgrammeTruth | null>(null)
   const [progErr, setProgErr] = useState<string | null>(null)
@@ -293,6 +307,125 @@ export default function VidaConsolePage() {
       setProg(j.data as ProgrammeTruth)
     } catch (e) { setProgErr(e instanceof Error ? e.message : 'Failed to load programme'); setProg(null) }
   }, [])
+
+  // ── ⚑ PR A2 · THE PROGRAMME LIFECYCLE CONTROLS ─────────────────────────────────────────
+  //
+  // 🛑 EVERY BUTTON HERE IS A CONVENIENCE, NEVER THE GATE. Each one posts to a route that
+  // re-decides the whole question from the row: a route is callable without the screen that
+  // hides its button, so a UI-only rule is not a rule. `lcCan` decides what to SHOW; the
+  // backend decides what may HAPPEN, and the two are allowed to disagree — the backend wins.
+  const [lcMeetings, setLcMeetings] = useState('')
+  const [lcBusy, setLcBusy] = useState<string | null>(null)
+  const [lcMsg, setLcMsg] = useState<string | null>(null)
+
+  function lcCan(action: string): boolean {
+    const p = prog?.programme
+    if (!p) return action === 'create'
+    if (p.paused_at) return false
+    const p2 = Boolean((p.second_paid_at && p.second_payment_ref) || p.second_authorised_at)
+    switch (action) {
+      case 'recommend':            return p.status === 'DRAFT'
+      case 'await-first-payment':  return p.status === 'RECOMMENDED'
+      case 'authorise/first':      return p.status === 'AWAITING_FIRST_PAYMENT'
+      case 'ready-for-approval':   return p.status === 'SOURCING_AUTHORISED' || p.status === 'SOURCING'
+      case 'authorise/second':     return p.status === 'APPROVED' && !p2
+      case 'go-live':              return p.status === 'APPROVED' && p2
+      // 🛑 THERE IS NO 'approve'. The one programme approval belongs to the CLIENT, in Milla.
+      // Vida deliberately stops at READY_FOR_APPROVAL — an operator approving on the client's
+      // behalf is not the client approving, however convenient the button would be.
+      default: return false
+    }
+  }
+
+  /** ICPs may only be attached before the client review — after that the work under review would change. */
+  function lcCanAttachIcp(): boolean {
+    const p = prog?.programme
+    if (!p || p.paused_at) return false
+    return ['DRAFT', 'RECOMMENDED', 'AWAITING_FIRST_PAYMENT', 'SOURCING_AUTHORISED', 'SOURCING'].includes(p.status)
+  }
+
+  const lifecycle = useCallback(async (action: string, label: string) => {
+    const client = (clients ?? []).find(c => c.id === selected)
+    const name = client?.company_name ?? 'this client'
+    // ⚠️ EVERY CONFIRMATION NAMES THE CLIENT, and the money-bearing ones say IN WORDS that no
+    // payment is recorded. On a screen where "authorise" normally means "a card was charged",
+    // silence would be read as a charge.
+    const confirms: Record<string, string> = {
+      'recommend': `Move ${name}'s programme to RECOMMENDED?`,
+      'await-first-payment': `Move ${name}'s programme to P1?\n\nThis records NO payment and creates NO checkout — it moves the programme to the stage where P1 is settled.`,
+      'authorise/first': `Authorise P1 INTERNALLY for ${name}?\n\nNo payment is taken and no invoice, revenue or commission is created. It opens the sourcing ceiling and moves the programme to SOURCING_AUTHORISED, exactly as a first payment would.`,
+      'ready-for-approval': `Mark ${name}'s programme READY FOR APPROVAL?\n\nThe client then approves it in Milla. Vida cannot approve it.`,
+      'authorise/second': `Authorise P2 INTERNALLY for ${name}?\n\nNo payment is taken. This does NOT make the programme live — Make live is a separate action.`,
+      'go-live': `Make ${name}'s programme LIVE?\n\nOutreach becomes permitted for this programme. Sending still obeys every downstream safety gate.`,
+    }
+    if (confirms[action] && !confirm(confirms[action])) return
+    setLcBusy(action); setLcMsg(null)
+    try {
+      const id = prog?.programme?.id
+      if (!id) throw new Error('No programme loaded.')
+      const j = await fetch(`/api/proxy/programmes/${encodeURIComponent(id)}/${action}`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}',
+      }).then(r => r.json())
+      if (!j?.success) throw new Error(j?.error || `${label} failed`)
+      // ⚑ "Live" is not the same claim as "operable", so the screen says both. A go-live that
+      // prepared nothing is the exact state an operator must not read as finished.
+      const prep = j?.preparation as { campaigns: string[]; enrolled: string[]; alreadyEnrolled: number } | null | undefined
+      setLcMsg(prep
+        ? `${label} — done. ${prep.campaigns.length} campaign(s) ready · ${prep.enrolled.length} prospect(s) enrolled` +
+          `${prep.alreadyEnrolled ? ` · ${prep.alreadyEnrolled} already enrolled` : ''}. Nothing has been sent.`
+        : `${label} — done.`)
+      // Re-read rather than patching local state: the row is the truth, and a screen that
+      // guesses the new state is a screen that can be wrong about it.
+      if (selected) await loadProgramme(selected)
+    } catch (e) {
+      setLcMsg(e instanceof Error ? e.message : `${label} failed`)
+    } finally { setLcBusy(null) }
+  }, [prog, selected, clients, loadProgramme])
+
+  const createProgrammeNow = useCallback(async () => {
+    const client = (clients ?? []).find(c => c.id === selected)
+    const name = client?.company_name ?? 'this client'
+    // ⚠️ NO DEFAULT MEETING TARGET. The target prices the whole programme off the shared
+    // curve; picking one for the founder would put a number in front of a client that nobody
+    // chose. An empty or non-numeric entry is refused rather than silently defaulted.
+    const meetings = Number(lcMeetings)
+    if (!Number.isInteger(meetings) || meetings <= 0) { setLcMsg('Enter a whole meeting target first.'); return }
+    if (!confirm(`Create a programme for ${name} with a target of ${meetings} meeting(s)?\n\nNo payment is recorded and nothing is charged. The programme is created in DRAFT.`)) return
+    setLcBusy('create'); setLcMsg(null)
+    try {
+      const j = await fetch('/api/proxy/programmes', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clientId: selected, meetings }),
+      }).then(r => r.json())
+      if (!j?.success) throw new Error(j?.error || 'Create failed')
+      setLcMsg('Programme created in DRAFT.'); setLcMeetings('')
+      if (selected) await loadProgramme(selected)
+    } catch (e) { setLcMsg(e instanceof Error ? e.message : 'Create failed') }
+    finally { setLcBusy(null) }
+  }, [lcMeetings, selected, clients, loadProgramme])
+
+  const attachIcp = useCallback(async (icpId: string, icpName: string | null) => {
+    const client = (clients ?? []).find(c => c.id === selected)
+    const name = client?.company_name ?? 'this client'
+    if (!confirm(
+      `Attach "${icpName ?? 'this ICP'}" to ${name}'s programme?\n\n` +
+      'Future sourcing from this ICP will belong to this programme.\n' +
+      'Historical leads and enrolments are NOT changed.',
+    )) return
+    setLcBusy(`icp:${icpId}`); setLcMsg(null)
+    try {
+      const id = prog?.programme?.id
+      if (!id) throw new Error('No programme loaded.')
+      const j = await fetch(`/api/proxy/programmes/${encodeURIComponent(id)}/attach-icp`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ icp_id: icpId }),
+      }).then(r => r.json())
+      if (!j?.success) throw new Error(j?.error || 'Attach failed')
+      setLcMsg(`"${icpName ?? 'ICP'}" now feeds this programme. Nothing historical was changed.`)
+      if (selected) await loadProgramme(selected)
+    } catch (e) { setLcMsg(e instanceof Error ? e.message : 'Attach failed') }
+    finally { setLcBusy(null) }
+  }, [prog, selected, clients, loadProgramme])
 
   // ⚑ 30 Aug (BUILD-003 PR4) — POOL + EXCEPTIONS. Platform-wide, so they load independently of
   // the selected client and are refreshed when their tab is opened.
@@ -2498,9 +2631,28 @@ export default function VidaConsolePage() {
 
                   {!prog ? <p className="text-[13.5px] text-[#9b8ec4] text-center py-8">Loading…</p>
                    : !prog.programme ? (
-                    <p className="text-[13.5px] text-[#9b8ec4] text-center py-8">
-                      No programme for this client. They are on the legacy model ($299 pack · 100 included · $4 per approved lead), which is unaffected by programme controls.
-                    </p>
+                    <>
+                      <p className="text-[13.5px] text-[#9b8ec4] text-center py-6">
+                        No programme for this client. They are on the legacy model ($299 pack · 100 included · $4 per approved lead), which is unaffected by programme controls.
+                      </p>
+                      {/* ⚠️ NO DEFAULT TARGET. The meeting target prices the entire programme
+                          off the shared curve, so it is typed by a human every time. */}
+                      <div className="border border-[#eee7f7] rounded-xl px-3 py-2.5">
+                        <b className="text-[13px] block mb-1">Create a programme</b>
+                        <p className="text-[12px] text-[#6b5f8c] mb-2">
+                          Prices once from the meeting target and stores it. Nothing is charged and no payment is recorded.
+                        </p>
+                        <div className="flex items-center gap-2">
+                          <input value={lcMeetings} onChange={e => setLcMeetings(e.target.value)}
+                            inputMode="numeric" placeholder="Meeting target"
+                            className="text-[12.5px] border border-[#e6dcf7] rounded-lg px-2 py-1.5 w-36" />
+                          <button onClick={() => createProgrammeNow()} disabled={lcBusy !== null}
+                            className="text-[12.5px] font-bold text-white bg-[#7C3AED] rounded-lg px-2.5 py-1.5 disabled:opacity-50">
+                            {lcBusy === 'create' ? '…' : 'Create programme'}</button>
+                        </div>
+                        {lcMsg && <p className="text-[12px] text-[#6b5f8c] mt-2">{lcMsg}</p>}
+                      </div>
+                    </>
                    ) : (<>
                     <div className={`border rounded-xl px-3 py-2.5 mb-3 ${
                       prog.programme.state === 'paused' ? 'border-amber-300 bg-amber-50/60'
@@ -2524,6 +2676,116 @@ export default function VidaConsolePage() {
                           {' '}This holds the NEXT NEW BATCH only; delivery already in flight continues. The {prog.programme.review_trigger_leads}-lead figure is a planning benchmark, not a guarantee.
                         </p>
                       )}
+                    </div>
+
+                    {/* ── ⚑ PR A2 · THE LIFECYCLE ────────────────────────────────────────
+                        🛑 IT STOPS AT READY_FOR_APPROVAL AND THAT IS THE POINT. There is no
+                        approve button here and there must never be one: the single programme
+                        approval belongs to the CLIENT, in Milla. An operator pressing it on
+                        their behalf is not the client approving. */}
+                    <div className="border border-[#eee7f7] rounded-xl px-3 py-2.5 mb-3">
+                      <b className="text-[13px] block mb-1">Programme lifecycle</b>
+                      <p className="text-[12px] text-[#6b5f8c] mb-2">
+                        {/* The state line says INTERNAL AUTHORITY, never "paid" — for House
+                            those are different facts and only one of them is true. */}
+                        P1: {prog.programme.first_paid_at ? 'paid'
+                          : prog.programme.first_authorised_at ? `internal authority ${fmtDate(prog.programme.first_authorised_at)}`
+                          : 'not authorised'}
+                        {' · '}
+                        P2: {(prog.programme.second_paid_at && prog.programme.second_payment_ref) ? 'paid'
+                          : prog.programme.second_authorised_at ? `internal authority ${fmtDate(prog.programme.second_authorised_at)}`
+                          : 'not authorised'}
+                        {prog.programme.went_live_at ? ` · live since ${fmtDate(prog.programme.went_live_at)}` : ''}
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {lcCan('recommend') && (
+                          <button onClick={() => lifecycle('recommend', 'Recommend')} disabled={lcBusy !== null}
+                            className="text-[12.5px] font-bold text-white bg-[#7C3AED] rounded-lg px-2.5 py-1.5 disabled:opacity-50">
+                            {lcBusy === 'recommend' ? '…' : 'Recommend'}</button>
+                        )}
+                        {lcCan('await-first-payment') && (
+                          <button onClick={() => lifecycle('await-first-payment', 'Move to P1')} disabled={lcBusy !== null}
+                            className="text-[12.5px] font-bold text-white bg-[#7C3AED] rounded-lg px-2.5 py-1.5 disabled:opacity-50">
+                            {lcBusy === 'await-first-payment' ? '…' : 'Move to P1'}</button>
+                        )}
+                        {lcCan('authorise/first') && (
+                          <button onClick={() => lifecycle('authorise/first', 'Authorise P1 internally')} disabled={lcBusy !== null}
+                            className="text-[12.5px] font-bold text-white bg-[#7C3AED] rounded-lg px-2.5 py-1.5 disabled:opacity-50">
+                            {lcBusy === 'authorise/first' ? '…' : 'Authorise P1 internally'}</button>
+                        )}
+                        {lcCan('ready-for-approval') && (
+                          <button onClick={() => lifecycle('ready-for-approval', 'Ready for approval')} disabled={lcBusy !== null}
+                            className="text-[12.5px] font-bold text-white bg-[#7C3AED] rounded-lg px-2.5 py-1.5 disabled:opacity-50">
+                            {lcBusy === 'ready-for-approval' ? '…' : 'Ready for approval'}</button>
+                        )}
+                        {lcCan('authorise/second') && (
+                          <button onClick={() => lifecycle('authorise/second', 'Authorise P2 internally')} disabled={lcBusy !== null}
+                            className="text-[12.5px] font-bold text-white bg-[#7C3AED] rounded-lg px-2.5 py-1.5 disabled:opacity-50">
+                            {lcBusy === 'authorise/second' ? '…' : 'Authorise P2 internally'}</button>
+                        )}
+                        {lcCan('go-live') && (
+                          <button onClick={() => lifecycle('go-live', 'Make live')} disabled={lcBusy !== null}
+                            className="text-[12.5px] font-bold text-white bg-[#059669] rounded-lg px-2.5 py-1.5 disabled:opacity-50">
+                            {lcBusy === 'go-live' ? '…' : 'Make programme live'}</button>
+                        )}
+                        {prog.programme.status === 'READY_FOR_APPROVAL' && (
+                          <span className="text-[12.5px] font-semibold text-[#6b5f8c] bg-[#faf8ff] border border-[#eee7f7] rounded-lg px-2.5 py-1.5">
+                            Awaiting client approval in Milla
+                          </span>
+                        )}
+                        {prog.programme.status === 'LIVE' && (
+                          <span className="text-[12.5px] font-semibold text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-lg px-2.5 py-1.5">
+                            Live — sending still obeys every downstream safety gate.
+                          </span>
+                        )}
+                      </div>
+                      {lcMsg && <p className="text-[12px] text-[#6b5f8c] mt-2">{lcMsg}</p>}
+                    </div>
+
+                    {/* ── ⚑ PR A2 · WHAT FEEDS THIS PROGRAMME ────────────────────────────
+                        🛑 THIS IS THE LINK ALL ATTRIBUTION HANGS ON. A sourcing run belongs
+                        to a programme only because the ICP it ran from says so. With nothing
+                        attached, a programme client's runs are refused outright — which is
+                        correct, and impossible to diagnose without this section. */}
+                    <div className="border border-[#eee7f7] rounded-xl px-3 py-2.5 mb-3">
+                      <b className="text-[13px] block mb-1">Targeting that feeds this programme</b>
+                      {prog.icps?.unreadable ? (
+                        <p className="text-[12.5px] font-semibold text-red-600">
+                          ⚠️ The ICP list could not be read. This is NOT evidence that none are attached.
+                        </p>
+                      ) : (<>
+                        {(prog.icps?.attached ?? []).length === 0 ? (
+                          <p className="text-[12px] text-amber-800 mb-2">
+                            No targeting is attached yet, so this programme can source nothing — a run from an unattached ICP is refused before any provider is called.
+                          </p>
+                        ) : (
+                          <ul className="text-[12.5px] text-[#6b5f8c] mb-2 list-disc pl-4">
+                            {(prog.icps?.attached ?? []).map(i => (
+                              <li key={i.id}>{i.name ?? 'Untitled ICP'}{i.is_active ? '' : ' (not active)'}</li>
+                            ))}
+                          </ul>
+                        )}
+                        {lcCanAttachIcp() ? (
+                          (prog.icps?.eligible ?? []).length === 0 ? (
+                            <p className="text-[12px] text-[#9b8ec4]">No unattached targeting left for this client.</p>
+                          ) : (<>
+                            <p className="text-[12px] text-[#6b5f8c] mb-1.5">
+                              Attach one at a time. Only future sourcing is affected — existing leads and enrolments keep the attribution they already have.
+                            </p>
+                            <div className="flex flex-wrap gap-2">
+                              {(prog.icps?.eligible ?? []).map(i => (
+                                <button key={i.id} onClick={() => attachIcp(i.id, i.name)} disabled={lcBusy !== null}
+                                  className="text-[12.5px] font-bold text-[#7C3AED] border border-[#e6dcf7] rounded-lg px-2.5 py-1.5 disabled:opacity-50">
+                                  {lcBusy === `icp:${i.id}` ? '…' : `Attach "${i.name ?? 'Untitled ICP'}"`}</button>
+                              ))}
+                            </div>
+                          </>)
+                        ) : (
+                          <p className="text-[12px] text-[#9b8ec4]">
+                            Targeting is fixed from the client review onward — attaching now would change the work the client is being asked to approve.
+                          </p>
+                        )}
+                      </>)}
                     </div>
 
                     <div className="border border-[#eee7f7] rounded-xl px-3 py-2.5 mb-3">

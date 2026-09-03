@@ -22,12 +22,15 @@
 //
 // Hence expand/contract: schema alone, deployed and applied; readers in PR A2 afterwards.
 //
-// ── ⚠️ THE ONE TEST IN HERE THAT PR A2 MUST DELETE ───────────────────────────────────────
+// ── ⚑ UPDATED BY PR A2 — ONE BLOCK REPLACED, NOTHING WEAKENED ───────────────────────────
 //
-// `no application code touches either column yet` is the fence that KEEPS this PR schema-only.
-// PR A2 exists precisely to add those readers, so A2 removes that test deliberately and
-// replaces it with the behavioural suite. Nothing else in this file should ever be removed —
-// the backwards-compatibility proofs stay true forever.
+// A1's §⑤ asserted that NO application file named either column. A2 adds exactly those
+// readers, so that assertion is false by design and has been REPLACED — not relaxed — by an
+// ALLOWLIST of the modules permitted to name them, plus an explicit proof that no customer or
+// public surface can. A1's version could only fail once, the first time any file mentioned
+// the column; the allowlist keeps failing forever, which is the property actually worth
+// guarding. Everything else in this file is untouched: the DDL proofs, the idempotency
+// proofs and the backwards-compatibility proofs stay true forever, and A2 adds no migration.
 // ═══════════════════════════════════════════════════════════════════════════════════════
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
@@ -312,10 +315,13 @@ describe('④ the currently deployed application behaves exactly as before', () 
     const r = await recordSecondPayment({ programmeId: 'prog-1', sessionId: 'cs_2', paymentIntentId: 'pi_2' })
     expect(r.ok).toBe(true)
     const patch = dbState.writes[0]
-    expect(patch).toMatchObject({
-      second_payment_ref: 'cs_2', second_payment_intent_id: 'pi_2',
-      status: 'LIVE',
-    })
+    // ⛓️ THE MONEY WRITE NO LONGER CARRIES THE STATUS (PR A2). Payment truth and operational
+    // truth are separate writes: the payment is committed unconditionally, and the LIVE
+    // transition is a second write that happens only once outreach preparation completes —
+    // so a paid programme whose preparation failed is never durably LIVE. What this A1 test
+    // is about is unchanged and still asserted: the payment records fully and never touches
+    // internal authority.
+    expect(patch).toMatchObject({ second_payment_ref: 'cs_2', second_payment_intent_id: 'pi_2' })
     expect(patch.second_paid_at).toBeTruthy()
     expect(patch, 'a payment must never write internal authority').not.toHaveProperty('second_authorised_at')
   })
@@ -332,14 +338,26 @@ describe('④ the currently deployed application behaves exactly as before', () 
 })
 
 // ═══════════════════════════════════════════════════════════════════════════════════════
-// ⑤ THE FENCE THAT KEEPS PR A1 SCHEMA-ONLY  ← PR A2 DELETES THIS DESCRIBE BLOCK
+// ⑤ THE BOUNDARY THAT REPLACED A1's SCHEMA-ONLY FENCE
 // ═══════════════════════════════════════════════════════════════════════════════════════
-describe('⑤ no application code touches either column yet', () => {
-  /**
-   * Every application source file — the whole API and both consoles — excluding the three
-   * places the columns are legitimately DECLARED (the runner entry, the canonical .sql and
-   * the schema snapshot) and excluding tests.
-   */
+//
+// ── WHAT WAS HERE, AND WHY IT HAD TO GO ─────────────────────────────────────────────────
+//
+// A1 asserted that **no application file anywhere named `first_authorised_at` or
+// `second_authorised_at`**. That was the right assertion for a PR whose entire claim was
+// "applying this migration cannot change behaviour, because nothing reads these columns".
+//
+// PR A2 exists to add exactly those readers, so that assertion is now false BY DESIGN. It is
+// deleted deliberately rather than weakened — and replaced, not dropped. The same sweep runs;
+// it has been inverted from "nobody may touch these" into an ALLOWLIST of who may.
+//
+// 🛑 WHY AN ALLOWLIST IS STRONGER THAN THE ORIGINAL, not weaker. A1's test could only ever
+// fail once — the first time any file mentioned the column. This one keeps failing forever:
+// the day a customer-facing route, a portal page or a public surface learns to write internal
+// authority, this goes red and names the file. The property being protected was never "the
+// column is unused"; it was "internal authority is not reachable from anywhere it should not
+// be", and only the allowlist actually says that.
+describe('⑤ internal authority is reachable only from the approved modules', () => {
   const appFiles = (() => {
     const out: string[] = []
     const skipDir = new Set(['node_modules', 'dist', '.next', '.git'])
@@ -358,30 +376,101 @@ describe('⑤ no application code touches either column yet', () => {
     return out
   })()
 
+  /**
+   * The only files permitted to name the internal-authority columns.
+   *
+   * ⚠️ EVERY ENTRY IS AN OPERATOR SURFACE OR A BACKEND DECISION. `apps/portal` — the CLIENT'S
+   * product — appears nowhere, and neither does any public or webhook route beyond the Stripe
+   * writers, which name the columns only to REFUSE when one is set.
+   */
+  const ALLOWED = [
+    'apps/api/src/lib/programme.ts',            // the writers, the helpers and the XOR guards
+    'apps/api/src/lib/programme-authority.ts',  // the gates that read authority
+    'apps/api/src/lib/operator-programme.ts',   // operator truth for Vida
+    'apps/admin/src/app/vida/page.tsx',         // the operator console (admin-key gated)
+  ]
+
   it('the sweep actually reads files — a zero-file scan proves nothing', () => {
-    // The vacuity check. Without it, a broken walk would render this whole block green.
+    // The vacuity check, kept verbatim from A1. Without it a broken walk renders the whole
+    // block green, which is how an allowlist quietly stops being enforced.
     expect(appFiles.length).toBeGreaterThan(200)
     expect(appFiles.some(f => f.endsWith('apps/api/src/lib/programme.ts'))).toBe(true)
     expect(appFiles.some(f => f.endsWith('apps/admin/src/app/vida/page.tsx'))).toBe(true)
   })
 
-  it('🛑 NOT ONE application file mentions first_authorised_at or second_authorised_at', () => {
-    // ⚠️ PR A2 REMOVES THIS TEST. A2 exists to add exactly the readers this forbids, and it
-    // must do so by deleting this block deliberately rather than by quietly weakening it.
-    // Until then, this is the proof that applying the migration cannot alter behaviour: code
-    // that never names a column cannot behave differently because the column exists.
-    const offenders = appFiles.filter(f => /first_authorised_at|second_authorised_at/.test(read(f)))
-    expect(offenders, `PR A1 is schema-only; these files reference the new columns: ${offenders.join(', ')}`)
+  it('🛑 ONLY the approved modules name the authority columns', () => {
+    const users = appFiles.filter(f => /first_authorised_at|second_authorised_at/.test(read(f)))
+    const unexpected = users.filter(f => !ALLOWED.some(a => f.endsWith(a)))
+    expect(unexpected, `these files reference internal authority and are not on the allowlist: ${unexpected.join(', ')}`)
       .toEqual([])
+    // …and the allowlist is not aspirational: the readers really are there, so this test
+    // cannot pass by the columns having quietly gone unused again.
+    expect(users.length).toBeGreaterThan(0)
   })
 
-  it('and no route, audit action or UI control was added alongside it', () => {
+  it('🛑 NO CUSTOMER OR PUBLIC SURFACE CAN WRITE INTERNAL AUTHORITY', () => {
+    // The property that actually matters. A client browser reaching this would let a customer
+    // authorise their own programme — the exact thing K.I.N.D owns (AR9).
+    const customerSurfaces = appFiles.filter(f =>
+      f.startsWith('apps/portal/') ||
+      f.endsWith('apps/api/src/routes/clients.ts') ||
+      f.endsWith('apps/api/src/routes/leads.ts') ||
+      f.endsWith('apps/api/src/routes/icps.ts') ||
+      f.endsWith('apps/api/src/lib/customer-programme.ts'))
+    expect(customerSurfaces.length, 'the customer-surface list must not be empty').toBeGreaterThan(3)
+    for (const f of customerSurfaces) {
+      expect(read(f), `${f} must not touch internal authority`).not.toMatch(/first_authorised_at|second_authorised_at/)
+    }
+  })
+
+  it('the internal writers live behind the admin-key router, not anywhere else', () => {
     const routes = read('apps/api/src/routes/programme.ts')
-    expect(routes).not.toContain('authorise/first')
-    expect(routes).not.toContain('authorise/second')
-    expect(routes).not.toContain('go-live')
-    expect(read('apps/api/src/lib/operator-audit.ts')).not.toContain('programme_internal_authority')
-    expect(read('apps/admin/src/app/vida/page.tsx')).not.toContain('Authorise P1 internally')
+    // The router-level admin gate, unchanged, above every route in the file.
+    expect(routes).toContain("adminKeyValid(req.headers['x-admin-key'])")
+    for (const path of ['/:id/authorise/first', '/:id/authorise/second', '/:id/go-live', '/:id/attach-icp']) {
+      expect(routes, `${path} must be defined on the admin-gated programmeRouter`)
+        .toContain(`programmeRouter.post('${path}'`)
+    }
+  })
+
+  it("🛑 A2 ADDS NO MIGRATION, and A1's SQL is byte-for-byte unchanged", () => {
+    // The expand/contract contract: the schema shipped in A1 and production has already run
+    // it. A second migration touching these columns would mean the founder must run something
+    // again — and the whole reason for the split was that he should not have to.
+    const keys = RUNNER.match(/key:\s*'[^']+'/g) ?? []
+    expect(keys, 'the runner must still carry exactly the 46 A1 entries').toHaveLength(46)
+    expect((RUNNER.match(/20260902_programme_internal_authority/g) ?? []).length).toBe(1)
+    expect(readdirSync(join(REPO, 'supabase/migrations')).filter(f => f.endsWith('.sql'))).toHaveLength(159)
+    // And the DB XOR is still the structural protection underneath the code-level guards.
+    expect(RUN_EXEC).toContain('ADD CONSTRAINT programmes_p1_authority_xor CHECK (')
+    expect(RUN_EXEC).toContain('ADD CONSTRAINT programmes_p2_authority_xor CHECK (')
+  })
+
+  it('🛑 `icps.programme_id` has exactly ONE writer, and it is the dedicated action', () => {
+    // The generic doors stay shut. `POST /icps` parses through a zod object with no such key
+    // (unknown keys are stripped), and the operator ICP editor writes a fixed payload — so an
+    // attribution key can never be set by an ordinary edit, which is how a lead comes to be
+    // attributed by accident.
+    // ⚠️ THE DETECTOR LOOKS AT THE STATEMENT, NOT THE FILE, and the first version did not —
+    // it flagged `routes/icps.ts`, which writes `programme_id` onto **leads** while also
+    // querying the `icps` table elsewhere. A file-level match conflates two different tables
+    // and would have forced a false exception onto the allowlist, quietly gutting it.
+    const icpWriters = appFiles.filter(f => {
+      const src = read(f).replace(/\s+/g, ' ')
+      let at = src.indexOf("from('icps')")
+      while (at !== -1) {
+        // The chained call that follows this `from('icps')`, up to the next `from(` or 240
+        // characters — long enough to contain an update payload, short enough not to run on
+        // into an unrelated statement.
+        const next = src.indexOf('from(', at + 12)
+        const stmt = src.slice(at, next === -1 ? at + 240 : Math.min(next, at + 240))
+        if (/update\(\s*\{[^}]*programme_id\s*:/.test(stmt)) return true
+        at = src.indexOf("from('icps')", at + 1)
+      }
+      return false
+    })
+    expect(icpWriters, `only programme-icp.ts may write icps.programme_id: ${icpWriters.join(', ')}`)
+      .toEqual(['apps/api/src/lib/programme-icp.ts'])
   })
 })
 

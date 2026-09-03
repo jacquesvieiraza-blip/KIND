@@ -42,6 +42,16 @@ type Opts = {
   programmeOnIcp: string | null
   /** a free-proof claim travels with the call, exempting it from programme authority */
   proof?: boolean
+  /**
+   * Does the CLIENT hold an open programme row?
+   *
+   * ⚑ ADDED BY PR A2, and it had to be. This harness always seeded one, so "a legacy run"
+   * was modelled as *a client with an open programme running an unattached ICP* — which is
+   * now the one state sourcing refuses outright, because it can only produce work that no
+   * programme owns and every send gate then rejects. A genuine legacy client has no
+   * programme row at all, and that is what this flag makes expressible.
+   */
+  clientProgramme?: boolean
 }
 
 /** A LIVE, approved, fully-paid programme — the only shape that authorises anything. */
@@ -81,13 +91,13 @@ async function build(opts: Opts, rec: Rec) {
         async maybeSingle() {
           if (table === 'icps')       return { data: icpRow, error: null }
           if (table === 'clients')    return { data: { id: 'c1', leads_per_run: null, is_demo: false, company_name: 'Co' }, error: null }
-          if (table === 'programmes') return { data: PROGRAMME, error: null }
+          if (table === 'programmes') return { data: opts.clientProgramme === false ? null : PROGRAMME, error: null }
           return { data: null, error: null }
         },
         async single() {
           if (table === 'icps')       return { data: icpRow, error: null }
           if (table === 'clients')    return { data: { id: 'c1', leads_per_run: null, is_demo: false, company_name: 'Co' }, error: null }
-          if (table === 'programmes') return { data: PROGRAMME, error: null }
+          if (table === 'programmes') return { data: opts.clientProgramme === false ? null : PROGRAMME, error: null }
           return { data: null, error: null }
         },
         // ⚠️ THE RECORDER. Every `.update(patch).in('id', [...])` on `leads` is captured with
@@ -285,9 +295,21 @@ describe('WHO MUST NEVER BE STAMPED', () => {
 
   it('a LEGACY (non-programme) run is never stamped', async () => {
     const rec = fresh()
-    await run({ pool: 3, provider: 3, programmeOnIcp: null }, rec)
+    await run({ pool: 3, provider: 3, programmeOnIcp: null, clientProgramme: false }, rec)
     expect(rec.leadInserts).toBeGreaterThan(0)
     expect(rec.stamps, 'a legacy run wrote programme attribution').toEqual([])
+  })
+
+  it('🛑 A PROGRAMME CLIENT RUNNING AN UNATTACHED ICP IS REFUSED, and creates nothing', async () => {
+    // ⚑ PR A2. The gate fires BEFORE the pool is served and before any provider is called, so
+    // the refusal is not "we sourced and then discarded" — nothing is bought and no row is
+    // written. Without it, a programme client produced null-attributed leads that every send
+    // gate then rejected: real sourcing spent to manufacture prospects nobody may contact.
+    const rec = fresh()
+    await expect(run({ pool: 3, provider: 3, programmeOnIcp: null, clientProgramme: true }, rec))
+      .rejects.toMatchObject({ reason: 'icp_not_attached_to_programme' })
+    expect(rec.leadInserts, 'not one lead may be created by a refused run').toBe(0)
+    expect(rec.stamps).toEqual([])
   })
 
   it('HISTORICAL rows are untouched — no write is unbounded, ever', async () => {

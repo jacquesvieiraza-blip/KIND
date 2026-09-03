@@ -196,6 +196,54 @@ describe('② every unreadable state refuses, and none of them resolves to legac
     expect(m.model === 'unreadable' && m.reason).toContain('enterprise')
   })
 
+  // ── 🛑 A MISSING FIELD IS NOT A NULL ───────────────────────────────────────────
+  //
+  // Founder-ruled 3 Sep. `commercial_model: null` is an explicit database value meaning
+  // UNCLASSIFIED; `undefined` means the key was not in the row at all. They were sharing one
+  // branch through `raw ?? null`, so a row that never carried the field resolved to
+  // `compat_legacy` and opened the per-lead paths — the C2 defect at the innermost point.
+  //
+  // ⚠️ "PostgREST would never do that" IS NOT THE ARGUMENT. It is true of the client we use today
+  // and stops being true the day anything else calls this function. The safe rule lives in the
+  // canonical resolver, not in an assumption about one driver.
+  it('🛑 A ROW WITH NO commercial_model FIELD → unreadable, NOT compat_legacy', async () => {
+    state.client = {}                       // the key is absent, not null
+    const m = await clientCommercialModel('c1')
+    expect(m.model, 'a missing field must never resolve to the compatibility model').toBe('unreadable')
+    expect(m.model === 'unreadable' && m.reason).toContain('missing field is not a NULL')
+    expect(mayUseLegacyCommercialPath(m), 'and it must not open the legacy paths').toBe(false)
+  })
+
+  it('🛑 A ROW WITH NO FIELD **AND AN OPEN PROGRAMME** → unreadable, NOT compat_programme', async () => {
+    // The other half: absence must not be resolved by whatever the programme table happens to
+    // say either. Not knowing the declaration is not knowing, whichever way it would have landed.
+    state.client = {}
+    state.programme = PROG
+    const m = await clientCommercialModel('c1')
+    expect(m.model).toBe('unreadable')
+    expect(isProgrammeModel(m), 'it is not programme either — it is nothing').toBe(false)
+    expect(isLegacyModel(m)).toBe(false)
+  })
+
+  it('⚠️ NON-VACUOUS: an EXPLICIT null on the same fixture is still compat, unchanged', async () => {
+    // Without this pair the two assertions above would pass against a resolver that refused
+    // every client — which on Friday would fence the entire live book.
+    state.client = { commercial_model: null }
+    expect((await clientCommercialModel('c1')).model).toBe('compat_legacy')
+    state.programme = PROG
+    expect((await clientCommercialModel('c1')).model).toBe('compat_programme')
+  })
+
+  it('🛑 CONSEQUENTIAL AUTHORITY REFUSES ON THE MISSING FIELD — proved through the real fence', async () => {
+    // The resolution is only worth what the gates do with it. `checkLegacyPerLeadAuthority` is
+    // the one that charges $4, so it is the one asked here.
+    state.client = {}
+    const { checkLegacyPerLeadAuthority } = await import('./programme-authority')
+    const v = await checkLegacyPerLeadAuthority('c1')
+    expect(v.allowed, 'a missing field must not authorise a charge').toBe(false)
+    expect(!v.allowed && v.code).toBe('programme_unresolvable')
+  })
+
   it('an EMPTY client id refuses without touching the database', async () => {
     const m = await clientCommercialModel('')
     expect(m.model).toBe('unreadable')

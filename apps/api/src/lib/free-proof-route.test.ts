@@ -85,7 +85,7 @@ async function runJob(opts: {
   vi.doMock('@kind/db', () => {
     const singleFor = (t: string) => {
       if (t === 'icps') return jctx.opts.icpMissing ? null : ICP_ROW
-      if (t === 'clients') return { id: 'c1', leads_per_run: null, is_demo: false, user_id: 'u1', credit_balance: 0 }
+      if (t === 'clients') return { id: 'c1', leads_per_run: null, is_demo: false, user_id: 'u1', credit_balance: 0, commercial_model: null }
       return null
     }
     const makeQuery = (table: string) => {

@@ -116,13 +116,28 @@ export async function clientCommercialModel(clientId: string): Promise<Commercia
       .select('commercial_model').eq('id', clientId).maybeSingle()
     if (error) return unreadable(`client read failed: ${error.message}`)
     if (!data) return unreadable('no such client')
-    const raw = (data as { commercial_model: string | null }).commercial_model
-    if (raw !== null && raw !== undefined && raw !== 'programme' && raw !== 'legacy') {
+    const raw = (data as { commercial_model?: string | null }).commercial_model
+    // 🛑 A MISSING FIELD IS NOT A NULL, AND THE RESOLVER ITSELF HAS TO SAY SO.
+    //
+    // `commercial_model: null` is an explicit database value meaning UNCLASSIFIED, and it
+    // resolves to the compatibility model. `undefined` means the key was not in the row at all
+    // — an absence of truth — and the two were sharing one branch through `raw ?? null`, so a
+    // row that never carried the field would have resolved to `compat_legacy` and opened the
+    // per-lead paths. That is the C2 defect in miniature, at the innermost point.
+    //
+    // ⚠️ AND IT IS NOT LEFT TO POSTGREST TO PREVENT. A selected column either comes back or the
+    // request errors `42703`, so this is unreachable through the client we use today — which is
+    // exactly the argument that stops being true the day something else reads this function. The
+    // safe rule belongs in the canonical resolver, not in an assumption about one driver.
+    if (raw === undefined) {
+      return unreadable('the client row carried no commercial_model field — a missing field is not a NULL')
+    }
+    if (raw !== null && raw !== 'programme' && raw !== 'legacy') {
       // The CHECK constraint makes this unreachable through the database. It is handled
       // anyway: an unexpected value is exactly the case where guessing is worst.
       return unreadable(`unrecognised commercial model: ${String(raw)}`)
     }
-    stored = (raw ?? null) as StoredCommercialModel | null
+    stored = raw as StoredCommercialModel | null
   } catch (err) {
     return unreadable(err instanceof Error ? err.message : String(err))
   }

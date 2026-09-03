@@ -177,7 +177,7 @@ describe('AR8 — the PDL cash fence is the client\'s, and the house is not gate
     vi.doMock('@kind/db', () => {
       const singleFor = (table: string) => {
         if (table === 'icps') return ICP_ROW
-        if (table === 'clients') return { leads_per_run: null, is_demo: false, user_id: 'u1' }
+        if (table === 'clients') return { leads_per_run: null, is_demo: false, user_id: 'u1', commercial_model: null }
         return null
       }
       const makeQuery = (table: string) => {

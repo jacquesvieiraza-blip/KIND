@@ -26,7 +26,7 @@ vi.mock('@kind/db', () => ({
       // which would fail these tests for a reason that has nothing to do with what they assert.
       q.update = () => ({ eq: async () => ({ error: null }) })
       q.maybeSingle = async () => {
-        if (table === 'clients') return { data: { id: 'c1', is_demo: state.isDemo, company_name: 'Acme' } }
+        if (table === 'clients') return { data: { id: 'c1', is_demo: state.isDemo, company_name: 'Acme', commercial_model: null } }
         // HC-3 — `country: 'United States'` because the push now carries the R50 launch-country
         // gate: a lead with no country is HELD, and this file's subject is the API hand-off, not
         // geography. `company: 'Acme'` has no corporate marker but the country is not UK, so

@@ -37,7 +37,9 @@ process.env.INBOX_SECRET_KEY = process.env.INBOX_SECRET_KEY || 'a'.repeat(64)
 type Row = Record<string, unknown>
 
 const state = {
-  client: { id: 'client-1', company_name: 'K.I.N.D (house — Client Zero)' } as Row | null,
+  // ⛓️ 3 Sep (C2) — the column is stated: a MISSING field is now `unreadable`, and NULL is
+  // the UNCLASSIFIED state the whole live book holds.
+  client: { id: 'client-1', company_name: 'K.I.N.D (house — Client Zero)', commercial_model: null } as Row | null,
   campaigns: [] as Row[],
   /** what the campaigns query was filtered by — proves operator scoping at the QUERY */
   campaignFilters: [] as Array<{ col: string; val: unknown }>,
@@ -184,7 +186,7 @@ const prevOp = process.env.FIGSY_OPERATOR_SEND_ENABLED
 beforeEach(() => {
   delete process.env.AUTO_OUTREACH_ENABLED
   process.env.FIGSY_OPERATOR_SEND_ENABLED = 'true'
-  state.client = { id: 'client-1', company_name: 'K.I.N.D (house — Client Zero)' }
+  state.client = { id: 'client-1', company_name: 'K.I.N.D (house — Client Zero)', commercial_model: null }
   state.campaigns = [{ id: 'camp-client-1', client_id: 'client-1', settings: null }]
   state.campaignFilters = []; state.inboxFilters = []
   state.enrollments = Array.from({ length: 40 }, (_, i) => ENROL(i))

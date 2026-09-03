@@ -38,10 +38,22 @@ function makeQuery(table: string) {
       // These tests are the $299 pack model — the no-programme case the founder locked as
       // UNCHANGED — so "no programme" is the honest fixture answer.
       if (table === 'programmes') return { data: null, error: null }
+      // ⛓️ 3 Sep (C2) — THE CLIENT ROW CARRIES THE COLUMN, because `clientCommercialModel`
+      // selects it and a MISSING FIELD is now `unreadable` rather than a NULL. A fixture that
+      // answers `select('commercial_model')` with a row that has no such key was never faithful
+      // to PostgREST, which either returns the column or errors. `commercial_model: null` is the
+      // UNCLASSIFIED state the whole live book holds, so every assertion keeps its meaning.
+      if (table === 'clients') return { data: { id: 'c1', commercial_model: null }, error: null }
       return { data: table === 'figsy_campaigns' ? campaignRow : leadRow, error: null }
     },
     async single() {
       if (table === 'programmes') return { data: null, error: null }
+      // ⛓️ 3 Sep (C2) — THE CLIENT ROW CARRIES THE COLUMN, because `clientCommercialModel`
+      // selects it and a MISSING FIELD is now `unreadable` rather than a NULL. A fixture that
+      // answers `select('commercial_model')` with a row that has no such key was never faithful
+      // to PostgREST, which either returns the column or errors. `commercial_model: null` is the
+      // UNCLASSIFIED state the whole live book holds, so every assertion keeps its meaning.
+      if (table === 'clients') return { data: { id: 'c1', commercial_model: null }, error: null }
       return { data: table === 'figsy_campaigns' ? campaignRow : leadRow, error: null }
     },
     then(resolve: (v: unknown) => unknown) {

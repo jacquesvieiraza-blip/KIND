@@ -41,7 +41,7 @@ async function activate(headers: Record<string, unknown>, body: Record<string, u
       // path; the commercial-model resolver does, so a programme that never existed started
       // refusing the sourcing run this harness exists to observe.
       q.maybeSingle = async () => ({
-        data: table === 'clients' ? { id: 'c1' } : table === 'icps' ? { id: 'icp-1' } : null,
+        data: table === 'clients' ? { id: 'c1', commercial_model: null } : table === 'icps' ? { id: 'icp-1' } : null,
         error: null,
       })
       q.update = (patch: Record<string, unknown>) => {
@@ -198,7 +198,7 @@ async function activateRich(opts: {
       // times, inserted nothing, and the email lookup this harness exists to observe was
       // never reached.
       q.maybeSingle = async () => ({
-        data: table === 'clients' ? { id: 'c1' } : table === 'icps' ? { id: 'icp-1' } : null,
+        data: table === 'clients' ? { id: 'c1', commercial_model: null } : table === 'icps' ? { id: 'icp-1' } : null,
         error: null,
       })
       q.update = (patch: Record<string, unknown>) => {

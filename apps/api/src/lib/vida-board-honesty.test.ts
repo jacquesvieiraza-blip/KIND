@@ -214,9 +214,13 @@ describe('Vida renders the honest sentence', () => {
     // asserted: step 2 is a MONEY SENTENCE and must not be printed without asking about the
     // money. C2 adds a second way for it to be false — a PROGRAMME client never bought the
     // $299 pack at all — so the label now takes the commercial model as well.
-    expect(src).toContain('flowStepLabel(n, label, selectedWork.funded_via, programmeModel)')
+    expect(src).toContain('flowStepLabel(n, label, selectedWork.funded_via, modelView)')
     expect(src).toContain("via === 'comp' ? 'Comped' : label")
-    expect(src, 'and a programme account is named as one').toContain("if (programmeModel) return 'Programme'")
+    expect(src, 'and a programme account is named as one').toContain("if (view === 'programme') return 'Programme'")
+    // ⛓️ AND A THIRD WAY FOR STEP 2 TO BE FALSE, added 3 Sep: an UNREADABLE commercial model.
+    // The label took a boolean, and a boolean has only one else — so a client whose model we had
+    // explicitly failed to resolve was shown "Paid $299" through the legacy arm.
+    expect(src).toContain("if (view === 'unresolved') return 'Model unresolved'")
   })
 
   it('a comped step 2 is NOT the green paid tick', () => {
@@ -224,7 +228,7 @@ describe('Vida renders the honest sentence', () => {
     expect(src).toContain("const comped = n === 2 && selectedWork.funded_via === 'comp'")
     // ⛓️ C2 — a PROGRAMME step 2 takes the same neutral slate, for the same reason: neither a
     // comp nor a programme is a pack payment, and only a pack payment earns the green tick.
-    expect(src).toContain('const progStep = n === 2 && programmeModel')
+    expect(src).toContain('const progStep = n === 2 && (programmeModel || unresolvedModel)')
     expect(src).toContain("(comped || progStep) && done ? 'bg-[#f1f0f4]")
     expect(src).toContain("{done ? ((comped || progStep) ? '·' : '✓') : n}")
   })

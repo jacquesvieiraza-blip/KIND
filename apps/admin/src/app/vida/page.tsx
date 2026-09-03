@@ -166,10 +166,14 @@ const FLOW_STEPS: [number, string][] = [
 // thing however the account was funded, and a legacy or unclassified client reads the rail
 // exactly as they do today.
 function flowStepLabel(
-  step: number, label: string, via: FundedVia | undefined, programmeModel = false,
+  step: number, label: string, via: FundedVia | undefined,
+  view: 'programme' | 'legacy' | 'unresolved' = 'legacy',
 ): string {
   if (step !== 2) return label
-  if (programmeModel) return 'Programme'
+  if (view === 'programme') return 'Programme'
+  // 🛑 AND AN UNRESOLVED MODEL IS NOT A PAYMENT EITHER. Falling through to `label` here printed
+  // "Paid $299" for a client whose commercial model we had explicitly failed to resolve.
+  if (view === 'unresolved') return 'Model unresolved'
   return via === 'comp' ? 'Comped' : label
 }
 // V4 — the pool the operator picks from.
@@ -1020,7 +1024,11 @@ export default function VidaConsolePage() {
     // them an invoice for a pack that does not exist on their plan.
     if (kind === 'chase')      { setTab('Asks'); setAskInput(programmeModel
       ? 'Quick nudge — your programme is ready to start the moment you approve it. Nothing further is due; the approval is all we need.'
-      : `Quick nudge — your first $${PACK_PRICE_USD} unlocks the whole thing: we buy your sender, find your people and start work the moment you approve them.`); return }
+      // 🛑 AN UNRESOLVED MODEL SENDS NO MONEY SENTENCE AT ALL. This text goes to the client, so
+      // the safe wording is the one that claims nothing about what they owe or have bought.
+      : unresolvedModel
+        ? 'Quick nudge — we are ready to move as soon as you are.'
+        : `Quick nudge — your first $${PACK_PRICE_USD} unlocks the whole thing: we buy your sender, find your people and start work the moment you approve them.`); return }
   }
 
   // ── BOOKINGS: mark a no-show, give a goodwill rebook ──────────────────────────
@@ -1041,11 +1049,15 @@ export default function VidaConsolePage() {
       setSaveMsg(notice.ok(kind === 'no-show'
         ? (programmeModel
             ? 'Marked a no-show. No money moves on this plan — the programme covers it.'
-            : 'Marked a no-show. Nothing was refunded — the $4 stands.')
+            : unresolvedModel
+              ? 'Marked a no-show.'
+              : 'Marked a no-show. Nothing was refunded — the $4 stands.')
         : j.rebooks_left === 0
           ? (programmeModel
               ? 'Second attempt used. The client has been told; their programme covers the re-run.'
-              : 'Second attempt used. The client has been told, with the $4 re-run choice.')
+              : unresolvedModel
+                ? 'Second attempt used. The client has been told.'
+                : 'Second attempt used. The client has been told, with the $4 re-run choice.')
           : `Rebooked. ${j.rebooks_left} attempt left.`))
       await loadCockpit(selected)
     } catch (err) {
@@ -1405,8 +1417,25 @@ export default function VidaConsolePage() {
    * ⚠️ AND FALSE FOR EVERY LEGACY AND UNCLASSIFIED CLIENT, which is the entire live book — so
    * every sentence below reads exactly as it does today for all of them.
    */
-  const programmeModel = prog?.commercial?.resolved === 'programme'
-                      || prog?.commercial?.resolved === 'compat_programme'
+  const modelView: 'programme' | 'legacy' | 'unresolved' =
+    prog?.commercial?.resolved === 'programme' || prog?.commercial?.resolved === 'compat_programme' ? 'programme'
+    // 🛑 UNREADABLE IS ITS OWN PRESENTATION, NOT THE ABSENCE OF PROGRAMME. This was a BOOLEAN,
+    // and a boolean has only one else — so an unresolved model (a failed read, a missing row, or
+    // the declared-legacy-with-an-open-programme CONFLICT) fell through to the legacy arm of
+    // every sentence below and was shown "✓ Paid $299", the pack quota and the $4 copy. That is
+    // the original C2 defect reproduced one level up: "we could not tell" rendering as a
+    // positive claim that this client is legacy.
+    : prog?.commercial?.resolved === 'unreadable' ? 'unresolved'
+    // ⚠️ A FAILED PROGRAMME READ COUNTS AS UNRESOLVED TOO. `progErr` means the panel itself would
+    // not load, so the model was never resolved either — and the same rule applies to not
+    // knowing for that reason as for any other. The red "Programme could not be loaded" banner
+    // sits directly beside these, so the operator is told why rather than shown a payment.
+    : progErr ? 'unresolved'
+    // Declared legacy, UNCLASSIFIED, or the panel has simply not answered yet — every one of
+    // which is today's behaviour, and today's behaviour is the whole live book.
+    : 'legacy'
+  const programmeModel  = modelView === 'programme'
+  const unresolvedModel = modelView === 'unresolved'
   const cols = board?.columns
   // Worklist lookups. The list is already urgency-sorted by the API, so we only filter here.
   const workById = (work ?? []).reduce<Record<string, WorkRow>>((m, r) => { m[r.id] = r; return m }, {})
@@ -1832,17 +1861,21 @@ export default function VidaConsolePage() {
                       const comped = n === 2 && selectedWork.funded_via === 'comp'
                       // A programme account did not pay a pack and was not comped one — the
                       // tick is neutral, like the comped case, because neither is a payment.
-                      const progStep = n === 2 && programmeModel
+                      // Neither a programme nor an unresolved account earns the green paid tick:
+                      // only a pack payment does, and neither of them is one.
+                      const progStep = n === 2 && (programmeModel || unresolvedModel)
                       return (
                         <span key={n} className="flex items-center gap-1 shrink-0">
-                          <span title={progStep ? 'This client is on the programme model. There is no onboarding pack — their programme is paid for at P1 and P2.'
+                          <span title={progStep ? (unresolvedModel
+                            ? 'The commercial model for this client could not be resolved, so nothing is claimed about what they have paid.'
+                            : 'This client is on the programme model. There is no onboarding pack — their programme is paid for at P1 and P2.')
                             : comped ? 'Comped — a manual grant entitled this account. No money came in.' : undefined}
                             className={`w-[22px] h-[22px] rounded-lg text-[11.5px] font-extrabold flex items-center justify-center border ${
                             now ? 'bg-[#7C3AED] text-white border-[#7C3AED]'
                             : (comped || progStep) && done ? 'bg-[#f1f0f4] text-[#6b6480] border-[#ddd9e6]'
                             : done ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
                             : 'bg-white text-[#b3a9cc] border-[#ece5fb]'}`}>{done ? ((comped || progStep) ? '·' : '✓') : n}</span>
-                          <span className={`text-[12px] whitespace-nowrap ${now ? 'font-extrabold text-[#1f1235]' : 'font-semibold text-[#b3a9cc]'}`}>{flowStepLabel(n, label, selectedWork.funded_via, programmeModel)}</span>
+                          <span className={`text-[12px] whitespace-nowrap ${now ? 'font-extrabold text-[#1f1235]' : 'font-semibold text-[#b3a9cc]'}`}>{flowStepLabel(n, label, selectedWork.funded_via, modelView)}</span>
                           {i < FLOW_STEPS.length - 1 && <span className="text-[#d9d0ee] px-0.5">›</span>}
                         </span>
                       )
@@ -1888,7 +1921,7 @@ export default function VidaConsolePage() {
                           would put the legacy quota back in front of the operator as though it
                           governed the account. The row is not deleted — it is simply no longer
                           rendered as this client's current commercial state. */}
-                      {selectedWork.pack.active && !programmeModel && (
+                      {selectedWork.pack.active && modelView === 'legacy' && (
                         <span className={selectedWork.pack.left === 0 ? 'text-[#7C3AED] font-semibold' : ''}>{selectedWork.pack.label}</span>
                       )}
                       {/* Every name costs $0.28 whether they approve it or not. This is the
@@ -2164,8 +2197,10 @@ export default function VidaConsolePage() {
                     <p className="text-[11.5px] text-[#9b8ec4] mt-1">
                       Everyone here went to the client, scored, with the top 20 recommended.
                       {programmeModel
-                        ? 'Their 👍 starts the work — nothing is charged, and you don\u2019t assign anyone.'
-                        : 'Their 👍 charges $4 and starts the work — you don\u2019t assign anyone.'}
+                        ? 'Their 👍 starts the work — nothing is charged, and you don’t assign anyone.'
+                        : unresolvedModel
+                          ? 'Their 👍 starts the work — you don’t assign anyone.'
+                          : 'Their 👍 charges $4 and starts the work — you don’t assign anyone.'}
                     </p>
                     {saveMsg && <p className={`text-[12.5px] font-semibold mt-1 ${noticeClass(saveMsg.tone)}`}>{saveMsg.text}</p>}
                   </div>
@@ -2337,7 +2372,9 @@ export default function VidaConsolePage() {
                         <b className="text-[13.5px] text-amber-800 block">No campaign — this client cannot be worked.</b>
                         <p className="text-[12.5px] text-amber-700 mt-1">{programmeModel
                           ? 'Approvals are blocked while no campaign is active. Nothing is charged on this plan either way.'
-                          : 'Approvals are blocked and the $4 is deliberately NOT charged while no campaign is active.'}</p>
+                          : unresolvedModel
+                            ? 'Approvals are blocked while no campaign is active.'
+                            : 'Approvals are blocked and the $4 is deliberately NOT charged while no campaign is active.'}</p>
                         <div className="flex gap-2 mt-2.5">
                           <button onClick={suggestCampaign} disabled={cockpitBusy}
                             className="bg-[#7C3AED] text-white rounded-lg px-3.5 py-2 text-[13.5px] font-bold disabled:opacity-60">
@@ -2752,7 +2789,9 @@ export default function VidaConsolePage() {
                             {noShow && attemptsLeft === 0 && (
                               <span className="text-[12px] text-[#92400e] font-semibold">{programmeModel
                                 ? 'Two attempts used — the client has been told; their programme covers the re-run.'
-                                : 'Two attempts used — the client has been told, with the $4 re-run choice.'}</span>
+                                : unresolvedModel
+                                  ? 'Two attempts used — the client has been told.'
+                                  : 'Two attempts used — the client has been told, with the $4 re-run choice.'}</span>
                             )}
                           </div>
                         </div>

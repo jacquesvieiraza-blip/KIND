@@ -509,22 +509,39 @@ describe('⑥ no surface asserts the legacy model at a programme client any more
     // payment that does not exist in their commercial model — on the one row an operator reads
     // before every action. Every retired money sentence in this console now asks one derived
     // boolean, so they cannot drift apart from one another.
-    expect(vida, 'ONE derived boolean, not a condition per sentence')
-      .toMatch(/const programmeModel = prog\?\.commercial\?\.resolved === 'programme'/)
+    // ⛓️ CORRECTED — it was ONE BOOLEAN, and a boolean has only one else. An UNREADABLE model
+    // (a failed read, a missing row, or the declared-legacy-with-an-open-programme conflict)
+    // therefore fell into the LEGACY arm of every sentence and was shown "Paid $299", the pack
+    // quota and the $4 copy — the original C2 defect reproduced one level up. Three states now.
+    expect(vida, 'the presentation state is three-way, not a boolean')
+      .toMatch(/const modelView: 'programme' \| 'legacy' \| 'unresolved' =/)
+    expect(vida).toMatch(/resolved === 'unreadable' \? 'unresolved'/)
+    expect(vida, 'a failed programme read is unresolved too, not legacy').toMatch(/: progErr \? 'unresolved'/)
+    expect(vida).toContain("const unresolvedModel = modelView === 'unresolved'")
     // ① the rail
-    expect(vida).toContain("if (programmeModel) return 'Programme'")
-    expect(vida).toContain('flowStepLabel(n, label, selectedWork.funded_via, programmeModel)')
+    expect(vida).toContain("if (view === 'programme') return 'Programme'")
+    expect(vida).toContain("if (view === 'unresolved') return 'Model unresolved'")
+    expect(vida).toContain('flowStepLabel(n, label, selectedWork.funded_via, modelView)')
     // ② the message an operator TYPES TO THE CLIENT — the sharpest of them
     expect(vida).toMatch(/programmeModel\s*\?\s*'Quick nudge — your programme is ready/)
-    // ③ the legacy pack quota, no longer presented as current state
-    expect(vida).toContain('selectedWork.pack.active && !programmeModel')
+    // ③ the legacy pack quota — rendered ONLY for a resolved legacy client, never for a
+    // programme one and never for one we could not resolve.
+    expect(vida).toContain("selectedWork.pack.active && modelView === 'legacy'")
     // ④/⑤/⑥ the per-lead $4 sentences: approvals, the no-campaign notice, the two booking ones
     const four = [...vida.matchAll(/\$4/g)]
     expect(four.length, 'every remaining $4 sentence is model-aware').toBeGreaterThan(0)
     for (const m of four) {
-      const before = vida.slice(Math.max(0, m.index! - 700), m.index!)
+      const before = vida.slice(Math.max(0, m.index! - 900), m.index!)
       expect(before, `a $4 sentence with no model branch above it: …${vida.slice(m.index! - 90, m.index! + 60)}`)
         .toMatch(/programmeModel|declared legacy|no commercial model has been declared/)
+      // 🛑 AND A THIRD ARM ABOVE IT. A `programmeModel ? … : …` with no `unresolvedModel` arm
+      // sends an unresolved account down the legacy branch, which is the defect this round
+      // exists to close. The panel's own four-way copy is exempt: it names the states directly.
+      const panelCopy = /declared legacy|no commercial model has been declared/.test(before)
+      if (!panelCopy) {
+        expect(before, `a $4 sentence with no unresolved arm: …${vida.slice(m.index! - 90, m.index! + 60)}`)
+          .toMatch(/unresolvedModel/)
+      }
     }
     // ⚠️ AND EVERY LEGACY SENTENCE SURVIVES FOR A LEGACY CLIENT. Deleting them would hide the
     // truth from the accounts they are true of — which is the same defect in the other direction.
@@ -532,6 +549,45 @@ describe('⑥ no surface asserts the legacy model at a programme client any more
     expect(vida).toContain("Their 👍 charges $4 and starts the work")
     expect(vida).toContain('the $4 is deliberately NOT charged while no campaign is active')
     expect(vida).toContain("via === 'comp' ? 'Comped' : label")
+  })
+
+  it('🛑 AN UNRESOLVED MODEL NEVER RENDERS LEGACY ECONOMICS — every sentence has a third arm', () => {
+    // 🛑 FOUNDER-RULED 3 Sep: an unreadable model must not visually fall through to legacy
+    // merely because `programmeModel` is false. Each site below is checked for a THIRD branch,
+    // in the same order the operator meets them on screen.
+    //
+    // ⚠️ THE CHECK IS THAT THE MONEY CLAUSE IS DROPPED, not that new wording was invented. Every
+    // unresolved sentence is a strict subset of the legacy one: it asserts nothing about what
+    // this client paid, owes, or has left. Claiming nothing is the only safe thing to say when
+    // the answer is that we could not tell.
+    // ① the rail
+    expect(vida).toContain("if (view === 'unresolved') return 'Model unresolved'")
+    // ② the tick — neither a programme nor an unresolved account earns the green paid tick
+    expect(vida).toContain('const progStep = n === 2 && (programmeModel || unresolvedModel)')
+    // ③ the pack quota — legacy only
+    expect(vida).toContain("selectedWork.pack.active && modelView === 'legacy'")
+    // ④ the message typed TO THE CLIENT
+    expect(vida).toMatch(/unresolvedModel\s*\?\s*'Quick nudge — we are ready to move as soon as you are\.'/)
+    // ⑤ the approvals sentence — the price clause is gone, nothing false replaces it
+    expect(vida).toContain("'Their 👍 starts the work — you don\u2019t assign anyone.'")
+    // ⑥ the no-campaign notice
+    expect(vida).toContain("'Approvals are blocked while no campaign is active.'")
+    // ⑦ the two booking sentences
+    expect(vida).toContain("'Marked a no-show.'")
+    expect(vida).toContain("'Second attempt used. The client has been told.'")
+    expect(vida).toContain("'Two attempts used — the client has been told.'")
+    // ⑧ the wallet chip, which already had one
+    expect(vida).toContain('wallet · model unresolved')
+
+    // 🛑 EVERY `programmeModel ?` TERNARY IN THIS FILE HAS AN `unresolvedModel` ARM. The sweep is
+    // the guard: a NEW money sentence added with two branches instead of three fails here.
+    const ternaries = [...vida.matchAll(/programmeModel\s*\n?\s*\?/g)]
+    expect(ternaries.length, 'the model-aware sentences are still there').toBeGreaterThanOrEqual(5)
+    for (const m of ternaries) {
+      const after = vida.slice(m.index!, m.index! + 900)
+      expect(after, `a programmeModel ternary with no unresolved arm: …${vida.slice(m.index!, m.index! + 120)}`)
+        .toMatch(/unresolvedModel/)
+    }
   })
 
   it('🛑 THE OPERATOR CONTROL SETS THE MODEL BY THE SELECTED CLIENT ID, WITH A CONFIRMATION', () => {

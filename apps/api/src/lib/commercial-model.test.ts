@@ -58,8 +58,31 @@ import {
 
 const API = join(__dirname, '..')
 const raw = (p: string) => readFileSync(join(API, p), 'utf8')
-/** Source with `//` and ` *` lines removed, so a guard never matches its own prose. */
-const strip = (s: string) => s.split('\n').filter(l => !l.trim().startsWith('//') && !l.trim().startsWith('*')).join('\n')
+/**
+ * Source with every comment removed, so a guard never matches its own prose.
+ *
+ * ⚠️ BLOCK COMMENTS TOO, and that is not tidiness. A line-only strip left the CONTINUATION
+ * lines of `{/* … *\/}` blocks in place, and the `$4` sweep below then fired on a comment about
+ * the book-wide cost model — a guard reporting prose as copy, which is the same failure C1's
+ * reader allowlist already had.
+ */
+const strip = (s: string) => s
+  .split('\n').filter(l => { const t = l.trim(); return !t.startsWith('//') && !t.startsWith('*') })
+  .join('\n')
+
+/**
+ * The same, plus `{/* … *\/}` blocks — used ONLY for the Vida copy sweep below.
+ *
+ * ⚠️ IT IS NOT THE DEFAULT, and the reason is a defect this helper already caused once. Several
+ * API files contain a `/*` inside a regex or a string with no matching close, so a global block
+ * pass swallowed real code — it ate `routes/icps.ts`'s model resolution and the layout's own
+ * query, turning six passing guards red for a reason that had nothing to do with the product.
+ * ⚠️ AND BLOCKS ARE REMOVED FIRST, not second. Doing lines first leaves a JSDoc's OPENING `/**`
+ * behind — the body and closing lines start with `*` and are filtered, the opener does not — so
+ * the block pass then runs from an orphan opener to the next close and eats real code. Vida's
+ * own comment blocks are balanced, which is why this order is safe for the one file it is used on.
+ */
+const stripAll = (s: string) => strip(s.replace(/\/\*[\s\S]*?\*\//g, ''))
 
 const PROG = { id: 'p1', client_id: 'c1', status: 'LIVE' }
 
@@ -354,6 +377,21 @@ describe('④ the resolver is consumed at every path that sources, sends, enrols
     for (const f of files) expect(strip(raw(f)), f).toContain('ensureCampaignForIcp')
   })
 
+  it('🛑 SEND SELECTION AND SOURCING ARE ORTHOGONAL TO is_demo — the resolver decides both', () => {
+    // 🛑 FOUNDER-LOCKED 3 Sep. Neither path has ever had a demo notion, and that is the property
+    // worth pinning: a future "skip this for demos" would hand MBF the retired workflow back.
+    for (const f of ['lib/send-due.ts', 'routes/lookalike.ts']) {
+      const src = strip(raw(f))
+      expect(src, `${f} must not branch on demo-ness`).not.toContain('isDemoClient')
+      expect(src, `${f} must not branch on demo-ness`).not.toContain('is_demo')
+    }
+    // And in figsy, the ONLY thing demo still skips is the wallet — never the model question.
+    const figsy = strip(raw('lib/figsy.ts'))
+    const fn = figsy.slice(figsy.indexOf('export async function autoEnrollLead'))
+    expect(fn).toMatch(/if \(!programmeFulfilment\) \{[\s\S]{0,600}mayUseLegacyCommercialPath/)
+    expect(fn).toContain('if (!isDemo && !programmeFulfilment && !canEnroll(client?.figsy_credits_remaining))')
+  })
+
   it('🛑 THE RETIRED /dashboard SHELL TEACHES A PROGRAMME CLIENT NOTHING — one rule, one place', () => {
     // ⛓️ 3 Sep — `middleware.ts` sends every signed-in client from /dashboard into /milla EXCEPT
     // three persona sub-trees (partner · developer · client-partner), and `(milla)/layout.tsx`
@@ -432,7 +470,7 @@ describe('⑤ nothing anywhere infers the model from a name, an email or an env 
 // ═══════════════════════════════════════════════════════════════════════════════════════
 describe('⑥ no surface asserts the legacy model at a programme client any more', () => {
   const VIDA = join(__dirname, '../../../../apps/admin/src/app/vida/page.tsx')
-  const vida = strip(readFileSync(VIDA, 'utf8'))
+  const vida = stripAll(readFileSync(VIDA, 'utf8'))
 
   it('🛑 VIDA no longer says "they are on the legacy model" because no programme row exists', () => {
     // The exact sentence that shipped: "No programme for this client. They are on the legacy
@@ -449,16 +487,51 @@ describe('⑥ no surface asserts the legacy model at a programme client any more
     expect(vida).toContain('$299 pack · 100 included · $4 per approved lead')
   })
 
-  it('🛑 THE WALLET CHIP NO LONGER STANDS UNQUALIFIED BESIDE A PROGRAMME CLIENT', () => {
-    expect(vida).toContain('wallet')
-    expect(vida, 'the chip must know whether the wallet governs this account')
-      .toMatch(/r === 'programme' \|\| r === 'compat_programme' \? ' · not used'/)
-    // 🛑 AND AN UNRESOLVED MODEL IS QUALIFIED TOO. Caught on the founder screenshot pass: the
-    // conflict state rendered an ordinary purple balance beside a red panel saying nothing was
-    // authorised. An unqualified balance IS a claim that it is spendable.
-    expect(vida).toMatch(/r === 'unreadable' \? ' · model unresolved'/)
-    // ⚠️ THE ELEMENT IS PRESERVED, not removed — the founder's brand rule for Vida.
-    expect(vida).toContain('.wallet_balance_usd ?? 0).toLocaleString()')
+  it('🛑 THE WALLET ON A PROGRAMME CLIENT IS LABELLED HISTORICAL AND INACTIVE', () => {
+    // ⛓️ CORRECTED twice. First it stood unqualified; then "· not used", which the founder ruled
+    // still ambiguous — it reads as a temporary state of a LIVE wallet rather than a closed one.
+    // The balance is HISTORY on a programme account: a real number from a model they are no
+    // longer on. The word order puts what kind of number it is first.
+    expect(vida).toContain('historical wallet · inactive')
+    expect(vida, 'the retired ambiguous wording must be gone').not.toContain("' · not used'")
+    // 🛑 AN UNRESOLVED MODEL IS MUTED TOO. Caught on the first screenshot pass: the conflict
+    // state rendered an ordinary purple balance beside a red panel saying nothing was authorised.
+    expect(vida).toContain('wallet · model unresolved')
+    // ⚠️ AND IT IS VISUALLY MUTED, not merely relabelled — the founder asked for both.
+    expect(vida).toMatch(/muted \? 'font-semibold text-\[#a9a2bd\][^']*' : 'font-bold text-\[#7C3AED\]/)
+    // ⚠️ NOTHING IS DELETED OR ZEROED. The real balance is still rendered, in full, in all three
+    // states — the founder's rule is that history is preserved, not hidden.
+    expect([...vida.matchAll(/wallet_balance_usd \?\? 0\)\.toLocaleString\(\)/g)]).toHaveLength(3)
+  })
+
+  it('🛑 VIDA NEVER TELLS A PROGRAMME CLIENT THEY PAID $299, OR OWE $4', () => {
+    // 🛑 FOUNDER-RULED 3 Sep: the flow rail ticked "✓ Paid $299" for a programme account — a
+    // payment that does not exist in their commercial model — on the one row an operator reads
+    // before every action. Every retired money sentence in this console now asks one derived
+    // boolean, so they cannot drift apart from one another.
+    expect(vida, 'ONE derived boolean, not a condition per sentence')
+      .toMatch(/const programmeModel = prog\?\.commercial\?\.resolved === 'programme'/)
+    // ① the rail
+    expect(vida).toContain("if (programmeModel) return 'Programme'")
+    expect(vida).toContain('flowStepLabel(n, label, selectedWork.funded_via, programmeModel)')
+    // ② the message an operator TYPES TO THE CLIENT — the sharpest of them
+    expect(vida).toMatch(/programmeModel\s*\?\s*'Quick nudge — your programme is ready/)
+    // ③ the legacy pack quota, no longer presented as current state
+    expect(vida).toContain('selectedWork.pack.active && !programmeModel')
+    // ④/⑤/⑥ the per-lead $4 sentences: approvals, the no-campaign notice, the two booking ones
+    const four = [...vida.matchAll(/\$4/g)]
+    expect(four.length, 'every remaining $4 sentence is model-aware').toBeGreaterThan(0)
+    for (const m of four) {
+      const before = vida.slice(Math.max(0, m.index! - 700), m.index!)
+      expect(before, `a $4 sentence with no model branch above it: …${vida.slice(m.index! - 90, m.index! + 60)}`)
+        .toMatch(/programmeModel|declared legacy|no commercial model has been declared/)
+    }
+    // ⚠️ AND EVERY LEGACY SENTENCE SURVIVES FOR A LEGACY CLIENT. Deleting them would hide the
+    // truth from the accounts they are true of — which is the same defect in the other direction.
+    expect(vida).toContain('$299 pack · 100 included · $4 per approved lead')
+    expect(vida).toContain("Their 👍 charges $4 and starts the work")
+    expect(vida).toContain('the $4 is deliberately NOT charged while no campaign is active')
+    expect(vida).toContain("via === 'comp' ? 'Comped' : label")
   })
 
   it('🛑 THE OPERATOR CONTROL SETS THE MODEL BY THE SELECTED CLIENT ID, WITH A CONFIRMATION', () => {

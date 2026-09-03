@@ -348,14 +348,14 @@ describe('AR5/AR8 — the ROUTES, not just the helpers', () => {
     }
   }
 
-  async function withMocks(audience: Audience, grant: number, rec: Rec, apolloThrows = false, commercialModel: string | null = null) {
+  async function withMocks(audience: Audience, grant: number, rec: Rec, apolloThrows = false, commercialModel: string | null = null, isDemo = false) {
     vi.resetModules()
     vi.doMock('@kind/db', () => {
       const singleFor = (t: string) => {
         if (t === 'icps')    return { id: 'icp-1', client_id: 'c1', job_titles: [], seniority_levels: [], company_sizes: [], geographies: [], industries: [] }
         // ⛓️ C2 — `commercial_model` ADDED. NULL is the UNCLASSIFIED state the whole live book
         // holds, so every assertion written before C2 keeps the meaning it was written with.
-        if (t === 'clients') return { id: 'c1', company_name: 'Acme', user_id: 'u1', leads_per_run: null, is_demo: false, commercial_model: commercialModel }
+        if (t === 'clients') return { id: 'c1', company_name: 'Acme', user_id: 'u1', leads_per_run: null, is_demo: isDemo, commercial_model: commercialModel }
         return null
       }
       const makeQuery = (t: string) => {
@@ -429,9 +429,9 @@ describe('AR5/AR8 — the ROUTES, not just the helpers', () => {
 
   const emptyRec = (): Rec => ({ rpc: [], apollo: 0, pdl: [] })
 
-  async function runLookalike(audience: Audience, grant: number, commercialModel: string | null = null) {
+  async function runLookalike(audience: Audience, grant: number, commercialModel: string | null = null, isDemo = false) {
     const rec = emptyRec()
-    await withMocks(audience, grant, rec, false, commercialModel)
+    await withMocks(audience, grant, rec, false, commercialModel, isDemo)
     const { handler } = await handlerFor(await import('../routes/lookalike'), 'default', '/generate')
     const res = mockRes()
     await handler({ body: { client_id: 'c1' }, headers: {} }, res)
@@ -504,6 +504,21 @@ describe('AR5/AR8 — the ROUTES, not just the helpers', () => {
       .not.toContain('try_spend_sourcing')
     expect(rec.apollo).toBe(0)
     expect(res.body?.refused).toBe('programme_attribution')
+  })
+
+  it('🛑 C2-MBF — programme + is_demo + no programme: the demo flag buys NO legacy sourcing', async () => {
+    // 🛑 FOUNDER-LOCKED 3 Sep: `is_demo` and `commercial_model` are ORTHOGONAL. A demo may make
+    // money and provider spend unreal; it may never make the retired commercial workflow legal.
+    const { rec, res } = await runLookalike('client', 30, 'programme', true)
+    expect(rec.pdl, 'no records bought').toEqual([])
+    expect(rec.apollo, 'no provider reached').toBe(0)
+    expect(rec.rpc.map(c => c.fn)).not.toContain('try_spend_sourcing')
+    expect(res.body?.refused).toBe('programme_attribution')
+  })
+
+  it('⚠️ NON-VACUOUS — an UNCLASSIFIED demo client sources exactly as it does today', async () => {
+    const { rec } = await runLookalike('client', 30, null, true)
+    expect(rec.pdl, 'every demo on the book today is unaffected').toEqual([30])
   })
 
   it('⚠️ C2-3 NON-VACUOUS — a DECLARED LEGACY client still sources exactly as before', async () => {

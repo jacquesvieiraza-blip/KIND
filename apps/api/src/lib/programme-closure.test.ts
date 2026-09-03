@@ -356,6 +356,24 @@ describe('GAP 3 · behavioural — ensureCampaignForIcp actually refuses', () =>
     expect(dbState.campaigns).toEqual([])
   })
 
+  it('🛑 MBF — programme + is_demo + no programme gains NO legacy campaign authority', async () => {
+    // `is_demo` and `commercial_model` are orthogonal (founder-locked 3 Sep). The resolver never
+    // reads the demo flag, so this is the assertion that keeps it that way at the campaign door.
+    dbState.clients = [{ id: 'c1', commercial_model: 'programme', is_demo: true }]
+    const { ensureCampaignForIcp } = await import('./start-work')
+    const r = await ensureCampaignForIcp('c1', 'icp-1', 'ICP', { activate: true })
+    expect('refused' in r! && r!.refused, 'a demo flag must not activate a legacy campaign').toBeTruthy()
+    expect(dbState.campaigns).toEqual([])
+  })
+
+  it('⚠️ NON-VACUOUS: an UNCLASSIFIED demo client still activates, exactly as today', async () => {
+    dbState.clients = [{ id: 'c1', commercial_model: null, is_demo: true }]
+    const { ensureCampaignForIcp } = await import('./start-work')
+    const r = await ensureCampaignForIcp('c1', 'icp-1', 'ICP', { activate: true })
+    expect((r as { refused?: unknown }).refused).toBeUndefined()
+    expect(dbState.campaigns.length).toBe(1)
+  })
+
   it('⚠️ NON-VACUOUS: a DECLARED LEGACY client with no programme still activates', async () => {
     // Without this, both refusals above would pass against a gate that refused everybody —
     // which on Friday would stop every existing client sending.

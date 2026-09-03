@@ -234,6 +234,59 @@ describe('① the fence asks about the CLIENT, not about the row', () => {
       expect(!v.allowed && v.code).toBe('programme_unresolvable')
     })
 
+    // ═══════════════════════════════════════════════════════════════════════════════════
+    // 🛑 is_demo AND commercial_model ARE ORTHOGONAL — founder-locked 3 Sep
+    //
+    // The first cut of the enrol fence skipped it for a demo client, reasoning that a demo
+    // charges nothing so the money fence need not run. That quietly turned the demo flag into a
+    // GRANT OF LEGACY COMMERCIAL WORKFLOW: MBF is both a demo and a programme client, so it
+    // would have gone straight down the retired per-lead path the moment it was declared
+    // `programme` — the same absence-means-a-fact inference C2 exists to end, wearing a
+    // different flag. Demo decides whether money and provider spend are REAL. Nothing else.
+    // ═══════════════════════════════════════════════════════════════════════════════════
+    it('🛑 MBF — programme + is_demo + NO programme — the resolver refuses, demo or not', async () => {
+      // The resolver never reads `is_demo`, and this is the assertion that keeps it that way.
+      state.clients = []; state.clients.push({ id: 'mbf', commercial_model: 'programme', is_demo: true })
+      const v = await checkLegacyPerLeadAuthority('mbf')
+      expect(v.allowed, 'a demo flag must not buy legacy commercial authority').toBe(false)
+      expect(!v.allowed && v.code).toBe('programme_model')
+    })
+
+    it('⚠️ NON-VACUOUS: an UNCLASSIFIED demo client is unaffected — every demo on the book today', async () => {
+      state.clients = []; state.clients.push({ id: 'demo', commercial_model: null, is_demo: true })
+      const v = await checkLegacyPerLeadAuthority('demo')
+      expect(v.allowed, 'demo accounts must keep working exactly as they do now').toBe(true)
+    })
+
+    it('🛑 THE RESOLVER NEVER READS is_demo — proved on the source, not inferred', () => {
+      const cm = readFileSync(join(__dirname, 'commercial-model.ts'), 'utf8')
+      expect(cm, 'the commercial model is orthogonal to demo-ness').not.toContain('is_demo')
+      expect(cm).not.toContain('isDemoClient')
+    })
+
+    it('🛑 THE TWO ENROL ROUTES NO LONGER SKIP THE FENCE FOR A DEMO', () => {
+      const figsyRoutes = readFileSync(join(join(__dirname, '..'), 'routes/figsy.ts'), 'utf8')
+        .split('\n').filter(l => !l.trim().startsWith('//') && !l.trim().startsWith('*')).join('\n')
+      expect(figsyRoutes, 'the demo bypass around the fence is gone')
+        .not.toContain('if (!(await isDemoClient(clientId))) {')
+      // ⚠️ AND THE MONEY EXEMPTION SURVIVES, which is the half that must not be lost: a demo
+      // still enrols off-ledger, because `chargeFigsyEnroll` is what skips, not the fence.
+      const charge = readFileSync(join(__dirname, 'figsy.ts'), 'utf8')
+      expect(charge, 'a demo still charges nothing').toMatch(/if \(await isDemoClient\(clientId\)\) \{[\s\S]{0,400}return 'skipped'/)
+    })
+
+    it('🛑 autoEnrollLead ASKS THE MODEL FOR A DEMO TOO — only the WALLET gate skips', () => {
+      const figsy = readFileSync(join(__dirname, 'figsy.ts'), 'utf8')
+        .split('\n').filter(l => !l.trim().startsWith('//') && !l.trim().startsWith('*')).join('\n')
+      const fn = figsy.slice(figsy.indexOf('export async function autoEnrollLead'))
+      // The model question is asked for every non-fulfilment enrol, demo included…
+      expect(fn).toMatch(/if \(!programmeFulfilment\) \{[\s\S]{0,600}mayUseLegacyCommercialPath\(model\)/)
+      expect(fn, 'the demo bypass around the MODEL question is gone')
+        .not.toMatch(/if \(!isDemo && !programmeFulfilment\) \{[\s\S]{0,600}clientCommercialModel/)
+      // …and the WALLET gate still skips for a demo, which is the legitimate demo safety.
+      expect(fn).toContain('if (!isDemo && !programmeFulfilment && !canEnroll(client?.figsy_credits_remaining))')
+    })
+
     it('🛑 approveLead REFUSES a declared programme client — nothing written, no rpc', async () => {
       // The end-to-end shape of the hole: the money function itself, not just the resolver.
       state.clients = []; client(PROG_CLIENT, 'programme')
@@ -371,10 +424,12 @@ describe('④ Milla\'s "Looks right", pass and feedback are untouched', () => {
     for (let i = 0; i < 2; i++) {
       expect(fences[i].index, 'the fence precedes its charge').toBeLessThan(charges[i].index!)
     }
-    // 🛑 DEMO IS EXEMPT BY THE DEMO FLAG, NEVER BY THE COMMERCIAL MODEL. MBF is both a demo and
-    // a programme client; `chargeFigsyEnroll` is already off-ledger for a demo, so fencing it
-    // would break the demo to protect money that never moves.
-    expect([...figsyRoutes.matchAll(/if \(!\(await isDemoClient\(clientId\)\)\) \{/g)]).toHaveLength(2)
+    // ⛓️ CORRECTED — this used to assert the fence was SKIPPED for a demo. Founder-ruled:
+    // `is_demo` and `commercial_model` are orthogonal, and that skip made the demo flag a grant
+    // of legacy commercial workflow. The fence now runs for every client; only the CHARGE is
+    // demo-exempt, and that exemption lives in `chargeFigsyEnroll` where it belongs.
+    expect(figsyRoutes, 'no demo bypass may sit around the commercial fence')
+      .not.toContain('if (!(await isDemoClient(clientId))) {')
     expect(figsyRoutes, 'the refusal carries the verdict code, never a hardcoded one')
       .toContain('res.status(409).json({ success: false, error: fence.code, message: fence.message })')
   })

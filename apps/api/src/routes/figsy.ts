@@ -522,15 +522,26 @@ figsyRouter.post('/webhook/enrol', figsyWebhookLimiter, async (req, res) => {
     // so this route charging them looked like every other legacy charge. It is not: their
     // programme is what they paid for, and there is no per-lead price on it.
     //
-    // ⚠️ DEMO IS EXEMPT, exactly as it is in `autoEnrollLead`. MBF is BOTH a demo account and a
-    // programme-model client: `chargeFigsyEnroll` already returns off-ledger for a demo and
-    // charges nothing, so fencing it here would break the demo to protect money that never
-    // moves. The exemption is the demo flag, never the commercial model.
+    // ⛓️ CORRECTED 3 Sep — ~~the fence was skipped for a demo client.~~ FOUNDER-RULED:
+    // **`is_demo` AND `commercial_model` ARE ORTHOGONAL.** The first cut reasoned "a demo
+    // charges nothing, so the money fence need not run" — and that quietly turned the demo flag
+    // into a grant of LEGACY COMMERCIAL WORKFLOW. MBF is both a demo and a programme client;
+    // under that version it would still have enrolled down the retired per-lead path the moment
+    // it was declared `programme`, which is the exact inference C2 exists to end, wearing a
+    // different flag.
+    //
+    // ⚠️ WHAT DEMO STILL DECIDES, AND ALL IT DECIDES: whether real money and real provider spend
+    // happen. `chargeFigsyEnroll` returns off-ledger for a demo and charges nothing — untouched.
+    // Demo never decides WHICH COMMERCIAL MODEL governs the workflow.
+    //
+    // ⚠️ AND THE MBF DEMO IS NOT BROKEN BY THIS. `seedMbf` writes `figsy_enrollments` directly;
+    // it has never called this route or `autoEnrollLead`. What refuses after MBF is declared
+    // `programme` is a human trying to work it down the legacy path — which is the point.
     //
     // ⚠️ THE LIVE BOOK IS UNTOUCHED. `commercial_model` is NULL for every existing client, and
     // an unclassified client with no open programme resolves to legacy and passes straight
-    // through, exactly as today.
-    if (!(await isDemoClient(clientId))) {
+    // through, exactly as today — demo accounts included.
+    {
       const { checkLegacyPerLeadAuthority } = await import('../lib/programme-authority')
       const fence = await checkLegacyPerLeadAuthority(clientId)
       if (!fence.allowed) {
@@ -1693,15 +1704,26 @@ figsyRouter.post('/campaigns/:id/enroll', rateLimit({ limit: 30, windowMs: 60_00
     // so this route charging them looked like every other legacy charge. It is not: their
     // programme is what they paid for, and there is no per-lead price on it.
     //
-    // ⚠️ DEMO IS EXEMPT, exactly as it is in `autoEnrollLead`. MBF is BOTH a demo account and a
-    // programme-model client: `chargeFigsyEnroll` already returns off-ledger for a demo and
-    // charges nothing, so fencing it here would break the demo to protect money that never
-    // moves. The exemption is the demo flag, never the commercial model.
+    // ⛓️ CORRECTED 3 Sep — ~~the fence was skipped for a demo client.~~ FOUNDER-RULED:
+    // **`is_demo` AND `commercial_model` ARE ORTHOGONAL.** The first cut reasoned "a demo
+    // charges nothing, so the money fence need not run" — and that quietly turned the demo flag
+    // into a grant of LEGACY COMMERCIAL WORKFLOW. MBF is both a demo and a programme client;
+    // under that version it would still have enrolled down the retired per-lead path the moment
+    // it was declared `programme`, which is the exact inference C2 exists to end, wearing a
+    // different flag.
+    //
+    // ⚠️ WHAT DEMO STILL DECIDES, AND ALL IT DECIDES: whether real money and real provider spend
+    // happen. `chargeFigsyEnroll` returns off-ledger for a demo and charges nothing — untouched.
+    // Demo never decides WHICH COMMERCIAL MODEL governs the workflow.
+    //
+    // ⚠️ AND THE MBF DEMO IS NOT BROKEN BY THIS. `seedMbf` writes `figsy_enrollments` directly;
+    // it has never called this route or `autoEnrollLead`. What refuses after MBF is declared
+    // `programme` is a human trying to work it down the legacy path — which is the point.
     //
     // ⚠️ THE LIVE BOOK IS UNTOUCHED. `commercial_model` is NULL for every existing client, and
     // an unclassified client with no open programme resolves to legacy and passes straight
-    // through, exactly as today.
-    if (!(await isDemoClient(clientId))) {
+    // through, exactly as today — demo accounts included.
+    {
       const { checkLegacyPerLeadAuthority } = await import('../lib/programme-authority')
       const fence = await checkLegacyPerLeadAuthority(clientId)
       if (!fence.allowed) {

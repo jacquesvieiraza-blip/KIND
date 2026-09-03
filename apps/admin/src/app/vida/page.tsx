@@ -157,8 +157,20 @@ const FLOW_STEPS: [number, string][] = [
 // holds a `manual_grant`, which is inside PAID_TX_TYPES on purpose because it ENTITLES. The
 // board read entitlement and printed a payment. Only step 2 changes — every other step means
 // the same thing however the account was funded.
-function flowStepLabel(step: number, label: string, via: FundedVia | undefined): string {
-  return step === 2 && via === 'comp' ? 'Comped' : label
+// ⛓️ 3 Sep (C2) — AND ON A PROGRAMME ACCOUNT IT WAS A DIFFERENT FALSE ONE. `Paid $299` is the
+// retired onboarding pack. A programme client never bought one — they buy a programme, at P1 and
+// P2 — so the rail was ticking a payment that does not exist in their commercial model at all,
+// on the one row an operator reads before every action. Step 2 now says what they actually did.
+//
+// ⚠️ ONLY STEP 2, AND ONLY FOR A DECLARED PROGRAMME CLIENT. Every other step means the same
+// thing however the account was funded, and a legacy or unclassified client reads the rail
+// exactly as they do today.
+function flowStepLabel(
+  step: number, label: string, via: FundedVia | undefined, programmeModel = false,
+): string {
+  if (step !== 2) return label
+  if (programmeModel) return 'Programme'
+  return via === 'comp' ? 'Comped' : label
 }
 // V4 — the pool the operator picks from.
 type Person = {
@@ -1003,7 +1015,12 @@ export default function VidaConsolePage() {
       return
     }
     if (kind === 'inbox')      { window.location.href = '/vida/engine'; return }
-    if (kind === 'chase')      { setTab('Asks'); setAskInput(`Quick nudge — your first $${PACK_PRICE_USD} unlocks the whole thing: we buy your sender, find your people and start work the moment you approve them.`); return }
+    // ⛓️ C2 — THIS TEXT IS TYPED INTO A MESSAGE TO THE CLIENT, so it is the sharpest of the
+    // retired money sentences: an operator pressing "chase" on a programme account would send
+    // them an invoice for a pack that does not exist on their plan.
+    if (kind === 'chase')      { setTab('Asks'); setAskInput(programmeModel
+      ? 'Quick nudge — your programme is ready to start the moment you approve it. Nothing further is due; the approval is all we need.'
+      : `Quick nudge — your first $${PACK_PRICE_USD} unlocks the whole thing: we buy your sender, find your people and start work the moment you approve them.`); return }
   }
 
   // ── BOOKINGS: mark a no-show, give a goodwill rebook ──────────────────────────
@@ -1022,9 +1039,13 @@ export default function VidaConsolePage() {
       }).then(r => r.json())
       if (!j?.success) { setSaveMsg(notice.error(j?.error || 'Could not update the booking')); return }
       setSaveMsg(notice.ok(kind === 'no-show'
-        ? 'Marked a no-show. Nothing was refunded — the $4 stands.'
+        ? (programmeModel
+            ? 'Marked a no-show. No money moves on this plan — the programme covers it.'
+            : 'Marked a no-show. Nothing was refunded — the $4 stands.')
         : j.rebooks_left === 0
-          ? 'Second attempt used. The client has been told, with the $4 re-run choice.'
+          ? (programmeModel
+              ? 'Second attempt used. The client has been told; their programme covers the re-run.'
+              : 'Second attempt used. The client has been told, with the $4 re-run choice.')
           : `Rebooked. ${j.rebooks_left} attempt left.`))
       await loadCockpit(selected)
     } catch (err) {
@@ -1367,6 +1388,25 @@ export default function VidaConsolePage() {
   }
 
   const selectedClient = clients?.find(c => c.id === selected) ?? null
+  /**
+   * ⚑ 3 Sep (C2) — IS THIS CLIENT ON THE PROGRAMME MODEL? One derived boolean for the whole
+   * console, so the retired money sentences below cannot drift apart from one another.
+   *
+   * 🛑 IT IS THE DECLARED MODEL, NOT THE PRESENCE OF A PROGRAMME. That is the whole point: a
+   * programme client between programmes is still a programme client, and the rail ticking
+   * "Paid $299" at them is a false commercial statement about an account that never bought a
+   * pack. `compat_programme` is included because a client with a programme open is already
+   * governed by it today.
+   *
+   * ⚠️ `unreadable` IS NOT INCLUDED HERE, deliberately. It gets its own treatment on the wallet
+   * chip and its own red panel; suppressing every money sentence on a client we simply could not
+   * read would hide legacy truth from a legacy client because of a transient failure.
+   *
+   * ⚠️ AND FALSE FOR EVERY LEGACY AND UNCLASSIFIED CLIENT, which is the entire live book — so
+   * every sentence below reads exactly as it does today for all of them.
+   */
+  const programmeModel = prog?.commercial?.resolved === 'programme'
+                      || prog?.commercial?.resolved === 'compat_programme'
   const cols = board?.columns
   // Worklist lookups. The list is already urgency-sorted by the API, so we only filter here.
   const workById = (work ?? []).reduce<Record<string, WorkRow>>((m, r) => { m[r.id] = r; return m }, {})
@@ -1585,21 +1625,33 @@ export default function VidaConsolePage() {
                   // purple balance beside a red panel saying nothing is authorised. An
                   // unqualified balance IS a claim that it is spendable, and "we could not
                   // tell" must never render as that claim.
+                  // ⛓️ CORRECTED 3 Sep — ~~"$1,200 wallet · not used".~~ FOUNDER-RULED STILL
+                  // AMBIGUOUS: "not used" reads as a temporary state of a live wallet, not as a
+                  // closed one. The balance is HISTORY on a programme account — a real number
+                  // from the model they are no longer on — and the label now says exactly that.
+                  // The word "wallet" moves behind "historical" so the first thing read is what
+                  // kind of number it is.
+                  //
+                  // ⚠️ NOTHING IS DELETED OR ZEROED. The balance is rendered in full; the ledger
+                  // is untouched. What changed is one word of framing.
                   const r = prog?.commercial?.resolved
-                  const suffix = r === 'programme' || r === 'compat_programme' ? ' · not used'
-                    : r === 'unreadable' ? ' · model unresolved'
-                    : ''
+                  const programmeWallet = r === 'programme' || r === 'compat_programme'
+                  const unresolvedWallet = r === 'unreadable'
+                  const muted = programmeWallet || unresolvedWallet
                   return (
                     <span
-                      title={suffix === ' · not used'
-                        ? 'Programme client — the wallet does not gate their sourcing, sending or enrolment. Shown because the balance is real, not because it applies.'
-                        : suffix
+                      title={programmeWallet
+                        ? 'Historical. This client is on the programme model, so the wallet gates nothing — not sourcing, not sending, not enrolment. The balance is shown because it is real, not because it applies.'
+                        : unresolvedWallet
                           ? 'The commercial model for this client could not be resolved, so whether this balance governs anything is unknown. Nothing is authorised until an operator resolves it.'
                           : 'Wallet balance'}
-                      className={`shrink-0 text-[12.5px] font-bold rounded-full px-2.5 py-1 ${cockpit ? '' : 'ml-auto'} ${
-                        suffix ? 'text-[#9b8ec4] bg-[#f7f4fd]' : 'text-[#7C3AED] bg-[#f3ecff]'}`}>
-                      ${(selectedClient?.wallet_balance_usd ?? 0).toLocaleString()} wallet
-                      {suffix}
+                      className={`shrink-0 text-[12.5px] rounded-full px-2.5 py-1 ${cockpit ? '' : 'ml-auto'} ${
+                        muted ? 'font-semibold text-[#a9a2bd] bg-[#f5f4f8] border border-[#e8e5ef]' : 'font-bold text-[#7C3AED] bg-[#f3ecff]'}`}>
+                      {programmeWallet
+                        ? `$${(selectedClient?.wallet_balance_usd ?? 0).toLocaleString()} historical wallet · inactive`
+                        : unresolvedWallet
+                          ? `$${(selectedClient?.wallet_balance_usd ?? 0).toLocaleString()} wallet · model unresolved`
+                          : `$${(selectedClient?.wallet_balance_usd ?? 0).toLocaleString()} wallet`}
                     </span>
                   )
                 })()}
@@ -1778,15 +1830,19 @@ export default function VidaConsolePage() {
                       // operator can see at a glance that this account was let through rather
                       // than that it paid.
                       const comped = n === 2 && selectedWork.funded_via === 'comp'
+                      // A programme account did not pay a pack and was not comped one — the
+                      // tick is neutral, like the comped case, because neither is a payment.
+                      const progStep = n === 2 && programmeModel
                       return (
                         <span key={n} className="flex items-center gap-1 shrink-0">
-                          <span title={comped ? 'Comped — a manual grant entitled this account. No money came in.' : undefined}
+                          <span title={progStep ? 'This client is on the programme model. There is no onboarding pack — their programme is paid for at P1 and P2.'
+                            : comped ? 'Comped — a manual grant entitled this account. No money came in.' : undefined}
                             className={`w-[22px] h-[22px] rounded-lg text-[11.5px] font-extrabold flex items-center justify-center border ${
                             now ? 'bg-[#7C3AED] text-white border-[#7C3AED]'
-                            : comped && done ? 'bg-[#f1f0f4] text-[#6b6480] border-[#ddd9e6]'
+                            : (comped || progStep) && done ? 'bg-[#f1f0f4] text-[#6b6480] border-[#ddd9e6]'
                             : done ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                            : 'bg-white text-[#b3a9cc] border-[#ece5fb]'}`}>{done ? (comped ? '·' : '✓') : n}</span>
-                          <span className={`text-[12px] whitespace-nowrap ${now ? 'font-extrabold text-[#1f1235]' : 'font-semibold text-[#b3a9cc]'}`}>{flowStepLabel(n, label, selectedWork.funded_via)}</span>
+                            : 'bg-white text-[#b3a9cc] border-[#ece5fb]'}`}>{done ? ((comped || progStep) ? '·' : '✓') : n}</span>
+                          <span className={`text-[12px] whitespace-nowrap ${now ? 'font-extrabold text-[#1f1235]' : 'font-semibold text-[#b3a9cc]'}`}>{flowStepLabel(n, label, selectedWork.funded_via, programmeModel)}</span>
                           {i < FLOW_STEPS.length - 1 && <span className="text-[#d9d0ee] px-0.5">›</span>}
                         </span>
                       )
@@ -1826,7 +1882,13 @@ export default function VidaConsolePage() {
                       <span><b className="text-[#1f1235]">{selectedWork.counts.approved}</b> approved · <b className="text-[#1f1235]">${
                         (selectedWork.money_in_usd ?? 0).toLocaleString(undefined, { maximumFractionDigits: 2 })
                       }</b> in{selectedWork.funded_via === 'comp' && <span className="text-[#9b8ec4]"> · comped</span>}</span>
-                      {selectedWork.pack.active && (
+                      {/* ⛓️ C2 — "88 of your 100 included leads left" is the retired $299 pack,
+                          counted down, presented as CURRENT state. A programme client has no
+                          pack; if a historical row still says one is active, saying so here
+                          would put the legacy quota back in front of the operator as though it
+                          governed the account. The row is not deleted — it is simply no longer
+                          rendered as this client's current commercial state. */}
+                      {selectedWork.pack.active && !programmeModel && (
                         <span className={selectedWork.pack.left === 0 ? 'text-[#7C3AED] font-semibold' : ''}>{selectedWork.pack.label}</span>
                       )}
                       {/* Every name costs $0.28 whether they approve it or not. This is the
@@ -2101,7 +2163,9 @@ export default function VidaConsolePage() {
                     <b className="text-[13.5px]">{people.length} people · {people.filter(p => p.in_campaign).length} working</b>
                     <p className="text-[11.5px] text-[#9b8ec4] mt-1">
                       Everyone here went to the client, scored, with the top 20 recommended.
-                      Their 👍 charges $4 and starts the work — you don't assign anyone.
+                      {programmeModel
+                        ? 'Their 👍 starts the work — nothing is charged, and you don\u2019t assign anyone.'
+                        : 'Their 👍 charges $4 and starts the work — you don\u2019t assign anyone.'}
                     </p>
                     {saveMsg && <p className={`text-[12.5px] font-semibold mt-1 ${noticeClass(saveMsg.tone)}`}>{saveMsg.text}</p>}
                   </div>
@@ -2271,7 +2335,9 @@ export default function VidaConsolePage() {
                     {cockpit.campaigns.length === 0 && !proposal && (
                       <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 mb-3">
                         <b className="text-[13.5px] text-amber-800 block">No campaign — this client cannot be worked.</b>
-                        <p className="text-[12.5px] text-amber-700 mt-1">Approvals are blocked and the $4 is deliberately NOT charged while no campaign is active.</p>
+                        <p className="text-[12.5px] text-amber-700 mt-1">{programmeModel
+                          ? 'Approvals are blocked while no campaign is active. Nothing is charged on this plan either way.'
+                          : 'Approvals are blocked and the $4 is deliberately NOT charged while no campaign is active.'}</p>
                         <div className="flex gap-2 mt-2.5">
                           <button onClick={suggestCampaign} disabled={cockpitBusy}
                             className="bg-[#7C3AED] text-white rounded-lg px-3.5 py-2 text-[13.5px] font-bold disabled:opacity-60">
@@ -2684,7 +2750,9 @@ export default function VidaConsolePage() {
                               </button>
                             )}
                             {noShow && attemptsLeft === 0 && (
-                              <span className="text-[12px] text-[#92400e] font-semibold">Two attempts used — the client has been told, with the $4 re-run choice.</span>
+                              <span className="text-[12px] text-[#92400e] font-semibold">{programmeModel
+                                ? 'Two attempts used — the client has been told; their programme covers the re-run.'
+                                : 'Two attempts used — the client has been told, with the $4 re-run choice.'}</span>
                             )}
                           </div>
                         </div>

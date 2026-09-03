@@ -2228,7 +2228,15 @@ export async function autoEnrollLead(leadId: string, clientId: string, opts?: En
     //
     // ⚠️ AND UNREADABLE REFUSES TOO. Not knowing which model governs a client is not a licence
     // to spend their wallet.
-    if (!isDemo && !programmeFulfilment) {
+    //
+    // ⛓️ CORRECTED 3 Sep — ~~`if (!isDemo && !programmeFulfilment)`.~~ FOUNDER-RULED:
+    // **`is_demo` AND `commercial_model` ARE ORTHOGONAL.** Skipping the model question for a
+    // demo turned the demo flag into a grant of legacy commercial workflow, so MBF — a demo AND
+    // a programme client — would have enrolled down the retired per-lead path. Demo decides
+    // whether money and provider spend are real (the wallet gate below still skips for it); it
+    // never decides which commercial model governs. A demo account with a NULL model resolves
+    // to legacy and reaches the gate below exactly as it does today.
+    if (!programmeFulfilment) {
       const { clientCommercialModel, mayUseLegacyCommercialPath } = await import('./commercial-model')
       const model = await clientCommercialModel(clientId)
       if (!mayUseLegacyCommercialPath(model)) {

@@ -139,13 +139,21 @@ const meeting = (id: string, programmeId: string | null, clientId = HOUSE) =>
   state.meetings.push({ id, client_id: clientId, programme_id: programmeId, state: 'booked', excluded_reason: null, superseded_by: null, scheduled_at: '2026-01-01' })
 
 beforeEach(() => {
-  state.programmes = []; state.leads = []; state.clients = []; state.replies = []; state.meetings = []
+  state.programmes = []; state.leads = []; state.replies = []; state.meetings = []
   state.campaigns = []; state.icps = []
+  // ⛓️ 3 Sep (C2 live) — THE CLIENT ROWS ARE SEEDED, and they have to be. These reads now go
+  // through `currentWorkspaceScope`, which resolves the COMMERCIAL MODEL before it asks about a
+  // programme — so a fixture with no client row is a client that does not exist, which fails
+  // closed and turns every assertion below into a degraded answer rather than the one it tests.
+  // `commercial_model: null` is the UNCLASSIFIED state the whole live book holds: with a
+  // programme open it scopes to that programme, with none it is legacy. Exactly the two
+  // meanings this file was written to assert.
+  state.clients = []
   state.programmesUnreadable = false
   HOUSE_USER_EMAIL = 'someone-else@example.com'
   state.clientsThrow = false
-  state.clients.push({ id: HOUSE, user_id: 'u-house' })
-  state.clients.push({ id: MBF, user_id: 'u-mbf' })
+  state.clients.push({ id: HOUSE, user_id: 'u-house', commercial_model: null, proof_passes_done: 0, proof_started_at: null })
+  state.clients.push({ id: MBF, user_id: 'u-mbf', commercial_model: null, proof_passes_done: 0, proof_started_at: null })
 })
 
 // ═══════════════════════════════════════════════════════════════════════════════════════

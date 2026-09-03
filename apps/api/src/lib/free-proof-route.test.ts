@@ -707,11 +707,24 @@ describe('free proof never reaches the paid reveal/delivery path', () => {
     expect(src).not.toMatch(/opts\?\.proofPass\s*(>=|<=|>|<|!==|==[^=])/)
   })
 
-  it('the proof surfacing block itself is UNCHANGED — same claim, same two fields', () => {
+  it('the proof surfacing block still claims idempotently, and now ATTRIBUTES what it surfaces', () => {
+    // ⛓️ AMENDED 3 Sep. This asserted *"same claim, same TWO fields"* —
+    // ~~`.update({ surfaced_for_approval_at: nowIso, delivered_at: nowIso })`~~. A third field
+    // is now written in the same statement, and it is the reason the whole boundary works:
+    // `proof_pass` is what makes a proof lead distinguishable from a retired legacy delivered
+    // lead, which nothing on the row could do before (see 20260903_lead_proof_attribution.sql).
+    //
+    // ⚠️ WHAT THIS GUARD IS ACTUALLY FOR IS UNTOUCHED, and is asserted more tightly below than
+    // a field count ever did: the block still surfaces WITHOUT revealing, and the claim is
+    // still the idempotent `.is('delivered_at', null)` one. A field count would have forbidden
+    // the fix while proving nothing about either.
     const src = readFileSync(join(__dirname, '../routes/icps.ts'), 'utf8')
     expect(src).toContain("if (proofMode && insertedIds.length > 0) {")
-    expect(src).toContain(".update({ surfaced_for_approval_at: nowIso, delivered_at: nowIso })")
+    expect(src).toContain(".update({ surfaced_for_approval_at: nowIso, delivered_at: nowIso, proof_pass: opts!.proofPass })")
     expect(src).toContain(".in('id', insertedIds).is('delivered_at', null)")
+    // The value is the pass the route ATOMICALLY CLAIMED — never a literal, never a boolean,
+    // never inferred from anything the surfacing block can see for itself.
+    expect(src).not.toMatch(/proof_pass:\s*(true|1|2)\b/)
   })
 
   it('NO Hunter, Apollo or reveal implementation was touched by this fix', () => {

@@ -834,6 +834,18 @@ alter table public.leads
   add column if not exists programme_id uuid,
   add column if not exists batch_id     uuid;
 
+-- ── 3 Sep · WHICH MOTION MADE THIS ROW (20260903_lead_proof_attribution) ─────────────────
+-- A free-proof lead and a retired legacy delivered lead were byte-identical: both carry
+-- `delivered_at`, `surfaced_for_approval_at`, a null `programme_id` and a provider name in
+-- `source`. So a declared programme client between programmes could not be told apart from a
+-- new customer mid proof, and House rendered its retired desk as a current workspace. Every
+-- other store was traced first — icp_run_outcomes, sourcing_ledger, proof_ledger,
+-- acquisition_memory, the client proof counters — and none answers per row.
+-- Nullable, no default, never backfilled: NULL means "not known to be proof work", which is
+-- the honest reading of every row written before this column existed.
+alter table public.leads
+  add column if not exists proof_pass smallint;
+
 -- ⚠️ `sourcing_ledger.programme_id`, `partner_commissions.programme_id` and
 -- `partner_commissions.basis` are ADDED BY THE MIGRATION AND ARE DELIBERATELY NOT DECLARED
 -- HERE. Neither table is declared in this file at all — they live in supabase/migrations —

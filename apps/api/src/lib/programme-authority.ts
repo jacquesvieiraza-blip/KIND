@@ -536,3 +536,77 @@ export async function raiseReviewIfNeeded(programmeId: string): Promise<boolean>
     return false
   }
 }
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// THE LEGACY PER-LEAD COMMERCIAL FENCE — founder-locked 3 Sep
+//
+// 🛑 THE RULE, VERBATIM: **"IF THE CLIENT HAS AN OPEN PROGRAMME, THE LEGACY COMMERCIAL PER-LEAD
+// APPROVE / REVEAL / BATCH-APPROVAL PATHS ARE REFUSED."**
+//
+// ── WHAT WAS ACTUALLY REACHABLE ─────────────────────────────────────────────────────────
+//
+// `approve-lead.ts` contained ZERO references to programmes. An authenticated programme
+// customer calling `POST /leads/:id/approve`, `POST /leads/:id/reveal` or
+// `POST /leads/approve-batch` by hand passed `batchGate` — because a programme lead is
+// precisely what that gate admits: surfaced, unrevealed, not passed — and then:
+//
+//   ① `revealed_at` was stamped on programme work, removing it from their own review set and
+//      from `markReadyForApproval`'s count;
+//   ② an onboarding-pack slot was burned (a `credit_transactions` row) or **$4 was charged**
+//      through `try_charge_wallet`;
+//   ③ `autoEnrollLead` then refused, because `authorityFor` correctly says a non-LIVE
+//      programme grants no OUTREACH — so the customer paid and got nothing.
+//
+// That last step is the tell. The programme model was already strong enough to refuse the
+// WORK and not strong enough to refuse the CHARGE, which is the charge-then-refuse shape this
+// repository forbids, arrived at from the one direction nobody had walked.
+//
+// ── WHY CLIENT-LEVEL, NOT LEAD-LEVEL (founder's choice, and it is the stronger one) ─────
+//
+// Scoping the fence to `lead.programme_id` would leave the client's HISTORICAL null-attributed
+// leads commercially mutable while their programme is open — House's ~166 retired rows could
+// still be revealed and charged for. For a client with an open programme the pack, the wallet
+// and the $1/$3/$4 per-lead economics are INERT: their programme's P1/P2 is what they bought.
+// So the question is asked about the CLIENT, not about the row.
+//
+// ⚠️ AND IT IS THE COMMERCIAL PATHS ONLY. Milla's calibration controls — `proof-accept`,
+// `pass`, `feedback` — reveal nothing, charge nothing and call none of this; they are traced
+// and proved untouched. A fence that silenced "Looks right" would have broken the free-proof
+// acquisition motion to protect economics that motion never touches.
+//
+// ⚠️ LEGACY IS EXACTLY AS IT WAS. A client with NO open programme gets `allowed: true` from a
+// single `openProgrammeFor` read and proceeds down the identical path — the $299 pack model,
+// which is what is actually selling, is every one of those clients.
+// ═══════════════════════════════════════════════════════════════════════════════════════
+
+export type LegacyLeadVerdict =
+  | { allowed: true }
+  | { allowed: false; code: 'programme_open' | 'programme_unresolvable'; message: string }
+
+/** What a fenced customer reads. One sentence, true, and it names the action that replaced it. */
+export const LEGACY_FENCED_COPY =
+  'Your programme covers this. Individual prospects are not approved or paid for one at a time — '
+  + 'you approve the programme once, and we work every prospect in it.'
+
+/**
+ * May this client still use the legacy per-lead COMMERCIAL paths?
+ *
+ * ⚠️ FAIL-CLOSED. `openProgrammeFor` throws when the programme table cannot be read, and that
+ * is refused rather than waved through: not knowing whether a client has an open programme is
+ * not permission to charge them $4. The alternative — treating an unreadable state as "no
+ * programme" — turns a database hiccup into a charge against somebody who already paid.
+ */
+export async function checkLegacyPerLeadAuthority(clientId: string): Promise<LegacyLeadVerdict> {
+  try {
+    const open = await openProgrammeFor(clientId)
+    if (!open) return { allowed: true }
+    return { allowed: false, code: 'programme_open', message: LEGACY_FENCED_COPY }
+  } catch (err) {
+    const why = err instanceof Error ? err.message : String(err)
+    console.error(`[programme-authority] legacy per-lead path refused for client ${clientId} — programme state unreadable:`, why)
+    return {
+      allowed: false, code: 'programme_unresolvable',
+      message: 'We could not confirm your programme state, so nothing was approved and nothing was charged. Please try again shortly.',
+    }
+  }
+}

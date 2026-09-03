@@ -48,8 +48,20 @@ function makeQuery(table: string) {
     select(_c?: string, opts?: { count?: string; head?: boolean }) { q._isCount = !!opts?.count; return q },
     eq() { return q }, neq() { return q }, is() { return q }, in() { return q }, not() { return q },
     order() { return q }, limit() { return q },
-    async maybeSingle() { return { data: table === 'figsy_campaigns' ? campaignRow : leadRow, error: null } },
-    async single() { return { data: table === 'figsy_campaigns' ? campaignRow : leadRow, error: null } },
+    async maybeSingle() {
+      // ⚑ 3 Sep (PR B) — A LEGACY CLIENT WITH NO PROGRAMME, STATED RATHER THAN IMPLIED.
+      // `approveLead` now opens with the legacy per-lead fence, which reads `programmes`
+      // and fails closed on anything it cannot interpret. Without this line the fallthrough
+      // answered that read with `leadRow` and the fence saw a lead as an open programme.
+      // These tests are the $299 pack model — the no-programme case the founder locked as
+      // UNCHANGED — so "no programme" is the honest fixture answer.
+      if (table === 'programmes') return { data: null, error: null }
+      return { data: table === 'figsy_campaigns' ? campaignRow : leadRow, error: null }
+    },
+    async single() {
+      if (table === 'programmes') return { data: null, error: null }
+      return { data: table === 'figsy_campaigns' ? campaignRow : leadRow, error: null }
+    },
     then(resolve: (v: unknown) => unknown) {
       if (q._isCount) return resolve({ count: 1, error: null })
       // The paused-campaign resume: update(...).select('id').limit(1) resolves to the rows it flipped.

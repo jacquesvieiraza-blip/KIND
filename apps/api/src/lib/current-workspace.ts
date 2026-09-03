@@ -13,82 +13,86 @@
 // client has no current-work boundary, so show them everything they have ever had". For a
 // DECLARED programme client between programmes it is wrong in the most visible possible way:
 // House was set to `commercial_model = 'programme'`, has no open programme, and its Milla
-// still rendered three prospect cards from the retired legacy desk under "Earlier activity",
-// a reply from 2026 in Recent Replies, and historical campaign and meeting numbers — all of
-// it presented as the current workspace of an account whose current workspace is empty.
+// still rendered three prospect cards from the retired legacy desk, a reply from 2026 in
+// Recent Replies, and historical campaign and meeting numbers — all of it presented as the
+// current workspace of an account whose current workspace is empty.
 //
-// ── THE DISTINCTION THAT MATTERS, AND WHY IT IS NOT A DATE OR A NAME ────────────────────
+// ── THE FIRST FIX WAS THE SAME MISTAKE WEARING A DIFFERENT COLUMN ───────────────────────
 //
-// The trap is that "programme client with no programme" describes TWO completely different
-// accounts, and blanking both would break the launch acquisition motion:
+// ⛓️ WITHDRAWN 3 Sep, on the founder's challenge. This module read
+// `clients.proof_passes_done > 0` and, on a non-zero count, handed back the UNBOUNDED
+// client-scoped desk. That is CUMULATIVE CLIENT STATE standing in for row-level attribution:
+// it answers "has this account ever claimed a proof pass", never "does THIS ROW belong to
+// that pass". The two questions come apart the moment one account has both histories —
 //
-//   A. A GENUINE NEW CUSTOMER RUNNING FREE PROOF. Signup writes
-//      `commercial_model = 'programme'`, so every new M&V customer is a programme client from
-//      their first minute — and they have no programme until one is created. Their proof cards
-//      are their CURRENT work and must render exactly as they do today.
+//     a declared programme client with old NULL-programme legacy leads legitimately runs a
+//     modern Free Proof → proof_passes_done becomes 1 → the desk unbounds → every historical
+//     legacy card is current again
 //
-//   B. HOUSE. Also a declared programme client with no programme, but its leads, replies,
-//      campaign and meetings are the retired per-lead desk. That is HISTORY.
+// — which is the ORIGINAL DEFECT, re-armed. "No programme ⇒ show everything" had simply
+// become "ever proofed ⇒ show everything". The supporting argument (free proof is offered
+// only to a never-funded account, so a proof client has nothing else) constrains WHEN A PASS
+// MAY BE CLAIMED; it says nothing about what rows the account already holds.
 //
-// ⚠️ NOTHING ON THE LEAD SEPARATES THEM. A free-proof lead is stamped `delivered_at` and
-// `surfaced_for_approval_at`, exactly like a legacy delivered lead — traced through
-// `runIcpJob`'s proof branch, which writes no proof-specific column. So the discriminator
-// cannot live on the row.
+// ── SO THE ANSWER IS ON THE ROW, AND IT IS WRITTEN, NOT INFERRED ────────────────────────
 //
-// 🛑 SO IT IS THE PROOF SESSION ITSELF, WHICH IS A POSITIVE STORED FACT. `try_claim_proof_pass`
-// increments `clients.proof_passes_done` and stamps `clients.proof_started_at` in the SAME
-// statement that authorises the pass. A client with a current proof session has one because the
-// product recorded that it started one. That is current-work attribution, not an inference:
+// `leads.proof_pass` is stamped by `runIcpJob` on exactly the ids one proof run inserted,
+// carrying the pass `try_claim_proof_pass` atomically granted before that run. Every other
+// store was traced write → storage → read first and none can answer per row: `leads.source`
+// is the PROVIDER name and identical for a proof run and a paid one; `programme_id` is NULL
+// for proof AND for legacy; `icp_run_outcomes` holds no lead ids and no proof flag;
+// `sourcing_ledger` and `proof_ledger` are money rows with no lead ids (and a pool-only proof
+// pass writes no `proof_ledger` row at all); `acquisition_memory` is keyed on the provider
+// identity; and `icps.proof_widened_candidate` — the only existing proof-batch-to-leads link
+// — exists only for a pass-2 widened fallback. Full list in the migration header.
 //
-//   · no session recorded  → there is no current proof work, so the workspace is empty
-//   · a session recorded   → their desk IS their current work
+// ⚠️ WHICH IS WHY `proof` AND `none` ARE NOW ONE SCOPE. They were two answers to a question
+// this module can no longer be asked: with attribution on the row, "does this client have
+// current proof work" is decided by the FILTER, not by a client-level counter. House and a
+// brand-new customer take the identical scope; House has no attributed rows so its desk is
+// empty, and the customer has theirs so they render. Nothing about the client is consulted.
 //
-// ⚠️ AND THERE IS NO DATE COMPARISON ANYWHERE IN THIS MODULE. A first cut bounded the proof case
-// by `proof_started_at`; that column is rewritten on every claim, so a client on pass 2 would
-// have had pass 1's batch filtered away — and "two labelled proof sets, nothing deleted or
-// filtered away" is founder-locked. No bound is needed anyway: free proof is offered only to a
-// never-funded account, so a client with a proof session has proof work and nothing else.
-//
-// ⚠️ NO NAME. NO ENV VAR. NO HOUSE SPECIAL CASE. NO DELETION, NO BACKFILL. Nothing here writes
-// anything. Every historical row stays exactly where it is and remains readable by every
-// operator surface in Vida; what changes is only which rows a customer's CURRENT workspace
-// claims as current.
+// ⚠️ NO NAME. NO ENV VAR. NO HOUSE SPECIAL CASE. NO CALENDAR CUTOFF. NO DELETION, NO
+// BACKFILL. Nothing here writes anything. Every historical row stays exactly where it is and
+// remains readable by every operator surface in Vida; what changes is only which rows a
+// customer's CURRENT workspace claims as current.
 // ═══════════════════════════════════════════════════════════════════════════════════════
-
-import { db } from '@kind/db'
 
 /**
  * The boundary of a client's current work.
  *
- * ⚠️ FIVE ANSWERS, NOT A NULLABLE PROGRAMME ID, for the same reason `CommercialModel` has five
- * states: `none` and `legacy` are different facts and a nullable id cannot tell them apart. That
- * conflation is precisely what put House's history on its own desk.
+ * ⚠️ FOUR ANSWERS, NOT A NULLABLE PROGRAMME ID, for the same reason `CommercialModel` has
+ * five states: `proof` and `legacy` are different facts and a nullable id cannot tell them
+ * apart. That conflation is precisely what put House's history on its own desk.
  */
 export type WorkspaceScope =
   /** An open programme. Current work is what is positively attributed to it. */
   | { kind: 'programme'; programmeId: string }
   /**
-   * A declared programme client with a recorded FREE PROOF session. Their desk is current work.
+   * A DECLARED PROGRAMME CLIENT WITH NO OPEN PROGRAMME. Current work is exactly the leads
+   * positively attributed to a free-proof pass — and nothing else on the account.
    *
-   * ⚠️ IT CARRIES NO TIME BOUND, AND THAT IS A CORRECTION. The first cut bounded this to
-   * `proof_started_at` — which `try_claim_proof_pass` rewrites on EVERY claim, so it describes
-   * the LATEST pass. A client on pass 2 would have had pass 1's batch filtered away server-side,
-   * and "two labelled proof sets, nothing deleted or filtered away" is founder-locked. The
-   * existing free-proof guard caught it.
+   * ⚠️ THIS IS ALSO THE EMPTY ANSWER, AND DELIBERATELY SO. A client with no attributed proof
+   * rows has an EMPTY current workspace, which is a real and correct answer rather than a gap
+   * to be filled with history. House lands here. So does a customer whose proof run has been
+   * claimed but has not produced leads yet. So does a customer mid-proof — the difference is
+   * decided by their ROWS, never by a counter on their client record.
    *
-   * ⚠️ AND NO BOUND IS NEEDED, because free proof is only offered to a never-funded account —
-   * `runIcpJob` refuses a proof batch for a live one ("proof batches are only for new
-   * prospects"). A client with a proof session has proof work and nothing else, so their desk
-   * IS their current work. The session's existence is the whole answer.
+   * ⚠️ IT CARRIES NO TIME BOUND, AND THAT IS A CORRECTION. A first cut bounded proof by
+   * `clients.proof_started_at` — which `try_claim_proof_pass` rewrites on EVERY claim, so it
+   * describes the LATEST pass. A client on pass 2 would have had pass 1's batch filtered away
+   * server-side, and "two labelled proof sets, nothing deleted or filtered away" is
+   * founder-locked. `proof_pass` needs no bound: pass 2 stamps its own rows and can never
+   * restamp pass 1, so both sets stay attributed and both stay visible.
+   *
+   * 🛑 FREE PROOF IS CALIBRATION, NOT OUTREACH. This scope permits ATTRIBUTED PROOF CARDS and
+   * nothing else: no campaign, no replies, no meetings, no outreach progress. Proof sends
+   * nobody an email, so any of those appearing could only ever be history wearing a current
+   * label — which is the exact bleed this module exists to stop.
    */
   | { kind: 'proof' }
   /** Legacy or unclassified. Client-scoped, exactly as it has always been. */
   | { kind: 'legacy' }
-  /**
-   * A declared programme client with no programme and no proof session. There IS no current
-   * work — and that is a real, correct answer, not a gap to be filled with history.
-   */
-  | { kind: 'none' }
   /** The model or the programme state could not be read. The caller decides how to degrade. */
   | { kind: 'unreadable'; reason: string }
 
@@ -99,6 +103,10 @@ export type WorkspaceScope =
  * does the open-programme read and returns it, so this is one resolution rather than two that
  * could disagree — and it inherits every fail-closed rule that module carries, including the
  * declared-legacy-with-an-open-programme conflict.
+ *
+ * ⚠️ AND IT READS NOTHING ELSE. The withdrawn version took a second trip to `clients` for
+ * `proof_passes_done`; with attribution on the lead row there is nothing left to ask. One
+ * read, no counter, no clock, no client-level state deciding what a row means.
  */
 export async function currentWorkspaceScope(clientId: string): Promise<WorkspaceScope> {
   if (!clientId) return { kind: 'unreadable', reason: 'no client id' }
@@ -118,34 +126,22 @@ export async function currentWorkspaceScope(clientId: string): Promise<Workspace
 
   // ── DECLARED PROGRAMME, NO PROGRAMME OPEN. The one case this module exists for. ──────────
   //
-  // 🛑 A GENUINE NEW CUSTOMER IS HERE TOO, and blanking them would break free proof. So the
-  // question is whether the product has RECORDED a current proof session for this client.
-  try {
-    const { data, error } = await db.from('clients')
-      .select('proof_passes_done').eq('id', clientId).maybeSingle()
-    if (error) return { kind: 'unreadable', reason: `proof session read failed: ${error.message}` }
-    if (!data) return { kind: 'unreadable', reason: 'no such client' }
-
-    // ⚠️ A COUNT, NOT A CLOCK. `try_claim_proof_pass` increments this in the same statement that
-    // authorises the pass, so a non-zero value is the product's own record that this account has
-    // a free-proof session. There is no date comparison anywhere in this module — see the
-    // `proof` variant above for why bounding by `proof_started_at` was wrong and was removed.
-    const passes = Number((data as { proof_passes_done?: number | null }).proof_passes_done ?? 0)
-    if (passes > 0) return { kind: 'proof' }
-
-    // No programme, no proof session: the workspace is genuinely empty. This is House.
-    return { kind: 'none' }
-  } catch (err) {
-    return { kind: 'unreadable', reason: err instanceof Error ? err.message : String(err) }
-  }
+  // 🛑 AND THERE IS NOTHING FURTHER TO ASK. The caller filters on `proof_pass IS NOT NULL`,
+  // so a client with attributed proof work sees exactly that work and a client without sees
+  // an empty workspace. Deciding it here from a client-level counter is what was wrong.
+  return { kind: 'proof' }
 }
 
 /**
- * Does this scope have any current work at all?
+ * May this scope show CURRENT OUTREACH — a campaign, a reply, a booked meeting?
  *
- * `none` is the only scope that answers no — and it answers no POSITIVELY, which is the
- * difference between "we found nothing" and "there is nothing to find".
+ * 🛑 ONLY A PROGRAMME AND LEGACY MAY. `proof` may not, because free proof sends nobody an
+ * email: any campaign, reply or meeting readable for a proof-scoped client is by construction
+ * something an earlier motion produced, and presenting it as current activity is the bleed
+ * this module exists to stop. `unreadable` is not answered here — each caller degrades it its
+ * own way (the replies rail fails soft, the campaign sentence fails closed), and flattening
+ * that distinction into one boolean would silently change one of them.
  */
-export function hasCurrentWork(s: WorkspaceScope): boolean {
-  return s.kind !== 'none'
+export function showsCurrentOutreach(s: WorkspaceScope): boolean {
+  return s.kind === 'programme' || s.kind === 'legacy'
 }

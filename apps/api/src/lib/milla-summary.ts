@@ -126,14 +126,20 @@ async function campaignFor(clientId: string) {
     console.error('[milla-summary] workspace scope unreadable for', clientId, scope.reason)
     return { data: null, error: null }
   }
-  // 🛑 NO CURRENT WORK MEANS NO CURRENT CAMPAIGN. A real answer, not a gap.
-  if (scope.kind === 'none') return { data: null, error: null }
   // Legacy and unclassified: their campaign is their campaign, exactly as it always was.
   if (scope.kind === 'legacy') return newest()
-  // ⚠️ A PROOF CLIENT IS UNCHANGED — their newest campaign is whatever Milla scaffolded while
-  // saving their ICP, which is exactly what they see today. Narrowing a brand-new customer's
-  // screen is the one direction this correction must not go.
-  if (scope.kind === 'proof') return newest()
+  // ── 🛑 3 Sep (WITHDRAWN AND REPLACED) — FREE PROOF IS CALIBRATION, NOT OUTREACH ──────────
+  //
+  // ⛓️ THIS RETURNED `newest()`, on the reasoning that a proof client's newest campaign is
+  // whatever Milla scaffolded while saving their ICP. For a clean new prospect that is true and
+  // harmless; for a DECLARED PROGRAMME CLIENT BETWEEN PROGRAMMES it hands back a retired
+  // campaign as the current one, which is exactly the sentence House was showing. Proof sends
+  // nobody an email, so a campaign readable here can only be an earlier motion's.
+  //
+  // 🛑 NO CURRENT OUTREACH MEANS NO CURRENT CAMPAIGN. A real answer, not a gap — and it costs a
+  // genuine proof prospect nothing, because a scaffolded campaign they have never run is not a
+  // fact about their current work either.
+  if (scope.kind === 'proof') return { data: null, error: null }
   const programmeId = scope.programmeId
 
   const { data: icpRows, error: icpErr } = await db.from('icps')
@@ -179,14 +185,18 @@ async function recentRepliesFor(clientId: string) {
     console.error('[milla-summary] workspace scope unreadable for', clientId, scope.reason)
     return base()
   }
-  // 🛑 NO CURRENT WORK MEANS NO CURRENT REPLIES. This is the one case where an empty rail is
-  // the TRUE answer rather than a degraded one, so it is returned positively.
-  if (scope.kind === 'none') return { data: [] as Record<string, unknown>[], error: null }
   if (scope.kind === 'legacy') return base()
-  // ⚠️ A PROOF CLIENT TAKES THE SAME UNBOUNDED RAIL AS LEGACY. Free proof sends nothing, so it
-  // is empty in practice — but it is not bounded by a date, for the same reason the card list
-  // is not: `proof_started_at` describes the LATEST pass and would hide earlier work.
-  if (scope.kind === 'proof') return base()
+  // ── 🛑 3 Sep (WITHDRAWN AND REPLACED) — FREE PROOF SENDS NOBODY AN EMAIL ─────────────────
+  //
+  // ⛓️ THIS RETURNED `base()` — the unbounded client-scoped rail — on the reasoning that free
+  // proof sends nothing "so it is empty in practice". That is true of a clean new prospect and
+  // FALSE of a declared programme client between programmes, whose old replies then sat in the
+  // rail as current activity. It is the same absence-read-as-a-fact error the whole boundary
+  // exists to end: "sends nothing" describes the motion, not the account.
+  //
+  // 🛑 NO OUTREACH MEANS NO CURRENT REPLIES. Returned positively as an empty rail, which for a
+  // calibration-only workspace is the TRUE answer rather than a degraded one.
+  if (scope.kind === 'proof') return { data: [] as Record<string, unknown>[], error: null }
   const programmeId = scope.programmeId
 
   // Positive attribution, derived: this programme's leads, then their replies. Two reads
@@ -219,28 +229,59 @@ export async function buildMillaSummaryData(clientId: string): Promise<MillaSumm
   // its retired desk as a live number: House showed prospects waiting and meetings booked for
   // work the retired model did. The all-time report figures below are DELIBERATELY untouched —
   // they are labelled as history and are the one place it belongs.
-  const { currentWorkspaceScope } = await import('./current-workspace')
+  const { currentWorkspaceScope, showsCurrentOutreach } = await import('./current-workspace')
   const summaryScope = await currentWorkspaceScope(clientId)
-  const noCurrentWork = summaryScope.kind === 'none'
+  // ⛓️ 3 Sep (WITHDRAWN AND REPLACED) — ~~`const noCurrentWork = summaryScope.kind === 'none'`~~.
+  // `none` was a client-level verdict reached from `proof_passes_done`, and it is gone: whether
+  // a client has current CARDS is now decided per row by `proof_pass`, and whether they have
+  // current OUTREACH is decided by the scope. Two different questions, two different answers,
+  // neither of them a counter.
+  const outreach = showsCurrentOutreach(summaryScope) || summaryScope.kind === 'unreadable'
+
+  // ⚠️ HOISTED OUT OF THE `Promise.all` TUPLE, AND THAT IS A COMPILER CONSTRAINT, NOT A STYLE
+  // CHOICE. Two conditional narrowings on one supabase-js builder inside an eleven-element
+  // tuple makes TypeScript give up ("type instantiation is excessively deep"). The annotation
+  // caps it at the one shape this value actually has. The QUERY is unchanged.
+  const awaitingQuery: PromiseLike<{ count: number | null }> = (() => {
+    /** The two chainable methods this one query needs, and nothing else — see above. */
+    type CountQuery = PromiseLike<{ count: number | null }> & {
+      eq(column: string, value: unknown): CountQuery
+      not(column: string, operator: string, value: unknown): CountQuery
+    }
+    let q = db.from('leads').select('id', { count: 'exact', head: true })
+      .eq('client_id', clientId).not('delivered_at', 'is', null)
+      .not('surfaced_for_approval_at', 'is', null)   // no TTL — see /for-approval
+      .is('revealed_at', null).neq('status', 'passed') as unknown as CountQuery
+    // ⚠️ THE SAME BOUNDARY THE CARD LIST APPLIES, CLAUSE FOR CLAUSE, so the count and the
+    // cards cannot disagree. A proof-scoped client counts ONLY attributed proof rows — which
+    // is how House reaches 0 without anything being deleted, and how a real proof prospect
+    // still sees their own number.
+    if (summaryScope.kind === 'programme') q = q.eq('programme_id', summaryScope.programmeId)
+    if (summaryScope.kind === 'proof') q = q.not('proof_pass', 'is', null)
+    return q
+  })()
 
   const [{ data: client }, awaiting, meetings, campaign, replies, icps, approvedTotal, repliesTotal, meetingsTotal, purchases, lastRun] = await Promise.all([
     db.from('clients').select('wallet_balance_usd, proof_passes_done, proof_started_at').eq('id', clientId).maybeSingle(),
     // mirrors /for-approval — the exact set of masked cards the client can act on
-    noCurrentWork
-      ? Promise.resolve({ count: 0 })
-      : (() => {
-          let q = db.from('leads').select('id', { count: 'exact', head: true })
-            .eq('client_id', clientId).not('delivered_at', 'is', null)
-            .not('surfaced_for_approval_at', 'is', null)   // no TTL — see /for-approval
-            .is('revealed_at', null).neq('status', 'passed')
-          // The same boundary the card list applies, so the count and the cards cannot disagree.
-          if (summaryScope.kind === 'programme') q = q.eq('programme_id', summaryScope.programmeId)
-          return q
-        })(),
+    awaitingQuery,
     // ⛓️ COUNTED calendar_bookings (BUILD-003 item 2) — an operational record of what we
     // asked Google to create, blind to duplicates, spam and reschedules. Milla told the
     // client a number that could double-count a meeting they moved. Now public.meetings.
-    noCurrentWork ? Promise.resolve(null) : meetingCounts({ clientId, since: monthStart }),
+    //
+    // 🛑 AND A CALIBRATION WORKSPACE HAS NO MEETINGS. Free proof books nobody, so a non-zero
+    // count for a proof-scoped client could only be an earlier motion's — the same bleed as the
+    // replies rail. The ALL-TIME figure below is untouched; history still counts where it
+    // belongs, which is the report, not the current-work number.
+    // ⚠️ AND WHEN A PROGRAMME IS OPEN IT IS SCOPED TO THAT PROGRAMME. `meetingCounts` has taken
+    // `programmeId` since BUILD-003; this caller was passing only `clientId`, so the month
+    // number still swept in meetings the RETIRED desk booked in the same month a new programme
+    // started — the identical bleed the replies rail had, one surface further on.
+    outreach
+      ? meetingCounts(summaryScope.kind === 'programme'
+          ? { clientId, programmeId: summaryScope.programmeId, since: monthStart }
+          : { clientId, since: monthStart })
+      : Promise.resolve(null),
     // Name AND status of the newest campaign, whatever state it is in. Filtering to
     // status='active' meant a paused or cold-suspended client was indistinguishable from
     // one with no campaign at all — and Milla told both of them "Campaign live".

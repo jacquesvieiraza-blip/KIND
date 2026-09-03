@@ -269,9 +269,20 @@ leadRouter.get('/for-approval', async (req: AuthRequest, res) => {
     // unchanged. This decides only what a customer's CURRENT desk claims as current.
     const { currentWorkspaceScope } = await import('../lib/current-workspace')
     const scope = await currentWorkspaceScope(clientId)
-    // 🛑 NO CURRENT WORK — a real answer, returned positively rather than as an empty query.
-    if (scope.kind === 'none') { res.json({ success: true, data: [] }); return }
 
+    /**
+     * The four chainable methods this one query needs, and nothing else.
+     *
+     * ⚠️ A COMPILER CONSTRAINT, NOT A STYLE CHOICE. Two conditional narrowings on one
+     * supabase-js builder makes TypeScript give up ("type instantiation is excessively deep").
+     * The annotation caps it at the shape this value actually has; THE QUERY IS UNCHANGED.
+     */
+    type DeskQuery = PromiseLike<{ data: Record<string, unknown>[] | null; error: { message: string } | null }> & {
+      eq(column: string, value: unknown): DeskQuery
+      not(column: string, operator: string, value: unknown): DeskQuery
+      order(column: string, opts: { ascending: boolean; nullsFirst?: boolean }): DeskQuery
+      limit(n: number): DeskQuery
+    }
     let q = db.from('leads')
       // ⚑ 25 Aug — `surfaced_for_approval_at` IS THE PROOF-BATCH DISCRIMINATOR (founder-ruled).
       // Free proof stamps ONE `new Date().toISOString()` across a whole run's rows and its
@@ -289,18 +300,37 @@ leadRouter.get('/for-approval', async (req: AuthRequest, res) => {
       // notice to anyone. Against a 100-lead pack that would have silently eaten most of what
       // the client had paid for. They keep every person we send until they pick or pass.
       .is('revealed_at', null)
-      .neq('status', 'passed')
+      .neq('status', 'passed') as unknown as DeskQuery
     // ⚠️ THE BOUNDARY, APPLIED AFTER THE ELIGIBILITY FILTERS AND BEFORE THE ORDER. `legacy` and
     // `unreadable` both take the unbounded client-scoped list: legacy because that is its
     // correct answer, unreadable because this is a DISPLAY list and blanking a paying client's
     // desk over a transient read error is a worse lie than showing it — the approve routes are
     // separately fail-closed by `checkLegacyPerLeadAuthority`, so nothing can be acted on that
     // the model has not authorised.
-    // ⚠️ `proof` TAKES THE UNBOUNDED LIST, exactly like `legacy`. A time bound here would filter
-    // away pass 1's batch for a client on pass 2 — "two labelled proof sets, nothing deleted or
-    // filtered away" is founder-locked, and the free-proof guard catches it. A proof client is
-    // never-funded by construction, so their desk is already only their proof work.
+    // ── 🛑 3 Sep (WITHDRAWN AND REPLACED) — `proof` IS POSITIVELY ATTRIBUTED, NOT UNBOUNDED ──
+    //
+    // ⛓️ THIS BRANCH USED TO READ *"`proof` takes the unbounded list, exactly like `legacy`"*,
+    // on the reasoning that a proof client is never-funded and so has nothing else. That is
+    // false the moment ONE account carries both histories: a declared programme client with old
+    // NULL-programme legacy leads who later runs a legitimate modern Free Proof would have had
+    // every historical card handed back as current work. The founder caught it before it
+    // shipped; it is the original defect wearing a different column.
+    //
+    // ⚠️ `proof_pass IS NOT NULL` IS A POSITIVE FACT ON THE ROW, stamped by the run that
+    // created it from the pass `try_claim_proof_pass` granted. A legacy lead does not have it
+    // and can never acquire it — nothing backfills this column.
+    //
+    // ⚠️ AND STILL NO TIME BOUND. Pass 2 stamps its own ids and cannot restamp pass 1, so BOTH
+    // proof sets stay attributed and both stay visible — "two labelled proof sets, nothing
+    // deleted or filtered away" (founder-locked), which a `proof_started_at` bound would have
+    // broken. `surfaced_for_approval_at` is still returned, unfiltered, as the batch label.
+    //
+    // ⚠️ FAILS CLOSED IF THE COLUMN IS ABSENT. Before 20260903_lead_proof_attribution runs, this
+    // filter errors and the catch below answers with a 500 rather than a list — an empty desk,
+    // never a historical one. That is the safe direction, and the founder alert on the write
+    // side names the migration.
     if (scope.kind === 'programme') q = q.eq('programme_id', scope.programmeId)
+    if (scope.kind === 'proof') q = q.not('proof_pass', 'is', null)
     const { data, error } = await q
       .order('score', { ascending: false, nullsFirst: false })
       .limit(50)

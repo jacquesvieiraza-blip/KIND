@@ -6,24 +6,30 @@
 // per-lead desk under "Earlier activity", a reply in Recent Replies, and historical campaign
 // and meeting numbers — every one of them presented as the CURRENT workspace.
 //
-// ── THE CAUSE, AND WHY THE PREVIOUS FIX MISSED IT ───────────────────────────────────────
+// ── THE CAUSE, AND WHY TWO FIXES MISSED IT ──────────────────────────────────────────────
 //
 // #1633 scoped these reads to the OPEN PROGRAMME: `if (!programmeId) return everything()`. That
-// is the C2 defect again in the read model — "no programme row" read as "no boundary" — and it
-// was never updated when the commercial model landed. House has no programme, so every one of
-// those reads fell straight back to the unbounded client-scoped list.
+// is the C2 defect in the read model — "no programme row" read as "no boundary" — and House has
+// no programme, so every read fell back to the unbounded client-scoped list.
 //
-// ── THE DISTINCTION THIS SUITE EXISTS TO PROVE ──────────────────────────────────────────
+// ⛓️ THE SECOND ATTEMPT MADE THE SAME MISTAKE WITH A DIFFERENT COLUMN, and this suite is where
+// that is recorded. It read `clients.proof_passes_done > 0` and, on a non-zero count, handed
+// back the unbounded desk. That counter answers *"has this account EVER claimed a pass"* — never
+// *"does THIS ROW belong to that pass"* — so a declared programme client with old legacy leads
+// who later ran a proof they were entitled to run got every historical card back. The founder
+// caught it before it shipped. **"No programme ⇒ show everything" had simply become "ever
+// proofed ⇒ show everything".**
 //
-// ⚠️ BLANKING EVERY PROGRAMME CLIENT WITH NO PROGRAMME WOULD BREAK THE LAUNCH. Signup writes
-// `commercial_model = 'programme'`, so a GENUINE NEW CUSTOMER RUNNING FREE PROOF is in exactly
-// that state — and their calibration cards are current work. Nothing on the lead row separates
-// a proof lead from a legacy delivered one (both carry `delivered_at` + `surfaced_for_approval_at`
-// and nothing else), so the discriminator is the PROOF SESSION, which `try_claim_proof_pass`
-// records positively on the client.
+// ── WHAT THE BOUNDARY IS NOW ────────────────────────────────────────────────────────────
 //
-// Every assertion below is paired: the House case AND the free-proof case, so a fix that
-// silences one by breaking the other cannot pass.
+// `leads.proof_pass`, stamped by the run that created the row from the pass
+// `try_claim_proof_pass` granted. This module answers WHICH RULE APPLIES; the row answers WHICH
+// ROWS QUALIFY — which is why House and a genuine new customer now take the IDENTICAL scope and
+// are separated by their data rather than by a verdict about their account.
+//
+// ⚠️ THE BEHAVIOURAL PROOF LIVES IN `proof-attribution-boundary.test.ts` — one account holding
+// BOTH histories, asserting that the modern cards show AND the historical ones do not. This
+// file asserts the SHAPE of the boundary: what it may be made of, and what it may not.
 // ═══════════════════════════════════════════════════════════════════════════════════════
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
@@ -59,7 +65,7 @@ vi.mock('@kind/db', () => ({
   },
 }))
 
-import { currentWorkspaceScope, hasCurrentWork } from './current-workspace'
+import { currentWorkspaceScope, showsCurrentOutreach } from './current-workspace'
 
 const PROG = { id: 'p-new', client_id: 'c1', status: 'LIVE' }
 const API = join(__dirname, '..')
@@ -76,26 +82,20 @@ beforeEach(() => {
 })
 
 // ═══════════════════════════════════════════════════════════════════════════════════════
-// ① THE FIVE SCOPES — and the two that used to be one
+// ① THE FOUR SCOPES — and the one that was withdrawn
 // ═══════════════════════════════════════════════════════════════════════════════════════
 describe('① the boundary of a client\'s current work', () => {
-  it('🛑 HOUSE — declared programme, no programme, no proof session → NONE', async () => {
-    // The screenshot, as an assertion. `none` is a POSITIVE answer: there is no current work,
-    // which is different from "we found none" and different again from "no boundary".
+  it('🛑 HOUSE AND A NEW CUSTOMER MID PROOF TAKE THE IDENTICAL SCOPE — the ROWS separate them', async () => {
+    // ⛓️ THIS IS THE CORRECTION, AS AN ASSERTION. These two were previously answered `none` and
+    // `proof` from `proof_passes_done`, which is a verdict about the ACCOUNT. It cannot be one:
+    // the same account can hold retired legacy rows AND a legitimate modern proof at once, and
+    // any account-level verdict must then be wrong about half its own data. So the scope is the
+    // same for both and `leads.proof_pass` decides which rows are current work.
     state.client = { commercial_model: 'programme', proof_passes_done: 0, proof_started_at: null }
-    const s = await currentWorkspaceScope('c1')
-    expect(s.kind).toBe('none')
-    expect(hasCurrentWork(s), 'House has no current workspace at all').toBe(false)
-  })
+    expect((await currentWorkspaceScope('c1')).kind).toBe('proof')
 
-  it('🛑 A GENUINE NEW CUSTOMER MID FREE PROOF — same model, same absence → PROOF, not none', async () => {
-    // ⚠️ THE PAIR THAT MATTERS. Signup writes `commercial_model = 'programme'`, so this client
-    // is in the identical model state as House. Blanking them would break the launch
-    // acquisition motion, and a fix that cannot tell them apart is not a fix.
-    state.client = { commercial_model: 'programme', proof_passes_done: 1, proof_started_at: '2026-09-03T09:00:00Z' }
-    const s = await currentWorkspaceScope('c1')
-    expect(s.kind).toBe('proof')
-    expect(hasCurrentWork(s)).toBe(true)
+    state.client = { commercial_model: 'programme', proof_passes_done: 2, proof_started_at: '2026-09-03T09:00:00Z' }
+    expect((await currentWorkspaceScope('c1')).kind).toBe('proof')
   })
 
   it('🛑 P_NEW — a programme is open → PROGRAMME, and it carries the id for positive attribution', async () => {
@@ -119,34 +119,40 @@ describe('① the boundary of a client\'s current work', () => {
       .toBe('programme')
   })
 
-  it('🛑 an UNREADABLE model → unreadable, never legacy and never none', async () => {
+  it('🛑 an UNREADABLE model → unreadable, never legacy and never proof', async () => {
     state.clientError = { message: 'connection reset' }
-    const s = await currentWorkspaceScope('c1')
-    expect(s.kind).toBe('unreadable')
+    expect((await currentWorkspaceScope('c1')).kind).toBe('unreadable')
   })
 
-  it('a proof COUNT with no start stamp is still a session — the stamp is not required', async () => {
-    // ⛓️ CORRECTED. The first cut required `proof_started_at` because it BOUNDED the work by it.
-    // That bound was wrong — the column is rewritten on every claim, so it would have hidden
-    // pass 1 from a client on pass 2 — and with the bound gone the stamp has no job. An account
-    // predating that migration is still a genuine free-proof client and keeps its desk.
-    state.client = { commercial_model: 'programme', proof_passes_done: 2, proof_started_at: null }
-    expect((await currentWorkspaceScope('c1')).kind).toBe('proof')
+  it('🛑 CALIBRATION IS NOT OUTREACH — only programme and legacy may show a campaign, replies or meetings', () => {
+    // Free proof sends nobody an email, so any campaign, reply or meeting readable for a
+    // proof-scoped client is by construction an earlier motion's. `unreadable` is deliberately
+    // false here too: each caller degrades it its own way, and flattening that into this
+    // boolean would silently change one of them.
+    expect(showsCurrentOutreach({ kind: 'programme', programmeId: 'x' })).toBe(true)
+    expect(showsCurrentOutreach({ kind: 'legacy' })).toBe(true)
+    expect(showsCurrentOutreach({ kind: 'proof' })).toBe(false)
+    expect(showsCurrentOutreach({ kind: 'unreadable', reason: 'x' })).toBe(false)
   })
 
-  it('the proof read is skipped entirely for a legacy client — it costs nothing to be unchanged', async () => {
-    state.client = { commercial_model: 'legacy', proof_passes_done: 0, proof_started_at: null }
-    state.reads = []
-    await currentWorkspaceScope('c1')
-    // clients (the model) + programmes (is one open) — and no second clients read.
-    expect(state.reads).toEqual(['clients', 'programmes'])
+  it('🛑 EVERY PATH COSTS EXACTLY TWO READS — the second clients read is gone', async () => {
+    // The withdrawn version took a second trip to `clients` for `proof_passes_done`. With
+    // attribution on the row there is nothing left to ask, and this asserts the counter cannot
+    // creep back in as a read.
+    for (const model of [null, 'legacy', 'programme']) {
+      state.client = { commercial_model: model, proof_passes_done: 2, proof_started_at: null }
+      state.reads = []
+      await currentWorkspaceScope('c1')
+      expect(state.reads, `${String(model)} must cost clients + programmes and nothing more`)
+        .toEqual(['clients', 'programmes'])
+    }
   })
 })
 
 // ═══════════════════════════════════════════════════════════════════════════════════════
-// ② IT IS NOT A NAME, A DATE CUTOFF, OR A HOUSE SPECIAL CASE
+// ② IT IS NOT A NAME, A DATE CUTOFF, A COUNTER, OR A HOUSE SPECIAL CASE
 // ═══════════════════════════════════════════════════════════════════════════════════════
-describe('② the discriminator is positive, stored, and about nobody in particular', () => {
+describe('② the discriminator is positive, stored on the row, and about nobody in particular', () => {
   it('🛑 no company name, no HOUSE_CLIENT_ID, no env var, no hardcoded id', () => {
     const src = raw('lib/current-workspace.ts')
     for (const banned of ['company_name', 'HOUSE_CLIENT_ID', 'get-kind.com', 'process.env', 'is_demo']) {
@@ -161,13 +167,18 @@ describe('② the discriminator is positive, stored, and about nobody in particu
     }
   })
 
-  it('🛑 THE ONLY TIMESTAMP IS THE SESSION\'S OWN START STAMP, not a chosen cutoff', () => {
+  it('🛑 NO CUMULATIVE CLIENT STATE — the withdrawn rule cannot come back by edit', () => {
     const src = raw('lib/current-workspace.ts')
-    expect(src).toContain("select('proof_passes_done')")
-    // 🛑 NO DATE ANYWHERE — not a cutoff, not a stamp, not arithmetic. A first cut bounded the
-    // proof case by `proof_started_at`; that column is rewritten on every claim, so it would
-    // have filtered away pass 1's batch for a client on pass 2. The count is the whole signal.
-    expect(src, 'the boundary must not compare timestamps').not.toMatch(/proof_started_at|Date\.now\(\)|new Date\(|getTime\(\)|gte\(/)
+    expect(src, 'proof_passes_done is "has this account ever", never "is this row"')
+      .not.toMatch(/proof_passes_done/)
+    expect(src, 'proof_started_at is rewritten on every claim and hides pass 1')
+      .not.toMatch(/proof_started_at/)
+  })
+
+  it('🛑 NO CLOCK — not a cutoff, not a stamp, not arithmetic, not a range filter', () => {
+    const src = raw('lib/current-workspace.ts')
+    expect(src, 'the boundary must not compare timestamps')
+      .not.toMatch(/Date\.now\(\)|new Date\(|getTime\(\)|\.gte\(|\.lte\(|\.gt\(|\.lt\(/)
   })
 })
 
@@ -178,38 +189,38 @@ describe('③ the four surfaces that were rendering history as current work', ()
   const summary = raw('lib/milla-summary.ts')
   const leadsRt = raw('routes/leads.ts')
 
-  it('🛑 THE PROSPECT CARDS — /leads/for-approval is bounded, and returns [] for `none`', () => {
+  it('🛑 THE PROSPECT CARDS — bounded by a POSITIVE ROW FACT, not by an account verdict', () => {
     const fn = leadsRt.slice(leadsRt.indexOf("leadRouter.get('/for-approval'"))
     expect(fn).toContain('currentWorkspaceScope(clientId)')
-    expect(fn, 'no current work returns an empty desk positively, before the query')
-      .toMatch(/if \(scope\.kind === 'none'\) \{ res\.json\(\{ success: true, data: \[\] \}\); return \}/)
     expect(fn).toContain("if (scope.kind === 'programme') q = q.eq('programme_id', scope.programmeId)")
-    // 🛑 AND A PROOF CLIENT IS NOT BOUNDED — "two labelled proof sets, nothing deleted or
-    // filtered away" is founder-locked, and a bound here hid pass 1 from a client on pass 2.
+    expect(fn, 'a proof desk shows attributed proof rows and nothing else')
+      .toContain("if (scope.kind === 'proof') q = q.not('proof_pass', 'is', null)")
+    // 🛑 AND STILL NO TIME BOUND — "two labelled proof sets, nothing deleted or filtered away"
+    // is founder-locked, and a bound here hid pass 1 from a client on pass 2.
     expect(fn, 'no server-side filter may separate the proof batches')
       .not.toMatch(/\.(gte|gt|lte|lt)\(\s*['"]surfaced_for_approval_at/)
     // ⚠️ AND THE BOUNDARY IS APPLIED BEFORE THE ROWS ARE FETCHED, not filtered afterwards.
     expect(fn.indexOf('currentWorkspaceScope')).toBeLessThan(fn.indexOf('const { data, error } = await q'))
   })
 
-  it('🛑 RECENT REPLIES — the rail the previous fix did not close', () => {
+  it('🛑 RECENT REPLIES — the rail two fixes did not close', () => {
     const fn = summary.slice(summary.indexOf('async function recentRepliesFor'))
       .slice(0, summary.slice(summary.indexOf('async function recentRepliesFor')).indexOf('export async function'))
     expect(fn, 'the old open-programme scoping must be gone')
       .not.toContain('openProgrammeForClient')
     expect(fn).toContain('currentWorkspaceScope(clientId)')
-    expect(fn, 'no current work is an empty rail, stated positively')
-      .toMatch(/if \(scope\.kind === 'none'\) return \{ data: \[\] as Record<string, unknown>\[\], error: null \}/)
+    expect(fn, 'calibration has no replies — stated positively as an empty rail')
+      .toMatch(/if \(scope\.kind === 'proof'\) return \{ data: \[\] as Record<string, unknown>\[\], error: null \}/)
     expect(fn, 'and legacy still takes the identical query it always took')
       .toMatch(/if \(scope\.kind === 'legacy'\) return base\(\)/)
   })
 
-  it('🛑 THE CAMPAIGN SENTENCE — fail-closed, and silent when there is no current work', () => {
+  it('🛑 THE CAMPAIGN SENTENCE — fail-closed, and silent for a calibration workspace', () => {
     const fn = summary.slice(summary.indexOf('async function campaignFor'))
       .slice(0, summary.indexOf('async function recentRepliesFor') - summary.indexOf('async function campaignFor'))
     expect(fn).not.toContain('openProgrammeForClient')
     expect(fn).toContain('currentWorkspaceScope(clientId)')
-    expect(fn).toMatch(/if \(scope\.kind === 'none'\) return \{ data: null, error: null \}/)
+    expect(fn).toMatch(/if \(scope\.kind === 'proof'\) return \{ data: null, error: null \}/)
     expect(fn, 'an unreadable scope must not assert a campaign either')
       .toMatch(/if \(scope\.kind === 'unreadable'\)[\s\S]{0,300}return \{ data: null, error: null \}/)
     expect(fn).toMatch(/if \(scope\.kind === 'legacy'\) return newest\(\)/)
@@ -219,11 +230,14 @@ describe('③ the four surfaces that were rendering history as current work', ()
     expect(summary).toContain('const summaryScope = await currentWorkspaceScope(clientId)')
     expect(summary, 'and the count is not bounded by a date either')
       .not.toMatch(/\.gte\(\s*'surfaced_for_approval_at'/)
-    expect(summary).toContain("const noCurrentWork = summaryScope.kind === 'none'")
-    expect(summary, 'no current work means nothing is waiting')
-      .toMatch(/noCurrentWork\s*\n?\s*\? Promise\.resolve\(\{ count: 0 \}\)/)
-    expect(summary, 'and no meetings this month')
-      .toContain('noCurrentWork ? Promise.resolve(null) : meetingCounts({ clientId, since: monthStart })')
+    // THE SAME BOUNDARY THE CARD LIST APPLIES, CLAUSE FOR CLAUSE — the count and the cards
+    // cannot disagree, which is how House reaches 0 with nothing deleted.
+    expect(summary).toContain("if (summaryScope.kind === 'programme') q = q.eq('programme_id', summaryScope.programmeId)")
+    expect(summary).toContain("if (summaryScope.kind === 'proof') q = q.not('proof_pass', 'is', null)")
+    expect(summary, 'calibration books nobody, so this month has no meetings')
+      .toContain('outreach\n      ? meetingCounts(')
+    expect(summary, 'and an open programme scopes the month to THAT programme')
+      .toContain('{ clientId, programmeId: summaryScope.programmeId, since: monthStart }')
     // ⚠️ THE ALL-TIME REPORT FIGURES ARE DELIBERATELY UNTOUCHED. They are labelled as history
     // and are the one place history belongs — this is what "preserved, not deleted" looks like.
     expect(summary).toContain('meetingCounts({ clientId }),')

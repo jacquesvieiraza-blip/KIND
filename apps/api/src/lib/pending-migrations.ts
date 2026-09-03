@@ -3297,6 +3297,66 @@ BEGIN
 END $$;
 `.trim(),
   },
+  {
+    // ⚑ 3 Sep — WHICH LEAD IS FREE-PROOF WORK? Canonical file:
+    // supabase/migrations/20260903_lead_proof_attribution.sql (written in the same change,
+    // which is the shape migration-home.test.ts argues for). Full reasoning lives there.
+    //
+    // A declared programme client with no open programme is TWO accounts — a new customer
+    // mid FREE PROOF whose cards are CURRENT, and an account whose leads are the retired
+    // per-lead desk, which is HISTORY. Every existing store was traced write -> storage ->
+    // read before this column was added, and none can separate them per row: leads.source is
+    // the PROVIDER name and identical for both; programme_id is NULL for both;
+    // icp_run_outcomes has no lead ids and no proof flag; sourcing_ledger and proof_ledger
+    // are money rows with no lead ids (and a pool-only proof pass writes no proof_ledger row
+    // at all); acquisition_memory is keyed on the provider identity; proof_passes_done and
+    // proof_started_at are CUMULATIVE CLIENT STATE; and icps.proof_widened_candidate — the
+    // only existing proof-batch-to-leads link — exists only for a pass-2 widened fallback.
+    //
+    // ⚠️ NULLABLE, NO DEFAULT, NO BACKFILL (the #599 lesson). Every existing row reads NULL,
+    // which means exactly what it says: not known to be proof work. No row is written, moved
+    // or deleted by this migration and no behaviour changes until the code reads it.
+    //
+    // 🚀 RUN THIS FROM VIDA -> ENGINE IMMEDIATELY AFTER DEPLOYING THE BUILD THAT CARRIES IT.
+    // PENDING_MIGRATIONS is a TypeScript constant compiled into the DEPLOYED API, so a
+    // migration can never be applied before the build that carries it. Until it is applied,
+    // the proof stamp write is refused by the database and the customer desk therefore
+    // attributes NOTHING — which fails CLOSED (an empty desk), never open (history).
+    key: '20260903_lead_proof_attribution',
+    title: 'leads.proof_pass — positive per-row free-proof attribution (additive, nullable, never backfilled)',
+    sql: `
+ALTER TABLE public.leads
+  ADD COLUMN IF NOT EXISTS proof_pass smallint;
+
+COMMENT ON COLUMN public.leads.proof_pass IS
+  'The FREE-PROOF pass number that produced this row (1 or 2), stamped by runIcpJob on exactly the ids it inserted, from the pass try_claim_proof_pass atomically granted before the run. NULL means this row is NOT known to be free-proof work - the honest answer for every legacy, programme and pool-served lead, and for everyone sourced before this column existed. Never defaulted, never backfilled, never rewritten, and never read by money, sending, reveal or delivery.';
+
+-- Guarded on pg_constraint rather than DROP + ADD: ADD CONSTRAINT ... CHECK takes an ACCESS
+-- EXCLUSIVE lock and revalidates the whole table, so DROP/ADD would pay that on every run AND
+-- leave a window with no constraint at all. The commercial_model entry above carries the same
+-- reasoning for the same reason. SAFE ON A POPULATED TABLE: the column is added NULL with no
+-- default, so proof_pass IS NULL short-circuits the OR for every existing row.
+--
+-- TWO IS THE CEILING BECAUSE try_claim_proof_pass REFUSES A THIRD (v_done >= 2 -> return 0).
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+     WHERE conrelid = 'public.leads'::regclass
+       AND conname  = 'leads_proof_pass_check'
+  ) THEN
+    ALTER TABLE public.leads
+      ADD CONSTRAINT leads_proof_pass_check CHECK (
+        proof_pass IS NULL OR proof_pass IN (1, 2)
+      );
+  END IF;
+END $$;
+
+CREATE INDEX IF NOT EXISTS leads_proof_pass_idx
+  ON public.leads (client_id, proof_pass)
+  WHERE proof_pass IS NOT NULL;
+`.trim(),
+  },
 ]
 
 // Runs the statements against DATABASE_URL. Uses node-postgres because the Supabase JS

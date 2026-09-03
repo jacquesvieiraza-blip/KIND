@@ -2043,8 +2043,31 @@ export async function runIcpJob(
     // its own, because `proof_passes_done` is 2 while only one batch is visible — which is
     // exactly the Glean state, and exactly what the acceptance endpoint refuses.
     if (widenedAdoptable) {
+      // ── ⚑ 3 Sep — THE ROW SAYS WHICH MOTION MADE IT, IN THE SAME STATEMENT THAT SHOWS IT ──
+      //
+      // 🛑 WITHOUT THIS STAMP A PROOF LEAD AND A RETIRED LEGACY LEAD ARE THE SAME ROW. Both
+      // carry `delivered_at`, `surfaced_for_approval_at`, a null `programme_id` and a
+      // provider name in `source`; every other store was traced and none of them answers it
+      // per row (full list in 20260903_lead_proof_attribution.sql). So a declared programme
+      // client between programmes could not be told apart from a new customer mid proof, and
+      // House rendered its retired desk as a current workspace.
+      //
+      // ⚠️ THE PASS NUMBER, NOT A FLAG AND NOT A CLOCK. `opts.proofPass` is what
+      // `try_claim_proof_pass` ATOMICALLY GRANTED before this call — the same value the
+      // fence, the reservation, the PDL query and the widened-candidate provenance all act
+      // on. Not a second notion of proof-ness, and never inferred.
+      //
+      // ⚠️ ONE STATEMENT, SO THERE IS NO WINDOW. A separate follow-up update could leave a
+      // surfaced row with no attribution, which the desk would then refuse to show — the
+      // client would see "K.I.N.D found nobody" for people we had already sourced. Written
+      // together, the batch is either visible AND attributed or neither.
+      //
+      // ⚠️ IT NEVER TOUCHES AN EARLIER PASS. `.in('id', insertedIds)` names only the rows
+      // THIS invocation created, and `.is('delivered_at', null)` is unchanged — so pass 2
+      // cannot restamp, hide or re-date pass 1. That is what keeps both proof sets visible
+      // with no time bound anywhere.
       const { error: surfErr } = await db.from('leads')
-        .update({ surfaced_for_approval_at: nowIso, delivered_at: nowIso })
+        .update({ surfaced_for_approval_at: nowIso, delivered_at: nowIso, proof_pass: opts!.proofPass })
         .in('id', insertedIds).is('delivered_at', null)
       if (surfErr) {
         // Same failure shape start-work treats as serious: the leads exist and the prospect
@@ -2059,6 +2082,7 @@ export async function runIcpJob(
           `Prospect ${clientId}: ${insertedIds.length} proof lead(s) could not be surfaced.`,
           `Reason: ${surfErr.message}`,
           'Their proof pass has been consumed and the leads exist — they simply do not appear. Re-surfacing them by hand costs nothing.',
+          'FIRST THING TO CHECK: if the reason names `proof_pass`, the 20260903_lead_proof_attribution migration has not been run. Vida → Engine → run the pending migrations, then re-surface.',
         ]).catch(() => {})
       }
     }

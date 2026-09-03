@@ -252,7 +252,27 @@ leadRouter.get('/for-approval', async (req: AuthRequest, res) => {
     if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
     // first/last name are fetched SERVER-SIDE ONLY (never returned) so we can scrub any
     // occurrence of them from score_reasoning before it becomes the masked "why_fits".
-    const { data, error } = await db.from('leads')
+    // ── 🛑 3 Sep (C2 live) · THIS LIST IS THE CURRENT WORKSPACE, NOT THE ARCHIVE ──────────
+    //
+    // ⛓️ The query below is client-scoped with NO time bound at all — "NO TIME LIMIT ON PAID
+    // LEADS", founder-locked 25 Jul, and correct for a legacy client who paid for every one of
+    // them. For a DECLARED PROGRAMME client between programmes it is the wrong set entirely:
+    // House's Milla rendered three prospect cards from the retired per-lead desk, and the
+    // "Earlier activity" banner above them is driven by this list being non-empty.
+    //
+    // 🛑 AND FREE PROOF LIVES ON THIS SAME LIST, which is why "blank it for programme clients"
+    // is not the fix. Every new M&V customer is a declared programme client from signup and has
+    // no programme until one is created; their calibration set is CURRENT work and must render.
+    // `currentWorkspaceScope` is what tells the two apart — see that module for the reasoning.
+    //
+    // ⚠️ NOTHING IS DELETED OR HIDDEN FROM THE OPERATOR. Every row stays; Vida reads them
+    // unchanged. This decides only what a customer's CURRENT desk claims as current.
+    const { currentWorkspaceScope } = await import('../lib/current-workspace')
+    const scope = await currentWorkspaceScope(clientId)
+    // 🛑 NO CURRENT WORK — a real answer, returned positively rather than as an empty query.
+    if (scope.kind === 'none') { res.json({ success: true, data: [] }); return }
+
+    let q = db.from('leads')
       // ⚑ 25 Aug — `surfaced_for_approval_at` IS THE PROOF-BATCH DISCRIMINATOR (founder-ruled).
       // Free proof stamps ONE `new Date().toISOString()` across a whole run's rows and its
       // `.is('delivered_at', null)` filter means a later run can never restamp an earlier
@@ -270,6 +290,18 @@ leadRouter.get('/for-approval', async (req: AuthRequest, res) => {
       // the client had paid for. They keep every person we send until they pick or pass.
       .is('revealed_at', null)
       .neq('status', 'passed')
+    // ⚠️ THE BOUNDARY, APPLIED AFTER THE ELIGIBILITY FILTERS AND BEFORE THE ORDER. `legacy` and
+    // `unreadable` both take the unbounded client-scoped list: legacy because that is its
+    // correct answer, unreadable because this is a DISPLAY list and blanking a paying client's
+    // desk over a transient read error is a worse lie than showing it — the approve routes are
+    // separately fail-closed by `checkLegacyPerLeadAuthority`, so nothing can be acted on that
+    // the model has not authorised.
+    // ⚠️ `proof` TAKES THE UNBOUNDED LIST, exactly like `legacy`. A time bound here would filter
+    // away pass 1's batch for a client on pass 2 — "two labelled proof sets, nothing deleted or
+    // filtered away" is founder-locked, and the free-proof guard catches it. A proof client is
+    // never-funded by construction, so their desk is already only their proof work.
+    if (scope.kind === 'programme') q = q.eq('programme_id', scope.programmeId)
+    const { data, error } = await q
       .order('score', { ascending: false, nullsFirst: false })
       .limit(50)
     if (error) throw error

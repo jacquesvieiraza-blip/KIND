@@ -1371,7 +1371,14 @@ export default function MillaHomePage() {
                 calibration set, which is the launch acquisition motion and legitimately lives
                 on this screen. The records stay; the claim that they are a current programme
                 does not. */}
-            {leads && leads.length > 0 && (
+            {/* ⛓️ 3 Sep (C2 live) — AND NOT DURING A PROOF SESSION. `/leads/for-approval` is now
+                bounded to the client's CURRENT work, so for a declared programme client between
+                programmes this list is empty and the banner disappears with it — which is the
+                House fix. What remains is a client mid FREE PROOF, whose cards ARE current: the
+                banner's own words, "examples you've previously reviewed", are false about a set
+                that was surfaced minutes ago. `proofPassesDone` is the same positive signal the
+                server scopes on, so the two cannot disagree. */}
+            {leads && leads.length > 0 && proofPassesDone === 0 && (
               <div className="[@media(min-width:1100px)]:col-span-2 [@media(min-width:1600px)]:col-span-3 bg-[#faf8ff] border border-[#ece5fb] rounded-2xl px-4 py-3">
                 {/* Founder-locked wording, 3 Sep. Verbatim — no extra explanation. */}
                 <div className="text-[13px] text-[#4c4368] font-semibold">Earlier activity</div>

@@ -84,6 +84,20 @@ export type CustomerProgramme = {
      */
     firstAuthorisedAt: string | null
     secondAuthorisedAt: string | null
+    /**
+     * 🛑 THIS PROGRAMME IS SETTLED BY INTERNAL AUTHORITY, NOT BY MONEY.
+     *
+     * True only for the house account. Before internal P1 both authority stamps are null, so
+     * without this the money card fell to its default and told House "First 50% not yet paid"
+     * — a debt to itself that does not exist. Nothing on the programmes row can answer it:
+     * paid-or-authorised is an operator act taken later, and a paying client's DRAFT row is
+     * byte-identical to House's.
+     *
+     * Identity is the one this repo already settled (#593): the auth user behind
+     * `HOUSE_ACCOUNT_EMAIL`, the same discriminator that keeps Client Zero out of every revenue
+     * figure. Never a name, never `HOUSE_CLIENT_ID`, never an env flag.
+     */
+    internalBilling: boolean
   }
   approvedAt: string | null
   wentLiveAt: string | null
@@ -98,7 +112,10 @@ export const NO_PROGRAMME: CustomerProgramme = {
   paused: false, pausedCopy: null, reviewOpen: false,
   outcome: { kind: 'meetings', target: null },
   progress: { delivered: 0, authorised: 0, outcomesAchieved: 0 },
-  money: { totalCents: 0, firstPaidAt: null, secondPaidAt: null, firstAuthorisedAt: null, secondAuthorisedAt: null },
+  money: {
+    totalCents: 0, firstPaidAt: null, secondPaidAt: null,
+    firstAuthorisedAt: null, secondAuthorisedAt: null, internalBilling: false,
+  },
   approvedAt: null, wentLiveAt: null,
 }
 
@@ -142,6 +159,17 @@ export async function readCustomerProgramme(clientId: string): Promise<CustomerP
   // meetings table already carries `programme_id` and `meetingCounts` already accepts it; the
   // filter was simply never passed. History is preserved and still counted everywhere it
   // legitimately belongs (Reports, all-time totals) — it is just not this programme's result.
+  // ⚠️ RESOLVED ONCE, ALONGSIDE THE MEETING COUNT. Fails open to `false` — a wrong `true`
+  // would tell a PAYING client they owe us nothing, which is a false statement about their
+  // money; a wrong `false` shows House the wording it has had all along.
+  let internalBilling = false
+  try {
+    const { isHouseClient } = await import('./house-client')
+    internalBilling = await isHouseClient(clientId)
+  } catch (err) {
+    console.error('[customer-programme] house check failed for', clientId, err)
+  }
+
   let outcomesAchieved: number | null = null
   try {
     const { meetingCounts } = await import('./meeting-truth')
@@ -174,6 +202,7 @@ export async function readCustomerProgramme(clientId: string): Promise<CustomerP
       secondPaidAt: (p.second_paid_at as string | null) ?? null,
       firstAuthorisedAt: (p.first_authorised_at as string | null) ?? null,
       secondAuthorisedAt: (p.second_authorised_at as string | null) ?? null,
+      internalBilling,
     },
     approvedAt: (p.approved_at as string | null) ?? null,
     wentLiveAt: (p.went_live_at as string | null) ?? null,

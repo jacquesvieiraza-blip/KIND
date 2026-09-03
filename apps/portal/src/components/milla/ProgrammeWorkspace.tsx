@@ -41,6 +41,8 @@ export type CustomerProgramme = {
     /** Internal P1/P2 authority — House runs on this and makes no payment. */
     firstAuthorisedAt?: string | null
     secondAuthorisedAt?: string | null
+    /** This programme is settled by internal authority, not money. House only. */
+    internalBilling?: boolean
   }
   approvedAt: string | null
   wentLiveAt: string | null
@@ -78,9 +80,17 @@ export function nextActionFor(p: CustomerProgramme): string {
 
 export default function ProgrammeWorkspace({ p }: { p: CustomerProgramme }) {
   const stageIndex = MILLA_STAGES.indexOf(p.stage)
-  // Is this programme running on INTERNAL authority rather than money? True for House, and
-  // false for every paying client — whose `firstPaidAt` is what actually authorised them.
-  const internallyAuthorised = !p.money.firstPaidAt && !!p.money.firstAuthorisedAt
+  // ⛓️ CORRECTED 3 Sep — DERIVING THIS FROM `firstAuthorisedAt` ALONE WAS STILL FALSE FOR
+  // HOUSE. Before internal P1 that stamp is null too, so House fell to the default and read
+  // "First 50% not yet paid" — a debt to itself that does not exist. The programme row cannot
+  // answer it (paid-or-authorised is an operator act taken later), so the server sends
+  // `internalBilling`, resolved from the identity this repo already settled: the auth user
+  // behind HOUSE_ACCOUNT_EMAIL.
+  //
+  // 🛑 A PAYING CLIENT NEVER SETS EITHER TERM. `internalBilling` is false for them, they never
+  // carry an authorisation stamp, and `firstPaidAt` wins ahead of both regardless.
+  const internallyAuthorised =
+    p.money.internalBilling === true || (!p.money.firstPaidAt && !!p.money.firstAuthorisedAt)
   return (
     <div className="max-w-3xl">
         {/* ── WHERE THE PROGRAMME IS ─────────────────────────────────────────────────
@@ -164,12 +174,13 @@ export default function ProgrammeWorkspace({ p }: { p: CustomerProgramme }) {
           <div className="text-[12.5px] text-[#6b5f8c]">
             {p.money.firstPaidAt ? 'First 50% paid'
               : p.money.firstAuthorisedAt ? 'First 50% authorised internally'
+              // An internally-billed programme owes no money at ANY point in its life, so its
+              // unauthorised half is awaiting AUTHORISATION — never a payment.
+              : internallyAuthorised ? 'First 50% not yet authorised'
               : 'First 50% not yet paid'}
             {' · '}
             {p.money.secondPaidAt ? 'Second 50% paid'
               : p.money.secondAuthorisedAt ? 'Second 50% authorised internally'
-              // An internally-authorised programme owes no money, so its outstanding half is
-              // awaiting AUTHORISATION, not payment.
               : internallyAuthorised ? 'Second 50% not yet authorised'
               : 'Second 50% not yet paid'}
           </div>

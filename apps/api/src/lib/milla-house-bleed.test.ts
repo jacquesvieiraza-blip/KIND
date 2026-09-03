@@ -39,12 +39,15 @@ const state: {
   programmes: Row[]; leads: Row[]; clients: Row[]; replies: Row[]; meetings: Row[]
   campaigns: Row[]; icps: Row[]
   programmesUnreadable: boolean
+  /** Make the clients read THROW, so the house check's catch path is reachable. */
+  clientsThrow: boolean
 } = {
   programmes: [], leads: [], clients: [], replies: [], meetings: [],
-  campaigns: [], icps: [], programmesUnreadable: false,
+  campaigns: [], icps: [], programmesUnreadable: false, clientsThrow: false,
 }
 
 function table(name: string) {
+  if (name === 'clients' && state.clientsThrow) throw new Error('clients read exploded')
   const rows = (): Row[] =>
     name === 'programmes' ? state.programmes : name === 'leads' ? state.leads
     : name === 'figsy_replies' ? state.replies : name === 'meetings' ? state.meetings
@@ -78,7 +81,15 @@ function table(name: string) {
   return q
 }
 
-vi.mock('@kind/db', () => ({ db: { from: (t: string) => table(t), rpc: async () => ({ data: null, error: null }) } }))
+/** The house identity this repo already settled (#593): the auth user, never the name. */
+let HOUSE_USER_EMAIL = 'someone-else@example.com'
+vi.mock('@kind/db', () => ({
+  db: {
+    from: (t: string) => table(t),
+    rpc: async () => ({ data: null, error: null }),
+    auth: { admin: { getUserById: async () => ({ data: { user: { email: HOUSE_USER_EMAIL } } }) } },
+  },
+}))
 vi.mock('./alerts', () => ({ sendFounderAlert: () => Promise.resolve() }))
 
 import { readCustomerProgramme, NO_PROGRAMME } from './customer-programme'
@@ -131,6 +142,10 @@ beforeEach(() => {
   state.programmes = []; state.leads = []; state.clients = []; state.replies = []; state.meetings = []
   state.campaigns = []; state.icps = []
   state.programmesUnreadable = false
+  HOUSE_USER_EMAIL = 'someone-else@example.com'
+  state.clientsThrow = false
+  state.clients.push({ id: HOUSE, user_id: 'u-house' })
+  state.clients.push({ id: MBF, user_id: 'u-mbf' })
 })
 
 // ═══════════════════════════════════════════════════════════════════════════════════════
@@ -519,8 +534,13 @@ describe('⑦ internal authority is reported as authority, never as payment', ()
     expect(visible).toContain("p.money.secondAuthorisedAt ? 'Second 50% authorised internally'")
     // An internally-authorised programme owes no money, so its outstanding half awaits
     // AUTHORISATION, not payment.
-    expect(visible).toContain("internallyAuthorised ? 'Second 50% not yet authorised'")
-    expect(visible).toContain("const internallyAuthorised = !p.money.firstPaidAt && !!p.money.firstAuthorisedAt")
+    expect(visible).toContain(": internallyAuthorised ? 'Second 50% not yet authorised'")
+    // ⛓️ AND THE PRE-P1 BRANCH, which is the half the previous round missed.
+    expect(visible).toContain(": internallyAuthorised ? 'First 50% not yet authorised'")
+    // 🛑 THE DERIVATION, PINNED — this is what stops the `render()` helper in ⑧ from drifting
+    // away from the component and proving nothing. Every branch that helper models is asserted
+    // to exist in the real source, in the same order.
+    expect(visible).toContain("p.money.internalBilling === true || (!p.money.firstPaidAt && !!p.money.firstAuthorisedAt)")
     // And the footnote's noun follows what actually happened.
     expect(visible).toContain("'The first authorisation covers sourcing and preparation. Outreach has not started.'")
     expect(visible).toContain("'The first payment authorises sourcing and preparation. Outreach has not started.'")
@@ -552,5 +572,143 @@ describe('⑦ internal authority is reported as authority, never as payment', ()
     // pass vacuously against a fixture that supplies it directly. Pinned to the query.
     const src = readFileSync(join(__dirname, 'customer-programme.ts'), 'utf8')
     expect(src).toContain("'first_paid_at, second_paid_at, first_authorised_at, second_authorised_at, '")
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// ⑧ HOUSE OWES NOTHING AT ANY POINT — INCLUDING BEFORE INTERNAL P1
+//
+// ⛓️ THE ROUND THAT PRECEDED THIS ONE FIXED HALF OF IT. Deriving "internal" from
+// `firstAuthorisedAt` covered House AFTER internal P1 and left it saying **"First 50% not yet
+// paid"** before — a debt to itself that does not exist. The programme row cannot answer the
+// question: paid-or-authorised is an operator act taken LATER, so a paying client's DRAFT row
+// is byte-identical to House's.
+//
+// 🛑 THE IDENTITY IS REUSED, NOT INVENTED. `HOUSE_ACCOUNT_EMAIL` already IS the house
+// discriminator here — `computeExcludedClientIds` uses it to keep Client Zero out of every
+// revenue figure. "House is never revenue" and "House owes no payment" are one fact. And it is
+// the identity the founder settled after #584/#582: **the auth user, never the name.**
+// ═══════════════════════════════════════════════════════════════════════════════════════
+describe('⑧ the four money states', () => {
+  const houseUser = () => { HOUSE_USER_EMAIL = 'hello@get-kind.com' }
+  /** What the workspace would render, evaluated from the SAME expressions the component uses. */
+  function render(m: {
+    firstPaidAt: string | null; secondPaidAt: string | null
+    firstAuthorisedAt: string | null; secondAuthorisedAt: string | null; internalBilling: boolean
+  }) {
+    const internal = m.internalBilling === true || (!m.firstPaidAt && !!m.firstAuthorisedAt)
+    const first = m.firstPaidAt ? 'First 50% paid'
+      : m.firstAuthorisedAt ? 'First 50% authorised internally'
+      : internal ? 'First 50% not yet authorised'
+      : 'First 50% not yet paid'
+    const second = m.secondPaidAt ? 'Second 50% paid'
+      : m.secondAuthorisedAt ? 'Second 50% authorised internally'
+      : internal ? 'Second 50% not yet authorised'
+      : 'Second 50% not yet paid'
+    return `${first} · ${second}`
+  }
+
+  it('🛑 ① HOUSE DRAFT, BEFORE P1 — neither half mentions payment', async () => {
+    houseUser()
+    houseProgramme({ status: 'DRAFT', first_paid_at: null, first_authorised_at: null })
+    const p = await readCustomerProgramme(HOUSE)
+    expect(p!.money.internalBilling, 'the house account is recognised').toBe(true)
+    expect(render(p!.money)).toBe('First 50% not yet authorised · Second 50% not yet authorised')
+  })
+
+  it('🛑 ② HOUSE AFTER INTERNAL P1', async () => {
+    houseUser()
+    houseProgramme({ status: 'SOURCING', first_paid_at: null, first_authorised_at: 'a1' })
+    const p = await readCustomerProgramme(HOUSE)
+    expect(render(p!.money)).toBe('First 50% authorised internally · Second 50% not yet authorised')
+  })
+
+  it('🛑 ③ HOUSE AFTER INTERNAL P2 — both authorised, neither paid', async () => {
+    houseUser()
+    houseProgramme({ status: 'APPROVED', first_paid_at: null, first_authorised_at: 'a1', second_authorised_at: 'a2' })
+    const p = await readCustomerProgramme(HOUSE)
+    expect(render(p!.money)).toBe('First 50% authorised internally · Second 50% authorised internally')
+  })
+
+  it('🛑 ④ A PAYING CLIENT IS UNCHANGED — before and after each payment', async () => {
+    // Not the house auth user, so `internalBilling` is false and every branch falls through to
+    // the wording this client has always seen.
+    houseProgramme({ status: 'DRAFT', first_paid_at: null, first_authorised_at: null })
+    let p = await readCustomerProgramme(HOUSE)
+    expect(p!.money.internalBilling).toBe(false)
+    expect(render(p!.money)).toBe('First 50% not yet paid · Second 50% not yet paid')
+
+    state.programmes = []
+    houseProgramme({ status: 'SOURCING', first_paid_at: 'p1' })
+    p = await readCustomerProgramme(HOUSE)
+    expect(render(p!.money)).toBe('First 50% paid · Second 50% not yet paid')
+
+    state.programmes = []
+    houseProgramme({ status: 'LIVE', first_paid_at: 'p1', second_paid_at: 'p2' })
+    p = await readCustomerProgramme(HOUSE)
+    expect(render(p!.money)).toBe('First 50% paid · Second 50% paid')
+  })
+
+  it('🛑 HOUSE NEVER SHOWS PAYMENT VOCABULARY IN ANY OF ITS FOUR STATES', async () => {
+    houseUser()
+    for (const over of [
+      { first_paid_at: null, first_authorised_at: null },
+      { first_paid_at: null, first_authorised_at: 'a1' },
+      { first_paid_at: null, first_authorised_at: 'a1', second_authorised_at: 'a2' },
+    ]) {
+      state.programmes = []
+      houseProgramme(over)
+      const p = await readCustomerProgramme(HOUSE)
+      const line = render(p!.money)
+      for (const banned of ['paid', 'payment']) {
+        expect(line.toLowerCase(), `House must never read "${banned}": ${line}`).not.toContain(banned)
+      }
+    }
+  })
+
+  it('🛑 NO FAKE PAYMENT FIELD IS EVER WRITTEN — the reader writes nothing at all', async () => {
+    houseUser()
+    houseProgramme({ first_paid_at: null, first_authorised_at: 'a1' })
+    await readCustomerProgramme(HOUSE)
+    const row = state.programmes[0]
+    expect(row.first_paid_at, 'no payment invented').toBeNull()
+    expect(row.second_paid_at).toBeNull()
+    expect(row.first_payment_ref ?? null).toBeNull()
+    expect(row.second_payment_ref ?? null).toBeNull()
+    const src = readFileSync(join(__dirname, 'customer-programme.ts'), 'utf8')
+    expect(src, 'the customer read model must perform no writes').not.toMatch(/\.(update|insert|upsert|delete)\(/)
+  })
+
+  it('🛑 THE IDENTITY IS THE AUTH USER — never the company name, never HOUSE_CLIENT_ID', () => {
+    const src = readFileSync(join(__dirname, 'house-client.ts'), 'utf8')
+    const code = src.split('\n').filter(l => !l.trim().startsWith('//') && !l.trim().startsWith('*')).join('\n')
+    const fn = code.slice(code.indexOf('export async function isHouseClient'))
+    expect(fn).toContain('getUserById')
+    expect(fn).toContain('HOUSE_ACCOUNT_EMAIL')
+    // #593: identity is the auth user. #584/#582 were both caused by matching on a name.
+    expect(fn, 'must not match on a company name').not.toContain('company_name')
+    expect(fn, 'must not match on the display label').not.toContain('HOUSE_CLIENT_NAME')
+    // HOUSE_CLIENT_ID stays unset and gates the parked Instantly push — nothing here reads it.
+    expect(fn, 'must not read HOUSE_CLIENT_ID').not.toContain('HOUSE_CLIENT_ID')
+    expect(fn, 'must not introduce an env flag').not.toContain('process.env')
+  })
+
+  it('🛑 the house check\'s CATCH path also fails to false — a thrown read is not "this is House"', async () => {
+    // ⚠️ A RED PROOF FOUND THIS UNTESTED. The other fail-open case returns early on a missing
+    // row and never reaches the catch, so flipping the catch\'s return changed nothing. This
+    // makes the read THROW, which is the only way in.
+    houseProgramme({ first_paid_at: null, first_authorised_at: null })
+    state.clientsThrow = true
+    const p = await readCustomerProgramme(HOUSE)
+    expect(p!.money.internalBilling, 'a thrown lookup must never assert House').toBe(false)
+    expect(render(p!.money)).toBe('First 50% not yet paid · Second 50% not yet paid')
+  })
+
+  it('the house check FAILS OPEN to false — a wrong true would misstate a paying client\'s money', async () => {
+    houseProgramme({ first_paid_at: null, first_authorised_at: null })
+    state.clients.length = 0            // no client row ⇒ the lookup cannot resolve
+    const p = await readCustomerProgramme(HOUSE)
+    expect(p!.money.internalBilling).toBe(false)
+    expect(render(p!.money)).toBe('First 50% not yet paid · Second 50% not yet paid')
   })
 })

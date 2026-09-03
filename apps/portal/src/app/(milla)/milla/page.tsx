@@ -1307,8 +1307,12 @@ export default function MillaHomePage() {
             so the home and the Programme page can never show different numbers for one
             programme — which is the whole reason it was extracted. */}
         <aside data-tour="leads" className="flex-1 min-w-0 bg-white border border-[#eee7f7] rounded-2xl flex flex-col min-h-0">
+          {/* ⛓️ 3 Sep — THE HEADING WAS THE LIE, AND IT WAS UNCONDITIONAL. It said "Your
+              programme" to a client who has no programme, over a list of records from a
+              retired desk. A founder screenshot of House found exactly that. The panel now
+              names what is actually beneath it. */}
           <div className="px-4 py-3 border-b border-[#eee7f7] flex items-center gap-2 flex-wrap">
-            <b className="text-[15px]">Your programme</b>
+            <b className="text-[15px]">{prog?.hasProgramme === false ? 'Your workspace' : 'Your programme'}</b>
           </div>
           {/* ⚑ 30 Aug (BUILD-004A-1, Option B) — TWO SURFACES, CHOSEN BY STAGE.
               ⛓️ MY FIRST CUT REPLACED THE DESK UNCONDITIONALLY and took the FREE PROOF
@@ -1323,7 +1327,12 @@ export default function MillaHomePage() {
             </div>
           ) : !prog ? (
             <div className="px-3.5 py-3"><p className="text-[14px] text-[#9b8ec4]">Loading your programme…</p></div>
-          ) : prog.stage !== 'Proof' ? (
+          ) : prog.hasProgramme !== false ? (
+            /* ⛓️ 3 Sep — THIS BRANCHED ON `stage !== 'Proof'`, AND THAT IS NOT THE QUESTION.
+               `millaStage` maps a DRAFT programme AND no programme at all to 'Proof', so a
+               client WITH a programme fell into the legacy client-scoped desk below and saw
+               their own history presented as current programme work. The question the branch
+               actually asks is "does a programme exist", and `hasProgramme` is that fact. */
             <div className="px-3.5 py-3 overflow-y-auto">
               <ProgrammeWorkspace p={prog} />
               {/* ⚑ 3 Sep (PR B) — REVIEW + THE ONE APPROVAL, AT THE APPROVAL STAGE ONLY.
@@ -1342,6 +1351,36 @@ export default function MillaHomePage() {
           ) : (
           <div className="px-3.5 py-3 overflow-y-auto grid gap-2.5 grid-cols-1 [@media(min-width:1100px)]:grid-cols-2 [@media(min-width:1600px)]:grid-cols-3 items-start content-start">
             {/* the wallet top-up banner is gone with the paid desk */}
+            {/* ⛓️ 3 Sep — THIS SET IS NOT A PROGRAMME, AND IT NOW SAYS SO.
+                This branch is reached ONLY when no programme row exists, and the list beneath
+                it comes from `/leads/for-approval`, which is scoped to `client_id` and has no
+                time bound at all ("NO TIME LIMIT ON PAID LEADS", founder-locked 25 Jul). For a
+                client with history that is history: House's retired desk rendered here as
+                three prospect cards under a heading that said "Your programme".
+                🛑 NOTHING IS HIDDEN AND NOTHING IS DELETED — the founder's second acceptable
+                option, taken because the first (show nothing) would also blank the FREE PROOF
+                calibration set, which is the launch acquisition motion and legitimately lives
+                on this screen. The records stay; the claim that they are a current programme
+                does not. */}
+            {leads && leads.length > 0 && (
+              <div className="[@media(min-width:1100px)]:col-span-2 [@media(min-width:1600px)]:col-span-3 bg-[#faf8ff] border border-[#ece5fb] rounded-2xl px-4 py-3">
+                <div className="text-[13px] text-[#4c4368] font-semibold">Earlier activity — not a programme</div>
+                <div className="text-[12.5px] text-[#6b6288] mt-0.5">
+                  You don’t have a programme yet, so nothing here is being worked.
+                  {/* 🛑 THE SUBSET DISCLOSURE, AND IT IS OWED. `/leads/for-approval` caps at 50.
+                      The old guard argued no disclosure was needed because the calibration set
+                      is only shown at stage Proof and proof is fenced at 40 lifetime records —
+                      true of a genuine proof prospect, and FALSE of a client with history:
+                      House holds ~166 and would have been shown 50 of them with nothing saying
+                      so. A count is not available on this route, so the sentence says "some"
+                      rather than inventing a total. */}
+                  {leads && leads.length >= 50
+                    ? ' These are some of the people we’ve shown you before — '
+                    : ' These are people we’ve shown you before — '}
+                  telling us what fits sharpens what we find next.
+                </div>
+              </div>
+            )}
             {error && <div className="text-[13px] text-red-600 bg-red-50 border border-red-200 rounded-xl px-3 py-2">{error}</div>}
             {!leads && !error && <p className="text-[14px] text-[#9b8ec4]">Loading…</p>}
             {/* the #570 subset disclosure went with the capped approval list */}

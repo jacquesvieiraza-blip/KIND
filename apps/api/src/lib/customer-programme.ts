@@ -34,6 +34,20 @@ import {
 export type CustomerProgramme = {
   stage: MillaStage
   quickAction: string
+  /**
+   * 🛑 DOES A PROGRAMME ROW ACTUALLY EXIST? `stage` CANNOT ANSWER THIS, and that is the whole
+   * reason this field had to be added.
+   *
+   * `millaStage` maps a DRAFT programme AND no programme at all to the same stage, 'Proof' —
+   * correct as a customer-journey stage, and useless as a fact. Milla Home was branching on
+   * `stage !== 'Proof'` to decide whether to render the programme workspace or the legacy
+   * client-scoped desk, so House — which has no programme — fell into the legacy desk and its
+   * ~166 retired leads rendered under a heading that said "Your programme". A DRAFT programme
+   * would have done exactly the same.
+   */
+  hasProgramme: boolean
+  /** The open programme's id when one exists — so a surface can positively attribute to it. */
+  programmeId: string | null
   /** Orthogonal to stage — a paused programme keeps the stage it will return to. */
   paused: boolean
   /** LOCKED founder copy, sent from the server so the client cannot drift from it. */
@@ -65,6 +79,8 @@ export type CustomerProgramme = {
 export const NO_PROGRAMME: CustomerProgramme = {
   stage: 'Proof',
   quickAction: STAGE_QUICK_ACTION.Proof,
+  hasProgramme: false,
+  programmeId: null,
   paused: false, pausedCopy: null, reviewOpen: false,
   outcome: { kind: 'meetings', target: null },
   progress: { delivered: 0, authorised: 0, outcomesAchieved: 0 },
@@ -104,11 +120,18 @@ export async function readCustomerProgramme(clientId: string): Promise<CustomerP
   // (BUILD-003 PR1). `null` means unreadable and is passed through as null: rendering a
   // storage failure as "0 meetings booked" would tell a client their programme has produced
   // nothing, which is the most damaging possible false statement on this screen.
+  //
+  // ⛓️ POSITIVELY ATTRIBUTED (3 Sep). This counted EVERY meeting the client has ever booked —
+  // `clientMeetingCounts([clientId])`, no programme filter — so House's historical meetings
+  // would have been reported as the new programme's progress the moment it was created. The
+  // meetings table already carries `programme_id` and `meetingCounts` already accepts it; the
+  // filter was simply never passed. History is preserved and still counted everywhere it
+  // legitimately belongs (Reports, all-time totals) — it is just not this programme's result.
   let outcomesAchieved: number | null = null
   try {
-    const { clientMeetingCounts } = await import('./meeting-truth')
-    const counts = await clientMeetingCounts([clientId])
-    outcomesAchieved = counts === null ? null : (counts[clientId] ?? 0)
+    const { meetingCounts } = await import('./meeting-truth')
+    const counts = await meetingCounts({ clientId, programmeId: p.id as string })
+    outcomesAchieved = counts === null ? null : counts.booked
   } catch (err) {
     console.error('[customer-programme] meeting counts unreadable for', clientId, err)
   }
@@ -116,6 +139,8 @@ export async function readCustomerProgramme(clientId: string): Promise<CustomerP
   return {
     stage,
     quickAction: STAGE_QUICK_ACTION[stage],
+    hasProgramme: true,
+    programmeId: (p.id as string | null) ?? null,
     paused: Boolean(p.paused_at),
     pausedCopy: p.paused_at ? MILLA_FAILURE_COPY.sourcingPaused : null,
     reviewOpen,

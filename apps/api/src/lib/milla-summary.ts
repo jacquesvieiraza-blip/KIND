@@ -81,6 +81,51 @@ export interface MillaSummaryData {
   proof_run: { status: string; message: string; total_inserted: number; finished_at: string | null } | null
 }
 
+/**
+ * The replies to show as CURRENT activity for this client.
+ *
+ * 🛑 THE RULE: an open programme means the rail shows that programme's replies. No programme
+ * means legacy, and legacy is exactly as it was.
+ *
+ * ⚠️ FAIL-SOFT, NOT FAIL-CLOSED, AND THAT IS DELIBERATE HERE. Everywhere this codebase gates
+ * MONEY or SENDING, an unreadable state refuses. This is a display rail: refusing would blank
+ * a client's replies over a transient read error, which is a worse lie than showing them. So a
+ * failed programme read falls back to the legacy client-scoped list and logs it.
+ */
+async function recentRepliesFor(clientId: string) {
+  const base = () => db.from('figsy_replies')
+    .select('from_name, from_email, classification, received_at')
+    .eq('client_id', clientId).order('received_at', { ascending: false }).limit(4)
+
+  let programmeId: string | null = null
+  try {
+    const { openProgrammeForClient } = await import('./programme')
+    programmeId = (await openProgrammeForClient(clientId))?.id ?? null
+  } catch (err) {
+    console.error('[milla-summary] programme state unreadable for', clientId, err)
+    return base()
+  }
+  if (!programmeId) return base()
+
+  // Positive attribution, derived: this programme's leads, then their replies. Two reads
+  // rather than a join, because PostgREST embedding on a nullable FK is the kind of query
+  // that silently returns the wrong shape when the relationship name changes.
+  const { data: leadRows, error: leadErr } = await db.from('leads')
+    .select('id').eq('client_id', clientId).eq('programme_id', programmeId)
+  if (leadErr) {
+    console.error('[milla-summary] programme leads unreadable for', clientId, leadErr.message)
+    return base()
+  }
+  const ids = (leadRows ?? []).map((r: { id: string }) => r.id)
+  // A programme with no leads yet has no current replies — that is a real answer, not a gap.
+  if (ids.length === 0) return { data: [] as Record<string, unknown>[], error: null }
+
+  return db.from('figsy_replies')
+    .select('from_name, from_email, classification, received_at')
+    .eq('client_id', clientId).in('lead_id', ids)
+    .order('received_at', { ascending: false }).limit(4)
+}
+
 export async function buildMillaSummaryData(clientId: string): Promise<MillaSummaryData> {
   const now = new Date()
   const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString()
@@ -101,8 +146,16 @@ export async function buildMillaSummaryData(clientId: string): Promise<MillaSumm
     // one with no campaign at all — and Milla told both of them "Campaign live".
     db.from('figsy_campaigns').select('name, status').eq('client_id', clientId)
       .order('created_at', { ascending: false }).limit(1).maybeSingle(),
-    db.from('figsy_replies').select('from_name, from_email, classification, received_at')
-      .eq('client_id', clientId).order('received_at', { ascending: false }).limit(4),
+    // ⛓️ SCOPED TO THE OPEN PROGRAMME WHEN ONE EXISTS (3 Sep). This was `client_id` alone, and
+    // `figsy_replies` carries no `programme_id` column — so House's historical replies would
+    // have kept sitting in the rail as current activity the moment a new programme was created,
+    // and a founder screenshot found exactly that. Attribution is DERIVED through `lead_id`,
+    // which is how every other layer resolves it; no column and no migration is added.
+    //
+    // ⚠️ LEGACY IS UNTOUCHED. A client with no open programme takes the identical query it
+    // always took — the $299 pack clients keep every reply they have. History is preserved in
+    // both cases: this decides what is shown as CURRENT, never what is kept.
+    recentRepliesFor(clientId),
     // #495 — each icps row is a version; oldest = v1. Real history, no fabrication.
     db.from('icps').select('name, industries, geographies, seniority_levels, company_sizes, job_titles, created_at')
       .eq('client_id', clientId).order('created_at', { ascending: true }).limit(12),

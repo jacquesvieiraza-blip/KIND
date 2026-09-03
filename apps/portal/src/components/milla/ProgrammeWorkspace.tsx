@@ -26,6 +26,9 @@ import { MILLA_STAGES, type MillaStage } from '@kind/shared'
 export type CustomerProgramme = {
   stage: MillaStage
   quickAction: string
+  /** Does a programme row actually exist? `stage` cannot say — DRAFT and none are both 'Proof'. */
+  hasProgramme?: boolean
+  programmeId?: string | null
   paused: boolean
   pausedCopy: string | null
   reviewOpen: boolean

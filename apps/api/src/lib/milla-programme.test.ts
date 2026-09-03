@@ -422,9 +422,13 @@ describe('🛑 NO LEGACY MONEY TRUTH SURVIVES ON THE MILLA HOME', () => {
   // These say what must be THERE, so the same regression cannot recur silently.
   describe('AT PROOF THE CLIENT CAN STILL REACT — AND IT COSTS NOTHING', () => {
     it('a Proof-stage client is given a calibration surface, not the programme workspace', () => {
-      // The stage is what chooses. Without this branch a prospect at Proof lands on a
-      // workspace describing a programme they have not bought, with nothing to react to.
-      expect(HOME_CODE, 'the home no longer branches on the Proof stage').toContain("prog.stage !== 'Proof'")
+      // ⛓️ CORRECTED 3 Sep — THE STAGE WAS NEVER THE RIGHT QUESTION. `millaStage` maps a DRAFT
+      // programme AND no programme at all to 'Proof', so branching on the stage sent a client
+      // WITH a programme into the legacy client-scoped desk and rendered their history as
+      // current programme work. What this guard actually protects is unchanged: a prospect who
+      // has NOT bought a programme must land on the calibration surface, not on a workspace
+      // describing a programme they do not have. `hasProgramme` is that question, asked directly.
+      expect(HOME_CODE, 'the home no longer branches on whether a programme exists').toContain('prog.hasProgramme !== false')
       expect(HOME_CODE, 'the calibration set is not fetched').toContain('/leads/for-approval')
     })
 

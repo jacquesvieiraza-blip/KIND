@@ -2210,8 +2210,42 @@ export async function autoEnrollLead(leadId: string, clientId: string, opts?: En
     // for a PAYING programme client this gate would have charged them a second time for
     // delivery their programme price already covers.
     //
-    // ⚠️ THE GATE IS UNTOUCHED FOR EVERYONE ELSE. A client with no programme reaches it
-    // exactly as before — the $299 pack model is what is actually selling.
+    // ⛓️ ~~"THE GATE IS UNTOUCHED FOR EVERYONE ELSE. A client with no programme reaches it
+    // exactly as before."~~ AMENDED 3 Sep (C2) — see immediately below. It is still untouched
+    // for every client actually on the legacy model; what changed is that "no programme" is no
+    // longer what decides who that is.
+    // ── ⚑ C2 — THE COMMERCIAL MODEL DECIDES WHICH GATE EVEN APPLIES ─────────────────────
+    //
+    // 🛑 A DECLARED PROGRAMME CLIENT HAS NO LEGACY ENROLMENT AUTHORITY AT ALL. Before the
+    // model existed, such a client with no open programme fell through to the wallet gate:
+    // holding credits, they would have been enrolled under retired economics; holding none,
+    // they were told they had "no FIGSY credits" — a wallet that governs nothing they bought.
+    // Both answers are wrong for the same reason.
+    //
+    // The only legitimate enrolment for them is PROGRAMME FULFILMENT, which arrives with
+    // `programmeFulfilment` and is separately re-proved end to end by
+    // `verifyProgrammeFulfilment` (A2). Anything else is refused here, before any charge.
+    //
+    // ⚠️ AND UNREADABLE REFUSES TOO. Not knowing which model governs a client is not a licence
+    // to spend their wallet.
+    //
+    // ⛓️ CORRECTED 3 Sep — ~~`if (!isDemo && !programmeFulfilment)`.~~ FOUNDER-RULED:
+    // **`is_demo` AND `commercial_model` ARE ORTHOGONAL.** Skipping the model question for a
+    // demo turned the demo flag into a grant of legacy commercial workflow, so MBF — a demo AND
+    // a programme client — would have enrolled down the retired per-lead path. Demo decides
+    // whether money and provider spend are real (the wallet gate below still skips for it); it
+    // never decides which commercial model governs. A demo account with a NULL model resolves
+    // to legacy and reaches the gate below exactly as it does today.
+    if (!programmeFulfilment) {
+      const { clientCommercialModel, mayUseLegacyCommercialPath } = await import('./commercial-model')
+      const model = await clientCommercialModel(clientId)
+      if (!mayUseLegacyCommercialPath(model)) {
+        console.warn(`[figsy] autoEnrollLead: client ${clientId} is not on the legacy commercial model (${model.model}) — no legacy enrolment authority for lead ${leadId}. Nothing charged.`)
+        return
+      }
+    }
+    // ⚠️ THE WALLET GATE IS UNTOUCHED FOR A LEGACY CLIENT. Reached only when the model above
+    // resolved to legacy — the $299 pack model, which is what is actually selling.
     if (!isDemo && !programmeFulfilment && !canEnroll(client?.figsy_credits_remaining)) {
       console.warn(`[figsy] autoEnrollLead: client ${clientId} has no FIGSY credits — skipping enrollment for lead ${leadId}.`)
       return

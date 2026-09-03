@@ -241,13 +241,20 @@ describe('GAP 1 · the activate route computes `sourcing` independently of the j
 })
 
 // ── the gates behave, not just exist ────────────────────────────────────────────────────
-const dbState: { programmes: Record<string, unknown>[]; campaigns: Record<string, unknown>[] } = {
-  programmes: [], campaigns: [],
+// ⛓️ C2 — `clients` ADDED. `checkProgrammeAuthority` resolves `clients.commercial_model` before
+// it reads the programme, so a fixture with no client row is a client that does not exist, which
+// fails closed and turns every refusal below into `programme_state_unreadable`. NULL is the
+// UNCLASSIFIED state the whole live book holds, so each assertion keeps its original meaning.
+const dbState: {
+  programmes: Record<string, unknown>[]; campaigns: Record<string, unknown>[]
+  clients: Record<string, unknown>[]
+} = {
+  programmes: [], campaigns: [], clients: [{ id: 'c1', commercial_model: null }],
 }
 vi.mock('@kind/db', () => ({
   db: {
     from: (t: string) => {
-      const rows = t === 'programmes' ? dbState.programmes : dbState.campaigns
+      const rows = t === 'programmes' ? dbState.programmes : t === 'clients' ? dbState.clients : dbState.campaigns
       const filters: Array<(r: Record<string, unknown>) => boolean> = []
       const q: Record<string, unknown> = {
         select() { return q }, order() { return q }, limit() { return q },
@@ -274,7 +281,10 @@ vi.mock('@kind/db', () => ({
 }))
 
 describe('GAP 3 · behavioural — ensureCampaignForIcp actually refuses', () => {
-  beforeEach(() => { dbState.programmes = []; dbState.campaigns = [] })
+  beforeEach(() => {
+    dbState.programmes = []; dbState.campaigns = []
+    dbState.clients = [{ id: 'c1', commercial_model: null }]
+  })
 
   it('refuses to activate for a programme that has not gone live', async () => {
     dbState.programmes.push({ id: 'p1', client_id: 'c1', status: 'APPROVED', second_paid_at: null, paused_at: null })
@@ -311,10 +321,67 @@ describe('GAP 3 · behavioural — ensureCampaignForIcp actually refuses', () =>
   it('⚠️ NON-VACUOUS: a LEGACY client (no programme) is NOT refused by this gate', async () => {
     // The legacy model must keep working. If this gate refused everyone, every existing
     // client would stop sending the moment it merged.
+    // ⛓️ C2 — the legacy client now needs a ROW, because the gate resolves their commercial
+    // model before it looks for a programme. `commercial_model: null` is the unclassified state
+    // every existing client holds, and it is precisely the case this test is about.
+    dbState.clients.push({ id: 'legacy-client', commercial_model: null })
     const { ensureCampaignForIcp } = await import('./start-work')
     const r = await ensureCampaignForIcp('legacy-client', 'icp-1', 'ICP', { activate: true })
     const reason = (r as { refused?: { reason?: string } }).refused?.reason
     expect(reason).toBeUndefined()
+  })
+
+  // ⛓️ 3 Sep (C2) — THE CLIENT THIS GATE COULD NOT SEE.
+  //
+  // 🛑 Before the commercial model existed, a client with no programme row reached
+  // `authorityFor(null)` → `{ allowed: true, mode: 'legacy' }` and this gate ACTIVATED a
+  // campaign for them. That is correct for a legacy client and wrong for House and MBF, which
+  // are declared programme clients that simply have no programme open today.
+  it('🛑 refuses to activate for a DECLARED PROGRAMME client with NO programme — House today', async () => {
+    dbState.clients = [{ id: 'c1', commercial_model: 'programme' }]
+    const { ensureCampaignForIcp } = await import('./start-work')
+    const r = await ensureCampaignForIcp('c1', 'icp-1', 'ICP', { activate: true })
+    expect('refused' in r! && r!.refused, 'no programme row must not mean "legacy, go ahead"').toBeTruthy()
+    // ⚠️ AND NOTHING WAS WRITTEN. The campaign table is the fixture's own array, so an
+    // activation would be visible here as a row.
+    expect(dbState.campaigns, 'no campaign may be created or woken').toEqual([])
+  })
+
+  it('🛑 refuses when the commercial model cannot be resolved — the client row is missing', async () => {
+    dbState.clients = []
+    const { ensureCampaignForIcp } = await import('./start-work')
+    const r = await ensureCampaignForIcp('c1', 'icp-1', 'ICP', { activate: true })
+    expect('refused' in r! && r!.refused).toBeTruthy()
+    expect((r as { refused: { reason: string } }).refused.reason).toBe('programme_state_unreadable')
+    expect(dbState.campaigns).toEqual([])
+  })
+
+  it('🛑 MBF — programme + is_demo + no programme gains NO legacy campaign authority', async () => {
+    // `is_demo` and `commercial_model` are orthogonal (founder-locked 3 Sep). The resolver never
+    // reads the demo flag, so this is the assertion that keeps it that way at the campaign door.
+    dbState.clients = [{ id: 'c1', commercial_model: 'programme', is_demo: true }]
+    const { ensureCampaignForIcp } = await import('./start-work')
+    const r = await ensureCampaignForIcp('c1', 'icp-1', 'ICP', { activate: true })
+    expect('refused' in r! && r!.refused, 'a demo flag must not activate a legacy campaign').toBeTruthy()
+    expect(dbState.campaigns).toEqual([])
+  })
+
+  it('⚠️ NON-VACUOUS: an UNCLASSIFIED demo client still activates, exactly as today', async () => {
+    dbState.clients = [{ id: 'c1', commercial_model: null, is_demo: true }]
+    const { ensureCampaignForIcp } = await import('./start-work')
+    const r = await ensureCampaignForIcp('c1', 'icp-1', 'ICP', { activate: true })
+    expect((r as { refused?: unknown }).refused).toBeUndefined()
+    expect(dbState.campaigns.length).toBe(1)
+  })
+
+  it('⚠️ NON-VACUOUS: a DECLARED LEGACY client with no programme still activates', async () => {
+    // Without this, both refusals above would pass against a gate that refused everybody —
+    // which on Friday would stop every existing client sending.
+    dbState.clients = [{ id: 'c1', commercial_model: 'legacy' }]
+    const { ensureCampaignForIcp } = await import('./start-work')
+    const r = await ensureCampaignForIcp('c1', 'icp-1', 'ICP', { activate: true })
+    expect((r as { refused?: unknown }).refused).toBeUndefined()
+    expect(dbState.campaigns.length, 'the campaign really was created').toBe(1)
   })
 
   it('scaffolding (activate:false) is never gated — a draft sends nothing', async () => {

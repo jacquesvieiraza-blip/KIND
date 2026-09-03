@@ -127,16 +127,53 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   const isNewUser = leadCount === 0
 
+  // ── 🛑 3 Sep (C2) · ONE RULE: THE RETIRED WALLET CHROME IS NOT SHOWN TO A PROGRAMME CLIENT
+  //
+  // WHAT IS ACTUALLY REACHABLE HERE. `middleware.ts` redirects every signed-in user away from
+  // `/dashboard` and `/dashboard/*` into the matching `/milla` screen — EXCEPT the three
+  // persona sub-trees it keeps: `partner`, `developer` and `client-partner`. So this layout is
+  // still rendered, and `(milla)/layout.tsx` actively SENDS a seat holder here. A client on the
+  // programme model who holds a partner or developer seat therefore reads, in this shell:
+  // "Low credits: 3 remaining · Top up now", "Your wallet is empty … a flat $4 per approved
+  // lead", "Add credits to continue using K.I.N.D", and a wallet chip whose tooltip says
+  // "$4 per approved lead". Every one of those is the retired per-lead model.
+  //
+  // ⚠️ ONE BOOLEAN, COMPUTED ONCE, rather than a condition per sentence. Scattered copy
+  // conditions are how one of them gets missed on the next edit; a single gate on the shell is
+  // the rule, and the pieces below simply obey it.
+  //
+  // ⚠️ NOTHING CHANGES FOR A LEGACY OR UNCLASSIFIED CLIENT. `commercial_model` is NULL for the
+  // entire live book, so every element below renders exactly as it does today for all of them.
+  // Only a client somebody has DECLARED `programme` stops seeing it.
+  //
+  // ⚠️ AND AN UNREADABLE MODEL SUPPRESSES, which is the same direction as every other C2
+  // decision: "we could not tell" is never permission to teach retired economics. The cost of
+  // suppressing is a missing funding nudge on one of two persona pages; the cost of showing it
+  // is telling a paying programme client they owe money they do not.
+  //
+  // ⚠️ ITS OWN ISOLATED READ, DELIBERATELY. Adding the column to the big select above would
+  // make a PostgREST schema-cache miss blank `hasFigsy`/`hasMilla`/the whole sidebar. This one
+  // can only ever fail into "suppress".
+  let retiredWalletChrome = false
+  try {
+    const { data: modelRow, error: modelErr } = await supabase
+      .from('clients').select('commercial_model').eq('user_id', user.id).maybeSingle()
+    retiredWalletChrome = !modelErr && !!modelRow
+      && (modelRow as { commercial_model: string | null }).commercial_model !== 'programme'
+  } catch { retiredWalletChrome = false }
+
   // Shared content (same for both layouts) — avoids duplication.
   // The OnboardingProvider wraps the dashboard so the guided tour (#454) + the
   // "keep FIGSY funded" nudge can read /onboarding/progress and follow the client
   // across routes. Partners have no client row → the tour simply never starts.
   const mainContent = (
     <OnboardingProvider>
-      <TrialExpiredOverlay expired={trialExpired} />
+      {/* "Add credits to continue using K.I.N.D" — a credit sentence, so it obeys the gate. */}
+      {retiredWalletChrome && <TrialExpiredOverlay expired={trialExpired} />}
       <div className="flex flex-col lg:flex-row gap-4 lg:gap-6 items-stretch lg:items-start max-w-7xl mx-auto w-full">
         <div className="flex-1 min-w-0 space-y-4">
-          <LowCreditsNotice balance={creditBalance} />
+          {/* "Low credits: N remaining · Top up now" */}
+          {retiredWalletChrome && <LowCreditsNotice balance={creditBalance} />}
           {!isPartner && <MilestoneCelebration leadCount={leadCount} companyName={companyName} />}
           {children}
         </div>
@@ -153,7 +190,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
         />
       </div>
       {!isPartner && <OnboardingOrchestrator />}
-      {!isPartner && <KeepFigsyFundedNudge />}
+      {/* "Your wallet is empty … a flat $4 per approved lead" */}
+      {!isPartner && retiredWalletChrome && <KeepFigsyFundedNudge />}
     </OnboardingProvider>
   )
 
@@ -190,10 +228,13 @@ export default async function DashboardLayout({ children }: { children: React.Re
           {stagingBanner}
           {millaBanner}
           <header className="h-14 bg-white border-b border-gray-100 flex items-center justify-end gap-3 px-6 shrink-0">
-            {/* One wallet — a single $ balance. $4 per approved lead, final. */}
-            <span className="flex items-center gap-1.5 text-xs font-bold px-2.5 py-1.5 rounded-full text-[#7C3AED] bg-purple-50" title="Wallet — $4 per approved lead">
-              <Zap className="w-3.5 h-3.5" /> ${creditBalance.toLocaleString()} <span className="font-semibold text-[#7C3AED]/70">wallet</span>
-            </span>
+            {/* One wallet — a single $ balance. $4 per approved lead, final. Its own tooltip
+                states the retired per-lead price, so it obeys the gate like everything else. */}
+            {retiredWalletChrome && (
+              <span className="flex items-center gap-1.5 text-xs font-bold px-2.5 py-1.5 rounded-full text-[#7C3AED] bg-purple-50" title="Wallet — $4 per approved lead">
+                <Zap className="w-3.5 h-3.5" /> ${creditBalance.toLocaleString()} <span className="font-semibold text-[#7C3AED]/70">wallet</span>
+              </span>
+            )}
             <NotificationBell />
             <ProfileMenu name={companyName} email={user.email || ''} />
           </header>
@@ -221,6 +262,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
           hasDenise={hasDenise}
           isNewUser={isNewUser}
           isPartner={isPartner}
+          showWallet={retiredWalletChrome}
         />
         <main className="flex-1 overflow-y-auto p-4 pt-[4.5rem] sm:p-6 sm:pt-[4.75rem] lg:p-8 lg:pt-8">
           {mainContent}

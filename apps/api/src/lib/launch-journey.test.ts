@@ -34,7 +34,11 @@ function makeStore(funded = false): Store {
   return {
     icps: [],
     figsy_campaigns: [],
-    clients: [{ id: 'c1', user_id: 'u1', credit_balance: 0, first_icp_run_at: null, leads_per_run: null, is_demo: false, company_name: 'Acme' }],
+    // ⛓️ 3 Sep (C2) — `commercial_model: null` is the UNCLASSIFIED state the whole live book
+    // holds. It is stated because `clientCommercialModel` SELECTS the column and a missing
+    // field now resolves `unreadable`; a row that answers that select without the key was
+    // never faithful to PostgREST, which either returns the column or errors.
+    clients: [{ id: 'c1', user_id: 'u1', credit_balance: 0, first_icp_run_at: null, leads_per_run: null, is_demo: false, company_name: 'Acme', commercial_model: null }],
     leads: [],
     figsy_knowledge: [],
     credit_transactions: funded ? [{ client_id: 'c1', type: 'purchase', reference: 'cs_live_j' }] : [],

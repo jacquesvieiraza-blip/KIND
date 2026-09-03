@@ -187,7 +187,19 @@ describe('① PROGRAMME TRUTH IS VISIBLE — the gap that blocked runtime verifi
   })
 
   it('a legacy client is told they are legacy, not shown an empty programme', () => {
-    expect(VIDA).toContain('legacy model')
+    // ⛓️ C2 — ~~`expect(VIDA).toContain('legacy model')`~~. The panel said "They are on the
+    // legacy model" for ANY client with no programme row, which was an inference: House and MBF
+    // are declared PROGRAMME clients and have no programme open. The sentence is now chosen from
+    // the declared commercial model, so the phrase itself moved.
+    //
+    // ⚠️ THE PROPERTY IS UNCHANGED AND IS WHAT IS ASSERTED: a legacy client is still TOLD they
+    // are legacy, in the economics that apply to them, rather than shown an empty programme.
+    expect(VIDA, 'a legacy client still reads their own economics')
+      .toContain('$299 pack · 100 included · $4 per approved lead')
+    expect(VIDA, 'and it is said because the model says so, not because a row is missing')
+      .toMatch(/prog\.commercial\?\.resolved === 'legacy'/)
+    // ⚠️ AND A PROGRAMME CLIENT WITH NO ACTIVE PROGRAMME IS NOT SHOWN THE LEGACY SENTENCE.
+    expect(VIDA).toMatch(/prog\.commercial\?\.resolved === 'programme'/)
   })
 })
 

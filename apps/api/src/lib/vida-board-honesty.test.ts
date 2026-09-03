@@ -209,14 +209,28 @@ describe('Vida renders the honest sentence', () => {
     readFileSync(join(__dirname, '../../../admin/src/app/vida/page.tsx'), 'utf8'))
 
   it('the flow rail asks how the account was funded before labelling step 2', () => {
-    expect(src).toContain('flowStepLabel(n, label, selectedWork.funded_via)')
-    expect(src).toContain("step === 2 && via === 'comp' ? 'Comped'")
+    // ⛓️ EXTENDED 3 Sep (C2) — ~~`flowStepLabel(n, label, selectedWork.funded_via)`~~ and
+    // ~~`step === 2 && via === 'comp' ? 'Comped'`~~. #619's property is unchanged and still
+    // asserted: step 2 is a MONEY SENTENCE and must not be printed without asking about the
+    // money. C2 adds a second way for it to be false — a PROGRAMME client never bought the
+    // $299 pack at all — so the label now takes the commercial model as well.
+    expect(src).toContain('flowStepLabel(n, label, selectedWork.funded_via, modelView)')
+    expect(src).toContain("via === 'comp' ? 'Comped' : label")
+    expect(src, 'and a programme account is named as one').toContain("if (view === 'programme') return 'Programme'")
+    // ⛓️ AND A THIRD WAY FOR STEP 2 TO BE FALSE, added 3 Sep: an UNREADABLE commercial model.
+    // The label took a boolean, and a boolean has only one else — so a client whose model we had
+    // explicitly failed to resolve was shown "Paid $299" through the legacy arm.
+    expect(src).toContain("if (view === 'unresolved') return 'Model unresolved'")
   })
 
   it('a comped step 2 is NOT the green paid tick', () => {
     // The green tick is the "we got paid" signal on this rail. A comp gets neutral slate.
     expect(src).toContain("const comped = n === 2 && selectedWork.funded_via === 'comp'")
-    expect(src).toContain("comped && done ? 'bg-[#f1f0f4]")
+    // ⛓️ C2 — a PROGRAMME step 2 takes the same neutral slate, for the same reason: neither a
+    // comp nor a programme is a pack payment, and only a pack payment earns the green tick.
+    expect(src).toContain('const progStep = n === 2 && (programmeModel || unresolvedModel)')
+    expect(src).toContain("(comped || progStep) && done ? 'bg-[#f1f0f4]")
+    expect(src).toContain("{done ? ((comped || progStep) ? '·' : '✓') : n}")
   })
 
   it('THE PRICE IS NEVER HAND-TYPED — and #623 went further: it is no longer CALCULATED either', () => {

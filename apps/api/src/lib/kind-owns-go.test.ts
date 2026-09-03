@@ -34,7 +34,16 @@ async function activate(headers: Record<string, unknown>, body: Record<string, u
           : { id: 'icp-1', name: 'Test', last_run_at: null },
         error: null,
       })
-      q.maybeSingle = async () => ({ data: table === 'clients' ? { id: 'c1' } : { id: 'icp-1' }, error: null })
+      // ⛓️ C2 — NULL FOR ANYTHING THAT IS NOT THE CLIENT OR THE ICP. This returned `{ id:
+      // 'icp-1' }` for EVERY other table, which meant the `programmes` read answered "yes, this
+      // client has an open programme called icp-1" — the exact defect the sibling harness below
+      // already carries a comment about. It went unnoticed while nothing read that row on this
+      // path; the commercial-model resolver does, so a programme that never existed started
+      // refusing the sourcing run this harness exists to observe.
+      q.maybeSingle = async () => ({
+        data: table === 'clients' ? { id: 'c1', commercial_model: null } : table === 'icps' ? { id: 'icp-1' } : null,
+        error: null,
+      })
       q.update = (patch: Record<string, unknown>) => {
         if (table === 'icps') rec.icpUpdates.push(patch)
         const chain: Record<string, unknown> = {}
@@ -166,7 +175,16 @@ async function activateRich(opts: {
     const makeQuery = (table: string) => {
       const q: Record<string, unknown> = {}
       for (const m of ['select', 'eq', 'in', 'is', 'neq', 'not', 'order', 'or', 'gte', 'lte']) q[m] = () => q
-      q.limit = async () => ({ data: [], error: null })
+      // ⛓️ C2 — `.limit()` IS NO LONGER TERMINAL. `openProgrammeFor` ends on
+      // `.limit(1).maybeSingle()` and the commercial-model resolver calls it, so `limit` returns
+      // something both awaitable (unchanged for every existing caller) and chainable to
+      // `maybeSingle` — which answers "no open programme", so this client stays legacy and this
+      // harness keeps observing the thing it was written to observe.
+      q.limit = () => ({
+        then: (r: (v: unknown) => void) => r({ data: [], error: null }),
+        maybeSingle: async () => ({ data: null, error: null }),
+        single:      async () => ({ data: null, error: null }),
+      })
       q.single = async () => ({
         data: table === 'clients'
           ? { id: 'c1', credit_balance: 0, first_icp_run_at: opts.firstIcpRunAt ?? null,
@@ -180,7 +198,7 @@ async function activateRich(opts: {
       // times, inserted nothing, and the email lookup this harness exists to observe was
       // never reached.
       q.maybeSingle = async () => ({
-        data: table === 'clients' ? { id: 'c1' } : table === 'icps' ? { id: 'icp-1' } : null,
+        data: table === 'clients' ? { id: 'c1', commercial_model: null } : table === 'icps' ? { id: 'icp-1' } : null,
         error: null,
       })
       q.update = (patch: Record<string, unknown>) => {

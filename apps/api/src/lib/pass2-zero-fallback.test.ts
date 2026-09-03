@@ -180,12 +180,12 @@ async function runJob(opts: {
         async upsert() { return { error: null } },
         async maybeSingle() {
           if (table === 'icps') return { data: icpRow, error: null }
-          if (table === 'clients') return { data: { id: 'c1', leads_per_run: null, is_demo: false, company_name: 'Glean' }, error: null }
+          if (table === 'clients') return { data: { id: 'c1', leads_per_run: null, is_demo: false, company_name: 'Glean', commercial_model: null }, error: null }
           return { data: null, error: null }
         },
         async single() {
           if (table === 'icps') return { data: icpRow, error: null }
-          if (table === 'clients') return { data: { id: 'c1', leads_per_run: null, is_demo: false, company_name: 'Glean' }, error: null }
+          if (table === 'clients') return { data: { id: 'c1', leads_per_run: null, is_demo: false, company_name: 'Glean', commercial_model: null }, error: null }
           return { data: null, error: null }
         },
         update(patch: Record<string, unknown>) {

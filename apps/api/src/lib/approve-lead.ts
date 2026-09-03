@@ -30,7 +30,10 @@ export type ApproveOutcome =
   | { status: 'launch_hold'; revealed: false; country: string | null } // outside the launch allowlist → NOT charged
   // The client has an OPEN PROGRAMME, so the legacy per-lead commercial path is closed to
   // them (founder-locked 3 Sep). Nothing revealed, nothing charged, nothing enrolled.
-  | { status: 'programme_fenced'; revealed: false; message: string }
+  // ⛓️ C2 — `code` ADDED. The route used to answer every fence with the literal string
+  // `programme_open`, which is a false statement to a programme client who has no programme
+  // open. The verdict already knew which refusal it was; the outcome now carries it.
+  | { status: 'programme_fenced'; revealed: false; message: string; code: 'programme_open' | 'programme_model' | 'programme_unresolvable' }
   | { status: 'not_found'; revealed: false }
 
 // ── #625 — THE NO-CAMPAIGN RULE, IN ONE PLACE ─────────────────────────────────────────────
@@ -128,8 +131,10 @@ export async function approveLead(leadId: string, clientId: string): Promise<App
   const { checkLegacyPerLeadAuthority } = await import('./programme-authority')
   const fence = await checkLegacyPerLeadAuthority(clientId)
   if (!fence.allowed) {
-    console.warn(`[approve] lead ${leadId} NOT approved — ${fence.code}; client ${clientId} has an open programme, so the legacy per-lead path is closed. Nothing revealed, nothing charged.`)
-    return { status: 'programme_fenced', revealed: false, message: fence.message }
+    // ⛓️ C2 — the log used to assert "has an open programme" for EVERY refusal, including the
+    // two where that is untrue. It now reports the code and lets the code mean what it says.
+    console.warn(`[approve] lead ${leadId} NOT approved — ${fence.code}; the legacy per-lead path is closed to client ${clientId}. Nothing revealed, nothing charged.`)
+    return { status: 'programme_fenced', revealed: false, message: fence.message, code: fence.code }
   }
 
   // 1. Atomic claim — only the FIRST approve of this lead wins. This is the

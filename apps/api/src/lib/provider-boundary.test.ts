@@ -177,7 +177,7 @@ describe('AR8 — the PDL cash fence is the client\'s, and the house is not gate
     vi.doMock('@kind/db', () => {
       const singleFor = (table: string) => {
         if (table === 'icps') return ICP_ROW
-        if (table === 'clients') return { leads_per_run: null, is_demo: false, user_id: 'u1' }
+        if (table === 'clients') return { leads_per_run: null, is_demo: false, user_id: 'u1', commercial_model: null }
         return null
       }
       const makeQuery = (table: string) => {
@@ -188,7 +188,17 @@ describe('AR8 — the PDL cash fence is the client\'s, and the house is not gate
         // `lead_pool` ends its candidate query on `.limit(n)` — an EMPTY pool, so the
         // entire target falls through to the external remainder, which is the path
         // under test.
-        q.limit          = async () => ({ data: [], error: null })
+        // ⛓️ C2 — `.limit()` IS NO LONGER TERMINAL. It used to return the result directly, which
+        // modelled only `lead_pool`'s candidate query. `openProgrammeFor` ends on
+        // `.limit(1).maybeSingle()`, and the commercial-model resolver calls it, so the mock now
+        // returns something that is BOTH awaitable (the empty pool, unchanged) and chainable to
+        // `maybeSingle` (no open programme → this client resolves as legacy, which is what
+        // every assertion in this block is about). supabase-js supports both; the mock did not.
+        q.limit = () => ({
+          then: (r: (v: unknown) => void) => r({ data: [], error: null }),
+          maybeSingle: async () => ({ data: null, error: null }),
+          single:      async () => ({ data: null, error: null }),
+        })
         q.single         = async () => ({ data: singleFor(table), error: null })
         q.maybeSingle    = async () => ({ data: singleFor(table), error: null })
         q.update         = () => ({ eq: async () => ({ error: null }) })
@@ -338,12 +348,14 @@ describe('AR5/AR8 — the ROUTES, not just the helpers', () => {
     }
   }
 
-  async function withMocks(audience: Audience, grant: number, rec: Rec, apolloThrows = false) {
+  async function withMocks(audience: Audience, grant: number, rec: Rec, apolloThrows = false, commercialModel: string | null = null, isDemo = false) {
     vi.resetModules()
     vi.doMock('@kind/db', () => {
       const singleFor = (t: string) => {
         if (t === 'icps')    return { id: 'icp-1', client_id: 'c1', job_titles: [], seniority_levels: [], company_sizes: [], geographies: [], industries: [] }
-        if (t === 'clients') return { id: 'c1', company_name: 'Acme', user_id: 'u1', leads_per_run: null, is_demo: false }
+        // ⛓️ C2 — `commercial_model` ADDED. NULL is the UNCLASSIFIED state the whole live book
+        // holds, so every assertion written before C2 keeps the meaning it was written with.
+        if (t === 'clients') return { id: 'c1', company_name: 'Acme', user_id: 'u1', leads_per_run: null, is_demo: isDemo, commercial_model: commercialModel }
         return null
       }
       const makeQuery = (t: string) => {
@@ -417,9 +429,9 @@ describe('AR5/AR8 — the ROUTES, not just the helpers', () => {
 
   const emptyRec = (): Rec => ({ rpc: [], apollo: 0, pdl: [] })
 
-  async function runLookalike(audience: Audience, grant: number) {
+  async function runLookalike(audience: Audience, grant: number, commercialModel: string | null = null, isDemo = false) {
     const rec = emptyRec()
-    await withMocks(audience, grant, rec)
+    await withMocks(audience, grant, rec, false, commercialModel, isDemo)
     const { handler } = await handlerFor(await import('../routes/lookalike'), 'default', '/generate')
     const res = mockRes()
     await handler({ body: { client_id: 'c1' }, headers: {} }, res)
@@ -463,6 +475,61 @@ describe('AR5/AR8 — the ROUTES, not just the helpers', () => {
     expect(rec.rpc.map(c => c.fn)).not.toContain('try_spend_sourcing')
     expect(rec.rpc.map(c => c.fn)).not.toContain('add_sourcing_allowance')
     expect(rec.pdl).toEqual([])
+    expect(rec.apollo).toBe(1)
+  })
+
+  // ══════════════════════════════════════════════════════════════════════════════════════
+  // ⛓️ 3 Sep (C2) — THE DOOR THAT WAS STILL OPEN
+  //
+  // 🛑 This route asked "is a programme OPEN" and refused only then. House and MBF are DECLARED
+  // programme clients with NO programme open, so the refusal never fired for either — and House
+  // skips the AR8 cash fence entirely (Apollo is prepaid), so it reached the provider with no
+  // gate of any kind and inserted 50 leads no programme can ever authorise anyone to contact.
+  // These four run the REAL handler.
+  // ══════════════════════════════════════════════════════════════════════════════════════
+  it('🛑 C2-1 — HOUSE on the programme model with NO programme: Apollo is NEVER called', async () => {
+    const { rec, res } = await runLookalike('house', 0, 'programme')
+    expect(rec.apollo, 'the provider must not be reached at all').toBe(0)
+    expect(rec.pdl).toEqual([])
+    expect(rec.rpc.map(c => c.fn)).not.toContain('try_spend_sourcing')
+    expect(res.body?.refused).toBe('programme_attribution')
+    expect(res.body?.inserted).toBe(0)
+    expect(res.body?.found).toBe(0)
+  })
+
+  it('🛑 C2-2 — a CLIENT on the programme model with NO programme: no PDL, no spend', async () => {
+    const { rec, res } = await runLookalike('client', 30, 'programme')
+    expect(rec.pdl, 'no records may be bought').toEqual([])
+    expect(rec.rpc.map(c => c.fn), 'and the allowance is never touched')
+      .not.toContain('try_spend_sourcing')
+    expect(rec.apollo).toBe(0)
+    expect(res.body?.refused).toBe('programme_attribution')
+  })
+
+  it('🛑 C2-MBF — programme + is_demo + no programme: the demo flag buys NO legacy sourcing', async () => {
+    // 🛑 FOUNDER-LOCKED 3 Sep: `is_demo` and `commercial_model` are ORTHOGONAL. A demo may make
+    // money and provider spend unreal; it may never make the retired commercial workflow legal.
+    const { rec, res } = await runLookalike('client', 30, 'programme', true)
+    expect(rec.pdl, 'no records bought').toEqual([])
+    expect(rec.apollo, 'no provider reached').toBe(0)
+    expect(rec.rpc.map(c => c.fn)).not.toContain('try_spend_sourcing')
+    expect(res.body?.refused).toBe('programme_attribution')
+  })
+
+  it('⚠️ NON-VACUOUS — an UNCLASSIFIED demo client sources exactly as it does today', async () => {
+    const { rec } = await runLookalike('client', 30, null, true)
+    expect(rec.pdl, 'every demo on the book today is unaffected').toEqual([30])
+  })
+
+  it('⚠️ C2-3 NON-VACUOUS — a DECLARED LEGACY client still sources exactly as before', async () => {
+    // Without this, both assertions above would pass against a route that refused everybody.
+    const { rec } = await runLookalike('client', 30, 'legacy')
+    expect(rec.rpc.map(c => c.fn)).toContain('try_spend_sourcing')
+    expect(rec.pdl).toEqual([30])
+  })
+
+  it('⚠️ C2-4 NON-VACUOUS — and so does an UNCLASSIFIED house account', async () => {
+    const { rec } = await runLookalike('house', 0, null)
     expect(rec.apollo).toBe(1)
   })
 

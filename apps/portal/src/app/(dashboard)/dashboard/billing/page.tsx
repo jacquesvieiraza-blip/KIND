@@ -96,6 +96,8 @@ export default function BillingPage() {
   const [balance, setBalance]             = useState<number | null>(null)
   const [pack, setPack]                   = useState<PackView | null>(null)
   const [packUnknown, setPackUnknown]     = useState(false)
+  /** ⚑ 3 Sep (C2) — does the legacy wallet/pack/$4 model govern this client at all? */
+  const [walletApplies, setWalletApplies] = useState(true)
   const [transactions, setTransactions]   = useState<CreditTransaction[]>([])
   const [loading, setLoading]             = useState(true)
   const [loadError, setLoadError]         = useState<string | null>(null)
@@ -134,7 +136,7 @@ export default function BillingPage() {
         // (#541), so a wallet-only page can never show it. `milla-summary` already computes
         // it with the same `packState` the desk and the greeting use — one source of truth.
         const [creditsRes, subsRes, packRes] = await Promise.allSettled([
-          api.get<{ data: { wallet_balance_usd: number; transactions?: CreditTransaction[] } }>('/credits', session.access_token),
+          api.get<{ data: { wallet_balance_usd: number; transactions?: CreditTransaction[]; wallet_applies?: boolean } }>('/credits', session.access_token),
           api.get<{ data: { id: string; product: string; status: string; paused_until?: string | null }[] }>('/subscriptions', session.access_token),
           api.get<{ data: { pack?: PackView } }>('/leads/milla-summary', session.access_token),
         ])
@@ -142,6 +144,12 @@ export default function BillingPage() {
         if (creditsRes.status === 'fulfilled') {
           setBalance(creditsRes.value.data.wallet_balance_usd ?? 0)
           setTransactions(creditsRes.value.data.transactions ?? [])
+          // ⚑ 3 Sep (C2) — DOES ANY OF THIS APPLY TO THEM? `wallet_applies === false` covers
+          // the programme client AND the client whose model would not resolve. Defaulting to
+          // `true` when the field is absent is deliberate: an older API that does not send it
+          // has no programme clients to protect, and defaulting the other way would fence
+          // every legacy client out of their own billing page.
+          setWalletApplies(creditsRes.value.data.wallet_applies !== false)
         } else {
           setLoadError('Could not load billing data — please refresh.')
         }
@@ -248,6 +256,39 @@ export default function BillingPage() {
         <p className="text-red-600 font-medium mb-2">Could not load billing</p>
         <p className="text-sm text-[#7B6FA0] mb-4">{loadError}</p>
         <button onClick={() => window.location.reload()} className="px-4 py-2 bg-[#7C3AED] text-white rounded-lg text-sm">Retry</button>
+      </div>
+    </div>
+  )
+
+  // ── 🛑 3 Sep (C2) · THIS ENTIRE PAGE IS THE LEGACY MODEL ────────────────────────────────
+  //
+  // Everything below states the retired per-lead commercial model as fact: "One wallet.
+  // $299 to start, then top up any time. $4 per approved lead", the pack card, the top-up
+  // buttons, the checkout. For a client on the PROGRAMME model every sentence of it is false
+  // and two of the buttons take real money — so the page is fenced for them rather than
+  // quietly rendering a product they are not on.
+  //
+  // ⚠️ FENCED FOR PROGRAMME CLIENTS ONLY. A legacy or unclassified client sees this page
+  // exactly as before — not one element of it is removed or changed for them. The founder's
+  // brand rule is that visible UI is preserved; this preserves it for the clients it is true
+  // for, and stops showing it to the clients it is false for.
+  //
+  // ⚠️ AND THE PAGE IS NOT THE GATE. `POST /stripe/checkout` refuses a non-legacy client on
+  // the server, because a route is callable without the screen that hides its button.
+  if (!walletApplies) return (
+    <div className="space-y-6 max-w-3xl">
+      <div>
+        <h1 className="text-2xl font-bold text-gray-900">Billing</h1>
+        <p className="text-[#7B6FA0] text-sm mt-1">Your programme is paid for separately — there is no wallet, pack or per-lead charge on your plan.</p>
+      </div>
+      <div className="rounded-xl border border-[#7C3AED]/25 bg-gradient-to-r from-[#f3ecff] to-[#fdecf5] px-5 py-4">
+        <p className="font-bold text-[#5b21b6]">Your billing lives with your programme.</p>
+        <p className="text-sm text-[#6b6088] mt-0.5">
+          Nothing is charged here and nothing has been charged. Your programme payments and invoices are on your billing page.
+        </p>
+        <a href="/milla/billing" className="inline-block mt-3 px-4 py-2 bg-[#7C3AED] text-white rounded-lg text-sm font-semibold">
+          Go to billing
+        </a>
       </div>
     </div>
   )

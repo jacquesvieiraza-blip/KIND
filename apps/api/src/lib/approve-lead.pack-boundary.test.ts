@@ -54,6 +54,12 @@ function makeQuery(table: string) {
       // model this file tests is exactly the no-programme case the founder locked as
       // UNCHANGED, so the honest answer here is "no programme", stated rather than implied.
       if (table === 'programmes') return { data: null, error: null }
+      // ⛓️ 3 Sep (C2) — THE CLIENT ROW CARRIES THE COLUMN, because `clientCommercialModel`
+      // selects it and a MISSING FIELD is now `unreadable` rather than a NULL. A fixture that
+      // answers `select('commercial_model')` with a row that has no such key was never faithful
+      // to PostgREST, which either returns the column or errors. `commercial_model: null` is the
+      // UNCLASSIFIED state the whole live book holds, so every assertion keeps its meaning.
+      if (table === 'clients') return { data: { id: 'c1', commercial_model: null }, error: null }
       if (table === 'figsy_campaigns') return { data: { id: 'camp1' }, error: null }
       // The re-approve path asks the ledger "was a wallet charge written for this lead?"
       if (table === 'credit_transactions') return { data: existingChargeRow, error: null }

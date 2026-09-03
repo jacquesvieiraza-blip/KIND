@@ -508,6 +508,48 @@ figsyRouter.post('/webhook/enrol', figsyWebhookLimiter, async (req, res) => {
       .select('id, status, settings').eq('id', campaign_id).eq('client_id', clientId).maybeSingle()
     if (!campaign) { res.status(404).json({ success: false, error: 'Campaign not found' }); return }
 
+
+    // ── 🛑 3 Sep (C2) · THE PER-LEAD COMMERCIAL FENCE, ON THE ENROL DOOR TOO ───────────────
+    //
+    // ⛓️ PR B fenced the per-lead COMMERCIAL paths at the client level — approve, reveal and
+    // approve-batch, through `batchGate` and inside `approveLead`. THIS DOOR WAS MISSED. It
+    // calls `chargeFigsyEnroll` directly, which takes a flat $4 from the wallet per lead, so a
+    // client PR B had already ruled off the per-lead model could still be charged here, one
+    // lead at a time, by the route next door.
+    //
+    // 🛑 AND C2 IS WHY IT MATTERS NOW. House and MBF are declared programme clients with no
+    // programme open; before the commercial model existed they resolved as legacy everywhere,
+    // so this route charging them looked like every other legacy charge. It is not: their
+    // programme is what they paid for, and there is no per-lead price on it.
+    //
+    // ⛓️ CORRECTED 3 Sep — ~~the fence was skipped for a demo client.~~ FOUNDER-RULED:
+    // **`is_demo` AND `commercial_model` ARE ORTHOGONAL.** The first cut reasoned "a demo
+    // charges nothing, so the money fence need not run" — and that quietly turned the demo flag
+    // into a grant of LEGACY COMMERCIAL WORKFLOW. MBF is both a demo and a programme client;
+    // under that version it would still have enrolled down the retired per-lead path the moment
+    // it was declared `programme`, which is the exact inference C2 exists to end, wearing a
+    // different flag.
+    //
+    // ⚠️ WHAT DEMO STILL DECIDES, AND ALL IT DECIDES: whether real money and real provider spend
+    // happen. `chargeFigsyEnroll` returns off-ledger for a demo and charges nothing — untouched.
+    // Demo never decides WHICH COMMERCIAL MODEL governs the workflow.
+    //
+    // ⚠️ AND THE MBF DEMO IS NOT BROKEN BY THIS. `seedMbf` writes `figsy_enrollments` directly;
+    // it has never called this route or `autoEnrollLead`. What refuses after MBF is declared
+    // `programme` is a human trying to work it down the legacy path — which is the point.
+    //
+    // ⚠️ THE LIVE BOOK IS UNTOUCHED. `commercial_model` is NULL for every existing client, and
+    // an unclassified client with no open programme resolves to legacy and passes straight
+    // through, exactly as today — demo accounts included.
+    {
+      const { checkLegacyPerLeadAuthority } = await import('../lib/programme-authority')
+      const fence = await checkLegacyPerLeadAuthority(clientId)
+      if (!fence.allowed) {
+        console.warn(`[figsy] enrol REFUSED for client ${clientId} — ${fence.code}. Nothing enrolled, nothing charged.`)
+        res.status(409).json({ success: false, error: fence.code, message: fence.message })
+        return
+      }
+    }
     // Item 187 — a saved sequence/template applied to this campaign (literal copy).
     const appliedSequence = ((campaign.settings as { sequence?: SequenceStep[] } | null)?.sequence) ?? undefined
 
@@ -1648,6 +1690,48 @@ figsyRouter.post('/campaigns/:id/enroll', rateLimit({ limit: 30, windowMs: 60_00
       .select('id, status, settings').eq('id', req.params.id).eq('client_id', clientId).maybeSingle()
     if (!campaign) { res.status(404).json({ success: false, error: 'Campaign not found' }); return }
 
+
+    // ── 🛑 3 Sep (C2) · THE PER-LEAD COMMERCIAL FENCE, ON THE ENROL DOOR TOO ───────────────
+    //
+    // ⛓️ PR B fenced the per-lead COMMERCIAL paths at the client level — approve, reveal and
+    // approve-batch, through `batchGate` and inside `approveLead`. THIS DOOR WAS MISSED. It
+    // calls `chargeFigsyEnroll` directly, which takes a flat $4 from the wallet per lead, so a
+    // client PR B had already ruled off the per-lead model could still be charged here, one
+    // lead at a time, by the route next door.
+    //
+    // 🛑 AND C2 IS WHY IT MATTERS NOW. House and MBF are declared programme clients with no
+    // programme open; before the commercial model existed they resolved as legacy everywhere,
+    // so this route charging them looked like every other legacy charge. It is not: their
+    // programme is what they paid for, and there is no per-lead price on it.
+    //
+    // ⛓️ CORRECTED 3 Sep — ~~the fence was skipped for a demo client.~~ FOUNDER-RULED:
+    // **`is_demo` AND `commercial_model` ARE ORTHOGONAL.** The first cut reasoned "a demo
+    // charges nothing, so the money fence need not run" — and that quietly turned the demo flag
+    // into a grant of LEGACY COMMERCIAL WORKFLOW. MBF is both a demo and a programme client;
+    // under that version it would still have enrolled down the retired per-lead path the moment
+    // it was declared `programme`, which is the exact inference C2 exists to end, wearing a
+    // different flag.
+    //
+    // ⚠️ WHAT DEMO STILL DECIDES, AND ALL IT DECIDES: whether real money and real provider spend
+    // happen. `chargeFigsyEnroll` returns off-ledger for a demo and charges nothing — untouched.
+    // Demo never decides WHICH COMMERCIAL MODEL governs the workflow.
+    //
+    // ⚠️ AND THE MBF DEMO IS NOT BROKEN BY THIS. `seedMbf` writes `figsy_enrollments` directly;
+    // it has never called this route or `autoEnrollLead`. What refuses after MBF is declared
+    // `programme` is a human trying to work it down the legacy path — which is the point.
+    //
+    // ⚠️ THE LIVE BOOK IS UNTOUCHED. `commercial_model` is NULL for every existing client, and
+    // an unclassified client with no open programme resolves to legacy and passes straight
+    // through, exactly as today — demo accounts included.
+    {
+      const { checkLegacyPerLeadAuthority } = await import('../lib/programme-authority')
+      const fence = await checkLegacyPerLeadAuthority(clientId)
+      if (!fence.allowed) {
+        console.warn(`[figsy] enrol REFUSED for client ${clientId} — ${fence.code}. Nothing enrolled, nothing charged.`)
+        res.status(409).json({ success: false, error: fence.code, message: fence.message })
+        return
+      }
+    }
     // Item 187 — a saved sequence/template applied to this campaign (literal copy).
     const appliedSequence = ((campaign.settings as { sequence?: SequenceStep[] } | null)?.sequence) ?? undefined
 

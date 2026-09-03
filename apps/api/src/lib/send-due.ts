@@ -28,7 +28,6 @@
 // ═══════════════════════════════════════════════════════════════════════════════════════
 
 import { db } from '@kind/db'
-import { openProgrammeFor } from './programme-authority'
 import type { InboxRow } from './sending-inbox'
 
 /**
@@ -172,11 +171,23 @@ export async function runSendDue(mode: SendDueMode): Promise<SendDueResult> {
   const openProgrammeByClient = new Map<string, string | null>()
   for (const cid of new Set((due ?? []).map(e => (e as { client_id?: string | null }).client_id).filter(Boolean))) {
     try {
-      const open = await openProgrammeFor(cid as string)
-      openProgrammeByClient.set(cid as string, open?.id ?? null)
+      // ⛓️ C2 — THE COMMERCIAL MODEL DECIDES, NOT THE ABSENCE OF A ROW. `openId == null` below
+      // means "genuine legacy client, select their work as before". For a DECLARED programme
+      // client with no open programme that reading was wrong: their historical enrolments would
+      // have been selected for sending under legacy authority. `'__none__'` marks them, and the
+      // filter selects nothing for them at all — no programme, no authority, no send.
+      const { clientCommercialModel } = await import('./commercial-model')
+      const model = await clientCommercialModel(cid as string)
+      if (model.model === 'unreadable') throw new Error(model.reason)
+      if (model.model === 'programme' && !model.openProgramme) {
+        openProgrammeByClient.set(cid as string, '__none__')
+        continue
+      }
+      openProgrammeByClient.set(cid as string, model.openProgramme?.id ?? null)
     } catch (err) {
-      // `openProgrammeFor` THROWS on a read error rather than returning null, precisely so a
-      // database hiccup cannot read as "legacy client, proceed". Honour that here.
+      // ⛓️ C2 — the throw now also comes from an UNREADABLE commercial model, deliberately: a
+      // model we cannot resolve and a programme we cannot read are the same refusal. Neither a
+      // database hiccup nor an unresolved model may read as "legacy client, proceed".
       console.error(`[send-due] programme state unreadable for client ${cid} — selecting nothing for them this run:`, err)
       openProgrammeByClient.set(cid as string, '__unreadable__')
     }
@@ -187,6 +198,9 @@ export async function runSendDue(mode: SendDueMode): Promise<SendDueResult> {
     if (!cid) return false
     const openId = openProgrammeByClient.get(cid)
     if (openId === '__unreadable__') return false          // fail closed
+    // 🛑 A PROGRAMME-MODEL CLIENT WITH NO PROGRAMME HAS NOTHING TO SEND. Not an error — a
+    // waiting state. Their history is preserved and simply carries no send authority.
+    if (openId === '__none__') return false
     if (openId == null) return true                        // genuine legacy client — unchanged
     return (e as { programme_id?: string | null }).programme_id === openId
   })

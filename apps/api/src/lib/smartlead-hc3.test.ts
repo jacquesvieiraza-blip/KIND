@@ -41,7 +41,7 @@ vi.mock('@kind/db', () => ({
         return { eq: async () => ({ error: null }) }
       }
       q.maybeSingle = async () => {
-        if (table === 'clients') return { data: { id: 'c1', is_demo: state.isDemo, company_name: 'Acme' } }
+        if (table === 'clients') return { data: { id: 'c1', is_demo: state.isDemo, company_name: 'Acme', commercial_model: null } }
         if (table === 'leads') return { data: state.lead }
         if (table === 'client_inboxes') return { data: { id: 'i1' } }
         if (table === 'figsy_sequences') return { data: { steps: [{ channel: 'email', subject: 'Hi', body: 'Body' }] } }

@@ -78,6 +78,11 @@ vi.mock('@kind/db', () => ({
           if (table === 'opt_out_blocklist')   return { data: state.blocked ? { id: 'b1' } : null, error: null }
           if (table === 'figsy_approval_queue') return { data: null, error: null }   // no duplicate draft
           if (table === 'figsy_enrollments')    return { data: { client_id: 'c1' }, error: null }
+          // ⛓️ C2 — THE CLIENT ROW. The send gate resolves `clients.commercial_model` before it
+          // reads the programme, and a client that does not exist fails CLOSED — correctly —
+          // which would defer every send in this file for a reason that is not the review gate.
+          // `commercial_model: null` is UNCLASSIFIED, which with no programme is LEGACY.
+          if (table === 'clients')              return { data: { id: 'c1', commercial_model: null }, error: null }
           return { data: null, error: null }
         },
         async single() { return { data: null, error: null } },

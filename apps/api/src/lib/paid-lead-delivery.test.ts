@@ -68,7 +68,7 @@ function makeQuery(table: string) {
       if (table === 'programmes') return { data: null, error: null }
       if (table === 'figsy_campaigns') return { data: { id: 'camp1' }, error: null }
       if (table === 'credit_transactions') return { data: null, error: null }
-      if (table === 'clients') return { data: { id: 'c1', user_id: 'u1', leads_per_run: 200, sourcing_allowance: 0 }, error: null }
+      if (table === 'clients') return { data: { id: 'c1', user_id: 'u1', leads_per_run: 200, sourcing_allowance: 0, commercial_model: null }, error: null }
       return { data: LEAD, error: null }
     },
     async single() { return { data: LEAD, error: null } },

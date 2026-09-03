@@ -144,8 +144,25 @@ authRouter.post('/onboard', async (req, res) => {
       // Insert new client. plan='figsy' — the single live product (#284; lead_gen
       // retired). Set on INSERT only, so a re-onboarding legacy lead_gen client is
       // never silently re-planned. referred_by is likewise set ONLY here (P4).
+      //
+      // 🛑 commercial_model='programme' — THE ONE PLACE A NEW M&V CUSTOMER IS CLASSIFIED.
+      // Every new client is a PROGRAMME client: the per-lead $299/$4 model is retired and
+      // nobody signing up today is on it. Leaving the column NULL would make a brand-new
+      // customer resolve as `compat_legacy` for as long as they have no programme open —
+      // i.e. from signup until their first programme — and that is exactly the window in
+      // which the wallet gate, the per-lead approve/reveal routes and the low-credit
+      // emails would treat them as a legacy account.
+      //
+      // ⚠️ ON THE INSERT, NOT BEST-EFFORT AFTERWARDS (unlike contact_name above). If the
+      // column were missing the insert fails and the signup fails — loudly — instead of
+      // quietly creating the NULL client this line exists to prevent. C1's migration is
+      // applied in production; expand/contract means this build cannot deploy before it.
+      //
+      // ⚠️ INSERT ONLY, for the same reason as `plan`: an existing client re-onboarding
+      // goes through the update branch above and is NEVER reclassified by this route.
+      // Reclassification is a deliberate operator act in Vida, by client id.
       const { data: inserted, error: insertErr } = await db.from('clients')
-        .insert({ user_id: user.id, ...payload, ...(resolvedReferredBy ? { referred_by: resolvedReferredBy } : {}), plan: 'figsy' })
+        .insert({ user_id: user.id, ...payload, ...(resolvedReferredBy ? { referred_by: resolvedReferredBy } : {}), plan: 'figsy', commercial_model: 'programme' })
         .select()
         .single()
       if (insertErr) throw new Error(`Insert failed: ${insertErr.message} (${insertErr.code})`)

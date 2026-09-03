@@ -24,6 +24,16 @@ creditRouter.get('/', async (req: AuthRequest, res) => {
     const total_purchased_usd = (ledger ?? []).filter(t => PURCHASE_TX_TYPES.includes(t.type as string)).reduce((s, t) => s + (t.amount ?? 0), 0)
     const total_spent_usd     = (ledger ?? []).filter(t => (t.amount ?? 0) < 0).reduce((s, t) => s + Math.abs(t.amount ?? 0), 0)
 
+    // ⚑ 3 Sep (C2) — DOES THE WALLET GOVERN THIS CLIENT AT ALL? The wallet endpoint is the
+    // right place to answer it: every caller of this route is about to render a balance, a
+    // top-up button or a per-lead price, and all three are legacy-model statements. A
+    // programme client reading them is being shown a product they are not on.
+    //
+    // ⚠️ THE BALANCE IS STILL RETURNED. It is a real stored number and hiding it would make
+    // this route lie in the other direction; what is added is whether it applies.
+    const { clientCommercialModel, mayUseLegacyCommercialPath } = await import('../lib/commercial-model')
+    const model = await clientCommercialModel(client.id)
+
     res.json({
       success: true,
       data: {
@@ -31,6 +41,10 @@ creditRouter.get('/', async (req: AuthRequest, res) => {
         total_purchased_usd,
         total_spent_usd,
         transactions:        transactions ?? [],
+        // `false` for a programme client AND for an unresolvable one: a surface that cannot
+        // be told the model must not present the pack, the top-ups or the $4 price.
+        wallet_applies:      mayUseLegacyCommercialPath(model),
+        commercial_model:    model.model,
       },
     })
   } catch (err) { console.error(err); res.status(500).json({ success: false, error: 'Failed to fetch credits' }) }

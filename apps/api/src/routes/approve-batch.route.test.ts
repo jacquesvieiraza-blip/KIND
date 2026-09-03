@@ -14,7 +14,9 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 // ── a controllable fake of @kind/db ──────────────────────────────────────────────────
 type Rows = Record<string, unknown>[]
 const state = {
-  client: { id: 'client-1' } as Record<string, unknown> | null,
+  // ⛓️ 3 Sep (C2) — the column is stated: a MISSING field is now `unreadable`, and NULL is
+  // the UNCLASSIFIED state the whole live book holds.
+  client: { id: 'client-1', commercial_model: null } as Record<string, unknown> | null,
   /** ids that ARE genuinely approvable — what `.in('id', …)` should match against. */
   approvableIds: [] as string[],
   availableCount: 0,
@@ -88,7 +90,7 @@ async function callApproveBatch(body: unknown) {
 }
 
 beforeEach(() => {
-  state.client = { id: 'client-1' }
+  state.client = { id: 'client-1', commercial_model: null }
   state.approvableIds = []
   state.availableCount = 0
   state.approvedEverCount = 0

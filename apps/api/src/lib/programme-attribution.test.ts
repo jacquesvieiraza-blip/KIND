@@ -90,13 +90,13 @@ async function build(opts: Opts, rec: Rec) {
         async upsert() { return { error: null } },
         async maybeSingle() {
           if (table === 'icps')       return { data: icpRow, error: null }
-          if (table === 'clients')    return { data: { id: 'c1', leads_per_run: null, is_demo: false, company_name: 'Co' }, error: null }
+          if (table === 'clients')    return { data: { id: 'c1', leads_per_run: null, is_demo: false, company_name: 'Co', commercial_model: null }, error: null }
           if (table === 'programmes') return { data: opts.clientProgramme === false ? null : PROGRAMME, error: null }
           return { data: null, error: null }
         },
         async single() {
           if (table === 'icps')       return { data: icpRow, error: null }
-          if (table === 'clients')    return { data: { id: 'c1', leads_per_run: null, is_demo: false, company_name: 'Co' }, error: null }
+          if (table === 'clients')    return { data: { id: 'c1', leads_per_run: null, is_demo: false, company_name: 'Co', commercial_model: null }, error: null }
           if (table === 'programmes') return { data: opts.clientProgramme === false ? null : PROGRAMME, error: null }
           return { data: null, error: null }
         },

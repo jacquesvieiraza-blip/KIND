@@ -177,6 +177,31 @@ stripeRouter.post('/checkout', requireAuth, async (req: AuthRequest, res: Respon
       .select('id').eq('user_id', req.userId!).single()
     if (!client) { res.status(404).json({ success: false, error: 'Client not found' }); return }
 
+    // ── 🛑 3 Sep (C2) · THE RETIRED PACK IS NOT SOLD TO A PROGRAMME CLIENT ────────────────
+    //
+    // This route sells the LEGACY commercial model and nothing else: the $299 onboarding pack
+    // with its included approvals, and the $40/$100/$200 wallet top-ups that feed the $4
+    // per-approved-lead charge. A programme client pays for a programme, at P1 and P2, through
+    // its own route — so a checkout here would take real money for a product they are not on
+    // and cannot use. The retired `/dashboard/billing` page still renders these buttons, and a
+    // page is not a gate: the fence has to be here, where the money is.
+    //
+    // ⚠️ AND IT REFUSES ON `unreadable` TOO. If we cannot resolve which model governs this
+    // client, the honest answer is not to take their card. Charging is the one act where
+    // "we could not tell" must never resolve in our favour.
+    const { clientCommercialModel, mayUseLegacyCommercialPath } = await import('../lib/commercial-model')
+    const model = await clientCommercialModel(client.id)
+    if (!mayUseLegacyCommercialPath(model)) {
+      res.status(409).json({
+        success: false,
+        error: 'not_on_this_model',
+        message: model.model === 'unreadable'
+          ? 'We could not confirm your plan, so nothing has been charged. Please contact us and we will sort it out.'
+          : 'Your programme is paid for separately — there is no pack or top-up to buy on your plan. Nothing has been charged.',
+      })
+      return
+    }
+
     // Has this client PAID US before? PURCHASE_TX_TYPES deliberately, not PAID_TX_TYPES: a
     // manual grant unlocks a client but is not money in, and if it counted here a comped
     // account could skip the $99 pack entirely and start on a $40 top-up.

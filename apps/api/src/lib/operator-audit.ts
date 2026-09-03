@@ -81,6 +81,14 @@ export type OperatorAction =
   | 'programme_internal_authority'  // internal P1 / P2 — authority WITHOUT a payment
   | 'programme_go_live'      // the explicit, separate Go Live. Never a side effect of P2.
   | 'programme_icp_attached' // the ONLY writer of icps.programme_id — what future sourcing feeds
+  | 'client_commercial_model_set'  // ⚑ 3 Sep (C2) — an operator DECLARED which commercial model
+                            // governs a client: programme, legacy, or back to unclassified. Its
+                            // own action because this single field decides whether the wallet
+                            // gate, the per-lead approve/reveal routes and the low-credit emails
+                            // apply to that account at all — it is the closest thing the product
+                            // has to a switch between two ways of charging, and "who changed it,
+                            // when, from what to what" must be answerable without reading code.
+                            // The detail blob carries `from` and `to` for exactly that reason.
   | 'run_migration'         // ran the committed pending migrations from Vida (no SQL editor access)
   | 'backup_manifest'       // #298 — took a table/row-count snapshot. Recorded because the
                             // WHEN is half the value: a restore is compared against the last

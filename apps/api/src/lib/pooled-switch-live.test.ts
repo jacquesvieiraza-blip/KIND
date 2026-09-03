@@ -230,8 +230,14 @@ describe('rotation, ranking and every authority gate are untouched', () => {
   })
 
   it('programme authority, the kill-switch and paid sourcing are not touched by this change', () => {
-    expect(raw(join(API, 'lib/programme-authority.ts')))
-      .toMatch(/if \(!programme\) return \{ allowed: true, mode: 'legacy', programme: null \}/)
+    // ⛓️ C2 — ~~`if (!programme) return { allowed: true, mode: 'legacy', programme: null }`~~.
+    // `authorityFor` no longer reads a missing programme row as "this client is legacy"; it asks
+    // the declared commercial model. What this line is here to say — that the pooled-inbox
+    // switch did not narrow programme authority — is unchanged: the legacy fallthrough is still
+    // there, and it is still what an unclassified client reaches.
+    const pa = raw(join(API, 'lib/programme-authority.ts'))
+    expect(pa).toContain("return { allowed: true, mode: 'legacy', programme: null }")
+    expect(pa).toMatch(/if \(model\?\.model === 'programme'\)/)
     expect(raw(join(API, 'lib/figsy.ts'))).toMatch(/process\.env\.AUTO_OUTREACH_ENABLED === 'true'/)
     expect(raw(join(API, 'lib/paid-provider-guard.ts'))).toMatch(/PAID_PROVIDERS_ENABLED/)
   })

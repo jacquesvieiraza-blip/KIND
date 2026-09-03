@@ -97,12 +97,44 @@ export function mayNotify(
  * customer?" — and someone whose programme finished last month is still exactly that. A
  * status filter here would let the retired wallet emails back in through the completed door.
  *
- * @returns the set of client ids on a programme, or **`null` when the read FAILED** — which
- *   callers must pass to `mayNotify` as `null` rather than collapsing to an empty set.
+ * ⛓️ C2 — AND THE DECLARED COMMERCIAL MODEL COUNTS TOO, ahead of the programme row. A client
+ * declared `commercial_model = 'programme'` is a programme customer whether or not they have
+ * ever had a programme row, which is precisely the state House and MBF are in. Answering only
+ * from the row sent them the retired top-up emails.
+ *
+ * @returns the set of client ids the retired wallet notices must NOT reach, or **`null` when
+ *   either read FAILED** — which callers must pass to `mayNotify` as `null` rather than
+ *   collapsing to an empty set.
  */
 export async function programmeClientIds(clientIds: string[]): Promise<Set<string> | null> {
   if (clientIds.length === 0) return new Set()
   const { db } = await import('@kind/db')
+
+  // ⛓️ C2 — THE COMMERCIAL MODEL IS ASKED FIRST, AND IT OUTRANKS THE PROGRAMME ROW.
+  //
+  // This function used to answer "does a programme row exist", which meant a DECLARED
+  // programme client with no programme — exactly what House and MBF are today — was sent the
+  // retired low-credit and zero-credit emails telling them to top up a wallet that governs
+  // nothing they bought.
+  //
+  // 🛑 AN UNREADABLE MODEL COUNTS AS FENCED, and that is the safe direction here: the cost of
+  // withholding one wallet email from a legacy client is a missed nudge; the cost of sending
+  // one to a programme client is telling a paying customer they owe money they do not.
+  const { data: modelRows, error: modelErr } = await db.from('clients')
+    .select('id, commercial_model').in('id', clientIds)
+  if (modelErr) {
+    console.error('[programme-notifications] commercial model read FAILED —', modelErr.message)
+    return null
+  }
+  const fenced = new Set<string>()
+  const seen = new Set<string>()
+  for (const r of (modelRows ?? []) as { id: string; commercial_model: string | null }[]) {
+    seen.add(r.id)
+    if (r.commercial_model === 'programme') fenced.add(r.id)
+  }
+  // A client id we could not find is not evidence that it is legacy.
+  for (const id of clientIds) if (!seen.has(id)) fenced.add(id)
+
   const { data, error } = await db.from('programmes')
     .select('client_id')
     .in('client_id', clientIds)
@@ -113,7 +145,9 @@ export async function programmeClientIds(clientIds: string[]): Promise<Set<strin
     console.error('[programme-notifications] programme read FAILED —', error.message)
     return null
   }
-  return new Set((data ?? []).map((r: { client_id: string }) => r.client_id))
+  // Compatibility (NULL model) is unchanged: a programme row still fences the client.
+  for (const r of (data ?? []) as { client_id: string }[]) fenced.add(r.client_id)
+  return fenced
 }
 
 /** Helper for the loop shape every cron uses: `null` set → `null` verdict, never `false`. */

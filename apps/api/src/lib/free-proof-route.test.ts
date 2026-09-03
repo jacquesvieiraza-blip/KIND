@@ -85,14 +85,18 @@ async function runJob(opts: {
   vi.doMock('@kind/db', () => {
     const singleFor = (t: string) => {
       if (t === 'icps') return jctx.opts.icpMissing ? null : ICP_ROW
-      if (t === 'clients') return { id: 'c1', leads_per_run: null, is_demo: false, user_id: 'u1', credit_balance: 0 }
+      if (t === 'clients') return { id: 'c1', leads_per_run: null, is_demo: false, user_id: 'u1', credit_balance: 0, commercial_model: null }
       return null
     }
     const makeQuery = (table: string) => {
       const q: Record<string, unknown> = {}
       for (const m of ['select', 'in', 'is', 'neq', 'not', 'order', 'or', 'gte', 'lte']) q[m] = () => q
       q.eq = (col: string, val: unknown) => { jctx.rec.eqs.push({ table, col, val }); return q }
-      q.limit       = async (n?: number) => {
+      // ⛓️ C2 — `.limit()` IS NO LONGER TERMINAL. `openProgrammeFor` ends on
+      // `.limit(1).maybeSingle()` and the commercial-model resolver calls it, so what `limit`
+      // returns must be BOTH awaitable (every existing caller here, unchanged) and chainable to
+      // `maybeSingle` (no open programme → legacy, which is what these fixtures describe).
+      const limitResult = async (n?: number) => {
         if (table === 'lead_pool') {
           // servePoolLeads pulls a buffer of max(cap*5, 50) then .slice(0, cap). Recording
           // n lets the test read back the cap the proof path actually handed the pool.
@@ -111,6 +115,11 @@ async function runJob(opts: {
         }
         return { data: [], error: null }
       }
+      q.limit = (n?: number) => ({
+        then: (r: (v: unknown) => void) => limitResult(n).then(r),
+        maybeSingle: async () => ({ data: null, error: null }),
+        single:      async () => ({ data: null, error: null }),
+      })
       q.single      = async () => ({ data: singleFor(table), error: null })
       q.maybeSingle = async () => ({ data: singleFor(table), error: null })
       q.update      = (patch: Record<string, unknown>) => {

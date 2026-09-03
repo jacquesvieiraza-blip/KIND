@@ -119,13 +119,42 @@ router.post('/generate', async (req: Request, res: Response) => {
     // client with an open programme that means it can only manufacture work the send gates
     // will refuse — so it is refused here instead, before any provider call or lead insert.
     // A client with no open programme is untouched: genuine legacy behaviour, unchanged.
-    const { openProgrammeForClient } = await import('../lib/programme')
-    const openProgramme = await openProgrammeForClient(String(client_id))
-    if (openProgramme) {
-      console.log(`[lookalike] refused for client ${client_id} — on programme ${openProgramme.id.slice(0, 8)}; this route cannot attribute leads to a programme. No sourcing, no spend.`)
+    // ⛓️ 3 Sep (C2) — ~~`const openProgramme = await openProgrammeForClient(client_id)`, refusing
+    // only `if (openProgramme)`.~~ THAT LEFT THIS ROUTE OPEN TO EXACTLY THE CLIENTS IT WAS
+    // WRITTEN FOR.
+    //
+    // 🛑 House and MBF are DECLARED programme clients with no programme open, so
+    // `openProgrammeForClient` returned null and this refusal never fired. Both then fell
+    // through: House skips `try_spend_sourcing` entirely (Apollo is prepaid — AR5/AR16), so it
+    // reached the provider and inserted 50 unattributed leads with no gate at all; a
+    // programme-model CLIENT reached the RPC with `p_programme_id: null`, which grants for a
+    // client with no open programme, and spent ~$14 of PDL on leads no programme can ever
+    // authorise anyone to contact. This route holds no ICP, so nothing it creates can EVER be
+    // positively attributed — which is precisely why the question must be the commercial model
+    // and not "is a programme open right now".
+    //
+    // ⚠️ AND IT IS THE SAME RESOLVER THE REST OF C2 USES, not a second copy of the rule.
+    // `mayUseLegacyCommercialPath` is false for a declared programme client (with or without a
+    // programme), for an unclassified client who has one open, and for an unreadable model
+    // — including the declared-legacy-with-an-open-programme conflict.
+    //
+    // ⚠️ GENUINE LEGACY IS UNTOUCHED. A client declared `legacy`, and every UNCLASSIFIED client
+    // with no open programme — the whole live book — resolves to legacy and proceeds exactly as
+    // before, into the AR8 fence below.
+    const { clientCommercialModel, mayUseLegacyCommercialPath } = await import('../lib/commercial-model')
+    const model = await clientCommercialModel(String(client_id))
+    if (!mayUseLegacyCommercialPath(model)) {
+      const why = model.model === 'unreadable'
+        ? `commercial model unresolved — ${model.reason}`
+        : model.openProgramme
+          ? `on programme ${model.openProgramme.id.slice(0, 8)}`
+          : 'declared programme model with no active programme'
+      console.log(`[lookalike] refused for client ${client_id} — ${why}; this route cannot attribute leads to a programme. No sourcing, no provider call, no spend.`)
       return res.json({
         found: 0, inserted: 0, refused: 'programme_attribution',
-        message: 'This client is on a programme. Lookalikes cannot be attributed to it, so nothing was sourced — source from an ICP attached to the programme instead.',
+        message: model.model === 'unreadable'
+          ? 'This client’s commercial model could not be resolved, so nothing was sourced and nothing was spent. An operator needs to set it in Vida.'
+          : 'This client is on the programme model. Lookalikes cannot be attributed to a programme, so nothing was sourced — source from an ICP attached to the programme instead.',
         icp_used: { industries: icp.industries, titles: icp.job_titles, locations: icp.geographies },
       })
     }

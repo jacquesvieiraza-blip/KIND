@@ -22,7 +22,7 @@ import { toMemoryRecord, rememberAcquiredIdentities, type AcquisitionMemoryRecor
 import { rethrowIfProviderBlocked, isPaidProviderBlocked } from '../lib/paid-provider-guard'
 import { deriveRunStatus, runOutcomeMessage, type RunStatus } from '../lib/run-outcome'
 import { authorityFor, ProgrammeAuthorityError } from '../lib/programme-authority'
-import { openProgrammeForClient, type ProgrammeRow } from '../lib/programme'
+import { type ProgrammeRow } from '../lib/programme'
 import {
   decideCursor, nextCursorState, exhaustedMessage, exhaustedAlertLines,
   type CursorQuery, type StoredCursor,
@@ -628,7 +628,35 @@ export async function runIcpJob(
     //
     // ⚠️ THE LEGACY PATH IS UNTOUCHED. This asks about the CLIENT'S open programme; a client
     // with none behaves exactly as before, which is what the $299 pack model still is.
-    const open = await openProgrammeForClient(clientId)
+    // ⛓️ C2 — A DECLARED PROGRAMME CLIENT WITH NO OPEN PROGRAMME MAY NOT SOURCE AT ALL.
+    //
+    // 🛑 THIS IS THE MOST EXPENSIVE HOLE THE MODEL CLOSES. Before it, such a client — House and
+    // MBF today — had no open programme, so every check below passed and the run proceeded
+    // under LEGACY authority: paid provider records bought, a legacy campaign created and
+    // activated off the new ICP, and prospects manufactured that no programme will ever be
+    // authorised to contact. Refused here, before the pool is served and before any provider
+    // is called.
+    //
+    // ⚠️ UNREADABLE REFUSES TOO, and a client with NO declaration behaves exactly as before.
+    const { clientCommercialModel } = await import('../lib/commercial-model')
+    const model = await clientCommercialModel(clientId)
+    if (model.model === 'unreadable') {
+      // ⚠️ NO APOSTROPHE INSIDE THIS TEMPLATE LITERAL. `schema-truth.ts` strips comments and
+      // strings with a scanner that treats a lone `'` inside a backtick as a string opener, so
+      // one contraction here silently mis-parses the rest of this file and the guard reports
+      // phantom missing columns. The founder ruled against broadly patching that parser, so the
+      // prose avoids the character instead.
+      throw new ProgrammeAuthorityError('programme_unresolvable',
+        `The commercial model for this client could not be resolved (${model.reason}), so nothing was sourced and nothing was spent.`)
+    }
+    if (model.model === 'programme' && !model.openProgramme) {
+      throw new ProgrammeAuthorityError('not_this_programme',
+        'This client is on the programme model and has no active programme, so there is no authority to ' +
+        'source. The retired per-lead model does not apply to them. Create and authorise a programme ' +
+        'first. Nothing was sourced and nothing was spent.')
+    }
+
+    const open = model.openProgramme
     if (open && !programmeId) {
       throw new ProgrammeAuthorityError('icp_not_attached_to_programme',
         `This client is on programme ${open.id.slice(0, 8)}, and ICP ${icpId} is not attached to it. ` +

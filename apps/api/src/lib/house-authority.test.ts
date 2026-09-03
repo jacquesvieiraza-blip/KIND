@@ -51,10 +51,17 @@ const dbState: {
   icpListError: { message: string } | null
   campaigns: Record<string, unknown>[]
   campaignsError: { message: string } | null
+  // ⛓️ C2 — THE CLIENT ROW IS NOW PART OF EVERY AUTHORITY QUESTION. `checkProgrammeAuthority`
+  // resolves `clients.commercial_model` before it reads the programme, so a fixture with no
+  // client row is a client that does not exist — which fails closed, correctly, and is not what
+  // any assertion in this file is about. `commercial_model: null` is the UNCLASSIFIED state
+  // every existing row on the live book holds, so every assertion keeps its original meaning.
+  client: Record<string, unknown> | null
 } = {
   enrollment: null, programme: null, icp: null, icpList: [],
   leadCount: 0, leadCountError: null, writes: [], updatedRows: null,
   icpClientFilter: null, icpListError: null, campaigns: [], campaignsError: null,
+  client: { id: 'c1', commercial_model: null },
 }
 
 vi.mock('@kind/db', () => ({
@@ -73,6 +80,7 @@ vi.mock('@kind/db', () => ({
           if (table === 'figsy_enrollments') return { data: dbState.enrollment, error: null }
           if (table === 'programmes') return { data: dbState.programme, error: null }
           if (table === 'icps') return { data: dbState.icp, error: null }
+          if (table === 'clients') return { data: dbState.client, error: null }
           return { data: null, error: null }
         },
         async single() { return { data: dbState.programme, error: null } },
@@ -142,6 +150,7 @@ beforeEach(() => {
   dbState.icpList = []; dbState.leadCount = 0; dbState.leadCountError = null
   dbState.writes = []; dbState.updatedRows = null
   dbState.icpClientFilter = null; dbState.icpListError = null
+  dbState.client = { id: 'c1', commercial_model: null }
   dbState.campaigns = []; dbState.campaignsError = null
 })
 
@@ -519,7 +528,12 @@ describe('⑧ an unattached ICP cannot source for a programme client', () => {
   })
 
   it('it asks about the CLIENT\'S open programme, and a mismatch fails closed', () => {
-    expect(icps).toContain('const open = await openProgrammeForClient(clientId)')
+    // ⛓️ C2 — ~~`const open = await openProgrammeForClient(clientId)`~~. The open programme now
+    // comes from the commercial-model resolution, which does the same read and additionally
+    // answers which model governs the client. The PROPERTY this test names is unchanged: the
+    // question is asked about the CLIENT, and a mismatch fails closed.
+    expect(icps).toContain('const model = await clientCommercialModel(clientId)')
+    expect(icps).toContain('const open = model.openProgramme')
     expect(icps).toMatch(/if \(open && !programmeId\)/)
     expect(icps).toMatch(/if \(open && programmeId && programmeId !== open\.id\)/)
   })
@@ -528,17 +542,28 @@ describe('⑧ an unattached ICP cannot source for a programme client', () => {
     // ⚠️ SCOPED TO THE NEW GATE ONLY. The window ends where the pre-existing broken-link
     // checks begin — those have always thrown and are not what this asserts. A wider slice
     // counted one of them and made the assertion about the wrong code.
-    const at = icps.indexOf('const open = await openProgrammeForClient(clientId)')
+    //
+    // ⛓️ C2 — THE WINDOW NOW OPENS AT THE MODEL RESOLUTION, and holds FOUR refusals rather than
+    // two. The property is the same and is asserted the same way: every one of them is
+    // conditioned, so an UNCLASSIFIED client with no open programme — which is the entire live
+    // book — reaches none of them and sources exactly as before.
+    const at = icps.indexOf('const model = await clientCommercialModel(clientId)')
+    expect(at, 'the model must be resolved before the gate').toBeGreaterThan(-1)
     const block = icps.slice(at, icps.indexOf('if (programmeId) {', at))
     const throws = [...block.matchAll(/throw new ProgrammeAuthorityError/g)]
-    expect(throws, 'the new gate raises exactly two refusals').toHaveLength(2)
-    // Both live inside an `if (open …)`, so a client with no programme reaches neither.
+    expect(throws, 'the gate raises exactly four refusals').toHaveLength(4)
     for (const m of throws) {
-      const guard = block.slice(0, m.index).lastIndexOf('if (open')
-      expect(guard, 'every new refusal must be conditioned on an OPEN programme').toBeGreaterThan(-1)
+      const before = block.slice(0, m.index)
+      const guard = Math.max(before.lastIndexOf('if (open'), before.lastIndexOf('if (model.model'))
+      expect(guard, 'every refusal must be conditioned on the model or on an OPEN programme')
+        .toBeGreaterThan(-1)
     }
+    // 🛑 AND THE TWO NEW ONES ARE THE TWO THE FOUNDER NAMED — a declared programme client with
+    // no programme, and a model that would not resolve. Neither is reachable by a NULL client.
+    expect(block).toMatch(/if \(model\.model === 'unreadable'\)/)
+    expect(block).toMatch(/if \(model\.model === 'programme' && !model\.openProgramme\)/)
     // ⚠️ NO "nothing throws unconditionally" ASSERTION HERE. The first version of this line
-    // matched the very two throws the loop above had just proved are guarded — a check that
+    // matched the very throws the loop above had just proved are guarded — a check that
     // contradicted its own sibling. The guard proof IS the assertion.
   })
 

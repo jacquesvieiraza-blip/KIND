@@ -296,6 +296,18 @@ export default function VidaConsolePage() {
       eligible: { id: string; name: string | null; is_active: boolean }[]
       unreadable: boolean
     }
+    // ⚑ 3 Sep (C2) — WHICH COMMERCIAL MODEL GOVERNS THIS CLIENT. `stored` is what the column
+    // holds (null = unclassified, 'unknown' = the row would not read); `resolved` is what the
+    // product will actually do. They differ on purpose: an unclassified client with a
+    // programme open resolves as programme WITHOUT anybody having declared it, and an
+    // operator who cannot see that difference cannot fix it.
+    commercial?: {
+      stored: 'programme' | 'legacy' | null | 'unknown'
+      resolved: 'programme' | 'legacy' | 'compat_programme' | 'compat_legacy' | 'unreadable'
+      declared: boolean
+      label: string
+      reason: string | null
+    }
   }
   const [prog, setProg] = useState<ProgrammeTruth | null>(null)
   const [progErr, setProgErr] = useState<string | null>(null)
@@ -307,6 +319,40 @@ export default function VidaConsolePage() {
       setProg(j.data as ProgrammeTruth)
     } catch (e) { setProgErr(e instanceof Error ? e.message : 'Failed to load programme'); setProg(null) }
   }, [])
+
+  // ── ⚑ 3 Sep (C2) · DECLARING THE COMMERCIAL MODEL ──────────────────────────────────────
+  //
+  // 🛑 BY CLIENT ID, WITH THE CLIENT NAMED BACK. The id comes from the client already selected
+  // in the picker — there is no place to type a company name here, because a name matches two
+  // accounts often enough that "set MBF to programme" is not a safe instruction. The
+  // confirmation reads the name and the target model back so the operator is agreeing to a
+  // specific account, not to a button.
+  //
+  // ⚠️ RELOAD, NEVER PATCH LOCAL STATE. The server re-resolves after the write and may return
+  // something other than what was asked for — a declared model, but also a conflict. Patching
+  // `prog.commercial` from the request would show the operator the change they intended
+  // instead of the state they created.
+  const [cmBusy, setCmBusy] = useState(false)
+  const [cmMsg, setCmMsg] = useState<string | null>(null)
+  const setCommercialModel = useCallback(async (clientId: string, name: string, model: 'programme' | 'legacy' | null) => {
+    const target = model === null ? 'UNCLASSIFIED (compatibility)' : model.toUpperCase()
+    if (!window.confirm(
+      `Set the commercial model for ${name} to ${target}?\n\n`
+      + 'This decides whether the wallet, the per-lead approve/reveal routes and the low-credit '
+      + 'emails apply to this account. It moves no money and sends nothing.',
+    )) return
+    setCmBusy(true); setCmMsg(null)
+    try {
+      const j = await fetch(`/api/proxy/operator/clients/${encodeURIComponent(clientId)}/commercial-model`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ model }),
+      }).then(r => r.json())
+      if (!j?.success) throw new Error(j?.error || 'Failed to set the commercial model')
+      setCmMsg(`${name} is now: ${j.data?.label ?? target}`)
+      await loadProgramme(clientId)
+    } catch (e) {
+      setCmMsg(e instanceof Error ? e.message : 'Failed to set the commercial model')
+    } finally { setCmBusy(false) }
+  }, [loadProgramme])
 
   // ── ⚑ PR A2 · THE PROGRAMME LIFECYCLE CONTROLS ─────────────────────────────────────────
   //
@@ -518,7 +564,7 @@ export default function VidaConsolePage() {
     setTestResult(null); setEnrollView(null)
     setIcpMode('list'); setIcpChat([]); setIcpInput(''); setIcpProposal(null)
     setSeqPreview(null); setAsks(null); setFromClient([]); setAskInput(''); setSaveMsg(null)
-    setProg(null); setProgErr(null)
+    setProg(null); setProgErr(null); setCmMsg(null)
     loadCockpit(selected)
     loadProgramme(selected)
   }, [selected, loadCockpit, loadProgramme])
@@ -1524,9 +1570,27 @@ export default function VidaConsolePage() {
                     Onboarding {cockpit.onboarding.percent}%
                   </span>
                 )}
-                <span className={`shrink-0 text-[12.5px] font-bold text-[#7C3AED] bg-[#f3ecff] rounded-full px-2.5 py-1 ${cockpit ? '' : 'ml-auto'}`}>
-                  ${(selectedClient?.wallet_balance_usd ?? 0).toLocaleString()} wallet
-                </span>
+                {/* ⚑ 3 Sep (C2) — THE WALLET IS STILL SHOWN, AND IT NO LONGER IMPLIES A MODEL.
+                    This chip stated a balance in the same weight and colour for every client,
+                    on a header the operator reads before every action — so for a programme
+                    client it silently answered "how does this account pay?" with the legacy
+                    answer. The number stays (it is a real stored balance, and a programme
+                    client can still hold one from before); what it no longer does is stand
+                    unqualified beside an account the wallet does not govern. */}
+                {(() => {
+                  const programmeModel = prog?.commercial?.resolved === 'programme' || prog?.commercial?.resolved === 'compat_programme'
+                  return (
+                    <span
+                      title={programmeModel
+                        ? 'Programme client — the wallet does not gate their sourcing, sending or enrolment. Shown because the balance is real, not because it applies.'
+                        : 'Wallet balance'}
+                      className={`shrink-0 text-[12.5px] font-bold rounded-full px-2.5 py-1 ${cockpit ? '' : 'ml-auto'} ${
+                        programmeModel ? 'text-[#9b8ec4] bg-[#f7f4fd]' : 'text-[#7C3AED] bg-[#f3ecff]'}`}>
+                      ${(selectedClient?.wallet_balance_usd ?? 0).toLocaleString()} wallet
+                      {programmeModel ? ' · not used' : ''}
+                    </span>
+                  )
+                })()}
               </div>
 
               <div className="shrink-0 px-[22px] py-1.5 text-[12px] text-[#9b8ec4] bg-[#fbfaff] border-b border-[#f2ecfb]">
@@ -2629,11 +2693,65 @@ export default function VidaConsolePage() {
                     <p key={i} className="text-[12.5px] font-semibold text-red-600 mb-2">⚠️ {d}</p>
                   ))}
 
+                  {/* ── ⚑ 3 Sep (C2) · THE COMMERCIAL MODEL ────────────────────────────────
+                      🛑 THIS PANEL REPLACES AN INFERENCE. The sentence that used to stand
+                      below — the one that named the retired per-lead model whenever a programme
+                      row was missing — asserted a commercial fact from an ABSENCE, and it
+                      was wrong for every programme client between programmes, before their
+                      first one, and after one completes. The model is now declared, and this
+                      is where a human declares it. */}
+                  {prog?.commercial && selectedClient && (
+                    <div className={`border rounded-xl px-3 py-2.5 mb-3 ${
+                      prog.commercial.resolved === 'unreadable' ? 'border-red-300 bg-red-50/60'
+                      : prog.commercial.declared ? 'border-[#eee7f7] bg-[#faf8ff]'
+                      : 'border-amber-300 bg-amber-50/60'}`}>
+                      <b className="text-[13px] block">Commercial model — {prog.commercial.label}</b>
+                      {prog.commercial.reason && (
+                        <p className="text-[12px] text-red-700 mt-1 font-semibold">{prog.commercial.reason}</p>
+                      )}
+                      {!prog.commercial.declared && prog.commercial.resolved !== 'unreadable' && (
+                        <p className="text-[12px] text-[#92400e] mt-1">
+                          Nobody has declared this. The account behaves as it did before the model existed —
+                          which for a client with no programme means legacy per-lead economics. Declare it if that is wrong.
+                        </p>
+                      )}
+                      <div className="flex items-center gap-2 mt-2 flex-wrap">
+                        <button onClick={() => setCommercialModel(selectedClient.id, selectedClient.company_name || 'this client', 'programme')}
+                          disabled={cmBusy || prog.commercial.stored === 'programme'}
+                          className="text-[12.5px] font-bold text-white bg-[#7C3AED] rounded-lg px-2.5 py-1.5 disabled:opacity-40">
+                          Set programme
+                        </button>
+                        <button onClick={() => setCommercialModel(selectedClient.id, selectedClient.company_name || 'this client', 'legacy')}
+                          disabled={cmBusy || prog.commercial.stored === 'legacy'}
+                          className="text-[12.5px] font-bold text-[#4c4368] bg-white border border-[#e6dcf7] rounded-lg px-2.5 py-1.5 disabled:opacity-40">
+                          Set legacy
+                        </button>
+                        <button onClick={() => setCommercialModel(selectedClient.id, selectedClient.company_name || 'this client', null)}
+                          disabled={cmBusy || prog.commercial.stored === null}
+                          className="text-[12.5px] font-semibold text-[#6b5f8c] bg-white border border-[#e6dcf7] rounded-lg px-2.5 py-1.5 disabled:opacity-40">
+                          Unclassify
+                        </button>
+                      </div>
+                      {cmMsg && <p className="text-[12px] text-[#6b5f8c] mt-2">{cmMsg}</p>}
+                    </div>
+                  )}
+
                   {!prog ? <p className="text-[13.5px] text-[#9b8ec4] text-center py-8">Loading…</p>
                    : !prog.programme ? (
                     <>
+                      {/* ⚠️ WHAT THIS SAYS NOW DEPENDS ON THE DECLARED MODEL, NOT ON THE
+                          ABSENCE ABOVE IT. A programme client between programmes is told
+                          exactly that; only a client somebody classified as legacy, or an
+                          unclassified one the product is still treating as legacy, gets the
+                          per-lead sentence. */}
                       <p className="text-[13.5px] text-[#9b8ec4] text-center py-6">
-                        No programme for this client. They are on the legacy model ($299 pack · 100 included · $4 per approved lead), which is unaffected by programme controls.
+                        {prog.commercial?.resolved === 'programme'
+                          ? 'No active programme for this client. They are a PROGRAMME client — programme economics apply, and none of the legacy per-lead charging does.'
+                         : prog.commercial?.resolved === 'unreadable'
+                          ? 'No active programme, and the commercial model for this client could not be resolved. Nothing will source, send, enrol or charge for them until it is.'
+                         : prog.commercial?.resolved === 'legacy'
+                          ? 'No programme for this client. They are declared legacy ($299 pack · 100 included · $4 per approved lead), which is unaffected by programme controls.'
+                          : 'No programme for this client, and no commercial model has been declared. Until one is, they behave as legacy ($299 pack · 100 included · $4 per approved lead) — declare the model above if that is wrong.'}
                       </p>
                       {/* ⚠️ NO DEFAULT TARGET. The meeting target prices the entire programme
                           off the shared curve, so it is typed by a human every time. */}

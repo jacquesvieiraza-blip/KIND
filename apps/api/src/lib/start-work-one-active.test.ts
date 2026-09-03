@@ -85,7 +85,29 @@ async function ensure(sim: Sim, rec: Rec, clientId = 'c1', opts?: { activate?: b
       }
       return q
     }
-    return { db: { from: () => campaignQuery(), rpc: async () => ({ data: null, error: null }) } }
+    // ⛓️ C2 — THE MOCK IS NOW TABLE-AWARE, because `ensureCampaignForIcp` reaches programme
+    // authority, and programme authority now resolves `clients.commercial_model` first. Every
+    // table used to be served by the campaign query, so the client read answered "no such
+    // client" — which fails closed, correctly, and is not what any assertion here is about.
+    // `commercial_model: null` is the UNCLASSIFIED state the whole live book holds, so every
+    // assertion in this file keeps the meaning it was written with.
+    const simpleQuery = (row: unknown) => {
+      const q: Record<string, unknown> = {}
+      for (const m of ['select', 'eq', 'neq', 'in', 'is', 'not', 'order', 'or', 'limit']) q[m] = () => q
+      q.maybeSingle = async () => ({ data: row, error: null })
+      q.single = async () => ({ data: row, error: null })
+      q.then = (r: (v: unknown) => void) => r({ data: [], error: null, count: 0 })
+      return q
+    }
+    return {
+      db: {
+        from: (t: string) =>
+          t === 'clients'    ? simpleQuery({ id: clientId, commercial_model: null })
+          : t === 'programmes' ? simpleQuery(null)
+          : campaignQuery(),
+        rpc: async () => ({ data: null, error: null }),
+      },
+    }
   })
   const { ensureCampaignForIcp } = await import('./start-work')
   return ensureCampaignForIcp(clientId, 'icp-1', 'Test ICP', opts)

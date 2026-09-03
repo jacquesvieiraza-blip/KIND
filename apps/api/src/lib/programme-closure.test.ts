@@ -241,13 +241,20 @@ describe('GAP 1 · the activate route computes `sourcing` independently of the j
 })
 
 // ── the gates behave, not just exist ────────────────────────────────────────────────────
-const dbState: { programmes: Record<string, unknown>[]; campaigns: Record<string, unknown>[] } = {
-  programmes: [], campaigns: [],
+// ⛓️ C2 — `clients` ADDED. `checkProgrammeAuthority` resolves `clients.commercial_model` before
+// it reads the programme, so a fixture with no client row is a client that does not exist, which
+// fails closed and turns every refusal below into `programme_state_unreadable`. NULL is the
+// UNCLASSIFIED state the whole live book holds, so each assertion keeps its original meaning.
+const dbState: {
+  programmes: Record<string, unknown>[]; campaigns: Record<string, unknown>[]
+  clients: Record<string, unknown>[]
+} = {
+  programmes: [], campaigns: [], clients: [{ id: 'c1', commercial_model: null }],
 }
 vi.mock('@kind/db', () => ({
   db: {
     from: (t: string) => {
-      const rows = t === 'programmes' ? dbState.programmes : dbState.campaigns
+      const rows = t === 'programmes' ? dbState.programmes : t === 'clients' ? dbState.clients : dbState.campaigns
       const filters: Array<(r: Record<string, unknown>) => boolean> = []
       const q: Record<string, unknown> = {
         select() { return q }, order() { return q }, limit() { return q },
@@ -274,7 +281,10 @@ vi.mock('@kind/db', () => ({
 }))
 
 describe('GAP 3 · behavioural — ensureCampaignForIcp actually refuses', () => {
-  beforeEach(() => { dbState.programmes = []; dbState.campaigns = [] })
+  beforeEach(() => {
+    dbState.programmes = []; dbState.campaigns = []
+    dbState.clients = [{ id: 'c1', commercial_model: null }]
+  })
 
   it('refuses to activate for a programme that has not gone live', async () => {
     dbState.programmes.push({ id: 'p1', client_id: 'c1', status: 'APPROVED', second_paid_at: null, paused_at: null })
@@ -311,6 +321,10 @@ describe('GAP 3 · behavioural — ensureCampaignForIcp actually refuses', () =>
   it('⚠️ NON-VACUOUS: a LEGACY client (no programme) is NOT refused by this gate', async () => {
     // The legacy model must keep working. If this gate refused everyone, every existing
     // client would stop sending the moment it merged.
+    // ⛓️ C2 — the legacy client now needs a ROW, because the gate resolves their commercial
+    // model before it looks for a programme. `commercial_model: null` is the unclassified state
+    // every existing client holds, and it is precisely the case this test is about.
+    dbState.clients.push({ id: 'legacy-client', commercial_model: null })
     const { ensureCampaignForIcp } = await import('./start-work')
     const r = await ensureCampaignForIcp('legacy-client', 'icp-1', 'ICP', { activate: true })
     const reason = (r as { refused?: { reason?: string } }).refused?.reason

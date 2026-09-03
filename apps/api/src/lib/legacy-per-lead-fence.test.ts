@@ -39,9 +39,16 @@ type Row = Record<string, unknown>
 
 const state: {
   programmes: Row[]; leads: Row[]; clients: Row[]
-  written: string[]; rpcs: string[]
-  programmesUnreadable: boolean
-} = { programmes: [], leads: [], clients: [], written: [], rpcs: [], programmesUnreadable: false }
+  // ⛓️ C2 — `reads` and `clientsUnreadable` added. The fence now asks TWO questions (which
+  // commercial model, and is a programme open), so "how many reads does a legacy client cost"
+  // stopped being answerable by counting nothing, and "the client row would not read" became a
+  // state that has to be provable.
+  written: string[]; rpcs: string[]; reads: string[]
+  programmesUnreadable: boolean; clientsUnreadable: boolean
+} = {
+  programmes: [], leads: [], clients: [], written: [], rpcs: [], reads: [],
+  programmesUnreadable: false, clientsUnreadable: false,
+}
 
 function table(name: string) {
   const rows = (): Row[] =>
@@ -65,12 +72,16 @@ function table(name: string) {
     upsert(p: Row) { q._mode = 'insert'; q._payload = p; state.written.push(name); return q },
     _hit() { const all = rows().filter(r => q._f.every((f: (r: Row) => boolean) => f(r))); return q._limit > 0 ? all.slice(0, q._limit) : all },
     async maybeSingle() {
+      state.reads.push(name)
       if (name === 'programmes' && state.programmesUnreadable) return { data: null, error: { message: 'programmes unreadable' } }
+      if (name === 'clients' && state.clientsUnreadable) return { data: null, error: { message: 'clients unreadable' } }
       return { data: q._hit()[0] ?? null, error: null }
     },
     async single() { return q.maybeSingle() },
     _run() {
+      if (q._mode === '') state.reads.push(name)
       if (name === 'programmes' && state.programmesUnreadable) return { data: null, error: { message: 'programmes unreadable' }, count: null }
+      if (name === 'clients' && state.clientsUnreadable) return { data: null, error: { message: 'clients unreadable' }, count: null }
       if (q._mode === 'update') { const h = q._hit(); for (const r of h) Object.assign(r, q._payload); return { data: h, error: null } }
       if (q._mode === 'insert') { const row = { id: `x${rows().length + 1}`, ...(q._payload as Row) }; rows().push(row); return { data: row, error: null } }
       return { data: q._hit(), error: null, count: q._hit().length }
@@ -88,11 +99,20 @@ vi.mock('@kind/db', () => ({
 }))
 vi.mock('./alerts', () => ({ sendFounderAlert: () => Promise.resolve() }))
 
-import { checkLegacyPerLeadAuthority, LEGACY_FENCED_COPY } from './programme-authority'
+import { checkLegacyPerLeadAuthority, LEGACY_FENCED_COPY, PROGRAMME_MODEL_FENCED_COPY } from './programme-authority'
 import { approveLead } from './approve-lead'
 
 const PROG_CLIENT = 'house'
 const LEGACY_CLIENT = 'legacy'
+
+/**
+ * ⛓️ C2 — EVERY CLIENT IN THIS SUITE NOW EXISTS AS A ROW, because the fence reads
+ * `clients.commercial_model` before it reads the programme. `commercial_model: null` is the
+ * COMPATIBILITY state — exactly what the whole live book holds — so every assertion below that
+ * predates C2 keeps asserting the behaviour it was written for, unweakened.
+ */
+const client = (id: string, commercial_model: string | null = null) =>
+  state.clients.push({ id, commercial_model })
 
 function seedOpenProgramme(status = 'READY_FOR_APPROVAL') {
   state.programmes.push({
@@ -110,7 +130,9 @@ const lead = (id: string, clientId: string, over: Row = {}) =>
 
 beforeEach(() => {
   state.programmes = []; state.leads = []; state.clients = []
-  state.written = []; state.rpcs = []; state.programmesUnreadable = false
+  state.written = []; state.rpcs = []; state.reads = []
+  state.programmesUnreadable = false; state.clientsUnreadable = false
+  client(PROG_CLIENT); client(LEGACY_CLIENT)   // both UNCLASSIFIED — today's live book
 })
 
 // ═══════════════════════════════════════════════════════════════════════════════════════
@@ -147,6 +169,84 @@ describe('① the fence asks about the CLIENT, not about the row', () => {
     seedOpenProgramme(status)
     const v = await checkLegacyPerLeadAuthority(PROG_CLIENT)
     expect(v.allowed).toBe(true)
+  })
+
+  // ═════════════════════════════════════════════════════════════════════════════════════
+  // ⛓️ C2 — THE DECLARED COMMERCIAL MODEL, WHICH IS WHAT THE FENCE ACTUALLY ASKS NOW
+  //
+  // 🛑 THE HOLE THESE CLOSE. Every test above this block passes both before and after C2,
+  // because they all describe clients whose model is unclassified. The client the fence was
+  // getting WRONG is the one nobody had a fixture for: a declared programme client with no
+  // programme open — House and MBF, today. They were `allowed: true`, free to be charged $4
+  // per lead against a wallet they never bought.
+  // ═════════════════════════════════════════════════════════════════════════════════════
+  describe('⛓️ C2 — the model decides, and absence decides nothing', () => {
+    it('🛑 A DECLARED PROGRAMME CLIENT WITH NO PROGRAMME IS REFUSED — this is House today', async () => {
+      state.clients = []; client(PROG_CLIENT, 'programme')
+      const v = await checkLegacyPerLeadAuthority(PROG_CLIENT)
+      expect(v.allowed, 'no programme row must not mean "legacy"').toBe(false)
+      expect(!v.allowed && v.code).toBe('programme_model')
+      // ⚠️ AND NOT THE OTHER COPY. `LEGACY_FENCED_COPY` opens "Your programme covers this",
+      // which for a client with no programme is a sentence about something that does not exist.
+      expect(!v.allowed && v.message).toBe(PROGRAMME_MODEL_FENCED_COPY)
+      expect(!v.allowed && v.message).not.toBe(LEGACY_FENCED_COPY)
+      expect(PROGRAMME_MODEL_FENCED_COPY, 'it must not claim a programme they do not have')
+        .not.toMatch(/Your programme covers this/)
+    })
+
+    it('🛑 a declared programme client WITH a programme is still refused, and told so', async () => {
+      state.clients = []; client(PROG_CLIENT, 'programme')
+      seedOpenProgramme()
+      const v = await checkLegacyPerLeadAuthority(PROG_CLIENT)
+      expect(v.allowed).toBe(false)
+      expect(!v.allowed && v.code).toBe('programme_open')
+      expect(!v.allowed && v.message).toBe(LEGACY_FENCED_COPY)
+    })
+
+    it('a DECLARED LEGACY client with no programme is allowed — the model works both ways', async () => {
+      state.clients = []; client(LEGACY_CLIENT, 'legacy')
+      const v = await checkLegacyPerLeadAuthority(LEGACY_CLIENT)
+      expect(v.allowed, 'declaring legacy must actually mean legacy').toBe(true)
+    })
+
+    it('🛑 DECLARED LEGACY + AN OPEN PROGRAMME IS A CONFLICT, AND IT REFUSES', async () => {
+      // ⚠️ NEITHER ANSWER IS SAFE. Choosing programme spends against a declaration; choosing
+      // legacy charges $4 to a client whose programme has already been paid for. So nothing
+      // consequential proceeds and a human is asked.
+      state.clients = []; client(PROG_CLIENT, 'legacy')
+      seedOpenProgramme()
+      const v = await checkLegacyPerLeadAuthority(PROG_CLIENT)
+      expect(v.allowed, 'a contradiction must never resolve in favour of charging').toBe(false)
+      expect(!v.allowed && v.code).toBe('programme_unresolvable')
+    })
+
+    it('🛑 AN UNREADABLE CLIENT ROW IS REFUSED — "we could not tell" is not "legacy"', async () => {
+      state.clientsUnreadable = true
+      const v = await checkLegacyPerLeadAuthority(LEGACY_CLIENT)
+      expect(v.allowed).toBe(false)
+      expect(!v.allowed && v.code).toBe('programme_unresolvable')
+    })
+
+    it('🛑 A CLIENT ROW THAT DOES NOT EXIST IS REFUSED, not defaulted', async () => {
+      state.clients = []
+      const v = await checkLegacyPerLeadAuthority('nobody')
+      expect(v.allowed).toBe(false)
+      expect(!v.allowed && v.code).toBe('programme_unresolvable')
+    })
+
+    it('🛑 approveLead REFUSES a declared programme client — nothing written, no rpc', async () => {
+      // The end-to-end shape of the hole: the money function itself, not just the resolver.
+      state.clients = []; client(PROG_CLIENT, 'programme')
+      lead('L1', PROG_CLIENT, { programme_id: null })
+      state.written = []; state.rpcs = []
+
+      const out = await approveLead('L1', PROG_CLIENT)
+
+      expect(out.status).toBe('programme_fenced')
+      expect(out.status === 'programme_fenced' && out.code).toBe('programme_model')
+      expect(state.written, 'the refusal lands before the revealed_at claim').toEqual([])
+      expect(state.rpcs, 'and before try_charge_wallet').toEqual([])
+    })
   })
 
   it('🛑 AN UNREADABLE PROGRAMME STATE IS REFUSED — fail-closed', async () => {
@@ -234,10 +334,15 @@ describe('③ a client with NO programme keeps their existing legitimate path', 
     expect(state.written, 'the legacy path still reaches its first write').toContain('leads')
   })
 
-  it('the fence costs a legacy client exactly one programme read and no more', async () => {
-    state.written = []; state.rpcs = []
+  it('the fence costs a legacy client exactly TWO reads and no more', async () => {
+    // ⛓️ C2 — was "exactly one programme read". It is now one `clients` read (which model?)
+    // followed by one `programmes` read (is one open?), and the count is asserted rather than
+    // described: a resolver that quietly re-reads per call is a per-approval cost on the one
+    // path a client hits repeatedly.
+    state.written = []; state.rpcs = []; state.reads = []
     const v = await checkLegacyPerLeadAuthority(LEGACY_CLIENT)
     expect(v.allowed).toBe(true)
+    expect(state.reads, 'the model first, then the programme — and nothing else').toEqual(['clients', 'programmes'])
     expect(state.written, 'the fence itself writes nothing, ever').toEqual([])
     expect(state.rpcs).toEqual([])
   })
@@ -325,6 +430,12 @@ describe('⑤ the fence is at the route chokepoint AND inside the money function
     // A money function whose only guard lives in one of its callers is one import away from
     // being unguarded — so the guard is in the function too.
     expect(approveCode).toContain('const fence = await checkLegacyPerLeadAuthority(clientId)')
-    expect(approveCode).toContain("return { status: 'programme_fenced', revealed: false, message: fence.message }")
+    // ⛓️ C2 — `code` added. The outcome carries WHICH refusal it was, because the route used to
+    // answer every one of them with the literal string `programme_open` — a false statement to
+    // a programme client who has no programme open.
+    expect(approveCode).toContain("return { status: 'programme_fenced', revealed: false, message: fence.message, code: fence.code }")
+    const leadsRoute = readFileSync(join(join(__dirname, '..'), 'routes/leads.ts'), 'utf8')
+    expect(leadsRoute, 'the route must forward the verdict code, never hardcode one')
+      .toContain("error: outcome.code, message: outcome.message")
   })
 })

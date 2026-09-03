@@ -1,0 +1,416 @@
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// PR C2 — THE COMMERCIAL MODEL, APPLIED
+//
+// 🛑 THE DEFECT, IN ONE LINE. `authorityFor(null)` returned `{ allowed: true, mode: 'legacy' }`,
+// so the ABSENCE of a programme row was read as the positive assertion "this client is legacy".
+// House and MBF are declared PROGRAMME clients with no programme open today, and that inference
+// therefore opened, for both of them: the per-lead approve/reveal/batch routes at $4 a lead, the
+// wallet gate on enrolment, the retired low-credit and zero-credit emails, legacy sourcing with
+// real provider spend, legacy sending of historical enrolments, the $299 pack checkout, and a
+// Vida panel that told the operator in plain words that they were on the legacy model.
+//
+// ⚠️ WHAT THIS FILE PROVES, AND WHAT IT DELIBERATELY DOES NOT. It proves the RESOLVER against
+// executed code, and it proves that each consequential path CONSUMES it. The behaviour of each
+// individual gate under refusal is proved where that gate lives — `legacy-per-lead-fence`,
+// `house-authority`, `programme-paths`, `programme-closure` — and duplicating those here would
+// be a second copy of a rule, which is the shape this repository keeps removing.
+//
+// ⚠️ AND THE COMPATIBILITY HALF IS ASSERTED AS HARD AS THE NEW HALF. A client whose
+// `commercial_model` is NULL — which on the live book is every client — must behave EXACTLY as
+// they did before this column existed. A change that fenced the whole book on Friday would be a
+// far worse bug than the one it fixed.
+// ═══════════════════════════════════════════════════════════════════════════════════════
+
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { readFileSync } from 'fs'
+import { join } from 'path'
+
+type Row = Record<string, unknown>
+
+const state: {
+  client: Row | null
+  clientError: { message: string; code?: string } | null
+  programme: Row | null
+  programmeError: { message: string } | null
+} = { client: null, clientError: null, programme: null, programmeError: null }
+
+vi.mock('@kind/db', () => ({
+  db: {
+    from: (table: string) => {
+      const q: Record<string, unknown> = {}
+      for (const m of ['select', 'eq', 'not', 'is', 'in', 'order', 'limit']) q[m] = () => q
+      q.maybeSingle = async () => {
+        if (table === 'clients')    return { data: state.client, error: state.clientError }
+        if (table === 'programmes') return { data: state.programme, error: state.programmeError }
+        return { data: null, error: null }
+      }
+      q.single = q.maybeSingle
+      q.then = (r: (v: unknown) => unknown) => Promise.resolve({ data: [], error: null }).then(r)
+      return q
+    },
+  },
+}))
+
+import {
+  clientCommercialModel, mayUseLegacyCommercialPath, isLegacyModel, isProgrammeModel,
+  storedModelFor, commercialModelLabel, type CommercialModel,
+} from './commercial-model'
+
+const API = join(__dirname, '..')
+const raw = (p: string) => readFileSync(join(API, p), 'utf8')
+/** Source with `//` and ` *` lines removed, so a guard never matches its own prose. */
+const strip = (s: string) => s.split('\n').filter(l => !l.trim().startsWith('//') && !l.trim().startsWith('*')).join('\n')
+
+const PROG = { id: 'p1', client_id: 'c1', status: 'LIVE' }
+
+beforeEach(() => {
+  state.client = { commercial_model: null }
+  state.clientError = null
+  state.programme = null
+  state.programmeError = null
+})
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// ① THE FIVE STATES — every one reached, and none of them is a boolean
+// ═══════════════════════════════════════════════════════════════════════════════════════
+describe('① the resolver returns five distinguishable answers', () => {
+  it('NULL + no programme → compat_legacy — TODAY\'S BEHAVIOUR FOR THE WHOLE LIVE BOOK', async () => {
+    const m = await clientCommercialModel('c1')
+    expect(m.model).toBe('compat_legacy')
+    expect(m.declared, 'nobody declared this — it must not claim they did').toBe(false)
+    expect(mayUseLegacyCommercialPath(m), 'the live book keeps the legacy path').toBe(true)
+  })
+
+  it('NULL + an open programme → compat_programme — also today\'s behaviour', async () => {
+    state.programme = PROG
+    const m = await clientCommercialModel('c1')
+    expect(m.model).toBe('compat_programme')
+    expect(m.openProgramme).toEqual(PROG)
+    expect(mayUseLegacyCommercialPath(m)).toBe(false)
+  })
+
+  it('🛑 DECLARED programme + NO open programme → programme, NOT legacy — THIS IS HOUSE', async () => {
+    state.client = { commercial_model: 'programme' }
+    const m = await clientCommercialModel('c1')
+    expect(m.model).toBe('programme')
+    expect(m.declared).toBe(true)
+    expect(m.openProgramme, 'no programme is open, and that is a normal waiting state').toBeNull()
+    expect(mayUseLegacyCommercialPath(m), 'the whole point of C2').toBe(false)
+  })
+
+  it('DECLARED programme + an open programme → programme, carrying the row', async () => {
+    state.client = { commercial_model: 'programme' }
+    state.programme = PROG
+    const m = await clientCommercialModel('c1')
+    expect(m.model).toBe('programme')
+    expect(m.openProgramme).toEqual(PROG)
+  })
+
+  it('DECLARED legacy + no programme → legacy — declaring it must actually mean it', async () => {
+    state.client = { commercial_model: 'legacy' }
+    const m = await clientCommercialModel('c1')
+    expect(m.model).toBe('legacy')
+    expect(m.declared).toBe(true)
+    expect(mayUseLegacyCommercialPath(m)).toBe(true)
+  })
+
+  it('🛑 DECLARED legacy + AN OPEN PROGRAMME → unreadable, and the reason names both', async () => {
+    // ⚠️ NEITHER ANSWER IS SAFE, which is why there is no answer. Choosing programme spends
+    // against a declaration a human made; choosing legacy charges $4 to a client whose
+    // programme has already been paid for. A resolver that "prefers" one is a resolver that
+    // silently picks a side on somebody's money.
+    state.client = { commercial_model: 'legacy' }
+    state.programme = PROG
+    const m = await clientCommercialModel('c1')
+    expect(m.model).toBe('unreadable')
+    expect(m.model === 'unreadable' && m.reason).toContain('declared legacy')
+    expect(m.model === 'unreadable' && m.reason).toContain(PROG.id)
+    expect(mayUseLegacyCommercialPath(m)).toBe(false)
+    expect(isProgrammeModel(m), 'a conflict is not programme either — it is nothing').toBe(false)
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// ② FAIL-CLOSED — "we could not tell" is never a licence
+// ═══════════════════════════════════════════════════════════════════════════════════════
+describe('② every unreadable state refuses, and none of them resolves to legacy', () => {
+  it('🛑 the client read FAILS → unreadable', async () => {
+    state.clientError = { message: 'connection reset' }
+    const m = await clientCommercialModel('c1')
+    expect(m.model).toBe('unreadable')
+    expect(mayUseLegacyCommercialPath(m)).toBe(false)
+  })
+
+  it('🛑 THE COLUMN DOES NOT EXIST (42703 / PGRST204) → unreadable, not "everybody is NULL"', async () => {
+    // If C1's migration were somehow not applied, PostgREST rejects the select. Treating that
+    // as "unclassified" would run the whole product on an inference again, on a schema that is
+    // not what the code expects — the #599 lesson, at the read.
+    state.clientError = { message: 'column clients.commercial_model does not exist', code: '42703' }
+    const m = await clientCommercialModel('c1')
+    expect(m.model).toBe('unreadable')
+  })
+
+  it('🛑 the client ROW DOES NOT EXIST → unreadable, not defaulted', async () => {
+    state.client = null
+    const m = await clientCommercialModel('c1')
+    expect(m.model).toBe('unreadable')
+    expect(m.model === 'unreadable' && m.reason).toBe('no such client')
+  })
+
+  it('🛑 the PROGRAMME read fails → unreadable (openProgrammeFor throws, and that is honoured)', async () => {
+    state.programmeError = { message: 'timeout' }
+    const m = await clientCommercialModel('c1')
+    expect(m.model).toBe('unreadable')
+    expect(m.model === 'unreadable' && m.reason).toContain('programme read failed')
+  })
+
+  it('🛑 an UNRECOGNISED stored value → unreadable, never guessed at', async () => {
+    // The CHECK constraint makes this unreachable through the database. It is handled anyway:
+    // an unexpected value is exactly the case where guessing is worst.
+    state.client = { commercial_model: 'enterprise' }
+    const m = await clientCommercialModel('c1')
+    expect(m.model).toBe('unreadable')
+    expect(m.model === 'unreadable' && m.reason).toContain('enterprise')
+  })
+
+  it('an EMPTY client id refuses without touching the database', async () => {
+    const m = await clientCommercialModel('')
+    expect(m.model).toBe('unreadable')
+  })
+
+  it('⚠️ NON-VACUOUS: the same fixture with a clean read is ALLOWED', async () => {
+    // Without this, every assertion above would pass against a resolver that refused always.
+    const m = await clientCommercialModel('c1')
+    expect(mayUseLegacyCommercialPath(m)).toBe(true)
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// ③ THE PREDICATES ARE TOTAL, AND THEY DISAGREE IN THE RIGHT PLACES
+// ═══════════════════════════════════════════════════════════════════════════════════════
+describe('③ isLegacy / isProgramme / mayUseLegacy / storedModelFor', () => {
+  const ALL: CommercialModel[] = [
+    { model: 'programme', declared: true, openProgramme: null },
+    { model: 'programme', declared: true, openProgramme: PROG as never },
+    { model: 'legacy', declared: true, openProgramme: null },
+    { model: 'compat_programme', declared: false, openProgramme: PROG as never },
+    { model: 'compat_legacy', declared: false, openProgramme: null },
+    { model: 'unreadable', declared: false, openProgramme: null, reason: 'x' },
+  ]
+
+  it('🛑 NOTHING IS BOTH, AND UNREADABLE IS NEITHER', async () => {
+    for (const m of ALL) {
+      expect(isLegacyModel(m) && isProgrammeModel(m), `${m.model} cannot be both`).toBe(false)
+    }
+    const u = ALL[ALL.length - 1]
+    expect(isLegacyModel(u)).toBe(false)
+    expect(isProgrammeModel(u)).toBe(false)
+  })
+
+  it('mayUseLegacyCommercialPath is exactly isLegacyModel — the two must never drift', () => {
+    for (const m of ALL) expect(mayUseLegacyCommercialPath(m)).toBe(isLegacyModel(m))
+    // ⚠️ AND EXACTLY TWO OF THE SIX SAY YES, asserted as a count so a widening is visible.
+    expect(ALL.filter(mayUseLegacyCommercialPath)).toHaveLength(2)
+  })
+
+  it('storedModelFor recovers the column value, and says "unknown" rather than "not set"', () => {
+    expect(storedModelFor(ALL[0])).toBe('programme')
+    expect(storedModelFor(ALL[2])).toBe('legacy')
+    expect(storedModelFor(ALL[3]), 'unclassified').toBeNull()
+    expect(storedModelFor(ALL[4]), 'unclassified').toBeNull()
+    expect(storedModelFor(ALL[5]), 'a row we could not read is not a row that is empty').toBe('unknown')
+  })
+
+  it('every state has an operator label, and no two consequential ones read the same', () => {
+    const labels = ALL.map(commercialModelLabel)
+    expect(labels.every(l => l.length > 0)).toBe(true)
+    // ⚠️ ALL SIX ARE DISTINCT, including the two `programme` entries — "Programme" and
+    // "Programme client · no active programme" are different operational situations and an
+    // operator who cannot tell them apart cannot act on either.
+    expect(new Set(labels).size, 'a label that cannot distinguish two states cannot be acted on')
+      .toBe(labels.length)
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// ④ EVERY CONSEQUENTIAL PATH ASKS — and asks BEFORE it spends
+// ═══════════════════════════════════════════════════════════════════════════════════════
+describe('④ the resolver is consumed at every path that sources, sends, enrols or charges', () => {
+  it('🛑 SOURCING — icps refuses before the pool is served and before any provider call', () => {
+    const icps = strip(raw('routes/icps.ts'))
+    const at = icps.indexOf('clientCommercialModel(clientId)')
+    expect(at, 'the sourcing path must resolve the model').toBeGreaterThan(-1)
+    expect(at, 'before the pool is served').toBeLessThan(icps.indexOf('await servePoolLeads('))
+    expect(at, 'before the sourcing spend RPC').toBeLessThan(icps.indexOf('try_spend_sourcing'))
+    expect(at, 'before any paid provider is reached').toBeLessThan(icps.indexOf('searchPeople('))
+    // ⚠️ AND THE TWO REFUSALS ACTUALLY THROW, rather than merely being mentioned.
+    expect(icps).toMatch(/if \(model\.model === 'unreadable'\) \{[\s\S]{0,400}throw new ProgrammeAuthorityError/)
+    expect(icps).toMatch(/if \(model\.model === 'programme' && !model\.openProgramme\) \{[\s\S]{0,500}throw new ProgrammeAuthorityError/)
+  })
+
+  it('🛑 ENROLMENT — figsy asks before the wallet gate, not after it', () => {
+    const figsy = strip(raw('lib/figsy.ts'))
+    const fn = figsy.slice(figsy.indexOf('export async function autoEnrollLead'))
+    const model = fn.indexOf('clientCommercialModel(clientId)')
+    const wallet = fn.indexOf('canEnroll(client?.figsy_credits_remaining)')
+    expect(model).toBeGreaterThan(-1)
+    expect(wallet).toBeGreaterThan(-1)
+    expect(model, 'a programme client must never be told they have no credits').toBeLessThan(wallet)
+    // ⚠️ AND THE REFUSAL RETURNS, rather than falling through to the gate below it.
+    expect(fn.slice(model, wallet)).toMatch(/if \(!mayUseLegacyCommercialPath\(model\)\) \{[\s\S]{0,300}return\b/)
+  })
+
+  it('🛑 CHARGING — the $299 pack checkout refuses a non-legacy client before Stripe', () => {
+    const stripe = strip(raw('routes/stripe.ts'))
+    const fn = stripe.slice(stripe.indexOf("stripeRouter.post('/checkout'"))
+    const model = fn.indexOf('mayUseLegacyCommercialPath(model)')
+    expect(model).toBeGreaterThan(-1)
+    expect(model, 'the refusal precedes the Stripe session').toBeLessThan(fn.indexOf('createWalletCheckoutSession('))
+    // ⚠️ AND THE CONDITION IS THE BARE NEGATION, WITH A RETURN. Asserting only that the call
+    // APPEARS would pass against `if (false && !mayUse…)` — a guard that is present, correctly
+    // ordered, and does nothing. The literal shape and the return are what make it a fence.
+    expect(fn.slice(model - 40)).toMatch(/if \(!mayUseLegacyCommercialPath\(model\)\) \{[\s\S]{0,800}return\b/)
+  })
+
+  it('🛑 SENDING — send-due selects nothing for a programme client with no programme', () => {
+    const sd = strip(raw('lib/send-due.ts'))
+    expect(sd).toContain('clientCommercialModel(')
+    expect(sd).toMatch(/model\.model === 'programme' && !model\.openProgramme/)
+    expect(sd).toContain("openProgrammeByClient.set(cid as string, '__none__')")
+    expect(sd, 'and the filter must actually act on the marker')
+      .toMatch(/if \(openId === '__none__'\) return false/)
+    // ⚠️ THE LEGACY BRANCH IS STILL THERE. `openId == null` is a genuine legacy client and
+    // still selects their work — the property a fix like this most easily destroys.
+    expect(sd).toMatch(/if \(openId == null\) return true/)
+  })
+
+  it('🛑 THE LEGACY PER-LEAD PATHS — the fence asks the model, not the programme row', () => {
+    const pa = strip(raw('lib/programme-authority.ts'))
+    const fn = pa.slice(pa.indexOf('export async function checkLegacyPerLeadAuthority'))
+    expect(fn).toContain('mayUseLegacyCommercialPath(model)')
+    expect(fn, 'the old question must be gone from this function')
+      .not.toContain('const open = await openProgrammeFor(clientId)')
+  })
+
+  it('🛑 THE RETIRED WALLET EMAILS — the fence reads the declared model too', () => {
+    const pn = strip(raw('lib/programme-notifications.ts'))
+    const fn = pn.slice(pn.indexOf('export async function programmeClientIds'))
+    expect(fn).toContain("select('id, commercial_model')")
+    expect(fn).toMatch(/commercial_model === 'programme'/)
+    expect(fn, 'a failed model read fences nothing and reports null, never an empty set')
+      .toMatch(/if \(modelErr\) \{[\s\S]{0,200}return null/)
+  })
+
+  it('🛑 THE ROOT — authorityFor no longer reads a missing programme as "legacy" unconditionally', () => {
+    const pa = strip(raw('lib/programme-authority.ts'))
+    const fn = pa.slice(pa.indexOf('export function authorityFor'), pa.indexOf('const p = programme'))
+    expect(fn).toMatch(/if \(model\?\.model === 'unreadable'\)/)
+    expect(fn).toMatch(/if \(model\?\.model === 'programme'\)/)
+    // ⚠️ AND COMPATIBILITY SURVIVES IT. With no model supplied, or a NULL one, the answer is
+    // still legacy — which is what keeps every existing pure call site meaning what it meant.
+    expect(fn).toContain("return { allowed: true, mode: 'legacy', programme: null }")
+    const legacyAt = fn.indexOf("return { allowed: true, mode: 'legacy'")
+    expect(legacyAt, 'the legacy fallthrough is LAST — the refusals are the special cases')
+      .toBeGreaterThan(fn.indexOf("if (model?.model === 'programme')"))
+  })
+
+  it('⚠️ NON-VACUOUS: every file above was actually loaded and is not a stub', () => {
+    for (const f of ['routes/icps.ts', 'lib/figsy.ts', 'routes/stripe.ts', 'lib/send-due.ts',
+                     'lib/programme-authority.ts', 'lib/programme-notifications.ts']) {
+      expect(raw(f).length, f).toBeGreaterThan(1000)
+    }
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// ⑤ THE MODEL IS DECLARED, NEVER INFERRED — the founder's exact wording
+// ═══════════════════════════════════════════════════════════════════════════════════════
+describe('⑤ nothing anywhere infers the model from a name, an email or an env var', () => {
+  it('🛑 the resolver reads ONE column and nothing else', () => {
+    const cm = strip(raw('lib/commercial-model.ts'))
+    for (const banned of ['company_name', 'HOUSE_CLIENT_ID', 'get-kind.com', 'process.env', 'is_demo', 'auth.admin']) {
+      expect(cm, `the model must never be inferred from ${banned}`).not.toContain(banned)
+    }
+    expect(cm).toContain("select('commercial_model')")
+  })
+
+  it('🛑 IT IS NOT HOUSE IDENTITY, AND THE TWO ARE NEVER SUBSTITUTED', () => {
+    // Founder-locked 3 Sep: "Commercial model determines programme vs legacy. House identity
+    // determines House internal P1/P2 wording/authority." Conflating them would make every
+    // internally-billed client a programme client by accident, or the reverse.
+    expect(strip(raw('lib/commercial-model.ts')), 'the resolver must not reach for House identity')
+      .not.toContain('isHouseClient')
+    expect(strip(raw('lib/house-client.ts')), 'and House identity must not reach for the model')
+      .not.toContain('commercial_model')
+  })
+
+  it('🛑 THE COLUMN IS NEVER BACKFILLED — no sweep, no default, no bulk write', () => {
+    for (const f of ['routes/operator.ts', 'routes/auth.ts', 'lib/commercial-model.ts']) {
+      const src = strip(raw(f))
+      // A bulk write would have to name the column beside an `in(` or a filter-less update.
+      expect(src, `${f} must not write the model to many rows at once`)
+        .not.toMatch(/update\(\s*\{[^}]*commercial_model[^}]*\}\s*\)\s*\.in\(/)
+    }
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// ⑥ WHAT THE OPERATOR AND THE CUSTOMER ARE TOLD
+// ═══════════════════════════════════════════════════════════════════════════════════════
+describe('⑥ no surface asserts the legacy model at a programme client any more', () => {
+  const VIDA = join(__dirname, '../../../../apps/admin/src/app/vida/page.tsx')
+  const vida = strip(readFileSync(VIDA, 'utf8'))
+
+  it('🛑 VIDA no longer says "they are on the legacy model" because no programme row exists', () => {
+    // The exact sentence that shipped: "No programme for this client. They are on the legacy
+    // model ($299 pack · 100 included · $4 per approved lead)". It stated a commercial fact
+    // inferred from an absence, to the one person who acts on it.
+    expect(vida, 'the unconditional sentence must be gone')
+      .not.toContain('No programme for this client. They are on the legacy model')
+    // It is replaced by four branches, one per resolved state.
+    expect(vida).toMatch(/prog\.commercial\?\.resolved === 'programme'/)
+    expect(vida).toMatch(/prog\.commercial\?\.resolved === 'unreadable'/)
+    expect(vida).toMatch(/prog\.commercial\?\.resolved === 'legacy'/)
+    // ⚠️ AND THE LEGACY SENTENCE STILL EXISTS for a client who IS legacy. Deleting it would
+    // hide the truth from the accounts it is true for.
+    expect(vida).toContain('$299 pack · 100 included · $4 per approved lead')
+  })
+
+  it('🛑 THE WALLET CHIP NO LONGER STANDS UNQUALIFIED BESIDE A PROGRAMME CLIENT', () => {
+    expect(vida).toContain('wallet')
+    expect(vida, 'the chip must know whether the wallet governs this account')
+      .toMatch(/programmeModel \? ' · not used' : ''/)
+    // ⚠️ THE ELEMENT IS PRESERVED, not removed — the founder's brand rule for Vida.
+    expect(vida).toContain('.wallet_balance_usd ?? 0).toLocaleString()')
+  })
+
+  it('🛑 THE OPERATOR CONTROL SETS THE MODEL BY THE SELECTED CLIENT ID, WITH A CONFIRMATION', () => {
+    expect(vida).toContain('setCommercialModel(selectedClient.id')
+    expect(vida, 'the operator must confirm against a named client and a named target')
+      .toMatch(/window\.confirm\([\s\S]{0,200}\$\{name\}[\s\S]{0,60}\$\{target\}/)
+    expect(vida, 'and the surface reloads from the server rather than patching itself')
+      .toMatch(/await loadProgramme\(clientId\)/)
+    // Three targets, and `null` is one of them: returning a client to UNCLASSIFIED is a real,
+    // defined choice, not a way of clearing a field.
+    for (const t of ["'programme')", "'legacy')", 'null)']) expect(vida).toContain(`company_name || 'this client', ${t}`)
+  })
+
+  it('🛑 THE RETIRED /dashboard BILLING PAGE IS FENCED FOR A PROGRAMME CLIENT', () => {
+    const BILL = join(__dirname, '../../../../apps/portal/src/app/(dashboard)/dashboard/billing/page.tsx')
+    const bill = strip(readFileSync(BILL, 'utf8'))
+    expect(bill).toContain('if (!walletApplies) return (')
+    expect(bill, 'the fence must precede every legacy money statement on the page')
+      .toSatisfy((s: string) => s.indexOf('if (!walletApplies) return (') < s.indexOf('One wallet. $'))
+    // ⚠️ AND ONLY FOR THEM. The default is `true`, so a legacy or unclassified client — and a
+    // client served by an API that does not send the field — sees the page exactly as before.
+    expect(bill).toContain('useState(true)')
+    expect(bill).toContain('wallet_applies !== false')
+  })
+
+  it('the wallet endpoint is what tells them, and it still returns the real balance', () => {
+    const credits = strip(raw('routes/credits.ts'))
+    expect(credits).toContain('wallet_applies:      mayUseLegacyCommercialPath(model)')
+    expect(credits, 'hiding a real stored balance would be lying in the other direction')
+      .toContain('wallet_balance_usd:  Number(client.wallet_balance_usd ?? 0)')
+  })
+})

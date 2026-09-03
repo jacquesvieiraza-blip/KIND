@@ -188,7 +188,17 @@ describe('AR8 — the PDL cash fence is the client\'s, and the house is not gate
         // `lead_pool` ends its candidate query on `.limit(n)` — an EMPTY pool, so the
         // entire target falls through to the external remainder, which is the path
         // under test.
-        q.limit          = async () => ({ data: [], error: null })
+        // ⛓️ C2 — `.limit()` IS NO LONGER TERMINAL. It used to return the result directly, which
+        // modelled only `lead_pool`'s candidate query. `openProgrammeFor` ends on
+        // `.limit(1).maybeSingle()`, and the commercial-model resolver calls it, so the mock now
+        // returns something that is BOTH awaitable (the empty pool, unchanged) and chainable to
+        // `maybeSingle` (no open programme → this client resolves as legacy, which is what
+        // every assertion in this block is about). supabase-js supports both; the mock did not.
+        q.limit = () => ({
+          then: (r: (v: unknown) => void) => r({ data: [], error: null }),
+          maybeSingle: async () => ({ data: null, error: null }),
+          single:      async () => ({ data: null, error: null }),
+        })
         q.single         = async () => ({ data: singleFor(table), error: null })
         q.maybeSingle    = async () => ({ data: singleFor(table), error: null })
         q.update         = () => ({ eq: async () => ({ error: null }) })

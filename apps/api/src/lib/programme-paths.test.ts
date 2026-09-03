@@ -243,7 +243,11 @@ describe('⑦ WRONG-CLIENT AND BROKEN PROGRAMME LINKS FAIL CLOSED', () => {
 
   it('a genuine legacy client (no programme row, clean read) IS allowed', async () => {
     // The other half. A fix that quietly stopped legacy delivery would be a worse bug.
-    vi.doMock('@kind/db', () => stubDb({ programmes: null }))
+    // ⛓️ C2 — the client row is part of the answer now. `commercial_model: null` is the
+    // UNCLASSIFIED state, which is exactly what "a genuine legacy client" is on the live book,
+    // and it must still resolve to `mode: 'legacy'`. Without the row the client does not exist
+    // and the gate closes — correct, but a different sentence from the one this test makes.
+    vi.doMock('@kind/db', () => stubDb({ programmes: null, clients: { id: 'client-1', commercial_model: null } }))
     const { checkProgrammeAuthority } = await import('./programme-authority')
     const v = await checkProgrammeAuthority('client-1', 'OUTREACH')
     expect(v.allowed).toBe(true)

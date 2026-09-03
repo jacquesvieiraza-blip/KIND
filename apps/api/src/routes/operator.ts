@@ -1619,10 +1619,109 @@ operatorRouter.get('/programme', async (req: Request, res: Response) => {
     // to infer the one link that decides all downstream attribution.
     const { programmeIcps } = await import('../lib/programme-icp')
     const icps = await programmeIcps(clientId, truth.programme?.id ?? null)
-    res.json({ success: true, data: { ...truth, icps } })
+    // ⚑ 3 Sep (C2) — WHICH COMMERCIAL MODEL GOVERNS THIS CLIENT, on the endpoint the panel
+    // already calls. This has to sit beside the programme, because the panel's single most
+    // consequential sentence is the one it prints when there is NO programme — and until this
+    // field existed that sentence asserted the client was on the legacy $299/$4 model purely
+    // because a programme row was absent. Absence of X cannot mean "is Y".
+    const { clientCommercialModel, commercialModelLabel, storedModelFor } = await import('../lib/commercial-model')
+    const model = await clientCommercialModel(clientId)
+    res.json({ success: true, data: { ...truth, icps, commercial: {
+      stored:   storedModelFor(model),
+      resolved: model.model,
+      declared: model.declared,
+      label:    commercialModelLabel(model),
+      // Present ONLY on `unreadable`, and it is the operator's instruction: it names the
+      // conflict (declared legacy, programme open) or the read that failed.
+      reason:   model.model === 'unreadable' ? model.reason : null,
+    } } })
   } catch (err) {
     console.error('[operator/programme]', err)
     res.status(500).json({ success: false, error: 'Failed to load programme truth' })
+  }
+})
+
+// ── POST /operator/clients/:id/commercial-model — DECLARE THE MODEL, BY CLIENT ID ────────
+//
+// 🛑 THE ONLY WRITER OF `clients.commercial_model` OUTSIDE CUSTOMER SIGNUP, and the founder's
+// rules for it are the shape of this route rather than a comment on top of it:
+//
+//   · BY CLIENT ID — the id is a path parameter and there is no name, email or company lookup
+//     anywhere in this handler. "Never by company name. Never HOUSE_CLIENT_ID. Never email
+//     inference for the model itself." An operator who picks the wrong account picks it in the
+//     client picker, where the account is visible, not by typing a string that matches two.
+//   · ONE CLIENT PER CALL — no array, no filter, no "all clients where…". A bulk endpoint for
+//     this field is a bulk endpoint for how a whole book gets charged.
+//   · AUDITED, with `from` and `to`, because this field is a switch between two commercial
+//     models and the log is the only record of who moved it.
+//
+// ⚠️ AND IT REFUSES TO CREATE THE CONFLICT. Declaring `legacy` on a client who holds an OPEN
+// programme produces the exact state `clientCommercialModel` fails closed on — every
+// consequential path would then refuse for that client until a human undid it. The operator is
+// told that here, before the write, rather than discovering it as an outage.
+operatorRouter.post('/clients/:id/commercial-model', async (req: Request, res: Response) => {
+  try {
+    if (!adminKeyValid(req.headers['x-admin-key'])) {
+      res.status(403).json({ success: false, error: 'Operator key required' })
+      return
+    }
+
+    const clientId = String(req.params.id ?? '').trim()
+    const client = await requireClient(clientId)
+    if (!client) { res.status(404).json({ success: false, error: 'No such client' }); return }
+
+    // `null` is a real, deliberate target: it returns the client to UNCLASSIFIED, which is the
+    // compatibility state — exactly the behaviour the product had before the column existed.
+    // It is not "clear the field and hope"; it is a third choice with a defined meaning.
+    const raw = (req.body ?? {}).model
+    if (raw !== 'programme' && raw !== 'legacy' && raw !== null) {
+      res.status(400).json({ success: false, error: 'model must be "programme", "legacy" or null' })
+      return
+    }
+    const target: 'programme' | 'legacy' | null = raw
+
+    const { clientCommercialModel, storedModelFor } = await import('../lib/commercial-model')
+    const before = await clientCommercialModel(clientId)
+    const from = storedModelFor(before)
+
+    // 🛑 THE CONFLICT IS REFUSED AT THE DOOR. `before.openProgramme` is null on an unreadable
+    // resolution, so this asks the question directly rather than through the resolution.
+    if (target === 'legacy') {
+      const { openProgrammeFor } = await import('../lib/programme-authority')
+      const open = await openProgrammeFor(clientId)
+      if (open) {
+        res.status(409).json({
+          success: false,
+          error: `${client.company_name ?? 'This client'} holds an open programme (${open.status}). `
+            + 'Declaring them legacy would put the account into a state where sourcing, sending, '
+            + 'enrolment and charging all refuse until it is undone. Complete or cancel the '
+            + 'programme first if this client really is on the legacy per-lead model.',
+        })
+        return
+      }
+    }
+
+    const { error } = await db.from('clients').update({ commercial_model: target }).eq('id', clientId)
+    if (error) { res.status(500).json({ success: false, error: `Could not set the commercial model: ${error.message}` }); return }
+
+    await writeOperatorAudit({
+      operatorEmail: operatorEmail(req), clientId, action: 'client_commercial_model_set',
+      subjectType: 'client', subjectId: clientId,
+      detail: { from, to: target, company_name: client.company_name, no_money_moved: true },
+    })
+
+    // Re-resolve and return the truth rather than echoing what was asked for: the caller
+    // re-renders from this, and a write that returns its own input cannot show a conflict.
+    const after = await clientCommercialModel(clientId)
+    const { commercialModelLabel } = await import('../lib/commercial-model')
+    res.json({ success: true, data: {
+      stored: storedModelFor(after), resolved: after.model, declared: after.declared,
+      label: commercialModelLabel(after),
+      reason: after.model === 'unreadable' ? after.reason : null,
+    } })
+  } catch (err) {
+    console.error('[operator/clients/commercial-model]', err)
+    res.status(500).json({ success: false, error: 'Failed to set the commercial model' })
   }
 })
 

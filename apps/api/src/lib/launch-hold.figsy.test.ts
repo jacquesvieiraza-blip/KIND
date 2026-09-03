@@ -82,6 +82,12 @@ vi.mock('@kind/db', () => ({
           // `{ data: null, error: null }` case C7 pinned, and it keeps this file about countries.
           if (table === 'opt_out_blocklist')  return { data: state.blocked ? { id: 'b1' } : null, error: null }
           if (table === 'figsy_enrollments')  return { data: { client_id: 'c1' }, error: null }
+          // ⛓️ C2 — THE CLIENT ROW, added for the same reason `not()` was: the send gate now
+          // resolves `clients.commercial_model` before it reads the programme, and a client that
+          // does not exist fails CLOSED — correctly — so every send here would defer for a
+          // reason that has nothing to do with countries. `commercial_model: null` is the
+          // UNCLASSIFIED state, which with no programme is LEGACY.
+          if (table === 'clients')            return { data: { id: 'c1', commercial_model: null }, error: null }
           return { data: null, error: null }
         },
         async single() { return { data: null, error: null } },

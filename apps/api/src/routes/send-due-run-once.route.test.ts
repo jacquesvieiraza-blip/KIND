@@ -463,8 +463,17 @@ describe('the surrounding rules are untouched', () => {
     // Ranking and the legacy programme fallthrough are not part of this change.
     expect(readFileSync(join(__dirname, '../lib/sending-inbox.ts'), 'utf8'))
       .toContain("return (String(r.status) === 'active' ? 0 : 1) * 10 + (String(r.kind) === 'branded' ? 0 : 1)")
-    expect(readFileSync(join(__dirname, '../lib/programme-authority.ts'), 'utf8'))
-      .toMatch(/if \(!programme\) return \{ allowed: true, mode: 'legacy', programme: null \}/)
+    // ⛓️ C2 — ~~`if (!programme) return { allowed: true, mode: 'legacy', programme: null }`~~.
+    // `authorityFor` no longer reads a missing programme row as the assertion "this client is
+    // legacy"; it asks the declared commercial model, and only refuses when that model SAYS so.
+    // The property this line was pinning — that an ordinary client with no programme still
+    // falls through to legacy, so this send change did not narrow the selling model — is
+    // unchanged and is what is asserted now, on the real function rather than on its text.
+    const pa = readFileSync(join(__dirname, '../lib/programme-authority.ts'), 'utf8')
+    expect(pa, 'the fallthrough still exists and is still legacy')
+      .toContain("return { allowed: true, mode: 'legacy', programme: null }")
+    expect(pa, 'and it is reached only when the model does not say otherwise')
+      .toMatch(/if \(model\?\.model === 'programme'\)/)
   })
 
   it('no global daily ceiling was invented, and mailbox caps are read from the row', () => {

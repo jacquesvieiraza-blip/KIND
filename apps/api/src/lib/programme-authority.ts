@@ -54,6 +54,7 @@
 
 import { db } from '@kind/db'
 import { LEADS_PER_TARGETED_MEETING } from '@kind/shared'
+import type { CommercialModel } from './commercial-model'
 import {
   type ProgrammeRow,
   type ProgrammeStatus,
@@ -126,8 +127,45 @@ export function reviewIsOpen(p: ProgrammeRow): boolean {
 export function authorityFor(
   programme: ProgrammeRow | null,
   action: ProgrammeAction,
+  /**
+   * 🛑 THE ROOT FIX (PR C2). Without this, `programme === null` meant LEGACY — the absence of a
+   * row read as the positive assertion that a client is legacy, which is the defect the whole
+   * commercial-model column exists to end.
+   *
+   * Optional so the hundreds of existing pure-function call sites and tests keep compiling and
+   * keep meaning what they meant: omitted is COMPATIBILITY, which is exactly today's behaviour.
+   * Every consequential path passes it.
+   */
+  model?: CommercialModel,
 ): AuthorityVerdict {
-  if (!programme) return { allowed: true, mode: 'legacy', programme: null }
+  if (!programme) {
+    // ⚠️ AN UNREADABLE MODEL IS NEVER LEGACY. Not knowing which commercial model governs a
+    // client is not permission to source, send or enrol under the retired one.
+    if (model?.model === 'unreadable') {
+      return {
+        allowed: false, reason: 'programme_unresolvable', programme: null,
+        message:
+          // ⚠️ NO APOSTROPHE INSIDE THIS TEMPLATE LITERAL — see the same note in `routes/icps.ts`.
+          `The commercial model for this client could not be resolved (${model.reason}), so nothing `
+          + 'was started. An unresolved model is never treated as ordinary legacy work.',
+      }
+    }
+    // 🛑 A DECLARED PROGRAMME CLIENT WITH NO OPEN PROGRAMME IS NOT LEGACY — IT IS WAITING.
+    // This is the state House and MBF are in today. It is a safe, expected condition, not an
+    // error: they simply hold no authority to source, send or enrol until a programme exists.
+    if (model?.model === 'programme') {
+      return {
+        allowed: false, reason: 'not_this_programme', programme: null,
+        message:
+          'This client is on the programme model and has no active programme, so there is no '
+          + 'authority to source, contact or enrol anyone. The retired per-lead model does not '
+          + 'apply to them. Create and authorise a programme first.',
+      }
+    }
+    // NULL model, or `legacy` declared, or no model supplied → compatibility: exactly the
+    // behaviour this function has always had.
+    return { allowed: true, mode: 'legacy', programme: null }
+  }
   const p = programme
   const refuse = (reason: AuthorityRefusal, message: string): AuthorityVerdict =>
     ({ allowed: false, reason, message, programme: p })
@@ -271,8 +309,14 @@ export async function checkProgrammeAuthority(
   action: ProgrammeAction,
 ): Promise<AuthorityVerdict> {
   try {
-    const programme = await openProgrammeFor(clientId)
-    return authorityFor(programme, action)
+    // ⚑ C2 — THE COMMERCIAL MODEL IS RESOLVED HERE, NOT INFERRED BELOW. `clientCommercialModel`
+    // does its own open-programme read and returns it, so this is one resolution rather than
+    // two that could disagree. A declared programme client with no open programme is refused
+    // by `authorityFor`; a NULL client behaves exactly as before.
+    const { clientCommercialModel } = await import('./commercial-model')
+    const model = await clientCommercialModel(clientId)
+    const programme = model.openProgramme
+    return authorityFor(programme, action, model)
   } catch (err) {
     const why = err instanceof Error ? err.message : String(err)
     console.error(`[programme-authority] ${action} refused for client ${clientId} — state unreadable:`, why)
@@ -353,9 +397,16 @@ export async function checkEnrollmentAuthority(
     // name its programme is history, and history is not authorised by a programme that never
     // paid for it and never sourced it.
     //
-    // ⚠️ LEGACY IS NOT NARROWED. A client with NO open programme still resolves exactly as
-    // before — `checkProgrammeAuthority` returns `mode: 'legacy'` for them, and the $299 pack
-    // model, which is what is actually selling, is every one of those clients.
+    // ⛓️ ~~"LEGACY IS NOT NARROWED. A client with NO open programme still resolves exactly as
+    // before — `checkProgrammeAuthority` returns `mode: 'legacy'` for them."~~ AMENDED 3 Sep
+    // (C2): that held only because "no programme row" was being read as "is legacy".
+    //
+    // ⚠️ ASK THE MODEL, NOT THE ABSENCE. `checkProgrammeAuthority` below now resolves the
+    // commercial model itself, so a DECLARED programme client with no open programme is refused
+    // there instead of falling through to a legacy allow, and an unreadable model refuses too.
+    // Legacy is still not narrowed for anyone actually on it: a client declared `legacy`, and
+    // every UNCLASSIFIED client with no open programme — which is the whole live book until
+    // somebody classifies them — resolves to `mode: 'legacy'` exactly as before.
     const open = await openProgrammeFor(e.client_id)
     if (open) {
       return {
@@ -409,9 +460,23 @@ export function mayReplyToProspect(programme: ProgrammeRow | null): AuthorityVer
 }
 
 /** Reply authority for a client, fail-closed on an unreadable programme. */
+/**
+ * ⚑ C2 — REPLIES ARE CONVERSATION, AND THAT IS STILL TRUE UNDER THE MODEL.
+ *
+ * A reply can only exist because outreach we were already authorised to send arrived and a
+ * human answered it. So a DECLARED programme client with no open programme may still answer a
+ * person who wrote to them — refusing would mean silence to a prospect who replied, which is
+ * the worst outcome of a gate meant to protect them.
+ *
+ * ⚠️ WHAT DOES CHANGE: an UNREADABLE model no longer resolves to a legacy allow. Not knowing
+ * who this client is, is not a licence to send them anything, including a reply.
+ */
 export async function checkReplyAuthority(clientId: string): Promise<AuthorityVerdict> {
   try {
-    return mayReplyToProspect(await openProgrammeFor(clientId))
+    const { clientCommercialModel } = await import('./commercial-model')
+    const model = await clientCommercialModel(clientId)
+    if (model.model === 'unreadable') return unresolvable(model.reason)
+    return mayReplyToProspect(model.openProgramme)
   } catch (err) {
     return unresolvable(err instanceof Error ? err.message : String(err))
   }
@@ -574,19 +639,44 @@ export async function raiseReviewIfNeeded(programmeId: string): Promise<boolean>
 // and proved untouched. A fence that silenced "Looks right" would have broken the free-proof
 // acquisition motion to protect economics that motion never touches.
 //
-// ⚠️ LEGACY IS EXACTLY AS IT WAS. A client with NO open programme gets `allowed: true` from a
-// single `openProgrammeFor` read and proceeds down the identical path — the $299 pack model,
+// ⛓️ ~~"LEGACY IS EXACTLY AS IT WAS. A client with NO open programme gets `allowed: true` from
+// a single `openProgrammeFor` read and proceeds down the identical path."~~ AMENDED 3 Sep (C2).
+// That was true of the question this fence used to ask, and the question was wrong: it read the
+// ABSENCE of a programme row as the assertion "this client is legacy", so House and MBF — both
+// declared PROGRAMME clients with no programme open — were free to use the retired per-lead
+// approve/reveal/batch routes and be charged $4.
+//
+// ⚠️ THE QUESTION IS NOW `clientCommercialModel`, AND LEGACY IS STILL EXACTLY AS IT WAS FOR
+// EVERY CLIENT WHO IS ACTUALLY ON IT. A client declared `legacy`, and an UNCLASSIFIED client
+// with no open programme (which is every client on the live book until somebody classifies
+// them), both resolve to legacy and proceed down the identical path — the $299 pack model,
 // which is what is actually selling, is every one of those clients.
 // ═══════════════════════════════════════════════════════════════════════════════════════
 
 export type LegacyLeadVerdict =
   | { allowed: true }
-  | { allowed: false; code: 'programme_open' | 'programme_unresolvable'; message: string }
+  // ⛓️ C2 added `programme_model`. THE THREE REFUSALS ARE NOT ONE REFUSAL, and collapsing them
+  // is how a customer reads a sentence about a programme they do not have. `programme_open`
+  // means a programme is running; `programme_model` means they are a programme client with no
+  // programme running; `programme_unresolvable` means we could not tell and refused.
+  | { allowed: false; code: 'programme_open' | 'programme_model' | 'programme_unresolvable'; message: string }
 
 /** What a fenced customer reads. One sentence, true, and it names the action that replaced it. */
 export const LEGACY_FENCED_COPY =
   'Your programme covers this. Individual prospects are not approved or paid for one at a time — '
   + 'you approve the programme once, and we work every prospect in it.'
+
+/**
+ * ⚑ C2 — WHAT A PROGRAMME CLIENT WITH NO RUNNING PROGRAMME READS.
+ *
+ * `LEGACY_FENCED_COPY` opens "Your programme covers this", and for this client that sentence
+ * is false: there is no programme to cover it. Reusing it would fence them correctly and then
+ * explain the fence with a programme that does not exist — the same class of untrue-but-
+ * plausible sentence the whole commercial-model change exists to remove.
+ */
+export const PROGRAMME_MODEL_FENCED_COPY =
+  'Your plan does not charge for prospects one at a time, so there is nothing to approve or pay '
+  + 'for here. Your next programme covers this work — nothing has been charged.'
 
 /**
  * May this client still use the legacy per-lead COMMERCIAL paths?
@@ -598,9 +688,30 @@ export const LEGACY_FENCED_COPY =
  */
 export async function checkLegacyPerLeadAuthority(clientId: string): Promise<LegacyLeadVerdict> {
   try {
-    const open = await openProgrammeFor(clientId)
-    if (!open) return { allowed: true }
-    return { allowed: false, code: 'programme_open', message: LEGACY_FENCED_COPY }
+    // ⛓️ C2 — THIS ASKED "IS A PROGRAMME OPEN". That was the best question available before the
+    // commercial model existed, and it is the wrong one: it left a DECLARED programme client
+    // with no open programme — which is exactly what House and MBF are today — free to use the
+    // retired per-lead approve/reveal/batch routes, charge $4 and burn pack slots.
+    //
+    // 🛑 THE QUESTION IS NOW THE MODEL. Only a client whose model resolves to LEGACY may use
+    // the legacy commercial paths. Unreadable refuses; a conflict (declared legacy with an open
+    // programme) resolves to unreadable and refuses too.
+    const { clientCommercialModel, mayUseLegacyCommercialPath } = await import('./commercial-model')
+    const model = await clientCommercialModel(clientId)
+    if (mayUseLegacyCommercialPath(model)) return { allowed: true }
+    if (model.model === 'unreadable') {
+      console.error(`[programme-authority] legacy per-lead path refused for client ${clientId} — ${model.reason}`)
+      return {
+        allowed: false, code: 'programme_unresolvable',
+        message: 'We could not confirm your account state, so nothing was approved and nothing was charged. Please try again shortly.',
+      }
+    }
+    // ⚠️ WHICH REFUSAL IT ACTUALLY IS. A client with a programme OPEN is told their programme
+    // covers it; a declared programme client with NO programme open is told the truth about
+    // their plan instead of being told about a programme they do not have.
+    return model.openProgramme
+      ? { allowed: false, code: 'programme_open', message: LEGACY_FENCED_COPY }
+      : { allowed: false, code: 'programme_model', message: PROGRAMME_MODEL_FENCED_COPY }
   } catch (err) {
     const why = err instanceof Error ? err.message : String(err)
     console.error(`[programme-authority] legacy per-lead path refused for client ${clientId} — programme state unreadable:`, why)

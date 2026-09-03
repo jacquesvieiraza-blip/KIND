@@ -175,15 +175,42 @@ describe('④ the runner entry, the canonical file and schema.sql all agree', ()
     expect(line.toLowerCase()).not.toContain('not null')
   })
 
-  it('🛑 THE COLUMN IS DECLARED AND NOT YET READ — C1 is schema only', () => {
-    // ⚠️ THE EXPAND HALF OF EXPAND/CONTRACT. The runner executes a constant compiled into the
-    // DEPLOYED API, so a migration can never be applied before the build carrying it. Any
-    // reader shipped in C1 would run against production for the window between deploy and the
-    // founder pressing Run — and every explicit `clients` select would return 42703.
+  it('🛑 THE COLUMN IS NAMED IN A KNOWN, REVIEWED SET OF FILES — AND NOWHERE ELSE', () => {
+    // ⛓️ RE-AIMED 3 Sep (C2). ~~"THE COLUMN IS DECLARED AND NOT YET READ — C1 is schema only",
+    // asserting `readers).toEqual([])`.~~ That was the correct assertion for exactly one PR and
+    // it expired the moment C2 shipped the application layer it was holding the door open for.
+    //
+    // ⚠️ THE EXPAND HALF OF EXPAND/CONTRACT, WHICH IS THE PART THAT IS STILL TRUE. The runner
+    // executes a constant compiled into the DEPLOYED API, so a migration can never be applied
+    // before the build carrying it. C1 shipped and was run in production BEFORE C2 was written;
+    // that ordering is what this file's existence records, and re-aiming the assertion does not
+    // retract it.
+    //
+    // 🛑 SO THE GUARD BECOMES AN ALLOWLIST RATHER THAN A ZERO. A zero here would now have to be
+    // deleted, and a deleted guard checks nothing. An allowlist keeps the teeth: a NEW file that
+    // starts reading or writing the commercial model fails this test and has to be reviewed and
+    // named, which is the property actually worth protecting for a column that decides how a
+    // client is charged.
+    //
     // ⚠️ APPLICATION CODE ONLY. Tests are excluded because the counter-bump guards
     // (migration-home, schema-drift, programme-authority-schema) name the column in the
     // chained notes that explain why their numbers moved — that prose is the record this
     // repository requires, not a reader. `pending-migrations.ts` is the migration itself.
+    const ALLOWED = [
+      // The resolver. Every consequential decision goes through it and nothing else reads
+      // the column to decide anything.
+      'apps/api/src/lib/commercial-model.ts',
+      // The audit action name — a string, not a read.
+      'apps/api/src/lib/operator-audit.ts',
+      // The batch read that fences the retired wallet emails.
+      'apps/api/src/lib/programme-notifications.ts',
+      // The ONLY two writers: customer signup stamps 'programme'; Vida sets it by client id.
+      'apps/api/src/routes/auth.ts',
+      'apps/api/src/routes/operator.ts',
+      // The wallet endpoint, which reports whether the wallet governs this client at all.
+      'apps/api/src/routes/credits.ts',
+    ].sort()
+
     const walk = (dir: string, out: string[] = []): string[] => {
       for (const name of readdirSync(dir, { withFileTypes: true })) {
         const p = join(dir, name.name)
@@ -200,7 +227,78 @@ describe('④ the runner entry, the canonical file and schema.sql all agree', ()
       ...walk(join(REPO, 'apps/admin/src')),
       ...walk(join(REPO, 'packages')),
     ].filter(f => /commercial_model|commercialModel/.test(readFileSync(f, 'utf8')))
-      .map(f => f.replace(REPO + '/', ''))
-    expect(readers, `C1 must add no application code: ${readers.join(', ')}`).toEqual([])
+      .map(f => f.replace(REPO + '/', '')).sort()
+
+    expect(readers, 'a new file names the commercial model — review it, then add it here').toEqual(ALLOWED)
+    // ⚠️ NON-VACUOUS. An allowlist that had drifted to empty would pass against an empty scan.
+    expect(readers.length).toBeGreaterThan(3)
+  })
+
+  it('🛑 THE COLUMN IS WRITTEN IN EXACTLY TWO PLACES, AND BOTH ARE DELIBERATE', () => {
+    // 🛑 THE WRITE SURFACE IS THE WHOLE RISK. A read that is wrong shows a wrong label; a write
+    // that is wrong changes how a real client is charged. There are two, and the founder named
+    // both: new M&V signups declare `programme`, and an operator sets it BY CLIENT ID in Vida.
+    // A third writer — a backfill, a name-matched sweep, a default in some other insert — is
+    // exactly what this test exists to catch.
+    // ⚠️ A WRITE IS A WRITE CALL, NOT THE WORD. A first attempt matched `commercial_model:`
+    // anywhere, which counted TYPE ANNOTATIONS (`{ commercial_model: string | null }`) and the
+    // field name in a JSON RESPONSE as though they changed a row. Both writes are a flat object
+    // passed straight to insert/update, so the call itself is what is matched.
+    // One level of nesting is allowed inside the object, because the signup insert legitimately
+    // spreads a conditional `{ referred_by }` before it reaches the column.
+    const write = /\.(insert|update|upsert)\(\s*\{(?:[^{}]|\{[^{}]*\})*commercial_model/g
+    const files: Record<string, number> = {}
+    const walk = (dir: string, out: string[] = []): string[] => {
+      for (const name of readdirSync(dir, { withFileTypes: true })) {
+        const p = join(dir, name.name)
+        if (name.isDirectory()) walk(p, out)
+        else if (/\.(ts|tsx)$/.test(name.name) && !/\.test\.tsx?$/.test(name.name)
+          && name.name !== 'pending-migrations.ts') out.push(p)
+      }
+      return out
+    }
+    for (const f of walk(join(REPO, 'apps/api/src'))) {
+      const src = readFileSync(f, 'utf8')
+        // Comments would otherwise count: this file and its neighbours discuss the column at
+        // length, and a guard that counts prose is a guard that fails on an edit to a comment.
+        .split('\n').filter(l => !l.trim().startsWith('//') && !l.trim().startsWith('*')).join('\n')
+      const hits = [...src.matchAll(write)].length
+      if (hits > 0) files[f.replace(REPO + '/', '')] = hits
+    }
+    expect(Object.keys(files).sort(), 'a third writer of the commercial model needs founder review')
+      .toEqual(['apps/api/src/routes/auth.ts', 'apps/api/src/routes/operator.ts'])
+    expect(Object.values(files), 'one write per file — not a loop, not a sweep').toEqual([1, 1])
+
+    // 🛑 AND THE TWO WRITES ARE THE TWO THE FOUNDER NAMED, matched literally so that a change
+    // of intent cannot slip through a change of shape.
+    const auth = readFileSync(join(REPO, 'apps/api/src/routes/auth.ts'), 'utf8')
+    expect(auth, 'new M&V signups declare the programme model, on the INSERT only')
+      .toContain("plan: 'figsy', commercial_model: 'programme' }")
+    expect(auth.slice(auth.indexOf('if (existing) {'), auth.indexOf('} else {')),
+      'a client re-onboarding must NEVER be reclassified by the signup route')
+      .not.toContain('commercial_model')
+
+    const op = readFileSync(join(REPO, 'apps/api/src/routes/operator.ts'), 'utf8')
+    expect(op, 'the operator write is by client id, and targets one row')
+      .toContain("db.from('clients').update({ commercial_model: target }).eq('id', clientId)")
+    // ⚠️ AND THE CLIENT IS NEVER LOOKED UP BY NAME. Founder-locked 3 Sep: "Never by company
+    // name. Never HOUSE_CLIENT_ID. Never email inference for the model itself."
+    //
+    // ⚠️ THE GUARD IS THE LOOKUP, NOT THE WORD. A first version banned `company_name` outright
+    // and fired on the handler READING the name to say it back in the confirmation and the
+    // audit row — which is the opposite of the defect: naming the account you are about to
+    // change is the safety, and only SELECTING by that name is the danger.
+    const handler = op.slice(op.indexOf("operatorRouter.post('/clients/:id/commercial-model'"))
+      .slice(0, 4000)
+    const upToWrite = handler.slice(0, handler.indexOf('writeOperatorAudit'))
+    for (const banned of [".eq('company_name'", '.ilike(', 'HOUSE_CLIENT_ID', 'get-kind.com', '.in(', 'listUsers']) {
+      expect(upToWrite, `the client must never be selected by ${banned} — it is selected by id`)
+        .not.toContain(banned)
+    }
+    // The positive half: the row comes from the id-keyed helper, and the id comes from the path.
+    expect(upToWrite).toContain('const clientId = String(req.params.id ?? ').toString()
+    expect(upToWrite).toContain('await requireClient(clientId)')
+    expect(op.slice(op.indexOf('async function requireClient')).slice(0, 400),
+      'requireClient must select by primary key').toContain(".eq('id', clientId)")
   })
 })

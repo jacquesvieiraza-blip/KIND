@@ -51,6 +51,12 @@ vi.mock('@kind/db', () => ({
         async maybeSingle() {
           if (table === 'figsy_replies') return { data: state.reply, error: null }
           if (table === 'opt_out_blocklist') return { data: state.blocked ? { email: 'x' } : null, error: null }
+          // ⛓️ C2 — THE CLIENT ROW, added for the same reason `not()`/`limit()` were: the reply
+          // gate now resolves `clients.commercial_model` before it reads the programme, and a
+          // client that does not exist fails CLOSED — correctly — so every reply would 409 for
+          // the wrong reason. `commercial_model: null` is UNCLASSIFIED, which with no programme
+          // is LEGACY, which is what this file has always been about.
+          if (table === 'clients') return { data: { id: 'c1', commercial_model: null }, error: null }
           return { data: null, error: null }
         },
       }

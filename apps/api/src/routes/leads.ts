@@ -834,7 +834,7 @@ leadRouter.post('/:id/reveal', rateLimit({ limit: 60, windowMs: 60_000, key: 'le
     if (outcome.status === 'not_found') { res.status(404).json({ success: false, error: 'Lead not found' }); return }
     // The function's own programme fence. `batchGate` above already refused this client, so
     // reaching here would mean the two layers disagree — answered identically either way.
-    if (outcome.status === 'programme_fenced') { res.status(409).json({ success: false, error: 'programme_open', message: outcome.message }); return }
+    if (outcome.status === 'programme_fenced') { res.status(409).json({ success: false, error: outcome.code, message: outcome.message }); return }
     if (outcome.status === 'insufficient_funds') { res.status(402).json({ success: false, error: 'insufficient_funds', message: 'You need $4 in your wallet to approve. Top up to continue.' }); return }
     if (outcome.status === 'no_email') { res.status(422).json({ success: false, error: 'no_email_found', message: 'We could not find a verified email for this lead — you were not charged.' }); return }
     if (outcome.status === 'already_in_crm') { res.status(409).json({ success: false, error: 'already_in_crm', message: 'This contact is already in your CRM — no charge.' }); return }

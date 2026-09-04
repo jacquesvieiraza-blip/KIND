@@ -97,7 +97,7 @@ const REP = 'seat-rep'
 const OWNER_USER = 'u-owner'
 const P_NEW = 'P_NEW'
 
-async function callGet(path: string, userId = OWNER_USER) {
+async function callGet(path: string, params: Record<string, string> = {}, userId = OWNER_USER) {
   const m = await import('../routes/company')
   const layer = (m.companyRouter as unknown as { stack: Array<Record<string, any>> }).stack
     .find(l => l.route?.path === path && l.route?.methods.get)
@@ -105,11 +105,13 @@ async function callGet(path: string, userId = OWNER_USER) {
   const handler = layer.route.stack[layer.route.stack.length - 1].handle
   let payload: any = null; let status = 200
   const res: any = { json: (b: unknown) => { payload = b }, status: (s: number) => { status = s; return res } }
-  await handler({ userId, query: {}, body: {}, params: {} }, res, () => {})
+  await handler({ userId, query: {}, body: {}, params }, res, () => {})
   return { payload, status }
 }
 const overview = () => callGet('/overview')
 const plays    = () => callGet('/winning-plays')
+/** The panel one click beneath the roster row. */
+const detail   = (id = REP) => callGet('/seats/:id/detail', { id })
 
 /** The company shell: an owner seat that opens the page, and one rep seat under it. */
 function company(repModel: string | null | undefined, ownerModel: string | null = 'legacy') {
@@ -135,24 +137,24 @@ function company(repModel: string | null | undefined, ownerModel: string | null 
 /** The rep's large historical book: leads, replies, sends, meetings — all NULL-programme. */
 function repHistory(seat = REP) {
   for (const n of [1, 2, 3]) {
-    state.leads.push({ id: `h${n}-${seat}`, client_id: seat, programme_id: null, proof_pass: null, crm_existing: n === 1, revealed_at: 'r', delivered_at: 'd', surfaced_for_approval_at: 's', status: 'exported' })
+    state.leads.push({ id: `h${n}-${seat}`, client_id: seat, programme_id: null, proof_pass: null, crm_existing: n === 1, first_name: 'Retired', last_name: `Lead ${n}`, company: 'Retired Co', revealed_at: 'r', delivered_at: 'd', surfaced_for_approval_at: 's', status: 'exported' })
   }
-  state.replies.push({ id: `r-old-${seat}`, client_id: seat, lead_id: `h1-${seat}`, classification: 'hot', received_at: '2026-02-02', processed_at: '2026-02-02', meeting_booked_at: '2026-02-03' })
+  state.replies.push({ id: `r-old-${seat}`, client_id: seat, lead_id: `h1-${seat}`, from_name: 'Retired Prospect', from_email: 'old@x.com', classification: 'hot', received_at: '2026-02-02', processed_at: '2026-02-02', meeting_booked_at: '2026-02-03' })
   state.icps.push({ id: `icp-old-${seat}`, client_id: seat, programme_id: null, created_at: '2026-01-01' })
-  state.campaigns.push({ id: `camp-old-${seat}`, client_id: seat, icp_id: `icp-old-${seat}`, status: 'active', created_at: '2026-02-01' })
-  state.sent.push({ id: `s-old-${seat}`, campaign_id: `camp-old-${seat}`, sent_at: '2026-02-01', opened_at: null })
+  state.campaigns.push({ id: `camp-old-${seat}`, client_id: seat, icp_id: `icp-old-${seat}`, name: 'Retired Q1 blast', status: 'active', leads_enrolled: 300, emails_sent: 900, replies_total: 42, replies_interested: 9, created_at: '2026-02-01' })
+  state.sent.push({ id: `s-old-${seat}`, campaign_id: `camp-old-${seat}`, subject: 'Retired subject', step: 1, sent_at: '2026-02-01', opened_at: null })
   state.meetings.push({ id: `m-old-${seat}`, client_id: seat, lead_id: `h1-${seat}`, programme_id: null, state: 'HELD', scheduled_at: '2026-02-03', excluded_reason: null, superseded_by: null, rescheduled_from: null })
 }
 /** The rep's CURRENT programme work. */
 function repProgramme(seat = REP) {
   state.programmes.push({ id: P_NEW, client_id: seat, status: 'LIVE', meeting_target: 10, first_paid_at: 'p1', second_paid_at: 'p2', approved_at: 'a', went_live_at: 'w', paused_at: null, review_required_at: null, review_resolved_at: null, price_total_cents: 100000, sourcing_ceiling: 100, sourced_used: 2 })
   state.icps.push({ id: `icp-new-${seat}`, client_id: seat, programme_id: P_NEW, created_at: '2026-09-01' })
-  state.campaigns.push({ id: `camp-new-${seat}`, client_id: seat, icp_id: `icp-new-${seat}`, status: 'active', created_at: '2026-09-01' })
+  state.campaigns.push({ id: `camp-new-${seat}`, client_id: seat, icp_id: `icp-new-${seat}`, name: 'Programme launch', status: 'active', leads_enrolled: 2, emails_sent: 1, replies_total: 1, replies_interested: 1, created_at: '2026-09-01' })
   for (const n of [1, 2]) {
-    state.leads.push({ id: `n${n}-${seat}`, client_id: seat, programme_id: P_NEW, proof_pass: null, crm_existing: false, revealed_at: null, delivered_at: 'd', surfaced_for_approval_at: 's', status: 'scored' })
+    state.leads.push({ id: `n${n}-${seat}`, client_id: seat, programme_id: P_NEW, proof_pass: null, crm_existing: false, first_name: 'Current', last_name: `Lead ${n}`, company: 'Current Co', revealed_at: null, delivered_at: 'd', surfaced_for_approval_at: 's', status: 'scored' })
   }
-  state.replies.push({ id: `r-new-${seat}`, client_id: seat, lead_id: `n2-${seat}`, classification: 'hot', received_at: '2026-09-03', processed_at: '2026-09-03', meeting_booked_at: null })
-  state.sent.push({ id: `s-new-${seat}`, campaign_id: `camp-new-${seat}`, sent_at: '2026-09-02', opened_at: null })
+  state.replies.push({ id: `r-new-${seat}`, client_id: seat, lead_id: `n2-${seat}`, from_name: 'Programme Prospect', from_email: 'new@x.com', classification: 'hot', received_at: '2026-09-03', processed_at: '2026-09-03', meeting_booked_at: null })
+  state.sent.push({ id: `s-new-${seat}`, campaign_id: `camp-new-${seat}`, subject: 'Programme subject', step: 1, sent_at: '2026-09-02', opened_at: null })
   state.meetings.push({ id: `m-new-${seat}`, client_id: seat, lead_id: `n1-${seat}`, programme_id: P_NEW, state: 'BOOKED', scheduled_at: '2026-09-10', excluded_reason: null, superseded_by: null, rescheduled_from: null })
 }
 const repSeat = (p: any) => p.payload.data.seats.find((s: Row) => s.id === REP)
@@ -346,10 +348,227 @@ describe('⑥ no cross-tenant bleed', () => {
 })
 
 // ═══════════════════════════════════════════════════════════════════════════════════════
+// ⑨ THE PANEL ONE CLICK BENEATH THE ROSTER
+//
+// 🛑 A BOUNDED ROW THAT OPENS ONTO AN UNBOUNDED PANEL IS WORSE THAN NEITHER. The roster row
+// and this drill-down are two views of ONE seat: when only the row is bounded they contradict
+// each other on one screen, and the panel wins, because the panel is the one with the names
+// and the dates in it. That is the Replies lesson (R95) reproduced one click deeper.
+// ═══════════════════════════════════════════════════════════════════════════════════════
+describe('⑨ the seat drill-down agrees with the row above it', () => {
+  it('🛑 PROGRAMME SEAT, NO PROGRAMME — the row reads zero and the panel is empty to match', async () => {
+    company('programme', 'programme'); repHistory()
+    const seat = repSeat(await overview())
+    const d = await detail()
+    expect(seat.contacted).toBe(0)
+    expect(d.status, 'a resolved scope is not an error').toBe(200)
+    expect(d.payload.data.campaigns, 'the retired campaign is not current work').toHaveLength(0)
+    expect(d.payload.data.activity, 'no retired sends, replies or meetings').toHaveLength(0)
+  })
+
+  it('🛑 AND THE RETIRED CAMPAIGN COUNTERS GO WITH IT — 900 sent never reaches the panel', async () => {
+    company('programme', 'programme'); repHistory()
+    const body = JSON.stringify((await detail()).payload)
+    expect(state.campaigns[0].emails_sent, 'the fixture really does carry the counter').toBe(900)
+    expect(body).not.toContain('900')
+    expect(body).not.toContain('Retired Q1 blast')
+  })
+
+  it('🛑 PROOF SEAT — calibration has no campaigns and no activity', async () => {
+    company('programme', 'programme'); repHistory()
+    state.leads.push({ id: 'p1', client_id: REP, programme_id: null, proof_pass: 1, crm_existing: false, delivered_at: 'd', surfaced_for_approval_at: 's', status: 'scored' })
+    state.clients.find(c => c.id === REP)!.proof_passes_done = 1
+    const d = await detail()
+    expect(d.payload.data.campaigns).toHaveLength(0)
+    expect(d.payload.data.activity).toHaveLength(0)
+  })
+
+  it('🛑 ACTIVE P_NEW — the panel shows the programme campaign and NOT the retired one', async () => {
+    company('programme', 'programme'); repHistory(); repProgramme()
+    const d = await detail()
+    const camps = d.payload.data.campaigns as Row[]
+    // BOTH HALVES (R92): the current campaign IS present, the retired one is NOT.
+    expect(camps).toHaveLength(1)
+    expect(camps[0].name).toBe('Programme launch')
+    expect(camps[0].emails_sent).toBe(1)
+  })
+
+  it('🛑 ACTIVITY IS THE PROGRAMME’S — the retired send, reply and meeting are all absent', async () => {
+    company('programme', 'programme'); repHistory(); repProgramme()
+    const acts = (await detail()).payload.data.activity as Array<Record<string, string>>
+    const titles = acts.map(a => a.title).join(' | ')
+    expect(titles).toContain('Programme Prospect')
+    expect(titles, 'the retired reply must not appear').not.toContain('Retired Prospect')
+    expect(titles, 'the retired send must not appear').not.toContain('Retired Lead')
+    expect(acts.filter(a => a.type === 'sent'), 'one programme send, not the retired one').toHaveLength(1)
+    expect(acts.filter(a => a.type === 'reply')).toHaveLength(1)
+  })
+
+  it('🛑 THE ROW AND THE PANEL CANNOT DISAGREE — booked matches, from public.meetings', async () => {
+    company('programme', 'programme'); repHistory(); repProgramme()
+    const seat = repSeat(await overview())
+    const acts = (await detail()).payload.data.activity as Array<Record<string, string>>
+    const meetings = acts.filter(a => a.type === 'meeting')
+    expect(seat.booked).toBe(1)
+    expect(meetings, 'the panel lists exactly what the tile counts').toHaveLength(1)
+    expect(meetings[0].title).toContain('Current Lead 1')
+  })
+
+  it('🛑 NO DUPLICATE OR RESCHEDULE REGRESSION IN THE PANEL EITHER', async () => {
+    company('programme', 'programme'); repHistory(); repProgramme()
+    state.meetings.push({ id: 'm-moved-old', client_id: REP, lead_id: `n1-${REP}`, programme_id: P_NEW, state: 'BOOKED', scheduled_at: '2026-09-08', excluded_reason: null, superseded_by: 'm-moved-new', rescheduled_from: null })
+    state.meetings.push({ id: 'm-moved-new', client_id: REP, lead_id: `n1-${REP}`, programme_id: P_NEW, state: 'BOOKED', scheduled_at: '2026-09-12', excluded_reason: null, superseded_by: null, rescheduled_from: 'm-moved-old' })
+    state.meetings.push({ id: 'm-dupe', client_id: REP, lead_id: `n1-${REP}`, programme_id: P_NEW, state: 'BOOKED', scheduled_at: '2026-09-11', excluded_reason: 'duplicate', superseded_by: null, rescheduled_from: null })
+    const seat = repSeat(await overview())
+    const acts = (await detail()).payload.data.activity as Array<Record<string, string>>
+    const meetings = acts.filter(a => a.type === 'meeting')
+    expect(seat.booked).toBe(2)
+    expect(meetings, 'the superseded original and the duplicate are excluded from BOTH').toHaveLength(2)
+    expect(meetings.map(m => m.subtitle)).toContain('Moved to a new time')
+  })
+
+  it('🛑 THE MEETING LINE NO LONGER COMES FROM A REPLY TIMESTAMP', async () => {
+    // The retired reply carries `meeting_booked_at`. Under the old code that alone minted a
+    // "Meeting booked with …" line — with no notion of a duplicate, a spam booking or a
+    // reschedule, and with no programme boundary at all.
+    company('programme', 'programme'); repHistory()
+    expect(state.replies[0].meeting_booked_at).toBe('2026-02-03')
+    const acts = (await detail()).payload.data.activity as Array<Record<string, string>>
+    expect(acts.filter(a => a.type === 'meeting')).toHaveLength(0)
+  })
+
+  it('🛑 UNREADABLE REFUSES — 503, never [] dressed as "no campaigns yet" (R96)', async () => {
+    company(undefined, 'programme'); repHistory()
+    const d = await detail()
+    expect(d.status).toBe(503)
+    expect(d.payload.success).toBe(false)
+    expect(JSON.stringify(d.payload), 'no historical fallback rides along').not.toContain('Retired Q1 blast')
+  })
+
+  it('🛑 LEGACY IS UNCHANGED — the whole book still opens, exactly as today', async () => {
+    company('legacy', 'legacy'); repHistory()
+    const d = await detail()
+    expect(d.status).toBe(200)
+    const camps = d.payload.data.campaigns as Row[]
+    expect(camps).toHaveLength(1)
+    expect(camps[0].name).toBe('Retired Q1 blast')
+    expect(camps[0].emails_sent).toBe(900)
+    const acts = (d.payload.data.activity as Array<Record<string, string>>)
+    expect(acts.map(a => a.title).join(' | ')).toContain('Retired Prospect')
+    expect(acts.filter(a => a.type === 'meeting'), 'the legacy meeting still shows').toHaveLength(1)
+  })
+
+  it('🛑 TENANCY — another company’s seat cannot be drilled into', async () => {
+    company('legacy', 'legacy'); repHistory()
+    state.companies.push({ id: 'co-2', name: 'Other', credit_pool: 999, seat_cap: 25 })
+    state.clients.push({ id: 'seat-other', user_id: 'u-other', company_id: 'co-2', seat_role: 'rep', commercial_model: 'legacy', company_name: 'Other Rep', seat_budget: 10, credit_balance: 10, seat_active: true, seat_accepted_at: 'a' })
+    repHistory('seat-other')
+    const d = await detail('seat-other')
+    expect(d.status).toBe(404)
+  })
+
+  it('🛑 HISTORY IS STILL STORED — the panel stopped showing it, nothing deleted it', async () => {
+    company('programme', 'programme'); repHistory(); repProgramme()
+    await detail()
+    expect(state.campaigns).toHaveLength(2)
+    expect(state.sent).toHaveLength(2)
+    expect(state.replies).toHaveLength(2)
+    expect(state.meetings).toHaveLength(2)
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// ⑩ A COMPANY WITH ONE LEGACY SEAT AND ONE PROGRAMME SEAT
+//
+// 🛑 THERE IS NO TRUTHFUL SHARED POOL HERE. "Company budget pool" is presented as funding
+// every seat; half these seats are on a model that has no pool at all. So the company level
+// FAILS CLOSED rather than inventing a shared arrangement — and the page must not then tell a
+// mixed company "your programme is billed as one price in two halves", which is a claim about
+// a model only some of its seats are on.
+// ═══════════════════════════════════════════════════════════════════════════════════════
+describe('⑩ a mixed-model company makes no shared-credit claim', () => {
+  const REP2 = 'seat-rep-2'
+  beforeEach(() => {
+    company('legacy', 'legacy')          // REP is the LEGACY seat
+    repHistory()
+    state.clients.push({                  // REP2 is the PROGRAMME seat
+      id: REP2, user_id: 'u-rep2', company_id: CO, seat_role: 'rep', commercial_model: 'programme',
+      company_name: 'Rep Two', seat_budget: 700, credit_balance: 100, seat_active: true,
+      seat_accepted_at: 'a', proof_passes_done: 0, wallet_balance_usd: 0,
+    })
+    repHistory(REP2)
+  })
+  const seatOf = (p: any, id: string) => p.payload.data.seats.find((s: Row) => s.id === id)
+
+  it('🛑 THE COMPANY POOL IS HIDDEN — one programme seat retires the shared claim', async () => {
+    const t = (await overview()).payload.data.totals
+    expect(t.economics_visible).toBe(false)
+    expect(t.company_pool).toBeNull()
+    expect(t.allocated).toBeNull()
+    expect(t.used).toBeNull()
+  })
+
+  it('🛑 AND IT SAYS WHICH ABSENCE THIS IS, so the page cannot claim one model for both', async () => {
+    const t = (await overview()).payload.data.totals
+    expect(t.economics_hidden_reason).toBe('mixed')
+  })
+
+  it('🛑 THE PROGRAMME SEAT CARRIES NO CREDIT FIGURES — never a 0, never an inherited 700', async () => {
+    const s2 = seatOf(await overview(), REP2)
+    expect(s2.economics_visible).toBe(false)
+    expect(s2.credit_budget).toBeNull()
+    expect(s2.credits_used).toBeNull()
+    expect(s2.credit_balance).toBeNull()
+  })
+
+  it('🛑 THE LEGACY SEAT KEEPS ITS OWN VALUES ON THE WIRE — nothing is destroyed', async () => {
+    const s1 = seatOf(await overview(), REP)
+    expect(s1.economics_visible).toBe(true)
+    expect(s1.credit_budget).toBe(500)
+    expect(s1.credits_used).toBe(300)
+  })
+
+  it('🛑 ACTIVITY STAYS PER SEAT — the legacy book counts, the programme seat counts nothing', async () => {
+    const p = await overview()
+    expect(seatOf(p, REP).leads, 'the legacy seat is untouched').toBe(3)
+    expect(seatOf(p, REP2).leads, 'the programme seat has no current work').toBe(0)
+    expect(p.payload.data.totals.total_leads, 'the roll-up is the sum of the truths').toBe(3)
+  })
+
+  it('🛑 A UNIFORMLY PROGRAMME COMPANY IS A DIFFERENT ABSENCE, and says so', async () => {
+    state.clients.find(c => c.id === REP)!.commercial_model = 'programme'
+    const t = (await overview()).payload.data.totals
+    expect(t.economics_visible).toBe(false)
+    expect(t.economics_hidden_reason).toBe('programme')
+  })
+
+  it('🛑 AN ALL-LEGACY COMPANY IS UNCHANGED — the pool and the reason both stay', async () => {
+    state.clients.find(c => c.id === REP2)!.commercial_model = 'legacy'
+    const t = (await overview()).payload.data.totals
+    expect(t.economics_visible).toBe(true)
+    expect(t.economics_hidden_reason).toBeNull()
+    expect(t.company_pool).toBe(5000)
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
 // ⑦ THE BOUNDARY IS THE SHARED ONE, AND NOTHING IS INVENTED
 // ═══════════════════════════════════════════════════════════════════════════════════════
 describe('⑦ one interpretation, no invented values', () => {
   const src = readFileSync(join(__dirname, '../routes/company.ts'), 'utf8')
+
+  /**
+   * The drill-down handler ALONE — bounded at the next route registration.
+   * ⚠️ A slice that runs to end-of-file reads every later route's writes and proves nothing
+   * about this one; that mistake is why guard ⑫ in `milla-programme.test.ts` was tightened.
+   */
+  const drillDownSource = () => {
+    const start = src.indexOf("companyRouter.get('/seats/:id/detail'")
+    expect(start, 'the drill-down route must exist').toBeGreaterThan(-1)
+    const next = src.indexOf('companyRouter.', start + 20)
+    expect(next, 'the slice must be bounded by the next route').toBeGreaterThan(start)
+    return src.slice(start, next)
+  }
 
   it('🛑 IT REUSES THE ESTABLISHED AUTHORITY — no sixth resolver', () => {
     expect(src).toContain("await import('../lib/current-outreach')")
@@ -381,6 +600,29 @@ describe('⑦ one interpretation, no invented values', () => {
     for (const w of ['.update(', '.insert(', '.delete(', '.upsert(']) {
       expect(ov, `the overview read must not write: ${w}`).not.toContain(w)
     }
+  })
+
+  it('🛑 THE DRILL-DOWN USES THE SAME AUTHORITY AS THE ROW, and writes nothing either', () => {
+    const dd = drillDownSource()
+    expect(dd).toContain('currentOutreachLeads(repId)')
+    expect(dd).toContain('currentOutreachCampaigns(repId, scope)')
+    expect(dd, 'a list refuses on unreadable rather than returning []').toContain('res.status(503)')
+    for (const w of ['.update(', '.insert(', '.delete(', '.upsert(']) {
+      expect(dd, `the drill-down read must not write: ${w}`).not.toContain(w)
+    }
+  })
+
+  it('🛑 THE DRILL-DOWN MEETING LINE COMES FROM public.meetings, NOT A REPLY TIMESTAMP', () => {
+    const dd = drillDownSource()
+    expect(dd).toContain('meetingsForClient({')
+    // The retired shape, gone from the executable text (comments are stripped below).
+    const code = dd.split('\n').filter(l => {
+      const t = l.trim()
+      return !t.startsWith('//') && !t.startsWith('*') && !t.startsWith('/*')
+    }).join('\n')
+    expect(code, 'no meeting event is minted from figsy_replies.meeting_booked_at')
+      .not.toMatch(/meeting_booked_at.*type: 'meeting'/s)
+    expect(code, 'the reply select no longer even asks for it').not.toContain("classification, meeting_booked_at")
   })
 })
 
@@ -425,5 +667,17 @@ describe('⑧ the Command Centre page hides rather than zeroes', () => {
   it('the retired-economics tab states the truth rather than rendering a pool of zero', () => {
     expect(page).toContain("{tab === 'usage' && !econ && (")
     expect(raw).toContain('There is no credit pool or per-seat budget to manage.')
+  })
+
+  it('🛑 A MIXED COMPANY IS NOT TOLD IT IS ON A PROGRAMME', () => {
+    expect(page).toContain("totals?.economics_hidden_reason === 'mixed'")
+    expect(page).toContain('there is no single company credit pool to manage.')
+  })
+
+  it('🛑 THE DRILL-DOWN ERROR STATE IS THE ONE A 503 LANDS ON — no new UI, and no silent empty', () => {
+    // `api.get` throws on a non-2xx, the catch nulls `drillDetail`, and the modal already has
+    // an honest sentence with a retry. The refusal is rendered by UI that already existed.
+    expect(page).toContain('catch { setDrillDetail(null) }')
+    expect(raw).toContain("Couldn&apos;t load this rep&apos;s detail. Close and try again.")
   })
 })

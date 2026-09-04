@@ -289,7 +289,16 @@ companyRouter.get('/overview', async (req: AuthRequest, res) => {
     // make "Company budget pool" a retired commercial claim about this company — so the tile
     // goes, rather than being shown with a caveat nobody reads. A company with no reps yet has
     // nothing to contradict it and keeps the existing view.
+    //
+    // ⚠️ A MIXED COMPANY FAILS CLOSED AT THE COMPANY LEVEL, AND SAYS WHY. One legacy seat and
+    // one programme seat under one roof have no shared commercial model, so there is no
+    // truthful company pool to print — but the REASON differs and the page must not tell a
+    // mixed company "your programme is billed as one price in two halves", which is a claim
+    // about a model only some of its seats are on. `economics_hidden_reason` carries that
+    // distinction to the page; it invents nothing, it only says which absence this is.
     const companyEconomics = repOut.length === 0 || repOut.every(s => s.economics_visible)
+    const economicsHiddenReason = companyEconomics ? null
+      : repOut.some(s => s.economics_visible) ? 'mixed' : 'programme'
     const totals = {
       seats:            repOut.length,
       active_seats:     repOut.filter(s => s.seat_active && s.accepted_at).length,
@@ -299,6 +308,8 @@ companyRouter.get('/overview', async (req: AuthRequest, res) => {
       seats_used:       repOut.length,
       /** false → the page hides the budget pool, allocated and used entirely. */
       economics_visible: companyEconomics,
+      /** null when visible · 'programme' when no seat has economics · 'mixed' when some do. */
+      economics_hidden_reason: economicsHiddenReason,
       allocated:        companyEconomics ? repOut.reduce((n, s) => n + (s.credit_budget ?? 0), 0) : null,
       used:             companyEconomics ? repOut.reduce((n, s) => n + (s.credits_used ?? 0), 0) : null,
       company_pool:     companyEconomics ? ((company as any)?.credit_pool ?? 0) : null,
@@ -356,15 +367,60 @@ companyRouter.get('/seats/:id/detail', async (req: AuthRequest, res) => {
 
     const repId = (seat as any).id
 
+    // ── ⚑ 4 Sep — THE PANEL UNDERNEATH THE ROSTER WAS STILL UNBOUNDED ──────────────────────
+    //
+    // 🛑 The roster row above this panel is bounded (see `repStats`), so a programme seat
+    // between programmes correctly reads Leads 0 · Contacted 0 · Booked 0 — and clicking it
+    // opened a list of up to fifty retired campaigns with their send and reply counters, under
+    // a heading that says **Recent activity**. Two views of one seat, one bounded, which is
+    // WORSE than neither: they contradict each other on one screen and the detail wins, because
+    // the detail is the one with the names and the dates in it (R95, the Replies lesson).
+    //
+    // ⚠️ THE SAME AUTHORITY, NOT A SECOND READING OF IT. `currentOutreachLeads` /
+    // `currentOutreachCampaigns` are the functions `repStats` resolves twenty lines up, so the
+    // row and the panel cannot disagree by construction.
+    //
+    // ⚠️ NOTHING IS DELETED. Retired campaigns, replies and sends stay exactly where they are;
+    // this route stops presenting them as this seat's current work.
+    const { currentOutreachLeads, currentOutreachCampaigns, safeIn } = await import('../lib/current-outreach')
+    const scope = await currentOutreachLeads(repId)
+
+    // 🛑 UNREADABLE REFUSES (R96). This panel is a LIST, so it fails the way lists fail — an
+    // honest error the modal already renders ("Couldn't load this rep's detail. Close and try
+    // again."), never `[]` dressed as "no campaigns yet" and never the historical fallback.
+    if (scope.mode === 'unreadable') {
+      console.error('[company/seat-detail] outreach scope unreadable for', repId, scope.reason)
+      res.status(503).json({ success: false, error: 'Could not confirm which work is current for this seat' })
+      return
+    }
+    const campScope = await currentOutreachCampaigns(repId, scope)
+    if (campScope.mode === 'unreadable') {
+      console.error('[company/seat-detail] campaign scope unreadable for', repId, campScope.reason)
+      res.status(503).json({ success: false, error: 'Could not confirm which work is current for this seat' })
+      return
+    }
+
     // Campaigns (denormalised counters are already on the row — no extra reads).
-    const { data: campaigns } = await db.from('figsy_campaigns')
+    // ⚠️ A programme seat sees ONLY its programme's campaigns, derived through the ICP exactly
+    // as `campaignFor` derives it. `none` (Proof, or a programme client between programmes) has
+    // no current campaign by construction, so the read is skipped rather than filtered.
+    let campQuery = db.from('figsy_campaigns')
       .select('id, name, status, leads_enrolled, emails_sent, replies_total, replies_interested, created_at')
       .eq('client_id', repId)
-      .order('created_at', { ascending: false })
-      .limit(50)
+    if (campScope.mode === 'ids') campQuery = campQuery.in('id', safeIn(campScope.ids))
+    const { data: campaigns } = scope.mode === 'none'
+      ? { data: [] as any[] }
+      : await campQuery.order('created_at', { ascending: false }).limit(50)
     const campIds = ((campaigns ?? []) as any[]).map(c => c.id)
 
     // Recent activity — same shape the rep's own FIGSY activity feed uses.
+    // ⚠️ SENDS are bounded by the campaign list above. REPLIES carry no programme_id, so they
+    // are bounded through `lead_id` — the same derivation the Home rail, the Replies page and
+    // `repStats` use.
+    let replyQuery = db.from('figsy_replies')
+      .select('from_name, from_email, classification, received_at')
+      .eq('client_id', repId)
+    if (scope.mode === 'ids') replyQuery = replyQuery.in('lead_id', safeIn(scope.ids))
     const [sentRes, repliesRes] = await Promise.all([
       campIds.length
         ? db.from('figsy_sent_emails')
@@ -373,11 +429,9 @@ companyRouter.get('/seats/:id/detail', async (req: AuthRequest, res) => {
             .order('sent_at', { ascending: false })
             .limit(30)
         : Promise.resolve({ data: [] as any[] }),
-      db.from('figsy_replies')
-        .select('from_name, from_email, classification, meeting_booked_at, received_at')
-        .eq('client_id', repId)
-        .order('received_at', { ascending: false })
-        .limit(30),
+      scope.mode === 'none'
+        ? Promise.resolve({ data: [] as any[] })
+        : replyQuery.order('received_at', { ascending: false }).limit(30),
     ])
 
     type Event = { type: 'sent' | 'reply' | 'meeting'; title: string; subtitle: string; at: string; tone: 'neutral' | 'positive' | 'warn' }
@@ -389,9 +443,56 @@ companyRouter.get('/seats/:id/detail', async (req: AuthRequest, res) => {
     }
     for (const r of (repliesRes.data ?? []) as any[]) {
       const who = r.from_name || (r.from_email ? r.from_email.split('@')[0] : 'a lead')
-      if (r.meeting_booked_at) events.push({ type: 'meeting', title: `Meeting booked with ${who}`, subtitle: 'FIGSY closed a booking', at: r.meeting_booked_at, tone: 'positive' })
       const hot = r.classification === 'hot' || r.classification === 'interested'
       events.push({ type: 'reply', title: `${hot ? '🔥 ' : ''}Reply from ${who}`, subtitle: r.classification ? `Classified: ${r.classification}` : 'New reply', at: r.received_at, tone: hot ? 'positive' : r.classification === 'opt_out' ? 'warn' : 'neutral' })
+    }
+
+    // ── BUILD-003 item 2, ONE SURFACE LATE — the meeting events come from public.meetings ────
+    //
+    // ⛓️ `if (r.meeting_booked_at) events.push({ type: 'meeting', … })` USED TO BE IN THE LOOP
+    // ABOVE. A meeting line was synthesised from a REPLY TIMESTAMP, which is the source
+    // BUILD-003 retired precisely because it has no notion of a duplicate, a spam booking or a
+    // reschedule — so a meeting moved twice appeared three times, and the `Booked` tile at the
+    // top of this very modal (counted from `public.meetings` with the exclusions applied)
+    // disagreed with the list directly beneath it. Same defect, same page, same fix as
+    // `/leads/meetings`: the exclusion rules are the module's, not this route's.
+    //
+    // ⚠️ A FAILED READ IS SILENT, NOT ZERO. `meetingsForClient` returns null on a storage error
+    // and the sends and replies still render — dropping the meeting lines states nothing false,
+    // while a fabricated empty list beside a non-zero `Booked` tile would.
+    const { meetingsForClient } = await import('../lib/meeting-truth')
+    if (scope.mode !== 'none') {
+      const mtgs = await meetingsForClient({
+        clientId: repId,
+        ...(scope.mode === 'ids' ? { programmeId: scope.programmeId } : {}),
+        limit: 30,
+      })
+      if (mtgs === null) console.error('[company/seat-detail] meetings unreadable for seat', repId)
+      else {
+        const leadIds = mtgs.map(m => m.leadId).filter((v): v is string => typeof v === 'string')
+        const names: Record<string, string> = {}
+        if (leadIds.length) {
+          const { data: mLeads } = await db.from('leads')
+            .select('id, first_name, last_name, company').eq('client_id', repId).in('id', leadIds)
+          for (const l of (mLeads ?? []) as any[]) {
+            names[l.id] = `${l.first_name ?? ''} ${l.last_name ?? ''}`.trim() || l.company || 'a lead'
+          }
+        }
+        for (const m of mtgs) {
+          const who = (m.leadId && names[m.leadId]) || 'a lead'
+          // The TITLE is unchanged — a no-show was still booked. Only the subtitle, which used
+          // to be the single sentence "FIGSY closed a booking", now says which of the four
+          // states this row actually is, because `public.meetings` knows and a reply did not.
+          const subtitle = m.rescheduled ? 'Moved to a new time'
+            : m.state === 'HELD' ? 'Meeting held'
+            : m.state === 'NO_SHOW' ? 'No-show'
+            : 'FIGSY closed a booking'
+          events.push({
+            type: 'meeting', title: `Meeting booked with ${who}`, subtitle,
+            at: m.scheduledAt, tone: m.state === 'NO_SHOW' ? 'warn' : 'positive',
+          })
+        }
+      }
     }
     events.sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime())
 

@@ -74,7 +74,7 @@ interface Overview {
   pending_requests: CreditRequest[]
   // #616 — seat_cap and seats_used were RETURNED by /company/overview and undeclared here,
   // so nothing could render them: the limit was enforced, invisible and unchangeable.
-  totals: { seats: number; active_seats: number; seat_cap?: number; seats_used?: number; allocated: number | null; used: number | null; company_pool: number | null; pending_requests: number; total_leads?: number; total_deduped?: number; calendars_connected?: number; economics_visible?: boolean }
+  totals: { seats: number; active_seats: number; seat_cap?: number; seats_used?: number; allocated: number | null; used: number | null; company_pool: number | null; pending_requests: number; total_leads?: number; total_deduped?: number; calendars_connected?: number; economics_visible?: boolean; economics_hidden_reason?: 'programme' | 'mixed' | null }
 }
 
 type Tab = 'command' | 'seats' | 'usage' | 'plays'
@@ -745,7 +745,16 @@ export default function CompanyPage() {
            than rendering a pool of zero. Layout, card styling and the tab itself are unchanged. */
         <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
           <p className="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-1">Usage &amp; budget</p>
-          <p className="text-sm text-gray-500">Your programme is billed as one price in two halves. There is no credit pool or per-seat budget to manage.</p>
+          {/* ⛓️ 4 Sep — A MIXED COMPANY IS NOT A PROGRAMME COMPANY. When some seats still carry
+              the retired credit model and some do not, "your programme is billed as…" is a
+              claim about a model only part of this company is on. The pool is hidden either
+              way; only the reason for its absence differs, and neither sentence states a price
+              or invents an arrangement. */}
+          <p className="text-sm text-gray-500">
+            {totals?.economics_hidden_reason === 'mixed'
+              ? 'Seats on this account are on different plans, so there is no single company credit pool to manage.'
+              : 'Your programme is billed as one price in two halves. There is no credit pool or per-seat budget to manage.'}
+          </p>
         </div>
       )}
       {tab === 'usage' && econ && (

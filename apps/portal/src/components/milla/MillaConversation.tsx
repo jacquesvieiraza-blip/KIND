@@ -1,0 +1,373 @@
+'use client'
+
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
+import { api } from '@/lib/api'
+import { createClient } from '@/lib/supabase/client'
+import { STAGE_QUICK_ACTION, type MillaStage } from '@kind/shared'
+
+// ── ⚑ 4 Sep — THE ONE MILLA CONVERSATION (founder-approved shell) ────────────────────────
+//
+// 🛑 WHAT THIS REPLACES. The conversation lived INSIDE the Milla home page component, so it
+// was a child of the route. Navigating to Meetings, Programme, Reports, Documents or My ICP
+// unmounted it: the transcript, the session id and the composer's contents were destroyed,
+// and coming back re-fetched a fresh thread. On My ICP a SECOND transcript with its own
+// composer and its own Send button sat inside a drawer — two Millas on one product.
+//
+// ⚠️ ONE INSTANCE · ONE TRANSCRIPT · ONE COMPOSER · ONE CONVERSATION STATE. This component is
+// mounted exactly once, by `MillaShell`, beside the working area. Routes render their
+// workspace content; none of them owns a conversation. A route that needs Milla to be talking
+// about ITS subject calls `focus(...)` on the context below — it does not build a second one.
+//
+// ⚠️ THE ICP TRANSPORT IS KEPT, NOT THE ICP CHAT WIDGET. `/icps/chat-build` and
+// `/icps/revise` are the client's real targeting-change path (M4) and they still run,
+// unchanged, with the same explicit save. What is gone is the duplicate transcript, bubbles,
+// composer and Send that used to carry them.
+
+type Msg = { id: string; role: 'user' | 'assistant'; content: string }
+
+/** The targeting a `/icps/chat-build` turn may propose. Identical shape to the M4 drawer's. */
+type IcpDraft = {
+  name?: string; industries?: string[]; job_titles?: string[]; seniority_levels?: string[]
+  company_sizes?: string[]; geographies?: string[]; tech_stack?: string[]; keywords?: string[]
+}
+
+type Programme = { stage: MillaStage; hasProgramme?: boolean }
+type Summary = {
+  has_funded: boolean
+  icp_versions: { version: string }[]
+  campaign_status?: 'draft' | 'active' | 'paused' | 'paused_low_performance' | 'completed' | 'archived' | null
+  calibration_set_on_desk?: boolean
+}
+
+async function token(): Promise<string | undefined> {
+  try { const { data } = await createClient().auth.getSession(); return data.session?.access_token } catch { return undefined }
+}
+
+// ⛓️ MOVED, NOT REWRITTEN (was `apps/portal/src/app/(milla)/milla/page.tsx`). Every constant,
+// condition and string below is the wording already approved for this row; what changed is
+// which component owns it.
+//
+// Milla answers; she does not act. "Pause campaign" and "Find more like these" used to read
+// as buttons that did those things — they don't, and the message went into a table nobody
+// read. It now pages the operator and appears in Vida → Asks, so these are honest REQUESTS
+// rather than controls: phrased as asking us, because that is what actually happens.
+const PROOF_CHIPS = [
+  'Which of these look strongest?',
+  'Please find more like these',
+]
+/** Only where a programme exists and is running — not before it starts, not once it ends. */
+const PAUSE_STAGES: MillaStage[] = ['Sourcing', 'Approval', 'Live', 'Review']
+/** Only once outreach has had the chance to produce something to measure. */
+const ROI_STAGES:   MillaStage[] = ['Live', 'Review', 'Completion']
+const CHIPS = [
+  ...PROOF_CHIPS,
+  'Please pause my programme',
+  'How is my ROI looking?',
+]
+/**
+ * The stages at which outreach can actually have run.
+ *
+ * ⚠️ EXPORTED, so the home's "What Milla's learning for you" card reads THE SAME LIST. It was
+ * declared inside the home component; lifting the conversation would otherwise have left two
+ * copies of one rule in two files, which is exactly how the send-state and the learning card
+ * would drift apart.
+ */
+export const OUTREACH_STAGES: MillaStage[] = ['Live', 'Review', 'Completion']
+
+/**
+ * Milla's opening line. FOUNDER-APPROVED 30 Aug, verbatim.
+ *
+ * ⚠️ NOT A TEMPLATE, AND NOT BRANCHED. Every earlier version of this greeting was assembled
+ * from the client's lead count, pack balance and funding state — which is how "a flat $4 per
+ * lead, final" ended up being the first thing a customer read. One approved sentence, no
+ * interpolation, nothing for a future edit to slip a price into.
+ */
+const MILLA_GREETING =
+  'Hi, I’m Milla. Tell me what you’re trying to achieve, and I’ll help shape the right programme from there.'
+
+/** What the ONE conversation is currently talking about. `null` = the general thread. */
+type ConversationContext = 'icp' | null
+
+type MillaConversationApi = {
+  /**
+   * Put the ONE conversation into a context and focus its composer.
+   *
+   * ⚠️ THIS IS NOT "OPEN A CHAT". There is only ever one, and it is already on screen; this
+   * says what it is talking about and puts the cursor in it.
+   */
+  focus: (context?: ConversationContext) => void
+  /**
+   * A route that has already fetched the calibration set publishes its size here, so the chip
+   * row uses the SAME fact the list beside it was built from.
+   *
+   * ⚠️ `null` MEANS "THIS ROUTE DID NOT LOOK", never "there is none". The conversation then
+   * falls back to `calibration_set_on_desk` — the server's own answer to exactly this
+   * question, added 3 Sep so a chip row and a desk cannot disagree.
+   */
+  publishDeskSet: (count: number | null) => void
+  /** Bumped whenever a targeting revision is saved, so the ICP screen re-reads its versions. */
+  icpRevision: number
+}
+
+const Ctx = createContext<MillaConversationApi | null>(null)
+
+/**
+ * Read the ONE conversation's controls.
+ *
+ * Safe outside the provider (the `/milla/welcome` onboarding screen renders bare), where it
+ * answers with inert no-ops rather than throwing.
+ */
+export function useMillaConversation(): MillaConversationApi {
+  return useContext(Ctx) ?? INERT
+}
+const INERT: MillaConversationApi = { focus: () => {}, publishDeskSet: () => {}, icpRevision: 0 }
+
+export function MillaConversationProvider({ children }: { children: React.ReactNode }) {
+  const [sessionId, setSessionId] = useState<string | null>(null)
+  const [messages, setMessages] = useState<Msg[]>([{ id: 'greet', role: 'assistant', content: MILLA_GREETING }])
+  const [input, setInput] = useState('')
+  const [sending, setSending] = useState(false)
+  const [context, setContext] = useState<ConversationContext>(null)
+  const [icpDraft, setIcpDraft] = useState<IcpDraft | null>(null)
+  const [icpRevision, setIcpRevision] = useState(0)
+  const [icpSaving, setIcpSaving] = useState(false)
+  const [deskSet, setDeskSet] = useState<number | null>(null)
+  const [prog, setProg] = useState<Programme | null>(null)
+  const [summary, setSummary] = useState<Summary | null>(null)
+  const chatBodyRef = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  // The two facts the header pill and the chip row are derived from. Settled separately: one
+  // failing must not blank the other, and neither may blank the conversation itself.
+  useEffect(() => {
+    ;(async () => {
+      const tok = await token()
+      const [pr, sr] = await Promise.allSettled([
+        api.get<{ data: Programme }>('/my/programme', tok),
+        api.get<{ data: Summary }>('/leads/milla-summary', tok),
+      ])
+      if (pr.status === 'fulfilled') setProg(pr.value.data)
+      if (sr.status === 'fulfilled') setSummary(sr.value.data)
+    })()
+  }, [])
+
+  // M2 — the thread persists, so anything WE asked them (Vida's "Ask them for these" writes
+  // straight into this thread) is waiting here when they next open Milla, and their answer
+  // lands in the same thread where we read it. Without this the chat started blank every
+  // visit and an ask could never be seen, let alone answered.
+  useEffect(() => {
+    (async () => {
+      try {
+        const tok = await token()
+        const list = await api.get<{ data: { id: string }[] }>('/milla/sessions', tok)
+        const sid = list.data?.[0]?.id
+        if (!sid) return
+        setSessionId(sid)
+        const hist = await api.get<{ data: Msg[] }>(`/milla/sessions/${sid}/messages`, tok)
+        const rows = (hist.data ?? []).slice(-20)
+        if (rows.length > 0) {
+          setMessages(m => [...m, ...rows.map(r => ({ id: r.id, role: r.role, content: r.content }))])
+        }
+      } catch { /* no thread yet — the greeting stands on its own */ }
+    })()
+  }, [])
+
+  // Scroll the CHAT container only — never the page.
+  useEffect(() => { const el = chatBodyRef.current; if (el) el.scrollTop = el.scrollHeight }, [messages])
+
+  const focus = useCallback((c: ConversationContext = null) => {
+    setContext(c)
+    // A frame, so the strip above the composer is on screen before the cursor lands in it.
+    requestAnimationFrame(() => inputRef.current?.focus())
+  }, [])
+  const publishDeskSet = useCallback((count: number | null) => setDeskSet(count), [])
+
+  /**
+   * ⛓️ THE TRANSPORT SWITCHES; THE CONVERSATION DOES NOT.
+   *
+   * In ICP context a turn goes to `/icps/chat-build` — the same endpoint the removed drawer
+   * called, with the same last-12-turn history and the same 1,000-character server cap — and
+   * its reply lands in THIS transcript. Nothing else about the message changes, and no other
+   * context reaches that endpoint.
+   */
+  async function send(text: string) {
+    const msg = text.trim(); if (!msg || sending || icpSaving) return
+    setInput(''); setSending(true)
+    setMessages(m => [...m, { id: `u-${Date.now()}`, role: 'user', content: msg }])
+    try {
+      const tok = await token()
+      if (context === 'icp') {
+        // Only the turns of THIS conversation, which is the same window the drawer sent.
+        const history = messages.filter(m => m.id !== 'greet').slice(-12).map(m => ({ role: m.role, content: m.content }))
+        const r = await api.post<{ data: IcpDraft & { message?: string } }>(
+          '/icps/chat-build', { message: msg, history }, tok)
+        const d = r.data ?? {}
+        setMessages(m => [...m, { id: `a-${Date.now()}`, role: 'assistant', content: d.message || 'Got it — anything else to change?' }])
+        // Only treat it as a draft once there is something real to target with.
+        const hasTargets = (d.industries?.length ?? 0) > 0 || (d.job_titles?.length ?? 0) > 0
+        if (hasTargets) setIcpDraft(prev => ({ ...(prev ?? {}), ...d, name: d.name || prev?.name || 'My targeting' }))
+        return
+      }
+      let sid = sessionId
+      if (!sid) {
+        const list = await api.get<{ data: { id: string }[] }>('/milla/sessions', tok).catch(() => null)
+        sid = list?.data?.[0]?.id ?? null
+        if (!sid) { const c = await api.post<{ sessionId: string }>('/milla/sessions', {}, tok); sid = c.sessionId }
+        setSessionId(sid)
+      }
+      const res = await api.post<{ reply: string }>(`/milla/sessions/${sid}/chat`, { message: msg }, tok)
+      setMessages(m => [...m, { id: `a-${Date.now()}`, role: 'assistant', content: res.reply }])
+    } catch (e) {
+      setMessages(m => [...m, { id: `e-${Date.now()}`, role: 'assistant', content: context === 'icp'
+        ? (e instanceof Error ? e.message : 'Sorry — say that again?')
+        : 'I hit a snag reaching the engine — please try again in a moment.' }])
+    }
+    finally { setSending(false) }
+  }
+
+  /**
+   * THE EXPLICIT SAVE, unchanged from M4. Nothing is attached, sourced, enrolled or sent by
+   * it: `/icps/revise` writes the targeting and tells us, so we can re-check who is already
+   * in the campaign. It runs only when the client presses it.
+   */
+  async function saveIcpDraft() {
+    if (!icpDraft || icpSaving) return
+    setIcpSaving(true)
+    try {
+      await api.post('/icps/revise', {
+        name: icpDraft.name || 'My targeting',
+        industries: icpDraft.industries ?? [], job_titles: icpDraft.job_titles ?? [],
+        seniority_levels: icpDraft.seniority_levels ?? [], company_sizes: icpDraft.company_sizes ?? [],
+        geographies: icpDraft.geographies ?? [], tech_stack: icpDraft.tech_stack ?? [],
+        keywords: icpDraft.keywords ?? [],
+      }, await token())
+      setMessages(m => [...m, { id: `a-${Date.now()}`, role: 'assistant', content:
+        'Updated — this is your live targeting now, and we’ve been told so we can re-check who’s already in your campaign.' }])
+      setIcpDraft(null); setContext(null); setIcpRevision(v => v + 1)
+    } catch (e) {
+      setMessages(m => [...m, { id: `e-${Date.now()}`, role: 'assistant', content:
+        e instanceof Error ? e.message : 'Could not save your targeting' }])
+    }
+    finally { setIcpSaving(false) }
+  }
+
+  const needsGoLive = !!summary && summary.icp_versions.length > 0 && !summary.has_funded
+
+  // ── ⛓️ 3 Sep — A CHIP THAT POINTS AT "THESE" NEEDS THERE TO BE SOME ────────────────────
+  // ⚠️ "CONTEXTUALLY VALID" IS THE TEST THE FOUNDER SET. Offering "Please pause my programme"
+  // to someone at Proof invites them to pause a programme that does not exist; a calibration
+  // chip naming "these" needs a set on the desk, not merely the right stage.
+  const proofSetOnDesk = (summary?.calibration_set_on_desk ?? false) || (deskSet ?? 0) > 0
+  const chips = !prog ? CHIPS : [
+    ...(prog.stage === 'Proof' && !proofSetOnDesk ? [] : [STAGE_QUICK_ACTION[prog.stage]]),
+    ...(prog.stage === 'Proof' && proofSetOnDesk ? PROOF_CHIPS : []),
+    ...(PAUSE_STAGES.includes(prog.stage) ? ['Please pause my programme'] : []),
+    ...(ROI_STAGES.includes(prog.stage) ? ['How is my ROI looking?'] : []),
+  ]
+
+  const sendState = (() => {
+    // Founder-locked wording, 3 Sep. CUSTOMER-FACING ONLY.
+    const idle = { label: 'Outreach hasn’t started', tone: 'text-[#5c5279]', dot: 'bg-[#b3a9cc]' }
+    // Unknown means idle, which is the only honest thing this widget can say.
+    if (!prog || !OUTREACH_STAGES.includes(prog.stage)) return idle
+    // 🛑 NO PROGRAMME MEANS NO PROGRAMME STATUS, whatever campaign rows exist.
+    if (prog.hasProgramme === false) return idle
+    if (needsGoLive) return { label: 'Not started', tone: 'text-[#b45309]', dot: 'bg-amber-500' }
+    const st = summary?.campaign_status
+    if (st === 'active') return { label: 'Programme live', tone: 'text-[#059669]', dot: 'bg-emerald-500' }
+    if (st === 'paused' || st === 'paused_low_performance') return { label: 'Paused — we\u2019ll tell you why', tone: 'text-[#b45309]', dot: 'bg-amber-500' }
+    if (st === 'completed' || st === 'archived') return { label: 'Programme finished', tone: 'text-[#5c5279]', dot: 'bg-[#b3a9cc]' }
+    if (st === 'draft') return { label: 'Being set up', tone: 'text-[#5c5279]', dot: 'bg-[#b3a9cc]' }
+    return idle
+  })()
+
+  const rich = (t: string) => t.split(/(\*\*[^*]+\*\*)/g).map((p, i) => p.startsWith('**') && p.endsWith('**')
+    ? <b key={i} className="text-[#7C3AED]">{p.slice(2, -2)}</b> : <span key={i}>{p}</span>)
+
+  const value = useMemo<MillaConversationApi>(
+    () => ({ focus, publishDeskSet, icpRevision }), [focus, publishDeskSet, icpRevision])
+
+  const draftChips = icpDraft ? [
+    ...(icpDraft.seniority_levels ?? []), ...(icpDraft.job_titles ?? []), ...(icpDraft.industries ?? []),
+    ...(icpDraft.geographies ?? []), ...(icpDraft.company_sizes ?? []).map(s => `${s} staff`),
+  ].filter(Boolean) : []
+
+  return (
+    <Ctx.Provider value={value}>
+      {/* ⚠️ FIXED width, 600px — the approved shell. A conversation column past ~600px is
+          170+ characters a line, which reads badly however full it is. */}
+      <section data-tour="chat" className="w-[600px] shrink-0 border-r border-[#eee7f7] bg-white flex flex-col min-h-0">
+        <div className="flex items-center gap-2.5 px-4 py-3 border-b border-[#eee7f7] shrink-0">
+          <span className="w-7 h-7 rounded-lg bg-gradient-to-br from-[#7C3AED] to-[#EC4899] text-white font-extrabold text-[13px] flex items-center justify-center">M</span>
+          <div><b className="text-[15px]">Milla</b> <span className="text-[#9b8ec4] text-[12.5px]">· conversational &amp; strategic</span></div>
+          <span className={`ml-auto text-[12.5px] font-semibold inline-flex items-center gap-1.5 ${sendState.tone}`}>
+            <span className={`w-2 h-2 rounded-full ${sendState.dot}`} /> {sendState.label}
+          </span>
+        </div>
+        <div ref={chatBodyRef} className="flex-1 overflow-y-auto px-4 py-4">
+          <div className="max-w-2xl space-y-3">
+            {messages.map(m => (
+              <div key={m.id} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                <div className={`max-w-[86%] rounded-2xl px-4 py-2.5 text-[14px] leading-relaxed whitespace-pre-wrap ${m.role === 'user' ? 'bg-[#1f1235] text-white' : 'bg-[#f3ecff] text-[#1f1235]'}`}>{m.role === 'assistant' ? rich(m.content) : m.content}</div>
+              </div>
+            ))}
+            {sending && <div className="flex justify-start"><div className="bg-[#f3ecff] rounded-2xl px-4 py-2.5 text-[#9b8ec4] text-[14px]">Milla is thinking…</div></div>}
+          </div>
+        </div>
+        <div className="px-4 py-3 border-t border-[#eee7f7] shrink-0">
+          {/* THE CONTEXT STRIP — what this conversation is talking about right now. It is a
+              label on the ONE conversation, not a second one: the transcript above and the
+              composer below are the same ones every other screen uses. */}
+          {context === 'icp' && (
+            <div className="flex items-center gap-2 mb-2 rounded-xl border border-[#e4d4fb] bg-[#faf8ff] px-3 py-2">
+              <span className="text-[11px] font-extrabold uppercase tracking-[0.08em] text-[#b3a9cc]">Talking about</span>
+              <b className="text-[12.5px]">Who we target</b>
+              <button onClick={() => { setContext(null); setIcpDraft(null) }}
+                className="ml-auto text-[12px] font-semibold text-[#9b8ec4] hover:text-[#5c5279]">Done</button>
+            </div>
+          )}
+          {/* THE DRAFT AND ITS EXPLICIT SAVE. Nothing goes live until this is pressed. */}
+          {context === 'icp' && icpDraft && (
+            <div className="border border-[#e4dcf7] bg-[#faf8ff] rounded-xl p-3.5 mb-2">
+              <p className="text-[10px] font-extrabold uppercase tracking-wide text-[#b3a9cc]">Your new targeting</p>
+              <b className="text-[13.5px] block mt-0.5 mb-1.5">{icpDraft.name}</b>
+              <div className="flex flex-wrap gap-1.5">
+                {draftChips.map((c, i) => (
+                  <span key={i} className="text-[11.5px] font-semibold text-[#7C3AED] bg-[#f3ecff] rounded-full px-2.5 py-1">{c}</span>
+                ))}
+              </div>
+              <div className="flex gap-2 mt-3">
+                <button disabled={icpSaving} onClick={saveIcpDraft}
+                  className="text-[13px] font-bold text-white rounded-xl py-2.5 px-5 bg-gradient-to-br from-[#7C3AED] to-[#EC4899] disabled:opacity-50">
+                  {icpSaving ? 'Saving…' : 'Save — make this live'}
+                </button>
+                <button disabled={icpSaving} onClick={() => setIcpDraft(null)}
+                  className="text-[13px] font-semibold text-[#5c5279] rounded-xl py-2.5 px-4 border border-[#ece5fb]">Keep talking</button>
+              </div>
+            </div>
+          )}
+          {/* ⚠️ NOT OFFERED IN ICP CONTEXT. Every chip here is a request to Milla — "Please
+              pause my programme", "How is my ROI looking?" — and in ICP context the composer
+              is talking to `/icps/chat-build`. Sending one of them there would put a
+              programme question into a targeting conversation. */}
+          {context !== 'icp' && (<>
+            {chips.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mb-2">
+                {chips.map(c => <button key={c} onClick={() => send(c)} disabled={sending} className="text-[12.5px] font-semibold text-[#7C3AED] bg-[#f3ecff] border border-[#e4d4fb] rounded-full px-3 py-1 hover:bg-[#ebe0fc] disabled:opacity-50">{c}</button>)}
+              </div>
+            )}
+          </>)}
+          <form onSubmit={e => { e.preventDefault(); send(input) }} className="flex gap-2">
+            {/* 1000 matches the server's cap on /icps/chat-build — without it a long paste
+                comes back as a raw validation error instead of a reply. */}
+            <input ref={inputRef} value={input} onChange={e => setInput(e.target.value)} maxLength={1000}
+              placeholder={context === 'icp' ? 'Tell Milla what should change…' : 'Ask Milla, request leads, or give feedback…'}
+              className="flex-1 text-[14px] rounded-xl border border-[#e4dcf7] px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#7C3AED]/30" />
+            <button type="submit" disabled={sending || icpSaving || !input.trim()} className="text-[14px] font-bold text-white rounded-xl px-5 bg-[#7C3AED] disabled:opacity-50">Send</button>
+          </form>
+        </div>
+      </section>
+      {children}
+    </Ctx.Provider>
+  )
+}

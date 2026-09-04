@@ -197,12 +197,23 @@ describe('§1b — THE PROGRAMME LIFECYCLE IS ORDERED, AND ITS GATES ARE DISTINC
 // ════════════════════════════════════════════════════════════════════════════════════════
 describe('§2 — THE SUGGESTION CHIPS KNOW WHAT STAGE THE CLIENT IS IN', () => {
   const HOME = code(join(PORTAL, 'app/(milla)/milla/page.tsx'))
+  // ⚑ 4 Sep — RETARGETED, NOT RELAXED. The chip row moved out of the home and into the ONE
+  // shell-owned conversation; every assertion below is the same string on the file that now
+  // owns it. The home is asserted separately to hold NO second copy, which the old form could
+  // not check at all — a duplicate chip row in another file would have passed it.
+  const CHAT = code(join(PORTAL, 'components/milla/MillaConversation.tsx'))
+
+  it('🛑 THE HOME DOES NOT OWN A SECOND CHIP ROW', () => {
+    for (const dup of ['const chips =', 'PROOF_CHIPS', 'STAGE_QUICK_ACTION[', 'const sendState =']) {
+      expect(HOME, `the home still builds its own "${dup}" beside the shell's conversation`).not.toContain(dup)
+    }
+  })
 
   it('the stage-specific chip is the founder-approved per-stage wording, not new copy', () => {
     // 🛑 NOTHING IS INVENTED HERE. `STAGE_QUICK_ACTION` is the founder's verbatim per-stage
     // conversation accelerator, already approved for exactly this job.
-    expect(HOME).toContain('STAGE_QUICK_ACTION[prog.stage]')
-    expect(HOME).toMatch(/import \{[^}]*STAGE_QUICK_ACTION[^}]*\} from '@kind\/shared'/)
+    expect(CHAT).toContain('STAGE_QUICK_ACTION[prog.stage]')
+    expect(CHAT).toMatch(/import \{[^}]*STAGE_QUICK_ACTION[^}]*\} from '@kind\/shared'/)
     // Every stage has one, so no stage can render an empty chip.
     for (const stage of MILLA_STAGES) {
       expect(STAGE_QUICK_ACTION[stage], `no approved chip wording for ${stage}`).toBeTruthy()
@@ -219,18 +230,27 @@ describe('§2 — THE SUGGESTION CHIPS KNOW WHAT STAGE THE CLIENT IS IN', () => 
     // matters is what is ON THE DESK, not where the programme is — so the condition now
     // carries both, and `STAGE_QUICK_ACTION.Proof` ("Show me stronger examples") is inside
     // the same gate because it names examples too.
-    expect(HOME).toContain("...(prog.stage === 'Proof' && proofSetOnDesk ? PROOF_CHIPS : [])")
-    expect(HOME).toContain("...(prog.stage === 'Proof' && !proofSetOnDesk ? [] : [STAGE_QUICK_ACTION[prog.stage]])")
-    expect(HOME).toContain("'Which of these look strongest?'")
+    expect(CHAT).toContain("...(prog.stage === 'Proof' && proofSetOnDesk ? PROOF_CHIPS : [])")
+    expect(CHAT).toContain("...(prog.stage === 'Proof' && !proofSetOnDesk ? [] : [STAGE_QUICK_ACTION[prog.stage]])")
+    expect(CHAT).toContain("'Which of these look strongest?'")
     // 🛑 AND THE DESK FACT IS THE SERVER'S, not a guess from a stage or a spinner.
-    expect(HOME).toContain('summary?.calibration_set_on_desk')
+    expect(CHAT).toContain('summary?.calibration_set_on_desk')
   })
 
   it('🛑 AN EMPTY CHIP ROW DOES NOT RENDER AS AN EMPTY ROW', () => {
     // Zero honest chips is the right answer for a desk with nothing on it; a bordered strip
     // with no buttons in it is not, and would read as a broken layout on the one screen whose
     // job is to look calm.
-    expect(HOME).toContain('{chips.length > 0 && (')
+    expect(CHAT).toContain('{chips.length > 0 && (')
+  })
+
+  it('🛑 THE EMPTY PROOF DESK POINTS SOMEWHERE, and it does it in approved words', () => {
+    // "Nothing to react to right now." is true and stays for every other case. At Proof it is
+    // a dead end on the one screen meant to start the conversation, so the per-stage sentence
+    // the programme workspace already renders is reused — no new copy is written here.
+    expect(HOME).toContain("prog?.stage === 'Proof' ? nextActionFor(prog) : 'Nothing to react to right now.'")
+    const ws = readFileSync(join(PORTAL, 'components/milla/ProgrammeWorkspace.tsx'), 'utf8')
+    expect(ws, 'the reused sentence must be the approved one').toContain("case 'Proof':          return 'Tell Milla the outcome you want'")
   })
 
   it('🛑 THE EMPTY PROOF DESK POINTS SOMEWHERE, and it does it in approved words', () => {
@@ -245,20 +265,20 @@ describe('§2 — THE SUGGESTION CHIPS KNOW WHAT STAGE THE CLIENT IS IN', () => 
   it('pause and ROI are offered only where they are contextually valid', () => {
     // Offering "pause my programme" at Proof invites pausing something that does not exist;
     // offering ROI before anything has been sent asks for a return on nothing.
-    expect(HOME).toContain("const PAUSE_STAGES: MillaStage[] = ['Sourcing', 'Approval', 'Live', 'Review']")
-    expect(HOME).toContain("const ROI_STAGES:   MillaStage[] = ['Live', 'Review', 'Completion']")
+    expect(CHAT).toContain("const PAUSE_STAGES: MillaStage[] = ['Sourcing', 'Approval', 'Live', 'Review']")
+    expect(CHAT).toContain("const ROI_STAGES:   MillaStage[] = ['Live', 'Review', 'Completion']")
   })
 
   it('an unknown stage falls back to the flat list rather than flickering', () => {
-    expect(HOME).toContain('const chips = !prog ? CHIPS : [')
+    expect(CHAT).toContain('const chips = !prog ? CHIPS : [')
   })
 
   it('the row renders the DERIVED list, not the constant', () => {
     // 🛑 THE WHOLE FIX IS ONE IDENTIFIER AT THE RENDER SITE. Building `chips` and then
     // mapping `CHIPS` would leave the live behaviour exactly as the founder found it, with
     // every guard above still green.
-    expect(HOME, 'the chip row still renders the flat constant').toContain('{chips.map(c =>')
-    expect(HOME, 'the chip row still renders the flat constant').not.toContain('{CHIPS.map(c =>')
+    expect(CHAT, 'the chip row still renders the flat constant').toContain('{chips.map(c =>')
+    expect(CHAT, 'the chip row still renders the flat constant').not.toContain('{CHIPS.map(c =>')
   })
 })
 
@@ -378,7 +398,10 @@ describe('EVERYTHING 4A-1 FIXED IS STILL FIXED', () => {
   })
 
   it('and the customer product is still called a programme where it was renamed', () => {
-    expect(HOME).toContain("'Please pause my programme'")
-    expect(HOME).toContain("label: 'Programme live'")
+    // ⚑ 4 Sep — the chip and the send-state label moved with the conversation; the renaming
+    // they prove is unchanged, and this now reads the file that renders them.
+    const CHAT = code(join(PORTAL, 'components/milla/MillaConversation.tsx'))
+    expect(CHAT).toContain("'Please pause my programme'")
+    expect(CHAT).toContain("label: 'Programme live'")
   })
 })

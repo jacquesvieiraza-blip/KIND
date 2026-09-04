@@ -391,7 +391,11 @@ describe('ISOLATION — THIS SLICE CHANGED NOTHING OUTSIDE MILLA', () => {
     for (const control of ['👍 Looks right', 'Not a fit', 'Tell Milla why']) {
       expect(home, `the calibration control "${control}" is gone`).toContain(control)
     }
-    expect(home).toContain("'Please pause my programme'")
+    // ⚑ 4 Sep — the chip moved with the conversation into the ONE shell-owned
+    // `components/milla/MillaConversation.tsx`. Same string, same isolation claim, on the file
+    // that now renders it.
+    const chat = strip(readFileSync(join(PORTAL, 'components/milla/MillaConversation.tsx'), 'utf8'))
+    expect(chat).toContain("'Please pause my programme'")
   })
 
   // ⛓️ 31 Aug (BUILD-004A-2D) — REWRITTEN, BECAUSE THE ORIGINAL ASSERTED THE WRONG THING.

@@ -330,6 +330,11 @@ describe('OPTION C — ANY OUTCOME IS CAPTURED, ONLY MEETINGS ARE AUTO-PRICED', 
 // So the home is now asserted directly, by file, and the legacy symbols are forbidden by name.
 const HOME = readFileSync(join(PORTAL, 'app/(milla)/milla/page.tsx'), 'utf8')
 const HOME_CODE = strip(HOME)
+// ⚑ 4 Sep — the ONE shell-owned Milla conversation. It was declared inside the home until
+// today; the guards that describe the CONVERSATION now read the file that renders it, and the
+// home is asserted below to hold no second copy.
+const CHAT = readFileSync(join(PORTAL, 'components/milla/MillaConversation.tsx'), 'utf8')
+const CHAT_CODE = strip(CHAT)
 const WORKSPACE = readFileSync(join(PORTAL, 'components/milla/ProgrammeWorkspace.tsx'), 'utf8')
 const WORKSPACE_CODE = strip(WORKSPACE)
 const PROG_PAGE_CODE = strip(PROGRAMME_PAGE)
@@ -368,10 +373,14 @@ describe('THE MILLA HOME IS THE PROGRAMME HOME', () => {
   })
 
   it('⑤ the approved greeting is used EXACTLY, and is not assembled from anything', () => {
-    expect(HOME_CODE).toContain('Hi, I’m Milla. Tell me what you’re trying to achieve, and I’ll help shape the right programme from there.')
+    // ⚑ 4 Sep — RETARGETED, NOT RELAXED. The greeting moved with the transcript it opens, to
+    // the ONE shell-owned conversation. Same sentence, same "not a template" rule — plus the
+    // home is now required to hold NO copy, so the opener cannot be said twice.
+    expect(CHAT_CODE).toContain('Hi, I’m Milla. Tell me what you’re trying to achieve, and I’ll help shape the right programme from there.')
     // Not a template: no interpolation, so no future edit can slip a price back into it.
-    expect(HOME_CODE).toContain('const MILLA_GREETING')
-    expect(HOME_CODE).not.toMatch(/MILLA_GREETING\s*=\s*`/)
+    expect(CHAT_CODE).toContain('const MILLA_GREETING')
+    expect(CHAT_CODE).not.toMatch(/MILLA_GREETING\s*=\s*`/)
+    expect(HOME_CODE, 'the home greets the customer a second time').not.toContain('MILLA_GREETING')
   })
 })
 
@@ -604,7 +613,9 @@ describe('THE HOME STATES NOTHING THAT ITS STAGE CANNOT SUPPORT', () => {
   // rates — rendered on a screen whose stage says outreach has not started. The fix in every
   // case is the GATE, never the words: no label, sentence or number below was rewritten.
   it('③ the send-state header is gated on the programme stage, not on a campaign row', () => {
-    expect(HOME_CODE, 'the outreach-stage gate is gone from sendState')
+    // ⚑ 4 Sep — the send-state pill moved into the ONE conversation. Same assertions, same
+    // strictness, on the file that derives it.
+    expect(CHAT_CODE, 'the outreach-stage gate is gone from sendState')
       .toContain("const OUTREACH_STAGES: MillaStage[] = ['Live', 'Review', 'Completion']")
     // ⛓️ TIGHTENED 3 Sep — THE GATE WAS `prog && !OUTREACH_STAGES...`, WHICH SKIPPED ITSELF
     // WHEN `prog` WAS NULL. While `/my/programme` was loading or after it failed, the guard
@@ -612,17 +623,17 @@ describe('THE HOME STATES NOTHING THAT ITS STAGE CANNOT SUPPORT', () => {
     // was the moment it asserted most. Unknown is now idle, and a client with NO programme is
     // idle whatever their stage says (DRAFT and none are both 'Proof'). This assertion is
     // STRICTER than the one it replaces: it requires both refusals ahead of `needsGoLive`.
-    expect(HOME_CODE, 'sendState reads campaign_status at every stage again')
+    expect(CHAT_CODE, 'sendState reads campaign_status at every stage again')
       .toMatch(/if \(!prog \|\| !OUTREACH_STAGES\.includes\(prog\.stage\)\) return idle[\s\S]{0,400}?if \(prog\.hasProgramme === false\) return idle[\s\S]{0,200}?if \(needsGoLive\)/)
     // 🛑 THE CONTRADICTION ITSELF: "Paused" must be unreachable before Live. The gate returns
     // first, so the paused branch cannot be evaluated at Proof, Recommendation, Sourcing or
     // Approval — which is the whole finding.
-    const from = HOME_CODE.indexOf('const sendState = (() => {')
-    const gate = HOME_CODE.indexOf('OUTREACH_STAGES.includes(prog.stage)', from)
+    const from = CHAT_CODE.indexOf('const sendState = (() => {')
+    const gate = CHAT_CODE.indexOf('OUTREACH_STAGES.includes(prog.stage)', from)
     // ⚠️ THE LITERAL BACKSLASH-u, because that is what the source file contains — the .tsx
     // writes the apostrophe as an escape. Searching for the decoded character finds
     // nothing, and the vacuity assertion below is what caught exactly that.
-    const paused = HOME_CODE.indexOf('Paused — we\\u2019ll tell you why', from)
+    const paused = CHAT_CODE.indexOf('Paused — we\\u2019ll tell you why', from)
     expect(from, 'sendState is gone').toBeGreaterThan(-1)
     expect(paused, 'the paused label is gone — this guard would pass vacuously').toBeGreaterThan(-1)
     expect(gate, 'the stage gate no longer precedes the paused branch').toBeGreaterThan(from)
@@ -638,8 +649,9 @@ describe('THE HOME STATES NOTHING THAT ITS STAGE CANNOT SUPPORT', () => {
   })
 
   it('⑤ the customer product is called a programme where the founder named it', () => {
-    expect(HOME_CODE, 'the pause chip says "campaign" again').toContain("'Please pause my programme'")
-    expect(HOME_CODE, 'the retired chip wording is back').not.toContain('Please pause my campaign')
+    expect(CHAT_CODE, 'the pause chip says "campaign" again').toContain("'Please pause my programme'")
+    expect(CHAT_CODE, 'the retired chip wording is back').not.toContain('Please pause my campaign')
+    expect(HOME_CODE, 'the retired chip wording is back on the home').not.toContain('Please pause my campaign')
   })
 
   it('⑥ the wallet top-up state cannot be re-wired on the home', () => {
@@ -654,18 +666,18 @@ describe('THE HOME STATES NOTHING THAT ITS STAGE CANNOT SUPPORT', () => {
   // object and its name is untouched. These two labels are the only place a CUSTOMER read it
   // on this header, and they now say what the customer bought.
   it('⑪ the send-state header names the programme, not the campaign', () => {
-    expect(HOME_CODE, 'the live label reverted to "Campaign live"').toContain("label: 'Programme live'")
-    expect(HOME_CODE, 'the finished label reverted to "Campaign finished"').toContain("label: 'Programme finished'")
+    expect(CHAT_CODE, 'the live label reverted to "Campaign live"').toContain("label: 'Programme live'")
+    expect(CHAT_CODE, 'the finished label reverted to "Campaign finished"').toContain("label: 'Programme finished'")
     // ⚠️ STRIPPED SOURCE. A comment on this same file legitimately QUOTES the retired
     // hardcoded "● Campaign live" it replaced (the history of why this widget reads real
     // state at all), so an unstripped scan binds to the explanation instead of the code.
-    expect(HOME_CODE, '"Campaign live" is back as customer-facing header copy')
+    expect(CHAT_CODE, '"Campaign live" is back as customer-facing header copy')
       .not.toContain('Campaign live')
-    expect(HOME_CODE, '"Campaign finished" is back as customer-facing header copy')
+    expect(CHAT_CODE, '"Campaign finished" is back as customer-facing header copy')
       .not.toContain('Campaign finished')
     // 🛑 AND THE RENAME DID NOT LEAK INWARDS. The state still comes from the campaign object;
     // renaming the READ would have been the blind rename the founder ruled out.
-    expect(HOME_CODE, 'the internal campaign read was renamed along with the label')
+    expect(CHAT_CODE, 'the internal campaign read was renamed along with the label')
       .toContain('const st = summary?.campaign_status')
   })
 

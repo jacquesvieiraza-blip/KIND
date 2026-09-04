@@ -410,7 +410,10 @@ describe('⑥ a historical campaign is never presented as current programme trut
     legacyCampaign('C_OLD', 'paused')
     expect(await campaignStatus(HOUSE), 'legacy is untouched').toBe('paused')
 
-    const page = readFileSync(join(__dirname, '../../../portal/src/app/(milla)/milla/page.tsx'), 'utf8')
+    // ⚑ 4 Sep — RETARGETED, NOT RELAXED. The send-state widget moved out of the home into
+    // the ONE shell-owned `components/milla/MillaConversation.tsx`. Identical string, identical
+    // refusal, read from the file that now renders it.
+    const page = readFileSync(join(__dirname, '../../../portal/src/components/milla/MillaConversation.tsx'), 'utf8')
     const visible = page.split('\n').filter(l => !l.trim().startsWith('//') && !l.trim().startsWith('*')).join('\n')
     expect(visible, 'no programme ⇒ no programme status').toContain('if (prog.hasProgramme === false) return idle')
   })
@@ -484,7 +487,10 @@ describe('⑥ a historical campaign is never presented as current programme trut
   })
 
   it('🛑 the widget cannot assert a campaign-derived label while the programme is UNKNOWN', () => {
-    const page = readFileSync(join(__dirname, '../../../portal/src/app/(milla)/milla/page.tsx'), 'utf8')
+    // ⚑ 4 Sep — RETARGETED, NOT RELAXED. The send-state widget moved out of the home into
+    // the ONE shell-owned `components/milla/MillaConversation.tsx`. Identical string, identical
+    // refusal, read from the file that now renders it.
+    const page = readFileSync(join(__dirname, '../../../portal/src/components/milla/MillaConversation.tsx'), 'utf8')
     const visible = page.split('\n').filter(l => !l.trim().startsWith('//') && !l.trim().startsWith('*')).join('\n')
     // The old guard was `prog && !OUTREACH_STAGES...`, which SKIPPED itself when `prog` was
     // null — asserting most at the moment it knew least.
@@ -571,7 +577,10 @@ describe('⑦ internal authority is reported as authority, never as payment', ()
   it('🛑 THE FOUNDER-LOCKED SENDING COPY, PINNED — customer-facing only', () => {
     // Locked 3 Sep: "Nothing sending yet" → "Outreach hasn't started". A RED proof found this
     // unguarded: reverting the string changed nothing, because nothing asserted it.
-    const page = readFileSync(join(__dirname, '../../../portal/src/app/(milla)/milla/page.tsx'), 'utf8')
+    // ⚑ 4 Sep — RETARGETED, NOT RELAXED. The send-state widget moved out of the home into
+    // the ONE shell-owned `components/milla/MillaConversation.tsx`. Identical string, identical
+    // refusal, read from the file that now renders it.
+    const page = readFileSync(join(__dirname, '../../../portal/src/components/milla/MillaConversation.tsx'), 'utf8')
     const visible = jsxCode(page)
     expect(visible).toContain("label: 'Outreach hasn\u2019t started'")
     expect(visible, 'the old customer-facing wording is back').not.toContain("label: 'Nothing sending yet'")

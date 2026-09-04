@@ -6,14 +6,12 @@
 // engine-health), and the working area ({children} = the clients panel + pipeline board).
 // AdminShell bypasses its old chrome for /vida so this is the only shell here.
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import {
-  Power, ClipboardList, Sparkles, Users, CalendarClock, Ban, Receipt,
-  ChevronDown, LogOut, Gauge, Wallet, TrendingUp, Rocket, Inbox, Brain,
-} from 'lucide-react'
+import { Power, LogOut, ChevronDown } from 'lucide-react'
+import { VidaConversationProvider } from '@/components/vida/VidaConversation'
 
 type Status = { outreach_enabled: boolean; daily_cap: number | null }
 type Health = { sent_today: number; replies_today: number; pending_approvals: number }
@@ -107,19 +105,30 @@ export default function VidaLayout({ children }: { children: React.ReactNode }) 
   const [status, setStatus] = useState<Status | null>(null)
   const [health, setHealth] = useState<Health | null>(null)
   const [email, setEmail] = useState<string>('')
-  const [menuOpen, setMenuOpen] = useState(false)
-  const menuRef = useRef<HTMLDivElement>(null)
+  // ⚑ 4 Sep — TWO INDEPENDENT GROUPS, and the operator's choice survives a reload. Both open
+  // by default: a destination that is collapsed on first paint is a destination the operator
+  // has to discover, and the whole reason this panel exists is that twenty-five of them were
+  // hidden behind one dropdown.
+  const [openOperate, setOpenOperate] = useState(true)
+  const [openBusiness, setOpenBusiness] = useState(true)
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('vida:nav-groups')
+      if (!raw) return
+      const v = JSON.parse(raw) as { operate?: boolean; business?: boolean }
+      if (typeof v.operate === 'boolean') setOpenOperate(v.operate)
+      if (typeof v.business === 'boolean') setOpenBusiness(v.business)
+    } catch { /* private mode, or nothing stored — both groups stay open */ }
+  }, [])
+  useEffect(() => {
+    try { localStorage.setItem('vida:nav-groups', JSON.stringify({ operate: openOperate, business: openBusiness })) }
+    catch { /* private mode — the panel still works, it just forgets */ }
+  }, [openOperate, openBusiness])
 
   useEffect(() => {
     fetch('/api/proxy/operator/status').then(r => r.json()).then(j => { if (j?.success) setStatus(j.data) }).catch(() => {})
     fetch('/api/proxy/operator/health').then(r => r.json()).then(j => { if (j?.success) setHealth(j.data) }).catch(() => {})
     fetch('/api/proxy/operator/whoami').then(r => r.json()).then(j => { if (j?.success) setEmail(j.data.email) }).catch(() => {})
-  }, [])
-
-  useEffect(() => {
-    function onClick(e: MouseEvent) { if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false) }
-    document.addEventListener('mousedown', onClick)
-    return () => document.removeEventListener('mousedown', onClick)
   }, [])
 
   async function signOut() {
@@ -128,31 +137,45 @@ export default function VidaLayout({ children }: { children: React.ReactNode }) 
   }
 
   const on = status?.outreach_enabled === true
-  const isClients = pathname === '/vida'
-  const isAudit = pathname.startsWith('/vida/audit')
-  const isQueue = pathname.startsWith('/vida/queue')
-  const isBookings = pathname.startsWith('/vida/bookings')
-  const isSuppression = pathname.startsWith('/vida/suppression')
-  const isReports = pathname.startsWith('/vida/reports')
-  const pendingCount = health?.pending_approvals ?? null
 
-  // #502 — the ENGINE section, moved OUT of the account dropdown into the rail (native
-  // Vida routes, no old-admin exit). Nexus signals is now LIVE (#511 complete) — a real
-  // /vida/nexus route in the rail below, never a dead link. Design ref: the approved Vida blend.
-  const ENGINE_RAIL: { href: string; label: string; icon: React.ElementType }[] = [
-    { href: '/vida/cockpit',    label: 'Cockpit',    icon: Gauge },
-    { href: '/vida/money-path', label: 'Money Path', icon: Wallet },
-    { href: '/vida/revenue',    label: 'Revenue',    icon: TrendingUp },
-    { href: '/vida/gtm',        label: 'GTM Hub',    icon: Rocket },
-    { href: '/vida/unibox',     label: 'Unibox',     icon: Inbox },
-  ]
+  // ⛓️ 4 Sep — DEAD SCAFFOLDING REMOVED, NOT REVIVED. `ENGINE_RAIL`, `railLink`, `isClients`,
+  // `isAudit`, `isQueue`, `isBookings`, `isSuppression`, `isReports` and `pendingCount` were
+  // each declared exactly once and rendered nowhere: the remains of a left rail that was
+  // deleted when the dropdown replaced it. They described five destinations out of
+  // twenty-five, in a different order, with a different component — so building the real left
+  // panel out of them would have shipped a nav that disagreed with the menu it replaced.
+  // The panel below is built from OPERATE and NERVOUS_SYSTEM, which are the lists the
+  // dropdown itself used, so nothing can be lost in the move.
 
-  const railLink = (href: string, label: string, Icon: React.ElementType, active: boolean) => (
-    <Link href={href} className={`flex items-center gap-2.5 px-3 py-2 rounded-[10px] text-[14.5px] font-semibold mb-0.5 transition-colors ${
-      active ? 'bg-[#f3ecff] text-[#7C3AED]' : 'text-[#5c5279] hover:bg-[#f7f4fd]'
-    }`}>
-      <Icon className="w-4 h-4 shrink-0" /> {label}
-    </Link>
+  /**
+   * One collapsible group of the left panel.
+   *
+   * ⚠️ IT IS HANDED THE LIST, IT DOES NOT KNOW ONE. Both groups render through this, from
+   * `OPERATE` and `NERVOUS_SYSTEM` — so the panel has no second copy of the destinations and
+   * cannot fall behind the arrays the product actually navigates by.
+   */
+  const group = (title: string, items: { href: string; label: string; icon: string }[], open: boolean, toggle: () => void) => (
+    <div>
+      <button onClick={toggle} aria-expanded={open}
+        className="w-full flex items-center gap-1.5 px-2.5 py-1.5 text-[10.5px] font-extrabold uppercase tracking-[0.06em] text-[#b3a9cc] hover:text-[#7C3AED] transition-colors">
+        <ChevronDown className={`w-3 h-3 shrink-0 transition-transform ${open ? '' : '-rotate-90'}`} />
+        <span className="truncate">{title}</span>
+        <span className="ml-auto text-[10px] font-bold text-[#cfc4e8]">{items.length}</span>
+      </button>
+      {open && items.map(item => {
+        // ⚠️ EXACT MATCH FOR `/vida`, PREFIX FOR THE REST. `/vida` is a prefix of every other
+        // operator route, so a `startsWith` here would mark Clients current on all 25.
+        const active = item.href === '/vida' ? pathname === '/vida' : pathname.startsWith(item.href)
+        return (
+          <Link key={item.href} href={item.href}
+            className={`flex items-center gap-2 px-2.5 py-[7px] rounded-lg text-[13.5px] font-semibold transition-colors ${
+              active ? 'bg-[#f3ecff] text-[#7C3AED]' : 'text-[#4c4368] hover:bg-[#f7f4fd]'}`}>
+            <span className="w-4 shrink-0 text-center">{item.icon}</span>
+            <span className="truncate">{item.label}</span>
+          </Link>
+        )
+      })}
+    </div>
   )
 
   return (
@@ -193,49 +216,70 @@ export default function VidaLayout({ children }: { children: React.ReactNode }) 
             {!status ? 'Cap …' : status.daily_cap == null ? '⚠ No send cap set' : `Cap ${status.daily_cap}/day`}
           </span>
 
-          {/* Account dropdown = the nervous system */}
-          <div className="relative" ref={menuRef}>
-            <button onClick={() => setMenuOpen(o => !o)}
-              className="flex items-center gap-2 rounded-full border border-[#e4dcf7] bg-[#f6f2fd] py-1 pl-1 pr-3 hover:bg-[#f0ebfa] transition-colors">
-              <span className="w-7 h-7 rounded-full bg-[#151033] text-white flex items-center justify-center text-[12px] font-bold">{email ? initials(email) : 'OP'}</span>
-              <span className="text-[14px] font-semibold text-[#1f1235]">{email ? displayName(email) : 'Operator'}</span>
-              <ChevronDown className="w-3.5 h-3.5 text-[#9b8ec4]" />
-            </button>
-            {menuOpen && (
-              <div className="absolute right-0 top-[42px] w-[280px] bg-white border border-[#ece5fb] rounded-2xl shadow-[0_12px_40px_rgba(124,58,237,0.15)] p-2 z-50">
-                <p className="text-[10.5px] font-extrabold uppercase tracking-[0.06em] text-[#b3a9cc] px-2.5 pt-1.5 pb-1">Operate</p>
-                <div className="grid grid-cols-2 gap-0.5">
-                  {OPERATE.map(item => (
-                    <Link key={item.href} href={item.href} onClick={() => setMenuOpen(false)}
-                      className="flex items-center gap-2 px-2.5 py-2 rounded-lg text-[13.5px] text-[#4c4368] hover:bg-[#f7f4fd] transition-colors">
-                      <span>{item.icon}</span> {item.label}
-                    </Link>
-                  ))}
-                </div>
-                <div className="h-px bg-[#f0ebfa] my-1.5" />
-                <p className="text-[10.5px] font-extrabold uppercase tracking-[0.06em] text-[#b3a9cc] px-2.5 pt-1.5 pb-1">Run the business</p>
-                <div className="grid grid-cols-2 gap-0.5">
-                  {NERVOUS_SYSTEM.map(item => (
-                    <Link key={item.href} href={item.href} onClick={() => setMenuOpen(false)}
-                      className="flex items-center gap-2 px-2.5 py-2 rounded-lg text-[13.5px] text-[#4c4368] hover:bg-[#f7f4fd] transition-colors">
-                      <span>{item.icon}</span> {item.label}
-                    </Link>
-                  ))}
-                </div>
-                <div className="h-px bg-[#f0ebfa] my-1.5" />
-                <button onClick={signOut} className="flex items-center gap-2 w-full px-2.5 py-2 rounded-lg text-[13.5px] text-red-500 hover:bg-red-50 transition-colors">
-                  <LogOut className="w-3.5 h-3.5" /> Sign out
-                </button>
-              </div>
-            )}
-          </div>
+          {/* ── ⚑ 4 Sep — THE OPERATOR CHIP KEEPS ITS PLACE; ITS MENU DOES NOT ──────────
+              🛑 THE NAVIGATION PANEL THAT HUNG HERE IS GONE. Twenty-five destinations lived
+              in a 280px dropdown, two columns wide, behind a chip that looks like an account
+              menu — so the founder went looking for Documents in his own product and could
+              not find it. Every one of those twenty-five is now a permanent row in the LEFT
+              PANEL below, under the same two group headings this menu used.
+
+              ⚠️ THE CHIP ITSELF IS PRESERVED, EXACTLY AS IT WAS: the avatar initials and the
+              operator's name, in the same corner, at the same size. It says who is signed in,
+              which is the one thing it was truthfully doing.
+
+              ⚠️ AND NO NEW ACCOUNT MENU IS INVENTED TO REPLACE THE OLD ONE. Sign out moved to
+              the left panel's footer — the only control the dropdown held that was not a
+              destination — and nothing else was added. */}
+          <span className="flex items-center gap-2 rounded-full border border-[#e4dcf7] bg-[#f6f2fd] py-1 pl-1 pr-3" title={email || 'Operator'}>
+            <span className="w-7 h-7 rounded-full bg-[#151033] text-white flex items-center justify-center text-[12px] font-bold">{email ? initials(email) : 'OP'}</span>
+            <span className="text-[14px] font-semibold text-[#1f1235]">{email ? displayName(email) : 'Operator'}</span>
+          </span>
         </div>
       </header>
 
-      {/* ── BODY: rail + working area ───────────────────────────────────────── */}
-      <div className="flex-1 flex overflow-hidden">
+      {/* ── BODY: the operator nav | the working area ─────────────────────────
+          ── ⚑ 4 Sep — THE CANONICAL LEFT PANEL (founder-approved) ──────────────────────────
+          🛑 IT DID NOT EXIST. This row held a comment about a rail and one `<main>`; the whole
+          operator navigation was the top-right dropdown. Twenty-five destinations, two clicks
+          deep, in a menu shaped like an account menu.
 
-        <main className="flex-1 overflow-hidden">{children}</main>
+          ⚠️ ALL 25, AND THE SAME 25. The panel renders `OPERATE` (8) and `NERVOUS_SYSTEM`
+          (17) — the very arrays the dropdown rendered, in their order, with their labels and
+          their icons. Not one entry is retyped here, so a destination cannot be dropped in
+          the move and the two lists cannot disagree.
+
+          ⚠️ 216px, AND NO ICON RAIL. The approved width, implemented as approved. A 56px
+          icon-only breakpoint was NOT approved and is not invented here.
+
+          ⚠️ COLLAPSIBLE, NOT COLLAPSED. Each group toggles independently and both start open,
+          so nothing is hidden from an operator who has never touched the control. */}
+      <div className="flex-1 flex overflow-hidden">
+        <nav className="w-[216px] shrink-0 border-r border-[#eee7f7] bg-[#fdfcff] flex flex-col overflow-hidden">
+          <div className="flex-1 overflow-y-auto px-2 py-3">
+            {group('Operate', OPERATE, openOperate, () => setOpenOperate(o => !o))}
+            <div className="h-px bg-[#f0ebfa] my-2 mx-2" />
+            {group('Run the business', NERVOUS_SYSTEM, openBusiness, () => setOpenBusiness(o => !o))}
+          </div>
+          {/* THE ONE NON-DESTINATION THE OLD DROPDOWN HELD. */}
+          <div className="shrink-0 border-t border-[#eee7f7] px-2 py-2">
+            <button onClick={signOut} className="flex items-center gap-2 w-full px-2.5 py-2 rounded-lg text-[13.5px] font-semibold text-red-500 hover:bg-red-50 transition-colors">
+              <LogOut className="w-3.5 h-3.5" /> Sign out
+            </button>
+          </div>
+        </nav>
+        {/* ── ⚑ 4 Sep — THE ONE VIDA CONVERSATION IS THE SHELL'S ────────────────────────
+            It was declared inside `app/vida/page.tsx`, so every operator destination the
+            founder opened destroyed the transcript and the selected client. The provider is
+            mounted HERE, once, and never unmounts while Vida is open — so the conversation,
+            the client it is scoped to and anything half-typed all survive navigation.
+
+            ⚠️ WHERE IT PAINTS IS A ROUTE'S DECISION, WHO OWNS IT IS NOT. The console hands
+            back the column between the client list and the workspace; a full-width operator
+            table hands back nothing, so it keeps its width. Either way there is exactly one
+            instance, one transcript and one composer. */}
+        <VidaConversationProvider>
+          <main className="flex-1 min-w-0 overflow-hidden">{children}</main>
+        </VidaConversationProvider>
       </div>
     </div>
   )

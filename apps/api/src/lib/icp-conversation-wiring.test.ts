@@ -493,6 +493,9 @@ describe('⑤ both conversations are reachable, and the form stays the fallback'
     }).join('\n')
   }
   const vida  = strip(readFileSync(join(__dirname, '../../../admin/src/app/vida/page.tsx'), 'utf8'))
+  // ⚑ 4 Sep — the ONE shell-owned Vida conversation. The command router and the handoff stash
+  // moved here out of the console page; the console keeps the ICP surface they hand off TO.
+  const vidaChat = strip(readFileSync(join(__dirname, '../../../admin/src/components/vida/VidaConversation.tsx'), 'utf8'))
   const milla = strip(readFileSync(join(__dirname, '../../../portal/src/app/(milla)/milla/icp/page.tsx'), 'utf8'))
 
   it('🛑 A — BUILD A NEW ICP BY TALKING IS ON SCREEN', () => {
@@ -533,8 +536,12 @@ describe('⑤ both conversations are reachable, and the form stays the fallback'
   })
 
   it('🛑 H — THE TYPED TEXT IS CARRIED AND FIRED ONCE', () => {
-    expect(vida).toContain('json.handoff_text')
-    expect(vida).toContain('vida:icp-handoff:')
+    // ⚑ 4 Sep — RETARGETED, NOT RELAXED. The router that CARRIES the sentence is now the ONE
+    // conversation; the console still holds the effect that FIRES it once. Both halves are
+    // asserted, so the carry cannot be lost and the replay guard cannot be dropped.
+    expect(vidaChat).toContain('json.handoff_text')
+    expect(vidaChat).toContain('vida:icp-handoff:')
+    expect(vidaChat, 'the carried sentence must reach the console').toContain('handlers.current.onHandoff?.(String(json.handoff_text))')
     expect(vida, 'cleared before the send, so it cannot replay').toContain('setIcpHandoff(null)')
     expect(vida).toContain('void sendIcpChat(text, true)')
   })
@@ -577,10 +584,19 @@ describe('⑤ both conversations are reachable, and the form stays the fallback'
   })
 
   it('🛑 L — INSIDE EXPLICIT ICP MODE, TYPING GOES STRAIGHT TO THE ICP CONVERSATION', () => {
-    const fn = vida.slice(vida.indexOf('async function runCommand'), vida.indexOf('const srcCount = parseSourceIntent'))
-    expect(fn).toContain("tab === 'ICP' && icpMode === 'chat'")
-    expect(fn).toContain('void sendIcpChat(t)')
+    // ⚑ 4 Sep — RETARGETED, NOT RELAXED, AND SPLIT ACROSS BOTH HALVES OF THE ONE CONVERSATION.
+    // The rule is unchanged: explicit ICP mode routes the typed text straight to the ICP chat
+    // and NEVER through the generic intent detector. What changed is that the console answers
+    // "am I in that mode" (`intercept`) and the shell's router obeys it — so this asserts the
+    // console's condition AND that the router returns before `parseSourceIntent` runs.
+    const surface = vida.slice(vida.indexOf('intercept: (t: string) =>'), vida.indexOf('onHandoff:'))
+    expect(surface).toContain("tab !== 'ICP' || icpMode !== 'chat'")
+    expect(surface).toContain('void sendIcpChat(t)')
+    expect(surface, 'the surface must tell the router it consumed the text').toContain('return true')
+
+    const fn = vidaChat.slice(vidaChat.indexOf('async function runCommand'), vidaChat.indexOf('const srcCount = parseSourceIntent'))
+    expect(fn).toContain('handlers.current.intercept?.(t)')
     // It must RETURN — falling through would still hit the regex router afterwards.
-    expect(fn).toMatch(/icpMode === 'chat'\)\s*\{[\s\S]{0,120}return/)
+    expect(fn).toMatch(/intercept\?\.\(t\)\)\s*\{[\s\S]{0,300}return/)
   })
 })

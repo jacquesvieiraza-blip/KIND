@@ -9,7 +9,9 @@ import ProductTour from '@/components/ProductTour'
 // screen. They are the $299-pack and $4-per-lead economics, and the live customer path has no
 // legacy customers left to serve them to. `shortfallMessage` stays imported only where the
 // wallet top-up still belongs (it does not appear on this home any more).
-import { MILLA_FAILURE_COPY, STAGE_QUICK_ACTION, type MillaStage } from '@kind/shared'
+import { MILLA_FAILURE_COPY } from '@kind/shared'
+// ⚑ 4 Sep — the ONE conversation's controls, and the ONE list of outreach-capable stages.
+import { useMillaConversation, OUTREACH_STAGES } from '@/components/milla/MillaConversation'
 import ProgrammeWorkspace, { nextActionFor, type CustomerProgramme } from '@/components/milla/ProgrammeWorkspace'
 // ⚑ 3 Sep (PR B) — THE CUSTOMER'S REVIEW AND THEIR ONE APPROVAL (R39, 15 Aug: "the client
 // approves in Milla"). ADDITIVE: it renders BELOW the existing workspace and only at the
@@ -96,48 +98,14 @@ const REFINE_FIELDS = [
   ['geographies',      'Geography'],
 ] as const
 type RefineField = (typeof REFINE_FIELDS)[number][0]
-type Msg = { id: string; role: 'user' | 'assistant'; content: string }
 
 async function token(): Promise<string | undefined> {
   try { const { data } = await createClient().auth.getSession(); return data.session?.access_token } catch { return undefined }
 }
-// Milla answers; she does not act. "Pause campaign" and "Find more like these" used to read
-// as buttons that did those things — they don't, and the message went into a table nobody
-// read. It now pages the operator and appears in Vida → Asks, so these are honest REQUESTS
-// rather than controls: phrased as asking us, because that is what actually happens.
-// ── ⚑ 30 Aug (BUILD-004A-2) — THE CHIPS ARE STAGE-AWARE ────────────────────────────────
-//
-// 🛑 THE LIVE ACCOUNT IS AT RECOMMENDATION AND WAS BEING OFFERED PROOF CHIPS. "Which of
-// these look strongest?" and "Please find more like these" are calibration questions: they
-// make sense while a client is reacting to a proof set and make none once we have proposed a
-// programme. The row was a flat constant with no notion of stage at all.
-//
-// ⚠️ NOT ONE CHIP IS NEW WORDING. The stage-specific chip is `STAGE_QUICK_ACTION[stage]` —
-// the founder's verbatim per-stage conversation accelerator from @kind/shared, already the
-// approved text for exactly this job and already rendered by the Programme workspace. The
-// other three are the existing approved chips; what changed is WHEN each is offered.
-//
-// ⚠️ "CONTEXTUALLY VALID" IS THE TEST THE FOUNDER SET for the last two. Offering "Please
-// pause my programme" to someone at Proof invites them to pause a programme that does not
-// exist; offering "How is my ROI looking?" before anything has been sent asks Milla for a
-// return on nothing. Both are the same defect as the proof chips, in the other direction.
-const PROOF_CHIPS = [
-  'Which of these look strongest?',
-  'Please find more like these',
-]
-/** Only where a programme exists and is running — not before it starts, not once it ends. */
-const PAUSE_STAGES: MillaStage[] = ['Sourcing', 'Approval', 'Live', 'Review']
-/** Only once outreach has had the chance to produce something to measure. */
-const ROI_STAGES:   MillaStage[] = ['Live', 'Review', 'Completion']
-const CHIPS = [
-  ...PROOF_CHIPS,
-  // ⛓️ 30 Aug (BUILD-004A-1 live-walk) — "campaign" → "programme". The customer product is
-  // the PROGRAMME; "campaign" is the internal delivery object (`figsy_campaigns`) and is not
-  // the customer's word for what they bought. Terminology only — this chip still just sends
-  // a message to Milla, and the request it makes is unchanged.
-  'Please pause my programme',
-  'How is my ROI looking?',
-]
+// ⛓️ 4 Sep — `PROOF_CHIPS`, `PAUSE_STAGES`, `ROI_STAGES` and `CHIPS` MOVED WITH THE CHIP
+// ROW THEY BUILT, to `components/milla/MillaConversation.tsx`. Their stage rules, their
+// wording and the reasons for both went across unchanged; leaving copies here would let one
+// screen offer a chip the conversation's own rules had already ruled out.
 
 // ── FINDING — THE FIRST PROOF RUN IS IN FLIGHT (founder-ruled 24 Aug) ────────────────────
 //
@@ -221,16 +189,9 @@ if (FINDING_POLL_MS * FINDING_MAX_CHECKS !== PROOF_WAIT_MS) {
   throw new Error('proof wait bound drifted: the desk poll budget and PROOF_WAIT_MS must match')
 }
 
-/**
- * Milla's opening line. FOUNDER-APPROVED 30 Aug, verbatim.
- *
- * ⚠️ NOT A TEMPLATE, AND NOT BRANCHED. Every earlier version of this greeting was assembled
- * from the client's lead count, pack balance and funding state — which is how "a flat $4 per
- * lead, final" ended up being the first thing a customer read. One approved sentence, no
- * interpolation, nothing for a future edit to slip a price into.
- */
-const MILLA_GREETING =
-  'Hi, I’m Milla. Tell me what you’re trying to achieve, and I’ll help shape the right programme from there.'
+// ⛓️ 4 Sep — THE APPROVED GREETING MOVED TO THE ONE CONVERSATION, with the rule that keeps
+// it honest: one founder-approved sentence, not a template, nothing for a future edit to slip
+// a price into. It is seeded where the transcript lives, so a customer sees it once.
 
 export default function MillaHomePage() {
   const router = useRouter()
@@ -306,11 +267,11 @@ export default function MillaHomePage() {
   const [finding, setFinding] = useState(false)
   const [findingTimedOut, setFindingTimedOut] = useState(false)
 
-  const [sessionId, setSessionId] = useState<string | null>(null)
-  const [messages, setMessages] = useState<Msg[]>([])
-  const [input, setInput] = useState('')
-  const [sending, setSending] = useState(false)
-  const chatBodyRef = useRef<HTMLDivElement>(null)
+  // ⛓️ 4 Sep — `sessionId` / `messages` / `input` / `sending` / `chatBodyRef` ARE GONE FROM
+  // THIS ROUTE. They were the conversation's state, and holding it here is what destroyed the
+  // transcript on every navigation. The ONE conversation owns them now
+  // (`components/milla/MillaConversation.tsx`), mounted by the shell.
+  const conversation = useMillaConversation()
 
   const load = useCallback(async () => {
     try {
@@ -356,19 +317,11 @@ export default function MillaHomePage() {
       if (l) setLeads(l.data)
       setSummary(s.data)
       setServerState('ok')
-      // ⚑ 30 Aug (BUILD-004A-1) — THE APPROVED GREETING, AND ONLY IT.
-      //
-      // ⛓️ WHAT THIS REPLACES, AND WHY IT HAD TO GO WHOLESALE. The old opener branched four
-      // ways and every branch taught the legacy model: "Approve the ones worth pursuing",
-      // "**nothing is charged until you approve — then a flat $4 per lead, final**",
-      // "**N of your 100 included leads** are still yours". A customer's FIRST SENTENCE from
-      // Milla was the $4-per-lead pack — the exact truth the programme model removes.
-      //
-      // 🛑 ONE SENTENCE, FOUNDER-APPROVED, WORD FOR WORD. No branch on lead counts, no branch
-      // on funding, no price clause. The outcome conversation is what opens the product now,
-      // and the greeting is the founder's own words rather than four of mine.
-      setMessages(m => [{ id: 'greet', role: 'assistant', content: MILLA_GREETING },
-        ...m.filter(x => x.id !== 'greet')])
+      // ⛓️ 4 Sep — THE GREETING IS SEEDED BY THE ONE CONVERSATION, NOT BY THIS LOADER.
+      // It was written here because the transcript lived here; the approved sentence and the
+      // rule that it is never assembled from anything both moved WITH the conversation, to
+      // `components/milla/MillaConversation.tsx`. Seeding a greeting from a route's data load
+      // is what would put a second opener on the screen.
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load your dashboard')
       // Same rule as the rejected-leg case above: only a desk that has NEVER had server
@@ -382,27 +335,10 @@ export default function MillaHomePage() {
 
   useEffect(() => { setFinding(isFinding()) }, [])
 
-  // M2 — the thread persists, so anything WE asked them (Vida's "Ask them for these" writes
-  // straight into this thread) is waiting here when they next open Milla, and their answer
-  // lands in the same thread where we read it. Without this the chat started blank every
-  // visit and an ask could never be seen, let alone answered.
-  useEffect(() => {
-    (async () => {
-      try {
-        const tok = await token()
-        const list = await api.get<{ data: { id: string }[] }>('/milla/sessions', tok)
-        const sid = list.data?.[0]?.id
-        if (!sid) return
-        setSessionId(sid)
-        const hist = await api.get<{ data: { id: string; role: 'user' | 'assistant'; content: string }[] }>(
-          `/milla/sessions/${sid}/messages`, tok)
-        const rows = (hist.data ?? []).slice(-20)
-        if (rows.length > 0) {
-          setMessages(m => [...m, ...rows.map(r => ({ id: r.id, role: r.role, content: r.content }))])
-        }
-      } catch { /* no thread yet — the greeting stands on its own */ }
-    })()
-  }, [])
+  // ⛓️ 4 Sep — THE THREAD RESTORE (M2) MOVED WITH THE THREAD. It read `/milla/sessions` and
+  // `/milla/sessions/:id/messages` to bring back what Vida had asked this client; running it
+  // here meant it only ran on ONE of the nine screens, and it re-ran from scratch every time
+  // the customer came back to this route. The ONE conversation restores itself, once.
   // #511f — best-effort Nexus summary (never blocks the dashboard).
   useEffect(() => {
     (async () => {
@@ -758,8 +694,15 @@ export default function MillaHomePage() {
     }
   }
 
-  // Scroll the CHAT container only — never the page (that would hide the KPI row).
-  useEffect(() => { const el = chatBodyRef.current; if (el) el.scrollTop = el.scrollHeight }, [messages])
+  // ⛓️ 4 Sep — the chat scroll effect moved with the conversation it scrolled.
+
+  // ⚑ 4 Sep — THIS SCREEN HAS ALREADY FETCHED THE CALIBRATION SET, so it tells the ONE
+  // conversation what is on the desk rather than making it fetch the same list again. The
+  // chip row and the cards beside it are then built from one fact, which is the rule the
+  // server's own `calibration_set_on_desk` was added for on 3 Sep.
+  //
+  // ⚠️ `null` UNTIL THE READ LANDS — "we have not looked", never "there is none".
+  useEffect(() => { conversation.publishDeskSet(leads === null ? null : leads.length) }, [leads, conversation])
 
   // ⛓️ 30 Aug (BUILD-004A-1, Option B) — THE PICK-N BATCH APPROVE IS GONE FROM THE HOME.
   // `approveSelected` posted `/leads/approve-batch`, which reveals contacts and CHARGES. The
@@ -878,22 +821,9 @@ export default function MillaHomePage() {
     catch (e) { setError(e instanceof Error ? e.message : 'Could not pass — please try again') }
     finally { setActing(null) }
   }
-  async function send(text: string) {
-    const msg = text.trim(); if (!msg || sending) return
-    setInput(''); setSending(true); setMessages(m => [...m, { id: `u-${Date.now()}`, role: 'user', content: msg }])
-    try {
-      const tok = await token(); let sid = sessionId
-      if (!sid) {
-        const list = await api.get<{ data: { id: string }[] }>('/milla/sessions', tok).catch(() => null)
-        sid = list?.data?.[0]?.id ?? null
-        if (!sid) { const c = await api.post<{ sessionId: string }>('/milla/sessions', {}, tok); sid = c.sessionId }
-        setSessionId(sid)
-      }
-      const res = await api.post<{ reply: string }>(`/milla/sessions/${sid}/chat`, { message: msg }, tok)
-      setMessages(m => [...m, { id: `a-${Date.now()}`, role: 'assistant', content: res.reply }])
-    } catch { setMessages(m => [...m, { id: `e-${Date.now()}`, role: 'assistant', content: 'I hit a snag reaching the engine — please try again in a moment.' }]) }
-    finally { setSending(false) }
-  }
+  // ⛓️ 4 Sep — `send()` MOVED TO THE ONE CONVERSATION. It was self-contained (it touched no
+  // lead, no programme and no summary), which is precisely why the conversation could be
+  // lifted whole rather than reimplemented.
 
   // ⛓️ 30 Aug (BUILD-004A-1, Option B) — `freeApproval`, `picked` and `togglePick` are gone.
   // They existed to say whether the NEXT $4 was covered by the pack and to hold a multi-select
@@ -1168,72 +1098,17 @@ export default function MillaHomePage() {
   // reads `has_funded`, which is TRUE for exactly that client, so the guard above falls
   // through to the campaign status.
   //
-  // ⚠️ AND `paused` THERE IS NOT A PROGRAMME PAUSE. Programme pause is `programmes.paused_at`
-  // — deliberately NOT a stage, because pause is orthogonal to the journey
-  // (programme-stage.ts:76) — and it is a different state again from a REVIEW hold. Reading a
-  // campaign row's status as "your programme is paused" collapses three distinct facts into
-  // one sentence, and tells a customer we stopped something we never started.
+  // ⛓️ 4 Sep — `chips` AND `sendState` MOVED WITH THE CONVERSATION THEY DRESSED. Both existed
+  // only to fill the chat panel's chip row and its status pill, and both are now derived in
+  // `components/milla/MillaConversation.tsx` from the same `/my/programme` and
+  // `/leads/milla-summary` reads, under the same stage rules, with the same founder-locked
+  // wording. This screen tells the conversation what is on its desk (see `publishDeskSet`
+  // above) rather than building a second chip row for it.
   //
-  // THE FIX IS THE GATE, NOT THE WORDS. Before outreach can have run, this widget states the
-  // function's own existing default. Every label below is unchanged; what changed is which
-  // stages are allowed to reach the campaign-derived ones.
-  const OUTREACH_STAGES: MillaStage[] = ['Live', 'Review', 'Completion']
-  // ⚠️ AN UNKNOWN STAGE FALLS BACK TO THE FLAT LIST, deliberately. While `/my/programme` is
-  // loading — or has failed — the row must not silently become a different set of questions,
-  // and a chip that merely does not apply is a far smaller harm than a chip row that flickers.
-  // ── ⛓️ 3 Sep — A CHIP THAT POINTS AT "THESE" NEEDS THERE TO BE SOME ────────────────────
-  //
-  // 🛑 THE CLEAN-BASELINE WALK FOUND THE OTHER HALF OF THE 30-AUG FIX. That pass stopped Proof
-  // chips reaching a client at RECOMMENDATION; it never asked whether a client AT Proof
-  // actually had a set. House does not, and was offered all three: **"Show me stronger
-  // examples"**, **"Which of these look strongest?"**, **"Please find more like these"** — every
-  // one of them naming examples that were not on the screen.
-  //
-  // ⚠️ "CONTEXTUALLY VALID" IS THE SAME TEST, APPLIED ONE LEVEL DEEPER. The 30-Aug note asks
-  // whether a chip makes sense at this STAGE; the stage was right and the chips were still
-  // false, because the fact that matters is what is ON THE DESK, not where the programme is.
-  //
-  // ⚠️ NOT ONE CHIP'S WORDING CHANGES, and none is replaced with something invented. When
-  // there is nothing to react to, the honest number of calibration chips is zero — the row
-  // simply does not render, and it returns the moment a set arrives. `STAGE_QUICK_ACTION.Proof`
-  // is *"Show me stronger examples"*, so it belongs to the same set and goes with them.
-  const proofSetOnDesk = (summary?.calibration_set_on_desk ?? false) || (leads?.length ?? 0) > 0
-  const chips = !prog ? CHIPS : [
-    ...(prog.stage === 'Proof' && !proofSetOnDesk ? [] : [STAGE_QUICK_ACTION[prog.stage]]),
-    ...(prog.stage === 'Proof' && proofSetOnDesk ? PROOF_CHIPS : []),
-    ...(PAUSE_STAGES.includes(prog.stage) ? ['Please pause my programme'] : []),
-    ...(ROI_STAGES.includes(prog.stage) ? ['How is my ROI looking?'] : []),
-  ]
-  const sendState = (() => {
-    // Founder-locked wording, 3 Sep. CUSTOMER-FACING ONLY — Vida/operator terminology is
-    // untouched, and this constant is not shared with it.
-    const idle = { label: 'Outreach hasn’t started', tone: 'text-[#5c5279]', dot: 'bg-[#b3a9cc]' }
-    // ⛓️ CORRECTED 3 Sep — "ONLY WHEN THE STAGE IS KNOWN" DID THE OPPOSITE OF WHAT IT SAID.
-    // The guard was `prog && !OUTREACH_STAGES...`, so an UNKNOWN programme — still loading, or
-    // the read failed — skipped it entirely and fell through to the campaign-derived labels.
-    // The one moment we know least is the one moment it asserted most: a legacy client with a
-    // stale `figsy_campaigns` row would flash "Programme live" while `/my/programme` was in
-    // flight. Unknown now means idle, which is the only honest thing this widget can say.
-    if (!prog || !OUTREACH_STAGES.includes(prog.stage)) return idle
-    // 🛑 AND NO PROGRAMME MEANS NO PROGRAMME STATUS, whatever campaign rows exist. `stage`
-    // cannot say this — DRAFT and none are both 'Proof' — so it is asked directly.
-    if (prog.hasProgramme === false) return idle
-    if (needsGoLive) return { label: 'Not started', tone: 'text-[#b45309]', dot: 'bg-amber-500' }
-    const st = summary?.campaign_status
-    // ⛓️ 30 Aug (BUILD-004A-1 live-walk, FOUNDER DECISION 3) — "Campaign" → "Programme" in
-    // the two labels a CUSTOMER reads. Terminology only: the state still comes from
-    // `figsy_campaigns.status`, the internal delivery object, whose name is untouched
-    // everywhere it is not customer-facing. The customer bought a programme; "campaign" is
-    // our word for how we run it.
-    if (st === 'active') return { label: 'Programme live', tone: 'text-[#059669]', dot: 'bg-emerald-500' }
-    if (st === 'paused' || st === 'paused_low_performance') return { label: 'Paused — we\u2019ll tell you why', tone: 'text-[#b45309]', dot: 'bg-amber-500' }
-    if (st === 'completed' || st === 'archived') return { label: 'Programme finished', tone: 'text-[#5c5279]', dot: 'bg-[#b3a9cc]' }
-    if (st === 'draft') return { label: 'Being set up', tone: 'text-[#5c5279]', dot: 'bg-[#b3a9cc]' }
-    return idle
-  })()
-
-  const rich = (t: string) => t.split(/(\*\*[^*]+\*\*)/g).map((p, i) => p.startsWith('**') && p.endsWith('**')
-    ? <b key={i} className="text-[#7C3AED]">{p.slice(2, -2)}</b> : <span key={i}>{p}</span>)
+  // ⚠️ `OUTREACH_STAGES` IS IMPORTED, NOT REDECLARED. The learning card below is gated on the
+  // same list the send-state pill uses; two copies of that rule in two files is exactly how
+  // one screen ends up claiming outreach has run while the other says it has not.
+  // ⛓️ 4 Sep — `rich()` bolded Milla's **emphasis** in her bubbles. It moved with them.
 
   const KPI = ({ k, v, s, tone, hero, tour }: { k: string; v: string; s: string; tone?: string; hero?: boolean; tour?: string }) => (
     <div data-tour={tour} className={`rounded-2xl px-4 py-3.5 border ${hero ? 'text-white border-transparent bg-gradient-to-br from-[#7C3AED] to-[#6d28d9]' : 'bg-white border-[#eee7f7]'}`}>
@@ -1286,47 +1161,18 @@ export default function MillaHomePage() {
         <KPI k="Next" v={prog ? nextActionFor(prog) : '…'} s="what Milla needs" />
       </div>
 
-      {/* Milla is the SPINE: she fills the console, leads canvas beside her. */}
-      <div className="flex-1 flex gap-4 mt-4 min-h-0">
-        {/* chat — FIXED width. A conversation column past ~600px is 170+ characters a line,
-            which reads badly however full it is. */}
-        <section data-tour="chat" className="w-[600px] shrink-0 bg-white border border-[#eee7f7] rounded-2xl flex flex-col min-h-0">
-          <div className="flex items-center gap-2.5 px-4 py-3 border-b border-[#eee7f7]">
-            <span className="w-7 h-7 rounded-lg bg-gradient-to-br from-[#7C3AED] to-[#EC4899] text-white font-extrabold text-[13px] flex items-center justify-center">M</span>
-            <div><b className="text-[15px]">Milla</b> <span className="text-[#9b8ec4] text-[12.5px]">· conversational &amp; strategic</span></div>
-            {/* Was hardcoded "● Campaign live" with no condition on it, sitting inches from
-                the KPI that correctly said "Dormant" — the product contradicting itself on
-                one screen. Now it reads the real campaign state. */}
-            <span className={`ml-auto text-[12.5px] font-semibold inline-flex items-center gap-1.5 ${sendState.tone}`}>
-              <span className={`w-2 h-2 rounded-full ${sendState.dot}`} /> {sendState.label}
-            </span>
-          </div>
-          <div ref={chatBodyRef} className="flex-1 overflow-y-auto px-4 py-4">
-            <div className="max-w-2xl space-y-3">
-              {messages.map(m => (
-                <div key={m.id} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                  <div className={`max-w-[86%] rounded-2xl px-4 py-2.5 text-[14px] leading-relaxed whitespace-pre-wrap ${m.role === 'user' ? 'bg-[#1f1235] text-white' : 'bg-[#f3ecff] text-[#1f1235]'}`}>{m.role === 'assistant' ? rich(m.content) : m.content}</div>
-                </div>
-              ))}
-              {sending && <div className="flex justify-start"><div className="bg-[#f3ecff] rounded-2xl px-4 py-2.5 text-[#9b8ec4] text-[14px]">Milla is thinking…</div></div>}
-            </div>
-          </div>
-          <div className="px-4 py-3 border-t border-[#eee7f7]">
-            {/* ⛓️ 3 Sep — the row itself goes when it is empty, so an honest zero-chip state
-                reads as no row rather than as a gap in the layout. Every chip's wording,
-                styling and spacing is untouched. */}
-            {chips.length > 0 && (
-              <div className="flex flex-wrap gap-1.5 mb-2">
-                {chips.map(c => <button key={c} onClick={() => send(c)} disabled={sending} className="text-[12.5px] font-semibold text-[#7C3AED] bg-[#f3ecff] border border-[#e4d4fb] rounded-full px-3 py-1 hover:bg-[#ebe0fc] disabled:opacity-50">{c}</button>)}
-              </div>
-            )}
-            <form onSubmit={e => { e.preventDefault(); send(input) }} className="flex gap-2">
-              <input value={input} onChange={e => setInput(e.target.value)} placeholder="Ask Milla, request leads, or give feedback…" className="flex-1 text-[14px] rounded-xl border border-[#e4dcf7] px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#7C3AED]/30" />
-              <button type="submit" disabled={sending || !input.trim()} className="text-[14px] font-bold text-white rounded-xl px-5 bg-[#7C3AED] disabled:opacity-50">Send</button>
-            </form>
-          </div>
-        </section>
+      {/* ── ⚑ 4 Sep — THE CONVERSATION IS NO LONGER OWNED BY THIS ROUTE ────────────────────
+          🛑 THE CHAT PANEL STOOD HERE: its own transcript, chip row, composer and Send. Being
+          a child of this page is what made it disappear on every navigation — nine routes
+          render in the Milla shell and only this one had Milla in it.
 
+          ⚠️ IT MOVED, IT WAS NOT REBUILT. `components/milla/MillaConversation.tsx` holds the
+          same greeting, the same stage-aware chips, the same send-state pill, the same
+          composer and the same `/milla/sessions/:id/chat` transport, mounted ONCE by
+          `MillaShell` beside this workspace. Nothing on this screen may create a second one.
+
+          This page now renders only its workspace, which is what it is for. */}
+      <div className="flex-1 flex mt-4 min-h-0">
         {/* lead cards */}
         {/* LEADS — this is what the client is here to DO, so it gets the room. It FLEXES and
             the conversation is fixed; the other way round meant every extra pixel of a bigger

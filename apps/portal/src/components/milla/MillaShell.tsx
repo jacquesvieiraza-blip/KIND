@@ -10,6 +10,7 @@ import {
   LayoutGrid, Users, Star, User, CreditCard, Gauge, FileText, Gift, ChevronDown, MessageSquare,
 } from 'lucide-react'
 import { MILLA_STAGES, type MillaStage } from '@kind/shared'
+import { MillaConversationProvider } from '@/components/milla/MillaConversation'
 
 // #490/#510 — the Milla client shell (docs/mv-previews/milla2.html): slim top bar (brand +
 // account dropdown), a full client rail (Home · Meetings · Programme · Reports · RECENT
@@ -267,7 +268,21 @@ export function MillaShell({ children }: { children: React.ReactNode }) {
           </div>
           <div className="mt-auto pt-4 text-[12px] text-[#b3a9cc] px-2 leading-relaxed">Tell Milla the outcome. We’ll do the work.</div>
         </aside>
-        <main className="flex-1 overflow-hidden">{children}</main>
+        {/* ── ⚑ 4 Sep — THE CONVERSATION IS THE SHELL'S, NOT THE ROUTE'S ──────────────────
+            🛑 IT USED TO BE A CHILD OF THE HOME PAGE. Every navigation unmounted it, so the
+            transcript, the session id and whatever was half-typed in the composer were thrown
+            away and the next screen had no Milla at all. Nine routes render inside this shell
+            and only one of them had her.
+
+            ⚠️ ONE INSTANCE. Mounted here, once, beside the working area — so Home, Pipeline,
+            Meetings, Programme, Replies, My ICP, Documents, Reports and Coaching are all the
+            SAME conversation, and none of them may build a second one. A route that needs her
+            talking about its subject calls `focus(...)` on the context.
+
+            ⚠️ `/milla/welcome` IS UNAFFECTED — it returns bare, above, before this line. */}
+        <MillaConversationProvider>
+          <main className="flex-1 min-w-0 overflow-hidden">{children}</main>
+        </MillaConversationProvider>
       </div>
     </div>
   )

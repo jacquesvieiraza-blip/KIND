@@ -915,8 +915,19 @@ companyRouter.post('/credit-requests/:id/decide', async (req: AuthRequest, res) 
 })
 
 // ── POST /company/pool/topup — add credits to the company pool ───────────────
-// STAGING-ONLY test tool. In production the pool is funded exclusively by the
-// Stripe purchase webhook — this endpoint refuses to grant free credits on prod.
+// STAGING-ONLY test tool — it refuses to grant free credits on prod.
+//
+// ⚠️ 4 Sep — THE CLAIM THAT USED TO BE HERE WAS FALSE, and it was traced rather than trusted:
+// *"in production the pool is funded exclusively by the Stripe purchase webhook."* **There is
+// no such webhook branch.** `companies.credit_pool` is written in exactly four places — the
+// operator seed, the `allocate_pool_to_rep` and `return_rep_to_pool` RPCs (which only move
+// credits between the pool and a seat), and this staging tool. Nothing in `routes/stripe.ts`
+// or `lib/stripe.ts` mentions `credit_pool` at all, and `retired-topup-money-authority.test.ts`
+// asserts that it never will. **So the company pool has no production funding path** — which
+// also means the Command Centre's "Top up company budget" button cannot work: it posts a
+// `{ priceId, credits, creditType }` body to `/stripe/checkout`, a route whose schema requires
+// `amount_usd`, so it 400s before it reaches anything. Reported, not fixed here — a legacy
+// money path is not something to redesign inside a current-truth PR.
 companyRouter.post('/pool/topup', async (req: AuthRequest, res) => {
   try {
     const isStaging = process.env.IS_STAGING === 'true' || process.env.NEXT_PUBLIC_IS_STAGING === 'true'

@@ -298,13 +298,27 @@ describe('③ the rail shows the open programme\'s replies, and legacy keeps its
     expect((await railReplies(HOUSE)).sort()).toEqual(['R1', 'R2'])
   })
 
-  it('an unreadable programme state falls back to the legacy list rather than blanking the rail', async () => {
-    // ⚠️ FAIL-SOFT ON A DISPLAY RAIL, DELIBERATELY. Everywhere this repo gates money or
-    // sending, unreadable refuses. Blanking a client's replies over a transient read error is
-    // a worse lie than showing them.
+  it('🛑 AN UNREADABLE STATE SHOWS NOTHING — it does NOT fall back to the client-wide list', async () => {
+    // ⛓️ FOUNDER-REVERSED 4 Sep. This asserted the opposite — *"an unreadable programme state
+    // falls back to the legacy list rather than blanking the rail"* — with the reasoning
+    // *"blanking a client's replies over a transient read error is a worse lie than showing
+    // them."*
+    //
+    // 🛑 THAT REASONING WAS WRITTEN WHEN THE FALLBACK COULD ONLY SHOW A LEGACY CLIENT THEIR
+    // OWN REPLIES. Once a programme customer's retired book sits behind the same fallback, it
+    // means "show history as current the moment authority resolution flickers" — which is the
+    // exact class three PRs had been closing. The founder refused it in those words: *"that
+    // recreates the historical-bleed class when authority resolution fails"* and *"do not
+    // expose historical replies merely to avoid an empty screen."*
+    //
+    // ⚠️ AN EMPTY RAIL IS RECOVERABLE; A FALSE ONE IS NOT. And the `error` is carried, so the
+    // caller can still tell "no replies" from "we could not read them".
+    //
+    // ⚠️ THE ASSERTION IS INVERTED, NOT DELETED — the case it covers is unchanged and still
+    // exercised; only the correct answer moved.
     historicalLead('L1'); reply('R1', 'L1')
     state.programmesUnreadable = true
-    expect(await railReplies(HOUSE)).toEqual(['R1'])
+    expect(await railReplies(HOUSE)).toEqual([])
   })
 })
 

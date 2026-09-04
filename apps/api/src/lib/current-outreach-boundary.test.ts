@@ -427,20 +427,174 @@ describe('⑧ Teams Hub says what its numbers actually are', () => {
   // ⚠️ EXECUTABLE JSX ONLY. The correction's own note QUOTES the retired label verbatim while
   // explaining why it went — prose about a defect is not the defect, and a raw match would
   // fail on the sentence promising the fix. The comment-stripper lesson, applied at source.
-  const page = raw.split('\n')
-    .filter(l => { const t = l.trim(); return !(t.startsWith('//') || t.startsWith('*') || t.startsWith('/*') || t.startsWith('{/*') || t.startsWith('⛓️') || t.startsWith('⚠️')) })
-    .join('\n')
+  // ⚠️ EXECUTABLE JSX ONLY, AND BLOCK-AWARE. The correction's own note QUOTES both retired
+  // labels verbatim while explaining why they went — prose about a defect is not the defect.
+  // A PREFIX filter is not enough here and my first attempt proved it: a wrapped sentence
+  // continues on a line starting with an ordinary word, so `(all time)` survived the strip and
+  // failed a guard about a label that had already been corrected. Block-aware, like
+  // `milla-house-bleed.test.ts`'s `jsxCode`.
+  const page = (() => {
+    let inBlock = false
+    return raw.split('\n').map(l => {
+      const t = l.trim()
+      if (inBlock) { if (t.endsWith('*/') || t.endsWith('*/}')) inBlock = false; return '' }
+      if (t.startsWith('{/*')) { if (!t.endsWith('*/}')) inBlock = true; return '' }
+      if (t.startsWith('/*')) { if (!t.endsWith('*/')) inBlock = true; return '' }
+      if (t.startsWith('//') || t.startsWith('*')) return ''
+      const k = l.search(/(?<!:)\/\//)
+      return k >= 0 ? l.slice(0, k) : l
+    }).join('\n')
+  })()
 
   it('🛑 "LEADS TODAY" IS GONE — the value was never today', () => {
     expect(page).not.toContain('label="Leads today"')
-    expect(page).toContain('label="Leads delivered (all time)"')
+    expect(page).toContain('label="Leads delivered"')
   })
 
-  it('🛑 AND A HISTORICAL METRIC IS LABELLED HISTORICAL, not renamed into a current one', () => {
-    expect(page).toContain('label="Emails sent (all time)"')
+  it('🛑 AND NO LABEL CLAIMS A SCOPE THE NUMBER CANNOT SUPPORT', () => {
+    // ⛓️ CORRECTED SAME DAY — ~~`"Leads delivered (all time)"` / `"Emails sent (all time)"`~~.
+    // Those were true BEFORE the server boundary and false immediately after it: for a
+    // programme customer the value is now their CURRENT PROGRAMME's count, so "(all time)"
+    // re-introduced the same falsehood pointing the other way. The bare noun is truthful
+    // under BOTH models, which is why it is the smallest truthful wording.
+    expect(page).toContain('label="Emails sent"')
+    expect(page, 'no time claim the number cannot support').not.toContain('(all time)')
     // The VALUE is unchanged — the correction is the label plus the server boundary, never a
     // different number quietly substituted under the old word.
     expect(page).toContain('value={leadsToday}')
     expect(page).toContain('value={emailsSent}')
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// ⑨ UNREADABLE FAILS **CLOSED** — founder-rejected fail-open-to-history, 4 Sep
+//
+// ⛓️ THE FIRST CUT FELL THROUGH TO THE CLIENT-SCOPED READ on an unreadable scope, copying the
+// Home rail's fail-soft. The founder refused it: an authority failure is not a licence to show
+// a programme customer their retired book, and *"do not expose historical replies merely to
+// avoid an empty screen."* An empty screen is recoverable; a false one is not.
+// ═══════════════════════════════════════════════════════════════════════════════════════
+describe('⑨ a transient authority failure shows nothing, not history', () => {
+  beforeEach(() => {
+    // ⚠️ THE CLIENT EXISTS — otherwise the route 404s before the boundary is ever consulted,
+    // and the test would prove nothing about the boundary. What is missing is the
+    // `commercial_model` FIELD, which the resolver treats as unreadable rather than as NULL
+    // ("a missing field is not a NULL", R90's sibling ruling). Their full legacy book sits
+    // right there in the tables while authority cannot be resolved.
+    state.clients.push({ id: C, user_id: USER, proof_passes_done: 0, wallet_balance_usd: 0 })
+    legacyHistory()
+  })
+
+  it('the fixture really is unreadable AND really does have history — not vacuous', async () => {
+    const { currentOutreachLeads } = await import('./current-outreach')
+    expect((await currentOutreachLeads(C)).mode).toBe('unreadable')
+    expect(state.replies.length + state.leads.length).toBeGreaterThan(0)
+  })
+
+  it('🛑 REPLIES REFUSES — 503, and NOT the historical inbox', async () => {
+    const { payload, status } = await repliesPage()
+    expect(status).toBe(503)
+    expect(payload.success).toBe(false)
+    expect(JSON.stringify(payload)).not.toContain('r-old')
+  })
+
+  it('🛑 PIPELINE AND MEETINGS REFUSE TOO', async () => {
+    expect((await pipeline()).status).toBe(503)
+    expect((await meetingsPage()).status).toBe(503)
+  })
+
+  it('🛑 AND THE NUMERIC SURFACES FAIL CLOSED TO ZERO — a number is an assertion', async () => {
+    expect((await stats()).payload.data.total).toBe(0)
+    const k = (await kpis()).payload.data
+    expect(k.totalSent).toBe(0); expect(k.totalReplied).toBe(0); expect(k.activeCampaigns).toBe(0)
+  })
+
+  it('🛑 THE HOME RAIL REFUSES ON THE SAME TERMS — one table, one degradation', async () => {
+    // D1's lesson pointing the other way: the rail and the page must not disagree.
+    const { buildMillaSummaryData } = await import('./milla-summary')
+    const summary = await buildMillaSummaryData(C)
+    expect(summary.recent_replies).toEqual([])
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// ⑩ TEAMS HUB — "EMAILS SENT" READ A FIELD THE API HAS NEVER SENT
+// ═══════════════════════════════════════════════════════════════════════════════════════
+describe('⑩ Emails sent is wired to the value the endpoint actually returns', () => {
+  const page = readFileSync(join(__dirname, '../../../portal/src/app/(dashboard)/dashboard/team/page.tsx'), 'utf8')
+
+  it('🛑 THE PORTAL READS `totalSent`, NOT THE NON-EXISTENT `emails_sent`', () => {
+    expect(page).toContain('setEmailsSent(emailsRes.value?.data?.totalSent ?? 0)')
+    expect(page).not.toContain('data?.emails_sent')
+  })
+
+  it('🛑 AND THE API GENUINELY RETURNS THAT KEY — otherwise this is the same bug renamed', async () => {
+    client('programme'); legacyHistory(); programmeWork()
+    const k = (await kpis()).payload.data
+    expect(Object.keys(k)).toContain('totalSent')
+    expect(Object.keys(k), 'the key the portal used never existed').not.toContain('emails_sent')
+  })
+
+  it('🛑 ACTIVE PROGRAMME WITH SENDS → THE PROGRAMME COUNT, not 0 and not the legacy book', async () => {
+    client('programme'); legacyHistory(); programmeWork()
+    expect((await kpis()).payload.data.totalSent).toBe(1)
+  })
+
+  it('mixed history, no programme → 0', async () => {
+    client('programme'); legacyHistory()
+    expect((await kpis()).payload.data.totalSent).toBe(0)
+  })
+
+  it('legacy → the historical send count, unchanged', async () => {
+    client('legacy'); legacyHistory()
+    expect((await kpis()).payload.data.totalSent).toBe(1)
+  })
+
+  it("🛑 another client's sends are excluded", async () => {
+    client('programme'); legacyHistory(); programmeWork()
+    state.sent.push({ id: 's-other', campaign_id: 'camp-other', sent_at: '2026-09-02', opened_at: null })
+    state.campaigns.push({ id: 'camp-other', client_id: OTHER, icp_id: 'icp-o', name: 'x', status: 'active', created_at: '2026-09-01' })
+    expect((await kpis()).payload.data.totalSent).toBe(1)
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// ⑪ THE VISIBLE PROGRAMME PIPELINE IS THREE STAGES
+//
+// 🛑 THE SERVER FIX ALONE DID NOT CLOSE D2. `stages.approved` became empty for a programme
+// customer, but the PAGE hard-coded four columns — so an "Approved" heading with the retired
+// subtitle *"you said go"* still sat on their screen, permanently empty. An empty column with
+// a heading IS a stage.
+// ═══════════════════════════════════════════════════════════════════════════════════════
+describe('⑪ no fourth customer-facing programme stage', () => {
+  const page = readFileSync(join(__dirname, '../../../portal/src/app/(milla)/milla/pipeline/page.tsx'), 'utf8')
+
+  it('🛑 THE PROGRAMME BOARD RENDERS EXACTLY CONTACTED → REPLIED → BOOKED', () => {
+    expect(page).toContain('const STAGES: Stage[] = programme ? OUTREACH_STAGES : [APPROVED_STAGE, ...OUTREACH_STAGES]')
+    const from = page.indexOf('const OUTREACH_STAGES')
+    const outreach = page.slice(from, page.indexOf('\n]', from))
+    for (const k of ['contacted', 'replied', 'booked']) expect(outreach).toContain(`key: '${k}'`)
+    expect(outreach, 'approved must not be in the locked new-model board').not.toContain("key: 'approved'")
+  })
+
+  it('🛑 `sourced_not_contacted` IS A NUMBER, NEVER A COLUMN', () => {
+    expect(page, 'the field is typed as a count').toMatch(/sourced_not_contacted\?: number/)
+    expect(page, 'it must never become a stage key').not.toMatch(/key: 'sourced/)
+    // And it is not rendered at all today — no stage, no tile, no heading.
+    const rendered = page.slice(page.indexOf('return ('))
+    expect(rendered).not.toContain('sourced_not_contacted')
+  })
+
+  it('🛑 THE SERVER STILL RETURNS AN EMPTY `approved` FOR A PROGRAMME, so both halves agree', async () => {
+    client('programme'); legacyHistory(); programmeWork()
+    const d = (await pipeline()).payload.data
+    expect(d.model).toBe('programme')
+    expect(d.stages.approved).toEqual([])
+    expect(d.counts.approved).toBe(0)
+  })
+
+  it('legacy keeps all four columns and its own wording', () => {
+    expect(page).toContain("label: 'Approved'")
+    expect(page).toContain('Every lead you approved')
   })
 })

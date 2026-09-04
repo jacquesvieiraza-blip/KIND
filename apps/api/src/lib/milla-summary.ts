@@ -196,11 +196,24 @@ async function recentRepliesFor(clientId: string) {
   const { currentWorkspaceScope } = await import('./current-workspace')
   const scope = await currentWorkspaceScope(clientId)
 
-  // ⚠️ FAIL-SOFT ON UNREADABLE, and that stays deliberate: refusing would blank a client's
-  // replies over a transient error, which is a worse lie than showing them.
+  // ── 🛑 4 Sep — FAIL-SOFT BECAME FAIL-OPEN-TO-HISTORY, AND THE FOUNDER REFUSED IT ────────
+  //
+  // ⛓️ THIS RETURNED `base()` — the unbounded client-scoped rail — and said so deliberately:
+  // *"refusing would blank a client's replies over a transient error, which is a worse lie
+  // than showing them."* That was written when the fallback could only ever show a LEGACY
+  // client their own replies. It is no longer true: once a programme customer's retired book
+  // is behind the same fallback, "avoid an empty rail" means "show history as current the
+  // moment authority resolution flickers" — which is the exact class three PRs have been
+  // closing. Founder-ruled 4 Sep: **unreadable must not display historical work as current.**
+  //
+  // ⚠️ AND THE RAIL AND THE REPLIES PAGE MUST AGREE, which is D1's whole lesson pointing the
+  // other way. One table, one degradation — the page now refuses too.
+  //
+  // ⚠️ AN EMPTY RAIL IS RECOVERABLE; A FALSE ONE IS NOT. The `error` is carried so the caller
+  // can tell "no replies" from "we could not read them" rather than rendering a claim.
   if (scope.kind === 'unreadable') {
     console.error('[milla-summary] workspace scope unreadable for', clientId, scope.reason)
-    return base()
+    return { data: [] as Record<string, unknown>[], error: { message: scope.reason } }
   }
   if (scope.kind === 'legacy') return base()
   // ── 🛑 3 Sep (WITHDRAWN AND REPLACED) — FREE PROOF SENDS NOBODY AN EMAIL ─────────────────

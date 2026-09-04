@@ -13,14 +13,32 @@ type Card = { id: string; name: string; company: string | null; job_title: strin
 type Pipeline = {
   counts: { approved: number; contacted: number; replied: number; booked: number }
   stages: { approved: Card[]; contacted: Card[]; replied: Card[]; booked: Card[] }
+  /** Which commercial model the SERVER built this board for. Absent on an older API. */
+  model?: 'programme' | 'legacy'
+  /** Programme only: sourced people not yet in outreach. A NUMBER, never a stage. */
+  sourced_not_contacted?: number
 }
 
 async function token(): Promise<string | undefined> {
   try { const { data } = await createClient().auth.getSession(); return data.session?.access_token } catch { return undefined }
 }
 
-const STAGES: { key: keyof Pipeline['stages']; label: string; sub: string; tone: string; bg: string }[] = [
-  { key: 'approved',  label: 'Approved',  sub: 'you said go — we start outreach', tone: '#7C3AED', bg: '#f3ecff' },
+type Stage = { key: keyof Pipeline['stages']; label: string; sub: string; tone: string; bg: string }
+
+// ── 🛑 4 Sep — AN EMPTY "APPROVED" COLUMN IS STILL A VISIBLE FOURTH STAGE ────────────────
+//
+// ⛓️ THE SERVER FIX ALONE DID NOT CLOSE THIS. D2 stopped putting anyone in `stages.approved`
+// for a programme customer, but this board hard-coded four columns — so the customer still
+// SAW an "Approved" stage, complete with its retired-model subtitle *"you said go — we start
+// outreach"*, sitting permanently empty. Founder-locked: the visible programme pipeline is
+// CONTACTED → REPLIED → BOOKED, and an empty column with a heading is a stage.
+//
+// ⚠️ LEGACY KEEPS ALL FOUR, wording untouched — there "Approved" is a real thing the client
+// did and paid $4 for, and removing it would delete a true part of their screen.
+const APPROVED_STAGE: Stage =
+  { key: 'approved',  label: 'Approved',  sub: 'you said go — we start outreach', tone: '#7C3AED', bg: '#f3ecff' }
+/** The locked new-model board. Nothing else may join it. */
+const OUTREACH_STAGES: Stage[] = [
   { key: 'contacted', label: 'Contacted', sub: 'we have emailed them',            tone: '#0369a1', bg: '#e0f2fe' },
   { key: 'replied',   label: 'Replied',   sub: 'they answered — we handle it',    tone: '#b45309', bg: '#fef3c7' },
   { key: 'booked',    label: 'Booked',    sub: 'meeting in the diary',            tone: '#059669', bg: '#ecfdf5' },
@@ -39,14 +57,26 @@ export default function MillaPipelinePage() {
     })()
   }, [])
 
-  const total = p ? p.counts.approved + p.counts.contacted + p.counts.replied + p.counts.booked : 0
+  // ⚠️ AN UNKNOWN MODEL FALLS BACK TO THE FOUR-COLUMN LEGACY BOARD, deliberately: while the
+  // API is older or the field is missing, showing a column that does not apply is a far
+  // smaller harm than hiding one that does.
+  const programme = p?.model === 'programme'
+  const STAGES: Stage[] = programme ? OUTREACH_STAGES : [APPROVED_STAGE, ...OUTREACH_STAGES]
+  const total = p
+    ? (programme ? 0 : p.counts.approved) + p.counts.contacted + p.counts.replied + p.counts.booked
+    : 0
 
   return (
     <div className="h-full overflow-y-auto px-5 py-4">
       <div className="mb-4">
         <h1 className="text-[19px] font-extrabold text-[#1f1235]">Pipeline</h1>
         <p className="text-[12.5px] text-[#9b8ec4] mt-0.5">
-          Every lead you approved, and exactly where we&apos;ve got to with them. We run it — nothing here needs you.
+          {/* ⚠️ THE LEGACY SENTENCE IS THE LEGACY SENTENCE. Under the programme the customer
+              approved the PROGRAMME once, not each person, so "every lead you approved" is a
+              claim about a decision they never made. */}
+          {programme
+            ? <>Where we&apos;ve got to with the people in your programme. We run it — nothing here needs you.</>
+            : <>Every lead you approved, and exactly where we&apos;ve got to with them. We run it — nothing here needs you.</>}
         </p>
       </div>
 
@@ -56,7 +86,10 @@ export default function MillaPipelinePage() {
       {p && total === 0 && (
         <div className="bg-white border border-[#eee7f7] rounded-2xl px-5 py-10 text-center">
           <p className="text-[14px] font-bold text-[#1f1235]">Nothing in the pipeline yet.</p>
-          <p className="text-[12.5px] text-[#9b8ec4] mt-1">Approve a lead on <a href="/milla" className="font-bold text-[#7C3AED] hover:underline">New leads</a> and it will appear here as we work it.</p>
+          {/* Same reason: the programme customer has no approval queue to be sent to. */}
+          {programme
+            ? <p className="text-[12.5px] text-[#9b8ec4] mt-1">People appear here once we start contacting them.</p>
+            : <p className="text-[12.5px] text-[#9b8ec4] mt-1">Approve a lead on <a href="/milla" className="font-bold text-[#7C3AED] hover:underline">New leads</a> and it will appear here as we work it.</p>}
         </div>
       )}
 

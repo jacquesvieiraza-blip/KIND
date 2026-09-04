@@ -23,16 +23,23 @@ import { readFileSync } from 'fs'
 import { join } from 'path'
 
 const VIDA = readFileSync(join(__dirname, '../../../admin/src/app/vida/page.tsx'), 'utf8')
+// ⚑ 4 Sep (UI-009) — FIX 2's filter travelled with the list it filters. Same rule, same file
+// to read it in: the clients group in the operator nav.
+const VIDA_CLIENTS = readFileSync(join(__dirname, '../../../admin/src/components/vida/VidaClients.tsx'), 'utf8')
 const code = VIDA.split('\n').filter(l => !l.trim().startsWith('//') && !l.trim().startsWith('*') && !l.trim().startsWith('/*')).join('\n')
 
 describe('FIX 2 — an unresolved proof review keeps its client on the list', () => {
+  // ⚑ 4 Sep (UI-009) — the list, and therefore its filter, is now the operator nav's clients
+  // group. Same three rules, asserted on the file that runs them.
+  const clientsCode = VIDA_CLIENTS.split('\n').filter(l => !l.trim().startsWith('//') && !l.trim().startsWith('*') && !l.trim().startsWith('/*')).join('\n')
+
   it('the Only-needs-you filter admits a proof_review client', () => {
-    const at = code.indexOf('const visibleClients')
+    const at = clientsCode.indexOf('const visible ')
     expect(at, 'the client-list filter was not found').toBeGreaterThan(-1)
-    const filter = code.slice(at, at + 500)
+    const filter = clientsCode.slice(at, at + 500)
 
     expect(filter, 'the worklist rule must still be the primary one').toContain("next.actor === 'you'")
-    expect(filter, 'a proof-review client must survive the filter').toContain('proofReviewClients.has(c.id)')
+    expect(filter, 'a proof-review client must survive the filter').toContain('proofReview.has(c.id)')
     expect(filter, 'the selected client must still be kept').toContain('c.id === selected')
   })
 
@@ -40,9 +47,9 @@ describe('FIX 2 — an unresolved proof review keeps its client on the list', ()
     // The API never emits a `proof_review` alert for a resolved review, so reading the alert
     // feed IS reading the unresolved set. Bound here so a future change that starts emitting
     // resolved ones has to come back and think about this line.
-    const at = code.indexOf('const proofReviewClients')
+    const at = clientsCode.indexOf("a.kind === 'proof_review'")
     expect(at).toBeGreaterThan(-1)
-    const block = code.slice(at, at + 260)
+    const block = clientsCode.slice(at - 200, at + 260)
     expect(block).toContain("a.kind === 'proof_review'")
     expect(block).toContain('a.client_id')
   })
@@ -51,8 +58,8 @@ describe('FIX 2 — an unresolved proof review keeps its client on the list', ()
     // The failure this pairs against: "make everything visible" would satisfy the test above
     // and destroy the filter. The only added disjunct is the proof-review one, and there is
     // no unconditional escape hatch beside it.
-    const at = code.indexOf('const visibleClients')
-    const filter = code.slice(at, at + 500)
+    const at = clientsCode.indexOf('const visible ')
+    const filter = clientsCode.slice(at, at + 500)
     expect(filter).not.toContain("next.actor === 'them'")
     expect(filter).not.toMatch(/\|\|\s*true/)
     expect(filter, 'the filter must still be gated on onlyNeedsYou').toContain('onlyNeedsYou')

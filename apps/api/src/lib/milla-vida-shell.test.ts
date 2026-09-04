@@ -41,6 +41,7 @@ const MILLA_ICP   = read(join(PORTAL, 'app/(milla)/milla/icp/page.tsx'))
 const VIDA_LAYOUT = read(join(ADMIN, 'app/vida/layout.tsx'))
 const VIDA_PAGE   = read(join(ADMIN, 'app/vida/page.tsx'))
 const VIDA_CHAT   = read(join(ADMIN, 'components/vida/VidaConversation.tsx'))
+const VIDA_CLIENTS = read(join(ADMIN, 'components/vida/VidaClients.tsx'))
 
 // ════════════════════════════════════════════════════════════════════════════════════════
 describe('MILLA — ONE INSTANCE, ONE TRANSCRIPT, ONE COMPOSER', () => {
@@ -337,7 +338,7 @@ describe('VIDA — THE LEFT PANEL, AND ALL 25 DESTINATIONS', () => {
 describe('VIDA — ONE INSTANCE, ONE TRANSCRIPT, ONE COMPOSER', () => {
   it('the SHELL mounts the conversation, so the selected client survives navigation', () => {
     const code = strip(VIDA_LAYOUT)
-    expect(code).toContain("import { VidaConversationProvider } from '@/components/vida/VidaConversation'")
+    expect(code).toContain("import { VidaConversationProvider, useVidaConversation } from '@/components/vida/VidaConversation'")
     expect(code.match(/<VidaConversationProvider>/g) ?? [], 'the conversation is mounted more than once')
       .toHaveLength(1)
   })
@@ -355,7 +356,7 @@ describe('VIDA — ONE INSTANCE, ONE TRANSCRIPT, ONE COMPOSER', () => {
       expect(code, `${what} (${needle}) is still owned by the Vida console`).not.toContain(needle)
     }
     // The selected client is the shell's, because the conversation is scoped to it.
-    expect(code).toContain('const { selected, setSelected } = conversation')
+    expect(code).toContain('const { selected, selectedName, setSelected } = conversation')
   })
 
   it('🛑 THE VIDA ICP TAB HAS NO SECOND TRANSCRIPT AND NO SECOND SEND', () => {
@@ -380,11 +381,180 @@ describe('VIDA — ONE INSTANCE, ONE TRANSCRIPT, ONE COMPOSER', () => {
 
   it('🛑 AND THE CONVERSATION THAT MOVED IS THE ONE THAT WAS THERE — not a rewrite', () => {
     const code = strip(VIDA_CHAT)
-    expect(code).toContain('Command Vida in ${surface?.clientName || \'client\'} context…')
+    expect(code).toContain('Command Vida in ${selectedName || \'client\'} context…')
     expect(code).toContain("'/api/proxy/operator/command'")
     // The sourcing rules came across verbatim: a verb AND a noun, never one of them.
     expect(code).toContain("if (!/\\b(source|find|pull|get|prospect)\\b/.test(lc) || !/\\b(lead|leads|prospect|prospects)\\b/.test(lc)) return null")
     // ONE composer.
     expect(code.match(/<form onSubmit/g) ?? [], 'the conversation has more than one composer').toHaveLength(1)
+  })
+})
+
+// ════════════════════════════════════════════════════════════════════════════════════════
+// UI-009 · UI-010 · UI-011 — THE FINAL OPERATOR SHELL.
+//
+// Three measured defects, closed together:
+//   ① 380px of Clients column left the cockpit 304px at 1440, so eight of eleven tabs sat
+//      off-screen behind a scroll with no affordance — and at 1920 it was STILL clipped.
+//   ② `setSlot` was called in exactly one file, so twenty-four operator destinations had no
+//      assistant at all; and `publish` never wrote an empty handlers object back, so an
+//      unmounted console's shortcuts and blockers outlived it.
+//   ③ Pool and Exceptions were rendered AFTER the `</aside>` and the `{selected && (<>` that
+//      close the console, so they painted across Vida at page width.
+// ════════════════════════════════════════════════════════════════════════════════════════
+describe('VIDA · UI-009 — Clients is a nav group, and the workspace got its width back', () => {
+  const layout  = strip(VIDA_LAYOUT)
+  const clients = strip(VIDA_CLIENTS)
+  const page    = strip(VIDA_PAGE)
+
+  it('THREE groups, each with its own independent state', () => {
+    for (const [decl, what] of [
+      ['const [openClients, setOpenClients] = useState(true)', 'Clients'],
+      ['const [openOperate, setOpenOperate] = useState(true)', 'Operate'],
+      ['const [openBusiness, setOpenBusiness] = useState(true)', 'Run the business'],
+    ] as [string, string][]) {
+      expect(layout, `the ${what} group has no independent open state`).toContain(decl)
+    }
+    expect(layout).toContain("groupHead('Clients', openClients, () => setOpenClients(o => !o))")
+    expect(layout).toContain("{group('Operate', OPERATE, openOperate,")
+    expect(layout).toContain("{group('Run the business', NERVOUS_SYSTEM, openBusiness,")
+    // 🛑 NONE OF THEM STARTS CLOSED. A group collapsed on first paint hides destinations from
+    // an operator who has never touched the control.
+    expect(layout, 'a group starts collapsed, hiding destinations by default')
+      .not.toMatch(/setOpen(Clients|Operate|Business)\] = useState\(false\)/)
+  })
+
+  it('🛑 THE DEDICATED CLIENTS COLUMN IS GONE — and no rail replaced it', () => {
+    expect(page, 'the 380px clients column is still in the console').not.toContain('w-[380px]')
+    expect(page, 'the client list is still rendered by the console').not.toContain('visibleClients')
+    // ⚠️ AND NOT REPLACED BY THE THING THE FOUNDER REJECTED.
+    for (const rail of ['w-[64px]', 'w-[56px]', 'w-16']) {
+      expect(page + layout + clients, `a ${rail} client rail was invented`).not.toContain(rail)
+    }
+  })
+
+  it('CLIENT SWITCHING SURVIVES, with every indicator it had', () => {
+    expect(layout).toContain("import { VidaClients } from '@/components/vida/VidaClients'")
+    expect(layout).toContain('<VidaClients open={openClients} />')
+    // The row's own facts — none of them re-invented, all of them still drawn.
+    expect(clients, 'selecting a client no longer scopes the conversation').toContain('setSelected(c.id, c.company_name)')
+    expect(clients, 'the actor dot is gone').toContain("you ? 'bg-[#EC4899]' : n?.actor === 'engine' ? 'bg-emerald-400' : 'bg-[#cfc4e8]'")
+    expect(clients, 'the real next-action sentence is gone').toContain('n?.label ??')
+    expect(clients, 'the cold states are gone').toContain('cold?.cold')
+    expect(clients, 'the VAT evidence is gone').toContain('vatBadge({ vat_number: c.vat_number ?? null })')
+    expect(clients, 'the house/demo chip is gone').toContain("c.is_demo ? 'demo' : 'house'")
+    expect(clients, 'the Needs-you / All filter is gone').toContain('onlyNeedsYou')
+    // ⚠️ THE URL DEEP LINK STILL PICKS A CLIENT, and only ONE place reads it now — two would
+    // race, and only one of them carries the name.
+    expect(clients).toContain("new URLSearchParams(window.location.search).get('client')")
+    expect(page, 'the console reads ?client= as well, which races the nav').not.toContain('rows.some(r => r.id === urlClient)')
+  })
+
+  it('🛑 ALL 25 DESTINATIONS AND ALL 11 TABS SURVIVE, and the tabs WRAP', () => {
+    for (const href of ['/vida', '/vida/queue', '/vida/bookings', '/vida/suppression', '/vida/audit',
+      '/vida/reports', '/vida/nexus', '/vida/demo', '/vida/system', '/vida/sending', '/vida/engine',
+      '/vida/cockpit', '/vida/clients-admin', '/vida/money-path', '/vida/billing', '/vida/revenue',
+      '/vida/gtm', '/vida/unibox', '/vida/health', '/vida/ops', '/vida/founder', '/vida/outreach',
+      '/vida/compliance', '/vida/governed-documents', '/vida/partners']) {
+      expect(layout, `the operator destination ${href} is gone`).toContain(`href: '${href}'`)
+    }
+    expect(page).toContain("const COCKPIT_TABS = ['Inbox', 'Approvals', 'People', 'Campaign', 'ICP', 'Sequence', 'Asks', 'Bookings', 'Programme', 'Pool', 'Exceptions'] as const")
+    // 🛑 WRAPPING, NOT SCROLLING. The strip needs 894px; a scroll with no affordance is how
+    // eight tabs became undiscoverable.
+    expect(page).toContain('flex flex-wrap items-end gap-0.5 px-3 pt-2.5 border-b border-[#eee7f7]')
+    const stripAt = page.indexOf('flex flex-wrap items-end gap-0.5')
+    expect(page.slice(stripAt, stripAt + 200), 'the tab strip still hides tabs behind a scroll')
+      .not.toContain('overflow-x-auto')
+  })
+})
+
+describe('VIDA · UI-010 — one Vida on every operator destination, with nothing stale on it', () => {
+  const layout = strip(VIDA_LAYOUT)
+  const chat   = strip(VIDA_CHAT)
+  const page   = strip(VIDA_PAGE)
+
+  it('AN OUTER ROUTE GETS THE COLUMN FROM THE SHELL — not from a second assistant', () => {
+    expect(layout).toContain('function VidaOuterColumn()')
+    expect(layout).toContain('ref={c.setSlot}')
+    expect(layout).toContain('{!isConsole && <VidaOuterColumn />}')
+    expect(layout).toContain("const isConsole = pathname === '/vida'")
+    // 🛑 IT BUILDS NO CONVERSATION. No transcript, no composer, no state of its own.
+    // ⚠️ BOUNDED TO THE FUNCTION, not a character window. A window that overruns the thing it
+    // is about is the anti-pattern this codebase keeps re-learning.
+    const at = layout.indexOf('function VidaOuterColumn()')
+    const body = layout.slice(at, layout.indexOf('\nfunction ', at + 10))
+    for (const banned of ['useState', 'cmdLog', '<form', 'placeholder']) {
+      expect(body, `the outer column grew its own ${banned}`).not.toContain(banned)
+    }
+    // …and the provider is still mounted exactly once.
+    expect(layout.match(/<VidaConversationProvider[\s>]/g) ?? []).toHaveLength(1)
+  })
+
+  it('🛑 CLIENT IDENTITY IS PERSISTENT — it is not lent by a workspace', () => {
+    // Publishing the name meant clearing a stale surface also erased the client, and the
+    // composer degraded to "Command Vida in client context…" the moment the console left.
+    expect(chat, 'clientName is published again').not.toContain('clientName: string | null')
+    expect(chat).toContain('const [selectedName, setSelectedName] = useState<string | null>(null)')
+    expect(chat).toContain('placeholder={`Command Vida in ${selectedName || \'client\'} context…`}')
+    // ⚠️ `undefined` MEANS "I DID NOT SAY", so an id-only caller cannot blank a known name.
+    expect(chat).toContain('if (name !== undefined) setSelectedName(name)')
+  })
+
+  it('🛑 THE WORKSPACE TAKES ITS SURFACE BACK WHEN IT UNMOUNTS', () => {
+    expect(chat, 'there is no way to un-publish').toContain('const unpublish = useCallback(() => { handlers.current = {}; setSurface(null) }, [])')
+    expect(page, 'the console never gives its surface back').toContain('useEffect(() => () => conversation.unpublish(), [])')
+    // 🛑 AND IT CLEARS ONLY THE WORKSPACE'S CONTRIBUTION. Clearing the transcript, the
+    // composer or the selected client would be a different and much worse bug.
+    const at = chat.indexOf('const unpublish =')
+    const body = chat.slice(at, at + 200)
+    for (const persistent of ['setCmdLog', 'setCmd(', 'setSelectedId', 'setSelectedName']) {
+      expect(body, `unpublish also wipes ${persistent}`).not.toContain(persistent)
+    }
+  })
+
+  it('🛑 A CLEARED SURFACE DRAWS NO ROW OF ZEROS', () => {
+    // `{surface && …}` rendered "0 Send gate · 0 Money gate · 0 Unsent sourced · 0 To triage"
+    // for ANY published surface, so a workspace that cleared its contribution still left a row
+    // of confident zeros nobody had read.
+    expect(chat).toContain('{surface?.blockers && (')
+    expect(chat, 'the strip is guarded on the object again').not.toContain('{surface && (')
+  })
+
+  it('the provider-owned commands stay, because they are valid off the console', () => {
+    // These post to `/operator/command` with the persistent selected client; sourcing is the
+    // provider's too. Only the console's own launch shortcuts are gated on its handlers.
+    expect(chat).toContain('["What\'s blocking?", \'Status\', \'Source 20 leads\']')
+    for (const gated of ['handlers.current.buildIcp &&', 'handlers.current.buildCampaign &&', 'handlers.current.draftSequence &&']) {
+      expect(chat, `a console-only shortcut is no longer gated (${gated})`).toContain(gated)
+    }
+  })
+})
+
+describe('VIDA · UI-011 — Pool and Exceptions belong to the workspace', () => {
+  const page = strip(VIDA_PAGE)
+
+  it('🛑 BOTH RENDER INSIDE THE TAB CONTAINER, not as siblings of the console', () => {
+    const aside = page.indexOf('</aside>')
+    const pool  = page.indexOf("{tab === 'Pool' && (<>")
+    const exc   = page.indexOf("{tab === 'Exceptions' && (<>")
+    const inbox = page.indexOf("{tab === 'Inbox' && (")
+    for (const [at, what] of [[pool, 'Pool'], [exc, 'Exceptions']] as [number, string][]) {
+      expect(at, `${what} is missing`).toBeGreaterThan(-1)
+      // 🛑 THE WHOLE DEFECT IN ONE COMPARISON: they used to sit AFTER the closing tag.
+      expect(at, `${what} still renders outside the workspace aside`).toBeLessThan(aside)
+      expect(at, `${what} is not in the tab-content container with the other nine`).toBeGreaterThan(inbox)
+    }
+  })
+
+  it('AND NOTHING IN THEM WAS REMOVED OR RESTYLED', () => {
+    for (const kept of [
+      'Platform-wide — not scoped to this client.',
+      'Records in the pool', 'By source', 'By country', 'breakdown_sample',
+      'Stranded batches', 'Someone opted out and is still inside a provider',
+      'Crashed runs (last', 'Test / debris ICP candidates',
+      "retireBusy === d.id ? '…' : d.is_active ? 'Retire' : 'Restore'",
+    ]) {
+      expect(page, `Pool/Exceptions lost "${kept}"`).toContain(kept)
+    }
   })
 })

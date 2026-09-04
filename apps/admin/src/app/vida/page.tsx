@@ -236,12 +236,11 @@ function fullName(f: string | null, l: string | null): string {
 
 export default function VidaConsolePage() {
   const [clients, setClients] = useState<ClientRow[] | null>(null)
-  const [clientsError, setClientsError] = useState<string | null>(null)
   // ⚑ 4 Sep — THE SELECTED CLIENT IS THE SHELL'S, because the conversation is scoped to it.
   // Holding it here meant leaving the console for Bookings or Sending forgot who the operator
   // was working on. Every one of this file's reads of `selected` is unchanged.
   const conversation = useVidaConversation()
-  const { selected, setSelected } = conversation
+  const { selected, selectedName, setSelected } = conversation
   const [alerts, setAlerts] = useState<Alert[]>([])
   // PR2 — the one proof-review action: which client is being resolved, and what to say after.
   const [proofBusy, setProofBusy] = useState<string | null>(null)
@@ -253,10 +252,7 @@ export default function VidaConsolePage() {
   // How much of the selected client's book is sendable today. Null = not read yet or unreadable;
   // an unreadable count must never render as "all clear".
   const [coverage, setCoverage] = useState<CountryCoverage | null>(null)
-  // Blended names-per-approval across the real book — the figure that belongs in the
-  // cashflow lab, kept separate from the noisy per-client reading.
-  const [bookRatio, setBookRatio] = useState<RatioReading | null>(null)
-  const [onlyNeedsYou, setOnlyNeedsYou] = useState(true)
+  // ⛓️ 4 Sep — `bookRatio` renders beside the client list, which is now in the nav.
 
   const [board, setBoard] = useState<Board | null>(null)
   const [boardError, setBoardError] = useState<string | null>(null)
@@ -1221,7 +1217,7 @@ export default function VidaConsolePage() {
       })
       .catch(fail('alerts'))
     fetch('/api/proxy/operator/worklist').then(r => r.json())
-      .then(j => { if (j?.success) { setWork(j.data); setBookRatio(j.meta?.ratio ?? null) } else throw new Error(j?.error || 'the API returned no data') })
+      .then(j => { if (j?.success) setWork(j.data); else throw new Error(j?.error || 'the API returned no data') })
       .catch(fail('worklist'))
   }, [])
 
@@ -1260,9 +1256,11 @@ export default function VidaConsolePage() {
         if (!alive) return
         const rows: ClientRow[] = json.data ?? []
         setClients(rows)
+        // ⛓️ 4 Sep — `?client=…` IS READ BY THE NAV NOW (`components/vida/VidaClients.tsx`),
+        // because the list that answers it lives there. Reading it in both places would race:
+        // whichever resolved second would win, and only one of them carries the client's name.
         const params = new URLSearchParams(window.location.search)
         const urlClient = params.get('client')
-        if (urlClient && rows.some(r => r.id === urlClient)) setSelected(urlClient)
         // ── ⚑ 4 Sep — THE HANDOFF LINK NOW NAMES ITS DESTINATION ──────────────────────────
         //
         // 🛑 `?client=<id>` WAS THE WHOLE LINK, AND `tab` IS INITIALISED TO 'Inbox'. Every
@@ -1279,8 +1277,11 @@ export default function VidaConsolePage() {
         // origin, their own sentence, and read once — never a summary and never re-sent.
         const carried = urlClient ? sessionStorage.getItem(`vida:icp-handoff:${urlClient}`) : null
         if (carried) { sessionStorage.removeItem(`vida:icp-handoff:${urlClient}`); setIcpHandoff(carried) }
-      } catch (e) {
-        if (alive) setClientsError(e instanceof Error ? e.message : 'Failed to load clients')
+      } catch {
+        // ⛓️ 4 Sep — the client list and its error banner live in the nav now
+        // (`components/vida/VidaClients.tsx`), which reads the same endpoint and says so there.
+        // This read stays because the console still needs `clients` for the header and the
+        // cockpit; a second banner in two places would be two answers to one question.
       }
     })()
     return () => { alive = false }
@@ -1451,9 +1452,22 @@ export default function VidaConsolePage() {
   // ⚠️ RUNS ON EVERY RENDER, ON PURPOSE. The handlers close over current state, so a stale
   // capture would silently send an old client id. The provider compares the DISPLAY half
   // before storing it, so republishing cannot loop.
+  // ⚑ 4 Sep (UI-010) — AND IT TAKES IT ALL BACK WHEN IT GOES.
+  //
+  // 🛑 `publish` overwrote the handlers ref and nothing ever wrote an empty one back, so this
+  // console's blockers, board error and three launch shortcuts outlived it: on Lead queue the
+  // operator was offered "Build the ICP →" for a surface that was not mounted, beside a
+  // blocker strip nobody had re-read.
+  //
+  // ⚠️ MOUNT-SCOPED, so it runs exactly once on the way out — the publish below runs on every
+  // render, and a cleanup there would clear and re-publish on every frame.
+  // ⚠️ IT CLEARS THIS WORKSPACE'S CONTRIBUTION ONLY. The transcript, the composer and the
+  // selected client are the conversation's own.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => () => conversation.unpublish(), [])
+
   useEffect(() => {
     conversation.publish({
-      clientName: selectedClient?.company_name ?? null,
       blockers,
       outreachEnabled: status ? status.outreach_enabled : null,
       boardError,
@@ -1538,29 +1552,10 @@ export default function VidaConsolePage() {
   const cols = board?.columns
   // Worklist lookups. The list is already urgency-sorted by the API, so we only filter here.
   const workById = (work ?? []).reduce<Record<string, WorkRow>>((m, r) => { m[r.id] = r; return m }, {})
-  const needsYouCount = (work ?? []).filter(r => r.next.actor === 'you').length
-  const orderedClients: ClientRow[] = work
-    ? work.map(w => (clients ?? []).find(c => c.id === w.id) ?? w)
-    : (clients ?? [])
-  // ⚑ 27 Aug (PR2) — A PROOF REVIEW KEEPS ITS CLIENT ON THE LIST.
-  //
-  // "Only needs you" filters on the WORKLIST (`next.actor === 'you'`), and a proof-exhausted
-  // prospect is by definition NEVER FUNDED — so `client-step.ts` puts them at "Waiting on
-  // their $299" with `actor: 'them'`. The alert rendered correctly and the operator was never
-  // shown the client it belonged to: the filter is ON by default, so the only way to reach
-  // them was to switch it off and pick them by hand.
-  //
-  // One more disjunct, deliberately: it does NOT redefine `actor`, does not touch the
-  // worklist, and does not change the ordering. A client is kept on the list when a human at
-  // K.I.N.D genuinely owes them something, which an unresolved proof review is.
-  const proofReviewClients = new Set(
-    alerts.filter(a => a.kind === 'proof_review').map(a => a.client_id),
-  )
-  const visibleClients = onlyNeedsYou && work
-    ? orderedClients.filter(c => workById[c.id]?.next.actor === 'you'
-                              || proofReviewClients.has(c.id)
-                              || c.id === selected)
-    : orderedClients
+  // ⛓️ 4 Sep (UI-009) — `needsYouCount`, `orderedClients`, `proofReviewClients` and
+  // `visibleClients` MOVED WITH THE LIST THEY FILTERED, to `components/vida/VidaClients.tsx`.
+  // Every rule went with them unchanged, including PR2's: a proof review keeps its client on
+  // the list even though the worklist puts an unfunded prospect at `actor: 'them'`.
   const selectedWork = selected ? workById[selected] : undefined
 
   const alertsByClient = alerts.reduce<Record<string, Alert[]>>((m, a) => {
@@ -1571,132 +1566,16 @@ export default function VidaConsolePage() {
 
   return (
     <div className="flex h-full min-h-0">
-      {/* ── CLIENTS PANEL ──────────────────────────────────────────────────── */}
-      <div className="w-[380px] shrink-0 border-r border-[#eee7f7] bg-white flex flex-col overflow-hidden">
-        <div className="px-[18px] pt-[15px] pb-2.5">
-          <b className="text-[15.5px]">Clients</b>
-          {/* #565 — a failed load used to sit on "Loading…" forever, which reads as "still
-              working on it" rather than "this is broken". `panelView` keeps the three states
-              apart: loading, genuinely empty, and could-not-establish. */}
-          {(() => {
-            const v = panelView({ loading: !work && !loadFail.worklist, error: loadFail.worklist ?? null, count: work?.length ?? 0, label: 'the worklist' })
-            if (v.state === 'ready') {
-              return <span className="block text-[12.5px] text-[#9b8ec4]">
-                {`${needsYouCount} need you · ${(work?.length ?? 0) - needsYouCount} running themselves`}
-              </span>
-            }
-            return <span className={`block text-[12.5px] ${v.state === 'failed' ? 'text-red-700 font-semibold' : 'text-[#9b8ec4]'}`}>
-              {v.message}
-            </span>
-          })()}
-        </div>
+      {/* ── ⚑ 4 Sep (UI-009) — THE DEDICATED CLIENTS COLUMN IS GONE ─────────────────────
+          🛑 IT COST THE WORKSPACE ALMOST EVERYTHING. Measured at 1440px: nav 216 + clients 380
+          + Vida 540 left the cockpit 304px to render eleven tabs that need 894, so eight of
+          them sat off-screen behind a scroll with no affordance and People truncated names and
+          companies. At 1920 the strip was STILL clipped.
 
-        {/* The other two loads fail independently — and each says so rather than leaving the
-            header quietly wrong. An operator who cannot see alerts must know that, not infer
-            it from a bell that never rings. */}
-        {(loadFail.status || loadFail.alerts || loadFail.proofReview) && (
-          <div className="mx-[18px] mb-2.5 rounded-xl border-2 border-red-300 bg-red-50 px-3 py-2">
-            <b className="block text-[12px] text-red-900">Part of this console could not load</b>
-            {loadFail.status && <p className="text-[11.5px] text-red-800 mt-0.5">Couldn&apos;t load the status header — {loadFail.status}</p>}
-            {loadFail.alerts && <p className="text-[11.5px] text-red-800 mt-0.5">Couldn&apos;t load alerts — a quiet bell does NOT mean there is nothing wrong. {loadFail.alerts}</p>}
-            {loadFail.proofReview && <p className="text-[11.5px] text-red-800 mt-0.5"><b>Proof-review queue could not be checked.</b> {loadFail.proofReview}</p>}
-          </div>
-        )}
-        {/* Sorted by who needs you, not alphabetically — and each row says WHY in words. */}
-        <div className="flex gap-1.5 px-[18px] pb-2.5">
-          {([[true, `Needs you · ${needsYouCount}`], [false, `All · ${work?.length ?? 0}`]] as [boolean, string][]).map(([v, label]) => (
-            <button key={label} onClick={() => setOnlyNeedsYou(v)}
-              className={`text-[12px] font-bold rounded-full px-2.5 py-1 border ${onlyNeedsYou === v ? 'text-white bg-[#7C3AED] border-[#7C3AED]' : 'text-[#9b8ec4] bg-white border-[#ece5fb]'}`}>
-              {label}
-            </button>
-          ))}
-        </div>
-        {/* THE BOOK'S RATIO — names sourced per approved lead, across every real client.
-            Founder-locked 25 Jul: the cashflow model plans on 2, and this is where the real
-            number comes from. It costs $0.28 a name whether they approve it or not, so this
-            is the difference between keeping ~$3.20 and ~$1.80 on a $4 lead. */}
-        {bookRatio && (
-          <div className="mx-[18px] mb-2.5 rounded-xl border border-[#ece5fb] bg-[#faf8ff] px-3 py-2">
-            <div className="text-[10.5px] font-extrabold uppercase tracking-wide text-[#b3a9cc]">Across the book</div>
-            <div className={`text-[13px] ${bookRatio.confident ? 'text-[#1f1235] font-semibold' : 'text-[#9b8ec4]'}`}>
-              📐 {bookRatio.label}
-            </div>
-            {bookRatio.confident && (
-              <div className="text-[11.5px] text-[#9b8ec4] mt-0.5">
-                Data cost ${(bookRatio.ratio! * 0.28).toFixed(2)} per approved lead — put this number in the cashflow lab.
-              </div>
-            )}
-          </div>
-        )}
-        <div className="flex-1 overflow-y-auto px-3 pb-3">
-          {clientsError && <p className="text-xs text-red-500 px-2 py-3">{clientsError}</p>}
-          {!clients && !clientsError && <p className="text-xs text-[#9b8ec4] px-2 py-3">Loading clients…</p>}
-          {clients?.length === 0 && <p className="text-xs text-[#9b8ec4] px-2 py-3">No clients yet.</p>}
-          {visibleClients.length === 0 && (clients?.length ?? 0) > 0 && (
-            <p className="text-[12.5px] text-[#9b8ec4] px-2 py-6 text-center">Nothing needs you right now. 🎉</p>
-          )}
-          {visibleClients.map(c => {
-            const active = c.id === selected
-            // The row says WHAT'S NEEDED, in words — never a bare count. A pink dot means it
-            // costs money or trust to ignore; green is running fine; grey is on them.
-            const n = workById[c.id]?.next
-            const you = n?.actor === 'you'
-            const dot = you ? 'bg-[#EC4899]' : n?.actor === 'engine' ? 'bg-emerald-400' : 'bg-[#cfc4e8]'
-            return (
-              <button key={c.id} onClick={() => setSelected(c.id)}
-                title={n ? `Step ${n.step} · ${n.label}` : undefined}
-                className={`w-full text-left flex items-start gap-2.5 px-2.5 py-2.5 rounded-xl mb-1 transition-colors border ${
-                  active ? 'bg-[#f3ecff] border-[#e4d4fb]' : you ? 'bg-[#fdf2f8] border-[#fbcfe8] hover:border-[#f9a8d4]' : 'hover:bg-[#faf8ff] border-transparent'
-                }`}>
-                <span className={`w-2 h-2 rounded-full shrink-0 mt-[7px] ${dot}`} />
-                <span className={`w-8 h-8 rounded-lg flex items-center justify-center text-[12px] font-bold shrink-0 ${active ? 'bg-[#7C3AED] text-white' : 'bg-[#efeafc] text-[#7C3AED]'}`}>
-                  {initials(c.company_name)}
-                </span>
-                <span className="min-w-0 flex-1">
-                  <b className="text-[14px] block truncate">{c.company_name || 'Unnamed'}</b>
-                  <span className={`text-[12.5px] block truncate ${you ? 'text-[#9d174d] font-semibold' : 'text-[#9b8ec4]'}`}>
-                    {n?.label ?? ([c.industry, c.country].filter(Boolean).join(' · ') || '—')}
-                    {/* #619 — the API applies the exemption (`coldView`), so `.cold` and
-                        `.warn` are already false on an exempt account and these badges cannot
-                        fire on one. The neutral hint below says WHY, in grey, instead of the
-                        red SUSPEND the founder photographed on our own account. */}
-                    {workById[c.id]?.cold?.cold && <span className="ml-1.5 text-[10px] font-extrabold uppercase tracking-wide text-white bg-[#b91c1c] rounded px-1.5 py-0.5">Suspended</span>}
-                    {workById[c.id]?.cold?.warn && <span className="ml-1.5 text-[10px] font-extrabold uppercase tracking-wide text-[#92400e] bg-[#fef3c7] border border-[#fde68a] rounded px-1.5 py-0.5">Going quiet</span>}
-                    {workById[c.id]?.cold?.exempt && (
-                      <span title={workById[c.id]?.cold?.why} className="ml-1.5 text-[10px] font-semibold uppercase tracking-wide text-[#8a82a3]">
-                        cold-check exempt
-                      </span>
-                    )}
-                  </span>
-                </span>
-                {/* C6 — VAT EVIDENCE, ON THE ROW. #615 shipped `vatBadge` and nothing rendered it,
-                    so "no tax ID" was a fact the operator could only find by opening the client.
-                    Amber = missing, grey = they declared not-registered (the NOT_REGISTERED
-                    sentinel), green = on file. The SHARED function decides — no local rule, and
-                    no special case for house/demo: whatever their record says is what shows. */}
-                {(() => {
-                  const b = vatBadge({ vat_number: c.vat_number ?? null })
-                  return (
-                    <span title={`VAT evidence: ${b.label}`}
-                      className={`text-[10px] font-bold uppercase tracking-wide rounded px-1.5 py-0.5 shrink-0 border ${
-                        b.tone === 'ok' ? 'text-emerald-700 bg-emerald-50 border-emerald-200'
-                        : b.tone === 'amber' ? 'text-amber-700 bg-amber-50 border-amber-200'
-                        : 'text-[#8a82a3] bg-[#f4f2f9] border-[#e4dcf7]'}`}>
-                      {b.label}
-                    </span>
-                  )
-                })()}
-                {c.house_or_demo && (
-                  <span className="text-[10px] font-bold uppercase tracking-wide text-[#b3a9cc] bg-[#efeafc] rounded px-1.5 py-0.5 shrink-0">
-                    {c.is_demo ? 'demo' : 'house'}
-                  </span>
-                )}
-              </button>
-            )
-          })}
-        </div>
-      </div>
-
+          ⚠️ MOVED, NOT DELETED. The list is a collapsible group in the operator nav
+          (`components/vida/VidaClients.tsx`) with the same rows, the same actor dots, the same
+          next-action sentences, the same cold and VAT and house/demo indicators, and the same
+          "Needs you / All" filter. Selecting a client still scopes this console and Vida. */}
       {/* ── PIPELINE ───────────────────────────────────────────────────────── */}
       <div className="flex-1 flex flex-col bg-[#fbfaff] overflow-hidden">
         {!selected && (
@@ -2120,7 +1999,15 @@ export default function VidaConsolePage() {
                 </div>
               )}
 
-              <div className="shrink-0 flex items-end gap-0.5 px-3 pt-2.5 border-b border-[#eee7f7] overflow-x-auto">
+              {/* ── ⚑ 4 Sep (UI-009) — ELEVEN TABS WRAP; THEY DO NOT HIDE ────────────────
+                  🛑 MEASURED: the strip needs 894px and had 304 at 1440px, so eight of the
+                  eleven sat off-screen behind an `overflow-x-auto` with no scrollbar and no
+                  affordance — hidden controls, discovered only by dragging. At 1920 it was
+                  STILL clipped; it would have taken a 2,030px viewport to fit one row.
+
+                  ⚠️ WRAPPING, NOT SHRINKING. Every tab keeps its label and its size; the row
+                  becomes two rows when it must. Nothing is hidden at any width. */}
+              <div className="shrink-0 flex flex-wrap items-end gap-0.5 px-3 pt-2.5 border-b border-[#eee7f7]">
                 {(['Inbox', 'Approvals', 'People', 'Campaign', 'ICP', 'Sequence', 'Asks', 'Bookings', 'Programme', 'Pool', 'Exceptions'] as CockpitTab[]).map(t => {
                   const on = tab === t
                   const n = t === 'Inbox' ? (cockpit?.replies.filter(r => !r.qualified_at && !r.meeting_booked_at).length ?? 0)
@@ -3150,11 +3037,18 @@ export default function VidaConsolePage() {
                    </>)}
                 </>)}
 
-              </div>
-            </aside>
-          </div>
-        </>)}
 
+                {/* ── ⚑ 4 Sep (UI-011) — POOL AND EXCEPTIONS BELONG TO THE WORKSPACE ──────
+                    🛑 THEY WERE RENDERED OUTSIDE IT. The `</aside>` and the `{selected && (<>`
+                    block closed ABOVE these two, so they were siblings of the whole console at
+                    page width: their cards painted across the Vida column and under its
+                    composer, over the conversation the operator was reading.
+
+                    ⚠️ MOVED, NOT RESTYLED. Not one class, string or control changed — the two
+                    blocks simply sit inside the same tab-content container as the other nine
+                    tabs, so they inherit its width and its scrolling like everything else.
+                    Platform-wide DATA scope is untouched; platform-wide WIDTH was never the
+                    scope, it was a misplaced closing tag. */}
                 {/* ⚑ 30 Aug (BUILD-003 PR4) — LEAD POOL. Platform-wide.
                     Every value is a count of rows that exist. No health score, no fill rate,
                     no projection: an operator acting on a number we made up is worse off than
@@ -3275,6 +3169,11 @@ export default function VidaConsolePage() {
                       ))}
                   </>)}
                 </>)}
+              </div>
+            </aside>
+          </div>
+        </>)}
+
 
       </div>
     </div>

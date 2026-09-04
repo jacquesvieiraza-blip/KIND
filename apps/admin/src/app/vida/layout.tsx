@@ -11,7 +11,8 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Power, LogOut, ChevronDown } from 'lucide-react'
-import { VidaConversationProvider } from '@/components/vida/VidaConversation'
+import { VidaConversationProvider, useVidaConversation } from '@/components/vida/VidaConversation'
+import { VidaClients } from '@/components/vida/VidaClients'
 
 type Status = { outreach_enabled: boolean; daily_cap: number | null }
 type Health = { sent_today: number; replies_today: number; pending_approvals: number }
@@ -89,6 +90,32 @@ const NERVOUS_SYSTEM: { href: string; label: string; icon: string }[] = [
   { href: '/vida/partners',   label: 'Partners',   icon: '🤝' },
 ]
 
+/**
+ * ── ⚑ 4 Sep (UI-010) — WHERE VIDA PAINTS ON AN OPERATOR DESTINATION ─────────────────────
+ *
+ * 🛑 THE DEFECT THIS CLOSES. `setSlot` was called in exactly ONE file — the clients console —
+ * so opening Lead queue, System, Bookings or any of the other twenty-three destinations left
+ * the operator with no assistant at all. The state survived (the provider never unmounts);
+ * nothing painted it.
+ *
+ * ⚠️ NOT A SECOND VIDA. This mounts no conversation and holds no state: it hands the shell an
+ * element and publishes what is TRUE HERE — which is nothing. `blockers`, `outreachEnabled`
+ * and `boardError` are facts the CONSOLE read, and this route has not read them; the handlers
+ * are empty, so the three console-only launch shortcuts are not offered for surfaces that are
+ * not on screen. The transcript, the composer and the selected client are untouched.
+ */
+function VidaOuterColumn() {
+  const c = useVidaConversation()
+  useEffect(() => {
+    c.publish({ blockers: null, outreachEnabled: null, boardError: null }, {})
+  }, [c])
+  return (
+    <section className="w-[540px] shrink-0 flex flex-col border-r border-[#eee7f7] bg-white min-h-0">
+      <div className="flex-1 min-h-0 flex flex-col" ref={c.setSlot} />
+    </section>
+  )
+}
+
 function initials(email: string): string {
   const name = email.split('@')[0] || 'OP'
   return name.slice(0, 2).toUpperCase()
@@ -109,21 +136,25 @@ export default function VidaLayout({ children }: { children: React.ReactNode }) 
   // by default: a destination that is collapsed on first paint is a destination the operator
   // has to discover, and the whole reason this panel exists is that twenty-five of them were
   // hidden behind one dropdown.
+  // ⚑ 4 Sep (UI-009) — THREE groups now. Clients moved out of a dedicated 380px column and
+  // into the nav as a group of its own, which is what gives the workspace its width back.
+  const [openClients, setOpenClients] = useState(true)
   const [openOperate, setOpenOperate] = useState(true)
   const [openBusiness, setOpenBusiness] = useState(true)
   useEffect(() => {
     try {
       const raw = localStorage.getItem('vida:nav-groups')
       if (!raw) return
-      const v = JSON.parse(raw) as { operate?: boolean; business?: boolean }
+      const v = JSON.parse(raw) as { clients?: boolean; operate?: boolean; business?: boolean }
+      if (typeof v.clients === 'boolean') setOpenClients(v.clients)
       if (typeof v.operate === 'boolean') setOpenOperate(v.operate)
       if (typeof v.business === 'boolean') setOpenBusiness(v.business)
     } catch { /* private mode, or nothing stored — both groups stay open */ }
   }, [])
   useEffect(() => {
-    try { localStorage.setItem('vida:nav-groups', JSON.stringify({ operate: openOperate, business: openBusiness })) }
+    try { localStorage.setItem('vida:nav-groups', JSON.stringify({ clients: openClients, operate: openOperate, business: openBusiness })) }
     catch { /* private mode — the panel still works, it just forgets */ }
-  }, [openOperate, openBusiness])
+  }, [openClients, openOperate, openBusiness])
 
   useEffect(() => {
     fetch('/api/proxy/operator/status').then(r => r.json()).then(j => { if (j?.success) setStatus(j.data) }).catch(() => {})
@@ -137,6 +168,7 @@ export default function VidaLayout({ children }: { children: React.ReactNode }) 
   }
 
   const on = status?.outreach_enabled === true
+  const isConsole = pathname === '/vida'
 
   // ⛓️ 4 Sep — DEAD SCAFFOLDING REMOVED, NOT REVIVED. `ENGINE_RAIL`, `railLink`, `isClients`,
   // `isAudit`, `isQueue`, `isBookings`, `isSuppression`, `isReports` and `pendingCount` were
@@ -154,14 +186,19 @@ export default function VidaLayout({ children }: { children: React.ReactNode }) 
    * `OPERATE` and `NERVOUS_SYSTEM` — so the panel has no second copy of the destinations and
    * cannot fall behind the arrays the product actually navigates by.
    */
+  /** The group HEADER, drawn once, so Clients cannot look like a different kind of thing. */
+  const groupHead = (title: string, open: boolean, toggle: () => void, count?: number) => (
+    <button onClick={toggle} aria-expanded={open}
+      className="w-full flex items-center gap-1.5 px-2.5 py-1.5 text-[10.5px] font-extrabold uppercase tracking-[0.06em] text-[#b3a9cc] hover:text-[#7C3AED] transition-colors">
+      <ChevronDown className={`w-3 h-3 shrink-0 transition-transform ${open ? '' : '-rotate-90'}`} />
+      <span className="truncate">{title}</span>
+      {count !== undefined && <span className="ml-auto text-[10px] font-bold text-[#cfc4e8]">{count}</span>}
+    </button>
+  )
+
   const group = (title: string, items: { href: string; label: string; icon: string }[], open: boolean, toggle: () => void) => (
     <div>
-      <button onClick={toggle} aria-expanded={open}
-        className="w-full flex items-center gap-1.5 px-2.5 py-1.5 text-[10.5px] font-extrabold uppercase tracking-[0.06em] text-[#b3a9cc] hover:text-[#7C3AED] transition-colors">
-        <ChevronDown className={`w-3 h-3 shrink-0 transition-transform ${open ? '' : '-rotate-90'}`} />
-        <span className="truncate">{title}</span>
-        <span className="ml-auto text-[10px] font-bold text-[#cfc4e8]">{items.length}</span>
-      </button>
+      {groupHead(title, open, toggle, items.length)}
       {open && items.map(item => {
         // ⚠️ EXACT MATCH FOR `/vida`, PREFIX FOR THE REST. `/vida` is a prefix of every other
         // operator route, so a `startsWith` here would mark Clients current on all 25.
@@ -253,9 +290,20 @@ export default function VidaLayout({ children }: { children: React.ReactNode }) 
 
           ⚠️ COLLAPSIBLE, NOT COLLAPSED. Each group toggles independently and both start open,
           so nothing is hidden from an operator who has never touched the control. */}
+      {/* ⚠️ THE PROVIDER WRAPS THE NAV TOO, and that is not cosmetic nesting. The CLIENTS
+          group IS the client switcher now, so it calls `setSelected` — outside the provider it
+          would read the inert context and every click would be a silent no-op. */}
+      <VidaConversationProvider>
       <div className="flex-1 flex overflow-hidden">
         <nav className="w-[216px] shrink-0 border-r border-[#eee7f7] bg-[#fdfcff] flex flex-col overflow-hidden">
           <div className="flex-1 overflow-y-auto px-2 py-3">
+            {/* ⚑ 4 Sep (UI-009) — CLIENTS FIRST, because picking who you are working on comes
+                before choosing what to do about them. Collapsed it still says who that is. */}
+            <div>
+              {groupHead('Clients', openClients, () => setOpenClients(o => !o))}
+              <VidaClients open={openClients} />
+            </div>
+            <div className="h-px bg-[#f0ebfa] my-2 mx-2" />
             {group('Operate', OPERATE, openOperate, () => setOpenOperate(o => !o))}
             <div className="h-px bg-[#f0ebfa] my-2 mx-2" />
             {group('Run the business', NERVOUS_SYSTEM, openBusiness, () => setOpenBusiness(o => !o))}
@@ -267,20 +315,14 @@ export default function VidaLayout({ children }: { children: React.ReactNode }) 
             </button>
           </div>
         </nav>
-        {/* ── ⚑ 4 Sep — THE ONE VIDA CONVERSATION IS THE SHELL'S ────────────────────────
-            It was declared inside `app/vida/page.tsx`, so every operator destination the
-            founder opened destroyed the transcript and the selected client. The provider is
-            mounted HERE, once, and never unmounts while Vida is open — so the conversation,
-            the client it is scoped to and anything half-typed all survive navigation.
-
-            ⚠️ WHERE IT PAINTS IS A ROUTE'S DECISION, WHO OWNS IT IS NOT. The console hands
-            back the column between the client list and the workspace; a full-width operator
-            table hands back nothing, so it keeps its width. Either way there is exactly one
-            instance, one transcript and one composer. */}
-        <VidaConversationProvider>
+          {/* ⚑ 4 Sep (UI-010) — THE CONSOLE OWNS ITS OWN COMPOSITION; EVERY OTHER DESTINATION
+              GETS THE COLUMN FROM HERE. `/vida` places the conversation itself, between the
+              client context it draws and its eleven-tab workspace. Anywhere else, the shell
+              paints it — same provider, same transcript, same composer. */}
+          {!isConsole && <VidaOuterColumn />}
           <main className="flex-1 min-w-0 overflow-hidden">{children}</main>
-        </VidaConversationProvider>
-      </div>
+        </div>
+      </VidaConversationProvider>
     </div>
   )
 }

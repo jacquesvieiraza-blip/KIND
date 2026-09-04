@@ -111,7 +111,10 @@ describe('#626 the Engine card exists and cannot lie', () => {
 
 describe('C6 the VAT badge finally reaches the clients list', () => {
   const route = stripCommentsForEnvScan(readFileSync(join(__dirname, '../routes/operator.ts'), 'utf8'))
-  const vida = stripCommentsForEnvScan(readFileSync(join(__dirname, '../../../admin/src/app/vida/page.tsx'), 'utf8'))
+    // ⚑ 4 Sep (UI-009) — RETARGETED, NOT RELAXED. The client list moved out of the console and
+  // into the operator nav as a collapsible group; the rules it carries are unchanged, and these
+  // read the file that now renders them.
+  const vida = stripCommentsForEnvScan(readFileSync(join(__dirname, '../../../admin/src/components/vida/VidaClients.tsx'), 'utf8'))
 
   it('the worklist serves vat_number on the query it already makes', () => {
     expect(route).toContain('vat_number')

@@ -207,6 +207,10 @@ describe('the system probe actually asks', () => {
 describe('Vida renders the honest sentence', () => {
   const src = stripCommentsForEnvScan(
     readFileSync(join(__dirname, '../../../admin/src/app/vida/page.tsx'), 'utf8'))
+  // ⚑ 4 Sep (UI-009) — the CLIENT ROWS moved to the operator nav's clients group; the flow
+  // rail and the money sentences below did not. Each test reads the file it is about.
+  const clients = stripCommentsForEnvScan(
+    readFileSync(join(__dirname, '../../../admin/src/components/vida/VidaClients.tsx'), 'utf8'))
 
   it('the flow rail asks how the account was funded before labelling step 2', () => {
     // ⛓️ EXTENDED 3 Sep (C2) — ~~`flowStepLabel(n, label, selectedWork.funded_via)`~~ and
@@ -257,9 +261,11 @@ describe('Vida renders the honest sentence', () => {
   it('the clients list shows the exemption instead of a red badge', () => {
     // Bounded to the clients-list button, which is where the founder saw SUSPEND — asserting
     // this against the whole file would pass on a hint rendered anywhere at all.
-    const listAt = src.indexOf('visibleClients.map(')
+    // ⚑ 4 Sep (UI-009) — the same list, in the operator nav's clients group. Still BOUNDED to
+    // the row itself, so a hint rendered anywhere else in the file cannot satisfy it.
+    const listAt = clients.indexOf('visible.map(')
     expect(listAt).toBeGreaterThan(-1)
-    const list = src.slice(listAt, src.indexOf('PIPELINE', listAt))
+    const list = clients.slice(listAt, clients.indexOf('Across the book', listAt))
     expect(list).toContain('cold?.exempt')
     expect(list).toContain('cold-check exempt')
   })

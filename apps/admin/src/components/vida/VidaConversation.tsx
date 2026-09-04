@@ -27,10 +27,17 @@ type CmdMsg = { role: 'operator' | 'vida'; text: string; link?: string | null }
 type Blockers = { send_gate: number; money_gate: number; unsent_sourced: number; replies_to_triage: number }
 type SourcePreview = { count: number; pool_free: number; pdl_needed: number; pdl_cost_est: number; allowance_left: number; leads_per_run: number; capped: boolean; is_demo: boolean; icp_name?: string | null; no_active_icp?: boolean }
 
-/** What the workspace on screen tells the conversation about itself. Display facts only. */
+/**
+ * What the workspace on screen tells the conversation about itself. Display facts only.
+ *
+ * ⚑ 4 Sep (UI-010) — `clientName` IS NOT HERE ANY MORE, and that is the point. WHO Vida is
+ * scoped to is persistent conversation state, not something a workspace lends her: publishing
+ * it meant that clearing a stale surface on unmount also erased the client, and the composer
+ * degraded to "Command Vida in client context…" the moment the console left the screen.
+ * Identity now lives beside `selected` in the provider; only these live, workspace-read facts
+ * are published, and only these are cleared.
+ */
 export type VidaSurfaceDisplay = {
-  /** Named in the empty state and the composer placeholder, so the operator sees the scope. */
-  clientName: string | null
   blockers: Blockers | null
   /** `false` renders the kill-switch line. `null` = unknown, which asserts nothing. */
   outreachEnabled: boolean | null
@@ -61,7 +68,15 @@ export type VidaSurfaceHandlers = {
 
 type VidaConversationApi = {
   selected: string | null
-  setSelected: (id: string | null) => void
+  /** The selected client's name. Persistent identity — it survives every navigation. */
+  selectedName: string | null
+  /**
+   * Choose the client this conversation is scoped to.
+   *
+   * ⚠️ THE NAME TRAVELS WITH THE ID. A caller that knows which client it picked knows what it
+   * is called; making the panel go and look it up again is how the two drift apart.
+   */
+  setSelected: (id: string | null, name?: string | null) => void
   /** Run a command through the ONE conversation (used by the console's own shortcuts). */
   run: (text: string) => void
   /**
@@ -78,6 +93,18 @@ type VidaConversationApi = {
   /** Publish what is on screen. Display facts re-render; handlers are held in a ref. */
   publish: (d: VidaSurfaceDisplay, h: VidaSurfaceHandlers) => void
   /**
+   * Take it all back, because the workspace that published it is going away.
+   *
+   * 🛑 THE DEFECT THIS EXISTS FOR. `publish` overwrote the handlers ref and nothing ever wrote
+   * an empty one back, so an UNMOUNTED console's blockers, board error and launch shortcuts
+   * outlived it: on Lead queue the operator was offered "Build the ICP →" for a surface that
+   * was not on screen, beside a blocker strip nobody had re-read.
+   *
+   * ⚠️ IT CLEARS THE WORKSPACE'S CONTRIBUTION ONLY. The transcript, the composer, the selected
+   * client and its name are the conversation's own and are never touched by this.
+   */
+  unpublish: () => void
+  /**
    * WHERE the shell paints its conversation on this route.
    *
    * ⚠️ THE SLOT IS NOT THE OWNER. The transcript, the composer, the selected client and every
@@ -91,7 +118,7 @@ type VidaConversationApi = {
 }
 
 const Ctx = createContext<VidaConversationApi | null>(null)
-const INERT: VidaConversationApi = { selected: null, setSelected: () => {}, run: () => {}, say: () => {}, busy: false, publish: () => {}, setSlot: () => {} }
+const INERT: VidaConversationApi = { selected: null, selectedName: null, setSelected: () => {}, run: () => {}, say: () => {}, busy: false, publish: () => {}, unpublish: () => {}, setSlot: () => {} }
 
 export function useVidaConversation(): VidaConversationApi { return useContext(Ctx) ?? INERT }
 
@@ -116,7 +143,8 @@ function parseSourceIntent(t: string): number | null {
 }
 
 export function VidaConversationProvider({ children }: { children: React.ReactNode }) {
-  const [selected, setSelected] = useState<string | null>(null)
+  const [selected, setSelectedId] = useState<string | null>(null)
+  const [selectedName, setSelectedName] = useState<string | null>(null)
   const [cmd, setCmd] = useState('')
   const [cmdLog, setCmdLog] = useState<CmdMsg[]>([])
   const [cmdBusy, setCmdBusy] = useState(false)
@@ -129,6 +157,15 @@ export function VidaConversationProvider({ children }: { children: React.ReactNo
   const [surface, setSurface] = useState<VidaSurfaceDisplay | null>(null)
   const [slot, setSlot] = useState<HTMLElement | null>(null)
   const handlers = useRef<VidaSurfaceHandlers>({})
+
+  const setSelected = useCallback((id: string | null, name?: string | null) => {
+    setSelectedId(id)
+    // ⚠️ `undefined` MEANS "I DID NOT SAY", not "it has no name" — a caller that only knows the
+    // id must not blank a name the conversation already holds. `null` is an explicit clear.
+    if (name !== undefined) setSelectedName(name)
+  }, [])
+
+  const unpublish = useCallback(() => { handlers.current = {}; setSurface(null) }, [])
 
   const publish = useCallback((d: VidaSurfaceDisplay, h: VidaSurfaceHandlers) => {
     handlers.current = h
@@ -161,7 +198,7 @@ export function VidaConversationProvider({ children }: { children: React.ReactNo
       })
       const json = await res.json().catch(() => ({}))
       if (!res.ok || !json?.success) throw new Error(json?.error || `Sourcing failed (${res.status})`)
-      setSrcResult(`Sourced ${json.inserted} lead${json.inserted === 1 ? '' : 's'} for ${surface?.clientName || 'client'}${json.note ? ` · ${json.note}` : ''}. New leads are in People.`)
+      setSrcResult(`Sourced ${json.inserted} lead${json.inserted === 1 ? '' : 's'} for ${selectedName || 'client'}${json.note ? ` · ${json.note}` : ''}. New leads are in People.`)
       // #552 — sourcing SUCCEEDED and the client still cannot send. Kept separate from
       // srcResult (which renders green) because this is not a failure of the thing just
       // pressed — it is the next thing that will block, and it must not read as an error of
@@ -221,7 +258,8 @@ export function VidaConversationProvider({ children }: { children: React.ReactNo
   const run = useCallback((t: string) => { void runCommand(t) }, [selected, cmdBusy]) // eslint-disable-line react-hooks/exhaustive-deps
   const say = useCallback((role: 'operator' | 'vida', text: string) => setCmdLog(l => [...l, { role, text }]), [])
   const value = useMemo<VidaConversationApi>(
-    () => ({ selected, setSelected, run, say, busy: cmdBusy, publish, setSlot }), [selected, run, say, cmdBusy, publish])
+    () => ({ selected, selectedName, setSelected, run, say, busy: cmdBusy, publish, unpublish, setSlot }),
+    [selected, selectedName, setSelected, run, say, cmdBusy, publish, unpublish])
 
   // ⚠️ THE CLIENT HEADER IS NOT HERE, AND THAT IS DELIBERATE. The avatar, the company name,
   // the onboarding percentage, the wallet chip, the "you're working X" line, the "Needs you"
@@ -231,8 +269,12 @@ export function VidaConversationProvider({ children }: { children: React.ReactNo
   // above the element this panel is painted into. What moved is the conversation: the
   // blockers it is scoped by, the transcript, the shortcuts and the composer.
   const panel = (<>
-        {/* live gate counts for THIS client */}
-        {surface && (
+        {/* live gate counts for THIS client.
+            ⚑ 4 Sep (UI-010) — GUARDED ON THE FACTS, NOT ON THE OBJECT. `{surface && …}` drew
+            "0 Send gate · 0 Money gate · 0 Unsent sourced · 0 To triage" for any published
+            surface at all, so a workspace that cleared its contribution still left a row of
+            confident zeros nobody had read. No blockers, no strip. */}
+        {surface?.blockers && (
           <div className="shrink-0 flex items-center gap-1.5 flex-wrap px-[22px] py-2 border-b border-[#f2ecfb]">
             <span className="text-[10.5px] font-bold uppercase tracking-wide text-[#b3a9cc] mr-1">Blockers</span>
             {([['Send gate', surface.blockers?.send_gate], ['Money gate', surface.blockers?.money_gate], ['Unsent sourced', surface.blockers?.unsent_sourced], ['To triage', surface.blockers?.replies_to_triage]] as [string, number | undefined][]).map(([label, n]) => (
@@ -248,7 +290,7 @@ export function VidaConversationProvider({ children }: { children: React.ReactNo
           {surface?.boardError && <div className="text-[13px] font-semibold text-red-600">{surface.boardError}</div>}
           {cmdLog.length === 0 && (
             <div className="text-[13.5px] text-[#9b8ec4] leading-relaxed max-w-lg">
-              Ask Vida anything about <b className="text-[#5c5279]">{surface?.clientName || 'this client'}</b> — or use a shortcut below.
+              Ask Vida anything about <b className="text-[#5c5279]">{selectedName || 'this client'}</b> — or use a shortcut below.
               Everything you do here is scoped to them.
             </div>
           )}
@@ -330,7 +372,7 @@ export function VidaConversationProvider({ children }: { children: React.ReactNo
           </div>
           <form onSubmit={e => { e.preventDefault(); if (cmd.trim()) void runCommand(cmd.trim()) }} className="flex gap-2">
             <input value={cmd} onChange={e => setCmd(e.target.value)} disabled={cmdBusy}
-              placeholder={`Command Vida in ${surface?.clientName || 'client'} context…`}
+              placeholder={`Command Vida in ${selectedName || 'client'} context…`}
               className="flex-1 border border-[#ece5fb] rounded-xl px-3.5 py-2.5 text-[13.5px] bg-white outline-none focus:border-[#7C3AED] disabled:opacity-60" />
             <button type="submit" disabled={cmdBusy || !cmd.trim()}
               className="bg-[#7C3AED] hover:bg-[#6D28D9] text-white rounded-xl px-5 text-[13.5px] font-bold disabled:opacity-40">

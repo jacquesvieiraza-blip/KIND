@@ -109,26 +109,64 @@ leadRouter.get('/stats', async (req: AuthRequest, res) => {
     const clientId = await getClientId(req.userId!)
     if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
 
+    // ── 🛑 4 Sep (D4) — THESE COUNTS FEED A CUSTOMER PANEL, AND ONE SAID "TODAY" ──────────
+    //
+    // ⛓️ EVERY COUNT BELOW WAS `client_id` + `delivered_at NOT NULL`, i.e. LIFETIME. This
+    // endpoint was believed to be operator/legacy-only; it is not. `/milla/teams` re-renders
+    // `dashboard/team`, which reads `data.total` and renders it as **"Leads today"**. So a
+    // lifetime delivered count was labelled as today's activity, on a customer's own Teams
+    // Hub. Two falsehoods in one box: not today, and for a programme customer not current
+    // work either.
+    //
+    // ⚠️ THE LABEL IS FIXED WHERE THE LABEL LIVES (the portal). This endpoint's job is to stop
+    // handing a programme customer their retired book as a current number.
+    //
+    // ⚠️ LEGACY IS BYTE-FOR-BYTE UNCHANGED — `mode: 'client'` adds no filter, so every existing
+    // dashboard caller sees exactly the numbers it always has.
+    const { currentOutreachLeads, safeIn } = await import('../lib/current-outreach')
+    const scope = await currentOutreachLeads(clientId)
+
+    /**
+     * ⚠️ FAIL-CLOSED TO ZERO, and that is the opposite of the list surfaces on purpose. A list
+     * that blanks looks quiet; a NUMBER is an assertion, and a count is a claim about work we
+     * did. Not knowing is never grounds to make it — so an unreadable scope, like a
+     * calibration workspace, counts nothing.
+     */
+    const zeroed = scope.mode === 'none' || scope.mode === 'unreadable'
+    if (scope.mode === 'unreadable') {
+      console.error('[leads/stats] outreach scope unreadable for', clientId, scope.reason)
+    }
+    /** Tenancy + delivered + THE BOUNDARY, applied identically to every count below. */
+    const base = () => {
+      const q = db.from('leads').select('id', { count: 'exact', head: true })
+        .eq('client_id', clientId).not('delivered_at', 'is', null)
+      return scope.mode === 'ids' ? q.in('id', safeIn(scope.ids)) : q
+    }
+    const none = () => Promise.resolve({ count: 0 })
+
     // Use allSettled so one failed count doesn't blank the whole stats panel.
     // Only count DELIVERED leads — the client is only shown (and charged for)
     // delivered leads, so stats must match what they can actually see.
     const [total, scored, consented, exported_, optedOut, pendingReview, inFigsy] = (await Promise.allSettled([
-      db.from('leads').select('id', { count: 'exact', head: true }).eq('client_id', clientId).not('delivered_at', 'is', null),
-      db.from('leads').select('id', { count: 'exact', head: true }).eq('client_id', clientId).not('delivered_at', 'is', null).not('score', 'is', null),
-      db.from('leads').select('id', { count: 'exact', head: true }).eq('client_id', clientId).not('delivered_at', 'is', null).eq('status', 'consent_given'),
-      db.from('leads').select('id', { count: 'exact', head: true }).eq('client_id', clientId).not('delivered_at', 'is', null).eq('status', 'exported'),
-      db.from('leads').select('id', { count: 'exact', head: true }).eq('client_id', clientId).not('delivered_at', 'is', null).eq('status', 'opted_out'),
+      zeroed ? none() : base(),
+      zeroed ? none() : base().not('score', 'is', null),
+      zeroed ? none() : base().eq('status', 'consent_given'),
+      zeroed ? none() : base().eq('status', 'exported'),
+      zeroed ? none() : base().eq('status', 'opted_out'),
       // Pending Review pill: high-quality leads waiting for approval (score ≥ 70, not yet enrolled).
-      db.from('leads').select('id', { count: 'exact', head: true }).eq('client_id', clientId).not('delivered_at', 'is', null).gte('score', 70).in('status', ['pending', 'scored']),
+      zeroed ? none() : base().gte('score', 70).in('status', ['pending', 'scored']),
       // In FIGSY pill: consented leads in an active outreach state.
       // apollo_consented = provider-VERIFIED email, a legitimate-interest contact — NOT consent
       // (see @kind/shared `Lead`). This count is safe because it ALSO requires a consent status;
       // the flag alone would not mean what "in FIGSY" implies.
-      db.from('leads').select('id', { count: 'exact', head: true }).eq('client_id', clientId).not('delivered_at', 'is', null).eq('apollo_consented', true).in('status', ['consent_given', 'consent_sent']),
+      zeroed ? none() : base().eq('apollo_consented', true).in('status', ['consent_given', 'consent_sent']),
     ])).map(r => r.status === 'fulfilled' ? r.value : { count: 0 })
 
-    const { data: avgData } = await db.from('leads').select('score, estimated_deal_value_usd')
+    const avgQ = db.from('leads').select('score, estimated_deal_value_usd')
       .eq('client_id', clientId).not('delivered_at', 'is', null).not('score', 'is', null)
+    const { data: avgData } = zeroed
+      ? { data: [] as Array<Record<string, unknown>> }
+      : await (scope.mode === 'ids' ? avgQ.in('id', safeIn(scope.ids)) : avgQ)
 
     const avgScore = avgData?.length
       ? Math.round(avgData.reduce((sum: number, l: any) => sum + (Number(l.score) || 0), 0) / avgData.length)
@@ -472,13 +510,56 @@ leadRouter.get('/pipeline', async (req: AuthRequest, res) => {
     const clientId = await getClientId(req.userId!)
     if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
 
-    // Approved = the client paid the $4 and we revealed it (revealed_at is the claim).
-    const { data: approved } = await db.from('leads')
+    // ── 🛑 4 Sep (D2) — `revealed_at` IS THE RETIRED $4 APPROVE, NOT PIPELINE AUTHORITY ────
+    //
+    // ⛓️ THIS SELECTED EVERY LEAD THE CLIENT HAD EVER `revealed_at`, CLIENT-SCOPED. That
+    // column is the per-lead $1/$4 reveal of the retired commercial model — a payment event,
+    // not a statement that anyone is being worked today. For a programme customer with legacy
+    // history every one of those people rendered as a live pipeline, with no `programme_id`
+    // and no boundary of any kind.
+    //
+    // 🛑 AND THE PROGRAMME MODEL HAS NO "APPROVED" STAGE AT ALL. The customer makes ONE
+    // approval of the whole programme (lifecycle step 6), never a decision per person, so a
+    // per-person "Approved" column is the retired queue wearing new paint. The locked
+    // new-model pipeline is CONTACTED → REPLIED → BOOKED, and membership is the programme's
+    // own attribution rather than a purchase.
+    //
+    // ⚠️ LEGACY IS UNTOUCHED — `mode: 'client'` keeps the identical query, the identical
+    // `revealed_at` ordering and the identical four stages the $299 book has always seen.
+    // Nothing is deleted: every historical row stays exactly where it is.
+    const { currentOutreachLeads, safeIn } = await import('../lib/current-outreach')
+    const scope = await currentOutreachLeads(clientId)
+
+    // 🛑 A CALIBRATION WORKSPACE HAS NO PIPELINE. Free proof contacts nobody, so an empty
+    // board is the TRUE answer here rather than a degraded one — returned positively.
+    if (scope.mode === 'none') {
+      res.json({ success: true, data: {
+        counts: { approved: 0, contacted: 0, replied: 0, booked: 0 },
+        stages: { approved: [], contacted: [], replied: [], booked: [] },
+        model: 'programme', sourced_not_contacted: 0,
+      } })
+      return
+    }
+    if (scope.mode === 'unreadable') {
+      // A wrong pipeline is a claim about who we are working. Refuse rather than assert.
+      console.error('[leads/pipeline] outreach scope unreadable for', clientId, scope.reason)
+      res.status(503).json({ success: false, error: 'Your current work is unreadable — the pipeline was not built.' })
+      return
+    }
+
+    let approvedQ = db.from('leads')
       .select('id, first_name, last_name, company, job_title, score, revealed_at')
-      .eq('client_id', clientId).not('revealed_at', 'is', null)
+      .eq('client_id', clientId)
+    approvedQ = scope.mode === 'ids'
+      // POSITIVE ATTRIBUTION. The programme's own people, whether or not anyone ever paid to
+      // reveal them — under the programme model nobody does.
+      ? approvedQ.in('id', safeIn(scope.ids))
+      // The retired book, byte-for-byte as it was.
+      : approvedQ.not('revealed_at', 'is', null)
+    const { data: approved } = await approvedQ
       .order('revealed_at', { ascending: false }).limit(200)
     const approvedIds = (approved ?? []).map((l: { id: string }) => l.id)
-    const safeIds = approvedIds.length ? approvedIds : ['00000000-0000-0000-0000-000000000000']
+    const safeIds = safeIn(approvedIds)
 
     const [enrolled, replies, bookings] = await Promise.all([
       // #638 — `emails_sent` IS NOT A COLUMN ON THIS TABLE. It lives on `figsy_campaigns`
@@ -512,6 +593,8 @@ leadRouter.get('/pipeline', async (req: AuthRequest, res) => {
       company: l.company ?? null, job_title: l.job_title ?? null, score: l.score ?? null,
     })
     const stages = { approved: [] as unknown[], contacted: [] as unknown[], replied: [] as unknown[], booked: [] as unknown[] }
+    /** Programme leads sourced but not yet in outreach. Counted, never dressed as a stage. */
+    let sourcedNotContacted = 0
     for (const l of (approved ?? []) as Record<string, unknown>[]) {
       const id = l.id as string
       const b = bookedMap.get(id)
@@ -519,12 +602,26 @@ leadRouter.get('/pipeline', async (req: AuthRequest, res) => {
       const r = repliedMap.get(id)
       if (r) { stages.replied.push({ ...card(l), classification: (r as { classification?: string }).classification ?? null }); continue }
       if (contactedIds.has(id)) { stages.contacted.push(card(l)); continue }
+      // ── 🛑 4 Sep (D2) — THE PROGRAMME MODEL HAS NO PER-PERSON "APPROVED" STAGE ─────────
+      // Under the programme the customer approves the PROGRAMME once, not each person, so a
+      // sourced-but-not-yet-contacted lead is not "approved by them" — it is simply not in
+      // outreach yet, and the locked board is CONTACTED → REPLIED → BOOKED. Legacy keeps the
+      // stage it has always had, because there "approved" is a real thing they did and paid
+      // for. Nothing is hidden either way: a programme lead not yet contacted is counted in
+      // `sourced_not_contacted` rather than dressed as a decision the customer never made.
+      if (scope.mode === 'ids') { sourcedNotContacted += 1; continue }
       stages.approved.push(card(l))
     }
 
     res.json({ success: true, data: {
       counts: { approved: stages.approved.length, contacted: stages.contacted.length, replied: stages.replied.length, booked: stages.booked.length },
       stages,
+      // ⚠️ THE PROGRAMME BOARD SAYS SO IN THE PAYLOAD rather than leaving the portal to infer
+      // it from an empty `approved` column — which is how a UI ends up guessing a model.
+      model: scope.mode === 'ids' ? 'programme' : 'legacy',
+      // Programme only, and 0 for legacy. Sourced people not yet in outreach: a real number
+      // the customer is entitled to, and NOT a per-person approval they never made.
+      sourced_not_contacted: sourcedNotContacted,
     } })
   } catch (err) { console.error('[leads/pipeline]', err); res.status(500).json({ success: false, error: 'Failed to load pipeline' }) }
 })
@@ -619,19 +716,78 @@ leadRouter.get('/meetings', async (req: AuthRequest, res) => {
   try {
     const clientId = await getClientId(req.userId!)
     if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
-    const { data: rows } = await db.from('calendar_bookings')
-      .select('id, lead_id, meeting_title, start_time, status')
-      .eq('client_id', clientId).in('status', ['confirmed', 'completed'])
-      .order('start_time', { ascending: false }).limit(100)
-    const leadIds = Array.from(new Set((rows ?? []).map((b: { lead_id: string }) => b.lead_id).filter(Boolean)))
+    // ── 🛑 4 Sep (D3) — TWO DEFECTS, AND THE SECOND IS THE OLDER ONE ──────────────────────
+    //
+    // ⛓️ ① THIS READ `calendar_bookings`, THE RETIRED SOURCE. BUILD-003 item 2 made
+    // `public.meetings` the sole meeting truth because `calendar_bookings` records what we
+    // ASKED GOOGLE TO CREATE and has no notion of a duplicate, a spam booking or a reschedule
+    // — a meeting moved twice appeared three times on the customer's own page.
+    // `/leads/pipeline` was migrated at the time and says so in its own comment; this page was
+    // left behind. That is how the rail badge — counted from `public.meetings` — and the page
+    // it links to came to disagree.
+    //
+    // ⛓️ ② AND IT WAS CLIENT-SCOPED WITH NO BOUNDARY, so a programme customer's historical
+    // meetings rendered as their current ones. Same class as the replies page.
+    //
+    // ⚠️ THE EXCLUSION RULES ARE NOT RE-DERIVED HERE. `meetingsForClient` applies
+    // `excluded_reason IS NULL` and `superseded_by IS NULL` in the same module as
+    // `meetingCounts`, so the page and the badge cannot drift again — which is the whole
+    // reason the query is there and not here.
+    const { currentOutreachLeads } = await import('../lib/current-outreach')
+    const scope = await currentOutreachLeads(clientId)
+
+    // 🛑 CALIBRATION BOOKS NOBODY. An empty list is the TRUE answer for a proof workspace and
+    // for a programme client between programmes — stated positively, not queried for.
+    if (scope.mode === 'none') { res.json({ success: true, data: [] }); return }
+    if (scope.mode === 'unreadable') {
+      // A meeting list is a claim about the client's diary. Refuse rather than assert.
+      console.error('[leads/meetings] outreach scope unreadable for', clientId, scope.reason)
+      res.status(503).json({ success: false, error: 'Your current work is unreadable — meetings were not loaded.' })
+      return
+    }
+
+    const { meetingsForClient } = await import('../lib/meeting-truth')
+    const rows = await meetingsForClient({
+      clientId,
+      // Programme → that programme's meetings only. Legacy → the whole client, as before.
+      ...(scope.mode === 'ids' ? { programmeId: scope.programmeId } : {}),
+      limit: 100,
+    })
+    // ⚠️ null is a FAILED READ, never "no meetings". Telling a client with three meetings that
+    // they have none is the most damaging false statement available on this subject.
+    if (rows === null) {
+      res.status(503).json({ success: false, error: 'Meeting truth is unreadable — meetings were not loaded.' })
+      return
+    }
+
+    const leadIds = Array.from(new Set(rows.map(r => r.leadId).filter((v): v is string => !!v)))
     const { data: leadRows } = leadIds.length
       ? await db.from('leads').select('id, first_name, last_name, company, email').eq('client_id', clientId).in('id', leadIds)
       : { data: [] }
     const byId = new Map((leadRows ?? []).map((l: Record<string, unknown>) => [l.id as string, l]))
-    const meetings = (rows ?? []).map((b: Record<string, unknown>) => {
-      const l = byId.get(b.lead_id as string) as Record<string, unknown> | undefined
+
+    // ⚠️ THE STATUS IS THE STORED STATE, NEVER THE CLOCK. `meetings` refuses to record HELD or
+    // NO_SHOW without a confirmation (its own CHECK constraint), so nothing here infers that a
+    // meeting happened because its time has passed. "Rescheduled" is the SURVIVING row saying
+    // it replaced an earlier one — the superseded row is excluded, so nothing is listed twice.
+    const label = (state: string, rescheduled: boolean): string =>
+      state === 'HELD'                ? 'Held'
+      : state === 'NO_SHOW'           ? 'No-show'
+      : state === 'BOOKED_UNVERIFIED' ? 'Awaiting verification'
+      : rescheduled                   ? 'Rescheduled'
+      : 'Booked'
+
+    const meetings = rows.map(r => {
+      const l = byId.get(r.leadId ?? '') as Record<string, unknown> | undefined
       return {
-        id: b.id, title: b.meeting_title ?? 'Meeting', start_time: b.start_time, status: b.status,
+        id: r.id,
+        // `meetings` stores no title by design — it holds no prospect identity at all. The
+        // page's existing default is used rather than inventing one from the lead's name.
+        title: 'Meeting',
+        start_time: r.scheduledAt,
+        status: label(r.state, r.rescheduled),
+        state: r.state,
+        rescheduled: r.rescheduled,
         name: l ? [l.first_name, l.last_name].filter(Boolean).join(' ').trim() || (l.email as string) : 'Prospect',
         company: (l?.company as string | null) ?? null,
       }

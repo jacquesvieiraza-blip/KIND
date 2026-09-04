@@ -682,7 +682,15 @@ describe('THE HOME STATES NOTHING THAT ITS STAGE CANNOT SUPPORT', () => {
     const NEXUS = strip(readFileSync(join(__dirname, '../routes/leads.ts'), 'utf8'))
     const from = NEXUS.indexOf("leadRouter.get('/nexus-summary'")
     expect(from, 'the nexus route is gone').toBeGreaterThan(-1)
-    const body = NEXUS.slice(from, from + 2_000)
+    // ⛓️ TIGHTENED 4 Sep — ~~`NEXUS.slice(from, from + 2_000)`~~. A fixed BYTE window is a
+    // proxy for "this route's body", and it stopped being one the moment the NEXT route grew:
+    // the D2 pipeline correction pushed legitimate words ("proof", "scope") into the window and
+    // failed a guard about a route that had not changed at all. Bounded to the real end of the
+    // handler instead, so it asserts about `/nexus-summary` and nothing else — the assertion
+    // itself is unchanged and is now harder to trip accidentally, not easier.
+    const rest = NEXUS.slice(from + 1)
+    const nextRoute = rest.search(/\nleadRouter\.(get|post|patch|delete)\(/)
+    const body = nextRoute >= 0 ? rest.slice(0, nextRoute) : rest
     expect(body, 'a Proof/calibration branch was added to the outreach-learning endpoint')
       .not.toMatch(/proof|calibrat|stage/i)
   })

@@ -925,41 +925,87 @@ operatorRouter.get('/campaign/:id/enrollments', async (req: Request, res: Respon
 })
 
 // V2 — BUILD / REFINE THE ICP BY CONVERSATION (replaces the form).
-// The client-side twin is POST /icps/chat-build, which is client-JWT-only. This one is
-// seeded with the client's CURRENT active ICP, so the operator's conversation refines what
-// exists instead of starting from nothing. Returns a proposal — POST /operator/icp saves it.
+// The client-side twin is POST /icps/chat-build, which is client-JWT-only. Returns a
+// proposal — POST /operator/icp saves it.
+//
+// ── ⚑ 4 Sep — TWO REPAIRS, NEITHER OF THEM A NEW ENGINE ─────────────────────────────────
+//
+// 🛑 ① `fresh` — A CLIENT WITH HISTORY COULD ONLY EVER REFINE. This route seeded the client's
+// ACTIVE ICP unconditionally and told the model "keep what is already right, change only what
+// the operator asks about." For House — three historical ICPs and a NEW programme needing a
+// NEW definition — that is the wrong conversation, and there was no way to ask for the right
+// one. `fresh: true` starts from nothing. It reads no ICP, seeds no ICP, and **writes
+// nothing** either way: this route only ever proposes, and the operator saves.
+//
+// 🛑 ② THE #1444 DISCIPLINE, IMPORTED RATHER THAN RE-WRITTEN. The prompt below used to ask for
+// the whole profile on every reply, with enum menus for industry, seniority and size — the
+// filter-form shape #1444 removed from Milla's builder and never removed from here. The rules
+// now come from `lib/icp-conversation-rules`, whose own test proves the text is VERBATIM the
+// text inside `/icps/builder/chat`. One authored source, two consoles, and a red test the day
+// either drifts.
+//
+// ⚠️ WHAT DELIBERATELY DID NOT CHANGE: the transport (one Haiku call), the JSON contract, the
+// vocabulary lists (they map operator words onto the columns FIGSY actually filters on), and
+// "save" still being a separate press in the form editor.
 operatorRouter.post('/icp/chat', async (req: Request, res: Response) => {
   try {
-    const { client_id, message, history } = (req.body ?? {}) as
-      { client_id?: string; message?: string; history?: { role: 'user' | 'assistant'; content: string }[] }
+    const { client_id, message, history, fresh } = (req.body ?? {}) as
+      { client_id?: string; message?: string; history?: { role: 'user' | 'assistant'; content: string }[]; fresh?: boolean }
     const client = await requireClient(client_id)
     if (!client) { res.status(404).json({ success: false, error: 'Unknown client_id' }); return }
     if (typeof message !== 'string' || !message.trim()) { res.status(400).json({ success: false, error: 'Say something first' }); return }
 
-    const { data: current } = await db.from('icps')
-      .select('id, name, industries, job_titles, seniority_levels, company_sizes, geographies, tech_stack, keywords')
-      .eq('client_id', client.id).eq('is_active', true)
-      .order('created_at', { ascending: false }).limit(1).maybeSingle()
+    const startFresh = fresh === true
+    // 🛑 A FRESH BUILD DOES NOT READ THE EXISTING ICP AT ALL. Fetching it "just in case" is how
+    // a seed leaks back into the prompt on a later edit; the read is skipped, not filtered.
+    const { data: current } = startFresh
+      ? { data: null }
+      : await db.from('icps')
+          .select('id, name, industries, job_titles, seniority_levels, company_sizes, geographies, tech_stack, keywords')
+          .eq('client_id', client.id).eq('is_active', true)
+          .order('created_at', { ascending: false }).limit(1).maybeSingle()
     const { data: c } = await db.from('clients').select('company_name, industry, country').eq('id', client.id).maybeSingle()
+
+    const { ICP_CONVERSATION_DISCIPLINE } = await import('../lib/icp-conversation-rules')
 
     const system = `You are Vida, the operator-side ICP builder for K.I.N.D. You are talking to a K.I.N.D OPERATOR who is building or refining the ICP for their client ${c?.company_name ?? 'the client'}${c?.industry ? ` (${c.industry})` : ''}${c?.country ? `, based in ${c.country}` : ''}.
 
-${current ? `Their CURRENT active ICP is:\n${JSON.stringify(current, null, 1)}\nRefine it — keep what is already right, change only what the operator asks about.` : 'They have NO ICP yet — build the first one.'}
+${startFresh
+  ? 'BUILD A BRAND-NEW ICP FROM THIS CONVERSATION. Any earlier ICP this client has is deliberately NOT shown to you and must NOT be assumed, reused or referred to. Start from what the operator tells you now, and nothing else.'
+  : current
+    ? `Their CURRENT active ICP is:\n${JSON.stringify(current, null, 1)}\nRefine it — keep what is already right, change only what the operator asks about.`
+    : 'They have NO ICP yet — build the first one.'}
+
+${ICP_CONVERSATION_DISCIPLINE}
+
+── AND ONE THING THAT IS DIFFERENT HERE ────────────────────────────────────────────────
+You are talking to an OPERATOR about their client, not to the client. So "learn the business
+before you collect targeting fields" means the CLIENT'S business: if you do not understand
+what ${c?.company_name ?? 'this client'} actually sells, ask that before any targeting field.
+An operator often knows it already and will tell you in one line — take it and move on.
 
 Reply with ONLY valid JSON (no markdown fence):
-{"message":"<your reply to the operator, max 2 sentences>","icp":{"name":"...","industries":[],"job_titles":[],"seniority_levels":[],"company_sizes":[],"geographies":[],"tech_stack":[],"keywords":[]}}
+{"message":"<your reply to the operator — ONE question, or a short confirmation>","icp":{"name":"...","industries":[],"job_titles":[],"seniority_levels":[],"company_sizes":[],"geographies":[],"tech_stack":[],"keywords":[]}}
 
-Rules:
+Vocabulary — map what the operator says onto these; never read them out as a menu:
 - "industries" from: Fintech, Healthtech, E-commerce, SaaS, Logistics, Agriculture, Education, Manufacturing, Real Estate, Media, Consulting, Retail, Banking, Insurance, Telecoms, Energy
 - "seniority_levels" from: C-Suite, VP / Director, Head of, Manager, Senior, Individual Contributor
 - "company_sizes" from: 1–10, 11–50, 51–200, 201–500, 501–1,000, 1,000+
-- Include "icp" on EVERY reply, carrying the full proposed profile (current values plus your changes) so the editor always has something to save. Use [] for anything you genuinely don't know.
-- Never invent a fact about the client's business. Ask instead.`
+
+- Include "icp" on EVERY reply, carrying the full proposed profile so far. That is a RECORD of what you have been told, not a prompt to fill it in: leave [] for anything genuinely still MISSING and ask for one of them in "message". Never fill a field to make the object look finished.
+- Never invent a fact about the client's business. Ask instead.
+- Nothing you propose is saved. The operator reviews and saves it themselves.`
 
     if (!process.env.ANTHROPIC_API_KEY) {
       // No LLM key: stay useful rather than failing the step — hand back exactly what
-      // exists so the operator can still edit and save it.
-      res.json({ success: true, data: { message: 'I can’t reach my brain right now — here is the current profile to edit directly.', icp: current ?? null } })
+      // exists so the operator can still edit and save it. On a FRESH build there is
+      // deliberately nothing to hand back.
+      res.json({ success: true, data: {
+        message: startFresh
+          ? 'I can’t reach my brain right now — start the new profile in the form and I’ll pick it up when I’m back.'
+          : 'I can’t reach my brain right now — here is the current profile to edit directly.',
+        icp: startFresh ? null : (current ?? null),
+      } })
       return
     }
 
@@ -975,7 +1021,10 @@ Rules:
     const raw = msg.content.filter(b => b.type === 'text').map(b => (b as { text: string }).text).join('')
       .trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '')
     let parsed: { message?: string; icp?: Record<string, unknown> }
-    try { parsed = JSON.parse(raw) } catch { parsed = { message: raw.slice(0, 400) || 'Tell me more — industry, titles, seniority, size, region?' } }
+    // ⚑ 4 Sep — the unparseable-reply fallback used to read "Tell me more — industry, titles,
+    // seniority, size, region?": the filter-form checklist surviving in the one place nobody
+    // reviews. A fallback still speaks in Vida's voice and still obeys the one-thing rule.
+    try { parsed = JSON.parse(raw) } catch { parsed = { message: raw.slice(0, 400) || 'Say a bit more about who we should be hunting for.' } }
 
     res.json({
       success: true,
@@ -3205,6 +3254,8 @@ operatorRouter.post('/command', async (req: Request, res: Response) => {
     let reply: string
     let kind: 'answer' | 'handoff' = 'answer'
     let link: string | null = null
+    /** The operator's own words, forwarded to the surface the handoff opens. Never a summary. */
+    let handoffText: string | null = null
 
     if (/(block|stuck|waiting|what.?s left|to.?do|next)/.test(lc)) {
       reply = `Blockers for ${client.company_name ?? 'this client'}: `
@@ -3220,17 +3271,43 @@ operatorRouter.post('/command', async (req: Request, res: Response) => {
       kind = 'handoff'; link = `/vida?client=${cid}`
       reply = `Campaigns & sequences live in the FIGSY engine. Build or edit there; drafts come back to the Needs-approval column for your Send gate.`
     } else if (/(icp|target|persona|who)/.test(lc)) {
-      kind = 'handoff'; link = `/vida?client=${cid}`
-      reply = `Redefine the ICP in the ICP builder — the next sourcing run uses the new definition.`
+      // ── ⚑ 4 Sep — THE TYPED DEFINITION IS CARRIED, NOT DISCARDED ────────────────────────
+      //
+      // 🛑 THE FOUNDER TYPED A WHOLE ICP INTO THIS BAR AND GOT A SENTENCE BACK. This branch
+      // matched on `/icp|target|persona|who/`, returned canned prose and threw `q` away, so he
+      // was told to go and say it again somewhere else. The two failures were separate and
+      // both are fixed here: the link named no destination (`/vida?client=` lands on the
+      // default tab, which is Inbox), and the words he had already written were dropped.
+      //
+      // ⚠️ THIS DOES NOT MAKE THE COMMAND BAR AN ICP ENGINE. It resolves no targeting, calls
+      // no model and proposes nothing — it hands the operator's own sentence to the surface
+      // that does, as the opening turn. `handoff_text` is exactly what they typed.
+      kind = 'handoff'; link = `/vida?client=${cid}&tab=ICP&mode=chat`
+      handoffText = q
+      reply = `Taking you to the ICP conversation with what you just said — Vida will pick it up from there.`
     } else {
-      reply = `I can tell you this client's status or what's blocking, and point you to the ICP / campaign / sequence tools. Try "what's blocking?" or "status".`
+      // ── ⚑ 4 Sep — THE FALLBACK NO LONGER SHRUGS AND DROPS THE SENTENCE ──────────────────
+      //
+      // 🛑 THE ICP BRANCH ABOVE ONLY FIRES ON THE WORDS "icp / target / persona / who". The
+      // founder typed *"Founder-led B2B agencies and consultancies in the UK and United
+      // States"* — a complete ICP containing none of those words — so it fell to here, and
+      // here used to reply with a menu and discard what he had written. He then had to say it
+      // again somewhere else.
+      //
+      // ⚠️ THE FIX IS NOT WIDER INTENT MATCHING. Guessing that an arbitrary sentence is
+      // targeting is how a status question becomes an ICP proposal. Nothing is classified and
+      // nothing is auto-opened: the words are simply KEPT and offered, and the operator
+      // decides by pressing or not pressing. The reply is honest that it did not understand.
+      kind = 'handoff'; link = `/vida?client=${cid}&tab=ICP&mode=chat`
+      handoffText = q
+      reply = `I'm not sure what you're asking me to do with that. If it describes who we should be hunting for, open the ICP conversation and I'll carry your words straight in. Otherwise try "status" or "what's blocking?".`
     }
 
     await writeOperatorAudit({
       operatorEmail: operatorEmail(req), clientId: cid, action: 'vida_command',
       subjectType: 'client', subjectId: cid, detail: { text: q, kind },
     })
-    res.json({ success: true, reply, kind, link, counts: c })
+    res.json({ success: true, reply, kind, link, handoff_text: handoffText, counts: c })
   } catch (err) { console.error('[operator/command]', err); res.status(500).json({ success: false, error: 'Command failed' }) }
 })
 

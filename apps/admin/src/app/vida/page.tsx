@@ -70,7 +70,8 @@ type Blockers = { send_gate: number; money_gate: number; unsent_sourced: number;
 // ⚠️ BOTH ARE PLATFORM-WIDE, not per-client, and the panels say so. They live in the cockpit
 // tab strip because that is where an operator already is — a separate page would be a second
 // place to remember, and the thing that goes unlooked-at is the thing you have to navigate to.
-type CockpitTab = 'Inbox' | 'Approvals' | 'People' | 'Campaign' | 'ICP' | 'Sequence' | 'Asks' | 'Bookings' | 'Programme' | 'Pool' | 'Exceptions'
+const COCKPIT_TABS = ['Inbox', 'Approvals', 'People', 'Campaign', 'ICP', 'Sequence', 'Asks', 'Bookings', 'Programme', 'Pool', 'Exceptions'] as const
+type CockpitTab = typeof COCKPIT_TABS[number]
 type CampaignRow = {
   id: string; name: string; status: string; leads_enrolled: number; emails_sent: number
   replies_total: number; replies_interested: number; created_at: string | null
@@ -564,6 +565,10 @@ export default function VidaConsolePage() {
   const [testResult, setTestResult] = useState<{ preview: { subject: string; body: string }; sent: boolean; to: string | null } | null>(null)
   const [enrollView, setEnrollView] = useState<{ campaign: CampaignRow; rows: Enrollment[] } | null>(null)
   const [icpMode, setIcpMode] = useState<'list' | 'chat'>('list')
+  /** true = build a BRAND-NEW ICP; the existing one is neither read nor seeded. */
+  const [icpFresh, setIcpFresh] = useState(false)
+  /** What the operator typed in the command bar, waiting to open the ICP conversation. */
+  const [icpHandoff, setIcpHandoff] = useState<string | null>(null)
   const [icpChat, setIcpChat] = useState<ChatTurn[]>([])
   const [icpInput, setIcpInput] = useState('')
   const [icpProposal, setIcpProposal] = useState<IcpDraft>(null)
@@ -700,14 +705,17 @@ export default function VidaConsolePage() {
 
   // V2 — the ICP is built by TALKING, the way it was in the old console. The form stays as
   // the precise-edit fallback; the conversation is the front door.
-  async function sendIcpChat(text: string) {
+  // ⚑ 4 Sep — `fresh` rides the SAME request. A brand-new ICP is a different conversation,
+  // not a different engine: the route simply does not read or seed the existing one.
+  async function sendIcpChat(text: string, freshOverride?: boolean) {
     if (!selected || !text.trim() || cockpitBusy) return
     const history = icpChat.slice(-12)
+    const fresh = freshOverride ?? icpFresh
     setIcpChat(l => [...l, { role: 'user', content: text }]); setIcpInput(''); setCockpitBusy(true)
     try {
       const j = await fetch('/api/proxy/operator/icp/chat', {
         method: 'POST', headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ client_id: selected, message: text, history }),
+        body: JSON.stringify({ client_id: selected, message: text, history, fresh }),
       }).then(r => r.json())
       if (!j?.success) throw new Error(j?.error || 'Could not work the ICP')
       setIcpChat(l => [...l, { role: 'assistant', content: j.data.message }])
@@ -733,6 +741,39 @@ export default function VidaConsolePage() {
       keywords: joinArr((p as Record<string, unknown>).keywords),
     })
     setIcpMode('list')
+  }
+
+  // ── ⚑ 4 Sep — APPROVE THE PROPOSAL WHERE IT WAS PROPOSED ───────────────────────────────
+  //
+  // 🛑 "REVIEW & SAVE" USED TO OPEN THE RAW EIGHT-FIELD EDITOR — and, worse, `setIcpMode('list')`
+  // left the conversation, so the operator could not go back and correct anything by talking.
+  // The founder's ruling is that the raw form is the ESCAPE HATCH, never the normal journey.
+  //
+  // ⚠️ SAME PROPOSAL OBJECT, SAME SAVE ROUTE. This is not a second save path: it posts the
+  // conversation's own proposal to `POST /operator/icp`, exactly as the form does. What is
+  // removed is the form standing between the two.
+  async function approveProposal() {
+    if (!selected || !icpProposal) return
+    const p = icpProposal as Record<string, unknown>
+    if (!String(p.name ?? '').trim()) { setSaveMsg(notice.error('Give it a name first — ask Vida to name it, or open the fields.')); return }
+    setCockpitBusy(true); setSaveMsg(null)
+    try {
+      const j = await fetch('/api/proxy/operator/icp', {
+        method: 'POST', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          client_id: selected,
+          name: p.name,
+          industries: p.industries, job_titles: p.job_titles, seniority_levels: p.seniority_levels,
+          company_sizes: p.company_sizes, geographies: p.geographies,
+          tech_stack: p.tech_stack, keywords: p.keywords,
+        }),
+      }).then(r => r.json())
+      if (!j?.success) throw new Error(j?.error)
+      setIcpProposal(null); setIcpChat([]); setIcpMode('list')
+      setSaveMsg(notice.ok('Saved as the new ICP. It is not attached to a programme — attach it on the Programme tab when you are ready.'))
+      await loadCockpit(selected)
+    } catch (e) { setSaveMsg(notice.error(noticeText(e, 'Could not save the ICP'))) }
+    setCockpitBusy(false)
   }
 
   async function saveIcp() {
@@ -1218,6 +1259,20 @@ export default function VidaConsolePage() {
   async function runCommand(text: string) {
     const t = text.trim()
     if (!t || !selected || cmdBusy) return
+    // ── ⚑ 4 Sep — CONTEXT ROUTES, NOT KEYWORDS ─────────────────────────────────────────────
+    //
+    // 🛑 THE OPERATOR HAS ALREADY SAID WHAT THEY ARE DOING BY PRESSING "Build a NEW ICP by
+    // talking". Sending what they type next through a `/icp|target|persona|who/` regex asks a
+    // question the click already answered — and the founder's own sentence contains none of
+    // those four words, so the router replied with a menu and dropped a complete ICP.
+    //
+    // ⚠️ ONLY INSIDE THE EXPLICIT MODE. Outside it the generic router stays exactly as
+    // conservative as it was. This is state, not inference: nothing is classified.
+    if (tab === 'ICP' && icpMode === 'chat') {
+      setCmd('')
+      void sendIcpChat(t)
+      return
+    }
     // Sourcing intent → pool-aware confirm (spends OUR PDL budget), not the prose handoff.
     const srcCount = parseSourceIntent(t)
     if (srcCount != null) { setCmd(''); previewSource(srcCount); return }
@@ -1230,11 +1285,35 @@ export default function VidaConsolePage() {
       })
       const json = await res.json().catch(() => ({}))
       if (!res.ok || !json?.success) throw new Error(json?.error || `Command failed (${res.status})`)
+      // ⚑ 4 Sep — CARRY THE OPERATOR'S OWN SENTENCE. `handoff_text` is exactly what they
+      // typed; it is stashed against the client so the Open link can open the ICP
+      // conversation with it already said, instead of asking them to say it twice.
+      if (json.handoff_text && selected) {
+        try { sessionStorage.setItem(`vida:icp-handoff:${selected}`, String(json.handoff_text)) } catch { /* private mode */ }
+        setIcpHandoff(String(json.handoff_text))
+      }
       setCmdLog(l => [...l, { role: 'vida', text: json.reply, link: json.link }])
     } catch (e) {
       setCmdLog(l => [...l, { role: 'vida', text: e instanceof Error ? e.message : 'Command failed' }])
     } finally { setCmdBusy(false) }
   }
+
+  // ── ⚑ 4 Sep — THE CARRIED SENTENCE OPENS THE CONVERSATION ──────────────────────────────
+  //
+  // 🛑 THE FOUNDER TYPED A FULL ICP AND WAS ASKED TO TYPE IT AGAIN. The command bar now hands
+  // back exactly what he wrote; this fires it as the first turn of a FRESH conversation the
+  // moment the ICP chat is on screen, so the handoff loses nothing.
+  //
+  // ⚠️ IT RUNS ONCE. `icpHandoff` is cleared before the send, so a re-render, a tab switch or
+  // a second visit cannot replay the operator's sentence into the conversation.
+  useEffect(() => {
+    if (!icpHandoff || !selected || tab !== 'ICP' || icpMode !== 'chat' || cockpitBusy) return
+    const text = icpHandoff
+    setIcpHandoff(null)
+    setIcpFresh(true); setIcpChat([]); setIcpProposal(null)
+    void sendIcpChat(text, true)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [icpHandoff, selected, tab, icpMode, cockpitBusy])
 
   useEffect(() => {
     let alive = true
@@ -1246,8 +1325,25 @@ export default function VidaConsolePage() {
         if (!alive) return
         const rows: ClientRow[] = json.data ?? []
         setClients(rows)
-        const urlClient = new URLSearchParams(window.location.search).get('client')
+        const params = new URLSearchParams(window.location.search)
+        const urlClient = params.get('client')
         if (urlClient && rows.some(r => r.id === urlClient)) setSelected(urlClient)
+        // ── ⚑ 4 Sep — THE HANDOFF LINK NOW NAMES ITS DESTINATION ──────────────────────────
+        //
+        // 🛑 `?client=<id>` WAS THE WHOLE LINK, AND `tab` IS INITIALISED TO 'Inbox'. Every
+        // "Open →" the command bar produced — ICP, campaign, sequence alike — therefore landed
+        // on Inbox, whatever it said it would open. The founder pressed Open expecting the ICP
+        // builder and got the inbox, which is exactly what this page was written to do.
+        //
+        // ⚠️ VALIDATED, NEVER TRUSTED. `tab` must be one of the real tabs and `mode` one of the
+        // two ICP modes; anything else is ignored and the default stands.
+        const urlTab = params.get('tab')
+        if (urlTab && (COCKPIT_TABS as readonly string[]).includes(urlTab)) setTab(urlTab as CockpitTab)
+        if (params.get('mode') === 'chat') setIcpMode('chat')
+        // The operator's own words, carried across the navigation the link performs. Same
+        // origin, their own sentence, and read once — never a summary and never re-sent.
+        const carried = urlClient ? sessionStorage.getItem(`vida:icp-handoff:${urlClient}`) : null
+        if (carried) { sessionStorage.removeItem(`vida:icp-handoff:${urlClient}`); setIcpHandoff(carried) }
       } catch (e) {
         if (alive) setClientsError(e instanceof Error ? e.message : 'Failed to load clients')
       }
@@ -1805,7 +1901,22 @@ export default function VidaConsolePage() {
                 {cmdLog.map((m, i) => (
                   <div key={i} className={m.role === 'operator' ? 'text-right' : ''}>
                     <span className={`inline-block text-[13.5px] leading-relaxed rounded-xl px-3.5 py-2 max-w-[85%] text-left ${m.role === 'operator' ? 'bg-[#1f1235] text-white' : 'bg-white border border-[#eee7f7] text-[#1f1235]'}`}>{m.text}</span>
-                    {m.link && <a href={m.link} className="block text-[12px] font-bold text-[#7C3AED] mt-0.5 hover:underline">Open &rarr;</a>}
+                    {/* ⚑ 4 Sep — SAME PAGE, SO NO NAVIGATION. The link is this very screen with
+                        a tab and a mode on it; reloading would throw away the conversation
+                        state and the sentence just carried. It switches in place instead, and
+                        the href is kept so the URL still works when copied or bookmarked. */}
+                    {m.link && (
+                      <a href={m.link}
+                        onClick={e => {
+                          const u = new URL(m.link as string, window.location.origin)
+                          if (u.pathname !== '/vida') return
+                          e.preventDefault()
+                          const t = u.searchParams.get('tab')
+                          if (t && (COCKPIT_TABS as readonly string[]).includes(t)) setTab(t as CockpitTab)
+                          if (u.searchParams.get('mode') === 'chat') setIcpMode('chat')
+                        }}
+                        className="block text-[12px] font-bold text-[#7C3AED] mt-0.5 hover:underline">Open &rarr;</a>
+                    )}
                   </div>
                 ))}
 
@@ -1852,7 +1963,7 @@ export default function VidaConsolePage() {
                   ))}
                   {/* These three are the launch path — they open the surface that does the
                       work, instead of handing prose back to the operator. */}
-                  <button onClick={() => { setTab('ICP'); setIcpMode('chat') }}
+                  <button onClick={() => { setIcpFresh(true); setIcpChat([]); setIcpProposal(null); setTab('ICP'); setIcpMode('chat') }}
                     className="text-[12.5px] font-semibold text-[#7C3AED] border border-[#e4dcf7] rounded-full px-3 py-1 hover:bg-[#f7f4fd]">Build the ICP &rarr;</button>
                   <button onClick={() => { setTab('Campaign'); if (!activeCampaign) suggestCampaign() }}
                     className="text-[12.5px] font-semibold text-[#7C3AED] border border-[#e4dcf7] rounded-full px-3 py-1 hover:bg-[#f7f4fd]">Build a campaign &rarr;</button>
@@ -2504,14 +2615,24 @@ export default function VidaConsolePage() {
                 ) : icpMode === 'chat' ? (
                   <div className="flex flex-col h-full min-h-0">
                     <div className="shrink-0 flex items-center gap-2 mb-2">
-                      <b className="text-[14px]">Build it by talking</b>
+                      <b className="text-[14px]">{icpFresh ? 'Build a NEW ICP by talking' : 'Refine the ICP by talking'}</b>
+                      {icpFresh && cockpit.icps.length > 0 && (
+                        <span className="text-[11px] font-bold text-[#7C3AED] bg-[#f5f0ff] border border-[#e4dcf7] rounded-full px-2 py-0.5">
+                          {cockpit.icps.length} existing left untouched
+                        </span>
+                      )}
                       <button onClick={() => setIcpMode('list')} className="ml-auto text-[12.5px] font-bold text-[#9b8ec4]">All ICPs</button>
                     </div>
                     <div className="flex-1 overflow-y-auto space-y-2 mb-2 min-h-[120px]">
+                      {/* ⚑ 4 Sep — THE OPENER NO LONGER READS OUT A FILTER FORM. "industry,
+                          titles, seniority, size, region" asked for five targeting fields in
+                          one line, on screen, before the model said a word — the exact shape
+                          #1444 removed from Milla's builder. */}
                       {icpChat.length === 0 && (
                         <p className="text-[13px] text-[#9b8ec4] leading-relaxed">
-                          Tell me who we should be hunting for {selectedClient?.company_name || 'this client'} — industry, titles, seniority, size, region.
-                          {cockpit.icps.length > 0 && ' I already have their current ICP, so say what should change.'}
+                          {icpFresh
+                            ? `Starting a brand-new ICP for ${selectedClient?.company_name || 'this client'}. Tell me in your own words who we should be hunting for — I'll ask about anything I still need, one thing at a time.`
+                            : `Tell me what should change about ${selectedClient?.company_name || 'this client'}'s current targeting — I'll keep the rest as it is.`}
                         </p>
                       )}
                       {icpChat.map((m, i) => (
@@ -2529,11 +2650,28 @@ export default function VidaConsolePage() {
                           const v = joinArr((icpProposal as Record<string, unknown>)[k])
                           return v ? <p key={k} className="text-[12px] text-[#5c5279]"><b className="text-[#9b8ec4] font-bold">{label}:</b> {v}</p> : null
                         })}
-                        <div className="flex gap-2 mt-2.5">
-                          <button onClick={proposalToForm}
-                            className="bg-[#7C3AED] text-white rounded-lg px-3.5 py-2 text-[13px] font-bold">Review &amp; save</button>
-                          <button onClick={() => setIcpProposal(null)} className="text-[12.5px] font-bold text-[#9b8ec4]">Keep talking</button>
+                        {/* ── ⚑ 4 Sep — APPROVE OR CORRECT BY TALKING. NOT A FORM. ─────────────
+                            🛑 "Review & save" opened the raw eight-field editor and LEFT the
+                            conversation, so the normal journey ended in the thing the founder
+                            rejected and there was no way back to talking. The proposal is
+                            already human-readable above; the decision belongs here. The fields
+                            remain one quiet link away, and "Fill the form" is untouched. */}
+                        <div className="flex flex-wrap items-center gap-2 mt-2.5">
+                          <button onClick={approveProposal} disabled={cockpitBusy}
+                            className="bg-[#7C3AED] text-white rounded-lg px-3.5 py-2 text-[13px] font-bold disabled:opacity-40">
+                            {cockpitBusy ? 'Saving…' : 'Approve & save as the new ICP'}
+                          </button>
+                          <button onClick={() => setIcpProposal(null)}
+                            className="border border-[#e4dcf7] rounded-lg px-3 py-2 text-[13px] font-bold text-[#7C3AED]">
+                            Correct it by talking
+                          </button>
+                          <button onClick={proposalToForm} className="text-[12px] font-bold text-[#9b8ec4] hover:underline ml-auto">
+                            Edit the fields instead
+                          </button>
                         </div>
+                        <p className="text-[11.5px] text-[#9b8ec4] mt-1.5">
+                          Saving creates a new ICP. It attaches to no programme and sources nothing.
+                        </p>
                       </div>
                     )}
                     <form onSubmit={e => { e.preventDefault(); sendIcpChat(icpInput) }} className="shrink-0 flex gap-2">
@@ -2586,11 +2724,27 @@ export default function VidaConsolePage() {
                         </div>
                       </div>
                     ))}
-                  <div className="flex gap-2 mt-1">
-                    <button onClick={() => { setIcpMode('chat'); setSaveMsg(null) }}
+                  {/* ── ⚑ 4 Sep — FRESH CREATION IS NO LONGER HIDDEN BY HISTORY ─────────────
+                      🛑 THIS WAS ONE BUTTON WITH A CONDITIONAL LABEL: `icps.length === 0 ?
+                      'Build the ICP by talking' : 'Refine it by talking'`. A client with any
+                      history could therefore only ever be offered refinement — and House has
+                      three retired ICPs and a NEW programme that needs a NEW definition. The
+                      capability existed the whole time; the button did not.
+
+                      Both are offered now. Refine keeps its exact behaviour and stays the
+                      first choice where an ICP exists; the form stays the manual fallback it
+                      has always been. */}
+                  <div className="flex flex-wrap gap-2 mt-1">
+                    <button onClick={() => { setIcpFresh(true); setIcpChat([]); setIcpProposal(null); setIcpMode('chat'); setSaveMsg(null) }}
                       className="bg-[#7C3AED] text-white rounded-lg px-3.5 py-2 text-[13.5px] font-bold">
-                      {cockpit.icps.length === 0 ? '💬 Build the ICP by talking' : '💬 Refine it by talking'}
+                      💬 {cockpit.icps.length === 0 ? 'Build the ICP by talking' : 'Build a NEW ICP by talking'}
                     </button>
+                    {cockpit.icps.length > 0 && (
+                      <button onClick={() => { setIcpFresh(false); setIcpChat([]); setIcpProposal(null); setIcpMode('chat'); setSaveMsg(null) }}
+                        className="border border-[#e4dcf7] rounded-lg px-3 py-2 text-[13.5px] font-bold text-[#7C3AED]">
+                        💬 Refine existing ICP by talking
+                      </button>
+                    )}
                     <button onClick={() => openIcpEditor()} className="border border-[#ece5fb] rounded-lg px-3 py-2 text-[13.5px] font-bold text-[#5c5279]">Fill the form</button>
                   </div>
                   {saveMsg && <p className={`text-[12.5px] font-semibold mt-2 ${noticeClass(saveMsg.tone)}`}>{saveMsg.text}</p>}

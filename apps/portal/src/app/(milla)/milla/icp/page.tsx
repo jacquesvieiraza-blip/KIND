@@ -137,6 +137,25 @@ export default function MillaIcpPage() {
           </div>
         )}
 
+        {/* ── ⚑ 4 Sep — A FRESH START IS REACHABLE ONCE TARGETING ALREADY EXISTS ────────────
+            🛑 THE ENTRY POINT ABOVE IS GATED ON `icps.length === 0`, so the conversational
+            SET-UP path disappeared the moment a client had any targeting at all — leaving
+            "Change the targeting", which refines what is there. That is the right default and
+            it is not the only thing a client ever needs: a new programme, a new market or a
+            new product is a NEW definition, not an edit of the old one.
+
+            Same destination, same conversation, same explicit save. Nothing here replaces
+            "Change the targeting" — it sits underneath it, quieter, as the second option. */}
+        {icps && icps.length > 0 && (
+          <p className="mt-4 text-[12.5px] text-[#9b8ec4] text-center">
+            Starting something new?{' '}
+            <button onClick={() => router.push('/milla/welcome')} className="font-bold text-[#7C3AED] hover:underline">
+              Build fresh targeting with Milla
+            </button>
+            {' '}— your current targeting stays exactly as it is until you approve the new one.
+          </p>
+        )}
+
         {/* pending approval (operator proposed a newer version) */}
         {pendingApproval && (
           <div className="mt-5 bg-white border-[1.5px] border-[#e4d4fb] rounded-2xl p-5">

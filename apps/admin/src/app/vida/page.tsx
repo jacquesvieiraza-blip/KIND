@@ -743,6 +743,39 @@ export default function VidaConsolePage() {
     setIcpMode('list')
   }
 
+  // ── ⚑ 4 Sep — APPROVE THE PROPOSAL WHERE IT WAS PROPOSED ───────────────────────────────
+  //
+  // 🛑 "REVIEW & SAVE" USED TO OPEN THE RAW EIGHT-FIELD EDITOR — and, worse, `setIcpMode('list')`
+  // left the conversation, so the operator could not go back and correct anything by talking.
+  // The founder's ruling is that the raw form is the ESCAPE HATCH, never the normal journey.
+  //
+  // ⚠️ SAME PROPOSAL OBJECT, SAME SAVE ROUTE. This is not a second save path: it posts the
+  // conversation's own proposal to `POST /operator/icp`, exactly as the form does. What is
+  // removed is the form standing between the two.
+  async function approveProposal() {
+    if (!selected || !icpProposal) return
+    const p = icpProposal as Record<string, unknown>
+    if (!String(p.name ?? '').trim()) { setSaveMsg(notice.error('Give it a name first — ask Vida to name it, or open the fields.')); return }
+    setCockpitBusy(true); setSaveMsg(null)
+    try {
+      const j = await fetch('/api/proxy/operator/icp', {
+        method: 'POST', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          client_id: selected,
+          name: p.name,
+          industries: p.industries, job_titles: p.job_titles, seniority_levels: p.seniority_levels,
+          company_sizes: p.company_sizes, geographies: p.geographies,
+          tech_stack: p.tech_stack, keywords: p.keywords,
+        }),
+      }).then(r => r.json())
+      if (!j?.success) throw new Error(j?.error)
+      setIcpProposal(null); setIcpChat([]); setIcpMode('list')
+      setSaveMsg(notice.ok('Saved as the new ICP. It is not attached to a programme — attach it on the Programme tab when you are ready.'))
+      await loadCockpit(selected)
+    } catch (e) { setSaveMsg(notice.error(noticeText(e, 'Could not save the ICP'))) }
+    setCockpitBusy(false)
+  }
+
   async function saveIcp() {
     if (!selected || !icpEdit) return
     setCockpitBusy(true); setSaveMsg(null)
@@ -1226,6 +1259,20 @@ export default function VidaConsolePage() {
   async function runCommand(text: string) {
     const t = text.trim()
     if (!t || !selected || cmdBusy) return
+    // ── ⚑ 4 Sep — CONTEXT ROUTES, NOT KEYWORDS ─────────────────────────────────────────────
+    //
+    // 🛑 THE OPERATOR HAS ALREADY SAID WHAT THEY ARE DOING BY PRESSING "Build a NEW ICP by
+    // talking". Sending what they type next through a `/icp|target|persona|who/` regex asks a
+    // question the click already answered — and the founder's own sentence contains none of
+    // those four words, so the router replied with a menu and dropped a complete ICP.
+    //
+    // ⚠️ ONLY INSIDE THE EXPLICIT MODE. Outside it the generic router stays exactly as
+    // conservative as it was. This is state, not inference: nothing is classified.
+    if (tab === 'ICP' && icpMode === 'chat') {
+      setCmd('')
+      void sendIcpChat(t)
+      return
+    }
     // Sourcing intent → pool-aware confirm (spends OUR PDL budget), not the prose handoff.
     const srcCount = parseSourceIntent(t)
     if (srcCount != null) { setCmd(''); previewSource(srcCount); return }
@@ -2603,11 +2650,28 @@ export default function VidaConsolePage() {
                           const v = joinArr((icpProposal as Record<string, unknown>)[k])
                           return v ? <p key={k} className="text-[12px] text-[#5c5279]"><b className="text-[#9b8ec4] font-bold">{label}:</b> {v}</p> : null
                         })}
-                        <div className="flex gap-2 mt-2.5">
-                          <button onClick={proposalToForm}
-                            className="bg-[#7C3AED] text-white rounded-lg px-3.5 py-2 text-[13px] font-bold">Review &amp; save</button>
-                          <button onClick={() => setIcpProposal(null)} className="text-[12.5px] font-bold text-[#9b8ec4]">Keep talking</button>
+                        {/* ── ⚑ 4 Sep — APPROVE OR CORRECT BY TALKING. NOT A FORM. ─────────────
+                            🛑 "Review & save" opened the raw eight-field editor and LEFT the
+                            conversation, so the normal journey ended in the thing the founder
+                            rejected and there was no way back to talking. The proposal is
+                            already human-readable above; the decision belongs here. The fields
+                            remain one quiet link away, and "Fill the form" is untouched. */}
+                        <div className="flex flex-wrap items-center gap-2 mt-2.5">
+                          <button onClick={approveProposal} disabled={cockpitBusy}
+                            className="bg-[#7C3AED] text-white rounded-lg px-3.5 py-2 text-[13px] font-bold disabled:opacity-40">
+                            {cockpitBusy ? 'Saving…' : 'Approve & save as the new ICP'}
+                          </button>
+                          <button onClick={() => setIcpProposal(null)}
+                            className="border border-[#e4dcf7] rounded-lg px-3 py-2 text-[13px] font-bold text-[#7C3AED]">
+                            Correct it by talking
+                          </button>
+                          <button onClick={proposalToForm} className="text-[12px] font-bold text-[#9b8ec4] hover:underline ml-auto">
+                            Edit the fields instead
+                          </button>
                         </div>
+                        <p className="text-[11.5px] text-[#9b8ec4] mt-1.5">
+                          Saving creates a new ICP. It attaches to no programme and sources nothing.
+                        </p>
                       </div>
                     )}
                     <form onSubmit={e => { e.preventDefault(); sendIcpChat(icpInput) }} className="shrink-0 flex gap-2">

@@ -90,11 +90,14 @@ vi.mock('./alerts', () => ({ sendFounderAlert: () => Promise.resolve() }))
 
 /** The single Anthropic call, captured so the SYSTEM PROMPT itself can be asserted. */
 const seenSystem: string[] = []
+/** And the user turns, so "his whole sentence arrived" is an assertion, not a hope. */
+const seenMessages: Array<Array<{ role: string; content: string }>> = []
 vi.mock('@anthropic-ai/sdk', () => ({
   default: class {
     messages = {
-      create: async (opts: { system?: string }) => {
+      create: async (opts: { system?: string; messages?: Array<{ role: string; content: string }> }) => {
         seenSystem.push(String(opts.system ?? ''))
+        seenMessages.push((opts.messages ?? []).map(m => ({ role: String(m.role), content: String(m.content) })))
         return { content: [{ type: 'text', text: JSON.stringify({
           message: 'What does the client actually sell?',
           icp: { name: 'UK + US founder-led agencies', industries: ['Consulting'], job_titles: ['Founder'], seniority_levels: ['C-Suite'], company_sizes: [], geographies: ['United Kingdom', 'United States'], tech_stack: [], keywords: [] },
@@ -143,7 +146,7 @@ const snapshot = () => JSON.parse(JSON.stringify(state.icps.filter(i => String(i
 
 beforeEach(() => {
   state.clients = []; state.icps = []; state.programmes = []; state.campaigns = []; state.leads = []
-  writes.length = 0; reads.length = 0; seenSystem.length = 0
+  writes.length = 0; reads.length = 0; seenSystem.length = 0; seenMessages.length = 0
   process.env.ADMIN_KEY = ADMIN
   process.env.ANTHROPIC_API_KEY = 'test-key'
 })
@@ -381,6 +384,99 @@ describe('④ conversation → proposal → explicit save → 4th ICP, and nothi
 })
 
 // ═══════════════════════════════════════════════════════════════════════════════════════
+// ⑥ THE FOUNDER'S EXACT SENTENCE, THROUGH THE EXACT JOURNEY
+//
+// He pressed "Build a NEW ICP by talking" and typed this. It contains NONE of the four words
+// the generic router matches on — which is why it was previously answered with a menu and
+// thrown away. Inside explicit ICP mode the click has already said what he is doing, so the
+// text goes straight to the ICP conversation and the router is never consulted.
+// ═══════════════════════════════════════════════════════════════════════════════════════
+describe("⑥ the founder's own words, end to end", () => {
+  const SENTENCE = 'Founder-led B2B agencies and consultancies in the UK and United States. '
+    + '5–50 employees. Target Founder, Co-Founder, CEO, Managing Director, Partner and Head of Growth. '
+    + 'They sell high-value professional services and rely on outbound/new business. '
+    + 'Exclude recruitment agencies, SaaS/software, ecommerce, local consumer businesses and companies under 5 employees.'
+
+  beforeEach(house)
+
+  it('the sentence really does miss every keyword the generic router looks for', () => {
+    expect(/\b(icp|persona)\b/i.test(SENTENCE)).toBe(false)
+    // "Target" appears as a VERB here, which is exactly how a keyword router misreads intent:
+    // it would match, and it would still have been the wrong surface answering.
+    expect(SENTENCE).toContain('Target Founder')
+  })
+
+  it('🛑 IT REACHES THE ICP CONVERSATION, FRESH, WITH NO OLD ICP IN THE PROMPT', async () => {
+    const r = await callOperator('post', '/icp/chat', { client_id: CLIENT, fresh: true, message: SENTENCE })
+    expect(r.status).toBe(200)
+    expect(reads, 'the old ICPs are never read').not.toContain('icps')
+    expect(seenSystem[0]).toContain('BUILD A BRAND-NEW ICP FROM THIS CONVERSATION')
+    expect(seenSystem[0]).not.toContain('Retired ICP')
+    expect(seenSystem[0]).not.toContain('South Africa')
+  })
+
+  it('🛑 THE #1444 DISCIPLINE GOVERNS THE REPLY, AND THE WHOLE SENTENCE IS CARRIED', async () => {
+    await callOperator('post', '/icp/chat', { client_id: CLIENT, fresh: true, message: SENTENCE })
+    expect(seenSystem[0]).toContain('ASK FOR ONE GENUINELY MISSING THING PER REPLY')
+    expect(seenSystem[0]).toContain('NEVER ask for industry, job titles, company size and geography together.')
+    expect(seenSystem[0]).toContain('LEARN WHAT THEY DO BEFORE YOU COLLECT TARGETING FIELDS')
+    // His words go in the USER turn, whole — the route caps at 2,000 chars and this is ~380.
+    const lastUser = seenMessages[0].filter(m => m.role === 'user').pop()!
+    expect(lastUser.content, 'the exclusions are not truncated away').toContain('Exclude recruitment agencies')
+    expect(lastUser.content, 'nor the size band').toContain('5–50 employees')
+    expect(lastUser.content).toBe(SENTENCE)
+  })
+
+  it('🛑 HE CAN KEEP TALKING — the conversation continues and still writes nothing', async () => {
+    await callOperator('post', '/icp/chat', { client_id: CLIENT, fresh: true, message: SENTENCE })
+    const r2 = await callOperator('post', '/icp/chat', {
+      client_id: CLIENT, fresh: true, message: 'Also exclude anyone under 5 staff.',
+      history: [{ role: 'user', content: SENTENCE }, { role: 'assistant', content: 'What does the client sell?' }],
+    })
+    expect(r2.status).toBe(200)
+    expect(r2.payload.data.icp).toBeTruthy()
+    expect(writes, 'two turns, still nothing written').toHaveLength(0)
+    expect(state.icps).toHaveLength(3)
+  })
+
+  it('🛑 APPROVING THE PROPOSAL CREATES THE FOURTH ICP — no form in the path', async () => {
+    const chat = await callOperator('post', '/icp/chat', { client_id: CLIENT, fresh: true, message: SENTENCE })
+    const proposal = chat.payload.data.icp as Row
+    const before = snapshot()
+    // Exactly what the Approve button posts: the proposal object, to the existing save route.
+    const save = await callOperator('post', '/icp', { client_id: CLIENT, ...proposal })
+    expect(save.status).toBe(200)
+    expect(state.icps).toHaveLength(4)
+    const fresh = state.icps.find(i => i.id === (save.payload.data as Row).id)!
+    expect(fresh.name).toBe('UK + US founder-led agencies')
+    expect(fresh.geographies).toEqual(['United Kingdom', 'United States'])
+    for (const old of before) {
+      const now = state.icps.find(i => i.id === old.id)!
+      for (const k of Object.keys(old)) {
+        if (k === 'is_active') continue
+        expect(now[k], `${old.id}.${k}`).toEqual(old[k])
+      }
+    }
+  })
+
+  it('🛑 AND THE PROGRAMME IS EXACTLY AS IT WAS', async () => {
+    const chat = await callOperator('post', '/icp/chat', { client_id: CLIENT, fresh: true, message: SENTENCE })
+    await callOperator('post', '/icp', { client_id: CLIENT, ...(chat.payload.data.icp as Row) })
+    await new Promise(r => setTimeout(r, 0))
+    const p = state.programmes[0]
+    expect(p.icp_id, 'unattached').toBeNull()
+    expect(p.status).toBe('SOURCING_AUTHORISED')
+    expect(p.second_authorised_at).toBeNull()
+    expect(p.second_paid_at).toBeNull()
+    expect(p.went_live_at).toBeNull()
+    expect(p.sourcing_ceiling, 'untouched').toBe(2500)
+    expect(state.leads, 'no batch, no provider, no sourcing').toHaveLength(0)
+    expect(state.campaigns.filter(c => c.status === 'active'), 'nothing sending').toHaveLength(0)
+    expect(writes.filter(w => w.table === 'programmes'), 'the programme row is never written').toHaveLength(0)
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
 // ⑤ THE SCREENS — reachability is the whole fix, so it is asserted on the screens
 // ═══════════════════════════════════════════════════════════════════════════════════════
 describe('⑤ both conversations are reachable, and the form stays the fallback', () => {
@@ -444,7 +540,47 @@ describe('⑤ both conversations are reachable, and the form stays the fallback'
   })
 
   it('🛑 AND THE PROPOSAL STILL NEEDS AN EXPLICIT PRESS TO BECOME AN ICP', () => {
-    expect(vida).toContain('Review &amp; save')
-    expect(vida).toContain('proposalToForm')
+    expect(vida).toContain("'Approve & save as the new ICP'")
+    expect(vida).toContain('approveProposal')
+  })
+
+  // ── ⚑ 4 Sep, SECOND PASS — THE NORMAL JOURNEY MUST NOT END IN THE RAW FORM ─────────────
+  it('🛑 I — APPROVING HAPPENS IN THE CONVERSATION, NOT IN THE EIGHT-FIELD EDITOR', () => {
+    // The defect in one line: the primary button used to call `proposalToForm`, which sets
+    // `icpEdit` AND `setIcpMode('list')` — the raw editor, and the conversation gone with it.
+    // The old primary button, by its exact markup. `proposalToForm` still EXISTS — it is now
+    // the quiet "Edit the fields instead" link, which is the point: available, not the path.
+    expect(vida, 'the primary action no longer jumps to the form').not.toContain(
+      '<button onClick={proposalToForm}\n                            className="bg-[#7C3AED] text-white')
+    expect(vida, 'and the form link is styled as the quiet one').toContain(
+      '<button onClick={proposalToForm} className="text-[12px] font-bold text-[#9b8ec4]')
+    expect(vida).toContain('onClick={approveProposal}')
+    expect(vida, 'and correcting it keeps the operator in the conversation')
+      .toContain('Correct it by talking')
+  })
+
+  it('🛑 J — APPROVE REUSES THE EXISTING SAVE ROUTE AND THE EXISTING PROPOSAL', () => {
+    const fn = vida.slice(vida.indexOf('async function approveProposal'), vida.indexOf('async function saveIcp'))
+    expect(fn).toContain("'/api/proxy/operator/icp'")
+    expect(fn, 'the conversation’s own proposal object, not a new model').toContain('icpProposal as Record<string, unknown>')
+    expect(fn, 'no second ICP schema is invented here').not.toContain('setIcpEdit(')
+    expect(fn, 'and it tells the operator what it did NOT do').toContain('not attached to a programme')
+  })
+
+  it('🛑 K — THE FORM SURVIVES AS THE QUIET SECONDARY ROUTE', () => {
+    expect(vida, 'the escape hatch is untouched').toContain('Fill the form')
+    expect(vida, 'and reachable from the review state too').toContain('Edit the fields instead')
+    const approveAt = vida.indexOf("'Approve & save as the new ICP'")
+    const fieldsAt  = vida.indexOf('Edit the fields instead')
+    expect(approveAt, 'approving comes first').toBeGreaterThan(-1)
+    expect(fieldsAt).toBeGreaterThan(approveAt)
+  })
+
+  it('🛑 L — INSIDE EXPLICIT ICP MODE, TYPING GOES STRAIGHT TO THE ICP CONVERSATION', () => {
+    const fn = vida.slice(vida.indexOf('async function runCommand'), vida.indexOf('const srcCount = parseSourceIntent'))
+    expect(fn).toContain("tab === 'ICP' && icpMode === 'chat'")
+    expect(fn).toContain('void sendIcpChat(t)')
+    // It must RETURN — falling through would still hit the regex router afterwards.
+    expect(fn).toMatch(/icpMode === 'chat'\)\s*\{[\s\S]{0,120}return/)
   })
 })

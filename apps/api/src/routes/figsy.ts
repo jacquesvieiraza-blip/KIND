@@ -901,43 +901,80 @@ figsyRouter.get('/kpis', async (req: AuthRequest, res) => {
                 : period === '90d' ? new Date(Date.now() - 90 * 86400000).toISOString()
                 : null
 
-    // figsy_sent_emails has no client_id — scope it via the client's campaigns.
-    const campaignIds = await getClientCampaignIds(clientId)
+    // ── 🛑 4 Sep (D5) — THESE ARE CUSTOMER-VISIBLE ACTIVITY NUMBERS ───────────────────────
+    //
+    // ⛓️ EVERY COUNT BELOW WAS `client_id` (or the client's whole campaign list) WITH NO
+    // BOUNDARY, and the default `period` is 'all' — so `since` is null and nothing bounds them
+    // at all. `/milla/teams` re-renders `dashboard/team`, which reads `emails_sent` from here
+    // into a customer-facing "Team Analytics" panel: a programme customer was shown the
+    // retired book's send volume as their activity.
+    //
+    // ⚠️ FAIL-CLOSED TO ZERO on `none` and `unreadable`, unlike the list surfaces. A number is
+    // an assertion about work we did; a list that goes quiet is not.
+    //
+    // ⚠️ LEGACY IS UNCHANGED — `mode: 'client'` keeps `getClientCampaignIds` and the identical
+    // client-scoped counts the $299 book has always seen.
+    const { currentOutreachLeads, currentOutreachCampaigns, safeIn } = await import('../lib/current-outreach')
+    const scope = await currentOutreachLeads(clientId)
+    const campScope = await currentOutreachCampaigns(clientId, scope)
+    if (scope.mode === 'unreadable') console.error('[figsy/kpis] outreach scope unreadable for', clientId, scope.reason)
+    if (campScope.mode === 'unreadable') console.error('[figsy/kpis] campaign scope unreadable for', clientId, campScope.reason)
+    const zeroed = scope.mode === 'none' || scope.mode === 'unreadable' || campScope.mode === 'unreadable'
+
+    // figsy_sent_emails has no client_id — scope it via the client's campaigns. For a
+    // programme customer those are the PROGRAMME's campaigns, derived through its ICPs.
+    const campaignIds = campScope.mode === 'ids'
+      ? safeIn(campScope.ids)
+      : await getClientCampaignIds(clientId)
+    /** Tenancy + THE BOUNDARY on a reply count, applied identically everywhere below. */
+    const replyBase = () => {
+      const q = db.from('figsy_replies').select('id', { count: 'exact', head: true }).eq('client_id', clientId)
+      return scope.mode === 'ids' ? q.in('lead_id', safeIn(scope.ids)) : q
+    }
+    const none = () => Promise.resolve({ count: 0, data: null })
 
     let sentQuery = db.from('figsy_sent_emails').select('id', { count: 'exact', head: true }).in('campaign_id', campaignIds)
     if (since !== null) sentQuery = sentQuery.gte('sent_at', since)
 
-    let repliesQuery = db.from('figsy_replies').select('id', { count: 'exact', head: true }).eq('client_id', clientId)
+    let repliesQuery = replyBase()
     if (since !== null) repliesQuery = repliesQuery.gte('received_at', since)
 
-    let interestedQuery = db.from('figsy_replies').select('id', { count: 'exact', head: true }).eq('client_id', clientId).eq('classification', 'hot')
+    let interestedQuery = replyBase().eq('classification', 'hot')
     if (since !== null) interestedQuery = interestedQuery.gte('received_at', since)
 
-    let optOutQuery = db.from('figsy_replies').select('id', { count: 'exact', head: true }).eq('client_id', clientId).eq('classification', 'opt_out')
+    let optOutQuery = replyBase().eq('classification', 'opt_out')
     if (since !== null) optOutQuery = optOutQuery.gte('received_at', since)
 
     let opensQuery = db.from('figsy_sent_emails').select('id', { count: 'exact', head: true }).in('campaign_id', campaignIds).not('opened_at', 'is', null)
     if (since !== null) opensQuery = opensQuery.gte('sent_at', since)
+
+    const totalLeadsQ = db.from('leads').select('id', { count: 'exact', head: true }).eq('client_id', clientId)
+    const avgScoreQ   = db.from('leads').select('score').eq('client_id', clientId).not('score', 'is', null)
 
     const [
       sentRes, repliesRes, interestedRes, optOutRes,
       activeCampaignsRes, totalLeadsRes, leadsContactedRes, avgScoreRes,
       meetingsRes, opensRes,
     ] = await Promise.all([
-      sentQuery,
-      repliesQuery,
-      interestedQuery,
-      optOutQuery,
-      db.from('figsy_campaigns').select('id', { count: 'exact', head: true }).eq('client_id', clientId).eq('status', 'active'),
-      db.from('leads').select('id', { count: 'exact', head: true }).eq('client_id', clientId),
+      zeroed ? none() : sentQuery,
+      zeroed ? none() : repliesQuery,
+      zeroed ? none() : interestedQuery,
+      zeroed ? none() : optOutQuery,
+      // ⚠️ "Campaigns live" IS A CURRENT CLAIM, so it takes the boundary too — a retired
+      // campaign left at status 'active' is not a programme customer's live campaign.
+      zeroed ? none()
+        : campScope.mode === 'ids'
+          ? db.from('figsy_campaigns').select('id', { count: 'exact', head: true }).eq('client_id', clientId).in('id', safeIn(campScope.ids)).eq('status', 'active')
+          : db.from('figsy_campaigns').select('id', { count: 'exact', head: true }).eq('client_id', clientId).eq('status', 'active'),
+      zeroed ? none() : (scope.mode === 'ids' ? totalLeadsQ.in('id', safeIn(scope.ids)) : totalLeadsQ),
       // "Contacted" = leads actually put into outreach (enrolled), scoped via campaigns —
       // NOT status='consent_sent' (which over-counted, e.g. 19 contacted while 0 sent).
-      db.from('figsy_enrollments').select('id', { count: 'exact', head: true }).in('campaign_id', campaignIds),
-      db.from('leads').select('score').eq('client_id', clientId).not('score', 'is', null),
+      zeroed ? none() : db.from('figsy_enrollments').select('id', { count: 'exact', head: true }).in('campaign_id', campaignIds),
+      zeroed ? none() : (scope.mode === 'ids' ? avgScoreQ.in('id', safeIn(scope.ids)) : avgScoreQ),
       // Meetings = real booked replies (meeting_booked_at set), NOT the driftable
       // figsy_campaigns.meetings_booked counter.
-      db.from('figsy_replies').select('id', { count: 'exact', head: true }).eq('client_id', clientId).not('meeting_booked_at', 'is', null),
-      opensQuery,
+      zeroed ? none() : replyBase().not('meeting_booked_at', 'is', null),
+      zeroed ? none() : opensQuery,
     ])
 
     const totalSent        = sentRes.count ?? 0
@@ -2354,16 +2391,54 @@ figsyRouter.post('/replies/:id/mark-booked', async (req: AuthRequest, res) => {
   }
 })
 
-// Unified inbox — all replies across all campaigns for this client
+// Unified inbox — the replies this client's CURRENT work has produced.
+//
+// ── 🛑 4 Sep (D1) — THE RAIL WAS BOUNDED AND THIS PAGE WAS NOT ─────────────────────────
+//
+// ⛓️ THIS READ `figsy_replies` BY `client_id` AND TOOK THE NEWEST 200. On 3 Sep
+// `recentRepliesFor` bounded the Home rail over the SAME TABLE, and the founder confirmed on
+// his own screen that House's historical reply had gone. It had gone from the rail. The
+// Replies PAGE — one click away in that same rail, reached by the badge that now correctly
+// read zero — still returned it in full.
+//
+// 🛑 THAT IS THE PROOF THAT A PER-SURFACE FIX IS NOT A FIX. Two surfaces over one table, one
+// bounded and one not, is worse than neither being bounded: the badge and the page contradict
+// each other, and the page wins because it is the one with the words in it.
+//
+// ⚠️ THE BOUNDARY IS THE SHARED ONE, not a second interpretation — `currentOutreachLeads`,
+// which is `currentWorkspaceScope` plus the one derivation every outreach surface needs.
+// `figsy_replies` carries no `programme_id`, so attribution is DERIVED through `lead_id`,
+// exactly as the rail derives it. No column, no migration, no backfill.
+//
+// ⚠️ FAIL-SOFT ON UNREADABLE, AND THAT MATCHES THE RAIL DELIBERATELY. Blanking a paying
+// client's inbox over a transient read error is a worse lie than showing it, and the rail
+// already made that call for this table. One table, one degradation.
 figsyRouter.get('/replies/all', async (req: AuthRequest, res) => {
   try {
     const clientId = await getClientId(req.userId!)
     if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+
+    const { currentOutreachLeads, safeIn } = await import('../lib/current-outreach')
+    const scope = await currentOutreachLeads(clientId)
+
+    // 🛑 NO CURRENT OUTREACH MEANS NO CURRENT REPLIES. Returned positively as an empty inbox
+    // rather than as a query nobody can read — a calibration workspace has sent nobody an
+    // email, so a reply here could only be an earlier motion's.
+    if (scope.mode === 'none') { res.json({ success: true, data: [] }); return }
+
+    if (scope.mode === 'unreadable') {
+      console.error('[figsy/replies/all] outreach scope unreadable for', clientId, scope.reason)
+    }
+
     // Include lead id + linkedin_url so the inbox can link reply→lead and show
     // the LinkedIn chip (both were impossible because these weren't selected).
-    const { data, error } = await db.from('figsy_replies')
+    let q = db.from('figsy_replies')
       .select('*, leads(id,first_name,last_name,job_title,company,linkedin_url)')
       .eq('client_id', clientId)
+    // ⚠️ APPLIED AFTER TENANCY AND BEFORE THE ORDER. The boundary only ever ADDS a filter;
+    // `client_id` is unconditional, so no scope can widen what another client may see.
+    if (scope.mode === 'ids') q = q.in('lead_id', safeIn(scope.ids))
+    const { data, error } = await q
       .order('processed_at', { ascending: false })
       .limit(200)
     if (error) throw error

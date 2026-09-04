@@ -320,8 +320,19 @@ export default function TeamsHubPage() {
 
           {/* 2x2 stat grid */}
           <div className="grid grid-cols-2 gap-3">
-            <StatBox label="Leads today"    value={leadsToday} />
-            <StatBox label="Emails sent"    value={emailsSent} />
+            {/* ── 🛑 4 Sep (D4) — "LEADS TODAY" WAS NEVER TODAY ─────────────────────────
+                ⛓️ ~~`label="Leads today"`~~. The value is `/leads/stats` → `data.total`, a
+                LIFETIME delivered count — 166 of them on the account that found this — printed
+                under the word "today" on a customer's own Teams Hub.
+
+                ⚠️ THE FIX IS THE LABEL, NOT A NEW NUMBER. Founder-ruled: a historical metric
+                must be labelled historical, and must never be turned into a current one by
+                renaming it. So the count is unchanged and now says what it is. (Separately,
+                the endpoint no longer hands a programme customer their retired book at all —
+                see the D4 note in `routes/leads.ts`.) */}
+            <StatBox label="Leads delivered (all time)" value={leadsToday} />
+            {/* Same reasoning: `/figsy/kpis` defaults to `period=all`, so this is lifetime. */}
+            <StatBox label="Emails sent (all time)"     value={emailsSent} />
             <StatBox label="Campaigns live" value={campaignsLive} />
             <StatBox label="Active now"     value={activeNow} />
           </div>

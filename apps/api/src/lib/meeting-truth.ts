@@ -550,6 +550,78 @@ export async function clientMeetingCounts(clientIds: string[]): Promise<Record<s
 
 export interface LiveMeeting { id: string; leadId: string; scheduledAt: string; state: MeetingState }
 
+/** One row for the customer's Meetings page. Identity stays on `leads`; this carries none. */
+export interface MeetingListRow {
+  id: string
+  leadId: string | null
+  scheduledAt: string
+  state: MeetingState
+  /** True when this row REPLACED an earlier booking — the honest source of "Rescheduled". */
+  rescheduled: boolean
+}
+
+/**
+ * THE CUSTOMER'S MEETINGS, from the table that is the meeting truth.
+ *
+ * ── ⚑ 4 Sep — WHY THIS EXISTS RATHER THAN A QUERY IN THE ROUTE ──────────────────────────
+ *
+ * 🛑 `/leads/meetings` WAS STILL READING `calendar_bookings`, and it was the LAST customer
+ * surface doing so. BUILD-003 item 2 made `public.meetings` the sole source of meeting state
+ * precisely because `calendar_bookings` records what we asked Google to create and has no
+ * notion of a duplicate, a spam booking or a reschedule — so a meeting moved twice appeared
+ * three times on the client's own page. `/leads/pipeline` was migrated at the time and its
+ * comment says why; the Meetings PAGE was left behind, which is how the rail badge (counted
+ * from `public.meetings`) and the page it links to came to disagree.
+ *
+ * ⚠️ THE EXCLUSION RULES ARE THE MODULE'S, NOT THE CALLER'S — `excluded_reason IS NULL` and
+ * `superseded_by IS NULL`, identical to `meetingCounts` two screens up, so the page and the
+ * badge cannot drift. That is the whole reason this is a function here and not a select there.
+ *
+ * ⚠️ "RESCHEDULED" IS THE SURVIVING ROW, NOT THE DEAD ONE. A reschedule inserts a new row and
+ * stamps the old one `superseded_by`; showing the old row would put the same meeting on the
+ * page twice, which is the exact duplication this replaces. The live row carries
+ * `rescheduled_from`, so it can say it was moved without anything being counted twice.
+ *
+ * ⚠️ NO_SHOW IS INCLUDED HERE, UNLIKE `liveMeetingsByLead`. That function answers "is a
+ * meeting on the books for this person?" for a pipeline stage; this one is the client's
+ * RECORD of their meetings, and a meeting nobody attended still happened to their diary.
+ *
+ * ⚠️ FAILS LOUD. `null` on a storage error, never an empty list — a client with meetings must
+ * never be shown "no meetings" because a query failed.
+ */
+export async function meetingsForClient(filter: {
+  clientId: string
+  /** When present, ONLY this programme's meetings. Absent = the whole client (legacy). */
+  programmeId?: string
+  limit?: number
+}): Promise<MeetingListRow[] | null> {
+  let q = db.from('meetings')
+    .select('id, lead_id, scheduled_at, state, rescheduled_from')
+    .eq('client_id', filter.clientId)
+    .is('excluded_reason', null)
+    .is('superseded_by', null)
+  if (filter.programmeId) q = q.eq('programme_id', filter.programmeId)
+
+  const { data, error } = await q
+    .order('scheduled_at', { ascending: false })
+    .limit(filter.limit ?? 100)
+
+  if (error) {
+    console.error('[meeting-truth] meetingsForClient failed:', error.message)
+    return null
+  }
+  return ((data ?? []) as Array<{
+    id: string; lead_id: string | null; scheduled_at: string
+    state: MeetingState; rescheduled_from: string | null
+  }>).map(r => ({
+    id: r.id,
+    leadId: r.lead_id,
+    scheduledAt: r.scheduled_at,
+    state: r.state,
+    rescheduled: r.rescheduled_from !== null && r.rescheduled_from !== undefined,
+  }))
+}
+
 /**
  * The live meeting for each of the given leads, if any.
  *

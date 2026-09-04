@@ -251,12 +251,17 @@ async function seatHasRetiredEconomics(clientId: string): Promise<boolean> {
  * a pool action on all of them.
  */
 async function companyHasRetiredEconomics(companyId: string): Promise<boolean> {
+  // 🛑 4 Sep, RUNTIME-FOUND — EVERY SEAT, NOT EVERY REP, AND AN EMPTY ROSTER IS NOT A YES.
+  // This filtered `seat_role = 'rep'` and returned TRUE when it found none. House is an
+  // explicit programme client whose company has an owner seat and NO reps, so the filter
+  // matched nothing, the empty roster read as permission, and every retired credit action
+  // stayed open on a programme account. **The owner is a seat.**
   const { data, error } = await db.from('clients')
-    .select('id').eq('company_id', companyId).eq('seat_role', 'rep')
+    .select('id').eq('company_id', companyId)
   if (error) { console.error('[company] seat roster unreadable for economics gate:', error.message); return false }
-  const reps = (data ?? []) as Array<{ id: string }>
-  if (reps.length === 0) return true
-  for (const r of reps) if (!(await seatHasRetiredEconomics(r.id))) return false
+  const seats = (data ?? []) as Array<{ id: string }>
+  if (seats.length === 0) return false
+  for (const s of seats) if (!(await seatHasRetiredEconomics(s.id))) return false
   return true
 }
 
@@ -289,12 +294,37 @@ companyRouter.get('/overview', async (req: AuthRequest, res) => {
     const reps = seatRows.filter(s => s.seat_role === 'rep')
     const stats = await repStats(reps.map(r => r.id))
 
+    // ── 🛑 4 Sep, RUNTIME-FOUND — THE OWNER IS A SEAT, AND ITS MODEL WAS NEVER RESOLVED ────
+    //
+    // `repStats` is handed only the REP seats, so a non-rep seat fell to the `?? unreadable`
+    // default below. Two consequences, in opposite directions, both live:
+    //
+    //   ① A PROGRAMME COMPANY WITH NO REPS SHOWED EVERYTHING. `companyEconomics` read
+    //      `repOut.length === 0 || …`, and "no reps yet has nothing to contradict it" is
+    //      exactly true of House — an explicit programme client with one owner seat. Zero reps
+    //      meant the pool, the Requests tile, the Credits left column and the Pending credit
+    //      requests card all rendered on a programme account. **The suppression was never
+    //      wrong; it was never asked.**
+    //   ② A LEGACY OWNER LOST THEIR OWN FIGURES. `unreadable` is not legacy (R96), so the
+    //      owner's Credits left cell went blank beside every rep's.
+    //
+    // ⚠️ THE MODEL IS RESOLVED HERE; THE ACTIVITY NUMBERS ARE DELIBERATELY NOT. Feeding every
+    // seat through `repStats` would also start printing an owner's outreach where zero has
+    // always been printed — a second, unasked change to a legacy screen. The defect is the
+    // ECONOMICS decision, so only that is widened.
+    const nonRepEconomics: Record<string, boolean> = {}
+    for (const s of seatRows) {
+      if (s.seat_role !== 'rep') nonRepEconomics[s.id] = await seatHasRetiredEconomics(s.id)
+    }
+
     const seatsOut = seatRows.map(s => {
       const st = stats[s.id] ?? { contacted: 0, replies: 0, booked: 0, leads: 0, deduped: 0, mode: 'unreadable' as const }
       const budget = s.seat_budget ?? 0
       const used = Math.max(0, budget - (s.credit_balance ?? 0))
       // 🛑 RETIRED ECONOMICS ARE SUPPRESSED, NOT ZEROED. See `showsRetiredEconomics`.
-      const money = showsRetiredEconomics(st.mode)
+      const money = s.seat_role === 'rep'
+        ? showsRetiredEconomics(st.mode)
+        : (nonRepEconomics[s.id] ?? false)
       return {
         id: s.id,
         email: s.invited_email || s.company_name || '—',
@@ -344,9 +374,16 @@ companyRouter.get('/overview', async (req: AuthRequest, res) => {
     // mixed company "your programme is billed as one price in two halves", which is a claim
     // about a model only some of its seats are on. `economics_hidden_reason` carries that
     // distinction to the page; it invents nothing, it only says which absence this is.
-    const companyEconomics = repOut.length === 0 || repOut.every(s => s.economics_visible)
+    //
+    // 🛑 4 Sep, RUNTIME-FOUND — OVER EVERY SEAT, AND AN EMPTY ROSTER IS NOT A YES.
+    // This read `repOut.length === 0 || repOut.every(…)`. The first clause was written as "a
+    // company with no reps yet has nothing to contradict it" — and it is exactly true of a
+    // one-person programme company, which is the commonest company on the platform and the one
+    // the founder was looking at. It is now every seat the roster returned, owner included,
+    // with no seats at all failing CLOSED rather than open.
+    const companyEconomics = seatsOut.length > 0 && seatsOut.every(s => s.economics_visible)
     const economicsHiddenReason = companyEconomics ? null
-      : repOut.some(s => s.economics_visible) ? 'mixed' : 'programme'
+      : seatsOut.some(s => s.economics_visible) ? 'mixed' : 'programme'
     const totals = {
       seats:            repOut.length,
       active_seats:     repOut.filter(s => s.seat_active && s.accepted_at).length,

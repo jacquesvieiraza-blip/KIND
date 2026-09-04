@@ -582,7 +582,12 @@ describe('⑩ a mixed-model company makes no shared-credit claim', () => {
   })
 
   it('🛑 A UNIFORMLY PROGRAMME COMPANY IS A DIFFERENT ABSENCE, and says so', async () => {
+    // ⚠️ THE OWNER IS FLIPPED TOO, and that is the correction rather than an accommodation:
+    // this fixture's owner is `legacy`, so flipping only the reps leaves a genuinely MIXED
+    // company. It read 'programme' before only because the owner seat was invisible to the
+    // decision — the runtime defect block ⑫ exists for.
     state.clients.find(c => c.id === REP)!.commercial_model = 'programme'
+    state.clients.find(c => c.id === OWNER)!.commercial_model = 'programme'
     const t = (await overview()).payload.data.totals
     expect(t.economics_visible).toBe(false)
     expect(t.economics_hidden_reason).toBe('programme')
@@ -765,6 +770,135 @@ describe('⑪ a programme company has no credit verbs, not just no credit figure
       expect(state.requests[0]).toMatchObject({ id: REQ, status: 'pending', amount: 5000, rep_client_id: REP })
       expect(writes).toHaveLength(0)
     })
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// ⑫ THE OWNER IS A SEAT — AND A COMPANY OF ONE IS THE COMMONEST COMPANY THERE IS
+//
+// 🛑 THIS IS THE ONE THE FOUNDER FOUND ON THE LIVE SITE, AND EVERY TEST ABOVE MISSED IT.
+// `repStats` is handed ONLY the rep seats, so the OWNER's commercial model was never resolved
+// at all — and the company-wide decision was `repOut.length === 0 || repOut.every(…)`, whose
+// first clause reads "a company with no reps yet has nothing to contradict it."
+//
+// For House — an explicit programme client whose company has an owner seat and NO reps — that
+// clause is the whole bug: zero reps ⇒ `companyEconomics = true` ⇒ **Pool credits, the Requests
+// tile, the Credits left column and the Pending credit requests card all render**, exactly the
+// four things he saw. The suppression was never wrong; it was never asked.
+//
+// ⚠️ AND IT CUT THE OTHER WAY TOO. Because the owner was absent from `stats`, it fell to the
+// `?? { mode: 'unreadable' }` default — so a LEGACY owner's own "Credits left" cell went blank
+// while every rep's stayed. One omission, a false claim for one model and a lost figure for
+// the other.
+//
+// ⚠️ THE LESSON, WHICH IS THE REUSABLE PART: I proved the boundary on the seats I remembered to
+// enumerate. A fixture that always had a rep could never fail this way — and the commonest
+// company on the platform is one person.
+// ═══════════════════════════════════════════════════════════════════════════════════════
+describe('⑫ a programme company with no rep seats', () => {
+  /** House: one programme-model owner seat, a company row, a full historical book. No reps. */
+  function soloCompany(model: string | null = 'programme') {
+    state.companies.push({ id: CO, name: 'House', credit_pool: 5000, seat_cap: 25 })
+    const owner: Row = {
+      id: OWNER, user_id: OWNER_USER, company_id: CO, seat_role: 'owner', company_name: 'House',
+      seat_budget: 1000, credit_balance: 900, seat_active: true, seat_accepted_at: 'a',
+      proof_passes_done: 0, wallet_balance_usd: 0,
+    }
+    if (model !== undefined) owner.commercial_model = model
+    state.clients.push(owner)
+    repHistory(OWNER)
+  }
+  const ownerSeat = (p: any) => p.payload.data.seats.find((s: Row) => s.id === OWNER)
+
+  it('the fixture is the live shape — one owner seat, no reps, and a real history', () => {
+    soloCompany()
+    expect(state.clients.filter(c => c.seat_role === 'rep')).toHaveLength(0)
+    expect(state.leads).toHaveLength(3)
+  })
+
+  it('🛑 NO POOL CREDITS — zero reps is not permission to show a retired pool', async () => {
+    soloCompany()
+    const t = (await overview()).payload.data.totals
+    expect(t.economics_visible).toBe(false)
+    expect(t.company_pool).toBeNull()
+    expect(t.allocated).toBeNull()
+    expect(t.used).toBeNull()
+    expect(t.economics_hidden_reason).toBe('programme')
+  })
+
+  it('🛑 NO REQUESTS TILE AND NO PENDING CREDIT REQUESTS', async () => {
+    soloCompany(); pendingRequest(OWNER, 'cr-owner')
+    const p = await overview()
+    expect(p.payload.data.totals.pending_requests).toBe(0)
+    expect(p.payload.data.pending_requests).toEqual([])
+  })
+
+  it('🛑 NO CREDITS LEFT ON THE OWNER SEAT — suppressed as absent, never zeroed', async () => {
+    soloCompany()
+    const s = ownerSeat(await overview())
+    expect(s.economics_visible).toBe(false)
+    expect(s.credit_budget).toBeNull()
+    expect(s.credits_used).toBeNull()
+    expect(s.credit_balance).toBeNull()
+  })
+
+  it('🛑 AND NO CREDIT VERBS EITHER — the company-wide gates see the owner too', async () => {
+    soloCompany(); pendingRequest(OWNER, 'cr-owner')
+    process.env.IS_STAGING = 'true'
+    expect((await callPost('/pool/topup', { amount: 100 })).status).toBe(403)
+    delete process.env.IS_STAGING
+    expect((await callPost('/seats', { email: 'x@y.com', budget: 5000 })).status).toBe(403)
+    expect((await callPost('/credit-requests/:id/decide', { decision: 'approved' }, { id: 'cr-owner' })).status).toBe(403)
+    expect(writes).toHaveLength(0)
+  })
+
+  it('🛑 A SOLO PROOF SEAT IS ALSO REFUSED — "none" is not legacy', async () => {
+    soloCompany()
+    state.leads.push({ id: 'pf1', client_id: OWNER, programme_id: null, proof_pass: 1, crm_existing: false, delivered_at: 'd', surfaced_for_approval_at: 's', status: 'scored' })
+    const t = (await overview()).payload.data.totals
+    expect(t.economics_visible).toBe(false)
+    expect(t.company_pool).toBeNull()
+  })
+
+  it('🛑 A SOLO UNREADABLE SEAT FAILS CLOSED — never a fall-through to legacy (R96)', async () => {
+    soloCompany(undefined)
+    const t = (await overview()).payload.data.totals
+    expect(t.economics_visible).toBe(false)
+    expect(t.company_pool).toBeNull()
+  })
+
+  for (const model of [null, 'legacy'] as const) {
+    it(`🛑 A SOLO ${String(model)} COMPANY KEEPS EVERYTHING — the fix must not blank a paying owner`, async () => {
+      soloCompany(model); pendingRequest(OWNER, 'cr-owner')
+      const p = await overview()
+      const s = ownerSeat(p)
+      expect(s.economics_visible).toBe(true)
+      expect(s.credit_budget, 'THE OWNER’S OWN CREDITS — blanked by the first fix, restored here').toBe(1000)
+      expect(s.credits_used).toBe(100)
+      expect(s.credit_balance).toBe(900)
+      expect(p.payload.data.totals.economics_visible).toBe(true)
+      expect(p.payload.data.totals.company_pool).toBe(5000)
+      expect(p.payload.data.totals.pending_requests).toBe(1)
+      expect(p.payload.data.pending_requests).toHaveLength(1)
+    })
+  }
+
+  it('🛑 AND AN OWNER IN A COMPANY THAT HAS REPS IS RESOLVED TOO', async () => {
+    // The mirror of the bug: a LEGACY company whose owner seat is the one carrying the
+    // retired book. Before the fix the owner was `unreadable` by accident and their own
+    // Credits left cell rendered blank beside every rep's.
+    company('legacy', 'legacy'); repHistory(); repHistory(OWNER)
+    const s = ownerSeat(await overview())
+    expect(s.economics_visible).toBe(true)
+    expect(s.credit_budget).toBe(1000)
+  })
+
+  it('🛑 ONE PROGRAMME OWNER OVER LEGACY REPS STILL RETIRES THE SHARED POOL', async () => {
+    company('legacy', 'programme')   // reps legacy, OWNER on the programme
+    repHistory(); repHistory(OWNER)
+    const t = (await overview()).payload.data.totals
+    expect(t.economics_visible).toBe(false)
+    expect(t.economics_hidden_reason).toBe('mixed')
   })
 })
 

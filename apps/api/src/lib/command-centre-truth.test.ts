@@ -44,6 +44,9 @@ const state: {
   campaigns: Row[]; icps: Row[]; sent: Row[]; companies: Row[]; requests: Row[]; plays: Row[]
 } = { clients: [], leads: [], programmes: [], replies: [], meetings: [], campaigns: [], icps: [], sent: [], companies: [], requests: [], plays: [] }
 
+/** Every write any route attempted this test, in order. */
+const writes: Array<{ op: 'insert' | 'update'; table: string; row: Row }> = []
+
 function table(name: string) {
   const rows = (): Row[] =>
     name === 'leads' ? state.leads : name === 'programmes' ? state.programmes
@@ -53,8 +56,15 @@ function table(name: string) {
     : name === 'seat_credit_requests' ? state.requests : name === 'winning_plays' ? state.plays
     : state.clients
   const q: any = {
-    _f: [] as ((r: Row) => boolean)[], _limit: 0,
+    _f: [] as ((r: Row) => boolean)[], _limit: 0, _inserted: null as Row | null,
     select() { return q },
+    // Writes are RECORDED as well as applied, so a test can assert that a refused action
+    // touched nothing — a 403 that still wrote would pass every status assertion.
+    insert(v: Row | Row[]) {
+      const row = { id: `new-${name}`, ...(Array.isArray(v) ? v[0] : v) } as Row
+      writes.push({ op: 'insert', table: name, row }); q._inserted = row; rows().push(row); return q
+    },
+    update(v: Row) { writes.push({ op: 'update', table: name, row: v }); return q },
     eq(c: string, v: unknown) { q._f.push((r: Row) => r[c] === v); return q },
     neq(c: string, v: unknown) { q._f.push((r: Row) => r[c] !== v); return q },
     is(c: string, v: unknown) { q._f.push((r: Row) => (r[c] ?? null) === v); return q },
@@ -70,8 +80,8 @@ function table(name: string) {
       const all = rows().filter(r => q._f.every((f: (r: Row) => boolean) => f(r)))
       return q._limit > 0 ? all.slice(0, q._limit) : all
     },
-    async maybeSingle() { return { data: q._hit()[0] ?? null, error: null } },
-    async single() { return { data: q._hit()[0] ?? null, error: null } },
+    async maybeSingle() { return { data: q._inserted ?? q._hit()[0] ?? null, error: null } },
+    async single() { return { data: q._inserted ?? q._hit()[0] ?? null, error: null } },
     then(res: (v: unknown) => unknown) {
       return Promise.resolve({ data: q._hit(), error: null, count: q._hit().length }).then(res)
     },
@@ -82,7 +92,9 @@ function table(name: string) {
 vi.mock('@kind/db', () => ({
   db: {
     from: (t: string) => table(t),
-    rpc: async () => ({ data: null, error: null }),
+    // `allocate_pool_to_rep` returns TRUE when the guarded move succeeded, so the legacy path
+    // can be walked all the way to success rather than stopping at "pool too small".
+    rpc: async () => ({ data: true, error: null }),
     auth: { admin: { getUserById: async () => ({ data: { user: { email: 'nobody@example.com' } } }) } },
   },
 }))
@@ -112,6 +124,31 @@ const overview = () => callGet('/overview')
 const plays    = () => callGet('/winning-plays')
 /** The panel one click beneath the roster row. */
 const detail   = (id = REP) => callGet('/seats/:id/detail', { id })
+
+async function callPost(
+  path: string, body: Record<string, unknown> = {}, params: Record<string, string> = {}, userId = OWNER_USER,
+) {
+  const m = await import('../routes/company')
+  const layer = (m.companyRouter as unknown as { stack: Array<Record<string, any>> }).stack
+    .find(l => l.route?.path === path && l.route?.methods.post)
+  if (!layer) throw new Error(`POST ${path} not found`)
+  const handler = layer.route.stack[layer.route.stack.length - 1].handle
+  let payload: any = null; let status = 200
+  const res: any = { json: (b: unknown) => { payload = b }, status: (s: number) => { status = s; return res } }
+  await handler({ userId, query: {}, body, params }, res, () => {})
+  return { payload, status }
+}
+async function callPatch(path: string, body: Record<string, unknown>, params: Record<string, string> = {}, userId = OWNER_USER) {
+  const m = await import('../routes/company')
+  const layer = (m.companyRouter as unknown as { stack: Array<Record<string, any>> }).stack
+    .find(l => l.route?.path === path && l.route?.methods.patch)
+  if (!layer) throw new Error(`PATCH ${path} not found`)
+  const handler = layer.route.stack[layer.route.stack.length - 1].handle
+  let payload: any = null; let status = 200
+  const res: any = { json: (b: unknown) => { payload = b }, status: (s: number) => { status = s; return res } }
+  await handler({ userId, query: {}, body, params }, res, () => {})
+  return { payload, status }
+}
 
 /** The company shell: an owner seat that opens the page, and one rep seat under it. */
 function company(repModel: string | null | undefined, ownerModel: string | null = 'legacy') {
@@ -163,7 +200,16 @@ beforeEach(() => {
   state.clients = []; state.leads = []; state.programmes = []; state.replies = []
   state.meetings = []; state.campaigns = []; state.icps = []; state.sent = []
   state.companies = []; state.requests = []; state.plays = []
+  writes.length = 0
 })
+
+/** The retired credit model, mid-flight: a pending request sitting on a seat. */
+function pendingRequest(seat = REP, id = 'cr-1') {
+  state.requests.push({
+    id, company_id: CO, rep_client_id: seat, amount: 5000,
+    reason: 'Running low', status: 'pending', created_at: '2026-02-01',
+  })
+}
 
 // ═══════════════════════════════════════════════════════════════════════════════════════
 // ① PROGRAMME-MODEL SEAT, NO ACTIVE PROGRAMME, LARGE HISTORY
@@ -552,6 +598,177 @@ describe('⑩ a mixed-model company makes no shared-credit claim', () => {
 })
 
 // ═══════════════════════════════════════════════════════════════════════════════════════
+// ⑪ THE RETIRED CREDIT MODEL IS A SET OF VERBS, NOT ONLY A SET OF NUMBERS
+//
+// 🛑 A SUPPRESSED FIGURE BESIDE A LIVE BUTTON IS NOT A SUPPRESSION. The earlier passes hid
+// "Credits left" and left every credit ACTION reachable: a rep could POST a credit request, an
+// owner could approve one (which MOVES credits), allocate from the pool, set a seat budget, or
+// top the pool up — and the "Add a rep" form carried a `Budget … cr` input defaulting to 5,000
+// with no guard at all, so every invite a programme company sent allocated a retired budget.
+//
+// A button is a stronger claim than a number: a number says a thing exists, a button promises
+// the software will do it.
+// ═══════════════════════════════════════════════════════════════════════════════════════
+describe('⑪ a programme company has no credit verbs, not just no credit figures', () => {
+  const REQ = 'cr-1'
+
+  describe('A · programme seat, no programme, carrying a historical request', () => {
+    beforeEach(() => { company('programme', 'programme'); repHistory(); pendingRequest() })
+
+    it('the fixture is not vacuous — the request really is pending in the table', () => {
+      expect(state.requests).toHaveLength(1)
+      expect(state.requests[0].status).toBe('pending')
+    })
+
+    it('🛑 NO COUNT AND NO LIST — the historical request is not current state', async () => {
+      const p = await overview()
+      expect(p.payload.data.totals.pending_requests).toBe(0)
+      expect(p.payload.data.pending_requests).toEqual([])
+    })
+
+    it('🛑 NO REQUEST-CREDITS ACTION', async () => {
+      const r = await callPost('/credit-requests', { amount: 100 })
+      expect(r.status).toBe(403)
+      expect(writes.filter(w => w.table === 'seat_credit_requests'), 'refused AND wrote nothing').toHaveLength(0)
+    })
+
+    it('🛑 NO APPROVE / DENY ACTION — and no credits move', async () => {
+      for (const decision of ['approved', 'denied'] as const) {
+        const r = await callPost('/credit-requests/:id/decide', { decision }, { id: REQ })
+        expect(r.status).toBe(403)
+      }
+      expect(writes, 'nothing was written by either refusal').toHaveLength(0)
+      expect(state.requests[0].status, 'the historical row is untouched').toBe('pending')
+    })
+
+    it('🛑 NO ALLOCATION, NO SEAT BUDGET, NO POOL TOP-UP', async () => {
+      expect((await callPost('/seats/:id/allocate', { amount: 100 }, { id: REP })).status).toBe(403)
+      expect((await callPatch('/seats/:id', { seat_budget: 900 }, { id: REP })).status).toBe(403)
+      expect((await callPost('/pool/topup', { amount: 100 })).status).toBe(403)
+      expect(writes).toHaveLength(0)
+    })
+
+    it('🛑 AN INVITE CANNOT CARRY A RETIRED BUDGET — the 5,000 default is refused', async () => {
+      const r = await callPost('/seats', { email: 'new@rep.com', budget: 5000 })
+      expect(r.status).toBe(403)
+      expect(writes, 'no seat created, no credits moved').toHaveLength(0)
+    })
+
+    it('the seat’s OTHER settings are still editable — the gate is the budget, not the seat', async () => {
+      const r = await callPatch('/seats/:id', { autonomy: 'copilot' }, { id: REP })
+      expect(r.status).toBe(200)
+    })
+  })
+
+  describe('B · an active programme does not restore the credit model', () => {
+    it('🛑 STILL SUPPRESSED, STILL REFUSED', async () => {
+      company('programme', 'programme'); repHistory(); repProgramme(); pendingRequest()
+      const p = await overview()
+      expect(p.payload.data.totals.pending_requests).toBe(0)
+      expect(p.payload.data.pending_requests).toEqual([])
+      expect((await callPost('/credit-requests/:id/decide', { decision: 'approved' }, { id: REQ })).status).toBe(403)
+    })
+  })
+
+  describe('C · legacy is unchanged, end to end', () => {
+    beforeEach(() => { company('legacy', 'legacy'); repHistory(); pendingRequest() })
+
+    it('🛑 THE COUNT AND THE LIST ARE STILL THERE', async () => {
+      const p = await overview()
+      expect(p.payload.data.totals.pending_requests).toBe(1)
+      expect(p.payload.data.pending_requests).toHaveLength(1)
+      expect((p.payload.data.pending_requests[0] as Row).amount).toBe(5000)
+    })
+
+    it('🛑 A LEGACY REP CAN STILL ASK', async () => {
+      const r = await callPost('/credit-requests', { amount: 100 }, {}, 'u-owner')
+      expect(r.status).toBe(200)
+      expect(writes.some(w => w.table === 'seat_credit_requests' && w.op === 'insert')).toBe(true)
+    })
+
+    it('🛑 AND THE OWNER CAN STILL APPROVE — credits still move', async () => {
+      const r = await callPost('/credit-requests/:id/decide', { decision: 'approved' }, { id: REQ })
+      expect(r.status).toBe(200)
+      expect(writes.some(w => w.table === 'seat_credit_requests' && w.op === 'update')).toBe(true)
+    })
+
+    it('🛑 ALLOCATE · SEAT BUDGET · TOP-UP · INVITE-WITH-BUDGET all still work', async () => {
+      expect((await callPost('/seats/:id/allocate', { amount: 100 }, { id: REP })).status).toBe(200)
+      expect((await callPatch('/seats/:id', { seat_budget: 900 }, { id: REP })).status).toBe(200)
+      process.env.IS_STAGING = 'true'
+      expect((await callPost('/pool/topup', { amount: 100 })).status).toBe(200)
+      delete process.env.IS_STAGING
+      // LAST, because it adds a seat: a brand-new invited seat carries no `commercial_model`
+      // yet, which resolves UNREADABLE and correctly closes the company-wide gate behind it.
+      expect((await callPost('/seats', { email: 'new@rep.com', budget: 5000 })).status).not.toBe(403)
+    })
+  })
+
+  describe('D · unreadable fails closed', () => {
+    beforeEach(() => { company(undefined, 'programme'); repHistory(); pendingRequest() })
+
+    it('🛑 NO CREDIT-REQUEST SURFACE AND NO CREDIT VERBS — never a fall-through to legacy', async () => {
+      const p = await overview()
+      expect(p.payload.data.totals.pending_requests).toBe(0)
+      expect(p.payload.data.pending_requests).toEqual([])
+      expect((await callPost('/credit-requests/:id/decide', { decision: 'approved' }, { id: REQ })).status).toBe(403)
+      expect((await callPost('/seats/:id/allocate', { amount: 1 }, { id: REP })).status).toBe(403)
+      expect(writes).toHaveLength(0)
+    })
+  })
+
+  describe('E · a mixed company suppresses the shared surface rather than inventing attribution', () => {
+    const REP2 = 'seat-rep-2'
+    beforeEach(() => {
+      company('legacy', 'legacy'); repHistory()          // REP is legacy
+      state.clients.push({                                // REP2 is programme
+        id: REP2, user_id: 'u-rep2', company_id: CO, seat_role: 'rep', commercial_model: 'programme',
+        company_name: 'Rep Two', seat_budget: 700, credit_balance: 100, seat_active: true,
+        seat_accepted_at: 'a', proof_passes_done: 0,
+      })
+      repHistory(REP2)
+      pendingRequest(REP, 'cr-legacy')
+      pendingRequest(REP2, 'cr-programme')
+    })
+
+    it('🛑 NO SHARED COMPANY CREDIT CLAIM — the count and the list are suppressed for BOTH', async () => {
+      const p = await overview()
+      expect(p.payload.data.totals.pending_requests).toBe(0)
+      expect(p.payload.data.pending_requests).toEqual([])
+    })
+
+    it('🛑 THE PROGRAMME SEAT NEVER APPEARS TO USE CREDITS', async () => {
+      expect((await callPost('/seats/:id/allocate', { amount: 1 }, { id: REP2 })).status).toBe(403)
+      expect((await callPatch('/seats/:id', { seat_budget: 1 }, { id: REP2 })).status).toBe(403)
+      expect((await callPost('/credit-requests/:id/decide', { decision: 'approved' }, { id: 'cr-programme' })).status).toBe(403)
+    })
+
+    it('🛑 THE LEGACY SEAT’S OWN REQUEST STAYS DECIDABLE — positive attribution, not invention', async () => {
+      const r = await callPost('/credit-requests/:id/decide', { decision: 'approved' }, { id: 'cr-legacy' })
+      expect(r.status, 'the gate is the SEAT the request belongs to').toBe(200)
+    })
+
+    it('🛑 AND A COMPANY-WIDE ACTION IS REFUSED — one programme seat retires the pool', async () => {
+      process.env.IS_STAGING = 'true'
+      expect((await callPost('/pool/topup', { amount: 100 })).status).toBe(403)
+      expect((await callPost('/seats', { email: 'x@y.com', budget: 5000 })).status).toBe(403)
+      delete process.env.IS_STAGING
+    })
+  })
+
+  describe('F · nothing is deleted and nothing is backfilled', () => {
+    it('🛑 THE HISTORICAL REQUESTS ARE STILL EXACTLY WHERE THEY WERE', async () => {
+      company('programme', 'programme'); repHistory(); pendingRequest()
+      await overview()
+      await callPost('/credit-requests/:id/decide', { decision: 'denied' }, { id: REQ })
+      expect(state.requests).toHaveLength(1)
+      expect(state.requests[0]).toMatchObject({ id: REQ, status: 'pending', amount: 5000, rep_client_id: REP })
+      expect(writes).toHaveLength(0)
+    })
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
 // ⑦ THE BOUNDARY IS THE SHARED ONE, AND NOTHING IS INVENTED
 // ═══════════════════════════════════════════════════════════════════════════════════════
 describe('⑦ one interpretation, no invented values', () => {
@@ -672,6 +889,14 @@ describe('⑧ the Command Centre page hides rather than zeroes', () => {
   it('🛑 A MIXED COMPANY IS NOT TOLD IT IS ON A PROGRAMME', () => {
     expect(page).toContain("totals?.economics_hidden_reason === 'mixed'")
     expect(page).toContain('there is no single company credit pool to manage.')
+  })
+
+  it('🛑 NO CREDIT-REQUEST CARD, NO REQUESTS TILE, AND NO BUDGET FIELD ON THE INVITE FORM', () => {
+    expect(page, 'the pending-requests card').toContain('{econ && <div className="bg-white rounded-2xl border border-gray-200 shadow-sm">')
+    expect(page, 'the hero Requests tile').toContain('{econ && <div><p className="text-2xl font-bold">{totals.pending_requests}')
+    expect(page, 'the Add-a-rep budget input').toContain('{econ && (')
+    expect(page, 'and no budget is posted when the field is hidden')
+      .toContain("withBudget ? { email: inviteEmail, budget: inviteBudget } : { email: inviteEmail }")
   })
 
   it('🛑 THE DRILL-DOWN ERROR STATE IS THE ONE A 503 LANDS ON — no new UI, and no silent empty', () => {

@@ -215,6 +215,54 @@ async function repStats(repIds: string[]): Promise<Record<string, RepStat>> {
  */
 const showsRetiredEconomics = (mode: RepScopeMode) => mode === 'client'
 
+// ══ 🛑 4 Sep — THE RETIRED CREDIT MODEL IS NOT ONLY A DISPLAY, IT IS A SET OF ACTIONS ═══
+//
+// #1641 suppressed the credit NUMBERS and left every credit VERB reachable: a rep could still
+// POST a credit request, an owner could still approve one (which MOVES credits), allocate from
+// the pool, set a seat budget, and top the pool up. And the "Add a rep" form carried a
+// `Budget … cr` input defaulting to 5000 with no guard at all, so every invite a programme
+// company sent allocated a retired credit budget.
+//
+// 🛑 A SUPPRESSED NUMBER BESIDE A LIVE BUTTON IS NOT A SUPPRESSION. Hiding "Credits left" while
+// leaving "Approve +5,000 credits" on the same page tells the customer the credit model is
+// still theirs — more convincingly than the figure did, because a button is a promise the
+// software will do something.
+//
+// ⚠️ THE AUTHORITY IS THE SAME ONE, AGAIN. No new resolver, no new notion of "is this a credit
+// customer" — `currentOutreachLeads` → `showsRetiredEconomics`, exactly as the roster uses it.
+//
+// ⚠️ AND THE GATES FAIL CLOSED. A read error resolves `unreadable`, which is NOT legacy (R96),
+// so the verb is refused rather than allowed "to be safe". Refusing an action states nothing
+// false; performing one moves real credits.
+
+/** May THIS seat take part in the retired credit model at all? Positive attribution only. */
+async function seatHasRetiredEconomics(clientId: string): Promise<boolean> {
+  if (!clientId) return false
+  const { currentOutreachLeads } = await import('../lib/current-outreach')
+  return showsRetiredEconomics((await currentOutreachLeads(clientId)).mode)
+}
+
+/**
+ * Is the COMPANY-WIDE credit surface truthful — i.e. is every rep seat still on the retired
+ * model? Mirrors `/overview`'s `companyEconomics` exactly (including "no reps yet keeps the
+ * existing view"), so the page and these endpoints can never disagree about one company.
+ *
+ * ⚠️ A FAILED ROSTER READ RETURNS FALSE. Not knowing who the seats are is not grounds to open
+ * a pool action on all of them.
+ */
+async function companyHasRetiredEconomics(companyId: string): Promise<boolean> {
+  const { data, error } = await db.from('clients')
+    .select('id').eq('company_id', companyId).eq('seat_role', 'rep')
+  if (error) { console.error('[company] seat roster unreadable for economics gate:', error.message); return false }
+  const reps = (data ?? []) as Array<{ id: string }>
+  if (reps.length === 0) return true
+  for (const r of reps) if (!(await seatHasRetiredEconomics(r.id))) return false
+  return true
+}
+
+/** The one refusal these endpoints return. Never names a credit balance. */
+const RETIRED_CREDITS = 'Credits are not part of this account’s plan'
+
 // ── GET /company/overview — the owner's command centre ──────────────────────
 companyRouter.get('/overview', async (req: AuthRequest, res) => {
   try {
@@ -313,7 +361,12 @@ companyRouter.get('/overview', async (req: AuthRequest, res) => {
       allocated:        companyEconomics ? repOut.reduce((n, s) => n + (s.credit_budget ?? 0), 0) : null,
       used:             companyEconomics ? repOut.reduce((n, s) => n + (s.credits_used ?? 0), 0) : null,
       company_pool:     companyEconomics ? ((company as any)?.credit_pool ?? 0) : null,
-      pending_requests: (requests ?? []).length,
+      // 🛑 A PENDING CREDIT REQUEST IS RETIRED-MODEL STATE, NOT COMPANY CONFIGURATION. Shown to
+      // a programme company it says the credit model is still theirs and that there is
+      // something here for them to approve. Suppressed with the rest of the economics — the
+      // rows are untouched in the table, and a MIXED company suppresses too rather than
+      // inventing an attribution the shared surface cannot carry (founder-ruled 4 Sep).
+      pending_requests: companyEconomics ? (requests ?? []).length : 0,
       total_booked:     repOut.reduce((n, s) => n + s.booked, 0),
       total_contacted:  repOut.reduce((n, s) => n + s.contacted, 0),
       // #110 — company-wide leads owned across reps + total deduped (saved from
@@ -336,7 +389,7 @@ companyRouter.get('/overview', async (req: AuthRequest, res) => {
         role: ctx.role,
         can_manage: isManager,
         seats: visibleSeats,
-        pending_requests: isManager ? (requests ?? []) : [],
+        pending_requests: isManager && companyEconomics ? (requests ?? []) : [],
         totals: isManager ? totals : null,
       },
     })
@@ -629,6 +682,14 @@ companyRouter.post('/seats', async (req: AuthRequest, res) => {
       }); return
     }
 
+    // 🛑 AN INVITE MUST NOT ALLOCATE A RETIRED BUDGET. The portal's "Add a rep" form carried a
+    // `Budget … cr` input defaulting to 5,000 with no guard, so every seat a programme company
+    // invited was funded from a pool it does not have. The seat is still created — only the
+    // allocation is refused, and it is refused LOUDLY so a caller never believes it landed.
+    if ((budget ?? 0) > 0 && !(await companyHasRetiredEconomics(ctx.companyId))) {
+      res.status(403).json({ success: false, error: RETIRED_CREDITS }); return
+    }
+
     const token = crypto.randomBytes(32).toString('hex')
     const startBudget = budget ?? 0
     const { data: newRep, error } = await db.from('clients').insert({
@@ -713,6 +774,14 @@ companyRouter.patch('/seats/:id', async (req: AuthRequest, res) => {
       if ((seat as any).seat_role === 'owner') { res.status(400).json({ success: false, error: 'The owner seat cannot be re-roled' }); return }
     }
 
+    // 🛑 THE PER-SEAT CREDIT BUDGET IS RETIRED FOR A PROGRAMME SEAT — and refusing the WHOLE
+    // call is deliberate rather than quietly dropping the field. Silently ignoring an input is
+    // how a caller comes to believe a budget was set; the seat's other settings (autonomy,
+    // agents, role, active) stay editable through a call that does not carry one.
+    if (body.seat_budget !== undefined && !(await seatHasRetiredEconomics(req.params.id))) {
+      res.status(403).json({ success: false, error: RETIRED_CREDITS }); return
+    }
+
     // FIGSY is always available on a seat — never let the owner remove it.
     if (body.enabled_agents) body.enabled_agents = Array.from(new Set(['figsy', ...body.enabled_agents]))
 
@@ -740,6 +809,11 @@ companyRouter.post('/seats/:id/allocate', async (req: AuthRequest, res) => {
     const ctx = await resolveContext(req.userId!)
     if (!ctx) { res.status(404).json({ success: false, error: 'No company found' }); return }
     if (!canManage(ctx.role)) { res.status(403).json({ success: false, error: 'Only the owner or a manager can allocate credits' }); return }
+
+    // 🛑 NO TOP-UP INTO A SEAT THAT HAS NO WALLET. Same gate, same authority, same failure mode.
+    if (!(await seatHasRetiredEconomics(req.params.id))) {
+      res.status(403).json({ success: false, error: RETIRED_CREDITS }); return
+    }
 
     const { amount } = z.object({ amount: z.number().int().positive().max(1_000_000) }).parse(req.body)
     const ok = await allocateToRep(ctx.companyId, req.params.id, amount)
@@ -782,6 +856,13 @@ companyRouter.post('/credit-requests', async (req: AuthRequest, res) => {
   try {
     const ctx = await resolveContext(req.userId!)
     if (!ctx || !ctx.clientId) { res.status(404).json({ success: false, error: 'No seat found' }); return }
+    // 🛑 A PROGRAMME SEAT CANNOT ASK FOR CREDITS IT DOES NOT HAVE. The portal has no button for
+    // this today, but the endpoint is authenticated and reachable, and a request created here
+    // would surface in the owner's Command Centre as a live approval to make.
+    if (!(await seatHasRetiredEconomics(ctx.clientId))) {
+      res.status(403).json({ success: false, error: RETIRED_CREDITS }); return
+    }
+
     const { amount, reason } = z.object({
       amount: z.number().int().positive().max(1_000_000),
       reason: z.string().max(500).optional(),
@@ -811,6 +892,13 @@ companyRouter.post('/credit-requests/:id/decide', async (req: AuthRequest, res) 
     if (!reqRow) { res.status(404).json({ success: false, error: 'Request not found' }); return }
     if ((reqRow as any).status !== 'pending') { res.status(409).json({ success: false, error: 'Request already decided' }); return }
 
+    // 🛑 POSITIVE ATTRIBUTION, PER REQUEST. Approving moves real credits into a seat's balance,
+    // so the gate is the SEAT the request belongs to — not the caller, and not the company.
+    // A legacy rep's request stays decidable; a programme seat's never becomes one.
+    if (!(await seatHasRetiredEconomics((reqRow as any).rep_client_id))) {
+      res.status(403).json({ success: false, error: RETIRED_CREDITS }); return
+    }
+
     if (decision === 'approved') {
       const ok = await allocateToRep(ctx.companyId, (reqRow as any).rep_client_id, (reqRow as any).amount)
       if (!ok) { res.status(400).json({ success: false, error: 'Not enough in the company pool to approve' }); return }
@@ -836,6 +924,12 @@ companyRouter.post('/pool/topup', async (req: AuthRequest, res) => {
     const ctx = await resolveContext(req.userId!)
     if (!ctx) { res.status(404).json({ success: false, error: 'No company found' }); return }
     if (!canManage(ctx.role)) { res.status(403).json({ success: false, error: 'Only the owner can top up the pool' }); return }
+    // 🛑 AND NO POOL TO TOP UP WHERE THERE IS NO POOL. Already prod-refused above; this closes
+    // the staging path so the retired model cannot be exercised against a programme company at
+    // all, on any environment.
+    if (!(await companyHasRetiredEconomics(ctx.companyId))) {
+      res.status(403).json({ success: false, error: RETIRED_CREDITS }); return
+    }
     const { amount } = z.object({ amount: z.number().int().positive().max(10_000_000) }).parse(req.body)
     const { data: company } = await db.from('companies').select('credit_pool').eq('id', ctx.companyId).maybeSingle()
     await db.from('companies').update({ credit_pool: ((company as any)?.credit_pool ?? 0) + amount }).eq('id', ctx.companyId)

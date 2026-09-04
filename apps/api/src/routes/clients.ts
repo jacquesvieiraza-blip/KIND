@@ -326,7 +326,29 @@ clientRouter.get('/me/notifications', async (req: AuthRequest, res) => {
     // above — no notifications table, no migration). Two directions:
     //   • owner / manager → a rep's pending credit request needs a decision
     //   • rep            → their request was approved/denied (last 7 days)
-    if ((client as any).company_id) {
+    // ⛓️ 4 Sep — 🛑 AND THE BELL IS A COMMAND CENTRE SURFACE TOO. These notifications say
+    // "requested +5,000 credits. Approve or deny in the Command Centre" and "Credit request
+    // approved" — retired-model actions, delivered to a customer who no longer has a wallet,
+    // pointing at a panel that is now correctly empty for them. Suppressing the panel while
+    // the bell still announces the same rows would be the roster/drill-down contradiction
+    // again, one surface further out (R98).
+    //
+    // ⚠️ THE GATE IS THE SAME AUTHORITY AND FAILS CLOSED — a manager gate resolves the
+    // COMPANY (any programme seat retires the shared surface, mirroring `/overview`), a rep
+    // gate resolves their own seat. Nothing is deleted; these are derived on read.
+    const creditNotificationsAllowed = async (): Promise<boolean> => {
+      const { currentOutreachLeads } = await import('../lib/current-outreach')
+      const seatOk = async (id: string) => (await currentOutreachLeads(id)).mode === 'client'
+      const isMgr = (client as any).seat_role === 'owner' || (client as any).seat_role === 'manager'
+      if (!isMgr) return seatOk(client.id)
+      const { data, error } = await db.from('clients')
+        .select('id').eq('company_id', (client as any).company_id).eq('seat_role', 'rep')
+      if (error) return false
+      for (const r of (data ?? []) as Array<{ id: string }>) if (!(await seatOk(r.id))) return false
+      return true
+    }
+
+    if ((client as any).company_id && await creditNotificationsAllowed()) {
       const companyId = (client as any).company_id
       const isManager = (client as any).seat_role === 'owner' || (client as any).seat_role === 'manager'
       const sevenDaysAgoIso = new Date(now.getTime() - 7 * 86400000).toISOString()

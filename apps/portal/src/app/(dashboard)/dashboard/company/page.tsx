@@ -243,7 +243,15 @@ export default function CompanyPage() {
     if (!token || !inviteEmail) return
     setInviteBusy(true); setInviteErr(null); setInviteLink(null)
     try {
-      const res = await api.post<{ token?: string; error?: string }>('/company/seats', { email: inviteEmail, budget: inviteBudget }, token)
+      // ⛓️ 4 Sep — no budget field on screen means no budget in the request. Sending the
+      // state's default 5,000 while the input is hidden would allocate a retired credit
+      // budget the owner never typed, and the server refuses it anyway (403).
+      const withBudget = data?.totals?.economics_visible !== false
+      const res = await api.post<{ token?: string; error?: string }>(
+        '/company/seats',
+        withBudget ? { email: inviteEmail, budget: inviteBudget } : { email: inviteEmail },
+        token,
+      )
       if (res.token) {
         setInviteLink(`${window.location.origin}/invite/accept?token=${res.token}`)
         setInviteEmail('')
@@ -369,7 +377,7 @@ export default function CompanyPage() {
                       and nothing else on the hero moves. */}
                   {econ && <div><p className="text-2xl font-bold">{(totals.company_pool ?? 0).toLocaleString()}</p><p className="text-xs text-white/60">Pool credits</p></div>}
                   <div><p className="text-2xl font-bold">{totals.active_seats}</p><p className="text-xs text-white/60">Active</p></div>
-                  <div><p className="text-2xl font-bold">{totals.pending_requests}</p><p className="text-xs text-white/60">Requests</p></div>
+                  {econ && <div><p className="text-2xl font-bold">{totals.pending_requests}</p><p className="text-xs text-white/60">Requests</p></div>}
                 </div>
               </div>
               {/* #110/#111 — company-wide lead-ownership / dedup + calendar coverage */}
@@ -474,8 +482,13 @@ export default function CompanyPage() {
             )}
           </div>
 
-          {/* Pending credit requests */}
-          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm">
+          {/* Pending credit requests
+              ⛓️ 4 Sep — GONE ENTIRELY for a programme-model company, not emptied. "No requests
+              right now" is a claim that requests are a thing this account has and simply has
+              none of; the Approve / Deny buttons beneath it are a live promise to move credits
+              from a pool that does not exist. The server already returns an empty list and a
+              zero count for these companies — this stops the card from stating the absence. */}
+          {econ && <div className="bg-white rounded-2xl border border-gray-200 shadow-sm">
             <h3 className="font-semibold text-gray-900 px-5 py-4 border-b border-gray-100">
               Pending credit requests
               {requests.length > 0 && <span className="ml-2 text-xs font-bold text-white px-2 py-0.5 rounded-full" style={{ background: BRAND }}>{requests.length}</span>}
@@ -498,7 +511,7 @@ export default function CompanyPage() {
                 </div>
               )
             })}
-          </div>
+          </div>}
         </div>
       )}
 
@@ -551,12 +564,20 @@ export default function CompanyPage() {
               <div className="flex flex-col sm:flex-row gap-2">
                 <input value={inviteEmail} onChange={e => setInviteEmail(e.target.value)} type="email" placeholder="rep@company.com"
                   className="flex-1 rounded-xl border border-gray-200 px-3 py-2.5 text-sm focus:border-violet-400 focus:outline-none" />
-                <div className="flex items-center gap-1 rounded-xl border border-gray-200 px-3 py-2.5">
-                  <span className="text-xs text-gray-400">Budget</span>
-                  <input value={inviteBudget} onChange={e => setInviteBudget(parseInt(e.target.value) || 0)} type="number" min={0}
-                    className="w-20 text-sm text-right focus:outline-none" />
-                  <span className="text-xs text-gray-400">cr</span>
-                </div>
+                {/* ⛓️ 4 Sep — THIS FIELD WAS THE LOUDEST RETIRED CLAIM LEFT ON THE PAGE and it
+                    had no guard at all: a `Budget … cr` input pre-filled with 5,000, so every
+                    invite a programme company sent allocated a credit budget from a pool it
+                    does not have. Hidden for them, and the request then carries no budget at
+                    all rather than a silent 5,000. The email field, the button and the layout
+                    are untouched; for a legacy company nothing here changes. */}
+                {econ && (
+                  <div className="flex items-center gap-1 rounded-xl border border-gray-200 px-3 py-2.5">
+                    <span className="text-xs text-gray-400">Budget</span>
+                    <input value={inviteBudget} onChange={e => setInviteBudget(parseInt(e.target.value) || 0)} type="number" min={0}
+                      className="w-20 text-sm text-right focus:outline-none" />
+                    <span className="text-xs text-gray-400">cr</span>
+                  </div>
+                )}
                 <button onClick={inviteRep} disabled={inviteBusy || !inviteEmail}
                   className="px-4 py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-50 flex items-center gap-1.5" style={{ background: BRAND }}>
                   {inviteBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Users className="w-4 h-4" />} Invite

@@ -1,6 +1,7 @@
 'use client'
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
+import Link from 'next/link'
 import { api } from '@/lib/api'
 import { createClient } from '@/lib/supabase/client'
 import { STAGE_QUICK_ACTION, type MillaStage } from '@kind/shared'
@@ -32,6 +33,8 @@ type IcpDraft = {
 }
 
 type Programme = { stage: MillaStage; hasProgramme?: boolean }
+/** Only the two fields the handle's rule reads. The My ICP screen reads the same endpoint. */
+type Icp = { id: string; is_active: boolean | null }
 type Summary = {
   has_funded: boolean
   icp_versions: { version: string }[]
@@ -82,6 +85,10 @@ export const OUTREACH_STAGES: MillaStage[] = ['Live', 'Review', 'Completion']
  * lead, final" ended up being the first thing a customer read. One approved sentence, no
  * interpolation, nothing for a future edit to slip a price into.
  */
+/** The handle's shell, drawn once so the two targets cannot drift into two designs. */
+const HANDLE = 'md:hidden shrink-0 block w-full border-t border-[#eee7f7] bg-white px-4 pt-2 pb-3 rounded-t-2xl shadow-[0_-8px_22px_rgba(124,58,237,0.07)]'
+const HANDLE_GRAB = 'block w-9 h-1 rounded-full bg-[#e3daf7] mx-auto mb-2'
+
 const MILLA_GREETING =
   'Hi, I’m Milla. Tell me what you’re trying to achieve, and I’ll help shape the right programme from there.'
 
@@ -122,7 +129,15 @@ export function useMillaConversation(): MillaConversationApi {
 }
 const INERT: MillaConversationApi = { focus: () => {}, publishDeskSet: () => {}, icpRevision: 0 }
 
-export function MillaConversationProvider({ children }: { children: React.ReactNode }) {
+export function MillaConversationProvider(
+  { children, handleOpen, handleHidden }: {
+    children: React.ReactNode
+    /** Phone only — raise Home's own workspace over this conversation. */
+    handleOpen?: () => void
+    /** Phone only — the workspace is already covering, so the handle has nothing to offer. */
+    handleHidden?: boolean
+  },
+) {
   const [sessionId, setSessionId] = useState<string | null>(null)
   const [messages, setMessages] = useState<Msg[]>([{ id: 'greet', role: 'assistant', content: MILLA_GREETING }])
   const [input, setInput] = useState('')
@@ -134,6 +149,7 @@ export function MillaConversationProvider({ children }: { children: React.ReactN
   const [deskSet, setDeskSet] = useState<number | null>(null)
   const [prog, setProg] = useState<Programme | null>(null)
   const [summary, setSummary] = useState<Summary | null>(null)
+  const [icps, setIcps] = useState<Icp[] | null>(null)
   const chatBodyRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -142,12 +158,18 @@ export function MillaConversationProvider({ children }: { children: React.ReactN
   useEffect(() => {
     ;(async () => {
       const tok = await token()
-      const [pr, sr] = await Promise.allSettled([
+      // ⚑ 4 Sep (UI-008) — `/icps` IS THE THIRD LEG, and it is here because it is the only
+      // place that knows whether a PROPOSAL IS WAITING. `milla-summary.icp_versions[].current`
+      // is positional — `i === length - 1` — so it names the newest row, not an activated one,
+      // and reading "waiting" out of it would be inventing a fact from an index.
+      const [pr, sr, ir] = await Promise.allSettled([
         api.get<{ data: Programme }>('/my/programme', tok),
         api.get<{ data: Summary }>('/leads/milla-summary', tok),
+        api.get<{ data: Icp[] }>('/icps', tok),
       ])
       if (pr.status === 'fulfilled') setProg(pr.value.data)
       if (sr.status === 'fulfilled') setSummary(sr.value.data)
+      if (ir.status === 'fulfilled') setIcps(ir.value.data ?? [])
     })()
   }, [])
 
@@ -244,6 +266,8 @@ export function MillaConversationProvider({ children }: { children: React.ReactN
       setMessages(m => [...m, { id: `a-${Date.now()}`, role: 'assistant', content:
         'Updated — this is your live targeting now, and we’ve been told so we can re-check who’s already in your campaign.' }])
       setIcpDraft(null); setContext(null); setIcpRevision(v => v + 1)
+      // The handle's rule reads `/icps`; a revision changes the answer, so it is re-read.
+      try { setIcps((await api.get<{ data: Icp[] }>('/icps', await token())).data ?? []) } catch { /* the handle keeps what it had */ }
     } catch (e) {
       setMessages(m => [...m, { id: `e-${Date.now()}`, role: 'assistant', content:
         e instanceof Error ? e.message : 'Could not save your targeting' }])
@@ -281,6 +305,16 @@ export function MillaConversationProvider({ children }: { children: React.ReactN
     return idle
   })()
 
+  // 🛑 UNKNOWN IS NOT "NOTHING WAITING", AND IT IS NOT "SOMETHING IS". `null` (not read yet,
+  // or the read failed) resolves to false here, which sends the handle to Programme — the
+  // honest default, because offering "a proposal is waiting" for one we cannot see would put a
+  // claim on the customer's screen that no endpoint made.
+  // ⚠️ `/icps` ANSWERS NEWEST-FIRST — the My ICP screen reverses it precisely because of that
+  // ("API returns newest-first; show oldest-first"), and applies this same test to its last
+  // row. Same endpoint, same rule, one answer.
+  const newestIcp = icps && icps.length > 0 ? icps[0] : null
+  const icpWaiting = !!newestIcp && newestIcp.is_active !== true
+
   const rich = (t: string) => t.split(/(\*\*[^*]+\*\*)/g).map((p, i) => p.startsWith('**') && p.endsWith('**')
     ? <b key={i} className="text-[#7C3AED]">{p.slice(2, -2)}</b> : <span key={i}>{p}</span>)
 
@@ -296,11 +330,18 @@ export function MillaConversationProvider({ children }: { children: React.ReactN
     <Ctx.Provider value={value}>
       {/* ⚠️ FIXED width, 600px — the approved shell. A conversation column past ~600px is
           170+ characters a line, which reads badly however full it is. */}
-      <section data-tour="chat" className="w-[600px] shrink-0 border-r border-[#eee7f7] bg-white flex flex-col min-h-0">
+      {/* ⚠️ FULL WIDTH ON A PHONE, 600px ABOVE THE BREAKPOINT. `w-[600px] shrink-0` at every
+          width is what left `<main>` with zero pixels on a 390px screen. The desktop number is
+          unchanged: a conversation column past ~600px is 170+ characters a line. */}
+      <section data-tour="chat" className="w-full md:w-[600px] shrink-0 border-r border-[#eee7f7] bg-white flex flex-col min-h-0">
         <div className="flex items-center gap-2.5 px-4 py-3 border-b border-[#eee7f7] shrink-0">
           <span className="w-7 h-7 rounded-lg bg-gradient-to-br from-[#7C3AED] to-[#EC4899] text-white font-extrabold text-[13px] flex items-center justify-center">M</span>
-          <div><b className="text-[15px]">Milla</b> <span className="text-[#9b8ec4] text-[12.5px]">· conversational &amp; strategic</span></div>
-          <span className={`ml-auto text-[12.5px] font-semibold inline-flex items-center gap-1.5 ${sendState.tone}`}>
+          {/* ⚑ 4 Sep (UI-008) — TRUNCATE, NEVER WRAP. On a 390px screen the subtitle wrapped
+              onto a second line and the send-state pill wrapped INTO it, so the two overlapped
+              on the first thing the customer reads. Nothing is removed at any width: the name
+              and the pill hold their size, and the subtitle gives up the pixels. */}
+          <div className="min-w-0 truncate"><b className="text-[15px]">Milla</b> <span className="text-[#9b8ec4] text-[12.5px]">· conversational &amp; strategic</span></div>
+          <span className={`ml-auto shrink-0 text-[12.5px] font-semibold inline-flex items-center gap-1.5 whitespace-nowrap ${sendState.tone}`}>
             <span className={`w-2 h-2 rounded-full ${sendState.dot}`} /> {sendState.label}
           </span>
         </div>
@@ -366,6 +407,39 @@ export function MillaConversationProvider({ children }: { children: React.ReactN
             <button type="submit" disabled={sending || icpSaving || !input.trim()} className="text-[14px] font-bold text-white rounded-xl px-5 bg-[#7C3AED] disabled:opacity-50">Send</button>
           </form>
         </div>
+        {/* ── ⚑ 4 Sep (UI-008) — THE HANDLE (phone only, founder-approved) ──────────────────
+            The shortcut to the one section that matters now. The rule is the founder's, and it
+            is the whole rule: A PROPOSAL WAITING → MY ICP, OTHERWISE → PROGRAMME.
+
+            ⚠️ "WAITING" IS ASKED OF `/icps`, NOT INFERRED. The newest ICP not being active is
+            the same test the My ICP screen itself applies to decide it has something to show.
+            While `/icps` is unread the answer is UNKNOWN, and unknown falls to Programme —
+            never to an approval prompt for a proposal we have not confirmed exists.
+
+            ⚠️ IT IS PART OF THIS COLUMN, not floating over it, so it can never collide with
+            the composer above it. It is hidden the moment the workspace is covering, because
+            then the section it points at is already the screen. */}
+        {!handleHidden && (
+          icpWaiting ? (
+            <Link href="/milla/icp" className={HANDLE}>
+              <span className={HANDLE_GRAB} />
+              <span className="flex items-center gap-2">
+                <b className="text-[13.5px]">My ICP</b>
+                <span className="ml-auto text-[11px] font-extrabold text-white bg-[#7C3AED] rounded-full px-2 py-0.5">1</span>
+              </span>
+              <span className="block text-[11.5px] text-[#9b8ec4] mt-0.5">A proposal is waiting — open to approve.</span>
+            </Link>
+          ) : (
+            <button onClick={handleOpen} className={`${HANDLE} text-left`}>
+              <span className={HANDLE_GRAB} />
+              <span className="flex items-center gap-2">
+                <b className="text-[13.5px]">Programme</b>
+                {prog && <span className="ml-auto text-[11px] font-extrabold text-[#7C3AED] bg-[#f3ecff] rounded-full px-2 py-0.5">{prog.stage}</span>}
+              </span>
+              <span className="block text-[11.5px] text-[#9b8ec4] mt-0.5">Open for the lifecycle, outcome and progress.</span>
+            </button>
+          )
+        )}
       </section>
       {children}
     </Ctx.Provider>

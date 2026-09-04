@@ -49,18 +49,19 @@ describe('MILLA — ONE INSTANCE, ONE TRANSCRIPT, ONE COMPOSER', () => {
     expect(code, 'the shell does not import the conversation').toContain(
       "import { MillaConversationProvider } from '@/components/milla/MillaConversation'")
     // Mounted ONCE. Two mounts would be two transcripts with two session ids.
-    expect(code.match(/<MillaConversationProvider>/g) ?? [], 'the conversation is mounted more than once')
+    expect(code.match(/<MillaConversationProvider[\s>]/g) ?? [], 'the conversation is mounted more than once')
       .toHaveLength(1)
     // …and the working area is INSIDE it, which is what makes `useMillaConversation()` reach
-    // the same instance from every route.
-    expect(code).toMatch(/<MillaConversationProvider>\s*<main[^>]*>\{children\}<\/main>\s*<\/MillaConversationProvider>/)
+    // the same instance from every route. (UI-008 wrapped `{children}` in the phone cover's
+    // bar and body; the nesting this asserts — main inside the provider — is unchanged.)
+    expect(code).toMatch(/<MillaConversationProvider[\s\S]{0,400}?<main[\s\S]*?\{children\}[\s\S]*?<\/main>\s*<\/MillaConversationProvider>/)
   })
 
   it('the onboarding screen is still bare — the shell returns before the conversation', () => {
     const code = strip(MILLA_SHELL)
     const welcome = code.indexOf("if (pathname === '/milla/welcome') return <>{children}</>")
     expect(welcome, '/milla/welcome no longer bypasses the shell').toBeGreaterThan(-1)
-    expect(code.indexOf('<MillaConversationProvider>'), 'the conversation is mounted above the welcome bypass')
+    expect(code.indexOf('<MillaConversationProvider'), 'the conversation is mounted above the welcome bypass')
       .toBeGreaterThan(welcome)
   })
 
@@ -108,6 +109,121 @@ describe('MILLA — ONE INSTANCE, ONE TRANSCRIPT, ONE COMPOSER', () => {
       expect(code, `${r} carries a second Milla transcript`).not.toMatch(/chat\.map\(|messages\.map\(/)
       expect(code, `${r} carries a second Milla composer`).not.toContain('Milla is thinking…')
     }
+  })
+})
+
+// ════════════════════════════════════════════════════════════════════════════════════════
+// UI-008 — THE APPROVED PHONE BEHAVIOUR: "Milla is the screen, the section covers her."
+//
+// 🛑 WHAT WAS BROKEN. Neither `MillaShell.tsx` nor `MillaConversation.tsx` contained a single
+// responsive class. The body row laid a 260px rail and a 600px conversation side by side with
+// `shrink-0` at EVERY width, so on a 390px phone `<main>` resolved to ZERO width: the
+// workspace did not exist, and `overflow-hidden` clipped the rest.
+// ════════════════════════════════════════════════════════════════════════════════════════
+describe('MILLA · PHONE — the section covers her, and never unmounts her', () => {
+  const shell = strip(MILLA_SHELL)
+  const chat  = strip(MILLA_CHAT)
+
+  it('🛑 THE TWO FIXED COLUMNS NO LONGER BOTH RENDER ON A PHONE', () => {
+    // The rail is the drawer below the breakpoint, and the conversation takes the screen.
+    expect(shell, 'the 260px rail still occupies a phone').toContain("navOpen ? 'absolute inset-y-0 left-0 z-50 shadow-2xl md:static md:shadow-none' : 'hidden md:flex'")
+    expect(chat, 'the conversation is still a fixed 600px on a phone').toContain('w-full md:w-[600px] shrink-0')
+    // 🛑 AND THE REGRESSION ITSELF, BY ITS EXACT MARKUP.
+    expect(chat, 'the unconditional 600px column is back').not.toContain('className="w-[600px] shrink-0')
+  })
+
+  it('DESKTOP IS UNCHANGED — 260 | 600 | flex-1 above the breakpoint', () => {
+    expect(shell).toContain('w-[260px] shrink-0 border-r border-[#eee7f7] bg-[#fdfcff]')
+    expect(chat).toContain('md:w-[600px]')
+    expect(shell).toContain('flex-1 min-w-0 overflow-hidden')
+  })
+
+  it('🛑 THE WORKSPACE COVERS HER — IT DOES NOT HIDE HER, AND THAT IS NOT COSMETIC', () => {
+    // A covering LAYER keeps the conversation laid out, so the transcript, the session and
+    // anything half-typed survive. `hidden` would give it `scrollHeight` 0 and silently break
+    // the scroll-to-bottom the transcript depends on.
+    expect(shell).toContain("covering ? 'absolute inset-0 z-30 bg-[#faf8ff] flex flex-col md:static md:z-auto' : 'hidden md:flex md:flex-col'")
+    // The conversation itself is never given a hiding class at any width.
+    const section = chat.slice(chat.indexOf('<section data-tour="chat"'), chat.indexOf('<section data-tour="chat"') + 400)
+    expect(section, 'the conversation is hidden rather than covered').not.toMatch(/\bhidden\b/)
+  })
+
+  it('RETURNING IS THE SAME MOUNTED CONVERSATION — both controls the preview draws', () => {
+    expect(shell, 'the back arrow is gone').toContain('aria-label="Back to Milla"')
+    expect(shell, 'the "M · Milla" chip is gone').toContain('const MILLA_CHIP =')
+    // On Home the cover is state, so returning is a state change; on a section it is the
+    // route, so returning is a link and the phone's own back button lands in the same place.
+    expect(shell).toContain('onClick={() => setCover(false)}')
+    expect(shell).toContain('<Link href="/milla" aria-label="Back to Milla"')
+    // 🛑 THE STRUCTURAL FACT THAT MAKES ANY OF IT TRUE: the conversation is a SIBLING of the
+    // route's workspace inside the provider, so covering it cannot unmount it.
+    expect(chat).toMatch(/<\/section>\s*\{children\}/)
+  })
+
+  it('PROGRAMME AND MY ICP ARE BOTH REACHABLE ON A PHONE', () => {
+    // From the drawer (the same rail markup, one component) and from the handle.
+    for (const href of ['/milla/programme', '/milla/icp']) {
+      expect(shell, `${href} is unreachable on a phone`).toContain(`'${href}'`)
+    }
+    expect(chat).toContain('<Link href="/milla/icp"')
+  })
+
+  it('🛑 THE HANDLE FOLLOWS THE FOUNDER\'S RULE, AND ASKS THE ENDPOINT THAT KNOWS', () => {
+    // A PROPOSAL WAITING → MY ICP. OTHERWISE → PROGRAMME.
+    expect(chat).toContain('icpWaiting ? (')
+    expect(chat).toContain('<b className="text-[13.5px]">My ICP</b>')
+    expect(chat).toContain('<b className="text-[13.5px]">Programme</b>')
+    // ⚠️ "WAITING" IS READ FROM `/icps`, NOT INFERRED FROM `icp_versions[].current` — which is
+    // positional (`i === length - 1`) and names the newest row, not an activated one.
+    expect(chat).toContain("api.get<{ data: Icp[] }>('/icps', tok)")
+    expect(chat).toContain('const icpWaiting = !!newestIcp && newestIcp.is_active !== true')
+    // 🛑 UNKNOWN FALLS TO PROGRAMME. `icps === null` (unread, or the read failed) must never
+    // put "a proposal is waiting" on a customer's screen.
+    expect(chat).toContain('const newestIcp = icps && icps.length > 0 ? icps[0] : null')
+    // ...and the handle is part of the column, so it cannot collide with the composer.
+    expect(chat).toContain("const HANDLE = 'md:hidden shrink-0 block w-full border-t")
+  })
+
+  it('FLOW AND THE ACCOUNT CHIP ARE HIDDEN ON THE PHONE ONLY', () => {
+    expect(shell, 'the FLOW ribbon is not phone-gated').toContain('hidden md:flex shrink-0 items-center gap-1 overflow-x-auto px-5 py-2 bg-[#2a1747]')
+    expect(shell, 'the Account chip is not phone-gated').toContain('ml-auto hidden md:flex items-center gap-3.5')
+    // 🛑 AND NEITHER IS HIDDEN ON DESKTOP — the guard above would pass on a deletion, this
+    // one would not: both must still carry their desktop markup.
+    expect(shell).toContain('{MILLA_STAGES.map((label, i, arr) => {')
+    expect(shell).toContain('Account <ChevronDown')
+  })
+
+  it('🛑 NOTHING THE HIDDEN ACCOUNT CHIP HELD BECAME UNREACHABLE', () => {
+    const drawer = shell.slice(shell.indexOf('<div className="md:hidden">'), shell.indexOf('Tell Milla the outcome'))
+    expect(drawer, 'the ROI screens are gone from the phone').toContain('{ROI.map(')
+    expect(drawer, 'Settings/Billing/Usage/Referral are gone from the phone').toContain('{ACCOUNT.map(')
+    expect(drawer, 'Sign out is gone from the phone').toContain('onClick={signOut}')
+    // From the SAME arrays the desktop dropdown renders — a phone-only copy is how a
+    // destination goes missing from one of them.
+    expect(shell).toContain('const ACCOUNT: [string, string, React.ElementType][]')
+    expect(shell).toContain('const ROI: [string, string, React.ElementType][]')
+    // ...and the burger is what opens it.
+    expect(shell).toContain('onClick={() => setNavOpen(true)}')
+  })
+
+  it('THE COMPOSER SURVIVES THE KEYBOARD — dynamic viewport, not 100vh', () => {
+    // `100vh` does not shrink when the phone keyboard opens, so the composer at the foot of
+    // the conversation was pushed underneath it.
+    expect(shell, 'the shell is still 100vh').toContain('h-dvh flex flex-col')
+    expect(shell, 'h-screen is back').not.toContain('h-screen')
+  })
+
+  it('🛑 THE TOUR DOES NOT POINT AT A COVERED CONVERSATION', () => {
+    const tour = strip(read(join(PORTAL, 'components/ProductTour.tsx')))
+    // "Rendered" and "on screen" stopped being the same thing the moment the workspace could
+    // cover the conversation without unmounting it. The hit-test is the only question that
+    // separates "behind the workspace" from "visible".
+    expect(tour).toContain('function lookable(')
+    expect(tour).toContain('document.elementFromPoint(')
+    expect(tour).toContain('if (lookable(document.querySelector<HTMLElement>(`[data-tour="${live[i]?.target}"]`))) return')
+    // 🛑 THE OLD BAIL-OUT, BY ITS EXACT TEXT. It returned the moment the element EXISTED, so a
+    // covered target parked the tour on a step with no card and no way forward.
+    expect(tour, 'the tour advances on existence again').not.toContain("const el = document.querySelector(`[data-tour=")
   })
 })
 

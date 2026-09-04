@@ -8,6 +8,7 @@ import { createClient } from '@/lib/supabase/client'
 import {
   Sparkles, CalendarCheck, Target, FileBarChart, LogOut, TrendingUp, LineChart, Gem, Crosshair, Workflow, GraduationCap,
   LayoutGrid, Users, Star, User, CreditCard, Gauge, FileText, Gift, ChevronDown, MessageSquare,
+  Menu, X, ChevronLeft, ChevronUp,
 } from 'lucide-react'
 import { MILLA_STAGES, type MillaStage } from '@kind/shared'
 import { MillaConversationProvider } from '@/components/milla/MillaConversation'
@@ -39,6 +40,10 @@ async function token(): Promise<string | undefined> {
   try { const { data } = await createClient().auth.getSession(); return data.session?.access_token } catch { return undefined }
 }
 
+/** The "M · Milla" return chip, drawn once so the button and the link cannot drift apart. */
+const MILLA_CHIP = 'ml-auto flex items-center gap-1.5 h-7 rounded-full border border-[#ece5fb] bg-white pl-1 pr-2.5 text-[12.5px] font-bold text-[#5c5279]'
+const MILLA_CHIP_DOT = 'w-5 h-5 rounded-full bg-gradient-to-br from-[#7C3AED] to-[#EC4899] text-white text-[10px] font-extrabold flex items-center justify-center'
+
 const REPLY_TONE: Record<string, string> = {
   hot: 'interested', warm: 'interested', interested: 'interested',
   cold: 'not now', opt_out: 'opted out', unsubscribe: 'opted out',
@@ -54,6 +59,19 @@ export function MillaShell({ children }: { children: React.ReactNode }) {
   const [stage, setStage] = useState<MillaStage | null>(null)
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
+  // ── ⚑ 4 Sep (UI-008) — THE APPROVED PHONE BEHAVIOUR: "the section covers her" ──────────
+  //
+  // 🛑 THE BLOCKER THIS CLOSES. Below ~900px the shell laid a 260px rail and a 600px
+  // conversation side by side with `shrink-0`, so `<main>` resolved to ZERO width: the
+  // workspace did not exist on a phone, and the conversation was clipped by `overflow-hidden`.
+  //
+  // ⚠️ COVERED, NEVER UNMOUNTED. `nav` opens the sections over the screen; `cover` draws the
+  // workspace over the conversation. The conversation stays in the DOM either way, which is
+  // what keeps the transcript, the session and anything half-typed exactly where the customer
+  // left them — and is also why the cover is a LAYER and not `hidden`: a hidden element has
+  // `scrollHeight` 0, and the transcript's scroll-to-bottom reads that.
+  const [navOpen, setNavOpen] = useState(false)
+  const [cover, setCover] = useState(false)
 
   useEffect(() => {
     ;(async () => {
@@ -77,6 +95,10 @@ export function MillaShell({ children }: { children: React.ReactNode }) {
     function onDoc(e: MouseEvent) { if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false) }
     document.addEventListener('mousedown', onDoc); return () => document.removeEventListener('mousedown', onDoc)
   }, [])
+
+  // The drawer closes on any navigation; so does an in-place cover, because arriving at a
+  // section IS the cover — a stale `cover` would put Home's workspace over another route's.
+  useEffect(() => { setNavOpen(false); setCover(false) }, [pathname])
 
   async function signOut() {
     try { await createClient().auth.signOut() } catch { /* ignore */ }
@@ -114,8 +136,33 @@ export function MillaShell({ children }: { children: React.ReactNode }) {
     ['/milla/teams', 'Teams Hub', Users],
   ]
 
+  // ⚑ 4 Sep — WHAT THE PHONE'S COVER BAR IS CALLED. Longest prefix wins, so /milla/icp does
+  // not answer to the /milla row. On Home the cover is Home's own workspace, which the
+  // approved preview names by what is under it: the programme.
+  const SECTION_LABEL: [string, string][] = [
+    ['/milla/pipeline', 'Pipeline'], ['/milla/meetings', 'Meetings'], ['/milla/programme', 'Programme'],
+    ['/milla/replies', 'Replies'], ['/milla/icp', 'My ICP'], ['/milla/documents', 'Documents'],
+    ['/milla/reports', 'Reports'], ['/milla/coaching', 'Coaching'], ['/milla/performance', 'Performance'],
+    ['/milla/analytics', 'Analytics'], ['/milla/roi', 'Your ROI'], ['/milla/command-centre', 'Command Centre'],
+    ['/milla/teams', 'Teams Hub'], ['/milla/settings', 'Settings'], ['/milla/billing', 'Billing'],
+    ['/milla/usage', 'Usage'], ['/milla/referral', 'Referral'],
+  ]
+  const sectionLabel = SECTION_LABEL
+    .filter(([href]) => pathname.startsWith(href))
+    .sort((a, b) => b[0].length - a[0].length)[0]?.[1] ?? 'Programme'
+
+  // ── ⚑ 4 Sep (UI-008) — IS THE WORKSPACE COVERING HER RIGHT NOW? (phone only) ───────────
+  //
+  // A SECTION is a cover by definition: the customer asked for it and it is the screen. HOME
+  // is the conversation, and its own workspace comes up on the handle. One boolean, so the
+  // cover bar, the layer and the handle cannot disagree about which state we are in.
+  const covering = !isLeads || cover
+
   return (
-    <div className="h-screen flex flex-col bg-[#faf8ff] text-[#1f1235] overflow-hidden">
+    // ⚠️ `h-dvh`, NOT `h-screen`. `100vh` does not shrink when the phone keyboard opens, so
+    // the composer at the foot of the conversation was pushed under it. The dynamic viewport
+    // unit is the whole fix; on desktop the two are identical.
+    <div className="h-dvh flex flex-col bg-[#faf8ff] text-[#1f1235] overflow-hidden">
       {/* top bar */}
       <header className="h-[54px] shrink-0 flex items-center gap-3 px-5 border-b border-[#eee7f7] bg-white">
         {/* A1 — the brand is the way home. Clicking it from any rail page returns the client
@@ -125,7 +172,15 @@ export function MillaShell({ children }: { children: React.ReactNode }) {
           <span className="w-8 h-8 rounded-[10px] bg-gradient-to-br from-[#7C3AED] to-[#EC4899] text-white flex items-center justify-center text-[15px] font-extrabold">M</span>
           <span className="text-[16px] font-extrabold">Milla<span className="text-[#9b8ec4] font-semibold text-[13.5px]">&amp;Vida</span></span>
         </Link>
-        <div className="ml-auto flex items-center gap-3.5">
+        {/* ⚑ 4 Sep (UI-008) — THE PHONE'S WAY INTO THE NINE SECTIONS, and into the account.
+            The Account chip is hidden below the breakpoint (approved), so every destination it
+            held — Your ROI, Settings, Billing, Usage, Referral and Sign out — is repeated in
+            the drawer this opens. Nothing became unreachable; it moved behind one control. */}
+        <button onClick={() => setNavOpen(true)} aria-label="Open menu"
+          className="md:hidden ml-auto -mr-1 p-2 rounded-lg text-[#5c5279] hover:bg-[#f7f4fd]">
+          <Menu className="w-5 h-5" />
+        </button>
+        <div className="ml-auto hidden md:flex items-center gap-3.5">
           {/* ⛓️ THE WALLET BALANCE STOOD HERE. Removed, not replaced — see the note at the
               top of this file. */}
           {/* #406 — A BELL ICON USED TO SIT HERE. It had no onClick, no href, no badge and no
@@ -196,7 +251,10 @@ export function MillaShell({ children }: { children: React.ReactNode }) {
           The design, placement, colours, numbering and chevrons are untouched: the current
           step is marked using the ribbon's own existing accent, which is the only thing the
           old bar could not do. */}
-      <div className="shrink-0 flex items-center gap-1 overflow-x-auto px-5 py-2 bg-[#2a1747] text-white">
+      {/* ⚑ 4 Sep (UI-008) — DESKTOP ONLY, founder-approved. Seven stages plus chevrons cannot
+          be read on a 390px strip, and on the approved phone screen the conversation is the
+          screen. The ribbon is unchanged at every width where it fits. */}
+      <div className="hidden md:flex shrink-0 items-center gap-1 overflow-x-auto px-5 py-2 bg-[#2a1747] text-white">
         <span className="text-[11px] font-extrabold tracking-[0.1em] text-[#b9a6e6] mr-2.5">FLOW</span>
         {MILLA_STAGES.map((label, i, arr) => {
           // ⚠️ -1 WHEN THE STAGE IS UNKNOWN, and that is a real state, not a default. A
@@ -219,9 +277,21 @@ export function MillaShell({ children }: { children: React.ReactNode }) {
         })}
       </div>
 
-      <div className="flex-1 flex overflow-hidden">
-        {/* rail */}
-        <aside className="w-[260px] shrink-0 border-r border-[#eee7f7] bg-[#fdfcff] flex flex-col px-3 py-4 overflow-y-auto">
+      <div className="flex-1 flex overflow-hidden relative">
+        {/* ⚑ 4 Sep (UI-008) — ONE RAIL, TWO PRESENTATIONS. Below the breakpoint it is the
+            drawer the burger opens, over the screen; above it, it is the column it has always
+            been. Same links, same order, same component — a phone-only copy of this list is
+            how a destination goes missing from one of them. */}
+        {navOpen && (
+          <button aria-label="Close menu" onClick={() => setNavOpen(false)}
+            className="md:hidden absolute inset-0 z-40 bg-[#1f1235]/30" />
+        )}
+        <aside className={`w-[260px] shrink-0 border-r border-[#eee7f7] bg-[#fdfcff] flex flex-col px-3 py-4 overflow-y-auto ${
+          navOpen ? 'absolute inset-y-0 left-0 z-50 shadow-2xl md:static md:shadow-none' : 'hidden md:flex'}`}>
+          <button onClick={() => setNavOpen(false)} aria-label="Close menu"
+            className="md:hidden self-end -mt-1 mb-1 p-1.5 rounded-lg text-[#9b8ec4] hover:bg-[#f3ecff]">
+            <X className="w-4.5 h-4.5" />
+          </button>
           <nav>
             {/* ⚑ 30 Aug (BUILD-004A, founder ruling 1) — "New leads" IS now HOME.
                 It was the per-lead approval desk, badged with `leads_awaiting`, and the
@@ -266,6 +336,20 @@ export function MillaShell({ children }: { children: React.ReactNode }) {
               </Link>
             ))}
           </div>
+          {/* ⚑ 4 Sep (UI-008) — WHAT THE PHONE'S HIDDEN ACCOUNT CHIP HELD, kept reachable.
+              The founder approved hiding the chip on the phone header; he did not approve
+              losing Settings, Billing, Usage, Referral, the ROI screens or Sign out. They
+              render here, from the SAME `ROI` and `ACCOUNT` arrays the desktop dropdown uses,
+              and only below the breakpoint — the desktop rail is untouched. */}
+          <div className="md:hidden">
+            {section('Your ROI')}
+            {ROI.map(([href, label, Icon]) => link(href, label, Icon, pathname.startsWith(href)))}
+            {section('Account')}
+            {ACCOUNT.map(([href, label, Icon]) => link(href, label, Icon, pathname.startsWith(href)))}
+            <button onClick={signOut} className="w-full flex items-center gap-2.5 px-3 py-2 mt-1 rounded-[10px] text-[14.5px] font-semibold text-red-500 hover:bg-red-50">
+              <LogOut className="w-4 h-4" /> Sign out
+            </button>
+          </div>
           <div className="mt-auto pt-4 text-[12px] text-[#b3a9cc] px-2 leading-relaxed">Tell Milla the outcome. We’ll do the work.</div>
         </aside>
         {/* ── ⚑ 4 Sep — THE CONVERSATION IS THE SHELL'S, NOT THE ROUTE'S ──────────────────
@@ -280,8 +364,51 @@ export function MillaShell({ children }: { children: React.ReactNode }) {
             talking about its subject calls `focus(...)` on the context.
 
             ⚠️ `/milla/welcome` IS UNAFFECTED — it returns bare, above, before this line. */}
-        <MillaConversationProvider>
-          <main className="flex-1 min-w-0 overflow-hidden">{children}</main>
+        <MillaConversationProvider
+          handleOpen={() => setCover(true)}
+          handleHidden={covering}
+        >
+          {/* ── ⚑ 4 Sep (UI-008) — ON A PHONE THE SECTION COVERS HER ────────────────────
+              🛑 IT USED TO BE A COLUMN AT EVERY WIDTH, so on a 390px screen `flex-1` beside
+              two `shrink-0` columns totalling 860px resolved to ZERO: the workspace did not
+              exist on a phone.
+
+              ⚠️ A LAYER, NOT A REPLACEMENT — and deliberately not `hidden`. The conversation
+              below stays mounted and LAID OUT, so the transcript, the session and the composer
+              are exactly where the customer left them when they come back, and the
+              scroll-to-bottom (which reads `scrollHeight`) still works. Above the breakpoint
+              this is the same column it has always been. */}
+          {/* ⚠️ A COLUMN AT EVERY WIDTH, so the inner wrapper below can be `flex-1 min-h-0`
+              and every route's `h-full` still resolves against a real height. */}
+          <main className={`flex-1 min-w-0 overflow-hidden ${
+            covering ? 'absolute inset-0 z-30 bg-[#faf8ff] flex flex-col md:static md:z-auto' : 'hidden md:flex md:flex-col'}`}>
+            {/* THE WAY BACK. Both controls the approved preview draws: the back arrow and the
+                "M · Milla" chip, and they do the same thing — reveal the conversation that was
+                never gone. */}
+            {/* THE WAY BACK. Both controls the approved preview draws — the back arrow and
+                the "M · Milla" chip — and they do the same thing: reveal the conversation that
+                was never gone. On Home the cover is Home's own workspace, so returning is a
+                state change; on a section it is the route, so returning is a link and the
+                phone's own back button lands in the same place. */}
+            <div className="md:hidden shrink-0 flex items-center gap-2 px-3 h-[46px] border-b border-[#eee7f7] bg-white">
+              {isLeads ? (<>
+                <button onClick={() => setCover(false)} aria-label="Back to Milla"
+                  className="p-1.5 -ml-1 rounded-lg text-[#5c5279] hover:bg-[#f7f4fd]"><ChevronLeft className="w-5 h-5" /></button>
+                <b className="text-[15.5px]">{sectionLabel}</b>
+                <button onClick={() => setCover(false)} className={MILLA_CHIP}>
+                  <span className={MILLA_CHIP_DOT}>M</span> Milla
+                </button>
+              </>) : (<>
+                <Link href="/milla" aria-label="Back to Milla"
+                  className="p-1.5 -ml-1 rounded-lg text-[#5c5279] hover:bg-[#f7f4fd]"><ChevronLeft className="w-5 h-5" /></Link>
+                <b className="text-[15.5px]">{sectionLabel}</b>
+                <Link href="/milla" className={MILLA_CHIP}>
+                  <span className={MILLA_CHIP_DOT}>M</span> Milla
+                </Link>
+              </>)}
+            </div>
+            <div className="flex-1 min-h-0 overflow-hidden">{children}</div>
+          </main>
         </MillaConversationProvider>
       </div>
     </div>

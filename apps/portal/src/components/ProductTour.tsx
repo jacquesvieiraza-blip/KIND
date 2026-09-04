@@ -27,6 +27,31 @@ const SEEN_KEY = 'kind_tour_seen_v1'
 
 type Box = { top: number; left: number; width: number; height: number }
 
+/**
+ * ⚑ 4 Sep (UI-008) — IS THIS STEP'S TARGET ACTUALLY LOOKABLE-AT?
+ *
+ * 🛑 "RENDERED" AND "ON SCREEN" STOPPED BEING THE SAME THING. On a phone the Milla shell
+ * COVERS the conversation with the open workspace rather than unmounting it — that is the
+ * whole point of the approved mobile design, and it is what keeps the transcript intact. So
+ * `data-tour="chat"` is still in the document while something else is drawn on top of it, and
+ * the tour would have highlighted a rectangle the customer cannot see.
+ *
+ * ⚠️ THREE TESTS, AND THE THIRD IS THE ONE THAT MATTERS. Zero size and `display:none` were
+ * already effectively handled by "the element is missing"; being COVERED was not. The
+ * hit-test asks the browser what is actually painted at the element's centre — the only
+ * question that distinguishes "behind the workspace" from "visible".
+ */
+function lookable(el: HTMLElement | null): DOMRect | null {
+  if (!el) return null
+  const r = el.getBoundingClientRect()
+  if (r.width === 0 || r.height === 0) return null
+  if (r.bottom <= 0 || r.right <= 0 || r.top >= window.innerHeight || r.left >= window.innerWidth) return null
+  const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2)
+  // `contains` both ways: the centre may land on a child, or on the element itself.
+  if (hit && !el.contains(hit) && !hit.contains(el)) return null
+  return r
+}
+
 export default function ProductTour({ steps, storageKey = SEEN_KEY }: { steps: TourStep[]; storageKey?: string }) {
   const [open, setOpen] = useState(false)
   const [i, setI] = useState(0)
@@ -43,9 +68,8 @@ export default function ProductTour({ steps, storageKey = SEEN_KEY }: { steps: T
   useEffect(() => {
     if (!open) return
     const measure = () => {
-      const el = document.querySelector<HTMLElement>(`[data-tour="${live[i]?.target}"]`)
-      if (!el) { setBox(null); return }
-      const r = el.getBoundingClientRect()
+      const r = lookable(document.querySelector<HTMLElement>(`[data-tour="${live[i]?.target}"]`))
+      if (!r) { setBox(null); return }
       setBox({ top: r.top, left: r.left, width: r.width, height: r.height })
     }
     measure()
@@ -56,10 +80,12 @@ export default function ProductTour({ steps, storageKey = SEEN_KEY }: { steps: T
 
   // A step pointing at something that isn't on screen advances itself rather than
   // showing an unanchored card in the middle of nowhere.
+  // ⛓️ 4 Sep — THE TEST IS NOW "LOOKABLE", NOT "PRESENT". It used to bail out the moment the
+  // element EXISTED, so a covered target left the tour parked on a step with no card and no
+  // way forward — the exact state a phone would have reached on the Milla home.
   useEffect(() => {
     if (!open || box !== null) return
-    const el = document.querySelector(`[data-tour="${live[i]?.target}"]`)
-    if (el) return
+    if (lookable(document.querySelector<HTMLElement>(`[data-tour="${live[i]?.target}"]`))) return
     const t = setTimeout(() => { if (i < live.length - 1) setI(n => n + 1); else finish() }, 60)
     return () => clearTimeout(t)
   // eslint-disable-next-line react-hooks/exhaustive-deps

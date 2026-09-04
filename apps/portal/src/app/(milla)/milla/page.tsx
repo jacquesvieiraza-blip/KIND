@@ -56,6 +56,10 @@ type Summary = {
   /** ⚑ 26 Aug — the terminal truth of the newest COMPLETED run. `null` = none has ever
    *  finished, which is NOT the same as "still running". See `terminalRun` below. */
   proof_run?: { status: string; message: string; total_inserted: number; finished_at: string | null } | null
+  /** ⚑ 3 Sep — does the client's CURRENT desk hold anything to react to? Derived server-side
+   *  from the same bounded count the cards use, so a chip row and the list beside it cannot
+   *  disagree. Absent (an older API) falls back to the leads this page already holds. */
+  calibration_set_on_desk?: boolean
 }
 /** The targeting fields a refinement may touch — exactly the ICP's own, nothing more. */
 type IcpTargeting = {
@@ -1177,9 +1181,26 @@ export default function MillaHomePage() {
   // ⚠️ AN UNKNOWN STAGE FALLS BACK TO THE FLAT LIST, deliberately. While `/my/programme` is
   // loading — or has failed — the row must not silently become a different set of questions,
   // and a chip that merely does not apply is a far smaller harm than a chip row that flickers.
+  // ── ⛓️ 3 Sep — A CHIP THAT POINTS AT "THESE" NEEDS THERE TO BE SOME ────────────────────
+  //
+  // 🛑 THE CLEAN-BASELINE WALK FOUND THE OTHER HALF OF THE 30-AUG FIX. That pass stopped Proof
+  // chips reaching a client at RECOMMENDATION; it never asked whether a client AT Proof
+  // actually had a set. House does not, and was offered all three: **"Show me stronger
+  // examples"**, **"Which of these look strongest?"**, **"Please find more like these"** — every
+  // one of them naming examples that were not on the screen.
+  //
+  // ⚠️ "CONTEXTUALLY VALID" IS THE SAME TEST, APPLIED ONE LEVEL DEEPER. The 30-Aug note asks
+  // whether a chip makes sense at this STAGE; the stage was right and the chips were still
+  // false, because the fact that matters is what is ON THE DESK, not where the programme is.
+  //
+  // ⚠️ NOT ONE CHIP'S WORDING CHANGES, and none is replaced with something invented. When
+  // there is nothing to react to, the honest number of calibration chips is zero — the row
+  // simply does not render, and it returns the moment a set arrives. `STAGE_QUICK_ACTION.Proof`
+  // is *"Show me stronger examples"*, so it belongs to the same set and goes with them.
+  const proofSetOnDesk = (summary?.calibration_set_on_desk ?? false) || (leads?.length ?? 0) > 0
   const chips = !prog ? CHIPS : [
-    STAGE_QUICK_ACTION[prog.stage],
-    ...(prog.stage === 'Proof' ? PROOF_CHIPS : []),
+    ...(prog.stage === 'Proof' && !proofSetOnDesk ? [] : [STAGE_QUICK_ACTION[prog.stage]]),
+    ...(prog.stage === 'Proof' && proofSetOnDesk ? PROOF_CHIPS : []),
     ...(PAUSE_STAGES.includes(prog.stage) ? ['Please pause my programme'] : []),
     ...(ROI_STAGES.includes(prog.stage) ? ['How is my ROI looking?'] : []),
   ]
@@ -1291,9 +1312,14 @@ export default function MillaHomePage() {
             </div>
           </div>
           <div className="px-4 py-3 border-t border-[#eee7f7]">
-            <div className="flex flex-wrap gap-1.5 mb-2">
-              {chips.map(c => <button key={c} onClick={() => send(c)} disabled={sending} className="text-[12.5px] font-semibold text-[#7C3AED] bg-[#f3ecff] border border-[#e4d4fb] rounded-full px-3 py-1 hover:bg-[#ebe0fc] disabled:opacity-50">{c}</button>)}
-            </div>
+            {/* ⛓️ 3 Sep — the row itself goes when it is empty, so an honest zero-chip state
+                reads as no row rather than as a gap in the layout. Every chip's wording,
+                styling and spacing is untouched. */}
+            {chips.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mb-2">
+                {chips.map(c => <button key={c} onClick={() => send(c)} disabled={sending} className="text-[12.5px] font-semibold text-[#7C3AED] bg-[#f3ecff] border border-[#e4d4fb] rounded-full px-3 py-1 hover:bg-[#ebe0fc] disabled:opacity-50">{c}</button>)}
+              </div>
+            )}
             <form onSubmit={e => { e.preventDefault(); send(input) }} className="flex gap-2">
               <input value={input} onChange={e => setInput(e.target.value)} placeholder="Ask Milla, request leads, or give feedback…" className="flex-1 text-[14px] rounded-xl border border-[#e4dcf7] px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#7C3AED]/30" />
               <button type="submit" disabled={sending || !input.trim()} className="text-[14px] font-bold text-white rounded-xl px-5 bg-[#7C3AED] disabled:opacity-50">Send</button>
@@ -1474,7 +1500,18 @@ export default function MillaHomePage() {
                   </div>
                 </div>
               ) : (
-                <div className="text-[14px] text-[#9b8ec4] bg-[#faf8ff] border border-[#ece5fb] rounded-2xl px-4 py-10 text-center">Nothing to react to right now.</div>
+                /* ⛓️ 3 Sep — THE NEUTRAL PROOF BASELINE. *"Nothing to react to right now."* is
+                   true and stays for everyone it was written for, but for a client at Proof
+                   with an empty desk it is a dead end: it states an absence and offers no way
+                   out of it, on the one screen whose whole job is to start the conversation.
+                   ⚠️ NO NEW COPY. `nextActionFor` is the SAME founder-approved per-stage
+                   sentence the programme workspace already renders — *"Tell Milla the outcome
+                   you want"* at Proof — reused here rather than re-written. Same card, same
+                   colours, same spacing: only the sentence inside it differs, and only for
+                   this state. */
+                <div className="text-[14px] text-[#9b8ec4] bg-[#faf8ff] border border-[#ece5fb] rounded-2xl px-4 py-10 text-center">
+                  {prog?.stage === 'Proof' ? nextActionFor(prog) : 'Nothing to react to right now.'}
+                </div>
               )
             )}
             {pending.map((l, i) => {

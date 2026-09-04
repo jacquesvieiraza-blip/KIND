@@ -51,6 +51,22 @@ export interface MillaSnapshot {
   meetings_booked: number
   meetings_total: number
   replies_total: number
+  /**
+   * ⚑ 3 Sep — IS A CALIBRATION SET ACTUALLY IN FRONT OF THEM RIGHT NOW?
+   *
+   * 🛑 SHE WAS TOLD THE STAGE AND NOTHING ABOUT THE DESK. On the founder's clean-baseline walk
+   * she wrote *"Right now (Proof): we're showing you a small masked set of real people"* to a
+   * client whose desk was empty — a faithful reading of lifecycle step 1, stated in the present
+   * tense because nothing in the prompt could tell her the present differed from the stage.
+   *
+   * ⚠️ A GAP, NOT A HALLUCINATION, so the fix is the missing fact and not a longer ban list.
+   * She cannot be prohibited into knowing something she was never given.
+   *
+   * ⚠️ AND IT IS NOT THE RETIRED PER-LEAD COUNT SNEAKING BACK IN. The interface excludes
+   * `leads_awaiting` so the retired ECONOMICS cannot reach the model; a yes/no about whether
+   * the desk currently holds anything carries no price, no wallet and no approval queue.
+   */
+  calibration_set_on_desk: boolean
 }
 
 /** Money the client can read, derived from the programme row — never typed. */
@@ -115,6 +131,14 @@ export function describeOutcomes(snap: MillaSnapshot | null): string {
     'WHAT THE WORK HAS PRODUCED (real, current):',
     `- Replies all-time: ${snap.replies_total}`,
     `- Meetings all-time: ${snap.meetings_total} (${snap.meetings_booked} this month)`,
+    // ⚑ 3 Sep — THE STATE OF THE SCREEN BESIDE HER, stated as a fact rather than left to be
+    // inferred from the stage. See `calibration_set_on_desk` for the sentence that earned it.
+    snap.calibration_set_on_desk
+      ? '- Their desk currently HAS people on it for them to react to.'
+      : '- THEIR DESK IS EMPTY RIGHT NOW — there is nothing on it for them to react to. Do NOT ' +
+        'say you are showing them people, that a set is on their screen, or that they should ' +
+        'react to examples. Do NOT claim a search is running, has failed, or found nothing ' +
+        'unless a fact above says so.',
   ].join('\n')
 }
 
@@ -184,6 +208,14 @@ export const LIFECYCLE_RULES: readonly string[] = [
     'sourcing.',
   'Answer from the step the client is actually on. Their current stage is in their programme ' +
     'block below; describe what is next for THEM, not the whole list, unless they ask for it.',
+  // ⚑ 3 Sep — THE STAGE IS NOT THE SCREEN. Step 1 describes what Proof IS; it is not a
+  // statement that a set is on the desk today. Being AT Proof and HAVING a set in front of you
+  // are different facts, and only the client block knows the second one.
+  'NEVER SAY A CALIBRATION SET IS CURRENTLY VISIBLE unless the client block explicitly says ' +
+    'their desk has people on it. Being at the Proof stage describes where they are in the ' +
+    'programme, NOT what is on their screen right now. When the desk is empty, the next thing ' +
+    'is for them to tell you the outcome they want — say that, and describe Proof in the ' +
+    'future tense.',
 ] as const
 
 /**

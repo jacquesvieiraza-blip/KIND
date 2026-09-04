@@ -62,45 +62,134 @@ async function getClientForUser(userId: string): Promise<{ id: string; company_i
 // #110 — `deduped` counts this rep's leads that FIGSY flagged as already-in-CRM
 // (leads.crm_existing). These are real, written by the live dedup path in
 // lib/figsy.ts; we never re-spend credits re-working them. Read-only here.
-async function repStats(repIds: string[]): Promise<Record<string, { contacted: number; replies: number; booked: number; leads: number; deduped: number }>> {
-  const stats: Record<string, { contacted: number; replies: number; booked: number; leads: number; deduped: number }> = {}
-  for (const id of repIds) stats[id] = { contacted: 0, replies: 0, booked: 0, leads: 0, deduped: 0 }
+// ══ 🛑 4 Sep — THE COMMAND CENTRE WAS THE LAST UNBOUNDED CURRENT-WORK SURFACE ═══════════
+//
+// Every figure below was `client_id` per rep with NO boundary, on a page reachable from the
+// normal Milla rail. For a programme-model seat that means the retired book — every lead ever
+// sourced, every historical reply, every meeting from a motion that no longer exists —
+// rendered as **Leads · Reply % · Booked · Contacted** under a heading that claims to be the
+// company's current picture.
+//
+// ⚠️ THE BOUNDARY IS THE ONE #1639/#1640 ESTABLISHED, applied PER REP. Every rep IS their own
+// `clients` row (their leads are `leads.client_id = seat`), so `currentOutreachLeads` answers
+// for a seat exactly as it answers for a customer. No second interpretation, no new resolver.
+//
+// ⚠️ AND THE SCOPE IS RETURNED, not just consumed. The caller needs it for the ECONOMICS
+// decision too — a programme seat must not be shown credits — and resolving it twice is how
+// two answers about one seat start to disagree.
+type RepScopeMode = 'ids' | 'client' | 'none' | 'unreadable'
+type RepStat = {
+  contacted: number; replies: number; booked: number; leads: number; deduped: number
+  /** Which commercial model governs this seat. Drives BOTH the activity and the economics. */
+  mode: RepScopeMode
+}
+
+async function repStats(repIds: string[]): Promise<Record<string, RepStat>> {
+  const stats: Record<string, RepStat> = {}
+  for (const id of repIds) stats[id] = { contacted: 0, replies: 0, booked: 0, leads: 0, deduped: 0, mode: 'unreadable' }
   if (repIds.length === 0) return stats
 
+  // ── THE BOUNDARY, RESOLVED ONCE PER SEAT ──────────────────────────────────────────────
+  const { currentOutreachLeads, currentOutreachCampaigns } = await import('../lib/current-outreach')
+  /** Seat → the lead ids that count as current, or `null` when the seat is client-wide. */
+  const currentLeadIds: Record<string, string[] | null> = {}
+  /** Seat → the campaign ids that count as current, or `null` when the seat is client-wide. */
+  const currentCampaignIds: Record<string, string[] | null> = {}
+  /** Seat → its open programme, for the meeting boundary. */
+  const programmeOf: Record<string, string> = {}
+  for (const id of repIds) {
+    const scope = await currentOutreachLeads(id)
+    stats[id].mode = scope.mode
+    if (scope.mode === 'unreadable') console.error('[company/overview] seat scope unreadable:', id, scope.reason)
+    if (scope.mode === 'ids') {
+      currentLeadIds[id] = scope.ids
+      programmeOf[id] = scope.programmeId
+      const camps = await currentOutreachCampaigns(id, scope)
+      if (camps.mode === 'ids') currentCampaignIds[id] = camps.ids
+      else if (camps.mode === 'unreadable') { stats[id].mode = 'unreadable'; currentCampaignIds[id] = [] }
+      else currentCampaignIds[id] = []
+    } else if (scope.mode === 'client') {
+      currentLeadIds[id] = null
+      currentCampaignIds[id] = null
+    } else {
+      // 🛑 `none` (proof / programme with no programme) and `unreadable` BOTH count NOTHING.
+      // A number is an assertion about work we did; not knowing is never grounds to make one,
+      // and a calibration seat has no outreach by definition (R91). Fail closed to zero — and
+      // never to the historical fallback (R96).
+      currentLeadIds[id] = []
+      currentCampaignIds[id] = []
+    }
+  }
+  /** Seats whose figures may be counted at all. */
+  const counting = repIds.filter(id => stats[id].mode === 'ids' || stats[id].mode === 'client')
+
   const [leadsRes, repliesRes, campsRes] = await Promise.all([
-    db.from('leads').select('client_id, crm_existing').in('client_id', repIds),
-    db.from('figsy_replies').select('client_id, meeting_booked_at').in('client_id', repIds),
-    db.from('figsy_campaigns').select('id, client_id').in('client_id', repIds),
+    db.from('leads').select('id, client_id, crm_existing').in('client_id', counting.length ? counting : ['00000000-0000-0000-0000-000000000000']),
+    db.from('figsy_replies').select('client_id, lead_id, meeting_booked_at').in('client_id', counting.length ? counting : ['00000000-0000-0000-0000-000000000000']),
+    db.from('figsy_campaigns').select('id, client_id').in('client_id', counting.length ? counting : ['00000000-0000-0000-0000-000000000000']),
   ])
+
+  /** Is this row inside the seat's CURRENT work? `null` ids = the whole seat (legacy). */
+  const inScope = (map: Record<string, string[] | null>, seat: string, rowId: unknown): boolean => {
+    const allowed = map[seat]
+    if (allowed === null || allowed === undefined) return allowed === null
+    return typeof rowId === 'string' && allowed.includes(rowId)
+  }
 
   for (const r of (leadsRes.data ?? []) as any[]) {
     if (!stats[r.client_id]) continue
+    if (!inScope(currentLeadIds, r.client_id, r.id)) continue
     stats[r.client_id].leads++
     if (r.crm_existing) stats[r.client_id].deduped++
   }
   for (const r of (repliesRes.data ?? []) as any[]) {
     if (!stats[r.client_id]) continue
+    // `figsy_replies` carries no programme_id, so attribution is DERIVED through `lead_id` —
+    // the same derivation the Home rail and the Replies page use. No column, no migration.
+    if (!inScope(currentLeadIds, r.client_id, r.lead_id)) continue
     stats[r.client_id].replies++
     // ⛓️ `if (r.meeting_booked_at) stats[...].booked++` USED TO BE HERE (BUILD-003 item 2).
     // A rep's booked count came from reply timestamps, so it counted a reschedule twice and
     // could not drop a duplicate or a spam booking. It now comes from public.meetings.
   }
 
-  // BUILD-003 item 2 — the meeting number, from the one place that knows the counting rules.
-  // ⚠️ A null map means the query FAILED. The counts are left at whatever they were rather
-  // than written as zeros, because telling a company every rep booked nothing is a worse
-  // answer than telling them nothing at all.
-  const bookedByRep = await clientMeetingCounts(repIds)
-  if (bookedByRep) {
-    for (const id of repIds) if (stats[id]) stats[id].booked = bookedByRep[id] ?? 0
-  } else {
-    console.error('[company] meeting counts unreadable — booked figures left unchanged')
+  // ── BUILD-003 item 2 — the meeting number, from the one place that knows the rules ──────
+  //
+  // ⚠️ `public.meetings` STAYS THE SOURCE, and `excluded_reason` / `superseded_by` are still
+  // applied inside meeting-truth — so duplicate and reschedule truth is untouched. What is
+  // ADDED is the programme boundary: `meetingCounts` has taken `programmeId` since BUILD-003
+  // and this caller never passed it, so a programme seat counted its retired meetings too.
+  //
+  // ⚠️ A FAILED READ IS STILL NOT A ZERO. Legacy seats keep the existing behaviour exactly:
+  // on a null map their figures are left alone rather than written as zeros, because telling
+  // a company every rep booked nothing is a worse answer than telling them nothing at all.
+  const legacySeats = repIds.filter(id => stats[id].mode === 'client')
+  if (legacySeats.length) {
+    const bookedByRep = await clientMeetingCounts(legacySeats)
+    if (bookedByRep) {
+      for (const id of legacySeats) if (stats[id]) stats[id].booked = bookedByRep[id] ?? 0
+    } else {
+      console.error('[company] meeting counts unreadable — booked figures left unchanged')
+    }
+  }
+  const { meetingCounts } = await import('../lib/meeting-truth')
+  for (const id of repIds) {
+    if (stats[id].mode !== 'ids') continue
+    const counts = await meetingCounts({ clientId: id, programmeId: programmeOf[id] })
+    // null = the read failed. Left at 0 rather than guessed, and logged.
+    if (counts) stats[id].booked = counts.booked
+    else console.error('[company] programme meeting counts unreadable for seat', id)
   }
 
   // Sent (contacted) is keyed by campaign → map campaign back to its rep.
+  // ⚠️ FOR A PROGRAMME SEAT ONLY ITS PROGRAMME'S CAMPAIGNS COUNT — derived through the ICP,
+  // exactly as `campaignFor` derives it. A retired campaign's sends are not current contact.
   const campToRep: Record<string, string> = {}
   const campIds: string[] = []
-  for (const c of (campsRes.data ?? []) as any[]) { campToRep[c.id] = c.client_id; campIds.push(c.id) }
+  for (const c of (campsRes.data ?? []) as any[]) {
+    if (!inScope(currentCampaignIds, c.client_id, c.id)) continue
+    campToRep[c.id] = c.client_id; campIds.push(c.id)
+  }
   if (campIds.length) {
     const { data: sent } = await db.from('figsy_sent_emails').select('campaign_id').in('campaign_id', campIds)
     for (const s of (sent ?? []) as any[]) {
@@ -110,6 +199,21 @@ async function repStats(repIds: string[]): Promise<Record<string, { contacted: n
   }
   return stats
 }
+
+/**
+ * May this seat be shown the RETIRED credit economics?
+ *
+ * 🛑 ONLY A LEGACY SEAT. Founder-ruled 4 Sep: for programme-model customers the wallet, the
+ * credit pool and the per-seat budget are retired, and a page that still prints them is making
+ * a commercial claim the product no longer honours. `none` (proof, or a programme client
+ * between programmes) and `unreadable` are refused for the same reason the metrics are —
+ * not knowing is never grounds to assert, and an unreadable seat must never fall through to
+ * legacy economics (R96).
+ *
+ * ⚠️ NOTHING IS REPLACED WITH AN INVENTED FIGURE. The values become `null`, which the page
+ * hides; `0` would be a claim ("you have no credits left") about a thing that does not exist.
+ */
+const showsRetiredEconomics = (mode: RepScopeMode) => mode === 'client'
 
 // ── GET /company/overview — the owner's command centre ──────────────────────
 companyRouter.get('/overview', async (req: AuthRequest, res) => {
@@ -138,18 +242,22 @@ companyRouter.get('/overview', async (req: AuthRequest, res) => {
     const stats = await repStats(reps.map(r => r.id))
 
     const seatsOut = seatRows.map(s => {
-      const st = stats[s.id] ?? { contacted: 0, replies: 0, booked: 0, leads: 0, deduped: 0 }
+      const st = stats[s.id] ?? { contacted: 0, replies: 0, booked: 0, leads: 0, deduped: 0, mode: 'unreadable' as const }
       const budget = s.seat_budget ?? 0
       const used = Math.max(0, budget - (s.credit_balance ?? 0))
+      // 🛑 RETIRED ECONOMICS ARE SUPPRESSED, NOT ZEROED. See `showsRetiredEconomics`.
+      const money = showsRetiredEconomics(st.mode)
       return {
         id: s.id,
         email: s.invited_email || s.company_name || '—',
         name: s.company_name || s.invited_email || '—',
         role: s.seat_role,
         autonomy: s.autonomy ?? 'auto',
-        credit_budget: budget,
-        credits_used: used,
-        credit_balance: s.credit_balance ?? 0,
+        /** false → the page hides every credit figure for this seat. */
+        economics_visible: money,
+        credit_budget: money ? budget : null,
+        credits_used: money ? used : null,
+        credit_balance: money ? (s.credit_balance ?? 0) : null,
         seat_active: s.seat_active ?? true,
         accepted_at: s.seat_accepted_at ?? null,
         enabled_agents: s.enabled_agents ?? ['figsy'],
@@ -174,6 +282,14 @@ companyRouter.get('/overview', async (req: AuthRequest, res) => {
     })
 
     const repOut = seatsOut.filter(s => s.role === 'rep')
+    // ── COMPANY-WIDE ECONOMICS: ALL OR NOTHING, AND FAIL-CLOSED ──────────────────────────
+    //
+    // 🛑 THE POOL IS PRESENTED AS FUNDING EVERY SEAT, so it may only be shown when every seat
+    // it claims to fund is actually on the model that has one. One programme seat is enough to
+    // make "Company budget pool" a retired commercial claim about this company — so the tile
+    // goes, rather than being shown with a caveat nobody reads. A company with no reps yet has
+    // nothing to contradict it and keeps the existing view.
+    const companyEconomics = repOut.length === 0 || repOut.every(s => s.economics_visible)
     const totals = {
       seats:            repOut.length,
       active_seats:     repOut.filter(s => s.seat_active && s.accepted_at).length,
@@ -181,9 +297,11 @@ companyRouter.get('/overview', async (req: AuthRequest, res) => {
       // #616 — so the UI can warn BEFORE the wall. A company used to hit a 409 at rep 26 with
       // nothing on screen having ever mentioned a limit.
       seats_used:       repOut.length,
-      allocated:        repOut.reduce((n, s) => n + s.credit_budget, 0),
-      used:             repOut.reduce((n, s) => n + s.credits_used, 0),
-      company_pool:     (company as any)?.credit_pool ?? 0,
+      /** false → the page hides the budget pool, allocated and used entirely. */
+      economics_visible: companyEconomics,
+      allocated:        companyEconomics ? repOut.reduce((n, s) => n + (s.credit_budget ?? 0), 0) : null,
+      used:             companyEconomics ? repOut.reduce((n, s) => n + (s.credits_used ?? 0), 0) : null,
+      company_pool:     companyEconomics ? ((company as any)?.credit_pool ?? 0) : null,
       pending_requests: (requests ?? []).length,
       total_booked:     repOut.reduce((n, s) => n + s.booked, 0),
       total_contacted:  repOut.reduce((n, s) => n + s.contacted, 0),
@@ -667,7 +785,34 @@ companyRouter.get('/winning-plays', async (req: AuthRequest, res) => {
     const { data } = await db.from('winning_plays')
       .select('id, name, note, reply_rate, pushed_to_all, created_at')
       .eq('company_id', ctx.companyId).order('created_at', { ascending: false }).limit(50)
-    res.json({ success: true, data: data ?? [] })
+
+    // ── 🛑 4 Sep — WHAT `reply_rate` ACTUALLY IS, TRACED BEFORE IT WAS BOUNDED ────────────
+    //
+    // ⚠️ IT IS NOT COMPUTED FROM SENDS AND REPLIES. `winning_plays.reply_rate` is a STORED
+    // numeric column and **nothing in the product ever writes it from real activity**: the
+    // save route (`POST /winning-plays`) does not set it at all, so a genuinely saved play is
+    // NULL and renders no badge. The only writer in the repository is `lib/seed-company.ts`,
+    // which hardcodes 14.5 and 11.2 — reachable solely from the operator seeding route.
+    //
+    // 🛑 SO THE RISK IS NOT THE ONE IT LOOKED LIKE. It is not ranking a "winning" rep from
+    // historical legacy activity — it never ranked anything. It is a DEMO CONSTANT rendered to
+    // a customer as **"14.5% reply"** with a crown beside it, which is a performance claim
+    // about their team that no measurement stands behind.
+    //
+    // ⚠️ SUPPRESSED FOR PROGRAMME-MODEL COMPANIES, NOT REPLACED. There is no current-programme
+    // reply figure to put here — computing one would be inventing the metric the founder
+    // forbade — so the badge simply does not render and the play keeps its name and note. The
+    // stored value is untouched in the database; only the claim stops being made.
+    //
+    // ⚠️ LEGACY IS UNCHANGED: a legacy company sees exactly what it saw.
+    const { currentOutreachLeads } = await import('../lib/current-outreach')
+    const self = await currentOutreachLeads(ctx.clientId ?? '')
+    const claimAllowed = self.mode === 'client'
+    const plays = ((data ?? []) as Array<Record<string, unknown>>).map(p => ({
+      ...p,
+      reply_rate: claimAllowed ? p.reply_rate : null,
+    }))
+    res.json({ success: true, data: plays })
   } catch (err) {
     console.error('[company/winning-plays GET]', err)
     res.status(500).json({ success: false, error: 'Failed to load plays' })

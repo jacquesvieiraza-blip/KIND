@@ -36,8 +36,13 @@ interface Seat {
   name?: string
   role: string
   autonomy: 'auto' | 'copilot' | 'off'
-  credit_budget: number
-  credits_used: number
+  // ⛓️ 4 Sep — NULLABLE, and null means SUPPRESSED rather than zero. For a programme-model
+  // seat the credit economics are retired, so the server sends no figure at all; 0 would be a
+  // claim ("no credits left") about a thing that does not exist for them.
+  credit_budget: number | null
+  credits_used: number | null
+  /** false → hide every credit figure for this seat. Absent on an older API → treat as true. */
+  economics_visible?: boolean
   credit_balance?: number
   seat_active: boolean
   accepted_at: string | null
@@ -69,7 +74,7 @@ interface Overview {
   pending_requests: CreditRequest[]
   // #616 — seat_cap and seats_used were RETURNED by /company/overview and undeclared here,
   // so nothing could render them: the limit was enforced, invisible and unchangeable.
-  totals: { seats: number; active_seats: number; seat_cap?: number; seats_used?: number; allocated: number; used: number; company_pool: number; pending_requests: number; total_leads?: number; total_deduped?: number; calendars_connected?: number }
+  totals: { seats: number; active_seats: number; seat_cap?: number; seats_used?: number; allocated: number | null; used: number | null; company_pool: number | null; pending_requests: number; total_leads?: number; total_deduped?: number; calendars_connected?: number; economics_visible?: boolean }
 }
 
 type Tab = 'command' | 'seats' | 'usage' | 'plays'
@@ -300,6 +305,16 @@ export default function CompanyPage() {
   if (!data) return <div className="max-w-md mx-auto text-center py-20 text-gray-500">Couldn't load your company workspace. Refresh to try again.</div>
 
   const { totals, seats, pending_requests: requests, can_manage } = data
+  // ── 🛑 4 Sep — RETIRED ECONOMICS ARE HIDDEN FOR PROGRAMME-MODEL COMPANIES ──────────────
+  //
+  // The server decides (it is the only thing that knows the commercial model) and this page
+  // obeys. `undefined` means an OLDER API that predates the flag — treated as visible, so a
+  // deploy-order skew shows the legacy view it always showed rather than blanking a paying
+  // company's economics on a field that simply is not there yet.
+  //
+  // ⚠️ NOTHING IS REDESIGNED. Each guarded block is the existing markup, rendered or not; the
+  // grids re-flow and no styling, ordering or copy changes.
+  const econ = totals?.economics_visible !== false
   const isOwner = data.role === 'owner'   // #109 — only the owner may set seat roles
   const emailName = (e: string) => e.split('@')[0]
   const seatById = (id: string) => seats.find(s => s.id === id)
@@ -348,7 +363,11 @@ export default function CompanyPage() {
                   <p className="text-xl font-bold">{data.company.name} · {totals.seats} seats</p>
                 </div>
                 <div className="flex gap-8 text-right">
-                  <div><p className="text-2xl font-bold">{totals.company_pool.toLocaleString()}</p><p className="text-xs text-white/60">Pool credits</p></div>
+                  {/* ⛓️ 4 Sep — RETIRED ECONOMICS ARE HIDDEN, NOT ZEROED. For a programme-model
+                      company the credit pool does not exist; printing "0 Pool credits" would be
+                      a claim about a thing that was retired. The tile goes; the grid re-flows
+                      and nothing else on the hero moves. */}
+                  {econ && <div><p className="text-2xl font-bold">{(totals.company_pool ?? 0).toLocaleString()}</p><p className="text-xs text-white/60">Pool credits</p></div>}
                   <div><p className="text-2xl font-bold">{totals.active_seats}</p><p className="text-xs text-white/60">Active</p></div>
                   <div><p className="text-2xl font-bold">{totals.pending_requests}</p><p className="text-xs text-white/60">Requests</p></div>
                 </div>
@@ -374,13 +393,17 @@ export default function CompanyPage() {
                   <th className="text-right px-3 py-3">Reply %</th>
                   <th className="text-right px-3 py-3">Booked</th>
                   <th className="text-center px-3 py-3">Calendar</th>
-                  <th className="text-right px-4 py-3">Credits left</th>
+                  {econ && <th className="text-right px-4 py-3">Credits left</th>}
                 </tr>
               </thead>
               <tbody>
                 {seats.filter(s => s.seat_active).map((s, i) => {
-                  const left = Math.max(0, s.credit_budget - s.credits_used)
-                  const pct  = s.credit_budget > 0 ? (s.credits_used / s.credit_budget) : 0
+                  // Null = suppressed. The derived values fall to 0 and are never rendered,
+                  // because every site that shows them is behind `econ`.
+                  const budget = s.credit_budget ?? 0
+                  const usedC  = s.credits_used ?? 0
+                  const left = Math.max(0, budget - usedC)
+                  const pct  = budget > 0 ? (usedC / budget) : 0
                   const INITIALS = ['bg-violet-600','bg-indigo-500','bg-emerald-500','bg-amber-500','bg-rose-500']
                   const isRep = s.role !== 'owner'
                   return (
@@ -397,7 +420,7 @@ export default function CompanyPage() {
                             <p className="text-xs text-gray-400">{s.role}</p>
                           </div>
                           {s.role === 'owner' && <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">Owner</span>}
-                          {pct > 0.9 && left < 20 && <span className="text-[10px] font-bold text-orange-600 bg-orange-50 px-2 py-0.5 rounded-full">low credits</span>}
+                          {econ && pct > 0.9 && left < 20 && <span className="text-[10px] font-bold text-orange-600 bg-orange-50 px-2 py-0.5 rounded-full">low credits</span>}
                         </div>
                       </td>
                       <td className="px-3 py-4 text-right text-gray-700">
@@ -431,12 +454,16 @@ export default function CompanyPage() {
                           </span>
                         )}
                       </td>
-                      <td className="px-4 py-4 text-right">
-                        <div className="flex items-center justify-end gap-1.5">
-                          <span className="font-bold" style={{ color: pct > 0.9 ? '#ea580c' : BRAND }}>{left.toLocaleString()}</span>
-                          {isRep && can_manage && <ChevronRight className="w-4 h-4 text-gray-300" />}
-                        </div>
-                      </td>
+                      {/* ⛓️ 4 Sep — the CREDIT figure goes with its column; the drill-down
+                          chevron stays, because opening a rep is not an economics claim. */}
+                      {econ && (
+                        <td className="px-4 py-4 text-right">
+                          <div className="flex items-center justify-end gap-1.5">
+                            <span className="font-bold" style={{ color: pct > 0.9 ? '#ea580c' : BRAND }}>{left.toLocaleString()}</span>
+                            {isRep && can_manage && <ChevronRight className="w-4 h-4 text-gray-300" />}
+                          </div>
+                        </td>
+                      )}
                     </tr>
                   )
                 })}
@@ -569,11 +596,13 @@ export default function CompanyPage() {
                     <span className="text-[11px] font-semibold text-gray-500">{s.autonomy === 'auto' ? '⚡ Auto-pilot' : '👁 Co-pilot'}</span>
                   )}
                 </div>
-                {/* Budget (item 37) */}
-                <div className="text-xs text-gray-500 mb-1 flex justify-between"><span>Credits</span><span>{s.credits_used.toLocaleString()} / {s.credit_budget.toLocaleString()}</span></div>
+                {/* Budget (item 37) — hidden entirely for a programme-model seat (4 Sep). */}
+                {econ && <>
+                <div className="text-xs text-gray-500 mb-1 flex justify-between"><span>Credits</span><span>{(s.credits_used ?? 0).toLocaleString()} / {(s.credit_budget ?? 0).toLocaleString()}</span></div>
                 <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                  <div className="h-full rounded-full" style={{ width: `${s.credit_budget > 0 ? Math.min(100, (s.credits_used / s.credit_budget) * 100) : 0}%`, background: s.credit_budget > 0 && s.credits_used / s.credit_budget > 0.9 ? '#ea580c' : BRAND }} />
+                  <div className="h-full rounded-full" style={{ width: `${(s.credit_budget ?? 0) > 0 ? Math.min(100, ((s.credits_used ?? 0) / (s.credit_budget ?? 1)) * 100) : 0}%`, background: (s.credit_budget ?? 0) > 0 && (s.credits_used ?? 0) / (s.credit_budget ?? 1) > 0.9 ? '#ea580c' : BRAND }} />
                 </div>
+                </>}
 
                 {/* Per-rep agent unlock — owner switches agents on for this rep */}
                 {s.role === 'rep' && (
@@ -644,25 +673,27 @@ export default function CompanyPage() {
                 {/* #108 — owner edits the rep's budget + can deactivate the seat */}
                 {can_manage && s.role === 'rep' && (
                   <div className="mt-4 pt-3 border-t border-gray-100 space-y-3">
-                    <div>
+                    {/* ⛓️ 4 Sep — a CONTROL over retired economics is a claim too. Hidden for a
+                        programme-model seat; the surrounding block and its other controls stay. */}
+                    {econ && <div>
                       <p className="text-[11px] font-semibold text-gray-500 mb-1.5">Per-seat credit budget</p>
                       <div className="flex items-center gap-2">
                         <div className="flex items-center gap-1 rounded-xl border border-gray-200 px-3 py-2 flex-1">
                           <input
                             type="number" min={0}
-                            value={budgetEdits[s.id] ?? s.credit_budget}
+                            value={budgetEdits[s.id] ?? (s.credit_budget ?? 0)}
                             onChange={e => setBudgetEdits(prev => ({ ...prev, [s.id]: parseInt(e.target.value) || 0 }))}
                             className="w-full text-sm text-right focus:outline-none" />
                           <span className="text-xs text-gray-400">cr</span>
                         </div>
                         <button
-                          disabled={busy === s.id || (budgetEdits[s.id] ?? s.credit_budget) === s.credit_budget}
+                          disabled={busy === s.id || (budgetEdits[s.id] ?? (s.credit_budget ?? 0)) === (s.credit_budget ?? 0)}
                           onClick={() => saveBudget(s)}
                           className="px-3 py-2 rounded-xl text-xs font-semibold text-white disabled:opacity-50" style={{ background: BRAND }}>
                           {busy === s.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'Save'}
                         </button>
                       </div>
-                    </div>
+                    </div>}
                     {s.seat_active ? (
                       <button
                         disabled={busy === s.id}
@@ -707,14 +738,24 @@ export default function CompanyPage() {
         </div>
       )}
 
-      {tab === 'usage' && (
+      {tab === 'usage' && !econ && (
+        /* ⛓️ 4 Sep — USAGE & BUDGET IS RETIRED ECONOMICS END TO END for a programme-model
+           company: a credit pool, per-seat budgets, bundle top-ups. There is no programme
+           equivalent yet and inventing one is forbidden, so the tab states that plainly rather
+           than rendering a pool of zero. Layout, card styling and the tab itself are unchanged. */
+        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+          <p className="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-1">Usage &amp; budget</p>
+          <p className="text-sm text-gray-500">Your programme is billed as one price in two halves. There is no credit pool or per-seat budget to manage.</p>
+        </div>
+      )}
+      {tab === 'usage' && econ && (
         <div className="space-y-6">
           {/* Company pool balance + top-up */}
           <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
             <p className="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-1">Company budget pool</p>
-            <p className="text-3xl font-bold text-gray-900 mb-1">{totals.company_pool.toLocaleString()} <span className="text-lg font-normal text-gray-400">credits left</span></p>
+            <p className="text-3xl font-bold text-gray-900 mb-1">{(totals.company_pool ?? 0).toLocaleString()} <span className="text-lg font-normal text-gray-400">credits left</span></p>
             <div className="h-3 bg-gray-100 rounded-full overflow-hidden mb-4">
-              <div className="h-full rounded-full transition-all" style={{ width: `${totals.allocated > 0 ? Math.min(100, (totals.used / totals.allocated) * 100) : 0}%`, background: BRAND }} />
+              <div className="h-full rounded-full transition-all" style={{ width: `${(totals.allocated ?? 0) > 0 ? Math.min(100, ((totals.used ?? 0) / (totals.allocated ?? 1)) * 100) : 0}%`, background: BRAND }} />
             </div>
             <p className="text-xs text-gray-400 mb-5">Reps request more when they run low. You approve or deny — exactly how an enterprise runs Claude. Hybrid = seat + usage you control.</p>
 
@@ -759,12 +800,12 @@ export default function CompanyPage() {
               <div key={s.id} className="px-5 py-4 border-b border-gray-50 last:border-0">
                 <div className="flex justify-between text-sm mb-1">
                   <span className="font-medium text-gray-800">{emailName(s.email)}</span>
-                  <span className="text-gray-500">{s.credits_used.toLocaleString()} / {s.credit_budget.toLocaleString()}</span>
+                  <span className="text-gray-500">{(s.credits_used ?? 0).toLocaleString()} / {(s.credit_budget ?? 0).toLocaleString()}</span>
                 </div>
                 <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
                   <div className="h-full rounded-full" style={{
-                    width: `${s.credit_budget > 0 ? Math.min(100, (s.credits_used / s.credit_budget) * 100) : 0}%`,
-                    background: s.credit_budget > 0 && s.credits_used / s.credit_budget > 0.9 ? '#ea580c' : BRAND,
+                    width: `${(s.credit_budget ?? 0) > 0 ? Math.min(100, ((s.credits_used ?? 0) / (s.credit_budget ?? 1)) * 100) : 0}%`,
+                    background: (s.credit_budget ?? 0) > 0 && (s.credits_used ?? 0) / (s.credit_budget ?? 1) > 0.9 ? '#ea580c' : BRAND,
                   }} />
                 </div>
               </div>
@@ -828,7 +869,9 @@ export default function CompanyPage() {
                   { label: 'Contacted', value: (drillSeat.contacted ?? 0).toLocaleString() },
                   { label: 'Reply %',   value: `${drillSeat.reply_pct ?? 0}%` },
                   { label: 'Booked',    value: String(drillSeat.booked ?? 0) },
-                  { label: 'Credits left', value: Math.max(0, drillSeat.credit_budget - drillSeat.credits_used).toLocaleString() },
+                  /* ⛓️ 4 Sep — the credits tile is dropped for a programme-model seat rather
+                     than showing 0; the grid re-flows to three and nothing else moves. */
+                  ...(econ ? [{ label: 'Credits left', value: Math.max(0, (drillSeat.credit_budget ?? 0) - (drillSeat.credits_used ?? 0)).toLocaleString() }] : []),
                 ].map(k => (
                   <div key={k.label} className="rounded-xl border border-gray-200 p-3 text-center">
                     <p className="text-2xl font-bold text-gray-900">{k.value}</p>

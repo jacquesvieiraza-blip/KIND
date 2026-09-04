@@ -156,7 +156,14 @@ export default function TeamsHubPage() {
           api.get<{ data: { total?: number } }>('/leads/stats', token),
           // #384 — the real endpoint is /figsy/kpis (figsy.ts:709); /figsy/stats 404'd, so
           // "Emails sent" was always 0.
-          api.get<{ data: { emails_sent?: number } }>('/figsy/kpis', token),
+          // ⛓️ 4 Sep — ~~`{ data: { emails_sent?: number } }`~~. THE KEY DOES NOT EXIST.
+          // `/figsy/kpis` returns `totalSent`; nothing has ever returned `emails_sent`, so
+          // this box has rendered 0 on every account since #384 fixed the ENDPOINT and left
+          // the field name wrong. A typed shape that names a field the API never sends is
+          // invisible to the compiler — `emails_sent?: number` is satisfied by `undefined`.
+          // ⚠️ NO METRIC IS FABRICATED HERE: `totalSent` is the value the endpoint already
+          // computes, and it is now current-work bounded on the server.
+          api.get<{ data: { totalSent?: number } }>('/figsy/kpis', token),
           api.get<{ data: Array<{ status: string }> }>('/figsy/campaigns', token),
         ])
 
@@ -164,7 +171,7 @@ export default function TeamsHubPage() {
           setLeadsToday(leadsRes.value?.data?.total ?? 0)
         }
         if (emailsRes.status === 'fulfilled') {
-          setEmailsSent(emailsRes.value?.data?.emails_sent ?? 0)
+          setEmailsSent(emailsRes.value?.data?.totalSent ?? 0)
         }
         if (campaignsRes.status === 'fulfilled') {
           const camps = campaignsRes.value?.data ?? []
@@ -320,19 +327,24 @@ export default function TeamsHubPage() {
 
           {/* 2x2 stat grid */}
           <div className="grid grid-cols-2 gap-3">
-            {/* ── 🛑 4 Sep (D4) — "LEADS TODAY" WAS NEVER TODAY ─────────────────────────
-                ⛓️ ~~`label="Leads today"`~~. The value is `/leads/stats` → `data.total`, a
-                LIFETIME delivered count — 166 of them on the account that found this — printed
-                under the word "today" on a customer's own Teams Hub.
+            {/* ── 🛑 4 Sep (D4) — "LEADS TODAY" WAS NEVER TODAY, AND IT IS NOT "ALL TIME" EITHER
+                ⛓️ FIRST: ~~`label="Leads today"`~~. The value is `/leads/stats` → `data.total`,
+                which was a LIFETIME delivered count printed under the word "today".
 
-                ⚠️ THE FIX IS THE LABEL, NOT A NEW NUMBER. Founder-ruled: a historical metric
-                must be labelled historical, and must never be turned into a current one by
-                renaming it. So the count is unchanged and now says what it is. (Separately,
-                the endpoint no longer hands a programme customer their retired book at all —
-                see the D4 note in `routes/leads.ts`.) */}
-            <StatBox label="Leads delivered (all time)" value={leadsToday} />
-            {/* Same reasoning: `/figsy/kpis` defaults to `period=all`, so this is lifetime. */}
-            <StatBox label="Emails sent (all time)"     value={emailsSent} />
+                ⛓️ THEN, SAME DAY: ~~`label="Leads delivered (all time)"`~~. That was true of
+                the number BEFORE the server boundary landed and false immediately after it —
+                for a programme customer the value is now their CURRENT PROGRAMME's delivered
+                count, so "(all time)" re-introduced the same class of falsehood pointing the
+                other way. Founder-corrected: **use the smallest truthful wording.**
+
+                ⚠️ SO THE LABEL IS THE BARE NOUN, and it is truthful under BOTH models: legacy
+                sees their whole book (which is their current work), a programme customer sees
+                their programme. Neither is given a time claim the number cannot support.
+
+                ⚠️ AND THE NUMBER IS NEVER CHANGED TO FIT A LABEL — the correction has always
+                run the other way. */}
+            <StatBox label="Leads delivered" value={leadsToday} />
+            <StatBox label="Emails sent"     value={emailsSent} />
             <StatBox label="Campaigns live" value={campaignsLive} />
             <StatBox label="Active now"     value={activeNow} />
           </div>

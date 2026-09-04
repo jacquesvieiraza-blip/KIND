@@ -560,6 +560,8 @@ export default function InboxPage() {
   const [query, setQuery]       = useState('')
   const [selected, setSelected] = useState<Reply | null>(null)
   const [token, setToken]       = useState('')
+  /** Non-null when the last load REFUSED. Distinct from "no replies" — see loadReplies. */
+  const [loadError, setLoadError] = useState<string | null>(null)
 
   const loadReplies = useCallback(async () => {
     const { data: { session } } = await supabase.auth.getSession()
@@ -576,8 +578,17 @@ export default function InboxPage() {
         return tb - ta
       })
       setReplies(sorted)
+      setLoadError(null)
       if (sorted.length > 0 && !selected) setSelected(sorted[0])
-    } catch { /* keep existing replies */ }
+    } catch (e) {
+      // ── 🛑 4 Sep — AN EMPTY INBOX AND AN UNREADABLE ONE ARE DIFFERENT FACTS ────────────
+      // `/figsy/replies/all` now FAILS CLOSED (503) when the client's current-work authority
+      // cannot be resolved, rather than falling back to the whole historical client inbox.
+      // Swallowing that would render the refusal as "you have no replies" — a claim — which
+      // is precisely the `.data ?? []` shape this repo keeps rediscovering. The existing
+      // replies are still kept; what is added is that the customer is TOLD.
+      setLoadError(e instanceof Error ? e.message : 'We could not load your replies right now. Nothing has changed.')
+    }
     setLoading(false)
   }, [supabase]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -758,6 +769,16 @@ export default function InboxPage() {
           {loading ? (
             <div className="flex justify-center py-16">
               <Loader2 className="w-5 h-5 animate-spin text-[#9B8EC4]" />
+            </div>
+          ) : loadError ? (
+            /* 🛑 REFUSED, NOT EMPTY. The server fails CLOSED rather than falling back to the
+               whole historical inbox, so this branch exists to say so — "No conversations
+               here" would turn a refusal into a claim about their replies. */
+            <div className="text-center py-16 px-6">
+              <Inbox className="w-8 h-8 mx-auto mb-3 text-[#9B8EC4] opacity-30" />
+              <p className="text-sm font-medium text-[#9B8EC4]">{loadError}</p>
+              <button onClick={() => { setLoading(true); void loadReplies() }}
+                className="mt-3 text-xs font-semibold text-[#7C3AED] hover:underline">Try again</button>
             </div>
           ) : filtered.length === 0 ? (
             <div className="text-center py-16 px-6">

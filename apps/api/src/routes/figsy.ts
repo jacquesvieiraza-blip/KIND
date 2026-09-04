@@ -2426,8 +2426,27 @@ figsyRouter.get('/replies/all', async (req: AuthRequest, res) => {
     // email, so a reply here could only be an earlier motion's.
     if (scope.mode === 'none') { res.json({ success: true, data: [] }); return }
 
+    // ── 🛑 4 Sep (FOUNDER-REJECTED, CORRECTED) — UNREADABLE FAILS **CLOSED** ──────────────
+    //
+    // ⛓️ THIS FELL THROUGH TO THE CLIENT-SCOPED INBOX, matching the Home rail's fail-soft. The
+    // founder refused it: *"unreadable current-work scope → return whole historical client
+    // inbox … recreates the historical-bleed class when authority resolution fails."* He is
+    // right, and the reasoning I copied was written for a different question. The rail's
+    // fail-soft dates from when the alternative was a blank rail on a LEGACY client; once the
+    // fallback can expose a programme customer's retired book, "avoid an empty screen" stops
+    // being a kindness and becomes the defect itself.
+    //
+    // 🛑 A TRANSIENT AUTHORITY FAILURE IS NOT A LICENCE TO SHOW HISTORY. We do not know which
+    // model governs this client, so we cannot know that anything we return is theirs to see
+    // as current — and an empty screen is recoverable where a false one is not.
+    //
+    // ⚠️ AND IT IS AN ERROR, NOT AN EMPTY LIST. Returning `[]` would say "you have no replies",
+    // which is a claim; 503 says "we could not read this", which is the truth. The inbox
+    // renders that state rather than an empty inbox — see its `loadError` branch.
     if (scope.mode === 'unreadable') {
       console.error('[figsy/replies/all] outreach scope unreadable for', clientId, scope.reason)
+      res.status(503).json({ success: false, error: 'We could not confirm your current work, so your replies were not loaded. Nothing has changed.' })
+      return
     }
 
     // Include lead id + linkedin_url so the inbox can link reply→lead and show

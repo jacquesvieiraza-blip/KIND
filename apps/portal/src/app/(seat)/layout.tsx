@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic'
 
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { isAuthorisedSeat } from '@/lib/seat-access'
 import { FlaskConical } from 'lucide-react'
 
 /**
@@ -37,24 +38,28 @@ export default async function SeatLayout({ children }: { children: React.ReactNo
   // belongs on their own console — the API refuses them either way (it resolves the seat
   // from the auth token, never from the URL), so this is about sending someone to the right
   // place rather than about keeping data in.
-  let isPartner = false
+  //
+  // ⛓️ AUTH-002 (6 Sep, founder-authorised) — THIS DECISION USED TO FAIL OPEN. Its catch
+  // answered `isPartner = true`, on the reasoning that a slow fetch must not lock a Client
+  // Partner out of her own earnings. For an ACCESS decision that trade is the wrong way
+  // round: failing closed costs her a few seconds in Milla, failing open puts an ordinary
+  // paying customer inside a partner-only surface because the network wobbled. The rule and
+  // every branch of it now live in `isAuthorisedSeat`, which the gate can actually execute —
+  // see `lib/seat-access.test.ts`. The request itself is unchanged, so a genuine partner
+  // sees exactly the screen she saw before.
+  let allowed = false
   try {
     const { data: { session } } = await supabase.auth.getSession()
-    if (session?.access_token) {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://kindapi-production-e64c.up.railway.app'
-      const res = await fetch(`${apiUrl}/partners/me`, {
-        headers: { Authorization: `Bearer ${session.access_token}` },
-        signal: AbortSignal.timeout(4000),
-      })
-      isPartner = res.ok
-    }
+    allowed = await isAuthorisedSeat({
+      token: session?.access_token,
+      apiUrl: process.env.NEXT_PUBLIC_API_URL || 'https://kindapi-production-e64c.up.railway.app',
+      fetcher: fetch,
+    })
   } catch {
-    // A timeout or a wobbling API is NOT proof that she is not a partner. Locking her out
-    // of her own earnings because a fetch was slow is the worse failure, and the page
-    // itself re-checks against the same API — so let it through and let the page speak.
-    isPartner = true
+    // getSession itself failing is the same class of unreadable answer, and it refuses too.
+    allowed = false
   }
-  if (!isPartner) redirect('/milla')
+  if (!allowed) redirect('/milla')
 
   return (
     <div className="min-h-screen bg-[#FAFAFE]">

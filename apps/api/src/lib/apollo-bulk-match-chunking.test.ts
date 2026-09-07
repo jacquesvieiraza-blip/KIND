@@ -134,17 +134,31 @@ describe('the money-safety flags are on EVERY chunk, not just the first', () => 
     }
   })
 
-  it('no chunk ever asks for a phone or a waterfall', async () => {
-    // ⚠️ ASSERTED AS "NEVER TRUE", WHICH IS THE HONEST SHAPE. The current request OMITS these
-    // three and relies on Apollo defaulting them off — see the note in the report. Omitted and
-    // explicitly false both pass here; a future `true` fails. That is exactly the guarantee
-    // the founder's phone-waterfall lock needs from this test.
+  it('🛑 all four money flags are EXPLICITLY false on every chunk — never left to a default', async () => {
+    // ⛓️ TIGHTENED 7 Sep. This first asserted only `not.toBe(true)`, which an OMITTED field
+    // satisfies — and three of the four WERE omitted, so the phone-waterfall lock rested on
+    // Apollo's default rather than on our request. Scout's proven-good call set all four
+    // explicitly, and the handover says in terms: **do not rely purely on provider defaults.**
+    //
+    // A default is a vendor's decision we do not control and are not told when they change.
+    // `undefined` now fails exactly as `true` does.
     stubApollo()
     await bulkMatchEmails(ids250)
+    expect(sent).toHaveLength(25)
     for (const s of sent) {
-      expect(s.body.reveal_phone_number, 'a chunk asked Apollo for a phone number').not.toBe(true)
-      expect(s.body.run_waterfall_phone, 'a chunk ran the phone waterfall').not.toBe(true)
-      expect(s.body.run_waterfall_email, 'a chunk ran the email waterfall').not.toBe(true)
+      expect(s.body.reveal_personal_emails, 'a chunk left personal-email reveal to Apollo\'s default').toBe(false)
+      expect(s.body.reveal_phone_number,    'a chunk left phone reveal to Apollo\'s default').toBe(false)
+      expect(s.body.run_waterfall_email,    'a chunk left the email waterfall to Apollo\'s default').toBe(false)
+      expect(s.body.run_waterfall_phone,    'a chunk left the phone waterfall to Apollo\'s default').toBe(false)
+    }
+  })
+
+  it('and the four are present as KEYS, not merely falsy by absence', async () => {
+    stubApollo()
+    await bulkMatchEmails(ids250.slice(0, 5))
+    const keys = Object.keys(sent[0].body)
+    for (const flag of ['reveal_personal_emails', 'reveal_phone_number', 'run_waterfall_email', 'run_waterfall_phone']) {
+      expect(keys, `${flag} is not sent at all — its value is Apollo's to choose`).toContain(flag)
     }
   })
 

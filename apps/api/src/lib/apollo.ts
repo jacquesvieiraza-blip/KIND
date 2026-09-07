@@ -646,7 +646,22 @@ export async function bulkMatchEmails(apolloIds: string[]): Promise<Map<string, 
         method:  'POST',
         headers: { 'Content-Type': 'application/json', 'X-Api-Key': apiKey },
         body: JSON.stringify({
+          // ── THE FOUR MONEY FLAGS, STATED RATHER THAN ASSUMED (7 Sep) ──────────────────
+          //
+          // 🛑 THREE OF THESE WERE OMITTED, AND OMISSION IS NOT A DECISION. Apollo defaults
+          // them off today, so nothing was being bought — but the founder's phone-waterfall
+          // lock was resting on a vendor default we do not control and are not told when
+          // they change. Scout's controlled 2-Sep test set all four explicitly and the
+          // handover says it in terms: **do not rely purely on provider defaults.**
+          //
+          // ⚠️ A MISSING FIELD IS NOT A FALSE ONE. `bulk_match` is the PAID endpoint on this
+          // path — a personal email, a direct dial or a waterfall each cost credits per
+          // record, and at 25 chunks a silent default flip is 250 records of spend nobody
+          // authorised. These four are cheap to send and impossible to misread.
           reveal_personal_emails: false,
+          reveal_phone_number:    false,
+          run_waterfall_email:    false,
+          run_waterfall_phone:    false,
           details: batch.map(id => ({ id })),   // match by Apollo person id
         }),
       })

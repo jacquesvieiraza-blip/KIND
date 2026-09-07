@@ -34,6 +34,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { resolveHouseUserIds } from './real-clients'
+import { HOUSE_ACCOUNT_EMAIL } from './real-clients-logic'
 import { db } from '@kind/db'
 
 /** Whose work is this? The only input provider choice is ever allowed to have. */
@@ -186,52 +187,128 @@ export class AudienceUnresolvedError extends Error {
   }
 }
 
+/** How long the strict path will wait for either lookup before it gives up LOUDLY. */
+export const IDENTITY_LOOKUP_TIMEOUT_MS = 10_000
+
+const why = (err: unknown) => (err instanceof Error ? err.message : String(err))
+
 /**
- * AUDIENCE FOR A SOURCING RUN — proved, or the run stops (founder-locked 7 Sep).
+ * A lookup that never settles is worse here than one that fails: the run neither proceeds nor
+ * reports, and nothing anywhere says why. Founder rule 5 of the identity lock — *"Timeout →
+ * THROW / FAIL LOUDLY"* — so every await on this path is bounded.
+ */
+async function bounded<T>(work: PromiseLike<T>, ms: number, what: string): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined
+  try {
+    return await Promise.race([
+      work,
+      new Promise<never>((_, reject) => {
+        timer = setTimeout(() => reject(new Error(`${what} did not answer within ${ms}ms`)), ms)
+        ;(timer as unknown as { unref?: () => void }).unref?.()
+      }),
+    ])
+  } finally {
+    if (timer) clearTimeout(timer)
+  }
+}
+
+/**
+ * AUDIENCE FOR A SOURCING RUN — POSITIVELY proved, or the run stops (founder-locked 7 Sep).
  *
  * Same question as `audienceForClient`, opposite failure direction, and BOTH are deliberate:
  * that one fails open so a reporting surface survives a blink; this one throws so money is
  * never spent on a guess. Used ONLY where a provider is about to be chosen.
  *
  * THE TRUTH TABLE, exactly as the founder locked it:
- *   · no client row                → THROW   (there is nothing to resolve)
- *   · client lookup errored        → THROW   (we could not read)
- *   · auth listing errored/threw   → THROW   (we could not resolve the user)
- *   · row with NULL user_id        → client  (a seat row with no auth user is never House)
- *   · user_id in the house set     → house
- *   · user_id not in the house set → client
+ *   · row with NULL user_id                       → client  (a seat with no auth user is not House)
+ *   · auth user found, email === House            → house
+ *   · auth user found, email present, not House   → client  (POSITIVELY identified)
+ *   · no client row                               → THROW   (there is nothing to resolve)
+ *   · client lookup errored                       → THROW   (we could not read)
+ *   · identity lookup errored / threw / timed out → THROW   (we could not resolve the user)
+ *   · identity lookup SUCCEEDED but returned no user, no email field, or a blank email
+ *                                                 → THROW   (it did not answer the question)
+ *
+ * ⛓️ WHY IT ASKS `getUserById` AND NOT `resolveHouseUserIds` — THIS IS THE WHOLE FIX.
+ * The first version of this function resolved the SET of House user ids and then returned
+ * `'client'` whenever the user was not in it. That reads a NON-MEMBERSHIP as a positive fact,
+ * and it is not one: an empty set, a truncated page and a permission-limited listing are all
+ * indistinguishable from a genuine ordinary client under that test. So a lookup that succeeded
+ * and established NOTHING selected PDL, on House, silently — the exact outcome this function
+ * exists to prevent. The founder rejected it as a partial pass on 7 Sep:
+ *
+ *   "The strict sourcing path must NEVER turn an indeterminate identity result into `client`.
+ *    House must NEVER silently fall to PDL."
+ *
+ * Asking about THE USER instead of about the set removes the inference entirely. `getUserById`
+ * either returns that identity — whose own email is what House IS (#593: identity is the auth
+ * user, never the company name) — or it does not, and "it does not" is now a throw.
  *
  * ⚠️ A NULL `user_id` IS AN ANSWER, NOT AN AMBIGUITY. `20260612_company_engine.sql` DROPS the
  * NOT NULL so a company seat can exist without its own auth user, and House is identified by
  * auth EMAIL — so a row with no auth user is definitively not House. An earlier version threw
  * on it and killed 74 tests across 14 files; the fixtures were right and the rule was wrong.
+ * This is the ONE resolved-without-an-auth-user answer, and it is why ordinary clients — the
+ * overwhelmingly normal case — are entirely unaffected by everything above.
  *
- * ⚠️ AND ONE RESIDUAL, STATED RATHER THAN HIDDEN: a listing that COMPLETES and returns no
- * house user is treated as a completed lookup, so the answer is `'client'`. Treating an empty
- * house set as indeterminate would fail every ordinary client's run, because that is the
- * normal shape. What is closed is the FAILING lookup, which is the case that could move House.
+ * ⚠️ AND A MISSING EMAIL IS NOT AN EMPTY ONE. A user record that comes back without a usable
+ * email cannot be compared to House in either direction, so it is indeterminate, not "not
+ * House". That distinction is the difference between the partial pass and this.
  */
-export async function audienceForClientStrict(clientId: string): Promise<Audience> {
-  const { data, error } = await db
-    .from('clients')
-    .select('user_id')
-    .eq('id', clientId)
-    .maybeSingle()
+export async function audienceForClientStrict(
+  clientId: string,
+  opts?: { timeoutMs?: number },
+): Promise<Audience> {
+  const ms = opts?.timeoutMs ?? IDENTITY_LOOKUP_TIMEOUT_MS
 
-  if (error) throw new AudienceUnresolvedError(clientId, `the client lookup failed — ${error.message}`)
+  let data: { user_id?: string | null } | null
+  try {
+    const res = await bounded(
+      db.from('clients').select('user_id').eq('id', clientId).maybeSingle(),
+      ms, 'the client lookup',
+    )
+    if (res?.error) throw new Error(res.error.message ?? String(res.error))
+    data = (res?.data ?? null) as { user_id?: string | null } | null
+  } catch (err) {
+    throw new AudienceUnresolvedError(clientId, `the client lookup failed — ${why(err)}`)
+  }
   if (!data) throw new AudienceUnresolvedError(clientId, 'there is no client row with that id')
 
-  // Rule 1 — a seat row with no auth user is an ordinary client, resolved, not an error.
+  // The one resolved answer that needs no auth user at all.
   if (!data.user_id) return 'client'
 
-  let houseUserIds: Set<string>
+  const userId = String(data.user_id)
+  let user: { email?: string | null } | null
   try {
-    houseUserIds = await resolveHouseUserIds({ strict: true })
+    const res = await bounded(
+      db.auth.admin.getUserById(userId) as PromiseLike<{
+        data?: { user?: { email?: string | null } | null } | null
+        error?: { message?: string } | null
+      }>,
+      ms, 'the identity lookup',
+    )
+    if (res?.error) throw new Error(res.error.message ?? String(res.error))
+    user = res?.data?.user ?? null
   } catch (err) {
-    throw new AudienceUnresolvedError(clientId, `the house-account lookup failed — ${err instanceof Error ? err.message : String(err)}`)
+    throw new AudienceUnresolvedError(clientId, `the identity lookup failed — ${why(err)}`)
   }
 
-  return houseUserIds.has(String(data.user_id)) ? 'house' : 'client'
+  if (!user) {
+    throw new AudienceUnresolvedError(
+      clientId,
+      `the identity lookup succeeded but returned no auth user for ${userId}, so neither House nor a client could be proved`,
+    )
+  }
+
+  const email = typeof user.email === 'string' ? user.email.trim().toLowerCase() : ''
+  if (!email) {
+    throw new AudienceUnresolvedError(
+      clientId,
+      `auth user ${userId} came back without an email, and House is an email — so this identity is indeterminate, not "not House"`,
+    )
+  }
+
+  return email === HOUSE_ACCOUNT_EMAIL ? 'house' : 'client'
 }
 
 export async function audienceForClient(clientId: string): Promise<Audience> {

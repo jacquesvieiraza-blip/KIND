@@ -35,6 +35,8 @@ import { buildSearchBody } from './apollo'
 import {
   ICP_CRITERION_OWNERS,
   unenforcedCriteria,
+  assertIcpFullyOwned,
+  IcpUnenforceableError,
   type CriterionOwner,
 } from './icp-coverage'
 
@@ -198,14 +200,69 @@ describe('④ what we cannot enforce, we say out loud', () => {
     expect(unenforcedCriteria({ tech_stack: [] })).toEqual([])
   })
 
-  it('🛑 and the sourcing run actually reports it — a declaration nobody prints is silence', () => {
-    // ⛓️ TIGHTENED AFTER A FAILED TEETH-PROOF. Asserting the literal `stage=icp_unenforced`
-    // appears in the file survived putting the whole report behind `if (false)` — the string
-    // was still there, and nothing printed it. The assertion is now the GUARD SHAPE: the
-    // report must be reached exactly when there IS something to report.
-    expect(ICPS_ROUTE, 'the run never computes its unenforced ICP criteria')
-      .toMatch(/const unenforced = unenforcedCriteria\(/)
-    expect(ICPS_ROUTE, 'the unenforced report is no longer reached when there is something to report')
-      .toMatch(/if \(unenforced\.length > 0\) \{[\s\S]{0,200}stage=icp_unenforced/)
+  it('🛑 the run BLOCKS rather than logs — superseded the warn-and-continue version', () => {
+    // ⛓️ This asserted a `stage=icp_unenforced` log line. Logging and continuing is still a
+    // provider limitation redefining the customer's ICP, only with a receipt — so the run now
+    // refuses instead, and the assertion moved with it.
+    expect(ICPS_ROUTE, 'the run no longer refuses an ICP it cannot fully enforce')
+      .toMatch(/assertIcpFullyOwned\(icp as Record<string, unknown>\)/)
+    expect(ICPS_ROUTE, 'the run went back to logging and carrying on')
+      .not.toMatch(/stage=icp_unenforced/)
+  })
+})
+
+// ── ⑤ AN UNENFORCEABLE CRITERION THE CUSTOMER ACTUALLY SET **BLOCKS** ─────────────────
+//
+// ⛓️ TIGHTENED 7 Sep, ON THE FOUNDER'S RULE. The first version logged `stage=icp_unenforced`
+// and carried on — which is still a provider limitation quietly redefining the ICP, just with
+// a receipt. The rule is explicit:
+//
+//   "A non-empty criterion that M&V cannot enforce is NOT satisfied. It must be
+//    BLOCKED / UNRESOLVED / FAIL LOUDLY until M&V has enough data/capability."
+//
+// So the run now REFUSES, before any paid sourcing or reveal. An empty one still passes —
+// nobody asked for anything, so nothing is being ignored.
+
+describe('⑤ what we cannot enforce, we refuse to pretend we enforced', () => {
+  it('🛑 a NON-EMPTY unenforceable criterion throws — the run does not start', () => {
+    expect(() => assertIcpFullyOwned({ tech_stack: ['HubSpot'], geographies: ['United Kingdom'] }))
+      .toThrow(IcpUnenforceableError)
+  })
+
+  it('🛑 and the refusal NAMES the criterion and says why — never a bare failure', () => {
+    let err: unknown
+    try { assertIcpFullyOwned({ tech_stack: ['HubSpot', 'Salesforce'] }) } catch (e) { err = e }
+    expect(err).toBeInstanceOf(IcpUnenforceableError)
+    const msg = (err as Error).message
+    expect(msg).toContain('tech_stack')
+    expect(msg).toContain('HubSpot')
+    expect(msg.length).toBeGreaterThan(80)
+    expect((err as IcpUnenforceableError).fields).toEqual(['tech_stack'])
+  })
+
+  it('an EMPTY unenforceable criterion does NOT block — the customer asked for nothing', () => {
+    expect(() => assertIcpFullyOwned({ tech_stack: [], geographies: ['United Kingdom'] })).not.toThrow()
+  })
+
+  it('an ICP with only owned criteria does not block', () => {
+    expect(() => assertIcpFullyOwned({ geographies: ['United Kingdom'], job_titles: ['Founder'], keywords: ['agency'] })).not.toThrow()
+  })
+
+  it('🛑 a FUTURE criterion with no owner blocks too — not a tech_stack special case', () => {
+    // The map is the contract. Anything declared `unenforceable` blocks when set, whatever it
+    // is called, so the next unsupported field cannot quietly repeat this.
+    const spy = { ...ICP_CRITERION_OWNERS }
+    expect(Object.values(spy).some(s => s.owners.includes('unenforceable'))).toBe(true)
+    expect(() => assertIcpFullyOwned({ tech_stack: ['anything at all'] })).toThrow(IcpUnenforceableError)
+  })
+
+  it('🛑 the sourcing run asserts coverage BEFORE the cash fence and BEFORE any provider call', () => {
+    const at = ICPS_ROUTE.indexOf('assertIcpFullyOwned(')
+    expect(at, 'the sourcing run never asserts ICP coverage').toBeGreaterThan(-1)
+    expect(ICPS_ROUTE.indexOf('try_spend_sourcing'), 'coverage is asserted AFTER the cash fence')
+      .toBeGreaterThan(at)
+    for (const call of [...ICPS_ROUTE.matchAll(/await searchPeopleWithFallback\(/g)].map(m => m.index ?? -1)) {
+      expect(call, 'a provider is called BEFORE ICP coverage is asserted').toBeGreaterThan(at)
+    }
   })
 })

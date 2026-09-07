@@ -108,3 +108,44 @@ export function unenforcedCriteria(icp: Record<string, unknown>): UnenforcedCrit
   }
   return out
 }
+
+/**
+ * Thrown when the customer asked for something M&V cannot currently enforce.
+ *
+ * ⛓️ THIS REPLACES A LOG LINE, AND THE DIFFERENCE IS THE WHOLE POINT (founder-locked 7 Sep).
+ * The first version printed `stage=icp_unenforced` and carried on — which is still a provider
+ * limitation quietly redefining the customer's ICP, only with a receipt nobody reads. The rule
+ * is explicit:
+ *
+ *   "A non-empty criterion that M&V cannot enforce is NOT satisfied. It must be BLOCKED /
+ *    UNRESOLVED / FAIL LOUDLY until M&V has enough data/capability to evaluate it."
+ *
+ * ⚠️ AN EMPTY CRITERION IS NOT A COMPLAINT. Nobody asked for anything, so nothing is being
+ * ignored, and blocking on it would stop runs over a field the customer never filled in.
+ */
+export class IcpUnenforceableError extends Error {
+  readonly fields: string[]
+  constructor(unresolved: UnenforcedCriterion[]) {
+    const named = unresolved
+      .map(u => `${u.field} (${u.values.join(', ')}) — ${u.note}`)
+      .join('  ·  ')
+    super(
+      `This ICP asks for targeting M&V cannot currently enforce, so nothing was sourced: ${named} ` +
+      'Nothing was searched, revealed, reserved or spent. Clear the criterion, or wait until it ' +
+      'has a real enforcement owner — it is NOT treated as satisfied.',
+    )
+    this.name = 'IcpUnenforceableError'
+    this.fields = unresolved.map(u => u.field)
+  }
+}
+
+/**
+ * Refuse the run if the customer asked for anything nothing can enforce.
+ *
+ * Called BEFORE the cash fence and BEFORE any provider request, so a refusal costs nothing —
+ * no search, no reveal, no reservation. Pure: it reads the ICP and throws, nothing else.
+ */
+export function assertIcpFullyOwned(icp: Record<string, unknown>): void {
+  const unresolved = unenforcedCriteria(icp)
+  if (unresolved.length > 0) throw new IcpUnenforceableError(unresolved)
+}

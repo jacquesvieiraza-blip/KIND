@@ -19,7 +19,7 @@ import { PDL_RATE_USD } from '../lib/sourcing-fences'
 import { isLaunchSendCountry, launchTargetRefusal, launchCountrySpellings } from '@kind/shared'
 import { splitPoolAndRemainder, poolWriteAllowed, splitPoolEligible, poolRefusalLine, poolCountryMatches, canonicalPoolCountry, isGeoServable, isPoolSourceEligible, POOL_ELIGIBLE_SOURCES } from '../lib/pool-sourcing'
 import { toMemoryRecord, rememberAcquiredIdentities, type AcquisitionMemoryRecord, type SuppressionReason } from '../lib/acquisition-memory'
-import { unenforcedCriteria } from '../lib/icp-coverage'
+import { assertIcpFullyOwned } from '../lib/icp-coverage'
 import { rethrowIfProviderBlocked, isPaidProviderBlocked } from '../lib/paid-provider-guard'
 import { deriveRunStatus, runOutcomeMessage, type RunStatus } from '../lib/run-outcome'
 import { authorityFor, ProgrammeAuthorityError } from '../lib/programme-authority'
@@ -914,6 +914,22 @@ export async function runIcpJob(
   // fail-open for every other caller — see `audienceForClientStrict` for the truth table.
   const audience = await audienceForClientStrict(clientId)
 
+  // ── ⚑ 7 Sep — EVERY CRITERION THE CUSTOMER SET MUST HAVE AN OWNER, OR THIS RUN STOPS ──
+  //
+  // 🛑 A PROVIDER'S LIMITS MUST NEVER SILENTLY REDEFINE THE CUSTOMER'S ICP. Each stored
+  // criterion declares who enforces it (`icp-coverage.ts`); anything declared unenforceable —
+  // today, `tech_stack`, because the conversational builder emits free text that is not a
+  // valid Apollo technology UID, and no provider on this path returns a per-person tech stack
+  // to check afterwards — is NOT satisfied. It is unresolved.
+  //
+  // ⚠️ IT REFUSES RATHER THAN LOGS, and that is the correction. An earlier version printed a
+  // warning and carried on, which is the same silent redefinition with a receipt attached.
+  //
+  // ⚠️ AND IT REFUSES HERE — before the cash fence and before any provider request — so the
+  // refusal costs nothing: no search, no reveal, no reservation, no spend. An EMPTY criterion
+  // never blocks: the customer asked for nothing, so nothing is being ignored.
+  assertIcpFullyOwned(icp as Record<string, unknown>)
+
   // Only the REMAINDER (target − pool-served) goes to the fenced PDL path. When the
   // pool served nothing, pdlRemainder === effectiveCap — byte-identical to today.
   // For a prospect this is the 20-lead pass remainder; for everyone else it is exactly
@@ -1496,22 +1512,6 @@ export async function runIcpJob(
       // size, never countries). Empty ⇒ the client set no geography ⇒ no gate.
       const icpGeographies = ((icp as { geographies?: string[] | null }).geographies ?? []).filter(Boolean)
 
-      // ── ⚑ 7 Sep — WHAT THIS RUN CANNOT ACT ON, IT SAYS OUT LOUD ──────────────────────
-      //
-      // 🛑 A PROVIDER'S LIMITS MUST NEVER SILENTLY REDEFINE THE CUSTOMER'S ICP. Every stored
-      // criterion has a declared owner (`icp-coverage.ts`); the one that has none today is
-      // `tech_stack`, because the conversational builder emits free text that is not a valid
-      // Apollo technology UID and no provider on this path returns a per-person tech stack to
-      // check afterwards. That was true before this line existed — what was missing is that
-      // NOTHING SAID SO. The customer's targeting quietly meant less than they wrote.
-      //
-      // ⚠️ IT REPORTS, IT DOES NOT REFUSE. Failing a run because an auto-generated field cannot
-      // be enforced would block sourcing on something the customer never typed. Unresolved and
-      // visible is the honest state; silently satisfied is not.
-      const unenforced = unenforcedCriteria(icp as Record<string, unknown>)
-      if (unenforced.length > 0) {
-        console.warn(`[icp] stage=icp_unenforced — ${unenforced.map(u => `${u.field}(${u.values.length})`).join(' ')} · this run cannot enforce these ICP criteria and did NOT treat them as satisfied. ${unenforced.map(u => u.note).join(' ')}`)
-      }
 
       for (const contact of contacts) {
         // Cap PDL insertions at the GRANTED budget (#445) — never keep more than we

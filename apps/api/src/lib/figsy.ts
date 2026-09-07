@@ -2043,9 +2043,26 @@ export async function autoEnrollLead(leadId: string, clientId: string, opts?: En
     const leadProgrammeId = (leadIcp as { programme_id?: string | null } | null)?.programme_id ?? null
     let campaign: { id: string; name?: string; campaign_intent?: string | null; settings?: unknown } | null = null
     if (leadIcp?.icp_id) {
-      const { data: byIcp } = await db.from('figsy_campaigns')
+      // ── ⚑ 7 Sep — PROGRAMME PREPARATION ACCEPTS A *DRAFT* CAMPAIGN, AND ONLY IT DOES ────
+      //
+      // 🛑 WHY. Preparation now runs BEFORE the client approves (founder-locked), and before
+      // approval the programme campaign is deliberately a DRAFT — `activate: true` is the only
+      // door to `status: 'active'`, the status the outreach machinery looks for, and it stays
+      // shut until Make Live. Requiring `active` here would therefore make pre-approval
+      // preparation impossible: the campaign it just created would be invisible to it.
+      //
+      // ⚠️ THIS WIDENS *WHICH CAMPAIGN IS FOUND*, NOT WHAT MAY BE SENT. The lead is still
+      // resolved by its own ICP — the positive, programme-correct link — and this branch is
+      // reached ONLY through `programmeFulfilment`, which `verifyProgrammeFulfilment` has
+      // already re-proved against the database. Every ordinary caller still gets `active` only.
+      //
+      // ⚠️ AND AN ENROLMENT IS NOT A SEND. Whether anything leaves is decided by OUTREACH
+      // authority — approval AND Payment 2 AND status LIVE — which a pre-approval programme
+      // does not have. The row is inert by construction, not by promise.
+      const q = db.from('figsy_campaigns')
         .select('id, name, campaign_intent, settings')
-        .eq('client_id', clientId).eq('icp_id', leadIcp.icp_id).eq('status', 'active')
+        .eq('client_id', clientId).eq('icp_id', leadIcp.icp_id)
+      const { data: byIcp } = await (opts?.programmeFulfilment ? q : q.eq('status', 'active'))
         .limit(1).maybeSingle()
       campaign = byIcp ?? null
     }

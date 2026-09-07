@@ -114,6 +114,36 @@ export type ProgrammeTruth = {
     /** The refusal in the operator's words, or null when sourcing is authorised. */
     source_blocked_reason: string | null
   } | null
+  // ── ⚑ 7 Sep (HOUSE-024 / HOUSE-026) · READ-ONLY TRUTH, NO NEW SCREEN ────────────────
+  //
+  // 🛑 SO THE FOUNDER CAN *PROVE* IT RATHER THAN ASSUME IT. Two questions had no answer
+  // anywhere outside a log: WHICH mailbox would actually send for this client, and whether
+  // the prepared work is still the work the customer approved. Both are computed by the same
+  // functions the gates use — `resolveSendingInbox` and `preparationDrift` — so the console
+  // and the refusal can never disagree about them.
+  //
+  // ⚠️ IDENTITY, NEVER CREDENTIALS. The address and the mailbox's own state; no host, no
+  // user, no password, nothing that could be read off a screen and used.
+  //
+  // ⚠️ AND `can_send` IS THE RESOLVER'S VERDICT, NOT "a mailbox exists". A warming mailbox is
+  // assigned and cannot send, which is exactly the distinction an operator needs.
+  sender: {
+    /** The address that would send, or null when nothing resolves. */
+    email: string | null
+    /** `assigned` · `warming` · `active` — the mailbox's own state, unchanged. */
+    status: string | null
+    /** Shared or dedicated, as the row records it. */
+    kind: string | null
+    /** `resolveSendingInbox(...).ok` — the same verdict the send path gets. */
+    can_send: boolean
+    /** The refusal in the operator's words, or null when a mailbox is ready. */
+    blocker: string | null
+  } | null
+  /** Whether the prepared work still matches what was approved. Null when unreadable. */
+  preparation: {
+    state: 'not_approved' | 'unchanged' | 'changed' | 'unreadable'
+    detail: string | null
+  } | null
   batches: BatchSummary[]
   /** Batches in the dead-letter state. Client entitlement is reserved and NOT usable. */
   stranded: BatchSummary[]
@@ -216,10 +246,10 @@ export async function programmeTruthFor(clientId: string): Promise<ProgrammeTrut
     // delivery state is UNKNOWN. Rendering both as "no programme" is the exact defect this
     // repo has now fixed four times, and on this surface it would hide a paused programme.
     degraded.push(`Programme could not be read (${progErr.message}) — this is NOT evidence that the client has no programme.`)
-    return { programme: null, batches: [], stranded: [], blockers: [], degraded }
+    return { programme: null, sender: null, preparation: null, batches: [], stranded: [], blockers: [], degraded }
   }
   programme = (progRow as unknown as ProgrammeRow | null) ?? null
-  if (!programme) return { programme: null, batches: [], stranded: [], blockers: [], degraded }
+  if (!programme) return { programme: null, sender: null, preparation: null, batches: [], stranded: [], blockers: [], degraded }
 
   let batches: BatchSummary[] = []
   const { data: batchRows, error: batchErr } = await db.from('programme_batches')
@@ -239,6 +269,31 @@ export async function programmeTruthFor(clientId: string): Promise<ProgrammeTrut
   // NEXT_BATCH, not SOURCING: a run IS the opening of a new batch, so the review hold and the
   // remaining ceiling both apply — exactly as they do inside `sourceProgramme`.
   const sourcingVerdict = authorityFor(p, 'NEXT_BATCH')
+
+  // ── ⚑ 7 Sep · SENDER AND PREPARATION TRUTH, both read-only and both best-effort ───────
+  //
+  // ⚠️ A FAILURE HERE IS RECORDED IN `degraded`, NEVER SWALLOWED AND NEVER FATAL. This console
+  // is what an operator opens when something is wrong; a read that could not be completed must
+  // say so rather than render `null` that reads as "there is no mailbox".
+  let sender: ProgrammeTruth['sender'] = null
+  try {
+    const { resolveSendingInbox } = await import('./sending-inbox')
+    const r = await resolveSendingInbox(p.client_id)
+    sender = r.ok
+      ? { email: r.inbox.email ?? null, status: r.inbox.status ?? null, kind: r.inbox.kind ?? null, can_send: true, blocker: null }
+      : { email: null, status: null, kind: null, can_send: false, blocker: r.detail }
+  } catch (err) {
+    degraded.push(`The sending mailbox could not be read (${err instanceof Error ? err.message : String(err)}).`)
+  }
+
+  let preparation: ProgrammeTruth['preparation'] = null
+  try {
+    const { preparationDrift } = await import('./preparation-snapshot')
+    const d = await preparationDrift(p.id)
+    preparation = { state: d.state, detail: 'detail' in d ? d.detail : null }
+  } catch (err) {
+    degraded.push(`The approved-preparation comparison could not be run (${err instanceof Error ? err.message : String(err)}).`)
+  }
 
   return {
     programme: {
@@ -270,6 +325,8 @@ export async function programmeTruthFor(clientId: string): Promise<ProgrammeTrut
       may_source: sourcingVerdict.allowed,
       source_blocked_reason: sourcingVerdict.allowed ? null : sourcingVerdict.message,
     },
+    sender,
+    preparation,
     batches,
     stranded,
     blockers: blockersFor(p, { stranded, liveCampaign }),

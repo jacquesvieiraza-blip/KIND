@@ -84,7 +84,12 @@ export type EnsureCampaignResult =
   // could not be read. Distinct from the one-active-campaign refusal above because the
   // caller must be able to tell "you already have a live campaign" from "this programme has
   // not been paid for", and a client never sees the same sentence for both.
-  | { id?: undefined; refused: { reason: 'programme_not_live' | 'programme_paused' | 'programme_state_unreadable'; message: string } }
+  // ⚑ 7 Sep — `preparation_changed` is its OWN reason and not another shade of
+  // `programme_not_live`, because the operator's next action is completely different: the
+  // programme IS live and paid, and what is needed is a RE-APPROVAL of work that has moved
+  // since the customer said yes. Telling them "not live" would send them to the billing
+  // screen for a consent problem.
+  | { id?: undefined; refused: { reason: 'programme_not_live' | 'programme_paused' | 'programme_state_unreadable' | 'preparation_changed'; message: string } }
   | null
 
 export async function ensureCampaignForIcp(
@@ -147,6 +152,7 @@ export async function ensureCampaignForIcp(
       const reason =
         verdict.reason === 'programme_paused' ? 'programme_paused' as const
         : verdict.reason === 'programme_unresolvable' ? 'programme_state_unreadable' as const
+        : verdict.reason === 'preparation_changed' ? 'preparation_changed' as const
         : 'programme_not_live' as const
       if (!goingLiveOk) return { refused: { reason, message: verdict.message } }
     }

@@ -3539,19 +3539,33 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 AS $$
 DECLARE
-  v_orphans int;
-  v_room    int;
-  v_seq     int;
-  v_batch   uuid;
+  v_orphans   int;
+  v_foreign   int;
+  v_client    uuid;
+  v_room      int;
+  v_seq       int;
+  v_batch     uuid;
 BEGIN
-  PERFORM 1 FROM public.programmes WHERE id = p_programme_id FOR UPDATE;
-  IF NOT FOUND THEN
+  SELECT client_id INTO v_client
+    FROM public.programmes WHERE id = p_programme_id FOR UPDATE;
+  IF v_client IS NULL THEN
     RETURN 0;
+  END IF;
+
+  SELECT COUNT(*) INTO v_foreign
+    FROM public.leads
+    WHERE programme_id = p_programme_id
+      AND client_id IS DISTINCT FROM v_client;
+  IF v_foreign > 0 THEN
+    RAISE EXCEPTION
+      'reconcile_programme_sourcing: programme % has % lead(s) attributed to it that belong to another client. Attribution is ambiguous, so nothing was counted, stamped or changed. Resolve the attribution first.',
+      p_programme_id, v_foreign;
   END IF;
 
   SELECT COUNT(*) INTO v_orphans
     FROM public.leads
     WHERE programme_id = p_programme_id
+      AND client_id = v_client
       AND batch_id IS NULL
       AND delivered_at IS NOT NULL;
 
@@ -3579,6 +3593,7 @@ BEGIN
 
   UPDATE public.leads SET batch_id = v_batch
     WHERE programme_id = p_programme_id
+      AND client_id = v_client
       AND batch_id IS NULL
       AND delivered_at IS NOT NULL;
 
@@ -3601,6 +3616,54 @@ GRANT  EXECUTE ON FUNCTION public.reconcile_programme_sourcing(uuid) TO service_
 
 COMMENT ON FUNCTION public.reconcile_programme_sourcing(uuid) IS
   'HOUSE-009 repair. Accounts for leads already DELIVERED under a programme that carry no batch, by creating one settled batch, stamping those leads with it and converting the volume to sourced_used. Operator-invoked for one named programme; idempotent; adds rows and deletes none; refuses outright rather than counting a subset.';
+`.trim(),
+  },
+  {
+    // 7 Sep — THE EXACT WORK APPROVED IS THE EXACT WORK ALLOWED TO RUN. Canonical file (with
+    // the full reasoning): supabase/migrations/20260907_preparation_snapshot.sql, written in
+    // the same change. Two additions, both nullable, neither backfilled:
+    //
+    //   figsy_sequences.campaign_id — the positive link that lets programme work resolve
+    //   programme -> ICP -> campaign -> sequence. Without it "this programme's sequence" could
+    //   only be answered by picking one of the CLIENT's sequences, and House carries sequences
+    //   from a retired per-lead desk — so the words of an old campaign could be put in front of
+    //   a customer as the words they are approving for a new programme. NULL means historical
+    //   and is never a candidate; nothing is relinked, because a guessed campaign IS the leak.
+    //
+    //   programmes.approved_preparation_hash / _snapshot / _at — what was approved, so a
+    //   change to it can be SEEN. Written only in the same conditional UPDATE that writes
+    //   status = APPROVED, so a snapshot is never stamped approved before an approval happens.
+    //
+    // The SQL below is the canonical file with its comment lines stripped — every backtick in
+    // that file sits inside a `--` comment, and one backtick would terminate this literal.
+    //
+    // ADDITIVE AND INERT. No row is written, moved or deleted, and nothing changes until the
+    // code that reads these columns is deployed alongside it.
+    key: '20260907_preparation_snapshot',
+    title: 'figsy_sequences.campaign_id (positive programme sequence link) and the approved preparation snapshot/hash',
+    sql: `
+ALTER TABLE public.figsy_sequences
+  ADD COLUMN IF NOT EXISTS campaign_id uuid REFERENCES public.figsy_campaigns(id) ON DELETE SET NULL;
+
+CREATE INDEX IF NOT EXISTS figsy_sequences_campaign_idx
+  ON public.figsy_sequences (campaign_id) WHERE campaign_id IS NOT NULL;
+
+COMMENT ON COLUMN public.figsy_sequences.campaign_id IS
+  'The campaign these words belong to. Written only when a sequence is authored for a campaign; NULL means client-scoped historical work, which is the honest reading of every row written before this column existed and is never backfilled. Programme work resolves programme -> icps.programme_id -> figsy_campaigns.icp_id -> figsy_sequences.campaign_id and treats NULL as NOT FOUND, because belonging to the same client is not belonging to the same work.';
+
+ALTER TABLE public.programmes
+  ADD COLUMN IF NOT EXISTS approved_preparation_hash     text,
+  ADD COLUMN IF NOT EXISTS approved_preparation_snapshot jsonb,
+  ADD COLUMN IF NOT EXISTS approved_preparation_at       timestamptz;
+
+COMMENT ON COLUMN public.programmes.approved_preparation_hash IS
+  'sha256 of the canonical preparation snapshot the customer actually approved: batch and its membership, campaign, sequence, ordered message steps, cadence, sender identity and the prepared enrolment set. Deterministic and free of timestamps, so it changes only when the WORK changes. Written in the same conditional UPDATE as status = APPROVED and never anywhere else. Outreach authority compares the current preparation against it and refuses when they differ - the exact work approved is the exact work allowed to run.';
+
+COMMENT ON COLUMN public.programmes.approved_preparation_snapshot IS
+  'The canonical snapshot behind approved_preparation_hash, kept so a change can be EXPLAINED and not merely detected. Not a version history: exactly one snapshot, the approved one, replaced only by a re-approval.';
+
+COMMENT ON COLUMN public.programmes.approved_preparation_at IS
+  'When the approved preparation snapshot was taken. Deliberately separate from approved_at: they are written together today, and a future re-approval must be able to move this without rewriting the original approval time.';
 `.trim(),
   },
 ]

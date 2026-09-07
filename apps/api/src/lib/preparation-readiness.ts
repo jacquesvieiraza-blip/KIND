@@ -33,6 +33,20 @@
 
 import { db } from '@kind/db'
 import { SOURCING_AUTHORISED_STATUSES, type ProgrammeStatus } from './programme'
+import { resolveProgrammeChain } from './programme-chain'
+
+/**
+ * Is a cadence actually decided, or is it just an array that exists?
+ *
+ * ⚠️ NO CADENCE IS INVENTED HERE (founder-locked 7 Sep: *"Do not invent a cadence if none is
+ * locked"*). This is the TEST for one, not a default. A sequence of a single message has
+ * nothing to time, so it cannot be said to have a cadence; a follow-up scheduled zero days
+ * after the message before it is not a timed sequence, it is a burst.
+ */
+export function cadenceIsConfigured(cadence: readonly number[]): boolean {
+  if (cadence.length < 2) return false
+  return cadence.slice(1).every(w => typeof w === 'number' && w > 0)
+}
 
 /** Everything the rule needs to know. Gathered by the IO shell, judged by the pure core. */
 export interface PreparationFacts {
@@ -184,28 +198,17 @@ export async function programmePreparationReadiness(programmeId: string): Promis
     .neq('status', 'passed')
   if (leadErr) return notReady(`This programme's reviewable prospects could not be counted (${leadErr.message}).`)
 
-  // ⚠️ THE CAMPAIGN LINK IS THE ATTACHED ICP, NOT THE CLIENT. `figsy_campaigns` carries
-  // `icp_id` and the ICP carries `programme_id`, so that chain is a POSITIVE link. Resolving a
-  // campaign by `client_id` alone would let a historical campaign present itself as this
-  // programme's work — the same class of mistake as sourcing the client-facing active ICP.
-  let campaignId: string | null = null
-  let campaignProgrammeLinked = false
-  if (attachedIcpId) {
-    const { data: camps, error: campErr } = await db.from('figsy_campaigns')
-      .select('id, icp_id, status').eq('icp_id', attachedIcpId)
-    if (campErr) return notReady(`This programme's campaign could not be read (${campErr.message}).`)
-    campaignId = (camps ?? [])[0]?.id ?? null
-    campaignProgrammeLinked = !!campaignId
-  }
-
-  // ⚠️ SEQUENCES CARRY NO CAMPAIGN OR PROGRAMME COLUMN TODAY (`figsy_sequences` is
-  // client-scoped). So there is no positive link to find, and this reports the absence rather
-  // than inferring one from the client — inferring is exactly what the campaign rule refuses.
-  const { data: seqs, error: seqErr } = await db.from('figsy_sequences')
-    .select('id, steps').eq('client_id', p.client_id)
-  if (seqErr) return notReady(`This client's sequences could not be read (${seqErr.message}).`)
-  const seq = (seqs ?? [])[0] as { id: string; steps?: unknown } | undefined
-  const steps = Array.isArray(seq?.steps) ? (seq!.steps as unknown[]) : []
+  // ⛓️ 7 Sep — THE CHAIN IS WALKED IN ONE PLACE NOW (`programme-chain.ts`).
+  //
+  // The first cut resolved the campaign here by `icp_id` and the sequence by `client_id`,
+  // reporting the sequence link as unprovable because `figsy_sequences` carried no campaign
+  // column. It carries one now (20260907_preparation_snapshot), so the whole chain is
+  // POSITIVE — programme → ICP → campaign → sequence — and it is resolved by the same module
+  // the approved-preparation snapshot uses, so the thing the customer is asked to approve and
+  // the thing that gets frozen can never be two different resolutions of "the sequence".
+  const chainRes = await resolveProgrammeChain(programmeId)
+  if (!chainRes.ok) return notReady(chainRes.degraded)
+  const chain = chainRes.chain
 
   const { count: eligible, error: enrErr } = await db.from('figsy_enrollments')
     .select('id', { count: 'exact', head: true }).eq('programme_id', programmeId)
@@ -219,6 +222,21 @@ export async function programmePreparationReadiness(programmeId: string): Promis
     return notReady(`The sending mailbox for this client could not be checked (${err instanceof Error ? err.message : String(err)}).`)
   }
 
+  // ⚠️ THE SNAPSHOT FACT IS "CAN ONE BE TAKEN", NOT "HAS ONE BEEN TAKEN". Taking it before
+  // approval and storing it as the approved snapshot would be inventing approval authority to
+  // make readiness pass — the snapshot is written in the same conditional UPDATE as
+  // `status = 'APPROVED'`, and never a moment earlier. What must be true HERE is only that the
+  // work can be described deterministically at the approval boundary.
+  let snapshotSupported = false
+  try {
+    const { buildPreparationSnapshot } = await import('./preparation-snapshot')
+    const snap = await buildPreparationSnapshot(programmeId)
+    if (!snap.ok) return notReady(snap.degraded)
+    snapshotSupported = true
+  } catch (err) {
+    return notReady(`The prepared work could not be described for freezing (${err instanceof Error ? err.message : String(err)}).`)
+  }
+
   const facts: PreparationFacts = {
     programmeId,
     programmeStatus: p.status,
@@ -226,20 +244,20 @@ export async function programmePreparationReadiness(programmeId: string): Promis
     attachedIcpId,
     batchId,
     reviewableLeads: reviewable ?? 0,
-    campaignId,
-    campaignProgrammeLinked,
-    sequenceId: seq?.id ?? null,
-    // No column links a sequence to a campaign yet, so this cannot be proved. Reported as a
-    // blocker rather than assumed — see HOUSE-021.
-    sequenceCampaignLinked: false,
-    messageSteps: steps.length,
-    // No stored cadence configuration exists to read yet — see HOUSE-023.
-    cadenceConfigured: false,
+    campaignId: chain.campaignId,
+    // The campaign was found THROUGH the programme's own ICP, so finding one at all is the
+    // positive link. There is no separate weaker way to have found it.
+    campaignProgrammeLinked: chain.campaignId !== null,
+    sequenceId: chain.sequenceId,
+    // Likewise: the sequence was found by `campaign_id`. A client-scoped historical sequence
+    // is invisible to this resolution and can never present itself as the current work.
+    sequenceCampaignLinked: chain.sequenceId !== null,
+    messageSteps: chain.steps.length,
+    cadenceConfigured: cadenceIsConfigured(chain.cadence),
     senderAssigned,
     eligibleEnrolments: eligible ?? 0,
     foreignEnrolments: 0,
-    // No freeze/snapshot capability exists yet — see HOUSE-026.
-    snapshotSupported: false,
+    snapshotSupported,
   }
 
   const blockers = preparationBlockers(facts)

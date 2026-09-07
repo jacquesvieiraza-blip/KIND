@@ -774,6 +774,17 @@ create table if not exists public.programmes (
   sourced_used              int  not null default 0,   -- provider actually delivered
   sourced_reserved          int  not null default 0,   -- granted, not yet delivered
   approved_at               timestamptz,
+  -- ── 7 Sep · WHAT was approved, not just when (20260907_preparation_snapshot) ─────────
+  -- `approved_at` records the moment and nothing about the work, so a sequence rewritten, a
+  -- cadence retimed, a sender swapped or an enrolment set replaced afterwards carried the old
+  -- consent forward in silence. These three hold the canonical preparation snapshot the
+  -- customer actually approved and its sha256, so OUTREACH authority can compare the current
+  -- preparation against it and refuse when they differ. NOT a version history: exactly one
+  -- snapshot, replaced only by a re-approval. Written ONLY in the same conditional UPDATE as
+  -- status = APPROVED, so nothing is ever stamped approved before an approval happens.
+  approved_preparation_hash     text,
+  approved_preparation_snapshot jsonb,
+  approved_preparation_at       timestamptz,
   went_live_at              timestamptz,
   paused_at                 timestamptz,          -- pause is ORTHOGONAL to status, not a status
   pause_reason              text,                 -- client | quality | icp_change

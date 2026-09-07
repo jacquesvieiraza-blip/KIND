@@ -86,6 +86,10 @@ export type AuthorityRefusal =
   /** ⚑ A sourcing run was asked for from an ICP that belongs to no programme, for a client
    *  who has one. Raised BEFORE the pool is served and before any provider is called. */
   | 'icp_not_attached_to_programme'
+  /** ⚑ The prepared work is no longer the work the customer approved (7 Sep). Its own code,
+   *  because the fix is a RE-APPROVAL and not a payment, a resume or a status change — every
+   *  other refusal here sends an operator somewhere different. */
+  | 'preparation_changed'
   | 'programme_unresolvable'
 
 export type AuthorityVerdict =
@@ -304,6 +308,43 @@ export async function openProgrammeFor(clientId: string): Promise<ProgrammeRow |
  * Fail-closed by construction: the only way to reach `allowed: true` is for the read to have
  * succeeded AND `authorityFor` to have said yes. Every error path refuses.
  */
+
+/**
+ * 🛑 THE EXACT WORK APPROVED IS THE EXACT WORK ALLOWED TO RUN (founder-locked 7 Sep).
+ *
+ * Approval used to record only a timestamp, so a sequence rewritten, a cadence retimed, a
+ * sender swapped or an enrolment set replaced AFTER approval carried the old consent forward —
+ * and this function, the one door to outreach, had no way to notice. It compares the current
+ * preparation against the snapshot the customer actually approved.
+ *
+ * ⚠️ ON *OUTREACH* ONLY. `SOURCING` and `NEXT_BATCH` are Payment-1 authorities that exist
+ * before there is an approval to drift from; applying this to them would stop sourcing for a
+ * programme that has not been approved yet, which is every programme at the point it sources.
+ *
+ * ⚠️ "CANNOT TELL" IS A REFUSAL HERE, and only here does that cost nothing but a delay. An
+ * unreadable snapshot on a send gate must never resolve to "unchanged" — that is the whole
+ * failure mode this exists to remove, and it would remove it silently.
+ */
+async function outreachStillMatchesApproval(
+  programme: ProgrammeRow, verdict: AuthorityVerdict,
+): Promise<AuthorityVerdict> {
+  const { preparationDrift } = await import('./preparation-snapshot')
+  const drift = await preparationDrift(programme.id)
+  if (drift.state === 'unchanged') return verdict
+  // `not_approved` cannot happen behind an allowed OUTREACH verdict — `authorityFor` already
+  // required `approved_at` — but a positive answer is never inferred from that reasoning.
+  if (drift.state === 'not_approved') {
+    return {
+      allowed: false, reason: 'programme_not_approved', programme,
+      message: 'This programme has no approval recorded, so nothing may be sent.',
+    }
+  }
+  return {
+    allowed: false, reason: 'preparation_changed', programme,
+    message: drift.state === 'changed' ? drift.detail : drift.detail,
+  }
+}
+
 export async function checkProgrammeAuthority(
   clientId: string,
   action: ProgrammeAction,
@@ -316,7 +357,9 @@ export async function checkProgrammeAuthority(
     const { clientCommercialModel } = await import('./commercial-model')
     const model = await clientCommercialModel(clientId)
     const programme = model.openProgramme
-    return authorityFor(programme, action, model)
+    const verdict = authorityFor(programme, action, model)
+    if (!verdict.allowed || action !== 'OUTREACH' || !programme) return verdict
+    return await outreachStillMatchesApproval(programme, verdict)
   } catch (err) {
     const why = err instanceof Error ? err.message : String(err)
     console.error(`[programme-authority] ${action} refused for client ${clientId} — state unreadable:`, why)

@@ -315,7 +315,23 @@ describe('GAP 3 · behavioural — ensureCampaignForIcp actually refuses', () =>
     const { ensureCampaignForIcp } = await import('./start-work')
     const r = await ensureCampaignForIcp('c1', 'icp-1', 'ICP', { activate: true })
     const reason = (r as { refused?: { reason?: string } }).refused?.reason
-    expect(reason, 'a live paid programme must pass the programme gate').toBeUndefined()
+    // ⛓️ 7 Sep — THE PROGRAMME-STATE GATE IS WHAT THIS TEST IS ABOUT, and it must still let a
+    // complete programme through. A SECOND, separate gate now also runs on OUTREACH: the
+    // prepared work must still be the work the customer approved. This fixture's programme was
+    // approved before that record existed, so it carries no approved-preparation hash — and
+    // "we have no record of what was approved" fails CLOSED, by design.
+    //
+    // ⚠️ ASSERTING `toBeUndefined()` HERE WOULD NOW BE ASSERTING THE OPPOSITE OF THE FOUNDER'S
+    // RULE. What keeps this test non-vacuous is that the three refusals above are still told
+    // apart from each other AND from this one: a paused programme says paused, an unpaid one
+    // says not live, and this one names re-approval — so a function that refused everything
+    // with one reason would still fail here.
+    expect(reason, 'the programme-STATE gate is refusing a live, paid, approved programme')
+      .not.toBe('programme_not_live')
+    expect(reason, 'a live paid programme is being reported as paused or unreadable')
+      .not.toBe('programme_paused')
+    expect(reason, 'a live paid programme is being reported as unreadable')
+      .not.toBe('programme_state_unreadable')
   })
 
   it('⚠️ NON-VACUOUS: a LEGACY client (no programme) is NOT refused by this gate', async () => {

@@ -265,21 +265,48 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 AS $$
 DECLARE
-  v_orphans int;
-  v_room    int;
-  v_seq     int;
-  v_batch   uuid;
+  v_orphans   int;
+  v_foreign   int;
+  v_client    uuid;
+  v_room      int;
+  v_seq       int;
+  v_batch     uuid;
 BEGIN
-  PERFORM 1 FROM public.programmes WHERE id = p_programme_id FOR UPDATE;
-  IF NOT FOUND THEN
+  SELECT client_id INTO v_client
+    FROM public.programmes WHERE id = p_programme_id FOR UPDATE;
+  IF v_client IS NULL THEN
     RETURN 0;
   END IF;
 
-  -- DELIVERED and unbatched: a person we actually obtained, whose sourcing was never counted.
-  -- An undelivered lead consumed no authority and must not manufacture one.
+  -- 🛑 FAIL CLOSED ON AMBIGUOUS ATTRIBUTION, BEFORE COUNTING ANYTHING.
+  --
+  -- A lead carrying THIS programme's id while belonging to ANOTHER client is a corrupt link,
+  -- and it is the exact shape a cross-tenant leak would take on a shared database — M&V's own
+  -- desk and a customer's desk both live in these tables. Counting such a row would put
+  -- somebody else's prospect inside this programme's consumed volume, and stamping it would
+  -- attach that prospect to this programme's batch permanently.
+  --
+  -- ⚠️ IT REFUSES THE WHOLE CALL RATHER THAN FILTERING THE ROW OUT. Quietly skipping it would
+  -- reconcile "successfully" while leaving a corruption nobody is told about — and this
+  -- function exists precisely because unnoticed miscounts are expensive.
+  SELECT COUNT(*) INTO v_foreign
+    FROM public.leads
+    WHERE programme_id = p_programme_id
+      AND client_id IS DISTINCT FROM v_client;
+  IF v_foreign > 0 THEN
+    RAISE EXCEPTION
+      'reconcile_programme_sourcing: programme % has % lead(s) attributed to it that belong to another client. Attribution is ambiguous, so nothing was counted, stamped or changed. Resolve the attribution first.',
+      p_programme_id, v_foreign;
+  END IF;
+
+  -- DELIVERED, unbatched, and this client's: a person we actually obtained, whose sourcing was
+  -- never counted. An undelivered lead consumed no authority and must not manufacture one, and
+  -- the `client_id` predicate is a second, positive tenancy fence rather than a reliance on the
+  -- check above having been reached.
   SELECT COUNT(*) INTO v_orphans
     FROM public.leads
     WHERE programme_id = p_programme_id
+      AND client_id = v_client
       AND batch_id IS NULL
       AND delivered_at IS NOT NULL;
 
@@ -309,6 +336,7 @@ BEGIN
 
   UPDATE public.leads SET batch_id = v_batch
     WHERE programme_id = p_programme_id
+      AND client_id = v_client
       AND batch_id IS NULL
       AND delivered_at IS NOT NULL;
 

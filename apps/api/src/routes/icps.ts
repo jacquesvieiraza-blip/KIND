@@ -1363,8 +1363,21 @@ export async function runIcpJob(
       // sourcing never touched `clients.sourcing_allowance`, so calling
       // `add_sourcing_allowance` here would credit a wallet the programme never debited —
       // paying the client twice for the same shortfall, in the wrong currency of value.
+      // ── ⚑ 7 Sep (HOUSE-009) — THE HOUSE BATCH SETTLES ON WHAT WAS *ACCEPTED*, LATER ────
+      //
+      // 🛑 THE TWO AUDIENCES GENUINELY DIFFER, and the reason is the money/authority split.
+      // PDL CHARGES PER RECORD RETURNED, so a PDL reservation is spent the moment the provider
+      // answers — `returnedCount` is what was actually bought, and settling on it is correct.
+      // Apollo is PREPAID: the house buys nothing per record, so what its reservation should
+      // consume is the volume that became a usable lead, not the volume the search happened to
+      // hand back before qualification threw four of them away.
+      //
+      // ⚠️ SO THE HOUSE SETTLE MOVES *AFTER* DELIVERY, where that number exists. At this point
+      // the run knows only `contacts.length` — the raw search page — and the final ICP gate
+      // (verified business email, revealed country) has not run yet. Settling 250 here and
+      // calling it 246 later would be two different truths about one batch.
       let programmeSettled = false
-      if (programmeBatch) {
+      if (programmeBatch && audience !== 'house') {
         // ⛓️ THE ATTRIBUTION STAMP USED TO SIT HERE, AND IT MATCHED NOTHING.
         // It ran at settle time — which is BEFORE the PDL insert loop, because a batch settles
         // on what the PROVIDER RETURNED, not on what survived dedupe. So the rows it meant to
@@ -1924,6 +1937,37 @@ export async function runIcpJob(
         requireVerifiedBusinessEmail: audience === 'house',
       },
     })
+
+    // ── ⚑ 7 Sep (HOUSE-009) — SETTLE THE HOUSE BATCH ON ACCEPTED VOLUME ────────────────
+    //
+    // The reservation converts to `sourced_used` for the people who actually became leads, and
+    // the remainder is RELEASED back to the ceiling. 250 requested, 250 granted, 246 accepted
+    // ⇒ 246 used, 0 reserved, 2,254 left — and the batch row keeps all three numbers, so the
+    // four that were refused stay visible as `granted 250 / delivered 246` rather than
+    // disappearing into a number that matches nothing.
+    //
+    // ⚠️ COUNTED FROM THE ROWS, NOT FROM A RETURN VALUE. `delivered_at` is written by
+    // `enrichAndDeliverLeads` on exactly the leads that passed the final ICP gate, and
+    // `batch_id` was stamped on this invocation's own inserts above — so this asks the
+    // database what happened instead of trusting an in-memory count of what we hoped would.
+    if (programmeBatch && audience === 'house') {
+      const batchId = programmeBatch.id
+      const { count: accepted, error: acceptedErr } = await db.from('leads')
+        .select('id', { count: 'exact', head: true })
+        .eq('batch_id', batchId)
+        .not('delivered_at', 'is', null)
+      if (acceptedErr) {
+        // 🛑 NOT SETTLED ON A GUESS. Leaving the batch `running` holds the reservation open,
+        // which is visible and recoverable; settling it on a number we could not read would
+        // write a permanent falsehood into the programme's ceiling.
+        console.error(`[icp] HOUSE batch ${batchId} NOT settled — the accepted count could not be read (${acceptedErr.message}). The reservation stays open and must be reconciled.`)
+      } else {
+        const { settleBatch } = await import('../lib/programme')
+        const r = await settleBatch(batchId, accepted ?? 0)
+        if (r.ok) console.log(`[icp] HOUSE batch ${batchId} settled — ${accepted ?? 0} accepted; the granted remainder is released back to the programme ceiling.`)
+        else console.error(`[icp] HOUSE batch ${batchId} could not be settled — marked stranded; the granted volume stays reserved until reconciled.`)
+      }
+    }
   }
 
   if (inserted > 0) {

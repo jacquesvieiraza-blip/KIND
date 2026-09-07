@@ -269,7 +269,16 @@ describe('② programme fulfilment is verified from the database, never from the
     ['a terminal programme', () => { state.programmes[0].status = 'CANCELLED' }],
     ['a programme with no approval', () => { state.programmes[0].approved_at = null }],
     ['a programme with no P2 authority', () => { state.programmes[0].second_authorised_at = null }],
-    ['a programme still SOURCING', () => { state.programmes[0].status = 'SOURCING' }],
+    // ⛓️ 'a programme still SOURCING' LEFT THIS TABLE ON 7 Sep — founder-locked reversal.
+    // Preparation now happens BEFORE approval (campaign, sequence, words, timing, sender and
+    // audience must exist before the customer is asked to approve them), so a SOURCING
+    // programme holding P1 is exactly the state preparation is FOR. Its new truth is
+    // asserted below rather than deleted, and the P1 floor it replaced it with is here:
+    ['a pre-approval programme with no P1 authority', () => {
+      state.programmes[0].status = 'SOURCING'
+      state.programmes[0].first_authorised_at = null
+      state.programmes[0].first_paid_at = null
+    }],
     ['an ICP not attached to the programme', () => { state.icps[0].programme_id = null }],
     ['an ICP of another programme', () => { state.icps[0].programme_id = 'P_OTHER' }],
     ['an ICP of another client', () => { state.icps[0].client_id = 'mbf' }],
@@ -345,13 +354,47 @@ describe('③ a programme that could not be prepared never reports itself operab
     expect(state.campaigns).toHaveLength(1)
   })
 
-  it('preparation refuses outright before APPROVED — P2 alone is not sending authority', async () => {
-    seedProgrammeReadyForLive({ status: 'SOURCING_AUTHORISED', approved_at: null })
+  // ⛓️ REVERSED 7 Sep BY THE FOUNDER, AND THE REVERSAL IS THE POINT OF THE PACKAGE.
+  //
+  // This case read *"preparation refuses outright before APPROVED"* and asserted no campaign and
+  // no enrolment. That was the deadlock: `READY_FOR_APPROVAL` means *a human may now look at
+  // what will run* — so the campaign, the sequence, the words, the timing, the sender and the
+  // audience have to EXIST before the question is put. **"Campaign + sequence + messaging +
+  // cadence + sender + prepared enrolments must exist before the client is asked to approve.
+  // Preparation is NON-SENDING."**
+  //
+  // 🛑 WHAT REPLACED IT IS NOT WEAKER, IT IS DIFFERENTLY PLACED. Preparation before approval
+  // needs P1 and produces a DRAFT campaign; `activate: true` is the only door to
+  // `status: 'active'` — the status the outreach machinery looks for — and it stays shut until
+  // Make Live, where `assertGoingLive` still demands an approval and Payment 2.
+  it('🛑 preparation before approval prepares, and creates the campaign as a DRAFT', async () => {
+    seedProgrammeReadyForLive({ status: 'SOURCING_AUTHORISED', approved_at: null, second_authorised_at: null })
+    newLead('L1')
+    const r = await prepareProgrammeOutreach(P_NEW)
+    expect(r.problems.join(' | ')).toBe('')
+    expect(r.enrolled, 'the prepared audience is empty before approval').toEqual(['L1'])
+    expect(state.ensureCalls, 'the pre-approval campaign was ACTIVATED — that is the send door')
+      .toEqual([{ clientId: H, icpId: 'ICP_NEW', activate: false }])
+  })
+
+  it('🛑 and it still refuses without P1 — preparation is bought by Payment 1, not by nothing', async () => {
+    seedProgrammeReadyForLive({
+      status: 'SOURCING_AUTHORISED', approved_at: null,
+      first_authorised_at: null, first_paid_at: null, second_authorised_at: null,
+    })
     newLead('L1')
     const r = await prepareProgrammeOutreach(P_NEW)
     expect(r.ok).toBe(false)
     expect(state.enrollments).toHaveLength(0)
-    expect(state.ensureCalls, 'no campaign may be created before approval').toEqual([])
+    expect(state.ensureCalls, 'a campaign was created for a programme nobody has paid for').toEqual([])
+  })
+
+  it('🛑 the POST-approval path is unchanged — an approved, P2-authorised programme ACTIVATES', async () => {
+    seedProgrammeReadyForLive()   // APPROVED + approved_at + P2
+    newLead('L1')
+    await prepareProgrammeOutreach(P_NEW)
+    expect(state.ensureCalls, 'activation moved, and Make Live can no longer start a campaign')
+      .toEqual([{ clientId: H, icpId: 'ICP_NEW', activate: true }])
   })
 })
 

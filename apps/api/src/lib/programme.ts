@@ -573,12 +573,45 @@ export function programmeStageOf(type: string | undefined): ProgrammeStage | nul
  * ONE programme-level approval (founder lock 5) — never thousands of paid per-lead approvals.
  * Only from READY_FOR_APPROVAL, and never while paused.
  */
+/**
+ * The columns an approval must ALSO write: what, exactly, was approved.
+ *
+ * 🛑 APPROVAL USED TO RECORD ONLY *WHEN*. So a sequence rewritten, a cadence retimed, a sender
+ * swapped or an enrolment set replaced after approval carried the old consent forward in
+ * silence, and every gate downstream read that consent as permission to send THIS.
+ *
+ * ⚠️ IT IS COMPUTED BEFORE THE WRITE AND WRITTEN *WITH* IT — one conditional UPDATE, the safest
+ * transaction boundary this code already has. A snapshot stamped separately could land against
+ * a programme whose approval never happened, or an approval could land with no record of what
+ * it covered; both are the inconsistency the hash exists to detect, manufactured by the fix.
+ *
+ * 🛑 AND A PROGRAMME THAT CANNOT BE DESCRIBED CANNOT BE APPROVED. If the snapshot cannot be
+ * built, this returns `null` and the caller REFUSES — approving work we cannot characterise
+ * would produce exactly the "approved, but nobody can say to what" state that reads as
+ * unreadable forever afterwards.
+ */
+async function approvedPreparationColumns(programmeId: string, at: string): Promise<Record<string, unknown> | null> {
+  const { buildPreparationSnapshot } = await import('./preparation-snapshot')
+  const snap = await buildPreparationSnapshot(programmeId)
+  if (!snap.ok) return null
+  return {
+    approved_preparation_hash: snap.hash,
+    approved_preparation_snapshot: snap.snapshot as unknown,
+    approved_preparation_at: at,
+  }
+}
+
 export async function approveProgramme(programmeId: string): Promise<ProgrammeResult> {
   const p = await getProgramme(programmeId)
   if (!p) return { ok: false, reason: 'No such programme.' }
   if (p.paused_at) return { ok: false, reason: 'Cannot approve a paused programme.' }
   if (p.status !== 'READY_FOR_APPROVAL') return { ok: false, reason: `Cannot approve from ${p.status}.` }
-  await setStatus(programmeId, 'APPROVED', { approved_at: new Date().toISOString() })
+  const at = new Date().toISOString()
+  const prepared = await approvedPreparationColumns(programmeId, at)
+  if (!prepared) {
+    return { ok: false, reason: 'The prepared work could not be described, so there is nothing to record as approved. Nothing was changed.' }
+  }
+  await setStatus(programmeId, 'APPROVED', { approved_at: at, ...prepared })
   return { ok: true }
 }
 
@@ -675,9 +708,21 @@ export async function approveProgrammeAsCustomer(
     }
   }
 
-  // ── THE WRITE. TWO COLUMNS, ONE CONDITIONAL UPDATE ─────────────────────────────────────
+  // ── THE WRITE. ONE CONDITIONAL UPDATE, NOW CARRYING WHAT WAS APPROVED ─────────────────
+  //
+  // ⛓️ 7 Sep — the approved preparation snapshot is written HERE, in the same claim, so a
+  // programme can never hold an approved snapshot it was not approved with. It is computed
+  // first because it reads several tables; the race guard below still decides who wins.
+  const at = new Date().toISOString()
+  const prepared = await approvedPreparationColumns(programmeId, at)
+  if (!prepared) {
+    return {
+      ok: false, code: 'unreadable',
+      reason: 'The prepared work could not be described, so this approval could not record what it covers. Nothing was changed.',
+    }
+  }
   const { data: won, error: writeErr } = await db.from('programmes')
-    .update({ status: 'APPROVED', approved_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+    .update({ status: 'APPROVED', approved_at: at, updated_at: at, ...prepared })
     .eq('id', programmeId)
     .eq('client_id', clientId)
     // 🛑 THE RACE GUARD. Only a row still in READY_FOR_APPROVAL is claimed, so of two

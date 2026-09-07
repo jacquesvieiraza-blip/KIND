@@ -39,6 +39,7 @@ vi.hoisted(() => {
 import { join } from 'path'
 import {
   preparationBlockers,
+  cadenceIsConfigured,
   PREPARATION_REQUIREMENTS,
   type PreparationFacts,
 } from './preparation-readiness'
@@ -226,5 +227,38 @@ describe('⑤ markReadyForApproval is gated by the canonical rule', () => {
     const body = rest.slice(0, rest.indexOf('\nexport ') > -1 ? rest.indexOf('\nexport ') : rest.length)
     expect(body.indexOf('programmePreparationReadiness('))
       .toBeLessThan(body.indexOf("setStatus(programmeId, 'READY_FOR_APPROVAL')"))
+  })
+})
+
+// ── ⑥ CADENCE — A RULE, NOT A DEFAULT ────────────────────────────────────────────────
+//
+// 🛑 *"Do not invent a cadence if none is locked."* (founder, 7 Sep). So this is the TEST for
+// one, never a fallback that supplies one. It is a real predicate rather than a hard-coded
+// `false`, so the day the founder's approved cadence is persisted it starts passing on its own
+// — and until then it blocks, honestly.
+
+describe('⑥ a cadence is configured, or it is not — nothing is assumed', () => {
+  it('🛑 no steps and one step are NOT a cadence — a single message has nothing to time', () => {
+    expect(cadenceIsConfigured([])).toBe(false)
+    expect(cadenceIsConfigured([0])).toBe(false)
+    expect(cadenceIsConfigured([3])).toBe(false)
+  })
+
+  it('🛑 a follow-up scheduled ZERO days after the message before it is a burst, not a cadence', () => {
+    expect(cadenceIsConfigured([0, 0])).toBe(false)
+    expect(cadenceIsConfigured([0, 3, 0])).toBe(false)
+  })
+
+  it('a real multi-step cadence is configured', () => {
+    expect(cadenceIsConfigured([0, 3, 4])).toBe(true)
+    expect(cadenceIsConfigured([0, 2])).toBe(true)
+  })
+
+  it('the FIRST step\'s wait is not part of the test — step one goes when the run starts', () => {
+    expect(cadenceIsConfigured([5, 3])).toBe(true)
+  })
+
+  it('🛑 15 · and an unconfigured cadence blocks approval', () => {
+    expect(codes(without({ cadenceConfigured: false }))).toContain('no_cadence')
   })
 })

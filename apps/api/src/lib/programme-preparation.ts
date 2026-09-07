@@ -39,11 +39,73 @@
 // ═══════════════════════════════════════════════════════════════════════════════════════
 
 import { db } from '@kind/db'
-import { getProgramme, TERMINAL_STATUSES, p2Authorised, type ProgrammeRow } from './programme'
+import { getProgramme, TERMINAL_STATUSES, p1Authorised, p2Authorised, type ProgrammeRow } from './programme'
 import { normalizeRevealEmail, normalizeRevealEmails } from './billing-rules'
 
-/** Statuses in which outreach preparation is meaningful. */
-const PREPARABLE: string[] = ['APPROVED', 'LIVE']
+/**
+ * ⛓️ 7 Sep — PREPARATION HAPPENS BEFORE APPROVAL (founder-locked).
+ *
+ * 🛑 THE DEADLOCK THIS BREAKS. `READY_FOR_APPROVAL` means *a human may now look at what will
+ * run, and approve it* — so the campaign, the sequence, the words, the timing, the sender and
+ * the audience have to EXIST before the question is put. Preparation was gated at APPROVED,
+ * i.e. strictly after. The customer was being asked to approve work that could not have been
+ * built yet, which is the launch-critical defect this package exists to close.
+ *
+ * **THE RULE:** *"Campaign + sequence + messaging + cadence + sender + prepared enrolments must
+ * exist before the client is asked to approve. Preparation is NON-SENDING."*
+ *
+ * ── TWO STAGES, TWO AUTHORITIES, AND THE DIFFERENCE IS THE WHOLE SAFETY ARGUMENT ─────────
+ *
+ *   PRE-APPROVAL  — P1 only. Payment 1 authorises *sourcing and preparation* and nothing else
+ *                   (`programme-authority.ts` has said so since 29 Aug). No approval, no P2.
+ *   POST-APPROVAL — unchanged: an approval recorded AND P2 authority, exactly as before.
+ *
+ * ⚠️ NOTHING HERE GRANTS ANYTHING. Preparing does not approve, does not authorise Payment 2,
+ * does not make a programme LIVE and does not send. Those are separate gates, in separate
+ * modules, and this file touches none of them — `OUTREACH` still requires approval + P2 +
+ * LIVE, so a pre-approval enrolment is INERT BY CONSTRUCTION rather than by promise.
+ *
+ * ⚠️ AND THE CAMPAIGN IS CREATED AS A DRAFT BEFORE APPROVAL. `activate: true` is the door to
+ * `status: 'active'`, which is what the outreach machinery looks for; a draft campaign is a
+ * container for the words with no way to send them. Activation stays where it was, behind
+ * LIVE. That is the smallest safe boundary, and it is a structural guarantee rather than a
+ * flag somebody has to remember.
+ */
+export const PRE_APPROVAL_PREPARABLE: string[] = ['SOURCING_AUTHORISED', 'SOURCING', 'READY_FOR_APPROVAL']
+export const POST_APPROVAL_PREPARABLE: string[] = ['APPROVED', 'LIVE']
+
+export type PreparationStage = 'pre_approval' | 'post_approval'
+
+export type StageVerdict =
+  | { ok: true; stage: PreparationStage }
+  | { ok: false; reason: string }
+
+/**
+ * Which preparation authority, if any, this programme holds right now.
+ *
+ * ⚠️ ONE DECISION, READ FROM THE ROW. Three call sites used to repeat the same four checks
+ * inline, which is how two of them would eventually disagree about what "preparable" means.
+ */
+export function preparationStageFor(p: ProgrammeRow): StageVerdict {
+  if (TERMINAL_STATUSES.includes(p.status)) return { ok: false, reason: `programme is ${p.status}` }
+  if (p.paused_at) return { ok: false, reason: 'programme is paused' }
+
+  if (POST_APPROVAL_PREPARABLE.includes(p.status)) {
+    // Byte-for-byte the rule that was here before, for the statuses that had it.
+    if (!p.approved_at) return { ok: false, reason: 'programme has no approval recorded' }
+    if (!p2Authorised(p)) return { ok: false, reason: 'programme has no P2 authority' }
+    return { ok: true, stage: 'post_approval' }
+  }
+
+  if (PRE_APPROVAL_PREPARABLE.includes(p.status)) {
+    // 🛑 P1 AND NOTHING WEAKER. Payment 1 (or House's internal equivalent) is what authorises
+    // preparation; a programme that has not reached it has bought nothing to prepare.
+    if (!p1Authorised(p)) return { ok: false, reason: 'programme has no P1 authority' }
+    return { ok: true, stage: 'pre_approval' }
+  }
+
+  return { ok: false, reason: `programme is ${p.status}, which carries no preparation authority` }
+}
 
 export type PrepareResult = {
   /** Fully prepared: every eligible lead enrolled, nothing outstanding, no problems. */
@@ -133,10 +195,12 @@ export async function verifyProgrammeFulfilment(
   if (p.client_id !== clientId) return { ok: false, reason: 'programme belongs to a different client' }
   if (TERMINAL_STATUSES.includes(p.status)) return { ok: false, reason: `programme is ${p.status}` }
   if (p.paused_at) return { ok: false, reason: 'programme is paused' }
-  if (!p.approved_at) return { ok: false, reason: 'programme has no approval recorded' }
-  if (!PREPARABLE.includes(p.status)) return { ok: false, reason: `programme is ${p.status}, not APPROVED or LIVE` }
-  // Either source of P2 — a payment or internal authority — and nothing weaker.
-  if (!p2Authorised(p)) return { ok: false, reason: 'programme has no P2 authority' }
+  // ⛓️ 7 Sep — STAGED. This used to demand an approval and P2 outright, which is precisely
+  // what made preparation impossible before approval. `preparationStageFor` still demands
+  // exactly that for APPROVED/LIVE, and demands P1 for the pre-approval stage — the authority
+  // Payment 1 actually buys. Enrolling remains inert until OUTREACH authority exists.
+  const stage = preparationStageFor(p)
+  if (!stage.ok) return { ok: false, reason: stage.reason }
 
   // ⚠️ THE ICP MUST BELONG TO THIS PROGRAMME TOO. The lead's attribution and the ICP's are
   // written by different acts (a sourcing run, and the attach action), so agreeing is a fact
@@ -169,8 +233,10 @@ export async function assertGoingLive(
   if (p.client_id !== clientId) return { ok: false, reason: 'programme belongs to a different client' }
   if (TERMINAL_STATUSES.includes(p.status)) return { ok: false, reason: `programme is ${p.status}` }
   if (p.paused_at) return { ok: false, reason: 'programme is paused' }
+  // 🛑 UNCHANGED, AND DELIBERATELY NOT STAGED. This is the gate that lets a campaign be
+  // ACTIVATED, which is the door to sending. Preparation moved earlier; activation did not.
   if (!p.approved_at) return { ok: false, reason: 'programme has no approval recorded' }
-  if (!PREPARABLE.includes(p.status)) return { ok: false, reason: `programme is ${p.status}, not APPROVED or LIVE` }
+  if (!POST_APPROVAL_PREPARABLE.includes(p.status)) return { ok: false, reason: `programme is ${p.status}, not APPROVED or LIVE` }
   if (!p2Authorised(p)) return { ok: false, reason: 'programme has no P2 authority' }
   return { ok: true }
 }
@@ -194,11 +260,8 @@ export async function prepareProgrammeOutreach(programmeId: string): Promise<Pre
 
   const p = await getProgramme(programmeId)
   if (!p) { out.problems.push('No such programme.'); return out }
-  if (TERMINAL_STATUSES.includes(p.status)) { out.problems.push(`This programme is ${p.status}.`); return out }
-  if (p.paused_at) { out.problems.push('This programme is paused.'); return out }
-  if (!p.approved_at) { out.problems.push('This programme has no approval recorded.'); return out }
-  if (!PREPARABLE.includes(p.status)) { out.problems.push(`This programme is ${p.status}, not APPROVED or LIVE.`); return out }
-  if (!p2Authorised(p)) { out.problems.push('This programme has no P2 authority.'); return out }
+  const stage = preparationStageFor(p)
+  if (!stage.ok) { out.problems.push(`This programme cannot be prepared: ${stage.reason}.`); return out }
 
   // ── ① A PROGRAMME-SAFE CAMPAIGN PER ATTACHED ICP ─────────────────────────────────────
   //
@@ -225,9 +288,15 @@ export async function prepareProgrammeOutreach(programmeId: string): Promise<Pre
     }
     // ⚑ `goingLive` carries the authority this programme already holds; `ensureCampaignForIcp`
     // re-proves it rather than believing it. Idempotent: an existing campaign is returned.
-    const camp = await ensureCampaignForIcp(p.client_id, icp.id, icp.name, {
-      activate: true, goingLive: { programmeId },
-    })
+    // 🛑 BEFORE APPROVAL THE CAMPAIGN IS A DRAFT, AND THAT IS THE NON-SENDING GUARANTEE.
+    // `activate: true` is the ONLY door to `status: 'active'` — the status the outreach
+    // machinery looks for — so withholding it means the words exist, the customer can be
+    // shown them, and there is no path by which they leave. Activation happens later, at
+    // Make Live, where `assertGoingLive` still demands an approval and P2.
+    const camp = await ensureCampaignForIcp(p.client_id, icp.id, icp.name,
+      stage.stage === 'post_approval'
+        ? { activate: true, goingLive: { programmeId } }
+        : { activate: false })
     if (!camp || !('id' in camp) || typeof camp.id !== 'string') {
       // ⚠️ THE TWO REFUSAL SHAPES SAY DIFFERENT THINGS, and an operator needs to know which.
       // "Another campaign is already live" is a one-active-campaign collision they can resolve

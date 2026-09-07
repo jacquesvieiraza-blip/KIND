@@ -350,7 +350,7 @@ describe('④ the Stripe writers refuse when internal authority already exists',
     // the count as the repository's usual "adding a migration is never silent" tripwire.
     expect((mig.match(/20260902_programme_internal_authority/g) ?? []).length,
       'A1 must appear exactly once — a second entry would re-migrate columns production has run').toBe(1)
-    expect((mig.match(/key:\s*'[^']+'/g) ?? []), 'a migration was added').toHaveLength(49)   // ⛓️ 48 → 49 on 7 Sep (HOUSE-009): +1 20260907_programme_sourcing_authority — functions only, no table, no column, no row. try_reserve_programme_sourcing is new and try_spend_sourcing is REPLACED with the same signature, the same return and a byte-unchanged legacy branch. It exists because programme ENTITLEMENT and PDL MONEY were one function body, so exempting the prepaid Apollo/house path from a fabricated $0.28-a-record ledger row also exempted it from the reservation, the 2,500 ceiling and the batch.   // ⛓️ 47 → 48 on 3 Sep (PR C3 · leads.proof_pass): +1 20260903_lead_proof_attribution — one NULLABLE smallint on leads with NO DEFAULT and NO BACKFILL, plus a guarded CHECK admitting NULL, 1 and 2, and a partial index. It exists because a free-proof lead and a retired legacy delivered lead were BYTE-IDENTICAL on every column that was traced (leads.source is the PROVIDER name and the same for both; programme_id is null for both; icp_run_outcomes holds no lead ids and no proof flag; sourcing_ledger and proof_ledger are money rows with no lead ids, and a pool-only proof pass writes no proof_ledger row at all; acquisition_memory is keyed on the provider identity; icps.proof_widened_candidate exists only for a pass-2 widened fallback). The withdrawn fix used clients.proof_passes_done, which is CUMULATIVE ACCOUNT STATE: any declared programme client with old legacy leads who later ran a proof they were entitled to run got their whole history back as current work. NULL means "not known to be proof work", which is the honest reading of every existing row, and no row is written by the migration. 🚀 UNLIKE C1 THIS ONE SHIPS WITH THE CODE THAT READS IT — run it from Vida → Engine immediately after deploying this build; until it is applied the customer desk attributes NOTHING, which fails closed to an empty desk and never to a historical one.   // ⛓️ 46 → 47 on 3 Sep (PR C1 · SCHEMA FIRST): +1 20260903_client_commercial_model — one NULLABLE text column on clients, NO DEFAULT, NO BACKFILL, plus a CHECK admitting NULL / 'programme' / 'legacy'. NULL is the migrated state for the whole existing book and resolves to exactly today's behaviour, so no row is written and nobody is reclassified. Nothing in C1 reads or writes it (expand/contract).   
+    expect((mig.match(/key:\s*'[^']+'/g) ?? []), 'a migration was added').toHaveLength(50)   // ⛓️ 49 → 50 on 7 Sep (House delivery preparation): +2 — 20260907_preparation_snapshot (figsy_sequences.campaign_id, the positive programme→campaign→sequence link, plus programmes.approved_preparation_hash/_snapshot/_at). Both nullable, NO DEFAULT, NO BACKFILL: a NULL campaign_id means historical client-scoped work, and guessing one would relink a retired desk's words to current programme work — the exact leak the column exists to stop. The snapshot columns are written ONLY in the same conditional UPDATE as status = APPROVED, so nothing is stamped approved before an approval happens.   // ⛓️ 48 → 49 on 7 Sep (HOUSE-009): +1 20260907_programme_sourcing_authority — functions only, no table, no column, no row. try_reserve_programme_sourcing is new and try_spend_sourcing is REPLACED with the same signature, the same return and a byte-unchanged legacy branch. It exists because programme ENTITLEMENT and PDL MONEY were one function body, so exempting the prepaid Apollo/house path from a fabricated $0.28-a-record ledger row also exempted it from the reservation, the 2,500 ceiling and the batch.   // ⛓️ 47 → 48 on 3 Sep (PR C3 · leads.proof_pass): +1 20260903_lead_proof_attribution — one NULLABLE smallint on leads with NO DEFAULT and NO BACKFILL, plus a guarded CHECK admitting NULL, 1 and 2, and a partial index. It exists because a free-proof lead and a retired legacy delivered lead were BYTE-IDENTICAL on every column that was traced (leads.source is the PROVIDER name and the same for both; programme_id is null for both; icp_run_outcomes holds no lead ids and no proof flag; sourcing_ledger and proof_ledger are money rows with no lead ids, and a pool-only proof pass writes no proof_ledger row at all; acquisition_memory is keyed on the provider identity; icps.proof_widened_candidate exists only for a pass-2 widened fallback). The withdrawn fix used clients.proof_passes_done, which is CUMULATIVE ACCOUNT STATE: any declared programme client with old legacy leads who later ran a proof they were entitled to run got their whole history back as current work. NULL means "not known to be proof work", which is the honest reading of every existing row, and no row is written by the migration. 🚀 UNLIKE C1 THIS ONE SHIPS WITH THE CODE THAT READS IT — run it from Vida → Engine immediately after deploying this build; until it is applied the customer desk attributes NOTHING, which fails closed to an empty desk and never to a historical one.   // ⛓️ 46 → 47 on 3 Sep (PR C1 · SCHEMA FIRST): +1 20260903_client_commercial_model — one NULLABLE text column on clients, NO DEFAULT, NO BACKFILL, plus a CHECK admitting NULL / 'programme' / 'legacy'. NULL is the migrated state for the whole existing book and resolves to exactly today's behaviour, so no row is written and nobody is reclassified. Nothing in C1 reads or writes it (expand/contract).   
   })
 })
 
@@ -896,7 +896,10 @@ describe('⑬ Vida is given exactly the truth it needs, and no more', () => {
   })
 
   it('the no-programme state stays clean', () => {
-    expect(op).toContain('return { programme: null, batches: [], stranded: [], blockers: [], degraded }')
+    // ⛓️ 7 Sep — `sender` and `preparation` joined the shape (read-only truth so the founder can
+    // PROVE which mailbox would send and whether the work still matches what was approved).
+    // Both are null here for the same reason every other field is: there is no programme.
+    expect(op).toContain('return { programme: null, sender: null, preparation: null, batches: [], stranded: [], blockers: [], degraded }')
   })
 })
 
@@ -967,7 +970,19 @@ describe('⑮ programme work never inherits a historical campaign', () => {
   const fig = strip(raw(join(API, 'lib/figsy.ts')))
 
   it('the campaign is resolved from the LEAD\'S ICP first — one ICP, one campaign', () => {
-    expect(fig).toContain(".eq('client_id', clientId).eq('icp_id', leadIcp.icp_id).eq('status', 'active')")
+    // ⛓️ 7 Sep — the `status: 'active'` filter is now CONDITIONAL, and the condition is the
+    // point. Preparation runs before approval, and before approval the programme campaign is
+    // deliberately a DRAFT (`activate: true` is the only door to `active`, and it stays shut
+    // until Make Live) — so requiring `active` here would have made pre-approval preparation
+    // unable to see the campaign it had just created.
+    //
+    // ⚠️ WHAT MUST NOT CHANGE IS THE *ICP-FIRST RESOLUTION*, and that is what is asserted:
+    // the lead's own ICP, which is the positive programme-correct link.
+    expect(fig).toContain(".eq('client_id', clientId).eq('icp_id', leadIcp.icp_id)")
+    // 🛑 AND THE WIDENING IS AVAILABLE ONLY TO VERIFIED PROGRAMME FULFILMENT. Every ordinary
+    // caller still gets `active` only — asserted as the exact ternary, so moving the widening
+    // out from behind `programmeFulfilment` fails here.
+    expect(fig).toContain("await (opts?.programmeFulfilment ? q : q.eq('status', 'active'))")
   })
 
   it('🛑 A PROGRAMME LEAD MAY NOT FALL BACK to the newest active campaign', () => {

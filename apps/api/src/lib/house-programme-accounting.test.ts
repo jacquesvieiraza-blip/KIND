@@ -300,3 +300,97 @@ describe('HOUSE-009 — the reconcile accounts for what already happened, and ad
     expect(b).not.toContain('FROM public.programmes WHERE status')
   })
 })
+
+// ── ③ · 246 DELIVERED MUST NOT LEAVE THE COUNTERS AT ZERO ─────────────────────────────
+
+describe('HOUSE-009 — the house batch settles on what was ACCEPTED, not on what search returned', () => {
+  const ICPS = readFileSync(join(__dirname, '../routes/icps.ts'), 'utf8')
+    .split('\n').filter(l => { const t = l.trim(); return t && !t.startsWith('//') && !t.startsWith('*') && !t.startsWith('/*') }).join('\n')
+
+  it('🛑 the PDL settle no longer runs for the house — `returnedCount` is a PDL truth', () => {
+    // PDL charges per record RETURNED, so settling a PDL reservation on `contacts.length` is
+    // correct: that is what was bought. Apollo is prepaid, so what the house reservation should
+    // consume is what became a usable lead — 250 requested, 250 granted, 246 accepted.
+    expect(ICPS, 'the house settles on the raw search page again, so 250 would read as used')
+      .toContain("if (programmeBatch && audience !== 'house') {")
+  })
+
+  it('🛑 and it settles AFTER delivery, on a count read from the rows', () => {
+    const at = ICPS.indexOf("if (programmeBatch && audience === 'house') {")
+    expect(at, 'the house settle is gone — 246 delivered would leave the counters at zero').toBeGreaterThan(-1)
+    const body = ICPS.slice(at, at + 1400)
+    // Counted from `leads`, not from an in-memory number of what we hoped would happen.
+    expect(body).toContain(".eq('batch_id', batchId)")
+    expect(body).toContain(".not('delivered_at', 'is', null)")
+    expect(body).toContain('settleBatch(batchId, accepted ?? 0)')
+  })
+
+  it('🛑 it runs after enrichAndDeliverLeads, because that is when `delivered_at` exists', () => {
+    const deliver = ICPS.indexOf('await enrichAndDeliverLeads(clientId, deliverNow, {')
+    const settle = ICPS.indexOf("if (programmeBatch && audience === 'house') {")
+    expect(deliver).toBeGreaterThan(-1)
+    expect(settle, 'the house settle runs before the final ICP gate, so it would count refusals')
+      .toBeGreaterThan(deliver)
+  })
+
+  it('🛑 an unreadable count does NOT settle — a false number is worse than an open reservation', () => {
+    const at = ICPS.indexOf("if (programmeBatch && audience === 'house') {")
+    const body = ICPS.slice(at, at + 1400)
+    expect(body).toContain('if (acceptedErr) {')
+    // Leaving the batch `running` is visible and recoverable; settling on a guess writes a
+    // permanent falsehood into the programme ceiling.
+    expect(body).toContain('NOT settled')
+  })
+
+  it('requested / granted / delivered stay three separate numbers', () => {
+    // `claim_programme_batch` records requested and granted; `settle_programme_batch` records
+    // delivered and releases the difference. Collapsing any two would hide the four refusals.
+    const claim = ICPS.indexOf('openBatch(houseProgrammeId, pdlRemainder, grantedSize)')
+    expect(claim, 'the house batch no longer records requested and granted separately').toBeGreaterThan(-1)
+  })
+})
+
+// ── ⑤ · THE RECONCILE REFUSES AMBIGUOUS AND FOREIGN ATTRIBUTION ───────────────────────
+
+describe('HOUSE-009 — the reconcile fails closed rather than leak another client in', () => {
+  const body = () => fnBody('reconcile_programme_sourcing')
+
+  it('🛑 5 · a lead attributed here but owned by ANOTHER CLIENT refuses the whole call', () => {
+    const b = body()
+    // M&V's own desk and a customer's desk live in the same tables, so this is the exact shape
+    // a cross-tenant leak would take. Filtering the row out quietly would "succeed" while
+    // leaving a corruption nobody is told about.
+    expect(b, 'a foreign-client lead is no longer detected').toContain('client_id IS DISTINCT FROM v_client')
+    // ⚠️ THE GUARD *CONDITION*, NOT THE PRESENCE OF A `RAISE` NEARBY. The teeth-proof mutated
+    // `IF v_foreign > 0` to `IF false` and this case stayed green, because the RAISE was still
+    // sitting a few lines below the detection query — detected, counted, and then not acted on.
+    // Proximity is not a guard, which is a lesson this repository has now learned three times.
+    expect(b, 'the foreign-lead count is computed and then never acted on')
+      .toContain('IF v_foreign > 0 THEN')
+    const at = b.indexOf('IF v_foreign > 0 THEN')
+    expect(b.slice(at, at + 600), 'the foreign lead is filtered out instead of refused')
+      .toContain('RAISE EXCEPTION')
+  })
+
+  it('🛑 the ambiguity check runs BEFORE anything is counted or stamped', () => {
+    const b = body()
+    expect(b.indexOf('client_id IS DISTINCT FROM v_client'))
+      .toBeLessThan(b.indexOf('SELECT COUNT(*) INTO v_orphans'))
+  })
+
+  it('🛑 and the count and the stamp BOTH carry a positive tenancy predicate', () => {
+    const b = body()
+    for (const stmt of ['SELECT COUNT(*) INTO v_orphans', 'UPDATE public.leads SET batch_id = v_batch']) {
+      const at = b.indexOf(stmt)
+      expect(at, `${stmt} is gone`).toBeGreaterThan(-1)
+      expect(b.slice(at, b.indexOf(';', at)), `${stmt} relies on the earlier check having run`)
+        .toContain('client_id = v_client')
+    }
+  })
+
+  it('🛑 4 · a second run finds nothing — the stamp is what makes it idempotent', () => {
+    const b = body()
+    expect(b.indexOf('SELECT COUNT(*) INTO v_orphans')).toBeLessThan(b.indexOf('UPDATE public.leads SET batch_id'))
+    expect(b).toContain('IF v_orphans <= 0 THEN')
+  })
+})

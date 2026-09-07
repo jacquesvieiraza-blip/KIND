@@ -40,6 +40,9 @@ const BASE: PreparationSnapshot = {
     { subject: 'Re: your pipeline', body: 'Following up …', wait_days: 3 },
   ],
   cadence: [0, 3],
+  campaign_settings_steps: [
+    { subject: 'A quick question about your pipeline', body: 'Hi {{first_name}} — …', wait_days: 0 },
+  ],
   sender: 'inbox-1|hello@meetandvibe.com',
   enrolled_lead_ids: ['lead-1', 'lead-2'],
 }
@@ -62,6 +65,7 @@ describe('① the same work always hashes the same', () => {
       enrolled_lead_ids: BASE.enrolled_lead_ids, sender: BASE.sender, cadence: BASE.cadence,
       steps: BASE.steps, sequence_id: BASE.sequence_id, campaign_id: BASE.campaign_id,
       batch_lead_ids: BASE.batch_lead_ids, batch_id: BASE.batch_id,
+      campaign_settings_steps: BASE.campaign_settings_steps,
       programme_id: BASE.programme_id, v: BASE.v,
     } as PreparationSnapshot
     expect(JSON.stringify(reordered)).not.toBe(JSON.stringify(BASE))   // the hazard is real
@@ -135,7 +139,8 @@ describe('② a material change to ANY approved component moves the hash', () =>
   it('🛑 every field the founder named is present in the digest, by name', () => {
     const json = canonicalJson(BASE)
     for (const field of ['programme_id', 'batch_id', 'batch_lead_ids', 'campaign_id',
-                         'sequence_id', 'steps', 'cadence', 'sender', 'enrolled_lead_ids']) {
+                         'sequence_id', 'steps', 'cadence', 'campaign_settings_steps',
+                         'sender', 'enrolled_lead_ids']) {
       expect(json, `the approved snapshot omits ${field}`).toContain(`"${field}"`)
     }
   })
@@ -246,7 +251,13 @@ describe('⑤ buildPreparationSnapshot reads the real work, not an empty shape',
       const rowsFor = (table: string): unknown[] => {
         if (table === 'programmes') return [{ id: 'prog-1', client_id: 'c1' }]
         if (table === 'icps') return [{ id: 'icp-1', client_id: 'c1' }]
-        if (table === 'figsy_campaigns') return [{ id: 'camp-1', client_id: 'c1' }]
+        if (table === 'figsy_campaigns') return [{
+          id: 'camp-1', client_id: 'c1',
+          // 🛑 THE STORE THAT ACTUALLY SENDS. `autoEnrollLead` builds every enrolment from
+          // `settings.sequence`, not from `figsy_sequences` — so a snapshot that hashed only
+          // the reviewed store would leave the sending store editable after approval.
+          settings: { sequence: [{ subject: 'Sent subject', body: 'Sent body', wait_days: 0 }] },
+        }]
         if (table === 'figsy_sequences') return [{
           id: 'seq-1', client_id: 'c1', campaign_id: 'camp-1',
           steps: [
@@ -317,11 +328,24 @@ describe('⑤ buildPreparationSnapshot reads the real work, not an empty shape',
       .toEqual(['lead-a', 'lead-z'])
   })
 
+
+  it('🛑 the SENDING store is in the snapshot too — two stores, both frozen', async () => {
+    const r = await build()
+    if (!r.ok) throw new Error(r.degraded)
+    expect(r.snapshot.campaign_settings_steps, 'figsy_campaigns.settings.sequence is not frozen')
+      .toEqual([{ subject: 'Sent subject', body: 'Sent body', wait_days: 0 }])
+    // ⚠️ AND IT IS GENUINELY A DIFFERENT STORE FROM THE REVIEWED ONE — the fixture holds
+    // different words in each on purpose, because that is the live hazard: an operator edits
+    // one and the customer approved the other.
+    expect(r.snapshot.steps[0].subject).not.toBe(r.snapshot.campaign_settings_steps[0].subject)
+  })
+
   it('🛑 and the built snapshot HASHES differently from one missing any of them', async () => {
     const r = await build()
     if (!r.ok) throw new Error(r.degraded)
     const gutted = {
-      ...r.snapshot, batch_lead_ids: [], steps: [], cadence: [], sender: null, enrolled_lead_ids: [],
+      ...r.snapshot, batch_lead_ids: [], steps: [], cadence: [],
+      campaign_settings_steps: [], sender: null, enrolled_lead_ids: [],
     }
     expect(preparationHash(gutted), 'an empty snapshot hashes the same as a full one')
       .not.toBe(r.hash)

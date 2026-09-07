@@ -46,6 +46,21 @@ export interface ProgrammeChain {
   steps: SequenceStep[]
   /** The waits, in order — stated separately so a retiming is visible even if no word changed. */
   cadence: number[]
+  /**
+   * 🛑 THE SECOND STORE, AND IT IS THE ONE THAT ACTUALLY SENDS.
+   *
+   * `autoEnrollLead` builds every enrolment's message steps from
+   * `figsy_campaigns.settings.sequence` — NOT from `figsy_sequences`. So the words a customer
+   * is shown and asked to approve (read from `figsy_sequences`, above) and the words that
+   * leave the building are held in two different places, and nothing makes them agree.
+   *
+   * ⚠️ THIS IS REPORTED, NOT RECONCILED. Silently preferring one store would make the other
+   * quietly meaningless, and which one is canonical is a product decision. What this field is
+   * for is the FREEZE: both stores are hashed, so an edit to either one after approval moves
+   * the digest and outreach refuses. A hole in the freeze is not something to leave open while
+   * the ownership question is settled.
+   */
+  campaignSettingsSteps: SequenceStep[]
 }
 
 export type ChainResult =
@@ -85,7 +100,8 @@ export async function resolveProgrammeChain(programmeId: string): Promise<ChainR
   const clientId = (prog as { client_id: string }).client_id
 
   const chain: ProgrammeChain = {
-    programmeId, clientId, icpId: null, campaignId: null, sequenceId: null, steps: [], cadence: [],
+    programmeId, clientId, icpId: null, campaignId: null, sequenceId: null,
+    steps: [], cadence: [], campaignSettingsSteps: [],
   }
 
   // ── ① THE ATTACHED ICP. By `programme_id`, never by `is_active` — the client-facing active
@@ -107,14 +123,16 @@ export async function resolveProgrammeChain(programmeId: string): Promise<ChainR
   // campaign, so an attached ICP provably had none when it joined — the only campaign it can
   // hold was created after attachment, for this programme. That is what makes this positive.
   const { data: camps, error: campErr } = await db.from('figsy_campaigns')
-    .select('id, client_id').eq('icp_id', chain.icpId)
+    .select('id, client_id, settings').eq('icp_id', chain.icpId)
   if (campErr) return { ok: false, degraded: `This programme's campaign could not be read (${campErr.message}).` }
-  const campRows = ((camps ?? []) as { id: string; client_id: string | null }[])
+  const campRows = ((camps ?? []) as { id: string; client_id: string | null; settings?: unknown }[])
     .filter(r => r.client_id === clientId)
   if (campRows.length > 1) {
     return { ok: false, degraded: `This programme's ICP has ${campRows.length} campaigns, so which one the customer would be approving is ambiguous.` }
   }
   chain.campaignId = campRows[0]?.id ?? null
+  // The sending store, read whether or not a `figsy_sequences` row exists.
+  chain.campaignSettingsSteps = readSteps((campRows[0]?.settings as { sequence?: unknown } | null)?.sequence)
   if (!chain.campaignId) return { ok: true, chain }
 
   // ── ③ THE SEQUENCE, BY CAMPAIGN. 🛑 THE `client_id` FILTER IS A TENANCY CHECK ON A ROW

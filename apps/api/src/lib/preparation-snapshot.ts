@@ -52,6 +52,14 @@ export interface PreparationSnapshot {
   steps: SequenceStep[]
   /** The waits in order — a retiming is a change even when no word moved. */
   cadence: number[]
+  /**
+   * 🛑 THE STEPS THAT ACTUALLY SEND, from `figsy_campaigns.settings.sequence`.
+   *
+   * `autoEnrollLead` builds every enrolment from THIS, not from `figsy_sequences` — so hashing
+   * only the reviewed store would have left the sending store editable after approval with the
+   * digest never moving. Two stores, both frozen, until the ownership question is settled.
+   */
+  campaign_settings_steps: SequenceStep[]
   /** Identity of the mailbox that would send, not its credentials. Never a secret. */
   sender: string | null
   /** Sorted. Who would actually receive this. */
@@ -135,6 +143,7 @@ export async function buildPreparationSnapshot(programmeId: string): Promise<Sna
     sequence_id: chain.sequenceId,
     steps: chain.steps,
     cadence: chain.cadence,
+    campaign_settings_steps: chain.campaignSettingsSteps,
     sender,
     enrolled_lead_ids: enrolledLeadIds,
   }

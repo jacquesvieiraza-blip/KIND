@@ -3790,6 +3790,69 @@ operatorRouter.post('/source', async (req: Request, res: Response) => {
   } catch (err) { console.error('[operator/source]', err); res.status(500).json({ success: false, error: 'Failed to source' }) }
 })
 
+// ── PROGRAMME-NATIVE SOURCING (founder-locked 7 Sep) ──────────────────────────────────
+//
+// 🛑 WHY THE ROUTE ABOVE COULD NOT DO THIS. `/source` picks ICPs with `.eq('is_active', true)`
+// — the client's own screen state — and then hands them to a job whose authority comes from
+// `icps.programme_id`. For House those two disagree on purpose: v4 is ATTACHED to the open
+// programme but deliberately not client-facing active, while the retired audience still is.
+// So `/source` cannot reach the targeting the programme is actually authorised to run.
+//
+// It also gates on a PAID transaction, which House will never have — House holds INTERNAL P1
+// authority instead, and manufacturing a payment to satisfy a check would invent revenue on an
+// account that has paid nothing. (The column that carries internal authority is deliberately
+// not named here: `programme-authority-schema.test.ts` allowlists the modules that may name it,
+// and this route reads authority through `authorityFor`, never through the column.)
+//
+// The other door, `POST /icps/:id/run`, can address an ICP by id but is the client WALLET
+// path: an empty balance mints 20 credits and a `trial_bonus` ledger row.
+//
+// This route starts from the PROGRAMME instead. All of the real machinery — authority, the
+// ceiling, the reservation, the batch, the AR5 provider boundary — stays in `runIcpJob`; this
+// is only the door, and `sourceProgramme` writes nothing at all.
+operatorRouter.post('/programme/source', async (req: Request, res: Response) => {
+  try {
+    const { programme_id, confirm } = (req.body ?? {}) as { programme_id?: string; confirm?: boolean }
+    if (!programme_id || typeof programme_id !== 'string') {
+      res.status(400).json({ success: false, error: 'programme_id is required — this route never infers the programme from a client.' })
+      return
+    }
+    // Sourcing spends real provider budget, so it is never a side effect of a GET-shaped call.
+    if (confirm !== true) {
+      res.status(400).json({ success: false, error: 'Sourcing spends real provider budget — confirm required' })
+      return
+    }
+
+    const { sourceProgramme } = await import('../lib/programme-sourcing')
+    const result = await sourceProgramme(programme_id)
+
+    if (!result.ok) {
+      // A refusal is an ANSWER, not a server fault — it names which control stopped the run so
+      // an operator can act on it instead of retrying blindly.
+      await writeOperatorAudit({
+        operatorEmail: operatorEmail(req), action: 'programme_source_refused',
+        subjectType: 'programme', subjectId: programme_id,
+        detail: { reason: result.reason, message: result.message },
+      })
+      res.status(409).json({ success: false, error: result.message, reason: result.reason })
+      return
+    }
+
+    await writeOperatorAudit({
+      operatorEmail: operatorEmail(req), clientId: result.clientId, action: 'programme_source_run',
+      subjectType: 'icp', subjectId: result.icpId,
+      detail: {
+        programme_id: result.programmeId, icp_name: result.icpName,
+        requested: result.requested, inserted: result.inserted, skipped: result.skipped, note: result.relaxed,
+      },
+    })
+    res.json({ success: true, ...result })
+  } catch (err) {
+    console.error('[operator/programme/source]', err)
+    res.status(500).json({ success: false, error: 'Failed to source for this programme' })
+  }
+})
+
 // ── #511 NEXUS · SIGNALS (read) — this client's private learning brain, surfaced ───────
 // Returns the client's Nexus profile (what's converting: winning angle, best subjects, top
 // persona, reply/meeting rates, objection patterns) with honest confidence. Compute-on-read

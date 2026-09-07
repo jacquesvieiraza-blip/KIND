@@ -102,6 +102,16 @@ export type OperatorAction =
   | 'booking_no_show'       // #499 — operator marked a booking a no-show (state only; $3 stays kept)
   | 'booking_rebook'        // #499m — operator gave the client a goodwill rebook (no new charge; max 2)
   | 'source_run'            // #498b — operator kicked a pool-first sourcing run (spends OUR PDL budget, fenced)
+  | 'programme_source_run'     // ⚑ 7 Sep — a PROGRAMME-NATIVE sourcing run: the operator named a
+                               // programme, and the ICP came from `icps.programme_id` rather than
+                               // from whichever ICP happened to be `is_active`. Recorded separately
+                               // from `source_run` because the two answer different questions and a
+                               // shared action would make "which door ran this?" unanswerable.
+  | 'programme_source_refused' // …and the REFUSALS, which are the more interesting half. A run
+                               // stopped by authority, an unattached ICP or an exhausted ceiling
+                               // leaves no leads and no batch, so without this row it leaves no
+                               // trace at all — and "nothing happened" is exactly what a silently
+                               // refused run looks like on every board.
   | 'nexus_autotune_toggle' // #511g3 — enabled/disabled a client's Nexus auto-tune kill-switch
   | 'demo_reset'            // MBF — rebuilt the demo account to its fixed state (invented data, no money, no sends)
   | 'house_client_setup'    // #549/#593 — opened (or adopted) Client Zero, the house account.

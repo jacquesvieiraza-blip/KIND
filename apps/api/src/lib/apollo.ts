@@ -31,6 +31,29 @@ const APOLLO_BASE = 'https://api.apollo.io/api/v1'
 // Ref: https://docs.apollo.io/reference/people-api-search
 const APOLLO_PEOPLE_SEARCH = `${APOLLO_BASE}/mixed_people/api_search`
 
+// ── APOLLO'S PAGINATION LIMITS, DECLARED RATHER THAN REMEMBERED (7 Sep) ─────────────────
+//
+// 🛑 THE PRODUCTION 422 THIS CLOSES. The first authenticated House run asked for its whole
+// authorised batch in ONE request — `per_page: 250` — and Apollo answered:
+//
+//   422 {"error":"Per page not supported","error_details":{
+//        "code":"SEARCH_VALIDATION_SEARCH_PARAMS_INVALID", …}}
+//
+// The message is terse enough to mislead: `per_page` IS supported and documented. What is not
+// supported is that VALUE. Apollo's People Search serves "100 records per page, up to 500
+// pages" (docs.apollo.io/reference/people-api-search), so 250 is simply out of range.
+//
+// ⚠️ AND DELETING `per_page` WOULD HAVE BEEN A WORSE BUG THAN THE 422. Without it Apollo
+// returns its default page and the run makes ONE request, so a programme that authorised 250
+// records would receive at most 100 — and report success. A 422 is loud; a batch that quietly
+// delivers 40% of what was authorised is the kind of wrong that surfaces a month later in an
+// attribution review. The limit is per PAGE, so the fix is to turn one illegal request into
+// the right number of legal ones.
+const APOLLO_MAX_PER_PAGE = 100
+/** Apollo stops paginating at 500 pages; nothing here should ever approach it. */
+const APOLLO_MAX_PAGE = 500
+export { APOLLO_MAX_PER_PAGE, APOLLO_MAX_PAGE }
+
 // ── Seniority mapping ─────────────────────────────────────────────────────────
 const SENIORITY_MAP: Record<string, string[]> = {
   'C-Suite':                ['c_suite'],
@@ -391,13 +414,39 @@ export async function searchPeopleWithFallback(
 
   const pdlSupplement: Promise<PdlPage | null> = Promise.resolve(null)
 
-  // Ask Apollo for exactly `size` too (per_page), so no source over-pulls what we keep.
-  const sized = (b: ApolloSearchBody): ApolloSearchBody => { b.per_page = size; return b }
+  // ── ASK FOR `size`, IN PAGES APOLLO WILL ACCEPT (7 Sep) ──────────────────────────────
+  //
+  // This used to be `b.per_page = size`, which sent `per_page: 250` for a House batch and
+  // earned a 422. Apollo serves at most `APOLLO_MAX_PER_PAGE` per page, so a batch larger
+  // than one page is a WALK, not a bigger request.
+  //
+  // ⚠️ THE STOP CONDITION IS A SHORT PAGE, NOT AN ERROR. Apollo returning fewer records than
+  // asked for means the audience is exhausted; asking again would be an identical request for
+  // an answer we already have. And it never over-delivers: an authorised batch is a ceiling as
+  // well as a target, so the walk stops the moment `size` is reached.
+  const perPage = Math.max(1, Math.min(size, APOLLO_MAX_PER_PAGE))
+  const sized = (b: ApolloSearchBody): ApolloSearchBody => { b.per_page = perPage; return b }
+
+  /**
+   * Walk Apollo's pages until `size` records are gathered or the audience runs out.
+   *
+   * `makeBody` is called per page so every request is built by the SAME builder the single-page
+   * version used — the verified-only filter, the consent proxy and every other clause ride along
+   * unchanged onto page 2 and page 3, rather than being set once and forgotten.
+   */
+  const searchPaged = async (makeBody: (p: number) => ApolloSearchBody): Promise<ApolloContact[]> => {
+    const gathered: ApolloContact[] = []
+    for (let p = page; p < page + APOLLO_MAX_PAGE && gathered.length < size; p++) {
+      const batch = await searchPeople(sized(makeBody(p)))
+      gathered.push(...batch)
+      if (batch.length < perPage) break   // Apollo has no more for this query
+    }
+    return gathered.slice(0, size)
+  }
 
   try {
     // Pass 1 — full query
-    const full = sized(buildSearchBody(icp, page, { verifiedEmailOnly }))
-    const contacts1 = await searchPeople(full)
+    const contacts1 = await searchPaged(p => buildSearchBody(icp, p, { verifiedEmailOnly }))
     if (contacts1.length > 0) {
       const pdl = await pdlSupplement
       if (pdl && pdl.contacts.length > 0) {
@@ -414,9 +463,11 @@ export async function searchPeopleWithFallback(
     // House they are not a reason to accept an unverified address. Pass 2 exists to widen the
     // CONSENT proxy, so for House it has nothing left to widen and is skipped entirely.
     if (icp.apollo_only_consented && !verifiedEmailOnly) {
-      const relaxed2 = sized({ ...buildSearchBody(icp, page, { verifiedEmailOnly }) })
-      delete relaxed2.contact_email_status
-      const contacts2 = await searchPeople(relaxed2)
+      const contacts2 = await searchPaged(p => {
+        const relaxed2 = { ...buildSearchBody(icp, p, { verifiedEmailOnly }) }
+        delete relaxed2.contact_email_status
+        return relaxed2
+      })
       if (contacts2.length > 0) {
         console.log('[apollo] fallback pass 2: removed consent filter — found', contacts2.length)
         const pdl = await pdlSupplement
@@ -425,11 +476,13 @@ export async function searchPeopleWithFallback(
     }
 
     // Pass 3 — remove employee ranges (geo + titles only)
-    const relaxed3 = sized({ ...buildSearchBody(icp, page, { verifiedEmailOnly }) })
-    // ⚑ 7 Sep — the SIZE widening still applies to House; the email-status floor does not move.
-    if (!verifiedEmailOnly) delete relaxed3.contact_email_status
-    delete relaxed3.organization_num_employees_ranges
-    const contacts3 = await searchPeople(relaxed3)
+    const contacts3 = await searchPaged(p => {
+      const relaxed3 = { ...buildSearchBody(icp, p, { verifiedEmailOnly }) }
+      // ⚑ 7 Sep — the SIZE widening still applies to House; the email-status floor does not move.
+      if (!verifiedEmailOnly) delete relaxed3.contact_email_status
+      delete relaxed3.organization_num_employees_ranges
+      return relaxed3
+    })
     if (contacts3.length > 0) {
       console.log('[apollo] fallback pass 3: removed size + consent filters — found', contacts3.length)
       const pdl = await pdlSupplement
@@ -492,10 +545,21 @@ export async function searchPeople(body: ApolloSearchBody): Promise<ApolloContac
   if (!apiKey) throw new Error('APOLLO_API_KEY env var is not set')
 
   assertPaidProviderAllowed('apollo', 'searchPeople')
+
+  // ⚠️ THE BELT, AND IT IS NOT REDUNDANT. `searchPeopleWithFallback` now pages correctly, but
+  // this is the ONE function that reaches the endpoint — clamping here means no present or
+  // future caller can reproduce the 422, whatever it believes about page sizes. Completeness
+  // is the pager's job; legality is this function's.
+  const perPage = Math.max(1, Math.min(Number(body.per_page) || APOLLO_MAX_PER_PAGE, APOLLO_MAX_PER_PAGE))
+  if (Number(body.per_page) > APOLLO_MAX_PER_PAGE) {
+    console.warn(`[apollo] per_page ${body.per_page} exceeds Apollo's maximum of ${APOLLO_MAX_PER_PAGE} — clamped. The caller should be paging.`)
+  }
+  const legalBody: ApolloSearchBody = { ...body, per_page: perPage }
+
   const res = await fetch(APOLLO_PEOPLE_SEARCH, {
     method:  'POST',
     headers: { 'Content-Type': 'application/json', 'X-Api-Key': apiKey },
-    body:    JSON.stringify(body),
+    body:    JSON.stringify(legalBody),
   })
 
   if (res.status === 429) throw new ApolloRateLimitError()
@@ -554,6 +618,34 @@ export async function searchPeople(body: ApolloSearchBody): Promise<ApolloContac
 // apollo_id → revealed email, for matched + emailable people only.
 const APOLLO_BULK_MATCH = `${APOLLO_BASE}/people/bulk_match`
 
+// ── THE FOUR MONEY CONTROLS, WHERE APOLLO ACTUALLY READS THEM (7 Sep) ───────────────────
+//
+// 🛑 THEY WERE IN THE JSON BODY, AND THE BODY IS NOT WHERE bulk_match LOOKS. Apollo's
+// documented contract puts `reveal_personal_emails`, `reveal_phone_number`,
+// `run_waterfall_email` and `run_waterfall_phone` on the QUERY STRING, and the body carries
+// `details` alone (docs.apollo.io/reference/bulk-people-enrichment).
+//
+// ⚠️ SO THE PREVIOUS FIX LOOKED EXPLICIT AND WAS STILL RELYING ON THE DEFAULT. A flag in the
+// wrong place is not a flag — it is a comment the server ignores, and it reads to the next
+// person as a control that is being enforced. That is worse than the omission it replaced,
+// because omission at least looks like what it is.
+//
+// This is the PAID endpoint on the House path: a personal email, a direct dial or a waterfall
+// each cost credits per record, and at 25 chunks a default flip is 250 records of unauthorised
+// spend. Scout's controlled 2-Sep test set all four, and the handover is explicit — do not
+// rely purely on provider defaults.
+const APOLLO_BULK_MATCH_SAFETY = {
+  reveal_personal_emails: 'false',
+  reveal_phone_number:    'false',
+  run_waterfall_email:    'false',
+  run_waterfall_phone:    'false',
+} as const
+
+/** The bulk_match URL, with the four controls stated on every single request. */
+function bulkMatchUrl(): string {
+  return `${APOLLO_BULK_MATCH}?${new URLSearchParams(APOLLO_BULK_MATCH_SAFETY).toString()}`
+}
+
 export async function bulkMatchEmails(apolloIds: string[]): Promise<Map<string, string>> {
   const out = new Map<string, string>()
   const apiKey = process.env.APOLLO_API_KEY
@@ -578,11 +670,13 @@ export async function bulkMatchEmails(apolloIds: string[]): Promise<Map<string, 
     // rows and look like a provider miss.
     assertPaidProviderAllowed('apollo', 'bulkMatch')
     try {
-      const res = await fetch(APOLLO_BULK_MATCH, {
+      const res = await fetch(bulkMatchUrl(), {
         method:  'POST',
         headers: { 'Content-Type': 'application/json', 'X-Api-Key': apiKey },
+        // ⚠️ `details` ALONE. The four safety controls ride on the query string above — see
+        // APOLLO_BULK_MATCH_SAFETY. Putting them here too would pass a query-string test while
+        // teaching the next reader that the body is where they live.
         body: JSON.stringify({
-          reveal_personal_emails: false,
           details: batch.map(id => ({ id })),   // match by Apollo person id
         }),
       })

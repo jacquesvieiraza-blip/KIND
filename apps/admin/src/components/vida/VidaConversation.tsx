@@ -2,6 +2,10 @@
 
 import { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
+import {
+  programmeSourceRequest, sourcingChipLabel, sourcingConfirmQuestion,
+  type ProgrammeSourcingAction,
+} from '@/lib/programme-sourcing-action'
 
 // ── ⚑ 4 Sep — THE ONE VIDA CONVERSATION (founder-approved operator shell) ────────────────
 //
@@ -42,6 +46,19 @@ export type VidaSurfaceDisplay = {
   /** `false` renders the kill-switch line. `null` = unknown, which asserts nothing. */
   outreachEnabled: boolean | null
   boardError: string | null
+  /**
+   * ⚑ 7 Sep (HOUSE-008) — THE SOURCING AUTHORITY ON SCREEN, or `null` for an ordinary client.
+   *
+   * 🛑 WHY IT IS PUBLISHED RATHER THAN FETCHED HERE. The console beside this conversation
+   * already holds the programme truth; a second fetch would be a second answer, and the two
+   * could disagree about the batch size on the very button that spends the money.
+   *
+   * ⚠️ `null` IS NOT "BLOCKED". `null` means this client has no programme, so the legacy
+   * client-scoped shortcut stays exactly as it was. A non-null action with `blocked` set means
+   * there IS a programme and it cannot source — which the operator must be told, not hidden
+   * from by falling back to the client path.
+   */
+  programmeSourcing: ProgrammeSourcingAction | null
 }
 
 /** What the workspace on screen can DO when the conversation asks. Never rendered. */
@@ -149,6 +166,10 @@ export function VidaConversationProvider({ children }: { children: React.ReactNo
   const [cmdLog, setCmdLog] = useState<CmdMsg[]>([])
   const [cmdBusy, setCmdBusy] = useState(false)
   const [srcPreview, setSrcPreview] = useState<SourcePreview | null>(null)
+  // ⚑ 7 Sep — a SEPARATE card, not a variant of SourcePreview. That type carries pool counts,
+  // a PDL split and a dollar estimate; none of them is true of an Apollo-only programme run,
+  // and reusing the shape is how those numbers would end up rendered beside a House batch.
+  const [progPreview, setProgPreview] = useState<ProgrammeSourcingAction | null>(null)
   const [srcBusy, setSrcBusy] = useState(false)
   const [srcResult, setSrcResult] = useState<string | null>(null)
   // #552 — "sourced fine, but they still cannot SEND". A separate slot from srcResult on
@@ -211,6 +232,43 @@ export function VidaConversationProvider({ children }: { children: React.ReactNo
     } finally { setSrcBusy(false) }
   }
 
+  // ── ⚑ 7 Sep (HOUSE-008) · THE PROGRAMME PATH ────────────────────────────────────────
+  //
+  // Two functions, sitting deliberately beside `previewSource`/`confirmSource` rather than
+  // inside them. The legacy pair answers "top this CLIENT's desk up from the pool and PDL";
+  // this pair answers "run this PROGRAMME's next authorised batch". They share a screen and
+  // nothing else — folding them together is what would let a programme fall back to the
+  // client-scoped route on the day one of the branches was got wrong.
+
+  /** No fetch at all: the quantity, the targeting and the verdict are already on screen. */
+  function previewProgrammeSource(action: ProgrammeSourcingAction) {
+    setSrcResult(null); setSrcSendWarn(null); setSrcPreview(null)
+    setProgPreview(action)
+  }
+
+  async function confirmProgrammeSource() {
+    if (!progPreview || progPreview.blocked) return
+    setSrcBusy(true)
+    try {
+      // ⚠️ THE PAYLOAD IS BUILT BY THE SHARED HELPER, not assembled here — so there is exactly
+      // one shape of this request, and it throws rather than firing on a blocked action.
+      const req = programmeSourceRequest(progPreview)
+      const res = await fetch(req.url, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(req.body),
+      })
+      const json = await res.json().catch(() => ({}))
+      if (!res.ok || !json?.success) throw new Error(json?.error || `Sourcing failed (${res.status})`)
+      setSrcResult(`Sourced ${json.inserted} lead${json.inserted === 1 ? '' : 's'} for this programme${json.note ? ` · ${json.note}` : ''}. New leads are in People.`)
+      setProgPreview(null)
+      await handlers.current.onSourced?.()
+    } catch (e) {
+      // The route answers a refusal with the control that stopped it, in words. Showing that
+      // sentence is the whole point — a bare "Sourcing failed" sends an operator hunting.
+      setSrcResult(e instanceof Error ? e.message : 'Sourcing failed')
+    } finally { setSrcBusy(false) }
+  }
+
   async function runCommand(text: string) {
     const t = text.trim()
     if (!t || !selected || cmdBusy) return
@@ -232,7 +290,17 @@ export function VidaConversationProvider({ children }: { children: React.ReactNo
     }
     // Sourcing intent → pool-aware confirm (spends OUR PDL budget), not the prose handoff.
     const srcCount = parseSourceIntent(t)
-    if (srcCount != null) { setCmd(''); void previewSource(srcCount); return }
+    if (srcCount != null) {
+      setCmd('')
+      // ⚑ 7 Sep — AND THE TYPED SENTENCE IS NOT A QUANTITY EITHER. "source 40 leads" typed at a
+      // PROGRAMME client used to carry its own 40 into the client-scoped path. A programme's
+      // batch size is the programme's, so the sentence is read as INTENT only and the number
+      // in it is discarded.
+      const action = surface?.programmeSourcing ?? null
+      if (action) { previewProgrammeSource(action); return }
+      void previewSource(srcCount)
+      return
+    }
     setCmd(''); setCmdBusy(true)
     setCmdLog(l => [...l, { role: 'operator', text: t }])
     try {
@@ -312,6 +380,27 @@ export function VidaConversationProvider({ children }: { children: React.ReactNo
             </div>
           ))}
 
+          {progPreview && (
+            <div className="border border-[#e4dcf7] bg-white rounded-xl px-3.5 py-3 max-w-md">
+              <b className="text-[13.5px] block mb-1">
+                {progPreview.blocked ? 'This programme cannot source yet' : sourcingConfirmQuestion(progPreview)}
+              </b>
+              {progPreview.blocked
+                ? <p className="text-[12.5px] text-[#5c5279] leading-relaxed">{progPreview.blocked}</p>
+                : <p className="text-[12.5px] text-[#5c5279] leading-relaxed">This runs the programme&rsquo;s next authorised batch against the targeting attached to it.</p>}
+              <div className="flex gap-2 mt-2.5">
+                {!progPreview.blocked && (
+                  <button onClick={confirmProgrammeSource} disabled={srcBusy}
+                    className="bg-[#7C3AED] hover:bg-[#6D28D9] text-white rounded-lg px-3 py-1.5 text-[13px] font-bold disabled:opacity-60">
+                    {srcBusy ? 'Sourcing…' : 'Confirm & source'}
+                  </button>
+                )}
+                <button onClick={() => setProgPreview(null)} className="border border-[#ece5fb] rounded-lg px-3 py-1.5 text-[13px] font-bold text-[#5c5279]">
+                  {progPreview.blocked ? 'Close' : 'Cancel'}
+                </button>
+              </div>
+            </div>
+          )}
           {srcPreview && (
             <div className="border border-[#e4dcf7] bg-white rounded-xl px-3.5 py-3 max-w-md">
               <b className="text-[13.5px] block mb-1">Source {srcPreview.count} leads?</b>
@@ -348,10 +437,26 @@ export function VidaConversationProvider({ children }: { children: React.ReactNo
 
         <div className="shrink-0 px-[22px] pb-3">
           <div className="flex flex-wrap gap-1.5 mb-2">
-            {["What's blocking?", 'Status', 'Source 20 leads'].map(c => (
+            {["What's blocking?", 'Status'].map(c => (
               <button key={c} onClick={() => void runCommand(c)} disabled={cmdBusy}
                 className="text-[12.5px] font-semibold text-[#7C3AED] border border-[#e4dcf7] rounded-full px-3 py-1 hover:bg-[#f7f4fd] disabled:opacity-50">{c}</button>
             ))}
+            {/* ⚑ 7 Sep (HOUSE-008) — ONE SHORTCUT, TWO PATHS, AND THE LABEL TELLS THE TRUTH.
+                It used to be the literal 'Source 20 leads' for everyone, and pressing it fed
+                that sentence back through `parseSourceIntent` so the WORDS ON THE BUTTON
+                decided how many records were bought. For a programme the quantity now comes
+                off programme truth and the click goes to the programme-native route; for an
+                ordinary client nothing about this changed. */}
+            <button
+              onClick={() => {
+                const action = surface?.programmeSourcing ?? null
+                if (action) previewProgrammeSource(action)
+                else void runCommand('Source 20 leads')
+              }}
+              disabled={cmdBusy}
+              className="text-[12.5px] font-semibold text-[#7C3AED] border border-[#e4dcf7] rounded-full px-3 py-1 hover:bg-[#f7f4fd] disabled:opacity-50">
+              {sourcingChipLabel(surface?.programmeSourcing ?? null)}
+            </button>
             {/* These three are the launch path — they open the surface that does the work,
                 instead of handing prose back to the operator.
                 ⚠️ OFFERED ONLY WHERE THAT SURFACE IS ON SCREEN. A shortcut whose destination

@@ -107,7 +107,7 @@ const NERVOUS_SYSTEM: { href: string; label: string; icon: string }[] = [
 function VidaOuterColumn() {
   const c = useVidaConversation()
   useEffect(() => {
-    c.publish({ blockers: null, outreachEnabled: null, boardError: null }, {})
+    c.publish({ blockers: null, outreachEnabled: null, boardError: null, programmeSourcing: null }, {})
   }, [c])
   return (
     <section className="w-[540px] shrink-0 flex flex-col border-r border-[#eee7f7] bg-white min-h-0">

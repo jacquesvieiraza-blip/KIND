@@ -27,9 +27,9 @@
 import { db } from '@kind/db'
 import {
   type ProgrammeRow, type ProgrammeStatus,
-  TERMINAL_STATUSES, PROGRAMME_BATCH_SIZE,
+  TERMINAL_STATUSES, PROGRAMME_BATCH_SIZE, nextBatchSize,
 } from './programme'
-import { reviewIsOpen, REVIEW_TRIGGER_LEADS } from './programme-authority'
+import { reviewIsOpen, REVIEW_TRIGGER_LEADS, authorityFor } from './programme-authority'
 
 /**
  * THE FIVE OPERATIONAL STATES PR2-D REQUIRED, and no sixth.
@@ -94,6 +94,25 @@ export type ProgrammeTruth = {
     /** The R77 planning benchmark, surfaced so the operator sees WHY a review was raised. */
     review_trigger_leads: number
     batch_size: number
+    // ── ⚑ 7 Sep (HOUSE-008) · THE SOURCING READ-OUTS, DERIVED ON THE SERVER ───────────
+    //
+    // 🛑 SO THE SCREEN NEVER RE-IMPLEMENTS THE BATCH RULE. Vida's sourcing shortcut has to
+    // print a quantity before anything runs, and the only quantity that is not a guess is
+    // the one `sourceProgramme` will actually use. `next_batch` IS `nextBatchSize(p)` — the
+    // same function, on the same row — so the button cannot promise 250 while the run does
+    // 100. A screen that computes `min(batch_size, room)` itself is a second copy of a rule,
+    // and two copies is how they drift.
+    //
+    // `may_source` is `authorityFor(p, 'NEXT_BATCH')`, which is the exact verdict the
+    // programme-native route applies: status, the P1 floor, the review hold and the
+    // remaining ceiling. The reason travels with it, because a disabled button that will not
+    // say why sends an operator hunting.
+    /** `nextBatchSize(p)` — what a run started right now would actually ask for. */
+    next_batch: number
+    /** `authorityFor(p, 'NEXT_BATCH').allowed` — may a batch start at all? */
+    may_source: boolean
+    /** The refusal in the operator's words, or null when sourcing is authorised. */
+    source_blocked_reason: string | null
   } | null
   batches: BatchSummary[]
   /** Batches in the dead-letter state. Client entitlement is reserved and NOT usable. */
@@ -217,6 +236,9 @@ export async function programmeTruthFor(clientId: string): Promise<ProgrammeTrut
 
   const stranded = batches.filter(b => b.status === 'stranded')
   const p = programme
+  // NEXT_BATCH, not SOURCING: a run IS the opening of a new batch, so the review hold and the
+  // remaining ceiling both apply — exactly as they do inside `sourceProgramme`.
+  const sourcingVerdict = authorityFor(p, 'NEXT_BATCH')
 
   return {
     programme: {
@@ -244,6 +266,9 @@ export async function programmeTruthFor(clientId: string): Promise<ProgrammeTrut
       review_resolved_at: p.review_resolved_at ?? null,
       review_trigger_leads: REVIEW_TRIGGER_LEADS,
       batch_size: PROGRAMME_BATCH_SIZE,
+      next_batch: nextBatchSize(p),
+      may_source: sourcingVerdict.allowed,
+      source_blocked_reason: sourcingVerdict.allowed ? null : sourcingVerdict.message,
     },
     batches,
     stranded,

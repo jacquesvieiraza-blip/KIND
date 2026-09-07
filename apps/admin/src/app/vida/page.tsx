@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react'
 import SequenceQuality, { type Quality } from '@/components/SequenceQuality'
 import { useVidaConversation } from '@/components/vida/VidaConversation'
 import { loadError, panelView, notice, noticeClass, noticeText, vatBadge, PACK_PRICE_USD, MAX_SEQUENCE_STEPS, type Notice } from '@kind/shared'
+import { programmeSourcingAction } from '@/lib/programme-sourcing-action'
 
 // #483–#485 — VIDA OPERATOR CONSOLE (working area).
 // Renders inside the Vida shell (app/vida/layout.tsx owns the top bar + rail): Clients
@@ -1471,6 +1472,12 @@ export default function VidaConsolePage() {
       blockers,
       outreachEnabled: status ? status.outreach_enabled : null,
       boardError,
+      // ⚑ 7 Sep (HOUSE-008) — the programme truth this panel already fetched, turned into the
+      // one action the conversation's sourcing shortcut needs. Derived, never re-fetched: a
+      // second read could disagree with the panel about the batch size on the very button
+      // that spends the money. `null` for a client with no programme, which leaves the legacy
+      // shortcut exactly as it was.
+      programmeSourcing: programmeSourcingAction(prog),
     }, {
       intercept: (t: string) => {
         if (tab !== 'ICP' || icpMode !== 'chat') return false

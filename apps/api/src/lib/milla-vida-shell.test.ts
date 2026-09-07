@@ -530,7 +530,21 @@ describe('VIDA · UI-010 — one Vida on every operator destination, with nothin
   it('the provider-owned commands stay, because they are valid off the console', () => {
     // These post to `/operator/command` with the persistent selected client; sourcing is the
     // provider's too. Only the console's own launch shortcuts are gated on its handlers.
-    expect(chat).toContain('["What\'s blocking?", \'Status\', \'Source 20 leads\']')
+    //
+    // ⛓️ 7 Sep (HOUSE-008) — RETARGETED, SAME FACT. This asserted the literal three-item array
+    // `["What's blocking?", 'Status', 'Source 20 leads']`. The sourcing shortcut is no longer a
+    // literal: for a programme client its label is the programme's own next batch size, so it
+    // left the array and became a button whose text is derived. What this test protects is
+    // UNGATED-NESS — that all three survive off the console — and that is asserted directly
+    // now instead of through a string that happened to encode it.
+    expect(chat).toContain('["What\'s blocking?", \'Status\']')
+    expect(chat, 'the sourcing shortcut is gone').toContain('sourcingChipLabel(surface?.programmeSourcing ?? null)')
+    //
+    // ⚠️ THE WINDOW IS SIZED TO THE ELEMENT, NOT GUESSED. At 300 characters this did not bite:
+    // the gate-to-label distance across the button's onClick and className is larger than that,
+    // so gating the shortcut still passed. Proved by breaking it.
+    expect(chat, 'the sourcing shortcut is now gated on a console handler, so it vanishes off the console')
+      .not.toMatch(/handlers\.current\.\w+ && \([\s\S]{0,900}sourcingChipLabel/)
     for (const gated of ['handlers.current.buildIcp &&', 'handlers.current.buildCampaign &&', 'handlers.current.draftSequence &&']) {
       expect(chat, `a console-only shortcut is no longer gated (${gated})`).toContain(gated)
     }

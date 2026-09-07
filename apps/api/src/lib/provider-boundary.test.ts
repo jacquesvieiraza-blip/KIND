@@ -143,7 +143,11 @@ describe('AR5 — a PDL id can never be sent to Apollo bulk_match', () => {
       const { bulkMatchEmails } = await import('./apollo')
       const out = await bulkMatchEmails(['legacy_apollo_id'])
       expect(fetchSpy).toHaveBeenCalledTimes(1)
-      expect(out.get('legacy_apollo_id')).toBe('dana@northwind-logistics.co.uk')
+      // ⛓️ 7 Sep — `bulkMatchEmails` now returns the revealed PERSON, not a bare string: the
+      // reveal is the first moment `email_status` and `country` exist, and throwing them away
+      // here is what left the qualification step with nothing to judge. The AR15 fact this
+      // test protects — a legacy Apollo id is still revealed — is unchanged.
+      expect(out.get('legacy_apollo_id')?.email).toBe('dana@northwind-logistics.co.uk')
     })
   })
 })

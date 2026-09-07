@@ -1,3 +1,5 @@
+import { isGenericEmailDomain } from './email-hygiene'
+
 interface Lead {
   id: string
   first_name: string
@@ -250,12 +252,12 @@ function domainFromEmail(email: string): string | null {
   return d.length > 0 ? d : null
 }
 
-// Free / generic mailbox domains — a match here means nothing (everyone has gmail),
-// so we only dedup on company domain when it's a real business domain.
-const GENERIC_EMAIL_DOMAINS = new Set([
-  'gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'icloud.com',
-  'aol.com', 'protonmail.com', 'gmx.com', 'live.com', 'mail.com',
-])
+// Free / generic mailbox domains — a match here means nothing (everyone has gmail), so we
+// only dedup on company domain when it's a real business domain.
+//
+// ⚑ 7 Sep — THE LIST NOW LIVES IN `email-hygiene.ts` (imported at the top of this file). The
+// House qualification gate needs the same set to refuse a personal address, and two copies of
+// a domain list is how they drift apart.
 
 /**
  * Checks whether a prospect already exists in the client's CRM.
@@ -277,7 +279,7 @@ export async function checkCrmDuplicate(
       return { exists: true, reason: 'Already a contact in your HubSpot' }
     }
     const domain = domainFromEmail(email)
-    if (domain && !GENERIC_EMAIL_DOMAINS.has(domain) && await findCompanyInHubSpot(apiKey, domain)) {
+    if (domain && !isGenericEmailDomain(domain) && await findCompanyInHubSpot(apiKey, domain)) {
       return { exists: true, reason: `Their company (${domain}) is already an account in your HubSpot` }
     }
     return { exists: false }

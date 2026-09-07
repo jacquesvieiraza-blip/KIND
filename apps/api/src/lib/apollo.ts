@@ -646,8 +646,27 @@ function bulkMatchUrl(): string {
   return `${APOLLO_BULK_MATCH}?${new URLSearchParams(APOLLO_BULK_MATCH_SAFETY).toString()}`
 }
 
-export async function bulkMatchEmails(apolloIds: string[]): Promise<Map<string, string>> {
-  const out = new Map<string, string>()
+/**
+ * What the PAID reveal actually tells us about one person.
+ *
+ * ⚑ 7 Sep — IT USED TO BE JUST THE EMAIL, and that is why the House run could not qualify
+ * anybody. People Search returns no `email_status` and no `country`; bulk_match returns both
+ * (docs.apollo.io/reference/bulk-people-enrichment). Throwing them away here left M&V's
+ * qualification step with nothing to judge geography or verification on, so the only place
+ * those facts could be tested was BEFORE they existed — which is the 250 → 0 defect.
+ *
+ * `last_name` rides along for the same reason: search returns `last_name_obfuscated`
+ * ("La***n"), so the real surname first exists at this step.
+ */
+export interface RevealedPerson {
+  email: string
+  email_status: string | null
+  country: string | null
+  last_name: string | null
+}
+
+export async function bulkMatchEmails(apolloIds: string[]): Promise<Map<string, RevealedPerson>> {
+  const out = new Map<string, RevealedPerson>()
   const apiKey = process.env.APOLLO_API_KEY
 
   // ── AR5 AT THE REVEAL DOOR (22 Aug) ───────────────────────────────────────
@@ -686,12 +705,25 @@ export async function bulkMatchEmails(apolloIds: string[]): Promise<Map<string, 
       }
       // Apollo returns `matches` aligned to input order; each entry echoes the id
       // and carries the enriched person (with `email`), or null when unmatched.
-      const data = await res.json() as { matches?: Array<{ id?: string; email?: string | null } | null> }
+      const data = await res.json() as {
+        matches?: Array<{
+          id?: string; email?: string | null; email_status?: string | null
+          country?: string | null; last_name?: string | null
+        } | null>
+      }
       ;(data.matches ?? []).forEach((m, idx) => {
         const apolloId = m?.id ?? batch[idx]
         const email    = m?.email
         if (apolloId && email && !isPlaceholderEmail(email)) {
-          out.set(apolloId, email)
+          // ⚠️ THE FACTS TRAVEL WITH THE ADDRESS. Qualification happens downstream, in M&V's
+          // enrichment flow — this step's job is to REPORT what the provider said, not to
+          // decide whether the person qualifies.
+          out.set(apolloId, {
+            email,
+            email_status: m?.email_status ?? null,
+            country:      m?.country ?? null,
+            last_name:    m?.last_name ?? null,
+          })
         }
       })
     } catch (err) {

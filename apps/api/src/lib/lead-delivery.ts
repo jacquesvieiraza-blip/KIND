@@ -1,5 +1,6 @@
 import { db } from '@kind/db'
 import { bulkMatchEmails } from './apollo'
+import { finalVerdict, type IcpCriteria } from './icp-qualification'
 import { waterfallEnrich } from './enrichment'
 import { deliveryCharge, normalizePlan } from './billing-rules'
 import { sendFounderAlert } from './alerts'
@@ -28,9 +29,15 @@ export async function enrichAndDeliverLeads(
    * this adds is a caller that can say NO for a reason of its own — the House MVP path, where
    * Hunter is off by founder decision rather than by a Railway variable happening to be unset.
    */
-  opts?: { hunterAllowed?: boolean },
+  /**
+   * ⚑ 7 Sep — AND THE ICP THE CUSTOMER ACTUALLY DESCRIBED, so the FULL criteria can be
+   * enforced HERE, where the revealed facts first exist. The caller holds the saved ICP; a
+   * second lookup could disagree with the one the run is using.
+   */
+  opts?: { hunterAllowed?: boolean; qualifyAgainst?: IcpCriteria },
 ): Promise<number> {
   const hunterAllowed = opts?.hunterAllowed !== false
+  const qualifyAgainst = opts?.qualifyAgainst ?? null
   if (candidateIds.length === 0) return 0
 
   // 1. Reveal emails for candidates that don't already have one, by enriching on
@@ -44,17 +51,60 @@ export async function enrichAndDeliverLeads(
   const needEmail = (rows ?? []).filter(r => !r.email && r.apollo_id)
   if (needEmail.length > 0) {
     const revealed = await bulkMatchEmails(needEmail.map(r => r.apollo_id as string))
+
+    // ── ⚑ 7 Sep — THE FINAL QUALIFICATION GATE, WHERE THE FACTS FIRST EXIST ─────────────
+    //
+    // 🛑 THE 250 → 0 RUN IS THE REASON THIS IS HERE AND NOT EARLIER. Apollo's People Search
+    // returns neither `email_status` nor `country`, so judging a candidate on them at search
+    // time judged `undefined` and rejected everybody. The provider reveal above is the step
+    // that turns those unknowns into facts — it is ONE provider action inside M&V's
+    // enrichment flow, not the flow itself — and this is the first moment the customer's ICP
+    // can actually be tested.
+    //
+    // ⚠️ UNKNOWN FAILS HERE. We have now asked; a fact still missing is not a fact, and an
+    // unproved candidate must never become a usable lead. `finalVerdict` owns that inversion.
+    let qualified = 0
+    const refusals: Record<string, number> = {}
+
     for (const r of needEmail) {
-      const email = revealed.get(r.apollo_id as string)
-      if (email) {
-        // apollo_consented: came through Apollo's verified-email filter and we now
-        // hold a real work email — mark it as Apollo-sourced contactable.
-        // ⚠️ CONTACTABLE, NOT CONSENTED. The flag is a provider-VERIFIED email, treated as a
-        // legitimate-interest contact. It is NOT a consent record — naming predates the pivot.
-        // Do not build consent logic on it. See @kind/shared `Lead` for the full note.
-        await db.from('leads').update({ email, apollo_consented: true }).eq('id', r.id)
+      const person = revealed.get(r.apollo_id as string)
+      if (!person) continue   // the provider had nothing; the Hunter waterfall below may still
+
+      if (qualifyAgainst) {
+        const verdict = finalVerdict(
+          { email: person.email, emailStatus: person.email_status, country: person.country },
+          qualifyAgainst,
+        )
+        if (!verdict.ok) {
+          // ⚠️ NOT DELIVERED, NOT APPROVED, NOT SENT — and the address is deliberately NOT
+          // written. A lead row with no email cannot be delivered by the drip, cannot be
+          // approved, and cannot be sent to. The refusal is counted rather than silent,
+          // because a silent drop is exactly how 250 became 0 without anybody noticing.
+          refusals[verdict.reason] = (refusals[verdict.reason] ?? 0) + 1
+          continue
+        }
       }
+
+      // apollo_consented: came through Apollo's verified-email filter and we now
+      // hold a real work email — mark it as Apollo-sourced contactable.
+      // ⚠️ CONTACTABLE, NOT CONSENTED. The flag is a provider-VERIFIED email, treated as a
+      // legitimate-interest contact. It is NOT a consent record — naming predates the pivot.
+      // Do not build consent logic on it. See @kind/shared `Lead` for the full note.
+      //
+      // ⚑ The revealed surname is written too: the SEARCH stage returns `last_name_obfuscated`
+      // ("La***n"), so this is the first point a real one exists.
+      const patch: Record<string, unknown> = { email: person.email, apollo_consented: true }
+      // ⚠️ IT REPLACES, RATHER THAN FILLING A BLANK. The search stage already wrote a surname
+      // — Apollo's OBFUSCATED one ("La***n") — so a `!r.last_name` guard would never fire and
+      // the masked value would live on in the lead for ever. The revealed name is the real one.
+      if (person.last_name) patch.last_name = person.last_name
+      if (person.country) patch.country = person.country
+      await db.from('leads').update(patch).eq('id', r.id)
+      qualified++
     }
+
+    const refused = Object.entries(refusals).map(([k, v]) => `${k}=${v}`).join(' ')
+    console.log(`[lead-delivery] stage=qualification — ${qualified} of ${needEmail.length} revealed candidate(s) passed the full ICP${refused ? ` · refused: ${refused}` : ''}.`)
   }
 
   // 1b. AUTO HUNTER WATERFALL (item 140): Apollo bulk_match can't reveal an email for

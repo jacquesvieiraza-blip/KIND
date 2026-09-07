@@ -134,7 +134,9 @@ vi.mock('./alerts', () => ({
 
 import {
   createProgramme, recordFirstPayment, recordSecondPayment, approveProgramme,
-  markReadyForApproval, pauseProgramme, mayStartCampaign, maySecondCharge, mayComplete,
+  // ⛓️ `markReadyForApproval` is no longer imported here (7 Sep): its own gate is now the
+  // canonical preparation rule and is proved in `preparation-readiness.test.ts`.
+  pauseProgramme, mayStartCampaign, maySecondCharge, mayComplete,
   completeProgramme, settleBatch, computeContribution, finaliseContribution,
   writeProgrammePartnerCommission, recordDispute, recordMakeWhole, nextBatchSize,
   PROGRAMME_STATUSES, type ProgrammeRow, goLiveProgramme,
@@ -349,21 +351,22 @@ describe('⑤ approval is ONE programme-level decision', () => {
   })
 
   it('READY_FOR_APPROVAL → APPROVED stamps approved_at', () => {
-    const p = seed({ status: 'SOURCING' })
-    // ⚑ PR A2 — there must be something to review. One positively-attributed lead is the
-    // whole rule: zero versus more than zero, no invented volume threshold.
-    // ⚑ AND IT MUST BE REVIEWABLE — delivered, and Sent to the client (#493). The guard
-    // reuses `/leads/for-approval`'s own definition, so a lead that could never appear in
-    // the customer's review set cannot make a programme ready.
-    // ⛓️ AND NOT YET REVEALED OR PASSED. The readiness predicate is now the review query
-    // itself — all four conditions — so a lead already disposed of through the legacy
-    // per-lead path cannot make a programme ready while Milla would open on nothing.
+    // ⛓️ 7 Sep — THIS CASE IS ABOUT `approveProgramme`, SO IT NO LONGER DRIVES THE PROGRAMME
+    // THROUGH `markReadyForApproval` TO GET THERE. That transition now consults the canonical
+    // preparation rule (batch, campaign, sequence, messaging, cadence, sender, enrolments,
+    // freeze — preparation-readiness.ts), because a programme with leads and nothing else was
+    // being offered to the client for approval. Seeding the STATUS directly keeps this test
+    // measuring the thing it is named for; reaching it through a fifteen-condition gate would
+    // make an approval test fail for reasons that have nothing to do with approval.
+    // The gate itself is proved in `preparation-readiness.test.ts` and in `house-authority`.
+    const p = seed({ status: 'READY_FOR_APPROVAL' })
+    // The reviewable lead stays: it is the state a READY_FOR_APPROVAL programme really is in,
+    // and removing it would make this fixture describe a programme that could not exist.
     state.leads.push({
       id: 'lead-1', programme_id: p.id, delivered_at: 'd', surfaced_for_approval_at: 's',
       revealed_at: null, status: 'scored',
     })
-    return markReadyForApproval(p.id)
-      .then(() => approveProgramme(p.id))
+    return approveProgramme(p.id)
       .then(r => {
         expect(r.ok).toBe(true)
         expect(state.programmes[0].status).toBe('APPROVED')

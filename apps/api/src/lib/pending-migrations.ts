@@ -3357,6 +3357,252 @@ CREATE INDEX IF NOT EXISTS leads_proof_pass_idx
   WHERE proof_pass IS NOT NULL;
 `.trim(),
   },
+  {
+    // 7 Sep — HOUSE-009. Canonical file (with the full reasoning):
+    // supabase/migrations/20260907_programme_sourcing_authority.sql, written in the same
+    // change — the shape migration-home.test.ts argues for. The short version: try_spend_sourcing
+    // did programme ENTITLEMENT and PDL MONEY in one body, so exempting the Apollo/house path
+    // from the fabricated $0.28-a-record cost also exempted it from the reservation, the 2,500
+    // ceiling and the batch. A real run sourced 246 people and the programme read
+    // "0 used / 0 reserved / 2500 left / no batch has been opened yet".
+    //
+    // The SQL below is the canonical file with its comment lines stripped — every backtick in
+    // that file sits inside a `--` comment, and one backtick would terminate this literal.
+    //
+    // FUNCTIONS ONLY: NO TABLE, NO COLUMN, NO ROW. try_reserve_programme_sourcing is new;
+    // try_spend_sourcing is REPLACED with the same signature, the same return and a byte-
+    // unchanged legacy branch, so nothing about how an existing caller resolves changes.
+    // reconcile_programme_sourcing does nothing at all until an operator names one programme,
+    // so APPLYING this migration rewrites no counter anywhere.
+    //
+    // RUN IT FROM VIDA -> ENGINE IMMEDIATELY AFTER DEPLOYING THE BUILD THAT CARRIES IT. Until
+    // it is applied try_reserve_programme_sourcing does not exist, every house reservation
+    // returns nothing and house sourcing STOPS — fail-closed (no records) rather than fail-open
+    // (unaccounted records), which is the right way round, but it is still a stop.
+    key: '20260907_programme_sourcing_authority',
+    title: 'HOUSE-009 - split programme sourcing AUTHORITY from PDL money, plus the one-shot reconcile for records already delivered',
+    sql: `
+CREATE OR REPLACE FUNCTION public.try_reserve_programme_sourcing(
+  p_programme_id uuid,
+  p_requested    int
+) RETURNS int
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  v_batch_cap   int := 250;
+  v_status      text;
+  v_paused      timestamptz;
+  v_room        int;
+  v_granted     int;
+BEGIN
+  IF p_programme_id IS NULL OR p_requested IS NULL OR p_requested <= 0 THEN
+    RETURN 0;
+  END IF;
+
+  SELECT status, paused_at INTO v_status, v_paused
+    FROM public.programmes WHERE id = p_programme_id;
+  IF v_status IS NULL THEN
+    RETURN 0;
+  END IF;
+
+  IF v_status NOT IN ('SOURCING_AUTHORISED', 'SOURCING', 'READY_FOR_APPROVAL', 'APPROVED', 'LIVE') THEN
+    RETURN 0;
+  END IF;
+  IF v_paused IS NOT NULL THEN
+    RETURN 0;
+  END IF;
+
+  SELECT GREATEST(0, sourcing_ceiling - sourced_used - sourced_reserved) INTO v_room
+    FROM public.programmes WHERE id = p_programme_id;
+
+  v_granted := LEAST(p_requested, COALESCE(v_room, 0), v_batch_cap);
+  IF v_granted <= 0 THEN
+    RETURN 0;
+  END IF;
+
+  UPDATE public.programmes
+    SET sourced_reserved = sourced_reserved + v_granted, updated_at = now()
+    WHERE id = p_programme_id
+      AND sourced_used + sourced_reserved + v_granted <= sourcing_ceiling;
+  IF NOT FOUND THEN
+    RETURN 0;
+  END IF;
+
+  RETURN v_granted;
+END;
+$$;
+
+REVOKE EXECUTE ON FUNCTION public.try_reserve_programme_sourcing(uuid, int) FROM PUBLIC;
+GRANT  EXECUTE ON FUNCTION public.try_reserve_programme_sourcing(uuid, int) TO service_role;
+
+COMMENT ON FUNCTION public.try_reserve_programme_sourcing(uuid, int) IS
+  'HOUSE-009. Programme sourcing AUTHORITY only: status, pause, ceiling and the 250 batch cap. Writes no ledger row and touches no wallet, because entitlement and provider cost are different facts. try_spend_sourcing calls this and then records PDL money; the Apollo/House path calls it and records none. One implementation of the ceiling, two callers.';
+
+CREATE OR REPLACE FUNCTION public.try_spend_sourcing(
+  p_client_id uuid,
+  p_requested int,
+  p_programme_id uuid DEFAULT NULL
+) RETURNS int
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  v_rate         numeric := 0.28;
+  v_daily_cap    int     := 100;
+  v_cap_usd      numeric;
+  v_month_usd    numeric;
+  v_month_room   int;
+  v_day_used     int;
+  v_day_room     int;
+  v_allowance    int;
+  v_granted      int;
+  v_open_id      uuid;
+  v_open_status  text;
+BEGIN
+  IF p_requested IS NULL OR p_requested <= 0 THEN
+    RETURN 0;
+  END IF;
+
+  SELECT id, status INTO v_open_id, v_open_status
+    FROM public.programmes
+    WHERE client_id = p_client_id AND status NOT IN ('COMPLETED', 'CANCELLED')
+    LIMIT 1;
+
+  IF v_open_id IS NULL AND p_programme_id IS NOT NULL THEN
+    RETURN 0;
+  END IF;
+
+  IF v_open_id IS NOT NULL AND p_programme_id IS NULL THEN
+    RETURN 0;
+  END IF;
+
+  IF v_open_id IS NOT NULL AND p_programme_id <> v_open_id THEN
+    RETURN 0;
+  END IF;
+
+  IF v_open_id IS NOT NULL THEN
+    v_granted := public.try_reserve_programme_sourcing(v_open_id, p_requested);
+    IF v_granted <= 0 THEN
+      RETURN 0;
+    END IF;
+
+    INSERT INTO public.sourcing_ledger (client_id, records, cost_usd, programme_id)
+      VALUES (p_client_id, v_granted, v_granted * v_rate, v_open_id);
+
+    RETURN v_granted;
+  END IF;
+
+  SELECT pdl_monthly_cap_usd INTO v_cap_usd FROM public.money_settings WHERE id = 1;
+  v_cap_usd := COALESCE(v_cap_usd, 300);
+  SELECT COALESCE(SUM(cost_usd), 0) INTO v_month_usd
+    FROM public.sourcing_ledger
+    WHERE created_at >= date_trunc('month', now());
+  v_month_room := GREATEST(0, floor((v_cap_usd - v_month_usd) / v_rate))::int;
+
+  SELECT COALESCE(SUM(records), 0) INTO v_day_used
+    FROM public.sourcing_ledger
+    WHERE client_id = p_client_id
+      AND created_at >= date_trunc('day', now());
+  v_day_room := GREATEST(0, v_daily_cap - v_day_used);
+
+  SELECT COALESCE(sourcing_allowance, 0) INTO v_allowance
+    FROM public.clients WHERE id = p_client_id;
+
+  v_granted := LEAST(p_requested, COALESCE(v_allowance, 0), v_month_room, v_day_room);
+  IF v_granted <= 0 THEN
+    RETURN 0;
+  END IF;
+
+  UPDATE public.clients
+    SET sourcing_allowance = sourcing_allowance - v_granted
+    WHERE id = p_client_id
+      AND COALESCE(sourcing_allowance, 0) >= v_granted;
+  IF NOT FOUND THEN
+    RETURN 0;
+  END IF;
+
+  INSERT INTO public.sourcing_ledger (client_id, records, cost_usd)
+    VALUES (p_client_id, v_granted, v_granted * v_rate);
+
+  RETURN v_granted;
+END;
+$$;
+
+REVOKE EXECUTE ON FUNCTION public.try_spend_sourcing(uuid, int, uuid) FROM PUBLIC;
+GRANT  EXECUTE ON FUNCTION public.try_spend_sourcing(uuid, int, uuid) TO service_role;
+
+CREATE OR REPLACE FUNCTION public.reconcile_programme_sourcing(
+  p_programme_id uuid
+) RETURNS int
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  v_orphans int;
+  v_room    int;
+  v_seq     int;
+  v_batch   uuid;
+BEGIN
+  PERFORM 1 FROM public.programmes WHERE id = p_programme_id FOR UPDATE;
+  IF NOT FOUND THEN
+    RETURN 0;
+  END IF;
+
+  SELECT COUNT(*) INTO v_orphans
+    FROM public.leads
+    WHERE programme_id = p_programme_id
+      AND batch_id IS NULL
+      AND delivered_at IS NOT NULL;
+
+  IF v_orphans <= 0 THEN
+    RETURN 0;
+  END IF;
+
+  SELECT GREATEST(0, sourcing_ceiling - sourced_used - sourced_reserved) INTO v_room
+    FROM public.programmes WHERE id = p_programme_id;
+
+  IF COALESCE(v_room, 0) < v_orphans THEN
+    RAISE EXCEPTION
+      'reconcile_programme_sourcing: programme % has % unaccounted delivered lead(s) but only % of its ceiling left. Nothing was changed — this needs a decision, not a partial count.',
+      p_programme_id, v_orphans, COALESCE(v_room, 0);
+  END IF;
+
+  SELECT COALESCE(MAX(seq), 0) + 1 INTO v_seq
+    FROM public.programme_batches WHERE programme_id = p_programme_id;
+
+  INSERT INTO public.programme_batches
+    (programme_id, seq, requested, granted, delivered, status, settled_at)
+  VALUES
+    (p_programme_id, v_seq, v_orphans, v_orphans, v_orphans, 'served', now())
+  RETURNING id INTO v_batch;
+
+  UPDATE public.leads SET batch_id = v_batch
+    WHERE programme_id = p_programme_id
+      AND batch_id IS NULL
+      AND delivered_at IS NOT NULL;
+
+  UPDATE public.programmes
+    SET sourced_used = sourced_used + v_orphans,
+        status       = CASE WHEN status = 'SOURCING_AUTHORISED' THEN 'SOURCING' ELSE status END,
+        updated_at   = now()
+    WHERE id = p_programme_id
+      AND sourced_used + sourced_reserved + v_orphans <= sourcing_ceiling;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'reconcile_programme_sourcing: the ceiling guard refused programme % after the room check passed. Nothing was committed.', p_programme_id;
+  END IF;
+
+  RETURN v_orphans;
+END;
+$$;
+
+REVOKE EXECUTE ON FUNCTION public.reconcile_programme_sourcing(uuid) FROM PUBLIC;
+GRANT  EXECUTE ON FUNCTION public.reconcile_programme_sourcing(uuid) TO service_role;
+
+COMMENT ON FUNCTION public.reconcile_programme_sourcing(uuid) IS
+  'HOUSE-009 repair. Accounts for leads already DELIVERED under a programme that carry no batch, by creating one settled batch, stamping those leads with it and converting the volume to sourced_used. Operator-invoked for one named programme; idempotent; adds rows and deletes none; refuses outright rather than counting a subset.';
+`.trim(),
+  },
 ]
 
 // Runs the statements against DATABASE_URL. Uses node-postgres because the Supabase JS

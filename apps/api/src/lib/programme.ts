@@ -756,6 +756,30 @@ export async function markReadyForApproval(programmeId: string): Promise<Program
     return { ok: false, reason: 'No sourced work carries this programme yet, so there is nothing for the client to review. Attach an ICP to the programme and source at least once first.' }
   }
 
+  // ── ⚑ 7 Sep — AND REVIEWABLE PROSPECTS ARE NOT THE SAME AS REVIEWABLE WORK ───────────
+  //
+  // 🛑 THE LAUNCH-CRITICAL DEFECT THIS CLOSES. Everything above proves there is somebody to
+  // show the client. It proves nothing about what would be DONE with them — and Vida offered
+  // "Ready for approval" on the House programme with 246 reviewable prospects and no batch, no
+  // campaign, no sequence, no messaging, no cadence, no sender and no frozen set.
+  //
+  // READY_FOR_APPROVAL means "a human may now look at what will run, and approve it". An
+  // approval collected against work that does not exist is worse than no approval, because
+  // everybody downstream treats it as consent to send.
+  //
+  // ⚠️ ONE CANONICAL RULE, so the API and the screen cannot disagree about what is allowed —
+  // and it names the specific blocker, because the operator's next action depends entirely on
+  // WHICH piece is missing.
+  const { programmePreparationReadiness } = await import('./preparation-readiness')
+  const readiness = await programmePreparationReadiness(programmeId)
+  if (!readiness.ready) {
+    return {
+      ok: false,
+      reason: 'This programme is not ready for the client to approve yet — ' +
+        readiness.blockers.map(b => b.detail).join(' '),
+    }
+  }
+
   await setStatus(programmeId, 'READY_FOR_APPROVAL')
   return { ok: true }
 }

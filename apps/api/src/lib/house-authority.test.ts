@@ -350,7 +350,7 @@ describe('④ the Stripe writers refuse when internal authority already exists',
     // the count as the repository's usual "adding a migration is never silent" tripwire.
     expect((mig.match(/20260902_programme_internal_authority/g) ?? []).length,
       'A1 must appear exactly once — a second entry would re-migrate columns production has run').toBe(1)
-    expect((mig.match(/key:\s*'[^']+'/g) ?? []), 'a migration was added').toHaveLength(48)   // ⛓️ 47 → 48 on 3 Sep (PR C3 · leads.proof_pass): +1 20260903_lead_proof_attribution — one NULLABLE smallint on leads with NO DEFAULT and NO BACKFILL, plus a guarded CHECK admitting NULL, 1 and 2, and a partial index. It exists because a free-proof lead and a retired legacy delivered lead were BYTE-IDENTICAL on every column that was traced (leads.source is the PROVIDER name and the same for both; programme_id is null for both; icp_run_outcomes holds no lead ids and no proof flag; sourcing_ledger and proof_ledger are money rows with no lead ids, and a pool-only proof pass writes no proof_ledger row at all; acquisition_memory is keyed on the provider identity; icps.proof_widened_candidate exists only for a pass-2 widened fallback). The withdrawn fix used clients.proof_passes_done, which is CUMULATIVE ACCOUNT STATE: any declared programme client with old legacy leads who later ran a proof they were entitled to run got their whole history back as current work. NULL means "not known to be proof work", which is the honest reading of every existing row, and no row is written by the migration. 🚀 UNLIKE C1 THIS ONE SHIPS WITH THE CODE THAT READS IT — run it from Vida → Engine immediately after deploying this build; until it is applied the customer desk attributes NOTHING, which fails closed to an empty desk and never to a historical one.   // ⛓️ 46 → 47 on 3 Sep (PR C1 · SCHEMA FIRST): +1 20260903_client_commercial_model — one NULLABLE text column on clients, NO DEFAULT, NO BACKFILL, plus a CHECK admitting NULL / 'programme' / 'legacy'. NULL is the migrated state for the whole existing book and resolves to exactly today's behaviour, so no row is written and nobody is reclassified. Nothing in C1 reads or writes it (expand/contract).   
+    expect((mig.match(/key:\s*'[^']+'/g) ?? []), 'a migration was added').toHaveLength(49)   // ⛓️ 48 → 49 on 7 Sep (HOUSE-009): +1 20260907_programme_sourcing_authority — functions only, no table, no column, no row. try_reserve_programme_sourcing is new and try_spend_sourcing is REPLACED with the same signature, the same return and a byte-unchanged legacy branch. It exists because programme ENTITLEMENT and PDL MONEY were one function body, so exempting the prepaid Apollo/house path from a fabricated $0.28-a-record ledger row also exempted it from the reservation, the 2,500 ceiling and the batch.   // ⛓️ 47 → 48 on 3 Sep (PR C3 · leads.proof_pass): +1 20260903_lead_proof_attribution — one NULLABLE smallint on leads with NO DEFAULT and NO BACKFILL, plus a guarded CHECK admitting NULL, 1 and 2, and a partial index. It exists because a free-proof lead and a retired legacy delivered lead were BYTE-IDENTICAL on every column that was traced (leads.source is the PROVIDER name and the same for both; programme_id is null for both; icp_run_outcomes holds no lead ids and no proof flag; sourcing_ledger and proof_ledger are money rows with no lead ids, and a pool-only proof pass writes no proof_ledger row at all; acquisition_memory is keyed on the provider identity; icps.proof_widened_candidate exists only for a pass-2 widened fallback). The withdrawn fix used clients.proof_passes_done, which is CUMULATIVE ACCOUNT STATE: any declared programme client with old legacy leads who later ran a proof they were entitled to run got their whole history back as current work. NULL means "not known to be proof work", which is the honest reading of every existing row, and no row is written by the migration. 🚀 UNLIKE C1 THIS ONE SHIPS WITH THE CODE THAT READS IT — run it from Vida → Engine immediately after deploying this build; until it is applied the customer desk attributes NOTHING, which fails closed to an empty desk and never to a historical one.   // ⛓️ 46 → 47 on 3 Sep (PR C1 · SCHEMA FIRST): +1 20260903_client_commercial_model — one NULLABLE text column on clients, NO DEFAULT, NO BACKFILL, plus a CHECK admitting NULL / 'programme' / 'legacy'. NULL is the migrated state for the whole existing book and resolves to exactly today's behaviour, so no row is written and nobody is reclassified. Nothing in C1 reads or writes it (expand/contract).   
   })
 })
 
@@ -713,14 +713,30 @@ describe('⑩ a programme with no attributed work cannot be put to the client', 
     expect(dbState.writes).toHaveLength(0)
   })
 
-  it('one positively-attributed lead is enough — no invented volume threshold', async () => {
-    // ⚠️ THE RULE IS ZERO VERSUS MORE THAN ZERO. A percentage of the ceiling, or a ratio, would
-    // be a new product rule nobody agreed; a count of the work that exists is existing truth.
+  // ⛓️ SUPERSEDED 7 Sep, BY THE DEFECT THIS RULE WAS TOO SMALL TO CATCH (founder-ordered).
+  //
+  // This case used to read *"one positively-attributed lead is enough"* and assert `ok: true`.
+  // The reasoning was sound as far as it went — no invented volume threshold, zero versus more
+  // than zero — and it is STILL the lead rule inside the canonical check. What was wrong is
+  // that the lead count was the ONLY question asked.
+  //
+  // 🛑 LIVE, 7 Sep: the House programme had 246 delivered, surfaced prospects and no batch, no
+  // campaign, no sequence, no messaging, no cadence, no sender and no frozen review set — and
+  // Vida offered **Ready for approval**. That status means "a human may now look at what will
+  // run, and approve it". An approval collected against nothing is WORSE than no approval,
+  // because everybody downstream treats it as consent to send.
+  //
+  // So the transition now consults `preparationBlockers` (preparation-readiness.ts), which asks
+  // the lead question AND fourteen others. Nothing was weakened to make this pass: the old rule
+  // survives intact as one of the fifteen.
+  it('🛑 one attributed lead is NOT enough any more — the rest of the work must exist too', async () => {
     dbState.programme = asRow(P({ status: 'SOURCING_AUTHORISED', first_authorised_at: 'i' }))
     dbState.leadCount = 1
     const r = await markReadyForApproval('prog-1')
-    expect(r.ok).toBe(true)
-    expect(dbState.writes[0].patch).toMatchObject({ status: 'READY_FOR_APPROVAL' })
+    expect(r.ok, 'a programme with leads and nothing else is offered to the client again').toBe(false)
+    // AND IT NAMES WHAT IS MISSING. "Not ready" with no reason sends an operator hunting.
+    expect(r.reason).toMatch(/campaign|sequence|cadence|mailbox|enrol/)
+    expect(dbState.writes, 'the status was written despite the refusal').toHaveLength(0)
   })
 
   it('an unreadable count refuses — "we cannot tell" is not "there is nothing"', async () => {

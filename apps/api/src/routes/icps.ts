@@ -980,8 +980,40 @@ export async function runIcpJob(
     // company money event, and only it raises the acquisition alert.
     let proofReason = 'GRANTED'
     if (audience === 'house') {
-      grantedSize = pdlRemainder
-      console.log(`[icp] house run for client ${clientId} — Apollo remainder ${grantedSize}; the PDL cash fence does not apply (AR5/AR8).`)
+      // ── HOUSE-009 · NO PDL MONEY, BUT STILL PROGRAMME AUTHORITY (7 Sep) ───────────────
+      //
+      // ⚠️ AR5/AR8 IS UNCHANGED: the house buys no PDL record, so the PDL CASH fence still
+      // does not apply and `try_spend_sourcing` is still never called on this path.
+      //
+      // ⛓️ WHAT WAS WRONG. Exempting House from the cash fence also exempted it from the
+      // ENTITLEMENT accounting that happened to live in the same function — the reservation,
+      // the 2,500 ceiling and `openBatch`. The first real House run therefore sourced 246
+      // people while the programme read `0 used · 0 reserved · 2500 left · no batch`, and
+      // nothing was enforcing the ceiling at all. Money and authority are different facts;
+      // `try_reserve_programme_sourcing` is the authority half, and it writes no ledger row.
+      //
+      // ⚠️ THE PROGRAMME COMES FROM THE ICP ROW, never from the client — a client may hold
+      // more than one programme, and `icp` is already loaded here, so this reads data the job
+      // is holding rather than asking a second question that could disagree with it.
+      //
+      // ⚠️ AND A HOUSE ICP WITH NO PROGRAMME KEEPS TODAY'S BEHAVIOUR EXACTLY. There is no
+      // programme to reserve against, so there is nothing to account for — inventing a
+      // refusal here would break house sourcing to fix a counter that does not exist.
+      const houseProgrammeId = (icp as { programme_id?: string | null }).programme_id ?? null
+      if (houseProgrammeId) {
+        const { data: reserved } = await db.rpc('try_reserve_programme_sourcing', {
+          p_programme_id: houseProgrammeId, p_requested: pdlRemainder,
+        })
+        grantedSize = typeof reserved === 'number' ? reserved : 0
+        if (grantedSize > 0) {
+          const { openBatch } = await import('../lib/programme')
+          programmeBatch = await openBatch(houseProgrammeId, pdlRemainder, grantedSize)
+        }
+        console.log(`[icp] house run for client ${clientId} — programme ${houseProgrammeId} reserved ${grantedSize} of ${pdlRemainder} Apollo record(s); no PDL record bought, no ledger row written (AR5/AR8).`)
+      } else {
+        grantedSize = pdlRemainder
+        console.log(`[icp] house run for client ${clientId} — Apollo remainder ${grantedSize}; no programme on this ICP, so there is no reservation to make. The PDL cash fence does not apply (AR5/AR8).`)
+      }
     } else if (proofMode) {
       const { data: reserved } = await db.rpc('try_reserve_proof_records', {
         p_client_id: clientId, p_requested: pdlRemainder,
@@ -1031,7 +1063,13 @@ export async function runIcpJob(
       // Every zero grant used to raise "the $300 acquisition budget is spent". Most zeros
       // are simply this prospect reaching their lifetime 40 — telling the founder his
       // acquisition budget is gone when it is not is exactly how a real alert gets ignored.
-      if (!proofMode) void maybeAlertPdlBudget()
+      // ⚠️ AND A HOUSE ZERO IS NOT A PDL BUDGET EVENT EITHER (HOUSE-009, 7 Sep). The house
+      // reserves programme AUTHORITY, not PDL money: a zero here means the programme's
+      // ceiling is spent, it is paused, or it holds no sourcing authority. Raising the PDL
+      // budget alarm for it would tell the founder his clients' data budget had run out when
+      // it is untouched — the same false-alert species the proof split above exists to stop.
+      if (audience === 'house') console.error(`[icp] house sourcing refused for programme run on client ${clientId} — the programme reserved 0 of ${pdlRemainder}. Its ceiling is spent, it is paused, or it holds no sourcing authority. No PDL budget is involved and none was touched.`)
+      else if (!proofMode) void maybeAlertPdlBudget()
       else if (proofReason === 'MONTHLY_PROOF_BUDGET_REACHED') void alertProofBudgetSpent(clientId)
       else if (proofReason === 'CLIENT_PROOF_LIMIT_REACHED') console.log(`[icp] FREE PROOF — prospect ${clientId} has used their ${PROOF_CLIENT_RECORD_CAP}-record allowance; the monthly acquisition budget is untouched.`)
       // A fail-closed reason is NOT "they used their 40" — saying so in a log the founder
@@ -1043,7 +1081,13 @@ export async function runIcpJob(
         console.log(`[icp] sourcing refused for client ${clientId} — no pre-funded budget (allowance/ceiling/daily). No PDL spend.`)
         await db.from('icps').update({ last_run_at: new Date().toISOString() }).eq('id', icp.id)
         await recordRunOutcome(icpId, clientId, 'quota_exhausted', effectiveCap, 0, 0)
-        return { inserted: 0, skipped: 0, relaxed: 'Sourcing paused — add reveal credits (or the monthly data budget has been reached).' }
+        // ⚠️ THE HOUSE REFUSAL HAS A DIFFERENT CAUSE, SO IT GETS A DIFFERENT SENTENCE. "Add
+        // reveal credits" is about a client's PDL wallet, which a house run neither holds nor
+        // spends — telling an operator to top up a budget that is not the problem sends them
+        // to the wrong screen.
+        return { inserted: 0, skipped: 0, relaxed: audience === 'house'
+          ? 'Sourcing paused — this programme has no sourcing authority left (ceiling reached, paused, or not yet authorised).'
+          : 'Sourcing paused — add reveal credits (or the monthly data budget has been reached).' }
       }
       // Pool already served leads — deliver those; just skip the PDL top-up.
       console.log(`[icp] PDL top-up refused for client ${clientId} (no budget) — delivering ${pool.served} pool-served leads only.`)

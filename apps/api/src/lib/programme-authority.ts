@@ -419,7 +419,18 @@ export async function checkEnrollmentAuthority(
       if (e.client_id && p.client_id !== e.client_id) {
         return unresolvable(`enrollment ${enrollmentId} (client ${e.client_id}) names a programme owned by ${p.client_id}`)
       }
-      return authorityFor(p, action)
+      // 🛑 THE BYPASS THIS LINE WAS (found in adversarial review, 7 Sep). This returned the PURE
+      // verdict, so the approved-preparation comparison — wired into `checkProgrammeAuthority`
+      // — never ran on THE MAIN SEND PATH. `sendSequenceEmailCore` reaches outreach authority
+      // through here, not through the client function, so a sequence rewritten, retimed or
+      // re-audienced after approval was sendable with the old consent still attached.
+      //
+      // ⚠️ ONE GUARD, BOTH DOORS. The comparison is applied at every entry to OUTREACH
+      // authority rather than at one of them; a second implementation here would be the drift
+      // this module exists to remove.
+      const enrolVerdict = authorityFor(p, action)
+      if (!enrolVerdict.allowed || action !== 'OUTREACH') return enrolVerdict
+      return await outreachStillMatchesApproval(p, enrolVerdict)
     }
 
     if (!e.client_id) return unresolvable(`enrollment ${enrollmentId} has neither a programme nor a client`)

@@ -453,12 +453,44 @@ describe('⑥ a null programme_id is HISTORY when the client has an open program
     expect(v.allowed === false && v.reason).toBe('not_this_programme')
   })
 
+  // ⛓️ 7 Sep — THIS CASE NOW HAS TO CARRY AN APPROVED-PREPARATION HASH, and that requirement
+  // is the fix, not fixture noise. `checkEnrollmentAuthority` is THE MAIN SEND PATH and it used
+  // to end in a bare `authorityFor(p, action)` — a pure call that never consulted the
+  // approved-preparation comparison. So a sequence rewritten, retimed or re-audienced after
+  // approval was sendable with the old consent still attached.
+  //
+  // 🛑 AND AN APPROVAL WITH NO RECORDED SNAPSHOT IS `unreadable`, NOT `unchanged`. "We have no
+  // record of what was approved" must never resolve to "yes, it matches" — so this fixture has
+  // to become a programme that actually recorded what it approved.
   it('an enrollment that NAMES the programme is authorised as normal', async () => {
     // The other half. Without this, a refusal that broke everything would still pass above.
     dbState.enrollment = { client_id: 'house', programme_id: 'prog-1' }
     dbState.programme = asRow(LIVE)
+    // The hash is computed from THIS fixture's own state, so "unchanged" is a real comparison
+    // rather than a constant somebody typed to make the test pass.
+    const { buildPreparationSnapshot } = await import('./preparation-snapshot')
+    const snap = await buildPreparationSnapshot('prog-1')
+    expect(snap.ok, 'the fixture cannot describe its own prepared work').toBe(true)
+    if (snap.ok) (dbState.programme as Record<string, unknown>).approved_preparation_hash = snap.hash
     const v = await checkEnrollmentAuthority('enr-current', 'OUTREACH')
     expect(v.allowed, 'the programme must still authorise its OWN work').toBe(true)
+  })
+
+  it('🛑 and it is REFUSED once the prepared work no longer matches what was approved', async () => {
+    dbState.enrollment = { client_id: 'house', programme_id: 'prog-1' }
+    dbState.programme = asRow(LIVE)
+    // A hash that is not this fixture's current preparation — i.e. the work moved after approval.
+    ;(dbState.programme as Record<string, unknown>).approved_preparation_hash = 'a'.repeat(64)
+    const v = await checkEnrollmentAuthority('enr-current', 'OUTREACH')
+    expect(v.allowed, 'a changed preparation can still Run and send').toBe(false)
+    expect(v.allowed === false && v.reason).toBe('preparation_changed')
+  })
+
+  it('🛑 an approved programme with NO recorded snapshot fails CLOSED on the send path', async () => {
+    dbState.enrollment = { client_id: 'house', programme_id: 'prog-1' }
+    dbState.programme = asRow(LIVE)   // approved_at set, approved_preparation_hash absent
+    const v = await checkEnrollmentAuthority('enr-current', 'OUTREACH')
+    expect(v.allowed, '"we have no record of what was approved" resolved to "it matches"').toBe(false)
   })
 
   it('a client with NO open programme still resolves as legacy — the selling model is untouched', async () => {

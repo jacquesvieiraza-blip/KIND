@@ -66,7 +66,15 @@ vi.mock('@kind/db', () => {
         return { data: null, error: null }
       },
       async maybeSingle() {
-        if (table === 'clients') return { data: { signer_name: 'Ada' }, error: null }
+        // ⛓️ 7 Sep — `commercial_model` ADDED, and it is fixture maintenance rather than a
+        // change to what this file tests. `sendDay1OutreachBatch` now asks programme authority
+        // (it asked NOTHING before — demo flag, kill-switch, then cold email to real
+        // prospects), and `clientCommercialModel` refuses when the client row carries no
+        // `commercial_model` FIELD, because a missing field is not a NULL. Without it every
+        // case here refused for `programme_unresolvable` and proved nothing about PECR.
+        // `null` is the UNCLASSIFIED state the whole live book holds, which resolves to legacy
+        // — exactly the behaviour these cases were written against.
+        if (table === 'clients') return { data: { signer_name: 'Ada', commercial_model: null }, error: null }
         // Nobody is on the blocklist — this file is about PECR, and a blocklist hit would
         // skip the lead for the WRONG reason and quietly fake a pass.
         if (table === 'opt_out_blocklist') return { data: null, error: null }

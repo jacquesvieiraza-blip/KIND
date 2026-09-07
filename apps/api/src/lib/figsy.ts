@@ -1524,6 +1524,33 @@ export async function sendDay1OutreachBatch(
     return
   }
 
+  // ══ THE PROGRAMME OUTREACH GATE — ADDED 7 Sep, AND IT WAS SIMPLY ABSENT ═══════════════
+  //
+  // 🛑 FOUND IN ADVERSARIAL REVIEW, NOT BY A TEST. Every other outbound path in this product
+  // asks programme authority — the sequence sender, the Smartlead push, the Instantly push,
+  // the LinkedIn dispatch, campaign activation. This one asked NOTHING: it checked the demo
+  // flag and the kill-switch and then cold-emailed real prospects. So a programme client whose
+  // programme was paused, unapproved, unpaid at P2, or not LIVE would still be day-1 mailed the
+  // moment `AUTO_OUTREACH_ENABLED` was on and their ICP run inserted leads — and after 7 Sep it
+  // would ALSO have escaped the approved-preparation comparison, because there was no gate for
+  // that comparison to live in.
+  //
+  // ⚠️ LEGACY IS UNAFFECTED. `checkProgrammeAuthority` answers `mode: 'legacy'` for a client
+  // with no programme, which is the entire live book — their day-1 outreach behaves exactly as
+  // it does today. What changes is that PROGRAMME work is now governed on this path too.
+  //
+  // ⚠️ AND IT FAILS CLOSED. An unreadable programme state refuses the batch; the leads stay
+  // `scored` and are picked up on a later run, which is the same recoverable shape the mailbox
+  // refusal below already uses.
+  {
+    const { checkProgrammeAuthority } = await import('./programme-authority')
+    const verdict = await checkProgrammeAuthority(clientId, 'OUTREACH')
+    if (!verdict.allowed) {
+      console.warn(`[figsy] sendDay1OutreachBatch: ${leadIds.length} lead(s) NOT day-1 emailed for client ${clientId} — programme authority refused (${verdict.reason}). ${verdict.message}`)
+      return
+    }
+  }
+
   const { data: client } = await db.from('clients')
     .select('company_name, industry').eq('id', clientId).single()
   // P-a: configurable sign-off name (guarded — null if column missing pre-migration).

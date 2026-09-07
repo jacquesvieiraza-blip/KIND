@@ -255,12 +255,19 @@ describe('MILLA · MY ICP — THE DRAWER IS GONE, THE TARGETING FLOW IS NOT', ()
     const chat = strip(MILLA_CHAT)
     // The two endpoints, both still called, and the save still explicit.
     expect(chat, 'the targeting draft transport is gone').toContain("'/icps/chat-build'")
-    expect(chat, 'the explicit save is gone').toContain("api.post('/icps/revise'")
+    // ⛓️ 7 Sep — RETARGETED, NOT WEAKENED. The refine save was the literal
+    // `api.post('/icps/revise'`; it is now `api.post(fresh ? '/icps/fresh' : '/icps/revise'`
+    // because a FRESH definition saves to a different route. The ASSERTION IS THE SAME FACT:
+    // an ICP context still saves through `/icps/revise`, still by an explicit `api.post`.
+    expect(chat, 'the explicit save is gone').toMatch(/api\.post\([^)]*'\/icps\/revise'/)
     expect(chat, 'the save is no longer a deliberate press').toContain('Save — make this live')
-    // FRESH IS NOT REFINE. A brand-new definition is not seeded from the current one — it
-    // still goes to the onboarding conversation, exactly as before.
+    // FRESH IS NOT REFINE — and since 7 Sep it no longer LEAVES THE PORTAL to say so. Both
+    // existing-client entry points focus the ONE conversation; only a ZERO-ICP client still
+    // reaches the onboarding wizard, which is the founder's decision and is asserted in
+    // `portal/src/lib/icp-fresh-routing.test.ts` control by control.
     expect(code, 'the fresh-start entry point is gone').toContain('Build fresh targeting with Milla')
-    expect(code).toContain("router.push('/milla/welcome')")
+    expect(code, 'fresh targeting no longer enters fresh ICP mode').toContain("focus('icp-fresh')")
+    expect(code, 'zero-ICP onboarding was removed as a side effect').toContain("router.push('/milla/welcome')")
     // ⚠️ AND NO SIDE EFFECT WAS ADDED. Saving targeting must not attach a programme, start
     // sourcing, claim a proof pass or send anything.
     for (const banned of ['/proof', 'approve-batch', 'attach', 'enrol']) {

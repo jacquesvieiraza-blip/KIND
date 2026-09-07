@@ -94,25 +94,114 @@ describe('① House sources from Apollo, and can never route to PDL', () => {
   })
 })
 
-// ── ② IDENTITY — REPORTED, NOT FIXED (founder's STOP rule) ─────────────────────────────
+// ── ② IDENTITY IS PROVED, OR THE RUN STOPS (founder-locked 7 Sep) ──────────────────────
 //
-// The founder asked for a House sourcing run to FAIL LOUDLY when identity cannot be proved,
-// rather than fall through to `'client'` and therefore PDL. A strict resolver was built,
-// tested and REVERTED, because it is not a narrow change:
+// `audienceForClient` fails closed to `'client'`, and `'client'` selects PDL — so an auth
+// blink moved House onto the clients' provider silently. `audienceForClientStrict` throws
+// instead: for a sourcing run, "we could not tell who this is" must stop the run.
 //
-//   · `provider-boundary.test.ts` goes RED on its own AR5 guard — *"HOUSE with ZERO PDL
-//     allowance never calls the fence, and still reaches Apollo"* — because under that
-//     suite's fixtures the strict path resolves house as client and enters the PDL fence;
-//   · six suites' db fixtures return a `clients` row with no `user_id` and no `auth.admin`,
-//     so the strict lookup cannot complete and every sourcing test dies.
-//
-// ⚠️ AND ONE OF MY OWN ASSUMPTIONS WAS WRONG ON THE WAY: `clients.user_id` is NULLABLE —
-// `20260612_company_engine.sql` drops the NOT NULL so a company seat can exist without an
-// auth user — so "no user_id" is a legitimate answer meaning "not an auth-user client", and
-// never an ambiguity. Any future strict resolver must treat it as `'client'`, not as a fault.
-//
-// The residual risk is stated plainly in the report and in `icps.ts`: an auth-lookup failure
-// still resolves House to `'client'`, which means PDL. It is unchanged from before this task.
+// ⚠️ A NULL `user_id` IS AN ANSWER, NOT AN AMBIGUITY, and getting that wrong cost 74 tests
+// across 14 files on the first attempt. `20260612_company_engine.sql` DROPS the NOT NULL so
+// a company seat can exist without its own auth user, and House is identified by auth EMAIL —
+// so a row with no auth user is definitively not House. The fixtures were right; the rule was.
+
+describe('② identity is proved, or the sourcing run stops', () => {
+  const mockDb = (impl: {
+    row?: Record<string, unknown> | null
+    rowErr?: boolean
+    listUsers?: () => Promise<unknown>
+  }) => {
+    vi.resetModules()
+    vi.doMock('@kind/db', () => ({
+      db: {
+        from: () => {
+          const q: Record<string, unknown> = {}
+          for (const m of ['select', 'eq', 'order', 'limit']) q[m] = () => q
+          q.maybeSingle = async () => impl.rowErr
+            ? { data: null, error: { message: 'connection reset' } }
+            : { data: impl.row === undefined ? { user_id: 'u1' } : impl.row, error: null }
+          return q
+        },
+        auth: {
+          admin: {
+            listUsers: impl.listUsers ?? (async () => ({ data: { users: [] }, error: null })),
+          },
+        },
+      },
+    }))
+  }
+  const housed = async () => ({ data: { users: [{ id: 'house-user', email: HOUSE_ACCOUNT_EMAIL }] }, error: null })
+
+  afterEach(() => { vi.doUnmock('@kind/db'); vi.resetModules() })
+
+  it('1 · House user_id + House email → house', async () => {
+    mockDb({ row: { user_id: 'house-user' }, listUsers: housed })
+    const { audienceForClientStrict } = await import('./provider-boundary')
+    await expect(audienceForClientStrict('house-client')).resolves.toBe('house')
+  })
+
+  it('2 · a valid user_id that is NOT the House account → client', async () => {
+    mockDb({ row: { user_id: 'someone-else' }, listUsers: housed })
+    const { audienceForClientStrict } = await import('./provider-boundary')
+    await expect(audienceForClientStrict('c2')).resolves.toBe('client')
+  })
+
+  it('3 · a NULL user_id — a seat row — → client, never an error', async () => {
+    mockDb({ row: { user_id: null }, listUsers: housed })
+    const { audienceForClientStrict } = await import('./provider-boundary')
+    await expect(audienceForClientStrict('seat')).resolves.toBe('client')
+  })
+
+  it('3b · and the schema really does allow it — pinned, not assumed', () => {
+    const mig = readFileSync(join(__dirname, '../../../../supabase/migrations/20260612_company_engine.sql'), 'utf8')
+    expect(mig, 'clients.user_id is no longer nullable — test 3 reasoning has changed')
+      .toMatch(/alter\s+column\s+user_id\s+drop\s+not\s+null/i)
+  })
+
+  it('4 · the auth lookup THROWS → loud failure, never client', async () => {
+    mockDb({ row: { user_id: 'u1' }, listUsers: async () => { throw new Error('auth service unavailable') } })
+    const { audienceForClientStrict, AudienceUnresolvedError } = await import('./provider-boundary')
+    await expect(audienceForClientStrict('c1')).rejects.toBeInstanceOf(AudienceUnresolvedError)
+  })
+
+  it('5 · the auth lookup returns an ERROR → loud failure, never client', async () => {
+    mockDb({ row: { user_id: 'u1' }, listUsers: async () => ({ data: null, error: { message: 'permission denied' } }) })
+    const { audienceForClientStrict, AudienceUnresolvedError } = await import('./provider-boundary')
+    await expect(audienceForClientStrict('c1')).rejects.toBeInstanceOf(AudienceUnresolvedError)
+  })
+
+  it('5b · the CLIENT lookup errors → loud failure', async () => {
+    mockDb({ rowErr: true })
+    const { audienceForClientStrict, AudienceUnresolvedError } = await import('./provider-boundary')
+    await expect(audienceForClientStrict('c1')).rejects.toBeInstanceOf(AudienceUnresolvedError)
+  })
+
+  it('5c · no client row at all → loud failure', async () => {
+    mockDb({ row: null })
+    const { audienceForClientStrict, AudienceUnresolvedError } = await import('./provider-boundary')
+    await expect(audienceForClientStrict('ghost')).rejects.toBeInstanceOf(AudienceUnresolvedError)
+  })
+
+  it('6/7 · a failure THROWS, so it cannot reach the fence or PDL — it never returns a value', async () => {
+    // The strongest available proof at this layer: `runIcpJob` resolves the audience BEFORE
+    // the fence and before any provider call, so a throw here cannot be followed by either.
+    mockDb({ row: { user_id: 'u1' }, listUsers: async () => { throw new Error('down') } })
+    const { audienceForClientStrict } = await import('./provider-boundary')
+    const result = await audienceForClientStrict('c1').then(() => 'RETURNED', () => 'THREW')
+    expect(result).toBe('THREW')
+    const c = code(ICPS_SRC)
+    const at = c.indexOf('const audience = await audienceForClientStrict(clientId)')
+    expect(at, 'the sourcing run no longer resolves the audience strictly').toBeGreaterThan(-1)
+    expect(c.indexOf('try_spend_sourcing'), 'the cash fence now runs BEFORE the audience is proved')
+      .toBeGreaterThan(at)
+  })
+
+  it('9 · the PERMISSIVE resolver is untouched for every other caller', async () => {
+    mockDb({ rowErr: true })
+    const { audienceForClient } = await import('./provider-boundary')
+    await expect(audienceForClient('anything')).resolves.toBe('client')
+  })
+})
 
 // ── ③ VERIFIED-ONLY, IN THE QUERY ──────────────────────────────────────────────────────
 

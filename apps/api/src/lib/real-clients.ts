@@ -24,18 +24,27 @@ export type { MinClient, ClientExclusions }
  * simply isn't excluded) rather than throwing — a lookup outage must never break an
  * admin revenue endpoint.
  */
-export async function resolveHouseUserIds(): Promise<Set<string>> {
+export async function resolveHouseUserIds(opts?: { strict?: boolean }): Promise<Set<string>> {
   const ids = new Set<string>()
   try {
     for (let page = 1; page <= 500; page++) {
       const { data, error } = await db.auth.admin.listUsers({ page, perPage: 200 })
       const users = data?.users ?? []
+      if (error && opts?.strict) throw new Error(`auth listUsers failed — ${error.message ?? String(error)}`)
       if (error || users.length === 0) break
       for (const u of users) {
         if ((u.email ?? '').trim().toLowerCase() === HOUSE_ACCOUNT_EMAIL) ids.add(u.id)
       }
     }
   } catch (err) {
+    // ⚑ 7 Sep — STRICT IS OPT-IN, AND EVERY EXISTING CALLER KEEPS THE FAIL-OPEN.
+    //
+    // Swallowing is right for an admin revenue page: an auth blink must not break it, and
+    // "the house was not excluded" is a small, visible inaccuracy. It is WRONG for a sourcing
+    // run, where the same swallow answers "not house" and quietly moves House onto the
+    // clients' provider. A caller that cannot survive an unknown asks for `strict` and gets
+    // the throw; nobody else's behaviour changes at all.
+    if (opts?.strict) throw err
     console.warn('[real-clients] resolveHouseUserIds failed — house account not excluded:', err)
   }
   return ids

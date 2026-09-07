@@ -5,7 +5,7 @@ import { db } from '@kind/db'
 import { requireAuth, AuthRequest } from '../middleware/auth'
 import { rateLimit } from '../lib/rate-limit'
 import { searchPeopleWithFallback, ApolloCreditsExhaustedError, ApolloRateLimitError } from '../lib/apollo'
-import { audienceForClient, audienceForUser } from '../lib/provider-boundary'
+import { audienceForClientStrict, audienceForUser } from '../lib/provider-boundary'
 import { scoreLeadsForIcp } from '../lib/scoring'
 import { sendFirstLeadsReadyEmail, sendConsentEmail } from '../lib/email'
 import { suggestIcpFromWebsite } from '../lib/scrape'
@@ -906,17 +906,12 @@ export async function runIcpJob(
   // returned *"Sourcing paused — add reveal credits"* — Client Zero never reached Apollo
   // at all. Found by independent review (GPT-5.6, 22 Aug).
   //
-  // `audienceForClient` fails closed to 'client', so an unknown account still lands on
-  // the fenced path and can never spend K.I.N.D's Apollo.
+  // ⚑ 7 Sep — STRICT HERE, PERMISSIVE EVERYWHERE ELSE (founder-locked).
   //
-  // ⚠️ 7 Sep — REPORTED, NOT FIXED (founder's STOP rule). The founder asked for House to FAIL
-  // LOUDLY here rather than fall through to 'client' → PDL. A strict resolver was built and
-  // reverted: switching this line turns `provider-boundary.test.ts` RED on its own AR5 guard
-  // — *"HOUSE with ZERO PDL allowance never calls the fence, and still reaches Apollo"* —
-  // because the strict path resolves house as client under that suite's fixtures and enters
-  // the PDL cash fence. It also needs `auth.admin` and `user_id` added to six suites'
-  // fixtures. That is not a narrow change, so it is its own task.
-  const audience = await audienceForClient(clientId)
+  // A sourcing run that cannot prove whose work it is has no business choosing a provider:
+  // it stops before anything is searched, reserved or spent. `audienceForClient` keeps its
+  // fail-open for every other caller — see `audienceForClientStrict` for the truth table.
+  const audience = await audienceForClientStrict(clientId)
 
   // Only the REMAINDER (target − pool-served) goes to the fenced PDL path. When the
   // pool served nothing, pdlRemainder === effectiveCap — byte-identical to today.

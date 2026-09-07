@@ -188,7 +188,16 @@ async function buildProofModules(opts: ProofOpts, rec: Rec) {
   vi.doMock('./provider-boundary', async () => {
     const real = await vi.importActual<typeof import('./provider-boundary')>('./provider-boundary')
     const a = opts.audience ?? 'client'
-    return { ...real, audienceForClient: async () => a, audienceForUser: async () => a }
+    // ⚑ 7 Sep — the STRICT resolver is pinned alongside the permissive one, because the
+    // sourcing run now uses it. Pinning only `audienceForClient` let the real resolver run
+    // against this fixture's empty auth listing, so a HOUSE run resolved as CLIENT and the
+    // provenance assertions below saw `pdl` where they require `apollo`.
+    return {
+      ...real,
+      audienceForClient: async () => a,
+      audienceForClientStrict: async () => a,
+      audienceForUser: async () => a,
+    }
   })
   vi.doMock('./apollo', () => ({
     searchPeopleWithFallback: async (_i: unknown, _p: number, size: number) => {

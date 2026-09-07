@@ -164,6 +164,76 @@ export async function audienceForUser(userId: string | undefined | null): Promis
   }
 }
 
+/**
+ * Thrown when a SOURCING RUN cannot prove whose work it is about to spend money on.
+ *
+ * ⚠️ IT EXISTS BECAUSE THE SAFE DEFAULT IN ONE PLACE IS THE UNSAFE DEFAULT IN ANOTHER.
+ * `audienceForClient` answers `'client'` on any failure — correct there, because an unknown
+ * account must never be handed K.I.N.D's prepaid Apollo credits. On the sourcing path that
+ * same answer selects PDL, so an auth blink moves House onto the clients' provider, spends
+ * their budget doing it, and leaves nothing in the logs that reads as a decision.
+ */
+export class AudienceUnresolvedError extends Error {
+  readonly clientId: string
+  constructor(clientId: string, why: string) {
+    super(
+      `Could not prove which audience client ${clientId} belongs to (${why}). ` +
+      'The sourcing run was stopped rather than guessing a provider — nothing was searched, ' +
+      'reserved or spent. Retry once the lookup is healthy.',
+    )
+    this.name = 'AudienceUnresolvedError'
+    this.clientId = clientId
+  }
+}
+
+/**
+ * AUDIENCE FOR A SOURCING RUN — proved, or the run stops (founder-locked 7 Sep).
+ *
+ * Same question as `audienceForClient`, opposite failure direction, and BOTH are deliberate:
+ * that one fails open so a reporting surface survives a blink; this one throws so money is
+ * never spent on a guess. Used ONLY where a provider is about to be chosen.
+ *
+ * THE TRUTH TABLE, exactly as the founder locked it:
+ *   · no client row                → THROW   (there is nothing to resolve)
+ *   · client lookup errored        → THROW   (we could not read)
+ *   · auth listing errored/threw   → THROW   (we could not resolve the user)
+ *   · row with NULL user_id        → client  (a seat row with no auth user is never House)
+ *   · user_id in the house set     → house
+ *   · user_id not in the house set → client
+ *
+ * ⚠️ A NULL `user_id` IS AN ANSWER, NOT AN AMBIGUITY. `20260612_company_engine.sql` DROPS the
+ * NOT NULL so a company seat can exist without its own auth user, and House is identified by
+ * auth EMAIL — so a row with no auth user is definitively not House. An earlier version threw
+ * on it and killed 74 tests across 14 files; the fixtures were right and the rule was wrong.
+ *
+ * ⚠️ AND ONE RESIDUAL, STATED RATHER THAN HIDDEN: a listing that COMPLETES and returns no
+ * house user is treated as a completed lookup, so the answer is `'client'`. Treating an empty
+ * house set as indeterminate would fail every ordinary client's run, because that is the
+ * normal shape. What is closed is the FAILING lookup, which is the case that could move House.
+ */
+export async function audienceForClientStrict(clientId: string): Promise<Audience> {
+  const { data, error } = await db
+    .from('clients')
+    .select('user_id')
+    .eq('id', clientId)
+    .maybeSingle()
+
+  if (error) throw new AudienceUnresolvedError(clientId, `the client lookup failed — ${error.message}`)
+  if (!data) throw new AudienceUnresolvedError(clientId, 'there is no client row with that id')
+
+  // Rule 1 — a seat row with no auth user is an ordinary client, resolved, not an error.
+  if (!data.user_id) return 'client'
+
+  let houseUserIds: Set<string>
+  try {
+    houseUserIds = await resolveHouseUserIds({ strict: true })
+  } catch (err) {
+    throw new AudienceUnresolvedError(clientId, `the house-account lookup failed — ${err instanceof Error ? err.message : String(err)}`)
+  }
+
+  return houseUserIds.has(String(data.user_id)) ? 'house' : 'client'
+}
+
 export async function audienceForClient(clientId: string): Promise<Audience> {
   try {
     const { data, error } = await db

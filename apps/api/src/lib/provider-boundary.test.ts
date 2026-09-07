@@ -233,9 +233,20 @@ describe('AR8 — the PDL cash fence is the client\'s, and the house is not gate
 
     // The audience decision itself is proved by the tests above; here it is pinned so
     // the FENCE ORDERING is what is under test, not the lookup.
+    //
+    // ⚑ 7 Sep — `audienceForClientStrict` IS PINNED TOO, and it has to be. The sourcing run
+    // now resolves the audience strictly (House must never fall silently to PDL), so a mock
+    // that pinned only `audienceForClient` let the REAL resolver run — and this fixture's
+    // `listUsers` returns an empty set, so the house case resolved as CLIENT and entered the
+    // very PDL fence test A exists to prove it never enters. Same pin, same reason.
     vi.doMock('./provider-boundary', async () => {
       const real = await vi.importActual<typeof import('./provider-boundary')>('./provider-boundary')
-      return { ...real, audienceForClient: async () => audience, audienceForUser: async () => audience }
+      return {
+        ...real,
+        audienceForClient: async () => audience,
+        audienceForClientStrict: async () => audience,
+        audienceForUser: async () => audience,
+      }
     })
 
     // No provider is ever reached: the search door is recorded, not called.

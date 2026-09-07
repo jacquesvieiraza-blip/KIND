@@ -171,7 +171,13 @@ async function runJob(opts: {
         },
         auth: { admin: {
           listUsers:   async () => ({ data: { users: [] }, error: null }),
-          getUserById: async () => ({ data: { user: { email: '' } }, error: null }),
+          // ⚑ 7 Sep — A REAL ORDINARY-CLIENT EMAIL, because that is what an ordinary client HAS.
+          // This was `''`, which models an auth user that cannot exist: login here IS the email.
+          // The sourcing path now identifies the audience POSITIVELY off this field and refuses
+          // to guess when it is blank (founder-locked: an indeterminate identity must never
+          // become `client`), so a blank placeholder now reads as "nobody could tell who this
+          // is" rather than "an ordinary client". Nothing in this file asserts on it.
+          getUserById: async () => ({ data: { user: { email: 'prospect@a-real-client.test' } }, error: null }),
         } },
       },
     }

@@ -5,7 +5,7 @@ import { db } from '@kind/db'
 import { requireAuth, AuthRequest } from '../middleware/auth'
 import { rateLimit } from '../lib/rate-limit'
 import { searchPeopleWithFallback, ApolloCreditsExhaustedError, ApolloRateLimitError } from '../lib/apollo'
-import { audienceForClient, audienceForUser } from '../lib/provider-boundary'
+import { audienceForClientStrict, audienceForUser } from '../lib/provider-boundary'
 import { scoreLeadsForIcp } from '../lib/scoring'
 import { sendFirstLeadsReadyEmail, sendConsentEmail } from '../lib/email'
 import { suggestIcpFromWebsite } from '../lib/scrape'
@@ -906,9 +906,12 @@ export async function runIcpJob(
   // returned *"Sourcing paused — add reveal credits"* — Client Zero never reached Apollo
   // at all. Found by independent review (GPT-5.6, 22 Aug).
   //
-  // `audienceForClient` fails closed to 'client', so an unknown account still lands on
-  // the fenced path and can never spend K.I.N.D's Apollo.
-  const audience = await audienceForClient(clientId)
+  // ⚑ 7 Sep — STRICT HERE, PERMISSIVE EVERYWHERE ELSE (founder-locked).
+  //
+  // A sourcing run that cannot prove whose work it is has no business choosing a provider:
+  // it stops before anything is searched, reserved or spent. `audienceForClient` keeps its
+  // fail-open for every other caller — see `audienceForClientStrict` for the truth table.
+  const audience = await audienceForClientStrict(clientId)
 
   // Only the REMAINDER (target − pool-served) goes to the fenced PDL path. When the
   // pool served nothing, pdlRemainder === effectiveCap — byte-identical to today.
@@ -1520,6 +1523,21 @@ export async function runIcpJob(
           skipped++; continue
         }
 
+        // ── ⚑ 7 Sep — HOUSE TAKES `verified` AND NOTHING ELSE (founder-locked, MVP) ────────
+        //
+        // The query already asks Apollo for `['verified']` on the house path, so on a healthy
+        // run this rejects nothing. It exists for the runs that are not healthy — a provider
+        // that ignores the filter, a contract drift, a relaxation added later — because A
+        // QUERY FILTER IS A REQUEST AND THE RECORD IS THE FACT. Same shape, and same reason,
+        // as the geography invariant a few lines above.
+        //
+        // ⚠️ NOT WRITTEN IN TERMS OF `apollo_consented`. That flag counts `likely_to_engage`
+        // as contactable, which is exactly the status the founder excluded for House — reusing
+        // it would have made this gate agree with the thing it is supposed to be stricter than.
+        if (audience === 'house' && contact.email_status !== 'verified') {
+          skipped++; continue
+        }
+
         if (contact.email) {
           // HC-1 — probe with the NORMALISED address. (The pool probe above already sends
           // normalised values because they come from `lead_pool.email_norm`; this PDL path
@@ -1808,7 +1826,10 @@ export async function runIcpJob(
       .select('plan, credit_balance, figsy_credits_remaining').eq('id', clientId).single()
     const cap = deliveryCapBalance(normalizePlan(balRow?.plan), balRow?.credit_balance, balRow?.figsy_credits_remaining)
     const deliverNow = insertedIds.slice(0, cap)
-    await enrichAndDeliverLeads(clientId, deliverNow)
+    // ⚑ 7 Sep — HUNTER IS OFF FOR HOUSE BY DECISION, not by a variable being unset. Stating
+    // it here means the House path cannot start using Hunter the day HUNTER_API_KEY is set
+    // for a customer. Every other caller keeps today's key-gated behaviour.
+    await enrichAndDeliverLeads(clientId, deliverNow, { hunterAllowed: audience !== 'house' })
   }
 
   if (inserted > 0) {

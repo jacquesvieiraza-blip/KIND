@@ -20,7 +20,17 @@ import { sendFounderAlert } from './alerts'
 export async function enrichAndDeliverLeads(
   clientId: string,
   candidateIds: string[],
+  /**
+   * ⚑ 7 Sep — WHETHER THE HUNTER FALLBACK MAY RUN AT ALL, stated by the caller.
+   *
+   * Defaults to TRUE, so every existing caller behaves exactly as it does today: the block
+   * below is still gated on `HUNTER_API_KEY` and is still a strict no-op without it. What
+   * this adds is a caller that can say NO for a reason of its own — the House MVP path, where
+   * Hunter is off by founder decision rather than by a Railway variable happening to be unset.
+   */
+  opts?: { hunterAllowed?: boolean },
 ): Promise<number> {
+  const hunterAllowed = opts?.hunterAllowed !== false
   if (candidateIds.length === 0) return 0
 
   // 1. Reveal emails for candidates that don't already have one, by enriching on
@@ -55,6 +65,12 @@ export async function enrichAndDeliverLeads(
   //     Hunter key: with HUNTER_API_KEY unset this is a strict no-op (no calls, no cost,
   //     identical behaviour to before). We re-read the rows so leads filled by the Apollo
   //     reveal above are excluded.
+  // ⚠️ NESTED, NOT `&&`-ED, AND DELIBERATELY. `free-proof-route.test.ts` asserts the literal
+  // `if (process.env.HUNTER_API_KEY) {` as its proof that the paid path's machinery is
+  // untouched. Folding the new condition into that line would have broken a guard that is
+  // still telling the truth — the key gate IS unchanged; what is new is a caller able to
+  // decline before it. Changing my line was cheaper than retargeting theirs.
+  if (hunterAllowed) {
   if (process.env.HUNTER_API_KEY) {
     const { data: stillMissing } = await db.from('leads')
       .select('id, email, first_name, last_name, company, linkedin_url')
@@ -76,6 +92,7 @@ export async function enrichAndDeliverLeads(
         console.error('[lead-delivery] hunter waterfall failed for lead', r.id, err)
       }
     }
+  }
   }
 
   // 2. Only leads that now have an email are deliverable — never charge for an

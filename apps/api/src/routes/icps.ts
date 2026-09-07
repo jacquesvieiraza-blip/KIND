@@ -19,6 +19,7 @@ import { PDL_RATE_USD } from '../lib/sourcing-fences'
 import { isLaunchSendCountry, launchTargetRefusal, launchCountrySpellings } from '@kind/shared'
 import { splitPoolAndRemainder, poolWriteAllowed, splitPoolEligible, poolRefusalLine, poolCountryMatches, canonicalPoolCountry, isGeoServable, isPoolSourceEligible, POOL_ELIGIBLE_SOURCES } from '../lib/pool-sourcing'
 import { toMemoryRecord, rememberAcquiredIdentities, type AcquisitionMemoryRecord, type SuppressionReason } from '../lib/acquisition-memory'
+import { assertIcpFullyOwned } from '../lib/icp-coverage'
 import { rethrowIfProviderBlocked, isPaidProviderBlocked } from '../lib/paid-provider-guard'
 import { deriveRunStatus, runOutcomeMessage, type RunStatus } from '../lib/run-outcome'
 import { authorityFor, ProgrammeAuthorityError } from '../lib/programme-authority'
@@ -913,6 +914,22 @@ export async function runIcpJob(
   // fail-open for every other caller — see `audienceForClientStrict` for the truth table.
   const audience = await audienceForClientStrict(clientId)
 
+  // ── ⚑ 7 Sep — EVERY CRITERION THE CUSTOMER SET MUST HAVE AN OWNER, OR THIS RUN STOPS ──
+  //
+  // 🛑 A PROVIDER'S LIMITS MUST NEVER SILENTLY REDEFINE THE CUSTOMER'S ICP. Each stored
+  // criterion declares who enforces it (`icp-coverage.ts`); anything declared unenforceable —
+  // today, `tech_stack`, because the conversational builder emits free text that is not a
+  // valid Apollo technology UID, and no provider on this path returns a per-person tech stack
+  // to check afterwards — is NOT satisfied. It is unresolved.
+  //
+  // ⚠️ IT REFUSES RATHER THAN LOGS, and that is the correction. An earlier version printed a
+  // warning and carried on, which is the same silent redefinition with a receipt attached.
+  //
+  // ⚠️ AND IT REFUSES HERE — before the cash fence and before any provider request — so the
+  // refusal costs nothing: no search, no reveal, no reservation, no spend. An EMPTY criterion
+  // never blocks: the customer asked for nothing, so nothing is being ignored.
+  assertIcpFullyOwned(icp as Record<string, unknown>)
+
   // Only the REMAINDER (target − pool-served) goes to the fenced PDL path. When the
   // pool served nothing, pdlRemainder === effectiveCap — byte-identical to today.
   // For a prospect this is the 20-lead pass remainder; for everyone else it is exactly
@@ -1495,6 +1512,7 @@ export async function runIcpJob(
       // size, never countries). Empty ⇒ the client set no geography ⇒ no gate.
       const icpGeographies = ((icp as { geographies?: string[] | null }).geographies ?? []).filter(Boolean)
 
+
       for (const contact of contacts) {
         // Cap PDL insertions at the GRANTED budget (#445) — never keep more than we
         // pre-funded. grantedSize ≤ pdlRemainder ≤ effectiveCap, so this binds. (Counts
@@ -1514,7 +1532,23 @@ export async function runIcpJob(
         // to become a lead with the wrong or an unknown country, served to a client who told
         // Milla exactly where they target. Now it is a counted rejection, and if it empties
         // the run the neutral-review state below reports it — targeting is never blamed.
-        if (icpGeographies.length > 0 && !poolCountryMatches(contact.country, icpGeographies)) {
+        // ⛓️ 7 Sep — AND A FIELD THE SEARCH NEVER RETURNED IS UNKNOWN, NOT A FAILED ICP.
+        //
+        // 🛑 THIS GATE PRODUCED A 250 → 0 RUN. Apollo's People Search returns availability
+        // BOOLEANS (`has_country`), never the country itself — so `contact.country` was
+        // `undefined` on all 250 candidates and this rejected every one of them before the
+        // enrichment step that exists to go and find out. The customer's geography is still
+        // enforced in full; it is enforced where the answer EXISTS, after the reveal, by
+        // `finalVerdict` in `lead-delivery.ts`.
+        //
+        // ⚠️ PDL IS UNCHANGED, and deliberately so. PDL IS queried with `location_country` and
+        // DOES return it, so for that provider an absent country still means the 27-Aug
+        // contract-drift the invariant was written for — and still rejects. The difference is
+        // a fact about the provider's search contract, not a relaxation of the rule.
+        const countryKnown = typeof contact.country === 'string' && contact.country.trim() !== ''
+        const geoAnswerComesLater = actualProvider === 'apollo' && !countryKnown
+        if (icpGeographies.length > 0 && !geoAnswerComesLater
+            && !poolCountryMatches(contact.country, icpGeographies)) {
           skipped++; removedByGeoGate++; continue
         }
 
@@ -1534,7 +1568,13 @@ export async function runIcpJob(
         // ⚠️ NOT WRITTEN IN TERMS OF `apollo_consented`. That flag counts `likely_to_engage`
         // as contactable, which is exactly the status the founder excluded for House — reusing
         // it would have made this gate agree with the thing it is supposed to be stricter than.
-        if (audience === 'house' && contact.email_status !== 'verified') {
+        // ⛓️ 7 Sep — REJECT A KNOWN-BAD STATUS, NEVER AN ABSENT ONE. People Search returns no
+        // `email_status` at all (it returns `has_email`), so `!== 'verified'` was true for every
+        // candidate and this was the second gate that made the run zero. A status we were never
+        // given is UNKNOWN; the verified-only lock is enforced after the reveal, where a status
+        // actually exists, and an unknown one FAILS there.
+        const statusKnown = typeof contact.email_status === 'string' && contact.email_status.trim() !== ''
+        if (audience === 'house' && statusKnown && contact.email_status !== 'verified') {
           skipped++; continue
         }
 
@@ -1829,7 +1869,17 @@ export async function runIcpJob(
     // ⚑ 7 Sep — HUNTER IS OFF FOR HOUSE BY DECISION, not by a variable being unset. Stating
     // it here means the House path cannot start using Hunter the day HUNTER_API_KEY is set
     // for a customer. Every other caller keeps today's key-gated behaviour.
-    await enrichAndDeliverLeads(clientId, deliverNow, { hunterAllowed: audience !== 'house' })
+    // ⚑ 7 Sep — THE CUSTOMER'S OWN CRITERIA TRAVEL WITH THE CALL. The provider reveal inside
+    // M&V's enrichment flow is the first moment `email_status` and `country` exist, so the FULL
+    // ICP is enforced there rather than guessed at search time. Read off the ICP THIS RUN is
+    // using — never a second lookup that could disagree with it.
+    await enrichAndDeliverLeads(clientId, deliverNow, {
+      hunterAllowed: audience !== 'house',
+      qualifyAgainst: {
+        geographies: ((icp as { geographies?: string[] | null }).geographies ?? []).filter(Boolean),
+        requireVerifiedBusinessEmail: audience === 'house',
+      },
+    })
   }
 
   if (inserted > 0) {

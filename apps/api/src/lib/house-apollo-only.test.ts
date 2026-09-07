@@ -430,28 +430,58 @@ describe('④ the relaxation ladder never strips the filter for House', () => {
   })
 })
 
-// ── ⑤ VERIFIED-ONLY, AT THE RECORD ─────────────────────────────────────────────────────
+// ── ⑤ VERIFIED-ONLY, AT THE RECORD — NOW ENFORCED IN TWO PLACES ───────────────────────
+//
+// ⛓️ RETARGETED 7 Sep, AFTER A 250 → 0 PRODUCTION RUN. This block used to assert one literal:
+//
+//     audience === 'house' && contact.email_status !== 'verified'      ← at insert
+//
+// That gate was correct about the RULE and wrong about the MOMENT. Apollo's People Search
+// returns no `email_status` at all, so `undefined !== 'verified'` was true for all 250
+// candidates and every one was rejected before the reveal that exists to supply the field.
+//
+// The rule did not weaken; it moved to where the fact exists, and SPLIT IN TWO:
+//   · at search — reject a status we DO have and which is not `verified` (never an absent one)
+//   · after the provider reveal — the hard gate, where an ABSENT status also fails
+// Both are asserted below, and the second is what makes the House lock real.
 
 describe('⑤ only a VERIFIED Apollo record becomes a House lead', () => {
   const ICPS_CODE = code(ICPS_SRC)
+  const QUAL_CODE = code(readFileSync(join(__dirname, './icp-qualification.ts'), 'utf8'))
+  const DELIVERY_CODE = code(DELIVERY_SRC)
 
-  it('7-10 · the House skip exists and tests email_status against "verified" exactly', () => {
-    // A query filter is a REQUEST. The record that comes back is the fact, so the status is
-    // re-checked at insert — that is what makes 8, 9 and 10 true rather than hoped for.
-    expect(ICPS_CODE).toMatch(/audience === 'house' && contact\.email_status !== 'verified'/)
+  it('7-10 · the search-stage gate still tests `verified` exactly — on a status we HAVE', () => {
+    expect(ICPS_CODE).toMatch(/audience === 'house' && statusKnown && contact\.email_status !== 'verified'/)
   })
 
-  it('8 · `likely_to_engage` is NOT accepted as verified for House', () => {
+  it('🛑 and it never rejects an ABSENT status — the exact 250 → 0 defect', () => {
+    // `statusKnown` is what stops a field Apollo never sends from reading as a failed ICP.
+    expect(ICPS_CODE).toMatch(/const statusKnown = typeof contact\.email_status === 'string'/)
+  })
+
+  it('🛑 the HARD gate lives after the reveal, and an absent status fails there', () => {
+    expect(QUAL_CODE, 'the final gate no longer requires a verified status')
+      .toMatch(/requireVerifiedBusinessEmail && facts\.emailStatus !== 'verified'/)
+    expect(DELIVERY_CODE, "M&V's enrichment flow no longer applies the final gate")
+      .toMatch(/finalVerdict\(/)
+  })
+
+  it('8 · `likely_to_engage` is NOT accepted as verified for House, at either gate', () => {
     // The pre-existing `apollo_consented` flag treats both as contactable; the House gate is
     // a separate, stricter test and must not be written in terms of that flag.
-    const gate = ICPS_CODE.match(/audience === 'house' && contact\.email_status !== 'verified'/)
-    expect(gate).not.toBeNull()
     expect(ICPS_CODE).not.toMatch(/audience === 'house' &&[^\n]*likely_to_engage/)
+    expect(QUAL_CODE).not.toMatch(/likely_to_engage/)
   })
 
-  it('the skip is a counted rejection, like every other guard in that loop', () => {
-    const at = ICPS_CODE.indexOf("audience === 'house' && contact.email_status !== 'verified'")
+  it('the search skip is still a counted rejection, like every other guard in that loop', () => {
+    const at = ICPS_CODE.indexOf("audience === 'house' && statusKnown && contact.email_status !== 'verified'")
+    expect(at).toBeGreaterThan(-1)
     expect(ICPS_CODE.slice(at, at + 200)).toMatch(/skipped\+\+/)
+  })
+
+  it('and a post-reveal refusal is counted too — a silent drop is how 250 became 0', () => {
+    expect(DELIVERY_CODE).toMatch(/refusals\[verdict\.reason\]/)
+    expect(DELIVERY_CODE).toMatch(/stage=qualification/)
   })
 })
 

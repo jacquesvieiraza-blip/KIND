@@ -35,6 +35,7 @@
 // ═══════════════════════════════════════════════════════════════════════════════════════
 
 import { db } from '@kind/db'
+import { unenforcedCriteria } from './icp-coverage'
 import { getProgramme, TERMINAL_STATUSES, type ProgrammeStatus } from './programme'
 
 /**
@@ -185,19 +186,56 @@ export async function programmeIcps(clientId: string, programmeId: string | null
   attached: IcpRow[]
   eligible: IcpRow[]
   unreadable: boolean
+  /**
+   * ⚑ 7 Sep — WHAT THE ATTACHED TARGETING ACTUALLY SAYS, AND WHETHER WE CAN ENFORCE IT.
+   *
+   * 🛑 THERE WAS NO READ-ONLY WAY TO SEE THIS. The programme panel could say WHICH ICP feeds a
+   * programme but not WHAT IT ASKS FOR, so "is every criterion the customer wrote actually
+   * enforced?" could only be answered by reading the database by hand. A criterion nothing
+   * owns is now a hard block on the run (`assertIcpFullyOwned`), which makes seeing it before
+   * pressing the button the difference between a diagnosis and a surprise.
+   *
+   * Read-only, derived from the row already fetched here — no second query, no new endpoint,
+   * and no change to what the screen renders.
+   */
+  attachedCoverage: {
+    icp_id: string
+    criteria: Record<string, string[] | boolean>
+    unenforced: { field: string; values: string[]; note: string }[]
+    blocks_sourcing: boolean
+  }[]
 }> {
   const { data, error } = await db.from('icps')
-    .select('id, client_id, name, is_active, programme_id')
+    .select('id, client_id, name, is_active, programme_id, industries, job_titles, seniority_levels, company_sizes, geographies, tech_stack, keywords, intent_signals, apollo_only_consented')
     .eq('client_id', clientId)
     .order('created_at', { ascending: false })
     .limit(200)
   // Honest emptiness: a failed read must not render as "this client has no ICPs", which is
   // the sentence an operator would act on.
-  if (error || !data) return { attached: [], eligible: [], unreadable: true }
+  if (error || !data) return { attached: [], eligible: [], unreadable: true, attachedCoverage: [] }
   const rows = data as unknown as IcpRow[]
+  const attached = programmeId ? rows.filter(r => r.programme_id === programmeId) : []
+
+  const CRITERIA = [
+    'industries', 'job_titles', 'seniority_levels', 'company_sizes',
+    'geographies', 'tech_stack', 'keywords', 'intent_signals', 'apollo_only_consented',
+  ] as const
+
   return {
-    attached: programmeId ? rows.filter(r => r.programme_id === programmeId) : [],
+    attached,
     eligible: rows.filter(r => r.programme_id === null),
     unreadable: false,
+    attachedCoverage: attached.map(r => {
+      const row = r as unknown as Record<string, unknown>
+      const criteria: Record<string, string[] | boolean> = {}
+      for (const k of CRITERIA) {
+        const v = row[k]
+        if (typeof v === 'boolean') criteria[k] = v
+        else if (Array.isArray(v)) criteria[k] = v.filter(x => typeof x === 'string') as string[]
+        else criteria[k] = []
+      }
+      const unenforced = unenforcedCriteria(row)
+      return { icp_id: r.id, criteria, unenforced, blocks_sourcing: unenforced.length > 0 }
+    }),
   }
 }

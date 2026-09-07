@@ -908,6 +908,14 @@ export async function runIcpJob(
   //
   // `audienceForClient` fails closed to 'client', so an unknown account still lands on
   // the fenced path and can never spend K.I.N.D's Apollo.
+  //
+  // ⚠️ 7 Sep — REPORTED, NOT FIXED (founder's STOP rule). The founder asked for House to FAIL
+  // LOUDLY here rather than fall through to 'client' → PDL. A strict resolver was built and
+  // reverted: switching this line turns `provider-boundary.test.ts` RED on its own AR5 guard
+  // — *"HOUSE with ZERO PDL allowance never calls the fence, and still reaches Apollo"* —
+  // because the strict path resolves house as client under that suite's fixtures and enters
+  // the PDL cash fence. It also needs `auth.admin` and `user_id` added to six suites'
+  // fixtures. That is not a narrow change, so it is its own task.
   const audience = await audienceForClient(clientId)
 
   // Only the REMAINDER (target − pool-served) goes to the fenced PDL path. When the
@@ -1520,6 +1528,21 @@ export async function runIcpJob(
           skipped++; continue
         }
 
+        // ── ⚑ 7 Sep — HOUSE TAKES `verified` AND NOTHING ELSE (founder-locked, MVP) ────────
+        //
+        // The query already asks Apollo for `['verified']` on the house path, so on a healthy
+        // run this rejects nothing. It exists for the runs that are not healthy — a provider
+        // that ignores the filter, a contract drift, a relaxation added later — because A
+        // QUERY FILTER IS A REQUEST AND THE RECORD IS THE FACT. Same shape, and same reason,
+        // as the geography invariant a few lines above.
+        //
+        // ⚠️ NOT WRITTEN IN TERMS OF `apollo_consented`. That flag counts `likely_to_engage`
+        // as contactable, which is exactly the status the founder excluded for House — reusing
+        // it would have made this gate agree with the thing it is supposed to be stricter than.
+        if (audience === 'house' && contact.email_status !== 'verified') {
+          skipped++; continue
+        }
+
         if (contact.email) {
           // HC-1 — probe with the NORMALISED address. (The pool probe above already sends
           // normalised values because they come from `lead_pool.email_norm`; this PDL path
@@ -1808,7 +1831,10 @@ export async function runIcpJob(
       .select('plan, credit_balance, figsy_credits_remaining').eq('id', clientId).single()
     const cap = deliveryCapBalance(normalizePlan(balRow?.plan), balRow?.credit_balance, balRow?.figsy_credits_remaining)
     const deliverNow = insertedIds.slice(0, cap)
-    await enrichAndDeliverLeads(clientId, deliverNow)
+    // ⚑ 7 Sep — HUNTER IS OFF FOR HOUSE BY DECISION, not by a variable being unset. Stating
+    // it here means the House path cannot start using Hunter the day HUNTER_API_KEY is set
+    // for a customer. Every other caller keeps today's key-gated behaviour.
+    await enrichAndDeliverLeads(clientId, deliverNow, { hunterAllowed: audience !== 'house' })
   }
 
   if (inserted > 0) {

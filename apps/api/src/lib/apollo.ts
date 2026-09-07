@@ -98,6 +98,19 @@ interface ApolloSearchBody {
   organization_names?:                   string[]
 }
 
+/**
+ * ⚑ 7 Sep — HOUSE TAKES `verified` AND NOTHING ELSE (founder-locked).
+ *
+ * `likely_to_engage` is Apollo's "probably reachable", not a verified business address. For
+ * a client it is an acceptable proxy and is unchanged; for House the founder ruled only
+ * `verified` is usable, so the request narrows to one status.
+ *
+ * ⚠️ A QUERY FILTER IS A REQUEST, NOT A GUARANTEE. The record that comes back is re-checked
+ * at insert (`runIcpJob`), because a provider that ignores a filter is exactly the case a
+ * filter cannot cover.
+ */
+export type ApolloSearchOptions = { verifiedEmailOnly?: boolean }
+
 // Build the search body from an ICP record
 export function buildSearchBody(icp: {
   job_titles:            string[]
@@ -110,7 +123,7 @@ export function buildSearchBody(icp: {
   apollo_only_consented: boolean
   intent_signals?:       string[]
   organization_names?:   string[]
-}, page = 1): ApolloSearchBody {
+}, page = 1, apolloOpts?: ApolloSearchOptions): ApolloSearchBody {
   const body: ApolloSearchBody = { page, per_page: 50 }
 
   if (icp.job_titles.length)
@@ -127,9 +140,10 @@ export function buildSearchBody(icp: {
   if (icp.geographies.length)
     body.person_locations = icp.geographies
 
-  // Apollo's verified/likely_to_engage emails are the closest proxy for consent
+  // Apollo's verified/likely_to_engage emails are the closest proxy for consent.
+  // ⚑ 7 Sep — House narrows this to `verified` alone; every other caller is unchanged.
   if (icp.apollo_only_consented)
-    body.contact_email_status = ['verified', 'likely_to_engage']
+    body.contact_email_status = apolloOpts?.verifiedEmailOnly ? ['verified'] : ['verified', 'likely_to_engage']
 
   // Industries → Apollo's organization keyword-tag field (OR semantics across tags).
   // These MUST NOT go into q_keywords: that field is a literal full-text match, so
@@ -339,6 +353,12 @@ export async function searchPeopleWithFallback(
   // lib/provider-boundary.ts for why it does not live at the call sites.
   const provider = searchProviderFor(audience)
 
+  // ⚑ 7 Sep — DERIVED FROM THE AUDIENCE, NEVER PASSED IN. A `verifiedEmailOnly` parameter
+  // would have to be remembered at every call site, and the one that forgot it would relax
+  // House's founder-locked requirement silently. The audience is already the single input
+  // provider choice is allowed to have; the email-status floor rides on the same fact.
+  const verifiedEmailOnly = audience === 'house'
+
   // Every exit point must report the page, so a stored cursor can never silently stop
   // advancing. Threading it by hand through nine returns is exactly how one gets missed.
   const out = (contacts: ApolloContact[], relaxed: string | null, pdlPage: PdlPage | null) =>
@@ -376,7 +396,7 @@ export async function searchPeopleWithFallback(
 
   try {
     // Pass 1 — full query
-    const full = sized(buildSearchBody(icp, page))
+    const full = sized(buildSearchBody(icp, page, { verifiedEmailOnly }))
     const contacts1 = await searchPeople(full)
     if (contacts1.length > 0) {
       const pdl = await pdlSupplement
@@ -390,8 +410,11 @@ export async function searchPeopleWithFallback(
     }
 
     // Pass 2 — remove consent filter (consent gate was cutting the pool)
-    if (icp.apollo_only_consented) {
-      const relaxed2 = sized({ ...buildSearchBody(icp, page) })
+    // ⚑ 7 Sep — HOUSE NEVER RELAXES THE EMAIL-STATUS FILTER. Thin results are an answer; for
+    // House they are not a reason to accept an unverified address. Pass 2 exists to widen the
+    // CONSENT proxy, so for House it has nothing left to widen and is skipped entirely.
+    if (icp.apollo_only_consented && !verifiedEmailOnly) {
+      const relaxed2 = sized({ ...buildSearchBody(icp, page, { verifiedEmailOnly }) })
       delete relaxed2.contact_email_status
       const contacts2 = await searchPeople(relaxed2)
       if (contacts2.length > 0) {
@@ -402,8 +425,9 @@ export async function searchPeopleWithFallback(
     }
 
     // Pass 3 — remove employee ranges (geo + titles only)
-    const relaxed3 = sized({ ...buildSearchBody(icp, page) })
-    delete relaxed3.contact_email_status
+    const relaxed3 = sized({ ...buildSearchBody(icp, page, { verifiedEmailOnly }) })
+    // ⚑ 7 Sep — the SIZE widening still applies to House; the email-status floor does not move.
+    if (!verifiedEmailOnly) delete relaxed3.contact_email_status
     delete relaxed3.organization_num_employees_ranges
     const contacts3 = await searchPeople(relaxed3)
     if (contacts3.length > 0) {

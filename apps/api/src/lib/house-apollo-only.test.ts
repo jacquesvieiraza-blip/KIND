@@ -405,8 +405,28 @@ describe('④ the relaxation ladder never strips the filter for House', () => {
     // provider choice is already allowed to have. A parameter must be remembered at every
     // call site; a derivation cannot be forgotten. Same fact, decided one layer down.
     expect(APOLLO_CODE).toMatch(/const verifiedEmailOnly = audience === 'house'/)
-    expect(APOLLO_CODE, 'the flag is never handed to the body builder')
-      .toMatch(/buildSearchBody\(icp, page, \{ verifiedEmailOnly \}\)/)
+    // ⛓️ 7 Sep — RETARGETED, SAME FACT, WIDER SCOPE. This pinned the literal
+    // `buildSearchBody(icp, page, { verifiedEmailOnly })`. Apollo caps a page at 100 records,
+    // so a 250 batch is now a PAGED walk and the page argument is the loop's variable rather
+    // than the caller's `page`. What must stay true is that the derived flag is handed to the
+    // body builder at every call site — which is now stronger than before, because it rides
+    // onto page 2 and page 3 as well. `apollo-search-contract.test.ts` proves that
+    // behaviourally against a stubbed Apollo; this keeps the source-level guard.
+    //
+    // ⚠️ AND IT ASSERTS **EVERY** CALL, NOT "SOME CALL". A bare
+    // `.toMatch(/buildSearchBody\(icp, \w+, \{ verifiedEmailOnly/)` passed while pass 1 had the
+    // flag REMOVED, because passes 2 and 3 still carried it and one match is all a regex needs.
+    // Proved by breaking it. The ladder's own body is extracted and every call inside it is
+    // checked, so dropping the flag from any single pass goes red.
+    const fnAt = APOLLO_CODE.indexOf('export async function searchPeopleWithFallback')
+    expect(fnAt, 'the search ladder no longer exists').toBeGreaterThan(-1)
+    const rest = APOLLO_CODE.slice(fnAt + 1)
+    const ladder = rest.slice(0, rest.indexOf('\nexport ') > -1 ? rest.indexOf('\nexport ') : rest.length)
+    const calls = [...ladder.matchAll(/buildSearchBody\(icp,[^)]*\)/g)].map(m => m[0])
+    expect(calls.length, 'the ladder no longer builds a search body').toBeGreaterThan(0)
+    for (const c of calls) {
+      expect(c, `a search pass builds its body without the derived flag: ${c}`).toContain('verifiedEmailOnly')
+    }
   })
 })
 

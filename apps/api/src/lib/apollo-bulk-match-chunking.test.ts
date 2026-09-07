@@ -37,6 +37,9 @@ const APOLLO_BULK_MATCH_MAX = 10
 type Sent = { url: string; body: Record<string, unknown> }
 let sent: Sent[] = []
 
+/** The request's QUERY STRING, where Apollo reads the four safety controls from. */
+const qs = (s: Sent) => new URL(s.url).searchParams
+
 /** 250 genuine Apollo ids — no `pdl_` prefix, so AR5 lets every one through. */
 const ids250 = Array.from({ length: 250 }, (_, i) => `apollo-person-${i}`)
 
@@ -94,7 +97,8 @@ describe('bulk_match is chunked to Apollo\'s limit, and nobody is dropped', () =
     stubApollo()
     await bulkMatchEmails(ids250)
     for (const s of sent) {
-      expect(s.url).toBe('https://api.apollo.io/api/v1/people/bulk_match')
+      const u = new URL(s.url)
+      expect(`${u.origin}${u.pathname}`).toBe('https://api.apollo.io/api/v1/people/bulk_match')
     }
   })
 
@@ -125,16 +129,45 @@ describe('bulk_match is chunked to Apollo\'s limit, and nobody is dropped', () =
 })
 
 describe('the money-safety flags are on EVERY chunk, not just the first', () => {
-  it('reveal_personal_emails is false on all 25 requests', async () => {
+  it('🛑 all four are on the QUERY STRING — that is where Apollo reads them', async () => {
+    // ⛓️ CORRECTED 7 Sep. They were put in the JSON BODY, which Apollo's bulk_match does not
+    // read them from: its documented contract is `reveal_personal_emails`,
+    // `reveal_phone_number`, `run_waterfall_email` and `run_waterfall_phone` as QUERY
+    // parameters, with the body carrying `details` alone
+    // (docs.apollo.io/reference/bulk-people-enrichment).
+    //
+    // So the previous fix looked explicit and was still, in fact, relying on Apollo's
+    // defaults — a flag in the wrong place is not a flag, it is a comment the server ignores.
     stubApollo()
     await bulkMatchEmails(ids250)
     expect(sent).toHaveLength(25)
     for (const s of sent) {
-      expect(s.body.reveal_personal_emails, 'a chunk asked Apollo to reveal personal emails').toBe(false)
+      const q = qs(s)
+      expect(q.get('reveal_personal_emails'), 'personal-email reveal is not on the query string').toBe('false')
+      expect(q.get('reveal_phone_number'),    'phone reveal is not on the query string').toBe('false')
+      expect(q.get('run_waterfall_email'),    'the email waterfall is not on the query string').toBe('false')
+      expect(q.get('run_waterfall_phone'),    'the phone waterfall is not on the query string').toBe('false')
     }
   })
 
-  it('🛑 all four money flags are EXPLICITLY false on every chunk — never left to a default', async () => {
+  it('and the BODY carries only `details` — the flags are not smuggled back into it', async () => {
+    // A flag present in both places would pass the query assertion while quietly re-teaching
+    // the next reader that the body is where these live. One home, and it is the query.
+    stubApollo()
+    await bulkMatchEmails(ids250.slice(0, 5))
+    expect(Object.keys(sent[0].body)).toEqual(['details'])
+  })
+
+  it('the four are PRESENT as query keys, not merely absent-and-assumed', async () => {
+    stubApollo()
+    await bulkMatchEmails(ids250.slice(0, 5))
+    const keys = [...qs(sent[0]).keys()]
+    for (const flag of ['reveal_personal_emails', 'reveal_phone_number', 'run_waterfall_email', 'run_waterfall_phone']) {
+      expect(keys, `${flag} is not sent at all — its value is Apollo's to choose`).toContain(flag)
+    }
+  })
+
+  it('DELETED — superseded by the query-string assertions above', async () => {
     // ⛓️ TIGHTENED 7 Sep. This first asserted only `not.toBe(true)`, which an OMITTED field
     // satisfies — and three of the four WERE omitted, so the phone-waterfall lock rested on
     // Apollo's default rather than on our request. Scout's proven-good call set all four
@@ -143,23 +176,8 @@ describe('the money-safety flags are on EVERY chunk, not just the first', () => 
     // A default is a vendor's decision we do not control and are not told when they change.
     // `undefined` now fails exactly as `true` does.
     stubApollo()
-    await bulkMatchEmails(ids250)
-    expect(sent).toHaveLength(25)
-    for (const s of sent) {
-      expect(s.body.reveal_personal_emails, 'a chunk left personal-email reveal to Apollo\'s default').toBe(false)
-      expect(s.body.reveal_phone_number,    'a chunk left phone reveal to Apollo\'s default').toBe(false)
-      expect(s.body.run_waterfall_email,    'a chunk left the email waterfall to Apollo\'s default').toBe(false)
-      expect(s.body.run_waterfall_phone,    'a chunk left the phone waterfall to Apollo\'s default').toBe(false)
-    }
-  })
-
-  it('and the four are present as KEYS, not merely falsy by absence', async () => {
-    stubApollo()
-    await bulkMatchEmails(ids250.slice(0, 5))
-    const keys = Object.keys(sent[0].body)
-    for (const flag of ['reveal_personal_emails', 'reveal_phone_number', 'run_waterfall_email', 'run_waterfall_phone']) {
-      expect(keys, `${flag} is not sent at all — its value is Apollo's to choose`).toContain(flag)
-    }
+    await bulkMatchEmails(ids250.slice(0, 1))
+    expect(sent).toHaveLength(1)
   })
 
   it('AR5 still holds at volume — a PDL id in the set is refused, not sent to Apollo', async () => {

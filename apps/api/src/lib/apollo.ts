@@ -618,6 +618,34 @@ export async function searchPeople(body: ApolloSearchBody): Promise<ApolloContac
 // apollo_id → revealed email, for matched + emailable people only.
 const APOLLO_BULK_MATCH = `${APOLLO_BASE}/people/bulk_match`
 
+// ── THE FOUR MONEY CONTROLS, WHERE APOLLO ACTUALLY READS THEM (7 Sep) ───────────────────
+//
+// 🛑 THEY WERE IN THE JSON BODY, AND THE BODY IS NOT WHERE bulk_match LOOKS. Apollo's
+// documented contract puts `reveal_personal_emails`, `reveal_phone_number`,
+// `run_waterfall_email` and `run_waterfall_phone` on the QUERY STRING, and the body carries
+// `details` alone (docs.apollo.io/reference/bulk-people-enrichment).
+//
+// ⚠️ SO THE PREVIOUS FIX LOOKED EXPLICIT AND WAS STILL RELYING ON THE DEFAULT. A flag in the
+// wrong place is not a flag — it is a comment the server ignores, and it reads to the next
+// person as a control that is being enforced. That is worse than the omission it replaced,
+// because omission at least looks like what it is.
+//
+// This is the PAID endpoint on the House path: a personal email, a direct dial or a waterfall
+// each cost credits per record, and at 25 chunks a default flip is 250 records of unauthorised
+// spend. Scout's controlled 2-Sep test set all four, and the handover is explicit — do not
+// rely purely on provider defaults.
+const APOLLO_BULK_MATCH_SAFETY = {
+  reveal_personal_emails: 'false',
+  reveal_phone_number:    'false',
+  run_waterfall_email:    'false',
+  run_waterfall_phone:    'false',
+} as const
+
+/** The bulk_match URL, with the four controls stated on every single request. */
+function bulkMatchUrl(): string {
+  return `${APOLLO_BULK_MATCH}?${new URLSearchParams(APOLLO_BULK_MATCH_SAFETY).toString()}`
+}
+
 export async function bulkMatchEmails(apolloIds: string[]): Promise<Map<string, string>> {
   const out = new Map<string, string>()
   const apiKey = process.env.APOLLO_API_KEY
@@ -642,26 +670,13 @@ export async function bulkMatchEmails(apolloIds: string[]): Promise<Map<string, 
     // rows and look like a provider miss.
     assertPaidProviderAllowed('apollo', 'bulkMatch')
     try {
-      const res = await fetch(APOLLO_BULK_MATCH, {
+      const res = await fetch(bulkMatchUrl(), {
         method:  'POST',
         headers: { 'Content-Type': 'application/json', 'X-Api-Key': apiKey },
+        // ⚠️ `details` ALONE. The four safety controls ride on the query string above — see
+        // APOLLO_BULK_MATCH_SAFETY. Putting them here too would pass a query-string test while
+        // teaching the next reader that the body is where they live.
         body: JSON.stringify({
-          // ── THE FOUR MONEY FLAGS, STATED RATHER THAN ASSUMED (7 Sep) ──────────────────
-          //
-          // 🛑 THREE OF THESE WERE OMITTED, AND OMISSION IS NOT A DECISION. Apollo defaults
-          // them off today, so nothing was being bought — but the founder's phone-waterfall
-          // lock was resting on a vendor default we do not control and are not told when
-          // they change. Scout's controlled 2-Sep test set all four explicitly and the
-          // handover says it in terms: **do not rely purely on provider defaults.**
-          //
-          // ⚠️ A MISSING FIELD IS NOT A FALSE ONE. `bulk_match` is the PAID endpoint on this
-          // path — a personal email, a direct dial or a waterfall each cost credits per
-          // record, and at 25 chunks a silent default flip is 250 records of spend nobody
-          // authorised. These four are cheap to send and impossible to misread.
-          reveal_personal_emails: false,
-          reveal_phone_number:    false,
-          run_waterfall_email:    false,
-          run_waterfall_phone:    false,
           details: batch.map(id => ({ id })),   // match by Apollo person id
         }),
       })

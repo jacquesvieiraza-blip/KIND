@@ -92,8 +92,20 @@ const HANDLE_GRAB = 'block w-9 h-1 rounded-full bg-[#e3daf7] mx-auto mb-2'
 const MILLA_GREETING =
   'Hi, I’m Milla. Tell me what you’re trying to achieve, and I’ll help shape the right programme from there.'
 
-/** What the ONE conversation is currently talking about. `null` = the general thread. */
-type ConversationContext = 'icp' | null
+/**
+ * What the ONE conversation is currently talking about. `null` = the general thread.
+ *
+ * ⚑ 7 Sep — `icp-fresh` IS A THIRD VALUE, NOT A FLAG ON `icp`, and the distinction is the
+ * whole fix. `icp` REFINES the live targeting and saves through `/icps/revise`, which parks
+ * the change on the existing row. `icp-fresh` is a NEW definition for a new market or a new
+ * programme: it saves through `/icps/fresh`, which inserts an INACTIVE new version and leaves
+ * the live one exactly as it is. Same conversation, same composer, same proposal endpoint —
+ * only the destination of the explicit Save differs.
+ */
+type ConversationContext = 'icp' | 'icp-fresh' | null
+
+/** Both ICP contexts share the proposal builder; only the save destination differs. */
+const isIcpContext = (c: ConversationContext): boolean => c === 'icp' || c === 'icp-fresh'
 
 type MillaConversationApi = {
   /**
@@ -218,7 +230,7 @@ export function MillaConversationProvider(
     setMessages(m => [...m, { id: `u-${Date.now()}`, role: 'user', content: msg }])
     try {
       const tok = await token()
-      if (context === 'icp') {
+      if (isIcpContext(context)) {
         // Only the turns of THIS conversation, which is the same window the drawer sent.
         const history = messages.filter(m => m.id !== 'greet').slice(-12).map(m => ({ role: m.role, content: m.content }))
         const r = await api.post<{ data: IcpDraft & { message?: string } }>(
@@ -240,7 +252,7 @@ export function MillaConversationProvider(
       const res = await api.post<{ reply: string }>(`/milla/sessions/${sid}/chat`, { message: msg }, tok)
       setMessages(m => [...m, { id: `a-${Date.now()}`, role: 'assistant', content: res.reply }])
     } catch (e) {
-      setMessages(m => [...m, { id: `e-${Date.now()}`, role: 'assistant', content: context === 'icp'
+      setMessages(m => [...m, { id: `e-${Date.now()}`, role: 'assistant', content: isIcpContext(context)
         ? (e instanceof Error ? e.message : 'Sorry — say that again?')
         : 'I hit a snag reaching the engine — please try again in a moment.' }])
     }
@@ -255,16 +267,21 @@ export function MillaConversationProvider(
   async function saveIcpDraft() {
     if (!icpDraft || icpSaving) return
     setIcpSaving(true)
+    // ⚑ 7 Sep — TWO DESTINATIONS, ONE BUTTON. Refine goes to `/icps/revise` exactly as it
+    // always has. Fresh goes to `/icps/fresh`, which INSERTS an inactive new version and
+    // touches nothing that is live — so the confirmation sentence must not promise otherwise.
+    const fresh = context === 'icp-fresh'
     try {
-      await api.post('/icps/revise', {
+      await api.post(fresh ? '/icps/fresh' : '/icps/revise', {
         name: icpDraft.name || 'My targeting',
         industries: icpDraft.industries ?? [], job_titles: icpDraft.job_titles ?? [],
         seniority_levels: icpDraft.seniority_levels ?? [], company_sizes: icpDraft.company_sizes ?? [],
         geographies: icpDraft.geographies ?? [], tech_stack: icpDraft.tech_stack ?? [],
         keywords: icpDraft.keywords ?? [],
       }, await token())
-      setMessages(m => [...m, { id: `a-${Date.now()}`, role: 'assistant', content:
-        'Updated — this is your live targeting now, and we’ve been told so we can re-check who’s already in your campaign.' }])
+      setMessages(m => [...m, { id: `a-${Date.now()}`, role: 'assistant', content: fresh
+        ? 'Saved as a new version of your targeting. Your current targeting is unchanged and still live — nothing has been sourced or contacted. Tell us when you want to use this one.'
+        : 'Updated — this is your live targeting now, and we’ve been told so we can re-check who’s already in your campaign.' }])
       setIcpDraft(null); setContext(null); setIcpRevision(v => v + 1)
       // The handle's rule reads `/icps`; a revision changes the answer, so it is re-read.
       try { setIcps((await api.get<{ data: Icp[] }>('/icps', await token())).data ?? []) } catch { /* the handle keeps what it had */ }
@@ -359,16 +376,16 @@ export function MillaConversationProvider(
           {/* THE CONTEXT STRIP — what this conversation is talking about right now. It is a
               label on the ONE conversation, not a second one: the transcript above and the
               composer below are the same ones every other screen uses. */}
-          {context === 'icp' && (
+          {isIcpContext(context) && (
             <div className="flex items-center gap-2 mb-2 rounded-xl border border-[#e4d4fb] bg-[#faf8ff] px-3 py-2">
               <span className="text-[11px] font-extrabold uppercase tracking-[0.08em] text-[#b3a9cc]">Talking about</span>
-              <b className="text-[12.5px]">Who we target</b>
+              <b className="text-[12.5px]">{context === 'icp-fresh' ? 'Who we target — a fresh one' : 'Who we target'}</b>
               <button onClick={() => { setContext(null); setIcpDraft(null) }}
                 className="ml-auto text-[12px] font-semibold text-[#9b8ec4] hover:text-[#5c5279]">Done</button>
             </div>
           )}
           {/* THE DRAFT AND ITS EXPLICIT SAVE. Nothing goes live until this is pressed. */}
-          {context === 'icp' && icpDraft && (
+          {isIcpContext(context) && icpDraft && (
             <div className="border border-[#e4dcf7] bg-[#faf8ff] rounded-xl p-3.5 mb-2">
               <p className="text-[10px] font-extrabold uppercase tracking-wide text-[#b3a9cc]">Your new targeting</p>
               <b className="text-[13.5px] block mt-0.5 mb-1.5">{icpDraft.name}</b>
@@ -380,7 +397,7 @@ export function MillaConversationProvider(
               <div className="flex gap-2 mt-3">
                 <button disabled={icpSaving} onClick={saveIcpDraft}
                   className="text-[13px] font-bold text-white rounded-xl py-2.5 px-5 bg-gradient-to-br from-[#7C3AED] to-[#EC4899] disabled:opacity-50">
-                  {icpSaving ? 'Saving…' : 'Save — make this live'}
+                  {icpSaving ? 'Saving…' : context === 'icp-fresh' ? 'Save as new targeting' : 'Save — make this live'}
                 </button>
                 <button disabled={icpSaving} onClick={() => setIcpDraft(null)}
                   className="text-[13px] font-semibold text-[#5c5279] rounded-xl py-2.5 px-4 border border-[#ece5fb]">Keep talking</button>

@@ -2308,6 +2308,56 @@ Always respond with valid JSON only — no markdown, no explanation outside the 
   }
 })
 
+// ── FRESH — SAVE A NEW ICP VERSION WITHOUT TOUCHING THE LIVE ONE (founder-locked 7 Sep) ──
+//
+// WHY THIS ROUTE HAD TO EXIST. There was no client-facing path that creates a NEW ICP version
+// alongside an active one, and the founder found it the hard way: he described a completely
+// new audience to Milla, she understood and confirmed it, and after a refresh there was no v4
+// because nothing had been written at all.
+//
+// The two paths that looked like they would have done it, and why neither does:
+//   • `/icps/revise` REFINES IN PLACE. With an active core ICP it takes `saveClientTargeting`'s
+//     `hold` branch and parks the change in `pending_targeting` ON THE EXISTING ROW — no new
+//     row, no new version. That behaviour is correct and founder-locked (22 Aug) because a
+//     proof-pass refinement that forked into a second ICP orphaned pass 1's leads and cursor.
+//   • `POST /operator/icp` DOES insert a version, but deactivates every other ICP first —
+//     exactly what the founder said must not happen to his live targeting.
+//
+// So this is the third thing, and it is deliberately the narrowest of the three: INSERT ONE
+// ROW, INACTIVE, ATTACHED TO NOTHING.
+//
+// 🛑 `is_active: false` IS WRITTEN EXPLICITLY AND THE LITERAL IS LOAD-BEARING.
+// `icps.is_active` DEFAULTS TO TRUE at the database and `icpSchema` carries no such field, so
+// an insert that merely omits it produces an ACTIVE v4 — silently displacing the targeting
+// the client asked us to leave alone. Omitting it is not a smaller version of this route, it
+// is the opposite of it.
+//
+// ⚠️ NO SIDE EFFECTS, AND THAT IS THE POINT OF THE WHOLE FLOW. No programme attachment (only
+// `programme_icp_attached` writes `icps.programme_id`), no sourcing, no provider call, no
+// campaign, no batch, no send. A saved fresh ICP is inert until a human attaches it.
+//
+// ⚠️ AR9 IS UNTOUCHED. Nobody outside K.I.N.D activates anything — and an inactive insert
+// activates nothing by construction, so this route does not need the 22-Aug lock's exception.
+icpRouter.post('/fresh', async (req: AuthRequest, res) => {
+  try {
+    const body = icpSchema.parse(req.body)
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+
+    const { data, error } = await db.from('icps')
+      .insert({ ...body, client_id: clientId, is_active: false })
+      .select('id, name, is_active, created_at')
+      .single()
+    if (error) throw error
+
+    res.json({ success: true, data })
+  } catch (err) {
+    if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: err.errors }); return }
+    console.error('[icps/fresh]', err)
+    res.status(500).json({ success: false, error: 'Failed to save the new targeting' })
+  }
+})
+
 // ── MILLA'S REPLY IS A FORCED TOOL CALL, NOT PROSE JSON (founder-ruled 24 Aug) ──────────
 //
 // WHAT THIS REPLACED, AND WHY. The route used to ask the model to "Respond with ONLY valid

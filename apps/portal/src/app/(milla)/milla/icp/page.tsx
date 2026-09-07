@@ -50,8 +50,14 @@ function fmt(iso: string | null): string {
 // proof pass is claimed and nothing is sent. All of it now happens inside the ONE
 // conversation (`components/milla/MillaConversation.tsx`) in ICP context.
 //
-// ⚠️ AND FRESH IS STILL NOT REFINE. "Build fresh targeting with Milla" goes to
-// `/milla/welcome` exactly as before — a fresh definition is not seeded from the current one.
+// ⚠️ AND FRESH IS STILL NOT REFINE — but it no longer LEAVES THE PORTAL to say so.
+// ⛓️ 7 Sep: "Build fresh targeting with Milla" and "Change the targeting" both used to
+// `router.push('/milla/welcome')`, dropping an existing client into the NEW-CLIENT onboarding
+// wizard ("let's set up your campaign") to do something that is not onboarding at all. Both
+// now focus the ONE persistent conversation — fresh into `icp-fresh` (saves a NEW inactive
+// version through `/icps/fresh`), change into `icp` (refines the live one, unchanged).
+// "Set up with Milla" keeps the wizard, because a client with NO targeting genuinely is
+// onboarding — that is the founder's 7-Sep decision, and it is the only push left here.
 
 export default function MillaIcpPage() {
   const router = useRouter()
@@ -130,7 +136,7 @@ export default function MillaIcpPage() {
         {icps && icps.length > 0 && (
           <p className="mt-4 text-[12.5px] text-[#9b8ec4] text-center">
             Starting something new?{' '}
-            <button onClick={() => router.push('/milla/welcome')} className="font-bold text-[#7C3AED] hover:underline">
+            <button onClick={() => { setNote(null); conversation.focus('icp-fresh') }} className="font-bold text-[#7C3AED] hover:underline">
               Build fresh targeting with Milla
             </button>
             {' '}— your current targeting stays exactly as it is until you approve the new one.
@@ -150,7 +156,7 @@ export default function MillaIcpPage() {
             </div>
             <div className="flex gap-2">
               <button disabled={acting} onClick={() => showMatches(pendingApproval.id)} className="text-[13px] font-bold text-white rounded-xl py-2.5 px-5 bg-gradient-to-br from-[#7C3AED] to-[#EC4899] disabled:opacity-50">{acting ? 'Finding…' : 'Show me who this finds'}</button>
-              <button disabled={acting} onClick={() => router.push('/milla/welcome')} className="text-[13px] font-semibold text-[#5c5279] rounded-xl py-2.5 px-4 border border-[#ece5fb]">Change the targeting</button>
+              <button disabled={acting} onClick={() => { setNote(null); conversation.focus('icp') }} className="text-[13px] font-semibold text-[#5c5279] rounded-xl py-2.5 px-4 border border-[#ece5fb]">Change the targeting</button>
             </div>
             {/* Said plainly, because the previous copy implied the client flipped a switch. */}
             <p className="text-[11.5px] text-[#9b8ec4] mt-3">

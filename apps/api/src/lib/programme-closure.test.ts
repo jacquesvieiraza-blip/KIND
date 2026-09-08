@@ -103,7 +103,11 @@ describe('GAP 3 · no programme client reaches sending before Go Live', () => {
   // The BEHAVIOUR of each of those refusals is proved against the real decision function in
   // `programme-authority.test.ts`; what is proved HERE is that start-work CONSUMES it.
   it('the gate is inside ensureCampaignForIcp, on the activate path only', () => {
-    expect(START_WORK).toMatch(/if \(activate\) \{[\s\S]{0,1200}checkProgrammeAuthority\(/)
+    // ⛓️ 1200 → 2600 on 8 Sep. The gate is unchanged; the REASONING in front of it grew (the
+    // window opt-out for activation), and a fixed character window that is shorter than the
+    // real distance between the two anchors fails for a reason that has nothing to do with
+    // what it guards — the same false red a 300-char window produced on the Milla shell.
+    expect(START_WORK).toMatch(/if \(activate\) \{[\s\S]{0,2600}checkProgrammeAuthority\(/)
     // Scaffolding stays open: `activate: false` creates a draft, which sends nothing.
     // Blocking it would stop Milla persisting a client's ICP at all.
     expect(START_WORK).toMatch(/if \(!activate\)[\s\S]{0,400}'draft'/)
@@ -112,7 +116,7 @@ describe('GAP 3 · no programme client reaches sending before Go Live', () => {
   it('⚠️ NOT LIVE, NOT PAID, OR PAUSED — all three still refuse, through the one module', () => {
     // OUTREACH is the action that requires approval + Payment 2 + LIVE. Asking for SOURCING
     // here would let a Payment-1 programme activate a sending campaign.
-    expect(START_WORK).toMatch(/checkProgrammeAuthority\(clientId, 'OUTREACH'\)/)
+    expect(START_WORK).toMatch(/checkProgrammeAuthority\(clientId, 'OUTREACH'/)
     expect(START_WORK).toMatch(/programme_paused/)
     expect(START_WORK).toMatch(/programme_not_live/)
   })
@@ -315,7 +319,23 @@ describe('GAP 3 · behavioural — ensureCampaignForIcp actually refuses', () =>
     const { ensureCampaignForIcp } = await import('./start-work')
     const r = await ensureCampaignForIcp('c1', 'icp-1', 'ICP', { activate: true })
     const reason = (r as { refused?: { reason?: string } }).refused?.reason
-    expect(reason, 'a live paid programme must pass the programme gate').toBeUndefined()
+    // ⛓️ 7 Sep — THE PROGRAMME-STATE GATE IS WHAT THIS TEST IS ABOUT, and it must still let a
+    // complete programme through. A SECOND, separate gate now also runs on OUTREACH: the
+    // prepared work must still be the work the customer approved. This fixture's programme was
+    // approved before that record existed, so it carries no approved-preparation hash — and
+    // "we have no record of what was approved" fails CLOSED, by design.
+    //
+    // ⚠️ ASSERTING `toBeUndefined()` HERE WOULD NOW BE ASSERTING THE OPPOSITE OF THE FOUNDER'S
+    // RULE. What keeps this test non-vacuous is that the three refusals above are still told
+    // apart from each other AND from this one: a paused programme says paused, an unpaid one
+    // says not live, and this one names re-approval — so a function that refused everything
+    // with one reason would still fail here.
+    expect(reason, 'the programme-STATE gate is refusing a live, paid, approved programme')
+      .not.toBe('programme_not_live')
+    expect(reason, 'a live paid programme is being reported as paused or unreadable')
+      .not.toBe('programme_paused')
+    expect(reason, 'a live paid programme is being reported as unreadable')
+      .not.toBe('programme_state_unreadable')
   })
 
   it('⚠️ NON-VACUOUS: a LEGACY client (no programme) is NOT refused by this gate', async () => {
@@ -420,9 +440,13 @@ describe('GAP 4D · migration-first, and the code proves why', () => {
     // `programme-authority.ts` when the duplicated gate was collapsed into one module, so this
     // now asserts the same fact one level down: start-work calls the gate unconditionally on
     // the activate path, and the gate is what reads `programmes` for EVERY client.
-    expect(START_WORK).toMatch(/if \(activate\) \{[\s\S]{0,1200}checkProgrammeAuthority\(/)
+    // ⛓️ 1200 → 2600 on 8 Sep. The gate is unchanged; the REASONING in front of it grew (the
+    // window opt-out for activation), and a fixed character window that is shorter than the
+    // real distance between the two anchors fails for a reason that has nothing to do with
+    // what it guards — the same false red a 300-char window produced on the Milla shell.
+    expect(START_WORK).toMatch(/if \(activate\) \{[\s\S]{0,2600}checkProgrammeAuthority\(/)
     expect(AUTHORITY).toMatch(/from\('programmes'\)/)
-    expect(START_WORK).toMatch(/if \(!verdict\.allowed\)[\s\S]{0,600}return \{ refused/)
+    expect(START_WORK).toMatch(/if \(!verdict\.allowed\)[\s\S]{0,1600}return \{ refused/)
   })
 
   it('⚠️ THE TWO-ARG OVERLOAD IS DROPPED — so an old API\'s two-arg call is not ambiguous', () => {

@@ -84,7 +84,12 @@ export type EnsureCampaignResult =
   // could not be read. Distinct from the one-active-campaign refusal above because the
   // caller must be able to tell "you already have a live campaign" from "this programme has
   // not been paid for", and a client never sees the same sentence for both.
-  | { id?: undefined; refused: { reason: 'programme_not_live' | 'programme_paused' | 'programme_state_unreadable'; message: string } }
+  // ⚑ 7 Sep — `preparation_changed` is its OWN reason and not another shade of
+  // `programme_not_live`, because the operator's next action is completely different: the
+  // programme IS live and paid, and what is needed is a RE-APPROVAL of work that has moved
+  // since the customer said yes. Telling them "not live" would send them to the billing
+  // screen for a consent problem.
+  | { id?: undefined; refused: { reason: 'programme_not_live' | 'programme_paused' | 'programme_state_unreadable' | 'preparation_changed' | 'sender_unsafe' | 'sequence_not_canonical' | 'outside_send_window'; message: string } }
   | null
 
 export async function ensureCampaignForIcp(
@@ -137,7 +142,12 @@ export async function ensureCampaignForIcp(
     // never checked `approved_at`, so a programme that reached LIVE and was paid for without an
     // approval row would have activated a campaign. "One programme approval" is a founder lock.
     const { checkProgrammeAuthority } = await import('./programme-authority')
-    const verdict = await checkProgrammeAuthority(clientId, 'OUTREACH')
+    // ⚑ 8 Sep — `enforceSchedule: false`: turning a campaign ON is not a touch on a prospect.
+    // The send window governs when messages LEAVE, and every actual sender is checked against
+    // it; refusing activation at 19:00 would make the window a scheduling bug instead of a
+    // sending rule. Every OTHER guard behind this door — approval, P2, LIVE, the canonical
+    // sequence, sender safety and the approved-preparation comparison — still applies.
+    const verdict = await checkProgrammeAuthority(clientId, 'OUTREACH', { enforceSchedule: false })
     const goingLiveOk = !verdict.allowed && opts?.goingLive
       ? (await (await import('./programme-preparation')).assertGoingLive(clientId, opts.goingLive.programmeId)).ok
       : false
@@ -147,6 +157,13 @@ export async function ensureCampaignForIcp(
       const reason =
         verdict.reason === 'programme_paused' ? 'programme_paused' as const
         : verdict.reason === 'programme_unresolvable' ? 'programme_state_unreadable' as const
+        : verdict.reason === 'preparation_changed' ? 'preparation_changed' as const
+        // ⚑ 8 Sep — three more reasons that are NOT "not live", and telling an operator "not
+        // live" for any of them sends them to the billing screen for a mailbox or a wording
+        // problem. Each keeps its own name all the way to the caller.
+        : verdict.reason === 'sender_unsafe' ? 'sender_unsafe' as const
+        : verdict.reason === 'sequence_not_canonical' ? 'sequence_not_canonical' as const
+        : verdict.reason === 'outside_send_window' ? 'outside_send_window' as const
         : 'programme_not_live' as const
       if (!goingLiveOk) return { refused: { reason, message: verdict.message } }
     }

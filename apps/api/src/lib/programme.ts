@@ -573,12 +573,62 @@ export function programmeStageOf(type: string | undefined): ProgrammeStage | nul
  * ONE programme-level approval (founder lock 5) — never thousands of paid per-lead approvals.
  * Only from READY_FOR_APPROVAL, and never while paused.
  */
+/**
+ * The columns an approval must ALSO write: what, exactly, was approved.
+ *
+ * 🛑 APPROVAL USED TO RECORD ONLY *WHEN*. So a sequence rewritten, a cadence retimed, a sender
+ * swapped or an enrolment set replaced after approval carried the old consent forward in
+ * silence, and every gate downstream read that consent as permission to send THIS.
+ *
+ * ⚠️ IT IS COMPUTED BEFORE THE WRITE AND WRITTEN *WITH* IT — one conditional UPDATE, the safest
+ * transaction boundary this code already has. A snapshot stamped separately could land against
+ * a programme whose approval never happened, or an approval could land with no record of what
+ * it covered; both are the inconsistency the hash exists to detect, manufactured by the fix.
+ *
+ * 🛑 AND A PROGRAMME THAT CANNOT BE DESCRIBED CANNOT BE APPROVED. If the snapshot cannot be
+ * built, this returns `null` and the caller REFUSES — approving work we cannot characterise
+ * would produce exactly the "approved, but nobody can say to what" state that reads as
+ * unreadable forever afterwards.
+ */
+async function approvedPreparationColumns(programmeId: string, at: string): Promise<Record<string, unknown> | null> {
+  // ── ⚑ 8 Sep — APPROVAL COPIES THE REVIEWED SNAPSHOT; IT DOES NOT TAKE A FRESH ONE ───────
+  //
+  // 🛑 THE DEFECT IN TAKING A FRESH ONE. This originally built the snapshot at approval time,
+  // which records whatever the work had BECOME. If the sequence, the sender or the audience
+  // changed while the client was reading, the approval would faithfully have recorded consent
+  // to the new thing. So the current state is recomputed only to be COMPARED, and what is
+  // STORED is the material the client actually read.
+  //
+  // ⚠️ A MISMATCH REFUSES, AND SO DOES A MISSING REVIEW FREEZE. "We cannot prove what they were
+  // shown" is not permission to approve on their behalf.
+  const { reviewDrift } = await import('./preparation-snapshot')
+  const drift = await reviewDrift(programmeId)
+  if (drift.state !== 'unchanged') return null
+
+  const { data: prog, error } = await db.from('programmes')
+    .select('review_preparation_hash, review_preparation_snapshot').eq('id', programmeId).maybeSingle()
+  if (error || !prog) return null
+  const rp = prog as { review_preparation_hash: string | null; review_preparation_snapshot: unknown }
+  if (!rp.review_preparation_hash) return null
+
+  return {
+    approved_preparation_hash: rp.review_preparation_hash,
+    approved_preparation_snapshot: rp.review_preparation_snapshot,
+    approved_preparation_at: at,
+  }
+}
+
 export async function approveProgramme(programmeId: string): Promise<ProgrammeResult> {
   const p = await getProgramme(programmeId)
   if (!p) return { ok: false, reason: 'No such programme.' }
   if (p.paused_at) return { ok: false, reason: 'Cannot approve a paused programme.' }
   if (p.status !== 'READY_FOR_APPROVAL') return { ok: false, reason: `Cannot approve from ${p.status}.` }
-  await setStatus(programmeId, 'APPROVED', { approved_at: new Date().toISOString() })
+  const at = new Date().toISOString()
+  const prepared = await approvedPreparationColumns(programmeId, at)
+  if (!prepared) {
+    return { ok: false, reason: 'This programme cannot be approved: the prepared work is not the work that was frozen for review, or no review freeze exists. Re-prepare it, freeze it again and have it reviewed. Nothing was changed.' }
+  }
+  await setStatus(programmeId, 'APPROVED', { approved_at: at, ...prepared })
   return { ok: true }
 }
 
@@ -675,9 +725,21 @@ export async function approveProgrammeAsCustomer(
     }
   }
 
-  // ── THE WRITE. TWO COLUMNS, ONE CONDITIONAL UPDATE ─────────────────────────────────────
+  // ── THE WRITE. ONE CONDITIONAL UPDATE, NOW CARRYING WHAT WAS APPROVED ─────────────────
+  //
+  // ⛓️ 7 Sep — the approved preparation snapshot is written HERE, in the same claim, so a
+  // programme can never hold an approved snapshot it was not approved with. It is computed
+  // first because it reads several tables; the race guard below still decides who wins.
+  const at = new Date().toISOString()
+  const prepared = await approvedPreparationColumns(programmeId, at)
+  if (!prepared) {
+    return {
+      ok: false, code: 'unreadable',
+      reason: 'This programme cannot be approved: the prepared work is not the work you reviewed, or no review freeze exists. It must be re-frozen and reviewed again. Nothing was changed.',
+    }
+  }
   const { data: won, error: writeErr } = await db.from('programmes')
-    .update({ status: 'APPROVED', approved_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+    .update({ status: 'APPROVED', approved_at: at, updated_at: at, ...prepared })
     .eq('id', programmeId)
     .eq('client_id', clientId)
     // 🛑 THE RACE GUARD. Only a row still in READY_FOR_APPROVAL is claimed, so of two
@@ -756,7 +818,51 @@ export async function markReadyForApproval(programmeId: string): Promise<Program
     return { ok: false, reason: 'No sourced work carries this programme yet, so there is nothing for the client to review. Attach an ICP to the programme and source at least once first.' }
   }
 
-  await setStatus(programmeId, 'READY_FOR_APPROVAL')
+  // ── ⚑ 7 Sep — AND REVIEWABLE PROSPECTS ARE NOT THE SAME AS REVIEWABLE WORK ───────────
+  //
+  // 🛑 THE LAUNCH-CRITICAL DEFECT THIS CLOSES. Everything above proves there is somebody to
+  // show the client. It proves nothing about what would be DONE with them — and Vida offered
+  // "Ready for approval" on the House programme with 246 reviewable prospects and no batch, no
+  // campaign, no sequence, no messaging, no cadence, no sender and no frozen set.
+  //
+  // READY_FOR_APPROVAL means "a human may now look at what will run, and approve it". An
+  // approval collected against work that does not exist is worse than no approval, because
+  // everybody downstream treats it as consent to send.
+  //
+  // ⚠️ ONE CANONICAL RULE, so the API and the screen cannot disagree about what is allowed —
+  // and it names the specific blocker, because the operator's next action depends entirely on
+  // WHICH piece is missing.
+  const { programmePreparationReadiness } = await import('./preparation-readiness')
+  const readiness = await programmePreparationReadiness(programmeId)
+  if (!readiness.ready) {
+    return {
+      ok: false,
+      reason: 'This programme is not ready for the client to approve yet — ' +
+        readiness.blockers.map(b => b.detail).join(' '),
+    }
+  }
+
+  // ── ⚑ 8 Sep — FREEZE THE REVIEW SNAPSHOT, IN THE SAME WRITE AS THE STATUS ─────────────
+  //
+  // 🛑 THE CLIENT MUST REVIEW THE EXACT THING THEY LATER APPROVE (founder-locked). Freezing
+  // only at APPROVED proved what was approved and nothing about what was READ: the work could
+  // change underneath somebody mid-review and the approval would faithfully record the new
+  // state — a perfect record of consent to something nobody looked at.
+  //
+  // ⚠️ SAME UPDATE AS THE STATUS, so a programme can never be READY_FOR_APPROVAL without a
+  // record of what it was ready WITH; and a programme that cannot be described cannot become
+  // reviewable, for the same reason it cannot become approved.
+  const frozenAt = new Date().toISOString()
+  const { buildPreparationSnapshot } = await import('./preparation-snapshot')
+  const frozen = await buildPreparationSnapshot(programmeId)
+  if (!frozen.ok) {
+    return { ok: false, reason: `The prepared work could not be described, so there is nothing to freeze for the client to review. ${frozen.degraded}` }
+  }
+  await setStatus(programmeId, 'READY_FOR_APPROVAL', {
+    review_preparation_hash: frozen.hash,
+    review_preparation_snapshot: frozen.snapshot as unknown,
+    review_preparation_at: frozenAt,
+  })
   return { ok: true }
 }
 

@@ -6,7 +6,7 @@
 
 ## The number
 
-**105 distinct variables** across `apps/api`, `apps/portal` and `apps/admin` — **88** read by the API, **17** read only by the portal or the admin app.
+**106 distinct variables** across `apps/api`, `apps/portal` and `apps/admin` — **89** read by the API, **17** read only by the portal or the admin app.
 
 **#561 recorded 69, and that figure was wrong twice over.** The first was method: a `process.env.X` grep cannot see the **12 variables this repo reaches by indirection** —
 
@@ -68,6 +68,7 @@ Every row here fails **quietly**. Nothing throws; a feature just does not happen
 | `FIGSY_REPLY_TO` | api | 🟠 important | Reply-To on sequence mail | Railway → **@kind/api** |
 | `FIGSY_UNSUB_MAILTO` | api | 🟠 important | List-Unsubscribe mailto — unset = the one-click header is absent and Gmail penalises the domain | Railway → **@kind/api** |
 | `FOUNDER_EMAIL` | api | 🟠 important | Where every alert goes — unset falls back to hello@get-kind.com | Railway → **@kind/api** |
+| `HOUSE_LAUNCH_PROGRAMME_ID` | api | 🟠 important | The uuid of the ONE programme the approved five-step House launch sequence may be seeded into. **Unset = nothing is seeded anywhere**, which is the safe default and the state every deployment starts in — preparation then refuses to enrol rather than enrolling against words nobody approved. It is not `audience === 'house'`: that classification matches every House programme ever created, including next month's. A wrong uuid cannot seed a customer either — the named programme must ALSO belong to a proved House client | Railway → **@kind/api** |
 | `HUNTER_API_KEY` | api | 🟠 important | Hunter.io — email reveal in the enrichment waterfall | Railway → **@kind/api** |
 | `INBOX_SECRET_KEY` | api | 🟠 important | Mailbox password key (64 hex) — unset = saved SMTP passwords cannot be read, so NOTHING sends and the add-mailbox form refuses | Railway → **@kind/api** |
 | `PDL_API_KEY` | api | 🟠 important | People Data Labs — PRIMARY lead sourcing; unset (with no Apollo) = zero leads | Railway → **@kind/api** |

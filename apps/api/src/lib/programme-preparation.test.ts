@@ -21,6 +21,7 @@ const state: {
   charges: string[]; sends: string[]; ensureCalls: { clientId: string; icpId: string; activate: boolean }[]
   ensureRefuses: boolean; blocklist: Row[]
 } = {
+  sequences: [] as Row[], batches: [] as Row[],
   programmes: [], icps: [], leads: [], campaigns: [], enrollments: [], clients: [],
   charges: [], sends: [], ensureCalls: [], ensureRefuses: false, blocklist: [],
 }
@@ -78,12 +79,27 @@ vi.mock('@kind/db', () => ({
     from: (t: string) => table(
       t === 'programmes' ? 'programmes' : t === 'icps' ? 'icps' : t === 'leads' ? 'leads'
       : t === 'figsy_campaigns' ? 'campaigns' : t === 'figsy_enrollments' ? 'enrollments'
-      : t === 'opt_out_blocklist' ? 'blocklist' : 'clients',
+      : t === 'opt_out_blocklist' ? 'blocklist'
+      : t === 'figsy_sequences' ? 'sequences' : t === 'programme_batches' ? 'batches' : 'clients',
     ),
     rpc: async () => ({ data: null, error: null }),
   },
 }))
 vi.mock('./alerts', () => ({ sendFounderAlert: () => Promise.resolve() }))
+
+// ⚑ 8 Sep — THE AUDIENCE RESOLVER, MADE DRIVEABLE. The real `audienceForClientStrict` answers
+// from the AUTH USER via `db.auth.admin.getUserById`, which this in-memory stand-in has no
+// notion of; left real, every case below would take its `catch` and prove nothing. Only that
+// ONE export is replaced — the rest of the module is spread through untouched, so nothing else
+// in the import graph quietly changes behaviour.
+let audience: 'house' | 'client' | 'throw' = 'house'
+vi.mock('./provider-boundary', async (orig) => ({
+  ...(await orig<Record<string, unknown>>()),
+  audienceForClientStrict: async () => {
+    if (audience === 'throw') throw new Error('identity could not be proved')
+    return audience
+  },
+}))
 
 // `ensureCampaignForIcp` is the real product's only door to an active campaign. It is stubbed
 // so this file can drive the ORDERING and the refusal path deterministically; what it decides
@@ -126,6 +142,7 @@ vi.mock('./figsy', () => ({
 }))
 
 import { prepareProgrammeOutreach, verifyProgrammeFulfilment, PREPARE_BUDGET } from './programme-preparation'
+import { HOUSE_SEQUENCE_STEPS } from './house-sequence'
 
 const P_NEW = 'P_NEW'
 const H = 'house'
@@ -143,11 +160,30 @@ function seedProgrammeReadyForLive(over: Row = {}) {
   })
   state.icps.push({ id: 'ICP_NEW', client_id: H, name: 'Programme targeting', programme_id: P_NEW, is_active: true })
   state.clients.push({ id: H, figsy_credits_remaining: 0, is_demo: false })
+  // ⚑ 8 Sep — A CONTROLLED BATCH AND A CANONICAL SEQUENCE ARE NOW PRECONDITIONS, and neither is
+  // fixture noise. Preparation must enrol only the CURRENT batch (an older batch's people would
+  // otherwise join the set being approved now), and it refuses outright without a canonical
+  // sequence — because `autoEnrollLead` would otherwise AI-generate words nobody approved.
+  state.batches.push({ id: 'BATCH_NEW', programme_id: P_NEW, seq: 1, status: 'served' })
+  state.campaigns.push({ id: 'camp-seed', client_id: H, icp_id: 'ICP_NEW', status: 'active', leads_enrolled: 0 })
+  // ⚑ 8 Sep — `wait_days` is the wait AFTER a step, so a two-step sequence is [3, 0]: three
+  // days after the first message, and a terminal 0 nothing reads. Written as [0, 3] it would
+  // send both on day zero, which preparation now refuses before anybody is enrolled.
+  state.sequences.push({ id: 'SEQ_NEW', client_id: H, campaign_id: 'camp-seed', steps: [
+    { channel: 'email', subject: 'One', body: 'First message', wait_days: 3 },
+    { channel: 'email', subject: 'Two', body: 'Second message', wait_days: 0 },
+  ] })
 }
 const newLead = (id: string, over: Row = {}) =>
   state.leads.push({
     id, client_id: H, icp_id: 'ICP_NEW', programme_id: P_NEW, delivered_at: 'd',
-    status: 'scored', email: `${id.toLowerCase()}@example.com`,
+    // ⚑ 8 Sep — the CURRENT batch, and a VERIFIED BUSINESS address re-proved at enrolment.
+    // `apollo_consented` is the existing "provider-VERIFIED email" marker, written true only
+    // after the final ICP gate; a free-mail domain fails `isBusinessEmail` on the same row.
+    batch_id: 'BATCH_NEW', apollo_consented: true,
+    // ⚠️ NOT `@example.com` — `isPlaceholderEmail` treats it as a fake mailbox, and the
+    // enrolment gate now re-proves the address is a real BUSINESS one.
+    status: 'scored', email: `${id.toLowerCase()}@northwind-logistics.co.uk`,
     // ⚠️ SURFACED BY DEFAULT, because the default lead here is a NORMAL programme prospect: one
     // an operator has put in front of the customer. `delivered_at` alone is a different and
     // narrower state — the one ⑨ below proves must never become outreach.
@@ -157,9 +193,11 @@ const newLead = (id: string, over: Row = {}) =>
 
 beforeEach(() => {
   state.programmes = []; state.icps = []; state.leads = []; state.campaigns = []
-  state.enrollments = []; state.clients = []
+  state.enrollments = []; state.clients = []; state.sequences = []; state.batches = []
   state.charges = []; state.sends = []; state.ensureCalls = []; state.ensureRefuses = false
   state.blocklist = []
+  audience = 'house'
+  delete process.env.HOUSE_LAUNCH_PROGRAMME_ID
 })
 
 // ═══════════════════════════════════════════════════════════════════════════════════════
@@ -269,7 +307,16 @@ describe('② programme fulfilment is verified from the database, never from the
     ['a terminal programme', () => { state.programmes[0].status = 'CANCELLED' }],
     ['a programme with no approval', () => { state.programmes[0].approved_at = null }],
     ['a programme with no P2 authority', () => { state.programmes[0].second_authorised_at = null }],
-    ['a programme still SOURCING', () => { state.programmes[0].status = 'SOURCING' }],
+    // ⛓️ 'a programme still SOURCING' LEFT THIS TABLE ON 7 Sep — founder-locked reversal.
+    // Preparation now happens BEFORE approval (campaign, sequence, words, timing, sender and
+    // audience must exist before the customer is asked to approve them), so a SOURCING
+    // programme holding P1 is exactly the state preparation is FOR. Its new truth is
+    // asserted below rather than deleted, and the P1 floor it replaced it with is here:
+    ['a pre-approval programme with no P1 authority', () => {
+      state.programmes[0].status = 'SOURCING'
+      state.programmes[0].first_authorised_at = null
+      state.programmes[0].first_paid_at = null
+    }],
     ['an ICP not attached to the programme', () => { state.icps[0].programme_id = null }],
     ['an ICP of another programme', () => { state.icps[0].programme_id = 'P_OTHER' }],
     ['an ICP of another client', () => { state.icps[0].client_id = 'mbf' }],
@@ -345,13 +392,47 @@ describe('③ a programme that could not be prepared never reports itself operab
     expect(state.campaigns).toHaveLength(1)
   })
 
-  it('preparation refuses outright before APPROVED — P2 alone is not sending authority', async () => {
-    seedProgrammeReadyForLive({ status: 'SOURCING_AUTHORISED', approved_at: null })
+  // ⛓️ REVERSED 7 Sep BY THE FOUNDER, AND THE REVERSAL IS THE POINT OF THE PACKAGE.
+  //
+  // This case read *"preparation refuses outright before APPROVED"* and asserted no campaign and
+  // no enrolment. That was the deadlock: `READY_FOR_APPROVAL` means *a human may now look at
+  // what will run* — so the campaign, the sequence, the words, the timing, the sender and the
+  // audience have to EXIST before the question is put. **"Campaign + sequence + messaging +
+  // cadence + sender + prepared enrolments must exist before the client is asked to approve.
+  // Preparation is NON-SENDING."**
+  //
+  // 🛑 WHAT REPLACED IT IS NOT WEAKER, IT IS DIFFERENTLY PLACED. Preparation before approval
+  // needs P1 and produces a DRAFT campaign; `activate: true` is the only door to
+  // `status: 'active'` — the status the outreach machinery looks for — and it stays shut until
+  // Make Live, where `assertGoingLive` still demands an approval and Payment 2.
+  it('🛑 preparation before approval prepares, and creates the campaign as a DRAFT', async () => {
+    seedProgrammeReadyForLive({ status: 'SOURCING_AUTHORISED', approved_at: null, second_authorised_at: null })
+    newLead('L1')
+    const r = await prepareProgrammeOutreach(P_NEW)
+    expect(r.problems.join(' | ')).toBe('')
+    expect(r.enrolled, 'the prepared audience is empty before approval').toEqual(['L1'])
+    expect(state.ensureCalls, 'the pre-approval campaign was ACTIVATED — that is the send door')
+      .toEqual([{ clientId: H, icpId: 'ICP_NEW', activate: false }])
+  })
+
+  it('🛑 and it still refuses without P1 — preparation is bought by Payment 1, not by nothing', async () => {
+    seedProgrammeReadyForLive({
+      status: 'SOURCING_AUTHORISED', approved_at: null,
+      first_authorised_at: null, first_paid_at: null, second_authorised_at: null,
+    })
     newLead('L1')
     const r = await prepareProgrammeOutreach(P_NEW)
     expect(r.ok).toBe(false)
     expect(state.enrollments).toHaveLength(0)
-    expect(state.ensureCalls, 'no campaign may be created before approval').toEqual([])
+    expect(state.ensureCalls, 'a campaign was created for a programme nobody has paid for').toEqual([])
+  })
+
+  it('🛑 the POST-approval path is unchanged — an approved, P2-authorised programme ACTIVATES', async () => {
+    seedProgrammeReadyForLive()   // APPROVED + approved_at + P2
+    newLead('L1')
+    await prepareProgrammeOutreach(P_NEW)
+    expect(state.ensureCalls, 'activation moved, and Make Live can no longer start a campaign')
+      .toEqual([{ clientId: H, icpId: 'ICP_NEW', activate: true }])
   })
 })
 
@@ -582,7 +663,7 @@ describe('⑦ preparation reuses the existing suppression truth', () => {
     // A person who opted out through any client is suppressed for all of them, and that fact
     // lives in `opt_out_blocklist`, not on the lead row — the same table the send path reads.
     newLead('L_OK'); newLead('L_BLOCKED')
-    state.blocklist.push({ email: 'l_blocked@example.com' })
+    state.blocklist.push({ email: 'l_blocked@northwind-logistics.co.uk' })
     const r = await prepareProgrammeOutreach(P_NEW)
     expect(r.enrolled).toEqual(['L_OK'])
     expect(r.skipped).toBe(1)
@@ -743,7 +824,7 @@ describe('⑨ only genuinely review-surfaced programme work is prepared for outr
     seedProgrammeReadyForLive({ status: 'LIVE', went_live_at: 'w' })
     newLead('L1')
     newLead('L_BOUNCED')
-    state.blocklist.push({ email: 'l_bounced@example.com', reason: 'hard_bounce' })
+    state.blocklist.push({ email: 'l_bounced@northwind-logistics.co.uk', reason: 'hard_bounce' })
 
     const r = await prepareProgrammeOutreach(P_NEW)
     expect(r.enrolled).toEqual(['L1'])
@@ -755,7 +836,7 @@ describe('⑨ only genuinely review-surfaced programme work is prepared for outr
     seedProgrammeReadyForLive({ status: 'LIVE', went_live_at: 'w' })
     newLead('L1')
     newLead('L_COMPLAINED')
-    state.blocklist.push({ email: 'l_complained@example.com', reason: 'spam_complaint' })
+    state.blocklist.push({ email: 'l_complained@northwind-logistics.co.uk', reason: 'spam_complaint' })
 
     const r = await prepareProgrammeOutreach(P_NEW)
     expect(r.enrolled).toEqual(['L1'])
@@ -797,5 +878,208 @@ describe('⑨ only genuinely review-surfaced programme work is prepared for outr
     const occurrences = body.split(".not('surfaced_for_approval_at', 'is', null)").length - 1
     expect(occurrences, 'both the page read and the outstanding head count').toBe(2)
     expect(body).toContain("if (!l.surfaced_for_approval_at) return { ok: false, reason: 'lead was never surfaced to the customer for review' }")
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// ⑩ THE APPROVED LAUNCH SEQUENCE REACHES **ONE** PROGRAMME — founder-locked 8 Sep
+//
+// 🛑 THE QUESTION THIS SECTION CLOSES, IN THE FOUNDER'S OWN TERMS: *"Can the current approved
+// 5-step House sequence ever auto-seed into any programme other than the exact current House
+// programme we are preparing for launch?"*
+//
+// The first answer this repo shipped was `audienceForClientStrict(client_id) === 'house'`. That
+// proves a **CLASSIFICATION**, and a classification is not an identity: every House programme is
+// House — a second one created next month, a different ICP under the same client, every
+// historical one, and every future one. Seeding on it would put September's launch copy into
+// November's campaign, and nothing would say so.
+//
+// ⚠️ SO THESE ARE BEHAVIOURAL, NOT SOURCE ASSERTIONS. Each case runs the real
+// `prepareProgrammeOutreach` against the real `house-sequence` gate and asks what actually
+// ended up in `figsy_sequences`. A test that greps for a function name proves the name exists.
+// ═══════════════════════════════════════════════════════════════════════════════════════
+
+describe('⑩ only the ONE configured launch programme is ever seeded with the approved copy', () => {
+  /** The configured launch programme, and a rival that is House in every other respect. */
+  const LAUNCH = '11111111-1111-4111-8111-111111111111'
+  const RIVAL  = '22222222-2222-4222-8222-222222222222'
+
+  /** Seed a House programme that is ready to prepare and has NO sequence of its own. */
+  function houseProgramme(id: string, over: Row = {}, seq: Row | null = null) {
+    state.programmes.push({
+      id, client_id: H, status: 'LIVE', approved_at: 'a', went_live_at: 'w',
+      meeting_target: 4, recommended_volume: 1000, sourcing_ceiling: 1000,
+      sourced_used: 0, sourced_reserved: 0,
+      first_authorised_at: 'i1', second_authorised_at: 'i2',
+      first_paid_at: null, second_paid_at: null,
+      first_payment_ref: null, second_payment_ref: null,
+      first_payment_intent_id: null, second_payment_intent_id: null,
+      paused_at: null, ...over,
+    })
+    state.icps.push({ id: `icp-${id}`, client_id: H, name: 'Programme targeting', programme_id: id, is_active: true })
+    if (!state.clients.some(c => c.id === H)) state.clients.push({ id: H, figsy_credits_remaining: 0, is_demo: false })
+    state.batches.push({ id: `batch-${id}`, programme_id: id, seq: 1, status: 'served' })
+    state.campaigns.push({ id: `camp-${id}`, client_id: H, icp_id: `icp-${id}`, status: 'active', leads_enrolled: 0 })
+    if (seq) state.sequences.push({ id: `seq-${id}`, client_id: H, campaign_id: `camp-${id}`, ...seq })
+    state.leads.push({
+      id: `lead-${id}`, client_id: H, icp_id: `icp-${id}`, programme_id: id, delivered_at: 'd',
+      batch_id: `batch-${id}`, apollo_consented: true, status: 'scored',
+      email: `contact-${id.slice(0, 8)}@northwind-logistics.co.uk`,
+      surfaced_for_approval_at: 's', revealed_at: null,
+      opted_out_at: null, provider_eviction_required_at: null,
+    })
+  }
+
+  /** What is actually stored for a programme's campaign, read back rather than assumed. */
+  const storedFor = (id: string) => state.sequences.filter(s => s.campaign_id === `camp-${id}`)
+  const approvedSubjects = HOUSE_SEQUENCE_STEPS.map(s => s.subject)
+  const subjectsOf = (row: Row | undefined) =>
+    ((row?.steps ?? []) as { subject: string }[]).map(s => s.subject)
+
+  // ── THE POSITIVE CONTROL. Every refusal below is worthless without it: a gate that refuses
+  // EVERYTHING passes all nine "it must not seed" cases and silently kills the launch.
+  it('🛑 8 · the configured launch programme IS seeded — and if it stops, this goes RED', async () => {
+    process.env.HOUSE_LAUNCH_PROGRAMME_ID = LAUNCH
+    houseProgramme(LAUNCH)
+
+    const r = await prepareProgrammeOutreach(LAUNCH)
+
+    expect(r.complete, r.problems.join(' | ')).toBe(true)
+    const stored = storedFor(LAUNCH)
+    expect(stored, 'the launch programme was not seeded at all').toHaveLength(1)
+    expect(subjectsOf(stored[0]), 'the seeded words are not the approved five').toEqual(approvedSubjects)
+    expect((stored[0].steps as { wait_days: number }[]).map(s => s.wait_days)).toEqual([3, 4, 5, 6, 0])
+    // And the enrolment that came out of it is real, not a refusal reported as success.
+    expect(r.enrolled).toEqual([`lead-${LAUNCH}`])
+  })
+
+  it('🛑 1 · a SECOND House programme is not seeded — House is a classification, not an identity', async () => {
+    process.env.HOUSE_LAUNCH_PROGRAMME_ID = LAUNCH
+    houseProgramme(LAUNCH)
+    houseProgramme(RIVAL)
+
+    const r = await prepareProgrammeOutreach(RIVAL)
+
+    expect(storedFor(RIVAL), "a second House programme received the launch programme's copy").toEqual([])
+    expect(r.complete).toBe(false)
+    expect(r.problems.join(' ')).toContain('no canonical sequence')
+    expect(state.enrollments, 'nobody was enrolled against words nobody authored').toEqual([])
+  })
+
+  it('🛑 2 · another programme under the SAME client is not seeded', async () => {
+    // Same `client_id`, same audience, same everything except the one fact that is checked.
+    process.env.HOUSE_LAUNCH_PROGRAMME_ID = LAUNCH
+    houseProgramme(LAUNCH)
+    houseProgramme(RIVAL)
+    expect(state.programmes.map(p => p.client_id)).toEqual([H, H])
+
+    await prepareProgrammeOutreach(RIVAL)
+    expect(storedFor(RIVAL)).toEqual([])
+  })
+
+  it('🛑 3 · a programme sharing the launch ICP\'s targeting is not seeded', async () => {
+    // Identical targeting is the most persuasive wrong signal there is: same audience, same
+    // words would "obviously" fit. The chain still resolves per programme, and the gate still
+    // asks for the id.
+    process.env.HOUSE_LAUNCH_PROGRAMME_ID = LAUNCH
+    houseProgramme(LAUNCH)
+    houseProgramme(RIVAL)
+    for (const icp of state.icps) icp.name = 'Programme targeting'
+
+    await prepareProgrammeOutreach(RIVAL)
+    expect(storedFor(RIVAL)).toEqual([])
+  })
+
+  it('🛑 4 · a HISTORICAL House programme is not seeded', async () => {
+    // House carries programmes from a retired desk. An older one being re-prepared must not
+    // pick up copy written for a launch that had not happened when it ran.
+    process.env.HOUSE_LAUNCH_PROGRAMME_ID = LAUNCH
+    houseProgramme(LAUNCH)
+    houseProgramme(RIVAL, { approved_at: '2026-01-04', went_live_at: '2026-01-05' })
+
+    await prepareProgrammeOutreach(RIVAL)
+    expect(storedFor(RIVAL), 'a retired programme was given this quarter\'s launch copy').toEqual([])
+  })
+
+  it('🛑 5 · a FUTURE House programme gets nothing from the audience alone', async () => {
+    // The variable is unset — the state every deployment is in until somebody names ONE
+    // programme. A House audience on its own must seed NOTHING, or the default state of the
+    // product is "everything House gets M&V's launch pitch".
+    expect(process.env.HOUSE_LAUNCH_PROGRAMME_ID).toBeUndefined()
+    houseProgramme(RIVAL)
+    expect(audience, 'the fixture is a proved House client').toBe('house')
+
+    const r = await prepareProgrammeOutreach(RIVAL)
+    expect(storedFor(RIVAL), 'a House audience alone seeded the approved copy').toEqual([])
+    expect(r.complete).toBe(false)
+  })
+
+  it('🛑 6 · a NON-House programme is not seeded, even when its id is the configured one', async () => {
+    // The other half of the two-fact gate: a uuid pasted into the variable can be the WRONG
+    // uuid. A mistyped customer programme id must not put M&V's own pitch in front of that
+    // customer's prospects.
+    process.env.HOUSE_LAUNCH_PROGRAMME_ID = LAUNCH
+    audience = 'client'
+    houseProgramme(LAUNCH)
+
+    const r = await prepareProgrammeOutreach(LAUNCH)
+    expect(storedFor(LAUNCH), "a customer's programme was seeded with M&V's own pitch").toEqual([])
+    expect(r.complete).toBe(false)
+  })
+
+  it('🛑 6b · and an UNPROVABLE identity is read as "not the launch programme"', async () => {
+    process.env.HOUSE_LAUNCH_PROGRAMME_ID = LAUNCH
+    audience = 'throw'
+    houseProgramme(LAUNCH)
+
+    await prepareProgrammeOutreach(LAUNCH)
+    expect(storedFor(LAUNCH), 'an unprovable identity was treated as the launch programme').toEqual([])
+  })
+
+  it('🛑 7 · an EXISTING sequence is never overwritten, not even on the launch programme', async () => {
+    // The approved copy is a SEED for an empty programme, not a periodic reset. Somebody who
+    // edited a message must not find it replaced the next time preparation runs.
+    process.env.HOUSE_LAUNCH_PROGRAMME_ID = LAUNCH
+    houseProgramme(LAUNCH, {}, {
+      steps: [
+        { channel: 'email', subject: 'Operator-authored one', body: 'Edited after the seed', wait_days: 3 },
+        { channel: 'email', subject: 'Operator-authored two', body: 'Also edited', wait_days: 0 },
+      ],
+    })
+
+    const r = await prepareProgrammeOutreach(LAUNCH)
+
+    const stored = storedFor(LAUNCH)
+    expect(stored, 'a rival sequence was added alongside the edited one').toHaveLength(1)
+    expect(subjectsOf(stored[0]), 'an edited sequence was overwritten with the approved copy')
+      .toEqual(['Operator-authored one', 'Operator-authored two'])
+    expect(r.complete, r.problems.join(' | ')).toBe(true)
+  })
+
+  it('🛑 9 · identity is NOT the name, NOT the newest, NOT the client — proved by making all three point the wrong way', async () => {
+    // The rival is created LAST (newest), is named exactly like the launch programme, belongs
+    // to the same client, and carries the same audience. Every inference a reasonable person
+    // might reach for says "this is the one". The configured id says otherwise, and the
+    // configured id is the only thing that is asked.
+    process.env.HOUSE_LAUNCH_PROGRAMME_ID = LAUNCH
+    houseProgramme(LAUNCH)
+    houseProgramme(RIVAL, { name: 'K.I.N.D Client Zero — House launch', created_at: '2026-09-08T09:00:00Z' })
+    state.programmes[0].name = 'K.I.N.D Client Zero — House launch'
+    state.programmes[0].created_at = '2026-01-01T09:00:00Z'
+
+    await prepareProgrammeOutreach(RIVAL)
+
+    expect(storedFor(RIVAL), 'the newest same-named programme under the same client was seeded').toEqual([])
+    // And the real one still is, so this is not a gate that refuses everything.
+    await prepareProgrammeOutreach(LAUNCH)
+    expect(subjectsOf(storedFor(LAUNCH)[0])).toEqual(approvedSubjects)
+  })
+
+  it('🛑 a malformed or partial value seeds nothing — no prefix match, no "close enough"', async () => {
+    process.env.HOUSE_LAUNCH_PROGRAMME_ID = LAUNCH.slice(0, 8)
+    houseProgramme(LAUNCH)
+
+    await prepareProgrammeOutreach(LAUNCH)
+    expect(storedFor(LAUNCH), 'a truncated id matched a real programme').toEqual([])
   })
 })

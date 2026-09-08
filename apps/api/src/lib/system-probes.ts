@@ -330,6 +330,20 @@ const REQUIRED_FUNCTIONS: FunctionProbe[] = [
     migration: '20260829_programme_delivery_control',
   },
   {
+    // HOUSE-009 — the programme-authority reserve, split out of `try_spend_sourcing` so a
+    // provider we already paid for (Apollo, on the house path) can reserve entitlement
+    // without a fabricated PDL cost row. Probed with a UUID matching no programme, so
+    // `IF v_status IS NULL THEN RETURN 0` answers before any UPDATE.
+    //
+    // ⚠️ ITS ABSENCE IS SILENT AND EXPENSIVE. If the migration has not run, every house
+    // reservation returns nothing, `grantedSize` is 0 and house sourcing simply stops — with
+    // a log line about programme authority and no other symptom.
+    name: 'try_reserve_programme_sourcing',
+    args: { p_programme_id: NO_SUCH_ROW_UUID, p_requested: 0 },
+    why: 'reserves programme sourcing volume against the ceiling and the 250 batch cap WITHOUT writing PDL money — the house path\'s only accounting, and the single implementation of the ceiling that try_spend_sourcing also calls',
+    migration: '20260907_programme_sourcing_authority',
+  },
+  {
     // BUILD-002 — the reserve/release settle. Probed with a UUID that matches no batch, so
     // the `IF v_prog IS NULL THEN RETURN 0` guard answers without touching any programme.
     name: 'settle_programme_batch',

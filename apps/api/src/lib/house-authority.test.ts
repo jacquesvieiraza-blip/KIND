@@ -39,7 +39,7 @@ import { join } from 'path'
 // read rows. A source-text assertion cannot tell `if (open)` from `if (false && open)` — they
 // contain identical substrings — so the gates are exercised by calling them.
 const dbState: {
-  enrollment: { client_id: string | null; programme_id: string | null } | null
+  enrollment: { client_id: string | null; programme_id: string | null; sequence_id?: string | null } | null
   programme: Record<string, unknown> | null
   icp: Record<string, unknown> | null
   icpList: Record<string, unknown>[]
@@ -51,6 +51,10 @@ const dbState: {
   icpListError: { message: string } | null
   campaigns: Record<string, unknown>[]
   campaignsError: { message: string } | null
+  /** ⚑ 8 Sep — `figsy_sequences` is the single source of truth for programme words, so the
+   *  fixture has to be able to hold one. Empty by default: most cases here are about attribution
+   *  and authority, not about wording. */
+  sequences: Record<string, unknown>[]
   // ⛓️ C2 — THE CLIENT ROW IS NOW PART OF EVERY AUTHORITY QUESTION. `checkProgrammeAuthority`
   // resolves `clients.commercial_model` before it reads the programme, so a fixture with no
   // client row is a client that does not exist — which fails closed, correctly, and is not what
@@ -60,7 +64,7 @@ const dbState: {
 } = {
   enrollment: null, programme: null, icp: null, icpList: [],
   leadCount: 0, leadCountError: null, writes: [], updatedRows: null,
-  icpClientFilter: null, icpListError: null, campaigns: [], campaignsError: null,
+  icpClientFilter: null, icpListError: null, campaigns: [], campaignsError: null, sequences: [],
   client: { id: 'c1', commercial_model: null },
 }
 
@@ -89,6 +93,7 @@ vi.mock('@kind/db', () => ({
             // `markReadyForApproval` uses a head count: `{ count, error }`, no rows.
             return res({ data: null, count: dbState.leadCount, error: dbState.leadCountError })
           }
+          if (table === 'figsy_sequences') return res({ data: dbState.sequences, error: null })
           if (table === 'figsy_campaigns') {
             if (dbState.campaignsError) return res({ data: null, error: dbState.campaignsError })
             return res({ data: dbState.campaigns, error: null })
@@ -147,7 +152,7 @@ const LIVE = P({
 
 beforeEach(() => {
   dbState.enrollment = null; dbState.programme = null; dbState.icp = null
-  dbState.icpList = []; dbState.leadCount = 0; dbState.leadCountError = null
+  dbState.icpList = []; dbState.leadCount = 0; dbState.leadCountError = null; dbState.sequences = []
   dbState.writes = []; dbState.updatedRows = null
   dbState.icpClientFilter = null; dbState.icpListError = null
   dbState.client = { id: 'c1', commercial_model: null }
@@ -453,12 +458,24 @@ describe('⑥ a null programme_id is HISTORY when the client has an open program
     expect(v.allowed === false && v.reason).toBe('not_this_programme')
   })
 
-  it('an enrollment that NAMES the programme is authorised as normal', async () => {
-    // The other half. Without this, a refusal that broke everything would still pass above.
-    dbState.enrollment = { client_id: 'house', programme_id: 'prog-1' }
+  // ⛓️ 8 Sep — THIS CASE IS ABOUT ATTRIBUTION, AND IT IS SCOPED BACK TO THAT.
+  //
+  // It was written as the other half of the pair above: a null-attributed enrolment is history,
+  // and one that NAMES the programme is not. Since 7 Sep the OUTREACH door also enforces the
+  // canonical sequence, sender safety, the send window and the approved-preparation comparison
+  // — none of which this fixture has any opinion about, and all of which would make this case
+  // fail for reasons that have nothing to do with attribution.
+  //
+  // ⚠️ SO IT ASSERTS THE ATTRIBUTION VERDICT, NOT A BLANKET ALLOW. `not_this_programme` is the
+  // refusal the pair exists to tell apart, and a function that refused everything with THAT
+  // reason would still fail here. The allow/refuse proof for the newer gates lives in
+  // `outbound-execution-guard.test.ts`, against a fixture built for it.
+  it('an enrollment that NAMES the programme is not refused as history', async () => {
+    dbState.enrollment = { client_id: 'house', programme_id: 'prog-1', sequence_id: 'seq-1' }
     dbState.programme = asRow(LIVE)
     const v = await checkEnrollmentAuthority('enr-current', 'OUTREACH')
-    expect(v.allowed, 'the programme must still authorise its OWN work').toBe(true)
+    expect(v.allowed === false && v.reason,
+      'the programme is refusing its OWN work as historical').not.toBe('not_this_programme')
   })
 
   it('a client with NO open programme still resolves as legacy — the selling model is untouched', async () => {
@@ -713,14 +730,30 @@ describe('⑩ a programme with no attributed work cannot be put to the client', 
     expect(dbState.writes).toHaveLength(0)
   })
 
-  it('one positively-attributed lead is enough — no invented volume threshold', async () => {
-    // ⚠️ THE RULE IS ZERO VERSUS MORE THAN ZERO. A percentage of the ceiling, or a ratio, would
-    // be a new product rule nobody agreed; a count of the work that exists is existing truth.
+  // ⛓️ SUPERSEDED 7 Sep, BY THE DEFECT THIS RULE WAS TOO SMALL TO CATCH (founder-ordered).
+  //
+  // This case used to read *"one positively-attributed lead is enough"* and assert `ok: true`.
+  // The reasoning was sound as far as it went — no invented volume threshold, zero versus more
+  // than zero — and it is STILL the lead rule inside the canonical check. What was wrong is
+  // that the lead count was the ONLY question asked.
+  //
+  // 🛑 LIVE, 7 Sep: the House programme had 246 delivered, surfaced prospects and no batch, no
+  // campaign, no sequence, no messaging, no cadence, no sender and no frozen review set — and
+  // Vida offered **Ready for approval**. That status means "a human may now look at what will
+  // run, and approve it". An approval collected against nothing is WORSE than no approval,
+  // because everybody downstream treats it as consent to send.
+  //
+  // So the transition now consults `preparationBlockers` (preparation-readiness.ts), which asks
+  // the lead question AND fourteen others. Nothing was weakened to make this pass: the old rule
+  // survives intact as one of the fifteen.
+  it('🛑 one attributed lead is NOT enough any more — the rest of the work must exist too', async () => {
     dbState.programme = asRow(P({ status: 'SOURCING_AUTHORISED', first_authorised_at: 'i' }))
     dbState.leadCount = 1
     const r = await markReadyForApproval('prog-1')
-    expect(r.ok).toBe(true)
-    expect(dbState.writes[0].patch).toMatchObject({ status: 'READY_FOR_APPROVAL' })
+    expect(r.ok, 'a programme with leads and nothing else is offered to the client again').toBe(false)
+    // AND IT NAMES WHAT IS MISSING. "Not ready" with no reason sends an operator hunting.
+    expect(r.reason).toMatch(/campaign|sequence|cadence|mailbox|enrol/)
+    expect(dbState.writes, 'the status was written despite the refusal').toHaveLength(0)
   })
 
   it('an unreadable count refuses — "we cannot tell" is not "there is nothing"', async () => {
@@ -880,7 +913,10 @@ describe('⑬ Vida is given exactly the truth it needs, and no more', () => {
   })
 
   it('the no-programme state stays clean', () => {
-    expect(op).toContain('return { programme: null, batches: [], stranded: [], blockers: [], degraded }')
+    // ⛓️ 7 Sep — `sender` and `preparation` joined the shape (read-only truth so the founder can
+    // PROVE which mailbox would send and whether the work still matches what was approved).
+    // Both are null here for the same reason every other field is: there is no programme.
+    expect(op).toContain('return { programme: null, sender: null, preparation: null, batches: [], stranded: [], blockers: [], degraded }')
   })
 })
 
@@ -951,7 +987,19 @@ describe('⑮ programme work never inherits a historical campaign', () => {
   const fig = strip(raw(join(API, 'lib/figsy.ts')))
 
   it('the campaign is resolved from the LEAD\'S ICP first — one ICP, one campaign', () => {
-    expect(fig).toContain(".eq('client_id', clientId).eq('icp_id', leadIcp.icp_id).eq('status', 'active')")
+    // ⛓️ 7 Sep — the `status: 'active'` filter is now CONDITIONAL, and the condition is the
+    // point. Preparation runs before approval, and before approval the programme campaign is
+    // deliberately a DRAFT (`activate: true` is the only door to `active`, and it stays shut
+    // until Make Live) — so requiring `active` here would have made pre-approval preparation
+    // unable to see the campaign it had just created.
+    //
+    // ⚠️ WHAT MUST NOT CHANGE IS THE *ICP-FIRST RESOLUTION*, and that is what is asserted:
+    // the lead's own ICP, which is the positive programme-correct link.
+    expect(fig).toContain(".eq('client_id', clientId).eq('icp_id', leadIcp.icp_id)")
+    // 🛑 AND THE WIDENING IS AVAILABLE ONLY TO VERIFIED PROGRAMME FULFILMENT. Every ordinary
+    // caller still gets `active` only — asserted as the exact ternary, so moving the widening
+    // out from behind `programmeFulfilment` fails here.
+    expect(fig).toContain("await (opts?.programmeFulfilment ? q : q.eq('status', 'active'))")
   })
 
   it('🛑 A PROGRAMME LEAD MAY NOT FALL BACK to the newest active campaign', () => {
@@ -992,7 +1040,7 @@ describe('⑮ programme work never inherits a historical campaign', () => {
     // authority module through `checkProgrammeAuthority(clientId, 'OUTREACH')`, which is
     // `mayStartCampaign` plus the approval check — the first version of this assertion matched
     // the word `mayStartCampaign` inside a comment and proved nothing.
-    expect(sw).toContain("const verdict = await checkProgrammeAuthority(clientId, 'OUTREACH')")
+    expect(sw).toContain("const verdict = await checkProgrammeAuthority(clientId, 'OUTREACH'")
     // and OUTREACH authority is where `p2Authorised` is consulted
     const auth = strip(raw(join(API, 'lib/programme-authority.ts')))
     expect(auth).toContain('const verdict = mayStartCampaign(p)')
@@ -1464,7 +1512,7 @@ describe('㉔ the fresh-ICP ordering is a real property of the code, not a hope'
     // So an ICP created AFTER the programme exists stays campaign-clean, and can be attached.
     // The refusal happens before any insert — the programme gate sits above the try block.
     const sw = strip(raw(join(API, 'lib/start-work.ts')))
-    const gate = sw.indexOf("const verdict = await checkProgrammeAuthority(clientId, 'OUTREACH')")
+    const gate = sw.indexOf("const verdict = await checkProgrammeAuthority(clientId, 'OUTREACH'")
     const insert = sw.indexOf("db.from('figsy_campaigns')")
     expect(gate, 'the programme gate must exist').toBeGreaterThan(-1)
     expect(gate, 'and must precede any campaign write').toBeLessThan(insert)

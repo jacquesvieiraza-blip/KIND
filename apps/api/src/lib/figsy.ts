@@ -455,6 +455,29 @@ interface BranchableEnrollment {
   current_step: number
   enrolled_at?: string | null
   reply_branch_handled_at?: string | null
+  /** ⚑ 8 Sep — how long this enrolment's OWN sequence is. See `sequenceTotalFor`. */
+  steps?: unknown
+  total_steps?: number | null
+}
+
+/**
+ * How many steps this enrolment actually has.
+ *
+ * 🛑 THE HARDCODED 3 THIS REPLACES WAS A REAL DEFECT ON A 5-STEP SEQUENCE. `skip_next` at step 2
+ * computed `skipped = 3`, hit `if (skipped >= 3)` and marked the enrolment COMPLETED — steps 4
+ * and 5 silently never sent, on a prospect who had replied and asked for the next thing. The
+ * number came from the legacy three-column era and was never a product decision.
+ *
+ * ⚠️ AND IT IS NOT REPLACED BY A HARDCODED 5. The enrolment carries its own `steps` array (and
+ * `total_steps`, written at enrolment), so the length is read from the work rather than from a
+ * constant that will be wrong again the next time the product changes shape. The final `3` is
+ * the LEGACY fallback only — an enrolment written before either column existed genuinely had
+ * three steps, and that is what `enrollmentStep` still returns for it.
+ */
+export function sequenceTotalFor(e: { steps?: unknown; total_steps?: number | null }): number {
+  if (Array.isArray(e.steps) && e.steps.length > 0) return e.steps.length
+  if (typeof e.total_steps === 'number' && e.total_steps > 0) return e.total_steps
+  return 3
 }
 
 /**
@@ -531,7 +554,8 @@ export async function applyReplyBranching(
 
   // skip_next — skip the immediate next step, continue with the one after.
   const skipped = enrollment.current_step + 1
-  if (skipped >= 3) {
+  const total = sequenceTotalFor(enrollment)
+  if (skipped >= total) {
     // Nothing follows the skipped step — the sequence is finished.
     await updateEnrollmentState(enrollment.id, {
       status: 'completed', completed_at: now, next_send_at: null,
@@ -539,7 +563,13 @@ export async function applyReplyBranching(
     }, 'the reply branch was handled but not recorded — the sequence stays due and may re-process this reply')
     // ONE WALLET: no held $3 — the $4 was final at approve; nothing to release.
   } else {
-    const nextSendAt = new Date(Date.now() + (STEP_FOLLOWUP_DELAYS[skipped] ?? 4) * 86400000).toISOString()
+    // ⚑ 8 Sep — the WAIT comes from this enrolment's own step where it has one. The legacy
+    // map is the fallback for a legacy enrolment, not the rule for a configured sequence.
+    const ownWait = Array.isArray(enrollment.steps)
+      ? (enrollment.steps as Array<{ wait_days?: number }>)[skipped - 1]?.wait_days
+      : undefined
+    const waitDays = typeof ownWait === 'number' && ownWait > 0 ? ownWait : (STEP_FOLLOWUP_DELAYS[skipped] ?? 4)
+    const nextSendAt = new Date(Date.now() + waitDays * 86400000).toISOString()
     await updateEnrollmentState(enrollment.id, {
       status: 'in_progress', current_step: skipped,
       next_send_at: nextSendAt, reply_branch_handled_at: now,
@@ -789,7 +819,12 @@ async function sendSequenceEmailCore(
   // delivery to a prospect, the same exemption the kill-switch and demo backstop already make.
   if (!opts?.isPreview && enrollmentId) {
     const { checkEnrollmentAuthority } = await import('./programme-authority')
-    const verdict = await checkEnrollmentAuthority(enrollmentId, 'OUTREACH', lead.client_id ?? null)
+    // ⚑ 8 Sep — THE RECIPIENT'S COUNTRY TRAVELS WITH THE QUESTION. The send window is judged
+    // in THEIR local time; House sells into the UK and the US, five to eight hours apart, so a
+    // single UTC window would put half the audience in the middle of the night. Where the
+    // country is unknown the guard falls back to the programme's default zone and says so.
+    const verdict = await checkEnrollmentAuthority(enrollmentId, 'OUTREACH', lead.client_id ?? null,
+      { recipientCountry: (lead as { country?: string | null }).country ?? null })
     if (!verdict.allowed) {
       console.warn(`[figsy] sendSequenceEmail: step ${step} to ${lead.email} DEFERRED — programme authority refused (${verdict.reason}). ${verdict.message}`)
       return 'deferred'
@@ -1524,6 +1559,33 @@ export async function sendDay1OutreachBatch(
     return
   }
 
+  // ══ THE PROGRAMME OUTREACH GATE — ADDED 7 Sep, AND IT WAS SIMPLY ABSENT ═══════════════
+  //
+  // 🛑 FOUND IN ADVERSARIAL REVIEW, NOT BY A TEST. Every other outbound path in this product
+  // asks programme authority — the sequence sender, the Smartlead push, the Instantly push,
+  // the LinkedIn dispatch, campaign activation. This one asked NOTHING: it checked the demo
+  // flag and the kill-switch and then cold-emailed real prospects. So a programme client whose
+  // programme was paused, unapproved, unpaid at P2, or not LIVE would still be day-1 mailed the
+  // moment `AUTO_OUTREACH_ENABLED` was on and their ICP run inserted leads — and after 7 Sep it
+  // would ALSO have escaped the approved-preparation comparison, because there was no gate for
+  // that comparison to live in.
+  //
+  // ⚠️ LEGACY IS UNAFFECTED. `checkProgrammeAuthority` answers `mode: 'legacy'` for a client
+  // with no programme, which is the entire live book — their day-1 outreach behaves exactly as
+  // it does today. What changes is that PROGRAMME work is now governed on this path too.
+  //
+  // ⚠️ AND IT FAILS CLOSED. An unreadable programme state refuses the batch; the leads stay
+  // `scored` and are picked up on a later run, which is the same recoverable shape the mailbox
+  // refusal below already uses.
+  {
+    const { checkProgrammeAuthority } = await import('./programme-authority')
+    const verdict = await checkProgrammeAuthority(clientId, 'OUTREACH')
+    if (!verdict.allowed) {
+      console.warn(`[figsy] sendDay1OutreachBatch: ${leadIds.length} lead(s) NOT day-1 emailed for client ${clientId} — programme authority refused (${verdict.reason}). ${verdict.message}`)
+      return
+    }
+  }
+
   const { data: client } = await db.from('clients')
     .select('company_name, industry').eq('id', clientId).single()
   // P-a: configurable sign-off name (guarded — null if column missing pre-migration).
@@ -2043,9 +2105,26 @@ export async function autoEnrollLead(leadId: string, clientId: string, opts?: En
     const leadProgrammeId = (leadIcp as { programme_id?: string | null } | null)?.programme_id ?? null
     let campaign: { id: string; name?: string; campaign_intent?: string | null; settings?: unknown } | null = null
     if (leadIcp?.icp_id) {
-      const { data: byIcp } = await db.from('figsy_campaigns')
+      // ── ⚑ 7 Sep — PROGRAMME PREPARATION ACCEPTS A *DRAFT* CAMPAIGN, AND ONLY IT DOES ────
+      //
+      // 🛑 WHY. Preparation now runs BEFORE the client approves (founder-locked), and before
+      // approval the programme campaign is deliberately a DRAFT — `activate: true` is the only
+      // door to `status: 'active'`, the status the outreach machinery looks for, and it stays
+      // shut until Make Live. Requiring `active` here would therefore make pre-approval
+      // preparation impossible: the campaign it just created would be invisible to it.
+      //
+      // ⚠️ THIS WIDENS *WHICH CAMPAIGN IS FOUND*, NOT WHAT MAY BE SENT. The lead is still
+      // resolved by its own ICP — the positive, programme-correct link — and this branch is
+      // reached ONLY through `programmeFulfilment`, which `verifyProgrammeFulfilment` has
+      // already re-proved against the database. Every ordinary caller still gets `active` only.
+      //
+      // ⚠️ AND AN ENROLMENT IS NOT A SEND. Whether anything leaves is decided by OUTREACH
+      // authority — approval AND Payment 2 AND status LIVE — which a pre-approval programme
+      // does not have. The row is inert by construction, not by promise.
+      const q = db.from('figsy_campaigns')
         .select('id, name, campaign_intent, settings')
-        .eq('client_id', clientId).eq('icp_id', leadIcp.icp_id).eq('status', 'active')
+        .eq('client_id', clientId).eq('icp_id', leadIcp.icp_id)
+      const { data: byIcp } = await (opts?.programmeFulfilment ? q : q.eq('status', 'active'))
         .limit(1).maybeSingle()
       campaign = byIcp ?? null
     }
@@ -2267,7 +2346,43 @@ export async function autoEnrollLead(leadId: string, clientId: string, opts?: En
     // its literal copy (token-substituted) instead of AI-generating. Falls back to the
     // AI path when no sequence is applied, or the sequence has no usable email steps.
     const settings = (campaign as any).settings ?? {}
-    const appliedSequence = (settings.sequence as SequenceStep[] | undefined) ?? undefined
+
+    // ── ⚑ 8 Sep — ONE CANONICAL SEQUENCE STORE FOR PROGRAMME WORK (founder-locked) ────────
+    //
+    // 🛑 THERE WERE TWO STORES AND THEY COULD DISAGREE. The customer reviews and approves the
+    // sequence resolved through `programme → ICP → campaign → figsy_sequences`; this function
+    // built every enrolment from `figsy_campaigns.settings.sequence`. Same client, same
+    // campaign, different words — the customer could read one thing while the send path
+    // executed another, and nothing anywhere would say so.
+    //
+    // **THE RULE: `figsy_sequences` is canonical for programme work.** Review, readiness, the
+    // snapshot, the enrolment step count, send execution and next-step timing all read it.
+    //
+    // ⚠️ NO PROGRAMME FALLBACK. Not to campaign settings, not to `client_id`, not to a newest
+    // row, and not to the AI draft path. If the canonical sequence is missing or empty this
+    // REFUSES — an enrolment built from words nobody approved is worse than no enrolment,
+    // because it looks prepared.
+    //
+    // ⚠️ LEGACY IS UNTOUCHED. `programmeFulfilment` is the only door to this branch, and the
+    // whole live $299 book goes through the settings path below exactly as it did.
+    let canonicalSequenceId: string | null = null
+    let canonicalSteps: SequenceStep[] | null = null
+    if (programmeFulfilment) {
+      const { resolveProgrammeChain } = await import('./programme-chain')
+      const chainRes = await resolveProgrammeChain(programmeFulfilment.programmeId)
+      if (!chainRes.ok) {
+        console.error(`[figsy] autoEnrollLead: lead ${leadId} NOT enrolled — the programme's canonical sequence could not be resolved. ${chainRes.degraded}`)
+        return
+      }
+      if (!chainRes.chain.sequenceId || chainRes.chain.steps.length === 0) {
+        console.error(`[figsy] autoEnrollLead: lead ${leadId} NOT enrolled — programme ${programmeFulfilment.programmeId} has no canonical sequence with message steps (programme -> ICP -> campaign -> figsy_sequences). NOT falling back to the campaign settings copy: the customer approves the canonical sequence, so anything else would send words nobody agreed to.`)
+        return
+      }
+      canonicalSequenceId = chainRes.chain.sequenceId
+      canonicalSteps = chainRes.chain.steps as unknown as SequenceStep[]
+    }
+
+    const appliedSequence = canonicalSteps ?? ((settings.sequence as SequenceStep[] | undefined) ?? undefined)
     const sequenceDraft = appliedSequence
       ? buildDraftFromSequence(appliedSequence, lead as any, client?.company_name ?? null)
       : null
@@ -2378,6 +2493,10 @@ export async function autoEnrollLead(leadId: string, clientId: string, opts?: En
     let insertRes
     try {
       insertRes = await db.from('figsy_enrollments').insert({
+        // ⚑ 8 Sep — the enrolment NAMES its sequence, so "which words will this person get"
+        // is a positive fact rather than an unverifiable copy. NULL for legacy work, which is
+        // the honest answer for an enrolment whose words came from the settings copy.
+        sequence_id:    canonicalSequenceId,
         campaign_id:    campaign.id,
         lead_id:        leadId,
         client_id:      clientId,

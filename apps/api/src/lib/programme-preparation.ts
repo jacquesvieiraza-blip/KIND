@@ -39,11 +39,80 @@
 // ═══════════════════════════════════════════════════════════════════════════════════════
 
 import { db } from '@kind/db'
-import { getProgramme, TERMINAL_STATUSES, p2Authorised, type ProgrammeRow } from './programme'
+import { getProgramme, TERMINAL_STATUSES, p1Authorised, p2Authorised, type ProgrammeRow } from './programme'
 import { normalizeRevealEmail, normalizeRevealEmails } from './billing-rules'
+import { isBusinessEmail } from './email-hygiene'
 
-/** Statuses in which outreach preparation is meaningful. */
-const PREPARABLE: string[] = ['APPROVED', 'LIVE']
+/**
+ * ⛓️ 7 Sep — PREPARATION HAPPENS BEFORE APPROVAL (founder-locked).
+ *
+ * 🛑 THE DEADLOCK THIS BREAKS. `READY_FOR_APPROVAL` means *a human may now look at what will
+ * run, and approve it* — so the campaign, the sequence, the words, the timing, the sender and
+ * the audience have to EXIST before the question is put. Preparation was gated at APPROVED,
+ * i.e. strictly after. The customer was being asked to approve work that could not have been
+ * built yet, which is the launch-critical defect this package exists to close.
+ *
+ * **THE RULE:** *"Campaign + sequence + messaging + cadence + sender + prepared enrolments must
+ * exist before the client is asked to approve. Preparation is NON-SENDING."*
+ *
+ * ── TWO STAGES, TWO AUTHORITIES, AND THE DIFFERENCE IS THE WHOLE SAFETY ARGUMENT ─────────
+ *
+ *   PRE-APPROVAL  — P1 only. Payment 1 authorises *sourcing and preparation* and nothing else
+ *                   (`programme-authority.ts` has said so since 29 Aug). No approval, no P2.
+ *   POST-APPROVAL — unchanged: an approval recorded AND P2 authority, exactly as before.
+ *
+ * ⚠️ NOTHING HERE GRANTS ANYTHING. Preparing does not approve, does not authorise Payment 2,
+ * does not make a programme LIVE and does not send. Those are separate gates, in separate
+ * modules, and this file touches none of them — `OUTREACH` still requires approval + P2 +
+ * LIVE, so a pre-approval enrolment is INERT BY CONSTRUCTION rather than by promise.
+ *
+ * ⚠️ AND THE CAMPAIGN IS CREATED AS A DRAFT BEFORE APPROVAL. `activate: true` is the door to
+ * `status: 'active'`, which is what the outreach machinery looks for; a draft campaign is a
+ * container for the words with no way to send them. Activation stays where it was, behind
+ * LIVE. That is the smallest safe boundary, and it is a structural guarantee rather than a
+ * flag somebody has to remember.
+ */
+// ⛓️ `READY_FOR_APPROVAL` LEFT THIS LIST ON 8 Sep (founder-locked). It was here for idempotent
+// recovery, and the reasoning was wrong in a way that mattered: preparation ADDS ENROLMENTS, so
+// "recovery" could change the very set the client was reading — and the review freeze taken at
+// the transition would no longer describe what was on screen. Once a programme is reviewable,
+// its material preparation is FROZEN. Reopening it means going back through the transition,
+// which re-freezes, which is the point.
+export const PRE_APPROVAL_PREPARABLE: string[] = ['SOURCING_AUTHORISED', 'SOURCING']
+export const POST_APPROVAL_PREPARABLE: string[] = ['APPROVED', 'LIVE']
+
+export type PreparationStage = 'pre_approval' | 'post_approval'
+
+export type StageVerdict =
+  | { ok: true; stage: PreparationStage }
+  | { ok: false; reason: string }
+
+/**
+ * Which preparation authority, if any, this programme holds right now.
+ *
+ * ⚠️ ONE DECISION, READ FROM THE ROW. Three call sites used to repeat the same four checks
+ * inline, which is how two of them would eventually disagree about what "preparable" means.
+ */
+export function preparationStageFor(p: ProgrammeRow): StageVerdict {
+  if (TERMINAL_STATUSES.includes(p.status)) return { ok: false, reason: `programme is ${p.status}` }
+  if (p.paused_at) return { ok: false, reason: 'programme is paused' }
+
+  if (POST_APPROVAL_PREPARABLE.includes(p.status)) {
+    // Byte-for-byte the rule that was here before, for the statuses that had it.
+    if (!p.approved_at) return { ok: false, reason: 'programme has no approval recorded' }
+    if (!p2Authorised(p)) return { ok: false, reason: 'programme has no P2 authority' }
+    return { ok: true, stage: 'post_approval' }
+  }
+
+  if (PRE_APPROVAL_PREPARABLE.includes(p.status)) {
+    // 🛑 P1 AND NOTHING WEAKER. Payment 1 (or House's internal equivalent) is what authorises
+    // preparation; a programme that has not reached it has bought nothing to prepare.
+    if (!p1Authorised(p)) return { ok: false, reason: 'programme has no P1 authority' }
+    return { ok: true, stage: 'pre_approval' }
+  }
+
+  return { ok: false, reason: `programme is ${p.status}, which carries no preparation authority` }
+}
 
 export type PrepareResult = {
   /** Fully prepared: every eligible lead enrolled, nothing outstanding, no problems. */
@@ -133,10 +202,12 @@ export async function verifyProgrammeFulfilment(
   if (p.client_id !== clientId) return { ok: false, reason: 'programme belongs to a different client' }
   if (TERMINAL_STATUSES.includes(p.status)) return { ok: false, reason: `programme is ${p.status}` }
   if (p.paused_at) return { ok: false, reason: 'programme is paused' }
-  if (!p.approved_at) return { ok: false, reason: 'programme has no approval recorded' }
-  if (!PREPARABLE.includes(p.status)) return { ok: false, reason: `programme is ${p.status}, not APPROVED or LIVE` }
-  // Either source of P2 — a payment or internal authority — and nothing weaker.
-  if (!p2Authorised(p)) return { ok: false, reason: 'programme has no P2 authority' }
+  // ⛓️ 7 Sep — STAGED. This used to demand an approval and P2 outright, which is precisely
+  // what made preparation impossible before approval. `preparationStageFor` still demands
+  // exactly that for APPROVED/LIVE, and demands P1 for the pre-approval stage — the authority
+  // Payment 1 actually buys. Enrolling remains inert until OUTREACH authority exists.
+  const stage = preparationStageFor(p)
+  if (!stage.ok) return { ok: false, reason: stage.reason }
 
   // ⚠️ THE ICP MUST BELONG TO THIS PROGRAMME TOO. The lead's attribution and the ICP's are
   // written by different acts (a sourcing run, and the attach action), so agreeing is a fact
@@ -169,8 +240,10 @@ export async function assertGoingLive(
   if (p.client_id !== clientId) return { ok: false, reason: 'programme belongs to a different client' }
   if (TERMINAL_STATUSES.includes(p.status)) return { ok: false, reason: `programme is ${p.status}` }
   if (p.paused_at) return { ok: false, reason: 'programme is paused' }
+  // 🛑 UNCHANGED, AND DELIBERATELY NOT STAGED. This is the gate that lets a campaign be
+  // ACTIVATED, which is the door to sending. Preparation moved earlier; activation did not.
   if (!p.approved_at) return { ok: false, reason: 'programme has no approval recorded' }
-  if (!PREPARABLE.includes(p.status)) return { ok: false, reason: `programme is ${p.status}, not APPROVED or LIVE` }
+  if (!POST_APPROVAL_PREPARABLE.includes(p.status)) return { ok: false, reason: `programme is ${p.status}, not APPROVED or LIVE` }
   if (!p2Authorised(p)) return { ok: false, reason: 'programme has no P2 authority' }
   return { ok: true }
 }
@@ -194,11 +267,8 @@ export async function prepareProgrammeOutreach(programmeId: string): Promise<Pre
 
   const p = await getProgramme(programmeId)
   if (!p) { out.problems.push('No such programme.'); return out }
-  if (TERMINAL_STATUSES.includes(p.status)) { out.problems.push(`This programme is ${p.status}.`); return out }
-  if (p.paused_at) { out.problems.push('This programme is paused.'); return out }
-  if (!p.approved_at) { out.problems.push('This programme has no approval recorded.'); return out }
-  if (!PREPARABLE.includes(p.status)) { out.problems.push(`This programme is ${p.status}, not APPROVED or LIVE.`); return out }
-  if (!p2Authorised(p)) { out.problems.push('This programme has no P2 authority.'); return out }
+  const stage = preparationStageFor(p)
+  if (!stage.ok) { out.problems.push(`This programme cannot be prepared: ${stage.reason}.`); return out }
 
   // ── ① A PROGRAMME-SAFE CAMPAIGN PER ATTACHED ICP ─────────────────────────────────────
   //
@@ -225,9 +295,15 @@ export async function prepareProgrammeOutreach(programmeId: string): Promise<Pre
     }
     // ⚑ `goingLive` carries the authority this programme already holds; `ensureCampaignForIcp`
     // re-proves it rather than believing it. Idempotent: an existing campaign is returned.
-    const camp = await ensureCampaignForIcp(p.client_id, icp.id, icp.name, {
-      activate: true, goingLive: { programmeId },
-    })
+    // 🛑 BEFORE APPROVAL THE CAMPAIGN IS A DRAFT, AND THAT IS THE NON-SENDING GUARANTEE.
+    // `activate: true` is the ONLY door to `status: 'active'` — the status the outreach
+    // machinery looks for — so withholding it means the words exist, the customer can be
+    // shown them, and there is no path by which they leave. Activation happens later, at
+    // Make Live, where `assertGoingLive` still demands an approval and P2.
+    const camp = await ensureCampaignForIcp(p.client_id, icp.id, icp.name,
+      stage.stage === 'post_approval'
+        ? { activate: true, goingLive: { programmeId } }
+        : { activate: false })
     if (!camp || !('id' in camp) || typeof camp.id !== 'string') {
       // ⚠️ THE TWO REFUSAL SHAPES SAY DIFFERENT THINGS, and an operator needs to know which.
       // "Another campaign is already live" is a one-active-campaign collision they can resolve
@@ -282,6 +358,84 @@ export async function prepareProgrammeOutreach(programmeId: string): Promise<Pre
   //
   // ⚠️ EVERY PAGE RE-APPLIES THE FULL FILTER — `programme_id` AND `client_id`. Narrowing on
   // the first page only is how a paginated query drifts into another tenant.
+  // ── ⚑ 8 Sep — THE CANONICAL SEQUENCE, AND THE CURRENT BATCH (founder-locked) ──────────
+  //
+  // 🛑 A PREPARED ENROLMENT WITH NO APPROVED WORDS IS NOT PREPARATION. Without a canonical
+  // sequence `autoEnrollLead` would AI-generate a draft per lead — words nobody wrote, nobody
+  // reviewed and nobody approved, baked into a row that looks ready. Refusing here costs a
+  // retry; the alternative is a client approving copy that was invented for them.
+  const { resolveProgrammeChain } = await import('./programme-chain')
+  let chainRes = await resolveProgrammeChain(programmeId)
+  if (!chainRes.ok) { out.problems.push(chainRes.degraded); return out }
+
+  // ── ⚑ 8 Sep — THE ORCHESTRATOR OWNS THE ORDER (founder-locked) ───────────────────────
+  //
+  // 🛑 THE ORDERING HAZARD THIS CLOSES. The campaign is created immediately above; the
+  // canonical sequence is required immediately below. Left as two manual steps, the only way
+  // through was: run preparation (creates the campaign, refuses to enrol), remember to apply
+  // the sequence, run preparation again. **A production path that depends on somebody
+  // remembering a magic call order is a path that will one day be run in the wrong order** —
+  // and the wrong order here means enrolments built from words nobody approved.
+  //
+  // ⚠️ ONE PROGRAMME, PROVED BY IDENTITY RATHER THAN INFERRED. The approved five-step copy is
+  // the LAUNCH copy for a single programme, not a universal default: applying it to a paying
+  // customer's programme would put M&V's own pitch in front of THEIR prospects, and applying it
+  // to a second House programme would put September's copy into November's campaign. Two
+  // independent facts are required — the explicitly configured programme id, and a House
+  // audience proved by `audienceForClientStrict` (the founder-locked resolver, which answers
+  // from the AUTH USER, never from an API key or a name, and THROWS rather than guessing). Both
+  // live in `isHouseLaunchProgramme`, and an unprovable identity is read there as NO.
+  //
+  // ⚠️ IT NEVER OVERWRITES AN EXISTING SEQUENCE. This runs only when the chain resolved NO
+  // sequence, so a House sequence somebody has since edited is left exactly as it is — the
+  // approved copy is the seed for an empty programme, not a periodic reset.
+  //
+  // ⚠️ AND EVERY OTHER PROGRAMME STILL REFUSES. A customer programme with no sequence is not
+  // given one; it is told to author one, which is the honest answer.
+  if (!chainRes.chain.sequenceId || chainRes.chain.steps.length === 0) {
+    // 🛑 THE EXACT PROGRAMME, NOT THE AUDIENCE (founder-corrected 8 Sep). `audience === 'house'`
+    // is true of every House programme — a second one created next month, a different ICP under
+    // Client Zero, every historical one. These five messages are the LAUNCH sequence for ONE
+    // programme. `isHouseLaunchProgramme` requires the configured programme id AND a proved
+    // House client, and answers NO when either is absent or unprovable.
+    const { isHouseLaunchProgramme, applyHouseProgrammeSequence } = await import('./house-sequence')
+    if (await isHouseLaunchProgramme(programmeId, p.client_id)) {
+      const applied = await applyHouseProgrammeSequence(programmeId)
+      if (!applied.ok) { out.problems.push(`The approved House sequence could not be applied: ${applied.reason}`); return out }
+      // Re-resolved, never assumed: the enrolments below must be built from what is actually
+      // stored now, not from what the write was supposed to have stored.
+      chainRes = await resolveProgrammeChain(programmeId)
+      if (!chainRes.ok) { out.problems.push(chainRes.degraded); return out }
+    }
+  }
+
+  if (!chainRes.chain.sequenceId || chainRes.chain.steps.length === 0) {
+    out.problems.push('This programme has no canonical sequence with message steps (programme → ICP → campaign → figsy_sequences), so no prospect can be prepared. Nothing was enrolled.')
+    return out
+  }
+
+  // 🛑 AND THE CADENCE IS VALIDATED BEFORE ANYBODY IS ENROLLED. An enrolment copies the steps,
+  // so a sequence whose follow-ups all sit on day zero would put five emails in one inbox on
+  // one morning — and it would be frozen, approved and sent before anybody noticed the gaps.
+  const { cadenceIsConfigured } = await import('./preparation-readiness')
+  if (!cadenceIsConfigured(chainRes.chain.cadence)) {
+    out.problems.push(`This programme's sequence has no usable cadence (waits ${JSON.stringify(chainRes.chain.cadence)}), so its messages would not be spaced. Nothing was enrolled.`)
+    return out
+  }
+
+  // 🛑 THE CURRENT BATCH, AND ONLY IT. A programme runs in controlled batches, and the client
+  // reviews ONE of them. Preparing across every batch a programme ever had would put people
+  // from an older, already-decided batch into the set being approved now — right programme,
+  // wrong unit of work, and invisible in every count.
+  const { data: batchRows, error: batchErr } = await db.from('programme_batches')
+    .select('id, seq').eq('programme_id', programmeId).order('seq', { ascending: false }).limit(1)
+  if (batchErr) { out.problems.push(`This programme's batches could not be read (${batchErr.message}).`); return out }
+  const currentBatchId = ((batchRows ?? []) as { id: string }[])[0]?.id ?? null
+  if (!currentBatchId) {
+    out.problems.push('No controlled batch has been opened for this programme, so there is no current unit of work to prepare.')
+    return out
+  }
+
   const { autoEnrollLead } = await import('./figsy')
   let after = ''
   let budgetLeft = PREPARE_BUDGET
@@ -301,9 +455,12 @@ export async function prepareProgrammeOutreach(programmeId: string): Promise<Pre
       break
     }
     const { data: page, error: pageErr } = await db.from('leads')
-      .select('id, email, status, opted_out_at, provider_eviction_required_at')
+      .select('id, email, status, opted_out_at, provider_eviction_required_at, apollo_consented')
       .eq('programme_id', programmeId)
       .eq('client_id', p.client_id)
+      // ⚑ 8 Sep — THE CURRENT BATCH. Positive, from `leads.batch_id`, which the sourcing run
+      // stamps on exactly the people it bought. No older programme batch may enter this set.
+      .eq('batch_id', currentBatchId)
       .not('delivered_at', 'is', null)
       .not('surfaced_for_approval_at', 'is', null)
       .gt('id', after)
@@ -313,6 +470,7 @@ export async function prepareProgrammeOutreach(programmeId: string): Promise<Pre
     const rows = (page ?? []) as {
       id: string; email: string | null; status: string | null
       opted_out_at: string | null; provider_eviction_required_at: string | null
+      apollo_consented: boolean | null
     }[]
     if (rows.length === 0) break
     after = rows[rows.length - 1].id
@@ -332,6 +490,19 @@ export async function prepareProgrammeOutreach(programmeId: string): Promise<Pre
       if (r.status === 'opted_out' || r.status === 'rejected' || r.status === 'passed') return false
       if (r.opted_out_at) return false
       if (r.provider_eviction_required_at) return false
+      // ── ⚑ 8 Sep — THE EMAIL IS RE-PROVED HERE, NOT ASSUMED FROM DELIVERY ────────────────
+      //
+      // 🛑 "SOMETHING EARLIER PROBABLY CHECKED IT" IS NOT A CHECK. The Wednesday House policy
+      // is a VERIFIED BUSINESS address and no personal fallback, and the row is what has to
+      // satisfy it at the moment it is prepared — a lead can be edited, imported or reached by
+      // a path whose gate differed.
+      //
+      // ⚠️ NO NEW COLUMN. `isBusinessEmail` is the same pure predicate `finalVerdict` uses, and
+      // `leads.apollo_consented` is the existing "provider-VERIFIED email" marker, written true
+      // only after that final gate passed. Inventing a second verification store would create
+      // exactly the dual truth the sequence store just had to be rescued from.
+      if (!isBusinessEmail(r.email)) return false
+      if (r.apollo_consented !== true) return false
       return true
     })
     out.skipped += rows.length - candidates.length

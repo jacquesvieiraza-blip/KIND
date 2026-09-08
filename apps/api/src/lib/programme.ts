@@ -591,12 +591,29 @@ export function programmeStageOf(type: string | undefined): ProgrammeStage | nul
  * unreadable forever afterwards.
  */
 async function approvedPreparationColumns(programmeId: string, at: string): Promise<Record<string, unknown> | null> {
-  const { buildPreparationSnapshot } = await import('./preparation-snapshot')
-  const snap = await buildPreparationSnapshot(programmeId)
-  if (!snap.ok) return null
+  // ── ⚑ 8 Sep — APPROVAL COPIES THE REVIEWED SNAPSHOT; IT DOES NOT TAKE A FRESH ONE ───────
+  //
+  // 🛑 THE DEFECT IN TAKING A FRESH ONE. This originally built the snapshot at approval time,
+  // which records whatever the work had BECOME. If the sequence, the sender or the audience
+  // changed while the client was reading, the approval would faithfully have recorded consent
+  // to the new thing. So the current state is recomputed only to be COMPARED, and what is
+  // STORED is the material the client actually read.
+  //
+  // ⚠️ A MISMATCH REFUSES, AND SO DOES A MISSING REVIEW FREEZE. "We cannot prove what they were
+  // shown" is not permission to approve on their behalf.
+  const { reviewDrift } = await import('./preparation-snapshot')
+  const drift = await reviewDrift(programmeId)
+  if (drift.state !== 'unchanged') return null
+
+  const { data: prog, error } = await db.from('programmes')
+    .select('review_preparation_hash, review_preparation_snapshot').eq('id', programmeId).maybeSingle()
+  if (error || !prog) return null
+  const rp = prog as { review_preparation_hash: string | null; review_preparation_snapshot: unknown }
+  if (!rp.review_preparation_hash) return null
+
   return {
-    approved_preparation_hash: snap.hash,
-    approved_preparation_snapshot: snap.snapshot as unknown,
+    approved_preparation_hash: rp.review_preparation_hash,
+    approved_preparation_snapshot: rp.review_preparation_snapshot,
     approved_preparation_at: at,
   }
 }
@@ -609,7 +626,7 @@ export async function approveProgramme(programmeId: string): Promise<ProgrammeRe
   const at = new Date().toISOString()
   const prepared = await approvedPreparationColumns(programmeId, at)
   if (!prepared) {
-    return { ok: false, reason: 'The prepared work could not be described, so there is nothing to record as approved. Nothing was changed.' }
+    return { ok: false, reason: 'This programme cannot be approved: the prepared work is not the work that was frozen for review, or no review freeze exists. Re-prepare it, freeze it again and have it reviewed. Nothing was changed.' }
   }
   await setStatus(programmeId, 'APPROVED', { approved_at: at, ...prepared })
   return { ok: true }
@@ -718,7 +735,7 @@ export async function approveProgrammeAsCustomer(
   if (!prepared) {
     return {
       ok: false, code: 'unreadable',
-      reason: 'The prepared work could not be described, so this approval could not record what it covers. Nothing was changed.',
+      reason: 'This programme cannot be approved: the prepared work is not the work you reviewed, or no review freeze exists. It must be re-frozen and reviewed again. Nothing was changed.',
     }
   }
   const { data: won, error: writeErr } = await db.from('programmes')
@@ -825,7 +842,27 @@ export async function markReadyForApproval(programmeId: string): Promise<Program
     }
   }
 
-  await setStatus(programmeId, 'READY_FOR_APPROVAL')
+  // ── ⚑ 8 Sep — FREEZE THE REVIEW SNAPSHOT, IN THE SAME WRITE AS THE STATUS ─────────────
+  //
+  // 🛑 THE CLIENT MUST REVIEW THE EXACT THING THEY LATER APPROVE (founder-locked). Freezing
+  // only at APPROVED proved what was approved and nothing about what was READ: the work could
+  // change underneath somebody mid-review and the approval would faithfully record the new
+  // state — a perfect record of consent to something nobody looked at.
+  //
+  // ⚠️ SAME UPDATE AS THE STATUS, so a programme can never be READY_FOR_APPROVAL without a
+  // record of what it was ready WITH; and a programme that cannot be described cannot become
+  // reviewable, for the same reason it cannot become approved.
+  const frozenAt = new Date().toISOString()
+  const { buildPreparationSnapshot } = await import('./preparation-snapshot')
+  const frozen = await buildPreparationSnapshot(programmeId)
+  if (!frozen.ok) {
+    return { ok: false, reason: `The prepared work could not be described, so there is nothing to freeze for the client to review. ${frozen.degraded}` }
+  }
+  await setStatus(programmeId, 'READY_FOR_APPROVAL', {
+    review_preparation_hash: frozen.hash,
+    review_preparation_snapshot: frozen.snapshot as unknown,
+    review_preparation_at: frozenAt,
+  })
   return { ok: true }
 }
 

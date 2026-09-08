@@ -52,14 +52,21 @@ export interface PreparationSnapshot {
   steps: SequenceStep[]
   /** The waits in order — a retiming is a change even when no word moved. */
   cadence: number[]
+  // ⛓️ `campaign_settings_steps` WAS HERE AND IS GONE (8 Sep). It was added the day before as a
+  // hole-plug: `autoEnrollLead` built enrolments from `figsy_campaigns.settings.sequence`, so
+  // freezing only `figsy_sequences` left the sending store editable after approval. The founder
+  // then ruled the real fix — **`figsy_sequences` is canonical for programme work** — and the
+  // programme path no longer reads the settings copy at all. Keeping it in the digest would now
+  // invalidate a frozen programme because somebody edited a LEGACY campaign's settings, which is
+  // the false-mismatch failure this file's header warns about.
   /**
-   * 🛑 THE STEPS THAT ACTUALLY SEND, from `figsy_campaigns.settings.sequence`.
+   * The programme's send schedule — days, window and default timezone.
    *
-   * `autoEnrollLead` builds every enrolment from THIS, not from `figsy_sequences` — so hashing
-   * only the reviewed store would have left the sending store editable after approval with the
-   * digest never moving. Two stores, both frozen, until the ownership question is settled.
+   * ⚠️ TIMING IS PART OF THE WORK, not a system setting. A client who approved weekday-morning
+   * outreach did not approve Sunday 03:00, so a schedule change after approval must invalidate
+   * the freeze exactly as a rewritten body does.
    */
-  campaign_settings_steps: SequenceStep[]
+  send_schedule: unknown
   /** Identity of the mailbox that would send, not its credentials. Never a secret. */
   sender: string | null
   /** Sorted. Who would actually receive this. */
@@ -103,6 +110,11 @@ export async function buildPreparationSnapshot(programmeId: string): Promise<Sna
   if (!chainRes.ok) return { ok: false, degraded: chainRes.degraded }
   const chain = chainRes.chain
 
+  const { data: progRow, error: progErr } = await db.from('programmes')
+    .select('id, send_schedule').eq('id', programmeId).maybeSingle()
+  if (progErr) return { ok: false, degraded: `This programme's send schedule could not be read (${progErr.message}).` }
+  const sendSchedule = (progRow as { send_schedule?: unknown } | null)?.send_schedule ?? null
+
   // ── THE BATCH, and the people in it ──────────────────────────────────────────────────
   const { data: batches, error: batchErr } = await db.from('programme_batches')
     .select('id, seq').eq('programme_id', programmeId).order('seq', { ascending: false })
@@ -143,11 +155,41 @@ export async function buildPreparationSnapshot(programmeId: string): Promise<Sna
     sequence_id: chain.sequenceId,
     steps: chain.steps,
     cadence: chain.cadence,
-    campaign_settings_steps: chain.campaignSettingsSteps,
+    send_schedule: sendSchedule,
     sender,
     enrolled_lead_ids: enrolledLeadIds,
   }
   return { ok: true, snapshot, hash: preparationHash(snapshot) }
+}
+
+/**
+ * Has the prepared work changed since it was FROZEN FOR REVIEW?
+ *
+ * 🛑 A SECOND FREEZE, AT THE REVIEW BOUNDARY, AND IT IS NOT REDUNDANT (founder-locked 8 Sep).
+ * The approved hash proves what was APPROVED and says nothing about what was READ. A programme
+ * could sit in READY_FOR_APPROVAL while its enrolment set or its wording changed underneath the
+ * client, and the approval would faithfully record the NEW state — a perfect record of consent
+ * to something nobody reviewed.
+ */
+export async function reviewDrift(programmeId: string): Promise<PreparationDrift> {
+  const { data: prog, error } = await db.from('programmes')
+    .select('id, review_preparation_hash').eq('id', programmeId).maybeSingle()
+  if (error) return { state: 'unreadable', detail: `The programme could not be read (${error.message}).` }
+  if (!prog) return { state: 'unreadable', detail: 'There is no programme with that id.' }
+  const frozen = (prog as { review_preparation_hash: string | null }).review_preparation_hash
+  if (!frozen) {
+    return {
+      state: 'unreadable',
+      detail: 'This programme has no frozen review snapshot, so nothing can prove what the client was shown. It must be re-prepared and re-frozen before it can be approved.',
+    }
+  }
+  const now = await buildPreparationSnapshot(programmeId)
+  if (!now.ok) return { state: 'unreadable', detail: now.degraded }
+  if (now.hash === frozen) return { state: 'unchanged', hash: now.hash }
+  return {
+    state: 'changed', approved: frozen, current: now.hash,
+    detail: 'The prepared work has changed since it was frozen for the client to review — what they are looking at is not what would run. It must be re-frozen, and reviewed again, before it can be approved.',
+  }
 }
 
 export type PreparationDrift =

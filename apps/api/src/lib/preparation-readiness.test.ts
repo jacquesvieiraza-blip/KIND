@@ -58,6 +58,7 @@ const READY: PreparationFacts = {
   sequenceCampaignLinked: true,
   messageSteps: 3,
   cadenceConfigured: true,
+  sendScheduleConfigured: true,
   senderAssigned: true,
   eligibleEnrolments: 246,
   foreignEnrolments: 0,
@@ -225,8 +226,13 @@ describe('⑤ markReadyForApproval is gated by the canonical rule', () => {
     const at = PROGRAMME.indexOf('export async function markReadyForApproval')
     const rest = PROGRAMME.slice(at)
     const body = rest.slice(0, rest.indexOf('\nexport ') > -1 ? rest.indexOf('\nexport ') : rest.length)
+    // ⛓️ 8 Sep — the transition now also FREEZES the review snapshot in the same write, so the
+    // status literal moved into a multi-line `setStatus(..., { review_preparation_* })` call.
     expect(body.indexOf('programmePreparationReadiness('))
-      .toBeLessThan(body.indexOf("setStatus(programmeId, 'READY_FOR_APPROVAL')"))
+      .toBeLessThan(body.indexOf("setStatus(programmeId, 'READY_FOR_APPROVAL'"))
+    // 🛑 AND THE FREEZE IS PART OF THAT SAME WRITE. A programme can never be reviewable without
+    // a record of what it was reviewable WITH.
+    expect(body).toContain('review_preparation_hash: frozen.hash')
   })
 })
 
@@ -260,5 +266,15 @@ describe('⑥ a cadence is configured, or it is not — nothing is assumed', () 
 
   it('🛑 15 · and an unconfigured cadence blocks approval', () => {
     expect(codes(without({ cadenceConfigured: false }))).toContain('no_cadence')
+  })
+})
+
+// ── ⑦ THE SEND SCHEDULE IS PART OF WHAT IS APPROVED ──────────────────────────────────
+
+describe('⑦ timing is approved work, not a system setting', () => {
+  it('🛑 no send schedule blocks approval', () => {
+    // Without one every send is refused, so a programme could be declared reviewable and then
+    // be unable to run — and a schedule added AFTER approval changes work the client never saw.
+    expect(codes(without({ sendScheduleConfigured: false }))).toContain('no_send_schedule')
   })
 })

@@ -39,7 +39,7 @@ import { join } from 'path'
 // read rows. A source-text assertion cannot tell `if (open)` from `if (false && open)` — they
 // contain identical substrings — so the gates are exercised by calling them.
 const dbState: {
-  enrollment: { client_id: string | null; programme_id: string | null } | null
+  enrollment: { client_id: string | null; programme_id: string | null; sequence_id?: string | null } | null
   programme: Record<string, unknown> | null
   icp: Record<string, unknown> | null
   icpList: Record<string, unknown>[]
@@ -51,6 +51,10 @@ const dbState: {
   icpListError: { message: string } | null
   campaigns: Record<string, unknown>[]
   campaignsError: { message: string } | null
+  /** ⚑ 8 Sep — `figsy_sequences` is the single source of truth for programme words, so the
+   *  fixture has to be able to hold one. Empty by default: most cases here are about attribution
+   *  and authority, not about wording. */
+  sequences: Record<string, unknown>[]
   // ⛓️ C2 — THE CLIENT ROW IS NOW PART OF EVERY AUTHORITY QUESTION. `checkProgrammeAuthority`
   // resolves `clients.commercial_model` before it reads the programme, so a fixture with no
   // client row is a client that does not exist — which fails closed, correctly, and is not what
@@ -60,7 +64,7 @@ const dbState: {
 } = {
   enrollment: null, programme: null, icp: null, icpList: [],
   leadCount: 0, leadCountError: null, writes: [], updatedRows: null,
-  icpClientFilter: null, icpListError: null, campaigns: [], campaignsError: null,
+  icpClientFilter: null, icpListError: null, campaigns: [], campaignsError: null, sequences: [],
   client: { id: 'c1', commercial_model: null },
 }
 
@@ -89,6 +93,7 @@ vi.mock('@kind/db', () => ({
             // `markReadyForApproval` uses a head count: `{ count, error }`, no rows.
             return res({ data: null, count: dbState.leadCount, error: dbState.leadCountError })
           }
+          if (table === 'figsy_sequences') return res({ data: dbState.sequences, error: null })
           if (table === 'figsy_campaigns') {
             if (dbState.campaignsError) return res({ data: null, error: dbState.campaignsError })
             return res({ data: dbState.campaigns, error: null })
@@ -147,7 +152,7 @@ const LIVE = P({
 
 beforeEach(() => {
   dbState.enrollment = null; dbState.programme = null; dbState.icp = null
-  dbState.icpList = []; dbState.leadCount = 0; dbState.leadCountError = null
+  dbState.icpList = []; dbState.leadCount = 0; dbState.leadCountError = null; dbState.sequences = []
   dbState.writes = []; dbState.updatedRows = null
   dbState.icpClientFilter = null; dbState.icpListError = null
   dbState.client = { id: 'c1', commercial_model: null }
@@ -350,7 +355,7 @@ describe('④ the Stripe writers refuse when internal authority already exists',
     // the count as the repository's usual "adding a migration is never silent" tripwire.
     expect((mig.match(/20260902_programme_internal_authority/g) ?? []).length,
       'A1 must appear exactly once — a second entry would re-migrate columns production has run').toBe(1)
-    expect((mig.match(/key:\s*'[^']+'/g) ?? []), 'a migration was added').toHaveLength(50)   // ⛓️ 49 → 50 on 7 Sep (House delivery preparation): +2 — 20260907_preparation_snapshot (figsy_sequences.campaign_id, the positive programme→campaign→sequence link, plus programmes.approved_preparation_hash/_snapshot/_at). Both nullable, NO DEFAULT, NO BACKFILL: a NULL campaign_id means historical client-scoped work, and guessing one would relink a retired desk's words to current programme work — the exact leak the column exists to stop. The snapshot columns are written ONLY in the same conditional UPDATE as status = APPROVED, so nothing is stamped approved before an approval happens.   // ⛓️ 48 → 49 on 7 Sep (HOUSE-009): +1 20260907_programme_sourcing_authority — functions only, no table, no column, no row. try_reserve_programme_sourcing is new and try_spend_sourcing is REPLACED with the same signature, the same return and a byte-unchanged legacy branch. It exists because programme ENTITLEMENT and PDL MONEY were one function body, so exempting the prepaid Apollo/house path from a fabricated $0.28-a-record ledger row also exempted it from the reservation, the 2,500 ceiling and the batch.   // ⛓️ 47 → 48 on 3 Sep (PR C3 · leads.proof_pass): +1 20260903_lead_proof_attribution — one NULLABLE smallint on leads with NO DEFAULT and NO BACKFILL, plus a guarded CHECK admitting NULL, 1 and 2, and a partial index. It exists because a free-proof lead and a retired legacy delivered lead were BYTE-IDENTICAL on every column that was traced (leads.source is the PROVIDER name and the same for both; programme_id is null for both; icp_run_outcomes holds no lead ids and no proof flag; sourcing_ledger and proof_ledger are money rows with no lead ids, and a pool-only proof pass writes no proof_ledger row at all; acquisition_memory is keyed on the provider identity; icps.proof_widened_candidate exists only for a pass-2 widened fallback). The withdrawn fix used clients.proof_passes_done, which is CUMULATIVE ACCOUNT STATE: any declared programme client with old legacy leads who later ran a proof they were entitled to run got their whole history back as current work. NULL means "not known to be proof work", which is the honest reading of every existing row, and no row is written by the migration. 🚀 UNLIKE C1 THIS ONE SHIPS WITH THE CODE THAT READS IT — run it from Vida → Engine immediately after deploying this build; until it is applied the customer desk attributes NOTHING, which fails closed to an empty desk and never to a historical one.   // ⛓️ 46 → 47 on 3 Sep (PR C1 · SCHEMA FIRST): +1 20260903_client_commercial_model — one NULLABLE text column on clients, NO DEFAULT, NO BACKFILL, plus a CHECK admitting NULL / 'programme' / 'legacy'. NULL is the migrated state for the whole existing book and resolves to exactly today's behaviour, so no row is written and nobody is reclassified. Nothing in C1 reads or writes it (expand/contract).   
+    expect((mig.match(/key:\s*'[^']+'/g) ?? []), 'a migration was added').toHaveLength(51)   // ⛓️ 50 → 51 on 8 Sep: +1 20260908_review_freeze_and_schedule — programmes.review_preparation_hash/_snapshot/_at (the client must review the EXACT thing they later approve; freezing only at APPROVED proved what was approved and nothing about what was READ), programmes.send_schedule (there was NO schedule anywhere in the send path — `getDay`, `getHours` and "send window" appear nowhere — so outbound was ready to leave at 03:00 on a Sunday), and figsy_enrollments.sequence_id (so "which words will this person receive" is a positive fact rather than an unverifiable copy). All nullable, NO DEFAULT, NO BACKFILL.   // ⛓️ 49 → 50 on 7 Sep (House delivery preparation): +2 — 20260907_preparation_snapshot (figsy_sequences.campaign_id, the positive programme→campaign→sequence link, plus programmes.approved_preparation_hash/_snapshot/_at). Both nullable, NO DEFAULT, NO BACKFILL: a NULL campaign_id means historical client-scoped work, and guessing one would relink a retired desk's words to current programme work — the exact leak the column exists to stop. The snapshot columns are written ONLY in the same conditional UPDATE as status = APPROVED, so nothing is stamped approved before an approval happens.   // ⛓️ 48 → 49 on 7 Sep (HOUSE-009): +1 20260907_programme_sourcing_authority — functions only, no table, no column, no row. try_reserve_programme_sourcing is new and try_spend_sourcing is REPLACED with the same signature, the same return and a byte-unchanged legacy branch. It exists because programme ENTITLEMENT and PDL MONEY were one function body, so exempting the prepaid Apollo/house path from a fabricated $0.28-a-record ledger row also exempted it from the reservation, the 2,500 ceiling and the batch.   // ⛓️ 47 → 48 on 3 Sep (PR C3 · leads.proof_pass): +1 20260903_lead_proof_attribution — one NULLABLE smallint on leads with NO DEFAULT and NO BACKFILL, plus a guarded CHECK admitting NULL, 1 and 2, and a partial index. It exists because a free-proof lead and a retired legacy delivered lead were BYTE-IDENTICAL on every column that was traced (leads.source is the PROVIDER name and the same for both; programme_id is null for both; icp_run_outcomes holds no lead ids and no proof flag; sourcing_ledger and proof_ledger are money rows with no lead ids, and a pool-only proof pass writes no proof_ledger row at all; acquisition_memory is keyed on the provider identity; icps.proof_widened_candidate exists only for a pass-2 widened fallback). The withdrawn fix used clients.proof_passes_done, which is CUMULATIVE ACCOUNT STATE: any declared programme client with old legacy leads who later ran a proof they were entitled to run got their whole history back as current work. NULL means "not known to be proof work", which is the honest reading of every existing row, and no row is written by the migration. 🚀 UNLIKE C1 THIS ONE SHIPS WITH THE CODE THAT READS IT — run it from Vida → Engine immediately after deploying this build; until it is applied the customer desk attributes NOTHING, which fails closed to an empty desk and never to a historical one.   // ⛓️ 46 → 47 on 3 Sep (PR C1 · SCHEMA FIRST): +1 20260903_client_commercial_model — one NULLABLE text column on clients, NO DEFAULT, NO BACKFILL, plus a CHECK admitting NULL / 'programme' / 'legacy'. NULL is the migrated state for the whole existing book and resolves to exactly today's behaviour, so no row is written and nobody is reclassified. Nothing in C1 reads or writes it (expand/contract).   
   })
 })
 
@@ -453,44 +458,24 @@ describe('⑥ a null programme_id is HISTORY when the client has an open program
     expect(v.allowed === false && v.reason).toBe('not_this_programme')
   })
 
-  // ⛓️ 7 Sep — THIS CASE NOW HAS TO CARRY AN APPROVED-PREPARATION HASH, and that requirement
-  // is the fix, not fixture noise. `checkEnrollmentAuthority` is THE MAIN SEND PATH and it used
-  // to end in a bare `authorityFor(p, action)` — a pure call that never consulted the
-  // approved-preparation comparison. So a sequence rewritten, retimed or re-audienced after
-  // approval was sendable with the old consent still attached.
+  // ⛓️ 8 Sep — THIS CASE IS ABOUT ATTRIBUTION, AND IT IS SCOPED BACK TO THAT.
   //
-  // 🛑 AND AN APPROVAL WITH NO RECORDED SNAPSHOT IS `unreadable`, NOT `unchanged`. "We have no
-  // record of what was approved" must never resolve to "yes, it matches" — so this fixture has
-  // to become a programme that actually recorded what it approved.
-  it('an enrollment that NAMES the programme is authorised as normal', async () => {
-    // The other half. Without this, a refusal that broke everything would still pass above.
-    dbState.enrollment = { client_id: 'house', programme_id: 'prog-1' }
+  // It was written as the other half of the pair above: a null-attributed enrolment is history,
+  // and one that NAMES the programme is not. Since 7 Sep the OUTREACH door also enforces the
+  // canonical sequence, sender safety, the send window and the approved-preparation comparison
+  // — none of which this fixture has any opinion about, and all of which would make this case
+  // fail for reasons that have nothing to do with attribution.
+  //
+  // ⚠️ SO IT ASSERTS THE ATTRIBUTION VERDICT, NOT A BLANKET ALLOW. `not_this_programme` is the
+  // refusal the pair exists to tell apart, and a function that refused everything with THAT
+  // reason would still fail here. The allow/refuse proof for the newer gates lives in
+  // `outbound-execution-guard.test.ts`, against a fixture built for it.
+  it('an enrollment that NAMES the programme is not refused as history', async () => {
+    dbState.enrollment = { client_id: 'house', programme_id: 'prog-1', sequence_id: 'seq-1' }
     dbState.programme = asRow(LIVE)
-    // The hash is computed from THIS fixture's own state, so "unchanged" is a real comparison
-    // rather than a constant somebody typed to make the test pass.
-    const { buildPreparationSnapshot } = await import('./preparation-snapshot')
-    const snap = await buildPreparationSnapshot('prog-1')
-    expect(snap.ok, 'the fixture cannot describe its own prepared work').toBe(true)
-    if (snap.ok) (dbState.programme as Record<string, unknown>).approved_preparation_hash = snap.hash
     const v = await checkEnrollmentAuthority('enr-current', 'OUTREACH')
-    expect(v.allowed, 'the programme must still authorise its OWN work').toBe(true)
-  })
-
-  it('🛑 and it is REFUSED once the prepared work no longer matches what was approved', async () => {
-    dbState.enrollment = { client_id: 'house', programme_id: 'prog-1' }
-    dbState.programme = asRow(LIVE)
-    // A hash that is not this fixture's current preparation — i.e. the work moved after approval.
-    ;(dbState.programme as Record<string, unknown>).approved_preparation_hash = 'a'.repeat(64)
-    const v = await checkEnrollmentAuthority('enr-current', 'OUTREACH')
-    expect(v.allowed, 'a changed preparation can still Run and send').toBe(false)
-    expect(v.allowed === false && v.reason).toBe('preparation_changed')
-  })
-
-  it('🛑 an approved programme with NO recorded snapshot fails CLOSED on the send path', async () => {
-    dbState.enrollment = { client_id: 'house', programme_id: 'prog-1' }
-    dbState.programme = asRow(LIVE)   // approved_at set, approved_preparation_hash absent
-    const v = await checkEnrollmentAuthority('enr-current', 'OUTREACH')
-    expect(v.allowed, '"we have no record of what was approved" resolved to "it matches"').toBe(false)
+    expect(v.allowed === false && v.reason,
+      'the programme is refusing its OWN work as historical').not.toBe('not_this_programme')
   })
 
   it('a client with NO open programme still resolves as legacy — the selling model is untouched', async () => {
@@ -1055,7 +1040,7 @@ describe('⑮ programme work never inherits a historical campaign', () => {
     // authority module through `checkProgrammeAuthority(clientId, 'OUTREACH')`, which is
     // `mayStartCampaign` plus the approval check — the first version of this assertion matched
     // the word `mayStartCampaign` inside a comment and proved nothing.
-    expect(sw).toContain("const verdict = await checkProgrammeAuthority(clientId, 'OUTREACH')")
+    expect(sw).toContain("const verdict = await checkProgrammeAuthority(clientId, 'OUTREACH'")
     // and OUTREACH authority is where `p2Authorised` is consulted
     const auth = strip(raw(join(API, 'lib/programme-authority.ts')))
     expect(auth).toContain('const verdict = mayStartCampaign(p)')
@@ -1527,7 +1512,7 @@ describe('㉔ the fresh-ICP ordering is a real property of the code, not a hope'
     // So an ICP created AFTER the programme exists stays campaign-clean, and can be attached.
     // The refusal happens before any insert — the programme gate sits above the try block.
     const sw = strip(raw(join(API, 'lib/start-work.ts')))
-    const gate = sw.indexOf("const verdict = await checkProgrammeAuthority(clientId, 'OUTREACH')")
+    const gate = sw.indexOf("const verdict = await checkProgrammeAuthority(clientId, 'OUTREACH'")
     const insert = sw.indexOf("db.from('figsy_campaigns')")
     expect(gate, 'the programme gate must exist').toBeGreaterThan(-1)
     expect(gate, 'and must precede any campaign write').toBeLessThan(insert)

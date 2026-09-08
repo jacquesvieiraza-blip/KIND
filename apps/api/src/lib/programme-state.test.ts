@@ -366,7 +366,21 @@ describe('⑤ approval is ONE programme-level decision', () => {
       id: 'lead-1', programme_id: p.id, delivered_at: 'd', surfaced_for_approval_at: 's',
       revealed_at: null, status: 'scored',
     })
-    return approveProgramme(p.id)
+    // ⚑ 8 Sep — approval COPIES the reviewed snapshot rather than taking a fresh one, so a
+    // programme that was never frozen for review cannot be approved. Frozen here from the
+    // fixture's own state, the way `markReadyForApproval` does in production — a typed-in
+    // constant would make the comparison a tautology.
+    return import('./preparation-snapshot')
+      .then(({ buildPreparationSnapshot }) => buildPreparationSnapshot(p.id))
+      .then(snap => {
+        expect(snap.ok, 'the fixture cannot describe its own prepared work').toBe(true)
+        if (snap.ok) {
+          const row = state.programmes[0] as Record<string, unknown>
+          row.review_preparation_hash = snap.hash
+          row.review_preparation_snapshot = snap.snapshot
+        }
+      })
+      .then(() => approveProgramme(p.id))
       .then(r => {
         expect(r.ok).toBe(true)
         expect(state.programmes[0].status).toBe('APPROVED')

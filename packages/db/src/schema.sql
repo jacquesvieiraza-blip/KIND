@@ -785,6 +785,17 @@ create table if not exists public.programmes (
   approved_preparation_hash     text,
   approved_preparation_snapshot jsonb,
   approved_preparation_at       timestamptz,
+  -- ── 8 Sep · the REVIEW freeze, and when outbound may leave (20260908_review_freeze_and_schedule)
+  -- Freezing only at APPROVED proved what was approved and nothing about what was READ: work
+  -- could change underneath a client mid-review and the approval would faithfully record the
+  -- new state. The snapshot is therefore taken at the REVIEW boundary too, and approval copies
+  -- the reviewed one rather than taking a fresh one.
+  review_preparation_hash       text,
+  review_preparation_snapshot   jsonb,
+  review_preparation_at         timestamptz,
+  -- When outbound may leave, in the RECIPIENT's local time. There was no schedule anywhere in
+  -- the send path before this. NULL = not configured = REFUSE for programme work.
+  send_schedule                 jsonb,
   went_live_at              timestamptz,
   paused_at                 timestamptz,          -- pause is ORTHOGONAL to status, not a status
   pause_reason              text,                 -- client | quality | icp_change

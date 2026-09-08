@@ -86,6 +86,16 @@ export type AuthorityRefusal =
   /** ⚑ A sourcing run was asked for from an ICP that belongs to no programme, for a client
    *  who has one. Raised BEFORE the pool is served and before any provider is called. */
   | 'icp_not_attached_to_programme'
+  /** ⚑ It is outside this programme's configured sending days or hours, in the RECIPIENT's
+   *  local time — or no schedule is configured at all, which refuses (8 Sep). Temporary by
+   *  nature: the same work is offered again on the next run inside the window. */
+  | 'outside_send_window'
+  /** ⚑ The enrolment is not pointed at the programme's canonical `figsy_sequences` row, so the
+   *  words it would send are not the words the client approved (8 Sep). */
+  | 'sequence_not_canonical'
+  /** ⚑ The sending mailbox is ambiguous (an unbroken tie) or shared live with another client,
+   *  so which human this appears to come from is not a settled fact (8 Sep). */
+  | 'sender_unsafe'
   /** ⚑ The prepared work is no longer the work the customer approved (7 Sep). Its own code,
    *  because the fix is a RE-APPROVAL and not a payment, a resume or a status change — every
    *  other refusal here sends an operator somewhere different. */
@@ -283,7 +293,11 @@ const PROGRAMME_COLUMNS =
   'approved_at, went_live_at, paused_at, pause_reason, review_required_at, review_reason, review_resolved_at, ' +
   // ⚑ read so `p1Authorised`/`p2Authorised` can see internal authority. Without them every
   // internally-authorised programme would read as unauthorised at every gate in this file.
-  'first_payment_intent_id, second_payment_intent_id, first_authorised_at, second_authorised_at'
+  'first_payment_intent_id, second_payment_intent_id, first_authorised_at, second_authorised_at, ' +
+  // ⚑ 8 Sep — the OUTREACH guards read the send window off the programme row, so it has to
+  // be SELECTED. An unselected column reads `undefined`, which the schedule guard treats as
+  // "no schedule configured" and refuses — a column list is a silent way to break a gate.
+  'send_schedule'
 
 /**
  * The client's open (non-terminal) programme, or null if they have none.
@@ -326,8 +340,49 @@ export async function openProgrammeFor(clientId: string): Promise<ProgrammeRow |
  * failure mode this exists to remove, and it would remove it silently.
  */
 async function outreachStillMatchesApproval(
-  programme: ProgrammeRow, verdict: AuthorityVerdict,
+  programme: ProgrammeRow, verdict: AuthorityVerdict, ctx?: OutreachContext,
 ): Promise<AuthorityVerdict> {
+  // ── ⚑ 8 Sep — THE SEND SCHEDULE IS CHECKED HERE, AND THAT PLACEMENT IS THE DESIGN ──────
+  //
+  // 🛑 EVERY OUTBOUND PATH ALREADY REACHES THIS FUNCTION (the bypass audit of 7 Sep made sure
+  // of it), so putting the window check here means the cron, the operator Run, a retry, the
+  // day-1 batch, both provider pushes and the LinkedIn dispatch all inherit it — without six
+  // call sites each remembering to ask. A schedule enforced in five places out of six is a
+  // schedule that does not exist.
+  //
+  // ⚠️ AND A RETRY CANNOT OUTLAST IT. The refusal is evaluated at the moment of the attempt, so
+  // work deferred at 19:00 is refused again at 19:05 and sent at 09:00 — there is no ticket
+  // that says "this was allowed earlier".
+  // ⚠️ DEFAULT-ON, OPT-OUT ONCE, AND THAT DIRECTION IS THE POINT. Every consumer of OUTREACH
+  // authority is checked against the window unless it explicitly says it is not sending — so
+  // forgetting to think about it yields the SAFE answer. The one honest opt-out today is
+  // campaign ACTIVATION: turning a campaign on at 19:00 is not a touch on a prospect, and
+  // refusing it would make the window a scheduling bug rather than a sending rule.
+  if (ctx?.enforceSchedule !== false) {
+  const { maySendNow } = await import('./send-schedule')
+  const when = maySendNow(
+    (programme as unknown as { send_schedule?: unknown }).send_schedule ?? null,
+    ctx?.at ?? new Date(),
+    ctx?.recipientCountry ?? null,
+  )
+  if (!when.allowed) {
+    return { allowed: false, reason: 'outside_send_window', programme, message: when.detail }
+  }
+  }
+
+  // ── ⚑ 8 Sep — SENDER SAFETY, at the same single door ──────────────────────────────────
+  //
+  // Two failures `resolveSendingInbox` cannot see, because it was written for a client with one
+  // mailbox: a TIE between equally-ranked boxes (so which one sends is row order, not a
+  // decision — and the frozen snapshot's sender becomes a coin toss), and the SAME address
+  // being live on another client (two programmes sending as one human, sharing a reputation,
+  // blind to each other's suppression). Both fail closed.
+  const { programmeSenderSafety } = await import('./programme-sender')
+  const senderSafe = await programmeSenderSafety(programme.client_id)
+  if (!senderSafe.ok) {
+    return { allowed: false, reason: 'sender_unsafe', programme, message: senderSafe.detail }
+  }
+
   const { preparationDrift } = await import('./preparation-snapshot')
   const drift = await preparationDrift(programme.id)
   if (drift.state === 'unchanged') return verdict
@@ -345,9 +400,28 @@ async function outreachStillMatchesApproval(
   }
 }
 
+/**
+ * What the OUTREACH guards need to know about the message being attempted.
+ *
+ * ⚠️ OPTIONAL, AND ITS ABSENCE IS HANDLED RATHER THAN ASSUMED. A batch path that does not know
+ * one recipient's country falls back to the programme's `default_tz`, and the schedule guard
+ * reports that it fell back — a silently guessed timezone is how a window stops meaning
+ * anything. `at` exists so the window is testable without waiting for a Tuesday.
+ */
+export interface OutreachContext {
+  recipientCountry?: string | null
+  at?: Date
+  /**
+   * `false` ONLY for a caller that is not attempting a prospect touch — campaign activation.
+   * Omitted means enforced, so a new sender that forgets this field is still governed.
+   */
+  enforceSchedule?: boolean
+}
+
 export async function checkProgrammeAuthority(
   clientId: string,
   action: ProgrammeAction,
+  ctx?: OutreachContext,
 ): Promise<AuthorityVerdict> {
   try {
     // ⚑ C2 — THE COMMERCIAL MODEL IS RESOLVED HERE, NOT INFERRED BELOW. `clientCommercialModel`
@@ -359,7 +433,7 @@ export async function checkProgrammeAuthority(
     const programme = model.openProgramme
     const verdict = authorityFor(programme, action, model)
     if (!verdict.allowed || action !== 'OUTREACH' || !programme) return verdict
-    return await outreachStillMatchesApproval(programme, verdict)
+    return await outreachStillMatchesApproval(programme, verdict, ctx)
   } catch (err) {
     const why = err instanceof Error ? err.message : String(err)
     console.error(`[programme-authority] ${action} refused for client ${clientId} — state unreadable:`, why)
@@ -393,19 +467,20 @@ export async function checkEnrollmentAuthority(
    * — exactly what `figsy.ts` already warns about for the campaign read a few lines below.
    */
   fallbackClientId?: string | null,
+  ctx?: OutreachContext,
 ): Promise<AuthorityVerdict> {
   try {
     const { data: enr, error } = await db.from('figsy_enrollments')
-      .select('id, client_id, programme_id').eq('id', enrollmentId).maybeSingle()
+      .select('id, client_id, programme_id, sequence_id').eq('id', enrollmentId).maybeSingle()
     // A read ERROR is "we cannot tell" — refuse. Absence is answered below.
     if (error) return unresolvable(`enrollment read failed: ${error.message}`)
     if (!enr) {
       return fallbackClientId
-        ? await checkProgrammeAuthority(fallbackClientId, action)
+        ? await checkProgrammeAuthority(fallbackClientId, action, ctx)
         : unresolvable(`enrollment ${enrollmentId} not found and no client to fall back to`)
     }
 
-    const e = enr as { client_id: string | null; programme_id: string | null }
+    const e = enr as { client_id: string | null; programme_id: string | null; sequence_id: string | null }
 
     if (e.programme_id) {
       const { data: prog, error: pErr } = await db.from('programmes')
@@ -430,7 +505,40 @@ export async function checkEnrollmentAuthority(
       // this module exists to remove.
       const enrolVerdict = authorityFor(p, action)
       if (!enrolVerdict.allowed || action !== 'OUTREACH') return enrolVerdict
-      return await outreachStillMatchesApproval(p, enrolVerdict)
+
+      // ── ⚑ 8 Sep — THE WORDS THIS PERSON WOULD RECEIVE ARE THE CANONICAL ONES ────────────
+      //
+      // 🛑 `figsy_sequences` IS CANONICAL FOR PROGRAMME WORK (founder-locked). An enrolment
+      // carries a COPY of the steps, so without this the copy could have been built from the
+      // campaign settings store — or from a sequence that has since been replaced — and the
+      // send path would faithfully deliver words the customer never approved.
+      //
+      // ⚠️ IT COMPARES IDENTITY, NOT CONTENT. Content drift is the approved-preparation hash's
+      // job, immediately below; this asks the different question of whether this enrolment is
+      // even pointed at the programme's current sequence. Both are needed: a matching hash on
+      // an enrolment built from the wrong sequence proves nothing about what leaves.
+      const { resolveProgrammeChain } = await import('./programme-chain')
+      const chainRes = await resolveProgrammeChain(p.id)
+      if (!chainRes.ok) {
+        return unresolvable(`the programme's canonical sequence could not be resolved: ${chainRes.degraded}`)
+      }
+      const canonical = chainRes.chain.sequenceId
+      if (!canonical) {
+        return {
+          allowed: false, reason: 'sequence_not_canonical', programme: p,
+          message: 'This programme has no canonical sequence (programme → ICP → campaign → figsy_sequences), so there are no approved words to send.',
+        }
+      }
+      if (e.sequence_id !== canonical) {
+        return {
+          allowed: false, reason: 'sequence_not_canonical', programme: p,
+          message: e.sequence_id
+            ? 'This enrolment was built from a different sequence than the programme\'s current canonical one, so sending it would deliver words the client did not approve. It must be re-prepared.'
+            : 'This enrolment names no sequence, so nothing can prove the words it carries are the ones the client approved. It predates canonical sequence attribution and must be re-prepared.',
+        }
+      }
+
+      return await outreachStillMatchesApproval(p, enrolVerdict, ctx)
     }
 
     if (!e.client_id) return unresolvable(`enrollment ${enrollmentId} has neither a programme nor a client`)
@@ -473,7 +581,7 @@ export async function checkEnrollmentAuthority(
         programme: open,
       }
     }
-    return await checkProgrammeAuthority(e.client_id, action)
+    return await checkProgrammeAuthority(e.client_id, action, ctx)
   } catch (err) {
     return unresolvable(err instanceof Error ? err.message : String(err))
   }

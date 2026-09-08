@@ -3666,6 +3666,56 @@ COMMENT ON COLUMN public.programmes.approved_preparation_at IS
   'When the approved preparation snapshot was taken. Deliberately separate from approved_at: they are written together today, and a future re-approval must be able to move this without rewriting the original approval time.';
 `.trim(),
   },
+  {
+    // 8 Sep — THE CLIENT MUST REVIEW THE EXACT THING THEY LATER APPROVE, AND OUTBOUND MUST HAVE
+    // A TIME OF DAY. Canonical file (full reasoning):
+    // supabase/migrations/20260908_review_freeze_and_schedule.sql, written in the same change.
+    //
+    //   programmes.review_preparation_hash / _snapshot / _at — freezing only at APPROVED proved
+    //   what was approved and nothing about what was READ, so work could change underneath a
+    //   client mid-review and the approval would faithfully record the new state.
+    //
+    //   programmes.send_schedule — there was NO schedule anywhere in the send path. Not a
+    //   default, not a constant: getDay, getHours and "send window" appear nowhere. NULL means
+    //   NOT CONFIGURED, which the guard treats as REFUSE for programme work.
+    //
+    //   figsy_enrollments.sequence_id — so "which words will this person receive" is a positive
+    //   fact rather than an unverifiable copy of steps.
+    //
+    // All nullable, NO DEFAULT, NO BACKFILL, additive and inert until the code reads them.
+    // The SQL below is the canonical file with its comment lines stripped, because a backtick
+    // inside one would terminate this literal.
+    key: '20260908_review_freeze_and_schedule',
+    title: 'review-boundary preparation freeze, the programme send schedule, and figsy_enrollments.sequence_id',
+    sql: `
+ALTER TABLE public.programmes
+  ADD COLUMN IF NOT EXISTS review_preparation_hash     text,
+  ADD COLUMN IF NOT EXISTS review_preparation_snapshot jsonb,
+  ADD COLUMN IF NOT EXISTS review_preparation_at       timestamptz,
+  ADD COLUMN IF NOT EXISTS send_schedule               jsonb;
+
+COMMENT ON COLUMN public.programmes.review_preparation_hash IS
+  'sha256 of the canonical preparation snapshot FROZEN at the transition into READY_FOR_APPROVAL - the exact material the client is shown. Approval refuses unless the current preparation still matches it, and then stores the REVIEWED snapshot as the approved one. Taking a fresh snapshot at approval instead would faithfully record consent to something the client never read.';
+
+COMMENT ON COLUMN public.programmes.review_preparation_snapshot IS
+  'The canonical snapshot behind review_preparation_hash, kept so a change can be EXPLAINED and not merely detected. Exactly one snapshot, replaced only by a re-freeze.';
+
+COMMENT ON COLUMN public.programmes.review_preparation_at IS
+  'When the review snapshot was frozen. Separate from approved_preparation_at: a re-freeze after a material change must move this without rewriting the approval time.';
+
+COMMENT ON COLUMN public.programmes.send_schedule IS
+  'When outbound may leave for this programme: { days: [1..7 Mon..Sun], start: "HH:MM", end: "HH:MM", default_tz: "IANA zone" }, evaluated in the RECIPIENT''S local timezone where their country is known and in default_tz otherwise. NULL means NO SCHEDULE CONFIGURED, which the guard treats as REFUSE for programme work - a missing schedule is not permission to send at any hour.';
+
+ALTER TABLE public.figsy_enrollments
+  ADD COLUMN IF NOT EXISTS sequence_id uuid REFERENCES public.figsy_sequences(id) ON DELETE SET NULL;
+
+CREATE INDEX IF NOT EXISTS figsy_enrollments_sequence_idx
+  ON public.figsy_enrollments (sequence_id) WHERE sequence_id IS NOT NULL;
+
+COMMENT ON COLUMN public.figsy_enrollments.sequence_id IS
+  'The canonical figsy_sequences row this enrolment was built from. Written by programme preparation only; NULL means a legacy enrolment whose words came from the campaign settings copy, which is the honest reading of every row written before this column and is never backfilled. The programme send path refuses an enrolment whose sequence_id is not the programme''s current canonical sequence.';
+`.trim(),
+  },
 ]
 
 // Runs the statements against DATABASE_URL. Uses node-postgres because the Supabase JS

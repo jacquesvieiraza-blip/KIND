@@ -410,11 +410,11 @@ describe('④ the resolver is consumed at every path that sources, sends, enrols
     // ⚠️ THE GATE IS ON THE ACTIVATE PATH, and `checkProgrammeAuthority` is what C2 made
     // model-aware — so a declared programme client with no programme is refused here without
     // this file needing its own copy of the rule.
-    expect(fn).toMatch(/if \(activate\) \{[\s\S]{0,2000}checkProgrammeAuthority\(clientId, 'OUTREACH'\)/)
+    expect(fn).toMatch(/if \(activate\) \{[\s\S]{0,2000}checkProgrammeAuthority\(clientId, 'OUTREACH'/)
     expect(fn, 'a refused verdict must return, not fall through to the insert')
       .toMatch(/if \(!verdict\.allowed\) \{[\s\S]{0,900}return \{ refused/)
     // ⚠️ AND THE GATE PRECEDES EVERY CAMPAIGN WRITE, including the wake of a paused row.
-    const gateAt = fn.indexOf("checkProgrammeAuthority(clientId, 'OUTREACH')")
+    const gateAt = fn.indexOf("checkProgrammeAuthority(clientId, 'OUTREACH'")
     expect(gateAt).toBeLessThan(fn.indexOf("status: 'active'"))
     expect(gateAt).toBeLessThan(fn.indexOf("update({ status: 'active' })"))
 

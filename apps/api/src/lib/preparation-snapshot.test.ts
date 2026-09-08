@@ -40,9 +40,7 @@ const BASE: PreparationSnapshot = {
     { subject: 'Re: your pipeline', body: 'Following up …', wait_days: 3 },
   ],
   cadence: [0, 3],
-  campaign_settings_steps: [
-    { subject: 'A quick question about your pipeline', body: 'Hi {{first_name}} — …', wait_days: 0 },
-  ],
+  send_schedule: { days: [2, 3, 4], start: '08:30', end: '17:00', default_tz: 'Europe/London' },
   sender: 'inbox-1|hello@meetandvibe.com',
   enrolled_lead_ids: ['lead-1', 'lead-2'],
 }
@@ -65,7 +63,7 @@ describe('① the same work always hashes the same', () => {
       enrolled_lead_ids: BASE.enrolled_lead_ids, sender: BASE.sender, cadence: BASE.cadence,
       steps: BASE.steps, sequence_id: BASE.sequence_id, campaign_id: BASE.campaign_id,
       batch_lead_ids: BASE.batch_lead_ids, batch_id: BASE.batch_id,
-      campaign_settings_steps: BASE.campaign_settings_steps,
+      send_schedule: BASE.send_schedule,
       programme_id: BASE.programme_id, v: BASE.v,
     } as PreparationSnapshot
     expect(JSON.stringify(reordered)).not.toBe(JSON.stringify(BASE))   // the hazard is real
@@ -139,7 +137,7 @@ describe('② a material change to ANY approved component moves the hash', () =>
   it('🛑 every field the founder named is present in the digest, by name', () => {
     const json = canonicalJson(BASE)
     for (const field of ['programme_id', 'batch_id', 'batch_lead_ids', 'campaign_id',
-                         'sequence_id', 'steps', 'cadence', 'campaign_settings_steps',
+                         'sequence_id', 'steps', 'cadence', 'send_schedule',
                          'sender', 'enrolled_lead_ids']) {
       expect(json, `the approved snapshot omits ${field}`).toContain(`"${field}"`)
     }
@@ -197,7 +195,7 @@ describe('④ outreach authority is where the comparison bites', () => {
   it('🛑 24 · OUTREACH consults the approved-preparation comparison', async () => {
     const AUTH = await src('./programme-authority.ts')
     expect(AUTH, 'a changed preparation can Run and send without re-approval')
-      .toContain('outreachStillMatchesApproval(programme, verdict)')
+      .toContain('outreachStillMatchesApproval(programme, verdict, ctx)')
     expect(AUTH).toContain("preparationDrift")
     // 🛑 AND ONLY ON OUTREACH. Applying it to SOURCING would stop every programme sourcing,
     // because sourcing happens before there is an approval to have drifted from.
@@ -225,11 +223,16 @@ describe('④ outreach authority is where the comparison bites', () => {
     const PROG = await src('./programme.ts')
     // Two writes could leave an approval with no record of what it covered, or a snapshot
     // against an approval that never landed — the very inconsistency this exists to detect.
-    expect(PROG).toContain("approved_preparation_hash: snap.hash")
+    // ⛓️ 8 Sep — APPROVAL COPIES THE *REVIEWED* SNAPSHOT. Taking a fresh one here recorded
+    // whatever the work had BECOME, so a change made while the client was reading would have
+    // been faithfully approved on their behalf.
+    expect(PROG).toContain("approved_preparation_hash: rp.review_preparation_hash")
+    expect(PROG).toContain("const drift = await reviewDrift(programmeId)")
+    expect(PROG).toContain("if (drift.state !== 'unchanged') return null")
     expect(PROG).toContain("await setStatus(programmeId, 'APPROVED', { approved_at: at, ...prepared })")
     expect(PROG).toContain(".update({ status: 'APPROVED', approved_at: at, updated_at: at, ...prepared })")
     // And a programme that cannot be described cannot be approved.
-    expect(PROG).toContain('The prepared work could not be described')
+    expect(PROG).toContain('the prepared work is not the work that was frozen for review')
   })
 })
 
@@ -249,15 +252,12 @@ describe('⑤ buildPreparationSnapshot reads the real work, not an empty shape',
     vi.resetModules()
     vi.doMock('@kind/db', () => {
       const rowsFor = (table: string): unknown[] => {
-        if (table === 'programmes') return [{ id: 'prog-1', client_id: 'c1' }]
-        if (table === 'icps') return [{ id: 'icp-1', client_id: 'c1' }]
-        if (table === 'figsy_campaigns') return [{
-          id: 'camp-1', client_id: 'c1',
-          // 🛑 THE STORE THAT ACTUALLY SENDS. `autoEnrollLead` builds every enrolment from
-          // `settings.sequence`, not from `figsy_sequences` — so a snapshot that hashed only
-          // the reviewed store would leave the sending store editable after approval.
-          settings: { sequence: [{ subject: 'Sent subject', body: 'Sent body', wait_days: 0 }] },
+        if (table === 'programmes') return [{
+          id: 'prog-1', client_id: 'c1',
+          send_schedule: { days: [2, 3, 4], start: '08:30', end: '17:00', default_tz: 'Europe/London' },
         }]
+        if (table === 'icps') return [{ id: 'icp-1', client_id: 'c1' }]
+        if (table === 'figsy_campaigns') return [{ id: 'camp-1', client_id: 'c1', settings: {} }]
         if (table === 'figsy_sequences') return [{
           id: 'seq-1', client_id: 'c1', campaign_id: 'camp-1',
           steps: [
@@ -329,15 +329,11 @@ describe('⑤ buildPreparationSnapshot reads the real work, not an empty shape',
   })
 
 
-  it('🛑 the SENDING store is in the snapshot too — two stores, both frozen', async () => {
+  it('🛑 the SEND SCHEDULE arrives — a retiming of the WINDOW is a change too', async () => {
     const r = await build()
     if (!r.ok) throw new Error(r.degraded)
-    expect(r.snapshot.campaign_settings_steps, 'figsy_campaigns.settings.sequence is not frozen')
-      .toEqual([{ subject: 'Sent subject', body: 'Sent body', wait_days: 0 }])
-    // ⚠️ AND IT IS GENUINELY A DIFFERENT STORE FROM THE REVIEWED ONE — the fixture holds
-    // different words in each on purpose, because that is the live hazard: an operator edits
-    // one and the customer approved the other.
-    expect(r.snapshot.steps[0].subject).not.toBe(r.snapshot.campaign_settings_steps[0].subject)
+    expect(r.snapshot.send_schedule, 'the schedule is not frozen, so it could change after approval')
+      .toEqual({ days: [2, 3, 4], start: '08:30', end: '17:00', default_tz: 'Europe/London' })
   })
 
   it('🛑 and the built snapshot HASHES differently from one missing any of them', async () => {
@@ -345,7 +341,7 @@ describe('⑤ buildPreparationSnapshot reads the real work, not an empty shape',
     if (!r.ok) throw new Error(r.degraded)
     const gutted = {
       ...r.snapshot, batch_lead_ids: [], steps: [], cadence: [],
-      campaign_settings_steps: [], sender: null, enrolled_lead_ids: [],
+      send_schedule: null, sender: null, enrolled_lead_ids: [],
     }
     expect(preparationHash(gutted), 'an empty snapshot hashes the same as a full one')
       .not.toBe(r.hash)

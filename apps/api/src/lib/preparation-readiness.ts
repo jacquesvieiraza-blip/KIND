@@ -34,6 +34,7 @@
 import { db } from '@kind/db'
 import { SOURCING_AUTHORISED_STATUSES, type ProgrammeStatus } from './programme'
 import { resolveProgrammeChain } from './programme-chain'
+import { isSendSchedule } from './send-schedule'
 
 /**
  * Is a cadence actually decided, or is it just an array that exists?
@@ -67,6 +68,8 @@ export interface PreparationFacts {
   /** Real, reviewable outbound steps. Zero means there is nothing to read. */
   messageSteps: number
   cadenceConfigured: boolean
+  /** A well-formed send schedule — days, window, default timezone. */
+  sendScheduleConfigured: boolean
   senderAssigned: boolean
   /** Prepared enrolments that belong to THIS programme. */
   eligibleEnrolments: number
@@ -90,7 +93,7 @@ export interface PreparationBlocker {
 export const PREPARATION_REQUIREMENTS = [
   'wrong_status', 'paused', 'no_attached_icp', 'no_batch', 'no_reviewable_leads',
   'no_campaign', 'campaign_not_programme_linked', 'no_sequence', 'sequence_not_campaign_linked',
-  'no_message_steps', 'no_cadence', 'no_sender', 'no_eligible_enrolments',
+  'no_message_steps', 'no_cadence', 'no_send_schedule', 'no_sender', 'no_eligible_enrolments',
   'foreign_enrolments', 'no_snapshot',
 ] as const
 
@@ -135,6 +138,13 @@ export function preparationBlockers(f: PreparationFacts): PreparationBlocker[] {
   if (!f.cadenceConfigured) {
     block('no_cadence', 'No cadence is configured, so it is not decided when these messages would go out. Approving content without timing approves half the plan.')
   }
+  if (!f.sendScheduleConfigured) {
+    // ⚑ 8 Sep — TIMING IS PART OF WHAT IS APPROVED, and there was no schedule at all: `getDay`,
+    // `getHours` and "send window" appear nowhere in the send path. Without one the OUTREACH
+    // guard refuses every send, so a programme could be declared reviewable and then be unable
+    // to run — and worse, a schedule added AFTER approval is a change the client never saw.
+    block('no_send_schedule', 'No sending schedule is configured (days, window, timezone), so it is not decided WHEN these messages would go out. Outreach refuses without one, and adding it after approval would change work the client already agreed to.')
+  }
   if (!f.senderAssigned) {
     block('no_sender', 'No sending mailbox is assigned and ready for this client, so nothing could leave even after approval — and the client would be approving a plan that cannot run.')
   }
@@ -171,11 +181,11 @@ export async function programmePreparationReadiness(programmeId: string): Promis
     ({ ready: false, blockers: [{ code: 'unreadable', detail: degraded }], facts: null, degraded })
 
   const { data: prog, error: progErr } = await db.from('programmes')
-    .select('id, client_id, status, paused_at').eq('id', programmeId).maybeSingle()
+    .select('id, client_id, status, paused_at, send_schedule').eq('id', programmeId).maybeSingle()
   if (progErr) return notReady(`This programme's own row could not be read (${progErr.message}), so readiness could not be judged. Nothing changed.`)
   if (!prog) return notReady('There is no programme with that id.')
 
-  const p = prog as { id: string; client_id: string; status: string; paused_at: string | null }
+  const p = prog as { id: string; client_id: string; status: string; paused_at: string | null; send_schedule?: unknown }
 
   // The ICP attached to THIS programme — the same positive link `sourceProgramme` uses.
   const { data: icps, error: icpErr } = await db.from('icps')
@@ -214,10 +224,17 @@ export async function programmePreparationReadiness(programmeId: string): Promis
     .select('id', { count: 'exact', head: true }).eq('programme_id', programmeId)
   if (enrErr) return notReady(`This programme's prepared enrolments could not be read (${enrErr.message}).`)
 
+  // ⛓️ 8 Sep — THE SAFETY CHECK, NOT THE BARE RESOLVER. "A mailbox exists and can send" is not
+  // the same as "it is safe to bind this programme to it": an unbroken tie between two boxes
+  // makes the frozen sender arbitrary, and an address live on another client makes two
+  // programmes send as one human. Readiness asks the same question OUTREACH will ask, so a
+  // programme cannot be declared reviewable on a sender the send gate would later refuse.
   let senderAssigned = false
   try {
-    const { resolveSendingInbox } = await import('./sending-inbox')
-    senderAssigned = (await resolveSendingInbox(p.client_id)).ok === true
+    const { programmeSenderSafety } = await import('./programme-sender')
+    const safety = await programmeSenderSafety(p.client_id)
+    if (!safety.ok && safety.reason === 'unreadable') return notReady(safety.detail)
+    senderAssigned = safety.ok
   } catch (err) {
     return notReady(`The sending mailbox for this client could not be checked (${err instanceof Error ? err.message : String(err)}).`)
   }
@@ -254,6 +271,7 @@ export async function programmePreparationReadiness(programmeId: string): Promis
     sequenceCampaignLinked: chain.sequenceId !== null,
     messageSteps: chain.steps.length,
     cadenceConfigured: cadenceIsConfigured(chain.cadence),
+    sendScheduleConfigured: isSendSchedule((p as unknown as { send_schedule?: unknown }).send_schedule),
     senderAssigned,
     eligibleEnrolments: eligible ?? 0,
     foreignEnrolments: 0,

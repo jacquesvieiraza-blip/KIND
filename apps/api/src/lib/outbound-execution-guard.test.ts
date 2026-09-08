@@ -53,13 +53,13 @@ function fn(src: string, name: string): string {
 describe('① there are exactly two doors to OUTREACH authority, and both compare', () => {
   it('🛑 checkProgrammeAuthority compares', () => {
     expect(fn(AUTH, 'checkProgrammeAuthority'))
-      .toContain('outreachStillMatchesApproval(programme, verdict)')
+      .toContain('outreachStillMatchesApproval(programme, verdict, ctx)')
   })
 
   it('🛑 checkEnrollmentAuthority compares — THE MAIN SEND PATH, and it did not', () => {
     const body = fn(AUTH, 'checkEnrollmentAuthority')
     expect(body, 'the enrollment door returns the PURE verdict again — every sequence send bypasses the freeze')
-      .toContain('outreachStillMatchesApproval(p, enrolVerdict)')
+      .toContain('outreachStillMatchesApproval(p, enrolVerdict, ctx)')
     // 🛑 AND THE PURE CALL MUST NOT BE THE THING RETURNED. `return authorityFor(p, action)` is
     // the exact line that was the bypass; it reads correct and skips the comparison.
     expect(body, 'the bypass line is back verbatim').not.toContain('return authorityFor(p, action)')
@@ -69,6 +69,26 @@ describe('① there are exactly two doors to OUTREACH authority, and both compar
     expect((AUTH.match(/async function outreachStillMatchesApproval/g) ?? []).length).toBe(1)
     expect((AUTH.match(/outreachStillMatchesApproval\(/g) ?? []).length,
       'a third call site appeared — check it is a door and not a bypass').toBe(3)
+    // ⚑ 8 Sep — every guard the OUTREACH doors enforce lives INSIDE that one function, so the
+    // schedule, the sender safety and the approved-preparation comparison cannot drift apart
+    // into "the enrollment door checks two of the three".
+    const gate = fn(AUTH, 'outreachStillMatchesApproval')
+    // ⚠️ EACH GUARD'S *BRANCH*, NOT ITS NAME. A call whose result nobody acts on is not a gate,
+    // and a `toContain` on the call site stays green when the `if` around it becomes `if (false)`.
+    expect(gate, 'the send window is no longer enforced at the single door').toContain('maySendNow(')
+    expect(gate, 'the window verdict is computed and then ignored').toContain('if (!when.allowed) {')
+    expect(gate, 'sender safety is no longer enforced at the single door').toContain('programmeSenderSafety(')
+    expect(gate, 'the sender verdict is computed and then ignored').toContain('if (!senderSafe.ok) {')
+    expect(gate, 'the approved-preparation comparison is gone').toContain('preparationDrift(')
+    // 🛑 AND NOTHING MAY RETURN BEFORE IT. A bare `return verdict` inserted above the drift
+    // check leaves every assertion above satisfied while the comparison never runs — which is
+    // exactly what teeth-proof 23 did, to a green suite.
+    // ⚠️ ADJACENCY, NOT ORDERING. My first attempt compared indexes — drift computed before the
+    // first `return verdict` — and the teeth-proof walked straight through it by inserting a
+    // bare `return verdict` on the line BETWEEN them: the comparison still ran, its answer was
+    // simply unreachable. What has to be true is that nothing at all sits in the gap.
+    expect(gate, 'something returns the allowing verdict between the comparison and its result')
+      .toContain("const drift = await preparationDrift(programme.id)\n  if (drift.state === 'unchanged') return verdict")
   })
 
   it('🛑 it fails CLOSED when the comparison cannot be made', () => {

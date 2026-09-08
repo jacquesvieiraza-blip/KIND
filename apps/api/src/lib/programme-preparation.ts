@@ -41,6 +41,7 @@
 import { db } from '@kind/db'
 import { getProgramme, TERMINAL_STATUSES, p1Authorised, p2Authorised, type ProgrammeRow } from './programme'
 import { normalizeRevealEmail, normalizeRevealEmails } from './billing-rules'
+import { isBusinessEmail } from './email-hygiene'
 
 /**
  * ⛓️ 7 Sep — PREPARATION HAPPENS BEFORE APPROVAL (founder-locked).
@@ -71,7 +72,13 @@ import { normalizeRevealEmail, normalizeRevealEmails } from './billing-rules'
  * LIVE. That is the smallest safe boundary, and it is a structural guarantee rather than a
  * flag somebody has to remember.
  */
-export const PRE_APPROVAL_PREPARABLE: string[] = ['SOURCING_AUTHORISED', 'SOURCING', 'READY_FOR_APPROVAL']
+// ⛓️ `READY_FOR_APPROVAL` LEFT THIS LIST ON 8 Sep (founder-locked). It was here for idempotent
+// recovery, and the reasoning was wrong in a way that mattered: preparation ADDS ENROLMENTS, so
+// "recovery" could change the very set the client was reading — and the review freeze taken at
+// the transition would no longer describe what was on screen. Once a programme is reviewable,
+// its material preparation is FROZEN. Reopening it means going back through the transition,
+// which re-freezes, which is the point.
+export const PRE_APPROVAL_PREPARABLE: string[] = ['SOURCING_AUTHORISED', 'SOURCING']
 export const POST_APPROVAL_PREPARABLE: string[] = ['APPROVED', 'LIVE']
 
 export type PreparationStage = 'pre_approval' | 'post_approval'
@@ -351,6 +358,33 @@ export async function prepareProgrammeOutreach(programmeId: string): Promise<Pre
   //
   // ⚠️ EVERY PAGE RE-APPLIES THE FULL FILTER — `programme_id` AND `client_id`. Narrowing on
   // the first page only is how a paginated query drifts into another tenant.
+  // ── ⚑ 8 Sep — THE CANONICAL SEQUENCE, AND THE CURRENT BATCH (founder-locked) ──────────
+  //
+  // 🛑 A PREPARED ENROLMENT WITH NO APPROVED WORDS IS NOT PREPARATION. Without a canonical
+  // sequence `autoEnrollLead` would AI-generate a draft per lead — words nobody wrote, nobody
+  // reviewed and nobody approved, baked into a row that looks ready. Refusing here costs a
+  // retry; the alternative is a client approving copy that was invented for them.
+  const { resolveProgrammeChain } = await import('./programme-chain')
+  const chainRes = await resolveProgrammeChain(programmeId)
+  if (!chainRes.ok) { out.problems.push(chainRes.degraded); return out }
+  if (!chainRes.chain.sequenceId || chainRes.chain.steps.length === 0) {
+    out.problems.push('This programme has no canonical sequence with message steps (programme → ICP → campaign → figsy_sequences), so no prospect can be prepared. Nothing was enrolled.')
+    return out
+  }
+
+  // 🛑 THE CURRENT BATCH, AND ONLY IT. A programme runs in controlled batches, and the client
+  // reviews ONE of them. Preparing across every batch a programme ever had would put people
+  // from an older, already-decided batch into the set being approved now — right programme,
+  // wrong unit of work, and invisible in every count.
+  const { data: batchRows, error: batchErr } = await db.from('programme_batches')
+    .select('id, seq').eq('programme_id', programmeId).order('seq', { ascending: false }).limit(1)
+  if (batchErr) { out.problems.push(`This programme's batches could not be read (${batchErr.message}).`); return out }
+  const currentBatchId = ((batchRows ?? []) as { id: string }[])[0]?.id ?? null
+  if (!currentBatchId) {
+    out.problems.push('No controlled batch has been opened for this programme, so there is no current unit of work to prepare.')
+    return out
+  }
+
   const { autoEnrollLead } = await import('./figsy')
   let after = ''
   let budgetLeft = PREPARE_BUDGET
@@ -370,9 +404,12 @@ export async function prepareProgrammeOutreach(programmeId: string): Promise<Pre
       break
     }
     const { data: page, error: pageErr } = await db.from('leads')
-      .select('id, email, status, opted_out_at, provider_eviction_required_at')
+      .select('id, email, status, opted_out_at, provider_eviction_required_at, apollo_consented')
       .eq('programme_id', programmeId)
       .eq('client_id', p.client_id)
+      // ⚑ 8 Sep — THE CURRENT BATCH. Positive, from `leads.batch_id`, which the sourcing run
+      // stamps on exactly the people it bought. No older programme batch may enter this set.
+      .eq('batch_id', currentBatchId)
       .not('delivered_at', 'is', null)
       .not('surfaced_for_approval_at', 'is', null)
       .gt('id', after)
@@ -382,6 +419,7 @@ export async function prepareProgrammeOutreach(programmeId: string): Promise<Pre
     const rows = (page ?? []) as {
       id: string; email: string | null; status: string | null
       opted_out_at: string | null; provider_eviction_required_at: string | null
+      apollo_consented: boolean | null
     }[]
     if (rows.length === 0) break
     after = rows[rows.length - 1].id
@@ -401,6 +439,19 @@ export async function prepareProgrammeOutreach(programmeId: string): Promise<Pre
       if (r.status === 'opted_out' || r.status === 'rejected' || r.status === 'passed') return false
       if (r.opted_out_at) return false
       if (r.provider_eviction_required_at) return false
+      // ── ⚑ 8 Sep — THE EMAIL IS RE-PROVED HERE, NOT ASSUMED FROM DELIVERY ────────────────
+      //
+      // 🛑 "SOMETHING EARLIER PROBABLY CHECKED IT" IS NOT A CHECK. The Wednesday House policy
+      // is a VERIFIED BUSINESS address and no personal fallback, and the row is what has to
+      // satisfy it at the moment it is prepared — a lead can be edited, imported or reached by
+      // a path whose gate differed.
+      //
+      // ⚠️ NO NEW COLUMN. `isBusinessEmail` is the same pure predicate `finalVerdict` uses, and
+      // `leads.apollo_consented` is the existing "provider-VERIFIED email" marker, written true
+      // only after that final gate passed. Inventing a second verification store would create
+      // exactly the dual truth the sequence store just had to be rescued from.
+      if (!isBusinessEmail(r.email)) return false
+      if (r.apollo_consented !== true) return false
       return true
     })
     out.skipped += rows.length - candidates.length

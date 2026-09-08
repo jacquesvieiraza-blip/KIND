@@ -21,6 +21,7 @@ const state: {
   charges: string[]; sends: string[]; ensureCalls: { clientId: string; icpId: string; activate: boolean }[]
   ensureRefuses: boolean; blocklist: Row[]
 } = {
+  sequences: [] as Row[], batches: [] as Row[],
   programmes: [], icps: [], leads: [], campaigns: [], enrollments: [], clients: [],
   charges: [], sends: [], ensureCalls: [], ensureRefuses: false, blocklist: [],
 }
@@ -78,7 +79,8 @@ vi.mock('@kind/db', () => ({
     from: (t: string) => table(
       t === 'programmes' ? 'programmes' : t === 'icps' ? 'icps' : t === 'leads' ? 'leads'
       : t === 'figsy_campaigns' ? 'campaigns' : t === 'figsy_enrollments' ? 'enrollments'
-      : t === 'opt_out_blocklist' ? 'blocklist' : 'clients',
+      : t === 'opt_out_blocklist' ? 'blocklist'
+      : t === 'figsy_sequences' ? 'sequences' : t === 'programme_batches' ? 'batches' : 'clients',
     ),
     rpc: async () => ({ data: null, error: null }),
   },
@@ -143,11 +145,27 @@ function seedProgrammeReadyForLive(over: Row = {}) {
   })
   state.icps.push({ id: 'ICP_NEW', client_id: H, name: 'Programme targeting', programme_id: P_NEW, is_active: true })
   state.clients.push({ id: H, figsy_credits_remaining: 0, is_demo: false })
+  // ⚑ 8 Sep — A CONTROLLED BATCH AND A CANONICAL SEQUENCE ARE NOW PRECONDITIONS, and neither is
+  // fixture noise. Preparation must enrol only the CURRENT batch (an older batch's people would
+  // otherwise join the set being approved now), and it refuses outright without a canonical
+  // sequence — because `autoEnrollLead` would otherwise AI-generate words nobody approved.
+  state.batches.push({ id: 'BATCH_NEW', programme_id: P_NEW, seq: 1, status: 'served' })
+  state.campaigns.push({ id: 'camp-seed', client_id: H, icp_id: 'ICP_NEW', status: 'active', leads_enrolled: 0 })
+  state.sequences.push({ id: 'SEQ_NEW', client_id: H, campaign_id: 'camp-seed', steps: [
+    { subject: 'One', body: 'First message', wait_days: 0 },
+    { subject: 'Two', body: 'Second message', wait_days: 3 },
+  ] })
 }
 const newLead = (id: string, over: Row = {}) =>
   state.leads.push({
     id, client_id: H, icp_id: 'ICP_NEW', programme_id: P_NEW, delivered_at: 'd',
-    status: 'scored', email: `${id.toLowerCase()}@example.com`,
+    // ⚑ 8 Sep — the CURRENT batch, and a VERIFIED BUSINESS address re-proved at enrolment.
+    // `apollo_consented` is the existing "provider-VERIFIED email" marker, written true only
+    // after the final ICP gate; a free-mail domain fails `isBusinessEmail` on the same row.
+    batch_id: 'BATCH_NEW', apollo_consented: true,
+    // ⚠️ NOT `@example.com` — `isPlaceholderEmail` treats it as a fake mailbox, and the
+    // enrolment gate now re-proves the address is a real BUSINESS one.
+    status: 'scored', email: `${id.toLowerCase()}@northwind-logistics.co.uk`,
     // ⚠️ SURFACED BY DEFAULT, because the default lead here is a NORMAL programme prospect: one
     // an operator has put in front of the customer. `delivered_at` alone is a different and
     // narrower state — the one ⑨ below proves must never become outreach.
@@ -157,7 +175,7 @@ const newLead = (id: string, over: Row = {}) =>
 
 beforeEach(() => {
   state.programmes = []; state.icps = []; state.leads = []; state.campaigns = []
-  state.enrollments = []; state.clients = []
+  state.enrollments = []; state.clients = []; state.sequences = []; state.batches = []
   state.charges = []; state.sends = []; state.ensureCalls = []; state.ensureRefuses = false
   state.blocklist = []
 })
@@ -625,7 +643,7 @@ describe('⑦ preparation reuses the existing suppression truth', () => {
     // A person who opted out through any client is suppressed for all of them, and that fact
     // lives in `opt_out_blocklist`, not on the lead row — the same table the send path reads.
     newLead('L_OK'); newLead('L_BLOCKED')
-    state.blocklist.push({ email: 'l_blocked@example.com' })
+    state.blocklist.push({ email: 'l_blocked@northwind-logistics.co.uk' })
     const r = await prepareProgrammeOutreach(P_NEW)
     expect(r.enrolled).toEqual(['L_OK'])
     expect(r.skipped).toBe(1)
@@ -786,7 +804,7 @@ describe('⑨ only genuinely review-surfaced programme work is prepared for outr
     seedProgrammeReadyForLive({ status: 'LIVE', went_live_at: 'w' })
     newLead('L1')
     newLead('L_BOUNCED')
-    state.blocklist.push({ email: 'l_bounced@example.com', reason: 'hard_bounce' })
+    state.blocklist.push({ email: 'l_bounced@northwind-logistics.co.uk', reason: 'hard_bounce' })
 
     const r = await prepareProgrammeOutreach(P_NEW)
     expect(r.enrolled).toEqual(['L1'])
@@ -798,7 +816,7 @@ describe('⑨ only genuinely review-surfaced programme work is prepared for outr
     seedProgrammeReadyForLive({ status: 'LIVE', went_live_at: 'w' })
     newLead('L1')
     newLead('L_COMPLAINED')
-    state.blocklist.push({ email: 'l_complained@example.com', reason: 'spam_complaint' })
+    state.blocklist.push({ email: 'l_complained@northwind-logistics.co.uk', reason: 'spam_complaint' })
 
     const r = await prepareProgrammeOutreach(P_NEW)
     expect(r.enrolled).toEqual(['L1'])

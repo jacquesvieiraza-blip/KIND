@@ -307,45 +307,83 @@ describe('HOUSE-009 — the house batch settles on what was ACCEPTED, not on wha
   const ICPS = readFileSync(join(__dirname, '../routes/icps.ts'), 'utf8')
     .split('\n').filter(l => { const t = l.trim(); return t && !t.startsWith('//') && !t.startsWith('*') && !t.startsWith('/*') }).join('\n')
 
-  it('🛑 the PDL settle no longer runs for the house — `returnedCount` is a PDL truth', () => {
-    // PDL charges per record RETURNED, so settling a PDL reservation on `contacts.length` is
-    // correct: that is what was bought. Apollo is prepaid, so what the house reservation should
-    // consume is what became a usable lead — 250 requested, 250 granted, 246 accepted.
-    expect(ICPS, 'the house settles on the raw search page again, so 250 would read as used')
-      .toContain("if (programmeBatch && audience !== 'house') {")
+  // ⛓️ REWRITTEN 9 Sep — THE 7 Sep FIX SETTLED ON THE RIGHT ROWS AND THE WRONG EVENT.
+  //
+  // It settled the house batch on `count(batch_id = X AND delivered_at IS NOT NULL)`. That is
+  // the population `deliveryCapBalance(...)` had already capped — and it returns a CONSTANT 25
+  // whatever the plan or balance — so a 250-candidate batch would have settled at 25 used and
+  // released 225 of the customer's paid volume. Correct shape, wrong predicate.
+  //
+  // Founder-locked 9 Sep: entitlement is consumed by M&V's QUALIFICATION verdict. Every
+  // assertion below is the same question asked of the right column, and the settle now applies
+  // to EVERY programme run rather than the house alone — a customer's ledger cannot be settled
+  // on a raw provider page either.
+
+  it('🛑 no programme run settles on `returnedCount` — the raw provider page is neither obtained nor qualified', () => {
+    expect(ICPS, 'the early settle is back, so a batch is accounted before anybody judged it')
+      .not.toContain('settleBatch(programmeBatch.id, returnedCount)')
+    expect(ICPS, 'the house-only settle branch is back — a customer programme would settle on the provider page')
+      .not.toContain("if (programmeBatch && audience !== 'house') {")
+    expect(ICPS).not.toContain("if (programmeBatch && audience === 'house') {")
   })
 
-  it('🛑 and it settles AFTER delivery, on a count read from the rows', () => {
-    const at = ICPS.indexOf("if (programmeBatch && audience === 'house') {")
-    expect(at, 'the house settle is gone — 246 delivered would leave the counters at zero').toBeGreaterThan(-1)
-    const body = ICPS.slice(at, at + 1400)
-    // Counted from `leads`, not from an in-memory number of what we hoped would happen.
-    expect(body).toContain(".eq('batch_id', batchId)")
-    expect(body).toContain(".not('delivered_at', 'is', null)")
-    expect(body).toContain('settleBatch(batchId, accepted ?? 0)')
+  it('🛑 it settles AFTER qualification, on a QUALIFIED count read from the rows', () => {
+    const at = ICPS.indexOf('const { count: qualified, error: qErr } = await db.from(\'leads\')')
+    expect(at, 'the settle no longer counts anything from the rows').toBeGreaterThan(-1)
+    const body = ICPS.slice(at, at + 900)
+    expect(body).toContain(".eq('batch_id', programmeBatch.id)")
+    // 🛑 THE COLUMN THAT DECIDES THE CUSTOMER'S LEDGER.
+    expect(body, 'the settle counts delivery again — a self-serve visibility stamp capped at 25')
+      .toContain(".not('qualified_at', 'is', null)")
+    expect(body).not.toContain("delivered_at")
+    expect(body).toContain('settleBatch(programmeBatch.id, qualified ?? 0)')
   })
 
-  it('🛑 it runs after enrichAndDeliverLeads, because that is when `delivered_at` exists', () => {
-    const deliver = ICPS.indexOf('await enrichAndDeliverLeads(clientId, deliverNow, {')
-    const settle = ICPS.indexOf("if (programmeBatch && audience === 'house') {")
-    expect(deliver).toBeGreaterThan(-1)
-    expect(settle, 'the house settle runs before the final ICP gate, so it would count refusals')
-      .toBeGreaterThan(deliver)
+  it('🛑 it runs after qualifyCandidates, because that is when a verdict exists', () => {
+    const qualify = ICPS.indexOf('const q = await qualifyCandidates(clientId, insertedIds, {')
+    const settle = ICPS.indexOf('settleBatch(programmeBatch.id, qualified ?? 0)')
+    expect(qualify, 'the programme run no longer qualifies its candidates').toBeGreaterThan(-1)
+    expect(settle, 'the settle runs before the verdicts exist, so it would count nothing')
+      .toBeGreaterThan(qualify)
+  })
+
+  it('🛑 EVERY candidate is judged — not `insertedIds.slice(0, deliveryCapBalance(...))`', () => {
+    // The defect in one line: a self-serve throttle deciding how many of a customer's paid
+    // prospects M&V bothers to assess.
+    expect(ICPS).toContain('qualifyCandidates(clientId, insertedIds, {')
+    const at = ICPS.indexOf('if (programmeIdForRun) {', ICPS.indexOf('if (!proofMode && insertedIds.length > 0) {'))
+    const programmeBranch = ICPS.slice(at, ICPS.indexOf('} else {', at))
+    expect(programmeBranch, 'the programme path is capped by the self-serve delivery cap again')
+      .not.toContain('deliveryCapBalance')
+    expect(programmeBranch).not.toContain('insertedIds.slice(')
+    expect(programmeBranch, 'a programme run writes delivery stamps again — that is surfacing\'s job')
+      .not.toContain('enrichAndDeliverLeads')
+  })
+
+  it('🛑 an unjudged remainder or a provider failure does NOT settle', () => {
+    const at = ICPS.indexOf('if (q.still_unjudged > 0 || q.provider_failed) {')
+    expect(at, 'a partial judgement can now be settled as though it were complete').toBeGreaterThan(-1)
+    const body = ICPS.slice(at, at + 600)
+    expect(body).toContain('NOT settled')
+    expect(body, 'the refusal falls through into the settle').toContain('} else {')
   })
 
   it('🛑 an unreadable count does NOT settle — a false number is worse than an open reservation', () => {
-    const at = ICPS.indexOf("if (programmeBatch && audience === 'house') {")
-    const body = ICPS.slice(at, at + 1400)
-    expect(body).toContain('if (acceptedErr) {')
-    // Leaving the batch `running` is visible and recoverable; settling on a guess writes a
-    // permanent falsehood into the programme ceiling.
-    expect(body).toContain('NOT settled')
+    const at = ICPS.indexOf('if (qErr) {')
+    expect(at).toBeGreaterThan(-1)
+    expect(ICPS.slice(at, at + 400)).toContain('NOT settled')
   })
 
   it('requested / granted / delivered stay three separate numbers', () => {
     // `claim_programme_batch` records requested and granted; `settle_programme_batch` records
     // delivered and releases the difference. Collapsing any two would hide the four refusals.
-    const claim = ICPS.indexOf('openBatch(houseProgrammeId, pdlRemainder, grantedSize)')
+    // ⛓️ 9 Sep — retargeted: the batch records the whole attempt (provider grant + the pool
+    // volume reserved as entitlement), so a qualified pool prospect cannot be clamped out of
+    // USED. requested / granted / delivered are still three separate numbers, which is what
+    // this case exists to hold.
+    // ⛓️ 9 Sep, again — the pool half of the REQUEST is `poolAttempted`, the reservation taken
+    // before a pool row was written. The granted side is unchanged.
+    const claim = ICPS.indexOf('openBatch(houseProgrammeId, pdlRemainder + poolAttempted, grantedSize + poolReserved)')
     expect(claim, 'the house batch no longer records requested and granted separately').toBeGreaterThan(-1)
   })
 })

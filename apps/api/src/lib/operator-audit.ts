@@ -124,6 +124,16 @@ export type OperatorAction =
                                // a foreign-client lead, or orphans that would not fit under the
                                // ceiling — and a refusal that writes no row looks on every board
                                // exactly like a reconciliation nobody ever attempted.
+  | 'programme_batch_qualified' // ⚑ 9 Sep (HOUSE-009) — M&V judged a programme's candidates
+                               // against the customer's ICP and settled the attempt. It moves
+                               // `sourced_used`, may spend Apollo reveal credits, and its
+                               // verdicts are permanent, so who ran it against which programme
+                               // has to survive the session. It sources nobody and sends
+                               // nothing.
+  | 'programme_batch_qualify_refused' // …and the refusals, which are the more interesting half:
+                               // a provider failure, an unjudged remainder or a settle that the
+                               // RPC would not accept all leave no batch and no counter change,
+                               // so without a row they leave no trace at all.
   | 'nexus_autotune_toggle' // #511g3 — enabled/disabled a client's Nexus auto-tune kill-switch
   | 'demo_reset'            // MBF — rebuilt the demo account to its fixed state (invented data, no money, no sends)
   | 'house_client_setup'    // #549/#593 — opened (or adopted) Client Zero, the house account.

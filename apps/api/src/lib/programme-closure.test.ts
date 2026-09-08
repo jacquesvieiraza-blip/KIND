@@ -233,8 +233,20 @@ describe('GAP 1 · the activate route computes `sourcing` independently of the j
     const routeStart = ICPS.indexOf("res.json({ success: true, data, sourcing: started")
     for (const marker of [
       'const programmeId = (icp as { programme_id?: string | null }).programme_id ?? null',
-      'programmeBatch = await openBatch(programmeId, pdlRemainder, grantedSize)',
-      'settleBatch(programmeBatch.id, returnedCount)',
+      // ⛓️ 9 Sep — the batch now records the WHOLE attempt: the provider grant plus the
+      // pool volume reserved as entitlement. Recording only the provider half is what let
+      // `settle_programme_batch`'s `LEAST(delivered, granted)` clamp a qualified pool
+      // prospect out of the customer's consumed ceiling. The marker is retargeted; what
+      // this case is FOR — that the edit lives inside runIcpJob — is unchanged.
+      // ⛓️ 9 Sep, again — the pool half of the REQUEST is `poolAttempted`, the grant taken
+      // before a single pool row is written. Same home, same case, retargeted marker.
+      'programmeBatch = await openBatch(programmeId, pdlRemainder + poolAttempted, grantedSize + poolReserved)',
+      // ⛓️ 9 Sep — the settle's ARGUMENT changed, its home did not. Entitlement is consumed
+      // by M&V's qualification verdict, so the batch settles on the qualified count read
+      // back from the rows rather than on `returnedCount`, the raw provider page. What this
+      // case is FOR — that the edit lives inside runIcpJob and not in the activate handler —
+      // is unchanged, so the marker is retargeted rather than dropped.
+      'settleBatch(programmeBatch.id, qualified ?? 0)',
     ]) {
       const at = ICPS.indexOf(marker)
       expect(at, `not found: ${marker}`).toBeGreaterThan(0)

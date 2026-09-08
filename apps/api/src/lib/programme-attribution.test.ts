@@ -30,8 +30,12 @@ type Rec = {
   leadInserts: number
   stamps: Stamp[]
   rpcs: string[]
+  /** Every RPC with its arguments — `p_requested` / `p_granted` are the numbers under review. */
+  rpcCalls: Array<{ fn: string; args: Record<string, unknown> }>
+  /** Every insert, by table, with its row count. A pool serve is ONE multi-row insert. */
+  inserts: Array<{ table: string; rows: Record<string, unknown>[] }>
 }
-const fresh = (): Rec => ({ leadInserts: 0, stamps: [], rpcs: [] })
+const fresh = (): Rec => ({ leadInserts: 0, stamps: [], rpcs: [], rpcCalls: [], inserts: [] })
 
 type Opts = {
   /** rows the pool can serve (free copies — cost the batch nothing) */
@@ -42,6 +46,16 @@ type Opts = {
   programmeOnIcp: string | null
   /** a free-proof claim travels with the call, exempting it from programme authority */
   proof?: boolean
+  /**
+   * What `try_reserve_programme_sourcing` GRANTS the pool half of the attempt.
+   *
+   * ⚑ ADDED 9 Sep FOR THE POOL-AUTHORITY BLOCKER. Undefined means "grants whatever was asked",
+   * which is every pre-existing case in this file. A NUMBER models a programme whose remaining
+   * ceiling is smaller than the pool can serve — the state in which the previous
+   * implementation admitted every served row into the batch anyway and let the settle clamp
+   * report a smaller USED than the customer could see.
+   */
+  poolAuthority?: number
   /**
    * Does the CLIENT hold an open programme row?
    *
@@ -121,6 +135,7 @@ async function build(opts: Opts, rec: Rec) {
         },
         insert(rows: unknown) {
           const list = Array.isArray(rows) ? rows : [rows]
+          rec.inserts.push({ table, rows: list as Record<string, unknown>[] })
           // ⚠️ COUNT `leads` ONLY. The first cut incremented on every table, so
           // `icp_run_outcomes` and friends inflated the count and the "stamp covered every
           // inserted lead" assertion compared the stamp against rows that are not leads.
@@ -145,7 +160,14 @@ async function build(opts: Opts, rec: Rec) {
         from: (t: string) => q(t),
         rpc: async (fn: string, args: Record<string, unknown>) => {
           rec.rpcs.push(fn)
+          rec.rpcCalls.push({ fn, args })
           if (fn === 'try_spend_sourcing')  return { data: Number(args.p_requested ?? 0), error: null }
+          // Entitlement, not money. Defaults to granting the whole ask so every case written
+          // before the pool-authority blocker behaves exactly as it did.
+          if (fn === 'try_reserve_programme_sourcing') {
+            const asked = Number(args.p_requested ?? 0)
+            return { data: opts.poolAuthority === undefined ? asked : Math.min(asked, opts.poolAuthority), error: null }
+          }
           if (fn === 'claim_programme_batch') return { data: { id: BATCH_ID, programme_id: PROGRAMME_ID, seq: 1, status: 'running' }, error: null }
           if (fn === 'settle_programme_batch') return { data: 0, error: null }
           if (fn === 'try_claim_proof_pass') return { data: 1, error: null }
@@ -182,10 +204,10 @@ async function build(opts: Opts, rec: Rec) {
   }))
 }
 
-async function run(opts: Opts, rec: Rec) {
+async function run(opts: Opts, rec: Rec, maxLeads = 20) {
   await build(opts, rec)
   const { runIcpJob } = await import('../routes/icps')
-  return runIcpJob('icp-1', 'c1', 'u1', 20, opts.proof ? { proofPass: 1 } : undefined)
+  return runIcpJob('icp-1', 'c1', 'u1', maxLeads, opts.proof ? { proofPass: 1 } : undefined)
 }
 
 const programmeStamp = (rec: Rec) => rec.stamps.find(s => 'programme_id' in s.patch)
@@ -250,32 +272,174 @@ describe('PROGRAMME ATTRIBUTION REACHES THE ROWS THIS RUN CREATED', () => {
   })
 })
 
-describe('batch_id ANSWERS A DIFFERENT QUESTION FROM programme_id', () => {
+describe('batch_id AND programme_id NOW COVER THE SAME ATTEMPT', () => {
 
-  it('batch_id covers ONLY the provider rows — pool copies cost the batch nothing', async () => {
-    // ⚠️ BUILD-002 ACCOUNTS A BATCH IN PROVIDER VOLUME. `requested`/`granted` are what was
-    // reserved and `settleBatch` converts what the provider returned. Stamping a free pool copy
-    // with the batch id would make `count(leads where batch_id = X)` disagree with
-    // `programme_batches.delivered` for X — a number that reads as truth and is not.
+  // ⛓️ REVERSED 9 Sep BY THE FOUNDER, AND THE PREMISE IS WHAT CHANGED — the rule is not being
+  // relaxed, it is being re-derived from a different `delivered`.
+  //
+  // The two cases here used to assert that `batch_id` covers ONLY the provider rows, because
+  // "BUILD-002 accounts a batch in PROVIDER volume: `settleBatch` converts what the provider
+  // returned, so stamping a free pool copy would make `count(leads where batch_id = X)`
+  // disagree with `programme_batches.delivered` for X." That was true while `delivered` meant
+  // provider volume.
+  //
+  // It now means USED — the QUALIFIED count — and entitlement is consumed by M&V's
+  // qualification verdict, not by what a provider returned. Under that model a batch is the
+  // SOURCING ATTEMPT, and leaving pool rows out of it broke four things at once: the settle
+  // counts `batch_id = X`, so a qualified pool prospect never reached `sourced_used`;
+  // `surfaceQualifiedBatch` is batch-scoped, so it was never shown to the customer; preparation
+  // enrols the current batch, so it could never be worked; and it sat programme-attributed and
+  // batch-less for ever, which the recovery RPC would later read as a SECOND unaccounted
+  // attempt. The pool volume is now reserved as ENTITLEMENT (`try_reserve_programme_sourcing`,
+  // which writes no ledger row) and the batch records the whole attempt, so the two numbers
+  // agree again — by covering the same population rather than by excluding half of it.
+
+  it('batch_id covers EVERY candidate of the attempt — pool copies included', async () => {
     const rec = fresh()
     await run({ pool: 4, provider: 3, programmeOnIcp: PROGRAMME_ID }, rec)
 
     const prog = programmeStamp(rec)!
     const batch = batchStamp(rec)
-    expect(batch, 'provider rows got no batch_id').toBeTruthy()
+    expect(batch, 'the attempt got no batch_id at all').toBeTruthy()
     expect(batch!.patch.batch_id).toBe(BATCH_ID)
-    expect(batch!.ids.length, 'batch_id covered more rows than the provider returned').toBeLessThan(prog.ids.length)
-    // and every batch-stamped id is also programme-stamped — never the other way round
-    for (const id of batch!.ids) expect(prog.ids).toContain(id)
+    // 🛑 THE SAME POPULATION, NOT A SUBSET. A qualified pool prospect outside the batch is a
+    // prospect the customer received and was never charged for — and never shown.
+    expect(batch!.ids.length, 'the pool half of the attempt is outside the batch again')
+      .toBe(prog.ids.length)
+    expect([...batch!.ids].sort()).toEqual([...prog.ids].sort())
   })
 
-  it('a POOL-ONLY programme run stamps programme_id and NO batch_id', async () => {
-    // Founder decision, 29 Aug: programme_id must still be correct when no batch exists;
-    // batch_id stays NULL, and that null is accurate rather than a gap.
+  it('a POOL-ONLY programme run stamps programme_id AND the batch', async () => {
+    // ⛓️ ALSO REVERSED. It used to assert `batch_id` stayed NULL here. Under the new model that
+    // is a whole attempt with no unit of work: nothing to settle, nothing to surface, nothing
+    // to prepare — and an orphan the recovery would later mistake for a second attempt.
     const rec = fresh()
     await run({ pool: 5, provider: 0, programmeOnIcp: PROGRAMME_ID }, rec)
     expect(programmeStamp(rec), 'pool-only programme delivery lost its programme').toBeTruthy()
-    expect(batchStamp(rec), 'a batch id was stamped on rows no batch paid for').toBeUndefined()
+    const batch = batchStamp(rec)
+    expect(batch, 'a pool-only attempt was left with no batch, so it can never be accounted for').toBeTruthy()
+    expect(batch!.ids.length).toBe(programmeStamp(rec)!.ids.length)
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// 🛑 A BATCH MAY NEVER HOLD MORE CANDIDATE AUTHORITY THAN WAS GRANTED (founder-locked 9 Sep)
+//
+// ⛓️ WHAT THIS REPLACES, AND IT WAS MINE. The first fix for the pool half of the attempt
+// reserved AFTER `servePoolLeads` had already inserted, then admitted every served row into
+// the batch regardless of what came back — logging loudly when the grant was short. With room
+// for 10 and a pool of 20 that put twenty candidates in a batch granted ten: twenty could
+// qualify, twenty could surface, and `settle_programme_batch`'s `LEAST(delivered, granted)`
+// clamp recorded USED = 10 while the customer had twenty people in front of them. The founder's
+// ruling on that mitigation: *"Logging loudly does not fix the accounting contradiction."*
+//
+// The reservation now happens BEFORE a pool row is written, and only the granted number is
+// written — so there is no population to trim, no orphan left over, and the invariant is
+// structural rather than remembered.
+//
+// ⚠️ THESE ARE BEHAVIOURAL, NOT STRUCTURAL. They run the real `runIcpJob` and read the rows it
+// actually created and stamped. A source-shaped assertion here would pin the implementation I
+// happen to have written, which is exactly how the first version of this file passed while the
+// stamp matched zero rows.
+// ═══════════════════════════════════════════════════════════════════════════════════════
+
+describe('POOL AUTHORITY — the batch can never exceed what was granted', () => {
+
+  /** Every candidate the run put in the batch, and the authority the batch was opened with. */
+  function accounting(rec: Rec) {
+    const claim = rec.rpcCalls.find(c => c.fn === 'claim_programme_batch')
+    const batch = batchStamp(rec)
+    return {
+      inBatch: batch ? batch.ids.length : 0,
+      granted: claim ? Number(claim.args.p_granted ?? 0) : 0,
+      opened: !!claim,
+      poolRowsWritten: rec.inserts.filter(i => i.table === 'leads' && i.rows.length > 1)
+        .reduce((n, i) => n + i.rows.length, 0),
+      reserve: rec.rpcCalls.find(c => c.fn === 'try_reserve_programme_sourcing'),
+    }
+  }
+
+  it('🛑 CASE 1 · room 10, pool offers 20 — TEN are created, ten are in the batch, USED can never be twenty', async () => {
+    const rec = fresh()
+    await run({ pool: 20, provider: 0, programmeOnIcp: PROGRAMME_ID, poolAuthority: 10 }, rec)
+    const a = accounting(rec)
+
+    // The reserve was asked for what the pool could actually serve, and answered with less.
+    expect(a.reserve, 'the pool half made no reservation at all').toBeTruthy()
+    expect(Number(a.reserve!.args.p_requested), 'the ask was not the eligible pool population').toBe(20)
+
+    // 🛑 THE ROWS THAT DO NOT EXIST CANNOT BE QUALIFIED, SURFACED OR CLAMPED. Ten candidates
+    // beyond the grant are not created, so there is nothing downstream to trim or to explain.
+    expect(a.poolRowsWritten, 'pool rows beyond the programme grant were written anyway').toBe(10)
+    expect(rec.leadInserts, 'the run created more candidates than the programme had authority for').toBe(10)
+    expect(a.inBatch, 'the batch carries more candidates than the grant allows').toBe(10)
+    expect(a.inBatch, 'the batch population exceeds its own granted authority').toBeLessThanOrEqual(a.granted)
+  })
+
+  it('🛑 CASE 2 · room 0, pool offers rows — NOTHING is served, nothing is stamped, no ceiling breach', async () => {
+    const rec = fresh()
+    await run({ pool: 8, provider: 0, programmeOnIcp: PROGRAMME_ID, poolAuthority: 0 }, rec)
+    const a = accounting(rec)
+
+    expect(a.reserve, 'a spent ceiling was never even asked').toBeTruthy()
+    expect(a.poolRowsWritten, 'a programme with no authority left served pool candidates anyway').toBe(0)
+    expect(rec.leadInserts, 'candidates were created for a programme that could not account for one').toBe(0)
+    expect(batchStamp(rec), 'a candidate outside all authority was stamped into a batch').toBeFalsy()
+    expect(programmeStamp(rec), 'a candidate outside all authority was attributed to the programme').toBeFalsy()
+  })
+
+  it('🛑 CASE 3 · pool 5 + provider 5 against authority 10 — one batch, ten candidates, all of them accountable', async () => {
+    const rec = fresh()
+    await run({ pool: 5, provider: 5, programmeOnIcp: PROGRAMME_ID, poolAuthority: 5 }, rec, 10)
+    const a = accounting(rec)
+
+    expect(a.opened, 'the attempt got no batch').toBe(true)
+    // ONE batch for the whole attempt. Two would split the qualified population across two
+    // settles and put half of it outside whatever the customer is shown.
+    expect(rec.rpcs.filter(f => f === 'claim_programme_batch'), 'the attempt was split across batches')
+      .toHaveLength(1)
+    expect(rec.leadInserts, 'the attempt did not create both halves').toBe(10)
+    expect(a.inBatch, 'the two halves of one attempt are not in the same batch').toBe(10)
+    expect(a.granted, 'the grant does not cover the whole attempt').toBe(10)
+    expect(a.inBatch).toBeLessThanOrEqual(a.granted)
+  })
+
+  it('🛑 a pool serve that fills the WHOLE target still opens a batch — `openBatch` lives in a branch that never runs', async () => {
+    // `openBatch` sits inside `pdlRemainder > 0`. When the pool fills the run's entire target
+    // there is no provider remainder, that branch is skipped, and the reserved pool volume would
+    // otherwise sit against the ceiling with no batch to settle it and no batch to stamp its
+    // candidates with — reserved for ever, and every candidate an orphan of exactly the kind
+    // this arc exists to remove.
+    const rec = fresh()
+    await run({ pool: 20, provider: 0, programmeOnIcp: PROGRAMME_ID }, rec, 5)
+    const a = accounting(rec)
+
+    expect(rec.leadInserts, 'the pool did not fill the target, so this proves nothing').toBe(5)
+    expect(rec.rpcs, 'the money fence was reached for a run with no provider remainder')
+      .not.toContain('try_spend_sourcing')
+    expect(a.opened, 'a pool-only attempt was left with reserved volume and no batch').toBe(true)
+    expect(a.inBatch, 'the pool-only attempt has no batch to belong to').toBe(5)
+    expect(a.granted, 'the batch was opened for volume other than what was reserved').toBe(5)
+  })
+
+  it('🛑 free pool volume is reserved as ENTITLEMENT and never booked as provider money', async () => {
+    const rec = fresh()
+    await run({ pool: 6, provider: 0, programmeOnIcp: PROGRAMME_ID, poolAuthority: 4 }, rec)
+
+    // The authority call carries the programme; the money call is only ever asked for the
+    // PROVIDER remainder. Routing free pool records through `try_spend_sourcing` would book
+    // $0.28 a head of PDL cost nobody incurred — the conflation HOUSE-009 removed.
+    const reserve = rec.rpcCalls.find(c => c.fn === 'try_reserve_programme_sourcing')!
+    expect(reserve.args.p_programme_id).toBe(PROGRAMME_ID)
+    const spend = rec.rpcCalls.find(c => c.fn === 'try_spend_sourcing')
+    if (spend) expect(Number(spend.args.p_requested), 'the money call was asked for pool volume').toBe(20 - 4)
+
+    // And the pool's own $0 ledger row records the ADMITTED count, not the eligible one — a
+    // free row still counts against the daily volume fence, and only the rows that exist do.
+    const ledger = rec.inserts.find(i => i.table === 'sourcing_ledger')
+    expect(ledger, 'the pool serve booked no volume row at all').toBeTruthy()
+    expect(ledger!.rows[0].records, 'the volume fence was told about rows that were never served').toBe(4)
+    expect(ledger!.rows[0].cost_usd, 'a free pool record was booked as provider spend').toBe(0)
   })
 })
 

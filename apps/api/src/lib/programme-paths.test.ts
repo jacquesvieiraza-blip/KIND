@@ -319,14 +319,25 @@ describe('⑨ DELIVERY ATTRIBUTION', () => {
     expect(lastInsert, 'the provider insert no longer records its ids').toBeGreaterThan(0)
     expect(stamp, 'the attribution stamp is missing from runIcpJob').toBeGreaterThan(0)
     expect(stamp, 'attribution runs before the provider inserts — it would match zero rows').toBeGreaterThan(lastInsert)
-    expect(stamp, 'attribution is back inside the settle block, where the rows do not exist yet').toBeGreaterThan(settle)
+    // ⛓️ INVERTED 9 Sep, AND THE PROPERTY IS UNCHANGED. The rule has always been "attribution
+    // is not inside a settle that runs before the rows exist". It used to be proved by
+    // `stamp > settle`, because the settle sat EARLY (on `returnedCount`, the raw provider
+    // page). Entitlement is now consumed by M&V's qualification verdict, so the settle moved
+    // to AFTER judging — which is after the stamp. Asserting the old ordering would now demand
+    // the settle move back in front of the inserts, i.e. demand the defect.
+    expect(settle, 'the settle is gone from runIcpJob').toBeGreaterThan(0)
+    expect(settle, 'the settle ran before the rows it accounts for existed').toBeGreaterThan(lastInsert)
+    expect(settle, 'attribution is back inside the settle block, where the rows do not exist yet').toBeGreaterThan(stamp)
   })
 
   it('🛑 attribution uses EXACT ROW IDS — no timestamp or window inference survives', () => {
     const src = code(join(ROUTES, 'icps.ts'))
     // The two writes are keyed by id list, and nothing else.
     expect(src).toMatch(/update\(\{ programme_id: programmeIdForRun \}\)\s*\.in\('id', insertedIds\)/)
-    expect(src).toMatch(/update\(\{ batch_id: programmeBatch\.id \}\)\s*\.in\('id', pdlInsertedIds\)/)
+    // ⛓️ 9 Sep — the batch stamp keys on `insertedIds` now: a batch is the whole sourcing
+    // ATTEMPT, pool copies included (see the ⑨ case below). What this line is FOR — that
+    // both writes key on an EXACT ID LIST rather than a time window — is unchanged.
+    expect(src).toMatch(/update\(\{ batch_id: programmeBatch\.id \}\)\s*\.in\('id', insertedIds\)/)
     // ⚠️ THE REGRESSION THIS CATCHES BY NAME. A window filter on the attribution write is what
     // allowed a concurrent free-proof run to be swept into a paid batch.
     const stampRegion = src.slice(src.indexOf("update({ programme_id: programmeIdForRun })") - 200,
@@ -351,15 +362,22 @@ describe('⑨ DELIVERY ATTRIBUTION', () => {
     expect(src.split('programmeIdForRun = programmeId').length - 1).toBe(1)
   })
 
-  it('POOL rows get programme_id but NOT batch_id — two columns, two questions', () => {
-    // programme_id answers "which programme execution served this lead?" — pool copies
-    // included. batch_id answers "which batch's reserved PROVIDER volume bought it?" — and a
-    // pool copy cost the batch nothing. Stamping it would make count(leads by batch) disagree
-    // with programme_batches.delivered, which is BUILD-002's own accounting.
+  it('BOTH stamps cover the same attempt — pool rows carry programme_id AND batch_id', () => {
+    // ⛓️ REVERSED 9 Sep BY THE FOUNDER. This asserted that `batch_id` covered PROVIDER rows
+    // only, because "a pool copy cost the batch nothing" and stamping it would make
+    // `count(leads by batch)` disagree with `programme_batches.delivered`. That held while
+    // `delivered` meant provider volume; it now means USED — the QUALIFIED count — and a batch
+    // is the sourcing ATTEMPT. Leaving pool rows out meant a qualified pool prospect never
+    // reached `sourced_used`, was never surfaced, could never be enrolled, and sat batch-less
+    // for ever. The pool volume is now reserved as ENTITLEMENT (no ledger row) and the batch
+    // records the whole attempt, so the two numbers agree by covering the same population.
     const src = code(join(ROUTES, 'icps.ts'))
-    expect(src).toContain(".in('id', insertedIds)")      // programme_id: every inserted row
-    expect(src).toContain(".in('id', pdlInsertedIds)")   // batch_id: provider rows only
-    expect(src).not.toContain(".update({ batch_id: programmeBatch.id })\n      .in('id', insertedIds)")
+    expect(src).toContain(".in('id', insertedIds)")      // both stamps: every inserted row
+    expect(src, 'the batch is stamped on the provider half only again')
+      .toContain("update({ batch_id: programmeBatch.id })")
+    const at = src.indexOf("update({ batch_id: programmeBatch.id })")
+    expect(src.slice(at, at + 120)).toContain(".in('id', insertedIds)")
+    expect(src.slice(at, at + 120)).not.toContain('pdlInsertedIds')
   })
 
   it('the two id lists are genuinely different — pool ids reach one and not the other', () => {

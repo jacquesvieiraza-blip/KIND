@@ -165,6 +165,11 @@ async function scanEligible(
       // ── REVIEWABILITY ────────────────────────────────────────────────────────────────
       .not('delivered_at', 'is', null)
       .not('surfaced_for_approval_at', 'is', null)
+      // ⚑ 9 Sep (HOUSE-009) — the desk is the population preparation will actually work, and
+      // preparation now requires M&V's passing verdict. Without this the two could disagree:
+      // a customer would be shown a card they could approve and nothing could ever enrol.
+      .not('qualified_at', 'is', null)
+      .is('disqualified_at', null)
       .is('revealed_at', null)
       // ── PERMANENT PROSPECT-LEVEL SUPPRESSION, FROM A2's OWN ELIGIBILITY RULE ─────────
       .not('status', 'in', `(${REVIEW_SUPPRESSED_STATUSES.join(',')})`)

@@ -510,6 +510,13 @@ export async function surfaceEverything(clientId: string): Promise<{ surfaced: n
         return (q as unknown as Chain)
           .select('id')
           .eq('client_id', clientId)
+          // ⚑ 9 Sep (HOUSE-009) — LEGACY WORK ONLY. This act is CLIENT-scoped with no
+          // suppression and no ICP filter, so on a programme client it would put every
+          // unjudged candidate — including ones M&V's final ICP check will REFUSE — straight
+          // onto the customer's review desk, and `markReadyForApproval` would then count them
+          // as reviewable while the programme desk showed nothing. Programme prospects are
+          // surfaced by `surfaceQualifiedBatch`, after a passing verdict, one batch at a time.
+          .is('programme_id', null)
           .is('surfaced_for_approval_at', null)
           .is('revealed_at', null)
           .neq('status', 'passed')

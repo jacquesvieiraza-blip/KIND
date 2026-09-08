@@ -1893,6 +1893,58 @@ operatorRouter.post('/icp/:icpId/retire', async (req: Request, res: Response) =>
   }
 })
 
+// ── HOUSE-009 · THE OPERATOR DOOR TO `reconcile_programme_sourcing` ──────────────────────
+//
+// 🛑 IT EXISTED IN THE DATABASE AND NOTHING COULD CALL IT. #1652 shipped the RPC; the fix for
+// 246 unaccounted House prospects was live and unreachable, which is the "orphan helper" shape
+// this package has now hit twice. This is the smallest door: one exact programme id in, one
+// reviewed RPC called, the resulting counters read back out.
+//
+// ⚠️ THE ID COMES FROM THE URL AND IS NEVER RESOLVED. No client lookup, no "the newest
+// programme", no House audience, no name. `reconcileProgrammeSourcing` refuses anything that is
+// not a uuid before it reads a single row.
+//
+// ⚠️ NOTHING HERE SOURCES, RESERVES, APPROVES, MOVES TO P2, GOES LIVE OR SENDS. The only write
+// in the whole operation happens inside the RPC, under its own guards.
+operatorRouter.post('/programme/:programmeId/reconcile-sourcing', async (req: Request, res: Response) => {
+  try {
+    if (!adminKeyValid(req.headers['x-admin-key'])) {
+      res.status(403).json({ success: false, error: 'Operator key required' })
+      return
+    }
+    const { reconcileProgrammeSourcing } = await import('../lib/programme-reconcile')
+    const result = await reconcileProgrammeSourcing(req.params.programmeId)
+
+    if (!result.ok) {
+      // ⚠️ A REFUSAL IS NEVER REPORTED AS A SUCCESS WITH ZERO. The RPC raises rather than
+      // half-counting, and the operator has to see which refusal fired.
+      await writeOperatorAudit({
+        operatorEmail: operatorEmail(req), clientId: null, action: 'programme_sourcing_reconcile_refused',
+        subjectType: 'programme', subjectId: req.params.programmeId,
+        detail: { reason: result.reason },
+      })
+      res.status(400).json({ success: false, error: result.reason })
+      return
+    }
+
+    await writeOperatorAudit({
+      operatorEmail: operatorEmail(req), clientId: null, action: 'programme_sourcing_reconciled',
+      subjectType: 'programme', subjectId: result.programme_id,
+      detail: {
+        reconciled_count: result.reconciled_count,
+        before: result.before, after: result.after,
+        status_before: result.status_before, status_after: result.status_after,
+        batches: result.batches.length,
+      },
+    })
+
+    res.json({ success: true, data: result })
+  } catch (err) {
+    console.error('[operator/programme/reconcile-sourcing]', err)
+    res.status(500).json({ success: false, error: err instanceof Error ? err.message : 'The reconciliation could not be completed' })
+  }
+})
+
 operatorRouter.post('/proof-review/:clientId/resolve', async (req: Request, res: Response) => {
   try {
     if (!adminKeyValid(req.headers['x-admin-key'])) {

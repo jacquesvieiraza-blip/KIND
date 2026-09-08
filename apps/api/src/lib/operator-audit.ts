@@ -112,6 +112,18 @@ export type OperatorAction =
                                // leaves no leads and no batch, so without this row it leaves no
                                // trace at all — and "nothing happened" is exactly what a silently
                                // refused run looks like on every board.
+  | 'programme_sourcing_reconciled' // ⚑ 8 Sep (HOUSE-009) — the operator accounted for prospects
+                               // a programme had ALREADY been delivered while the House path
+                               // bypassed the accounting: one settled batch created, those leads
+                               // stamped with it, the volume converted to `sourced_used`. It
+                               // moves money-adjacent counters and (from SOURCING_AUTHORISED) the
+                               // programme's status, so who ran it against which programme has to
+                               // survive the session. It sources nothing and sends nothing.
+  | 'programme_sourcing_reconcile_refused' // …and the refusals, for the same reason the sourcing
+                               // pair above has one: the RPC RAISES rather than half-counting —
+                               // a foreign-client lead, or orphans that would not fit under the
+                               // ceiling — and a refusal that writes no row looks on every board
+                               // exactly like a reconciliation nobody ever attempted.
   | 'nexus_autotune_toggle' // #511g3 — enabled/disabled a client's Nexus auto-tune kill-switch
   | 'demo_reset'            // MBF — rebuilt the demo account to its fixed state (invented data, no money, no sends)
   | 'house_client_setup'    // #549/#593 — opened (or adopted) Client Zero, the house account.

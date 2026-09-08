@@ -344,6 +344,19 @@ const REQUIRED_FUNCTIONS: FunctionProbe[] = [
     migration: '20260907_programme_sourcing_authority',
   },
   {
+    // HOUSE-009 repair — accounts for prospects a programme was ALREADY delivered while the
+    // house path bypassed the accounting. Operator-invoked for ONE named programme; it adds a
+    // settled batch and stamps those leads, and deletes nothing.
+    //
+    // ⚠️ SAFE TO PROBE. With a uuid matching no programme, `SELECT client_id INTO v_client …
+    // IF v_client IS NULL THEN RETURN 0` answers before any count, any batch insert or any
+    // lead is touched — the same shape as the two probes around it.
+    name: 'reconcile_programme_sourcing',
+    args: { p_programme_id: NO_SUCH_ROW_UUID },
+    why: 'the only way to account for the 246 House prospects delivered before the accounting existed — without it the operator door returns "function does not exist" and the programme keeps reporting 0 used against a run that really happened',
+    migration: '20260907_programme_sourcing_authority',
+  },
+  {
     // BUILD-002 — the reserve/release settle. Probed with a UUID that matches no batch, so
     // the `IF v_prog IS NULL THEN RETURN 0` guard answers without touching any programme.
     name: 'settle_programme_batch',

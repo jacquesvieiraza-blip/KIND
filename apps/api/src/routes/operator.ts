@@ -1683,7 +1683,33 @@ operatorRouter.get('/programme', async (req: Request, res: Response) => {
     // value anybody can read and lie back to us. Vida renders this; it never derives it.
     const { reconcileAvailability } = await import('../lib/programme-reconcile-availability')
     const reconcile = await reconcileAvailability(truth.programme?.id ?? null, clientId)
-    res.json({ success: true, data: { ...truth, icps, reconcile, commercial: {
+    // ⚑ 9 Sep (HOUSE-009) — MAY THIS PROGRAMME BE HANDED TO THE CLIENT YET?
+    //
+    // 🛑 THE LIFECYCLE IS SOURCE → QUALIFY → PREPARE → FREEZE → READY FOR APPROVAL, and Vida
+    // was offering the last step from the first. `lcCan('ready-for-approval')` tested the
+    // STATUS alone, so on a programme with 246 unjudged candidates, no batch, no campaign, no
+    // sequence, no sender and no frozen set, the button was drawn active and inviting. The
+    // route refused — `markReadyForApproval` consults this same rule and always has — but an
+    // operator does not learn a lifecycle from a refusal they had to trigger.
+    //
+    // ⚠️ COMPUTED HERE, ON THE SERVER, AND HANDED OVER AS A BOOLEAN. This is the SAME
+    // `programmePreparationReadiness` the transition itself is gated by, so the screen and the
+    // route cannot answer differently — the alternative is a browser re-deriving thirteen
+    // conditions from data it does not have, which is a second source of truth wearing a
+    // convenience's clothes.
+    //
+    // ⚠️ AND AN UNREADABLE ANSWER IS `false`, NEVER "PROBABLY FINE". `programmePreparationReadiness`
+    // already fails closed on every unreadable fact; its `degraded` sentence joins the array
+    // this panel already renders in red, so "we could not tell" reaches the operator as itself
+    // rather than as a missing button.
+    const { programmePreparationReadiness } = await import('../lib/preparation-readiness')
+    const readiness = truth.programme
+      ? await programmePreparationReadiness(truth.programme.id)
+      : null
+    res.json({ success: true, data: { ...truth,
+      degraded: readiness?.degraded ? [...truth.degraded, readiness.degraded] : truth.degraded,
+      readiness: { ready: readiness?.ready === true },
+      icps, reconcile, commercial: {
       stored:   storedModelFor(model),
       resolved: model.model,
       declared: model.declared,

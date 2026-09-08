@@ -336,6 +336,16 @@ export default function VidaConsolePage() {
     // from the programme id, the client, a name or a status: a check this file could compute
     // is a check anybody with the console open could satisfy.
     reconcile?: { available: boolean; unaccounted: number; reason: string | null }
+    // ⚑ 9 Sep (HOUSE-009) — MAY THE PROGRAMME BE HANDED TO THE CLIENT YET?
+    //
+    // 🛑 THE SERVER'S ANSWER, FROM THE SAME RULE THE TRANSITION ITSELF IS GATED BY
+    // (`programmePreparationReadiness`). Thirteen conditions — batch, reviewable QUALIFIED and
+    // surfaced prospects, campaign, sequence, message steps, cadence, send schedule, sender,
+    // eligible enrolments, no foreign enrolments, attached ICP, a freezable snapshot — none of
+    // which a browser can see, and all of which it would have to re-derive to answer this
+    // locally. Optional, so an older API against this UI hides the control rather than
+    // offering it: the fail-closed direction.
+    readiness?: { ready: boolean }
   }
   const [prog, setProg] = useState<ProgrammeTruth | null>(null)
   const [progErr, setProgErr] = useState<string | null>(null)
@@ -499,7 +509,20 @@ export default function VidaConsolePage() {
       case 'recommend':            return p.status === 'DRAFT'
       case 'await-first-payment':  return p.status === 'RECOMMENDED'
       case 'authorise/first':      return p.status === 'AWAITING_FIRST_PAYMENT'
-      case 'ready-for-approval':   return p.status === 'SOURCING_AUTHORISED' || p.status === 'SOURCING'
+      // ⚑ 9 Sep (HOUSE-009) — STATUS IS NECESSARY AND IT WAS NEVER SUFFICIENT.
+      //
+      // 🛑 THE LOCKED LIFECYCLE IS SOURCE → QUALIFY → PREPARE → FREEZE → READY FOR APPROVAL.
+      // Tested on status alone, this button was drawn ACTIVE above `Qualify sourced leads` on a
+      // programme with 246 unjudged candidates and nothing prepared — the last step of the
+      // lifecycle offered as though it were the first. The route always refused; a control that
+      // teaches the order only by being pressed teaches it too late.
+      //
+      // ⚠️ THE SERVER'S BOOLEAN, NOT A RULE RE-DERIVED HERE. `readiness.ready` is
+      // `programmePreparationReadiness` — the same rule `markReadyForApproval` is gated by — so
+      // the screen and the route cannot disagree. `=== true` because absent is not ready: an
+      // older API, a failed read or a field this UI has not been given must HIDE the action.
+      case 'ready-for-approval':   return (p.status === 'SOURCING_AUTHORISED' || p.status === 'SOURCING')
+                                          && prog?.readiness?.ready === true
       case 'authorise/second':     return p.status === 'APPROVED' && !p2
       case 'go-live':              return p.status === 'APPROVED' && p2
       // 🛑 THERE IS NO 'approve'. The one programme approval belongs to the CLIENT, in Milla.

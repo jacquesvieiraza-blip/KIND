@@ -289,7 +289,14 @@ describe('③ 4 · it disappears once the work is done — because the state cha
     const ROUTES = readFileSync(join(__dirname, '../routes/operator.ts'), 'utf8')
     expect(ROUTES).toContain("const { reconcileAvailability } = await import('../lib/programme-reconcile-availability')")
     expect(ROUTES).toContain('const reconcile = await reconcileAvailability(truth.programme?.id ?? null, clientId)')
-    expect(ROUTES).toContain('data: { ...truth, icps, reconcile, commercial: {')
+    // ⛓️ 9 Sep — RETARGETED. The response literal gained a `readiness` field and a `degraded`
+    // override on the same object, so it now spans several lines. What this case is FOR — that
+    // the availability answer is COMPUTED ON THE SERVER and handed to the browser as part of
+    // programme truth — is unchanged, so the anchor moved with the shape rather than being
+    // dropped.
+    expect(ROUTES).toContain('res.json({ success: true, data: { ...truth,')
+    expect(ROUTES, 'the availability answer no longer travels with programme truth')
+      .toContain('icps, reconcile, commercial: {')
   })
 })
 

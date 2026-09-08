@@ -328,6 +328,14 @@ export default function VidaConsolePage() {
       label: string
       reason: string | null
     }
+    // ⚑ 8 Sep (HOUSE-009) — MAY THE ONE-TIME SOURCING RECONCILIATION BE OFFERED?
+    //
+    // 🛑 THE SERVER DECIDES; THIS SCREEN ONLY RENDERS. It turns on `HOUSE_LAUNCH_PROGRAMME_ID`
+    // and a House audience proved from the AUTH USER — neither of which a browser holds, and
+    // neither of which it should. `available` is read as a boolean and never re-derived here
+    // from the programme id, the client, a name or a status: a check this file could compute
+    // is a check anybody with the console open could satisfy.
+    reconcile?: { available: boolean; unaccounted: number; reason: string | null }
   }
   const [prog, setProg] = useState<ProgrammeTruth | null>(null)
   const [progErr, setProgErr] = useState<string | null>(null)
@@ -339,6 +347,102 @@ export default function VidaConsolePage() {
       setProg(j.data as ProgrammeTruth)
     } catch (e) { setProgErr(e instanceof Error ? e.message : 'Failed to load programme'); setProg(null) }
   }, [])
+
+  // ── ⚑ 8 Sep (HOUSE-009) · ACCOUNT FOR PROSPECTS ALREADY DELIVERED ──────────────────────
+  //
+  // 🛑 A ONE-TIME REPAIR, NOT A FEATURE. 246 real people were sourced for the House programme
+  // while the House path bypassed the accounting, so the screen says `0 used · no batch` about
+  // a run that happened. This offers the fix ONCE, on the one programme the server proves, and
+  // then stops offering it because the state it needs no longer exists.
+  //
+  // ⚠️ SINGLE-FLIGHT. `recBusy` is set BEFORE the confirm resolves nothing and cleared only in
+  // `finally`, and the button is disabled on it — a second click while the first request is in
+  // flight would be a second call to a repair whose whole safety argument is that it runs once.
+  // (The RPC is idempotent and would answer 0, but "the database would survive it" is not the
+  // same as "the screen may fire it twice".)
+  //
+  // ⚠️ IT NEVER TOUCHES THE DISPLAYED COUNTERS. On success it re-reads programme truth from the
+  // API; on failure it changes nothing at all. Patching `used`/`left` locally would show the
+  // number this screen expected rather than the one the database holds — which is exactly the
+  // false green the whole HOUSE-009 arc exists to remove.
+  const [recBusy, setRecBusy] = useState(false)
+  const [recMsg, setRecMsg] = useState<{ tone: 'ok' | 'error' | 'warn'; text: string } | null>(null)
+  /** Open ⟺ the confirmation is on screen. Nothing has been posted while this is true. */
+  const [recConfirm, setRecConfirm] = useState(false)
+
+  // ⛓️ 8 Sep — THE COPY MOVED OUT OF `confirm()` AND NOT ONE WORD OF IT CHANGED.
+  //
+  // The founder approved these exact sentences; the browser's native dialog could only offer
+  // "Cancel / OK", so the ACTION a person is agreeing to was named in the body and then not on
+  // the button they pressed. Lifting the copy into one constant is what makes "unchanged" a
+  // fact the gate can check rather than a claim — the strings below are asserted verbatim.
+  const RECONCILE_CONFIRM = {
+    question: (n: number) => `Account for the ${n} prospects already delivered to this House programme?`,
+    will: [
+      'create one settled sourcing batch',
+      'account for those existing delivered prospects',
+      'move the programme from SOURCING_AUTHORISED to SOURCING',
+    ],
+    wont: [
+      'source more prospects',
+      'call Apollo',
+      'charge PDL',
+      'delete leads',
+      'approve the programme',
+      'take Payment 2',
+      'Make Live',
+      'Run',
+      'send anything',
+    ],
+  }
+
+  /**
+   * Open the confirmation. **This posts nothing** — it is the only thing the button does.
+   *
+   * ⚠️ THE SINGLE-FLIGHT GUARD IS HERE TOO, not only on the confirmed action: a dialog opened
+   * while a request is in flight is a second press waiting to happen.
+   */
+  const openReconcileConfirm = useCallback(() => {
+    if (!prog?.programme?.id || recBusy) return
+    setRecConfirm(true)
+  }, [prog, recBusy])
+
+  const reconcileSourcing = useCallback(async () => {
+    // The EXACT id of the programme already loaded on screen. Never typed, never chosen, never
+    // resolved from the client — and the endpoint refuses anything that is not a uuid anyway.
+    const id = prog?.programme?.id
+    if (!id || recBusy) return
+    setRecConfirm(false)
+
+    setRecBusy(true); setRecMsg(null)
+    try {
+      const j = await fetch(`/api/proxy/operator/programme/${encodeURIComponent(id)}/reconcile-sourcing`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}',
+      }).then(r => r.json())
+
+      if (!j?.success) {
+        // ⚠️ THE API'S OWN SENTENCE, VERBATIM. It is the one that knows what was refused — a
+        // cheerful summary here is how a screen starts lying. And nothing is retried: a repair
+        // that refused for a reason must not be fired again by the thing that reported it.
+        setRecMsg({ tone: 'error', text: j?.error ?? 'The reconciliation did not complete, and no reason came back. Nothing was changed as far as this screen can tell — read the programme before trying again.' })
+        // 🛑 THE ONE FAILURE THAT MUST NOT READ AS "IT DID NOT WORK": the RPC ran and the
+        // re-read afterwards failed. The API says so in its own words; this raises it to a
+        // warning tone and re-reads, so the counters on screen come from the database.
+        if (typeof j?.error === 'string' && j.error.includes('Do NOT press this again')) {
+          setRecMsg({ tone: 'warn', text: j.error })
+          if (selected) await loadProgramme(selected)
+        }
+        return
+      }
+
+      setRecMsg({ tone: 'ok', text: String(j.data?.headline ?? 'Done.') })
+      // Re-read rather than patching: the row is the truth, and the button's own visibility is
+      // recomputed by the server from the state that now exists.
+      if (selected) await loadProgramme(selected)
+    } catch (e) {
+      setRecMsg({ tone: 'error', text: e instanceof Error ? e.message : 'The request did not complete. Read the programme before trying again — do not press this twice.' })
+    } finally { setRecBusy(false) }
+  }, [prog, recBusy, selected, loadProgramme])
 
   // ── ⚑ 3 Sep (C2) · DECLARING THE COMMERCIAL MODEL ──────────────────────────────────────
   //
@@ -2964,6 +3068,79 @@ export default function VidaConsolePage() {
                         )}
                       </div>
                       {lcMsg && <p className="text-[12px] text-[#6b5f8c] mt-2">{lcMsg}</p>}
+
+                      {/* ── ⚑ 8 Sep (HOUSE-009) · THE ONE-TIME SOURCING RECONCILIATION ────
+                          🛑 RENDERED ON A SERVER BOOLEAN, NEVER ON A CHECK THIS FILE COULD
+                          MAKE. `reconcile.available` already required the exact configured
+                          programme id, a proved House audience, SOURCING_AUTHORISED, zero
+                          accounted records, no batch, and at least one delivered prospect
+                          missing one. Re-deriving any of that here would put the gate in the
+                          browser, where anybody with the console open can satisfy it.
+                          It disappears after a successful run because the state it needs is
+                          gone — not because a flag was set. */}
+                      {prog.reconcile?.available && (
+                        <div className="mt-2 pt-2 border-t border-[#eee7f7]">
+                          <button onClick={openReconcileConfirm} disabled={recBusy}
+                            className="text-[12.5px] font-bold text-white bg-[#7C3AED] rounded-lg px-2.5 py-1.5 disabled:opacity-50">
+                            {recBusy ? '…' : 'Account for delivered sourcing'}</button>
+                          <p className="text-[12px] text-[#6b5f8c] mt-1.5">
+                            {prog.reconcile.unaccounted} delivered prospect(s) on this programme carry no batch, so the
+                            counters above describe a sourcing run that really happened as though it had not.
+                            This accounts for them once. It sources nothing and sends nothing.
+                          </p>
+                        </div>
+                      )}
+                      {/* ── THE CONFIRMATION ──────────────────────────────────────────────
+                          🛑 IT EXISTS BECAUSE "OK" IS NOT AN ANSWER TO THIS QUESTION. The
+                          browser's native dialog can only offer Cancel/OK, so the action a
+                          person is agreeing to was named in the body and then NOT on the
+                          button they pressed. The confirming button now says the thing it
+                          does, which is the whole change.
+
+                          ⚠️ NOT A NEW MODAL SYSTEM. There is no shared dialog component in
+                          this app — `vida/partners/page.tsx` rolls its own overlay — so this
+                          reuses those exact classes locally and adds no abstraction. */}
+                      {recConfirm && (
+                        <div className="fixed inset-0 z-50 bg-black/40 flex items-start justify-center p-4 sm:p-8 overflow-y-auto"
+                          role="dialog" aria-modal="true" aria-label="Account for delivered sourcing"
+                          onClick={() => setRecConfirm(false)}>
+                          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full my-8" onClick={e => e.stopPropagation()}>
+                            <div className="px-6 py-4 border-b border-[#eee9f7]">
+                              <h2 className="text-[15px] font-bold text-[#1f1235]">
+                                {RECONCILE_CONFIRM.question(prog.reconcile?.unaccounted ?? 0)}
+                              </h2>
+                            </div>
+                            <div className="px-6 py-4 text-[13px] text-[#2c2440]">
+                              <b className="block mb-1">This will:</b>
+                              <ul className="mb-3 space-y-0.5">
+                                {RECONCILE_CONFIRM.will.map(w => <li key={w}>• {w}</li>)}
+                              </ul>
+                              <b className="block mb-1">It will NOT:</b>
+                              <ul className="space-y-0.5 text-[#6b5f8c]">
+                                {RECONCILE_CONFIRM.wont.map(w => <li key={w}>• {w}</li>)}
+                              </ul>
+                            </div>
+                            <div className="px-6 py-4 border-t border-[#eee9f7] flex flex-wrap gap-2 justify-end">
+                              {/* Cancel is FIRST and plain — the destructive-looking one should
+                                  not be the one a hand lands on by default. */}
+                              <button onClick={() => setRecConfirm(false)} disabled={recBusy}
+                                className="text-[12.5px] font-bold text-[#5c5279] bg-white border border-[#eee7f7] rounded-lg px-2.5 py-1.5 disabled:opacity-50">
+                                Cancel</button>
+                              <button onClick={reconcileSourcing} disabled={recBusy}
+                                className="text-[12.5px] font-bold text-white bg-[#7C3AED] rounded-lg px-2.5 py-1.5 disabled:opacity-50">
+                                {recBusy ? '…' : 'Account for delivered sourcing'}</button>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                      {recMsg && (
+                        <p className={`text-[12px] mt-2 whitespace-pre-line ${
+                          recMsg.tone === 'ok' ? 'text-emerald-800'
+                          : recMsg.tone === 'warn' ? 'text-orange-800 font-semibold'
+                          : 'text-red-800 font-semibold'}`}>
+                          {recMsg.text}
+                        </p>
+                      )}
                     </div>
 
                     {/* ── ⚑ PR A2 · WHAT FEEDS THIS PROGRAMME ────────────────────────────

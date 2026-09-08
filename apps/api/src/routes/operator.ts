@@ -1675,7 +1675,15 @@ operatorRouter.get('/programme', async (req: Request, res: Response) => {
     // because a programme row was absent. Absence of X cannot mean "is Y".
     const { clientCommercialModel, commercialModelLabel, storedModelFor } = await import('../lib/commercial-model')
     const model = await clientCommercialModel(clientId)
-    res.json({ success: true, data: { ...truth, icps, commercial: {
+    // ⚑ 8 Sep (HOUSE-009) — MAY THE ONE-TIME SOURCING RECONCILIATION BE OFFERED HERE?
+    //
+    // 🛑 THE ANSWER IS COMPUTED ON THE SERVER AND THE BROWSER IS GIVEN A BOOLEAN. It turns on
+    // `HOUSE_LAUNCH_PROGRAMME_ID` and a House audience proved from the AUTH USER — two facts a
+    // browser cannot hold and must never be handed, because a value shipped to a browser is a
+    // value anybody can read and lie back to us. Vida renders this; it never derives it.
+    const { reconcileAvailability } = await import('../lib/programme-reconcile-availability')
+    const reconcile = await reconcileAvailability(truth.programme?.id ?? null, clientId)
+    res.json({ success: true, data: { ...truth, icps, reconcile, commercial: {
       stored:   storedModelFor(model),
       resolved: model.model,
       declared: model.declared,

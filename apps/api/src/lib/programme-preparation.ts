@@ -445,7 +445,13 @@ export async function prepareProgrammeOutreach(programmeId: string): Promise<Pre
   }
 
   const { autoEnrollLead } = await import('./figsy')
-  let after = ''
+  // ⛓️ 9 Sep — `null`, NOT `''`, AND IT IS THE SAME BUG THAT BROKE THE HOUSE QUALIFY IN
+  // PRODUCTION. `leads.id` is `uuid`, so a first page asking for `id > ''` fails the cast
+  // before any row is considered: *invalid input syntax for type uuid: ""*. An empty string is
+  // not a cursor, it is the ABSENCE of one — and the predicate is now omitted rather than sent
+  // empty. The outstanding count below is untouched: it runs only after the loop consumed rows,
+  // so its cursor is always a real id.
+  let after: string | null = null
   let budgetLeft = PREPARE_BUDGET
   // ⚠️ A PAGE BOUND AS WELL AS A ROW BUDGET. The loop advances by keyset cursor, so a cursor
   // that failed to advance — a bug, or a page of rows whose ids sort unexpectedly — would spin
@@ -462,7 +468,7 @@ export async function prepareProgrammeOutreach(programmeId: string): Promise<Pre
       out.problems.push('Preparation stopped after its page budget — the lead cursor did not advance. Nothing further was enrolled.')
       break
     }
-    const { data: page, error: pageErr } = await db.from('leads')
+    const pageBase = db.from('leads')
       .select('id, email, status, opted_out_at, provider_eviction_required_at, apollo_consented')
       .eq('programme_id', programmeId)
       .eq('client_id', p.client_id)
@@ -478,7 +484,7 @@ export async function prepareProgrammeOutreach(programmeId: string): Promise<Pre
       .eq('batch_id', currentBatchId)
       .not('delivered_at', 'is', null)
       .not('surfaced_for_approval_at', 'is', null)
-      .gt('id', after)
+    const { data: page, error: pageErr } = await (after === null ? pageBase : pageBase.gt('id', after))
       .order('id', { ascending: true })
       .limit(PAGE)
     if (pageErr) { out.problems.push(`Could not read the programme's leads (${pageErr.message}).`); return out }
@@ -593,7 +599,7 @@ export async function prepareProgrammeOutreach(programmeId: string): Promise<Pre
   // cheap filters only, so a row that would later prove suppressed still counts here. Over-
   // reporting what is left is safe; under-reporting it is the failure.
   if (budgetExhausted) {
-    const { count: left, error: leftErr } = await db.from('leads')
+    const leftBase = db.from('leads')
       .select('id', { count: 'exact', head: true })
       .eq('programme_id', programmeId)
       .eq('client_id', p.client_id)
@@ -607,7 +613,10 @@ export async function prepareProgrammeOutreach(programmeId: string): Promise<Pre
       // and a fully prepared programme could never be complete.
       .not('qualified_at', 'is', null)
       .is('disqualified_at', null)
-      .gt('id', after)
+    // ⚑ 9 Sep — the same cursor discipline as the loop. This branch only runs after rows were
+    // consumed, so `after` is always a real id here; the guard is structural rather than
+    // corrective, so no future edit can reintroduce `id > ''` by shortening the path to it.
+    const { count: left, error: leftErr } = await (after === null ? leftBase : leftBase.gt('id', after))
     if (leftErr) {
       // Cannot count ⇒ cannot claim completeness. Fail closed on the number, not on the work.
       out.problems.push(`Preparation reached its budget and the outstanding count could not be read (${leftErr.message}).`)

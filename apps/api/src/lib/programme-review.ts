@@ -144,7 +144,12 @@ async function scanEligible(
   clientId: string, programmeId: string, stopAfter: number,
 ): Promise<{ rows: ScanRow[]; complete: boolean }> {
   const out: ScanRow[] = []
-  let after = ''
+  // ⛓️ 9 Sep — `null`, NOT `''`, AND IT IS THE SAME BUG THAT BROKE THE HOUSE QUALIFY IN
+  // PRODUCTION. `leads.id` is `uuid`, so a first page asking for `id > ''` fails the cast
+  // before any row is considered: *invalid input syntax for type uuid: ""*. An empty string is
+  // not a cursor, it is the ABSENCE of one — and the predicate is now omitted rather than sent
+  // empty. This desk had never been exercised on a programme, so nothing had found it here yet.
+  let after: string | null = null
   let budget = REVIEW_SCAN_BUDGET
   // A page bound as well as a row budget: a cursor that failed to advance would spin forever.
   let pagesLeft = Math.ceil(REVIEW_SCAN_BUDGET / SCAN_PAGE) + 2
@@ -152,7 +157,7 @@ async function scanEligible(
   for (;;) {
     if (budget <= 0 || pagesLeft-- <= 0) return { rows: out, complete: false }
 
-    const { data, error } = await db.from('leads')
+    const base = db.from('leads')
       // first/last name are read SERVER-SIDE ONLY — never returned — so `why_fits` can be
       // scrubbed of them before it leaves this module.
       .select('id, first_name, last_name, job_title, company, industry, country, score, score_reasoning, created_at, surfaced_for_approval_at, email')
@@ -176,7 +181,7 @@ async function scanEligible(
       .is('opted_out_at', null)
       .is('provider_eviction_required_at', null)
       .not('email', 'is', null)
-      .gt('id', after)
+    const { data, error } = await (after === null ? base : base.gt('id', after))
       .order('id', { ascending: true })
       .limit(SCAN_PAGE)
     if (error) throw new Error(`programme review read failed: ${error.message}`)

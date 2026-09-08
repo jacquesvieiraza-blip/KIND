@@ -31,6 +31,21 @@ import { db } from '@kind/db'
 
 /** One message step, exactly as `figsy_sequences.steps` stores it. */
 export interface SequenceStep {
+  /**
+   * 🛑 LOAD-BEARING, AND DROPPING IT WAS A REAL DEFECT (caught 8 Sep, before deploy).
+   *
+   * `sequence-apply.ts` filters every stored sequence through `emailSteps`, which keeps only
+   * `channel === 'email'`. This interface originally omitted `channel`, so the canonical steps
+   * this module resolves were filtered to NOTHING — `buildDraftFromSequence` returned null,
+   * `usingSequence` went false, and `autoEnrollLead` fell through to the **AI draft path**.
+   * The enrolment would have carried `sequence_id` pointing at the approved words while
+   * containing words a model invented, and every guard downstream would have been satisfied.
+   *
+   * ⚠️ ABSENT DEFAULTS TO `email`, deliberately. A stored step with a subject and a body IS an
+   * email step; refusing one for a missing discriminator would silently empty a real sequence,
+   * which is the same failure in the other direction.
+   */
+  channel: 'email' | 'linkedin' | 'call' | 'whatsapp'
   subject: string
   body: string
   wait_days: number
@@ -81,7 +96,9 @@ function readSteps(raw: unknown): SequenceStep[] {
     // says. Counting it would let an empty three-row sequence pass as "three message steps".
     if (subject.trim() === '' && body.trim() === '') continue
     const wait = typeof o.wait_days === 'number' && Number.isFinite(o.wait_days) ? o.wait_days : 0
-    out.push({ subject, body, wait_days: wait })
+    const ch = o.channel
+    const channel = (ch === 'linkedin' || ch === 'call' || ch === 'whatsapp') ? ch : 'email' as const
+    out.push({ channel, subject, body, wait_days: wait })
   }
   return out
 }

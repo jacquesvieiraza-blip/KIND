@@ -46,7 +46,14 @@ import { isSendSchedule } from './send-schedule'
  */
 export function cadenceIsConfigured(cadence: readonly number[]): boolean {
   if (cadence.length < 2) return false
-  return cadence.slice(1).every(w => typeof w === 'number' && w > 0)
+  // ⛓️ CORRECTED 8 Sep — IT WAS CHECKING THE WRONG END, and the same misreading that produced
+  // it nearly persisted a cadence sending two emails on day one.
+  //
+  // `steps[i].wait_days` is the wait AFTER step i: `send-due.ts` passes the CURRENT step's
+  // value as `waitDaysNext`. So the value never read is the LAST one — nothing follows the
+  // final step — and every gap BETWEEN real steps must be a real gap. The old `slice(1)` was
+  // written as if the first element were the ignored one, which is the "wait before" reading.
+  return cadence.slice(0, -1).every(w => typeof w === 'number' && w > 0)
 }
 
 /** Everything the rule needs to know. Gathered by the IO shell, judged by the pure core. */

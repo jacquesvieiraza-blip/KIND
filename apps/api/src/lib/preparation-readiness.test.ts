@@ -250,18 +250,24 @@ describe('⑥ a cadence is configured, or it is not — nothing is assumed', () 
     expect(cadenceIsConfigured([3])).toBe(false)
   })
 
-  it('🛑 a follow-up scheduled ZERO days after the message before it is a burst, not a cadence', () => {
+  // ⛓️ CORRECTED 8 Sep. `wait_days` is the wait AFTER a step, so the value never read is the
+  // LAST one. The rule originally ignored the FIRST, which is the "wait before" reading — under
+  // it, a cadence of [0, 3, 4, 5, 6] passed while sending steps one and two on the same day.
+  it('🛑 a ZERO wait BETWEEN two real steps is a burst, not a cadence', () => {
     expect(cadenceIsConfigured([0, 0])).toBe(false)
-    expect(cadenceIsConfigured([0, 3, 0])).toBe(false)
+    expect(cadenceIsConfigured([3, 0, 4, 0])).toBe(false)
+    expect(cadenceIsConfigured([0, 3, 4, 5, 6]), 'the literal locked array would send two on day one').toBe(false)
   })
 
   it('a real multi-step cadence is configured', () => {
-    expect(cadenceIsConfigured([0, 3, 4])).toBe(true)
-    expect(cadenceIsConfigured([0, 2])).toBe(true)
+    expect(cadenceIsConfigured([3, 4, 0])).toBe(true)
+    expect(cadenceIsConfigured([2, 0])).toBe(true)
+    expect(cadenceIsConfigured([3, 4, 5, 6, 0])).toBe(true)
   })
 
-  it('the FIRST step\'s wait is not part of the test — step one goes when the run starts', () => {
-    expect(cadenceIsConfigured([5, 3])).toBe(true)
+  it('the LAST step\'s wait is not part of the test — nothing follows the final message', () => {
+    expect(cadenceIsConfigured([3, 99])).toBe(true)
+    expect(cadenceIsConfigured([3, 0])).toBe(true)
   })
 
   it('🛑 15 · and an unconfigured cadence blocks approval', () => {

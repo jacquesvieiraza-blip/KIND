@@ -793,8 +793,10 @@ create table if not exists public.programmes (
   review_preparation_hash       text,
   review_preparation_snapshot   jsonb,
   review_preparation_at         timestamptz,
-  -- When outbound may leave, in the RECIPIENT's local time. There was no schedule anywhere in
-  -- the send path before this. NULL = not configured = REFUSE for programme work.
+  -- When outbound may leave, in the RECIPIENT's OWN local time — a persisted zone, else a
+  -- region, else the intersection of every zone their country spans, else REFUSED. There was no
+  -- schedule anywhere in the send path before this, and the first fix judged every American in
+  -- New York, which is 05:30 in Los Angeles. NULL = not configured = REFUSE for programme work.
   send_schedule                 jsonb,
   went_live_at              timestamptz,
   paused_at                 timestamptz,          -- pause is ORTHOGONAL to status, not a status

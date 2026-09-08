@@ -363,7 +363,11 @@ async function outreachStillMatchesApproval(
   const when = maySendNow(
     (programme as unknown as { send_schedule?: unknown }).send_schedule ?? null,
     ctx?.at ?? new Date(),
-    ctx?.recipientCountry ?? null,
+    // ⚠️ EVERYTHING KNOWN, IN PRECISION ORDER. Nothing writes a timezone or a region today —
+    // `leads.country` is the only geographic column — so these two arrive undefined and the
+    // guard falls to the country-set intersection. They are threaded now so the day the Apollo
+    // reveal's state is persisted, the resolution sharpens without another authority change.
+    { timezone: ctx?.recipientTimezone ?? null, region: ctx?.recipientRegion ?? null, country: ctx?.recipientCountry ?? null },
   )
   if (!when.allowed) {
     return { allowed: false, reason: 'outside_send_window', programme, message: when.detail }
@@ -409,7 +413,12 @@ async function outreachStillMatchesApproval(
  * anything. `at` exists so the window is testable without waiting for a Tuesday.
  */
 export interface OutreachContext {
+  /** ③ `leads.country` — the only geographic column that exists today. */
   recipientCountry?: string | null
+  /** ② A state/region. Nothing persists one yet; threaded so tier ② works the day it does. */
+  recipientRegion?: string | null
+  /** ① An exact IANA zone. Nothing persists one yet. */
+  recipientTimezone?: string | null
   at?: Date
   /**
    * `false` ONLY for a caller that is not attempting a prospect touch — campaign activation.

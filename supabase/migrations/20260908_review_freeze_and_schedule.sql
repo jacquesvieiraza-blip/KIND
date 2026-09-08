@@ -59,7 +59,7 @@ COMMENT ON COLUMN public.programmes.review_preparation_at IS
   'When the review snapshot was frozen. Separate from approved_preparation_at: a re-freeze after a material change must move this without rewriting the approval time.';
 
 COMMENT ON COLUMN public.programmes.send_schedule IS
-  'When outbound may leave for this programme: { days: [1..7 Mon..Sun], start: "HH:MM", end: "HH:MM", default_tz: "IANA zone" }, evaluated in the RECIPIENT''S local timezone where their country is known and in default_tz otherwise. NULL means NO SCHEDULE CONFIGURED, which the guard treats as REFUSE for programme work - a missing schedule is not permission to send at any hour.';
+  'When outbound may leave for this programme: { days: [1..7 Mon..Sun], start: "HH:MM", end: "HH:MM", default_tz: "IANA zone" }, evaluated in the RECIPIENT''S OWN local timezone - resolved from a persisted zone, else a region, else the intersection of every zone their country spans. default_tz is for display and does NOT grant: an unresolvable recipient is REFUSED, because judging them in our timezone is the same defect as assuming New York for every American. NULL means NO SCHEDULE CONFIGURED, which the guard treats as REFUSE for programme work - a missing schedule is not permission to send at any hour.';
 
 ALTER TABLE public.figsy_enrollments
   ADD COLUMN IF NOT EXISTS sequence_id uuid REFERENCES public.figsy_sequences(id) ON DELETE SET NULL;

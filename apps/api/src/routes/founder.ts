@@ -35,6 +35,39 @@ function requireAdminKey(req: Request, res: Response, next: () => void) {
 
 founderRouter.use(requireAdminKey)
 
+/**
+ * ── ⚑ 8 Sep — NO AI-GENERATED OUTBOUND LEAVES WITHOUT THE SUPPRESSION FLOOR ─────────────
+ *
+ * 🛑 FOUND WHILE TRACING REPLY AUTHORITY TO COMPLETION (founder-ordered). Three agents in this
+ * file generate a message with a model and send it: the support auto-reply, the CS follow-up
+ * and the AE demo email. None of them asked ANY safety question. The support one is the sharpest
+ * case — somebody who told us to stop can email `hello@get-kind.com`, and a model decides on its
+ * own whether to answer them and what to say.
+ *
+ * ⚠️ PROGRAMME AUTHORITY WOULD BE THE WRONG BOUNDARY HERE, and forcing it would be cargo-culting
+ * the fix from the outbound package. These messages are not programme delivery: there is no
+ * programme, no campaign, no sequence and no prospect — they are K.I.N.D's own desk answering
+ * its own inbox. Approval, Payment 2 and LIVE have nothing to say about them.
+ *
+ * ⚠️ THE CORRECT MINIMAL BOUNDARY IS SUPPRESSION. The do-not-contact floor and the cross-client
+ * opt-out blocklist are about the PERSON, not about the work — which is exactly why they apply
+ * to a support reply as much as to a cold email. `checkSendAllowed` is the existing shared gate
+ * for that question, so this is one rulebook rather than a fourth copy.
+ *
+ * ⚠️ AND IT FAILS CLOSED. A refusal or an unreadable answer means the agent does not write and
+ * does not send; the founder-forward below still runs, so a human sees the email either way.
+ */
+async function agentMayEmail(email: string): Promise<{ ok: true } | { ok: false; why: string }> {
+  try {
+    const { checkSendAllowed } = await import('../lib/send-gate')
+    const verdict = await checkSendAllowed({ email, company: null, linkedin: null })
+    if (verdict.allowed) return { ok: true }
+    return { ok: false, why: verdict.message ?? verdict.reason ?? 'refused' }
+  } catch (err) {
+    return { ok: false, why: `the suppression gate could not be read (${err instanceof Error ? err.message : String(err)})` }
+  }
+}
+
 // ── SUPPORT TRIAGE ─────────────────────────────────────────────────────────────
 founderRouter.post('/support/inbound', async (req: Request, res: Response) => {
   try {
@@ -74,7 +107,12 @@ Respond with JSON only: { "category": "billing|technical|sales|general", "urgenc
 
     let autoReplied = false
 
-    if (classification.can_auto_reply) {
+    // 🛑 THE MODEL DECIDES WHETHER TO ANSWER; IT DOES NOT DECIDE WHETHER WE MAY.
+    const mayEmail = await agentMayEmail(from)
+    if (classification.can_auto_reply && !mayEmail.ok) {
+      console.warn(`[founder-agent] support auto-reply to ${from} SUPPRESSED — ${mayEmail.why}. The email is still forwarded to a human.`)
+    }
+    if (classification.can_auto_reply && mayEmail.ok) {
       const replyRes = await anthropic.messages.create({
         model:      'claude-haiku-4-5-20251001',
         max_tokens: 400,
@@ -180,6 +218,14 @@ Under 80 words. Output: SUBJECT: ...\nBODY: ...`,
     const body    = bodyMatch?.[1]?.trim() || draftText
 
     if (resend) {
+      // 🛑 THE SAME FLOOR. A model wrote this message; suppression is about the PERSON, so it
+      // applies here exactly as it does to a cold email.
+      const mayEmail = await agentMayEmail(email)
+      if (!mayEmail.ok) {
+        console.warn(`[founder-agent] agent email to ${email} SUPPRESSED — ${mayEmail.why}. Nothing was sent.`)
+        res.status(409).json({ success: false, error: 'This recipient is suppressed — nothing was sent.' })
+        return
+      }
       await resend.emails.send({ from: FROM, to: [email], subject, text: body })
     }
 
@@ -238,6 +284,14 @@ Output: SUBJECT: ...\nBODY: ...`,
 
     // Send to prospect
     if (resend) {
+      // 🛑 THE SAME FLOOR. A model wrote this message; suppression is about the PERSON, so it
+      // applies here exactly as it does to a cold email.
+      const mayEmail = await agentMayEmail(email)
+      if (!mayEmail.ok) {
+        console.warn(`[founder-agent] agent email to ${email} SUPPRESSED — ${mayEmail.why}. Nothing was sent.`)
+        res.status(409).json({ success: false, error: 'This recipient is suppressed — nothing was sent.' })
+        return
+      }
       await resend.emails.send({ from: FROM, to: [email], subject, text: body })
     }
 

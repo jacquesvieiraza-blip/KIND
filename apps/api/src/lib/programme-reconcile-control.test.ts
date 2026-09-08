@@ -192,12 +192,39 @@ describe('② 1 · 2 · 3 · it appears nowhere else, and every unknown is a NO'
     expect(a.reason).toContain('different client')
   })
 
-  it('🛑 NOT when there is nothing to account for', async () => {
+  it('🛑 NOT when there is nothing to qualify', async () => {
     liveState()
     orphanCount = 0
     const a = await reconcileAvailability(LAUNCH, HOUSE_CLIENT)
     expect(a.available).toBe(false)
-    expect(a.reason).toContain('no delivered prospect')
+    expect(a.reason).toContain('already belongs to a batch')
+  })
+
+  it('🛑 THE COUNT IS THE POPULATION THE ACTION READS — no `delivered_at` anywhere in it', () => {
+    // ⛓️ 9 Sep — A REAL INTEGRATION DEFECT, CAUGHT BY WIRING THE NEW CONTROL TO THIS GATE.
+    // The count was `delivered_at IS NOT NULL AND batch_id IS NULL` — the OLD reconcile's orphan
+    // test. `qualifyAndSettleBatch` pages every batch-less candidate, delivered or not. On the
+    // live House programme that is 30 versus 246: the operator would have been offered "30
+    // sourced leads" and 246 would have been checked. A programme whose candidates had never
+    // been surfaced would have counted ZERO and been offered nothing at all.
+    //
+    // ⚠️ ASSERTED ON THE EXECUTABLE QUERY, because the db mock in this file counts rows without
+    // modelling columns — it cannot tell one predicate from another, so only the source can.
+    const SRC = readFileSync(join(__dirname, 'programme-reconcile-availability.ts'), 'utf8')
+      .split('\n').filter(l => { const t = l.trim(); return t && !t.startsWith('//') && !t.startsWith('*') && !t.startsWith('/*') }).join('\n')
+    const count = SRC.slice(SRC.indexOf('const { count: orphans'), SRC.indexOf('if (leadErr)'))
+    expect(count, 'the count is no longer made').toContain(".is('batch_id', null)")
+    expect(count, 'the offered count is narrower than the population the action judges')
+      .not.toContain('delivered_at')
+    // The same three facts the action itself uses to find its candidates.
+    expect(count).toContain(".eq('programme_id', pid)")
+    expect(count).toContain(".eq('client_id', cid)")
+
+    // 🛑 AND THE TWO POPULATIONS ARE THE SAME ONE, read from the action's own source.
+    const ACTION = readFileSync(join(__dirname, 'programme-batch-recovery.ts'), 'utf8')
+    const page = ACTION.slice(ACTION.indexOf('const candidateIds: string[] = []'), ACTION.indexOf('if (candidateIds.length === 0)'))
+    expect(page, 'the action now filters its candidates by delivery as well').not.toContain('delivered_at')
+    expect(page).toContain(".is('batch_id', null)")
   })
 
   it('🛑 every UNREADABLE fact is a NO, never a silent yes', async () => {
@@ -267,6 +294,13 @@ describe('③ 4 · it disappears once the work is done — because the state cha
 })
 
 // ── ④ THE VIDA CONTROL ITSELF ────────────────────────────────────────────────────────
+//
+// ⛓️ 9 Sep — RETARGETED WHOLE, AND THE PREMISE IS WHAT CHANGED. Every case below used to be
+// about `Account for delivered sourcing`, a control named after an internal repair. The founder
+// approved its replacement: `Qualify sourced leads`, which names the WORK — do these people
+// match the targeting? The safety properties are unchanged and every one of them is still
+// asserted here (server-gated visibility, one POST, single-flight, no fabricated counters, no
+// failure painted green). What moved is the endpoint, the copy and the readout.
 
 describe('④ the control obeys the server, fires once, and never paints a failure green', () => {
   const VIDA = readFileSync(join(__dirname, '../../../admin/src/app/vida/page.tsx'), 'utf8')
@@ -274,185 +308,224 @@ describe('④ the control obeys the server, fires once, and never paints a failu
   const CODE = VIDA.split('\n')
     .filter(l => { const t = l.trim(); return t && !t.startsWith('//') && !t.startsWith('*') && !t.startsWith('/*') && !t.startsWith('{/*') })
     .join('\n')
-  const HANDLER = CODE.slice(CODE.indexOf('const reconcileSourcing = useCallback'), CODE.indexOf('const setCommercialModel'))
+  const HANDLER = CODE.slice(CODE.indexOf('const qualifySourcedLeads = useCallback'), CODE.indexOf('const setCommercialModel'))
   /** The approved copy, as an object literal — pure code, so no comment can satisfy it. */
-  const CONFIRM = CODE.slice(CODE.indexOf('const RECONCILE_CONFIRM = {'), CODE.indexOf('const openReconcileConfirm'))
+  const CONFIRM = CODE.slice(CODE.indexOf('const QUALIFY_CONFIRM = {'), CODE.indexOf('const openQualifyConfirm'))
+  /**
+   * The same copy with its source-level string joins closed up.
+   * ⚠️ A SENTENCE BROKEN ACROSS `' + '` IS STILL ONE SENTENCE TO A READER, and asserting on the
+   * raw source would make the approved wording depend on where the line happens to wrap.
+   */
+  const CONFIRM_TEXT = CONFIRM.replace(/'\s*\n?\s*\+\s*'/g, '')
   /** The rendered dialog. Sliced from the JSX guard, so the block comment above it is outside. */
-  const DIALOG = CODE.slice(CODE.indexOf('{recConfirm && ('), CODE.indexOf('{recMsg && ('))
+  const DIALOG = CODE.slice(CODE.indexOf('{qualConfirm && ('), CODE.indexOf('{qualMsg && ('))
   /** The one control that opens it. */
-  const OPENER = CODE.slice(CODE.indexOf('const openReconcileConfirm = useCallback'), CODE.indexOf('const reconcileSourcing = useCallback'))
+  const OPENER = CODE.slice(CODE.indexOf('const openQualifyConfirm = useCallback'), CODE.indexOf('const qualifySourcedLeads = useCallback'))
+  /** The offered control, from its server gate to the message line. */
+  const OFFER = CODE.slice(CODE.indexOf('{prog.reconcile?.available && ('), CODE.indexOf('{qualConfirm && ('))
 
-  it('🛑 1 · 2 · 3 · 4 · it is rendered ONLY on the server boolean', () => {
+  it('🛑 1 · the OLD control is gone — it is replaced, not left beside its replacement', () => {
+    // Two live controls for one job is how an operator presses the wrong one. The phrase may
+    // survive in a comment recording what was replaced; `CODE` is comment-stripped, so this
+    // fails only if it is still something a person can press.
+    expect(CODE, 'the obsolete control is still on the page').not.toContain('Account for delivered sourcing')
+    expect(CODE, 'the page still calls the old reconcile endpoint').not.toContain('reconcile-sourcing')
+    expect(CODE, 'the old copy constant survives').not.toContain('RECONCILE_CONFIRM')
+  })
+
+  it('🛑 2 · the button says exactly `Qualify sourced leads`, and the supporting line is plain English', () => {
+    expect(OFFER).toContain("{qualBusy ? 'Qualifying…' : 'Qualify sourced leads'}")
+    expect(OFFER, 'the supporting line no longer names what is ready to be checked')
+      .toContain('sourced leads are ready to be checked against this programme')
+    expect(OFFER).toContain('{prog.reconcile.unaccounted}')
+    // 🛑 14 · NO INTERNAL LANGUAGE ON A SCREEN AN OPERATOR READS. Each of these is a real,
+    // load-bearing concept; none of them is the operator's problem.
+    //
+    // ⚠️ THE BAN IS ON THE RENDERED TEXT, NOT THE WHOLE BLOCK. `prog.reconcile?.available` is
+    // the SERVER FIELD this control is gated on — an identifier nobody reads on screen — and a
+    // ban wide enough to catch it fails while the copy is exactly right, which is the shape of
+    // assertion somebody eventually deletes.
+    // The paragraph as a READER sees it: JSX expressions are the count and the busy flag, so
+    // they stand in as `N` rather than contributing their identifiers to the prose. The two
+    // button labels are the single-quoted literals in the block (class names use double
+    // quotes), so they are held to the same standard as the sentence.
+    const VISIBLE =
+      OFFER.slice(OFFER.indexOf('<p className='), OFFER.indexOf('</p>')).replace(/\{[^}]*\}/g, ' N ')
+      + ' ' + (OFFER.match(/'[^']*'/g) ?? []).join(' ')
+    expect(VISIBLE, 'the supporting line was not found where it is rendered').toContain('sourced leads are ready')
+    expect(VISIBLE, 'the button label is not among the rendered strings').toContain('Qualify sourced leads')
+    for (const internal of ['delivered_at', 'reconcil', 'batch', 'reserved', 'granted',
+                            'Apollo', 'PDL', 'SOURCING_AUTHORISED', 'RPC']) {
+      expect(VISIBLE, `the visible copy exposes ${internal}`).not.toContain(internal)
+    }
+  })
+
+  it('🛑 12 · it is rendered ONLY on the server boolean, so it disappears when it no longer applies', () => {
     expect(CODE, 'the button is not gated on the server answer').toContain('{prog.reconcile?.available && (')
-    expect(CODE).toContain("'Account for delivered sourcing'")
     // ⚠️ AND THE GATE IS NOT RE-DERIVED IN THE BROWSER. A visibility check this file could
     // compute is a check anybody with the console open could satisfy.
-    const block = CODE.slice(CODE.indexOf('{prog.reconcile?.available && ('), CODE.indexOf('{recMsg && ('))
+    const block = CODE.slice(CODE.indexOf('{prog.reconcile?.available && ('), CODE.indexOf('{qualMsg && ('))
     for (const derived of ['SOURCING_AUTHORISED', 'HOUSE_LAUNCH_PROGRAMME_ID', 'house', 'sourced_used']) {
       expect(block, `the browser re-derives visibility from ${derived}`).not.toContain(derived)
     }
+    // Nothing local can keep it on screen after a successful run either — there is no
+    // "I already did this" flag anywhere near it, only the server's answer re-read.
+    expect(block, 'the control carries its own local visibility state').not.toContain('useState')
   })
 
   it('🛑 5 · it can only POST the programme already loaded on screen', () => {
     expect(HANDLER).toContain('const id = prog?.programme?.id')
-    expect(HANDLER).toContain('`/api/proxy/operator/programme/${encodeURIComponent(id)}/reconcile-sourcing`')
+    expect(HANDLER).toContain('`/api/proxy/operator/programme/${encodeURIComponent(id)}/qualify-batch`')
     // Not typed, not chosen, not resolved from a client or a list.
     for (const other of ['prompt(', 'selectedProgramme', 'programmes[', 'client_id:']) {
       expect(HANDLER, `the id can come from ${other}`).not.toContain(other)
     }
-    expect(HANDLER).toContain('if (!id || recBusy) return')
+    expect(HANDLER).toContain('if (!id || qualBusy) return')
   })
 
-  it('🛑 6 · a second click while the first is in flight cannot fire', () => {
+  it('🛑 5 · a second click while the first is in flight cannot fire', () => {
     // Three things together: the guard at the top, the flag set before the request, the flag
     // cleared only in `finally`, and the button disabled on it. Any one alone is not enough.
-    expect(HANDLER).toContain('if (!id || recBusy) return')
-    expect(HANDLER).toContain('setRecBusy(true)')
-    expect(HANDLER).toContain('} finally { setRecBusy(false) }')
-    expect(CODE).toContain('<button onClick={reconcileSourcing} disabled={recBusy}')
-    // ⚠️ ORDERING, NOT PRESENCE. `setRecBusy(true)` after the fetch would leave the whole
+    expect(HANDLER).toContain('if (!id || qualBusy) return')
+    expect(HANDLER).toContain('setQualBusy(true)')
+    expect(HANDLER).toContain('} finally { setQualBusy(false) }')
+    expect(CODE).toContain('<button onClick={qualifySourcedLeads} disabled={qualBusy}')
+    // ⚠️ ORDERING, NOT PRESENCE. `setQualBusy(true)` after the fetch would leave the whole
     // request window unguarded, and every assertion above would still pass.
-    const busyAt = HANDLER.indexOf('setRecBusy(true)')
+    const busyAt = HANDLER.indexOf('setQualBusy(true)')
     const fetchAt = HANDLER.indexOf('await fetch(')
     expect(busyAt).toBeGreaterThan(-1)
     expect(fetchAt, 'the busy flag is set after the request starts').toBeGreaterThan(busyAt)
   })
 
-  it('🛑 7 · a failure is rendered as a failure, in the API\'s own words, and never retried', () => {
+  it('🛑 9 · 10 · a PARTIAL run is never shown as success — it is paused, and it says so', () => {
+    // 🛑 THE FAILURE MODE THIS CASE EXISTS FOR. The API refuses to settle while any candidate is
+    // unjudged, or after a provider failure, and hands back what it managed in `partial`. A
+    // screen that rendered that as "0 qualified · 0 rejected · 0 used · batch ready for review"
+    // would be telling an operator the work is done and the batch is reviewable when neither is
+    // true — and `batch ready for review` is the sentence a person acts on.
+    const fail = HANDLER.slice(HANDLER.indexOf('if (!j?.success) {'), HANDLER.indexOf("const d = (j.data"))
+    expect(fail, 'the partial report is never read').toContain('j?.partial')
+    expect(fail).toContain('still_unjudged')
+    expect(fail).toContain('provider_failed')
+    expect(fail, 'a paused run is rendered in the success tone').toContain("tone: 'warn'")
+    expect(fail).toContain('Qualification paused.')
+    expect(fail).toContain('leads still need checking. Nothing was settled.')
+    expect(fail, 'a paused run falls through into the success path').toContain('return')
+    // 🛑 AND THE PAUSED BRANCH IS DECIDED BY THE NUMBERS, NOT BY A STRING MATCH ON THE MESSAGE.
+    expect(fail).toContain('Number(partial.still_unjudged ?? 0) > 0 || partial.provider_failed')
+    // The warn tone renders differently from both the success and the error tone.
+    expect(CODE).toContain("qualMsg.tone === 'ok' ? 'text-emerald-800'")
+    expect(CODE).toContain("qualMsg.tone === 'warn' ? 'text-orange-800 font-semibold'")
+  })
+
+  it('🛑 a refusal is rendered as a refusal, in the API\'s own words, and never retried', () => {
     expect(HANDLER).toContain('if (!j?.success) {')
-    const fail = HANDLER.slice(HANDLER.indexOf('if (!j?.success) {'), HANDLER.indexOf("setRecMsg({ tone: 'ok'"))
+    const fail = HANDLER.slice(HANDLER.indexOf('if (!j?.success) {'), HANDLER.indexOf("const d = (j.data"))
     expect(fail).toContain("tone: 'error'")
     expect(fail).toContain('j?.error')
-    expect(fail, 'the failure branch falls through into the success path').toContain('return')
     // No retry, anywhere in the handler.
     for (const retry of ['setTimeout', 'retry', 'attempt', 'while (']) {
       expect(HANDLER, `the handler retries via ${retry}`).not.toContain(retry)
     }
   })
 
-  it('🛑 the "it RAN but the re-read failed" warning is surfaced verbatim, not softened', () => {
-    expect(HANDLER).toContain("j.error.includes('Do NOT press this again')")
-    expect(HANDLER).toContain("setRecMsg({ tone: 'warn', text: j.error })")
-    expect(CODE, 'the warning tone renders the same as an ordinary error').toContain("recMsg.tone === 'warn'")
-  })
-
-  it('🛑 8 · the counters are RE-READ, never patched locally', () => {
+  it('🛑 8 · every number on screen came from the response, and the counters are RE-READ', () => {
     expect(HANDLER).toContain('await loadProgramme(selected)')
     // 🛑 NOTHING WRITES THE PROGRAMME INTO LOCAL STATE. `setProg` here would show the number
     // this screen expected rather than the one the database holds — the exact false green the
     // whole HOUSE-009 arc exists to remove.
     expect(HANDLER, 'the screen patches programme truth locally').not.toContain('setProg(')
-    for (const fabricated of ['sourced_used', 'room_remaining', 'sourced_reserved', 'used:', 'left:']) {
-      expect(HANDLER, `the handler fabricates ${fabricated}`).not.toContain(fabricated)
+    // The summary reads four fields off `j.data` and computes none of them. `used` in
+    // particular is the server's read-back of the programme row, never `qualified` reused.
+    expect(HANDLER).toContain('const d = (j.data ?? {}) as { qualified?: number; disqualified?: number; used?: number | null }')
+    expect(HANDLER).toContain('`${d.qualified ?? 0} qualified · ${d.disqualified ?? 0} rejected · ${d.used ?? 0} used · batch ready for review`')
+    // 🛑 NOT DERIVED. Any arithmetic on these numbers is a number this screen invented.
+    for (const fabricated of ['d.qualified +', 'd.qualified -', 'unaccounted -', 'unaccounted +',
+                              'sourced_used', 'sourced_reserved', 'room_remaining']) {
+      expect(HANDLER, `the handler fabricates a counter via ${fabricated}`).not.toContain(fabricated)
     }
-    // And on FAILURE nothing is re-read into the counters either — the only re-read on a
-    // failure is the one behind the "it ran" warning.
-    const fail = HANDLER.slice(HANDLER.indexOf('if (!j?.success) {'), HANDLER.indexOf("setRecMsg({ tone: 'ok'"))
-    expect((fail.match(/loadProgramme/g) ?? []).length, 'a plain failure re-reads as though something changed').toBe(1)
   })
 
-  it('🛑 9 · it triggers no sourcing, approval, P2, Live, Run or send', () => {
-    expect(HANDLER).toContain('reconcile-sourcing')
-    // ⚠️ THE BANNED LIST IS OF INVOCATIONS, NOT WORDS — and it had to be narrowed. A bare
-    // `'approve'` matches the confirmation's own line *"approve the programme"*, which is text
-    // this control is REQUIRED to contain: an assertion that fails while the code is right is
-    // one somebody eventually deletes. These are route paths and function names.
+  it('🛑 11 · a successful run re-reads programme truth before anything else is believed', () => {
+    const ok = HANDLER.slice(HANDLER.indexOf("const d = (j.data"))
+    expect(ok, 'a successful run leaves the counters on screen stale').toContain('await loadProgramme(selected)')
+  })
+
+  it('🛑 6 · 7 · 13 · it triggers no sourcing, approval, P2, Live, Run or send', () => {
+    expect(HANDLER).toContain('qualify-batch')
+    // ⚠️ THE BANNED LIST IS OF INVOCATIONS, NOT WORDS — route paths and function names, so a
+    // sentence of copy can never satisfy or break it.
     for (const forbidden of ['lifecycle(', 'go-live', 'authorise/second', 'authorise/first',
                              'ready-for-approval', '/approve', 'approveLead', 'approveProgramme',
-                             'operator/source', 'programme/source', 'send-due', 'run-once',
-                             'campaign/start']) {
+                             'operator/source', 'programme/source', 'icps/', 'people-search',
+                             'reconcile-sourcing', 'send-due', 'run-once', 'campaign/start']) {
       expect(HANDLER, `the handler reaches ${forbidden}`).not.toContain(forbidden)
     }
-    // ⚠️ `Apollo` AND `PDL` ARE DELIBERATELY NOT ON THAT LIST — the confirmation is REQUIRED to
-    // say "call Apollo" and "charge PDL" in its will-NOT half, so banning the words would fail
-    // on the very copy the founder specified. What is asserted instead is the only thing that
-    // could actually reach a provider: the number of requests, and where the one goes.
-    // (The copy itself now lives in `RECONCILE_CONFIRM` — asserted in ⑥.)
-    expect(CONFIRM).toContain('call Apollo')
-    expect(CONFIRM).toContain('approve the programme')
     // Exactly one request, to exactly one path.
     expect((HANDLER.match(/fetch\(/g) ?? []).length).toBe(1)
   })
 
-  it('🛑 10 · the approved copy is unchanged — question, three WILLs, nine WILL NOTs', () => {
-    // ⛓️ 8 Sep — RETARGETED WHEN THE COPY LEFT `confirm()`. It is now one object literal, which
-    // is strictly better to assert on: `CONFIRM` is pure code, so no comment or prose anywhere
-    // on this 3,000-line page can satisfy these strings by accident.
-    expect(CONFIRM).toContain('prospects already delivered to this House programme?')
-    for (const will of ['create one settled sourcing batch',
-                        'account for those existing delivered prospects',
-                        'move the programme from SOURCING_AUTHORISED to SOURCING']) {
-      expect(CONFIRM, `the confirmation dropped "${will}"`).toContain(will)
+  it('🛑 14 · the approved copy is exactly what the founder specified — one question, one paragraph', () => {
+    expect(CONFIRM).toContain('`Qualify these ${n} sourced leads?`')
+    expect(CONFIRM_TEXT).toContain('Vida will check the existing sourced leads against the attached ICP.')
+    expect(CONFIRM_TEXT).toContain('Only leads that qualify will count against the programme and move forward for review.')
+    expect(CONFIRM_TEXT).toContain('No new leads will be sourced and nothing will be sent.')
+    // 🛑 NO LEGALISTIC LIST. The founder asked for the giant will / will-not enumeration to go.
+    expect(CONFIRM, 'the will/will-not list is back').not.toContain('will: [')
+    expect(CONFIRM, 'the will/will-not list is back').not.toContain('wont: [')
+    expect(DIALOG, 'the dialog re-grew a will list').not.toContain('This will:')
+    expect(DIALOG, 'the dialog re-grew a will-not list').not.toContain('It will NOT:')
+    // And no internal vocabulary in the dialog either.
+    for (const internal of ['delivered_at', 'batch', 'reconcil', 'reserved', 'granted', 'Apollo', 'PDL', 'RPC']) {
+      expect(CONFIRM_TEXT, `the confirmation exposes ${internal}`).not.toContain(internal)
     }
-    for (const wont of ['source more prospects', 'call Apollo', 'charge PDL', 'delete leads',
-                        'approve the programme', 'take Payment 2', 'Make Live', 'Run', 'send anything']) {
-      expect(CONFIRM, `the confirmation omits "${wont}"`).toContain(wont)
-    }
-    // Exactly three and exactly nine — an added or dropped line is a changed promise.
-    const willList = CONFIRM.slice(CONFIRM.indexOf('will: ['), CONFIRM.indexOf('wont: ['))
-    const wontList = CONFIRM.slice(CONFIRM.indexOf('wont: ['))
-    expect((willList.match(/'/g) ?? []).length / 2, 'the WILL list changed length').toBe(3)
-    expect((wontList.match(/'/g) ?? []).length / 2, 'the WILL NOT list changed length').toBe(9)
-    // And the rendered dialog shows BOTH lists, from the constant rather than retyped.
-    expect(DIALOG).toContain('RECONCILE_CONFIRM.will.map')
-    expect(DIALOG).toContain('RECONCILE_CONFIRM.wont.map')
-    expect(DIALOG).toContain('This will:')
-    expect(DIALOG).toContain('It will NOT:')
-    expect(DIALOG).toContain('RECONCILE_CONFIRM.question(')
+    // The dialog renders the constant rather than retyping it.
+    expect(DIALOG).toContain('QUALIFY_CONFIRM.question(')
+    expect(DIALOG).toContain('{QUALIFY_CONFIRM.body}')
   })
 
-  it('the returned headline is rendered verbatim — the screen invents no summary', () => {
-    expect(HANDLER).toContain("setRecMsg({ tone: 'ok', text: String(j.data?.headline ?? 'Done.') })")
-  })
-
-  // ── THE CONFIRMATION ITSELF (8 Sep) ────────────────────────────────────────────────
-  //
-  // 🛑 WHY IT REPLACED `confirm()`. The native dialog can only offer **Cancel / OK**, so the
-  // action a person was agreeing to was named in the body and then NOT on the button they
-  // pressed. "OK" is not an answer to "shall I account for 246 prospects and move the
-  // programme's status". The confirming button now says the thing it does.
-
-  it('🛑 1 · the button OPENS the confirmation and posts nothing', () => {
-    expect(CODE).toContain('<button onClick={openReconcileConfirm} disabled={recBusy}')
+  it('🛑 3 · the button OPENS the confirmation and posts nothing', () => {
+    expect(CODE).toContain('<button onClick={openQualifyConfirm} disabled={qualBusy}')
     // The opener is the whole path from the button, and it contains no request at all.
-    expect(OPENER).toContain('setRecConfirm(true)')
+    expect(OPENER).toContain('setQualConfirm(true)')
     expect(OPENER, 'the button posts before anybody has confirmed').not.toContain('fetch(')
     // ⚠️ AND THE SINGLE-FLIGHT GUARD IS ON THE OPENER TOO — a dialog opened during a request
     // in flight is a second press waiting to happen.
-    expect(OPENER).toContain('if (!prog?.programme?.id || recBusy) return')
-    // The native dialog is gone for this control.
+    expect(OPENER).toContain('if (!prog?.programme?.id || qualBusy) return')
+    // The native dialog is not in this path.
     expect(HANDLER, 'the browser confirm is still in the path').not.toContain('confirm(')
-    expect(OPENER).not.toContain('confirm(')
+    expect(OPENER).not.toContain('window.confirm')
   })
 
-  it('🛑 2 · Cancel closes and posts nothing', () => {
-    const cancel = DIALOG.slice(DIALOG.indexOf('<button onClick={() => setRecConfirm(false)} disabled={recBusy}'))
+  it('🛑 4 · Cancel closes and posts nothing', () => {
+    const cancel = DIALOG.slice(DIALOG.indexOf('<button onClick={() => setQualConfirm(false)} disabled={qualBusy}'))
     expect(cancel.slice(0, 400), 'Cancel is not labelled Cancel').toContain('Cancel')
     // Its ONLY effect is closing. Asserted on the handler expression, not on the label.
-    expect(DIALOG).toContain('<button onClick={() => setRecConfirm(false)} disabled={recBusy}')
-    expect(DIALOG, 'Cancel triggers the reconciliation').not.toContain('onClick={() => reconcileSourcing')
+    expect(DIALOG).toContain('<button onClick={() => setQualConfirm(false)} disabled={qualBusy}')
+    expect(DIALOG, 'Cancel triggers the qualification').not.toContain('onClick={() => qualifySourcedLeads')
     // Dismissing by clicking the backdrop is the same no-op, and the panel itself does not
     // dismiss (`stopPropagation`) — a stray click inside the copy must not cancel a decision.
-    expect(DIALOG).toContain('onClick={() => setRecConfirm(false)}')
+    expect(DIALOG).toContain('onClick={() => setQualConfirm(false)}')
     expect(DIALOG).toContain('onClick={e => e.stopPropagation()}')
   })
 
-  it('🛑 3 · the confirming button is the ONLY thing that posts, and it fires once', () => {
-    expect(DIALOG).toContain('<button onClick={reconcileSourcing} disabled={recBusy}')
-    expect(DIALOG).toContain("{recBusy ? '…' : 'Account for delivered sourcing'}")
-    // `reconcileSourcing` has exactly one caller in the whole page, and it is that button.
-    expect((CODE.match(/onClick=\{reconcileSourcing\}/g) ?? []).length).toBe(1)
+  it('🛑 5 · the confirming button is the ONLY thing that posts, and it fires once', () => {
+    expect(DIALOG).toContain('<button onClick={qualifySourcedLeads} disabled={qualBusy}')
+    expect(DIALOG).toContain("{qualBusy ? 'Qualifying…' : 'Qualify sourced leads'}")
+    // `qualifySourcedLeads` has exactly one caller in the whole page, and it is that button.
+    expect((CODE.match(/onClick=\{qualifySourcedLeads\}/g) ?? []).length).toBe(1)
     // Single-flight survives the change: the guard, the flag before the request, the finally,
     // and the confirmation closing FIRST so it cannot be pressed a second time.
-    expect(HANDLER).toContain('if (!id || recBusy) return')
-    expect(HANDLER).toContain('setRecConfirm(false)')
-    const closeAt = HANDLER.indexOf('setRecConfirm(false)')
+    expect(HANDLER).toContain('if (!id || qualBusy) return')
+    expect(HANDLER).toContain('setQualConfirm(false)')
+    const closeAt = HANDLER.indexOf('setQualConfirm(false)')
     const fetchAt = HANDLER.indexOf('await fetch(')
     expect(closeAt, 'the dialog is still open while the request runs').toBeLessThan(fetchAt)
     expect((HANDLER.match(/fetch\(/g) ?? []).length).toBe(1)
   })
 
-  it('🛑 both buttons read exactly what the founder specified, and there are only two', () => {
+  it('🛑 2 · both buttons read exactly what the founder specified, and there are only two', () => {
     // ⚠️ ASSERTED PER BUTTON RATHER THAN BY ONE CLEVER REGEX. The two labels are written in
     // different shapes — a bare text node and a busy-state ternary — and a pattern loose
     // enough to catch both was loose enough to silently catch only one.
@@ -464,7 +537,7 @@ describe('④ the control obeys the server, fires once, and never paints a failu
     // `onClick={() => …}`, so an index-of split returns the whole attribute list as the label.
     const label = (b: string) => b.slice(b.lastIndexOf('>') + 1).replace(/\s+/g, ' ').trim()
     expect(label(buttons[0]), 'the first button is not Cancel').toBe('Cancel')
-    expect(label(buttons[1])).toBe("{recBusy ? '…' : 'Account for delivered sourcing'}")
+    expect(label(buttons[1])).toBe("{qualBusy ? 'Qualifying…' : 'Qualify sourced leads'}")
     // Neither says OK, and neither is a bare confirm.
     for (const b of buttons) expect(b).not.toMatch(/>\s*(OK|Ok|Confirm|Yes)\s*</)
   })
@@ -480,6 +553,21 @@ describe('④ the control obeys the server, fires once, and never paints a failu
     // And no shared component was introduced along the way.
     expect(VIDA).not.toContain("from '@/components/Modal'")
     expect(VIDA).not.toContain("from '@/components/Dialog'")
+  })
+
+  it('🛑 the endpoint it posts to is the one #1656 shipped, and it takes no body of its own', () => {
+    // The route exists, is operator-key gated, and is the qualification/recovery door — not a
+    // second backend path invented for this screen.
+    const ROUTES = readFileSync(join(__dirname, '../routes/operator.ts'), 'utf8')
+    expect(ROUTES).toContain("operatorRouter.post('/programme/:programmeId/qualify-batch'")
+    const route = ROUTES.slice(ROUTES.indexOf("operatorRouter.post('/programme/:programmeId/qualify-batch'"))
+      .slice(0, 2000)
+    expect(route, 'the operator key check is gone').toContain("adminKeyValid(req.headers['x-admin-key'])")
+    expect(route).toContain("const { qualifyAndSettleBatch } = await import('../lib/programme-batch-recovery')")
+    expect(route).toContain('qualifyAndSettleBatch(req.params.programmeId)')
+    // The screen sends an empty body — every input the action uses comes from the URL and the
+    // database, so there is nothing a browser could put in it that would change the outcome.
+    expect(HANDLER).toContain("body: '{}'")
   })
 })
 

@@ -17,7 +17,7 @@
 //   ① the programme id is EXACTLY `HOUSE_LAUNCH_PROGRAMME_ID`
 //   ② its client is a proved House audience          (① and ② together: isHouseLaunchProgramme)
 //   ③ status is SOURCING_AUTHORISED — the exact pre-reconcile state
-//   ④ delivered, programme-attributed, batch-less leads exist
+//   ④ programme-attributed, batch-less candidates exist
 //   ⑤ the accounting still reads unreconciled: 0 used, and no batch
 //
 // ⚠️ ③ IS DELIBERATELY THE SINGLE STATUS, NOT A BAND. This is a ONE-TIME repair for one
@@ -25,14 +25,24 @@
 // moves it to SOURCING, which makes ③ false for ever afterwards — the button disappears because
 // the world changed, not because a flag was flipped.
 //
-// 🛑 ④ RE-STATES THE RPC'S PREDICATE, AND THAT IS A REAL DUPLICATION — SAID OUT LOUD RATHER
-// THAN HIDDEN. `delivered_at IS NOT NULL AND batch_id IS NULL AND client_id = <the programme's>`
-// is the SQL's own orphan test, and two copies of a predicate can drift. It is accepted here
-// because the two answer different questions and the consequences are not symmetric: this one
-// only decides whether a control is DRAWN. If it drifts wide, the operator presses and the RPC
-// answers "Nothing to reconcile — nothing was changed". If it drifts narrow, the button is
-// absent and a human says so. Neither can miscount anything: the count that is written comes
-// only from the SQL. Nothing here is ever used AS the number reconciled.
+// 🛑 ④ RE-STATES THE ACTION'S OWN PREDICATE, AND THAT IS A REAL DUPLICATION — SAID OUT LOUD
+// RATHER THAN HIDDEN. `programme_id = <this> AND client_id = <its client> AND batch_id IS NULL`
+// is the population `qualifyAndSettleBatch` pages, and two copies of a predicate can drift. It
+// is accepted here because the two answer different questions and the consequences are not
+// symmetric: this one only decides whether a control is DRAWN. If it drifts wide, the operator
+// presses and the action answers "This programme has no unaccounted candidates". If it drifts
+// narrow, the control is absent and a human says so. Neither can miscount anything: what ends
+// up in `sourced_used` comes only from the SQL. Nothing here is ever used AS that number.
+//
+// ⛓️ 9 Sep — ④ NO LONGER REQUIRES `delivered_at`, AND THAT WAS A DEFECT, NOT A TIDY-UP.
+// The count was `delivered_at IS NOT NULL AND batch_id IS NULL` — the OLD reconcile's orphan
+// test. The action this control now fires reads EVERY batch-less candidate of the programme,
+// delivered or not, because entitlement is consumed by M&V's qualification verdict and
+// `delivered_at` is a fact about a screen. On the live House programme that is the difference
+// between 30 and 246: the operator would have been offered "30 sourced leads" and 246 would
+// have been checked. Worse, a programme whose candidates had never been surfaced would count
+// ZERO and the control would not be offered at all, for work that plainly needs doing.
+// **The number an operator is shown must be the number the action will act on.**
 // ═══════════════════════════════════════════════════════════════════════════════════════
 
 import { db } from '@kind/db'
@@ -44,7 +54,8 @@ export interface ReconcileAvailability {
   /** Draw the control? Anything unproved, unreadable or unexpected is `false`. */
   available: boolean
   /**
-   * Delivered, programme-attributed, batch-less leads — how many the RPC would look at.
+   * Programme-attributed, batch-less candidates — exactly how many `qualifyAndSettleBatch`
+   * would judge. This is the number the operator is shown before pressing.
    * ⚠️ A DISPLAY FIGURE FOR THE CONFIRMATION, NEVER A COUNT THAT IS WRITTEN. What ends up in
    * `sourced_used` is whatever the SQL itself counted inside its own transaction.
    */
@@ -56,7 +67,7 @@ export interface ReconcileAvailability {
 const NO: (reason: string) => ReconcileAvailability = reason => ({ available: false, unaccounted: 0, reason })
 
 /**
- * Should Vida offer "Account for delivered sourcing" for this programme?
+ * Should Vida offer "Qualify sourced leads" for this programme?
  *
  * ⚠️ FAILS CLOSED ON EVERY UNKNOWN. A read that errors is not "nothing to do" — it is "we
  * cannot tell", and the honest response to that is not to offer a one-time repair.
@@ -101,16 +112,18 @@ export async function reconcileAvailability(
   if (batchErr) return NO(`the programme's batches could not be read (${batchErr.message})`)
   if ((batchCount ?? 0) > 0) return NO('this programme already has a batch, so its sourcing is accounted for')
 
-  // ── ④ IS THERE ANYTHING TO ACCOUNT FOR? ────────────────────────────────────────────
+  // ── ④ IS THERE ANYTHING TO QUALIFY? ────────────────────────────────────────────────
+  // 🛑 THE SAME POPULATION THE ACTION READS, AND NOT ONE ROW MORE OR LESS. No `delivered_at`:
+  // whether a candidate has been put in front of a customer is a fact about a screen, and it
+  // decides nothing about whether M&V has judged them.
   const { count: orphans, error: leadErr } = await db.from('leads')
     .select('id', { count: 'exact', head: true })
     .eq('programme_id', pid)
     .eq('client_id', cid)
     .is('batch_id', null)
-    .not('delivered_at', 'is', null)
   if (leadErr) return NO(`the programme's prospects could not be read (${leadErr.message})`)
   const unaccounted = orphans ?? 0
-  if (unaccounted <= 0) return NO('no delivered prospect on this programme is missing a batch')
+  if (unaccounted <= 0) return NO('every candidate this programme sourced already belongs to a batch')
 
   return { available: true, unaccounted, reason: null }
 }

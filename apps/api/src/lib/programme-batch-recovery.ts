@@ -91,6 +91,25 @@ export async function qualifyAndSettleBatch(programmeId: unknown): Promise<Quali
   }
   const icp = icpRows[0]
 
+  // ── ①b EVERY IDENTITY THIS ACTION WILL QUERY BY IS A UUID, PROVED BEFORE IT IS USED ──
+  //
+  // 🛑 THE ORDER IS THE GUARANTEE: identity → candidate population → provider work. An id
+  // that cannot be an id must stop the action HERE, where nothing has been read, nothing has
+  // been judged and no reveal has been paid for. `programmeId` was already checked at the top;
+  // these two arrive from ROWS, and a row can hold an empty string where a uuid was meant.
+  //
+  // ⚠️ IT REFUSES, IT DOES NOT REPAIR. No newest client, no first ICP, no "the one that
+  // matches by name" — substituting an identity here would write permanent verdicts on
+  // somebody else's terms, which is the failure every guard in this module exists to prevent.
+  const clientId = String(p.client_id ?? '').trim()
+  if (!UUID.test(clientId)) {
+    return { ok: false, reason: `This programme does not name a readable client (${JSON.stringify(p.client_id)}), so whose candidates these are cannot be established. Nothing was read, judged or changed — and no client is ever substituted for a missing one.` }
+  }
+  const icpId = String(icp.id ?? '').trim()
+  if (!UUID.test(icpId)) {
+    return { ok: false, reason: `The targeting attached to this programme does not carry a readable id (${JSON.stringify(icp.id)}), so its criteria cannot be established. Nothing was read, judged or changed — and no other ICP is ever substituted for it.` }
+  }
+
   // 🛑 THE AUDIENCE DECIDES ONE ICP RULE, AND IT IS PROVED, NOT INFERRED. House requires a
   // provider-VERIFIED business address; `audienceForClientStrict` answers from the AUTH USER
   // and THROWS rather than guessing. A throw refuses the whole action: judging against the
@@ -98,21 +117,34 @@ export async function qualifyAndSettleBatch(programmeId: unknown): Promise<Quali
   let requireVerifiedBusinessEmail: boolean
   try {
     const { audienceForClientStrict } = await import('./provider-boundary')
-    requireVerifiedBusinessEmail = (await audienceForClientStrict(p.client_id)) === 'house'
+    requireVerifiedBusinessEmail = (await audienceForClientStrict(clientId)) === 'house'
   } catch (err) {
     return { ok: false, reason: `This client's audience could not be proved (${err instanceof Error ? err.message : String(err)}), so the ICP's verification rule is unknown. Nothing was judged or changed.` }
   }
 
   // ── ② THE CANDIDATES — batch-less, this programme, this client. NEVER SOURCED. ───────
+  //
+  // 🛑 9 Sep — THE PRODUCTION FAILURE THIS LOOP CAUSED, AND THE FIX.
+  // `let after = ''` seeded a KEYSET CURSOR with an empty string, and the first page therefore
+  // asked Postgres for `id > ''`. `leads.id` is `uuid`, so the cast failed before a single row
+  // was considered: *invalid input syntax for type uuid: ""*. The House programme could not be
+  // qualified at all — not because anything was wrong with its data, but because page one of
+  // the read was malformed. An empty string is not a cursor; it is the ABSENCE of one, and the
+  // two are only interchangeable on a `text` column.
+  //
+  // ⚠️ THE CURSOR IS NOW `null` UNTIL A ROW SUPPLIES ONE, and the predicate is omitted rather
+  // than sent empty. There is no page-zero sentinel to get wrong, because there is no page-zero
+  // predicate.
   const candidateIds: string[] = []
-  let after = ''
+  let after: string | null = null
   for (let page = 0; page < 40; page++) {
-    const { data, error } = await db.from('leads')
+    let q = db.from('leads')
       .select('id')
       .eq('programme_id', id)
-      .eq('client_id', p.client_id)
+      .eq('client_id', clientId)
       .is('batch_id', null)
-      .gt('id', after)
+    if (after !== null) q = q.gt('id', after)
+    const { data, error } = await q
       .order('id', { ascending: true })
       .limit(500)
     if (error) return { ok: false, reason: `This programme's candidates could not be read (${error.message}). Nothing was judged or changed.` }
@@ -129,7 +161,7 @@ export async function qualifyAndSettleBatch(programmeId: unknown): Promise<Quali
 
   // ── ③ QUALIFY ───────────────────────────────────────────────────────────────────────
   const { qualifyCandidates } = await import('./programme-qualification')
-  const q = await qualifyCandidates(p.client_id, candidateIds, {
+  const q = await qualifyCandidates(clientId, candidateIds, {
     geographies: (icp.geographies ?? []).filter(Boolean),
     requireVerifiedBusinessEmail,
   })
@@ -169,7 +201,7 @@ export async function qualifyAndSettleBatch(programmeId: unknown): Promise<Quali
   let surfaceNote = ''
   if (batchId) {
     const { surfaceQualifiedBatch } = await import('./programme-surfacing')
-    const s = await surfaceQualifiedBatch(id, p.client_id, batchId)
+    const s = await surfaceQualifiedBatch(id, clientId, batchId)
     if (s.ok) surfaced = s.surfaced
     else surfaceNote = ` The review set was NOT put in front of the customer: ${s.reason}`
   } else {
@@ -181,7 +213,7 @@ export async function qualifyAndSettleBatch(programmeId: unknown): Promise<Quali
     report: {
       ...q,
       programme_id: id,
-      client_id: p.client_id,
+      client_id: clientId,
       icp_id: icp.id,
       settled: true,
       batch_id: batchId,

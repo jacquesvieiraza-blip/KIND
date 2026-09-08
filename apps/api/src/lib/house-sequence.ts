@@ -6,10 +6,19 @@
 // into a database by hand, so "what did House actually send?" is answerable from the repo and a
 // change to them is a diff somebody reviews — not an UPDATE nobody sees.
 //
-// 🛑 NOTHING HERE WRITES ANYTHING ON IMPORT. `applyHouseProgrammeSequence` is operator-invoked,
-// once, after the migrations are applied — because `figsy_sequences.campaign_id` and
-// `programmes.send_schedule` do not exist in production yet, and writing a programme's words
-// before its columns exist would fail halfway and leave the sequence half-persisted.
+// 🛑 NOTHING HERE WRITES ANYTHING ON IMPORT, and `applyHouseProgrammeSequence` has exactly ONE
+// caller: `prepareProgrammeOutreach`, between creating the campaign and enrolling anybody.
+//
+// ⛓️ IT WAS AN ORPHAN FOR ONE PASS, AND THAT WAS WRONG (founder-corrected 8 Sep). Left uncalled,
+// the only route through production was: run preparation (creates the campaign, refuses to
+// enrol), remember to apply the sequence, run preparation again. **A production path that
+// depends on somebody remembering a magic call order is a path that will one day be run in the
+// wrong order** — and the wrong order here means enrolments built from words nobody approved.
+//
+// ⚠️ AND IT IS GATED TO HOUSE BY PROVED IDENTITY. `audienceForClientStrict` answers from the
+// AUTH USER and THROWS rather than guessing; a throw is read as "not house". The approved copy
+// is Client Zero's — applying it to a paying customer's programme would put M&V's own pitch in
+// front of their prospects.
 //
 // ⚠️ `channel: 'email'` IS LOAD-BEARING ON EVERY STEP. `sequence-apply.ts` filters stored
 // sequences through `emailSteps`, which keeps only `channel === 'email'`. A step without it is

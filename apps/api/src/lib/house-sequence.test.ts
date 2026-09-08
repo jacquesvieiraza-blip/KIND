@@ -196,7 +196,13 @@ describe('④ persisting the words is not approving, sending or scheduling anyth
       .not.toContain("db.from('figsy_campaigns')")
   })
 
-  it('🛑 nothing calls it — it is operator-invoked, after the migrations', async () => {
+  // ⛓️ REVERSED 8 Sep BY THE FOUNDER, AND THE REVERSAL IS THE POINT. This case used to assert
+  // that NOTHING called the helper. That design required a human to run preparation, notice the
+  // refusal, remember to apply the sequence, and run preparation again — *"a production path
+  // that depends on someone manually invoking a magic call order"*. The orchestrator owns the
+  // order now. What must still be true is that there is exactly ONE caller and it is that
+  // orchestrator: a second caller is a second preparation system.
+  it('🛑 7 · exactly one caller, and it is the preparation orchestrator', async () => {
     const { readdirSync, readFileSync } = await import('fs')
     const { join } = await import('path')
     const roots = [__dirname, join(__dirname, '../routes')]
@@ -207,7 +213,8 @@ describe('④ persisting the words is not approving, sending or scheduling anyth
         if (readFileSync(join(dir, f), 'utf8').includes('applyHouseProgrammeSequence')) callers.push(f)
       }
     }
-    expect(callers, `applyHouseProgrammeSequence is invoked by: ${callers.join(', ')}`).toEqual([])
+    expect(callers, `applyHouseProgrammeSequence is invoked by: ${callers.join(', ')}`)
+      .toEqual(['programme-preparation.ts'])
   })
 
   it('🛑 it refuses rather than creating a campaign', async () => {
@@ -222,5 +229,126 @@ describe('④ persisting the words is not approving, sending or scheduling anyth
     expect(SRC).toContain(".update({ steps, campaign_id: campaignId")
     // A rival sequence on one campaign is exactly what `resolveProgrammeChain` refuses to
     // choose between, so creating one would BREAK the programme rather than duplicate it.
+  })
+})
+
+// ── ⑤ THE ORCHESTRATOR OWNS THE ORDER ────────────────────────────────────────────────
+//
+// 🛑 THE HAZARD: preparation creates the campaign and then requires the sequence. Left as two
+// manual steps, the only way through was run-preparation → remember-to-apply → run-again. A
+// production path that depends on somebody remembering a magic call order is a path that will
+// one day be run in the wrong order, and the wrong order here means enrolments built from
+// words nobody approved.
+
+describe('⑤ the canonical sequence exists before anyone is enrolled', () => {
+  const PREP = (() => {
+    const { readFileSync } = require('fs') as typeof import('fs')
+    const { join } = require('path') as typeof import('path')
+    return readFileSync(join(__dirname, './programme-preparation.ts'), 'utf8')
+      .split('\n').filter(l => { const t = l.trim(); return t && !t.startsWith('//') && !t.startsWith('*') && !t.startsWith('/*') }).join('\n')
+  })()
+
+  it('🛑 7 · the helper is REACHABLE from production preparation — not an orphan', () => {
+    expect(PREP, 'applyHouseProgrammeSequence is an orphan again; production depends on a manual call')
+      .toContain("await import('./house-sequence')")
+    expect(PREP).toContain('await applyHouseProgrammeSequence(programmeId)')
+  })
+
+  it('🛑 3 · and it runs BEFORE the enrolment loop, after the campaign', () => {
+    const campaignAt = PREP.indexOf('const camp = await ensureCampaignForIcp(')
+    const applyAt = PREP.indexOf('await applyHouseProgrammeSequence(programmeId)')
+    const enrolAt = PREP.indexOf('await autoEnrollLead(lead.id, p.client_id')
+    expect(campaignAt).toBeGreaterThan(-1)
+    expect(applyAt, 'the sequence is applied before the campaign it must attach to').toBeGreaterThan(campaignAt)
+    expect(enrolAt, 'enrolment happens before the canonical sequence exists').toBeGreaterThan(applyAt)
+  })
+
+  it('🛑 8 · it is gated to HOUSE by proved identity — never applied to a customer programme', () => {
+    // The approved copy is Client Zero's. Applying it to a paying customer would put M&V's own
+    // pitch in front of THEIR prospects.
+    expect(PREP).toContain("audienceForClientStrict(p.client_id)) === 'house'")
+    // ⚠️ AND A THROW IS "NOT HOUSE" — asserted on the CATCH BLOCK, not on the substring.
+    // `let isHouse = false` also contains "isHouse = false", so a teeth-proof that flipped the
+    // catch to `isHouse = true` left a `toContain` assertion green while an unprovable identity
+    // seeded somebody else's programme with M&V's own pitch.
+    const catchAt = PREP.indexOf('} catch {')
+    expect(catchAt, 'the identity throw is no longer handled').toBeGreaterThan(-1)
+    const catchBlock = PREP.slice(catchAt, PREP.indexOf('}', PREP.indexOf('isHouse', catchAt)))
+    expect(catchBlock, 'an unprovable identity is being treated as House').toContain('isHouse = false')
+    expect(catchBlock).not.toContain('isHouse = true')
+    // Not inferred from client_id, a name, or an env var.
+    expect(PREP, 'House is being inferred from something other than proved identity')
+      .not.toContain('HOUSE_CLIENT_ID')
+  })
+
+  it('🛑 it only SEEDS — an existing sequence is never overwritten', () => {
+    const at = PREP.indexOf('let isHouse = false')
+    const guard = PREP.slice(Math.max(0, at - 400), at)
+    expect(guard).toContain('if (!chainRes.chain.sequenceId || chainRes.chain.steps.length === 0) {')
+  })
+
+  it('🛑 6 · a NON-house programme with no sequence still REFUSES — no copy, no AI draft', () => {
+    const at = PREP.indexOf('This programme has no canonical sequence with message steps')
+    expect(at, 'the refusal for a customer programme with no sequence is gone').toBeGreaterThan(-1)
+    expect(PREP.slice(at - 200, at)).toContain('if (!chainRes.chain.sequenceId')
+  })
+
+  it('🛑 10 · and the cadence is validated before anybody is enrolled', () => {
+    const cadenceAt = PREP.indexOf('cadenceIsConfigured(chainRes.chain.cadence)')
+    const enrolAt = PREP.indexOf('await autoEnrollLead(lead.id, p.client_id')
+    expect(cadenceAt, 'the cadence is no longer validated during preparation').toBeGreaterThan(-1)
+    expect(enrolAt).toBeGreaterThan(cadenceAt)
+  })
+
+  it('the re-resolve is a READ of what was stored, not an assumption that it was', () => {
+    const at = PREP.indexOf('await applyHouseProgrammeSequence(programmeId)')
+    expect(PREP.slice(at, at + 500)).toContain('chainRes = await resolveProgrammeChain(programmeId)')
+  })
+})
+
+// ── ⑥ THE CADENCE ARITHMETIC, AS THE SEND LOOP ACTUALLY DOES IT ──────────────────────
+
+describe('⑥ [3,4,5,6,0] really does produce Day 0 · 3 · 7 · 12 · 18', () => {
+  /**
+   * The executable calculation, mirroring the send loop: step N is sent, and the NEXT send is
+   * scheduled `wait_days` of the step just sent from now (`send-due.ts` passes the current
+   * step's `wait_days` as `waitDaysNext`; `sendSequenceEmailCore` does
+   * `Date.now() + waitDays * 86400000`).
+   */
+  function sendDays(waits: readonly number[]): number[] {
+    const days: number[] = []
+    let today = 0
+    for (let step = 1; step <= waits.length; step++) {
+      days.push(today)                 // this step goes out today
+      today += waits[step - 1]         // the next one is scheduled that many days out
+    }
+    return days
+  }
+
+  it('🛑 1 · the approved waits give the approved days', () => {
+    expect(sendDays(HOUSE_CADENCE)).toEqual([0, 3, 7, 12, 18])
+  })
+
+  it('🛑 2 · and the LITERAL array would put two emails in one inbox on Day 0', () => {
+    // Kept as an executable demonstration rather than a claim: [0,3,4,5,6] waits ZERO days
+    // after step 1, so steps 1 and 2 both land on day zero.
+    const literal = sendDays([0, 3, 4, 5, 6])
+    expect(literal).toEqual([0, 0, 3, 7, 12])
+    expect(new Set(literal).size, 'the literal array collides two sends on one day').toBeLessThan(literal.length)
+  })
+
+  it('ABSOLUTE DAY vs WAIT-AFTER — the two notations, stated so they cannot be confused again', () => {
+    const absoluteDays = [0, 3, 7, 12, 18]          // what the founder specified
+    const waitsAfter = [3, 4, 5, 6, 0]              // what this codebase stores
+    expect(HOUSE_CADENCE).toEqual(waitsAfter)
+    expect(sendDays(waitsAfter)).toEqual(absoluteDays)
+    // The gaps ARE the differences between consecutive days; the terminal 0 is never read.
+    expect(waitsAfter.slice(0, -1))
+      .toEqual(absoluteDays.slice(1).map((d, i) => d - absoluteDays[i]))
+  })
+
+  it('and the length is not hardcoded — a 3-step and a 7-step cadence work the same way', () => {
+    expect(sendDays([4, 5, 0])).toEqual([0, 4, 9])
+    expect(sendDays([2, 2, 2, 2, 2, 2, 0])).toEqual([0, 2, 4, 6, 8, 10, 12])
   })
 })

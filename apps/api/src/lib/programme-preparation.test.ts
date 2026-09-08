@@ -151,9 +151,12 @@ function seedProgrammeReadyForLive(over: Row = {}) {
   // sequence — because `autoEnrollLead` would otherwise AI-generate words nobody approved.
   state.batches.push({ id: 'BATCH_NEW', programme_id: P_NEW, seq: 1, status: 'served' })
   state.campaigns.push({ id: 'camp-seed', client_id: H, icp_id: 'ICP_NEW', status: 'active', leads_enrolled: 0 })
+  // ⚑ 8 Sep — `wait_days` is the wait AFTER a step, so a two-step sequence is [3, 0]: three
+  // days after the first message, and a terminal 0 nothing reads. Written as [0, 3] it would
+  // send both on day zero, which preparation now refuses before anybody is enrolled.
   state.sequences.push({ id: 'SEQ_NEW', client_id: H, campaign_id: 'camp-seed', steps: [
-    { subject: 'One', body: 'First message', wait_days: 0 },
-    { subject: 'Two', body: 'Second message', wait_days: 3 },
+    { channel: 'email', subject: 'One', body: 'First message', wait_days: 3 },
+    { channel: 'email', subject: 'Two', body: 'Second message', wait_days: 0 },
   ] })
 }
 const newLead = (id: string, over: Row = {}) =>

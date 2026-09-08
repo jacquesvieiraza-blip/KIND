@@ -365,10 +365,62 @@ export async function prepareProgrammeOutreach(programmeId: string): Promise<Pre
   // reviewed and nobody approved, baked into a row that looks ready. Refusing here costs a
   // retry; the alternative is a client approving copy that was invented for them.
   const { resolveProgrammeChain } = await import('./programme-chain')
-  const chainRes = await resolveProgrammeChain(programmeId)
+  let chainRes = await resolveProgrammeChain(programmeId)
   if (!chainRes.ok) { out.problems.push(chainRes.degraded); return out }
+
+  // ── ⚑ 8 Sep — THE ORCHESTRATOR OWNS THE ORDER (founder-locked) ───────────────────────
+  //
+  // 🛑 THE ORDERING HAZARD THIS CLOSES. The campaign is created immediately above; the
+  // canonical sequence is required immediately below. Left as two manual steps, the only way
+  // through was: run preparation (creates the campaign, refuses to enrol), remember to apply
+  // the sequence, run preparation again. **A production path that depends on somebody
+  // remembering a magic call order is a path that will one day be run in the wrong order** —
+  // and the wrong order here means enrolments built from words nobody approved.
+  //
+  // ⚠️ HOUSE ONLY, AND PROVED BY IDENTITY RATHER THAN INFERRED. The approved five-step copy is
+  // Client Zero's, not a universal default: applying it to a paying customer's programme would
+  // put M&V's own pitch in front of THEIR prospects. `audienceForClientStrict` is the existing
+  // founder-locked resolver — it answers from the AUTH USER, never from an API key or a name,
+  // and it THROWS rather than guessing when identity cannot be proved. A throw is caught here
+  // and read as "not house", so an unprovable identity gets the ordinary refusal below.
+  //
+  // ⚠️ IT NEVER OVERWRITES AN EXISTING SEQUENCE. This runs only when the chain resolved NO
+  // sequence, so a House sequence somebody has since edited is left exactly as it is — the
+  // approved copy is the seed for an empty programme, not a periodic reset.
+  //
+  // ⚠️ AND EVERY OTHER PROGRAMME STILL REFUSES. A customer programme with no sequence is not
+  // given one; it is told to author one, which is the honest answer.
+  if (!chainRes.chain.sequenceId || chainRes.chain.steps.length === 0) {
+    let isHouse = false
+    try {
+      const { audienceForClientStrict } = await import('./provider-boundary')
+      isHouse = (await audienceForClientStrict(p.client_id)) === 'house'
+    } catch {
+      // Identity unprovable ⇒ not house. Never a reason to seed somebody else's programme.
+      isHouse = false
+    }
+    if (isHouse) {
+      const { applyHouseProgrammeSequence } = await import('./house-sequence')
+      const applied = await applyHouseProgrammeSequence(programmeId)
+      if (!applied.ok) { out.problems.push(`The approved House sequence could not be applied: ${applied.reason}`); return out }
+      // Re-resolved, never assumed: the enrolments below must be built from what is actually
+      // stored now, not from what the write was supposed to have stored.
+      chainRes = await resolveProgrammeChain(programmeId)
+      if (!chainRes.ok) { out.problems.push(chainRes.degraded); return out }
+    }
+  }
+
   if (!chainRes.chain.sequenceId || chainRes.chain.steps.length === 0) {
     out.problems.push('This programme has no canonical sequence with message steps (programme → ICP → campaign → figsy_sequences), so no prospect can be prepared. Nothing was enrolled.')
+    return out
+  }
+
+  // 🛑 AND THE CADENCE IS VALIDATED BEFORE ANYBODY IS ENROLLED. An enrolment copies the steps,
+  // so a sequence whose follow-ups all sit on day zero would put five emails in one inbox on
+  // one morning — and it would be frozen, approved and sent before anybody noticed the gaps.
+  const { cadenceIsConfigured } = await import('./preparation-readiness')
+  if (!cadenceIsConfigured(chainRes.chain.cadence)) {
+    out.problems.push(`This programme's sequence has no usable cadence (waits ${JSON.stringify(chainRes.chain.cadence)}), so its messages would not be spaced. Nothing was enrolled.`)
     return out
   }
 

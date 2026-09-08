@@ -275,6 +275,12 @@ describe('④ the control obeys the server, fires once, and never paints a failu
     .filter(l => { const t = l.trim(); return t && !t.startsWith('//') && !t.startsWith('*') && !t.startsWith('/*') && !t.startsWith('{/*') })
     .join('\n')
   const HANDLER = CODE.slice(CODE.indexOf('const reconcileSourcing = useCallback'), CODE.indexOf('const setCommercialModel'))
+  /** The approved copy, as an object literal — pure code, so no comment can satisfy it. */
+  const CONFIRM = CODE.slice(CODE.indexOf('const RECONCILE_CONFIRM = {'), CODE.indexOf('const openReconcileConfirm'))
+  /** The rendered dialog. Sliced from the JSX guard, so the block comment above it is outside. */
+  const DIALOG = CODE.slice(CODE.indexOf('{recConfirm && ('), CODE.indexOf('{recMsg && ('))
+  /** The one control that opens it. */
+  const OPENER = CODE.slice(CODE.indexOf('const openReconcileConfirm = useCallback'), CODE.indexOf('const reconcileSourcing = useCallback'))
 
   it('🛑 1 · 2 · 3 · 4 · it is rendered ONLY on the server boolean', () => {
     expect(CODE, 'the button is not gated on the server answer').toContain('{prog.reconcile?.available && (')
@@ -361,29 +367,119 @@ describe('④ the control obeys the server, fires once, and never paints a failu
     // say "call Apollo" and "charge PDL" in its will-NOT half, so banning the words would fail
     // on the very copy the founder specified. What is asserted instead is the only thing that
     // could actually reach a provider: the number of requests, and where the one goes.
-    expect(HANDLER).toContain('call Apollo')
-    expect(HANDLER).toContain('approve the programme')
+    // (The copy itself now lives in `RECONCILE_CONFIRM` — asserted in ⑥.)
+    expect(CONFIRM).toContain('call Apollo')
+    expect(CONFIRM).toContain('approve the programme')
     // Exactly one request, to exactly one path.
     expect((HANDLER.match(/fetch\(/g) ?? []).length).toBe(1)
   })
 
-  it('🛑 10 · the confirmation states the state move, and both lists, in plain English', () => {
-    expect(HANDLER).toContain('prospects already delivered to this House programme?')
-    // The three things it WILL do.
-    expect(HANDLER).toContain('create one settled sourcing batch')
-    expect(HANDLER).toContain('account for those existing delivered prospects')
-    expect(HANDLER, 'the confirmation hides the status change the founder approved')
-      .toContain('move the programme from SOURCING_AUTHORISED to SOURCING')
-    // And the nine it will NOT.
+  it('🛑 10 · the approved copy is unchanged — question, three WILLs, nine WILL NOTs', () => {
+    // ⛓️ 8 Sep — RETARGETED WHEN THE COPY LEFT `confirm()`. It is now one object literal, which
+    // is strictly better to assert on: `CONFIRM` is pure code, so no comment or prose anywhere
+    // on this 3,000-line page can satisfy these strings by accident.
+    expect(CONFIRM).toContain('prospects already delivered to this House programme?')
+    for (const will of ['create one settled sourcing batch',
+                        'account for those existing delivered prospects',
+                        'move the programme from SOURCING_AUTHORISED to SOURCING']) {
+      expect(CONFIRM, `the confirmation dropped "${will}"`).toContain(will)
+    }
     for (const wont of ['source more prospects', 'call Apollo', 'charge PDL', 'delete leads',
                         'approve the programme', 'take Payment 2', 'Make Live', 'Run', 'send anything']) {
-      expect(HANDLER, `the confirmation omits "${wont}"`).toContain(wont)
+      expect(CONFIRM, `the confirmation omits "${wont}"`).toContain(wont)
     }
-    expect(HANDLER, 'nothing is confirmed at all').toContain('if (!confirm(')
+    // Exactly three and exactly nine — an added or dropped line is a changed promise.
+    const willList = CONFIRM.slice(CONFIRM.indexOf('will: ['), CONFIRM.indexOf('wont: ['))
+    const wontList = CONFIRM.slice(CONFIRM.indexOf('wont: ['))
+    expect((willList.match(/'/g) ?? []).length / 2, 'the WILL list changed length').toBe(3)
+    expect((wontList.match(/'/g) ?? []).length / 2, 'the WILL NOT list changed length').toBe(9)
+    // And the rendered dialog shows BOTH lists, from the constant rather than retyped.
+    expect(DIALOG).toContain('RECONCILE_CONFIRM.will.map')
+    expect(DIALOG).toContain('RECONCILE_CONFIRM.wont.map')
+    expect(DIALOG).toContain('This will:')
+    expect(DIALOG).toContain('It will NOT:')
+    expect(DIALOG).toContain('RECONCILE_CONFIRM.question(')
   })
 
   it('the returned headline is rendered verbatim — the screen invents no summary', () => {
     expect(HANDLER).toContain("setRecMsg({ tone: 'ok', text: String(j.data?.headline ?? 'Done.') })")
+  })
+
+  // ── THE CONFIRMATION ITSELF (8 Sep) ────────────────────────────────────────────────
+  //
+  // 🛑 WHY IT REPLACED `confirm()`. The native dialog can only offer **Cancel / OK**, so the
+  // action a person was agreeing to was named in the body and then NOT on the button they
+  // pressed. "OK" is not an answer to "shall I account for 246 prospects and move the
+  // programme's status". The confirming button now says the thing it does.
+
+  it('🛑 1 · the button OPENS the confirmation and posts nothing', () => {
+    expect(CODE).toContain('<button onClick={openReconcileConfirm} disabled={recBusy}')
+    // The opener is the whole path from the button, and it contains no request at all.
+    expect(OPENER).toContain('setRecConfirm(true)')
+    expect(OPENER, 'the button posts before anybody has confirmed').not.toContain('fetch(')
+    // ⚠️ AND THE SINGLE-FLIGHT GUARD IS ON THE OPENER TOO — a dialog opened during a request
+    // in flight is a second press waiting to happen.
+    expect(OPENER).toContain('if (!prog?.programme?.id || recBusy) return')
+    // The native dialog is gone for this control.
+    expect(HANDLER, 'the browser confirm is still in the path').not.toContain('confirm(')
+    expect(OPENER).not.toContain('confirm(')
+  })
+
+  it('🛑 2 · Cancel closes and posts nothing', () => {
+    const cancel = DIALOG.slice(DIALOG.indexOf('<button onClick={() => setRecConfirm(false)} disabled={recBusy}'))
+    expect(cancel.slice(0, 400), 'Cancel is not labelled Cancel').toContain('Cancel')
+    // Its ONLY effect is closing. Asserted on the handler expression, not on the label.
+    expect(DIALOG).toContain('<button onClick={() => setRecConfirm(false)} disabled={recBusy}')
+    expect(DIALOG, 'Cancel triggers the reconciliation').not.toContain('onClick={() => reconcileSourcing')
+    // Dismissing by clicking the backdrop is the same no-op, and the panel itself does not
+    // dismiss (`stopPropagation`) — a stray click inside the copy must not cancel a decision.
+    expect(DIALOG).toContain('onClick={() => setRecConfirm(false)}')
+    expect(DIALOG).toContain('onClick={e => e.stopPropagation()}')
+  })
+
+  it('🛑 3 · the confirming button is the ONLY thing that posts, and it fires once', () => {
+    expect(DIALOG).toContain('<button onClick={reconcileSourcing} disabled={recBusy}')
+    expect(DIALOG).toContain("{recBusy ? '…' : 'Account for delivered sourcing'}")
+    // `reconcileSourcing` has exactly one caller in the whole page, and it is that button.
+    expect((CODE.match(/onClick=\{reconcileSourcing\}/g) ?? []).length).toBe(1)
+    // Single-flight survives the change: the guard, the flag before the request, the finally,
+    // and the confirmation closing FIRST so it cannot be pressed a second time.
+    expect(HANDLER).toContain('if (!id || recBusy) return')
+    expect(HANDLER).toContain('setRecConfirm(false)')
+    const closeAt = HANDLER.indexOf('setRecConfirm(false)')
+    const fetchAt = HANDLER.indexOf('await fetch(')
+    expect(closeAt, 'the dialog is still open while the request runs').toBeLessThan(fetchAt)
+    expect((HANDLER.match(/fetch\(/g) ?? []).length).toBe(1)
+  })
+
+  it('🛑 both buttons read exactly what the founder specified, and there are only two', () => {
+    // ⚠️ ASSERTED PER BUTTON RATHER THAN BY ONE CLEVER REGEX. The two labels are written in
+    // different shapes — a bare text node and a busy-state ternary — and a pattern loose
+    // enough to catch both was loose enough to silently catch only one.
+    const buttons = DIALOG.split('<button').slice(1).map(b => b.slice(0, b.indexOf('</button>')))
+    expect(buttons, `the dialog has ${buttons.length} button(s)`).toHaveLength(2)
+    // The label is the text after the element's own `>`, whitespace-normalised — indentation
+    // is not part of what a button says.
+    // ⚠️ `lastIndexOf`, NOT `indexOf` — the FIRST `>` in the chunk belongs to the arrow in
+    // `onClick={() => …}`, so an index-of split returns the whole attribute list as the label.
+    const label = (b: string) => b.slice(b.lastIndexOf('>') + 1).replace(/\s+/g, ' ').trim()
+    expect(label(buttons[0]), 'the first button is not Cancel').toBe('Cancel')
+    expect(label(buttons[1])).toBe("{recBusy ? '…' : 'Account for delivered sourcing'}")
+    // Neither says OK, and neither is a bare confirm.
+    for (const b of buttons) expect(b).not.toMatch(/>\s*(OK|Ok|Confirm|Yes)\s*</)
+  })
+
+  it('no new modal system was invented — it reuses the overlay this app already uses', () => {
+    // There is no shared dialog component in the admin app; `vida/partners/page.tsx` rolls its
+    // own. This copies those exact classes locally rather than adding an abstraction.
+    const PARTNERS = readFileSync(join(__dirname, '../../../admin/src/app/vida/partners/page.tsx'), 'utf8')
+    const shell = 'fixed inset-0 z-50 bg-black/40 flex items-start justify-center p-4 sm:p-8 overflow-y-auto'
+    expect(PARTNERS, 'the pattern being reused no longer exists').toContain(shell)
+    expect(DIALOG).toContain(shell)
+    expect(DIALOG).toContain('role="dialog" aria-modal="true"')
+    // And no shared component was introduced along the way.
+    expect(VIDA).not.toContain("from '@/components/Modal'")
+    expect(VIDA).not.toContain("from '@/components/Dialog'")
   })
 })
 

@@ -211,6 +211,13 @@ export async function programmePreparationReadiness(programmeId: string): Promis
     .eq('programme_id', programmeId)
     .not('delivered_at', 'is', null)
     .not('surfaced_for_approval_at', 'is', null)
+    // ⚑ 9 Sep (HOUSE-009) — AND M&V's PASSING VERDICT, so this cannot drift from the desk.
+    // The comment above promises "ready" and "there is something to review" cannot disagree;
+    // once the review desk required a verdict, that promise held only while nothing surfaced
+    // an unjudged programme row — which `surfaceEverything` could do until it was fenced.
+    // Asserting it here makes the agreement structural instead of incidental.
+    .not('qualified_at', 'is', null)
+    .is('disqualified_at', null)
     .is('revealed_at', null)
     .neq('status', 'passed')
   if (leadErr) return notReady(`This programme's reviewable prospects could not be counted (${leadErr.message}).`)

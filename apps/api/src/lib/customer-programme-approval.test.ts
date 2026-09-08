@@ -149,6 +149,11 @@ async function freezeReview() {
 const prospect = (id: string, over: Row = {}) =>
   state.leads.push({
     id, client_id: C, programme_id: P, delivered_at: 'd', surfaced_for_approval_at: 's',
+    // ⚑ 9 Sep (HOUSE-009) — A PASSING QUALIFICATION VERDICT IS NOW PART OF BEING A
+    // REVIEWABLE PROSPECT. Entitlement is consumed by M&V's own verdict, so the review
+    // desk and preparation both require it; a fixture without one is a candidate nobody
+    // has judged, which is correctly invisible.
+    qualified_at: 'q', disqualified_at: null,
     revealed_at: null, status: 'scored', score: 80,
     // The permanent prospect-level suppression columns, in their CLEAN state.
     email: `${id.toLowerCase()}@example.com`, opted_out_at: null, provider_eviction_required_at: null,

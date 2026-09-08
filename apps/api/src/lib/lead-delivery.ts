@@ -93,7 +93,9 @@ export async function enrichAndDeliverLeads(
       //
       // ⚑ The revealed surname is written too: the SEARCH stage returns `last_name_obfuscated`
       // ("La***n"), so this is the first point a real one exists.
-      const patch: Record<string, unknown> = { email: person.email, apollo_consented: true }
+      // ⚑ 9 Sep — THE STATUS WE PAID FOR IS STORED. `finalVerdict` needs it and `leads` had
+      // nowhere to keep it, so every later pass had to buy the same fact again.
+      const patch: Record<string, unknown> = { email: person.email, email_status: person.email_status, apollo_consented: true }
       // ⚠️ IT REPLACES, RATHER THAN FILLING A BLANK. The search stage already wrote a surname
       // — Apollo's OBFUSCATED one ("La***n") — so a `!r.last_name` guard would never fire and
       // the masked value would live on in the lead for ever. The revealed name is the real one.

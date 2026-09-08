@@ -179,7 +179,16 @@ describe('⑤ the callers reach the gate correctly — no bypass', () => {
     // Calling `add_sourcing_allowance` for a programme would credit a wallet the programme
     // never debited — paying the client twice for the same shortfall.
     expect(ICPS).toMatch(/if \(unusedGrant > 0 && !programmeSettled\)/)
-    expect(ICPS).toMatch(/settleBatch\(programmeBatch\.id, returnedCount\)/)
+    // ⛓️ REWRITTEN 9 Sep — THE FLAG MOVED, THE RULE DID NOT. It used to be set by the early
+    // settle block, which settled on `returnedCount` (the raw provider page). Entitlement is
+    // now consumed by M&V's QUALIFICATION verdict, so the settle happens once, after judging —
+    // and if `programmeSettled` had stayed `false` until then, this very refund would have
+    // fired for a programme run in the window between. It is now true for ANY programme batch,
+    // which is the same guarantee stated at the fact that decides it.
+    expect(ICPS).toMatch(/let programmeSettled = !!programmeBatch/)
+    expect(ICPS, 'the batch is settled on the raw provider page again')
+      .not.toMatch(/settleBatch\(programmeBatch\.id, returnedCount\)/)
+    expect(ICPS).toMatch(/settleBatch\(programmeBatch\.id, qualified \?\? 0\)/)
   })
 })
 

@@ -171,12 +171,13 @@ export async function verifyProgrammeFulfilment(
   leadId: string, clientId: string, programmeId: string,
 ): Promise<{ ok: true; programme: ProgrammeRow } | { ok: false; reason: string }> {
   const { data: lead, error: leadErr } = await db.from('leads')
-    .select('id, client_id, icp_id, programme_id, surfaced_for_approval_at').eq('id', leadId).maybeSingle()
+    .select('id, client_id, icp_id, programme_id, surfaced_for_approval_at, qualified_at, disqualified_at').eq('id', leadId).maybeSingle()
   if (leadErr) return { ok: false, reason: `lead read failed: ${leadErr.message}` }
   if (!lead) return { ok: false, reason: 'no such lead' }
   const l = lead as {
     client_id: string | null; icp_id: string | null; programme_id: string | null
     surfaced_for_approval_at: string | null
+    qualified_at: string | null; disqualified_at: string | null
   }
 
   // 🛑 POSITIVE ATTRIBUTION. A null-attributed lead is history — House carries ~166 of them —
@@ -196,6 +197,13 @@ export async function verifyProgrammeFulfilment(
   // act. Between those two acts a programme lead is delivered and invisible — and preparation
   // used to enrol exactly those people. That is outreach to somebody the customer never saw.
   if (!l.surfaced_for_approval_at) return { ok: false, reason: 'lead was never surfaced to the customer for review' }
+
+  // 🛑 M&V's OWN VERDICT, RE-ASKED PER LEAD (9 Sep). The page query above already filters on
+  // it; this is the second, independent defence — `autoEnrollLead` calls this function itself
+  // rather than trusting that its caller filtered, and a disqualified candidate reaching
+  // outreach would be us mailing somebody we ourselves ruled out of the customer's own ICP.
+  if (l.disqualified_at) return { ok: false, reason: 'lead was disqualified by the final ICP check, so it is not part of this programme\'s work' }
+  if (!l.qualified_at) return { ok: false, reason: 'lead has no qualification verdict, so it is not proved to match the ICP' }
 
   const p = await getProgramme(programmeId)
   if (!p) return { ok: false, reason: 'no such programme' }
@@ -458,6 +466,13 @@ export async function prepareProgrammeOutreach(programmeId: string): Promise<Pre
       .select('id, email, status, opted_out_at, provider_eviction_required_at, apollo_consented')
       .eq('programme_id', programmeId)
       .eq('client_id', p.client_id)
+      // ⚑ 9 Sep (HOUSE-009) — QUALIFIED, AND PROVED SO. Entitlement is consumed by M&V's own
+      // verdict, so a candidate that verdict REFUSED must be impossible to enrol: it is not a
+      // person the customer bought, it was never surfaced, and outreach to it would be
+      // outreach to somebody we ourselves ruled out. Both halves are asserted because they are
+      // written together and exactly one is ever set — a row carrying both is corrupt.
+      .not('qualified_at', 'is', null)
+      .is('disqualified_at', null)
       // ⚑ 8 Sep — THE CURRENT BATCH. Positive, from `leads.batch_id`, which the sourcing run
       // stamps on exactly the people it bought. No older programme batch may enter this set.
       .eq('batch_id', currentBatchId)
@@ -587,6 +602,11 @@ export async function prepareProgrammeOutreach(programmeId: string): Promise<Pre
       // is not — counting never-surfaced leads here would leave `remaining > 0` permanently and
       // make LIVE unreachable for a programme that is in fact fully prepared.
       .not('surfaced_for_approval_at', 'is', null)
+      // ⚑ 9 Sep — AND M&V's VERDICT, for the same reason the line above exists. If the head
+      // count admitted candidates the page cannot enrol, `remaining` would never reach zero
+      // and a fully prepared programme could never be complete.
+      .not('qualified_at', 'is', null)
+      .is('disqualified_at', null)
       .gt('id', after)
     if (leftErr) {
       // Cannot count ⇒ cannot claim completeness. Fail closed on the number, not on the work.

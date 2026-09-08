@@ -15,9 +15,16 @@
 //   ④ read the counters and batches AFTER
 //   ⑤ report what actually changed
 //
+// ⛓️ 9 Sep — THE RPC WAS REPOINTED UNDER THIS MODULE, AND THE HEADER SAID OTHERWISE FOR ONE
+// PASS. It no longer counts `delivered_at`: entitlement is consumed by M&V's QUALIFICATION
+// verdict, and the function REFUSES while any candidate is unjudged. So this door can no longer
+// settle an unjudged attempt — it returns that refusal verbatim — and `reconciled_count` now
+// means QUALIFIED PROSPECTS. The full recovery (judge → settle → surface) is
+// `programme-batch-recovery.ts`; this stays the settle-only door for an already-judged attempt.
+//
 // 🛑 IT WRITES NOTHING ITSELF. Every mutation in this operation happens inside the reviewed
 // RPC, in one transaction, under its own guards — the foreign-client refusal, the
-// delivered-and-unbatched predicate, the ceiling check and the settled-on-creation batch. This
+// unjudged-candidate refusal, the ceiling check and the settled-on-creation batch. This
 // module has no `update`, no `insert`, no `leads` query and no ceiling arithmetic of its own,
 // which is deliberate: a second implementation of "which leads count" is how the two would
 // eventually disagree, and the one that drifted would be the one nobody read.
@@ -179,7 +186,7 @@ export async function reconcileProgrammeSourcing(programmeId: unknown): Promise<
     status_after: statusAfter,
     batches,
     headline: reconciled > 0
-      ? `Accounted for ${reconciled} already-delivered prospect(s). ${after.used} used · ${after.reserved} reserved · ${after.left} left · ${batches.length} batch(es). ${batchErr ? 'The batch list could not be read. ' : ''}${statusNote} Nothing was sourced, no provider was called and nothing was sent.`
-      : `Nothing to reconcile — no delivered prospect on this programme is missing a batch. ${after.used} used · ${after.reserved} reserved · ${after.left} left · ${batches.length} batch(es). Nothing was changed.`,
+      ? `Accounted for ${reconciled} qualified prospect(s). ${after.used} used · ${after.reserved} reserved · ${after.left} left · ${batches.length} batch(es). ${batchErr ? 'The batch list could not be read. ' : ''}${statusNote} Nothing was sourced, no provider was called and nothing was sent.`
+      : `Nothing to reconcile — every candidate this programme sourced already belongs to a batch. ${after.used} used · ${after.reserved} reserved · ${after.left} left · ${batches.length} batch(es). Nothing was changed.`,
   }
 }

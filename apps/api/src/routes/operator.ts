@@ -1901,6 +1901,60 @@ operatorRouter.post('/icp/:icpId/retire', async (req: Request, res: Response) =>
   }
 })
 
+// ── HOUSE-009 · QUALIFY AND SETTLE ONE PROGRAMME'S ATTEMPT ───────────────────────────────
+//
+// 🛑 THE ACTION THE OLD RECONCILE SHOULD HAVE BEEN. Entitlement is consumed by M&V's own
+// qualification verdict, not by `delivered_at`, so an attempt has to be JUDGED before it can
+// be settled. This judges every unaccounted candidate of one named programme against its
+// attached ICP, settles on the qualified count, and surfaces the qualified rows.
+//
+// ⚠️ IT MAY SPEND APOLLO REVEAL CREDITS — for a candidate whose stored facts cannot answer the
+// ICP, and only for that candidate, once. It sources nobody: no People Search, no PDL, no
+// Hunter, no waterfall, no phone. The response reports every provider number.
+//
+// ⚠️ A PARTIAL RUN NEVER SETTLES. Verdicts already written are kept and a retry skips them.
+operatorRouter.post('/programme/:programmeId/qualify-batch', async (req: Request, res: Response) => {
+  try {
+    if (!adminKeyValid(req.headers['x-admin-key'])) {
+      res.status(403).json({ success: false, error: 'Operator key required' })
+      return
+    }
+    const { qualifyAndSettleBatch } = await import('../lib/programme-batch-recovery')
+    const result = await qualifyAndSettleBatch(req.params.programmeId)
+
+    if (!result.ok) {
+      await writeOperatorAudit({
+        operatorEmail: operatorEmail(req), clientId: null, action: 'programme_batch_qualify_refused',
+        subjectType: 'programme', subjectId: req.params.programmeId,
+        detail: { reason: result.reason, partial: result.partial ?? null },
+      })
+      res.status(400).json({ success: false, error: result.reason, partial: result.partial ?? null })
+      return
+    }
+
+    const r = result.report
+    await writeOperatorAudit({
+      operatorEmail: operatorEmail(req), clientId: r.client_id, action: 'programme_batch_qualified',
+      subjectType: 'programme', subjectId: r.programme_id,
+      detail: {
+        icp_id: r.icp_id, batch_id: r.batch_id,
+        candidates_total: r.candidates_total, already_judged: r.already_judged,
+        judged_from_stored_facts: r.judged_from_stored_facts,
+        provider_reveals_attempted: r.provider_reveals_attempted,
+        provider_reveals_succeeded: r.provider_reveals_succeeded,
+        qualified: r.qualified, disqualified: r.disqualified, reasons: r.reasons,
+        used: r.used, reserved: r.reserved, remaining: r.remaining,
+        status_before: r.status_before, status_after: r.status_after, surfaced: r.surfaced,
+      },
+    })
+
+    res.json({ success: true, data: r })
+  } catch (err) {
+    console.error('[operator/programme/qualify-batch]', err)
+    res.status(500).json({ success: false, error: err instanceof Error ? err.message : 'The qualification could not be completed' })
+  }
+})
+
 // ── HOUSE-009 · THE OPERATOR DOOR TO `reconcile_programme_sourcing` ──────────────────────
 //
 // 🛑 IT EXISTED IN THE DATABASE AND NOTHING COULD CALL IT. #1652 shipped the RPC; the fix for

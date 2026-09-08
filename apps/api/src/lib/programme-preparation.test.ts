@@ -181,6 +181,11 @@ const newLead = (id: string, over: Row = {}) =>
     // `apollo_consented` is the existing "provider-VERIFIED email" marker, written true only
     // after the final ICP gate; a free-mail domain fails `isBusinessEmail` on the same row.
     batch_id: 'BATCH_NEW', apollo_consented: true,
+    // ⚑ 9 Sep (HOUSE-009) — M&V's PASSING VERDICT IS PART OF BEING A PROSPECT NOW. Programme
+    // entitlement is consumed by qualification, not by `delivered_at`, so preparation enrols
+    // only candidates the final ICP check passed. A fixture without one is a candidate nobody
+    // has judged — correctly ineligible, which is what these cases would otherwise be asserting.
+    qualified_at: 'q', disqualified_at: null,
     // ⚠️ NOT `@example.com` — `isPlaceholderEmail` treats it as a fake mailbox, and the
     // enrolment gate now re-proves the address is a real BUSINESS one.
     status: 'scored', email: `${id.toLowerCase()}@northwind-logistics.co.uk`,
@@ -926,6 +931,9 @@ describe('⑩ only the ONE configured launch programme is ever seeded with the a
       batch_id: `batch-${id}`, apollo_consented: true, status: 'scored',
       email: `contact-${id.slice(0, 8)}@northwind-logistics.co.uk`,
       surfaced_for_approval_at: 's', revealed_at: null,
+      // ⚑ 9 Sep — the launch programme's own fixture needs a passing verdict for the same
+      // reason `newLead` above does: preparation enrols qualified prospects only.
+      qualified_at: 'q', disqualified_at: null,
       opted_out_at: null, provider_eviction_required_at: null,
     })
   }

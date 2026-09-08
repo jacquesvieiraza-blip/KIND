@@ -1901,9 +1901,21 @@ internalRouter.post('/leads/drip', async (_req: Request, res: Response) => {
         const toDeliver = Math.min(drip, balance)
 
         // Find undelivered leads for this client, oldest first
+        // ⚑ 9 Sep (HOUSE-009) — PROGRAMME WORK CANNOT ENTER THE SELF-SERVE DRIP.
+        //
+        // 🛑 THIS ONE LINE IS A REAL FENCE, NOT TIDINESS. The drip calls
+        // `enrichAndDeliverLeads` with NO `qualifyAgainst`, so it runs no ICP gate at all; it
+        // leaves `hunterAllowed` at its default true, so House's Hunter-off decision does not
+        // hold there; and until 9 Sep a rejected candidate carried no marker, so the drip
+        // re-picked it, PAID for the reveal a second time, and delivered it ungated. On a
+        // programme it also paces a paid batch at ~5/day — 250 candidates over ~50 days.
+        //
+        // Programme prospects are judged by `qualifyCandidates` and made visible by
+        // `surfaceQualifiedBatch`. Legacy, non-programme behaviour below is untouched.
         const { data: pending } = await db.from('leads')
           .select('id')
           .eq('client_id', client.id)
+          .is('programme_id', null)
           .is('delivered_at', null)
           .order('created_at', { ascending: true })
           .limit(toDeliver)

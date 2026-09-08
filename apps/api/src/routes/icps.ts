@@ -370,10 +370,37 @@ type PoolServeIcp = {
   geographies?:      string[] | null
   seniority_levels?: string[] | null
 }
+//
+// ── ⚑ 9 Sep (HOUSE-009) — `admit`: AUTHORITY IS RESERVED BEFORE A ROW IS ADMITTED ────────
+//
+// 🛑 THE RULE THIS ENFORCES, FOUNDER-LOCKED: *a programme batch may NEVER contain more
+// candidate authority than was actually granted for that attempt.* The first cut of the pool
+// accounting reserved AFTER the insert and admitted every served row into the batch anyway,
+// logging loudly when the grant came back short. That is not fail-closed: with room for 10 and
+// a pool of 20, twenty rows entered the batch, twenty could qualify and surface, and
+// `settle_programme_batch`'s `LEAST(delivered, granted)` clamp silently under-reported USED
+// while the customer saw twenty. Logging a contradiction does not resolve it.
+//
+// So the reservation moved IN FRONT of the insert. `admit` is handed the number of ELIGIBLE
+// pool records and returns how many the programme may actually take; only that many rows are
+// ever written. A candidate outside granted authority is never created, so it cannot be
+// stamped, judged, settled or surfaced — there is nothing to trim afterwards and no orphan
+// left behind for a later reconcile to trip over.
+//
+// ⚠️ NO `admit` MEANS NO PROGRAMME, NOT "ADMIT SILENTLY". A legacy client, a demo and a free
+// proof pass have no programme entitlement to reserve against; they pass no callback and the
+// serve behaves exactly as it always has. `reserved` is then 0 — the honest answer, not a
+// count nobody asked for.
 async function servePoolLeads(
   icp: PoolServeIcp, clientId: string, cap: number,
-): Promise<{ insertedIds: string[]; served: number }> {
-  if (cap <= 0) return { insertedIds: [], served: 0 }
+  admit?: (eligible: number) => Promise<number>,
+): Promise<{ insertedIds: string[]; served: number; reserved: number }> {
+  if (cap <= 0) return { insertedIds: [], served: 0, reserved: 0 }
+  // ⚠️ DECLARED OUTSIDE THE `try` SO A LATER FAILURE STILL REPORTS THE GRANT. If `admit`
+  // reserved volume and the insert then failed, the caller must still learn the number: the
+  // batch it opens carries that grant, and settling it is what releases the reservation. A
+  // `reserved: 0` on that path would strand programme volume with nothing to release it.
+  let admitted = 0
   try {
     // PostgREST .or() splits on commas and treats *,(,) specially — strip them so a
     // value can't break the filter (OR-generous, so a coarser term is harmless).
@@ -434,8 +461,8 @@ async function servePoolLeads(
     // Pull a candidate buffer (we still dedup / blocklist / suppress below), then
     // cap the actual serve at `cap`. Empty pool → [] → served 0 → identical to today.
     const { data: candidates, error } = await q.limit(Math.max(cap * 5, 50))
-    if (error) { console.error('[icp] lead_pool query failed (non-fatal, falling through to PDL):', error); return { insertedIds: [], served: 0 } }
-    if (!candidates || candidates.length === 0) return { insertedIds: [], served: 0 }
+    if (error) { console.error('[icp] lead_pool query failed (non-fatal, falling through to PDL):', error); return { insertedIds: [], served: 0, reserved: 0 } }
+    if (!candidates || candidates.length === 0) return { insertedIds: [], served: 0, reserved: 0 }
 
     const norm = (e: string | null | undefined) => normalizeRevealEmail(e)
     // HC-1 — these come from `lead_pool.email_norm`, which is written normalised, so this
@@ -445,7 +472,7 @@ async function servePoolLeads(
     const candEmails = normalizeRevealEmails(
       candidates.map((c: { email_norm?: string | null }) => c.email_norm),
     )
-    if (candEmails.length === 0) return { insertedIds: [], served: 0 }
+    if (candEmails.length === 0) return { insertedIds: [], served: 0, reserved: 0 }
 
     // Anti-dup — exclude any email this client already has in leads (normalise both
     // sides; leads.email is stored raw). Bounded: only this client's leads.
@@ -499,7 +526,22 @@ async function servePoolLeads(
       console.error(`[icp] stage=pool_country_missing — ${notGeoServable} of ${candidates.length} pool candidate(s) carry no usable country, so they cannot satisfy geography-targeted sourcing; ${eligible.length} remain eligible. The records are kept, not deleted. Rights-safe promotion/heal: supabase/maintenance/2026-08-27_kind_acquired_pool_promotion.sql`)
     }
 
-    if (eligible.length === 0) return { insertedIds: [], served: 0 }
+    if (eligible.length === 0) return { insertedIds: [], served: 0, reserved: 0 }
+
+    // ── ⚑ 9 Sep — THE AUTHORITY GATE, AND IT IS IN FRONT OF THE INSERT ────────────────────
+    //
+    // 🛑 EVERYTHING BELOW THIS LINE IS CAPPED BY WHAT WAS ACTUALLY GRANTED. `admitted` is the
+    // programme's answer to "how many of these may you take?", already reserved by the time it
+    // returns. Nothing beyond it is written, so no candidate can exist that the programme has
+    // no authority for — the batch population and the grant are the same number by
+    // construction rather than by a later trim that somebody could forget to apply.
+    //
+    // ⚠️ A ZERO GRANT SERVES NOTHING AND THAT IS THE POINT. A programme with no room left
+    // (ceiling spent, paused, or not yet authorised for sourcing) admits no pool row at all,
+    // rather than admitting twenty and having the settle clamp report ten.
+    admitted = admit ? await admit(eligible.length) : eligible.length
+    if (admitted <= 0) return { insertedIds: [], served: 0, reserved: 0 }
+    const granted = eligible.slice(0, admitted)
 
     // Insert the pool matches as THIS client's leads — same shape the PDL path sets,
     // so delivery/reveal/scoring is unchanged. $0 marginal: no allowance, no positive
@@ -507,7 +549,7 @@ async function servePoolLeads(
     // ⚠️ VERIFIED-EQUIVALENT, NOT CONSENTED. apollo_consented = a provider-VERIFIED email,
     // treated as a legitimate-interest contact. It is NOT a consent record; naming predates
     // the pivot. Do not build consent logic on it. See @kind/shared `Lead`.
-    const rows = eligible.map(c => ({
+    const rows = granted.map(c => ({
       client_id:        clientId,
       icp_id:           icp.id,
       first_name:       c.first_name || '',
@@ -527,7 +569,7 @@ async function servePoolLeads(
       delivered_at:     null,
     }))
     const { data: insertedRows, error: insErr } = await db.from('leads').insert(rows).select('id')
-    if (insErr || !insertedRows) { console.error('[icp] pool-serve insert failed (non-fatal):', insErr); return { insertedIds: [], served: 0 } }
+    if (insErr || !insertedRows) { console.error('[icp] pool-serve insert failed (non-fatal):', insErr); return { insertedIds: [], served: 0, reserved: admitted } }
 
     const insertedIds = insertedRows.map(r => r.id)
     // Book a ZERO-COST ledger row so the daily-volume fence sees these records too
@@ -538,11 +580,11 @@ async function servePoolLeads(
       })
       if (ledgerErr) console.error('[icp] pool-serve ledger row failed (non-fatal):', ledgerErr)
     }
-    console.log(`[icp] pool-first serve: ${insertedIds.length} leads served at $0 for client ${clientId} (cap ${cap})`)
-    return { insertedIds, served: insertedIds.length }
+    console.log(`[icp] pool-first serve: ${insertedIds.length} of ${eligible.length} eligible leads served at $0 for client ${clientId} (cap ${cap}${admit ? `, programme admitted ${admitted}` : ''})`)
+    return { insertedIds, served: insertedIds.length, reserved: admit ? admitted : 0 }
   } catch (err) {
     console.error('[icp] servePoolLeads failed (non-fatal, falling through to PDL):', err)
-    return { insertedIds: [], served: 0 }
+    return { insertedIds: [], served: 0, reserved: admitted }
   }
 }
 
@@ -890,9 +932,45 @@ export async function runIcpJob(
   // shown 13 from the pool may be bought at most 7 more for that pass.
   const runCap = proofMode ? Math.min(effectiveCap, PROOF_PASS_LEADS) : effectiveCap
 
-  const pool = await servePoolLeads(icp, clientId, runCap)
+  // ── ⚑ 9 Sep (HOUSE-009) — THE POOL HALF OF A PROGRAMME ATTEMPT RESERVES BEFORE IT SERVES ──
+  //
+  // 🛑 THE LOCKED RULE: a programme batch may NEVER contain more candidate authority than was
+  // actually granted for that attempt. The pool serve runs before the provider gate, so if the
+  // grant were taken afterwards a short grant would leave rows already inserted, already in the
+  // batch, already able to qualify and surface — with `settle_programme_batch` clamping USED to
+  // the smaller number and the customer seeing the larger one. The reservation therefore travels
+  // INTO the serve and caps what it writes.
+  //
+  // ⚠️ ENTITLEMENT ONLY, WHICH IS WHY IT IS THIS FUNCTION. `try_reserve_programme_sourcing`
+  // writes NO ledger row — it is the authority half HOUSE-009 extracted from
+  // `try_spend_sourcing` precisely so volume can be reserved without inventing provider cost.
+  // A pool record is free; routing it through `try_spend_sourcing` would book $0.28 a head of
+  // PDL money nobody spent, which is the exact conflation that arc removed.
+  //
+  // ⚠️ `programmeIdForRun`, NOT `icp.programme_id`. That is the identity the sourcing gate
+  // above already VALIDATED — attached ICP, live authority, not a free-proof run. Re-reading
+  // the column here would reserve against a programme the gate had refused.
+  const pool = await servePoolLeads(icp, clientId, runCap, programmeIdForRun
+    ? async (eligible: number) => {
+      const { data: poolGrant } = await db.rpc('try_reserve_programme_sourcing', {
+        p_programme_id: programmeIdForRun, p_requested: eligible,
+      })
+      const g = typeof poolGrant === 'number' ? poolGrant : 0
+      if (g < eligible) console.log(`[icp] programme ${programmeIdForRun} — ${g} of ${eligible} eligible pool candidate(s) admitted; the rest are outside the remaining authority of this programme and are NOT served, so no candidate exists that the batch cannot account for.`)
+      else console.log(`[icp] programme ${programmeIdForRun} — reserved ${g} pool candidate(s) as entitlement; no ledger row, no provider cost.`)
+      return g
+    }
+    : undefined)
   inserted += pool.served
   insertedIds.push(...pool.insertedIds)
+  // The pool volume this attempt HOLDS AUTHORITY FOR. It is the reservation, not the serve:
+  // if the insert failed after the grant, the batch must still carry it, because settling the
+  // batch is what releases it back to the ceiling.
+  const poolReserved = pool.reserved
+  // What the attempt asked the pool for, for the batch's `requested` column. `Math.max` because
+  // a post-grant insert failure leaves `served` behind `reserved`, and a batch row claiming to
+  // have requested less than it was granted is a nonsense an operator would have to unpick.
+  const poolAttempted = Math.max(pool.served, poolReserved)
 
   // ── AR5 / AR8 — WHOSE RUN IS THIS? RESOLVED BEFORE THE FENCE, NOT AFTER IT ──────
   //
@@ -979,6 +1057,7 @@ export async function runIcpJob(
     // MONTHLY_PROOF_BUDGET_REACHED · FAIL_CLOSED_*. Only the second value in that list is a
     // company money event, and only it raises the acquisition alert.
     let proofReason = 'GRANTED'
+
     if (audience === 'house') {
       // ── HOUSE-009 · NO PDL MONEY, BUT STILL PROGRAMME AUTHORITY (7 Sep) ───────────────
       //
@@ -1005,9 +1084,12 @@ export async function runIcpJob(
           p_programme_id: houseProgrammeId, p_requested: pdlRemainder,
         })
         grantedSize = typeof reserved === 'number' ? reserved : 0
-        if (grantedSize > 0) {
+        // ⚑ 9 Sep — the batch is the whole ATTEMPT: the provider grant plus the pool volume
+        // reserved above. Recording only the provider half is what made the settle clamp a
+        // qualified pool candidate out of the customer's consumed ceiling.
+        if (grantedSize + poolReserved > 0) {
           const { openBatch } = await import('../lib/programme')
-          programmeBatch = await openBatch(houseProgrammeId, pdlRemainder, grantedSize)
+          programmeBatch = await openBatch(houseProgrammeId, pdlRemainder + poolAttempted, grantedSize + poolReserved)
         }
         console.log(`[icp] house run for client ${clientId} — programme ${houseProgrammeId} reserved ${grantedSize} of ${pdlRemainder} Apollo record(s); no PDL record bought, no ledger row written (AR5/AR8).`)
       } else {
@@ -1047,9 +1129,13 @@ export async function runIcpJob(
       // Reserve/release: authority is RESERVED at grant and converted to used only when the
       // provider actually delivers, so a provider returning zero cannot permanently burn
       // volume the client paid for. The batch row is the record that lets it be released.
-      if (programmeId && grantedSize > 0) {
+      // ⚑ 9 Sep — the batch covers the whole attempt (see the pool reservation above). The
+      // PDL money call itself is UNCHANGED and still asks only for `pdlRemainder`: a pool
+      // record is free, and putting it through `try_spend_sourcing` would book $0.28 a head
+      // of provider cost that nobody incurred.
+      if (programmeId && grantedSize + poolReserved > 0) {
         const { openBatch } = await import('../lib/programme')
-        programmeBatch = await openBatch(programmeId, pdlRemainder, grantedSize)
+        programmeBatch = await openBatch(programmeId, pdlRemainder + poolAttempted, grantedSize + poolReserved)
       }
     }
     if (grantedSize <= 0) {
@@ -1376,41 +1462,22 @@ export async function runIcpJob(
       // the run knows only `contacts.length` — the raw search page — and the final ICP gate
       // (verified business email, revealed country) has not run yet. Settling 250 here and
       // calling it 246 later would be two different truths about one batch.
-      let programmeSettled = false
-      if (programmeBatch && audience !== 'house') {
-        // ⛓️ THE ATTRIBUTION STAMP USED TO SIT HERE, AND IT MATCHED NOTHING.
-        // It ran at settle time — which is BEFORE the PDL insert loop, because a batch settles
-        // on what the PROVIDER RETURNED, not on what survived dedupe. So the rows it meant to
-        // stamp did not exist yet, and the pool rows that did exist were inserted before its
-        // time window opened. Zero rows, every run, silently. The stamp now runs after every
-        // insert and keys on the exact ids this invocation created — see below.
-        const { settleBatch } = await import('../lib/programme')
-        const r = await settleBatch(programmeBatch.id, returnedCount)
-        programmeSettled = true
-        if (!r.ok) {
-          // Stranded: the release itself failed. `settleBatch` has already marked the batch
-          // and alerted — the client's entitlement is reserved but recoverable, and there is
-          // a row to find it by. Never swallowed.
-          console.error(`[icp] PROGRAMME batch ${programmeBatch.id} could not be settled — marked stranded; ${grantedSize - returnedCount} record(s) stay reserved until reconciled.`)
-        }
-
-        // ══ THE REVIEW TRIGGER (BUILD-003 PR2-D) ══════════════════════════════════════
-        //
-        // Checked HERE because settling is the only moment `sourced_used` moves — so this is
-        // the first instant the benchmark can have been crossed, and checking anywhere else
-        // would either miss it or re-ask on every unrelated request.
-        //
-        // ⚠️ IT HOLDS THE NEXT BATCH AND NOTHING ELSE. No meeting is created, no refund is
-        // computed, no status changes, and delivery already in flight is untouched. Awaited
-        // rather than fired-and-forgotten: a hold that lost a race with the next run would be
-        // a hold that did not hold.
-        if (programmeIdForRun) {
-          const { raiseReviewIfNeeded } = await import('../lib/programme-authority')
-          await raiseReviewIfNeeded(programmeIdForRun).catch(e =>
-            console.error(`[icp] review-trigger check failed for programme ${programmeIdForRun}:`, e))
-        }
-      }
-
+      // ⛓️ 9 Sep (HOUSE-009) — `= !!programmeBatch`, AND THE CHANGE IS LOAD-BEARING.
+      //
+      // A programme batch's reservation is released by `settleBatch`, which now runs ONCE for
+      // every programme run, after qualification. This flag is what stops the LEGACY
+      // `add_sourcing_allowance` refund below from also firing for a programme run — it used
+      // to be set by the early settle block, and removing that block without this would have
+      // refunded a legacy client allowance for a programme's unused grant. For House
+      // `unusedGrant` is 0 either way, so this preserves both paths exactly.
+      let programmeSettled = !!programmeBatch
+      // ⛓️ 9 Sep — THE EARLY SETTLE IS GONE FOR EVERY PROGRAMME RUN, house or not.
+      //
+      // 🛑 IT SETTLED ON `returnedCount` — the raw provider page — which is neither what was
+      // obtained nor what qualified. Under the locked model entitlement is consumed by
+      // QUALIFIED prospects, so a batch cannot be settled before M&V has judged it. The single
+      // settle point is below, after `qualifyCandidates`, and the review trigger moved with it
+      // because settling is still the only moment `sourced_used` moves.
       if (unusedGrant > 0 && !programmeSettled) {
         if (proofMode) {
           // FREE PROOF reconcile — reserve 40, PDL returns 25, release 15 AGAINST THE
@@ -1798,6 +1865,24 @@ export async function runIcpJob(
     }
   }
 
+  // ── ⚑ 9 Sep (HOUSE-009) — A POOL-ONLY PROGRAMME ATTEMPT STILL GETS ITS BATCH ────────────
+  //
+  // 🛑 THE BRANCHES ABOVE OPEN THE BATCH, AND THREE OF THEM NEVER RUN. `openBatch` sits inside
+  // `pdlRemainder > 0`; a demo run, an exhausted cursor, and a pool serve that filled the whole
+  // target all skip it. Reserved pool volume would then sit against the ceiling with no batch to
+  // settle it and no batch to stamp its candidates with — reserved for ever, and every candidate
+  // an orphan of exactly the kind this whole arc exists to remove.
+  //
+  // ⚠️ IT CANNOT DOUBLE-OPEN. `claim_programme_batch` returns the programme's already-running
+  // batch rather than creating a second one, and this only runs when none was opened — so the
+  // grant recorded is this attempt's whole grant, never a pool-only number written over a
+  // provider one.
+  if (!programmeBatch && programmeIdForRun && poolReserved > 0) {
+    const { openBatch } = await import('../lib/programme')
+    programmeBatch = await openBatch(programmeIdForRun, poolAttempted, poolReserved)
+    console.log(`[icp] programme ${programmeIdForRun} — pool-only attempt: batch opened for ${poolReserved} reserved candidate(s) with no provider remainder.`)
+  }
+
   // #366 — the cursor is written in the SAME statement as last_run_at, so a run can never
   // be recorded as having happened while the paging quietly stayed put.
   const { error: icpUpdateErr } = await db.from('icps')
@@ -1871,12 +1956,26 @@ export async function runIcpJob(
     if (progErr2) {
       console.error(`[icp] PROGRAMME attribution NOT stamped on ${insertedIds.length} lead(s) for programme ${programmeIdForRun}: ${progErr2.message}. The leads are delivered; their programme provenance is missing and cannot be reconstructed later.`)
     }
-    if (programmeBatch && pdlInsertedIds.length > 0) {
+    // ⛓️ 9 Sep — `insertedIds`, NOT `pdlInsertedIds`. THE ARGUMENT ABOVE IS SUPERSEDED, AND
+    // ITS PREMISE IS WHAT CHANGED.
+    //
+    // It said a pool copy cost the batch nothing, so stamping it would make
+    // `count(leads where batch_id = X)` disagree with `programme_batches.delivered`. That was
+    // true while `delivered` meant PROVIDER VOLUME. It now means USED — the qualified count —
+    // and a batch is the SOURCING ATTEMPT, not the provider half of one.
+    //
+    // 🛑 LEAVING POOL ROWS BATCH-LESS BROKE FOUR THINGS AT ONCE under the new model: the settle
+    // counts `batch_id = X`, so a pool-served QUALIFIED prospect never reached `sourced_used`;
+    // `surfaceQualifiedBatch` is batch-scoped, so they were never shown to the customer;
+    // preparation enrols the current batch, so they could never be worked; and they would sit
+    // programme-attributed and batch-less for ever, which the recovery RPC would later read as
+    // a SECOND unaccounted attempt.
+    if (programmeBatch && insertedIds.length > 0) {
       const { error: batchErr } = await db.from('leads')
         .update({ batch_id: programmeBatch.id })
-        .in('id', pdlInsertedIds)
+        .in('id', insertedIds)
       if (batchErr) {
-        console.error(`[icp] BATCH attribution NOT stamped on ${pdlInsertedIds.length} provider lead(s) for batch ${programmeBatch.id}: ${batchErr.message}.`)
+        console.error(`[icp] BATCH attribution NOT stamped on ${insertedIds.length} candidate(s) for batch ${programmeBatch.id}: ${batchErr.message}.`)
       }
     }
   }
@@ -1916,57 +2015,107 @@ export async function runIcpJob(
   // `deliveryCapBalance`, same `DAILY_BROWSE_CAP`, same Apollo reveal, same Hunter waterfall,
   // same delivery. Nothing inside the block changed — only who may enter it.
   if (!proofMode && insertedIds.length > 0) {
-    // Cap delivery by the wallet that matches the client's plan (item 167) — a
-    // FIGSY-plan client delivers against the FIGSY pool, not the lead-gen balance,
-    // so a FIGSY-only client (0 lead-gen credits) can still receive leads.
-    const { data: balRow } = await db.from('clients')
-      .select('plan, credit_balance, figsy_credits_remaining').eq('id', clientId).single()
-    const cap = deliveryCapBalance(normalizePlan(balRow?.plan), balRow?.credit_balance, balRow?.figsy_credits_remaining)
-    const deliverNow = insertedIds.slice(0, cap)
-    // ⚑ 7 Sep — HUNTER IS OFF FOR HOUSE BY DECISION, not by a variable being unset. Stating
-    // it here means the House path cannot start using Hunter the day HUNTER_API_KEY is set
-    // for a customer. Every other caller keeps today's key-gated behaviour.
-    // ⚑ 7 Sep — THE CUSTOMER'S OWN CRITERIA TRAVEL WITH THE CALL. The provider reveal inside
-    // M&V's enrichment flow is the first moment `email_status` and `country` exist, so the FULL
-    // ICP is enforced there rather than guessed at search time. Read off the ICP THIS RUN is
-    // using — never a second lookup that could disagree with it.
-    await enrichAndDeliverLeads(clientId, deliverNow, {
-      hunterAllowed: audience !== 'house',
-      qualifyAgainst: {
+    if (programmeIdForRun) {
+      // ══ ⚑ 9 Sep (HOUSE-009) — A PROGRAMME RUN QUALIFIES; IT DOES NOT "DELIVER" ═══════
+      //
+      // 🛑 THE DEFECT THIS REPLACES. The programme path went through the legacy delivery
+      // block below, whose first act is `insertedIds.slice(0, deliveryCapBalance(...))` — and
+      // `deliveryCapBalance` returns a CONSTANT 25 whatever the plan or balance. So at most 25
+      // of a 250-candidate batch were ever judged, the batch settled on that number, and the
+      // remaining 225 were left to a ~5/day drip that runs no ICP gate at all. A 250 batch
+      // would have reported 25 used and released 225 of the customer's paid volume.
+      //
+      // Under the locked model entitlement is consumed by QUALIFIED prospects, so every
+      // candidate this run created is judged — not a capped sample — and the batch settles on
+      // that count.
+      //
+      // ⚠️ IT WRITES NO `delivered_at`. Customer visibility is `surfaceQualifiedBatch`, after
+      // a verdict exists. Tying the ledger to a screen is the whole defect.
+      const { qualifyCandidates } = await import('../lib/programme-qualification')
+      const q = await qualifyCandidates(clientId, insertedIds, {
+        // The customer's own criteria, read off the ICP THIS RUN is using — never a second
+        // lookup that could disagree with it.
         geographies: ((icp as { geographies?: string[] | null }).geographies ?? []).filter(Boolean),
         requireVerifiedBusinessEmail: audience === 'house',
-      },
-    })
+      })
+      console.log(`[icp] programme ${programmeIdForRun} qualification — ${q.candidates_total} candidate(s): ${q.qualified} qualified, ${q.disqualified} disqualified, ${q.still_unjudged} unjudged${q.provider_failed ? ' (PROVIDER FAILED)' : ''}${Object.keys(q.reasons).length ? ` · refused: ${Object.entries(q.reasons).map(([k, v]) => `${k}=${v}`).join(' ')}` : ''}`)
 
-    // ── ⚑ 7 Sep (HOUSE-009) — SETTLE THE HOUSE BATCH ON ACCEPTED VOLUME ────────────────
-    //
-    // The reservation converts to `sourced_used` for the people who actually became leads, and
-    // the remainder is RELEASED back to the ceiling. 250 requested, 250 granted, 246 accepted
-    // ⇒ 246 used, 0 reserved, 2,254 left — and the batch row keeps all three numbers, so the
-    // four that were refused stay visible as `granted 250 / delivered 246` rather than
-    // disappearing into a number that matches nothing.
-    //
-    // ⚠️ COUNTED FROM THE ROWS, NOT FROM A RETURN VALUE. `delivered_at` is written by
-    // `enrichAndDeliverLeads` on exactly the leads that passed the final ICP gate, and
-    // `batch_id` was stamped on this invocation's own inserts above — so this asks the
-    // database what happened instead of trusting an in-memory count of what we hoped would.
-    if (programmeBatch && audience === 'house') {
-      const batchId = programmeBatch.id
-      const { count: accepted, error: acceptedErr } = await db.from('leads')
-        .select('id', { count: 'exact', head: true })
-        .eq('batch_id', batchId)
-        .not('delivered_at', 'is', null)
-      if (acceptedErr) {
-        // 🛑 NOT SETTLED ON A GUESS. Leaving the batch `running` holds the reservation open,
-        // which is visible and recoverable; settling it on a number we could not read would
-        // write a permanent falsehood into the programme's ceiling.
-        console.error(`[icp] HOUSE batch ${batchId} NOT settled — the accepted count could not be read (${acceptedErr.message}). The reservation stays open and must be reconciled.`)
-      } else {
-        const { settleBatch } = await import('../lib/programme')
-        const r = await settleBatch(batchId, accepted ?? 0)
-        if (r.ok) console.log(`[icp] HOUSE batch ${batchId} settled — ${accepted ?? 0} accepted; the granted remainder is released back to the programme ceiling.`)
-        else console.error(`[icp] HOUSE batch ${batchId} could not be settled — marked stranded; the granted volume stays reserved until reconciled.`)
+      if (programmeBatch) {
+        // What the attempt OBTAINED, recorded next to what it asked for and what it used.
+        const { error: insErr2 } = await db.from('programme_batches')
+          .update({ inserted: insertedIds.length }).eq('id', programmeBatch.id)
+        if (insErr2) console.error(`[icp] batch ${programmeBatch.id} inserted-count not recorded: ${insErr2.message}`)
+
+        if (q.still_unjudged > 0 || q.provider_failed) {
+          // 🛑 NOT SETTLED ON A PARTIAL JUDGEMENT. The reservation stays open — visible and
+          // recoverable — rather than converting a number nobody has finished proving into
+          // the customer's permanently consumed ceiling. The verdicts already written stand,
+          // and the operator re-run skips them.
+          console.error(`[icp] PROGRAMME batch ${programmeBatch.id} NOT settled — ${q.still_unjudged} candidate(s) still unjudged${q.provider_failed ? ' after a provider failure' : ''}. The reservation stays open; re-run qualification.`)
+        } else {
+          // ⚠️ COUNTED FROM THE ROWS, NOT FROM THE RETURN VALUE. The verdicts are what the
+          // database now holds; an in-memory tally is what we hoped it would hold.
+          const { count: qualified, error: qErr } = await db.from('leads')
+            .select('id', { count: 'exact', head: true })
+            .eq('batch_id', programmeBatch.id)
+            .not('qualified_at', 'is', null)
+          if (qErr) {
+            console.error(`[icp] PROGRAMME batch ${programmeBatch.id} NOT settled — the qualified count could not be read (${qErr.message}). The reservation stays open and must be reconciled.`)
+          } else {
+            const { settleBatch } = await import('../lib/programme')
+            const r = await settleBatch(programmeBatch.id, qualified ?? 0)
+            if (r.ok) {
+              console.log(`[icp] PROGRAMME batch ${programmeBatch.id} settled — ${qualified ?? 0} qualified; the unused grant is released back to the ceiling.`)
+              // ══ THE REVIEW TRIGGER (BUILD-003 PR2-D) ═══════════════════════════════════
+              // Still checked at the settle, because settling is still the only moment
+              // `sourced_used` moves — it has simply moved to where the settle now happens.
+              // It holds the NEXT batch and nothing else: no meeting, no refund, no status
+              // change. Awaited rather than fired-and-forgotten — a hold that lost a race
+              // with the next run would be a hold that did not hold.
+              const { raiseReviewIfNeeded } = await import('../lib/programme-authority')
+              await raiseReviewIfNeeded(programmeIdForRun).catch(e =>
+                console.error(`[icp] review-trigger check failed for programme ${programmeIdForRun}:`, e))
+
+              // ── ⚑ 9 Sep — AND THE QUALIFIED PROSPECTS GO IN FRONT OF THE CUSTOMER ────────
+              //
+              // 🛑 WITHOUT THIS A NORMAL BATCH IS INVISIBLE. The programme path no longer calls
+              // `enrichAndDeliverLeads`, which is what used to write `delivered_at`, and
+              // `surfaceEverything` is now fenced off programme work — correctly, since it has
+              // no verdict filter. So nothing else would ever stamp these rows, and both
+              // `markReadyForApproval` and the customer's review desk require the stamps: the
+              // batch would be judged, settled, accounted for and unreviewable.
+              //
+              // ⚠️ IT MOVES NO COUNTER. The ledger was settled one line above, by qualification.
+              // This is visibility, and only the QUALIFIED rows of THIS batch get it.
+              const { surfaceQualifiedBatch } = await import('../lib/programme-surfacing')
+              const surf = await surfaceQualifiedBatch(programmeIdForRun, clientId, programmeBatch.id)
+              if (surf.ok) console.log(`[icp] programme ${programmeIdForRun} — ${surf.surfaced} qualified prospect(s) surfaced for review.`)
+              else console.error(`[icp] programme ${programmeIdForRun} — the qualified prospects were NOT surfaced: ${surf.reason}`)
+            } else {
+              console.error(`[icp] PROGRAMME batch ${programmeBatch.id} could not be settled — marked stranded; the granted volume stays reserved until reconciled.`)
+            }
+          }
+        }
       }
+    } else {
+      // ── LEGACY, NON-PROGRAMME DELIVERY — BYTE-UNCHANGED ─────────────────────────────
+      // Cap delivery by the wallet that matches the client's plan (item 167) — a
+      // FIGSY-plan client delivers against the FIGSY pool, not the lead-gen balance,
+      // so a FIGSY-only client (0 lead-gen credits) can still receive leads.
+      const { data: balRow } = await db.from('clients')
+        .select('plan, credit_balance, figsy_credits_remaining').eq('id', clientId).single()
+      const cap = deliveryCapBalance(normalizePlan(balRow?.plan), balRow?.credit_balance, balRow?.figsy_credits_remaining)
+      const deliverNow = insertedIds.slice(0, cap)
+      // ⚑ 7 Sep — HUNTER IS OFF FOR HOUSE BY DECISION, not by a variable being unset. Stating
+      // it here means the House path cannot start using Hunter the day HUNTER_API_KEY is set
+      // for a customer. Every other caller keeps today's key-gated behaviour.
+      await enrichAndDeliverLeads(clientId, deliverNow, {
+        hunterAllowed: audience !== 'house',
+        qualifyAgainst: {
+          geographies: ((icp as { geographies?: string[] | null }).geographies ?? []).filter(Boolean),
+          requireVerifiedBusinessEmail: audience === 'house',
+        },
+      })
     }
   }
 

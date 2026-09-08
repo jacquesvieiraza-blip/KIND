@@ -336,6 +336,16 @@ export default function VidaConsolePage() {
     // from the programme id, the client, a name or a status: a check this file could compute
     // is a check anybody with the console open could satisfy.
     reconcile?: { available: boolean; unaccounted: number; reason: string | null }
+    // ⚑ 9 Sep (HOUSE-009) — MAY THE PROGRAMME BE HANDED TO THE CLIENT YET?
+    //
+    // 🛑 THE SERVER'S ANSWER, FROM THE SAME RULE THE TRANSITION ITSELF IS GATED BY
+    // (`programmePreparationReadiness`). Thirteen conditions — batch, reviewable QUALIFIED and
+    // surfaced prospects, campaign, sequence, message steps, cadence, send schedule, sender,
+    // eligible enrolments, no foreign enrolments, attached ICP, a freezable snapshot — none of
+    // which a browser can see, and all of which it would have to re-derive to answer this
+    // locally. Optional, so an older API against this UI hides the control rather than
+    // offering it: the fail-closed direction.
+    readiness?: { ready: boolean }
   }
   const [prog, setProg] = useState<ProgrammeTruth | null>(null)
   const [progErr, setProgErr] = useState<string | null>(null)
@@ -348,52 +358,43 @@ export default function VidaConsolePage() {
     } catch (e) { setProgErr(e instanceof Error ? e.message : 'Failed to load programme'); setProg(null) }
   }, [])
 
-  // ── ⚑ 8 Sep (HOUSE-009) · ACCOUNT FOR PROSPECTS ALREADY DELIVERED ──────────────────────
+  // ── ⚑ 9 Sep (HOUSE-009) · QUALIFY SOURCED LEADS ────────────────────────────────────────
   //
-  // 🛑 A ONE-TIME REPAIR, NOT A FEATURE. 246 real people were sourced for the House programme
-  // while the House path bypassed the accounting, so the screen says `0 used · no batch` about
-  // a run that happened. This offers the fix ONCE, on the one programme the server proves, and
-  // then stops offering it because the state it needs no longer exists.
+  // 🛑 WHAT THE OPERATOR IS ASKED TO UNDERSTAND: nothing. Leads were sourced; do they match the
+  // targeting or not? That is the whole question. `delivered_at`, reconciliation, batches,
+  // reserved-versus-granted and which provider answered are all real, all load-bearing, and
+  // none of them belong on a button. This control replaces "Account for delivered sourcing",
+  // which named an internal repair rather than the work.
   //
-  // ⚠️ SINGLE-FLIGHT. `recBusy` is set BEFORE the confirm resolves nothing and cleared only in
-  // `finally`, and the button is disabled on it — a second click while the first request is in
-  // flight would be a second call to a repair whose whole safety argument is that it runs once.
-  // (The RPC is idempotent and would answer 0, but "the database would survive it" is not the
-  // same as "the screen may fire it twice".)
+  // ⚠️ IT IS A TRIGGER AND A READOUT, AND NOTHING ELSE. Every verdict, every counter and every
+  // surfacing decision happens inside `qualifyAndSettleBatch` on the server. This file writes
+  // no verdict, moves no counter and surfaces nobody — it posts once and renders what came back.
+  //
+  // ⚠️ SINGLE-FLIGHT. `qualBusy` is set before the request and cleared only in `finally`, and
+  // both buttons are disabled on it. The action is idempotent by construction — a retry skips
+  // every verdict already written — but "the database would survive it" is not the same as "the
+  // screen may fire it twice", and a second press could pay for a second reveal.
   //
   // ⚠️ IT NEVER TOUCHES THE DISPLAYED COUNTERS. On success it re-reads programme truth from the
   // API; on failure it changes nothing at all. Patching `used`/`left` locally would show the
   // number this screen expected rather than the one the database holds — which is exactly the
   // false green the whole HOUSE-009 arc exists to remove.
-  const [recBusy, setRecBusy] = useState(false)
-  const [recMsg, setRecMsg] = useState<{ tone: 'ok' | 'error' | 'warn'; text: string } | null>(null)
+  const [qualBusy, setQualBusy] = useState(false)
+  const [qualMsg, setQualMsg] = useState<{ tone: 'ok' | 'error' | 'warn'; text: string } | null>(null)
   /** Open ⟺ the confirmation is on screen. Nothing has been posted while this is true. */
-  const [recConfirm, setRecConfirm] = useState(false)
+  const [qualConfirm, setQualConfirm] = useState(false)
 
-  // ⛓️ 8 Sep — THE COPY MOVED OUT OF `confirm()` AND NOT ONE WORD OF IT CHANGED.
+  // ⛓️ 9 Sep — THE FOUNDER-APPROVED COPY, IN ONE CONSTANT SO "UNCHANGED" IS CHECKABLE.
   //
-  // The founder approved these exact sentences; the browser's native dialog could only offer
-  // "Cancel / OK", so the ACTION a person is agreeing to was named in the body and then not on
-  // the button they pressed. Lifting the copy into one constant is what makes "unchanged" a
-  // fact the gate can check rather than a claim — the strings below are asserted verbatim.
-  const RECONCILE_CONFIRM = {
-    question: (n: number) => `Account for the ${n} prospects already delivered to this House programme?`,
-    will: [
-      'create one settled sourcing batch',
-      'account for those existing delivered prospects',
-      'move the programme from SOURCING_AUTHORISED to SOURCING',
-    ],
-    wont: [
-      'source more prospects',
-      'call Apollo',
-      'charge PDL',
-      'delete leads',
-      'approve the programme',
-      'take Payment 2',
-      'Make Live',
-      'Run',
-      'send anything',
-    ],
+  // The previous dialog listed three WILLs and nine WILL NOTs. That list was true and it was
+  // also the wrong shape: an operator reading nine denials is being asked to audit the system
+  // rather than to answer a question. One short paragraph says what happens and names the two
+  // things that do not.
+  const QUALIFY_CONFIRM = {
+    question: (n: number) => `Qualify these ${n} sourced leads?`,
+    body: 'Vida will check the existing sourced leads against the attached ICP. Only leads that '
+      + 'qualify will count against the programme and move forward for review. No new leads will '
+      + 'be sourced and nothing will be sent.',
   }
 
   /**
@@ -402,47 +403,58 @@ export default function VidaConsolePage() {
    * ⚠️ THE SINGLE-FLIGHT GUARD IS HERE TOO, not only on the confirmed action: a dialog opened
    * while a request is in flight is a second press waiting to happen.
    */
-  const openReconcileConfirm = useCallback(() => {
-    if (!prog?.programme?.id || recBusy) return
-    setRecConfirm(true)
-  }, [prog, recBusy])
+  const openQualifyConfirm = useCallback(() => {
+    if (!prog?.programme?.id || qualBusy) return
+    setQualConfirm(true)
+  }, [prog, qualBusy])
 
-  const reconcileSourcing = useCallback(async () => {
+  const qualifySourcedLeads = useCallback(async () => {
     // The EXACT id of the programme already loaded on screen. Never typed, never chosen, never
     // resolved from the client — and the endpoint refuses anything that is not a uuid anyway.
     const id = prog?.programme?.id
-    if (!id || recBusy) return
-    setRecConfirm(false)
+    if (!id || qualBusy) return
+    setQualConfirm(false)
 
-    setRecBusy(true); setRecMsg(null)
+    setQualBusy(true); setQualMsg(null)
     try {
-      const j = await fetch(`/api/proxy/operator/programme/${encodeURIComponent(id)}/reconcile-sourcing`, {
+      const j = await fetch(`/api/proxy/operator/programme/${encodeURIComponent(id)}/qualify-batch`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}',
       }).then(r => r.json())
 
       if (!j?.success) {
-        // ⚠️ THE API'S OWN SENTENCE, VERBATIM. It is the one that knows what was refused — a
-        // cheerful summary here is how a screen starts lying. And nothing is retried: a repair
-        // that refused for a reason must not be fired again by the thing that reported it.
-        setRecMsg({ tone: 'error', text: j?.error ?? 'The reconciliation did not complete, and no reason came back. Nothing was changed as far as this screen can tell — read the programme before trying again.' })
-        // 🛑 THE ONE FAILURE THAT MUST NOT READ AS "IT DID NOT WORK": the RPC ran and the
-        // re-read afterwards failed. The API says so in its own words; this raises it to a
-        // warning tone and re-reads, so the counters on screen come from the database.
-        if (typeof j?.error === 'string' && j.error.includes('Do NOT press this again')) {
-          setRecMsg({ tone: 'warn', text: j.error })
+        // 🛑 A PARTIAL RUN IS NOT A FAILURE AND IT IS NOT A SUCCESS. The API refuses to settle
+        // while any candidate is unjudged and hands back what it managed (`partial`). Painting
+        // that green would be the exact lie this arc exists to remove; painting it as a plain
+        // error would hide that the work is half done and safe to resume.
+        const partial = j?.partial as { still_unjudged?: number; provider_failed?: boolean } | undefined
+        if (partial && (Number(partial.still_unjudged ?? 0) > 0 || partial.provider_failed)) {
+          setQualMsg({ tone: 'warn', text:
+            `Qualification paused. ${Number(partial.still_unjudged ?? 0)} leads still need checking. Nothing was settled.` })
+          // The verdicts already written are real, so the programme is re-read: what is on
+          // screen after this is the database's answer, not this screen's guess.
           if (selected) await loadProgramme(selected)
+          return
         }
+        // ⚠️ THE API'S OWN SENTENCE, VERBATIM. It is the one that knows what was refused — a
+        // cheerful summary here is how a screen starts lying. And nothing is retried: an action
+        // that refused for a reason must not be fired again by the thing that reported it.
+        setQualMsg({ tone: 'error', text: j?.error ?? 'The qualification did not complete, and no reason came back. Nothing was settled as far as this screen can tell — read the programme before trying again.' })
         return
       }
 
-      setRecMsg({ tone: 'ok', text: String(j.data?.headline ?? 'Done.') })
-      // Re-read rather than patching: the row is the truth, and the button's own visibility is
+      // 🛑 EVERY NUMBER HERE COMES FROM THE RESPONSE. None is derived, defaulted or carried over
+      // from what this screen expected — `used` in particular is read back from the programme
+      // row by the server, never computed from `qualified`.
+      const d = (j.data ?? {}) as { qualified?: number; disqualified?: number; used?: number | null }
+      setQualMsg({ tone: 'ok', text:
+        `${d.qualified ?? 0} qualified · ${d.disqualified ?? 0} rejected · ${d.used ?? 0} used · batch ready for review` })
+      // Re-read rather than patching: the row is the truth, and the control's own visibility is
       // recomputed by the server from the state that now exists.
       if (selected) await loadProgramme(selected)
     } catch (e) {
-      setRecMsg({ tone: 'error', text: e instanceof Error ? e.message : 'The request did not complete. Read the programme before trying again — do not press this twice.' })
-    } finally { setRecBusy(false) }
-  }, [prog, recBusy, selected, loadProgramme])
+      setQualMsg({ tone: 'error', text: e instanceof Error ? e.message : 'The request did not complete. Read the programme before trying again — do not press this twice.' })
+    } finally { setQualBusy(false) }
+  }, [prog, qualBusy, selected, loadProgramme])
 
   // ── ⚑ 3 Sep (C2) · DECLARING THE COMMERCIAL MODEL ──────────────────────────────────────
   //
@@ -497,7 +509,20 @@ export default function VidaConsolePage() {
       case 'recommend':            return p.status === 'DRAFT'
       case 'await-first-payment':  return p.status === 'RECOMMENDED'
       case 'authorise/first':      return p.status === 'AWAITING_FIRST_PAYMENT'
-      case 'ready-for-approval':   return p.status === 'SOURCING_AUTHORISED' || p.status === 'SOURCING'
+      // ⚑ 9 Sep (HOUSE-009) — STATUS IS NECESSARY AND IT WAS NEVER SUFFICIENT.
+      //
+      // 🛑 THE LOCKED LIFECYCLE IS SOURCE → QUALIFY → PREPARE → FREEZE → READY FOR APPROVAL.
+      // Tested on status alone, this button was drawn ACTIVE above `Qualify sourced leads` on a
+      // programme with 246 unjudged candidates and nothing prepared — the last step of the
+      // lifecycle offered as though it were the first. The route always refused; a control that
+      // teaches the order only by being pressed teaches it too late.
+      //
+      // ⚠️ THE SERVER'S BOOLEAN, NOT A RULE RE-DERIVED HERE. `readiness.ready` is
+      // `programmePreparationReadiness` — the same rule `markReadyForApproval` is gated by — so
+      // the screen and the route cannot disagree. `=== true` because absent is not ready: an
+      // older API, a failed read or a field this UI has not been given must HIDE the action.
+      case 'ready-for-approval':   return (p.status === 'SOURCING_AUTHORISED' || p.status === 'SOURCING')
+                                          && prog?.readiness?.ready === true
       case 'authorise/second':     return p.status === 'APPROVED' && !p2
       case 'go-live':              return p.status === 'APPROVED' && p2
       // 🛑 THERE IS NO 'approve'. The one programme approval belongs to the CLIENT, in Milla.
@@ -3069,24 +3094,22 @@ export default function VidaConsolePage() {
                       </div>
                       {lcMsg && <p className="text-[12px] text-[#6b5f8c] mt-2">{lcMsg}</p>}
 
-                      {/* ── ⚑ 8 Sep (HOUSE-009) · THE ONE-TIME SOURCING RECONCILIATION ────
+                      {/* ── ⚑ 9 Sep (HOUSE-009) · QUALIFY SOURCED LEADS ───────────────────
                           🛑 RENDERED ON A SERVER BOOLEAN, NEVER ON A CHECK THIS FILE COULD
                           MAKE. `reconcile.available` already required the exact configured
                           programme id, a proved House audience, SOURCING_AUTHORISED, zero
-                          accounted records, no batch, and at least one delivered prospect
-                          missing one. Re-deriving any of that here would put the gate in the
-                          browser, where anybody with the console open can satisfy it.
+                          accounted records, no batch, and at least one batch-less candidate.
+                          Re-deriving any of that here would put the gate in the browser,
+                          where anybody with the console open can satisfy it.
                           It disappears after a successful run because the state it needs is
                           gone — not because a flag was set. */}
                       {prog.reconcile?.available && (
                         <div className="mt-2 pt-2 border-t border-[#eee7f7]">
-                          <button onClick={openReconcileConfirm} disabled={recBusy}
+                          <button onClick={openQualifyConfirm} disabled={qualBusy}
                             className="text-[12.5px] font-bold text-white bg-[#7C3AED] rounded-lg px-2.5 py-1.5 disabled:opacity-50">
-                            {recBusy ? '…' : 'Account for delivered sourcing'}</button>
+                            {qualBusy ? 'Qualifying…' : 'Qualify sourced leads'}</button>
                           <p className="text-[12px] text-[#6b5f8c] mt-1.5">
-                            {prog.reconcile.unaccounted} delivered prospect(s) on this programme carry no batch, so the
-                            counters above describe a sourcing run that really happened as though it had not.
-                            This accounts for them once. It sources nothing and sends nothing.
+                            {prog.reconcile.unaccounted} sourced leads are ready to be checked against this programme&rsquo;s ICP.
                           </p>
                         </div>
                       )}
@@ -3094,51 +3117,43 @@ export default function VidaConsolePage() {
                           🛑 IT EXISTS BECAUSE "OK" IS NOT AN ANSWER TO THIS QUESTION. The
                           browser's native dialog can only offer Cancel/OK, so the action a
                           person is agreeing to was named in the body and then NOT on the
-                          button they pressed. The confirming button now says the thing it
-                          does, which is the whole change.
+                          button they pressed. The confirming button says the thing it does.
 
                           ⚠️ NOT A NEW MODAL SYSTEM. There is no shared dialog component in
                           this app — `vida/partners/page.tsx` rolls its own overlay — so this
                           reuses those exact classes locally and adds no abstraction. */}
-                      {recConfirm && (
+                      {qualConfirm && (
                         <div className="fixed inset-0 z-50 bg-black/40 flex items-start justify-center p-4 sm:p-8 overflow-y-auto"
-                          role="dialog" aria-modal="true" aria-label="Account for delivered sourcing"
-                          onClick={() => setRecConfirm(false)}>
+                          role="dialog" aria-modal="true" aria-label="Qualify sourced leads"
+                          onClick={() => setQualConfirm(false)}>
                           <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full my-8" onClick={e => e.stopPropagation()}>
                             <div className="px-6 py-4 border-b border-[#eee9f7]">
                               <h2 className="text-[15px] font-bold text-[#1f1235]">
-                                {RECONCILE_CONFIRM.question(prog.reconcile?.unaccounted ?? 0)}
+                                {QUALIFY_CONFIRM.question(prog.reconcile?.unaccounted ?? 0)}
                               </h2>
                             </div>
                             <div className="px-6 py-4 text-[13px] text-[#2c2440]">
-                              <b className="block mb-1">This will:</b>
-                              <ul className="mb-3 space-y-0.5">
-                                {RECONCILE_CONFIRM.will.map(w => <li key={w}>• {w}</li>)}
-                              </ul>
-                              <b className="block mb-1">It will NOT:</b>
-                              <ul className="space-y-0.5 text-[#6b5f8c]">
-                                {RECONCILE_CONFIRM.wont.map(w => <li key={w}>• {w}</li>)}
-                              </ul>
+                              {QUALIFY_CONFIRM.body}
                             </div>
                             <div className="px-6 py-4 border-t border-[#eee9f7] flex flex-wrap gap-2 justify-end">
                               {/* Cancel is FIRST and plain — the destructive-looking one should
                                   not be the one a hand lands on by default. */}
-                              <button onClick={() => setRecConfirm(false)} disabled={recBusy}
+                              <button onClick={() => setQualConfirm(false)} disabled={qualBusy}
                                 className="text-[12.5px] font-bold text-[#5c5279] bg-white border border-[#eee7f7] rounded-lg px-2.5 py-1.5 disabled:opacity-50">
                                 Cancel</button>
-                              <button onClick={reconcileSourcing} disabled={recBusy}
+                              <button onClick={qualifySourcedLeads} disabled={qualBusy}
                                 className="text-[12.5px] font-bold text-white bg-[#7C3AED] rounded-lg px-2.5 py-1.5 disabled:opacity-50">
-                                {recBusy ? '…' : 'Account for delivered sourcing'}</button>
+                                {qualBusy ? 'Qualifying…' : 'Qualify sourced leads'}</button>
                             </div>
                           </div>
                         </div>
                       )}
-                      {recMsg && (
+                      {qualMsg && (
                         <p className={`text-[12px] mt-2 whitespace-pre-line ${
-                          recMsg.tone === 'ok' ? 'text-emerald-800'
-                          : recMsg.tone === 'warn' ? 'text-orange-800 font-semibold'
+                          qualMsg.tone === 'ok' ? 'text-emerald-800'
+                          : qualMsg.tone === 'warn' ? 'text-orange-800 font-semibold'
                           : 'text-red-800 font-semibold'}`}>
-                          {recMsg.text}
+                          {qualMsg.text}
                         </p>
                       )}
                     </div>

@@ -774,6 +774,30 @@ create table if not exists public.programmes (
   sourced_used              int  not null default 0,   -- provider actually delivered
   sourced_reserved          int  not null default 0,   -- granted, not yet delivered
   approved_at               timestamptz,
+  -- ── 7 Sep · WHAT was approved, not just when (20260907_preparation_snapshot) ─────────
+  -- `approved_at` records the moment and nothing about the work, so a sequence rewritten, a
+  -- cadence retimed, a sender swapped or an enrolment set replaced afterwards carried the old
+  -- consent forward in silence. These three hold the canonical preparation snapshot the
+  -- customer actually approved and its sha256, so OUTREACH authority can compare the current
+  -- preparation against it and refuse when they differ. NOT a version history: exactly one
+  -- snapshot, replaced only by a re-approval. Written ONLY in the same conditional UPDATE as
+  -- status = APPROVED, so nothing is ever stamped approved before an approval happens.
+  approved_preparation_hash     text,
+  approved_preparation_snapshot jsonb,
+  approved_preparation_at       timestamptz,
+  -- ── 8 Sep · the REVIEW freeze, and when outbound may leave (20260908_review_freeze_and_schedule)
+  -- Freezing only at APPROVED proved what was approved and nothing about what was READ: work
+  -- could change underneath a client mid-review and the approval would faithfully record the
+  -- new state. The snapshot is therefore taken at the REVIEW boundary too, and approval copies
+  -- the reviewed one rather than taking a fresh one.
+  review_preparation_hash       text,
+  review_preparation_snapshot   jsonb,
+  review_preparation_at         timestamptz,
+  -- When outbound may leave, in the RECIPIENT's OWN local time — a persisted zone, else a
+  -- region, else the intersection of every zone their country spans, else REFUSED. There was no
+  -- schedule anywhere in the send path before this, and the first fix judged every American in
+  -- New York, which is 05:30 in Los Angeles. NULL = not configured = REFUSE for programme work.
+  send_schedule                 jsonb,
   went_live_at              timestamptz,
   paused_at                 timestamptz,          -- pause is ORTHOGONAL to status, not a status
   pause_reason              text,                 -- client | quality | icp_change

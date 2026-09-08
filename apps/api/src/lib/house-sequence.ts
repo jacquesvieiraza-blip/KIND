@@ -15,10 +15,29 @@
 // depends on somebody remembering a magic call order is a path that will one day be run in the
 // wrong order** — and the wrong order here means enrolments built from words nobody approved.
 //
-// ⚠️ AND IT IS GATED TO HOUSE BY PROVED IDENTITY. `audienceForClientStrict` answers from the
-// AUTH USER and THROWS rather than guessing; a throw is read as "not house". The approved copy
-// is Client Zero's — applying it to a paying customer's programme would put M&V's own pitch in
-// front of their prospects.
+// 🛑 AND IT IS GATED TO ONE EXACT PROGRAMME, NOT TO A CLASSIFICATION (founder-corrected 8 Sep).
+//
+// The gate was `audienceForClientStrict(client_id) === 'house'`. That proves the AUDIENCE and
+// nothing more — every House programme is House, including a second one created next month, a
+// different ICP under Client Zero, and every historical one. **These five messages are the
+// LAUNCH sequence for one programme, not a universal House default**, and auto-seeding them
+// into any other programme would quietly put October's copy into November's campaign.
+//
+// So the identifier is the **exact programme id**, configured explicitly:
+//
+//     HOUSE_LAUNCH_PROGRAMME_ID = <the uuid of the programme being launched>
+//
+// ⚠️ UNSET MEANS NOTHING SEEDS. The default state of this product is that no programme is
+// auto-seeded with anybody's copy — which is the correct default, and it is the state every
+// deployment is in until somebody deliberately names one programme.
+//
+// ⚠️ AND THE AUDIENCE CHECK IS KEPT AS A SECOND CONDITION, not replaced by this one. A uuid
+// pasted into an env var can be the wrong uuid; requiring that the named programme ALSO belong
+// to a proved House client means a mistyped customer id cannot seed a customer's programme.
+// Two independent facts, both required.
+//
+// ⚠️ NOT a name, not "the newest programme", not the client alone, not the ICP text, not the
+// audience alone. Every one of those matches more than one programme.
 //
 // ⚠️ `channel: 'email'` IS LOAD-BEARING ON EVERY STEP. `sequence-apply.ts` filters stored
 // sequences through `emailSteps`, which keeps only `channel === 'email'`. A step without it is
@@ -137,6 +156,40 @@ export const HOUSE_SEND_SCHEDULE: SendSchedule = {
   default_tz: 'Europe/London',
 }
 
+/** A uuid, and nothing that merely looks like one. */
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+/**
+ * The one programme these five messages may be seeded into, or `null`.
+ *
+ * ⚠️ READ AT CALL TIME, NEVER CACHED AT MODULE SCOPE. A module-scope constant would freeze
+ * whatever the environment held when the process booted, so a corrected value would need a
+ * redeploy to take effect — and the value that mattered would be the one nobody could see.
+ */
+export function houseLaunchProgrammeId(): string | null {
+  const raw = (process.env.HOUSE_LAUNCH_PROGRAMME_ID ?? '').trim()
+  return UUID.test(raw) ? raw.toLowerCase() : null
+}
+
+/**
+ * Is THIS programme the one the approved launch sequence belongs to?
+ *
+ * 🛑 TWO INDEPENDENT FACTS, BOTH REQUIRED: it is the configured programme, AND its client is a
+ * proved House client. Either alone is a classification that matches more than one programme —
+ * and `audienceForClientStrict` throws rather than guessing, which is read here as NO.
+ */
+export async function isHouseLaunchProgramme(programmeId: string, clientId: string): Promise<boolean> {
+  const configured = houseLaunchProgrammeId()
+  if (!configured || configured !== programmeId.trim().toLowerCase()) return false
+  try {
+    const { audienceForClientStrict } = await import('./provider-boundary')
+    return (await audienceForClientStrict(clientId)) === 'house'
+  } catch {
+    // Identity unprovable ⇒ NO. Never a reason to seed somebody else's programme.
+    return false
+  }
+}
+
 export type ApplyResult =
   | { ok: true; sequenceId: string; campaignId: string; created: boolean; steps: number }
   | { ok: false; reason: string }
@@ -144,8 +197,9 @@ export type ApplyResult =
 /**
  * Write the approved sequence, cadence and schedule onto a programme's canonical objects.
  *
- * 🛑 OPERATOR-INVOKED, ONCE, AFTER THE MIGRATIONS. Nothing calls this on import, on boot, on a
- * cron or from a route. Both columns it needs were added by
+ * 🛑 ONE CALLER: `prepareProgrammeOutreach`, between creating the campaign and enrolling
+ * anybody. Nothing calls it on import, on boot, on a cron or from a route, and it runs only for
+ * the one programme `isHouseLaunchProgramme` proves. Both columns it needs were added by
  * `20260908_review_freeze_and_schedule` and do not exist in production yet.
  *
  * ⚠️ IT REFUSES RATHER THAN CREATING A CAMPAIGN. A campaign is created by preparation, under
@@ -166,6 +220,17 @@ export async function applyHouseProgrammeSequence(programmeId: string): Promise<
   const chainRes = await resolveProgrammeChain(programmeId)
   if (!chainRes.ok) return { ok: false, reason: chainRes.degraded }
   const { clientId, campaignId, sequenceId } = chainRes.chain
+
+  // 🛑 THE SCOPE GATE, RE-ASSERTED HERE AND NOT ONLY AT THE CALLER. This function is exported;
+  // a future caller that checked nothing would otherwise seed whatever it was handed. The
+  // caller checks too — two checks of one fact, because the cost of the redundant one is a
+  // function call and the cost of missing it is a customer receiving M&V's own pitch.
+  if (!(await isHouseLaunchProgramme(programmeId, clientId))) {
+    return {
+      ok: false,
+      reason: 'This is not the configured House launch programme, so the approved launch sequence was not applied. These five messages belong to one programme; every other programme — including another House one — must have its own sequence authored. Nothing was changed.',
+    }
+  }
 
   if (!campaignId) {
     return {

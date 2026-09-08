@@ -73,9 +73,13 @@ describe('every variable the code reads is in ENVIRONMENT.md', () => {
     // Vida Run-once control and nothing else — documented and tiered in the same change,
     // because an undocumented switch that can make real mail leave is exactly the drift this
     // file exists to catch.
-    expect(ALL.size).toBe(105)   // 101 → 102 (26 Aug, R66): SAFE_TEST_MODE, the zero-spend guard
-    expect(API_VARS.length).toBe(88)   // +1 26 Aug (R66): SAFE_TEST_MODE · +1 2 Sep: FIGSY_OPERATOR_SEND_ENABLED
-    expect(doc()).toContain('**105 distinct variables**')
+    // 105 → 106 (8 Sep): HOUSE_LAUNCH_PROGRAMME_ID, the exact-programme scope gate on the
+    // approved House launch sequence. Documented and tiered in the same change — an
+    // undocumented variable whose UNSET state silently stops a launch is exactly the drift
+    // this file exists to catch.
+    expect(ALL.size).toBe(106)   // 101 → 102 (26 Aug, R66): SAFE_TEST_MODE, the zero-spend guard
+    expect(API_VARS.length).toBe(89)   // +1 26 Aug (R66): SAFE_TEST_MODE · +1 2 Sep: FIGSY_OPERATOR_SEND_ENABLED
+    expect(doc()).toContain('**106 distinct variables**')
   })
 
   it('NO variable is missing from the doc — checked against the TABLE, not the prose', () => {

@@ -87,6 +87,20 @@ vi.mock('@kind/db', () => ({
 }))
 vi.mock('./alerts', () => ({ sendFounderAlert: () => Promise.resolve() }))
 
+// ⚑ 8 Sep — THE AUDIENCE RESOLVER, MADE DRIVEABLE. The real `audienceForClientStrict` answers
+// from the AUTH USER via `db.auth.admin.getUserById`, which this in-memory stand-in has no
+// notion of; left real, every case below would take its `catch` and prove nothing. Only that
+// ONE export is replaced — the rest of the module is spread through untouched, so nothing else
+// in the import graph quietly changes behaviour.
+let audience: 'house' | 'client' | 'throw' = 'house'
+vi.mock('./provider-boundary', async (orig) => ({
+  ...(await orig<Record<string, unknown>>()),
+  audienceForClientStrict: async () => {
+    if (audience === 'throw') throw new Error('identity could not be proved')
+    return audience
+  },
+}))
+
 // `ensureCampaignForIcp` is the real product's only door to an active campaign. It is stubbed
 // so this file can drive the ORDERING and the refusal path deterministically; what it decides
 // is proved against the real function in `house-authority.test.ts`.
@@ -128,6 +142,7 @@ vi.mock('./figsy', () => ({
 }))
 
 import { prepareProgrammeOutreach, verifyProgrammeFulfilment, PREPARE_BUDGET } from './programme-preparation'
+import { HOUSE_SEQUENCE_STEPS } from './house-sequence'
 
 const P_NEW = 'P_NEW'
 const H = 'house'
@@ -181,6 +196,8 @@ beforeEach(() => {
   state.enrollments = []; state.clients = []; state.sequences = []; state.batches = []
   state.charges = []; state.sends = []; state.ensureCalls = []; state.ensureRefuses = false
   state.blocklist = []
+  audience = 'house'
+  delete process.env.HOUSE_LAUNCH_PROGRAMME_ID
 })
 
 // ═══════════════════════════════════════════════════════════════════════════════════════
@@ -861,5 +878,208 @@ describe('⑨ only genuinely review-surfaced programme work is prepared for outr
     const occurrences = body.split(".not('surfaced_for_approval_at', 'is', null)").length - 1
     expect(occurrences, 'both the page read and the outstanding head count').toBe(2)
     expect(body).toContain("if (!l.surfaced_for_approval_at) return { ok: false, reason: 'lead was never surfaced to the customer for review' }")
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// ⑩ THE APPROVED LAUNCH SEQUENCE REACHES **ONE** PROGRAMME — founder-locked 8 Sep
+//
+// 🛑 THE QUESTION THIS SECTION CLOSES, IN THE FOUNDER'S OWN TERMS: *"Can the current approved
+// 5-step House sequence ever auto-seed into any programme other than the exact current House
+// programme we are preparing for launch?"*
+//
+// The first answer this repo shipped was `audienceForClientStrict(client_id) === 'house'`. That
+// proves a **CLASSIFICATION**, and a classification is not an identity: every House programme is
+// House — a second one created next month, a different ICP under the same client, every
+// historical one, and every future one. Seeding on it would put September's launch copy into
+// November's campaign, and nothing would say so.
+//
+// ⚠️ SO THESE ARE BEHAVIOURAL, NOT SOURCE ASSERTIONS. Each case runs the real
+// `prepareProgrammeOutreach` against the real `house-sequence` gate and asks what actually
+// ended up in `figsy_sequences`. A test that greps for a function name proves the name exists.
+// ═══════════════════════════════════════════════════════════════════════════════════════
+
+describe('⑩ only the ONE configured launch programme is ever seeded with the approved copy', () => {
+  /** The configured launch programme, and a rival that is House in every other respect. */
+  const LAUNCH = '11111111-1111-4111-8111-111111111111'
+  const RIVAL  = '22222222-2222-4222-8222-222222222222'
+
+  /** Seed a House programme that is ready to prepare and has NO sequence of its own. */
+  function houseProgramme(id: string, over: Row = {}, seq: Row | null = null) {
+    state.programmes.push({
+      id, client_id: H, status: 'LIVE', approved_at: 'a', went_live_at: 'w',
+      meeting_target: 4, recommended_volume: 1000, sourcing_ceiling: 1000,
+      sourced_used: 0, sourced_reserved: 0,
+      first_authorised_at: 'i1', second_authorised_at: 'i2',
+      first_paid_at: null, second_paid_at: null,
+      first_payment_ref: null, second_payment_ref: null,
+      first_payment_intent_id: null, second_payment_intent_id: null,
+      paused_at: null, ...over,
+    })
+    state.icps.push({ id: `icp-${id}`, client_id: H, name: 'Programme targeting', programme_id: id, is_active: true })
+    if (!state.clients.some(c => c.id === H)) state.clients.push({ id: H, figsy_credits_remaining: 0, is_demo: false })
+    state.batches.push({ id: `batch-${id}`, programme_id: id, seq: 1, status: 'served' })
+    state.campaigns.push({ id: `camp-${id}`, client_id: H, icp_id: `icp-${id}`, status: 'active', leads_enrolled: 0 })
+    if (seq) state.sequences.push({ id: `seq-${id}`, client_id: H, campaign_id: `camp-${id}`, ...seq })
+    state.leads.push({
+      id: `lead-${id}`, client_id: H, icp_id: `icp-${id}`, programme_id: id, delivered_at: 'd',
+      batch_id: `batch-${id}`, apollo_consented: true, status: 'scored',
+      email: `contact-${id.slice(0, 8)}@northwind-logistics.co.uk`,
+      surfaced_for_approval_at: 's', revealed_at: null,
+      opted_out_at: null, provider_eviction_required_at: null,
+    })
+  }
+
+  /** What is actually stored for a programme's campaign, read back rather than assumed. */
+  const storedFor = (id: string) => state.sequences.filter(s => s.campaign_id === `camp-${id}`)
+  const approvedSubjects = HOUSE_SEQUENCE_STEPS.map(s => s.subject)
+  const subjectsOf = (row: Row | undefined) =>
+    ((row?.steps ?? []) as { subject: string }[]).map(s => s.subject)
+
+  // ── THE POSITIVE CONTROL. Every refusal below is worthless without it: a gate that refuses
+  // EVERYTHING passes all nine "it must not seed" cases and silently kills the launch.
+  it('🛑 8 · the configured launch programme IS seeded — and if it stops, this goes RED', async () => {
+    process.env.HOUSE_LAUNCH_PROGRAMME_ID = LAUNCH
+    houseProgramme(LAUNCH)
+
+    const r = await prepareProgrammeOutreach(LAUNCH)
+
+    expect(r.complete, r.problems.join(' | ')).toBe(true)
+    const stored = storedFor(LAUNCH)
+    expect(stored, 'the launch programme was not seeded at all').toHaveLength(1)
+    expect(subjectsOf(stored[0]), 'the seeded words are not the approved five').toEqual(approvedSubjects)
+    expect((stored[0].steps as { wait_days: number }[]).map(s => s.wait_days)).toEqual([3, 4, 5, 6, 0])
+    // And the enrolment that came out of it is real, not a refusal reported as success.
+    expect(r.enrolled).toEqual([`lead-${LAUNCH}`])
+  })
+
+  it('🛑 1 · a SECOND House programme is not seeded — House is a classification, not an identity', async () => {
+    process.env.HOUSE_LAUNCH_PROGRAMME_ID = LAUNCH
+    houseProgramme(LAUNCH)
+    houseProgramme(RIVAL)
+
+    const r = await prepareProgrammeOutreach(RIVAL)
+
+    expect(storedFor(RIVAL), "a second House programme received the launch programme's copy").toEqual([])
+    expect(r.complete).toBe(false)
+    expect(r.problems.join(' ')).toContain('no canonical sequence')
+    expect(state.enrollments, 'nobody was enrolled against words nobody authored').toEqual([])
+  })
+
+  it('🛑 2 · another programme under the SAME client is not seeded', async () => {
+    // Same `client_id`, same audience, same everything except the one fact that is checked.
+    process.env.HOUSE_LAUNCH_PROGRAMME_ID = LAUNCH
+    houseProgramme(LAUNCH)
+    houseProgramme(RIVAL)
+    expect(state.programmes.map(p => p.client_id)).toEqual([H, H])
+
+    await prepareProgrammeOutreach(RIVAL)
+    expect(storedFor(RIVAL)).toEqual([])
+  })
+
+  it('🛑 3 · a programme sharing the launch ICP\'s targeting is not seeded', async () => {
+    // Identical targeting is the most persuasive wrong signal there is: same audience, same
+    // words would "obviously" fit. The chain still resolves per programme, and the gate still
+    // asks for the id.
+    process.env.HOUSE_LAUNCH_PROGRAMME_ID = LAUNCH
+    houseProgramme(LAUNCH)
+    houseProgramme(RIVAL)
+    for (const icp of state.icps) icp.name = 'Programme targeting'
+
+    await prepareProgrammeOutreach(RIVAL)
+    expect(storedFor(RIVAL)).toEqual([])
+  })
+
+  it('🛑 4 · a HISTORICAL House programme is not seeded', async () => {
+    // House carries programmes from a retired desk. An older one being re-prepared must not
+    // pick up copy written for a launch that had not happened when it ran.
+    process.env.HOUSE_LAUNCH_PROGRAMME_ID = LAUNCH
+    houseProgramme(LAUNCH)
+    houseProgramme(RIVAL, { approved_at: '2026-01-04', went_live_at: '2026-01-05' })
+
+    await prepareProgrammeOutreach(RIVAL)
+    expect(storedFor(RIVAL), 'a retired programme was given this quarter\'s launch copy').toEqual([])
+  })
+
+  it('🛑 5 · a FUTURE House programme gets nothing from the audience alone', async () => {
+    // The variable is unset — the state every deployment is in until somebody names ONE
+    // programme. A House audience on its own must seed NOTHING, or the default state of the
+    // product is "everything House gets M&V's launch pitch".
+    expect(process.env.HOUSE_LAUNCH_PROGRAMME_ID).toBeUndefined()
+    houseProgramme(RIVAL)
+    expect(audience, 'the fixture is a proved House client').toBe('house')
+
+    const r = await prepareProgrammeOutreach(RIVAL)
+    expect(storedFor(RIVAL), 'a House audience alone seeded the approved copy').toEqual([])
+    expect(r.complete).toBe(false)
+  })
+
+  it('🛑 6 · a NON-House programme is not seeded, even when its id is the configured one', async () => {
+    // The other half of the two-fact gate: a uuid pasted into the variable can be the WRONG
+    // uuid. A mistyped customer programme id must not put M&V's own pitch in front of that
+    // customer's prospects.
+    process.env.HOUSE_LAUNCH_PROGRAMME_ID = LAUNCH
+    audience = 'client'
+    houseProgramme(LAUNCH)
+
+    const r = await prepareProgrammeOutreach(LAUNCH)
+    expect(storedFor(LAUNCH), "a customer's programme was seeded with M&V's own pitch").toEqual([])
+    expect(r.complete).toBe(false)
+  })
+
+  it('🛑 6b · and an UNPROVABLE identity is read as "not the launch programme"', async () => {
+    process.env.HOUSE_LAUNCH_PROGRAMME_ID = LAUNCH
+    audience = 'throw'
+    houseProgramme(LAUNCH)
+
+    await prepareProgrammeOutreach(LAUNCH)
+    expect(storedFor(LAUNCH), 'an unprovable identity was treated as the launch programme').toEqual([])
+  })
+
+  it('🛑 7 · an EXISTING sequence is never overwritten, not even on the launch programme', async () => {
+    // The approved copy is a SEED for an empty programme, not a periodic reset. Somebody who
+    // edited a message must not find it replaced the next time preparation runs.
+    process.env.HOUSE_LAUNCH_PROGRAMME_ID = LAUNCH
+    houseProgramme(LAUNCH, {}, {
+      steps: [
+        { channel: 'email', subject: 'Operator-authored one', body: 'Edited after the seed', wait_days: 3 },
+        { channel: 'email', subject: 'Operator-authored two', body: 'Also edited', wait_days: 0 },
+      ],
+    })
+
+    const r = await prepareProgrammeOutreach(LAUNCH)
+
+    const stored = storedFor(LAUNCH)
+    expect(stored, 'a rival sequence was added alongside the edited one').toHaveLength(1)
+    expect(subjectsOf(stored[0]), 'an edited sequence was overwritten with the approved copy')
+      .toEqual(['Operator-authored one', 'Operator-authored two'])
+    expect(r.complete, r.problems.join(' | ')).toBe(true)
+  })
+
+  it('🛑 9 · identity is NOT the name, NOT the newest, NOT the client — proved by making all three point the wrong way', async () => {
+    // The rival is created LAST (newest), is named exactly like the launch programme, belongs
+    // to the same client, and carries the same audience. Every inference a reasonable person
+    // might reach for says "this is the one". The configured id says otherwise, and the
+    // configured id is the only thing that is asked.
+    process.env.HOUSE_LAUNCH_PROGRAMME_ID = LAUNCH
+    houseProgramme(LAUNCH)
+    houseProgramme(RIVAL, { name: 'K.I.N.D Client Zero — House launch', created_at: '2026-09-08T09:00:00Z' })
+    state.programmes[0].name = 'K.I.N.D Client Zero — House launch'
+    state.programmes[0].created_at = '2026-01-01T09:00:00Z'
+
+    await prepareProgrammeOutreach(RIVAL)
+
+    expect(storedFor(RIVAL), 'the newest same-named programme under the same client was seeded').toEqual([])
+    // And the real one still is, so this is not a gate that refuses everything.
+    await prepareProgrammeOutreach(LAUNCH)
+    expect(subjectsOf(storedFor(LAUNCH)[0])).toEqual(approvedSubjects)
+  })
+
+  it('🛑 a malformed or partial value seeds nothing — no prefix match, no "close enough"', async () => {
+    process.env.HOUSE_LAUNCH_PROGRAMME_ID = LAUNCH.slice(0, 8)
+    houseProgramme(LAUNCH)
+
+    await prepareProgrammeOutreach(LAUNCH)
+    expect(storedFor(LAUNCH), 'a truncated id matched a real programme').toEqual([])
   })
 })

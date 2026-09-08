@@ -17,7 +17,7 @@
 // that reads the same is a different message going to a real person.
 // ═══════════════════════════════════════════════════════════════════════════════════════
 
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 vi.hoisted(() => {
   process.env.SUPABASE_URL ??= 'http://localhost:54321'
@@ -25,8 +25,62 @@ vi.hoisted(() => {
   process.env.SUPABASE_ANON_KEY ??= 'test-anon-key'
 })
 
+// ── THE WRITE RECORDER, for section ⑦ ────────────────────────────────────────────────
+//
+// ⚠️ EVERY WRITE IS RECORDED AND NONE IS PERFORMED. The question section ⑦ asks is not "what
+// did the function return" — a refusal that returned `ok: false` AFTER writing the row would
+// satisfy a return-value assertion and still have put the approved copy in the wrong campaign.
+// So the assertion is on `writes`, and the reads are a fixture that resolves a full chain for
+// ANY programme id: nothing about the chain is allowed to be the reason a rival is refused.
+const writes: { table: string; op: 'insert' | 'update'; payload: unknown }[] = []
+/** null ⟹ the campaign has no sequence yet, so the seed path is genuinely open. */
+let existingSequence: Record<string, unknown> | null = null
+
+vi.mock('@kind/db', () => {
+  const q = (table: string): Record<string, unknown> => {
+    const self: any = {
+      _mode: null as null | 'insert' | 'update', _payload: null as unknown,
+      select() { return self },
+      eq() { return self },
+      insert(p: unknown) { self._mode = 'insert'; self._payload = p; return self },
+      update(p: unknown) { self._mode = 'update'; self._payload = p; return self },
+      async maybeSingle() {
+        if (table === 'programmes') return { data: { id: 'any', client_id: 'house' }, error: null }
+        return { data: null, error: null }
+      },
+      async single() {
+        if (self._mode) { writes.push({ table, op: self._mode, payload: self._payload }) }
+        return { data: { id: 'seq-written' }, error: null }
+      },
+      _rows() {
+        if (table === 'icps') return [{ id: 'icp1', client_id: 'house' }]
+        if (table === 'figsy_campaigns') return [{ id: 'camp1', client_id: 'house', settings: null }]
+        if (table === 'figsy_sequences') return existingSequence ? [existingSequence] : []
+        return []
+      },
+      then(res: (v: unknown) => unknown) {
+        if (self._mode) writes.push({ table, op: self._mode, payload: self._payload })
+        return Promise.resolve({ data: self._mode ? [] : self._rows(), error: null }).then(res)
+      },
+    }
+    return self
+  }
+  return { db: { from: (t: string) => q(t) } }
+})
+
+/** The audience half of the gate, driveable — the real resolver needs an auth user. */
+let audience: 'house' | 'client' | 'throw' = 'house'
+vi.mock('./provider-boundary', async (orig) => ({
+  ...(await orig<Record<string, unknown>>()),
+  audienceForClientStrict: async () => {
+    if (audience === 'throw') throw new Error('identity could not be proved')
+    return audience
+  },
+}))
+
 import {
   HOUSE_SEQUENCE_STEPS, HOUSE_CADENCE, HOUSE_SEND_SCHEDULE,
+  houseLaunchProgrammeId, isHouseLaunchProgramme, applyHouseProgrammeSequence,
 } from './house-sequence'
 import { emailSteps, buildDraftStepsFromSequence, applyTokens, MAX_SEQUENCE_STEPS } from './sequence-apply'
 import { cadenceIsConfigured } from './preparation-readiness'
@@ -263,22 +317,31 @@ describe('⑤ the canonical sequence exists before anyone is enrolled', () => {
     expect(enrolAt, 'enrolment happens before the canonical sequence exists').toBeGreaterThan(applyAt)
   })
 
-  it('🛑 8 · it is gated to HOUSE by proved identity — never applied to a customer programme', () => {
-    // The approved copy is Client Zero's. Applying it to a paying customer would put M&V's own
-    // pitch in front of THEIR prospects.
-    expect(PREP).toContain("audienceForClientStrict(p.client_id)) === 'house'")
-    // ⚠️ AND A THROW IS "NOT HOUSE" — asserted on the CATCH BLOCK, not on the substring.
-    // `let isHouse = false` also contains "isHouse = false", so a teeth-proof that flipped the
-    // catch to `isHouse = true` left a `toContain` assertion green while an unprovable identity
-    // seeded somebody else's programme with M&V's own pitch.
-    const catchAt = PREP.indexOf('} catch {')
-    expect(catchAt, 'the identity throw is no longer handled').toBeGreaterThan(-1)
-    const catchBlock = PREP.slice(catchAt, PREP.indexOf('}', PREP.indexOf('isHouse', catchAt)))
-    expect(catchBlock, 'an unprovable identity is being treated as House').toContain('isHouse = false')
-    expect(catchBlock).not.toContain('isHouse = true')
-    // Not inferred from client_id, a name, or an env var.
-    expect(PREP, 'House is being inferred from something other than proved identity')
-      .not.toContain('HOUSE_CLIENT_ID')
+  // ⛓️ REWRITTEN 8 Sep — THE GATE THIS ASSERTED WAS TOO WIDE, and the founder caught it. It read
+  // `audienceForClientStrict(p.client_id) === 'house'`, which proves a CLASSIFICATION: every
+  // House programme satisfies it, including a second one created next month and every historical
+  // one. The behavioural proof that the seed reaches exactly ONE programme is
+  // `programme-preparation.test.ts ⑩`; what remains here is the structural half — that the
+  // orchestrator asks the two-fact question rather than any single-fact one.
+  it('🛑 8 · the orchestrator asks for the exact programme, not for a classification', () => {
+    expect(PREP, 'the seed is gated on something other than the two-fact identity')
+      .toContain('if (await isHouseLaunchProgramme(programmeId, p.client_id)) {')
+    // ⚠️ AND NOT ON ANY OF THE SIGNALS THAT MATCH MORE THAN ONE PROGRAMME. Each of these was a
+    // plausible way to answer "is this the launch programme?" and each is wrong: the audience
+    // matches every House programme, `HOUSE_CLIENT_ID` is a parked variable about a different
+    // path entirely, and a name or a created-at ordering matches whatever was typed or created
+    // last.
+    //
+    // ⚠️ BOUNDED TO THE SEED BLOCK, NOT THE FILE. A whole-file `not.toContain('p.name')` reads
+    // `icp.name` on the campaign line 90 lines above and fails while the code is right — an
+    // assertion that cannot be satisfied teaches people to weaken it.
+    const from = PREP.indexOf('if (!chainRes.chain.sequenceId || chainRes.chain.steps.length === 0) {')
+    expect(from, 'the seed block is gone').toBeGreaterThan(-1)
+    const block = PREP.slice(from, PREP.indexOf('cadenceIsConfigured', from))
+    expect(block).toContain('isHouseLaunchProgramme(programmeId, p.client_id)')
+    for (const inferred of ["audienceForClientStrict", 'HOUSE_CLIENT_ID', 'p.name', 'created_at']) {
+      expect(block, `the seed gate infers identity from ${inferred}`).not.toContain(inferred)
+    }
   })
 
   it('🛑 it only SEEDS — an existing sequence is never overwritten', () => {
@@ -350,5 +413,94 @@ describe('⑥ [3,4,5,6,0] really does produce Day 0 · 3 · 7 · 12 · 18', () =
   it('and the length is not hardcoded — a 3-step and a 7-step cadence work the same way', () => {
     expect(sendDays([4, 5, 0])).toEqual([0, 4, 9])
     expect(sendDays([2, 2, 2, 2, 2, 2, 0])).toEqual([0, 2, 4, 6, 8, 10, 12])
+  })
+})
+
+// ── ⑦ THE APPLY'S OWN SCOPE GATE — DEFENCE IN DEPTH, WITH ITS OWN TEETH ──────────────
+//
+// 🛑 WHY THIS SECTION EXISTS SEPARATELY FROM THE ORCHESTRATOR'S TESTS. The gate is asserted in
+// two places: `prepareProgrammeOutreach` checks before calling, and this function checks again
+// before writing. Proving the pair together proves neither — reverting the ORCHESTRATOR's gate
+// to the old audience-only check left ⑩'s cases green, because this one caught it. A layer that
+// is only ever exercised through another layer has no teeth of its own, and the day somebody
+// adds a second caller is the day that matters.
+//
+// ⚠️ SO EVERY CASE HERE CALLS `applyHouseProgrammeSequence` DIRECTLY, and asserts on the WRITES
+// rather than on the return value. A refusal that returns `ok: false` after writing the row is
+// still the approved copy sitting in the wrong campaign.
+
+describe('⑦ the apply refuses any programme but the configured one, on its own', () => {
+  const LAUNCH = '11111111-1111-4111-8111-111111111111'
+  const RIVAL  = '22222222-2222-4222-8222-222222222222'
+
+  beforeEach(() => {
+    writes.length = 0
+    existingSequence = null
+    audience = 'house'
+    delete process.env.HOUSE_LAUNCH_PROGRAMME_ID
+  })
+
+  it('🛑 the positive control — the configured programme IS written, both rows', async () => {
+    process.env.HOUSE_LAUNCH_PROGRAMME_ID = LAUNCH
+    const r = await applyHouseProgrammeSequence(LAUNCH)
+
+    expect(r.ok, r.ok ? '' : r.reason).toBe(true)
+    expect(writes.map(w => `${w.table}:${w.op}`)).toEqual(['figsy_sequences:insert', 'programmes:update'])
+    const seeded = (writes[0].payload as { steps: { subject: string }[] }).steps
+    expect(seeded.map(s => s.subject)).toEqual(HOUSE_SEQUENCE_STEPS.map(s => s.subject))
+    expect((writes[1].payload as { send_schedule: unknown }).send_schedule).toEqual(HOUSE_SEND_SCHEDULE)
+  })
+
+  it('🛑 a rival House programme is refused, and NOTHING is written', async () => {
+    process.env.HOUSE_LAUNCH_PROGRAMME_ID = LAUNCH
+    const r = await applyHouseProgrammeSequence(RIVAL)
+
+    expect(r.ok).toBe(false)
+    expect(writes, 'a rival programme was written to before the refusal was returned').toEqual([])
+    expect(r.ok === false && r.reason).toContain('not the configured House launch programme')
+  })
+
+  it('🛑 unset seeds nothing — not even the programme somebody meant', async () => {
+    expect(houseLaunchProgrammeId()).toBeNull()
+    const r = await applyHouseProgrammeSequence(LAUNCH)
+    expect(r.ok).toBe(false)
+    expect(writes).toEqual([])
+  })
+
+  it('🛑 the configured id with a NON-house client is refused — both facts are required', async () => {
+    process.env.HOUSE_LAUNCH_PROGRAMME_ID = LAUNCH
+    audience = 'client'
+    const r = await applyHouseProgrammeSequence(LAUNCH)
+    expect(r.ok).toBe(false)
+    expect(writes, "a customer's programme was written with M&V's own pitch").toEqual([])
+  })
+
+  it('🛑 an UNPROVABLE audience is refused — a throw is never read as yes', async () => {
+    process.env.HOUSE_LAUNCH_PROGRAMME_ID = LAUNCH
+    audience = 'throw'
+    const r = await applyHouseProgrammeSequence(LAUNCH)
+    expect(r.ok).toBe(false)
+    expect(writes).toEqual([])
+  })
+
+  it('🛑 the id is matched EXACTLY — no prefix, no whitespace-tolerant near-miss', async () => {
+    for (const bad of [LAUNCH.slice(0, 8), LAUNCH.slice(0, -1), `${LAUNCH}0`, 'not-a-uuid', '']) {
+      process.env.HOUSE_LAUNCH_PROGRAMME_ID = bad
+      expect(houseLaunchProgrammeId(), `"${bad}" was accepted as a programme id`).not.toBe(LAUNCH)
+      writes.length = 0
+      expect((await applyHouseProgrammeSequence(LAUNCH)).ok).toBe(false)
+      expect(writes).toEqual([])
+    }
+    // Case and surrounding whitespace are normalised, because a value pasted from a console
+    // carries both and refusing it would look like the gate is broken.
+    process.env.HOUSE_LAUNCH_PROGRAMME_ID = `  ${LAUNCH.toUpperCase()}  `
+    expect(houseLaunchProgrammeId()).toBe(LAUNCH)
+  })
+
+  it('🛑 the value is read at CALL time — a corrected id does not need a redeploy', async () => {
+    process.env.HOUSE_LAUNCH_PROGRAMME_ID = RIVAL
+    expect(await isHouseLaunchProgramme(LAUNCH, 'house')).toBe(false)
+    process.env.HOUSE_LAUNCH_PROGRAMME_ID = LAUNCH
+    expect(await isHouseLaunchProgramme(LAUNCH, 'house')).toBe(true)
   })
 })

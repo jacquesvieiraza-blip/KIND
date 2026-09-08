@@ -377,12 +377,14 @@ export async function prepareProgrammeOutreach(programmeId: string): Promise<Pre
   // remembering a magic call order is a path that will one day be run in the wrong order** —
   // and the wrong order here means enrolments built from words nobody approved.
   //
-  // ⚠️ HOUSE ONLY, AND PROVED BY IDENTITY RATHER THAN INFERRED. The approved five-step copy is
-  // Client Zero's, not a universal default: applying it to a paying customer's programme would
-  // put M&V's own pitch in front of THEIR prospects. `audienceForClientStrict` is the existing
-  // founder-locked resolver — it answers from the AUTH USER, never from an API key or a name,
-  // and it THROWS rather than guessing when identity cannot be proved. A throw is caught here
-  // and read as "not house", so an unprovable identity gets the ordinary refusal below.
+  // ⚠️ ONE PROGRAMME, PROVED BY IDENTITY RATHER THAN INFERRED. The approved five-step copy is
+  // the LAUNCH copy for a single programme, not a universal default: applying it to a paying
+  // customer's programme would put M&V's own pitch in front of THEIR prospects, and applying it
+  // to a second House programme would put September's copy into November's campaign. Two
+  // independent facts are required — the explicitly configured programme id, and a House
+  // audience proved by `audienceForClientStrict` (the founder-locked resolver, which answers
+  // from the AUTH USER, never from an API key or a name, and THROWS rather than guessing). Both
+  // live in `isHouseLaunchProgramme`, and an unprovable identity is read there as NO.
   //
   // ⚠️ IT NEVER OVERWRITES AN EXISTING SEQUENCE. This runs only when the chain resolved NO
   // sequence, so a House sequence somebody has since edited is left exactly as it is — the
@@ -391,16 +393,13 @@ export async function prepareProgrammeOutreach(programmeId: string): Promise<Pre
   // ⚠️ AND EVERY OTHER PROGRAMME STILL REFUSES. A customer programme with no sequence is not
   // given one; it is told to author one, which is the honest answer.
   if (!chainRes.chain.sequenceId || chainRes.chain.steps.length === 0) {
-    let isHouse = false
-    try {
-      const { audienceForClientStrict } = await import('./provider-boundary')
-      isHouse = (await audienceForClientStrict(p.client_id)) === 'house'
-    } catch {
-      // Identity unprovable ⇒ not house. Never a reason to seed somebody else's programme.
-      isHouse = false
-    }
-    if (isHouse) {
-      const { applyHouseProgrammeSequence } = await import('./house-sequence')
+    // 🛑 THE EXACT PROGRAMME, NOT THE AUDIENCE (founder-corrected 8 Sep). `audience === 'house'`
+    // is true of every House programme — a second one created next month, a different ICP under
+    // Client Zero, every historical one. These five messages are the LAUNCH sequence for ONE
+    // programme. `isHouseLaunchProgramme` requires the configured programme id AND a proved
+    // House client, and answers NO when either is absent or unprovable.
+    const { isHouseLaunchProgramme, applyHouseProgrammeSequence } = await import('./house-sequence')
+    if (await isHouseLaunchProgramme(programmeId, p.client_id)) {
       const applied = await applyHouseProgrammeSequence(programmeId)
       if (!applied.ok) { out.problems.push(`The approved House sequence could not be applied: ${applied.reason}`); return out }
       // Re-resolved, never assumed: the enrolments below must be built from what is actually

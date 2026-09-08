@@ -74,6 +74,11 @@ const REQUIRED_VARS: VarSpec[] = [
 
   // Lead engine — we run PDL + Hunter. Apollo is optional/BYO, NOT used day-to-day.
   { key: 'PDL_API_KEY',               level: 'important', description: 'People Data Labs — PRIMARY lead sourcing; unset (with no Apollo) = zero leads' },
+  // The ONE programme the approved five-step House launch sequence may be seeded into. Unset is
+  // the safe default (nothing seeds anywhere) — and it is `important` rather than `optional`
+  // precisely because unset is ALSO the state in which the House launch cannot prepare, and a
+  // silent "no sequence" is how a launch day gets spent hunting for a missing uuid.
+  { key: 'HOUSE_LAUNCH_PROGRAMME_ID', level: 'important', description: 'The uuid of the one programme the approved House launch sequence may seed. Unset = nothing seeds anywhere (safe), and the House launch programme cannot be prepared' },
   { key: 'HUNTER_API_KEY',            level: 'important', description: 'Hunter.io — email reveal in the enrichment waterfall' },
   { key: 'APOLLO_API_KEY',            level: 'optional',  description: 'Apollo — optional / BYO-key; not used in the day-to-day PDL+Hunter stack' },
 

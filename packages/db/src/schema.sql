@@ -121,6 +121,21 @@ create table if not exists public.leads (
   -- + `consent_token` a few lines below — those are the evidence, this is not.
   -- Renaming the column is the real fix and is deliberately NOT done in launch week.
   apollo_consented  boolean not null default false,
+  -- ── 9 Sep · THE PROVIDER'S VERIFICATION STATUS (20260909_programme_qualification) ───────
+  -- NOT apollo_consented. That flag is true for BOTH 'verified' and 'likely_to_engage' and is
+  -- written unconditionally by the drip path, so it cannot prove the VERIFIED business address
+  -- House's ICP requires. `finalVerdict` needs this fact; without a column to hold it, every
+  -- candidate would need a paid reveal on every pass because the answer had nowhere to live.
+  email_status      text,
+  -- ── 9 Sep · THE M&V QUALIFICATION VERDICT (20260909_programme_qualification) ────────────
+  -- Programme entitlement is consumed by QUALIFIED prospects, never by `delivered_at` — which
+  -- is the legacy self-serve visibility stamp, capped at a constant 25 per run and ~5/day, and
+  -- would have settled a 250-candidate batch at 25 used. Exactly one of these two is ever set;
+  -- both NULL means CANDIDATE (sourced, not yet judged). A disqualified candidate consumes
+  -- nothing, is never surfaced, never enrolled, and is never revealed again.
+  qualified_at      timestamptz,
+  disqualified_at   timestamptz,
+  disqualify_reason text,
   -- scoring
   score             integer check (score >= 0 and score <= 100),
   score_reasoning   text,
@@ -837,6 +852,11 @@ create table if not exists public.programme_batches (
   seq            int  not null,
   requested      int  not null,
   granted        int  not null default 0,
+  -- ⚑ 9 Sep — candidates this attempt actually OBTAINED. requested = authority asked for,
+  -- granted = authority reserved, inserted = what the provider produced, delivered = what
+  -- QUALIFIED and therefore consumed entitlement. `delivered` keeps its name until a
+  -- post-launch rename; its meaning is USED.
+  inserted       int,
   delivered      int,
   status         text not null default 'running',  -- running | served | released | stranded
   reservation_id uuid,

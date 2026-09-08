@@ -518,11 +518,37 @@ describe('⑤ internal authority is reachable only from the approved modules', (
     const later = (RUNNER.split(/key:\s*'/).slice(1))
       .map(b => ({ key: b.slice(0, b.indexOf("'")), body: b }))
       .filter(e => e.key > A1)
+    // ⛓️ NARROWED 7 Sep, TO WHAT THIS GUARD ACTUALLY SAYS IT PROTECTS. It refused ANY later
+    // `ALTER TABLE public.programmes`, which flagged `20260907_preparation_snapshot` — three
+    // brand-new nullable columns that never name A1's columns and never touch its constraints.
+    //
+    // 🛑 THE RULE IS "NOTHING REACHES BACK TO THESE COLUMNS", not "the table is sealed". A
+    // programme row will legitimately gain columns for years; what must never happen is a new
+    // entry re-migrating the authority columns, because then the founder has to run something
+    // again and the whole point of expand/contract was that he should not.
+    //
+    // ⚠️ SO THE TEST IS STRICTER WHERE IT MATTERS AND SILENT WHERE IT DOES NOT: it fails on any
+    // later mention of an A1 column or constraint, AND on any DROP/ALTER COLUMN against
+    // `programmes` — which is how an existing column would actually be reached back to.
+    const A1_COLUMNS = ['first_authorised_at', 'second_authorised_at',
+                        'programmes_p1_authority_xor', 'programmes_p2_authority_xor']
     const offenders = later
-      .filter(e => /alter\s+table\s+(?:if\s+exists\s+)?public\.programmes\b/i.test(e.body))
+      .filter(e => {
+        const touchesProgrammes = /alter\s+table\s+(?:if\s+exists\s+)?public\.programmes\b/i.test(e.body)
+        if (!touchesProgrammes) return false
+        if (A1_COLUMNS.some(c => e.body.includes(c))) return true
+        // Reaching back to ANY existing column, not merely A1's.
+        return /alter\s+table\s+(?:if\s+exists\s+)?public\.programmes[\s\S]{0,400}?\b(drop\s+column|alter\s+column|rename\s+column)\b/i.test(e.body)
+      })
       .map(e => e.key)
-    expect(offenders, `runner entries added after A1 that ALTER public.programmes: ${offenders.join(', ')}`)
+    expect(offenders, `runner entries added after A1 that reach back to existing programmes columns: ${offenders.join(', ')}`)
       .toEqual([])
+    // ⚠️ NON-VACUOUS: the narrowed rule must still BITE. A1's own columns named in a later
+    // entry is the case it exists for, so it is exercised here against a synthetic body rather
+    // than trusted to be correct because it reads correctly.
+    const wouldOffend = 'ALTER TABLE public.programmes ADD COLUMN first_authorised_at timestamptz;'
+    expect(A1_COLUMNS.some(c => wouldOffend.includes(c)),
+      'the narrowed rule no longer recognises an A1 column being re-migrated').toBe(true)
     // Vacuity guard: this proves nothing if nothing sorts after A1. C1 does.
     expect(later.length, 'no entry sorts after A1 — the sweep above checked nothing').toBeGreaterThan(0)
   })

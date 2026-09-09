@@ -74,9 +74,17 @@ describe('① `Ready for approval` is offered only when the SERVER says the work
     // an older API, a failed read and a field this UI was never given.
     expect(branch, 'readiness is read loosely, so a non-boolean could pass').toContain('=== true')
     expect(branch).not.toMatch(/readiness\?\.ready\s*\)/)
-    // And the field is declared OPTIONAL, so "the API did not send it" is expressible at all.
+    // ⛓️ RETARGETED 9 Sep — the gate now also admits `preparable`, and the fail-closed rule it
+    // was written to protect applies to BOTH booleans or it protects nothing. A loose read of
+    // the second field would let an older API, a failed read or a non-boolean draw the button
+    // just as surely as a loose read of the first.
+    expect(branch).not.toMatch(/readiness\?\.preparable\s*\)/)
+    expect(branch, 'preparable is read loosely, so a non-boolean could pass')
+      .toContain('prog?.readiness?.preparable === true')
+    expect((branch.match(/=== true/g) ?? []).length, 'a readiness field is read without `=== true`').toBe(2)
+    // And the fields are declared OPTIONAL, so "the API did not send it" is expressible at all.
     expect(CODE, 'readiness is not part of the programme truth this screen reads')
-      .toContain('readiness?: { ready: boolean }')
+      .toContain('readiness?: { ready: boolean; preparable?: boolean')
   })
 
   it('🛑 11 · the browser re-derives NONE of the thirteen conditions', () => {
@@ -87,10 +95,21 @@ describe('① `Ready for approval` is offered only when the SERVER says the work
                            'review_preparation_hash', 'surfaced_for_approval_at', 'qualified_at']) {
       expect(LCCAN, `lcCan re-derives readiness from ${derived}`).not.toContain(derived)
     }
-    // The whole decision is the status plus the server's boolean, and nothing else.
+    // The whole decision is the status plus the server's answer, and nothing else.
+    //
+    // ⛓️ RETARGETED 9 Sep — ASSERTED ON CODE, NOT ON PROSE. The branch carries an explanatory
+    // comment now, and both of the old anchors were reading it: `'&&\n'` matched a wrapped
+    // sentence, and the `prog?.` count included nothing but was written when the branch was one
+    // line. Neither was ever about the comment. The rule they encode — this browser derives NO
+    // readiness of its own — is unchanged and is now checked against the executable lines only.
     const branch = LCCAN.slice(LCCAN.indexOf("case 'ready-for-approval':"), LCCAN.indexOf("case 'authorise/second':"))
-    expect(branch, 'the branch grew a local condition').not.toContain('&&\n')
-    expect((branch.match(/prog\?\./g) ?? []).length, 'the branch reads more programme state than the readiness answer').toBe(1)
+    const code = branch.split('\n').filter(l => !l.trim().startsWith('//')).join('\n')
+    // Exactly two reads of programme truth: `readiness.ready` and `readiness.preparable`.
+    expect((code.match(/prog\?\./g) ?? []).length, 'the branch reads more programme state than the readiness answer').toBe(2)
+    expect((code.match(/p\.status ===/g) ?? []).length, 'the branch tests statuses it did not before').toBe(2)
+    // 🛑 AND NOTHING ELSE OFF THE ROW. Any other programme column here would be a local rule.
+    expect(code.replace(/p\.status/g, ''), 'the branch grew a condition on another programme column')
+      .not.toMatch(/\bp\.[a-z_]+/)
   })
 
   it('🛑 13 · and the lifecycle gained no approval, P2, Live, Run or send action', () => {
@@ -113,9 +132,19 @@ describe('① `Ready for approval` is offered only when the SERVER says the work
 
 describe('② the screen and the route are gated by ONE rule', () => {
   it('🛑 the API computes readiness server-side and hands over a boolean', () => {
-    expect(ROUTES).toContain("const { programmePreparationReadiness } = await import('../lib/preparation-readiness')")
+    // ⛓️ RETARGETED 9 Sep — the same import now also brings in `onlyPreparationBlocks`, so the
+    // exact destructuring line changed. What matters is unchanged: the answer comes from
+    // `preparation-readiness`, the module the transition itself is gated by.
+    expect(ROUTES).toContain("programmePreparationReadiness")
+    expect(ROUTES).toContain("await import('../lib/preparation-readiness')")
     expect(ROUTES).toContain('await programmePreparationReadiness(truth.programme.id)')
-    expect(ROUTES).toContain('readiness: { ready: readiness?.ready === true }')
+    // ⛓️ RETARGETED 9 Sep — the payload gained `preparable` and the named blockers, so the
+    // one-line form is gone. The fact this case exists for is unchanged and is asserted more
+    // strictly than before: the READY boolean is still computed on the SERVER and still fails
+    // closed on an absent or non-boolean answer.
+    expect(ROUTES).toContain('ready: readiness?.ready === true')
+    expect(ROUTES, 'the second gate boolean is not computed from the same blocker list')
+      .toContain('preparable: readiness ? onlyPreparationBlocks(readiness.blockers) : false')
     // ⚠️ THE PROGRAMME'S OWN ID, from the truth already resolved — not the client, not a name,
     // not "the newest". The same discipline the reconcile availability beside it follows.
     expect(ROUTES, 'readiness is resolved from something other than the programme on screen')

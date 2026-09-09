@@ -22,7 +22,7 @@ import { db } from '@kind/db'
 import { quoteProgramme } from '@kind/shared'
 import {
   createProgramme, getProgramme, openProgrammeForClient, recommendProgramme,
-  awaitFirstPayment, markReadyForApproval, approveProgramme, pauseProgramme, resumeProgramme,
+  awaitFirstPayment, approveProgramme, pauseProgramme, resumeProgramme,
   authoriseFirstInternal, authoriseSecondInternal, goLiveProgramme,
   maySecondCharge, mayStartCampaign, mayComplete, completeProgramme,
   computeContribution, finaliseContribution, writeProgrammePartnerCommission,
@@ -178,10 +178,34 @@ programmeRouter.post('/:id/checkout/first', guard(async (req: Request, res: Resp
   res.json({ success: true, url: r.url, sessionId: r.sessionId })
 }))
 
+/**
+ * ⛓️ 9 Sep — THIS ROUTE WAS THE DEADLOCK, AND THE FIX IS HERE RATHER THAN IN THE GATE.
+ *
+ * 🛑 It called `markReadyForApproval` DIRECTLY. That function demands, through
+ * `programmePreparationReadiness`, the campaign, sequence, cadence, schedule and enrolments
+ * that only `prepareProgrammeOutreach` creates — and preparation's two callers were Make Live
+ * and the paid-P2 webhook, both strictly AFTER approval. So a programme that had sourced,
+ * qualified and settled could press this button forever and only ever be told what was missing.
+ *
+ * `advanceProgrammeToReview` does the preparation first and then asks the SAME unchanged
+ * question. No requirement is weakened, skipped or reordered: the transition re-proves all
+ * sixteen itself and still freezes the review snapshot in the same write as the status.
+ *
+ * ⚠️ IT STILL SENDS NOTHING. Pre-approval preparation creates the campaign as a DRAFT
+ * (`activate: false`); activation remains behind `assertGoingLive`, which demands an approval
+ * and P2. Preparing is not sending, and this route cannot make it so.
+ */
 programmeRouter.post('/:id/ready-for-approval', guard(async (req: Request, res: Response) => {
-  const r = await markReadyForApproval(req.params.id)
-  if (r.ok) await auditProgramme(req, 'programme_lifecycle', req.params.id, { to: 'READY_FOR_APPROVAL', next: 'the client approves in Milla — Vida cannot' })
-  res.status(r.ok ? 200 : 400).json({ success: r.ok, error: r.reason })
+  const { advanceProgrammeToReview } = await import('../lib/programme-advance')
+  const r = await advanceProgrammeToReview(req.params.id)
+  if (r.ok) {
+    await auditProgramme(req, 'programme_lifecycle', req.params.id, {
+      to: 'READY_FOR_APPROVAL', next: 'the client approves in Milla — Vida cannot',
+      prepared: r.report.enrolled, already_prepared: r.report.already_enrolled,
+      status_after: r.report.status_after,
+    })
+  }
+  res.status(r.ok ? 200 : 400).json({ success: r.ok, error: r.ok ? undefined : r.reason, data: r.ok ? r.report : (r.report ?? null) })
 }))
 
 /** ONE programme-level approval (founder lock 5) — never thousands of paid lead approvals. */

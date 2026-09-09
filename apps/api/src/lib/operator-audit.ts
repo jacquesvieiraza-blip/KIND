@@ -124,6 +124,16 @@ export type OperatorAction =
                                // a foreign-client lead, or orphans that would not fit under the
                                // ceiling — and a refusal that writes no row looks on every board
                                // exactly like a reconciliation nobody ever attempted.
+  | 'programme_prepared_for_review' // ⚑ 9 Sep — a settled programme was carried through the
+                               // pre-approval chain (campaign · sequence · schedule · cadence ·
+                               // enrolments) and handed to the client to approve. It creates
+                               // the work the customer's consent will be collected against, so
+                               // who ran it and what it prepared has to survive the session.
+                               // It sources nobody, spends nothing and sends nothing.
+  | 'programme_prepare_for_review_refused' // …and its refusals, which are the half an operator
+                               // acts on: a missing mailbox, an unqualified desk, preparation
+                               // that did not finish. A refusal that writes no row looks
+                               // exactly like an attempt nobody made.
   | 'programme_batch_qualified' // ⚑ 9 Sep (HOUSE-009) — M&V judged a programme's candidates
                                // against the customer's ICP and settled the attempt. It moves
                                // `sourced_used`, may spend Apollo reveal credits, and its

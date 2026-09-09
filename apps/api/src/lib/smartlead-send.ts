@@ -25,6 +25,7 @@ import { isSuppressed } from './suppression'
 import { pecrVerdict } from './pecr'
 import { isLaunchSendCountry } from '@kind/shared'
 import type { SequenceStep } from './sequence-apply'
+import { outreachDeliveryPermitted } from './outreach-kill-switch'
 
 export type SmartleadPushResult =
   | { pushed: true; campaignId: string }
@@ -132,7 +133,7 @@ export async function pushApprovedLeadToSmartlead(leadId: string, clientId: stri
 
   const gate = canPushToSmartlead({
     hasApiKey: smartleadConfigured(),
-    killSwitchOn: process.env.AUTO_OUTREACH_ENABLED === 'true',
+    outreachDeliveryPermitted: outreachDeliveryPermitted(),
     isDemo,
     isHouseClient: houseClientId() !== null && houseClientId() === clientId,
     hasSmartleadInbox: await hasSmartleadInbox(clientId),

@@ -2078,7 +2078,27 @@ figsyRouter.post('/campaigns/:id/test-email', async (req: AuthRequest, res) => {
       res.status(500).json({ success: false, error: 'Failed to generate email preview' }); return
     }
 
-    await sendSequenceEmail('test-preview', fakeLead as any, 1, step1.subject, step1.body, req.params.id, { isPreview: true })
+    // ══ 🛑 THE KILL-SWITCH GOVERNS THIS TOO, AND THE ANSWER MUST BE HONEST ══════════════
+    //
+    // ⛓️ TWO THINGS WERE WRONG HERE (corrected 9 Sep). `isPreview: true` used to EXEMPT this
+    // path from the kill-switch inside the send core — and the recipient is `to_email`, an
+    // arbitrary address from the request body, not "the founder's own inbox". So the one path
+    // described as too small to matter was the one that could reach anybody.
+    //
+    // And the reply below said "Test email sent to X" whatever came back. A deferred send
+    // reported as a sent one is how somebody concludes the switch is broken, or worse,
+    // concludes mail is leaving when it is not.
+    const outcome = await sendSequenceEmail('test-preview', fakeLead as any, 1, step1.subject, step1.body, req.params.id, { isPreview: true })
+    if (outcome !== 'sent') {
+      const { KILL_SWITCH_REFUSAL, outreachDeliveryPermitted } = await import('../lib/outreach-kill-switch')
+      res.status(outreachDeliveryPermitted() ? 502 : 503).json({
+        success: false,
+        error: outreachDeliveryPermitted()
+          ? `The test email was not sent (${outcome}). Nothing reached ${toEmail}.`
+          : KILL_SWITCH_REFUSAL,
+      })
+      return
+    }
     res.json({ success: true, message: `Test email sent to ${toEmail}` })
   } catch (err) {
     console.error(err); res.status(500).json({ success: false, error: 'Failed to send test email' })

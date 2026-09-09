@@ -121,6 +121,27 @@ export async function verifyInbox(inbox: InboxRow): Promise<{ ok: boolean; messa
  */
 export async function sendAs(inbox: InboxRow, mail: OutgoingMail): Promise<CheckedSend> {
   try {
+    // ══ 🛑 THE KILL-SWITCH, AT THE SEAM (founder-locked 9 Sep) ═════════════════════════
+    //
+    // KILL-SWITCH ON = NO EXTERNALLY DELIVERED OUTREACH OF ANY KIND. This is the ONE place
+    // every SMTP send passes through — the sequence core, the day-1 batch, the operator
+    // reply and the mailbox diagnostic all end up here — so asking the question here is
+    // what makes `nodemailer.sendMail` **structurally unreachable** while the switch is on,
+    // rather than unreachable-if-every-caller-remembered.
+    //
+    // ⚠️ THE CALLERS STILL ASK FIRST, AND THAT IS NOT REDUNDANT. Upstream they can DEFER
+    // properly — leave the enrollment due, roll nothing back, alert nobody. Reaching this
+    // line means a path skipped its own gate, so it is a backstop, and a backstop firing is
+    // a bug worth the alert its caller will raise.
+    //
+    // ⚠️ `verifyInbox` IS DELIBERATELY NOT GATED. It authenticates and sends nothing, so it
+    // delivers nothing externally — and proving a mailbox works is exactly what has to stay
+    // possible while the switch is on.
+    const { killSwitchBlocks, KILL_SWITCH_REFUSAL } = await import('./outreach-kill-switch')
+    if (killSwitchBlocks('smtp', `${inbox.email ?? 'unknown mailbox'} → ${mail.to}`)) {
+      return { ok: false, id: null, error: new Error(KILL_SWITCH_REFUSAL) }
+    }
+
     if (!inbox.smtp_host || !inbox.smtp_user || !inbox.smtp_pass_enc) {
       return { ok: false, id: null, error: new Error('mailer: inbox has no SMTP details — refusing to send') }
     }

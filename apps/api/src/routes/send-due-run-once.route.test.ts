@@ -134,7 +134,11 @@ vi.mock('../lib/figsy', () => ({
     return 'sent'
   },
   sendSequenceEmailOperatorRun: async (id: string, _l: Row, _s: number, _su: string, _b: string, _c: string, o?: { inbox?: { email?: string } }) => {
-    // OPERATOR authority: double-keyed — the entry point AND the env.
+    // OPERATOR authority: TRIPLE-gated, and the order matters.
+    // ⛓️ 9 Sep — the kill-switch line below is new, and it is FIRST. This stub used to check
+    // only the operator env, mirroring a real core that let a run past the kill-switch. The
+    // founder locked the opposite: KILL-SWITCH ON = NOTHING SENDS, no exception for a run.
+    if (process.env.AUTO_OUTREACH_ENABLED !== 'true') return 'deferred'
     if (process.env.FIGSY_OPERATOR_SEND_ENABLED !== 'true') return 'deferred'
     const addr = String(o?.inbox?.email ?? '(none)')
     state.sends.push({ authority: 'operator_run', inbox: addr, enrollmentId: id })
@@ -183,8 +187,13 @@ const PATH = '/send-due/run-once'
 const prevAuto = process.env.AUTO_OUTREACH_ENABLED
 const prevOp = process.env.FIGSY_OPERATOR_SEND_ENABLED
 
+// ⛓️ PRECONDITION CORRECTED 9 Sep. This file used to set up every case with the kill-switch
+// ON (`AUTO_OUTREACH_ENABLED` deleted), because a run was allowed to send past it. Under the
+// locked rule a run with the switch on sends nothing, so the ceiling, rotation, cap and
+// eviction cases below could no longer ask their own questions. Both switches are now in the
+// state a REAL run needs; the cases that are about the switch set it themselves.
 beforeEach(() => {
-  delete process.env.AUTO_OUTREACH_ENABLED
+  process.env.AUTO_OUTREACH_ENABLED = 'true'
   process.env.FIGSY_OPERATOR_SEND_ENABLED = 'true'
   state.client = { id: 'client-1', company_name: 'K.I.N.D (house — Client Zero)', commercial_model: null }
   state.campaigns = [{ id: 'camp-client-1', client_id: 'client-1', settings: null }]
@@ -209,16 +218,30 @@ describe('the two authorities, and the wall between them', () => {
     expect(state.sends).toHaveLength(0)
   })
 
-  it('6 · manual env ON + AUTO_OUTREACH_ENABLED OFF + explicit Run-once → it sends', async () => {
-    expect(process.env.AUTO_OUTREACH_ENABLED).toBeUndefined()
+  // ⛓️ RETARGETED 9 Sep. This case read "6 · manual env ON + AUTO_OUTREACH_ENABLED OFF +
+  // explicit Run-once → it sends", and it passed, because the core admitted an operator run on
+  // its own authority. The founder locked that out: **KILL-SWITCH ON = NO EXTERNALLY DELIVERED
+  // OUTREACH OF ANY KIND**, with no exception for a founder-pressed run. The duty underneath
+  // was *Run is the deliberate path and it is separately gated* — kept, in both directions.
+  it('6a · manual env ON + KILL-SWITCH ON → the route REFUSES and nothing sends', async () => {
+    delete process.env.AUTO_OUTREACH_ENABLED
+    const r = await call(PATH, { client_id: 'client-1', max_sends: 4 })
+    expect(r.code).toBe(503)
+    expect(String(r.payload.error)).toContain('kill-switch is ON')
+    expect(state.sends).toHaveLength(0)
+  })
+
+  it('6b · manual env ON + kill-switch OFF + explicit Run-once → it sends, under operator authority', async () => {
+    // The positive half, so 6a cannot pass by refusing everything for some other reason.
     const r = await call(PATH, { client_id: 'client-1', max_sends: 4 })
     expect(r.code).toBe(200)
     expect((r.payload.data as Row).sent).toBe(4)
     expect(state.sends.every(s => s.authority === 'operator_run')).toBe(true)
   })
 
-  it('7/8 · the CRON still sends ZERO with the kill-switch off, even while the operator env is ON', async () => {
+  it('7/8 · the CRON sends ZERO with the kill-switch ON, even while the operator env is ON', async () => {
     // The scheduled route runs under AUTOMATIC authority and cannot reach the operator one.
+    delete process.env.AUTO_OUTREACH_ENABLED
     const data = await cronRun()
     expect((data.data as Row).sent).toBe(0)
     expect(state.sends).toHaveLength(0)
@@ -460,7 +483,13 @@ describe('the surrounding rules are untouched', () => {
 
   it('23 · the automatic authority gate itself is unchanged', () => {
     const src = readFileSync(join(__dirname, '../lib/figsy.ts'), 'utf8')
-    expect(src).toContain("return process.env.AUTO_OUTREACH_ENABLED === 'true'")
+    // ⛓️ 9 Sep — the kill-switch's DEFINITION moved to `outreach-kill-switch.ts`, because four
+    // seams now ask it and four copies of `=== 'true'` is four chances to spell the safe
+    // default wrong. Unchanged is what this line guards: the automatic gate is still exactly
+    // that string, still the safe default when absent, and `figsy.ts` still exposes it.
+    expect(readFileSync(join(__dirname, '../lib/outreach-kill-switch.ts'), 'utf8'))
+      .toContain("return process.env.AUTO_OUTREACH_ENABLED === 'true'")
+    expect(src).toContain('export const outreachEnabled = outreachDeliveryPermitted')
     expect(src).toContain("return process.env.FIGSY_OPERATOR_SEND_ENABLED === 'true'")
     // Ranking and the legacy programme fallthrough are not part of this change.
     expect(readFileSync(join(__dirname, '../lib/sending-inbox.ts'), 'utf8'))

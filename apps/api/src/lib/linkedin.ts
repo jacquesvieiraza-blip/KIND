@@ -3,6 +3,8 @@ import { db } from '@kind/db'
 // BUILD-003 item 6 — the one suppression gate every send path asks: DNC floor AND the
 // global opt-out blocklist, which this path never read.
 import { checkSendAllowed } from './send-gate'
+// 🛑 The highest-level delivery stop. A connection request is externally delivered outreach.
+import { killSwitchBlocks } from './outreach-kill-switch'
 
 const anthropic = new Anthropic()
 
@@ -71,6 +73,20 @@ export async function dispatchLinkedInStep(queueId: string): Promise<{ sent: boo
   // So someone who replied STOP to an email could still be sent a LinkedIn connection
   // request, on a channel where the approach is more personal, not less. The shared gate
   // asks both, and it is global: it does not matter which client is asking.
+  // ══ 🛑 THE KILL-SWITCH — AND IT WAS SIMPLY ABSENT FROM THIS PATH (added 9 Sep) ═════════
+  //
+  // KILL-SWITCH ON = NOTHING SENDS. A LinkedIn connection request is a touch on a real
+  // stranger on the client's behalf; it is outreach, and the founder's switch governs every
+  // path that reaches one. This one asked the DNC floor, the opt-out blocklist and programme
+  // authority — and never `AUTO_OUTREACH_ENABLED`. So with automatic outreach switched off,
+  // PhantomBuster would still message prospects the moment a queue row was dispatched.
+  //
+  // Left PENDING, exactly as the programme-pause branch below is: the switch is temporary and
+  // a resumed programme must be able to pick this step up. `failed` is for permanent refusals.
+  if (killSwitchBlocks('linkedin', `lead ${step.lead_id}`)) {
+    return { sent: false, method: 'manual' }
+  }
+
   const { data: liLead } = await db.from('leads')
     .select('email, company, linkedin_url, client_id').eq('id', step.lead_id).maybeSingle()
 

@@ -729,7 +729,23 @@ operatorRouter.post('/campaign/:id/test', async (req: Request, res: Response) =>
     const step1 = (seq as { step1?: { subject?: string; body?: string } } | null)?.step1
     if (!step1?.subject || !step1?.body) { res.status(502).json({ success: false, error: 'Could not draft a preview — try again.' }); return }
 
+    // ⚠️ GENERATION IS NOT DELIVERY. Everything above drafts copy and returns it — no message
+    // leaves, so it is not gated and must not be: reading what WOULD go out is exactly the
+    // thing that has to stay possible while the switch is on.
     if (!send) { res.json({ success: true, data: { preview: step1, sent: false, to: null } }); return }
+
+    // ══ 🛑 BUT `send: true` IS A REAL SEND, SO THE KILL-SWITCH GOVERNS IT ════════════════
+    //
+    // ⛓️ ADDED 9 Sep. This posts generated cold copy through the COLD Resend identity, to an
+    // address the request names via `to_email` — the same rails and the same reach as a
+    // prospect send. Calling it a "test" described who we hoped would read it, not where the
+    // mail went. **KILL-SWITCH ON = NO EXTERNALLY DELIVERED OUTREACH OF ANY KIND**, and a
+    // test send is a send.
+    const { outreachDeliveryPermitted, KILL_SWITCH_REFUSAL } = await import('../lib/outreach-kill-switch')
+    if (!outreachDeliveryPermitted()) {
+      res.status(503).json({ success: false, error: KILL_SWITCH_REFUSAL, data: { preview: step1, sent: false, to: null } })
+      return
+    }
 
     // ONE FIXED TEST INBOX (flow v2). It used to fall back to whoever was logged in, which
     // makes spam placement unjudgeable — a message that lands in one operator's Gmail and
@@ -2741,6 +2757,24 @@ operatorRouter.post('/inboxes/:id/verify', async (req: Request, res: Response) =
 // per-client cap, the per-campaign cap and the send window are all the cron's own gates.
 operatorRouter.post('/send-due/run-once', async (req: Request, res: Response) => {
   try {
+    // ══ 🛑 THE KILL-SWITCH IS ASKED FIRST, AND IT OUTRANKS THIS ROUTE'S OWN KEY ═════════
+    //
+    // ⛓️ CORRECTED 9 Sep. This route checked only `FIGSY_OPERATOR_SEND_ENABLED`, and the
+    // send core used to let an operator run past the kill-switch on that authority alone.
+    // Both halves are now wrong: **KILL-SWITCH ON = NO EXTERNALLY DELIVERED OUTREACH OF ANY
+    // KIND**, with no exception for a founder-pressed run.
+    //
+    // ⚠️ REFUSED HERE AS WELL AS AT THE SEAM, DELIBERATELY. The core would defer every
+    // enrollment one at a time and answer "0 sent" — technically safe, and unreadable. An
+    // operator who pressed Run deserves the reason, not an empty run.
+    const { outreachDeliveryPermitted, KILL_SWITCH_REFUSAL } = await import('../lib/outreach-kill-switch')
+    if (!outreachDeliveryPermitted()) {
+      res.status(503).json({ success: false, error: KILL_SWITCH_REFUSAL })
+      return
+    }
+
+    // AND ITS OWN SECOND KEY, ON TOP — never instead. A run is NARROWER than the cron, so it
+    // needs one more gate than the cron does, not one fewer.
     const { operatorSendEnabled } = await import('../lib/figsy')
     if (!operatorSendEnabled()) {
       res.status(503).json({ success: false, error:
@@ -2819,6 +2853,22 @@ operatorRouter.post('/inboxes/:id/test-send', async (req: Request, res: Response
     const { client_id, to_email } = (req.body ?? {}) as { client_id?: string; to_email?: string }
     const client = await requireClient(client_id)
     if (!client) { res.status(404).json({ success: false, error: 'Unknown client_id' }); return }
+
+    // ══ 🛑 THE KILL-SWITCH — A MAILBOX TEST IS A REAL EXTERNAL SEND ═════════════════════
+    //
+    // ⛓️ ADDED 9 Sep. This connects to a client's authenticated mailbox and delivers a real
+    // message to a real address. `sendAs` now refuses at the seam regardless, so this is the
+    // readable half of the same refusal — an operator gets the sentence rather than an SMTP
+    // verdict that reads like the mailbox's fault.
+    //
+    // ⚠️ AND THE #553 LADDER IS NOT DEADLOCKED BY THIS. Turning the kill-switch off delivers
+    // nothing on its own: programme authority, approval, P2, LIVE, the sender and the
+    // schedule all still have to say yes, and with no programme LIVE the cron has nothing to
+    // send. Proving a mailbox with the switch off is safe; proving it while the switch says
+    // nothing can send would mean the switch does not mean what it says.
+    const { outreachDeliveryPermitted: canDeliver, KILL_SWITCH_REFUSAL: refusal } =
+      await import('../lib/outreach-kill-switch')
+    if (!canDeliver()) { res.status(503).json({ success: false, error: refusal }); return }
 
     // A typo'd recipient on a warmed mailbox is a real bounce against real reputation, so
     // the address is checked before anything connects rather than left to the mail server.

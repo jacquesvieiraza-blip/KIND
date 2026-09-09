@@ -21,6 +21,7 @@ import { checkSendAllowed } from './send-gate'
 import { canPushToInstantly, refusalLabel, toInstantlyLead, toInstantlySequence, type PushRefusal } from './instantly-map'
 import { instantlyConfigured, listCampaigns, createCampaign, addLead } from './instantly'
 import type { SequenceStep } from './sequence-apply'
+import { outreachDeliveryPermitted } from './outreach-kill-switch'
 
 export type PushResult =
   | { pushed: true; campaignId: string }
@@ -54,7 +55,7 @@ export async function pushApprovedLeadToInstantly(leadId: string, clientId: stri
 
   const gate = canPushToInstantly({
     hasApiKey: instantlyConfigured(),
-    killSwitchOn: process.env.AUTO_OUTREACH_ENABLED === 'true',
+    outreachDeliveryPermitted: outreachDeliveryPermitted(),
     isDemo: (client as { is_demo?: boolean } | null)?.is_demo === true,
     isHouseClient: houseClientId() !== null && houseClientId() === clientId,
     leadEmail: (lead as { email?: string | null } | null)?.email ?? null,

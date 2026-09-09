@@ -86,15 +86,32 @@ vi.mock('./alerts', () => ({ sendFounderAlert: async () => {} }))
 // would make every assertion below vacuously empty for the wrong reason.
 const LEAD = { id: 'lead-1', client_id: 'client-1', email: 'p1@prospect.test', first_name: 'P', last_name: 'One', country: 'United Kingdom' }
 const prevOp = process.env.FIGSY_OPERATOR_SEND_ENABLED
+const prevAuto = process.env.AUTO_OUTREACH_ENABLED
 
+// ⛓️ RETARGETED 9 Sep — SAME DUTY, CORRECTED PRECONDITION. This file asks ONE question:
+// does the mailbox the run named reach `sendAs`? It used to set up that question with the
+// kill-switch ON (`AUTO_OUTREACH_ENABLED` deleted), because the operator run was allowed to
+// send past it. The founder locked the opposite — **KILL-SWITCH ON = NO EXTERNALLY DELIVERED
+// OUTREACH OF ANY KIND** — so with that setup nothing sends at all and the rotation question
+// can no longer be asked. Both switches are now armed, which is the state a real run needs,
+// and the rotation assertions below are untouched.
+//
+// 🛑 THE KILL-SWITCH DUTY IS NOT LOST WITH THE OLD PRECONDITION. It moved to
+// `kill-switch-absolute.test.ts`, which proves zero provider calls from every path with the
+// switch on, and mutation-proves all five guards. The last case in this file keeps the local
+// half: the ORDINARY entry point sends nothing while the switch is on.
 beforeEach(() => {
   sentFrom.length = 0
   process.env.FIGSY_OPERATOR_SEND_ENABLED = 'true'
-  delete process.env.AUTO_OUTREACH_ENABLED
+  process.env.AUTO_OUTREACH_ENABLED = 'true'
 })
 afterEach(() => {
   if (prevOp === undefined) delete process.env.FIGSY_OPERATOR_SEND_ENABLED
   else process.env.FIGSY_OPERATOR_SEND_ENABLED = prevOp
+  // ⚠️ RESTORED TOO. This file now ARMS the kill-switch, so leaving it armed would hand the
+  // next file in the worker a permissive send state it never asked for.
+  if (prevAuto === undefined) delete process.env.AUTO_OUTREACH_ENABLED
+  else process.env.AUTO_OUTREACH_ENABLED = prevAuto
 })
 
 describe('the named mailbox reaches the real sender', () => {
@@ -125,9 +142,12 @@ describe('the named mailbox reaches the real sender', () => {
     expect(sentFrom).toEqual([])
   })
 
-  it('🔐 the ORDINARY entry point still sends nothing with the kill-switch off, env or no env', async () => {
-    // Both keys present for the operator path, and the automatic path is still shut.
+  // ⛓️ TITLE CORRECTED 9 Sep. It said "with the kill-switch off" while setting up the state
+  // where the switch BLOCKS — the inverted spelling the founder locked out. ON = blocked.
+  it('🔐 nothing sends with the kill-switch ON, whichever entry point and whichever env', async () => {
+    // Both operator keys present, and the switch still refuses. The switch outranks them.
     process.env.FIGSY_OPERATOR_SEND_ENABLED = 'true'
+    delete process.env.AUTO_OUTREACH_ENABLED
     const { sendSequenceEmail } = await import('./figsy')
     const out = await sendSequenceEmail('enr-1', LEAD as never, 1, 's', 'b', 'camp-1')
     expect(out).toBe('deferred')

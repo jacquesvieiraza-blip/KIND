@@ -69,9 +69,12 @@ describe('② Run is separate, explicit, client-scoped and capped', () => {
     expect(body).toContain('Nothing was sent.')
   })
 
-  it('the route refuses without its own env gate, independently of the kill-switch', () => {
+  // ⛓️ TITLE CORRECTED 9 Sep. It read "independently of the kill-switch", which was the old,
+  // wrong model — the run's own key is an ADDITIONAL gate, never a parallel one. The duty
+  // asserted below (its own env gate · one client · a typed ceiling) is unchanged.
+  it('the route refuses without its own env gate, ON TOP of the kill-switch', () => {
     const at = OP.indexOf("operatorRouter.post('/send-due/run-once'")
-    const body = OP.slice(at, at + 1400)
+    const body = OP.slice(at, at + 2600)
     expect(body).toContain('operatorSendEnabled()')
     expect(body).toContain('FIGSY_OPERATOR_SEND_ENABLED')
     // One client, always — there is no all-clients mode.
@@ -129,12 +132,54 @@ describe('③ the kill-switch is stated, never shown as a bare OFF', () => {
     expect(VIDA).toContain('Run is unavailable — FIGSY_OPERATOR_SEND_ENABLED is not set on the API')
   })
 
-  it('🛑 the canary works with the kill-switch ON — Run does not consult it', () => {
-    // `sendSequenceEmailCore` admits an operator run through its OWN authority
-    // (`opts.authority === 'operator_run' && operatorSendEnabled()`), so a canary can send
-    // while automatic outreach stays off. That is the whole point of the Thursday walk.
+  // ⛓️ RETARGETED 9 Sep — THE SAME DUTY, THE CORRECT RULE. This case used to read "🛑 the
+  // canary works with the kill-switch ON — Run does not consult it", and it pinned the two
+  // exact source lines that made that true. The founder locked the opposite: **KILL-SWITCH
+  // ON = NO EXTERNALLY DELIVERED OUTREACH OF ANY KIND**, with no exception for a run.
+  //
+  // The duty underneath it was never "the run bypasses the switch" — it was *the operator run
+  // is separately gated, and Run is the only deliberate way mail leaves*. That duty is kept,
+  // pointed the right way round, and the behavioural proof lives in
+  // `kill-switch-absolute.test.ts` (13 cases against the real provider seams, all five guards
+  // mutation-proved). This file keeps the SOURCE-SHAPE half a behavioural test cannot see.
+  it('🛑 the run is gated by the kill-switch FIRST, and by its own key ON TOP', () => {
     const FIGSY = readFileSync(join(API, 'figsy.ts'), 'utf8')
-    expect(FIGSY).toContain("const operatorAuthorised = opts.authority === 'operator_run' && operatorSendEnabled()")
-    expect(FIGSY).toContain('if (!opts?.isPreview && !operatorAuthorised && !outreachEnabled())')
+    const at = FIGSY.indexOf('async function sendSequenceEmailCore')
+    const core = FIGSY.slice(at, at + 3000)
+
+    // The kill-switch is asked unconditionally — no `&&`, no `isPreview`, no authority.
+    expect(core).toContain('if (!outreachEnabled()) {')
+    // …and it is asked BEFORE the operator key, so the narrower gate can only ever add.
+    const killAt = core.indexOf('if (!outreachEnabled()) {')
+    const opAt = core.indexOf("if (opts.authority === 'operator_run' && !operatorSendEnabled())")
+    expect(killAt, 'the kill-switch check is gone from the core').toBeGreaterThan(-1)
+    expect(opAt, 'the operator key check is gone from the core').toBeGreaterThan(-1)
+    expect(killAt, 'the operator key is checked before the kill-switch').toBeLessThan(opAt)
+
+    // 🛑 AND THE OLD BYPASS MUST NEVER COME BACK, in any spelling.
+    expect(FIGSY.includes('const operatorAuthorised'),
+      'the operator_run kill-switch bypass has returned').toBe(false)
+    expect(FIGSY.includes('!opts?.isPreview && !outreachEnabled()'),
+      'isPreview exempts a send from the kill-switch again').toBe(false)
+  })
+
+  it('🛑 Run refuses at the route while the kill-switch is ON, before anything is attempted', () => {
+    const at = OP.indexOf("operatorRouter.post('/send-due/run-once'")
+    const body = OP.slice(at, at + 2200)
+    expect(body).toContain('outreachDeliveryPermitted()')
+    expect(body).toContain('KILL_SWITCH_REFUSAL')
+    // The kill-switch is refused BEFORE the route's own env key, so the reason an operator
+    // reads is the highest one that applies rather than the first one that happens to run.
+    expect(body.indexOf('outreachDeliveryPermitted()')).toBeLessThan(body.indexOf('operatorSendEnabled()'))
+  })
+
+  it('🛑 every provider seam asks the one switch — none keeps a private copy', () => {
+    // A path that re-derives `AUTO_OUTREACH_ENABLED` itself is a path that can spell the safe
+    // default wrong. The seams import the shared module instead.
+    for (const f of ['mailer.ts', 'linkedin.ts', 'smartlead-send.ts', 'instantly-push.ts']) {
+      const src = readFileSync(join(API, f), 'utf8')
+      expect(src.includes('outreach-kill-switch'), `${f} does not ask the shared kill-switch`).toBe(true)
+      expect(/AUTO_OUTREACH_ENABLED\s*===/.test(code(src)), `${f} re-derives the switch itself`).toBe(false)
+    }
   })
 })

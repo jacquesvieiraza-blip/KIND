@@ -18,13 +18,13 @@ import { canPushToInstantly } from './instantly-map'
 // SYSTEM gates it was written for. Their own behaviour is proved in `smartlead-hc3.test.ts`,
 // including that each one refuses on its own and reports its own reason.
 const gate = (over: Partial<Parameters<typeof canPushToSmartlead>[0]> = {}) => canPushToSmartlead({
-  hasApiKey: true, killSwitchOn: true, isDemo: false, isHouseClient: false,
+  hasApiKey: true, outreachDeliveryPermitted: true, isDemo: false, isHouseClient: false,
   hasSmartleadInbox: true, leadEmail: 'someone@acme.com',
   isBlocklisted: false, isDoNotContact: false, pecrAllows: true, inLaunchCountry: true, ...over,
 })
 
 describe('the gates are exact inverses — this is the whole safety property', () => {
-  const shared = { hasApiKey: true, killSwitchOn: true, isDemo: false, leadEmail: 'a@b.com',
+  const shared = { hasApiKey: true, outreachDeliveryPermitted: true, isDemo: false, leadEmail: 'a@b.com',
     // HC-3 — a clean lead, so the INVERSE property below is about routing and nothing else.
     isBlocklisted: false, isDoNotContact: false, pecrAllows: true, inLaunchCountry: true }
 
@@ -61,7 +61,7 @@ describe('a demo can never reach a real person', () => {
   it('is refused FIRST, before anything cheaper', () => {
     // Checked before the client identity, so no future reordering can put it behind a cheaper
     // test. A demo reaching a real mailbox is the one failure with a person on the other end.
-    const r = gate({ isDemo: true, hasApiKey: false, killSwitchOn: false, leadEmail: null })
+    const r = gate({ isDemo: true, hasApiKey: false, outreachDeliveryPermitted: false, leadEmail: null })
     expect(r.ok === false && r.reason).toBe('is_demo')
   })
   it('and it is a hard stop, said in those words', () => {
@@ -71,7 +71,7 @@ describe('a demo can never reach a real person', () => {
 
 describe('every other refusal, each with its own reason', () => {
   it('the kill-switch governs Smartlead exactly as it governs Instantly', () => {
-    const r = gate({ killSwitchOn: false })
+    const r = gate({ outreachDeliveryPermitted: false })
     expect(r.ok === false && r.reason).toBe('kill_switch_off')
   })
   it('no API key', () => {

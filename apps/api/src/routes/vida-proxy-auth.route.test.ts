@@ -97,7 +97,12 @@ async function callProxy(opts: {
   }) as typeof fetch
 
   try {
-    const mod = await import(PROXY)
+    // ⛓️ 9 Sep — LITERAL, NOT `import(PROXY)`. Under Vitest 4 a dynamic import of a *variable*
+    // is no longer resolved relative to this file: the specifier was taken as-is and every
+    // case died on `Cannot find module '/admin/src/app/api/proxy/[...path]/route'`. A literal
+    // is analysable, and `vi.resetModules()` above still forces a fresh evaluation each call —
+    // which is the only property this needed from a dynamic import in the first place.
+    const mod = await import('../../../admin/src/app/api/proxy/[...path]/route')
     const verb = opts.method ?? 'PATCH'
     const res = await mod[verb](
       proxyRequest(opts.body === undefined ? { client_id: 'c1' } : opts.body, verb),

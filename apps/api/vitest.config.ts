@@ -32,6 +32,18 @@ export default defineConfig({
   resolve: {
     alias: {
       '@kind/shared': path.resolve(__dirname, '../../packages/shared/src/index.ts'),
+      // ⛓️ ADDED 9 Sep — AND IT IS FIXING A RED THAT WAS ALREADY ON `main`.
+      //
+      // `vida-proxy-auth.route.test.ts` runs the REAL admin proxy route, because the thing it
+      // proves — that the server-side admin key is never handed to an unverified caller — is
+      // worthless against a copy. That route is Next.js source and imports through Next's `@/`
+      // alias, which this config did not know, so every one of its 36 cases died on
+      // `Cannot find package '@/lib/supabase/server'` before reaching a single assertion.
+      //
+      // 🛑 THIRTY-SIX SECURITY CASES WERE PASSING NOBODY'S EYE. They did not fail loudly in a
+      // way anyone acted on, because CI has not run since 3 Jul and `check.sh` is the only
+      // gate — so a suite that could not import its subject sat red on `main` unnoticed.
+      '@': path.resolve(__dirname, '../admin/src'),
     },
   },
 })

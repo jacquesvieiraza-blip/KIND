@@ -29,9 +29,11 @@ import { api } from '@/lib/api'
 import { createClient } from '@/lib/supabase/client'
 import { MILLA_FAILURE_COPY } from '@kind/shared'
 import ProgrammeWorkspace, { type CustomerProgramme } from '@/components/milla/ProgrammeWorkspace'
+import ProgrammeApproval, { type ApprovalPayload } from '@/components/milla/ProgrammeApproval'
 
 export default function ProgrammePage() {
   const [p, setP] = useState<CustomerProgramme | null>(null)
+  const [review, setReview] = useState<ApprovalPayload | null>(null)
   const [failed, setFailed] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -42,6 +44,13 @@ export default function ProgrammePage() {
         const { data: { session } } = await supabase.auth.getSession()
         const r = await api.get<{ data: CustomerProgramme }>('/my/programme', session?.access_token)
         setP(r.data)
+        // ⚠️ THE REVIEW IS A SEPARATE, NON-FATAL READ. A programme that loads but whose review
+        // set does not must still render the programme — the approval section simply does not
+        // appear, rather than the whole screen failing.
+        try {
+          const rev = await api.get<{ data: ApprovalPayload }>('/my/programme/review', session?.access_token)
+          setReview(rev.data)
+        } catch { setReview(null) }
       } catch (e) {
         // ⚠️ THE SERVER'S SENTENCE WINS. It sends the locked copy; this only falls back to the
         // same constant when the request never reached a response at all.
@@ -77,6 +86,19 @@ export default function ProgrammePage() {
   return (
     <div className="h-full overflow-y-auto p-5 sm:p-6">
       <ProgrammeWorkspace p={p} />
+      {/* ⚑ 9 Sep — THE APPROVAL, WHERE THE CLIENT ALREADY IS. It renders only when there is a
+          programme awaiting their decision, or one they have already given; at every other
+          stage this is silent. The server decides which of those it is. */}
+      {review?.programme && (review.canApprove || review.programme.approved_at) && (
+        <div className="mt-3">
+          <ProgrammeApproval
+            data={review}
+            onApproved={at => setReview(r => (r && r.programme
+              ? { ...r, canApprove: false, programme: { ...r.programme, approved_at: at, status: 'APPROVED' } }
+              : r))}
+          />
+        </div>
+      )}
     </div>
   )
 }

@@ -38,6 +38,7 @@ import { MILLA_FAILURE_COPY } from '@kind/shared'
 // exact defect the 4A-1 live walk found (a campaign row saying "Paused" beside a programme
 // saying "Proof"). One reader, two doors. This route's response shape is unchanged.
 import { readCustomerProgramme, type CustomerProgramme } from '../lib/customer-programme'
+import { p2Authorised } from '../lib/programme'
 
 export type { CustomerProgramme }
 
@@ -112,6 +113,39 @@ myProgrammeRouter.get('/review', async (req: AuthRequest, res) => {
     const { readProgrammeReviewSet } = await import('../lib/programme-review')
     const set = await readProgrammeReviewSet(clientId, p.id)
 
+    // ── ⛓️ 9 Sep — WHAT THE CLIENT IS ACTUALLY APPROVING, READ FROM THE FREEZE ────────────
+    //
+    // 🛑 THE BACKEND HANDOFF WORKED AND THE EXPERIENCE DID NOT. This route returned the masked
+    // prospect list and nothing else, so a customer at the Approval stage was shown an outcome
+    // and a count and asked to approve — with no sight of the words that would be sent, and no
+    // indication that what they were reading was FROZEN.
+    //
+    // ⚠️ READ FROM `review_preparation_snapshot`, NEVER REBUILT. The snapshot is written in the
+    // same conditional UPDATE as `status = 'READY_FOR_APPROVAL'`, so it describes the work as
+    // it stood when the question was put. Re-resolving the sequence here would show whatever is
+    // true NOW and collect consent against it — precisely the drift the freeze exists to stop.
+    //
+    // ⚠️ AND IT CARRIES NO IDENTIFIERS. Steps, timing and counts; no lead ids, no campaign id,
+    // no sequence id, no sender address. The customer approves the WORK, not our plumbing.
+    const snapObj = ((): Record<string, unknown> | null => {
+      const raw = (p as unknown as { review_preparation_snapshot?: unknown }).review_preparation_snapshot
+      return raw && typeof raw === 'object' ? raw as Record<string, unknown> : null
+    })()
+    const rawSteps = Array.isArray(snapObj?.steps) ? snapObj.steps as Record<string, unknown>[] : []
+    const frozen = snapObj ? {
+      at: (p as unknown as { review_preparation_at?: string | null }).review_preparation_at ?? null,
+      messages: rawSteps.map((st, i) => ({
+        step: i + 1,
+        subject: String(st.subject ?? ''),
+        body: String(st.body ?? ''),
+        /** Days after this message before the next one. The final step's own wait is unused. */
+        wait_days: Number.isFinite(st.wait_days as number) ? Number(st.wait_days) : 0,
+      })),
+      /** How many prospects the frozen set holds — the exact population being approved. */
+      prospects: Array.isArray(snapObj.enrolled_lead_ids) ? snapObj.enrolled_lead_ids.length : 0,
+      send_schedule: snapObj.send_schedule ?? null,
+    } : null
+
     res.json({
       success: true,
       data: {
@@ -121,7 +155,16 @@ myProgrammeRouter.get('/review', async (req: AuthRequest, res) => {
           meeting_target: p.meeting_target ?? null,
           approved_at: p.approved_at ?? null,
           paused: !!p.paused_at,
+          // ⚑ P2 STATUS, SO THE SCREEN NEVER HAS TO GUESS WHAT COMES NEXT.
+          //
+          // ⚠️ THROUGH THE CANONICAL HELPER, NOT THE COLUMNS. `p2Authorised` is the ONE
+          // definition of "the second half is settled" — paid or internally authorised, since
+          // House runs on the second and owes nothing. Naming the columns here would restate
+          // that rule in a second place AND breach the internal-authority allowlist, which
+          // exists precisely so a fourth module cannot invent its own answer.
+          second_settled: p2Authorised(p),
         },
+        frozen,
         prospects: set.prospects,
         total: set.total,
         // ⚠️ `complete: false` MEANS "AT LEAST `total`". The scan is bounded at

@@ -131,7 +131,14 @@ async function call(path: string, body: Row): Promise<{ code: number; payload: R
   return { code, payload }
 }
 
+// ⛓️ PRECONDITION CORRECTED 9 Sep. This file used to run with the kill-switch in whatever
+// state it happened to be in, because this route deliberately did not consult it. The founder
+// locked that out — **a mailbox test connects to a real mailbox and delivers a real message to
+// a real address, so it is a send** — and the route (and `sendAs` beneath it) now refuse while
+// the switch is on. Everything this file actually tests is about WHICH mailbox, WHAT is
+// written and WHAT is refused, so the switch is armed here and only §③ moves it.
 beforeEach(() => {
+  process.env.AUTO_OUTREACH_ENABLED = 'true'
   process.env.ADMIN_API_KEY = 'test-admin-key'
   state.client = { id: 'client-1', company_name: 'K.I.N.D (house — Client Zero)' }
   state.inboxes = [BOX()]
@@ -217,19 +224,43 @@ describe('warming may be TESTED here and must stay unsendable everywhere else', 
   })
 })
 
-// ── ③ THE KILL-SWITCH IS NOT REQUIRED, AND NOT TOUCHED ───────────────────────────────────
-describe('an explicit operator test does not need outreach enabled', () => {
-  it('sends with AUTO_OUTREACH_ENABLED unset', async () => {
+// ── ③ THE KILL-SWITCH GOVERNS THIS ROUTE TOO ─────────────────────────────────────────────
+//
+// ⛓️ REVERSED 9 Sep, ON THE FOUNDER'S RULE. This section read "THE KILL-SWITCH IS NOT
+// REQUIRED, AND NOT TOUCHED", and asserted the route sent with `AUTO_OUTREACH_ENABLED` unset.
+// The reasoning was that an operator diagnostic to an address a human typed is not outreach.
+// But it opens a real SMTP session on a real client mailbox and delivers a real message to an
+// arbitrary `to_email` — which is a send however it is labelled. **KILL-SWITCH ON = NO
+// EXTERNALLY DELIVERED OUTREACH OF ANY KIND**, and a test send is a send.
+//
+// 🛑 AND #553's LADDER IS NOT DEADLOCKED BY THIS, which was the real worry behind the old
+// exemption. Turning the switch off delivers nothing on its own — programme authority,
+// approval, P2, LIVE, the sender and the schedule all still have to say yes, and with no
+// programme LIVE the cron has nothing to send. A mailbox can be proven with the switch off.
+describe('an explicit operator test still obeys the kill-switch', () => {
+  it('🛑 refuses with the kill-switch ON, and connects to nothing', async () => {
     delete process.env.AUTO_OUTREACH_ENABLED
+    const r = await call(PATH, { client_id: 'client-1', to_email: 'me@get-kind.com' })
+    expect(r.code).toBe(503)
+    expect(String(r.payload.error)).toContain('kill-switch is ON')
+    expect(state.sends).toHaveLength(0)
+    expect(sendAsMock).not.toHaveBeenCalled()
+  })
+
+  it('and sends with the kill-switch OFF — so the refusal above is the switch, not the route', async () => {
+    process.env.AUTO_OUTREACH_ENABLED = 'true'
     const r = await call(PATH, { client_id: 'client-1', to_email: 'me@get-kind.com' })
     expect(r.payload.data).toMatchObject({ sent: true })
   })
 
-  it('the route never reads or writes the kill-switch, HOUSE_CLIENT_ID or paid providers', () => {
+  it('the route reads the switch through the shared module, never a private copy of the env', () => {
     const src = readFileSync(join(__dirname, 'operator.ts'), 'utf8')
     const start = src.indexOf("operatorRouter.post('/inboxes/:id/test-send'")
     const route = src.slice(start, start + src.slice(start).indexOf('\n})') + 3)
-    for (const banned of ['AUTO_OUTREACH_ENABLED', 'HOUSE_CLIENT_ID', 'PAID_PROVIDERS_ENABLED']) {
+    expect(route).toContain('outreach-kill-switch')
+    // Still no private re-derivation, and still nothing to do with house or paid providers.
+    expect(route).not.toMatch(/AUTO_OUTREACH_ENABLED\s*===/)
+    for (const banned of ['HOUSE_CLIENT_ID', 'PAID_PROVIDERS_ENABLED']) {
       expect(route).not.toContain(banned)
     }
   })

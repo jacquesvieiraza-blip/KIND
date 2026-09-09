@@ -59,6 +59,21 @@ export type VidaSurfaceDisplay = {
    * from by falling back to the client path.
    */
   programmeSourcing: ProgrammeSourcingAction | null
+  /**
+   * ⚑ 9 Sep — WHAT VIDA IS SAYING ABOUT THIS CLIENT RIGHT NOW, and her posture while she says
+   * it. Published by the console for the same reason `programmeSourcing` is: the console
+   * already holds the server's lifecycle verdict, and a second fetch here would be a second
+   * answer — the two could disagree about whether the operator is needed, on the very column
+   * that tells them.
+   *
+   * ⚠️ `null` ASSERTS NOTHING. On an operator destination with no client selected there is no
+   * state to describe, and the header simply does not claim one.
+   */
+  lifecycle: {
+    mode: 'No action needed' | 'Working' | 'Watching' | 'Needs you'
+    messages: string[]
+    chips: string[]
+  } | null
 }
 
 /** What the workspace on screen can DO when the conversation asks. Never rendered. */
@@ -354,8 +369,39 @@ export function VidaConversationProvider({ children }: { children: React.ReactNo
           </div>
         )}
 
+        {/* ── ⚑ 9 Sep — VIDA'S HEADER, AND THE ONE WORD FOR HER POSTURE ──────────────────
+            🛑 FOUR MODES AND NO OTHERS: No action needed · Working · Watching · Needs you.
+            The pill is the fastest thing on the screen to read, so it must never say anything
+            the operator then has to interpret — "Needs you" is a promise there is something
+            here they can actually do. */}
+        {surface?.lifecycle && (
+          <div className="shrink-0 flex items-center gap-2 px-[22px] py-2.5 border-b border-[#f2ecfb]">
+            <span className="w-7 h-7 rounded-lg bg-gradient-to-br from-[#7C3AED] to-[#EC4899] text-white flex items-center justify-center text-[13px] font-extrabold">V</span>
+            <b className="text-[14.5px] text-[#1f1235]">Vida</b>
+            <span className="text-[12.5px] text-[#9b8ec4]">· operational &amp; watching</span>
+            <span className={`ml-auto flex items-center gap-1.5 text-[12.5px] font-extrabold ${
+              surface.lifecycle.mode === 'Needs you' ? 'text-[#c2410c]'
+              : surface.lifecycle.mode === 'Working' ? 'text-[#7C3AED]'
+              : surface.lifecycle.mode === 'Watching' ? 'text-emerald-700' : 'text-[#9b8ec4]'}`}>
+              <span className={`w-2 h-2 rounded-full ${
+                surface.lifecycle.mode === 'Needs you' ? 'bg-[#f97316]'
+                : surface.lifecycle.mode === 'Working' ? 'bg-[#7C3AED]'
+                : surface.lifecycle.mode === 'Watching' ? 'bg-emerald-500' : 'bg-[#cfc4e8]'}`} />
+              {surface.lifecycle.mode}
+            </span>
+          </div>
+        )}
+
         <div className="flex-1 overflow-y-auto px-[22px] py-3.5 space-y-2">
           {surface?.boardError && <div className="text-[13px] font-semibold text-red-600">{surface.boardError}</div>}
+          {/* ⚠️ THE STANDING STATE, ABOVE THE CONVERSATION AND ALWAYS PRESENT. These are not
+              chat turns — they are what is true right now, so they do not scroll away behind a
+              question the operator asked, and they are re-read from the server on every load. */}
+          {surface?.lifecycle?.messages.map((m, i) => (
+            <div key={`lc-${i}`}>
+              <span className="inline-block text-[13.5px] leading-relaxed rounded-xl px-3.5 py-2 max-w-[85%] text-left bg-[#f3ecff] text-[#1f1235]">{m}</span>
+            </div>
+          ))}
           {cmdLog.length === 0 && (
             <div className="text-[13.5px] text-[#9b8ec4] leading-relaxed max-w-lg">
               Ask Vida anything about <b className="text-[#5c5279]">{selectedName || 'this client'}</b> — or use a shortcut below.
@@ -437,6 +483,13 @@ export function VidaConversationProvider({ children }: { children: React.ReactNo
 
         <div className="shrink-0 px-[22px] pb-3">
           <div className="flex flex-wrap gap-1.5 mb-2">
+            {/* ⚑ 9 Sep — THE STATE'S OWN CHIPS COME FIRST. Two or three questions that are
+                worth asking AT THIS STAGE, in front of the two generic ones. They are not a
+                second navigation: each one is a sentence the operator would otherwise type. */}
+            {(surface?.lifecycle?.chips ?? []).map(c => (
+              <button key={`lc-${c}`} onClick={() => void runCommand(c)} disabled={cmdBusy}
+                className="text-[12.5px] font-bold text-[#7C3AED] bg-[#f7f4fd] border border-[#e4dcf7] rounded-full px-3 py-1 hover:bg-[#f0eafb] disabled:opacity-50">{c}</button>
+            ))}
             {["What's blocking?", 'Status'].map(c => (
               <button key={c} onClick={() => void runCommand(c)} disabled={cmdBusy}
                 className="text-[12.5px] font-semibold text-[#7C3AED] border border-[#e4dcf7] rounded-full px-3 py-1 hover:bg-[#f7f4fd] disabled:opacity-50">{c}</button>

@@ -1,10 +1,14 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import SequenceQuality, { type Quality } from '@/components/SequenceQuality'
 import { useVidaConversation } from '@/components/vida/VidaConversation'
 import { loadError, panelView, notice, noticeClass, noticeText, vatBadge, PACK_PRICE_USD, MAX_SEQUENCE_STEPS, type Notice } from '@kind/shared'
 import { programmeSourcingAction } from '@/lib/programme-sourcing-action'
+import { LifecycleRibbon } from '@/components/vida/LifecycleRibbon'
+import { LifecyclePanel } from '@/components/vida/LifecyclePanel'
+import { lifecycleCopy, type LifecycleState, type VidaMode, type PanelAction } from '@/lib/vida-lifecycle-copy'
+
 
 // #483–#485 — VIDA OPERATOR CONSOLE (working area).
 // Renders inside the Vida shell (app/vida/layout.tsx owns the top bar + rail): Clients
@@ -269,6 +273,9 @@ export default function VidaConsolePage() {
 
   // Per-client cockpit (ICP · Campaign · Sequence · Inbox) — one admin-key read.
   const [tab, setTab] = useState<CockpitTab>('Inbox')
+  // ⚑ 9 Sep — THE ELEVEN TABS ARE NO LONGER THE WORKSPACE. They are client TOOLS, closed by
+  // default and opened deliberately; the lifecycle panel above them is the Clients experience.
+  const [toolsOpen, setToolsOpen] = useState(false)
   const [cockpit, setCockpit] = useState<Cockpit | null>(null)
   // Declared here, not with the other derived values further down: an effect below uses it in
   // a DEPENDENCY ARRAY, which is evaluated during render — a later `const` would throw.
@@ -350,6 +357,38 @@ export default function VidaConsolePage() {
     // run is in flight; `last_preparation` is the audited outcome of the most recent run, which
     // is the ONLY record of an attempt whose HTTP response was lost at an edge.
     preparing?: boolean
+    // ⚑ 9 Sep — the two SEND switches, from the server. Make Live is not sending, and this
+    // screen must never imply it is.
+    send_controls?: { auto_outreach_enabled: boolean; operator_run_enabled: boolean }
+    // ⚑ 9 Sep — WHERE THIS CLIENT IS, AND WHETHER THE OPERATOR IS NEEDED.
+    //
+    // 🛑 A VERDICT, NOT INGREDIENTS. `deriveLifecycle` decided this on the server from facts a
+    // browser does not hold — readiness, preparation history, programme-scoped sends and
+    // replies, sender health and both send switches. Re-deriving any of it here would be a
+    // second opinion about whether there is work to do, and the copy beside it would be
+    // arguing with the filter in the nav.
+    lifecycle?: {
+      verdict: {
+        stage: string; stageIndex: number; stageLabel: string
+        state: LifecycleState; mode: VidaMode
+        needsYou: boolean; needsYouReason: string | null
+      }
+      counts: {
+        sourced: number; qualified: number; rejected: number; stillToCheck: number
+        enrolled: number; sends: number; replies: number; positive: number; meetings: number
+        repliesAwaitingDecision: number
+      }
+      programme: null | {
+        id: string; status: string; meetingTarget: number | null
+        entitlementUsed: number; entitlementTotal: number; entitlementRemaining: number
+      }
+      replyAwaiting: { id: string; name: string | null; company: string | null } | null
+      humanBlockers: { code: string; detail: string }[]
+      stoppedDetail: string | null
+      senderSendable: boolean
+      killSwitchOff: boolean
+      operatorRunEnabled: boolean
+    } | null
     last_preparation?: {
       at: string; ok: boolean; by: string | null; detail: string
       blockers: { code: string; detail: string }[]
@@ -601,6 +640,82 @@ export default function VidaConsolePage() {
     if (!p || p.paused_at) return false
     return ['DRAFT', 'RECOMMENDED', 'AWAITING_FIRST_PAYMENT', 'SOURCING_AUTHORISED', 'SOURCING'].includes(p.status)
   }
+
+  // ── ⚑ 9 Sep · RUN — THE ONLY DELIBERATE WAY REAL MAIL LEAVES ─────────────────────────
+  //
+  // 🛑 MAKE LIVE ARMS; RUN SENDS. The route this calls needs `FIGSY_OPERATOR_SEND_ENABLED` on
+  // the API, names EXACTLY ONE client, and takes an explicit ceiling — which is what makes a
+  // canary a canary rather than a book-wide send. It existed and Vida never called it, so the
+  // Thursday walk had no console path at all.
+  //
+  // ⚠️ THE CEILING IS TYPED, NEVER DEFAULTED. A pre-filled number is a number nobody chose.
+  const [runBusy, setRunBusy] = useState(false)
+  const [runMsg, setRunMsg] = useState<{ tone: 'ok' | 'warn' | 'error'; text: string } | null>(null)
+  const [runMax, setRunMax] = useState('')
+
+  // ⚑ 9 Sep — THE CEILING IS A PARAMETER NOW, because two surfaces type it: the lifecycle
+  // panel's own field and the programme tool below. Both must reach the SAME guard, the same
+  // confirmation and the same route — a second run implementation is a second set of rules
+  // about what leaves the building.
+  const runOnceWith = useCallback(async (ceiling: number) => {
+    const client = (clients ?? []).find(c => c.id === selected)
+    const who = client?.company_name ?? 'this client'
+    const n = ceiling
+    if (!Number.isInteger(n) || n < 1) {
+      setRunMsg({ tone: 'error', text: 'Enter the most emails this run may send — a whole number of 1 or more. Nothing was sent.' })
+      return
+    }
+    // 🛑 THE CONFIRMATION SAYS WHAT LEAVES THE BUILDING, and names the ceiling back.
+    if (!confirm(`Send up to ${n} real email${n === 1 ? '' : 's'} for ${who}?\n\nThese go to REAL prospects from ${who}'s own mailbox, on the approved sequence.\n\nThis is the only action that sends. It stops at ${n}.`)) return
+    setRunBusy(true); setRunMsg(null)
+    try {
+      const j = await fetch('/api/proxy/operator/send-due/run-once', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ client_id: selected, max_sends: n }),
+      }).then(r => r.json())
+      if (!j?.success) throw new Error(j?.error || 'The run did not complete.')
+      const d = (j.data ?? {}) as { sent?: number; attempted?: number; failed?: number }
+      // ⚠️ THE SERVER'S NUMBERS. A run that attempted and sent nothing is not a success story,
+      // so zero is reported as zero rather than as "done".
+      const sent = d.sent ?? 0
+      setRunMsg({
+        tone: sent > 0 ? 'ok' : 'warn',
+        text: `${sent} sent of ${d.attempted ?? 0} attempted${d.failed ? ` · ${d.failed} failed` : ''} (ceiling ${n}).` +
+          (sent === 0 ? ' Nothing left the building — check the sender, the schedule and the kill-switch.' : ''),
+      })
+      if (selected) await loadProgramme(selected)
+    } catch (e) {
+      setRunMsg({ tone: 'error', text: e instanceof Error ? e.message : 'The run did not complete. Read the client before trying again.' })
+    } finally { setRunBusy(false) }
+  }, [selected, clients, loadProgramme])
+
+  /** The programme tool's own button, which types its ceiling into `runMax`. */
+  const runOnce = useCallback(() => runOnceWith(Number(runMax.trim())), [runOnceWith, runMax])
+
+  /**
+   * Stop this programme's outreach without unwinding anything.
+   *
+   * ⚠️ ITS OWN CONFIRMATION, because pausing is the one control on the sender screen that
+   * changes the programme rather than the mailbox — and an operator reaching for "reconnect"
+   * must not pause by accident.
+   */
+  const pauseProgramme = useCallback(async () => {
+    const id = prog?.programme?.id
+    if (!id) return
+    const who = (clients ?? []).find(c => c.id === selected)?.company_name ?? 'this client'
+    if (!confirm(`Pause ${who}'s programme?\n\nOutreach stops. Nobody loses their place in the sequence, nothing is refunded and nothing is unwound.`)) return
+    setLcBusy('pause'); setLcMsg(null)
+    try {
+      const j = await fetch(`/api/proxy/programmes/${encodeURIComponent(id)}/pause`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}',
+      }).then(r => r.json())
+      if (!j?.success) throw new Error(j?.error || 'The programme was not paused.')
+      setLcMsg('Paused. Outreach has stopped and nobody lost their place.')
+      if (selected) await loadProgramme(selected)
+    } catch (e) {
+      setLcMsg(e instanceof Error ? e.message : 'The programme was not paused.')
+    } finally { setLcBusy(null) }
+  }, [prog, selected, clients, loadProgramme])
 
   const lifecycle = useCallback(async (action: string, label: string) => {
     const client = (clients ?? []).find(c => c.id === selected)
@@ -1728,6 +1843,13 @@ export default function VidaConsolePage() {
       // that spends the money. `null` for a client with no programme, which leaves the legacy
       // shortcut exactly as it was.
       programmeSourcing: programmeSourcingAction(prog),
+      // ⚑ 9 Sep — WHAT VIDA IS SAYING, AND HER POSTURE WHILE SHE SAYS IT. Published rather
+      // than fetched by the conversation for the same reason `programmeSourcing` is: this
+      // console already holds the server's verdict, and a second read could disagree with the
+      // panel beside it about whether the operator is needed at all.
+      lifecycle: lcCopy && lc
+        ? { mode: lc.verdict.mode, messages: lcCopy.messages, chips: lcCopy.chips }
+        : null,
     }, {
       intercept: (t: string) => {
         if (tab !== 'ICP' || icpMode !== 'chat') return false
@@ -1821,6 +1943,86 @@ export default function VidaConsolePage() {
   const myAlerts = selected ? (alertsByClient[selected] ?? []) : []
   const unansweredAsks = (asks ?? []).filter(a => a.answers.length === 0).length
 
+  // ── ⚑ 9 Sep · THE CLIENTS WORKSPACE BODY ────────────────────────────────────────────
+  //
+  // 🛑 THE SERVER'S VERDICT, RENDERED. `lc` is what `deriveLifecycle` decided from facts this
+  // browser does not hold; `copy` turns it into the three columns. Nothing here re-derives a
+  // stage, and no control appears because a component thought it should.
+  const lc = prog?.lifecycle ?? null
+  const lcCopy = useMemo(() => {
+    if (!lc) return null
+    return lifecycleCopy({
+      clientName: selectedName || selectedClient?.company_name || 'This client',
+      state: lc.verdict.state,
+      mode: lc.verdict.mode,
+      counts: lc.counts,
+      programme: lc.programme,
+      replyAwaiting: lc.replyAwaiting,
+      stoppedDetail: lc.stoppedDetail,
+      humanBlockers: lc.humanBlockers,
+      killSwitchOff: lc.killSwitchOff,
+      operatorRunEnabled: lc.operatorRunEnabled,
+      senderSendable: lc.senderSendable,
+    })
+  }, [lc, selectedName, selectedClient?.company_name])
+
+  /**
+   * ⚑ 9 Sep — THE ACCOUNT CARD, AND IT EXISTS BECAUSE THE ROW STOPPED CARRYING THESE.
+   *
+   * 🛑 TWO FOUNDER RULES MET AT ONCE. The approved client row is *name · stage · needs you* —
+   * "NO giant metrics in list rows" — so the VAT-evidence badge and the cold Suspended /
+   * Going-quiet state came off it. But #615's lesson is the opposite one: `vatBadge` shipped
+   * and NOTHING rendered it, so "no tax ID" was a fact an operator could only find by opening
+   * the client. Neither is rendered anywhere else in this console, so deleting them from the
+   * row alone would have deleted them from the product.
+   *
+   * ⚠️ IT APPEARS ONLY WHEN THERE IS SOMETHING TO SAY. A healthy account draws no card, so
+   * every state that the founder previewed looks exactly as previewed; the card is an
+   * exception surface, not a permanent panel.
+   */
+  const accountCard = useMemo(() => {
+    if (!selectedClient) return null
+    const vat = vatBadge({ vat_number: selectedClient.vat_number ?? null })
+    const cold = selectedWork?.cold
+    const notes: string[] = []
+    if (vat.tone === 'amber') notes.push(`No VAT evidence on file (${vat.label}).`)
+    // #619 — the API applies the exemption, so these cannot fire on an exempt account, and an
+    // exempt one is stated as exempt rather than as a red flag.
+    if (cold?.cold) notes.push('Suspended — this account has gone cold.')
+    else if (cold?.warn) notes.push('Going quiet — nothing has moved here for a while.')
+    if (notes.length === 0) return null
+    return { kind: 'note' as const, label: 'Account', body: notes.join(' ') }
+  }, [selectedClient, selectedWork])
+
+  /**
+   * The one action a state offers, routed to the capability that already exists.
+   *
+   * ⚠️ NOTHING NEW IS INVENTED HERE. Every branch is an existing route or an existing screen:
+   * the preparation retry, go-live, the operator run-once, the reply and booking surfaces, and
+   * the mailbox page. A lifecycle panel that reached for a route nobody had built would be a
+   * button that fails in front of a client's programme.
+   */
+  const onLifecycleAction = useCallback(async (key: PanelAction['key'], ceiling?: number) => {
+    switch (key) {
+      // The safe continuation: it prepares what is missing and re-freezes. Already-checked
+      // prospects are skipped, which is why the panel can promise the retry costs nothing.
+      case 'try_again': return void lifecycle('ready-for-approval', 'Try again')
+      case 'make_live': return void lifecycle('go-live', 'Make live')
+      case 'run': return void runOnceWith(ceiling ?? 0)
+      // Existing surfaces, opened in place rather than duplicated into this panel.
+      case 'handle_reply': setToolsOpen(true); setTab('Inbox'); return
+      case 'book_call': setToolsOpen(true); setTab('Bookings'); return
+      // 🛑 THE MAILBOX LIVES ON ITS OWN PAGE, and this sends the operator there rather than
+      // growing a second inbox editor inside the client workspace.
+      case 'reconnect_mailbox': window.location.href = '/vida/engine'; return
+      // ⚠️ PAUSE IS NOT A LADDER TRANSITION, so it does not go through `lifecycle()`. That
+      // helper carries the six approved DRAFT→LIVE moves and their money-bearing confirmations;
+      // a seventh action inside it would widen a boundary a guard deliberately holds at six.
+      case 'pause_programme': return void pauseProgramme()
+      default: return
+    }
+  }, [lifecycle, runOnceWith, pauseProgramme])
+
   return (
     <div className="flex h-full min-h-0">
       {/* ── ⚑ 4 Sep (UI-009) — THE DEDICATED CLIENTS COLUMN IS GONE ─────────────────────
@@ -1841,18 +2043,14 @@ export default function VidaConsolePage() {
           </div>
         )}
         {selected && (<>
-          {/* #501 FLOW ribbon */}
-          <div className="shrink-0 flex items-center gap-1 overflow-x-auto px-[22px] py-2 border-b border-[#eee7f7] bg-white">
-            {FLOW.map((step, i) => (
-              <span key={step} className="flex items-center gap-1 shrink-0">
-                <span className="flex items-center gap-1.5 text-[12px] font-semibold text-[#7c6f9b]">
-                  <span className="w-[18px] h-[18px] rounded-full bg-[#efeafc] text-[#7C3AED] text-[11px] font-bold flex items-center justify-center">{i + 1}</span>
-                  {step}
-                </span>
-                {i < FLOW.length - 1 && <span className="text-[#d9d0ee] px-0.5">&rsaquo;</span>}
-              </span>
-            ))}
-          </div>
+          {/* ── ⚑ 9 Sep — THE LOCKED LIFECYCLE RIBBON ────────────────────────────────
+              ⛓️ WHAT THIS REPLACES: `FLOW = ['Sign up','Build plan','Approve send','Qualify',
+              'Client approves','Follow-up','Book','Learn']` — eight words for OUR process,
+              with nothing lit, beside a second `FLOW_STEPS` strip that lit something else.
+              Two ribbons, two vocabularies, neither of them the client's lifecycle.
+              🛑 READ-ONLY. A stage is where the client IS; a clickable one would invite the
+              belief that an operator moves them, which is the belief this workspace removes. */}
+          <LifecycleRibbon stageIndex={lc?.verdict.stageIndex ?? null} />
 
           {/* THE CONSOLE: Vida (conversation) | cockpit (this client's work surfaces) */}
           <div className="flex-1 flex min-h-0">
@@ -2256,6 +2454,56 @@ export default function VidaConsolePage() {
                 </div>
               )}
 
+              {/* ── ⚑ 9 Sep — THE CLIENTS WORKSPACE BODY ────────────────────────────────
+                  🛑 THIS IS WHAT REPLACED THE ELEVEN TABS AS THE PRIMARY EXPERIENCE. The
+                  question an operator opens a client to ask is "what is happening, and do I
+                  need to do anything" — eleven permanent doors answered neither. One panel,
+                  this client's exact truth, and the one action if there genuinely is one. */}
+              {lcCopy && (
+                <LifecyclePanel
+                  clientName={selectedName || selectedClient?.company_name || 'This client'}
+                  subtitle={lcCopy.subtitle}
+                  cards={accountCard ? [...lcCopy.cards, accountCard] : lcCopy.cards}
+                  actions={lcCopy.actions}
+                  busy={lcBusy ?? (runBusy ? 'run' : null)}
+                  message={runMsg
+                    ? { text: runMsg.text, tone: runMsg.tone === 'error' ? 'err' : runMsg.tone === 'warn' ? 'warn' : 'ok' }
+                    : lcMsg ? { text: lcMsg, tone: 'ok' } : null}
+                  onAction={onLifecycleAction}
+                />
+              )}
+              {!lcCopy && (
+                <div className="flex-1 min-h-0 flex items-center justify-center px-6 text-center">
+                  <p className="text-[13px] text-[#9b8ec4] max-w-sm">
+                    {progErr
+                      ? `This client's state could not be read (${progErr}). Nothing has changed, and nothing is sending.`
+                      : 'Reading this client…'}
+                  </p>
+                </div>
+              )}
+
+              {/* ── ⚑ 9 Sep — CLIENT TOOLS: THE ELEVEN TABS, DEMOTED BUT NOT DELETED ──────
+                  ⛓️ THEY WERE THE WORKSPACE; THEY ARE NOW TOOLS, and closed by default.
+                  🛑 AND THEY ARE STILL HERE ON PURPOSE. The ICP editor, the sequence editor,
+                  the campaign settings, the asks and the pool have NO other home in this
+                  product — deleting the strip would make working capability unreachable,
+                  which is the one thing the founder ruled out ("do NOT delete its underlying
+                  capabilities"). Demoting them is what makes the lifecycle the experience;
+                  removing them would have made it the only experience by taking things away.
+                  ⚠️ ONE DISCLOSURE, NOT A SECOND NAVIGATION. Closed, it is a single line. */}
+              <div className="shrink-0 border-t border-[#eee7f7]">
+                <button
+                  onClick={() => setToolsOpen(o => !o)}
+                  aria-expanded={toolsOpen}
+                  className="w-full flex items-center gap-2 px-4 py-2.5 text-[12.5px] font-bold text-[#9b8ec4] hover:text-[#7C3AED] hover:bg-[#faf8ff] transition-colors">
+                  <span className={`transition-transform ${toolsOpen ? 'rotate-90' : ''}`}>&rsaquo;</span>
+                  Client tools
+                  <span className="text-[11.5px] font-semibold text-[#c4bade]">
+                    the ICP, the words, the campaign and the pool
+                  </span>
+                </button>
+              </div>
+              {toolsOpen && (<>
               {/* ── ⚑ 4 Sep (UI-009) — ELEVEN TABS WRAP; THEY DO NOT HIDE ────────────────
                   🛑 MEASURED: the strip needs 894px and had 304 at 1440px, so eight of the
                   eleven sat off-screen behind an `overflow-x-auto` with no scrollbar and no
@@ -3209,7 +3457,7 @@ export default function VidaConsolePage() {
                         )}
                         {prog.programme.status === 'LIVE' && (
                           <span className="text-[12.5px] font-semibold text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-lg px-2.5 py-1.5">
-                            Live — sending still obeys every downstream safety gate.
+                            Live — armed. Nothing has been sent by making it live.
                           </span>
                         )}
                         {prog.preparing === true && (
@@ -3219,6 +3467,69 @@ export default function VidaConsolePage() {
                         )}
                       </div>
                       {lcMsg && <p className="text-[12px] text-[#6b5f8c] mt-2">{lcMsg}</p>}
+
+                      {/* ── ⚑ 9 Sep · SENDING, AND THE RUN THAT IS THE ONLY WAY IT HAPPENS ────────
+                          🛑 THE LOCKED WORDING. Kill-switch ON means sending is BLOCKED; OFF
+                          means it is PERMITTED, subject to every other gate. A bare "OFF" under
+                          "SENDING" reads as the opposite of what it means, so the state is
+                          spelled out and the switch is named beside it, never alone.
+                          🛑 AND MAKE LIVE IS NOT SENDING. A programme can be LIVE with nothing
+                          going out. This says which is true rather than letting a status imply
+                          it. */}
+                      {prog.programme.status === 'LIVE' && prog.send_controls && (
+                        <div className="mt-3 border border-[#eee7f7] rounded-xl px-3.5 py-3">
+                          <div className="text-[11.5px] uppercase tracking-wide text-[#9b8ec4] font-bold mb-1">Sending</div>
+                          {/* ⚑ 9 Sep — THE APPROVED TWO-LINE FORM, from the locked preview set:
+                              the STATE on its own line, the SWITCH named beneath it. One combined
+                              sentence made "Permitted" and "OFF" compete for the same glance, and
+                              the founder's correction pass is explicit that a bare OFF under
+                              SENDING must never appear and the state must lead. */}
+                          <p className="text-[13.5px] font-bold text-[#5c5279]">
+                            {prog.send_controls.auto_outreach_enabled ? 'Permitted' : 'Blocked'}
+                          </p>
+                          <p className="text-[12px] text-[#9b8ec4] mt-0.5">
+                            {prog.send_controls.auto_outreach_enabled
+                              ? 'Kill-switch OFF — sending is permitted, subject to every other gate.'
+                              : 'Kill-switch ON — nothing is delivered on any channel.'}
+                          </p>
+                          {/* ⛓️ 9 Sep — THE RUN LINE NOW READS THE KILL-SWITCH FIRST, because the
+                              server does. Run used to be offered whenever its own env key was set,
+                              on the old model where an operator run sent past the kill-switch. It
+                              does not: KILL-SWITCH ON = NOTHING SENDS, no exception for a run. A
+                              button that would be refused 503 is a button that must not be drawn. */}
+                          <p className="text-[12px] text-[#9b8ec4] mt-1.5">
+                            {!prog.send_controls.auto_outreach_enabled
+                              ? 'Run cannot start while the kill-switch is ON. It is not an exception to it.'
+                              : prog.send_controls.operator_run_enabled
+                                ? 'Run is available: it sends up to a ceiling you type, for this client only.'
+                                : 'Run is unavailable — FIGSY_OPERATOR_SEND_ENABLED is not set on the API, so no run can start.'}
+                          </p>
+                          {prog.send_controls.operator_run_enabled && prog.send_controls.auto_outreach_enabled && (
+                            <div className="flex flex-wrap items-center gap-2 mt-2.5">
+                              <input
+                                value={runMax}
+                                onChange={e => setRunMax(e.target.value)}
+                                inputMode="numeric"
+                                placeholder="Max emails"
+                                className="w-28 text-[12.5px] border border-[#e3daf7] rounded-lg px-2.5 py-1.5"
+                              />
+                              <button
+                                onClick={runOnce}
+                                disabled={runBusy}
+                                className="text-[12.5px] font-bold text-white bg-[#059669] rounded-lg px-2.5 py-1.5 disabled:opacity-50">
+                                {runBusy ? '…' : 'Run once'}
+                              </button>
+                            </div>
+                          )}
+                          {runMsg && (
+                            <p className={`text-[12px] mt-2 font-semibold ${
+                              runMsg.tone === 'ok' ? 'text-emerald-800'
+                              : runMsg.tone === 'warn' ? 'text-amber-800' : 'text-red-700'}`}>
+                              {runMsg.text}
+                            </p>
+                          )}
+                        </div>
+                      )}
                       {/* ── ⛓️ 9 Sep · THE LAST PREPARATION ATTEMPT, AND WHAT STILL BLOCKS ──────────
                           🛑 THIS IS THE RECORD OF A RUN WHOSE RESPONSE WAS LOST. The founder's
                           House press died at an edge; the API finished anyway and told nobody.
@@ -3531,6 +3842,7 @@ export default function VidaConsolePage() {
                   </>)}
                 </>)}
               </div>
+              </>)}
             </aside>
           </div>
         </>)}

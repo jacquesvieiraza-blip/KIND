@@ -126,8 +126,35 @@ export const PREPARATION_REQUIREMENTS = [
  * asserts every entry is a real requirement and that the un-clearable ones are absent.
  */
 export const PREPARATION_CLEARS: string[] = [
-  'no_campaign', 'campaign_not_programme_linked', 'no_sequence', 'sequence_not_campaign_linked',
-  'no_message_steps', 'no_cadence', 'no_send_schedule', 'no_eligible_enrolments', 'no_snapshot',
+  'no_campaign', 'campaign_not_programme_linked', 'no_eligible_enrolments', 'no_snapshot',
+  // ⛓️ 9 Sep, LATER THE SAME DAY — THE FIVE BELOW CAME BACK, AND THE REASON IS A REAL CHANGE
+  // IN WHAT PREPARATION DOES, not a relaxation of this rule. They were split out that morning
+  // because preparation auto-applied a sequence and a schedule for exactly ONE programme (the
+  // configured House launch programme) and for every paying client the words had to be
+  // hand-authored — so listing them unconditionally drew a button that could not possibly
+  // succeed. Preparation now writes any programme's sequence from that client's own knowledge,
+  // approved brief and qualified audience (`programme-sequence-generation.ts`), and sets the
+  // conservative default schedule, so these ARE cleared for everybody and the split has no
+  // subject left. **If that generation branch is ever removed, these five must move back out.**
+  'no_sequence', 'sequence_not_campaign_linked', 'no_message_steps', 'no_cadence', 'no_send_schedule',
+]
+
+/**
+ * The five requirements that depend on a programme having an automatic sequence source.
+ *
+ * ⛓️ KEPT AS A NAMED GROUP, NOW UNCONDITIONAL. For half of 9 Sep these were conditional: only
+ * the configured House launch programme auto-applied a sequence and schedule, so promising them
+ * for a paying client drew a button that could never succeed. Preparation now writes ANY
+ * programme's sequence from its own client context, so the condition has no subject and the
+ * group lives inside `PREPARATION_CLEARS`.
+ *
+ * ⚠️ IT IS STILL EXPORTED, AND ON PURPOSE. These five stand or fall together with the
+ * generation branch in `programme-preparation.ts`. Naming the group keeps that dependency
+ * legible — and a test asserts every one of them is in `PREPARATION_CLEARS`, so removing
+ * generation without moving them back out fails loudly rather than promising a dead button.
+ */
+export const PREPARATION_CLEARS_WITH_AUTO_SEQUENCE: string[] = [
+  'no_sequence', 'sequence_not_campaign_linked', 'no_message_steps', 'no_cadence', 'no_send_schedule',
 ]
 
 /**
@@ -139,6 +166,13 @@ export const PREPARATION_CLEARS: string[] = [
  *
  * ⚠️ AND IT NEVER MEANS READY. A programme with no blockers at all is `ready`, and this returns
  * false for it: the two answers are different questions and a caller must not conflate them.
+ *
+ * ⛓️ 9 Sep — THE `autoSequence` OPTION IS GONE, AND ITS DUTY IS DISCHARGED RATHER THAN DROPPED.
+ * It existed for the hours when only House could auto-apply a sequence, and it required the
+ * caller to PROVE that capability so a fresh client was never offered a button that could not
+ * clear `no_sequence`. Preparation now writes any programme's sequence, so the capability is
+ * universal and a per-caller proof of it would be a proof of a constant — the worse failure
+ * mode, because it invites a caller to pass `false` and re-hide a control that does work.
  */
 export function onlyPreparationBlocks(blockers: readonly PreparationBlocker[]): boolean {
   if (blockers.length === 0) return false

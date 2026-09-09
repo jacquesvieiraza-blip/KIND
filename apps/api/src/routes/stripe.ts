@@ -380,7 +380,30 @@ stripeRouter.post('/webhook', async (req: Request, res: Response) => {
           // ⚠️ NO startWorkForClient CALL HERE, DELIBERATELY. The first 50% buys AUTHORITY to
           // source up to the full recommended volume, executed in controlled ~250 batches
           // under K.I.N.D's GO — not an immediate run (founder lock 4).
-          console.log(`[Stripe] programme ${meta.programmeId} first payment ${r.alreadyRecorded ? 'already recorded (replay)' : 'recorded'} — sourcing authorised, NOT started.`)
+          // ── ⛓️ 9 Sep — AND NOW IT STARTS (founder-locked) ────────────────────────────────
+          //
+          // 🛑 THE RULE: once valid P1 authority exists for an exact programme, source →
+          // enrich → qualify → account → prepare must continue AUTOMATICALLY. Until this line
+          // `sourceProgramme` had one caller and it was an operator route, so a client could
+          // pay and nothing would happen until a human noticed.
+          //
+          // ⚠️ THE WEBHOOK STILL DOES NOT SPEND. The old rule — "payment must never start
+          // sourcing" — was about an UNCHECKED webhook spending money, and that concern is met
+          // by the shape rather than by refusing to start: the authority is COMMITTED first
+          // (immediately above, by a compare-and-set), and `startProgrammeAfterP1` then
+          // re-proves every fact from the row before a single provider call.
+          //
+          // 🛑 ONLY WHEN THIS DELIVERY ACTUALLY CLAIMED THE ROW. `alreadyRecorded` means a
+          // redelivery of a payment already recorded; starting there is how one payment becomes
+          // two sourcing runs. The compare-and-set inside `recordFirstPayment` is what makes
+          // this safe, and this is the line that uses it.
+          if (!r.alreadyRecorded) {
+            const { startProgrammeAfterP1 } = await import('../lib/programme-p1-continuation')
+            const started = await startProgrammeAfterP1(meta.programmeId, 'stripe_first_payment', 'stripe-webhook')
+            console.log(`[Stripe] programme ${meta.programmeId} first payment recorded — ${started.detail}`)
+          } else {
+            console.log(`[Stripe] programme ${meta.programmeId} first payment already recorded (replay) — nothing started.`)
+          }
           res.sendStatus(200); return
         }
 
@@ -1038,6 +1061,39 @@ stripeRouter.post('/webhook', async (req: Request, res: Response) => {
       // emailing prospects in this client's name — on our sending reputation, for someone
       // who has just taken their money back. Pause their active campaigns and let the
       // operator decide. Reversible in one click in Vida (Campaign → Run it).
+      // ── ⛓️ 9 Sep — A PROGRAMME PAYMENT REVERSAL MUST REACH THE PROGRAMME ────────────────
+      //
+      // 🛑 WHAT WAS UNSAFE. This handler paused the client's ACTIVE CAMPAIGNS and stopped
+      // there. The programme row itself was untouched: no `disputed_at`, no `paused_at`, and
+      // `checkProgrammeAuthority` therefore still granted OUTREACH. So the money was reversed,
+      // the campaigns were paused — and any legacy activation path could wake them straight
+      // back up, because the authority that decides whether this programme may send at all
+      // still said yes. Pausing the symptom while the authority stays live is not a stop.
+      //
+      // ⚠️ IT REVERSES NOTHING AND DELETES NOTHING. `recordDispute` stamps `disputed_at` and
+      // pauses; the programme, its batches, its payment timestamps and its ledger rows are all
+      // preserved as evidence. No refund accounting is fabricated here — Stripe is the record
+      // of the money, and this is the record of the delivery stopping.
+      //
+      // ⚠️ IDEMPOTENT. Stripe redelivers; `recordDispute` keeps the FIRST stamp and alerts once.
+      if (meta.programmeId && typeof meta.programmeId === 'string') {
+        const { recordDispute } = await import('../lib/programme')
+        const kind = event.type === 'charge.dispute.created' ? 'dispute' as const : 'refund' as const
+        const r = await recordDispute(
+          meta.programmeId,
+          `Stripe ${event.type} on charge ${obj.id}${meta.type ? ` (${meta.type})` : ''}.`,
+          kind,
+        )
+        if (!r.ok) {
+          console.error(`[Stripe] ${event.type} — programme ${meta.programmeId} could not be stopped: ${r.reason}`)
+          void sendFounderAlert('payment_failed', 'A programme payment was reversed and the programme could NOT be stopped', [
+            `Programme ${meta.programmeId}, client ${meta.clientId ?? 'unknown'}.`,
+            `Reason: ${r.reason}`,
+            'Pause this programme by hand in Vida — its outreach authority may still be live.',
+          ])
+        }
+      }
+
       if (meta.clientId) {
         const { data: paused } = await db.from('figsy_campaigns')
           .update({ status: 'paused' })

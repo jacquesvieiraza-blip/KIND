@@ -71,7 +71,8 @@ export type SmartleadDecision =
  */
 export function canPushToSmartlead(a: {
   hasApiKey: boolean
-  killSwitchOn: boolean
+  /** ⚠️ HOLDS *PERMITTED*, NOT *ENGAGED*. `true` = the kill-switch is OFF and delivery may proceed. */
+  outreachDeliveryPermitted: boolean
   isDemo: boolean
   isHouseClient: boolean
   /** The client has a `client_inboxes` row with provider `smartlead-api`. */
@@ -100,9 +101,9 @@ export function canPushToSmartlead(a: {
     return { ok: false, reason: 'is_demo',
       detail: 'This is a demo account. A demo can never reach a real person — every address is .invalid and this is a hard stop, not a setting.' }
   }
-  if (!a.killSwitchOn) {
+  if (!a.outreachDeliveryPermitted) {
     return { ok: false, reason: 'kill_switch_off',
-      detail: 'AUTO_OUTREACH_ENABLED is off, so nothing is pushed to Smartlead. This is the safe default and it governs Smartlead exactly as it governs Instantly and SMTP.' }
+      detail: 'The kill-switch is ON (AUTO_OUTREACH_ENABLED is not "true"), so nothing is pushed to Smartlead. This is the safe default and it governs Smartlead exactly as it governs Instantly and SMTP.' }
   }
   // THE MIRROR OF INSTANTLY'S `not_house_client`, and the reason both exist.
   //
@@ -162,7 +163,7 @@ export function canPushToSmartlead(a: {
 export function smartleadRefusalLabel(r: SmartleadRefusal): string {
   switch (r) {
     case 'no_api_key':          return 'Smartlead API key not set'
-    case 'kill_switch_off':     return 'outreach is switched off'
+    case 'kill_switch_off':     return 'the kill-switch is ON — nothing is delivered on any channel'
     case 'is_demo':             return 'demo account — can never send'
     case 'is_house_client':     return 'the house account — our own outreach goes via Instantly'
     case 'no_smartlead_inbox':  return 'client has no Smartlead mailbox to send from'

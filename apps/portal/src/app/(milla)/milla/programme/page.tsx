@@ -29,9 +29,12 @@ import { api } from '@/lib/api'
 import { createClient } from '@/lib/supabase/client'
 import { MILLA_FAILURE_COPY } from '@kind/shared'
 import ProgrammeWorkspace, { type CustomerProgramme } from '@/components/milla/ProgrammeWorkspace'
+import ProgrammeApproval, { type ApprovalPayload } from '@/components/milla/ProgrammeApproval'
+import ProgrammePayment from '@/components/milla/ProgrammePayment'
 
 export default function ProgrammePage() {
   const [p, setP] = useState<CustomerProgramme | null>(null)
+  const [review, setReview] = useState<ApprovalPayload | null>(null)
   const [failed, setFailed] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -42,6 +45,13 @@ export default function ProgrammePage() {
         const { data: { session } } = await supabase.auth.getSession()
         const r = await api.get<{ data: CustomerProgramme }>('/my/programme', session?.access_token)
         setP(r.data)
+        // ⚠️ THE REVIEW IS A SEPARATE, NON-FATAL READ. A programme that loads but whose review
+        // set does not must still render the programme — the approval section simply does not
+        // appear, rather than the whole screen failing.
+        try {
+          const rev = await api.get<{ data: ApprovalPayload }>('/my/programme/review', session?.access_token)
+          setReview(rev.data)
+        } catch { setReview(null) }
       } catch (e) {
         // ⚠️ THE SERVER'S SENTENCE WINS. It sends the locked copy; this only falls back to the
         // same constant when the request never reached a response at all.
@@ -77,6 +87,46 @@ export default function ProgrammePage() {
   return (
     <div className="h-full overflow-y-auto p-5 sm:p-6">
       <ProgrammeWorkspace p={p} />
+      {/* ⚑ 9 Sep — THE APPROVAL, WHERE THE CLIENT ALREADY IS. It renders only when there is a
+          programme awaiting their decision, or one they have already given; at every other
+          stage this is silent. The server decides which of those it is. */}
+      {/* ── ⚑ 9 Sep · THE TWO MOMENTS THE CLIENT IS ASKED FOR MONEY ──────────────────────
+          🛑 A CLIENT COULD NOT PAY AT ALL. The checkout rails exist behind the admin key, so
+          the only way to take a programme payment was for an operator to mint a link by hand.
+          These render only when that half is genuinely due — never for an internally
+          authorised programme, which owes nothing and must never be shown a price to pay. */}
+      {p.hasProgramme && !p.money.firstPaidAt && !p.money.firstAuthorisedAt
+        && (p.stage === 'Recommendation') && (
+        <div className="mt-3">
+          <ProgrammePayment
+            stage="first"
+            totalCents={p.money.totalCents}
+            halfCents={p.money.firstPaymentCents ?? 0}
+            meetingTarget={p.outcome.target}
+          />
+        </div>
+      )}
+      {p.hasProgramme && p.approvedAt && !p.wentLiveAt
+        && !p.money.secondPaidAt && !p.money.secondAuthorisedAt && (
+        <div className="mt-3">
+          <ProgrammePayment
+            stage="second"
+            totalCents={p.money.totalCents}
+            halfCents={p.money.secondPaymentCents ?? 0}
+            meetingTarget={p.outcome.target}
+          />
+        </div>
+      )}
+      {review?.programme && (review.canApprove || review.programme.approved_at) && (
+        <div className="mt-3">
+          <ProgrammeApproval
+            data={review}
+            onApproved={at => setReview(r => (r && r.programme
+              ? { ...r, canApprove: false, programme: { ...r.programme, approved_at: at, status: 'APPROVED' } }
+              : r))}
+          />
+        </div>
+      )}
     </div>
   )
 }

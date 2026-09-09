@@ -9,7 +9,7 @@ import {
 // building?* and *what exactly gets sent?* — are asserted against pure functions, because a
 // wrong field name does not throw: it sends a blank first name to a real person.
 
-const ALLOWED = { hasApiKey: true, killSwitchOn: true, isDemo: false, isHouseClient: true, leadEmail: 'a@b.com' }
+const ALLOWED = { hasApiKey: true, outreachDeliveryPermitted: true, isDemo: false, isHouseClient: true, leadEmail: 'a@b.com' }
 
 // ── THE GATES ─────────────────────────────────────────────────────────────────────────
 // Nothing here relaxes anything. These prove the existing gates still bite on the new path.
@@ -28,13 +28,13 @@ describe('canPushToInstantly — every existing gate still applies', () => {
     // This is the assertion that survives a future reordering. If someone moves the demo
     // check behind a cheaper test, this fails.
     const d = canPushToInstantly({
-      hasApiKey: false, killSwitchOn: false, isDemo: true, isHouseClient: false, leadEmail: null,
+      hasApiKey: false, outreachDeliveryPermitted: false, isDemo: true, isHouseClient: false, leadEmail: null,
     })
     expect(!d.ok && d.reason).toBe('is_demo')
   })
 
   it('the kill-switch governs Instantly exactly as it governs SMTP', () => {
-    const d = canPushToInstantly({ ...ALLOWED, killSwitchOn: false })
+    const d = canPushToInstantly({ ...ALLOWED, outreachDeliveryPermitted: false })
     expect(!d.ok && d.reason).toBe('kill_switch_off')
   })
 
@@ -54,7 +54,7 @@ describe('canPushToInstantly — every existing gate still applies', () => {
 
   it('every refusal carries a reason a human can act on', () => {
     for (const bad of [
-      { ...ALLOWED, isDemo: true }, { ...ALLOWED, killSwitchOn: false },
+      { ...ALLOWED, isDemo: true }, { ...ALLOWED, outreachDeliveryPermitted: false },
       { ...ALLOWED, isHouseClient: false }, { ...ALLOWED, hasApiKey: false },
       { ...ALLOWED, leadEmail: null },
     ]) {

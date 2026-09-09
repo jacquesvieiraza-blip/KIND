@@ -242,7 +242,13 @@ describe('④ persisting the words is not approving, sending or scheduling anyth
       expect(SRC, `the apply reaches ${banned}`).not.toContain(banned)
     }
     // Exactly two update targets: the canonical sequence, and the programme's schedule.
-    expect(SRC).toContain("db.from('figsy_sequences')")
+    //
+    // ⛓️ RETARGETED 9 Sep — the sequence WRITE moved to `applyProgrammeSequence`, the single
+    // generic writer every programme now uses. This file was the only thing in the product that
+    // set `figsy_sequences.campaign_id`, which is precisely why House could reach
+    // READY_FOR_APPROVAL and no paying client could. The duty is unchanged: House writes the
+    // canonical sequence and the schedule, and nothing else.
+    expect(SRC).toContain('applyProgrammeSequence(programmeId, steps')
     expect(SRC).toContain('send_schedule: HOUSE_SEND_SCHEDULE')
     // 🛑 AND NOT THE LEGACY STORE. Writing the words into campaign settings too would recreate
     // the dual truth this package spent a whole pass removing.
@@ -264,7 +270,13 @@ describe('④ persisting the words is not approving, sending or scheduling anyth
     for (const dir of roots) {
       for (const f of readdirSync(dir)) {
         if (!f.endsWith('.ts') || f.endsWith('.test.ts') || f === 'house-sequence.ts') continue
-        if (readFileSync(join(dir, f), 'utf8').includes('applyHouseProgrammeSequence')) callers.push(f)
+        // ⛓️ RETARGETED 9 Sep — EXECUTABLE LINES ONLY. `programme-sequence.ts` explains, in
+        // its header, that House now delegates to it; a bare file search read that sentence as
+        // a second caller. The duty — one caller, and it is the preparation orchestrator — is
+        // unchanged.
+        const body = readFileSync(join(dir, f), 'utf8')
+          .split('\n').filter(l => !l.trim().startsWith('//') && !l.trim().startsWith('*')).join('\n')
+        if (body.includes('applyHouseProgrammeSequence')) callers.push(f)
       }
     }
     expect(callers, `applyHouseProgrammeSequence is invoked by: ${callers.join(', ')}`)
@@ -273,14 +285,30 @@ describe('④ persisting the words is not approving, sending or scheduling anyth
 
   it('🛑 it refuses rather than creating a campaign', async () => {
     const SRC = await src
-    expect(SRC).toContain('if (!campaignId) {')
-    expect(SRC).toContain('Run preparation first')
+    // ⛓️ RETARGETED 9 Sep — the campaign refusal moved with the write, into the generic
+    // `applyProgrammeSequence`. It is asserted there, and House still surfaces its reason.
+    const { readFileSync: rf } = await import('fs')
+    const { join: jn } = await import('path')
+    const GEN = rf(jn(__dirname, 'programme-sequence.ts'), 'utf8')
+    expect(GEN).toContain('if (!campaignId) {')
+    expect(GEN, 'the generic writer creates a campaign instead of refusing')
+      .not.toContain('ensureCampaignForIcp')
+    // The operator-facing sentence moved with the refusal, and still names the fix.
+    expect(GEN).toContain('Prepare the programme first')
   })
 
   it('🛑 it is idempotent — a second run updates, it does not add a rival sequence', async () => {
     const SRC = await src
-    expect(SRC).toContain('if (sequenceId) {')
-    expect(SRC).toContain(".update({ steps, campaign_id: campaignId")
+    // ⛓️ RETARGETED 9 Sep — idempotency moved into the generic writer with the write itself.
+    // It is now STRONGER than the rule this case pinned: the generic writer updates the row
+    // that exists, and REFUSES outright if it ever finds two, because a campaign carrying two
+    // canonical sequences is a programme `resolveProgrammeChain` will not resolve at all.
+    const { readFileSync: rf2 } = await import('fs')
+    const { join: jn2 } = await import('path')
+    const GEN2 = rf2(jn2(__dirname, 'programme-sequence.ts'), 'utf8')
+    expect(GEN2).toContain('if (rows[0]) {')
+    expect(GEN2).toContain('rows.length > 1')
+    expect(GEN2).toContain("campaign_id: campaignId")
     // A rival sequence on one campaign is exactly what `resolveProgrammeChain` refuses to
     // choose between, so creating one would BREAK the programme rather than duplicate it.
   })

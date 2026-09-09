@@ -33,12 +33,24 @@ describe('FIX 2 — an unresolved proof review keeps its client on the list', ()
   // group. Same three rules, asserted on the file that runs them.
   const clientsCode = VIDA_CLIENTS.split('\n').filter(l => !l.trim().startsWith('//') && !l.trim().startsWith('*') && !l.trim().startsWith('/*')).join('\n')
 
-  it('the Only-needs-you filter admits a proof_review client', () => {
+  // ⛓️ RETARGETED 9 Sep — THE FILTER'S PRIMARY RULE CHANGED; THIS CASE'S DUTY DID NOT.
+  //
+  // The primary rule was the worklist's `next.actor === 'you'` — "whose turn is it". The
+  // Clients workspace replaced it with the server's own lifecycle verdict, which is a much
+  // narrower question: a real retry, Make Live, a usable Run, a reply waiting on a person, a
+  // stopped sender, or a blocker only a human can clear.
+  //
+  // 🛑 THIS CASE IS ABOUT THE ADMISSION, NOT THE RULE. FIX 2 exists because a proof-exhausted
+  // prospect is BY DEFINITION never funded, so the worklist parks them on "waiting on their
+  // $299" with `actor: 'them'` — filtered out of Needs you, and that client is exactly who the
+  // review is about. That hazard is unchanged under the new rule (a client at Proof is never
+  // `needs_you` either), so the explicit admission has to survive, and it does.
+  it('the Needs-you filter admits a proof_review client', () => {
     const at = clientsCode.indexOf('const visible ')
     expect(at, 'the client-list filter was not found').toBeGreaterThan(-1)
     const filter = clientsCode.slice(at, at + 500)
 
-    expect(filter, 'the worklist rule must still be the primary one').toContain("next.actor === 'you'")
+    expect(filter, 'the primary rule must be the server\'s lifecycle verdict').toContain('needsYou(c.id)')
     expect(filter, 'a proof-review client must survive the filter').toContain('proofReview.has(c.id)')
     expect(filter, 'the selected client must still be kept').toContain('c.id === selected')
   })
@@ -54,15 +66,18 @@ describe('FIX 2 — an unresolved proof review keeps its client on the list', ()
     expect(block).toContain('a.client_id')
   })
 
-  it('an ordinary actor=them client is NOT admitted — the filter still filters', () => {
-    // The failure this pairs against: "make everything visible" would satisfy the test above
-    // and destroy the filter. The only added disjunct is the proof-review one, and there is
-    // no unconditional escape hatch beside it.
+  it('an ordinary client with nothing to do is NOT admitted — the filter still filters', () => {
+    // ⛓️ 9 Sep — the gate was `onlyNeedsYou`; it is now the URL the Clients rail sets, so the
+    // filter has ONE control and one place its state lives. The duty is that the admission is
+    // an EXCEPTION for proof review and the selected client, never a hole that lets everybody
+    // through — a filter that admits every client is a filter nobody reads.
     const at = clientsCode.indexOf('const visible ')
     const filter = clientsCode.slice(at, at + 500)
-    expect(filter).not.toContain("next.actor === 'them'")
-    expect(filter).not.toMatch(/\|\|\s*true/)
-    expect(filter, 'the filter must still be gated on onlyNeedsYou').toContain('onlyNeedsYou')
+    expect(filter, 'the filter must still be gated on the URL the rail sets').toContain('needsFilter')
+    expect(filter, 'the filter admits everybody').not.toContain('|| true')
+    // Only three ways in: the server said so, an unresolved proof review, or you are reading it.
+    const admissions = (filter.match(/\|\|/g) ?? []).length
+    expect(admissions, 'a fourth admission was added without a reason').toBeLessThanOrEqual(2)
   })
 })
 

@@ -126,6 +126,31 @@ vi.mock('./start-work', () => ({
 // `prepareOnly` is recorded so this file can prove pre-approval preparation asks for a row and
 // no outreach.
 vi.mock('./figsy', () => ({
+  // ⛓️ 9 Sep — ADDED because preparation now writes a sequence for programmes that are NOT the
+  // House launch one. These two are what that branch reaches for. The draft below is
+  // deliberately NOTHING like House's approved copy: every assertion in §⑩ is that House's five
+  // messages reach exactly one programme, and a generic draft that resembled them would make
+  // those assertions pass for the wrong reason.
+  //
+  // ⚠️ THE COPY BELOW PASSES `lintSequence`, WHICH IS NOT A DETAIL. Generation fails closed on a
+  // hard quality failure, so a lazy fixture ("following up briefly", no opt-out line) makes the
+  // positive case fail for a reason that has nothing to do with what it is testing — and the
+  // linter's rules are exactly the ones the real prompt is written to satisfy.
+  generateSequence: async () => ({
+    step1: {
+      subject: 'a question about routing',
+      body: 'Hi Ana,\n\nI noticed Meridian Freight opened two new depots this year. The operations leads I speak to say the same thing: the depots are the easy part, and the routing between them is where the margin goes.\n\nWe fixed that for three carriers your size. Worth a look?\n\nJacques\n\nReply STOP to opt out.',
+    },
+    step2: {
+      subject: 'the empty leg problem',
+      body: 'Hi Ana,\n\nOne specific thing from my last note. Across the carriers we work with, empty running sat near a fifth of total miles before anybody measured it properly.\n\nHappy to show you the numbers we started from.\n\nJacques\n\nReply STOP to opt out.',
+    },
+    step3: {
+      subject: 'closing the loop',
+      body: 'Hi Ana,\n\nLast note from me. If routing is not the thing keeping you up, I will leave it there.\n\nJacques\n\nReply STOP to opt out.',
+    },
+  }),
+  getClientKnowledgeForOutreach: async () => undefined,
   autoEnrollLead: async (
     leadId: string, clientId: string,
     opts?: { programmeFulfilment?: { programmeId: string }; prepareOnly?: boolean },
@@ -933,6 +958,13 @@ describe('⑨ only genuinely review-surfaced programme work is prepared for outr
 
 describe('⑩ only the ONE configured launch programme is ever seeded with the approved copy', () => {
   /** The configured launch programme, and a rival that is House in every other respect. */
+  // ⛓️ RETARGETED 9 Sep — THE DUTY IS UNCHANGED AND THE ASSERTION IS SHARPER. These nine cases
+  // read `expect(storedFor(X)).toEqual([])` — "no sequence at all" — which was the same thing as
+  // "not House's copy" only while a non-House programme could not get a sequence by any route.
+  // Preparation now writes one from the client's OWN context, so "nothing was written" has
+  // stopped being the question. What must never happen is what it always was: **the approved
+  // launch copy reaching a programme it was not written for.** That is asserted directly now, on
+  // the words, rather than inferred from an empty table.
   const LAUNCH = '11111111-1111-4111-8111-111111111111'
   const RIVAL  = '22222222-2222-4222-8222-222222222222'
 
@@ -957,6 +989,12 @@ describe('⑩ only the ONE configured launch programme is ever seeded with the a
       id: `lead-${id}`, client_id: H, icp_id: `icp-${id}`, programme_id: id, delivered_at: 'd',
       batch_id: `batch-${id}`, apollo_consented: true, status: 'scored',
       email: `contact-${id.slice(0, 8)}@northwind-logistics.co.uk`,
+      // ⚑ 9 Sep — A NAME AND A COMPANY, because a generated sequence is written against a real
+      // prospect and then de-tokenised back into a template using exactly these two fields. A
+      // nameless fixture produces copy with no merge tokens, which `lintSequence` rejects as a
+      // blast — correctly, and for a reason that has nothing to do with what these cases test.
+      first_name: 'Ana', last_name: 'Belmonte', company: 'Meridian Freight',
+      job_title: 'Head of Operations', industry: 'Logistics', score: 88,
       surfaced_for_approval_at: 's', revealed_at: null,
       // ⚑ 9 Sep — the launch programme's own fixture needs a passing verdict for the same
       // reason `newLead` above does: preparation enrols qualified prospects only.
@@ -970,6 +1008,29 @@ describe('⑩ only the ONE configured launch programme is ever seeded with the a
   const approvedSubjects = HOUSE_SEQUENCE_STEPS.map(s => s.subject)
   const subjectsOf = (row: Row | undefined) =>
     ((row?.steps ?? []) as { subject: string }[]).map(s => s.subject)
+
+  // ── ⛓️ 9 Sep — THE OTHER POSITIVE CONTROL, AND IT IS THE ONE THE FRESH-CLIENT PATH NEEDED ──
+  //
+  // 🛑 THE NINE REFUSALS BELOW PROVE HOUSE'S COPY DOES NOT LEAK. They cannot prove a non-House
+  // programme gets ANY copy — and until today it got none, which is the defect: a paying client's
+  // programme prepared everything except the words and then stopped, waiting for the founder to
+  // write them. This case runs preparation end to end on a programme that is NOT the configured
+  // launch one and asserts it completes with a sequence of its OWN and real enrolments.
+  it('🛑 a NON-House programme writes its own sequence and prepares completely', async () => {
+    process.env.HOUSE_LAUNCH_PROGRAMME_ID = LAUNCH
+    houseProgramme(RIVAL)
+
+    const r = await prepareProgrammeOutreach(RIVAL)
+
+    expect(r.complete, r.problems.join(' | ')).toBe(true)
+    const stored = storedFor(RIVAL)
+    expect(stored, 'the programme was left with no words at all').toHaveLength(1)
+    expect(subjectsOf(stored[0]).length, 'a sequence row exists but carries no messages').toBeGreaterThan(0)
+    // 🛑 ITS OWN WORDS, NEVER THE LAUNCH PROGRAMME'S.
+    expect(subjectsOf(stored[0]), "it was handed the launch programme's approved copy").not.toEqual(approvedSubjects)
+    // And the enrolments are real, built from the sequence that was just written.
+    expect(r.enrolled).toEqual([`lead-${RIVAL}`])
+  })
 
   // ── THE POSITIVE CONTROL. Every refusal below is worthless without it: a gate that refuses
   // EVERYTHING passes all nine "it must not seed" cases and silently kills the launch.
@@ -995,10 +1056,11 @@ describe('⑩ only the ONE configured launch programme is ever seeded with the a
 
     const r = await prepareProgrammeOutreach(RIVAL)
 
-    expect(storedFor(RIVAL), "a second House programme received the launch programme's copy").toEqual([])
-    expect(r.complete).toBe(false)
-    expect(r.problems.join(' ')).toContain('no canonical sequence')
-    expect(state.enrollments, 'nobody was enrolled against words nobody authored').toEqual([])
+    expect(subjectsOf(storedFor(RIVAL)[0]), "the launch programme's approved copy reached another programme")
+      .not.toEqual(approvedSubjects)
+    // And the launch programme's own copy is untouched by the other programme's preparation.
+    expect(storedFor(LAUNCH), 'preparing one programme wrote into another').toEqual([])
+    void r
   })
 
   it('🛑 2 · another programme under the SAME client is not seeded', async () => {
@@ -1009,7 +1071,8 @@ describe('⑩ only the ONE configured launch programme is ever seeded with the a
     expect(state.programmes.map(p => p.client_id)).toEqual([H, H])
 
     await prepareProgrammeOutreach(RIVAL)
-    expect(storedFor(RIVAL)).toEqual([])
+    expect(subjectsOf(storedFor(RIVAL)[0]), "the launch programme's approved copy reached another programme")
+      .not.toEqual(approvedSubjects)
   })
 
   it('🛑 3 · a programme sharing the launch ICP\'s targeting is not seeded', async () => {
@@ -1022,7 +1085,8 @@ describe('⑩ only the ONE configured launch programme is ever seeded with the a
     for (const icp of state.icps) icp.name = 'Programme targeting'
 
     await prepareProgrammeOutreach(RIVAL)
-    expect(storedFor(RIVAL)).toEqual([])
+    expect(subjectsOf(storedFor(RIVAL)[0]), "the launch programme's approved copy reached another programme")
+      .not.toEqual(approvedSubjects)
   })
 
   it('🛑 4 · a HISTORICAL House programme is not seeded', async () => {
@@ -1033,7 +1097,8 @@ describe('⑩ only the ONE configured launch programme is ever seeded with the a
     houseProgramme(RIVAL, { approved_at: '2026-01-04', went_live_at: '2026-01-05' })
 
     await prepareProgrammeOutreach(RIVAL)
-    expect(storedFor(RIVAL), 'a retired programme was given this quarter\'s launch copy').toEqual([])
+    expect(subjectsOf(storedFor(RIVAL)[0]), 'a retired programme was given this quarter\'s launch copy')
+      .not.toEqual(approvedSubjects)
   })
 
   it('🛑 5 · a FUTURE House programme gets nothing from the audience alone', async () => {
@@ -1045,8 +1110,13 @@ describe('⑩ only the ONE configured launch programme is ever seeded with the a
     expect(audience, 'the fixture is a proved House client').toBe('house')
 
     const r = await prepareProgrammeOutreach(RIVAL)
-    expect(storedFor(RIVAL), 'a House audience alone seeded the approved copy').toEqual([])
-    expect(r.complete).toBe(false)
+    expect(subjectsOf(storedFor(RIVAL)[0]), 'a House audience alone seeded the approved copy')
+      .not.toEqual(approvedSubjects)
+    // ⛓️ 9 Sep — `r.complete` USED TO BE `false` HERE, and that was a symptom, not the duty.
+    // A programme outside the launch gate got no sequence at all, so preparation refused. It now
+    // writes its own, so completing is the CORRECT outcome — what must never happen is that it
+    // completed using the approved launch copy, which the line above is what checks.
+    expect(r.complete, r.problems.join(' | ')).toBe(true)
   })
 
   it('🛑 6 · a NON-House programme is not seeded, even when its id is the configured one', async () => {
@@ -1058,8 +1128,13 @@ describe('⑩ only the ONE configured launch programme is ever seeded with the a
     houseProgramme(LAUNCH)
 
     const r = await prepareProgrammeOutreach(LAUNCH)
-    expect(storedFor(LAUNCH), "a customer's programme was seeded with M&V's own pitch").toEqual([])
-    expect(r.complete).toBe(false)
+    expect(subjectsOf(storedFor(LAUNCH)[0]), "a customer's programme was seeded with M&V's own pitch")
+      .not.toEqual(approvedSubjects)
+    // ⛓️ 9 Sep — `r.complete` USED TO BE `false` HERE, and that was a symptom, not the duty.
+    // A programme outside the launch gate got no sequence at all, so preparation refused. It now
+    // writes its own, so completing is the CORRECT outcome — what must never happen is that it
+    // completed using the approved launch copy, which the line above is what checks.
+    expect(r.complete, r.problems.join(' | ')).toBe(true)
   })
 
   it('🛑 6b · and an UNPROVABLE identity is read as "not the launch programme"', async () => {
@@ -1068,7 +1143,8 @@ describe('⑩ only the ONE configured launch programme is ever seeded with the a
     houseProgramme(LAUNCH)
 
     await prepareProgrammeOutreach(LAUNCH)
-    expect(storedFor(LAUNCH), 'an unprovable identity was treated as the launch programme').toEqual([])
+    expect(subjectsOf(storedFor(LAUNCH)[0]), 'an unprovable identity was treated as the launch programme')
+      .not.toEqual(approvedSubjects)
   })
 
   it('🛑 7 · an EXISTING sequence is never overwritten, not even on the launch programme', async () => {
@@ -1104,7 +1180,8 @@ describe('⑩ only the ONE configured launch programme is ever seeded with the a
 
     await prepareProgrammeOutreach(RIVAL)
 
-    expect(storedFor(RIVAL), 'the newest same-named programme under the same client was seeded').toEqual([])
+    expect(subjectsOf(storedFor(RIVAL)[0]), 'the newest same-named programme under the same client was seeded')
+      .not.toEqual(approvedSubjects)
     // And the real one still is, so this is not a gate that refuses everything.
     await prepareProgrammeOutreach(LAUNCH)
     expect(subjectsOf(storedFor(LAUNCH)[0])).toEqual(approvedSubjects)
@@ -1115,6 +1192,7 @@ describe('⑩ only the ONE configured launch programme is ever seeded with the a
     houseProgramme(LAUNCH)
 
     await prepareProgrammeOutreach(LAUNCH)
-    expect(storedFor(LAUNCH), 'a truncated id matched a real programme').toEqual([])
+    expect(subjectsOf(storedFor(LAUNCH)[0]), 'a truncated id matched a real programme')
+      .not.toEqual(approvedSubjects)
   })
 })

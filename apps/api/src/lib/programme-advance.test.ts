@@ -21,7 +21,8 @@ vi.hoisted(() => {
 import { join } from 'node:path'
 import { AT_OR_PAST_REVIEW } from './programme-advance'
 import {
-  PREPARATION_REQUIREMENTS, PREPARATION_CLEARS, onlyPreparationBlocks, preparationBlockers,
+  PREPARATION_REQUIREMENTS, PREPARATION_CLEARS, PREPARATION_CLEARS_WITH_AUTO_SEQUENCE,
+  onlyPreparationBlocks, preparationBlockers,
   type PreparationFacts,
 } from './preparation-readiness'
 import { PRE_APPROVAL_PREPARABLE, POST_APPROVAL_PREPARABLE } from './programme-preparation'
@@ -251,7 +252,22 @@ describe('the preparable/ready split is honest', () => {
     expect(onlyPreparationBlocks(blockers), 'a programme with no mailbox was called preparable').toBe(false)
   })
 
-  it('the same programme WITH a sender is preparable', () => {
+  // ⛓️ RETARGETED 9 Sep (twice, same day) — AND THE SECOND MOVE IS A BEHAVIOUR CHANGE, NOT A
+  // RELAXATION. That morning these two cases were a pair: a programme with an AUTOMATIC SEQUENCE
+  // SOURCE (only the configured House launch programme) was preparable, and an identical one
+  // without was NOT — because promising a fresh paying client "one press from ready" when the
+  // press could never write their words was an unreachable button.
+  //
+  // 🛑 THE UNREACHABLE BUTTON IS STILL THE DUTY. What changed is the fact underneath it:
+  // preparation now writes ANY programme's sequence from that client's own knowledge, approved
+  // brief and qualified audience, and sets the default schedule. So the negative case has no
+  // subject left — there is no programme for which those five cannot be cleared — and asserting
+  // it would now pin the OLD behaviour and fail the moment generation works.
+  //
+  // The duty is kept two ways: the positive case below (a fresh programme IS preparable), and
+  // the dependency case after it, which fails loudly if generation is ever removed without
+  // moving those five requirements back out of `PREPARATION_CLEARS`.
+  it('a fresh programme with a sender is preparable — preparation writes its sequence and schedule', () => {
     const facts: PreparationFacts = {
       programmeId: 'p', programmeStatus: 'SOURCING', paused: false,
       attachedIcpId: 'i', batchId: 'b', reviewableLeads: 246,
@@ -262,6 +278,36 @@ describe('the preparable/ready split is honest', () => {
     }
     const blockers = preparationBlockers(facts)
     expect(blockers.length, 'nothing was blocking, so this proves nothing').toBeGreaterThan(0)
+    expect(blockers.map(b => b.code), 'the sequence blocker is not even present').toContain('no_sequence')
+    expect(onlyPreparationBlocks(blockers)).toBe(true)
+  })
+
+  it('🛑 the five auto-sequence requirements are cleared ONLY because preparation generates one', () => {
+    // If the generation branch is ever removed, these five stop being clearable and must move
+    // back out of `PREPARATION_CLEARS` — otherwise the console offers a press that cannot work,
+    // which is the exact defect the split existed for. This ties the two facts together so the
+    // removal cannot be silent.
+    for (const code of PREPARATION_CLEARS_WITH_AUTO_SEQUENCE) {
+      expect(PREPARATION_CLEARS, `${code} is promised but not in the cleared list`).toContain(code)
+    }
+    const generation = readFileSync(join(LIB, 'programme-preparation.ts'), 'utf8')
+    expect(generation, 'preparation no longer generates a sequence, but still promises to clear no_sequence')
+      .toContain('generateProgrammeSequence')
+  })
+
+  it('a fresh programme that HAS its sequence and schedule is preparable with no auto source', () => {
+    // Once an operator has authored the words and the schedule exists, the only things left are
+    // the campaign, the enrolments and the snapshot — all of which preparation genuinely makes.
+    const facts: PreparationFacts = {
+      programmeId: 'p', programmeStatus: 'SOURCING', paused: false,
+      attachedIcpId: 'i', batchId: 'b', reviewableLeads: 246,
+      campaignId: null, campaignProgrammeLinked: false,
+      sequenceId: 's', sequenceCampaignLinked: true,
+      messageSteps: 5, cadenceConfigured: true, sendScheduleConfigured: true,
+      senderAssigned: true, eligibleEnrolments: 0, foreignEnrolments: 0, snapshotSupported: false,
+    }
+    const blockers = preparationBlockers(facts)
+    expect(blockers.map(b => b.code).sort()).toEqual(['no_campaign', 'no_eligible_enrolments', 'no_snapshot'])
     expect(onlyPreparationBlocks(blockers)).toBe(true)
   })
 
@@ -285,6 +331,9 @@ describe('the preparable/ready split is honest', () => {
   })
 
   it('the server computes both, and hands over the named blockers too', () => {
+    // ⛓️ RETARGETED 9 Sep (twice, same day). The call briefly carried a proved `autoSequence`
+    // fact, for the hours when only House could auto-apply copy. Preparation now writes any
+    // programme's sequence, so that fact is a constant and the call is unconditional again.
     expect(OP_ROUTE).toContain('onlyPreparationBlocks(readiness.blockers)')
     expect(OP_ROUTE).toContain('ready: readiness?.ready === true')
   })
@@ -294,7 +343,8 @@ describe('the preparable/ready split is honest', () => {
     // `unreadable` is not in `PREPARATION_CLEARS`, so "we could not tell" hides the button.
     expect(PREPARATION_CLEARS).not.toContain('unreadable')
     expect(onlyPreparationBlocks([{ code: 'unreadable', detail: 'x' }])).toBe(false)
-    expect(OP_ROUTE).toContain('readiness ? onlyPreparationBlocks(readiness.blockers) : false')
+    // ⛓️ RETARGETED 9 Sep (twice, same day) — the proved fact became a constant; see above.
+    expect(OP_ROUTE).toContain('onlyPreparationBlocks(readiness.blockers)')
   })
 })
 

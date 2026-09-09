@@ -13,6 +13,7 @@
 
 import { db } from '@kind/db'
 import { sendFounderAlert } from './alerts'
+import { DEFAULT_PROGRAMME_SEND_SCHEDULE } from './programme-sequence'
 import {
   quoteProgramme, recommendedVolume, partnerCommissionCents,
   type ProgrammeStage,
@@ -174,6 +175,18 @@ export async function createProgramme(clientId: string, meetings: number): Promi
     price_total_cents: q.totalCents,
     first_payment_cents: q.firstPaymentCents,
     second_payment_cents: q.secondPaymentCents,
+    // ── ⛓️ 9 Sep — EVERY PROGRAMME IS BORN WITH A SENDING SCHEDULE ────────────────────────
+    //
+    // 🛑 `programmes.send_schedule` had exactly one writer and it was House's, so every other
+    // programme carried NULL. NULL correctly means REFUSE — readiness blocks on
+    // `no_send_schedule` — and nothing generic could ever clear it, which made
+    // READY_FOR_APPROVAL unreachable for a paying client.
+    //
+    // ⚠️ A CREATION-TIME DEFAULT IS NOT A SEND-TIME ONE. This is a visible, operator-editable
+    // setting that exists long before anything can send; the founder-locked rule against
+    // inventing a schedule AT SEND TIME is untouched, and `isSendSchedule`'s NULL refusal still
+    // stands for any row that predates this.
+    send_schedule: DEFAULT_PROGRAMME_SEND_SCHEDULE,
   }).select().single()
 
   if (error) {
@@ -240,6 +253,33 @@ export function p1Authorised(p: ProgrammeRow): boolean {
  */
 export function p2Authorised(p: ProgrammeRow): boolean {
   return !!((p.second_paid_at && p.second_payment_ref) || p.second_authorised_at)
+}
+
+/**
+ * Is this half settled by INTERNAL authority rather than money?
+ *
+ * ⛓️ 9 Sep — ADDED HERE, IN THE MODULE THAT OWNS THE COLUMNS, because the alternative was
+ * worse. The client checkout doors need to know that an internally-authorised programme owes
+ * nothing — House must never be shown a price to pay — and reading `first_authorised_at`
+ * directly in a route would both restate the rule in a second place AND breach the
+ * internal-authority allowlist, which exists precisely so a fourth module cannot invent its own
+ * answer to "who owes what".
+ *
+ * ⚠️ THIS IS NOT `p1Authorised`. That one asks *may this programme proceed* — paid OR internal.
+ * This asks the narrower question *was it settled WITHOUT money*, which is the only one that
+ * decides whether a client is asked to pay.
+ */
+export function firstInternallyAuthorised(p: ProgrammeRow): boolean {
+  return !!p.first_authorised_at
+}
+
+export function secondInternallyAuthorised(p: ProgrammeRow): boolean {
+  return !!p.second_authorised_at
+}
+
+/** Has a real first payment been recorded? The paid half of `p1Authorised`. */
+export function firstPaid(p: ProgrammeRow): boolean {
+  return !!p.first_payment_ref
 }
 
 /**
@@ -1077,17 +1117,30 @@ export async function recordMakeWhole(programmeId: string, cents: number, note: 
 }
 
 /** A chargeback cannot be refused by code. Record it, stop delivery, preserve evidence, alert. */
-export async function recordDispute(programmeId: string, detail: string): Promise<ProgrammeResult> {
+export async function recordDispute(
+  programmeId: string, detail: string, kind: 'dispute' | 'refund' = 'dispute',
+): Promise<ProgrammeResult> {
   const p = await getProgramme(programmeId)
   if (!p) return { ok: false, reason: 'No such programme.' }
+
+  // ⚑ 9 Sep — IDEMPOTENT, BECAUSE STRIPE RETRIES. A duplicate `charge.refunded` must not move
+  // the timestamps: `disputed_at` is when the money was reversed, and rewriting it on every
+  // redelivery would make the evidence trail say the dispute kept happening. The FIRST stamp
+  // is the fact; later deliveries confirm a state that already holds.
+  const now = new Date().toISOString()
+  const alreadyReversed = !!p.disputed_at
   await db.from('programmes').update({
-    disputed_at: new Date().toISOString(),
-    paused_at: p.paused_at ?? new Date().toISOString(),
+    disputed_at: p.disputed_at ?? now,
+    paused_at: p.paused_at ?? now,
     pause_reason: p.pause_reason ?? 'quality',
-    updated_at: new Date().toISOString(),
+    updated_at: now,
   }).eq('id', programmeId)
-  void sendFounderAlert('churn_risk', 'Programme payment disputed — delivery stopped', [
-    `Programme ${programmeId} (client ${p.client_id}) has a dispute/chargeback.`,
+
+  if (alreadyReversed) return { ok: true }
+
+  const word = kind === 'refund' ? 'refunded' : 'disputed'
+  void sendFounderAlert('churn_risk', `Programme payment ${word} — delivery stopped`, [
+    `Programme ${programmeId} (client ${p.client_id}) was ${word}.`,
     detail,
     'Sourcing and sending are paused. Nothing has been deleted — the programme, its batches and its ledger rows are preserved as evidence.',
   ])

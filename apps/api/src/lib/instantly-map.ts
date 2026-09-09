@@ -52,7 +52,8 @@ export type PushDecision =
  */
 export function canPushToInstantly(a: {
   hasApiKey: boolean
-  killSwitchOn: boolean
+  /** ⚠️ HOLDS *PERMITTED*, NOT *ENGAGED*. `true` = the kill-switch is OFF and delivery may proceed. */
+  outreachDeliveryPermitted: boolean
   isDemo: boolean
   isHouseClient: boolean
   leadEmail: string | null | undefined
@@ -63,9 +64,9 @@ export function canPushToInstantly(a: {
     return { ok: false, reason: 'is_demo',
       detail: 'This is a demo account. A demo can never reach a real person — every address is .invalid and this is a hard stop, not a setting.' }
   }
-  if (!a.killSwitchOn) {
+  if (!a.outreachDeliveryPermitted) {
     return { ok: false, reason: 'kill_switch_off',
-      detail: 'AUTO_OUTREACH_ENABLED is off, so nothing is pushed to Instantly. This is the safe default and it governs Instantly exactly as it governs SMTP.' }
+      detail: 'The kill-switch is ON (AUTO_OUTREACH_ENABLED is not "true"), so nothing is pushed to Instantly. This is the safe default and it governs Instantly exactly as it governs SMTP.' }
   }
   if (!a.isHouseClient) {
     return { ok: false, reason: 'not_house_client',
@@ -85,7 +86,7 @@ export function canPushToInstantly(a: {
 export function refusalLabel(r: PushRefusal): string {
   switch (r) {
     case 'no_api_key':       return 'Instantly API key not set'
-    case 'kill_switch_off':  return 'outreach is switched off'
+    case 'kill_switch_off':  return 'the kill-switch is ON — nothing is delivered on any channel'
     case 'is_demo':          return 'demo account — can never send'
     case 'not_house_client': return 'not the house client — clients send via Smartlead'
     case 'no_email':         return 'lead has no email address'

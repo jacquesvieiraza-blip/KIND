@@ -15,6 +15,7 @@ import { campaignMeetingCount } from './meeting-truth'
 import { canEnroll } from './billing-rules'
 import { sendFounderAlert } from './alerts'
 import { interpretSend } from './resend-checked'
+import { outreachDeliveryPermitted } from './outreach-kill-switch'
 import { isDemoClient } from './demo'
 import { buildDraftFromSequence, buildDraftStepsFromSequence, draftToSteps, type SequenceStep } from './sequence-apply'
 import { bookingUrlForLead } from './booking-token'
@@ -74,9 +75,15 @@ export function coldDailyCap(): number | null {   // #485 exported — the Vida 
 // path (icps.ts); the three cron send paths call sendSequenceEmail directly, so "off"
 // never stopped follow-up steps to already-enrolled leads. This is the single chokepoint
 // every real send funnels through, so checking it here makes the switch actually global.
-export function outreachEnabled(): boolean {
-  return process.env.AUTO_OUTREACH_ENABLED === 'true'
-}
+//
+// ⛓️ 9 Sep — THE DEFINITION MOVED, THE MEANING DID NOT. It now lives in
+// `outreach-kill-switch.ts` because this is no longer the only place that asks: the SMTP
+// seam, the two provider pushes and the LinkedIn dispatch all ask the same question, and
+// four copies of `=== 'true'` is four chances to spell the safe default wrong. This export
+// stays because a dozen call sites read it, and re-exporting is cheaper for a reviewer than
+// a rename across them.
+// (A re-export would not create a local binding, and this module calls it internally.)
+export const outreachEnabled = outreachDeliveryPermitted
 
 async function coldCapReached(): Promise<boolean> {
   const cap = coldDailyCap()
@@ -616,8 +623,15 @@ export type SendOutcome = 'sent' | 'queued' | 'deferred' | 'suppressed' | 'faile
  *
  * ⚑ 2 Sep. `AUTO_OUTREACH_ENABLED` is one global switch that arms every automatic path at
  * once: the 2-hourly campaign cron across EVERY client, day-1 batches, co-pilot releases and
- * (with its own second key) the Instantly push. For a launch canary the founder needs the
- * opposite of that — one client, one run, pressed by hand, with the global switch still off.
+ * (with its own second key) the Instantly push. For a launch canary the founder needs
+ * something NARROWER than that — one client, one run, pressed by hand, with a ceiling typed
+ * by a human.
+ *
+ * ⛓️ CORRECTED 9 Sep. This once said the canary needed the global switch "still off", and the
+ * core implemented it: an operator run sent with automatic outreach disabled. That is not what
+ * this switch is for. **KILL-SWITCH ON = NOTHING SENDS**, with no exception for a run. The
+ * canary now needs the kill-switch OFF *and* this key on — narrower than the cron, never
+ * outside it.
  *
  * ⚠️ WHY THIS IS A SEPARATE FUNCTION AND NOT A BOOLEAN ON `sendSequenceEmail`. An
  * `opts.operatorAuthorised` flag would be a generic bypass sitting on a function five other
@@ -666,19 +680,36 @@ async function sendSequenceEmailCore(
 ): Promise<SendOutcome> {
   if (!lead.email) throw new Error('Lead has no email')
 
-  // #344 (AR-07) — KILL-SWITCH. If auto-outreach is off, DEFER (no send, no state
-  // change → the enrollment stays due and resumes when the switch is turned back on).
-  // The founder's test-email path (isPreview) is a deliberate 1:1 send to their own
-  // inbox, so it bypasses the switch.
+  // ══ 🛑 THE KILL-SWITCH, AND IT IS ABSOLUTE (founder-locked 9 Sep) ═══════════════════════
   //
-  // ⚑ 2 Sep — AND THE OPERATOR RUN IS THE SECOND, NARROWER AUTHORITY. It is not a bypass of
-  // this gate so much as a different key to the same door: it requires the caller to have
-  // come through `sendSequenceEmailOperatorRun` AND `FIGSY_OPERATOR_SEND_ENABLED === 'true'`.
-  // Either one alone sends nothing. `outreachEnabled()` itself is unchanged, so every
-  // automatic path behaves exactly as it did.
-  const operatorAuthorised = opts.authority === 'operator_run' && operatorSendEnabled()
-  if (!opts?.isPreview && !operatorAuthorised && !outreachEnabled()) {
-    console.warn(`[figsy] sendSequenceEmail: AUTO_OUTREACH_ENABLED != true — step ${step} to ${lead.email} DEFERRED (kill-switch off).`)
+  //     KILL-SWITCH ON  = NOTHING SENDS.
+  //     KILL-SWITCH OFF = sending MAY be permitted, subject to every other authority and gate.
+  //
+  // There is NO exception for operator_run, canary, Founder, cron, manual retry or internal
+  // authority. A run must never bypass the kill-switch.
+  //
+  // ⛓️ WHAT THIS REPLACES, AND WHY IT WAS WRONG. From 2 Sep this read
+  // `!opts?.isPreview && !operatorAuthorised && !outreachEnabled()` — three ORs around one
+  // gate, so an operator run OR a preview reached the provider with automatic outreach off.
+  // It was described as "a different key to the same door". It was a second door. A switch
+  // with two named exceptions is not a kill-switch, it is a default, and the whole value of
+  // this control is that the founder can reason about it in one sentence.
+  //
+  // 🛑 `isPreview` IS NOT AN EXCEPTION EITHER. Its route accepts a `to_email` override, so
+  // "the founder's own inbox" is whatever address the request names — the one send path that
+  // could reach a real stranger while the switch said nothing could.
+  if (!outreachEnabled()) {
+    console.warn(`[figsy] sendSequenceEmail: AUTO_OUTREACH_ENABLED != true — step ${step} to ${lead.email} DEFERRED (kill-switch ON, nothing sends).`)
+    return 'deferred'
+  }
+
+  // ⚑ AND THE OPERATOR RUN STILL NEEDS ITS OWN SECOND KEY — ON TOP, NEVER INSTEAD.
+  // `operator_run` is the NARROWER authority, not the wider one: having come through
+  // `sendSequenceEmailOperatorRun` it must ALSO have `FIGSY_OPERATOR_SEND_ENABLED === 'true'`.
+  // So the canary needs BOTH switches, and the automatic paths need only the first — which is
+  // the correct direction for a control that exists to make one run smaller than the cron.
+  if (opts.authority === 'operator_run' && !operatorSendEnabled()) {
+    console.warn(`[figsy] sendSequenceEmail: FIGSY_OPERATOR_SEND_ENABLED != true — step ${step} to ${lead.email} DEFERRED (operator run not armed).`)
     return 'deferred'
   }
 
@@ -1189,9 +1220,9 @@ export async function sendSequenceEmail(
  *
  * Identical logic — the SAME private core, so suppression, PECR, country, demo backstop,
  * programme authority, the caps, the review queue, the atomic claim and the rollback are all
- * exactly the ones the cron uses. **The only difference is which authority opens the
- * kill-switch gate**, and that requires `FIGSY_OPERATOR_SEND_ENABLED === 'true'` as well as
- * arriving through this function.
+ * exactly the ones the cron uses. **The only difference is that this path needs ONE MORE gate
+ * than the cron**: `FIGSY_OPERATOR_SEND_ENABLED === 'true'` as well as arriving through this
+ * function — on top of the kill-switch, which it does not and cannot open.
  *
  * ⚠️ ITS ONLY PRODUCTION CALLER IS `lib/send-due.ts`, and a source guard in
  * `send-due-run-once.route.test.ts` holds that. If you are adding a second caller, you are

@@ -60,6 +60,32 @@ operatorRouter.get('/clients', async (_req: Request, res: Response) => {
   } catch (err) { console.error('[operator/clients]', err); res.status(500).json({ success: false, error: 'Failed to load clients' }) }
 })
 
+// ── ⚑ 9 Sep · THE LIFECYCLE BOARD — the stage word on every client row, and Needs you ─────
+//
+// 🛑 THE SAME DERIVATION AS THE PANEL, ON THINNER FACTS. The list and the selected client's
+// three columns must never disagree about where a client is, so both go through
+// `deriveLifecycle`. What differs is only how much is gathered: the board cannot afford a
+// readiness run and a preparation history per client, so where a fact is too expensive in bulk
+// it is supplied in the direction that does NOT invent a task.
+//
+// ⚠️ WHICH MEANS THE BADGE UNDER-COUNTS RATHER THAN OVER-COUNTS. A client whose exception only
+// the detail call can see appears the moment they are opened. A badge that cried wolf would be
+// worse than one that is occasionally quiet — the operator would learn to ignore it, which is
+// the failure the whole Needs-you rule is written to avoid.
+operatorRouter.get('/lifecycle-board', async (_req: Request, res: Response) => {
+  try {
+    const { data: clients, error } = await db.from('clients').select('id')
+    if (error) throw new Error(error.message)
+    const ids = ((clients ?? []) as { id: string }[]).map(c => c.id)
+    const { lifecycleBoard } = await import('../lib/programme-lifecycle-facts')
+    const rows = await lifecycleBoard(ids)
+    res.json({ success: true, data: rows, meta: { needs_you: rows.filter(r => r.needs_you).length } })
+  } catch (err) {
+    console.error('[operator/lifecycle-board]', err)
+    res.status(500).json({ success: false, error: 'Failed to read the lifecycle board' })
+  }
+})
+
 // ── THE WORKLIST — every client, where they are, and the ONE next action ──────────
 // This replaces "eight tabs and work out where you are". The step logic is a pure decision
 // table in lib/client-step.ts (unit-tested); this endpoint only gathers the facts.
@@ -729,7 +755,23 @@ operatorRouter.post('/campaign/:id/test', async (req: Request, res: Response) =>
     const step1 = (seq as { step1?: { subject?: string; body?: string } } | null)?.step1
     if (!step1?.subject || !step1?.body) { res.status(502).json({ success: false, error: 'Could not draft a preview — try again.' }); return }
 
+    // ⚠️ GENERATION IS NOT DELIVERY. Everything above drafts copy and returns it — no message
+    // leaves, so it is not gated and must not be: reading what WOULD go out is exactly the
+    // thing that has to stay possible while the switch is on.
     if (!send) { res.json({ success: true, data: { preview: step1, sent: false, to: null } }); return }
+
+    // ══ 🛑 BUT `send: true` IS A REAL SEND, SO THE KILL-SWITCH GOVERNS IT ════════════════
+    //
+    // ⛓️ ADDED 9 Sep. This posts generated cold copy through the COLD Resend identity, to an
+    // address the request names via `to_email` — the same rails and the same reach as a
+    // prospect send. Calling it a "test" described who we hoped would read it, not where the
+    // mail went. **KILL-SWITCH ON = NO EXTERNALLY DELIVERED OUTREACH OF ANY KIND**, and a
+    // test send is a send.
+    const { outreachDeliveryPermitted, KILL_SWITCH_REFUSAL } = await import('../lib/outreach-kill-switch')
+    if (!outreachDeliveryPermitted()) {
+      res.status(503).json({ success: false, error: KILL_SWITCH_REFUSAL, data: { preview: step1, sent: false, to: null } })
+      return
+    }
 
     // ONE FIXED TEST INBOX (flow v2). It used to fall back to whoever was logged in, which
     // makes spam placement unjudgeable — a message that lands in one operator's Gmail and
@@ -1718,18 +1760,58 @@ operatorRouter.get('/programme', async (req: Request, res: Response) => {
     // it is); `last_preparation` is the most recent audited outcome — headline on success, the
     // named blockers on refusal — which is the founder's only record of an attempt whose HTTP
     // response an edge threw away.
+    const { outreachEnabled, operatorSendEnabled } = await import('../lib/figsy')
     const { isAdvanceRunning, lastPreparationAttempt } = await import('../lib/programme-advance')
     const preparing = truth.programme ? isAdvanceRunning(truth.programme.id) : false
     const lastPreparation = truth.programme ? await lastPreparationAttempt(truth.programme.id) : null
+    // ── ⚑ 9 Sep — WHERE THIS CLIENT IS, AND WHETHER THE OPERATOR HAS TO DO ANYTHING ───────
+    //
+    // 🛑 DECIDED HERE, ON THE SERVER, AND HANDED OVER AS A VERDICT. The lifecycle ribbon, the
+    // stage word on the client row, the middle column's message, the right panel and the
+    // Needs-you filter all ask the same question; five copies of it in a browser is five
+    // chances to disagree, and the one that disagrees silently is the filter — an operator
+    // told nothing needs them, beside a panel drawing a button.
+    //
+    // ⚠️ IT NEVER THROWS. This drives the whole Clients workspace; an unreadable count must
+    // degrade to a safe fact, not blank the console.
+    const { lifecycleDetailFor } = await import('../lib/programme-lifecycle-facts')
+    const lifecycle = await lifecycleDetailFor(clientId).catch(err => {
+      console.error('[operator/programme] lifecycle unreadable for', clientId, err)
+      return null
+    })
     res.json({ success: true, data: { ...truth,
+      lifecycle,
       degraded: readiness?.degraded ? [...truth.degraded, readiness.degraded] : truth.degraded,
       readiness: {
         ready: readiness?.ready === true,
+        // ⛓️ 9 Sep, LATER — THE PROVED `autoSequence` FACT IS GONE BECAUSE IT BECAME A CONSTANT.
+        // This read `isHouseLaunchProgramme` to decide whether preparation could clear
+        // `no_sequence` / `no_send_schedule`, since only House had copy to apply automatically.
+        // Preparation now writes any programme's sequence from its own client context, so every
+        // programme has that capability and asking which one this is would answer the same way
+        // every time — while leaving a route open to hiding a control that does work.
         preparable: readiness ? onlyPreparationBlocks(readiness.blockers) : false,
         blockers: (readiness?.blockers ?? []).map(b => ({ code: b.code, detail: b.detail })),
       },
       preparing,
       last_preparation: lastPreparation,
+      // ── ⛓️ 9 Sep — THE TWO SEND SWITCHES, STATED RATHER THAN INFERRED ──────────────────
+      //
+      // 🛑 THE LOCKED MEANING. Kill-switch ON = sending blocked. OFF = sending permitted,
+      // subject to every other gate. Vida must never present a bare "OFF" under "SENDING" —
+      // read alone it says the opposite of what it means.
+      //
+      // ⚠️ AND MAKE LIVE IS NOT SENDING. A programme can be LIVE with nothing going out: the
+      // automatic cron obeys `AUTO_OUTREACH_ENABLED`, and the founder's canary goes through the
+      // separate operator Run, which needs `FIGSY_OPERATOR_SEND_ENABLED`. A screen that says
+      // "outreach has started" because a status changed is lying about the only thing on it
+      // that reaches a real stranger. Both are reported so the console can say which is true.
+      send_controls: {
+        /** The automatic cron. TRUE means the kill-switch is OFF and the cron may send. */
+        auto_outreach_enabled: outreachEnabled(),
+        /** The founder's explicit Run-once. Independent of the switch above. */
+        operator_run_enabled: operatorSendEnabled(),
+      },
       icps, reconcile, commercial: {
       stored:   storedModelFor(model),
       resolved: model.model,
@@ -2048,6 +2130,68 @@ operatorRouter.post('/programme/:programmeId/prepare-for-review', async (req: Re
   } catch (err) {
     console.error('[operator/programme/prepare-for-review]', err)
     res.status(500).json({ success: false, error: err instanceof Error ? err.message : 'The programme could not be prepared for review' })
+  }
+})
+
+// ── THE PROGRAMME'S OWN SEQUENCE AND SCHEDULE — the two a fresh client could not get ─────
+//
+// 🛑 WHY THESE EXIST. `figsy_sequences.campaign_id` and `programmes.send_schedule` each had
+// exactly ONE writer in the product, and it was House's. Every other programme therefore
+// carried no canonical sequence and no schedule, readiness refused on both, and
+// READY_FOR_APPROVAL was unreachable for a paying customer. These are the generic doors.
+//
+// ⚠️ NEITHER SENDS, PREPARES, APPROVES OR AUTHORISES ANYTHING. They write the words and the
+// timing an operator has decided; every downstream gate is untouched.
+operatorRouter.post('/programme/:programmeId/sequence', async (req: Request, res: Response) => {
+  try {
+    if (!adminKeyValid(req.headers['x-admin-key'])) {
+      res.status(403).json({ success: false, error: 'Operator key required' })
+      return
+    }
+    const body = (req.body ?? {}) as { steps?: unknown; name?: string }
+    if (!Array.isArray(body.steps) || body.steps.length === 0) {
+      res.status(400).json({ success: false, error: 'At least one message step is required. Nothing was changed.' })
+      return
+    }
+    const steps = (body.steps as Record<string, unknown>[]).map(st => ({
+      subject: String(st.subject ?? '').slice(0, 200),
+      body: String(st.body ?? '').slice(0, 5000),
+      wait_days: Number(st.wait_days ?? 0) || 0,
+    }))
+    const { applyProgrammeSequence } = await import('../lib/programme-sequence')
+    const r = await applyProgrammeSequence(
+      req.params.programmeId, steps, String(body.name ?? '').trim().slice(0, 120) || 'Programme sequence')
+    if (!r.ok) { res.status(400).json({ success: false, error: r.reason }); return }
+    await writeOperatorAudit({
+      operatorEmail: operatorEmail(req), clientId: null,
+      action: 'programme_sequence_set', subjectType: 'programme', subjectId: req.params.programmeId,
+      detail: { sequence_id: r.sequenceId, campaign_id: r.campaignId, created: r.created, steps: r.steps },
+    })
+    res.json({ success: true, data: r })
+  } catch (err) {
+    console.error('[operator/programme/sequence]', err)
+    res.status(500).json({ success: false, error: 'The programme sequence could not be saved' })
+  }
+})
+
+operatorRouter.post('/programme/:programmeId/send-schedule', async (req: Request, res: Response) => {
+  try {
+    if (!adminKeyValid(req.headers['x-admin-key'])) {
+      res.status(403).json({ success: false, error: 'Operator key required' })
+      return
+    }
+    const { setProgrammeSendSchedule } = await import('../lib/programme-sequence')
+    const r = await setProgrammeSendSchedule(req.params.programmeId, (req.body ?? {}).schedule)
+    if (!r.ok) { res.status(400).json({ success: false, error: r.reason }); return }
+    await writeOperatorAudit({
+      operatorEmail: operatorEmail(req), clientId: null,
+      action: 'programme_send_schedule_set', subjectType: 'programme', subjectId: req.params.programmeId,
+      detail: { schedule: r.schedule },
+    })
+    res.json({ success: true, data: r.schedule })
+  } catch (err) {
+    console.error('[operator/programme/send-schedule]', err)
+    res.status(500).json({ success: false, error: 'The send schedule could not be saved' })
   }
 })
 
@@ -2655,6 +2799,24 @@ operatorRouter.post('/inboxes/:id/verify', async (req: Request, res: Response) =
 // per-client cap, the per-campaign cap and the send window are all the cron's own gates.
 operatorRouter.post('/send-due/run-once', async (req: Request, res: Response) => {
   try {
+    // ══ 🛑 THE KILL-SWITCH IS ASKED FIRST, AND IT OUTRANKS THIS ROUTE'S OWN KEY ═════════
+    //
+    // ⛓️ CORRECTED 9 Sep. This route checked only `FIGSY_OPERATOR_SEND_ENABLED`, and the
+    // send core used to let an operator run past the kill-switch on that authority alone.
+    // Both halves are now wrong: **KILL-SWITCH ON = NO EXTERNALLY DELIVERED OUTREACH OF ANY
+    // KIND**, with no exception for a founder-pressed run.
+    //
+    // ⚠️ REFUSED HERE AS WELL AS AT THE SEAM, DELIBERATELY. The core would defer every
+    // enrollment one at a time and answer "0 sent" — technically safe, and unreadable. An
+    // operator who pressed Run deserves the reason, not an empty run.
+    const { outreachDeliveryPermitted, KILL_SWITCH_REFUSAL } = await import('../lib/outreach-kill-switch')
+    if (!outreachDeliveryPermitted()) {
+      res.status(503).json({ success: false, error: KILL_SWITCH_REFUSAL })
+      return
+    }
+
+    // AND ITS OWN SECOND KEY, ON TOP — never instead. A run is NARROWER than the cron, so it
+    // needs one more gate than the cron does, not one fewer.
     const { operatorSendEnabled } = await import('../lib/figsy')
     if (!operatorSendEnabled()) {
       res.status(503).json({ success: false, error:
@@ -2733,6 +2895,22 @@ operatorRouter.post('/inboxes/:id/test-send', async (req: Request, res: Response
     const { client_id, to_email } = (req.body ?? {}) as { client_id?: string; to_email?: string }
     const client = await requireClient(client_id)
     if (!client) { res.status(404).json({ success: false, error: 'Unknown client_id' }); return }
+
+    // ══ 🛑 THE KILL-SWITCH — A MAILBOX TEST IS A REAL EXTERNAL SEND ═════════════════════
+    //
+    // ⛓️ ADDED 9 Sep. This connects to a client's authenticated mailbox and delivers a real
+    // message to a real address. `sendAs` now refuses at the seam regardless, so this is the
+    // readable half of the same refusal — an operator gets the sentence rather than an SMTP
+    // verdict that reads like the mailbox's fault.
+    //
+    // ⚠️ AND THE #553 LADDER IS NOT DEADLOCKED BY THIS. Turning the kill-switch off delivers
+    // nothing on its own: programme authority, approval, P2, LIVE, the sender and the
+    // schedule all still have to say yes, and with no programme LIVE the cron has nothing to
+    // send. Proving a mailbox with the switch off is safe; proving it while the switch says
+    // nothing can send would mean the switch does not mean what it says.
+    const { outreachDeliveryPermitted: canDeliver, KILL_SWITCH_REFUSAL: refusal } =
+      await import('../lib/outreach-kill-switch')
+    if (!canDeliver()) { res.status(503).json({ success: false, error: refusal }); return }
 
     // A typo'd recipient on a warmed mailbox is a real bounce against real reputation, so
     // the address is checked before anything connects rather than left to the mail server.

@@ -353,13 +353,21 @@ programmeRouter.post('/:id/await-first-payment', guard(async (req: Request, res:
  */
 programmeRouter.post('/:id/authorise/first', guard(async (req: Request, res: Response) => {
   const r = await authoriseFirstInternal(req.params.id)
+  let started: { started: boolean; already_running: boolean; detail: string } | null = null
   if (r.ok) {
     await auditProgramme(req, 'programme_internal_authority', req.params.id, {
       stage: 'P1', by: pressedBy(req),
       money: 'none — no Stripe object, no invoice, no revenue, no commission, no wallet movement',
     })
+    // ⚑ 9 Sep — INTERNAL P1 IS P1. The founder-locked rule is about the AUTHORITY, not about
+    // which door committed it: a programme authorised internally starts exactly as a paid one
+    // does. `authoriseFirstInternal` refuses unless the programme was AWAITING_FIRST_PAYMENT,
+    // so this cannot fire twice for one programme, and the continuation re-proves every fact
+    // from the row before anything is bought.
+    const { startProgrammeAfterP1 } = await import('../lib/programme-p1-continuation')
+    started = await startProgrammeAfterP1(req.params.id, 'internal_first_authority', pressedBy(req))
   }
-  res.status(r.ok ? 200 : 400).json({ success: r.ok, error: r.reason, money: 'none' })
+  res.status(r.ok ? 200 : 400).json({ success: r.ok, error: r.reason, money: 'none', sourcing: started })
 }))
 
 /**

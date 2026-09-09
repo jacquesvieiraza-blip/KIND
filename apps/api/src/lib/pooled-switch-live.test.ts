@@ -238,7 +238,13 @@ describe('rotation, ranking and every authority gate are untouched', () => {
     const pa = raw(join(API, 'lib/programme-authority.ts'))
     expect(pa).toContain("return { allowed: true, mode: 'legacy', programme: null }")
     expect(pa).toMatch(/if \(model\?\.model === 'programme'\)/)
-    expect(raw(join(API, 'lib/figsy.ts'))).toMatch(/process\.env\.AUTO_OUTREACH_ENABLED === 'true'/)
+    // ⛓️ 9 Sep — THE SWITCH MOVED HOUSE, IT DID NOT WEAKEN. Its definition left `figsy.ts` for
+    // `outreach-kill-switch.ts` when the SMTP seam, the two provider pushes and the LinkedIn
+    // dispatch all had to ask the same question; four copies of `=== 'true'` is four chances
+    // to spell the safe default wrong. This case's duty — the pooled-inbox switch did not
+    // touch the kill-switch — is unchanged, so it now reads the switch at its real home.
+    expect(raw(join(API, 'lib/outreach-kill-switch.ts'))).toMatch(/process\.env\.AUTO_OUTREACH_ENABLED === 'true'/)
+    expect(raw(join(API, 'lib/figsy.ts'))).toMatch(/outreachEnabled = outreachDeliveryPermitted/)
     expect(raw(join(API, 'lib/paid-provider-guard.ts'))).toMatch(/PAID_PROVIDERS_ENABLED/)
   })
 

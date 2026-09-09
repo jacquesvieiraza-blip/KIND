@@ -455,6 +455,36 @@ export async function prepareProgrammeOutreach(programmeId: string): Promise<Pre
     }
   }
 
+  // ── ⛓️ 9 Sep — AND EVERY OTHER PROGRAMME WRITES ITS OWN, RATHER THAN WAITING FOR A HUMAN ──
+  //
+  // 🛑 THE SENTENCE ABOVE USED TO END *"A customer programme with no sequence is not given one;
+  // it is told to author one, which is the honest answer."* It was honest and it was a hidden
+  // manual prerequisite: the locked flow is **P1 → source → enrich → qualify → account →
+  // prepare**, and PREPARE must produce everything the client reviews in Milla — the outreach
+  // included. Until this branch existed, a fresh client's money bought a programme that stopped
+  // dead until the founder hand-wrote their cold email.
+  //
+  // ⚠️ IT IS NOT THE HOUSE BRANCH WIDENED. `isHouseLaunchProgramme` is untouched and is not
+  // consulted here; House's five approved messages are ONE programme's launch copy and are
+  // never applied to anyone else. This writes from THIS client's own knowledge digest, their
+  // approved Meeting Brief, this campaign's intent and this programme's own qualified
+  // audience — reusing the generator the operator console has always used, never a second one.
+  //
+  // ⚠️ AND IT RUNS ONLY WHEN NOTHING RESOLVED. An operator-edited sequence, a previously
+  // generated one, or House's, all reach here as "already present" and are left alone.
+  if (!chainRes.chain.sequenceId || chainRes.chain.steps.length === 0) {
+    const { generateProgrammeSequence } = await import('./programme-sequence-generation')
+    const gen = await generateProgrammeSequence(programmeId)
+    if (!gen.ok && !gen.alreadyPresent) { out.problems.push(gen.reason); return out }
+    if (gen.ok) {
+      console.log(`[preparation] programme ${programmeId} — outreach written automatically: ${gen.steps} step(s), drafted against ${gen.drafted_against}`)
+      // Re-resolved for the same reason the House branch re-resolves: the enrolments below are
+      // built from what is STORED, never from what a write was supposed to have stored.
+      chainRes = await resolveProgrammeChain(programmeId)
+      if (!chainRes.ok) { out.problems.push(chainRes.degraded); return out }
+    }
+  }
+
   if (!chainRes.chain.sequenceId || chainRes.chain.steps.length === 0) {
     out.problems.push('This programme has no canonical sequence with message steps (programme → ICP → campaign → figsy_sequences), so no prospect can be prepared. Nothing was enrolled.')
     return out
@@ -488,6 +518,18 @@ export async function prepareProgrammeOutreach(programmeId: string): Promise<Pre
       if (await isHouseLaunchProgramme(programmeId, p.client_id)) {
         const applied = await applyHouseSendSchedule(programmeId, p.client_id)
         if (!applied.ok) { out.problems.push(`The approved House send schedule could not be applied: ${applied.reason}`); return out }
+      } else {
+        // ⛓️ 9 Sep — AND A FRESH CLIENT GETS ONE TOO, for the same reason the sequence branch
+        // above exists: a programme that prepares everything except its sending hours is a
+        // programme that still needs a human before it can be reviewed.
+        //
+        // ⚠️ THE CONSERVATIVE DEFAULT, AND ONLY WHEN THERE IS NONE. `ensureProgrammeSendSchedule`
+        // returns any valid existing schedule untouched and otherwise writes weekdays 08:30–17:00
+        // Europe/London — deliberately the narrowest window that can send at all. Widening it is
+        // an operator decision per programme, never something preparation decides for them.
+        const { ensureProgrammeSendSchedule } = await import('./programme-sequence')
+        const applied = await ensureProgrammeSendSchedule(programmeId)
+        if (!applied.ok) { out.problems.push(`This programme's send schedule could not be set: ${applied.reason}`); return out }
       }
     }
   }

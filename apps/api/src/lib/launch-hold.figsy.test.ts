@@ -266,6 +266,10 @@ describe('gate 4 — autoEnrollLead, the path a client approval takes', () => {
   it('is exempt for demo clients — the demo book is entirely South African', () => {
     // Asserted on the guard as written, because a launch hold that caught demo leads would
     // break every walkthrough with a symptom that points nowhere near a country allowlist.
-    expect(fn).toContain('!isDemo && !isLaunchSendCountry(lead.country)')
+    // ⛓️ RETARGETED 9 Sep — the guard gained `!opts?.prepareOnly`, because the launch hold is a
+    // SEND decision and applying it at enrolment stopped House preparing prospects it may
+    // perfectly well prepare. The hold itself is unchanged and still stands at send time
+    // (`sendSequenceEmailCore`), and the demo exemption this case is about is untouched.
+    expect(fn).toContain('!isDemo && !opts?.prepareOnly && !isLaunchSendCountry(lead.country)')
   })
 })

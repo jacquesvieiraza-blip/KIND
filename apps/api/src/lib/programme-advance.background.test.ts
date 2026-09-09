@@ -222,11 +222,19 @@ describe('④ the last attempt is read back for the screen', () => {
       },
     }]
     const last = await lastPreparationAttempt(HOUSE)
+    // ⛓️ RETARGETED 9 Sep — the record gained the four counts the desk renders (attempted,
+    // enrolled, already_enrolled, failed), so the exact-shape compare no longer holds. What
+    // this case is FOR is unchanged and still asserted whole: the sentence is the server's
+    // own, and a malformed blocker is dropped rather than rendered.
     expect(last).toEqual({
       at: '2026-09-09T10:00:00.000Z', ok: false, by: 'founder@kind',
       detail: 'This programme is prepared but not yet ready — No sending mailbox is assigned.',
       blockers: [{ code: 'no_sender', detail: 'No sending mailbox is assigned.' }],
+      attempted: null, enrolled: null, already_enrolled: null, failed: null,
     })
+    // 🛑 AND THE LEAD IDS NEVER REACH THE SCREEN. They stay in the audit row, which is where
+    // the technical evidence belongs.
+    expect(last).not.toHaveProperty('failed_lead_ids')
   })
 
   it('asks for the NEWEST attempt, which the fake cannot express and the source can', async () => {

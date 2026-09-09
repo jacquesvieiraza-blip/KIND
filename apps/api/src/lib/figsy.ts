@@ -2053,9 +2053,77 @@ export type EnrolMode = {
   prepaid?: boolean
   /** The programme this enrolment is fulfilment for. Verified here, never trusted. */
   programmeFulfilment?: { programmeId: string }
+  /**
+   * ⚑ 9 Sep — PREPARE THE ENROLMENT, ATTEMPT NO OUTREACH. Set only by pre-approval programme
+   * preparation. See `EnrolOutcome` below for the whole argument.
+   */
+  prepareOnly?: boolean
 }
 
-export async function autoEnrollLead(leadId: string, clientId: string, opts?: EnrolMode): Promise<void> {
+/**
+ * Why an enrolment attempt ended the way it did.
+ *
+ * ⛓️ 9 Sep — THIS FUNCTION USED TO RETURN `void`, AND THAT IS WHAT PRODUCED
+ * *"Lead … was not enrolled — no enrolment row exists after the attempt"* FOR MANY HOUSE
+ * PROSPECTS. Fourteen different refusals here are a bare `return`; the caller could only look
+ * for a row afterwards, not find one, and report the same empty sentence for every one of
+ * them. The founder was shown a wall of identical lines that named no cause.
+ *
+ * A refusal now carries its own reason, so preparation can aggregate causes instead of
+ * counting absences.
+ */
+export type EnrolRefusal =
+  | 'kill_switch' | 'programme_refused' | 'no_campaign' | 'no_email' | 'do_not_contact'
+  | 'crm_duplicate' | 'crm_unreadable' | 'pecr' | 'launch_country' | 'not_legacy_model'
+  | 'no_credits' | 'no_send_capability' | 'no_canonical_sequence' | 'charge_failed'
+  | 'insert_failed' | 'unexpected_error'
+
+export type EnrolOutcome =
+  /** A row was created by THIS call. */
+  | { state: 'created'; enrollmentId: string; sent: boolean }
+  /** A row for this lead in this campaign already existed. Nothing was written or charged. */
+  | { state: 'already' }
+  /** Nothing was written. `reason` is founder-plain and already names the cause. */
+  | { state: 'refused'; code: EnrolRefusal; reason: string }
+
+/**
+ * ── ⛓️ 9 Sep — PREPARATION CREATES THE ROW; SENDING REMAINS A SEPARATE, LATER ACT ─────────
+ *
+ * 🛑 THE COUPLING THAT BROKE THE HOUSE RECOVERY. This function was written for the legacy
+ * model, where *enrol* means **charge a credit and send step one immediately**. So it runs the
+ * per-lead SEND gates — do-not-contact, PECR, the launch-country hold, and "is Resend even
+ * configured" — BEFORE the insert, and each one aborts the enrolment entirely.
+ *
+ * That is right for a legacy enrolment, which exists only to send. It is wrong for programme
+ * PREPARATION, which must build the reviewable set **before** approval, P2, Make Live or Run,
+ * and must send nothing at all. Applied there, a prospect who merely cannot be *emailed yet*
+ * never gets a row — and the programme can never satisfy readiness.
+ *
+ * ⚠️ AND NOT ONE OF THOSE GATES IS BEING WEAKENED, because none of them lived only here.
+ * Every one is independently enforced at the moment of sending, inside `sendSequenceEmailCore`:
+ * do-not-contact (`figsy.ts` ~720), the cross-client opt-out blocklist (~732), PECR (~755) and
+ * the launch-country hold (~780) — each suppressing the send permanently. `prepareOnly` moves
+ * the decision to where the decision belongs; it does not remove it.
+ *
+ * 🛑 `do_not_contact` IS THE ONE REFUSAL PREPARATION KEEPS. The others are about *when* and
+ * *whether* an email may go out. That one is about a person we must never build outreach for
+ * at all, so it refuses at preparation too, by name.
+ *
+ * ⚠️ `prepareOnly` ALSO SKIPS THE STEP-ONE SEND, which is the only line here that could ever
+ * emit anything. Today that call already returns `deferred` for a pre-approval programme (the
+ * OUTREACH gate demands approval AND P2 AND status LIVE), so this removes no protection — it
+ * removes 246 pointless round trips from a request that was already timing out.
+ *
+ * ⚠️ `next_send_at` IS DELIBERATELY LEFT EXACTLY AS IT WAS. Writing `null` for a prepared row
+ * would look safer and would silently break Make Live: `send-due` selects on
+ * `next_send_at <= now`, nothing re-arms an existing enrolment, and the programme would go
+ * live and never send. The row is already inert by construction three times over — its
+ * campaign is a DRAFT and the cron only selects `status = 'active'` campaigns; the OUTREACH
+ * authority check refuses without approval + P2 + LIVE; and the kill-switch sits in front of
+ * both.
+ */
+export async function autoEnrollLead(leadId: string, clientId: string, opts?: EnrolMode): Promise<EnrolOutcome> {
+  const refuse = (code: EnrolRefusal, reason: string): EnrolOutcome => ({ state: 'refused', code, reason })
   try {
     // #344 (AR-07) — KILL-SWITCH, checked BEFORE the charge. autoEnrollLead charges a
     // FIGSY credit then sends step 1; if the switch is off, sendSequenceEmail would defer
@@ -2075,7 +2143,7 @@ export async function autoEnrollLead(leadId: string, clientId: string, opts?: En
     // sent nothing. Every other caller keeps the original bail unchanged.
     if (!opts?.force && !opts?.programmeFulfilment && !outreachEnabled()) {
       console.warn(`[figsy] autoEnrollLead: AUTO_OUTREACH_ENABLED != true — not enrolling/charging lead ${leadId} (kill-switch off).`)
-      return
+      return refuse('kill_switch', 'Automatic outreach is switched off, so this lead was not enrolled or charged.')
     }
 
     // ── 🛑 PROGRAMME AUTHORITY IS RE-PROVED HERE, NOT TAKEN ON TRUST ────────────────────
@@ -2093,7 +2161,7 @@ export async function autoEnrollLead(leadId: string, clientId: string, opts?: En
       const v = await verifyProgrammeFulfilment(leadId, clientId, opts.programmeFulfilment.programmeId)
       if (!v.ok) {
         console.warn(`[figsy] autoEnrollLead: programme fulfilment REFUSED for lead ${leadId} — ${v.reason}. Nothing enrolled, nothing charged.`)
-        return
+        return refuse('programme_refused', v.reason)
       }
       programmeFulfilment = opts.programmeFulfilment
     }
@@ -2156,7 +2224,7 @@ export async function autoEnrollLead(leadId: string, clientId: string, opts?: En
         `[figsy] autoEnrollLead: lead ${leadId} belongs to programme ${leadProgrammeId} and its ICP has no active campaign. ` +
         'NOT falling back to the newest active campaign — that campaign predates the programme. Nothing was enrolled.',
       )
-      return
+      return refuse('no_campaign', "This lead's ICP has no campaign of its own, and the client's older campaigns predate the programme, so there is nothing safe to enrol it into.")
     }
     if (!campaign) {
       // Fallback for leads sourced before ICPs carried a campaign. Legacy work only — a
@@ -2190,18 +2258,18 @@ export async function autoEnrollLead(leadId: string, clientId: string, opts?: En
           'The lead is approved and revealed, but it is in no sequence — start their campaign in Vida and enrol it, or nothing will ever be sent.',
         ]).catch(() => {})
       }
-      return // No active campaign — nothing to do
+      return refuse('no_campaign', 'This client has no active campaign, so there is no sequence for the lead to enter.')
     }
 
     const { data: lead } = await db.from('leads')
       .select('id, first_name, last_name, email, job_title, company, industry, seniority, country, tech_stack, score, score_reasoning')
       .eq('id', leadId).single()
-    if (!lead?.email) return
+    if (!lead?.email) return refuse('no_email', 'This lead has no email address, so it cannot be enrolled.')
 
     // DO-NOT-CONTACT: never enroll anyone connected to the founder's employer.
     if (isSuppressed({ email: lead.email, company: lead.company })) {
       console.warn(`[figsy] autoEnrollLead: ${lead.email} is on the do-not-contact list — not enrolled.`)
-      return
+      return refuse('do_not_contact', 'This person is on the do-not-contact list, so no outreach may be prepared for them.')
     }
 
     const { data: client } = await db.from('clients')
@@ -2232,11 +2300,11 @@ export async function autoEnrollLead(leadId: string, clientId: string, opts?: En
             crm_match_reason: dup.reason ?? 'Already in your CRM',
           }).eq('id', leadId)
           console.log(`[figsy] dedup: skipped lead ${leadId} — ${dup.reason}`)
-          return // skip enrollment + credit spend
+          return refuse('crm_duplicate', `Already in the client's CRM — ${dup.reason ?? 'a matching contact exists'}.`)
         }
       } catch (err) {
         console.warn(`[figsy] dedup: CRM check failed for lead ${leadId}, SKIPPING (fail-closed) —`, err instanceof Error ? err.message : err)
-        return // fail-closed: don't enroll/charge when dedup is on but unverifiable
+        return refuse('crm_unreadable', "The client's CRM could not be checked for duplicates, so this lead was not enrolled (fail-closed).")
       }
     }
 
@@ -2252,11 +2320,14 @@ export async function autoEnrollLead(leadId: string, clientId: string, opts?: En
     //
     // Placed with the other refusals (do-not-contact above, CRM dedup above) and BEFORE the
     // billing gate, so it costs neither a credit nor a Claude draft.
-    if (!isDemo) {
+    // ⚑ 9 Sep — NOT AT PREPARATION. PECR decides whether an email may LEAVE, and
+    // `sendSequenceEmailCore` asks it again for every step, suppressing permanently when it
+    // refuses. Asking it here as well cost the House programme its enrolments.
+    if (!isDemo && !opts?.prepareOnly) {
       const pecr = pecrVerdict({ country: lead.country, companyName: lead.company })
       if (!pecr.allow) {
         console.warn(`[figsy] #617 autoEnrollLead: lead ${leadId} not enrolled — ${pecr.reason}`)
-        return
+        return refuse('pecr', pecr.reason)
       }
     }
 
@@ -2275,9 +2346,12 @@ export async function autoEnrollLead(leadId: string, clientId: string, opts?: En
     // hold is wrong: hold anyway, because a send we cannot make is worse than a stranded $4.
     //
     // Demo exempt, exactly as above: the demo book is entirely South African and drafts only.
-    if (!isDemo && !isLaunchSendCountry(lead.country)) {
+    // ⚑ 9 Sep — NOT AT PREPARATION, for the same reason as PECR immediately above. The hold is
+    // re-applied at send time (`sendSequenceEmailCore`), where it stops the email rather than
+    // the preparation.
+    if (!isDemo && !opts?.prepareOnly && !isLaunchSendCountry(lead.country)) {
       console.warn(`[figsy] autoEnrollLead: lead ${leadId} not enrolled — ${launchHoldReason(lead.country)}`)
-      return
+      return refuse('launch_country', launchHoldReason(lead.country))
     }
 
     // Billing gate (item 166): FIGSY is charged at ENROLLMENT — one FIGSY credit =
@@ -2320,14 +2394,14 @@ export async function autoEnrollLead(leadId: string, clientId: string, opts?: En
       const model = await clientCommercialModel(clientId)
       if (!mayUseLegacyCommercialPath(model)) {
         console.warn(`[figsy] autoEnrollLead: client ${clientId} is not on the legacy commercial model (${model.model}) — no legacy enrolment authority for lead ${leadId}. Nothing charged.`)
-        return
+        return refuse('not_legacy_model', `This client is on the ${model.model} commercial model, so it has no legacy per-lead enrolment authority.`)
       }
     }
     // ⚠️ THE WALLET GATE IS UNTOUCHED FOR A LEGACY CLIENT. Reached only when the model above
     // resolved to legacy — the $299 pack model, which is what is actually selling.
     if (!isDemo && !programmeFulfilment && !canEnroll(client?.figsy_credits_remaining)) {
       console.warn(`[figsy] autoEnrollLead: client ${clientId} has no FIGSY credits — skipping enrollment for lead ${leadId}.`)
-      return
+      return refuse('no_credits', 'This client has no FIGSY credits left, so the lead was not enrolled.')
     }
 
     // Charge-without-send guard (audit 2 Jul): FIGSY bills one credit AT enrollment,
@@ -2337,9 +2411,13 @@ export async function autoEnrollLead(leadId: string, clientId: string, opts?: En
     // misconfiguration must never bill a client for outreach that didn't go out.
     // (Note: blocklist / daily-cap skips inside sendSequenceEmail are by-design deferrals,
     // NOT this bug — this guard targets only the no-send-capability case.)
-    if (!isDemo && !resend) {
+    // ⚑ 9 Sep — NOT AT PREPARATION. This guard exists to stop a client being CHARGED for a
+    // send that cannot happen; programme fulfilment charges nothing (`chargeResult` is
+    // 'skipped' below), and a missing provider key is a deployment fact about the future, not a
+    // reason to refuse to build the set the customer is about to review.
+    if (!isDemo && !opts?.prepareOnly && !resend) {
       console.error(`[figsy] autoEnrollLead: RESEND_API_KEY unset — refusing to enroll/charge lead ${leadId} (would deduct a FIGSY credit with no send).`)
-      return
+      return refuse('no_send_capability', 'The email provider is not configured, so enrolling this lead would charge for a send that cannot happen.')
     }
 
     // Item 187 — if a saved sequence/template has been applied to this campaign, send
@@ -2372,11 +2450,11 @@ export async function autoEnrollLead(leadId: string, clientId: string, opts?: En
       const chainRes = await resolveProgrammeChain(programmeFulfilment.programmeId)
       if (!chainRes.ok) {
         console.error(`[figsy] autoEnrollLead: lead ${leadId} NOT enrolled — the programme's canonical sequence could not be resolved. ${chainRes.degraded}`)
-        return
+        return refuse('no_canonical_sequence', chainRes.degraded)
       }
       if (!chainRes.chain.sequenceId || chainRes.chain.steps.length === 0) {
         console.error(`[figsy] autoEnrollLead: lead ${leadId} NOT enrolled — programme ${programmeFulfilment.programmeId} has no canonical sequence with message steps (programme -> ICP -> campaign -> figsy_sequences). NOT falling back to the campaign settings copy: the customer approves the canonical sequence, so anything else would send words nobody agreed to.`)
-        return
+        return refuse('no_canonical_sequence', 'This programme has no canonical sequence with message steps, so no prospect can be prepared from it.')
       }
       canonicalSequenceId = chainRes.chain.sequenceId
       canonicalSteps = chainRes.chain.steps as unknown as SequenceStep[]
@@ -2448,7 +2526,7 @@ export async function autoEnrollLead(leadId: string, clientId: string, opts?: En
       .select('id').eq('campaign_id', campaign.id).eq('lead_id', leadId).maybeSingle()
     if (existingEnrollment) {
       console.log(`[figsy] autoEnrollLead: lead ${leadId} already enrolled in campaign ${campaign.id} — skipping (idempotent, no re-charge)`)
-      return
+      return { state: 'already' }
     }
 
     // ── CHARGE FIRST (#332) ─────────────────────────────────────────────────────
@@ -2467,7 +2545,7 @@ export async function autoEnrollLead(leadId: string, clientId: string, opts?: En
       (isDemo || opts?.prepaid || programmeFulfilment) ? 'skipped' : await chargeFigsyEnroll(clientId, lead)
     if (chargeResult === 'failed') {
       console.warn(`[figsy] autoEnrollLead: charge failed for lead ${leadId} — not enrolling (nothing charged).`)
-      return
+      return refuse('charge_failed', 'The enrolment charge did not go through, so the lead was not enrolled.')
     }
 
     // P8 — a supabase insert normally RETURNS its error, but any THROW here (network
@@ -2523,7 +2601,7 @@ export async function autoEnrollLead(leadId: string, clientId: string, opts?: En
       // Return ONLY money taken by THIS call: refund the $4 if we charged it. A 'skipped'
       // result (demo, or already paid by the approve) took nothing here → return nothing.
       if (chargeResult === 'charged') await refundFigsyEnroll(clientId, leadId)
-      return
+      return refuse('insert_failed', `The enrolment could not be written (${insertThrow instanceof Error ? insertThrow.message : String(insertThrow)}).`)
     }
     const { data: enrollment, error } = insertRes
 
@@ -2531,7 +2609,7 @@ export async function autoEnrollLead(leadId: string, clientId: string, opts?: En
       // We already charged — return the $4 so the wallet + ledger reconcile.
       console.error('[figsy] autoEnrollLead: enrollment insert failed after charge', error?.message, 'for lead', leadId, '— returning $4')
       if (chargeResult === 'charged') await refundFigsyEnroll(clientId, leadId)
-      return
+      return refuse('insert_failed', `The enrolment could not be written${error?.message ? ` (${error.message})` : ''}.`)
     }
 
     // Increment campaign enrolled count
@@ -2549,18 +2627,27 @@ export async function autoEnrollLead(leadId: string, clientId: string, opts?: En
     // also suppress it, but skipping avoids the wasted call).
     if (isDemo) {
       console.log(`[demo] enrollment ${enrollment.id} drafted for client ${clientId} lead ${leadId} — no prospect send (demo).`)
-    } else {
-      await sendSequenceEmail(
-        enrollment.id,
-        lead as Lead,
-        1,
-        step1Subject,
-        draft.step1.body,
-        campaign.id,
-        { totalSteps, waitDaysNext: fullSteps[0]?.wait_days },
-      )
+      return { state: 'created', enrollmentId: String(enrollment.id), sent: false }
     }
+    // ⚑ 9 Sep — PREPARATION STOPS HERE, AND THIS IS THE LINE THAT MAKES "PREPARING IS NOT
+    // SENDING" STRUCTURAL RATHER THAN A PROMISE. The row exists; no outreach was attempted.
+    // For a pre-approval programme this call could only ever have returned `deferred` anyway
+    // (OUTREACH demands approval + P2 + LIVE), so nothing is lost but the round trip.
+    if (opts?.prepareOnly) {
+      return { state: 'created', enrollmentId: String(enrollment.id), sent: false }
+    }
+    await sendSequenceEmail(
+      enrollment.id,
+      lead as Lead,
+      1,
+      step1Subject,
+      draft.step1.body,
+      campaign.id,
+      { totalSteps, waitDaysNext: fullSteps[0]?.wait_days },
+    )
+    return { state: 'created', enrollmentId: String(enrollment.id), sent: true }
   } catch (err) {
     console.error('[figsy] autoEnrollLead failed for lead', leadId, ':', err instanceof Error ? err.message : err)
+    return refuse('unexpected_error', err instanceof Error ? err.message : String(err))
   }
 }

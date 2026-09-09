@@ -1713,6 +1713,14 @@ operatorRouter.get('/programme', async (req: Request, res: Response) => {
     const readiness = truth.programme
       ? await programmePreparationReadiness(truth.programme.id)
       : null
+    // ⛓️ 9 Sep — THE BACKGROUND RUN'S TWO FACTS, SO A LOST RESPONSE LOSES NOTHING. `preparing`
+    // is whether a continuation is in flight in this process right now (the button hides while
+    // it is); `last_preparation` is the most recent audited outcome — headline on success, the
+    // named blockers on refusal — which is the founder's only record of an attempt whose HTTP
+    // response an edge threw away.
+    const { isAdvanceRunning, lastPreparationAttempt } = await import('../lib/programme-advance')
+    const preparing = truth.programme ? isAdvanceRunning(truth.programme.id) : false
+    const lastPreparation = truth.programme ? await lastPreparationAttempt(truth.programme.id) : null
     res.json({ success: true, data: { ...truth,
       degraded: readiness?.degraded ? [...truth.degraded, readiness.degraded] : truth.degraded,
       readiness: {
@@ -1720,6 +1728,8 @@ operatorRouter.get('/programme', async (req: Request, res: Response) => {
         preparable: readiness ? onlyPreparationBlocks(readiness.blockers) : false,
         blockers: (readiness?.blockers ?? []).map(b => ({ code: b.code, detail: b.detail })),
       },
+      preparing,
+      last_preparation: lastPreparation,
       icps, reconcile, commercial: {
       stored:   storedModelFor(model),
       resolved: model.model,
@@ -2017,40 +2027,24 @@ operatorRouter.post('/programme/:programmeId/prepare-for-review', async (req: Re
       res.status(403).json({ success: false, error: 'Operator key required' })
       return
     }
-    const { advanceProgrammeToReview } = await import('../lib/programme-advance')
-    const result = await advanceProgrammeToReview(req.params.programmeId)
-
-    if (!result.ok) {
-      await writeOperatorAudit({
-        operatorEmail: operatorEmail(req), clientId: result.report?.client_id ?? null,
-        action: 'programme_prepare_for_review_refused',
-        subjectType: 'programme', subjectId: req.params.programmeId,
-        detail: {
-          reason: result.reason,
-          steps: result.report?.steps ?? null,
-          blockers: result.report?.blockers ?? null,
-          status_before: result.report?.status_before ?? null,
-          status_after: result.report?.status_after ?? null,
-        },
-      })
-      res.status(400).json({ success: false, error: result.reason, data: result.report ?? null })
-      return
-    }
-
-    const r = result.report
-    await writeOperatorAudit({
-      operatorEmail: operatorEmail(req), clientId: r.client_id,
-      action: 'programme_prepared_for_review',
-      subjectType: 'programme', subjectId: r.programme_id,
-      detail: {
-        status_before: r.status_before, status_after: r.status_after,
-        enrolled: r.enrolled, already_enrolled: r.already_enrolled,
-        campaigns: r.campaigns, remaining: r.remaining, reviewable: r.reviewable,
-        steps: r.steps,
+    // ⛓️ 9 Sep — RESPOND, THEN RUN. Same reason as `/programmes/:id/ready-for-approval`: held
+    // open for the whole chain, this door died at an edge with a plain-text `upstream error`
+    // and its outcome reached nobody. `startAdvanceInBackground` audits the result on both
+    // branches (`programme_prepared_for_review` / `programme_prepare_for_review_refused`), so
+    // the record this route used to write inline is still written — by the run itself, once it
+    // actually knows how it ended.
+    const { startAdvanceInBackground } = await import('../lib/programme-advance')
+    const started = startAdvanceInBackground(req.params.programmeId, 'operator_recovery', operatorEmail(req))
+    res.status(202).json({
+      success: true,
+      data: {
+        started: started.started,
+        already_running: started.already_running,
+        headline: started.started
+          ? 'Preparing this programme for the client in the background. The programme panel shows the outcome when it finishes. Nothing is sent.'
+          : 'This programme is already being prepared. Nothing new was started.',
       },
     })
-
-    res.json({ success: true, data: r })
   } catch (err) {
     console.error('[operator/programme/prepare-for-review]', err)
     res.status(500).json({ success: false, error: err instanceof Error ? err.message : 'The programme could not be prepared for review' })

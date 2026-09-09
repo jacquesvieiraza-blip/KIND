@@ -195,17 +195,44 @@ programmeRouter.post('/:id/checkout/first', guard(async (req: Request, res: Resp
  * (`activate: false`); activation remains behind `assertGoingLive`, which demands an approval
  * and P2. Preparing is not sending, and this route cannot make it so.
  */
+/**
+ * ⛓️ 9 Sep — THE RESPONSE RETURNS BEFORE THE WORK FINISHES, and that is the whole fix.
+ *
+ * 🛑 WHAT HAPPENED. This route held the connection open for the entire chain — for House,
+ * thousands of sequential Supabase round trips across 246 prospects, several minutes — until
+ * an edge in front of Vida closed it with a plain-text `upstream error`. The API kept running
+ * (the sequence write landed), Vida tried to parse the text as JSON, and the founder read
+ * *Unexpected token 'u'*. The eventual outcome was delivered to nobody and, because this route
+ * audited success only, recorded nowhere.
+ *
+ * Now: the same work starts, in the same order, behind the same unchanged gates, and this
+ * responds 202 at once. `startAdvanceInBackground` audits the outcome on BOTH branches, and
+ * Vida reads it back from the programme panel as *last preparation attempt*. A second press
+ * while a run is in flight is answered *already running*, never started twice.
+ *
+ * ⚠️ NOTHING IS WEAKENED. `advanceProgrammeToReview` still runs preparation, still consults
+ * readiness, still hands the transition to `markReadyForApproval` with its sixteen
+ * requirements and its snapshot freeze. Only WHEN the client learns the answer has changed.
+ */
 programmeRouter.post('/:id/ready-for-approval', guard(async (req: Request, res: Response) => {
-  const { advanceProgrammeToReview } = await import('../lib/programme-advance')
-  const r = await advanceProgrammeToReview(req.params.id)
-  if (r.ok) {
-    await auditProgramme(req, 'programme_lifecycle', req.params.id, {
-      to: 'READY_FOR_APPROVAL', next: 'the client approves in Milla — Vida cannot',
-      prepared: r.report.enrolled, already_prepared: r.report.already_enrolled,
-      status_after: r.report.status_after,
-    })
-  }
-  res.status(r.ok ? 200 : 400).json({ success: r.ok, error: r.ok ? undefined : r.reason, data: r.ok ? r.report : (r.report ?? null) })
+  const { startAdvanceInBackground } = await import('../lib/programme-advance')
+  const started = startAdvanceInBackground(req.params.id, 'operator_recovery', pressedBy(req))
+  await auditProgramme(req, 'programme_lifecycle', req.params.id, {
+    to: 'READY_FOR_APPROVAL', requested: true, started: started.started, already_running: started.already_running,
+    next: started.started
+      ? 'preparation is running in the background — the programme panel shows the outcome'
+      : 'a preparation run was already in flight for this programme; nothing new was started',
+  })
+  res.status(202).json({
+    success: true,
+    data: {
+      started: started.started,
+      already_running: started.already_running,
+      headline: started.started
+        ? 'Preparing this programme for the client. This runs in the background and can take a few minutes — the programme panel shows the outcome when it finishes. Nothing is sent.'
+        : 'This programme is already being prepared. Nothing new was started — wait for the current run to finish.',
+    },
+  })
 }))
 
 /** ONE programme-level approval (founder lock 5) — never thousands of paid lead approvals. */

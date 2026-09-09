@@ -422,6 +422,38 @@ export async function prepareProgrammeOutreach(programmeId: string): Promise<Pre
     return out
   }
 
+  // ── ⛓️ 9 Sep — A HALF-APPLIED HOUSE SEQUENCE IS REPAIRED, NOT LEFT ─────────────────────
+  //
+  // 🛑 THE RETRY GAP. `applyHouseProgrammeSequence` writes the sequence row and THEN the
+  // programme's `send_schedule`, as two statements. If the second fails — or the process is
+  // stopped between them, which is exactly what a killed request can do — the sequence exists
+  // and the schedule does not. The auto-apply above runs only when NO sequence resolves, so a
+  // retry would find the sequence, skip the apply, and then be refused at readiness with
+  // `no_send_schedule` forever. A partial write that nothing can complete is a wedge, and the
+  // founder's press would produce the same refusal every time.
+  //
+  // 🛑 IT WRITES THE SCHEDULE AND NOTHING ELSE. Calling the full apply here would also update
+  // the sequence steps back to the approved copy, silently discarding an edit an operator had
+  // made since — and the 8 Sep lock is explicit that the approved copy is a SEED for an empty
+  // programme, never a periodic reset. `applyHouseSendSchedule` touches one column.
+  //
+  // ⚠️ SAME SCOPE GATE, AND ONLY WHEN IT IS GENUINELY MISSING. Only the proved House launch
+  // programme; a programme with a valid schedule is untouched, and a non-House programme is
+  // told to configure one, which is the honest answer.
+  {
+    const { data: schedRow, error: schedErr } = await db.from('programmes')
+      .select('send_schedule').eq('id', programmeId).maybeSingle()
+    if (schedErr) { out.problems.push(`This programme's send schedule could not be read (${schedErr.message}).`); return out }
+    const { isSendSchedule } = await import('./send-schedule')
+    if (!isSendSchedule((schedRow as { send_schedule?: unknown } | null)?.send_schedule)) {
+      const { isHouseLaunchProgramme, applyHouseSendSchedule } = await import('./house-sequence')
+      if (await isHouseLaunchProgramme(programmeId, p.client_id)) {
+        const applied = await applyHouseSendSchedule(programmeId, p.client_id)
+        if (!applied.ok) { out.problems.push(`The approved House send schedule could not be applied: ${applied.reason}`); return out }
+      }
+    }
+  }
+
   // 🛑 AND THE CADENCE IS VALIDATED BEFORE ANYBODY IS ENROLLED. An enrolment copies the steps,
   // so a sequence whose follow-ups all sit on day zero would put five emails in one inbox on
   // one morning — and it would be frozen, approved and sent before anybody noticed the gaps.

@@ -1718,10 +1718,6 @@ operatorRouter.get('/programme', async (req: Request, res: Response) => {
     // it is); `last_preparation` is the most recent audited outcome — headline on success, the
     // named blockers on refusal — which is the founder's only record of an attempt whose HTTP
     // response an edge threw away.
-    const { isHouseLaunchProgramme } = await import('../lib/house-sequence')
-    const autoSequenceSource = truth.programme
-      ? await isHouseLaunchProgramme(truth.programme.id, clientId).catch(() => false)
-      : false
     const { isAdvanceRunning, lastPreparationAttempt } = await import('../lib/programme-advance')
     const preparing = truth.programme ? isAdvanceRunning(truth.programme.id) : false
     const lastPreparation = truth.programme ? await lastPreparationAttempt(truth.programme.id) : null
@@ -1729,14 +1725,13 @@ operatorRouter.get('/programme', async (req: Request, res: Response) => {
       degraded: readiness?.degraded ? [...truth.degraded, readiness.degraded] : truth.degraded,
       readiness: {
         ready: readiness?.ready === true,
-        // ⚑ 9 Sep — `autoSequence` IS PROVED, NEVER ASSUMED. Only a programme with an automatic
-        // sequence source can have preparation clear `no_sequence` / `no_send_schedule`; for
-        // everyone else those need an operator to author the words and choose the timing, and
-        // offering a button that cannot clear them is how a fresh client's programme looked
-        // one press away from ready for as long as anybody cared to press it.
-        preparable: readiness
-          ? onlyPreparationBlocks(readiness.blockers, { autoSequence: autoSequenceSource })
-          : false,
+        // ⛓️ 9 Sep, LATER — THE PROVED `autoSequence` FACT IS GONE BECAUSE IT BECAME A CONSTANT.
+        // This read `isHouseLaunchProgramme` to decide whether preparation could clear
+        // `no_sequence` / `no_send_schedule`, since only House had copy to apply automatically.
+        // Preparation now writes any programme's sequence from its own client context, so every
+        // programme has that capability and asking which one this is would answer the same way
+        // every time — while leaving a route open to hiding a control that does work.
+        preparable: readiness ? onlyPreparationBlocks(readiness.blockers) : false,
         blockers: (readiness?.blockers ?? []).map(b => ({ code: b.code, detail: b.detail })),
       },
       preparing,

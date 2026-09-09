@@ -285,10 +285,22 @@ describe('④ Vida never offers an action that cannot clear the blocker', () => 
     ...over,
   })
 
-  it('🛑 a fresh programme with no sequence is NOT preparable', () => {
-    // Preparation cannot author words. Offering the control here is an action that can never
-    // succeed, which is exactly what the founder saw on the fresh-client path.
-    expect(onlyPreparationBlocks(preparationBlockers(facts({})))).toBe(false)
+  // ⛓️ RETARGETED 9 Sep (later the same day). This read "🛑 a fresh programme with no sequence
+  // is NOT preparable", on the reasoning that *preparation cannot author words* — true that
+  // morning, and the reason the founder saw a dead button on the fresh-client path.
+  //
+  // 🛑 THE RULE THIS SECTION PROTECTS IS UNCHANGED: **Vida never offers an action that cannot
+  // clear the blocker.** What changed is what preparation can do. It now writes any programme's
+  // sequence from that client's own knowledge, approved brief and qualified audience, and sets
+  // the default schedule — so for THIS scenario the control can succeed, and hiding it would be
+  // the new version of the same defect: a fresh client stuck behind a button nobody drew.
+  //
+  // The "cannot succeed" half of the rule is still asserted, below, on `no_sender` — a mailbox
+  // is something a human must connect and no amount of preparation will produce it.
+  it('a fresh programme with no sequence IS preparable — preparation writes one', () => {
+    const b = preparationBlockers(facts({}))
+    expect(b.map(x => x.code), 'the sequence blocker is not present, so this proves nothing').toContain('no_sequence')
+    expect(onlyPreparationBlocks(b)).toBe(true)
   })
 
   it('once its sequence and schedule exist, it IS preparable — with no House affordance', () => {

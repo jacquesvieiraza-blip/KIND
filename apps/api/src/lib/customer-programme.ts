@@ -68,6 +68,14 @@ export type CustomerProgramme = {
   }
   money: {
     totalCents: number
+    /**
+     * ⚑ 9 Sep — THE TWO HALVES, SO MILLA NEVER DIVIDES A PRICE. Both are stored on the row,
+     * priced once from the shared curve at creation. A screen computing `total / 2` is the
+     * two-places-one-number defect with a client-visible amount attached, and it would be
+     * wrong the day the curve stops splitting evenly.
+     */
+    firstPaymentCents: number
+    secondPaymentCents: number
     firstPaidAt: string | null
     secondPaidAt: string | null
     /**
@@ -113,7 +121,7 @@ export const NO_PROGRAMME: CustomerProgramme = {
   outcome: { kind: 'meetings', target: null },
   progress: { delivered: 0, authorised: 0, outcomesAchieved: 0 },
   money: {
-    totalCents: 0, firstPaidAt: null, secondPaidAt: null,
+    totalCents: 0, firstPaymentCents: 0, secondPaymentCents: 0, firstPaidAt: null, secondPaidAt: null,
     firstAuthorisedAt: null, secondAuthorisedAt: null, internalBilling: false,
   },
   approvedAt: null, wentLiveAt: null,
@@ -198,6 +206,8 @@ export async function readCustomerProgramme(clientId: string): Promise<CustomerP
     },
     money: {
       totalCents: Number(p.price_total_cents ?? 0),
+      firstPaymentCents: Number(p.first_payment_cents ?? 0),
+      secondPaymentCents: Number(p.second_payment_cents ?? 0),
       firstPaidAt: (p.first_paid_at as string | null) ?? null,
       secondPaidAt: (p.second_paid_at as string | null) ?? null,
       firstAuthorisedAt: (p.first_authorised_at as string | null) ?? null,

@@ -30,6 +30,7 @@ import { createClient } from '@/lib/supabase/client'
 import { MILLA_FAILURE_COPY } from '@kind/shared'
 import ProgrammeWorkspace, { type CustomerProgramme } from '@/components/milla/ProgrammeWorkspace'
 import ProgrammeApproval, { type ApprovalPayload } from '@/components/milla/ProgrammeApproval'
+import ProgrammePayment from '@/components/milla/ProgrammePayment'
 
 export default function ProgrammePage() {
   const [p, setP] = useState<CustomerProgramme | null>(null)
@@ -89,6 +90,33 @@ export default function ProgrammePage() {
       {/* ⚑ 9 Sep — THE APPROVAL, WHERE THE CLIENT ALREADY IS. It renders only when there is a
           programme awaiting their decision, or one they have already given; at every other
           stage this is silent. The server decides which of those it is. */}
+      {/* ── ⚑ 9 Sep · THE TWO MOMENTS THE CLIENT IS ASKED FOR MONEY ──────────────────────
+          🛑 A CLIENT COULD NOT PAY AT ALL. The checkout rails exist behind the admin key, so
+          the only way to take a programme payment was for an operator to mint a link by hand.
+          These render only when that half is genuinely due — never for an internally
+          authorised programme, which owes nothing and must never be shown a price to pay. */}
+      {p.hasProgramme && !p.money.firstPaidAt && !p.money.firstAuthorisedAt
+        && (p.stage === 'Recommendation') && (
+        <div className="mt-3">
+          <ProgrammePayment
+            stage="first"
+            totalCents={p.money.totalCents}
+            halfCents={p.money.firstPaymentCents ?? 0}
+            meetingTarget={p.outcome.target}
+          />
+        </div>
+      )}
+      {p.hasProgramme && p.approvedAt && !p.wentLiveAt
+        && !p.money.secondPaidAt && !p.money.secondAuthorisedAt && (
+        <div className="mt-3">
+          <ProgrammePayment
+            stage="second"
+            totalCents={p.money.totalCents}
+            halfCents={p.money.secondPaymentCents ?? 0}
+            meetingTarget={p.outcome.target}
+          />
+        </div>
+      )}
       {review?.programme && (review.canApprove || review.programme.approved_at) && (
         <div className="mt-3">
           <ProgrammeApproval

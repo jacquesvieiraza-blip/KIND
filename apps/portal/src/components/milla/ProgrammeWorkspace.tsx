@@ -36,6 +36,9 @@ export type CustomerProgramme = {
   progress: { delivered: number; authorised: number; outcomesAchieved: number | null }
   money: {
     totalCents: number
+    /** The two halves, from the row. Milla never divides a price. */
+    firstPaymentCents?: number
+    secondPaymentCents?: number
     firstPaidAt: string | null
     secondPaidAt: string | null
     /** Internal P1/P2 authority — House runs on this and makes no payment. */

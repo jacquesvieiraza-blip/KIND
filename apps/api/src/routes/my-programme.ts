@@ -38,7 +38,7 @@ import { MILLA_FAILURE_COPY } from '@kind/shared'
 // exact defect the 4A-1 live walk found (a campaign row saying "Paused" beside a programme
 // saying "Proof"). One reader, two doors. This route's response shape is unchanged.
 import { readCustomerProgramme, type CustomerProgramme } from '../lib/customer-programme'
-import { p2Authorised } from '../lib/programme'
+import { p2Authorised, firstPaid, firstInternallyAuthorised, secondInternallyAuthorised } from '../lib/programme'
 
 export type { CustomerProgramme }
 
@@ -192,6 +192,97 @@ myProgrammeRouter.get('/review', async (req: AuthRequest, res) => {
 // 🛑 WHAT THIS IS NOT: it is not P2, it is not go-live, it is not send authority, and it is not
 // a per-lead approval. It writes `status = APPROVED` and `approved_at`, and every one of those
 // other things keeps its own separate act with its own separate guard.
+// ── ⛓️ 9 Sep — THE CLIENT'S OWN PAYMENT DOORS ──────────────────────────────────────────
+//
+// 🛑 A CLIENT COULD NOT PAY. `/programmes/:id/checkout/first` and `/checkout/second` create
+// correctly scoped Stripe sessions and always have — but they live on `programmeRouter`, which
+// is behind the ADMIN KEY. So the only way to take a programme payment was for an operator to
+// mint a link and send it by hand. Milla is supposed to own the client payment experience, and
+// it had no door at all.
+//
+// ⚠️ NO NEW PAYMENT LOGIC. Both routes call the SAME `createProgrammeCheckoutSession` with the
+// same metadata and the same amounts, derived from the stored row exactly as before. What is
+// new is only WHO may ask, and how the programme is resolved.
+//
+// 🛑 THE PROGRAMME COMES FROM THE SESSION, NEVER FROM THE REQUEST. A body-supplied programme id
+// would let any signed-in customer mint a checkout against somebody else's programme — with
+// that programme's id in the metadata, and therefore that programme's authority when the
+// webhook lands. The client is resolved from `req.userId`, the programme from the client, and
+// nothing about either is taken from the caller.
+//
+// ⚠️ AND THE WEBHOOK REMAINS THE AUTHORITY. A checkout URL grants nothing: an abandoned or
+// failed session leaves the row untouched, and `recordFirstPayment` / `recordSecondPayment`
+// re-read state and compare-and-set. These routes create an intention to pay, not a payment.
+async function programmeCheckout(
+  req: AuthRequest, res: Parameters<Parameters<typeof myProgrammeRouter.post>[1]>[1],
+  stage: 'programme_first' | 'programme_second',
+): Promise<void> {
+  const clientId = await getClientId(req.userId!)
+  if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+
+  const p = await openProgrammeForSession(clientId)
+  if (!p) { res.status(404).json({ success: false, error: 'not_found', message: 'No such programme.' }); return }
+
+  // 🛑 THE SAME STATE RULES THE OPERATOR DOORS USE. Restating them loosely here is how a client
+  // pays for a stage the programme is not in.
+  if (stage === 'programme_first') {
+    if (firstPaid(p)) {
+      res.status(409).json({ success: false, error: 'already_paid', message: 'The first payment is already recorded.' }); return
+    }
+    if (firstInternallyAuthorised(p)) {
+      res.status(409).json({ success: false, error: 'internally_authorised', message: 'This programme is authorised internally and owes nothing.' }); return
+    }
+    if (p.status !== 'RECOMMENDED' && p.status !== 'AWAITING_FIRST_PAYMENT') {
+      res.status(409).json({ success: false, error: 'wrong_state', message: `This programme is ${p.status}, so the first payment is not due.` }); return
+    }
+  } else {
+    const { maySecondCharge } = await import('../lib/programme')
+    const gate = maySecondCharge(p)
+    if (!gate.allowed) { res.status(409).json({ success: false, error: 'wrong_state', message: gate.reason }); return }
+    if (secondInternallyAuthorised(p)) {
+      res.status(409).json({ success: false, error: 'internally_authorised', message: 'This programme is authorised internally and owes nothing.' }); return
+    }
+  }
+
+  const { data: c } = await db.from('clients').select('contact_email').eq('id', clientId).maybeSingle()
+  const email = (c as { contact_email?: string | null } | null)?.contact_email
+  if (typeof email !== 'string' || email.trim() === '') {
+    // ⚠️ FAIL CLOSED. Stripe accepts a session with no email, so the checkout would be created
+    // and the client would never receive a receipt at an address we hold.
+    res.status(400).json({ success: false, error: 'no_email', message: 'We do not have your email address, so we could not start the payment. Nothing was charged.' })
+    return
+  }
+
+  const { createProgrammeCheckoutSession } = await import('../lib/programme-checkout')
+  const r = await createProgrammeCheckoutSession({
+    clientId, programmeId: p.id, meetings: p.meeting_target, stage,
+    successUrl: String((req.body ?? {}).successUrl ?? ''),
+    cancelUrl: String((req.body ?? {}).cancelUrl ?? ''),
+    clientEmail: email.trim(),
+  })
+  if (!r.url) {
+    res.status(502).json({ success: false, error: 'checkout_failed', message: r.error ?? 'We could not start the payment. Nothing was charged.' })
+    return
+  }
+  res.json({ success: true, data: { url: r.url } })
+}
+
+myProgrammeRouter.post('/checkout/first', async (req: AuthRequest, res) => {
+  try { await programmeCheckout(req, res, 'programme_first') }
+  catch (err) {
+    console.error('[programme/me/checkout/first]', err)
+    res.status(503).json({ success: false, error: MILLA_FAILURE_COPY.pipelineFailed })
+  }
+})
+
+myProgrammeRouter.post('/checkout/second', async (req: AuthRequest, res) => {
+  try { await programmeCheckout(req, res, 'programme_second') }
+  catch (err) {
+    console.error('[programme/me/checkout/second]', err)
+    res.status(503).json({ success: false, error: MILLA_FAILURE_COPY.pipelineFailed })
+  }
+})
+
 myProgrammeRouter.post('/approve', async (req: AuthRequest, res) => {
   try {
     const clientId = await getClientId(req.userId!)

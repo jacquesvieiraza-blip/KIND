@@ -256,6 +256,33 @@ export function p2Authorised(p: ProgrammeRow): boolean {
 }
 
 /**
+ * Is this half settled by INTERNAL authority rather than money?
+ *
+ * ⛓️ 9 Sep — ADDED HERE, IN THE MODULE THAT OWNS THE COLUMNS, because the alternative was
+ * worse. The client checkout doors need to know that an internally-authorised programme owes
+ * nothing — House must never be shown a price to pay — and reading `first_authorised_at`
+ * directly in a route would both restate the rule in a second place AND breach the
+ * internal-authority allowlist, which exists precisely so a fourth module cannot invent its own
+ * answer to "who owes what".
+ *
+ * ⚠️ THIS IS NOT `p1Authorised`. That one asks *may this programme proceed* — paid OR internal.
+ * This asks the narrower question *was it settled WITHOUT money*, which is the only one that
+ * decides whether a client is asked to pay.
+ */
+export function firstInternallyAuthorised(p: ProgrammeRow): boolean {
+  return !!p.first_authorised_at
+}
+
+export function secondInternallyAuthorised(p: ProgrammeRow): boolean {
+  return !!p.second_authorised_at
+}
+
+/** Has a real first payment been recorded? The paid half of `p1Authorised`. */
+export function firstPaid(p: ProgrammeRow): boolean {
+  return !!p.first_payment_ref
+}
+
+/**
  * INTERNAL P1 — the House / Client Zero equivalent of the first payment.
  *
  * Does exactly what `recordFirstPayment` does to the programme's STATE, and nothing at all to

@@ -105,6 +105,47 @@ export const PREPARATION_REQUIREMENTS = [
 ] as const
 
 /**
+ * The blockers PREPARATION ITSELF clears, as opposed to the ones a human must go and fix.
+ *
+ * ⛓️ 9 Sep — THIS EXISTS BECAUSE THE READINESS BOOLEAN ALONE PRODUCED A DEADLOCK. Vida hides
+ * "Ready for approval" until `readiness.ready` is true; readiness needs a campaign, sequence,
+ * schedule and enrolments; and those are created by preparation, which the button is what runs.
+ * Gated on `ready` alone, the only way to reach the state that reveals the control is to press
+ * the control. That is not a stricter gate, it is an unreachable one.
+ *
+ * 🛑 THE SPLIT IS A FACT ABOUT THE SYSTEM, NOT A CONVENIENCE. Every code below is something
+ * `prepareProgrammeOutreach` demonstrably produces — the campaign, the canonical sequence and
+ * its schedule, the cadence it validates, the enrolments it writes, and the snapshot that
+ * becomes describable once that chain exists. Every code NOT below is something it cannot:
+ * `no_attached_icp` and `no_batch` are earlier lifecycle acts, `no_reviewable_leads` is
+ * sourcing and qualification, `no_sender` is a mailbox somebody has to connect,
+ * `foreign_enrolments` is corruption, and `wrong_status` / `paused` are authority.
+ *
+ * ⚠️ ADDING A CODE HERE WEAKENS THE SCREEN'S GATE. A requirement listed here is one the UI will
+ * offer the button in spite of — so it must be one preparation actually clears, and a test
+ * asserts every entry is a real requirement and that the un-clearable ones are absent.
+ */
+export const PREPARATION_CLEARS: string[] = [
+  'no_campaign', 'campaign_not_programme_linked', 'no_sequence', 'sequence_not_campaign_linked',
+  'no_message_steps', 'no_cadence', 'no_send_schedule', 'no_eligible_enrolments', 'no_snapshot',
+]
+
+/**
+ * Is this programme one run of preparation away from being reviewable?
+ *
+ * ⚠️ IT IS NOT "NEARLY READY". It is the strictly narrower claim that every outstanding blocker
+ * is one preparation clears — a single blocker outside that list makes it false, because
+ * running preparation would not fix it and the operator would be sent round a loop.
+ *
+ * ⚠️ AND IT NEVER MEANS READY. A programme with no blockers at all is `ready`, and this returns
+ * false for it: the two answers are different questions and a caller must not conflate them.
+ */
+export function onlyPreparationBlocks(blockers: readonly PreparationBlocker[]): boolean {
+  if (blockers.length === 0) return false
+  return blockers.every(b => PREPARATION_CLEARS.includes(b.code))
+}
+
+/**
  * Everything standing between this programme and a client being asked to approve it.
  *
  * ⚠️ IT RETURNS ALL OF THEM, not the first. An operator preparing a launch needs the whole

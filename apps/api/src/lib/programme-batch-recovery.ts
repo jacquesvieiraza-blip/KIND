@@ -60,6 +60,20 @@ export interface QualifyBatchReport extends QualifyOutcome {
   status_before: string
   status_after: string
   surfaced: number
+  /**
+   * ⚑ 9 Sep — WHAT THE AUTOMATIC CONTINUATION DID, once this attempt settled.
+   *
+   * 🛑 SETTLING IS NOT THE END OF THE ACTION. The locked normal flow carries a settled
+   * programme straight on through preparation to the review boundary, so a report stopping at
+   * the settle would describe half of what this call performed. `reviewable` is the outcome;
+   * `blockers` is the named exception when it could not continue — `no_sender` above all,
+   * which is a mailbox to connect rather than something to retry.
+   */
+  continued: {
+    reviewable: boolean
+    blockers: { code: string; detail: string }[]
+    detail: string
+  }
   headline: string
 }
 
@@ -233,6 +247,29 @@ export async function qualifyAndSettleBatch(programmeId: unknown): Promise<Quali
     surfaceNote = ' The settled batch could not be re-read, so nothing was surfaced.'
   }
 
+  // ── ⑦ ⚑ 9 Sep — AND THE PROGRAMME CARRIES ON BY ITSELF (founder-locked) ─────────────
+  //
+  // 🛑 THE SAME BOUNDARY, REACHED THE OTHER WAY. This path exists for an attempt whose first
+  // sourcing run left candidates unjudged; when it finishes, qualification and entitlement
+  // settlement are complete exactly as they are on the fresh path. The locked rule is that
+  // preparation then follows AUTOMATICALLY — requiring the operator to press a second button
+  // here would rebuild the gap this closes, one path over.
+  //
+  // ⚠️ ONE ORCHESTRATOR, TWO CALL SITES, NO SECOND COPY OF THE RULE. Everything about what
+  // "prepared" means lives in `advanceAfterSettlement` → `prepareProgrammeOutreach` →
+  // `markReadyForApproval`, and none of it is restated here.
+  //
+  // ⚠️ IT NEVER THROWS AND IT FAILS CLOSED. The settle above is done and correct; a programme
+  // that cannot be prepared is reported, not unwound, and never advanced.
+  const { advanceAfterSettlement } = await import('./programme-advance')
+  const continued = await advanceAfterSettlement(id, 'operator_qualify')
+
+  // Read the status back ONCE MORE, because the continuation may have moved it. Reporting the
+  // status from before it ran would tell the operator the programme is still SOURCING on the
+  // very screen where it has just become reviewable.
+  const { data: post2 } = await db.from('programmes').select('status').eq('id', id).maybeSingle()
+  const statusAfter = String((post2 as { status?: string } | null)?.status ?? pr?.status ?? statusBefore)
+
   return {
     ok: true,
     report: {
@@ -247,8 +284,13 @@ export async function qualifyAndSettleBatch(programmeId: unknown): Promise<Quali
       batch_rejected: batchRejected,
       used, reserved, remaining,
       status_before: statusBefore,
-      status_after: String(pr?.status ?? statusBefore),
+      status_after: statusAfter,
       surfaced,
+      continued: {
+        reviewable: continued.reviewable,
+        blockers: continued.blockers,
+        detail: continued.detail,
+      },
       headline:
         `${batchCandidates ?? q.candidates_total} candidate(s) in this attempt against ${icp.name ?? 'the attached targeting'}: ` +
         `${batchQualified ?? q.qualified} qualified, ${batchRejected ?? q.disqualified} rejected` +
@@ -256,7 +298,10 @@ export async function qualifyAndSettleBatch(programmeId: unknown): Promise<Quali
         `${Object.keys(q.reasons).length ? ` (${Object.entries(q.reasons).map(([k, v]) => `${k} ${v}`).join(', ')})` : ''}. ` +
         `${rpcData} prospect(s) now consume programme entitlement — ${used} used · ${reserved} reserved · ${remaining} left. ` +
         `${surfaced} qualified prospect(s) are on the customer's review desk.${surfaceNote} ` +
-        `${statusBefore === String(pr?.status ?? statusBefore) ? `Status is unchanged (${statusBefore}).` : `Status moved ${statusBefore} → ${pr?.status}.`} ` +
+        `${statusBefore === statusAfter ? `Status is unchanged (${statusBefore}).` : `Status moved ${statusBefore} → ${statusAfter}.`} ` +
+        // ⚑ 9 Sep — WHAT HAPPENED NEXT, IN THE SAME SENTENCE. The continuation runs inside this
+        // call, so a report that stopped at the settle would describe half of what it did.
+        `${continued.detail} ` +
         `Provider: ${q.provider_reveals_attempted} reveal(s) attempted, ${q.provider_reveals_succeeded} answered, ${q.already_judged} candidate(s) already judged and skipped. ` +
         'Nobody was sourced, no approval was given, no Payment 2 was taken and nothing was sent.',
     },

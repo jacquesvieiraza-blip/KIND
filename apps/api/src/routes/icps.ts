@@ -2091,6 +2091,34 @@ export async function runIcpJob(
               const surf = await surfaceQualifiedBatch(programmeIdForRun, clientId, programmeBatch.id)
               if (surf.ok) console.log(`[icp] programme ${programmeIdForRun} — ${surf.surfaced} qualified prospect(s) surfaced for review.`)
               else console.error(`[icp] programme ${programmeIdForRun} — the qualified prospects were NOT surfaced: ${surf.reason}`)
+
+              // ══ ⚑ 9 Sep — AND THE PROGRAMME CARRIES ON BY ITSELF (founder-locked) ═══════
+              //
+              // 🛑 THE LOCKED NORMAL FLOW IS AUTOMATIC: P1 → source → enrich → qualify →
+              // account → PREPARE, with Vida interrupting only for a real exception. Until
+              // this line the last step needed an operator to press `Ready for approval` on
+              // every healthy programme — a step somebody will one day not press, on a launch
+              // nobody is watching. Preparation is not an operator decision; it is what a
+              // settled programme is FOR.
+              //
+              // ⚠️ THIS IS THE CANONICAL BOUNDARY, and it is here rather than beside the
+              // settle for a reason: `markReadyForApproval` and the customer's review desk
+              // both require `surfaced_for_approval_at`, which the line above writes. Called
+              // any earlier it would refuse every time on a set nobody could see yet.
+              //
+              // ⚠️ IT ADDS NO RULE AND OWNS NO LOGIC. `advanceAfterSettlement` is the single
+              // orchestrator the operator door also calls; a second copy here is exactly the
+              // drift that made two "definitions of prepared" possible in the first place.
+              //
+              // 🛑 IT CANNOT BREAK THIS RUN. It never throws: the ledger has already moved,
+              // and an exception escaping here would abandon the surfacing, scoring and alerts
+              // below on a settle that already succeeded and cannot be taken back. A programme
+              // it cannot advance is LEFT WHERE IT IS, with the blocker named in the log.
+              const { advanceAfterSettlement } = await import('../lib/programme-advance')
+              const cont = await advanceAfterSettlement(programmeIdForRun, 'sourcing_run')
+              if (!cont.reviewable) {
+                console.error(`[icp] programme ${programmeIdForRun} settled but did NOT reach review: ${cont.detail}`)
+              }
             } else {
               console.error(`[icp] PROGRAMME batch ${programmeBatch.id} could not be settled — marked stranded; the granted volume stays reserved until reconciled.`)
             }

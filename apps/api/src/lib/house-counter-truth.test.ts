@@ -215,7 +215,12 @@ describe('④ 7 · Vida renders the settled attempt, not this run\'s tally', () 
   it('🛑 the success line reads `batch_qualified` / `batch_rejected`', () => {
     expect(VIDA_CODE).toContain('const settledQualified = d.batch_qualified ?? d.qualified ?? 0')
     expect(VIDA_CODE).toContain('const settledRejected = d.batch_rejected ?? d.disqualified ?? 0')
-    expect(VIDA_CODE).toContain('`${settledQualified} qualified · ${settledRejected} rejected · ${d.used ?? 0} used · batch ready for review`')
+    // ⛓️ RETARGETED 9 Sep — the trailing clause is no longer fixed. Settling now continues
+    // straight on to preparation, so the line ends with what actually happened next: "prepared
+    // and now with the client to approve", "batch ready for review", or the named exception.
+    // The fact THIS case exists for is unchanged and still asserted: the three counters on that
+    // line are the SETTLED batch's, never this run's tally.
+    expect(VIDA_CODE).toContain('const settled = `${settledQualified} qualified · ${settledRejected} rejected · ${d.used ?? 0} used`')
     // 🛑 AND THE OLD FORM IS GONE. Rendering the run's tally as the batch's is the defect.
     expect(VIDA_CODE, 'the run tally is rendered as the batch total again')
       .not.toContain('`${d.qualified ?? 0} qualified · ${d.disqualified ?? 0} rejected')

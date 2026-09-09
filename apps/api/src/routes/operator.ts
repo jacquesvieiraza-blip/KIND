@@ -1702,13 +1702,24 @@ operatorRouter.get('/programme', async (req: Request, res: Response) => {
     // already fails closed on every unreadable fact; its `degraded` sentence joins the array
     // this panel already renders in red, so "we could not tell" reaches the operator as itself
     // rather than as a missing button.
-    const { programmePreparationReadiness } = await import('../lib/preparation-readiness')
+    //
+    // ⛓️ 9 Sep — AND `ready` ALONE WAS AN UNREACHABLE GATE. Readiness requires a campaign,
+    // sequence, schedule and enrolments; those are created by PREPARATION; and preparation is
+    // what the button now runs. Gated on `ready` alone the control could never appear, because
+    // the only way to reach the state that reveals it was to press it. `preparable` is the
+    // second, strictly narrower fact — every outstanding blocker is one preparation clears —
+    // and it is computed from the SAME blocker list, so no new rule enters the screen.
+    const { programmePreparationReadiness, onlyPreparationBlocks } = await import('../lib/preparation-readiness')
     const readiness = truth.programme
       ? await programmePreparationReadiness(truth.programme.id)
       : null
     res.json({ success: true, data: { ...truth,
       degraded: readiness?.degraded ? [...truth.degraded, readiness.degraded] : truth.degraded,
-      readiness: { ready: readiness?.ready === true },
+      readiness: {
+        ready: readiness?.ready === true,
+        preparable: readiness ? onlyPreparationBlocks(readiness.blockers) : false,
+        blockers: (readiness?.blockers ?? []).map(b => ({ code: b.code, detail: b.detail })),
+      },
       icps, reconcile, commercial: {
       stored:   storedModelFor(model),
       resolved: model.model,
@@ -1971,6 +1982,10 @@ operatorRouter.post('/programme/:programmeId/qualify-batch', async (req: Request
         qualified: r.qualified, disqualified: r.disqualified, reasons: r.reasons,
         used: r.used, reserved: r.reserved, remaining: r.remaining,
         status_before: r.status_before, status_after: r.status_after, surfaced: r.surfaced,
+        // ⚑ 9 Sep — the continuation runs inside this call, so its outcome is part of the
+        // record of what the operator's press actually did.
+        continued_reviewable: r.continued.reviewable,
+        continued_blockers: r.continued.blockers.map(b => b.code),
       },
     })
 
@@ -1978,6 +1993,67 @@ operatorRouter.post('/programme/:programmeId/qualify-batch', async (req: Request
   } catch (err) {
     console.error('[operator/programme/qualify-batch]', err)
     res.status(500).json({ success: false, error: err instanceof Error ? err.message : 'The qualification could not be completed' })
+  }
+})
+
+// ── CONTINUE A SETTLED PROGRAMME TO THE REVIEW BOUNDARY ─────────────────────────────────
+//
+// 🛑 THE STEP AFTER QUALIFY, WHICH NOTHING COULD REACH. Once an attempt is judged and settled,
+// the programme still has to be PREPARED — campaign, canonical sequence, schedule, cadence,
+// enrolments — before the client can be asked to approve it. Preparation supported that stage
+// and had no caller before approval, so a settled programme sat at SOURCING with no coded path
+// forward. This is that path: one exact programme id in, the canonical chain run once, and a
+// named blocker back out when something genuinely is not ready.
+//
+// ⚠️ IT SOURCES NOBODY AND SPENDS NOTHING. No People Search, no PDL, no Apollo reveal, no
+// qualification, no settlement, no entitlement movement. It re-runs no completed stage.
+//
+// ⚠️ IT SENDS NOTHING, AND THAT IS STRUCTURAL. Pre-approval preparation creates the campaign
+// as a DRAFT; `status: 'active'` is reachable only through `assertGoingLive`, which demands an
+// approval and P2. This route touches neither.
+operatorRouter.post('/programme/:programmeId/prepare-for-review', async (req: Request, res: Response) => {
+  try {
+    if (!adminKeyValid(req.headers['x-admin-key'])) {
+      res.status(403).json({ success: false, error: 'Operator key required' })
+      return
+    }
+    const { advanceProgrammeToReview } = await import('../lib/programme-advance')
+    const result = await advanceProgrammeToReview(req.params.programmeId)
+
+    if (!result.ok) {
+      await writeOperatorAudit({
+        operatorEmail: operatorEmail(req), clientId: result.report?.client_id ?? null,
+        action: 'programme_prepare_for_review_refused',
+        subjectType: 'programme', subjectId: req.params.programmeId,
+        detail: {
+          reason: result.reason,
+          steps: result.report?.steps ?? null,
+          blockers: result.report?.blockers ?? null,
+          status_before: result.report?.status_before ?? null,
+          status_after: result.report?.status_after ?? null,
+        },
+      })
+      res.status(400).json({ success: false, error: result.reason, data: result.report ?? null })
+      return
+    }
+
+    const r = result.report
+    await writeOperatorAudit({
+      operatorEmail: operatorEmail(req), clientId: r.client_id,
+      action: 'programme_prepared_for_review',
+      subjectType: 'programme', subjectId: r.programme_id,
+      detail: {
+        status_before: r.status_before, status_after: r.status_after,
+        enrolled: r.enrolled, already_enrolled: r.already_enrolled,
+        campaigns: r.campaigns, remaining: r.remaining, reviewable: r.reviewable,
+        steps: r.steps,
+      },
+    })
+
+    res.json({ success: true, data: r })
+  } catch (err) {
+    console.error('[operator/programme/prepare-for-review]', err)
+    res.status(500).json({ success: false, error: err instanceof Error ? err.message : 'The programme could not be prepared for review' })
   }
 })
 

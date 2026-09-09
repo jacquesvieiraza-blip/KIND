@@ -345,7 +345,7 @@ export default function VidaConsolePage() {
     // which a browser can see, and all of which it would have to re-derive to answer this
     // locally. Optional, so an older API against this UI hides the control rather than
     // offering it: the fail-closed direction.
-    readiness?: { ready: boolean }
+    readiness?: { ready: boolean; preparable?: boolean; blockers?: { code: string; detail: string }[] }
   }
   const [prog, setProg] = useState<ProgrammeTruth | null>(null)
   const [progErr, setProgErr] = useState<string | null>(null)
@@ -459,11 +459,31 @@ export default function VidaConsolePage() {
       const d = (j.data ?? {}) as {
         qualified?: number; disqualified?: number; used?: number | null
         batch_qualified?: number | null; batch_rejected?: number | null
+        status_after?: string
+        continued?: { reviewable?: boolean; blockers?: { code: string; detail: string }[]; detail?: string }
       }
       const settledQualified = d.batch_qualified ?? d.qualified ?? 0
       const settledRejected = d.batch_rejected ?? d.disqualified ?? 0
-      setQualMsg({ tone: 'ok', text:
-        `${settledQualified} qualified · ${settledRejected} rejected · ${d.used ?? 0} used · batch ready for review` })
+      const settled = `${settledQualified} qualified · ${settledRejected} rejected · ${d.used ?? 0} used`
+
+      // ⚑ 9 Sep — SETTLING IS NO LONGER THE END OF THIS ACTION. The programme now carries on to
+      // preparation automatically, inside this same call, so the screen reports what actually
+      // happened rather than the old "batch ready for review" — which would now be a guess
+      // about a step that has already either succeeded or been blocked.
+      //
+      // 🛑 A BLOCKED CONTINUATION IS AMBER, NEVER GREEN. The accounting is correct and the
+      // work is safe, and the programme did NOT reach the client. Painting that as success is
+      // how an operator stops looking. The API's own sentence names the blocker — a missing
+      // mailbox is something to go and connect, not something to press again.
+      if (d.continued && d.continued.reviewable === false) {
+        setQualMsg({ tone: 'warn', text:
+          `${settled}. Settled and safe, but this programme did not reach the client: ${d.continued.detail ?? 'the reason did not come back.'}` })
+      } else {
+        setQualMsg({ tone: 'ok', text:
+          `${settled} · ${d.status_after === 'READY_FOR_APPROVAL'
+            ? 'prepared and now with the client to approve'
+            : 'batch ready for review'}` })
+      }
       // Re-read rather than patching: the row is the truth, and the control's own visibility is
       // recomputed by the server from the state that now exists.
       if (selected) await loadProgramme(selected)
@@ -537,8 +557,19 @@ export default function VidaConsolePage() {
       // `programmePreparationReadiness` — the same rule `markReadyForApproval` is gated by — so
       // the screen and the route cannot disagree. `=== true` because absent is not ready: an
       // older API, a failed read or a field this UI has not been given must HIDE the action.
+      //
+      // ⛓️ 9 Sep — AND `ready` ALONE MADE THE CONTROL UNREACHABLE. Readiness needs a campaign,
+      // sequence, schedule and enrolments; those are made by PREPARATION; and preparation is
+      // what this button now runs. Requiring `ready` to SHOW it meant the only way to reach the
+      // state that revealed the control was to press the control — a gate nothing could ever
+      // satisfy, on the House programme most of all.
+      //
+      // ⚠️ `preparable` IS STILL THE SERVER'S BOOLEAN, and it is strictly narrower than "nearly
+      // ready": it is true only when EVERY outstanding blocker is one preparation clears. A
+      // missing sender, a missing batch, an unqualified desk — none of those are on that list,
+      // so the button stays hidden for them, which is what #1657 was actually protecting.
       case 'ready-for-approval':   return (p.status === 'SOURCING_AUTHORISED' || p.status === 'SOURCING')
-                                          && prog?.readiness?.ready === true
+                                          && (prog?.readiness?.ready === true || prog?.readiness?.preparable === true)
       case 'authorise/second':     return p.status === 'APPROVED' && !p2
       case 'go-live':              return p.status === 'APPROVED' && p2
       // 🛑 THERE IS NO 'approve'. The one programme approval belongs to the CLIENT, in Milla.
@@ -565,7 +596,11 @@ export default function VidaConsolePage() {
       'recommend': `Move ${name}'s programme to RECOMMENDED?`,
       'await-first-payment': `Move ${name}'s programme to P1?\n\nThis records NO payment and creates NO checkout — it moves the programme to the stage where P1 is settled.`,
       'authorise/first': `Authorise P1 INTERNALLY for ${name}?\n\nNo payment is taken and no invoice, revenue or commission is created. It opens the sourcing ceiling and moves the programme to SOURCING_AUTHORISED, exactly as a first payment would.`,
-      'ready-for-approval': `Mark ${name}'s programme READY FOR APPROVAL?\n\nThe client then approves it in Milla. Vida cannot approve it.`,
+      // ⚑ 9 Sep — THE CONFIRMATION SAYS WHAT THE BUTTON NOW DOES. It prepares first: the
+      // campaign, the words, the timing and the audience are built, then the programme is
+      // moved. An operator pressing this must know work is created, and must know equally
+      // clearly that none of it can send — the campaign is a draft until Make live.
+      'ready-for-approval': `Prepare ${name}'s programme and mark it READY FOR APPROVAL?\n\nThis builds the campaign, sequence, timing and audience if they are not built yet, then hands the programme to the client.\n\nNOTHING IS SENT. The campaign stays a draft until the client approves, P2 is authorised and it is made live. The client then approves it in Milla — Vida cannot approve it.`,
       'authorise/second': `Authorise P2 INTERNALLY for ${name}?\n\nNo payment is taken. This does NOT make the programme live — Make live is a separate action.`,
       'go-live': `Make ${name}'s programme LIVE?\n\nOutreach becomes permitted for this programme. Sending still obeys every downstream safety gate.`,
     }
@@ -581,7 +616,20 @@ export default function VidaConsolePage() {
       // ⚑ "Live" is not the same claim as "operable", so the screen says both. A go-live that
       // prepared nothing is the exact state an operator must not read as finished.
       const prep = j?.preparation as { campaigns: string[]; enrolled: string[]; alreadyEnrolled: number } | null | undefined
-      setLcMsg(prep
+      // ⚑ 9 Sep — READY FOR APPROVAL NOW PREPARES, SO IT REPORTS WHAT IT PREPARED. The counts
+      // come from the server's own advance report; the screen derives none of them. A run that
+      // enrolled nobody because everybody was already enrolled is the idempotent answer and is
+      // shown as such, not as a silent "done".
+      const adv = j?.data as {
+        enrolled?: number; already_enrolled?: number; campaigns?: string[]; status_after?: string
+      } | null | undefined
+      if (action === 'ready-for-approval' && adv && typeof adv.enrolled === 'number') {
+        setLcMsg(
+          `${label} — done. ${(adv.campaigns ?? []).length} campaign(s) ready · ${adv.enrolled} prospect(s) prepared` +
+          `${adv.already_enrolled ? ` · ${adv.already_enrolled} already prepared` : ''}` +
+          `${adv.status_after ? ` · now ${adv.status_after}` : ''}. Nothing has been sent.`,
+        )
+      } else setLcMsg(prep
         ? `${label} — done. ${prep.campaigns.length} campaign(s) ready · ${prep.enrolled.length} prospect(s) enrolled` +
           `${prep.alreadyEnrolled ? ` · ${prep.alreadyEnrolled} already enrolled` : ''}. Nothing has been sent.`
         : `${label} — done.`)

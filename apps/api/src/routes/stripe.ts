@@ -380,7 +380,30 @@ stripeRouter.post('/webhook', async (req: Request, res: Response) => {
           // ⚠️ NO startWorkForClient CALL HERE, DELIBERATELY. The first 50% buys AUTHORITY to
           // source up to the full recommended volume, executed in controlled ~250 batches
           // under K.I.N.D's GO — not an immediate run (founder lock 4).
-          console.log(`[Stripe] programme ${meta.programmeId} first payment ${r.alreadyRecorded ? 'already recorded (replay)' : 'recorded'} — sourcing authorised, NOT started.`)
+          // ── ⛓️ 9 Sep — AND NOW IT STARTS (founder-locked) ────────────────────────────────
+          //
+          // 🛑 THE RULE: once valid P1 authority exists for an exact programme, source →
+          // enrich → qualify → account → prepare must continue AUTOMATICALLY. Until this line
+          // `sourceProgramme` had one caller and it was an operator route, so a client could
+          // pay and nothing would happen until a human noticed.
+          //
+          // ⚠️ THE WEBHOOK STILL DOES NOT SPEND. The old rule — "payment must never start
+          // sourcing" — was about an UNCHECKED webhook spending money, and that concern is met
+          // by the shape rather than by refusing to start: the authority is COMMITTED first
+          // (immediately above, by a compare-and-set), and `startProgrammeAfterP1` then
+          // re-proves every fact from the row before a single provider call.
+          //
+          // 🛑 ONLY WHEN THIS DELIVERY ACTUALLY CLAIMED THE ROW. `alreadyRecorded` means a
+          // redelivery of a payment already recorded; starting there is how one payment becomes
+          // two sourcing runs. The compare-and-set inside `recordFirstPayment` is what makes
+          // this safe, and this is the line that uses it.
+          if (!r.alreadyRecorded) {
+            const { startProgrammeAfterP1 } = await import('../lib/programme-p1-continuation')
+            const started = await startProgrammeAfterP1(meta.programmeId, 'stripe_first_payment', 'stripe-webhook')
+            console.log(`[Stripe] programme ${meta.programmeId} first payment recorded — ${started.detail}`)
+          } else {
+            console.log(`[Stripe] programme ${meta.programmeId} first payment already recorded (replay) — nothing started.`)
+          }
           res.sendStatus(200); return
         }
 

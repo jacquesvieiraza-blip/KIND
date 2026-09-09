@@ -13,6 +13,7 @@
 
 import { db } from '@kind/db'
 import { sendFounderAlert } from './alerts'
+import { DEFAULT_PROGRAMME_SEND_SCHEDULE } from './programme-sequence'
 import {
   quoteProgramme, recommendedVolume, partnerCommissionCents,
   type ProgrammeStage,
@@ -174,6 +175,18 @@ export async function createProgramme(clientId: string, meetings: number): Promi
     price_total_cents: q.totalCents,
     first_payment_cents: q.firstPaymentCents,
     second_payment_cents: q.secondPaymentCents,
+    // ── ⛓️ 9 Sep — EVERY PROGRAMME IS BORN WITH A SENDING SCHEDULE ────────────────────────
+    //
+    // 🛑 `programmes.send_schedule` had exactly one writer and it was House's, so every other
+    // programme carried NULL. NULL correctly means REFUSE — readiness blocks on
+    // `no_send_schedule` — and nothing generic could ever clear it, which made
+    // READY_FOR_APPROVAL unreachable for a paying client.
+    //
+    // ⚠️ A CREATION-TIME DEFAULT IS NOT A SEND-TIME ONE. This is a visible, operator-editable
+    // setting that exists long before anything can send; the founder-locked rule against
+    // inventing a schedule AT SEND TIME is untouched, and `isSendSchedule`'s NULL refusal still
+    // stands for any row that predates this.
+    send_schedule: DEFAULT_PROGRAMME_SEND_SCHEDULE,
   }).select().single()
 
   if (error) {

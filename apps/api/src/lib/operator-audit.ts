@@ -124,6 +124,10 @@ export type OperatorAction =
                                // a foreign-client lead, or orphans that would not fit under the
                                // ceiling — and a refusal that writes no row looks on every board
                                // exactly like a reconciliation nobody ever attempted.
+  | 'programme_sequence_set'   // ⚑ 9 Sep — the operator wrote the programme's canonical words.
+                               // The customer reviews and approves exactly these, so who set
+                               // them and when has to survive the session. It sends nothing.
+  | 'programme_send_schedule_set' // …and when those words may go out. Same reasoning.
   | 'programme_prepared_for_review' // ⚑ 9 Sep — a settled programme was carried through the
                                // pre-approval chain (campaign · sequence · schedule · cadence ·
                                // enrolments) and handed to the client to approve. It creates

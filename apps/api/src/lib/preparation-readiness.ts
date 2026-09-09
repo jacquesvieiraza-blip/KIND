@@ -126,8 +126,26 @@ export const PREPARATION_REQUIREMENTS = [
  * asserts every entry is a real requirement and that the un-clearable ones are absent.
  */
 export const PREPARATION_CLEARS: string[] = [
-  'no_campaign', 'campaign_not_programme_linked', 'no_sequence', 'sequence_not_campaign_linked',
-  'no_message_steps', 'no_cadence', 'no_send_schedule', 'no_eligible_enrolments', 'no_snapshot',
+  'no_campaign', 'campaign_not_programme_linked', 'no_eligible_enrolments', 'no_snapshot',
+]
+
+/**
+ * The extra blockers preparation clears ONLY for a programme that has an automatic sequence
+ * source of its own.
+ *
+ * ⛓️ 9 Sep — THESE FIVE USED TO SIT IN THE LIST ABOVE, AND FOR EVERY PAYING CLIENT THAT WAS A
+ * LIE. Preparation auto-applies a sequence and a schedule for exactly one programme — the
+ * configured House launch programme, through `isHouseLaunchProgramme`. For anybody else the
+ * words have to be authored and the schedule chosen, and preparation says so. Listed
+ * unconditionally, Vida drew *Ready for approval* on a fresh client's programme and pressing it
+ * could never clear `no_sequence` or `no_send_schedule` — an action that cannot possibly
+ * succeed, offered as though it were the next step.
+ *
+ * ⚠️ THE SPLIT IS ABOUT CAPABILITY, NOT IDENTITY. The question is whether THIS programme has
+ * something that will write its sequence automatically, not whose programme it is.
+ */
+export const PREPARATION_CLEARS_WITH_AUTO_SEQUENCE: string[] = [
+  'no_sequence', 'sequence_not_campaign_linked', 'no_message_steps', 'no_cadence', 'no_send_schedule',
 ]
 
 /**
@@ -139,10 +157,19 @@ export const PREPARATION_CLEARS: string[] = [
  *
  * ⚠️ AND IT NEVER MEANS READY. A programme with no blockers at all is `ready`, and this returns
  * false for it: the two answers are different questions and a caller must not conflate them.
+ *
+ * ⚠️ `autoSequence` MUST BE PROVED BY THE CALLER, never assumed. Passing it when it is not true
+ * re-creates exactly the unreachable button this split exists to remove.
  */
-export function onlyPreparationBlocks(blockers: readonly PreparationBlocker[]): boolean {
+export function onlyPreparationBlocks(
+  blockers: readonly PreparationBlocker[],
+  opts?: { autoSequence?: boolean },
+): boolean {
   if (blockers.length === 0) return false
-  return blockers.every(b => PREPARATION_CLEARS.includes(b.code))
+  const clears = opts?.autoSequence === true
+    ? [...PREPARATION_CLEARS, ...PREPARATION_CLEARS_WITH_AUTO_SEQUENCE]
+    : PREPARATION_CLEARS
+  return blockers.every(b => clears.includes(b.code))
 }
 
 /**

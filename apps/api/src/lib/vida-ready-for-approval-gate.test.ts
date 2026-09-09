@@ -148,7 +148,10 @@ describe('② the screen and the route are gated by ONE rule', () => {
     // closed on an absent or non-boolean answer.
     expect(ROUTES).toContain('ready: readiness?.ready === true')
     expect(ROUTES, 'the second gate boolean is not computed from the same blocker list')
-      .toContain('preparable: readiness ? onlyPreparationBlocks(readiness.blockers) : false')
+      // ⛓️ RETARGETED 9 Sep — `preparable` is now computed against what THIS programme's
+      // preparation can actually clear. Claimed unconditionally it told a fresh paying client's
+      // programme it was one press from ready when pressing could never author its words.
+      .toContain('onlyPreparationBlocks(readiness.blockers, { autoSequence: autoSequenceSource })')
     // ⚠️ THE PROGRAMME'S OWN ID, from the truth already resolved — not the client, not a name,
     // not "the newest". The same discipline the reconcile availability beside it follows.
     expect(ROUTES, 'readiness is resolved from something other than the programme on screen')

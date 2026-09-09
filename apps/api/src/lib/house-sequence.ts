@@ -219,7 +219,7 @@ export async function applyHouseProgrammeSequence(programmeId: string): Promise<
   const { resolveProgrammeChain } = await import('./programme-chain')
   const chainRes = await resolveProgrammeChain(programmeId)
   if (!chainRes.ok) return { ok: false, reason: chainRes.degraded }
-  const { clientId, campaignId, sequenceId } = chainRes.chain
+  const { clientId } = chainRes.chain
 
   // 🛑 THE SCOPE GATE, RE-ASSERTED HERE AND NOT ONLY AT THE CALLER. This function is exported;
   // a future caller that checked nothing would otherwise seed whatever it was handed. The
@@ -232,29 +232,21 @@ export async function applyHouseProgrammeSequence(programmeId: string): Promise<
     }
   }
 
-  if (!campaignId) {
-    return {
-      ok: false,
-      reason: 'This programme has no campaign yet (programme → ICP → campaign), so there is nothing to attach the sequence to. Run preparation first — it creates the campaign as a draft under the programme\'s own authority.',
-    }
-  }
-
+  // ── ⛓️ 9 Sep — THE WRITE ITSELF IS NO LONGER HOUSE'S OWN ────────────────────────────────
+  //
+  // 🛑 THIS FUNCTION USED TO BE THE ONLY THING IN THE PRODUCT THAT SET
+  // `figsy_sequences.campaign_id`, which is why House could reach READY_FOR_APPROVAL and no
+  // paying client could. `applyProgrammeSequence` is now the single generic writer and this
+  // delegates to it, so there is one implementation to be correct rather than two to drift.
+  //
+  // ⚠️ WHAT STAYS HOUSE'S: the five approved messages and the approved schedule constant, and
+  // the identity gate above that decides they may be used at all. Nothing else.
   const steps = HOUSE_SEQUENCE_STEPS.map(s => ({ ...s }))
+  const { applyProgrammeSequence } = await import('./programme-sequence')
+  const applied = await applyProgrammeSequence(programmeId, steps, 'House programme sequence')
+  if (!applied.ok) return { ok: false, reason: applied.reason }
 
-  if (sequenceId) {
-    const { error } = await db.from('figsy_sequences')
-      .update({ steps, campaign_id: campaignId, updated_at: new Date().toISOString() })
-      .eq('id', sequenceId)
-    if (error) return { ok: false, reason: `The canonical sequence could not be updated (${error.message}). Nothing was changed.` }
-  } else {
-    const { data, error } = await db.from('figsy_sequences')
-      .insert({ client_id: clientId, campaign_id: campaignId, name: 'House programme sequence', steps })
-      .select('id').single()
-    if (error || !data) return { ok: false, reason: `The canonical sequence could not be created (${error?.message ?? 'no row returned'}). Nothing was changed.` }
-    return await withSchedule(programmeId, String(data.id), campaignId, true, steps.length)
-  }
-
-  return await withSchedule(programmeId, sequenceId, campaignId, false, steps.length)
+  return await withSchedule(programmeId, applied.sequenceId, applied.campaignId, applied.created, applied.steps)
 }
 
 /**

@@ -1718,6 +1718,10 @@ operatorRouter.get('/programme', async (req: Request, res: Response) => {
     // it is); `last_preparation` is the most recent audited outcome — headline on success, the
     // named blockers on refusal — which is the founder's only record of an attempt whose HTTP
     // response an edge threw away.
+    const { isHouseLaunchProgramme } = await import('../lib/house-sequence')
+    const autoSequenceSource = truth.programme
+      ? await isHouseLaunchProgramme(truth.programme.id, clientId).catch(() => false)
+      : false
     const { isAdvanceRunning, lastPreparationAttempt } = await import('../lib/programme-advance')
     const preparing = truth.programme ? isAdvanceRunning(truth.programme.id) : false
     const lastPreparation = truth.programme ? await lastPreparationAttempt(truth.programme.id) : null
@@ -1725,7 +1729,14 @@ operatorRouter.get('/programme', async (req: Request, res: Response) => {
       degraded: readiness?.degraded ? [...truth.degraded, readiness.degraded] : truth.degraded,
       readiness: {
         ready: readiness?.ready === true,
-        preparable: readiness ? onlyPreparationBlocks(readiness.blockers) : false,
+        // ⚑ 9 Sep — `autoSequence` IS PROVED, NEVER ASSUMED. Only a programme with an automatic
+        // sequence source can have preparation clear `no_sequence` / `no_send_schedule`; for
+        // everyone else those need an operator to author the words and choose the timing, and
+        // offering a button that cannot clear them is how a fresh client's programme looked
+        // one press away from ready for as long as anybody cared to press it.
+        preparable: readiness
+          ? onlyPreparationBlocks(readiness.blockers, { autoSequence: autoSequenceSource })
+          : false,
         blockers: (readiness?.blockers ?? []).map(b => ({ code: b.code, detail: b.detail })),
       },
       preparing,
@@ -2048,6 +2059,68 @@ operatorRouter.post('/programme/:programmeId/prepare-for-review', async (req: Re
   } catch (err) {
     console.error('[operator/programme/prepare-for-review]', err)
     res.status(500).json({ success: false, error: err instanceof Error ? err.message : 'The programme could not be prepared for review' })
+  }
+})
+
+// ── THE PROGRAMME'S OWN SEQUENCE AND SCHEDULE — the two a fresh client could not get ─────
+//
+// 🛑 WHY THESE EXIST. `figsy_sequences.campaign_id` and `programmes.send_schedule` each had
+// exactly ONE writer in the product, and it was House's. Every other programme therefore
+// carried no canonical sequence and no schedule, readiness refused on both, and
+// READY_FOR_APPROVAL was unreachable for a paying customer. These are the generic doors.
+//
+// ⚠️ NEITHER SENDS, PREPARES, APPROVES OR AUTHORISES ANYTHING. They write the words and the
+// timing an operator has decided; every downstream gate is untouched.
+operatorRouter.post('/programme/:programmeId/sequence', async (req: Request, res: Response) => {
+  try {
+    if (!adminKeyValid(req.headers['x-admin-key'])) {
+      res.status(403).json({ success: false, error: 'Operator key required' })
+      return
+    }
+    const body = (req.body ?? {}) as { steps?: unknown; name?: string }
+    if (!Array.isArray(body.steps) || body.steps.length === 0) {
+      res.status(400).json({ success: false, error: 'At least one message step is required. Nothing was changed.' })
+      return
+    }
+    const steps = (body.steps as Record<string, unknown>[]).map(st => ({
+      subject: String(st.subject ?? '').slice(0, 200),
+      body: String(st.body ?? '').slice(0, 5000),
+      wait_days: Number(st.wait_days ?? 0) || 0,
+    }))
+    const { applyProgrammeSequence } = await import('../lib/programme-sequence')
+    const r = await applyProgrammeSequence(
+      req.params.programmeId, steps, String(body.name ?? '').trim().slice(0, 120) || 'Programme sequence')
+    if (!r.ok) { res.status(400).json({ success: false, error: r.reason }); return }
+    await writeOperatorAudit({
+      operatorEmail: operatorEmail(req), clientId: null,
+      action: 'programme_sequence_set', subjectType: 'programme', subjectId: req.params.programmeId,
+      detail: { sequence_id: r.sequenceId, campaign_id: r.campaignId, created: r.created, steps: r.steps },
+    })
+    res.json({ success: true, data: r })
+  } catch (err) {
+    console.error('[operator/programme/sequence]', err)
+    res.status(500).json({ success: false, error: 'The programme sequence could not be saved' })
+  }
+})
+
+operatorRouter.post('/programme/:programmeId/send-schedule', async (req: Request, res: Response) => {
+  try {
+    if (!adminKeyValid(req.headers['x-admin-key'])) {
+      res.status(403).json({ success: false, error: 'Operator key required' })
+      return
+    }
+    const { setProgrammeSendSchedule } = await import('../lib/programme-sequence')
+    const r = await setProgrammeSendSchedule(req.params.programmeId, (req.body ?? {}).schedule)
+    if (!r.ok) { res.status(400).json({ success: false, error: r.reason }); return }
+    await writeOperatorAudit({
+      operatorEmail: operatorEmail(req), clientId: null,
+      action: 'programme_send_schedule_set', subjectType: 'programme', subjectId: req.params.programmeId,
+      detail: { schedule: r.schedule },
+    })
+    res.json({ success: true, data: r.schedule })
+  } catch (err) {
+    console.error('[operator/programme/send-schedule]', err)
+    res.status(500).json({ success: false, error: 'The send schedule could not be saved' })
   }
 })
 

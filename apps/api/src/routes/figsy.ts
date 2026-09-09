@@ -1570,7 +1570,41 @@ figsyRouter.post('/sequences/:id/apply', async (req: AuthRequest, res) => {
       created = true
     }
 
-    res.json({ success: true, data: { campaign_id: campaignId, created, email_steps: emails.length } })
+    // ── ⛓️ 9 Sep — KEEP THE CANONICAL STORE IN STEP WITH THE SENDING STORE ────────────────
+    //
+    // 🛑 THIS ROUTE UPDATED ONLY THE SENDING STORE, AND THAT IS WHY NO PAYING CLIENT COULD
+    // REACH READY_FOR_APPROVAL. `settings.sequence` + `applied_sequence_id` (written above) are
+    // what the legacy send seam reads. Programme work reads the CANONICAL store —
+    // `figsy_sequences.campaign_id` — and nothing generic ever wrote it, so
+    // `resolveProgrammeChain` found no sequence for any programme but House.
+    //
+    // ⚠️ ONLY FOR A PROGRAMME CAMPAIGN, and that is deliberate rather than cautious. A legacy
+    // client's campaign has no programme to be canonical for, and writing a per-campaign copy
+    // for one would put a second row in their sequence library with no way to tell it from a
+    // template they saved. Programme-ness is proved positively, through the campaign's own ICP.
+    //
+    // ⚠️ THE LIBRARY ROW IS NOT MOVED. `applyProgrammeSequence` copies the steps onto the
+    // campaign's own canonical row; the template keeps `campaign_id` NULL and can still be
+    // applied elsewhere.
+    let canonical: { linked: boolean; reason?: string } = { linked: false }
+    const { data: campIcp } = await db.from('figsy_campaigns')
+      .select('icp_id').eq('id', campaignId).eq('client_id', clientId).maybeSingle()
+    const icpId = (campIcp as { icp_id?: string | null } | null)?.icp_id ?? null
+    if (icpId) {
+      const { data: icpRow } = await db.from('icps')
+        .select('programme_id').eq('id', icpId).eq('client_id', clientId).maybeSingle()
+      const programmeId = (icpRow as { programme_id?: string | null } | null)?.programme_id ?? null
+      if (programmeId) {
+        const { applyProgrammeSequence } = await import('../lib/programme-sequence')
+        const applied = await applyProgrammeSequence(programmeId, steps as never, sequence.name ?? 'Programme sequence')
+        // ⚠️ REPORTED, NEVER SWALLOWED. The campaign settings write above already succeeded, so
+        // a failure here is a HALF-APPLIED state the operator has to know about: the words are
+        // on the campaign and the programme still cannot resolve them.
+        canonical = applied.ok ? { linked: true } : { linked: false, reason: applied.reason }
+      }
+    }
+
+    res.json({ success: true, data: { campaign_id: campaignId, created, email_steps: emails.length, canonical } })
   } catch (err) {
     if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: err.errors }); return }
     console.error(err); res.status(500).json({ success: false, error: 'Failed to apply sequence' })

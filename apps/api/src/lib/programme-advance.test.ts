@@ -251,7 +251,11 @@ describe('the preparable/ready split is honest', () => {
     expect(onlyPreparationBlocks(blockers), 'a programme with no mailbox was called preparable').toBe(false)
   })
 
-  it('the same programme WITH a sender is preparable', () => {
+  it('the same programme WITH a sender is preparable — when its sequence is automatic', () => {
+    // ⛓️ RETARGETED 9 Sep — this scenario has no sequence and no schedule, and preparation can
+    // only produce those for a programme with an AUTOMATIC SEQUENCE SOURCE (the configured
+    // House launch programme). Claimed unconditionally, the same list told a fresh paying
+    // client's programme it was one press from ready when pressing could never clear either.
     const facts: PreparationFacts = {
       programmeId: 'p', programmeStatus: 'SOURCING', paused: false,
       attachedIcpId: 'i', batchId: 'b', reviewableLeads: 246,
@@ -262,6 +266,36 @@ describe('the preparable/ready split is honest', () => {
     }
     const blockers = preparationBlockers(facts)
     expect(blockers.length, 'nothing was blocking, so this proves nothing').toBeGreaterThan(0)
+    expect(onlyPreparationBlocks(blockers, { autoSequence: true })).toBe(true)
+  })
+
+  it('🛑 …and is NOT preparable without one — a fresh client must author the words first', () => {
+    // The exact same facts. The only difference is that nothing will write this programme's
+    // sequence or schedule by itself, so preparation cannot clear them and the control hides.
+    const facts: PreparationFacts = {
+      programmeId: 'p', programmeStatus: 'SOURCING', paused: false,
+      attachedIcpId: 'i', batchId: 'b', reviewableLeads: 246,
+      campaignId: null, campaignProgrammeLinked: false,
+      sequenceId: null, sequenceCampaignLinked: false,
+      messageSteps: 0, cadenceConfigured: false, sendScheduleConfigured: false,
+      senderAssigned: true, eligibleEnrolments: 0, foreignEnrolments: 0, snapshotSupported: false,
+    }
+    expect(onlyPreparationBlocks(preparationBlockers(facts))).toBe(false)
+  })
+
+  it('a fresh programme that HAS its sequence and schedule is preparable with no auto source', () => {
+    // Once an operator has authored the words and the schedule exists, the only things left are
+    // the campaign, the enrolments and the snapshot — all of which preparation genuinely makes.
+    const facts: PreparationFacts = {
+      programmeId: 'p', programmeStatus: 'SOURCING', paused: false,
+      attachedIcpId: 'i', batchId: 'b', reviewableLeads: 246,
+      campaignId: null, campaignProgrammeLinked: false,
+      sequenceId: 's', sequenceCampaignLinked: true,
+      messageSteps: 5, cadenceConfigured: true, sendScheduleConfigured: true,
+      senderAssigned: true, eligibleEnrolments: 0, foreignEnrolments: 0, snapshotSupported: false,
+    }
+    const blockers = preparationBlockers(facts)
+    expect(blockers.map(b => b.code).sort()).toEqual(['no_campaign', 'no_eligible_enrolments', 'no_snapshot'])
     expect(onlyPreparationBlocks(blockers)).toBe(true)
   })
 
@@ -285,7 +319,8 @@ describe('the preparable/ready split is honest', () => {
   })
 
   it('the server computes both, and hands over the named blockers too', () => {
-    expect(OP_ROUTE).toContain('onlyPreparationBlocks(readiness.blockers)')
+    // ⛓️ RETARGETED 9 Sep — the call carries the proved `autoSequence` fact now.
+    expect(OP_ROUTE).toContain('onlyPreparationBlocks(readiness.blockers, { autoSequence: autoSequenceSource })')
     expect(OP_ROUTE).toContain('ready: readiness?.ready === true')
   })
 
@@ -294,7 +329,8 @@ describe('the preparable/ready split is honest', () => {
     // `unreadable` is not in `PREPARATION_CLEARS`, so "we could not tell" hides the button.
     expect(PREPARATION_CLEARS).not.toContain('unreadable')
     expect(onlyPreparationBlocks([{ code: 'unreadable', detail: 'x' }])).toBe(false)
-    expect(OP_ROUTE).toContain('readiness ? onlyPreparationBlocks(readiness.blockers) : false')
+    // ⛓️ RETARGETED 9 Sep — the call now carries the proved `autoSequence` fact.
+    expect(OP_ROUTE).toContain('onlyPreparationBlocks(readiness.blockers, { autoSequence: autoSequenceSource })')
   })
 })
 

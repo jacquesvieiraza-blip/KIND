@@ -472,13 +472,15 @@ export function lifecycleCopy(i: LifecycleCopyInput): LifecycleCopy {
         `Your programme results are up to date in Milla.`,
       ]
       if (repeat) {
-        messages.push(`${i.clientName} still have ${n(i.programme?.entitlementRemaining ?? 0)} qualified-prospect entitlement remaining.`)
-        // ⛓️ 9 Sep — IT STATES THE OPPORTUNITY, IT DOES NOT ASK A QUESTION. The approved screen
-        // reads "Would you like me to prepare the next programme?" beside a button; there is no
-        // safe button (a next programme needs a meeting target nobody has chosen), and asking a
-        // question the operator cannot answer here is worse than not asking. So it says what is
-        // true and where the answer lives.
-        messages.push(`I won't start anything on my own. A next programme is started deliberately, with a meeting target you choose.`)
+        // 🛑 FOUNDER-LOCKED 9 Sep — THE EXACT SENTENCE, AND THE REASON IT IS THIS ONE.
+        // The approved screen read "Would you like me to prepare the next programme? I won't
+        // start anything until you say so." — a question implying Vida can execute an action
+        // the MVP does not expose (a next programme needs a meeting target and an outcome, and
+        // there is no safe route that sets them). My own replacement — "I won't start anything
+        // on my own. A next programme is started deliberately, with a meeting target you
+        // choose." — was still MY wording, not his. This is his, verbatim, and it is the whole
+        // repeat message: it states the opportunity, offers nothing, and asks nothing.
+        messages.push(`You still have ${n(i.programme?.entitlementRemaining ?? 0)} qualified prospects available. When you're ready for another programme, we can use the same targeting or start with a new outcome.`)
       } else {
         messages.push(`I've stopped all future sends for this programme and kept the results and open replies intact.`)
       }
@@ -509,7 +511,12 @@ export function lifecycleCopy(i: LifecycleCopyInput): LifecycleCopy {
         // 🛑 REPORTING POINTS AT LIVE RESULTS. No download, no frozen file, nothing to produce.
         { kind: 'fact', label: 'Reporting', value: 'Up to date in Milla',
           caption: "The client's live programme results" },
-        repeat ? vidaCard('Asking', 'Nothing starts without you') : vidaCard('Complete', 'Nothing needs you'),
+        // ⛓️ 9 Sep — "Asking" WAS THE OLD COPY'S POSTURE, AND IT OUTLIVED THE QUESTION. Vida
+        // asks nothing here: the message states an opportunity and offers no action. A posture
+        // reading "Asking" implies a question waiting on an answer Vida could then act on —
+        // exactly the unavailable capability the correction removes. It is the same programme
+        // in the same terminal stage as `completion`, so it takes the same truthful word.
+        repeat ? vidaCard('Complete', 'Nothing starts without you') : vidaCard('Complete', 'Nothing needs you'),
       )
       return {
         subtitle: 'Programme complete',

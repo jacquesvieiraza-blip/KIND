@@ -188,6 +188,40 @@ describe('🛑 ② which controls exist — the half a correct rule can still ge
     expect(c.actions).toEqual([])
     expect(JSON.stringify(c.cards)).toContain('A next programme can be prepared from the same targeting or a new outcome.')
   })
+
+  // ⛓️ ADDED 9 Sep — THE COPY HAD TO BE CORRECTED TWICE, WHICH IS WHY IT IS NOW PINNED.
+  // The approved screen asked "Would you like me to prepare the next programme?" beside a
+  // button. The button was correctly dropped as informational — but the QUESTION survived into
+  // the chat, so Vida still offered to do a thing the MVP does not expose. My own replacement
+  // fixed the offer and was still my wording. This is the founder's locked sentence, verbatim,
+  // and the assertion exists because "no button" was never sufficient on its own: the words
+  // have to stop implying the button too.
+  it('🛑 the repeat message states the opportunity in the LOCKED words, and offers nothing', () => {
+    const c = copy('completion_repeat', {
+      programme: { meetingTarget: 8, entitlementUsed: 176, entitlementTotal: 2500, entitlementRemaining: 2324 },
+    })
+    expect(c.messages.join(' ')).toContain(
+      "You still have 2,324 qualified prospects available. When you're ready for another programme, we can use the same targeting or start with a new outcome.")
+
+    // 🛑 AND NOTHING ANYWHERE IN THE STATE MAY OFFER, ASK FOR, OR IMPLY THAT EXECUTION.
+    const whole = JSON.stringify(c)
+    for (const implied of [
+      'Would you like me to prepare',
+      'prepare the next programme',
+      'Prepare next programme',
+      'shall I',
+      'Shall I',
+      'until you say so',
+    ]) {
+      expect(whole.includes(implied), `the repeat state offers an unavailable action: "${implied}"`).toBe(false)
+    }
+    // The posture said "Asking" — a question waiting on an answer Vida could then act on.
+    const vida = c.cards.find(k => k.kind === 'fact' && k.label === 'Vida')
+    expect((vida as { value: string }).value, 'Vida is posed as asking a question it cannot act on').not.toBe('Asking')
+
+    // The two locked chips are questions the OPERATOR asks — they are not Vida offering.
+    expect(c.chips).toEqual(['What would the next programme look like?', 'Point them to their results'])
+  })
 })
 
 describe('🛑 ③ the copy locks — each replaced a claim the product could not keep', () => {

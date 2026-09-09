@@ -60,6 +60,32 @@ operatorRouter.get('/clients', async (_req: Request, res: Response) => {
   } catch (err) { console.error('[operator/clients]', err); res.status(500).json({ success: false, error: 'Failed to load clients' }) }
 })
 
+// ── ⚑ 9 Sep · THE LIFECYCLE BOARD — the stage word on every client row, and Needs you ─────
+//
+// 🛑 THE SAME DERIVATION AS THE PANEL, ON THINNER FACTS. The list and the selected client's
+// three columns must never disagree about where a client is, so both go through
+// `deriveLifecycle`. What differs is only how much is gathered: the board cannot afford a
+// readiness run and a preparation history per client, so where a fact is too expensive in bulk
+// it is supplied in the direction that does NOT invent a task.
+//
+// ⚠️ WHICH MEANS THE BADGE UNDER-COUNTS RATHER THAN OVER-COUNTS. A client whose exception only
+// the detail call can see appears the moment they are opened. A badge that cried wolf would be
+// worse than one that is occasionally quiet — the operator would learn to ignore it, which is
+// the failure the whole Needs-you rule is written to avoid.
+operatorRouter.get('/lifecycle-board', async (_req: Request, res: Response) => {
+  try {
+    const { data: clients, error } = await db.from('clients').select('id')
+    if (error) throw new Error(error.message)
+    const ids = ((clients ?? []) as { id: string }[]).map(c => c.id)
+    const { lifecycleBoard } = await import('../lib/programme-lifecycle-facts')
+    const rows = await lifecycleBoard(ids)
+    res.json({ success: true, data: rows, meta: { needs_you: rows.filter(r => r.needs_you).length } })
+  } catch (err) {
+    console.error('[operator/lifecycle-board]', err)
+    res.status(500).json({ success: false, error: 'Failed to read the lifecycle board' })
+  }
+})
+
 // ── THE WORKLIST — every client, where they are, and the ONE next action ──────────
 // This replaces "eight tabs and work out where you are". The step logic is a pure decision
 // table in lib/client-step.ts (unit-tested); this endpoint only gathers the facts.
@@ -1738,7 +1764,23 @@ operatorRouter.get('/programme', async (req: Request, res: Response) => {
     const { isAdvanceRunning, lastPreparationAttempt } = await import('../lib/programme-advance')
     const preparing = truth.programme ? isAdvanceRunning(truth.programme.id) : false
     const lastPreparation = truth.programme ? await lastPreparationAttempt(truth.programme.id) : null
+    // ── ⚑ 9 Sep — WHERE THIS CLIENT IS, AND WHETHER THE OPERATOR HAS TO DO ANYTHING ───────
+    //
+    // 🛑 DECIDED HERE, ON THE SERVER, AND HANDED OVER AS A VERDICT. The lifecycle ribbon, the
+    // stage word on the client row, the middle column's message, the right panel and the
+    // Needs-you filter all ask the same question; five copies of it in a browser is five
+    // chances to disagree, and the one that disagrees silently is the filter — an operator
+    // told nothing needs them, beside a panel drawing a button.
+    //
+    // ⚠️ IT NEVER THROWS. This drives the whole Clients workspace; an unreadable count must
+    // degrade to a safe fact, not blank the console.
+    const { lifecycleDetailFor } = await import('../lib/programme-lifecycle-facts')
+    const lifecycle = await lifecycleDetailFor(clientId).catch(err => {
+      console.error('[operator/programme] lifecycle unreadable for', clientId, err)
+      return null
+    })
     res.json({ success: true, data: { ...truth,
+      lifecycle,
       degraded: readiness?.degraded ? [...truth.degraded, readiness.degraded] : truth.degraded,
       readiness: {
         ready: readiness?.ready === true,

@@ -6,9 +6,9 @@
 // engine-health), and the working area ({children} = the clients panel + pipeline board).
 // AdminShell bypasses its old chrome for /vida so this is the only shell here.
 
-import { useEffect, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Power, LogOut, ChevronDown } from 'lucide-react'
 import { VidaConversationProvider, useVidaConversation } from '@/components/vida/VidaConversation'
@@ -53,7 +53,7 @@ type Workspace = 'clients' | 'command'
 function VidaOuterColumn() {
   const c = useVidaConversation()
   useEffect(() => {
-    c.publish({ blockers: null, outreachEnabled: null, boardError: null, programmeSourcing: null }, {})
+    c.publish({ blockers: null, outreachEnabled: null, boardError: null, programmeSourcing: null, lifecycle: null }, {})
   }, [c])
   return (
     <section className="w-[540px] shrink-0 flex flex-col border-r border-[#eee7f7] bg-white min-h-0">
@@ -71,6 +71,34 @@ function initials(email: string): string {
 function displayName(email: string): string {
   const local = (email.split('@')[0] || '').split('.')[0]
   return local ? local.charAt(0).toUpperCase() + local.slice(1) : 'Operator'
+}
+
+
+/**
+ * The CLIENTS rail — the four destinations, then the client list.
+ *
+ * ⚠️ IT EXISTS SO THE QUERY IS READ IN ONE SMALL PLACE. `useSearchParams` makes its caller
+ * client-only; called in the layout it would have taken every Command Centre page with it.
+ */
+function ClientsRail({
+  navLink, openClients, toggleClients, groupHead,
+}: {
+  navLink: (item: NavItem, needsFiltering: boolean) => React.ReactNode
+  openClients: boolean
+  toggleClients: () => void
+  groupHead: (title: string, open: boolean, toggle: () => void, count?: number) => React.ReactNode
+}) {
+  const needsFiltering = useSearchParams().get('needs') === '1'
+  return (
+    <>
+      {CLIENTS_WORKSPACE.map(i => navLink(i, needsFiltering))}
+      <div className="h-px bg-[#f0ebfa] my-2 mx-2" />
+      {/* ⚠️ THE CLIENT LIST IS THE ONE FOLD, because it is the one unbounded thing in the
+          rail. Collapsed it still says who is selected. */}
+      {groupHead('Clients', openClients, toggleClients)}
+      <VidaClients open={openClients} />
+    </>
+  )
 }
 
 export default function VidaLayout({ children }: { children: React.ReactNode }) {
@@ -118,6 +146,21 @@ export default function VidaLayout({ children }: { children: React.ReactNode }) 
     if (!inClients && pathname.startsWith('/vida/')) setWorkspace('command')
   }, [pathname])
 
+  // ⚑ 9 Sep — THE NEEDS-YOU COUNT, FROM THE SERVER'S OWN LIFECYCLE BOARD.
+  //
+  // 🛑 THE SAME DERIVATION THE PANEL USES. The badge and the client's own screen must never
+  // disagree about whether somebody is needed, so neither of them decides it — both render
+  // `deriveLifecycle`'s verdict. A badge computed in a browser is a second opinion, and the
+  // one that would be wrong is the one nobody opens to check.
+  const [needsYouCount, setNeedsYouCount] = useState<number | null>(null)
+  useEffect(() => {
+    fetch('/api/proxy/operator/lifecycle-board').then(r => r.json())
+      .then(j => { if (j?.success) setNeedsYouCount(Number(j.meta?.needs_you ?? 0)) })
+      // ⚠️ A FAILED READ SHOWS NO BADGE. It must never show a stale or invented number: an
+      // operator who trusts a count that is not real is worse off than one with no count.
+      .catch(() => setNeedsYouCount(null))
+  }, [pathname])
+
   useEffect(() => {
     fetch('/api/proxy/operator/status').then(r => r.json()).then(j => { if (j?.success) setStatus(j.data) }).catch(() => {})
     fetch('/api/proxy/operator/health').then(r => r.json()).then(j => { if (j?.success) setHealth(j.data) }).catch(() => {})
@@ -153,16 +196,28 @@ export default function VidaLayout({ children }: { children: React.ReactNode }) 
   )
 
   /** One destination row. Shared by both workspaces so they cannot drift apart visually. */
-  const navLink = (item: NavItem) => {
+  const navLink = (item: NavItem, needsFiltering: boolean) => {
     // ⚠️ EXACT MATCH FOR `/vida`, PREFIX FOR THE REST. `/vida` is a prefix of every other
     // operator route, so a `startsWith` here would mark Clients current on all of them.
-    const active = item.href === '/vida' ? pathname === '/vida' : pathname.startsWith(item.href)
+    //
+    // ⚑ 9 Sep — AND TWO ROWS NOW SHARE `/vida`. Clients and Needs you are the same screen with
+    // and without a filter, so the query is what tells them apart; matching on the path alone
+    // would light both, and the operator could not see which view they were in.
+    const active = item.href === '/vida'
+      ? pathname === '/vida' && needsFiltering === (item.query === 'needs=1')
+      : pathname.startsWith(item.href)
+    const count = item.badge === 'needs_you' ? needsYouCount : null
     return (
-      <Link key={item.href} href={item.href}
+      <Link key={`${item.href}?${item.query ?? ''}`} href={item.query ? `${item.href}?${item.query}` : item.href}
         className={`flex items-center gap-2 px-2.5 py-[7px] rounded-lg text-[13.5px] font-semibold transition-colors ${
           active ? 'bg-[#f3ecff] text-[#7C3AED]' : 'text-[#4c4368] hover:bg-[#f7f4fd]'}`}>
         <span className="w-4 shrink-0 text-center">{item.icon}</span>
         <span className="truncate">{item.label}</span>
+        {/* ⚠️ ZERO DRAWS NOTHING. A badge reading "0" is a claim that something was counted and
+            found empty, permanently on screen — which is how a real count stops being read. */}
+        {count !== null && count > 0 && (
+          <span className="ml-auto text-[11px] font-extrabold text-white bg-[#7C3AED] rounded-full px-1.5 min-w-[18px] text-center">{count}</span>
+        )}
       </Link>
     )
   }
@@ -182,7 +237,7 @@ export default function VidaLayout({ children }: { children: React.ReactNode }) 
           {g.title}
         </div>
       )}
-      {g.items.map(navLink)}
+      {g.items.map(i => navLink(i, false))}
     </div>
   )
 
@@ -324,14 +379,18 @@ export default function VidaLayout({ children }: { children: React.ReactNode }) 
                 first. The workspace is chosen from the operator menu above, and it also
                 follows the route — a Command Centre bookmark opens the Command Centre. */}
             {workspace === 'clients' ? (
-              <>
-                {CLIENTS_WORKSPACE.map(navLink)}
-                <div className="h-px bg-[#f0ebfa] my-2 mx-2" />
-                {/* ⚠️ THE CLIENT LIST IS THE ONE FOLD, because it is the one unbounded thing
-                    in the rail. Collapsed it still says who is selected. */}
-                {groupHead('Clients', openClients, () => setOpenClients(o => !o))}
-                <VidaClients open={openClients} />
-              </>
+              // ⚠️ SUSPENSE, AND IT IS NOT DECORATION. `Needs you` is a filter carried in the
+              // URL, and reading the query opts a component out of static prerendering — this
+              // shell wraps twenty-seven pages, so without the boundary the whole Command
+              // Centre fails to build. The boundary keeps the cost where the query is read.
+              <Suspense fallback={<div className="px-2.5 py-2 text-[12px] text-[#b3a9cc]">Clients…</div>}>
+                <ClientsRail
+                  navLink={navLink}
+                  openClients={openClients}
+                  toggleClients={() => setOpenClients(o => !o)}
+                  groupHead={groupHead}
+                />
+              </Suspense>
             ) : (
               COMMAND_CENTRE.map(ccGroup)
             )}

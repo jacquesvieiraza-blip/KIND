@@ -258,15 +258,18 @@ describe('Vida renders the honest sentence', () => {
     expect(src).toContain('· comped')
   })
 
-  it('the clients list shows the exemption instead of a red badge', () => {
-    // Bounded to the clients-list button, which is where the founder saw SUSPEND — asserting
-    // this against the whole file would pass on a hint rendered anywhere at all.
-    // ⚑ 4 Sep (UI-009) — the same list, in the operator nav's clients group. Still BOUNDED to
-    // the row itself, so a hint rendered anywhere else in the file cannot satisfy it.
-    const listAt = clients.indexOf('visible.map(')
-    expect(listAt).toBeGreaterThan(-1)
-    const list = clients.slice(listAt, clients.indexOf('Across the book', listAt))
-    expect(list).toContain('cold?.exempt')
-    expect(list).toContain('cold-check exempt')
+  // ⛓️ RETARGETED 9 Sep — THE COLD STATE MOVED FROM THE ROW TO THE CLIENT'S TRUTH PANEL.
+  // The client row is locked at name · stage · needs you, so Suspended / Going quiet / exempt
+  // came off it. The duty is unchanged and is #619's: an EXEMPT account must never be shown as
+  // suspended. It is now on the Account card, which states the real state or says nothing.
+  it('the console shows the cold state honestly, and never a red badge on an exempt account', () => {
+    const CONSOLE = readFileSync(join(__dirname, '..', '..', '..', 'admin', 'src', 'app', 'vida', 'page.tsx'), 'utf8')
+    const at = CONSOLE.indexOf('const accountCard = useMemo(')
+    const block = CONSOLE.slice(at, CONSOLE.indexOf('}, [selectedClient', at))
+    expect(block, 'the suspended state is gone from the product').toContain('cold?.cold')
+    expect(block, 'the going-quiet state is gone from the product').toContain('cold?.warn')
+    // 🛑 #619 — THE API APPLIES THE EXEMPTION, so an exempt account reaches here with neither
+    // flag set and draws nothing at all. The console must not re-derive it.
+    expect(block, 'the console re-derives the exemption itself').not.toContain('exempt ?')
   })
 })

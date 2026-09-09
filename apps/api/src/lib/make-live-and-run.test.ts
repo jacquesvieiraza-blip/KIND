@@ -63,7 +63,11 @@ describe('② Run is separate, explicit, client-scoped and capped', () => {
   })
 
   it('a non-numeric or zero ceiling sends nothing and says so', () => {
-    const at = VIDA.indexOf('const runOnce = useCallback')
+    // ⛓️ 9 Sep — THE RUN BODY MOVED TO `runOnceWith`, and the duty did not. The ceiling is a
+    // parameter now because TWO surfaces type it — the lifecycle panel's own field and the
+    // programme tool — and both must reach the same guard, the same confirmation and the same
+    // route. A second run implementation would be a second set of rules about what leaves.
+    const at = VIDA.indexOf('const runOnceWith = useCallback')
     const body = VIDA.slice(at, at + 900)
     expect(body).toContain('!Number.isInteger(n) || n < 1')
     expect(body).toContain('Nothing was sent.')
@@ -83,14 +87,14 @@ describe('② Run is separate, explicit, client-scoped and capped', () => {
   })
 
   it('the confirmation says real mail leaves, and names the ceiling back', () => {
-    const at = VIDA.indexOf('const runOnce = useCallback')
+    const at = VIDA.indexOf('const runOnceWith = useCallback')
     const body = VIDA.slice(at, at + 1600)
     expect(body).toContain('REAL prospects')
     expect(body).toContain('This is the only action that sends')
   })
 
   it('🛑 a run that sent nothing is reported as nothing, not as done', () => {
-    const at = VIDA.indexOf('const runOnce = useCallback')
+    const at = VIDA.indexOf('const runOnceWith = useCallback')
     const body = VIDA.slice(at, at + 2400)
     expect(body).toContain("tone: sent > 0 ? 'ok' : 'warn'")
     expect(body).toContain('Nothing left the building')

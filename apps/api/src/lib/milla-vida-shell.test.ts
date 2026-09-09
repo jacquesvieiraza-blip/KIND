@@ -305,7 +305,10 @@ describe('VIDA — THE SHELL, AFTER THE TWO-WORKSPACE MOVE', () => {
     // Retyping the list in the nav is exactly how three destinations went missing from an
     // audit of it. The lists live in one place and the shell imports them.
     expect(code).toContain("from '@/lib/vida-nav'")
-    expect(code).toContain('CLIENTS_WORKSPACE.map(navLink)')
+    // ⛓️ 9 Sep — the rail moved into a `ClientsRail` child so that reading the Needs-you
+    // filter from the URL (`useSearchParams`) opts ONE small component out of prerendering
+    // rather than the shell that wraps twenty-seven static pages.
+    expect(code).toContain('CLIENTS_WORKSPACE.map(i => navLink(i, needsFiltering))')
     expect(code).toContain('COMMAND_CENTRE.map(ccGroup)')
     // ⚠️ AND NO INLINE ARRAY CREPT BACK IN.
     expect(code, 'a destination array was re-declared inside the shell').not.toMatch(/const (OPERATE|NERVOUS_SYSTEM)\s*[:=]/)
@@ -438,7 +441,8 @@ describe('VIDA · UI-009 — Clients is a nav group, and the workspace got its w
   // the client list is the one unbounded thing in the rail and keeps its fold, open by default.
   it('the client list is the one fold, and it starts OPEN', () => {
     expect(layout, 'the client list has no open state').toContain('const [openClients, setOpenClients] = useState(true)')
-    expect(layout).toContain("groupHead('Clients', openClients, () => setOpenClients(o => !o))")
+    expect(layout).toContain("groupHead('Clients', openClients, toggleClients)")
+    expect(layout, 'the toggle no longer reaches the state it folds').toContain('toggleClients={() => setOpenClients(o => !o)}')
     expect(layout, 'the client list starts collapsed, hiding clients by default')
       .not.toMatch(/setOpenClients\] = useState\(false\)/)
     // 🛑 AND THE COMMAND CENTRE GROUPS ARE NOT FOLDABLE AT ALL — a fold is a place to hide a
@@ -455,17 +459,37 @@ describe('VIDA · UI-009 — Clients is a nav group, and the workspace got its w
     }
   })
 
-  it('CLIENT SWITCHING SURVIVES, with every indicator it had', () => {
+  // ⛓️ RETARGETED 9 Sep — THE ROW BECAME THE APPROVED SHAPE, AND NOTHING LEFT THE PRODUCT.
+  //
+  // This case was written on 4 Sep when the client list moved out of a 380px column into the
+  // nav, and its duty was *nothing was lost in the move*. It listed the row's indicators one by
+  // one: the actor dot, the next-action sentence, the cold states, the VAT badge, the house
+  // chip, the filter.
+  //
+  // 🛑 THE FOUNDER THEN LOCKED THE ROW AT **name · stage · needs you** — "NO giant metrics in
+  // list rows" — because four judgements were competing with the client's own name at 216px.
+  // So the duty could not stay "every indicator is on the row". It is what it always meant:
+  // **nothing became unreachable.** The cold state and the VAT evidence moved to the selected
+  // client's truth panel (the Account card in `page.tsx`), which is where client facts belong;
+  // the filter moved to the Clients rail as a URL. Each is asserted at its new home below.
+  it('CLIENT SWITCHING SURVIVES, and nothing the row carried became unreachable', () => {
     expect(layout).toContain("import { VidaClients } from '@/components/vida/VidaClients'")
     expect(layout).toContain('<VidaClients open={openClients} />')
-    // The row's own facts — none of them re-invented, all of them still drawn.
     expect(clients, 'selecting a client no longer scopes the conversation').toContain('setSelected(c.id, c.company_name)')
-    expect(clients, 'the actor dot is gone').toContain("you ? 'bg-[#EC4899]' : n?.actor === 'engine' ? 'bg-emerald-400' : 'bg-[#cfc4e8]'")
-    expect(clients, 'the real next-action sentence is gone').toContain('n?.label ??')
-    expect(clients, 'the cold states are gone').toContain('cold?.cold')
-    expect(clients, 'the VAT evidence is gone').toContain('vatBadge({ vat_number: c.vat_number ?? null })')
+    // What the approved row still carries.
+    expect(clients, 'the actor dot is gone').toContain("bg-[#EC4899]")
+    expect(clients, 'the stage word is gone').toContain('stage_label')
+    expect(clients, 'the needs-you marker is gone').toContain('· needs you')
     expect(clients, 'the house/demo chip is gone').toContain("c.is_demo ? 'demo' : 'house'")
-    expect(clients, 'the Needs-you / All filter is gone').toContain('onlyNeedsYou')
+    // 🛑 AND WHAT MOVED, ASSERTED AT ITS NEW HOME. #615's lesson is that a fact nobody renders
+    // is a fact nobody has — neither of these is drawn anywhere else in the console, so if the
+    // Account card ever goes, they go with it.
+    expect(page, 'the VAT evidence is gone from the product').toContain('vatBadge({ vat_number: selectedClient.vat_number ?? null })')
+    expect(page, 'the cold states are gone from the product').toContain('cold?.cold')
+    expect(page, 'the going-quiet state is gone from the product').toContain('cold?.warn')
+    expect(page, 'the account facts are drawn with no home').toContain("label: 'Account'")
+    // The filter is the rail's now, and it is a URL rather than a component's own state.
+    expect(clients, 'the Needs-you filter is gone').toContain("get('needs') === '1'")
     // ⚠️ THE URL DEEP LINK STILL PICKS A CLIENT, and only ONE place reads it now — two would
     // race, and only one of them carries the name.
     expect(clients).toContain("new URLSearchParams(window.location.search).get('client')")

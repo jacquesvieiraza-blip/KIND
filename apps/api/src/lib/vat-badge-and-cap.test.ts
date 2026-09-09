@@ -123,28 +123,39 @@ describe('C6 the VAT badge finally reaches the clients list', () => {
     expect(body).toContain('vat_number')
   })
 
+  // ⛓️ RETARGETED 9 Sep — VAT EVIDENCE MOVED FROM THE CLIENT ROW TO THE CLIENT'S TRUTH PANEL.
+  //
+  // The founder locked the client row at **name · stage · needs you** ("NO giant metrics in
+  // list rows"), so the badge came off it. #615's lesson is the one that survives and is the
+  // reason these cases exist: `vatBadge` once shipped with NOTHING rendering it, and "no tax
+  // ID" became a fact you could only find by opening the client. It is now on the selected
+  // client's Account card in `page.tsx`, and these assertions follow it there.
+  const CONSOLE = readFileSync(join(__dirname, '..', '..', '..', 'admin', 'src', 'app', 'vida', 'page.tsx'), 'utf8')
+
   it('Vida renders the SHARED badge — no local VAT rule', () => {
     // A second opinion about VAT status is how the client-facing page and the operator board
     // start disagreeing about who owes 20%.
-    expect(vida).toContain('vatBadge(')
-    expect(vida).not.toContain("=== 'NOT_REGISTERED'")
+    expect(CONSOLE).toContain('vatBadge(')
+    expect(CONSOLE).not.toContain("=== 'NOT_REGISTERED'")
   })
 
-  it('renders all three tones, so "on file" and "missing" cannot look alike', () => {
-    const at = vida.indexOf('vatBadge(')
-    const block = vida.slice(at, at + 700)
-    expect(block).toContain("b.tone === 'ok'")
-    expect(block).toContain("b.tone === 'amber'")
+  it('🛑 "missing" is never silent — the tone that needs a person is the one that is drawn', () => {
+    // ⛓️ THIS ASSERTED ALL THREE TONES ON A ROW BADGE. The Account card is an EXCEPTION
+    // surface: it appears when there is something to say and draws nothing when the account is
+    // clean, which is what keeps every previewed state looking as previewed. So the duty is
+    // narrowed to the half that mattered — **amber must never be silent** — and asserted on the
+    // shared function's own verdict rather than on a colour.
+    const at = CONSOLE.indexOf('const accountCard = useMemo(')
+    const block = CONSOLE.slice(at, CONSOLE.indexOf('}, [selectedClient', at))
+    expect(block).toContain("vat.tone === 'amber'")
+    expect(block).toContain('No VAT evidence on file')
+    // And it is still the SHARED function deciding, never a local reading of the column.
+    expect(block).not.toContain("vat_number ===")
   })
 
   it('does NOT special-case the house or demo account', () => {
     // The shared function decides. A name-based exception here is the #584/#593 mistake.
-    //
-    // ⚠️ ASSERTED ON THE CALL ITSELF, NOT A CHAR WINDOW. The first draft sliced 700 characters
-    // after `vatBadge(` and failed on correct code, because the house/demo chip legitimately
-    // renders straight after the badge. A window that overruns the thing it is about is the
-    // anti-pattern this codebase keeps re-learning — so this asserts the ARGUMENT: the only
-    // input is vat_number, which IS "no special-casing", provably and without a window.
-    expect(vida).toContain('vatBadge({ vat_number: c.vat_number ?? null })')
+    // Asserted on the ARGUMENT: the only input is vat_number, which IS "no special-casing".
+    expect(CONSOLE).toContain('vatBadge({ vat_number: selectedClient.vat_number ?? null })')
   })
 })

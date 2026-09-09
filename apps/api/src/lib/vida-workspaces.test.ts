@@ -122,12 +122,23 @@ describe('④ nothing is offered that lands nowhere', () => {
     }
   })
 
-  it('🛑 the two entries with no page are ABSENT, not pointed at something else', () => {
-    // The approved preview shows "Needs you" (a filter that does not exist yet) and "Founder
-    // prospecting" (no such page — `/cmo` is CMO Tools, a different screen). Drawing either
-    // would repeat the bug this console shipped three times: a nav row that lands nowhere, or
-    // worse, one silently relabelled onto the nearest page to make a picture match.
-    expect(NAV_CODE.includes("label: 'Needs you'"), 'Needs you is drawn without a filter behind it').toBe(false)
+  // ⛓️ RETARGETED 9 Sep — ONE OF THE TWO WAS BUILT, THE OTHER IS STILL ABSENT. This asserted
+  // that BOTH "Needs you" and "Founder prospecting" were undrawn, because neither had anything
+  // behind it. The founder then ruled: build Needs you, and keep Founder prospecting out until
+  // a real destination exists. The duty is unchanged and is the reason both were absent — **a
+  // nav row must land somewhere real** — so it is now asserted per row rather than as a pair.
+  it('🛑 Needs you is drawn ONLY because a real filter now stands behind it', () => {
+    expect(NAV_CODE).toContain("label: 'Needs you'")
+    // It is the client list filtered, on the same screen — not a page that does not exist.
+    expect(NAV_CODE).toContain("query: 'needs=1'")
+    const list = readFileSync(join(ADMIN, 'components', 'vida', 'VidaClients.tsx'), 'utf8')
+    expect(list, 'the row is drawn with no filter behind it').toContain("needs=1")
+    expect(list).toContain('needs_you')
+  })
+
+  it('🛑 Founder prospecting is STILL absent, and /cmo was not relabelled to fill the gap', () => {
+    // No such page exists. `/cmo` is CMO Tools — a different screen — and pointing the row at
+    // it would be the same bug wearing a better disguise.
     expect(NAV_CODE.includes("label: 'Founder prospecting'"), 'Founder prospecting is drawn without a page').toBe(false)
     expect(NAV_CODE.includes('/cmo'), 'CMO Tools was relabelled to fill the Founder prospecting gap').toBe(false)
   })

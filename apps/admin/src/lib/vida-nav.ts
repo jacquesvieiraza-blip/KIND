@@ -30,22 +30,40 @@
 // meetings screen and is reached from the Clients workspace under its real name.
 // ═══════════════════════════════════════════════════════════════════════════════════════
 
-export type NavItem = { href: string; label: string; icon: string }
+export type NavItem = {
+  href: string
+  label: string
+  icon: string
+  /**
+   * ⚑ 9 Sep — A FILTER ON THE SAME SCREEN, NOT A DESTINATION.
+   *
+   * 🛑 `Needs you` IS NOT A LIFECYCLE STAGE and must not become one. It is the client list,
+   * filtered to the clients where Vida genuinely requires a person. Encoding it as a query on
+   * `/vida` keeps three things true at once: it is a real URL you can bookmark and share, it
+   * does not navigate away from the workspace, and the reachability tests can still check that
+   * `href` points at a page that exists.
+   */
+  query?: string
+  /** Show a live count beside the label. Only ever the number of clients that need somebody. */
+  badge?: 'needs_you'
+}
 export type NavGroup = { title: string; items: NavItem[] }
 
 /**
  * The CLIENTS workspace rail, above the client list itself.
  *
- * ⚠️ THREE ENTRIES, NOT FOUR. The approved preview also shows **Needs you** with a live count.
- * It is a filtered view of the client list, and no such filter exists yet — so it is not drawn
- * here. A nav entry that lands nowhere is the bug this console has shipped three times
- * (`/vida/demo`, `/partners`, `/governed-documents`), and inventing a fourth to match a picture
- * would be the same mistake with a better excuse.
+ * ⛓️ 9 Sep — **Needs you** IS HERE NOW, and it was deliberately absent this morning: it is a
+ * filtered view of the client list, and no filter existed, so drawing it would have repeated
+ * the bug this console shipped three times (`/vida/demo`, `/partners`,
+ * `/governed-documents` — a row that lands nowhere). The founder ruled: build it. The filter
+ * is real, the count is real, and it selects clients where Vida genuinely needs a person —
+ * never a lifecycle transition that happened by itself.
  */
 export const CLIENTS_WORKSPACE: NavItem[] = [
-  { href: '/vida',          label: 'Clients',  icon: '👥' },
-  { href: '/vida/bookings', label: 'Meetings', icon: '📅' },
-  { href: '/vida/reports',  label: 'Reports',  icon: '🧾' },
+  { href: '/vida',          label: 'Clients',   icon: '👥' },
+  { href: '/vida',          label: 'Needs you', icon: '❗', query: 'needs=1', badge: 'needs_you' },
+  { href: '/vida/bookings', label: 'Meetings',  icon: '📅' },
+  { href: '/vida/reports',  label: 'Reports',   icon: '🧾' },
 ]
 
 /**

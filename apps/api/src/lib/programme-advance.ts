@@ -73,8 +73,19 @@ export interface AdvanceReport {
   steps: AdvanceStep[]
   /** Enrolments created on THIS run. Zero on a re-run is the idempotent answer, not a failure. */
   enrolled: number
-  /** Enrolments that already existed and were left alone. */
+  /** Enrolments that already existed for THIS programme and were left alone. */
   already_enrolled: number
+  /**
+   * ⚑ 9 Sep — THE FOUR COUNTS AN OPERATOR ACTUALLY NEEDS, so the desk never renders a list of
+   * lead ids. `attempted` is the eligible set this run walked; `failed` is how many of them
+   * ended with no programme enrolment; `refusals` is the cause breakdown. The lead ids
+   * themselves stay in the audit detail, which is where technical evidence belongs.
+   */
+  attempted: number
+  failed: number
+  refusals: Record<string, number>
+  /** The failed lead ids — audit/log detail, never rendered on the desk. */
+  failed_lead_ids: string[]
   /** Campaign ids now available to this programme, one per attached ICP. */
   campaigns: string[]
   /** Eligible prospects still awaiting an enrolment. Non-zero means NOT complete. */
@@ -139,6 +150,10 @@ export async function advanceProgrammeToReview(programmeId: unknown): Promise<Ad
     steps,
     enrolled: 0,
     already_enrolled: 0,
+    attempted: 0,
+    failed: 0,
+    refusals: {},
+    failed_lead_ids: [],
     campaigns: [],
     remaining: 0,
     blockers: [],
@@ -208,6 +223,10 @@ export async function advanceProgrammeToReview(programmeId: unknown): Promise<Ad
   const prepared = base({
     enrolled: prep.enrolled.length,
     already_enrolled: prep.alreadyEnrolled,
+    attempted: prep.total,
+    failed: prep.failed.length,
+    refusals: prep.refusals,
+    failed_lead_ids: prep.failed,
     campaigns: prep.campaigns,
     remaining: prep.remaining,
   })
@@ -446,6 +465,9 @@ export function startAdvanceInBackground(
             trigger, headline: r.headline,
             status_before: r.status_before, status_after: r.status_after,
             enrolled: r.enrolled, already_enrolled: r.already_enrolled,
+            attempted: r.attempted, failed: r.failed, refusals: r.refusals,
+            // The technical evidence, kept out of every operator-facing sentence.
+            failed_lead_ids: r.failed_lead_ids,
             campaigns: r.campaigns, remaining: r.remaining, reviewable: r.reviewable,
             steps: r.steps,
           },
@@ -458,6 +480,12 @@ export function startAdvanceInBackground(
           subjectType: 'programme', subjectId: id,
           detail: {
             trigger, reason: result.reason,
+            attempted: result.report?.attempted ?? null,
+            enrolled: result.report?.enrolled ?? null,
+            already_enrolled: result.report?.already_enrolled ?? null,
+            failed: result.report?.failed ?? null,
+            refusals: result.report?.refusals ?? null,
+            failed_lead_ids: result.report?.failed_lead_ids ?? null,
             steps: result.report?.steps ?? null,
             blockers: result.report?.blockers ?? null,
             status_before: result.report?.status_before ?? null,
@@ -487,6 +515,11 @@ export interface LastPreparation {
   /** Founder-plain sentence: the headline on success, the named refusal otherwise. */
   detail: string
   blockers: { code: string; detail: string }[]
+  /** Counts only — the failed lead ids stay in the audit row and never reach the desk. */
+  attempted: number | null
+  enrolled: number | null
+  already_enrolled: number | null
+  failed: number | null
 }
 
 /**
@@ -515,11 +548,18 @@ export async function lastPreparationAttempt(programmeId: string): Promise<LastP
         .filter(b => typeof b?.code === 'string' && typeof b?.detail === 'string')
         .map(b => ({ code: String(b.code), detail: String(b.detail) }))
     : []
+  const num = (v: unknown): number | null => (typeof v === 'number' ? v : null)
   return {
     at: row.created_at,
     ok,
     by: row.operator_email,
     detail: String(ok ? (d.headline ?? 'Prepared.') : (d.reason ?? 'The preparation did not complete.')),
     blockers,
+    // ⚑ 9 Sep — the four counts the desk renders. `failed_lead_ids` is deliberately NOT
+    // returned: it stays in the audit row, which is where technical evidence belongs.
+    attempted: num(d.attempted),
+    enrolled: num(d.enrolled),
+    already_enrolled: num(d.already_enrolled),
+    failed: num(d.failed),
   }
 }

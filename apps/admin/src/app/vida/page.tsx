@@ -353,6 +353,9 @@ export default function VidaConsolePage() {
     last_preparation?: {
       at: string; ok: boolean; by: string | null; detail: string
       blockers: { code: string; detail: string }[]
+      // ⚑ 9 Sep — counts, never lead ids. The ids stay in the audit row.
+      attempted?: number | null; enrolled?: number | null
+      already_enrolled?: number | null; failed?: number | null
     } | null
   }
   const [prog, setProg] = useState<ProgrammeTruth | null>(null)
@@ -3228,6 +3231,18 @@ export default function VidaConsolePage() {
                           Last preparation attempt ({new Date(prog.last_preparation.at).toLocaleString()}
                           {prog.last_preparation.by ? ` · ${prog.last_preparation.by}` : ''}):{' '}
                           {prog.last_preparation.ok ? 'completed' : 'did not complete'} — {prog.last_preparation.detail}
+                          {/* ⚑ 9 Sep — THE FOUR COUNTS, AND NO LEAD IDS. The founder was shown one
+                              repeated line per failed prospect and no cause; this is the same run
+                              described in four numbers, with the causes in the sentence above and
+                              the ids in the audit record. */}
+                          {typeof prog.last_preparation.attempted === 'number' && (
+                            <><br /><span className="text-[#8b7fae]">
+                              {prog.last_preparation.attempted} attempted ·{' '}
+                              {prog.last_preparation.already_enrolled ?? 0} already prepared ·{' '}
+                              {prog.last_preparation.enrolled ?? 0} newly prepared ·{' '}
+                              {prog.last_preparation.failed ?? 0} could not be prepared
+                            </span></>
+                          )}
                         </p>
                       )}
                       {prog.programme.status !== 'READY_FOR_APPROVAL' && (prog.readiness?.blockers?.length ?? 0) > 0 && (

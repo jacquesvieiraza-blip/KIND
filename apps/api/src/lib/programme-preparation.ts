@@ -114,6 +114,34 @@ export function preparationStageFor(p: ProgrammeRow): StageVerdict {
   return { ok: false, reason: `programme is ${p.status}, which carries no preparation authority` }
 }
 
+/**
+ * Founder-plain wording for each refusal cause, used in the one-line summary.
+ *
+ * ⚠️ THE OPERATOR NEVER READS A CODE. `pecr` and `launch_country` do not appear because
+ * pre-approval preparation no longer refuses on them — they are send-time decisions and are
+ * listed here only so a POST-approval run, which still applies them, reports them in English.
+ */
+export const ENROL_REFUSAL_TEXT: Record<string, string> = {
+  kill_switch:           'automatic outreach is switched off',
+  programme_refused:     'the prospect did not prove to belong to this programme',
+  no_campaign:           'no campaign was available for their targeting',
+  no_email:              'no email address',
+  do_not_contact:        'on the do-not-contact list',
+  crm_duplicate:         "already in the client's CRM",
+  crm_unreadable:        "the client's CRM could not be checked",
+  pecr:                  'UK individual-subscriber rules (PECR)',
+  launch_country:        'outside the countries open at launch',
+  not_legacy_model:      'the client has no legacy per-lead enrolment authority',
+  no_credits:            'no FIGSY credits left',
+  no_send_capability:    'the email provider is not configured',
+  no_canonical_sequence: 'the programme has no approved sequence to enrol them into',
+  charge_failed:         'the enrolment charge did not go through',
+  insert_failed:         'the enrolment row could not be written',
+  unexpected_error:      'an unexpected error',
+  threw:                 'an unexpected error',
+  no_row_after_attempt:  'no enrolment row existed afterwards',
+}
+
 export type PrepareResult = {
   /** Fully prepared: every eligible lead enrolled, nothing outstanding, no problems. */
   ok: boolean
@@ -138,6 +166,15 @@ export type PrepareResult = {
   skipped: number
   /** Leads that were attempted and did not produce an enrolment row. */
   failed: string[]
+  /**
+   * ⚑ 9 Sep — HOW MANY PROSPECTS EACH CAUSE ACCOUNTS FOR, keyed by `EnrolRefusal`.
+   *
+   * 🛑 THE REPORT THE FOUNDER WAS ACTUALLY GIVEN was one line per failed prospect — the same
+   * sentence, repeated for many of the 246, naming no cause at all. A hundred identical lines
+   * are not evidence; they are one fact printed a hundred times. Causes are counted here, the
+   * lead ids stay in `failed` for the audit record, and the operator reads a summary.
+   */
+  refusals: Record<string, number>
   /** Everything that could not be completed. A non-empty list means NOT fully operable. */
   problems: string[]
 }
@@ -270,7 +307,8 @@ export async function assertGoingLive(
 export async function prepareProgrammeOutreach(programmeId: string): Promise<PrepareResult> {
   const out: PrepareResult = {
     ok: false, complete: false, remaining: 0, total: 0,
-    campaigns: [], enrolled: [], alreadyEnrolled: 0, skipped: 0, failed: [], problems: [],
+    campaigns: [], enrolled: [], alreadyEnrolled: 0, skipped: 0, failed: [],
+    refusals: {}, problems: [],
   }
 
   const p = await getProgramme(programmeId)
@@ -587,9 +625,23 @@ export async function prepareProgrammeOutreach(programmeId: string): Promise<Pre
 
     // Already-enrolled leads are skipped rather than re-enrolled — this runs again on every
     // retry and on a second Make live.
+    //
+    // ── ⛓️ 9 Sep — SCOPED TO **THIS PROGRAMME**, AND IT WAS NOT ─────────────────────────
+    //
+    // 🛑 THE SILENT HALF OF THE HOUSE FAILURE. This asked only "does ANY enrolment row exist
+    // for this lead" — client-wide, no programme filter. House carries ~263 legacy enrolments
+    // from the retired per-lead desk, every one with `programme_id = NULL`. For each of those
+    // leads the answer was yes, the lead was counted as `alreadyEnrolled`, and **no programme
+    // enrolment was ever created**.
+    //
+    // Readiness and the review snapshot both count `figsy_enrollments.programme_id = <this
+    // programme>` — correctly — so the two sides could never agree: preparation reported the
+    // work done, readiness reported no eligible enrolments, and nothing named the disagreement.
+    // A legacy row proves a person was once worked by a retired model; it says nothing about
+    // this programme, and it must never be adopted as if it did.
     const existing = new Set<string>()
     const { data: enr, error: enrErr } = await db.from('figsy_enrollments')
-      .select('lead_id').in('lead_id', eligible.map(l => l.id))
+      .select('lead_id').eq('programme_id', programmeId).in('lead_id', eligible.map(l => l.id))
     if (enrErr) { out.problems.push(`Could not read existing enrolments (${enrErr.message}).`); return out }
     for (const e of (enr ?? []) as { lead_id: string }[]) existing.add(e.lead_id)
 
@@ -597,22 +649,41 @@ export async function prepareProgrammeOutreach(programmeId: string): Promise<Pre
       if (existing.has(lead.id)) { out.alreadyEnrolled++; continue }
       if (budgetLeft <= 0) { budgetExhausted = true; out.remaining++; continue }
       budgetLeft--
+      let outcome
       try {
-        await autoEnrollLead(lead.id, p.client_id, { programmeFulfilment: { programmeId } })
+        // ⚑ 9 Sep — `prepareOnly` FOR THE PRE-APPROVAL STAGE ONLY. It creates the row and
+        // attempts no outreach; the per-lead SEND gates that used to abort the enrolment stay
+        // exactly where they are, inside the send path. Post-approval (Make live, the paid P2
+        // webhook) keeps its existing behaviour byte for byte.
+        outcome = await autoEnrollLead(lead.id, p.client_id, {
+          programmeFulfilment: { programmeId },
+          prepareOnly: stage.stage === 'pre_approval',
+        })
       } catch (err) {
         out.failed.push(lead.id)
-        out.problems.push(`Lead ${lead.id.slice(0, 8)} could not be enrolled: ${err instanceof Error ? err.message : String(err)}`)
+        out.refusals.threw = (out.refusals.threw ?? 0) + 1
         continue
       }
-      // ⚠️ VERIFIED, NEVER ASSUMED. `autoEnrollLead` returns void and several of its refusals
-      // are a bare `return` — #625 is exactly the defect of reporting success from a call that
-      // quietly did nothing. A "worked" verdict here means a row exists.
-      const { data: made } = await db.from('figsy_enrollments')
-        .select('id').eq('lead_id', lead.id).limit(1).maybeSingle()
-      if (made) out.enrolled.push(lead.id)
-      else {
+
+      // ⚠️ THE OUTCOME IS TRUSTED FOR THE *CAUSE*, AND THE DATABASE FOR THE *FACT*. A refusal
+      // names itself now, so a failure is reported by reason instead of by absence — but a
+      // 'created' claim is still verified against a row, because #625 is the defect of
+      // reporting success from a call that quietly did nothing.
+      if (outcome.state === 'refused') {
         out.failed.push(lead.id)
-        out.problems.push(`Lead ${lead.id.slice(0, 8)} was not enrolled — no enrolment row exists after the attempt.`)
+        out.refusals[outcome.code] = (out.refusals[outcome.code] ?? 0) + 1
+        continue
+      }
+      // 🛑 SCOPED, LIKE THE CHECK ABOVE. `.eq('lead_id', …)` alone would find one of House's
+      // legacy NULL-programme rows and report a programme enrolment that does not exist.
+      const { data: made } = await db.from('figsy_enrollments')
+        .select('id').eq('programme_id', programmeId).eq('lead_id', lead.id).limit(1).maybeSingle()
+      if (made) {
+        if (outcome.state === 'already') out.alreadyEnrolled++
+        else out.enrolled.push(lead.id)
+      } else {
+        out.failed.push(lead.id)
+        out.refusals.no_row_after_attempt = (out.refusals.no_row_after_attempt ?? 0) + 1
       }
     }
     if (rows.length < PAGE) break
@@ -659,6 +730,25 @@ export async function prepareProgrammeOutreach(programmeId: string): Promise<Pre
     out.problems.push(
       `Preparation reached its budget of ${PREPARE_BUDGET} prospect(s) in one run. ` +
       'The programme is NOT live. Press Make live again to continue — preparation is idempotent and resumes where it stopped.',
+    )
+  }
+
+  // ── ⚑ 9 Sep — ONE SUMMARY LINE PER CAUSE, NOT ONE LINE PER PROSPECT ─────────────────────
+  //
+  // 🛑 WHAT THE FOUNDER WAS HANDED. Preparation pushed a problem line for every prospect it
+  // could not enrol — the same sentence, over and over, naming no cause. That is not a report,
+  // it is one fact printed many times, and it hid the single thing he needed to know.
+  //
+  // ⚠️ THE EVIDENCE IS NOT HIDDEN, IT IS MOVED. Every failed lead id stays in `failed`, which
+  // the background runner writes into the operator audit row; the desk gets counts and causes.
+  if (out.failed.length > 0) {
+    const causes = Object.entries(out.refusals)
+      .sort((a, b) => b[1] - a[1])
+      .map(([code, n]) => `${n} × ${ENROL_REFUSAL_TEXT[code] ?? code}`)
+      .join(' · ')
+    out.problems.push(
+      `${out.failed.length} of ${out.total} prospect(s) could not be enrolled. Nothing was sent. ` +
+      (causes ? `Causes: ${causes}.` : ''),
     )
   }
 

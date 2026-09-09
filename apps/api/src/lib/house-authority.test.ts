@@ -1012,8 +1012,15 @@ describe('⑮ programme work never inherits a historical campaign', () => {
     expect(fallback, 'the legacy fallback must still exist').toBeGreaterThan(-1)
     expect(guard, 'and the guard must come BEFORE the fallback').toBeLessThan(fallback)
     // It RETURNS. Falling through to any other campaign is the whole defect.
+    //
+    // ⛓️ RETARGETED 9 Sep — the return is no longer bare. Every refusal in `autoEnrollLead`
+    // now carries its cause, because fourteen silent `return`s were exactly why the House
+    // recovery could report "no enrolment row exists after the attempt" and name no reason.
+    // The duty this case exists for is unchanged and is now asserted more strictly: the block
+    // must RETURN, and it must return a refusal rather than fall through.
     const block = fig.slice(guard, fallback)
-    expect(block, 'a programme lead with no ICP campaign must enrol in nothing').toMatch(/\n\s*return\n/)
+    expect(block, 'a programme lead with no ICP campaign must enrol in nothing')
+      .toMatch(/\n\s*return refuse\('no_campaign'/)
   })
 
   it('the programme id is read from the LEAD, in the query already being made', () => {

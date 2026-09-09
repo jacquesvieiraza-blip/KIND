@@ -19,11 +19,12 @@ type Row = Record<string, unknown>
 const state: {
   programmes: Row[]; icps: Row[]; leads: Row[]; campaigns: Row[]; enrollments: Row[]; clients: Row[]
   charges: string[]; sends: string[]; ensureCalls: { clientId: string; icpId: string; activate: boolean }[]
-  ensureRefuses: boolean; blocklist: Row[]
+  ensureRefuses: boolean; blocklist: Row[]; prepareOnlyCalls: boolean[]
 } = {
   sequences: [] as Row[], batches: [] as Row[],
   programmes: [], icps: [], leads: [], campaigns: [], enrollments: [], clients: [],
   charges: [], sends: [], ensureCalls: [], ensureRefuses: false, blocklist: [],
+  prepareOnlyCalls: [] as boolean[],
 }
 
 /** A tiny in-memory Supabase stand-in that honours eq / in / not / limit. */
@@ -119,25 +120,44 @@ vi.mock('./start-work', () => ({
 // The real `autoEnrollLead` is a very large function whose own economics are proved in
 // `house-authority.test.ts`. Here it is replaced with a recorder that reproduces exactly the
 // two decisions this file is about: does it charge the wallet, and does it send?
+// ⛓️ 9 Sep — THE MOCK RETURNS AN OUTCOME, BECAUSE THE REAL FUNCTION NOW DOES. It used to
+// return `undefined` on every path, which is exactly the shape that produced the House failure:
+// the caller could only look for a row afterwards and report its absence, never the cause.
+// `prepareOnly` is recorded so this file can prove pre-approval preparation asks for a row and
+// no outreach.
 vi.mock('./figsy', () => ({
-  autoEnrollLead: async (leadId: string, clientId: string, opts?: { programmeFulfilment?: { programmeId: string } }) => {
+  autoEnrollLead: async (
+    leadId: string, clientId: string,
+    opts?: { programmeFulfilment?: { programmeId: string }; prepareOnly?: boolean },
+  ) => {
+    state.prepareOnlyCalls.push(opts?.prepareOnly === true)
     const { verifyProgrammeFulfilment } = await import('./programme-preparation')
     if (opts?.programmeFulfilment) {
       const v = await verifyProgrammeFulfilment(leadId, clientId, opts.programmeFulfilment.programmeId)
-      if (!v.ok) return                                  // refused: no row, no charge, no send
+      // refused: no row, no charge, no send — and it says why.
+      if (!v.ok) return { state: 'refused' as const, code: 'programme_refused' as const, reason: v.reason }
     } else {
       const c = state.clients.find(x => x.id === clientId)
-      if (((c?.figsy_credits_remaining as number) ?? 0) < 1) return   // the legacy wallet gate
+      if (((c?.figsy_credits_remaining as number) ?? 0) < 1) {
+        return { state: 'refused' as const, code: 'no_credits' as const, reason: 'no FIGSY credits' }
+      }
       state.charges.push(leadId)                                       // the legacy wallet charge
     }
     const lead = state.leads.find(l => l.id === leadId)
-    state.enrollments.push({
+    // The real function's per-campaign idempotency guard, reproduced: a lead already enrolled
+    // for this programme is answered 'already' and nothing is written.
+    const already = state.enrollments.find(e => e.lead_id === leadId
+      && (e.programme_id ?? null) === (lead?.programme_id ?? null))
+    if (already) return { state: 'already' as const }
+    const row = {
       id: `enr-${state.enrollments.length + 1}`, lead_id: leadId, client_id: clientId,
       programme_id: lead?.programme_id ?? null, campaign_id: state.campaigns[0]?.id ?? null,
       status: 'enrolled',
-    })
+    }
+    state.enrollments.push(row)
     // ⚠️ NOTHING IS PUSHED TO `sends`. Preparation prepares; the send is a separate decision
     // made later by AUTO_OUTREACH_ENABLED or the founder's Run-once.
+    return { state: 'created' as const, enrollmentId: row.id, sent: false }
   },
 }))
 
@@ -200,7 +220,7 @@ beforeEach(() => {
   state.programmes = []; state.icps = []; state.leads = []; state.campaigns = []
   state.enrollments = []; state.clients = []; state.sequences = []; state.batches = []
   state.charges = []; state.sends = []; state.ensureCalls = []; state.ensureRefuses = false
-  state.blocklist = []
+  state.blocklist = []; state.prepareOnlyCalls = []
   audience = 'house'
   delete process.env.HOUSE_LAUNCH_PROGRAMME_ID
 })
@@ -522,8 +542,15 @@ describe('⑤ both Live paths reach the same preparation', () => {
     // bail. Adding it here would both lie about why the work happened and make preparation
     // capable of sending.
     const prep = strip(readFileSync(join(API, 'lib/programme-preparation.ts'), 'utf8'))
-    expect(prep).toContain('autoEnrollLead(lead.id, p.client_id, { programmeFulfilment: { programmeId } })')
+    // ⛓️ RETARGETED 9 Sep — the call gained `prepareOnly`, so the one-line form is gone. The
+    // duty this case exists for is unchanged and is asserted more precisely than before: the
+    // enrolment is programme fulfilment, and `force` never appears.
+    expect(prep).toContain('autoEnrollLead(lead.id, p.client_id, {')
+    expect(prep).toContain('programmeFulfilment: { programmeId },')
     expect(prep, 'preparation must never force').not.toMatch(/force:\s*true/)
+    // 🛑 AND `prepareOnly` IS THE PRE-APPROVAL STAGE ALONE. Passing it unconditionally would
+    // stop Make live sending step one, which is the post-approval path's whole job.
+    expect(prep).toContain("prepareOnly: stage.stage === 'pre_approval',")
   })
 
   it('the programme-fulfilment flag starts NULL and is only set by a verified check', () => {

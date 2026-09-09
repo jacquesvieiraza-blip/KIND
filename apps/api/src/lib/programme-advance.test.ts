@@ -35,7 +35,15 @@ const VIDA = readFileSync(
   join(LIB, '..', '..', '..', 'admin', 'src', 'app', 'vida', 'page.tsx'), 'utf8')
 
 /** The advance function's body only — so a mention inside the header prose proves nothing. */
-const BODY = ADVANCE.slice(ADVANCE.indexOf('export async function advanceProgrammeToReview'))
+// ⛓️ BOUNDED 9 Sep — the orchestrator and the settlement continuation, and NOT the background
+// runner that was added below them. That runner legitimately reads the audit log (`.order`) and
+// its prose names `autoEnrollLead` while explaining a race; an unbounded slice read both as the
+// orchestrator sourcing and re-implementing preparation. `programme-advance.background.test.ts`
+// asserts the same absences over the runner's own body.
+const BODY = ADVANCE.slice(
+  ADVANCE.indexOf('export async function advanceProgrammeToReview'),
+  ADVANCE.indexOf('// THE RECOVERY DOOR RUNS IN THE BACKGROUND'),
+)
 
 describe('the settled programme resumes at preparation rather than replaying earlier work', () => {
   // ── ① THE GAP THAT WAS BEING CLOSED ───────────────────────────────────────────────────
@@ -296,10 +304,20 @@ describe('the callers', () => {
     const route = PROG_ROUTE.slice(PROG_ROUTE.indexOf("programmeRouter.post('/:id/ready-for-approval'"))
     const end = route.indexOf('programmeRouter.post', 10)
     const body = end > 0 ? route.slice(0, end) : route
-    expect(body).toContain('advanceProgrammeToReview')
+    // ⛓️ RETARGETED 9 Sep — the route no longer awaits the orchestrator inline. Held open for
+    // the whole chain it died at an edge with a plain-text `upstream error` on the House
+    // recovery press. It now STARTS the same orchestrator in the background and answers 202.
+    // The fact this case exists for is unchanged: the route goes through the orchestrator,
+    // never straight to the transition.
+    expect(body).toContain('startAdvanceInBackground')
+    expect(body, 'the route still holds the response open for the whole chain').not.toContain('await advanceProgrammeToReview(')
+    expect(body).toContain('res.status(202)')
     // 🛑 THE OLD DIRECT CALL IS WHAT MADE THE PROGRAMME UNADVANCEABLE.
     expect(body.includes('await markReadyForApproval('),
       'the route still calls the transition directly, so the deadlock stands').toBe(false)
+    // And the orchestrator is what the background runner calls — proved in the module, not assumed.
+    const runner = ADVANCE.slice(ADVANCE.indexOf('export function startAdvanceInBackground'))
+    expect(runner).toContain('await advanceProgrammeToReview(id)')
   })
 
   it('the operator door exists, is key-guarded and is audited', () => {
@@ -307,9 +325,15 @@ describe('the callers', () => {
     expect(at, 'the operator door is gone').toBeGreaterThan(-1)
     const route = OP_ROUTE.slice(at, OP_ROUTE.indexOf('operatorRouter.', at + 10))
     expect(route).toContain('adminKeyValid')
-    expect(route).toContain('advanceProgrammeToReview')
-    expect(route).toContain('programme_prepared_for_review')
-    expect(route).toContain('programme_prepare_for_review_refused')
+    // ⛓️ RETARGETED 9 Sep — the door now starts the run and answers 202; the two audit rows
+    // are written by the background runner ITSELF, on both branches, because a route that has
+    // already responded cannot know how the run ended. Same two actions, moved to the only
+    // place that knows the outcome.
+    expect(route).toContain('startAdvanceInBackground')
+    expect(route).toContain('res.status(202)')
+    const runner = ADVANCE.slice(ADVANCE.indexOf('export function startAdvanceInBackground'), ADVANCE.indexOf('export interface LastPreparation'))
+    expect(runner).toContain("action: 'programme_prepared_for_review'")
+    expect(runner).toContain("action: 'programme_prepare_for_review_refused'")
   })
 
   it('the operator door drives no other lifecycle action', () => {

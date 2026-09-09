@@ -104,8 +104,12 @@ describe('① `Ready for approval` is offered only when the SERVER says the work
     // readiness of its own — is unchanged and is now checked against the executable lines only.
     const branch = LCCAN.slice(LCCAN.indexOf("case 'ready-for-approval':"), LCCAN.indexOf("case 'authorise/second':"))
     const code = branch.split('\n').filter(l => !l.trim().startsWith('//')).join('\n')
-    // Exactly two reads of programme truth: `readiness.ready` and `readiness.preparable`.
-    expect((code.match(/prog\?\./g) ?? []).length, 'the branch reads more programme state than the readiness answer').toBe(2)
+    // ⛓️ RETARGETED 9 Sep — three reads now, and the third is the same kind of fact as the
+    // other two: a SERVER boolean. `preparing` says a background preparation run is in flight
+    // for this programme, so the control is not drawn while one is going; the founder's House
+    // press ran for minutes with the button still on screen. Still no rule derived here.
+    expect((code.match(/prog\?\./g) ?? []).length, 'the branch reads more programme state than the readiness answer').toBe(3)
+    expect(code, 'the in-flight check is gone').toContain('prog?.preparing !== true')
     expect((code.match(/p\.status ===/g) ?? []).length, 'the branch tests statuses it did not before').toBe(2)
     // 🛑 AND NOTHING ELSE OFF THE ROW. Any other programme column here would be a local rule.
     expect(code.replace(/p\.status/g, ''), 'the branch grew a condition on another programme column')

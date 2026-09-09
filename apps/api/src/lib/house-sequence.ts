@@ -258,6 +258,42 @@ export async function applyHouseProgrammeSequence(programmeId: string): Promise<
 }
 
 /**
+ * Write ONLY the approved send schedule — never the words.
+ *
+ * ⛓️ 9 Sep — THE REPAIR FOR A HALF-APPLIED APPLY, AND IT MUST NOT BE `applyHouseProgrammeSequence`.
+ *
+ * 🛑 THE TWO WRITES CAN SEPARATE. `applyHouseProgrammeSequence` writes the sequence row and THEN
+ * the schedule, as two statements; a process stopped between them — which is exactly what a
+ * killed request does — leaves the sequence present and the schedule missing. The auto-apply in
+ * preparation runs only when NO sequence resolves, so every retry would then skip it and be
+ * refused at readiness with `no_send_schedule` for ever.
+ *
+ * 🛑 AND THE OBVIOUS REPAIR IS THE WRONG ONE. Calling the full apply to fix the schedule would
+ * also UPDATE the sequence steps back to the approved copy — silently discarding an edit an
+ * operator had made since. The 8 Sep lock is explicit that the approved copy is a SEED for an
+ * empty programme and never a periodic reset, so the repair writes the one column that is
+ * actually missing and touches nothing else.
+ *
+ * ⚠️ SAME SCOPE GATE. Only the proved House launch programme, for the same reason the sequence
+ * apply is scoped: this schedule belongs to one programme, not to every House one.
+ */
+export async function applyHouseSendSchedule(programmeId: string, clientId: string): Promise<ApplyScheduleResult> {
+  if (!(await isHouseLaunchProgramme(programmeId, clientId))) {
+    return {
+      ok: false,
+      reason: 'This is not the configured House launch programme, so the approved send schedule was not applied. Nothing was changed.',
+    }
+  }
+  const { error } = await db.from('programmes')
+    .update({ send_schedule: HOUSE_SEND_SCHEDULE, updated_at: new Date().toISOString() })
+    .eq('id', programmeId)
+  if (error) return { ok: false, reason: `The send schedule could not be written (${error.message}). Nothing was changed.` }
+  return { ok: true }
+}
+
+export type ApplyScheduleResult = { ok: true } | { ok: false; reason: string }
+
+/**
  * The schedule is written in the same operation as the words, and a failure to write it is a
  * failure of the whole apply — a programme holding approved messages it may never send at any
  * hour is a half-applied state somebody would have to notice.

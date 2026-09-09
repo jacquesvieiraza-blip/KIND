@@ -325,7 +325,10 @@ describe('⑤ the operator door survives as recovery, and says what happened', (
     expect(VIDA).toContain("case 'ready-for-approval':")
     const PROG_ROUTE = readFileSync(join(LIB, '..', 'routes', 'programme.ts'), 'utf8')
     expect(PROG_ROUTE).toContain("programmeRouter.post('/:id/ready-for-approval'")
-    expect(PROG_ROUTE).toContain('advanceProgrammeToReview')
+    // ⛓️ RETARGETED 9 Sep — the door starts the orchestrator in the background now, so the
+    // route names the runner; the runner is proved to call the orchestrator in
+    // programme-advance.background.test.ts.
+    expect(PROG_ROUTE).toContain('startAdvanceInBackground')
   })
 
   it('a blocked continuation is reported amber on the qualify screen, never green', () => {

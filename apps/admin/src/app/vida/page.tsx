@@ -346,6 +346,14 @@ export default function VidaConsolePage() {
     // locally. Optional, so an older API against this UI hides the control rather than
     // offering it: the fail-closed direction.
     readiness?: { ready: boolean; preparable?: boolean; blockers?: { code: string; detail: string }[] }
+    // ⚑ 9 Sep — the background preparation's two facts. `preparing` hides the control while a
+    // run is in flight; `last_preparation` is the audited outcome of the most recent run, which
+    // is the ONLY record of an attempt whose HTTP response was lost at an edge.
+    preparing?: boolean
+    last_preparation?: {
+      at: string; ok: boolean; by: string | null; detail: string
+      blockers: { code: string; detail: string }[]
+    } | null
   }
   const [prog, setProg] = useState<ProgrammeTruth | null>(null)
   const [progErr, setProgErr] = useState<string | null>(null)
@@ -568,7 +576,12 @@ export default function VidaConsolePage() {
       // ready": it is true only when EVERY outstanding blocker is one preparation clears. A
       // missing sender, a missing batch, an unqualified desk — none of those are on that list,
       // so the button stays hidden for them, which is what #1657 was actually protecting.
+      //
+      // ⛓️ 9 Sep — AND NEVER WHILE A RUN IS IN FLIGHT. The founder's first press may still be
+      // running in the API when the screen comes back; a second press would be answered
+      // "already running" by the route, but the honest thing is not to draw the button at all.
       case 'ready-for-approval':   return (p.status === 'SOURCING_AUTHORISED' || p.status === 'SOURCING')
+                                          && prog?.preparing !== true
                                           && (prog?.readiness?.ready === true || prog?.readiness?.preparable === true)
       case 'authorise/second':     return p.status === 'APPROVED' && !p2
       case 'go-live':              return p.status === 'APPROVED' && p2
@@ -609,10 +622,51 @@ export default function VidaConsolePage() {
     try {
       const id = prog?.programme?.id
       if (!id) throw new Error('No programme loaded.')
-      const j = await fetch(`/api/proxy/programmes/${encodeURIComponent(id)}/${action}`, {
+      const res = await fetch(`/api/proxy/programmes/${encodeURIComponent(id)}/${action}`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}',
-      }).then(r => r.json())
+      })
+      // ── ⛓️ 9 Sep — THE BODY IS READ AS TEXT FIRST, BECAUSE IT WAS NOT ALWAYS JSON ──────
+      //
+      // 🛑 WHAT THE FOUNDER SAW: *Unexpected token 'u', "upstream error" is not valid JSON*.
+      // An edge in front of this app closed a minutes-long request and answered with plain
+      // text; `.json()` threw; and the parse error became the product's error message. The
+      // parse failure was never the fault — a lost response is — so it is named as that, with
+      // what to do next, and the raw body goes to the console for the log rather than the desk.
+      const raw = await res.text()
+      let j: { success?: boolean; error?: string; data?: unknown; preparation?: unknown } | null = null
+      try { j = raw ? JSON.parse(raw) : null } catch { j = null }
+      if (j === null) {
+        console.error(`[vida] ${label}: non-JSON response (HTTP ${res.status}):`, raw.slice(0, 200))
+        throw new Error(
+          `K.I.N.D did not answer in time (HTTP ${res.status}). The work may still be running — ` +
+          'do not press again. Reload in a minute; the programme panel shows the last preparation attempt and its outcome.',
+        )
+      }
       if (!j?.success) throw new Error(j?.error || `${label} failed`)
+
+      // ── ⛓️ 9 Sep — READY FOR APPROVAL NOW STARTS A BACKGROUND RUN AND RETURNS ────────────
+      //
+      // The route answers 202 the moment the run starts; the outcome arrives on the programme
+      // panel (`preparing` while it runs, then `last_preparation` and the row's own status).
+      // So the screen says exactly that, then re-reads the programme a few times while the
+      // server still reports it as preparing — polling a boolean the server owns, never a
+      // guess about how long 246 prospects take.
+      if (action === 'ready-for-approval' && res.status === 202) {
+        const bg = j?.data as { started?: boolean; already_running?: boolean; headline?: string } | null | undefined
+        setLcMsg(bg?.headline ?? 'Preparing in the background. Nothing is sent.')
+        if (selected) {
+          for (let i = 0; i < 40; i++) {
+            await loadProgramme(selected)
+            // `loadProgramme` sets state asynchronously; a fresh read decides whether to wait.
+            const still = await fetch(`/api/proxy/operator/programme?client_id=${encodeURIComponent(selected)}`)
+              .then(r => r.json()).then(x => x?.data?.preparing === true).catch(() => false)
+            if (!still) break
+            await new Promise(r => setTimeout(r, 15000))
+          }
+          await loadProgramme(selected)
+        }
+        return
+      }
       // ⚑ "Live" is not the same claim as "operable", so the screen says both. A go-live that
       // prepared nothing is the exact state an operator must not read as finished.
       const prep = j?.preparation as { campaigns: string[]; enrolled: string[]; alreadyEnrolled: number } | null | undefined
@@ -3155,8 +3209,37 @@ export default function VidaConsolePage() {
                             Live — sending still obeys every downstream safety gate.
                           </span>
                         )}
+                        {prog.preparing === true && (
+                          <span className="text-[12.5px] font-semibold text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1.5">
+                            Preparing for the client — running in the background. Nothing is sent.
+                          </span>
+                        )}
                       </div>
                       {lcMsg && <p className="text-[12px] text-[#6b5f8c] mt-2">{lcMsg}</p>}
+                      {/* ── ⛓️ 9 Sep · THE LAST PREPARATION ATTEMPT, AND WHAT STILL BLOCKS ──────────
+                          🛑 THIS IS THE RECORD OF A RUN WHOSE RESPONSE WAS LOST. The founder's
+                          House press died at an edge; the API finished anyway and told nobody.
+                          The outcome is audited by the run itself and read back here, so a lost
+                          response is a lost message, never a lost fact. The sentences are the
+                          SERVER's — the headline or the named refusal — and the blockers are the
+                          readiness rule's own list, not a diagnosis this screen invented. */}
+                      {prog.last_preparation && (
+                        <p className={`text-[12px] mt-2 ${prog.last_preparation.ok ? 'text-emerald-800' : 'text-amber-800'}`}>
+                          Last preparation attempt ({new Date(prog.last_preparation.at).toLocaleString()}
+                          {prog.last_preparation.by ? ` · ${prog.last_preparation.by}` : ''}):{' '}
+                          {prog.last_preparation.ok ? 'completed' : 'did not complete'} — {prog.last_preparation.detail}
+                        </p>
+                      )}
+                      {prog.programme.status !== 'READY_FOR_APPROVAL' && (prog.readiness?.blockers?.length ?? 0) > 0 && (
+                        <div className="mt-2">
+                          <p className="text-[12px] font-semibold text-[#6b5f8c]">Still needed before the client can be asked to approve:</p>
+                          <ul className="list-disc ml-5 text-[12px] text-[#6b5f8c]">
+                            {(prog.readiness?.blockers ?? []).map(b => (
+                              <li key={b.code}>{b.detail}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
 
                       {/* ── ⚑ 9 Sep (HOUSE-009) · QUALIFY SOURCED LEADS ───────────────────
                           🛑 RENDERED ON A SERVER BOOLEAN, NEVER ON A CHECK THIS FILE COULD

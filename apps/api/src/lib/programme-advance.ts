@@ -362,3 +362,164 @@ export async function advanceAfterSettlement(
     )
   }
 }
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// THE RECOVERY DOOR RUNS IN THE BACKGROUND — because it ran in the request, and the request died.
+//
+// ⛓️ 9 Sep — WHAT HAPPENED IN PRODUCTION. The founder pressed *Ready for approval* on House.
+// The route called `advanceProgrammeToReview` and held the HTTP response open for the whole
+// chain: 246 prospects, each costing `verifyProgrammeFulfilment`, `resolveProgrammeChain`, the
+// lead and client reads, the attribution read, the insert, the campaign counter and the
+// (correctly refused) step-one send — thousands of sequential round trips from Railway to
+// Supabase. Several minutes. Node 20's default `server.requestTimeout` is 300 s and Railway's
+// edge in front of the admin app has its own limit; one of them closed the browser-facing
+// connection with a plain-text `upstream error`, Vida called `.json()` on it, and the founder
+// read *Unexpected token 'u'*. The API process kept running — the sequence write landed — and
+// whatever it concluded was delivered to nobody and, because the route audited success only,
+// recorded nowhere.
+//
+// 🛑 THE FIX IS THE SHAPE OF THE REQUEST, NOT A `try` AROUND `JSON.parse`. The same work now
+// starts and the response returns at once; the outcome is written to the operator audit log
+// whether it succeeded or refused, so it survives any lost response; and Vida reads it back
+// from the programme panel. `icps/proof` has done exactly this since 26 Aug.
+//
+// ⚠️ ONE RUN PER PROGRAMME AT A TIME. The founder's first request may still be running in the
+// API when the second press arrives. Preparation's already-enrolled check is read-then-write,
+// so two concurrent runs over the same page could each see "not enrolled" and both insert —
+// `autoEnrollLead`'s own per-campaign guard would catch most of that, but a lock that costs a
+// Map lookup is cheaper than an argument about which guard catches which race. A press while
+// a run is in flight is answered *already running*, not started twice.
+// ═══════════════════════════════════════════════════════════════════════════════════════
+
+/** In-flight continuations, keyed by programme id. Process-local — one API process serves Vida. */
+const inFlight = new Map<string, Promise<AdvanceResult>>()
+
+/** Is a continuation currently running for this programme in this process? */
+export function isAdvanceRunning(programmeId: string): boolean {
+  return inFlight.has(programmeId)
+}
+
+export interface BackgroundStart {
+  /** True when this call started the run. False when one was already in flight. */
+  started: boolean
+  already_running: boolean
+}
+
+/**
+ * Start the continuation for one programme without holding a response open for it.
+ *
+ * ⚠️ THE OUTCOME IS AUDITED HERE, ON BOTH BRANCHES, BECAUSE THE CALLER CANNOT. A route that
+ * responded before the work finished has nothing to write; this is the only place that knows
+ * how the run ended. `programme_prepared_for_review` and `programme_prepare_for_review_refused`
+ * are the two rows Vida's programme panel reads back as *last preparation attempt*.
+ *
+ * ⚠️ IT NEVER THROWS AND NEVER REJECTS — a background promise nobody awaits must not become an
+ * unhandled rejection that takes the process down mid-preparation.
+ */
+export function startAdvanceInBackground(
+  programmeId: string, trigger: AdvanceTrigger, operatorEmail: string,
+): BackgroundStart {
+  const id = typeof programmeId === 'string' ? programmeId.trim() : ''
+  if (inFlight.has(id)) return { started: false, already_running: true }
+
+  const run = (async (): Promise<AdvanceResult> => {
+    let result: AdvanceResult
+    try {
+      result = await advanceProgrammeToReview(id)
+    } catch (err) {
+      const why = err instanceof Error ? err.message : String(err)
+      console.error(`[programme-advance] ${trigger} → programme ${id} threw in the background:`, why)
+      result = {
+        ok: false,
+        reason: `This programme could not be carried on to review (${why}). Nothing was sent and no accounting changed. Fix the cause and press Ready for approval again — preparation resumes where it stopped.`,
+      }
+    }
+    try {
+      const { writeOperatorAudit } = await import('./operator-audit')
+      if (result.ok) {
+        const r = result.report
+        await writeOperatorAudit({
+          operatorEmail, clientId: r.client_id,
+          action: 'programme_prepared_for_review',
+          subjectType: 'programme', subjectId: id,
+          detail: {
+            trigger, headline: r.headline,
+            status_before: r.status_before, status_after: r.status_after,
+            enrolled: r.enrolled, already_enrolled: r.already_enrolled,
+            campaigns: r.campaigns, remaining: r.remaining, reviewable: r.reviewable,
+            steps: r.steps,
+          },
+        })
+        console.log(`[programme-advance] ${trigger} → programme ${id}: ${r.headline}`)
+      } else {
+        await writeOperatorAudit({
+          operatorEmail, clientId: result.report?.client_id ?? null,
+          action: 'programme_prepare_for_review_refused',
+          subjectType: 'programme', subjectId: id,
+          detail: {
+            trigger, reason: result.reason,
+            steps: result.report?.steps ?? null,
+            blockers: result.report?.blockers ?? null,
+            status_before: result.report?.status_before ?? null,
+            status_after: result.report?.status_after ?? null,
+          },
+        })
+        console.error(`[programme-advance] ${trigger} → programme ${id} did NOT continue: ${result.reason}`)
+      }
+    } catch (auditErr) {
+      // The work is done either way; a lost audit row is logged, never allowed to look like a
+      // lost run.
+      console.error(`[programme-advance] outcome for programme ${id} could not be audited:`, auditErr)
+    }
+    return result
+  })()
+
+  inFlight.set(id, run)
+  void run.finally(() => { if (inFlight.get(id) === run) inFlight.delete(id) })
+  return { started: true, already_running: false }
+}
+
+/** What Vida shows as the programme's last preparation attempt. */
+export interface LastPreparation {
+  at: string
+  ok: boolean
+  by: string | null
+  /** Founder-plain sentence: the headline on success, the named refusal otherwise. */
+  detail: string
+  blockers: { code: string; detail: string }[]
+}
+
+/**
+ * The most recent recorded preparation outcome for one programme, from the audit log.
+ *
+ * ⚠️ THIS IS WHY THE AUDIT ROW IS THE RECORD. A background run's result has nowhere else to
+ * go; without this the founder's only evidence of a failed attempt would be an onboarding
+ * percentage that moved. `null` when nothing was ever recorded — never a synthesised entry.
+ */
+export async function lastPreparationAttempt(programmeId: string): Promise<LastPreparation | null> {
+  const { data, error } = await db.from('operator_audit_log')
+    .select('operator_email, action, detail, created_at')
+    .eq('subject_type', 'programme').eq('subject_id', programmeId)
+    .in('action', ['programme_prepared_for_review', 'programme_prepare_for_review_refused'])
+    .order('created_at', { ascending: false }).limit(1)
+  if (error) {
+    console.error(`[programme-advance] last preparation attempt for ${programmeId} could not be read:`, error.message)
+    return null
+  }
+  const row = ((data ?? []) as { operator_email: string | null; action: string; detail: Record<string, unknown> | null; created_at: string }[])[0]
+  if (!row) return null
+  const d = row.detail ?? {}
+  const ok = row.action === 'programme_prepared_for_review'
+  const blockers = Array.isArray(d.blockers)
+    ? (d.blockers as { code?: unknown; detail?: unknown }[])
+        .filter(b => typeof b?.code === 'string' && typeof b?.detail === 'string')
+        .map(b => ({ code: String(b.code), detail: String(b.detail) }))
+    : []
+  return {
+    at: row.created_at,
+    ok,
+    by: row.operator_email,
+    detail: String(ok ? (d.headline ?? 'Prepared.') : (d.reason ?? 'The preparation did not complete.')),
+    blockers,
+  }
+}

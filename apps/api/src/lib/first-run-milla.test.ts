@@ -23,6 +23,30 @@ const anthropicBox = vi.hoisted(() => ({
   lastOptions: null as unknown,
 }))
 
+// ── ⛓️ 9 Sep — THE BOX IS RESET FOR EVERY TEST, NOT FOR SOME OF THEM ─────────────────────
+//
+// 🛑 THE LEAK. `anthropicBox` is one shared object for the whole file, and `error` is sticky:
+// once a test sets it, the fake SDK THROWS on every later `create` until something clears it.
+// Six blocks reset the box between tests and only two of them reset all three fields — the
+// rest set `calls = 0` and left `error` and `reply` exactly as the previous test had them.
+//
+// In file order it held, because the tests that arm `error` sit below the ones that would be
+// hurt by it. Under `--sequence.shuffle` that stops being true and the failure is spectacular
+// and misleading: seed 6 turned eight unrelated validation cases into `expected 503 to be 200`
+// — a provider outage, injected by a test that had already finished.
+//
+// ⚠️ ONE OUTER HOOK, so a block cannot forget. It runs before every inner `beforeEach`, the
+// existing per-block resets stay exactly as they are, and no test's own arrangement is
+// touched — each still sets the `reply` or `error` it wants, on a box that is now genuinely
+// empty when it starts.
+beforeEach(() => {
+  anthropicBox.calls = 0
+  anthropicBox.error = null
+  anthropicBox.reply = null
+  anthropicBox.lastParams = null
+  anthropicBox.lastOptions = null
+})
+
 vi.mock('@anthropic-ai/sdk', () => ({
   default: class FakeAnthropic {
     messages = {

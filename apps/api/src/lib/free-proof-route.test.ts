@@ -57,8 +57,60 @@ const ICP_ROW = {
  * ⚠️ The holder below outlives every reset and `runJob` swaps its CONTENTS, so a stale binding
  * still reads the CURRENT run's inputs and writes the CURRENT run's record. No behaviour of
  * the mock changes — only the lookup is indirect.
+ *
+ * ── ⛓️ 9 Sep — AND THAT HALF-FIX TRADED ONE DIRECTION OF THE BUG FOR THE OTHER ───────────
+ *
+ * 🛑 THE SAME `expected 20 to be 12` CAME BACK, under `--sequence.shuffle`. The holder above
+ * removed the case where a stale MODULE writes into an abandoned `rec`; it could not touch the
+ * case underneath it, which is the actual defect:
+ *
+ *     `runProofRoute` awaits the HTTP handler, and the handler starts `runIcpJob`
+ *     FIRE-AND-FORGET. The route returns 200 while that run is still going. Nothing —
+ *     not the helper, not any hook — ever waited for it.
+ *
+ * So the previous test's run was still in flight when the next test called `runJob`, which
+ * swapped the holder's contents. The abandoned run then read the NEW test's `reserve: 20` at
+ * its `try_reserve_proof_records`, returned 0 contacts because ITS closure had none, and
+ * recorded a `release_proof_records` of 20 into the NEW test's recorder. `.find()` takes the
+ * first match, so the under-return case read the ghost run's release instead of its own.
+ *
+ * ⚠️ MAKING THE BINDING PER-CALL AGAIN WOULD ONLY SWAP THE DIRECTION BACK. Both symptoms are
+ * one cause — an un-awaited run outliving its test — so the fix is to WAIT FOR IT, once, at
+ * the single place that starts one.
+ *
+ * ⚠️ AND IT IS QUIESCENCE, NOT A SLEEP. Every mock here resolves immediately with no timer and
+ * no network, so the run finishes in a bounded number of event-loop turns; `settleBackgroundWork`
+ * yields until the recorder has stopped changing. A wall-clock wait would be the same guess
+ * that made this flaky in the first place, just a slower one.
  */
 const jctx: { opts: Record<string, any>; rec: Rec } = { opts: {}, rec: emptyRec() }
+
+/**
+ * Let the fire-and-forget proof run finish before the test that started it ends.
+ *
+ * 🛑 NOTHING IS ASSERTED HERE AND NOTHING IS RELAXED. This only stops a run from outliving its
+ * own test — every expectation in the file is unchanged, and each now reads a completed run
+ * rather than whatever had happened by the time the handler returned.
+ */
+async function settleBackgroundWork(rec: Rec, maxTurns = 500): Promise<void> {
+  const size = () =>
+    rec.rpcs.length + rec.leadInserts + rec.leadUpdates.length +
+    rec.eqs.length + rec.alerts.length + rec.enrich.length
+  let last = -1
+  let stable = 0
+  for (let i = 0; i < maxTurns; i++) {
+    const now = size()
+    if (now === last) {
+      // Several consecutive quiet turns, because one `await` inside the run is a quiet turn
+      // that is not the end of it.
+      if (++stable >= 8) return
+    } else {
+      stable = 0
+      last = now
+    }
+    await new Promise(r => setTimeout(r, 0))
+  }
+}
 
 async function runJob(opts: {
   funded: 'real' | null
@@ -243,13 +295,57 @@ async function runProofRoute(opts: Parameters<typeof runJob>[0], rec: Rec, userI
     json(b: unknown) { this.body = b; return this },
   }
   await handler({ params: { id: 'icp-1' }, body: {}, headers: {}, userId }, res)
+  // 🛑 THE HANDLER RETURNS WHILE THE RUN IS STILL GOING — that is the product's real shape
+  // (the client gets 200 immediately) and it is exactly what made this file order-dependent.
+  // Waiting here means no run can outlive the test that started it and write into the next
+  // one's recorder. See the isolation note at the top of the file.
+  await settleBackgroundWork(rec)
   return res
 }
 
-const prev = {
-  anthropic: process.env.ANTHROPIC_API_KEY,
-  url: process.env.SUPABASE_URL,
-  anon: process.env.SUPABASE_ANON_KEY,
+// ── ⛓️ 9 Sep — ONE COMPLETE ENVIRONMENT, INSTALLED THE SAME WAY BY EVERY BLOCK ───────────
+//
+// 🛑 THE DEFECT THIS REPLACES, AND IT WAS A WHOLE CLASS RATHER THAN A BUG. Six describes each
+// set a DIFFERENT PARTIAL SUBSET of the four variables and restored a different subset again.
+// Two module-scope clients are constructed on the import path — `middleware/auth.ts` needs
+// `SUPABASE_URL` + `SUPABASE_ANON_KEY`, and `@kind/db` needs `SUPABASE_URL` +
+// `SUPABASE_SERVICE_ROLE_KEY` — so every block needed all four and no block set all four.
+//
+// In file order it worked, because whichever block was missing a variable happened to run
+// after one that supplied it. Under `--sequence.shuffle` that arrangement collapses: seed 9
+// died with *supabaseKey is required*, seed 17 with *Missing SUPABASE_URL or
+// SUPABASE_SERVICE_ROLE_KEY* — the same latent gap, entered from two different directions.
+//
+// ⚠️ NOTHING IS RELAXED AND NO VALUE IS NEW. These are the dummies the file already used,
+// gathered into one place so a block cannot silently depend on its neighbours. No client is
+// ever used: every read goes through the mocked `@kind/db`.
+const TEST_ENV: Record<string, string> = {
+  ANTHROPIC_API_KEY:         'test-key',
+  SUPABASE_URL:              'http://localhost:54321',
+  SUPABASE_SERVICE_ROLE_KEY: 'test-service-role-key',
+  SUPABASE_ANON_KEY:         'test-anon-key',
+}
+
+/** What the process had before this file touched anything. */
+const prev: Record<string, string | undefined> =
+  Object.fromEntries(Object.keys(TEST_ENV).map(k => [k, process.env[k]]))
+
+function installTestEnv(): void {
+  for (const [k, v] of Object.entries(TEST_ENV)) process.env[k] = v
+}
+
+/**
+ * ⚠️ AN ABSENT VARIABLE IS DELETED, NEVER ASSIGNED `undefined`. `process.env.X = undefined`
+ * stores the STRING "undefined", which is truthy — so a restore like that would leave every
+ * later block running against a value that looks present and is nonsense. That is how the
+ * missing-variable gap above stayed invisible for so long.
+ */
+function restoreTestEnv(): void {
+  for (const k of Object.keys(TEST_ENV)) {
+    const before = prev[k]
+    if (before === undefined) delete process.env[k]
+    else process.env[k] = before
+  }
 }
 
 describe('runIcpJob routes an unpaid prospect to the PROOF authority, never the paid one', () => {
@@ -257,16 +353,12 @@ describe('runIcpJob routes an unpaid prospect to the PROOF authority, never the 
     // `middleware/auth.ts` calls createClient() at module scope, so importing routes/icps
     // throws without these. Dummies — no client is ever used; every read goes through the
     // mocked @kind/db.
-    process.env.ANTHROPIC_API_KEY = 'test-key'
-    process.env.SUPABASE_URL      = 'http://localhost:54321'
-    process.env.SUPABASE_ANON_KEY = 'test-anon-key'
+    installTestEnv()
   })
   afterEach(() => {
     vi.doUnmock('./provider-boundary'); vi.doUnmock('./apollo'); vi.doUnmock('./alerts')
     vi.resetModules()
-    process.env.ANTHROPIC_API_KEY = prev.anthropic
-    process.env.SUPABASE_URL = prev.url
-    process.env.SUPABASE_ANON_KEY = prev.anon
+    restoreTestEnv()
   })
 
   it('A PROOF RUN never calls try_spend_sourcing — and never claims its own pass', async () => {
@@ -331,16 +423,12 @@ describe('runIcpJob routes an unpaid prospect to the PROOF authority, never the 
 
 describe('runIcpJob leaves the PAID path exactly as it was', () => {
   beforeEach(() => {
-    process.env.ANTHROPIC_API_KEY = 'test-key'
-    process.env.SUPABASE_URL      = 'http://localhost:54321'
-    process.env.SUPABASE_ANON_KEY = 'test-anon-key'
+    installTestEnv()
   })
   afterEach(() => {
     vi.doUnmock('./provider-boundary'); vi.doUnmock('./apollo'); vi.doUnmock('./alerts')
     vi.resetModules()
-    process.env.ANTHROPIC_API_KEY = prev.anthropic
-    process.env.SUPABASE_URL = prev.url
-    process.env.SUPABASE_ANON_KEY = prev.anon
+    restoreTestEnv()
   })
 
   it('A PAYING CLIENT still spends AR8 and never touches proof state', async () => {
@@ -384,16 +472,12 @@ describe('runIcpJob leaves the PAID path exactly as it was', () => {
 // a prospect shown 13 from the pool may be bought at most 7 more.
 describe('free proof — a proof pass surfaces at most 20 leads', () => {
   beforeEach(() => {
-    process.env.ANTHROPIC_API_KEY = 'test-key'
-    process.env.SUPABASE_URL      = 'http://localhost:54321'
-    process.env.SUPABASE_ANON_KEY = 'test-anon-key'
+    installTestEnv()
   })
   afterEach(() => {
     vi.doUnmock('./provider-boundary'); vi.doUnmock('./apollo'); vi.doUnmock('./alerts')
     vi.resetModules()
-    process.env.ANTHROPIC_API_KEY = prev.anthropic
-    process.env.SUPABASE_URL = prev.url
-    process.env.SUPABASE_ANON_KEY = prev.anon
+    restoreTestEnv()
   })
 
   it('AN EFFECTIVE CAP OF 200 STILL ASKS FOR ONLY 20', async () => {
@@ -441,16 +525,12 @@ describe('free proof — a proof pass surfaces at most 20 leads', () => {
 // is the kind of false alarm that trains someone to ignore the real one.
 describe('free proof — a prospect finishing their 40 is not a company budget alert', () => {
   beforeEach(() => {
-    process.env.ANTHROPIC_API_KEY = 'test-key'
-    process.env.SUPABASE_URL      = 'http://localhost:54321'
-    process.env.SUPABASE_ANON_KEY = 'test-anon-key'
+    installTestEnv()
   })
   afterEach(() => {
     vi.doUnmock('./provider-boundary'); vi.doUnmock('./apollo'); vi.doUnmock('./alerts')
     vi.resetModules()
-    process.env.ANTHROPIC_API_KEY = prev.anthropic
-    process.env.SUPABASE_URL = prev.url
-    process.env.SUPABASE_ANON_KEY = prev.anon
+    restoreTestEnv()
   })
 
   it('CLIENT_PROOF_LIMIT_REACHED DOES NOT RAISE THE $300 ALERT', async () => {
@@ -509,16 +589,12 @@ describe('free proof — a prospect finishing their 40 is not a company budget a
 // budget (try_spend_sourcing grants 0), which is the pre-proof behaviour restored.
 describe('round 4 — proof is an execution mode, not an account property', () => {
   beforeEach(() => {
-    process.env.ANTHROPIC_API_KEY = 'test-key'
-    process.env.SUPABASE_URL      = 'http://localhost:54321'
-    process.env.SUPABASE_ANON_KEY = 'test-anon-key'
+    installTestEnv()
   })
   afterEach(() => {
     vi.doUnmock('./provider-boundary'); vi.doUnmock('./apollo'); vi.doUnmock('./alerts')
     vi.resetModules()
-    process.env.ANTHROPIC_API_KEY = prev.anthropic
-    process.env.SUPABASE_URL = prev.url
-    process.env.SUPABASE_ANON_KEY = prev.anon
+    restoreTestEnv()
   })
 
   it('A NORMAL RUN ON A NEVER-FUNDED ACCOUNT MUST NOT TOUCH PROOF AUTHORITY', async () => {
@@ -565,16 +641,12 @@ describe('round 4 — proof is an execution mode, not an account property', () =
 // ── ROUND 4 — THE PROOF DOOR ITSELF ──────────────────────────────────────────
 describe('POST /icps/:id/proof — the client\'s one proof entry, and its fences', () => {
   beforeEach(() => {
-    process.env.ANTHROPIC_API_KEY = 'test-key'
-    process.env.SUPABASE_URL      = 'http://localhost:54321'
-    process.env.SUPABASE_ANON_KEY = 'test-anon-key'
+    installTestEnv()
   })
   afterEach(() => {
     vi.doUnmock('./provider-boundary'); vi.doUnmock('./apollo'); vi.doUnmock('./alerts')
     vi.resetModules()
-    process.env.ANTHROPIC_API_KEY = prev.anthropic
-    process.env.SUPABASE_URL = prev.url
-    process.env.SUPABASE_ANON_KEY = prev.anon
+    restoreTestEnv()
   })
 
   it('a prospect can request proof for their own ICP — pass 1 then pass 2', async () => {
@@ -646,8 +718,25 @@ describe('POST /icps/:id/proof — the client\'s one proof entry, and its fences
 // PAID must still walk through it exactly as before. The second half matters as much as the
 // first — a fix that quietly stopped delivering paid leads would be a worse bug than this one.
 describe('free proof never reaches the paid reveal/delivery path', () => {
-  beforeEach(() => { process.env.SUPABASE_URL = 'http://x'; process.env.SUPABASE_SERVICE_ROLE_KEY = 'k' })
-  afterEach(() => { vi.resetModules(); vi.restoreAllMocks() })
+  // ⛓️ 9 Sep — THIS BLOCK USED TO BORROW ITS ENVIRONMENT FROM WHOEVER RAN BEFORE IT.
+  //
+  // 🛑 It set `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` and NOT `SUPABASE_ANON_KEY`, then
+  // restored nothing. `middleware/auth.ts` calls `createClient(url, ANON_KEY)` at module scope,
+  // so importing `routes/icps` needs all three. In file order it always ran last, by which time
+  // a sibling's `afterEach` had already put a value in `SUPABASE_ANON_KEY` — so the gap was
+  // invisible. Under `--sequence.shuffle` this block can run FIRST, and then every test in it
+  // dies with *supabaseKey is required* before a single assertion is reached.
+  //
+  // ⚠️ NOTHING IS RELAXED. The same dummy values every other describe here uses, set and
+  // restored the same way; an implicit dependency on sibling ordering becomes an explicit
+  // setup. No client is ever used — every read goes through the mocked `@kind/db`.
+  beforeEach(() => {
+    installTestEnv()
+  })
+  afterEach(() => {
+    vi.resetModules(); vi.restoreAllMocks()
+    restoreTestEnv()
+  })
 
   it('A PROOF RUN WITH LEADS NEVER CALLS enrichAndDeliverLeads', async () => {
     const rec = emptyRec()

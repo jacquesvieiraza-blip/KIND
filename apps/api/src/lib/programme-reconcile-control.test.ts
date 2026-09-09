@@ -445,8 +445,14 @@ describe('④ the control obeys the server, fires once, and never paints a failu
     expect(HANDLER, 'the screen patches programme truth locally').not.toContain('setProg(')
     // The summary reads four fields off `j.data` and computes none of them. `used` in
     // particular is the server's read-back of the programme row, never `qualified` reused.
-    expect(HANDLER).toContain('const d = (j.data ?? {}) as { qualified?: number; disqualified?: number; used?: number | null }')
-    expect(HANDLER).toContain('`${d.qualified ?? 0} qualified · ${d.disqualified ?? 0} rejected · ${d.used ?? 0} used · batch ready for review`')
+    // ⛓️ 9 Sep — RETARGETED. The summary now renders the SETTLED BATCH's totals rather than
+    // this run's tally. The DUTY is unchanged and is what this case is for — every number on
+    // screen came from the response and none is computed here — but the field names moved,
+    // because `qualified` counts only the verdicts one call wrote and the House screen showed
+    // "176 qualified" beside "246 used" as a result.
+    expect(HANDLER).toContain('const settledQualified = d.batch_qualified ?? d.qualified ?? 0')
+    expect(HANDLER).toContain('const settledRejected = d.batch_rejected ?? d.disqualified ?? 0')
+    expect(HANDLER).toContain('`${settledQualified} qualified · ${settledRejected} rejected · ${d.used ?? 0} used · batch ready for review`')
     // 🛑 NOT DERIVED. Any arithmetic on these numbers is a number this screen invented.
     for (const fabricated of ['d.qualified +', 'd.qualified -', 'unaccounted -', 'unaccounted +',
                               'sourced_used', 'sourced_reserved', 'room_remaining']) {

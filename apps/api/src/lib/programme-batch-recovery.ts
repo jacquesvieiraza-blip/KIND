@@ -37,6 +37,22 @@ export interface QualifyBatchReport extends QualifyOutcome {
   settled: boolean
   /** The batch the attempt now belongs to, when it was settled. */
   batch_id: string | null
+  /**
+   * ⚑ 9 Sep — THE SETTLED BATCH'S OWN NUMBERS, READ BACK FROM THE ROW.
+   *
+   * 🛑 WHY THESE EXIST BESIDE `qualified` / `disqualified`. Those two are inherited from
+   * `QualifyOutcome` and count the verdicts THIS CALL wrote — a candidate already judged by an
+   * earlier partial run is counted in `already_judged` and in neither of them. The batch counts
+   * every judged row of the attempt. Both are correct and they answer different questions, and
+   * on the House programme they differed: a report of "176 qualified" sat beside "246 used",
+   * because 70 candidates had been judged before. One screen, one word, two populations.
+   *
+   * These are the ATTEMPT's totals, from `programme_batches`, and they are what an operator
+   * should be shown. `null` when the batch could not be re-read — never a derived stand-in.
+   */
+  batch_candidates: number | null
+  batch_qualified: number | null
+  batch_rejected: number | null
   /** What the settle consumed — read back from the programme, never assumed. */
   used: number | null
   reserved: number | null
@@ -192,9 +208,18 @@ export async function qualifyAndSettleBatch(programmeId: unknown): Promise<Quali
   const reserved = pr ? Number(pr.sourced_reserved ?? 0) : null
   const remaining = pr ? Math.max(0, Number(pr.sourcing_ceiling ?? 0) - Number(pr.sourced_used ?? 0) - Number(pr.sourced_reserved ?? 0)) : null
 
+  // ⚑ 9 Sep — `granted` and `delivered` are read back with the id. The RPC wrote
+  // `granted = every candidate of the attempt` and `delivered = every one that qualified`, so
+  // these two are the attempt's canonical totals and no arithmetic here can disagree with them.
   const { data: batchRows } = await db.from('programme_batches')
-    .select('id, seq').eq('programme_id', id).order('seq', { ascending: false }).limit(1)
-  const batchId = ((batchRows ?? []) as { id: string }[])[0]?.id ?? null
+    .select('id, seq, granted, delivered').eq('programme_id', id).order('seq', { ascending: false }).limit(1)
+  const batchRow = ((batchRows ?? []) as { id: string; granted: number | null; delivered: number | null }[])[0] ?? null
+  const batchId = batchRow?.id ?? null
+  const batchCandidates = batchRow && typeof batchRow.granted === 'number' ? batchRow.granted : null
+  const batchQualified = batchRow && typeof batchRow.delivered === 'number' ? batchRow.delivered : null
+  const batchRejected = batchCandidates !== null && batchQualified !== null
+    ? Math.max(0, batchCandidates - batchQualified)
+    : null
 
   // ── ⑥ SURFACE THE QUALIFIED ROWS ONLY ───────────────────────────────────────────────
   let surfaced = 0
@@ -217,13 +242,17 @@ export async function qualifyAndSettleBatch(programmeId: unknown): Promise<Quali
       icp_id: icp.id,
       settled: true,
       batch_id: batchId,
+      batch_candidates: batchCandidates,
+      batch_qualified: batchQualified,
+      batch_rejected: batchRejected,
       used, reserved, remaining,
       status_before: statusBefore,
       status_after: String(pr?.status ?? statusBefore),
       surfaced,
       headline:
-        `${q.candidates_total} candidate(s) judged against ${icp.name ?? 'the attached targeting'}: ` +
-        `${q.qualified} qualified, ${q.disqualified} disqualified` +
+        `${batchCandidates ?? q.candidates_total} candidate(s) in this attempt against ${icp.name ?? 'the attached targeting'}: ` +
+        `${batchQualified ?? q.qualified} qualified, ${batchRejected ?? q.disqualified} rejected` +
+        ` (this run judged ${q.qualified + q.disqualified} of them; ${q.already_judged} already had a verdict)` +
         `${Object.keys(q.reasons).length ? ` (${Object.entries(q.reasons).map(([k, v]) => `${k} ${v}`).join(', ')})` : ''}. ` +
         `${rpcData} prospect(s) now consume programme entitlement — ${used} used · ${reserved} reserved · ${remaining} left. ` +
         `${surfaced} qualified prospect(s) are on the customer's review desk.${surfaceNote} ` +

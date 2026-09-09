@@ -445,9 +445,25 @@ export default function VidaConsolePage() {
       // 🛑 EVERY NUMBER HERE COMES FROM THE RESPONSE. None is derived, defaulted or carried over
       // from what this screen expected — `used` in particular is read back from the programme
       // row by the server, never computed from `qualified`.
-      const d = (j.data ?? {}) as { qualified?: number; disqualified?: number; used?: number | null }
+      // ⚑ 9 Sep — THE SETTLED BATCH'S TOTALS, NOT THIS RUN'S TALLY.
+      //
+      // 🛑 THE NUMBER THE FOUNDER WAS MISLED BY. `qualified` / `disqualified` come from
+      // `QualifyOutcome` and count the verdicts THIS CALL wrote; a candidate an earlier partial
+      // run already judged is counted in `already_judged` and in neither. So the House screen
+      // read "176 qualified" beside "246 used" — two correct numbers, two populations, one word.
+      // `batch_qualified` / `batch_rejected` are read back from `programme_batches` by the API
+      // and are the ATTEMPT's totals, which is what "this batch" means to an operator.
+      //
+      // ⚠️ THE FALLBACK IS THE RUN'S OWN COUNT, NOT ZERO. `?? d.qualified` keeps an older API
+      // truthful rather than reporting nothing qualified; `?? 0` there would invent a claim.
+      const d = (j.data ?? {}) as {
+        qualified?: number; disqualified?: number; used?: number | null
+        batch_qualified?: number | null; batch_rejected?: number | null
+      }
+      const settledQualified = d.batch_qualified ?? d.qualified ?? 0
+      const settledRejected = d.batch_rejected ?? d.disqualified ?? 0
       setQualMsg({ tone: 'ok', text:
-        `${d.qualified ?? 0} qualified · ${d.disqualified ?? 0} rejected · ${d.used ?? 0} used · batch ready for review` })
+        `${settledQualified} qualified · ${settledRejected} rejected · ${d.used ?? 0} used · batch ready for review` })
       // Re-read rather than patching: the row is the truth, and the control's own visibility is
       // recomputed by the server from the state that now exists.
       if (selected) await loadProgramme(selected)

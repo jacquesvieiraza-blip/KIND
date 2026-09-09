@@ -113,6 +113,58 @@ export interface RecordBookingParams {
  * entry (`BOOKED_UNVERIFIED`). A caller cannot ask for `BOOKED` without the proof, because
  * a caller in a hurry is exactly who would.
  */
+/**
+ * Which campaign and which programme a booking belongs to — both read from ONE enrolment row.
+ *
+ * ⛓️ 9 Sep — `meetings.programme_id` EXISTED AND NOTHING EVER POPULATED IT. Both booking
+ * writers left it NULL, so a real prospect booking off a programme's own sequence produced a
+ * meeting that belonged to no programme. Every programme-scoped report then counted zero: the
+ * outcome the client is buying was invisible in the product that sold it to them.
+ *
+ * 🛑 THE ENROLMENT IS THE ATTRIBUTION TRUTH, and it is the only honest source. A programme
+ * cannot be inferred from the client (they may have had several), from the lead (it may
+ * predate the programme), or from "the newest programme" (that is a guess wearing a fact's
+ * clothes). The enrolment is the row that says *this person is being worked, under this
+ * campaign, for this programme* — it is written at preparation and it carries both ids.
+ *
+ * ⚠️ BOTH FACTS COME FROM THE SAME ROW. Resolving them separately is how a booking ends up with
+ * one enrolment's campaign and another's programme — a record that describes work nobody did.
+ *
+ * ⚠️ NULL IS AN HONEST ANSWER. A lead with no enrolment at all — a legacy booking, a manual
+ * one — belongs to no programme, and inventing one would manufacture a certainty we do not
+ * have. It is left NULL, exactly as it is today.
+ */
+export async function resolveBookingAttribution(
+  leadId: string, enrollmentId?: string | null,
+): Promise<{ enrollmentId: string | null; campaignId: string | null; programmeId: string | null }> {
+  const none = { enrollmentId: enrollmentId ?? null, campaignId: null, programmeId: null }
+  const read = async (col: 'id' | 'lead_id', val: string) => {
+    const q = db.from('figsy_enrollments').select('id, campaign_id, programme_id').eq(col, val)
+    // The named enrolment when we have one; otherwise the lead's most recent, which is the
+    // same row the campaign lookup has always used — extended, not replaced.
+    const { data } = col === 'id'
+      ? await q.maybeSingle()
+      : await q.order('enrolled_at', { ascending: false }).limit(1).maybeSingle()
+    return (data ?? null) as { id: string; campaign_id: string | null; programme_id: string | null } | null
+  }
+
+  try {
+    let row = enrollmentId ? await read('id', enrollmentId) : null
+    if (!row) row = await read('lead_id', leadId)
+    if (!row) return none
+    return {
+      enrollmentId: enrollmentId ?? row.id ?? null,
+      campaignId: row.campaign_id ?? null,
+      programmeId: row.programme_id ?? null,
+    }
+  } catch (err) {
+    // ⚠️ A FAILED READ IS NOT "NO PROGRAMME". It is reported and the booking still records —
+    // losing the attribution is bad; losing the prospect's accepted time is worse.
+    console.error(`[meeting-truth] booking attribution could not be resolved for lead ${leadId}:`, err)
+    return none
+  }
+}
+
 export async function recordBooking(params: RecordBookingParams): Promise<MeetingResult> {
   const verified = !!params.googleEventId
   const now = new Date().toISOString()

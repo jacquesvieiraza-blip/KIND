@@ -1038,6 +1038,39 @@ stripeRouter.post('/webhook', async (req: Request, res: Response) => {
       // emailing prospects in this client's name — on our sending reputation, for someone
       // who has just taken their money back. Pause their active campaigns and let the
       // operator decide. Reversible in one click in Vida (Campaign → Run it).
+      // ── ⛓️ 9 Sep — A PROGRAMME PAYMENT REVERSAL MUST REACH THE PROGRAMME ────────────────
+      //
+      // 🛑 WHAT WAS UNSAFE. This handler paused the client's ACTIVE CAMPAIGNS and stopped
+      // there. The programme row itself was untouched: no `disputed_at`, no `paused_at`, and
+      // `checkProgrammeAuthority` therefore still granted OUTREACH. So the money was reversed,
+      // the campaigns were paused — and any legacy activation path could wake them straight
+      // back up, because the authority that decides whether this programme may send at all
+      // still said yes. Pausing the symptom while the authority stays live is not a stop.
+      //
+      // ⚠️ IT REVERSES NOTHING AND DELETES NOTHING. `recordDispute` stamps `disputed_at` and
+      // pauses; the programme, its batches, its payment timestamps and its ledger rows are all
+      // preserved as evidence. No refund accounting is fabricated here — Stripe is the record
+      // of the money, and this is the record of the delivery stopping.
+      //
+      // ⚠️ IDEMPOTENT. Stripe redelivers; `recordDispute` keeps the FIRST stamp and alerts once.
+      if (meta.programmeId && typeof meta.programmeId === 'string') {
+        const { recordDispute } = await import('../lib/programme')
+        const kind = event.type === 'charge.dispute.created' ? 'dispute' as const : 'refund' as const
+        const r = await recordDispute(
+          meta.programmeId,
+          `Stripe ${event.type} on charge ${obj.id}${meta.type ? ` (${meta.type})` : ''}.`,
+          kind,
+        )
+        if (!r.ok) {
+          console.error(`[Stripe] ${event.type} — programme ${meta.programmeId} could not be stopped: ${r.reason}`)
+          void sendFounderAlert('payment_failed', 'A programme payment was reversed and the programme could NOT be stopped', [
+            `Programme ${meta.programmeId}, client ${meta.clientId ?? 'unknown'}.`,
+            `Reason: ${r.reason}`,
+            'Pause this programme by hand in Vida — its outreach authority may still be live.',
+          ])
+        }
+      }
+
       if (meta.clientId) {
         const { data: paused } = await db.from('figsy_campaigns')
           .update({ status: 'paused' })

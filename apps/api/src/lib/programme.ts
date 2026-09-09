@@ -1090,17 +1090,30 @@ export async function recordMakeWhole(programmeId: string, cents: number, note: 
 }
 
 /** A chargeback cannot be refused by code. Record it, stop delivery, preserve evidence, alert. */
-export async function recordDispute(programmeId: string, detail: string): Promise<ProgrammeResult> {
+export async function recordDispute(
+  programmeId: string, detail: string, kind: 'dispute' | 'refund' = 'dispute',
+): Promise<ProgrammeResult> {
   const p = await getProgramme(programmeId)
   if (!p) return { ok: false, reason: 'No such programme.' }
+
+  // ⚑ 9 Sep — IDEMPOTENT, BECAUSE STRIPE RETRIES. A duplicate `charge.refunded` must not move
+  // the timestamps: `disputed_at` is when the money was reversed, and rewriting it on every
+  // redelivery would make the evidence trail say the dispute kept happening. The FIRST stamp
+  // is the fact; later deliveries confirm a state that already holds.
+  const now = new Date().toISOString()
+  const alreadyReversed = !!p.disputed_at
   await db.from('programmes').update({
-    disputed_at: new Date().toISOString(),
-    paused_at: p.paused_at ?? new Date().toISOString(),
+    disputed_at: p.disputed_at ?? now,
+    paused_at: p.paused_at ?? now,
     pause_reason: p.pause_reason ?? 'quality',
-    updated_at: new Date().toISOString(),
+    updated_at: now,
   }).eq('id', programmeId)
-  void sendFounderAlert('churn_risk', 'Programme payment disputed — delivery stopped', [
-    `Programme ${programmeId} (client ${p.client_id}) has a dispute/chargeback.`,
+
+  if (alreadyReversed) return { ok: true }
+
+  const word = kind === 'refund' ? 'refunded' : 'disputed'
+  void sendFounderAlert('churn_risk', `Programme payment ${word} — delivery stopped`, [
+    `Programme ${programmeId} (client ${p.client_id}) was ${word}.`,
     detail,
     'Sourcing and sending are paused. Nothing has been deleted — the programme, its batches and its ledger rows are preserved as evidence.',
   ])

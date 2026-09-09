@@ -8,7 +8,7 @@ import { rateLimit } from '../lib/rate-limit'
 import { logOutcomeEvent } from '../lib/outcomes'
 import { recomputeCampaignCounters } from '../lib/figsy'
 // BUILD-003 item 2 — the ONE place a meeting is created. Never `.from('meetings')` here.
-import { recordBooking } from '../lib/meeting-truth'
+import { recordBooking, resolveBookingAttribution } from '../lib/meeting-truth'
 import {
   getAuthUrl,
   exchangeCodeForTokens,
@@ -73,11 +73,18 @@ async function recordUnverifiedBooking(
   params: { clientId: string; leadId: string; enrollmentId?: string | null; start: string },
   cause: 'calendar_not_connected' | 'google_auth_failed' | 'google_unavailable',
 ): Promise<BookingResult | null> {
+  // ⚑ 9 Sep — AN UNVERIFIED BOOKING IS STILL THIS PROGRAMME'S OUTCOME. Google failing to
+  // confirm the event says nothing about which programme the prospect was being worked under,
+  // so attribution is resolved here exactly as on the verified path. Without it a calendar
+  // outage would quietly erase a real outcome from the client's own reporting.
+  const attribution = await resolveBookingAttribution(params.leadId, params.enrollmentId ?? null)
   const recorded = await recordBooking({
     clientId:      params.clientId,
     leadId:        params.leadId,
     scheduledAt:   params.start,
-    enrollmentId:  params.enrollmentId ?? null,
+    campaignId:    attribution.campaignId,
+    enrollmentId:  attribution.enrollmentId,
+    programmeId:   attribution.programmeId,
     // ⚠️ NEVER AN INVENTED ID. No event id means BOOKED_UNVERIFIED and verified_at NULL —
     // the row says exactly what we know and nothing we do not.
     googleEventId: null,
@@ -294,25 +301,21 @@ async function performBooking(params: {
   // Unify the booking KPI: attribute to the lead's active enrollment's campaign and
   // stamp the matching reply so recompute counts it from source.
   try {
-    let campaignId: string | null = null
-    if (params.enrollmentId) {
-      const { data: enr } = await db.from('figsy_enrollments')
-        .select('campaign_id').eq('id', params.enrollmentId).maybeSingle()
-      campaignId = enr?.campaign_id ?? null
-    }
-    if (!campaignId) {
-      const { data: enr } = await db.from('figsy_enrollments')
-        .select('campaign_id').eq('lead_id', params.leadId).order('enrolled_at', { ascending: false }).limit(1).maybeSingle()
-      campaignId = enr?.campaign_id ?? null
-    }
+    // ⚑ 9 Sep — THE PROGRAMME COMES FROM THE SAME ENROLMENT ROW AS THE CAMPAIGN. This resolved
+    // the campaign only, so `meetings.programme_id` was never populated by the real booking
+    // path and every programme-scoped report counted zero meetings — the outcome the client is
+    // buying was invisible in the product that sold it to them. Reading both from ONE row is
+    // also what stops a booking carrying one enrolment's campaign and another's programme.
+    const attribution = await resolveBookingAttribution(params.leadId, params.enrollmentId ?? null)
     // ── MEETING TRUTH (BUILD-003 item 2) ────────────────────────────────────────────
     // The authoritative record. Everything below this line is history and cache.
     const recorded = await recordBooking({
       clientId:      params.clientId,
       leadId:        params.leadId,
       scheduledAt:   params.start,
-      campaignId,
-      enrollmentId:  params.enrollmentId ?? null,
+      campaignId:    attribution.campaignId,
+      enrollmentId:  attribution.enrollmentId,
+      programmeId:   attribution.programmeId,
       googleEventId: eventId,
     })
     if (!recorded.ok && recorded.refused.reason !== 'already_booked') {
@@ -329,7 +332,7 @@ async function performBooking(params: {
       .in('classification', ['hot', 'warm'])
       .select('id')
 
-    if (campaignId) {
+    if (attribution.campaignId) {
       // ⛓️ THE READ-MODIFY-WRITE IS GONE. This used to
       //     select meetings_booked → update meetings_booked = value + 1
       // which is a lost update the instant two bookings land together: both read N, both
@@ -342,7 +345,7 @@ async function performBooking(params: {
       // One write, not two: recomputeCampaignCounters now derives meetings_booked from
       // public.meetings itself, so calling the meeting-cache helper as well would simply
       // write the same value twice.
-      await recomputeCampaignCounters(campaignId)
+      await recomputeCampaignCounters(attribution.campaignId)
     }
   } catch (kpiErr) {
     console.error('[calendar/performBooking] KPI update failed (booking still saved):', kpiErr)

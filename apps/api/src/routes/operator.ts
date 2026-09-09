@@ -1718,6 +1718,7 @@ operatorRouter.get('/programme', async (req: Request, res: Response) => {
     // it is); `last_preparation` is the most recent audited outcome — headline on success, the
     // named blockers on refusal — which is the founder's only record of an attempt whose HTTP
     // response an edge threw away.
+    const { outreachEnabled, operatorSendEnabled } = await import('../lib/figsy')
     const { isAdvanceRunning, lastPreparationAttempt } = await import('../lib/programme-advance')
     const preparing = truth.programme ? isAdvanceRunning(truth.programme.id) : false
     const lastPreparation = truth.programme ? await lastPreparationAttempt(truth.programme.id) : null
@@ -1736,6 +1737,23 @@ operatorRouter.get('/programme', async (req: Request, res: Response) => {
       },
       preparing,
       last_preparation: lastPreparation,
+      // ── ⛓️ 9 Sep — THE TWO SEND SWITCHES, STATED RATHER THAN INFERRED ──────────────────
+      //
+      // 🛑 THE LOCKED MEANING. Kill-switch ON = sending blocked. OFF = sending permitted,
+      // subject to every other gate. Vida must never present a bare "OFF" under "SENDING" —
+      // read alone it says the opposite of what it means.
+      //
+      // ⚠️ AND MAKE LIVE IS NOT SENDING. A programme can be LIVE with nothing going out: the
+      // automatic cron obeys `AUTO_OUTREACH_ENABLED`, and the founder's canary goes through the
+      // separate operator Run, which needs `FIGSY_OPERATOR_SEND_ENABLED`. A screen that says
+      // "outreach has started" because a status changed is lying about the only thing on it
+      // that reaches a real stranger. Both are reported so the console can say which is true.
+      send_controls: {
+        /** The automatic cron. TRUE means the kill-switch is OFF and the cron may send. */
+        auto_outreach_enabled: outreachEnabled(),
+        /** The founder's explicit Run-once. Independent of the switch above. */
+        operator_run_enabled: operatorSendEnabled(),
+      },
       icps, reconcile, commercial: {
       stored:   storedModelFor(model),
       resolved: model.model,

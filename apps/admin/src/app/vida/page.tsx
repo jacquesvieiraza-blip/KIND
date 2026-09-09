@@ -350,6 +350,9 @@ export default function VidaConsolePage() {
     // run is in flight; `last_preparation` is the audited outcome of the most recent run, which
     // is the ONLY record of an attempt whose HTTP response was lost at an edge.
     preparing?: boolean
+    // ⚑ 9 Sep — the two SEND switches, from the server. Make Live is not sending, and this
+    // screen must never imply it is.
+    send_controls?: { auto_outreach_enabled: boolean; operator_run_enabled: boolean }
     last_preparation?: {
       at: string; ok: boolean; by: string | null; detail: string
       blockers: { code: string; detail: string }[]
@@ -601,6 +604,50 @@ export default function VidaConsolePage() {
     if (!p || p.paused_at) return false
     return ['DRAFT', 'RECOMMENDED', 'AWAITING_FIRST_PAYMENT', 'SOURCING_AUTHORISED', 'SOURCING'].includes(p.status)
   }
+
+  // ── ⚑ 9 Sep · RUN — THE ONLY DELIBERATE WAY REAL MAIL LEAVES ─────────────────────────
+  //
+  // 🛑 MAKE LIVE ARMS; RUN SENDS. The route this calls needs `FIGSY_OPERATOR_SEND_ENABLED` on
+  // the API, names EXACTLY ONE client, and takes an explicit ceiling — which is what makes a
+  // canary a canary rather than a book-wide send. It existed and Vida never called it, so the
+  // Thursday walk had no console path at all.
+  //
+  // ⚠️ THE CEILING IS TYPED, NEVER DEFAULTED. A pre-filled number is a number nobody chose.
+  const [runBusy, setRunBusy] = useState(false)
+  const [runMsg, setRunMsg] = useState<{ tone: 'ok' | 'warn' | 'error'; text: string } | null>(null)
+  const [runMax, setRunMax] = useState('')
+
+  const runOnce = useCallback(async () => {
+    const client = (clients ?? []).find(c => c.id === selected)
+    const who = client?.company_name ?? 'this client'
+    const n = Number(runMax.trim())
+    if (!Number.isInteger(n) || n < 1) {
+      setRunMsg({ tone: 'error', text: 'Enter the most emails this run may send — a whole number of 1 or more. Nothing was sent.' })
+      return
+    }
+    // 🛑 THE CONFIRMATION SAYS WHAT LEAVES THE BUILDING, and names the ceiling back.
+    if (!confirm(`Send up to ${n} real email${n === 1 ? '' : 's'} for ${who}?\n\nThese go to REAL prospects from ${who}'s own mailbox, on the approved sequence.\n\nThis is the only action that sends. It stops at ${n}.`)) return
+    setRunBusy(true); setRunMsg(null)
+    try {
+      const j = await fetch('/api/proxy/operator/send-due/run-once', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ client_id: selected, max_sends: n }),
+      }).then(r => r.json())
+      if (!j?.success) throw new Error(j?.error || 'The run did not complete.')
+      const d = (j.data ?? {}) as { sent?: number; attempted?: number; failed?: number }
+      // ⚠️ THE SERVER'S NUMBERS. A run that attempted and sent nothing is not a success story,
+      // so zero is reported as zero rather than as "done".
+      const sent = d.sent ?? 0
+      setRunMsg({
+        tone: sent > 0 ? 'ok' : 'warn',
+        text: `${sent} sent of ${d.attempted ?? 0} attempted${d.failed ? ` · ${d.failed} failed` : ''} (ceiling ${n}).` +
+          (sent === 0 ? ' Nothing left the building — check the sender, the schedule and the kill-switch.' : ''),
+      })
+      if (selected) await loadProgramme(selected)
+    } catch (e) {
+      setRunMsg({ tone: 'error', text: e instanceof Error ? e.message : 'The run did not complete. Read the client before trying again.' })
+    } finally { setRunBusy(false) }
+  }, [selected, clients, runMax, loadProgramme])
 
   const lifecycle = useCallback(async (action: string, label: string) => {
     const client = (clients ?? []).find(c => c.id === selected)
@@ -3209,7 +3256,7 @@ export default function VidaConsolePage() {
                         )}
                         {prog.programme.status === 'LIVE' && (
                           <span className="text-[12.5px] font-semibold text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-lg px-2.5 py-1.5">
-                            Live — sending still obeys every downstream safety gate.
+                            Live — armed. Nothing has been sent by making it live.
                           </span>
                         )}
                         {prog.preparing === true && (
@@ -3219,6 +3266,54 @@ export default function VidaConsolePage() {
                         )}
                       </div>
                       {lcMsg && <p className="text-[12px] text-[#6b5f8c] mt-2">{lcMsg}</p>}
+
+                      {/* ── ⚑ 9 Sep · SENDING, AND THE RUN THAT IS THE ONLY WAY IT HAPPENS ────────
+                          🛑 THE LOCKED WORDING. Kill-switch ON means sending is BLOCKED; OFF
+                          means it is PERMITTED, subject to every other gate. A bare "OFF" under
+                          "SENDING" reads as the opposite of what it means, so the state is
+                          spelled out and the switch is named beside it, never alone.
+                          🛑 AND MAKE LIVE IS NOT SENDING. A programme can be LIVE with nothing
+                          going out. This says which is true rather than letting a status imply
+                          it. */}
+                      {prog.programme.status === 'LIVE' && prog.send_controls && (
+                        <div className="mt-3 border border-[#eee7f7] rounded-xl px-3.5 py-3">
+                          <div className="text-[11.5px] uppercase tracking-wide text-[#9b8ec4] font-bold mb-1">Sending</div>
+                          <p className="text-[12.5px] font-semibold text-[#5c5279]">
+                            {prog.send_controls.auto_outreach_enabled
+                              ? 'Permitted — automatic outreach is on (kill-switch OFF). The cron may send on its own.'
+                              : 'Blocked — automatic outreach is off (kill-switch ON). Nothing sends by itself.'}
+                          </p>
+                          <p className="text-[12px] text-[#9b8ec4] mt-1">
+                            {prog.send_controls.operator_run_enabled
+                              ? 'Run is available: it sends up to a ceiling you type, for this client only.'
+                              : 'Run is unavailable — FIGSY_OPERATOR_SEND_ENABLED is not set on the API, so no run can start.'}
+                          </p>
+                          {prog.send_controls.operator_run_enabled && (
+                            <div className="flex flex-wrap items-center gap-2 mt-2.5">
+                              <input
+                                value={runMax}
+                                onChange={e => setRunMax(e.target.value)}
+                                inputMode="numeric"
+                                placeholder="Max emails"
+                                className="w-28 text-[12.5px] border border-[#e3daf7] rounded-lg px-2.5 py-1.5"
+                              />
+                              <button
+                                onClick={runOnce}
+                                disabled={runBusy}
+                                className="text-[12.5px] font-bold text-white bg-[#059669] rounded-lg px-2.5 py-1.5 disabled:opacity-50">
+                                {runBusy ? '…' : 'Run once'}
+                              </button>
+                            </div>
+                          )}
+                          {runMsg && (
+                            <p className={`text-[12px] mt-2 font-semibold ${
+                              runMsg.tone === 'ok' ? 'text-emerald-800'
+                              : runMsg.tone === 'warn' ? 'text-amber-800' : 'text-red-700'}`}>
+                              {runMsg.text}
+                            </p>
+                          )}
+                        </div>
+                      )}
                       {/* ── ⛓️ 9 Sep · THE LAST PREPARATION ATTEMPT, AND WHAT STILL BLOCKS ──────────
                           🛑 THIS IS THE RECORD OF A RUN WHOSE RESPONSE WAS LOST. The founder's
                           House press died at an edge; the API finished anyway and told nobody.

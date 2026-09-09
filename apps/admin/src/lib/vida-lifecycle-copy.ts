@@ -102,6 +102,36 @@ export function sendingCard(killSwitchOff: boolean): PanelCard {
         caption: 'Kill-switch ON — nothing is delivered on any channel.' }
 }
 
+/**
+ * 🛑 THE TOP-BAR CHIP — THE SAME INVERSION, IN THE ONE PLACE THAT OWNS THE WORDING.
+ *
+ * ⛓️ WHAT WENT WRONG (found 9 Sep, present since 23 Jul — `c9d86e01`). The chip read:
+ *
+ *     const on = status?.outreach_enabled === true
+ *     Kill-switch {on ? 'ON' : 'OFF'}
+ *
+ * `outreach_enabled` is *delivery permitted*, which is the kill-switch being **OFF**. The chip
+ * printed that boolean as the switch's own state without inverting it, so for seven weeks the
+ * top bar said the exact opposite of the truth in **both** directions — "Kill-switch OFF" while
+ * nothing could send, and "Kill-switch ON" the moment sending became permitted. The programme
+ * SENDING card two hundred pixels below it said the opposite, correctly.
+ *
+ * 🛑 THE FIX IS NOT THE TERNARY, IT IS THE HOME. A second surface doing its own inversion is a
+ * second chance to get it backwards, which is exactly what happened. This lives beside
+ * `sendingCard` — the function that already owns "ON means blocked" — and the two are asserted
+ * to agree, so the pair can never drift apart again.
+ *
+ * ⚠️ THE ARGUMENT IS `outreach_enabled` AS THE SERVER SENDS IT, unchanged and uninverted:
+ * `true` permitted · `false` blocked · `null`/`undefined` **not yet known**. The unknown case
+ * asserts nothing rather than guessing a safe-looking default — a chip that claims a state it
+ * has not been told is how a safety indicator earns the trust it should not have.
+ */
+export function killSwitchChipLabel(outreachPermitted: boolean | null | undefined): string {
+  if (outreachPermitted === true) return 'Kill-switch OFF'
+  if (outreachPermitted === false) return 'Kill-switch ON'
+  return 'Kill-switch …'
+}
+
 /** The last card in every stack: Vida's own posture, in one word. */
 function vidaCard(value: string, caption?: string): PanelCard {
   return { kind: 'fact', label: 'Vida', value, caption }

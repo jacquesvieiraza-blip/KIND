@@ -399,6 +399,18 @@ describe('⑤ internal authority is reachable only from the approved modules', (
     // still covers it — narrowed from "must not mention" to "must not write", which is what
     // that test's own title always claimed.
     'apps/api/src/lib/customer-programme.ts',   // READS internal authority to render it honestly
+    // ⚑ 9 Sep — READ ONLY, FOR THE SAME REASON AND UNDER THE SAME BAN.
+    //
+    // The Clients workspace has to say where a client is, and "approved but the second half is
+    // outstanding" is a different stage from "approved and authorised" — House reaches the
+    // second WITHOUT money, so a lifecycle that read only `second_paid_at` would park the
+    // founder's own programme at Approval forever.
+    //
+    // 🛑 IT SELECTS THE COLUMNS AND INTERPRETS NONE OF THEM. The only thing that reads their
+    // meaning is `p2Authorised`, imported from `programme.ts` — so there is still exactly one
+    // definition of settled authority. This module performs no writes at all, and the write ban
+    // below covers it unchanged.
+    'apps/api/src/lib/programme-lifecycle-facts.ts',  // SELECTS internal authority for p2Authorised
   ]
 
   it('the sweep actually reads files — a zero-file scan proves nothing', () => {
@@ -417,6 +429,21 @@ describe('⑤ internal authority is reachable only from the approved modules', (
     // …and the allowlist is not aspirational: the readers really are there, so this test
     // cannot pass by the columns having quietly gone unused again.
     expect(users.length).toBeGreaterThan(0)
+  })
+
+  it('🛑 the lifecycle reader INTERPRETS no authority column of its own', () => {
+    // Being on the allowlist buys it the right to SELECT the columns, not to decide what they
+    // mean. `p2Authorised` is the one definition of settled authority, and a second test of it
+    // here would be a second answer on the screen that draws Make Live.
+    const src = read('apps/api/src/lib/programme-lifecycle-facts.ts')
+    expect(src).toContain("import { p2Authorised")
+    expect(src).toContain('secondAuthorised: p2Authorised(')
+    const exec = src.split('\n')
+      .filter(l => { const t = l.trim(); return t && !t.startsWith('//') && !t.startsWith('*') && !t.startsWith('/*') })
+      .join('\n')
+    // No hand-rolled test of the columns — only the select string may name them.
+    expect(/second_authorised_at\s*(\?\?|\)|&&|\|\||===|!==)/.test(exec),
+      'it re-derives P2 authority instead of asking p2Authorised').toBe(false)
   })
 
   it('🛑 NO CUSTOMER OR PUBLIC SURFACE CAN WRITE INTERNAL AUTHORITY', () => {

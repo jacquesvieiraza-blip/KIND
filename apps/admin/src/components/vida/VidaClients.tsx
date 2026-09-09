@@ -1,7 +1,8 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { panelView, vatBadge } from '@kind/shared'
+import { useSearchParams } from 'next/navigation'
+import { panelView } from '@kind/shared'
 import { useVidaConversation } from '@/components/vida/VidaConversation'
 
 // ── ⚑ 4 Sep (UI-009) — THE CLIENT LIST IS A NAV GROUP NOW, NOT A COLUMN ──────────────────
@@ -11,12 +12,14 @@ import { useVidaConversation } from '@/components/vida/VidaConversation'
 // had 304px to render eleven tabs that need 894, so eight of them were off-screen behind a
 // scroll with no affordance, and People truncated names and companies.
 //
-// ⚠️ THE ROWS ARE THE CONSOLE'S OWN, MOVED — not redrawn. Every indicator the operator already
-// reads comes across unchanged: the actor dot (pink = needs you, green = the engine is
-// working, grey = it is on them), the initials tile, the real next-action sentence, the cold
-// "Suspended"/"Going quiet"/"exempt" states, the VAT evidence badge and the house/demo chip.
-// No status model is invented here, and nothing decides anything locally — `vatBadge` and
-// `panelView` are the same shared functions the panel used.
+// ⛓️ 9 Sep — AND THE ROW IS THE APPROVED SHAPE NOW: **client name · stage word · optional
+// "needs you"**, and nothing else. It carried a next-action sentence, a Suspended/Going-quiet
+// cold badge, a VAT-evidence badge and industry · country — four judgements competing with the
+// client's own name at 216px, none of them the question the list is for. The founder's rule:
+// *"NO giant metrics in list rows."*
+//
+// ⚠️ NOTHING LEFT THE PRODUCT, ONLY THIS ROW. Cold state stays on the worklist API and VAT
+// evidence stays in Client admin; both are still rendered where they are the point.
 //
 // ⚠️ SELECTING A CLIENT CARRIES ITS NAME. `setSelected(id, name)` puts the identity in the
 // provider, which is what keeps "House" in the composer after the console unmounts.
@@ -34,6 +37,15 @@ type ColdState = { warn: boolean; cold: boolean; exempt?: boolean; why?: string 
 type NextAction = { step: number; label: string; actor: 'you' | 'them' | 'engine' }
 type RatioReading = { ratio: number | null; confident: boolean; label: string }
 type WorkRow = ClientRow & { cold: ColdState; next: NextAction }
+
+/**
+ * ⚑ 9 Sep — WHERE EACH CLIENT IS, FROM THE SERVER'S OWN LIFECYCLE DERIVATION.
+ *
+ * 🛑 THE ROW AND THE CLIENT'S OWN SCREEN MUST AGREE. Both render `deriveLifecycle`'s verdict —
+ * the row does not compute a stage from a status and the panel does not compute one either.
+ * Two derivations would disagree eventually, and the one nobody would notice is this one.
+ */
+type LifecycleRow = { client_id: string; stage_label: string; needs_you: boolean }
 
 function initials(name: string | null): string {
   const n = (name ?? '').trim()
@@ -55,6 +67,13 @@ export function VidaClients({ open }: { open: boolean }) {
   // the worklist puts them at "Waiting on their $299" with `actor: 'them'` — filtered out of
   // "Needs you", which is exactly the client the review is about.
   const [proofReview, setProofReview] = useState<Set<string>>(new Set())
+  const [lifecycle, setLifecycle] = useState<Record<string, LifecycleRow>>({})
+  // ⚑ 9 Sep — THE FILTER IS THE RAIL'S, NOT THIS COMPONENT'S. `Needs you` in the Clients rail
+  // is a link to this same screen carrying `?needs=1`, so the URL is the single place the
+  // filter lives — bookmarkable, shareable, and impossible to disagree with the nav row that
+  // set it. The local "Needs you / All" chips this list used to own are gone: two controls for
+  // one filter is two states to keep in step, and the one that drifts is the one nobody looks at.
+  const needsFilter = useSearchParams().get('needs') === '1'
 
   useEffect(() => {
     let alive = true
@@ -64,6 +83,15 @@ export function VidaClients({ open }: { open: boolean }) {
     fetch('/api/proxy/operator/worklist').then(r => r.json())
       .then(j => { if (!alive) return; if (j?.success) { setWork(j.data ?? []); setBookRatio(j.meta?.ratio ?? null) } else throw new Error(j?.error || 'the API returned no data') })
       .catch(e => { if (alive) setWorkError(e instanceof Error ? e.message : 'Failed to load the worklist') })
+    fetch('/api/proxy/operator/lifecycle-board').then(r => r.json())
+      .then(j => {
+        if (!alive || !j?.success) return
+        const m: Record<string, LifecycleRow> = {}
+        for (const r of (j.data ?? []) as LifecycleRow[]) m[r.client_id] = r
+        setLifecycle(m)
+      })
+      // ⚠️ A FAILED READ LEAVES THE ROWS WITHOUT A STAGE WORD, never with a guessed one.
+      .catch(() => { /* rows fall back to industry · country, which is a fact we do have */ })
     fetch('/api/proxy/operator/alerts').then(r => r.json())
       .then(j => { if (alive && j?.success) setProofReview(new Set((j.data ?? [])
         .filter((a: { kind: string }) => a.kind === 'proof_review')
@@ -83,11 +111,18 @@ export function VidaClients({ open }: { open: boolean }) {
 
   // The list is already urgency-sorted by the API, so we only filter here.
   const workById = (work ?? []).reduce<Record<string, WorkRow>>((m, r) => { m[r.id] = r; return m }, {})
-  const needsYouCount = (work ?? []).filter(r => r.next.actor === 'you').length
   const ordered: ClientRow[] = work ? work.map(w => (clients ?? []).find(c => c.id === w.id) ?? w) : (clients ?? [])
+  // ⚑ 9 Sep — NEEDS YOU IS THE SERVER'S ANSWER, not `next.actor === 'you'`.
+  //
+  // ⛓️ THE OLD RULE WAS THE WORKLIST'S "whose turn is it", which is a different question and a
+  // much looser one: it put a client in the list for any step whose actor happened to be us,
+  // including states with nothing to press. The lifecycle rule is deliberately hard to earn —
+  // a real retry, Make Live, a usable Run, a reply waiting on a person, a stopped sender, or a
+  // blocker only a human can clear. Everything else is Vida working, and silence is correct.
+  const needsYou = (id: string) => lifecycle[id]?.needs_you === true
   // ⚠️ THE SELECTED CLIENT IS NEVER FILTERED OUT of the list they are looking at.
-  const visible = onlyNeedsYou && work
-    ? ordered.filter(c => workById[c.id]?.next.actor === 'you' || proofReview.has(c.id) || c.id === selected)
+  const visible = needsFilter
+    ? ordered.filter(c => needsYou(c.id) || proofReview.has(c.id) || c.id === selected)
     : ordered
 
   // ── COLLAPSED: the selected context, compactly ──────────────────────────────────────────
@@ -107,29 +142,32 @@ export function VidaClients({ open }: { open: boolean }) {
       {/* #565 — a failed load used to sit on "Loading…" forever, which reads as "still working
           on it" rather than "this is broken". `panelView` keeps the three states apart. */}
       {v.state !== 'ready' && <p className="text-[11.5px] text-[#9b8ec4] px-2.5 py-1.5">{v.message}</p>}
-      {v.state === 'ready' && (
-        <div className="flex gap-1 px-2.5 pb-1.5">
-          {([[true, `Needs you · ${needsYouCount}`], [false, `All · ${work?.length ?? 0}`]] as [boolean, string][]).map(([val, label]) => (
-            <button key={label} onClick={() => setOnlyNeedsYou(val)}
-              className={`text-[11px] font-bold rounded-full px-2 py-0.5 border ${onlyNeedsYou === val ? 'text-white bg-[#7C3AED] border-[#7C3AED]' : 'text-[#9b8ec4] bg-white border-[#ece5fb]'}`}>
-              {label}
-            </button>
-          ))}
-        </div>
+      {/* ⛓️ 9 Sep — THE LOCAL "Needs you / All" CHIPS ARE GONE. The Clients rail above owns
+          that filter now, as a URL, so there is exactly one control for it and one place its
+          state lives. Two toggles for one filter is two things to keep in step. */}
+      {v.state === 'ready' && needsFilter && (
+        <p className="text-[11px] font-bold text-[#7C3AED] px-2.5 pb-1.5">Showing clients that need you</p>
       )}
       {visible.length === 0 && (clients?.length ?? 0) > 0 && (
         <p className="text-[11.5px] text-[#9b8ec4] px-2.5 py-3 text-center">Nothing needs you right now. 🎉</p>
       )}
       {visible.map(c => {
         const active = c.id === selected
-        // The row says WHAT'S NEEDED, in words — never a bare count. A pink dot means it costs
-        // money or trust to ignore; green is running fine; grey is on them.
-        const n = workById[c.id]?.next
-        const you = n?.actor === 'you'
-        const dot = you ? 'bg-[#EC4899]' : n?.actor === 'engine' ? 'bg-emerald-400' : 'bg-[#cfc4e8]'
+        // ── ⚑ 9 Sep — THE APPROVED ROW: NAME, STAGE, AND "needs you" WHEN IT IS TRUE ────
+        //
+        // ⛓️ WHAT CAME OFF IT. The row carried a next-action sentence, a Suspended/Going-quiet
+        // cold badge, a VAT-evidence badge and industry · country — four judgements competing
+        // with the client's own name at 216px, and none of them the question the list is for.
+        // The founder's rule: *"NO giant metrics in list rows."*
+        //
+        // ⚠️ NOTHING WAS DELETED FROM THE PRODUCT — only from this row. Cold state and VAT
+        // evidence are the worklist's and Client admin's, and both are still rendered there.
+        const lcRow = lifecycle[c.id]
+        const you = needsYou(c.id)
+        const dot = you ? 'bg-[#EC4899]' : workById[c.id]?.next.actor === 'engine' ? 'bg-emerald-400' : 'bg-[#cfc4e8]'
         return (
           <button key={c.id} onClick={() => setSelected(c.id, c.company_name)}
-            title={n ? `Step ${n.step} · ${n.label}` : (c.company_name ?? undefined)}
+            title={c.company_name ?? undefined}
             className={`w-full text-left flex items-start gap-2 px-2 py-1.5 rounded-lg mb-0.5 transition-colors border ${
               active ? 'bg-[#f3ecff] border-[#e4d4fb]' : you ? 'bg-[#fdf2f8] border-[#fbcfe8] hover:border-[#f9a8d4]' : 'hover:bg-[#faf8ff] border-transparent'
             }`}>
@@ -146,35 +184,10 @@ export function VidaClients({ open }: { open: boolean }) {
                   </span>
                 )}
               </span>
-              <span className={`text-[11.5px] block truncate ${you ? 'text-[#9d174d] font-semibold' : 'text-[#9b8ec4]'}`}>
-                {n?.label ?? ([c.industry, c.country].filter(Boolean).join(' · ') || '—')}
+              <span className="text-[11.5px] block truncate text-[#9b8ec4]">
+                {lcRow?.stage_label ?? ([c.industry, c.country].filter(Boolean).join(' · ') || '—')}
+                {you && <span className="text-[#EC4899] font-bold"> · needs you</span>}
               </span>
-              {/* #619 — the API applies the exemption (`coldView`), so these cannot fire on an
-                  exempt account, and the exempt hint is grey rather than a red SUSPEND. */}
-              {workById[c.id]?.cold?.cold && <span className="mt-0.5 inline-block text-[9px] font-extrabold uppercase tracking-wide text-white bg-[#b91c1c] rounded px-1">Suspended</span>}
-              {workById[c.id]?.cold?.warn && <span className="mt-0.5 inline-block text-[9px] font-extrabold uppercase tracking-wide text-[#92400e] bg-[#fef3c7] border border-[#fde68a] rounded px-1">Going quiet</span>}
-              {workById[c.id]?.cold?.exempt && (
-                <span title={workById[c.id]?.cold?.why} className="mt-0.5 inline-block text-[9px] font-semibold uppercase tracking-wide text-[#8a82a3]">cold-check exempt</span>
-              )}
-              {/* C6 — VAT EVIDENCE, ON THE ROW. #615 shipped `vatBadge` and nothing rendered it,
-                  so "no tax ID" was a fact the operator could only find by opening the client.
-                  Amber = missing, grey = they declared not-registered (the NOT_REGISTERED
-                  sentinel), green = on file. The SHARED function decides — no local rule, and no
-                  special case for house/demo: whatever their record says is what shows.
-                  ⚠️ ON ITS OWN LINE at this width, so the client's NAME is never the thing that
-                  gets truncated to make room for a badge. */}
-              {(() => {
-                const b = vatBadge({ vat_number: c.vat_number ?? null })
-                return (
-              <span title={`VAT evidence: ${b.label}`}
-                className={`mt-0.5 inline-block text-[9px] font-bold uppercase tracking-wide rounded px-1 border ${
-                  b.tone === 'ok' ? 'text-emerald-700 bg-emerald-50 border-emerald-200'
-                  : b.tone === 'amber' ? 'text-amber-700 bg-amber-50 border-amber-200'
-                  : 'text-[#8a82a3] bg-[#f4f2f9] border-[#e4dcf7]'}`}>
-                {b.label}
-              </span>
-                )
-              })()}
             </span>
           </button>
         )

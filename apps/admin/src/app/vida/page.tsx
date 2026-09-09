@@ -459,11 +459,31 @@ export default function VidaConsolePage() {
       const d = (j.data ?? {}) as {
         qualified?: number; disqualified?: number; used?: number | null
         batch_qualified?: number | null; batch_rejected?: number | null
+        status_after?: string
+        continued?: { reviewable?: boolean; blockers?: { code: string; detail: string }[]; detail?: string }
       }
       const settledQualified = d.batch_qualified ?? d.qualified ?? 0
       const settledRejected = d.batch_rejected ?? d.disqualified ?? 0
-      setQualMsg({ tone: 'ok', text:
-        `${settledQualified} qualified · ${settledRejected} rejected · ${d.used ?? 0} used · batch ready for review` })
+      const settled = `${settledQualified} qualified · ${settledRejected} rejected · ${d.used ?? 0} used`
+
+      // ⚑ 9 Sep — SETTLING IS NO LONGER THE END OF THIS ACTION. The programme now carries on to
+      // preparation automatically, inside this same call, so the screen reports what actually
+      // happened rather than the old "batch ready for review" — which would now be a guess
+      // about a step that has already either succeeded or been blocked.
+      //
+      // 🛑 A BLOCKED CONTINUATION IS AMBER, NEVER GREEN. The accounting is correct and the
+      // work is safe, and the programme did NOT reach the client. Painting that as success is
+      // how an operator stops looking. The API's own sentence names the blocker — a missing
+      // mailbox is something to go and connect, not something to press again.
+      if (d.continued && d.continued.reviewable === false) {
+        setQualMsg({ tone: 'warn', text:
+          `${settled}. Settled and safe, but this programme did not reach the client: ${d.continued.detail ?? 'the reason did not come back.'}` })
+      } else {
+        setQualMsg({ tone: 'ok', text:
+          `${settled} · ${d.status_after === 'READY_FOR_APPROVAL'
+            ? 'prepared and now with the client to approve'
+            : 'batch ready for review'}` })
+      }
       // Re-read rather than patching: the row is the truth, and the control's own visibility is
       // recomputed by the server from the state that now exists.
       if (selected) await loadProgramme(selected)

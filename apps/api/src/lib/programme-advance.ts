@@ -265,3 +265,100 @@ export async function advanceProgrammeToReview(programmeId: unknown): Promise<Ad
     'until it is approved, the second payment is authorised and it is made live.'
   return { ok: true, report: prepared }
 }
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// THE AUTOMATIC CONTINUATION — normal flow runs itself, Vida interrupts only on an exception.
+//
+// ⛓️ 9 Sep (founder-corrected) — THE FIRST CUT LEFT THE NORMAL PATH OPERATOR-DRIVEN. Making
+// `Ready for approval` *work* is not the same as making it *unnecessary*, and the locked rule
+// is the second one:
+//
+//     P1 authorised → source → enrich → qualify → account → PREPARE.  Automatically.
+//     Vida interrupts only for a real exception.
+//
+// A button that must be pressed on every healthy programme is a step somebody will one day not
+// press, on a launch where nobody is watching. So the orchestrator is invoked at the canonical
+// moment qualification and entitlement settlement have BOTH completed successfully, and the
+// operator door survives only as the recovery/retry path it should always have been.
+//
+// ── THE TWO SETTLEMENT BOUNDARIES, AND WHY BOTH ────────────────────────────────────────
+//
+//   ① `routes/icps.ts` — the fresh sourcing run: qualify → settle → surface. The normal path.
+//   ② `programme-batch-recovery.ts` — the operator's *Qualify sourced leads*, for an attempt
+//      whose first run left candidates unjudged. It reaches the SAME successful state, so it
+//      must continue the same way; requiring a second button there would rebuild the gap.
+//
+// Both call THIS function. Neither contains any preparation logic of its own.
+//
+// 🛑 IT NEVER THROWS, AND THAT IS A CORRECTNESS PROPERTY RATHER THAN TIDINESS. It runs AFTER
+// the ledger has moved. An exception escaping into the sourcing run would abandon the rest of
+// that run's work — the surfacing, the scoring, the founder alerts — on a settle that already
+// succeeded and cannot be taken back. Preparation failing is a reason to stop and report, never
+// a reason to unwind accounting that is already correct.
+//
+// ⚠️ AND IT FAILS CLOSED. It cannot advance a programme the readiness rule refuses; it just
+// names the blocker and leaves the row where it is. Every requirement — a valid sender above
+// all — is still proved by `markReadyForApproval`, which this does not touch.
+// ═══════════════════════════════════════════════════════════════════════════════════════
+
+/** Which settlement boundary asked for the continuation. Used for logs and audit only. */
+export type AdvanceTrigger = 'sourcing_run' | 'operator_qualify' | 'operator_recovery'
+
+export interface AutoAdvanceOutcome {
+  attempted: boolean
+  /** True only when the programme is now at the review boundary. */
+  reviewable: boolean
+  /** The named readiness blockers standing in the way, when it could not continue. */
+  blockers: { code: string; detail: string }[]
+  /** One founder-plain sentence, safe to render. */
+  detail: string
+}
+
+/**
+ * Continue a programme automatically now that its qualification and accounting have settled.
+ *
+ * ⚠️ THE CALLER MUST HAVE SETTLED SUCCESSFULLY. This function does not re-check the settle and
+ * must never be reached from a partial one — the two call sites are both inside their own
+ * success branch, past an unjudged-remainder guard that refuses to settle at all.
+ */
+export async function advanceAfterSettlement(
+  programmeId: string, trigger: AdvanceTrigger,
+): Promise<AutoAdvanceOutcome> {
+  const nothing = (detail: string): AutoAdvanceOutcome =>
+    ({ attempted: true, reviewable: false, blockers: [], detail })
+
+  try {
+    const r = await advanceProgrammeToReview(programmeId)
+
+    if (r.ok) {
+      const done = r.report.reviewable || AT_OR_PAST_REVIEW.includes(r.report.status_after)
+      console.log(`[programme-advance] ${trigger} → programme ${programmeId}: ${r.report.headline}`)
+      return {
+        attempted: true,
+        reviewable: done,
+        blockers: [],
+        detail: r.report.headline,
+      }
+    }
+
+    // 🛑 AN EXCEPTION, NOT A FAILURE OF THE RUN. The batch is settled and correct; what could
+    // not happen is the preparation that follows it. The operator is told exactly which
+    // requirement stopped it, because that is the only thing that decides their next action —
+    // `no_sender` is a mailbox to connect, not a retry.
+    console.error(`[programme-advance] ${trigger} → programme ${programmeId} did NOT continue: ${r.reason}`)
+    return {
+      attempted: true,
+      reviewable: false,
+      blockers: r.report?.blockers ?? [],
+      detail: r.reason,
+    }
+  } catch (err) {
+    // ⚠️ SWALLOWED HERE AND NOWHERE ELSE. See the header: the ledger has already moved.
+    const why = err instanceof Error ? err.message : String(err)
+    console.error(`[programme-advance] ${trigger} → programme ${programmeId} threw during continuation:`, why)
+    return nothing(
+      `The attempt is settled and correct, but this programme could not be carried on to review (${why}). ` +
+      'Nothing was sent and no accounting changed. Use Ready for approval to retry once the cause is fixed.',
+    )
+  }
+}

@@ -452,7 +452,14 @@ describe('④ the control obeys the server, fires once, and never paints a failu
     // "176 qualified" beside "246 used" as a result.
     expect(HANDLER).toContain('const settledQualified = d.batch_qualified ?? d.qualified ?? 0')
     expect(HANDLER).toContain('const settledRejected = d.batch_rejected ?? d.disqualified ?? 0')
-    expect(HANDLER).toContain('`${settledQualified} qualified · ${settledRejected} rejected · ${d.used ?? 0} used · batch ready for review`')
+    // ⛓️ RETARGETED AGAIN 9 Sep — settling now continues to preparation inside the same call,
+    // so the line's trailing clause reports that outcome instead of a fixed phrase. The duty
+    // above is unchanged: every number still comes from the response and none is computed here.
+    expect(HANDLER).toContain('const settled = `${settledQualified} qualified · ${settledRejected} rejected · ${d.used ?? 0} used`')
+    // 🛑 AND THE CONTINUATION'S OUTCOME IS THE SERVER'S TOO — including the sentence shown when
+    // it could not continue. A summary invented here is how a screen starts lying.
+    expect(HANDLER).toContain('d.continued.detail')
+    expect(HANDLER).toContain("d.status_after === 'READY_FOR_APPROVAL'")
     // 🛑 NOT DERIVED. Any arithmetic on these numbers is a number this screen invented.
     for (const fabricated of ['d.qualified +', 'd.qualified -', 'unaccounted -', 'unaccounted +',
                               'sourced_used', 'sourced_reserved', 'room_remaining']) {

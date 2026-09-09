@@ -1982,6 +1982,10 @@ operatorRouter.post('/programme/:programmeId/qualify-batch', async (req: Request
         qualified: r.qualified, disqualified: r.disqualified, reasons: r.reasons,
         used: r.used, reserved: r.reserved, remaining: r.remaining,
         status_before: r.status_before, status_after: r.status_after, surfaced: r.surfaced,
+        // ⚑ 9 Sep — the continuation runs inside this call, so its outcome is part of the
+        // record of what the operator's press actually did.
+        continued_reviewable: r.continued.reviewable,
+        continued_blockers: r.continued.blockers.map(b => b.code),
       },
     })
 

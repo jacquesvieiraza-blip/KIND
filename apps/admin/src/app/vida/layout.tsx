@@ -33,6 +33,7 @@ type Health = { sent_today: number; replies_today: number; pending_approvals: nu
 // (Ops, Compliance, and Bookings out of the Command Centre) are assertable rather than merely
 // visible. Nothing was deleted to achieve them: every retired page still resolves.
 import { CLIENTS_WORKSPACE, COMMAND_CENTRE, type NavItem } from '@/lib/vida-nav'
+import { killSwitchChipLabel } from '@/lib/vida-lifecycle-copy'
 
 type Workspace = 'clients' | 'command'
 
@@ -172,7 +173,11 @@ export default function VidaLayout({ children }: { children: React.ReactNode }) 
     window.location.href = '/login'
   }
 
-  const on = status?.outreach_enabled === true
+  // ⛓️ 9 Sep — RENAMED FROM `on`, AND THAT NAME IS HALF THE BUG. `on` sat beside the word
+  // "Kill-switch" and read as the switch's state; it holds the opposite — whether DELIVERY is
+  // permitted, which is the switch being OFF. `null` while the status request is in flight, so
+  // the chip can say it does not know instead of guessing.
+  const outreachPermitted = status ? status.outreach_enabled === true : null
   const isConsole = pathname === '/vida'
 
   // ⛓️ 4 Sep — DEAD SCAFFOLDING REMOVED, NOT REVIVED. `ENGINE_RAIL`, `railLink`, `isClients`,
@@ -270,11 +275,14 @@ export default function VidaLayout({ children }: { children: React.ReactNode }) 
             <span>{health?.pending_approvals ?? '—'} to approve</span>
           </span>
 
-          {/* Kill-switch chip */}
+          {/* 🛑 Kill-switch chip — THE WORDING IS NOT WRITTEN HERE. It comes from the module
+              that owns "ON means blocked" (`killSwitchChipLabel`, beside `sendingCard`),
+              because this chip and the programme SENDING card said opposite things about the
+              same boolean for seven weeks. One surface inverting on its own is what broke. */}
           <span className={`inline-flex items-center gap-1.5 text-xs font-bold rounded-full px-3 py-1 border ${
-            on ? 'text-emerald-700 bg-emerald-50 border-emerald-200' : 'text-amber-700 bg-amber-50 border-amber-200'
+            outreachPermitted ? 'text-emerald-700 bg-emerald-50 border-emerald-200' : 'text-amber-700 bg-amber-50 border-amber-200'
           }`} title="Global outreach kill-switch (AUTO_OUTREACH_ENABLED)">
-            <Power className="w-3.5 h-3.5" /> Kill-switch {status ? (on ? 'ON' : 'OFF') : '…'}
+            <Power className="w-3.5 h-3.5" /> {killSwitchChipLabel(outreachPermitted)}
           </span>
           {/* Cap chip — neutral "…" until status loads (never assert "no cap" on unknown),
               amber only when status has loaded AND no cap is configured, purple with the cap. */}

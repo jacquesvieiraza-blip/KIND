@@ -250,8 +250,12 @@ describe('⚠️ THE SCREEN IS REACHABLE — the guard this build shipped withou
   const layout = readFileSync(join(__dirname, '../../../admin/src/app/vida/layout.tsx'), 'utf8')
   const sidebar = readFileSync(join(__dirname, '../../../admin/src/components/AdminSidebar.tsx'), 'utf8')
 
-  it('the Vida menu links to it — the menu the founder actually opens', () => {
-    expect(stripCommentsForEnvScan(layout), 'a control you cannot find is not a control')
+  // ⛓️ RETARGETED 9 Sep — the destination lists moved from `vida/layout.tsx` into
+  // `lib/vida-nav.ts` when the two-workspace architecture landed. The duty is untouched: the
+  // founder must be able to FIND Documents in the nav he actually opens.
+  it('the Vida nav links to it — the nav the founder actually opens', () => {
+    const nav = readFileSync(join(__dirname, '../../../admin/src/lib/vida-nav.ts'), 'utf8')
+    expect(stripCommentsForEnvScan(nav), 'a control you cannot find is not a control')
       .toContain("href: '/vida/governed-documents'")
   })
 

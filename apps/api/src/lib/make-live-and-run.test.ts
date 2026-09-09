@@ -98,9 +98,22 @@ describe('② Run is separate, explicit, client-scoped and capped', () => {
 })
 
 describe('③ the kill-switch is stated, never shown as a bare OFF', () => {
-  it('🛑 ON means blocked and OFF means permitted, in words', () => {
-    expect(VIDA).toContain('Permitted — automatic outreach is on (kill-switch OFF)')
-    expect(VIDA).toContain('Blocked — automatic outreach is off (kill-switch ON)')
+  // ⛓️ RETARGETED 9 Sep to the FINAL approved preview wording. The duty is unchanged — a bare
+  // "OFF" under SENDING reads as the opposite of what it means — but the founder's correction
+  // pass locked the two-line form: the STATE on its own line, the SWITCH named beneath it.
+  it('🛑 ON means blocked and OFF means permitted, on two lines, state first', () => {
+    expect(VIDA).toContain("prog.send_controls.auto_outreach_enabled ? 'Permitted' : 'Blocked'")
+    expect(VIDA).toContain('Kill-switch OFF — sending is permitted, subject to every other gate.')
+    expect(VIDA).toContain('Kill-switch ON — nothing is delivered on any channel.')
+    // 🛑 AND NEVER A BARE SWITCH STATE WITH NO WORD FOR WHAT IT MEANS.
+    expect(VIDA.includes(">OFF<"), 'a bare OFF is rendered under SENDING').toBe(false)
+  })
+
+  it('🛑 Run is not offered at all while the kill-switch is ON', () => {
+    // The server refuses such a run with 503, so drawing the button would offer an action that
+    // cannot succeed — and worse, imply the run is an exception to the switch. It is not.
+    expect(VIDA).toContain('prog.send_controls.operator_run_enabled && prog.send_controls.auto_outreach_enabled')
+    expect(VIDA).toContain('Run cannot start while the kill-switch is ON. It is not an exception to it.')
   })
 
   it('the server reports both switches, so the console infers neither', () => {

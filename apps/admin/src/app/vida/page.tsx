@@ -3278,17 +3278,32 @@ export default function VidaConsolePage() {
                       {prog.programme.status === 'LIVE' && prog.send_controls && (
                         <div className="mt-3 border border-[#eee7f7] rounded-xl px-3.5 py-3">
                           <div className="text-[11.5px] uppercase tracking-wide text-[#9b8ec4] font-bold mb-1">Sending</div>
-                          <p className="text-[12.5px] font-semibold text-[#5c5279]">
+                          {/* ⚑ 9 Sep — THE APPROVED TWO-LINE FORM, from the locked preview set:
+                              the STATE on its own line, the SWITCH named beneath it. One combined
+                              sentence made "Permitted" and "OFF" compete for the same glance, and
+                              the founder's correction pass is explicit that a bare OFF under
+                              SENDING must never appear and the state must lead. */}
+                          <p className="text-[13.5px] font-bold text-[#5c5279]">
+                            {prog.send_controls.auto_outreach_enabled ? 'Permitted' : 'Blocked'}
+                          </p>
+                          <p className="text-[12px] text-[#9b8ec4] mt-0.5">
                             {prog.send_controls.auto_outreach_enabled
-                              ? 'Permitted — automatic outreach is on (kill-switch OFF). The cron may send on its own.'
-                              : 'Blocked — automatic outreach is off (kill-switch ON). Nothing sends by itself.'}
+                              ? 'Kill-switch OFF — sending is permitted, subject to every other gate.'
+                              : 'Kill-switch ON — nothing is delivered on any channel.'}
                           </p>
-                          <p className="text-[12px] text-[#9b8ec4] mt-1">
-                            {prog.send_controls.operator_run_enabled
-                              ? 'Run is available: it sends up to a ceiling you type, for this client only.'
-                              : 'Run is unavailable — FIGSY_OPERATOR_SEND_ENABLED is not set on the API, so no run can start.'}
+                          {/* ⛓️ 9 Sep — THE RUN LINE NOW READS THE KILL-SWITCH FIRST, because the
+                              server does. Run used to be offered whenever its own env key was set,
+                              on the old model where an operator run sent past the kill-switch. It
+                              does not: KILL-SWITCH ON = NOTHING SENDS, no exception for a run. A
+                              button that would be refused 503 is a button that must not be drawn. */}
+                          <p className="text-[12px] text-[#9b8ec4] mt-1.5">
+                            {!prog.send_controls.auto_outreach_enabled
+                              ? 'Run cannot start while the kill-switch is ON. It is not an exception to it.'
+                              : prog.send_controls.operator_run_enabled
+                                ? 'Run is available: it sends up to a ceiling you type, for this client only.'
+                                : 'Run is unavailable — FIGSY_OPERATOR_SEND_ENABLED is not set on the API, so no run can start.'}
                           </p>
-                          {prog.send_controls.operator_run_enabled && (
+                          {prog.send_controls.operator_run_enabled && prog.send_controls.auto_outreach_enabled && (
                             <div className="flex flex-wrap items-center gap-2 mt-2.5">
                               <input
                                 value={runMax}

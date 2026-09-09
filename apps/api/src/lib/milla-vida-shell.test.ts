@@ -278,54 +278,72 @@ describe('MILLA · MY ICP — THE DRAWER IS GONE, THE TARGETING FLOW IS NOT', ()
 })
 
 // ════════════════════════════════════════════════════════════════════════════════════════
-describe('VIDA — THE LEFT PANEL, AND ALL 25 DESTINATIONS', () => {
+// ⛓️ RETARGETED 9 Sep — THE PANEL BECAME TWO WORKSPACES, AND THE DUTIES SURVIVED THE MOVE.
+//
+// This section was written on 4 Sep, when twenty-five destinations came out of a top-right
+// dropdown and became one permanent left panel of two groups. It pinned that shape hard: the
+// exact two arrays, their two independent toggles, and "no new account menu was invented".
+//
+// 🛑 WHAT THE FOUNDER APPROVED ON 9 Sep CHANGES THE SHAPE AND KEEPS EVERY DUTY. Two workspaces
+// — Clients and Command Centre — because a rail that shows Client admin beside Meetings cannot
+// say whether you are looking at one client or at the business. So:
+//
+//   • the destination lists moved to `lib/vida-nav.ts` and are asserted there and in
+//     `vida-workspaces.test.ts`; this file stops holding a third copy of them
+//   • "8 + 17 = 25" is no longer the count: Ops, Compliance and Outreach were RETIRED FROM
+//     PRIMARY NAV by explicit founder decision, and their pages still exist (asserted in
+//     `vida-workspaces.test.ts`, which is where that decision now lives)
+//   • the two independent toggles became ONE fold, on the client list, because seven short
+//     Command Centre groups fit without folding and a fold is a place to hide a destination
+//   • an operator menu exists again — holding TWO workspaces and sign out, and nothing else.
+//     The 4 Sep rule was never "no menu", it was **no navigation reachable only from a menu**,
+//     and that is what is asserted below now.
+describe('VIDA — THE SHELL, AFTER THE TWO-WORKSPACE MOVE', () => {
   const code = strip(VIDA_LAYOUT)
 
-  /** The operator's destinations, pinned as data. A list that only lives in the file it
-   *  guards proves nothing — the founder's own audit found three missing from a written one. */
-  const OPERATE = ['/vida', '/vida/queue', '/vida/bookings', '/vida/suppression', '/vida/audit',
-    '/vida/reports', '/vida/nexus', '/vida/demo']
-  const BUSINESS = ['/vida/system', '/vida/sending', '/vida/engine', '/vida/cockpit',
-    '/vida/clients-admin', '/vida/money-path', '/vida/billing', '/vida/revenue', '/vida/gtm',
-    '/vida/unibox', '/vida/health', '/vida/ops', '/vida/founder', '/vida/outreach',
-    '/vida/compliance', '/vida/governed-documents', '/vida/partners']
-
-  it('🛑 NOT ONE DESTINATION DISAPPEARED — 8 + 17 = 25', () => {
-    expect(OPERATE).toHaveLength(8)
-    expect(BUSINESS).toHaveLength(17)
-    for (const href of [...OPERATE, ...BUSINESS]) {
-      expect(code, `the operator destination ${href} is gone from Vida`).toContain(`href: '${href}'`)
-    }
-    // ⚠️ AND THE PANEL RENDERS THE ARRAYS, NOT A THIRD COPY. Retyping the list in the nav is
-    // exactly how three destinations went missing from an audit of it.
-    expect(code).toContain('{group(\'Operate\', OPERATE,')
-    expect(code).toContain('{group(\'Run the business\', NERVOUS_SYSTEM,')
+  it('🛑 the shell holds NO copy of the destination list — it renders the nav module', () => {
+    // Retyping the list in the nav is exactly how three destinations went missing from an
+    // audit of it. The lists live in one place and the shell imports them.
+    expect(code).toContain("from '@/lib/vida-nav'")
+    expect(code).toContain('CLIENTS_WORKSPACE.map(navLink)')
+    expect(code).toContain('COMMAND_CENTRE.map(ccGroup)')
+    // ⚠️ AND NO INLINE ARRAY CREPT BACK IN.
+    expect(code, 'a destination array was re-declared inside the shell').not.toMatch(/const (OPERATE|NERVOUS_SYSTEM)\s*[:=]/)
   })
 
-  it('the panel is the approved 216px, with two INDEPENDENT collapsible groups', () => {
+  it('the panel is still the approved 216px, and the client list is the one fold', () => {
     expect(code, 'the approved width is not implemented').toContain('w-[216px]')
     // ⚠️ NO 56px ICON RAIL. That breakpoint was NOT approved and must not be invented.
     expect(code, 'an unapproved icon-rail breakpoint was invented').not.toContain('w-[56px]')
-    // Two separate pieces of state — one toggle for both groups would not be independent.
-    expect(code).toContain('const [openOperate, setOpenOperate] = useState(true)')
-    expect(code).toContain('const [openBusiness, setOpenBusiness] = useState(true)')
-    // 🛑 BOTH OPEN BY DEFAULT. A group collapsed on first paint hides destinations from an
-    // operator who has never touched the control — which is the defect this panel replaces.
-    expect(code, 'a group starts collapsed, hiding destinations by default')
-      .not.toMatch(/useState<boolean>\(false\)|setOpenOperate\] = useState\(false\)|setOpenBusiness\] = useState\(false\)/)
+    expect(code).toContain('const [openClients, setOpenClients] = useState(true)')
+    // 🛑 OPEN BY DEFAULT. A list collapsed on first paint hides clients from an operator who
+    // has never touched the control — the defect the 4 Sep panel was built to end.
+    expect(code, 'the client list starts collapsed, hiding clients by default')
+      .not.toMatch(/setOpenClients\] = useState\(false\)/)
   })
 
-  it('🛑 THE DROPDOWN NAVIGATION PANEL IS GONE, and no new account menu replaced it', () => {
-    expect(code, 'the dropdown panel is still there').not.toContain('menuOpen')
-    expect(code, 'a new account menu was invented').not.toContain('setMenuOpen')
-    // Sign out is the one non-destination the dropdown held, and it moved to the footer.
-    expect(code).toContain('Sign out')
-    const nav = code.indexOf('<nav className="w-[216px]')
-    expect(code.indexOf('onClick={signOut}'), 'Sign out is not in the left panel').toBeGreaterThan(nav)
+  it('🛑 NO DESTINATION IS REACHABLE ONLY FROM THE OPERATOR MENU', () => {
+    // ⛓️ THE 4 SEP RULE, RESTATED CORRECTLY. It read "no new account menu was invented", which
+    // was a proxy for the real duty: the founder went looking for Documents and could not find
+    // it, because twenty-five destinations lived behind a chip shaped like an account menu.
+    // A menu holding exactly the two WORKSPACES does not recreate that — every page is still a
+    // permanent row. What must never come back is a page you can only reach from the chip.
+    const menuStart = code.indexOf('{menuOpen && (')
+    expect(menuStart, 'the operator menu is gone entirely — the workspace switch lives there').toBeGreaterThan(-1)
+    const menu = code.slice(menuStart, code.indexOf('</header>'))
+    // The rows are mapped from a small literal array, so the destinations are its `href:` keys.
+    const menuHrefs = [...menu.matchAll(/href:\s*'([^']+)'/g)].map(m => m[1])
+    // Only the two workspace entry points, and both are also rails you can navigate to.
+    expect(menuHrefs.sort()).toEqual(['/vida', '/vida/cockpit'])
+    expect(menu, 'sign out is the one non-destination the menu may hold').toContain('signOut')
   })
 
-  it('the top bar KEEPS what the founder listed', () => {
-    expect(code, 'the wordmark is gone').toContain('Milla&amp;Vida <span')
+  it('the top bar KEEPS what the founder listed, and names the workspace', () => {
+    // ⛓️ The wordmark changed to the approved `Vida&Milla` + a workspace pill; "· operator"
+    // went because the chip on the right already says who you are, and what an operator cannot
+    // otherwise tell at a glance is WHICH RAIL this is.
+    expect(code, 'the wordmark is gone').toContain('Vida<span className="text-[#9b8ec4]">&amp;Milla</span>')
+    expect(code, 'the workspace is not named').toContain("workspace === 'command' ? 'Command Centre' : 'Clients'")
     expect(code, 'the sent/triage/approve pill is gone').toContain('sent</span>')
     expect(code, 'the send-cap pill is gone').toContain('Cap ${status.daily_cap}/day')
     expect(code, 'the operator avatar/name chip is gone').toContain('{email ? displayName(email) : \'Operator\'}')
@@ -414,21 +432,18 @@ describe('VIDA · UI-009 — Clients is a nav group, and the workspace got its w
   const clients = strip(VIDA_CLIENTS)
   const page    = strip(VIDA_PAGE)
 
-  it('THREE groups, each with its own independent state', () => {
-    for (const [decl, what] of [
-      ['const [openClients, setOpenClients] = useState(true)', 'Clients'],
-      ['const [openOperate, setOpenOperate] = useState(true)', 'Operate'],
-      ['const [openBusiness, setOpenBusiness] = useState(true)', 'Run the business'],
-    ] as [string, string][]) {
-      expect(layout, `the ${what} group has no independent open state`).toContain(decl)
-    }
+  // ⛓️ RETARGETED 9 Sep — THREE GROUPS BECAME TWO WORKSPACES AND ONE FOLD. The duty was never
+  // "three toggles"; it was **nothing is hidden from an operator who has never touched the
+  // control**. Seven short Command Centre groups fit unfolded, so there is nothing to hide;
+  // the client list is the one unbounded thing in the rail and keeps its fold, open by default.
+  it('the client list is the one fold, and it starts OPEN', () => {
+    expect(layout, 'the client list has no open state').toContain('const [openClients, setOpenClients] = useState(true)')
     expect(layout).toContain("groupHead('Clients', openClients, () => setOpenClients(o => !o))")
-    expect(layout).toContain("{group('Operate', OPERATE, openOperate,")
-    expect(layout).toContain("{group('Run the business', NERVOUS_SYSTEM, openBusiness,")
-    // 🛑 NONE OF THEM STARTS CLOSED. A group collapsed on first paint hides destinations from
-    // an operator who has never touched the control.
-    expect(layout, 'a group starts collapsed, hiding destinations by default')
-      .not.toMatch(/setOpen(Clients|Operate|Business)\] = useState\(false\)/)
+    expect(layout, 'the client list starts collapsed, hiding clients by default')
+      .not.toMatch(/setOpenClients\] = useState\(false\)/)
+    // 🛑 AND THE COMMAND CENTRE GROUPS ARE NOT FOLDABLE AT ALL — a fold is a place to hide a
+    // destination, and this rail exists because twenty-five of them were once hidden.
+    expect(layout, 'a Command Centre group became collapsible').not.toMatch(/openDelivery|openMoney|openGrowth|openCompany/)
   })
 
   it('🛑 THE DEDICATED CLIENTS COLUMN IS GONE — and no rail replaced it', () => {
@@ -457,13 +472,21 @@ describe('VIDA · UI-009 — Clients is a nav group, and the workspace got its w
     expect(page, 'the console reads ?client= as well, which races the nav').not.toContain('rows.some(r => r.id === urlClient)')
   })
 
-  it('🛑 ALL 25 DESTINATIONS AND ALL 11 TABS SURVIVE, and the tabs WRAP', () => {
+  // ⛓️ RETARGETED 9 Sep — THE COUNT CHANGED BY DECISION, THE DUTY DID NOT. Ops, Compliance and
+  // Outreach were retired from primary nav on the founder's explicit instruction, and their
+  // pages still exist. So "all 25" is no longer the claim; **every page that is still in the
+  // product is still reachable** is. The destination list itself is asserted in
+  // `vida-workspaces.test.ts`, against `lib/vida-nav.ts`, which is where it now lives.
+  it('🛑 EVERY NON-RETIRED DESTINATION IS STILL REACHABLE, and the 11 tabs still WRAP', () => {
+    const nav = read(join(ADMIN, 'lib/vida-nav.ts'))
+    const RETIRED = ['/vida/ops', '/vida/compliance', '/vida/outreach']
     for (const href of ['/vida', '/vida/queue', '/vida/bookings', '/vida/suppression', '/vida/audit',
       '/vida/reports', '/vida/nexus', '/vida/demo', '/vida/system', '/vida/sending', '/vida/engine',
       '/vida/cockpit', '/vida/clients-admin', '/vida/money-path', '/vida/billing', '/vida/revenue',
-      '/vida/gtm', '/vida/unibox', '/vida/health', '/vida/ops', '/vida/founder', '/vida/outreach',
-      '/vida/compliance', '/vida/governed-documents', '/vida/partners']) {
-      expect(layout, `the operator destination ${href} is gone`).toContain(`href: '${href}'`)
+      '/vida/gtm', '/vida/unibox', '/vida/health', '/vida/founder',
+      '/vida/governed-documents', '/vida/partners']) {
+      expect(RETIRED, 'this list must not contain a retired route').not.toContain(href)
+      expect(nav, `the operator destination ${href} is gone`).toContain(`href: '${href}'`)
     }
     expect(page).toContain("const COCKPIT_TABS = ['Inbox', 'Approvals', 'People', 'Campaign', 'ICP', 'Sequence', 'Asks', 'Bookings', 'Programme', 'Pool', 'Exceptions'] as const")
     // 🛑 WRAPPING, NOT SCROLLING. The strip needs 894px; a scroll with no affordance is how

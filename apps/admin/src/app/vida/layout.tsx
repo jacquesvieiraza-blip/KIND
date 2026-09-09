@@ -17,78 +17,24 @@ import { VidaClients } from '@/components/vida/VidaClients'
 type Status = { outreach_enabled: boolean; daily_cap: number | null }
 type Health = { sent_today: number; replies_today: number; pending_approvals: number }
 
-// The nervous system — every existing admin page, reachable from the dropdown.
-// Order + labels MIRROR docs/mv-previews/vida2.html exactly (Cockpit·Clients /
-// Money Path·Billing / Revenue·GTM / Unibox·Health / Ops·Founder). Outreach +
-// Compliance are real extra pages appended after the 10 so no nav is lost.
-// (The mockup also shows a "⚙ Settings" link — omitted here on purpose: there is
-// no /settings page yet, and a dead link would break the honesty rule.)
-// The day-to-day OPERATE surfaces. These used to be a left rail, but the rail duplicated
-// this same dropdown and cost a whole column — Vida needs that width for the three-column
-// console (clients | Vida | cockpit). Same links, one home.
-const OPERATE: { href: string; label: string; icon: string }[] = [
-  { href: '/vida',             label: 'Clients',           icon: '👥' },
-  { href: '/vida/queue',       label: 'Lead queue',        icon: '✦' },
-  { href: '/vida/bookings',    label: 'Bookings',          icon: '📅' },
-  { href: '/vida/suppression', label: 'Suppression',       icon: '🚫' },
-  { href: '/vida/audit',       label: 'Audit log',         icon: '📋' },
-  { href: '/vida/reports',     label: 'Reports & billing', icon: '🧾' },
-  { href: '/vida/nexus',       label: 'Nexus signals',     icon: '🧠' },
-  // /demo has existed all along and was in NEITHER menu, so the only way to open a demo
-  // account was to know the URL. That is the one screen you reach under time pressure in
-  // front of a prospect.
-  { href: '/vida/demo',        label: 'Demo accounts',     icon: '🎬' },
-]
+// ── ⚑ 9 Sep — THE TWO WORKSPACES REPLACE THE TWO FLAT LISTS ─────────────────────────────
+//
+// ⛓️ WHAT WAS HERE. `OPERATE` (8) and `NERVOUS_SYSTEM` (17) — twenty-five destinations in two
+// lists whose headings were "Operate" and "Run the business". Every destination was reachable,
+// which was the win of 4 Sep, and none of them said whether you were looking at ONE CLIENT or
+// at THE BUSINESS. Bookings sat beside Money Path; Client admin sat beside Unibox.
+//
+// 🛑 THE APPROVED ARCHITECTURE IS THAT DISTINCTION, MADE STRUCTURAL. Two workspaces —
+// **Clients** (one client, their lifecycle, the one action genuinely required) and **Command
+// Centre** (the business: delivery · money · system · growth · company) — switched from the
+// operator menu, never mixed in one rail.
+//
+// The lists themselves live in `@/lib/vida-nav`, as data, so the founder's named retirements
+// (Ops, Compliance, and Bookings out of the Command Centre) are assertable rather than merely
+// visible. Nothing was deleted to achieve them: every retired page still resolves.
+import { CLIENTS_WORKSPACE, COMMAND_CENTRE, type NavItem } from '@/lib/vida-nav'
 
-const NERVOUS_SYSTEM: { href: string; label: string; icon: string }[] = [
-  // FIRST on purpose. It is the one screen that answers "is anything wrong right now" for
-  // BOTH halves at once — and a control you cannot find is not a control (the migration-card
-  // lesson, #564). Everything below it is a detail view of something this page summarises.
-  { href: '/vida/system',     label: 'System',     icon: '🩺' },
-  // SECOND on purpose, and it is not the same question as System. System runs on a button and
-  // probes every integration — "is everything wired". This one is read-only over writes that
-  // already happened and answers "is outreach working RIGHT NOW", which is the question you ask
-  // daily once Client Zero is sending (#577/#553). A glance and a probe are different tools.
-  { href: '/vida/sending',    label: 'Sending',    icon: '📤' },
-  { href: '/vida/engine',     label: 'Engine',     icon: '📡' },
-  { href: '/vida/cockpit',    label: 'Cockpit',    icon: '📟' },
-  // Was also labelled "Clients", identical to /vida in the menu above — two entries, same
-  // word, different screens. This one is the admin table (grants, wallets, flags).
-  { href: '/vida/clients-admin',    label: 'Client admin',    icon: '🗂' },
-  { href: '/vida/money-path', label: 'Money Path', icon: '💰' },
-  { href: '/vida/billing',    label: 'Billing',    icon: '🧾' },
-  { href: '/vida/revenue',    label: 'Revenue',    icon: '📈' },
-  { href: '/vida/gtm',        label: 'GTM Hub',    icon: '🚀' },
-  { href: '/vida/unibox',     label: 'Unibox',     icon: '📥' },
-  { href: '/vida/health',     label: 'Health',     icon: '❤️' },
-  { href: '/vida/ops',        label: 'Ops',        icon: '🛠' },
-  { href: '/vida/founder',    label: 'Founder',    icon: '👑' },
-  { href: '/vida/outreach',   label: 'Outreach',   icon: '🎯' },
-  { href: '/vida/compliance', label: 'Compliance', icon: '🛡' },
-  // ⚠️ THE THIRD TIME THIS EXACT BUG SHIPPED, and the two comments below record the first two.
-  // /governed-documents was built 20 Aug (R46), deployed, its migration run — and linked from
-  // NOWHERE. The founder opened this menu, could not find it, and said so: "cant find
-  // documents." A page reachable only by typing its URL is the same failure as a count nobody
-  // renders (#620) — it exists, and no screen shows it.
-  //
-  // It was also built OUTSIDE the /vida shell, which is the half-fix the /partners comment
-  // below warns about — one click and the operator is in the old console. Moved to be
-  // Vida-native before it was ever linked, so that mistake is not made a second time either.
-  { href: '/vida/governed-documents', label: 'Documents', icon: '📁' },
-  // ⚠️ SAME BUG AS /vida/demo ABOVE, found by the founder 16 Aug the day the seat shipped:
-  // /partners is a real, working screen — it holds the partner book AND the "New Client
-  // Partner seat" card (R40) — but it lived only in the OLD AdminSidebar, which this menu
-  // replaced. So the only way to reach the screen that creates a person's login was to
-  // already know the URL. A control you cannot find is not a control.
-  // (It sits outside the /vida shell, hence the bare path — the screen is unchanged.)
-  // ⛓️ And the first fix was half a fix: it pointed at `/partners`, the OLD admin console —
-  // one click and the operator was out of the Vida shell entirely, into a different nav with
-  // Nora's panel. The founder caught it within a minute of the walk: *"i click partners in
-  // the vida and it takes me to the old version this needs to stay on the new version."*
-  // This is now a Vida-NATIVE page. The old console still exists for commission detail,
-  // deals and payout history; the seat work lives here.
-  { href: '/vida/partners',   label: 'Partners',   icon: '🤝' },
-]
+type Workspace = 'clients' | 'command'
 
 /**
  * ── ⚑ 4 Sep (UI-010) — WHERE VIDA PAINTS ON AN OPERATOR DESTINATION ─────────────────────
@@ -138,23 +84,39 @@ export default function VidaLayout({ children }: { children: React.ReactNode }) 
   // hidden behind one dropdown.
   // ⚑ 4 Sep (UI-009) — THREE groups now. Clients moved out of a dedicated 380px column and
   // into the nav as a group of its own, which is what gives the workspace its width back.
+  // ⚑ 9 Sep — WHICH WORKSPACE, AND THE CLIENT LIST'S OWN FOLD.
+  //
+  // ⚠️ CLIENTS IS THE DEFAULT, EXPLICITLY. The operator's day is one client at a time; the
+  // Command Centre is where you go to ask about the business. Defaulting the other way would
+  // make the rarer question the one you have to dismiss every morning.
+  const [workspace, setWorkspace] = useState<Workspace>('clients')
   const [openClients, setOpenClients] = useState(true)
-  const [openOperate, setOpenOperate] = useState(true)
-  const [openBusiness, setOpenBusiness] = useState(true)
+  const [menuOpen, setMenuOpen] = useState(false)
   useEffect(() => {
     try {
+      const w = localStorage.getItem('vida:workspace')
+      if (w === 'command' || w === 'clients') setWorkspace(w)
       const raw = localStorage.getItem('vida:nav-groups')
-      if (!raw) return
-      const v = JSON.parse(raw) as { clients?: boolean; operate?: boolean; business?: boolean }
-      if (typeof v.clients === 'boolean') setOpenClients(v.clients)
-      if (typeof v.operate === 'boolean') setOpenOperate(v.operate)
-      if (typeof v.business === 'boolean') setOpenBusiness(v.business)
-    } catch { /* private mode, or nothing stored — both groups stay open */ }
+      if (raw) {
+        const v = JSON.parse(raw) as { clients?: boolean }
+        if (typeof v.clients === 'boolean') setOpenClients(v.clients)
+      }
+    } catch { /* private mode, or nothing stored — Clients, list open */ }
   }, [])
   useEffect(() => {
-    try { localStorage.setItem('vida:nav-groups', JSON.stringify({ clients: openClients, operate: openOperate, business: openBusiness })) }
-    catch { /* private mode — the panel still works, it just forgets */ }
-  }, [openClients, openOperate, openBusiness])
+    try {
+      localStorage.setItem('vida:workspace', workspace)
+      localStorage.setItem('vida:nav-groups', JSON.stringify({ clients: openClients }))
+    } catch { /* private mode — the panel still works, it just forgets */ }
+  }, [workspace, openClients])
+
+  // ⚠️ THE WORKSPACE FOLLOWS THE ROUTE, NOT THE OTHER WAY AROUND. Landing on a Command Centre
+  // URL — a bookmark, a link in a report — must not show the Clients rail with the Command
+  // Centre's page beside it. The rail is derived from where the operator actually is.
+  useEffect(() => {
+    const inClients = CLIENTS_WORKSPACE.some(i => i.href === '/vida' ? pathname === '/vida' : pathname.startsWith(i.href))
+    if (!inClients && pathname.startsWith('/vida/')) setWorkspace('command')
+  }, [pathname])
 
   useEffect(() => {
     fetch('/api/proxy/operator/status').then(r => r.json()).then(j => { if (j?.success) setStatus(j.data) }).catch(() => {})
@@ -176,17 +138,11 @@ export default function VidaLayout({ children }: { children: React.ReactNode }) 
   // deleted when the dropdown replaced it. They described five destinations out of
   // twenty-five, in a different order, with a different component — so building the real left
   // panel out of them would have shipped a nav that disagreed with the menu it replaced.
-  // The panel below is built from OPERATE and NERVOUS_SYSTEM, which are the lists the
-  // dropdown itself used, so nothing can be lost in the move.
+  // ⚑ 9 Sep — the panel below is built from `CLIENTS_WORKSPACE` and `COMMAND_CENTRE` in
+  // `@/lib/vida-nav`, which superseded the two flat lists. Same discipline: the shell holds no
+  // second copy of the destinations, so it cannot fall behind what the product navigates by.
 
-  /**
-   * One collapsible group of the left panel.
-   *
-   * ⚠️ IT IS HANDED THE LIST, IT DOES NOT KNOW ONE. Both groups render through this, from
-   * `OPERATE` and `NERVOUS_SYSTEM` — so the panel has no second copy of the destinations and
-   * cannot fall behind the arrays the product actually navigates by.
-   */
-  /** The group HEADER, drawn once, so Clients cannot look like a different kind of thing. */
+  /** The group HEADER, used by the one remaining fold (the client list). */
   const groupHead = (title: string, open: boolean, toggle: () => void, count?: number) => (
     <button onClick={toggle} aria-expanded={open}
       className="w-full flex items-center gap-1.5 px-2.5 py-1.5 text-[10.5px] font-extrabold uppercase tracking-[0.06em] text-[#b3a9cc] hover:text-[#7C3AED] transition-colors">
@@ -196,22 +152,37 @@ export default function VidaLayout({ children }: { children: React.ReactNode }) 
     </button>
   )
 
-  const group = (title: string, items: { href: string; label: string; icon: string }[], open: boolean, toggle: () => void) => (
-    <div>
-      {groupHead(title, open, toggle, items.length)}
-      {open && items.map(item => {
-        // ⚠️ EXACT MATCH FOR `/vida`, PREFIX FOR THE REST. `/vida` is a prefix of every other
-        // operator route, so a `startsWith` here would mark Clients current on all 25.
-        const active = item.href === '/vida' ? pathname === '/vida' : pathname.startsWith(item.href)
-        return (
-          <Link key={item.href} href={item.href}
-            className={`flex items-center gap-2 px-2.5 py-[7px] rounded-lg text-[13.5px] font-semibold transition-colors ${
-              active ? 'bg-[#f3ecff] text-[#7C3AED]' : 'text-[#4c4368] hover:bg-[#f7f4fd]'}`}>
-            <span className="w-4 shrink-0 text-center">{item.icon}</span>
-            <span className="truncate">{item.label}</span>
-          </Link>
-        )
-      })}
+  /** One destination row. Shared by both workspaces so they cannot drift apart visually. */
+  const navLink = (item: NavItem) => {
+    // ⚠️ EXACT MATCH FOR `/vida`, PREFIX FOR THE REST. `/vida` is a prefix of every other
+    // operator route, so a `startsWith` here would mark Clients current on all of them.
+    const active = item.href === '/vida' ? pathname === '/vida' : pathname.startsWith(item.href)
+    return (
+      <Link key={item.href} href={item.href}
+        className={`flex items-center gap-2 px-2.5 py-[7px] rounded-lg text-[13.5px] font-semibold transition-colors ${
+          active ? 'bg-[#f3ecff] text-[#7C3AED]' : 'text-[#4c4368] hover:bg-[#f7f4fd]'}`}>
+        <span className="w-4 shrink-0 text-center">{item.icon}</span>
+        <span className="truncate">{item.label}</span>
+      </Link>
+    )
+  }
+
+  /**
+   * A Command Centre group.
+   *
+   * ⚠️ NOT COLLAPSIBLE, AND THAT IS THE APPROVED DESIGN. Seven short groups fit without
+   * folding, and a fold is a place for a destination to hide — which is the defect the 4 Sep
+   * panel was built to end. The Clients workspace keeps ONE fold, on the client list, because
+   * that list is unbounded and the rest of the rail is three rows.
+   */
+  const ccGroup = (g: { title: string; items: NavItem[] }) => (
+    <div key={g.title || 'top'}>
+      {g.title && (
+        <div className="px-2.5 pt-3 pb-1 text-[10.5px] font-extrabold uppercase tracking-[0.06em] text-[#b3a9cc]">
+          {g.title}
+        </div>
+      )}
+      {g.items.map(navLink)}
     </div>
   )
 
@@ -223,8 +194,15 @@ export default function VidaLayout({ children }: { children: React.ReactNode }) 
             back on the clients console. It was static text, so a sub-page was a dead end. */}
         <Link href="/vida" className="flex items-center gap-3 rounded-lg -mx-1 px-1 py-0.5 hover:opacity-80 transition-opacity" title="Back to the clients console">
           <span className="w-7 h-7 rounded-lg bg-gradient-to-br from-[#7C3AED] to-[#EC4899] text-white flex items-center justify-center text-[14px] font-extrabold">V</span>
-          <span className="text-[16px] font-extrabold">Milla&amp;Vida <span className="text-[#9b8ec4] font-semibold text-[14px]">· operator</span></span>
+          {/* ⚑ 9 Sep — THE APPROVED HEADER: the brand, then a pill naming WHICH WORKSPACE you
+              are in. "· operator" said who you were, which the chip on the right already says;
+              the thing an operator cannot otherwise tell at a glance is whether this rail is
+              about one client or about the business. */}
+          <span className="text-[16px] font-extrabold">Vida<span className="text-[#9b8ec4]">&amp;Milla</span></span>
         </Link>
+        <span className="text-[12.5px] font-bold text-[#7C3AED] bg-[#f3ecff] rounded-full px-3 py-1">
+          {workspace === 'command' ? 'Command Centre' : 'Clients'}
+        </span>
 
         <div className="ml-auto flex items-center gap-2">
           {/* Engine health — was the rail's "ENGINE HEALTH · FIGSY" box. */}
@@ -267,10 +245,48 @@ export default function VidaLayout({ children }: { children: React.ReactNode }) 
               ⚠️ AND NO NEW ACCOUNT MENU IS INVENTED TO REPLACE THE OLD ONE. Sign out moved to
               the left panel's footer — the only control the dropdown held that was not a
               destination — and nothing else was added. */}
-          <span className="flex items-center gap-2 rounded-full border border-[#e4dcf7] bg-[#f6f2fd] py-1 pl-1 pr-3" title={email || 'Operator'}>
-            <span className="w-7 h-7 rounded-full bg-[#151033] text-white flex items-center justify-center text-[12px] font-bold">{email ? initials(email) : 'OP'}</span>
-            <span className="text-[14px] font-semibold text-[#1f1235]">{email ? displayName(email) : 'Operator'}</span>
-          </span>
+          {/* ── ⚑ 9 Sep — THE CHIP BECOMES THE WORKSPACE SWITCH ────────────────────────
+              ⚠️ AND IT IS NOT THE OLD TWENTY-FIVE-LINK DROPDOWN COMING BACK. That menu was
+              removed on 4 Sep because navigation hidden behind an account chip is navigation
+              the founder could not find. This holds exactly TWO destinations — the two
+              workspaces — plus who is signed in and sign out. Every page is still a permanent
+              row in the rail below; nothing is reachable only from here. */}
+          <div className="relative">
+            <button onClick={() => setMenuOpen(o => !o)} aria-expanded={menuOpen}
+              className="flex items-center gap-2 rounded-full border border-[#e4dcf7] bg-[#f6f2fd] py-1 pl-1 pr-2.5 hover:bg-[#f0eafb] transition-colors"
+              title={email || 'Operator'}>
+              <span className="w-7 h-7 rounded-full bg-[#151033] text-white flex items-center justify-center text-[12px] font-bold">{email ? initials(email) : 'OP'}</span>
+              <span className="text-[14px] font-semibold text-[#1f1235]">{email ? displayName(email) : 'Operator'}</span>
+              <ChevronDown className={`w-3.5 h-3.5 text-[#9b8ec4] transition-transform ${menuOpen ? 'rotate-180' : ''}`} />
+            </button>
+            {menuOpen && (
+              <>
+                <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />
+                <div className="absolute right-0 mt-2 w-[280px] z-20 bg-white border border-[#eee7f7] rounded-xl shadow-lg py-2">
+                  <div className="px-3 pt-1 pb-1.5 text-[10.5px] font-extrabold uppercase tracking-[0.06em] text-[#b3a9cc]">Workspace</div>
+                  {([
+                    { key: 'clients' as const, label: 'Clients', hint: 'Selected client · Vida · lifecycle', href: '/vida' },
+                    { key: 'command' as const, label: 'Command Centre', hint: 'The business · delivery · money · system', href: '/vida/cockpit' },
+                  ]).map(w => (
+                    <Link key={w.key} href={w.href} onClick={() => { setWorkspace(w.key); setMenuOpen(false) }}
+                      className={`block px-3 py-2 hover:bg-[#f7f4fd] ${workspace === w.key ? 'bg-[#f3ecff]' : ''}`}>
+                      <span className={`flex items-center gap-2 text-[14px] font-bold ${workspace === w.key ? 'text-[#7C3AED]' : 'text-[#1f1235]'}`}>
+                        {w.label}{workspace === w.key && <span className="ml-auto text-[12px]">✓</span>}
+                      </span>
+                      <span className="block text-[12px] text-[#9b8ec4]">{w.hint}</span>
+                    </Link>
+                  ))}
+                  <div className="h-px bg-[#f0ebfa] my-1.5 mx-3" />
+                  <div className="px-3 pb-1 text-[10.5px] font-extrabold uppercase tracking-[0.06em] text-[#b3a9cc]">Account</div>
+                  <div className="px-3 pb-1.5 text-[13.5px] font-semibold text-[#1f1235] truncate">{email || 'Operator'}</div>
+                  <button onClick={signOut}
+                    className="w-full text-left px-3 py-2 text-[13.5px] font-bold text-red-500 hover:bg-red-50 transition-colors">
+                    Sign out
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </header>
 
@@ -280,16 +296,20 @@ export default function VidaLayout({ children }: { children: React.ReactNode }) 
           operator navigation was the top-right dropdown. Twenty-five destinations, two clicks
           deep, in a menu shaped like an account menu.
 
-          ⚠️ ALL 25, AND THE SAME 25. The panel renders `OPERATE` (8) and `NERVOUS_SYSTEM`
-          (17) — the very arrays the dropdown rendered, in their order, with their labels and
-          their icons. Not one entry is retyped here, so a destination cannot be dropped in
-          the move and the two lists cannot disagree.
+          ── ⚑ 9 Sep — AND NOW IT IS TWO PANELS, ONE AT A TIME ──────────────────────────
+          The 4 Sep panel made all twenty-five destinations permanent, which was the fix for a
+          founder who could not find Documents in his own product. What it could not say was
+          whether a destination was about ONE CLIENT or about THE BUSINESS — Bookings sat
+          beside Money Path. The approved architecture splits them into two workspaces and
+          renders whichever one the operator is in.
+
+          ⚠️ NOTHING WENT BACK BEHIND A MENU. Every destination is still a permanent row; the
+          operator menu holds the two workspaces and sign out, and no page is reachable only
+          from it. Ops, Compliance and the Command Centre's Bookings entry are gone on the
+          founder's explicit decision — their pages and data are untouched.
 
           ⚠️ 216px, AND NO ICON RAIL. The approved width, implemented as approved. A 56px
-          icon-only breakpoint was NOT approved and is not invented here.
-
-          ⚠️ COLLAPSIBLE, NOT COLLAPSED. Each group toggles independently and both start open,
-          so nothing is hidden from an operator who has never touched the control. */}
+          icon-only breakpoint was NOT approved and is not invented here. */}
       {/* ⚠️ THE PROVIDER WRAPS THE NAV TOO, and that is not cosmetic nesting. The CLIENTS
           group IS the client switcher now, so it calls `setSelected` — outside the provider it
           would read the inert context and every click would be a silent no-op. */}
@@ -297,22 +317,30 @@ export default function VidaLayout({ children }: { children: React.ReactNode }) 
       <div className="flex-1 flex overflow-hidden">
         <nav className="w-[216px] shrink-0 border-r border-[#eee7f7] bg-[#fdfcff] flex flex-col overflow-hidden">
           <div className="flex-1 overflow-y-auto px-2 py-3">
-            {/* ⚑ 4 Sep (UI-009) — CLIENTS FIRST, because picking who you are working on comes
-                before choosing what to do about them. Collapsed it still says who that is. */}
-            <div>
-              {groupHead('Clients', openClients, () => setOpenClients(o => !o))}
-              <VidaClients open={openClients} />
-            </div>
-            <div className="h-px bg-[#f0ebfa] my-2 mx-2" />
-            {group('Operate', OPERATE, openOperate, () => setOpenOperate(o => !o))}
-            <div className="h-px bg-[#f0ebfa] my-2 mx-2" />
-            {group('Run the business', NERVOUS_SYSTEM, openBusiness, () => setOpenBusiness(o => !o))}
+            {/* ── ⚑ 9 Sep — ONE RAIL, WHICHEVER WORKSPACE IS OPEN ─────────────────────────
+                🛑 THE TWO ARE NEVER MIXED. That is the whole architecture: a rail that shows
+                Client admin beside Meetings cannot tell you whether you are looking at one
+                client or at the business, which is the question this console exists to answer
+                first. The workspace is chosen from the operator menu above, and it also
+                follows the route — a Command Centre bookmark opens the Command Centre. */}
+            {workspace === 'clients' ? (
+              <>
+                {CLIENTS_WORKSPACE.map(navLink)}
+                <div className="h-px bg-[#f0ebfa] my-2 mx-2" />
+                {/* ⚠️ THE CLIENT LIST IS THE ONE FOLD, because it is the one unbounded thing
+                    in the rail. Collapsed it still says who is selected. */}
+                {groupHead('Clients', openClients, () => setOpenClients(o => !o))}
+                <VidaClients open={openClients} />
+              </>
+            ) : (
+              COMMAND_CENTRE.map(ccGroup)
+            )}
           </div>
-          {/* THE ONE NON-DESTINATION THE OLD DROPDOWN HELD. */}
-          <div className="shrink-0 border-t border-[#eee7f7] px-2 py-2">
-            <button onClick={signOut} className="flex items-center gap-2 w-full px-2.5 py-2 rounded-lg text-[13.5px] font-semibold text-red-500 hover:bg-red-50 transition-colors">
-              <LogOut className="w-3.5 h-3.5" /> Sign out
-            </button>
+          {/* ⚑ 9 Sep — THE FOOTER'S SIGN OUT MOVED INTO THE OPERATOR MENU, where the approved
+              design puts it, beside the account it signs out of. It is not duplicated here:
+              two sign-out buttons is two things to keep in step for no gain. */}
+          <div className="shrink-0 border-t border-[#eee7f7] px-3 py-2 text-[11px] text-[#b3a9cc]">
+            {workspace === 'command' ? 'The business, not one client.' : 'Vida runs the work. You decide the exceptions.'}
           </div>
         </nav>
           {/* ⚑ 4 Sep (UI-010) — THE CONSOLE OWNS ITS OWN COMPOSITION; EVERY OTHER DESTINATION

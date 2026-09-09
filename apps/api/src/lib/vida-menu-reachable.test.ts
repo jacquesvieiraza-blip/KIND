@@ -19,10 +19,22 @@ import { readFileSync, existsSync } from 'fs'
 import { join } from 'path'
 
 const ADMIN = join(__dirname, '../../../admin/src')
-const layout = readFileSync(join(ADMIN, 'app/vida/layout.tsx'), 'utf8')
 
-/** Every href the Vida account menu offers. */
-const menuHrefs = [...layout.matchAll(/href:\s*'([^']+)'/g)].map(m => m[1])
+// ⛓️ RETARGETED 9 Sep — SAME DUTY, THE SOURCE OF TRUTH MOVED. These hrefs used to be read out
+// of `vida/layout.tsx`, because that file held the destination arrays. The approved
+// two-workspace architecture moved them into `lib/vida-nav.ts` as data, so reading the layout
+// now finds only the two workspace links in the operator menu — and every case below would
+// pass or fail for reasons that have nothing to do with reachability.
+//
+// 🛑 THE RULE IS UNCHANGED AND IS THE WHOLE POINT OF THIS FILE: a working screen with no way to
+// open it has shipped three times on this console. It is now asked of the nav module.
+const nav = readFileSync(join(ADMIN, 'lib/vida-nav.ts'), 'utf8')
+const navCode = nav.split('\n')
+  .filter(l => { const t = l.trim(); return t && !t.startsWith('//') && !t.startsWith('*') && !t.startsWith('/*') })
+  .join('\n')
+
+/** Every href the two workspaces offer. `route:` entries are retirement receipts, not rows. */
+const menuHrefs = [...navCode.matchAll(/href:\s*'([^']+)'/g)].map(m => m[1])
 
 describe('the Vida menu can reach every operator screen that exists', () => {
   it('PARTNERS is in the menu — it creates logins that read commission money (R40)', () => {

@@ -4206,6 +4206,50 @@ COMMENT ON COLUMN public.clients.proof_completed_at IS
   'When the client said their Proof examples are right, so Proof is finished and the programme calculator is next. Before this column the accept control wrote nothing at all: a satisfied client produced no record, no alert and no stage change, and the journey only resumed if an operator noticed by other means. Client-level because Proof completes BEFORE any programme exists - the calculator is what creates one. NOT a count of attempts (proof_passes_done is how many were spent) and NOT an escalation (proof_review_requested_at is the failed loop). First acceptance wins; the write is idempotent.';
 `.trim(),
   },
+  {
+    // ═══════════════════════════════════════════════════════════════════════════════════
+    // 🛑 THE CLIENT CHOSE THE PROGRAMME, AND NOTHING RECORDED WHAT THEY WERE SHOWN.
+    //
+    // ── WHAT THE 10 SEP AUDIT FOUND ──────────────────────────────────────────────────
+    //
+    // `programmes` already stores the COMMITTED figures — `meeting_target`,
+    // `recommended_volume`, `price_per_meeting_cents`, `price_total_cents` and the two
+    // payment halves — so the money side needs nothing new. Two things were missing.
+    //
+    //   ① THE CLIENT'S OWN ASSUMPTIONS. The calculator's illustrative outputs (estimated
+    //      clients, estimated revenue, the revenue multiple) are arithmetic on figures the
+    //      CLIENT supplied: what a client is worth to them, and how many meetings become
+    //      clients. Without storing them, "reproduce exactly what the client accepted" is
+    //      impossible — the price could be re-derived from the curve, but the illustration
+    //      they were actually looking at when they said yes could not.
+    //
+    //   ② ACCEPTANCE AS A FACT SEPARATE FROM PAYING. There was no accept action at all:
+    //      accepting WAS paying, because the only client control was the Stripe button. So
+    //      a client who chose a programme and then hesitated at checkout left no record
+    //      that they had agreed to anything, and `approved_at` is the LATER preparation
+    //      approval (R108), not this.
+    //
+    // ⚠️ ONE JSONB, NOT FOUR COLUMNS. The assumptions are a SNAPSHOT — read back together,
+    // never queried across, never aggregated. Four typed columns would invite exactly the
+    // aggregate reporting the founder did not ask for, and each new assumption would be a
+    // migration.
+    //
+    // Additive, nullable, no defaults, no backfill, idempotent.
+    // ═══════════════════════════════════════════════════════════════════════════════════
+    key: '20260910_programme_calculator_choice',
+    title: 'programmes.calculator_assumptions / recommendation_accepted_at — what the client chose and agreed to (B/C)',
+    sql: `
+ALTER TABLE public.programmes
+  ADD COLUMN IF NOT EXISTS calculator_assumptions      jsonb,
+  ADD COLUMN IF NOT EXISTS recommendation_accepted_at  timestamptz;
+
+COMMENT ON COLUMN public.programmes.calculator_assumptions IS
+  'The client own assumptions from the Milla programme calculator, exactly as they stood when the recommendation was accepted: leadsPerMeeting, averageClientValue, meetingToClientPct. A SNAPSHOT for reproducing what they were shown - never queried across programmes and never aggregated. The COMMITTED figures are the typed columns (meeting_target, recommended_volume, price_total_cents, first/second_payment_cents) and are priced by the shared curve; these are the ILLUSTRATIVE inputs and we stand behind none of them.';
+
+COMMENT ON COLUMN public.programmes.recommendation_accepted_at IS
+  'When the client accepted the recommendation in Milla - a fact SEPARATE from paying. Before this column accepting WAS paying, because the only client control was the Stripe button, so a client who agreed and then hesitated at checkout left no record of having agreed. NOT approved_at: that is the later approval of the prepared programme (R108).';
+`.trim(),
+  },
 ]
 
 // Runs the statements against DATABASE_URL. Uses node-postgres because the Supabase JS

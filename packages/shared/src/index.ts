@@ -12,4 +12,7 @@ export * from './run-outcome-banner'
 // Exported so the API and admin share one curve; the legacy money constants above remain
 // the LIVE model and the two may never import each other (programme-legacy-fence.test.ts).
 export * from './programme-pricing'
+// ⚑ 10 Sep — the CLIENT-FACING calculator. Derives no money of its own: every price, split and
+// volume comes from `programme-pricing`. See its header for the committed/illustrative split.
+export * from './programme-calculator'
 export * from './programme-stage'

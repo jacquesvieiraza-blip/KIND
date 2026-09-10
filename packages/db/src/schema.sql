@@ -869,6 +869,12 @@ create table if not exists public.programmes (
   run_at                    timestamptz,
   run_by                    text,
   went_live_by              text,
+  -- ⚑ 10 Sep — WHAT THE CLIENT CHOSE IN THE MILLA CALCULATOR, and that they agreed to it.
+  -- The COMMITTED figures are the typed columns above (meeting_target, recommended_volume,
+  -- price_total_cents, the two halves); these are the client's own ILLUSTRATIVE assumptions
+  -- and the acceptance that is separate from paying. See 20260910_programme_calculator_choice.
+  calculator_assumptions     jsonb,
+  recommendation_accepted_at timestamptz,
   created_at                timestamptz not null default now(),
   updated_at                timestamptz not null default now()
 );

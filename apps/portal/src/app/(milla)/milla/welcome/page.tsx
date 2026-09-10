@@ -384,6 +384,18 @@ export default function MillaWelcomePage() {
           contact_name: p!.contact_name?.trim() || '',
           ...(ref ? { referred_by: ref } : {}),
           ...(termsAccepted ? { terms_accepted: true } : {}),
+          // ── 🛑 ⚑ 10 Sep (C03) — WHAT THEY SAID THEY WANT, SENT ONCE, IN THEIR WORDS ────
+          //
+          // `intent` is what the client typed when Milla asked what this is for. It was
+          // already captured — and went only to `icps.campaign_intent`, copy input for the
+          // sequence writer, rendered nowhere the client would look again. So a client who
+          // said "book qualified meetings with those founders and CEOs" then read
+          // "OUTCOME — not set yet" on their own home screen.
+          //
+          // ⚠️ THE SENTENCE ONLY. The server derives the KIND from it (`readStatedOutcome`)
+          // — if this screen could declare "meetings", a meeting target could later be
+          // agreed against an answer that never asked for one.
+          ...(intent.trim() ? { outcome_stated: intent.trim() } : {}),
         }, tk)
         try { localStorage.removeItem('kind_referral'); localStorage.removeItem('kind_terms_accepted') } catch { /* ignore */ }
         setHasClient(true)

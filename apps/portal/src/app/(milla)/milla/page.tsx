@@ -1205,9 +1205,16 @@ export default function MillaHomePage() {
           ⚠️ FOUR CARDS, EXACTLY AS SPECIFIED: outcome + target · current stage · progress
           toward outcome · next action / what Milla needs. No fifth card was invented. */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
+        {/* ── 🛑 ⚑ 10 Sep (C03) — THE CARD THE CLIENT CAUGHT ─────────────────────────────
+            This read the PROGRAMME's `meeting_target` and nothing else. That number does not
+            exist until a programme is created, several steps after onboarding — so a client
+            who had just told Milla "book qualified meetings with those founders and CEOs"
+            was shown "— / not set yet", and the NEXT card asked them to state it.
+            Their own sentence exists from the first minute and is what belongs here; the
+            number joins it once a programme is agreed. */}
         <KPI hero k="Outcome"
-          v={prog?.outcome.target ? String(prog.outcome.target) : '—'}
-          s={prog?.outcome.target ? 'booked meetings' : 'not set yet'} />
+          v={prog?.outcome.target ? String(prog.outcome.target) : prog?.outcome.stated ? '✓' : '—'}
+          s={prog?.outcome.target ? 'booked meetings' : prog?.outcome.stated ?? 'not set yet'} />
         <KPI k="Stage" v={prog ? prog.stage : '…'}
           s={prog?.paused ? 'paused' : prog?.reviewOpen ? 'review' : 'current'}
           tone={prog?.paused || prog?.reviewOpen ? '#b45309' : undefined} />

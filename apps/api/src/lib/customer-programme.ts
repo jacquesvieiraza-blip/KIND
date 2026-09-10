@@ -58,6 +58,16 @@ export type CustomerProgramme = {
     /** 'meetings' today; anything else was captured conversationally and routed to a human. */
     kind: 'meetings' | 'other'
     target: number | null
+    /**
+     * ⚑ 10 Sep (C03) — THE CLIENT'S OWN WORDS, AND THE REASON THIS FIELD EXISTS.
+     *
+     * `target` is a commercial number that does not exist until a programme is created, so
+     * a screen showing the outcome from `target` alone is structurally empty during Proof —
+     * which is exactly what a client saw after telling Milla "book qualified meetings with
+     * those founders and CEOs". This is client-level, available from the first minute, and
+     * survives every ICP revision and every programme.
+     */
+    stated: string | null
   }
   progress: {
     /** Delivered against what the programme authorised. Both straight off the row. */
@@ -118,7 +128,7 @@ export const NO_PROGRAMME: CustomerProgramme = {
   hasProgramme: false,
   programmeId: null,
   paused: false, pausedCopy: null, reviewOpen: false,
-  outcome: { kind: 'meetings', target: null },
+  outcome: { kind: 'meetings', target: null, stated: null },
   progress: { delivered: 0, authorised: 0, outcomesAchieved: 0 },
   money: {
     totalCents: 0, firstPaymentCents: 0, secondPaymentCents: 0, firstPaidAt: null, secondPaidAt: null,
@@ -133,6 +143,23 @@ export const NO_PROGRAMME: CustomerProgramme = {
  * @returns the programme, `NO_PROGRAMME` when they have not started one, or `null` when the
  *   read FAILED — which callers must render as the locked failure sentence, never as absence.
  */
+/**
+ * The client's own words for what they want, or null.
+ *
+ * ⚠️ FAILS SOFT TO NULL. An unreadable answer must read as "not stated" rather than throwing:
+ * the outcome is one card on a screen full of other truth, and the caller has a correct
+ * rendering for its absence (Milla asks for it).
+ */
+async function readStatedOutcomeFor(clientId: string): Promise<string | null> {
+  try {
+    const { data, error } = await db.from('clients')
+      .select('outcome_stated').eq('id', clientId).maybeSingle()
+    if (error || !data) return null
+    const v = (data as unknown as { outcome_stated?: string | null }).outcome_stated
+    return typeof v === 'string' && v.trim() ? v.trim() : null
+  } catch { return null }
+}
+
 export async function readCustomerProgramme(clientId: string): Promise<CustomerProgramme | null> {
   const { data, error } = await db.from('programmes')
     .select('id, status, meeting_target, price_total_cents, sourcing_ceiling, sourced_used, ' +
@@ -150,9 +177,24 @@ export async function readCustomerProgramme(clientId: string): Promise<CustomerP
     console.error('[customer-programme] read failed for client', clientId, error.message)
     return null
   }
-  if (!data) return NO_PROGRAMME
+  if (!data) {
+    // ── 🛑 ⚑ 10 Sep (C03) — THIS IS THE PROOF SCREEN, AND IT IS WHERE THE DEFECT SHOWED ──
+    //
+    // No programme yet, which is every client during Proof. `NO_PROGRAMME` is a constant, so
+    // it carried `stated: null` for everybody — and the OUTCOME card, fed by the programme
+    // alone, was structurally empty at exactly the moment the client most wanted to see that
+    // we had heard them. Their sentence exists from onboarding, so it is read here too.
+    return { ...NO_PROGRAMME, outcome: { ...NO_PROGRAMME.outcome, stated: await readStatedOutcomeFor(clientId) } }
+  }
 
   const p = data as unknown as Record<string, unknown>
+  // ── ⚑ 10 Sep (C03) — THE CLIENT'S STATED OUTCOME, READ FROM THE CLIENT ─────────────────
+  //
+  // ⚠️ A SEPARATE READ, AND IT MUST NOT FAIL THE PROGRAMME. The outcome lives on `clients`
+  // because it predates and outlives every programme; if that read errors the programme is
+  // still returned with `stated: null`, which reads correctly as "we do not have it" rather
+  // than blanking a screen that has plenty else to say.
+  const stated = await readStatedOutcomeFor(clientId)
   const reviewOpen = Boolean(p.review_required_at) && !p.review_resolved_at
   const stage = millaStage({ status: p.status as EngineProgrammeStatus, reviewOpen })
 
@@ -198,7 +240,10 @@ export async function readCustomerProgramme(clientId: string): Promise<CustomerP
     // Option C: only a meetings programme exists in the engine today. A non-meeting outcome
     // is captured in conversation and routed to a human — it never reaches this row, so a
     // row that exists is always a meetings programme. Stated as data rather than assumed.
-    outcome: { kind: 'meetings', target: Number(p.meeting_target ?? 0) || null },
+    // ⚠️ `kind` STILL COMES FROM THE ENGINE'S CAPABILITY, not from the client's sentence:
+    // only a meetings programme exists today, so a programme that exists is a meetings
+    // programme. `stated` is the client's own words and is orthogonal to both.
+    outcome: { kind: 'meetings', target: Number(p.meeting_target ?? 0) || null, stated },
     progress: {
       delivered: Number(p.sourced_used ?? 0),
       authorised: Number(p.sourcing_ceiling ?? 0),

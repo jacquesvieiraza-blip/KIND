@@ -32,7 +32,17 @@ export type CustomerProgramme = {
   paused: boolean
   pausedCopy: string | null
   reviewOpen: boolean
-  outcome: { kind: 'meetings' | 'other'; target: number | null }
+  outcome: {
+    kind: 'meetings' | 'other'
+    target: number | null
+    /**
+     * ⚑ 10 Sep (C03) — the client's OWN WORDS for what they want, from `clients`, available
+     * from onboarding. `target` is a commercial number that only exists once a programme is
+     * created, so a screen reading `target` alone is empty for every client in Proof — the
+     * defect that showed "not set yet" to somebody who had just stated their outcome.
+     */
+    stated: string | null
+  }
   progress: { delivered: number; authorised: number; outcomesAchieved: number | null }
   money: {
     totalCents: number
@@ -71,7 +81,13 @@ export function nextActionFor(p: CustomerProgramme): string {
   if (p.paused && p.pausedCopy) return p.pausedCopy
   if (p.reviewOpen) return 'Review — waiting on a decision'
   switch (p.stage) {
-    case 'Proof':          return 'Tell Milla the outcome you want'
+    // 🛑 ⚑ 10 Sep (C03) — ONLY ASK FOR WHAT WE DO NOT HAVE. This asked every Proof client
+    // to state an outcome, including the ones who had just stated one during onboarding —
+    // which is what made the screen feel unheard. When we hold their words, the next step is
+    // genuinely to wait for the examples, so that is what it says.
+    case 'Proof':          return p.outcome.stated
+                                  ? 'Milla is finding your first examples'
+                                  : 'Tell Milla the outcome you want'
     case 'Recommendation': return 'Your recommendation is ready'
     case 'Sourcing':       return 'Milla is preparing your programme'
     case 'Approval':       return 'Ready for your approval'

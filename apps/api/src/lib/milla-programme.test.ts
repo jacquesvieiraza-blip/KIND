@@ -186,7 +186,13 @@ describe('A FAILED READ IS NEVER AN EMPTY PROGRAMME', () => {
     // The other half. A prospect with no programme is not a failure state.
     // The reader names it: no row is a real answer, and it is Proof.
     expect(CUSTOMER_READ).toContain("stage: 'Proof'")
-    expect(READER_CODE).toContain('if (!data) return NO_PROGRAMME')
+    // ⛓️ RETARGETED 10 Sep (C03) — THE SAME DUTY, ONE FIELD RICHER. This pinned
+    // `if (!data) return NO_PROGRAMME`, and the duty is *a genuinely absent programme is
+    // Proof, not an error*. It still is — the constant is still what is returned — but the
+    // client's STATED OUTCOME is now read onto it, because `NO_PROGRAMME` is a constant and
+    // carried `stated: null` for everybody. That is precisely the path every client in Proof
+    // takes, and why the OUTCOME card was empty for a client who had just stated one.
+    expect(READER_CODE).toContain('return { ...NO_PROGRAMME, outcome: { ...NO_PROGRAMME.outcome, stated: await readStatedOutcomeFor(clientId) } }')
   })
 
   it('unreadable meeting counts pass through as null, never as 0', () => {

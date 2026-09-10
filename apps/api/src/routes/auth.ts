@@ -67,6 +67,13 @@ const onboardSchema = z.object({
   // Item 186 — the signup T&C tick. Stored as a binding consent record at account
   // creation so even a trial user who never pays has proof of acceptance.
   terms_accepted: z.boolean().optional(),
+  // ── ⚑ 10 Sep (C03) — WHAT THEY SAID THEY WANT, IN THEIR OWN WORDS ──────────────────
+  //
+  // 🛑 OPTIONAL AT THE SCHEMA, REQUIRED BY THE SCREEN. A client mid-onboarding who cannot
+  // answer this must still get an account — refusing the whole signup over one sentence
+  // would be the worst possible trade. When it is absent, `shouldAskForOutcome` is true and
+  // Milla asks; when it is present she never asks again.
+  outcome_stated: emptyToUndefined.optional(),
 })
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -81,7 +88,18 @@ authRouter.post('/onboard', async (req, res) => {
     // 20260726_client_contact_name.sql and may not be applied yet. Inside the payload a
     // missing column fails the whole insert — i.e. it would break every signup. It is
     // written separately, best-effort, below.
-    const { referred_by, terms_accepted, contact_name, ...profileFields } = onboardSchema.parse(req.body)
+    const { referred_by, terms_accepted, contact_name, outcome_stated, ...profileFields } = onboardSchema.parse(req.body)
+    // ── ⚑ 10 Sep (C03) — THE KIND IS DERIVED HERE, NEVER SENT ─────────────────────────
+    //
+    // ⚠️ THE REQUEST SUPPLIES THE SENTENCE AND NOTHING ELSE. If the body could name the
+    // `kind`, a client (or a screen) could declare a "meetings" outcome for an answer that
+    // never mentioned one — and a meeting target would later be agreed against it. The
+    // classification is ours, from their words, in one place.
+    const { readStatedOutcome } = await import('../lib/client-outcome')
+    const outcome = readStatedOutcome(outcome_stated)
+    const outcomeFields = outcome
+      ? { outcome_kind: outcome.kind, outcome_stated: outcome.stated }
+      : {}
 
     // A ref can be a client UUID (client referral) or an 8-char partner code.
     let resolvedReferredBy: string | undefined   // client referrer id
@@ -126,6 +144,7 @@ authRouter.post('/onboard', async (req, res) => {
     // referred them (that would let a client rewrite attribution after the fact).
     const payload = {
       ...profileFields,
+      ...outcomeFields,
       onboarded_at: now,
       ...signupTermsFields,
     }

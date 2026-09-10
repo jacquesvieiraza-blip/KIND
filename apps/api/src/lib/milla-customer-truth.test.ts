@@ -79,7 +79,13 @@ describe('§1 — MILLA CANNOT TEACH THE RETIRED MODEL IN HER OWN VOICE', () => 
     const READER = code(join(API, 'lib/customer-programme.ts'))
     expect(READER, 'a failed read is collapsed into "no programme"')
       .toMatch(/if \(error\) \{[\s\S]{0,220}?return null/)
-    expect(READER).toContain('if (!data) return NO_PROGRAMME')
+    // ⛓️ RETARGETED 10 Sep (C03) — THE SAME DUTY, ONE FIELD RICHER. This pinned
+    // `if (!data) return NO_PROGRAMME`, and the duty is *a genuinely absent programme is
+    // Proof, not an error*. It still is — the constant is still what is returned — but the
+    // client's STATED OUTCOME is now read onto it, because `NO_PROGRAMME` is a constant and
+    // carried `stated: null` for everybody. That is precisely the path every client in Proof
+    // takes, and why the OUTCOME card was empty for a client who had just stated one.
+    expect(READER).toContain('return { ...NO_PROGRAMME, outcome: { ...NO_PROGRAMME.outcome, stated: await readStatedOutcomeFor(clientId) } }')
   })
 
   it('historical conversations are not rewritten to clean up the wording', () => {
@@ -250,7 +256,14 @@ describe('§2 — THE SUGGESTION CHIPS KNOW WHAT STAGE THE CLIENT IS IN', () => 
     // the programme workspace already renders is reused — no new copy is written here.
     expect(HOME).toContain("prog?.stage === 'Proof' ? nextActionFor(prog) : 'Nothing to react to right now.'")
     const ws = readFileSync(join(PORTAL, 'components/milla/ProgrammeWorkspace.tsx'), 'utf8')
-    expect(ws, 'the reused sentence must be the approved one').toContain("case 'Proof':          return 'Tell Milla the outcome you want'")
+    // ⛓️ RETARGETED 10 Sep (C03) — THE APPROVED SENTENCE IS STILL THERE, ON THE BRANCH
+    // WHERE IT IS TRUE. It used to be unconditional, so a client who had stated their
+    // outcome during onboarding was asked for it again on their own home screen. It now
+    // guards the case where we genuinely have nothing, which is the only case it ever
+    // described. The duty — the empty Proof desk points somewhere, in approved words — is
+    // unchanged, and the words are unchanged.
+    expect(ws, 'the approved sentence is gone').toContain("'Tell Milla the outcome you want'")
+    expect(ws, 'the sentence is asked unconditionally again').not.toContain("case 'Proof':          return 'Tell Milla the outcome you want'")
   })
 
   it('🛑 THE EMPTY PROOF DESK POINTS SOMEWHERE, and it does it in approved words', () => {
@@ -259,7 +272,14 @@ describe('§2 — THE SUGGESTION CHIPS KNOW WHAT STAGE THE CLIENT IS IN', () => 
     // the programme workspace already renders is reused — no new copy is written here.
     expect(HOME).toContain("prog?.stage === 'Proof' ? nextActionFor(prog) : 'Nothing to react to right now.'")
     const ws = readFileSync(join(PORTAL, 'components/milla/ProgrammeWorkspace.tsx'), 'utf8')
-    expect(ws, 'the reused sentence must be the approved one').toContain("case 'Proof':          return 'Tell Milla the outcome you want'")
+    // ⛓️ RETARGETED 10 Sep (C03) — THE APPROVED SENTENCE IS STILL THERE, ON THE BRANCH
+    // WHERE IT IS TRUE. It used to be unconditional, so a client who had stated their
+    // outcome during onboarding was asked for it again on their own home screen. It now
+    // guards the case where we genuinely have nothing, which is the only case it ever
+    // described. The duty — the empty Proof desk points somewhere, in approved words — is
+    // unchanged, and the words are unchanged.
+    expect(ws, 'the approved sentence is gone').toContain("'Tell Milla the outcome you want'")
+    expect(ws, 'the sentence is asked unconditionally again').not.toContain("case 'Proof':          return 'Tell Milla the outcome you want'")
   })
 
   it('pause and ROI are offered only where they are contextually valid', () => {

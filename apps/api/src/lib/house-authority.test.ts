@@ -145,8 +145,14 @@ const P = (over: Partial<ProgrammeRow> = {}): ProgrammeRow => ({
   ...over,
 })
 const asRow = (p: ProgrammeRow) => p as unknown as Record<string, unknown>
+// ⛓️ 10 Sep (H) — `run_at` JOINS THIS FIXTURE, AND THE DUTY IS UNCHANGED. `LIVE` here means
+// "a programme that is genuinely operating", and OUTREACH now requires the SECOND operator act
+// as well: Make Live arms (`went_live_at`) and Run starts (`run_at`). Without it every OUTREACH
+// assertion in this file would pass for the wrong reason — refused for a missing Run rather
+// than decided on House authority, which is what this file is about. The un-run refusal is
+// proved on its own in `programme-run-authority.test.ts`.
 const LIVE = P({
-  status: 'LIVE', approved_at: 'a', went_live_at: 'w',
+  status: 'LIVE', approved_at: 'a', went_live_at: 'w', run_at: 'r',
   first_authorised_at: 'i1', second_authorised_at: 'i2', sourcing_ceiling: 1000,
 })
 
@@ -315,14 +321,18 @@ describe('④ the Stripe writers refuse when internal authority already exists',
     dbState.programme = asRow(P({ status: 'APPROVED', approved_at: 'a' })); dbState.writes = []
     const r2 = await recordSecondPayment({ programmeId: 'prog-1', sessionId: 'cs_2', paymentIntentId: 'pi_2' })
     expect(r2.ok).toBe(true)
-    // ⛓️ THE MONEY IS ITS OWN WRITE NOW. Payment truth is committed unconditionally; the LIVE
-    // transition is a SECOND write that happens only once preparation completes. This fixture
-    // has no attached ICP, so preparation legitimately cannot complete — the payment is still
-    // recorded in full, which is the property this test is about.
+    // ⛓️ THE MONEY IS ITS OWN WRITE, AND SINCE 10 Sep (G) IT IS THE ONLY ONE. Payment truth is
+    // committed unconditionally; arming is the operator's Make Live and is no longer a
+    // consequence of the money arriving (R108: "P2 does not Make Live"). The property this
+    // test is about — a paying client's payment is recorded in full and these House guards are
+    // invisible to it — is unchanged.
     expect(dbState.writes[0].patch).toMatchObject({ second_payment_ref: 'cs_2' })
     expect(dbState.writes[0].patch.second_paid_at).toBeTruthy()
     expect(dbState.writes[0].patch, 'the money write carries no status').not.toHaveProperty('status')
-    expect(r2.preparationIncomplete, 'and it says the programme is not operable').toBe(true)
+    // ⛓️ WAS `preparationIncomplete: true`, which only held because THIS fixture happens to
+    // have no attached ICP. P2 no longer prepares at all, so the truthful flag is the one that
+    // says the money landed and nothing was armed.
+    expect(r2.recordedNotLive, 'P2 armed the programme or claimed to').toBe(true)
   })
 
   it('🛑 REVENUE READS PAYMENT ONLY — internal authority contributes nothing', () => {
@@ -355,7 +365,7 @@ describe('④ the Stripe writers refuse when internal authority already exists',
     // the count as the repository's usual "adding a migration is never silent" tripwire.
     expect((mig.match(/20260902_programme_internal_authority/g) ?? []).length,
       'A1 must appear exactly once — a second entry would re-migrate columns production has run').toBe(1)
-    expect((mig.match(/key:\s*'[^']+'/g) ?? []), 'a migration was added').toHaveLength(55)   // ⛓️ 51 → 52 on 9 Sep: +1 20260909_programme_qualification — leads.qualified_at/_disqualified_at/_disqualify_reason/_email_status and programme_batches.inserted, plus reconcile_programme_sourcing REPOINTED from delivered_at to qualified_at. Entitlement is consumed by QUALIFICATION, not by the legacy self-serve visibility stamp — which is capped at a constant 25 per run and ~5/day and would have settled a 250-candidate batch at 25 used. All five columns NULLABLE, NO DEFAULT, NO BACKFILL; the RPC keeps its name, signature and return type and gains one refusal: it will not settle while any candidate is unjudged, which is what makes the older Vida control harmless before any app code ships.   // ⛓️ 50 → 51 on 8 Sep: +1 20260908_review_freeze_and_schedule — programmes.review_preparation_hash/_snapshot/_at (the client must review the EXACT thing they later approve; freezing only at APPROVED proved what was approved and nothing about what was READ), programmes.send_schedule (there was NO schedule anywhere in the send path — `getDay`, `getHours` and "send window" appear nowhere — so outbound was ready to leave at 03:00 on a Sunday), and figsy_enrollments.sequence_id (so "which words will this person receive" is a positive fact rather than an unverifiable copy). All nullable, NO DEFAULT, NO BACKFILL.   // ⛓️ 49 → 50 on 7 Sep (House delivery preparation): +2 — 20260907_preparation_snapshot (figsy_sequences.campaign_id, the positive programme→campaign→sequence link, plus programmes.approved_preparation_hash/_snapshot/_at). Both nullable, NO DEFAULT, NO BACKFILL: a NULL campaign_id means historical client-scoped work, and guessing one would relink a retired desk's words to current programme work — the exact leak the column exists to stop. The snapshot columns are written ONLY in the same conditional UPDATE as status = APPROVED, so nothing is stamped approved before an approval happens.   // ⛓️ 48 → 49 on 7 Sep (HOUSE-009): +1 20260907_programme_sourcing_authority — functions only, no table, no column, no row. try_reserve_programme_sourcing is new and try_spend_sourcing is REPLACED with the same signature, the same return and a byte-unchanged legacy branch. It exists because programme ENTITLEMENT and PDL MONEY were one function body, so exempting the prepaid Apollo/house path from a fabricated $0.28-a-record ledger row also exempted it from the reservation, the 2,500 ceiling and the batch.   // ⛓️ 47 → 48 on 3 Sep (PR C3 · leads.proof_pass): +1 20260903_lead_proof_attribution — one NULLABLE smallint on leads with NO DEFAULT and NO BACKFILL, plus a guarded CHECK admitting NULL, 1 and 2, and a partial index. It exists because a free-proof lead and a retired legacy delivered lead were BYTE-IDENTICAL on every column that was traced (leads.source is the PROVIDER name and the same for both; programme_id is null for both; icp_run_outcomes holds no lead ids and no proof flag; sourcing_ledger and proof_ledger are money rows with no lead ids, and a pool-only proof pass writes no proof_ledger row at all; acquisition_memory is keyed on the provider identity; icps.proof_widened_candidate exists only for a pass-2 widened fallback). The withdrawn fix used clients.proof_passes_done, which is CUMULATIVE ACCOUNT STATE: any declared programme client with old legacy leads who later ran a proof they were entitled to run got their whole history back as current work. NULL means "not known to be proof work", which is the honest reading of every existing row, and no row is written by the migration. 🚀 UNLIKE C1 THIS ONE SHIPS WITH THE CODE THAT READS IT — run it from Vida → Engine immediately after deploying this build; until it is applied the customer desk attributes NOTHING, which fails closed to an empty desk and never to a historical one.   // ⛓️ 46 → 47 on 3 Sep (PR C1 · SCHEMA FIRST): +1 20260903_client_commercial_model — one NULLABLE text column on clients, NO DEFAULT, NO BACKFILL, plus a CHECK admitting NULL / 'programme' / 'legacy'. NULL is the migrated state for the whole existing book and resolves to exactly today's behaviour, so no row is written and nobody is reclassified. Nothing in C1 reads or writes it (expand/contract).      // ⛓️ 52 → 53 on 10 Sep: +1 20260910_lead_set_aside_reason — leads.set_aside_reason, the structural gate's record of a refused Proof candidate (C04)   // ⛓️ 53 → 54 on 10 Sep: +1 20260910_proof_calibration_handoff — the C07 escalation trigger, confirmed phone, operator note and the one calibrated restart   // ⛓️ 54 → 55 on 10 Sep: +1 20260910_client_stated_outcome — clients.outcome_kind / outcome_stated, the client's own words (C03)
+    expect((mig.match(/key:\s*'[^']+'/g) ?? []), 'a migration was added').toHaveLength(56)   // ⛓️ 55 → 56 on 10 Sep (H): +1 20260910_programme_run_authority — programmes.run_at/run_by/went_live_by. Run was a BUTTON that sent a bounded batch, never an AUTHORITY: nothing on the row recorded it and OUTREACH authority never asked, so LIVE (which Make Live produces, campaign active and every enrolment due) plus kill-switch OFF meant the two-hourly cron would deliver for every live programme with nobody pressing Run. Nullable, NO DEFAULT, NO BACKFILL — every existing row reads NULL and therefore cannot send, which is the founder's rule applied uniformly; a backfill would grant the exact authority the column exists to require.   // ⛓️ 51 → 52 on 9 Sep: +1 20260909_programme_qualification — leads.qualified_at/_disqualified_at/_disqualify_reason/_email_status and programme_batches.inserted, plus reconcile_programme_sourcing REPOINTED from delivered_at to qualified_at. Entitlement is consumed by QUALIFICATION, not by the legacy self-serve visibility stamp — which is capped at a constant 25 per run and ~5/day and would have settled a 250-candidate batch at 25 used. All five columns NULLABLE, NO DEFAULT, NO BACKFILL; the RPC keeps its name, signature and return type and gains one refusal: it will not settle while any candidate is unjudged, which is what makes the older Vida control harmless before any app code ships.   // ⛓️ 50 → 51 on 8 Sep: +1 20260908_review_freeze_and_schedule — programmes.review_preparation_hash/_snapshot/_at (the client must review the EXACT thing they later approve; freezing only at APPROVED proved what was approved and nothing about what was READ), programmes.send_schedule (there was NO schedule anywhere in the send path — `getDay`, `getHours` and "send window" appear nowhere — so outbound was ready to leave at 03:00 on a Sunday), and figsy_enrollments.sequence_id (so "which words will this person receive" is a positive fact rather than an unverifiable copy). All nullable, NO DEFAULT, NO BACKFILL.   // ⛓️ 49 → 50 on 7 Sep (House delivery preparation): +2 — 20260907_preparation_snapshot (figsy_sequences.campaign_id, the positive programme→campaign→sequence link, plus programmes.approved_preparation_hash/_snapshot/_at). Both nullable, NO DEFAULT, NO BACKFILL: a NULL campaign_id means historical client-scoped work, and guessing one would relink a retired desk's words to current programme work — the exact leak the column exists to stop. The snapshot columns are written ONLY in the same conditional UPDATE as status = APPROVED, so nothing is stamped approved before an approval happens.   // ⛓️ 48 → 49 on 7 Sep (HOUSE-009): +1 20260907_programme_sourcing_authority — functions only, no table, no column, no row. try_reserve_programme_sourcing is new and try_spend_sourcing is REPLACED with the same signature, the same return and a byte-unchanged legacy branch. It exists because programme ENTITLEMENT and PDL MONEY were one function body, so exempting the prepaid Apollo/house path from a fabricated $0.28-a-record ledger row also exempted it from the reservation, the 2,500 ceiling and the batch.   // ⛓️ 47 → 48 on 3 Sep (PR C3 · leads.proof_pass): +1 20260903_lead_proof_attribution — one NULLABLE smallint on leads with NO DEFAULT and NO BACKFILL, plus a guarded CHECK admitting NULL, 1 and 2, and a partial index. It exists because a free-proof lead and a retired legacy delivered lead were BYTE-IDENTICAL on every column that was traced (leads.source is the PROVIDER name and the same for both; programme_id is null for both; icp_run_outcomes holds no lead ids and no proof flag; sourcing_ledger and proof_ledger are money rows with no lead ids, and a pool-only proof pass writes no proof_ledger row at all; acquisition_memory is keyed on the provider identity; icps.proof_widened_candidate exists only for a pass-2 widened fallback). The withdrawn fix used clients.proof_passes_done, which is CUMULATIVE ACCOUNT STATE: any declared programme client with old legacy leads who later ran a proof they were entitled to run got their whole history back as current work. NULL means "not known to be proof work", which is the honest reading of every existing row, and no row is written by the migration. 🚀 UNLIKE C1 THIS ONE SHIPS WITH THE CODE THAT READS IT — run it from Vida → Engine immediately after deploying this build; until it is applied the customer desk attributes NOTHING, which fails closed to an empty desk and never to a historical one.   // ⛓️ 46 → 47 on 3 Sep (PR C1 · SCHEMA FIRST): +1 20260903_client_commercial_model — one NULLABLE text column on clients, NO DEFAULT, NO BACKFILL, plus a CHECK admitting NULL / 'programme' / 'legacy'. NULL is the migrated state for the whole existing book and resolves to exactly today's behaviour, so no row is written and nobody is reclassified. Nothing in C1 reads or writes it (expand/contract).      // ⛓️ 52 → 53 on 10 Sep: +1 20260910_lead_set_aside_reason — leads.set_aside_reason, the structural gate's record of a refused Proof candidate (C04)   // ⛓️ 53 → 54 on 10 Sep: +1 20260910_proof_calibration_handoff — the C07 escalation trigger, confirmed phone, operator note and the one calibrated restart   // ⛓️ 54 → 55 on 10 Sep: +1 20260910_client_stated_outcome — clients.outcome_kind / outcome_stated, the client's own words (C03)
   })
 })
 
@@ -1094,7 +1104,10 @@ describe('⑯ the campaign gate answers the same way for every programme state',
     // It restated `second_paid_at && second_payment_ref` inline. `goLiveProgramme` uses
     // `p2Authorised`. So an internally-authorised programme could be taken LIVE by one gate
     // and refused by the other about the identical fact — LIVE, and unable to send.
-    const internallyLive = P({ status: 'LIVE', approved_at: 'a', went_live_at: 'w', second_authorised_at: 'i' })
+    // ⛓️ 10 Sep (H) — `run_at` added for the same reason as the `LIVE` fixture above: this case
+    // is about the two P2 gates agreeing, and a missing Run would refuse it for an unrelated
+    // fact and hide the disagreement it exists to catch.
+    const internallyLive = P({ status: 'LIVE', approved_at: 'a', went_live_at: 'w', run_at: 'r', second_authorised_at: 'i' })
     expect(p2Authorised(internallyLive)).toBe(true)
     expect(mayStartCampaign(internallyLive).allowed).toBe(true)
     expect(authorityFor(internallyLive, 'OUTREACH').allowed).toBe(true)
@@ -1118,9 +1131,16 @@ describe('⑰ nothing House needed altered what a paying client experiences', ()
     expect(patch, 'the paid path never writes internal authority').not.toHaveProperty('first_authorised_at')
   })
 
-  it('🛑 P2 PAYMENT STILL TAKES AN APPROVED PROGRAMME LIVE, and still stamps went_live_at', async () => {
-    // The existing product truth: for a PAYING client the money arriving IS the last event.
-    // A2 must not have quietly moved that behind the new Make live control.
+  it('🛑 P2 PAYMENT RECORDS MONEY AND TAKES NOTHING LIVE — for a paying client too', async () => {
+    // ⛓️ REVERSED 10 Sep (G), AND THE OLD ASSERTION WAS THE DEFECT. This case read "P2 PAYMENT
+    // STILL TAKES AN APPROVED PROGRAMME LIVE", on the reasoning that "for a PAYING client the
+    // money arriving IS the last event". R108 records the founder's own words: *"Approval does
+    // not send. **P2 does not Make Live.**"* So the behaviour this test was protecting is the
+    // one that skipped the operator's Make Live for every paying client — House, which arms
+    // through Make Live, was the only path behaving as ruled.
+    //
+    // The House duty this file exists for is UNCHANGED and still asserted: the paid path
+    // writes payment evidence and NEVER internal authority, and the two never mix on one row.
     dbState.programme = asRow(P({ status: 'APPROVED', approved_at: 'a', paused_at: null }))
     const r = await recordSecondPayment({ programmeId: 'prog-1', sessionId: 'cs_2', paymentIntentId: 'pi_2' })
     expect(r.ok).toBe(true)
@@ -1128,15 +1148,16 @@ describe('⑰ nothing House needed altered what a paying client experiences', ()
     expect(patch).toMatchObject({ second_payment_ref: 'cs_2', second_payment_intent_id: 'pi_2' })
     expect(patch.second_paid_at).toBeTruthy()
     expect(patch).not.toHaveProperty('second_authorised_at')
-    // ⛓️ `went_live_at` MOVED TO A SECOND WRITE, on purpose: LIVE is now durable evidence that
-    // preparation succeeded, so the money arriving no longer sets it by itself. The paid path
-    // STILL auto-goes-live when preparation completes — proved in `programme-preparation.test.ts`
-    // and asserted here against the source, because this fixture cannot prepare.
-    expect(patch, 'the money write no longer carries the transition').not.toHaveProperty('went_live_at')
+    expect(patch, 'the money write carries a transition').not.toHaveProperty('went_live_at')
+    // 🛑 AND THERE IS NO SECOND WRITE EITHER. One write, money only — asserted against the
+    // source as well as the harness, because the old shape was a *later* update in the same
+    // function and a single-patch check would not have seen it.
+    expect(dbState.writes, 'P2 wrote more than the money').toHaveLength(1)
     const prog = strip(raw(join(API, 'lib/programme.ts')))
     const at = prog.indexOf('export async function recordSecondPayment')
-    expect(prog.slice(at, at + 4600), 'the successful paid path still transitions')
-      .toContain("status: 'LIVE', went_live_at: new Date().toISOString()")
+    const body = prog.slice(at, at + 4600)
+    expect(body.includes("status: 'LIVE'"), 'P2 still writes LIVE').toBe(false)
+    expect(body.includes('prepareProgrammeOutreach'), 'P2 still runs preparation').toBe(false)
   })
 
   it('P2 arriving on a paused or non-APPROVED programme still records money WITHOUT going live', async () => {

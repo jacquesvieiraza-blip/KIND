@@ -4109,6 +4109,59 @@ COMMENT ON COLUMN public.clients.outcome_stated IS
   'The outcome in the client own words, verbatim, captured once at onboarding. Client-level because it survives ICP revisions, exists before any programme and outlives each programme that serves it. It is NOT programmes.meeting_target: that is a commercial number agreed later at recommendation, and reading it as the outcome is why Milla Home showed "not set yet" to a client who had just stated one.';
 `.trim(),
   },
+  {
+    // ═══════════════════════════════════════════════════════════════════════════════════
+    // 🛑 RUN IS A STORED FACT, BECAUSE IT WAS NOT ONE — AND LIVE MEANT SEND.
+    //
+    // ── WHAT THE 10 SEP AUDIT FOUND ──────────────────────────────────────────────────
+    //
+    // The founder's rule is that Make Live ARMS and Run STARTS: two distinct operator
+    // acts, and only the second permits external delivery. In the code there was only
+    // one. `programmes` had no run column at all, and `checkProgrammeAuthority(...,
+    // 'OUTREACH')` asked approval, P2, LIVE, the approved hash, the schedule and the
+    // sender — never "has Run been pressed".
+    //
+    // Make Live activates the campaign and stamps every enrolment `next_send_at = now`.
+    // `send-due` selects exactly that state. So the first time AUTO_OUTREACH_ENABLED was
+    // set to 'true' — to let the founder Run one canary — the two-hourly cron and the
+    // client-callable `/figsy/send-due` would have sent EVERY live programme, with no
+    // operator Run anywhere. Run existed as a button that sent a bounded batch; it did
+    // not exist as authority.
+    //
+    // ── WHY A COLUMN AND NOT A STATUS ────────────────────────────────────────────────
+    //
+    // ⚠️ `LIVE` IS ARMED, AND THAT MEANING IS NOW LOAD-BEARING. Adding a RUNNING status
+    // would have re-pointed every existing status read — `mayStartCampaign`, the
+    // lifecycle derivations, the Milla stage map, ten status literals in the CHECK — at
+    // a vocabulary change, on launch day, to record one fact. A nullable timestamp adds
+    // the fact without moving anything that already reads correctly.
+    //
+    // 🛑 NULL FAILS CLOSED, AND THAT INCLUDES PROGRAMMES ALREADY LIVE. Every existing
+    // row reads NULL, so no programme can send until somebody presses Run. That is the
+    // founder's rule applied uniformly — "no exception for Founder, operator_run, canary,
+    // cron, retry, test send" — and it is deliberately NOT backfilled: a backfill would
+    // grant the exact authority this column exists to require.
+    //
+    // Additive, nullable, no defaults, no backfill, idempotent.
+    // ═══════════════════════════════════════════════════════════════════════════════════
+    key: '20260910_programme_run_authority',
+    title: 'programmes.run_at / run_by / went_live_by — Run is a stored authority, not a button (H)',
+    sql: `
+ALTER TABLE public.programmes
+  ADD COLUMN IF NOT EXISTS run_at       timestamptz,
+  ADD COLUMN IF NOT EXISTS run_by       text,
+  ADD COLUMN IF NOT EXISTS went_live_by text;
+
+COMMENT ON COLUMN public.programmes.run_at IS
+  'When an operator pressed Run - the SECOND of the two operator acts, and the only one that permits external delivery. NULL means never run: no send path may select or deliver for this programme, however LIVE it is. Make Live arms (status LIVE + went_live_at) and sends zero; Run starts. Deliberately never backfilled - a backfill would grant the authority this column exists to require.';
+
+COMMENT ON COLUMN public.programmes.run_by IS
+  'Who pressed Run. Audit companion to run_at; the operator audit log carries the full row.';
+
+COMMENT ON COLUMN public.programmes.went_live_by IS
+  'Who pressed Make Live. Recorded so arming and starting can be told apart by person as well as by time.';
+`.trim(),
+  },
 ]
 
 // Runs the statements against DATABASE_URL. Uses node-postgres because the Supabase JS

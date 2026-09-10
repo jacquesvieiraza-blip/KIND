@@ -117,9 +117,12 @@ vi.mock('@kind/db', () => ({
 // made operable — campaigns, enrolments, eligibility, pagination — is proved against the real
 // implementation in `programme-preparation.test.ts`. Stubbing it lets both BRANCHES of the new
 // rule be exercised here: LIVE only when preparation completes, and APPROVED when it does not.
-const prep: { complete: boolean } = { complete: true }
+// ⚑ 10 Sep (G) — `calls` COUNTS INVOCATIONS, because "P2 does not prepare" is now a duty and
+// a stub that cannot be counted cannot prove it.
+const prep: { complete: boolean; calls: number } = { complete: true, calls: 0 }
 vi.mock('./programme-preparation', () => ({
   prepareProgrammeOutreach: async () => ({
+    ...(prep.calls++, {}),
     ok: prep.complete, complete: prep.complete, remaining: prep.complete ? 0 : 3, total: 3,
     campaigns: ['camp-1'], enrolled: prep.complete ? ['l1'] : [], alreadyEnrolled: 0,
     skipped: 0, failed: [], problems: prep.complete ? [] : ['No ICP is attached to this programme.'],
@@ -222,34 +225,52 @@ describe('② first payment — replay, ceiling, and NOT starting work', () => {
 })
 
 describe('③ second payment — Go Live, and every reason not to', () => {
-  it('from APPROVED and unpaused it records and goes LIVE', () => {
+  // ⛓️ RETARGETED 10 Sep (G) — THE OLD DUTY WAS THE DEFECT, AND THE FOUNDER'S OWN WORDS SAY SO.
+  //
+  // These two cases asserted that a successful paid P2 "records and goes LIVE", and that only a
+  // FAILED preparation left it APPROVED. R108 records the founder verbatim: *"Approval does not
+  // send. **P2 does not Make Live.** Make Live does not broadly enable uncontrolled sending."*
+  // So for every paying client the operator's Make Live was skipped — the money arriving armed
+  // the programme, activated its campaign and stamped every enrolment due. House, which arms
+  // through Make Live, was the only path behaving as ruled.
+  //
+  // The duty being protected here — "the money is recorded in full, exactly once, and nothing
+  // about the operational state is invented from it" — is UNCHANGED and now asserted against
+  // the correct outcome: money recorded, status untouched, no go-live, and no preparation run.
+  it('records the money in full and does NOT go live — P2 arms nothing', () => {
     prep.complete = true
-    const p = seed({ status: 'APPROVED', approved_at: 'x' })
-    return recordSecondPayment({ programmeId: p.id, sessionId: 'cs_2' }).then(r => {
-      expect(r.ok).toBe(true)
-      expect(r.recordedNotLive).toBeFalsy()
-      expect(state.programmes[0].status).toBe('LIVE')
-      expect(state.programmes[0].went_live_at).not.toBeNull()
-    })
-  })
-
-  it('🛑 BUT IF OUTREACH PREPARATION CANNOT COMPLETE, IT RECORDS AND DOES NOT GO LIVE', () => {
-    // ⚑ PR A2. LIVE is durable evidence that the programme can actually work its leads, so a
-    // paid programme that could not be prepared stays APPROVED — every later reader (Vida,
-    // Milla, `mayStartCampaign`, send authority) sees the truth rather than a label.
-    //
-    // ⚠️ AND THE MONEY IS UNTOUCHED BY THAT. Payment truth and operational truth are separate
-    // writes; nothing is refunded, reversed or invented.
-    prep.complete = false
+    prep.calls = 0
     const p = seed({ status: 'APPROVED', approved_at: 'x' })
     return recordSecondPayment({ programmeId: p.id, sessionId: 'cs_2', paymentIntentId: 'pi_2' }).then(r => {
       expect(r.ok).toBe(true)
-      expect(r.preparationIncomplete).toBe(true)
       expect(state.programmes[0].second_payment_ref, 'the payment is recorded in full').toBe('cs_2')
       expect(state.programmes[0].second_paid_at).not.toBeNull()
       expect(state.programmes[0].second_payment_intent_id).toBe('pi_2')
+      // 🛑 THE TWO ASSERTIONS THIS CHANGE EXISTS FOR.
+      expect(state.programmes[0].status, 'P2 took the programme live').toBe('APPROVED')
+      expect(state.programmes[0].went_live_at ?? null, 'P2 stamped a go-live').toBeNull()
+      // ⚠️ AND IT DOES NOT PREPARE EITHER. Post-approval preparation activates the campaign and
+      // enrols without `prepareOnly` — that is the arming half of Make Live, and it belongs to
+      // the operator act, not to a webhook.
+      expect(prep.calls, 'P2 ran outreach preparation').toBe(0)
+      // The programme is now APPROVED + paid in full, which the lifecycle reads as
+      // `live_ready_to_make_live` with a `make_live_required` task — a control that exists.
+      expect(r.recordedNotLive).toBe(true)
+    })
+  })
+
+  it('🛑 AND A PREPARATION THAT COULD NOT COMPLETE IS IRRELEVANT TO P2', () => {
+    // Same outcome whatever preparation would have said, because P2 no longer asks it. The
+    // money is still recorded in full; the operational decision belongs to Make Live.
+    prep.complete = false
+    prep.calls = 0
+    const p = seed({ status: 'APPROVED', approved_at: 'x' })
+    return recordSecondPayment({ programmeId: p.id, sessionId: 'cs_2', paymentIntentId: 'pi_2' }).then(r => {
+      expect(r.ok).toBe(true)
+      expect(state.programmes[0].second_payment_ref, 'the payment is recorded in full').toBe('cs_2')
       expect(state.programmes[0].status, 'it must NOT be live').toBe('APPROVED')
       expect(state.programmes[0].went_live_at ?? null, 'and must not claim a go-live').toBeNull()
+      expect(prep.calls, 'P2 ran outreach preparation').toBe(0)
     })
   })
 

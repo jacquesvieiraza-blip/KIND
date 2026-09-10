@@ -72,6 +72,14 @@ async function sendConsent(to = PROSPECT) {
 }
 
 beforeEach(() => {
+  // ⛓️ 10 Sep (I) — DELIVERY IS PERMITTED FOR THIS SUITE, AND THAT IS PART OF THE POINT.
+  //
+  // The kill-switch is now asked INSIDE `sendConsentEmail`, ahead of every gate below — the
+  // same construction this file's header argues for, extended to the switch. It refuses before
+  // the blocklist, the DNC floor and the cold identity are ever reached, so each S5/S6 case
+  // has to open the switch to be testing what it claims. `⑤` proves the refusal itself, and
+  // `restoreKillSwitch` puts the variable back so no other suite inherits it.
+  process.env.AUTO_OUTREACH_ENABLED = 'true'
   state.blocklistHit = false
   state.blocklistError = null
   state.isDemo = false
@@ -234,5 +242,47 @@ describe('HC-4 — S5 cannot silently regress: FIGSY_COLD_FROM is boot-critical'
     const src = readFileSync(join(__dirname, 'deliverability.ts'), 'utf8')
     expect(src).toContain('COLD_FROM_DEFAULT')
     expect(src).toContain('hello@get-kind.com')
+  })
+})
+
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// ⑤ THE KILL-SWITCH, ASKED AT THIS SEAM (I · 10 Sep)
+//
+// Every other cold seam asks the switch at the seam itself — SMTP inside `mailer.sendAs`, and
+// each provider push. This path does not go through `mailer`: it reaches `sendTx` →
+// `resend.emails.send` with `COLD_FROM`, and `sendTx` is the TRANSACTIONAL seam that invoices
+// and password resets share, so the switch cannot live there without stopping mail R114 does
+// not govern.
+//
+// Six callers remembered instead (`coldMailAllowed()` in `leads.ts`, a direct env read in
+// `icps.ts`). All six were correct. The seventh is the one that would not be — which is the
+// argument this whole file already makes about the blocklist and the cold identity.
+// ═══════════════════════════════════════════════════════════════════════════════════════
+
+describe('🛑 ⑤ the kill-switch refuses at the consent seam, whatever the caller did', () => {
+  it('ON = nothing is sent, and it says so as a refusal rather than an error', async () => {
+    process.env.AUTO_OUTREACH_ENABLED = ''
+    const r = await sendConsent()
+    expect(r.sent).toBe(false)
+    expect(r.sent === false && r.reason).toBe('kill_switch')
+    expect(state.sent, 'a consent request left with the kill-switch ON').toHaveLength(0)
+  })
+
+  it('🛑 …and it is asked BEFORE the blocklist read, so no gate below can be reached', async () => {
+    // Ordering matters for one reason: a refusal that happens after a database read is a
+    // refusal that can fail differently when the database is down.
+    process.env.AUTO_OUTREACH_ENABLED = ''
+    state.blocklistError = { message: 'connection reset' }
+    const r = await sendConsent()
+    expect(r.sent === false && r.reason, 'the blocklist error was reported instead of the switch').toBe('kill_switch')
+    expect(state.sent).toHaveLength(0)
+  })
+
+  it('an ordinary prospect still receives it with the switch OFF — otherwise the two above prove nothing', async () => {
+    process.env.AUTO_OUTREACH_ENABLED = 'true'
+    const r = await sendConsent()
+    expect(r.sent).toBe(true)
+    expect(state.sent).toHaveLength(1)
   })
 })

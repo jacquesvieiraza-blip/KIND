@@ -302,7 +302,7 @@ function pressedBy(req: Request): string {
 }
 
 async function auditProgramme(
-  req: Request, action: 'programme_lifecycle' | 'programme_internal_authority' | 'programme_go_live' | 'programme_icp_attached',
+  req: Request, action: 'programme_lifecycle' | 'programme_internal_authority' | 'programme_go_live' | 'programme_icp_attached' | 'programme_run',
   programmeId: string, detail: Record<string, unknown>,
 ) {
   const { writeOperatorAudit } = await import('../lib/operator-audit')
@@ -394,7 +394,7 @@ programmeRouter.post('/:id/authorise/second', guard(async (req: Request, res: Re
 
 /** THE EXPLICIT GO LIVE. Idempotent: an already-live programme succeeds and writes nothing. */
 programmeRouter.post('/:id/go-live', guard(async (req: Request, res: Response) => {
-  const r = await goLiveProgramme(req.params.id)
+  const r = await goLiveProgramme(req.params.id, pressedBy(req))
   // ⚠️ NO AUDIT ROW FOR A NO-OP. An already-live programme did not transition, and recording
   // a second "went live" would put an event in the log that never happened.
   //
@@ -417,6 +417,43 @@ programmeRouter.post('/:id/go-live', guard(async (req: Request, res: Response) =
     // 🛑 THE SCREEN MUST NOT BE ABLE TO SAY "LIVE" WITHOUT SAYING WHETHER IT WORKS.
     operable: r.ok,
     preparation: r.preparation ?? null,
+    // ⚑ 10 Sep (H) — AND IT MUST NOT READ AS "SENDING". Make Live ARMS; nothing leaves until
+    // Run. Stated in the response so a screen cannot imply otherwise by omission.
+    armed_only: true,
+    sends: 'zero — Run is a separate action',
+  })
+}))
+
+/**
+ * 🛑 RUN — THE SECOND OPERATOR ACT. IT GRANTS DELIVERY AUTHORITY AND SENDS NOTHING ITSELF.
+ *
+ * ⚠️ SEPARATE ROUTE, SEPARATE PRESS, SEPARATE AUDIT ROW. Before this existed, Run was
+ * `POST /operator/send-due/run-once` — a bounded send with no persisted grant — so nothing
+ * on the programme distinguished "armed" from "started" and the cron treated LIVE as both.
+ *
+ * ⚠️ THE KILL-SWITCH IS NOT CHECKED HERE, ON PURPOSE. Run records an AUTHORITY; the switch
+ * governs DELIVERY, and it is asked at the provider seam every time something actually goes
+ * out. Refusing the grant while the switch is on would mean the founder could not arrange a
+ * programme's authority before opening the switch — and would tempt exactly the "just flip it
+ * for a second" shape R114 exists to remove.
+ */
+programmeRouter.post('/:id/run', guard(async (req: Request, res: Response) => {
+  const { runProgramme } = await import('../lib/programme')
+  const r = await runProgramme(req.params.id, pressedBy(req))
+  // ⚠️ NO AUDIT ROW FOR A NO-OP. A repeat press changes nothing and the log must not gain a
+  // second "started" event for one start; the first press keeps the record.
+  if (r.ok && !r.alreadyRunning) {
+    await auditProgramme(req, 'programme_run', req.params.id, {
+      by: pressedBy(req),
+      run_at: r.runAt ?? null,
+      granted: 'external delivery authority for this programme',
+      sent: 'nothing — Run grants authority; delivery still passes the kill-switch, schedule, caps, sender and per-lead gates',
+    })
+  }
+  res.status(r.ok ? 200 : 400).json({
+    success: r.ok, error: r.reason,
+    already_running: r.alreadyRunning ?? false,
+    run_at: r.runAt ?? null,
   })
 }))
 

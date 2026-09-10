@@ -85,6 +85,10 @@ export type OperatorAction =
   // granted this, and on what note" has to be answerable without reading code.
   | 'proof_calibrated_restart_granted'
   | 'programme_go_live'      // the explicit, separate Go Live. Never a side effect of P2.
+  // ⚑ 10 Sep (H) — RUN, and it is a DIFFERENT act from Go Live. Go Live arms and sends zero;
+  // this is the grant that lets any send path consider the programme at all. Two acts, two
+  // audit actions, so "who armed it" and "who started it" are separately answerable.
+  | 'programme_run'
   | 'programme_icp_attached' // the ONLY writer of icps.programme_id — what future sourcing feeds
   | 'client_commercial_model_set'  // ⚑ 3 Sep (C2) — an operator DECLARED which commercial model
                             // governs a client: programme, legacy, or back to unclassified. Its

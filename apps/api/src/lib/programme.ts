@@ -86,6 +86,15 @@ export interface ProgrammeRow {
   sourced_reserved: number
   approved_at: string | null
   went_live_at: string | null
+  // ── ⚑ 10 Sep · RUN (20260910_programme_run_authority) ────────────────────────────────
+  //
+  // 🛑 THE SECOND OPERATOR ACT, AND THE ONLY ONE THAT PERMITS DELIVERY. `went_live_at` is
+  // ARMED; `run_at` is STARTED. Optional for the same reason as the review columns below —
+  // they are new, and every `select('*')` that predates the migration returns rows without
+  // them. `undefined` and `null` both mean "never run", which refuses.
+  run_at?: string | null
+  run_by?: string | null
+  went_live_by?: string | null
   paused_at: string | null
   pause_reason: PauseReason | null
   value_settled_at: string | null
@@ -378,7 +387,7 @@ export async function authoriseSecondInternal(programmeId: string): Promise<Prog
  * and no second transition is recorded — and only a genuine transition writes, guarded by
  * `.is('went_live_at', null)` so two concurrent presses cannot both stamp a time.
  */
-export async function goLiveProgramme(programmeId: string): Promise<ProgrammeResult & { alreadyLive?: boolean; preparation?: import('./programme-preparation').PrepareResult }> {
+export async function goLiveProgramme(programmeId: string, pressedBy?: string | null): Promise<ProgrammeResult & { alreadyLive?: boolean; preparation?: import('./programme-preparation').PrepareResult }> {
   const p = await getProgramme(programmeId)
   if (!p) return { ok: false, reason: 'No such programme.' }
   if (p.status === 'LIVE' && p.went_live_at) return { ok: true, alreadyLive: true }
@@ -419,14 +428,75 @@ export async function goLiveProgramme(programmeId: string): Promise<ProgrammeRes
     }
   }
 
+  // ⚠️ 10 Sep — THIS WRITE ARMS AND GRANTS NOTHING. `run_at` is untouched here, deliberately
+  // and permanently: LIVE is the armed state, and `authorityFor(..., 'OUTREACH')` refuses
+  // `programme_not_run` until the separate Run action stamps it. Setting `run_at` from this
+  // function would collapse the founder's two acts back into one.
   const { data, error } = await db.from('programmes').update({
     status: 'LIVE',
     went_live_at: new Date().toISOString(),
+    went_live_by: pressedBy ?? null,
     updated_at: new Date().toISOString(),
   }).eq('id', programmeId).is('went_live_at', null).select()
   if (error) return { ok: false, preparation: prep, reason: error.message }
   if (!data || data.length === 0) return { ok: true, alreadyLive: true, preparation: prep }
   return { ok: true, preparation: prep }
+}
+
+/**
+ * 🛑 RUN — THE SECOND OPERATOR ACT, AND THE ONLY ONE THAT PERMITS EXTERNAL DELIVERY.
+ *
+ * ── WHAT THIS FIXES (audit, 10 Sep) ────────────────────────────────────────────────────
+ *
+ * Run existed as a button (`POST /operator/send-due/run-once`) that sent a bounded batch. It
+ * did not exist as AUTHORITY: nothing on the programme recorded that it had happened, and
+ * `authorityFor(..., 'OUTREACH')` never asked. Make Live activates the campaign and stamps
+ * every enrolment `next_send_at = now` — exactly what `send-due` selects — so the moment the
+ * kill-switch was turned off for one canary, the two-hourly cron and the client-callable
+ * `/figsy/send-due` would have delivered for every LIVE programme with nobody pressing Run.
+ *
+ * ⚠️ IT GRANTS, IT DOES NOT SEND. This function writes one timestamp. No provider is called,
+ * no enrolment is touched, no campaign is activated (Make Live did that). Sending still has
+ * to pass the kill-switch, the schedule, the caps, the sender, DNC/opt-out and every other
+ * gate — Run only stops those gates being reached by a programme nobody started.
+ *
+ * ⚠️ IDEMPOTENT, AND THE FIRST PRESS IS THE ONE RECORDED. `.is('run_at', null)` means a
+ * second press writes nothing and returns success, so the audit shows who actually started
+ * the programme rather than whoever pressed it last.
+ *
+ * ⚠️ IT RE-PROVES THE ARMED STATE FROM THE ROW rather than trusting that Make Live ran: LIVE,
+ * `went_live_at`, `approved_at`, P2 and not-paused. A Run on a programme that reached LIVE by
+ * some other route would otherwise be a way in.
+ */
+export async function runProgramme(
+  programmeId: string,
+  pressedBy?: string | null,
+): Promise<ProgrammeResult & { alreadyRunning?: boolean; runAt?: string }> {
+  const p = await getProgramme(programmeId)
+  if (!p) return { ok: false, reason: 'No such programme.' }
+  if (p.run_at) return { ok: true, alreadyRunning: true, runAt: p.run_at }
+  if (TERMINAL_STATUSES.includes(p.status)) return { ok: false, reason: `This programme is ${p.status}.` }
+  if (p.paused_at) {
+    return { ok: false, reason: `Cannot Run a paused programme${p.pause_reason ? ` (${p.pause_reason})` : ''}. Resume it first.` }
+  }
+  if (p.status !== 'LIVE' || !p.went_live_at) {
+    return { ok: false, reason: `This programme is ${p.status} and has not been made live. Make Live arms the programme; Run starts it.` }
+  }
+  if (!p.approved_at) return { ok: false, reason: 'This programme has no client approval recorded, so it cannot be Run.' }
+  if (!p2Authorised(p)) return { ok: false, reason: 'P2 authority is missing, so this programme cannot be Run.' }
+
+  const runAt = new Date().toISOString()
+  const { data, error } = await db.from('programmes')
+    .update({ run_at: runAt, run_by: pressedBy ?? null, updated_at: runAt })
+    .eq('id', programmeId).is('run_at', null).select('run_at')
+  if (error) return { ok: false, reason: error.message }
+  // A concurrent press won the compare-and-set. That is success, not a failure — and the
+  // stamp on the row is theirs.
+  if (!data || data.length === 0) {
+    const again = await getProgramme(programmeId)
+    return { ok: true, alreadyRunning: true, runAt: again?.run_at ?? undefined }
+  }
+  return { ok: true, runAt }
 }
 
 // ── PAYMENTS ─────────────────────────────────────────────────────────────────────────────
@@ -559,47 +629,36 @@ export async function recordSecondPayment(params: {
     return { ok: true, recordedNotLive: true }
   }
 
-  // ── ⚑ THE PAID PATH USES THE SAME PREPARATION AS MAKE LIVE ───────────────────────────
+  // ── 🛑 10 Sep (G) — P2 IS MONEY. IT DOES NOT ARM, PREPARE OR GO LIVE ─────────────────
   //
-  // 🛑 THE PAYMENT IS ALREADY RECORDED AND IS NEVER UNDONE BY WHAT HAPPENS NEXT. The update
-  // above committed `second_payment_ref`, `second_paid_at`, the intent and the LIVE
-  // transition; money that arrived is a fact regardless of whether the machinery that follows
-  // succeeds. There is no rollback, no fake refund and no reversal here — the worst outcome is
-  // a paid, live, not-yet-operable programme, and a human being told so.
+  // ⛓️ WHAT THIS REPLACES, AND IT WAS THE FOUNDER'S OWN SENTENCE BEING BROKEN. This function
+  // used to run `prepareProgrammeOutreach` and then write `status: 'LIVE', went_live_at` —
+  // with the comment "the successful paid path still auto-goes-live, exactly as it always
+  // has." R108 records the founder's words verbatim: *"Approval does not send. **P2 does not
+  // Make Live.** Make Live does not broadly enable uncontrolled sending."* So for every
+  // PAYING client the operator's Make Live was skipped entirely: the money arriving armed the
+  // programme, activated its campaign and stamped every enrolment due. House, which reaches
+  // arming through Make Live, was the only path that behaved as ruled.
   //
-  // ⚠️ ONE MECHANISM, BOTH PATHS. House reaches this through Make live; a paying client
-  // reaches it through this webhook. Two implementations of "operable" would drift, and the
-  // one that drifted would be the one nobody walked.
-  const { prepareProgrammeOutreach } = await import('./programme-preparation')
-  const prep = await prepareProgrammeOutreach(params.programmeId)
-  if (!prep.complete) {
-    // Loud, because the client has now paid in full for a programme that cannot yet work.
-    void sendFounderAlert('payment_failed',
-      'Programme second payment recorded — but the programme did NOT go live', [
-        `Programme ${params.programmeId} (client ${p.client_id}) is PAID IN FULL and remains APPROVED.`,
-        `Outreach preparation did not complete: ${prep.problems.join(' ')}`,
-        prep.remaining > 0 ? `${prep.remaining} eligible prospect(s) still need preparing.` : '',
-        'The payment is recorded correctly. Nothing was refunded, reversed or invented.',
-        'The programme is NOT live and can send nothing. Press Make live in Vida to retry — preparation is idempotent and continues where it stopped.',
-      ].filter(Boolean))
-    return { ok: true, preparation: prep, preparationIncomplete: true }
-  }
-
-  // ⚑ PREPARATION COMPLETED — the successful paid path still auto-goes-live, exactly as it
-  // always has. Compare-and-set on `went_live_at` so a retry cannot transition twice.
-  const { error: liveErr } = await db.from('programmes').update({
-    status: 'LIVE', went_live_at: new Date().toISOString(), updated_at: new Date().toISOString(),
-  }).eq('id', params.programmeId).is('went_live_at', null).select()
-  if (liveErr) {
-    void sendFounderAlert('payment_failed',
-      'Programme is paid and prepared, but the LIVE transition failed', [
-        `Programme ${params.programmeId} (client ${p.client_id}) is paid and fully prepared.`,
-        `The status write failed: ${liveErr.message}`,
-        'The payment is recorded correctly. Press Make live in Vida to complete it.',
-      ])
-    return { ok: true, preparation: prep, preparationIncomplete: true }
-  }
-  return { ok: true, preparation: prep }
+  // 🛑 THE MONEY IS UNAFFECTED AND IS NEVER UNDONE. `second_payment_ref`, `second_paid_at`
+  // and the intent id were committed by the update above, unconditionally. Nothing here
+  // reverses, refunds or re-records them. What changed is only what the payment CAUSES.
+  //
+  // ⚠️ AND NOTHING IS PREPARED HERE EITHER. Post-approval preparation activates the campaign
+  // and enrols without `prepareOnly` — it is the arming half of Make Live, and it belongs to
+  // the operator act, not to a webhook. `goLiveProgramme` runs exactly the same mechanism, so
+  // there is one implementation of "operable" and it is reached by pressing Make Live.
+  //
+  // The programme therefore sits APPROVED and paid in full, which `deriveLifecycle` reads as
+  // `live_ready_to_make_live` with a `make_live_required` task — a real control that exists.
+  void sendFounderAlert('new_signup',
+    'Programme paid in full — ready for Make Live', [
+      `Programme ${params.programmeId} (client ${p.client_id}) has received its second payment (session ${params.sessionId}).`,
+      'It is APPROVED and PAID IN FULL, and it is NOT live: P2 records money and arms nothing.',
+      'Nothing was refunded, reversed or invented — the payment is recorded exactly once and no later step can undo it.',
+      'Press Make live in Vida to arm it. Make Live sends zero — Run is the separate action that starts sending.',
+    ])
+  return { ok: true, recordedNotLive: true }
 }
 
 /** Which Stripe stage a metadata blob describes, or null if it is not a programme payment. */

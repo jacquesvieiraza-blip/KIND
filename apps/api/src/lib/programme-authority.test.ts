@@ -35,6 +35,13 @@ function liveProgramme(over: Partial<ProgrammeRow> = {}): ProgrammeRow {
     first_paid_at: '2026-08-01T00:00:00Z', second_paid_at: '2026-08-10T00:00:00Z',
     sourcing_ceiling: 1000, sourced_used: 100, sourced_reserved: 0,
     approved_at: '2026-08-09T00:00:00Z', went_live_at: '2026-08-10T00:00:00Z',
+    // ⛓️ 10 Sep (H) — THE FIXTURE GAINS `run_at`, AND THE DUTY IS UNCHANGED. This row means
+    // "a fully live, approved, paid programme", and OUTREACH now requires the SECOND operator
+    // act as well: Make Live arms (`went_live_at`) and Run starts (`run_at`). Without it every
+    // OUTREACH assertion below would pass for the wrong reason — refused for the new gate
+    // rather than allowed on the merits. The un-run case is proved on its own, deliberately,
+    // in `programme-run-authority.test.ts`.
+    run_at: '2026-08-10T09:00:00Z', run_by: 'ops@get-kind.com',
     paused_at: null, pause_reason: null, value_settled_at: null,
     make_whole_cents: 0, contribution_cents: null, contribution_finalised_at: null,
     disputed_at: null,

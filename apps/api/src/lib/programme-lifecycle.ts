@@ -101,7 +101,17 @@ export type LifecycleFacts = {
     approved: boolean
     /** P2 authority — internal authorisation OR a real second payment. Never inferred. */
     secondAuthorised: boolean
+    /** ARMED: status LIVE with `went_live_at`. Make Live produced this, and it sends nothing. */
     live: boolean
+    /**
+     * ⚑ 10 Sep (H) — STARTED: an operator pressed Run and `programmes.run_at` holds it.
+     *
+     * 🛑 DIFFERENT FROM `live`, AND THE SCREEN SAID OTHERWISE. Vida read a LIVE programme with
+     * zero sends as "ready to run" and offered Run as the task — correct — but a LIVE programme
+     * WITH sends as "Review", so the two states between them never asked whether Run had
+     * actually happened. Now `live && !run` is armed-not-started, whatever the send count says.
+     */
+    run: boolean
   }
   /**
    * Has Milla started Proof?
@@ -239,6 +249,26 @@ export function deriveLifecycle(f: LifecycleFacts): LifecycleVerdict {
 
   // ── LIVE AND PAST ────────────────────────────────────────────────────────────────────
   if (p.live) {
+    // ── 🛑 10 Sep (H) — ARMED IS ASKED BEFORE SENT ────────────────────────────────────────
+    //
+    // ⛓️ THIS BRANCH USED TO OPEN ON `f.sends > 0`, which made the send count the thing that
+    // separated "waiting to start" from "running". That was only ever true because LIVE
+    // implied sending: nothing recorded whether Run had happened, so a programme with one
+    // stray historical send read as Review and one with none read as ready-to-run.
+    //
+    // Run is now a stored fact, so it is asked FIRST and the send count no longer stands in
+    // for it. An armed, never-Run programme is `live_ready_to_run` whatever has been sent —
+    // which is the honest answer, because until somebody presses Run no send path will
+    // consider it (`authorityFor` refuses `programme_not_run`).
+    if (!p.run) {
+      if (!f.senderSendable) return verdict('review_sender', 'live', 'sender_not_sendable')
+      if (p.paused) return verdict('blocked', 'live', 'human_blocker')
+      // 🛑 THE KILL-SWITCH IS NOT A TO-DO. With it ON, Run cannot start — and an operator
+      // cannot fix that from this screen, so the client must NOT appear in Needs you. The
+      // state stays truthful and the panel says plainly why Run is unavailable.
+      const runnable = f.killSwitchOff && f.operatorRunEnabled
+      return verdict('live_ready_to_run', 'live', runnable ? 'run_required' : null)
+    }
     if (f.sends > 0) {
       // Review. The sender is asked FIRST: a paused sender is why nothing is moving, and a
       // reply queued behind it is a smaller truth wearing the bigger one's urgency.
@@ -247,15 +277,15 @@ export function deriveLifecycle(f: LifecycleFacts): LifecycleVerdict {
       if (f.repliesAwaitingDecision > 0) return verdict('review_reply', 'review', 'reply_needs_decision')
       return verdict('review', 'review', null)
     }
-    // Live, armed, nothing sent. Run is the only launch action — and it is only a TASK when it
-    // could actually be pressed.
+    // ── RUN, AND NOTHING HAS LANDED YET ─────────────────────────────────────────────────
+    //
+    // The programme has been started and is working through its schedule; the first send may
+    // be minutes or a whole send-window away. Vida WATCHES — there is no task, because there
+    // is nothing for an operator to press. A sender that has stopped, or a pause, is still a
+    // real interruption and is reported as one.
     if (!f.senderSendable) return verdict('review_sender', 'live', 'sender_not_sendable')
     if (p.paused) return verdict('blocked', 'live', 'human_blocker')
-    // 🛑 THE KILL-SWITCH IS NOT A TO-DO. With it ON, Run cannot start — and an operator cannot
-    // fix that from this screen, so the client must NOT appear in Needs you. The state is still
-    // truthful (`live_ready_to_run`) and the panel says plainly why Run is unavailable.
-    const runnable = f.killSwitchOff && f.operatorRunEnabled
-    return verdict('live_ready_to_run', 'live', runnable ? 'run_required' : null)
+    return verdict('review', 'live', null)
   }
 
   // ── APPROVED, NOT YET LIVE ───────────────────────────────────────────────────────────

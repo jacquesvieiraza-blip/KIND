@@ -183,6 +183,21 @@ export async function runSendDue(mode: SendDueMode): Promise<SendDueResult> {
         openProgrammeByClient.set(cid as string, '__none__')
         continue
       }
+      // ── 🛑 10 Sep (H) — ARMED IS NOT STARTED. AN UN-RUN PROGRAMME IS NOT OFFERED ────────
+      //
+      // `checkEnrollmentAuthority` refuses `programme_not_run` at send time, and that is the
+      // real gate. This one stops the work ENTERING the candidate set — the same two-layer
+      // shape the attribution rule above uses, and for the same reason: a run should not be
+      // spending its budget accounting on rows it is about to refuse one by one, and a single
+      // gap in the authority path must not put a real prospect in a live send queue.
+      //
+      // ⚠️ `run_at` MISSING READS AS NOT RUN. Before `20260910_programme_run_authority` the
+      // column does not exist and comes back `undefined`; that selects nothing, which is the
+      // safe direction and matches what the authority layer decides about the same row.
+      if (model.openProgramme && !model.openProgramme.run_at) {
+        openProgrammeByClient.set(cid as string, '__not_run__')
+        continue
+      }
       openProgrammeByClient.set(cid as string, model.openProgramme?.id ?? null)
     } catch (err) {
       // ⛓️ C2 — the throw now also comes from an UNREADABLE commercial model, deliberately: a
@@ -201,6 +216,10 @@ export async function runSendDue(mode: SendDueMode): Promise<SendDueResult> {
     // 🛑 A PROGRAMME-MODEL CLIENT WITH NO PROGRAMME HAS NOTHING TO SEND. Not an error — a
     // waiting state. Their history is preserved and simply carries no send authority.
     if (openId === '__none__') return false
+    // 🛑 ARMED BUT NEVER RUN. Also a waiting state, and the one this whole change exists for:
+    // Make Live leaves every enrolment due, so without this the cron would send the moment
+    // the kill-switch opened, with nobody having pressed Run.
+    if (openId === '__not_run__') return false
     if (openId == null) return true                        // genuine legacy client — unchanged
     return (e as { programme_id?: string | null }).programme_id === openId
   })

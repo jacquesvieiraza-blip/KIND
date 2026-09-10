@@ -532,23 +532,33 @@ describe('⑤ both Live paths reach the same preparation', () => {
     expect(f, 'it stays APPROVED and can send nothing').toContain('It remains APPROVED and can send nothing')
   })
 
-  it('🛑 recordSecondPayment (paying client) prepares too — the same function', () => {
+  it('🛑 recordSecondPayment (paying client) PREPARES NOTHING — arming is the operator\'s act', () => {
+    // ⛓️ REVERSED 10 Sep (G). This case asserted the paid webhook called
+    // `prepareProgrammeOutreach` and then wrote LIVE — "the same function", so that House and
+    // a paying client shared one implementation of "operable". The sharing was right; the
+    // TRIGGER was wrong. R108 records the founder verbatim: *"**P2 does not Make Live.**"*
+    // Post-approval preparation activates the campaign and enrols without `prepareOnly` — it
+    // is the arming half of Make Live, and it belongs to the operator act, not to a webhook.
+    //
+    // ⚠️ THE ONE-IMPLEMENTATION DUTY IS UNCHANGED and is asserted just below: `goLiveProgramme`
+    // is now the ONLY caller, so there is still exactly one meaning of "operable".
     const at = prog.indexOf('export async function recordSecondPayment')
     const f = prog.slice(at, at + 4200)
-    expect(f).toContain('const prep = await prepareProgrammeOutreach(params.programmeId)')
-    expect(f, 'the paid path must report an incomplete preparation').toContain('preparationIncomplete: true')
-    // The money write no longer carries the status — payment truth and operational truth are
-    // two separate writes now.
+    expect(f.includes('prepareProgrammeOutreach'), 'P2 still prepares').toBe(false)
+    expect(f.includes("status: 'LIVE'"), 'P2 still arms the programme').toBe(false)
+    // The money write is still unconditional and still first.
     expect(f).toContain('.update(base)')
-    expect(f.indexOf('.update(base)')).toBeLessThan(f.indexOf('prepareProgrammeOutreach'))
-    expect(f.indexOf('prepareProgrammeOutreach')).toBeLessThan(f.indexOf("status: 'LIVE', went_live_at"))
+    expect(f).toContain('recordedNotLive: true')
   })
 
   it('🛑 AND THE PAYMENT IS NEVER ROLLED BACK BY A PREPARATION FAILURE', () => {
     const at = prog.indexOf('export async function recordSecondPayment')
     const f = prog.slice(at, at + 4200)
-    // The money write commits before preparation is even called.
-    expect(f.indexOf('second_payment_ref: params.sessionId')).toBeLessThan(f.indexOf('prepareProgrammeOutreach'))
+    // ⛓️ 10 Sep (G) — the money write is now the ONLY write in this function, which is a
+    // stronger version of the same property: there is no later step left that could roll it
+    // back. The old ordering assertion (money before preparation) described a preparation
+    // call that no longer exists here.
+    expect(f).toContain('second_payment_ref: params.sessionId')
     // ⚠️ ASSERTED ON CODE, NOT PROSE — `strip()` removes comments, so a phrase from one can
     // never be the evidence. The money update is unconditional: `.update(base)` with no
     // ternary, unlike the old `blocked ? base : {...base, status:'LIVE'}` it replaced.
@@ -588,7 +598,10 @@ describe('⑤ both Live paths reach the same preparation', () => {
 
   it('there is ONE preparation implementation, not two', () => {
     const calls = (prog.match(/prepareProgrammeOutreach\(/g) ?? [])
-    expect(calls.length, 'both Live paths, one function').toBe(2)
+    // ⛓️ 2 → 1 on 10 Sep (G). There is now ONE arming path — `goLiveProgramme` — because the
+    // paid P2 webhook no longer arms. The duty is unchanged and in fact tighter: one
+    // implementation of "operable", reached by pressing Make Live.
+    expect(calls.length, 'arming has grown a second implementation').toBe(1)
   })
 })
 

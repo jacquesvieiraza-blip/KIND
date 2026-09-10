@@ -49,6 +49,9 @@ type ProgrammeRow = {
   approved_at: string | null; second_paid_at: string | null; second_payment_ref: string | null
   second_authorised_at: string | null; first_paid_at: string | null; first_authorised_at: string | null
   went_live_at: string | null
+  /** ⚑ 10 Sep (H) — Run, the second operator act. Optional: the column is new, so rows read
+   *  before `20260910_programme_run_authority` carry `undefined`, which reads as never-run. */
+  run_at?: string | null
   meeting_target: number | null; sourcing_ceiling: number | null
   sourced_used: number | null; sourced_reserved: number | null
   recommended_volume: number | null; created_at: string | null
@@ -59,6 +62,10 @@ type ProgrammeRow = {
 const PROGRAMME_COLUMNS =
   'id, client_id, status, paused_at, approved_at, second_paid_at, second_payment_ref, ' +
   'second_authorised_at, first_paid_at, first_authorised_at, went_live_at, meeting_target, ' +
+  // ⚑ 10 Sep (H) — `run_at` IS SELECTED BECAUSE THE DERIVATION NOW ASKS IT. Unselected it
+  // reads `undefined`, which the rule treats as never-run — safe, but it would hold every
+  // started programme at "ready to run" for ever.
+  'run_at, ' +
   'sourcing_ceiling, sourced_used, sourced_reserved, recommended_volume, created_at'
 
 /** The programme a client is working RIGHT NOW — newest non-terminal, else newest completed. */
@@ -75,6 +82,9 @@ function programmeFacts(p: ProgrammeRow): NonNullable<LifecycleFacts['programme'
     approved: !!p.approved_at,
     secondAuthorised: p2Authorised(p as unknown as AuthorityRow),
     live: !!p.went_live_at || String(p.status) === 'LIVE',
+    // 🛑 ARMED AND STARTED ARE TWO FACTS. `live` is Make Live's work; this is Run's, and only
+    // Run permits delivery. A missing column reads as never-run, which is the safe direction.
+    run: !!p.run_at,
   }
 }
 

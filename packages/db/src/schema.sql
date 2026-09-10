@@ -858,6 +858,13 @@ create table if not exists public.programmes (
   -- a single stage never holds both a payment and internal authority.
   first_authorised_at       timestamptz,
   second_authorised_at      timestamptz,
+  -- 🛑 10 Sep — RUN IS THE SECOND OPERATOR ACT, AND IT IS THE ONLY ONE THAT PERMITS DELIVERY.
+  -- Make Live ARMS (status LIVE + `went_live_at`) and sends zero; Run STARTS. `run_at IS NULL`
+  -- means no send path may select or deliver for this programme, however live it is — which is
+  -- every existing row, deliberately un-backfilled. See 20260910_programme_run_authority.
+  run_at                    timestamptz,
+  run_by                    text,
+  went_live_by              text,
   created_at                timestamptz not null default now(),
   updated_at                timestamptz not null default now()
 );

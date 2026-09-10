@@ -76,6 +76,11 @@ export type AuthorityRefusal =
   | 'programme_not_live'
   | 'programme_not_approved'
   | 'second_payment_missing'
+  /** ⚑ 10 Sep — ARMED BUT NEVER RUN. Make Live produces every other condition on this list;
+   *  Run is the separate operator act that permits delivery, and before this reason existed
+   *  "LIVE" was indistinguishable from "sending". Deliberately NOT in `REPLY_FORGIVEN`: a
+   *  programme that has never been Run has contacted nobody, so it can have no reply to send. */
+  | 'programme_not_run'
   | 'review_required'
   | 'sourcing_ceiling_reached'
   /** ⚑ The work carries no programme attribution and the client HAS an open programme, so it
@@ -223,6 +228,29 @@ export function authorityFor(
       return refuse('programme_not_approved',
         'This programme has not been approved, so no outreach may start. Approval comes before Go Live.')
     }
+    // ── 🛑 10 Sep — AND RUN. THE SECOND OPERATOR ACT, WHICH DID NOT EXIST IN THE DATA ────
+    //
+    // The founder's rule is that Make Live ARMS and Run STARTS, and that only Run permits
+    // external delivery. Every gate above this line describes the ARMED state: approved,
+    // paid in full, LIVE, not paused, within the window, with a sender. That is precisely
+    // what Make Live produces — and Make Live also activates the campaign and stamps every
+    // enrolment `next_send_at = now`, which is exactly what `send-due` selects.
+    //
+    // 🛑 SO WITHOUT THIS CHECK, "LIVE" MEANT "SENDING". The first time the kill-switch was
+    // turned off to let one canary Run, the two-hourly cron and the client-callable
+    // `/figsy/send-due` would have delivered for every live programme with nobody pressing
+    // anything. Run was a button that sent a bounded batch; it was not authority.
+    //
+    // ⚠️ IT IS ASKED LAST AND REFUSED FIRST — placed after approval and P2 so an operator
+    // reading a refusal is told the nearest missing thing, not the furthest.
+    // ⚠️ AND `undefined` REFUSES TOO. Before `20260910_programme_run_authority` runs, the
+    // column does not exist and the select returns `undefined`; that reads as "not run",
+    // which is the safe direction and the same answer the migration's own NULL default
+    // gives. A missing column must never read as permission.
+    if (!p.run_at) {
+      return refuse('programme_not_run',
+        'This programme is armed but has never been Run. Make Live arms and sends nothing; Run is the separate operator action that permits sending, and it has not been pressed.')
+    }
     return { allowed: true, mode: 'programme', programme: p }
   }
 
@@ -297,7 +325,12 @@ const PROGRAMME_COLUMNS =
   // ⚑ 8 Sep — the OUTREACH guards read the send window off the programme row, so it has to
   // be SELECTED. An unselected column reads `undefined`, which the schedule guard treats as
   // "no schedule configured" and refuses — a column list is a silent way to break a gate.
-  'send_schedule'
+  'send_schedule, ' +
+  // ⚑ 10 Sep — AND `run_at`, for the same reason and with more at stake: the OUTREACH gate
+  // now refuses without it. Unselected it reads `undefined`, which refuses — safe, but it
+  // would refuse for every programme including a genuinely Run one, so it is selected here
+  // rather than left to fail closed by accident.
+  'run_at'
 
 /**
  * The client's open (non-terminal) programme, or null if they have none.

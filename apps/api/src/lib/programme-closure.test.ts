@@ -326,8 +326,15 @@ describe('GAP 3 · behavioural — ensureCampaignForIcp actually refuses', () =>
     // WITHOUT AN APPROVAL ROW would have activated a sending campaign. "One programme
     // approval" is a founder lock, not a side effect of the status column, so the canonical
     // gate checks it and this fixture now has to be a genuinely complete programme to pass.
+    //
+    // ⛓️ `run_at` ADDED 10 Sep (H), and it is the same kind of tightening again. OUTREACH now
+    // requires the SECOND operator act: Make Live arms (`went_live_at`) and Run starts
+    // (`run_at`). A campaign activation for a programme nobody had started would put real
+    // enrolments in a live send queue, so the fixture has to be a genuinely RUNNING programme
+    // for this non-vacuous case to mean what it says.
     dbState.programmes.push({ id: 'p1', client_id: 'c1', status: 'LIVE', second_paid_at: 'x',
-      second_payment_ref: 'cs_2', approved_at: 'x', first_paid_at: 'x', paused_at: null })
+      second_payment_ref: 'cs_2', approved_at: 'x', first_paid_at: 'x', paused_at: null,
+      went_live_at: 'w', run_at: 'r' })
     const { ensureCampaignForIcp } = await import('./start-work')
     const r = await ensureCampaignForIcp('c1', 'icp-1', 'ICP', { activate: true })
     const reason = (r as { refused?: { reason?: string } }).refused?.reason

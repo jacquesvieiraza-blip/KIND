@@ -5,6 +5,9 @@ import { isDemoClient } from './demo'
 import { db } from '@kind/db'
 import { normalizeRevealEmail } from './billing-rules'
 import { isSuppressed } from './suppression'
+// ⚑ 10 Sep (I) — the ONE definition of the kill-switch, imported so the consent seam asks it
+// directly instead of trusting six callers to remember. See `sendConsentEmail`.
+import { killSwitchBlocks, KILL_SWITCH_REFUSAL } from './outreach-kill-switch'
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
 const FROM = 'K.I.N.D <hello@get-kind.com>'
@@ -390,7 +393,9 @@ export async function sendOnboardingEmail(
 // return behave exactly as before.
 export type ConsentSendResult =
   | { sent: true }
-  | { sent: false; reason: 'not_configured' | 'is_demo' | 'opted_out' | 'do_not_contact'; detail: string }
+  /** ⚑ 10 Sep (I) — `kill_switch` joins the refusals. It is a REFUSAL, not an error: nothing
+   *  was sent and nothing is wrong, so callers that log a reason keep working unchanged. */
+  | { sent: false; reason: 'not_configured' | 'is_demo' | 'opted_out' | 'do_not_contact' | 'kill_switch'; detail: string }
 
 export async function sendConsentEmail(
   to: string,
@@ -400,6 +405,27 @@ export async function sendConsentEmail(
   clientId?: string | null,
 ): Promise<ConsentSendResult> {
   if (!resend) return { sent: false, reason: 'not_configured', detail: 'RESEND_API_KEY is not set, so nothing can be sent.' }
+
+  // ── 🛑 10 Sep (I) — THE KILL-SWITCH, ASKED HERE RATHER THAN BY WHOEVER CALLS ──────────
+  //
+  // ⛓️ WHAT THIS CLOSES. Every other cold seam asks the switch at the seam itself — SMTP
+  // inside `mailer.sendAs`, and each provider push (Smartlead, Instantly, LinkedIn). This
+  // path does not go through `mailer`: it reaches `sendTx` → `resend.emails.send` with
+  // `COLD_FROM`, and `sendTx` is the TRANSACTIONAL seam that invoices and password resets
+  // share, so the switch cannot live there without stopping mail R114 does not govern.
+  //
+  // So the six callers each remembered instead — `coldMailAllowed()` in `leads.ts` and a
+  // direct `process.env.AUTO_OUTREACH_ENABLED` read in `icps.ts`. All six were correct on
+  // 10 Sep. A switch that each caller must remember is a convention, and the seventh caller
+  // is the one that will not: this function IS the cold seam for consent mail, so the
+  // question is asked here, once, where a new caller cannot route around it by not knowing.
+  //
+  // ⚠️ A CONSENT REQUEST IS OUTREACH. It is an unsolicited first contact with a real
+  // prospect, by name, from the cold identity — the founder's rule names no exception for it.
+  if (killSwitchBlocks('resend_cold', `consent request to ${to}`)) {
+    return { sent: false, reason: 'kill_switch', detail: KILL_SWITCH_REFUSAL }
+  }
+
   // #453 — DEMO MODE: a consent email is an OUTBOUND prospect send. A demo client must
   // never email a real person, so suppress it when the sending client is is_demo. (The
   // clientId is passed by every caller; if omitted this behaves exactly as before.)

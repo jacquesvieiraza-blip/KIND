@@ -417,9 +417,11 @@ stripeRouter.post('/webhook', async (req: Request, res: Response) => {
           ])
           res.status(500).json({ error: 'programme second payment record failed — retry' }); return
         }
-        console.log(r.recordedNotLive
-          ? `[Stripe] programme ${meta.programmeId} second payment RECORDED but NOT taken live — state refused it. Founder alerted.`
-          : `[Stripe] programme ${meta.programmeId} second payment ${r.alreadyRecorded ? 'already recorded (replay)' : 'recorded'} — programme is LIVE.`)
+        // ⚑ 10 Sep (G) — "NOT LIVE" IS NOW THE CORRECT AND ONLY OUTCOME. P2 records money and
+        // arms nothing (R108: "P2 does not Make Live"), so this log no longer has a branch
+        // that says the programme is live — it never is at this point. The operator arms it
+        // with Make Live and starts it with Run.
+        console.log(`[Stripe] programme ${meta.programmeId} second payment ${r.alreadyRecorded ? 'already recorded (replay)' : 'recorded'} — programme is APPROVED and paid in full, NOT live. Make Live is the operator's next act.`)
         res.sendStatus(200); return
       }
 

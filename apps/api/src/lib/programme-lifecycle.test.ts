@@ -40,10 +40,27 @@ const BASE: LifecycleFacts = {
   repeatDismissed: false,
 }
 
+// ⛓️ 10 Sep (H) — `run` JOINS THE SHAPE, AND ITS DEFAULT IS `true` ON PURPOSE.
+//
+// Run is the second operator act and the only one that permits delivery, so `live && !run` is
+// now its own state (armed, never started). Every pre-existing LIVE case in this file was
+// written to mean "a programme that is actually running", so the default preserves each of
+// those duties exactly; the armed-not-started cases are asserted explicitly below and in
+// `programme-run-authority.test.ts`. Defaulting it to `false` instead would have silently
+// re-pointed a dozen assertions at a state they were never about.
 const prog = (over: Partial<NonNullable<LifecycleFacts['programme']>> = {}) => ({
-  status: 'SOURCING', paused: false, approved: false, secondAuthorised: false, live: false, ...over,
+  status: 'SOURCING', paused: false, approved: false, secondAuthorised: false, live: false,
+  run: true, ...over,
 })
 const at = (f: Partial<LifecycleFacts>) => deriveLifecycle({ ...BASE, ...f })
+
+/**
+ * ⚑ 10 Sep (H) — ARMED, NEVER STARTED: Make Live has run, Run has not.
+ *
+ * Declared once at module scope because two describe blocks need it. `live: true` alone used
+ * to mean both "armed" and "running", and the send count stood in for the difference.
+ */
+const armedLive = { status: 'LIVE', approved: true, secondAuthorised: true, live: true, run: false }
 
 describe('① the eight stages, and exactly one of them is live', () => {
   it('the locked order is the founder\'s, and nothing was added to it', () => {
@@ -120,10 +137,17 @@ describe('② the derivation, state by state', () => {
     expect(v.needsYouReason).toBe('make_live_required')
   })
 
-  it('LIVE with zero sends is Live — ready to Run, NOT Review', () => {
-    const v = at({ programme: prog({ status: 'LIVE', approved: true, secondAuthorised: true, live: true }), sends: 0 })
+  it('LIVE and never Run is Live — ready to Run, NOT Review', () => {
+    // ⛓️ RETARGETED 10 Sep (H), AND IT IS NOW A STRONGER CLAIM. The case was "LIVE with zero
+    // sends", because zero sends was the only available proxy for "nobody has started it".
+    // Run is a stored fact now, so the state is named by the fact — and the send count is
+    // asserted NOT to matter: an armed programme reads ready-to-Run even with sends against
+    // it, which is the honest answer while `authorityFor` refuses `programme_not_run`.
+    const v = at({ programme: prog({ ...armedLive }), sends: 0 })
     expect(v.stage).toBe('live')
     expect(v.state).toBe('live_ready_to_run')
+    const withStraySends = at({ programme: prog({ ...armedLive }), sends: 212 })
+    expect(withStraySends.state, 'a send count promoted an un-Run programme to Review').toBe('live_ready_to_run')
   })
 
   it('LIVE with sends is Review', () => {
@@ -188,6 +212,9 @@ describe('③ exceptions replace the healthy state they sit on', () => {
 
 describe('🛑 ④ Needs you — the inclusions, each naming a control that exists', () => {
   const live = { status: 'LIVE', approved: true, secondAuthorised: true, live: true }
+  // ⛓️ 10 Sep (H) — ARMED, NEVER STARTED. Make Live produced `live: true`; nobody has pressed
+  // Run. This state used to be inferred from `sends: 0`, which was only ever a proxy for it.
+  const armed = { ...live, run: false }
 
   it('1 · preparation stopped, and there is a retry', () => {
     expect(at({ programme: prog(), preparationStopped: true }).needsYouReason).toBe('preparation_stopped')
@@ -197,7 +224,7 @@ describe('🛑 ④ Needs you — the inclusions, each naming a control that exis
       .toBe('make_live_required')
   })
   it('3 · Run is required AND actually usable', () => {
-    expect(at({ programme: prog(live), sends: 0 }).needsYouReason).toBe('run_required')
+    expect(at({ programme: prog(armed), sends: 0 }).needsYouReason).toBe('run_required')
   })
   it('4 · a reply is waiting for a person', () => {
     expect(at({ programme: prog(live), sends: 9, repliesAwaitingDecision: 2 }).needsYouReason).toBe('reply_needs_decision')
@@ -214,7 +241,7 @@ describe('🛑 ④ Needs you — the inclusions, each naming a control that exis
     const cases: LifecycleFacts[] = [
       { ...BASE, programme: prog(), preparationStopped: true },
       { ...BASE, programme: prog({ status: 'APPROVED', approved: true, secondAuthorised: true }) },
-      { ...BASE, programme: prog(live), sends: 0 },
+      { ...BASE, programme: prog(armed), sends: 0 },
       { ...BASE, programme: prog(live), sends: 9, repliesAwaitingDecision: 1 },
       { ...BASE, programme: prog(live), sends: 9, senderSendable: false },
     ]
@@ -229,6 +256,9 @@ describe('🛑 ④ Needs you — the inclusions, each naming a control that exis
 
 describe('🛑 ⑤ Needs you — the exclusions, which are the half that will be got wrong', () => {
   const live = { status: 'LIVE', approved: true, secondAuthorised: true, live: true }
+  // ⛓️ 10 Sep (H) — ARMED, NEVER STARTED. Make Live produced `live: true`; nobody has pressed
+  // Run. This state used to be inferred from `sends: 0`, which was only ever a proxy for it.
+  const armed = { ...live, run: false }
 
   it('Signup · Proof · Recommendation are never tasks — the client is acting', () => {
     for (const f of [
@@ -262,14 +292,14 @@ describe('🛑 ⑤ Needs you — the exclusions, which are the half that will be
   it('🛑 THE KILL-SWITCH IS NOT A TO-DO — Run blocked by it does NOT enter Needs you', () => {
     // The operator cannot turn the switch off from this screen, so a row here could not be
     // cleared by the person reading it. The state stays truthful and the panel says why.
-    const v = at({ programme: prog(live), sends: 0, killSwitchOff: false })
+    const v = at({ programme: prog(armed), sends: 0, killSwitchOff: false })
     expect(v.state).toBe('live_ready_to_run')
     expect(v.needsYou).toBe(false)
     expect(v.mode).not.toBe('Needs you')
   })
 
   it('…and neither does a Run with the operator key unset', () => {
-    const v = at({ programme: prog(live), sends: 0, operatorRunEnabled: false })
+    const v = at({ programme: prog(armed), sends: 0, operatorRunEnabled: false })
     expect(v.state).toBe('live_ready_to_run')
     expect(v.needsYou).toBe(false)
   })

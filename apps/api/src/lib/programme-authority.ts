@@ -732,16 +732,34 @@ export async function resolveLeadAttribution(
 export async function reviewTriggerReached(p: ProgrammeRow): Promise<boolean | null> {
   const delivered = p.sourced_used
   if (delivered < REVIEW_TRIGGER_LEADS) return false
-  const { clientMeetingCounts } = await import('./meeting-truth')
-  const counts = await clientMeetingCounts([p.client_id])
+
+  // ── 🛑 ⚑ 10 Sep (I4) — SCOPED TO THIS PROGRAMME, NOT TO THE CLIENT ────────────────────
+  //
+  // ⛓️ THE DEFECT, AND IT SUPPRESSED THE HOLD RATHER THAN RAISING A FALSE ONE. This asked
+  // `clientMeetingCounts([p.client_id])` — every meeting the CLIENT has ever booked, under any
+  // programme, at any time. So a client running two programmes where the first booked a meeting
+  // and the second delivered 250 leads and produced nothing got NO review on the second: the
+  // first programme's success answered for it.
+  //
+  // That is the wrong direction of failure. The hold exists so a human looks when the planning
+  // benchmark is reached without a result, and the programme that most needs looking at is
+  // exactly the one a sibling's success was covering for.
+  //
+  // Founder, 10 Sep: "programme_id remains canonical for outcome attribution."
+  //
+  // ⚠️ THE `clientId` FILTER RIDES ALONG deliberately. `programme_id` alone would be enough,
+  // but scoping to both means a mis-stamped row can never pull another client's meeting into
+  // this programme's answer.
+  const { meetingCounts } = await import('./meeting-truth')
+  const counts = await meetingCounts({ clientId: p.client_id, programmeId: p.id })
   if (counts === null) {
     // ⚠️ NULL IS "UNKNOWN", NOT "ZERO". Reading a storage failure as no-meetings would raise a
     // review hold against a perfectly healthy programme and stop its next batch — the exact
     // `.data ?? []` defect shape this repo keeps finding, pointed at delivery control.
-    console.warn(`[programme-authority] meeting counts unreadable for client ${p.client_id} — no review raised`)
+    console.warn(`[programme-authority] meeting counts unreadable for programme ${p.id} — no review raised`)
     return null
   }
-  return (counts[p.client_id] ?? 0) === 0
+  return counts.booked === 0
 }
 
 /**

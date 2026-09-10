@@ -111,6 +111,8 @@ beforeEach(() => {
   state.programme_batches = []
   state.leads = []
   state.operator_audit_log = []
+  // ⚑ 10 Sep (I4) — the outcome number the operator reads beside a programme.
+  state.meetings = []
 })
 
 // ═══════════════════════════════════════════════════════════════════════════════════════
@@ -258,5 +260,48 @@ describe('③ the sender the panel reports is the sender the gate would accept',
     unreadable.add('client_inboxes')
     const d = await lifecycleDetailFor(CLIENT)
     expect(d.senderSendable).toBe(true)
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// ④ ⚑ 10 Sep (I4) — THE PANEL'S MEETING COUNT IS THIS PROGRAMME'S, BEHAVIOURALLY
+//
+// 🛑 A SOURCE-SHAPE ASSERTION ALONE WAS NOT ENOUGH. `meeting-attribution.test.ts` §③ reads this
+// file and checks it calls the programme-scoped accessor — useful, and it caught the mutation —
+// but it proves what the code SAYS, not what the panel RENDERS. This section runs the gathering
+// against two programmes on one client and reads the number back.
+// ═══════════════════════════════════════════════════════════════════════════════════════
+
+describe('④ the panel reports this programme\'s meetings and no others', () => {
+  const OTHER_PROG = '33333333-3333-4333-8333-333333333333'
+  const meeting = (id: string, programmeId: string | null, clientId = CLIENT): Row => ({
+    id, client_id: clientId, programme_id: programmeId, campaign_id: 'camp-shared',
+    state: 'BOOKED', excluded_reason: null, superseded_by: null, scheduled_at: '2026-09-01T10:00:00Z',
+  })
+
+  it('🛑 a SIBLING programme\'s meetings are not this programme\'s result', async () => {
+    state.meetings = [meeting('m1', PROG), meeting('m2', OTHER_PROG), meeting('m3', OTHER_PROG)]
+    const d = await lifecycleDetailFor(CLIENT)
+    expect(d.counts.meetings, "another programme's meetings were counted here").toBe(1)
+  })
+
+  it('a meeting with no programme is nobody\'s result', async () => {
+    // Every meeting booked before `resolveBookingAttribution` started stamping the column on
+    // 9 Sep carries null. It is still counted in client-wide totals, just not here.
+    state.meetings = [meeting('m1', null)]
+    const d = await lifecycleDetailFor(CLIENT)
+    expect(d.counts.meetings).toBe(0)
+  })
+
+  it('this programme\'s own meetings ARE counted — the scope is not a mute button', async () => {
+    state.meetings = [meeting('m1', PROG), meeting('m2', PROG)]
+    const d = await lifecycleDetailFor(CLIENT)
+    expect(d.counts.meetings).toBe(2)
+  })
+
+  it('an unreadable meetings table renders 0 and says so in the log, never a wrong number', async () => {
+    unreadable.add('meetings')
+    const d = await lifecycleDetailFor(CLIENT)
+    expect(d.counts.meetings).toBe(0)
   })
 })

@@ -392,6 +392,14 @@ describe('⑨ DELIVERY ATTRIBUTION', () => {
     const auth = code(join(LIB, 'programme-authority.ts'))
     // It may COUNT meetings; it may never write them.
     expect(auth).not.toMatch(/from\('meetings'\)[\s\S]{0,80}(insert|update|delete)/)
-    expect(auth).toContain('clientMeetingCounts')
+    // ⛓️ ⚑ 10 Sep (I4) — RETARGETED FROM `clientMeetingCounts` TO `meetingCounts`, and the duty
+    // is the SAME one: this module counts through `meeting-truth`'s accessors and never opens
+    // the table itself. The specific accessor changed because the review hold was counting by
+    // CLIENT, so a client's first programme booking a meeting suppressed the hold on a second
+    // programme that had delivered 250 leads and produced nothing. Naming one accessor was
+    // always a proxy for "it delegates"; the assertion below says that directly.
+    expect(auth).toContain('meetingCounts')
+    expect(auth, 'programme-authority counts meetings itself instead of delegating')
+      .not.toMatch(/db\.from\('meetings'\)/)
   })
 })

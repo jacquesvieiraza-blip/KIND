@@ -229,13 +229,44 @@ async function countsFor(programmeId: string, clientId: string, campaignId: stri
     (q as unknown as { eq: (c: string, v: string) => unknown }).eq('programme_id', programmeId))
 
   if (campaignId) {
+    // ⚠️ SENDS STAY CAMPAIGN-KEYED, and that is not an inconsistency with the meetings read
+    // below. `figsy_sent_emails` has no `programme_id` column — its own module says so — so the
+    // campaign IS the bridge to this programme's sends. Founder, 10 Sep: "preserve campaign_id
+    // as operational metadata/bridge where needed."
     out.sends = await countRows('figsy_sent_emails', q =>
       (q as unknown as { eq: (c: string, v: string) => unknown }).eq('campaign_id', campaignId))
-    try {
-      const { campaignMeetingCount } = await import('./meeting-truth')
-      out.meetings = (await campaignMeetingCount(campaignId)) ?? 0
-    } catch { out.meetings = 0 }
   }
+
+  // ── 🛑 ⚑ 10 Sep (I4) — MEETINGS ARE ATTRIBUTED BY `programme_id`, NEVER BY CAMPAIGN ────
+  //
+  // ⛓️ WHAT THIS FIXES. This read was `campaignMeetingCount(campaignId)`, which answers "how
+  // many meetings did this CAMPAIGN produce". Milla answers the same question for the same
+  // client with `meetingCounts({ programmeId })`, and the review hold answered it with
+  // `clientMeetingCounts`. Three keys, three answers, one number — and it is the number the
+  // whole commercial model is judged on.
+  //
+  // A campaign is not a programme. `resolveProgrammeChain` links them today, but the link is
+  // operational plumbing: a campaign re-pointed, reused or resolved through a different chain
+  // moves the count with it, and a meeting booked through one programme's campaign would be
+  // reported as another programme's outcome. `meetings.programme_id` is stamped from the LEAD's
+  // own provenance and cannot drift.
+  //
+  // Founder, 10 Sep: "programme_id remains canonical for outcome attribution."
+  //
+  // ⚠️ THE UNREADABLE CASE STILL RENDERS 0, and that is unchanged from what this file already
+  // did — `LifecycleCounts.meetings` is a number and widening it to `number | null` would
+  // change every screen that renders it. It is logged loudly instead, because a storage failure
+  // rendered as "0 meetings" is the one that reads as a verdict on the programme.
+  try {
+    const { meetingCounts } = await import('./meeting-truth')
+    const counts = await meetingCounts({ clientId, programmeId })
+    if (counts === null) {
+      console.error(`[lifecycle-facts] meetings unreadable for programme ${programmeId} — rendering 0, which is NOT the same fact`)
+      out.meetings = 0
+    } else {
+      out.meetings = counts.booked
+    }
+  } catch { out.meetings = 0 }
 
   // ── REPLIES, THROUGH THIS PROGRAMME'S OWN LEADS ──────────────────────────────────────
   // 🛑 POSITIVE ATTRIBUTION, NOT `client_id`. This is the read that put a retired programme's

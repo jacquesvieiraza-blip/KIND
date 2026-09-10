@@ -39,7 +39,22 @@ import { canonicalLaunchCountry, launchCountrySpellings } from '@kind/shared'
 // touches a database, and `fetch` is mocked in the one test that calls the provider code.
 vi.mock('@kind/db', () => ({ db: {} }))
 
-const rec = (over: Partial<PoolRecord>): PoolRecord => ({ email_norm: 'a@b.com', ...over })
+// ⛓️ RETARGETED 10 Sep (C02) — THE FIXTURE HARD-FITS BY DEFAULT, SO GEOGRAPHY STAYS THE
+// VARIABLE. `poolRecordMatchesIcp` was OR-generous (country AND (title OR industry OR
+// seniority), with no size test at all) and now delegates to the one deterministic hard-fit
+// rule: geography AND size AND industry AND seniority must all hold.
+//
+// This file's subject is the COUNTRY CONTRACT — that `GB`/`England` satisfy "United Kingdom"
+// and that Ukraine and Australia do not. Those duties are unchanged and every one of them is
+// still asserted below. What changed is that a row carrying only a country and a title is no
+// longer a match for any other reason, so each case would now fail on a criterion it was
+// never about. The default row therefore satisfies industry, size and seniority for the ICPs
+// used here, and each case overrides exactly the field it is testing.
+const rec = (over: Partial<PoolRecord>): PoolRecord => ({
+  email_norm: 'a@b.com',
+  industry: 'SaaS', company_size: '11–50', seniority: 'c_suite', title: 'Founder',
+  ...over,
+})
 
 /** Strip whole-line comments before asserting on source text, so a guard can never be
  *  satisfied by the prose of the comment that explains it. */
@@ -163,11 +178,16 @@ describe('EXECUTED · geography-targeted serving', () => {
     expect(poolCountryMatches('', [])).toBe(false)
   })
 
-  it('the OR across title / industry / seniority is untouched', () => {
+  // ⛓️ RETARGETED 10 Sep (C02) — `OR` BECAME `AND`. The three arms no longer rescue each
+  // other: every stated criterion must hold. The duty this case actually defends — that the
+  // ROLE decision is real and a barista is refused — is unchanged and asserted last.
+  it('🛑 the OR across title / industry / seniority is GONE — all of them must hold', () => {
     const icp = { geographies: ['United Kingdom'], job_titles: ['CTO'], industries: ['SaaS'], seniority_levels: ['cxo'] }
-    expect(poolRecordMatchesIcp(rec({ country: 'UK', title: 'CTO' }), icp)).toBe(true)
-    expect(poolRecordMatchesIcp(rec({ country: 'UK', industry: 'B2B SaaS' }), icp)).toBe(true)
-    expect(poolRecordMatchesIcp(rec({ country: 'UK', seniority: 'cxo' }), icp)).toBe(true)
+    // Everything they asked for → reused.
+    expect(poolRecordMatchesIcp(rec({ country: 'UK', title: 'CTO', industry: 'SaaS' }), icp)).toBe(true)
+    // One criterion wrong → refused, whichever one it is.
+    expect(poolRecordMatchesIcp(rec({ country: 'UK', title: 'CTO', industry: 'Hospitality' }), icp)).toBe(false)
+    expect(poolRecordMatchesIcp(rec({ country: 'UK', title: 'Barista', industry: 'SaaS', seniority: 'entry' }), icp)).toBe(false)
     expect(poolRecordMatchesIcp(rec({ country: 'UK', title: 'Barista' }), icp)).toBe(false)
   })
 
@@ -947,22 +967,43 @@ describe('A3 mirrors the deployed Pass-1 matcher — no invented synonyms', () =
   it('8 · seniority "VP / Director" matches', () => expect(roleOk({ seniority: 'VP / Director' })).toBe(true))
   it('9 · seniority "Head of" matches', () => expect(roleOk({ seniority: 'Head of' })).toBe(true))
 
-  it('10 · seniority "Director" alone does NOT match — bare `director` was invented', () => {
-    // The saved term is "VP / Director"; the runtime asks whether the STORED value contains
-    // the SAVED term, and "director" does not contain "vp / director".
-    expect('director'.includes('vp / director')).toBe(false)
-    expect(roleOk({ seniority: 'Director' })).toBe(false)
-    expect(roleOk({ seniority: 'VP' }), 'bare `vp` was invented as well').toBe(false)
+  // ⛓️ RETARGETED 10 Sep (C02) — SENIORITY AND TITLE ARE ONE CRITERION NOW, satisfied by
+  // either, because providers populate one or the other inconsistently and refusing a row
+  // whose `job_title` plainly says "Chief Executive Officer" for want of a `seniority` value
+  // would throw away the clearest match in the set. So "bare `director` was invented" can no
+  // longer be isolated on the seniority field alone — with a matching title the row is
+  // correctly reused. The INVENTED-SYNONYM duty survives on the criteria where it is still
+  // separable (industry, case 6; title, cases 2–3), and is asserted here on the pair.
+  it('10 · seniority and title are ONE criterion — an invented term still does not match', () => {
+    // The saved terms are "VP / Director" and the six job titles. A row carrying neither a
+    // real title nor a real level is refused; a row carrying a real TITLE is reused even
+    // when its stored seniority is one of A3's invented spellings.
+    expect(roleOk({ seniority: 'Director', title: 'Barista' })).toBe(false)
+    expect(roleOk({ seniority: 'VP', title: 'Barista' }), 'bare `vp` was invented as well').toBe(false)
+    expect(roleOk({ seniority: 'Director', title: 'CEO' }), 'a real title carries the criterion').toBe(true)
   })
 
-  it('11 · OR semantics — a non-matching title still qualifies on industry', () => {
-    expect(roleOk({ title: 'Barista', industry: 'B2B SaaS' })).toBe(true)
+  // ⛓️ RETARGETED 10 Sep (C02) — THE OR IS GONE, so a barista is a barista whatever their
+  // employer sells. This is the A3 case that most over-predicted inventory: it counted rows
+  // as reusable on one arm while the client's own targeting named three.
+  it('11 · a non-matching title NO LONGER qualifies on industry', () => {
+    expect(roleOk({ title: 'Barista', industry: 'B2B SaaS' })).toBe(false)
+    // ⚠️ AND THIS ONE IS CORRECTLY REUSED, which I had expected to fail until the rule said
+    // otherwise. The client asked for C-Suite people at SaaS firms; this row is a C-Suite
+    // person at a SaaS firm. Title and seniority are ONE criterion satisfied by either (see
+    // case 10), so a stored level of "C-Suite" carries it even beside an odd title — and
+    // refusing it would throw away a row that matches everything they actually named.
     expect(roleOk({ title: 'Barista', seniority: 'C-Suite' })).toBe(true)
+    // The industry they asked for, with the title they asked for → reused.
+    expect(roleOk({ title: 'Head of Sales', industry: 'B2B SaaS' })).toBe(true)
   })
 
   it('12 · nothing matches → role_ok false', () => {
     expect(roleOk({ title: 'Barista', industry: 'Hospitality', seniority: 'Entry' })).toBe(false)
-    expect(roleOk({})).toBe(false)
+    // ⛓️ 10 Sep — `roleOk({})` NOW INHERITS THE HARD-FITTING DEFAULT ROW, so it asserts the
+    // opposite fact and is stated as such: a row that satisfies every saved criterion IS
+    // reusable. The "nothing matches" duty is the line above, where every field is wrong.
+    expect(roleOk({}), 'a row matching every saved criterion is reusable').toBe(true)
   })
 
   it('and geography stays canonical equality, not substring', () => {

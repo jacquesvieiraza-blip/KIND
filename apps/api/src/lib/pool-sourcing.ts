@@ -8,12 +8,17 @@
 //
 // No DB, no side-effects here → fully unit-testable. The DB glue lives in
 // routes/icps.ts (servePoolLeads); these are the two invariants it leans on:
-//   • poolRecordMatchesIcp — the OR-generous structured candidate predicate.
+//   • poolRecordMatchesIcp — the HARD-FIT reuse decision (C02, 10 Sep). It delegates to
+//     `proof-fit.ts`, so the pool and the pre-surfacing gate cannot disagree.
 //   • splitPoolAndRemainder — the "serve pool, source only the rest" split so we
 //     can never over-source (pool-served count is subtracted from the PDL ask).
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { canonicalLaunchCountry } from '@kind/shared'
+// ⚑ 10 Sep (C02) — the ONE hard-fit rule. Statically imported: `proof-fit` pulls only
+// `@kind/shared` and `lead-feedback`, both pure, so this module stays testable with no
+// environment. (An earlier lazy `require` here could not resolve a .ts sibling under Vitest.)
+import { hardFit, structurallyEligible } from './proof-fit'
 
 /** A row from the `lead_pool` table (only the fields the matcher reads). */
 export interface PoolRecord {
@@ -39,17 +44,24 @@ export interface PoolMatchIcp {
   industries?:       string[] | null
   geographies?:      string[] | null
   seniority_levels?: string[] | null
+  /** ⚑ 10 Sep (C02) — company size is a HARD criterion and was not tested here at all. */
+  company_sizes?:    string[] | null
 }
 
 /** case-insensitive "does `hay` contain any of `needles`" (ILIKE %needle%). */
-function containsAny(hay: string | null | undefined, needles: string[]): boolean {
-  if (!hay) return false
-  const h = hay.toLowerCase()
-  return needles.some(n => n && h.includes(n.toLowerCase()))
-}
+// ⛓️ 10 Sep (C02) — `containsAny` IS GONE, AND IT WAS THE LOOSENESS. It was the substring
+// test behind the OR-generous role/industry/seniority match: `containsAny(rec.industry,
+// ['digital marketing'])` admitted anything whose industry string merely contained the
+// phrase, and nothing tested company size. `poolRecordMatchesIcp` now delegates to
+// `proof-fit.ts`, which compares industry word-wise and size as a BAND — so the helper has
+// no remaining caller and keeping it would leave the loose test one edit from returning.
 
 // ── ⚑ 27 Aug — COUNTRY IS COMPARED CANONICALLY, AND ONLY COUNTRY ───────────────────────────
 //
+// ⛓️ SUPERSEDED 10 Sep — title, industry and seniority no longer use a substring test; the
+// paragraph below describes the rule that produced the C02 defect and is kept as the record of
+// what was believed. What is true now: geography is canonical, size is a band, industry is
+// word-wise, and all four must hold. Historical:
 // Title, industry and seniority stay on `containsAny` (substring) because they are genuinely
 // partial — "Head of Sales" should match a stored "Global Head of Sales", and that is the
 // OR-generous behaviour the founder approved. Country is not like that. It is a closed
@@ -130,21 +142,67 @@ export function isGeoServable(rec: Pick<PoolRecord, 'country'>): boolean {
  * seniority signal at all matches on geography alone (nothing to narrow on).
  */
 export function poolRecordMatchesIcp(rec: PoolRecord, icp: PoolMatchIcp): boolean {
-  const geos   = (icp.geographies      ?? []).filter(Boolean)
-  const titles = (icp.job_titles       ?? []).filter(Boolean)
-  const inds   = (icp.industries       ?? []).filter(Boolean)
-  const sens   = (icp.seniority_levels ?? []).filter(Boolean)
-
-  // Geography gate (only when the ICP specifies geographies). Canonical equality since
-  // 27 Aug — see the block above `canonicalPoolCountry` for the two failures substring caused.
+  // 🛑 ⛓️ 10 Sep (C02) — THIS WAS OR-GENEROUS, AND IT NOW DELEGATES TO THE ONE HARD-FIT RULE.
+  //
+  // ── WHAT IT USED TO SAY ───────────────────────────────────────────────────────────────
+  //
+  //     country AND (title OR industry OR seniority)
+  //
+  // …with no company-size test at all. So a UK company matching on the word "marketing"
+  // alone was reusable inventory for a client who asked for UK digital marketing AGENCIES of
+  // 10–50 people, and a 4,000-person consultancy qualified on one matching title.
+  //
+  // ── WHY THAT COST MONEY RATHER THAN JUST LOOKING WRONG ────────────────────────────────
+  //
+  // Pool rows are served BEFORE the paid provider and are subtracted from what we then buy.
+  // A loose match therefore did the most expensive possible thing: it filled the client's
+  // twenty examples with rows PR1's structural gate would refuse, shrank the external ask by
+  // the same number, and left the client looking at a set of eleven. Free rows that cannot be
+  // shown are worse than no free rows, because they consume the allowance twice.
+  //
+  // ── ONE RULE, NOT TWO (founder-locked 10 Sep) ─────────────────────────────────────────
+  //
+  // *"Use the canonical PR1 proof-fit function or equivalent shared logic. DO NOT create a
+  // second conflicting matcher."* So this asks `hardFit` — the same deterministic geography ·
+  // size · industry · seniority judgement the structural gate applies before surfacing — and
+  // owns none of it. `unknown` is admissible here exactly as it is there: a pool row with a
+  // blank industry may genuinely be the right company, and refusing it would throw away
+  // owned inventory over a gap in the provider's data.
+  //
+  // ⚠️ `title` MAPS TO `job_title`. `lead_pool` names the column `title`; `leads` names it
+  // `job_title`, and the judgement is written against the lead shape. Mapped here, once.
+  // 🛑 GEOGRAPHY KEEPS ITS OWN, STRICTER GATE — AND THAT IS NOT A SECOND MATCHER.
+  //
+  // `hardFit` treats an UNKNOWN criterion as admissible: a fetched provider row with a blank
+  // industry may genuinely be the right company, so it is shown as "worth a look" rather
+  // than thrown away. **The pool cannot afford that for country.** A row we cannot place
+  // geographically would consume one of the client's twenty example slots on a guess, for
+  // free, ahead of a paid row we could place — and this is a measured production failure,
+  // not a hypothetical: the pool held 85 rows whose `country` was NULL, 18 of them matching
+  // on title, and a geo-targeted pass served zero while reading as "the pool holds nobody".
+  //
+  // So an unknown country is a REFUSAL here and an unknown industry is not. The three
+  // remaining criteria delegate to the one shared rule below; nothing is re-implemented.
+  const geos = (icp.geographies ?? []).filter(Boolean)
   if (geos.length > 0 && !poolCountryMatches(rec.country, geos)) return false
 
-  // Role/industry/seniority gate — OR-generous. With no signal at all, don't narrow.
-  if (titles.length === 0 && inds.length === 0 && sens.length === 0) return true
-  return containsAny(rec.title, titles)
-      || containsAny(rec.industry, inds)
-      || containsAny(rec.seniority, sens)
+  return structurallyEligible(hardFit({
+    // Decided above, and handed over as "nothing asked" so the shared rule cannot re-open it
+    // with its own softer answer for an unknown country.
+    country: null,
+    company_size: rec.company_size ?? null,
+    industry: rec.industry ?? null,
+    job_title: rec.title ?? null,
+    seniority: rec.seniority ?? null,
+  }, {
+    geographies: null,
+    company_sizes: icp.company_sizes ?? null,
+    industries: icp.industries ?? null,
+    job_titles: icp.job_titles ?? null,
+    seniority_levels: icp.seniority_levels ?? null,
+  }))
 }
+
 
 /**
  * The split between pool-served (free) and PDL-remainder (paid). We serve up to the

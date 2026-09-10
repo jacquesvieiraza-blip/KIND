@@ -17,7 +17,7 @@ import { isSuppressed } from '../lib/suppression'
 import { sendFounderAlert } from '../lib/alerts'
 import { PDL_RATE_USD } from '../lib/sourcing-fences'
 import { isLaunchSendCountry, launchTargetRefusal, launchCountrySpellings } from '@kind/shared'
-import { splitPoolAndRemainder, poolWriteAllowed, splitPoolEligible, poolRefusalLine, poolCountryMatches, canonicalPoolCountry, isGeoServable, isPoolSourceEligible, POOL_ELIGIBLE_SOURCES } from '../lib/pool-sourcing'
+import { splitPoolAndRemainder, poolWriteAllowed, splitPoolEligible, poolRefusalLine, poolCountryMatches, canonicalPoolCountry, isGeoServable, isPoolSourceEligible, poolRecordMatchesIcp, POOL_ELIGIBLE_SOURCES } from '../lib/pool-sourcing'
 import { toMemoryRecord, rememberAcquiredIdentities, type AcquisitionMemoryRecord, type SuppressionReason } from '../lib/acquisition-memory'
 import { assertIcpFullyOwned } from '../lib/icp-coverage'
 import { rethrowIfProviderBlocked, isPaidProviderBlocked } from '../lib/paid-provider-guard'
@@ -431,7 +431,10 @@ async function servePoolLeads(
     // `poolCountryMatches` below still makes the final canonical decision on what returns.
     const geoTerms = [...new Set(geos.flatMap(g => launchCountrySpellings(g)).map(clean).filter(Boolean))]
 
-    // Structured, OR-generous candidate query (mirrors poolRecordMatchesIcp):
+    // ⚑ 10 Sep (C02) — DELIBERATELY WIDE, and the narrowing happens below. This query casts
+    // the net (`.or()` across title/industry/seniority, no size test) so the DECISION can be
+    // made on the row by `poolRecordMatchesIcp` → `proof-fit.ts`. It no longer "mirrors" that
+    // predicate: the predicate is now strictly narrower than the query, on purpose.
     //   (country = any geo SPELLING, case-insensitive) AND (title ILIKE any | industry ILIKE any | seniority ILIKE any)
     // Chained .or() calls are ANDed; terms inside one .or() are ORed. Role terms keep their
     // `*` wildcards — titles are genuinely partial. Country terms carry NO wildcard.
@@ -469,6 +472,20 @@ async function servePoolLeads(
     // wrap changes no value today. It is here so that EVERY blocklist probe in the codebase
     // passes through the one normaliser with no exceptions: the guard test can then assert
     // that flatly, and the day something writes an un-normalised `email_norm` this still holds.
+    // ── ⚑ 10 Sep (C02) — WHAT WE ALREADY PAID FOR THESE ROWS, READ WHERE THEY ARE READ ──
+    //
+    // `acquisition_cost` is a `lead_pool` column and it is captured HERE, beside its own
+    // select, rather than further down where the served subset is known. Two reasons, and the
+    // second is the one that matters: the sum belongs to the rows this query returned, and a
+    // bare column name read after the `leads` insert below reads — to `schema-truth`'s
+    // nearest-table check and to a human — as a column of `leads`, which it is not.
+    const poolCostByEmail = new Map<string, number>()
+    for (const c of candidates as { email_norm?: string | null; acquisition_cost?: number | null }[]) {
+      const key = normalizeRevealEmail(c.email_norm)
+      if (key && typeof c.acquisition_cost === 'number' && Number.isFinite(c.acquisition_cost)) {
+        poolCostByEmail.set(key, Number(c.acquisition_cost))
+      }
+    }
     const candEmails = normalizeRevealEmails(
       candidates.map((c: { email_norm?: string | null }) => c.email_norm),
     )
@@ -498,6 +515,9 @@ async function servePoolLeads(
     // both. These counters are what tell them apart, and they carry no PII.
     let notGeoServable = 0
     let notSourceEligible = 0
+    // ⚑ 10 Sep (C02) — counted, never inferred. "The pool held nobody who fits" and "the pool
+    // held them and we refused them for the wrong reason" have identical symptoms otherwise.
+    let notHardFit = 0
     const geoGated = geos.length > 0
     const eligible = (candidates as Cand[]).filter(c => {
       const e = norm(c.email_norm)
@@ -511,10 +531,33 @@ async function servePoolLeads(
         if (!isGeoServable(c)) notGeoServable++
         return false
       }
+      // ⚠️ `owned` IS THE STRUCTURAL-REJECTION EXCLUSION TOO, and that is not a coincidence.
+      // A candidate this client already holds in `leads` is excluded — which covers the ones
+      // they passed on, the ones they marked "not a fit", and (since PR1 #1672) the ones the
+      // structural gate set aside. Re-serving any of those would show them somebody they or
+      // we had already refused, from the pool, for free, as though it were new.
       if (owned.has(e)) return false
       if (blocked.has(e)) return false
       // DO-NOT-CONTACT floor (founder's employer) — same guard as the PDL path.
       if (isSuppressed({ email: e, company: c.company, linkedin: c.linkedin_url })) return false
+      // ── 🛑 ⚑ 10 Sep (C02) — HARD FIT, AND IT IS THE WHOLE POINT OF THIS PASS ───────────
+      //
+      // The query above is deliberately WIDE (`.or()` across title/industry/seniority, with
+      // no size test at all) — "widen there, decide here", the same shape the geography gate
+      // already uses two lines up. This is the decision, and until today it did not exist:
+      // a UK company matching the word "marketing" was reusable inventory for a client who
+      // asked for UK digital marketing AGENCIES of 10–50 people.
+      //
+      // ⚠️ WHY IT COSTS MONEY RATHER THAN JUST LOOKING WRONG. Pool rows are served BEFORE the
+      // paid provider and are SUBTRACTED from what we then buy. A loose match filled the
+      // client's twenty examples with rows the pre-surfacing gate would refuse, shrank the
+      // external ask by the same number, and left them looking at eleven people. Free rows
+      // that cannot be shown consume the allowance twice.
+      //
+      // ⚠️ ONE RULE, NOT TWO. `poolRecordMatchesIcp` delegates to `proof-fit.ts` — the same
+      // judgement the structural gate applies before surfacing — so a row admitted here
+      // cannot be refused there for a reason this filter did not already ask about.
+      if (!poolRecordMatchesIcp(c as never, icp as never)) { notHardFit++; return false }
       return true
     }).slice(0, cap)
 
@@ -522,6 +565,9 @@ async function servePoolLeads(
       console.error(`[icp] stage=pool_source_refused — ${notSourceEligible} pool candidate(s) were refused for cross-client serving because their stored source is not K.I.N.D-acquired (R73 allows ${POOL_ELIGIBLE_SOURCES.join(', ')}; NULL/blank/unlisted fail closed). A non-zero count means rows entered the pool outside the guarded writer — check the promotion/import path.`)
     }
 
+    if (notHardFit > 0) {
+      console.log(`[icp] stage=pool_hard_fit — ${notHardFit} of ${candidates.length} owned pool candidate(s) did not match this client's targeting (geography · size · industry · seniority) and were NOT served. The external ask grows by the same number rather than the client seeing a short set.`)
+    }
     if (geoGated && notGeoServable > 0) {
       console.error(`[icp] stage=pool_country_missing — ${notGeoServable} of ${candidates.length} pool candidate(s) carry no usable country, so they cannot satisfy geography-targeted sourcing; ${eligible.length} remain eligible. The records are kept, not deleted. Rights-safe promotion/heal: supabase/maintenance/2026-08-27_kind_acquired_pool_promotion.sql`)
     }
@@ -580,6 +626,33 @@ async function servePoolLeads(
       })
       if (ledgerErr) console.error('[icp] pool-serve ledger row failed (non-fatal):', ledgerErr)
     }
+    // ── ⚑ 10 Sep (C02) — THE OPERATOR COUNTERS, AND `cost_avoided` IS NOT INVENTED ─────
+    //
+    // `lead_pool.acquisition_cost` is what we actually paid for these rows when we bought
+    // them. Summed over the rows we served, that is money this run did not spend — a real
+    // figure, not a rate card. Where a row carries no cost we count it as UNKNOWN rather
+    // than as zero: zero would understate the saving and read as a measured number.
+    //
+    // ⚠️ OPERATOR TRUTH ONLY. None of this reaches Milla. The client sees "here are the
+    // people we'd start with"; provider names, pools and costs are ours.
+    const servedEmails = (granted as unknown as { email_norm?: string | null }[])
+      .map(r => norm(r.email_norm)).filter(Boolean) as string[]
+    const costed = servedEmails.filter(e => poolCostByEmail.has(e))
+    const costAvoided = costed.reduce((sum, e) => sum + (poolCostByEmail.get(e) ?? 0), 0)
+    const costRows = servedEmails
+    // ⚠️ BUILT AS A PLAIN VARIABLE, NOT A NESTED TEMPLATE LITERAL. A backtick inside `${…}`
+    // inside another template literal is valid TypeScript and defeats `schema-truth`'s
+    // comment stripper: it loses backtick state, stops stripping from there on, and its
+    // balanced-brace walk then reads the NEXT object's keys as part of an earlier insert —
+    // which is exactly the false "leads.acquisition_cost does not exist" this produced.
+    const unpriced = costRows.length - costed.length
+    const costAvoidedText = unpriced === 0
+      ? costAvoided.toFixed(2)
+      : costAvoided.toFixed(2) + '+ (' + unpriced + ' row(s) carry no recorded acquisition cost)'
+    console.log(
+      `[icp] stage=pool_counters client=${clientId} reused=${insertedIds.length} ` +
+      `not_hard_fit=${notHardFit} not_rights_eligible=${notSourceEligible} ` +
+      `cost_avoided_usd=${costAvoidedText}`)
     console.log(`[icp] pool-first serve: ${insertedIds.length} of ${eligible.length} eligible leads served at $0 for client ${clientId} (cap ${cap}${admit ? `, programme admitted ${admitted}` : ''})`)
     return { insertedIds, served: insertedIds.length, reserved: admit ? admitted : 0 }
   } catch (err) {
@@ -1018,7 +1091,12 @@ export async function runIcpJob(
     // #453 — DEMO: pool-only. Skip the ENTIRE PDL remainder — no try_spend_sourcing, no
     // searchPeopleWithFallback, no ledger rows beyond the pool's $0 row, no allowance
     // touch. A demo run costs us exactly $0.
-    relaxed = 'Demo run — leads served from the shared pool at no cost.'
+    // ⛓️ 10 Sep (C02) — REWORDED, AND THE RULE IT BREAKED IS THE FOUNDER'S. This read
+    // "leads served from the shared pool at no cost" — `relaxed` is a CLIENT-FACING field,
+    // and *"do not expose provider/pool terminology to Milla client UI"* admits no exception
+    // for a demo: a demo is the version a prospect is shown. The operational truth (reused,
+    // sourced, cost avoided) is in the `stage=pool_counters` log, where it belongs.
+    relaxed = 'Demo run — these examples came from people we already have, at no cost.'
     console.log(`[icp] demo run for client ${clientId} — ${pool.served} pool leads served at $0, PDL skipped.`)
   } else if (cursor.exhausted) {
     // #366 — PDL already told us, on a previous run, that this exact query has nobody left.

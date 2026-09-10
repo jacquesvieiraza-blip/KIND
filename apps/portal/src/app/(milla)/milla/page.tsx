@@ -970,7 +970,26 @@ export default function MillaHomePage() {
       state={calib}
       busy={refineBusy}
       onRequestStronger={openRefine}
-      onAccept={() => { void loadCalibration() }}
+      onAccept={async () => {
+        // ── 🛑 10 Sep (A) — THIS NOW RECORDS THE ACCEPTANCE ─────────────────────────────
+        //
+        // ⛓️ IT USED TO BE `void loadCalibration()` — a GET. The component's own comment said
+        // "Records that the set is right; Proof is finished"; it recorded nothing, so the
+        // controls re-rendered unchanged and the button stayed pressable for ever.
+        //
+        // ⚠️ NOTHING IS SOURCED BY IT. The route writes one timestamp; no pass is claimed and
+        // no provider is called. The client has just told us to stop looking.
+        // ⚠️ THE RELOAD RUNS EITHER WAY, so the screen takes the SERVER's verdict on whether
+        // Proof is closed rather than assuming its own press worked.
+        try {
+          await api.post('/leads/proof/complete', {}, await token())
+        } catch (e) {
+          setError(e instanceof Error ? e.message : 'That did not save — could you try once more?')
+        } finally {
+          await loadCalibration()
+          await load()
+        }
+      }}
       onStillNotRight={async () => {
         try {
           await api.post('/leads/proof/still-not-right', {}, await token())

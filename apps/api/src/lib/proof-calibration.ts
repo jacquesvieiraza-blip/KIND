@@ -89,6 +89,17 @@ export function mayRequestStrongerSet(s: CalibrationState): boolean {
 export interface CalibrationState {
   /** `clients.proof_passes_done` — the same column the claim RPC increments. */
   passesDone: number
+  /**
+   * ⚑ 10 Sep (A) — THE CLIENT SAID THE EXAMPLES ARE RIGHT. `clients.proof_completed_at`.
+   *
+   * 🛑 DIFFERENT FROM EVERY OTHER FACT HERE. `passesDone` is how many attempts were SPENT and
+   * `escalated` is the loop having FAILED; this is the client being SATISFIED, which nothing
+   * recorded at all before this column existed — the accept control was a GET.
+   *
+   * Optional because the column is new: rows read before `20260910_proof_completion` carry
+   * `undefined`, which reads as "not accepted yet" and leaves the controls exactly as they were.
+   */
+  completedAt?: string | null
   /** `clients.proof_review_requested_at IS NOT NULL AND proof_review_resolved_at IS NULL`. */
   escalated: boolean
   attempts: AttemptSummary[]
@@ -270,6 +281,15 @@ export interface ProofUiState {
   /** Escalated and the number is confirmed: the calm state. */
   headline: string | null
   detail: string | null
+  /**
+   * ⚑ 10 Sep (A) — PROOF IS FINISHED. The client accepted, so there is nothing left to react
+   * to and the next thing is the programme calculator.
+   *
+   * ⚠️ IT RETIRES EVERY CONTROL, INCLUDING THE ACCEPT BUTTON. The old accept control stayed
+   * pressable for ever because it recorded nothing, so the screen could not tell that the
+   * client had already answered.
+   */
+  completed: boolean
 }
 
 /** What each reason code means as a CHANGE — the verb, not the complaint. */
@@ -326,6 +346,21 @@ export function proofUiState(s: CalibrationState, phone: string | null, phoneCon
     showStillNotRight: false, showTheseAreRight: false,
     whatChanged: null as string | null, ask: null as string | null,
     headline: null as string | null, detail: null as string | null,
+    completed: false,
+  }
+
+  // ── 🛑 10 Sep (A) — ACCEPTED IS CHECKED FIRST, AND IT RETIRES EVERYTHING ─────────────
+  //
+  // ⛓️ WHAT THIS FIXES. The accept control recorded nothing (`onAccept` was a GET), so the
+  // identical controls re-rendered after a client pressed "These are right" and the button
+  // stayed pressable for ever. The screen could not tell that the client had already answered.
+  //
+  // ⚠️ AHEAD OF `escalated` ON PURPOSE, AND THE TWO CANNOT BOTH BE TRUE IN PRACTICE — the
+  // completion route refuses while an escalation is open. If a row somehow carried both, the
+  // client's own acceptance is the later and kinder truth: they said it was right, and a
+  // screen still asking for their phone number would be arguing with them.
+  if (s.completedAt) {
+    return { ...base, escalated: false, completed: true }
   }
 
   if (s.escalated) {

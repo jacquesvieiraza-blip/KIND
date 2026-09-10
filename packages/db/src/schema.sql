@@ -595,6 +595,10 @@ alter table public.clients
   add column if not exists proof_passes_done                int NOT NULL DEFAULT 0,
   add column if not exists proof_records_committed          int NOT NULL DEFAULT 0,
   add column if not exists proof_started_at                 timestamptz,  -- set by try_claim_proof_pass in the SAME update as proof_passes_done; NULL = unknown, never backfilled
+  -- 🛑 10 Sep — THE CLIENT SAID THE EXAMPLES ARE RIGHT, so Proof is finished and the calculator
+  -- is next. Before this column the accept control wrote nothing: a satisfied client produced no
+  -- record and no stage change. Client-level because Proof completes BEFORE any programme exists.
+  add column if not exists proof_completed_at               timestamptz,  -- 20260910_proof_completion; first acceptance wins, never backfilled
   add column if not exists proof_review_requested_at        timestamptz,  -- set ONLY when a prospect who has used both passes asks for another (20260827_proof_review_handoff)
   add column if not exists proof_review_resolved_at         timestamptz,  -- stamped by an operator in Vida; non-null clears it from the unresolved feed
   add column if not exists proof_review_icp_id              uuid,         -- which ICP they were looking at when they asked — a pointer, not the identity of the review

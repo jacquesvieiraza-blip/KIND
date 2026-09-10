@@ -623,7 +623,14 @@ describe('acceptance spends nothing and calls nobody', () => {
     // grant. The pass economics are untouched because none of them is consulted.
     expect(rec.rpcs, 'zero RPCs on the acceptance path').toEqual([])
     // The only tables it reads or writes.
-    expect([...new Set(rec.tables)].sort()).toEqual(['clients', 'credit_transactions', 'icps', 'leads'])
+    // ⛓️ `lead_feedback` ADDED 10 Sep (A), and it is the point of the fix rather than fixture
+    // maintenance. "Looks right" recorded NOTHING, so `readAttempts` — which counts
+    // `looksRight` from `lead_feedback.action = 'approve'` — read zero for every client, and
+    // #1673's `second_set_mostly_rejected` trigger escalated people who had marked half the
+    // set right. The write is best-effort and cannot fail the route; what it may never do is
+    // touch money, a provider or a reveal, which the RPC assertion above still proves.
+    expect([...new Set(rec.tables)].sort())
+      .toEqual(['clients', 'credit_transactions', 'icps', 'lead_feedback', 'leads'])
   })
 
   it('and in the source, which catches the call a happy-path test never reaches', async () => {

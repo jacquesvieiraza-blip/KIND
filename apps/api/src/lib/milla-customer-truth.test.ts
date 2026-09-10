@@ -85,7 +85,14 @@ describe('§1 — MILLA CANNOT TEACH THE RETIRED MODEL IN HER OWN VOICE', () => 
     // client's STATED OUTCOME is now read onto it, because `NO_PROGRAMME` is a constant and
     // carried `stated: null` for everybody. That is precisely the path every client in Proof
     // takes, and why the OUTCOME card was empty for a client who had just stated one.
-    expect(READER).toContain('return { ...NO_PROGRAMME, outcome: { ...NO_PROGRAMME.outcome, stated: await readStatedOutcomeFor(clientId) } }')
+    // ⛓️ RESHAPED 10 Sep (A), SAME DUTY. The no-programme path now reads TWO client-level
+    // facts together — the stated outcome (C03) and whether Proof is finished — because a
+    // client who accepted their set is at the calculator, not still at Proof. The property
+    // under test is unchanged: this path reads the outcome from CLIENTS rather than from a
+    // programme that does not exist.
+    expect(READER).toContain('readStatedOutcomeFor(clientId), proofCompleteFor(clientId),')
+    expect(READER).toContain('outcome: { ...NO_PROGRAMME.outcome, stated },')
+    expect(READER).toContain("stage: millaStage({ status: null, proofComplete }),")
   })
 
   it('historical conversations are not rewritten to clean up the wording', () => {

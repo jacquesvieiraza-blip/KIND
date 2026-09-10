@@ -27,7 +27,10 @@ export const CALIBRATION_MIGRATION = '20260910_proof_calibration_handoff'
 /** The client columns this hand-off reads. */
 const CLIENT_COLUMNS =
   'id, phone, proof_passes_done, proof_review_requested_at, proof_review_resolved_at, ' +
-  'proof_escalation_trigger, proof_phone_confirmed_at, proof_calibration_note, proof_calibrated_restart_at'
+  'proof_escalation_trigger, proof_phone_confirmed_at, proof_calibration_note, proof_calibrated_restart_at, ' +
+  // ⚑ 10 Sep (A) — the client's own acceptance. Unselected it reads `undefined`, which the
+  // rule treats as "not accepted", so the controls would never retire.
+  'proof_completed_at'
 
 export interface CalibrationRecord extends CalibrationState {
   clientId: string
@@ -58,6 +61,7 @@ export async function readCalibration(clientId: string): Promise<CalibrationReco
   const state: CalibrationState = {
     passesDone: Number(c.proof_passes_done ?? 0) || 0,
     escalated: !!c.proof_review_requested_at && !c.proof_review_resolved_at,
+    completedAt: (c.proof_completed_at as string | null) ?? null,
     attempts,
   }
   return {
@@ -197,6 +201,73 @@ export async function confirmCalibrationPhone(
   if (error) return { ok: false, detail: `The number could not be saved (${error.message}).` }
   return { ok: true, phone: trimmed }
 }
+
+/**
+ * 🛑 THE CLIENT SAID THE EXAMPLES ARE RIGHT — PROOF IS FINISHED (A, 10 Sep).
+ *
+ * ── WHAT THIS REPLACES ────────────────────────────────────────────────────────────────
+ *
+ * Nothing. The accept control was `onAccept={() => { void loadCalibration() }}` — a GET. No
+ * column, stage or alert anywhere recorded that a client had accepted their set, so the
+ * happy path ended in silence and only resumed if an operator noticed by other means.
+ *
+ * ⚠️ IT SOURCES NOTHING, CLAIMS NO PASS AND SPENDS NOTHING. One conditional UPDATE. There is
+ * no provider call, no `try_claim_proof_pass`, no run — accepting is the client saying "stop
+ * looking", and a completion that searched again would be the opposite of what they said.
+ *
+ * ⚠️ IDEMPOTENT, AND THE FIRST ACCEPTANCE IS THE ONE RECORDED. `.is('proof_completed_at',
+ * null)` means a second press writes nothing and still answers success, so a double tap or a
+ * retried request cannot move the timestamp.
+ *
+ * ⚠️ REFUSED WHILE AN ESCALATION IS OPEN. A client whose loop was handed to a person has been
+ * told "I've paused finding people until we've spoken"; letting the same screen close Proof
+ * would step over the human who is about to call them.
+ */
+export async function completeProof(clientId: string): Promise<
+  | { ok: true; completedAt: string; alreadyComplete: boolean }
+  | { ok: false; reason: 'escalated' | 'unreadable' | 'migration_required'; detail: string }
+> {
+  const r = await readCalibration(clientId).catch((e: unknown) => e as Error)
+  if (r instanceof Error) {
+    return { ok: false, reason: 'unreadable', detail: `Your Proof state could not be read (${r.message}), so nothing was recorded.` }
+  }
+  if (r.completedAt) return { ok: true, completedAt: r.completedAt, alreadyComplete: true }
+  if (r.escalated) {
+    return {
+      ok: false, reason: 'escalated',
+      detail: 'A member of the team is already picking this up with you, so Proof is not closed from here.',
+    }
+  }
+
+  const at = new Date().toISOString()
+  const { data, error } = await db.from('clients')
+    .update({ proof_completed_at: at })
+    .eq('id', clientId).is('proof_completed_at', null)
+    .select('proof_completed_at')
+  if (error) {
+    // ⚠️ THE MISSING COLUMN IS NAMED, not reported as a generic failure. Before
+    // `20260910_proof_completion` runs, this write is the only thing in the Proof path that
+    // needs it, and an operator reading the log should be told which migration is outstanding.
+    const migration = /proof_completed_at/.test(error.message)
+    return {
+      ok: false,
+      reason: migration ? 'migration_required' : 'unreadable',
+      detail: migration
+        ? `Proof completion could not be recorded because migration ${PROOF_COMPLETION_MIGRATION} has not been run. Nothing was changed.`
+        : `Proof completion could not be recorded (${error.message}). Nothing was changed.`,
+    }
+  }
+  // Zero rows means a concurrent press won the compare-and-set. That is success, and the
+  // stamp on the row is theirs.
+  if (!data || data.length === 0) {
+    const again = await readCalibration(clientId).catch(() => null)
+    return { ok: true, completedAt: again?.completedAt ?? at, alreadyComplete: true }
+  }
+  return { ok: true, completedAt: at, alreadyComplete: false }
+}
+
+/** Named so a refusal can point at the outstanding migration rather than a generic error. */
+export const PROOF_COMPLETION_MIGRATION = '20260910_proof_completion'
 
 /**
  * 🛑 MAY AN OPERATOR GRANT THE ONE CALIBRATED RESTART?

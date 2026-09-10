@@ -134,6 +134,22 @@ async function proofCalibrationFailedFor(clientId: string): Promise<boolean | nu
   } catch { return null }
 }
 
+/**
+ * ⚑ 10 Sep (A) — did the client say their examples are right? `clients.proof_completed_at`.
+ *
+ * ⚠️ FAILS SOFT TO `null`, which reads as "not accepted" and keeps them at Proof. Promoting a
+ * client to the calculator on an unreadable answer would be inventing a decision they may not
+ * have made.
+ */
+async function proofCompletedFor(clientId: string): Promise<boolean | null> {
+  try {
+    const { data, error } = await db.from('clients')
+      .select('proof_completed_at').eq('id', clientId).maybeSingle()
+    if (error || !data) return null
+    return !!(data as unknown as { proof_completed_at: string | null }).proof_completed_at
+  } catch { return null }
+}
+
 async function proofStartedFor(clientId: string): Promise<boolean | null> {
   try {
     const { data, error } = await db.from('icps')
@@ -294,12 +310,12 @@ export async function lifecycleDetailFor(clientId: string): Promise<LifecycleDet
   const p = currentProgramme(rows)
 
   if (!p) {
-    const [proofStarted, proofCalibrationFailed] = await Promise.all([
-      proofStartedFor(clientId), proofCalibrationFailedFor(clientId),
+    const [proofStarted, proofCalibrationFailed, proofCompleted] = await Promise.all([
+      proofStartedFor(clientId), proofCalibrationFailedFor(clientId), proofCompletedFor(clientId),
     ])
     return {
       verdict: deriveLifecycle({
-        programme: null, proofStarted, proofCalibrationFailed,
+        programme: null, proofStarted, proofCalibrationFailed, proofCompleted,
         preparationStopped: false, preparing: false,
         humanBlockers: [], readinessReady: false, sends: 0, repliesAwaitingDecision: 0,
         senderSendable: true, killSwitchOff, operatorRunEnabled,
@@ -430,6 +446,42 @@ export async function lifecycleBoard(clientIds: string[]): Promise<LifecycleBoar
     for (const r of ((data ?? []) as { client_id: string | null }[])) if (r.client_id) withIcp.add(r.client_id)
   } catch { /* no ICP read → every client without a programme reads as Signup */ }
 
+  // ── 🛑 10 Sep — THE CLIENT-LEVEL PROOF FACTS, READ ONCE FOR THE WHOLE BOARD ──────────
+  //
+  // ⛓️ WHAT THIS FIXES (#1674's other half). The board is the source of the client LIST, the
+  // stage word on every row and the Needs-you COUNT — and it passed only `proofStarted`. So
+  // an escalated client (`proof_calibration_failed`, the one Proof-stage task) never appeared
+  // in the filter or the badge: the reason existed on the server and only the OPENED detail
+  // panel could see it. A task nobody is shown is not a task.
+  //
+  // `proof_completed_at` is read here for the same reason: a client who accepted their set
+  // must read as Recommendation on the row, not Proof.
+  //
+  // ⚠️ ONE QUERY FOR EVERYBODY, matching the ICP and inbox reads above — a per-client read
+  // here would issue one round trip per row on the operator's default screen.
+  // ⚠️ FAILS SOFT TO "UNKNOWN", NOT TO "FINE". An unreadable answer leaves both sets empty,
+  // which reads as `null` for the escalation (asserting nothing) and keeps the client at
+  // Proof — never as a silent "this client needs nothing".
+  const escalatedProof = new Set<string>()
+  const completedProof = new Set<string>()
+  let proofFactsRead = true
+  try {
+    const { data, error } = await db.from('clients')
+      .select('id, proof_review_requested_at, proof_review_resolved_at, proof_completed_at')
+      .in('id', ids)
+    if (error) throw new Error(error.message)
+    for (const r of ((data ?? []) as {
+      id: string; proof_review_requested_at: string | null
+      proof_review_resolved_at: string | null; proof_completed_at: string | null
+    }[])) {
+      if (r.proof_review_requested_at && !r.proof_review_resolved_at) escalatedProof.add(r.id)
+      if (r.proof_completed_at) completedProof.add(r.id)
+    }
+  } catch (e) {
+    proofFactsRead = false
+    console.error('[lifecycle-board] the client-level Proof facts could not be read — escalations will not be flagged this render', e)
+  }
+
   // Sender health, read once for everybody rather than once per client.
   const sendable = new Set<string>()
   const hasInbox = new Set<string>()
@@ -449,6 +501,10 @@ export async function lifecycleBoard(clientIds: string[]): Promise<LifecycleBoar
     if (!p) {
       const v = deriveLifecycle({
         programme: null, proofStarted: withIcp.has(clientId) ? true : null,
+        // ⚠️ `null` WHEN THE READ FAILED, so an unreadable answer asserts nothing rather than
+        // asserting the client is fine — the same rule `proofCalibrationFailedFor` applies.
+        proofCalibrationFailed: proofFactsRead ? escalatedProof.has(clientId) : null,
+        proofCompleted: proofFactsRead ? completedProof.has(clientId) : null,
         preparationStopped: false, preparing: false, humanBlockers: [], readinessReady: false,
         sends: 0, repliesAwaitingDecision: 0, senderSendable: true,
         killSwitchOff, operatorRunEnabled, remainingEntitlement: 0,

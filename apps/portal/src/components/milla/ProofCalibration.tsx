@@ -30,6 +30,8 @@ import { useCallback, useState } from 'react'
 export type ProofCalibrationState = {
   attempt: number
   escalated: boolean
+  /** ⚑ 10 Sep (A) — the client accepted; Proof is finished and nothing here is pressable. */
+  completed: boolean
   showStronger: boolean
   strongerEnabled: boolean
   strongerHint: string | null
@@ -74,6 +76,26 @@ export function ProofCalibration({
       setErr('That did not save — could you try once more?')
     } finally { setSending(false) }
   }, [onConfirmPhone, phone])
+
+  // ── 🛑 10 Sep (A) — ACCEPTED: PROOF IS FINISHED, AND THE CALCULATOR IS NEXT ──────────
+  //
+  // ⛓️ THE STATE THAT COULD NOT EXIST BEFORE. The accept control recorded nothing, so this
+  // component had no way to know the client had already answered — the identical controls
+  // re-rendered and the button invited a second press.
+  //
+  // ⚠️ RETURNED FIRST AND WITH NO CONTROLS AT ALL, including the accept button. A screen that
+  // still offered to look again would contradict the client's own decision to stop.
+  if (state.completed) {
+    return (
+      <div className="mt-2 rounded-2xl border border-[#d9c4fb] bg-[#fcfaff] p-3.5">
+        <div className="text-[11px] font-extrabold uppercase tracking-[0.08em] text-[#b3a9cc]">Proof complete</div>
+        <div className="text-[14px] font-bold text-[#1f1235] mt-0.5">These are the right people</div>
+        <p className="text-[12.5px] text-[#5c5279] mt-1 leading-relaxed">
+          Nothing more is needed here. Next, choose how many meetings you want your programme to book.
+        </p>
+      </div>
+    )
+  }
 
   // ── 🛑 ESCALATED: MILLA HAS IT, AND THERE IS NOTHING TO PRESS ────────────────────────
   //

@@ -117,7 +117,14 @@ describe('🛑 ③ every surface reads the SAME client-level truth', () => {
     expect(c).toContain("db.from('clients')")
     expect(c).toContain(".select('outcome_stated')")
     // 🛑 AND ON THE NO-PROGRAMME PATH TOO — which is every client in Proof.
-    expect(c).toContain('return { ...NO_PROGRAMME, outcome: { ...NO_PROGRAMME.outcome, stated: await readStatedOutcomeFor(clientId) } }')
+    // ⛓️ RESHAPED 10 Sep (A), SAME DUTY. The no-programme path now reads TWO client-level
+    // facts together — the stated outcome (C03) and whether Proof is finished — because a
+    // client who accepted their set is at the calculator, not still at Proof. The property
+    // under test is unchanged: this path reads the outcome from CLIENTS rather than from a
+    // programme that does not exist.
+    expect(c).toContain('readStatedOutcomeFor(clientId), proofCompleteFor(clientId),')
+    expect(c).toContain('outcome: { ...NO_PROGRAMME.outcome, stated },')
+    expect(c).toContain("stage: millaStage({ status: null, proofComplete }),")
   })
 
   it('…and a failed read is "not stated", never a thrown screen', () => {

@@ -4162,6 +4162,50 @@ COMMENT ON COLUMN public.programmes.went_live_by IS
   'Who pressed Make Live. Recorded so arming and starting can be told apart by person as well as by time.';
 `.trim(),
   },
+  {
+    // ═══════════════════════════════════════════════════════════════════════════════════
+    // 🛑 PROOF COMPLETING WAS NOT A FACT ANYWHERE — THE HAPPY PATH ENDED IN SILENCE.
+    //
+    // ── WHAT THE 10 SEP AUDIT FOUND ──────────────────────────────────────────────────
+    //
+    // The canonical flow is: client reacts to the Proof set, says "These are right", Proof
+    // COMPLETES, and they move to the programme calculator. In the code, the accept control
+    // was `onAccept={() => { void loadCalibration() }}` — a GET. It wrote nothing.
+    //
+    // A search for any completion signal (`proof_complete`, `proof_accepted`,
+    // `proof_completed_at`, `proof_done`, `proof_finished`) across the API, portal, admin,
+    // shared and every migration returned NOTHING. `clients` carried `proof_passes_done`,
+    // `proof_started_at` and the review columns — how many attempts were SPENT, never
+    // whether the client was SATISFIED. Vida's Proof mode is "No action needed"; Milla's
+    // next-step line stayed "Milla is finding your first examples".
+    //
+    // So a satisfied client produced no record, no alert and no stage change, and the
+    // journey resumed only if an operator noticed by other means and hand-created a
+    // programme. The happy path terminated silently.
+    //
+    // ── WHY ON `clients` AND NOT ON A PROGRAMME ──────────────────────────────────────
+    //
+    // ⚠️ THERE IS NO PROGRAMME YET, AND THAT IS THE POINT. Proof completes BEFORE the
+    // calculator, and the calculator is what creates the programme. Hanging the fact on a
+    // programme would need one to exist first, which is the operator-created-programme
+    // shape this whole change removes. It sits beside `proof_passes_done` and
+    // `outcome_stated` — the other two client-level Proof facts.
+    //
+    // ⚠️ A TIMESTAMP, NOT A BOOLEAN, so "when did they accept" is answerable and the write
+    // is naturally idempotent: the first acceptance is the one recorded.
+    //
+    // Additive, nullable, no default, no backfill, idempotent.
+    // ═══════════════════════════════════════════════════════════════════════════════════
+    key: '20260910_proof_completion',
+    title: 'clients.proof_completed_at — the client said the examples are right (A)',
+    sql: `
+ALTER TABLE public.clients
+  ADD COLUMN IF NOT EXISTS proof_completed_at timestamptz;
+
+COMMENT ON COLUMN public.clients.proof_completed_at IS
+  'When the client said their Proof examples are right, so Proof is finished and the programme calculator is next. Before this column the accept control wrote nothing at all: a satisfied client produced no record, no alert and no stage change, and the journey only resumed if an operator noticed by other means. Client-level because Proof completes BEFORE any programme exists - the calculator is what creates one. NOT a count of attempts (proof_passes_done is how many were spent) and NOT an escalation (proof_review_requested_at is the failed loop). First acceptance wins; the write is idempotent.';
+`.trim(),
+  },
 ]
 
 // Runs the statements against DATABASE_URL. Uses node-postgres because the Supabase JS

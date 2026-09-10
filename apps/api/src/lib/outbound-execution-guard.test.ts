@@ -168,6 +168,12 @@ describe('② every outbound path asks one of the two doors', () => {
       'sendManualReply',
       // A prospect-facing consent request, gated by AUTO_OUTREACH_ENABLED with the rest.
       'sendConsentEmail',
+      // ⚑ 10 Sep (I) — THE ONE COLD DOOR FOR CALLERS OUTSIDE `email.ts`. It exists because the
+      // operator campaign test built its own Resend client with COLD_FROM and asked the
+      // kill-switch twenty lines earlier in the route — the "convention, not a kill-switch"
+      // shape. This function asks and sends in the SAME call, so the gate cannot be separated
+      // from the send. Audited here rather than exempted: it is genuinely prospect-facing.
+      'sendColdEmail',
       // Reads, not writes.
       'sendReadiness', 'sendablePool', 'pushRefusalIsNews',
       // Enqueues a LinkedIn step; `dispatchLinkedInStep` is what actually touches anybody.

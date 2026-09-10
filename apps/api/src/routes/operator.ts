@@ -779,15 +779,25 @@ operatorRouter.post('/campaign/:id/test', async (req: Request, res: Response) =>
     const TEST_INBOX = process.env.TEST_INBOX_EMAIL || 'hello@get-kind.com'
     const to = (to_email && to_email.includes('@')) ? to_email : TEST_INBOX
     if (!to || !to.includes('@')) { res.status(400).json({ success: false, error: 'No address to send the test to' }); return }
-    const { Resend: ResendCls } = await import('resend')
+    // ── 🛑 10 Sep (I) — THROUGH THE COLD SEAM, NOT A HAND-ROLLED CLIENT ────────────────
+    //
+    // ⛓️ THIS BUILT ITS OWN Resend CLIENT and called `emails.send` directly with COLD_FROM —
+    // real cold mail, on the cold identity, to an address the request could name. The
+    // kill-switch was checked at the top of the route, twenty lines above, with nothing making
+    // the send depend on that check. `sendColdEmail` asks the switch and sends in the same
+    // call, so the gate is structural rather than a convention two people have to maintain.
     if (!process.env.RESEND_API_KEY) { res.status(503).json({ success: false, error: 'Email sending is not configured' }); return }
-    const resend = new ResendCls(process.env.RESEND_API_KEY)
-    const { COLD_FROM, COLD_REPLY_TO } = await import('../lib/deliverability')
-    const { error: sendErr } = await resend.emails.send({
-      from: COLD_FROM, reply_to: COLD_REPLY_TO, to,
-      subject: `[TEST · ${c?.company_name ?? 'client'}] ${step1.subject}`, text: step1.body,
+    const { sendColdEmail } = await import('../lib/email')
+    const delivered = await sendColdEmail({
+      to,
+      subject: `[TEST · ${c?.company_name ?? 'client'}] ${step1.subject}`,
+      text: step1.body,
     })
-    if (sendErr) throw sendErr
+    if (!delivered) {
+      const { KILL_SWITCH_REFUSAL } = await import('../lib/outreach-kill-switch')
+      res.status(503).json({ success: false, error: KILL_SWITCH_REFUSAL, data: { preview: step1, sent: false, to: null } })
+      return
+    }
 
     await writeOperatorAudit({
       operatorEmail: operatorEmail(req), clientId: client.id, action: 'send_now',

@@ -4016,6 +4016,59 @@ COMMENT ON COLUMN public.leads.set_aside_reason IS
   'Why this candidate was never shown to the client - one of the four hard criteria (geography, size, industry, seniority) in plain words, written by the deterministic structural gate in proof-fit.ts BEFORE scoring and surfacing. NULL means never set aside. A set-aside row is kept for operational accounting and audit, is never surfaced, and can never recycle into a later Proof pass. It is deliberately NOT a leads.status value: status is a lifecycle state and this is a reason, and widening leads_status_check would touch the constraint the whole outreach path writes through.';
 `.trim(),
   },
+  {
+    // ── ⚑ 10 Sep — TWO ATTEMPTS, THEN A PERSON: THE EVIDENCE THE HAND-OFF NEEDS (C07) ────
+    //
+    // The automatic Proof loop now closes PROACTIVELY on the second attempt instead of
+    // waiting for the client to try to spend a third time. Four facts have to survive that
+    // moment, and none of them has a home today:
+    //
+    //   proof_escalation_trigger  — WHICH of the three conditions closed the loop. The
+    //     operator's first question is "why am I looking at this", and deriving it later from
+    //     feedback counts would re-decide it against data the client has since changed.
+    //   proof_phone_confirmed_at  — that the client CONFIRMED a number, and when. `phone`
+    //     already exists and may hold something they typed at signup and never checked;
+    //     "they told us this is the right number for a calibration call" is a different fact.
+    //   proof_calibration_note    — the operator's resolution note. Required BEFORE a
+    //     calibrated restart, so a restart cannot be pressed on an unexamined client.
+    //   proof_calibrated_restart_at — when the one human-authorised extra pass was granted.
+    //     It is what makes the grant SELF-LIMITING: a restart is allowed only when the
+    //     resolution is newer than the last restart, so one resolution buys exactly one pass.
+    //
+    // ⚠️ THE ATTEMPT SUMMARIES ARE NOT STORED. Surfaced counts, "looks right", "not a fit"
+    // and the reason tallies are all derivable from `lead_feedback` × `leads.proof_pass`,
+    // which already exist and are already the truth of record. A second copy would be a
+    // second answer to "what did the client actually say".
+    //
+    // ⚠️ `try_claim_proof_pass` IS NOT TOUCHED, DELIBERATELY. It stays the hard server
+    // backstop that refuses a third AUTOMATIC pass forever (founder-locked: "UI is not the
+    // safety boundary"). The calibrated restart does not go through it at all — it is a
+    // separate, operator-only, audited door, which is why the backstop needs no new exception
+    // and cannot be widened by accident.
+    //
+    // Additive, nullable, no defaults, no backfill, idempotent.
+    key: '20260910_proof_calibration_handoff',
+    title: 'clients: proof escalation trigger, confirmed phone, operator note and the one calibrated restart (C07)',
+    sql: `
+ALTER TABLE public.clients
+  ADD COLUMN IF NOT EXISTS proof_escalation_trigger    text,
+  ADD COLUMN IF NOT EXISTS proof_phone_confirmed_at    timestamptz,
+  ADD COLUMN IF NOT EXISTS proof_calibration_note      text,
+  ADD COLUMN IF NOT EXISTS proof_calibrated_restart_at timestamptz;
+
+COMMENT ON COLUMN public.clients.proof_escalation_trigger IS
+  'Which condition closed the automatic Proof loop: client_said_still_not_right, second_set_mostly_rejected, or requested_more_after_pass_two. Written once, in the same statement as proof_review_requested_at, so a client can never be escalated without a recorded reason.';
+
+COMMENT ON COLUMN public.clients.proof_phone_confirmed_at IS
+  'When the client confirmed the number to reach them on for a calibration call. Distinct from clients.phone, which may hold an unchecked signup value: this records that they were asked and answered.';
+
+COMMENT ON COLUMN public.clients.proof_calibration_note IS
+  'The operator note written when a failed Proof calibration is resolved. Required before Restart Proof (calibrated) is offered - a restart pressed on an unexamined client would spend a pass on the same targeting.';
+
+COMMENT ON COLUMN public.clients.proof_calibrated_restart_at IS
+  'When the one human-authorised extra Proof pass was granted. A restart is permitted only while proof_review_resolved_at is NEWER than this, so one resolution grants exactly one pass and it never resets the two automatic attempts. try_claim_proof_pass is untouched and still refuses a third automatic claim.';
+`.trim(),
+  },
 ]
 
 // Runs the statements against DATABASE_URL. Uses node-postgres because the Supabase JS

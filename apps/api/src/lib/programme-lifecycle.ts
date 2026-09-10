@@ -72,6 +72,19 @@ export type NeedsYouReason =
   | 'sender_not_sendable'
   | 'repeat_decision'
   | 'human_blocker'
+  /**
+   * ⚑ 10 Sep (C07) — THE ONE PROOF-STAGE TASK, and it is a REASON, not a stage.
+   *
+   * Both automatic Proof attempts were used and the targeting is still wrong, so the loop was
+   * handed to a person: Milla has told the client a human will call, and no further automatic
+   * sourcing can run. That IS an operator task — it names a control that exists (contact and
+   * recalibrate) and it clears when somebody does it, which is the whole test for Needs you.
+   *
+   * ⚠️ IT IS THE ONLY EXCEPTION TO "SIGNUP AND PROOF ARE NEVER TASKS", and it earns it by
+   * being the one Proof-stage condition where Vida has something to do and the client is
+   * waiting on us rather than the other way round.
+   */
+  | 'proof_calibration_failed'
 
 /**
  * Everything the derivation is allowed to look at.
@@ -100,6 +113,11 @@ export type LifecycleFacts = {
    * happening.
    */
   proofStarted: boolean | null
+  /**
+   * ⚑ 10 Sep — the automatic Proof loop was handed to a person and nobody has resolved it.
+   * `clients.proof_review_requested_at` open with `proof_review_resolved_at` null.
+   */
+  proofCalibrationFailed?: boolean | null
   /** Preparation refused, or a batch is unsettled with no run in flight. */
   preparationStopped: boolean
   /** A run IS in flight — the opposite of stopped, and it must never read as an exception. */
@@ -189,7 +207,15 @@ export function deriveLifecycle(f: LifecycleFacts): LifecycleVerdict {
   // ── NO PROGRAMME ─────────────────────────────────────────────────────────────────────
   // Signup and Proof are the two stages before anything is recommended. Neither is ever a task:
   // Milla is talking to the client and Vida has nothing to do until there is a programme.
-  if (!p) return f.proofStarted === true ? verdict('proof', 'proof', null) : verdict('signup', 'signup', null)
+  if (!p) {
+    // 🛑 ⚑ 10 Sep (C07) — THE ONE PROOF-STAGE TASK. Checked BEFORE the healthy split because
+    // an escalated client has necessarily started Proof, so testing `proofStarted` first
+    // would return the calm verdict and lose the task entirely.
+    if (f.proofCalibrationFailed === true) {
+      return verdict('proof', 'proof', 'proof_calibration_failed')
+    }
+    return f.proofStarted === true ? verdict('proof', 'proof', null) : verdict('signup', 'signup', null)
+  }
 
   // ── TERMINAL ─────────────────────────────────────────────────────────────────────────
   if (p.status === 'COMPLETED') {

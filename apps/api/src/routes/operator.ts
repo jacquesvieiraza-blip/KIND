@@ -2286,6 +2286,116 @@ operatorRouter.post('/proof-review/:clientId/resolve', async (req: Request, res:
   }
 })
 
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// ⚑ 10 Sep (C07) — THE CALIBRATION EVIDENCE, AND THE ONE RESTART.
+//
+// 🛑 THE RESTART DOES NOT GO THROUGH `try_claim_proof_pass`, DELIBERATELY. That RPC stays the
+// hard server backstop refusing a third AUTOMATIC pass forever (founder-locked: "UI is not
+// the safety boundary"), and giving it an exception would be widening the one control that
+// currently cannot be argued with. This is a separate door: operator-only, audited, gated on
+// a resolution a human actually wrote, and self-limiting — one resolution buys one pass.
+//
+// ⚠️ IT DOES NOT RESET THE TWO AUTOMATIC ATTEMPTS. `proof_passes_done` is never written here.
+// ═══════════════════════════════════════════════════════════════════════════════════════
+
+/** Everything the operator needs to answer "why am I looking at this client". */
+operatorRouter.get('/proof-review/:clientId/evidence', async (req: Request, res: Response) => {
+  try {
+    if (!adminKeyValid(req.headers['x-admin-key'])) {
+      res.status(403).json({ success: false, error: 'Operator key required' }); return
+    }
+    const { readCalibration, mayRestartCalibrated } = await import('../lib/proof-calibration-io')
+    const { ESCALATION_TRIGGER_COPY, PROOF_REASON_LABELS } = await import('../lib/proof-calibration')
+    const cal = await readCalibration(req.params.clientId)
+    const restart = mayRestartCalibrated(cal)
+    res.json({
+      success: true,
+      data: {
+        client_id: cal.clientId,
+        escalated_at: cal.escalatedAt,
+        resolved_at: cal.resolvedAt,
+        trigger: cal.trigger,
+        why: cal.trigger ? ESCALATION_TRIGGER_COPY[cal.trigger] : null,
+        passes_done: cal.passesDone,
+        phone: cal.phone,
+        phone_confirmed_at: cal.phoneConfirmedAt,
+        operator_note: cal.operatorNote,
+        restart_at: cal.restartAt,
+        // ⚠️ ATTEMPT SUMMARIES ARE DERIVED from lead_feedback × leads.proof_pass, so what the
+        // operator reads is what the client actually said — not a copy taken at escalation.
+        attempts: cal.attempts.map(a => ({
+          ...a,
+          reason_labels: Object.fromEntries(
+            Object.entries(a.reasons).map(([k, n]) => [PROOF_REASON_LABELS[k as never] ?? k, n])),
+        })),
+        may_restart: restart.allowed,
+        may_restart_why: restart.why ?? null,
+      },
+      read_only: 'This endpoint only reads. Nothing was changed by loading it.',
+    })
+  } catch (err) {
+    console.error('[operator/proof-review/evidence]', err)
+    res.status(500).json({ success: false, error: 'The calibration evidence could not be read' })
+  }
+})
+
+/**
+ * Restart Proof (calibrated) — ONE human-authorised pass, after a real resolution.
+ *
+ * ⚠️ IT GRANTS, IT DOES NOT RUN. No provider is called and no batch is sourced: the grant is
+ * recorded, and the ordinary Proof path becomes available once more for exactly one pass.
+ * Sourcing on the operator's press would put a paid call behind a button whose purpose is to
+ * say "the targeting is fixed now".
+ */
+operatorRouter.post('/proof-review/:clientId/restart', async (req: Request, res: Response) => {
+  try {
+    if (!adminKeyValid(req.headers['x-admin-key'])) {
+      res.status(403).json({ success: false, error: 'Operator key required' }); return
+    }
+    const { readCalibration, mayRestartCalibrated } = await import('../lib/proof-calibration-io')
+    const cal = await readCalibration(req.params.clientId)
+    const verdict = mayRestartCalibrated(cal)
+    if (!verdict.allowed) {
+      res.status(400).json({ success: false, error: verdict.why }); return
+    }
+    const nowIso = new Date().toISOString()
+    // ⚠️ CONDITIONAL ON THE RESOLUTION WE JUDGED. Two operators pressing together produce one
+    // grant: the second matches no row because `proof_calibrated_restart_at` has moved past
+    // the resolution it was checked against.
+    const { data, error } = await db.from('clients')
+      .update({ proof_calibrated_restart_at: nowIso, proof_review_requested_at: null })
+      .eq('id', req.params.clientId)
+      .not('proof_review_resolved_at', 'is', null)
+      .or(`proof_calibrated_restart_at.is.null,proof_calibrated_restart_at.lt.${cal.resolvedAt}`)
+      .select('id')
+    if (error) {
+      res.status(500).json({ success: false, error: `The calibrated restart could not be recorded (${error.message}). No pass was granted.` })
+      return
+    }
+    if ((data ?? []).length === 0) {
+      res.status(409).json({ success: false, error: 'The calibrated restart for this resolution has already been used.' })
+      return
+    }
+    await writeOperatorAudit({
+      operatorEmail: operatorEmail(req), clientId: req.params.clientId,
+      action: 'proof_calibrated_restart_granted', subjectType: 'client', subjectId: req.params.clientId,
+      detail: {
+        passes_already_used: cal.passesDone,
+        note: cal.operatorNote,
+        grants: 'exactly one Proof pass — the two automatic attempts are NOT reset and try_claim_proof_pass is unchanged',
+      },
+    })
+    res.json({
+      success: true,
+      data: { granted: 1, passes_already_used: cal.passesDone },
+      note: 'One calibrated Proof pass is available. The two automatic attempts are not reset.',
+    })
+  } catch (err) {
+    console.error('[operator/proof-review/restart]', err)
+    res.status(500).json({ success: false, error: 'The calibrated restart failed' })
+  }
+})
+
 // ── RUN PENDING MIGRATIONS (from Vida) ─────────────────────────────────────────────
 // The Supabase SQL editor is unreachable (GitHub OAuth + a flagged account), and we are
 // adding no new local tooling. This runs the reviewed, committed, idempotent statements in

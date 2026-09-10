@@ -32,6 +32,14 @@ export type CustomerProgramme = {
   paused: boolean
   pausedCopy: string | null
   reviewOpen: boolean
+  /**
+   * ⚑ 10 Sep (I5) — the programme is over, and WHICH WAY it ended.
+   *
+   * 🛑 `stage` CANNOT SAY: `millaStage` maps COMPLETED and CANCELLED to the same `Completion`.
+   * Optional so an older API response simply reads as "not terminal" rather than breaking the
+   * screen — and a live programme sends `null`.
+   */
+  terminal?: 'completed' | 'cancelled' | null
   outcome: {
     kind: 'meetings' | 'other'
     target: number | null
@@ -93,7 +101,19 @@ export function nextActionFor(p: CustomerProgramme): string {
     case 'Approval':       return 'Ready for your approval'
     case 'Live':           return 'Running — nothing needed from you'
     case 'Review':         return 'Review — waiting on a decision'
-    case 'Completion':     return 'Programme complete'
+    // ── 🛑 ⚑ 10 Sep (I5) — CANCELLED IS NOT COMPLETE ──────────────────────────────────
+    //
+    // ⛓️ `millaStage` MAPS BOTH COMPLETED AND CANCELLED TO `Completion` — right as a position
+    // in the journey (the programme is over either way) and wrong as a heading. This line said
+    // "Programme complete" to a client whose programme had been cancelled: a false statement
+    // to somebody about their own account, on the first line of their own workspace.
+    //
+    // Founder, 10 Sep: "Do not casually treat CANCELLED as successful Completion; represent it
+    // truthfully using existing cancellation semantics."
+    //
+    // ⚠️ THE STAGE IS UNCHANGED. Adding a `Cancelled` stage would redesign a founder-locked
+    // seven-stage list to fix a heading; the server sends the FACT instead and this reads it.
+    case 'Completion':     return p.terminal === 'cancelled' ? 'Programme cancelled' : 'Programme complete'
   }
 }
 

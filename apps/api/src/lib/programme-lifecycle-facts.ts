@@ -107,6 +107,23 @@ async function countRows(table: string, apply: (q: never) => unknown): Promise<n
  * derivation reads it as Signup — the earlier, safer stage. Showing a client at Proof who is
  * really at Signup makes Vida look like it is watching work nobody is doing.
  */
+/**
+ * ⚑ 10 Sep (C07) — is the automatic Proof loop handed to a person and still unresolved?
+ *
+ * ⚠️ FAILS SOFT TO `null`, NOT `false`. `false` asserts "this client is fine", which on an
+ * unreadable answer would hide the one Proof-stage task from the operator — and the client
+ * has already been told a person will call them. `null` asserts nothing.
+ */
+async function proofCalibrationFailedFor(clientId: string): Promise<boolean | null> {
+  try {
+    const { data, error } = await db.from('clients')
+      .select('proof_review_requested_at, proof_review_resolved_at').eq('id', clientId).maybeSingle()
+    if (error || !data) return null
+    const c = data as unknown as { proof_review_requested_at: string | null; proof_review_resolved_at: string | null }
+    return !!c.proof_review_requested_at && !c.proof_review_resolved_at
+  } catch { return null }
+}
+
 async function proofStartedFor(clientId: string): Promise<boolean | null> {
   try {
     const { data, error } = await db.from('icps')
@@ -267,10 +284,13 @@ export async function lifecycleDetailFor(clientId: string): Promise<LifecycleDet
   const p = currentProgramme(rows)
 
   if (!p) {
-    const proofStarted = await proofStartedFor(clientId)
+    const [proofStarted, proofCalibrationFailed] = await Promise.all([
+      proofStartedFor(clientId), proofCalibrationFailedFor(clientId),
+    ])
     return {
       verdict: deriveLifecycle({
-        programme: null, proofStarted, preparationStopped: false, preparing: false,
+        programme: null, proofStarted, proofCalibrationFailed,
+        preparationStopped: false, preparing: false,
         humanBlockers: [], readinessReady: false, sends: 0, repliesAwaitingDecision: 0,
         senderSendable: true, killSwitchOff, operatorRunEnabled,
         remainingEntitlement: 0, hasNewerProgramme: false, repeatDismissed: false,

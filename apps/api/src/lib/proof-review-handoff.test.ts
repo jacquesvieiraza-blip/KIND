@@ -399,8 +399,21 @@ describe('asking for a third set creates exactly one review', () => {
   it('pass 3 remains impossible — no run is ever started for the refused attempt', async () => {
     await exhaust(4)
     const claims = ctx.rec.rpcs.filter(r => r.fn === 'try_claim_proof_pass')
-    expect(claims).toHaveLength(4)
+    // ⛓️ RETARGETED 10 Sep — 4 → 3 CLAIMS, BECAUSE THE REFUSAL MOVED EARLIER, NOT AWAY.
+    //
+    // C07 added a check ahead of the claim: a client whose calibration has ALREADY been
+    // handed to a person is refused without asking the RPC at all. So of four attempts,
+    // 1 and 2 claim, 3 claims-and-fails (which is what OPENS the review), and 4 never
+    // reaches the RPC because by then Milla has promised them a call and "finding people is
+    // paused" — asking the counter again would be asking a question we have already answered.
+    //
+    // ⚠️ THE DUTY IS UNCHANGED AND NOW STRICTER: pass 3 is still impossible, and the fourth
+    // attempt now costs not even a round-trip. The two assertions that matter — the counter
+    // never passes 2, and no run is started — are below, unchanged and joined by a third.
+    expect(claims).toHaveLength(3)
     expect(client().proof_passes_done).toBe(2)
+    // 🛑 AND EXACTLY ONE REVIEW, however many times they ask.
+    expect(client().proof_review_requested_at).toBeTruthy()
   })
 })
 

@@ -19,7 +19,13 @@ create table if not exists public.clients (
   onboarded_at timestamptz,
   created_at   timestamptz not null default now(),
   updated_at   timestamptz not null default now(),
-  unique(user_id)
+  unique(user_id),
+  -- ⚑ 10 Sep (C07) — the Proof calibration hand-off. Migration:
+  -- 20260910_proof_calibration_handoff.
+  proof_escalation_trigger text,
+  proof_phone_confirmed_at timestamptz,
+  proof_calibration_note text,
+  proof_calibrated_restart_at timestamptz
 );
 
 -- ─────────────────────────────────────────────

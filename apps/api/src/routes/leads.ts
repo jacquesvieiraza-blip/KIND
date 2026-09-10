@@ -1532,7 +1532,37 @@ leadRouter.post('/:id/feedback', rateLimit({ limit: 120, windowMs: 60_000, key: 
       console.error('[leads/feedback] NOT RECORDED for lead', req.params.id, error)
       res.json({ success: true, recorded: false }); return
     }
-    res.json({ success: true, recorded: true })
+
+    // ── 🛑 ⚑ 10 Sep (C07) — THE LOOP CLOSES ON THE EVIDENCE, NOT ON A THIRD REQUEST ──────
+    //
+    // Founder-locked: *"Do not wait for the client to trigger a third paid attempt."* The old
+    // behaviour only ever refused when they asked again — so a client who had plainly told us
+    // the second set was wrong (half of it marked "Not a fit", nothing kept) was left holding
+    // the controls that spend our money, and Milla said nothing until they pressed one.
+    //
+    // ⚠️ THIS IS WHERE THE VERDICT BELONGS, because this is where the client's judgement
+    // actually lands. `calibrationVerdict` reads attempt 2 only, and `closeCalibrationLoop`
+    // writes conditionally, so marking the tenth card cannot escalate a second time.
+    //
+    // ⚠️ IT NEVER FAILS THE FEEDBACK. The card verdict is already recorded above; a hand-off
+    // that could not be written must not lose the client's answer as well.
+    let calibration: { closed: boolean; trigger?: string } = { closed: false }
+    try {
+      const { closeCalibrationLoop } = await import('../lib/proof-calibration-io')
+      const outcome = await closeCalibrationLoop(clientId, 'gave_feedback')
+      if (outcome.closed) {
+        calibration = { closed: true, trigger: outcome.trigger }
+        console.log(`[leads/feedback] Proof calibration handed to a person for client ${clientId} — ${outcome.trigger}.`)
+      } else if (outcome.reason === 'migration_required' || outcome.reason === 'unreadable') {
+        console.error(`[leads/feedback] the Proof calibration hand-off for client ${clientId} could NOT be recorded: ${outcome.detail}`)
+      }
+    } catch (err) {
+      console.error('[leads/feedback] calibration check failed (the feedback itself is recorded):', err)
+    }
+
+    // `calibration.closed` lets the screen ask for the number and drop its Proof controls in
+    // the same round-trip — so the client is never shown a control the server would refuse.
+    res.json({ success: true, recorded: true, calibration })
   } catch (err) {
     console.error('[leads/feedback]', err)
     res.json({ success: true, recorded: false })
@@ -1942,6 +1972,83 @@ leadRouter.post('/bulk-consent', async (req: AuthRequest, res) => {
 })
 
 // ── BULK EXPORT (POST) ────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// ⚑ 10 Sep (C07) — THE TWO CLIENT DOORS OF THE CALIBRATION HAND-OFF.
+//
+// Neither one sources anything. The first is the client saying, in one press, what marking
+// twelve cards says slowly; the second is them giving us the number to ring. They exist as
+// ROUTES rather than as screen state because the founder locked the boundary: *"UI is not
+// the safety boundary."*
+// ═══════════════════════════════════════════════════════════════════════════════════════
+
+/**
+ * POST /leads/proof/still-not-right — the client's verdict on the SECOND set.
+ *
+ * ⚠️ IT CANNOT ESCALATE ATTEMPT 1. `calibrationVerdict` requires `passesDone >= 2`, so
+ * pressing this early is honestly answered "there is another attempt to come" rather than
+ * handing a client to a person before we have used the improvement they are waiting for.
+ */
+leadRouter.post('/proof/still-not-right', async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+    const { closeCalibrationLoop, readCalibration } = await import('../lib/proof-calibration-io')
+    const { escalationAsk } = await import('../lib/proof-calibration')
+
+    const outcome = await closeCalibrationLoop(clientId, 'still_not_right')
+    if (!outcome.closed && (outcome.reason === 'migration_required' || outcome.reason === 'unreadable')) {
+      console.error(`[leads/proof/still-not-right] hand-off NOT recorded for client ${clientId}: ${outcome.detail}`)
+      res.status(503).json({ success: false, error: 'I could not pass this to a person just now — please try again in a moment.' })
+      return
+    }
+    // `already` and `closed` are the same thing from the client's side: the loop is shut and
+    // the next thing we need from them is a number. `not_yet` means attempt 2 is still to come.
+    const cal = await readCalibration(clientId)
+    res.json({
+      success: true,
+      escalated: cal.escalated,
+      // ⚠️ THE ASK CARRIES THE STORED NUMBER so the client confirms rather than retypes —
+      // and it is built server-side, from the row, so the screen cannot invent one.
+      ask: cal.escalated ? escalationAsk(cal.phone) : null,
+      phone_confirmed: !!cal.phoneConfirmedAt,
+    })
+  } catch (err) {
+    console.error('[leads/proof/still-not-right]', err)
+    res.status(500).json({ success: false, error: 'Something went wrong on our side.' })
+  }
+})
+
+/**
+ * POST /leads/proof/phone — the client confirms or supplies the number to reach them on.
+ *
+ * ⚠️ ONLY WHILE A CALIBRATION IS OPEN. This is not a general profile-edit door: it exists
+ * because Milla asked one question, and it accepts an answer to that question only.
+ */
+leadRouter.post('/proof/phone', async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+    const { readCalibration, confirmCalibrationPhone } = await import('../lib/proof-calibration-io')
+    const { ESCALATION_CONFIRMED } = await import('../lib/proof-calibration')
+
+    const cal = await readCalibration(clientId)
+    if (!cal.escalated) {
+      res.status(409).json({ success: false, error: 'There is no calibration call to arrange right now.' })
+      return
+    }
+    // An empty body means "yes, the stored one is right" — the commonest answer, and it must
+    // not require the client to retype a number we already hold.
+    const given = typeof req.body?.phone === 'string' && req.body.phone.trim()
+      ? String(req.body.phone) : cal.phone
+    const saved = await confirmCalibrationPhone(clientId, given)
+    if (!saved.ok) { res.status(400).json({ success: false, error: saved.detail }); return }
+    res.json({ success: true, message: ESCALATION_CONFIRMED })
+  } catch (err) {
+    console.error('[leads/proof/phone]', err)
+    res.status(500).json({ success: false, error: 'Something went wrong on our side.' })
+  }
+})
+
 leadRouter.post('/bulk-export', async (req: AuthRequest, res) => {
   try {
     const { leadIds } = z.object({

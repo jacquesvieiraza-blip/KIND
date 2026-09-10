@@ -79,6 +79,11 @@ export type OperatorAction =
   // either question.
   | 'programme_lifecycle'    // DRAFT → RECOMMENDED → AWAITING_FIRST_PAYMENT → READY_FOR_APPROVAL
   | 'programme_internal_authority'  // internal P1 / P2 — authority WITHOUT a payment
+  // ⚑ 10 Sep (C07) — the ONE human-authorised extra Proof pass, after a failed calibration
+  // was contacted and resolved. Audited because it is the only door that can put a prospect
+  // back in front of a paid provider after both automatic attempts are gone, and "who
+  // granted this, and on what note" has to be answerable without reading code.
+  | 'proof_calibrated_restart_granted'
   | 'programme_go_live'      // the explicit, separate Go Live. Never a side effect of P2.
   | 'programme_icp_attached' // the ONLY writer of icps.programme_id — what future sourcing feeds
   | 'client_commercial_model_set'  // ⚑ 3 Sep (C2) — an operator DECLARED which commercial model

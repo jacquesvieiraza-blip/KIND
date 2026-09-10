@@ -4468,6 +4468,50 @@ icpRouter.post('/:id/proof', async (req: AuthRequest, res) => {
       return
     }
 
+    // ── 🛑 ⚑ 10 Sep (C07) — AN ESCALATED CLIENT CANNOT CLAIM, WHATEVER THE COUNTER SAYS ──
+    //
+    // The claim RPC counts passes; it knows nothing about a calibration that has been handed
+    // to a person. Once the loop is closed, "finding people is paused until we've spoken" is
+    // a promise Milla has already made to the client — so this refuses BEFORE the claim
+    // rather than relying on the count, and it refuses in the words the client was given.
+    //
+    // ⚠️ THE UI IS NOT THE SAFETY BOUNDARY (founder-locked). The screen hides its Proof
+    // controls when escalated; this is the control.
+    {
+      const { readCalibration } = await import('../lib/proof-calibration-io')
+      const { SPEND_CLOSED_REFUSAL } = await import('../lib/proof-calibration')
+      try {
+        const cal = await readCalibration(clientId)
+        // ⛓️ 10 Sep — THE CONDITION IS `escalated`, NOT `!doors.automaticProofPass`, AND THE
+        // DIFFERENCE IS A REGRESSION I ALMOST SHIPPED. `automaticProofPass` is false for BOTH
+        // "a person already has this" and "both passes are spent but nobody has been told" —
+        // and refusing the second case here returned before the hand-off below, so the client
+        // got an honest-looking 409 and NOBODY at K.I.N.D was told. That is the exact defect
+        // the hand-off was written to fix.
+        //
+        // An exhausted-but-unescalated client must therefore fall through: the claim fails,
+        // the hand-off opens the review, alerts us, and returns the 409. This check exists
+        // only for the client Milla has ALREADY promised a call to.
+        if (cal.escalated) {
+          res.status(409).json({ success: false, error: SPEND_CLOSED_REFUSAL })
+          return
+        }
+      } catch (err) {
+        // ⛓️ 10 Sep — THIS REFUSED ON AN UNREADABLE READ, AND THAT WAS THE WRONG SHAPE.
+        //
+        // Failing closed here looked like the safe choice and was strictly worse: it returned
+        // before `try_claim_proof_pass`, so a client asking for a third set got a 503 and the
+        // EXISTING hand-off below — the one that opens the operator review and alerts us —
+        // never ran. Nobody was told, which is the defect that branch was written to fix.
+        //
+        // ⚠️ IT IS SAFE TO CONTINUE, AND ONLY BECAUSE THE BACKSTOP IS REAL. The pass count
+        // lives in `try_claim_proof_pass`, which refuses a third claim whatever this read
+        // said. So an unreadable calibration state cannot mint a paid batch; it can only
+        // fail to add the newer, narrower refusal. We log it and let the RPC decide.
+        console.error(`[icps/proof] calibration state unreadable for client ${clientId} — deferring to try_claim_proof_pass:`, err)
+      }
+    }
+
     // Atomic: two requests racing for pass 2 give exactly one claimant. Pass 3 is always 0.
     // If something fails after this claim, the pass is spent and there is NO automatic
     // retry — an automatic retry is precisely the race that would mint a third free batch.

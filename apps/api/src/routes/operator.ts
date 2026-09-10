@@ -2889,9 +2889,35 @@ operatorRouter.post('/inboxes/:id/verify', async (req: Request, res: Response) =
     const { verifyInbox } = await import('../lib/mailer')
     const result = await verifyInbox(data as never)
 
+    // ── 🛑 ⚑ 10 Sep (I2) — THE ANSWER IS STORED NOW, BECAUSE IT WAS BEING THROWN AWAY ────
+    //
+    // ⛓️ WHAT THIS FIXES. The check has been correct since #552 and its RESULT went nowhere but
+    // a boolean inside an audit row's `detail`, which nothing reads. So every gate downstream
+    // could ask "does this row have a host, a username and a password saved?" and none of them
+    // could ask "do those credentials actually work?" — a typo in a password passed readiness,
+    // reached READY_FOR_APPROVAL, and surfaced when a real prospect's first email failed on a
+    // warmed mailbox.
+    //
+    // ⚠️ A FAILED CHECK CLEARS `verified_at`. A mailbox that worked in July and has had its
+    // App Password revoked since must not keep reading as verified because it once passed.
+    // ⚠️ THE WRITE IS NOT ALLOWED TO BREAK THE CHECK. Before the migration runs these columns
+    // do not exist, and an operator pressing Test connection must still be told what the
+    // mailbox said — the gate that consumes the column fails closed on its own.
+    const stampedAt = new Date().toISOString()
+    const { error: stampErr } = await db.from('client_inboxes').update(
+      result.ok
+        ? { verified_at: stampedAt, verify_failed_at: null, verify_detail: result.message }
+        : { verified_at: null, verify_failed_at: stampedAt, verify_detail: result.message },
+    ).eq('id', req.params.id).eq('client_id', client.id)
+    if (stampErr) {
+      console.error('[operator/inbox-verify] the result could not be stored:', stampErr.message,
+        '— run migration 20260910_inbox_verification if the columns are missing')
+    }
+
     await writeOperatorAudit({
       operatorEmail: operatorEmail(req), clientId: client.id, action: 'assign_inbox',
-      subjectType: 'inbox', subjectId: req.params.id, detail: { verified: result.ok },
+      subjectType: 'inbox', subjectId: req.params.id,
+      detail: { verified: result.ok, stored: !stampErr },
     })
     // 200 either way: "we asked and it said no" is a successful check, not a server error.
     res.json({ success: true, data: result })

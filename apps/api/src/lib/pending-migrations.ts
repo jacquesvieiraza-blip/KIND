@@ -4250,6 +4250,25 @@ COMMENT ON COLUMN public.programmes.recommendation_accepted_at IS
   'When the client accepted the recommendation in Milla - a fact SEPARATE from paying. Before this column accepting WAS paying, because the only client control was the Stripe button, so a client who agreed and then hesitated at checkout left no record of having agreed. NOT approved_at: that is the later approval of the prepared programme (R108).';
 `.trim(),
   },
+  {
+    key: '20260910_inbox_verification',
+    title: 'client_inboxes.verified_at / verify_failed_at / verify_detail — did anyone prove this mailbox can log in? (I2)',
+    sql: `
+ALTER TABLE public.client_inboxes
+  ADD COLUMN IF NOT EXISTS verified_at      timestamptz,
+  ADD COLUMN IF NOT EXISTS verify_failed_at timestamptz,
+  ADD COLUMN IF NOT EXISTS verify_detail    text;
+
+COMMENT ON COLUMN public.client_inboxes.verified_at IS
+  'When this mailbox last PROVED it can log in - nodemailer verify() authenticated and sent nothing. NULL means never checked, which is not the same as failed and is the honest reading of every row written before 10 Sep. Cleared on a failed check so a mailbox that once worked and now does not cannot read as verified.';
+
+COMMENT ON COLUMN public.client_inboxes.verify_failed_at IS
+  'When a login check last FAILED. Kept alongside verified_at rather than replacing it so an operator can see that a check happened and what it said, rather than a silent NULL that looks identical to never having tried.';
+
+COMMENT ON COLUMN public.client_inboxes.verify_detail IS
+  'The operator-facing sentence from the last check - the named cause and the fix (App Password, SMTP AUTH disabled, port/TLS mismatch), never a raw SMTP code. Written on success and failure alike.';
+`.trim(),
+  },
 ]
 
 // Runs the statements against DATABASE_URL. Uses node-postgres because the Supabase JS

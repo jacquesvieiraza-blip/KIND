@@ -102,6 +102,20 @@ export type LifecycleCopyInput = {
   } | null
   operatorRunEnabled: boolean
   senderSendable: boolean
+  /**
+   * ⚑ 10 Sep (I2) — WHY the sender is not usable, in the SEND GATE'S OWN WORDS.
+   *
+   * ⛓️ WHY A GENERIC SENTENCE WAS NOT ENOUGH. This panel said "the sender paused because of an
+   * inbox issue … reconnecting the mailbox is the fix" for every sender refusal there is. The
+   * gate refuses for four different things — no mailbox, a TIE between equally-ranked boxes,
+   * an address live on another client, and a mailbox nobody has proved can log in — and only
+   * one of them is fixed by reconnecting anything. An operator sent to the wrong remedy is an
+   * operator who concludes the product is lying.
+   *
+   * ⚠️ OPTIONAL, AND THE GENERIC SENTENCE REMAINS THE FALLBACK. A missing detail must not
+   * blank the card.
+   */
+  senderDetail?: string | null
 }
 
 export type LifecycleCopy = {
@@ -583,8 +597,12 @@ export function lifecycleCopy(i: LifecycleCopyInput): LifecycleCopy {
         chips: ['Reconnect the mailbox', "What happens to today's sends?"],
         cards: [
           { kind: 'fact', label: 'Stage', value: 'Review', caption: 'Sending is paused' },
+          // ⚑ 10 Sep (I2) — the gate's own sentence when there is one, which names the actual
+          // remedy (press Test connection, retire the duplicate box, resolve the shared address)
+          // rather than sending every sender failure to "reconnect the mailbox".
           { kind: 'note', label: 'Sending paused',
-            body: 'The sending mailbox is not able to send. Nothing sends for this client until it is reconnected. Nobody lost their place in the sequence.',
+            body: i.senderDetail
+              ?? 'The sending mailbox is not able to send. Nothing sends for this client until it is reconnected. Nobody lost their place in the sequence.',
             tone: 'exception' },
           { kind: 'stats', label: 'Progress', stats: [
             { value: n(c.enrolled), label: 'In campaign' }, { value: n(c.sends), label: 'Emails sent' },

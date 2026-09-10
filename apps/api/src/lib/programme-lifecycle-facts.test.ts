@@ -23,6 +23,9 @@ vi.hoisted(() => {
   process.env.SUPABASE_URL ??= 'http://localhost:54321'
   process.env.SUPABASE_SERVICE_ROLE_KEY ??= 'test-service-role-key'
   process.env.SUPABASE_ANON_KEY ??= 'test-anon-key'
+  // ⚑ 10 Sep (I2) — the sender gate refuses outright without a readable secret key, and this
+  // file's cases are about the mailbox, not about the environment.
+  process.env.INBOX_SECRET_KEY ??= '0'.repeat(64)
 })
 
 type Row = Record<string, unknown>
@@ -97,7 +100,14 @@ beforeEach(() => {
     recommended_volume: 2500, created_at: '2026-09-10T08:00:00Z',
   }]
   state.clients = [{ id: CLIENT, proof_review_requested_at: null, proof_review_resolved_at: null, proof_completed_at: '2026-09-10' }]
-  state.client_inboxes = [{ client_id: CLIENT, status: 'active' }]
+  // ⚑ 10 Sep (I2) — a mailbox that passes the WHOLE gate: live, credentialed, and proved to
+  // log in. Everything the panel says about the sender is now the gate's own verdict.
+  state.client_inboxes = [{
+    id: 'inbox-1', client_id: CLIENT, email: 'hello@example.net', kind: 'branded', status: 'active',
+    provider: 'smtp', daily_cap: 30, smtp_host: 'smtp.example.net', smtp_port: 587,
+    smtp_secure: false, smtp_user: 'hello@example.net', smtp_pass_enc: 'enc', from_name: 'Example',
+    verified_at: '2026-09-10T08:00:00Z', verify_failed_at: null, verify_detail: 'Connected.',
+  }]
   state.programme_batches = []
   state.leads = []
   state.operator_audit_log = []
@@ -190,5 +200,63 @@ describe('② the LIST shows it too, because nothing else would make anybody ope
     unreadable.add('operator_audit_log')
     const [row] = await lifecycleBoard([CLIENT])
     expect(row.needs_you).toBe(false)
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// ③ ⚑ 10 Sep (I2) — THE PANEL ASKS THE SEND GATE'S OWN QUESTION ABOUT THE SENDER
+//
+// 🛑 THIS SECTION EXISTS BECAUSE A MUTATION PROVED NOTHING COVERED IT. Reverting
+// `senderSendableFor` to "always sendable" left every suite green, which is precisely the
+// defect it was written to fix: the panel read `client_inboxes.status` and answered "yes" if
+// any row was assigned or active, while `authorityFor(OUTREACH)` additionally refuses a TIE
+// between equally-ranked boxes, an address live on ANOTHER client, and a mailbox nobody has
+// proved can log in. A calm colour over an untested claim — the #565/#576 shape again.
+// ═══════════════════════════════════════════════════════════════════════════════════════
+
+describe('③ the sender the panel reports is the sender the gate would accept', () => {
+  it('a fully proved mailbox reads as sendable, with nothing to say about it', async () => {
+    const d = await lifecycleDetailFor(CLIENT)
+    expect(d.senderSendable).toBe(true)
+    // ⚠️ NULL, NOT A REASSURING SENTENCE. A panel that always has a sender sentence to print
+    // starts printing reassurance, and reassurance is what hid this.
+    expect(d.senderDetail).toBeNull()
+  })
+
+  it('🛑 A MAILBOX NOBODY HAS PROVED CAN LOG IN IS NOT SENDABLE, and the panel says why', async () => {
+    state.client_inboxes = [{ ...state.client_inboxes[0], verified_at: null }]
+    const d = await lifecycleDetailFor(CLIENT)
+    expect(d.senderSendable, 'the panel drew a healthy sender the send door would refuse').toBe(false)
+    expect(d.senderDetail).toContain('Test connection')
+  })
+
+  it('🛑 TWO EQUALLY-RANKED MAILBOXES ARE NOT SENDABLE — an arbitrary sender is not a decision', async () => {
+    state.client_inboxes = [
+      state.client_inboxes[0],
+      { ...state.client_inboxes[0], id: 'inbox-2', email: 'team@example.net' },
+    ]
+    const d = await lifecycleDetailFor(CLIENT)
+    expect(d.senderSendable).toBe(false)
+    expect(d.senderDetail).toContain('equally-ranked')
+  })
+
+  it('🛑 MULTIPLE VALID MAILBOXES ARE FINE when one clearly outranks the rest', async () => {
+    // Founder, 10 Sep: "Do not introduce a one-mailbox-per-client rule." What must be
+    // unambiguous is the PROGRAMME'S SENDER, not the size of the client's mailbox list.
+    state.client_inboxes = [
+      state.client_inboxes[0],
+      { ...state.client_inboxes[0], id: 'inbox-2', email: 'team@example.net', kind: 'pooled' },
+    ]
+    const d = await lifecycleDetailFor(CLIENT)
+    expect(d.senderSendable, 'a client with two good mailboxes was called broken').toBe(true)
+  })
+
+  it('an unreadable mailbox table still fails soft to sendable', async () => {
+    // ⚠️ THE ONE PLACE THIS FILE DELIBERATELY DOES NOT FAIL CLOSED. A read error would raise a
+    // sender alarm on every client at once, and a wall of false exceptions is how a real one
+    // gets missed. The send gate itself still refuses — the panel is not the safety boundary.
+    unreadable.add('client_inboxes')
+    const d = await lifecycleDetailFor(CLIENT)
+    expect(d.senderSendable).toBe(true)
   })
 })

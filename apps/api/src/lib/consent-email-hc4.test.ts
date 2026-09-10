@@ -189,7 +189,17 @@ describe('HC-4 — S5: the consent email leaves from the COLD domain, never the 
     // from the primary domain — moving those would be a different bug wearing this fix's face.
     const src = readFileSync(join(__dirname, 'email.ts'), 'utf8')
     expect(src, 'the transactional FROM must still exist').toContain("const FROM = 'K.I.N.D <hello@get-kind.com>'")
-    expect((src.match(/from: COLD_FROM/g) ?? []).length, 'exactly ONE send is cold: the consent email').toBe(1)
+    // ⛓️ 1 → 2 on 10 Sep (I). `sendColdEmail` joined the file: the operator campaign test used
+    // to build its OWN Resend client with COLD_FROM and check the kill-switch twenty lines
+    // earlier in the route, which is the "convention, not a kill-switch" shape R114 rejects.
+    // Routing it through here means both cold senders now live behind the same gate. The duty
+    // is unchanged and is asserted directly below: the count is BOUNDED and every one of them
+    // is a deliberate cold path, not an invoice that drifted onto the cold identity.
+    const coldSenders = (src.match(/from: COLD_FROM/g) ?? []).length
+    expect(coldSenders, 'a new cold sender appeared in email.ts').toBe(2)
+    // 🛑 AND BOTH ARE GATED. A cold send that does not pass the switch is the whole defect.
+    expect(src).toContain("killSwitchBlocks('resend_cold'")
+    expect(src).toContain('const isColdIdentity = from === COLD_FROM')
   })
 })
 

@@ -65,8 +65,30 @@ async function sendTx(opts: {
   html: string
   text?: string
   lifecycle?: boolean   // #480 — true = automated client lifecycle mail, gated by the master switch
+  /**
+   * ⚑ 10 Sep (I) — 🛑 THIS IS COLD OUTREACH, SO ASK THE KILL-SWITCH.
+   *
+   * `sendTx` is shared by invoices, password resets, receipts and digests — mail R114 does
+   * NOT govern — so the switch cannot live unconditionally in this function. But the cold
+   * identity (`COLD_FROM`) leaves through here too, and that mail IS outreach.
+   *
+   * ⚠️ SO THE SEAM ASKS, AND THE CALLER DECLARES. A caller that forgets the flag is caught by
+   * the assertion below rather than sending: any send from `COLD_FROM` without `cold: true`
+   * is refused outright, because the only way to reach the cold identity is deliberately.
+   */
+  cold?: boolean
 }) {
   if (!resend) return
+  // ── 🛑 THE COLD SEAM. Kill-switch ON = nothing leaves, whoever asked. ─────────────────
+  const from = opts.from ?? FROM
+  const isColdIdentity = from === COLD_FROM
+  if (opts.cold || isColdIdentity) {
+    // ⚠️ THE IDENTITY DECIDES, NOT ONLY THE FLAG. A future caller that reaches COLD_FROM
+    // without declaring `cold` is still gated — "a switch each caller must remember is a
+    // convention, not a kill-switch" (outreach-kill-switch.ts), and this is that argument
+    // applied to the one seam where transactional and cold mail share a function.
+    if (killSwitchBlocks('resend_cold', `${opts.subject} → ${Array.isArray(opts.to) ? opts.to.join(', ') : opts.to}`)) return
+  }
   if (opts.lifecycle && !lifecycleEmailsEnabled()) {
     console.log(`[email] lifecycle mail suppressed (LIFECYCLE_EMAILS_ENABLED=false) — "${opts.subject}"`)
     return
@@ -76,7 +98,7 @@ async function sendTx(opts: {
     return
   }
   const result = await resend.emails.send({
-    from:    opts.from ?? FROM,
+    from,
     to:      opts.to,
     subject: opts.subject,
     html:    opts.html,
@@ -983,4 +1005,42 @@ export async function sendWeeklyLeadsDigest(
       </div>
     `,
   })
+}
+
+
+/**
+ * 🛑 THE ONE COLD-EMAIL DOOR FOR CALLERS OUTSIDE THIS MODULE (I, 10 Sep).
+ *
+ * ── WHY IT EXISTS ────────────────────────────────────────────────────────────────────────
+ *
+ * `operator.ts`'s campaign test built its OWN Resend client and called `resend.emails.send`
+ * directly with `COLD_FROM` — real cold mail, on the cold identity, to an address the request
+ * could name. It checked the kill-switch at the top of the route, which was correct on the
+ * day it was written and is exactly the shape R114 calls a convention: the check and the send
+ * are twenty lines apart, and nothing makes the second depend on the first.
+ *
+ * Routing it through here makes the gate structural — the send cannot happen without the
+ * question being asked, because they are the same call.
+ *
+ * @returns false when the kill-switch refused. Never throws: callers already have a refusal
+ *          shape and an exception here would escape paths that exist to avoid phantom "sent"
+ *          rows.
+ */
+export async function sendColdEmail(opts: {
+  to: string
+  subject: string
+  text: string
+  html?: string
+  replyTo?: string
+}): Promise<boolean> {
+  if (killSwitchBlocks('resend_cold', `${opts.subject} → ${opts.to}`)) return false
+  await sendTx({
+    from: COLD_FROM,
+    to: opts.to,
+    subject: opts.subject,
+    html: opts.html ?? `<pre style="font:14px/1.5 ui-monospace,monospace;white-space:pre-wrap">${opts.text}</pre>`,
+    text: opts.text,
+    cold: true,
+  })
+  return true
 }

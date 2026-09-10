@@ -24,6 +24,10 @@
 // Every response is treated as unknown and narrowed at the edge, because a shape we assumed
 // and never verified is how a blank first name reaches a real prospect.
 
+// ⚑ 10 Sep (I) — the ONE definition of the kill-switch, asked at this file's delivery
+// seam (`addLeads` / `addLead`) rather than upstream. See that function for why.
+import { killSwitchBlocks, KILL_SWITCH_REFUSAL } from './outreach-kill-switch'
+
 const BASE = 'https://api.instantly.ai/api/v2'
 const TIMEOUT_MS = 15_000
 
@@ -138,6 +142,17 @@ export async function createCampaign(name: string, sequence: { subject: string; 
 
 /** Add one lead to a campaign. Our copy is already rendered — see `toInstantlySequence`. */
 export async function addLead(campaignId: string, lead: Record<string, unknown>): Promise<InstantlyResult<{ id?: string }>> {
+  // ── 🛑 10 Sep (I) — SAME SEAM, SAME REASON AS `smartlead.addLeads` ───────────────────
+  //
+  // Putting a real prospect into a live sending engine IS delivery: the engine sends from its
+  // own copy and never asks us again. The gate lived upstream in `instantly-map.ts` /
+  // `instantly-push.ts`, which leaves it as a convention the next caller can miss.
+  //
+  // ⚠️ REFUSED AS A RESULT, never thrown — every caller unwinds an `InstantlyResult`.
+  if (killSwitchBlocks('instantly', `lead → campaign ${campaignId}`)) {
+    // `status: null` — nothing reached the provider, so there is no HTTP status to report.
+    return { ok: false, status: null, error: KILL_SWITCH_REFUSAL }
+  }
   return call<{ id?: string }>('/leads', { method: 'POST', body: { campaign: campaignId, ...lead } })
 }
 

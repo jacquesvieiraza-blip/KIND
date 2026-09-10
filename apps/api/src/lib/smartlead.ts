@@ -19,6 +19,10 @@
 // The key is never logged and never returned; `redact()` scrubs it, in both raw and
 // URL-encoded form, from anything that could carry it.
 
+// ⚑ 10 Sep (I) — the ONE definition of the kill-switch, asked at this file's delivery
+// seam (`addLeads` / `addLead`) rather than upstream. See that function for why.
+import { killSwitchBlocks, KILL_SWITCH_REFUSAL } from './outreach-kill-switch'
+
 const BASE = process.env.SMARTLEAD_BASE_URL || 'https://server.smartlead.ai/api/v1'
 
 export function smartleadConfigured(): boolean {
@@ -225,6 +229,20 @@ export async function saveSequence(campaignId: string, sequence: unknown[]): Pro
  * emailing people who said stop.
  */
 export async function addLeads(campaignId: string, leadList: unknown[]): Promise<SmartleadResult<{ added_count?: number; skipped_count?: number }>> {
+  // ── 🛑 10 Sep (I) — THE KILL-SWITCH, AT THE SEAM THAT ACTUALLY CAUSES DELIVERY ────────
+  //
+  // ⛓️ THE GATE LIVED UPSTREAM, in `smartlead-map.ts` and `smartlead-send.ts` — the "callers
+  // usually check" shape the founder's rule rejects. THIS is where a real prospect enters a
+  // LIVE SENDING ENGINE, and Smartlead then sends from its own copy without asking us again:
+  // putting somebody in that list IS delivery, whatever our process does next.
+  //
+  // ⚠️ IT REFUSES AS A RESULT, NOT AN EXCEPTION. Every caller unwinds a `SmartleadResult`, and
+  // a throw would escape rollback paths that exist so a refused push cannot strand a phantom
+  // "pushed" row. The upstream checks stay — defence in depth, not a replacement.
+  if (killSwitchBlocks('smartlead', `${leadList.length} lead(s) → campaign ${campaignId}`)) {
+    // `status: null` — nothing reached the provider, so there is no HTTP status to report.
+    return { ok: false, status: null, error: KILL_SWITCH_REFUSAL }
+  }
   return write<{ added_count?: number; skipped_count?: number }>(
     `/campaigns/${encodeURIComponent(campaignId)}/leads`,
     { lead_list: leadList, settings: { ignore_global_block_list: false, ignore_unsubscribe_list: false } },

@@ -267,6 +267,108 @@ async function programmeCheckout(
   res.json({ success: true, data: { url: r.url } })
 }
 
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// 🛑 THE CALCULATOR — CLIENT-FACING, IN MILLA (B/C, 10 Sep)
+//
+// `GET /programmes/quote/:meetings` already existed and returned exactly the right figures —
+// behind the ADMIN KEY, on a router no client browser can reach, and the portal never called
+// it. So the one primitive the calculator needs was present and unreachable.
+//
+// ⚠️ A QUOTE WRITES NOTHING. It is safe to call on every keystroke while a client is still
+// deciding, which is precisely why it is a GET with no side effect.
+// ⚠️ AND IT IS STILL GATED — `requireAuth` plus the client's own record. A quote is not a
+// secret, but an unauthenticated pricing endpoint is a free scraping surface for our curve.
+// ═══════════════════════════════════════════════════════════════════════════════════════
+myProgrammeRouter.get('/calculator', async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+    const { calculateProgramme, meetingTargetProblem, TARGET_NOT_GUARANTEE, ILLUSTRATIVE_LABEL,
+            LEADS_PER_TARGETED_MEETING, MIN_LEADS_PER_MEETING } = await import('@kind/shared')
+    const meetings = Number(req.query.meetings)
+    const problem = meetingTargetProblem(meetings)
+    if (problem) { res.status(400).json({ success: false, error: problem }); return }
+    const result = calculateProgramme({
+      meetings,
+      leadsPerMeeting: req.query.leadsPerMeeting === undefined ? undefined : Number(req.query.leadsPerMeeting),
+      averageClientValue: req.query.averageClientValue === undefined ? undefined : Number(req.query.averageClientValue),
+      meetingToClientPct: req.query.meetingToClientPct === undefined ? undefined : Number(req.query.meetingToClientPct),
+    })
+    res.json({
+      success: true,
+      data: result,
+      // The two framings travel WITH the numbers, so a screen cannot render the figures and
+      // leave the caveats behind.
+      target_note: TARGET_NOT_GUARANTEE,
+      illustrative_note: ILLUSTRATIVE_LABEL,
+      benchmark: { leadsPerMeeting: LEADS_PER_TARGETED_MEETING, minLeadsPerMeeting: MIN_LEADS_PER_MEETING },
+    })
+  } catch (err) {
+    console.error('[programme/me/calculator]', err)
+    res.status(503).json({ success: false, error: MILLA_FAILURE_COPY.pipelineFailed })
+  }
+})
+
+/**
+ * 🛑 THE CLIENT CHOOSES THEIR PROGRAMME. Creates or re-prices it, attaches their ICP, and
+ * records the assumptions they were shown. Takes no money and sources nothing.
+ */
+myProgrammeRouter.post('/choose', async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+    const { chooseProgramme } = await import('../lib/client-programme-choice')
+    const r = await chooseProgramme(clientId, {
+      meetings: Number(req.body?.meetings),
+      leadsPerMeeting: req.body?.leadsPerMeeting === undefined ? undefined : Number(req.body.leadsPerMeeting),
+      averageClientValue: req.body?.averageClientValue === undefined ? undefined : Number(req.body.averageClientValue),
+      meetingToClientPct: req.body?.meetingToClientPct === undefined ? undefined : Number(req.body.meetingToClientPct),
+    })
+    if (!r.ok) {
+      // 400 for an input the client can fix, 409 for a state that says no, 503 for a write we
+      // could not make. Never a bare 500 on a button the client just pressed.
+      const status = r.reason === 'invalid_target' ? 400
+        : r.reason === 'proof_incomplete' || r.reason === 'locked' ? 409 : 503
+      res.status(status).json({ success: false, code: r.reason, error: r.detail })
+      return
+    }
+    res.json({
+      success: true,
+      created: r.created,
+      data: r.result,
+      programme: { id: r.programme.id, status: r.programme.status },
+      charged: 'nothing — choosing is free; the first payment is a separate step',
+    })
+  } catch (err) {
+    console.error('[programme/me/choose]', err)
+    res.status(503).json({ success: false, error: MILLA_FAILURE_COPY.pipelineFailed })
+  }
+})
+
+/** The client accepts the recommendation. Records agreement; authorises nothing. */
+myProgrammeRouter.post('/accept', async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+    const { acceptRecommendation } = await import('../lib/client-programme-choice')
+    const r = await acceptRecommendation(clientId)
+    if (!r.ok) {
+      res.status(r.reason === 'locked' ? 409 : r.reason === 'no_programme' ? 404 : 503)
+        .json({ success: false, code: r.reason, error: r.detail })
+      return
+    }
+    res.json({
+      success: true,
+      accepted_at: r.acceptedAt,
+      already_accepted: r.alreadyAccepted,
+      authorised: 'nothing — the first payment is the next, separate step',
+    })
+  } catch (err) {
+    console.error('[programme/me/accept]', err)
+    res.status(503).json({ success: false, error: MILLA_FAILURE_COPY.pipelineFailed })
+  }
+})
+
 myProgrammeRouter.post('/checkout/first', async (req: AuthRequest, res) => {
   try { await programmeCheckout(req, res, 'programme_first') }
   catch (err) {

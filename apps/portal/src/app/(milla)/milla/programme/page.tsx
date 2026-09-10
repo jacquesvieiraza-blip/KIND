@@ -24,13 +24,14 @@
 // no programme" shown to someone who has paid is a lie with their money in it.
 // ═══════════════════════════════════════════════════════════════════════════════════════
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { api } from '@/lib/api'
 import { createClient } from '@/lib/supabase/client'
 import { MILLA_FAILURE_COPY } from '@kind/shared'
 import ProgrammeWorkspace, { type CustomerProgramme } from '@/components/milla/ProgrammeWorkspace'
 import ProgrammeApproval, { type ApprovalPayload } from '@/components/milla/ProgrammeApproval'
 import ProgrammePayment from '@/components/milla/ProgrammePayment'
+import ProgrammeCalculator from '@/components/milla/ProgrammeCalculator'
 
 export default function ProgrammePage() {
   const [p, setP] = useState<CustomerProgramme | null>(null)
@@ -38,8 +39,10 @@ export default function ProgrammePage() {
   const [failed, setFailed] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    ;(async () => {
+  // ⚑ 10 Sep (B/C) — EXTRACTED SO THE CALCULATOR CAN RE-READ AFTER THE CLIENT CHOOSES.
+  // Choosing creates the programme, which changes every figure this screen renders; without a
+  // re-read the client would press "Build my programme" and watch nothing happen.
+  const load = useCallback(async () => {
       try {
         const supabase = createClient()
         const { data: { session } } = await supabase.auth.getSession()
@@ -59,8 +62,9 @@ export default function ProgrammePage() {
         setFailed(msg && msg.length < 200 ? msg : MILLA_FAILURE_COPY.pipelineFailed)
       }
       setLoading(false)
-    })()
   }, [])
+
+  useEffect(() => { void load() }, [load])
 
   if (loading) {
     return (
@@ -87,6 +91,20 @@ export default function ProgrammePage() {
   return (
     <div className="h-full overflow-y-auto p-5 sm:p-6">
       <ProgrammeWorkspace p={p} />
+      {/* ── 🛑 10 Sep (B/C) — THE CALCULATOR, WHERE THE CLIENT ALREADY IS ────────────────
+          It renders at Recommendation BEFORE a programme exists — the state a client reaches
+          the moment they accept their Proof set. Until now that state had no screen at all:
+          the meeting target was typed by an operator in Vida while the client was still at
+          Proof, and the client never chose anything or saw the lead volume.
+
+          ⚠️ ONCE A PROGRAMME EXISTS IT STEPS ASIDE. The recommendation and the payment card
+          below are then the truth, and a second place to re-choose a size the client has
+          already accepted would be two screens disagreeing about one programme. */}
+      {!p.hasProgramme && p.stage === 'Recommendation' && (
+        <div className="mt-3">
+          <ProgrammeCalculator onChosen={() => { void load() }} />
+        </div>
+      )}
       {/* ⚑ 9 Sep — THE APPROVAL, WHERE THE CLIENT ALREADY IS. It renders only when there is a
           programme awaiting their decision, or one they have already given; at every other
           stage this is silent. The server decides which of those it is. */}

@@ -76,6 +76,17 @@ export type CustomerProgramme = {
     /** Booked meetings — from public.meetings, the sole meeting truth. null = unreadable. */
     outcomesAchieved: number | null
   }
+  /**
+   * ⚑ 10 Sep (B/C) — WHAT THE CLIENT CHOSE, so the Recommendation screen can show the exact
+   * thing being accepted. `recommendedVolume` is the lead volume from their own calculator
+   * run; before this the client could not see it at all.
+   */
+  recommendation: {
+    recommendedVolume: number | null
+    costPerMeetingCents: number | null
+    acceptedAt: string | null
+    assumptions: { leadsPerMeeting: number; averageClientValue: number; meetingToClientPct: number } | null
+  }
   money: {
     totalCents: number
     /**
@@ -130,6 +141,7 @@ export const NO_PROGRAMME: CustomerProgramme = {
   paused: false, pausedCopy: null, reviewOpen: false,
   outcome: { kind: 'meetings', target: null, stated: null },
   progress: { delivered: 0, authorised: 0, outcomesAchieved: 0 },
+  recommendation: { recommendedVolume: null, costPerMeetingCents: null, acceptedAt: null, assumptions: null },
   money: {
     totalCents: 0, firstPaymentCents: 0, secondPaymentCents: 0, firstPaidAt: null, secondPaidAt: null,
     firstAuthorisedAt: null, secondAuthorisedAt: null, internalBilling: false,
@@ -178,7 +190,22 @@ async function proofCompleteFor(clientId: string): Promise<boolean> {
 
 export async function readCustomerProgramme(clientId: string): Promise<CustomerProgramme | null> {
   const { data, error } = await db.from('programmes')
-    .select('id, status, meeting_target, price_total_cents, sourcing_ceiling, sourced_used, ' +
+    // ── 🛑 10 Sep — THE TWO PAYMENT AMOUNTS AND THE VOLUME WERE READ BUT NEVER SELECTED ──
+    //
+    // ⛓️ THE `$0` DEFECT, AND IT WAS ON A MONEY SCREEN. `money.firstPaymentCents` and
+    // `secondPaymentCents` are built a few lines below from `p.first_payment_cents` /
+    // `p.second_payment_cents` — columns this select did not ask for. They came back
+    // `undefined`, `Number(undefined ?? 0)` gave 0, and `ProgrammePayment.tsx` rendered
+    // `programmeMoney(halfCents)` as the HERO FIGURE: a client was shown **$0** above "Start
+    // your programme". The Stripe charge was always correct (derived from `meeting_target`),
+    // so nothing was mischarged — the client was simply told the wrong price.
+    //
+    // ⚠️ `recommended_volume` JOINS THEM for the recommendation screen: the client chose a
+    // lead volume in the calculator and could not see it on the programme they were accepting.
+    .select('id, status, meeting_target, recommended_volume, price_total_cents, ' +
+            'price_per_meeting_cents, first_payment_cents, second_payment_cents, ' +
+            'calculator_assumptions, recommendation_accepted_at, ' +
+            'sourcing_ceiling, sourced_used, ' +
             'first_paid_at, second_paid_at, first_authorised_at, second_authorised_at, ' +
             'approved_at, went_live_at, paused_at, ' +
             'review_required_at, review_resolved_at')
@@ -273,6 +300,14 @@ export async function readCustomerProgramme(clientId: string): Promise<CustomerP
       delivered: Number(p.sourced_used ?? 0),
       authorised: Number(p.sourcing_ceiling ?? 0),
       outcomesAchieved,
+    },
+    recommendation: {
+      recommendedVolume: p.recommended_volume == null ? null : Number(p.recommended_volume),
+      costPerMeetingCents: p.price_per_meeting_cents == null ? null : Number(p.price_per_meeting_cents),
+      acceptedAt: (p.recommendation_accepted_at as string | null) ?? null,
+      // ⚠️ PASSED THROUGH, NOT RE-DERIVED. These are the client's own figures as they stood
+      // when they accepted; recomputing them from anything would be inventing their answer.
+      assumptions: (p.calculator_assumptions as CustomerProgramme['recommendation']['assumptions']) ?? null,
     },
     money: {
       totalCents: Number(p.price_total_cents ?? 0),

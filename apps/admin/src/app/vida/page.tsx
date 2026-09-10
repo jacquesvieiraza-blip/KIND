@@ -3357,11 +3357,30 @@ export default function VidaConsolePage() {
                           ? 'No programme for this client, and no commercial model has been declared. Until one is, they behave as legacy ($299 pack · 100 included · $4 per approved lead) — declare the model above if that is wrong.'
                           : 'No active programme, and the commercial model for this client could not be resolved. Nothing will source, send, enrol or charge for them until it is.'}
                       </p>
-                      {/* ⚠️ NO DEFAULT TARGET. The meeting target prices the entire programme
-                          off the shared curve, so it is typed by a human every time. */}
+                      {/* ── 🛑 10 Sep (C) — RECOVERY ONLY, AND NOT DRAWN DURING THE CLIENT'S PROOF ──
+                          ⛓️ THIS BOX WAS THE HEALTHY PATH, AND IT SHOULD NEVER HAVE BEEN. It
+                          rendered whenever a client had no programme — which is every client
+                          from signup until they choose one — so an operator was invited to type
+                          a meeting target for somebody still reacting to their Proof examples.
+                          The founder's flow is that the CLIENT chooses the target, in Milla's
+                          calculator, after Proof completes.
+
+                          It stays for recovery (a client who cannot get through the calculator,
+                          a programme that must be rebuilt), so the admin primitive is not
+                          removed — but it is hidden while the client is genuinely still at
+                          Signup or Proof, where offering it misrepresents the lifecycle.
+                          ⚠️ HIDDEN, NOT DISABLED: a greyed control still tells an operator this
+                          is the expected next step. */}
+                      {(prog.lifecycle?.verdict?.stage === 'signup' || prog.lifecycle?.verdict?.stage === 'proof') ? (
+                        <p className="text-[12px] text-[#6b5f8c] border border-[#eee7f7] rounded-xl px-3 py-2.5">
+                          The client is still in Proof. They choose their meeting target in Milla&rsquo;s
+                          calculator once they confirm their examples — nothing is created here for them.
+                        </p>
+                      ) : (
                       <div className="border border-[#eee7f7] rounded-xl px-3 py-2.5">
-                        <b className="text-[13px] block mb-1">Create a programme</b>
+                        <b className="text-[13px] block mb-1">Create a programme — recovery</b>
                         <p className="text-[12px] text-[#6b5f8c] mb-2">
+                          The client normally chooses this in Milla. Use this only when they cannot.
                           Prices once from the meeting target and stores it. Nothing is charged and no payment is recorded.
                         </p>
                         <div className="flex items-center gap-2">
@@ -3374,6 +3393,7 @@ export default function VidaConsolePage() {
                         </div>
                         {lcMsg && <p className="text-[12px] text-[#6b5f8c] mt-2">{lcMsg}</p>}
                       </div>
+                      )}
                     </>
                    ) : (<>
                     <div className={`border rounded-xl px-3 py-2.5 mb-3 ${

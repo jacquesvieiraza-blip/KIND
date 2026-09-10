@@ -12,6 +12,12 @@ import { killSwitchBlocks, KILL_SWITCH_REFUSAL } from './outreach-kill-switch'
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
 const FROM = 'K.I.N.D <hello@get-kind.com>'
 const DASH = `${process.env.PORTAL_URL || 'https://app.get-kind.com'}/dashboard`
+// ⚑ 10 Sep (C15) — MILLA, THE CLIENT'S OWN WORKSPACE, AND THE FIRST STEP OF THE LOCKED FLOW.
+//
+// ⚠️ A SEPARATE CONSTANT RATHER THAN REPOINTING `DASH`, which ten other templates below use
+// for leads, ICP and billing links. Redirecting all of them to fix one email would be a change
+// nobody asked for.
+const MILLA = `${process.env.PORTAL_URL || 'https://app.get-kind.com'}/milla`
 
 // Demo/seed clients carry synthetic addresses (e.g. demo-xxxx@kind-demo.internal).
 // These are NOT real mailboxes — sending to them generates hard bounces that erode
@@ -260,19 +266,37 @@ export async function sendWelcomeEmail(to: string, companyName: string) {
   await sendTx({
     from: FROM,
     to,
-    subject: 'Welcome to K.I.N.D — your 14-day trial has started',
+    // ── ⚑ 10 Sep (C15) — THERE IS NO 14-DAY TRIAL, AND THIS EMAIL SAID THERE WAS ─────────
+    //
+    // ⛓️ WHAT #607 MISSED. The trial was retired: a signup writes `paused` with
+    // `trial_ends_at: null`, and the expiry/nurture crons were switched off. `retire-trial.test.ts`
+    // guards `routes/internal.ts` and the nurture template — but NOT this function, which is the
+    // one welcome email that is still LIVE and still sent on every signup. So the retirement was
+    // real everywhere except the first sentence a new client ever reads from us.
+    //
+    // 🛑 AND THREE OTHER CLAIMS WENT WITH IT, because a truthful email cannot keep them:
+    //   · "Your first leads will appear within 24 hours" — a delivery SLA we do not offer, on a
+    //     stage that produces EXAMPLES rather than leads. Proof is deliberately un-timed.
+    //   · "Sign your Service Agreement in the Documents tab" — the phrase "Service Agreement"
+    //     appears nowhere in the portal; this email was the only source of it.
+    //   · "Set up your Ideal Customer Profile" — the client does not build an ICP by hand any
+    //     more. Milla shapes the targeting with them during Proof.
+    //
+    // ⚠️ NOTHING NEW IS PROMISED IN ITS PLACE. The replacement states only the locked flow —
+    // Signup → Proof → the programme they choose — with no timescale and no commercial term.
+    subject: 'Welcome to K.I.N.D — your workspace is ready',
     html: `
       <div style="font-family:sans-serif;max-width:560px;margin:0 auto;color:#111">
         <h1 style="font-size:1.5rem;margin-bottom:8px">Welcome, ${companyName} 👋</h1>
-        <p style="color:#555;line-height:1.6">Your 14-day free trial has started. Here's what to do next:</p>
+        <p style="color:#555;line-height:1.6">Your workspace is ready. Here's what happens next:</p>
         <ol style="color:#555;line-height:2">
-          <li>Sign your <strong>Service Agreement</strong> in the Documents tab</li>
-          <li>Set up your <strong>Ideal Customer Profile</strong> so we know who to find</li>
-          <li>Your first leads will appear within 24 hours</li>
+          <li>Open <strong>Milla</strong> and tell her the outcome you want</li>
+          <li>She'll show you <strong>real examples</strong> of the people we'd reach for you</li>
+          <li>Tell her what's right and what isn't — then you choose your programme</li>
         </ol>
-        <a href="${DASH}"
+        <a href="${MILLA}"
            style="display:inline-block;margin-top:16px;background:#7C3AED;color:#fff;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:600">
-          Go to my dashboard →
+          Open Milla →
         </a>
         <p style="color:#999;font-size:0.8rem;margin-top:32px">
           Questions? Reply to this email or book a call at <a href="mailto:hello@get-kind.com">hello@get-kind.com</a>.

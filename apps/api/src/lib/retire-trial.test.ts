@@ -119,6 +119,58 @@ describe('the client-facing trial copy is off the send path', () => {
     expect(internal).not.toContain('Your free trial has ended')
   })
 
+  it('🛑 C15 — the LIVE welcome email says nothing about a trial', () => {
+    // ⛓️ THE GAP THIS FILE LEFT OPEN. The header above says these tests pin "the client-facing
+    // email", and the case above pins `routes/internal.ts` — the RETIRED expiry sender. The one
+    // welcome email that is still wired to a route and still sent on every signup was never
+    // checked, so it kept saying "your 14-day trial has started" for as long as the trial had
+    // been retired. A guard aimed at the dead path while the live path drifts is the shape this
+    // repo keeps finding.
+    //
+    // ⚠️ SCOPED TO THE FUNCTION, NOT THE FILE. `email.ts` legitimately still contains
+    // `sendNurtureEmail`, whose whole subject is the retired trial, and the comments above it
+    // quote the old copy to explain why. Asserting over the whole file would fail on the
+    // explanation of the very thing being retired.
+    const email = API('./email.ts')
+    const at = email.indexOf('export async function sendWelcomeEmail(')
+    expect(at, 'sendWelcomeEmail has moved or been renamed — re-point this guard').toBeGreaterThan(-1)
+    const end = email.indexOf('export async function', at + 10)
+    const raw = email.slice(at, end === -1 ? email.length : end)
+    // ⚠️ COMMENTS STRIPPED FIRST — the same subtlety the case above this one records. The
+    // comment inside `sendWelcomeEmail` QUOTES the retired wording in order to explain why it
+    // went; a raw-file assertion fails on the explanation of its own fix, which would force
+    // whoever retires the next thing to delete the reason with it.
+    const body = raw.split('\n')
+      .filter(l => { const t = l.trim(); return t && !t.startsWith('//') && !t.startsWith('*') })
+      .join('\n')
+
+    for (const claim of ['14-day', '14 day', 'free trial', 'trial has started']) {
+      expect(body.toLowerCase(),
+        `the welcome email still tells a new client about a "${claim}" we do not sell`)
+        .not.toContain(claim.toLowerCase())
+    }
+  })
+
+  it('🛑 C15 — and it makes no delivery promise in place of the trial', () => {
+    // ⚠️ THE SECOND HALF, AND THE EASIER REGRESSION. Removing the trial sentence while leaving
+    // "your first leads will appear within 24 hours" would swap one false commercial claim for
+    // another — an SLA we do not offer, on a stage (Proof) that is deliberately un-timed and
+    // produces EXAMPLES rather than leads.
+    const email = API('./email.ts')
+    const at = email.indexOf('export async function sendWelcomeEmail(')
+    const end = email.indexOf('export async function', at + 10)
+    const body = email.slice(at, end === -1 ? email.length : end)
+    const executable = body.split('\n')
+      .filter(l => { const t = l.trim(); return t && !t.startsWith('//') && !t.startsWith('*') })
+      .join('\n')
+
+    for (const promise of ['within 24 hours', 'Service Agreement']) {
+      expect(executable, `the welcome email still claims "${promise}"`).not.toContain(promise)
+    }
+    // And it points the client at the first stage of the locked flow, not at a dashboard.
+    expect(executable, 'the welcome email no longer sends a new client to Milla').toContain('${MILLA}')
+  })
+
   it('the nurture template is marked NOT CALLED rather than left looking live', () => {
     // #397's lesson: an unused export in a live file reads as live. It is kept (CORE-MAP
     // rule 3) but labelled, so nobody wires it up without reading why it stopped.

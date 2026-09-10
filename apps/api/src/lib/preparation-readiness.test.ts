@@ -41,6 +41,10 @@ import {
   preparationBlockers,
   cadenceIsConfigured,
   PREPARATION_REQUIREMENTS,
+  // ⚑ 10 Sep (I2) — the two the sender gate depends on: the list of blockers preparation is
+  // trusted to clear, and the predicate the console gates its button on.
+  PREPARATION_CLEARS,
+  onlyPreparationBlocks,
   type PreparationFacts,
 } from './preparation-readiness'
 
@@ -282,5 +286,41 @@ describe('⑦ timing is approved work, not a system setting', () => {
     // Without one every send is refused, so a programme could be declared reviewable and then
     // be unable to run — and a schedule added AFTER approval changes work the client never saw.
     expect(codes(without({ sendScheduleConfigured: false }))).toContain('no_send_schedule')
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// ⚑ 10 Sep (I2) — READY_FOR_APPROVAL MUST NOT BE REACHABLE WITHOUT A SENDER
+//
+// 🛑 WHY THIS IS ITS OWN CASE. Section ③ proves the operator is TOLD about `no_sender`. That
+// is a different claim from "it stops the programme": a code listed in `PREPARATION_CLEARS` is
+// one the screen offers the button in spite of, and one preparation is expected to clear by
+// itself. A mailbox is not something preparation can create — somebody has to connect one and
+// prove it logs in — so `no_sender` sitting in that list would let a programme be declared
+// reviewable, and a client be asked to approve a plan that cannot run.
+//
+// Founder, 10 Sep: "zero valid assigned senders = refuse … READY_FOR_APPROVAL must not be
+// reachable without it."
+// ═══════════════════════════════════════════════════════════════════════════════════════
+
+describe('⑦ a programme with no proved sender cannot be put in front of a client', () => {
+  it('🛑 `no_sender` is NOT a blocker preparation clears', () => {
+    expect(PREPARATION_CLEARS,
+      'preparation would offer the button on a programme that can never send').not.toContain('no_sender')
+  })
+
+  it('🛑 and a sender blocker alone makes the programme NOT one preparation away', () => {
+    // The behavioural half: `onlyPreparationBlocks` is what the console gates the button on, so
+    // it is the function that would draw a control that cannot possibly succeed.
+    expect(onlyPreparationBlocks([{ code: 'no_sender', detail: 'no mailbox' }])).toBe(false)
+    expect(onlyPreparationBlocks([
+      { code: 'no_campaign', detail: 'x' }, { code: 'no_sender', detail: 'no mailbox' },
+    ]), 'one un-clearable blocker among clearable ones was ignored').toBe(false)
+  })
+
+  it('a programme whose ONLY gaps are ones preparation clears is still preparable', () => {
+    // ⚠️ THE COMPLEMENT, so the case above cannot pass by `onlyPreparationBlocks` simply
+    // answering false to everything.
+    expect(onlyPreparationBlocks([{ code: 'no_campaign', detail: 'x' }])).toBe(true)
   })
 })

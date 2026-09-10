@@ -159,18 +159,32 @@ async function proofStartedFor(clientId: string): Promise<boolean | null> {
   } catch { return null }
 }
 
-/** Can the mailbox this client would send from actually send? */
-async function senderSendableFor(clientId: string): Promise<boolean> {
+/**
+ * Can the mailbox this programme would send from actually send?
+ *
+ * ── 🛑 ⚑ 10 Sep (I2) — IT ASKS THE GATE'S OWN QUESTION NOW ──────────────────────────────
+ *
+ * ⛓️ WHAT THIS REPLACES. It used to read `client_inboxes.status` and answer "yes" if any row
+ * was `assigned` or `active`. `authorityFor(OUTREACH)` asks `programmeSenderSafety`, which
+ * additionally refuses a TIE between equally-ranked boxes, an address live on ANOTHER client,
+ * and (as of today) a mailbox nobody has proved can log in. So the panel drew a healthy sender
+ * while the send door refused — the #565/#576 shape again: a calm colour over an untested claim.
+ *
+ * ⚠️ ONE RULEBOOK, ASKED TWICE. The safety verdict is not re-derived here; a second copy is how
+ * a console and a sender start disagreeing about the same mailbox without anything failing.
+ *
+ * ⚠️ AN UNREADABLE ANSWER STILL FAILS SOFT TO "SENDABLE". A read error would otherwise raise a
+ * sender alarm on every client at once, and a wall of false exceptions is how a real one gets
+ * missed. `unreadable` is the safety module's own word for that, and it is not a client's fault.
+ */
+async function senderSendableFor(clientId: string): Promise<{ sendable: boolean; detail: string | null }> {
   try {
-    const { data, error } = await db.from('client_inboxes')
-      .select('status').eq('client_id', clientId)
-    // ⚠️ FAILS SOFT TO "SENDABLE". A read error here would otherwise raise a sender alarm on
-    // every client at once — a wall of false exceptions is how a real one gets missed.
-    if (error) return true
-    const rows = (data ?? []) as { status: string | null }[]
-    if (rows.length === 0) return false
-    return rows.some(r => SENDABLE_INBOX.has(String(r.status)))
-  } catch { return true }
+    const { programmeSenderSafety } = await import('./programme-sender')
+    const s = await programmeSenderSafety(clientId)
+    if (s.ok) return { sendable: true, detail: null }
+    if (s.reason === 'unreadable') return { sendable: true, detail: null }
+    return { sendable: false, detail: s.detail }
+  } catch { return { sendable: true, detail: null } }
 }
 
 export type LifecycleCounts = {
@@ -288,6 +302,13 @@ export type LifecycleDetail = {
   /** Founder-plain sentence for a stopped preparation. Never a stack trace, never lead ids. */
   stoppedDetail: string | null
   senderSendable: boolean
+  /**
+   * ⚑ 10 Sep (I2) — WHY the sender is not usable, in the gate's own words.
+   *
+   * ⚠️ NULL WHEN IT IS FINE. A panel that always has a sender sentence to print starts
+   * printing reassurance, and reassurance is what hid this for weeks.
+   */
+  senderDetail: string | null
   killSwitchOff: boolean
   operatorRunEnabled: boolean
 }
@@ -322,15 +343,17 @@ export async function lifecycleDetailFor(clientId: string): Promise<LifecycleDet
         remainingEntitlement: 0, hasNewerProgramme: false, repeatDismissed: false,
       }),
       counts: { ...NO_COUNTS }, programme: null, replyAwaiting: null,
-      humanBlockers: [], stoppedDetail: null, senderSendable: true, killSwitchOff, operatorRunEnabled,
+      humanBlockers: [], stoppedDetail: null, senderSendable: true, senderDetail: null,
+      killSwitchOff, operatorRunEnabled,
     }
   }
 
   const campaignId = await campaignIdFor(p.id)
-  const [counts, senderSendable] = await Promise.all([
+  const [counts, sender] = await Promise.all([
     countsFor(p.id, clientId, campaignId).catch(() => ({ ...NO_COUNTS })),
     senderSendableFor(clientId),
   ])
+  const senderSendable = sender.sendable
 
   // ── READINESS, AND WHICH OF ITS BLOCKERS A HUMAN OWNS ────────────────────────────────
   // 🛑 THE SPLIT IS `PREPARATION_CLEARS`, THE SAME LIST THE BUTTON IS GATED BY. A blocker
@@ -418,7 +441,7 @@ export async function lifecycleDetailFor(clientId: string): Promise<LifecycleDet
 
   return {
     verdict, counts, replyAwaiting, humanBlockers, stoppedDetail,
-    senderSendable, killSwitchOff, operatorRunEnabled,
+    senderSendable, senderDetail: sender.detail, killSwitchOff, operatorRunEnabled,
     programme: {
       id: p.id, status: String(p.status), meetingTarget: p.meeting_target,
       entitlementUsed, entitlementTotal, entitlementRemaining,

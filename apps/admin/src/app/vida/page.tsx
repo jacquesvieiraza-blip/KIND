@@ -386,6 +386,9 @@ export default function VidaConsolePage() {
       humanBlockers: { code: string; detail: string }[]
       stoppedDetail: string | null
       senderSendable: boolean
+      /** ⚑ 10 Sep (I2) — the send gate's own reason, so the panel stops sending every sender
+       *  failure to "reconnect the mailbox" when three of the four have a different remedy. */
+      senderDetail?: string | null
       killSwitchOff: boolean
       operatorRunEnabled: boolean
     } | null
@@ -1963,6 +1966,7 @@ export default function VidaConsolePage() {
       killSwitchOff: lc.killSwitchOff,
       operatorRunEnabled: lc.operatorRunEnabled,
       senderSendable: lc.senderSendable,
+      senderDetail: lc.senderDetail ?? null,
     })
   }, [lc, selectedName, selectedClient?.company_name])
 

@@ -259,7 +259,12 @@ describe('MILLA · MY ICP — THE DRAWER IS GONE, THE TARGETING FLOW IS NOT', ()
     // `api.post('/icps/revise'`; it is now `api.post(fresh ? '/icps/fresh' : '/icps/revise'`
     // because a FRESH definition saves to a different route. The ASSERTION IS THE SAME FACT:
     // an ICP context still saves through `/icps/revise`, still by an explicit `api.post`.
-    expect(chat, 'the explicit save is gone').toMatch(/api\.post\([^)]*'\/icps\/revise'/)
+    // ⛓️ 10 Sep (C01) — RETARGETED AGAIN, AND STRENGTHENED RATHER THAN RELAXED. The call now
+    // carries a generic type argument, because the route answers with the truthful diff
+    // (`change.sentence`, `pending_review`, `wrote`) that the transcript speaks — so
+    // `api.post(` is no longer the literal spelling. The fact under test is unchanged: an
+    // ICP context still saves through `/icps/revise`, by an explicit `api.post`, on a press.
+    expect(chat, 'the explicit save is gone').toMatch(/api\.post(<[^(]*>)?\([^)]*'\/icps\/revise'/)
     expect(chat, 'the save is no longer a deliberate press').toContain('Save — make this live')
     // FRESH IS NOT REFINE — and since 7 Sep it no longer LEAVES THE PORTAL to say so. Both
     // existing-client entry points focus the ONE conversation; only a ZERO-ICP client still

@@ -37,6 +37,9 @@
 // changes what she says NEXT; what she said before is a record of what we told them then.
 
 import { type CustomerProgramme } from './customer-programme'
+// ⚑ 10 Sep (C06) — STATICALLY IMPORTED, AND SAFE TO BE: `milla-proof-context` is pure, so
+// it pulls in no database client and no provider. The READ lives in its `-io` sibling.
+import { describeProofContext, type ProofChatContext } from './milla-proof-context'
 
 /** The slice of /leads/milla-summary the chat needs. Kept structural so the summary
  *  builder's richer payload satisfies it without a cast.
@@ -261,7 +264,20 @@ export function buildLifecycleReassertion(): string {
 export function buildMillaChatSystem(
   snap: MillaSnapshot | null,
   prog: CustomerProgramme | null = null,
+  /**
+   * ⚑ 10 Sep (C06) — THE SET SITTING BESIDE HER.
+   *
+   * 🛑 `undefined` MEANS "THIS DOOR DID NOT ASK", and it is deliberately different from
+   * `null` ("we asked and could not read it"). An omitted argument adds no Proof block at
+   * all — which is right for a caller that has no client context — whereas `null` tells her
+   * explicitly that she cannot see the set. Collapsing the two would either put a "could not
+   * be read" warning in front of clients with nothing to read, or silently drop the block on
+   * the doors that do serve Proof clients.
+   */
+  proof: ProofChatContext | null | undefined = undefined,
 ): string {
+  // Composed here rather than at each door, so both doors get the identical block.
+  const proofBlock = proof === undefined ? [] : [describeProofContext(proof)]
   return [
     // ⚠️ WHO SHE IS. "Programme partner", not "campaign partner" — the customer bought a
     // programme; "campaign" is our internal word for the delivery mechanism.
@@ -314,6 +330,10 @@ export function buildMillaChatSystem(
     // Live context — the whole point of the 12 Aug fix, now on programme truth.
     describeProgramme(prog),
     describeOutcomes(snap),
+    // ⚑ 10 Sep (C06) — AND THE SET IN FRONT OF THEM, which she could not see at all. It sits
+    // AFTER the programme and outcome blocks because it is the most specific context and the
+    // one most likely to be the subject of the question; empty when the door did not ask.
+    ...proofBlock,
 
     // Behaviour.
     'Answer in 2–4 short sentences unless asked for a full draft. Warm, plain, founder-to-founder.',

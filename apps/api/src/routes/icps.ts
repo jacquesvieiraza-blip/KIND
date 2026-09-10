@@ -17,6 +17,13 @@ import { isSuppressed } from '../lib/suppression'
 import { sendFounderAlert } from '../lib/alerts'
 import { PDL_RATE_USD } from '../lib/sourcing-fences'
 import { isLaunchSendCountry, launchTargetRefusal, launchCountrySpellings } from '@kind/shared'
+// ⚑ 10 Sep (C01) — ONE DIFF RULE, SHARED WITH THE SCREEN THAT SPEAKS IT. The sentence a
+// client reads about their own targeting is derived here, from the two states the SERVER
+// observed; `packages/shared` is where it lives so the portal cannot grow a second, kinder
+// version of the same comparison.
+import {
+  diffTargeting, targetingChangeSentence, targetingUnchanged, type TargetingLists,
+} from '@kind/shared'
 import { splitPoolAndRemainder, poolWriteAllowed, splitPoolEligible, poolRefusalLine, poolCountryMatches, canonicalPoolCountry, isGeoServable, isPoolSourceEligible, poolRecordMatchesIcp, POOL_ELIGIBLE_SOURCES } from '../lib/pool-sourcing'
 import { toMemoryRecord, rememberAcquiredIdentities, type AcquisitionMemoryRecord, type SuppressionReason } from '../lib/acquisition-memory'
 import { assertIcpFullyOwned } from '../lib/icp-coverage'
@@ -3742,7 +3749,22 @@ result or a number. "permitted" is false unless they explicitly said we may use 
  * `pending_targeting` is in the select for exactly that reason; nothing else reads it here.
  */
 async function coreIcpRow(clientId: string): Promise<Record<string, unknown> | null> {
-  const cols = 'id, name, is_active, pending_targeting'
+  // ⚑ 10 Sep — THE LIVE TARGETING COLUMNS JOIN THE SELECT, for two things that both need the
+  // BEFORE state and must read it from the row the write will land on:
+  //   · the truthful diff `/icps/revise` hands back ("changed the industry from X to Y") —
+  //     which the browser cannot compute, because it only ever knew the draft it built;
+  //   · the repeat check that makes an identical revision idempotent, without which the one
+  //     retry C01 adds could mint a second ICP version or re-stamp a waiting revision.
+  // Additive: `proofRefinementVerdict` reads `id` and `pending_targeting` exactly as before.
+  //
+  // ⚠️ WRITTEN OUT AS ONE LITERAL, NOT BUILT FROM `TARGETING_FIELDS`. supabase-js infers the
+  // returned row type FROM THE SELECT STRING, so a computed column list resolves to
+  // `GenericStringError` and every read off the row loses its type. `targeting-refinement.
+  // test.ts` asserts this literal contains every field in `TARGETING_FIELDS`, so the two
+  // cannot drift apart silently.
+  // ⚠️ AND IT IS ONE UNBROKEN LITERAL. Even `'a, b' + 'c'` widens to `string` and loses the
+  // row type — the concatenation is not a style choice the compiler ignores.
+  const cols = 'id, name, is_active, pending_targeting, pending_campaign_intent, industries, geographies, job_titles, seniority_levels, company_sizes, tech_stack, keywords'
   const { data: live } = await db.from('icps')
     .select(cols).eq('client_id', clientId).eq('is_active', true)
     .order('created_at', { ascending: false }).limit(1).maybeSingle()
@@ -3751,6 +3773,53 @@ async function coreIcpRow(clientId: string): Promise<Record<string, unknown> | n
     .select(cols).eq('client_id', clientId)
     .order('created_at', { ascending: false }).limit(1).maybeSingle()
   return (data as Record<string, unknown> | null) ?? null
+}
+
+/**
+ * 🛑 IS THIS REVISION A REPEAT OF ONE WE ALREADY HOLD? (C01, 10 Sep)
+ *
+ * ⚠️ IT EXISTS BECAUSE OF THE RETRY, AND THE TWO SHIP TOGETHER. C01 gives Milla ONE retry
+ * when a save gets no answer — and "no answer" does not mean "no write": the first request
+ * can commit and lose its response to a 15s abort or a dropped connection. Without this
+ * check the retry would, on the three paths in `saveClientTargeting`:
+ *
+ *   · insert  — mint a SECOND ICP version for one client action, which the My ICP screen
+ *               shows as two versions and `runIcpJob` hangs pass-2 leads off one of;
+ *   · hold    — re-stamp `pending_submitted_at`, moving the review clock on a revision that
+ *               was already waiting, and fire a SECOND founder alert for one change;
+ *   · apply   — rewrite the same values, which is harmless in itself and still fires the
+ *               second alert.
+ *
+ * ⚠️ AND IT IS NOT A REQUEST NONCE. An idempotency key the browser generates is a promise
+ * the browser makes; this compares the targeting we ALREADY STORED against the targeting
+ * being asked for, so it is true of any repeat from any door — including a client who simply
+ * asks twice for the same thing.
+ *
+ * ⚠️ A PARKED REVISION IS NEVER OVERTAKEN BY THE LIVE-COLUMN SHORTCUT. When something is
+ * already waiting, only an exact match with THAT revision counts as a repeat. Treating "your
+ * live columns already say this" as a repeat while a different revision sat parked would
+ * change today's behaviour: the ordinary hold branch replaces a waiting revision, and
+ * silently declining to do so is a decision nobody asked for.
+ */
+function revisionIsRepeat(
+  core: Record<string, unknown>,
+  body: Record<string, unknown>,
+  intent: string,
+  /** True when this write would be PARKED rather than applied (`saveClientTargeting`'s hold). */
+  hold: boolean,
+): boolean {
+  const same = (a: TargetingLists, b: TargetingLists) => targetingUnchanged(diffTargeting(a, b))
+  const parked = core.pending_targeting as TargetingLists | null | undefined
+  if (hold && parked) {
+    if (!same(parked, body as TargetingLists)) return false
+    // A revision that also carries a NEW brief is not a repeat of one that carries a
+    // different brief — the targeting matching is not enough to drop the words with it.
+    const held = String(core.pending_campaign_intent ?? '').trim()
+    return !intent || intent === held
+  }
+  // Nothing is parked, or the write goes to the live columns: a request that already matches
+  // the live columns has nothing to change and nothing to park.
+  return same(core as TargetingLists, body as TargetingLists)
 }
 
 /**
@@ -4208,6 +4277,35 @@ icpRouter.post('/revise', async (req: AuthRequest, res) => {
     // the refinement was built against, and a human needs to look before anything else runs.
     if (verdict === 'state_changed') { stateChanged(res); return }
 
+    // ── ⚑ 10 Sep (C01) — THE DIFF IS TAKEN BEFORE THE WRITE, FROM THE ROW WE HOLD ────────
+    //
+    // ⚠️ THE ORDER IS THE WHOLE POINT. Once the update has run, the "before" state is gone —
+    // so a diff computed afterwards can only compare the new row with itself and would
+    // describe every revision as changing nothing. `core` is the same row the verdict judged
+    // and the write targets, so the sentence describes the move that actually happened.
+    const changes = diffTargeting((core ?? {}) as TargetingLists, body as TargetingLists)
+
+    // ── 🛑 THE REPEAT SHORT-CIRCUIT — NO SECOND VERSION, NO SECOND ALERT ─────────────────
+    //
+    // Returned BEFORE `saveClientTargeting`, so a repeat performs no write of any kind. See
+    // `revisionIsRepeat`: this is what makes the one client-side retry safe, and it answers
+    // 200 rather than an error because nothing is wrong — the state they asked for is the
+    // state we hold.
+    const wouldHold = (core as { is_active?: boolean } | null)?.is_active === true && verdict !== 'apply'
+    if (core?.id && revisionIsRepeat(core, body, revisedIntent, wouldHold)) {
+      res.status(200).json({
+        success: true,
+        data: core,
+        pending_review: wouldHold && !!core.pending_targeting,
+        // ⚠️ `wrote: false` IS THE FACT THE CLIENT NEEDS, and `change` is null because there
+        // is genuinely no change to narrate. A sentence here would be the fabrication C01
+        // exists to remove.
+        wrote: false,
+        change: null,
+      })
+      return
+    }
+
     const saved = await saveClientTargeting(clientId, body, revisedIntent, verdict === 'apply', core)
 
     // ⚠️ THE RACE LOST, AND LOSING IS THE CORRECT OUTCOME. The conditional update matched no
@@ -4245,7 +4343,25 @@ icpRouter.post('/revise', async (req: AuthRequest, res) => {
           : 'Their ICP is NOT live — this is a refinement before we switch them on. Nothing changed for anyone already enrolled.',
       ]).catch(() => {})
 
-    res.status(201).json({ success: true, data, pending_review: pending })
+    // ── ⚑ 10 Sep (C01) — ONE TRUTHFUL SENTENCE ABOUT WHAT MOVED ─────────────────────────
+    //
+    // 🛑 WHAT THIS REPLACES. The transcript said "Updated — this is your live targeting now"
+    // for every success — including the HELD path, where the live targeting is deliberately
+    // unchanged and the revision is waiting for review. The client was told the opposite of
+    // what happened, and could not tell from the sentence whether the industry they asked us
+    // to change had changed at all.
+    //
+    // ⚠️ THE MOOD FOLLOWS `pending`, NOT THE COPYWRITER. A parked revision is described as
+    // something they ASKED for; only an applied one is described as done.
+    // ⚠️ AND `null` MEANS NOTHING MOVED. The client must say so — never re-word it as an
+    // update (`TARGETING_UNCHANGED_SENTENCE` is the sentence for that state).
+    res.status(201).json({
+      success: true, data, pending_review: pending, wrote: true,
+      change: {
+        sentence: targetingChangeSentence(changes, pending ? 'requested' : 'applied'),
+        unchanged: targetingUnchanged(changes),
+      },
+    })
   } catch (err) {
     if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: err.errors }); return }
     console.error('[icps/revise]', err)

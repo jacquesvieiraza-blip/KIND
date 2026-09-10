@@ -204,7 +204,13 @@ describe('the live context block — the fix for "I don\'t have access to your d
 describe('both doors actually use the shared prompt (wiring, not intent)', () => {
   it('routes/milla.ts builds the system from the shared builder and the snapshot', () => {
     const src = readFileSync(join(__dirname, '../routes/milla.ts'), 'utf8')
-    expect(src).toContain('buildMillaChatSystem(snapshot, programme)')
+    // ⛓️ RETARGETED 10 Sep (C06) — the builder takes a THIRD argument now: the Proof desk
+    // she could not see (`milla-proof-context.ts`). The duty is unchanged and is the reason
+    // this assertion exists at all — BOTH doors build from the ONE shared builder with the
+    // client's live context, so a fix cannot land on one of them. It is asserted with the
+    // proof argument named, not loosened to "calls the builder somehow".
+    expect(src).toContain('buildMillaChatSystem(snapshot, programme, proof)')
+    expect(src).toContain('readProofChatContext(access.clientId)')
     expect(src).toContain('buildMillaSummaryData(access.clientId)')
     // ⚑ 30 Aug — AND THE PROGRAMME, from the SAME reader the workspace uses. A second
     // reader would be a second truth, which is exactly what the 4A-1 walk found.
@@ -218,7 +224,11 @@ describe('both doors actually use the shared prompt (wiring, not intent)', () =>
 
   it('lib/milla.ts (the desk chat) builds from the same pair', () => {
     const src = readFileSync(join(__dirname, 'milla.ts'), 'utf8')
-    expect(src).toContain('buildMillaChatSystem(snapshot, programme)')
+    // ⛓️ RETARGETED 10 Sep (C06) — see the door above; the Proof desk is the third argument
+    // on both doors, and the point of the pair of assertions is that neither door is left
+    // behind.
+    expect(src).toContain('buildMillaChatSystem(snapshot, programme, proof)')
+    expect(src).toContain('readProofChatContext(clientId)')
     expect(src).toContain('buildMillaSummaryData(clientId)')
     expect(src).toContain('readCustomerProgramme(clientId)')
     // The instruction that produced "upload your relevant data" is gone.

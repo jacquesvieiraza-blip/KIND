@@ -149,7 +149,10 @@ export async function chat(params: ChatParams): Promise<ChatResult> {
   // ⚑ 30 Aug (BUILD-004A-2) — THE PROGRAMME JOINS THE SAME PARALLEL BATCH. It is one row
   // read, so it costs nothing against the 15s bound, and putting it here rather than after
   // the chunk search keeps that margin intact.
-  const [chunks, snapshot, programme] = await Promise.all([
+  // ⚑ 10 Sep (C06) — THE PROOF DESK JOINS THE SAME PARALLEL BATCH, for the same reason the
+  // programme did: it is two bounded reads, so it costs nothing against the portal's 15s
+  // abort, and serialising it is what pushed first questions over that edge in August.
+  const [chunks, snapshot, programme, proof] = await Promise.all([
     searchChunks(clientId, userMessage),
     (async (): Promise<import('./milla-chat-system').MillaSnapshot | null> => {
       try {
@@ -166,6 +169,18 @@ export async function chat(params: ChatParams): Promise<ChatResult> {
         return await readCustomerProgramme(clientId)
       } catch (e) {
         console.error('[milla/chat] programme lookup failed — answering without it', e)
+        return null
+      }
+    })(),
+    // ⚠️ ALREADY FAIL-SOFT INSIDE ITSELF — `readProofChatContext` answers `null` on any
+    // unreadable part, and `null` tells her she cannot see the set rather than that there
+    // is none. The wrapper is here only so a module-load failure cannot take the chat down.
+    (async (): Promise<import('./milla-proof-context').ProofChatContext | null> => {
+      try {
+        const { readProofChatContext } = await import('./milla-proof-context-io')
+        return await readProofChatContext(clientId)
+      } catch (e) {
+        console.error('[milla/chat] proof desk lookup failed — answering without it', e)
         return null
       }
     })(),
@@ -188,7 +203,7 @@ export async function chat(params: ChatParams): Promise<ChatResult> {
   // a chat that answers without numbers beats a chat that is down.
   const { buildMillaChatSystem } = await import('./milla-chat-system')
   const systemPrompt =
-    buildMillaChatSystem(snapshot, programme) +
+    buildMillaChatSystem(snapshot, programme, proof) +
     '\n\n' +
     (hasContext
       ? 'The client has uploaded business documents, and relevant excerpts are provided below. ' +

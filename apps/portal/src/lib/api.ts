@@ -38,8 +38,20 @@ async function apiFetch<T>(path: string, options?: RequestInit, token?: string, 
     const errMsg = Array.isArray(data.error)
       ? data.error.map((e: { message?: string }) => e.message ?? JSON.stringify(e)).join(', ')
       : (typeof data.error === 'string' ? data.error : JSON.stringify(data.error)) || 'API request failed'
-    const err = new Error(errMsg) as Error & { status: number }
+    const err = new Error(errMsg) as Error & { status: number; code?: string }
     err.status = res.status
+    // ⚑ 10 Sep (C01) — THE MACHINE-READABLE CODE SURVIVES THE THROW.
+    //
+    // 🛑 IT WAS DROPPED HERE, AND THAT IS WHY EVERY FAILURE LOOKED THE SAME. `/icps/revise`
+    // answers 409 with `existing_pending_targeting` or `targeting_state_changed` — two
+    // opposite situations, one of which must never be retried — and the only thing that
+    // reached the screen was `error`, the PROSE. So the transcript either printed our
+    // internal review wording verbatim or collapsed both into "I hit a snag reaching the
+    // engine". A screen cannot branch on a fact it was not given.
+    //
+    // ⚠️ THE PROSE IS STILL CARRIED, for logs and for callers that already show it. What is
+    // new is that a caller can now tell WHICH refusal it was without matching on a sentence.
+    if (typeof data.code === 'string' && data.code) err.code = data.code
     throw err
   }
   return data

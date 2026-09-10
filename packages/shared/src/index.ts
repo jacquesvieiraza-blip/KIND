@@ -5,6 +5,7 @@ export * from './company-details'
 export * from './cost-floor'
 export * from './panel-state'
 export * from './client-honesty'
+export * from './targeting-refinement'
 export * from './notice'
 export * from './run-outcome-banner'
 // ⚠️ THE PROGRAMME MODEL — founder-approved, UNBUILT as live commercial truth (R74/R81).

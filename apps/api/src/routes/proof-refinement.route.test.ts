@@ -46,7 +46,14 @@ const state = {
   afterCoreRead: null as (() => void) | null,
 }
 
-const CORE_COLS = 'id, name, is_active, pending_targeting'
+// ⛓️ RETARGETED 10 Sep (C01), NOT LOOSENED. This constant identifies the CORE selection by
+// its column list, and the list grew: `/icps/revise` now needs the live targeting columns
+// and `pending_campaign_intent` on the same row, for the truthful diff it returns and for
+// the repeat check that makes the client's one retry unable to mint a second ICP version.
+// The DUTY is unchanged — "count the core selection only, and inject the race only after
+// it" — so the constant follows `coreIcpRow`'s literal rather than the assertion being
+// relaxed to match any select.
+const CORE_COLS = 'id, name, is_active, pending_targeting, pending_campaign_intent, industries, geographies, job_titles, seniority_levels, company_sizes, tech_stack, keywords'
 
 function query(table: string) {
   let cols = ''
@@ -292,7 +299,13 @@ describe('free-proof refinement applies immediately — and only it does', () =>
     expect(wasHeld(), 'both passes spent — a human takes over, not another apply').toBe(true)
     state.icpUpdates = []
     state.passes = 7
-    await callRevise({ ...TARGETING(), proof_refinement: true })
+    // ⛓️ 10 Sep (C01) — THE SECOND CHECK NOW SENDS DIFFERENT TARGETING, and the reason is a
+    // new behaviour rather than a weakened assertion: the first call above PARKED this exact
+    // targeting, so re-sending it byte for byte is a REPEAT, and `/icps/revise` deliberately
+    // writes nothing for a repeat (that is what makes the client's one retry unable to
+    // re-stamp a waiting revision). The duty here is "at any pass count above 1 the edit is
+    // still parked, never applied" — so the request has to be a real second edit to test it.
+    await callRevise({ ...TARGETING({ industries: ['Fintech'] }), proof_refinement: true })
     expect(wasHeld()).toBe(true)
   })
 
@@ -486,7 +499,9 @@ describe('an existing pending_targeting stops the refinement dead', () => {
     expect(src).toContain('await saveClientTargeting(clientId, body, revisedIntent, verdict === \'apply\', core)')
     // …and the old shape, which read twice, is gone.
     expect(src).not.toContain('proofRefinementVerdict(clientId, req.body, await coreIcpRow(clientId))')
-    expect((src.match(/const cols = 'id, name, is_active, pending_targeting'/g) ?? []),
+    // ⛓️ 10 Sep — matched against the SAME constant this file mocks on, so the assertion and
+    // the mock cannot drift into disagreeing about which read is the core one.
+    expect((src.match(new RegExp(`const cols = '${CORE_COLS}'`, 'g')) ?? []),
       'one column list').toHaveLength(1)
     // 15 · NO PROVIDER ROUTING WAS TOUCHED. ⚠️ SCOPED TO THE CODE THIS BUILD ADDED — a
     // file-wide ban was meaningless here, because `icps.ts` IS the sourcing route and names

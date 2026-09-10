@@ -495,12 +495,22 @@ millaRouter.post('/chat', async (req: AuthRequest, res) => {
     } catch (e) {
       console.error('[milla/chat stateless] programme lookup failed — answering without it', e)
     }
+    // ⚑ 10 Sep (C06) — THE PROOF DESK, ON THIS DOOR TOO. Both chat doors share one system
+    // builder precisely so a fix cannot land on one of them; a Proof block on the desk chat
+    // alone would leave the side panel answering about the same set without seeing it.
+    let proof = null as import('../lib/milla-proof-context').ProofChatContext | null
+    try {
+      const { readProofChatContext } = await import('../lib/milla-proof-context-io')
+      proof = await readProofChatContext(access.clientId)
+    } catch (e) {
+      console.error('[milla/chat stateless] proof desk lookup failed — answering without it', e)
+    }
     const { buildMillaChatSystem } = await import('../lib/milla-chat-system')
 
     const response = await anthropic.messages.create({
       model: 'claude-haiku-4-5-20251001',
       max_tokens: 600,
-      system: buildMillaChatSystem(snapshot, programme),
+      system: buildMillaChatSystem(snapshot, programme, proof),
       messages,
     })
 

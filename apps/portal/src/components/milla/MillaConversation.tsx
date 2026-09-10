@@ -4,7 +4,15 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import Link from 'next/link'
 import { api } from '@/lib/api'
 import { createClient } from '@/lib/supabase/client'
-import { STAGE_QUICK_ACTION, type MillaStage } from '@kind/shared'
+import {
+  STAGE_QUICK_ACTION, type MillaStage,
+  // ⚑ 10 Sep (C01) — THE FAILURE RULES AND THE DIFF SENTENCE ARE NOT WRITTEN HERE. They are
+  // rules a client reads about their own targeting, so they live in `@kind/shared` where a
+  // test can run them; see `targeting-refinement.ts` for the four failures that were all
+  // wearing "I hit a snag reaching the engine".
+  refinementFailureMessage, chatFailureMessage, isRetryableOnce, REFINEMENT_RETRIES,
+  REVISE_STATE_CHANGED_CODE, TARGETING_UNCHANGED_SENTENCE,
+} from '@kind/shared'
 
 // ── ⚑ 4 Sep — THE ONE MILLA CONVERSATION (founder-approved shell) ────────────────────────
 //
@@ -46,6 +54,33 @@ async function token(): Promise<string | undefined> {
   try { const { data } = await createClient().auth.getSession(); return data.session?.access_token } catch { return undefined }
 }
 
+/** How the transport reports a failure. `code` arrives via `lib/api.ts` (C01). */
+type ApiFailure = Error & { status?: number; code?: string }
+const failureOf = (e: unknown): ApiFailure => (e ?? new Error('unknown')) as ApiFailure
+
+/**
+ * ⚑ 10 Sep (C01) — RUN IT, AND RE-SEND IT ONCE IF WE GOT NO ANSWER ABOUT IT.
+ *
+ * 🛑 EXACTLY ONE RETRY, AND ONLY FOR "NO ANSWER". `isRetryableOnce` draws that line
+ * (status 0 or 5xx); a 4xx is the server DECIDING and re-asking a decision just produces the
+ * identical refusal — which is what the old single sentence invited a client to do forever
+ * against a 409.
+ *
+ * ⚠️ SAFE ONLY BECAUSE `/icps/revise` IS IDEMPOTENT. A lost response is not a lost write, so
+ * a blind retry could have minted a second ICP version; the route now compares the incoming
+ * targeting against the row it would write and returns it untouched when they match. The two
+ * halves of that guarantee shipped together on purpose.
+ */
+async function withOneRetry<T>(run: () => Promise<T>): Promise<T> {
+  let attempts = 0
+  for (;;) {
+    try { return await run() } catch (e) {
+      attempts += 1
+      if (attempts > REFINEMENT_RETRIES || !isRetryableOnce(failureOf(e).status)) throw e
+    }
+  }
+}
+
 // ⛓️ MOVED, NOT REWRITTEN (was `apps/portal/src/app/(milla)/milla/page.tsx`). Every constant,
 // condition and string below is the wording already approved for this row; what changed is
 // which component owns it.
@@ -54,9 +89,20 @@ async function token(): Promise<string | undefined> {
 // as buttons that did those things — they don't, and the message went into a table nobody
 // read. It now pages the operator and appears in Vida → Asks, so these are honest REQUESTS
 // rather than controls: phrased as asking us, because that is what actually happens.
+// ── 🛑 10 Sep (C06) — "PLEASE FIND MORE LIKE THESE" IS GONE, AND IT WAS NOT COPY ─────────
+//
+// It was a chip that sent a request for MORE PEOPLE into a chat that cannot source anyone.
+// The founder's ruling: there is no separate paid sourcing from chat, from a card, or as
+// "find more like these" — the ONE way to a second set is the improved-set ACTION on the
+// Proof panel, which the server gates (`proofUiState`) and which spends the second of two
+// automatic passes. A chip asking Milla for more either did nothing, which teaches the
+// client the product ignores them, or would have to become a spend control with no server
+// rule behind it.
+//
+// ⚠️ THE QUESTION CHIP STAYS. "Which of these look strongest?" asks her about the set she
+// can now actually see (C06's context block), and answering it costs nothing.
 const PROOF_CHIPS = [
   'Which of these look strongest?',
-  'Please find more like these',
 ]
 /** Only where a programme exists and is running — not before it starts, not once it ends. */
 const PAUSE_STAGES: MillaStage[] = ['Sourcing', 'Approval', 'Live', 'Review']
@@ -233,8 +279,11 @@ export function MillaConversationProvider(
       if (isIcpContext(context)) {
         // Only the turns of THIS conversation, which is the same window the drawer sent.
         const history = messages.filter(m => m.id !== 'greet').slice(-12).map(m => ({ role: m.role, content: m.content }))
-        const r = await api.post<{ data: IcpDraft & { message?: string } }>(
-          '/icps/chat-build', { message: msg, history }, tok)
+        // ⚠️ RETRIED ONCE, AND SAFE TO BE: `/icps/chat-build` proposes and writes NOTHING —
+        // no ICP, no version, no message row. The session chat below is deliberately NOT
+        // wrapped, because it persists both turns and a re-send would double them.
+        const r = await withOneRetry(() => api.post<{ data: IcpDraft & { message?: string } }>(
+          '/icps/chat-build', { message: msg, history }, tok))
         const d = r.data ?? {}
         setMessages(m => [...m, { id: `a-${Date.now()}`, role: 'assistant', content: d.message || 'Got it — anything else to change?' }])
         // Only treat it as a draft once there is something real to target with.
@@ -252,9 +301,20 @@ export function MillaConversationProvider(
       const res = await api.post<{ reply: string }>(`/milla/sessions/${sid}/chat`, { message: msg }, tok)
       setMessages(m => [...m, { id: `a-${Date.now()}`, role: 'assistant', content: res.reply }])
     } catch (e) {
-      setMessages(m => [...m, { id: `e-${Date.now()}`, role: 'assistant', content: isIcpContext(context)
-        ? (e instanceof Error ? e.message : 'Sorry — say that again?')
-        : 'I hit a snag reaching the engine — please try again in a moment.' }])
+      // ── 🛑 10 Sep (C01) — THE COLLAPSE IS GONE, AND SO IS THE THROWN-AWAY MESSAGE ───────
+      //
+      // This line used to read *"I hit a snag reaching the engine — please try again in a
+      // moment"* for every failure of either transport, and in ICP context it printed the
+      // server's raw `error` string instead — which is how internal review wording, and
+      // `Server error (502)`, reach a customer's screen in Milla's voice.
+      //
+      // ⚠️ THE COMPOSER IS RESTORED FIRST. `setInput('')` runs before the request, so
+      // "try again" was said to a client whose sentence had already been cleared: they had
+      // to retype it, or they lost it. Their words go back exactly as typed, and only when
+      // the turn failed — a successful turn must not refill the box.
+      setInput(prev => (prev.trim() ? prev : msg))
+      setMessages(m => [...m, { id: `e-${Date.now()}`, role: 'assistant',
+        content: chatFailureMessage(failureOf(e).status) }])
     }
     finally { setSending(false) }
   }
@@ -271,23 +331,69 @@ export function MillaConversationProvider(
     // always has. Fresh goes to `/icps/fresh`, which INSERTS an inactive new version and
     // touches nothing that is live — so the confirmation sentence must not promise otherwise.
     const fresh = context === 'icp-fresh'
+    const say = (content: string) =>
+      setMessages(m => [...m, { id: `a-${Date.now()}`, role: 'assistant', content }])
+    /** The `/icps` re-read the handle's rule depends on. Never fatal to the save. */
+    const rereadIcps = async () => {
+      try { setIcps((await api.get<{ data: Icp[] }>('/icps', await token())).data ?? []) } catch { /* the handle keeps what it had */ }
+    }
     try {
-      await api.post(fresh ? '/icps/fresh' : '/icps/revise', {
+      // ⚠️ THE TOKEN IS TAKEN ONCE, OUTSIDE THE RETRY. Re-reading the session per attempt
+      // would make the retry depend on a second async call that can itself fail.
+      const tok = await token()
+      // ⚑ 10 Sep (C01) — ONE RETRY WHEN WE GOT NO ANSWER. See `withOneRetry`; the route's
+      // repeat check is what makes a re-send unable to create a second ICP version.
+      const r = await withOneRetry(() => api.post<{
+        pending_review?: boolean; wrote?: boolean; change?: { sentence: string | null; unchanged: boolean } | null
+      }>(fresh ? '/icps/fresh' : '/icps/revise', {
         name: icpDraft.name || 'My targeting',
         industries: icpDraft.industries ?? [], job_titles: icpDraft.job_titles ?? [],
         seniority_levels: icpDraft.seniority_levels ?? [], company_sizes: icpDraft.company_sizes ?? [],
         geographies: icpDraft.geographies ?? [], tech_stack: icpDraft.tech_stack ?? [],
         keywords: icpDraft.keywords ?? [],
-      }, await token())
-      setMessages(m => [...m, { id: `a-${Date.now()}`, role: 'assistant', content: fresh
+      }, tok))
+      // ── ⚑ 10 Sep (C01) — WHAT ACTUALLY MOVED, IN THE SERVER'S OWN WORDS ────────────────
+      //
+      // 🛑 THREE OUTCOMES WERE WEARING ONE SENTENCE. "Updated — this is your live targeting
+      // now" was said when the revision was APPLIED, when it was PARKED for review (the live
+      // targeting deliberately unchanged — the exact opposite claim), and when it changed
+      // nothing at all.
+      //
+      // ⚠️ THE DIFF IS THE SERVER'S, AND THAT IS NOT A DETAIL. This browser only ever knew
+      // the draft it built; the before-state lives on the row. A sentence composed here
+      // could only describe what we asked for, never what changed — which is precisely the
+      // fabrication this fix removes. `null` means nothing moved, and it is SAID.
+      const diff = r?.change?.sentence ?? null
+      const nothingMoved = r?.change?.unchanged === true || r?.wrote === false
+      say(fresh
         ? 'Saved as a new version of your targeting. Your current targeting is unchanged and still live — nothing has been sourced or contacted. Tell us when you want to use this one.'
-        : 'Updated — this is your live targeting now, and we’ve been told so we can re-check who’s already in your campaign.' }])
+        : nothingMoved
+          ? TARGETING_UNCHANGED_SENTENCE
+          : r?.pending_review
+            // ⚠️ PARKED, AND SAID SO. AR9's 22-Aug lock holds a LIVE client's edit for
+            // K.I.N.D; telling them it is live now would be false on that path.
+            ? `${diff ?? 'I’ve sent your change through for review.'} Nothing has changed on your live targeting yet — it’s with K.I.N.D to apply.`
+            : `${diff ?? 'I’ve updated your targeting.'} That’s your live targeting now, and we’ve been told so we can re-check who’s already in your campaign.`)
       setIcpDraft(null); setContext(null); setIcpRevision(v => v + 1)
-      // The handle's rule reads `/icps`; a revision changes the answer, so it is re-read.
-      try { setIcps((await api.get<{ data: Icp[] }>('/icps', await token())).data ?? []) } catch { /* the handle keeps what it had */ }
+      await rereadIcps()
     } catch (e) {
-      setMessages(m => [...m, { id: `e-${Date.now()}`, role: 'assistant', content:
-        e instanceof Error ? e.message : 'Could not save your targeting' }])
+      const f = failureOf(e)
+      // ── 🛑 THE PROPOSAL AND THE CONTEXT SURVIVE EVERY FAILURE ──────────────────────────
+      //
+      // Note what is NOT here: `setIcpDraft(null)` and `setContext(null)` run only on the
+      // success path above. A client whose save failed still has their proposal, their
+      // chips and their Save button — losing the draft would make them rebuild the change
+      // in conversation before they could try again.
+      //
+      // ⚠️ AND THE SENTENCE IS NEVER THE SERVER'S PROSE. `e.message` printed our internal
+      // review wording — and, on a non-JSON 5xx, the literal text "Server error (502)" —
+      // into the transcript under Milla's name. The code selects the sentence; the prose
+      // stays in the logs.
+      say(refinementFailureMessage({ status: f.status, code: f.code }))
+      // ⚠️ "HERE IS THE LATEST VERSION" IS A PROMISE THIS LINE KEEPS. On a state-changed
+      // refusal the row moved under us, so the handle's own read of `/icps` is stale too —
+      // re-reading it is what makes that sentence true rather than reassuring.
+      if (f.code === REVISE_STATE_CHANGED_CODE) await rereadIcps()
     }
     finally { setIcpSaving(false) }
   }

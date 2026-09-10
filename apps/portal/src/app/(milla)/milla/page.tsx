@@ -29,6 +29,19 @@ import { proofWaitState, invalidateProofSnapshot, classifyClaimFailure, isReconc
 // PROGRAMME and renders the shared workspace; the conversation stays the spine.
 
 type MaskedLead = { id: string; role: string; company: string; industry: string | null; country: string | null; score: number | null; why_fits: string | null; recommended?: boolean
+  /**
+   * ⚑ 10 Sep (C06) — THE BAND, AND IT IS THE ONLY THING THAT MAY LABEL A CARD.
+   *
+   * 🛑 `recommended` USED TO MEAN "IN THE TOP 20 BY SCORE" — and a free-proof pass surfaces
+   * exactly 20, so it starred every card, including the management consultancy shown at
+   * 72/100 above the words "no evidence of digital marketing". `/leads/for-approval` now
+   * derives a per-card band from the client's own hard criteria (`proof-fit.ts`) and sets
+   * `recommended` from it; the label below reads the BAND so no surface can invent its own
+   * rule, and an ABSENT band renders no label at all rather than falling back to a rank.
+   */
+  band?: 'start_here' | 'worth_a_look' | 'not_a_fit' | null
+  /** The server's own words for that band, so the screen cannot reword it. */
+  band_label?: string | null
   /** ⚑ 25 Aug — WHICH PROOF BATCH this card came from. One shared timestamp per proof run,
    *  written once and never rewritten, so it separates pass 1 from pass 2 exactly. */
   surfaced_for_approval_at?: string | null }
@@ -1456,11 +1469,27 @@ export default function MillaHomePage() {
                     a selection. */}
                 <div
                   className={`rounded-2xl p-3.5 transition-shadow ${
-                    l.recommended ? 'border-[1.5px] border-[#d9c4fb] bg-[#fcfaff]' : 'border border-[#ece5fb]'}`}>
-                  {/* WE'D START HERE — the API ranks everyone we sourced and marks its top 20.
-                      It was computing this and the client never saw it, which left them facing
-                      200 identical cards with no steer. */}
-                  {l.recommended && <div className="text-[11px] font-extrabold uppercase tracking-wide text-[#7C3AED] mb-2">★ We&apos;d start here</div>}
+                    l.band === 'start_here' ? 'border-[1.5px] border-[#d9c4fb] bg-[#fcfaff]' : 'border border-[#ece5fb]'}`}>
+                  {/* ── ⚑ 10 Sep (C06) — THE LABEL IS THE BAND, AND THE STAR BELONGS TO ONE BAND ──
+                      🛑 THIS READ `l.recommended && "★ We'd start here"`, and `recommended` was
+                      the top 20 BY SCORE — on a 20-card proof pass, all of them. The founder was
+                      shown a starred management consultancy at 72/100 above a sentence saying it
+                      had no evidence of digital marketing. The star claimed a judgement about
+                      that person and meant only "this was in the list".
+
+                      ⚠️ THE WORDS ARE THE SERVER'S (`band_label`), so the screen cannot reword a
+                      band into a stronger claim, and the star is drawn for `start_here` ONLY —
+                      a structurally-unknown card is `worth_a_look` and can never be starred,
+                      whatever the model scored it.
+
+                      ⚠️ NO BAND MEANS NO LABEL. An older payload without one renders nothing
+                      rather than falling back to the rank star: silence is honest, and the
+                      fallback is the exact defect this replaces. */}
+                  {l.band && l.band_label && (
+                    l.band === 'start_here'
+                      ? <div className="text-[11px] font-extrabold uppercase tracking-wide text-[#7C3AED] mb-2">★ {l.band_label}</div>
+                      : <div className="text-[11px] font-extrabold uppercase tracking-wide text-[#b3a9cc] mb-2">{l.band_label}</div>
+                  )}
                   <div className="flex items-start gap-2.5">
                     <span className="w-9 h-9 rounded-lg bg-[#efeafc] text-[#7C3AED] flex items-center justify-center shrink-0">🎭</span>
                     <div className="min-w-0 flex-1">

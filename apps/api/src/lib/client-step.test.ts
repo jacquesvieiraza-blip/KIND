@@ -144,3 +144,108 @@ describe('sortByUrgency', () => {
     expect(rows.map(r => r.company_name)).toEqual(before)
   })
 })
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// ⚑ 10 Sep (I3) — A PROGRAMME CLIENT IS NOT DESCRIBED BY THE RETIRED PACK'S VOCABULARY
+//
+// 🛑 THE THREE STALE STATES THE FOUNDER NAMED, ALL FROM THIS ONE TABLE:
+//
+//   · "Waiting on their $299" beside a client at PROOF — `hasFunded` is false for every
+//     programme client permanently, because their money arrives as `programme_first` and never
+//     as a pack purchase, so the table's money branch matched them for ever;
+//   · "Approve the sequence" / "Ready to run" as operator tasks on a programme that was still
+//     sourcing — gated only on whether a sequence row and an active campaign happened to exist;
+//   · both carrying `actor: 'you'`, raising a task while the CLIENT is the one acting.
+//
+// ⚠️ THE FIX IS NOT A SECOND STAGE RULE. `deriveLifecycle` is the one answer to "where is this
+// client"; this file now RENDERS that verdict. Adding a third opinion here would be the defect.
+// ═══════════════════════════════════════════════════════════════════════════════════════
+
+const lc = (over: Partial<NonNullable<ClientFacts['lifecycle']>> = {}) => ({
+  stage: 'proof', stageLabel: 'Proof', state: 'proof',
+  needsYou: false, needsYouReason: null as string | null, ...over,
+})
+
+describe('⚑ I3 · the canonical verdict answers for programme clients', () => {
+  it('🛑 A CLIENT AT PROOF IS NOT ASKED FOR $299 — the state the founder saw', () => {
+    // Exactly the shape a programme client has: no pack purchase, no inbox yet, nothing sourced.
+    const n = nextAction(f({
+      lifecycle: lc(), hasFunded: false, hasInbox: false, sourced: 0, approved: 0, withClient: 0,
+    }))
+    expect(n.label, 'a programme client at Proof was asked for the retired pack price').not.toContain('$299')
+    expect(n.label).toBe('Proof')
+    expect(n.actor, 'a task was raised while the client is the one acting').toBe('them')
+  })
+
+  it('🛑 NO PREMATURE "Approve the sequence" OR "Ready to run" on a sourcing programme', () => {
+    // A sequence row exists and no campaign is active — the exact facts that produced step 5/6.
+    const n = nextAction(f({
+      lifecycle: lc({ stage: 'sourcing', stageLabel: 'Sourcing', state: 'sourcing' }),
+      hasSequence: true, campaignActive: false,
+    }))
+    expect(n.label).toBe('Sourcing')
+    expect(n.cta, 'a control was offered for work that has not been prepared yet').toBeUndefined()
+    expect(n.actor).toBe('engine')
+  })
+
+  it('🛑 AND THE MISSING-SENDER BRANCH DOES NOT FIRE EITHER', () => {
+    // `hasInbox: false` is step 3 — "Needs a sender", urgency 95 — in the legacy table. For a
+    // programme client the sender question is asked by `programmeSenderSafety` at the gate and
+    // reported as the `sender_not_sendable` reason, not by counting inbox rows here.
+    const n = nextAction(f({ lifecycle: lc(), hasInbox: false }))
+    expect(n.step).not.toBe(3)
+    expect(n.label).toBe('Proof')
+  })
+
+  it('a real task IS raised, with the reason and a matching control', () => {
+    const n = nextAction(f({
+      lifecycle: lc({ stage: 'review', stageLabel: 'Review', state: 'review_reply',
+                      needsYou: true, needsYouReason: 'reply_needs_decision' }),
+    }))
+    expect(n.actor).toBe('you')
+    expect(n.label).toContain('Review')
+    expect(n.label).toContain('a reply needs you')
+    expect(n.cta?.kind).toBe('replies')
+    expect(n.urgency).toBeGreaterThan(50)
+  })
+
+  it('a needs-you reason with no matching control still raises the task', () => {
+    // ⚠️ NO NEW `cta.kind` VALUES. Widening that union changes every screen that renders an
+    // action card; a label alone is honest, and the Needs-you filter runs off `needsYou`.
+    const n = nextAction(f({
+      lifecycle: lc({ stage: 'live', stageLabel: 'Live', state: 'live_ready_to_make_live',
+                      needsYou: true, needsYouReason: 'make_live_required' }),
+    }))
+    expect(n.actor).toBe('you')
+    expect(n.label).toContain('ready to make live')
+    expect(n.cta).toBeUndefined()
+  })
+
+  it('🛑 the client REVIEWING their programme is never the operator\'s task', () => {
+    const n = nextAction(f({
+      lifecycle: lc({ stage: 'approval', stageLabel: 'Approval', state: 'approval' }),
+      hasSequence: true, campaignActive: false, repliesOpen: 0,
+    }))
+    expect(n.actor).toBe('them')
+    expect(n.label).toBe('Approval')
+  })
+
+  it('🛑 EVEN AN OPEN REPLY DOES NOT REOPEN THE LEGACY BRANCH', () => {
+    // `deriveLifecycle` already has a rule for a reply waiting on a person. Letting the legacy
+    // branch answer it too would be two rules for one fact — the whole defect.
+    const n = nextAction(f({
+      lifecycle: lc({ stage: 'sourcing', stageLabel: 'Sourcing', state: 'sourcing' }),
+      repliesOpen: 4,
+    }))
+    expect(n.label, 'the legacy reply branch answered a programme client').toBe('Sourcing')
+    expect(n.step).not.toBe(7)
+  })
+
+  it('a legacy client is completely unaffected — the $299 book is what is selling', () => {
+    // ⚠️ THE COMPLEMENT, and it matters more than any case above: deleting the legacy steps to
+    // fix a vocabulary problem on a different set of accounts would have broken the live console.
+    const n = nextAction(f({ lifecycle: null, hasFunded: false, hasInbox: false, sourced: 0, approved: 0, withClient: 0 }))
+    expect(n.step).toBe(2)
+    expect(n.label).toContain('$299')
+  })
+})

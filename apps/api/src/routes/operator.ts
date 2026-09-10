@@ -98,7 +98,10 @@ operatorRouter.get('/worklist', async (_req: Request, res: Response) => {
       // #626/C6 — `vat_number` rides the query that was already being made. It is the ONE field
       // `vatBadge` needs (the sentinel NOT_REGISTERED lives in it, #615), and a second query per
       // client to fetch it would be exactly the round trip this endpoint exists to avoid.
-      .select('id, company_name, industry, country, is_demo, wallet_balance_usd, created_at, vat_number')
+      // ⚑ 10 Sep (I3) — `commercial_model` rides this query too. It is the field that decides
+      // whether the retired pack vocabulary applies to a client at all, and a second query per
+      // client to learn it would be exactly the round trip this endpoint exists to avoid.
+      .select('id, company_name, industry, country, is_demo, wallet_balance_usd, created_at, vat_number, commercial_model')
       .order('created_at', { ascending: false }).limit(200)
     const rows = (clients ?? []) as Record<string, unknown>[]
     const ids = rows.map(c => c.id as string)
@@ -229,10 +232,57 @@ operatorRouter.get('/worklist', async (_req: Request, res: Response) => {
     const { nextAction, sortByUrgency } = await import('../lib/client-step')
     const excluded = await getExcludedClientIds()
 
+    // ── 🛑 ⚑ 10 Sep (I3) — THE CANONICAL VERDICT, FOR THE CLIENTS IT APPLIES TO ──────────
+    //
+    // ⛓️ WHAT THIS ENDS. `nextAction`'s decision table is the RETIRED $299-pack flow, and this
+    // route ran it over every client. A programme client's money arrives as `programme_first`,
+    // never as a pack purchase, so `hasFunded` is false for them permanently — and the table's
+    // answer to that is "Waiting on their $299", printed beside a client sitting at Proof who
+    // owes us nothing. Two steps further down it offered "Approve the sequence" and "Ready to
+    // run" as operator tasks, gated only on whether a sequence row and an active campaign
+    // happened to exist, on programmes that were still sourcing.
+    //
+    // 🛑 WHICH CLIENTS. Declared `programme`, OR carrying a programme row at all. That is
+    // narrower than re-deriving `clientCommercialModel` (which would be a second copy of a
+    // rule that already exists) and it lands on the same answer for the case that matters: an
+    // UNCLASSIFIED client with an open programme is `compat_programme` to the resolver too.
+    // An unclassified client with no programme stays on the legacy table, which is correct —
+    // that is the book that is actually selling.
+    //
+    // ⚠️ FAILS SOFT TO THE LEGACY TABLE. If the lifecycle cannot be read, every client keeps
+    // the answer the console gives today rather than losing their row.
+    const withProgramme = new Set<string>()
+    try {
+      const { data } = await db.from('programmes').select('client_id').in('client_id', ids)
+      for (const r of ((data ?? []) as { client_id: string | null }[])) if (r.client_id) withProgramme.add(r.client_id)
+    } catch (err) {
+      console.error('[operator/worklist] programme membership unreadable — every client keeps the legacy step:', err)
+    }
+    const programmeIds = rows
+      .map(c => c.id as string)
+      .filter(id => withProgramme.has(id) || rows.find(c => c.id === id)?.commercial_model === 'programme')
+    const lifecycleByClient = new Map<string, import('../lib/client-step').ProgrammeLifecycle>()
+    if (programmeIds.length > 0) {
+      try {
+        const { lifecycleBoard } = await import('../lib/programme-lifecycle-facts')
+        for (const r of await lifecycleBoard(programmeIds)) {
+          lifecycleByClient.set(r.client_id, {
+            stage: r.stage, stageLabel: r.stage_label, state: r.state,
+            needsYou: r.needs_you, needsYouReason: r.needs_you_reason,
+          })
+        }
+      } catch (err) {
+        console.error('[operator/worklist] lifecycle unreadable — programme clients keep the legacy step:', err)
+      }
+    }
+
     const out = rows.map(c => {
       const id = c.id as string
       const isDemo = c.is_demo === true
       const next = nextAction({
+        // ⚠️ WHEN THIS IS SET, EVERY FACT BELOW IT IS IGNORED — see `client-step.ts`. They all
+        // describe the retired pack model and none of them is true of a programme client.
+        lifecycle: lifecycleByClient.get(id) ?? null,
         hasIcp: (icpN.get(id) ?? 0) > 0,
         hasFunded: (paidN.get(id) ?? 0) > 0,
         hasInbox: (inboxN.get(id) ?? 0) > 0,

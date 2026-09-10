@@ -30,6 +30,9 @@
 // ═══════════════════════════════════════════════════════════════════════════════════════
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+// ⚑ 10 Sep (I3) — the shared mapper itself, so the stage collision is asserted against the
+// real rule rather than against a value copied into this file.
+import { millaStage } from '@kind/shared'
 import { readFileSync } from 'fs'
 import { join } from 'path'
 
@@ -161,13 +164,31 @@ beforeEach(() => {
 // ═══════════════════════════════════════════════════════════════════════════════════════
 describe('① the fact Milla Home was missing', () => {
   it('🛑 NO PROGRAMME and a DRAFT PROGRAMME ARE THE SAME STAGE — which is why the old branch failed', async () => {
+    // ⛓️ ⚑ 10 Sep (I3) — RETARGETED, NOT WEAKENED. The duty here has always been that THE
+    // STAGE CANNOT TELL THE TWO APART and `hasProgramme` can; the literal stage word was
+    // incidental to it. `millaStage('DRAFT')` moved from `Proof` to `Recommendation` because it
+    // disagreed with Vida, which put DRAFT at `recommendation` — a client who had finished
+    // Proof and chosen a target in the calculator was being told their examples were still
+    // being found.
+    //
+    // 🛑 THE COLLISION DID NOT GO AWAY, IT MOVED ONE STAGE ALONG: a client who has completed
+    // Proof and has no programme is `Recommendation` too. So the same ambiguity is asserted, on
+    // the pair that now carries it.
     houseProgramme({ status: 'DRAFT' })
     const draft = await readCustomerProgramme(HOUSE)
-    expect(draft!.stage, 'a DRAFT programme is stage Proof').toBe('Proof')
-    expect(NO_PROGRAMME.stage, 'and so is no programme at all').toBe('Proof')
+    expect(draft!.stage, 'a DRAFT programme is stage Recommendation').toBe('Recommendation')
+    expect(millaStage({ status: null, proofComplete: true }),
+      'and so is a client who finished Proof and has no programme yet').toBe('Recommendation')
     // The stage cannot tell them apart. `hasProgramme` can, and that is the whole addition.
     expect(draft!.hasProgramme).toBe(true)
     expect(NO_PROGRAMME.hasProgramme).toBe(false)
+  })
+
+  it('🛑 AND A CLIENT STILL AT PROOF IS NOT SENT FORWARD EITHER', () => {
+    // ⚠️ THE COMPLEMENT OF THE RETARGET ABOVE, so "everything is Recommendation" cannot be how
+    // that case passes. A client who has not finished Proof stays at Proof.
+    expect(millaStage({ status: null })).toBe('Proof')
+    expect(NO_PROGRAMME.stage).toBe('Proof')
   })
 
   it('🛑 HOUSE WITH NO PROGRAMME reports hasProgramme false, whatever history it carries', async () => {

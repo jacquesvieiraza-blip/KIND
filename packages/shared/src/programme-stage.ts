@@ -97,7 +97,22 @@ export function millaStage(input: StageInput): MillaStage {
   // target, which is Recommendation. See `proofComplete`.
   if (status === null) return proofComplete === true ? 'Recommendation' : 'Proof'
   switch (status) {
-    case 'DRAFT':                  return 'Proof'
+    // ── ⛓️ ⚑ 10 Sep (I3) — DRAFT MOVED FROM Proof TO Recommendation ────────────────────
+    //
+    // 🛑 IT DISAGREED WITH VIDA, AND VIDA WAS RIGHT. `deriveLifecycle` puts DRAFT at
+    // `recommendation` (its final fall-through: "DRAFT · RECOMMENDED · AWAITING_FIRST_PAYMENT —
+    // the client is deciding and paying"). Milla said `Proof`, so one client had two stages
+    // depending on which screen was open.
+    //
+    // ⚠️ AND THE MILLA ANSWER WAS THE WRONG ONE ON ITS OWN TERMS. A DRAFT programme is a
+    // programme — it exists because the client finished Proof and chose a target in the
+    // calculator. Sending them back to "Milla is finding your first examples" is precisely the
+    // defect `proofComplete` was added to fix, arriving one step later by another door.
+    //
+    // ⚠️ THIS DID NOT MATTER BEFORE THE CALCULATOR, and that is why it survived: a DRAFT row
+    // was only ever created by an operator typing a meeting target into Vida, often while the
+    // client really was still at Proof. The client now creates it themselves, after Proof.
+    case 'DRAFT':
     case 'RECOMMENDED':
     case 'AWAITING_FIRST_PAYMENT': return 'Recommendation'
     case 'SOURCING_AUTHORISED':

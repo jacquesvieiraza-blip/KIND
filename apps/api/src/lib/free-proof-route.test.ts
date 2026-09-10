@@ -934,7 +934,16 @@ describe('batch refinement — pass 1 → refine → pass 2, then a human', () =
     // `=== 1` is the whole point: not `>= 1`, which would offer a third after pass 2.
     expect(d).toContain('proofPassesDone === 1')
     expect(d).not.toContain('proofPassesDone >= 1')
-    expect(d).toContain("These aren&rsquo;t right")
+    // ⛓️ RETARGETED 10 Sep (C07) — THE ONE BUTTON BECAME TWO LOCKED CONTROLS.
+    //
+    // This pinned "These aren't right" — the single control that opened the refine panel and
+    // spent pass 2. The duty it protects is *pass 0 and pass 2 do not offer another automatic
+    // run*, and that is now enforced further back: `<ProofCalibration>` draws only what the
+    // SERVER's verdict permits (`showStronger` is false at pass 0 and at pass 2) and the
+    // routes refuse independently. `canRefine` still gates the panel, which the assertions
+    // around this one check.
+    expect(d).toContain('const calibrationControl =')
+    expect(d).toContain('onRequestStronger={openRefine}')
     // The exhausted state is a STATEMENT, with no action attached.
     expect(d).toContain('We&rsquo;ve used both proof passes. K.I.N.D will review this with you.')
   })
@@ -1241,12 +1250,21 @@ describe('one reflect-back truth, and two labelled proof sets', () => {
 
   it('30 · the refinement control belongs to the LATEST set only', () => {
     const d = desk()
-    expect(d).toContain('{i === lastLatestIdx && refineControl}')
+    // ⛓️ RETARGETED 10 Sep — SAME PLACE, TWO PIECES. The refinement used to be one node; it
+    // is now the locked batch controls plus the panel they open, and both still render
+    // against the LATEST set only — the duty here (a control under an "Earlier set" heading
+    // would refine a batch the client is no longer looking at).
+    expect(d).toContain('{i === lastLatestIdx && <>{calibrationControl}{refineOpen && refinePanel}</>}')
     expect(d).toContain("const lastLatestIdx = proofMode\n    ? pending.map(batchKey).lastIndexOf(proofBatches[0] ?? '')\n    : -1")
     // It renders ONCE — a control that appeared under both sets would offer to refine pass 1.
-    expect((d.match(/&& refineControl/g) ?? []), 'one placement').toHaveLength(1)
+    // ⛓️ 10 Sep — counted on the new node name; `refineControl` no longer exists.
+    expect((d.match(/&& <>\{calibrationControl\}/g) ?? []), 'one placement').toHaveLength(1)
     // …and it is still proof-only and still needs a batch to refine.
-    expect(d).toContain('const refineControl = !canRefine || pending.length === 0 ? null : (')
+    // ⛓️ RENAMED 10 Sep — `refineControl` → `refinePanel`. The gate is the SAME expression
+    // and that is the duty: the panel exists only while `canRefine` (pass 1) and only while
+    // there is a set on screen. The locked batch controls that open it are a separate node
+    // above, gated by the server's verdict.
+    expect(d).toContain('const refinePanel = !canRefine || pending.length === 0 ? null : (')
   })
 
   // ⚑ 25 Aug — A COMMENT THAT DESCRIBES THE OPPOSITE OF THE CODE IS A DEFECT, AND IT GETS

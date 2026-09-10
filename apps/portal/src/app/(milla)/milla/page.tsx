@@ -1,6 +1,7 @@
 'use client'
 
 import { Fragment, useCallback, useEffect, useRef, useState, useMemo } from 'react'
+import { ProofCalibration, type ProofCalibrationState } from '@/components/milla/ProofCalibration'
 import { useRouter } from 'next/navigation'
 import { api } from '@/lib/api'
 import { createClient } from '@/lib/supabase/client'
@@ -237,6 +238,23 @@ export default function MillaHomePage() {
   // ── ⚑ 24 Aug — BATCH REFINEMENT (founder-ruled): pass 1 → "these aren't right" → pass 2.
   // Per-lead "Not a fit" is unchanged and still recorded; this is the BATCH verdict, which
   // is a different statement and was the missing half of 20 → refine → 20 → human.
+  // ── ⚑ 10 Sep (C07) — THE SERVER'S VERDICT ON WHAT PROOF LOOKS LIKE ─────────────────
+  //
+  // 🛑 NOT DERIVED HERE. `canRefine`/`proofExhausted` below still gate the legacy refine
+  // panel, but which BATCH CONTROLS exist — and whether the improved-set control may be
+  // pressed at all — is decided by `GET /leads/proof/calibration`. A spend rule this browser
+  // computes is a spend rule anybody with devtools can satisfy.
+  const [calib, setCalib] = useState<ProofCalibrationState | null>(null)
+  const loadCalibration = useCallback(async () => {
+    try {
+      const j = await api.get<{ data: ProofCalibrationState }>('/leads/proof/calibration', await token())
+      setCalib(j.data)
+    } catch {
+      // ⚠️ DRAW NOTHING RATHER THAN EVERYTHING. Falling back to the attempt-1 shape would put
+      // a spend control in front of a client who may already have been handed to a person.
+      setCalib(null)
+    }
+  }, [])
   const [refineOpen, setRefineOpen]   = useState(false)
   const [refineText, setRefineText]   = useState('')
   /** ⚑ 25 Aug — THE ONE FINAL OBJECT. Built once, rendered, then sent unchanged. See below. */
@@ -771,8 +789,13 @@ export default function MillaHomePage() {
   ]
   async function sendReason(leadId: string, code: string) {
     setJustPassed(null)                       // acknowledge the tap at once — no spinner on a nicety
+    // ⚑ 10 Sep (C07) — THIS TAP IS A SPEND GATE OPENING, AND SOMETIMES A LOOP CLOSING.
+    // A reason is what unlocks "Show me stronger examples" on attempt 1; on attempt 2 the
+    // same tap can be the half-rejected-nothing-kept trigger that hands the client to a
+    // person. Either way the screen must re-ask the server rather than assume.
     try { await api.post(`/leads/${leadId}/feedback`, { action: 'pass', reason_code: code }, await token()) }
     catch { /* never surfaced: the pass stands, and a lost chip is not the client's problem */ }
+    void loadCalibration()
   }
 
   // ── ⚑ 30 Aug (BUILD-004A-1, Option B) — "TELL MILLA WHY", IN THEIR OWN WORDS ───────────
@@ -817,6 +840,10 @@ export default function MillaHomePage() {
       // delay or fail the pass the client just made.
       setJustPassed({ id, at: Date.now() })
       void load()                                          // then the real counts, from the server
+      // ⚑ 10 Sep (C07) — and the server's verdict on which batch controls exist. Loaded
+      // alongside the counts, so the client never sees a set without its controls or,
+      // worse, a control the server would refuse.
+      void loadCalibration()
     }
     catch (e) { setError(e instanceof Error ? e.message : 'Could not pass — please try again') }
     finally { setActing(null) }
@@ -915,14 +942,46 @@ export default function MillaHomePage() {
   // ⚑ 25 Aug — LIFTED OUT OF THE LIST so it can be rendered beneath the LATEST set's last
   // card rather than at the bottom of everything. The control refines the set they were just
   // shown; sitting under a trailing "Earlier set" would say it refines pass 1.
-  const refineControl = !canRefine || pending.length === 0 ? null : (
+  // ── ⚑ 10 Sep (C07) — THE BATCH CONTROLS ARE THE SERVER'S, THE PANEL IS STILL OURS ────
+  //
+  // 🛑 WHAT CHANGED. This used to be ONE button — "These aren't right" — drawn on
+  // `canRefine` (a browser-side `proofPassesDone === 1`). It was the whole cost exposure:
+  // nothing said how many attempts existed, nothing distinguished "improve this" from "this
+  // is beyond improving", and after both passes the client still held a control that spends.
+  //
+  // Now the CONTROLS come from `calib` (the server's verdict) and the free-text panel below
+  // is only the mechanism behind one of them. `canRefine` still gates the panel itself, so a
+  // stale verdict can never open a spend path the server would refuse.
+  const calibrationControl = !calib || pending.length === 0 ? null : (
+    <ProofCalibration
+      state={calib}
+      busy={refineBusy}
+      onRequestStronger={openRefine}
+      onAccept={() => { void loadCalibration() }}
+      onStillNotRight={async () => {
+        try {
+          await api.post('/leads/proof/still-not-right', {}, await token())
+        } finally {
+          // Reload either way: the server decides whether that closed the loop, and the
+          // screen must not assume it did.
+          await loadCalibration()
+        }
+      }}
+      onConfirmPhone={async (phone: string) => {
+        const j = await api.post<{ message?: string }>('/leads/proof/phone', phone ? { phone } : {}, await token())
+        await loadCalibration()
+        // ⚠️ THE SENTENCE IS THE SERVER'S. Composing it here would let the screen add a
+        // promise — an SLA, most likely — that nobody approved.
+        return j?.message ?? null
+      }}
+    />
+  )
+
+  const refinePanel = !canRefine || pending.length === 0 ? null : (
     <div>
-      {!refineOpen && (
-        <button onClick={openRefine}
-          className="w-full text-[13px] font-semibold text-[#5c5279] rounded-xl py-2.5 mt-1 border border-[#ece5fb] bg-white hover:bg-[#faf8ff]">
-          These aren&rsquo;t right
-        </button>
-      )}
+      {/* ⛓️ THE OUTER BUTTON MOVED, NOT VANISHED. "These aren't right" was this panel's own
+          trigger; the two locked batch controls now live in `<ProofCalibration>` and
+          "Show me stronger examples" calls `openRefine`, so this renders only the panel. */}
 
       {refineOpen && (
         <div className="mt-2 rounded-2xl border border-[#e4d4fb] bg-[#faf8ff] p-3.5">
@@ -1442,7 +1501,7 @@ export default function MillaHomePage() {
                 {/* THE REFINEMENT SITS WITH THE SET IT REFINES — under the last card of the
                     LATEST batch, above any "Earlier set" heading. With one batch this is the
                     final card, which is exactly where it rendered before. */}
-                {i === lastLatestIdx && refineControl}
+                {i === lastLatestIdx && <>{calibrationControl}{refineOpen && refinePanel}</>}
                 </Fragment>
               )
             })}

@@ -816,7 +816,15 @@ describe('free proof never reaches the paid reveal/delivery path', () => {
     const src = readFileSync(join(__dirname, '../routes/icps.ts'), 'utf8')
     expect(src).toContain("if (proofMode && insertedIds.length > 0) {")
     expect(src).toContain(".update({ surfaced_for_approval_at: nowIso, delivered_at: nowIso, proof_pass: opts!.proofPass })")
-    expect(src).toContain(".in('id', insertedIds).is('delivered_at', null)")
+    // ⛓️ RETARGETED 10 Sep — THE SAME DUTY, ONE LINK FURTHER ALONG. This pinned
+    // `.in('id', insertedIds)`, and the duty it protects is *the stamp names only the rows
+    // THIS run created, and claims them idempotently*. C04 inserted the structural gate
+    // between the insert and the stamp, so the correct list is now `gatedIds` — a SUBSET of
+    // this run's ids, with the candidates that fail the client's own hard criteria removed.
+    // Both halves of the duty are unchanged: still only this run, still `delivered_at IS
+    // NULL`. Pinning `insertedIds` here would now REQUIRE the defect (showing a client the
+    // management consultancies we refused).
+    expect(src).toContain(".in('id', gatedIds).is('delivered_at', null)")
     // The value is the pass the route ATOMICALLY CLAIMED — never a literal, never a boolean,
     // never inferred from anything the surfacing block can see for itself.
     expect(src).not.toMatch(/proof_pass:\s*(true|1|2)\b/)
@@ -1165,14 +1173,27 @@ describe('one reflect-back truth, and two labelled proof sets', () => {
   // ── BATCH SEPARATION ────────────────────────────────────────────────────────────────
   it('25 · /leads/for-approval reads and returns surfaced_for_approval_at', () => {
     const src = readFileSync(join(__dirname, '../routes/leads.ts'), 'utf8')
+    // ⛓️ 10 Sep — `company_size, seniority` JOINED THIS SELECT and the assertion is
+    // deliberately still a CONTAIN on the tail. They are two of the four hard criteria the
+    // band is derived from, and they are read but never rendered. The duty here is only that
+    // `surfaced_for_approval_at` is still selected and returned, which is what makes the two
+    // proof sets tellable apart — so the assertion stays pointed at exactly that.
     expect(src).toContain('score, score_reasoning, created_at, surfaced_for_approval_at')
     expect(src).toContain('surfaced_for_approval_at: l.surfaced_for_approval_at ?? null,')
     // …and the masked card is otherwise unchanged: still no name, email or phone.
     // ⚠️ ON CODE, NOT SOURCE. The comment sitting inside this very block says "no name, no
     // email, no phone" — so asserting on the source made the guard fail on the sentence
     // that describes it. Third time this exact trap has been hit in this build.
+    // ⛓️ END MARKER REPOINTED 10 Sep. It was `'// TOP 20 RECOMMENDED'` — the comment above
+    // the rank-based star, which C05 deleted (the star is now the band, per card). A missing
+    // marker makes `indexOf` return -1 and `slice` run to the end of the FILE, so this case
+    // silently began asserting "the whole route contains no PII vocabulary" and failed on an
+    // unrelated export handler. The DUTY is unchanged and is the important one: the masked
+    // card the client receives carries no name, email or phone. It is now bounded by the
+    // statement that actually sends it.
     const masked = stripComments(src.slice(
-      src.indexOf('const masked = (data ?? []).map'), src.indexOf('// TOP 20 RECOMMENDED')))
+      src.indexOf('const masked = (data ?? []).map'),
+      src.indexOf('res.json({ success: true, data: masked })')))
     expect(masked).not.toMatch(/email|phone|first_name:|last_name:/)
     // The names ARE read — as arguments to the scrubber that removes them from why_fits.
     expect(masked).toContain('why_fits: scrub(l.score_reasoning ?? null, l.first_name ?? null, l.last_name ?? null)')

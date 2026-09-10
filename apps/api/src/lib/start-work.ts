@@ -520,6 +520,16 @@ export async function surfaceEverything(clientId: string): Promise<{ surfaced: n
           .is('surfaced_for_approval_at', null)
           .is('revealed_at', null)
           .neq('status', 'passed')
+          // 🛑 10 Sep — A SET-ASIDE CANDIDATE MUST NEVER RECYCLE INTO A LATER PASS.
+          //
+          // This act surfaces EVERY un-surfaced lead for the client, which is exactly why the
+          // structural gate needed a durable marker rather than simply declining to surface
+          // once: without this filter, a candidate refused on pass 1 for failing the client's
+          // OWN hard criteria would be put on the desk by the next call to this function as
+          // though it had never been judged — and the client would be shown the management
+          // consultancy we had already decided against. Refused candidates are kept for
+          // audit, never shown, never recycled (founder-locked 10 Sep).
+          .is('set_aside_reason', null)
       },
       { orderBy: 'id', label: `surfaceEverything:${clientId}` })
     fresh = read.rows

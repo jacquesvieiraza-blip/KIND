@@ -445,7 +445,13 @@ describe('⑦ runIcpJob stamps the pass it was granted', () => {
 
   it('🛑 IT NAMES ONLY THE IDS THIS RUN CREATED — pass 2 can never restamp pass 1', () => {
     const i = icps.indexOf('.update({ surfaced_for_approval_at: nowIso')
-    expect(icps.slice(i, i + 220)).toMatch(/\.in\('id', insertedIds\)\.is\('delivered_at', null\)/)
+    // ⛓️ RETARGETED 10 Sep — `insertedIds` → `gatedIds`, AND THE DUTY IS STRENGTHENED.
+    // This proves pass 2 can never restamp, hide or re-date pass 1. `gatedIds` is derived
+    // from `insertedIds` — the rows THIS invocation created, minus the ones the structural
+    // gate refused — so it is a strict subset and the boundary this case defends is tighter
+    // than before, never looser. The window widens from 220 to 460 chars because the gate's
+    // comment sits between the marker and the statement.
+    expect(icps.slice(i, i + 460)).toMatch(/\.in\('id', gatedIds\)\.is\('delivered_at', null\)/)
   })
 
   it('🛑 THE VALUE IS THE CLAIMED PASS, NEVER A LITERAL AND NEVER A BOOLEAN', () => {

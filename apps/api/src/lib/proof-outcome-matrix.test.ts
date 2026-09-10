@@ -515,7 +515,14 @@ describe('F · the complete status space — no value exists as an untested assu
     // The four explicit producers: two quota early-returns, the derived main outcome,
     // and the crash boundary. Derivation covers served/no_match/demo/audience_exhausted/
     // failed; the explicit sites cover quota_exhausted and crash-failed.
-    expect((src.match(/recordRunOutcome\(/g) ?? []).length).toBe(5)  // 1 def + 4 producers... adjusted below
+    // ⛓️ 5 → 6 on 10 Sep: +1 PRODUCER, and it is the C04 structural gate's refusal. When
+    // `leads.set_aside_reason` is absent the gate cannot record which candidates it refused,
+    // so the Proof run FAILS CLOSED — and a run that refuses must leave a terminal truth on
+    // the desk exactly like every other exit, which is the whole duty this case defends. It
+    // writes `'failed'`, an enum value already covered below, so the status space is
+    // unchanged; only the number of places that reach it moved.
+    expect((src.match(/recordRunOutcome\(/g) ?? []).length).toBe(6)  // 1 def + 5 producers
+    expect(src).toContain("recordRunOutcome(icpId, clientId, 'failed', effectiveCap, pool.served, inserted, 0, didWiden)")
     expect(src).toContain("recordRunOutcome(icpId, clientId, 'quota_exhausted', effectiveCap, 0, 0)")
     expect(src).toContain("recordRunOutcome(req.params.id, clientId, 'failed', PROOF_PASS_LEADS, 0, 0)")
     expect(src).toContain('recordRunOutcome(icpId, clientId, status, effectiveCap, pool.served, inserted, heldFromIcp, didWiden)')

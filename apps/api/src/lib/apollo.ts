@@ -172,6 +172,14 @@ export function buildSearchBody(icp: {
   // These MUST NOT go into q_keywords: that field is a literal full-text match, so
   // space-joining industries collapses the result set to near-zero (e.g.
   // "SaaS Consulting" returns 1 person, vs 65k via q_organization_keyword_tags).
+  //
+  // ⚑ 10 Sep — THIS GENEROSITY IS NOW BACKED BY A GATE, AND THAT IS WHY IT MAY STAY.
+  // OR-semantics across tags means a request for "digital marketing" returns companies tagged
+  // with EITHER word — which is how a UK-digital-marketing-agency target came back holding
+  // management consultancies. The fix is NOT to narrow this field (the strict industry field
+  // is documented above as returning ~1 result): it is that `proof-fit.ts` re-decides industry
+  // ON THE ROW, deterministically, before anything is scored or surfaced. Fetch generously,
+  // refuse precisely. Titles, seniority, size and geography above are already strict filters.
   if (icp.industries.length)
     body.q_organization_keyword_tags = icp.industries
 

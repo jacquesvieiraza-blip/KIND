@@ -59,10 +59,24 @@ export type EngineProgrammeStatus =
   | 'READY_FOR_APPROVAL' | 'APPROVED' | 'LIVE' | 'COMPLETED' | 'CANCELLED'
 
 export type StageInput = {
-  /** null when the client has no programme at all — they are at Proof. */
+  /** null when the client has no programme at all — they are at Proof, or at the calculator. */
   status: EngineProgrammeStatus | null
   /** A review hold is OPEN. Distinct from paused, and it does not stop live delivery. */
   reviewOpen?: boolean
+  /**
+   * ⚑ 10 Sep (A) — THE CLIENT SAID THEIR PROOF EXAMPLES ARE RIGHT.
+   *
+   * 🛑 IT ONLY MATTERS WHEN THERE IS NO PROGRAMME, and that is the whole gap it fills. A
+   * client between accepting Proof and choosing a target has no programme row, so `status`
+   * is null and this mapper returned `'Proof'` — the client sat looking at a finished set
+   * while the screen still said "Milla is finding your first examples". The stage after
+   * Proof in the founder's order is Recommendation, and the calculator is what lives there.
+   *
+   * ⚠️ ONCE A PROGRAMME EXISTS THE STATUS DECIDES, always. This never overrides a real
+   * programme state: a client whose programme is SOURCING is at Sourcing whatever their
+   * Proof history says.
+   */
+  proofComplete?: boolean
 }
 
 /**
@@ -78,8 +92,10 @@ export type StageInput = {
  * `paused_at` is not a status in the engine.
  */
 export function millaStage(input: StageInput): MillaStage {
-  const { status, reviewOpen } = input
-  if (status === null) return 'Proof'
+  const { status, reviewOpen, proofComplete } = input
+  // No programme yet: Proof, unless the client has finished it — then they are choosing a
+  // target, which is Recommendation. See `proofComplete`.
+  if (status === null) return proofComplete === true ? 'Recommendation' : 'Proof'
   switch (status) {
     case 'DRAFT':                  return 'Proof'
     case 'RECOMMENDED':

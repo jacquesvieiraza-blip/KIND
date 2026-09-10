@@ -1326,6 +1326,39 @@ leadRouter.post('/:id/proof-accept', rateLimit({ limit: 30, windowMs: 60_000, ke
       .eq('id', req.params.id).eq('client_id', clientId).maybeSingle()
     if (!lead) { res.status(404).json({ success: false, error: 'Lead not found' }); return }
 
+    // ── 🛑 10 Sep (A) — "LOOKS RIGHT" NOW WRITES THE POSITIVE FEEDBACK IT ALWAYS MEANT ───
+    //
+    // ⛓️ THE DEFECT THIS CLOSES, AND IT MADE #1673 ESCALATE SATISFIED CLIENTS.
+    // `readAttempts` counts `looksRight` from `lead_feedback.action = 'approve'`
+    // (`proof-calibration-io.ts`). Nothing wrote that row: the portal's "👍 Looks right"
+    // button called THIS route, which recorded no feedback at all, and `action: 'approve'`
+    // was only ever written by the optional "Tell Milla why" note box.
+    //
+    // So `second.looksRight === 0` was true for virtually every client, and the
+    // `second_set_mostly_rejected` trigger — `looksRight === 0 && notAFit * 2 >= surfaced` —
+    // handed a client who marked TEN of twenty "Looks right" and ten "Not a fit" to a human
+    // as a calibration failure. Vida's attempt summaries read "0 looked right" beside them.
+    //
+    // ⚠️ WRITTEN BEFORE THE ELIGIBILITY GATES BELOW, and that is deliberate: the client's
+    // reaction is theirs and is true whatever this route later decides about widening,
+    // funding or batch state. A reaction recorded only on the happy path is a reaction the
+    // calibration rule cannot rely on.
+    // ⚠️ BEST-EFFORT, NEVER FATAL — same rule as every other calibration write.
+    // ⚠️ WRAPPED, NOT JUST ERROR-CHECKED. `upsert` can THROW as well as return an error, and
+    // a client's "Looks right" must never become a 500 because a calibration row could not be
+    // written. Loud in the log, invisible to the client — the P32 rule for every calibration
+    // write: "one tap, never mandatory, never blocks the action."
+    try {
+      const { error: approveFbErr } = await db.from('lead_feedback').upsert({
+        client_id: clientId, lead_id: req.params.id, action: 'approve',
+      }, { onConflict: 'client_id,lead_id,action' })
+      if (approveFbErr) {
+        console.error('[proof-accept] lead_feedback NOT RECORDED for lead', req.params.id, approveFbErr.message)
+      }
+    } catch (e) {
+      console.error('[proof-accept] lead_feedback write threw for lead', req.params.id, e)
+    }
+
     // ── E/F · it is a SURFACED PROOF card, not something else on the desk ──────────────
     // `revealed_at` is the line between proof and paid: a revealed lead has been bought, and
     // a bought lead's targeting is not up for realignment by this route.
@@ -1486,9 +1519,45 @@ leadRouter.post('/:id/pass', rateLimit({ limit: 120, windowMs: 60_000, key: 'lea
   try {
     const clientId = await getClientId(req.userId!)
     if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+    // ── 🛑 10 Sep (A) — THEIR VERDICT IS RECORDED FIRST, AND IT IS THE CANONICAL TRUTH ────
+    //
+    // ⛓️ WHY THE ORDER CHANGED. `lead_feedback` is what the two-attempt rule counts
+    // (`readAttempts`), what Vida's calibration evidence shows an operator, and what
+    // `whatChangedSentence` builds attempt 2's sentence from. It used to be written ONLY by
+    // the optional reason chip, which the screen renders only AFTER a successful pass — so a
+    // refused `leads.status` write silently discarded the client's rejection everywhere it
+    // mattered, and the loop then read "0 not a fit".
+    //
+    // ⚠️ A REACTION WITH NO REASON IS STILL A REACTION. This upsert carries no `reason_code`;
+    // the chip that follows upserts over the same (client, lead, 'pass') key and adds one. So
+    // "they said no" survives on its own, and "why" enriches it when they choose to say.
+    // ⚠️ BEST-EFFORT AND NEVER FATAL, exactly as the chip is: a client's pass must not fail
+    // because a calibration row could not be written. It is logged loudly instead.
+    // ⚠️ WRAPPED for the same reason as the accept path: it can throw, and the pass itself
+    // must not fail because the calibration row did.
+    try {
+      const { error: fbErr } = await db.from('lead_feedback').upsert({
+        client_id: clientId, lead_id: req.params.id, action: 'pass',
+      }, { onConflict: 'client_id,lead_id,action' })
+      if (fbErr) console.error('[pass] lead_feedback NOT RECORDED for lead', req.params.id, fbErr.message)
+    } catch (e) {
+      console.error('[pass] lead_feedback write threw for lead', req.params.id, e)
+    }
+
     const { passLead } = await import('../lib/approve-lead')
     const outcome = await passLead(req.params.id, clientId)
     if (outcome.status === 'not_found') { res.status(404).json({ success: false, error: 'Lead not found or already actioned' }); return }
+    // 🛑 A REFUSED WRITE IS SAID PLAINLY. It used to arrive as the 404 above — "already
+    // actioned" — on a card the client could still see. Their reaction IS recorded (above),
+    // so the honest sentence says the reaction stands and the card may not move.
+    if (outcome.status === 'failed') {
+      res.status(503).json({
+        success: false,
+        code: 'pass_not_stored',
+        error: 'We recorded that this one is not right, but we could not clear it from your list just now. Your feedback is saved — the card may still be here when you reload.',
+      })
+      return
+    }
     res.json({ success: true, passed: true })
   } catch (err) { console.error('[pass]', err); res.status(500).json({ success: false, error: 'Failed to pass lead' }) }
 })
@@ -2024,6 +2093,45 @@ leadRouter.get('/proof/calibration', async (req: AuthRequest, res) => {
  * pressing this early is honestly answered "there is another attempt to come" rather than
  * handing a client to a person before we have used the improvement they are waiting for.
  */
+/**
+ * 🛑 "THESE ARE RIGHT" — PROOF COMPLETES (A, 10 Sep).
+ *
+ * ⛓️ THE CONTROL EXISTED AND WROTE NOTHING. `ProofCalibration.tsx`'s accept button called
+ * `onAccept`, which the page implemented as `void loadCalibration()` — a GET. Its own comment
+ * said "Records that the set is right; Proof is finished". It recorded nothing, so the
+ * identical controls re-rendered, the button stayed pressable, and no stage anywhere moved.
+ *
+ * ⚠️ IT SOURCES NOTHING. No pass is claimed, no provider is called, no run starts. The client
+ * has just told us to stop looking.
+ */
+leadRouter.post('/proof/complete', async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+    const { completeProof } = await import('../lib/proof-calibration-io')
+    const r = await completeProof(clientId)
+    if (!r.ok) {
+      // 409 for the escalated refusal (a decision), 503 for a state we could not write (ask
+      // again). Never a bare 500: the client pressed a button and deserves to know which.
+      res.status(r.reason === 'escalated' ? 409 : 503)
+        .json({ success: false, code: r.reason, error: r.detail })
+      return
+    }
+    res.json({
+      success: true,
+      completed_at: r.completedAt,
+      already_complete: r.alreadyComplete,
+      // The next canonical step, named by the server so the screen cannot invent a different
+      // one. Nothing is created here — the calculator is what creates a programme.
+      next: 'calculator',
+      sourced: 'nothing — accepting Proof starts no search',
+    })
+  } catch (err) {
+    console.error('[leads/proof/complete]', err)
+    res.status(500).json({ success: false, error: 'That did not save — could you try once more?' })
+  }
+})
+
 leadRouter.post('/proof/still-not-right', async (req: AuthRequest, res) => {
   try {
     const clientId = await getClientId(req.userId!)

@@ -128,6 +128,18 @@ export type LifecycleFacts = {
    * `clients.proof_review_requested_at` open with `proof_review_resolved_at` null.
    */
   proofCalibrationFailed?: boolean | null
+  /**
+   * ⚑ 10 Sep (A) — the client said their examples are RIGHT. `clients.proof_completed_at`.
+   *
+   * 🛑 THE FACT THAT DID NOT EXIST. Proof completing is the client being satisfied, which is
+   * a different question from how many attempts were spent (`proofStarted`, `passesDone`) or
+   * whether the loop failed (`proofCalibrationFailed`). Without it a satisfied client stayed
+   * at `proof` for ever and Vida reported "No action needed" about a finished set.
+   *
+   * ⚠️ `undefined`/`null` MEAN "NOT ACCEPTED YET", which keeps the client at Proof — the safe
+   * direction, and the answer for every row read before the migration.
+   */
+  proofCompleted?: boolean | null
   /** Preparation refused, or a batch is unsettled with no run in flight. */
   preparationStopped: boolean
   /** A run IS in flight — the opposite of stopped, and it must never read as an exception. */
@@ -224,6 +236,21 @@ export function deriveLifecycle(f: LifecycleFacts): LifecycleVerdict {
     if (f.proofCalibrationFailed === true) {
       return verdict('proof', 'proof', 'proof_calibration_failed')
     }
+    // ── 🛑 10 Sep (A) — PROOF IS FINISHED, AND THE CLIENT IS AT THE CALCULATOR ──────────
+    //
+    // ⛓️ WHAT THIS ADDS. A client who accepted their set used to stay at `proof` for ever,
+    // because nothing recorded the acceptance — Vida read "Proof · No action needed" while
+    // the client sat looking at a finished set with nowhere to go. `proof_completed_at` is
+    // that fact, and the stage after Proof in the founder's own order is Recommendation,
+    // where the calculator lives.
+    //
+    // ⚠️ NOT A TASK. The client is choosing a target; Vida has nothing to press and must not
+    // appear in Needs you for a client who is deciding. The commercial state is honest too —
+    // no programme exists yet, so nothing here claims one is waiting on money.
+    // ⚠️ CHECKED AFTER THE ESCALATION so a failed loop keeps its task even if a completion
+    // somehow also existed, and BEFORE `proofStarted` because a completed Proof is
+    // necessarily a started one.
+    if (f.proofCompleted === true) return verdict('recommendation', 'recommendation', null)
     return f.proofStarted === true ? verdict('proof', 'proof', null) : verdict('signup', 'signup', null)
   }
 

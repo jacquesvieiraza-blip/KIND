@@ -192,7 +192,14 @@ describe('A FAILED READ IS NEVER AN EMPTY PROGRAMME', () => {
     // client's STATED OUTCOME is now read onto it, because `NO_PROGRAMME` is a constant and
     // carried `stated: null` for everybody. That is precisely the path every client in Proof
     // takes, and why the OUTCOME card was empty for a client who had just stated one.
-    expect(READER_CODE).toContain('return { ...NO_PROGRAMME, outcome: { ...NO_PROGRAMME.outcome, stated: await readStatedOutcomeFor(clientId) } }')
+    // ⛓️ RESHAPED 10 Sep (A), SAME DUTY. The no-programme path now reads TWO client-level
+    // facts together — the stated outcome (C03) and whether Proof is finished — because a
+    // client who accepted their set is at the calculator, not still at Proof. The property
+    // under test is unchanged: this path reads the outcome from CLIENTS rather than from a
+    // programme that does not exist.
+    expect(READER_CODE).toContain('readStatedOutcomeFor(clientId), proofCompleteFor(clientId),')
+    expect(READER_CODE).toContain('outcome: { ...NO_PROGRAMME.outcome, stated },')
+    expect(READER_CODE).toContain("stage: millaStage({ status: null, proofComplete }),")
   })
 
   it('unreadable meeting counts pass through as null, never as 0', () => {

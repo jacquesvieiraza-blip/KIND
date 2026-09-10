@@ -160,6 +160,22 @@ async function readStatedOutcomeFor(clientId: string): Promise<string | null> {
   } catch { return null }
 }
 
+/**
+ * ⚑ 10 Sep (A) — has this client finished Proof? `clients.proof_completed_at`.
+ *
+ * ⚠️ IT DECIDES A STAGE, SO IT FAILS SOFT TO `false`. An unreadable answer keeps the client at
+ * Proof, which is the state they were already in; promoting them to the calculator on a failed
+ * read would be inventing a decision they may not have made.
+ */
+async function proofCompleteFor(clientId: string): Promise<boolean> {
+  try {
+    const { data, error } = await db.from('clients')
+      .select('proof_completed_at').eq('id', clientId).maybeSingle()
+    if (error || !data) return false
+    return !!(data as unknown as { proof_completed_at?: string | null }).proof_completed_at
+  } catch { return false }
+}
+
 export async function readCustomerProgramme(clientId: string): Promise<CustomerProgramme | null> {
   const { data, error } = await db.from('programmes')
     .select('id, status, meeting_target, price_total_cents, sourcing_ceiling, sourced_used, ' +
@@ -184,7 +200,16 @@ export async function readCustomerProgramme(clientId: string): Promise<CustomerP
     // it carried `stated: null` for everybody — and the OUTCOME card, fed by the programme
     // alone, was structurally empty at exactly the moment the client most wanted to see that
     // we had heard them. Their sentence exists from onboarding, so it is read here too.
-    return { ...NO_PROGRAMME, outcome: { ...NO_PROGRAMME.outcome, stated: await readStatedOutcomeFor(clientId) } }
+    // ⚑ 10 Sep (A) — AND WHETHER PROOF IS FINISHED, which decides whether this screen is
+    // still Proof or already the calculator. Both facts are client-level and read together.
+    const [stated, proofComplete] = await Promise.all([
+      readStatedOutcomeFor(clientId), proofCompleteFor(clientId),
+    ])
+    return {
+      ...NO_PROGRAMME,
+      stage: millaStage({ status: null, proofComplete }),
+      outcome: { ...NO_PROGRAMME.outcome, stated },
+    }
   }
 
   const p = data as unknown as Record<string, unknown>

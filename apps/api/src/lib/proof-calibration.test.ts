@@ -12,7 +12,7 @@ import {
   calibrationVerdict, mayRequestStrongerSet, hasMeaningfulFeedback, spendDoors,
   escalationAsk, ESCALATION_CONFIRMED, ESCALATED_HEADLINE, ESCALATED_DETAIL,
   NEEDS_FEEDBACK_HINT, SPEND_CLOSED_REFUSAL, PROOF_REASON_CODES, PROOF_REASON_LABELS,
-  ESCALATION_TRIGGER_COPY,
+  ESCALATION_TRIGGER_COPY, proofUiState, whatChangedSentence,
   type AttemptSummary, type CalibrationState,
 } from './proof-calibration'
 
@@ -234,5 +234,123 @@ describe('⑦ the six reasons are the founder\'s six', () => {
     }
     expect(PROOF_REASON_LABELS.wrong_industry).toBe('Wrong industry')
     expect(PROOF_REASON_LABELS.too_big).toBe('Too big')
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// THE SCREEN'S SHAPE — decided here, so the browser cannot decide it.
+// ═══════════════════════════════════════════════════════════════════════════════════════
+
+describe('🛑 ⑧ attempt 1 draws exactly two batch controls', () => {
+  it('These are right, and a Show me stronger examples that is DISABLED with no feedback', () => {
+    const ui = proofUiState(state({ passesDone: 1, attempts: [attempt(1)] }), null, false)
+    expect(ui.attempt).toBe(1)
+    expect(ui.showTheseAreRight).toBe(true)
+    expect(ui.showStronger).toBe(true)
+    expect(ui.strongerEnabled).toBe(false)
+    expect(ui.strongerHint).toBe(NEEDS_FEEDBACK_HINT)
+    // 🛑 AND NO ATTEMPT-2 CONTROL. "Still not right" before a second set would close the loop
+    // on a first guess — the thing attempt 2 exists to prevent.
+    expect(ui.showStillNotRight).toBe(false)
+    expect(ui.whatChanged).toBeNull()
+  })
+
+  it('…and ENABLED once a reason exists, with no hint', () => {
+    const s = state({ passesDone: 1, attempts: [attempt(1, { notAFit: 3, reasons: { wrong_industry: 3 } })] })
+    const ui = proofUiState(s, null, false)
+    expect(ui.strongerEnabled).toBe(true)
+    expect(ui.strongerHint).toBeNull()
+  })
+
+  it('before any set exists there is nothing to accept and nothing to improve', () => {
+    const ui = proofUiState(state({ passesDone: 0 }), null, false)
+    expect(ui.showTheseAreRight).toBe(false)
+    expect(ui.showStronger).toBe(false)
+    expect(ui.showStillNotRight).toBe(false)
+  })
+})
+
+describe('🛑 ⑨ attempt 2 draws These are right and Still not right — and nothing else', () => {
+  const s = state({
+    passesDone: 2,
+    attempts: [attempt(1, { notAFit: 8, reasons: { wrong_industry: 8 } }), attempt(2, { notAFit: 3 })],
+  })
+
+  it('the two controls, and no third-batch control of any kind', () => {
+    const ui = proofUiState(s, null, false)
+    expect(ui.showTheseAreRight).toBe(true)
+    expect(ui.showStillNotRight).toBe(true)
+    // The founder's explicit list of what must not be here.
+    expect(ui.showStronger, 'a third batch can be requested from attempt 2').toBe(false)
+    expect(ui.strongerEnabled).toBe(false)
+  })
+
+  it('🛑 Milla names what actually changed, from the client\'s own reasons', () => {
+    const ui = proofUiState(s, null, false)
+    expect(ui.whatChanged).toBe('I’ve narrowed the kind of company based on what you marked, and looked again.')
+  })
+
+  it('two reasons are ranked by weight and at most two are named', () => {
+    const many = state({
+      passesDone: 2,
+      attempts: [attempt(1, { reasons: { too_big: 9, wrong_industry: 2, wrong_geography: 1 } }), attempt(2)],
+    })
+    const said = proofUiState(many, null, false).whatChanged ?? ''
+    expect(said).toContain('brought the company size down')     // the heaviest first
+    expect(said).toContain('narrowed the kind of company')      // then the next
+    expect(said.includes('tightened where we look'), 'a third change was named').toBe(false)
+  })
+
+  it('🛑 …and it claims NOTHING when there was nothing to learn from', () => {
+    // "I've refined your targeting" would be equally true if we had changed nothing, and this
+    // client has already been disappointed once.
+    const blind = state({ passesDone: 2, attempts: [attempt(1), attempt(2)] })
+    expect(proofUiState(blind, null, false).whatChanged).toBeNull()
+    expect(whatChangedSentence(null)).toBeNull()
+  })
+
+  it('words alone are acknowledged without claiming a specific change', () => {
+    const noted = state({ passesDone: 2, attempts: [attempt(1, { notes: ['all consultancies'] }), attempt(2)] })
+    expect(proofUiState(noted, null, false).whatChanged)
+      .toBe('I’ve taken what you told me into account and looked again.')
+  })
+})
+
+describe('🛑 ⑩ the escalated screen has no controls at all', () => {
+  const closed = state({ passesDone: 2, escalated: true, attempts: [attempt(1), attempt(2, { notAFit: 20 })] })
+
+  it('every control is gone, and Milla is asking for the number', () => {
+    const ui = proofUiState(closed, '07700 900123', false)
+    expect(ui.escalated).toBe(true)
+    expect(ui.showTheseAreRight).toBe(false)
+    expect(ui.showStronger).toBe(false)
+    expect(ui.showStillNotRight).toBe(false)
+    expect(ui.ask).toContain('Is 07700 900123 still the best number to reach you on?')
+    // The calm state comes only AFTER they answer — otherwise the screen would say "arranged"
+    // while Milla is still asking the question.
+    expect(ui.headline).toBeNull()
+  })
+
+  it('…and asks for one when we hold none', () => {
+    expect(proofUiState(closed, null, false).ask).toContain('What’s the best number to reach you on?')
+  })
+
+  it('once confirmed it is the calm state, and the ask is gone', () => {
+    const ui = proofUiState(closed, '07700 900123', true)
+    expect(ui.ask).toBeNull()
+    expect(ui.headline).toBe(ESCALATED_HEADLINE)
+    expect(ui.detail).toBe(ESCALATED_DETAIL)
+    expect(ui.showTheseAreRight).toBe(false)
+  })
+
+  it('🛑 no rendered sentence in ANY escalated shape carries an SLA', () => {
+    const all = [
+      proofUiState(closed, '07700 900123', false), proofUiState(closed, null, false),
+      proofUiState(closed, '07700 900123', true),
+    ].flatMap(u => [u.ask, u.headline, u.detail, u.whatChanged, u.strongerHint])
+      .filter(Boolean).join(' ').toLowerCase()
+    for (const promise of ['working day', 'within 24', '24 hours', 'today', 'tomorrow', 'shortly', 'asap']) {
+      expect(all.includes(promise), `an SLA slipped into the rendered state: "${promise}"`).toBe(false)
+    }
   })
 })

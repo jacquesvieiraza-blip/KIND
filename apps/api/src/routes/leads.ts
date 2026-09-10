@@ -1982,6 +1982,42 @@ leadRouter.post('/bulk-consent', async (req: AuthRequest, res) => {
 // ═══════════════════════════════════════════════════════════════════════════════════════
 
 /**
+ * GET /leads/proof/calibration — what Proof looks like for THIS client, right now.
+ *
+ * 🛑 THE SCREEN DECIDES NOTHING. Every field is a spend gate or a promise already made, and
+ * both were decided server-side. Milla renders this; she does not compute it. A rule the
+ * browser could work out is a rule anybody with devtools could satisfy — and here that would
+ * mean a third paid batch.
+ *
+ * ⚠️ READ-ONLY. Loading this never claims a pass, never escalates and never sources.
+ */
+leadRouter.get('/proof/calibration', async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+    const { readCalibration } = await import('../lib/proof-calibration-io')
+    const { proofUiState, PROOF_REASON_CODES, PROOF_REASON_LABELS } = await import('../lib/proof-calibration')
+    const cal = await readCalibration(clientId)
+    res.json({
+      success: true,
+      data: {
+        ...proofUiState(cal, cal.phone, !!cal.phoneConfirmedAt),
+        // The six the founder locked, sent from the server so the screen cannot drift from
+        // the codes the summaries are actually counted by.
+        reasons: PROOF_REASON_CODES.map(code => ({ code, label: PROOF_REASON_LABELS[code] })),
+      },
+      read_only: 'This endpoint only reads. Nothing was claimed, escalated or sourced.',
+    })
+  } catch (err) {
+    // ⚠️ A FAILED READ DRAWS NOTHING RATHER THAN DRAWING EVERYTHING. Defaulting to the
+    // attempt-1 shape on an unreadable state would put a spend control in front of a client
+    // who may already have been handed to a person.
+    console.error('[leads/proof/calibration]', err)
+    res.status(503).json({ success: false, error: 'I could not load your examples just now — please refresh in a moment.' })
+  }
+})
+
+/**
  * POST /leads/proof/still-not-right — the client's verdict on the SECOND set.
  *
  * ⚠️ IT CANNOT ESCALATE ATTEMPT 1. `calibrationVerdict` requires `passesDone >= 2`, so

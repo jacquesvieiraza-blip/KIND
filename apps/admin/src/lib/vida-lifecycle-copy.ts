@@ -31,6 +31,8 @@ export type LifecycleState =
   | 'live_ready_to_make_live' | 'live_ready_to_run'
   | 'review' | 'review_reply' | 'review_sender'
   | 'completion' | 'completion_repeat'
+  /** ⚑ 10 Sep (C07) — Proof, handed to a person. A REASON, never a ninth stage. */
+  | 'proof_calibration_failed'
   | 'blocked'
 
 export type VidaMode = 'No action needed' | 'Working' | 'Watching' | 'Needs you'
@@ -49,6 +51,8 @@ export type PanelCard =
  */
 export type PanelAction = {
   key: 'try_again' | 'make_live' | 'run' | 'handle_reply' | 'book_call' | 'reconnect_mailbox' | 'pause_programme' | 'prepare_next' | 'not_yet'
+    // ⚑ 10 Sep (C07) — the calibration hand-off's two controls.
+    | 'contact_recalibrate' | 'restart_proof_calibrated'
   label: string
   kind: 'primary' | 'secondary'
   needsCeiling?: boolean
@@ -71,6 +75,23 @@ export type LifecycleCopyInput = {
   stoppedDetail: string | null
   humanBlockers: { code: string; detail: string }[]
   killSwitchOff: boolean
+  /**
+   * ⚑ 10 Sep (C07) — the Proof calibration hand-off, when there is one. From
+   * `GET /operator/proof-review/:clientId/evidence`; absent for every healthy client.
+   */
+  calibration?: {
+    why: string | null
+    passesDone: number
+    phone: string | null
+    phoneConfirmedAt: string | null
+    operatorNote: string | null
+    mayRestart: boolean
+    mayRestartWhy: string | null
+    restartAt: string | null
+    attempts: { pass: number; surfaced: number; looksRight: number; notAFit: number
+                reasonLabels: Record<string, number>; notes: string[] }[]
+    whatChanged: string | null
+  } | null
   operatorRunEnabled: boolean
   senderSendable: boolean
 }
@@ -169,6 +190,83 @@ export function lifecycleCopy(i: LifecycleCopyInput): LifecycleCopy {
       }
 
     // ── ② PROOF — calibration is the client's and Milla's. No operator GO exists. ──────
+    // ── ②b PROOF, HANDED TO A PERSON — the one Proof-stage task (C07, 10 Sep) ─────────
+    //
+    // 🛑 IT IS A REASON, NOT A STAGE. Both automatic attempts were used and the targeting is
+    // still wrong, so Milla told the client a human would call and paused finding people.
+    // That IS the operator's work: it names a control that exists and it clears when
+    // somebody uses it, which is the whole test for Needs you.
+    //
+    // ⚠️ EVERY NUMBER HERE IS WHAT THE CLIENT ACTUALLY DID, derived from their feedback —
+    // never a copy taken at escalation, because they may have changed their mind about a
+    // card since and the operator is about to phone them about it.
+    case 'proof_calibration_failed': {
+      const cal = i.calibration ?? null
+      const att = (n: number) => cal?.attempts.find(a => a.pass === n) ?? null
+      const summarise = (pass: number): string => {
+        const a = att(pass)
+        if (!a) return 'no set recorded'
+        const reasons = Object.entries(a.reasonLabels ?? {})
+          .filter(([, c]) => (c ?? 0) > 0)
+          .sort((x, y) => y[1] - x[1])
+          .map(([label, c]) => `${label} ${c}`)
+        return `${n(a.surfaced)} shown · ${n(a.looksRight)} looked right · ${n(a.notAFit)} not a fit` +
+          (reasons.length ? ` (${reasons.join(' · ')})` : '')
+      }
+      const notes = [...new Set([...(att(1)?.notes ?? []), ...(att(2)?.notes ?? [])])]
+      const cards: PanelCard[] = [
+        { kind: 'fact', label: 'Stage', value: 'Proof', caption: 'Calibration handed to a person' },
+        { kind: 'fact', label: 'Why', value: 'Two attempts, still wrong',
+          caption: cal?.why ?? 'Both automatic attempts were used and the targeting is still not right.' },
+        { kind: 'fact', label: 'Desired outcome',
+          value: target ? `${target} booked meetings` : 'Not stated yet',
+          caption: 'What the client said they want' },
+        { kind: 'note', label: 'Attempt 1', body: summarise(1) },
+        { kind: 'note', label: 'Attempt 2', body: summarise(2) },
+      ]
+      if (cal?.whatChanged) {
+        cards.push({ kind: 'note', label: 'What changed between them', body: cal.whatChanged })
+      }
+      if (notes.length > 0) {
+        // ⚠️ THEIR OWN WORDS, VERBATIM. A paraphrase is the operator preparing for a call
+        // against a summary of what the client said rather than what they said.
+        cards.push({ kind: 'note', label: 'In their words', body: notes.map(t => `“${t}”`).join(' · ') })
+      }
+      cards.push(
+        { kind: 'fact', label: 'Phone',
+          value: cal?.phone ?? 'Not given',
+          caption: cal?.phoneConfirmedAt
+            ? `Confirmed by the client on ${new Date(cal.phoneConfirmedAt).toLocaleDateString(undefined, { day: 'numeric', month: 'long' })}`
+            : 'Not confirmed for a calibration call' },
+        // ⚠️ THE COUNTER IS OPERATOR-ONLY. The client never sees "2/2" — they were told a
+        // person will help, which is the truthful version of the same fact.
+        { kind: 'fact', label: 'Proof passes', value: `${cal?.passesDone ?? 2}/2`,
+          caption: cal?.restartAt ? 'Human restart used' : cal?.mayRestart ? 'Human restart available' : 'Resolve first to enable a restart' },
+        { kind: 'fact', label: 'Next',
+          value: 'Call them, then correct the targeting.',
+          caption: 'Nothing sources again until you do.' },
+        vidaCard('Needs you', 'A call, then the targeting'),
+      )
+      return {
+        subtitle: 'Calibration needs a person',
+        messages: [
+          `${i.clientName} has seen two sets and neither was right. I've stopped looking and told them someone will call.`,
+          cal?.phone
+            ? `They can be reached on ${cal.phone}${cal.phoneConfirmedAt ? ' — they confirmed it.' : '.'}`
+            : `They have not given a number yet.`,
+          `Nothing further is sourced for them until the targeting is corrected.`,
+        ],
+        chips: ['What did they reject?', 'Show me their targeting'],
+        cards,
+        actions: [
+          { key: 'contact_recalibrate', label: 'Contact & recalibrate', kind: 'primary' },
+          ...(cal?.mayRestart
+            ? [{ key: 'restart_proof_calibrated' as const, label: 'Restart Proof (calibrated)', kind: 'secondary' as const }]
+            : []),
+        ],
+      }
+    }
+
     case 'proof':
       return {
         subtitle: 'Proof in progress',

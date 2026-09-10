@@ -238,3 +238,131 @@ export function spendDoors(s: CalibrationState): SpendDoors {
 export const SPEND_CLOSED_REFUSAL =
   'We have shown you two sets of leads and I don’t want to keep guessing. A member of our ' +
   'team is going to help get your targeting right, and I’ve paused finding people until then.'
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// ⚑ 10 Sep — THE VIEW MODEL. One shape, decided on the server, rendered by two surfaces.
+//
+// 🛑 THE SCREEN DECIDES NOTHING. Every control below is a spend gate or a promise to a
+// client, and both were already decided above — so Milla receives a verdict rather than the
+// inputs to one. A rule the browser can compute is a rule anybody with devtools can satisfy,
+// and here that would mean a third paid batch.
+// ═══════════════════════════════════════════════════════════════════════════════════════
+
+/** Which batch controls Milla may draw, and what she says. */
+export interface ProofUiState {
+  /** 1 or 2 — which attempt the client is looking at. 0 before the first set exists. */
+  attempt: number
+  /** 🛑 The automatic loop is closed and a person has it. Every control is gone. */
+  escalated: boolean
+  /** Attempt 1 only: the improved-set control, and whether it may be pressed. */
+  showStronger: boolean
+  strongerEnabled: boolean
+  /** The hint under a disabled control. Null when it is enabled. */
+  strongerHint: string | null
+  /** Attempt 2 only: the honest way to say it is still wrong. */
+  showStillNotRight: boolean
+  /** Always available while a set is on screen — accepting costs nothing. */
+  showTheseAreRight: boolean
+  /** Attempt 2: one sentence naming what actually changed. Null on attempt 1. */
+  whatChanged: string | null
+  /** Escalated: Milla's ask, built from the stored number. */
+  ask: string | null
+  /** Escalated and the number is confirmed: the calm state. */
+  headline: string | null
+  detail: string | null
+}
+
+/** What each reason code means as a CHANGE — the verb, not the complaint. */
+const CHANGE_OF: Record<ProofReasonCode, string> = {
+  wrong_industry: 'narrowed the kind of company',
+  wrong_role: 'changed who we look for',
+  too_big: 'brought the company size down',
+  too_small: 'raised the company size',
+  wrong_geography: 'tightened where we look',
+  other: 'adjusted the targeting',
+}
+
+/**
+ * One sentence naming what changed between the two sets.
+ *
+ * ⚠️ IT IS BUILT FROM THE CLIENT'S OWN REASONS, IN THEIR ORDER OF WEIGHT — not from a
+ * template. A client who marked eight cards "wrong industry" must read that we narrowed the
+ * industry, because the alternative ("I've refined your targeting") is a sentence that would
+ * be equally true if we had changed nothing, and they have already been disappointed once.
+ *
+ * ⚠️ NULL WHEN THERE IS NOTHING TRUE TO SAY. No feedback means no claim: Milla says nothing
+ * rather than implying an improvement she cannot name.
+ */
+export function whatChangedSentence(first: AttemptSummary | null | undefined): string | null {
+  if (!first) return null
+  const ranked = (Object.entries(first.reasons) as [ProofReasonCode, number][])
+    .filter(([, n]) => (n ?? 0) > 0)
+    .sort((a, b) => b[1] - a[1])
+  if (ranked.length === 0) {
+    // They wrote to us but ticked nothing. Acknowledge the words, claim no specific change.
+    return first.notes.some(n => n.trim())
+      ? 'I’ve taken what you told me into account and looked again.'
+      : null
+  }
+  // At most two changes in one sentence: a list of five reads as a shrug, and the two the
+  // client marked most are the two they care about.
+  const parts = ranked.slice(0, 2).map(([code]) => CHANGE_OF[code])
+  const joined = parts.length === 1 ? parts[0] : `${parts[0]} and ${parts[1]}`
+  return `I’ve ${joined} based on what you marked, and looked again.`
+}
+
+/**
+ * THE ONE DERIVATION of what Proof looks like right now.
+ *
+ * ⚠️ `escalated` IS CHECKED FIRST AND RETURNS EARLY. Every other branch draws a control that
+ * can spend or a promise we have already superseded, and an escalated client has been told
+ * "I've paused finding people until we've spoken" — a screen still offering to look again
+ * would make that sentence a lie.
+ */
+export function proofUiState(s: CalibrationState, phone: string | null, phoneConfirmed: boolean): ProofUiState {
+  const base = {
+    attempt: s.passesDone,
+    showStronger: false, strongerEnabled: false, strongerHint: null as string | null,
+    showStillNotRight: false, showTheseAreRight: false,
+    whatChanged: null as string | null, ask: null as string | null,
+    headline: null as string | null, detail: null as string | null,
+  }
+
+  if (s.escalated) {
+    return {
+      ...base,
+      escalated: true,
+      // Before the number is confirmed Milla is still asking; after it, the calm state.
+      ask: phoneConfirmed ? null : escalationAsk(phone),
+      headline: phoneConfirmed ? ESCALATED_HEADLINE : null,
+      detail: phoneConfirmed ? ESCALATED_DETAIL : null,
+    }
+  }
+
+  const first = s.attempts.find(a => a.pass === 1) ?? null
+
+  if (s.passesDone >= 2) {
+    return {
+      ...base, escalated: false,
+      showTheseAreRight: true,
+      // 🛑 THE ONLY OTHER CONTROL ON ATTEMPT 2. No "show me more", no "try again", no third
+      // batch — the founder's list of what must NOT be here.
+      showStillNotRight: true,
+      whatChanged: whatChangedSentence(first),
+    }
+  }
+
+  if (s.passesDone === 1) {
+    const enabled = mayRequestStrongerSet(s)
+    return {
+      ...base, escalated: false,
+      showTheseAreRight: true,
+      showStronger: true,
+      strongerEnabled: enabled,
+      strongerHint: enabled ? null : NEEDS_FEEDBACK_HINT,
+    }
+  }
+
+  // No set on screen yet — nothing to accept and nothing to improve.
+  return { ...base, escalated: false }
+}

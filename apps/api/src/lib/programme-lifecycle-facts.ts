@@ -360,6 +360,30 @@ export async function lifecycleDetailFor(clientId: string): Promise<LifecycleDet
     }
   } catch { /* no attempt recorded is not a failure */ }
 
+  // ── 🛑 ⚑ 10 Sep (I1) — DID THE AUTOMATIC START ACTUALLY HAPPEN? ──────────────────────
+  //
+  // ⛓️ WHAT THIS FIXES. `programme_p1_auto_refused` has been written since 9 Sep and NOTHING
+  // read it. A programme whose automatic start refused — no attached ICP, no entitlement, the
+  // provider down — sits in `SOURCING_AUTHORISED` with no leads, so `stillToCheck` is 0, no
+  // preparation has ever been attempted, and the rule below finds nothing. `deriveLifecycle`
+  // then answers `sourcing` · **Working**, about a programme where nothing is working and
+  // nothing ever will without a person. That is the "Working forever" the founder saw.
+  //
+  // ⚠️ IT IS ASKED BEFORE `preparing` IS FINALISED, because a continuation running in THIS
+  // process is the same "a run is in flight" fact the advance runner contributes, and a
+  // working programme must never read as an exception.
+  try {
+    const { isP1ContinuationRunning, p1ContinuationHealth } = await import('./programme-p1-continuation')
+    if (isP1ContinuationRunning(p.id)) preparing = true
+    const health = await p1ContinuationHealth(p.id)
+    if (health.stopped) {
+      preparationStopped = true
+      // ⚠️ THE CONTINUATION'S SENTENCE WINS OVER A LATER PREPARATION MESSAGE ONLY WHEN THERE
+      // IS NONE. A programme that got as far as preparation has a more specific story to tell.
+      stoppedDetail = stoppedDetail ?? health.detail
+    }
+  } catch { /* an unreadable continuation history never invents a task */ }
+
   // A batch with prospects nobody has judged, and no run in flight, is stopped work.
   if (!preparing && counts.stillToCheck > 0 && (p.status === 'SOURCING' || p.status === 'SOURCING_AUTHORISED')) {
     preparationStopped = true
@@ -494,6 +518,54 @@ export async function lifecycleBoard(clientIds: string[]): Promise<LifecycleBoar
     }
   } catch { for (const id of ids) { hasInbox.add(id); sendable.add(id) } }
 
+  // ── 🛑 ⚑ 10 Sep (I1) — THE STRANDED AUTOMATIC STARTS, READ ONCE FOR THE WHOLE BOARD ──
+  //
+  // ⛓️ WHY THIS ONE BREAKS THE BOARD'S "UNDER-COUNT" RULE ON PURPOSE. Everything else the
+  // board declines to gather (stopped preparation, human blockers) is an exception the DETAIL
+  // call will find the moment the client is opened. This one is different in kind: a programme
+  // whose automatic start refused shows `Sourcing · Working` on the row, so nothing tells the
+  // operator to open it. An exception that hides the reason to look for it is not an
+  // under-count, it is a client waiting forever — which is exactly what happened.
+  //
+  // ⚠️ TWO QUERIES FOR EVERYBODY, never one per row: the outcome trail and the batch
+  // existence, both keyed on the current programme ids. The same shape as the Proof facts and
+  // the inbox read above.
+  // ⚠️ FAILS SOFT TO "NOTHING STOPPED". An unreadable trail asserts nothing, and the detail
+  // call still finds the exception when the client is opened.
+  const currentByClient = new Map<string, ProgrammeRow>()
+  for (const clientId of ids) {
+    const p = currentProgramme(byClient.get(clientId) ?? [])
+    if (p) currentByClient.set(clientId, p)
+  }
+  const progIds = [...currentByClient.values()].map(p => p.id)
+  const continuationStopped = new Map<string, string>()
+  if (progIds.length > 0) {
+    try {
+      const { data } = await db.from('operator_audit_log')
+        .select('subject_id, action, detail, created_at')
+        .eq('subject_type', 'programme')
+        .in('subject_id', progIds)
+        .in('action', ['programme_p1_auto_started', 'programme_p1_auto_refused'])
+        .order('created_at', { ascending: false }).limit(5000)
+      // Newest first, so the FIRST row seen for a programme is its latest outcome and every
+      // later row for that programme is history. A refusal that has since been superseded by a
+      // successful start must not raise an exception.
+      const seen = new Set<string>()
+      for (const r of ((data ?? []) as {
+        subject_id: string | null; action: string; detail: Record<string, unknown> | null
+      }[])) {
+        const sid = r.subject_id
+        if (!sid || seen.has(sid)) continue
+        seen.add(sid)
+        if (r.action !== 'programme_p1_auto_refused') continue
+        const d = r.detail ?? {}
+        continuationStopped.set(sid, typeof d.detail === 'string' && d.detail
+          ? d.detail
+          : 'This programme did not start automatically, and no reason was recorded.')
+      }
+    } catch { /* an unreadable trail flags nothing here — the detail call still will */ }
+  }
+
   const out: LifecycleBoardRow[] = []
   for (const clientId of ids) {
     const rows = byClient.get(clientId) ?? []
@@ -542,7 +614,10 @@ export async function lifecycleBoard(clientIds: string[]): Promise<LifecycleBoar
       proofStarted: true,
       // Not gathered in bulk — an exception the detail call finds appears when the client is
       // opened. Under-count, never over-count.
-      preparationStopped: false, preparing: false, humanBlockers: [],
+      // ⚑ 10 Sep (I1) — EXCEPT the stranded automatic start, which is read in bulk above
+      // precisely because a row reading "Working" is what stops anybody opening it.
+      preparationStopped: continuationStopped.has(p.id),
+      preparing: false, humanBlockers: [],
       // ⚠️ READINESS IS NOT RUN PER CLIENT HERE either. `readinessReady` only decides whether an
       // APPROVED+P2 programme offers Make Live; supplying `true` means the badge shows it, and
       // the detail call is what refuses if a blocker is really in the way.

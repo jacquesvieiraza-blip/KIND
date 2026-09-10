@@ -4069,6 +4069,46 @@ COMMENT ON COLUMN public.clients.proof_calibrated_restart_at IS
   'When the one human-authorised extra Proof pass was granted. A restart is permitted only while proof_review_resolved_at is NEWER than this, so one resolution grants exactly one pass and it never resets the two automatic attempts. try_claim_proof_pass is untouched and still refuses a third automatic claim.';
 `.trim(),
   },
+  {
+    // ── ⚑ 10 Sep (C03) — THE CLIENT'S OWN OUTCOME, AND IT HAD NOWHERE TO LIVE ───────────
+    //
+    // During onboarding the client said "Book qualified meetings with those founders and
+    // CEOs." Milla Home then showed OUTCOME — not set yet, and NEXT: "Tell Milla the outcome
+    // you want." He had just told her.
+    //
+    // There were two notions of outcome and neither was the client's. The spoken sentence
+    // went to `icps.campaign_intent` (copy input for the sequence writer, rendered only on
+    // the welcome summary). The OUTCOME CARD read `programmes.meeting_target` — a number
+    // that does not exist until a programme is created, several steps later — so during Proof
+    // the card was structurally always empty.
+    //
+    // These two columns are the client-level truth. Founder-locked: the outcome belongs to
+    // the CUSTOMER, is stated once, survives ICP revisions, exists before any programme and
+    // outlives each programme that serves it.
+    //
+    // ⚠️ SEPARATE FROM THE NUMBER, DELIBERATELY. `meeting_target` stays a commercial figure
+    // agreed at recommendation; `outcome_stated` is a sentence the client owns. Conflating
+    // them is what produced the empty card.
+    //
+    // ⚠️ `outcome_kind` IS NARROW ON PURPOSE. 'meetings' or 'other'. A client who asks for
+    // "more revenue" has not asked for meetings, and classifying them as such would put a
+    // meeting target against an outcome nobody agreed to — 'other' reaches a person instead.
+    //
+    // Additive, nullable, no defaults, no backfill, idempotent.
+    key: '20260910_client_stated_outcome',
+    title: 'clients.outcome_kind / outcome_stated — what the client said they want, stated once (C03)',
+    sql: `
+ALTER TABLE public.clients
+  ADD COLUMN IF NOT EXISTS outcome_kind   text,
+  ADD COLUMN IF NOT EXISTS outcome_stated text;
+
+COMMENT ON COLUMN public.clients.outcome_kind IS
+  'What kind of outcome the client asked for: meetings or other. Narrow on purpose - a client who asks for revenue or awareness has NOT asked for meetings, and other routes to a person rather than being reinterpreted. Written once at onboarding from their own answer.';
+
+COMMENT ON COLUMN public.clients.outcome_stated IS
+  'The outcome in the client own words, verbatim, captured once at onboarding. Client-level because it survives ICP revisions, exists before any programme and outlives each programme that serves it. It is NOT programmes.meeting_target: that is a commercial number agreed later at recommendation, and reading it as the outcome is why Milla Home showed "not set yet" to a client who had just stated one.';
+`.trim(),
+  },
 ]
 
 // Runs the statements against DATABASE_URL. Uses node-postgres because the Supabase JS

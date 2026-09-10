@@ -76,6 +76,14 @@ export type LifecycleCopyInput = {
   humanBlockers: { code: string; detail: string }[]
   killSwitchOff: boolean
   /**
+   * ⚑ 10 Sep (C03) — WHAT THE CLIENT SAID THEY WANT, IN THEIR OWN WORDS.
+   *
+   * From `clients.outcome_stated`, not from the programme. An operator about to agree a
+   * meeting target is setting a number AGAINST this sentence, so they read it rather than
+   * our paraphrase — and during Proof there is no programme to paraphrase from at all.
+   */
+  outcomeStated?: string | null
+  /**
    * ⚑ 10 Sep (C07) — the Proof calibration hand-off, when there is one. From
    * `GET /operator/proof-review/:clientId/evidence`; absent for every healthy client.
    */
@@ -181,7 +189,11 @@ export function lifecycleCopy(i: LifecycleCopyInput): LifecycleCopy {
         chips: ['What do we know about them?', 'Anything blocking?'],
         cards: [
           { kind: 'fact', label: 'Stage', value: 'Signup', caption: 'Just arrived' },
-          { kind: 'fact', label: 'Outcome', value: 'Not stated yet', caption: 'Milla will ask' },
+          // ⚑ 10 Sep (C03) — "Milla will ask" was unconditional and sometimes already false:
+          // a client can state their outcome at onboarding, before any programme exists.
+          { kind: 'fact', label: 'Outcome',
+            value: i.outcomeStated ? 'In their words' : 'Not stated yet',
+            caption: i.outcomeStated ? `“${i.outcomeStated}”` : 'Milla will ask' },
           { kind: 'fact', label: 'Programme', value: 'None yet', caption: 'Nothing is payable at this stage' },
           { kind: 'fact', label: 'Next', value: 'Proof', caption: "Milla is gathering the client's outcome" },
           vidaCard('Waiting', 'Nothing needs you'),
@@ -219,8 +231,10 @@ export function lifecycleCopy(i: LifecycleCopyInput): LifecycleCopy {
         { kind: 'fact', label: 'Why', value: 'Two attempts, still wrong',
           caption: cal?.why ?? 'Both automatic attempts were used and the targeting is still not right.' },
         { kind: 'fact', label: 'Desired outcome',
-          value: target ? `${target} booked meetings` : 'Not stated yet',
-          caption: 'What the client said they want' },
+          value: target ? `${target} booked meetings` : i.outcomeStated ? 'In their words' : 'Not stated yet',
+          // ⚑ 10 Sep (C03) — QUOTED, because the operator is about to phone this client
+          // about their targeting and a paraphrase is not what they said.
+          caption: i.outcomeStated ? `“${i.outcomeStated}”` : 'What the client said they want' },
         { kind: 'note', label: 'Attempt 1', body: summarise(1) },
         { kind: 'note', label: 'Attempt 2', body: summarise(2) },
       ]
@@ -277,7 +291,11 @@ export function lifecycleCopy(i: LifecycleCopyInput): LifecycleCopy {
         chips: ['What are they calibrating?', 'Anything blocking?'],
         cards: [
           { kind: 'fact', label: 'Stage', value: 'Proof', caption: 'Targeting is being calibrated' },
-          { kind: 'fact', label: 'Desired outcome', value: target ? `${target} booked meetings` : 'Being agreed', caption: 'Milla is shaping it with the client' },
+          { kind: 'fact', label: 'Desired outcome',
+            value: target ? `${target} booked meetings` : i.outcomeStated ? 'In their words' : 'Being agreed',
+            // ⚑ 10 Sep (C03) — during Proof there is no target and the client HAS said what
+            // they want. "Being agreed" was true of the NUMBER and wrong about them.
+            caption: i.outcomeStated ? `“${i.outcomeStated}”` : 'Milla is shaping it with the client' },
           { kind: 'fact', label: 'Targeting', value: 'Calibrating' },
           { kind: 'fact', label: 'Client', value: 'Reviewing' },
           { kind: 'fact', label: 'Next', value: 'Milla refines the recommendation.' },

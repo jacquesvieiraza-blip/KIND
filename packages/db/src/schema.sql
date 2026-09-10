@@ -25,7 +25,12 @@ create table if not exists public.clients (
   proof_escalation_trigger text,
   proof_phone_confirmed_at timestamptz,
   proof_calibration_note text,
-  proof_calibrated_restart_at timestamptz
+  proof_calibrated_restart_at timestamptz,
+  -- ⚑ 10 Sep (C03) — what the client said they want, stated once. Client-level: it
+  -- survives ICP revisions and predates any programme. NOT meeting_target.
+  -- Migration: 20260910_client_stated_outcome.
+  outcome_kind text,
+  outcome_stated text
 );
 
 -- ─────────────────────────────────────────────

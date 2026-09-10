@@ -24,22 +24,45 @@ vi.hoisted(() => {
 import { join } from 'node:path'
 
 type Row = Record<string, unknown>
-const state: { programmes: Row[]; icps: Row[]; audit: Row[] } = { programmes: [], icps: [], audit: [] }
+/**
+ * ⚑ 10 Sep (I1) — `batches` IS ITS OWN TABLE NOW, AND IT HAD TO BE.
+ *
+ * The mapper below used to send every table that was not `programmes` or `icps` to one shared
+ * `audit` array. `programme_batches` is the table that answers "has this programme already
+ * spent a client's money", so leaving it pointed at the audit rows would have made the spend
+ * check read whatever the last audit write happened to be — a guard that passes for the wrong
+ * reason proves nothing.
+ */
+const state: { programmes: Row[]; icps: Row[]; audit: Row[]; batches: Row[] } =
+  { programmes: [], icps: [], audit: [], batches: [] }
 /** Every programme id `sourceProgramme` was called for. The spend, recorded. */
 const sourced: string[] = []
 
-function table(name: 'programmes' | 'icps' | 'audit') {
+function table(name: 'programmes' | 'icps' | 'audit' | 'batches') {
   const rows = () => state[name]
   const q: Record<string, unknown> & { _f: ((r: Row) => boolean)[] } = {
-    _f: [], _mode: '', _payload: null as Row | null,
-    select() { return q }, order() { return q }, limit() { return q },
+    _f: [], _mode: '', _payload: null as Row | null, _order: null as null | { c: string; asc: boolean },
+    select() { return q },
+    // ⚠️ THE MOCK ORDERS FOR REAL. `lastP1ContinuationAttempt` takes the NEWEST outcome and
+    // ignores the history behind it; a no-op `order()` would have let a stale refusal win and
+    // the "a later success clears the exception" case would have passed by accident.
+    order(c: string, o?: { ascending?: boolean }) { q._order = { c, asc: o?.ascending !== false }; return q },
+    limit(n: number) { q._limit = n; return q },
     eq(c: string, v: unknown) { q._f.push((r: Row) => r[c] === v); return q },
     is(c: string, v: unknown) { q._f.push((r: Row) => (r[c] ?? null) === v); return q },
     not(c: string, _o: string, v: unknown) { q._f.push((r: Row) => (r[c] ?? null) !== v); return q },
     in(c: string, l: unknown[]) { q._f.push((r: Row) => l.includes(r[c] as never)); return q },
     insert(p: Row) { rows().push(p); return q },
     update(p: Row) { q._mode = 'update'; q._payload = p; return q },
-    _hit() { return rows().filter(r => q._f.every(f => f(r))) },
+    _hit() {
+      let h = rows().filter(r => q._f.every(f => f(r)))
+      const o = q._order as null | { c: string; asc: boolean }
+      if (o) {
+        h = [...h].sort((a, b) => String(a[o.c] ?? '').localeCompare(String(b[o.c] ?? '')) * (o.asc ? 1 : -1))
+      }
+      const n = q._limit as number | undefined
+      return typeof n === 'number' ? h.slice(0, n) : h
+    },
     _run() {
       if (q._mode === 'update') { const h = q._hit(); for (const r of h) Object.assign(r, q._payload); return { data: h, error: null } }
       return { data: q._hit(), error: null }
@@ -53,7 +76,11 @@ function table(name: 'programmes' | 'icps' | 'audit') {
 
 vi.mock('@kind/db', () => ({
   db: {
-    from: (t: string) => table(t === 'programmes' ? 'programmes' : t === 'icps' ? 'icps' : 'audit'),
+    from: (t: string) => table(
+      t === 'programmes' ? 'programmes'
+        : t === 'icps' ? 'icps'
+          : t === 'programme_batches' ? 'batches'
+            : 'audit'),
     rpc: async () => ({ data: null, error: null }),
   },
 }))
@@ -69,7 +96,10 @@ vi.mock('./programme-sourcing', () => ({
   },
 }))
 
-import { startProgrammeAfterP1, p1ContinuationVerdict, isP1ContinuationRunning } from './programme-p1-continuation'
+import {
+  startProgrammeAfterP1, p1ContinuationVerdict, isP1ContinuationRunning,
+  p1ContinuationHealth, lastP1ContinuationAttempt,
+} from './programme-p1-continuation'
 
 const PROG = '22222222-2222-4222-8222-222222222222'
 const CLIENT = '11111111-1111-4111-8111-111111111111'
@@ -103,7 +133,15 @@ beforeEach(() => {
   state.programmes = [prog()]
   state.icps = [{ id: ICP, client_id: CLIENT, programme_id: PROG }]
   state.audit = []
+  state.batches = []
   sourced.length = 0
+})
+
+/** One outcome row exactly as `writeOperatorAudit` would have written it. */
+const outcome = (action: string, detail: string, created_at: string): Row => ({
+  operator_email: 'stripe-webhook', action,
+  subject_type: 'programme', subject_id: PROG,
+  detail: { trigger: 'stripe_first_payment', detail }, created_at,
 })
 
 // ═══════════════════════════════════════════════════════════════════════════════════════
@@ -277,6 +315,16 @@ describe('④ starting a programme is not approving, paying for or running it', 
     }
   })
 
+  it('🛑 ⚑ I1 — and the resume logic READS the spend, it never writes one', () => {
+    // The obvious way to make a continuation resumable is a claim column and a compare-and-set.
+    // It was deliberately not taken: the fact that protects a client's money is "has this
+    // programme already SPENT", which `programme_batches` already stores. So the new code adds
+    // reads and no writes, and the assertion above stays exactly as strict as it was.
+    expect(code).toContain("db.from('programme_batches')")
+    const at = code.indexOf("db.from('programme_batches')")
+    expect(code.slice(at, at + 200), 'the spend check writes to the batch table').not.toContain('.insert(')
+  })
+
   it('it orchestrates ONE step — the rest of the chain is already automatic', () => {
     // Enrich, qualify, settle, surface and prepare all happen inside the sourcing run and the
     // settlement hook. A second orchestrator here would be a second definition of the order.
@@ -301,5 +349,129 @@ describe('④ starting a programme is not approving, paying for or running it', 
     // payment to record — so neither door can reach it.
     const PROGRAMME = readFileSync(join(__dirname, 'programme.ts'), 'utf8')
     expect(PROGRAMME).toContain("if (p.status !== 'AWAITING_FIRST_PAYMENT')")
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// ⑤ ⚑ 10 Sep (I1) — INTERRUPT IT, CALL IT AGAIN, AND PROVE NOTHING WAS BOUGHT TWICE
+//
+// 🛑 THE TWO DEFECTS THESE CASES EXIST FOR:
+//
+//  ① The only thing standing between one payment and two sourcing runs was a `Map` in one node
+//     process. A restart or a second instance emptied it, and the guard was simply gone.
+//  ② `programme_p1_auto_refused` was written on every refusal and NOTHING read it back, so a
+//     programme whose automatic start refused sat in `SOURCING_AUTHORISED` with no leads —
+//     which `deriveLifecycle` reports as `sourcing` · **Working**, forever.
+// ═══════════════════════════════════════════════════════════════════════════════════════
+
+describe('⑤ a continuation is safe to call again, and says what really happened', () => {
+  // ── THE SPEND HAPPENS ONCE, WHATEVER THE PROCESS REMEMBERS ─────────────────────────────
+
+  it('🛑 A RESTART DOES NOT BUY THE BATCH TWICE — the completed step is detected, not locked', async () => {
+    // The first run opened a batch and the process went away with it. `inFlight` is empty, so
+    // the old guard would have started a second, fully-authorised, fully-paid-for run.
+    state.batches = [{ id: 'batch-1', programme_id: PROG, seq: 1 }]
+    const r = await startProgrammeAfterP1(PROG, 'stripe_first_payment', 'stripe-webhook')
+    await settle()
+    expect(sourced, 'one payment produced a second sourcing run after a restart').toEqual([])
+    expect(r.started).toBe(false)
+    expect(r.already_running).toBe(true)
+    expect(r.detail).toContain('already sourced')
+  })
+
+  it('a redelivered webhook after a completed run is a silent no-op, not a refusal', async () => {
+    // 🛑 IT MUST NOT BE AUDITED AS REFUSED. `p1ContinuationHealth` reads the newest outcome, so
+    // auditing this would put a perfectly healthy programme into Needs you.
+    state.batches = [{ id: 'batch-1', programme_id: PROG, seq: 1 }]
+    await startProgrammeAfterP1(PROG, 'stripe_first_payment', 'stripe-webhook')
+    await settle()
+    expect(state.audit.some(a => a.action === 'programme_p1_auto_refused'),
+      'a healthy redelivery was recorded as a failure').toBe(false)
+  })
+
+  it('🛑 AN UNREADABLE BATCH TABLE BUYS NOTHING — "unknown spend" is not "no spend"', async () => {
+    const real = state.batches
+    // A read error, not an empty table. The difference is the whole point: an empty table means
+    // "nothing bought yet" and an error means "we do not know", and only one of them may spend.
+    Object.defineProperty(state, 'batches', { get() { throw new Error('batches unreadable') }, configurable: true })
+    try {
+      const r = await startProgrammeAfterP1(PROG, 'stripe_first_payment', 'x')
+      await settle()
+      expect(sourced, 'it spent while the existing spend was unknown').toEqual([])
+      expect(r.started).toBe(false)
+      expect(r.detail).toContain('unknown')
+    } finally {
+      Object.defineProperty(state, 'batches', { value: real, writable: true, configurable: true })
+    }
+  })
+
+  it('an interruption BEFORE any batch was opened is safe to retry — nothing was bought', async () => {
+    // The complement of the case above, and the reason a lock would have been the wrong tool: a
+    // stranded claim would block this start, and this start is the correct thing to do.
+    state.batches = []
+    const r = await startProgrammeAfterP1(PROG, 'stripe_first_payment', 'x')
+    await settle()
+    expect(r.started).toBe(true)
+    expect(sourced).toEqual([PROG])
+  })
+
+  // ── THE FAILURE IS READABLE AFTERWARDS ─────────────────────────────────────────────────
+
+  it('🛑 A REFUSED START IS REPORTED AS STOPPED — this is the "Working forever" bug', async () => {
+    state.audit = [outcome('programme_p1_auto_refused',
+      'No ICP is attached to this programme, so there is nothing it is authorised to source.', '2026-09-10T09:00:00Z')]
+    const h = await p1ContinuationHealth(PROG)
+    expect(h.stopped, 'a programme that never started still reads as working').toBe(true)
+    expect(h.detail).toContain('No ICP is attached')
+  })
+
+  it('a successful start is not an exception', async () => {
+    state.audit = [outcome('programme_p1_auto_started', '250 prospect(s) obtained.', '2026-09-10T09:00:00Z')]
+    expect((await p1ContinuationHealth(PROG)).stopped).toBe(false)
+  })
+
+  it('🛑 THE NEWEST OUTCOME WINS — a refusal the operator already fixed is history, not a task', async () => {
+    state.audit = [
+      outcome('programme_p1_auto_refused', 'No ICP is attached to this programme.', '2026-09-10T09:00:00Z'),
+      outcome('programme_p1_auto_started', '250 prospect(s) obtained.', '2026-09-10T11:00:00Z'),
+    ]
+    expect((await p1ContinuationHealth(PROG)).stopped,
+      'a fixed refusal keeps raising a task nobody can clear').toBe(false)
+    expect((await lastP1ContinuationAttempt(PROG))?.ok).toBe(true)
+  })
+
+  it('🛑 A SPEND WITH NO RECORDED OUTCOME IS STOPPED — it died mid-run and will not restart', async () => {
+    state.batches = [{ id: 'batch-1', programme_id: PROG, seq: 1 }]
+    state.audit = []
+    const h = await p1ContinuationHealth(PROG)
+    expect(h.stopped).toBe(true)
+    expect(h.detail).toContain('never recorded how it finished')
+  })
+
+  it('a freshly paid programme with no outcome and no batch is NOT an exception', async () => {
+    // ⚠️ THE OVER-EAGER VERSION OF THIS RULE WOULD PUT EVERY NEW CLIENT INTO NEEDS YOU for the
+    // seconds between their payment landing and their run starting.
+    state.batches = []
+    state.audit = []
+    expect((await p1ContinuationHealth(PROG)).stopped).toBe(false)
+  })
+
+  it('a run in flight in this process is never an exception', async () => {
+    state.audit = [outcome('programme_p1_auto_refused', 'an older failure', '2026-09-01T09:00:00Z')]
+    const r = await startProgrammeAfterP1(PROG, 'stripe_first_payment', 'x')
+    expect(r.started).toBe(true)
+    expect(isP1ContinuationRunning(PROG)).toBe(true)
+    expect((await p1ContinuationHealth(PROG)).stopped, 'a working run was called broken').toBe(false)
+    await settle()
+  })
+
+  it('the verdict still refuses everything it refused before the spend check was added', async () => {
+    // ⚠️ THE SPEND CHECK IS ASKED LAST, so a programme that is paused AND already sourced must
+    // still answer "paused" — the refusal an operator can act on beats the one they cannot.
+    state.programmes = [prog({ paused_at: '2026-09-09' })]
+    state.batches = [{ id: 'batch-1', programme_id: PROG, seq: 1 }]
+    const v = await p1ContinuationVerdict(PROG)
+    expect(v.ok).toBe(false)
+    expect(v.ok === false && v.reason).toContain('paused')
   })
 })

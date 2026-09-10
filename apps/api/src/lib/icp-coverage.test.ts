@@ -163,7 +163,14 @@ describe('② a declared owner is a place in the code that actually does the wor
   })
 
   it('the scorer is actually handed the whole saved ICP, not a subset', () => {
-    expect(ICPS_ROUTE).toMatch(/scoreLeadsForIcp\(insertedIds, icp,/)
+    // ⛓️ RETARGETED 10 Sep — THIS CASE IS ABOUT THE ICP, AND THE ICP DID NOT CHANGE.
+    // The duty is *the scorer is handed the whole saved ICP, not a subset of its criteria* —
+    // `icp`, the second argument, still goes across whole. What changed is the FIRST
+    // argument: the lead list is now `gatedIds`, so the model judges only candidates that
+    // already match the client's hard criteria (C05 — calibration among the structurally
+    // eligible). A narrower set of LEADS is not a narrower ICP, and pinning `insertedIds`
+    // would have made this case require the model to score people we had already refused.
+    expect(ICPS_ROUTE).toMatch(/scoreLeadsForIcp\(gatedIds, icp,/)
   })
 })
 

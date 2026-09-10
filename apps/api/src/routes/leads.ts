@@ -329,8 +329,17 @@ leadRouter.get('/for-approval', async (req: AuthRequest, res) => {
       // is returned so the desk can show "Latest set" and "Earlier set" instead of one
       // score-interleaved list. NO `batch_id`, no migration, no lead is touched: 36 rows go
       // out as 36 rows and only their PRESENTATION changes.
-      .select('id, first_name, last_name, job_title, company, industry, country, score, score_reasoning, created_at, surfaced_for_approval_at')
+      // ⚑ 10 Sep — `company_size` and `seniority` JOIN THE SELECT, and they are not shown.
+      // They are two of the four hard criteria the band is derived from (`proof-fit.ts`), and
+      // the derivation must see the same row the gate saw. Neither is added to the masked
+      // shape below: the client sees a band, never our criteria.
+      .select('id, first_name, last_name, job_title, company, industry, country, company_size, seniority, score, score_reasoning, created_at, surfaced_for_approval_at')
       .eq('client_id', clientId)
+      // 🛑 10 Sep — A SET-ASIDE CANDIDATE IS NEVER ON THE DESK. It failed a hard criterion the
+      // client themselves named, and it was recorded rather than deleted so an operator can
+      // see what we refused. Without this filter the whole structural gate is decorative: the
+      // rows exist, surfaced or not, and this is the read that would show them.
+      .is('set_aside_reason', null)
       .not('delivered_at', 'is', null)
       .not('surfaced_for_approval_at', 'is', null)      // #493 — only leads the operator has Sent to the client
       // NO TIME LIMIT ON PAID LEADS (founder-locked 25 Jul). The 72h TTL used to filter here,
@@ -385,27 +394,53 @@ leadRouter.get('/for-approval', async (req: AuthRequest, res) => {
       for (const t of toks) out = out.replace(new RegExp(`\\b${esc(t.trim())}\\b`, 'gi'), 'this prospect')
       return out
     }
-    const masked = (data ?? []).map((l: Record<string, any>) => ({
+    // ── ⚑ 10 Sep — THE BAND, DERIVED FROM THE CLIENT'S OWN TARGETING ────────────────────
+    //
+    // 🛑 WHAT THIS REPLACES. The block below used to mark THE TOP 20 BY SCORE. A free-proof
+    // pass surfaces exactly 20, so **every card was starred** — including the management
+    // consultancy the founder was shown on 10 Sep at 72/100 above the words "no evidence of
+    // digital marketing or agency focus". The star said "we'd start here" and meant "this was
+    // in the list".
+    //
+    // ⚠️ THE ICP IS READ ONCE, AND A FAILED READ NEVER PROMOTES A CARD. `hardCriteria` is null
+    // when the client has no ICP or it could not be read; `fitBand` then sees no requirements,
+    // which correctly means "nothing to fail" — but an unscored or sub-threshold lead still
+    // cannot be starred, because the band asks about the score as well.
+    const { data: icpRow } = await db.from('icps')
+      .select('geographies, company_sizes, industries, job_titles, seniority_levels')
+      .eq('client_id', clientId).order('created_at', { ascending: false }).limit(1).maybeSingle()
+    const hardCriteria = (icpRow ?? {}) as import('../lib/proof-fit').FitIcp
+    const { hardFit, fitBand, displayScore, isStarred, BAND_LABEL } = await import('../lib/proof-fit')
+
+    const masked = (data ?? []).map((l: Record<string, any>) => {
+      const fit = hardFit(l as import('../lib/proof-fit').FitCandidate, hardCriteria)
+      const band = fitBand(fit, l.score ?? null)
+      return {
       id: l.id,
       role: l.job_title ?? 'Decision-maker',
       company: l.company ?? '—',
       industry: l.industry ?? null,
       country: l.country ?? null,
-      score: l.score ?? null,
+      // ⚠️ THE DISPLAYED NUMBER IS CAPPED TO AGREE WITH THE BAND. A structurally-unknown card
+      // cannot read above 74 however the model scored it — the 72-beside-a-disqualifying-
+      // sentence card was possible only because the number and the label were independent.
+      score: displayScore(fit, l.score ?? null),
+      /** `start_here` · `worth_a_look` · `not_a_fit` — the one place a surface may read fit. */
+      band,
+      band_label: BAND_LABEL[band],
+      /** Kept so the star is the band on every surface, not each surface's own rule. */
+      recommended: isStarred(band),
       why_fits: scrub(l.score_reasoning ?? null, l.first_name ?? null, l.last_name ?? null),
       created_at: l.created_at ?? null,
       // A timestamp, not identity — it says WHICH BATCH, never who. The masked shape is
       // otherwise unchanged: no name, no email, no phone, whatever the row holds.
       surfaced_for_approval_at: l.surfaced_for_approval_at ?? null,
-    }))
-    // TOP 20 RECOMMENDED — derived from score at read time rather than stored, so it can
-    // never go stale against a re-score and needs no column. The client sees which ones we'd
-    // start with; they still choose. (flow v2: everyone we source goes over, ranked.)
-    const recommendedIds = new Set(
-      [...masked].sort((a, b) => Number(b.score ?? 0) - Number(a.score ?? 0))
-        .slice(0, 20).map(l => l.id as string),
-    )
-    res.json({ success: true, data: masked.map(l => ({ ...l, recommended: recommendedIds.has(l.id as string) })) })
+      }
+    })
+    // 🛑 NO RANK SLICE. `recommended` is set per card above, from its own band and nothing
+    // else — so twenty cards cannot promote each other and the worst card in a set of twenty
+    // is no longer starred for being in it.
+    res.json({ success: true, data: masked })
   } catch (err) { console.error('[leads/for-approval]', err); res.status(500).json({ success: false, error: 'Failed to load leads' }) }
 })
 

@@ -156,7 +156,12 @@ create table if not exists public.leads (
   -- pipeline value
   estimated_deal_value_usd integer,
   created_at        timestamptz not null default now(),
-  updated_at        timestamptz not null default now()
+  updated_at        timestamptz not null default now(),
+  -- ⚑ 10 Sep — why this candidate was never shown: one of the four hard criteria
+  -- (geography, size, industry, seniority) in plain words, written by the deterministic
+  -- structural gate in proof-fit.ts. NULL = never set aside. Migration:
+  -- 20260910_lead_set_aside_reason.
+  set_aside_reason text
 );
 
 create index if not exists leads_client_id_idx  on public.leads(client_id);

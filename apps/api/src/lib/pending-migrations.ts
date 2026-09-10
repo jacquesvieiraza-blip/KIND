@@ -3977,6 +3977,45 @@ COMMENT ON FUNCTION public.reconcile_programme_sourcing(uuid) IS
   'HOUSE-009 repair, repointed 9 Sep. Settles an attempt that ran before the accounting existed: one settled batch, EVERY candidate stamped with it (qualified and disqualified), sourced_used += the QUALIFIED count. It counts qualification, never delivered_at, and REFUSES while any candidate is unjudged - which is what stops the older Vida control from settling a number nobody has proved. Operator-invoked, idempotent, adds rows and deletes none, calls no provider.';
 `.trim(),
   },
+  {
+    // ── ⚑ 10 Sep — THE STRUCTURAL GATE NEEDS SOMEWHERE TO RECORD A REFUSAL ──────────────
+    //
+    // 🛑 WHY A COLUMN AND NOT A STATUS. `leads.status` carries `leads_status_check`, which
+    // allows exactly pending · scored · contacted · consent_sent · consent_given · exported ·
+    // rejected · opted_out. Adding `set_aside` would mean DROP + re-ADD on the constraint the
+    // entire outreach path writes through, for no gain: the fact we need to record is WHY a
+    // candidate was never shown, which is not a lifecycle state at all. Founder-locked 10 Sep:
+    // *"Use leads.set_aside_reason text NULL... Do NOT extend the core leads.status CHECK
+    // merely to add set_aside."*
+    //
+    // WHAT IT IS FOR. Proof used to surface every fetched person and let the client do our
+    // filtering — a UK-digital-marketing-agency target was shown management consultancies
+    // scored 70-75 and starred "We would start here". `proof-fit.ts` now refuses those before
+    // they are surfaced, and this column is the record of that refusal: which criterion, in
+    // plain words, per row. Without it a refused candidate is indistinguishable from an
+    // unprocessed one and would be re-surfaced by `surfaceEverything` on the next pass.
+    //
+    // ⚠️ NULLABLE, NO DEFAULT, NO BACKFILL. Every existing row keeps NULL, which reads
+    // correctly as "never set aside". Additive and inert until the code reads it.
+    //
+    // ⚠️ THE INDEX IS PARTIAL AND THAT IS THE POINT. Every hot read filters
+    // `set_aside_reason IS NULL`, so the useful index is over the SET-ASIDE rows only — small,
+    // and it answers the operational question ("what did we refuse for this client, and why")
+    // without carrying the null majority.
+    key: '20260910_lead_set_aside_reason',
+    title: 'leads.set_aside_reason — the structural gate record of a refused Proof candidate (C04)',
+    sql: `
+ALTER TABLE public.leads
+  ADD COLUMN IF NOT EXISTS set_aside_reason text;
+
+CREATE INDEX IF NOT EXISTS leads_set_aside_reason_idx
+  ON public.leads (client_id, set_aside_reason)
+  WHERE set_aside_reason IS NOT NULL;
+
+COMMENT ON COLUMN public.leads.set_aside_reason IS
+  'Why this candidate was never shown to the client - one of the four hard criteria (geography, size, industry, seniority) in plain words, written by the deterministic structural gate in proof-fit.ts BEFORE scoring and surfacing. NULL means never set aside. A set-aside row is kept for operational accounting and audit, is never surfaced, and can never recycle into a later Proof pass. It is deliberately NOT a leads.status value: status is a lifecycle state and this is a reason, and widening leads_status_check would touch the constraint the whole outreach path writes through.';
+`.trim(),
+  },
 ]
 
 // Runs the statements against DATABASE_URL. Uses node-postgres because the Supabase JS

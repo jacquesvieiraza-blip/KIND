@@ -2147,6 +2147,49 @@ export async function runIcpJob(
     }
   }
 
+  // ── 🛑 ⚑ 10 Sep (C04) — THE STRUCTURAL GATE, BEFORE ANYTHING IS SCORED OR SURFACED ────
+  //
+  // WHAT THE FOUNDER SAW. He targeted UK digital marketing agencies, 10–50 staff, Founder or
+  // CEO. Proof showed him management consultancies and procurement firms. `start-work.ts`
+  // states the old policy plainly — *"Every sourced person goes to the client, scored, with
+  // our top 20 marked. We don't filter first — that adds work and delays the money."* On a
+  // paid client's continuously-topped-up desk that trade was defensible. On a PROSPECT'S FIRST
+  // IMPRESSION it means the client does our data cleaning, which is the opposite of the
+  // product we sell.
+  //
+  // ⚠️ IT RUNS HERE, NOT LATER, FOR TWO REASONS. Scoring is handed `gatedIds` below, so the
+  // model only ever judges candidates that already match what the client asked for — its
+  // number can no longer overturn a structural refusal. And the surfacing stamp far below
+  // reads the same list, so a refused candidate is never shown even once.
+  //
+  // 🛑 FAIL CLOSED (founder-locked 10 Sep). If `leads.set_aside_reason` does not exist yet,
+  // this refuses the batch rather than surfacing it: a refusal we cannot RECORD is a refusal
+  // that does not survive to the next pass, and `surfaceEverything` would re-offer the same
+  // people. The run outcome says which migration to run.
+  let gatedIds = insertedIds
+  let setAsideCount = 0
+  if (insertedIds.length > 0) {
+    const { applyStructuralGate } = await import('../lib/proof-gate')
+    const gate = await applyStructuralGate(icp, insertedIds)
+    if (!gate.ok) {
+      console.error(`[icp] STRUCTURAL GATE REFUSED the batch for client ${clientId}: ${gate.detail}`)
+      // ⚠️ `heldFromIcp` IS DELIBERATELY NOT PASSED. It is computed further down (the
+      // entitlement-exhaustion count) and is not yet known here; passing a zero for it would
+      // record a number nobody measured, which is the exact defect `recordRunOutcome`'s own
+      // honesty rules exist to stop. The refusal reports what it actually knows.
+      await recordRunOutcome(icpId, clientId, 'failed', effectiveCap, pool.served, inserted, 0, didWiden)
+      // ⚠️ THE LEADS ARE LEFT EXACTLY WHERE THEY ARE — inserted, unsurfaced, unscored. Nothing
+      // is deleted (that would destroy what the run bought) and nothing is shown. The next
+      // attempt after the migration re-judges them from the same rows.
+      return { inserted, skipped, relaxed: gate.detail }
+    }
+    gatedIds = gate.eligible
+    setAsideCount = gate.setAside.length
+    if (setAsideCount > 0) {
+      console.log(`[icp] structural gate: ${gate.eligible.length} of ${insertedIds.length} candidates match the targeting for client ${clientId} — ${setAsideCount} set aside (${[...new Set(gate.setAside.map(s => s.reason))].join(' · ')}).`)
+    }
+  }
+
   if (inserted > 0) {
     const { data: clientRow } = await db.from('clients')
       .select('id, company_name, referred_by, first_icp_run_at, credit_balance')
@@ -2156,10 +2199,12 @@ export async function runIcpJob(
     // must obey the same kill-switch as outreach. Previously they sent unconditionally
     // (outside the AUTO_OUTREACH_ENABLED gate below), so a "safe test" ICP run still
     // cold-emailed real execs a consent request. Gate the consent send on the switch.
-    scoreLeadsForIcp(insertedIds, icp, clientRow?.company_name ?? '', clientId)
+    // ⚠️ `gatedIds`, NOT `insertedIds` — the model judges only candidates that already match
+    // the client's own hard criteria (C05: calibration among the structurally eligible).
+    scoreLeadsForIcp(gatedIds, icp, clientRow?.company_name ?? '', clientId)
       .then(() => {
         if (process.env.AUTO_OUTREACH_ENABLED === 'true') {
-          return autoConsentScoredLeads(insertedIds, clientRow?.company_name ?? '', clientId)
+          return autoConsentScoredLeads(gatedIds, clientRow?.company_name ?? '', clientId)
         }
         console.log(`[icp] auto-consent SKIPPED (AUTO_OUTREACH_ENABLED != true) — ${insertedIds.length} leads scored, no consent emails sent`)
         return undefined
@@ -2404,7 +2449,9 @@ export async function runIcpJob(
       // with no time bound anywhere.
       const { error: surfErr } = await db.from('leads')
         .update({ surfaced_for_approval_at: nowIso, delivered_at: nowIso, proof_pass: opts!.proofPass })
-        .in('id', insertedIds).is('delivered_at', null)
+        // 🛑 `gatedIds` — a candidate the structural gate set aside is never surfaced, not even
+        // once. `insertedIds` here would have shown the client the very rows we refused.
+        .in('id', gatedIds).is('delivered_at', null)
       if (surfErr) {
         // Same failure shape start-work treats as serious: the leads exist and the prospect
         // cannot see them, which reads to them as "K.I.N.D found nobody".

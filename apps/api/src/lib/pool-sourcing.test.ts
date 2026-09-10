@@ -6,7 +6,7 @@ import {
 
 const rec = (over: Partial<PoolRecord>): PoolRecord => ({ email_norm: 'a@b.com', ...over })
 
-describe('poolRecordMatchesIcp — OR-generous candidate predicate', () => {
+describe('poolRecordMatchesIcp — the HARD-FIT reuse decision (C02, 10 Sep)', () => {
   it('matches on title within the geography', () => {
     expect(poolRecordMatchesIcp(
       rec({ country: 'South Africa', title: 'Chief Technology Officer' }),
@@ -14,10 +14,21 @@ describe('poolRecordMatchesIcp — OR-generous candidate predicate', () => {
     )).toBe(true)
   })
 
-  it('matches on industry even when the title does not match', () => {
+  // ⛓️ RETARGETED 10 Sep (C02) — THE RULE IS `AND`, NOT `OR`, BY FOUNDER LOCK.
+  //
+  // This asserted the OR arm: an industry hit rescued a title miss. That looseness is what
+  // C02 removed — a client who asks for CTOs at financial-services firms and is shown an
+  // Operations Lead has been shown the wrong person, for free, in place of a paid row we
+  // could have shown instead. The criterion the row FAILS is now named, and the duty that
+  // survives is the one that matters: a real match on every stated criterion still matches.
+  it('🛑 an industry hit no longer rescues a title miss', () => {
+    const icp = { geographies: ['Kenya'], job_titles: ['CTO'], industries: ['Financial'] }
     expect(poolRecordMatchesIcp(
-      rec({ country: 'Kenya', title: 'Operations Lead', industry: 'Financial Services' }),
-      { geographies: ['Kenya'], job_titles: ['CTO'], industries: ['Financial'] },
+      rec({ country: 'Kenya', title: 'Operations Lead', industry: 'Financial Services' }), icp,
+    )).toBe(false)
+    // …and the same row with the title they actually asked for is reused.
+    expect(poolRecordMatchesIcp(
+      rec({ country: 'Kenya', title: 'CTO', industry: 'Financial Services' }), icp,
     )).toBe(true)
   })
 

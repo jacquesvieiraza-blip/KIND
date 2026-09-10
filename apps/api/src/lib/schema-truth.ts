@@ -111,7 +111,23 @@ export function stripJsComments(src: string): string {
     }
     const ch = src[i]
     if (ch === '\\' && i + 1 < n) { out += src[i] + src[i + 1]; i += 2; continue }
-    if (ch === "'" || ch === '"') {
+    // 🛑 ⛓️ 10 Sep — A QUOTE INSIDE TEMPLATE **TEXT** IS AN APOSTROPHE, NOT A STRING.
+    //
+    // This branch was unguarded, so `` `This month's spend is ${x}` `` opened a "string" at
+    // the apostrophe that ran to the next `'` anywhere in the file — swallowing the closing
+    // backtick and leaving `templateDepth` stuck above zero. From that line on the stripper
+    // removed NO comments at all, and `columnUses`' balanced-brace walk then read a later
+    // object's keys as belonging to an earlier `.insert({`.
+    //
+    // ⚠️ THE GUARD HAD BEEN QUIET, NOT PASSING. `routes/icps.ts` carries such a template at
+    // line 311 of 4,700, so #642 had effectively stopped checking that file — the largest in
+    // the repo — and reported clean. It surfaced only because C02 shifted the offsets enough
+    // to make the mis-parse land on a real object. A checker that cannot fail proves nothing.
+    //
+    // A quote delimits a string only OUTSIDE template text: either not in a template at all,
+    // or inside a `${ … }` interpolation, where ordinary expression rules apply again.
+    const inTemplateText = templateDepth > 0 && (braceDepthInTemplate[templateDepth - 1] ?? 0) === 0
+    if (!inTemplateText && (ch === "'" || ch === '"')) {
       const quote = ch
       out += ch; i++
       while (i < n && src[i] !== quote) {

@@ -130,6 +130,29 @@ export type CustomerProgramme = {
   }
   approvedAt: string | null
   wentLiveAt: string | null
+  /**
+   * ⚑ 10 Sep (I5) — THE PROGRAMME IS OVER, AND WHICH WAY IT ENDED.
+   *
+   * ── 🛑 WHY THIS FIELD EXISTS ──────────────────────────────────────────────────────────
+   *
+   * `millaStage` maps COMPLETED and CANCELLED to the SAME stage, `Completion` — right as a
+   * position in the journey (the programme is finished either way) and useless as a fact.
+   * `ProgrammeWorkspace` renders `Completion` as the heading **"Programme complete"**, which
+   * on a cancelled programme is a false statement to the client about their own account.
+   *
+   * Founder, 10 Sep: *"Do not casually treat CANCELLED as successful Completion; represent it
+   * truthfully using existing cancellation semantics."* So the stage is unchanged — adding a
+   * `Cancelled` stage would be a redesign of a founder-locked seven-stage list — and the
+   * screen is given the fact instead.
+   *
+   * ⚠️ NO TIMESTAMP, DELIBERATELY. `programmes` has no `completed_at` or `cancelled_at`
+   * column. A nullable `at` that is always null is a field that looks like data and is not,
+   * and inventing a column on the evening of a launch to carry a date nothing displays would
+   * be scope nobody asked for.
+   *
+   * `null` for every live programme.
+   */
+  terminal: 'completed' | 'cancelled' | null
 }
 
 /** No programme row is a REAL answer, not a failure: this client is at Proof. */
@@ -139,6 +162,8 @@ export const NO_PROGRAMME: CustomerProgramme = {
   hasProgramme: false,
   programmeId: null,
   paused: false, pausedCopy: null, reviewOpen: false,
+  // ⚑ 10 Sep (I5) — a client with no programme has not finished one either.
+  terminal: null,
   outcome: { kind: 'meetings', target: null, stated: null },
   progress: { delivered: 0, authorised: 0, outcomesAchieved: 0 },
   recommendation: { recommendedVolume: null, costPerMeetingCents: null, acceptedAt: null, assumptions: null },
@@ -208,10 +233,24 @@ export async function readCustomerProgramme(clientId: string): Promise<CustomerP
             'sourcing_ceiling, sourced_used, ' +
             'first_paid_at, second_paid_at, first_authorised_at, second_authorised_at, ' +
             'approved_at, went_live_at, paused_at, ' +
-            'review_required_at, review_resolved_at')
+            'review_required_at, review_resolved_at, created_at')
     .eq('client_id', clientId)
-    .not('status', 'in', '(COMPLETED,CANCELLED)')
-    .limit(1).maybeSingle()
+    // ── 🛑 ⚑ 10 Sep (I5) — THE TERMINAL FILTER IS GONE, AND THE ORDER IS NEW ─────────────
+    //
+    // ⛓️ WHAT `.not('status','in','(COMPLETED,CANCELLED)')` DID. It made a finished client
+    // INVISIBLE TO THEMSELVES. Their programme completed, this read returned nothing, and the
+    // handler below fell through to `NO_PROGRAMME` — so Milla put a client who had just
+    // finished a programme back on the PROOF screen: "Tell Milla the outcome you want". The
+    // whole record of what we delivered for them vanished from their own workspace.
+    //
+    // Founder, 10 Sep: "COMPLETED must remain visible in Milla."
+    //
+    // ⚠️ AND THE ORDER MATTERED ALL ALONG. There was no `.order(...)` at all, so `.limit(1)`
+    // took whichever row the database happened to return first — a client with two programmes
+    // could see either one. Newest first, and the pick below prefers a LIVE programme over a
+    // finished one, which mirrors `currentProgramme` in the operator's own lifecycle facts.
+    .order('created_at', { ascending: false })
+    .limit(50)
 
   // 🛑 supabase-js RETURNS `{ error }` RATHER THAN THROWING. A `data ?? []` shorthand here
   // would turn a database failure into "no programme" silently — the recurring defect shape
@@ -220,7 +259,16 @@ export async function readCustomerProgramme(clientId: string): Promise<CustomerP
     console.error('[customer-programme] read failed for client', clientId, error.message)
     return null
   }
-  if (!data) {
+
+  // ⚠️ THE OPEN PROGRAMME WINS. A client who finished one programme and started another is
+  // working on the new one; the finished one is history and is reached from the report, not
+  // from the workspace heading. Only when EVERY programme is over does the newest finished one
+  // become what the workspace shows.
+  const all = (data ?? []) as unknown as Record<string, unknown>[]
+  const TERMINAL = ['COMPLETED', 'CANCELLED']
+  const data0 = all.find(r => !TERMINAL.includes(String(r.status))) ?? all[0] ?? null
+
+  if (!data0) {
     // ── 🛑 ⚑ 10 Sep (C03) — THIS IS THE PROOF SCREEN, AND IT IS WHERE THE DEFECT SHOWED ──
     //
     // No programme yet, which is every client during Proof. `NO_PROGRAMME` is a constant, so
@@ -239,7 +287,7 @@ export async function readCustomerProgramme(clientId: string): Promise<CustomerP
     }
   }
 
-  const p = data as unknown as Record<string, unknown>
+  const p = data0
   // ── ⚑ 10 Sep (C03) — THE CLIENT'S STATED OUTCOME, READ FROM THE CLIENT ─────────────────
   //
   // ⚠️ A SEPARATE READ, AND IT MUST NOT FAIL THE PROGRAMME. The outcome lives on `clients`
@@ -321,5 +369,14 @@ export async function readCustomerProgramme(clientId: string): Promise<CustomerP
     },
     approvedAt: (p.approved_at as string | null) ?? null,
     wentLiveAt: (p.went_live_at as string | null) ?? null,
+    // ── ⚑ 10 Sep (I5) — WHICH WAY IT ENDED, STATED RATHER THAN INFERRED FROM THE STAGE ──
+    //
+    // 🛑 `stage` CANNOT ANSWER THIS. COMPLETED and CANCELLED are both `Completion`, and the
+    // workspace renders that heading as "Programme complete" — a false statement to a client
+    // about their own cancelled programme. Founder, 10 Sep: "Do not casually treat CANCELLED
+    // as successful Completion."
+    terminal: p.status === 'COMPLETED' ? 'completed'
+      : p.status === 'CANCELLED' ? 'cancelled'
+        : null,
   }
 }

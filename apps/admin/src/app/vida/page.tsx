@@ -391,6 +391,11 @@ export default function VidaConsolePage() {
       senderDetail?: string | null
       killSwitchOff: boolean
       operatorRunEnabled: boolean
+      /** ⚑ MVP1 (C03) — what the client said they want, in their own words, or null.
+       *  The copy module has rendered this in three places since it was written; until now
+       *  nothing supplied it, so every client read "Being agreed". It is NOT the meeting
+       *  target: that is agreed later, at Programme, and the two are different facts. */
+      outcomeStated?: string | null
     } | null
     last_preparation?: {
       at: string; ok: boolean; by: string | null; detail: string
@@ -1967,6 +1972,10 @@ export default function VidaConsolePage() {
       operatorRunEnabled: lc.operatorRunEnabled,
       senderSendable: lc.senderSendable,
       senderDetail: lc.senderDetail ?? null,
+      // ⚑ MVP1 (C03) — the last leg of the plumbing. `vida-lifecycle-copy.ts` has read this
+      // since it was written; this call site never passed it, so all three of its branches
+      // fell through to "Being agreed" / "Not stated yet" for every client in the book.
+      outcomeStated: lc.outcomeStated ?? null,
     })
   }, [lc, selectedName, selectedClient?.company_name])
 

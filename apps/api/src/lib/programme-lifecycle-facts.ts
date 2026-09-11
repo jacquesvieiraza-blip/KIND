@@ -150,6 +150,38 @@ async function proofCompletedFor(clientId: string): Promise<boolean | null> {
   } catch { return null }
 }
 
+/**
+ * ⚑ MVP1 (C03) — WHAT THE CLIENT SAID THEY WANT, IN THEIR OWN WORDS.
+ *
+ * 🛑 THE FACT VIDA WAS NEVER TOLD. `clients.outcome_stated` has existed since
+ * 20260910_client_stated_outcome, and `vida-lifecycle-copy.ts` already TYPES `outcomeStated`
+ * and renders it in three places — "In their words", with the sentence beneath. Nothing ever
+ * supplied it: this function did not exist and `vida/page.tsx` passed nothing. So all three
+ * call sites fell to their else-branch and Vida said "Being agreed" about every client in the
+ * book, including the ones who had said exactly what they wanted at signup.
+ *
+ * ⚠️ IT IS THE CLIENT'S SENTENCE, NOT THE PROGRAMME'S TARGET. A meeting target is agreed
+ * later, at Programme. This is what they said before any number existed, and an operator
+ * about to agree that number needs to have read it.
+ *
+ * ⚠️ FAILS SOFT TO `null`, like every other read here — and `null` is the honest answer for
+ * "unreadable" AND for "never said". Neither may become a sentence: a fabricated outcome on
+ * an operator's screen is a claim about a client's intent that the client never made.
+ *
+ * ⚠️ TRIMMED, because an empty string is not a stated outcome. A blank column that reached
+ * the copy module would render as `""` under "In their words" — quotation marks around
+ * nothing, attributed to a person.
+ */
+async function outcomeStatedFor(clientId: string): Promise<string | null> {
+  try {
+    const { data, error } = await db.from('clients')
+      .select('outcome_stated').eq('id', clientId).maybeSingle()
+    if (error || !data) return null
+    const v = (data as unknown as { outcome_stated: string | null }).outcome_stated
+    return typeof v === 'string' && v.trim() !== '' ? v.trim() : null
+  } catch { return null }
+}
+
 async function proofStartedFor(clientId: string): Promise<boolean | null> {
   try {
     const { data, error } = await db.from('icps')
@@ -342,6 +374,15 @@ export type LifecycleDetail = {
   senderDetail: string | null
   killSwitchOff: boolean
   operatorRunEnabled: boolean
+  /**
+   * ⚑ MVP1 (C03) — the client's own words for what this should achieve, or null.
+   *
+   * ⚠️ NULL MEANS "THEY HAVE NOT SAID", and the copy module must treat it that way. It never
+   * means "assume meetings": the outcome and the meeting target are different facts, agreed
+   * at different times, and conflating them is how a target gets attributed to a client who
+   * only ever described a result.
+   */
+  outcomeStated: string | null
 }
 
 /**
@@ -362,8 +403,12 @@ export async function lifecycleDetailFor(clientId: string): Promise<LifecycleDet
   const p = currentProgramme(rows)
 
   if (!p) {
-    const [proofStarted, proofCalibrationFailed, proofCompleted] = await Promise.all([
+    const [proofStarted, proofCalibrationFailed, proofCompleted, outcomeStated] = await Promise.all([
       proofStartedFor(clientId), proofCalibrationFailedFor(clientId), proofCompletedFor(clientId),
+      // ⚑ MVP1 (C03) — read on BOTH branches. This one is the Brief/Proof client, and it is
+      // the branch where an operator most needs the client's own sentence: there is no
+      // meeting target yet, so it is the only statement of what they want that exists.
+      outcomeStatedFor(clientId),
     ])
     return {
       verdict: deriveLifecycle({
@@ -375,7 +420,7 @@ export async function lifecycleDetailFor(clientId: string): Promise<LifecycleDet
       }),
       counts: { ...NO_COUNTS }, programme: null, replyAwaiting: null,
       humanBlockers: [], stoppedDetail: null, senderSendable: true, senderDetail: null,
-      killSwitchOff, operatorRunEnabled,
+      killSwitchOff, operatorRunEnabled, outcomeStated,
     }
   }
 
@@ -469,10 +514,14 @@ export async function lifecycleDetailFor(clientId: string): Promise<LifecycleDet
   })
 
   const replyAwaiting = verdict.state === 'review_reply' ? await replyAwaitingFor(p.id, clientId) : null
+  // ⚑ MVP1 (C03) — the client's own words, on the programme branch too. An operator agreeing
+  // a meeting target must be able to read what the client actually asked for, and the target
+  // is not a substitute for it: one is a number we proposed, the other is their sentence.
+  const outcomeStated = await outcomeStatedFor(clientId)
 
   return {
     verdict, counts, replyAwaiting, humanBlockers, stoppedDetail,
-    senderSendable, senderDetail: sender.detail, killSwitchOff, operatorRunEnabled,
+    senderSendable, senderDetail: sender.detail, killSwitchOff, operatorRunEnabled, outcomeStated,
     programme: {
       id: p.id, status: String(p.status), meetingTarget: p.meeting_target,
       entitlementUsed, entitlementTotal, entitlementRemaining,

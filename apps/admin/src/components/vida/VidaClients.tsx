@@ -1,6 +1,11 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
+// ⚑ MVP1 (C20) — the refresh POLICY, not a second copy of it. A successful read replaces; a
+// failed read changes nothing; an error is named only when there is nothing to show.
+import {
+  nextRailValue, shouldSurfaceError, shouldPollNow, RAIL_REFRESH_MS,
+} from '@/lib/vida-rail-refresh'
 import { useSearchParams } from 'next/navigation'
 import { panelView } from '@kind/shared'
 import { useVidaConversation } from '@/components/vida/VidaConversation'
@@ -75,30 +80,92 @@ export function VidaClients({ open }: { open: boolean }) {
   // one filter is two states to keep in step, and the one that drifts is the one nobody looks at.
   const needsFilter = useSearchParams().get('needs') === '1'
 
+  // ── ⚑ MVP1 (C20) — THE RAIL REFRESHES ─────────────────────────────────────────────────
+  //
+  // 🛑 EVERY READ HERE USED TO RUN ONCE, ON MOUNT, AND NEVER AGAIN. A client who signed up
+  // while an operator had Vida open did not exist on this screen until somebody reloaded the
+  // page. Preview 07 is literally that moment — "signed up 14 minutes ago" — on a rail that
+  // could not have known.
+  //
+  // ⚠️ A FAILED REFRESH CHANGES NOTHING. `nextRailValue` is the whole reason this is not a
+  // naive poll: assigning whatever the last response said would, on the first transient 500,
+  // replace a working rail with an empty one under the operator's cursor. Stale is
+  // survivable; flickering to empty is not, because it cannot be told from "they are gone".
+  //
+  // ⚠️ AND AN ERROR IS NAMED ONLY WHEN THERE IS NOTHING TO SHOW (`shouldSurfaceError`). A
+  // banner on every blip trains an operator to ignore banners.
+  //
+  // ⚠️ NO NEW INFRASTRUCTURE. An interval and a visibility listener; no realtime, no socket,
+  // no subscription, no library.
+  const loadRail = useCallback(async (alive: () => boolean) => {
+    await Promise.all([
+      fetch('/api/proxy/operator/clients').then(r => r.json())
+        .then(j => {
+          if (!alive()) return
+          if (!j?.success) throw new Error(j?.error || 'the API returned no data')
+          setClients(prev => nextRailValue(prev, { ok: true, value: (j.data ?? []) as ClientRow[] }))
+          setClientsError(null)
+        })
+        .catch(e => {
+          if (!alive()) return
+          setClients(prev => {
+            if (shouldSurfaceError(prev)) setClientsError(e instanceof Error ? e.message : 'Failed to load clients')
+            return nextRailValue(prev, { ok: false })
+          })
+        }),
+      fetch('/api/proxy/operator/worklist').then(r => r.json())
+        .then(j => {
+          if (!alive()) return
+          if (!j?.success) throw new Error(j?.error || 'the API returned no data')
+          setWork(prev => nextRailValue(prev, { ok: true, value: (j.data ?? []) as WorkRow[] }))
+          setBookRatio(j.meta?.ratio ?? null)
+          setWorkError(null)
+        })
+        .catch(e => {
+          if (!alive()) return
+          setWork(prev => {
+            if (shouldSurfaceError(prev)) setWorkError(e instanceof Error ? e.message : 'Failed to load the worklist')
+            return nextRailValue(prev, { ok: false })
+          })
+        }),
+      fetch('/api/proxy/operator/lifecycle-board').then(r => r.json())
+        .then(j => {
+          if (!alive() || !j?.success) return
+          const m: Record<string, LifecycleRow> = {}
+          for (const r of (j.data ?? []) as LifecycleRow[]) m[r.client_id] = r
+          setLifecycle(m)
+        })
+        // ⚠️ A FAILED READ LEAVES THE ROWS WITHOUT A STAGE WORD, never with a guessed one.
+        .catch(() => { /* rows fall back to industry · country, which is a fact we do have */ }),
+      fetch('/api/proxy/operator/alerts').then(r => r.json())
+        .then(j => { if (alive() && j?.success) setProofReview(new Set((j.data ?? [])
+          .filter((a: { kind: string }) => a.kind === 'proof_review')
+          .map((a: { client_id: string }) => a.client_id))) })
+        .catch(() => { /* the filter simply keeps its default; the list is not blanked */ }),
+    ])
+  }, [])
+
   useEffect(() => {
     let alive = true
-    fetch('/api/proxy/operator/clients').then(r => r.json())
-      .then(j => { if (!alive) return; if (j?.success) setClients(j.data ?? []); else throw new Error(j?.error || 'the API returned no data') })
-      .catch(e => { if (alive) setClientsError(e instanceof Error ? e.message : 'Failed to load clients') })
-    fetch('/api/proxy/operator/worklist').then(r => r.json())
-      .then(j => { if (!alive) return; if (j?.success) { setWork(j.data ?? []); setBookRatio(j.meta?.ratio ?? null) } else throw new Error(j?.error || 'the API returned no data') })
-      .catch(e => { if (alive) setWorkError(e instanceof Error ? e.message : 'Failed to load the worklist') })
-    fetch('/api/proxy/operator/lifecycle-board').then(r => r.json())
-      .then(j => {
-        if (!alive || !j?.success) return
-        const m: Record<string, LifecycleRow> = {}
-        for (const r of (j.data ?? []) as LifecycleRow[]) m[r.client_id] = r
-        setLifecycle(m)
-      })
-      // ⚠️ A FAILED READ LEAVES THE ROWS WITHOUT A STAGE WORD, never with a guessed one.
-      .catch(() => { /* rows fall back to industry · country, which is a fact we do have */ })
-    fetch('/api/proxy/operator/alerts').then(r => r.json())
-      .then(j => { if (alive && j?.success) setProofReview(new Set((j.data ?? [])
-        .filter((a: { kind: string }) => a.kind === 'proof_review')
-        .map((a: { client_id: string }) => a.client_id))) })
-      .catch(() => { /* the filter simply keeps its default; the list is not blanked */ })
-    return () => { alive = false }
-  }, [])
+    const isAlive = () => alive
+    void loadRail(isAlive)
+
+    // ⚠️ HIDDEN TABS READ NOTHING. A console parked in a background tab would otherwise put
+    // 1,440 rounds of four endpoints a day through the proxy for a screen nobody is reading.
+    const tick = () => { if (shouldPollNow(document.hidden)) void loadRail(isAlive) }
+    const timer = setInterval(tick, RAIL_REFRESH_MS)
+
+    // ⚠️ AND COMING BACK TO THE TAB IS THE MOMENT THE ANSWER MATTERS. An operator returning
+    // after a call should not wait up to a minute to see the client they were just told about.
+    const onVisible = () => { if (!document.hidden) void loadRail(isAlive) }
+    document.addEventListener('visibilitychange', onVisible)
+
+    return () => {
+      alive = false
+      clearInterval(timer)
+      document.removeEventListener('visibilitychange', onVisible)
+    }
+  }, [loadRail])
 
   // ⚠️ THE URL STILL PICKS THE CLIENT. `?client=…` is how a Vida "Open →" link and a bookmark
   // reach a specific account, and the panel that used to read it is gone.

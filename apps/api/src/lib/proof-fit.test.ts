@@ -62,7 +62,14 @@ describe('🛑 ① the exact card he caught', () => {
 
   it('the person he actually asked for passes every criterion and can be starred', () => {
     const f = hardFit(GOOD, CANARY)
-    expect(f).toEqual({ geography: 'yes', size: 'yes', industry: 'yes', seniority: 'yes' })
+    // ⛓️ 11 Sep — SIX CRITERIA, WAS FOUR. `category` (the client's own words) and
+    // `company_type` (the target's organisational form) are two independent required
+    // dimensions, founder-locked. Both answer `yes` here because this ICP states neither —
+    // an unstated requirement is not a test, which is this file's own rule.
+    expect(f).toEqual({
+      geography: 'yes', size: 'yes', industry: 'yes',
+      category: 'yes', company_type: 'yes', seniority: 'yes',
+    })
     expect(fitBand(f, 82)).toBe('start_here')
     expect(isStarred(fitBand(f, 82))).toBe(true)
     expect(displayScore(f, 82)).toBe(82)
@@ -88,8 +95,23 @@ describe('🛑 ② each hard criterion refuses on its own', () => {
   it('every criterion is capable of refusing — none is decorative', () => {
     // A criterion that can never return `no` is a filter that does nothing, which is the
     // state this whole file replaces. Proved per criterion rather than asserted.
+    //
+    // ⛓️ 11 Sep — EXTENDED, NOT RELAXED. `category` and `company_type` cannot refuse against
+    // CANARY because CANARY states neither — an unstated requirement is not a test. So the
+    // MVP1 ICP below states both, and each is given a candidate that genuinely contradicts
+    // it. Dropping the two from this assertion instead would have been the exact "decorative
+    // criterion" this case exists to forbid.
+    const MVP1: FitIcp = { ...CANARY, target_category: 'Digital marketing agencies', target_company_type: 'agency' }
+    const extra: [string, FitCandidate, string][] = [
+      ['a construction firm', { ...GOOD, industry: 'Construction', company: 'Brick & Co' }, 'category'],
+      ['a consultancy', { ...GOOD, company: 'Northgate Consultancy', industry: 'Digital Marketing' }, 'company_type'],
+    ]
+    for (const [what, cand, crit] of extra) {
+      expect(hardFit(cand, MVP1)[crit as keyof typeof MVP1 & string] ?? hardFit(cand, MVP1)[crit as 'category'], what).toBe('no')
+    }
     const refusable = HARD_CRITERIA.filter(k =>
-      cases.some(([, cand]) => hardFit(cand, CANARY)[k] === 'no'))
+      cases.some(([, cand]) => hardFit(cand, CANARY)[k] === 'no')
+      || extra.some(([, cand]) => hardFit(cand, MVP1)[k] === 'no'))
     expect(refusable.sort()).toEqual([...HARD_CRITERIA].sort())
   })
 })
@@ -149,7 +171,13 @@ describe('🛑 ④ unknown is admissible, and never starred', () => {
   it('a blank industry is unknown — not a refusal', () => {
     const f = hardFit({ ...GOOD, industry: null }, CANARY)
     expect(f.industry).toBe('unknown')
-    expect(structurallyEligible(f)).toBe(true)     // it may still be the right company
+    // ⛓️ 11 Sep — WAS `true`, AND THE INVERSION IS FOUNDER-LOCKED. "Nothing said no" used to
+    // count as eligible; an UNKNOWN may now never be counted as an eligible Proof match,
+    // because the pressure to fill twenty cards is exactly what turns "we do not know" into
+    // "we'd start here". What did NOT change is everything the rest of this describe asserts:
+    // the candidate is still admissible, still surfaced, still banded "Worth a look", still
+    // capped at 74 and still never starred. Not counted is not the same as not shown.
+    expect(structurallyEligible(f)).toBe(false)
     expect(unknownCriteria(f)).toEqual(['industry'])
   })
 
@@ -167,14 +195,23 @@ describe('🛑 ④ unknown is admissible, and never starred', () => {
     // unknown would mean a client who named only a country could never see a starred card.
     const geoOnly: FitIcp = { geographies: ['United Kingdom'] }
     const f = hardFit({ country: 'United Kingdom' }, geoOnly)
-    expect(f).toEqual({ geography: 'yes', size: 'yes', industry: 'yes', seniority: 'yes' })
+    // ⛓️ 11 Sep — SIX CRITERIA, WAS FOUR. `category` (the client's own words) and
+    // `company_type` (the target's organisational form) are two independent required
+    // dimensions, founder-locked. Both answer `yes` here because this ICP states neither —
+    // an unstated requirement is not a test, which is this file's own rule.
+    expect(f).toEqual({
+      geography: 'yes', size: 'yes', industry: 'yes',
+      category: 'yes', company_type: 'yes', seniority: 'yes',
+    })
     expect(fitBand(f, 90)).toBe('start_here')
   })
 
   it('an unrecognised size band is unknown, not a refusal — our vocabulary gap, not their fault', () => {
     const f = hardFit({ ...GOOD, company_size: '7 people' }, CANARY)
     expect(f.size).toBe('unknown')
-    expect(structurallyEligible(f)).toBe(true)
+    // ⛓️ 11 Sep — same inversion as above, same reason, and the band is unchanged.
+    expect(structurallyEligible(f)).toBe(false)
+    expect(fitBand(f, 95)).toBe('worth_a_look')
     expect(isStarred(fitBand(f, 95))).toBe(false)
   })
 
@@ -229,9 +266,16 @@ describe('🛑 ⑤ the star is fit, never rank, and never a guess', () => {
 
 describe('⑥ the judgement is total — no input throws, nothing is silently admitted', () => {
   it('an empty candidate against a full ICP is unknown on every asked criterion', () => {
-    const f = hardFit({}, CANARY)
+    // ⛓️ 11 Sep — the ICP now states all SIX, so "every asked criterion" still means every
+    // one of them. Against CANARY the two MVP1 dimensions are unstated and answer `yes`,
+    // which would have quietly shrunk what this case proves.
+    const ALL: FitIcp = { ...CANARY, target_category: 'Digital marketing agencies', target_company_type: 'agency' }
+    const f = hardFit({}, ALL)
     expect(unknownCriteria(f).sort()).toEqual([...HARD_CRITERIA].sort())
-    expect(structurallyEligible(f)).toBe(true)
+    // ⛓️ 11 Sep — WAS `true`. An UNKNOWN is no longer an eligible match (founder-locked);
+    // it remains admissible and is still never starred, which the next two lines hold.
+    expect(structurallyEligible(f)).toBe(false)
+    expect(fitBand(f, 100)).toBe('worth_a_look')
     expect(isStarred(fitBand(f, 100))).toBe(false)   // admissible, never confident
   })
 

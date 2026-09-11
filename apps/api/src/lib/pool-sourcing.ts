@@ -18,7 +18,7 @@ import { canonicalLaunchCountry } from '@kind/shared'
 // ⚑ 10 Sep (C02) — the ONE hard-fit rule. Statically imported: `proof-fit` pulls only
 // `@kind/shared` and `lead-feedback`, both pure, so this module stays testable with no
 // environment. (An earlier lazy `require` here could not resolve a .ts sibling under Vitest.)
-import { hardFit, structurallyEligible } from './proof-fit'
+import { hardFit, structurallyAdmissible } from './proof-fit'
 
 /** A row from the `lead_pool` table (only the fields the matcher reads). */
 export interface PoolRecord {
@@ -186,7 +186,12 @@ export function poolRecordMatchesIcp(rec: PoolRecord, icp: PoolMatchIcp): boolea
   const geos = (icp.geographies ?? []).filter(Boolean)
   if (geos.length > 0 && !poolCountryMatches(rec.country, geos)) return false
 
-  return structurallyEligible(hardFit({
+  // ⛓️ 11 Sep — `structurallyAdmissible`, NOT `structurallyEligible`. Eligibility was
+  // tightened so an UNKNOWN can never be COUNTED as a Proof match; reuse asks a different
+  // question. Refusing to reuse a free row we already hold because its industry column is
+  // blank would spend provider money to replace a candidate that gets surfaced anyway, as a
+  // set-aside, for nothing. The geography refusal above is untouched and is still stricter.
+  return structurallyAdmissible(hardFit({
     // Decided above, and handed over as "nothing asked" so the shared rule cannot re-open it
     // with its own softer answer for an unknown country.
     country: null,

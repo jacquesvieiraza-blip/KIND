@@ -21,7 +21,7 @@ import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { poolRecordMatchesIcp, splitPoolAndRemainder, type PoolRecord } from './pool-sourcing'
-import { hardFit, structurallyEligible } from './proof-fit'
+import { hardFit, structurallyAdmissible } from './proof-fit'
 
 const ICPS = readFileSync(join(__dirname, '..', 'routes', 'icps.ts'), 'utf8')
 const POOL = readFileSync(join(__dirname, 'pool-sourcing.ts'), 'utf8')
@@ -96,12 +96,18 @@ describe('🛑 ① an eligible owned row is reused; every near-miss is not', () 
     ]
     for (const r of rows) {
       const pool = poolRecordMatchesIcp(r, CANARY)
-      const gate = structurallyEligible(hardFit({
+      // ⛓️ 11 Sep — ASKS ABOUT REFUSAL, WHICH IS WHAT THIS CASE ALWAYS MEANT. Its own comment
+      // says it: a pool row must not be "refused by the structural gate for a reason the pool
+      // never asked about". It used `structurallyEligible` because that then MEANT "nothing
+      // said no". Eligibility has since been tightened to exclude UNKNOWN — an unknown row is
+      // still surfaced, as a set-aside — so the refusal question now has its own name and the
+      // assertion uses it. The claim is unchanged; the function that expresses it is correct.
+      const refused = !structurallyAdmissible(hardFit({
         country: r.country, company_size: r.company_size, industry: r.industry,
         job_title: r.title, seniority: r.seniority,
       }, CANARY))
       if (pool) {
-        expect(gate, `the pool served ${r.industry ?? 'a row'} that the surfacing gate refuses`).toBe(true)
+        expect(refused, `the pool served ${r.industry ?? 'a row'} that the surfacing gate refuses`).toBe(false)
       }
     }
   })
@@ -225,7 +231,7 @@ describe('④ the operator counters — and no invented cost', () => {
 describe('⑤ one matcher, and it is the shared one', () => {
   it('the pool delegates to proof-fit and re-implements nothing', () => {
     const c = code(POOL)
-    expect(c).toContain("import { hardFit, structurallyEligible } from './proof-fit'")
+    expect(c).toContain("import { hardFit, structurallyAdmissible } from './proof-fit'")
     // 🛑 THE LOOSE SUBSTRING HELPER IS GONE. Keeping it would leave the old test one edit
     // from returning.
     expect(c.includes('function containsAny'), 'the loose substring helper is back').toBe(false)

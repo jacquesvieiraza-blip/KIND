@@ -249,6 +249,18 @@ const geographiesSchema = z.array(z.string()).default([]).superRefine((geos, ctx
 
 const icpSchema = z.object({
   name:                  z.string().min(1),
+  // ── ⚑ MVP1 (C04) — THE CLIENT'S OWN WORDS REACH THE COLUMN ────────────────────────
+  //
+  // ⚠️ DEFAULTED TO '' RATHER THAN OMITTED, so an older client saving a targeting change
+  // does not silently blank a category they already have… and equally does not carry one
+  // it never had. Both are plain text: the whole point is that no closed vocabulary sits
+  // between the client's answer and storage.
+  //
+  // ⚠️ ORDERING. These reach the insert payload via `{ ...body }` in `saveClientTargeting`,
+  // so `20260911_icp_target_category_and_type` MUST be applied before this code ships —
+  // the same expand/contract rule as `clients.commercial_model`.
+  target_category:       z.string().max(200).default(''),
+  target_company_type:   z.string().max(120).default(''),
   industries:            z.array(z.string()).default([]),
   job_titles:            z.array(z.string()).default([]),
   seniority_levels:      z.array(z.string()).default([]),

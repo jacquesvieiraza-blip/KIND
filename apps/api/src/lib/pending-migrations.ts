@@ -4269,6 +4269,39 @@ COMMENT ON COLUMN public.client_inboxes.verify_detail IS
   'The operator-facing sentence from the last check - the named cause and the fix (App Password, SMTP AUTH disabled, port/TLS mismatch), never a raw SMTP code. Written on success and failure alike.';
 `.trim(),
   },
+  {
+    // Canonical file: supabase/migrations/20260911_icp_target_category_and_type.sql
+    //
+    // MVP1 (C04, C21) - `icps.industries` was the ONLY home for a target market and it is a
+    // CLOSED SIXTEEN-VALUE LIST. A client who said "digital marketing agencies" had nowhere
+    // for that phrase: the model either substituted whichever of the sixteen seemed nearest,
+    // or omitted the field entirely - and an empty `industries` makes the structural-fit gate
+    // return 'yes' for every row on earth.
+    //
+    // TWO COLUMNS BECAUSE THEY ARE TWO FACTS (founder-locked). `target_category` is the
+    // client's own words and is authoritative; `target_company_type` is the organisational
+    // form of the TARGET company and is set only from client evidence. One utterance may
+    // supply both, but a client who said only "digital marketing" has the first and not the
+    // second - which is why one column cannot serve for both.
+    //
+    // ADDITIVE. `industries` is untouched and keeps doing its job as the provider-edge hint.
+    // No backfill: existing rows keep NULL, which reads correctly as "never collected".
+    //
+    // DEPLOYMENT ORDERING: apply this BEFORE shipping the code that writes the columns.
+    key: '20260911_icp_target_category_and_type',
+    title: "icps.target_category / target_company_type - the client's own words for the target market, and the target's organisational form (MVP1 C04/C21)",
+    sql: `
+ALTER TABLE public.icps
+  ADD COLUMN IF NOT EXISTS target_category     text,
+  ADD COLUMN IF NOT EXISTS target_company_type text;
+
+COMMENT ON COLUMN public.icps.target_category IS
+  'MVP1 brief fact 5 - the kind of market/business to target, in the CLIENT''S OWN WORDS. Never a provider label; never rewritten by normalisation.';
+
+COMMENT ON COLUMN public.icps.target_company_type IS
+  'MVP1 brief fact 7 - the organisational form of the TARGET company (agency, consultancy, clinic...). Set only from client evidence, never inferred from a website, the client''s own industry, or a provider taxonomy.';
+`.trim(),
+  },
 ]
 
 // Runs the statements against DATABASE_URL. Uses node-postgres because the Supabase JS

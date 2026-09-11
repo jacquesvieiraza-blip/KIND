@@ -71,6 +71,12 @@ create table if not exists public.icps (
   id                uuid primary key default uuid_generate_v4(),
   client_id         uuid not null references public.clients(id) on delete cascade,
   name              text not null,
+  -- MVP1 (C04/C21) — the client's own words for the target market, and the target's
+  -- organisational form. TWO facts, founder-locked: one utterance may supply both, but a
+  -- client who said only "digital marketing" has the category and not the type. `industries`
+  -- below stays the CLOSED sixteen-value provider-edge hint and is never their words.
+  target_category     text,
+  target_company_type text,
   industries        text[] not null default '{}',
   job_titles        text[] not null default '{}',
   seniority_levels  text[] not null default '{}',

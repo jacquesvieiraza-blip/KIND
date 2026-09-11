@@ -701,7 +701,15 @@ export async function runIcpJob(
   // this run — the claim travels with the call, so this function never claims one and a
   // normal run cannot consume one. Without `opts`, a never-funded account takes the
   // ordinary `try_spend_sourcing` path, which grants it 0: the pre-proof behaviour.
-  opts?: { proofPass: number },
+  opts?: {
+    proofPass: number
+    /**
+     * ⚑ 11 Sep — WHAT THIS RUN IS, stamped on the rows it creates. `automatic` is one of the
+     * two attempts; `calibrated_restart` is the one human-authorised set. Explicit provenance
+     * on the row, never a pass number doing double duty.
+     */
+    proofKind?: 'automatic' | 'calibrated_restart'
+  },
 ): Promise<{ inserted: number; skipped: number; relaxed: string | null }> {
   const proofMode = (opts?.proofPass ?? 0) > 0
   // BUILD-002 — the open programme batch for this run, if this is programme sourcing.
@@ -1315,7 +1323,10 @@ export async function runIcpJob(
       // ⚠️ PASS 1 AND EVERY PAID RUN ARE UNTOUCHED. Pass 1 has no explicit refinement behind
       // it — nobody has confirmed anything yet — and a paying client's calibration is exactly
       // as it was. The condition is the PASS NUMBER, not proof-ness, for precisely that reason.
-      const confirmedRefinement = opts?.proofPass === 2
+      // ⚑ 11 Sep — AND A CALIBRATED RESTART IS THE SAME CASE, FOR A STRONGER REASON: a person
+      // has just spoken to this client and corrected the targeting by hand. Re-applying the
+      // per-card calibration from the two sets that FAILED would quietly undo them.
+      const confirmedRefinement = opts?.proofPass === 2 || opts?.proofKind === 'calibrated_restart'
       if (confirmedRefinement) {
         console.log(`[icp] calibration SKIPPED for client ${clientId} — proof pass 2 runs the targeting the client explicitly confirmed.`)
       }
@@ -1435,6 +1446,11 @@ export async function runIcpJob(
       const canWiden =
         proofMode &&
         opts?.proofPass === 2 &&
+        // ⚠️ THE ONE FALLBACK STAYS ONE. A calibrated restart shares pass 2's number, so
+        // without this it would earn a SECOND widening of the same audience — and widening is
+        // a real provider query. The restart runs the targeting a human just corrected; if
+        // that finds nobody, the honest answer is nobody, not a broader guess.
+        opts?.proofKind !== 'calibrated_restart' &&
         audience === 'client' &&
         cursor.token === null &&
         pdlPage?.matchedNothing === true &&
@@ -2548,7 +2564,13 @@ export async function runIcpJob(
       // cannot restamp, hide or re-date pass 1. That is what keeps both proof sets visible
       // with no time bound anywhere.
       const { error: surfErr } = await db.from('leads')
-        .update({ surfaced_for_approval_at: nowIso, delivered_at: nowIso, proof_pass: opts!.proofPass })
+        .update({
+          surfaced_for_approval_at: nowIso, delivered_at: nowIso, proof_pass: opts!.proofPass,
+          // ⚑ 11 Sep — THE DISCRIMINATOR, WRITTEN IN THE SAME STATEMENT as the pass and the
+          // surfacing, for the same reason they are: a row that is visible and attributed to
+          // an attempt but carries no provenance would be read as an automatic one.
+          proof_batch_kind: opts!.proofKind ?? 'automatic',
+        })
         // 🛑 `gatedIds` — a candidate the structural gate set aside is never surfaced, not even
         // once. `insertedIds` here would have shown the client the very rows we refused.
         .in('id', gatedIds).is('delivered_at', null)
@@ -5096,11 +5118,20 @@ icpRouter.post('/:id/proof', async (req: AuthRequest, res) => {
     const { data: pass } = calibratedRestart
       ? { data: null }
       : await db.rpc('try_claim_proof_pass', { p_client_id: clientId })
-    // ⚠️ 3 IS A ROW LABEL, NEVER AN ALLOWANCE — see `CALIBRATED_RESTART_PASS`. It reaches
-    // `leads.proof_pass` so the attempt history can still tell the restart from the two
-    // automatic attempts; `proof_passes_done` is untouched and stays at 2.
-    const { CALIBRATED_RESTART_PASS, attemptLabel: attemptLabelFor } = await import('../lib/proof-calibration')
-    const claimed = calibratedRestart ? CALIBRATED_RESTART_PASS : (typeof pass === 'number' ? pass : 0)
+    // ── 🛑 ⛓️ 11 Sep — THE RESTART IS NOT A PASS NUMBER, IT IS PROVENANCE ─────────────
+    //
+    // An earlier cut of this stamped the restart's rows `proof_pass = 3`. That was wrong
+    // twice: `20260903_lead_proof_attribution` declares
+    // `CHECK (proof_pass IS NULL OR proof_pass IN (1, 2))`, so every insert would have been
+    // REJECTED — and even without the constraint it would have put ambiguous truth in the row
+    // for rendering code to repair, where any count, guard or analytic could read it as a
+    // third automatic attempt.
+    //
+    // ⚠️ THE RESTART RUNS ALONGSIDE PASS 2 AND IS TOLD APART BY `proof_batch_kind`. Automatic
+    // proof-pass identity stays 1 and 2 for ever, and `proof_passes_done` stays at 2.
+    const { attemptLabel: attemptLabelFor } = await import('../lib/proof-calibration')
+    const claimed = calibratedRestart ? 2 : (typeof pass === 'number' ? pass : 0)
+    const batchKind: 'automatic' | 'calibrated_restart' = calibratedRestart ? 'calibrated_restart' : 'automatic'
     if (claimed <= 0) {
       // ⚑ 27 Aug (PR2) — THE PROMISE BECOMES A PIECE OF WORK.
       //
@@ -5222,7 +5253,7 @@ icpRouter.post('/:id/proof', async (req: AuthRequest, res) => {
     // prospect their targeting matched nobody when we never actually asked — a lie, and the
     // precise class of lie R72 forbids. A truthful failure state needs a founder decision
     // (a new status + its client sentence); until then a HUMAN is told, immediately.
-    runIcpJob(req.params.id, clientId, req.userId!, PROOF_PASS_LEADS, { proofPass: claimed })
+    runIcpJob(req.params.id, clientId, req.userId!, PROOF_PASS_LEADS, { proofPass: claimed, proofKind: batchKind })
       .catch(async e => {
         console.error('[icps/proof] proof run failed:', e)
         // ⚑ 26 Aug — PERSIST THE CRASH AS A TERMINAL FACT (founder-approved `failed`).
@@ -5232,7 +5263,7 @@ icpRouter.post('/:id/proof', async (req: AuthRequest, res) => {
         await recordRunOutcome(req.params.id, clientId, 'failed', PROOF_PASS_LEADS, 0, 0)
           .catch(re => console.error('[icps/proof] could not record the failed outcome:', re))
         void sendFounderAlert('source_down', 'A free-proof run crashed — the prospect is waiting on a desk that cannot finish', [
-          `Prospect ${clientId}, ICP ${req.params.id}, ${attemptLabelFor(claimed)}.`,
+          `Prospect ${clientId}, ICP ${req.params.id}, ${attemptLabelFor({ pass: claimed, kind: batchKind })}.`,
           `Reason: ${e instanceof Error ? e.message : String(e)}`,
           'Their proof pass is CONSUMED and no run outcome was recorded, so the desk shows no terminal state for this attempt.',
           'If this reads SAFE_TEST_MODE / PAID_PROVIDERS_ENABLED, the guard refused to spend — that is correct behaviour, not a bug.',
@@ -5244,8 +5275,8 @@ icpRouter.post('/:id/proof', async (req: AuthRequest, res) => {
     res.json({
       success: true,
       data: calibratedRestart
-        ? { pass: claimed, label: attemptLabelFor(claimed), calibrated_restart: true, finding: true }
-        : { pass: claimed, of: 2, label: attemptLabelFor(claimed), finding: true },
+        ? { kind: batchKind, label: attemptLabelFor({ pass: claimed, kind: batchKind }), calibrated_restart: true, finding: true }
+        : { pass: claimed, of: 2, kind: batchKind, label: attemptLabelFor({ pass: claimed, kind: batchKind }), finding: true },
     })
   } catch (err) {
     console.error('[icps/proof]', err)

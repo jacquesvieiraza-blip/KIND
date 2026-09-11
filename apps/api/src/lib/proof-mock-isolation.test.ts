@@ -154,7 +154,9 @@ describe('the Proof business rules are untouched by the harness change', () => {
     // 🛑 THE FLOOR. Three earlier attempts changed `icps.ts` to chase this failure; none of
     // them closed it, and all were reverted. The defect is in the harness, and production
     // must carry no residue of the hunt.
-    expect(icps).toMatch(/runIcpJob\(req\.params\.id, clientId, req\.userId!, PROOF_PASS_LEADS, \{ proofPass: claimed \}\)\n\s*\.catch\(/)
+    // ⛓️ 11 Sep — the dispatch now also names the batch KIND (automatic vs the one calibrated
+    // restart). Same call, same fire-and-forget shape, same `.catch` — only the options widen.
+    expect(icps).toMatch(/runIcpJob\(req\.params\.id, clientId, req\.userId!, PROOF_PASS_LEADS, \{ proofPass: claimed, proofKind: batchKind \}\)\n\s*\.catch\(/)
     expect(icps, 'a background-ownership wrapper was left in production').not.toMatch(/trackBackground/)
   })
 })

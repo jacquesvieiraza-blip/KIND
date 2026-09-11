@@ -58,8 +58,11 @@ const FACTS = raw(join(API, 'lib', 'programme-lifecycle-facts.ts'))
 const PROOF_UI = raw(join(PORTAL, 'components', 'milla', 'ProofCalibration.tsx'))
 const HOME = raw(join(PORTAL, 'app', '(milla)', 'milla', 'page.tsx'))
 
+  // ⚑ 11 Sep — `kind` defaults to 'automatic', which is what every case in this file is
+  // about. The calibrated restart is a DIFFERENT history event and never an automatic
+  // attempt; `proof-restart-authority.test.ts` is where that distinction is exercised.
 const attempt = (over: Partial<AttemptSummary> = {}): AttemptSummary =>
-  ({ pass: 2, surfaced: 20, looksRight: 0, notAFit: 0, reasons: {}, notes: [], ...over })
+  ({ pass: 2, kind: 'automatic', surfaced: 20, looksRight: 0, notAFit: 0, reasons: {}, notes: [], ...over })
 
 const state = (over: Partial<CalibrationState> = {}): CalibrationState =>
   ({ passesDone: 1, escalated: false, attempts: [], ...over })

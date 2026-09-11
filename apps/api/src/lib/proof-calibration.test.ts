@@ -13,11 +13,15 @@ import {
   escalationAsk, ESCALATION_CONFIRMED, ESCALATED_HEADLINE, ESCALATED_DETAIL,
   NEEDS_FEEDBACK_HINT, SPEND_CLOSED_REFUSAL, PROOF_REASON_CODES, PROOF_REASON_LABELS,
   ESCALATION_TRIGGER_COPY, proofUiState, whatChangedSentence,
+  calibratedRestart, BOTH_ATTEMPTS_USED_ASK, LIVE_ESCALATION_TRIGGERS,
   type AttemptSummary, type CalibrationState,
 } from './proof-calibration'
 
+  // ⚑ 11 Sep — `kind` defaults to 'automatic', which is what every case in this file is
+  // about. The calibrated restart is a DIFFERENT history event and never an automatic
+  // attempt; `proof-restart-authority.test.ts` is where that distinction is exercised.
 const attempt = (pass: number, o: Partial<AttemptSummary> = {}): AttemptSummary => ({
-  pass, surfaced: 20, looksRight: 0, notAFit: 0, reasons: {}, notes: [], ...o,
+  pass, kind: 'automatic', surfaced: 20, looksRight: 0, notAFit: 0, reasons: {}, notes: [], ...o,
 })
 
 const state = (o: Partial<CalibrationState> = {}): CalibrationState =>
@@ -130,9 +134,42 @@ describe('🛑 ③ the closing triggers, and only on attempt 2', () => {
     expect(calibrationVerdict(rejected, 'still_not_right').close, 'the explicit act did not close it').toBe(true)
   })
 
-  it('③ asking for more after both passes — the pre-existing backstop, kept', () => {
-    expect(calibrationVerdict(twoPasses({}), 'requested_more'))
-      .toEqual({ close: true, trigger: 'requested_more_after_pass_two' })
+  // ── 🛑 ⛓️ 11 Sep — THIS CASE IS INVERTED (founder correction) ────────────────────────
+  //
+  // It used to require that asking for another set after both passes CLOSED the loop, on the
+  // reading that asking a third time is dissatisfaction. The founder corrected it: "Show me
+  // more" can come from somebody who AGREES with the targeting and simply wants more examples
+  // of it. Escalating them books a phone call nobody asked for.
+  //
+  // ⚠️ IT STILL SOURCES NOTHING — that was never what this trigger did. `spendDoors` is shut
+  // at two passes whatever the verdict says, and the case below asserts it.
+  it('🛑 1 · 2 · 3 · asking for more after both passes does NOT escalate, and sources nothing', () => {
+    const s = twoPasses({})
+    expect(calibrationVerdict(s, 'requested_more')).toEqual({ close: false })
+    expect(spendDoors(s).automaticProofPass, 'the request bought a third set').toBe(false)
+    expect(spendDoors(s).strongerExamplesControl).toBe(false)
+    expect(spendDoors(s).chatSourcingRequest).toBe(false)
+  })
+
+  it('🛑 3 · …and it grants no restart authority either', () => {
+    expect(calibratedRestart(twoPasses({})), 'asking for more granted a restart').toBe('none')
+  })
+
+  it('🛑 4 · the client is ASKED instead, and only their answer escalates', () => {
+    // Milla explains that both automatic searches are used and asks the question outright.
+    expect(BOTH_ATTEMPTS_USED_ASK).toContain('still not right')
+    expect(BOTH_ATTEMPTS_USED_ASK, 'a third automatic attempt was implied').not.toMatch(/another (search|look|attempt)/i)
+    expect(calibrationVerdict(twoPasses({}), 'still_not_right'))
+      .toEqual({ close: true, trigger: 'client_said_still_not_right' })
+  })
+
+  it('🛑 5 · 6 · the legacy trigger values stay READABLE — history is not rewritten', () => {
+    // Rows escalated under the 10-Sep rules carry these; an operator opening one of those
+    // clients must still read why it happened. They are simply never generated again.
+    expect(ESCALATION_TRIGGER_COPY.requested_more_after_pass_two).toBeTruthy()
+    expect(ESCALATION_TRIGGER_COPY.second_set_mostly_rejected).toBeTruthy()
+    expect(LIVE_ESCALATION_TRIGGERS, 'a withdrawn trigger is still generated')
+      .toEqual(['client_said_still_not_right'])
   })
 
   it('🛑 …and that backstop does NOT fire on pass 1', () => {

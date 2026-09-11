@@ -4070,6 +4070,51 @@ COMMENT ON COLUMN public.clients.proof_calibrated_restart_at IS
 `.trim(),
   },
   {
+    // ── ⚑ 11 Sep — THE CALIBRATED RESTART IS PROVENANCE, NOT A THIRD PASS NUMBER ────────
+    //
+    // 🛑 WHAT THIS REPLACES, AND IT COULD NOT HAVE WORKED. An earlier cut encoded the one
+    // human-authorised restart as `leads.proof_pass = 3`. `20260903_lead_proof_attribution`
+    // declares CHECK (proof_pass IS NULL OR proof_pass IN (1, 2)) — so every restart insert
+    // would have been REJECTED by the database. And even without the constraint it put
+    // ambiguous truth in the row for rendering code to repair: anything reading
+    // max(proof_pass), counting attempts, guarding spend or building analytics would
+    // reasonably have read 3 as a third automatic attempt.
+    //
+    // ⚠️ AUTOMATIC PROOF PASS IDENTITY STAYS 1 AND 2, and so does that CHECK. The restart's
+    // rows carry the pass they ran ALONGSIDE (2) plus this kind, so three history events are
+    // readable while only two are automatic passes. `proof_passes_done` stays 2 throughout.
+    //
+    // ⚠️ NULL MEANS 'automatic' — the honest reading of every row written before today. No
+    // default, no backfill. The CHECK is added NOT VALID so it cannot fail on existing rows.
+    key: '20260911_lead_proof_batch_kind',
+    title: 'leads: what produced a Proof row — automatic attempt or the one calibrated restart',
+    sql: `
+ALTER TABLE public.leads
+  ADD COLUMN IF NOT EXISTS proof_batch_kind text;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+     WHERE conrelid = 'public.leads'::regclass
+       AND conname  = 'leads_proof_batch_kind_check'
+  ) THEN
+    ALTER TABLE public.leads
+      ADD CONSTRAINT leads_proof_batch_kind_check CHECK (
+        proof_batch_kind IS NULL OR proof_batch_kind IN ('automatic', 'calibrated_restart')
+      ) NOT VALID;
+  END IF;
+END $$;
+
+COMMENT ON COLUMN public.leads.proof_batch_kind IS
+  'What produced this Proof row: automatic (one of the two automatic attempts) or calibrated_restart (the one human-authorised set granted after a real calibration resolution). NULL reads as automatic, which is the honest answer for every row written before this column existed. It is the ONLY thing that tells a restart from an automatic attempt - proof_pass stays 1 or 2 for both, and clients.proof_passes_done stays 2.';
+
+CREATE INDEX IF NOT EXISTS leads_proof_batch_kind_idx
+  ON public.leads (client_id, proof_batch_kind)
+  WHERE proof_batch_kind IS NOT NULL;
+`.trim(),
+  },
+  {
     // ── ⚑ 11 Sep (C39 / C23) — THE RESTART CAN BE SPENT, AND A REFINEMENT CAN BE MEANT ──
     //
     // 🛑 C39, AND IT WAS LIVE. 20260910 added `proof_calibrated_restart_at` — that an operator

@@ -18,7 +18,7 @@
 import { db } from '@kind/db'
 import {
   calibrationVerdict, spendDoors, PROOF_REASON_CODES,
-  type AttemptSummary, type CalibrationState, type ClientSignal,
+  type AttemptSummary, type CalibrationState, type ClientSignal, type ProofBatchKind,
   type EscalationTrigger, type ProofReasonCode, type SpendDoors,
 } from './proof-calibration'
 
@@ -113,32 +113,40 @@ const isReason = (v: unknown): v is ProofReasonCode =>
  * dropped, because a rejection nobody counts is a rejection that reads as approval.
  */
 export async function readAttempts(clientId: string): Promise<AttemptSummary[]> {
+  // ⚑ 11 Sep — `proof_batch_kind` JOINS THE SELECT, and it is what tells the one
+  // human-authorised calibrated restart from the two automatic attempts. NULL reads as
+  // 'automatic', which is the honest answer for every row written before the column existed.
   const { data: leadRows, error: leadErr } = await db.from('leads')
-    .select('id, proof_pass').eq('client_id', clientId).not('proof_pass', 'is', null)
+    .select('id, proof_pass, proof_batch_kind').eq('client_id', clientId).not('proof_pass', 'is', null)
   if (leadErr) throw new Error(`the Proof attempts for client ${clientId} could not be read — ${leadErr.message}`)
 
-  const passOf = new Map<string, number>()
-  for (const r of (leadRows ?? []) as { id: string; proof_pass: number | null }[]) {
-    if (r.proof_pass != null) passOf.set(r.id, Number(r.proof_pass))
+  /** A set of rows is identified by WHAT PRODUCED IT, never by its number alone. */
+  type Origin = { pass: number; kind: ProofBatchKind }
+  const keyOf = (o: Origin) => `${o.kind}:${o.pass}`
+  const originOf = new Map<string, Origin>()
+  for (const r of (leadRows ?? []) as { id: string; proof_pass: number | null; proof_batch_kind?: string | null }[]) {
+    if (r.proof_pass == null) continue
+    const kind: ProofBatchKind = r.proof_batch_kind === 'calibrated_restart' ? 'calibrated_restart' : 'automatic'
+    originOf.set(r.id, { pass: Number(r.proof_pass), kind })
   }
-  if (passOf.size === 0) return []
+  if (originOf.size === 0) return []
 
   const { data: fbRows, error: fbErr } = await db.from('lead_feedback')
     .select('lead_id, action, reason_code, free_text').eq('client_id', clientId)
   if (fbErr) throw new Error(`the Proof feedback for client ${clientId} could not be read — ${fbErr.message}`)
 
-  const byPass = new Map<number, AttemptSummary>()
-  const ensure = (pass: number): AttemptSummary => {
-    let a = byPass.get(pass)
-    if (!a) { a = { pass, surfaced: 0, looksRight: 0, notAFit: 0, reasons: {}, notes: [] }; byPass.set(pass, a) }
+  const bySet = new Map<string, AttemptSummary>()
+  const ensure = (o: Origin): AttemptSummary => {
+    let a = bySet.get(keyOf(o))
+    if (!a) { a = { pass: o.pass, kind: o.kind, surfaced: 0, looksRight: 0, notAFit: 0, reasons: {}, notes: [] }; bySet.set(keyOf(o), a) }
     return a
   }
-  for (const pass of passOf.values()) ensure(pass).surfaced++
+  for (const o of originOf.values()) ensure(o).surfaced++
 
   for (const f of (fbRows ?? []) as { lead_id: string; action: string | null; reason_code: unknown; free_text: unknown }[]) {
-    const pass = passOf.get(f.lead_id)
-    if (pass == null) continue          // feedback on a non-Proof lead is not this summary's business
-    const a = ensure(pass)
+    const o = originOf.get(f.lead_id)
+    if (o == null) continue             // feedback on a non-Proof lead is not this summary's business
+    const a = ensure(o)
     if (f.action === 'approve') { a.looksRight++; continue }
     a.notAFit++
     const code: ProofReasonCode = isReason(f.reason_code) ? f.reason_code : 'other'
@@ -147,7 +155,11 @@ export async function readAttempts(clientId: string): Promise<AttemptSummary[]> 
     if (note) a.notes.push(note)
   }
 
-  return [...byPass.values()].sort((x, y) => x.pass - y.pass)
+  // ⚠️ AUTOMATIC ATTEMPTS FIRST, THE RESTART LAST — chronological, and it is what the
+  // operator and the client both read as the history. The restart shares pass 2's number and
+  // must never sort into the middle of the automatic attempts.
+  const rank = (a: AttemptSummary) => (a.kind === 'calibrated_restart' ? 100 : 0) + a.pass
+  return [...bySet.values()].sort((x, y) => rank(x) - rank(y))
 }
 
 export type CloseOutcome =

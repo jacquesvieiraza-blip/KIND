@@ -45,10 +45,38 @@ export const PROOF_REASON_LABELS: Record<ProofReasonCode, string> = {
 /** What a client did to one card in a pass. */
 export type CardVerdict = 'looks_right' | 'not_a_fit'
 
-/** One pass, as the client left it. Derived from `lead_feedback` × `leads.proof_pass`. */
+/**
+ * 🛑 WHAT PRODUCED A SET OF PROOF ROWS. THE DISCRIMINATOR, AND IT IS PERSISTED.
+ *
+ * ⛓️ 11 Sep — WHAT THIS REPLACES, AND WHY IT WAS DANGEROUS. The calibrated restart was
+ * briefly encoded as `leads.proof_pass = 3`, with presentation code special-casing 3 into
+ * "Calibrated restart". That was wrong twice over:
+ *
+ *   ① IT COULD NOT HAVE WORKED AT ALL. `20260903_lead_proof_attribution` declares
+ *      `CHECK (proof_pass IS NULL OR proof_pass IN (1, 2))`, so every restart insert would
+ *      have been REJECTED by the database. The value was unreachable, not merely unwise.
+ *   ② IT PUT AMBIGUOUS TRUTH IN THE ROW and asked rendering code to repair it. Anything
+ *      reading `max(proof_pass)`, counting attempts, guarding spend or building analytics
+ *      would reasonably have read 3 as a third automatic attempt — the exact product rule
+ *      the restart exists to respect. A presentation special case does not make persisted
+ *      data honest.
+ *
+ * ⚠️ AUTOMATIC PROOF PASS IDENTITY IS 1 AND 2, FOR EVER. The restart's rows carry the pass
+ * they ran ALONGSIDE (2) and are told apart by this kind — explicit provenance, on the row.
+ */
+export const PROOF_BATCH_KINDS = ['automatic', 'calibrated_restart'] as const
+export type ProofBatchKind = typeof PROOF_BATCH_KINDS[number]
+
+/** One set of Proof rows, as the client left it. Derived from `lead_feedback` × `leads`. */
 export interface AttemptSummary {
-  /** 1 or 2 — the pass `try_claim_proof_pass` granted. */
+  /** 1 or 2 — the automatic pass this set ran as, or ran alongside. NEVER 3. */
   pass: number
+  /**
+   * 🛑 WHAT THIS SET ACTUALLY IS. `automatic` is one of the two attempts;
+   * `calibrated_restart` is the one human-authorised set that follows a real resolution.
+   * Every label, count and gate reads THIS, never the pass number.
+   */
+  kind: ProofBatchKind
   /** Eligible examples SURFACED in this pass (post structural gate, PR1 #1672). */
   surfaced: number
   looksRight: number
@@ -93,7 +121,7 @@ export function mayRequestStrongerSet(s: CalibrationState): boolean {
   // A confirmed refinement is itself the instruction — the client does not also have to mark
   // cards. Per-card feedback remains sufficient on its own, exactly as before.
   if (r?.confirmedAt) return true
-  return hasMeaningfulFeedback(s.attempts.find(a => a.pass === 1) ?? null)
+  return hasMeaningfulFeedback(automaticAttempt(s, 1) ?? null)
 }
 
 /** Everything the decision needs. All of it already exists somewhere canonical. */
@@ -155,31 +183,39 @@ export interface RefinementState {
 }
 
 /**
- * 🛑 THE PASS NUMBER THE CALIBRATED RESTART'S LEADS CARRY — AND IT IS NOT "ATTEMPT 3".
+ * What a set of Proof rows is CALLED. The one place provenance becomes words.
  *
- * `leads.proof_pass` is how the attempt history is derived, so the restart's batch needs a
- * value of its own: folding it into 2 would rewrite history to make the restart look like an
- * automatic attempt, and the founder's rule is that Attempt 1, Attempt 2 and the Calibrated
- * Restart must all still be readable afterwards.
- *
- * ⚠️ 3 IS A ROW LABEL, NEVER AN ALLOWANCE. `proof_passes_done` stays at 2, the two automatic
- * attempts remain spent for ever, and `try_claim_proof_pass` still refuses a third automatic
- * claim. Everything that RENDERS this number must render it as "Calibrated restart" — see
- * `attemptLabel`.
+ * ⚠️ IT DERIVES FROM `kind`, NEVER FROM A PASS NUMBER. There is no "Attempt 3" at any point
+ * on either surface, and the restart is not rendered as an automatic attempt — but neither
+ * fact is a rendering trick: the row itself says which it is.
  */
-export const CALIBRATED_RESTART_PASS = 3
+export function attemptLabel(a: { pass: number; kind: ProofBatchKind }): string {
+  return a.kind === 'calibrated_restart' ? 'Calibrated restart' : `Automatic attempt ${a.pass}`
+}
 
 /**
- * What an attempt is CALLED. The one place a pass number becomes words.
+ * The AUTOMATIC attempt with this pass number, if it happened.
  *
- * ⚠️ THERE IS NO "Attempt 3", AT ANY POINT, ON EITHER SURFACE. The founder's lock: do not
- * rewrite history to make the restart look like an automatic attempt, and do not imply
- * another automatic attempt is available.
+ * 🛑 EVERY RULE THAT ASKS ABOUT "attempt 2" MEANS THE AUTOMATIC ONE. A calibrated restart
+ * runs alongside pass 2 and is a different history event; a `find(a => a.pass === 2)` would
+ * read one as the other, which is precisely the ambiguity the `kind` column removes.
  */
-export function attemptLabel(pass: number): string {
-  if (pass === CALIBRATED_RESTART_PASS) return 'Calibrated restart'
-  return `Automatic attempt ${pass}`
+export function automaticAttempt(s: CalibrationState, pass: number): AttemptSummary | undefined {
+  return s.attempts.find(a => a.pass === pass && a.kind === 'automatic')
 }
+
+/**
+ * What Milla says when a client asks for another set and both automatic attempts are gone.
+ *
+ * 🛑 IT IS A QUESTION, NOT AN ESCALATION (founder-corrected 11 Sep). "Show me more" can come
+ * from somebody who agrees with the targeting and simply wants more examples of it. Only
+ * their explicit answer that it is still not right may hand them to a person.
+ *
+ * ⚠️ AND IT PROMISES NOTHING. No third automatic attempt is offered, hinted at or implied.
+ */
+export const BOTH_ATTEMPTS_USED_ASK =
+  'I’ve used both of the automatic searches I get for you, so I can’t go and look again on my own. ' +
+  'Before I ask a person to step in — is the targeting still not right, or did you just want to see more like these?'
 
 /** Where the one calibrated restart stands. Never a count, and never `proof_passes_done`. */
 export type RestartState = 'none' | 'available' | 'used'
@@ -221,15 +257,23 @@ export function calibratedRestart(s: CalibrationState): RestartState {
 export type EscalationTrigger =
   /** The client pressed "Still not right" on the second set. THE ONLY LIVE TRIGGER. */
   | 'client_said_still_not_right'
-  /** They asked for another set after pass 2 — an explicit client act, and the old backstop. */
+  /**
+   * ⛓️ HISTORICAL ONLY since 11 Sep. Asking for another set is NOT semantically equivalent to
+   * "this is still not right" — a client may simply want more examples of targeting they are
+   * perfectly happy with. Generating an escalation from it put people in a queue for a phone
+   * call they had not asked for, and it is the founder's own correction.
+   */
   | 'requested_more_after_pass_two'
   /** ⛓️ HISTORICAL ONLY. Never produced since 11 Sep; see above. */
   | 'second_set_mostly_rejected'
 
-/** The triggers `calibrationVerdict` may still return. Anything else is history. */
-export const LIVE_ESCALATION_TRIGGERS = [
-  'client_said_still_not_right', 'requested_more_after_pass_two',
-] as const
+/**
+ * The triggers `calibrationVerdict` may still return. Anything else is history.
+ *
+ * 🛑 EXACTLY ONE. Everything else a client can do after Attempt 2 — mark cards, ask for more,
+ * say nothing — leads to a QUESTION, never to an escalation.
+ */
+export const LIVE_ESCALATION_TRIGGERS = ['client_said_still_not_right'] as const
 
 export const ESCALATION_TRIGGER_COPY: Record<EscalationTrigger, string> = {
   client_said_still_not_right: 'The client said the second set still was not right.',
@@ -260,16 +304,25 @@ export type CalibrationVerdict =
 export function calibrationVerdict(s: CalibrationState, signal: ClientSignal): CalibrationVerdict {
   if (s.escalated) return { close: false }
 
-  // ⚑ THE PRE-EXISTING BACKSTOP, KEPT AND MADE HONEST. Asking for more after both passes was
-  // already refused by the claim RPC; what was missing is that the refusal became somebody's
-  // problem. It still fires — it is simply no longer the FIRST thing that fires.
-  if (signal === 'requested_more' && s.passesDone >= 2) {
-    return { close: true, trigger: 'requested_more_after_pass_two' }
-  }
+  // ── 🛑 ⛓️ 11 Sep — "GIVE ME ANOTHER SET" IS NOT "THIS IS STILL NOT RIGHT" ────────────
+  //
+  // This used to close the loop when a client asked for more after both passes, on the
+  // reading that asking a third time IS dissatisfaction. The founder corrected it, and the
+  // correction is obviously right once stated: "Show me more" can come from somebody who
+  // AGREES with the targeting and simply wants more examples of it. Escalating them books a
+  // phone call nobody asked for and consumes a human's afternoon.
+  //
+  // ⚠️ IT STILL SOURCES NOTHING. `spendDoors` is closed at two passes whatever this returns,
+  // so the request cannot buy a set. What changes is only that the refusal is a QUESTION —
+  // Milla explains that both automatic attempts are used and asks whether the current Proof
+  // is still not right (`BOTH_ATTEMPTS_USED_ASK`). Only their explicit answer escalates.
+  void (signal === 'requested_more')
 
   // Everything else requires the second set to exist and to have been judged.
   if (s.passesDone < 2) return { close: false }
-  const second = s.attempts.find(a => a.pass === 2)
+  // ⚠️ THE AUTOMATIC SECOND PASS, NOT "whatever carries pass 2". A calibrated restart's rows
+  // are a different history event and must never be read as the automatic attempt.
+  const second = automaticAttempt(s, 2)
 
   if (signal === 'still_not_right') {
     return { close: true, trigger: 'client_said_still_not_right' }
@@ -562,7 +615,7 @@ export function proofUiState(
     }
   }
 
-  const first = s.attempts.find(a => a.pass === 1) ?? null
+  const first = automaticAttempt(s, 1) ?? null
 
   if (s.passesDone >= 2) {
     // ── ⚑ 11 Sep (C39) — A HUMAN HAS BOUGHT THEM ONE MORE SET ──────────────────────────

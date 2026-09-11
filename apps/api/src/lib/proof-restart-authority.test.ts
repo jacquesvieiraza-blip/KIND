@@ -87,12 +87,12 @@ vi.mock('@kind/db', () => ({ db: { from: (t: string) => table(t) } }))
 
 import {
   calibratedRestart, spendDoors, calibrationVerdict, mayRequestStrongerSet,
-  attemptLabel, CALIBRATED_RESTART_PASS, calibrationContactReady,
+  attemptLabel, calibrationContactReady,
   type CalibrationState, type AttemptSummary,
 } from './proof-calibration'
 
 const attempt = (pass: number, over: Partial<AttemptSummary> = {}): AttemptSummary =>
-  ({ pass, surfaced: 20, looksRight: 0, notAFit: 0, reasons: {}, notes: [], ...over })
+  ({ pass, kind: 'automatic', surfaced: 20, looksRight: 0, notAFit: 0, reasons: {}, notes: [], ...over })
 
 const st = (over: Partial<CalibrationState> = {}): CalibrationState =>
   ({ passesDone: 2, escalated: false, attempts: [attempt(1), attempt(2)], ...over })
@@ -134,11 +134,44 @@ describe('11 · 12 · 27 · the two automatic attempts are spent for ever', () =
       .automaticProofPass).toBe(true)
   })
 
-  it('🛑 28 · 34 · the restart is LABELLED distinctly — there is no "Attempt 3" anywhere', () => {
-    expect(attemptLabel(1)).toBe('Automatic attempt 1')
-    expect(attemptLabel(2)).toBe('Automatic attempt 2')
-    expect(attemptLabel(CALIBRATED_RESTART_PASS)).toBe('Calibrated restart')
-    expect(attemptLabel(CALIBRATED_RESTART_PASS)).not.toMatch(/attempt 3/i)
+  it('🛑 10 · 28 · 34 · the label comes from PROVENANCE, never from a pass number', () => {
+    expect(attemptLabel({ pass: 1, kind: 'automatic' })).toBe('Automatic attempt 1')
+    expect(attemptLabel({ pass: 2, kind: 'automatic' })).toBe('Automatic attempt 2')
+    // 🛑 THE RESTART SHARES PASS 2's NUMBER AND IS STILL NOT AN AUTOMATIC ATTEMPT. That is
+    // the whole point of the discriminator: the label cannot be derived from the number, so
+    // it is derived from the thing the row actually says.
+    expect(attemptLabel({ pass: 2, kind: 'calibrated_restart' })).toBe('Calibrated restart')
+    expect(attemptLabel({ pass: 2, kind: 'calibrated_restart' })).not.toMatch(/attempt/i)
+  })
+
+  it('🛑 7 · 8 · 12 · no proof row may ever carry pass 3 — the DATABASE refuses it', async () => {
+    const { readFileSync } = await import('node:fs')
+    const { join } = await import('node:path')
+    const REPO = join(__dirname, '../../../..')
+    // ⚠️ THE CONSTRAINT IS THE PROOF, NOT A CONVENTION. `proof_pass = 3` was unreachable:
+    // every restart insert would have been REJECTED. Asserted against the migration so a
+    // future edit cannot quietly widen it to admit a third automatic attempt.
+    const attribution = readFileSync(join(REPO, 'supabase/migrations/20260903_lead_proof_attribution.sql'), 'utf8')
+    expect(attribution).toContain('proof_pass IS NULL OR proof_pass IN (1, 2)')
+    // And no source file writes a 3 into it.
+    for (const f of ['apps/api/src/routes/icps.ts', 'apps/api/src/lib/proof-calibration.ts', 'apps/api/src/lib/proof-calibration-io.ts']) {
+      const code = readFileSync(join(REPO, f), 'utf8')
+        .split('\n').map(l => l.replace(/\/\/.*$/, '')).join('\n')
+      expect(code, `${f} writes a third proof pass`).not.toMatch(/proof_pass:\s*3\b/)
+      expect(code, `${f} still carries the withdrawn CALIBRATED_RESTART_PASS`).not.toContain('CALIBRATED_RESTART_PASS')
+    }
+  })
+
+  it('🛑 9 · the restart run is dispatched with explicit provenance, not a pass number', async () => {
+    const { readFileSync } = await import('node:fs')
+    const { join } = await import('node:path')
+    const icps = readFileSync(join(__dirname, '../routes/icps.ts'), 'utf8')
+    expect(icps).toContain("proofKind: batchKind")
+    expect(icps).toContain("proof_batch_kind: opts!.proofKind ?? 'automatic'")
+    // ⚠️ WRITTEN IN THE SAME STATEMENT AS THE PASS AND THE SURFACING. A row that is visible
+    // and attributed to an attempt but carries no provenance reads as an automatic one.
+    const at = icps.indexOf('proof_pass: opts!.proofPass')
+    expect(icps.slice(at, at + 400)).toContain('proof_batch_kind')
   })
 })
 

@@ -815,7 +815,13 @@ describe('free proof never reaches the paid reveal/delivery path', () => {
     // the fix while proving nothing about either.
     const src = readFileSync(join(__dirname, '../routes/icps.ts'), 'utf8')
     expect(src).toContain("if (proofMode && insertedIds.length > 0) {")
-    expect(src).toContain(".update({ surfaced_for_approval_at: nowIso, delivered_at: nowIso, proof_pass: opts!.proofPass })")
+    // ⛓️ 11 Sep — THE ANCHOR MOVED WITH THE STATEMENT, NOT AROUND IT. The surfacing UPDATE
+    // gained `proof_batch_kind` — explicit provenance saying whether this set is one of the
+    // two automatic attempts or the one human-authorised calibrated restart. It is written in
+    // the SAME statement for exactly the reason the pass number is: a row that is visible and
+    // attributed to an attempt but carries no provenance reads as an automatic one.
+    expect(src).toContain('surfaced_for_approval_at: nowIso, delivered_at: nowIso, proof_pass: opts!.proofPass')
+    expect(src).toContain("proof_batch_kind: opts!.proofKind ?? 'automatic'")
     // ⛓️ RETARGETED 10 Sep — THE SAME DUTY, ONE LINK FURTHER ALONG. This pinned
     // `.in('id', insertedIds)`, and the duty it protects is *the stamp names only the rows
     // THIS run created, and claims them idempotently*. C04 inserted the structural gate

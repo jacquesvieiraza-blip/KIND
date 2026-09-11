@@ -970,6 +970,17 @@ alter table public.leads
 alter table public.leads
   add column if not exists proof_pass smallint;
 
+-- ⚑ 11 Sep — WHAT PRODUCED A PROOF ROW: one of the two automatic attempts, or the one
+-- human-authorised calibrated restart. Migration: 20260911_lead_proof_batch_kind.
+--   🛑 IT EXISTS BECAUSE A PASS NUMBER CANNOT SAY IT. `proof_pass` is constrained to 1 or 2
+--   (leads_proof_pass_check), so a restart could not be encoded as 3 — the insert would have
+--   been REJECTED — and even unconstrained, a 3 would have been read as a third automatic
+--   attempt by anything counting passes or guarding spend. The restart carries the pass it
+--   ran alongside (2) and is told apart by THIS column.
+--   NULL reads as 'automatic', the honest answer for every row written before it existed.
+alter table public.leads
+  add column if not exists proof_batch_kind text;
+
 -- ⚠️ `sourcing_ledger.programme_id`, `partner_commissions.programme_id` and
 -- `partner_commissions.basis` are ADDED BY THE MIGRATION AND ARE DELIBERATELY NOT DECLARED
 -- HERE. Neither table is declared in this file at all — they live in supabase/migrations —

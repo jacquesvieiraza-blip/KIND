@@ -438,20 +438,27 @@ describe('⑦ runIcpJob stamps the pass it was granted', () => {
   const icps = readFileSync(join(__dirname, '../routes/icps.ts'), 'utf8')
 
   it('🛑 THE STAMP IS IN THE SAME UPDATE THAT SURFACES THE BATCH — no unattributed window', () => {
-    const m = icps.match(/\.update\(\{ surfaced_for_approval_at: nowIso[^}]*\}\)/)
+    // ⛓️ 11 Sep — THE ANCHOR MOVED WITH THE STATEMENT, NOT AROUND IT. The surfacing UPDATE
+    // gained `proof_batch_kind` — explicit provenance saying whether this set is one of the
+    // two automatic attempts or the one human-authorised calibrated restart. It is written in
+    // the SAME statement for exactly the reason the pass number is: a row that is visible and
+    // attributed to an attempt but carries no provenance reads as an automatic one.
+    const m = icps.match(/\.update\(\{[\s\S]{0,600}?surfaced_for_approval_at: nowIso[\s\S]{0,600}?proof_batch_kind[^}]*\}[^)]*\)/)
     expect(m).toBeTruthy()
     expect(m![0]).toMatch(/proof_pass: opts!\.proofPass/)
   })
 
   it('🛑 IT NAMES ONLY THE IDS THIS RUN CREATED — pass 2 can never restamp pass 1', () => {
-    const i = icps.indexOf('.update({ surfaced_for_approval_at: nowIso')
+    const i = icps.indexOf('surfaced_for_approval_at: nowIso, delivered_at: nowIso')
     // ⛓️ RETARGETED 10 Sep — `insertedIds` → `gatedIds`, AND THE DUTY IS STRENGTHENED.
     // This proves pass 2 can never restamp, hide or re-date pass 1. `gatedIds` is derived
     // from `insertedIds` — the rows THIS invocation created, minus the ones the structural
     // gate refused — so it is a strict subset and the boundary this case defends is tighter
     // than before, never looser. The window widens from 220 to 460 chars because the gate's
     // comment sits between the marker and the statement.
-    expect(icps.slice(i, i + 460)).toMatch(/\.in\('id', gatedIds\)\.is\('delivered_at', null\)/)
+    // ⛓️ 11 Sep — 460 → 900: `proof_batch_kind` and its comment now sit between the marker
+    // and the `.in(...)`, so the window widens. The DUTY is unchanged and still exact.
+    expect(icps.slice(i, i + 900)).toMatch(/\.in\('id', gatedIds\)\.is\('delivered_at', null\)/)
   })
 
   it('🛑 THE VALUE IS THE CLAIMED PASS, NEVER A LITERAL AND NEVER A BOOLEAN', () => {

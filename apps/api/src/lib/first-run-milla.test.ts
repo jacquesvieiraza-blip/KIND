@@ -782,7 +782,7 @@ describe('free proof runs before the client is ever asked to pay', () => {
     expect(icpsSrc).toContain("icpRouter.post('/:id/proof'")
     expect(icpsSrc).toContain("db.rpc('try_claim_proof_pass', { p_client_id: clientId })")
     expect(icpsSrc).toContain('const PROOF_PASS_LEADS = 20')
-    expect(icpsSrc).toContain('runIcpJob(req.params.id, clientId, req.userId!, PROOF_PASS_LEADS, { proofPass: claimed })')
+    expect(icpsSrc).toContain('runIcpJob(req.params.id, clientId, req.userId!, PROOF_PASS_LEADS, { proofPass: claimed, proofKind: batchKind })')
     expect(flat(icpsSrc)).toContain('We have shown you two sets of leads.')
     expect(icpsSrc).toContain('PROOF_CLIENT_RECORD_CAP = 40')
     // …and the portal did not gain its own copy of any of it.

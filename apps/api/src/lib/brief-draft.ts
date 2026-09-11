@@ -199,9 +199,76 @@ export async function saveBriefDraft(
   const now = new Date().toISOString()
   try {
     const { data, error } = await db.from('onboarding_brief_drafts')
-      .upsert({ user_id: userId, facts: merged, updated_at: now }, { onConflict: 'user_id' })
+      .upsert({
+        user_id: userId, facts: merged, updated_at: now,
+        // 🛑 CHANGING THE BRIEF UN-CONFIRMS IT. "Confirmed" has to mean "confirmed THESE
+        // facts". Without this a client could confirm, carry on talking to Milla, and be
+        // promoted on a brief they never agreed to — the confirmation would be a stale
+        // signature on a document that moved underneath it.
+        confirmed_at: null,
+      }, { onConflict: 'user_id' })
       .select(COLUMNS).maybeSingle()
     if (error || !data) return { ok: false, reason: 'unstorable' }
+    return { ok: true, draft: toDraft(data as unknown as Row) }
+  } catch { return { ok: false, reason: 'unstorable' } }
+}
+
+export type ConfirmOutcome =
+  | { ok: true; draft: BriefDraft }
+  | { ok: false; reason: 'no_draft' | 'promoted' | 'incomplete' | 'unstorable'; missing?: string[] }
+
+/**
+ * 🛑 THE CLIENT CONFIRMS THEIR BRIEF. THE SEPARATE GATE, AND THE ONLY PLACE IT IS GIVEN.
+ *
+ * ⚠️ CONFIRMATION IS NOT THE TWELFTH FACT AND IT IS NOT INFERRED FROM ELEVEN. Holding all
+ * eleven facts means Milla has finished asking; it says nothing about whether the client has
+ * READ what she understood and agreed to it. Proof is sourced against this brief and the
+ * client is later asked for money on the strength of it, so the agreement has to be an act.
+ * Eleven facts on their own must never start anything.
+ *
+ * ⚠️ AND IT IS NOT AN OPERATOR ACTION. This is reached from the client's own console with the
+ * client's own token. No operator route confirms a brief on somebody's behalf — Vida's draft
+ * surface is a read-only projection, and nothing on it writes here.
+ *
+ * ⚠️ THE ELEVEN ARE RE-CHECKED HERE, SERVER-SIDE. A disabled button is not a gate, and the
+ * browser's claim about its own completeness is not evidence.
+ *
+ * ⚠️ IDEMPOTENT. Confirming twice is one confirmation: the second call re-stamps nothing it
+ * has not already established and answers the same way, so a double click or a retry after an
+ * ambiguous response cannot produce two different states.
+ */
+export async function confirmBriefDraft(userId: string): Promise<ConfirmOutcome> {
+  const read = await readDraft(userId)
+  if (!read.ok) return { ok: false, reason: 'unstorable' }
+  if (!read.draft) return { ok: false, reason: 'no_draft' }
+
+  // Authority first, exactly as the write path asks it: reality, not the flag.
+  const promoted = await promotedClientForUser(userId)
+  if (!promoted.ok) return { ok: false, reason: 'unstorable' }
+  if (read.draft.promotedClientId || promoted.clientId) return { ok: false, reason: 'promoted' }
+
+  const gate = mayConfirmBrief(read.draft)
+  if (!gate.ok) return { ok: false, reason: 'incomplete', missing: gate.missing }
+
+  // ⚠️ ALREADY CONFIRMED IS A SUCCESS, NOT A SECOND CONFIRMATION. Re-stamping would move the
+  // recorded moment of agreement every time a retry arrived.
+  if (read.draft.confirmedAt) return { ok: true, draft: read.draft }
+
+  const now = new Date().toISOString()
+  try {
+    const { data, error } = await db.from('onboarding_brief_drafts')
+      .update({ confirmed_at: now, updated_at: now })
+      .eq('user_id', userId).is('confirmed_at', null)
+      .select(COLUMNS).maybeSingle()
+    if (error) return { ok: false, reason: 'unstorable' }
+    // A null row means another request confirmed between the read and the write. That is the
+    // same outcome, not a failure — re-read rather than inventing one.
+    if (!data) {
+      const again = await readDraft(userId)
+      return again.ok && again.draft && again.draft.confirmedAt
+        ? { ok: true, draft: again.draft }
+        : { ok: false, reason: 'unstorable' }
+    }
     return { ok: true, draft: toDraft(data as unknown as Row) }
   } catch { return { ok: false, reason: 'unstorable' } }
 }
@@ -243,8 +310,12 @@ export async function markBriefDraftPromoted(
 ): Promise<{ ok: boolean }> {
   const now = new Date().toISOString()
   try {
+    // ⛓️ MVP1 — `confirmed_at` IS NO LONGER WRITTEN HERE. It used to be stamped at promotion,
+    // which quietly made "confirmed" a synonym for "promoted" — and a synonym cannot be the
+    // gate that must happen BEFORE promotion. The client's own confirmation is stamped by
+    // `confirmBriefDraft`, and `/auth/onboard` refuses to promote a draft that has not been.
     const { error } = await db.from('onboarding_brief_drafts')
-      .update({ confirmed_at: now, promoted_client_id: clientId, promoted_at: now, updated_at: now })
+      .update({ promoted_client_id: clientId, promoted_at: now, updated_at: now })
       .eq('user_id', userId)
     if (error) {
       console.warn('[brief-draft] promotion not stamped (run 20260911_onboarding_brief_drafts):', error.message)

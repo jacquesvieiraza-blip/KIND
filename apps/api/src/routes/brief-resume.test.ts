@@ -54,6 +54,27 @@ function table(name: string) {
         return { data: made, error: null }
       } }) }
     },
+    update(patch: Row) {
+      // ⚑ MVP1 — `confirmBriefDraft` writes CONDITIONALLY (`confirmed_at IS NULL`) and reads
+      // the row back, so the update chain has to carry `.eq().is().select().maybeSingle()`.
+      const uf: ((r: Row) => boolean)[] = []
+      const u: Record<string, unknown> = {
+        eq(c: string, v: unknown) { uf.push(r => r[c] === v); return u },
+        is(c: string, v: unknown) { uf.push(r => (r[c] ?? null) === v); return u },
+        select() { return u },
+        async maybeSingle() {
+          const hit = rows().filter(r => uf.every(f => f(r)))
+          if (hit.length === 0) return { data: null, error: null }
+          Object.assign(hit[0], patch)
+          return { data: hit[0], error: null }
+        },
+        then(resolve: (v: unknown) => unknown) {
+          for (const r of rows().filter(x => uf.every(f => f(x)))) Object.assign(r, patch)
+          return resolve({ error: null })
+        },
+      }
+      return u
+    },
     then(resolve: (v: unknown) => unknown) {
       return resolve({ data: rows().filter(r => filters.every(f => f(r))), error: null })
     },
@@ -291,5 +312,102 @@ describe('GET /milla/brief-draft — what the portal resumes from', () => {
     expect(p.draft).toBeNull()
     expect(p.progress.count).toBe(0)
     expect(p.next).toEqual({ id: 'contact_name', label: 'Contact name' })
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// ⚑ MVP1 — POST /milla/brief-draft/confirm : THE CLIENT'S OWN ACT, THROUGH THE REAL ROUTE.
+//
+// 🛑 THE SEQUENCE THE FOUNDER LOCKED. Eleven facts collected → the brief STAYS at Brief → the
+// client reaches "Confirm my brief" → explicit confirmation → promotion → Proof. Eleven facts
+// on their own start nothing, and no operator confirms on somebody's behalf.
+// ═══════════════════════════════════════════════════════════════════════════════════════
+
+async function callMillaConfirm(userId: string | undefined = 'user-1') {
+  const { millaRouter } = await import('./milla')
+  const layer = (millaRouter as unknown as {
+    stack: Array<{ route?: { path: string; methods: Record<string, boolean>; stack: Array<{ handle: Function }> } }>
+  }).stack.find(l => l.route?.path === '/brief-draft/confirm' && l.route?.methods.post)
+  if (!layer?.route) throw new Error('POST /brief-draft/confirm not found on the milla router')
+  const handler = layer.route.stack[layer.route.stack.length - 1].handle
+  const out: { code: number; payload: Record<string, unknown> } = { code: 200, payload: {} }
+  const fakeRes = {
+    status(c: number) { out.code = c; return fakeRes },
+    json(p: Record<string, unknown>) { out.payload = p; return fakeRes },
+  }
+  await handler({ body: {}, headers: {}, params: {}, query: {}, userId }, fakeRes, () => {})
+  return out
+}
+
+const ELEVEN = { ...TEN_OF_ELEVEN, target_company_type: 'agency' }
+
+describe('⑤ 7 · 8 · the confirmation gate, server-side', () => {
+  it('🛑 7 · ten of eleven is REFUSED, and the missing fact is named', async () => {
+    seedDraft(TEN_OF_ELEVEN)
+    const r = await callMillaConfirm()
+    expect(r.code).toBe(400)
+    expect(r.payload.missing).toEqual(['company_type'])
+    expect(String(r.payload.error)).toContain('Company type')
+    expect(state.drafts[0].confirmed_at, 'a refused confirmation stamped one anyway').toBeNull()
+  })
+
+  it('🛑 8 · eleven of eleven confirms — and creates nothing', async () => {
+    seedDraft(ELEVEN)
+    const r = await callMillaConfirm()
+    expect(r.code).toBe(200)
+    expect(state.drafts[0].confirmed_at).toBeTruthy()
+    expect(state.clients, 'confirming promoted somebody by itself').toEqual([])
+  })
+
+  it('🛑 6 · and eleven facts UNCONFIRMED is a real, reachable state', async () => {
+    seedDraft(ELEVEN)
+    // Nothing has been called. The brief is complete and the client has not agreed.
+    expect(state.drafts[0].confirmed_at).toBeNull()
+  })
+
+  it('is idempotent — a double click keeps the FIRST moment of agreement', async () => {
+    seedDraft(ELEVEN)
+    await callMillaConfirm()
+    const first = state.drafts[0].confirmed_at
+    const again = await callMillaConfirm()
+    expect(again.code).toBe(200)
+    expect(state.drafts[0].confirmed_at).toBe(first)
+  })
+
+  it('409 once promotion has happened — the draft is evidence now', async () => {
+    state.clients.push({ id: 'client-1', user_id: 'user-1' })
+    seedDraft(ELEVEN, { promoted_client_id: 'client-1' })
+    const r = await callMillaConfirm()
+    expect(r.code).toBe(409)
+  })
+
+  it('404 when there is nothing to confirm — a journey that predates drafts', async () => {
+    const r = await callMillaConfirm()
+    expect(r.code).toBe(404)
+  })
+
+  it('🛑 it is scoped to the caller — nobody confirms somebody else’s brief', async () => {
+    seedDraft(ELEVEN, { user_id: 'somebody-else' })
+    const r = await callMillaConfirm('user-1')
+    expect(r.code).toBe(404)
+    expect(state.drafts[0].confirmed_at, 'another user’s brief was confirmed').toBeNull()
+  })
+
+  it('🛑 5 · confirmation is NOT counted as a twelfth fact', async () => {
+    seedDraft(ELEVEN)
+    await callMillaConfirm()
+    const r = await callMillaGetDraft()
+    const p = (r.payload as unknown as DraftPayload).data
+    expect(p.progress.count).toBe(11)
+    expect(p.progress.total).toBe(11)
+  })
+
+  it('🛑 and changing the brief afterwards clears it — the signature cannot outlive its document', async () => {
+    seedDraft(ELEVEN)
+    await callMillaConfirm()
+    expect(state.drafts[0].confirmed_at).toBeTruthy()
+    const { saveBriefDraft } = await import('../lib/brief-draft')
+    await saveBriefDraft('user-1', { desired_outcome: 'actually, product demos' })
+    expect(state.drafts[0].confirmed_at, 'the brief moved and the confirmation stayed').toBeNull()
   })
 })

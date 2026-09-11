@@ -236,9 +236,42 @@ describe('② C22 — exactly one onboarding email', () => {
 // Brief with no working account — strictly worse than a clean refusal.
 // ═══════════════════════════════════════════════════════════════════════════════════════
 
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// ⚑ MVP1 — 12 · WHAT THEY SAID THEY WANT SURVIVES PROMOTION, IN THEIR OWN WORDS.
+//
+// 🛑 THE SENTENCE IS THE CLIENT'S AND THE CLASSIFICATION IS OURS. If the request could name
+// the `kind`, a screen could declare a "meetings" outcome for an answer that never mentioned
+// one — and a meeting target would later be agreed against it.
+// ═══════════════════════════════════════════════════════════════════════════════════════
+describe('④ 12 · the desired outcome reaches the client row', () => {
+  it('the client’s own sentence is stored verbatim', async () => {
+    await onboard({ ...BODY, outcome_stated: 'Book qualified meetings with founders and MDs.' })
+    expect(clientRow().outcome_stated).toBe('Book qualified meetings with founders and MDs.')
+  })
+
+  it('and the KIND is DERIVED here, never accepted from the request', async () => {
+    await onboard({
+      ...BODY,
+      outcome_stated: 'Book qualified meetings with founders and MDs.',
+      // A screen trying to declare the classification itself. It must be ignored.
+      outcome_kind: 'event',
+    })
+    expect(clientRow().outcome_kind).toBe('meetings')
+  })
+
+  it('🛑 an absent outcome is left absent — nothing is invented on their behalf', async () => {
+    await onboard(BODY)
+    expect(clientRow().outcome_stated).toBeUndefined()
+    expect(clientRow().outcome_kind).toBeUndefined()
+  })
+})
+
 describe('③ promotion is gated and idempotent', () => {
+  // ⚑ MVP1 — A DRAFT THE CLIENT HAS CONFIRMED. `confirmedAt` is load-bearing: eleven facts
+  // are not permission to promote, and the handler refuses a draft without it (see the
+  // "eleven facts are not a confirmation" cases below).
   const withDraft = (ok: boolean, missing: string[] = []) => {
-    state.draft = { promotedClientId: null }
+    state.draft = { promotedClientId: null, confirmedAt: '2026-09-11T16:41:00Z' }
     state.confirmable = { ok, missing }
   }
 
@@ -274,6 +307,37 @@ describe('③ promotion is gated and idempotent', () => {
     const res = await onboard(BODY)
     expect(res.code).toBe(200)
     expect(state.inserts.filter(i => i.table === 'clients'), 'a retry inserted a second client').toHaveLength(0)
+  })
+
+  // ── 🛑 ⚑ MVP1 — ELEVEN FACTS ARE NOT A CONFIRMATION ─────────────────────────────────
+  //
+  // Proof is sourced against this brief and the $299 is asked for on the strength of it, so
+  // the client's agreement has to be an ACT. Never a count, never silence, never the fact
+  // that a browser got as far as calling this route.
+  it('🛑 6 · a COMPLETE but UNCONFIRMED brief is refused, and nothing is created', async () => {
+    state.draft = { promotedClientId: null, confirmedAt: null }
+    state.confirmable = { ok: true, missing: [] }
+    const res = await onboard(BODY)
+    expect(res.code).toBe(400)
+    expect(res.payload.needs_confirmation).toBe(true)
+    expect(state.inserts.filter(i => i.table === 'clients'), 'a client was created without consent').toHaveLength(0)
+    expect(state.sealed, 'nothing may be sealed without a confirmation').toEqual([])
+    expect(state.welcomes, 'no welcome email for an account that was not opened').toEqual([])
+  })
+
+  it('🛑 14 · and nothing downstream of promotion runs either — no subscription row', async () => {
+    state.draft = { promotedClientId: null, confirmedAt: null }
+    state.confirmable = { ok: true, missing: [] }
+    await onboard(BODY)
+    expect(state.inserts.filter(i => i.table === 'subscriptions')).toHaveLength(0)
+  })
+
+  it('the same brief promotes the moment it IS confirmed', async () => {
+    state.draft = { promotedClientId: null, confirmedAt: '2026-09-11T16:41:00Z' }
+    state.confirmable = { ok: true, missing: [] }
+    const res = await onboard(BODY)
+    expect(res.code).toBe(200)
+    expect(state.inserts.filter(i => i.table === 'clients')).toHaveLength(1)
   })
 
   it('a journey with no draft is untouched — legacy re-onboarding still works', async () => {

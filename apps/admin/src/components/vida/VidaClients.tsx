@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from 'react'
 // failed read changes nothing; an error is named only when there is nothing to show.
 import {
   nextRailValue, shouldSurfaceError, shouldPollNow, RAIL_REFRESH_MS,
+  visibleDrafts, reconcileDrafts,
 } from '@/lib/vida-rail-refresh'
 import { useSearchParams } from 'next/navigation'
 import { panelView } from '@kind/shared'
@@ -31,6 +32,8 @@ import { useVidaConversation } from '@/components/vida/VidaConversation'
 
 type ClientRow = {
   id: string
+  /** ⚑ MVP1 — the durable identity the draft rows are reconciled against. Never displayed. */
+  user_id?: string | null
   company_name: string | null
   industry: string | null
   country: string | null
@@ -123,21 +126,36 @@ export function VidaClients({ open }: { open: boolean }) {
   // ⚠️ NO NEW INFRASTRUCTURE. An interval and a visibility listener; no realtime, no socket,
   // no subscription, no library.
   const loadRail = useCallback(async (alive: () => boolean) => {
-    await Promise.all([
+    // ⚑ MVP1 — THE DRAFTS READ NEEDS TO KNOW HOW THE CLIENTS READ WENT, IN THIS SAME ROUND.
+    // A person promoted between rounds leaves the drafts answer and joins the clients answer;
+    // if only the first of those lands, they are on neither and vanish from the rail. See
+    // `reconcileDrafts`.
+    //
+    // ⚠️ IT IS A PROMISE, NOT A MUTABLE FLAG, AND THAT IS THE WHOLE CORRECTNESS. Both fetches
+    // still start together, but a `let clientsOk = false` set inside one `.then` is read by
+    // the other whenever it happens to finish first — so a perfectly good clients read would
+    // be recorded as a failure purely because the drafts response came back sooner. The
+    // drafts branch awaits this instead, which is deterministic and costs no concurrency.
+    const clientsRead: Promise<boolean> =
       fetch('/api/proxy/operator/clients').then(r => r.json())
         .then(j => {
-          if (!alive()) return
+          if (!alive()) return false
           if (!j?.success) throw new Error(j?.error || 'the API returned no data')
           setClients(prev => nextRailValue(prev, { ok: true, value: (j.data ?? []) as ClientRow[] }))
           setClientsError(null)
+          return true
         })
         .catch(e => {
-          if (!alive()) return
+          if (!alive()) return false
           setClients(prev => {
             if (shouldSurfaceError(prev)) setClientsError(e instanceof Error ? e.message : 'Failed to load clients')
             return nextRailValue(prev, { ok: false })
           })
-        }),
+          return false
+        })
+
+    await Promise.all([
+      clientsRead,
       fetch('/api/proxy/operator/worklist').then(r => r.json())
         .then(j => {
           if (!alive()) return
@@ -166,14 +184,18 @@ export function VidaClients({ open }: { open: boolean }) {
       // failed one changes nothing. A draft that flickers off the rail on a transient blip
       // reads to an operator as "that person gave up", which is a worse lie than a stale row.
       fetch('/api/proxy/operator/brief-drafts').then(r => r.json())
-        .then(j => {
+        .then(async j => {
           if (!alive()) return
           if (!j?.success) throw new Error(j?.error || 'the API returned no data')
-          setDrafts(prev => nextRailValue(prev, { ok: true, value: (j.data ?? []) as DraftRow[] }))
-        })
-        .catch(() => {
+          const clientsOk = await clientsRead
           if (!alive()) return
-          setDrafts(prev => nextRailValue(prev, { ok: false }))
+          setDrafts(prev => reconcileDrafts(prev, { ok: true, value: (j.data ?? []) as DraftRow[] }, clientsOk))
+        })
+        .catch(async () => {
+          if (!alive()) return
+          const clientsOk = await clientsRead
+          if (!alive()) return
+          setDrafts(prev => reconcileDrafts(prev, { ok: false }, clientsOk))
         }),
       fetch('/api/proxy/operator/alerts').then(r => r.json())
         .then(j => { if (alive() && j?.success) setProofReview(new Set((j.data ?? [])
@@ -229,6 +251,10 @@ export function VidaClients({ open }: { open: boolean }) {
   const visible = needsFilter
     ? ordered.filter(c => needsYou(c.id) || proofReview.has(c.id) || c.id === selected)
     : ordered
+  // ⚑ MVP1 — ONE PERSON, ONE ROW. A draft whose person is now a confirmed client is dropped,
+  // whichever of the two reads is the stale one. Deduplicated on `user_id` — durable identity,
+  // never a display name (see `visibleDrafts`).
+  const shownDrafts = visibleDrafts(drafts, clients)
 
   // ── COLLAPSED: the selected context, compactly ──────────────────────────────────────────
   if (!open) {
@@ -317,12 +343,12 @@ export function VidaClients({ open }: { open: boolean }) {
 
           ⚠️ AND NEVER BOTH AT ONCE. The API returns only UNPROMOTED drafts, so the moment a
           person confirms they leave this list and appear above as a client. */}
-      {(drafts?.length ?? 0) > 0 && !needsFilter && (
+      {shownDrafts.length > 0 && !needsFilter && (
         <div className="mt-1.5 pt-1.5 border-t border-[#f0eafc]">
           <p className="text-[10px] font-bold uppercase tracking-wide text-[#b3a9cc] px-2.5 pb-1">
             Signing up
           </p>
-          {(drafts ?? []).map(d => {
+          {shownDrafts.map(d => {
             const openDraft = d.id === selectedDraft
             return (
               <button key={d.id} onClick={() => setSelectedDraft(d.id)}

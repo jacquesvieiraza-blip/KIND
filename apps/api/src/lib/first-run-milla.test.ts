@@ -586,7 +586,12 @@ describe('everything downstream of the confirmation is byte-for-byte the same jo
     // ⚑ 24 Aug — the call is UNCHANGED; only its RESULT is now captured, so the saved id
     // can start free proof. Asserted on the payload rather than the whole statement, which
     // is what actually matters here: one call, still carrying all four things.
-    expect(welcomeCode).toContain("'/icps', { ...proposed, business, proof, campaign_intent: intent }, tk)")
+    // ⛓️ MVP1 — the payload gained `from_brief_draft: true`, and the anchor moved with it
+    // rather than being loosened: the claim is still ONE call carrying all four things, plus
+    // the flag that lets the server refuse a REPLAY of this exact save (see
+    // `promotion-idempotency.test.ts`). Asserted by parts so a later addition to this
+    // payload does not read as "the ICP save was rewritten".
+    expect(welcomeCode).toContain("'/icps', { ...proposed, business, proof, campaign_intent: intent, from_brief_draft: true }, tk)")
     expect(welcomeCode.match(/api\.post<?[^(]*\(\s*'\/icps',/g) ?? []).toHaveLength(1)
   })
 
@@ -664,7 +669,10 @@ describe('free proof runs before the client is ever asked to pay', () => {
   })
 
   it('free proof is started with that id — EXACTLY ONCE, and nowhere else in the path', () => {
-    expect(welcomeCode).toContain('await api.post(`/icps/${icpId}/proof`, {}, tk)')
+    // ⛓️ MVP1 — the body is no longer empty: `from_brief_draft` tells the server this is the
+    // promotion leg, so a REPLAYED promotion is answered without claiming a pass. The count
+    // guard below is unchanged and is still the real protection.
+    expect(welcomeCode).toContain('await api.post(`/icps/${icpId}/proof`, { from_brief_draft: true }, tk)')
     // ⚠️ The count is the guard, not the presence. A second call — a retry, a fallback, a
     // catch-block re-attempt — would claim the client's SECOND pass, leaving them two down
     // having seen no leads at all. One call site, repo-wide across the first-run path.
@@ -2775,5 +2783,59 @@ describe('⑨ the partial brief is persisted on every turn', () => {
   it('the prompt asks for it on every turn, and forbids guessing', () => {
     expect(flat(icpsSrc)).toContain('FILL "brief_so_far" ON EVERY SINGLE TURN, including questions')
     expect(flat(icpsSrc)).toContain('if they have not said it, it does not go in')
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// ⚑ MVP1 — 14 · PROOF STARTS ONLY AFTER PROMOTION SUCCEEDS, AND THE ORDER IS THE GUARANTEE.
+//
+// 🛑 THE REQUIRED SEQUENCE: eleven facts → explicit confirmation → client and ICP promoted →
+// authority transition complete → Proof. Never Proof first with promotion failing after it.
+//
+// ⚠️ THIS IS A SOURCE ORDER ASSERTION AND IT IS THE RIGHT SHAPE FOR THIS SCREEN. The three
+// calls are sequential `await`s inside one `try`, so a failure at any of them throws past the
+// ones below it — the ordering IS the control flow, and the only way to break it is to move
+// or un-await a call, which is exactly what these lines catch.
+// ═══════════════════════════════════════════════════════════════════════════════════════
+describe('⑯ MVP1 — the promotion sequence, in order, on the real screen', () => {
+  const at = (needle: string) => welcomeSrc.indexOf(needle)
+
+  it('🛑 confirmation comes FIRST — before anything is created', () => {
+    const confirmAt = at("'/milla/brief-draft/confirm'")
+    const onboardAt = at("'/auth/onboard'")
+    expect(confirmAt, 'the confirmation call is gone').toBeGreaterThan(-1)
+    expect(onboardAt).toBeGreaterThan(-1)
+    expect(confirmAt, 'the account is opened before the client has confirmed').toBeLessThan(onboardAt)
+  })
+
+  it('🛑 the ICP is saved AFTER the account exists', () => {
+    expect(at("'/auth/onboard'")).toBeLessThan(at("'/icps', {"))
+  })
+
+  it('🛑 14 · Proof starts LAST, after both', () => {
+    expect(at("'/icps', {")).toBeLessThan(at('/proof`'))
+  })
+
+  it('🛑 every leg is AWAITED — an un-awaited promotion cannot be waited on', () => {
+    expect(welcomeSrc).toContain("await api.post('/milla/brief-draft/confirm'")
+    expect(welcomeSrc).toContain("await api.post('/auth/onboard'")
+    expect(welcomeSrc).toMatch(/await api\.post<[^>]*>\(\s*'\/icps',/)
+    expect(welcomeSrc).toContain('await api.post(`/icps/${icpId}/proof`')
+  })
+
+  it('🛑 the promotion legs NAME the act, so a replay can be refused server-side', () => {
+    // `from_brief_draft` is what lets the ICP save and the proof start tell "this is the
+    // promotion of my brief" from "I am revising my targeting" / "this is my second pass".
+    expect(welcomeSrc).toContain('from_brief_draft: true')
+    expect((welcomeSrc.match(/from_brief_draft: true/g) ?? []).length,
+      'both promotion legs must name the act').toBeGreaterThanOrEqual(2)
+  })
+
+  it('🛑 a failed confirmation stops the journey — it does not fall through to onboarding', () => {
+    const block = welcomeSrc.slice(at("'/milla/brief-draft/confirm'"), at("'/auth/onboard'"))
+    expect(block).toContain('setSaving(false)')
+    expect(block).toContain('return')
+    // ⚠️ BRANCHED ON THE STATUS, NEVER ON THE SENTENCE (the C01 lesson).
+    expect(block).toContain('status')
   })
 })

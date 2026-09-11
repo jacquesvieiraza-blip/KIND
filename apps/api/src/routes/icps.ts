@@ -4449,6 +4449,34 @@ icpRouter.post('/', async (req: AuthRequest, res) => {
     // immediately. They may still revise as often as they like; the edit now WAITS.)
     // Operators keep every freedom to create additional ICPs in Vida; this is the CLIENT's
     // door, and one core ICP is the client-side rule.
+    // ── ⚑ MVP1 — A REPLAYED ONBOARDING SAVE WRITES NOTHING ────────────────────────────
+    //
+    // 🛑 THE DEFECT THIS CLOSES. Promotion is three calls the BROWSER makes in order —
+    // `/auth/onboard`, this save, then the proof start. A double click, a retry after an
+    // ambiguous response, or a back-button re-submit replays all three. The client leg is
+    // safe (`clients.user_id` is unique, so the second call updates the one client) and this
+    // one looked safe too, because `saveClientTargeting` keeps ONE core ICP and updates it.
+    // It is not safe: the replay carries the ONBOARDING-DRAFT snapshot, so a stale retry
+    // OVERWRITES whatever the confirmed ICP has legitimately become since — the client's
+    // later refinement, an operator's correction — with the words they used at signup.
+    // No second ICP is created, and the truth is still lost.
+    //
+    // ⚠️ THE ACT IS NAMED, NOT INFERRED. `from_brief_draft` is the screen saying "this save
+    // IS the promotion of my brief", which is a genuinely different act from "I am revising
+    // my targeting". Omitting it cannot unlock anything — it only ever makes this route
+    // STRICTER — so a browser that does not send it gets exactly today's revision behaviour.
+    //
+    // ⚠️ AND THE REPLAY TEST IS DURABLE REALITY, NOT BOOKKEEPING. "Does this client already
+    // have a core ICP?" is asked of `coreIcpRow` — the same selector the write itself uses,
+    // so the check and the write can never disagree about which row is the core one.
+    if (req.body?.from_brief_draft === true) {
+      const already = await coreIcpRow(clientId)
+      if (already) {
+        res.status(200).json({ success: true, data: already, replayed: true })
+        return
+      }
+    }
+
     const revisedIntent = typeof req.body?.campaign_intent === 'string' ? req.body.campaign_intent.trim() : ''
     // Unchanged caller: no `applyLive`, no pre-selected core, so it reads its own row and
     // takes exactly the branch it always took. `state_changed` is unreachable without
@@ -4922,6 +4950,31 @@ icpRouter.post('/:id/proof', async (req: AuthRequest, res) => {
     const { data: icp } = await db.from('icps')
       .select('id, is_active').eq('id', req.params.id).eq('client_id', clientId).maybeSingle()
     if (!icp) { res.status(404).json({ success: false, error: 'ICP not found' }); return }
+
+    // ── ⚑ MVP1 — THE ONBOARDING PROOF START HAPPENS ONCE, AND ONLY ONCE ───────────────
+    //
+    // 🛑 THE CLAIM RPC IS ATOMIC, WHICH IS NOT THE SAME AS IDEMPOTENT. `try_claim_proof_pass`
+    // guarantees that two requests racing for pass 2 produce one claimant — it does NOT stop
+    // a double-clicked promotion claiming pass 1 and then pass 2. The client would be two
+    // free passes down before they had looked at the first batch, and the SECOND pass is the
+    // one the refinement journey needs.
+    //
+    // ⚠️ THE KEY IS DURABLE REALITY, NOT A LOCK WE MAINTAIN. `clients.proof_passes_done` is
+    // the column this very RPC increments, so "a pass has already been claimed" is a fact
+    // about the world rather than a flag that could fail to persist. A brand-new client is
+    // at 0; a replayed promotion finds 1 and is refused, claiming nothing.
+    //
+    // ⚠️ AND IT IS SCOPED TO THE ONBOARDING CALL. `from_brief_draft` is sent only by the
+    // promotion path. The refinement journey's legitimate SECOND pass does not carry it and
+    // is untouched — this guard can refuse, never permit.
+    if (req.body?.from_brief_draft === true) {
+      const { data: c } = await db.from('clients')
+        .select('proof_passes_done').eq('id', clientId).maybeSingle()
+      if (Number((c as { proof_passes_done?: number } | null)?.proof_passes_done ?? 0) > 0) {
+        res.status(200).json({ success: true, data: { already_started: true } })
+        return
+      }
+    }
 
     const { data: fundingRows } = await db.from('credit_transactions')
       .select('type, reference').eq('client_id', clientId)

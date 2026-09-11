@@ -92,8 +92,15 @@ operatorRouter.get('/brief-drafts', async (_req: Request, res: Response) => {
 
 operatorRouter.get('/clients', async (_req: Request, res: Response) => {
   try {
+    // ⚑ MVP1 — `user_id` IS IN THE PROJECTION so the rail can reconcile the two sources it
+    // merges on DURABLE IDENTITY. A person mid-promotion can legitimately appear in both the
+    // clients read and the open-drafts read for a round; `user_id` is the same auth user on
+    // both sides of that transition, and it is what the clients row is created against.
+    // Matching on company name would merge two different companies that share one, and would
+    // fail to merge the same person whose draft said "Redmayne" and whose row says
+    // "Redmayne & Co." It is an id the operator console already handles, not a new fact.
     const { data: clients } = await db.from('clients')
-      .select('id, company_name, industry, country, created_at, is_demo, wallet_balance_usd')
+      .select('id, user_id, company_name, industry, country, created_at, is_demo, wallet_balance_usd')
       .order('created_at', { ascending: false })
     const excluded = await getExcludedClientIds()   // house/demo — labelled, not hidden
     const rows = (clients ?? []).map((c: Record<string, unknown>) => ({

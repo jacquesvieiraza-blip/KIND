@@ -673,6 +673,52 @@ millaRouter.get('/brief-draft', async (req: AuthRequest, res) => {
  * the defect this whole table replaces; a portal that is told the save failed can keep its own
  * state and try again, which is strictly better than believing a lie.
  */
+/**
+ * 🛑 THE CLIENT CONFIRMS THEIR BRIEF — the separate gate, and the door promotion waits behind.
+ *
+ * ⚠️ ELEVEN FACTS DO NOT CONFIRM ANYTHING. Holding all eleven means Milla has stopped asking.
+ * It says nothing about whether the client read what she understood and agreed to it, and
+ * Proof is sourced against this brief. So confirmation is an ACT, never an inference from a
+ * count, from silence, or from the screen having got as far as showing a button.
+ *
+ * ⚠️ THE ELEVEN ARE RE-CHECKED HERE. 400 with the missing facts NAMED, so the client is told
+ * what is outstanding rather than that something went wrong.
+ *
+ * ⚠️ IT CREATES NOTHING. No client, no ICP, no Proof — it records agreement. `/auth/onboard`
+ * is what promotes, and it now refuses a draft this route has not stamped.
+ *
+ * ⚠️ AND IT IS THE CLIENT'S OWN, NOT AN OPERATOR'S. This router carries the client's token.
+ */
+millaRouter.post('/brief-draft/confirm', async (req: AuthRequest, res) => {
+  const { confirmBriefDraft } = await import('../lib/brief-draft')
+  const { BRIEF_FACT_LABEL } = await import('@kind/shared')
+  const r = await confirmBriefDraft(req.userId!)
+  if (r.ok) { res.json({ success: true, data: { confirmed_at: r.draft.confirmedAt } }); return }
+  if (r.reason === 'incomplete') {
+    res.status(400).json({
+      success: false,
+      error: `Milla still needs ${(r.missing ?? []).map(id => BRIEF_FACT_LABEL[id as keyof typeof BRIEF_FACT_LABEL]).join(', ')} before you can confirm.`,
+      missing: r.missing ?? [],
+    })
+    return
+  }
+  if (r.reason === 'promoted') {
+    res.status(409).json({
+      success: false,
+      error: 'This brief has already been confirmed. Your programme is the live record of it now.',
+    })
+    return
+  }
+  if (r.reason === 'no_draft') {
+    res.status(404).json({ success: false, error: 'There is no brief to confirm yet.' })
+    return
+  }
+  res.status(503).json({
+    success: false, retryable: true,
+    error: 'We could not record that just yet. Nothing you told Milla is lost — please try again.',
+  })
+})
+
 millaRouter.put('/brief-draft', async (req: AuthRequest, res) => {
   const facts = z.object({
     contact_name:        z.string().max(120).nullish(),

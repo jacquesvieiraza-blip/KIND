@@ -70,3 +70,74 @@ export function shouldSurfaceError(previous: unknown | null): boolean {
 export function shouldPollNow(documentHidden: boolean): boolean {
   return documentHidden !== true
 }
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// ⚑ MVP1 — ONE PERSON, ONE ROW: RECONCILING TWO SOURCES INTO ONE RAIL.
+//
+// 🛑 THE RAIL NOW MERGES TWO READS. `/operator/clients` answers with confirmed clients (and
+// House), `/operator/brief-drafts` with people who have signed up and not confirmed. They are
+// separate endpoints refreshed in one round, and each can succeed or fail on its own — so
+// between two rounds the SAME PERSON can legitimately appear in both answers: the clients read
+// has just picked up their brand-new row while the drafts read still holds the one from before
+// promotion, or the drafts read failed and kept it.
+//
+// A person rendered twice on an operator's rail is not a cosmetic bug. It reads as two
+// prospects, it double-counts the pipeline by eye, and the operator cannot tell which row is
+// the real one.
+//
+// ⚠️ DEDUPLICATED ON DURABLE IDENTITY, NEVER ON A DISPLAY NAME. `user_id` is the same auth
+// user on both sides of promotion and is what the `clients` row is created against. Matching
+// on company name would silently merge two genuinely different companies that happen to share
+// one — and would fail to merge the same person whose draft said "Redmayne" and whose client
+// row says "Redmayne & Co."
+// ═══════════════════════════════════════════════════════════════════════════════════════
+
+/** The only fields these decisions read. Both rails carry far more; none of it belongs here. */
+export type HasUser = { user_id?: string | null }
+
+/**
+ * The drafts that should actually be rendered, given the clients already on the rail.
+ *
+ * ⚠️ A DRAFT WHOSE PERSON IS NOW A CLIENT IS DROPPED, whichever read is the stale one. That
+ * is what makes the transition "one draft row → one client row" rather than "draft + client"
+ * for a round, and it holds even when the drafts read failed and kept a row the server has
+ * already stopped returning.
+ */
+export function visibleDrafts<D extends HasUser, C extends HasUser>(
+  drafts: D[] | null, clients: C[] | null,
+): D[] {
+  if (!drafts) return []
+  const promoted = new Set((clients ?? []).map(c => c.user_id).filter((u): u is string => !!u))
+  return drafts.filter(d => !d.user_id || !promoted.has(d.user_id))
+}
+
+/**
+ * What the draft list should become after a round of reads.
+ *
+ * 🛑 THE OTHER HALF OF THE TRANSITION, AND THE ONE THAT IS EASY TO MISS. `nextRailValue`
+ * alone handles "the drafts read failed" correctly. It does not handle the opposite partial
+ * round: the drafts read SUCCEEDS and the person is gone from it — they were promoted — while
+ * the clients read in that same round FAILED, so the rail's client list does not have them
+ * yet. Both answers are individually correct and the person is on neither, so they vanish from
+ * the operator's rail entirely until the next good clients read.
+ *
+ * ⚠️ SO A DEPARTED DRAFT IS ONLY LET GO WHEN SOMETHING CAN HAVE REPLACED IT. When the clients
+ * read failed in the same round, a draft that disappeared is KEPT — not invented, kept — and
+ * `visibleDrafts` removes it the moment a good clients read shows the client. This is the same
+ * rule as `nextRailValue`, applied to the seam between two sources rather than within one.
+ *
+ * ⚠️ AND IT IS NOT A CACHE THAT GROWS. Only rows that were already on screen survive, only
+ * while the clients read is failing, and any of them can still leave on a round where both
+ * reads succeed.
+ */
+export function reconcileDrafts<D extends { id: string }>(
+  previous: D[] | null,
+  incoming: RefreshResult<D[]>,
+  clientsOk: boolean,
+): D[] | null {
+  if (!incoming.ok) return previous
+  if (clientsOk || !previous) return incoming.value
+  const present = new Set(incoming.value.map(d => d.id))
+  const vanished = previous.filter(d => !present.has(d.id))
+  return vanished.length === 0 ? incoming.value : [...incoming.value, ...vanished]
+}

@@ -144,6 +144,25 @@ authRouter.post('/onboard', async (req, res) => {
         })
         return
       }
+      // ── 🛑 ⚑ MVP1 — AND ELEVEN FACTS ARE STILL NOT PERMISSION TO PROMOTE ──────────────
+      //
+      // ⚠️ CONFIRMATION IS A SEPARATE GATE AND IT IS THE CLIENT'S. Holding all eleven means
+      // Milla has stopped asking; it says nothing about whether the client read what she
+      // understood and agreed to it. Proof is sourced against this brief and the $299 is
+      // asked for on the strength of it, so agreement has to be an ACT — never inferred from
+      // a count, from silence, or from a screen having got as far as showing a button.
+      //
+      // ⚠️ AND IT IS NEVER INFERRED FROM THIS CALL EITHER. A browser reaching `/auth/onboard`
+      // is not evidence of consent; `POST /milla/brief-draft/confirm` is where the client
+      // gives it, and changing the brief afterwards clears it (see `saveBriefDraft`).
+      if (!draft.confirmedAt) {
+        res.status(400).json({
+          success: false,
+          error: 'This brief has not been confirmed yet. Confirm it with Milla and we will open your account.',
+          needs_confirmation: true,
+        })
+        return
+      }
     }
 
     const now = new Date().toISOString()

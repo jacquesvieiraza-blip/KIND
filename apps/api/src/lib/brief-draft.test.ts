@@ -69,13 +69,29 @@ function table(name: string) {
       }
     },
     update(patch: Row) {
-      return {
-        async eq(c: string, v: unknown) {
-          if (state.unwritable) return { error: { message: 'no such table' } }
-          for (const r of state.rows) if (r[c] === v) Object.assign(r, patch)
-          return { error: null }
+      // ⚑ MVP1 — the update chain now has to support `.eq().is().select().maybeSingle()`,
+      // because `confirmBriefDraft` writes CONDITIONALLY (`confirmed_at IS NULL`) and reads
+      // the row back to tell "I stamped it" from "somebody else already had". The plain
+      // awaited `.eq()` shape every other caller uses still works — `then` below.
+      const ufilters: ((r: Row) => boolean)[] = []
+      const u: Record<string, unknown> = {
+        eq(c: string, v: unknown) { ufilters.push(r => r[c] === v); return u },
+        is(c: string, v: unknown) { ufilters.push(r => (r[c] ?? null) === v); return u },
+        select() { return u },
+        async maybeSingle() {
+          if (state.unwritable) return { data: null, error: { message: 'no such table' } }
+          const hit = state.rows.filter(r => ufilters.every(f => f(r)))
+          if (hit.length === 0) return { data: null, error: null }
+          Object.assign(hit[0], patch)
+          return { data: hit[0], error: null }
+        },
+        then(resolve: (v: unknown) => unknown) {
+          if (state.unwritable) return resolve({ error: { message: 'no such table' } })
+          for (const r of state.rows.filter(x => ufilters.every(f => f(x)))) Object.assign(r, patch)
+          return resolve({ error: null })
         },
       }
+      return u
     },
     then(resolve: (v: unknown) => unknown) {
       if (state.unreadable) return resolve({ data: null, error: { message: 'does not exist' } })
@@ -91,7 +107,7 @@ vi.mock('@kind/db', () => ({ db: { from: (t: string) => table(t) } }))
 
 import {
   briefDraftFor, saveBriefDraft, draftProgress, mayConfirmBrief,
-  markBriefDraftPromoted, openBriefDrafts, writableBriefDraft,
+  markBriefDraftPromoted, openBriefDrafts, writableBriefDraft, confirmBriefDraft,
 } from './brief-draft'
 import { BRIEF_FACTS } from '@kind/shared'
 
@@ -242,7 +258,12 @@ describe('⑥ 15 · a promoted draft is evidence, not a competing truth', () => 
     const d = await briefDraftFor(USER)
     expect(d?.promotedClientId).toBe('client-1')
     expect(d?.promotedAt).toBeTruthy()
-    expect(d?.confirmedAt).toBeTruthy()
+    // ⛓️ MVP1 — AND IT DOES NOT INVENT A CONFIRMATION. This line used to assert the opposite:
+    // promotion stamped `confirmed_at`, which quietly made "confirmed" a synonym for
+    // "promoted". A synonym cannot be the gate that must happen BEFORE promotion, so the
+    // client's own confirmation is `confirmBriefDraft`'s to stamp and promotion never
+    // back-fills one that was never given.
+    expect(d?.confirmedAt, 'promotion invented a confirmation nobody gave').toBeNull()
   })
 })
 
@@ -465,5 +486,114 @@ describe('⑨ writableBriefDraft — only while the draft is still the authorita
     await saveBriefDraft(USER, TEN)
     clientCreated('somebody-else', 'client-9')
     expect(draftProgress(await writableBriefDraft(USER)).count).toBe(10)
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// ⚑ MVP1 — CONFIRMATION IS A SEPARATE GATE, AND IT IS AN ACT.
+//
+// 🛑 THE SEQUENCE THE FOUNDER LOCKED: eleven facts collected → the brief STAYS at Brief →
+// the client reaches "Confirm my brief" → explicit confirmation → promotion → Proof.
+//
+// ⚠️ ELEVEN FACTS ON THEIR OWN START NOTHING. Holding all eleven means Milla has stopped
+// asking. It says nothing about whether the client read what she understood and agreed to
+// it — and Proof is sourced against this brief, with the $299 asked for on the strength of
+// it. Confirmation is never inferred from the count, from silence, or from automatic.
+//
+// ⚠️ AND IT IS NOT AN OPERATOR ACTION. `confirmBriefDraft` takes the client's own user id;
+// no operator route calls it, and Vida's draft surface is a read-only projection.
+// ═══════════════════════════════════════════════════════════════════════════════════════
+
+describe('⑩ confirmBriefDraft — the client agrees, and only the client', () => {
+  const ELEVEN = { ...TEN, target_company_type: 'agency' }
+
+  it('1 · refuses a brief short of the eleven, and NAMES what is missing', async () => {
+    await saveBriefDraft(USER, TEN)
+    const r = await confirmBriefDraft(USER)
+    expect(r.ok).toBe(false)
+    if (r.ok) throw new Error('unreachable')
+    expect(r.reason).toBe('incomplete')
+    expect(r.missing).toEqual(['company_type'])
+    expect((await briefDraftFor(USER))?.confirmedAt, 'a refused confirmation stamped one anyway').toBeNull()
+  })
+
+  it('2 · confirms a complete brief, and stamps the moment of agreement', async () => {
+    await saveBriefDraft(USER, ELEVEN)
+    const r = await confirmBriefDraft(USER)
+    expect(r.ok).toBe(true)
+    expect((await briefDraftFor(USER))?.confirmedAt).toBeTruthy()
+  })
+
+  it('3 · 🛑 confirming does NOT create anything — no client exists afterwards', async () => {
+    await saveBriefDraft(USER, ELEVEN)
+    await confirmBriefDraft(USER)
+    expect(state.clients, 'confirmation promoted somebody all by itself').toEqual([])
+  })
+
+  it('4 · 🛑 eleven facts alone leave the brief unconfirmed — nothing is automatic', async () => {
+    await saveBriefDraft(USER, ELEVEN)
+    expect(draftProgress(await briefDraftFor(USER)).complete).toBe(true)
+    expect((await briefDraftFor(USER))?.confirmedAt, 'completeness confirmed itself').toBeNull()
+  })
+
+  it('5 · is idempotent — a double click confirms once and keeps the FIRST moment', async () => {
+    await saveBriefDraft(USER, ELEVEN)
+    const first = await confirmBriefDraft(USER)
+    expect(first.ok).toBe(true)
+    const stamp = (await briefDraftFor(USER))?.confirmedAt
+    const again = await confirmBriefDraft(USER)
+    expect(again.ok).toBe(true)
+    expect((await briefDraftFor(USER))?.confirmedAt, 'a retry moved the recorded agreement').toBe(stamp)
+  })
+
+  it('6 · 🛑 CHANGING THE BRIEF UN-CONFIRMS IT — a signature cannot outlive its document', async () => {
+    await saveBriefDraft(USER, ELEVEN)
+    await confirmBriefDraft(USER)
+    expect((await briefDraftFor(USER))?.confirmedAt).toBeTruthy()
+    // Milla learns one more thing after the client confirmed.
+    await saveBriefDraft(USER, { desired_outcome: 'actually, product demos' })
+    expect((await briefDraftFor(USER))?.confirmedAt,
+      'the brief moved and the confirmation stayed — promotion would run on a brief nobody agreed to').toBeNull()
+  })
+
+  it('7 · refuses once promotion has happened, on reality rather than the flag', async () => {
+    await saveBriefDraft(USER, ELEVEN)
+    clientCreated()                       // the seal deliberately never runs
+    const r = await confirmBriefDraft(USER)
+    expect(r.ok).toBe(false)
+    if (r.ok) throw new Error('unreachable')
+    expect(r.reason).toBe('promoted')
+  })
+
+  it('8 · answers no_draft when there is nothing to confirm — a pre-draft journey', async () => {
+    const r = await confirmBriefDraft(USER)
+    expect(r.ok).toBe(false)
+    if (r.ok) throw new Error('unreachable')
+    expect(r.reason).toBe('no_draft')
+  })
+
+  it('9 · FAILS CLOSED on an unreadable draft — it never claims an agreement it cannot see', async () => {
+    await saveBriefDraft(USER, ELEVEN)
+    state.unreadable = true
+    const r = await confirmBriefDraft(USER)
+    state.unreadable = false
+    expect(r.ok).toBe(false)
+    expect((await briefDraftFor(USER))?.confirmedAt).toBeNull()
+  })
+
+  it('10 · FAILS CLOSED when promotion state cannot be established', async () => {
+    await saveBriefDraft(USER, ELEVEN)
+    state.clientsUnreadable = true
+    const r = await confirmBriefDraft(USER)
+    expect(r.ok).toBe(false)
+    if (r.ok) throw new Error('unreachable')
+    expect(r.reason).toBe('unstorable')
+  })
+
+  it('11 · is scoped to the caller — confirming one brief never confirms another', async () => {
+    await saveBriefDraft(USER, ELEVEN)
+    await saveBriefDraft('user-2', ELEVEN)
+    await confirmBriefDraft(USER)
+    expect((await briefDraftFor('user-2'))?.confirmedAt).toBeNull()
   })
 })

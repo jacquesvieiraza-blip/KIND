@@ -28,6 +28,12 @@ export const CALIBRATION_MIGRATION = '20260910_proof_calibration_handoff'
 const CLIENT_COLUMNS =
   'id, phone, proof_passes_done, proof_review_requested_at, proof_review_resolved_at, ' +
   'proof_escalation_trigger, proof_phone_confirmed_at, proof_calibration_note, proof_calibrated_restart_at, ' +
+  // ⚑ 11 Sep (C39/C23) — the restart's SECOND fact, who resolved it, and the refinement gate.
+  // Unselected they read `undefined`, which `calibratedRestart` treats as "never granted" and
+  // `mayRequestStrongerSet` treats as "no refinement in flight" — i.e. exactly today's
+  // behaviour on a database where 20260911_proof_restart_and_refinement has not run.
+  'proof_calibrated_restart_used_at, proof_calibration_resolved_by, ' +
+  'proof_refinement_text, proof_refinement_proposed_at, proof_refinement_confirmed_at, ' +
   // ⚑ 10 Sep (A) — the client's own acceptance. Unselected it reads `undefined`, which the
   // rule treats as "not accepted", so the controls would never retire.
   'proof_completed_at'
@@ -41,6 +47,10 @@ export interface CalibrationRecord extends CalibrationState {
   trigger: EscalationTrigger | null
   operatorNote: string | null
   restartAt: string | null
+  /** ⚑ 11 Sep — when the granted restart was SPENT. Null while it is still available. */
+  restartUsedAt: string | null
+  /** Who recorded the human calibration resolution. */
+  resolvedBy: string | null
   doors: SpendDoors
 }
 
@@ -63,6 +73,18 @@ export async function readCalibration(clientId: string): Promise<CalibrationReco
     escalated: !!c.proof_review_requested_at && !c.proof_review_resolved_at,
     completedAt: (c.proof_completed_at as string | null) ?? null,
     attempts,
+    restartGrantedAt: (c.proof_calibrated_restart_at as string | null) ?? null,
+    restartUsedAt: (c.proof_calibrated_restart_used_at as string | null) ?? null,
+    // ⚠️ A ROW WITH NO REFINEMENT IS `null`, NOT AN EMPTY ONE. An empty object would read as
+    // "a refinement exists and is unconfirmed", which CLOSES the improved-set door — turning
+    // an un-migrated database into a client who can never reach Attempt 2.
+    refinement: (c.proof_refinement_text ?? c.proof_refinement_proposed_at ?? c.proof_refinement_confirmed_at)
+      ? {
+          clientWords: (c.proof_refinement_text as string | null) ?? '',
+          proposedAt: (c.proof_refinement_proposed_at as string | null) ?? null,
+          confirmedAt: (c.proof_refinement_confirmed_at as string | null) ?? null,
+        }
+      : null,
   }
   return {
     ...state,
@@ -74,6 +96,8 @@ export async function readCalibration(clientId: string): Promise<CalibrationReco
     trigger: (c.proof_escalation_trigger as EscalationTrigger | null) ?? null,
     operatorNote: (c.proof_calibration_note as string | null) ?? null,
     restartAt: (c.proof_calibrated_restart_at as string | null) ?? null,
+    restartUsedAt: (c.proof_calibrated_restart_used_at as string | null) ?? null,
+    resolvedBy: (c.proof_calibration_resolved_by as string | null) ?? null,
     doors: spendDoors(state),
   }
 }
@@ -284,6 +308,21 @@ export const PROOF_COMPLETION_MIGRATION = '20260910_proof_completion'
  * door, not a wider one.
  */
 export function mayRestartCalibrated(r: CalibrationRecord): { allowed: boolean; why?: string } {
+  // ── ⚑ 11 Sep — TWO CONDITIONS THE FOUNDER NAMED THAT WERE NOT ASKED ────────────────
+  //
+  // 🛑 ① BOTH AUTOMATIC ATTEMPTS MUST ALREADY BE SPENT. The restart exists because the two
+  // automatic attempts failed and a person had to step in. Granting one to a client who has
+  // an automatic attempt still in hand does not help them — it spends a human's afternoon on
+  // a client the ordinary loop had not finished with, and it makes the restart the easy path.
+  if (r.passesDone < 2) {
+    return { allowed: false, why: `This client has used ${r.passesDone} of their two automatic attempts. The calibrated restart is for a client both attempts have already failed.` }
+  }
+  // 🛑 ② THE CLIENT MUST ACTUALLY HAVE ESCALATED. A resolution recorded against somebody who
+  // never said "Still not right" is a resolution of nothing, and it would mint a paid set for
+  // a client who never asked for one.
+  if (!r.escalatedAt) {
+    return { allowed: false, why: 'This client never escalated, so there is nothing to resolve and nothing to restart.' }
+  }
   if (!r.resolvedAt) {
     return { allowed: false, why: 'This calibration has not been resolved yet. Contact the client, correct the targeting and record what you agreed first.' }
   }
@@ -291,7 +330,81 @@ export function mayRestartCalibrated(r: CalibrationRecord): { allowed: boolean; 
     return { allowed: false, why: 'There is no resolution note. A restart without one would spend a pass on the targeting that already failed twice.' }
   }
   if (r.restartAt && r.restartAt >= r.resolvedAt) {
-    return { allowed: false, why: 'The calibrated restart for this resolution has already been used. Resolve the calibration again before granting another pass.' }
+    return { allowed: false, why: 'The calibrated restart for this resolution has already been granted. Resolve the calibration again before granting another pass.' }
   }
   return { allowed: true }
 }
+
+/**
+ * 🛑 SPEND THE ONE GRANTED RESTART — the claim `try_claim_proof_pass` cannot make (C39).
+ *
+ * ── WHAT WAS BROKEN, AND IT WAS LIVE ──────────────────────────────────────────────────
+ *
+ * `POST /operator/proof-review/:id/restart` recorded a grant and told the operator "the
+ * ordinary Proof path becomes available once more for exactly one pass". It was not:
+ * `spendDoors` answered `proof_passes_done < 2` — false at 2, for ever — and the claim RPC
+ * refuses at 2, for ever. So the operator pressed a real button, an audit row was written,
+ * and the client could not get a set. A button with no authority behind it.
+ *
+ * ⚠️ IT DOES NOT TOUCH `proof_passes_done`, AND IT IS NOT THE RPC. The two automatic attempts
+ * stay spent; `try_claim_proof_pass` is unchanged and still refuses a third AUTOMATIC claim
+ * for ever. This is the separate, human-authorised door — narrow, audited, and self-closing.
+ *
+ * ⚠️ THE COMPARE-AND-SET IS THE WHOLE IDEMPOTENCY. Two tabs, a double click and a retry after
+ * an ambiguous response all land here; the conditional UPDATE means exactly one matches a row
+ * and the rest are told the restart is already spent. The database is the authority, never
+ * the screen.
+ *
+ * ⚠️ AND IT FAILS CLOSED (C43). An unreadable calibration state answers `unreadable` and
+ * grants nothing — a read that failed must never be read as "no restriction".
+ */
+export type RestartClaim =
+  | { ok: true; usedAt: string }
+  | { ok: false; reason: 'not_available' | 'already_used' | 'unreadable'; detail: string }
+
+export async function claimCalibratedRestart(clientId: string): Promise<RestartClaim> {
+  let r: CalibrationRecord
+  try {
+    r = await readCalibration(clientId)
+  } catch (err) {
+    return {
+      ok: false, reason: 'unreadable',
+      detail: `Your Proof state could not be read (${err instanceof Error ? err.message : String(err)}), so nothing was started and nothing was spent.`,
+    }
+  }
+
+  const { calibratedRestart } = await import('./proof-calibration')
+  const stand = calibratedRestart(r)
+  if (stand === 'none') {
+    return { ok: false, reason: 'not_available', detail: 'No calibrated restart has been granted for this client.' }
+  }
+  if (stand === 'used') {
+    return { ok: false, reason: 'already_used', detail: 'The calibrated restart has already been used.' }
+  }
+
+  const at = new Date().toISOString()
+  const { data, error } = await db.from('clients')
+    .update({ proof_calibrated_restart_used_at: at })
+    .eq('id', clientId)
+    // The lock: only while the grant we judged is still the newest, and still unspent.
+    .not('proof_calibrated_restart_at', 'is', null)
+    .or(`proof_calibrated_restart_used_at.is.null,proof_calibrated_restart_used_at.lt.${r.restartAt}`)
+    .select('id')
+  if (error) {
+    const missing = /proof_calibrated_restart_used_at/.test(error.message)
+    return {
+      ok: false, reason: 'unreadable',
+      detail: missing
+        ? `The calibrated restart could not be claimed because migration ${RESTART_MIGRATION} has not been run. Nothing was started and nothing was spent.`
+        : `The calibrated restart could not be claimed (${error.message}). Nothing was started and nothing was spent.`,
+    }
+  }
+  // Zero rows means a concurrent claim won. That is not an error, and it is not a second set.
+  if ((data ?? []).length === 0) {
+    return { ok: false, reason: 'already_used', detail: 'The calibrated restart has already been used.' }
+  }
+  return { ok: true, usedAt: at }
+}
+
+/** Named so a refusal can point at the outstanding migration rather than a generic error. */
+export const RESTART_MIGRATION = '20260911_proof_restart_and_refinement'

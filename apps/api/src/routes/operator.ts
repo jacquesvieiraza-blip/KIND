@@ -2364,8 +2364,27 @@ operatorRouter.post('/proof-review/:clientId/resolve', async (req: Request, res:
       res.status(403).json({ success: false, error: 'Operator key required' })
       return
     }
+    // ── ⚑ 11 Sep — THE RESOLUTION IS RECORDED AGAINST A REAL ESCALATION, AND SAYS WHO ───
+    //
+    // 🛑 `.not('proof_review_requested_at', 'is', null)` IS THE GUARD THE FOUNDER ASKED FOR:
+    // a resolution cannot be recorded against a client who never validly escalated. It was
+    // already here and is now load-bearing, because a resolution is what unlocks the one
+    // calibrated restart — so a resolution of nothing would mint a paid set for a client who
+    // never asked for one.
+    //
+    // ⚠️ AND IT PERSISTS THE OPERATOR'S IDENTITY. The audit log carries the action; an
+    // operator reading this client's row should not have to go and find it.
+    //
+    // ⚠️ THE NOTE IS OPTIONAL HERE AND REQUIRED BY THE RESTART. Recording that a call
+    // happened must never be blocked by the wording of a note; what a note gates is spending
+    // another set, which `mayRestartCalibrated` refuses without one.
+    const note = typeof req.body?.note === 'string' ? req.body.note.trim().slice(0, 4000) : ''
     const { data: resolved, error: resolveErr } = await db.from('clients')
-      .update({ proof_review_resolved_at: new Date().toISOString() })
+      .update({
+        proof_review_resolved_at: new Date().toISOString(),
+        proof_calibration_resolved_by: operatorEmail(req) ?? null,
+        ...(note ? { proof_calibration_note: note } : {}),
+      })
       .eq('id', req.params.clientId)
       .not('proof_review_requested_at', 'is', null)
       .is('proof_review_resolved_at', null)
@@ -2387,9 +2406,20 @@ operatorRouter.post('/proof-review/:clientId/resolve', async (req: Request, res:
       return
     }
 
+    const didResolve = (resolved ?? []).length > 0
+    if (didResolve) {
+      await writeOperatorAudit({
+        operatorEmail: operatorEmail(req), clientId: req.params.clientId,
+        action: 'proof_calibration_resolved', subjectType: 'client', subjectId: req.params.clientId,
+        detail: {
+          note_recorded: !!note,
+          means: 'a human spoke to this client and recorded the outcome; it does NOT by itself start anything',
+        },
+      })
+    }
     res.json({
       success: true,
-      data: { resolved: (resolved ?? []).length > 0 ? 'resolved' : 'already_resolved' },
+      data: { resolved: didResolve ? 'resolved' : 'already_resolved' },
     })
   } catch (err) {
     console.error('[operator/proof-review/resolve]', err)
@@ -2473,8 +2503,17 @@ operatorRouter.post('/proof-review/:clientId/restart', async (req: Request, res:
     // ⚠️ CONDITIONAL ON THE RESOLUTION WE JUDGED. Two operators pressing together produce one
     // grant: the second matches no row because `proof_calibrated_restart_at` has moved past
     // the resolution it was checked against.
+    //
+    // ⛓️ 11 Sep — IT NO LONGER NULLS `proof_review_requested_at`, AND THAT WAS AN AUDIT BUG.
+    // Clearing it was how the grant re-opened the spend doors, because `escalated` reads
+    // "requested and not resolved". But `resolve` has already stamped `proof_review_resolved_at`
+    // — which this grant REQUIRES — so `escalated` is ALREADY false by the time we get here
+    // and the clear bought nothing. What it cost was the record that the escalation ever
+    // happened: the founder's audit rule is that the history must prove escalation occurred,
+    // human resolution occurred, the restart became available, and it was claimed. Erasing the
+    // first of those to unlock the third is exactly the wrong trade.
     const { data, error } = await db.from('clients')
-      .update({ proof_calibrated_restart_at: nowIso, proof_review_requested_at: null })
+      .update({ proof_calibrated_restart_at: nowIso })
       .eq('id', req.params.clientId)
       .not('proof_review_resolved_at', 'is', null)
       .or(`proof_calibrated_restart_at.is.null,proof_calibrated_restart_at.lt.${cal.resolvedAt}`)

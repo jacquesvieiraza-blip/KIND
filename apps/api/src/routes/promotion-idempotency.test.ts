@@ -44,11 +44,17 @@ function query(table: string) {
   const filters: ((r: Row) => boolean)[] = []
   const rows = (): Row[] => table === 'icps' ? state.icps
     : table === 'clients' ? (state.client ? [state.client] : [])
-    : []
+    : []   // leads / lead_feedback / credit_transactions: empty, which is a first-run client
   const q: Record<string, unknown> = {
     select() { return q },
     eq(c: string, v: unknown) { filters.push(r => r[c] === v); return q },
     is(c: string, v: unknown) { filters.push(r => (r[c] ?? null) === v); return q },
+    // ⚑ 11 Sep — the proof route reads the calibration state before it claims, and
+    // `readAttempts` filters `leads` with `.not('proof_pass', 'is', null)`. Without this the
+    // fake throws, `readCalibration` fails, and the route's C43 fail-safe correctly refuses —
+    // i.e. the missing method would look exactly like a product defect.
+    not(c: string, _op: string, v: unknown) { filters.push(r => (r[c] ?? null) !== v); return q },
+    or() { return q },
     order() { return q },
     limit() { return q },
     async single() { const h = rows().filter(r => filters.every(f => f(r))); return { data: h[0] ?? null, error: null } },

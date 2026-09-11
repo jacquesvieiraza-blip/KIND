@@ -82,6 +82,17 @@ export const NEEDS_FEEDBACK_HINT =
 export function mayRequestStrongerSet(s: CalibrationState): boolean {
   if (s.escalated) return false
   if (s.passesDone !== 1) return false
+  // ── 🛑 ⚑ 11 Sep (C23) — AN INTERPRETED REFINEMENT IS NOT A MANDATE TO SPEND ──────────
+  //
+  // Attempt 2 is real paid sourcing against a target the client is supposed to have
+  // corrected. Milla may PROPOSE what she thinks they meant; until they confirm it, sourcing
+  // would spend their second and last automatic attempt on the model's reading of a sentence.
+  // A proposal in flight therefore CLOSES this door rather than leaving it where it was.
+  const r = s.refinement ?? null
+  if (r && r.proposedAt && !r.confirmedAt) return false
+  // A confirmed refinement is itself the instruction — the client does not also have to mark
+  // cards. Per-card feedback remains sufficient on its own, exactly as before.
+  if (r?.confirmedAt) return true
   return hasMeaningfulFeedback(s.attempts.find(a => a.pass === 1) ?? null)
 }
 
@@ -103,21 +114,127 @@ export interface CalibrationState {
   /** `clients.proof_review_requested_at IS NOT NULL AND proof_review_resolved_at IS NULL`. */
   escalated: boolean
   attempts: AttemptSummary[]
+  /**
+   * ⚑ 11 Sep (C39) — THE ONE HUMAN-AUTHORISED RESTART, AS TWO SEPARATE FACTS.
+   *
+   * 🛑 GRANTED AND USED ARE NOT THE SAME THING, and conflating them is why the restart could
+   * not work. `proof_calibrated_restart_at` records that an operator GRANTED one after a real
+   * resolution; nothing recorded that the client had SPENT it. Without the second fact the
+   * grant either buys nothing (the pass count still refuses) or buys unlimited passes (the
+   * grant never expires). Both were live: see `calibratedRestart` below.
+   *
+   * ⚠️ NEITHER OF THEM IS `proof_passes_done`. The two automatic attempts are spent for ever;
+   * this is a separate door, never a wider one.
+   */
+  restartGrantedAt?: string | null
+  restartUsedAt?: string | null
+  /**
+   * ⚑ 11 Sep (C23) — THE REFINEMENT THE CLIENT GAVE IN CONVERSATION, AND WHETHER THEY MEANT IT.
+   *
+   * 🛑 THE MODEL INTERPRETING SOMETHING IS NOT A MANDATE TO SPEND. Attempt 2 is real paid
+   * sourcing against a target the client is supposed to have corrected, so an interpreted
+   * change waits for their word. See `mayRequestStrongerSet`.
+   */
+  refinement?: RefinementState | null
 }
 
-/** Why the automatic loop closed. Recorded, and shown to the operator. */
+/**
+ * What the client said to refine the targeting, and how far it has got.
+ *
+ * ⚠️ `clientWords` IS THEIRS AND IS NEVER OVERWRITTEN BY THE INTERPRETATION. The founder's
+ * rule across this build: preserve the client's wording, and never let model or provider
+ * taxonomy silently redefine the target.
+ */
+export interface RefinementState {
+  /** Their own sentence. Empty when they have not said anything yet. */
+  clientWords: string
+  /** We have proposed an interpreted change back to them. */
+  proposedAt: string | null
+  /** They confirmed it. THIS is the gate Attempt 2 waits behind — nothing else. */
+  confirmedAt: string | null
+}
+
+/**
+ * 🛑 THE PASS NUMBER THE CALIBRATED RESTART'S LEADS CARRY — AND IT IS NOT "ATTEMPT 3".
+ *
+ * `leads.proof_pass` is how the attempt history is derived, so the restart's batch needs a
+ * value of its own: folding it into 2 would rewrite history to make the restart look like an
+ * automatic attempt, and the founder's rule is that Attempt 1, Attempt 2 and the Calibrated
+ * Restart must all still be readable afterwards.
+ *
+ * ⚠️ 3 IS A ROW LABEL, NEVER AN ALLOWANCE. `proof_passes_done` stays at 2, the two automatic
+ * attempts remain spent for ever, and `try_claim_proof_pass` still refuses a third automatic
+ * claim. Everything that RENDERS this number must render it as "Calibrated restart" — see
+ * `attemptLabel`.
+ */
+export const CALIBRATED_RESTART_PASS = 3
+
+/**
+ * What an attempt is CALLED. The one place a pass number becomes words.
+ *
+ * ⚠️ THERE IS NO "Attempt 3", AT ANY POINT, ON EITHER SURFACE. The founder's lock: do not
+ * rewrite history to make the restart look like an automatic attempt, and do not imply
+ * another automatic attempt is available.
+ */
+export function attemptLabel(pass: number): string {
+  if (pass === CALIBRATED_RESTART_PASS) return 'Calibrated restart'
+  return `Automatic attempt ${pass}`
+}
+
+/** Where the one calibrated restart stands. Never a count, and never `proof_passes_done`. */
+export type RestartState = 'none' | 'available' | 'used'
+
+/**
+ * 🛑 THE ONE AUDITED POST-HUMAN RESTART — granted, available, or spent.
+ *
+ * ⚠️ IT IS NOT ATTEMPT 3. `proof_passes_done` stays at 2 for ever and `try_claim_proof_pass`
+ * still refuses a third AUTOMATIC claim. This answers a different question: has a human
+ * looked at this client, fixed the targeting, and bought them exactly one more set.
+ *
+ * ⚠️ USED-AFTER-GRANTED IS THE TEST, NOT "used at all". A client can legitimately be granted
+ * a restart, spend it, be escalated again months later, be resolved again and be granted
+ * another — each resolution buys exactly one. Comparing the timestamps is what makes the
+ * grant self-limiting without a counter to keep in step.
+ */
+export function calibratedRestart(s: CalibrationState): RestartState {
+  const granted = s.restartGrantedAt ?? null
+  if (!granted) return 'none'
+  const used = s.restartUsedAt ?? null
+  return used && used >= granted ? 'used' : 'available'
+}
+
+/**
+ * Why the automatic loop closed. Recorded, and shown to the operator.
+ *
+ * ⛓️ 11 Sep — `second_set_mostly_rejected` IS NO LONGER PRODUCIBLE, and this is the one place
+ * that says so. The founder's MVP1 lock names the ONLY automatic escalation trigger as an
+ * explicit client action equivalent to "Still not right", and lists what must NEVER escalate:
+ * one prospect marked Not a fit, SEVERAL marked Not a fit, an UNKNOWN prospect, silence, a
+ * timer, the model's read of the client's mood, or Attempt 2 simply completing.
+ * `second_set_mostly_rejected` is precisely "several prospects are Not a fit", inferred.
+ *
+ * ⚠️ IT IS KEPT AS A READABLE VALUE, NOT DELETED. Rows escalated under the 10-Sep rule carry
+ * it in `clients.proof_escalation_trigger`, and an operator opening one of those clients must
+ * still read why it happened. Deleting the member would render their reason as a blank.
+ * `calibrationVerdict` can no longer return it — that is the enforcement.
+ */
 export type EscalationTrigger =
-  /** The client pressed "Still not right" on the second set. */
+  /** The client pressed "Still not right" on the second set. THE ONLY LIVE TRIGGER. */
   | 'client_said_still_not_right'
-  /** Half or more of the second set rejected, and nothing marked right. */
-  | 'second_set_mostly_rejected'
-  /** They asked for another set after pass 2 — the pre-existing backstop, kept. */
+  /** They asked for another set after pass 2 — an explicit client act, and the old backstop. */
   | 'requested_more_after_pass_two'
+  /** ⛓️ HISTORICAL ONLY. Never produced since 11 Sep; see above. */
+  | 'second_set_mostly_rejected'
+
+/** The triggers `calibrationVerdict` may still return. Anything else is history. */
+export const LIVE_ESCALATION_TRIGGERS = [
+  'client_said_still_not_right', 'requested_more_after_pass_two',
+] as const
 
 export const ESCALATION_TRIGGER_COPY: Record<EscalationTrigger, string> = {
   client_said_still_not_right: 'The client said the second set still was not right.',
-  second_set_mostly_rejected: 'Half or more of the second set was marked "Not a fit", and nothing was marked right.',
   requested_more_after_pass_two: 'The client asked for another set after both attempts were used.',
+  second_set_mostly_rejected: 'Half or more of the second set was marked "Not a fit", and nothing was marked right. (Historical — this no longer escalates on its own.)',
 }
 
 /** What the client did, if anything, that we are judging. */
@@ -158,19 +275,24 @@ export function calibrationVerdict(s: CalibrationState, signal: ClientSignal): C
     return { close: true, trigger: 'client_said_still_not_right' }
   }
 
-  if (second && second.surfaced > 0) {
-    // 🛑 HALF OR MORE REJECTED AND NOTHING KEPT. The client has not pressed anything
-    // conclusive, but they have told us plainly by marking the set. Waiting for them to ask
-    // a third time is waiting for them to try to spend our money, which is the thing this
-    // rule exists to prevent.
-    //
-    // ⚠️ `looksRight === 0` IS PART OF THE TEST, not a detail. Ten rejections beside two
-    // "looks right" is a set we can still learn from and a client who is engaging; ten
-    // rejections and nothing kept is a targeting failure.
-    if (second.looksRight === 0 && second.notAFit * 2 >= second.surfaced) {
-      return { close: true, trigger: 'second_set_mostly_rejected' }
-    }
-  }
+  // ── 🛑 ⛓️ 11 Sep — WHAT USED TO BE HERE, AND WHY IT IS GONE ─────────────────────────
+  //
+  // A branch closed the loop when half or more of the second set was marked "Not a fit" with
+  // nothing kept. It was written to stop the client having to ask for a third paid batch
+  // before anybody took responsibility, and it reads as a kindness.
+  //
+  // 🛑 THE FOUNDER'S MVP1 LOCK FORBIDS IT BY NAME. Escalation to a human may be triggered
+  // ONLY by an explicit client action equivalent to "Still not right". Not by one prospect
+  // marked Not a fit, not by SEVERAL, not by an UNKNOWN prospect, not by silence, not by a
+  // timer, not by the model's read of the client's mood, and not by Attempt 2 completing.
+  // That branch was the "several prospects are Not a fit" case, inferred on the client's
+  // behalf — it decided a person was unhappy from a count and put them in a queue for a
+  // phone call they never asked for.
+  //
+  // ⚠️ NOTHING REPLACES IT, AND SILENCE IS THE CORRECT OUTCOME. A client who marks the second
+  // set badly and then says nothing is PAUSED: no third set, no spend, no operator work, no
+  // escalation. `second` is still read above for `whatChangedSentence`; nothing decides on it.
+  void second
 
   return { close: false }
 }
@@ -181,15 +303,49 @@ export function calibrationVerdict(s: CalibrationState, signal: ClientSignal): C
 // mine said "within one working day". He struck it: *"No SLA has been approved."* A promise
 // nobody has agreed to is worse than no promise, because the client measures us against it.
 
-/** Milla takes responsibility, then asks about the number we already hold. */
-export function escalationAsk(storedPhone: string | null | undefined): string {
+/**
+ * Milla takes responsibility, then asks for exactly what is still missing.
+ *
+ * ⛓️ 11 Sep — IT ASKED FOR THE NUMBER ONLY, AND THE HUMAN PATH NEEDS A NAME TOO. The founder's
+ * lock: before human calibration, ensure the required contact details exist — NAME and PHONE.
+ * An operator with a number and no name opens the call with "hello, is that… the company?"
+ *
+ * ⚠️ WHAT WE ALREADY HOLD IS NOT ASKED FOR AGAIN. A client who gave their name at signup is
+ * confirmed, not re-interviewed — "If already known: do not ask redundantly."
+ *
+ * ⚠️ AND NOTHING IS INVENTED. A missing number is ASKED for; it is never inferred from a
+ * website, a domain, a provider record or anything else on the account.
+ */
+export function escalationAsk(
+  storedPhone: string | null | undefined,
+  storedName?: string | null,
+): string {
   const opener =
     "I'm not getting the targeting right enough yet, and I don't want to keep showing you the wrong people. " +
     'I’d like a person to help get this calibrated properly. '
   const phone = (storedPhone ?? '').trim()
-  return phone
-    ? `${opener}Is ${phone} still the best number to reach you on?`
-    : `${opener}What’s the best number to reach you on?`
+  const name = (storedName ?? '').trim()
+
+  if (phone && name) return `${opener}Is ${phone} still the best number to reach you on, ${name}?`
+  if (phone) return `${opener}Is ${phone} still the best number to reach you on — and who should they ask for?`
+  if (name) return `${opener}What’s the best number to reach you on, ${name}?`
+  return `${opener}What’s the best number to reach you on, and who should they ask for?`
+}
+
+/**
+ * 🛑 MAY THE HUMAN CALIBRATION CALL ACTUALLY HAPPEN? Name and phone, both.
+ *
+ * ⚠️ IT IS A READING, NOT A GATE ON THE ESCALATION ITSELF. A client escalates the moment they
+ * say "Still not right"; whether we can yet phone them is a separate question, and holding
+ * the escalation back until they answer would lose the very signal we must not miss.
+ */
+export function calibrationContactReady(
+  phone: string | null | undefined, name: string | null | undefined,
+): { ready: boolean; missing: ('name' | 'phone')[] } {
+  const missing: ('name' | 'phone')[] = []
+  if (!(name ?? '').trim()) missing.push('name')
+  if ((phone ?? '').trim().length < 6) missing.push('phone')
+  return { ready: missing.length === 0, missing }
 }
 
 /** After the client confirms or gives a number. No SLA, and it says what is paused. */
@@ -230,9 +386,21 @@ export function spendDoors(s: CalibrationState): SpendDoors {
       chatSourcingRequest: false,
     }
   }
+  // ⚑ 11 Sep (C39) — AND THE ONE GRANTED RESTART OPENS THIS DOOR, NOTHING ELSE DOES.
+  //
+  // 🛑 THE DEFECT THIS FIXES. `POST /operator/proof-review/:id/restart` recorded a grant and
+  // its own comment said "the ordinary Proof path becomes available once more for exactly one
+  // pass". It was not: this function answered `passesDone < 2`, which is false at 2 for ever,
+  // and `try_claim_proof_pass` refuses at 2 for ever. The operator pressed a real button, an
+  // audit row was written, and the client got nothing. That is C39, and it was live.
+  //
+  // ⚠️ IT IS NOT A WIDER AUTOMATIC ALLOWANCE. `under` is unchanged; this is a second, narrow
+  // condition that requires a human resolution behind it and closes again the moment the
+  // restart is spent.
   const under = s.passesDone < 2
+  const restart = calibratedRestart(s)
   return {
-    automaticProofPass: under,
+    automaticProofPass: under || restart === 'available',
     strongerExamplesControl: mayRequestStrongerSet(s),
     // ⚠️ NEITHER OF THESE MAY EVER SOURCE ON ITS OWN, at any pass count. They are requests to
     // a person (Vida → Asks), which is what they already were — this states it as a rule so a
@@ -290,6 +458,22 @@ export interface ProofUiState {
    * client had already answered.
    */
   completed: boolean
+  /**
+   * ⚑ 11 Sep (C39) — WHERE THE ONE HUMAN-AUTHORISED RESTART STANDS.
+   *
+   * ⚠️ IT IS NOT AN ATTEMPT COUNT AND MUST NEVER BE RENDERED AS "Attempt 3". `attempt` above
+   * stays at 2 for ever once both automatic passes are spent; this says whether a person has
+   * bought the client exactly one more set, and whether it has been spent.
+   */
+  restart: RestartState
+  /**
+   * The control that actually spends the granted restart.
+   *
+   * ⚠️ THE GRANT DOES NOT RUN. An operator pressing "Restart Proof (calibrated)" says "the
+   * targeting is fixed now" — putting a paid provider call behind that press would spend on
+   * the operator's timing rather than the client's. The client asks for the set.
+   */
+  showCalibratedSet: boolean
 }
 
 /** What each reason code means as a CHANGE — the verb, not the complaint. */
@@ -339,7 +523,9 @@ export function whatChangedSentence(first: AttemptSummary | null | undefined): s
  * "I've paused finding people until we've spoken" — a screen still offering to look again
  * would make that sentence a lie.
  */
-export function proofUiState(s: CalibrationState, phone: string | null, phoneConfirmed: boolean): ProofUiState {
+export function proofUiState(
+  s: CalibrationState, phone: string | null, phoneConfirmed: boolean, contactName: string | null = null,
+): ProofUiState {
   const base = {
     attempt: s.passesDone,
     showStronger: false, strongerEnabled: false, strongerHint: null as string | null,
@@ -347,6 +533,8 @@ export function proofUiState(s: CalibrationState, phone: string | null, phoneCon
     whatChanged: null as string | null, ask: null as string | null,
     headline: null as string | null, detail: null as string | null,
     completed: false,
+    restart: calibratedRestart(s),
+    showCalibratedSet: false,
   }
 
   // ── 🛑 10 Sep (A) — ACCEPTED IS CHECKED FIRST, AND IT RETIRES EVERYTHING ─────────────
@@ -368,7 +556,7 @@ export function proofUiState(s: CalibrationState, phone: string | null, phoneCon
       ...base,
       escalated: true,
       // Before the number is confirmed Milla is still asking; after it, the calm state.
-      ask: phoneConfirmed ? null : escalationAsk(phone),
+      ask: phoneConfirmed ? null : escalationAsk(phone, contactName),
       headline: phoneConfirmed ? ESCALATED_HEADLINE : null,
       detail: phoneConfirmed ? ESCALATED_DETAIL : null,
     }
@@ -377,6 +565,19 @@ export function proofUiState(s: CalibrationState, phone: string | null, phoneCon
   const first = s.attempts.find(a => a.pass === 1) ?? null
 
   if (s.passesDone >= 2) {
+    // ── ⚑ 11 Sep (C39) — A HUMAN HAS BOUGHT THEM ONE MORE SET ──────────────────────────
+    //
+    // ⚠️ THIS IS THE ONLY WAY A THIRD BATCH CAN EXIST, and it required a person to call the
+    // client, correct the targeting and write down what was agreed. It is offered INSTEAD of
+    // "Still not right", because they have already said that and somebody acted on it.
+    if (base.restart === 'available') {
+      return {
+        ...base, escalated: false,
+        showTheseAreRight: true,
+        showCalibratedSet: true,
+        whatChanged: whatChangedSentence(first),
+      }
+    }
     return {
       ...base, escalated: false,
       showTheseAreRight: true,

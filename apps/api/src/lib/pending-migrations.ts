@@ -4070,6 +4070,61 @@ COMMENT ON COLUMN public.clients.proof_calibrated_restart_at IS
 `.trim(),
   },
   {
+    // ── ⚑ 11 Sep (C39 / C23) — THE RESTART CAN BE SPENT, AND A REFINEMENT CAN BE MEANT ──
+    //
+    // 🛑 C39, AND IT WAS LIVE. 20260910 added `proof_calibrated_restart_at` — that an operator
+    // GRANTED the one human-authorised extra Proof pass. Nothing recorded that the client had
+    // SPENT it, and nothing let the pass be claimed: `spendDoors` answered
+    // `proof_passes_done < 2` (false at 2, for ever) and `try_claim_proof_pass` refuses at 2
+    // for ever. The operator pressed a real button, an audit row was written, and the client
+    // got nothing. The grant bought a pass that could not be taken.
+    //
+    //   proof_calibrated_restart_used_at — when the granted restart was CONSUMED. Granted and
+    //     used are DIFFERENT FACTS: with only the first, the grant either buys nothing (the
+    //     count still refuses) or buys unlimited sets (it never expires). Both were live.
+    //   proof_calibration_resolved_by — who recorded the human resolution. The operator audit
+    //     log holds the action; this keeps the identity on the row an operator reads.
+    //
+    // 🛑 AND C23. Attempt 2 is real paid sourcing against a target the client is supposed to
+    // have corrected. Milla may PROPOSE what she thinks they meant; nothing recorded whether
+    // they AGREED, so the second and last automatic attempt could be spent on the model's
+    // reading of a sentence.
+    //
+    //   proof_refinement_text         — the client's own words, never the interpretation.
+    //   proof_refinement_proposed_at  — an interpreted change was put back to them.
+    //   proof_refinement_confirmed_at — they confirmed it. The gate Attempt 2 waits behind.
+    //
+    // ⚠️ `proof_passes_done` IS NOT TOUCHED, and neither is `try_claim_proof_pass`. The two
+    // automatic attempts are spent for ever. This is a separate door, never a wider one.
+    //
+    // Additive, nullable, no defaults, no backfill, idempotent.
+    key: '20260911_proof_restart_and_refinement',
+    title: 'clients: the calibrated restart can be spent once, and a refinement can be confirmed (C39/C23)',
+    sql: `
+ALTER TABLE public.clients
+  ADD COLUMN IF NOT EXISTS proof_calibrated_restart_used_at timestamptz,
+  ADD COLUMN IF NOT EXISTS proof_calibration_resolved_by    text,
+  ADD COLUMN IF NOT EXISTS proof_refinement_text            text,
+  ADD COLUMN IF NOT EXISTS proof_refinement_proposed_at     timestamptz,
+  ADD COLUMN IF NOT EXISTS proof_refinement_confirmed_at    timestamptz;
+
+COMMENT ON COLUMN public.clients.proof_calibrated_restart_used_at IS
+  'When the granted calibrated restart was CONSUMED by a Proof claim. A restart is available only while proof_calibrated_restart_at is NEWER than this, so one grant buys exactly one set. It never resets proof_passes_done and try_claim_proof_pass is untouched.';
+
+COMMENT ON COLUMN public.clients.proof_calibration_resolved_by IS
+  'The operator who recorded the human calibration resolution. The operator audit log holds the action; this keeps the identity on the row the next operator reads.';
+
+COMMENT ON COLUMN public.clients.proof_refinement_text IS
+  'What the client said to refine their targeting, IN THEIR OWN WORDS. Never the models interpretation of it, and never a provider label.';
+
+COMMENT ON COLUMN public.clients.proof_refinement_proposed_at IS
+  'When an interpreted refinement was proposed back to the client. A proposal on its own never sources: it CLOSES the improved-set door until they confirm.';
+
+COMMENT ON COLUMN public.clients.proof_refinement_confirmed_at IS
+  'When the client confirmed the interpreted refinement. This is the only thing that reopens the door to automatic Attempt 2.';
+`.trim(),
+  },
+  {
     // ── ⚑ 10 Sep (C03) — THE CLIENT'S OWN OUTCOME, AND IT HAD NOWHERE TO LIVE ───────────
     //
     // During onboarding the client said "Book qualified meetings with those founders and

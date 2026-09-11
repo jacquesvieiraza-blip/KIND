@@ -26,6 +26,19 @@ create table if not exists public.clients (
   proof_phone_confirmed_at timestamptz,
   proof_calibration_note text,
   proof_calibrated_restart_at timestamptz,
+  -- ⚑ 11 Sep (C39/C23) — the restart's SECOND fact, and the refinement gate. Migration:
+  -- 20260911_proof_restart_and_refinement.
+  --   `_used_at` is what makes the grant spendable AND self-limiting: with only `_at`, the
+  --   grant either bought nothing (proof_passes_done stays 2 and the claim RPC refuses at 2)
+  --   or bought unlimited sets, because nothing recorded that it had been taken.
+  --   The refinement columns gate Attempt 2: the model INTERPRETING a sentence is not the
+  --   client agreeing to it, and Attempt 2 is real paid sourcing.
+  -- Neither touches proof_passes_done, and try_claim_proof_pass is unchanged.
+  proof_calibrated_restart_used_at timestamptz,
+  proof_calibration_resolved_by text,
+  proof_refinement_text text,
+  proof_refinement_proposed_at timestamptz,
+  proof_refinement_confirmed_at timestamptz,
   -- ⚑ 10 Sep (C03) — what the client said they want, stated once. Client-level: it
   -- survives ICP revisions and predates any programme. NOT meeting_target.
   -- Migration: 20260910_client_stated_outcome.

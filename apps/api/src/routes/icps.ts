@@ -4995,9 +4995,12 @@ icpRouter.post('/:id/proof', async (req: AuthRequest, res) => {
     //
     // ⚠️ THE UI IS NOT THE SAFETY BOUNDARY (founder-locked). The screen hides its Proof
     // controls when escalated; this is the control.
+    // ⚑ 11 Sep (C39) — set when THIS request spends the one human-authorised restart, so the
+    // claim below is skipped and the batch can be recorded as what it is.
+    let calibratedRestart = false
     {
-      const { readCalibration } = await import('../lib/proof-calibration-io')
-      const { SPEND_CLOSED_REFUSAL } = await import('../lib/proof-calibration')
+      const { readCalibration, claimCalibratedRestart } = await import('../lib/proof-calibration-io')
+      const { SPEND_CLOSED_REFUSAL, calibratedRestart: restartStand } = await import('../lib/proof-calibration')
       try {
         const cal = await readCalibration(clientId)
         // ⛓️ 10 Sep — THE CONDITION IS `escalated`, NOT `!doors.automaticProofPass`, AND THE
@@ -5014,6 +5017,36 @@ icpRouter.post('/:id/proof', async (req: AuthRequest, res) => {
           res.status(409).json({ success: false, error: SPEND_CLOSED_REFUSAL })
           return
         }
+
+        // ── 🛑 ⚑ 11 Sep (C39) — THE ONE HUMAN-AUTHORISED RESTART, ACTUALLY SPENT ────────
+        //
+        // 🛑 THIS IS THE DEFECT. `POST /operator/proof-review/:id/restart` granted a restart
+        // and said the Proof path "becomes available once more for exactly one pass". It did
+        // not: `try_claim_proof_pass` refuses at `proof_passes_done >= 2` for ever, and the
+        // count is never reset. The operator pressed a real button, an audit row was written,
+        // and the client could not get a set.
+        //
+        // ⚠️ IT IS CLAIMED HERE INSTEAD OF THE RPC, AND THE RPC IS NOT CHANGED. Giving
+        // `try_claim_proof_pass` an exception would widen the one control that currently
+        // cannot be argued with. `proof_passes_done` stays at 2 — this is a second, narrower
+        // door, not a wider one.
+        //
+        // ⚠️ AND IT IS CLAIMED BEFORE ANYTHING IS SOURCED. If the run then fails, the restart
+        // is spent and there is no automatic retry — the same rule, and the same reason, as
+        // the automatic claim below: an automatic retry is the race that mints an extra batch.
+        if (restartStand(cal) === 'available') {
+          const claim = await claimCalibratedRestart(clientId)
+          if (!claim.ok) {
+            // ⚠️ FAIL CLOSED (C43). A restart we could not claim is a restart that was not
+            // granted — never a reason to fall through to the automatic path, which would
+            // reach the RPC, be refused, and open a SECOND escalation on a client a person
+            // has just finished calibrating.
+            res.status(claim.reason === 'unreadable' ? 503 : 409)
+              .json({ success: false, error: claim.detail, retryable: claim.reason === 'unreadable' })
+            return
+          }
+          calibratedRestart = true
+        }
       } catch (err) {
         // ⛓️ 10 Sep — THIS REFUSED ON AN UNREADABLE READ, AND THAT WAS THE WRONG SHAPE.
         //
@@ -5026,15 +5059,48 @@ icpRouter.post('/:id/proof', async (req: AuthRequest, res) => {
         // lives in `try_claim_proof_pass`, which refuses a third claim whatever this read
         // said. So an unreadable calibration state cannot mint a paid batch; it can only
         // fail to add the newer, narrower refusal. We log it and let the RPC decide.
-        console.error(`[icps/proof] calibration state unreadable for client ${clientId} — deferring to try_claim_proof_pass:`, err)
+        // ── 🛑 ⛓️ 11 Sep (C43) — AN UNREADABLE STATE MAY NO LONGER FALL THROUGH SILENTLY ──
+        //
+        // The reasoning below was right about the AUTOMATIC path and wrong about the one that
+        // now exists. `try_claim_proof_pass` genuinely is a real backstop for automatic
+        // attempts, so continuing could not mint a paid batch — while the restart was the
+        // only other door and it did not work.
+        //
+        // 🛑 IT WORKS NOW, AND THE RPC DOES NOT GUARD IT. With the calibrated restart
+        // claimable here, "we could not read the calibration state" means we do not know
+        // whether this client is escalated, whether a restart was granted, or whether it has
+        // already been spent — and the one thing we must not do with that answer is source.
+        // The founder's rule: uncertain authority state must FAIL SAFE, do not expose restart
+        // because the read failed, and do not spend.
+        //
+        // ⚠️ IT IS 503-RETRYABLE AND SAYS NOTHING WAS SPENT, so the client is not told a
+        // final-sounding refusal for a transient fault, and an operator sees a real error
+        // rather than a silent fall-through.
+        console.error(`[icps/proof] calibration state unreadable for client ${clientId} — REFUSING (C43):`, err)
+        res.status(503).json({
+          success: false, retryable: true,
+          error: 'We could not check where your Proof stands just yet, so nothing was started and nothing was spent. Please try again shortly.',
+        })
+        return
       }
     }
 
     // Atomic: two requests racing for pass 2 give exactly one claimant. Pass 3 is always 0.
     // If something fails after this claim, the pass is spent and there is NO automatic
     // retry — an automatic retry is precisely the race that would mint a third free batch.
-    const { data: pass } = await db.rpc('try_claim_proof_pass', { p_client_id: clientId })
-    const claimed = typeof pass === 'number' ? pass : 0
+    //
+    // ⚑ 11 Sep (C39) — AND IT IS SKIPPED ENTIRELY WHEN THE RESTART WAS JUST CLAIMED. The
+    // restart is not an automatic attempt: calling the RPC here would be refused (the count
+    // is 2 and stays 2), and the refusal branch below would open a second escalation on a
+    // client a person has just finished calibrating.
+    const { data: pass } = calibratedRestart
+      ? { data: null }
+      : await db.rpc('try_claim_proof_pass', { p_client_id: clientId })
+    // ⚠️ 3 IS A ROW LABEL, NEVER AN ALLOWANCE — see `CALIBRATED_RESTART_PASS`. It reaches
+    // `leads.proof_pass` so the attempt history can still tell the restart from the two
+    // automatic attempts; `proof_passes_done` is untouched and stays at 2.
+    const { CALIBRATED_RESTART_PASS, attemptLabel: attemptLabelFor } = await import('../lib/proof-calibration')
+    const claimed = calibratedRestart ? CALIBRATED_RESTART_PASS : (typeof pass === 'number' ? pass : 0)
     if (claimed <= 0) {
       // ⚑ 27 Aug (PR2) — THE PROMISE BECOMES A PIECE OF WORK.
       //
@@ -5166,14 +5232,21 @@ icpRouter.post('/:id/proof', async (req: AuthRequest, res) => {
         await recordRunOutcome(req.params.id, clientId, 'failed', PROOF_PASS_LEADS, 0, 0)
           .catch(re => console.error('[icps/proof] could not record the failed outcome:', re))
         void sendFounderAlert('source_down', 'A free-proof run crashed — the prospect is waiting on a desk that cannot finish', [
-          `Prospect ${clientId}, ICP ${req.params.id}, pass ${claimed} of 2.`,
+          `Prospect ${clientId}, ICP ${req.params.id}, ${attemptLabelFor(claimed)}.`,
           `Reason: ${e instanceof Error ? e.message : String(e)}`,
           'Their proof pass is CONSUMED and no run outcome was recorded, so the desk shows no terminal state for this attempt.',
           'If this reads SAFE_TEST_MODE / PAID_PROVIDERS_ENABLED, the guard refused to spend — that is correct behaviour, not a bug.',
         ]).catch(() => {})
       })
 
-    res.json({ success: true, data: { pass: claimed, of: 2, finding: true } })
+    // ⚠️ "pass 3 of 2" IS THE SENTENCE THIS AVOIDS. The restart is not an automatic attempt
+    // and must never be numbered as one on either surface — see `attemptLabel`.
+    res.json({
+      success: true,
+      data: calibratedRestart
+        ? { pass: claimed, label: attemptLabelFor(claimed), calibrated_restart: true, finding: true }
+        : { pass: claimed, of: 2, label: attemptLabelFor(claimed), finding: true },
+    })
   } catch (err) {
     console.error('[icps/proof]', err)
     res.status(500).json({ success: false, error: 'Could not start your proof batch' })

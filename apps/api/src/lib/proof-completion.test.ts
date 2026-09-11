@@ -228,14 +228,34 @@ describe('🛑 ④ the satisfied-client escalation defect (#1673) is closed', ()
     expect(calibrationVerdict(half, 'gave_feedback').close, 'a half-happy set escalated').toBe(false)
   })
 
-  it('⚠️ NON-VACUOUS: a genuinely rejected second set still escalates', () => {
+  // ⛓️ 11 Sep — THIS CASE IS INVERTED, NOT DELETED, AND IT IS THE SAME FIXTURE.
+  //
+  // It used to prove the guard above was NON-VACUOUS: a genuinely rejected second set still
+  // escalated, so "a half-happy set does not escalate" was a real distinction rather than a
+  // rule that never fired. The founder's MVP1 lock removed the distinction entirely —
+  // escalation may be triggered ONLY by an explicit client action equivalent to "Still not
+  // right", and NOT because several prospects are Not a fit.
+  //
+  // ⚠️ THE NON-VACUOUSNESS CLAIM IS KEPT, AND MOVED TO THE THING THAT STILL DECIDES: the same
+  // rejected set escalates the moment the client SAYS so, and not before. Without that second
+  // assertion this case would pass against a `calibrationVerdict` that never closes at all.
+  it('🛑 B · a genuinely rejected second set does NOT escalate on its own…', () => {
     const rejected = state({
       passesDone: 2,
       attempts: [attempt({ pass: 2, surfaced: 20, looksRight: 0, notAFit: 14, reasons: { wrong_industry: 14 } })],
     })
-    const v = calibrationVerdict(rejected, 'gave_feedback')
+    expect(calibrationVerdict(rejected, 'gave_feedback').close, 'marking the set escalated it').toBe(false)
+    expect(calibrationVerdict(rejected, 'none').close, 'silence escalated it').toBe(false)
+  })
+
+  it('⚠️ NON-VACUOUS: …and the SAME set escalates the moment the client says "Still not right"', () => {
+    const rejected = state({
+      passesDone: 2,
+      attempts: [attempt({ pass: 2, surfaced: 20, looksRight: 0, notAFit: 14, reasons: { wrong_industry: 14 } })],
+    })
+    const v = calibrationVerdict(rejected, 'still_not_right')
     expect(v.close).toBe(true)
-    expect(v.close === true && v.trigger).toBe('second_set_mostly_rejected')
+    expect(v.close === true && v.trigger).toBe('client_said_still_not_right')
   })
 
   it('the feedback write can never fail the client\'s reaction', () => {

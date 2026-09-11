@@ -119,8 +119,10 @@ authRouter.post('/onboard', async (req, res) => {
     const now = new Date().toISOString()
 
     // Check if client already exists (and whether signup consent is already on record).
+    // ⚑ MVP1 (C27) — `contact_email` is read here so the writer below can fill it ONLY when
+    // it is empty. See that block for why it is never overwritten.
     const { data: existing } = await db.from('clients')
-      .select('id, signup_terms_accepted_at').eq('user_id', user.id).maybeSingle()
+      .select('id, signup_terms_accepted_at, contact_email').eq('user_id', user.id).maybeSingle()
 
     // P4 — self-referral loophole: a client can never be their own referrer. Ignore
     // the ref when it resolves to the caller's own client row.
@@ -196,6 +198,45 @@ authRouter.post('/onboard', async (req, res) => {
       if (nameErr) console.warn('[onboard] contact_name not stored (run 20260726_client_contact_name):', nameErr.message)
     }
 
+    // ── ⚑ MVP1 (C27) — THE ADDRESS CHECKOUT REFUSES TO WORK WITHOUT ───────────────────
+    //
+    // 🛑 `clients.contact_email` HAD NO WRITER ANYWHERE IN THE REPO. The column has existed
+    // since 20260710 and TWO money routes fail closed on it before they will mint a Stripe
+    // session — `routes/programme.ts:49` and `routes/my-programme.ts:247` — because Stripe
+    // accepts a session with no `customer_email` and the client would simply never get a
+    // receipt. Both were right to refuse. Nothing ever filled the column, so Payment 1 was
+    // unreachable for every client who has ever signed up, and with it every stage after it.
+    //
+    // ⚠️ THIS IS NOT A NEW FACT TO COLLECT. It is the address they authenticated with,
+    // already in hand at the top of this handler, and it is the correct address to receipt
+    // to — a client cannot receive mail at an account they cannot sign in to.
+    //
+    // ⚠️ FILL WHEN EMPTY, NEVER OVERWRITE. The login address is the DEFAULT, not an
+    // override. An operator who corrected a billing address by hand in Vida must not have it
+    // silently undone the next time the client touches onboarding — that is the same
+    // class of defect as the pool country overwrite (`.is('country', null)`), and the same
+    // answer applies.
+    //
+    // ⚠️ BEST-EFFORT, LIKE `contact_name` ABOVE AND FOR THE SAME REASON. Inside the insert
+    // payload a missing column fails the whole insert — i.e. it would break every signup on
+    // a database where 20260710 has not run. Written separately, logged, swallowed.
+    const authEmail = (user.email ?? '').trim().slice(0, 320)
+    if (authEmail && !(existing as { contact_email?: string | null } | null)?.contact_email) {
+      const { error: mailErr } = await db.from('clients')
+        .update({ contact_email: authEmail }).eq('id', clientId)
+      if (mailErr) {
+        console.warn('[onboard] contact_email not stored (run 20260710_client_contact_email):', mailErr.message)
+        // ⚠️ LOUD, because the consequence is silent. Without this column the client reaches
+        // Programme, sees a price, presses pay and is refused — and nothing in that journey
+        // tells anybody why. A warning in a log nobody reads is how C27 survived this long.
+        void sendFounderAlert('new_signup', 'A client was created who cannot reach checkout', [
+          `Client ${clientId} (${authEmail}) has no contact_email stored: ${mailErr.message}`,
+          'Both programme checkout routes refuse without it, so this client cannot make Payment 1.',
+          'Fix: apply the clients.contact_email migration, then set the address in Vida.',
+        ])
+      }
+    }
+
     // Record partner referral attribution (idempotent — unique(client_id)).
     if (partnerRef) {
       // #349 — this used to end in `.then(() => {}, () => {})`, which discarded the error
@@ -268,11 +309,22 @@ authRouter.post('/onboard', async (req, res) => {
         `No freebies — they start at $0 and must load $${PACK_PRICE_USD} to begin. Assign a pooled inbox once they've paid.`,
       ])
     }
-    fetch(`${process.env.API_INTERNAL_URL || `http://localhost:${process.env.PORT || 4000}`}/founder/cs/followup`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-admin-key': process.env.ADMIN_SECRET_KEY || '' },
-      body: JSON.stringify({ client_id: clientId, step: 'day1' }),
-    }).catch(() => {})
+    // ── ⚑ MVP1 (C22) — ONE ONBOARDING EMAIL, NOT TWO ──────────────────────────────────
+    //
+    // 🛑 REMOVED: a fire-and-forget POST to `/founder/cs/followup` with `step: 'day1'`, which
+    // generated a CS follow-up with a model and sent it to the client who had just received
+    // `sendWelcomeEmail` above. Two onboarding emails from one signup, the second written by
+    // nobody and chosen by nobody. The MVP1 rule is one.
+    //
+    // ⚠️ THE ROUTE IS NOT DELETED, and deliberately so. `/founder/cs/followup` remains a
+    // real operator surface — an operator may still send a follow-up on purpose, by client
+    // id, having decided to. What is gone is the automatic call at signup.
+    //
+    // ⚠️ AND IT WAS A `fetch` FROM THE API TO ITSELF. Fire-and-forget, `.catch(() => {})`,
+    // through `API_INTERNAL_URL` or a guessed localhost port — so on any host where that
+    // guess was wrong it failed silently every single time and nobody could have known.
+    // Guarded by `onboard-brief.route.test.ts`, which asserts the handler makes NO outbound
+    // HTTP call at signup.
 
     res.json({ success: true, data: { id: clientId } })
   } catch (err) {

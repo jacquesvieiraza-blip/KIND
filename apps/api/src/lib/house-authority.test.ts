@@ -114,6 +114,16 @@ vi.mock('@kind/db', () => ({
   },
 }))
 vi.mock('./alerts', () => ({ sendFounderAlert: () => Promise.resolve() }))
+// ⚑ 11 Sep (C38) — INTERNAL P1 AUTHORITY IS NOW HOUSE-ONLY, so the fixtures have to say who
+// House is. `client_id: 'house'` throughout this file is exactly that account; a real client's
+// programme is refused, which is the whole point and is asserted below.
+vi.mock('./real-clients', () => ({
+  getExcludedClientIds: async () => {
+    if (houseState.unreadable) throw new Error('the client exclusions could not be read')
+    return new Set(houseState.internal)
+  },
+}))
+const houseState = { internal: ['house'] as string[], unreadable: false }
 
 import {
   p1Authorised, p2Authorised, authoriseFirstInternal, authoriseSecondInternal,
@@ -234,6 +244,42 @@ describe('② internal P1 may only be recorded from AWAITING_FIRST_PAYMENT', () 
     for (const money of ['first_paid_at', 'first_payment_ref', 'first_payment_intent_id']) {
       expect(patch, `internal authority must never write ${money}`).not.toHaveProperty(money)
     }
+  })
+
+  // ── 🛑 ⚑ 11 Sep (C38, DAY 3) — INTERNAL MONEY IS HOUSE'S ALONE ────────────────────────
+  //
+  // 🛑 THE GAP THIS CLOSES. This door records P1 authority WITHOUT a payment, and it asked only
+  // what STATE the programme was in — so an operator with the admin key could authorise P1 on
+  // ANY programme, a real paying client's included. That is a generic operator payment
+  // override, which the founder's Day-3 lock forbids by name.
+  it('🛑 C38 · a CLIENT programme cannot be internally authorised — that is their payment', async () => {
+    dbState.programme = asRow(P({ status: 'AWAITING_FIRST_PAYMENT', client_id: 'a-real-client' }))
+    const r = await authoriseFirstInternal('prog-1')
+    expect(r.ok).toBe(false)
+    expect(r.reason).toContain('House-only')
+    expect(dbState.writes, 'authority was recorded for a client programme').toEqual([])
+  })
+
+  it('🛑 C38 · House IS authorised — the one internal-money exception, and only it', async () => {
+    dbState.programme = asRow(P({ status: 'AWAITING_FIRST_PAYMENT', client_id: 'house' }))
+    expect((await authoriseFirstInternal('prog-1')).ok).toBe(true)
+  })
+
+  it('🛑 C38 · and it FAILS CLOSED when we cannot tell whose programme it is', async () => {
+    dbState.programme = asRow(P({ status: 'AWAITING_FIRST_PAYMENT', client_id: 'house' }))
+    houseState.unreadable = true
+    const r = await authoriseFirstInternal('prog-1')
+    houseState.unreadable = false
+    expect(r.ok).toBe(false)
+    expect(r.reason).toContain('could not establish')
+    expect(dbState.writes, 'an unreadable state minted authority').toEqual([])
+  })
+
+  it('🛑 C38 · it is the MONEY exception and not a safety one — no gate is skipped', async () => {
+    // House still goes through the same state machine: a programme that is not
+    // AWAITING_FIRST_PAYMENT is refused for House exactly as for anybody else.
+    dbState.programme = asRow(P({ status: 'DRAFT', client_id: 'house' }))
+    expect((await authoriseFirstInternal('prog-1')).ok).toBe(false)
   })
 
   it('🛑 it refuses when ANY P1 payment evidence exists, the intent id included', async () => {

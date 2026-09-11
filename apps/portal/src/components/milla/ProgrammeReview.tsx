@@ -47,6 +47,13 @@ export type ReviewProspect = {
 
 export type ReviewPayload = {
   programme: { id: string; status: string; meeting_target: number | null; approved_at: string | null; paused: boolean } | null
+  /**
+   * ⚑ 11 Sep (DAY 3) — the frozen package, and WHICH VERSION of it. Only `version` is read
+   * here; the full package is rendered by `ProgrammeApproval`. It is sent back with the
+   * approval so a re-preparation between this screen rendering and the button being pressed
+   * is REFUSED rather than approved in silence.
+   */
+  frozen?: { version: string | null } | null
   prospects: ReviewProspect[]
   total: number
   /** false ⟹ the server stopped counting at its scan budget: the total is a floor, not a count. */
@@ -89,7 +96,7 @@ export default function ProgrammeReview({ token }: { token: () => Promise<string
     if (approving) return
     setApproving(true); setApproveError(null)
     try {
-      await api.post('/my/programme/approve', {}, await token())
+      await api.post('/my/programme/approve', { version: data?.frozen?.version ?? null }, await token())
       // Re-read rather than patching local state: the server is the only source of
       // `status` and `approved_at`, and guessing them here is how two surfaces start
       // disagreeing about one programme.

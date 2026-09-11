@@ -129,6 +129,15 @@ function seedProgramme(over: Row = {}) {
  * ⚠️ THE HASH IS COMPUTED FROM THIS FIXTURE'S OWN STATE, never typed in. A constant would make
  * "unchanged" a tautology and the comparison would prove nothing.
  */
+/**
+ * ⚑ 11 Sep (DAY 3) — the version the client is looking at, read back from the row the helper
+ * above froze. The approval now REQUIRES it: a client approves the exact package they read,
+ * not "whatever is frozen at the moment of the press".
+ */
+function frozenVersion(): string | null {
+  return (state.programmes.find(r => r.id === P)?.review_preparation_hash as string | null) ?? null
+}
+
 async function freezeReview() {
   const { buildPreparationSnapshot } = await import('./preparation-snapshot')
   const snap = await buildPreparationSnapshot(P)
@@ -276,7 +285,7 @@ describe('② READY_FOR_APPROVAL → APPROVED, once', () => {
     state.written = []; state.rpcs = []
 
     await freezeReview()
-    const r = await approveProgrammeAsCustomer(C, P)
+    const r = await approveProgrammeAsCustomer(C, P, frozenVersion())
 
     expect(r.ok, !r.ok ? r.reason : '').toBe(true)
     const p = state.programmes[0]
@@ -290,7 +299,7 @@ describe('② READY_FOR_APPROVAL → APPROVED, once', () => {
   it('🛑 IT DOES NOT AUTHORISE P2, GO LIVE, OR TOUCH MONEY — named, as well as allowlisted', async () => {
     seedProgramme(); prospect('L1')
     await freezeReview()
-    await approveProgrammeAsCustomer(C, P)
+    await approveProgrammeAsCustomer(C, P, frozenVersion())
     const p = state.programmes[0]
     for (const col of [
       'second_paid_at', 'second_authorised_at', 'second_payment_ref',
@@ -308,7 +317,7 @@ describe('② READY_FOR_APPROVAL → APPROVED, once', () => {
     // READY_FOR_APPROVAL with an empty desk is an inconsistency, not an approvable programme.
     seedProgramme()
     await freezeReview()
-    const r = await approveProgrammeAsCustomer(C, P)
+    const r = await approveProgrammeAsCustomer(C, P, frozenVersion())
     expect(r.ok).toBe(false)
     expect(!r.ok && r.code).toBe('nothing_to_review')
     expect(state.programmes[0].status, 'nothing moved').toBe('READY_FOR_APPROVAL')
@@ -322,7 +331,7 @@ describe('② READY_FOR_APPROVAL → APPROVED, once', () => {
     prospect('L_OLD_1', { programme_id: null })
     prospect('L_OLD_2', { programme_id: null })
     await freezeReview()
-    const r = await approveProgrammeAsCustomer(C, P)
+    const r = await approveProgrammeAsCustomer(C, P, frozenVersion())
     expect(r.ok).toBe(false)
     expect(!r.ok && r.code).toBe('nothing_to_review')
     expect(state.programmes[0].status).toBe('READY_FOR_APPROVAL')
@@ -334,7 +343,7 @@ describe('② READY_FOR_APPROVAL → APPROVED, once', () => {
   ])('🛑 a customer cannot jump stages — %s is refused', async (status) => {
     seedProgramme({ status }); prospect('L1')
     await freezeReview()
-    const r = await approveProgrammeAsCustomer(C, P)
+    const r = await approveProgrammeAsCustomer(C, P, frozenVersion())
     expect(r.ok).toBe(false)
     expect(!r.ok && r.code).toBe('wrong_state')
     expect(state.programmes[0].status).toBe(status)
@@ -344,7 +353,7 @@ describe('② READY_FOR_APPROVAL → APPROVED, once', () => {
   it.each([['COMPLETED'], ['CANCELLED']])('🛑 a terminal programme (%s) is refused', async (status) => {
     seedProgramme({ status }); prospect('L1')
     await freezeReview()
-    const r = await approveProgrammeAsCustomer(C, P)
+    const r = await approveProgrammeAsCustomer(C, P, frozenVersion())
     expect(r.ok).toBe(false)
     expect(!r.ok && r.code).toBe('terminal')
     expect(state.written).toEqual([])
@@ -353,7 +362,7 @@ describe('② READY_FOR_APPROVAL → APPROVED, once', () => {
   it('🛑 a PAUSED programme is refused', async () => {
     seedProgramme({ paused_at: 'x' }); prospect('L1')
     await freezeReview()
-    const r = await approveProgrammeAsCustomer(C, P)
+    const r = await approveProgrammeAsCustomer(C, P, frozenVersion())
     expect(r.ok).toBe(false)
     expect(!r.ok && r.code).toBe('paused')
     expect(state.programmes[0].status).toBe('READY_FOR_APPROVAL')
@@ -364,7 +373,7 @@ describe('② READY_FOR_APPROVAL → APPROVED, once', () => {
     seedProgramme(); prospect('L1')
     state.readFails.add('programmes')
     await freezeReview()
-    const r = await approveProgrammeAsCustomer(C, P)
+    const r = await approveProgrammeAsCustomer(C, P, frozenVersion())
     expect(r.ok).toBe(false)
     expect(!r.ok && r.code).toBe('unreadable')
   })
@@ -373,17 +382,70 @@ describe('② READY_FOR_APPROVAL → APPROVED, once', () => {
 // ═══════════════════════════════════════════════════════════════════════════════════════
 // ③ REPEAT AND RACE
 // ═══════════════════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// ⚑ 11 Sep (DAY 3) — THE CLIENT APPROVES THE EXACT VERSION THEY READ.
+//
+// 🛑 WHAT THIS CLOSES. Approval stamped `approved_preparation_hash` from whatever was frozen
+// AT THE MOMENT OF THE PRESS, and the client never said which package they were approving. A
+// re-preparation between the screen rendering and the button being pressed — a prospect
+// evicted, a message re-drafted, the window or the sender changed — was approved in silence.
+// The founder's rule is a NEW VERSION and a NEW APPROVAL, never a mutated one.
+// ═══════════════════════════════════════════════════════════════════════════════════════
+describe('②b the approval names its version, and a stale one is refused', () => {
+  it('🛑 a version that is no longer frozen is REFUSED, and nothing is written', async () => {
+    seedProgramme(); prospect('L1'); await freezeReview()
+    const row = state.programmes.find(r => r.id === P)!
+    const r = await approveProgrammeAsCustomer(C, P, 'the-version-they-were-reading')
+    expect(r.ok).toBe(false)
+    expect(r.ok === false && r.code).toBe('stale_version')
+    expect(row.status, 'a stale approval changed the programme').toBe('READY_FOR_APPROVAL')
+    expect(row.approved_at ?? null, 'a stale approval stamped an approval').toBeNull()
+  })
+
+  it('🛑 an approval that names NO version at all is refused', async () => {
+    seedProgramme(); prospect('L1'); await freezeReview()
+    const r = await approveProgrammeAsCustomer(C, P, null)
+    expect(r.ok).toBe(false)
+    expect(r.ok === false && r.code).toBe('stale_version')
+  })
+
+  it('the CURRENT version approves normally — the gate is not a wall', async () => {
+    seedProgramme(); prospect('L1'); await freezeReview()
+    const r = await approveProgrammeAsCustomer(C, P, frozenVersion())
+    expect(r.ok).toBe(true)
+  })
+
+  it('🛑 …and re-freezing invalidates the version the client was holding', async () => {
+    seedProgramme(); prospect('L1'); await freezeReview()
+    const held = frozenVersion()
+    // The work is re-prepared and the frozen package changes. ⚠️ THE HASH IS MOVED DIRECTLY
+    // rather than by re-running preparation: WHAT changes a package (a prospect evicted, a
+    // message re-drafted, the window or sender changed) is `preparation-snapshot`'s subject and
+    // is covered there. This case is about the APPROVAL GATE, and its premise is only that the
+    // frozen version is no longer the one the client is holding.
+    state.programmes.find(r => r.id === P)!.review_preparation_hash = 'a-newer-frozen-package'
+    expect(frozenVersion(), 'the fixture did not actually re-freeze').not.toBe(held)
+    const r = await approveProgrammeAsCustomer(C, P, held)
+    expect(r.ok).toBe(false)
+    expect(r.ok === false && r.code).toBe('stale_version')
+    // ⚠️ THE POSITIVE HALF LIVES IN ITS OWN CASE ABOVE, deliberately. Moving the hash here
+    // without moving the SNAPSHOT with it trips a different, older and entirely correct guard
+    // — "the prepared work is not the work you reviewed" — so asserting the happy path from
+    // this fixture would be asserting against a state the product cannot reach.
+  })
+})
+
 describe('③ approving twice is safe, and approved_at is written once', () => {
   it('🛑 a repeat request is idempotent and does NOT replace approved_at', async () => {
     seedProgramme(); prospect('L1')
     await freezeReview()
-    const first = await approveProgrammeAsCustomer(C, P)
+    const first = await approveProgrammeAsCustomer(C, P, frozenVersion())
     expect(first.ok).toBe(true)
     const stamp = state.programmes[0].approved_at
     state.written = []
 
     await freezeReview()
-    const second = await approveProgrammeAsCustomer(C, P)
+    const second = await approveProgrammeAsCustomer(C, P, frozenVersion())
     expect(second.ok).toBe(true)
     expect(second.ok && second.alreadyApproved, 'the repeat says so').toBe(true)
     expect(state.programmes[0].approved_at, 'the original stamp survives').toBe(stamp)
@@ -406,7 +468,7 @@ describe('③ approving twice is safe, and approved_at is written once', () => {
     }
 
     await freezeReview()
-    const r = await approveProgrammeAsCustomer(C, P)
+    const r = await approveProgrammeAsCustomer(C, P, frozenVersion())
 
     expect(r.ok).toBe(true)
     expect(r.ok && r.alreadyApproved).toBe(true)
@@ -417,9 +479,9 @@ describe('③ approving twice is safe, and approved_at is written once', () => {
   it('a repeat produces no duplicate downstream side effect', async () => {
     seedProgramme(); prospect('L1')
     await freezeReview()
-    await approveProgrammeAsCustomer(C, P)
-    await approveProgrammeAsCustomer(C, P)
-    await approveProgrammeAsCustomer(C, P)
+    await approveProgrammeAsCustomer(C, P, frozenVersion())
+    await approveProgrammeAsCustomer(C, P, frozenVersion())
+    await approveProgrammeAsCustomer(C, P, frozenVersion())
     expect(state.rpcs).toEqual([])
     expect(state.written.filter(t => t !== 'programmes')).toEqual([])
   })
@@ -514,7 +576,7 @@ describe('⑤ Milla and Vida read the same programme record', () => {
   it('Vida and Milla read one record: approval is visible through the operator read too', async () => {
     seedProgramme(); prospect('L1')
     await freezeReview()
-    await approveProgrammeAsCustomer(C, P)
+    await approveProgrammeAsCustomer(C, P, frozenVersion())
     // There is exactly one programmes row, and both surfaces read `programmes` by id. The
     // customer's approval is therefore the operator's approval — not a copy of it.
     expect(state.programmes).toHaveLength(1)
@@ -640,7 +702,7 @@ describe('⑦ permanently ineligible prospects cannot form a review or approval 
     const onDesk = set.prospects.some(p => p.id === id)
     const counted = (await countProgrammeReviewable(C, P)) > 0
     await freezeReview()
-    const approval = await approveProgrammeAsCustomer(C, P)
+    const approval = await approveProgrammeAsCustomer(C, P, frozenVersion())
     return { onDesk, counted, approved: approval.ok, total: set.total }
   }
 
@@ -742,7 +804,7 @@ describe('⑦ permanently ineligible prospects cannot form a review or approval 
     expect(set.total).toBe(0)
 
     await freezeReview()
-    const r = await approveProgrammeAsCustomer(C, P)
+    const r = await approveProgrammeAsCustomer(C, P, frozenVersion())
     expect(r.ok).toBe(false)
     expect(!r.ok && r.code).toBe('nothing_to_review')
     expect(state.programmes[0].status, 'nothing moved').toBe('READY_FOR_APPROVAL')
@@ -761,7 +823,7 @@ describe('⑦ permanently ineligible prospects cannot form a review or approval 
     expect(set.prospects.map(p => p.id)).toEqual(['Z_GOOD'])
     expect(set.total).toBe(1)
     await freezeReview()
-    const r = await approveProgrammeAsCustomer(C, P)
+    const r = await approveProgrammeAsCustomer(C, P, frozenVersion())
     expect(r.ok, !r.ok ? r.reason : '').toBe(true)
   })
 

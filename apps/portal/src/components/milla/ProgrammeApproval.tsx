@@ -41,6 +41,15 @@ export type ApprovalProspect = {
 }
 
 export type FrozenWork = {
+  /**
+   * ⚑ 11 Sep (DAY 3) — WHICH EXACT PACKAGE THIS IS, sent back with the approval.
+   *
+   * 🛑 THE CLIENT APPROVES A VERSION, NOT "whatever is frozen right now". Without this, a
+   * re-preparation between the screen rendering and the button being pressed was approved in
+   * silence — a set of people, a set of words and a sending window they had never read. The
+   * server refuses a mismatch (`stale_version`); this is the half that tells it which one.
+   */
+  version: string | null
   at: string | null
   messages: { step: number; subject: string; body: string; wait_days: number }[]
   prospects: number
@@ -114,8 +123,11 @@ export default function ProgrammeApproval({
       const { api } = await import('@/lib/api')
       const supabase = createClient()
       const { data: { session } } = await supabase.auth.getSession()
+      // ⚠️ THE VERSION THEY ARE LOOKING AT, from the payload that drew this screen. If the
+      // package has moved on since, the server refuses and Milla re-renders the current one —
+      // it never silently approves something the client has not read.
       const r = await api.post<{ data: { approved_at: string | null } }>(
-        '/my/programme/approve', {}, session?.access_token)
+        '/my/programme/approve', { version: data.frozen?.version ?? null }, session?.access_token)
       onApproved(r.data?.approved_at ?? null)
     } catch (e) {
       // ⚠️ THE SERVER'S SENTENCE, NOT A CHEERFUL ONE OF OURS. It is the thing that knows why.

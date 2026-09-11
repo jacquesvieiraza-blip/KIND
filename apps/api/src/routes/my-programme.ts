@@ -133,6 +133,21 @@ myProgrammeRouter.get('/review', async (req: AuthRequest, res) => {
     })()
     const rawSteps = Array.isArray(snapObj?.steps) ? snapObj.steps as Record<string, unknown>[] : []
     const frozen = snapObj ? {
+      /**
+       * ⚑ 11 Sep (DAY 3) — WHICH EXACT VERSION THIS IS, and the client sends it back when they
+       * approve.
+       *
+       * 🛑 THE GAP THIS CLOSES. Approval recorded `approved_preparation_hash` from whatever
+       * was frozen AT THE MOMENT OF THE PRESS. The client never said which version they were
+       * approving — so a re-preparation between the screen rendering and the button being
+       * pressed was approved silently, and the founder's rule is the opposite: never mutate an
+       * approved frozen version underneath the client; a change means a NEW version and a NEW
+       * approval.
+       *
+       * ⚠️ IT IS AN OPAQUE VERSION STRING TO THE CLIENT, not "our plumbing" — it identifies
+       * the package they are reading and nothing else.
+       */
+      version: (p as unknown as { review_preparation_hash?: string | null }).review_preparation_hash ?? null,
       at: (p as unknown as { review_preparation_at?: string | null }).review_preparation_at ?? null,
       messages: rawSteps.map((st, i) => ({
         step: i + 1,
@@ -231,6 +246,34 @@ async function programmeCheckout(
     }
     if (firstInternallyAuthorised(p)) {
       res.status(409).json({ success: false, error: 'internally_authorised', message: 'This programme is authorised internally and owes nothing.' }); return
+    }
+    // ── 🛑 ⚑ 11 Sep (DAY 3) — P1 IS NOT EXPOSED UNTIL THE CLIENT HAS ACCEPTED ─────────
+    //
+    // 🛑 THE GAP THIS CLOSES. `POST /programme/me/accept` exists and persists
+    // `recommendation_accepted_at`, and NOTHING read it before charging. So the first payment
+    // was reachable for a client who had only ever SEEN the recommendation: the calculator
+    // renders, the checkout button posts, Stripe opens. Viewing is not accepting, and the
+    // recommendation is a TARGET rather than a guarantee — being asked for money against a
+    // target nobody agreed to is the defect.
+    //
+    // ⚠️ IT REFUSES BEFORE A STRIPE SESSION IS CREATED, so nothing is minted, nothing is
+    // charged, and the answer names the missing act rather than reading as a fault.
+    //
+    // ⚠️ AND IT IS THE SERVER'S CHECK. Milla hides the payment step until acceptance is
+    // recorded; a hidden button is a courtesy and this is the control.
+    //
+    // ⚠️ FAIL-CLOSED ONLY WHERE THE COLUMN EXISTS. On a database where
+    // `20260910_programme_calculator_choice` has not run the field reads `undefined`, which
+    // would refuse every first payment in the book — so an ABSENT column is treated as the
+    // pre-migration world and lets the old behaviour stand, while an explicit `null` (the
+    // column exists, nobody accepted) refuses.
+    const acceptance = (p as unknown as { recommendation_accepted_at?: string | null })
+    if ('recommendation_accepted_at' in acceptance && !acceptance.recommendation_accepted_at) {
+      res.status(409).json({
+        success: false, error: 'not_accepted',
+        message: 'This recommendation has not been accepted yet. Accept it with Milla and the first payment step opens. Nothing has been charged.',
+      })
+      return
     }
     if (p.status !== 'RECOMMENDED' && p.status !== 'AWAITING_FIRST_PAYMENT') {
       res.status(409).json({ success: false, error: 'wrong_state', message: `This programme is ${p.status}, so the first payment is not due.` }); return
@@ -393,8 +436,11 @@ myProgrammeRouter.post('/approve', async (req: AuthRequest, res) => {
     const p = await openProgrammeForSession(clientId)
     if (!p) { res.status(404).json({ success: false, error: 'not_found', message: 'No such programme.' }); return }
 
+    // ⚠️ THE VERSION THE CLIENT WAS LOOKING AT, sent back with the press. See `frozen.version`
+    // above and the refusal in `approveProgrammeAsCustomer`.
+    const version = typeof req.body?.version === 'string' ? req.body.version.trim() : ''
     const { approveProgrammeAsCustomer } = await import('../lib/programme')
-    const r = await approveProgrammeAsCustomer(clientId, p.id)
+    const r = await approveProgrammeAsCustomer(clientId, p.id, version || null)
 
     if (!r.ok) {
       // ⚠️ THE STATUS CODE CARRIES THE MEANING, so Milla can tell "not yet" from "broken".

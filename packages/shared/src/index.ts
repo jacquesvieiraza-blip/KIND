@@ -16,3 +16,6 @@ export * from './programme-pricing'
 // volume comes from `programme-pricing`. See its header for the committed/illustrative split.
 export * from './programme-calculator'
 export * from './programme-stage'
+// ⚑ MVP1 — the SIX visible stages per console, projected from the engine truth above. One
+// vocabulary for both apps (C41); it decides nothing and stores nothing. See its header.
+export * from './mvp1-stage'

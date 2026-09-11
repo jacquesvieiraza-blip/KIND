@@ -83,6 +83,22 @@ export type LifecycleCopyInput = {
     meetingTarget: number | null
     entitlementUsed: number; entitlementTotal: number; entitlementRemaining: number
   }
+  /**
+   * ⚑ 11 Sep (DAY 3 HOLD) — THE PERSISTED FROZEN PACKAGE, THE SAME ONE MILLA READS.
+   *
+   * 🛑 THE PANEL WAS RECONSTRUCTING APPROVAL TRUTH FROM MUTABLE STATE. It rendered
+   * `{ label: 'Review snapshot frozen', done: true }` — a hardcoded assertion of a freeze
+   * nobody had checked — beside a prospect count taken from LIVE qualified/enrolled totals and
+   * a target read off the LIVE programme row. An operator and a client could look at one
+   * programme and read different numbers, and the operator's were the ones that could move.
+   *
+   * ⚠️ `null` MEANS THERE IS NO PACKAGE, never "the package is fine". The frozen tick derives
+   * from its presence, so a missing one reads as NOT frozen — which is the truth.
+   */
+  frozenPackage?: {
+    version: number | null; at: string | null; prospects: number
+    messages: number; target: number | null; sender: string | null
+  } | null
   replyAwaiting: { name: string | null; company: string | null } | null
   stoppedDetail: string | null
   humanBlockers: { code: string; detail: string }[]
@@ -543,15 +559,38 @@ export function lifecycleCopy(i: LifecycleCopyInput): LifecycleCopy {
         chips: ['What is the client seeing?', 'What happens after approval?'],
         cards: [
           { kind: 'fact', label: 'Stage', value: 'Approval', caption: 'With the client in Milla' },
-          { kind: 'stats', label: 'Ready for review', stats: [
-            { value: n(c.qualified || c.enrolled), label: 'Qualified prospects' },
-            { value: String(target ?? '—'), label: 'Meeting target' },
+          // ── ⚑ 11 Sep (DAY 3 HOLD) — READ FROM THE FROZEN PACKAGE, NOT FROM LIVE COUNTS ──
+          //
+          // 🛑 THESE NUMBERS ARE WHAT THE CLIENT IS LOOKING AT. Taking them from live
+          // qualified/enrolled totals and the live programme row meant the operator's screen
+          // and the client's screen could disagree about one programme — and the operator's
+          // were the ones that could move underneath them. The fallback to live figures applies
+          // only where there is no package, i.e. nothing is being approved yet.
+          { kind: 'stats', label: i.frozenPackage ? 'Frozen for review' : 'Ready for review', stats: [
+            { value: n(i.frozenPackage ? i.frozenPackage.prospects : (c.qualified || c.enrolled)),
+              label: i.frozenPackage ? 'Prospects in the package' : 'Qualified prospects' },
+            { value: String((i.frozenPackage ? i.frozenPackage.target : target) ?? '—'),
+              // 🛑 TARGET, NEVER GUARANTEE — founder-locked, and the caveat travels with the
+              // number on the operator screen exactly as it does on the client's.
+              label: 'Meeting target (not a guarantee)' },
           ] },
           { kind: 'ticks', label: 'Prepared', ticks: [
             { label: 'Campaign ready', done: true }, { label: 'Sequence ready', done: true },
             { label: 'Sender ready', done: i.senderSendable }, { label: 'Schedule ready', done: true },
-            { label: 'Review snapshot frozen', done: true },
+            // ⛓️ THIS WAS `done: true`, UNCONDITIONALLY. A tick that is always ticked is not a
+            // check, it is decoration — and it was decorating the one fact the whole approval
+            // boundary rests on. It now derives from the persisted package actually being there.
+            { label: 'Review snapshot frozen', done: !!i.frozenPackage },
           ] },
+          ...(i.frozenPackage ? [{
+            kind: 'fact' as const, label: 'Frozen package',
+            value: i.frozenPackage.version ? `Version ${i.frozenPackage.version}` : 'Version not recorded',
+            caption: [
+              `${i.frozenPackage.messages} message${i.frozenPackage.messages === 1 ? '' : 's'}`,
+              i.frozenPackage.sender ? `from ${i.frozenPackage.sender}` : null,
+              i.frozenPackage.at ? `frozen ${new Date(i.frozenPackage.at).toLocaleDateString('en-GB')}` : null,
+            ].filter(Boolean).join(' · '),
+          }] : []),
           { kind: 'fact', label: 'Client', value: approved ? 'Approved' : 'Waiting' },
           { kind: 'fact', label: 'Second payment',
             value: approved ? 'Awaiting the client' : 'Not yet authorised',

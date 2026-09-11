@@ -559,13 +559,45 @@ describe('🛑 ⑦ approval is exact, and has an author', () => {
     }
   })
 
-  it('35 · the operator door records OPERATOR authority and no invented person', () => {
+  // ⛓️ 11 Sep (DAY 3 HOLD) — THIS CASE IS REVERSED, AND THE REVERSAL IS THE POINT.
+  //
+  // 🛑 IT USED TO ASSERT THAT THE OPERATOR DOOR RECORDED OPERATOR AUTHORITY — which quietly
+  // normalised a route that should not exist. `approveProgramme` took a programme id and
+  // nothing else: no client, no ownership, no House check. Anybody with the admin key could
+  // approve ANY client's programme, and the row afterwards was indistinguishable to every
+  // downstream reader from the client having agreed.
+  //
+  // The founder's rule: client approval is CLIENT-OWNED, an operator may not substitute for it,
+  // and House is not an exception — internal P1/P2 are a MONEY COLLECTION exception only.
+  it('35 · the operator approval is WITHDRAWN — it refuses, and writes nothing', () => {
     const op = fnBody(PROG, 'export async function approveProgramme(')
-    expect(op).toContain("approved_by_kind: 'operator'")
-    expect(op).toContain('approved_by_user_id: null')
+    expect(op).toContain('only be approved by the client')
+    expect(op).toContain('House is not an exception')
+    for (const written of ["status: 'APPROVED'", 'approved_at:', 'approved_by_kind',
+                           'approved_by_user_id', 'setStatus', '...prepared', '.update(']) {
+      expect(op, `the withdrawn operator approval still writes ${written}`).not.toContain(written)
+    }
   })
 
-  it('36 · approval writes no money, no live, no send', () => {
+  it('36 · exactly ONE authority in the repo can write APPROVED, and it proves tenancy', () => {
+    const writers = [...code(LIB('programme.ts')).matchAll(/status: 'APPROVED'/g)]
+    expect(writers, 'a second writer of APPROVED exists').toHaveLength(1)
+    // 🛑 AND IT IS THE CUSTOMER'S, SCOPED TO THEIR OWN CLIENT. `clientId` is the first argument
+    // and there is no shape of this call without it.
+    expect(APPROVE).toContain(".eq('client_id', clientId)")
+    expect(APPROVE).toContain("approved_by_kind: 'client'")
+  })
+
+  it('37 · `approved_by_kind` has exactly one writable value, so it cannot become a bypass', () => {
+    const P = code(LIB('programme.ts'))
+    const kinds = [...P.matchAll(/approved_by_kind: '([a-z_]+)'/g)].map(m => m[1])
+    // ⚠️ ONE VALUE, `client`. The column still permits NULL — meaning "approved before identity
+    // was recorded" — and nothing in the product can write anything else. A second writable
+    // value is exactly how an operator approval would come back.
+    expect(new Set(kinds)).toEqual(new Set(['client']))
+  })
+
+  it('38 · approval writes no money, no live, no send', () => {
     for (const forbidden of ['second_paid_at:', 'second_authorised_at:', 'went_live_at:',
                              'run_at:', 'createProgrammeCheckoutSession', 'sendEmail']) {
       expect(APPROVE, `the customer approval writes ${forbidden}`).not.toContain(forbidden)
@@ -783,8 +815,11 @@ describe('🛑 ⑦B the approval stage interrupts an operator exactly once', () 
     expect(stale).toContain("key: 'refreeze_package'")
     // 🛑 VIDA STILL CANNOT APPROVE. The client's approval is consent to email real strangers on
     // their behalf; an operator button here would make that consent ours to give.
-    const ordinary = COPY.slice(COPY.indexOf("case 'approval':\n    case 'approval_awaiting_second_payment':"))
-      .slice(0, 2600)
+    // ⚠️ BOUNDED AT THE NEXT `case`, never a fixed character window. The ordinary branch grew
+    // when it started reading the frozen package, and a 2,600-character slice stopped reaching
+    // its `actions:` line — a guard failing on length rather than on substance.
+    const from = COPY.indexOf("case 'approval':\n    case 'approval_awaiting_second_payment':")
+    const ordinary = COPY.slice(from, COPY.indexOf("case 'live_ready_to_make_live':", from))
     expect(ordinary).toContain('actions: [],')
     for (const banned of ["key: 'approve'", 'approveProgramme', 'approve_for_client']) {
       expect(COPY, `Vida offers ${banned}`).not.toContain(banned)
@@ -873,5 +908,305 @@ describe('🛑 ⑨ the ladder holds — each rung grants only itself', () => {
     expect(body.split('approveProgrammeAsCustomer').length - 1).toBe(2)
     expect(body).not.toContain("db.from('programmes').update")
     expect(body).not.toContain("db.from('leads').update")
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// ⚑ 11 Sep (DAY 3 HOLD) — THE FOUR NARROW CONTROL POINTS
+// ═══════════════════════════════════════════════════════════════════════════════════════
+
+// ── ① CLIENT APPROVAL OWNERSHIP ────────────────────────────────────────────────────────
+describe('🛑 HOLD-① client approval is CLIENT-OWNED, and an operator cannot substitute', () => {
+  const PROG = code(LIB('programme.ts'))
+
+  it('H1 · the admin-key route refuses with 403 and audits that nothing happened', () => {
+    const OP = code(readFileSync(join(__dirname, '../routes/programme.ts'), 'utf8'))
+    const i = OP.indexOf("programmeRouter.post('/:id/approve'")
+    const door = OP.slice(i, OP.indexOf('}))', i))
+    expect(door).toContain("res.status(403)")
+    expect(door).toContain("error: 'client_owned'")
+    expect(door).toContain("money: 'none")
+    // 🛑 403, NOT 400. This is not a wrong state or a bad request — it is an act an operator
+    // does not have the authority to perform, in any state, for any client.
+    expect(door).not.toContain('r.ok ? 200')
+  })
+
+  it('H2 · House is refused by the same sentence — the money exception is not an approval one', () => {
+    const op = fnBody(PROG, 'export async function approveProgramme(')
+    expect(op).toContain('House is not an exception')
+    expect(op).toContain('internal P1 and P2 authority cover money collection only')
+  })
+
+  it('H3 · House internal P1 and P2 write no approval of any kind', () => {
+    for (const fn of ['export async function authoriseFirstInternal',
+                      'export async function authoriseSecondInternal']) {
+      const body = fnBody(PROG, fn)
+      for (const written of ["status: 'APPROVED'", 'approved_at:', 'approved_by_kind',
+                             'approved_by_user_id', 'approved_preparation_hash']) {
+        expect(body, `${fn} writes ${written}`).not.toContain(written)
+      }
+    }
+  })
+
+  it('H4 · every allowed `approved_by_kind` value, and why none of them is a bypass', () => {
+    // ⚠️ EXACTLY ONE WRITABLE VALUE: `client`. The column also permits NULL, which means
+    // "approved before identity was recorded" and is never written by this code. There is no
+    // `operator` value any more, so the column cannot carry an operator approval even if some
+    // future route tried to mint one — it would have to invent the value first, and this
+    // assertion is what would fail.
+    const kinds = [...PROG.matchAll(/approved_by_kind: ('[a-z_]+'|[A-Za-z][A-Za-z0-9_.]*)/g)].map(m => m[1])
+    expect(new Set(kinds)).toEqual(new Set(["'client'"]))
+  })
+
+  it('H5 · the ONE writer of APPROVED proves tenancy from the session, not the body', () => {
+    expect([...PROG.matchAll(/status: 'APPROVED'/g)]).toHaveLength(1)
+    const cust = fnBody(PROG, 'export async function approveProgrammeAsCustomer')
+    expect(cust).toContain(".eq('client_id', clientId)")
+    expect(cust).toContain("approved_by_kind: 'client'")
+    // The client id is the FIRST argument: there is no shape of this call without it.
+    expect(PROG).toMatch(/approveProgrammeAsCustomer\(\s*\n?\s*clientId: string/)
+  })
+})
+
+// ── ② EXACT FROZEN PACKAGE — ONE CANONICAL TRUTH ──────────────────────────────────────
+describe('🛑 HOLD-② Milla and Vida read the SAME persisted package', () => {
+  it('H6 · every locked element is inside the persisted digest', () => {
+    const SNAP = LIB('preparation-snapshot.ts')
+    const iface = SNAP.slice(SNAP.indexOf('export interface PreparationSnapshot'),
+                             SNAP.indexOf('export type SnapshotResult'))
+    for (const field of ['batch_lead_ids', 'enrolled_lead_ids', 'steps', 'cadence',
+                         'send_schedule', 'sender', 'meeting_target']) {
+      expect(iface, `${field} is not in the frozen package`).toContain(field)
+    }
+    // The version, the digest and the timestamp are columns beside it, written in the same
+    // conditional UPDATE as the status.
+    const PROG = code(LIB('programme.ts'))
+    const freeze = fnBody(PROG, 'export async function markReadyForApproval')
+    for (const col of ['review_preparation_hash', 'review_preparation_snapshot',
+                       'review_preparation_at', 'review_preparation_version']) {
+      expect(freeze, `${col} is not written with the freeze`).toContain(col)
+    }
+  })
+
+  it('H7 · a change to ANY of the six approval-relevant elements moves the digest', async () => {
+    // ⚠️ THE REAL MODULE. The P2 cases above stub `./preparation-snapshot` through `doMock`,
+    // and a stubbed `preparationHash` returns a constant — which would make every comparison
+    // below pass or fail for a reason that has nothing to do with the digest.
+    vi.resetModules(); vi.doUnmock('./preparation-snapshot')
+    const { preparationHash } = await import('./preparation-snapshot')
+    const base = {
+      v: 2 as const, programme_id: 'p1', meeting_target: 12, batch_id: 'b1',
+      batch_lead_ids: ['a', 'b', 'c'], campaign_id: 'ca1', sequence_id: 's1',
+      steps: [{ subject: 'Hi', body: 'Hello there', wait_days: 3 },
+              { subject: 'Following up', body: 'Just checking', wait_days: 0 }] as never,
+      cadence: [3, 0], send_schedule: { days: [1, 2, 3, 4, 5], from: '08:30', to: '17:00' },
+      sender: 'i1|ellis@redmayne.test', enrolled_lead_ids: ['a', 'b', 'c'],
+    }
+    const h = preparationHash(base)
+    const cases: [string, Record<string, unknown>][] = [
+      // ① PROSPECTS — both the batch membership and the approved audience.
+      ['prospects (audience)', { enrolled_lead_ids: ['a', 'b'] }],
+      ['prospects (batch)',    { batch_lead_ids: ['a', 'b'] }],
+      // ② MESSAGES — the words themselves, not just how many.
+      ['message body',    { steps: [{ subject: 'Hi', body: 'Hello THERE', wait_days: 3 },
+                                    { subject: 'Following up', body: 'Just checking', wait_days: 0 }] }],
+      ['message subject', { steps: [{ subject: 'Hey', body: 'Hello there', wait_days: 3 },
+                                    { subject: 'Following up', body: 'Just checking', wait_days: 0 }] }],
+      ['message removed', { steps: [{ subject: 'Hi', body: 'Hello there', wait_days: 3 }] }],
+      // ③ CADENCE — a retiming with no word moved.
+      ['cadence', { cadence: [5, 0] }],
+      // ④ WINDOW — days and hours.
+      ['window (days)',  { send_schedule: { days: [0, 6], from: '08:30', to: '17:00' } }],
+      ['window (hours)', { send_schedule: { days: [1, 2, 3, 4, 5], from: '06:00', to: '22:00' } }],
+      // ⑤ SENDER — which mailbox it comes from.
+      ['sender', { sender: 'i2|other@redmayne.test' }],
+      // ⑥ TARGET — what was promised as a target.
+      ['target', { meeting_target: 20 }],
+    ]
+    for (const [what, patch] of cases) {
+      expect(preparationHash({ ...base, ...patch } as never),
+        `changing the ${what} did not move the frozen digest`).not.toBe(h)
+    }
+    // 🛑 AND NOTHING ELSE MOVES IT. A digest that changes when nothing changed trains everybody
+    // to re-approve reflexively, which is how a REAL change gets waved through.
+    expect(preparationHash({ ...base })).toBe(h)
+    expect(preparationHash({ ...base, enrolled_lead_ids: ['c', 'b', 'a'].sort() })).toBe(h)
+  })
+
+  it('H8 · reviewDrift reports `changed` when and only when the REAL digest moved', async () => {
+    // ⚠️ THE REAL BUILDER, DRIVEN BY A REAL FIXTURE. The first cut of this case stubbed
+    // `buildPreparationSnapshot` with a spy — which never intercepted, because `reviewDrift`
+    // calls the module-local binding rather than the export object, so the case was measuring
+    // a degraded read instead of a digest comparison. Driving the actual fixture proves the
+    // path that runs in production.
+    vi.resetModules(); vi.doUnmock('./preparation-snapshot')
+    const world = {
+      frozen: null as string | null,
+      enrolled: [{ lead_id: 'l1' }, { lead_id: 'l2' }],
+      schedule: { days: [1, 2, 3, 4, 5], from: '08:30', to: '17:00' } as unknown,
+    }
+    vi.doMock('@kind/db', () => ({
+      db: { from: (t: string) => {
+        const rows = t === 'programmes'
+          ? [{ id: 'p1', review_preparation_hash: world.frozen, send_schedule: world.schedule, meeting_target: 12 }]
+          : t === 'programme_batches' ? [{ id: 'b1', seq: 1 }]
+          : t === 'leads' ? [{ id: 'l1' }, { id: 'l2' }]
+          : t === 'figsy_enrollments' ? world.enrolled
+          : []
+        const q: Record<string, unknown> = {
+          select() { return q }, eq() { return q }, order() { return q },
+          async maybeSingle() { return { data: rows[0] ?? null, error: null } },
+          then: (r: (v: unknown) => unknown) => r({ data: rows, error: null }),
+        }
+        return q
+      } },
+    }))
+    vi.doMock('./programme-chain', () => ({
+      resolveProgrammeChain: async () => ({
+        ok: true,
+        chain: { clientId: 'c1', campaignId: 'ca1', sequenceId: 's1',
+                 steps: [{ subject: 'Hi', body: 'Hello', wait_days: 3 }], cadence: [3, 0] },
+      }),
+    }))
+    vi.doMock('./sending-inbox', () => ({
+      resolveSendingInbox: async () => ({ ok: true, inbox: { id: 'i1', email: 'ellis@redmayne.test' } }),
+    }))
+    const snapshot = await import('./preparation-snapshot')
+
+    // 🛑 NO FROZEN HASH IS `unreadable`, NEVER `unchanged`. "We have no record of what they were
+    // shown" must not resolve to "yes, it matches".
+    expect((await snapshot.reviewDrift('p1')).state).toBe('unreadable')
+
+    // Freeze it, then read again with nothing changed.
+    const built = await snapshot.buildPreparationSnapshot('p1')
+    expect(built.ok).toBe(true)
+    world.frozen = built.ok ? built.hash : ''
+    expect((await snapshot.reviewDrift('p1')).state).toBe('unchanged')
+
+    // ① Move the AUDIENCE — one prospect drops out of the approved set.
+    world.enrolled = [{ lead_id: 'l1' }]
+    let d = await snapshot.reviewDrift('p1')
+    expect(d.state, 'a changed audience read as unchanged').toBe('changed')
+    expect(d.state === 'changed' && d.detail).toContain('not what would run')
+    world.enrolled = [{ lead_id: 'l1' }, { lead_id: 'l2' }]
+    expect((await snapshot.reviewDrift('p1')).state).toBe('unchanged')
+
+    // ② Move the WINDOW — same words, different hours.
+    world.schedule = { days: [1, 2, 3, 4, 5], from: '06:00', to: '22:00' }
+    d = await snapshot.reviewDrift('p1')
+    expect(d.state, 'a retimed sending window read as unchanged').toBe('changed')
+  })
+
+  it('H9 · Vida reads the persisted package and asserts nothing of its own', () => {
+    const COPY = readFileSync(join(__dirname, '../../../admin/src/lib/vida-lifecycle-copy.ts'), 'utf8')
+    const from = COPY.indexOf("case 'approval':\n    case 'approval_awaiting_second_payment':")
+    const branch = COPY.slice(from, COPY.indexOf("case 'live_ready_to_make_live':", from))
+    // ⛓️ THIS TICK WAS `done: true`, UNCONDITIONALLY — a tick that is always ticked is not a
+    // check, and it was decorating the one fact the whole approval boundary rests on.
+    expect(branch).toContain("{ label: 'Review snapshot frozen', done: !!i.frozenPackage }")
+    expect(branch, 'Vida still asserts a freeze it has not checked').not.toContain("'Review snapshot frozen', done: true")
+    // The numbers come from the package, with the live figures used only where there is none.
+    expect(branch).toContain('i.frozenPackage ? i.frozenPackage.prospects')
+    expect(branch).toContain('i.frozenPackage ? i.frozenPackage.target')
+    // 🛑 TARGET, NEVER GUARANTEE — on the operator screen too.
+    expect(branch).toContain('not a guarantee')
+  })
+
+  it('H10 · the frozen package is read from the columns, never rebuilt, on the Vida path', () => {
+    const FACTS = code(LIB('programme-lifecycle-facts.ts'))
+    const block = FACTS.slice(FACTS.indexOf('const frozenPackage = ((): {'),
+                              FACTS.indexOf('const entitlementTotal'))
+    expect(block).toContain('review_preparation_snapshot')
+    expect(block).toContain('review_preparation_version')
+    // 🛑 IT REBUILDS NOTHING AND RECOUNTS NOTHING.
+    for (const forbidden of ['buildPreparationSnapshot', 'resolveProgrammeChain', "db.from('leads')"]) {
+      expect(block, `the Vida read reconstructs the package via ${forbidden}`).not.toContain(forbidden)
+    }
+    // And the columns are actually SELECTED, or every panel would read "not frozen".
+    const AUTH = code(LIB('programme-authority.ts'))
+    expect(AUTH).toContain('review_preparation_snapshot')
+  })
+
+  it('H11 · approving V1 does not carry forward to V2 — the approved version stays put', () => {
+    const PROG = code(LIB('programme.ts'))
+    const re = fnBody(PROG, 'export async function refreezeForReview')
+    // A re-freeze moves the REVIEW version and never the approved one.
+    expect(re).toContain('review_preparation_version: nextVersion')
+    for (const approved of ['approved_preparation_version', 'approved_preparation_hash',
+                            'approved_preparation_snapshot', 'approved_at']) {
+      expect(re, `the re-freeze mutated ${approved}`).not.toContain(approved)
+    }
+    // And the new version requires a new client approval: the approval pins the frozen hash on
+    // both the read and the write, so a client holding V1 cannot approve V2 by pressing again.
+    const cust = fnBody(PROG, 'export async function approveProgrammeAsCustomer')
+    expect(cust).toContain('expectedVersion !== frozenNow')
+    expect(cust).toContain("claim.eq('review_preparation_hash', frozenNow)")
+  })
+})
+
+// ── ④ NUMERICAL SEMANTICS ──────────────────────────────────────────────────────────────
+describe('🛑 HOLD-④ four separate numbers, and none of them is derived from another', () => {
+  it('H12 · remaining entitlement comes from the CEILING, never from the frozen set', () => {
+    const FACTS = code(LIB('programme-lifecycle-facts.ts'))
+    // 🛑 THE RULE. `authorised − frozen` is NOT remaining entitlement: a prospect absent from
+    // the frozen set may have been suppressed, unqualified, opted out or simply not enrolled,
+    // and none of those returns entitlement. Remaining is ceiling − used − reserved, which is
+    // programme-entitlement truth and is what `try_spend_sourcing` actually accounts against.
+    expect(FACTS).toContain('Math.max(0, entitlementTotal - entitlementUsed - (p.sourced_reserved ?? 0))')
+    // ⚠️ THE BAN IS ON SUBTRACTION ACROSS THE FOUR FACTS, not on counting the package. Reading
+    // `enrolled_lead_ids.length` to say how big the frozen set IS is correct and necessary;
+    // subtracting it from the ceiling to produce an entitlement is the fabrication.
+    // ⚠️ THE WHITESPACE LIVES INSIDE THE LOOKAHEAD. Written as `-\s*(?!entitlementUsed)` the
+    // `\s*` backtracks to zero width and the lookahead then sees a SPACE, so the negative
+    // succeeds and the guard matches its own legitimate line.
+    for (const forbidden of [/entitlementTotal\s*-(?!\s*entitlementUsed)/,
+                             /ceiling\s*-\s*(?:enrolled|frozen|prospects)/,
+                             /(?:enrolled_lead_ids\.length|frozenPackage\.prospects)\s*-/,
+                             /-\s*(?:frozenPackage|enrolled_lead_ids)/]) {
+      expect(FACTS, `remaining entitlement was derived via ${forbidden}`).not.toMatch(forbidden)
+    }
+  })
+
+  it('H13 · the four numbers answer four questions, and no screen subtracts across them', () => {
+    const COPY = readFileSync(join(__dirname, '../../../admin/src/lib/vida-lifecycle-copy.ts'), 'utf8')
+    const REVIEW = readFileSync(join(__dirname, '../../../portal/src/components/milla/ProgrammeReview.tsx'), 'utf8')
+    const APPROVAL = readFileSync(join(__dirname, '../../../portal/src/components/milla/ProgrammeApproval.tsx'), 'utf8')
+    // A · authorised volume   B · frozen outreach set   C · worked/contacted   D · remaining
+    // Each is rendered from its OWN source. The prohibition is arithmetic BETWEEN them.
+    for (const [name, src] of [['Vida', COPY], ['Milla review', REVIEW], ['Milla approval', APPROVAL]] as const) {
+      for (const arithmetic of [
+        /entitlementTotal\s*-(?!\s*entitlementUsed)/, /ceiling\s*-\s*(?:enrolled|frozen|prospects)/,
+        /prospects\s*-\s*(?:total|entitlement)/, /total\s*-\s*(?:enrolled|frozen)/,
+        /sourced\s*-\s*(?:enrolled|qualified)/,
+      ]) {
+        expect(code(src), `${name} derives one programme number from another`).not.toMatch(arithmetic)
+      }
+    }
+    // ⚠️ AND THE LABELS SAY WHICH NUMBER IS WHICH. "Remaining" beside "Used" and "Total" is
+    // entitlement; the frozen count is labelled as the package, never as a remainder.
+    expect(COPY).toContain("label: 'Programme entitlement'")
+    // ⚠️ THE FROZEN COUNT IS LABELLED AS THE PACKAGE, never as a remainder. It is written as a
+    // conditional label, so the assertion matches the string rather than a whole line.
+    expect(COPY).toContain("'Prospects in the package'")
+    expect(COPY).toContain("label: 'Used'")
+    expect(COPY).toContain("label: 'Remaining'")
+  })
+
+  it('H14 · nothing anywhere explains WHY a prospect is absent from the frozen set', () => {
+    // 🛑 FOUNDER-LOCKED: do not invent reasons for prospects excluded from a frozen set. A
+    // prospect can be absent because they were suppressed, unqualified, opted out, evicted,
+    // blocklisted, or simply not reached by the preparation budget — and no surface here knows
+    // which. Saying "54 were unsuitable" would be a fabrication about real people.
+    const COPY = readFileSync(join(__dirname, '../../../admin/src/lib/vida-lifecycle-copy.ts'), 'utf8')
+    const REVIEW = readFileSync(join(__dirname, '../../../portal/src/components/milla/ProgrammeReview.tsx'), 'utf8')
+    for (const [name, src] of [['Vida', COPY], ['Milla', REVIEW]] as const) {
+      for (const invented of ['were unsuitable', 'did not qualify for this batch',
+                              'excluded because', 'left over', 'were dropped']) {
+        expect(src, `${name} invents a reason for prospects outside the frozen set`).not.toContain(invented)
+      }
+    }
+    // The one thing Milla DOES say about a gap is the honest one: we could not display them,
+    // and they are still part of the package.
+    expect(REVIEW).toContain('still part of what you’d be approving')
   })
 })

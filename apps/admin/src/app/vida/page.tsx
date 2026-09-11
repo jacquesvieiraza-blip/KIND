@@ -393,6 +393,12 @@ export default function VidaConsolePage() {
       /** ⚑ 10 Sep (I2) — the send gate's own reason, so the panel stops sending every sender
        *  failure to "reconnect the mailbox" when three of the four have a different remedy. */
       senderDetail?: string | null
+      /** ⚑ 11 Sep (DAY 3 HOLD) — the persisted frozen review package, the same one Milla reads.
+       *  `null` means there is no package, never "the package is fine". */
+      frozenPackage?: {
+        version: number | null; at: string | null; prospects: number
+        messages: number; target: number | null; sender: string | null
+      } | null
       killSwitchOff: boolean
       operatorRunEnabled: boolean
       /** ⚑ MVP1 (C03) — what the client said they want, in their own words, or null.
@@ -2033,6 +2039,11 @@ export default function VidaConsolePage() {
       operatorRunEnabled: lc.operatorRunEnabled,
       senderSendable: lc.senderSendable,
       senderDetail: lc.senderDetail ?? null,
+      // ⚑ 11 Sep (DAY 3 HOLD) — THE FROZEN PACKAGE, so this panel reads the SAME persisted
+      // truth Milla does. Without this leg the copy module's `frozenPackage` branches never
+      // fire and the panel falls back to live counts — which is the defect, not the fallback:
+      // the fallback is correct only where there is genuinely no package yet.
+      frozenPackage: lc.frozenPackage ?? null,
       // ⚑ MVP1 (C03) — the last leg of the plumbing. `vida-lifecycle-copy.ts` has read this
       // since it was written; this call site never passed it, so all three of its branches
       // fell through to "Being agreed" / "Not stated yet" for every client in the book.

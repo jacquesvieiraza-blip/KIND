@@ -123,7 +123,12 @@ describe('🛑 ① armed is not started — OUTREACH refuses without Run', () =>
     expect(gate).toContain("if (!p.run_at) {")
     expect(gate).toContain("return refuse('programme_not_run',")
     // …and the column is SELECTED, or the gate would refuse every programme including a Run one.
-    expect(gate).toContain("'run_at'")
+    //
+    // ⛓️ 11 Sep — MATCHED AS A SELECTED COLUMN, NOT AS THE EXACT LITERAL `'run_at'`. The column
+    // list gained the frozen-package columns after it, so `run_at` is now the head of a longer
+    // concatenated string. The property being guarded is that the column is IN the select, and
+    // pinning the quoting style of the line it sits on was never that property.
+    expect(gate).toMatch(/'run_at[,']/)
   })
 })
 

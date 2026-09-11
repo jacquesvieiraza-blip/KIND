@@ -357,57 +357,56 @@ describe('④ no campaign starts without the second payment', () => {
   })
 })
 
-describe('⑤ approval is ONE programme-level decision', () => {
-  it('only from READY_FOR_APPROVAL', () => {
-    const p = seed({ status: 'SOURCING' })
+describe('⑤ approval is ONE programme-level decision, and it is the CLIENT\'s', () => {
+  // ⛓️ 11 Sep (DAY 3 HOLD) — `approveProgramme` NO LONGER APPROVES ANYTHING, and the three
+  // cases below changed with it rather than being deleted.
+  //
+  // 🛑 WHAT IT USED TO DO. It took a programme id and nothing else, proved READY_FOR_APPROVAL
+  // and not-paused, and wrote `status = 'APPROVED'` — no client, no ownership, no House check.
+  // Anybody holding the admin key could approve ANY client's programme, and the row afterwards
+  // was indistinguishable to every downstream reader from the client having agreed.
+  //
+  // The founder's rule: **client approval is CLIENT-OWNED, and an operator must not be able to
+  // substitute for it.** House is not an exception — internal P1 and P2 are a MONEY COLLECTION
+  // exception and neither replaces this step.
+  // ⚠️ SEQUENTIAL, NOT `Promise.all`. `state` is one shared fixture, so four concurrent seeds
+  // race and the assertions read another case's programme — which is how this very test first
+  // failed claiming SOURCING had been "moved" to DRAFT.
+  it('🛑 the operator door refuses from EVERY state, including the one it used to accept', async () => {
+    for (const status of ['SOURCING', 'READY_FOR_APPROVAL', 'APPROVED', 'DRAFT'] as const) {
+      state.programmes = []
+      const p = seed({ status })
+      const r = await approveProgramme(p.id)
+      expect(r.ok, `an operator approved a programme in ${status}`).toBe(false)
+      expect(r.reason).toMatch(/only be approved by the client/)
+      expect(state.programmes[0].status, `${status} was moved`).toBe(status)
+      expect(state.programmes[0].approved_at ?? null).toBeNull()
+    }
+  })
+
+  it('🛑 it refuses for HOUSE too — the money exception is not an approval exception', () => {
+    const p = seed({ status: 'READY_FOR_APPROVAL', client_id: 'house' })
     return approveProgramme(p.id).then(r => {
       expect(r.ok).toBe(false)
-      expect(r.reason).toMatch(/Cannot approve from SOURCING/)
+      expect(r.reason).toMatch(/House is not an exception/)
+      expect(state.programmes[0].status).toBe('READY_FOR_APPROVAL')
     })
   })
 
-  it('never while paused', () => {
-    const p = seed({ status: 'READY_FOR_APPROVAL', paused_at: 'now' })
-    return approveProgramme(p.id).then(r => expect(r.ok).toBe(false))
-  })
-
-  it('READY_FOR_APPROVAL → APPROVED stamps approved_at', () => {
-    // ⛓️ 7 Sep — THIS CASE IS ABOUT `approveProgramme`, SO IT NO LONGER DRIVES THE PROGRAMME
-    // THROUGH `markReadyForApproval` TO GET THERE. That transition now consults the canonical
-    // preparation rule (batch, campaign, sequence, messaging, cadence, sender, enrolments,
-    // freeze — preparation-readiness.ts), because a programme with leads and nothing else was
-    // being offered to the client for approval. Seeding the STATUS directly keeps this test
-    // measuring the thing it is named for; reaching it through a fifteen-condition gate would
-    // make an approval test fail for reasons that have nothing to do with approval.
-    // The gate itself is proved in `preparation-readiness.test.ts` and in `house-authority`.
+  it('🛑 and it writes NOTHING at all — not a status, not a timestamp, not an author', () => {
     const p = seed({ status: 'READY_FOR_APPROVAL' })
-    // The reviewable lead stays: it is the state a READY_FOR_APPROVAL programme really is in,
-    // and removing it would make this fixture describe a programme that could not exist.
-    state.leads.push({
-      id: 'lead-1', programme_id: p.id, delivered_at: 'd', surfaced_for_approval_at: 's',
-      revealed_at: null, status: 'scored',
+    const before = JSON.stringify(state.programmes[0])
+    return approveProgramme(p.id).then(r => {
+      expect(r.ok).toBe(false)
+      expect(JSON.stringify(state.programmes[0]), 'the refused approval still wrote').toBe(before)
     })
-    // ⚑ 8 Sep — approval COPIES the reviewed snapshot rather than taking a fresh one, so a
-    // programme that was never frozen for review cannot be approved. Frozen here from the
-    // fixture's own state, the way `markReadyForApproval` does in production — a typed-in
-    // constant would make the comparison a tautology.
-    return import('./preparation-snapshot')
-      .then(({ buildPreparationSnapshot }) => buildPreparationSnapshot(p.id))
-      .then(snap => {
-        expect(snap.ok, 'the fixture cannot describe its own prepared work').toBe(true)
-        if (snap.ok) {
-          const row = state.programmes[0] as Record<string, unknown>
-          row.review_preparation_hash = snap.hash
-          row.review_preparation_snapshot = snap.snapshot
-        }
-      })
-      .then(() => approveProgramme(p.id))
-      .then(r => {
-        expect(r.ok).toBe(true)
-        expect(state.programmes[0].status).toBe('APPROVED')
-        expect(state.programmes[0].approved_at).not.toBeNull()
-      })
   })
+
+  // ⛓️ THE "READY_FOR_APPROVAL → APPROVED stamps approved_at" CASE IS GONE FROM HERE, and it
+  // is not lost. It described `approveProgramme` doing the one thing it may no longer do. The
+  // same transition, performed by the authority that legitimately owns it, is proved in
+  // `customer-programme-approval.test.ts` and in `day3-prepare-freeze-approve.test.ts` ⑦ —
+  // including the version pin, the tenancy check and the recorded author.
 })
 
 describe('⑥ batches reserve and release — paid entitlement is never stranded silently', () => {

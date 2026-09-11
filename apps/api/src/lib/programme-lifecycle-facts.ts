@@ -366,6 +366,17 @@ export type LifecycleDetail = {
   stoppedDetail: string | null
   senderSendable: boolean
   /**
+   * ⚑ 11 Sep (DAY 3 HOLD) — THE PERSISTED FROZEN REVIEW PACKAGE, so Vida reads the same truth
+   * Milla does rather than reconstructing approval facts from mutable current state.
+   *
+   * ⚠️ `null` MEANS THERE IS NO PACKAGE, never "the package is fine". Vida's frozen tick
+   * derives from its presence, so a missing one reads as NOT frozen — which is the truth.
+   */
+  frozenPackage: {
+    version: number | null; at: string | null; prospects: number
+    messages: number; target: number | null; sender: string | null
+  } | null
+  /**
    * ⚑ 10 Sep (I2) — WHY the sender is not usable, in the gate's own words.
    *
    * ⚠️ NULL WHEN IT IS FINE. A panel that always has a sender sentence to print starts
@@ -418,7 +429,9 @@ export async function lifecycleDetailFor(clientId: string): Promise<LifecycleDet
         senderSendable: true, killSwitchOff, operatorRunEnabled,
         remainingEntitlement: 0, hasNewerProgramme: false, repeatDismissed: false,
       }),
-      counts: { ...NO_COUNTS }, programme: null, replyAwaiting: null,
+      // ⚠️ NO PROGRAMME MEANS NO PACKAGE. A client at Brief or Proof has nothing frozen, and
+      // saying so is the honest answer — not an omitted field the panel would read as fine.
+      counts: { ...NO_COUNTS }, programme: null, replyAwaiting: null, frozenPackage: null,
       humanBlockers: [], stoppedDetail: null, senderSendable: true, senderDetail: null,
       killSwitchOff, operatorRunEnabled, outcomeStated,
     }
@@ -508,6 +521,42 @@ export async function lifecycleDetailFor(clientId: string): Promise<LifecycleDet
     } catch { /* an unreadable drift check never invents a task */ }
   }
 
+  // ── ⚑ 11 Sep (DAY 3 HOLD) — VIDA READS THE SAME PERSISTED PACKAGE MILLA DOES ─────────
+  //
+  // 🛑 IT WAS RECONSTRUCTING APPROVAL TRUTH FROM MUTABLE STATE. The approval panel rendered
+  // `{ label: 'Review snapshot frozen', done: true }` — a hardcoded `true`, asserting a freeze
+  // nobody had checked — beside a prospect count taken from LIVE qualified/enrolled totals and
+  // a target read off the LIVE programme row. So an operator and a client could be looking at
+  // the same programme and reading different numbers, and the operator's were the ones that
+  // could move underneath them.
+  //
+  // ⚠️ THE SAME COLUMNS, READ THE SAME WAY. `review_preparation_snapshot` is the persisted
+  // package written in the same conditional UPDATE as `READY_FOR_APPROVAL`; nothing here
+  // rebuilds it, re-resolves a sequence or recounts a lead.
+  //
+  // ⚠️ `null` MEANS "THERE IS NO PACKAGE", never "the package is fine". The panel renders the
+  // frozen tick from its presence, so a missing one reads as NOT frozen — which is the truth.
+  const frozenPackage = ((): {
+    version: number | null; at: string | null; prospects: number
+    messages: number; target: number | null; sender: string | null
+  } | null => {
+    const raw = (p as unknown as { review_preparation_snapshot?: unknown }).review_preparation_snapshot
+    const hash = (p as unknown as { review_preparation_hash?: string | null }).review_preparation_hash
+    if (!raw || typeof raw !== 'object' || !hash) return null
+    const snap = raw as Record<string, unknown>
+    const senderRaw = typeof snap.sender === 'string' ? snap.sender : ''
+    return {
+      version: (p as unknown as { review_preparation_version?: number | null }).review_preparation_version ?? null,
+      at: (p as unknown as { review_preparation_at?: string | null }).review_preparation_at ?? null,
+      prospects: Array.isArray(snap.enrolled_lead_ids) ? snap.enrolled_lead_ids.length : 0,
+      messages: Array.isArray(snap.steps) ? snap.steps.length : 0,
+      target: typeof snap.meeting_target === 'number' ? snap.meeting_target : null,
+      // The mailbox IDENTITY only — the snapshot stores `id|email` and the id is ours, not
+      // something an operator panel needs.
+      sender: senderRaw.includes('|') ? (senderRaw.slice(senderRaw.indexOf('|') + 1) || null) : null,
+    }
+  })()
+
   const entitlementTotal = p.sourcing_ceiling ?? 0
   const entitlementUsed = p.sourced_used ?? 0
   const entitlementRemaining = Math.max(0, entitlementTotal - entitlementUsed - (p.sourced_reserved ?? 0))
@@ -541,6 +590,7 @@ export async function lifecycleDetailFor(clientId: string): Promise<LifecycleDet
   return {
     verdict, counts, replyAwaiting, humanBlockers, stoppedDetail,
     senderSendable, senderDetail: sender.detail, killSwitchOff, operatorRunEnabled, outcomeStated,
+    frozenPackage,
     programme: {
       id: p.id, status: String(p.status), meetingTarget: p.meeting_target,
       entitlementUsed, entitlementTotal, entitlementRemaining,

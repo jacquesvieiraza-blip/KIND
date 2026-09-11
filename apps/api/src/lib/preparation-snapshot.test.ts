@@ -242,15 +242,29 @@ describe('④ outreach authority is where the comparison bites', () => {
       const end = PROG.indexOf('})', i)
       return PROG.slice(i, end === -1 ? i : end)
     }
-    const setStatusApproved = call("setStatus(programmeId, 'APPROVED'")
-    expect(setStatusApproved).toContain('approved_at: at')
-    expect(setStatusApproved).toContain('...prepared')
+    // ⛓️ 11 Sep (DAY 3 HOLD) — THERE IS NO LONGER A `setStatus(…, 'APPROVED')` CALL TO CHECK,
+    // and its absence is the stronger property. `approveProgramme` — the admin-key door that
+    // used to make that call with no client, no ownership and no House check — now refuses from
+    // every state, because client approval is CLIENT-OWNED. So the assertion is inverted: the
+    // operator path must contain no approval write at all, and the ONE remaining writer is the
+    // customer's own conditional update, checked below.
+    expect(PROG, 'an operator path writes APPROVED again').not.toContain("setStatus(programmeId, 'APPROVED'")
+    const operator = PROG.slice(PROG.indexOf('export async function approveProgramme('))
+      .slice(0, PROG.slice(PROG.indexOf('export async function approveProgramme(')).indexOf('\n}'))
+    expect(operator).toContain('only be approved by the client')
+    for (const written of ['approved_at:', 'approved_by_kind', "status: 'APPROVED'", '...prepared']) {
+      expect(operator, `the withdrawn operator approval still writes ${written}`).not.toContain(written)
+    }
     const claimApproved = call(".update({\n      status: 'APPROVED'")
     expect(claimApproved).toContain('approved_at: at')
     expect(claimApproved).toContain('updated_at: at')
     expect(claimApproved).toContain('...prepared')
     // And a programme that cannot be described cannot be approved.
-    expect(PROG).toContain('the prepared work is not the work that was frozen for review')
+    // ⛓️ 11 Sep (DAY 3 HOLD) — THE SENTENCE MOVED WITH THE AUTHORITY. This quoted the operator
+    // approval's refusal; that function no longer approves at all, so the claim it guarded —
+    // *a programme that cannot be described cannot be approved* — is asserted on the one
+    // authority that can still approve, in the client's own words rather than an operator's.
+    expect(PROG).toContain('the prepared work is not the work you reviewed')
   })
 })
 

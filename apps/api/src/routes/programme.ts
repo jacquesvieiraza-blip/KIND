@@ -283,10 +283,30 @@ programmeRouter.post('/:id/refreeze', guard(async (req: Request, res: Response) 
   })
 }))
 
-/** ONE programme-level approval (founder lock 5) — never thousands of paid lead approvals. */
+/**
+ * 🛑 WITHDRAWN (founder-locked 11 Sep). THE CLIENT APPROVES; AN OPERATOR MAY NOT APPROVE FOR
+ * THEM.
+ *
+ * ⛓️ THIS ROUTE USED TO WORK, AND THAT WAS THE BYPASS. It called `approveProgramme` with a
+ * programme id and nothing else — no client, no ownership, no House check — so anybody holding
+ * the admin key could approve ANY client's programme, and the row afterwards was
+ * indistinguishable to every downstream reader from the client having agreed. Vida never drew
+ * a button for it, which is a courtesy; this is the control. *"A BACKEND AUTHORITY, NOT A
+ * HIDDEN BUTTON"* is this repo's own rule and it applies to its own doors.
+ *
+ * ⚠️ KEPT AND REFUSING, NOT DELETED. A removed route is a hole the next person fills; a route
+ * that answers 403 with the rule is the rule. `approveProgramme` refuses on its own too, so
+ * this is the second of two locks rather than the only one.
+ */
 programmeRouter.post('/:id/approve', guard(async (req: Request, res: Response) => {
   const r = await approveProgramme(req.params.id)
-  res.status(r.ok ? 200 : 400).json({ success: r.ok, error: r.reason })
+  await auditProgramme(req, 'programme_lifecycle', req.params.id, {
+    approve: 'refused — client-owned', by: pressedBy(req),
+    money: 'none — nothing was approved, authorised or charged',
+  })
+  // 403, not 400: this is not a badly-formed request or a wrong state. It is an act an
+  // operator does not have the authority to perform, in any state, for any client.
+  res.status(403).json({ success: false, error: 'client_owned', message: r.reason })
 }))
 
 /**

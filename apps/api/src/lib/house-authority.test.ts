@@ -114,6 +114,21 @@ vi.mock('@kind/db', () => ({
   },
 }))
 vi.mock('./alerts', () => ({ sendFounderAlert: () => Promise.resolve() }))
+// ⚑ 11 Sep (DAY 3 HOLD) — INTERNAL P2 NOW PROVES THE APPROVAL STILL COVERS THE WORK.
+// `status === 'APPROVED'` is not "approved for THIS": the paid door was corrected to refuse a
+// drifted approval and the internal door asked only for the status, so House could settle its
+// second half against an approval that no longer describes the programme. The fixture drives
+// the drift directly so every branch is reachable without standing up a snapshot.
+const driftState = { value: { state: 'unchanged', hash: 'h1' } as Record<string, unknown> }
+// ⚠️ THE REAL MODULE IS KEPT AND ONLY THE TWO DRIFT READS ARE REPLACED. Replacing the whole
+// module also stubbed `buildPreparationSnapshot`, which the readiness rule needs — so a
+// separate case about missing campaigns and sequences started failing for a reason that had
+// nothing to do with it. Stub the question being driven, never the module around it.
+vi.mock('./preparation-snapshot', async (importOriginal) => ({
+  ...(await importOriginal<Record<string, unknown>>()),
+  preparationDrift: async () => driftState.value,
+  reviewDrift: async () => driftState.value,
+}))
 // ⚑ 11 Sep (C38) — INTERNAL P1 AUTHORITY IS NOW HOUSE-ONLY, so the fixtures have to say who
 // House is. `client_id: 'house'` throughout this file is exactly that account; a real client's
 // programme is refused, which is the whole point and is asserted below.
@@ -375,6 +390,112 @@ describe('③ internal P2 authorises the stage and does not take the programme l
     for (const money of ['second_paid_at', 'second_payment_ref', 'second_payment_intent_id']) {
       expect(patch).not.toHaveProperty(money)
     }
+    // ⚑ 11 Sep (DAY 3 HOLD) — AND IT ARMS NOTHING ELSE EITHER. P2 is money authority; Make
+    // Live, Run, sending and the kill switch are separate acts with separate gates.
+    for (const armed of ['run_at', 'run_by', 'went_live_by', 'kill_switch', 'campaign_status']) {
+      expect(patch, `internal P2 wrote ${armed}`).not.toHaveProperty(armed)
+    }
+  })
+
+  // ═══════════════════════════════════════════════════════════════════════════════════
+  // ⚑ 11 Sep (DAY 3 HOLD) — P2 IS HOUSE-ONLY, AND IT WAS NOT CHECKED AT ALL
+  //
+  // 🛑 THE DEFECT. `authoriseFirstInternal` was corrected on 11 Sep to prove the canonical
+  // House identity before minting P1 money authority. P2 was never given the same check: it
+  // proved APPROVED, an approval timestamp and the payment XOR, and would then record internal
+  // P2 on ANY client's programme. An operator with the admin key could settle a paying client's
+  // second half with no payment, no invoice and no revenue. P1 was fixed; P2 was not.
+  // ═══════════════════════════════════════════════════════════════════════════════════
+  describe('🛑 and it is HOUSE-ONLY — the same predicate P1 uses, not a wider one', () => {
+    const approvedFor = (clientId: string) =>
+      asRow(P({ client_id: clientId, status: 'APPROVED', approved_at: 'a' }))
+
+    it('actual canonical House, with a current approval, may authorise P2', async () => {
+      dbState.programme = approvedFor('house')
+      const r = await authoriseSecondInternal('prog-1')
+      expect(r.ok).toBe(true)
+      expect(dbState.writes).toHaveLength(1)
+    })
+
+    it('🛑 an ordinary client is REFUSED, and nothing is written', async () => {
+      dbState.programme = approvedFor('real-paying-client'); dbState.writes = []
+      const r = await authoriseSecondInternal('prog-1')
+      expect(r.ok).toBe(false)
+      expect(r.reason).toContain('House-only')
+      expect(dbState.writes, 'internal P2 was minted for a paying client').toHaveLength(0)
+    })
+
+    it('🛑 demo, test and archived accounts are REFUSED — revenue-excluded is not House', async () => {
+      // These three are exactly `demoClientIds`: every one of them is excluded from the revenue
+      // roll-ups, and not one of them is House. Using the wider set would hand internal P2
+      // money authority to every demo and test client in the book.
+      for (const clientId of ['demo-client', 'test-client', 'archived-demo']) {
+        dbState.programme = approvedFor(clientId); dbState.writes = []
+        const r = await authoriseSecondInternal('prog-1')
+        expect(r.ok, `${clientId} was allowed to authorise internal P2`).toBe(false)
+        expect(dbState.writes, `${clientId} wrote something`).toHaveLength(0)
+      }
+    })
+
+    it('🛑 an UNREADABLE House identity fails closed', async () => {
+      houseState.unreadable = true
+      dbState.programme = approvedFor('house'); dbState.writes = []
+      const r = await authoriseSecondInternal('prog-1')
+      houseState.unreadable = false
+      expect(r.ok).toBe(false)
+      expect(r.reason).toContain('could not establish')
+      expect(dbState.writes).toHaveLength(0)
+    })
+
+    it('🛑 an EMPTY House set fails closed, with its own sentence', async () => {
+      // `resolveHouseUserIds` deliberately fails OPEN to an empty set for the roll-ups, so
+      // "there is no House client" and "the auth directory is unreachable" are
+      // indistinguishable from here. Neither mints authority.
+      houseState.house = []
+      dbState.programme = approvedFor('house'); dbState.writes = []
+      const r = await authoriseSecondInternal('prog-1')
+      houseState.house = ['house']
+      expect(r.ok).toBe(false)
+      expect(r.reason).toContain('could not confirm the House account')
+      expect(dbState.writes).toHaveLength(0)
+    })
+
+    it('🛑 House P1 alone is not P2, and a House recommendation alone is not P2', async () => {
+      for (const over of [
+        { status: 'SOURCING_AUTHORISED' as const, first_authorised_at: 'a', approved_at: null },
+        { status: 'RECOMMENDED' as const, approved_at: null },
+        { status: 'READY_FOR_APPROVAL' as const, approved_at: null },
+      ]) {
+        dbState.programme = asRow(P({ client_id: 'house', ...over })); dbState.writes = []
+        const r = await authoriseSecondInternal('prog-1')
+        expect(r.ok, `House at ${over.status} was allowed P2`).toBe(false)
+        expect(dbState.writes).toHaveLength(0)
+      }
+    })
+
+    it('🛑 a STALE client approval is not P2 authority, even for House', async () => {
+      driftState.value = { state: 'changed', approved: 'h1', current: 'h2', detail: 'moved' }
+      dbState.programme = approvedFor('house'); dbState.writes = []
+      const r = await authoriseSecondInternal('prog-1')
+      driftState.value = { state: 'unchanged', hash: 'h1' }
+      expect(r.ok).toBe(false)
+      expect(r.reason).toContain('changed since it was approved')
+      expect(dbState.writes, 'P2 was minted against a superseded approval').toHaveLength(0)
+    })
+
+    it('🛑 "we cannot tell whether the approval still covers it" also refuses', async () => {
+      for (const d of [
+        { state: 'unreadable', detail: 'the snapshot could not be built' },
+        { state: 'not_approved' },
+      ]) {
+        driftState.value = d
+        dbState.programme = approvedFor('house'); dbState.writes = []
+        const r = await authoriseSecondInternal('prog-1')
+        expect(r.ok, `${d.state} was allowed to authorise P2`).toBe(false)
+        expect(dbState.writes).toHaveLength(0)
+      }
+      driftState.value = { state: 'unchanged', hash: 'h1' }
+    })
   })
 
   it('🛑 it refuses when ANY P2 payment evidence exists, the intent id included', async () => {

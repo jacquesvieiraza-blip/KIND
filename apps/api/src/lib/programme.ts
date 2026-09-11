@@ -419,6 +419,64 @@ export async function authoriseSecondInternal(programmeId: string): Promise<Prog
     return { ok: false, reason: 'This programme already has P2 PAYMENT evidence. A stage cannot hold both a payment and internal authority.' }
   }
 
+  // ── 🛑 ⚑ 11 Sep (DAY 3 HOLD) — HOUSE-ONLY, AND IT WAS NOT CHECKED AT ALL ──────────────
+  //
+  // 🛑 THE DEFECT. `authoriseFirstInternal` was corrected on 11 Sep to prove the canonical
+  // House identity before minting P1 money authority. **P2 was never given the same check** —
+  // this function proved APPROVED, an approval timestamp and the payment XOR, and would then
+  // record internal P2 authority on ANY client's programme. An operator with the admin key
+  // could settle a paying client's second half with no payment, no invoice and no revenue.
+  // P1 was fixed, P2 was not, and the two are the same money exception.
+  //
+  // ⚠️ THE SAME PREDICATE AS P1, NOT A SECOND ONE. `houseClientIds` from
+  // `computeExcludedClientIds` — clients whose `user_id` is the auth user holding
+  // `HOUSE_ACCOUNT_EMAIL`. NOT `getExcludedClientIds` (demo ∪ house): that answers "whose
+  // numbers stay out of the revenue roll-ups", and every demo and test account answers YES to
+  // it while being nothing to do with House.
+  //
+  // ⚠️ FAILS CLOSED IN BOTH DIRECTIONS OF DOUBT. A thrown lookup refuses; an EMPTY House set
+  // refuses with its own sentence, because `resolveHouseUserIds` deliberately fails open to an
+  // empty set for the roll-ups — so "no House client" and "the auth directory is unreachable"
+  // are indistinguishable from here. Neither mints authority.
+  try {
+    const { getClientExclusions } = await import('./real-clients')
+    const { houseClientIds } = await getClientExclusions()
+    if (!houseClientIds.has(p.client_id)) {
+      return {
+        ok: false,
+        reason: houseClientIds.size === 0
+          ? 'We could not confirm the House account, so no internal P2 authority was recorded. Nothing was changed.'
+          : 'Internal P2 authority is House-only. This is a client programme, and a client programme settles its second half by payment. Nothing was changed.',
+      }
+    }
+  } catch (err) {
+    return {
+      ok: false,
+      reason: `We could not establish whether this is a House programme (${err instanceof Error ? err.message : String(err)}), so no internal P2 authority was recorded. Nothing was changed.`,
+    }
+  }
+
+  // ── 🛑 AND THE APPROVAL MUST STILL COVER THE WORK ────────────────────────────────────
+  //
+  // 🛑 `status === 'APPROVED'` IS NOT "APPROVED FOR THIS". The paid door was corrected on
+  // 11 Sep to refuse P2 when the prepared work has moved since the approval; the INTERNAL door
+  // asked only for the status, so House could settle its second half against an approval that
+  // no longer describes the programme — which the run gate would then correctly refuse to make
+  // live. The money exception is about WHO PAYS, never about WHAT WAS AGREED.
+  //
+  // ⚠️ "WE CANNOT TELL" REFUSES TOO. Not knowing whether the approval still covers the work is
+  // not permission to authorise against it.
+  const { preparationDrift } = await import('./preparation-snapshot')
+  const drift = await preparationDrift(programmeId)
+  if (drift.state !== 'unchanged') {
+    return {
+      ok: false,
+      reason: drift.state === 'changed'
+        ? 'This programme has changed since it was approved, so its second half is not due on it. Re-freeze it, have it approved again, and then record P2. Nothing was changed.'
+        : `The approval on this programme could not be confirmed to still cover the current work, so no internal P2 authority was recorded. ${drift.state === 'unreadable' ? drift.detail : 'There is no approval to authorise against.'} Nothing was changed.`,
+    }
+  }
+
   const { error } = await db.from('programmes').update({
     second_authorised_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
@@ -881,26 +939,46 @@ export async function refreezeForReview(programmeId: string): Promise<RefreezeRe
   return { ok: true, changed: true, hash: built.hash, version: nextVersion }
 }
 
+/**
+ * 🛑 THE OPERATOR APPROVAL IS WITHDRAWN. IT REFUSES, ALWAYS (founder-locked 11 Sep).
+ *
+ * ── ⛓️ WHAT THIS USED TO DO, AND WHY THAT WAS THE BYPASS ────────────────────────────────
+ *
+ * It took a programme id and nothing else, proved READY_FOR_APPROVAL and not-paused, and wrote
+ * `status = 'APPROVED'`. **No client, no ownership, no House check, no restriction of any
+ * kind.** So anybody holding the admin key could approve ANY client's programme — and the row
+ * afterwards was indistinguishable, to every downstream reader, from the client having agreed.
+ *
+ * The founder's rule: **client approval is CLIENT-OWNED. An operator must not be able to
+ * substitute for it.** House is not an exception — *"House still follows the same client
+ * approval truth. House gets a MONEY COLLECTION exception only."* P1 and P2 internal authority
+ * are that money exception, and neither of them replaces this step.
+ *
+ * ── ⚠️ WHY IT IS INVERTED RATHER THAN DELETED ───────────────────────────────────────────
+ *
+ * The repo's own discipline: a withdrawn rule becomes a guard that refuses, not a hole where a
+ * guard used to be. Deleting the export would leave `POST /programmes/:id/approve` to be
+ * re-implemented by the next person who wanted it, against a comment nobody reads. This way the
+ * refusal IS the code, the reason names the rule, and the sentence points at the only authority
+ * that can approve — the client, in Milla, through `approveProgrammeAsCustomer`.
+ *
+ * 🛑 THIS IS NOT A "NO OPERATOR PATH FOR A STUCK CLIENT" GAP. A client who cannot approve
+ * because the package moved is a real state, it is surfaced in Vida as `approval_package_stale`,
+ * and its remedy is `refreezeForReview` — which publishes a new version and asks THEM again.
+ * The remedy for "the client has not approved" is never "approve for them".
+ */
 export async function approveProgramme(programmeId: string): Promise<ProgrammeResult> {
-  const p = await getProgramme(programmeId)
-  if (!p) return { ok: false, reason: 'No such programme.' }
-  if (p.paused_at) return { ok: false, reason: 'Cannot approve a paused programme.' }
-  if (p.status !== 'READY_FOR_APPROVAL') return { ok: false, reason: `Cannot approve from ${p.status}.` }
-  const at = new Date().toISOString()
-  const prepared = await approvedPreparationColumns(programmeId, at)
-  if (!prepared) {
-    return { ok: false, reason: 'This programme cannot be approved: the prepared work is not the work that was frozen for review, or no review freeze exists. Re-prepare it, freeze it again and have it reviewed. Nothing was changed.' }
+  // ⚠️ IT READS NOTHING AND WRITES NOTHING. There is no state in which this succeeds, so
+  // looking one up would only invite a future edit to branch on it.
+  void programmeId
+  return {
+    ok: false,
+    reason: 'A programme can only be approved by the client, in Milla, from their own session. '
+      + 'Approving on their behalf is not available to an operator — approval is consent to email real strangers, '
+      + 'and it is theirs to give. House is not an exception: internal P1 and P2 authority cover money collection only. '
+      + 'If the client cannot approve because the prepared work has changed, re-freeze it and they are asked again. '
+      + 'Nothing was changed.',
   }
-  await setStatus(programmeId, 'APPROVED', {
-    approved_at: at,
-    // ⚑ 11 Sep (DAY 3) — WHO. This is the admin-key door, so the author is the OPERATOR role
-    // and there is deliberately no user id: `routes/programme.ts` proves admin authority, not a
-    // person, and stamping a user here would be a name nobody actually supplied.
-    approved_by_kind: 'operator',
-    approved_by_user_id: null,
-    ...prepared,
-  })
-  return { ok: true }
 }
 
 /**

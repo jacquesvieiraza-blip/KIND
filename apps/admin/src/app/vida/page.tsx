@@ -7,6 +7,8 @@ import { loadError, panelView, notice, noticeClass, noticeText, vatBadge, PACK_P
 import { programmeSourcingAction } from '@/lib/programme-sourcing-action'
 import { LifecycleRibbon } from '@/components/vida/LifecycleRibbon'
 import { LifecyclePanel } from '@/components/vida/LifecyclePanel'
+// ⚑ MVP1 (Preview 07) — the brief-in-progress panel for somebody who is not a client yet.
+import { BriefPanel } from '@/components/vida/BriefPanel'
 import { lifecycleCopy, type LifecycleState, type VidaMode, type PanelAction } from '@/lib/vida-lifecycle-copy'
 
 
@@ -245,7 +247,9 @@ export default function VidaConsolePage() {
   // Holding it here meant leaving the console for Bookings or Sending forgot who the operator
   // was working on. Every one of this file's reads of `selected` is unchanged.
   const conversation = useVidaConversation()
-  const { selected, selectedName, setSelected } = conversation
+  // ⚑ MVP1 — `selectedDraft` is read here for ONE branch (the brief panel) and passed nowhere
+  // else. It is never a client id; see `VidaConversation.tsx`.
+  const { selected, selectedName, setSelected, selectedDraft } = conversation
   const [alerts, setAlerts] = useState<Alert[]>([])
   // PR2 — the one proof-review action: which client is being resolved, and what to say after.
   const [proofBusy, setProofBusy] = useState<string | null>(null)
@@ -2050,7 +2054,17 @@ export default function VidaConsolePage() {
           "Needs you / All" filter. Selecting a client still scopes this console and Vida. */}
       {/* ── PIPELINE ───────────────────────────────────────────────────────── */}
       <div className="flex-1 flex flex-col bg-[#fbfaff] overflow-hidden">
-        {!selected && (
+        {/* ── ⚑ MVP1 (Preview 07) — SOMEBODY WHO HAS SIGNED UP AND NOT CONFIRMED ────────
+            🛑 THIS WORKSPACE USED TO HAVE EXACTLY ONE EMPTY STATE — "Select a client" — and
+            for a person mid-brief that was the only thing Vida could say about them, because
+            no `clients` row exists until they confirm.
+
+            ⚠️ `selectedDraft` IS NOT `selected`, AND IS RENDERED ONLY WHEN `selected` IS
+            NULL. The two are cleared against each other in the provider; reading BOTH here
+            means the console cannot paint a client panel and a brief panel over one another
+            even if that ever drifted. Nothing below this branch sees a draft id. */}
+        {!selected && selectedDraft && <BriefPanel draftId={selectedDraft} />}
+        {!selected && !selectedDraft && (
           <div className="flex-1 flex items-center justify-center text-[#9b8ec4] text-sm">
             Select a client on the left to work their campaign.
           </div>

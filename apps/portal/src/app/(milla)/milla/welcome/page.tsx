@@ -122,6 +122,23 @@ const GREETING = "Hi 👋 I'm Milla, your campaign partner. Let's get you set up
 // being sharpened, not a second experiment.
 const REFINING_GREETING = "Welcome back 👋 Let's sharpen the same targeting rather than start over — tell me what was off about the people I found, and I'll adjust who we look for."
 
+/**
+ * ⚑ MVP1 — the welcome back for somebody whose Brief is part-collected.
+ *
+ * ⚠️ THE NUMBERS ARE THE SERVER'S, INTERPOLATED — never typed. `count` and `total` come from
+ * the shared eleven-fact counter and `nextLabel` from the same list; this app has no opinion
+ * about what the facts are or how many there are.
+ *
+ * ⚠️ AND IT PROMISES NOTHING ABOUT CONFIRMATION. Holding every fact is not the same as having
+ * confirmed the brief — that gate is separate, and it is the panel after this conversation.
+ */
+function resumeGreeting(count: number, total: number, nextLabel: string | null): string {
+  const held = `Welcome back 👋 I still have everything you told me — that's ${count} of ${total} things I needed.`
+  return nextLabel
+    ? `${held} Next up: ${nextLabel.toLowerCase()}.`
+    : `${held} I have everything I need — say the word and I'll put your plan together.`
+}
+
 export default function MillaWelcomePage() {
   const router = useRouter()
   const [messages, setMessages] = useState<Msg[]>([{ role: 'assistant', content: GREETING }])
@@ -194,8 +211,38 @@ export default function MillaWelcomePage() {
         setRefining(true)
         setMessages(m => (m.length === 1 && m[0].content === GREETING)
           ? [{ role: 'assistant', content: REFINING_GREETING }] : m)
+        return
       }
     } catch { /* silent — the page still works as first-time setup */ }
+
+    // ── ⚑ MVP1 — THEY STARTED THIS BEFORE, AND WE STILL HAVE THEIR ANSWERS ─────────────
+    //
+    // 🛑 WHAT THIS FIXES. The whole Brief lived in `messages`, in one browser tab. Close it,
+    // reload, or come back tomorrow and every answer was gone — the client was greeted as a
+    // stranger and asked the same eleven things again. Their answers are in the draft now, and
+    // this is the screen finally saying so.
+    //
+    // ⚠️ THE COUNT AND THE NEXT FACT ARE THE SERVER'S. `progress` comes from the shared
+    // eleven-fact counter and `next` from the same list, in the same order. There is no
+    // eleven-fact list in this app, and the denominator is never typed here.
+    //
+    // ⚠️ IT ONLY REPLACES THE GREETING, NEVER A REAL TRANSCRIPT. A client who reloaded
+    // mid-sentence keeps what is on screen; the resume line is for an empty conversation.
+    //
+    // ⚠️ AND IT FAILS SILENT. No draft, an unreadable draft, or a draft with nothing in it
+    // yet all leave this page exactly as it was before this existed.
+    try {
+      const d = await api.get<{ data: {
+        progress: { count: number; total: number }
+        next: { id: string; label: string } | null
+      } }>('/milla/brief-draft', tk)
+      const p = d.data?.progress
+      const next = d.data?.next ?? null
+      if (p && p.count > 0) {
+        setMessages(m => (m.length === 1 && m[0].content === GREETING)
+          ? [{ role: 'assistant', content: resumeGreeting(p.count, p.total, next?.label ?? null) }] : m)
+      }
+    } catch { /* silent — a client with no saved draft simply gets the normal greeting */ }
   }, [])
 
   useEffect(() => { void loadStatus() }, [loadStatus])

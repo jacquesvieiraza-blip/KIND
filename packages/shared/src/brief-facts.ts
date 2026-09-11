@@ -124,29 +124,65 @@ export type BriefFactsResult = {
 const said = (v: string | null | undefined): boolean =>
   typeof v === 'string' && v.trim() !== ''
 
-/** A list is a fact only when at least one entry survives trimming. */
-const listed = (v: readonly (string | null | undefined)[] | null | undefined): boolean =>
-  Array.isArray(v) && v.some(said)
+/** A list, as the client would read it back. `''` when nothing in it survives trimming. */
+const joined = (v: readonly (string | null | undefined)[] | null | undefined): string =>
+  Array.isArray(v) ? v.filter(said).map(s => (s as string).trim()).join(', ') : ''
 
-export function briefFacts(input: BriefFactInput): BriefFactsResult {
-  const held: Record<BriefFactId, boolean> = {
-    contact_name:    said(input.contactName),
-    company:         said(input.companyName),
+const trimmed = (v: string | null | undefined): string => (said(v) ? (v as string).trim() : '')
+
+/**
+ * 🛑 THE ONE PER-FACT MAPPING IN THIS CODEBASE. Every fact's VALUE is read here, and whether
+ * it is HELD is derived from that value being non-empty — so there is no second place where a
+ * fact could be considered present under one rule and absent under another.
+ *
+ * ⚠️ EMPTY MEANS NOT HELD, and that is why the website's "we have none" answer has to become
+ * a real string: an explicit none IS an answer, and rendering it as `''` would demote it back
+ * to the silence it was given to replace.
+ */
+function briefFactValues(input: BriefFactInput): Record<BriefFactId, string> {
+  return {
+    contact_name:    trimmed(input.contactName),
+    company:         trimmed(input.companyName),
     // The website fact is satisfied by an address OR by the client explicitly saying they
     // have none. `websiteNone` must be exactly true — a null or a false is not an answer.
-    website:         said(input.website) || input.websiteNone === true,
-    what_they_do:    said(input.whatTheCompanyDoes),
-    target_category: said(input.targetCategory),
-    geography:       listed(input.geographies),
-    company_type:    said(input.targetCompanyType),
-    company_size:    listed(input.companySizes),
+    website:         trimmed(input.website) || (input.websiteNone === true ? 'they have no website' : ''),
+    what_they_do:    trimmed(input.whatTheCompanyDoes),
+    target_category: trimmed(input.targetCategory),
+    geography:       joined(input.geographies),
+    company_type:    trimmed(input.targetCompanyType),
+    company_size:    joined(input.companySizes),
     // ⚠️ TITLES **OR** SENIORITY. The founder's fact is "target roles" — who to reach inside
     // the target company. A client who said "founders, CEOs and MDs" has answered it, and so
     // has one who said "C-suite". Demanding both would invent a twelfth fact.
-    target_roles:    listed(input.targetRoles) || listed(input.targetSeniority),
-    exclusions:      said(input.exclusions),
-    desired_outcome: said(input.desiredOutcome),
+    target_roles:    joined(input.targetRoles) || joined(input.targetSeniority),
+    exclusions:      trimmed(input.exclusions),
+    desired_outcome: trimmed(input.desiredOutcome),
   }
+}
+
+/**
+ * What the client has ALREADY said, in the approved order — label, and their own words.
+ *
+ * 🛑 WHY THIS IS NEEDED AT ALL (MVP1 resume). Persisting eleven facts and never reading them
+ * back is not persistence. The builder prompt sees only the browser's transcript, so a client
+ * who closed the tab returns to an empty `messages` array and Milla asks for all eleven again
+ * while the answers sit in the draft. This is how the stored answers reach her — and it is
+ * here, beside `BRIEF_FACTS`, so re-rendering them never becomes a twelfth copy of the list.
+ *
+ * ⚠️ HELD FACTS ONLY. A fact with no value is not rendered as "unknown"; it is simply absent,
+ * which is what leaves Milla free to ask for it.
+ */
+export function briefFactLines(input: BriefFactInput): { id: BriefFactId; label: string; value: string }[] {
+  const values = briefFactValues(input)
+  return BRIEF_FACTS.filter(id => values[id] !== '')
+    .map(id => ({ id, label: BRIEF_FACT_LABEL[id], value: values[id] }))
+}
+
+export function briefFacts(input: BriefFactInput): BriefFactsResult {
+  const values = briefFactValues(input)
+  const held: Record<BriefFactId, boolean> = Object.fromEntries(
+    BRIEF_FACTS.map(id => [id, values[id] !== '']),
+  ) as Record<BriefFactId, boolean>
 
   const collected = BRIEF_FACTS.filter(id => held[id])
   const missing = BRIEF_FACTS.filter(id => !held[id])

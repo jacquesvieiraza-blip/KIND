@@ -91,7 +91,7 @@ vi.mock('@kind/db', () => ({ db: { from: (t: string) => table(t) } }))
 
 import {
   briefDraftFor, saveBriefDraft, draftProgress, mayConfirmBrief,
-  markBriefDraftPromoted, openBriefDrafts,
+  markBriefDraftPromoted, openBriefDrafts, writableBriefDraft,
 } from './brief-draft'
 import { BRIEF_FACTS } from '@kind/shared'
 
@@ -408,5 +408,62 @@ describe('⑨ authority, not bookkeeping', () => {
     state.unreadable = false
     expect(r.ok).toBe(false)
     expect(draftProgress(await briefDraftFor(USER)).count, 'the ten facts survived').toBe(10)
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// ⚑ MVP1 — THE COMPETING-TRUTH RULE APPLIES TO READS, NOT ONLY TO WRITES.
+//
+// 🛑 THE DEFECT A RESUME TEST FOUND. `/icps/builder/chat` reads the draft back into Milla's
+// system prompt so a client who closed their tab is not re-interviewed. Built on
+// `briefDraftFor`, that read returned a PROMOTED draft too — putting a superseded snapshot of
+// the Brief in front of the model as if it were current, next to a confirmed client and ICP
+// that had moved on. Nothing is written, and it is still two answers to one question.
+//
+// ⚠️ SAME AUTHORITY AS THE WRITE PATH — REALITY, NOT THE FLAG. A `clients` row for this user
+// IS promotion having happened, whether or not the bookkeeping seal landed.
+// ═══════════════════════════════════════════════════════════════════════════════════════
+
+describe('⑨ writableBriefDraft — only while the draft is still the authoritative Brief', () => {
+  it('1 · returns the draft while nothing has been promoted', async () => {
+    await saveBriefDraft(USER, TEN)
+    expect(draftProgress(await writableBriefDraft(USER)).count).toBe(10)
+  })
+
+  it('2 · returns null once the clients row exists, even with the seal unwritten', async () => {
+    await saveBriefDraft(USER, TEN)
+    clientCreated()                       // promotion happened; the stamp did NOT land
+    expect(await writableBriefDraft(USER)).toBeNull()
+    // ⚠️ and the underlying row is still there — this is a read policy, not a delete.
+    expect(draftProgress(await briefDraftFor(USER)).count).toBe(10)
+  })
+
+  it('3 · returns null once the draft carries the promotion stamp', async () => {
+    await saveBriefDraft(USER, TEN)
+    await markBriefDraftPromoted(USER, 'client-1')
+    expect(await writableBriefDraft(USER)).toBeNull()
+  })
+
+  it('4 · returns null when there is no draft at all', async () => {
+    expect(await writableBriefDraft(USER)).toBeNull()
+  })
+
+  it('5 · FAILS CLOSED when the draft cannot be read', async () => {
+    await saveBriefDraft(USER, TEN)
+    state.unreadable = true
+    expect(await writableBriefDraft(USER)).toBeNull()
+  })
+
+  it('6 · FAILS CLOSED when promotion state cannot be established', async () => {
+    await saveBriefDraft(USER, TEN)
+    state.clientsUnreadable = true
+    // We cannot tell whether this brief has already been confirmed, so we do not read it back.
+    expect(await writableBriefDraft(USER)).toBeNull()
+  })
+
+  it('7 · is scoped to the caller — one user’s promotion never closes another’s draft', async () => {
+    await saveBriefDraft(USER, TEN)
+    clientCreated('somebody-else', 'client-9')
+    expect(draftProgress(await writableBriefDraft(USER)).count).toBe(10)
   })
 })

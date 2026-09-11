@@ -641,12 +641,20 @@ millaRouter.post('/notetaker', async (req: AuthRequest, res) => {
  */
 millaRouter.get('/brief-draft', async (req: AuthRequest, res) => {
   const { briefDraftFor, draftProgress } = await import('../lib/brief-draft')
+  const { BRIEF_FACT_LABEL } = await import('@kind/shared')
   const draft = await briefDraftFor(req.userId!)
+  const progress = draftProgress(draft)
+  // ⚠️ THE NEXT FACT IS NAMED HERE, NOT WORKED OUT IN THE BROWSER. The portal's resume line
+  // says what Milla still needs; deriving that in the portal would mean a second eleven-fact
+  // list in a second app, which is exactly how Vida came to disagree with Milla about the
+  // count. `missing` is already in the approved order, so the next one is its head.
+  const nextId = progress.missing[0] ?? null
   res.json({
     success: true,
     data: {
       draft: draft ? { facts: draft.facts, confirmed_at: draft.confirmedAt, promoted_client_id: draft.promotedClientId } : null,
-      progress: draftProgress(draft),
+      progress,
+      next: nextId ? { id: nextId, label: BRIEF_FACT_LABEL[nextId] } : null,
     },
   })
 })

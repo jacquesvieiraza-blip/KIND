@@ -38,6 +38,29 @@ type ClientRow = {
   house_or_demo: boolean
   vat_number?: string | null
 }
+/**
+ * ⚑ MVP1 (Preview 07) — somebody who has signed up and whose Brief Milla is still collecting.
+ *
+ * 🛑 THIS IS NOT A CLIENT AND MUST NEVER BE TREATED AS ONE. It has no `clients` row, no
+ * programme, no entitlement and no money. It is projected into the rail so the operator can
+ * see a person exists at all — which, before this, they could not: a signup was invisible
+ * until the instant they confirmed.
+ *
+ * ⚠️ IT IS A SEPARATE TYPE ON PURPOSE. Widening `ClientRow` with optional fields would let a
+ * draft flow into every place that takes a client — the worklist, the lifecycle board, the
+ * cockpit — and each would have to remember it might not be real. A distinct type makes the
+ * compiler ask that question instead of a reviewer.
+ */
+type DraftRow = {
+  id: string
+  user_id: string
+  company_name: string | null
+  contact_name: string | null
+  country: string | null
+  created_at: string
+  brief: { collected: number; total: number; missing: string[]; complete: boolean }
+  confirmed_at: string | null
+}
 type ColdState = { warn: boolean; cold: boolean; exempt?: boolean; why?: string }
 type NextAction = { step: number; label: string; actor: 'you' | 'them' | 'engine' }
 type RatioReading = { ratio: number | null; confident: boolean; label: string }
@@ -60,7 +83,7 @@ function initials(name: string | null): string {
 }
 
 export function VidaClients({ open }: { open: boolean }) {
-  const { selected, selectedName, setSelected } = useVidaConversation()
+  const { selected, selectedName, setSelected, selectedDraft, setSelectedDraft } = useVidaConversation()
   const [clients, setClients] = useState<ClientRow[] | null>(null)
   const [work, setWork] = useState<WorkRow[] | null>(null)
   const [bookRatio, setBookRatio] = useState<RatioReading | null>(null)
@@ -72,6 +95,8 @@ export function VidaClients({ open }: { open: boolean }) {
   // the worklist puts them at "Waiting on their $299" with `actor: 'them'` — filtered out of
   // "Needs you", which is exactly the client the review is about.
   const [proofReview, setProofReview] = useState<Set<string>>(new Set())
+  // ⚑ MVP1 — open onboarding drafts, merged into the rail beside confirmed clients.
+  const [drafts, setDrafts] = useState<DraftRow[] | null>(null)
   const [lifecycle, setLifecycle] = useState<Record<string, LifecycleRow>>({})
   // ⚑ 9 Sep — THE FILTER IS THE RAIL'S, NOT THIS COMPONENT'S. `Needs you` in the Clients rail
   // is a link to this same screen carrying `?needs=1`, so the URL is the single place the
@@ -137,6 +162,19 @@ export function VidaClients({ open }: { open: boolean }) {
         })
         // ⚠️ A FAILED READ LEAVES THE ROWS WITHOUT A STAGE WORD, never with a guessed one.
         .catch(() => { /* rows fall back to industry · country, which is a fact we do have */ }),
+      // ⚑ MVP1 — the fifth read, under the SAME policy as the rest: a good read replaces, a
+      // failed one changes nothing. A draft that flickers off the rail on a transient blip
+      // reads to an operator as "that person gave up", which is a worse lie than a stale row.
+      fetch('/api/proxy/operator/brief-drafts').then(r => r.json())
+        .then(j => {
+          if (!alive()) return
+          if (!j?.success) throw new Error(j?.error || 'the API returned no data')
+          setDrafts(prev => nextRailValue(prev, { ok: true, value: (j.data ?? []) as DraftRow[] }))
+        })
+        .catch(() => {
+          if (!alive()) return
+          setDrafts(prev => nextRailValue(prev, { ok: false }))
+        }),
       fetch('/api/proxy/operator/alerts').then(r => r.json())
         .then(j => { if (alive() && j?.success) setProofReview(new Set((j.data ?? [])
           .filter((a: { kind: string }) => a.kind === 'proof_review')
@@ -259,6 +297,55 @@ export function VidaClients({ open }: { open: boolean }) {
           </button>
         )
       })}
+      {/* ── ⚑ MVP1 (Preview 07) — SIGNED UP, BRIEF IN PROGRESS ─────────────────────────
+          🛑 BEFORE THIS, A SIGNUP WAS INVISIBLE. No `clients` row exists until the client
+          confirms, so an operator could not see that a person had signed up at all — Preview
+          07's "signed up 14 minutes ago and Milla is collecting their brief" had nothing
+          behind it.
+
+          ⚠️ RENDERED BELOW THE CLIENTS, AND NEVER AS ONE. Opening a draft goes through
+          `setSelectedDraft`, which is a DIFFERENT piece of state from `selected` and clears
+          it — a draft id can never be handed to a `/operator/*` route as a client id, because
+          it never reaches the variable those routes read. The row carries no stage word from
+          the lifecycle board and no "needs you": Milla is collecting, and there is nothing
+          here for the operator to press.
+
+          ⚠️ THE COUNT IS THE SHARED ONE. `brief.collected` / `brief.total` come from
+          `briefFacts()` on the server. There is no eleven-fact list in this file, and the
+          card deliberately does not say "complete" — eleven facts collected still leaves the
+          client's own confirmation outstanding, which is a separate gate.
+
+          ⚠️ AND NEVER BOTH AT ONCE. The API returns only UNPROMOTED drafts, so the moment a
+          person confirms they leave this list and appear above as a client. */}
+      {(drafts?.length ?? 0) > 0 && !needsFilter && (
+        <div className="mt-1.5 pt-1.5 border-t border-[#f0eafc]">
+          <p className="text-[10px] font-bold uppercase tracking-wide text-[#b3a9cc] px-2.5 pb-1">
+            Signing up
+          </p>
+          {(drafts ?? []).map(d => {
+            const openDraft = d.id === selectedDraft
+            return (
+              <button key={d.id} onClick={() => setSelectedDraft(d.id)}
+                title={d.company_name ?? 'Signed up — Milla is collecting their brief'}
+                className={`w-full text-left flex items-start gap-2 px-2 py-1.5 rounded-lg mb-0.5 transition-colors border ${
+                  openDraft ? 'bg-[#f3ecff] border-[#e4d4fb]' : 'hover:bg-[#faf8ff] border-transparent'}`}>
+                <span className="w-2 h-2 rounded-full shrink-0 mt-[6px] bg-[#e4dcf7]" />
+                <span className="w-6 h-6 rounded-md flex items-center justify-center text-[10px] font-bold shrink-0 bg-[#f6f2ff] text-[#b3a9cc]">
+                  {initials(d.company_name)}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <b className="text-[13px] truncate block text-[#5c5279]">
+                    {d.company_name || 'Signed up'}
+                  </b>
+                  <span className="text-[11.5px] block truncate text-[#9b8ec4]">
+                    Brief · {d.brief.collected} of {d.brief.total} collected
+                  </span>
+                </span>
+              </button>
+            )
+          })}
+        </div>
+      )}
       {/* THE BOOK'S RATIO — names sourced per approved lead, across every real client.
           Founder-locked 25 Jul: the cashflow model plans on 2, and this is where the real
           number comes from. Kept with the list it belongs to, not dropped in the move. */}

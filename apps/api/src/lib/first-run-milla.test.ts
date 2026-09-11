@@ -2692,3 +2692,88 @@ describe('EXECUTED · discriminated validation — questions survive junk target
     expect((await ask()).code).toBe(503)
   })
 })
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// ⑨ MVP1 — THE BRIEF SURVIVES A CLOSED TAB (incremental persistence)
+//
+// 🛑 THE DEFECT. The whole Brief conversation lived in React state until the confirm click.
+// Close the tab at question nine and everything Milla had established was gone — and Vida
+// could not see a person who had not confirmed, because no record of them existed anywhere.
+//
+// ⚠️ PERSISTED BY THE SERVER, ON EVERY TURN, NOT BY THE BROWSER. Saving from the portal would
+// mean a Brief survives only if the browser remembers to save it, which is the same defect
+// wearing a seatbelt. Every reply that reaches the route records what has been established.
+//
+// ⚠️ AND IT IS NOT THE ICP. `MillaQuestionReply` stays a strict shape so a QUESTION can never
+// smuggle targeting into the product; `brief_so_far` feeds the DRAFT only. Nothing is created,
+// nothing is spent, and the targeting the client pays for is still built solely from a
+// `complete` reply.
+// ═══════════════════════════════════════════════════════════════════════════════════════
+
+describe('⑨ the partial brief is persisted on every turn', () => {
+  const saved: Record<string, unknown>[] = []
+
+  beforeEach(() => {
+    saved.length = 0
+    anthropicBox.calls = 0
+    anthropicBox.error = null
+    anthropicBox.reply = null
+  })
+
+  const ask = () => callBuilderChat({
+    messages: [{ role: 'user', content: 'we are Redmayne & Co.' }],
+    profile_required: true,
+  })
+
+  it('🛑 a QUESTION turn persists what has been established so far', async () => {
+    anthropicBox.reply = toolReply({
+      type: 'question',
+      content: 'And which countries are those agencies in?',
+      brief_so_far: { company_name: 'Redmayne & Co.', target_category: 'Digital marketing agencies' },
+    })
+    const out = await ask()
+    expect(out.code).toBe(200)
+    expect((out.payload.data as Record<string, unknown>).type).toBe('question')
+  })
+
+  it('a question still carries NO icp and NO profile — the guard is untouched', async () => {
+    anthropicBox.reply = toolReply({
+      type: 'question', content: 'Which countries?',
+      brief_so_far: { company_name: 'Redmayne & Co.' },
+      // a model trying to smuggle targeting into a question turn
+      icp: VALID_ICP, profile: BRIEF_PROFILE,
+    })
+    const out = await ask()
+    const d = out.payload.data as Record<string, unknown>
+    expect(out.code).toBe(200)
+    expect(d.icp, 'a question must never produce targeting').toBeUndefined()
+    expect(d.profile, 'a question must never open an account').toBeUndefined()
+  })
+
+  it('a turn with no brief_so_far is still a perfectly good turn', async () => {
+    anthropicBox.reply = toolReply({ type: 'question', content: 'What is the company called?' })
+    expect((await ask()).code).toBe(200)
+  })
+
+  it("the client's own words are carried, not a tidied version", async () => {
+    // The schema clamps length and refuses wrong types; it does not rewrite, map to a closed
+    // list, or canonicalise. That is the whole reason the draft can hold their phrase.
+    expect(icpsSrc).toContain('target_category:     clampedStr(200)')
+    expect(icpsSrc).toContain('target_company_type: clampedStr(120)')
+  })
+
+  it('🛑 the route persists on EVERY turn, and merges rather than replacing', () => {
+    expect(icpsSrc).toContain('if (parsed.brief_so_far && req.userId)')
+    expect(icpsSrc).toContain("await import('../lib/brief-draft')")
+    expect(flat(icpsSrc)).toContain('MERGED, NEVER REPLACING')
+    // …and the persistence happens BEFORE the completion branch, so a question turn — which
+    // returns early — is covered too.
+    expect(icpsSrc.indexOf('if (parsed.brief_so_far && req.userId)'))
+      .toBeLessThan(icpsSrc.indexOf("if (parsed.type === 'complete' && parsed.icp)"))
+  })
+
+  it('the prompt asks for it on every turn, and forbids guessing', () => {
+    expect(flat(icpsSrc)).toContain('FILL "brief_so_far" ON EVERY SINGLE TURN, including questions')
+    expect(flat(icpsSrc)).toContain('if they have not said it, it does not go in')
+  })
+})

@@ -2963,6 +2963,38 @@ const millaReplyTool = (profileRequired: boolean) => ({
       },
       website_hints: { type: 'array', maxItems: 12, items: { type: 'string', maxLength: 200 }, description: 'Values that came from the website read and the client has NOT confirmed out loud.' },
       campaign_intent: { type: 'string', maxLength: 2000 },
+      // ── ⚑ MVP1 — WHAT YOU HAVE ESTABLISHED SO FAR, ON EVERY TURN ────────────────────
+      //
+      // 🛑 THIS IS WHY A CLOSED TAB NO LONGER DESTROYS A BRIEF. The whole conversation used
+      // to live in browser state until the confirm click; nothing was persisted and Vida
+      // could not see a person who had not confirmed. The model already knows what it has
+      // learned — this asks it to say so on every turn, so the server can store it.
+      //
+      // ⚠️ IT IS NOT THE ICP AND IT NEVER BECOMES ONE. The targeting the client pays for is
+      // still built ONLY from a `complete` reply's `icp` and `profile`. This is a draft
+      // snapshot: it records progress, it is merged rather than replacing, and no
+      // client, ICP or spend is ever derived from it.
+      brief_so_far: {
+        type: 'object',
+        description: 'Everything you have established from the client SO FAR, on EVERY turn including questions. Only what they have actually told you — never a guess, never the website, never a placeholder. Omit anything not yet established.',
+        properties: {
+          contact_name:        { type: 'string', maxLength: 120 },
+          company_name:        { type: 'string', maxLength: 200 },
+          website:             { type: 'string', maxLength: 300 },
+          website_none:        { type: 'boolean', description: 'true ONLY when they said they have no website.' },
+          what_they_do:        { type: 'string', maxLength: 1200 },
+          target_category:     { type: 'string', maxLength: 200, description: "Their own words for the kind of company to reach." },
+          geographies:         { type: 'array', maxItems: 8,  items: { type: 'string', maxLength: 80 } },
+          target_company_type: { type: 'string', maxLength: 120, description: 'The organisational form, only from what they said.' },
+          company_sizes:       { type: 'array', maxItems: 6,  items: { type: 'string', maxLength: 40 } },
+          job_titles:          { type: 'array', maxItems: 10, items: { type: 'string', maxLength: 80 } },
+          seniority_levels:    { type: 'array', maxItems: 6,  items: { type: 'string', maxLength: 40 } },
+          exclusions:          { type: 'string', maxLength: 600 },
+          desired_outcome:     { type: 'string', maxLength: 2000 },
+          country:             { type: 'string', maxLength: 120, description: "Where the CLIENT'S OWN business is based." },
+          phone:               { type: 'string', maxLength: 60 },
+        },
+      },
     },
     required: ['type'],
   },
@@ -3054,11 +3086,39 @@ const boundedEnum = <T extends readonly [string, ...string[]]>(values: T, maxIte
 // or sent anywhere. Junk targeting on a question cannot kill the turn because it is not
 // part of the question's contract at all. Structural garbage still fails: a numeric
 // content, a blank content, a missing content are refused exactly as before.
+/**
+ * ⚑ MVP1 — the draft snapshot, allowed on BOTH branches.
+ *
+ * ⚠️ DELIBERATELY NOT `icp` OR `profile`. `MillaQuestionReply` is a strict shape precisely so
+ * a QUESTION can never smuggle targeting into the product, and that guard is untouched: the
+ * ICP and the client row are still built only from a `complete` reply. This object feeds the
+ * DRAFT and nothing else — it is merged, never replacing, and nothing is spent or created
+ * from it.
+ */
+const BriefSoFar = z.object({
+  contact_name:        clampedStr(120),
+  company_name:        clampedStr(200),
+  website:             clampedStr(300),
+  website_none:        z.boolean().optional(),
+  what_they_do:        clampedStr(1200),
+  target_category:     clampedStr(200),
+  geographies:         boundedList(8),
+  target_company_type: clampedStr(120),
+  company_sizes:       boundedList(6, 40),
+  job_titles:          boundedList(10),
+  seniority_levels:    boundedList(6, 40),
+  exclusions:          clampedStr(600),
+  desired_outcome:     clampedStr(2000),
+  country:             clampedStr(120),
+  phone:               clampedStr(60),
+}).optional()
+
 const MillaQuestionReply = z.object({
   type:    z.literal('question'),
   content: z.string()
     .transform(s => s.slice(0, 600))
     .refine(s => s.trim().length > 0, { message: 'a question must carry content' }),
+  brief_so_far: BriefSoFar,
 })
 
 const MillaReplyInput = z.object({
@@ -3116,6 +3176,7 @@ const MillaReplyInput = z.object({
   })).optional().transform(a => a?.slice(0, 12)),
   website_hints:   boundedList(12, 200),
   campaign_intent: clampedStr(2000),
+  brief_so_far:    BriefSoFar,
 })
   // The discriminated half, which the flat JSON Schema deliberately leaves to Zod.
   // ⚠️ The question-content rule moved into `MillaQuestionReply` above — a reply whose
@@ -3316,6 +3377,54 @@ HOW YOU MUST TREAT IT:
     // business, targeting, proof, intent — and is asked for nothing about their account,
     // because they already have one. The prompt is assembled rather than branched so the
     // two share every rule that is genuinely shared.
+    // ── ⚑ MVP1 — THE BRIEF SURVIVES A CLOSED TAB, AND MILLA IS TOLD WHAT SHE ALREADY HAS ──
+    //
+    // 🛑 PERSISTING THE ELEVEN FACTS WAS ONLY HALF OF RESUME. This route's model sees exactly
+    // one thing about the client: the `messages` array the browser sent. That array lives in
+    // one tab. So a client who closed their tab came back to an empty transcript and was asked
+    // for all eleven facts again while their answers sat in `onboarding_brief_drafts`. Storing
+    // answers nobody reads back is not persistence, it is bookkeeping.
+    //
+    // ⚠️ READ FROM THE SERVER, NEVER ACCEPTED FROM THE CLIENT. These facts come from the draft
+    // belonging to THIS authenticated user. A browser-supplied "here is what I already told
+    // you" would be a second, mutable copy of the brief that could contradict the stored one —
+    // which is exactly the competing-truth the founder ruled out.
+    //
+    // ⚠️ FIRST RUN ONLY. A returning client with an account is refining, and their brief is
+    // their ICP — not a draft. `profile_required` is the portal's statement that this is a
+    // first run, and it is the same flag every other first-run rule keys off.
+    //
+    // ⚠️ AND IT FAILS SILENT. If the draft cannot be read (the migration is not applied yet)
+    // the block is empty and the conversation behaves exactly as it did before this existed.
+    let resumeBlock = ''
+    if (profile_required && req.userId) {
+      try {
+        // ⚠️ `writableBriefDraft`, NOT `briefDraftFor`. A PROMOTED draft is evidence, and
+        // reading it back here would put a superseded copy of the Brief in front of Milla as
+        // if it were current — the competing-truth rule applies to reads, not only writes.
+        const { writableBriefDraft } = await import('../lib/brief-draft')
+        const { briefFactsFromDraft, briefFactLines } = await import('@kind/shared')
+        const draft = await writableBriefDraft(req.userId)
+        const lines = draft ? briefFactLines(briefFactsFromDraft(draft.facts)) : []
+        if (lines.length > 0) {
+          resumeBlock = `
+
+── WHAT THIS CLIENT HAS ALREADY TOLD YOU ─────────────────────────────────
+They started this conversation before and came back. These are THEIR OWN ANSWERS, already
+given. The transcript above may not contain them, because it lives in a browser tab they
+closed — that does not make them unsaid.
+
+${lines.map(l => `  · ${l.label}: ${l.value}`).join('\n')}
+
+DO NOT ASK FOR ANY OF THESE AGAIN, and do not read them back to the client one by one for
+confirmation — they told you, and being re-interviewed about answers they have already given
+is the single worst thing this conversation can do to somebody who came back.
+Carry every one of them forward in "brief_so_far" on every turn, unchanged, alongside
+anything new. Continue from what is still genuinely missing.`
+        }
+      } catch { /* the draft is unreadable; the conversation proceeds exactly as before */ }
+    }
+
     const learningGoals = profile_required
       ? `You are learning THREE things at once:
   1. WHO they want to reach (their targeting).
@@ -3393,7 +3502,12 @@ consultancies, clinics, something else?", in your own words.
 
 If anything is missing, ask for ONE of them — that is a "question", not a "complete". Ask for
 the next missing thing the way a person would, never as a list, never all at once. A made-up
-value is far worse than one more question.`
+value is far worse than one more question.
+
+⚠️ FILL "brief_so_far" ON EVERY SINGLE TURN, including questions. Put in it everything the
+client has actually told you so far — their words, not your tidied version — and leave out
+anything they have not established yet. It is how their answers survive a closed tab, and it
+is never a guess: if they have not said it, it does not go in.`
       : ''
 
     const profileFieldsNote = profile_required
@@ -3551,7 +3665,7 @@ learn over several turns, one per reply — never a batch.
 
 If they mention a named customer, a case study, a testimonial, a specific result or a metric,
 ASK EXPLICITLY whether we may use it in outreach. Do not assume. Anything they have not
-clearly approved must be recorded with "permitted" false.${websiteEvidenceBlock}${completionGate}
+clearly approved must be recorded with "permitted" false.${websiteEvidenceBlock}${completionGate}${resumeBlock}
 
 ── THEIR WORDS WILL NOT MATCH OUR LISTS, AND THAT IS FINE ──────────────────────────────
 Some targeting fields accept only certain values (they are listed on the tool). People do
@@ -3699,6 +3813,29 @@ result or a number. "permitted" is false unless they explicitly said we may use 
       return
     }
     const parsed = validated.data
+
+    // ── ⚑ MVP1 — THE DRAFT IS WRITTEN HERE, ON EVERY TURN ─────────────────────────────
+    //
+    // 🛑 SERVER-SIDE, SO IT CANNOT BE SKIPPED. Persisting from the portal would mean a Brief
+    // survives only if the browser remembers to save it — and the defect this replaces is
+    // precisely a Brief that existed nowhere but a browser. Every reply that reaches this
+    // line, question or completion alike, records what Milla has established.
+    //
+    // ⚠️ MERGED, NEVER REPLACING. `saveBriefDraft` merges, so a turn carrying one new answer
+    // cannot erase the ten before it — the safe default the founder locked, and the only one
+    // that is correct without proving the model re-stated the whole truth every time.
+    //
+    // ⚠️ BEST-EFFORT, AND THAT IS THE RIGHT TRADE HERE. A draft that could not be stored must
+    // not cost the client their turn: the reply is already composed and the conversation is
+    // intact. A REFUSAL (the brief was already confirmed) is likewise not an error — it means
+    // the operational truth has moved on and this snapshot is simply no longer wanted.
+    if (parsed.brief_so_far && req.userId) {
+      const { saveBriefDraft } = await import('../lib/brief-draft')
+      const saved = await saveBriefDraft(req.userId, parsed.brief_so_far)
+      if (!saved.ok && saved.reason === 'unstorable') {
+        console.warn('[icps/builder/chat] brief draft not stored (run 20260911_onboarding_brief_drafts)')
+      }
+    }
 
     if (parsed.type === 'complete' && parsed.icp) {
       // Everything below is reading ALREADY-VALIDATED, ALREADY-BOUNDED data — Zod refused

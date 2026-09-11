@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { BRIEF_FACTS, BRIEF_FACT_LABEL, briefFacts, type BriefFactId } from '@kind/shared'
+import { BRIEF_FACTS, BRIEF_FACT_LABEL, briefFacts, briefFactLines, type BriefFactId } from '@kind/shared'
 
 // ═══════════════════════════════════════════════════════════════════════════════════════
 // THE CANONICAL BRIEF — ELEVEN DATA FACTS, AND CONFIRMATION IS NOT ONE OF THEM.
@@ -186,5 +186,93 @@ describe('⑦ target roles may arrive as titles or as seniority', () => {
   it('neither leaves the fact missing', () => {
     const r = briefFacts({ ...FULL, targetRoles: undefined, targetSeniority: undefined })
     expect(r.missing).toEqual(['target_roles'])
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// ⚑ MVP1 — READING THE FACTS BACK, FROM THE SAME LIST THAT COUNTS THEM.
+//
+// 🛑 WHY `briefFactLines` EXISTS. Persisting eleven facts and never reading them back is not
+// persistence. `/icps/builder/chat` sees only the browser's transcript, so a client who closed
+// their tab returned to an empty conversation and was asked for all eleven facts again while
+// the answers sat in their draft. These lines are how the stored answers reach Milla.
+//
+// ⚠️ AND HELD-NESS IS THE SAME QUESTION IN BOTH DIRECTIONS. The value and the tick come from
+// one per-fact mapping, so a fact can never be "present" to the counter and "absent" to the
+// reader, or the reverse — which is the class of drift the whole module exists to prevent.
+// ═══════════════════════════════════════════════════════════════════════════════════════
+
+describe('briefFactLines — what the client already said, in their own words', () => {
+  const HELD = {
+    contactName: 'Ellis Warner',
+    companyName: 'Redmayne & Co.',
+    website: 'https://redmayne.test',
+    whatTheCompanyDoes: 'chartered surveyors',
+    targetCategory: 'Digital marketing agencies',
+    geographies: ['United Kingdom', 'Ireland'],
+    companySizes: ['11-50'],
+    targetRoles: ['Managing Director'],
+    exclusions: 'no recruiters',
+    desiredOutcome: 'booked meetings',
+  }
+
+  it('renders exactly the facts the counter says are collected, in the approved order', () => {
+    const counted = briefFacts(HELD)
+    const lines = briefFactLines(HELD)
+    expect(lines.map(l => l.id)).toEqual(counted.collected)
+  })
+
+  it('omits every fact the counter says is missing — absent, never "unknown"', () => {
+    const lines = briefFactLines(HELD)
+    const ids = lines.map(l => l.id)
+    for (const id of briefFacts(HELD).missing) expect(ids).not.toContain(id)
+  })
+
+  it('labels come from BRIEF_FACT_LABEL, never from a second list', () => {
+    for (const l of briefFactLines(HELD)) expect(l.label).toBe(BRIEF_FACT_LABEL[l.id])
+  })
+
+  it('lists read back as a person would say them, not as JSON', () => {
+    const geo = briefFactLines(HELD).find(l => l.id === 'geography')
+    expect(geo?.value).toBe('United Kingdom, Ireland')
+  })
+
+  it('"we have no website" is an ANSWER and renders as one', () => {
+    const lines = briefFactLines({ ...HELD, website: undefined, websiteNone: true })
+    expect(lines.find(l => l.id === 'website')?.value).toBe('they have no website')
+  })
+
+  it('a website that is neither given nor explicitly refused is simply absent', () => {
+    const lines = briefFactLines({ ...HELD, website: undefined, websiteNone: false })
+    expect(lines.some(l => l.id === 'website')).toBe(false)
+  })
+
+  it('whitespace is not an answer, in either direction', () => {
+    const lines = briefFactLines({ ...HELD, contactName: '   ', geographies: ['  ', ''] })
+    expect(lines.some(l => l.id === 'contact_name')).toBe(false)
+    expect(lines.some(l => l.id === 'geography')).toBe(false)
+    expect(briefFacts({ ...HELD, contactName: '   ', geographies: ['  ', ''] }).missing)
+      .toEqual(expect.arrayContaining(['contact_name', 'geography']))
+  })
+
+  it('values are trimmed — the client’s words, not their stray spacing', () => {
+    expect(briefFactLines({ ...HELD, companyName: '  Redmayne & Co.  ' })
+      .find(l => l.id === 'company')?.value).toBe('Redmayne & Co.')
+  })
+
+  it('seniority alone satisfies the roles fact and reads back as the roles line', () => {
+    const lines = briefFactLines({ ...HELD, targetRoles: undefined, targetSeniority: ['C-Suite'] })
+    expect(lines.find(l => l.id === 'target_roles')?.value).toBe('C-Suite')
+  })
+
+  it('nothing said means nothing rendered, and never a fabricated row', () => {
+    expect(briefFactLines({})).toEqual([])
+  })
+
+  it('every rendered id is one of the canonical eleven — no twelfth line can appear', () => {
+    const full = { ...HELD, targetCompanyType: 'agency' }
+    const lines = briefFactLines(full)
+    expect(lines).toHaveLength(BRIEF_FACTS.length)
+    for (const l of lines) expect(BRIEF_FACTS as readonly string[]).toContain(l.id)
   })
 })

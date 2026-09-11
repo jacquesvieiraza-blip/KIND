@@ -136,6 +136,32 @@ export async function briefDraftFor(userId: string): Promise<BriefDraft | null> 
   return r.ok ? r.draft : null
 }
 
+/**
+ * The draft ONLY while it is still the authoritative writable Brief.
+ *
+ * 🛑 WHY THIS IS NOT `briefDraftFor`. After promotion the draft is EVIDENCE — a snapshot of
+ * what was said before the client and the ICP became the operational truth. Reading it back
+ * into a live conversation would put a superseded copy of the Brief in front of Milla as if it
+ * were current, which is the competing-mutable-truth the founder ruled out arriving by a
+ * quieter door: nothing is written, but the model is told the old category wording is what
+ * this client wants. `resume` is a READ with the same authority question as a WRITE.
+ *
+ * ⚠️ THE AUTHORITY IS THE SAME ONE `saveBriefDraft` ASKS — reality, not the flag. A `clients`
+ * row for this user IS promotion having happened, whether or not the bookkeeping seal landed.
+ *
+ * ⚠️ AND IT FAILS CLOSED. An unknown state answers `null`, so a conversation that cannot
+ * establish whether promotion has happened behaves exactly as it did before drafts existed
+ * rather than guessing that it has not.
+ */
+export async function writableBriefDraft(userId: string): Promise<BriefDraft | null> {
+  const read = await readDraft(userId)
+  if (!read.ok || !read.draft) return null
+  if (read.draft.promotedClientId) return null
+  const promoted = await promotedClientForUser(userId)
+  if (!promoted.ok || promoted.clientId) return null
+  return read.draft
+}
+
 export type SaveOutcome =
   | { ok: true; draft: BriefDraft }
   | { ok: false; reason: 'promoted' | 'unstorable' | 'unverifiable' }

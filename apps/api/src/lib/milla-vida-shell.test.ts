@@ -389,7 +389,26 @@ describe('VIDA — ONE INSTANCE, ONE TRANSCRIPT, ONE COMPOSER', () => {
       expect(code, `${what} (${needle}) is still owned by the Vida console`).not.toContain(needle)
     }
     // The selected client is the shell's, because the conversation is scoped to it.
-    expect(code).toContain('const { selected, selectedName, setSelected } = conversation')
+    //
+    // ⛓️ MVP1 — `selectedDraft` JOINED THE SAME DESTRUCTURE, and the assertion moved with it
+    // rather than being relaxed: what this line proves is that the console READS its selection
+    // from the provider instead of holding its own, and a second field read from the same
+    // object proves exactly the same thing. It is matched by parts so that adding a third
+    // provider-owned field never reads as "the console took the conversation back".
+    expect(code).toMatch(/const \{[^}]*\} = conversation/)
+    const destructured = (code.match(/const \{([^}]*)\} = conversation/)?.[1] ?? '')
+      .split(',').map(f => f.split(':')[0].trim())
+    for (const field of ['selected', 'selectedName', 'setSelected']) {
+      // ⚠️ WHOLE IDENTIFIERS, NOT SUBSTRINGS. A plain `toContain('selected')` is satisfied by
+      // `selectedName` — so dropping `selected` itself from the destructure stayed green under
+      // the first cut of this guard. A checker that cannot fail proves nothing.
+      expect(destructured, `${field} is no longer read from the conversation`).toContain(field)
+    }
+    // 🛑 AND THE CONSOLE STILL HOLDS NO SELECTION OF ITS OWN — which is the thing this whole
+    // case exists to prevent, and the reason the destructure above is not sufficient on its
+    // own: a console could read the provider AND shadow it with local state.
+    expect(code, 'the console owns a selected-client state again')
+      .not.toMatch(/const \[\s*selected[^\]]*\]\s*=\s*useState/)
   })
 
   it('🛑 THE VIDA ICP TAB HAS NO SECOND TRANSCRIPT AND NO SECOND SEND', () => {

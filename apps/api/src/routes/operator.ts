@@ -46,6 +46,50 @@ async function requireClient(clientId: unknown): Promise<{ id: string; company_n
 
 // ── #483 CLIENT PICKER ────────────────────────────────────────────────────────
 // Every real client (+ house/demo labelled) for the operator's client selector.
+// ── ⚑ MVP1 — THE PEOPLE WHO HAVE SIGNED UP BUT NOT CONFIRMED (Preview 07) ──────────────
+//
+// 🛑 A PROJECTION, NOT A CLIENT LIST, AND THAT IS THE WHOLE DESIGN. These rows are NOT
+// clients and rendering them beside clients does not make them clients: "a client" still
+// means a confirmed client in `/clients`, the worklist, the lifecycle board and every count.
+// Vida's rail merges two reads; nothing downstream is asked to change its mind.
+//
+// ⚠️ OPEN ONLY. A promoted draft is excluded by the same condition that makes it evidence, so
+// one person can never appear twice — the transition is draft row OUT, client row IN, not
+// both at once.
+//
+// ⚠️ STAGE IS ALWAYS Brief AND THE MODE IS ALWAYS "No action needed". Milla is collecting; an
+// operator has nothing to do. Manufacturing a task here would rebuild the queue the console
+// exists to delete — and the founder's rule is that a lifecycle transition which happened by
+// itself is not a task.
+//
+// ⚠️ NO NAME IS INVENTED. A draft with no company name yet renders as what it is — somebody
+// who has signed up and not said their company yet — never as a placeholder that reads like
+// a real account.
+operatorRouter.get('/brief-drafts', async (_req: Request, res: Response) => {
+  const { openBriefDrafts, draftProgress } = await import('../lib/brief-draft')
+  const drafts = await openBriefDrafts()
+  res.json({
+    success: true,
+    data: drafts.map(d => {
+      const p = draftProgress(d)
+      return {
+        id: d.id,
+        user_id: d.userId,
+        company_name: (d.facts.company_name ?? '').trim() || null,
+        contact_name: (d.facts.contact_name ?? '').trim() || null,
+        country: (d.facts.country ?? '').trim() || null,
+        created_at: d.createdAt,
+        updated_at: d.updatedAt,
+        // The SHARED counter — there is no second eleven-fact list anywhere in Vida.
+        brief: { collected: p.count, total: p.total, missing: p.missing, complete: p.complete },
+        // ⚠️ COMPLETE IS NOT CONFIRMED. Eleven facts collected still leaves the client's own
+        // confirmation outstanding, and that gate is what starts Proof.
+        confirmed_at: d.confirmedAt,
+      }
+    }),
+  })
+})
+
 operatorRouter.get('/clients', async (_req: Request, res: Response) => {
   try {
     const { data: clients } = await db.from('clients')

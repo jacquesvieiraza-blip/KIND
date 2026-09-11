@@ -26,7 +26,10 @@ export const CALIBRATION_MIGRATION = '20260910_proof_calibration_handoff'
 
 /** The client columns this hand-off reads. */
 const CLIENT_COLUMNS =
-  'id, phone, proof_passes_done, proof_review_requested_at, proof_review_resolved_at, ' +
+  // ⚑ 11 Sep — `contact_name` joins the read because the human calibration path needs a NAME
+  // as well as a number: an operator with a phone and no name opens the call with "hello, is
+  // that… the company?" Milla asks only for what we do not already hold.
+  'id, phone, contact_name, proof_passes_done, proof_review_requested_at, proof_review_resolved_at, ' +
   'proof_escalation_trigger, proof_phone_confirmed_at, proof_calibration_note, proof_calibrated_restart_at, ' +
   // ⚑ 11 Sep (C39/C23) — the restart's SECOND fact, who resolved it, and the refinement gate.
   // Unselected they read `undefined`, which `calibratedRestart` treats as "never granted" and
@@ -41,6 +44,8 @@ const CLIENT_COLUMNS =
 export interface CalibrationRecord extends CalibrationState {
   clientId: string
   phone: string | null
+  /** Who to ask for on the calibration call. Never invented; asked for when absent. */
+  contactName: string | null
   phoneConfirmedAt: string | null
   escalatedAt: string | null
   resolvedAt: string | null
@@ -90,6 +95,7 @@ export async function readCalibration(clientId: string): Promise<CalibrationReco
     ...state,
     clientId,
     phone: (c.phone as string | null) ?? null,
+    contactName: (c.contact_name as string | null) ?? null,
     phoneConfirmedAt: (c.proof_phone_confirmed_at as string | null) ?? null,
     escalatedAt: (c.proof_review_requested_at as string | null) ?? null,
     resolvedAt: (c.proof_review_resolved_at as string | null) ?? null,

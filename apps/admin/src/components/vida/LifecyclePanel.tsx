@@ -35,9 +35,12 @@ export function LifecyclePanel({
   actions: PanelAction[]
   busy: string | null
   message: { text: string; tone: 'ok' | 'warn' | 'err' } | null
-  onAction: (key: PanelAction['key'], ceiling?: number) => void
+  onAction: (key: PanelAction['key'], ceiling?: number, note?: string) => void
 }) {
   const [ceiling, setCeiling] = useState('')
+  // ⚑ 11 Sep (C40) — what the operator agreed on the calibration call. The server REFUSES a
+  // calibrated restart without one, so this is a required field rather than a comment box.
+  const [note, setNote] = useState('')
   const n = Number(ceiling.trim())
   const ceilingValid = Number.isInteger(n) && n >= 1
 
@@ -131,6 +134,29 @@ export function LifecyclePanel({
                   <button
                     onClick={() => onAction(a.key, n)}
                     disabled={!!busy || !ceilingValid}
+                    className="text-[13px] font-extrabold text-white bg-gradient-to-r from-[#7C3AED] to-[#EC4899] rounded-xl px-4 py-2 disabled:opacity-40">
+                    {busy === a.key ? '…' : a.label}
+                  </button>
+                </span>
+              )
+            }
+            if (a.needsNote) {
+              return (
+                <span key={a.key} className="flex items-center gap-2 flex-wrap w-full">
+                  {/* 🛑 REQUIRED, BECAUSE THE SERVER REQUIRES IT. A restart granted on an
+                      unexamined client would spend a set on the targeting that already failed
+                      twice — so `mayRestartCalibrated` refuses without a note, and a control
+                      that could submit an empty one would only produce a refusal. */}
+                  <input
+                    value={note}
+                    onChange={e => setNote(e.target.value)}
+                    placeholder="What did you agree on the call?"
+                    aria-label="What was agreed on the calibration call"
+                    className="flex-1 min-w-[220px] text-[12.5px] border border-[#e3daf7] rounded-lg px-2.5 py-2"
+                  />
+                  <button
+                    onClick={() => onAction(a.key, undefined, note.trim())}
+                    disabled={!!busy || note.trim().length === 0}
                     className="text-[13px] font-extrabold text-white bg-gradient-to-r from-[#7C3AED] to-[#EC4899] rounded-xl px-4 py-2 disabled:opacity-40">
                     {busy === a.key ? '…' : a.label}
                   </button>

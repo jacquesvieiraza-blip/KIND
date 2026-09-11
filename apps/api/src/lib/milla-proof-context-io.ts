@@ -49,7 +49,7 @@ export async function readProofChatContext(clientId: string): Promise<ProofChatC
       import('./proof-fit'),
     ])
     const record = await readCalibration(clientId)
-    const ui = proofUiState(record, record.phone, !!record.phoneConfirmedAt)
+    const ui = proofUiState(record, record.phone, !!record.phoneConfirmedAt, record.contactName)
 
     // ── THE DESK, WITH THE SAME ELIGIBILITY AS `/leads/for-approval` ────────────────────
     //

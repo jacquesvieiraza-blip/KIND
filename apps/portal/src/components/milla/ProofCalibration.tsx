@@ -38,6 +38,18 @@ export type ProofCalibrationState = {
   showStillNotRight: boolean
   showTheseAreRight: boolean
   whatChanged: string | null
+  /**
+   * ⚑ 11 Sep (C39) — where the ONE human-authorised calibrated restart stands.
+   *
+   * 🛑 IT IS NOT AN ATTEMPT COUNT AND IS NEVER RENDERED AS "Attempt 3". `attempt` above stays
+   * at 2 for ever once both automatic passes are spent; this says whether a person has bought
+   * this client exactly one more set, and whether it has been taken.
+   */
+  restart?: 'none' | 'available' | 'used'
+  /** The control that spends it. Decided by the SERVER, never by this file. */
+  showCalibratedSet?: boolean
+  /** The ICP the calibrated set runs against — sent only when the control exists. */
+  core_icp_id?: string | null
   ask: string | null
   headline: string | null
   detail: string | null
@@ -48,6 +60,14 @@ type Props = {
   state: ProofCalibrationState
   /** Opens the page's existing refine panel — the only path to attempt 2. */
   onRequestStronger: () => void
+  /**
+   * Spend the one calibrated restart. The page posts to the SAME proof route every other
+   * set goes through, which re-checks the authority itself.
+   *
+   * ⚠️ OPTIONAL SO AN OLDER CALLER STILL COMPILES, and the control is not drawn without it —
+   * a button with no handler is the "no-op action" C40 exists to forbid.
+   */
+  onCalibratedSet?: () => void | Promise<void>
   /** Records that the set is right; Proof is finished. */
   onAccept: () => void
   /** POST /leads/proof/still-not-right. */
@@ -58,7 +78,7 @@ type Props = {
 }
 
 export function ProofCalibration({
-  state, onRequestStronger, onAccept, onStillNotRight, onConfirmPhone, busy,
+  state, onRequestStronger, onAccept, onStillNotRight, onConfirmPhone, busy, onCalibratedSet,
 }: Props) {
   const [phone, setPhone] = useState('')
   const [sending, setSending] = useState(false)
@@ -180,6 +200,40 @@ export function ProofCalibration({
           className="w-full text-[13px] font-semibold text-[#5c5279] rounded-xl py-2.5 mt-1.5 border border-[#ece5fb] bg-white hover:bg-[#faf8ff] disabled:opacity-50">
           Still not right
         </button>
+      )}
+
+      {/* ── ⚑ 11 Sep (C39) — A PERSON HAS CORRECTED THE TARGETING, AND BOUGHT ONE SET ────
+          🛑 THIS IS THE ONLY WAY A THIRD BATCH CAN EXIST, and it required somebody to call
+          this client, fix their targeting and write down what was agreed. It replaces "Still
+          not right" rather than sitting beside it: they have already said that, and somebody
+          acted on it.
+
+          ⚠️ THE SERVER DECIDES IT EXISTS. `showCalibratedSet` comes from `proofUiState`; this
+          file computes nothing, and the route the handler posts to re-checks the authority
+          for itself. Hiding the control is a courtesy — the refusal is the control.
+
+          ⚠️ AND IT IS NEVER CALLED "Attempt 3". There is no third automatic attempt; this is
+          a different thing with a different name. */}
+      {state.showCalibratedSet && onCalibratedSet && (
+        <>
+          <button onClick={() => void onCalibratedSet()} disabled={busy}
+            className="w-full text-[13px] font-bold text-white rounded-xl py-2.5 mt-1.5 bg-gradient-to-br from-[#7C3AED] to-[#EC4899] disabled:opacity-50">
+            Show me the updated set
+          </button>
+          <p className="text-[12px] text-[#9b8ec4] mt-1.5 text-center leading-relaxed">
+            We&rsquo;ve corrected your targeting with you. This is the updated set.
+          </p>
+        </>
+      )}
+
+      {/* ⚠️ AND ONCE IT IS SPENT, NOTHING REPLACES IT. No second restart, no third automatic
+          attempt, no retry — the client is told plainly rather than left looking for a
+          control that is not coming. */}
+      {state.restart === 'used' && !state.showCalibratedSet && (
+        <p className="text-[12px] text-[#9b8ec4] mt-2 text-center leading-relaxed">
+          This is the set we put together after we spoke. If it still isn&rsquo;t right, reply to
+          Milla and the same person will pick it back up with you.
+        </p>
       )}
     </div>
   )

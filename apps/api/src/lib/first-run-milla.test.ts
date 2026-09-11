@@ -930,7 +930,20 @@ describe('the desk shows an honest finding state and refreshes itself', () => {
     expect((welcomeCode.match(/\/proof`/g) ?? []), 'welcome journey: one claim').toHaveLength(1)
     // ⚠️ The whole reason the poll may only read. A second POST claims the client's SECOND
     // pass — two passes gone, no leads seen, and no release RPC exists to undo it.
-    expect((deskCode.match(/\/proof`/g) ?? []), 'desk: one claim, the refinement').toHaveLength(1)
+    // ⛓️ 11 Sep (C39) — 1 → 2, AND THE GUARD IS TIGHTENED RATHER THAN LOOSENED. A SECOND
+    // deliberate claim now exists on this desk: the one human-authorised calibrated restart,
+    // which a person grants after calling the client and correcting their targeting. It is
+    // not a retry, not a fallback and not an automatic attempt — the server re-checks the
+    // grant, refuses without it, and `proof_passes_done` never moves.
+    //
+    // ⚠️ SO THE COUNT ALONE WOULD BE A WEAKER CLAIM THAN BEFORE, and the cases below replace
+    // what it used to carry: each of the two POSTs is pinned to its own named handler, so a
+    // third — or either of these moved into an effect, a poll or a catch — still fails.
+    expect((deskCode.match(/\/proof`/g) ?? []), 'desk: the refinement and the calibrated restart').toHaveLength(2)
+    // 🛑 AND EACH SITS IN ITS OWN NAMED HANDLER. A claim in a render path, an effect or a
+    // catch block is the defect this whole guard exists for.
+    expect(deskCode).toMatch(/onCalibratedSet=\{async \(\) => \{[\s\S]{0,900}?\/proof`/)
+    expect(deskCode, 'a proof claim sits in a catch block').not.toMatch(/catch[\s\S]{0,300}?api\.post\(`\/icps\/\$\{[^}]+\}\/proof`/)
     // …and it sits in the confirm handler, never in an effect, a poll or a render path.
     // ⚠️ BOUNDED AT THE NEXT TOP-LEVEL MEMBER, not end-of-file and not a named landmark.
     // Two earlier cuts of this bound were too loose and I caught both by mutation, not by

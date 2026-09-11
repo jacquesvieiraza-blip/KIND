@@ -2446,7 +2446,8 @@ operatorRouter.get('/proof-review/:clientId/evidence', async (req: Request, res:
       res.status(403).json({ success: false, error: 'Operator key required' }); return
     }
     const { readCalibration, mayRestartCalibrated } = await import('../lib/proof-calibration-io')
-    const { ESCALATION_TRIGGER_COPY, PROOF_REASON_LABELS } = await import('../lib/proof-calibration')
+    const { ESCALATION_TRIGGER_COPY, PROOF_REASON_LABELS, whatChangedSentence, automaticAttempt } =
+      await import('../lib/proof-calibration')
     const cal = await readCalibration(req.params.clientId)
     const restart = mayRestartCalibrated(cal)
     res.json({
@@ -2459,18 +2460,31 @@ operatorRouter.get('/proof-review/:clientId/evidence', async (req: Request, res:
         why: cal.trigger ? ESCALATION_TRIGGER_COPY[cal.trigger] : null,
         passes_done: cal.passesDone,
         phone: cal.phone,
+        // ⚑ 11 Sep — the NAME as well as the number. An operator with a phone and no name
+        // opens the calibration call with "hello, is that… the company?"
+        contact_name: cal.contactName,
         phone_confirmed_at: cal.phoneConfirmedAt,
         operator_note: cal.operatorNote,
         restart_at: cal.restartAt,
+        // ⚑ 11 Sep — GRANTED AND USED ARE TWO FACTS. Without the second, the panel cannot
+        // tell "one restart is waiting for the client" from "it has already been taken".
+        restart_used_at: cal.restartUsedAt,
+        resolved_by: cal.resolvedBy,
         // ⚠️ ATTEMPT SUMMARIES ARE DERIVED from lead_feedback × leads.proof_pass, so what the
         // operator reads is what the client actually said — not a copy taken at escalation.
         attempts: cal.attempts.map(a => ({
           ...a,
+          // ⚠️ PROVENANCE TRAVELS WITH THE SUMMARY. Vida labels from `kind`, never from the
+          // pass number — the calibrated restart shares pass 2's number deliberately.
+          kind: a.kind,
           reason_labels: Object.fromEntries(
             Object.entries(a.reasons).map(([k, n]) => [PROOF_REASON_LABELS[k as never] ?? k, n])),
         })),
         may_restart: restart.allowed,
         may_restart_why: restart.why ?? null,
+        // ⚑ 11 Sep — the one sentence naming what changed between the two AUTOMATIC sets,
+        // built from the client's own reasons. The operator is about to phone them about it.
+        what_changed: whatChangedSentence(automaticAttempt(cal, 1) ?? null),
       },
       read_only: 'This endpoint only reads. Nothing was changed by loading it.',
     })

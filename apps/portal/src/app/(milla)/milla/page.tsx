@@ -970,6 +970,37 @@ export default function MillaHomePage() {
       state={calib}
       busy={refineBusy}
       onRequestStronger={openRefine}
+      // ── ⚑ 11 Sep (C39) — SPEND THE ONE CALIBRATED RESTART ──────────────────────────────
+      //
+      // 🛑 IT POSTS TO THE SAME PROOF ROUTE EVERY OTHER SET GOES THROUGH. That route claims
+      // the restart itself, against the persisted grant, and refuses if the authority is
+      // absent, already spent or unreadable. There is no second spend path and nothing here
+      // grants anything: if this browser invented `core_icp_id` or pressed with no grant, the
+      // server answers 409/503 and sources nothing.
+      //
+      // ⚠️ NOTHING IS ASSUMED LOCALLY. The reload runs either way, so the screen takes the
+      // SERVER's verdict on what happens next rather than believing its own press worked —
+      // the same rule as "These are right" above.
+      onCalibratedSet={async () => {
+        const id = calib.core_icp_id
+        if (!id) {
+          setRefineErr('I could not start that just now — please refresh and try again. Nothing has been charged.')
+          return
+        }
+        setRefineBusy(true)
+        try {
+          // ⚠️ AN EMPTY BODY, DELIBERATELY. The server decides this is the calibrated restart
+          // from its own persisted grant; a flag here would be the browser claiming an
+          // authority, and a field the route ignores is a lie in the payload.
+          await api.post(`/icps/${id}/proof`, {}, await token())
+        } catch (e) {
+          setRefineErr(e instanceof Error ? e.message
+            : 'I could not start that just now — please try again in a moment. Nothing has been charged.')
+        } finally {
+          setRefineBusy(false)
+          void loadCalibration()
+        }
+      }}
       onAccept={async () => {
         // ── 🛑 10 Sep (A) — THIS NOW RECORDS THE ACCEPTANCE ─────────────────────────────
         //

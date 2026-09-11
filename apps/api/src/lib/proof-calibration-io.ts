@@ -122,15 +122,44 @@ export async function readAttempts(clientId: string): Promise<AttemptSummary[]> 
   // ⚑ 11 Sep — `proof_batch_kind` JOINS THE SELECT, and it is what tells the one
   // human-authorised calibrated restart from the two automatic attempts. NULL reads as
   // 'automatic', which is the honest answer for every row written before the column existed.
-  const { data: leadRows, error: leadErr } = await db.from('leads')
-    .select('id, proof_pass, proof_batch_kind').eq('client_id', clientId).not('proof_pass', 'is', null)
-  if (leadErr) throw new Error(`the Proof attempts for client ${clientId} could not be read — ${leadErr.message}`)
+  //
+  // ── 🛑 DAY-2 — AND IT DEGRADES RATHER THAN TAKING THE WHOLE PROOF SURFACE DOWN ────────
+  //
+  // ⚠️ THIS WAS A REAL EXPAND/CONTRACT HAZARD, found by a test asserting the wrong reason
+  // code. Selecting a column that does not exist yet makes Postgres answer 42703 for the WHOLE
+  // query — so between this deploy and `20260911_lead_proof_batch_kind` being applied, EVERY
+  // calibration read would have failed: the client's own Proof screen, Vida's evidence panel
+  // and the escalation path, for every escalated client, not just for a restart.
+  //
+  // ⚠️ SO A MISSING COLUMN FALLS BACK TO THE PRE-MIGRATION SHAPE, which is exactly truthful:
+  // if the column does not exist, no calibrated restart can ever have been written, so every
+  // attributed row IS an automatic attempt. Nothing is guessed and nothing is hidden.
+  //
+  // ⚠️ AND IT IS NOT A LICENCE TO SPEND. The restart claim probes the same capability
+  // separately (`proofProvenanceAvailable`) and REFUSES — reading history without provenance
+  // is safe; consuming a one-use authority without it is not.
+  type ProofLeadRow = { id: string; proof_pass: number | null; proof_batch_kind?: string | null }
+  let leadRows: ProofLeadRow[] = []
+  {
+    const withKind = await db.from('leads')
+      .select('id, proof_pass, proof_batch_kind').eq('client_id', clientId).not('proof_pass', 'is', null)
+    if (!withKind.error) {
+      leadRows = (withKind.data ?? []) as unknown as ProofLeadRow[]
+    } else if (/proof_batch_kind/.test(withKind.error.message ?? '')) {
+      const legacy = await db.from('leads')
+        .select('id, proof_pass').eq('client_id', clientId).not('proof_pass', 'is', null)
+      if (legacy.error) throw new Error(`the Proof attempts for client ${clientId} could not be read — ${legacy.error.message}`)
+      leadRows = (legacy.data ?? []) as unknown as ProofLeadRow[]
+    } else {
+      throw new Error(`the Proof attempts for client ${clientId} could not be read — ${withKind.error.message}`)
+    }
+  }
 
   /** A set of rows is identified by WHAT PRODUCED IT, never by its number alone. */
   type Origin = { pass: number; kind: ProofBatchKind }
   const keyOf = (o: Origin) => `${o.kind}:${o.pass}`
   const originOf = new Map<string, Origin>()
-  for (const r of (leadRows ?? []) as { id: string; proof_pass: number | null; proof_batch_kind?: string | null }[]) {
+  for (const r of leadRows) {
     if (r.proof_pass == null) continue
     const kind: ProofBatchKind = r.proof_batch_kind === 'calibrated_restart' ? 'calibrated_restart' : 'automatic'
     originOf.set(r.id, { pass: Number(r.proof_pass), kind })
@@ -378,7 +407,42 @@ export function mayRestartCalibrated(r: CalibrationRecord): { allowed: boolean; 
  */
 export type RestartClaim =
   | { ok: true; usedAt: string }
-  | { ok: false; reason: 'not_available' | 'already_used' | 'unreadable'; detail: string }
+  | { ok: false; reason: 'not_available' | 'already_used' | 'unreadable' | 'provenance_unavailable'; detail: string }
+
+/**
+ * 🛑 CAN A CALIBRATED RESTART'S PROVENANCE ACTUALLY BE WRITTEN DOWN? (Day-2 safety patch.)
+ *
+ * ── THE PARTIAL-DEPLOYMENT SEQUENCE THIS EXISTS TO MAKE IMPOSSIBLE ───────────────────
+ *
+ * A calibrated restart needs BOTH migrations: `20260911_proof_restart_and_refinement` for the
+ * one-use authority, and `20260911_lead_proof_batch_kind` for the provenance its rows carry.
+ * They are separate entries in the runner and an operator applies pending migrations as one
+ * action — but nothing GUARANTEES both land, and the deploy that carries the code can reach
+ * production before either does. So this order was reachable:
+ *
+ *     the authority columns exist  →  the restart is claimed and CONSUMED
+ *     →  `leads.proof_batch_kind` is missing  →  the batch cannot record what produced it
+ *     →  the client's one restart is spent on rows that read as an automatic attempt,
+ *        or on an insert that fails outright, and the restart cannot be given back.
+ *
+ * ⚠️ A ONE-USE AUTHORITY MUST NOT BE SPENT ON A WRITE THAT CANNOT COMPLETE. Documented
+ * migration ordering is a note to a human; this is the check. The founder's rule for this
+ * shape is the same one C43 answers: an unknown or unavailable capability means DO NOT SPEND.
+ *
+ * ⚠️ IT IS A READ, AND IT COSTS NOTHING. One bounded select against the column itself —
+ * `limit(0)` returns no rows at all, so it cannot depend on a client having any leads, and an
+ * empty table answers "available" rather than "unknown".
+ *
+ * ⚠️ AND IT FAILS CLOSED ON ANY DOUBT. A missing column, a permission refusal or a throw all
+ * answer `false`: we could not prove the provenance can be persisted, so the restart stays
+ * unused and the operator sees a configuration error they can act on.
+ */
+export async function proofProvenanceAvailable(): Promise<boolean> {
+  try {
+    const { error } = await db.from('leads').select('proof_batch_kind').limit(0)
+    return !error
+  } catch { return false }
+}
 
 export async function claimCalibratedRestart(clientId: string): Promise<RestartClaim> {
   let r: CalibrationRecord
@@ -398,6 +462,23 @@ export async function claimCalibratedRestart(clientId: string): Promise<RestartC
   }
   if (stand === 'used') {
     return { ok: false, reason: 'already_used', detail: 'The calibrated restart has already been used.' }
+  }
+
+  // ── 🛑 DAY-2 SAFETY PATCH — PROVE THE PROVENANCE CAN BE WRITTEN BEFORE SPENDING THE ONE
+  //     THING THAT CANNOT BE GIVEN BACK ───────────────────────────────────────────────────
+  //
+  // ⚠️ THIS CHECK SITS ABOVE THE COMPARE-AND-SET, AND THAT POSITION IS THE WHOLE PATCH. Below
+  // it the restart is consumed; a batch that then cannot record `proof_batch_kind` would leave
+  // the client's one human-authorised set spent on rows indistinguishable from an automatic
+  // attempt — or on an insert that fails — with no way to return it.
+  //
+  // ⚠️ IT REFUSES RETRYABLY AND SPENDS NOTHING. No claim, no sourcing, no provider call. The
+  // moment the outstanding migration is applied the same press succeeds.
+  if (!(await proofProvenanceAvailable())) {
+    return {
+      ok: false, reason: 'provenance_unavailable',
+      detail: `The calibrated restart cannot be started until migration ${PROVENANCE_MIGRATION} has been run — without it this set could not be told apart from an automatic attempt. Nothing was started, nothing was spent, and the restart is still available.`,
+    }
   }
 
   const at = new Date().toISOString()
@@ -426,3 +507,9 @@ export async function claimCalibratedRestart(clientId: string): Promise<RestartC
 
 /** Named so a refusal can point at the outstanding migration rather than a generic error. */
 export const RESTART_MIGRATION = '20260911_proof_restart_and_refinement'
+
+/**
+ * The OTHER half a calibrated restart needs. A restart is not safe to consume without it — see
+ * `proofProvenanceAvailable` for the partial-deployment sequence that makes them a pair.
+ */
+export const PROVENANCE_MIGRATION = '20260911_lead_proof_batch_kind'

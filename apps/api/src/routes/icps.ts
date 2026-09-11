@@ -5063,8 +5063,13 @@ icpRouter.post('/:id/proof', async (req: AuthRequest, res) => {
             // granted — never a reason to fall through to the automatic path, which would
             // reach the RPC, be refused, and open a SECOND escalation on a client a person
             // has just finished calibrating.
-            res.status(claim.reason === 'unreadable' ? 503 : 409)
-              .json({ success: false, error: claim.detail, retryable: claim.reason === 'unreadable' })
+            // ⚠️ A CONFIGURATION GAP IS RETRYABLE, NOT FINAL. `provenance_unavailable` means the
+            // `proof_batch_kind` migration has not been applied yet: the restart is INTACT and
+            // the same press will work once it is run. Answering 409 would tell a client their
+            // one set was used when it was not.
+            const retryable = claim.reason === 'unreadable' || claim.reason === 'provenance_unavailable'
+            res.status(retryable ? 503 : 409)
+              .json({ success: false, error: claim.detail, retryable })
             return
           }
           calibratedRestart = true

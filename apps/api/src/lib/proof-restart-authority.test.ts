@@ -31,18 +31,25 @@ const state = {
   unreadable: false,
   /** the write fails, e.g. the migration has not been applied */
   unwritable: false,
+  /**
+   * ⚑ DAY-2 — `leads.proof_batch_kind` DOES NOT EXIST. A calibrated restart needs BOTH
+   * migrations: the authority columns AND the provenance column its rows carry. This
+   * simulates the partial deployment where only the first has been applied.
+   */
+  provenanceMissing: false,
   writes: [] as Row[],
 }
 
 function table(name: string) {
   const filters: ((r: Row) => boolean)[] = []
+  let selected = ''
   const rows = (): Row[] =>
     name === 'clients' ? (state.client ? [state.client] : [])
     : name === 'leads' ? state.leads
     : name === 'lead_feedback' ? state.feedback
     : []
   const q: Record<string, unknown> = {
-    select() { return q },
+    select(cols?: string) { selected = cols ?? ''; return q },
     eq(c: string, v: unknown) { filters.push(r => r[c] === v); return q },
     is(c: string, v: unknown) { filters.push(r => (r[c] ?? null) === v); return q },
     not(c: string, _op: string, v: unknown) { filters.push(r => (r[c] ?? null) !== v); return q },
@@ -77,6 +84,14 @@ function table(name: string) {
     },
     then(resolve: (v: unknown) => unknown) {
       if (name === 'clients' && state.unreadable) return resolve({ data: null, error: { message: 'could not read clients' } })
+      // ⚑ DAY-2 — the capability probe reads `leads.proof_batch_kind`. Postgres answers 42703
+      // for a missing column, and supabase-js RESOLVES with `{ error }` rather than throwing.
+      // ⚠️ ONLY THE SELECT THAT ASKS FOR IT FAILS, which is how Postgres behaves: a query
+      // naming a missing column errors, and the same query without it succeeds. That is what
+      // makes `readAttempts`' fallback meaningful rather than a blanket try/catch.
+      if (name === 'leads' && state.provenanceMissing && selected.includes('proof_batch_kind')) {
+        return resolve({ data: null, error: { code: '42703', message: 'column leads.proof_batch_kind does not exist' } })
+      }
       return resolve({ data: rows().filter(r => filters.every(f => f(r))), error: null })
     },
   }
@@ -113,6 +128,7 @@ beforeEach(() => {
   state.feedback = []
   state.unreadable = false
   state.unwritable = false
+  state.provenanceMissing = false
   state.writes = []
 })
 
@@ -465,5 +481,120 @@ describe('36 · none of this needs a provider', () => {
     for (const forbidden of ['apollo', 'pdl', 'peopledatalabs', 'fetch(', 'axios']) {
       expect(src.toLowerCase(), `the pure rule module reaches ${forbidden}`).not.toContain(forbidden)
     }
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// ⚑ DAY-2 SAFETY PATCH — THE TWO MIGRATIONS ARE A PAIR, AND THE RESTART PROVES IT FIRST.
+//
+// 🛑 THE PARTIAL DEPLOYMENT THIS MAKES IMPOSSIBLE. A calibrated restart needs BOTH
+// `20260911_proof_restart_and_refinement` (the one-use authority) and
+// `20260911_lead_proof_batch_kind` (the provenance its rows carry). They are separate runner
+// entries, and the deploy that carries the code can reach production before either lands:
+//
+//     the authority columns exist  →  the restart is claimed and CONSUMED
+//     →  `leads.proof_batch_kind` is missing  →  the batch cannot say what produced it
+//     →  the client's one restart is spent on rows that read as an automatic attempt,
+//        or on an insert that fails, and it cannot be given back.
+//
+// ⚠️ A ONE-USE AUTHORITY MUST NOT BE SPENT ON A WRITE THAT CANNOT COMPLETE. Documented
+// migration ordering is a note to a human; this is the check.
+// ═══════════════════════════════════════════════════════════════════════════════════════
+describe('🛑 DAY-2 · a restart is never consumed unless its provenance can be persisted', () => {
+  const ready = (over: Row = {}) => {
+    state.client = {
+      id: 'client-1', phone: '07700 900123', proof_passes_done: 2,
+      proof_review_requested_at: ESCALATED, proof_review_resolved_at: RESOLVED,
+      proof_escalation_trigger: 'client_said_still_not_right',
+      proof_calibration_note: 'Spoke to Ellis — agencies only.',
+      proof_calibrated_restart_at: GRANTED, proof_calibrated_restart_used_at: null,
+      proof_completed_at: null, proof_phone_confirmed_at: null,
+      ...over,
+    }
+  }
+  const claim = async () => {
+    const { claimCalibratedRestart } = await import('./proof-calibration-io')
+    return claimCalibratedRestart('client-1')
+  }
+
+  it('🛑 1 · the RESTART AUTHORITY migration is missing → the claim fails and names it', async () => {
+    ready()
+    state.unwritable = true       // the authority column does not exist
+    const r = await claim()
+    const { RESTART_MIGRATION } = await import('./proof-calibration-io')
+    expect(r.ok).toBe(false)
+    expect(r.ok === false && r.detail).toContain(RESTART_MIGRATION)
+    expect(r.ok === false && r.detail).toContain('nothing was spent')
+  })
+
+  it('🛑 2 · the PROVENANCE migration is missing → the claim fails and names that one', async () => {
+    ready()
+    state.provenanceMissing = true
+    const r = await claim()
+    const { PROVENANCE_MIGRATION } = await import('./proof-calibration-io')
+    expect(r.ok).toBe(false)
+    expect(r.ok === false && r.reason).toBe('provenance_unavailable')
+    expect(r.ok === false && r.detail).toContain(PROVENANCE_MIGRATION)
+  })
+
+  it('🛑 3 · 6 · authority present + provenance absent → restart_used_at stays UNSET', async () => {
+    ready()
+    state.provenanceMissing = true
+    await claim()
+    expect(state.client!.proof_calibrated_restart_used_at,
+      'the client’s one restart was consumed on a batch that could not record what produced it').toBeNull()
+    expect(state.writes, 'a write was attempted with the provenance column missing').toEqual([])
+  })
+
+  it('🛑 6 · …and the restart is still AVAILABLE afterwards — nothing was lost', async () => {
+    ready()
+    state.provenanceMissing = true
+    await claim()
+    const { readCalibration } = await import('./proof-calibration-io')
+    expect(calibratedRestart(await readCalibration('client-1'))).toBe('available')
+    // And the same press succeeds the moment the outstanding migration is applied.
+    state.provenanceMissing = false
+    expect((await claim()).ok).toBe(true)
+  })
+
+  it('🛑 4 · both capabilities present → exactly one restart may be claimed', async () => {
+    ready()
+    expect((await claim()).ok).toBe(true)
+    const again = await claim()
+    expect(again.ok, 'a second restart was claimable').toBe(false)
+    expect(again.ok === false && again.reason).toBe('already_used')
+  })
+
+  it('🛑 5 · the restart batch persists `proof_batch_kind = calibrated_restart` on its rows', async () => {
+    const { readFileSync } = await import('node:fs')
+    const icps = readFileSync(new URL('../routes/icps.ts', import.meta.url), 'utf8')
+    // ⚠️ ON THE ONE SURFACING UPDATE, so provenance lands on EVERY row of the batch in the
+    // same statement that makes them visible — no partial batch can lose it.
+    const at = icps.indexOf('surfaced_for_approval_at: nowIso, delivered_at: nowIso')
+    expect(at, 'the surfacing update is gone').toBeGreaterThan(-1)
+    const stmt = icps.slice(at, at + 1000)
+    expect(stmt).toContain("proof_batch_kind: opts!.proofKind ?? 'automatic'")
+    expect(stmt).toContain(".in('id', gatedIds)")
+    expect(icps).toContain("const batchKind: 'automatic' | 'calibrated_restart' = calibratedRestart ? 'calibrated_restart' : 'automatic'")
+    expect(icps).toContain('proofKind: batchKind')
+  })
+
+  it('🛑 the refusal is RETRYABLE at the route, never a final "your set is used"', async () => {
+    const { readFileSync } = await import('node:fs')
+    const icps = readFileSync(new URL('../routes/icps.ts', import.meta.url), 'utf8')
+    expect(icps).toContain("claim.reason === 'unreadable' || claim.reason === 'provenance_unavailable'")
+    expect(icps).toContain('res.status(retryable ? 503 : 409)')
+  })
+
+  it('🛑 the probe costs nothing and fails closed on any doubt', async () => {
+    const { proofProvenanceAvailable } = await import('./proof-calibration-io')
+    expect(await proofProvenanceAvailable()).toBe(true)
+    state.provenanceMissing = true
+    expect(await proofProvenanceAvailable()).toBe(false)
+    // ⚠️ AND AN EMPTY `leads` TABLE IS "AVAILABLE", NOT "UNKNOWN" — `limit(0)` asks about the
+    // COLUMN, so a client with no leads yet is never refused their restart.
+    state.provenanceMissing = false
+    state.leads = []
+    expect(await proofProvenanceAvailable()).toBe(true)
   })
 })

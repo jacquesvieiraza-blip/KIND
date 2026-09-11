@@ -94,6 +94,34 @@ create table if not exists public.icps (
 create index if not exists icps_client_id_idx on public.icps(client_id);
 
 -- ─────────────────────────────────────────────
+-- MVP1 — THE BRIEF BEFORE THERE IS A CLIENT (Preview 07)
+--
+-- Signup creates an auth user; the clients row is created by the CONFIRM click. This is where
+-- the partial Brief lives in between, so a closed tab does not destroy it and so Vida can see
+-- "signed up 14 minutes ago, 10 of 11 facts, confirmation pending" at all.
+--
+-- NOT a second Brief model: the eleven facts are defined once, in
+-- packages/shared/src/brief-facts.ts, and every reader counts through that. Authoritative and
+-- writable until promotion; evidence only afterwards.
+-- ─────────────────────────────────────────────
+create table if not exists public.onboarding_brief_drafts (
+  id                 uuid primary key default uuid_generate_v4(),
+  user_id            uuid not null unique references auth.users(id) on delete cascade,
+  facts              jsonb not null default '{}'::jsonb,
+  conversation       jsonb,
+  -- Confirmation is a SEPARATE gate and is never one of the eleven facts.
+  confirmed_at       timestamptz,
+  promoted_client_id uuid references public.clients(id) on delete set null,
+  promoted_at        timestamptz,
+  created_at         timestamptz not null default now(),
+  updated_at         timestamptz not null default now()
+);
+
+create index if not exists onboarding_brief_drafts_open_idx
+  on public.onboarding_brief_drafts(created_at desc)
+  where promoted_client_id is null;
+
+-- ─────────────────────────────────────────────
 -- OPT-OUT BLOCKLIST (permanent, cross-client)
 -- ─────────────────────────────────────────────
 create table if not exists public.opt_out_blocklist (

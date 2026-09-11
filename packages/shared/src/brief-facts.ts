@@ -170,3 +170,89 @@ export function briefFacts(input: BriefFactInput): BriefFactsResult {
 export function nextBriefFact(input: BriefFactInput): BriefFactId | null {
   return briefFacts(input).missing[0] ?? null
 }
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// THE PRE-CONFIRMATION DRAFT — THE SAME ELEVEN FACTS, PERSISTED BEFORE THERE IS A CLIENT.
+//
+// 🛑 WHY A DRAFT EXISTS AT ALL. `/auth/signup` creates an auth user and nothing else; the
+// `clients` row is created by the CONFIRM click, which also saves the ICP and starts Proof.
+// So the entire Brief conversation lived in React state in one browser tab: close it and
+// everything collected was gone, and Vida never knew the person existed. Preview 07 —
+// "signed up 14 minutes ago and Milla is collecting their brief", 10 of 11, confirmation
+// pending — was not a state the product could reach.
+//
+// ⚠️ THIS IS NOT A SECOND BRIEF MODEL, and the shape below is the proof: it is a storage
+// layout for the SAME eleven facts, mapped into the SAME `briefFacts()` counter that the
+// builder gate and Vida both call. There is one definition of the Brief in this codebase and
+// it is `BRIEF_FACTS` above. A draft that could disagree with it about completeness would be
+// the second Brief model Preview 07 was corrected to delete.
+//
+// ⚠️ AND IT IS NOT A SECOND LIFECYCLE AUTHORITY. Before confirmation the draft is the
+// authoritative WRITABLE Brief state. After promotion the confirmed client and ICP are the
+// authoritative operational truth and the draft is evidence — kept for audit, provenance and
+// recovery, never read back as a competing mutable source.
+//
+// ⚠️ SNAKE_CASE, BECAUSE IT IS A STORED SNAPSHOT. This object is persisted as one jsonb
+// column — the same shape decision as `programmes.calculator_assumptions`: read back
+// together, never queried across and never aggregated. Column-per-fact would be eleven
+// migrations of churn for a value that is only ever read whole.
+// ═══════════════════════════════════════════════════════════════════════════════════════
+
+/**
+ * The partial Brief as stored. Every field optional — that is the entire point of a draft.
+ *
+ * ⚠️ THE LAST TWO ARE NOT BRIEF FACTS. `country` (where the CLIENT'S OWN business is) and
+ * `phone` are account facts the promotion needs; they are carried here so the confirm click
+ * has everything it requires, and they are deliberately absent from the eleven-fact mapping
+ * below. Counting them would make the Brief thirteen facts by accident.
+ */
+export type BriefDraftFacts = {
+  contact_name?: string | null
+  company_name?: string | null
+  website?: string | null
+  website_none?: boolean | null
+  what_they_do?: string | null
+  target_category?: string | null
+  geographies?: string[] | null
+  target_company_type?: string | null
+  company_sizes?: string[] | null
+  job_titles?: string[] | null
+  seniority_levels?: string[] | null
+  exclusions?: string | null
+  desired_outcome?: string | null
+  /** Account fact, not a Brief fact — where the client's OWN business is based. */
+  country?: string | null
+  /** Account fact, not a Brief fact. */
+  phone?: string | null
+}
+
+/**
+ * The one mapping from stored draft to the canonical counter.
+ *
+ * ⚠️ EVERY READER GOES THROUGH THIS. Milla's persistence, the promotion gate and Vida's
+ * progress card all count the same draft the same way, because they all call this and then
+ * `briefFacts()`. A hand-rolled count anywhere is a second answer to "is this brief done?".
+ */
+export function briefFactsFromDraft(d: BriefDraftFacts | null | undefined): BriefFactInput {
+  const f = d ?? {}
+  return {
+    contactName:        f.contact_name,
+    companyName:        f.company_name,
+    website:            f.website,
+    websiteNone:        f.website_none,
+    whatTheCompanyDoes: f.what_they_do,
+    targetCategory:     f.target_category,
+    geographies:        f.geographies,
+    targetCompanyType:  f.target_company_type,
+    companySizes:       f.company_sizes,
+    targetRoles:        f.job_titles,
+    targetSeniority:    f.seniority_levels,
+    exclusions:         f.exclusions,
+    desiredOutcome:     f.desired_outcome,
+  }
+}
+
+/** How complete is a stored draft? The canonical answer, for every surface. */
+export function briefDraftFacts(d: BriefDraftFacts | null | undefined): BriefFactsResult {
+  return briefFacts(briefFactsFromDraft(d))
+}

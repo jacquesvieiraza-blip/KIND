@@ -4302,6 +4302,83 @@ COMMENT ON COLUMN public.icps.target_company_type IS
   'MVP1 brief fact 7 - the organisational form of the TARGET company (agency, consultancy, clinic...). Set only from client evidence, never inferred from a website, the client''s own industry, or a provider taxonomy.';
 `.trim(),
   },
+  {
+    // Canonical file: supabase/migrations/20260911_onboarding_brief_drafts.sql
+    //
+    // MVP1 - THE BRIEF BEFORE THERE IS A CLIENT. /auth/signup creates an auth user and
+    // nothing else; the clients row is created by the CONFIRM click, which also saves the ICP
+    // and starts Proof. So the whole Brief conversation lived in React state in one tab:
+    // close it and everything collected was gone, and Vida never knew the person existed.
+    // Preview 07 - signed up 14 minutes ago, 10 of 11 facts, confirmation pending - was not a
+    // state the product could reach.
+    //
+    // NOT a second Brief model and NOT a lifecycle authority: it is the persistence location
+    // for the SAME eleven facts defined in packages/shared/src/brief-facts.ts. Authoritative
+    // and writable until promotion; evidence only afterwards, which promoted_client_id is
+    // what enforces.
+    //
+    // Additive, non-destructive, idempotent. One new table, no backfill, no existing row
+    // written, and no change to what "a client" means anywhere.
+    //
+    // DEPLOYMENT ORDERING: apply before the code that reads or writes it. Until then the
+    // draft routes fail closed and the product behaves exactly as it does today.
+    key: '20260911_onboarding_brief_drafts',
+    title: 'onboarding_brief_drafts - the partial Brief persisted before a client exists (MVP1, Preview 07)',
+    sql: `
+CREATE TABLE IF NOT EXISTS public.onboarding_brief_drafts (
+  id                 uuid primary key default uuid_generate_v4(),
+  user_id            uuid not null unique references auth.users(id) on delete cascade,
+  facts              jsonb not null default '{}'::jsonb,
+  conversation       jsonb,
+  confirmed_at       timestamptz,
+  promoted_client_id uuid references public.clients(id) on delete set null,
+  promoted_at        timestamptz,
+  created_at         timestamptz not null default now(),
+  updated_at         timestamptz not null default now()
+);
+
+CREATE INDEX IF NOT EXISTS onboarding_brief_drafts_open_idx
+  ON public.onboarding_brief_drafts(created_at DESC)
+  WHERE promoted_client_id IS NULL;
+
+-- ── ROW-LEVEL SECURITY ─────────────────────────────────────────────────────────────────
+--
+-- 🛑 THIS TABLE IS THE ONE THAT MOST NEEDS IT. Every other client table is keyed by
+-- client_id and reached through current_client_id(). This one is keyed by user_id and
+-- exists precisely for people who have NO client row — so the usual helper answers NULL for
+-- exactly the rows it is meant to protect, and "no policy" would mean a person's company,
+-- their contact name, their targeting and their stated outcome are readable by anyone holding
+-- the public anon key that apps/portal ships to every browser.
+--
+-- ⚠️ THE POLICY IS auth.uid(), NOT current_client_id(), for that reason. A draft belongs
+-- to an authenticated USER, before it belongs to a client.
+--
+-- ⚠️ SELECT AND UPDATE ONLY, AND NO INSERT POLICY ON PURPOSE. The API writes with the service
+-- role, which bypasses RLS; a browser must never be able to mint a draft row directly. Read
+-- and amend your own, and nothing else.
+ALTER TABLE IF EXISTS public.onboarding_brief_drafts ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "own brief draft readable" ON public.onboarding_brief_drafts;
+CREATE POLICY "own brief draft readable" ON public.onboarding_brief_drafts
+  FOR SELECT TO authenticated USING (user_id = auth.uid());
+
+DROP POLICY IF EXISTS "own brief draft writable" ON public.onboarding_brief_drafts;
+CREATE POLICY "own brief draft writable" ON public.onboarding_brief_drafts
+  FOR UPDATE TO authenticated USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
+
+COMMENT ON TABLE public.onboarding_brief_drafts IS
+  'MVP1 pre-confirmation Brief persistence. The SAME eleven facts defined in packages/shared/src/brief-facts.ts, stored before a clients row exists. Authoritative and writable until promotion; evidence only afterwards. Not a second Brief model and not a lifecycle authority.';
+
+COMMENT ON COLUMN public.onboarding_brief_drafts.facts IS
+  'Partial eleven-fact state as a snapshot. Completeness is decided by shared code, never by this column''s shape.';
+
+COMMENT ON COLUMN public.onboarding_brief_drafts.confirmed_at IS
+  'When the client confirmed a COMPLETE brief. A separate gate - never counted as one of the eleven facts.';
+
+COMMENT ON COLUMN public.onboarding_brief_drafts.promoted_client_id IS
+  'The clients row this draft became. Once set, the draft is evidence: it may not be written again and may never compete with the confirmed client/ICP truth.';
+`.trim(),
+  },
 ]
 
 // Runs the statements against DATABASE_URL. Uses node-postgres because the Supabase JS

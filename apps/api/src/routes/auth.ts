@@ -116,6 +116,36 @@ authRouter.post('/onboard', async (req, res) => {
       }
     }
 
+    // ── ⚑ MVP1 — PROMOTION IS GATED ON THE ELEVEN, SERVER-SIDE ────────────────────────
+    //
+    // 🛑 A DISABLED BUTTON IS NOT A GATE. This handler is what turns a draft Brief into a
+    // client, an ICP and a Proof run, and it must refuse a brief that is short of the facts
+    // Proof will be sourced against. The portal checks too; this is the check that counts.
+    //
+    // ⚠️ IT REFUSES BEFORE ANYTHING IS CREATED. Ordering is the whole safety: a partial state
+    // where the client row exists, promotion is stamped and the brief was never complete is
+    // worse than a clean refusal, because the draft is then sealed and the person has no
+    // editable Brief and no working account.
+    //
+    // ⚠️ ONLY WHEN A DRAFT EXISTS. A legacy client re-onboarding, an operator-created account
+    // and every path that predates the draft table have no draft at all — `briefDraftFor`
+    // answers null and this gate stands aside. It never invents a requirement for a journey
+    // that did not go through Milla.
+    const { briefDraftFor, mayConfirmBrief, markBriefDraftPromoted } = await import('../lib/brief-draft')
+    const { BRIEF_FACT_LABEL } = await import('@kind/shared')
+    const draft = await briefDraftFor(user.id)
+    if (draft && !draft.promotedClientId) {
+      const gate = mayConfirmBrief(draft)
+      if (!gate.ok) {
+        res.status(400).json({
+          success: false,
+          error: `Milla still needs ${gate.missing.map(id => BRIEF_FACT_LABEL[id as keyof typeof BRIEF_FACT_LABEL]).join(', ')} before this brief can be confirmed.`,
+          missing: gate.missing,
+        })
+        return
+      }
+    }
+
     const now = new Date().toISOString()
 
     // Check if client already exists (and whether signup consent is already on record).
@@ -197,6 +227,18 @@ authRouter.post('/onboard', async (req, res) => {
         .update({ contact_name: contact_name.trim().slice(0, 120) }).eq('id', clientId)
       if (nameErr) console.warn('[onboard] contact_name not stored (run 20260726_client_contact_name):', nameErr.message)
     }
+
+    // ── ⚑ MVP1 — THE DRAFT IS SEALED, AND ONLY NOW ───────────────────────────────────
+    //
+    // ⚠️ AFTER THE CLIENT ROW EXISTS, NEVER BEFORE. If promotion were stamped first and the
+    // insert then failed, the draft would be closed to further writes and the person left
+    // with no client and no editable Brief — every answer they gave stranded behind a door
+    // that will not open again.
+    //
+    // ⚠️ BEST-EFFORT, DELIBERATELY. By this line the client exists; failing the whole
+    // onboarding because the evidence row could not be stamped would throw away a successful
+    // promotion over bookkeeping. It is logged loudly inside `markBriefDraftPromoted`.
+    if (draft && !draft.promotedClientId) await markBriefDraftPromoted(user.id, clientId)
 
     // ── ⚑ MVP1 (C27) — THE ADDRESS CHECKOUT REFUSES TO WORK WITHOUT ───────────────────
     //

@@ -281,7 +281,7 @@ describe('④ Vida never offers an action that cannot clear the blocker', () => 
     campaignId: null, campaignProgrammeLinked: false,
     sequenceId: null, sequenceCampaignLinked: false,
     messageSteps: 0, cadenceConfigured: false, sendScheduleConfigured: false,
-    senderAssigned: true, eligibleEnrolments: 0, foreignEnrolments: 0, snapshotSupported: false,
+    senderAssigned: true, senderVerified: true, senderProblem: null, eligibleEnrolments: 0, foreignEnrolments: 0, snapshotSupported: false,
     ...over,
   })
 
@@ -315,7 +315,7 @@ describe('④ Vida never offers an action that cannot clear the blocker', () => 
   it('🛑 a missing sender still fails closed, sequence or no sequence', () => {
     const b = preparationBlockers(facts({
       sequenceId: 's', sequenceCampaignLinked: true, messageSteps: 3,
-      cadenceConfigured: true, sendScheduleConfigured: true, senderAssigned: false,
+      cadenceConfigured: true, sendScheduleConfigured: true, senderAssigned: false, senderVerified: false, senderProblem: null,
     }))
     expect(b.map(x => x.code)).toContain('no_sender')
     expect(onlyPreparationBlocks(b), 'a programme with no mailbox was called preparable').toBe(false)

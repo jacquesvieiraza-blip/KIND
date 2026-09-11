@@ -122,13 +122,18 @@ describe('it is idempotent and restart-safe', () => {
 
 describe('the gate is not weakened — the caller is fixed', () => {
   // ── ③ THE INSTRUCTION THAT SHAPED THE WHOLE CHANGE ───────────────────────────────────
-  it('leaves every one of the sixteen requirements in the rule', () => {
-    expect(PREPARATION_REQUIREMENTS.length).toBe(16)
+  // ⛓️ 11 Sep (DAY 3) — SEVENTEEN, AND THE SEVENTEENTH IS A SPLIT OF `no_sender` RATHER THAN
+  // A NEW REQUIREMENT. `sender_unverified` carries the half that said "a mailbox is settled and
+  // nobody has proved it can log in"; both halves still block, so nothing here is weakened. The
+  // count is asserted exactly, not `toBeGreaterThanOrEqual`, so a requirement cannot be dropped
+  // and hidden behind an addition.
+  it('leaves every one of the seventeen requirements in the rule', () => {
+    expect(PREPARATION_REQUIREMENTS.length).toBe(17)
     for (const code of [
       'wrong_status', 'paused', 'no_attached_icp', 'no_batch', 'no_reviewable_leads',
       'no_campaign', 'campaign_not_programme_linked', 'no_sequence', 'sequence_not_campaign_linked',
-      'no_message_steps', 'no_cadence', 'no_send_schedule', 'no_sender', 'no_eligible_enrolments',
-      'foreign_enrolments', 'no_snapshot',
+      'no_message_steps', 'no_cadence', 'no_send_schedule', 'no_sender', 'sender_unverified',
+      'no_eligible_enrolments', 'foreign_enrolments', 'no_snapshot',
     ]) {
       expect(PREPARATION_REQUIREMENTS as readonly string[], `${code} left the rule`).toContain(code)
     }
@@ -245,7 +250,7 @@ describe('the preparable/ready split is honest', () => {
       campaignId: null, campaignProgrammeLinked: false,
       sequenceId: null, sequenceCampaignLinked: false,
       messageSteps: 0, cadenceConfigured: false, sendScheduleConfigured: false,
-      senderAssigned: false, eligibleEnrolments: 0, foreignEnrolments: 0, snapshotSupported: false,
+      senderAssigned: false, senderVerified: false, senderProblem: null, eligibleEnrolments: 0, foreignEnrolments: 0, snapshotSupported: false,
     }
     const blockers = preparationBlockers(facts)
     expect(blockers.map(b => b.code)).toContain('no_sender')
@@ -274,7 +279,7 @@ describe('the preparable/ready split is honest', () => {
       campaignId: null, campaignProgrammeLinked: false,
       sequenceId: null, sequenceCampaignLinked: false,
       messageSteps: 0, cadenceConfigured: false, sendScheduleConfigured: false,
-      senderAssigned: true, eligibleEnrolments: 0, foreignEnrolments: 0, snapshotSupported: false,
+      senderAssigned: true, senderVerified: true, senderProblem: null, eligibleEnrolments: 0, foreignEnrolments: 0, snapshotSupported: false,
     }
     const blockers = preparationBlockers(facts)
     expect(blockers.length, 'nothing was blocking, so this proves nothing').toBeGreaterThan(0)
@@ -304,7 +309,7 @@ describe('the preparable/ready split is honest', () => {
       campaignId: null, campaignProgrammeLinked: false,
       sequenceId: 's', sequenceCampaignLinked: true,
       messageSteps: 5, cadenceConfigured: true, sendScheduleConfigured: true,
-      senderAssigned: true, eligibleEnrolments: 0, foreignEnrolments: 0, snapshotSupported: false,
+      senderAssigned: true, senderVerified: true, senderProblem: null, eligibleEnrolments: 0, foreignEnrolments: 0, snapshotSupported: false,
     }
     const blockers = preparationBlockers(facts)
     expect(blockers.map(b => b.code).sort()).toEqual(['no_campaign', 'no_eligible_enrolments', 'no_snapshot'])
@@ -318,7 +323,7 @@ describe('the preparable/ready split is honest', () => {
       campaignId: null, campaignProgrammeLinked: false,
       sequenceId: null, sequenceCampaignLinked: false,
       messageSteps: 0, cadenceConfigured: false, sendScheduleConfigured: false,
-      senderAssigned: true, eligibleEnrolments: 0, foreignEnrolments: 0, snapshotSupported: false,
+      senderAssigned: true, senderVerified: true, senderProblem: null, eligibleEnrolments: 0, foreignEnrolments: 0, snapshotSupported: false,
     }
     expect(onlyPreparationBlocks(preparationBlockers(facts))).toBe(false)
   })

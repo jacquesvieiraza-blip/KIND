@@ -596,13 +596,33 @@ describe('⑤ Milla and Vida read the same programme record', () => {
     // once per query — which proves the two queries LOOK alike, not that they ARE alike. Two
     // copies of a predicate is exactly the shape that drifts. There is now ONE query, in one
     // function, and both callers go through it.
+    // ⛓️ 11 Sep (DAY 3) — SCOPED TO `scanEligible`'s OWN BODY, and that is a TIGHTENING.
+    // `readFrozenReviewPage` was added below it to serve the FROZEN package rather than a live
+    // eligibility read, and it legitimately scopes its own two reads by client and programme —
+    // so counting those two strings across the whole file started counting a different question
+    // and failed. The subject here is *the eligibility predicate exists once*, so the count is
+    // taken inside the one function that owns it; the frozen reader is asserted separately
+    // below to carry NO eligibility condition at all, which is the property that matters.
+    const scan = body.slice(body.indexOf('async function scanEligible('), body.indexOf('function toCard('))
     for (const cond of [
       ".eq('client_id', clientId)", ".eq('programme_id', programmeId)",
       ".not('delivered_at', 'is', null)", ".not('surfaced_for_approval_at', 'is', null)",
       ".is('revealed_at', null)", ".not('status', 'in'", ".is('opted_out_at', null)",
       ".is('provider_eviction_required_at', null)", ".not('email', 'is', null)",
     ]) {
-      expect(body.split(cond).length - 1, `${cond} must exist exactly ONCE`).toBe(1)
+      expect(scan.split(cond).length - 1, `${cond} must exist exactly ONCE`).toBe(1)
+    }
+    // 🛑 AND THE FROZEN READER RE-DERIVES NONE OF IT. It reads the ids the freeze recorded; a
+    // second copy of the eligibility rule in there would be the drift this case exists to stop,
+    // and would also silently shrink the audience the client is approving.
+    const frozenReader = body.slice(body.indexOf('export async function readFrozenReviewPage'))
+    for (const cond of [
+      ".not('delivered_at', 'is', null)", ".not('surfaced_for_approval_at', 'is', null)",
+      ".is('revealed_at', null)", ".not('status', 'in'", ".is('opted_out_at', null)",
+      ".is('provider_eviction_required_at', null)", ".not('email', 'is', null)",
+      'opt_out_blocklist',
+    ]) {
+      expect(frozenReader, `the frozen reader re-derives ${cond}`).not.toContain(cond)
     }
     expect(body).toContain('async function scanEligible(')
     // Both public readers delegate to it.

@@ -4479,6 +4479,55 @@ COMMENT ON COLUMN public.onboarding_brief_drafts.promoted_client_id IS
   'The clients row this draft became. Once set, the draft is evidence: it may not be written again and may never compete with the confirmed client/ICP truth.';
 `.trim(),
   },
+  {
+    // Canonical file: supabase/migrations/20260911_preparation_version.sql
+    //
+    // MVP1 DAY 3 - A FROZEN PACKAGE IS NEVER MUTATED IN PLACE; IT IS REPLACED BY A NEW
+    // VERSION. review_preparation_hash proves WHETHER the package changed and cannot say how
+    // many times, cannot be spoken to a client, and gives an approval no way to name a version
+    // rather than a digest.
+    //
+    // approved_preparation_version is what stops an approval drifting forward: it is stamped
+    // from the review version at approval, so a later re-freeze moves review_preparation_version
+    // and leaves the approved one behind. The two numbers disagreeing IS the statement "this
+    // approval does not cover the current package".
+    //
+    // A MONOTONIC COUNTER, NOT A LEDGER of superseded packages - keeping every historical
+    // snapshot is a product decision nobody has taken.
+    //
+    // Expand only. Nullable, no backfill: a programme frozen before this reads as "unknown
+    // version", never as version zero.
+    //
+    // DEPLOYMENT ORDERING: apply before the code that writes it. Until then re-freeze refuses
+    // rather than writing a column that does not exist.
+    // AND WHO APPROVED IT. An approval recorded no identity at all - approved_at says when,
+    // the snapshot says what, and nothing said WHO, so "the client approved this" was a claim
+    // the database could not support. approved_by_kind distinguishes the client's own approval
+    // in Milla from an operator approval in Vida; approved_by_user_id is the authenticated user
+    // behind a client approval, and stays NULL for an operator because admin-key authority is
+    // not a session and recording one would invent a person.
+    key: '20260911_preparation_version',
+    title: 'programmes.review_preparation_version / approved_preparation_version / approved_by_* - a re-freeze is a new version, and an approval has an author (MVP1 Day 3)',
+    sql: `
+ALTER TABLE public.programmes
+  ADD COLUMN IF NOT EXISTS review_preparation_version   int,
+  ADD COLUMN IF NOT EXISTS approved_preparation_version int,
+  ADD COLUMN IF NOT EXISTS approved_by_kind             text,
+  ADD COLUMN IF NOT EXISTS approved_by_user_id          uuid;
+
+COMMENT ON COLUMN public.programmes.approved_by_kind IS
+  'Who approved: ''client'' (the customer, in Milla, from their own session) or ''operator'' (Vida, admin-key authority). NULL means approved before identity was recorded.';
+
+COMMENT ON COLUMN public.programmes.approved_by_user_id IS
+  'The authenticated user behind a CLIENT approval. NULL for operator approvals - admin-key authority is not a session, and recording a user id for it would invent a person.';
+
+COMMENT ON COLUMN public.programmes.review_preparation_version IS
+  'Which frozen review package this is, counting from 1 and rising by one on every re-freeze. NULL means frozen before versioning existed. Never reused, never decremented.';
+
+COMMENT ON COLUMN public.programmes.approved_preparation_version IS
+  'The review version the client actually approved. It stays put when a later re-freeze moves review_preparation_version - the two disagreeing is how an approval is known not to cover the current package.';
+`.trim(),
+  },
 ]
 
 // Runs the statements against DATABASE_URL. Uses node-postgres because the Supabase JS

@@ -63,7 +63,7 @@ const READY: PreparationFacts = {
   messageSteps: 3,
   cadenceConfigured: true,
   sendScheduleConfigured: true,
-  senderAssigned: true,
+  senderAssigned: true, senderVerified: true, senderProblem: null,
   eligibleEnrolments: 246,
   foreignEnrolments: 0,
   snapshotSupported: true,
@@ -160,7 +160,7 @@ describe('③ the operator is told everything that is missing', () => {
     const houseToday = without({
       batchId: null, campaignId: null, campaignProgrammeLinked: false,
       sequenceId: null, sequenceCampaignLinked: false, messageSteps: 0,
-      cadenceConfigured: false, senderAssigned: false, eligibleEnrolments: 0,
+      cadenceConfigured: false, senderAssigned: false, senderVerified: false, senderProblem: null, eligibleEnrolments: 0,
       snapshotSupported: false,
     })
     const c = codes(houseToday)
@@ -175,7 +175,7 @@ describe('③ the operator is told everything that is missing', () => {
     const leadsOnly = without({
       batchId: null, campaignId: null, campaignProgrammeLinked: false, sequenceId: null,
       sequenceCampaignLinked: false, messageSteps: 0, cadenceConfigured: false,
-      senderAssigned: false, eligibleEnrolments: 0, snapshotSupported: false,
+      senderAssigned: false, senderVerified: false, senderProblem: null, eligibleEnrolments: 0, snapshotSupported: false,
     })
     expect(leadsOnly.reviewableLeads).toBe(246)
     expect(preparationBlockers(leadsOnly).length).toBeGreaterThan(0)

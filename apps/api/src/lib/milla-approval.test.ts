@@ -161,7 +161,10 @@ describe('④ approving spends nothing and sends nothing', () => {
     const body = ROUTE.slice(at, at + 1400)
     expect(body).toContain('const clientId = await getClientId(req.userId!)')
     expect(body).toContain('openProgrammeForSession(clientId)')
-    expect(body).toContain('approveProgrammeAsCustomer(clientId, p.id, version || null)')
+    // ⛓️ 11 Sep (DAY 3) — AND THE AUTHOR IS THE FOURTH ARGUMENT, from the session. An approval
+    // recorded no identity at all before this; `req.userId` is what `requireAuth` proved, and
+    // there is no body field for it, so there is nothing a browser can put a person into.
+    expect(body).toContain('approveProgrammeAsCustomer(clientId, p.id, version || null, req.userId ?? null)')
     // ── 🛑 NO CLIENT-SUPPLIED PROGRAMME AUTHORITY ────────────────────────────────────────
     //
     // ⛓️ 11 Sep (DAY 3) — THE GUARD IS NARROWED TO WHAT IT ACTUALLY DEFENDS, not relaxed. The

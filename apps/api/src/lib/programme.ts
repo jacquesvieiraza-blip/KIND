@@ -754,16 +754,131 @@ async function approvedPreparationColumns(programmeId: string, at: string): Prom
   if (drift.state !== 'unchanged') return null
 
   const { data: prog, error } = await db.from('programmes')
-    .select('review_preparation_hash, review_preparation_snapshot').eq('id', programmeId).maybeSingle()
+    .select('review_preparation_hash, review_preparation_snapshot, review_preparation_version')
+    .eq('id', programmeId).maybeSingle()
   if (error || !prog) return null
-  const rp = prog as { review_preparation_hash: string | null; review_preparation_snapshot: unknown }
+  const rp = prog as {
+    review_preparation_hash: string | null
+    review_preparation_snapshot: unknown
+    review_preparation_version?: number | null
+  }
   if (!rp.review_preparation_hash) return null
 
   return {
     approved_preparation_hash: rp.review_preparation_hash,
     approved_preparation_snapshot: rp.review_preparation_snapshot,
     approved_preparation_at: at,
+    // ⚑ 11 Sep (DAY 3) — WHICH VERSION WAS APPROVED, copied from the review freeze rather than
+    // recomputed. It stays put when a later re-freeze moves `review_preparation_version`, and
+    // the two disagreeing is how an approval is known not to cover the current package.
+    //
+    // ⚠️ `?? null` IS NOT A DEFAULT HERE. A programme frozen before versioning existed carries
+    // no version, and recording it as 1 would invent a claim about which package was read.
+    approved_preparation_version: rp.review_preparation_version ?? null,
   }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// ⚑ 11 Sep (DAY 3) — RE-FREEZING: THE MISSING HALF OF "A CHANGE MEANS A NEW VERSION"
+//
+// ── 🛑 THE DEAD END THIS CLOSES ─────────────────────────────────────────────────────────
+//
+// The rule was fully enforced and had no remedy. `reviewDrift` refuses an approval whose
+// package has moved — correctly — and the ONLY writer of a review freeze was
+// `markReadyForApproval`, which runs from `SOURCING` / `SOURCING_AUTHORISED` and from nowhere
+// else. Nothing moves a programme back out of `READY_FOR_APPROVAL`. So the moment anything
+// approval-relevant changed under a reviewing client — a prospect opted out, the sending
+// mailbox was re-assigned, the window was edited — the programme became **permanently
+// unapprovable**: every press answered "it must be re-frozen and reviewed again" and nothing in
+// the product could re-freeze it. A rule with no path forward is an outage with good manners.
+//
+// ── WHAT IT IS, AND WHAT IT REFUSES TO BE ───────────────────────────────────────────────
+//
+//   • it re-proves EVERY preparation requirement first, so a re-freeze cannot rescue a
+//     programme whose sender is unverified or whose review desk has emptied
+//   • it writes a NEW version — hash, snapshot, timestamp and a counter that only ever rises
+//   • an UNCHANGED package writes nothing at all, so re-opening a screen cannot churn the
+//     version a client is quoting back to us
+//   • it NEVER touches `approved_*`. The old approval does not carry forward; it is left
+//     exactly where it was, pointing at the version it actually covered.
+//
+// 🛑 AND IT GRANTS NOTHING. No approval, no P2, no LIVE, no send. It refreshes the question,
+// it does not answer it.
+// ═══════════════════════════════════════════════════════════════════════════════════════
+
+export type RefreezeResult =
+  | { ok: true; changed: boolean; hash: string; version: number | null }
+  | { ok: false; code: 'not_found' | 'wrong_state' | 'not_ready' | 'unreadable'; reason: string }
+
+export async function refreezeForReview(programmeId: string): Promise<RefreezeResult> {
+  let p: ProgrammeRow | null
+  try { p = await getProgramme(programmeId) }
+  catch (err) { return { ok: false, code: 'unreadable', reason: err instanceof Error ? err.message : String(err) } }
+  if (!p) return { ok: false, code: 'not_found', reason: 'No such programme.' }
+
+  // 🛑 ONLY FROM `READY_FOR_APPROVAL`, AND THAT IS THE WHOLE SCOPE. Earlier states reach their
+  // first freeze through `markReadyForApproval`; APPROVED and LIVE must NOT be re-frozen at all
+  // — re-freezing an approved programme is precisely the in-place mutation of approved work the
+  // founder's rule forbids, and `preparationDrift` already refuses the run for it.
+  if (p.status !== 'READY_FOR_APPROVAL') {
+    return { ok: false, code: 'wrong_state', reason: `This programme is ${p.status}, so there is no review package to re-freeze.` }
+  }
+  if (p.paused_at) return { ok: false, code: 'wrong_state', reason: 'This programme is paused, so its review package was not re-frozen.' }
+
+  const { programmePreparationReadiness } = await import('./preparation-readiness')
+  const readiness = await programmePreparationReadiness(programmeId)
+  if (!readiness.ready) {
+    return {
+      ok: false, code: 'not_ready',
+      reason: 'This programme cannot be re-frozen for review yet — ' + readiness.blockers.map(b => b.detail).join(' '),
+    }
+  }
+
+  const { buildPreparationSnapshot } = await import('./preparation-snapshot')
+  const built = await buildPreparationSnapshot(programmeId)
+  if (!built.ok) {
+    return { ok: false, code: 'unreadable', reason: `The prepared work could not be described, so nothing was re-frozen. ${built.degraded}` }
+  }
+
+  const current = p as unknown as { review_preparation_hash?: string | null; review_preparation_version?: number | null }
+  if (current.review_preparation_hash === built.hash) {
+    // ⚠️ NOTHING WRITTEN. Bumping the version for an identical package would invalidate the
+    // exact version string a client is holding on an open screen, for no change at all.
+    return { ok: true, changed: false, hash: built.hash, version: current.review_preparation_version ?? null }
+  }
+
+  const at = new Date().toISOString()
+  const nextVersion = (typeof current.review_preparation_version === 'number' ? current.review_preparation_version : 0) + 1
+
+  // 🛑 COMPARE-AND-SET ON THE OLD HASH AND THE STATUS. Two operators pressing at once, or a
+  // client approving while this runs, must not produce a version that skipped a package: the
+  // loser matches no row and is told, rather than overwriting a freeze somebody has approved
+  // against in the meantime.
+  let claim = db.from('programmes')
+    .update({
+      review_preparation_hash: built.hash,
+      review_preparation_snapshot: built.snapshot as unknown,
+      review_preparation_at: at,
+      review_preparation_version: nextVersion,
+      updated_at: at,
+    })
+    .eq('id', programmeId)
+    .eq('status', 'READY_FOR_APPROVAL')
+  claim = current.review_preparation_hash
+    ? claim.eq('review_preparation_hash', current.review_preparation_hash)
+    : claim.is('review_preparation_hash', null)
+
+  const { data: won, error: writeErr } = await claim.select('id')
+  if (writeErr) {
+    return { ok: false, code: 'unreadable', reason: `The new review package could not be written (${writeErr.message}). Nothing was changed.` }
+  }
+  if (((won ?? []) as unknown[]).length === 0) {
+    return {
+      ok: false, code: 'wrong_state',
+      reason: 'This programme changed while it was being re-frozen, so nothing was written. Take another look and try again.',
+    }
+  }
+  return { ok: true, changed: true, hash: built.hash, version: nextVersion }
 }
 
 export async function approveProgramme(programmeId: string): Promise<ProgrammeResult> {
@@ -776,7 +891,15 @@ export async function approveProgramme(programmeId: string): Promise<ProgrammeRe
   if (!prepared) {
     return { ok: false, reason: 'This programme cannot be approved: the prepared work is not the work that was frozen for review, or no review freeze exists. Re-prepare it, freeze it again and have it reviewed. Nothing was changed.' }
   }
-  await setStatus(programmeId, 'APPROVED', { approved_at: at, ...prepared })
+  await setStatus(programmeId, 'APPROVED', {
+    approved_at: at,
+    // ⚑ 11 Sep (DAY 3) — WHO. This is the admin-key door, so the author is the OPERATOR role
+    // and there is deliberately no user id: `routes/programme.ts` proves admin authority, not a
+    // person, and stamping a user here would be a name nobody actually supplied.
+    approved_by_kind: 'operator',
+    approved_by_user_id: null,
+    ...prepared,
+  })
   return { ok: true }
 }
 
@@ -841,6 +964,17 @@ export async function approveProgrammeAsCustomer(
    * exactly as they did.
    */
   expectedVersion: string | null = null,
+  /**
+   * ⚑ 11 Sep (DAY 3) — WHO IS APPROVING, taken from the session and never from the body.
+   *
+   * 🛑 AN APPROVAL RECORDED NO AUTHOR. `approved_at` said when and the snapshot said what, so
+   * *"the client approved this"* was a sentence the database could not support — on the single
+   * act that turns prepared work into work we are allowed to run.
+   *
+   * ⚠️ IT AUTHORISES NOTHING. Tenancy is still proved by `clientId` against the row; this is
+   * recorded alongside the approval, and no branch below reads it to decide anything.
+   */
+  approvedByUserId: string | null = null,
 ): Promise<CustomerApproval> {
   let p: ProgrammeRow | null
   try {
@@ -937,7 +1071,14 @@ export async function approveProgrammeAsCustomer(
     }
   }
   let claim = db.from('programmes')
-    .update({ status: 'APPROVED', approved_at: at, updated_at: at, ...prepared })
+    .update({
+      status: 'APPROVED', approved_at: at, updated_at: at,
+      // ⚠️ WRITTEN IN THE SAME CONDITIONAL UPDATE AS THE APPROVAL, so a programme can never
+      // hold an author it was not approved by — the same discipline the snapshot follows.
+      approved_by_kind: 'client',
+      approved_by_user_id: approvedByUserId,
+      ...prepared,
+    })
     .eq('id', programmeId)
     .eq('client_id', clientId)
     // 🛑 THE RACE GUARD. Only a row still in READY_FOR_APPROVAL is claimed, so of two
@@ -1075,6 +1216,11 @@ export async function markReadyForApproval(programmeId: string): Promise<Program
     review_preparation_hash: frozen.hash,
     review_preparation_snapshot: frozen.snapshot as unknown,
     review_preparation_at: frozenAt,
+    // ⚑ 11 Sep (DAY 3) — VERSION 1, AND ONLY EVER 1 HERE. This transition is reachable only
+    // from SOURCING / SOURCING_AUTHORISED, so it is always a programme's FIRST review package;
+    // every later one is written by `refreezeForReview`, which counts up from whatever is
+    // stored. Two writers, one counter, and neither invents a number the other could reuse.
+    review_preparation_version: 1,
   })
   return { ok: true }
 }

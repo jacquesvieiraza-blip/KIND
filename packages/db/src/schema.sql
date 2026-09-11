@@ -875,6 +875,21 @@ create table if not exists public.programmes (
   review_preparation_hash       text,
   review_preparation_snapshot   jsonb,
   review_preparation_at         timestamptz,
+  -- ── 11 Sep · a re-freeze is a NEW VERSION, not an edit (20260911_preparation_version)
+  -- The hash proves WHETHER the package changed; it cannot say how many times, cannot be spoken
+  -- to a client, and gives an approval no way to name a version rather than a digest. The
+  -- approved version stays put when a later re-freeze moves the review version — the two
+  -- disagreeing IS the statement "this approval does not cover the current package".
+  -- NULL = frozen before versioning existed. Never version zero.
+  review_preparation_version    int,
+  approved_preparation_version  int,
+  -- ── 11 Sep · WHO approved (20260911_preparation_version) ───────────────────────────
+  -- approved_at says when and the snapshot says what; nothing said WHO, so "the client approved
+  -- this" was a claim the database could not support. 'client' = the customer's own session in
+  -- Milla; 'operator' = admin-key authority in Vida, which carries no user id because it is not
+  -- a session and recording one would invent a person.
+  approved_by_kind              text,
+  approved_by_user_id           uuid,
   -- When outbound may leave, in the RECIPIENT's OWN local time — a persisted zone, else a
   -- region, else the intersection of every zone their country spans, else REFUSED. There was no
   -- schedule anywhere in the send path before this, and the first fix judged every American in

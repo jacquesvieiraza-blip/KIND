@@ -77,7 +77,37 @@ export interface PreparationFacts {
   cadenceConfigured: boolean
   /** A well-formed send schedule — days, window, default timezone. */
   sendScheduleConfigured: boolean
+  // ── 🛑 ⚑ 11 Sep (DAY 3) — ASSIGNED AND VERIFIED ARE TWO FACTS, NOT ONE ────────────────
+  //
+  // ⛓️ THIS WAS ONE BOOLEAN — `senderAssigned = safety.ok` — AND IT WAS THE REPO'S RECURRING
+  // DEFECT IN ITS PUREST FORM: two different questions sharing one field. `programmeSenderSafety`
+  // has distinguished `no_sender` from `unverified_sender` since 10 Sep precisely because the
+  // operator's next action is different — connect a mailbox, versus fix the password on the one
+  // that is already there. Collapsing both to `false` threw that distinction away one line after
+  // it was computed, and the blocker then told an operator *"No sending mailbox is assigned"*
+  // about a client whose mailbox WAS assigned, warmed and live. They would go and assign a second
+  // one, which `ambiguous_sender` then refuses — a loop built out of a wrong sentence.
+  //
+  // 🛑 BOTH STILL BLOCK. Nothing is loosened: an unverified sender refuses readiness and
+  // therefore refuses the freeze, exactly as before. What changes is that the refusal is TRUE.
+  /** A mailbox is resolved for this client, unambiguous, and not shared with another client. */
   senderAssigned: boolean
+  /**
+   * That mailbox has PROVED it can log in (`verifyInbox`, #552).
+   *
+   * ⚠️ NEVER INFERRED FROM ASSIGNMENT. A warmed, branded, correctly-shaped row with a mistyped
+   * password is assigned and unverifiable, and the difference is only discovered when a real
+   * prospect's first email fails.
+   */
+  senderVerified: boolean
+  /**
+   * The sender safety module's own sentence for whichever fact is false.
+   *
+   * ⚠️ CARRIED, NOT RE-WRITTEN. `programme-sender.ts` already names the other client an address
+   * is live on, the equally-ranked boxes, and the failed credential. Re-phrasing it here would be
+   * a second, vaguer copy of a diagnosis that already exists.
+   */
+  senderProblem: string | null
   /** Prepared enrolments that belong to THIS programme. */
   eligibleEnrolments: number
   /** Prepared enrolments that belong to something else. Any is a hard stop. */
@@ -100,8 +130,8 @@ export interface PreparationBlocker {
 export const PREPARATION_REQUIREMENTS = [
   'wrong_status', 'paused', 'no_attached_icp', 'no_batch', 'no_reviewable_leads',
   'no_campaign', 'campaign_not_programme_linked', 'no_sequence', 'sequence_not_campaign_linked',
-  'no_message_steps', 'no_cadence', 'no_send_schedule', 'no_sender', 'no_eligible_enrolments',
-  'foreign_enrolments', 'no_snapshot',
+  'no_message_steps', 'no_cadence', 'no_send_schedule', 'no_sender', 'sender_unverified',
+  'no_eligible_enrolments', 'foreign_enrolments', 'no_snapshot',
 ] as const
 
 /**
@@ -156,6 +186,33 @@ export const PREPARATION_CLEARS: string[] = [
 export const PREPARATION_CLEARS_WITH_AUTO_SEQUENCE: string[] = [
   'no_sequence', 'sequence_not_campaign_linked', 'no_message_steps', 'no_cadence', 'no_send_schedule',
 ]
+
+/**
+ * ⚑ 11 Sep (DAY 3) — THE SENDER VERDICT, TURNED INTO THE TWO FACTS, AS A PURE FUNCTION.
+ *
+ * ⛓️ THIS WAS FOUR LINES INSIDE THE IO SHELL, AND A DELIBERATE REGRESSION PROVED THEY WERE
+ * UNGUARDED. Flipping `senderVerified` to true for an `unverified_sender` verdict — the exact
+ * defect the split exists to prevent — passed the entire suite, because the only thing watching
+ * that mapping was a source scan pinning ONE of its two lines. A rule that lives inside an
+ * async database function is a rule that can only be tested by standing up a database, which in
+ * practice means it is not tested. Out here every branch is provable in a millisecond.
+ *
+ * 🛑 ONLY `unverified_sender` MEANS A MAILBOX IS SETTLED. `no_sender` is none at all;
+ * `ambiguous_sender` is a tie nobody has broken; `shared_sender` is an address live on another
+ * client. In all three, WHICH mailbox sends is undecided, so verification has no subject yet.
+ */
+export function senderFactsFrom(
+  safety: { ok: true } | { ok: false; reason: string; detail: string },
+): { senderAssigned: boolean; senderVerified: boolean; senderProblem: string | null } {
+  if (safety.ok) return { senderAssigned: true, senderVerified: true, senderProblem: null }
+  return {
+    senderAssigned: safety.reason === 'unverified_sender',
+    // ⚠️ ALWAYS FALSE ON A REFUSAL. `programmeSenderSafety` returns `ok: true` if and only if
+    // the mailbox has a `verified_at`, so there is no refusal that means "verified".
+    senderVerified: false,
+    senderProblem: safety.detail,
+  }
+}
 
 /**
  * Is this programme one run of preparation away from being reviewable?
@@ -227,8 +284,20 @@ export function preparationBlockers(f: PreparationFacts): PreparationBlocker[] {
     // to run — and worse, a schedule added AFTER approval is a change the client never saw.
     block('no_send_schedule', 'No sending schedule is configured (days, window, timezone), so it is not decided WHEN these messages would go out. Outreach refuses without one, and adding it after approval would change work the client already agreed to.')
   }
+  // ── THE SENDER, AS TWO QUESTIONS ─────────────────────────────────────────────────────
+  //
+  // ⚠️ ONLY ONE OF THEM IS REPORTED. If no mailbox is settled there is nothing whose login
+  // could have been proved, so `sender_unverified` would be noise on top of `no_sender` — and a
+  // list of blockers is a worklist, not a diagnosis dump.
   if (!f.senderAssigned) {
-    block('no_sender', 'No sending mailbox is assigned and ready for this client, so nothing could leave even after approval — and the client would be approving a plan that cannot run.')
+    block('no_sender', f.senderProblem
+      ?? 'No sending mailbox is assigned and ready for this client, so nothing could leave even after approval — and the client would be approving a plan that cannot run.')
+  } else if (!f.senderVerified) {
+    // 🛑 IT BLOCKS THE FREEZE. A programme frozen on a mailbox nobody has logged into is a
+    // package the client approves and the send path then refuses — the approval would be real
+    // and the work would not run. Assigned is not ready.
+    block('sender_unverified', f.senderProblem
+      ?? 'The sending mailbox assigned to this client has never proved it can log in, so the prepared work could be approved and still never leave. Press Test connection on it in Vida → the client\'s inbox; it authenticates and sends nothing.')
   }
   if (f.eligibleEnrolments <= 0) {
     block('no_eligible_enrolments', 'No eligible prospect from this programme has been prepared for the sequence, so the approved audience would be empty.')
@@ -318,12 +387,20 @@ export async function programmePreparationReadiness(programmeId: string): Promis
   // makes the frozen sender arbitrary, and an address live on another client makes two
   // programmes send as one human. Readiness asks the same question OUTREACH will ask, so a
   // programme cannot be declared reviewable on a sender the send gate would later refuse.
-  let senderAssigned = false
+  //
+  // ── ⚑ 11 Sep (DAY 3) — AND THE SAFETY VERDICT IS NOW READ AS TWO FACTS ───────────────
+  //
+  // `unverified_sender` means a mailbox IS settled and its login is unproved. Every other
+  // refusal — none assigned, a tie at the top, the same address live on another client — means
+  // WHICH mailbox sends is not settled at all, so verification has no subject yet.
+  let sender: ReturnType<typeof senderFactsFrom>
   try {
     const { programmeSenderSafety } = await import('./programme-sender')
     const safety = await programmeSenderSafety(p.client_id)
     if (!safety.ok && safety.reason === 'unreadable') return notReady(safety.detail)
-    senderAssigned = safety.ok
+    // ⚠️ THE MAPPING IS THE PURE FUNCTION ABOVE, not four lines written out here. That is what
+    // makes "an unverified sender is never verified" a testable claim rather than a hope.
+    sender = senderFactsFrom(safety)
   } catch (err) {
     return notReady(`The sending mailbox for this client could not be checked (${err instanceof Error ? err.message : String(err)}).`)
   }
@@ -361,7 +438,7 @@ export async function programmePreparationReadiness(programmeId: string): Promis
     messageSteps: chain.steps.length,
     cadenceConfigured: cadenceIsConfigured(chain.cadence),
     sendScheduleConfigured: isSendSchedule((p as unknown as { send_schedule?: unknown }).send_schedule),
-    senderAssigned,
+    ...sender,
     eligibleEnrolments: eligible ?? 0,
     foreignEnrolments: 0,
     snapshotSupported,

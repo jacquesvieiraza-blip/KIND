@@ -262,13 +262,34 @@ async function programmeCheckout(
     // ⚠️ AND IT IS THE SERVER'S CHECK. Milla hides the payment step until acceptance is
     // recorded; a hidden button is a courtesy and this is the control.
     //
-    // ⚠️ FAIL-CLOSED ONLY WHERE THE COLUMN EXISTS. On a database where
-    // `20260910_programme_calculator_choice` has not run the field reads `undefined`, which
-    // would refuse every first payment in the book — so an ABSENT column is treated as the
-    // pre-migration world and lets the old behaviour stand, while an explicit `null` (the
-    // column exists, nobody accepted) refuses.
+    // ── 🛑 ⛓️ CORRECTED 11 Sep — UNKNOWN IS NOT ACCEPTED ─────────────────────────────
+    //
+    // The first cut let an ABSENT `recommendation_accepted_at` through as "the pre-migration
+    // world", so the old behaviour stood. That is too permissive for a MONEY-AUTHORITY gate:
+    // if we cannot establish whether the client accepted, the one thing we must not do is mint
+    // a payment session. Documented migration ordering is a note to a human; this is the
+    // control, and it fails closed when the ordering is wrong.
+    //
+    // THREE OUTCOMES, AND THEY ARE DISTINCT:
+    //   a value          → P1 may proceed
+    //   present and null → 409 `not_accepted` (they have not agreed yet)
+    //   absent           → 503 `acceptance_unavailable`, naming the migration. Retryable,
+    //                      because it is OUR configuration and not their fault, and the same
+    //                      press works the moment it is applied.
+    //
+    // ⚠️ A READ FAILURE NEVER REACHES HERE AT ALL. `openProgrammeForClient` throws
+    // `ProgrammeStorageError` on a storage error, which the route's own catch answers 503 —
+    // so an unreadable programme cannot arrive looking like an accepted one.
     const acceptance = (p as unknown as { recommendation_accepted_at?: string | null })
-    if ('recommendation_accepted_at' in acceptance && !acceptance.recommendation_accepted_at) {
+    if (!('recommendation_accepted_at' in acceptance)) {
+      res.status(503).json({
+        success: false, error: 'acceptance_unavailable', retryable: true,
+        message: 'We could not confirm that you accepted this recommendation, so nothing has been charged. Please try again shortly.',
+        detail: 'clients/programmes: run migration 20260910_programme_calculator_choice — until it is applied, acceptance cannot be established and no first payment may be taken.',
+      })
+      return
+    }
+    if (!acceptance.recommendation_accepted_at) {
       res.status(409).json({
         success: false, error: 'not_accepted',
         message: 'This recommendation has not been accepted yet. Accept it with Milla and the first payment step opens. Nothing has been charged.',

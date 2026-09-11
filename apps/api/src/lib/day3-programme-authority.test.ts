@@ -36,6 +36,8 @@ const state = {
   writes: [] as { table: string; patch: Row }[],
   /** every Stripe checkout session the route tried to mint */
   sessions: [] as Row[],
+  /** the programmes read fails — "we do not know what state this programme is in" */
+  programmeReadFails: false,
 }
 
 function table(name: string) {
@@ -47,7 +49,10 @@ function table(name: string) {
     select() { return q },
     eq() { return q }, is() { return q }, not() { return q }, or() { return q },
     order() { return q }, limit() { return q },
-    async maybeSingle() { return { data: rows()[0] ?? null, error: null } },
+    async maybeSingle() {
+      if (name === 'programmes' && state.programmeReadFails) return { data: null, error: { message: 'programmes unreadable' } }
+      return { data: rows()[0] ?? null, error: null }
+    },
     async single() { return { data: rows()[0] ?? null, error: null } },
     update(patch: Row) {
       state.writes.push({ table: name, patch })
@@ -102,6 +107,7 @@ beforeEach(() => {
   state.programme = RECOMMENDED()
   state.writes = []
   state.sessions = []
+  state.programmeReadFails = false
 })
 
 // ═══════════════════════════════════════════════════════════════════════════════════════
@@ -140,13 +146,38 @@ describe('🛑 ① P1 is not exposed until the client has explicitly accepted', 
     expect(state.sessions).toEqual([])
   })
 
-  it('6 · a pre-migration row (no acceptance column at all) behaves exactly as before', async () => {
-    // 🛑 FAIL-CLOSED ONLY WHERE THE COLUMN EXISTS. Refusing on an ABSENT field would refuse
-    // every first payment in the book on a database where 20260910 has not run.
+  // ── 🛑 ⛓️ CORRECTED 11 Sep — UNKNOWN IS NOT ACCEPTED ──────────────────────────────────
+  //
+  // This case used to assert the OPPOSITE: that a row with no acceptance column behaved "as
+  // before", i.e. checkout opened. That is too permissive for a money-authority gate — if we
+  // cannot establish whether the client accepted, we must not mint a payment session.
+  // Documentation of migration ordering is not the boundary; this is.
+  it('🛑 3 · 5 · the acceptance CAPABILITY missing refuses, and mints no session', async () => {
     const { recommendation_accepted_at: _gone, ...legacy } = RECOMMENDED() as Record<string, unknown>
     state.programme = legacy
     const r = await callMyProgramme('/checkout/first')
-    expect(r.code).toBe(200)
+    expect(r.code, 'an unknown acceptance state was read as accepted').toBe(503)
+    expect(r.payload.error).toBe('acceptance_unavailable')
+    expect(r.payload.retryable).toBe(true)
+    expect(state.sessions, 'a Stripe session was minted on an unknown acceptance state').toEqual([])
+  })
+
+  it('🛑 3 · …and it names the migration, so the fix is actionable', async () => {
+    const { recommendation_accepted_at: _gone, ...legacy } = RECOMMENDED() as Record<string, unknown>
+    state.programme = legacy
+    const r = await callMyProgramme('/checkout/first')
+    expect(String(r.payload.detail)).toContain('20260910_programme_calculator_choice')
+    expect(String(r.payload.message)).toContain('nothing has been charged')
+  })
+
+  it('🛑 4 · 5 · a programme READ FAILURE refuses too, and mints no session', async () => {
+    // `openProgrammeForClient` throws `ProgrammeStorageError` on a storage error; the route's
+    // own catch answers 503. An unreadable programme can never arrive looking accepted.
+    state.programmeReadFails = true
+    const r = await callMyProgramme('/checkout/first')
+    state.programmeReadFails = false
+    expect(r.code).toBe(503)
+    expect(state.sessions, 'a Stripe session was minted on an unreadable programme').toEqual([])
   })
 
   it('7 · 🛑 the second payment is untouched by this gate — it has its own', async () => {
@@ -188,13 +219,18 @@ describe('🛑 ② internal P1 money is House’s alone (C38)', () => {
   it('the internal-authority door asks WHOSE programme it is', () => {
     const body = fnBody(code, 'export async function authoriseFirstInternal')
     expect(body, 'authoriseFirstInternal is gone').not.toBe('')
-    expect(body).toContain('getExcludedClientIds')
+    // ⛓️ CORRECTED 11 Sep — `houseClientIds`, NOT `excludedClientIds`. Revenue exclusion is
+    // demo ∪ house and answers a different question; a historic demo or test account is
+    // excluded from revenue and is not House.
+    expect(body).toContain('houseClientIds')
+    expect(body, 'the broader revenue-exclusion set is being used as House')
+      .not.toContain('getExcludedClientIds')
     expect(body).toContain('House-only')
   })
 
   it('🛑 …and it is asked BEFORE any write', () => {
     const body = fnBody(code, 'export async function authoriseFirstInternal')
-    const houseAt = body.indexOf('getExcludedClientIds')
+    const houseAt = body.indexOf('houseClientIds')
     const writeAt = body.indexOf("from('programmes')")
     expect(houseAt).toBeGreaterThan(-1)
     expect(writeAt, 'the internal authority no longer writes').toBeGreaterThan(-1)

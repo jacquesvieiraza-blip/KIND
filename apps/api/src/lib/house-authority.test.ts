@@ -117,13 +117,28 @@ vi.mock('./alerts', () => ({ sendFounderAlert: () => Promise.resolve() }))
 // ⚑ 11 Sep (C38) — INTERNAL P1 AUTHORITY IS NOW HOUSE-ONLY, so the fixtures have to say who
 // House is. `client_id: 'house'` throughout this file is exactly that account; a real client's
 // programme is refused, which is the whole point and is asserted below.
+//
+// ⛓️ CORRECTED 11 Sep — THE FAKE ANSWERS `houseClientIds`, NOT `excludedClientIds`. The first
+// cut of this guard used revenue exclusion (demo ∪ house), which is a DIFFERENT question: a
+// historic demo or test account is excluded from revenue and is not House. The fixture keeps
+// both sets so the distinction is exercised rather than assumed.
 vi.mock('./real-clients', () => ({
-  getExcludedClientIds: async () => {
+  getClientExclusions: async () => {
     if (houseState.unreadable) throw new Error('the client exclusions could not be read')
-    return new Set(houseState.internal)
+    const houseClientIds = new Set(houseState.house)
+    const demoClientIds = new Set(houseState.demo)
+    return {
+      houseClientIds, demoClientIds,
+      excludedClientIds: new Set([...houseClientIds, ...demoClientIds]),
+    }
   },
 }))
-const houseState = { internal: ['house'] as string[], unreadable: false }
+const houseState = {
+  house: ['house'] as string[],
+  /** demo ∪ test ∪ archived — every one of them revenue-excluded, and NONE of them House. */
+  demo: ['demo-client', 'test-client', 'archived-demo'] as string[],
+  unreadable: false,
+}
 
 import {
   p1Authorised, p2Authorised, authoriseFirstInternal, authoriseSecondInternal,
@@ -252,7 +267,7 @@ describe('② internal P1 may only be recorded from AWAITING_FIRST_PAYMENT', () 
   // what STATE the programme was in — so an operator with the admin key could authorise P1 on
   // ANY programme, a real paying client's included. That is a generic operator payment
   // override, which the founder's Day-3 lock forbids by name.
-  it('🛑 C38 · a CLIENT programme cannot be internally authorised — that is their payment', async () => {
+  it('🛑 C38 · 2 · an ordinary paying client cannot be internally authorised', async () => {
     dbState.programme = asRow(P({ status: 'AWAITING_FIRST_PAYMENT', client_id: 'a-real-client' }))
     const r = await authoriseFirstInternal('prog-1')
     expect(r.ok).toBe(false)
@@ -260,7 +275,45 @@ describe('② internal P1 may only be recorded from AWAITING_FIRST_PAYMENT', () 
     expect(dbState.writes, 'authority was recorded for a client programme').toEqual([])
   })
 
-  it('🛑 C38 · House IS authorised — the one internal-money exception, and only it', async () => {
+  // ── 🛑 ⛓️ CORRECTED 11 Sep — REVENUE EXCLUSION IS NOT HOUSE ───────────────────────────
+  //
+  // The first cut asked `getExcludedClientIds` (demo ∪ house) because that set already
+  // existed. It answers "should this account count in revenue?", not "is this the House
+  // account?" — so every demo, test and archived account in the book would have gained
+  // internal P1 money authority. These three cases are the difference.
+  it('🛑 C38 · 3 · a DEMO client cannot — revenue-excluded is not House', async () => {
+    dbState.programme = asRow(P({ status: 'AWAITING_FIRST_PAYMENT', client_id: 'demo-client' }))
+    const r = await authoriseFirstInternal('prog-1')
+    expect(r.ok, 'a demo account gained internal money authority').toBe(false)
+    expect(r.reason).toContain('House-only')
+    expect(dbState.writes).toEqual([])
+  })
+
+  it('🛑 C38 · 4 · a TEST client cannot', async () => {
+    dbState.programme = asRow(P({ status: 'AWAITING_FIRST_PAYMENT', client_id: 'test-client' }))
+    expect((await authoriseFirstInternal('prog-1')).ok).toBe(false)
+    expect(dbState.writes).toEqual([])
+  })
+
+  it('🛑 C38 · 5 · an ARCHIVED historic demo/test client cannot', async () => {
+    dbState.programme = asRow(P({ status: 'AWAITING_FIRST_PAYMENT', client_id: 'archived-demo' }))
+    expect((await authoriseFirstInternal('prog-1')).ok).toBe(false)
+    expect(dbState.writes).toEqual([])
+  })
+
+  it('🛑 C38 · 6 · an EMPTY House set is "we could not tell", and refuses', async () => {
+    // `resolveHouseUserIds` fails OPEN to an empty set for the revenue roll-ups, so "no House
+    // client" and "the auth directory was unreachable" look identical from here. Both refuse.
+    dbState.programme = asRow(P({ status: 'AWAITING_FIRST_PAYMENT', client_id: 'house' }))
+    houseState.house = []
+    const r = await authoriseFirstInternal('prog-1')
+    houseState.house = ['house']
+    expect(r.ok).toBe(false)
+    expect(r.reason).toContain('could not confirm the House account')
+    expect(dbState.writes).toEqual([])
+  })
+
+  it('🛑 C38 · 1 · 7 · House IS authorised — money authority only, and only House', async () => {
     dbState.programme = asRow(P({ status: 'AWAITING_FIRST_PAYMENT', client_id: 'house' }))
     expect((await authoriseFirstInternal('prog-1')).ok).toBe(true)
   })

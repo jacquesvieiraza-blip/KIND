@@ -321,24 +321,37 @@ export async function authoriseFirstInternal(programmeId: string): Promise<Progr
   // a generic operator payment override, which the founder's Day-3 lock forbids by name.
   // "House is the only internal-money exception."
   //
-  // ⚠️ IT IS OUR OWN ACCOUNTS, ASKED OF THE SAME SET EVERY REVENUE ROLL-UP USES
-  // (`getExcludedClientIds` — demo ∪ house). Inventing a second notion of "internal" here is
-  // how two parts of this product start disagreeing about whose money is real, and the
-  // roll-ups already treat exactly these clients as not-revenue.
+  // ⚠️ HOUSE, AND HOUSE ALONE — NOT "EXCLUDED FROM REVENUE".
   //
-  // ⚠️ AND IT FAILS CLOSED. If the exclusion set cannot be read we do not know whose programme
-  // this is, and the safe answer to that is no — an unreadable state must never mint authority.
+  // ⛓️ THE FIRST CUT OF THIS ASKED `getExcludedClientIds`, which is demo ∪ house. Those are
+  // two different questions: revenue exclusion answers "should this account count in the
+  // numbers?", and a historic demo or test account answers YES to that while being nothing to
+  // do with House. Reusing the broader set because it already existed would have handed
+  // internal P1 money authority to every demo and test client in the book.
+  //
+  // ⚠️ IT IS THE REPO'S OWN HOUSE CLASSIFICATION, NOT A SECOND ONE. `computeExcludedClientIds`
+  // already computes `houseClientIds` separately — clients whose `user_id` is the auth user
+  // holding `HOUSE_ACCOUNT_EMAIL` — and that is the canonical answer the revenue logic itself
+  // keeps apart from `demoClientIds`. Nothing new is defined here.
+  //
+  // ⚠️ AND IT FAILS CLOSED, IN BOTH DIRECTIONS OF DOUBT. A thrown lookup refuses; and an EMPTY
+  // House set refuses with a different sentence, because `resolveHouseUserIds` deliberately
+  // fails OPEN to an empty set for the revenue roll-ups — so "no House client" and "we could
+  // not reach the auth directory" look identical from here. Either way no authority is minted;
+  // only the wording distinguishes them, so an operator is sent to the right problem.
   //
   // ⚠️ IT IS NOT A SAFETY EXCEPTION. House still goes through the same Prepare, the same
   // sender verification, the same Freeze and the same approval. This is the MONEY exception
   // and nothing else.
   try {
-    const { getExcludedClientIds } = await import('./real-clients')
-    const internal = await getExcludedClientIds()
-    if (!internal.has(p.client_id)) {
+    const { getClientExclusions } = await import('./real-clients')
+    const { houseClientIds } = await getClientExclusions()
+    if (!houseClientIds.has(p.client_id)) {
       return {
         ok: false,
-        reason: 'Internal P1 authority is House-only. This is a client programme, and a client programme is authorised by their payment. Nothing was changed.',
+        reason: houseClientIds.size === 0
+          ? 'We could not confirm the House account, so no internal authority was recorded. Nothing was changed.'
+          : 'Internal P1 authority is House-only. This is a client programme, and a client programme is authorised by their payment. Nothing was changed.',
       }
     }
   } catch (err) {

@@ -24,6 +24,9 @@ import { isLaunchSendCountry, launchTargetRefusal, launchCountrySpellings } from
 import {
   diffTargeting, targetingChangeSentence, targetingUnchanged, type TargetingLists,
 } from '@kind/shared'
+// ⚑ MVP1 (C21) — the canonical ELEVEN brief facts. One list, shared with Vida's progress
+// card, so "how complete is this brief?" has exactly one answer in the product.
+import { briefFacts, BRIEF_FACT_LABEL } from '@kind/shared'
 import { splitPoolAndRemainder, poolWriteAllowed, splitPoolEligible, poolRefusalLine, poolCountryMatches, canonicalPoolCountry, isGeoServable, isPoolSourceEligible, poolRecordMatchesIcp, POOL_ELIGIBLE_SOURCES } from '../lib/pool-sourcing'
 import { toMemoryRecord, rememberAcquiredIdentities, type AcquisitionMemoryRecord, type SuppressionReason } from '../lib/acquisition-memory'
 import { assertIcpFullyOwned } from '../lib/icp-coverage'
@@ -2890,6 +2893,10 @@ const millaReplyTool = (profileRequired: boolean) => ({
             contact_name: { type: 'string', maxLength: 120 },
             phone:        { type: 'string', maxLength: 60 },
             website:      { type: 'string', maxLength: 300 },
+            // ⚑ MVP1 (C21) — "we do not have one" IS an answer to the website question.
+            // Without this the fact can only be satisfied by an address, so a client with
+            // no website could never finish their brief.
+            website_none: { type: 'boolean', description: 'true ONLY when the client explicitly said they have no website. Never set this because they simply have not mentioned one.' },
             industry:     { type: 'string', maxLength: 200, description: 'A short plain phrase for what their business does, from their own words.' },
           },
         },
@@ -2899,6 +2906,15 @@ const millaReplyTool = (profileRequired: boolean) => ({
         description: 'The targeting plan. REQUIRED when type is complete.',
         properties: {
           name:                  { type: 'string', maxLength: 120 },
+          // ── ⚑ MVP1 (C04, C21) — THE CLIENT'S OWN WORDS, AND THE ORGANISATIONAL FORM ──
+          //
+          // 🛑 TWO DISTINCT FACTS, founder-locked. `industries` below is a CLOSED SIXTEEN-
+          // VALUE PROVIDER LIST — it was the only place a target market could be recorded,
+          // so the client's actual phrase was replaced by whichever of sixteen labels the
+          // model thought nearest, or dropped entirely. These two fields are where the
+          // client's own answer now lives; `industries` stays as a provider-edge hint.
+          target_category:     { type: 'string', maxLength: 200, description: "What kind of market or business they want to target, IN THE CLIENT'S OWN WORDS, exactly as they said it — \"Digital marketing agencies\", \"Healthcare businesses\", \"Construction companies\". NEVER a tidied-up or reworded version, and never a label from a fixed list." },
+          target_company_type: { type: 'string', maxLength: 120, description: 'The organisational form of the TARGET company — agency, consultancy, clinic, recruitment firm, SaaS company. Set this ONLY from what the client actually said: "Digital marketing agencies" gives you "agency" because they said the word. NEVER infer it from their website, from their own business, from a provider category, or because it seems likely. If they have not established it, leave it out and ask.' },
           industries:            { type: 'array', maxItems: 6,  items: { type: 'string', enum: [...ICP_INDUSTRIES] } },
           job_titles:            { type: 'array', maxItems: 10, items: { type: 'string', maxLength: 80 } },
           seniority_levels:      { type: 'array', maxItems: 6,  items: { type: 'string', enum: [...ICP_SENIORITY] } },
@@ -3048,10 +3064,19 @@ const MillaReplyInput = z.object({
     contact_name: clampedStr(120),
     phone:        clampedStr(60),
     website:      clampedStr(300),
+    // ⚑ MVP1 (C21) — an explicit "we have no website". Booleans are not clamped; a
+    // non-boolean is refused by Zod as a type error, which is correct: there is no safe
+    // way to guess what a string meant here.
+    website_none: z.boolean().optional(),
     industry:     clampedStr(200),
   }).optional(),
   icp: z.object({
     name:                  clampedStr(120),
+    // ⚑ MVP1 (C04) — the client's own words, and the target's organisational form. Both
+    // are GENUINELY OPEN TEXT and that is the whole point: `industries` below is a closed
+    // provider list and putting the client's phrase through it is what destroyed it.
+    target_category:       clampedStr(200),
+    target_company_type:   clampedStr(120),
     // Closed lists — off-list values are DROPPED at the trust boundary, never stored and
     // never allowed to cost the client the turn that carried them.
     industries:            boundedEnum(ICP_INDUSTRIES, 6),
@@ -3110,7 +3135,44 @@ const millaReplyFor = (profileRequired: boolean) =>
     if (!(v.profile?.country ?? '').trim()) {
       ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['profile', 'country'], message: "a first-run completion must carry the client's own business country" })
     }
-    // contact_name, phone, website and industry stay genuinely optional — they always were.
+
+    // ── ⚑ MVP1 (C21) — THE ELEVEN-FACT GATE, ENFORCED RATHER THAN REQUESTED ───────────
+    //
+    // 🛑 THE OLD GATE ASKED FOR TWO FACTS. Company name and the client's own country — the
+    // two the `clients` row cannot be written without. "Complete" therefore meant "I have
+    // enough to open an account", and Milla was free to finish while she still did not know
+    // who to write to, where they are, how big they are or what the client wanted out of it.
+    // The prompt even told her the mobile and the website were "fine to go without".
+    //
+    // ⚠️ THE SAME COUNTER VIDA USES. `briefFacts` is the one canonical list; a second copy
+    // here is how Vida came to print "seven of the eight brief facts" against Milla's
+    // eleven. An instruction in a prompt is not a gate — this is the gate.
+    //
+    // ⚠️ IT REFUSES THE COMPLETION, NOT THE TURN. A Zod issue here routes to the same
+    // honest-failure path as any other invalid shape: the client is never shown a Milla
+    // sentence she did not say, and the model is asked again with the transcript intact.
+    const facts = briefFacts({
+      contactName:        v.profile?.contact_name,
+      companyName:        v.profile?.company_name,
+      website:            v.profile?.website,
+      websiteNone:        v.profile?.website_none,
+      whatTheCompanyDoes: v.profile?.industry || v.business?.product,
+      targetCategory:     v.icp?.target_category,
+      geographies:        v.icp?.geographies,
+      targetCompanyType:  v.icp?.target_company_type,
+      companySizes:       v.icp?.company_sizes,
+      targetRoles:        v.icp?.job_titles,
+      targetSeniority:    v.icp?.seniority_levels,
+      exclusions:         v.business?.bad_fit,
+      desiredOutcome:     v.campaign_intent,
+    })
+    if (!facts.complete) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['brief'],
+        message: `a completion must carry all ${facts.total} brief facts — still missing: ${facts.missing.map(id => BRIEF_FACT_LABEL[id]).join(', ')}`,
+      })
+    }
   })
 
 /** ── HONEST FAILURE, NEVER FAKE MILLA (founder-ruled 24 Aug) ─────────────────────────────
@@ -3253,8 +3315,11 @@ HOW YOU MUST TREAT IT:
 
 Ask for the account facts the way a person would — woven into the conversation, never as a
 checklist, never all at once. "What's the company called?" belongs at the start. "And who am
-I speaking to?" is a normal thing to ask. The mobile and the website are worth asking for and
-fine to go without.
+I speaking to?" is a normal thing to ask.
+
+⚠️ THE WEBSITE IS NOT OPTIONAL, AND "WE DO NOT HAVE ONE" IS AN ANSWER (MVP1). Ask for it. If
+they have one, take it; if they say they have none, set "website_none" and move on. What you
+may never do is finish without having asked. The mobile stays genuinely optional.
 
 ⚠️ THE COUNTRY IS WHERE THEIR OWN BUSINESS IS BASED. It is NOT where their customers are.
 Those are different facts and they are often different countries. NEVER copy it from the
@@ -3272,21 +3337,66 @@ listening. This conversation is about their targeting and their business, nothin
 
     // The completion gate exists ONLY on a first run, because it exists only to stop an
     // account being opened without the two fields it requires.
+    // ── ⚑ MVP1 (C21) — THE ELEVEN FACTS, TOLD TO HER IN HER OWN TERMS ─────────────────
+    //
+    // ⚠️ ELEVEN FACTS, NOT ELEVEN QUESTIONS (founder-locked). One answer may settle two of
+    // them. The prompt says so explicitly, because a model told "you need eleven things"
+    // will otherwise march through eleven questions and turn a conversation into a form —
+    // which is the product this one was built to replace.
+    //
+    // ⚠️ AND THE PROMPT IS NOT THE GATE. `millaReplyFor` refuses a completion that is short
+    // of the eleven whatever this text says; the two are kept in step because both read the
+    // same `BRIEF_FACTS` list. This half exists so Milla ASKS rather than being refused.
     const completionGate = profile_required
       ? `
 
-DO NOT ANSWER "complete" UNTIL YOU HOLD BOTH THEIR COMPANY NAME AND THEIR OWN COUNTRY. Their
-account cannot be opened without those two, and a made-up value is far worse than one more
-question. If either is missing, ask for it — that is a "question", not a "complete".`
+YOU ARE COMPLETE ONLY WHEN YOU HOLD ALL ELEVEN OF THESE:
+
+  1. Who you are speaking to — their name.
+  2. Their company name.
+  3. Their website — or them telling you plainly they do not have one. Both are answers.
+  4. What their own company does.
+  5. THE KIND OF COMPANY THEY WANT TO REACH, IN THEIR OWN WORDS.
+  6. Which countries those companies are in.
+  7. WHAT TYPE OF ORGANISATION those companies are — agency, consultancy, clinic,
+     recruitment firm, SaaS company, and so on.
+  8. How big those companies are.
+  9. Which roles to reach inside them.
+ 10. Who they do NOT want — exclusions.
+ 11. What they said this should achieve for them.
+
+⚠️ ELEVEN FACTS, NOT ELEVEN QUESTIONS. One answer often settles two. "Digital marketing
+agencies" gives you BOTH number 5 (their own words for the market) AND number 7 (the type is
+"agency", because they said the word). Never ask again for something they have already told
+you — re-asking is how a product tells someone it was not listening.
+
+⚠️ NUMBER 5 IS THEIR SENTENCE, NOT YOURS. Keep their phrase exactly as they said it. Do not
+tidy it, do not translate it into a category name, do not swap it for a neater label.
+
+⚠️ NUMBER 7 NEEDS THEIR EVIDENCE. Set it only from something they actually said. Never from
+their website, never from their own line of business, never because it seems likely. If they
+said "digital marketing" and nothing about what kind of organisation, you do NOT have number
+7 — ask a natural follow-up, something like "and what type of companies are those — agencies,
+consultancies, clinics, something else?", in your own words.
+
+If anything is missing, ask for ONE of them — that is a "question", not a "complete". Ask for
+the next missing thing the way a person would, never as a list, never all at once. A made-up
+value is far worse than one more question.`
       : ''
 
     const profileFieldsNote = profile_required
       ? `
 When you answer "complete", fill "profile" with what they actually told you: their company
 name, the country THEIR OWN BUSINESS is based in, who you are speaking to, their mobile and
-their website. NEVER invent a company name, a country, a person's name, a phone number or a
-website — leave the field out entirely and ask for it instead. Nothing there may be filled in
-on the client's behalf.`
+their website — or "website_none": true if they told you they have none.
+NEVER invent a company name, a country, a person's name, a phone number or a website — leave
+the field out entirely and ask for it instead. Nothing there may be filled in on the client's
+behalf.
+
+Fill "icp.target_category" with THEIR OWN WORDS for the kind of company they want to reach,
+and "icp.target_company_type" with the type of organisation those companies are — but only
+when they have actually established it. Both are the client's answers, not your summary of
+them.`
       : ''
 
     // ── MILLA LEARNS THE BUSINESS, NOT JUST THE TARGET (22 Aug) ────────────────────────
@@ -3586,6 +3696,15 @@ result or a number. "permitted" is false unless they explicitly said we may use 
       const icp = parsed.icp
       const draft = {
         name:                  icp.name?.trim() || 'My ICP',
+        // ── ⚑ MVP1 (C04) — THE CLIENT'S OWN WORDS SURVIVE TO STORAGE ────────────────
+        //
+        // ⚠️ CARRIED ALONGSIDE `industries`, NEVER INSTEAD OF IT. `industries` remains the
+        // closed sixteen-value provider hint the PDL/Apollo bodies already read; these two
+        // are the client's actual answer and the target's organisational form. Keeping both
+        // is what lets provider normalisation stay at the provider edge without the client's
+        // phrase being overwritten on the way in.
+        target_category:       icp.target_category?.trim() || '',
+        target_company_type:   icp.target_company_type?.trim() || '',
         industries:            icp.industries ?? [],
         job_titles:            icp.job_titles ?? [],
         seniority_levels:      icp.seniority_levels ?? [],
@@ -3636,6 +3755,9 @@ result or a number. "permitted" is false unless they explicitly said we may use 
             contact_name: str(p.contact_name),
             phone:        str(p.phone),
             website:      str(p.website),
+            // ⚑ MVP1 (C21) — an explicit "we have no website" travels as its own fact, so
+            // an empty `website` can never be mistaken for an unanswered question.
+            website_none: p.website_none === true,
             industry:     str(p.industry),
           }
         : null

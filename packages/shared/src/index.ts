@@ -19,3 +19,6 @@ export * from './programme-stage'
 // ⚑ MVP1 — the SIX visible stages per console, projected from the engine truth above. One
 // vocabulary for both apps (C41); it decides nothing and stores nothing. See its header.
 export * from './mvp1-stage'
+// ⚑ MVP1 — the canonical Brief: ELEVEN data facts, one counter, every reader. Client
+// confirmation is a separate gate and is deliberately not one of the eleven (C21).
+export * from './brief-facts'

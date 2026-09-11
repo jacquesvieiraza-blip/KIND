@@ -694,6 +694,10 @@ millaRouter.put('/brief-draft', async (req: AuthRequest, res) => {
       })
       return
     }
+    // ⚠️ `unverifiable` IS ALSO 503-RETRYABLE, AND IT IS THE FAIL-CLOSED PATH. We could not
+    // establish whether this brief has already been confirmed, so we refuse rather than risk
+    // writing beside a confirmed client — and rather than upserting a facts object built from
+    // a read that failed, which would erase every answer already collected.
     res.status(503).json({
       success: false, retryable: true,
       error: 'We could not save that just yet. Nothing you told Milla is lost — she still has it.',

@@ -77,24 +77,68 @@ function toDraft(r: Row): BriefDraft {
 }
 
 /**
- * The draft for one authenticated user, or null.
- *
- * ⚠️ NULL IS "NO DRAFT", AND IT IS ALSO "WE COULD NOT READ ONE". Both must behave the same at
- * every call site: the product falls back to exactly today's behaviour. A read failure that
- * threw would take signup down over a table that may not be migrated yet.
+ * ⚠️ "ABSENT" AND "UNREADABLE" ARE DIFFERENT ANSWERS, and the write path must be able to tell
+ * them apart. A READER may treat both as "no draft" and fall back to today's behaviour. A
+ * WRITER may not: `{ ok: true, draft: null }` means there is genuinely nothing yet and a new
+ * row is correct, while `{ ok: false }` means we do not know — and writing on that answer
+ * would upsert a facts object built from nothing, silently erasing every answer already
+ * collected. That is the same class of defect as the authority gap below, arriving by a
+ * quieter door.
  */
-export async function briefDraftFor(userId: string): Promise<BriefDraft | null> {
+type ReadOutcome =
+  | { ok: true; draft: BriefDraft | null }
+  | { ok: false }
+
+async function readDraft(userId: string): Promise<ReadOutcome> {
   try {
     const { data, error } = await db.from('onboarding_brief_drafts')
       .select(COLUMNS).eq('user_id', userId).maybeSingle()
-    if (error || !data) return null
-    return toDraft(data as unknown as Row)
-  } catch { return null }
+    if (error) return { ok: false }
+    return { ok: true, draft: data ? toDraft(data as unknown as Row) : null }
+  } catch { return { ok: false } }
+}
+
+/**
+ * 🛑 THE AUTHORITATIVE PROMOTION REALITY, NOT A FLAG THAT CAN FAIL TO PERSIST.
+ *
+ * ⚠️ THIS IS THE AUTHORITY FIX. Write eligibility used to be decided ONLY by
+ * `promoted_client_id`, which `markBriefDraftPromoted` writes best-effort. So if the client
+ * and the ICP were created and that one bookkeeping write failed, the draft stayed writable —
+ * two mutable sources of truth for the same Brief, with nothing to say which was right. The
+ * seal being cosmetic is fine; the AUTHORITY depending on the seal is not.
+ *
+ * A `clients` row for this user IS promotion having happened. It is created by the onboarding
+ * insert, `clients.user_id` is UNIQUE, and no bookkeeping step stands between that insert and
+ * this read. So the guard asks reality, and the flag becomes what it should always have been:
+ * evidence of something that is already true elsewhere.
+ */
+type ClientLookup = { ok: true; clientId: string | null } | { ok: false }
+
+async function promotedClientForUser(userId: string): Promise<ClientLookup> {
+  try {
+    const { data, error } = await db.from('clients')
+      .select('id').eq('user_id', userId).maybeSingle()
+    if (error) return { ok: false }
+    return { ok: true, clientId: (data as { id?: string } | null)?.id ?? null }
+  } catch { return { ok: false } }
+}
+
+/**
+ * The draft for one authenticated user, or null.
+ *
+ * ⚠️ NULL IS "NO DRAFT", AND IT IS ALSO "WE COULD NOT READ ONE". For a READER both behave the
+ * same: the product falls back to exactly today's behaviour, and a read failure that threw
+ * would take signup down over a table that may not be migrated yet. The WRITE path uses
+ * `readDraft` instead, because there the difference is load-bearing.
+ */
+export async function briefDraftFor(userId: string): Promise<BriefDraft | null> {
+  const r = await readDraft(userId)
+  return r.ok ? r.draft : null
 }
 
 export type SaveOutcome =
   | { ok: true; draft: BriefDraft }
-  | { ok: false; reason: 'promoted' | 'unstorable' }
+  | { ok: false; reason: 'promoted' | 'unstorable' | 'unverifiable' }
 
 /**
  * Persist the partial Brief for this user, creating the draft if it does not exist.
@@ -110,8 +154,20 @@ export type SaveOutcome =
 export async function saveBriefDraft(
   userId: string, facts: BriefDraftFacts,
 ): Promise<SaveOutcome> {
-  const existing = await briefDraftFor(userId)
-  if (existing?.promotedClientId) return { ok: false, reason: 'promoted' }
+  const read = await readDraft(userId)
+  // ⚠️ FAIL CLOSED ON AN UNKNOWN STATE. Writing when we could not read means upserting a
+  // facts object assembled from nothing — every answer already collected, gone. The route
+  // answers 503-retryable and the portal keeps its own copy, so nothing is lost and the next
+  // save succeeds. An erased draft cannot be recovered by trying again.
+  if (!read.ok) return { ok: false, reason: 'unverifiable' }
+  const existing = read.draft
+
+  // 🛑 AUTHORITY IS ASKED OF REALITY, NOT OF A FLAG. See `promotedClientForUser`: the flag is
+  // written best-effort, so a failed seal after a successful client insert would otherwise
+  // leave this draft writable alongside the confirmed client and ICP.
+  const promoted = await promotedClientForUser(userId)
+  if (!promoted.ok) return { ok: false, reason: 'unverifiable' }
+  if (existing?.promotedClientId || promoted.clientId) return { ok: false, reason: 'promoted' }
 
   const merged: BriefDraftFacts = { ...(existing?.facts ?? {}), ...facts }
   const now = new Date().toISOString()

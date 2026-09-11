@@ -27,6 +27,10 @@ const state = {
   unreadable: false,
   /** the next write fails */
   unwritable: false,
+  /** ⚑ the AUTHORITATIVE promotion reality: confirmed clients, by user */
+  clients: [] as Row[],
+  /** the clients read fails — authority state cannot be established */
+  clientsUnreadable: false,
 }
 
 function table(name: string) {
@@ -39,6 +43,11 @@ function table(name: string) {
     order() { return q },
     limit(n: number) { limitN = n; return q },
     async maybeSingle() {
+      if (name === 'clients') {
+        if (state.clientsUnreadable) return { data: null, error: { message: 'unreadable' } }
+        const hit = state.clients.filter(r => filters.every(f => f(r)))
+        return { data: hit[0] ?? null, error: null }
+      }
       if (state.unreadable) throw new Error(`${name} does not exist`)
       const hit = state.rows.filter(r => filters.every(f => f(r)))
       return { data: hit[0] ?? null, error: null }
@@ -106,7 +115,12 @@ beforeEach(() => {
   state.rows = []
   state.unreadable = false
   state.unwritable = false
+  state.clients = []
+  state.clientsUnreadable = false
 })
+
+/** Promotion as it REALLY happens: the onboarding insert creates the clients row. */
+const clientCreated = (userId = USER, id = 'client-1') => { state.clients.push({ id, user_id: userId }) }
 
 describe('① 1 · a draft exists without any clients row', () => {
   it('a signed-up user with nothing collected has no draft yet', async () => {
@@ -207,6 +221,7 @@ describe('⑤ 7 & 8 · the confirm gate is the server\'s', () => {
 describe('⑥ 15 · a promoted draft is evidence, not a competing truth', () => {
   it('🛑 it refuses further writes', async () => {
     await saveBriefDraft(USER, { ...TEN, target_company_type: 'agency' })
+    clientCreated()
     await markBriefDraftPromoted(USER, 'client-1')
     const r = await saveBriefDraft(USER, { target_category: 'Something else entirely' })
     expect(r.ok).toBe(false)
@@ -215,6 +230,7 @@ describe('⑥ 15 · a promoted draft is evidence, not a competing truth', () => 
 
   it('…so the stored wording cannot drift away from the confirmed ICP', async () => {
     await saveBriefDraft(USER, { ...TEN, target_category: 'Digital marketing agencies', target_company_type: 'agency' })
+    clientCreated()
     await markBriefDraftPromoted(USER, 'client-1')
     await saveBriefDraft(USER, { target_category: 'Construction companies' })
     expect((await briefDraftFor(USER))?.facts.target_category).toBe('Digital marketing agencies')
@@ -278,5 +294,119 @@ describe('⑧ 18 · the un-migrated and legacy cases behave exactly as today', (
   it('a legacy client with no draft is simply a client with no draft', async () => {
     expect(await briefDraftFor('legacy-user')).toBeNull()
     expect(draftProgress(null).count).toBe(0)
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// ⑨ THE AUTHORITY TRANSITION — reliable, and NOT the same thing as the bookkeeping seal.
+//
+// 🛑 THE BUG THIS BLOCK EXISTS FOR. Write eligibility used to be decided ONLY by
+// `promoted_client_id`, which `markBriefDraftPromoted` writes BEST-EFFORT. So a run where the
+// client and the ICP were created and that one bookkeeping write failed left the draft
+// writable — two mutable sources of truth for the same Brief, with nothing to say which was
+// right. "Do not fail onboarding over audit evidence" is correct; "leave the old authority
+// writable" is not the same sentence.
+//
+// ⚠️ THE FIX IS TO ASK REALITY. A `clients` row for this user IS promotion having happened:
+// the onboarding insert creates it, `clients.user_id` is UNIQUE, and no bookkeeping step
+// stands between that insert and the guard's read. The seal is now what it should always have
+// been — evidence of something already true elsewhere.
+//
+// ⚠️ SEPARATE THE TWO CONCERNS, which is what the teeth case below actually proves:
+//   A · the AUTHORITY transition — must be reliable
+//   B · the audit/evidence decoration — may be best-effort
+// A test that only broke the flag would pass against a guard reading the flag. The teeth case
+// therefore breaks the AUTHORITY guard while leaving the seal perfectly intact.
+// ═══════════════════════════════════════════════════════════════════════════════════════
+
+describe('⑨ authority, not bookkeeping', () => {
+  it('1 · an incomplete draft cannot promote', async () => {
+    await saveBriefDraft(USER, TEN)
+    expect(mayConfirmBrief(await briefDraftFor(USER)).ok).toBe(false)
+  })
+
+  it('2 · a complete draft can promote', async () => {
+    await saveBriefDraft(USER, { ...TEN, target_company_type: 'agency' })
+    expect(mayConfirmBrief(await briefDraftFor(USER)).ok).toBe(true)
+  })
+
+  it('3 · after a successful promotion, ordinary draft writes are rejected', async () => {
+    await saveBriefDraft(USER, { ...TEN, target_company_type: 'agency' })
+    clientCreated()
+    await markBriefDraftPromoted(USER, 'client-1')
+    const r = await saveBriefDraft(USER, { target_category: 'Anything' })
+    expect(r.ok).toBe(false)
+    expect(r.ok === false && r.reason).toBe('promoted')
+  })
+
+  it('🛑 4 · a FAILED seal does NOT restore draft write authority', async () => {
+    // The exact run the correction is about: client + ICP created, bookkeeping write lost.
+    await saveBriefDraft(USER, { ...TEN, target_company_type: 'agency' })
+    clientCreated()
+    state.unwritable = true
+    const sealed = await markBriefDraftPromoted(USER, 'client-1')
+    state.unwritable = false
+    expect(sealed.ok, 'the seal is expected to have failed in this scenario').toBe(false)
+    // …and the flag really is absent, so nothing here is passing by accident.
+    expect((await briefDraftFor(USER))?.promotedClientId).toBeNull()
+    // The draft must STILL be closed, because the client exists.
+    const r = await saveBriefDraft(USER, { target_category: 'Anything' })
+    expect(r.ok, 'a failed audit write must never reopen the old authority').toBe(false)
+    expect(r.ok === false && r.reason).toBe('promoted')
+  })
+
+  it('5 · a confirmed client can never have a writable onboarding draft', async () => {
+    // No seal was ever attempted here — the client simply exists.
+    await saveBriefDraft(USER, { company_name: 'Redmayne & Co.' })
+    clientCreated()
+    expect((await saveBriefDraft(USER, { contact_name: 'Ellis' })).ok).toBe(false)
+  })
+
+  it('6 · retrying the write after promotion fails safely, and changes nothing', async () => {
+    await saveBriefDraft(USER, { ...TEN, target_category: 'Digital marketing', target_company_type: 'agency' })
+    clientCreated()
+    for (let i = 0; i < 3; i++) await saveBriefDraft(USER, { target_category: `attempt ${i}` })
+    expect((await briefDraftFor(USER))?.facts.target_category).toBe('Digital marketing')
+  })
+
+  it('9 · a failure BEFORE promotion leaves the draft writable — the user continues', async () => {
+    await saveBriefDraft(USER, TEN)
+    // No client row: nothing authoritative has happened, whatever else failed.
+    const r = await saveBriefDraft(USER, { target_company_type: 'agency' })
+    expect(r.ok).toBe(true)
+    expect(draftProgress(await briefDraftFor(USER)).complete).toBe(true)
+  })
+
+  it('10 · a failure AFTER promotion leaves client/ICP authoritative and the draft closed', async () => {
+    await saveBriefDraft(USER, { ...TEN, target_company_type: 'agency' })
+    clientCreated()
+    state.unwritable = true
+    await markBriefDraftPromoted(USER, 'client-1')
+    state.unwritable = false
+    expect((await saveBriefDraft(USER, { company_name: 'Renamed Ltd' })).ok).toBe(false)
+    // and the confirmed client is untouched by any of it
+    expect(state.clients).toHaveLength(1)
+  })
+
+  // ⚠️ FAIL CLOSED WHEN AUTHORITY CANNOT BE ESTABLISHED. Allowing a write on an unknown state
+  // is the same gamble the correction forbids; refusing costs one retry and the portal still
+  // holds the client's answers.
+  it('🛑 an unreadable authority state refuses the write rather than guessing', async () => {
+    await saveBriefDraft(USER, TEN)
+    state.clientsUnreadable = true
+    const r = await saveBriefDraft(USER, { target_company_type: 'agency' })
+    expect(r.ok).toBe(false)
+    expect(r.ok === false && r.reason).toBe('unverifiable')
+  })
+
+  // ⚠️ AND THE SAME REASONING ON THE DRAFT READ. Writing when the draft could not be read
+  // would upsert a facts object assembled from nothing — erasing every answer collected.
+  it('🛑 an unreadable draft refuses the write rather than erasing ten facts', async () => {
+    await saveBriefDraft(USER, TEN)
+    state.unreadable = true
+    const r = await saveBriefDraft(USER, { target_company_type: 'agency' })
+    state.unreadable = false
+    expect(r.ok).toBe(false)
+    expect(draftProgress(await briefDraftFor(USER)).count, 'the ten facts survived').toBe(10)
   })
 })

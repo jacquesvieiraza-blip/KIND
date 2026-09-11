@@ -48,6 +48,11 @@ const state = {
   fetches: [] as string[],
   /** every welcome email the handler sent */
   welcomes: [] as { to: string; company: string }[],
+  /** the caller's brief draft, or null for a journey that never had one */
+  draft: null as Record<string, unknown> | null,
+  confirmable: { ok: true, missing: [] as string[] },
+  /** every client id the draft was sealed against */
+  sealed: [] as string[],
 }
 
 function query(table: string) {
@@ -87,6 +92,14 @@ function query(table: string) {
   return q
 }
 
+// ⚑ MVP1 — the promotion gate reads the draft before it creates anything. These cases are
+// about the ACCOUNT half, so the draft is absent by default: `briefDraftFor` answers null and
+// the gate stands aside, exactly as it does for a legacy client re-onboarding.
+vi.mock('../lib/brief-draft', () => ({
+  briefDraftFor: async () => state.draft,
+  mayConfirmBrief: () => state.confirmable,
+  markBriefDraftPromoted: async (_u: string, c: string) => { state.sealed.push(c); return { ok: true } },
+}))
 vi.mock('@kind/db', () => ({
   db: {
     from: (t: string) => query(t),
@@ -147,6 +160,9 @@ beforeEach(() => {
   state.existingSub = null
   state.fetches = []
   state.welcomes = []
+  state.draft = null
+  state.confirmable = { ok: true, missing: [] }
+  state.sealed = []
   vi.stubGlobal('fetch', async (url: string) => {
     state.fetches.push(String(url))
     return { ok: true, json: async () => ({}) } as unknown as Response
@@ -205,5 +221,72 @@ describe('② C22 — exactly one onboarding email', () => {
   it('the handler fires no outbound HTTP call of any kind at signup', async () => {
     await onboard(BODY)
     expect(state.fetches).toEqual([])
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// ③ PROMOTION — GATED ON THE ELEVEN, AND IDEMPOTENT
+//
+// ⚠️ THE GATE IS THE SERVER'S. This handler turns a draft Brief into a client, an ICP and a
+// Proof run. A disabled button in the portal is not what stops an incomplete brief from being
+// promoted; this is.
+//
+// ⚠️ AND IT REFUSES BEFORE ANYTHING IS CREATED. A partial state where the client exists,
+// promotion is stamped and the brief was never complete seals the person out of their own
+// Brief with no working account — strictly worse than a clean refusal.
+// ═══════════════════════════════════════════════════════════════════════════════════════
+
+describe('③ promotion is gated and idempotent', () => {
+  const withDraft = (ok: boolean, missing: string[] = []) => {
+    state.draft = { promotedClientId: null }
+    state.confirmable = { ok, missing }
+  }
+
+  it('🛑 an incomplete brief is refused, and NOTHING is created', async () => {
+    withDraft(false, ['company_type'])
+    const res = await onboard(BODY)
+    expect(res.code).toBe(400)
+    expect(state.inserts.filter(i => i.table === 'clients')).toHaveLength(0)
+    expect(state.sealed, 'nothing may be sealed on a refusal').toEqual([])
+    expect(state.welcomes, 'no welcome email for an account that was not opened').toEqual([])
+  })
+
+  it('the refusal names what is still missing', async () => {
+    withDraft(false, ['company_type'])
+    const res = await onboard(BODY)
+    expect(String(res.payload.error)).toContain('Company type')
+  })
+
+  it('a complete brief promotes, and the draft is sealed AFTER the client exists', async () => {
+    withDraft(true)
+    const res = await onboard(BODY)
+    expect(res.code).toBe(200)
+    expect(state.inserts.filter(i => i.table === 'clients')).toHaveLength(1)
+    expect(state.sealed).toEqual(['client-new'])
+  })
+
+  it('🛑 7 · promotion retried cannot create a SECOND client', async () => {
+    withDraft(true)
+    await onboard(BODY)
+    // The retry finds the client that now exists and takes the update branch.
+    state.existingClient = { id: 'client-new', signup_terms_accepted_at: null, contact_email: 'ellis@redmayne.co.uk' }
+    state.inserts = []
+    const res = await onboard(BODY)
+    expect(res.code).toBe(200)
+    expect(state.inserts.filter(i => i.table === 'clients'), 'a retry inserted a second client').toHaveLength(0)
+  })
+
+  it('a journey with no draft is untouched — legacy re-onboarding still works', async () => {
+    state.draft = null
+    const res = await onboard(BODY)
+    expect(res.code).toBe(200)
+    expect(state.sealed, 'nothing to seal when there was never a draft').toEqual([])
+  })
+
+  it('an already-promoted draft is not re-sealed', async () => {
+    state.draft = { promotedClientId: 'client-old' }
+    const res = await onboard(BODY)
+    expect(res.code).toBe(200)
+    expect(state.sealed).toEqual([])
   })
 })

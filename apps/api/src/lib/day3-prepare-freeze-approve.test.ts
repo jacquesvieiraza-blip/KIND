@@ -718,6 +718,137 @@ describe('🛑 ⑧ P2 authority', () => {
 })
 
 // ═══════════════════════════════════════════════════════════════════════════════════════
+// ⑦B WAITING ON A CLIENT IS NOT A TASK — BUT A CLIENT WHO CANNOT APPROVE IS
+// ═══════════════════════════════════════════════════════════════════════════════════════
+describe('🛑 ⑦B the approval stage interrupts an operator exactly once', () => {
+  const FACTS = {
+    programme: {
+      status: 'READY_FOR_APPROVAL', approved: false, live: false, paused: false,
+      secondAuthorised: false, firstAuthorised: true, completed: false,
+    },
+    proofStarted: true, preparationStopped: false, preparing: false,
+    humanBlockers: [], readinessReady: true, sends: 0, repliesAwaitingDecision: 0,
+    senderSendable: true, killSwitchOff: true, operatorRunEnabled: true,
+    remainingEntitlement: 0, hasNewerProgramme: false, repeatDismissed: false,
+  }
+
+  it('47 · an ordinary review is NEVER a task — Vida cannot approve for a client', async () => {
+    const { deriveLifecycle } = await import('./programme-lifecycle')
+    const v = deriveLifecycle({ ...FACTS } as never)
+    expect(v.state).toBe('approval')
+    expect(v.needsYou, 'waiting on a client was raised as an operator task').toBe(false)
+    expect(v.needsYouReason).toBeNull()
+    expect(v.mode).toBe('No action needed')
+  })
+
+  it('48 · a client who CANNOT approve is a task, and it names the control that fixes it', async () => {
+    const { deriveLifecycle } = await import('./programme-lifecycle')
+    const v = deriveLifecycle({ ...FACTS, reviewPackageStale: true } as never)
+    expect(v.state).toBe('approval_package_stale')
+    expect(v.needsYou).toBe(true)
+    expect(v.needsYouReason).toBe('review_package_stale')
+    expect(v.mode).toBe('Needs you')
+    // ⚠️ STILL THE APPROVAL STAGE. A stuck client has not moved backwards.
+    expect(v.stage).toBe('approval')
+  })
+
+  it('49 · an UNREADABLE drift check never invents a task', () => {
+    // 🛑 `false`, NOT `true`. Being wrong this way costs one un-raised task the client's own
+    // refusal surfaces anyway; being wrong the other way puts every healthy reviewing client
+    // into Needs you, which is how a Needs-you list stops being read.
+    const body = code(LIB('programme-lifecycle-facts.ts'))
+    expect(body).toContain('let reviewPackageStale = false')
+    expect(body).toContain("(await reviewDrift(p.id)).state === 'changed'")
+    expect(body).toContain('catch { ')
+    // And it is asked ONLY where a frozen package exists to have moved.
+    expect(body).toContain("if (p.status === 'READY_FOR_APPROVAL') {")
+  })
+
+  it('50 · the operator door re-freezes and grants nothing', () => {
+    const OP = code(readFileSync(join(__dirname, '../routes/programme.ts'), 'utf8'))
+    const i = OP.indexOf("programmeRouter.post('/:id/refreeze'")
+    expect(i, 'there is no door to the remedy').toBeGreaterThan(-1)
+    const door = OP.slice(i, OP.indexOf("programmeRouter.post('/:id/approve'"))
+    expect(door).toContain('refreezeForReview(req.params.id)')
+    expect(door).toContain("money: 'none")
+    for (const forbidden of ['approveProgramme', 'goLive', 'recordSecondPayment', 'authoriseSecond']) {
+      expect(door, `the re-freeze door calls ${forbidden}`).not.toContain(forbidden)
+    }
+  })
+
+  it('51 · Vida offers the control on the stuck state, and NO approval control anywhere', () => {
+    const COPY = readFileSync(join(__dirname, '../../../admin/src/lib/vida-lifecycle-copy.ts'), 'utf8')
+    const stale = COPY.slice(COPY.indexOf("case 'approval_package_stale':"),
+                             COPY.indexOf("case 'approval':\n    case 'approval_awaiting_second_payment':"))
+    expect(stale).toContain("key: 'refreeze_package'")
+    // 🛑 VIDA STILL CANNOT APPROVE. The client's approval is consent to email real strangers on
+    // their behalf; an operator button here would make that consent ours to give.
+    const ordinary = COPY.slice(COPY.indexOf("case 'approval':\n    case 'approval_awaiting_second_payment':"))
+      .slice(0, 2600)
+    expect(ordinary).toContain('actions: [],')
+    for (const banned of ["key: 'approve'", 'approveProgramme', 'approve_for_client']) {
+      expect(COPY, `Vida offers ${banned}`).not.toContain(banned)
+    }
+  })
+
+  it('52 · the re-freeze is NOT inside the six-action lifecycle helper', () => {
+    const VIDA = readFileSync(join(__dirname, '../../../admin/src/app/vida/page.tsx'), 'utf8')
+    // ⚠️ THE REPO'S OWN RULE, and the first cut of this change broke it: `lifecycle()` carries
+    // the six approved DRAFT→LIVE moves and a guard holds it at exactly six so a seventh cannot
+    // be slipped in beside them. A re-freeze moves no status and grants no authority, so it
+    // gets its own function exactly as `pauseProgramme` does.
+    const ladder = [...VIDA.matchAll(/lifecycle\('([^']+)'/g)].map(m => m[1])
+    expect(new Set(ladder)).toEqual(new Set([
+      'recommend', 'await-first-payment', 'authorise/first',
+      'ready-for-approval', 'authorise/second', 'go-live',
+    ]))
+    expect(VIDA).toContain('const refreezePackage = useCallback')
+    expect(VIDA).toContain("case 'refreeze_package': return void refreezePackage()")
+    expect(VIDA).toContain('NOTHING is approved, charged or sent.')
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// ⑤B MILLA CAN ACTUALLY OPEN THE REST OF THE SET
+// ═══════════════════════════════════════════════════════════════════════════════════════
+describe('🛑 ⑤B the "view all" is real', () => {
+  const REVIEW = readFileSync(join(__dirname, '../../../portal/src/components/milla/ProgrammeReview.tsx'), 'utf8')
+
+  it('53 · the screen fetches by offset and re-reads on every page change', () => {
+    expect(REVIEW).toContain('/my/programme/review?offset=${offset}')
+    expect(REVIEW).toContain('}, [token, offset])')
+    // 🛑 NOTHING IS RANKED OR ACCUMULATED LOCALLY. Ordering a page in the browser puts the same
+    // prospect on two pages and another on none.
+    expect(REVIEW).not.toContain('.sort(')
+    expect(REVIEW).not.toContain('[...prospects,')
+  })
+
+  it('54 · the page size is the SERVER\'s, never a constant chosen here', () => {
+    expect(REVIEW).toContain('const pageSize = d.page_size')
+    expect(REVIEW).not.toMatch(/const PAGE(_SIZE)? = \d+/)
+  })
+
+  it('55 · both controls exist and say what they do', () => {
+    expect(REVIEW).toContain("data-testid=\"review-next\"")
+    expect(REVIEW).toContain("data-testid=\"review-prev\"")
+    expect(REVIEW).toContain('Show the next ')
+    // ⛓️ THE OLD SENTENCE — "showing the top 50" of a total that could read 250, with nothing
+    // behind it — is gone from the RENDERED text.
+    //
+    // ⚠️ SCANNED WITH COMMENTS STRIPPED, and that is not a loosening. Both files that record
+    // WHY the sentence was removed quote it, so a raw scan fails on its own explanation — the
+    // exact defect that has bitten three guards in this repo. What must not exist is the
+    // sentence in the JSX.
+    expect(code(REVIEW), 'the fake view-all sentence is still on screen').not.toContain('showing the top ')
+  })
+
+  it('56 · a package that lost rows says so rather than quietly shrinking', () => {
+    expect(REVIEW).toContain('d.missing')
+    expect(REVIEW).toContain('still part of what you’d be approving')
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
 // ⑨ NO STAGE GRANTS THE NEXT ONE'S AUTHORITY
 // ═══════════════════════════════════════════════════════════════════════════════════════
 describe('🛑 ⑨ the ladder holds — each rung grants only itself', () => {

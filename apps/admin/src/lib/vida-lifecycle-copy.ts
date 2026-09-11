@@ -27,7 +27,7 @@
 export type LifecycleState =
   | 'signup' | 'proof' | 'recommendation'
   | 'sourcing' | 'sourcing_exception'
-  | 'approval' | 'approval_awaiting_second_payment'
+  | 'approval' | 'approval_awaiting_second_payment' | 'approval_package_stale'
   | 'live_ready_to_make_live' | 'live_ready_to_run'
   | 'review' | 'review_reply' | 'review_sender'
   | 'completion' | 'completion_repeat'
@@ -53,6 +53,10 @@ export type PanelAction = {
   key: 'try_again' | 'make_live' | 'run' | 'handle_reply' | 'book_call' | 'reconnect_mailbox' | 'pause_programme' | 'prepare_next' | 'not_yet'
     // ⚑ 10 Sep (C07) — the calibration hand-off's two controls.
     | 'contact_recalibrate' | 'restart_proof_calibrated'
+    // ⚑ 11 Sep (DAY 3) — the ONE approval-stage control, and it exists because the rule it
+    // serves had no remedy: a package that moved under a reviewing client made every approval
+    // press refuse, with nothing in the product able to issue a new version.
+    | 'refreeze_package'
   label: string
   kind: 'primary' | 'secondary'
   needsCeiling?: boolean
@@ -487,6 +491,39 @@ export function lifecycleCopy(i: LifecycleCopyInput): LifecycleCopy {
         actions: [{ key: 'try_again', label: 'Try again', kind: 'primary' }],
       }
     }
+
+    // ── ⑥B APPROVAL, BUT THE CLIENT CANNOT APPROVE ───────────────────────────────────
+    //
+    // 🛑 WAITING ON A CLIENT IS NEVER A TASK; A CLIENT WHO IS STUCK IS. The prepared work moved
+    // after it was frozen, so every press in Milla is refused — correctly, because what they
+    // are reading is not what would run. Without this the panel said "No action needed" while
+    // a paying client sat on a dead button.
+    //
+    // ⚠️ THE CONTROL ISSUES A NEW VERSION; IT DOES NOT APPROVE ANYTHING. Vida still cannot
+    // approve for a client, and re-freezing changes no authority, no money and no work.
+    case 'approval_package_stale':
+      return {
+        subtitle: 'Awaiting client approval · the package has changed',
+        messages: [
+          `${i.clientName} cannot approve this programme right now. The prepared work has changed since it was frozen for them, so what they are reading is not what would run — and every approval press is being refused.`,
+          `Re-freeze it to publish the change as a new version. They are then asked to approve the updated package. Nothing is approved, charged or sent by doing this.`,
+        ],
+        chips: ['What changed?', 'What does the client see?'],
+        cards: [
+          { kind: 'fact', label: 'Stage', value: 'Approval', caption: 'With the client in Milla' },
+          { kind: 'fact', tone: 'exception', label: 'Why they are stuck',
+            value: 'The package moved after it was frozen',
+            caption: 'Approval is refused until a new version is published' },
+          { kind: 'ticks', label: 'Prepared', ticks: [
+            { label: 'Campaign ready', done: true }, { label: 'Sequence ready', done: true },
+            { label: 'Sender ready', done: i.senderSendable }, { label: 'Schedule ready', done: true },
+            { label: 'Review snapshot matches', done: false },
+          ] },
+          { kind: 'fact', label: 'Next', value: 'Re-freeze, then the client approves the new version.' },
+          vidaCard('Waiting on you'),
+        ],
+        actions: [{ key: 'refreeze_package', label: 'Re-freeze for the client', kind: 'primary' }],
+      }
 
     // ── ⑥ APPROVAL — frozen, with the client, and Vida cannot approve for them. ───────
     case 'approval':

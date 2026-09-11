@@ -66,8 +66,20 @@ describe('① the client is shown the FROZEN work, never a live re-resolution', 
 
   it('the screen renders the frozen messages and says they are frozen', () => {
     expect(APPROVAL).toContain('frozen.messages.map')
-    expect(APPROVAL).toContain('This is the version prepared for you on')
+    // ⛓️ 11 Sep (DAY 3) — THE SENTENCE GAINED A VERSION NUMBER and is now assembled from two
+    // parts, so the old single-string scan broke on a change that STRENGTHENED it. The promise
+    // it guards — *this is a fixed version, and a change means we ask again* — is asserted as
+    // its parts. A client cannot say "I approved dc41f8…", so the version they were shown has
+    // to be a number they can quote back.
+    expect(APPROVAL).toContain('prepared for you on')
+    expect(APPROVAL).toContain('version ${frozen.version_number}')
     expect(APPROVAL).toContain('If anything changes, we will ask you again.')
+    // 🛑 AND THE REST OF THE PACKAGE IS ON THE SCREEN. A client was being asked to approve
+    // outreach without being told which address it comes from, or against which target.
+    expect(APPROVAL).toContain('frozen.sender_email')
+    expect(APPROVAL).toContain('frozen.meeting_target')
+    // Founder-locked: the caveat travels WITH the number.
+    expect(APPROVAL).toContain('a target, not a guarantee')
   })
 
   it('🛑 the screen never re-resolves or re-counts anything of its own', () => {

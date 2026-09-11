@@ -729,6 +729,37 @@ export default function VidaConsolePage() {
     } finally { setLcBusy(null) }
   }, [prog, selected, clients, loadProgramme])
 
+  // ── ⚑ 11 Sep (DAY 3) — RE-FREEZE, AND IT IS DELIBERATELY *NOT* INSIDE `lifecycle()` ────
+  //
+  // 🛑 THE SAME REASON `pauseProgramme` IS NOT. That helper carries the six approved
+  // DRAFT→LIVE moves and their money-bearing confirmations, and a guard holds it at exactly
+  // six precisely so a seventh cannot be slipped in beside them. A re-freeze is not a ladder
+  // transition: it moves no status, grants no authority and touches no money. It publishes what
+  // preparation has ALREADY produced as a new version so a stuck client can be asked again.
+  //
+  // ⚠️ THE CONFIRMATION SAYS WHAT IT DOES NOT DO, because "re-freeze" is not a phrase an
+  // operator can price. Nothing is approved, charged or sent, and a previous approval — if the
+  // programme somehow has one — is untouched, which the server enforces rather than promises.
+  const refreezePackage = useCallback(async () => {
+    const id = prog?.programme?.id
+    if (!id) return
+    const who = (clients ?? []).find(c => c.id === selected)?.company_name ?? 'this client'
+    if (!confirm(`Publish a new version of ${who}'s review package?\n\nThe prepared work has changed since it was frozen, so they cannot approve what they are looking at. This publishes the current work as a NEW VERSION and asks them again.\n\nNOTHING is approved, charged or sent.`)) return
+    setLcBusy('refreeze'); setLcMsg(null)
+    try {
+      const j = await fetch(`/api/proxy/programmes/${encodeURIComponent(id)}/refreeze`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}',
+      }).then(r => r.json())
+      if (!j?.success) throw new Error(j?.message || j?.error || 'Nothing was re-frozen.')
+      // ⚠️ THE SERVER'S OWN SENTENCE, never a guess. It is the only thing that knows whether a
+      // new version was written or the package had not actually changed.
+      setLcMsg(String(j?.data?.headline ?? 'The review package was re-frozen.'))
+      if (selected) await loadProgramme(selected)
+    } catch (e) {
+      setLcMsg(e instanceof Error ? e.message : 'Nothing was re-frozen.')
+    } finally { setLcBusy(null) }
+  }, [prog, selected, clients, loadProgramme])
+
   const lifecycle = useCallback(async (action: string, label: string) => {
     const client = (clients ?? []).find(c => c.id === selected)
     const name = client?.company_name ?? 'this client'
@@ -2198,9 +2229,15 @@ export default function VidaConsolePage() {
       case 'restart_proof_calibrated':
         if (!selected) return
         return void grantCalibratedRestart(selected)
+      // ── ⚑ 11 Sep (DAY 3) — THE ONE APPROVAL-STAGE CONTROL ────────────────────────────
+      //
+      // 🛑 IT IS THE REMEDY FOR A RULE THAT HAD NONE. A package that moved under a reviewing
+      // client made every approval press refuse and nothing could issue a new version, so the
+      // client sat on a dead button. This publishes one — and approves nothing.
+      case 'refreeze_package': return void refreezePackage()
       default: return
     }
-  }, [lifecycle, runOnceWith, pauseProgramme, selected, resolveCalibration, grantCalibratedRestart])
+  }, [lifecycle, runOnceWith, pauseProgramme, refreezePackage, selected, resolveCalibration, grantCalibratedRestart])
 
   return (
     <div className="flex h-full min-h-0">

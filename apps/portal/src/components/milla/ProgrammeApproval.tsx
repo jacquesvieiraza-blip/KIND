@@ -50,10 +50,30 @@ export type FrozenWork = {
    * server refuses a mismatch (`stale_version`); this is the half that tells it which one.
    */
   version: string | null
+  /**
+   * ⚑ 11 Sep (DAY 3) — the version a PERSON can quote. The hash is what the approval is pinned
+   * to and nobody can say "I approved dc41f8…" out loud; this is what the sentence uses.
+   */
+  version_number?: number | null
   at: string | null
   messages: { step: number; subject: string; body: string; wait_days: number }[]
   prospects: number
   send_schedule: unknown
+  /**
+   * ⚑ 11 Sep (DAY 3) — the TARGET, read from the freeze and not from the live row.
+   *
+   * 🛑 A TARGET, NEVER A GUARANTEE (founder-locked). It is inside the digest from v2, so a
+   * change to it invalidates the package rather than quietly re-describing the deal.
+   */
+  meeting_target?: number | null
+  /**
+   * ⚑ 11 Sep (DAY 3) — which address these would come FROM.
+   *
+   * ⚠️ THE CLIENT'S OWN FROM-LINE, not our plumbing. It is what every recipient sees, so it is
+   * part of what they are approving. The inbox id, the provider and the credentials stay on
+   * the server and are not in this payload at all.
+   */
+  sender_email?: string | null
 }
 
 export type ApprovalPayload = {
@@ -227,9 +247,35 @@ export default function ProgrammeApproval({
 
       {/* 🛑 THE FROZEN STATEMENT. The client must know that what they read is what they get —
           that is the difference between an approval and a snapshot of an opinion. */}
+      {/* ── ⚑ 11 Sep (DAY 3) — THE REST OF THE PACKAGE, IN WORDS ──────────────────────
+          🛑 THE SENDER AND THE TARGET WERE NOT ON THIS SCREEN. A client was asked to approve
+          outreach without being told which address it would come from, and against a target
+          they could only see on a different screen where it could have changed since. Both are
+          read from the FREEZE, so what is shown is what is pinned. */}
+      {(frozen?.sender_email || frozen?.meeting_target != null) && (
+        <div className="border border-[#ece5fb] bg-[#faf8ff] rounded-xl px-3.5 py-2.5 mb-3 grid gap-1">
+          {frozen?.sender_email && (
+            <p className="text-[12.5px] text-[#4c4368]">
+              <span className="text-[#9b8ec4]">Sent from</span>{' '}
+              <b className="font-semibold">{frozen.sender_email}</b>
+            </p>
+          )}
+          {frozen?.meeting_target != null && (
+            <p className="text-[12.5px] text-[#4c4368]">
+              <span className="text-[#9b8ec4]">Targeting</span>{' '}
+              <b className="font-semibold">{frozen.meeting_target} meeting{frozen.meeting_target === 1 ? '' : 's'}</b>
+              {/* 🛑 TARGET, NEVER GUARANTEE — founder-locked, and it travels WITH the number so
+                  a screen cannot render the figure and leave the caveat behind. */}
+              <span className="text-[#9b8ec4]"> — a target, not a guarantee</span>
+            </p>
+          )}
+        </div>
+      )}
+
       {frozen?.at && (
         <p className="text-[12px] text-[#9b8ec4] mb-3">
-          This is the version prepared for you on{' '}
+          This is{frozen.version_number ? ` version ${frozen.version_number}, ` : ' the version '}
+          prepared for you on{' '}
           {new Date(frozen.at).toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' })}.
           If anything changes, we will ask you again.
         </p>

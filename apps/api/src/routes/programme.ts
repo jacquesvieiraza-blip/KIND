@@ -235,6 +235,54 @@ programmeRouter.post('/:id/ready-for-approval', guard(async (req: Request, res: 
   })
 }))
 
+/**
+ * ⚑ 11 Sep (DAY 3) — RE-FREEZE THE REVIEW PACKAGE, WHICH MAKES A NEW VERSION.
+ *
+ * 🛑 THE DEAD END THIS OPENS. The versioning rule was fully enforced and had no remedy: once
+ * anything approval-relevant moved under a reviewing client, `reviewDrift` refused every
+ * approval — correctly, because what they were looking at was not what would run — and NOTHING
+ * in the product could re-freeze it. The client pressed, was told to take another look, took
+ * another look, and pressed again. Forever.
+ *
+ * ⚠️ IT AUTHORISES NOTHING AND CHANGES NO WORK. It re-reads what preparation has already
+ * produced, re-proves every readiness requirement, and stamps a NEW version so the client is
+ * asked again. It never approves, never grants P2, never makes live and never sends — and it
+ * cannot touch an APPROVED programme at all, because re-freezing approved work IS the in-place
+ * mutation the founder's rule forbids.
+ *
+ * ⚠️ AN UNCHANGED PACKAGE WRITES NOTHING, so pressing it on a healthy programme is a no-op
+ * rather than a version bump that invalidates the screen a client has open.
+ */
+programmeRouter.post('/:id/refreeze', guard(async (req: Request, res: Response) => {
+  const { refreezeForReview } = await import('../lib/programme')
+  const r = await refreezeForReview(req.params.id)
+  if (!r.ok) {
+    await auditProgramme(req, 'programme_lifecycle', req.params.id, {
+      refreeze: 'refused', reason: r.reason, by: pressedBy(req),
+      money: 'none — re-freezing changes no authority and no money',
+    })
+    res.status(r.code === 'not_found' ? 404 : r.code === 'unreadable' ? 503 : 409)
+      .json({ success: false, error: r.code, message: r.reason })
+    return
+  }
+  await auditProgramme(req, 'programme_lifecycle', req.params.id, {
+    refreeze: r.changed ? 'new version' : 'unchanged — nothing written',
+    version: r.version, by: pressedBy(req),
+    money: 'none — re-freezing changes no authority and no money',
+    authorised: 'nothing — the client is asked to approve the new version',
+  })
+  res.json({
+    success: true,
+    data: {
+      changed: r.changed,
+      version: r.version,
+      headline: r.changed
+        ? `This is now version ${r.version}. The client is being asked to approve the updated package — nothing was approved, charged or sent.`
+        : 'Nothing had changed, so nothing was re-frozen. The client is still looking at the current version.',
+    },
+  })
+}))
+
 /** ONE programme-level approval (founder lock 5) — never thousands of paid lead approvals. */
 programmeRouter.post('/:id/approve', guard(async (req: Request, res: Response) => {
   const r = await approveProgramme(req.params.id)

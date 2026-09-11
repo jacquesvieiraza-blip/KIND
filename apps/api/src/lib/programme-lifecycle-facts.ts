@@ -490,6 +490,24 @@ export async function lifecycleDetailFor(clientId: string): Promise<LifecycleDet
       ?? `${counts.stillToCheck} prospect${counts.stillToCheck === 1 ? '' : 's'} still need checking. Nothing was settled and no entitlement was used.`
   }
 
+  // ── ⚑ 11 Sep (DAY 3) — HAS THE PACKAGE MOVED UNDER A REVIEWING CLIENT? ───────────────
+  //
+  // 🛑 ASKED ONLY AT `READY_FOR_APPROVAL`, and that is the whole point. It is a several-table
+  // read, and every other status either has no frozen package or has already consumed it —
+  // running it everywhere would spend the cost on a question nobody is asking.
+  //
+  // ⚠️ AN UNREADABLE ANSWER IS `false`, NOT `true`. This decides whether to INTERRUPT an
+  // operator, and being wrong in this direction costs one un-raised task that the client's own
+  // refusal will surface anyway; being wrong the other way puts every healthy reviewing client
+  // into Needs you, which is how a Needs-you list stops being read.
+  let reviewPackageStale = false
+  if (p.status === 'READY_FOR_APPROVAL') {
+    try {
+      const { reviewDrift } = await import('./preparation-snapshot')
+      reviewPackageStale = (await reviewDrift(p.id)).state === 'changed'
+    } catch { /* an unreadable drift check never invents a task */ }
+  }
+
   const entitlementTotal = p.sourcing_ceiling ?? 0
   const entitlementUsed = p.sourced_used ?? 0
   const entitlementRemaining = Math.max(0, entitlementTotal - entitlementUsed - (p.sourced_reserved ?? 0))
@@ -507,6 +525,7 @@ export async function lifecycleDetailFor(clientId: string): Promise<LifecycleDet
     senderSendable, killSwitchOff, operatorRunEnabled,
     remainingEntitlement: entitlementRemaining,
     hasNewerProgramme,
+    reviewPackageStale,
     // ⚠️ NOT PERSISTED YET, SO ALWAYS FALSE. "Not yet" is a dismissal we have nowhere to store;
     // rather than pretend, the repeat question keeps asking and the panel says nothing was
     // started. Inventing a column for it is a product decision, not a UI one.

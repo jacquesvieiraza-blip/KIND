@@ -51,7 +51,7 @@ export const STAGE_LABEL: Record<LifecycleStage, string> = {
 export type LifecycleState =
   | 'signup' | 'proof' | 'recommendation'
   | 'sourcing' | 'sourcing_exception'
-  | 'approval' | 'approval_awaiting_second_payment'
+  | 'approval' | 'approval_awaiting_second_payment' | 'approval_package_stale'
   | 'live_ready_to_make_live' | 'live_ready_to_run'
   | 'review' | 'review_reply' | 'review_sender'
   | 'completion' | 'completion_repeat'
@@ -72,6 +72,20 @@ export type NeedsYouReason =
   | 'sender_not_sendable'
   | 'repeat_decision'
   | 'human_blocker'
+  /**
+   * ⚑ 11 Sep (DAY 3) — THE CLIENT PHYSICALLY CANNOT APPROVE, AND ONLY A PERSON CAN CLEAR IT.
+   *
+   * 🛑 WHY THIS IS AN EXCEPTION WHEN ORDINARY WAITING IS NOT. `READY_FOR_APPROVAL` is
+   * deliberately never a task: the client is acting in Milla and an unopened review is not an
+   * operator failure. But if the prepared work has MOVED since it was frozen, every approval
+   * press is refused — correctly, because what they are looking at is not what would run — and
+   * nothing in the product would say so. The client presses, is told to take another look,
+   * takes another look, and presses again. Forever.
+   *
+   * ⚠️ IT NAMES A CONTROL THAT EXISTS. `refreezeForReview` writes a new version and the client
+   * is asked again; a Needs-you with no button is just an alarm.
+   */
+  | 'review_package_stale'
   /**
    * ⚑ 10 Sep (C07) — THE ONE PROOF-STAGE TASK, and it is a REASON, not a stage.
    *
@@ -164,6 +178,15 @@ export type LifecycleFacts = {
   hasNewerProgramme: boolean
   /** The operator pressed "Not yet". */
   repeatDismissed: boolean
+  /**
+   * ⚑ 11 Sep (DAY 3) — the frozen review package no longer matches the prepared work.
+   *
+   * ⚠️ `false` IS THE SAFE DEFAULT AND IT IS NOT A GUESS. It means "we did not find a
+   * mismatch", which leaves the programme in ordinary waiting; the only cost of being wrong is
+   * that an operator is not interrupted about a state the client's own refusal will surface.
+   * Defaulting the OTHER way would put every healthy reviewing client into Needs you.
+   */
+  reviewPackageStale?: boolean
 }
 
 export type LifecycleVerdict = {
@@ -193,6 +216,9 @@ const MODE_OF: Record<LifecycleState, VidaMode> = {
   sourcing_exception: 'Needs you',
   approval: 'No action needed',
   approval_awaiting_second_payment: 'No action needed',
+  // 🛑 THE ONE APPROVAL-STAGE TASK. Waiting on a client is never one; a client who CANNOT
+  // approve is, because only an operator can clear it.
+  approval_package_stale: 'Needs you',
   live_ready_to_make_live: 'Needs you',
   live_ready_to_run: 'Needs you',
   review: 'Watching',
@@ -334,6 +360,15 @@ export function deriveLifecycle(f: LifecycleFacts): LifecycleVerdict {
     // 🛑 NEVER A TASK. The client is acting in Milla; Vida cannot approve for them, and an
     // unopened review is not an operator failure. (The reminder is post-launch.)
     if (p.paused) return verdict('blocked', 'approval', null)
+    // ── ⚑ 11 Sep (DAY 3) — EXCEPT WHEN THEY CANNOT APPROVE AT ALL ────────────────────
+    //
+    // 🛑 WAITING ON A CLIENT IS NOT A TASK; A CLIENT WHO IS STUCK IS. If the prepared work has
+    // moved since it was frozen, every press is refused and nothing anywhere says so — and the
+    // remedy (a re-freeze, which makes a new version and asks them again) is an operator act.
+    // Leaving this as "No action needed" is how a paying client sits on a dead button.
+    if (f.reviewPackageStale === true) {
+      return verdict('approval_package_stale', 'approval', 'review_package_stale')
+    }
     return verdict('approval', 'approval', null)
   }
 

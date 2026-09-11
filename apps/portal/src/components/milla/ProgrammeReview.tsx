@@ -58,6 +58,20 @@ export type ReviewPayload = {
   total: number
   /** false ⟹ the server stopped counting at its scan budget: the total is a floor, not a count. */
   complete?: boolean
+  /**
+   * ⚑ 11 Sep (DAY 3) — WHERE THIS PAGE STARTS, AND HOW BIG A PAGE IS.
+   *
+   * 🛑 THE DEFECT THESE CLOSE. This screen said *"showing the top 50"* of a total that could
+   * read 250, and there was no parameter anywhere in the product that could fetch the other
+   * 200. A client was asked to approve two hundred and fifty people having seen fifty. A count
+   * you cannot open is worse than no count.
+   */
+  offset?: number
+  page_size?: number
+  /** True when these cards ARE the frozen package rather than a live eligibility read. */
+  from_freeze?: boolean
+  /** Frozen ids with no readable prospect behind them. Reported, never silently dropped. */
+  missing?: number
   canApprove: boolean
 }
 
@@ -71,11 +85,20 @@ export default function ProgrammeReview({ token }: { token: () => Promise<string
   const [loadError, setLoadError] = useState<string | null>(null)
   const [approving, setApproving] = useState(false)
   const [approveError, setApproveError] = useState<string | null>(null)
+  /**
+   * Which page of the frozen package is on screen.
+   *
+   * ⚠️ IT IS A CURSOR INTO THE SERVER'S SET, NOT A SECOND COPY OF IT. Every page is fetched;
+   * nothing is accumulated in the browser and nothing is ranked here, because ordering a page
+   * locally would put the same prospect on two pages and none on a third.
+   */
+  const [offset, setOffset] = useState(0)
 
   const load = useCallback(async () => {
     setLoadError(null)
     try {
-      const r = await api.get<{ data: ReviewPayload }>('/my/programme/review', await token())
+      const r = await api.get<{ data: ReviewPayload }>(
+        `/my/programme/review?offset=${offset}`, await token())
       setData(r.data)
     } catch (e) {
       // ⚠️ A FAILED READ IS NOT AN EMPTY REVIEW SET, and the difference matters more here than
@@ -84,7 +107,7 @@ export default function ProgrammeReview({ token }: { token: () => Promise<string
       setData(null)
       setLoadError(e instanceof Error ? e.message : 'We couldn’t load your programme review. Nothing has changed.')
     }
-  }, [token])
+  }, [token, offset])
 
   useEffect(() => { void load() }, [load])
 
@@ -127,6 +150,13 @@ export default function ProgrammeReview({ token }: { token: () => Promise<string
   if (!d.programme) return null
 
   const approved = d.programme.status === 'APPROVED'
+  // ⚠️ THE PAGE SIZE IS THE SERVER'S. A local constant would be a second definition, and an
+  // offset computed from the wrong one lands between pages.
+  const pageSize = d.page_size ?? d.prospects.length ?? 0
+  const shown = {
+    from: d.prospects.length === 0 ? 0 : (d.offset ?? 0) + 1,
+    to: (d.offset ?? 0) + d.prospects.length,
+  }
 
   // ── 🛑 READY FOR APPROVAL WITH AN EMPTY DESK — FAIL VISIBLY ────────────────────────
   //
@@ -163,8 +193,21 @@ export default function ProgrammeReview({ token }: { token: () => Promise<string
               viewer's browser, so the locale is pinned. */}
           {d.total.toLocaleString('en-GB')}{d.complete === false ? '+' : ''} prospect{d.total === 1 ? '' : 's'} selected
           {d.programme.meeting_target ? ` · ${d.programme.meeting_target} meeting target` : ''}
-          {d.prospects.length < d.total ? ` · showing the top ${d.prospects.length}` : ''}
+          {/* ⛓️ 11 Sep (DAY 3) — THIS SAID "showing the top 50" AND THERE WAS NO OTHER PAGE.
+              It now says which slice of the set is on screen, and the controls below actually
+              fetch the rest. */}
+          {d.total > d.prospects.length
+            ? ` · showing ${(shown.from).toLocaleString('en-GB')}–${shown.to.toLocaleString('en-GB')}`
+            : ''}
         </div>
+        {/* 🛑 A PACKAGE THAT LOST ROWS SAYS SO. Silently showing fewer people than the package
+            holds is the screen disagreeing with the thing being approved. */}
+        {!!d.missing && (
+          <div className="text-[12.5px] text-amber-800 mt-1.5">
+            {d.missing.toLocaleString('en-GB')} of these prospects can’t be displayed right now.
+            They are still part of what you’d be approving. K.I.N.D has been notified.
+          </div>
+        )}
         {!approved && (
           <div className="text-[12.5px] text-[#6b6288] mt-1.5">
             One approval covers the whole programme. There is nothing to pay and nothing to approve individually.
@@ -226,6 +269,36 @@ export default function ProgrammeReview({ token }: { token: () => Promise<string
           </div>
         ))}
       </div>
+
+      {/* ── ⚑ 11 Sep (DAY 3) — THE REST OF THE SET, AND IT IS REAL ─────────────────────
+          🛑 NOT A "VIEW ALL" THAT OPENS NOTHING. Each control re-fetches from the server at a
+          new offset, so every prospect in the frozen package is reachable. The page size is
+          the server's, never a number chosen here — two definitions of a page is how an offset
+          starts landing between them. */}
+      {(offset > 0 || d.total > shown.to) && (
+        <div className="flex items-center justify-between gap-3 text-[12.5px] text-[#6b6288]">
+          <button
+            data-testid="review-prev"
+            onClick={() => setOffset(Math.max(0, offset - pageSize))}
+            disabled={offset === 0}
+            className="underline font-semibold disabled:opacity-40 disabled:cursor-not-allowed disabled:no-underline"
+          >
+            Previous
+          </button>
+          <span>
+            {shown.from.toLocaleString('en-GB')}–{shown.to.toLocaleString('en-GB')} of{' '}
+            {d.total.toLocaleString('en-GB')}{d.complete === false ? '+' : ''}
+          </span>
+          <button
+            data-testid="review-next"
+            onClick={() => setOffset(offset + pageSize)}
+            disabled={shown.to >= d.total}
+            className="underline font-semibold disabled:opacity-40 disabled:cursor-not-allowed disabled:no-underline"
+          >
+            Show the next {Math.min(pageSize, d.total - shown.to).toLocaleString('en-GB')}
+          </button>
+        </div>
+      )}
     </div>
   )
 }

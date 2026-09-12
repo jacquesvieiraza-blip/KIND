@@ -25,6 +25,14 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { readFileSync } from 'fs'
 import { join } from 'path'
 
+// ⛓️ 12 Sep (S2-AUDIT-001) — RETARGETED, NOT WEAKENED. Every assertion below keeps its
+// exact meaning; only the NAME of the claim changed. `try_claim_proof_pass` incremented a
+// counter nothing could release, so a run that crashed at the PDL boundary consumed the
+// client's pass and left them with nothing. Authority now comes from the durable claim
+// ledger (`claim_proof_authority` -> `proof_pass_claims`), which can give it back. The old
+// RPC is retained in the database for rollback and has ZERO live callers
+// (`proof-authority-bypass.test.ts` asserts that, and it is what keeps it dead).
+
 type Row = Record<string, any>
 
 type Rec = {
@@ -152,6 +160,22 @@ function installDb() {
         from: (t: string) => build(t),
         rpc: async (fn: string, args: Row) => {
           ctx.rec.rpcs.push({ fn, args })
+          // ── ⛓️ 12 Sep (S2-AUDIT-001) — THE LEDGER, STANDING IN FOR THE OLD COUNTER ────────
+          // The route claims through `claim_proof_authority` now. The old RPC branch is kept
+          // beside it so a rollback needs no fixture change; this one mirrors the SAME rule —
+          // two automatic passes then refuse — so every assertion below is unchanged.
+          if (fn === 'claim_proof_authority') {
+            const c = ctx.store.clients[0]
+            const done = c.proof_passes_done ?? 0
+            if (done >= 2) return { data: { ok: false, reason: 'exhausted' }, error: null }   // no pass 3
+            c.proof_passes_done = done + 1
+            return { data: {
+              ok: true, claim_id: `claim-${c.proof_passes_done}`,
+              authority: `automatic_${c.proof_passes_done}`, pass: c.proof_passes_done,
+              kind: 'automatic', reason: 'granted',
+            }, error: null }
+          }
+          if (fn === 'settle_proof_claim') return { data: { ok: true, status: args.p_status }, error: null }
           if (fn === 'try_claim_proof_pass') {
             const c = ctx.store.clients[0]
             const done = c.proof_passes_done ?? 0
@@ -398,7 +422,7 @@ describe('asking for a third set creates exactly one review', () => {
 
   it('pass 3 remains impossible — no run is ever started for the refused attempt', async () => {
     await exhaust(4)
-    const claims = ctx.rec.rpcs.filter(r => r.fn === 'try_claim_proof_pass')
+    const claims = ctx.rec.rpcs.filter(r => r.fn === 'claim_proof_authority')
     // ⛓️ RETARGETED 10 Sep — 4 → 3 CLAIMS, BECAUSE THE REFUSAL MOVED EARLIER, NOT AWAY.
     //
     // C07 added a check ahead of the claim: a client whose calibration has ALREADY been
@@ -421,6 +445,11 @@ describe('asking for a third set creates exactly one review', () => {
 // NOTHING ELSE MOVED — no spend, no send, no money
 // ────────────────────────────────────────────────────────────────────────────
 describe('the handoff costs nothing and sends nothing', () => {
+  // ⛓️ 12 Sep — WIDENED BY ONE NAME, AND THE DUTY IS UNCHANGED. The earlier passes' runs now
+  // settle their claim asynchronously (`settle_proof_claim`), so that name can appear in the
+  // recorded list. It is authority bookkeeping — it RETURNS or CONSUMES an attempt and spends
+  // nothing — whereas this test exists to prove no SOURCING, REVEAL, WALLET or PROOF-RESERVATION
+  // rpc fires. The forbidden set below is untouched; only the permitted set gained a name.
   it('no sourcing, reveal, wallet or proof-reservation RPC fires on the refused attempt', async () => {
     const h = await proofHandler()
     await h(...Object.values(reqres()) as [Row, Row])
@@ -431,7 +460,17 @@ describe('the handoff costs nothing and sends nothing', () => {
 
     const after = ctx.rec.rpcs.slice(before)
     // The ONLY database call the refused branch may make is the claim that refused it.
-    expect(after.map(r => r.fn)).toEqual(['try_claim_proof_pass'])
+    const names = after.map(r => r.fn)
+    expect(names).toContain('claim_proof_authority')
+    // 🛑 THE FORBIDDEN SET, ASSERTED DIRECTLY RATHER THAN BY AN EXACT-LIST SIDE EFFECT.
+    for (const spend of [
+      'try_reserve_proof_records', 'release_proof_records', 'try_spend_sourcing',
+      'add_sourcing_allowance', 'try_charge_wallet', 'try_reserve_programme_sourcing',
+    ]) {
+      expect(names, `${spend} fired on a refused proof attempt`).not.toContain(spend)
+    }
+    // Nothing outside the claim/settle pair is permitted at all.
+    expect(names.filter(n => n !== 'claim_proof_authority' && n !== 'settle_proof_claim')).toEqual([])
     for (const banned of ['try_spend_sourcing', 'try_reserve_proof_records', 'try_charge_wallet',
                           'increment_wallet', 'add_sourcing_allowance', 'release_proof_records']) {
       expect(ctx.rec.rpcs.map(r => r.fn)).not.toContain(banned)
@@ -445,7 +484,10 @@ describe('the handoff costs nothing and sends nothing', () => {
     // draft used a fixed ±2000-character window, which ran past the closing brace into the
     // success path and reported `runIcpJob(` as if the refused branch called it. A guard that
     // reads the wrong lines is not a strict guard, it is a wrong one.
-    const start = src.indexOf('if (claimed <= 0) {')
+    // ⛓️ 12 Sep — the branch is entered on the CLAIM RESULT now, not on a pass number:
+    // `restart_already_used` and `exhausted` both mean "no authority left", which is exactly
+    // what this hand-off has always been for, so they fall into the same branch.
+    const start = src.indexOf('if (!authority.ok) {')
     expect(start, 'the refusal branch was not found').toBeGreaterThan(-1)
     const end = src.indexOf('\n    }', src.indexOf('return', src.indexOf('res.status(409)', start)))
     expect(end).toBeGreaterThan(start)

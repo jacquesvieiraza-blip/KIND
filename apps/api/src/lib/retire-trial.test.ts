@@ -168,7 +168,12 @@ describe('the client-facing trial copy is off the send path', () => {
       expect(executable, `the welcome email still claims "${promise}"`).not.toContain(promise)
     }
     // And it points the client at the first stage of the locked flow, not at a dashboard.
-    expect(executable, 'the welcome email no longer sends a new client to Milla').toContain('${MILLA}')
+    // ⛓️ 12 Sep (R120) — the body moved into `welcomeEmailHtml`, extracted so a RETRY can
+    // re-render it identically (Resend's idempotency needs the same key AND the same payload).
+    // The fact is unchanged and still asserted: the first thing a new client is sent to is Milla.
+    const html = API('./email.ts')
+    const fn = html.slice(html.indexOf('function welcomeEmailHtml('), html.indexOf('export const WELCOME_EMAIL_SUBJECT'))
+    expect(fn, 'the welcome email no longer sends a new client to Milla').toContain('${MILLA}')
   })
 
   it('the nurture template is marked NOT CALLED rather than left looking live', () => {

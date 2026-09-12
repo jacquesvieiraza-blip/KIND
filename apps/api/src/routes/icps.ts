@@ -33,6 +33,7 @@ import { toMemoryRecord, rememberAcquiredIdentities, type AcquisitionMemoryRecor
 import { assertIcpFullyOwned } from '../lib/icp-coverage'
 import { rethrowIfProviderBlocked, isPaidProviderBlocked } from '../lib/paid-provider-guard'
 import { deriveRunStatus, runOutcomeMessage, type RunStatus } from '../lib/run-outcome'
+import { terminalForRunStatus, type RunTerminal } from '../lib/proof-claim'
 import { authorityFor, ProgrammeAuthorityError } from '../lib/programme-authority'
 import { type ProgrammeRow } from '../lib/programme'
 import {
@@ -561,7 +562,23 @@ export async function runIcpJob(
      */
     proofKind?: 'automatic' | 'calibrated_restart'
   },
-): Promise<{ inserted: number; skipped: number; relaxed: string | null }> {
+  // ── 🛑 ⚑ 12 Sep (S2-AUDIT-001) — THE RUN NOW REPORTS ITS OWN TERMINAL CHARACTER ──────
+  //
+  // `terminal` is REQUIRED on the return type, and that is the point: a new exit from this
+  // function CANNOT COMPILE without stating whether the run legitimately completed or
+  // failed. The proof route settles the durable authority claim from this value, so a
+  // forgotten exit can no longer silently consume a client's pass.
+  //
+  // 🛑 WIRING SETTLEMENT TO EXCEPTIONS ALONE WOULD HAVE MISSED TWO REAL PATHS, and the
+  // founder named the first of them: the structural gate records `failed` WITH LEADS
+  // INSERTED and simply RETURNS — it does not throw, so the route's outer `.catch` never
+  // runs. `deriveRunStatus` likewise returns `failed` when `searchCompleted === false`,
+  // also without throwing. Both must return the pass.
+  //
+  // ⚠️ IT IS DERIVED FROM THE STATUS THAT WAS ACTUALLY RECORDED, never invented here:
+  // `terminalForRunStatus` is an exhaustive map over `RunStatus`, so the two can never
+  // disagree and a seventh status would fail to compile.
+): Promise<{ inserted: number; skipped: number; relaxed: string | null; terminal: RunTerminal }> {
   const proofMode = (opts?.proofPass ?? 0) > 0
   // BUILD-002 — the open programme batch for this run, if this is programme sourcing.
   // Settled once the provider returns, which is what releases unused reservation.
@@ -866,7 +883,8 @@ export async function runIcpJob(
     if (fundedVia(fundingRows ?? []) !== null) {
       console.error(`[icp] PROOF MODE REFUSED for client ${clientId} — the account is funded. Proof authority is for prospects only; nothing was sourced.`)
       await recordRunOutcome(icpId, clientId, 'quota_exhausted', effectiveCap, 0, 0)
-      return { inserted: 0, skipped: 0, relaxed: 'This account is already live — proof batches are only for new prospects.' }
+      // REFUSED BEFORE ANY PROVIDER CALL — the pass must come back (terminalForRunStatus).
+      return { inserted: 0, skipped: 0, relaxed: 'This account is already live — proof batches are only for new prospects.', terminal: terminalForRunStatus('quota_exhausted') }
     }
     console.log(`[icp] FREE PROOF run — pass ${opts!.proofPass} of 2, claimed by the proof route for prospect ${clientId}.`)
   }
@@ -1130,7 +1148,9 @@ export async function runIcpJob(
         // reveal credits" is about a client's PDL wallet, which a house run neither holds nor
         // spends — telling an operator to top up a budget that is not the problem sends them
         // to the wrong screen.
-        return { inserted: 0, skipped: 0, relaxed: audience === 'house'
+        // The budget fence refused before PDL was called: nothing was spent, so the Proof
+        // authority returns rather than paying for a run that never happened.
+        return { inserted: 0, skipped: 0, terminal: terminalForRunStatus('quota_exhausted'), relaxed: audience === 'house'
           ? 'Sourcing paused — this programme has no sourcing authority left (ceiling reached, paused, or not yet authorised).'
           : 'Sourcing paused — add reveal credits (or the monthly data budget has been reached).' }
       }
@@ -2148,7 +2168,10 @@ export async function runIcpJob(
       // ⚠️ THE LEADS ARE LEFT EXACTLY WHERE THEY ARE — inserted, unsurfaced, unscored. Nothing
       // is deleted (that would destroy what the run bought) and nothing is shown. The next
       // attempt after the migration re-judges them from the same rows.
-      return { inserted, skipped, relaxed: gate.detail }
+      // 🛑 THE CLIENT RECEIVES NO PROOF SET HERE, SO THE ATTEMPT MUST NOT BE CONSUMED.
+      // This path records `failed` and RETURNS — it never throws, so the proof route's outer
+      // `.catch` cannot see it. The founder named this exit by name; it releases.
+      return { inserted, skipped, relaxed: gate.detail, terminal: terminalForRunStatus('failed') }
     }
     gatedIds = gate.eligible
     setAsideCount = gate.setAside.length
@@ -2445,7 +2468,11 @@ export async function runIcpJob(
   }
 
   await recordRunOutcome(icpId, clientId, status, effectiveCap, pool.served, inserted, heldFromIcp, didWiden)
-  return { inserted, skipped, relaxed }
+  // The ordinary end. `status` is whatever `deriveRunStatus` concluded — including `failed`
+  // when the provider search did not COMPLETE, which is a provider failure that returns the
+  // pass, and `quota_exhausted`, which spent nothing. served / no_match / audience_exhausted
+  // / demo all mean the query ran and answered, so the attempt was genuinely used.
+  return { inserted, skipped, relaxed, terminal: terminalForRunStatus(status) }
 }
 
 // Preview count — returns total matching leads + 3 sample contacts for an ICP config without saving
@@ -4342,12 +4369,70 @@ icpRouter.post('/', async (req: AuthRequest, res) => {
     // ⚠️ AND THE REPLAY TEST IS DURABLE REALITY, NOT BOOKKEEPING. "Does this client already
     // have a core ICP?" is asked of `coreIcpRow` — the same selector the write itself uses,
     // so the check and the write can never disagree about which row is the core one.
-    if (req.body?.from_brief_draft === true) {
+    // ── ⚑ 12 Sep (S1-AUDIT-002/003) — THE PROMOTION'S DRAFT-OWNED FACTS AND ITS SEAL ───
+    //
+    // 🛑 THE SEAL MOVED HERE FROM `/auth/onboard`, and the move IS the fix. Sealing after the
+    // client row but before the ICP left this reachable: onboard succeeds, the draft is
+    // closed to writes, the browser never reaches this call — and the person has a client
+    // with no targeting and a Brief that can never be edited again. Promotion produces TWO
+    // pieces of durable state; the seal belongs after the second, not the first.
+    const promoting = req.body?.from_brief_draft === true
+    const { briefDraftFor, markBriefDraftPromoted } = await import('../lib/brief-draft')
+    const promotionDraft = promoting ? await briefDraftFor(req.userId!) : null
+
+    if (promoting) {
       const already = await coreIcpRow(clientId)
       if (already) {
+        // A replayed promotion writes no targeting — but it must still be able to FINISH the
+        // promotion. If the first attempt created the ICP and then died before sealing, the
+        // draft is still open and only this line closes it.
+        if (promotionDraft && !promotionDraft.promotedClientId) {
+          await markBriefDraftPromoted(req.userId!, clientId)
+        }
         res.status(200).json({ success: true, data: already, replayed: true })
         return
       }
+    }
+
+    // ⚠️ THE CONFIRMED DRAFT OWNS THE ONE TARGETING FACT IT HOLDS, AND THE BODY DOES NOT.
+    // `target_category` is brief fact #5 and reaches `icps.target_category`; the browser was
+    // carrying it across three calls, so a stale or edited copy could disagree with the brief
+    // the client actually confirmed. The other targeting fields are Milla's STRUCTURED
+    // proposal — built server-side by `/icps/builder/chat` and approved on screen by the
+    // client — and are deliberately NOT reconstructed here: re-deriving them would need a
+    // second model run and could produce an ICP the client never saw, which is worse than
+    // the problem. `exclusions` is untouched and still reaches `figsy_knowledge.bad_fit`.
+    // ⚠️ AND THE BODY IS A FALLBACK, NEVER THE AUTHORITY, FOR EVERY FACT THE DRAFT HOLDS.
+    // `BriefDraftFacts` carries the STRUCTURED targeting the client confirmed —
+    // `target_category`, `target_company_type`, `geographies`, `company_sizes`,
+    // `job_titles`, `seniority_levels` — so all six are taken from the server's copy. The
+    // browser was carrying them across three calls in component state, where a stale or
+    // edited copy could disagree with the brief the client actually agreed to.
+    //
+    // ⚠️ A BLANK DRAFT FACT IS NOT A VALUE. Each override applies only when the draft holds
+    // something, so a fact the brief never captured falls back rather than BLANKING what
+    // Milla proposed — emptying a filter is the one direction R72 ⑦ forbids reading into an
+    // absence.
+    //
+    // ⚠️ WHAT IS DELIBERATELY *NOT* OVERRIDDEN, AND WHY: `name`, `industries`, `tech_stack`
+    // and `keywords` are not brief facts. They come from Milla's structured proposal, which
+    // is itself SERVER-generated (`/icps/builder/chat`) and approved on screen by the client
+    // — re-deriving it here would need a second model run and could produce an ICP the
+    // client never saw, which is a worse failure than the one being fixed. That boundary is
+    // reported rather than papered over.
+    if (promotionDraft?.confirmedAt && !promotionDraft.promotedClientId) {
+      const f = promotionDraft.facts
+      const t = (v: string | null | undefined) => { const x = (v ?? '').trim(); return x === '' ? null : x }
+      const list = (v: string[] | null | undefined) => {
+        const xs = (v ?? []).map(x => (x ?? '').trim()).filter(Boolean)
+        return xs.length ? xs : null
+      }
+      const cat = t(f.target_category);        if (cat) body.target_category = cat.slice(0, 200)
+      const typ = t(f.target_company_type);    if (typ) body.target_company_type = typ.slice(0, 120)
+      const geo = list(f.geographies);         if (geo) body.geographies = geo
+      const siz = list(f.company_sizes);       if (siz) body.company_sizes = siz
+      const rol = list(f.job_titles);          if (rol) body.job_titles = rol
+      const sen = list(f.seniority_levels);    if (sen) body.seniority_levels = sen
     }
 
     const revisedIntent = typeof req.body?.campaign_intent === 'string' ? req.body.campaign_intent.trim() : ''
@@ -4363,7 +4448,34 @@ icpRouter.post('/', async (req: AuthRequest, res) => {
     // is persisted in the same request rather than asking the client to repeat themselves
     // into a second form. Best-effort throughout: an ICP that saved must never fail because
     // the grounding did not, and FIGSY's documented empty state is "generic, never invented".
-    await persistMillaUnderstanding(clientId, req.body as Record<string, unknown>, data?.name as string | null, pending)
+    // ⚠️ EXCLUSIONS ARE UNCHANGED IN EVERY RESPECT EXCEPT WHERE THE WORDS COME FROM. The
+    // destination is still `figsy_knowledge.bad_fit` via `business.bad_fit`, read by the same
+    // FIGSY copywriter, with the same semantics — no exclusions redesign. What changes is
+    // that on a PROMOTION the sentence is the confirmed draft's, not a browser copy of it.
+    const understandingBody = req.body as Record<string, unknown>
+    if (promotionDraft?.confirmedAt && !promotionDraft.promotedClientId) {
+      const bad = (promotionDraft.facts.exclusions ?? '').trim()
+      if (bad) {
+        const business = { ...(understandingBody.business as Record<string, unknown> | undefined ?? {}) }
+        business.bad_fit = bad
+        understandingBody.business = business
+      }
+    }
+    await persistMillaUnderstanding(clientId, understandingBody, data?.name as string | null, pending)
+
+    // ── 🛑 THE SEAL — THE LAST DURABLE STEP OF PROMOTION, AND ONLY NOW ─────────────────
+    //
+    // By this line BOTH halves exist: the client row (`/auth/onboard`) and the core ICP
+    // (above). Only now is the Brief evidence rather than a working document.
+    //
+    // ⚠️ BEST-EFFORT, DELIBERATELY, AND IN THAT ORDER. Both pieces of durable state are
+    // already written; failing the promotion because the evidence stamp did not land would
+    // throw away a successful account over bookkeeping. `markBriefDraftPromoted` logs loudly
+    // and a later replay of this call seals it (see the replay branch above), so an unsealed
+    // draft is recoverable and a stranded one is not reachable at all.
+    if (promoting && promotionDraft && !promotionDraft.promotedClientId) {
+      await markBriefDraftPromoted(req.userId!, clientId)
+    }
 
     // Auto-run on creation — only if client has credits, and NEVER on a held revision.
     // ⚠️ A pending save changed nothing operational: the live targeting is exactly what it
@@ -4868,11 +4980,10 @@ icpRouter.post('/:id/proof', async (req: AuthRequest, res) => {
     //
     // ⚠️ THE UI IS NOT THE SAFETY BOUNDARY (founder-locked). The screen hides its Proof
     // controls when escalated; this is the control.
-    // ⚑ 11 Sep (C39) — set when THIS request spends the one human-authorised restart, so the
-    // claim below is skipped and the batch can be recorded as what it is.
-    let calibratedRestart = false
+    // ⚑ 11 Sep (C39) / ⛓️ 12 Sep — this block now only REFUSES. Which authority a request is
+    // entitled to is decided once, below, by the durable claim ledger.
     {
-      const { readCalibration, claimCalibratedRestart } = await import('../lib/proof-calibration-io')
+      const { readCalibration } = await import('../lib/proof-calibration-io')
       const { SPEND_CLOSED_REFUSAL, calibratedRestart: restartStand } = await import('../lib/proof-calibration')
       try {
         const cal = await readCalibration(clientId)
@@ -4907,23 +5018,30 @@ icpRouter.post('/:id/proof', async (req: AuthRequest, res) => {
         // ⚠️ AND IT IS CLAIMED BEFORE ANYTHING IS SOURCED. If the run then fails, the restart
         // is spent and there is no automatic retry — the same rule, and the same reason, as
         // the automatic claim below: an automatic retry is the race that mints an extra batch.
+        // ── 🛑 ⚑ 12 Sep — THE RESTART IS NO LONGER CLAIMED HERE. ONE LEDGER DECIDES. ────
+        //
+        // ⛓️ WHAT MOVED, AND WHY. This block used to call `claimCalibratedRestart` — a SECOND
+        // compare-and-set on a SECOND column, beside `try_claim_proof_pass`'s counter. Two
+        // authority mechanisms is how the restart drifted into a per-resolution allowance
+        // (R119) and how a burned restart could never be given back. Both are now one
+        // durable claim in `proof_pass_claims`, taken below.
+        //
+        // ⚠️ WHAT STAYS IS THE DAY-2 SAFETY PATCH, AND IT STAYS *BEFORE* THE CLAIM. A restart
+        // must not be spent on a batch whose provenance cannot be written: without
+        // `leads.proof_batch_kind` the set could not be told apart from an automatic attempt.
+        // The check is a bounded `limit(0)` read, costs nothing, and fails closed.
+        //
+        // ⚠️ IT IS 503-RETRYABLE AND SPENDS NOTHING. The moment the migration is applied the
+        // same press succeeds — so a client is never told their one set was used when it was not.
         if (restartStand(cal) === 'available') {
-          const claim = await claimCalibratedRestart(clientId)
-          if (!claim.ok) {
-            // ⚠️ FAIL CLOSED (C43). A restart we could not claim is a restart that was not
-            // granted — never a reason to fall through to the automatic path, which would
-            // reach the RPC, be refused, and open a SECOND escalation on a client a person
-            // has just finished calibrating.
-            // ⚠️ A CONFIGURATION GAP IS RETRYABLE, NOT FINAL. `provenance_unavailable` means the
-            // `proof_batch_kind` migration has not been applied yet: the restart is INTACT and
-            // the same press will work once it is run. Answering 409 would tell a client their
-            // one set was used when it was not.
-            const retryable = claim.reason === 'unreadable' || claim.reason === 'provenance_unavailable'
-            res.status(retryable ? 503 : 409)
-              .json({ success: false, error: claim.detail, retryable })
+          const { proofProvenanceAvailable, PROVENANCE_MIGRATION } = await import('../lib/proof-calibration-io')
+          if (!(await proofProvenanceAvailable())) {
+            res.status(503).json({
+              success: false, retryable: true,
+              error: `The calibrated restart cannot be started until migration ${PROVENANCE_MIGRATION} has been run — without it this set could not be told apart from an automatic attempt. Nothing was started, nothing was spent, and the restart is still available.`,
+            })
             return
           }
-          calibratedRestart = true
         }
       } catch (err) {
         // ⛓️ 10 Sep — THIS REFUSED ON AN UNREADABLE READ, AND THAT WAS THE WRONG SHAPE.
@@ -4963,17 +5081,23 @@ icpRouter.post('/:id/proof', async (req: AuthRequest, res) => {
       }
     }
 
-    // Atomic: two requests racing for pass 2 give exactly one claimant. Pass 3 is always 0.
-    // If something fails after this claim, the pass is spent and there is NO automatic
-    // retry — an automatic retry is precisely the race that would mint a third free batch.
+    // ── 🛑 ⚑ 12 Sep (S2-AUDIT-001) — ONE DURABLE CLAIM, AND IT CAN BE GIVEN BACK ────────
     //
-    // ⚑ 11 Sep (C39) — AND IT IS SKIPPED ENTIRELY WHEN THE RESTART WAS JUST CLAIMED. The
-    // restart is not an automatic attempt: calling the RPC here would be refused (the count
-    // is 2 and stays 2), and the refusal branch below would open a second escalation on a
-    // client a person has just finished calibrating.
-    const { data: pass } = calibratedRestart
-      ? { data: null }
-      : await db.rpc('try_claim_proof_pass', { p_client_id: clientId })
+    // ⛓️ WHAT THIS REPLACES. `try_claim_proof_pass` incremented a counter that NOTHING
+    // ANYWHERE RELEASED, so a run that crashed at the PDL boundary left the pass spent and
+    // the client with nothing. The alert thirty lines down said so out loud. A decrement was
+    // rejected by the founder because a duplicate could claim the NEXT pass before the failed
+    // one released: "Do not knowingly ship the residual."
+    //
+    // ⚠️ AUTHORITY IS HELD, NOT SPENT, WHILE THE RUN IS IN FLIGHT. It is consumed only when
+    // the run COMPLETES and returned when it fails — and because at most one claim can be
+    // open per client, a retry arriving mid-run cannot reach the next authority at all.
+    //
+    // ⚠️ THE THREE DOORS ARE DECIDED IN ONE PLACE NOW. Automatic 1, automatic 2 and the one
+    // calibrated restart all come from this call, so the restart can no longer be a second
+    // mechanism that drifts from the first (R119).
+    const { claimProofAuthority, settleProofClaim } = await import('../lib/proof-claim')
+    const authority = await claimProofAuthority(clientId, req.params.id)
     // ── 🛑 ⛓️ 11 Sep — THE RESTART IS NOT A PASS NUMBER, IT IS PROVENANCE ─────────────
     //
     // An earlier cut of this stamped the restart's rows `proof_pass = 3`. That was wrong
@@ -4986,9 +5110,50 @@ icpRouter.post('/:id/proof', async (req: AuthRequest, res) => {
     // ⚠️ THE RESTART RUNS ALONGSIDE PASS 2 AND IS TOLD APART BY `proof_batch_kind`. Automatic
     // proof-pass identity stays 1 and 2 for ever, and `proof_passes_done` stays at 2.
     const { attemptLabel: attemptLabelFor } = await import('../lib/proof-calibration')
-    const claimed = calibratedRestart ? 2 : (typeof pass === 'number' ? pass : 0)
-    const batchKind: 'automatic' | 'calibrated_restart' = calibratedRestart ? 'calibrated_restart' : 'automatic'
-    if (claimed <= 0) {
+
+    // ── THE REFUSALS THAT ARE NOT "EXHAUSTED" ────────────────────────────────────────────
+    //
+    // ⚠️ `in_flight` IS NOT AN ERROR AND MUST NOT READ AS ONE. A run is already working for
+    // this client; the honest answer is the one the desk is already built to handle — keep
+    // waiting. Returning a failure here would make a double-click look like a broken Proof.
+    if (!authority.ok && authority.reason === 'in_flight') {
+      res.status(200).json({ success: true, data: { already_started: true, finding: true } })
+      return
+    }
+    // 🛑 UNCLASSIFIED HISTORY FAILS CLOSED, AND IT TELLS A HUMAN. Historical Proof authority
+    // is not deterministically reconstructible (the founder's own words: blindly snapshotting
+    // the counter "would memorialise the defect we are fixing"), so an unclassified client is
+    // refused rather than guessed about — in EITHER direction. It is retryable because an
+    // operator classification clears it, and the client is never told their passes are gone.
+    if (!authority.ok && (authority.reason === 'unclassified' || authority.reason === 'restart_unclassified')) {
+      console.error(`[icps/proof] client ${clientId} has UNCLASSIFIED historical Proof authority (${authority.reason}) — refusing, nothing was started or spent.`)
+      void sendFounderAlert('support_escalation', 'A prospect cannot start Proof — their historical Proof authority is unclassified', [
+        `Prospect ${clientId}, ICP ${req.params.id}.`,
+        `Reason: ${authority.reason}.`,
+        'Their record predates the durable Proof authority ledger, and how much authority they legitimately used cannot be derived from the data.',
+        'ACTION: run the classification audit, then Vida -> the client -> classify their historical Proof authority. Nothing was started and nothing was spent.',
+      ]).catch(() => {})
+      res.status(503).json({
+        success: false, retryable: true,
+        error: 'We need to check where your Proof stands before we look again — K.I.N.D has been notified. Nothing was started and nothing was spent.',
+      })
+      return
+    }
+    // An unreadable claim is not permission. Same shape as C43: do not spend on a maybe.
+    if (!authority.ok && authority.reason === 'unreadable') {
+      console.error(`[icps/proof] the Proof authority claim was unreadable for client ${clientId}:`, authority.detail)
+      res.status(503).json({
+        success: false, retryable: true,
+        error: 'We could not check where your Proof stands just yet, so nothing was started and nothing was spent. Please try again shortly.',
+      })
+      return
+    }
+
+    // `restart_already_used` and `exhausted` both mean "there is no authority left", which is
+    // exactly what the hand-off below has always been for — so they fall into it unchanged.
+    const claimed = authority.ok ? authority.pass : 0
+    const batchKind: 'automatic' | 'calibrated_restart' = authority.ok ? authority.kind : 'automatic'
+    if (!authority.ok) {
       // ⚑ 27 Aug (PR2) — THE PROMISE BECOMES A PIECE OF WORK.
       //
       // This branch used to return the 409 below and nothing else. The prospect was told
@@ -5109,19 +5274,66 @@ icpRouter.post('/:id/proof', async (req: AuthRequest, res) => {
     // prospect their targeting matched nobody when we never actually asked — a lie, and the
     // precise class of lie R72 forbids. A truthful failure state needs a founder decision
     // (a new status + its client sentence); until then a HUMAN is told, immediately.
+    // ── 🛑 ⚑ 12 Sep — THE CLAIM IS SETTLED FROM THE RUN'S OWN TERMINAL RESULT ───────────
+    //
+    // 🛑 WIRING THIS TO THE `.catch` ALONE WOULD HAVE MISSED TWO REAL FAILURE PATHS, and the
+    // founder named the first: the structural gate records `failed` WITH LEADS INSERTED and
+    // simply RETURNS — it never throws. `deriveRunStatus` also returns `failed` when the
+    // provider search did not COMPLETE, likewise without throwing. Both leave the client with
+    // no Proof set, and under the old code both consumed the pass.
+    //
+    // So the `.then` settles from `r.terminal`, which `runIcpJob` derives from the status it
+    // actually recorded via an exhaustive map. The `.catch` settles a throw. Between them
+    // every terminal exit is covered, and a new exit cannot compile without choosing one.
+    const claimId = authority.claimId
     runIcpJob(req.params.id, clientId, req.userId!, PROOF_PASS_LEADS, { proofPass: claimed, proofKind: batchKind })
+      .then(async r => {
+        const settled = await settleProofClaim(claimId, r.terminal, r.terminal === 'released' ? 'run_failed' : undefined)
+        if (!settled.settled) {
+          // The claim stays OPEN. That is the fail-closed direction — nothing is granted — but
+          // the client cannot retry until an operator reconciles it, so a human must know.
+          void sendFounderAlert('source_down', 'A Proof authority claim could not be settled — the client cannot retry', [
+            `Prospect ${clientId}, ICP ${req.params.id}, claim ${claimId}.`,
+            `The run finished with terminal "${r.terminal}" but the settle write did not persist: ${settled.detail ?? 'unknown'}.`,
+            'Their claim is still OPEN, so nothing was granted and nothing was consumed — but their next Proof request will answer "already started".',
+            'ACTION: Vida -> Command Centre -> System -> stale Proof claims, and reconcile it.',
+          ]).catch(() => {})
+        }
+        if (r.terminal === 'released') {
+          console.log(`[icps/proof] the run for prospect ${clientId} did not deliver a set — the Proof attempt has been RETURNED, not consumed.`)
+        }
+      })
       .catch(async e => {
         console.error('[icps/proof] proof run failed:', e)
+        // ⚠️ THE AUTHORITY COMES BACK FIRST. Provider and infrastructure failure must not
+        // consume Proof authority (founder-locked), and this is the crash boundary.
+        const settled = await settleProofClaim(claimId, 'released', 'run_threw')
         // ⚑ 26 Aug — PERSIST THE CRASH AS A TERMINAL FACT (founder-approved `failed`).
         // Written HERE, at the crash boundary, because this is the only place that knows
         // the run threw. Never derived, and never folded into `no_match`: the query did
         // not complete, so claiming it matched nobody would be false (R72).
-        await recordRunOutcome(req.params.id, clientId, 'failed', PROOF_PASS_LEADS, 0, 0)
-          .catch(re => console.error('[icps/proof] could not record the failed outcome:', re))
+        const recorded = await recordRunOutcome(req.params.id, clientId, 'failed', PROOF_PASS_LEADS, 0, 0)
+          .then(() => true)
+          .catch(re => { console.error('[icps/proof] could not record the failed outcome:', re); return false })
         void sendFounderAlert('source_down', 'A free-proof run crashed — the prospect is waiting on a desk that cannot finish', [
           `Prospect ${clientId}, ICP ${req.params.id}, ${attemptLabelFor({ pass: claimed, kind: batchKind })}.`,
           `Reason: ${e instanceof Error ? e.message : String(e)}`,
-          'Their proof pass is CONSUMED and no run outcome was recorded, so the desk shows no terminal state for this attempt.',
+          // ── ⛓️ 12 Sep (S2-AUDIT-003 half A) — THIS SENTENCE WAS FALSE ─────────────────
+          //
+          // It read: "Their proof pass is CONSUMED and no run outcome was recorded, so the
+          // desk shows no terminal state for this attempt." BOTH HALVES WERE WRONG. The line
+          // directly above it records the `failed` outcome, so the desk DOES have a terminal
+          // state — and as of this build the pass is RETURNED rather than consumed.
+          //
+          // ⚠️ AND IT NOW REPORTS WHAT ACTUALLY HAPPENED rather than asserting either. If the
+          // outcome write or the settle failed, the alert says which — the two facts it used
+          // to state blindly are the two it now measures.
+          settled.settled
+            ? 'Their Proof attempt has been RETURNED, not consumed — provider and infrastructure failure must not spend a pass.'
+            : `⚠️ The attempt could NOT be returned (${settled.detail ?? 'settle failed'}) — their claim is still OPEN and needs reconciling in Vida.`,
+          recorded
+            ? 'The failed run outcome WAS recorded, so the desk shows a terminal state for this attempt.'
+            : '⚠️ The failed run outcome could NOT be recorded, so the desk has no terminal state and will fall back to its bounded recovery copy.',
           'If this reads SAFE_TEST_MODE / PAID_PROVIDERS_ENABLED, the guard refused to spend — that is correct behaviour, not a bug.',
         ]).catch(() => {})
       })
@@ -5130,7 +5342,7 @@ icpRouter.post('/:id/proof', async (req: AuthRequest, res) => {
     // and must never be numbered as one on either surface — see `attemptLabel`.
     res.json({
       success: true,
-      data: calibratedRestart
+      data: batchKind === 'calibrated_restart'
         ? { kind: batchKind, label: attemptLabelFor({ pass: claimed, kind: batchKind }), calibrated_restart: true, finding: true }
         : { pass: claimed, of: 2, kind: batchKind, label: attemptLabelFor({ pass: claimed, kind: batchKind }), finding: true },
     })

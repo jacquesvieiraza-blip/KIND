@@ -227,16 +227,30 @@ export type RestartState = 'none' | 'available' | 'used'
  * still refuses a third AUTOMATIC claim. This answers a different question: has a human
  * looked at this client, fixed the targeting, and bought them exactly one more set.
  *
- * ⚠️ USED-AFTER-GRANTED IS THE TEST, NOT "used at all". A client can legitimately be granted
+ * ⛓️ 12 Sep — STRUCK, AND THE STRUCK TEXT IS KEPT BECAUSE IT WAS LIVE AND IT WAS WRONG:
+ * ~~"USED-AFTER-GRANTED IS THE TEST, NOT 'used at all'. A client can legitimately be granted
  * a restart, spend it, be escalated again months later, be resolved again and be granted
  * another — each resolution buys exactly one. Comparing the timestamps is what makes the
- * grant self-limiting without a counter to keep in step.
+ * grant self-limiting without a counter to keep in step."~~
+ *
+ * 🛑 THAT IS A PER-RESOLUTION ALLOWANCE, AND R119 FORBIDS IT: "Exactly ONE calibrated restart
+ * per client, ever… A SECOND CALIBRATED RESTART IS REFUSED, whatever happens later." It was
+ * reachable, not theoretical — the exhausted-Proof hand-off re-opens a RESOLVED review, a
+ * second resolution moves `proof_review_resolved_at` past the old grant, and the timestamp
+ * comparison below then read `available` again. Unbounded, one per cycle.
+ *
+ * ⚠️ USED IS NOW TERMINAL. A newer grant cannot reopen `available`, so this one change closes
+ * the door on BOTH client surfaces at once: `spendDoors` (Milla) and the operator evidence
+ * endpoint (Vida) each derive from here and neither can offer a second restart.
+ *
+ * ⚠️ AND `used` IS THE FAIL-CLOSED ANSWER WHEN THE TWO COLUMNS DISAGREE. A consumption with
+ * no grant is impossible under current code; if one is ever seen (a hand-edit, a restore) it
+ * reads as spent rather than as free.
  */
 export function calibratedRestart(s: CalibrationState): RestartState {
-  const granted = s.restartGrantedAt ?? null
-  if (!granted) return 'none'
-  const used = s.restartUsedAt ?? null
-  return used && used >= granted ? 'used' : 'available'
+  if (s.restartUsedAt) return 'used'
+  if (!s.restartGrantedAt) return 'none'
+  return 'available'
 }
 
 /**

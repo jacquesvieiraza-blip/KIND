@@ -25,6 +25,14 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
+// ⛓️ 12 Sep (S2-AUDIT-001) — RETARGETED, NOT WEAKENED. Every assertion below keeps its
+// exact meaning; only the NAME of the claim changed. `try_claim_proof_pass` incremented a
+// counter nothing could release, so a run that crashed at the PDL boundary consumed the
+// client's pass and left them with nothing. Authority now comes from the durable claim
+// ledger (`claim_proof_authority` -> `proof_pass_claims`), which can give it back. The old
+// RPC is retained in the database for rollback and has ZERO live callers
+// (`proof-authority-bypass.test.ts` asserts that, and it is what keeps it dead).
+
 type Row = Record<string, any>
 type Store = { icps: Row[]; figsy_campaigns: Row[]; clients: Row[]; leads: Row[]; figsy_knowledge: Row[]; credit_transactions: Row[]
   /** Make the icps write fail, so a partly-applied revision is reproducible. */
@@ -142,6 +150,22 @@ function installDb() {
         from: (t: string) => build(t),
         rpc: async (fn: string, args: Row) => {
           lctx.rec.rpcs.push({ fn, args })
+          // ── ⛓️ 12 Sep (S2-AUDIT-001) — THE LEDGER, STANDING IN FOR THE OLD COUNTER ────────
+          // The route claims through `claim_proof_authority` now. The old RPC branch is kept
+          // beside it so a rollback needs no fixture change; this one mirrors the SAME rule —
+          // two automatic passes then refuse — so every assertion below is unchanged.
+          if (fn === 'claim_proof_authority') {
+            const c = lctx.store.clients[0]
+            const done = c.proof_passes_done ?? 0
+            if (done >= 2) return { data: { ok: false, reason: 'exhausted' }, error: null }
+            c.proof_passes_done = done + 1
+            return { data: {
+              ok: true, claim_id: `claim-${c.proof_passes_done}`,
+              authority: `automatic_${c.proof_passes_done}`, pass: c.proof_passes_done,
+              kind: 'automatic', reason: 'granted',
+            }, error: null }
+          }
+          if (fn === 'settle_proof_claim') return { data: { ok: true, status: args.p_status }, error: null }
           if (fn === 'try_claim_proof_pass') {
             const c = lctx.store.clients[0]
             c.proof_passes_done = (c.proof_passes_done ?? 0) + 1
@@ -403,7 +427,7 @@ describe('the launch journey — one ICP, two proof passes, then K.I.N.D presses
     await proof(icpId)
     const names = lctx.rec.rpcs.map(r => r.fn)
     // Proof authority, never the paid fence — across the whole assembled journey.
-    expect(names).toContain('try_claim_proof_pass')
+    expect(names).toContain('claim_proof_authority')
     expect(names).not.toContain('add_sourcing_allowance')
     // And the reservation asks for the 20-lead pass, not a paid client's target.
     const reserve = lctx.rec.rpcs.find(r => r.fn === 'try_reserve_proof_records')

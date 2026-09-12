@@ -2526,18 +2526,39 @@ operatorRouter.post('/proof-review/:clientId/restart', async (req: Request, res:
     // happened: the founder's audit rule is that the history must prove escalation occurred,
     // human resolution occurred, the restart became available, and it was claimed. Erasing the
     // first of those to unlock the third is exactly the wrong trade.
+    // ── 🛑 ⛓️ 12 Sep (R119) — `restart_at` TRANSITIONS FROM NULL EXACTLY ONCE ───────────
+    //
+    // ⛓️ THE STRUCK FILTER:
+    // ~~`.or('proof_calibrated_restart_at.is.null,proof_calibrated_restart_at.lt.' + cal.resolvedAt)`~~
+    // — which permitted a new grant whenever the newest resolution was later than the last
+    // grant. That is the per-resolution allowance R119 forbids, and it was reachable: the
+    // exhausted-Proof hand-off re-opens a RESOLVED review, a second resolution moved
+    // `proof_review_resolved_at` forward, and this write then matched again.
+    //
+    // ⚠️ THE GUARD IS THE WRITE ITSELF, NOT THE VERDICT ABOVE IT. `mayRestartCalibrated`
+    // already refuses, but a verdict is read BEFORE the update and a stale verdict, a
+    // double-click or two operators pressing together would each carry a passing one. With
+    // `.is(..., null)` the column can leave NULL exactly once, whatever the verdict said, so
+    // a second grant is impossible rather than merely unlikely.
+    //
+    // ⚠️ AND A BURNED RESTART NEEDS NO NEW GRANT. If the one restart was consumed and then
+    // RELEASED (infrastructure failure), the original grant is still on this row and the
+    // durable claim ledger reissues the authority against it — so refusing here costs the
+    // client nothing they are entitled to.
     const { data, error } = await db.from('clients')
       .update({ proof_calibrated_restart_at: nowIso })
       .eq('id', req.params.clientId)
       .not('proof_review_resolved_at', 'is', null)
-      .or(`proof_calibrated_restart_at.is.null,proof_calibrated_restart_at.lt.${cal.resolvedAt}`)
+      .is('proof_calibrated_restart_at', null)
       .select('id')
     if (error) {
       res.status(500).json({ success: false, error: `The calibrated restart could not be recorded (${error.message}). No pass was granted.` })
       return
     }
     if ((data ?? []).length === 0) {
-      res.status(409).json({ success: false, error: 'The calibrated restart for this resolution has already been used.' })
+      // R119: one grant per client, for the client's lifetime. A re-opened review and a
+      // second resolution may both be legitimate; neither creates a second restart.
+      res.status(409).json({ success: false, error: 'This client has already had their one calibrated restart. There is no second restart.' })
       return
     }
     await writeOperatorAudit({
@@ -2557,6 +2578,291 @@ operatorRouter.post('/proof-review/:clientId/restart', async (req: Request, res:
   } catch (err) {
     console.error('[operator/proof-review/restart]', err)
     res.status(500).json({ success: false, error: 'The calibrated restart failed' })
+  }
+})
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// ⚑ 12 Sep — THE DURABLE PROOF AUTHORITY LEDGER'S FOUR HUMAN CONTROLS.
+//
+// The migration classifies NOBODY and releases NOTHING on a timer. Both of those are
+// deliberate, and both mean a person has to be able to act. These are those actions —
+// admin-key gated, note-required, audited, and each refusing far more than it permits.
+//
+// 🛑 NONE OF THEM GRANT AUTHORITY. Classification records what ALREADY happened; reconcile
+// settles a claim whose run is over. The three unique indexes remain the only thing that
+// decides whether a pass can be claimed.
+// ═══════════════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Classify how many automatic Proof passes a pre-ledger client LEGITIMATELY consumed.
+ *
+ * ⚠️ 0, 1 OR 2 — AND THE VALUE IS A HUMAN JUDGEMENT, NOT A DERIVATION. Historical authority
+ * cannot be reconstructed from the data: `icp_run_outcomes` carries no pass number,
+ * `proof_started_at` is overwritten on every claim, `leads.proof_pass` did not exist before
+ * 3 Sep, `failed` is written by three different paths, and an ABSENT outcome row proves
+ * nothing because `recordRunOutcome` swallows its own failure. The founder refused a
+ * snapshot of the counter by name: it "would memorialise the defect we are fixing".
+ *
+ * ⚠️ IT CANNOT SILENTLY OVERWRITE. A second press answers `already_classified`; correcting a
+ * classification requires `force: true`, which is a separate decision and is audited as one.
+ */
+operatorRouter.post('/proof-review/:clientId/classify-passes', async (req: Request, res: Response) => {
+  try {
+    if (!adminKeyValid(req.headers['x-admin-key'])) {
+      res.status(403).json({ success: false, error: 'Operator key required' }); return
+    }
+    const passes = Number(req.body?.passes)
+    const note   = typeof req.body?.note === 'string' ? req.body.note.trim().slice(0, 4000) : ''
+    const force  = req.body?.force === true
+    if (!Number.isInteger(passes) || passes < 0 || passes > 2) {
+      res.status(400).json({ success: false, error: 'passes must be 0, 1 or 2 — how many automatic Proof passes this client legitimately consumed.' })
+      return
+    }
+    if (!note) {
+      res.status(400).json({ success: false, error: 'A note is required: say what evidence you read. A classification with no reasoning is the guess this control exists to avoid.' })
+      return
+    }
+    const { data, error } = await db.rpc('classify_legacy_proof_passes', {
+      p_client_id: req.params.clientId, p_passes: passes, p_note: note, p_force: force,
+    })
+    if (error) {
+      res.status(500).json({ success: false, error: `The classification could not be recorded (${error.message}). Nothing was changed.` })
+      return
+    }
+    const r = (data ?? null) as { ok?: boolean; reason?: string; existing?: number; replaced?: boolean } | null
+    if (r?.ok !== true) {
+      const already = r?.reason === 'already_classified'
+      res.status(already ? 409 : 400).json({
+        success: false,
+        error: already
+          ? `This client is already classified as ${r?.existing} legitimately consumed pass(es). Send force: true to change it deliberately.`
+          : `The classification was refused (${r?.reason ?? 'unknown'}).`,
+      })
+      return
+    }
+    await writeOperatorAudit({
+      operatorEmail: operatorEmail(req), clientId: req.params.clientId,
+      action: r.replaced ? 'proof_legacy_passes_reclassified' : 'proof_legacy_passes_classified',
+      subjectType: 'client', subjectId: req.params.clientId,
+      detail: {
+        passes, note, replaced: !!r.replaced,
+        means: 'how many of the two automatic Proof passes this client consumed BEFORE the durable claim ledger existed; it grants nothing',
+      },
+    })
+    res.json({ success: true, data: { passes, replaced: !!r.replaced } })
+  } catch (err) {
+    console.error('[operator/proof-review/classify-passes]', err)
+    res.status(500).json({ success: false, error: 'The classification failed' })
+  }
+})
+
+/**
+ * Classify a pre-ledger calibrated restart: COMPLETED (they got their set) or RELEASED (it
+ * was burned by infrastructure and the one restart comes back).
+ *
+ * ⚠️ "ZERO RESTART-ATTRIBUTED LEADS" IS NOT EVIDENCE OF A BURN, which is why this is a human
+ * decision. A batch whose surfacing UPDATE failed leaves exactly that signature with the
+ * leads sitting in the table invisible — the alert at that failure says so.
+ */
+operatorRouter.post('/proof-review/:clientId/classify-restart', async (req: Request, res: Response) => {
+  try {
+    if (!adminKeyValid(req.headers['x-admin-key'])) {
+      res.status(403).json({ success: false, error: 'Operator key required' }); return
+    }
+    const status = req.body?.status === 'completed' ? 'completed'
+                 : req.body?.status === 'released'  ? 'released' : null
+    const note   = typeof req.body?.note === 'string' ? req.body.note.trim().slice(0, 4000) : ''
+    if (!status) {
+      res.status(400).json({ success: false, error: 'status must be "completed" (they received their restart set) or "released" (it was burned before they saw anything).' })
+      return
+    }
+    if (!note) {
+      res.status(400).json({ success: false, error: 'A note is required: say what evidence you read.' })
+      return
+    }
+    const { data, error } = await db.rpc('classify_legacy_restart', {
+      p_client_id: req.params.clientId, p_status: status, p_note: note,
+    })
+    if (error) {
+      res.status(500).json({ success: false, error: `The restart classification could not be recorded (${error.message}). Nothing was changed.` })
+      return
+    }
+    const r = (data ?? null) as { ok?: boolean; reason?: string } | null
+    if (r?.ok !== true) {
+      const already = r?.reason === 'already_classified'
+      res.status(already ? 409 : 400).json({
+        success: false,
+        error: already
+          ? 'This client\'s historical calibrated restart has already been classified. It is recorded once and not revisited.'
+          : `The restart classification was refused (${r?.reason ?? 'unknown'}).`,
+      })
+      return
+    }
+    await writeOperatorAudit({
+      operatorEmail: operatorEmail(req), clientId: req.params.clientId,
+      action: 'proof_legacy_restart_classified', subjectType: 'client', subjectId: req.params.clientId,
+      detail: {
+        status, note,
+        means: status === 'completed'
+          ? 'the client received their one calibrated restart set; the restart door is now shut for ever'
+          : 'the restart was burned by infrastructure before the client saw anything; the one restart is available again',
+      },
+    })
+    res.json({ success: true, data: { status } })
+  } catch (err) {
+    console.error('[operator/proof-review/classify-restart]', err)
+    res.status(500).json({ success: false, error: 'The restart classification failed' })
+  }
+})
+
+/**
+ * OPEN Proof claims old enough that no healthy run is still plausibly working.
+ *
+ * 🛑 READ-ONLY, AND THE THRESHOLD RELEASES NOTHING. There is no proven hard upper bound on
+ * `runIcpJob` — the PDL search is bounded at ~155 s but every database round-trip in it is an
+ * unbounded fetch (`packages/db/src/client.ts` sets no timeout) and the run is a floating
+ * promise nothing can cancel. An automatic release on elapsed time could therefore reissue
+ * authority while the original run is STILL ALIVE, producing two live runs for one pass. So
+ * time decides only when a human is shown the claim.
+ */
+operatorRouter.get('/proof-claims/stale', async (req: Request, res: Response) => {
+  try {
+    if (!adminKeyValid(req.headers['x-admin-key'])) {
+      res.status(403).json({ success: false, error: 'Operator key required' }); return
+    }
+    const { staleProofClaims, PROOF_CLAIM_STALE_MS, RECONCILE_RELEASE_WARNING, RECONCILE_COMPLETE_WARNING } =
+      await import('../lib/proof-claim')
+    const claims = await staleProofClaims()
+    res.json({
+      success: true,
+      data: {
+        stale_after_ms: PROOF_CLAIM_STALE_MS,
+        claims,
+        release_warning:  RECONCILE_RELEASE_WARNING,
+        complete_warning: RECONCILE_COMPLETE_WARNING,
+      },
+      read_only: 'This endpoint only reads. No claim was settled and no authority was changed by loading it.',
+    })
+  } catch (err) {
+    console.error('[operator/proof-claims/stale]', err)
+    res.status(500).json({ success: false, error: 'The stale Proof claims could not be read' })
+  }
+})
+
+/**
+ * Settle an OPEN claim whose run outcome is genuinely unknown — the ONLY thing that resolves
+ * a process death, because nothing does it on a timer.
+ *
+ * ⚠️ IT REFUSES A CLAIM THAT IS NOT STALE. A fresh claim may still be a live run, and
+ * settling it would be the automatic time-based release wearing a person's face.
+ */
+operatorRouter.post('/proof-claims/:claimId/reconcile', async (req: Request, res: Response) => {
+  try {
+    if (!adminKeyValid(req.headers['x-admin-key'])) {
+      res.status(403).json({ success: false, error: 'Operator key required' }); return
+    }
+    const decision = req.body?.decision === 'completed' ? 'completed'
+                   : req.body?.decision === 'released'  ? 'released' : null
+    const note = typeof req.body?.note === 'string' ? req.body.note.trim().slice(0, 4000) : ''
+    const { reconcileProofClaim, RECONCILE_RELEASE_WARNING } = await import('../lib/proof-claim')
+    if (!decision) {
+      res.status(400).json({
+        success: false,
+        error: 'decision must be "completed" or "released".',
+        release_warning: RECONCILE_RELEASE_WARNING,
+      })
+      return
+    }
+    if (!note) {
+      res.status(400).json({
+        success: false,
+        error: 'A note is required: say what you checked and why the original run will not finish.',
+        release_warning: RECONCILE_RELEASE_WARNING,
+      })
+      return
+    }
+    const r = await reconcileProofClaim(req.params.claimId, decision)
+    if (!r.ok) {
+      const code = r.reason === 'not_found' ? 404 : r.reason === 'unreadable' ? 500 : 409
+      res.status(code).json({
+        success: false,
+        error: r.reason === 'not_stale'
+          ? 'That claim is too recent to reconcile — the original run may still be working. Nothing was changed.'
+          : r.reason === 'not_open'
+            ? 'That claim has already been settled. Nothing was changed.'
+            : r.reason === 'not_found'
+              ? 'No such Proof claim.'
+              : `The claim could not be reconciled (${r.detail ?? 'unknown'}). Nothing was changed.`,
+      })
+      return
+    }
+    await writeOperatorAudit({
+      operatorEmail: operatorEmail(req), clientId: null,
+      action: 'proof_claim_reconciled', subjectType: 'proof_pass_claim', subjectId: req.params.claimId,
+      detail: {
+        decision, note,
+        means: decision === 'released'
+          ? 'the operator concluded the original run will NOT subsequently complete, so the client\'s Proof attempt was returned'
+          : 'the operator confirmed the batch actually landed, so the attempt is recorded as consumed',
+      },
+    })
+    res.json({ success: true, data: { decision } })
+  } catch (err) {
+    console.error('[operator/proof-claims/reconcile]', err)
+    res.status(500).json({ success: false, error: 'The claim could not be reconciled' })
+  }
+})
+
+/**
+ * ⚑ 12 Sep (R120) — WELCOME EMAILS THAT NEED A HUMAN.
+ *
+ * 🛑 "OPERATOR-VISIBLE" HAS TO MEAN A REAL PATH, and this is it: the persisted truth lives on
+ * the client row and this reads it. A founder alert supplements it and is deliberately NOT
+ * the only record — an alert is a notification, not a queue you can come back to.
+ *
+ * ⚠️ READ-ONLY. It sends nothing, retries nothing and releases no claim.
+ */
+operatorRouter.get('/welcome-emails/unresolved', async (req: Request, res: Response) => {
+  try {
+    if (!adminKeyValid(req.headers['x-admin-key'])) {
+      res.status(403).json({ success: false, error: 'Operator key required' }); return
+    }
+    const { WELCOME_UNRESOLVED_OUTCOMES, welcomeOperatorAction, WELCOME_IDEMPOTENCY_WINDOW_MS } =
+      await import('../lib/welcome-email-state')
+    const { data, error } = await db.from('clients')
+      .select('id, company_name, welcome_email_claimed_at, welcome_email_outcome, welcome_email_message_id')
+      .in('welcome_email_outcome', WELCOME_UNRESOLVED_OUTCOMES as unknown as string[])
+      .order('welcome_email_claimed_at', { ascending: true })
+      .limit(200)
+    if (error) {
+      res.status(500).json({ success: false, error: `The unresolved welcome emails could not be read (${error.message}).` })
+      return
+    }
+    const now = Date.now()
+    const rows = (data ?? []) as Array<{
+      id: string; company_name: string | null; welcome_email_claimed_at: string | null
+      welcome_email_outcome: string | null; welcome_email_message_id: string | null
+    }>
+    res.json({
+      success: true,
+      data: {
+        window_ms: WELCOME_IDEMPOTENCY_WINDOW_MS,
+        clients: rows.map(r => ({
+          client_id:     r.id,
+          company_name:  r.company_name,
+          claimed_at:    r.welcome_email_claimed_at,
+          outcome:       r.welcome_email_outcome,
+          // ⚠️ ALWAYS RENDERED, EVEN WHEN NULL. "No provider id" is the fact that makes this
+          // row unresolved, so it must be visible rather than absent.
+          provider_message_id: r.welcome_email_message_id ?? null,
+          action: welcomeOperatorAction(r.welcome_email_outcome, r.welcome_email_claimed_at, now),
+        })),
+      },
+      read_only: 'This endpoint only reads. No email was sent and no claim was released by loading it.',
+    })
+  } catch (err) {
+    console.error('[operator/welcome-emails/unresolved]', err)
+    res.status(500).json({ success: false, error: 'The unresolved welcome emails could not be read' })
   }
 })
 

@@ -30,6 +30,14 @@
 // ═══════════════════════════════════════════════════════════════════════════════════════
 import { describe, it, expect, vi } from 'vitest'
 
+// ⛓️ 12 Sep (S2-AUDIT-001) — RETARGETED, NOT WEAKENED. Every assertion below keeps its
+// exact meaning; only the NAME of the claim changed. `try_claim_proof_pass` incremented a
+// counter nothing could release, so a run that crashed at the PDL boundary consumed the
+// client's pass and left them with nothing. Authority now comes from the durable claim
+// ledger (`claim_proof_authority` -> `proof_pass_claims`), which can give it back. The old
+// RPC is retained in the database for rollback and has ZERO live callers
+// (`proof-authority-bypass.test.ts` asserts that, and it is what keeps it dead).
+
 vi.mock('./alerts', () => ({ sendFounderAlert: async () => undefined }))
 
 const ICP = {
@@ -173,6 +181,14 @@ async function buildProofModules(opts: ProofOpts, rec: Rec) {
           if (fn === 'try_reserve_proof_records') {
             return { data: { granted: Number(args.p_requested ?? 0), reservation_id: 'res-1', reason: 'GRANTED' }, error: null }
           }
+          // ── ⛓️ 12 Sep (S2-AUDIT-001) — THE LEDGER, STANDING IN FOR THE OLD COUNTER ────────
+          // The route claims through `claim_proof_authority` now. The old RPC branch is kept
+          // beside it so a rollback needs no fixture change; this one mirrors the SAME rule —
+          // two automatic passes then refuse — so every assertion below is unchanged.
+          if (fn === 'claim_proof_authority') return { data: {
+            ok: true, claim_id: 'claim-1', authority: 'automatic_1', pass: 1, kind: 'automatic', reason: 'granted',
+          }, error: null }
+          if (fn === 'settle_proof_claim') return { data: { ok: true }, error: null }
           if (fn === 'try_claim_proof_pass') return { data: 1, error: null }
           if (fn === 'try_spend_sourcing') return { data: Number(args.p_requested ?? 0), error: null }
           if (fn === 'release_proof_records') return { data: Number(args.p_records ?? 0), error: null }
@@ -432,7 +448,7 @@ describe('EXECUTED · claim → dispatch → outcome, across the real route boun
     //    the background run and must never turn the client's request into a failure.
     expect(out.code).toBe(200)
     expect((out.payload.data as Record<string, unknown>).finding).toBe(true)
-    expect(rec.rpcs.some(r => r.fn === 'try_claim_proof_pass'), 'the pass was claimed').toBe(true)
+    expect(rec.rpcs.some(r => r.fn === 'claim_proof_authority'), 'the pass was claimed').toBe(true)
 
     // ② THE RUN WAS DISPATCHED and ran to completion despite the deliberate block.
     await waitFor(() => rec.outcomes.length > 0, 'the background run to persist an outcome')

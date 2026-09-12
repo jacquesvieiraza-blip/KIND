@@ -1,6 +1,9 @@
 import { Resend } from 'resend'
 import { htmlToText, COLD_FROM } from './deliverability'
-import { interpretSend } from './resend-checked'
+import { interpretSend, type CheckedSend } from './resend-checked'
+// A TYPE-ONLY import: erased at compile time, so it cannot create a runtime cycle with the
+// dynamic import inside `sendWelcomeEmail`.
+import type { WelcomeEmailState } from './welcome-email-state'
 import { isDemoClient } from './demo'
 import { db } from '@kind/db'
 import { normalizeRevealEmail } from './billing-rules'
@@ -8,6 +11,9 @@ import { isSuppressed } from './suppression'
 // ⚑ 10 Sep (I) — the ONE definition of the kill-switch, imported so the consent seam asks it
 // directly instead of trusting six callers to remember. See `sendConsentEmail`.
 import { killSwitchBlocks, KILL_SWITCH_REFUSAL } from './outreach-kill-switch'
+// ⚑ 12 Sep — the operator notification for a welcome email that needs a human. `alerts.ts`
+// imports only `resend` and `@kind/db`, so this creates no cycle with this file.
+import { sendFounderAlert } from './alerts'
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
 const FROM = 'K.I.N.D <hello@get-kind.com>'
@@ -83,8 +89,25 @@ async function sendTx(opts: {
    * is refused outright, because the only way to reach the cold identity is deliberately.
    */
   cold?: boolean
-}) {
-  if (!resend) return
+  /**
+   * ⚑ 12 Sep (R120) — RESEND'S `Idempotency-Key`, PASSED THROUGH.
+   *
+   * When set, the SDK sends it as the `Idempotency-Key` header (resend >= 4.4.1 copies the
+   * client headers per request; 4.3.0/4.4.0 set it on the SHARED client object, which with
+   * the single module-level client below would have leaked the key onto every subsequent
+   * unrelated email and silently suppressed it — which is why the pin is 4.6.0, not "latest"
+   * and not the first version that merely has the option).
+   *
+   * ⚠️ ONLY ONE CALLER PASSES IT. Every other transactional mail is unchanged: no key, no
+   * header, no behaviour change.
+   */
+  idempotencyKey?: string
+}): Promise<CheckedSend | null> {
+  // ⚠️ `null` MEANS "NOTHING WAS ATTEMPTED", and it is distinct from a failure. The four
+  // early exits below return before the provider is called at all, so a caller holding a
+  // durable claim must RELEASE it rather than record an outcome — recording `refused` would
+  // be false, and recording a send would be the phantom this file already guards against.
+  if (!resend) return null
   // ── 🛑 THE COLD SEAM. Kill-switch ON = nothing leaves, whoever asked. ─────────────────
   const from = opts.from ?? FROM
   const isColdIdentity = from === COLD_FROM
@@ -93,23 +116,28 @@ async function sendTx(opts: {
     // without declaring `cold` is still gated — "a switch each caller must remember is a
     // convention, not a kill-switch" (outreach-kill-switch.ts), and this is that argument
     // applied to the one seam where transactional and cold mail share a function.
-    if (killSwitchBlocks('resend_cold', `${opts.subject} → ${Array.isArray(opts.to) ? opts.to.join(', ') : opts.to}`)) return
+    if (killSwitchBlocks('resend_cold', `${opts.subject} → ${Array.isArray(opts.to) ? opts.to.join(', ') : opts.to}`)) return null
   }
   if (opts.lifecycle && !lifecycleEmailsEnabled()) {
     console.log(`[email] lifecycle mail suppressed (LIFECYCLE_EMAILS_ENABLED=false) — "${opts.subject}"`)
-    return
+    return null
   }
   if (!isRealRecipient(opts.to)) {
     console.log(`[email] skipped non-deliverable recipient: ${Array.isArray(opts.to) ? opts.to.join(', ') : opts.to}`)
-    return
+    return null
   }
-  const result = await resend.emails.send({
-    from,
-    to:      opts.to,
-    subject: opts.subject,
-    html:    opts.html,
-    text:    opts.text ?? htmlToText(opts.html),
-  } as Parameters<typeof resend.emails.send>[0])
+  const result = await resend.emails.send(
+    {
+      from,
+      to:      opts.to,
+      subject: opts.subject,
+      html:    opts.html,
+      text:    opts.text ?? htmlToText(opts.html),
+    } as Parameters<typeof resend.emails.send>[0],
+    // ⚠️ ONLY when a caller asked for it: `emails.send`'s second argument is the request
+    // options, and an absent key means no header and today's exact behaviour.
+    opts.idempotencyKey ? { idempotencyKey: opts.idempotencyKey } : undefined,
+  )
   // #338 (AR-01) — Resend returns { error } instead of throwing. These transactional
   // mails are best-effort (a failure must not break the signup/billing path they ride
   // on), but the failure must at least be VISIBLE — the old code swallowed it entirely.
@@ -117,7 +145,12 @@ async function sendTx(opts: {
   if (!checked.ok) {
     console.error(`[email] transactional send failed to ${Array.isArray(opts.to) ? opts.to.join(', ') : opts.to} — "${opts.subject}"`, checked.error)
   }
-  return checked.ok
+  // ⛓️ 12 Sep — IT USED TO RETURN `checked.ok`, A BARE BOOLEAN, AND THAT WAS NOT ENOUGH.
+  // A caller holding a durable claim has to distinguish "another same-key request is in
+  // flight" from "the payload conflicts" from "a 500" from "definitively refused" — four
+  // provider verdicts with four different correct actions. A boolean collapses all of them,
+  // which is how a 409 got misread as a send in the first draft of this build.
+  return checked
 }
 
 function scoreBar(score: number): string {
@@ -261,31 +294,15 @@ export async function sendSeatInviteEmail(
   })
 }
 
-export async function sendWelcomeEmail(to: string, companyName: string) {
-  if (!resend) return
-  await sendTx({
-    from: FROM,
-    to,
-    // ── ⚑ 10 Sep (C15) — THERE IS NO 14-DAY TRIAL, AND THIS EMAIL SAID THERE WAS ─────────
-    //
-    // ⛓️ WHAT #607 MISSED. The trial was retired: a signup writes `paused` with
-    // `trial_ends_at: null`, and the expiry/nurture crons were switched off. `retire-trial.test.ts`
-    // guards `routes/internal.ts` and the nurture template — but NOT this function, which is the
-    // one welcome email that is still LIVE and still sent on every signup. So the retirement was
-    // real everywhere except the first sentence a new client ever reads from us.
-    //
-    // 🛑 AND THREE OTHER CLAIMS WENT WITH IT, because a truthful email cannot keep them:
-    //   · "Your first leads will appear within 24 hours" — a delivery SLA we do not offer, on a
-    //     stage that produces EXAMPLES rather than leads. Proof is deliberately un-timed.
-    //   · "Sign your Service Agreement in the Documents tab" — the phrase "Service Agreement"
-    //     appears nowhere in the portal; this email was the only source of it.
-    //   · "Set up your Ideal Customer Profile" — the client does not build an ICP by hand any
-    //     more. Milla shapes the targeting with them during Proof.
-    //
-    // ⚠️ NOTHING NEW IS PROMISED IN ITS PLACE. The replacement states only the locked flow —
-    // Signup → Proof → the programme they choose — with no timescale and no commercial term.
-    subject: 'Welcome to K.I.N.D — your workspace is ready',
-    html: `
+/**
+ * The welcome email's body, as a pure function of the only input that varies.
+ *
+ * ⚠️ EXTRACTED SO A RETRY CAN RE-RENDER IT IDENTICALLY. Resend's idempotency requires the
+ * SAME key AND the SAME payload, so the payload has to be reproducible from durable state
+ * rather than assembled inline at the call site.
+ */
+function welcomeEmailHtml(companyName: string): string {
+  return `
       <div style="font-family:sans-serif;max-width:560px;margin:0 auto;color:#111">
         <h1 style="font-size:1.5rem;margin-bottom:8px">Welcome, ${companyName} 👋</h1>
         <p style="color:#555;line-height:1.6">Your workspace is ready. Here's what happens next:</p>
@@ -302,9 +319,169 @@ export async function sendWelcomeEmail(to: string, companyName: string) {
           Questions? Reply to this email or book a call at <a href="mailto:hello@get-kind.com">hello@get-kind.com</a>.
         </p>
       </div>
-    `,
-  })
+    `
 }
+
+/** The one subject line. A source literal, so a copy edit is a deploy and a payload change. */
+export const WELCOME_EMAIL_SUBJECT = 'Welcome to K.I.N.D — your workspace is ready'
+
+/**
+ * ═══════════════════════════════════════════════════════════════════════════════════════
+ * 🛑 ONE AUTOMATIC WELCOME EMAIL PER CLIENT (S1-AUDIT-006 · R120).
+ *
+ * ── THE DEFECT THIS CLOSES ────────────────────────────────────────────────────────────
+ *
+ * `routes/auth.ts` called this function OUTSIDE the `if (!existing)` block that guards the
+ * founder alert immediately below it. A second `POST /auth/onboard` for the same user takes
+ * the UPDATE branch, the draft gate stands aside because the draft is already promoted, and
+ * THE WELCOME EMAIL SENT AGAIN. A double-click, a refresh, an offline retry and two
+ * concurrent tabs all land there, and nothing anywhere recorded that it had been sent.
+ *
+ * ── THE AUTHORITY IS A DURABLE CLAIM, NEVER THE SCREEN ────────────────────────────────
+ *
+ * `clients.welcome_email_claimed_at` is taken by a conditional UPDATE. Zero rows means
+ * somebody else holds it; one row means this process may send. Same mechanism as the proof
+ * review hand-off — the database decides, not the caller.
+ *
+ * ⚠️ A CLAIMED ROW IS NOT A PERMANENT "DO NOTHING" (the founder's correction). A first
+ * attempt that died before recording anything leaves a claim with no outcome, and that
+ * client would otherwise never receive a welcome email at all. Inside Resend's 24-hour
+ * window, with a payload PROVEN identical by hash, a later onboarding retry re-calls the
+ * provider with the SAME key — which returns the original email id rather than sending again.
+ *
+ * ⚠️ AND AFTER 24 HOURS IT FAILS CLOSED. The key is gone, so a resend would be unprotected:
+ * the state becomes `unresolved_expired`, nothing is sent, THE CLAIM IS NOT RELEASED, and an
+ * operator is shown it. A provider's retention expiring is not a reason to risk a duplicate.
+ *
+ * ⚠️ NO PROVIDER MESSAGE ID MEANS NO `sent`, and the database CHECK enforces it.
+ * ═══════════════════════════════════════════════════════════════════════════════════════
+ */
+export async function sendWelcomeEmail(
+  to: string, companyName: string,
+  /**
+   * 🛑 THE DURABLE IDENTITY THE KEY AND THE CLAIM HANG ON. Required, deliberately: the email
+   * address is NOT a safe key (an address can legitimately re-onboard under a new client)
+   * and a caller with no client row has nothing to claim against. `auth.ts` has `clientId`
+   * in hand by the time it calls this.
+   */
+  clientId: string,
+): Promise<void> {
+  if (!resend) return
+
+  const {
+    welcomeIdempotencyKey, welcomePayloadHash, decideWelcomeAttempt, recordForSendResult,
+  } = await import('./welcome-email-state')
+
+  const html    = welcomeEmailHtml(companyName)
+  const payload = { from: FROM, to, subject: WELCOME_EMAIL_SUBJECT, html, text: htmlToText(html) }
+  const hash    = welcomePayloadHash(payload)
+  const key     = welcomeIdempotencyKey(clientId)
+  const now     = Date.now()
+
+  // ── READ THE DURABLE STATE ───────────────────────────────────────────────────────────
+  const { data: row, error: readErr } = await db.from('clients')
+    .select('welcome_email_claimed_at, welcome_email_sent_at, welcome_email_outcome, welcome_email_message_id, welcome_email_payload_hash')
+    .eq('id', clientId).maybeSingle()
+  if (readErr) {
+    // 🛑 FAIL CLOSED. We do not know whether this client already has their welcome email, and
+    // the one thing we must not do with that answer is send one.
+    console.error(`[email] welcome state unreadable for client ${clientId} — NOT sending:`, readErr.message)
+    return
+  }
+  const r = (row ?? {}) as Record<string, string | null>
+  const state: WelcomeEmailState = {
+    claimedAt:   r.welcome_email_claimed_at ?? null,
+    sentAt:      r.welcome_email_sent_at ?? null,
+    outcome:     (r.welcome_email_outcome ?? null) as WelcomeEmailState['outcome'],
+    messageId:   r.welcome_email_message_id ?? null,
+    payloadHash: r.welcome_email_payload_hash ?? null,
+  }
+
+  const decision = decideWelcomeAttempt(state, hash, now)
+
+  if (decision.action === 'skip') {
+    console.log(`[email] welcome email for client ${clientId} not sent — ${decision.reason}.`)
+    return
+  }
+
+  if (decision.action === 'mark_payload_conflict' || decision.action === 'mark_expired') {
+    // ⚠️ NEITHER RELEASES THE CLAIM, AND NEITHER CALLS THE PROVIDER. Both are states a human
+    // resolves; the row is the persisted queue and the alert is only a notification of it.
+    const outcome = decision.action === 'mark_expired' ? 'unresolved_expired' : 'payload_conflict'
+    await db.from('clients').update({ welcome_email_outcome: outcome }).eq('id', clientId)
+    console.error(`[email] welcome email for client ${clientId} is ${outcome} — nothing sent, claim kept, operator action required.`)
+    void sendFounderAlert('support_escalation', 'A welcome email needs a human — it cannot be retried safely', [
+      `Client ${clientId} (${companyName}).`,
+      outcome === 'unresolved_expired'
+        ? 'The outcome was never resolved and Resend\'s 24-hour idempotency window has passed, so we cannot prove whether the original email was delivered.'
+        : 'The welcome email now renders differently from the first attempt, so the idempotency key can no longer protect a retry.',
+      'NOTHING has been sent automatically and nothing will be. Their claim is deliberately NOT released, so no duplicate can be created.',
+      'ACTION: Vida -> Command Centre -> System -> unresolved welcome emails. Check the Resend log for this client, then send it by hand if it never arrived.',
+    ]).catch(() => {})
+    return
+  }
+
+  // ── THE CLAIM ────────────────────────────────────────────────────────────────────────
+  if (decision.action === 'claim_and_send') {
+    const { data: claimed, error: claimErr } = await db.from('clients')
+      .update({ welcome_email_claimed_at: new Date(now).toISOString(), welcome_email_payload_hash: hash })
+      .eq('id', clientId)
+      // 🛑 THE COMPARE-AND-SET IS THE WHOLE MECHANISM. Postgres re-evaluates the WHERE after
+      // taking the row lock, so of N racing writers exactly one matches and the rest update
+      // zero rows. The loser must NOT call the provider.
+      .is('welcome_email_claimed_at', null)
+      .select('id')
+    if (claimErr) {
+      console.error(`[email] the welcome-email claim could not be taken for client ${clientId} — NOT sending:`, claimErr.message)
+      return
+    }
+    if ((claimed ?? []).length === 0) {
+      console.log(`[email] welcome email for client ${clientId} is already claimed by another request — not sending a second one.`)
+      return
+    }
+  }
+
+  // ── THE PROVIDER CALL — first attempt or a proven-safe retry, same key either way ────
+  let sent: CheckedSend | null
+  try {
+    sent = await sendTx({ ...payload, idempotencyKey: key })
+  } catch (thrown) {
+    // A throw is AMBIGUOUS, never a refusal: the request may have reached Resend.
+    sent = { ok: false, id: null, error: thrown, errorName: null }
+  }
+
+  if (sent === null) {
+    // Nothing was attempted (no API key, a non-deliverable recipient, the cold kill-switch,
+    // the lifecycle switch). RELEASE the claim so a later legitimate attempt can send, and
+    // record NO outcome — there is no provider verdict to record.
+    await db.from('clients')
+      .update({ welcome_email_claimed_at: null, welcome_email_payload_hash: null })
+      .eq('id', clientId)
+    return
+  }
+
+  const verdict = recordForSendResult({ ok: sent.ok, id: sent.id, errorName: sent.errorName })
+  if (!verdict.keepClaim) {
+    // A DEFINITIVE refusal: nothing was sent, so the claim comes back.
+    await db.from('clients')
+      .update({ welcome_email_claimed_at: null, welcome_email_payload_hash: null, welcome_email_outcome: 'refused' })
+      .eq('id', clientId)
+    console.error(`[email] welcome email for client ${clientId} was definitively refused (${sent.errorName}) — the claim is released and a later attempt may send.`)
+    return
+  }
+
+  await db.from('clients').update({
+    welcome_email_outcome: verdict.outcome,
+    ...(verdict.storeSend
+      ? { welcome_email_sent_at: new Date(now).toISOString(), welcome_email_message_id: sent.id }
+      : {}),
+  }).eq('id', clientId)
+
+  if (verdict.outcome !== 'sent') {
+    console.error(`[email] welcome email for client ${clientId} is ${verdict.outcome} (no provider message id) — the claim is kept and a retry inside 24h uses the same key.`)
+  }
+}
+
 
 // R6 (#32) — Onboarding activation sequence for ACTIVATED (paid) clients.
 // Distinct from sendNurtureEmail, which is a trial-conversion sequence the

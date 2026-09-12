@@ -23,6 +23,14 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { readFileSync } from 'fs'
 import { join } from 'path'
 import {
+
+// ⛓️ 12 Sep (S2-AUDIT-001) — RETARGETED, NOT WEAKENED. Every assertion below keeps its
+// exact meaning; only the NAME of the claim changed. `try_claim_proof_pass` incremented a
+// counter nothing could release, so a run that crashed at the PDL boundary consumed the
+// client's pass and left them with nothing. Authority now comes from the durable claim
+// ledger (`claim_proof_authority` -> `proof_pass_claims`), which can give it back. The old
+// RPC is retained in the database for rollback and has ZERO live callers
+// (`proof-authority-bypass.test.ts` asserts that, and it is what keeps it dead).
   pgTextArrayLiteral, sameTargetingSet, readCandidate, basisMatchesRow, pendingCandidate,
   PROOF_BASIS_FIELDS,
 } from './proof-candidate'
@@ -658,7 +666,7 @@ describe('the surrounding product is untouched', () => {
     const src = icps()
     expect(src).toContain('const PROOF_PASS_LEADS = 20')
     expect(src).toContain('PROOF_CLIENT_RECORD_CAP = 40')
-    expect((src.match(/db\.rpc\('try_claim_proof_pass'/g) ?? []), 'one pass claim').toHaveLength(1)
+    expect((src.match(/claimProofAuthority\(/g) ?? []), 'one pass claim').toHaveLength(1)
     expect((src.match(/db\.rpc\('try_reserve_proof_records'/g) ?? []), 'one reservation').toHaveLength(1)
     expect((src.match(/searchPeopleWithFallback\(/g) ?? []), 'exact + one widened retry, still two').toHaveLength(2)
   })

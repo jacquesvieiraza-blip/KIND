@@ -81,7 +81,11 @@ describe('🛑 ② a refused candidate is never surfaced, not even once', () => 
     const refuseAt = c.indexOf('if (!gate.ok)')
     const scoreAt = c.indexOf('scoreLeadsForIcp(gatedIds')
     expect(refuseAt).toBeLessThan(scoreAt)
-    expect(c).toContain('return { inserted, skipped, relaxed: gate.detail }')
+    // ⛓️ 12 Sep (S2-AUDIT-001) — the exit now also names its SETTLEMENT, and that addition is
+    // the point: this path records `failed` and RETURNS without throwing, so the proof route's
+    // outer `.catch` never sees it. Under the old code it consumed the client's Proof attempt
+    // while delivering nothing. `terminalForRunStatus('failed')` returns the attempt.
+    expect(c).toContain("return { inserted, skipped, relaxed: gate.detail, terminal: terminalForRunStatus('failed') }")
   })
 })
 

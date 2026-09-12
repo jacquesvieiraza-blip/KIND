@@ -4528,6 +4528,457 @@ COMMENT ON COLUMN public.programmes.approved_preparation_version IS
   'The review version the client actually approved. It stays put when a later re-freeze moves review_preparation_version - the two disagreeing is how an approval is known not to cover the current package.';
 `.trim(),
   },
+  {
+    // ── 🛑 ⚑ 12 Sep (S2-AUDIT-001 + R119) — PROOF AUTHORITY THAT CAN BE RETURNED ────────
+    //
+    // `try_claim_proof_pass` increments `clients.proof_passes_done` and NOTHING ANYWHERE
+    // RELEASES IT. The only writer of that column in the whole repo is the `+ 1`; there is no
+    // decrement, no reset, no unclaim — and the same is true of
+    // `proof_calibrated_restart_used_at`, which is stamped BEFORE anything is sourced. So a run
+    // that crashes at the PDL boundary — with `PAID_PROVIDERS_ENABLED` unset, the fail-closed
+    // default and THE MOST LIKELY PRODUCTION PATH — leaves the pass spent and the client with
+    // nothing. `routes/icps.ts` says so in its own alert text: "Their proof pass is CONSUMED".
+    //
+    // Authority is now CONSUMED at completion, HELD in flight and RETURNED on release. Because
+    // nothing else can be claimed while one is held, a duplicate or a retry can never reach the
+    // NEXT authority — the residual the founder refused when he rejected a decrement.
+    //
+    // ⚠️ EXPAND-ONLY, NO BACKFILL, NO DATA MUTATED. `try_claim_proof_pass` is deliberately
+    // left in place and unchanged so a partial deployment degrades to today's behaviour rather
+    // than to none; after this build it has ZERO live callers (proof-authority-bypass.test.ts).
+    //
+    // ⚠️ `clients.proof_passes_legacy` LANDS NULL AND IS NEVER BACKFILLED. NULL means
+    // UNCLASSIFIED and `claim_proof_authority` FAILS CLOSED on it, because historical authority
+    // is NOT deterministically reconstructible: `icp_run_outcomes` carries no pass number,
+    // `proof_started_at` is overwritten on every claim, `leads.proof_pass` did not exist before
+    // 3 Sep, a failed status is written by TWO paths with opposite meanings, and an ABSENT
+    // outcome row proves nothing. The founder refused a snapshot of the counter by name:
+    // "Blindly snapshotting proof_passes_done would memorialise the defect we are fixing."
+    //
+    // ⚠️ THE RESTART INDEX IS KEYED ON client_id ALONE (R119). Keying completed restarts on the
+    // grant timestamp is the per-resolution model main shipped on 11 Sep and R119 forbids.
+    key: '20260912_proof_pass_claims',
+    title: 'proof_pass_claims: durable Proof authority — infrastructure failure returns the pass, and exactly one calibrated restart per client for ever',
+    sql: `
+create table if not exists public.proof_pass_claims (
+  id               uuid        primary key default gen_random_uuid(),
+  client_id        uuid        not null references public.clients(id) on delete cascade,
+
+  authority        text        not null
+                     check (authority in ('automatic_1','automatic_2','calibrated_restart')),
+
+  restart_grant_at timestamptz,
+
+  status           text        not null default 'open'
+                     check (status in ('open','completed','released')),
+
+  icp_id           uuid        references public.icps(id) on delete set null,
+  claimed_at       timestamptz not null default now(),
+  settled_at       timestamptz,
+  release_reason   text,
+
+  constraint proof_pass_claims_settled_shape
+    check ((status = 'open' and settled_at is null)
+        or (status <> 'open' and settled_at is not null)),
+
+  constraint proof_pass_claims_grant_shape
+    check ((authority = 'calibrated_restart' and restart_grant_at is not null)
+        or (authority <> 'calibrated_restart' and restart_grant_at is null))
+);
+
+comment on table public.proof_pass_claims is
+  'Durable free-proof AUTHORITY ledger. One row per claim attempt. Authority is consumed at COMPLETION, held while a run is in flight, and returned on RELEASE — so provider/infrastructure failure never consumes a pass. The three unique partial indexes below ARE the authority; clients.proof_passes_done and clients.proof_calibrated_restart_used_at are compatibility mirrors of this table for existing readers.';
+
+comment on column public.proof_pass_claims.restart_grant_at is
+  'AUDIT ONLY — the clients.proof_calibrated_restart_at value this restart claim spent. Never part of a unique key: keying completed restarts on the grant is the per-resolution model R119 forbids. Keyed on client_id alone instead.';
+
+comment on column public.proof_pass_claims.release_reason is
+  'Why a claim was released, or how a legacy row was classified: run_failed | refused_before_run | structural_gate_no_set | operator_reconciled | legacy_classified_completed | legacy_classified_burned.';
+
+create unique index if not exists proof_pass_claims_one_open
+  on public.proof_pass_claims (client_id) where status = 'open';
+
+create unique index if not exists proof_pass_claims_one_completed_automatic
+  on public.proof_pass_claims (client_id, authority)
+  where status = 'completed' and authority <> 'calibrated_restart';
+
+create unique index if not exists proof_pass_claims_one_completed_restart
+  on public.proof_pass_claims (client_id)
+  where status = 'completed' and authority = 'calibrated_restart';
+
+create index if not exists proof_pass_claims_client_status
+  on public.proof_pass_claims (client_id, status);
+
+alter table public.proof_pass_claims enable row level security;
+
+alter table public.clients
+  add column if not exists proof_passes_legacy int;
+
+comment on column public.clients.proof_passes_legacy is
+  'How many automatic Proof passes this client LEGITIMATELY consumed BEFORE the durable claim ledger existed. NULLABLE, no default, NEVER backfilled: NULL means UNCLASSIFIED, and claim_proof_authority refuses to issue any automatic authority to an unclassified client that has claim history. Written only by an audited operator classification, or set to 0 by the claim function for a brand-new client whose proof_passes_done is 0.';
+
+create or replace function public.refresh_proof_authority_mirror(p_client_id uuid)
+returns void
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare
+  v_legacy       int;
+  v_auto_live    int;
+  v_restart_live timestamptz;
+begin
+  if p_client_id is null then return; end if;
+
+  select proof_passes_legacy into v_legacy from public.clients where id = p_client_id;
+  if v_legacy is null then return; end if;
+
+  select count(*) into v_auto_live
+    from public.proof_pass_claims
+   where client_id = p_client_id
+     and authority <> 'calibrated_restart'
+     and status in ('open','completed');
+
+  select min(claimed_at) into v_restart_live
+    from public.proof_pass_claims
+   where client_id = p_client_id
+     and authority = 'calibrated_restart'
+     and status in ('open','completed');
+
+  update public.clients
+     set proof_passes_done                    = v_legacy + v_auto_live,
+         proof_calibrated_restart_used_at     = v_restart_live
+   where id = p_client_id;
+end;
+$$;
+
+revoke execute on function public.refresh_proof_authority_mirror(uuid) from public;
+grant  execute on function public.refresh_proof_authority_mirror(uuid) to service_role;
+
+create or replace function public.claim_proof_authority(p_client_id uuid, p_icp_id uuid default null)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare
+  v_done          int;
+  v_legacy        int;
+  v_grant_at      timestamptz;
+  v_grant_used    timestamptz;
+  v_open          uuid;
+  v_auto_done     int;
+  v_auto_used     int;
+  v_authority     text;
+  v_claim         uuid;
+  v_found         boolean := false;
+begin
+  if p_client_id is null then
+    return jsonb_build_object('ok', false, 'reason', 'bad_args');
+  end if;
+
+  select true, coalesce(proof_passes_done, 0), proof_passes_legacy,
+         proof_calibrated_restart_at, proof_calibrated_restart_used_at
+    into v_found, v_done, v_legacy, v_grant_at, v_grant_used
+    from public.clients where id = p_client_id for update;
+
+  if not v_found then
+    return jsonb_build_object('ok', false, 'reason', 'unknown_client');
+  end if;
+
+  select id into v_open
+    from public.proof_pass_claims
+   where client_id = p_client_id and status = 'open'
+   limit 1;
+  if v_open is not null then
+    return jsonb_build_object('ok', false, 'reason', 'in_flight', 'claim_id', v_open);
+  end if;
+
+  if v_legacy is null then
+    if v_done = 0 then
+      update public.clients set proof_passes_legacy = 0 where id = p_client_id;
+      v_legacy := 0;
+    else
+      return jsonb_build_object('ok', false, 'reason', 'unclassified');
+    end if;
+  end if;
+
+  if v_grant_used is not null and not exists (
+       select 1 from public.proof_pass_claims
+        where client_id = p_client_id and authority = 'calibrated_restart') then
+    return jsonb_build_object('ok', false, 'reason', 'restart_unclassified');
+  end if;
+
+  select count(*) into v_auto_done
+    from public.proof_pass_claims
+   where client_id = p_client_id
+     and status = 'completed'
+     and authority <> 'calibrated_restart';
+
+  v_auto_used := v_legacy + v_auto_done;
+
+  if v_auto_used < 2 then
+    v_authority := 'automatic_' || (v_auto_used + 1)::text;
+    insert into public.proof_pass_claims (client_id, authority, icp_id)
+      values (p_client_id, v_authority, p_icp_id)
+      returning id into v_claim;
+    update public.clients set proof_started_at = now() where id = p_client_id;
+    perform public.refresh_proof_authority_mirror(p_client_id);
+    return jsonb_build_object(
+      'ok', true, 'claim_id', v_claim, 'authority', v_authority,
+      'pass', v_auto_used + 1, 'kind', 'automatic', 'reason', 'granted');
+  end if;
+
+  if exists (
+       select 1 from public.proof_pass_claims
+        where client_id = p_client_id
+          and status = 'completed'
+          and authority = 'calibrated_restart') then
+    return jsonb_build_object('ok', false, 'reason', 'restart_already_used');
+  end if;
+
+  if v_grant_at is null then
+    return jsonb_build_object('ok', false, 'reason', 'exhausted');
+  end if;
+
+  insert into public.proof_pass_claims (client_id, authority, restart_grant_at, icp_id)
+    values (p_client_id, 'calibrated_restart', v_grant_at, p_icp_id)
+    returning id into v_claim;
+  update public.clients set proof_started_at = now() where id = p_client_id;
+  perform public.refresh_proof_authority_mirror(p_client_id);
+  return jsonb_build_object(
+    'ok', true, 'claim_id', v_claim, 'authority', 'calibrated_restart',
+    'pass', 2, 'kind', 'calibrated_restart', 'reason', 'granted');
+end;
+$$;
+
+revoke execute on function public.claim_proof_authority(uuid, uuid) from public;
+grant  execute on function public.claim_proof_authority(uuid, uuid) to service_role;
+
+create or replace function public.settle_proof_claim(
+  p_claim_id uuid, p_status text, p_reason text default null
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare
+  v_client uuid;
+begin
+  if p_claim_id is null or p_status is null then
+    return jsonb_build_object('ok', false, 'reason', 'bad_args');
+  end if;
+  if p_status not in ('completed','released') then
+    return jsonb_build_object('ok', false, 'reason', 'bad_status');
+  end if;
+
+  update public.proof_pass_claims
+     set status         = p_status,
+         settled_at     = now(),
+         release_reason = p_reason
+   where id = p_claim_id
+     and status = 'open'
+  returning client_id into v_client;
+
+  if v_client is null then
+    return jsonb_build_object('ok', false, 'reason', 'not_open');
+  end if;
+
+  perform public.refresh_proof_authority_mirror(v_client);
+  return jsonb_build_object('ok', true, 'client_id', v_client, 'status', p_status);
+end;
+$$;
+
+revoke execute on function public.settle_proof_claim(uuid, text, text) from public;
+grant  execute on function public.settle_proof_claim(uuid, text, text) to service_role;
+
+create or replace function public.classify_legacy_restart(
+  p_client_id uuid, p_status text, p_note text
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare
+  v_grant_at timestamptz;
+  v_used_at  timestamptz;
+  v_claim    uuid;
+  v_found    boolean := false;
+begin
+  if p_client_id is null or coalesce(btrim(p_note), '') = '' then
+    return jsonb_build_object('ok', false, 'reason', 'note_required');
+  end if;
+  if p_status not in ('completed','released') then
+    return jsonb_build_object('ok', false, 'reason', 'bad_status');
+  end if;
+
+  select true, proof_calibrated_restart_at, proof_calibrated_restart_used_at
+    into v_found, v_grant_at, v_used_at
+    from public.clients where id = p_client_id for update;
+  if not v_found then
+    return jsonb_build_object('ok', false, 'reason', 'unknown_client');
+  end if;
+  if exists (select 1 from public.proof_pass_claims
+              where client_id = p_client_id and authority = 'calibrated_restart') then
+    return jsonb_build_object('ok', false, 'reason', 'already_classified');
+  end if;
+  if v_used_at is null then
+    return jsonb_build_object('ok', false, 'reason', 'nothing_to_classify');
+  end if;
+
+  insert into public.proof_pass_claims
+    (client_id, authority, restart_grant_at, status, settled_at, release_reason)
+  values
+    (p_client_id, 'calibrated_restart',
+     coalesce(v_grant_at, v_used_at),
+     p_status, now(),
+     case p_status when 'completed' then 'legacy_classified_completed'
+                   else 'legacy_classified_burned' end)
+  returning id into v_claim;
+
+  perform public.refresh_proof_authority_mirror(p_client_id);
+  return jsonb_build_object('ok', true, 'claim_id', v_claim, 'status', p_status);
+end;
+$$;
+
+revoke execute on function public.classify_legacy_restart(uuid, text, text) from public;
+grant  execute on function public.classify_legacy_restart(uuid, text, text) to service_role;
+
+create or replace function public.classify_legacy_proof_passes(
+  p_client_id uuid, p_passes int, p_note text, p_force boolean default false
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare
+  v_existing int;
+  v_found    boolean := false;
+begin
+  if p_client_id is null or coalesce(btrim(p_note), '') = '' then
+    return jsonb_build_object('ok', false, 'reason', 'note_required');
+  end if;
+  if p_passes is null or p_passes < 0 or p_passes > 2 then
+    return jsonb_build_object('ok', false, 'reason', 'out_of_range');
+  end if;
+
+  select true, proof_passes_legacy into v_found, v_existing
+    from public.clients where id = p_client_id for update;
+  if not v_found then
+    return jsonb_build_object('ok', false, 'reason', 'unknown_client');
+  end if;
+
+  if v_existing is not null and not coalesce(p_force, false) then
+    return jsonb_build_object('ok', false, 'reason', 'already_classified', 'existing', v_existing);
+  end if;
+
+  update public.clients set proof_passes_legacy = p_passes where id = p_client_id;
+  perform public.refresh_proof_authority_mirror(p_client_id);
+  return jsonb_build_object('ok', true, 'passes', p_passes,
+                            'replaced', v_existing is not null);
+end;
+$$;
+
+revoke execute on function public.classify_legacy_proof_passes(uuid, int, text, boolean) from public;
+grant  execute on function public.classify_legacy_proof_passes(uuid, int, text, boolean) to service_role;
+`.trim(),
+  },
+  {
+    // ── 🛑 ⚑ 12 Sep (S1-AUDIT-006 · R120) — ONE AUTOMATIC WELCOME EMAIL PER CLIENT ──────
+    //
+    // `routes/auth.ts` calls `sendWelcomeEmail(...)` OUTSIDE the `if (!existing)` block
+    // that guards the founder alert immediately below it, so a second POST /auth/onboard for
+    // the same user takes the UPDATE branch and THE WELCOME EMAIL SENDS AGAIN. A double-click,
+    // a refresh, an offline retry and two concurrent tabs all land there, and nothing anywhere
+    // recorded that the email had already been sent.
+    //
+    // ⚠️ CLAIMED IS NOT SENT, AND THE COLUMN NAMES NOW SAY SO. An earlier cut used
+    // `welcome_email_sent_at` as the PRE-SEND claim, which records a send that has not
+    // happened — the #338 phantom-send class in a new costume. `sent_at` is now written ONLY
+    // when Resend returns a message id, and clients_welcome_email_sent_needs_id ENFORCES that
+    // rather than trusting callers to remember: NO PROVIDER MESSAGE ID MEANS NO sent ASSERTION.
+    //
+    // ⚠️ THE 24-HOUR WINDOW IS NAMED RATHER THAN OVERSOLD (R120). Inside Resend's retention an
+    // ambiguous outcome is retried with the SAME key and a payload proven identical by
+    // `welcome_email_payload_hash`. After it the key is gone, so the state becomes
+    // unresolved_expired: no automatic resend, THE CLAIM IS NOT RELEASED, and a human is shown
+    // it. A provider's retention expiring is not a reason to risk a duplicate.
+    //
+    // ⚠️ NO BACKFILL. NULL here is the SAFE direction (at worst one extra welcome to a
+    // long-standing client who re-onboards), the opposite asymmetry to proof_passes_legacy
+    // above, where NULL must refuse. That difference is deliberate, not an oversight.
+    key: '20260912_welcome_email_once',
+    title: 'clients: one automatic welcome email — a durable claim, a provider message id, and the 24-hour idempotency window',
+    sql: `
+alter table public.clients
+  add column if not exists welcome_email_claimed_at   timestamptz,
+  add column if not exists welcome_email_sent_at      timestamptz,
+  add column if not exists welcome_email_outcome      text,
+  add column if not exists welcome_email_message_id   text,
+  add column if not exists welcome_email_payload_hash text;
+
+comment on column public.clients.welcome_email_claimed_at is
+  'THE CLAIM, not the send. "This process holds the exclusive right to send this client''s one welcome email." Taken by a conditional UPDATE (… where welcome_email_claimed_at is null) so a replayed /auth/onboard, a double-click and two concurrent tabs produce exactly one send. Cleared ONLY on a definitive provider refusal or a pre-provider skip — never on an ambiguous outcome, because an ambiguous outcome may already have sent. It is therefore also the anchor for Resend''s 24-hour idempotency window.';
+
+comment on column public.clients.welcome_email_sent_at is
+  'THE SEND, positively confirmed. Written ONLY when Resend returned an email id (new or cached). Never cleared. Non-null means a provider id exists and the state is terminal.';
+
+comment on column public.clients.welcome_email_outcome is
+  'sent | in_progress | payload_conflict | ambiguous | refused | unresolved_expired. in_progress = the provider reported another same-key request in flight (concurrent_idempotent_requests) — NOT a send. payload_conflict = the same key was used with a different payload (invalid_idempotent_request): fail closed, no retry, a human looks. ambiguous = a 500, a timeout or a throw: retry safely inside 24h. refused = a definitive provider refusal; the claim is released. unresolved_expired = still unresolved past Resend''s 24-hour retention: NO automatic resend, claim NOT released, surfaced for human review.';
+
+comment on column public.clients.welcome_email_message_id is
+  'Resend''s email id for this client''s welcome email. The only positive evidence a send landed, and what resolves an ambiguous retry inside the 24-hour window.';
+
+comment on column public.clients.welcome_email_payload_hash is
+  'sha256 over the exact rendered payload (from, to, subject, html, text) at the FIRST attempt. A retry re-renders, re-hashes and compares BEFORE calling the provider: equal means the same idempotency key is still safe and the retry will succeed; different means payload_conflict and the retry is refused locally rather than discovering it from a provider 409.';
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_constraint
+     where conrelid = 'public.clients'::regclass
+       and conname  = 'clients_welcome_email_outcome_check'
+  ) then
+    alter table public.clients
+      add constraint clients_welcome_email_outcome_check check (
+        welcome_email_outcome is null
+        or welcome_email_outcome in
+             ('sent','in_progress','payload_conflict','ambiguous','refused','unresolved_expired')
+      );
+  end if;
+
+  if not exists (
+    select 1 from pg_constraint
+     where conrelid = 'public.clients'::regclass
+       and conname  = 'clients_welcome_email_sent_needs_id'
+  ) then
+    alter table public.clients
+      add constraint clients_welcome_email_sent_needs_id check (
+        welcome_email_outcome is distinct from 'sent'
+        or (welcome_email_message_id is not null and welcome_email_sent_at is not null)
+      );
+  end if;
+
+  if not exists (
+    select 1 from pg_constraint
+     where conrelid = 'public.clients'::regclass
+       and conname  = 'clients_welcome_email_sent_needs_claim'
+  ) then
+    alter table public.clients
+      add constraint clients_welcome_email_sent_needs_claim check (
+        welcome_email_sent_at is null or welcome_email_claimed_at is not null
+      );
+  end if;
+end $$;
+
+create index if not exists clients_welcome_email_unresolved_idx
+  on public.clients (welcome_email_outcome, welcome_email_claimed_at)
+  where welcome_email_outcome in ('in_progress','ambiguous','payload_conflict','unresolved_expired');
+`.trim(),
+  },
 ]
 
 // Runs the statements against DATABASE_URL. Uses node-postgres because the Supabase JS

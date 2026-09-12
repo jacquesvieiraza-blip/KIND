@@ -290,12 +290,28 @@ describe('③ promotion is gated and idempotent', () => {
     expect(String(res.payload.error)).toContain('Company type')
   })
 
-  it('a complete brief promotes, and the draft is sealed AFTER the client exists', async () => {
+  // ── 🛑 ⛓️ 12 Sep (S1-AUDIT-003) — THE SEAL MOVED, AND THE MOVE IS THE FIX ─────────────
+  //
+  // ~~"a complete brief promotes, and the draft is sealed AFTER the client exists"~~
+  // ~~expect(state.sealed).toEqual(['client-new'])~~
+  //
+  // Sealing after the client row was HALF of promotion. The core ICP is a SEPARATE call, so
+  // this was reachable: onboard succeeds -> the draft is closed to writes -> the browser never
+  // reaches POST /icps -> a client with no targeting and a Brief that can never be edited
+  // again. `writableBriefDraft` refuses a promoted row by design, so nothing in the product
+  // could recover it.
+  //
+  // The seal is now the LAST durable step, in `POST /icps` with `from_brief_draft: true`,
+  // immediately after the ICP is written. Until both halves exist the draft stays WRITABLE, so
+  // an interrupted promotion is resumable rather than stranded.
+  //
+  // ⚠️ THE ASSERTION IS INVERTED, NOT DROPPED, so the early seal cannot come back unnoticed.
+  it('🛑 a complete brief promotes — and the draft is NOT sealed here, because the ICP does not exist yet', async () => {
     withDraft(true)
     const res = await onboard(BODY)
     expect(res.code).toBe(200)
     expect(state.inserts.filter(i => i.table === 'clients')).toHaveLength(1)
-    expect(state.sealed).toEqual(['client-new'])
+    expect(state.sealed, 'the draft was sealed before the ICP existed — the stranding defect').toEqual([])
   })
 
   it('🛑 7 · promotion retried cannot create a SECOND client', async () => {

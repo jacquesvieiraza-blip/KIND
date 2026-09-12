@@ -35,6 +35,14 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { readFileSync } from 'fs'
 import { join } from 'path'
 
+// ⛓️ 12 Sep (S2-AUDIT-001) — RETARGETED, NOT WEAKENED. Every assertion below keeps its
+// exact meaning; only the NAME of the claim changed. `try_claim_proof_pass` incremented a
+// counter nothing could release, so a run that crashed at the PDL boundary consumed the
+// client's pass and left them with nothing. Authority now comes from the durable claim
+// ledger (`claim_proof_authority` -> `proof_pass_claims`), which can give it back. The old
+// RPC is retained in the database for rollback and has ZERO live callers
+// (`proof-authority-bypass.test.ts` asserts that, and it is what keeps it dead).
+
 type Row = Record<string, any>
 type Store = { clients: Row[] }
 
@@ -146,7 +154,7 @@ describe('the Proof business rules are untouched by the harness change', () => {
   })
 
   it('the two-pass ceiling is still the database call, not the harness', () => {
-    expect(src).toContain('try_claim_proof_pass')
+    expect(src).toContain('claim_proof_authority')
     expect(src).toMatch(/if \(done >= 2\) return \{ data: 0, error: null \}/)
   })
 
@@ -156,7 +164,14 @@ describe('the Proof business rules are untouched by the harness change', () => {
     // must carry no residue of the hunt.
     // ⛓️ 11 Sep — the dispatch now also names the batch KIND (automatic vs the one calibrated
     // restart). Same call, same fire-and-forget shape, same `.catch` — only the options widen.
-    expect(icps).toMatch(/runIcpJob\(req\.params\.id, clientId, req\.userId!, PROOF_PASS_LEADS, \{ proofPass: claimed, proofKind: batchKind \}\)\n\s*\.catch\(/)
+    // ⛓️ 12 Sep (S2-AUDIT-001) — STILL FIRE-AND-FORGET, which is what this test guards: the
+    // prospect gets an immediate answer and the batch lands when the run finishes. What was
+    // ADDED is a `.then` beside the `.catch`, because settling only on a throw missed two real
+    // non-throwing failure paths (the structural gate, and a provider search that did not
+    // complete) — both of which used to consume the client's Proof attempt silently.
+    expect(icps).toMatch(/runIcpJob\(req\.params\.id, clientId, req\.userId!, PROOF_PASS_LEADS, \{ proofPass: claimed, proofKind: batchKind \}\)\n\s*\.then\(/)
+    expect(icps, 'the dispatch is no longer fire-and-forget').not.toMatch(/await runIcpJob\(req\.params\.id, clientId, req\.userId!, PROOF_PASS_LEADS/)
+    expect(icps).toMatch(/\.catch\(async e => \{/)
     expect(icps, 'a background-ownership wrapper was left in production').not.toMatch(/trackBackground/)
   })
 })

@@ -1077,7 +1077,7 @@ async function sendSequenceEmailCore(
         html:     coldEmailHtml(body, emailId),
       })
     } catch (thrown) {
-      checked = { ok: false, id: null, error: thrown }
+      checked = { ok: false, id: null, error: thrown, errorName: null }
     }
     if (!checked.ok) {
       console.error(`[figsy] sendSequenceEmail: send FAILED for ${lead.email} step ${step} — not advancing enrollment`, checked.error)

@@ -78,6 +78,13 @@ const onboardSchema = z.object({
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
+/** A brief fact that is present and non-blank, or undefined. Blank is NEVER a value: a draft
+ *  that holds nothing for a fact must fall back rather than blank what the caller had. */
+function text2(v: string | null | undefined): string | undefined {
+  const t = (v ?? '').trim()
+  return t === '' ? undefined : t
+}
+
 authRouter.post('/onboard', async (req, res) => {
   try {
     const token = req.headers.authorization?.replace('Bearer ', '')
@@ -96,10 +103,9 @@ authRouter.post('/onboard', async (req, res) => {
     // never mentioned one — and a meeting target would later be agreed against it. The
     // classification is ours, from their words, in one place.
     const { readStatedOutcome } = await import('../lib/client-outcome')
-    const outcome = readStatedOutcome(outcome_stated)
-    const outcomeFields = outcome
-      ? { outcome_kind: outcome.kind, outcome_stated: outcome.stated }
-      : {}
+    // ⚠️ THE SENTENCE IS RESOLVED BELOW, AFTER THE CONFIRMED DRAFT HAS HAD ITS SAY (S1-AUDIT-002).
+    // The classification still happens here and is still never sent — only WHICH sentence is
+    // classified moved, from the browser's copy to the server's.
 
     // A ref can be a client UUID (client referral) or an 8-char partner code.
     let resolvedReferredBy: string | undefined   // client referrer id
@@ -131,7 +137,7 @@ authRouter.post('/onboard', async (req, res) => {
     // and every path that predates the draft table have no draft at all — `briefDraftFor`
     // answers null and this gate stands aside. It never invents a requirement for a journey
     // that did not go through Milla.
-    const { briefDraftFor, mayConfirmBrief, markBriefDraftPromoted } = await import('../lib/brief-draft')
+    const { briefDraftFor, mayConfirmBrief } = await import('../lib/brief-draft')
     const { BRIEF_FACT_LABEL } = await import('@kind/shared')
     const draft = await briefDraftFor(user.id)
     if (draft && !draft.promotedClientId) {
@@ -164,6 +170,61 @@ authRouter.post('/onboard', async (req, res) => {
         return
       }
     }
+
+    // ── 🛑 ⚑ 12 Sep (S1-AUDIT-002) — THE CONFIRMED DRAFT IS THE SOURCE OF TRUTH ─────────
+    //
+    // 🛑 THE DEFECT. Every fact below arrived in the REQUEST BODY. The browser was the
+    // courier: it read the draft, held the values in component state across a four-call
+    // promotion, and re-sent them. Three things follow from that, and all three were live:
+    //
+    //   · a body that OMITS `outcome_stated` created a client with no stated outcome, even
+    //     though the client had answered the question and the answer was on the server;
+    //   · a body that sends something DIFFERENT from the confirmed draft wins, so the client
+    //     row can disagree with the brief they were shown and agreed to;
+    //   · the eleven-fact gate above reads the DRAFT while the write below read the BODY —
+    //     two different sources for one decision, which is the shape of every drift bug.
+    //
+    // ⚠️ THE DRAFT WINS, AND IT WINS SILENTLY. There is nothing to reconcile: the client
+    // confirmed THESE words, `mayConfirmBrief` has just proved all eleven are present, and a
+    // browser value that disagrees is stale or wrong by definition.
+    //
+    // ⚠️ ONLY THE FACTS THE DRAFT ACTUALLY HOLDS ARE OVERRIDDEN. `country`, `industry` and
+    // `phone` are NOT brief facts (the brief's `geography` is who the client wants to REACH,
+    // not where they are), so they still come from the body — unchanged, deliberately, and
+    // not silently widened into something the draft cannot answer.
+    //
+    // ⚠️ AND IT APPLIES ONLY TO A CONFIRMED, UNPROMOTED DRAFT. A legacy client re-onboarding,
+    // an operator-created account and every pre-draft journey have no draft at all; they take
+    // exactly today's path.
+    const draftFacts = draft && !draft.promotedClientId && draft.confirmedAt ? draft.facts : null
+    if (draftFacts) {
+      const text = (v: string | null | undefined) => {
+        const t = (v ?? '').trim()
+        return t === '' ? undefined : t
+      }
+      const company = text(draftFacts.company_name)
+      if (company) profileFields.company_name = company
+      const country = text(draftFacts.country)
+      if (country) profileFields.country = country
+      const phone = text(draftFacts.phone)
+      if (phone) profileFields.phone = phone
+      // ⚠️ WEBSITE IS THE ONE GUARDED OVERRIDE. The schema validates it as a URL, and the
+      // brief legitimately records an explicit "none" (`website_none`), so only a value that
+      // already parses as http(s) may replace it. A brief that says "no website" must not
+      // 400 the whole promotion, and it must not fabricate one either.
+      const site = text(draftFacts.website)
+      if (site && /^https?:\/\//i.test(site)) profileFields.website = site
+    }
+    // ⚠️ `contact_name` AND `outcome_stated` WERE DESTRUCTURED OUT OF `profileFields` ABOVE,
+    // so they are owned as their own locals rather than through the payload. In both cases the
+    // body is now only a FALLBACK for a journey that has no draft at all.
+    const contactNameOwned = text2(draftFacts?.contact_name) ?? contact_name
+    const outcomeStatedOwned = text2(draftFacts?.desired_outcome) ?? outcome_stated
+
+    const outcome = readStatedOutcome(outcomeStatedOwned)
+    const outcomeFields = outcome
+      ? { outcome_kind: outcome.kind, outcome_stated: outcome.stated }
+      : {}
 
     const now = new Date().toISOString()
 
@@ -241,23 +302,40 @@ authRouter.post('/onboard', async (req, res) => {
 
     // Who we're speaking to. Best-effort: an un-migrated database must never cost us a
     // signup, so a failure here is logged and swallowed rather than thrown.
-    if (contact_name && contact_name.trim()) {
+    if (contactNameOwned && contactNameOwned.trim()) {
       const { error: nameErr } = await db.from('clients')
-        .update({ contact_name: contact_name.trim().slice(0, 120) }).eq('id', clientId)
+        .update({ contact_name: contactNameOwned.trim().slice(0, 120) }).eq('id', clientId)
       if (nameErr) console.warn('[onboard] contact_name not stored (run 20260726_client_contact_name):', nameErr.message)
     }
 
-    // ── ⚑ MVP1 — THE DRAFT IS SEALED, AND ONLY NOW ───────────────────────────────────
+    // ── 🛑 ⚑ 12 Sep (S1-AUDIT-003) — THE SEAL IS NOT HERE ANY MORE ───────────────────
     //
-    // ⚠️ AFTER THE CLIENT ROW EXISTS, NEVER BEFORE. If promotion were stamped first and the
-    // insert then failed, the draft would be closed to further writes and the person left
-    // with no client and no editable Brief — every answer they gave stranded behind a door
-    // that will not open again.
+    // ⛓️ WHAT STOOD HERE, AND WHY IT WAS WRONG:
+    // ~~`if (draft && !draft.promotedClientId) await markBriefDraftPromoted(user.id, clientId)`~~
     //
-    // ⚠️ BEST-EFFORT, DELIBERATELY. By this line the client exists; failing the whole
-    // onboarding because the evidence row could not be stamped would throw away a successful
-    // promotion over bookkeeping. It is logged loudly inside `markBriefDraftPromoted`.
-    if (draft && !draft.promotedClientId) await markBriefDraftPromoted(user.id, clientId)
+    // The reasoning above it was right as far as it went — seal AFTER the client row exists,
+    // never before — but the client row is only HALF of what promotion has to produce. The
+    // other half is the core ICP, and that is a SEPARATE browser call. So this exact
+    // sequence was reachable, and it strands a real person:
+    //
+    //     /auth/onboard succeeds  ->  client row exists  ->  DRAFT SEALED
+    //       ->  the browser never reaches POST /icps (tab closed, network drop, crash)
+    //       ->  a client with NO ICP and an UNWRITABLE Brief.
+    //
+    // Every answer they gave is now behind a door that will not open again, and there is no
+    // targeting to run Proof against. `writableBriefDraft` refuses a promoted row by design,
+    // which is correct — the row is evidence — so nothing in the product could recover it.
+    //
+    // 🛑 THE SEAL IS THE LAST DURABLE STEP OF PROMOTION, so it now lives where the LAST piece
+    // of durable state is created: `POST /icps` with `from_brief_draft: true`, immediately
+    // after the core ICP is written. Until both halves exist the draft stays WRITABLE, so an
+    // interrupted promotion is resumable rather than stranded — and a replay of either call
+    // completes it instead of finding a locked door.
+    //
+    // ⚠️ PROOF START DELIBERATELY STAYS OUTSIDE THAT BOUNDARY. A Proof run is a provider
+    // call with its own authority ledger; making it part of the promotion transaction would
+    // mean a provider outage could block an account from ever being created. Promotion is
+    // client + ICP + seal. Proof is what happens next.
 
     // ── ⚑ MVP1 (C27) — THE ADDRESS CHECKOUT REFUSES TO WORK WITHOUT ───────────────────
     //
@@ -361,7 +439,23 @@ authRouter.post('/onboard', async (req, res) => {
       void now // (no signup grant — intentional)
     }
 
-    sendWelcomeEmail(user.email!, profileFields.company_name).catch(() => {})
+    // ── 🛑 ⚑ 12 Sep (S1-AUDIT-006 · R120) — ONE AUTOMATIC WELCOME EMAIL ─────────────────
+    //
+    // 🛑 THIS LINE SAT OUTSIDE THE `if (!existing)` BLOCK BELOW, AND THAT WAS THE DEFECT. A
+    // second POST here takes the UPDATE branch, the draft gate stands aside because the draft
+    // is already promoted, and the welcome email SENT AGAIN. A double-click, a refresh, an
+    // offline retry and two concurrent tabs all land on this line.
+    //
+    // ⚠️ IT IS STILL CALLED UNCONDITIONALLY, ON PURPOSE. The guard does NOT belong here: an
+    // `if (!existing)` would make the FIRST attempt the only attempt, so a client whose first
+    // send died before recording anything would never receive a welcome email at all. The
+    // authority is the durable claim inside `sendWelcomeEmail` — which both refuses a
+    // duplicate and permits a proven-safe retry inside Resend's 24-hour window.
+    //
+    // ⚠️ `clientId` IS THE DURABLE IDENTITY THE CLAIM AND THE IDEMPOTENCY KEY HANG ON. The
+    // email address is not safe for either: an address can legitimately re-onboard under a
+    // new client, and two clients must never share a key.
+    sendWelcomeEmail(user.email!, profileFields.company_name, clientId).catch(() => {})
     // #285 alerting — tell the founder a new client just onboarded (new clients only).
     if (!existing) {
       void sendFounderAlert('new_signup', `New signup — ${profileFields.company_name}`, [

@@ -170,7 +170,7 @@ describe('HC-1 GUARD — every opt_out_blocklist email comparison goes through t
   // The three probes that pass a variable rather than a call. Each is proven normalised at its
   // definition by the test below — listing them here rather than pattern-matching keeps the
   // guard honest: a NEW variable name is an offender until someone adds it deliberately.
-  const NORMALISED_VARS = new Set(['batchEmails', 'candEmails', 'emailKey', 'consentKey', 'programmeEmails', 'reviewEmails'])
+  const NORMALISED_VARS = new Set(['batchEmails', 'candEmails', 'emailKey', 'consentKey', 'programmeEmails', 'reviewEmails', 'providerEmails'])
 
   it('every variable on that allowlist is built by the normaliser at its definition', () => {
     // `singular` distinguishes the one-address probe from the batch ones. Both forms are
@@ -178,7 +178,13 @@ describe('HC-1 GUARD — every opt_out_blocklist email comparison goes through t
     // vacuously on a file that used neither, which is the failure this whole block guards.
     const defs: { file: string; name: string; singular?: boolean }[] = [
       { file: 'routes/figsy.ts',     name: 'batchEmails' },
-      { file: 'routes/icps.ts',      name: 'candEmails'  },
+      // ⛓️ 12 Sep — the pool read moved to `lib/pool-candidates.ts` (POOL-FIRST gate). Same
+      // probe, same variable, same normaliser; only the file changed.
+      { file: 'lib/pool-candidates.ts', name: 'candEmails'  },
+      // ⚑ 12 Sep — the PROVIDER half of a lookalike/House run probes the blocklist before a
+      // bought contact may become usable client inventory. A page of addresses, so the batch
+      // normaliser. This guard is why it is not called `emails`.
+      { file: 'lib/pool-candidates.ts', name: 'providerEmails' },
       // HC-3 — the Smartlead push probes the blocklist before handing a lead to an engine we do
       // not control. One address, so the singular normaliser.
       { file: 'lib/smartlead-send.ts', name: 'emailKey', singular: true },

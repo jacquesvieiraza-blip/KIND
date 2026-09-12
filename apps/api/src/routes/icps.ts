@@ -12,11 +12,11 @@ import { suggestIcpFromWebsite } from '../lib/scrape'
 import { autoEnrollLead, sendDay1OutreachBatch } from '../lib/figsy'
 import { getOrCreateConsentToken, buildConsentUrl } from '../lib/consent'
 import { enrichAndDeliverLeads } from '../lib/lead-delivery'
-import { deliveryCapBalance, normalizePlan, normalizeRevealEmail, normalizeRevealEmails } from '../lib/billing-rules'
+import { deliveryCapBalance, normalizePlan, normalizeRevealEmail } from '../lib/billing-rules'
 import { isSuppressed } from '../lib/suppression'
 import { sendFounderAlert } from '../lib/alerts'
 import { PDL_RATE_USD } from '../lib/sourcing-fences'
-import { isLaunchSendCountry, launchTargetRefusal, launchCountrySpellings } from '@kind/shared'
+import { isLaunchSendCountry, launchTargetRefusal } from '@kind/shared'
 // ⚑ 10 Sep (C01) — ONE DIFF RULE, SHARED WITH THE SCREEN THAT SPEAKS IT. The sentence a
 // client reads about their own targeting is derived here, from the two states the SERVER
 // observed; `packages/shared` is where it lives so the portal cannot grow a second, kinder
@@ -27,7 +27,8 @@ import {
 // ⚑ MVP1 (C21) — the canonical ELEVEN brief facts. One list, shared with Vida's progress
 // card, so "how complete is this brief?" has exactly one answer in the product.
 import { briefFacts, BRIEF_FACT_LABEL } from '@kind/shared'
-import { splitPoolAndRemainder, poolWriteAllowed, splitPoolEligible, poolRefusalLine, poolCountryMatches, canonicalPoolCountry, isGeoServable, isPoolSourceEligible, poolRecordMatchesIcp, POOL_ELIGIBLE_SOURCES } from '../lib/pool-sourcing'
+import { splitPoolAndRemainder, poolWriteAllowed, splitPoolEligible, poolRefusalLine, poolCountryMatches, canonicalPoolCountry, isGeoServable } from '../lib/pool-sourcing'
+import { selectPoolCandidates, logPoolCounters } from '../lib/pool-candidates'
 import { toMemoryRecord, rememberAcquiredIdentities, type AcquisitionMemoryRecord, type SuppressionReason } from '../lib/acquisition-memory'
 import { assertIcpFullyOwned } from '../lib/icp-coverage'
 import { rethrowIfProviderBlocked, isPaidProviderBlocked } from '../lib/paid-provider-guard'
@@ -424,175 +425,25 @@ async function servePoolLeads(
   // `reserved: 0` on that path would strand programme volume with nothing to release it.
   let admitted = 0
   try {
-    // PostgREST .or() splits on commas and treats *,(,) specially — strip them so a
-    // value can't break the filter (OR-generous, so a coarser term is harmless).
-    const clean = (v: string) => v.replace(/[,()*%]/g, ' ').trim()
-    const geos   = (icp.geographies      ?? []).map(clean).filter(Boolean)
-    const titles = (icp.job_titles       ?? []).map(clean).filter(Boolean)
-    const inds   = (icp.industries       ?? []).map(clean).filter(Boolean)
-    const sens   = (icp.seniority_levels ?? []).map(clean).filter(Boolean)
-
-    // ── ⚑ 27 Aug — THE COUNTRY TERM IS EXPANDED TO EVERY SPELLING OF THAT COUNTRY ──────────
+    // ── ⚑ 12 Sep — THE CANDIDATE SELECTION MOVED OUT, AND NOTHING ABOUT IT CHANGED ────────
     //
-    // `lead_pool.country` is free text written by whichever provider or import created the
-    // row, so one country is stored under several spellings at once. Asking the database for
-    // only the client's own wording returns the rows that happen to share it and misses the
-    // rest — owned, relevant inventory the pool could not see. The launch alias table already
-    // knows every spelling; it just had no expansion direction until now.
+    // 🛑 IT IS AN EXTRACTION, NOT A REWRITE. The widened `lead_pool` query, the R73 source
+    // fence on the read, the geography decision, the `owned` exclusion, the opt-out blocklist
+    // (which is also the hard-bounce fence), the do-not-contact floor and the hard-fit rule
+    // all still run, in the same order, on the same rows — they now live in
+    // `lib/pool-candidates.ts` so that `/lookalike/generate` and House prospecting ask the
+    // SAME code instead of each growing their own answer. Two routes were buying records we
+    // already owned because Pool First was a convention held in this function.
     //
-    // ⚠️ EXACT PER SPELLING, NEVER SUBSTRING — the second half of the fix, and it must live
-    // AT THE QUERY, not after it. The candidate buffer is BOUNDED (`.limit(cap*5, min 50)`),
-    // so a substring prefilter is not merely sloppy, it is a starvation channel: a US target
-    // written as `country ILIKE '%us%'` admits Australia, Austria, Belarus, Cyprus and
-    // Mauritius into the limited window, and every false row it admits can push a genuine
-    // United States row OUT of the set the JS filter ever sees. "The JS filters them later"
-    // is no defence when the database already capped the list — the correct rows never
-    // arrive to be filtered. So each alias spelling is matched EXACTLY (PostgREST `ilike`
-    // with no `*` is exact, case-insensitive): a false spelling cannot enter the window,
-    // and the alias expansion — not the wildcard — is what covers "GB" vs "United Kingdom".
-    // `poolCountryMatches` below still makes the final canonical decision on what returns.
-    const geoTerms = [...new Set(geos.flatMap(g => launchCountrySpellings(g)).map(clean).filter(Boolean))]
-
-    // ⚑ 10 Sep (C02) — DELIBERATELY WIDE, and the narrowing happens below. This query casts
-    // the net (`.or()` across title/industry/seniority, no size test) so the DECISION can be
-    // made on the row by `poolRecordMatchesIcp` → `proof-fit.ts`. It no longer "mirrors" that
-    // predicate: the predicate is now strictly narrower than the query, on purpose.
-    //   (country = any geo SPELLING, case-insensitive) AND (title ILIKE any | industry ILIKE any | seniority ILIKE any)
-    // Chained .or() calls are ANDed; terms inside one .or() are ORed. Role terms keep their
-    // `*` wildcards — titles are genuinely partial. Country terms carry NO wildcard.
-    // ── ⚑ 27 Aug (merge-gate) — R73 IS ENFORCED ON THE READ, NOT ONLY THE WRITE ───────────
-    // The write tripwire decides what may ENTER the shared pool; it says nothing about what
-    // is already in it. A historical SQL import or backfill bypasses the TypeScript writer
-    // entirely — that is not hypothetical, it is how the 85 rows arrived — so without a fence
-    // here a customer/inbound or unknown-provenance row could be served CROSS-CLIENT.
-    //
-    // ⚠️ IT MUST BE A DATABASE FILTER, BEFORE `.limit(...)`. Filtering in JS afterwards would
-    // let ineligible rows consume the bounded candidate window and push owned rows out of it
-    // — the same starvation channel the country wildcard opened. Both boundaries, again.
-    //
-    // ⚠️ FAIL CLOSED. Only the R73 sources (`pdl`, `apollo` — K.I.N.D-acquired) are served;
-    // NULL, blank and anything unlisted are refused. The 85 production rows are `apollo` and
-    // stay source-eligible — they remain unservable for a geography-targeted run because
-    // their country is NULL, which is a different gate.
-    let q = db.from('lead_pool').select('*').in('source', [...POOL_ELIGIBLE_SOURCES])
-    if (geoTerms.length) q = q.or(geoTerms.map(g => `country.ilike.${g}`).join(','))
-    const roleOr = [
-      ...titles.map(t => `title.ilike.*${t}*`),
-      ...inds.map(i => `industry.ilike.*${i}*`),
-      ...sens.map(s => `seniority.ilike.*${s}*`),
-    ]
-    if (roleOr.length) q = q.or(roleOr.join(','))
-
-    // Pull a candidate buffer (we still dedup / blocklist / suppress below), then
-    // cap the actual serve at `cap`. Empty pool → [] → served 0 → identical to today.
-    const { data: candidates, error } = await q.limit(Math.max(cap * 5, 50))
-    if (error) { console.error('[icp] lead_pool query failed (non-fatal, falling through to PDL):', error); return { insertedIds: [], served: 0, reserved: 0 } }
-    if (!candidates || candidates.length === 0) return { insertedIds: [], served: 0, reserved: 0 }
+    // What stayed here is what is genuinely this function's own: the programme reservation,
+    // the lead insert, the $0 ledger row and the cost-avoided counters.
+    const { eligible, costByEmail: poolCostByEmail, counters } =
+      await selectPoolCandidates(icp, { cap, clientId })
+    logPoolCounters(`client=${clientId}`, counters, eligible.length)
 
     const norm = (e: string | null | undefined) => normalizeRevealEmail(e)
-    // HC-1 — these come from `lead_pool.email_norm`, which is written normalised, so this
-    // wrap changes no value today. It is here so that EVERY blocklist probe in the codebase
-    // passes through the one normaliser with no exceptions: the guard test can then assert
-    // that flatly, and the day something writes an un-normalised `email_norm` this still holds.
-    // ── ⚑ 10 Sep (C02) — WHAT WE ALREADY PAID FOR THESE ROWS, READ WHERE THEY ARE READ ──
-    //
-    // `acquisition_cost` is a `lead_pool` column and it is captured HERE, beside its own
-    // select, rather than further down where the served subset is known. Two reasons, and the
-    // second is the one that matters: the sum belongs to the rows this query returned, and a
-    // bare column name read after the `leads` insert below reads — to `schema-truth`'s
-    // nearest-table check and to a human — as a column of `leads`, which it is not.
-    const poolCostByEmail = new Map<string, number>()
-    for (const c of candidates as { email_norm?: string | null; acquisition_cost?: number | null }[]) {
-      const key = normalizeRevealEmail(c.email_norm)
-      if (key && typeof c.acquisition_cost === 'number' && Number.isFinite(c.acquisition_cost)) {
-        poolCostByEmail.set(key, Number(c.acquisition_cost))
-      }
-    }
-    const candEmails = normalizeRevealEmails(
-      candidates.map((c: { email_norm?: string | null }) => c.email_norm),
-    )
-    if (candEmails.length === 0) return { insertedIds: [], served: 0, reserved: 0 }
-
-    // Anti-dup — exclude any email this client already has in leads (normalise both
-    // sides; leads.email is stored raw). Bounded: only this client's leads.
-    const { data: ownedRows } = await db.from('leads')
-      .select('email').eq('client_id', clientId).not('email', 'is', null)
-    const owned = new Set((ownedRows ?? []).map(r => norm(r.email)).filter(Boolean) as string[])
-
-    // Blocklist — never serve an opted-out email (unless they opted back in).
-    const { data: blockedRows } = await db.from('opt_out_blocklist')
-      .select('email').is('opted_back_in_at', null).in('email', candEmails)
-    const blocked = new Set((blockedRows ?? []).map(r => norm(r.email)).filter(Boolean) as string[])
-
-    type Cand = {
-      email_norm: string; first_name?: string | null; last_name?: string | null
-      title?: string | null; seniority?: string | null; company?: string | null
-      industry?: string | null; company_size?: string | null; country?: string | null
-      linkedin_url?: string | null; source?: string | null
-    }
-    // ⚑ 27 Aug — counted, never inferred. A geography-targeted proof that serves nothing has
-    // two completely different causes with identical symptoms: the pool holds nobody in that
-    // country, or the pool holds them and their `country` column is empty. Production sat on
-    // the second for weeks reading it as the first, because the run reported one number for
-    // both. These counters are what tell them apart, and they carry no PII.
-    let notGeoServable = 0
-    let notSourceEligible = 0
-    // ⚑ 10 Sep (C02) — counted, never inferred. "The pool held nobody who fits" and "the pool
-    // held them and we refused them for the wrong reason" have identical symptoms otherwise.
-    let notHardFit = 0
-    const geoGated = geos.length > 0
-    const eligible = (candidates as Cand[]).filter(c => {
-      const e = norm(c.email_norm)
-      if (!e) return false
-      // R73 RIGHTS, decided here — the database prefilter narrows the window, it does not
-      // make the decision. Same reasoning as the country gate: widen there, decide here.
-      if (!isPoolSourceEligible(c.source)) { notSourceEligible++; return false }
-      // GEOGRAPHY, PRECISELY. The query above was widened across spellings; this is the
-      // decision. An unknown country never satisfies a geography — never a wildcard.
-      if (geoGated && !poolCountryMatches(c.country, geos)) {
-        if (!isGeoServable(c)) notGeoServable++
-        return false
-      }
-      // ⚠️ `owned` IS THE STRUCTURAL-REJECTION EXCLUSION TOO, and that is not a coincidence.
-      // A candidate this client already holds in `leads` is excluded — which covers the ones
-      // they passed on, the ones they marked "not a fit", and (since PR1 #1672) the ones the
-      // structural gate set aside. Re-serving any of those would show them somebody they or
-      // we had already refused, from the pool, for free, as though it were new.
-      if (owned.has(e)) return false
-      if (blocked.has(e)) return false
-      // DO-NOT-CONTACT floor (founder's employer) — same guard as the PDL path.
-      if (isSuppressed({ email: e, company: c.company, linkedin: c.linkedin_url })) return false
-      // ── 🛑 ⚑ 10 Sep (C02) — HARD FIT, AND IT IS THE WHOLE POINT OF THIS PASS ───────────
-      //
-      // The query above is deliberately WIDE (`.or()` across title/industry/seniority, with
-      // no size test at all) — "widen there, decide here", the same shape the geography gate
-      // already uses two lines up. This is the decision, and until today it did not exist:
-      // a UK company matching the word "marketing" was reusable inventory for a client who
-      // asked for UK digital marketing AGENCIES of 10–50 people.
-      //
-      // ⚠️ WHY IT COSTS MONEY RATHER THAN JUST LOOKING WRONG. Pool rows are served BEFORE the
-      // paid provider and are SUBTRACTED from what we then buy. A loose match filled the
-      // client's twenty examples with rows the pre-surfacing gate would refuse, shrank the
-      // external ask by the same number, and left them looking at eleven people. Free rows
-      // that cannot be shown consume the allowance twice.
-      //
-      // ⚠️ ONE RULE, NOT TWO. `poolRecordMatchesIcp` delegates to `proof-fit.ts` — the same
-      // judgement the structural gate applies before surfacing — so a row admitted here
-      // cannot be refused there for a reason this filter did not already ask about.
-      if (!poolRecordMatchesIcp(c as never, icp as never)) { notHardFit++; return false }
-      return true
-    }).slice(0, cap)
-
-    if (notSourceEligible > 0) {
-      console.error(`[icp] stage=pool_source_refused — ${notSourceEligible} pool candidate(s) were refused for cross-client serving because their stored source is not K.I.N.D-acquired (R73 allows ${POOL_ELIGIBLE_SOURCES.join(', ')}; NULL/blank/unlisted fail closed). A non-zero count means rows entered the pool outside the guarded writer — check the promotion/import path.`)
-    }
-
-    if (notHardFit > 0) {
-      console.log(`[icp] stage=pool_hard_fit — ${notHardFit} of ${candidates.length} owned pool candidate(s) did not match this client's targeting (geography · size · industry · seniority) and were NOT served. The external ask grows by the same number rather than the client seeing a short set.`)
-    }
-    if (geoGated && notGeoServable > 0) {
-      console.error(`[icp] stage=pool_country_missing — ${notGeoServable} of ${candidates.length} pool candidate(s) carry no usable country, so they cannot satisfy geography-targeted sourcing; ${eligible.length} remain eligible. The records are kept, not deleted. Rights-safe promotion/heal: supabase/maintenance/2026-08-27_kind_acquired_pool_promotion.sql`)
-    }
+    const notHardFit = counters.notHardFit
+    const notSourceEligible = counters.notSourceEligible
 
     if (eligible.length === 0) return { insertedIds: [], served: 0, reserved: 0 }
 

@@ -29,13 +29,21 @@ import { POOL_ELIGIBLE_SOURCES, splitPoolEligible, poolRefusalLine } from './poo
 
 const ICPS = readFileSync(join(__dirname, '../routes/icps.ts'), 'utf8')
 const OPERATOR = readFileSync(join(__dirname, '../routes/operator.ts'), 'utf8')
+// ⛓️ 12 Sep — THE SERVE-PATH READ MOVED, AND THIS GUARD FOLLOWED IT RATHER THAN SHRANK.
+// `servePoolLeads`'s candidate selection was extracted to `lib/pool-candidates.ts` so that
+// `/lookalike/generate` and House prospecting ask the same code (the POOL-FIRST gate, founder
+// 12 Sep). The site count below is UNCHANGED at four — the read simply lives in a third file
+// now. Dropping the assertion instead of re-pointing it would have retired the guard.
+const CANDIDATES = readFileSync(join(__dirname, './pool-candidates.ts'), 'utf8')
 
 describe('the guard is reading real files', () => {
   it('both route files are present and non-trivial', () => {
     // A moved or renamed file would leave every site-parse below finding nothing and passing.
     expect(ICPS.length).toBeGreaterThan(20_000)
     expect(OPERATOR.length).toBeGreaterThan(20_000)
-    expect(ICPS, 'the pool is still reached from here').toContain("from('lead_pool')")
+    expect(CANDIDATES.length).toBeGreaterThan(2_000)
+    expect(ICPS, 'the pool is still WRITTEN from here').toContain("from('lead_pool')")
+    expect(CANDIDATES, 'the pool is still READ from here').toContain("from('lead_pool')")
   })
 })
 
@@ -52,7 +60,7 @@ describe('① EVERY lead_pool site is accounted for, and only one of them writes
     return out
   }
 
-  const sites = [...poolSites(ICPS, 'routes/icps.ts'), ...poolSites(OPERATOR, 'routes/operator.ts')]
+  const sites = [...poolSites(ICPS, 'routes/icps.ts'), ...poolSites(OPERATOR, 'routes/operator.ts'), ...poolSites(CANDIDATES, 'lib/pool-candidates.ts')]
 
   it('finds the four sites the audit enumerated — no more, no fewer', () => {
     // ⚠️ THE COUNT IS THE GUARD. A new site — read or write — turns this red and forces somebody
@@ -68,7 +76,7 @@ describe('① EVERY lead_pool site is accounted for, and only one of them writes
     expect(
       sites.length,
       `expected 4 lead_pool sites (1 upsert + 1 null-only country heal in icps.ts, 1 read in ` +
-      `icps.ts, 1 read in operator.ts). Found ${sites.length}: ${sites.map(s => s.file).join(', ')}. ` +
+      `lib/pool-candidates.ts, 1 read in operator.ts). Found ${sites.length}: ${sites.map(s => s.file).join(', ')}. ` +
       `A NEW SITE MUST BE CLASSIFIED — if it writes, it must go through splitPoolEligible first (F13/F15).`,
     ).toBe(4)
   })
@@ -77,7 +85,7 @@ describe('① EVERY lead_pool site is accounted for, and only one of them writes
     const writes = sites.filter(s => /\.(upsert|insert|update|delete)\(/.test(s.chain))
     const reads = sites.filter(s => /\.select\(/.test(s.chain))
     expect(writes, 'two writers — the pool upsert and the null-only country heal').toHaveLength(2)
-    expect(reads, 'two readers — the serve path and the operator view').toHaveLength(2)
+    expect(reads, 'two readers — the shared serve selector and the operator view').toHaveLength(2)
     for (const w of writes) expect(w.file).toBe('routes/icps.ts')
     // Neither writer may INSERT or DELETE: the pool gains rows only through the allowlisted
     // upsert, and nothing in this codebase removes a pooled record.
@@ -218,8 +226,9 @@ describe('⑤ NO-TOUCH — the serve path, the reads and the PDL write are uncha
     // serve them now would silently shrink every client's pool-serve. This item is a tripwire on
     // the way IN, not a retroactive purge — that would be a different decision, and the
     // founder's to make.
-    const code = stripCommentsForEnvScan(ICPS)
-    const i = code.indexOf("from('lead_pool')")          // first site is the serve-path read
+    // ⛓️ 12 Sep — the serve-path read now lives in lib/pool-candidates.ts (POOL-FIRST gate).
+    const code = stripCommentsForEnvScan(CANDIDATES)
+    const i = code.indexOf("from('lead_pool')")          // the one read in the shared selector
     expect(code.slice(i, i + 120)).toContain(".select('*')")
   })
 

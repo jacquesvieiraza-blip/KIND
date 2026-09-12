@@ -62,6 +62,20 @@ const codeOnly = (src: string) =>
   src.split('\n').filter(l => !/^\s*(\/\/|--|\*|\/\*)/.test(l)).join('\n')
 
 const readRepo = (rel: string) => readFileSync(join(__dirname, '../../../..', rel), 'utf8')
+// ⛓️ 12 Sep — THE POOL READ MOVED; THIS GUARD FOLLOWED IT RATHER THAN SHRANK.
+//
+// The candidate selection these assertions describe was extracted from `servePoolLeads` into
+// `lib/pool-candidates.ts`, so that `/lookalike/generate` and House prospecting ask the SAME
+// code instead of each growing their own answer (POOL-FIRST gate, founder 12 Sep). The pool
+// WRITE stayed in `routes/icps.ts`.
+//
+// ⚠️ THE SURFACE IS BOTH FILES, AND THE ASSERTIONS ARE UNCHANGED. Splitting these tests by
+// file would mean re-deciding, one by one, which half each rule lives in — and the next
+// extraction would break them all over again. What this guard is for is that the RULES still
+// exist somewhere on the pool path; `pool-provenance.test.ts` is what pins each lead_pool SITE
+// to its own file, and it still does.
+const poolSurface = () =>
+  readRepo('apps/api/src/routes/icps.ts') + '\n' + readRepo('apps/api/src/lib/pool-candidates.ts')
 
 // ── 1–5 · CANONICALISATION: every spelling of one country resolves to one value ──────────
 describe('country canonicalisation — one country, one stored form', () => {
@@ -265,7 +279,7 @@ describe('candidate expansion — the database is asked for every spelling', () 
   })
 
   it('⚑ the route builds its country filter from the EXPANSION, not the raw term', () => {
-    const src = codeOnly(readRepo('apps/api/src/routes/icps.ts'))
+    const src = codeOnly(poolSurface())
     expect(src).toContain('launchCountrySpellings')
     expect(src).toMatch(/geoTerms\.map\(g => `country\.ilike/)
     // and the un-expanded form is gone
@@ -273,7 +287,7 @@ describe('candidate expansion — the database is asked for every spelling', () 
   })
 
   it('⚑ the route makes the PRECISE country decision in JS after the widened query', () => {
-    const src = codeOnly(readRepo('apps/api/src/routes/icps.ts'))
+    const src = codeOnly(poolSurface())
     expect(src).toContain('poolCountryMatches(c.country, geos)')
   })
 })
@@ -281,18 +295,18 @@ describe('candidate expansion — the database is asked for every spelling', () 
 // ── 7–8 · NON-NULL PRESERVATION, AND THE ONE-DIRECTION HEAL ─────────────────────────────
 describe('⑦⑧ upsert semantics — good country protected, null country healable', () => {
   it('⑦ the pool write is ON CONFLICT DO NOTHING, so a later null can never erase a country', () => {
-    const src = codeOnly(readRepo('apps/api/src/routes/icps.ts'))
+    const src = codeOnly(poolSurface())
     expect(src).toContain("upsert(poolEligible, { onConflict: 'email_norm', ignoreDuplicates: true })")
   })
 
   it('⑧ the heal fills ONLY where country is null — the WHERE clause is the safety', () => {
-    const src = codeOnly(readRepo('apps/api/src/routes/icps.ts'))
+    const src = codeOnly(poolSurface())
     // .is('country', null) is what makes overwriting structurally impossible.
     expect(src).toMatch(/\.update\(\{ country \}\)\.in\('email_norm', emails\)\.is\('country', null\)/)
   })
 
   it('the heal touches country and nothing else — not a general merge', () => {
-    const src = codeOnly(readRepo('apps/api/src/routes/icps.ts'))
+    const src = codeOnly(poolSurface())
     const heal = src.slice(src.indexOf('const byCountry'), src.indexOf('const byCountry') + 900)
     for (const col of ['title', 'industry', 'seniority', 'company', 'linkedin_url', 'acquisition_cost']) {
       expect(heal.includes(`.update({ ${col}`), col).toBe(false)
@@ -315,7 +329,7 @@ describe('⑦⑧ upsert semantics — good country protected, null country heala
 // ── 14–15 · EVERY REAL PRODUCTION WRITER ────────────────────────────────────────────────
 describe('⑭⑮ every writer to lead_pool preserves country', () => {
   it('⑭ WRITER A — the runtime PDL path canonicalises country into the pool row', () => {
-    const src = codeOnly(readRepo('apps/api/src/routes/icps.ts'))
+    const src = codeOnly(poolSurface())
     expect(src).toContain('canonicalPoolCountry(contact.country) || null')
     // '' must never be stored: a present-looking value that matches nothing is worse than null.
     expect(src).not.toMatch(/country:\s*canonicalPoolCountry\(contact\.country\),/)
@@ -350,19 +364,19 @@ describe('⑭⑮ every writer to lead_pool preserves country', () => {
 // ── OBSERVABILITY — the silence is what cost the launch day ─────────────────────────────
 describe('observability — a country-starved pool now says so', () => {
   it('the write path counts records with and without a usable country', () => {
-    const src = codeOnly(readRepo('apps/api/src/routes/icps.ts'))
+    const src = codeOnly(poolSurface())
     expect(src).toContain('stage=pool_write')
     expect(src).toContain('isGeoServable(r)')
   })
 
   it('a geo-gated serve that discards country-less candidates names the count', () => {
-    const src = codeOnly(readRepo('apps/api/src/routes/icps.ts'))
+    const src = codeOnly(poolSurface())
     expect(src).toContain('stage=pool_country_missing')
     expect(src).toContain('notGeoServable')
   })
 
   it('neither diagnostic can carry PII', () => {
-    const src = readRepo('apps/api/src/routes/icps.ts')
+    const src = poolSurface()
     for (const stage of ['stage=pool_write', 'stage=pool_country_missing']) {
       const at = src.indexOf(stage)
       expect(at, stage).toBeGreaterThan(0)
@@ -430,13 +444,13 @@ describe('⚑ bounded candidate window cannot be starved by substring impostors'
   })
 
   it('⚑ the route’s country patterns carry NO wildcard — exact per spelling, at the source', () => {
-    const src = codeOnly(readRepo('apps/api/src/routes/icps.ts'))
+    const src = codeOnly(poolSurface())
     expect(src).toMatch(/geoTerms\.map\(g => `country\.ilike\.\$\{g\}`\)/)
     expect(src, 'the substring form must never return').not.toMatch(/country\.ilike\.\*/)
   })
 
   it('role terms deliberately KEEP their wildcards — titles are genuinely partial', () => {
-    const src = codeOnly(readRepo('apps/api/src/routes/icps.ts'))
+    const src = codeOnly(poolSurface())
     expect(src).toMatch(/title\.ilike\.\*\$\{t\}\*/)
   })
 })
@@ -448,13 +462,13 @@ describe('⚑ bounded candidate window cannot be starved by substring impostors'
 // ═══════════════════════════════════════════════════════════════════════════════════════
 describe('the hard geography invariant is wired at both boundaries', () => {
   it('the provider insert loop gates on the SAME canonical predicate as the pool', () => {
-    const src = codeOnly(readRepo('apps/api/src/routes/icps.ts'))
+    const src = codeOnly(poolSurface())
     expect(src).toContain('!poolCountryMatches(contact.country, icpGeographies)')
     expect(src).toContain('removedByGeoGate++')
   })
 
   it('a geo-rejected batch is a counted, PII-free diagnostic', () => {
-    const src = codeOnly(readRepo('apps/api/src/routes/icps.ts'))
+    const src = codeOnly(poolSurface())
     expect(src).toContain('stage=provider_geo_rejected')
   })
 
@@ -773,7 +787,7 @@ describe('R73 · the promotion tool cannot auto-run and cannot sweep customer da
     // rights-bounded heal inside the promotion tool is the only country-fill path now.
     expect(existsSync(join(__dirname, '../../../..', 'supabase/maintenance/2026-08-27_lead_pool_country_backfill.sql')))
       .toBe(false)
-    expect(readRepo('apps/api/src/routes/icps.ts')).not.toContain('lead_pool_country_backfill')
+    expect(poolSurface()).not.toContain('lead_pool_country_backfill')
     // and the replacement heal draws country ONLY from the canonical resolver's proven
     // acquisitions — customer/inbound rows never reach `classified`, so they cannot supply a
     // geography at all. (Stronger than the old string filter: it is structural.)

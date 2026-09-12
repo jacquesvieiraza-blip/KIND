@@ -46,10 +46,61 @@ async function requireClient(clientId: unknown): Promise<{ id: string; company_n
 
 // ── #483 CLIENT PICKER ────────────────────────────────────────────────────────
 // Every real client (+ house/demo labelled) for the operator's client selector.
+// ── ⚑ MVP1 — THE PEOPLE WHO HAVE SIGNED UP BUT NOT CONFIRMED (Preview 07) ──────────────
+//
+// 🛑 A PROJECTION, NOT A CLIENT LIST, AND THAT IS THE WHOLE DESIGN. These rows are NOT
+// clients and rendering them beside clients does not make them clients: "a client" still
+// means a confirmed client in `/clients`, the worklist, the lifecycle board and every count.
+// Vida's rail merges two reads; nothing downstream is asked to change its mind.
+//
+// ⚠️ OPEN ONLY. A promoted draft is excluded by the same condition that makes it evidence, so
+// one person can never appear twice — the transition is draft row OUT, client row IN, not
+// both at once.
+//
+// ⚠️ STAGE IS ALWAYS Brief AND THE MODE IS ALWAYS "No action needed". Milla is collecting; an
+// operator has nothing to do. Manufacturing a task here would rebuild the queue the console
+// exists to delete — and the founder's rule is that a lifecycle transition which happened by
+// itself is not a task.
+//
+// ⚠️ NO NAME IS INVENTED. A draft with no company name yet renders as what it is — somebody
+// who has signed up and not said their company yet — never as a placeholder that reads like
+// a real account.
+operatorRouter.get('/brief-drafts', async (_req: Request, res: Response) => {
+  const { openBriefDrafts, draftProgress } = await import('../lib/brief-draft')
+  const drafts = await openBriefDrafts()
+  res.json({
+    success: true,
+    data: drafts.map(d => {
+      const p = draftProgress(d)
+      return {
+        id: d.id,
+        user_id: d.userId,
+        company_name: (d.facts.company_name ?? '').trim() || null,
+        contact_name: (d.facts.contact_name ?? '').trim() || null,
+        country: (d.facts.country ?? '').trim() || null,
+        created_at: d.createdAt,
+        updated_at: d.updatedAt,
+        // The SHARED counter — there is no second eleven-fact list anywhere in Vida.
+        brief: { collected: p.count, total: p.total, missing: p.missing, complete: p.complete },
+        // ⚠️ COMPLETE IS NOT CONFIRMED. Eleven facts collected still leaves the client's own
+        // confirmation outstanding, and that gate is what starts Proof.
+        confirmed_at: d.confirmedAt,
+      }
+    }),
+  })
+})
+
 operatorRouter.get('/clients', async (_req: Request, res: Response) => {
   try {
+    // ⚑ MVP1 — `user_id` IS IN THE PROJECTION so the rail can reconcile the two sources it
+    // merges on DURABLE IDENTITY. A person mid-promotion can legitimately appear in both the
+    // clients read and the open-drafts read for a round; `user_id` is the same auth user on
+    // both sides of that transition, and it is what the clients row is created against.
+    // Matching on company name would merge two different companies that share one, and would
+    // fail to merge the same person whose draft said "Redmayne" and whose row says
+    // "Redmayne & Co." It is an id the operator console already handles, not a new fact.
     const { data: clients } = await db.from('clients')
-      .select('id, company_name, industry, country, created_at, is_demo, wallet_balance_usd')
+      .select('id, user_id, company_name, industry, country, created_at, is_demo, wallet_balance_usd')
       .order('created_at', { ascending: false })
     const excluded = await getExcludedClientIds()   // house/demo — labelled, not hidden
     const rows = (clients ?? []).map((c: Record<string, unknown>) => ({
@@ -2313,8 +2364,27 @@ operatorRouter.post('/proof-review/:clientId/resolve', async (req: Request, res:
       res.status(403).json({ success: false, error: 'Operator key required' })
       return
     }
+    // ── ⚑ 11 Sep — THE RESOLUTION IS RECORDED AGAINST A REAL ESCALATION, AND SAYS WHO ───
+    //
+    // 🛑 `.not('proof_review_requested_at', 'is', null)` IS THE GUARD THE FOUNDER ASKED FOR:
+    // a resolution cannot be recorded against a client who never validly escalated. It was
+    // already here and is now load-bearing, because a resolution is what unlocks the one
+    // calibrated restart — so a resolution of nothing would mint a paid set for a client who
+    // never asked for one.
+    //
+    // ⚠️ AND IT PERSISTS THE OPERATOR'S IDENTITY. The audit log carries the action; an
+    // operator reading this client's row should not have to go and find it.
+    //
+    // ⚠️ THE NOTE IS OPTIONAL HERE AND REQUIRED BY THE RESTART. Recording that a call
+    // happened must never be blocked by the wording of a note; what a note gates is spending
+    // another set, which `mayRestartCalibrated` refuses without one.
+    const note = typeof req.body?.note === 'string' ? req.body.note.trim().slice(0, 4000) : ''
     const { data: resolved, error: resolveErr } = await db.from('clients')
-      .update({ proof_review_resolved_at: new Date().toISOString() })
+      .update({
+        proof_review_resolved_at: new Date().toISOString(),
+        proof_calibration_resolved_by: operatorEmail(req) ?? null,
+        ...(note ? { proof_calibration_note: note } : {}),
+      })
       .eq('id', req.params.clientId)
       .not('proof_review_requested_at', 'is', null)
       .is('proof_review_resolved_at', null)
@@ -2336,9 +2406,20 @@ operatorRouter.post('/proof-review/:clientId/resolve', async (req: Request, res:
       return
     }
 
+    const didResolve = (resolved ?? []).length > 0
+    if (didResolve) {
+      await writeOperatorAudit({
+        operatorEmail: operatorEmail(req), clientId: req.params.clientId,
+        action: 'proof_calibration_resolved', subjectType: 'client', subjectId: req.params.clientId,
+        detail: {
+          note_recorded: !!note,
+          means: 'a human spoke to this client and recorded the outcome; it does NOT by itself start anything',
+        },
+      })
+    }
     res.json({
       success: true,
-      data: { resolved: (resolved ?? []).length > 0 ? 'resolved' : 'already_resolved' },
+      data: { resolved: didResolve ? 'resolved' : 'already_resolved' },
     })
   } catch (err) {
     console.error('[operator/proof-review/resolve]', err)
@@ -2365,7 +2446,8 @@ operatorRouter.get('/proof-review/:clientId/evidence', async (req: Request, res:
       res.status(403).json({ success: false, error: 'Operator key required' }); return
     }
     const { readCalibration, mayRestartCalibrated } = await import('../lib/proof-calibration-io')
-    const { ESCALATION_TRIGGER_COPY, PROOF_REASON_LABELS } = await import('../lib/proof-calibration')
+    const { ESCALATION_TRIGGER_COPY, PROOF_REASON_LABELS, whatChangedSentence, automaticAttempt } =
+      await import('../lib/proof-calibration')
     const cal = await readCalibration(req.params.clientId)
     const restart = mayRestartCalibrated(cal)
     res.json({
@@ -2378,18 +2460,31 @@ operatorRouter.get('/proof-review/:clientId/evidence', async (req: Request, res:
         why: cal.trigger ? ESCALATION_TRIGGER_COPY[cal.trigger] : null,
         passes_done: cal.passesDone,
         phone: cal.phone,
+        // ⚑ 11 Sep — the NAME as well as the number. An operator with a phone and no name
+        // opens the calibration call with "hello, is that… the company?"
+        contact_name: cal.contactName,
         phone_confirmed_at: cal.phoneConfirmedAt,
         operator_note: cal.operatorNote,
         restart_at: cal.restartAt,
+        // ⚑ 11 Sep — GRANTED AND USED ARE TWO FACTS. Without the second, the panel cannot
+        // tell "one restart is waiting for the client" from "it has already been taken".
+        restart_used_at: cal.restartUsedAt,
+        resolved_by: cal.resolvedBy,
         // ⚠️ ATTEMPT SUMMARIES ARE DERIVED from lead_feedback × leads.proof_pass, so what the
         // operator reads is what the client actually said — not a copy taken at escalation.
         attempts: cal.attempts.map(a => ({
           ...a,
+          // ⚠️ PROVENANCE TRAVELS WITH THE SUMMARY. Vida labels from `kind`, never from the
+          // pass number — the calibrated restart shares pass 2's number deliberately.
+          kind: a.kind,
           reason_labels: Object.fromEntries(
             Object.entries(a.reasons).map(([k, n]) => [PROOF_REASON_LABELS[k as never] ?? k, n])),
         })),
         may_restart: restart.allowed,
         may_restart_why: restart.why ?? null,
+        // ⚑ 11 Sep — the one sentence naming what changed between the two AUTOMATIC sets,
+        // built from the client's own reasons. The operator is about to phone them about it.
+        what_changed: whatChangedSentence(automaticAttempt(cal, 1) ?? null),
       },
       read_only: 'This endpoint only reads. Nothing was changed by loading it.',
     })
@@ -2422,8 +2517,17 @@ operatorRouter.post('/proof-review/:clientId/restart', async (req: Request, res:
     // ⚠️ CONDITIONAL ON THE RESOLUTION WE JUDGED. Two operators pressing together produce one
     // grant: the second matches no row because `proof_calibrated_restart_at` has moved past
     // the resolution it was checked against.
+    //
+    // ⛓️ 11 Sep — IT NO LONGER NULLS `proof_review_requested_at`, AND THAT WAS AN AUDIT BUG.
+    // Clearing it was how the grant re-opened the spend doors, because `escalated` reads
+    // "requested and not resolved". But `resolve` has already stamped `proof_review_resolved_at`
+    // — which this grant REQUIRES — so `escalated` is ALREADY false by the time we get here
+    // and the clear bought nothing. What it cost was the record that the escalation ever
+    // happened: the founder's audit rule is that the history must prove escalation occurred,
+    // human resolution occurred, the restart became available, and it was claimed. Erasing the
+    // first of those to unlock the third is exactly the wrong trade.
     const { data, error } = await db.from('clients')
-      .update({ proof_calibrated_restart_at: nowIso, proof_review_requested_at: null })
+      .update({ proof_calibrated_restart_at: nowIso })
       .eq('id', req.params.clientId)
       .not('proof_review_resolved_at', 'is', null)
       .or(`proof_calibrated_restart_at.is.null,proof_calibrated_restart_at.lt.${cal.resolvedAt}`)

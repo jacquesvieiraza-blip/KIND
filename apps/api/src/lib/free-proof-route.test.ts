@@ -815,7 +815,13 @@ describe('free proof never reaches the paid reveal/delivery path', () => {
     // the fix while proving nothing about either.
     const src = readFileSync(join(__dirname, '../routes/icps.ts'), 'utf8')
     expect(src).toContain("if (proofMode && insertedIds.length > 0) {")
-    expect(src).toContain(".update({ surfaced_for_approval_at: nowIso, delivered_at: nowIso, proof_pass: opts!.proofPass })")
+    // ⛓️ 11 Sep — THE ANCHOR MOVED WITH THE STATEMENT, NOT AROUND IT. The surfacing UPDATE
+    // gained `proof_batch_kind` — explicit provenance saying whether this set is one of the
+    // two automatic attempts or the one human-authorised calibrated restart. It is written in
+    // the SAME statement for exactly the reason the pass number is: a row that is visible and
+    // attributed to an attempt but carries no provenance reads as an automatic one.
+    expect(src).toContain('surfaced_for_approval_at: nowIso, delivered_at: nowIso, proof_pass: opts!.proofPass')
+    expect(src).toContain("proof_batch_kind: opts!.proofKind ?? 'automatic'")
     // ⛓️ RETARGETED 10 Sep — THE SAME DUTY, ONE LINK FURTHER ALONG. This pinned
     // `.in('id', insertedIds)`, and the duty it protects is *the stamp names only the rows
     // THIS run created, and claims them idempotently*. C04 inserted the structural gate
@@ -996,7 +1002,16 @@ describe('batch refinement — pass 1 → refine → pass 2, then a human', () =
     // COMMENTS explaining why the poll may only read and why a second POST would cost the
     // client their last pass — exactly the reasoning that must stay written down. Counting
     // the source made this guard fail on its own explanation.
-    expect((deskCode().match(/\/proof`/g) ?? []), 'exactly one proof POST').toHaveLength(1)
+    // ⛓️ 11 Sep (C39) — 1 → 2, AND THE GUARD IS TIGHTENED RATHER THAN LOOSENED. A SECOND
+    // deliberate claim now exists on this desk: the one human-authorised calibrated restart,
+    // which a person grants after calling the client and correcting their targeting. It is
+    // not a retry, not a fallback and not an automatic attempt — the server re-checks the
+    // grant, refuses without it, and `proof_passes_done` never moves.
+    //
+    // ⚠️ SO THE COUNT ALONE WOULD BE A WEAKER CLAIM THAN BEFORE, and the cases below replace
+    // what it used to carry: each of the two POSTs is pinned to its own named handler, so a
+    // third — or either of these moved into an effect, a poll or a catch — still fails.
+    expect((deskCode().match(/\/proof`/g) ?? []), 'the refinement claim and the calibrated restart').toHaveLength(2)
     // …and that one POST is inside THIS function, exactly once. That is the property the
     // test's name actually claims — one confirmation, one pass consumed.
     expect((confirmBody().match(/\/proof`/g) ?? []), 'one POST per confirmation').toHaveLength(1)

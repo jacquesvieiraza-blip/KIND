@@ -24,6 +24,9 @@ import { isLaunchSendCountry, launchTargetRefusal, launchCountrySpellings } from
 import {
   diffTargeting, targetingChangeSentence, targetingUnchanged, type TargetingLists,
 } from '@kind/shared'
+// ⚑ MVP1 (C21) — the canonical ELEVEN brief facts. One list, shared with Vida's progress
+// card, so "how complete is this brief?" has exactly one answer in the product.
+import { briefFacts, BRIEF_FACT_LABEL } from '@kind/shared'
 import { splitPoolAndRemainder, poolWriteAllowed, splitPoolEligible, poolRefusalLine, poolCountryMatches, canonicalPoolCountry, isGeoServable, isPoolSourceEligible, poolRecordMatchesIcp, POOL_ELIGIBLE_SOURCES } from '../lib/pool-sourcing'
 import { toMemoryRecord, rememberAcquiredIdentities, type AcquisitionMemoryRecord, type SuppressionReason } from '../lib/acquisition-memory'
 import { assertIcpFullyOwned } from '../lib/icp-coverage'
@@ -246,6 +249,18 @@ const geographiesSchema = z.array(z.string()).default([]).superRefine((geos, ctx
 
 const icpSchema = z.object({
   name:                  z.string().min(1),
+  // ── ⚑ MVP1 (C04) — THE CLIENT'S OWN WORDS REACH THE COLUMN ────────────────────────
+  //
+  // ⚠️ DEFAULTED TO '' RATHER THAN OMITTED, so an older client saving a targeting change
+  // does not silently blank a category they already have… and equally does not carry one
+  // it never had. Both are plain text: the whole point is that no closed vocabulary sits
+  // between the client's answer and storage.
+  //
+  // ⚠️ ORDERING. These reach the insert payload via `{ ...body }` in `saveClientTargeting`,
+  // so `20260911_icp_target_category_and_type` MUST be applied before this code ships —
+  // the same expand/contract rule as `clients.commercial_model`.
+  target_category:       z.string().max(200).default(''),
+  target_company_type:   z.string().max(120).default(''),
   industries:            z.array(z.string()).default([]),
   job_titles:            z.array(z.string()).default([]),
   seniority_levels:      z.array(z.string()).default([]),
@@ -686,7 +701,15 @@ export async function runIcpJob(
   // this run — the claim travels with the call, so this function never claims one and a
   // normal run cannot consume one. Without `opts`, a never-funded account takes the
   // ordinary `try_spend_sourcing` path, which grants it 0: the pre-proof behaviour.
-  opts?: { proofPass: number },
+  opts?: {
+    proofPass: number
+    /**
+     * ⚑ 11 Sep — WHAT THIS RUN IS, stamped on the rows it creates. `automatic` is one of the
+     * two attempts; `calibrated_restart` is the one human-authorised set. Explicit provenance
+     * on the row, never a pass number doing double duty.
+     */
+    proofKind?: 'automatic' | 'calibrated_restart'
+  },
 ): Promise<{ inserted: number; skipped: number; relaxed: string | null }> {
   const proofMode = (opts?.proofPass ?? 0) > 0
   // BUILD-002 — the open programme batch for this run, if this is programme sourcing.
@@ -1300,7 +1323,10 @@ export async function runIcpJob(
       // ⚠️ PASS 1 AND EVERY PAID RUN ARE UNTOUCHED. Pass 1 has no explicit refinement behind
       // it — nobody has confirmed anything yet — and a paying client's calibration is exactly
       // as it was. The condition is the PASS NUMBER, not proof-ness, for precisely that reason.
-      const confirmedRefinement = opts?.proofPass === 2
+      // ⚑ 11 Sep — AND A CALIBRATED RESTART IS THE SAME CASE, FOR A STRONGER REASON: a person
+      // has just spoken to this client and corrected the targeting by hand. Re-applying the
+      // per-card calibration from the two sets that FAILED would quietly undo them.
+      const confirmedRefinement = opts?.proofPass === 2 || opts?.proofKind === 'calibrated_restart'
       if (confirmedRefinement) {
         console.log(`[icp] calibration SKIPPED for client ${clientId} — proof pass 2 runs the targeting the client explicitly confirmed.`)
       }
@@ -1420,6 +1446,11 @@ export async function runIcpJob(
       const canWiden =
         proofMode &&
         opts?.proofPass === 2 &&
+        // ⚠️ THE ONE FALLBACK STAYS ONE. A calibrated restart shares pass 2's number, so
+        // without this it would earn a SECOND widening of the same audience — and widening is
+        // a real provider query. The restart runs the targeting a human just corrected; if
+        // that finds nobody, the honest answer is nobody, not a broader guess.
+        opts?.proofKind !== 'calibrated_restart' &&
         audience === 'client' &&
         cursor.token === null &&
         pdlPage?.matchedNothing === true &&
@@ -2533,7 +2564,13 @@ export async function runIcpJob(
       // cannot restamp, hide or re-date pass 1. That is what keeps both proof sets visible
       // with no time bound anywhere.
       const { error: surfErr } = await db.from('leads')
-        .update({ surfaced_for_approval_at: nowIso, delivered_at: nowIso, proof_pass: opts!.proofPass })
+        .update({
+          surfaced_for_approval_at: nowIso, delivered_at: nowIso, proof_pass: opts!.proofPass,
+          // ⚑ 11 Sep — THE DISCRIMINATOR, WRITTEN IN THE SAME STATEMENT as the pass and the
+          // surfacing, for the same reason they are: a row that is visible and attributed to
+          // an attempt but carries no provenance would be read as an automatic one.
+          proof_batch_kind: opts!.proofKind ?? 'automatic',
+        })
         // 🛑 `gatedIds` — a candidate the structural gate set aside is never surfaced, not even
         // once. `insertedIds` here would have shown the client the very rows we refused.
         .in('id', gatedIds).is('delivered_at', null)
@@ -2890,6 +2927,10 @@ const millaReplyTool = (profileRequired: boolean) => ({
             contact_name: { type: 'string', maxLength: 120 },
             phone:        { type: 'string', maxLength: 60 },
             website:      { type: 'string', maxLength: 300 },
+            // ⚑ MVP1 (C21) — "we do not have one" IS an answer to the website question.
+            // Without this the fact can only be satisfied by an address, so a client with
+            // no website could never finish their brief.
+            website_none: { type: 'boolean', description: 'true ONLY when the client explicitly said they have no website. Never set this because they simply have not mentioned one.' },
             industry:     { type: 'string', maxLength: 200, description: 'A short plain phrase for what their business does, from their own words.' },
           },
         },
@@ -2899,6 +2940,15 @@ const millaReplyTool = (profileRequired: boolean) => ({
         description: 'The targeting plan. REQUIRED when type is complete.',
         properties: {
           name:                  { type: 'string', maxLength: 120 },
+          // ── ⚑ MVP1 (C04, C21) — THE CLIENT'S OWN WORDS, AND THE ORGANISATIONAL FORM ──
+          //
+          // 🛑 TWO DISTINCT FACTS, founder-locked. `industries` below is a CLOSED SIXTEEN-
+          // VALUE PROVIDER LIST — it was the only place a target market could be recorded,
+          // so the client's actual phrase was replaced by whichever of sixteen labels the
+          // model thought nearest, or dropped entirely. These two fields are where the
+          // client's own answer now lives; `industries` stays as a provider-edge hint.
+          target_category:     { type: 'string', maxLength: 200, description: "What kind of market or business they want to target, IN THE CLIENT'S OWN WORDS, exactly as they said it — \"Digital marketing agencies\", \"Healthcare businesses\", \"Construction companies\". NEVER a tidied-up or reworded version, and never a label from a fixed list." },
+          target_company_type: { type: 'string', maxLength: 120, description: 'The organisational form of the TARGET company — agency, consultancy, clinic, recruitment firm, SaaS company. Set this ONLY from what the client actually said: "Digital marketing agencies" gives you "agency" because they said the word. NEVER infer it from their website, from their own business, from a provider category, or because it seems likely. If they have not established it, leave it out and ask.' },
           industries:            { type: 'array', maxItems: 6,  items: { type: 'string', enum: [...ICP_INDUSTRIES] } },
           job_titles:            { type: 'array', maxItems: 10, items: { type: 'string', maxLength: 80 } },
           seniority_levels:      { type: 'array', maxItems: 6,  items: { type: 'string', enum: [...ICP_SENIORITY] } },
@@ -2935,6 +2985,38 @@ const millaReplyTool = (profileRequired: boolean) => ({
       },
       website_hints: { type: 'array', maxItems: 12, items: { type: 'string', maxLength: 200 }, description: 'Values that came from the website read and the client has NOT confirmed out loud.' },
       campaign_intent: { type: 'string', maxLength: 2000 },
+      // ── ⚑ MVP1 — WHAT YOU HAVE ESTABLISHED SO FAR, ON EVERY TURN ────────────────────
+      //
+      // 🛑 THIS IS WHY A CLOSED TAB NO LONGER DESTROYS A BRIEF. The whole conversation used
+      // to live in browser state until the confirm click; nothing was persisted and Vida
+      // could not see a person who had not confirmed. The model already knows what it has
+      // learned — this asks it to say so on every turn, so the server can store it.
+      //
+      // ⚠️ IT IS NOT THE ICP AND IT NEVER BECOMES ONE. The targeting the client pays for is
+      // still built ONLY from a `complete` reply's `icp` and `profile`. This is a draft
+      // snapshot: it records progress, it is merged rather than replacing, and no
+      // client, ICP or spend is ever derived from it.
+      brief_so_far: {
+        type: 'object',
+        description: 'Everything you have established from the client SO FAR, on EVERY turn including questions. Only what they have actually told you — never a guess, never the website, never a placeholder. Omit anything not yet established.',
+        properties: {
+          contact_name:        { type: 'string', maxLength: 120 },
+          company_name:        { type: 'string', maxLength: 200 },
+          website:             { type: 'string', maxLength: 300 },
+          website_none:        { type: 'boolean', description: 'true ONLY when they said they have no website.' },
+          what_they_do:        { type: 'string', maxLength: 1200 },
+          target_category:     { type: 'string', maxLength: 200, description: "Their own words for the kind of company to reach." },
+          geographies:         { type: 'array', maxItems: 8,  items: { type: 'string', maxLength: 80 } },
+          target_company_type: { type: 'string', maxLength: 120, description: 'The organisational form, only from what they said.' },
+          company_sizes:       { type: 'array', maxItems: 6,  items: { type: 'string', maxLength: 40 } },
+          job_titles:          { type: 'array', maxItems: 10, items: { type: 'string', maxLength: 80 } },
+          seniority_levels:    { type: 'array', maxItems: 6,  items: { type: 'string', maxLength: 40 } },
+          exclusions:          { type: 'string', maxLength: 600 },
+          desired_outcome:     { type: 'string', maxLength: 2000 },
+          country:             { type: 'string', maxLength: 120, description: "Where the CLIENT'S OWN business is based." },
+          phone:               { type: 'string', maxLength: 60 },
+        },
+      },
     },
     required: ['type'],
   },
@@ -3026,11 +3108,39 @@ const boundedEnum = <T extends readonly [string, ...string[]]>(values: T, maxIte
 // or sent anywhere. Junk targeting on a question cannot kill the turn because it is not
 // part of the question's contract at all. Structural garbage still fails: a numeric
 // content, a blank content, a missing content are refused exactly as before.
+/**
+ * ⚑ MVP1 — the draft snapshot, allowed on BOTH branches.
+ *
+ * ⚠️ DELIBERATELY NOT `icp` OR `profile`. `MillaQuestionReply` is a strict shape precisely so
+ * a QUESTION can never smuggle targeting into the product, and that guard is untouched: the
+ * ICP and the client row are still built only from a `complete` reply. This object feeds the
+ * DRAFT and nothing else — it is merged, never replacing, and nothing is spent or created
+ * from it.
+ */
+const BriefSoFar = z.object({
+  contact_name:        clampedStr(120),
+  company_name:        clampedStr(200),
+  website:             clampedStr(300),
+  website_none:        z.boolean().optional(),
+  what_they_do:        clampedStr(1200),
+  target_category:     clampedStr(200),
+  geographies:         boundedList(8),
+  target_company_type: clampedStr(120),
+  company_sizes:       boundedList(6, 40),
+  job_titles:          boundedList(10),
+  seniority_levels:    boundedList(6, 40),
+  exclusions:          clampedStr(600),
+  desired_outcome:     clampedStr(2000),
+  country:             clampedStr(120),
+  phone:               clampedStr(60),
+}).optional()
+
 const MillaQuestionReply = z.object({
   type:    z.literal('question'),
   content: z.string()
     .transform(s => s.slice(0, 600))
     .refine(s => s.trim().length > 0, { message: 'a question must carry content' }),
+  brief_so_far: BriefSoFar,
 })
 
 const MillaReplyInput = z.object({
@@ -3048,10 +3158,19 @@ const MillaReplyInput = z.object({
     contact_name: clampedStr(120),
     phone:        clampedStr(60),
     website:      clampedStr(300),
+    // ⚑ MVP1 (C21) — an explicit "we have no website". Booleans are not clamped; a
+    // non-boolean is refused by Zod as a type error, which is correct: there is no safe
+    // way to guess what a string meant here.
+    website_none: z.boolean().optional(),
     industry:     clampedStr(200),
   }).optional(),
   icp: z.object({
     name:                  clampedStr(120),
+    // ⚑ MVP1 (C04) — the client's own words, and the target's organisational form. Both
+    // are GENUINELY OPEN TEXT and that is the whole point: `industries` below is a closed
+    // provider list and putting the client's phrase through it is what destroyed it.
+    target_category:       clampedStr(200),
+    target_company_type:   clampedStr(120),
     // Closed lists — off-list values are DROPPED at the trust boundary, never stored and
     // never allowed to cost the client the turn that carried them.
     industries:            boundedEnum(ICP_INDUSTRIES, 6),
@@ -3079,6 +3198,7 @@ const MillaReplyInput = z.object({
   })).optional().transform(a => a?.slice(0, 12)),
   website_hints:   boundedList(12, 200),
   campaign_intent: clampedStr(2000),
+  brief_so_far:    BriefSoFar,
 })
   // The discriminated half, which the flat JSON Schema deliberately leaves to Zod.
   // ⚠️ The question-content rule moved into `MillaQuestionReply` above — a reply whose
@@ -3110,7 +3230,44 @@ const millaReplyFor = (profileRequired: boolean) =>
     if (!(v.profile?.country ?? '').trim()) {
       ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['profile', 'country'], message: "a first-run completion must carry the client's own business country" })
     }
-    // contact_name, phone, website and industry stay genuinely optional — they always were.
+
+    // ── ⚑ MVP1 (C21) — THE ELEVEN-FACT GATE, ENFORCED RATHER THAN REQUESTED ───────────
+    //
+    // 🛑 THE OLD GATE ASKED FOR TWO FACTS. Company name and the client's own country — the
+    // two the `clients` row cannot be written without. "Complete" therefore meant "I have
+    // enough to open an account", and Milla was free to finish while she still did not know
+    // who to write to, where they are, how big they are or what the client wanted out of it.
+    // The prompt even told her the mobile and the website were "fine to go without".
+    //
+    // ⚠️ THE SAME COUNTER VIDA USES. `briefFacts` is the one canonical list; a second copy
+    // here is how Vida came to print "seven of the eight brief facts" against Milla's
+    // eleven. An instruction in a prompt is not a gate — this is the gate.
+    //
+    // ⚠️ IT REFUSES THE COMPLETION, NOT THE TURN. A Zod issue here routes to the same
+    // honest-failure path as any other invalid shape: the client is never shown a Milla
+    // sentence she did not say, and the model is asked again with the transcript intact.
+    const facts = briefFacts({
+      contactName:        v.profile?.contact_name,
+      companyName:        v.profile?.company_name,
+      website:            v.profile?.website,
+      websiteNone:        v.profile?.website_none,
+      whatTheCompanyDoes: v.profile?.industry || v.business?.product,
+      targetCategory:     v.icp?.target_category,
+      geographies:        v.icp?.geographies,
+      targetCompanyType:  v.icp?.target_company_type,
+      companySizes:       v.icp?.company_sizes,
+      targetRoles:        v.icp?.job_titles,
+      targetSeniority:    v.icp?.seniority_levels,
+      exclusions:         v.business?.bad_fit,
+      desiredOutcome:     v.campaign_intent,
+    })
+    if (!facts.complete) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['brief'],
+        message: `a completion must carry all ${facts.total} brief facts — still missing: ${facts.missing.map(id => BRIEF_FACT_LABEL[id]).join(', ')}`,
+      })
+    }
   })
 
 /** ── HONEST FAILURE, NEVER FAKE MILLA (founder-ruled 24 Aug) ─────────────────────────────
@@ -3242,6 +3399,54 @@ HOW YOU MUST TREAT IT:
     // business, targeting, proof, intent — and is asked for nothing about their account,
     // because they already have one. The prompt is assembled rather than branched so the
     // two share every rule that is genuinely shared.
+    // ── ⚑ MVP1 — THE BRIEF SURVIVES A CLOSED TAB, AND MILLA IS TOLD WHAT SHE ALREADY HAS ──
+    //
+    // 🛑 PERSISTING THE ELEVEN FACTS WAS ONLY HALF OF RESUME. This route's model sees exactly
+    // one thing about the client: the `messages` array the browser sent. That array lives in
+    // one tab. So a client who closed their tab came back to an empty transcript and was asked
+    // for all eleven facts again while their answers sat in `onboarding_brief_drafts`. Storing
+    // answers nobody reads back is not persistence, it is bookkeeping.
+    //
+    // ⚠️ READ FROM THE SERVER, NEVER ACCEPTED FROM THE CLIENT. These facts come from the draft
+    // belonging to THIS authenticated user. A browser-supplied "here is what I already told
+    // you" would be a second, mutable copy of the brief that could contradict the stored one —
+    // which is exactly the competing-truth the founder ruled out.
+    //
+    // ⚠️ FIRST RUN ONLY. A returning client with an account is refining, and their brief is
+    // their ICP — not a draft. `profile_required` is the portal's statement that this is a
+    // first run, and it is the same flag every other first-run rule keys off.
+    //
+    // ⚠️ AND IT FAILS SILENT. If the draft cannot be read (the migration is not applied yet)
+    // the block is empty and the conversation behaves exactly as it did before this existed.
+    let resumeBlock = ''
+    if (profile_required && req.userId) {
+      try {
+        // ⚠️ `writableBriefDraft`, NOT `briefDraftFor`. A PROMOTED draft is evidence, and
+        // reading it back here would put a superseded copy of the Brief in front of Milla as
+        // if it were current — the competing-truth rule applies to reads, not only writes.
+        const { writableBriefDraft } = await import('../lib/brief-draft')
+        const { briefFactsFromDraft, briefFactLines } = await import('@kind/shared')
+        const draft = await writableBriefDraft(req.userId)
+        const lines = draft ? briefFactLines(briefFactsFromDraft(draft.facts)) : []
+        if (lines.length > 0) {
+          resumeBlock = `
+
+── WHAT THIS CLIENT HAS ALREADY TOLD YOU ─────────────────────────────────
+They started this conversation before and came back. These are THEIR OWN ANSWERS, already
+given. The transcript above may not contain them, because it lives in a browser tab they
+closed — that does not make them unsaid.
+
+${lines.map(l => `  · ${l.label}: ${l.value}`).join('\n')}
+
+DO NOT ASK FOR ANY OF THESE AGAIN, and do not read them back to the client one by one for
+confirmation — they told you, and being re-interviewed about answers they have already given
+is the single worst thing this conversation can do to somebody who came back.
+Carry every one of them forward in "brief_so_far" on every turn, unchanged, alongside
+anything new. Continue from what is still genuinely missing.`
+        }
+      } catch { /* the draft is unreadable; the conversation proceeds exactly as before */ }
+    }
+
     const learningGoals = profile_required
       ? `You are learning THREE things at once:
   1. WHO they want to reach (their targeting).
@@ -3253,8 +3458,11 @@ HOW YOU MUST TREAT IT:
 
 Ask for the account facts the way a person would — woven into the conversation, never as a
 checklist, never all at once. "What's the company called?" belongs at the start. "And who am
-I speaking to?" is a normal thing to ask. The mobile and the website are worth asking for and
-fine to go without.
+I speaking to?" is a normal thing to ask.
+
+⚠️ THE WEBSITE IS NOT OPTIONAL, AND "WE DO NOT HAVE ONE" IS AN ANSWER (MVP1). Ask for it. If
+they have one, take it; if they say they have none, set "website_none" and move on. What you
+may never do is finish without having asked. The mobile stays genuinely optional.
 
 ⚠️ THE COUNTRY IS WHERE THEIR OWN BUSINESS IS BASED. It is NOT where their customers are.
 Those are different facts and they are often different countries. NEVER copy it from the
@@ -3272,21 +3480,71 @@ listening. This conversation is about their targeting and their business, nothin
 
     // The completion gate exists ONLY on a first run, because it exists only to stop an
     // account being opened without the two fields it requires.
+    // ── ⚑ MVP1 (C21) — THE ELEVEN FACTS, TOLD TO HER IN HER OWN TERMS ─────────────────
+    //
+    // ⚠️ ELEVEN FACTS, NOT ELEVEN QUESTIONS (founder-locked). One answer may settle two of
+    // them. The prompt says so explicitly, because a model told "you need eleven things"
+    // will otherwise march through eleven questions and turn a conversation into a form —
+    // which is the product this one was built to replace.
+    //
+    // ⚠️ AND THE PROMPT IS NOT THE GATE. `millaReplyFor` refuses a completion that is short
+    // of the eleven whatever this text says; the two are kept in step because both read the
+    // same `BRIEF_FACTS` list. This half exists so Milla ASKS rather than being refused.
     const completionGate = profile_required
       ? `
 
-DO NOT ANSWER "complete" UNTIL YOU HOLD BOTH THEIR COMPANY NAME AND THEIR OWN COUNTRY. Their
-account cannot be opened without those two, and a made-up value is far worse than one more
-question. If either is missing, ask for it — that is a "question", not a "complete".`
+YOU ARE COMPLETE ONLY WHEN YOU HOLD ALL ELEVEN OF THESE:
+
+  1. Who you are speaking to — their name.
+  2. Their company name.
+  3. Their website — or them telling you plainly they do not have one. Both are answers.
+  4. What their own company does.
+  5. THE KIND OF COMPANY THEY WANT TO REACH, IN THEIR OWN WORDS.
+  6. Which countries those companies are in.
+  7. WHAT TYPE OF ORGANISATION those companies are — agency, consultancy, clinic,
+     recruitment firm, SaaS company, and so on.
+  8. How big those companies are.
+  9. Which roles to reach inside them.
+ 10. Who they do NOT want — exclusions.
+ 11. What they said this should achieve for them.
+
+⚠️ ELEVEN FACTS, NOT ELEVEN QUESTIONS. One answer often settles two. "Digital marketing
+agencies" gives you BOTH number 5 (their own words for the market) AND number 7 (the type is
+"agency", because they said the word). Never ask again for something they have already told
+you — re-asking is how a product tells someone it was not listening.
+
+⚠️ NUMBER 5 IS THEIR SENTENCE, NOT YOURS. Keep their phrase exactly as they said it. Do not
+tidy it, do not translate it into a category name, do not swap it for a neater label.
+
+⚠️ NUMBER 7 NEEDS THEIR EVIDENCE. Set it only from something they actually said. Never from
+their website, never from their own line of business, never because it seems likely. If they
+said "digital marketing" and nothing about what kind of organisation, you do NOT have number
+7 — ask a natural follow-up, something like "and what type of companies are those — agencies,
+consultancies, clinics, something else?", in your own words.
+
+If anything is missing, ask for ONE of them — that is a "question", not a "complete". Ask for
+the next missing thing the way a person would, never as a list, never all at once. A made-up
+value is far worse than one more question.
+
+⚠️ FILL "brief_so_far" ON EVERY SINGLE TURN, including questions. Put in it everything the
+client has actually told you so far — their words, not your tidied version — and leave out
+anything they have not established yet. It is how their answers survive a closed tab, and it
+is never a guess: if they have not said it, it does not go in.`
       : ''
 
     const profileFieldsNote = profile_required
       ? `
 When you answer "complete", fill "profile" with what they actually told you: their company
 name, the country THEIR OWN BUSINESS is based in, who you are speaking to, their mobile and
-their website. NEVER invent a company name, a country, a person's name, a phone number or a
-website — leave the field out entirely and ask for it instead. Nothing there may be filled in
-on the client's behalf.`
+their website — or "website_none": true if they told you they have none.
+NEVER invent a company name, a country, a person's name, a phone number or a website — leave
+the field out entirely and ask for it instead. Nothing there may be filled in on the client's
+behalf.
+
+Fill "icp.target_category" with THEIR OWN WORDS for the kind of company they want to reach,
+and "icp.target_company_type" with the type of organisation those companies are — but only
+when they have actually established it. Both are the client's answers, not your summary of
+them.`
       : ''
 
     // ── MILLA LEARNS THE BUSINESS, NOT JUST THE TARGET (22 Aug) ────────────────────────
@@ -3429,7 +3687,7 @@ learn over several turns, one per reply — never a batch.
 
 If they mention a named customer, a case study, a testimonial, a specific result or a metric,
 ASK EXPLICITLY whether we may use it in outreach. Do not assume. Anything they have not
-clearly approved must be recorded with "permitted" false.${websiteEvidenceBlock}${completionGate}
+clearly approved must be recorded with "permitted" false.${websiteEvidenceBlock}${completionGate}${resumeBlock}
 
 ── THEIR WORDS WILL NOT MATCH OUR LISTS, AND THAT IS FINE ──────────────────────────────
 Some targeting fields accept only certain values (they are listed on the tool). People do
@@ -3578,6 +3836,29 @@ result or a number. "permitted" is false unless they explicitly said we may use 
     }
     const parsed = validated.data
 
+    // ── ⚑ MVP1 — THE DRAFT IS WRITTEN HERE, ON EVERY TURN ─────────────────────────────
+    //
+    // 🛑 SERVER-SIDE, SO IT CANNOT BE SKIPPED. Persisting from the portal would mean a Brief
+    // survives only if the browser remembers to save it — and the defect this replaces is
+    // precisely a Brief that existed nowhere but a browser. Every reply that reaches this
+    // line, question or completion alike, records what Milla has established.
+    //
+    // ⚠️ MERGED, NEVER REPLACING. `saveBriefDraft` merges, so a turn carrying one new answer
+    // cannot erase the ten before it — the safe default the founder locked, and the only one
+    // that is correct without proving the model re-stated the whole truth every time.
+    //
+    // ⚠️ BEST-EFFORT, AND THAT IS THE RIGHT TRADE HERE. A draft that could not be stored must
+    // not cost the client their turn: the reply is already composed and the conversation is
+    // intact. A REFUSAL (the brief was already confirmed) is likewise not an error — it means
+    // the operational truth has moved on and this snapshot is simply no longer wanted.
+    if (parsed.brief_so_far && req.userId) {
+      const { saveBriefDraft } = await import('../lib/brief-draft')
+      const saved = await saveBriefDraft(req.userId, parsed.brief_so_far)
+      if (!saved.ok && saved.reason === 'unstorable') {
+        console.warn('[icps/builder/chat] brief draft not stored (run 20260911_onboarding_brief_drafts)')
+      }
+    }
+
     if (parsed.type === 'complete' && parsed.icp) {
       // Everything below is reading ALREADY-VALIDATED, ALREADY-BOUNDED data — Zod refused
       // anything longer or larger than the schema allows before we got here. The trims and
@@ -3586,6 +3867,15 @@ result or a number. "permitted" is false unless they explicitly said we may use 
       const icp = parsed.icp
       const draft = {
         name:                  icp.name?.trim() || 'My ICP',
+        // ── ⚑ MVP1 (C04) — THE CLIENT'S OWN WORDS SURVIVE TO STORAGE ────────────────
+        //
+        // ⚠️ CARRIED ALONGSIDE `industries`, NEVER INSTEAD OF IT. `industries` remains the
+        // closed sixteen-value provider hint the PDL/Apollo bodies already read; these two
+        // are the client's actual answer and the target's organisational form. Keeping both
+        // is what lets provider normalisation stay at the provider edge without the client's
+        // phrase being overwritten on the way in.
+        target_category:       icp.target_category?.trim() || '',
+        target_company_type:   icp.target_company_type?.trim() || '',
         industries:            icp.industries ?? [],
         job_titles:            icp.job_titles ?? [],
         seniority_levels:      icp.seniority_levels ?? [],
@@ -3636,6 +3926,9 @@ result or a number. "permitted" is false unless they explicitly said we may use 
             contact_name: str(p.contact_name),
             phone:        str(p.phone),
             website:      str(p.website),
+            // ⚑ MVP1 (C21) — an explicit "we have no website" travels as its own fact, so
+            // an empty `website` can never be mistaken for an unanswered question.
+            website_none: p.website_none === true,
             industry:     str(p.industry),
           }
         : null
@@ -4178,6 +4471,34 @@ icpRouter.post('/', async (req: AuthRequest, res) => {
     // immediately. They may still revise as often as they like; the edit now WAITS.)
     // Operators keep every freedom to create additional ICPs in Vida; this is the CLIENT's
     // door, and one core ICP is the client-side rule.
+    // ── ⚑ MVP1 — A REPLAYED ONBOARDING SAVE WRITES NOTHING ────────────────────────────
+    //
+    // 🛑 THE DEFECT THIS CLOSES. Promotion is three calls the BROWSER makes in order —
+    // `/auth/onboard`, this save, then the proof start. A double click, a retry after an
+    // ambiguous response, or a back-button re-submit replays all three. The client leg is
+    // safe (`clients.user_id` is unique, so the second call updates the one client) and this
+    // one looked safe too, because `saveClientTargeting` keeps ONE core ICP and updates it.
+    // It is not safe: the replay carries the ONBOARDING-DRAFT snapshot, so a stale retry
+    // OVERWRITES whatever the confirmed ICP has legitimately become since — the client's
+    // later refinement, an operator's correction — with the words they used at signup.
+    // No second ICP is created, and the truth is still lost.
+    //
+    // ⚠️ THE ACT IS NAMED, NOT INFERRED. `from_brief_draft` is the screen saying "this save
+    // IS the promotion of my brief", which is a genuinely different act from "I am revising
+    // my targeting". Omitting it cannot unlock anything — it only ever makes this route
+    // STRICTER — so a browser that does not send it gets exactly today's revision behaviour.
+    //
+    // ⚠️ AND THE REPLAY TEST IS DURABLE REALITY, NOT BOOKKEEPING. "Does this client already
+    // have a core ICP?" is asked of `coreIcpRow` — the same selector the write itself uses,
+    // so the check and the write can never disagree about which row is the core one.
+    if (req.body?.from_brief_draft === true) {
+      const already = await coreIcpRow(clientId)
+      if (already) {
+        res.status(200).json({ success: true, data: already, replayed: true })
+        return
+      }
+    }
+
     const revisedIntent = typeof req.body?.campaign_intent === 'string' ? req.body.campaign_intent.trim() : ''
     // Unchanged caller: no `applyLive`, no pre-selected core, so it reads its own row and
     // takes exactly the branch it always took. `state_changed` is unreachable without
@@ -4652,6 +4973,31 @@ icpRouter.post('/:id/proof', async (req: AuthRequest, res) => {
       .select('id, is_active').eq('id', req.params.id).eq('client_id', clientId).maybeSingle()
     if (!icp) { res.status(404).json({ success: false, error: 'ICP not found' }); return }
 
+    // ── ⚑ MVP1 — THE ONBOARDING PROOF START HAPPENS ONCE, AND ONLY ONCE ───────────────
+    //
+    // 🛑 THE CLAIM RPC IS ATOMIC, WHICH IS NOT THE SAME AS IDEMPOTENT. `try_claim_proof_pass`
+    // guarantees that two requests racing for pass 2 produce one claimant — it does NOT stop
+    // a double-clicked promotion claiming pass 1 and then pass 2. The client would be two
+    // free passes down before they had looked at the first batch, and the SECOND pass is the
+    // one the refinement journey needs.
+    //
+    // ⚠️ THE KEY IS DURABLE REALITY, NOT A LOCK WE MAINTAIN. `clients.proof_passes_done` is
+    // the column this very RPC increments, so "a pass has already been claimed" is a fact
+    // about the world rather than a flag that could fail to persist. A brand-new client is
+    // at 0; a replayed promotion finds 1 and is refused, claiming nothing.
+    //
+    // ⚠️ AND IT IS SCOPED TO THE ONBOARDING CALL. `from_brief_draft` is sent only by the
+    // promotion path. The refinement journey's legitimate SECOND pass does not carry it and
+    // is untouched — this guard can refuse, never permit.
+    if (req.body?.from_brief_draft === true) {
+      const { data: c } = await db.from('clients')
+        .select('proof_passes_done').eq('id', clientId).maybeSingle()
+      if (Number((c as { proof_passes_done?: number } | null)?.proof_passes_done ?? 0) > 0) {
+        res.status(200).json({ success: true, data: { already_started: true } })
+        return
+      }
+    }
+
     const { data: fundingRows } = await db.from('credit_transactions')
       .select('type, reference').eq('client_id', clientId)
     if (fundedVia(fundingRows ?? []) !== null) {
@@ -4671,9 +5017,12 @@ icpRouter.post('/:id/proof', async (req: AuthRequest, res) => {
     //
     // ⚠️ THE UI IS NOT THE SAFETY BOUNDARY (founder-locked). The screen hides its Proof
     // controls when escalated; this is the control.
+    // ⚑ 11 Sep (C39) — set when THIS request spends the one human-authorised restart, so the
+    // claim below is skipped and the batch can be recorded as what it is.
+    let calibratedRestart = false
     {
-      const { readCalibration } = await import('../lib/proof-calibration-io')
-      const { SPEND_CLOSED_REFUSAL } = await import('../lib/proof-calibration')
+      const { readCalibration, claimCalibratedRestart } = await import('../lib/proof-calibration-io')
+      const { SPEND_CLOSED_REFUSAL, calibratedRestart: restartStand } = await import('../lib/proof-calibration')
       try {
         const cal = await readCalibration(clientId)
         // ⛓️ 10 Sep — THE CONDITION IS `escalated`, NOT `!doors.automaticProofPass`, AND THE
@@ -4690,6 +5039,41 @@ icpRouter.post('/:id/proof', async (req: AuthRequest, res) => {
           res.status(409).json({ success: false, error: SPEND_CLOSED_REFUSAL })
           return
         }
+
+        // ── 🛑 ⚑ 11 Sep (C39) — THE ONE HUMAN-AUTHORISED RESTART, ACTUALLY SPENT ────────
+        //
+        // 🛑 THIS IS THE DEFECT. `POST /operator/proof-review/:id/restart` granted a restart
+        // and said the Proof path "becomes available once more for exactly one pass". It did
+        // not: `try_claim_proof_pass` refuses at `proof_passes_done >= 2` for ever, and the
+        // count is never reset. The operator pressed a real button, an audit row was written,
+        // and the client could not get a set.
+        //
+        // ⚠️ IT IS CLAIMED HERE INSTEAD OF THE RPC, AND THE RPC IS NOT CHANGED. Giving
+        // `try_claim_proof_pass` an exception would widen the one control that currently
+        // cannot be argued with. `proof_passes_done` stays at 2 — this is a second, narrower
+        // door, not a wider one.
+        //
+        // ⚠️ AND IT IS CLAIMED BEFORE ANYTHING IS SOURCED. If the run then fails, the restart
+        // is spent and there is no automatic retry — the same rule, and the same reason, as
+        // the automatic claim below: an automatic retry is the race that mints an extra batch.
+        if (restartStand(cal) === 'available') {
+          const claim = await claimCalibratedRestart(clientId)
+          if (!claim.ok) {
+            // ⚠️ FAIL CLOSED (C43). A restart we could not claim is a restart that was not
+            // granted — never a reason to fall through to the automatic path, which would
+            // reach the RPC, be refused, and open a SECOND escalation on a client a person
+            // has just finished calibrating.
+            // ⚠️ A CONFIGURATION GAP IS RETRYABLE, NOT FINAL. `provenance_unavailable` means the
+            // `proof_batch_kind` migration has not been applied yet: the restart is INTACT and
+            // the same press will work once it is run. Answering 409 would tell a client their
+            // one set was used when it was not.
+            const retryable = claim.reason === 'unreadable' || claim.reason === 'provenance_unavailable'
+            res.status(retryable ? 503 : 409)
+              .json({ success: false, error: claim.detail, retryable })
+            return
+          }
+          calibratedRestart = true
+        }
       } catch (err) {
         // ⛓️ 10 Sep — THIS REFUSED ON AN UNREADABLE READ, AND THAT WAS THE WRONG SHAPE.
         //
@@ -4702,15 +5086,57 @@ icpRouter.post('/:id/proof', async (req: AuthRequest, res) => {
         // lives in `try_claim_proof_pass`, which refuses a third claim whatever this read
         // said. So an unreadable calibration state cannot mint a paid batch; it can only
         // fail to add the newer, narrower refusal. We log it and let the RPC decide.
-        console.error(`[icps/proof] calibration state unreadable for client ${clientId} — deferring to try_claim_proof_pass:`, err)
+        // ── 🛑 ⛓️ 11 Sep (C43) — AN UNREADABLE STATE MAY NO LONGER FALL THROUGH SILENTLY ──
+        //
+        // The reasoning below was right about the AUTOMATIC path and wrong about the one that
+        // now exists. `try_claim_proof_pass` genuinely is a real backstop for automatic
+        // attempts, so continuing could not mint a paid batch — while the restart was the
+        // only other door and it did not work.
+        //
+        // 🛑 IT WORKS NOW, AND THE RPC DOES NOT GUARD IT. With the calibrated restart
+        // claimable here, "we could not read the calibration state" means we do not know
+        // whether this client is escalated, whether a restart was granted, or whether it has
+        // already been spent — and the one thing we must not do with that answer is source.
+        // The founder's rule: uncertain authority state must FAIL SAFE, do not expose restart
+        // because the read failed, and do not spend.
+        //
+        // ⚠️ IT IS 503-RETRYABLE AND SAYS NOTHING WAS SPENT, so the client is not told a
+        // final-sounding refusal for a transient fault, and an operator sees a real error
+        // rather than a silent fall-through.
+        console.error(`[icps/proof] calibration state unreadable for client ${clientId} — REFUSING (C43):`, err)
+        res.status(503).json({
+          success: false, retryable: true,
+          error: 'We could not check where your Proof stands just yet, so nothing was started and nothing was spent. Please try again shortly.',
+        })
+        return
       }
     }
 
     // Atomic: two requests racing for pass 2 give exactly one claimant. Pass 3 is always 0.
     // If something fails after this claim, the pass is spent and there is NO automatic
     // retry — an automatic retry is precisely the race that would mint a third free batch.
-    const { data: pass } = await db.rpc('try_claim_proof_pass', { p_client_id: clientId })
-    const claimed = typeof pass === 'number' ? pass : 0
+    //
+    // ⚑ 11 Sep (C39) — AND IT IS SKIPPED ENTIRELY WHEN THE RESTART WAS JUST CLAIMED. The
+    // restart is not an automatic attempt: calling the RPC here would be refused (the count
+    // is 2 and stays 2), and the refusal branch below would open a second escalation on a
+    // client a person has just finished calibrating.
+    const { data: pass } = calibratedRestart
+      ? { data: null }
+      : await db.rpc('try_claim_proof_pass', { p_client_id: clientId })
+    // ── 🛑 ⛓️ 11 Sep — THE RESTART IS NOT A PASS NUMBER, IT IS PROVENANCE ─────────────
+    //
+    // An earlier cut of this stamped the restart's rows `proof_pass = 3`. That was wrong
+    // twice: `20260903_lead_proof_attribution` declares
+    // `CHECK (proof_pass IS NULL OR proof_pass IN (1, 2))`, so every insert would have been
+    // REJECTED — and even without the constraint it would have put ambiguous truth in the row
+    // for rendering code to repair, where any count, guard or analytic could read it as a
+    // third automatic attempt.
+    //
+    // ⚠️ THE RESTART RUNS ALONGSIDE PASS 2 AND IS TOLD APART BY `proof_batch_kind`. Automatic
+    // proof-pass identity stays 1 and 2 for ever, and `proof_passes_done` stays at 2.
+    const { attemptLabel: attemptLabelFor } = await import('../lib/proof-calibration')
+    const claimed = calibratedRestart ? 2 : (typeof pass === 'number' ? pass : 0)
+    const batchKind: 'automatic' | 'calibrated_restart' = calibratedRestart ? 'calibrated_restart' : 'automatic'
     if (claimed <= 0) {
       // ⚑ 27 Aug (PR2) — THE PROMISE BECOMES A PIECE OF WORK.
       //
@@ -4832,7 +5258,7 @@ icpRouter.post('/:id/proof', async (req: AuthRequest, res) => {
     // prospect their targeting matched nobody when we never actually asked — a lie, and the
     // precise class of lie R72 forbids. A truthful failure state needs a founder decision
     // (a new status + its client sentence); until then a HUMAN is told, immediately.
-    runIcpJob(req.params.id, clientId, req.userId!, PROOF_PASS_LEADS, { proofPass: claimed })
+    runIcpJob(req.params.id, clientId, req.userId!, PROOF_PASS_LEADS, { proofPass: claimed, proofKind: batchKind })
       .catch(async e => {
         console.error('[icps/proof] proof run failed:', e)
         // ⚑ 26 Aug — PERSIST THE CRASH AS A TERMINAL FACT (founder-approved `failed`).
@@ -4842,14 +5268,21 @@ icpRouter.post('/:id/proof', async (req: AuthRequest, res) => {
         await recordRunOutcome(req.params.id, clientId, 'failed', PROOF_PASS_LEADS, 0, 0)
           .catch(re => console.error('[icps/proof] could not record the failed outcome:', re))
         void sendFounderAlert('source_down', 'A free-proof run crashed — the prospect is waiting on a desk that cannot finish', [
-          `Prospect ${clientId}, ICP ${req.params.id}, pass ${claimed} of 2.`,
+          `Prospect ${clientId}, ICP ${req.params.id}, ${attemptLabelFor({ pass: claimed, kind: batchKind })}.`,
           `Reason: ${e instanceof Error ? e.message : String(e)}`,
           'Their proof pass is CONSUMED and no run outcome was recorded, so the desk shows no terminal state for this attempt.',
           'If this reads SAFE_TEST_MODE / PAID_PROVIDERS_ENABLED, the guard refused to spend — that is correct behaviour, not a bug.',
         ]).catch(() => {})
       })
 
-    res.json({ success: true, data: { pass: claimed, of: 2, finding: true } })
+    // ⚠️ "pass 3 of 2" IS THE SENTENCE THIS AVOIDS. The restart is not an automatic attempt
+    // and must never be numbered as one on either surface — see `attemptLabel`.
+    res.json({
+      success: true,
+      data: calibratedRestart
+        ? { kind: batchKind, label: attemptLabelFor({ pass: claimed, kind: batchKind }), calibrated_restart: true, finding: true }
+        : { pass: claimed, of: 2, kind: batchKind, label: attemptLabelFor({ pass: claimed, kind: batchKind }), finding: true },
+    })
   } catch (err) {
     console.error('[icps/proof]', err)
     res.status(500).json({ success: false, error: 'Could not start your proof batch' })

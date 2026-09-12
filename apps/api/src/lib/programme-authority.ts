@@ -330,7 +330,16 @@ const PROGRAMME_COLUMNS =
   // now refuses without it. Unselected it reads `undefined`, which refuses — safe, but it
   // would refuse for every programme including a genuinely Run one, so it is selected here
   // rather than left to fail closed by accident.
-  'run_at'
+  'run_at, ' +
+  // ⚑ 11 Sep (DAY 3 HOLD) — THE FROZEN REVIEW PACKAGE, so Vida can read the SAME persisted
+  // truth Milla does instead of reconstructing approval facts from mutable current state. Its
+  // panel rendered "Review snapshot frozen ✓" as a hardcoded true beside live prospect counts
+  // and a live target; an operator and a client could look at one programme and read different
+  // numbers, and the operator's were the ones that could move underneath them.
+  //
+  // ⚠️ READ-ONLY HERE. No gate in this file branches on these; an unselected column would
+  // simply make the panel report "not frozen", which is why it is selected explicitly.
+  'review_preparation_hash, review_preparation_snapshot, review_preparation_at, review_preparation_version'
 
 /**
  * The client's open (non-terminal) programme, or null if they have none.

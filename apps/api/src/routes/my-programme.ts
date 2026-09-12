@@ -110,8 +110,6 @@ myProgrammeRouter.get('/review', async (req: AuthRequest, res) => {
     const p = await openProgrammeForSession(clientId)
     if (!p) { res.json({ success: true, data: { programme: null, prospects: [], total: 0, canApprove: false } }); return }
 
-    const { readProgrammeReviewSet } = await import('../lib/programme-review')
-    const set = await readProgrammeReviewSet(clientId, p.id)
 
     // ── ⛓️ 9 Sep — WHAT THE CLIENT IS ACTUALLY APPROVING, READ FROM THE FREEZE ────────────
     //
@@ -132,7 +130,33 @@ myProgrammeRouter.get('/review', async (req: AuthRequest, res) => {
       return raw && typeof raw === 'object' ? raw as Record<string, unknown> : null
     })()
     const rawSteps = Array.isArray(snapObj?.steps) ? snapObj.steps as Record<string, unknown>[] : []
+    const frozenLeadIds = Array.isArray(snapObj?.enrolled_lead_ids)
+      ? (snapObj.enrolled_lead_ids as unknown[]).filter((v): v is string => typeof v === 'string')
+      : []
     const frozen = snapObj ? {
+      /**
+       * ⚑ 11 Sep (DAY 3) — WHICH EXACT VERSION THIS IS, and the client sends it back when they
+       * approve.
+       *
+       * 🛑 THE GAP THIS CLOSES. Approval recorded `approved_preparation_hash` from whatever
+       * was frozen AT THE MOMENT OF THE PRESS. The client never said which version they were
+       * approving — so a re-preparation between the screen rendering and the button being
+       * pressed was approved silently, and the founder's rule is the opposite: never mutate an
+       * approved frozen version underneath the client; a change means a NEW version and a NEW
+       * approval.
+       *
+       * ⚠️ IT IS AN OPAQUE VERSION STRING TO THE CLIENT, not "our plumbing" — it identifies
+       * the package they are reading and nothing else.
+       */
+      version: (p as unknown as { review_preparation_hash?: string | null }).review_preparation_hash ?? null,
+      /**
+       * ⚑ 11 Sep (DAY 3) — THE HUMAN-READABLE VERSION NUMBER, alongside the opaque one.
+       *
+       * The hash is what the approval is pinned to; a client cannot say "I approved dc41f8…"
+       * to anybody. This is what a person quotes, and it is the column a re-freeze bumps, so
+       * "you are looking at version 2" and "version 1 is what you approved" are both sayable.
+       */
+      version_number: (p as unknown as { review_preparation_version?: number | null }).review_preparation_version ?? null,
       at: (p as unknown as { review_preparation_at?: string | null }).review_preparation_at ?? null,
       messages: rawSteps.map((st, i) => ({
         step: i + 1,
@@ -142,9 +166,58 @@ myProgrammeRouter.get('/review', async (req: AuthRequest, res) => {
         wait_days: Number.isFinite(st.wait_days as number) ? Number(st.wait_days) : 0,
       })),
       /** How many prospects the frozen set holds — the exact population being approved. */
-      prospects: Array.isArray(snapObj.enrolled_lead_ids) ? snapObj.enrolled_lead_ids.length : 0,
+      prospects: frozenLeadIds.length,
       send_schedule: snapObj.send_schedule ?? null,
+      /**
+       * ⚑ 11 Sep (DAY 3) — THE TARGET, FROM THE FREEZE AND NOT FROM THE LIVE ROW.
+       *
+       * 🛑 IT IS A TARGET, NEVER A GUARANTEE (founder-locked). Reading it off `p.meeting_target`
+       * here would show whatever the number is NOW, which is exactly the drift the freeze
+       * exists to stop — and `meeting_target` is inside the digest from v2 precisely so a
+       * change to it invalidates the package rather than quietly re-describing the deal.
+       */
+      meeting_target: typeof snapObj.meeting_target === 'number' ? snapObj.meeting_target : null,
+      /**
+       * ⚑ 11 Sep (DAY 3) — WHICH MAILBOX THESE WOULD COME FROM.
+       *
+       * ⛓️ THE HEADER ABOVE SAID "no sender address", AND THAT WAS THE WRONG CALL. It was made
+       * to keep OUR plumbing out of a customer screen, and the sending address is not our
+       * plumbing — it is the client's own from-line, the thing every recipient will see, and
+       * part of what they are being asked to approve. What stays out is the INBOX ID, the
+       * credentials and the provider; only the address is shown.
+       *
+       * ⚠️ PARSED FROM THE SNAPSHOT'S `id|email` FORM, so a snapshot that recorded no address
+       * shows none rather than showing an internal identifier.
+       */
+      sender_email: ((): string | null => {
+        const raw = typeof snapObj.sender === 'string' ? snapObj.sender : ''
+        const email = raw.includes('|') ? raw.slice(raw.indexOf('|') + 1) : ''
+        return email.trim() === '' ? null : email.trim()
+      })(),
     } : null
+
+    // ── ⚑ 11 Sep (DAY 3) — THE PROSPECTS COME FROM THE FREEZE, AND ALL OF THEM CAN BE READ ──
+    //
+    // 🛑 THE TWO DEFECTS THIS CLOSES. The desk was a LIVE recomputation of "who is eligible
+    // right now" while the client was being asked to approve a FROZEN set — so the screen and
+    // the package could describe different people — and it returned the best 50 with a total of
+    // 250 and no parameter anywhere that could fetch the other 200. A "view all" with nothing
+    // behind it is worse than no count at all.
+    //
+    // ⚠️ THE FALLBACK IS THE OLD LIVE READ, AND ONLY WHERE THERE IS NO FREEZE TO READ. A
+    // programme before `READY_FOR_APPROVAL` has no package yet; showing it the live set is
+    // honest there, because nothing is being approved.
+    const { readFrozenReviewPage, readProgrammeReviewSet, REVIEW_PAGE } = await import('../lib/programme-review')
+    const offset = Number.isFinite(Number(req.query.offset)) ? Math.max(0, Math.floor(Number(req.query.offset))) : 0
+    const set = frozen
+      ? await readFrozenReviewPage(clientId, p.id, frozenLeadIds, offset, REVIEW_PAGE)
+      : await (async () => {
+          const live = await readProgrammeReviewSet(clientId, p.id)
+          return { prospects: live.prospects, total: live.total, offset: 0, missing: 0, live: true as const, complete: live.complete }
+        })()
+    // ⚠️ A FROZEN SET IS FINITE AND COUNTED, so `complete` is unconditionally true for it — the
+    // floor-vs-count caveat belongs only to the budgeted live scan.
+    const complete = 'complete' in set ? set.complete : true
 
     res.json({
       success: true,
@@ -167,12 +240,23 @@ myProgrammeRouter.get('/review', async (req: AuthRequest, res) => {
         frozen,
         prospects: set.prospects,
         total: set.total,
-        // ⚠️ `complete: false` MEANS "AT LEAST `total`". The scan is bounded at
-        // REVIEW_SCAN_BUDGET rows, so a very large programme reports a floor rather than a
-        // number it did not finish counting. The UI renders "N+" for that case — telling a
-        // customer "5,000 prospects" when we stopped counting at 5,000 would be a made-up
-        // figure, and telling them exactly 5,000 when there are 6,200 is worse.
-        complete: set.complete,
+        /** Where this page starts, and the page size — so "view all" is a real parameter. */
+        offset: set.offset,
+        page_size: REVIEW_PAGE,
+        /** True when this set is the frozen package rather than a live eligibility read. */
+        from_freeze: !('live' in set),
+        /**
+         * Ids in the frozen package with no readable lead row behind them.
+         *
+         * ⚠️ SURFACED RATHER THAN SWALLOWED. They still count toward `total`, because the
+         * package contains them; a screen quietly showing fewer people than the package holds
+         * is the same disagreement this whole change exists to remove.
+         */
+        missing: set.missing,
+        // ⚠️ `complete: false` MEANS "AT LEAST `total`" — and applies ONLY to the live scan,
+        // which is bounded at REVIEW_SCAN_BUDGET rows. A frozen package is a finite list, so it
+        // is counted exactly and this is always true for it.
+        complete,
         // ⚠️ THE BUTTON'S ENABLED-NESS IS DECIDED SERVER-SIDE, and re-decided by the POST. This
         // is what the UI renders from; it is NOT what authorises anything.
         canApprove: p.status === 'READY_FOR_APPROVAL' && !p.paused_at && set.total > 0,
@@ -232,6 +316,55 @@ async function programmeCheckout(
     if (firstInternallyAuthorised(p)) {
       res.status(409).json({ success: false, error: 'internally_authorised', message: 'This programme is authorised internally and owes nothing.' }); return
     }
+    // ── 🛑 ⚑ 11 Sep (DAY 3) — P1 IS NOT EXPOSED UNTIL THE CLIENT HAS ACCEPTED ─────────
+    //
+    // 🛑 THE GAP THIS CLOSES. `POST /programme/me/accept` exists and persists
+    // `recommendation_accepted_at`, and NOTHING read it before charging. So the first payment
+    // was reachable for a client who had only ever SEEN the recommendation: the calculator
+    // renders, the checkout button posts, Stripe opens. Viewing is not accepting, and the
+    // recommendation is a TARGET rather than a guarantee — being asked for money against a
+    // target nobody agreed to is the defect.
+    //
+    // ⚠️ IT REFUSES BEFORE A STRIPE SESSION IS CREATED, so nothing is minted, nothing is
+    // charged, and the answer names the missing act rather than reading as a fault.
+    //
+    // ⚠️ AND IT IS THE SERVER'S CHECK. Milla hides the payment step until acceptance is
+    // recorded; a hidden button is a courtesy and this is the control.
+    //
+    // ── 🛑 ⛓️ CORRECTED 11 Sep — UNKNOWN IS NOT ACCEPTED ─────────────────────────────
+    //
+    // The first cut let an ABSENT `recommendation_accepted_at` through as "the pre-migration
+    // world", so the old behaviour stood. That is too permissive for a MONEY-AUTHORITY gate:
+    // if we cannot establish whether the client accepted, the one thing we must not do is mint
+    // a payment session. Documented migration ordering is a note to a human; this is the
+    // control, and it fails closed when the ordering is wrong.
+    //
+    // THREE OUTCOMES, AND THEY ARE DISTINCT:
+    //   a value          → P1 may proceed
+    //   present and null → 409 `not_accepted` (they have not agreed yet)
+    //   absent           → 503 `acceptance_unavailable`, naming the migration. Retryable,
+    //                      because it is OUR configuration and not their fault, and the same
+    //                      press works the moment it is applied.
+    //
+    // ⚠️ A READ FAILURE NEVER REACHES HERE AT ALL. `openProgrammeForClient` throws
+    // `ProgrammeStorageError` on a storage error, which the route's own catch answers 503 —
+    // so an unreadable programme cannot arrive looking like an accepted one.
+    const acceptance = (p as unknown as { recommendation_accepted_at?: string | null })
+    if (!('recommendation_accepted_at' in acceptance)) {
+      res.status(503).json({
+        success: false, error: 'acceptance_unavailable', retryable: true,
+        message: 'We could not confirm that you accepted this recommendation, so nothing has been charged. Please try again shortly.',
+        detail: 'clients/programmes: run migration 20260910_programme_calculator_choice — until it is applied, acceptance cannot be established and no first payment may be taken.',
+      })
+      return
+    }
+    if (!acceptance.recommendation_accepted_at) {
+      res.status(409).json({
+        success: false, error: 'not_accepted',
+        message: 'This recommendation has not been accepted yet. Accept it with Milla and the first payment step opens. Nothing has been charged.',
+      })
+      return
+    }
     if (p.status !== 'RECOMMENDED' && p.status !== 'AWAITING_FIRST_PAYMENT') {
       res.status(409).json({ success: false, error: 'wrong_state', message: `This programme is ${p.status}, so the first payment is not due.` }); return
     }
@@ -241,6 +374,39 @@ async function programmeCheckout(
     if (!gate.allowed) { res.status(409).json({ success: false, error: 'wrong_state', message: gate.reason }); return }
     if (secondInternallyAuthorised(p)) {
       res.status(409).json({ success: false, error: 'internally_authorised', message: 'This programme is authorised internally and owes nothing.' }); return
+    }
+
+    // ── 🛑 ⚑ 11 Sep (DAY 3) — P2 IS CHARGED AGAINST AN *EXACT* APPROVAL, NOT MERELY A STATUS ──
+    //
+    // 🛑 THE GAP. `maySecondCharge` asks `status === 'APPROVED'`, which was the whole test. A
+    // programme can be APPROVED and have its prepared work move afterwards — a prospect
+    // evicted, the sequence re-drafted, the sending window or mailbox changed. `preparationDrift`
+    // has detected exactly that since 7 Sep and the RUN gate refuses on it, so the drifted
+    // programme could never go live — and the client could still be charged the second half for
+    // it. Taking money against an approval that no longer covers the work is the defect, and it
+    // is a money defect, not a scheduling one.
+    //
+    // ⚠️ IT REFUSES BEFORE A STRIPE SESSION EXISTS. Nothing is minted and nothing is charged.
+    //
+    // 🛑 AND `unreadable` REFUSES TOO. "We cannot tell whether this approval still covers the
+    // work" is not permission to charge for it. 503 and retryable, because it is our read that
+    // failed, not their programme.
+    const { preparationDrift } = await import('../lib/preparation-snapshot')
+    const drift = await preparationDrift(p.id)
+    if (drift.state === 'changed') {
+      res.status(409).json({
+        success: false, error: 'approval_superseded',
+        message: 'This programme has changed since you approved it, so the second payment is not due on it. Nothing has been charged — take another look and approve the current version first.',
+      })
+      return
+    }
+    if (drift.state !== 'unchanged') {
+      res.status(503).json({
+        success: false, error: 'approval_unverifiable', retryable: true,
+        message: 'We could not confirm that what you approved is still what would run, so nothing has been charged. Please try again shortly.',
+        detail: drift.state === 'unreadable' ? drift.detail : 'This programme carries no approval to charge against.',
+      })
+      return
     }
   }
 
@@ -393,8 +559,13 @@ myProgrammeRouter.post('/approve', async (req: AuthRequest, res) => {
     const p = await openProgrammeForSession(clientId)
     if (!p) { res.status(404).json({ success: false, error: 'not_found', message: 'No such programme.' }); return }
 
+    // ⚠️ THE VERSION THE CLIENT WAS LOOKING AT, sent back with the press. See `frozen.version`
+    // above and the refusal in `approveProgrammeAsCustomer`.
+    const version = typeof req.body?.version === 'string' ? req.body.version.trim() : ''
     const { approveProgrammeAsCustomer } = await import('../lib/programme')
-    const r = await approveProgrammeAsCustomer(clientId, p.id)
+    // ⚠️ THE AUTHOR COMES FROM THE SESSION. `req.userId` is what `requireAuth` proved; there is
+    // no body field for it, so there is nothing a browser can put a different person into.
+    const r = await approveProgrammeAsCustomer(clientId, p.id, version || null, req.userId ?? null)
 
     if (!r.ok) {
       // ⚠️ THE STATUS CODE CARRIES THE MEANING, so Milla can tell "not yet" from "broken".

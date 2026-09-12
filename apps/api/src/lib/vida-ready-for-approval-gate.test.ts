@@ -196,7 +196,7 @@ describe('③ 4 · 5 · 6 · 7 · 8 · 9 · 10 · the readiness contract is inta
     attachedIcpId: 'icp-1', batchId: 'batch-1', reviewableLeads: 210,
     campaignId: 'camp-1', campaignProgrammeLinked: true,
     sequenceId: 'seq-1', sequenceCampaignLinked: true, messageSteps: 3,
-    cadenceConfigured: true, sendScheduleConfigured: true, senderAssigned: true,
+    cadenceConfigured: true, sendScheduleConfigured: true, senderAssigned: true, senderVerified: true, senderProblem: null,
     eligibleEnrolments: 210, foreignEnrolments: 0, snapshotSupported: true,
   }
 
@@ -204,13 +204,18 @@ describe('③ 4 · 5 · 6 · 7 · 8 · 9 · 10 · the readiness contract is inta
     expect(preparationBlockers(READY)).toEqual([])
   })
 
-  it('🛑 10 · the requirement list is the contract, and all sixteen codes survive', () => {
+  it('🛑 10 · the requirement list is the contract, and all seventeen codes survive', () => {
     // A requirement quietly dropped from this list is a requirement dropped from the gate.
+    //
+    // ⛓️ 11 Sep (DAY 3) — SIXTEEN BECAME SEVENTEEN, and it is a SPLIT rather than an addition.
+    // `no_sender` was answering two questions: no mailbox is settled, and the settled mailbox
+    // has never proved it can log in. Both still block; the second now says so in its own words
+    // instead of telling an operator to assign a mailbox that is already there.
     expect([...PREPARATION_REQUIREMENTS].sort()).toEqual([
       'campaign_not_programme_linked', 'foreign_enrolments', 'no_attached_icp', 'no_batch',
       'no_cadence', 'no_campaign', 'no_eligible_enrolments', 'no_message_steps',
       'no_reviewable_leads', 'no_send_schedule', 'no_sender', 'no_sequence', 'no_snapshot',
-      'paused', 'sequence_not_campaign_linked', 'wrong_status',
+      'paused', 'sender_unverified', 'sequence_not_campaign_linked', 'wrong_status',
     ])
   })
 
@@ -223,7 +228,8 @@ describe('③ 4 · 5 · 6 · 7 · 8 · 9 · 10 · the readiness contract is inta
       ['no_message_steps',     { messageSteps: 0 }],
       ['no_cadence',           { cadenceConfigured: false }],
       ['no_send_schedule',     { sendScheduleConfigured: false }],
-      ['no_sender',            { senderAssigned: false }],
+      ['no_sender',            { senderAssigned: false, senderVerified: false }],
+      ['sender_unverified',    { senderAssigned: true, senderVerified: false }],
       ['no_eligible_enrolments', { eligibleEnrolments: 0 }],
       ['foreign_enrolments',   { foreignEnrolments: 1 }],
       ['no_snapshot',          { snapshotSupported: false }],

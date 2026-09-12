@@ -46,15 +46,18 @@ describe('① the client is shown the FROZEN work, never a live re-resolution', 
   it('the frozen payload carries the messages, the timing, the population and the schedule', () => {
     const at = ROUTE.indexOf('const frozen = snapObj ?')
     expect(at, 'the frozen payload is gone').toBeGreaterThan(-1)
-    const block = ROUTE.slice(at, at + 1200)
-    for (const field of ['messages:', 'wait_days:', 'prospects:', 'send_schedule:', 'at:']) {
+    // ⛓️ 11 Sep (DAY 3) — 1200 → 2200, and `version:` JOINS THE REQUIRED FIELDS. The payload
+    // gained the version the client is reading, plus the comment explaining why it exists, so
+    // the window widened; the DUTY is unchanged and one field stronger.
+    const block = ROUTE.slice(at, at + 2200)
+    for (const field of ['version:', 'messages:', 'wait_days:', 'prospects:', 'send_schedule:', 'at:']) {
       expect(block, `the frozen payload lost ${field}`).toContain(field)
     }
   })
 
   it('🛑 AND NO IDENTIFIERS REACH THE CUSTOMER', () => {
     const at = ROUTE.indexOf('const frozen = snapObj ?')
-    const block = ROUTE.slice(at, at + 1200)
+    const block = ROUTE.slice(at, at + 2200)
     // The snapshot holds all of these; none of them is the customer's business.
     for (const leak of ['enrolled_lead_ids:', 'batch_lead_ids', 'campaign_id', 'sequence_id', 'sender']) {
       expect(block.includes(leak), `${leak} was handed to the customer`).toBe(false)
@@ -63,8 +66,20 @@ describe('① the client is shown the FROZEN work, never a live re-resolution', 
 
   it('the screen renders the frozen messages and says they are frozen', () => {
     expect(APPROVAL).toContain('frozen.messages.map')
-    expect(APPROVAL).toContain('This is the version prepared for you on')
+    // ⛓️ 11 Sep (DAY 3) — THE SENTENCE GAINED A VERSION NUMBER and is now assembled from two
+    // parts, so the old single-string scan broke on a change that STRENGTHENED it. The promise
+    // it guards — *this is a fixed version, and a change means we ask again* — is asserted as
+    // its parts. A client cannot say "I approved dc41f8…", so the version they were shown has
+    // to be a number they can quote back.
+    expect(APPROVAL).toContain('prepared for you on')
+    expect(APPROVAL).toContain('version ${frozen.version_number}')
     expect(APPROVAL).toContain('If anything changes, we will ask you again.')
+    // 🛑 AND THE REST OF THE PACKAGE IS ON THE SCREEN. A client was being asked to approve
+    // outreach without being told which address it comes from, or against which target.
+    expect(APPROVAL).toContain('frozen.sender_email')
+    expect(APPROVAL).toContain('frozen.meeting_target')
+    // Founder-locked: the caveat travels WITH the number.
+    expect(APPROVAL).toContain('a target, not a guarantee')
   })
 
   it('🛑 the screen never re-resolves or re-counts anything of its own', () => {
@@ -158,10 +173,28 @@ describe('④ approving spends nothing and sends nothing', () => {
     const body = ROUTE.slice(at, at + 1400)
     expect(body).toContain('const clientId = await getClientId(req.userId!)')
     expect(body).toContain('openProgrammeForSession(clientId)')
-    expect(body).toContain('approveProgrammeAsCustomer(clientId, p.id)')
-    // 🛑 NO CLIENT-SUPPLIED PROGRAMME AUTHORITY. A body-supplied id would let a signed-in
-    // customer approve somebody else's programme.
-    expect(body.includes('req.body'), 'the approval takes a programme id from the request body').toBe(false)
+    // ⛓️ 11 Sep (DAY 3) — AND THE AUTHOR IS THE FOURTH ARGUMENT, from the session. An approval
+    // recorded no identity at all before this; `req.userId` is what `requireAuth` proved, and
+    // there is no body field for it, so there is nothing a browser can put a person into.
+    expect(body).toContain('approveProgrammeAsCustomer(clientId, p.id, version || null, req.userId ?? null)')
+    // ── 🛑 NO CLIENT-SUPPLIED PROGRAMME AUTHORITY ────────────────────────────────────────
+    //
+    // ⛓️ 11 Sep (DAY 3) — THE GUARD IS NARROWED TO WHAT IT ACTUALLY DEFENDS, not relaxed. The
+    // body now carries ONE field: `version`, the frozen package the client was reading. It can
+    // only cause a REFUSAL (`stale_version`) and can never widen authority — while a
+    // body-supplied programme or client id would let a signed-in customer approve somebody
+    // else's programme, which is the thing this case exists for. So the ids are banned by name
+    // and the version is allowed, rather than banning the word `req.body` and calling it a
+    // security property.
+    expect(body).toContain("const clientId = await getClientId(req.userId!)")
+    for (const smuggled of ['req.body?.id', 'req.body.id', 'req.body?.programme', 'req.body.programme', 'req.body?.client', 'req.body.client']) {
+      expect(body.includes(smuggled), `the approval takes ${smuggled} from the request`).toBe(false)
+    }
+    // ⚠️ COMPARED AS FIELD NAMES, NOT SPELLINGS. `req.body?.version` and `req.body.version`
+    // are one field read twice (the typeof guard and the value); asserting on the raw matches
+    // would be asserting on punctuation.
+    const bodyFields = [...new Set((body.match(/req\.body\??\.(\w+)/g) ?? []).map(m => m.split('.').pop()))]
+    expect(bodyFields, 'the approval reads something other than the version from the body').toEqual(['version'])
   })
 })
 

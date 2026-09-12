@@ -116,6 +116,107 @@ beforeEach(() => {
 })
 
 // ═══════════════════════════════════════════════════════════════════════════════════════
+// ⓪ C03 — THE CLIENT'S OWN OUTCOME REACHES THE OPERATOR
+//
+// 🛑 THE FACT VIDA WAS NEVER TOLD, AGAIN. `clients.outcome_stated` has existed since
+// 20260910_client_stated_outcome and `vida-lifecycle-copy.ts` already TYPES `outcomeStated`
+// and renders it in three places — "In their words" with the sentence beneath. But nothing
+// ever supplied it: `lifecycleDetailFor` did not read the column and `vida/page.tsx` did not
+// pass it. So every one of those three call sites fell to its else-branch and Vida said
+// "Being agreed" / "Not stated yet" about every client in the book, including the ones who
+// had said exactly what they wanted at signup.
+//
+// ⚠️ THE CONSUMER EXISTING IS WHAT MAKES THIS SO EASY TO MISS. Nothing is broken-looking:
+// the card renders, the copy is grammatical, and the only way to tell is to know that a
+// client DID state an outcome and see Vida claim otherwise.
+//
+// ⚠️ IT IS THE CLIENT'S SENTENCE, NOT THE PROGRAMME'S TARGET. A meeting target is agreed
+// later, at Programme; this is what they said they wanted before any number existed. The two
+// are different facts and Preview 07 shows them as different cards.
+// ═══════════════════════════════════════════════════════════════════════════════════════
+
+describe('⓪ C03 — the outcome the client stated in their own words', () => {
+  it('🛑 reaches the operator when the client stated one', async () => {
+    state.clients = [{
+      id: CLIENT, proof_review_requested_at: null, proof_review_resolved_at: null,
+      proof_completed_at: '2026-09-10',
+      outcome_kind: 'meetings',
+      outcome_stated: 'Book qualified sales meetings with founders, CEOs and MDs.',
+    }]
+    const d = await lifecycleDetailFor(CLIENT)
+    expect(d.outcomeStated).toBe('Book qualified sales meetings with founders, CEOs and MDs.')
+  })
+
+  it('is null when the client has not stated one — never a fabricated sentence', async () => {
+    state.clients = [{
+      id: CLIENT, proof_review_requested_at: null, proof_review_resolved_at: null,
+      proof_completed_at: '2026-09-10', outcome_stated: null,
+    }]
+    expect((await lifecycleDetailFor(CLIENT)).outcomeStated).toBeNull()
+  })
+
+  it('an empty or whitespace column is not a stated outcome', async () => {
+    for (const v of ['', '   ']) {
+      state.clients = [{
+        id: CLIENT, proof_review_requested_at: null, proof_review_resolved_at: null,
+        proof_completed_at: '2026-09-10', outcome_stated: v,
+      }]
+      expect((await lifecycleDetailFor(CLIENT)).outcomeStated, JSON.stringify(v)).toBeNull()
+    }
+  })
+
+  // ⚠️ FAILS SOFT TO null, like every other read in this file. An unreadable column must not
+  // blank the console, and it must not invent a sentence either — null asserts nothing.
+  it('an unreadable clients table degrades to null rather than throwing', async () => {
+    unreadable.add('clients')
+    const d = await lifecycleDetailFor(CLIENT)
+    expect(d.outcomeStated).toBeNull()
+  })
+
+  // ── ⚠️ THE WHOLE CHAIN, NOT JUST THIS END ────────────────────────────────────────────
+  //
+  // 🛑 C03's DEFECT WAS A GAP BETWEEN TWO CORRECT HALVES. The copy module read
+  // `outcomeStated`; the column existed; nobody joined them. A test that only proves this
+  // function returns the value would have passed while Vida still said "Being agreed", so
+  // the remaining legs are asserted against the real source.
+  it('🛑 every leg of the plumbing exists — column → detail → page → copy', () => {
+    const { readFileSync } = require('fs') as typeof import('fs')
+    const { join } = require('path') as typeof import('path')
+    const repo = join(__dirname, '../../../..')
+    const read = (p: string) => readFileSync(join(repo, p), 'utf8')
+
+    // ② the detail carries it
+    const facts = read('apps/api/src/lib/programme-lifecycle-facts.ts')
+    expect(facts).toContain('outcomeStated: string | null')
+    expect(facts).toContain('async function outcomeStatedFor')
+
+    // ③ the page passes it — the leg that was missing
+    const page = read('apps/admin/src/app/vida/page.tsx')
+    expect(page).toContain('outcomeStated: lc.outcomeStated ?? null')
+
+    // ④ the copy module consumes it, and still distinguishes it from the meeting target
+    const copy = read('apps/admin/src/lib/vida-lifecycle-copy.ts')
+    expect(copy).toContain('outcomeStated?: string | null')
+    expect(copy).toContain('i.outcomeStated')
+  })
+
+  it('it reaches the operator on a client with NO programme too', async () => {
+    // ⚠️ BOTH RETURN BRANCHES. The no-programme branch is the Brief/Proof client — exactly
+    // the one Preview 07 shows, and exactly the one whose outcome an operator most needs
+    // before a target has been agreed.
+    state.programmes = []
+    state.clients = [{
+      id: CLIENT, proof_review_requested_at: null, proof_review_resolved_at: null,
+      proof_completed_at: null,
+      outcome_stated: 'Book qualified sales meetings with founders, CEOs and MDs.',
+    }]
+    const d = await lifecycleDetailFor(CLIENT)
+    expect(d.programme).toBeNull()
+    expect(d.outcomeStated).toBe('Book qualified sales meetings with founders, CEOs and MDs.')
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
 // ① THE DETAIL PANEL — the client an operator has actually opened
 // ═══════════════════════════════════════════════════════════════════════════════════════
 

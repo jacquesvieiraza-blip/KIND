@@ -84,6 +84,14 @@ export type OperatorAction =
   // back in front of a paid provider after both automatic attempts are gone, and "who
   // granted this, and on what note" has to be answerable without reading code.
   | 'proof_calibrated_restart_granted'
+  // ⚑ 11 Sep — the two halves the restart grant sits between, so the audit trail can prove
+  // the whole founder-locked sequence without inferring any of it from UI state:
+  //   escalation happened → a human resolved it → the restart became available →
+  //   the restart was CLAIMED → no second restart remains.
+  // The grant alone could not answer "did a person actually speak to them" or "was the set
+  // ever taken", and both are questions somebody will ask about a paid batch.
+  | 'proof_calibration_resolved'
+  | 'proof_calibrated_restart_claimed'
   | 'programme_go_live'      // the explicit, separate Go Live. Never a side effect of P2.
   // ⚑ 10 Sep (H) — RUN, and it is a DIFFERENT act from Go Live. Go Live arms and sends zero;
   // this is the grant that lets any send path consider the programme at all. Two acts, two

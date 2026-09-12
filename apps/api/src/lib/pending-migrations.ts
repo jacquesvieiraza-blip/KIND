@@ -4070,6 +4070,106 @@ COMMENT ON COLUMN public.clients.proof_calibrated_restart_at IS
 `.trim(),
   },
   {
+    // ── ⚑ 11 Sep — THE CALIBRATED RESTART IS PROVENANCE, NOT A THIRD PASS NUMBER ────────
+    //
+    // 🛑 WHAT THIS REPLACES, AND IT COULD NOT HAVE WORKED. An earlier cut encoded the one
+    // human-authorised restart as `leads.proof_pass = 3`. `20260903_lead_proof_attribution`
+    // declares CHECK (proof_pass IS NULL OR proof_pass IN (1, 2)) — so every restart insert
+    // would have been REJECTED by the database. And even without the constraint it put
+    // ambiguous truth in the row for rendering code to repair: anything reading
+    // max(proof_pass), counting attempts, guarding spend or building analytics would
+    // reasonably have read 3 as a third automatic attempt.
+    //
+    // ⚠️ AUTOMATIC PROOF PASS IDENTITY STAYS 1 AND 2, and so does that CHECK. The restart's
+    // rows carry the pass they ran ALONGSIDE (2) plus this kind, so three history events are
+    // readable while only two are automatic passes. `proof_passes_done` stays 2 throughout.
+    //
+    // ⚠️ NULL MEANS 'automatic' — the honest reading of every row written before today. No
+    // default, no backfill. The CHECK is added NOT VALID so it cannot fail on existing rows.
+    key: '20260911_lead_proof_batch_kind',
+    title: 'leads: what produced a Proof row — automatic attempt or the one calibrated restart',
+    sql: `
+ALTER TABLE public.leads
+  ADD COLUMN IF NOT EXISTS proof_batch_kind text;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+     WHERE conrelid = 'public.leads'::regclass
+       AND conname  = 'leads_proof_batch_kind_check'
+  ) THEN
+    ALTER TABLE public.leads
+      ADD CONSTRAINT leads_proof_batch_kind_check CHECK (
+        proof_batch_kind IS NULL OR proof_batch_kind IN ('automatic', 'calibrated_restart')
+      ) NOT VALID;
+  END IF;
+END $$;
+
+COMMENT ON COLUMN public.leads.proof_batch_kind IS
+  'What produced this Proof row: automatic (one of the two automatic attempts) or calibrated_restart (the one human-authorised set granted after a real calibration resolution). NULL reads as automatic, which is the honest answer for every row written before this column existed. It is the ONLY thing that tells a restart from an automatic attempt - proof_pass stays 1 or 2 for both, and clients.proof_passes_done stays 2.';
+
+CREATE INDEX IF NOT EXISTS leads_proof_batch_kind_idx
+  ON public.leads (client_id, proof_batch_kind)
+  WHERE proof_batch_kind IS NOT NULL;
+`.trim(),
+  },
+  {
+    // ── ⚑ 11 Sep (C39 / C23) — THE RESTART CAN BE SPENT, AND A REFINEMENT CAN BE MEANT ──
+    //
+    // 🛑 C39, AND IT WAS LIVE. 20260910 added `proof_calibrated_restart_at` — that an operator
+    // GRANTED the one human-authorised extra Proof pass. Nothing recorded that the client had
+    // SPENT it, and nothing let the pass be claimed: `spendDoors` answered
+    // `proof_passes_done < 2` (false at 2, for ever) and `try_claim_proof_pass` refuses at 2
+    // for ever. The operator pressed a real button, an audit row was written, and the client
+    // got nothing. The grant bought a pass that could not be taken.
+    //
+    //   proof_calibrated_restart_used_at — when the granted restart was CONSUMED. Granted and
+    //     used are DIFFERENT FACTS: with only the first, the grant either buys nothing (the
+    //     count still refuses) or buys unlimited sets (it never expires). Both were live.
+    //   proof_calibration_resolved_by — who recorded the human resolution. The operator audit
+    //     log holds the action; this keeps the identity on the row an operator reads.
+    //
+    // 🛑 AND C23. Attempt 2 is real paid sourcing against a target the client is supposed to
+    // have corrected. Milla may PROPOSE what she thinks they meant; nothing recorded whether
+    // they AGREED, so the second and last automatic attempt could be spent on the model's
+    // reading of a sentence.
+    //
+    //   proof_refinement_text         — the client's own words, never the interpretation.
+    //   proof_refinement_proposed_at  — an interpreted change was put back to them.
+    //   proof_refinement_confirmed_at — they confirmed it. The gate Attempt 2 waits behind.
+    //
+    // ⚠️ `proof_passes_done` IS NOT TOUCHED, and neither is `try_claim_proof_pass`. The two
+    // automatic attempts are spent for ever. This is a separate door, never a wider one.
+    //
+    // Additive, nullable, no defaults, no backfill, idempotent.
+    key: '20260911_proof_restart_and_refinement',
+    title: 'clients: the calibrated restart can be spent once, and a refinement can be confirmed (C39/C23)',
+    sql: `
+ALTER TABLE public.clients
+  ADD COLUMN IF NOT EXISTS proof_calibrated_restart_used_at timestamptz,
+  ADD COLUMN IF NOT EXISTS proof_calibration_resolved_by    text,
+  ADD COLUMN IF NOT EXISTS proof_refinement_text            text,
+  ADD COLUMN IF NOT EXISTS proof_refinement_proposed_at     timestamptz,
+  ADD COLUMN IF NOT EXISTS proof_refinement_confirmed_at    timestamptz;
+
+COMMENT ON COLUMN public.clients.proof_calibrated_restart_used_at IS
+  'When the granted calibrated restart was CONSUMED by a Proof claim. A restart is available only while proof_calibrated_restart_at is NEWER than this, so one grant buys exactly one set. It never resets proof_passes_done and try_claim_proof_pass is untouched.';
+
+COMMENT ON COLUMN public.clients.proof_calibration_resolved_by IS
+  'The operator who recorded the human calibration resolution. The operator audit log holds the action; this keeps the identity on the row the next operator reads.';
+
+COMMENT ON COLUMN public.clients.proof_refinement_text IS
+  'What the client said to refine their targeting, IN THEIR OWN WORDS. Never the models interpretation of it, and never a provider label.';
+
+COMMENT ON COLUMN public.clients.proof_refinement_proposed_at IS
+  'When an interpreted refinement was proposed back to the client. A proposal on its own never sources: it CLOSES the improved-set door until they confirm.';
+
+COMMENT ON COLUMN public.clients.proof_refinement_confirmed_at IS
+  'When the client confirmed the interpreted refinement. This is the only thing that reopens the door to automatic Attempt 2.';
+`.trim(),
+  },
+  {
     // ── ⚑ 10 Sep (C03) — THE CLIENT'S OWN OUTCOME, AND IT HAD NOWHERE TO LIVE ───────────
     //
     // During onboarding the client said "Book qualified meetings with those founders and
@@ -4267,6 +4367,165 @@ COMMENT ON COLUMN public.client_inboxes.verify_failed_at IS
 
 COMMENT ON COLUMN public.client_inboxes.verify_detail IS
   'The operator-facing sentence from the last check - the named cause and the fix (App Password, SMTP AUTH disabled, port/TLS mismatch), never a raw SMTP code. Written on success and failure alike.';
+`.trim(),
+  },
+  {
+    // Canonical file: supabase/migrations/20260911_icp_target_category_and_type.sql
+    //
+    // MVP1 (C04, C21) - `icps.industries` was the ONLY home for a target market and it is a
+    // CLOSED SIXTEEN-VALUE LIST. A client who said "digital marketing agencies" had nowhere
+    // for that phrase: the model either substituted whichever of the sixteen seemed nearest,
+    // or omitted the field entirely - and an empty `industries` makes the structural-fit gate
+    // return 'yes' for every row on earth.
+    //
+    // TWO COLUMNS BECAUSE THEY ARE TWO FACTS (founder-locked). `target_category` is the
+    // client's own words and is authoritative; `target_company_type` is the organisational
+    // form of the TARGET company and is set only from client evidence. One utterance may
+    // supply both, but a client who said only "digital marketing" has the first and not the
+    // second - which is why one column cannot serve for both.
+    //
+    // ADDITIVE. `industries` is untouched and keeps doing its job as the provider-edge hint.
+    // No backfill: existing rows keep NULL, which reads correctly as "never collected".
+    //
+    // DEPLOYMENT ORDERING: apply this BEFORE shipping the code that writes the columns.
+    key: '20260911_icp_target_category_and_type',
+    title: "icps.target_category / target_company_type - the client's own words for the target market, and the target's organisational form (MVP1 C04/C21)",
+    sql: `
+ALTER TABLE public.icps
+  ADD COLUMN IF NOT EXISTS target_category     text,
+  ADD COLUMN IF NOT EXISTS target_company_type text;
+
+COMMENT ON COLUMN public.icps.target_category IS
+  'MVP1 brief fact 5 - the kind of market/business to target, in the CLIENT''S OWN WORDS. Never a provider label; never rewritten by normalisation.';
+
+COMMENT ON COLUMN public.icps.target_company_type IS
+  'MVP1 brief fact 7 - the organisational form of the TARGET company (agency, consultancy, clinic...). Set only from client evidence, never inferred from a website, the client''s own industry, or a provider taxonomy.';
+`.trim(),
+  },
+  {
+    // Canonical file: supabase/migrations/20260911_onboarding_brief_drafts.sql
+    //
+    // MVP1 - THE BRIEF BEFORE THERE IS A CLIENT. /auth/signup creates an auth user and
+    // nothing else; the clients row is created by the CONFIRM click, which also saves the ICP
+    // and starts Proof. So the whole Brief conversation lived in React state in one tab:
+    // close it and everything collected was gone, and Vida never knew the person existed.
+    // Preview 07 - signed up 14 minutes ago, 10 of 11 facts, confirmation pending - was not a
+    // state the product could reach.
+    //
+    // NOT a second Brief model and NOT a lifecycle authority: it is the persistence location
+    // for the SAME eleven facts defined in packages/shared/src/brief-facts.ts. Authoritative
+    // and writable until promotion; evidence only afterwards, which promoted_client_id is
+    // what enforces.
+    //
+    // Additive, non-destructive, idempotent. One new table, no backfill, no existing row
+    // written, and no change to what "a client" means anywhere.
+    //
+    // DEPLOYMENT ORDERING: apply before the code that reads or writes it. Until then the
+    // draft routes fail closed and the product behaves exactly as it does today.
+    key: '20260911_onboarding_brief_drafts',
+    title: 'onboarding_brief_drafts - the partial Brief persisted before a client exists (MVP1, Preview 07)',
+    sql: `
+CREATE TABLE IF NOT EXISTS public.onboarding_brief_drafts (
+  id                 uuid primary key default uuid_generate_v4(),
+  user_id            uuid not null unique references auth.users(id) on delete cascade,
+  facts              jsonb not null default '{}'::jsonb,
+  conversation       jsonb,
+  confirmed_at       timestamptz,
+  promoted_client_id uuid references public.clients(id) on delete set null,
+  promoted_at        timestamptz,
+  created_at         timestamptz not null default now(),
+  updated_at         timestamptz not null default now()
+);
+
+CREATE INDEX IF NOT EXISTS onboarding_brief_drafts_open_idx
+  ON public.onboarding_brief_drafts(created_at DESC)
+  WHERE promoted_client_id IS NULL;
+
+-- ── ROW-LEVEL SECURITY ─────────────────────────────────────────────────────────────────
+--
+-- 🛑 THIS TABLE IS THE ONE THAT MOST NEEDS IT. Every other client table is keyed by
+-- client_id and reached through current_client_id(). This one is keyed by user_id and
+-- exists precisely for people who have NO client row — so the usual helper answers NULL for
+-- exactly the rows it is meant to protect, and "no policy" would mean a person's company,
+-- their contact name, their targeting and their stated outcome are readable by anyone holding
+-- the public anon key that apps/portal ships to every browser.
+--
+-- ⚠️ THE POLICY IS auth.uid(), NOT current_client_id(), for that reason. A draft belongs
+-- to an authenticated USER, before it belongs to a client.
+--
+-- ⚠️ SELECT AND UPDATE ONLY, AND NO INSERT POLICY ON PURPOSE. The API writes with the service
+-- role, which bypasses RLS; a browser must never be able to mint a draft row directly. Read
+-- and amend your own, and nothing else.
+ALTER TABLE IF EXISTS public.onboarding_brief_drafts ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "own brief draft readable" ON public.onboarding_brief_drafts;
+CREATE POLICY "own brief draft readable" ON public.onboarding_brief_drafts
+  FOR SELECT TO authenticated USING (user_id = auth.uid());
+
+DROP POLICY IF EXISTS "own brief draft writable" ON public.onboarding_brief_drafts;
+CREATE POLICY "own brief draft writable" ON public.onboarding_brief_drafts
+  FOR UPDATE TO authenticated USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
+
+COMMENT ON TABLE public.onboarding_brief_drafts IS
+  'MVP1 pre-confirmation Brief persistence. The SAME eleven facts defined in packages/shared/src/brief-facts.ts, stored before a clients row exists. Authoritative and writable until promotion; evidence only afterwards. Not a second Brief model and not a lifecycle authority.';
+
+COMMENT ON COLUMN public.onboarding_brief_drafts.facts IS
+  'Partial eleven-fact state as a snapshot. Completeness is decided by shared code, never by this column''s shape.';
+
+COMMENT ON COLUMN public.onboarding_brief_drafts.confirmed_at IS
+  'When the client confirmed a COMPLETE brief. A separate gate - never counted as one of the eleven facts.';
+
+COMMENT ON COLUMN public.onboarding_brief_drafts.promoted_client_id IS
+  'The clients row this draft became. Once set, the draft is evidence: it may not be written again and may never compete with the confirmed client/ICP truth.';
+`.trim(),
+  },
+  {
+    // Canonical file: supabase/migrations/20260911_preparation_version.sql
+    //
+    // MVP1 DAY 3 - A FROZEN PACKAGE IS NEVER MUTATED IN PLACE; IT IS REPLACED BY A NEW
+    // VERSION. review_preparation_hash proves WHETHER the package changed and cannot say how
+    // many times, cannot be spoken to a client, and gives an approval no way to name a version
+    // rather than a digest.
+    //
+    // approved_preparation_version is what stops an approval drifting forward: it is stamped
+    // from the review version at approval, so a later re-freeze moves review_preparation_version
+    // and leaves the approved one behind. The two numbers disagreeing IS the statement "this
+    // approval does not cover the current package".
+    //
+    // A MONOTONIC COUNTER, NOT A LEDGER of superseded packages - keeping every historical
+    // snapshot is a product decision nobody has taken.
+    //
+    // Expand only. Nullable, no backfill: a programme frozen before this reads as "unknown
+    // version", never as version zero.
+    //
+    // DEPLOYMENT ORDERING: apply before the code that writes it. Until then re-freeze refuses
+    // rather than writing a column that does not exist.
+    // AND WHO APPROVED IT. An approval recorded no identity at all - approved_at says when,
+    // the snapshot says what, and nothing said WHO, so "the client approved this" was a claim
+    // the database could not support. approved_by_kind distinguishes the client's own approval
+    // in Milla from an operator approval in Vida; approved_by_user_id is the authenticated user
+    // behind a client approval, and stays NULL for an operator because admin-key authority is
+    // not a session and recording one would invent a person.
+    key: '20260911_preparation_version',
+    title: 'programmes.review_preparation_version / approved_preparation_version / approved_by_* - a re-freeze is a new version, and an approval has an author (MVP1 Day 3)',
+    sql: `
+ALTER TABLE public.programmes
+  ADD COLUMN IF NOT EXISTS review_preparation_version   int,
+  ADD COLUMN IF NOT EXISTS approved_preparation_version int,
+  ADD COLUMN IF NOT EXISTS approved_by_kind             text,
+  ADD COLUMN IF NOT EXISTS approved_by_user_id          uuid;
+
+COMMENT ON COLUMN public.programmes.approved_by_kind IS
+  'Who approved: ''client'' (the customer, in Milla, from their own session) or ''operator'' (Vida, admin-key authority). NULL means approved before identity was recorded.';
+
+COMMENT ON COLUMN public.programmes.approved_by_user_id IS
+  'The authenticated user behind a CLIENT approval. NULL for operator approvals - admin-key authority is not a session, and recording a user id for it would invent a person.';
+
+COMMENT ON COLUMN public.programmes.review_preparation_version IS
+  'Which frozen review package this is, counting from 1 and rising by one on every re-freeze. NULL means frozen before versioning existed. Never reused, never decremented.';
+
+COMMENT ON COLUMN public.programmes.approved_preparation_version IS
+  'The review version the client actually approved. It stays put when a later re-freeze moves review_preparation_version - the two disagreeing is how an approval is known not to cover the current package.';
 `.trim(),
   },
 ]

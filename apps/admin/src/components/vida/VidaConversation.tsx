@@ -109,6 +109,17 @@ type VidaConversationApi = {
    * is called; making the panel go and look it up again is how the two drift apart.
    */
   setSelected: (id: string | null, name?: string | null) => void
+  /**
+   * ⚑ MVP1 (Preview 07) — the open onboarding draft being read, if any.
+   *
+   * 🛑 THIS IS NOT A CLIENT ID AND MUST NEVER BE PASSED AS ONE. There is no `clients` row
+   * behind it, no programme, no entitlement and no money. It exists so an operator can open
+   * somebody who has signed up and see how far Milla has got — which, before this, they
+   * could not: a signup was invisible until the instant they confirmed.
+   */
+  selectedDraft: string | null
+  /** Open a draft. Clears the selected client, because the two are mutually exclusive. */
+  setSelectedDraft: (id: string | null) => void
   /** Run a command through the ONE conversation (used by the console's own shortcuts). */
   run: (text: string) => void
   /**
@@ -150,7 +161,7 @@ type VidaConversationApi = {
 }
 
 const Ctx = createContext<VidaConversationApi | null>(null)
-const INERT: VidaConversationApi = { selected: null, selectedName: null, setSelected: () => {}, run: () => {}, say: () => {}, busy: false, publish: () => {}, unpublish: () => {}, setSlot: () => {} }
+const INERT: VidaConversationApi = { selected: null, selectedName: null, setSelected: () => {}, selectedDraft: null, setSelectedDraft: () => {}, run: () => {}, say: () => {}, busy: false, publish: () => {}, unpublish: () => {}, setSlot: () => {} }
 
 export function useVidaConversation(): VidaConversationApi { return useContext(Ctx) ?? INERT }
 
@@ -177,6 +188,8 @@ function parseSourceIntent(t: string): number | null {
 export function VidaConversationProvider({ children }: { children: React.ReactNode }) {
   const [selected, setSelectedId] = useState<string | null>(null)
   const [selectedName, setSelectedName] = useState<string | null>(null)
+  // ⚑ MVP1 — the open onboarding draft being read, if any. NEVER a client id. See below.
+  const [selectedDraft, setSelectedDraftId] = useState<string | null>(null)
   const [cmd, setCmd] = useState('')
   const [cmdLog, setCmdLog] = useState<CmdMsg[]>([])
   const [cmdBusy, setCmdBusy] = useState(false)
@@ -199,6 +212,26 @@ export function VidaConversationProvider({ children }: { children: React.ReactNo
     // ⚠️ `undefined` MEANS "I DID NOT SAY", not "it has no name" — a caller that only knows the
     // id must not blank a name the conversation already holds. `null` is an explicit clear.
     if (name !== undefined) setSelectedName(name)
+    // ⚑ MVP1 — PICKING A CLIENT DROPS ANY DRAFT. The two are mutually exclusive by
+    // construction: see `setSelectedDraft` below.
+    if (id) setSelectedDraftId(null)
+  }, [])
+
+  /**
+   * ⚑ MVP1 (Preview 07) — open a person whose Brief Milla is still collecting.
+   *
+   * 🛑 A DRAFT IS NOT A CLIENT AND NEVER BECOMES ONE BY BEING SELECTED. It is deliberately a
+   * SECOND piece of state rather than an id squeezed into `selected`: every command, every
+   * `/operator/*` call and every surface in this console takes `selected` as a CLIENT id, and
+   * a draft id arriving there would be sent to routes that would look up a client that does
+   * not exist. Keeping them apart makes that impossible rather than merely unlikely.
+   *
+   * ⚠️ AND NEVER BOTH AT ONCE. Each setter clears the other, so the workspace can never be
+   * asked to paint a client panel and a brief panel over one another.
+   */
+  const setSelectedDraft = useCallback((id: string | null) => {
+    setSelectedDraftId(id)
+    if (id) { setSelectedId(null); setSelectedName(null) }
   }, [])
 
   const unpublish = useCallback(() => { handlers.current = {}; setSurface(null) }, [])
@@ -341,8 +374,8 @@ export function VidaConversationProvider({ children }: { children: React.ReactNo
   const run = useCallback((t: string) => { void runCommand(t) }, [selected, cmdBusy]) // eslint-disable-line react-hooks/exhaustive-deps
   const say = useCallback((role: 'operator' | 'vida', text: string) => setCmdLog(l => [...l, { role, text }]), [])
   const value = useMemo<VidaConversationApi>(
-    () => ({ selected, selectedName, setSelected, run, say, busy: cmdBusy, publish, unpublish, setSlot }),
-    [selected, selectedName, setSelected, run, say, cmdBusy, publish, unpublish])
+    () => ({ selected, selectedName, setSelected, selectedDraft, setSelectedDraft, run, say, busy: cmdBusy, publish, unpublish, setSlot }),
+    [selected, selectedName, setSelected, selectedDraft, setSelectedDraft, run, say, cmdBusy, publish, unpublish])
 
   // ⚠️ THE CLIENT HEADER IS NOT HERE, AND THAT IS DELIBERATE. The avatar, the company name,
   // the onboarding percentage, the wallet chip, the "you're working X" line, the "Needs you"

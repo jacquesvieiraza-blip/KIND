@@ -27,7 +27,7 @@
 export type LifecycleState =
   | 'signup' | 'proof' | 'recommendation'
   | 'sourcing' | 'sourcing_exception'
-  | 'approval' | 'approval_awaiting_second_payment'
+  | 'approval' | 'approval_awaiting_second_payment' | 'approval_package_stale'
   | 'live_ready_to_make_live' | 'live_ready_to_run'
   | 'review' | 'review_reply' | 'review_sender'
   | 'completion' | 'completion_repeat'
@@ -53,9 +53,21 @@ export type PanelAction = {
   key: 'try_again' | 'make_live' | 'run' | 'handle_reply' | 'book_call' | 'reconnect_mailbox' | 'pause_programme' | 'prepare_next' | 'not_yet'
     // ⚑ 10 Sep (C07) — the calibration hand-off's two controls.
     | 'contact_recalibrate' | 'restart_proof_calibrated'
+    // ⚑ 11 Sep (DAY 3) — the ONE approval-stage control, and it exists because the rule it
+    // serves had no remedy: a package that moved under a reviewing client made every approval
+    // press refuse, with nothing in the product able to issue a new version.
+    | 'refreeze_package'
   label: string
   kind: 'primary' | 'secondary'
   needsCeiling?: boolean
+  /**
+   * ⚑ 11 Sep (C40) — `needsNote` IS RECORDING THE CALIBRATION AND ONLY THAT.
+   *
+   * 🛑 THE NOTE IS NOT DECORATION. `mayRestartCalibrated` REFUSES a restart without one: a
+   * restart pressed on an unexamined client spends a set on the targeting that already failed
+   * twice. So the control that records the call collects what was agreed, in the same press.
+   */
+  needsNote?: boolean
 }
 
 export type LifecycleCopyInput = {
@@ -71,6 +83,22 @@ export type LifecycleCopyInput = {
     meetingTarget: number | null
     entitlementUsed: number; entitlementTotal: number; entitlementRemaining: number
   }
+  /**
+   * ⚑ 11 Sep (DAY 3 HOLD) — THE PERSISTED FROZEN PACKAGE, THE SAME ONE MILLA READS.
+   *
+   * 🛑 THE PANEL WAS RECONSTRUCTING APPROVAL TRUTH FROM MUTABLE STATE. It rendered
+   * `{ label: 'Review snapshot frozen', done: true }` — a hardcoded assertion of a freeze
+   * nobody had checked — beside a prospect count taken from LIVE qualified/enrolled totals and
+   * a target read off the LIVE programme row. An operator and a client could look at one
+   * programme and read different numbers, and the operator's were the ones that could move.
+   *
+   * ⚠️ `null` MEANS THERE IS NO PACKAGE, never "the package is fine". The frozen tick derives
+   * from its presence, so a missing one reads as NOT frozen — which is the truth.
+   */
+  frozenPackage?: {
+    version: number | null; at: string | null; prospects: number
+    messages: number; target: number | null; sender: string | null
+  } | null
   replyAwaiting: { name: string | null; company: string | null } | null
   stoppedDetail: string | null
   humanBlockers: { code: string; detail: string }[]
@@ -91,14 +119,32 @@ export type LifecycleCopyInput = {
     why: string | null
     passesDone: number
     phone: string | null
+    /** ⚑ 11 Sep — who to ask for on the call. Never invented; asked for when absent. */
+    contactName: string | null
     phoneConfirmedAt: string | null
     operatorNote: string | null
     mayRestart: boolean
     mayRestartWhy: string | null
     restartAt: string | null
-    attempts: { pass: number; surfaced: number; looksRight: number; notAFit: number
+    /** ⚑ 11 Sep — when the granted restart was SPENT. Null while it is still available. */
+    restartUsedAt: string | null
+    resolvedAt: string | null
+    /**
+     * ⚑ 11 Sep — WHAT PRODUCED EACH SET. `automatic` is one of the two attempts;
+     * `calibrated_restart` is the one human-authorised set. Every label and every
+     * automatic-attempt rule reads THIS, never the pass number — the restart shares pass 2's
+     * number and is a different history event.
+     */
+    attempts: { pass: number; kind: 'automatic' | 'calibrated_restart'
+                surfaced: number; looksRight: number; notAFit: number
                 reasonLabels: Record<string, number>; notes: string[] }[]
     whatChanged: string | null
+    /**
+     * 🛑 C43 — THE AUTHORITY COULD NOT BE READ. Nothing is claimed and no restart is offered:
+     * unknown authority means no spend, and the operator is told rather than shown a control
+     * that may not work.
+     */
+    unreadable?: boolean
   } | null
   operatorRunEnabled: boolean
   senderSendable: boolean
@@ -228,7 +274,11 @@ export function lifecycleCopy(i: LifecycleCopyInput): LifecycleCopy {
     // card since and the operator is about to phone them about it.
     case 'proof_calibration_failed': {
       const cal = i.calibration ?? null
-      const att = (n: number) => cal?.attempts.find(a => a.pass === n) ?? null
+      // 🛑 THE AUTOMATIC ATTEMPT, NOT "whatever carries this number". The calibrated restart
+      // runs alongside pass 2; reading it as Attempt 2 would merge two history events and
+      // render a human-authorised set as one of the automatic ones.
+      const att = (n: number) => cal?.attempts.find(a => a.pass === n && a.kind === 'automatic') ?? null
+      const restartSet = cal?.attempts.find(a => a.kind === 'calibrated_restart') ?? null
       const summarise = (pass: number): string => {
         const a = att(pass)
         if (!a) return 'no set recorded'
@@ -249,9 +299,22 @@ export function lifecycleCopy(i: LifecycleCopyInput): LifecycleCopy {
           // ⚑ 10 Sep (C03) — QUOTED, because the operator is about to phone this client
           // about their targeting and a paraphrase is not what they said.
           caption: i.outcomeStated ? `“${i.outcomeStated}”` : 'What the client said they want' },
-        { kind: 'note', label: 'Attempt 1', body: summarise(1) },
-        { kind: 'note', label: 'Attempt 2', body: summarise(2) },
+        { kind: 'note', label: 'Automatic attempt 1', body: summarise(1) },
+        { kind: 'note', label: 'Automatic attempt 2', body: summarise(2) },
       ]
+      // ── ⚑ 11 Sep — THE THIRD HISTORY EVENT, AND IT IS NOT AN ATTEMPT ─────────────────
+      //
+      // ⚠️ ITS OWN CARD, LABELLED FROM PROVENANCE. Folding it into "Attempt 2" would make a
+      // human-authorised set look like one of the two automatic ones, and calling it
+      // "Attempt 3" would imply an allowance that does not exist.
+      if (restartSet) {
+        cards.push({ kind: 'note', label: 'Calibrated restart', body:
+          `${n(restartSet.surfaced)} shown · ${n(restartSet.looksRight)} looked right · ${n(restartSet.notAFit)} not a fit` })
+      }
+      if (cal?.unreadable) {
+        cards.push({ kind: 'note', tone: 'exception', label: 'This client\u2019s calibration state could not be read',
+          body: 'Nothing is claimed about their attempts and no restart is offered. Nothing has been sourced and nothing is sending — reload before acting.' })
+      }
       if (cal?.whatChanged) {
         cards.push({ kind: 'note', label: 'What changed between them', body: cal.whatChanged })
       }
@@ -261,6 +324,11 @@ export function lifecycleCopy(i: LifecycleCopyInput): LifecycleCopy {
         cards.push({ kind: 'note', label: 'In their words', body: notes.map(t => `“${t}”`).join(' · ') })
       }
       cards.push(
+        // ⚑ 11 Sep — A NAME AS WELL AS A NUMBER. An operator with a phone and no name opens
+        // the call with "hello, is that… the company?" Both are required before the call.
+        { kind: 'fact', label: 'Ask for',
+          value: cal?.contactName ?? 'Not given',
+          caption: cal?.contactName ? 'The person to ask for' : 'Milla is asking the client for a name' },
         { kind: 'fact', label: 'Phone',
           value: cal?.phone ?? 'Not given',
           caption: cal?.phoneConfirmedAt
@@ -268,8 +336,14 @@ export function lifecycleCopy(i: LifecycleCopyInput): LifecycleCopy {
             : 'Not confirmed for a calibration call' },
         // ⚠️ THE COUNTER IS OPERATOR-ONLY. The client never sees "2/2" — they were told a
         // person will help, which is the truthful version of the same fact.
-        { kind: 'fact', label: 'Proof passes', value: `${cal?.passesDone ?? 2}/2`,
-          caption: cal?.restartAt ? 'Human restart used' : cal?.mayRestart ? 'Human restart available' : 'Resolve first to enable a restart' },
+        // ⚠️ 2/2 BEFORE AND AFTER THE RESTART. The restart is not a third automatic attempt
+        // and never moves this counter; the caption says where the separate door stands.
+        { kind: 'fact', label: 'Automatic attempts', value: `${cal?.passesDone ?? 2}/2`,
+          caption: cal?.unreadable ? 'Unknown — the calibration state could not be read'
+            : cal?.restartUsedAt ? 'Calibrated restart used. No further restart.'
+            : cal?.restartAt ? 'Calibrated restart granted, not yet taken by the client'
+            : cal?.mayRestart ? 'One calibrated restart available'
+            : 'Record the calibration first to enable a restart' },
         { kind: 'fact', label: 'Next',
           value: 'Call them, then correct the targeting.',
           caption: 'Nothing sources again until you do.' },
@@ -286,8 +360,20 @@ export function lifecycleCopy(i: LifecycleCopyInput): LifecycleCopy {
         ],
         chips: ['What did they reject?', 'Show me their targeting'],
         cards,
+        // ── 🛑 ⚑ 11 Sep — CONTROLS FOLLOW AUTHORITY, AND ONLY THE SERVER HAS IT ──────────
+        //
+        // ⚠️ `mayRestart` IS `mayRestartCalibrated`'s VERDICT, carried through unchanged —
+        // the same function the restart ROUTE re-checks before it grants. So the control
+        // appearing is the server's answer, not this file's, and pressing it without that
+        // answer is refused server-side. Hiding a button is a courtesy; the refusal is the
+        // control (founder-locked: "the UI is not the safety boundary").
+        //
+        // ⚠️ AND IT DISAPPEARS ONCE SPENT. `mayRestart` is false the moment a grant exists,
+        // so there is no second restart control and no Attempt 3 — ever.
         actions: [
-          { key: 'contact_recalibrate', label: 'Contact & recalibrate', kind: 'primary' },
+          ...(cal?.resolvedAt
+            ? []
+            : [{ key: 'contact_recalibrate' as const, label: 'Record the calibration', kind: 'primary' as const, needsNote: true }]),
           ...(cal?.mayRestart
             ? [{ key: 'restart_proof_calibrated' as const, label: 'Restart Proof (calibrated)', kind: 'secondary' as const }]
             : []),
@@ -422,6 +508,39 @@ export function lifecycleCopy(i: LifecycleCopyInput): LifecycleCopy {
       }
     }
 
+    // ── ⑥B APPROVAL, BUT THE CLIENT CANNOT APPROVE ───────────────────────────────────
+    //
+    // 🛑 WAITING ON A CLIENT IS NEVER A TASK; A CLIENT WHO IS STUCK IS. The prepared work moved
+    // after it was frozen, so every press in Milla is refused — correctly, because what they
+    // are reading is not what would run. Without this the panel said "No action needed" while
+    // a paying client sat on a dead button.
+    //
+    // ⚠️ THE CONTROL ISSUES A NEW VERSION; IT DOES NOT APPROVE ANYTHING. Vida still cannot
+    // approve for a client, and re-freezing changes no authority, no money and no work.
+    case 'approval_package_stale':
+      return {
+        subtitle: 'Awaiting client approval · the package has changed',
+        messages: [
+          `${i.clientName} cannot approve this programme right now. The prepared work has changed since it was frozen for them, so what they are reading is not what would run — and every approval press is being refused.`,
+          `Re-freeze it to publish the change as a new version. They are then asked to approve the updated package. Nothing is approved, charged or sent by doing this.`,
+        ],
+        chips: ['What changed?', 'What does the client see?'],
+        cards: [
+          { kind: 'fact', label: 'Stage', value: 'Approval', caption: 'With the client in Milla' },
+          { kind: 'fact', tone: 'exception', label: 'Why they are stuck',
+            value: 'The package moved after it was frozen',
+            caption: 'Approval is refused until a new version is published' },
+          { kind: 'ticks', label: 'Prepared', ticks: [
+            { label: 'Campaign ready', done: true }, { label: 'Sequence ready', done: true },
+            { label: 'Sender ready', done: i.senderSendable }, { label: 'Schedule ready', done: true },
+            { label: 'Review snapshot matches', done: false },
+          ] },
+          { kind: 'fact', label: 'Next', value: 'Re-freeze, then the client approves the new version.' },
+          vidaCard('Waiting on you'),
+        ],
+        actions: [{ key: 'refreeze_package', label: 'Re-freeze for the client', kind: 'primary' }],
+      }
+
     // ── ⑥ APPROVAL — frozen, with the client, and Vida cannot approve for them. ───────
     case 'approval':
     case 'approval_awaiting_second_payment': {
@@ -440,15 +559,38 @@ export function lifecycleCopy(i: LifecycleCopyInput): LifecycleCopy {
         chips: ['What is the client seeing?', 'What happens after approval?'],
         cards: [
           { kind: 'fact', label: 'Stage', value: 'Approval', caption: 'With the client in Milla' },
-          { kind: 'stats', label: 'Ready for review', stats: [
-            { value: n(c.qualified || c.enrolled), label: 'Qualified prospects' },
-            { value: String(target ?? '—'), label: 'Meeting target' },
+          // ── ⚑ 11 Sep (DAY 3 HOLD) — READ FROM THE FROZEN PACKAGE, NOT FROM LIVE COUNTS ──
+          //
+          // 🛑 THESE NUMBERS ARE WHAT THE CLIENT IS LOOKING AT. Taking them from live
+          // qualified/enrolled totals and the live programme row meant the operator's screen
+          // and the client's screen could disagree about one programme — and the operator's
+          // were the ones that could move underneath them. The fallback to live figures applies
+          // only where there is no package, i.e. nothing is being approved yet.
+          { kind: 'stats', label: i.frozenPackage ? 'Frozen for review' : 'Ready for review', stats: [
+            { value: n(i.frozenPackage ? i.frozenPackage.prospects : (c.qualified || c.enrolled)),
+              label: i.frozenPackage ? 'Prospects in the package' : 'Qualified prospects' },
+            { value: String((i.frozenPackage ? i.frozenPackage.target : target) ?? '—'),
+              // 🛑 TARGET, NEVER GUARANTEE — founder-locked, and the caveat travels with the
+              // number on the operator screen exactly as it does on the client's.
+              label: 'Meeting target (not a guarantee)' },
           ] },
           { kind: 'ticks', label: 'Prepared', ticks: [
             { label: 'Campaign ready', done: true }, { label: 'Sequence ready', done: true },
             { label: 'Sender ready', done: i.senderSendable }, { label: 'Schedule ready', done: true },
-            { label: 'Review snapshot frozen', done: true },
+            // ⛓️ THIS WAS `done: true`, UNCONDITIONALLY. A tick that is always ticked is not a
+            // check, it is decoration — and it was decorating the one fact the whole approval
+            // boundary rests on. It now derives from the persisted package actually being there.
+            { label: 'Review snapshot frozen', done: !!i.frozenPackage },
           ] },
+          ...(i.frozenPackage ? [{
+            kind: 'fact' as const, label: 'Frozen package',
+            value: i.frozenPackage.version ? `Version ${i.frozenPackage.version}` : 'Version not recorded',
+            caption: [
+              `${i.frozenPackage.messages} message${i.frozenPackage.messages === 1 ? '' : 's'}`,
+              i.frozenPackage.sender ? `from ${i.frozenPackage.sender}` : null,
+              i.frozenPackage.at ? `frozen ${new Date(i.frozenPackage.at).toLocaleDateString('en-GB')}` : null,
+            ].filter(Boolean).join(' · '),
+          }] : []),
           { kind: 'fact', label: 'Client', value: approved ? 'Approved' : 'Waiting' },
           { kind: 'fact', label: 'Second payment',
             value: approved ? 'Awaiting the client' : 'Not yet authorised',

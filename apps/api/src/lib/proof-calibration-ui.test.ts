@@ -142,11 +142,17 @@ const BASE: LifecycleCopyInput = {
     mayRestart: false,
     mayRestartWhy: 'This calibration has not been resolved yet.',
     restartAt: null,
+    restartUsedAt: null,
+    resolvedAt: null,
+    contactName: 'Ellis Warner',
     whatChanged: 'I’ve narrowed the kind of company based on what you marked, and looked again.',
+    // ⚑ 11 Sep — `kind` IS ON EVERY SUMMARY NOW. The calibrated restart runs alongside pass 2
+    // and is a different history event; a fixture that omitted it would be asserting against
+    // a shape the server can no longer produce.
     attempts: [
-      { pass: 1, surfaced: 20, looksRight: 1, notAFit: 12,
+      { pass: 1, kind: 'automatic', surfaced: 20, looksRight: 1, notAFit: 12,
         reasonLabels: { 'Wrong industry': 9, 'Too big': 3 }, notes: ['all consultancies'] },
-      { pass: 2, surfaced: 20, looksRight: 0, notAFit: 14,
+      { pass: 2, kind: 'automatic', surfaced: 20, looksRight: 0, notAFit: 14,
         reasonLabels: { 'Wrong industry': 14 }, notes: [] },
     ],
   },
@@ -156,8 +162,12 @@ const copy = (over: Partial<LifecycleCopyInput> = {}) => lifecycleCopy({ ...BASE
 describe('🛑 ② the Vida card carries the evidence a phone call needs', () => {
   it('both attempts, with the reasons the client actually gave', () => {
     const whole = JSON.stringify(copy().cards)
-    expect(whole).toContain('Attempt 1')
-    expect(whole).toContain('Attempt 2')
+    // ⛓️ 11 Sep — "Attempt 1" → "Automatic attempt 1". The label now names what the set IS,
+    // because a third history event exists beside them (the calibrated restart) and
+    // "Attempt 1/2/3" would imply it is a third automatic attempt. It is not.
+    expect(whole).toContain('Automatic attempt 1')
+    expect(whole).toContain('Automatic attempt 2')
+    expect(whole, 'the restart is numbered as an automatic attempt').not.toContain('Automatic attempt 3')
     expect(whole).toContain('Wrong industry 9')
     expect(whole).toContain('20 shown · 1 looked right · 12 not a fit')
   })
@@ -182,7 +192,9 @@ describe('🛑 ② the Vida card carries the evidence a phone call needs', () =>
   })
 
   it('🛑 the pass counter is operator-only — the client never sees 2/2', () => {
-    const passes = copy().cards.find(c => c.kind === 'fact' && c.label === 'Proof passes')
+    // ⛓️ 11 Sep — the label is 'Automatic attempts', because 2/2 is now specifically the
+    // AUTOMATIC allowance and the calibrated restart is a separate door beside it.
+    const passes = copy().cards.find(c => c.kind === 'fact' && c.label === 'Automatic attempts')
     expect((passes as { value: string }).value).toBe('2/2')
     // …and nothing in the CLIENT component RENDERS a counter. `attempt` exists on the
     // verdict type (the server sends it); what must never happen is the client reading a
@@ -204,16 +216,77 @@ describe('🛑 ② the Vida card carries the evidence a phone call needs', () =>
 
   it('🛑 Restart Proof appears ONLY once the server says it may', () => {
     expect(copy().actions.map(a => a.key)).not.toContain('restart_proof_calibrated')
-    const resolved = copy({ calibration: { ...BASE.calibration!, mayRestart: true, operatorNote: 'Called — they want agencies only.' } })
-    expect(resolved.actions.map(a => a.key)).toEqual(['contact_recalibrate', 'restart_proof_calibrated'])
-    const passes = resolved.cards.find(c => c.kind === 'fact' && c.label === 'Proof passes')
-    expect((passes as { caption: string }).caption).toBe('Human restart available')
+    // ⛓️ 11 Sep — once the calibration IS resolved, "Record the calibration" is done and
+    // drops away; the restart is the only remaining control. The pair is never both-and-done.
+    const resolved = copy({ calibration: { ...BASE.calibration!, mayRestart: true, resolvedAt: '2026-09-10T11:00:00.000Z', operatorNote: 'Called — they want agencies only.' } })
+    expect(resolved.actions.map(a => a.key)).toEqual(['restart_proof_calibrated'])
+    const passes = resolved.cards.find(c => c.kind === 'fact' && c.label === 'Automatic attempts')
+    expect((passes as { caption: string }).caption).toBe('One calibrated restart available')
   })
 
-  it('…and reads "used" once it has been', () => {
-    const used = copy({ calibration: { ...BASE.calibration!, restartAt: '2026-09-10T12:00:00.000Z' } })
-    const passes = used.cards.find(c => c.kind === 'fact' && c.label === 'Proof passes')
-    expect((passes as { caption: string }).caption).toBe('Human restart used')
+  it('…reads GRANTED once an operator has granted one, and USED once the client takes it', () => {
+    // ⛓️ 11 Sep — GRANTED AND USED ARE TWO FACTS NOW, and the panel must tell them apart:
+    // "one restart is waiting for the client" and "it has been taken" are different things
+    // for an operator deciding whether to chase them.
+    const granted = copy({ calibration: { ...BASE.calibration!, restartAt: '2026-09-10T12:00:00.000Z' } })
+    expect((granted.cards.find(c => c.kind === 'fact' && c.label === 'Automatic attempts') as { caption: string }).caption)
+      .toBe('Calibrated restart granted, not yet taken by the client')
+    const used = copy({ calibration: { ...BASE.calibration!, restartAt: '2026-09-10T12:00:00.000Z', restartUsedAt: '2026-09-10T12:30:00.000Z' } })
+    expect((used.cards.find(c => c.kind === 'fact' && c.label === 'Automatic attempts') as { caption: string }).caption)
+      .toBe('Calibrated restart used. No further restart.')
+    expect(used.actions.map(a => a.key), 'a second restart control survived').not.toContain('restart_proof_calibrated')
+  })
+
+  // ── ⚑ 11 Sep — THE THIRD HISTORY EVENT, RENDERED FROM PROVENANCE ────────────────────
+  it('🛑 the calibrated restart is its own card, labelled from its KIND', () => {
+    const withRestart = copy({ calibration: { ...BASE.calibration!,
+      restartAt: '2026-09-10T12:00:00.000Z', restartUsedAt: '2026-09-10T12:30:00.000Z',
+      attempts: [...BASE.calibration!.attempts,
+        { pass: 2, kind: 'calibrated_restart', surfaced: 18, looksRight: 12, notAFit: 2, reasonLabels: {}, notes: [] }],
+    } })
+    const labels = withRestart.cards.map(c => c.label)
+    expect(labels).toContain('Automatic attempt 1')
+    expect(labels).toContain('Automatic attempt 2')
+    expect(labels).toContain('Calibrated restart')
+    // 🛑 AND IT DID NOT MERGE INTO ATTEMPT 2. The restart shares pass 2's NUMBER; only the
+    // kind tells them apart, so a `find(a => a.pass === 2)` would have rendered one as the
+    // other and the operator would read 18 shown where 20 were.
+    const a2 = withRestart.cards.find(c => c.label === 'Automatic attempt 2')
+    expect((a2 as { body: string }).body).toContain('20 shown')
+    const r = withRestart.cards.find(c => c.label === 'Calibrated restart')
+    expect((r as { body: string }).body).toContain('18 shown')
+  })
+
+  it('🛑 legacy rows with no kind still render as automatic history', () => {
+    const legacy = copy({ calibration: { ...BASE.calibration!, attempts: [
+      { pass: 1, kind: 'automatic', surfaced: 20, looksRight: 1, notAFit: 12, reasonLabels: {}, notes: [] },
+      { pass: 2, kind: 'automatic', surfaced: 20, looksRight: 0, notAFit: 14, reasonLabels: {}, notes: [] },
+    ] } })
+    const labels = legacy.cards.map(c => c.label)
+    expect(labels).toContain('Automatic attempt 1')
+    expect(labels).toContain('Automatic attempt 2')
+    expect(labels, 'a restart card appeared with no restart').not.toContain('Calibrated restart')
+  })
+
+  it('🛑 C43 · an unreadable calibration state offers NO restart and says so', () => {
+    const blind = copy({ calibration: { ...BASE.calibration!,
+      unreadable: true, mayRestart: false, attempts: [], phone: null, contactName: null,
+      mayRestartWhy: 'the calibration state could not be read' } })
+    expect(blind.actions.map(a => a.key), 'a restart was offered on an unreadable state')
+      .not.toContain('restart_proof_calibrated')
+    const whole = JSON.stringify(blind.cards)
+    expect(whole).toContain('could not be read')
+    expect(whole).toContain('nothing is sending')
+    expect((blind.cards.find(c => c.kind === 'fact' && c.label === 'Automatic attempts') as { caption: string }).caption)
+      .toContain('Unknown')
+  })
+
+  it('🛑 18 · the operator is given a NAME to ask for, not just a number', () => {
+    const ask = copy().cards.find(c => c.kind === 'fact' && c.label === 'Ask for')
+    expect((ask as { value: string }).value).toBe('Ellis Warner')
+    const none = copy({ calibration: { ...BASE.calibration!, contactName: null } })
+    expect((none.cards.find(c => c.kind === 'fact' && c.label === 'Ask for') as { value: string }).value)
+      .toBe('Not given')
   })
 
   it('the card holds together with no evidence at all', () => {
@@ -222,6 +295,9 @@ describe('🛑 ② the Vida card carries the evidence a phone call needs', () =>
     expect(bare.cards.length).toBeGreaterThan(4)
     expect(JSON.stringify(bare.cards)).toContain('no set recorded')
     expect(bare.actions.map(a => a.key)).toEqual(['contact_recalibrate'])
+    // ⚠️ AND THE RECORD CONTROL COLLECTS THE NOTE THE SERVER REQUIRES. A restart without one
+    // is refused, so a control that could submit an empty note would only produce a refusal.
+    expect(bare.actions[0].needsNote).toBe(true)
   })
 
   it('🛑 it names no plumbing — the operator is thinking about a client', () => {

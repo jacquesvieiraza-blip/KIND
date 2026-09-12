@@ -1,6 +1,12 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
+// ⚑ MVP1 (C20) — the refresh POLICY, not a second copy of it. A successful read replaces; a
+// failed read changes nothing; an error is named only when there is nothing to show.
+import {
+  nextRailValue, shouldSurfaceError, shouldPollNow, RAIL_REFRESH_MS,
+  visibleDrafts, reconcileDrafts,
+} from '@/lib/vida-rail-refresh'
 import { useSearchParams } from 'next/navigation'
 import { panelView } from '@kind/shared'
 import { useVidaConversation } from '@/components/vida/VidaConversation'
@@ -26,12 +32,37 @@ import { useVidaConversation } from '@/components/vida/VidaConversation'
 
 type ClientRow = {
   id: string
+  /** ⚑ MVP1 — the durable identity the draft rows are reconciled against. Never displayed. */
+  user_id?: string | null
   company_name: string | null
   industry: string | null
   country: string | null
   is_demo: boolean | null
   house_or_demo: boolean
   vat_number?: string | null
+}
+/**
+ * ⚑ MVP1 (Preview 07) — somebody who has signed up and whose Brief Milla is still collecting.
+ *
+ * 🛑 THIS IS NOT A CLIENT AND MUST NEVER BE TREATED AS ONE. It has no `clients` row, no
+ * programme, no entitlement and no money. It is projected into the rail so the operator can
+ * see a person exists at all — which, before this, they could not: a signup was invisible
+ * until the instant they confirmed.
+ *
+ * ⚠️ IT IS A SEPARATE TYPE ON PURPOSE. Widening `ClientRow` with optional fields would let a
+ * draft flow into every place that takes a client — the worklist, the lifecycle board, the
+ * cockpit — and each would have to remember it might not be real. A distinct type makes the
+ * compiler ask that question instead of a reviewer.
+ */
+type DraftRow = {
+  id: string
+  user_id: string
+  company_name: string | null
+  contact_name: string | null
+  country: string | null
+  created_at: string
+  brief: { collected: number; total: number; missing: string[]; complete: boolean }
+  confirmed_at: string | null
 }
 type ColdState = { warn: boolean; cold: boolean; exempt?: boolean; why?: string }
 type NextAction = { step: number; label: string; actor: 'you' | 'them' | 'engine' }
@@ -55,7 +86,7 @@ function initials(name: string | null): string {
 }
 
 export function VidaClients({ open }: { open: boolean }) {
-  const { selected, selectedName, setSelected } = useVidaConversation()
+  const { selected, selectedName, setSelected, selectedDraft, setSelectedDraft } = useVidaConversation()
   const [clients, setClients] = useState<ClientRow[] | null>(null)
   const [work, setWork] = useState<WorkRow[] | null>(null)
   const [bookRatio, setBookRatio] = useState<RatioReading | null>(null)
@@ -67,6 +98,8 @@ export function VidaClients({ open }: { open: boolean }) {
   // the worklist puts them at "Waiting on their $299" with `actor: 'them'` — filtered out of
   // "Needs you", which is exactly the client the review is about.
   const [proofReview, setProofReview] = useState<Set<string>>(new Set())
+  // ⚑ MVP1 — open onboarding drafts, merged into the rail beside confirmed clients.
+  const [drafts, setDrafts] = useState<DraftRow[] | null>(null)
   const [lifecycle, setLifecycle] = useState<Record<string, LifecycleRow>>({})
   // ⚑ 9 Sep — THE FILTER IS THE RAIL'S, NOT THIS COMPONENT'S. `Needs you` in the Clients rail
   // is a link to this same screen carrying `?needs=1`, so the URL is the single place the
@@ -75,30 +108,124 @@ export function VidaClients({ open }: { open: boolean }) {
   // one filter is two states to keep in step, and the one that drifts is the one nobody looks at.
   const needsFilter = useSearchParams().get('needs') === '1'
 
+  // ── ⚑ MVP1 (C20) — THE RAIL REFRESHES ─────────────────────────────────────────────────
+  //
+  // 🛑 EVERY READ HERE USED TO RUN ONCE, ON MOUNT, AND NEVER AGAIN. A client who signed up
+  // while an operator had Vida open did not exist on this screen until somebody reloaded the
+  // page. Preview 07 is literally that moment — "signed up 14 minutes ago" — on a rail that
+  // could not have known.
+  //
+  // ⚠️ A FAILED REFRESH CHANGES NOTHING. `nextRailValue` is the whole reason this is not a
+  // naive poll: assigning whatever the last response said would, on the first transient 500,
+  // replace a working rail with an empty one under the operator's cursor. Stale is
+  // survivable; flickering to empty is not, because it cannot be told from "they are gone".
+  //
+  // ⚠️ AND AN ERROR IS NAMED ONLY WHEN THERE IS NOTHING TO SHOW (`shouldSurfaceError`). A
+  // banner on every blip trains an operator to ignore banners.
+  //
+  // ⚠️ NO NEW INFRASTRUCTURE. An interval and a visibility listener; no realtime, no socket,
+  // no subscription, no library.
+  const loadRail = useCallback(async (alive: () => boolean) => {
+    // ⚑ MVP1 — THE DRAFTS READ NEEDS TO KNOW HOW THE CLIENTS READ WENT, IN THIS SAME ROUND.
+    // A person promoted between rounds leaves the drafts answer and joins the clients answer;
+    // if only the first of those lands, they are on neither and vanish from the rail. See
+    // `reconcileDrafts`.
+    //
+    // ⚠️ IT IS A PROMISE, NOT A MUTABLE FLAG, AND THAT IS THE WHOLE CORRECTNESS. Both fetches
+    // still start together, but a `let clientsOk = false` set inside one `.then` is read by
+    // the other whenever it happens to finish first — so a perfectly good clients read would
+    // be recorded as a failure purely because the drafts response came back sooner. The
+    // drafts branch awaits this instead, which is deterministic and costs no concurrency.
+    const clientsRead: Promise<boolean> =
+      fetch('/api/proxy/operator/clients').then(r => r.json())
+        .then(j => {
+          if (!alive()) return false
+          if (!j?.success) throw new Error(j?.error || 'the API returned no data')
+          setClients(prev => nextRailValue(prev, { ok: true, value: (j.data ?? []) as ClientRow[] }))
+          setClientsError(null)
+          return true
+        })
+        .catch(e => {
+          if (!alive()) return false
+          setClients(prev => {
+            if (shouldSurfaceError(prev)) setClientsError(e instanceof Error ? e.message : 'Failed to load clients')
+            return nextRailValue(prev, { ok: false })
+          })
+          return false
+        })
+
+    await Promise.all([
+      clientsRead,
+      fetch('/api/proxy/operator/worklist').then(r => r.json())
+        .then(j => {
+          if (!alive()) return
+          if (!j?.success) throw new Error(j?.error || 'the API returned no data')
+          setWork(prev => nextRailValue(prev, { ok: true, value: (j.data ?? []) as WorkRow[] }))
+          setBookRatio(j.meta?.ratio ?? null)
+          setWorkError(null)
+        })
+        .catch(e => {
+          if (!alive()) return
+          setWork(prev => {
+            if (shouldSurfaceError(prev)) setWorkError(e instanceof Error ? e.message : 'Failed to load the worklist')
+            return nextRailValue(prev, { ok: false })
+          })
+        }),
+      fetch('/api/proxy/operator/lifecycle-board').then(r => r.json())
+        .then(j => {
+          if (!alive() || !j?.success) return
+          const m: Record<string, LifecycleRow> = {}
+          for (const r of (j.data ?? []) as LifecycleRow[]) m[r.client_id] = r
+          setLifecycle(m)
+        })
+        // ⚠️ A FAILED READ LEAVES THE ROWS WITHOUT A STAGE WORD, never with a guessed one.
+        .catch(() => { /* rows fall back to industry · country, which is a fact we do have */ }),
+      // ⚑ MVP1 — the fifth read, under the SAME policy as the rest: a good read replaces, a
+      // failed one changes nothing. A draft that flickers off the rail on a transient blip
+      // reads to an operator as "that person gave up", which is a worse lie than a stale row.
+      fetch('/api/proxy/operator/brief-drafts').then(r => r.json())
+        .then(async j => {
+          if (!alive()) return
+          if (!j?.success) throw new Error(j?.error || 'the API returned no data')
+          const clientsOk = await clientsRead
+          if (!alive()) return
+          setDrafts(prev => reconcileDrafts(prev, { ok: true, value: (j.data ?? []) as DraftRow[] }, clientsOk))
+        })
+        .catch(async () => {
+          if (!alive()) return
+          const clientsOk = await clientsRead
+          if (!alive()) return
+          setDrafts(prev => reconcileDrafts(prev, { ok: false }, clientsOk))
+        }),
+      fetch('/api/proxy/operator/alerts').then(r => r.json())
+        .then(j => { if (alive() && j?.success) setProofReview(new Set((j.data ?? [])
+          .filter((a: { kind: string }) => a.kind === 'proof_review')
+          .map((a: { client_id: string }) => a.client_id))) })
+        .catch(() => { /* the filter simply keeps its default; the list is not blanked */ }),
+    ])
+  }, [])
+
   useEffect(() => {
     let alive = true
-    fetch('/api/proxy/operator/clients').then(r => r.json())
-      .then(j => { if (!alive) return; if (j?.success) setClients(j.data ?? []); else throw new Error(j?.error || 'the API returned no data') })
-      .catch(e => { if (alive) setClientsError(e instanceof Error ? e.message : 'Failed to load clients') })
-    fetch('/api/proxy/operator/worklist').then(r => r.json())
-      .then(j => { if (!alive) return; if (j?.success) { setWork(j.data ?? []); setBookRatio(j.meta?.ratio ?? null) } else throw new Error(j?.error || 'the API returned no data') })
-      .catch(e => { if (alive) setWorkError(e instanceof Error ? e.message : 'Failed to load the worklist') })
-    fetch('/api/proxy/operator/lifecycle-board').then(r => r.json())
-      .then(j => {
-        if (!alive || !j?.success) return
-        const m: Record<string, LifecycleRow> = {}
-        for (const r of (j.data ?? []) as LifecycleRow[]) m[r.client_id] = r
-        setLifecycle(m)
-      })
-      // ⚠️ A FAILED READ LEAVES THE ROWS WITHOUT A STAGE WORD, never with a guessed one.
-      .catch(() => { /* rows fall back to industry · country, which is a fact we do have */ })
-    fetch('/api/proxy/operator/alerts').then(r => r.json())
-      .then(j => { if (alive && j?.success) setProofReview(new Set((j.data ?? [])
-        .filter((a: { kind: string }) => a.kind === 'proof_review')
-        .map((a: { client_id: string }) => a.client_id))) })
-      .catch(() => { /* the filter simply keeps its default; the list is not blanked */ })
-    return () => { alive = false }
-  }, [])
+    const isAlive = () => alive
+    void loadRail(isAlive)
+
+    // ⚠️ HIDDEN TABS READ NOTHING. A console parked in a background tab would otherwise put
+    // 1,440 rounds of four endpoints a day through the proxy for a screen nobody is reading.
+    const tick = () => { if (shouldPollNow(document.hidden)) void loadRail(isAlive) }
+    const timer = setInterval(tick, RAIL_REFRESH_MS)
+
+    // ⚠️ AND COMING BACK TO THE TAB IS THE MOMENT THE ANSWER MATTERS. An operator returning
+    // after a call should not wait up to a minute to see the client they were just told about.
+    const onVisible = () => { if (!document.hidden) void loadRail(isAlive) }
+    document.addEventListener('visibilitychange', onVisible)
+
+    return () => {
+      alive = false
+      clearInterval(timer)
+      document.removeEventListener('visibilitychange', onVisible)
+    }
+  }, [loadRail])
 
   // ⚠️ THE URL STILL PICKS THE CLIENT. `?client=…` is how a Vida "Open →" link and a bookmark
   // reach a specific account, and the panel that used to read it is gone.
@@ -124,6 +251,10 @@ export function VidaClients({ open }: { open: boolean }) {
   const visible = needsFilter
     ? ordered.filter(c => needsYou(c.id) || proofReview.has(c.id) || c.id === selected)
     : ordered
+  // ⚑ MVP1 — ONE PERSON, ONE ROW. A draft whose person is now a confirmed client is dropped,
+  // whichever of the two reads is the stale one. Deduplicated on `user_id` — durable identity,
+  // never a display name (see `visibleDrafts`).
+  const shownDrafts = visibleDrafts(drafts, clients)
 
   // ── COLLAPSED: the selected context, compactly ──────────────────────────────────────────
   if (!open) {
@@ -192,6 +323,55 @@ export function VidaClients({ open }: { open: boolean }) {
           </button>
         )
       })}
+      {/* ── ⚑ MVP1 (Preview 07) — SIGNED UP, BRIEF IN PROGRESS ─────────────────────────
+          🛑 BEFORE THIS, A SIGNUP WAS INVISIBLE. No `clients` row exists until the client
+          confirms, so an operator could not see that a person had signed up at all — Preview
+          07's "signed up 14 minutes ago and Milla is collecting their brief" had nothing
+          behind it.
+
+          ⚠️ RENDERED BELOW THE CLIENTS, AND NEVER AS ONE. Opening a draft goes through
+          `setSelectedDraft`, which is a DIFFERENT piece of state from `selected` and clears
+          it — a draft id can never be handed to a `/operator/*` route as a client id, because
+          it never reaches the variable those routes read. The row carries no stage word from
+          the lifecycle board and no "needs you": Milla is collecting, and there is nothing
+          here for the operator to press.
+
+          ⚠️ THE COUNT IS THE SHARED ONE. `brief.collected` / `brief.total` come from
+          `briefFacts()` on the server. There is no eleven-fact list in this file, and the
+          card deliberately does not say "complete" — eleven facts collected still leaves the
+          client's own confirmation outstanding, which is a separate gate.
+
+          ⚠️ AND NEVER BOTH AT ONCE. The API returns only UNPROMOTED drafts, so the moment a
+          person confirms they leave this list and appear above as a client. */}
+      {shownDrafts.length > 0 && !needsFilter && (
+        <div className="mt-1.5 pt-1.5 border-t border-[#f0eafc]">
+          <p className="text-[10px] font-bold uppercase tracking-wide text-[#b3a9cc] px-2.5 pb-1">
+            Signing up
+          </p>
+          {shownDrafts.map(d => {
+            const openDraft = d.id === selectedDraft
+            return (
+              <button key={d.id} onClick={() => setSelectedDraft(d.id)}
+                title={d.company_name ?? 'Signed up — Milla is collecting their brief'}
+                className={`w-full text-left flex items-start gap-2 px-2 py-1.5 rounded-lg mb-0.5 transition-colors border ${
+                  openDraft ? 'bg-[#f3ecff] border-[#e4d4fb]' : 'hover:bg-[#faf8ff] border-transparent'}`}>
+                <span className="w-2 h-2 rounded-full shrink-0 mt-[6px] bg-[#e4dcf7]" />
+                <span className="w-6 h-6 rounded-md flex items-center justify-center text-[10px] font-bold shrink-0 bg-[#f6f2ff] text-[#b3a9cc]">
+                  {initials(d.company_name)}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <b className="text-[13px] truncate block text-[#5c5279]">
+                    {d.company_name || 'Signed up'}
+                  </b>
+                  <span className="text-[11.5px] block truncate text-[#9b8ec4]">
+                    Brief · {d.brief.collected} of {d.brief.total} collected
+                  </span>
+                </span>
+              </button>
+            )
+          })}
+        </div>
+      )}
       {/* THE BOOK'S RATIO — names sourced per approved lead, across every real client.
           Founder-locked 25 Jul: the cashflow model plans on 2, and this is where the real
           number comes from. Kept with the list it belongs to, not dropped in the move. */}

@@ -253,6 +253,101 @@ export async function readProgrammeReviewSet(
   return { prospects: ranked.slice(0, REVIEW_PAGE).map(toCard), total: rows.length, complete }
 }
 
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// ⚑ 11 Sep (DAY 3) — THE FROZEN SET, ALL OF IT, READ FROM THE FREEZE
+//
+// ── 🛑 THE TWO DEFECTS ABOVE THIS LINE ──────────────────────────────────────────────────
+//
+// ① THE CLIENT WAS SHOWN A LIVE RECOMPUTATION AND ASKED TO APPROVE A FREEZE. Everything above
+//    re-runs the eligibility predicate against `leads` at the moment of the read. That is the
+//    right definition of "who could be worked", and it is NOT what the client is approving: the
+//    approved audience is `enrolled_lead_ids` inside the frozen snapshot. The two were allowed
+//    to differ — a prospect enrolled at freeze time who was later marked `passed` vanished from
+//    the screen while remaining in the package, and one who became eligible afterwards appeared
+//    on the screen while being in no package at all. `reviewDrift` catches the package moving;
+//    nothing caught the SCREEN describing a different set from the package.
+//
+// ② `REVIEW_PAGE = 50` WITH A LARGER `total` IS A VIEW-ALL THAT VIEWS NOTHING. The route
+//    returned the top 50 cards and a total of, say, 250, and there was no parameter anywhere
+//    that could fetch cards 51–250. A client asked to approve 250 people could see 50 of them.
+//
+// ── HOW IT PAGES, AND WHY IN TWO READS ──────────────────────────────────────────────────
+//
+// The frozen id list is the population, so the total is `ids.length` — exact, never a floor.
+// Ranking is best-scoring first, which must be STABLE ACROSS PAGES, so the whole set's scores
+// are read first (id and score only, in chunks) and ranked once; the page's full cards are then
+// read for the ~50 ids that survive. Ordering inside a single page would put the same prospect
+// on two pages and none on a third.
+//
+// 🛑 TENANCY IS RE-ASSERTED EVEN THOUGH THE IDS CAME FROM OUR OWN SNAPSHOT. A corrupted or
+// mis-attributed snapshot must not be able to turn into a read of another client's people, and
+// the cost of the extra predicate is nothing.
+//
+// ⚠️ AN ID IN THE FREEZE WITH NO ROW BEHIND IT IS REPORTED, NOT DROPPED. It still counts toward
+// the total, because the package contains it; silently shrinking the set would be the screen
+// disagreeing with the package all over again.
+// ═══════════════════════════════════════════════════════════════════════════════════════
+
+/** How many ids one ranking chunk asks for. Keeps the request URL well inside every limit. */
+const RANK_CHUNK = 400
+
+export type FrozenReviewPage = {
+  /** The cards for this page, best-scoring first across the WHOLE frozen set. */
+  prospects: ReviewProspect[]
+  /** The exact size of the frozen set. Never a floor — the freeze is a finite list. */
+  total: number
+  /** Where this page starts. */
+  offset: number
+  /** Ids in the frozen package with no readable lead row behind them. */
+  missing: number
+}
+
+export async function readFrozenReviewPage(
+  clientId: string, programmeId: string, frozenLeadIds: readonly string[],
+  offset: number, limit: number,
+): Promise<FrozenReviewPage> {
+  const ids = [...new Set(frozenLeadIds.filter(v => typeof v === 'string' && v.length > 0))]
+  const total = ids.length
+  const start = Number.isFinite(offset) && offset > 0 ? Math.floor(offset) : 0
+  const size = Number.isFinite(limit) && limit > 0 ? Math.min(Math.floor(limit), REVIEW_PAGE) : REVIEW_PAGE
+  if (total === 0) return { prospects: [], total: 0, offset: start, missing: 0 }
+
+  // ── ① RANK THE WHOLE SET ONCE ────────────────────────────────────────────────────────
+  const scored: { id: string; score: number }[] = []
+  const found = new Set<string>()
+  for (let i = 0; i < ids.length; i += RANK_CHUNK) {
+    const chunk = ids.slice(i, i + RANK_CHUNK)
+    const { data, error } = await db.from('leads')
+      .select('id, score').eq('client_id', clientId).eq('programme_id', programmeId).in('id', chunk)
+    // ⚠️ THROWS. A failed read here would silently shrink the approved audience on screen, which
+    // is the exact class of lie `?? []` produces everywhere else in this file's history.
+    if (error) throw new Error(`frozen review read failed: ${error.message}`)
+    for (const r of (data ?? []) as { id: string; score: number | null }[]) {
+      found.add(r.id)
+      scored.push({ id: r.id, score: Number(r.score ?? 0) })
+    }
+  }
+  // Ties broken by id so the order is total and identical on every request.
+  scored.sort((a, b) => (b.score - a.score) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
+
+  const pageIds = scored.slice(start, start + size).map(r => r.id)
+  if (pageIds.length === 0) {
+    return { prospects: [], total, offset: start, missing: total - found.size }
+  }
+
+  // ── ② READ THE PAGE'S CARDS ──────────────────────────────────────────────────────────
+  const { data: rows, error: rowErr } = await db.from('leads')
+    .select('id, first_name, last_name, job_title, company, industry, country, score, score_reasoning, created_at, surfaced_for_approval_at')
+    .eq('client_id', clientId).eq('programme_id', programmeId).in('id', pageIds)
+  if (rowErr) throw new Error(`frozen review read failed: ${rowErr.message}`)
+
+  const byId = new Map<string, ScanRow>()
+  for (const r of (rows ?? []) as ScanRow[]) byId.set(String(r.id), r)
+  const prospects = pageIds.map(id => byId.get(id)).filter((r): r is ScanRow => !!r).map(toCard)
+
+  return { prospects, total, offset: start, missing: total - found.size }
+}
+
 /**
  * Does this programme have real reviewable work RIGHT NOW?
  *

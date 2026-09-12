@@ -13,11 +13,15 @@ import {
   escalationAsk, ESCALATION_CONFIRMED, ESCALATED_HEADLINE, ESCALATED_DETAIL,
   NEEDS_FEEDBACK_HINT, SPEND_CLOSED_REFUSAL, PROOF_REASON_CODES, PROOF_REASON_LABELS,
   ESCALATION_TRIGGER_COPY, proofUiState, whatChangedSentence,
+  calibratedRestart, BOTH_ATTEMPTS_USED_ASK, LIVE_ESCALATION_TRIGGERS,
   type AttemptSummary, type CalibrationState,
 } from './proof-calibration'
 
+  // ⚑ 11 Sep — `kind` defaults to 'automatic', which is what every case in this file is
+  // about. The calibrated restart is a DIFFERENT history event and never an automatic
+  // attempt; `proof-restart-authority.test.ts` is where that distinction is exercised.
 const attempt = (pass: number, o: Partial<AttemptSummary> = {}): AttemptSummary => ({
-  pass, surfaced: 20, looksRight: 0, notAFit: 0, reasons: {}, notes: [], ...o,
+  pass, kind: 'automatic', surfaced: 20, looksRight: 0, notAFit: 0, reasons: {}, notes: [], ...o,
 })
 
 const state = (o: Partial<CalibrationState> = {}): CalibrationState =>
@@ -88,7 +92,7 @@ describe('🛑 ② "Show me stronger examples" is a spend gate, not a button', (
   })
 })
 
-describe('🛑 ③ the three closing triggers, and only on attempt 2', () => {
+describe('🛑 ③ the closing triggers, and only on attempt 2', () => {
   const twoPasses = (second: Partial<AttemptSummary>) =>
     state({ passesDone: 2, attempts: [attempt(1, { looksRight: 2 }), attempt(2, second)] })
 
@@ -97,28 +101,75 @@ describe('🛑 ③ the three closing triggers, and only on attempt 2', () => {
       .toEqual({ close: true, trigger: 'client_said_still_not_right' })
   })
 
-  it('② half or more of the second set rejected AND nothing kept', () => {
+  // ── ⛓️ 11 Sep — THESE TWO CASES ARE INVERTED, NOT DELETED ────────────────────────────
+  //
+  // 🛑 THEY USED TO REQUIRE `second_set_mostly_rejected`: half or more of the second set
+  // marked "Not a fit" with nothing kept closed the loop automatically. The founder's MVP1
+  // lock forbids exactly that — escalation may be triggered ONLY by an explicit client action
+  // equivalent to "Still not right", and NOT because "several prospects are Not a fit".
+  //
+  // ⚠️ THE ASSERTIONS ARE REVERSED SO THE OLD BEHAVIOUR IS NOW FORBIDDEN, which is the shape
+  // this repo uses when a rule is withdrawn rather than relaxed (see the billing-push guard).
+  // Deleting them would leave nothing standing between a future edit and the same inference.
+  it('🛑 B · a badly-marked second set does NOT escalate — several Not-a-fits are not a verdict', () => {
     expect(calibrationVerdict(twoPasses({ surfaced: 20, notAFit: 10, looksRight: 0 }), 'gave_feedback'))
-      .toEqual({ close: true, trigger: 'second_set_mostly_rejected' })
+      .toEqual({ close: false })
   })
 
-  it('🛑 …but NOT when the client kept something — that is a set we can still learn from', () => {
-    // Ten rejections beside two "looks right" is engagement, not a targeting failure. Closing
-    // here would take a working conversation and hand it to a human for no reason.
+  it('🛑 C · nor does the WHOLE second set being rejected, while the client says nothing', () => {
+    expect(calibrationVerdict(twoPasses({ surfaced: 20, notAFit: 20, looksRight: 0 }), 'gave_feedback'))
+      .toEqual({ close: false })
+    expect(calibrationVerdict(twoPasses({ surfaced: 20, notAFit: 20, looksRight: 0 }), 'none'))
+      .toEqual({ close: false })
+  })
+
+  it('🛑 …and a set the client kept something from still does not escalate', () => {
     expect(calibrationVerdict(twoPasses({ surfaced: 20, notAFit: 18, looksRight: 2 }), 'gave_feedback'))
       .toEqual({ close: false })
   })
 
-  it('…and NOT when fewer than half were rejected', () => {
-    expect(calibrationVerdict(twoPasses({ surfaced: 20, notAFit: 9, looksRight: 0 }), 'gave_feedback'))
-      .toEqual({ close: false })
-    // Exactly half does close — the boundary is inclusive.
-    expect(calibrationVerdict(twoPasses({ surfaced: 20, notAFit: 10, looksRight: 0 }), 'gave_feedback').close).toBe(true)
+  it('🛑 the only automatic trigger is the explicit act — the SAME set escalates when they say so', () => {
+    const rejected = twoPasses({ surfaced: 20, notAFit: 20, looksRight: 0 })
+    expect(calibrationVerdict(rejected, 'gave_feedback').close, 'marking closed the loop').toBe(false)
+    expect(calibrationVerdict(rejected, 'still_not_right').close, 'the explicit act did not close it').toBe(true)
   })
 
-  it('③ asking for more after both passes — the pre-existing backstop, kept', () => {
-    expect(calibrationVerdict(twoPasses({}), 'requested_more'))
-      .toEqual({ close: true, trigger: 'requested_more_after_pass_two' })
+  // ── 🛑 ⛓️ 11 Sep — THIS CASE IS INVERTED (founder correction) ────────────────────────
+  //
+  // It used to require that asking for another set after both passes CLOSED the loop, on the
+  // reading that asking a third time is dissatisfaction. The founder corrected it: "Show me
+  // more" can come from somebody who AGREES with the targeting and simply wants more examples
+  // of it. Escalating them books a phone call nobody asked for.
+  //
+  // ⚠️ IT STILL SOURCES NOTHING — that was never what this trigger did. `spendDoors` is shut
+  // at two passes whatever the verdict says, and the case below asserts it.
+  it('🛑 1 · 2 · 3 · asking for more after both passes does NOT escalate, and sources nothing', () => {
+    const s = twoPasses({})
+    expect(calibrationVerdict(s, 'requested_more')).toEqual({ close: false })
+    expect(spendDoors(s).automaticProofPass, 'the request bought a third set').toBe(false)
+    expect(spendDoors(s).strongerExamplesControl).toBe(false)
+    expect(spendDoors(s).chatSourcingRequest).toBe(false)
+  })
+
+  it('🛑 3 · …and it grants no restart authority either', () => {
+    expect(calibratedRestart(twoPasses({})), 'asking for more granted a restart').toBe('none')
+  })
+
+  it('🛑 4 · the client is ASKED instead, and only their answer escalates', () => {
+    // Milla explains that both automatic searches are used and asks the question outright.
+    expect(BOTH_ATTEMPTS_USED_ASK).toContain('still not right')
+    expect(BOTH_ATTEMPTS_USED_ASK, 'a third automatic attempt was implied').not.toMatch(/another (search|look|attempt)/i)
+    expect(calibrationVerdict(twoPasses({}), 'still_not_right'))
+      .toEqual({ close: true, trigger: 'client_said_still_not_right' })
+  })
+
+  it('🛑 5 · 6 · the legacy trigger values stay READABLE — history is not rewritten', () => {
+    // Rows escalated under the 10-Sep rules carry these; an operator opening one of those
+    // clients must still read why it happened. They are simply never generated again.
+    expect(ESCALATION_TRIGGER_COPY.requested_more_after_pass_two).toBeTruthy()
+    expect(ESCALATION_TRIGGER_COPY.second_set_mostly_rejected).toBeTruthy()
+    expect(LIVE_ESCALATION_TRIGGERS, 'a withdrawn trigger is still generated')
+      .toEqual(['client_said_still_not_right'])
   })
 
   it('🛑 …and that backstop does NOT fire on pass 1', () => {
@@ -174,17 +225,34 @@ describe('🛑 ⑤ per-card and chat requests can never source, at any pass coun
 })
 
 describe('🛑 ⑥ Milla\'s words — founder-locked, and no SLA', () => {
-  it('the ask uses the number we already hold', () => {
-    const ask = escalationAsk('07700 900123')
+  // ⛓️ 11 Sep — THE ASK NOW COVERS A NAME AS WELL AS A NUMBER. The founder's MVP1 lock:
+  // before human calibration, ensure the required contact details exist — NAME and PHONE.
+  // These cases keep every previous claim (the opener, the stored number, never inventing
+  // one) and add the half that was missing.
+  it('the ask uses the number AND the name we already hold, and asks for neither again', () => {
+    const ask = escalationAsk('07700 900123', 'Ellis')
     expect(ask).toContain("I'm not getting the targeting right enough yet")
     expect(ask).toContain("I don't want to keep showing you the wrong people")
-    expect(ask).toContain('Is 07700 900123 still the best number to reach you on?')
+    expect(ask).toContain('Is 07700 900123 still the best number to reach you on')
+    expect(ask).toContain('Ellis')
+    expect(ask, 'it asked for a name it already holds').not.toContain('who should they ask for')
   })
 
-  it('…and asks for one when there is none', () => {
+  it('…asks for the number when there is none', () => {
     for (const none of [null, undefined, '', '   ']) {
-      expect(escalationAsk(none), String(none)).toContain('What’s the best number to reach you on?')
+      expect(escalationAsk(none, 'Ellis'), String(none)).toContain('What’s the best number to reach you on')
     }
+  })
+
+  it('🛑 18 · …and asks for the NAME when we do not hold one', () => {
+    expect(escalationAsk('07700 900123', null)).toContain('who should they ask for')
+    expect(escalationAsk(null, null)).toContain('who should they ask for')
+    expect(escalationAsk(null, '   ')).toContain('who should they ask for')
+  })
+
+  it('🛑 19 · and never invents either — a missing number is asked for, not derived', () => {
+    const ask = escalationAsk(null, null)
+    expect(ask).not.toMatch(/\d{5,}/)
   })
 
   it('🛑 NO SLA — not in the ask, not in the confirmation, not in the calm state', () => {
@@ -325,14 +393,14 @@ describe('🛑 ⑩ the escalated screen has no controls at all', () => {
     expect(ui.showTheseAreRight).toBe(false)
     expect(ui.showStronger).toBe(false)
     expect(ui.showStillNotRight).toBe(false)
-    expect(ui.ask).toContain('Is 07700 900123 still the best number to reach you on?')
+    expect(ui.ask).toContain('Is 07700 900123 still the best number to reach you on')
     // The calm state comes only AFTER they answer — otherwise the screen would say "arranged"
     // while Milla is still asking the question.
     expect(ui.headline).toBeNull()
   })
 
   it('…and asks for one when we hold none', () => {
-    expect(proofUiState(closed, null, false).ask).toContain('What’s the best number to reach you on?')
+    expect(proofUiState(closed, null, false).ask).toContain('What’s the best number to reach you on')
   })
 
   it('once confirmed it is the calm state, and the ask is gone', () => {

@@ -122,6 +122,23 @@ const GREETING = "Hi 👋 I'm Milla, your campaign partner. Let's get you set up
 // being sharpened, not a second experiment.
 const REFINING_GREETING = "Welcome back 👋 Let's sharpen the same targeting rather than start over — tell me what was off about the people I found, and I'll adjust who we look for."
 
+/**
+ * ⚑ MVP1 — the welcome back for somebody whose Brief is part-collected.
+ *
+ * ⚠️ THE NUMBERS ARE THE SERVER'S, INTERPOLATED — never typed. `count` and `total` come from
+ * the shared eleven-fact counter and `nextLabel` from the same list; this app has no opinion
+ * about what the facts are or how many there are.
+ *
+ * ⚠️ AND IT PROMISES NOTHING ABOUT CONFIRMATION. Holding every fact is not the same as having
+ * confirmed the brief — that gate is separate, and it is the panel after this conversation.
+ */
+function resumeGreeting(count: number, total: number, nextLabel: string | null): string {
+  const held = `Welcome back 👋 I still have everything you told me — that's ${count} of ${total} things I needed.`
+  return nextLabel
+    ? `${held} Next up: ${nextLabel.toLowerCase()}.`
+    : `${held} I have everything I need — say the word and I'll put your plan together.`
+}
+
 export default function MillaWelcomePage() {
   const router = useRouter()
   const [messages, setMessages] = useState<Msg[]>([{ role: 'assistant', content: GREETING }])
@@ -194,8 +211,38 @@ export default function MillaWelcomePage() {
         setRefining(true)
         setMessages(m => (m.length === 1 && m[0].content === GREETING)
           ? [{ role: 'assistant', content: REFINING_GREETING }] : m)
+        return
       }
     } catch { /* silent — the page still works as first-time setup */ }
+
+    // ── ⚑ MVP1 — THEY STARTED THIS BEFORE, AND WE STILL HAVE THEIR ANSWERS ─────────────
+    //
+    // 🛑 WHAT THIS FIXES. The whole Brief lived in `messages`, in one browser tab. Close it,
+    // reload, or come back tomorrow and every answer was gone — the client was greeted as a
+    // stranger and asked the same eleven things again. Their answers are in the draft now, and
+    // this is the screen finally saying so.
+    //
+    // ⚠️ THE COUNT AND THE NEXT FACT ARE THE SERVER'S. `progress` comes from the shared
+    // eleven-fact counter and `next` from the same list, in the same order. There is no
+    // eleven-fact list in this app, and the denominator is never typed here.
+    //
+    // ⚠️ IT ONLY REPLACES THE GREETING, NEVER A REAL TRANSCRIPT. A client who reloaded
+    // mid-sentence keeps what is on screen; the resume line is for an empty conversation.
+    //
+    // ⚠️ AND IT FAILS SILENT. No draft, an unreadable draft, or a draft with nothing in it
+    // yet all leave this page exactly as it was before this existed.
+    try {
+      const d = await api.get<{ data: {
+        progress: { count: number; total: number }
+        next: { id: string; label: string } | null
+      } }>('/milla/brief-draft', tk)
+      const p = d.data?.progress
+      const next = d.data?.next ?? null
+      if (p && p.count > 0) {
+        setMessages(m => (m.length === 1 && m[0].content === GREETING)
+          ? [{ role: 'assistant', content: resumeGreeting(p.count, p.total, next?.label ?? null) }] : m)
+      }
+    } catch { /* silent — a client with no saved draft simply gets the normal greeting */ }
   }, [])
 
   useEffect(() => { void loadStatus() }, [loadStatus])
@@ -348,6 +395,38 @@ export default function MillaWelcomePage() {
       // defaults country to 'South Africa', so an empty value would not fail loudly, it
       // would quietly invent a country. The founder ruled that out by name.
       if (hasClient === false) {
+        // ── 🛑 ⚑ MVP1 — THE CLIENT CONFIRMS THEIR BRIEF BEFORE ANYTHING IS CREATED ──────
+        //
+        // ⚠️ THIS CLICK IS THE CONFIRMATION, AND IT IS RECORDED AS ONE. Until now the act
+        // existed only in the browser: pressing approve went straight to creating a client,
+        // so "the client agreed to this brief" was never a fact the server held. It is the
+        // gate Proof is started behind and the $299 is asked for behind, and a gate that
+        // lives in a component is not a gate.
+        //
+        // ⚠️ THE SERVER RE-CHECKS THE ELEVEN HERE. If a fact is genuinely outstanding the
+        // route names it, Milla asks for it, and NOTHING has been created — which is the
+        // whole reason this call comes before `/auth/onboard` rather than after it.
+        //
+        // ⚠️ 404 IS NOT A FAILURE. A client whose draft predates this table, or whose draft
+        // could not be stored, has nothing to confirm; promotion then behaves exactly as it
+        // did before drafts existed. Only a real refusal stops the journey.
+        try {
+          await api.post('/milla/brief-draft/confirm', {}, tk)
+        } catch (e) {
+          // ⚠️ BRANCHED ON THE STATUS, NEVER ON THE SENTENCE. Matching prose is how two
+          // opposite refusals came to look identical to this app once already (C01); the
+          // status is carried through `apiFetch` precisely so a caller need not guess.
+          //   404 — nothing to confirm (a journey that predates drafts). Carry on.
+          //   409 — already confirmed and promoted. Carry on; every call below is idempotent.
+          //   anything else — a real refusal, and NOTHING has been created yet.
+          const st = (e as { status?: number })?.status
+          if (st !== 404 && st !== 409) {
+            setMessages(msgs => [...msgs, { role: 'assistant', content: (e instanceof Error && e.message)
+              || 'I could not confirm your brief just yet — nothing has been created. Let us try that again.' }])
+            setSaving(false)
+            return
+          }
+        }
         const p = profile
         const missing = [
           !p?.company_name?.trim() ? 'your company name' : '',
@@ -408,8 +487,13 @@ export default function MillaWelcomePage() {
       //
       // `proof` claims each carry their own `permitted` flag. Only the ones the client
       // explicitly approved reach outreach — the rest are recorded for a human to ask about.
+      // ⚑ MVP1 — `from_brief_draft` NAMES THE ACT: this save IS the promotion of the brief,
+      // not an ordinary revision. It can only make the server STRICTER — a replayed
+      // promotion (double click, retry after an ambiguous response) is answered with the
+      // core ICP the first call created and writes nothing, so a stale onboarding snapshot
+      // can never overwrite confirmed targeting that has legitimately moved on since.
       const saved = await api.post<{ data?: { id?: string } }>(
-        '/icps', { ...proposed, business, proof, campaign_intent: intent }, tk)
+        '/icps', { ...proposed, business, proof, campaign_intent: intent, from_brief_draft: true }, tk)
 
       // ── FREE PROOF COMES BEFORE THE ASK (founder-ruled 24 Aug) ─────────────────────
       //
@@ -429,7 +513,10 @@ export default function MillaWelcomePage() {
         // a pass is claimed atomically the moment this lands, and a second POST would
         // claim the client's SECOND pass — leaving them two passes down having seen no
         // leads at all. `api.post` itself performs a single fetch with no retry.
-        await api.post(`/icps/${icpId}/proof`, {}, tk)
+        // ⚑ MVP1 — and the same naming on the proof start, for the same reason: a replayed
+        // promotion must not claim the client's SECOND free pass before they have looked at
+        // the first batch. The server answers `already_started` and claims nothing.
+        await api.post(`/icps/${icpId}/proof`, { from_brief_draft: true }, tk)
       } catch {
         // ── TERMINAL. NO RETRY, NO BILLING (founder-ruled 24 Aug) ───────────────────
         // A proof start that fails is OURS to fix, not something the client did. They

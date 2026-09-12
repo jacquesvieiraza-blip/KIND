@@ -7,6 +7,8 @@ import { loadError, panelView, notice, noticeClass, noticeText, vatBadge, PACK_P
 import { programmeSourcingAction } from '@/lib/programme-sourcing-action'
 import { LifecycleRibbon } from '@/components/vida/LifecycleRibbon'
 import { LifecyclePanel } from '@/components/vida/LifecyclePanel'
+// ⚑ MVP1 (Preview 07) — the brief-in-progress panel for somebody who is not a client yet.
+import { BriefPanel } from '@/components/vida/BriefPanel'
 import { lifecycleCopy, type LifecycleState, type VidaMode, type PanelAction } from '@/lib/vida-lifecycle-copy'
 
 
@@ -245,7 +247,9 @@ export default function VidaConsolePage() {
   // Holding it here meant leaving the console for Bookings or Sending forgot who the operator
   // was working on. Every one of this file's reads of `selected` is unchanged.
   const conversation = useVidaConversation()
-  const { selected, selectedName, setSelected } = conversation
+  // ⚑ MVP1 — `selectedDraft` is read here for ONE branch (the brief panel) and passed nowhere
+  // else. It is never a client id; see `VidaConversation.tsx`.
+  const { selected, selectedName, setSelected, selectedDraft } = conversation
   const [alerts, setAlerts] = useState<Alert[]>([])
   // PR2 — the one proof-review action: which client is being resolved, and what to say after.
   const [proofBusy, setProofBusy] = useState<string | null>(null)
@@ -389,8 +393,19 @@ export default function VidaConsolePage() {
       /** ⚑ 10 Sep (I2) — the send gate's own reason, so the panel stops sending every sender
        *  failure to "reconnect the mailbox" when three of the four have a different remedy. */
       senderDetail?: string | null
+      /** ⚑ 11 Sep (DAY 3 HOLD) — the persisted frozen review package, the same one Milla reads.
+       *  `null` means there is no package, never "the package is fine". */
+      frozenPackage?: {
+        version: number | null; at: string | null; prospects: number
+        messages: number; target: number | null; sender: string | null
+      } | null
       killSwitchOff: boolean
       operatorRunEnabled: boolean
+      /** ⚑ MVP1 (C03) — what the client said they want, in their own words, or null.
+       *  The copy module has rendered this in three places since it was written; until now
+       *  nothing supplied it, so every client read "Being agreed". It is NOT the meeting
+       *  target: that is agreed later, at Programme, and the two are different facts. */
+      outcomeStated?: string | null
     } | null
     last_preparation?: {
       at: string; ok: boolean; by: string | null; detail: string
@@ -717,6 +732,37 @@ export default function VidaConsolePage() {
       if (selected) await loadProgramme(selected)
     } catch (e) {
       setLcMsg(e instanceof Error ? e.message : 'The programme was not paused.')
+    } finally { setLcBusy(null) }
+  }, [prog, selected, clients, loadProgramme])
+
+  // ── ⚑ 11 Sep (DAY 3) — RE-FREEZE, AND IT IS DELIBERATELY *NOT* INSIDE `lifecycle()` ────
+  //
+  // 🛑 THE SAME REASON `pauseProgramme` IS NOT. That helper carries the six approved
+  // DRAFT→LIVE moves and their money-bearing confirmations, and a guard holds it at exactly
+  // six precisely so a seventh cannot be slipped in beside them. A re-freeze is not a ladder
+  // transition: it moves no status, grants no authority and touches no money. It publishes what
+  // preparation has ALREADY produced as a new version so a stuck client can be asked again.
+  //
+  // ⚠️ THE CONFIRMATION SAYS WHAT IT DOES NOT DO, because "re-freeze" is not a phrase an
+  // operator can price. Nothing is approved, charged or sent, and a previous approval — if the
+  // programme somehow has one — is untouched, which the server enforces rather than promises.
+  const refreezePackage = useCallback(async () => {
+    const id = prog?.programme?.id
+    if (!id) return
+    const who = (clients ?? []).find(c => c.id === selected)?.company_name ?? 'this client'
+    if (!confirm(`Publish a new version of ${who}'s review package?\n\nThe prepared work has changed since it was frozen, so they cannot approve what they are looking at. This publishes the current work as a NEW VERSION and asks them again.\n\nNOTHING is approved, charged or sent.`)) return
+    setLcBusy('refreeze'); setLcMsg(null)
+    try {
+      const j = await fetch(`/api/proxy/programmes/${encodeURIComponent(id)}/refreeze`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}',
+      }).then(r => r.json())
+      if (!j?.success) throw new Error(j?.message || j?.error || 'Nothing was re-frozen.')
+      // ⚠️ THE SERVER'S OWN SENTENCE, never a guess. It is the only thing that knows whether a
+      // new version was written or the package had not actually changed.
+      setLcMsg(String(j?.data?.headline ?? 'The review package was re-frozen.'))
+      if (selected) await loadProgramme(selected)
+    } catch (e) {
+      setLcMsg(e instanceof Error ? e.message : 'Nothing was re-frozen.')
     } finally { setLcBusy(null) }
   }, [prog, selected, clients, loadProgramme])
 
@@ -1952,6 +1998,32 @@ export default function VidaConsolePage() {
   // browser does not hold; `copy` turns it into the three columns. Nothing here re-derives a
   // stage, and no control appears because a component thought it should.
   const lc = prog?.lifecycle ?? null
+  /**
+   * ⚑ 11 Sep (C40) — what `GET /operator/proof-review/:clientId/evidence` answers.
+   *
+   * ⚠️ SNAKE_CASE BECAUSE IT IS THE WIRE SHAPE, mapped once into the copy module's camelCase
+   * input below. Two spellings in one file is how a field quietly stops being read.
+   */
+  type CalibrationEvidence = {
+    why: string | null
+    passes_done: number
+    phone: string | null
+    contact_name: string | null
+    phone_confirmed_at: string | null
+    operator_note: string | null
+    resolved_at: string | null
+    may_restart: boolean
+    may_restart_why: string | null
+    what_changed: string | null
+    restart_at: string | null
+    restart_used_at: string | null
+    attempts: { pass: number; kind?: string | null; surfaced: number; looksRight: number
+                notAFit: number; reason_labels?: Record<string, number>; notes?: string[] }[]
+  }
+  const [calib, setCalib] = useState<CalibrationEvidence | null>(null)
+  const [calErr, setCalErr] = useState<string | null>(null)
+  const [calBusy, setCalBusy] = useState<string | null>(null)
+
   const lcCopy = useMemo(() => {
     if (!lc) return null
     return lifecycleCopy({
@@ -1967,8 +2039,49 @@ export default function VidaConsolePage() {
       operatorRunEnabled: lc.operatorRunEnabled,
       senderSendable: lc.senderSendable,
       senderDetail: lc.senderDetail ?? null,
+      // ⚑ 11 Sep (DAY 3 HOLD) — THE FROZEN PACKAGE, so this panel reads the SAME persisted
+      // truth Milla does. Without this leg the copy module's `frozenPackage` branches never
+      // fire and the panel falls back to live counts — which is the defect, not the fallback:
+      // the fallback is correct only where there is genuinely no package yet.
+      frozenPackage: lc.frozenPackage ?? null,
+      // ⚑ MVP1 (C03) — the last leg of the plumbing. `vida-lifecycle-copy.ts` has read this
+      // since it was written; this call site never passed it, so all three of its branches
+      // fell through to "Being agreed" / "Not stated yet" for every client in the book.
+      outcomeStated: lc.outcomeStated ?? null,
+      // ⚑ 11 Sep (C40) — the last leg of THIS plumbing, and the same defect as `outcomeStated`
+      // one line above: the copy module has read `calibration` since it was written and no
+      // call site ever passed one, so every escalated client rendered with no attempt history,
+      // no phone, no note and no restart verdict.
+      calibration: calib ? {
+        why: calib.why ?? null,
+        passesDone: calib.passes_done ?? 2,
+        phone: calib.phone ?? null,
+        contactName: calib.contact_name ?? null,
+        phoneConfirmedAt: calib.phone_confirmed_at ?? null,
+        operatorNote: calib.operator_note ?? null,
+        mayRestart: calib.may_restart === true,
+        mayRestartWhy: calib.may_restart_why ?? null,
+        restartAt: calib.restart_at ?? null,
+        restartUsedAt: calib.restart_used_at ?? null,
+        resolvedAt: calib.resolved_at ?? null,
+        attempts: (calib.attempts ?? []).map((a: CalibrationEvidence['attempts'][number]) => ({
+          pass: a.pass,
+          // ⚠️ PROVENANCE, NOT A PASS NUMBER. Legacy rows carry no kind and are automatic.
+          kind: a.kind === 'calibrated_restart' ? 'calibrated_restart' as const : 'automatic' as const,
+          surfaced: a.surfaced, looksRight: a.looksRight, notAFit: a.notAFit,
+          reasonLabels: a.reason_labels ?? {}, notes: a.notes ?? [],
+        })),
+        whatChanged: calib.what_changed ?? null,
+        unreadable: false,
+      } : calErr ? {
+        // 🛑 C43 — WE COULD NOT READ THE AUTHORITY. Everything is unknown, so nothing is
+        // offered: `mayRestart` false, no history claimed, and the operator is told why.
+        why: null, passesDone: 2, phone: null, contactName: null, phoneConfirmedAt: null,
+        operatorNote: null, mayRestart: false, mayRestartWhy: calErr, restartAt: null,
+        restartUsedAt: null, resolvedAt: null, attempts: [], whatChanged: null, unreadable: true,
+      } : null,
     })
-  }, [lc, selectedName, selectedClient?.company_name])
+  }, [lc, selectedName, selectedClient?.company_name, calib, calErr])
 
   /**
    * ⚑ 9 Sep — THE ACCOUNT CARD, AND IT EXISTS BECAUSE THE ROW STOPPED CARRYING THESE.
@@ -2006,7 +2119,98 @@ export default function VidaConsolePage() {
    * the mailbox page. A lifecycle panel that reached for a route nobody had built would be a
    * button that fails in front of a client's programme.
    */
-  const onLifecycleAction = useCallback(async (key: PanelAction['key'], ceiling?: number) => {
+  // ── ⚑ 11 Sep (C40 / C43) — THE CALIBRATION EVIDENCE, AND THE TWO REAL ACTIONS ────────
+  //
+  // 🛑 WHAT WAS MISSING. `vida-lifecycle-copy.ts` has read a `calibration` block since it was
+  // written and NOTHING EVER FETCHED ONE, so every escalated client rendered with `cal = null`
+  // — no attempt history, no phone, no note — and the panel's two controls
+  // (`contact_recalibrate`, `restart_proof_calibrated`) fell through `onLifecycleAction`'s
+  // `default: return` and did nothing at all. That is C40: buttons with no server authority
+  // behind them, on the one screen that decides whether a client gets another paid set.
+  //
+  // ⚠️ THE AUTHORITY IS THE SERVER'S, AND THIS ONLY RENDERS IT. `may_restart` comes from
+  // `mayRestartCalibrated` — the same function the restart ROUTE re-checks before it grants —
+  // so hiding the control is a courtesy and the refusal is the control. Nothing here grants,
+  // infers or optimistically assumes an authority.
+  //
+  // ⚠️ AND AN UNREADABLE STATE SHOWS NO RESTART (C43). `calErr` is surfaced and `calib` stays
+  // null, which makes `mayRestart` false everywhere downstream: unknown authority means no
+  // spend, and the operator is told rather than shown a control that may not work.
+  const loadCalibration = useCallback(async (clientId: string) => {
+    setCalErr(null)
+    try {
+      const j = await fetch(`/api/proxy/operator/proof-review/${encodeURIComponent(clientId)}/evidence`)
+        .then(r => r.json())
+      if (!j?.success) throw new Error(j?.error || 'the calibration state could not be read')
+      setCalib(j.data as CalibrationEvidence)
+    } catch (e) {
+      // 🛑 FAIL CLOSED AND SAY SO. Leaving a stale `calib` in place would keep a restart
+      // control on screen that the server may no longer authorise.
+      setCalib(null)
+      setCalErr(e instanceof Error ? e.message : 'The calibration state could not be read')
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!selected) { setCalib(null); setCalErr(null); return }
+    // ⚠️ ONLY FOR THE STATE THAT HAS ONE. Every healthy client would otherwise 500 its way
+    // through an endpoint that exists to describe a failure.
+    if (lc?.verdict.state !== 'proof_calibration_failed') { setCalib(null); setCalErr(null); return }
+    void loadCalibration(selected)
+  }, [selected, lc?.verdict.state, loadCalibration])
+
+  /**
+   * Record that a human calibrated this client. The ONLY thing that unlocks the one restart.
+   *
+   * ⚠️ IT IS A REAL PERSISTED ACT, NOT A UI STATE CHANGE. The route writes
+   * `proof_review_resolved_at`, the operator's identity and the note, refuses against a client
+   * who never validly escalated, and writes an audit row. This reads the canonical state back
+   * afterwards rather than assuming its own press worked.
+   */
+  const resolveCalibration = useCallback(async (clientId: string, note: string) => {
+    setCalBusy('contact_recalibrate'); setCalErr(null)
+    try {
+      const j = await fetch(`/api/proxy/operator/proof-review/${encodeURIComponent(clientId)}/resolve`, {
+        method: 'POST', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ note }),
+      }).then(r => r.json())
+      if (!j?.success) throw new Error(j?.error || 'The resolution could not be recorded')
+      setSaveMsg(notice.ok(j.data?.resolved === 'resolved'
+        ? 'Calibration recorded. One calibrated restart is now available.'
+        : 'This calibration was already recorded.'))
+    } catch (e) {
+      setSaveMsg(notice.error(e instanceof Error ? e.message : 'The resolution could not be recorded'))
+    } finally {
+      setCalBusy(null)
+      await loadCalibration(clientId)
+    }
+  }, [loadCalibration])
+
+  /**
+   * Grant the ONE calibrated restart. It grants; it does not run.
+   *
+   * ⚠️ THE SERVER RE-CHECKS EVERYTHING. Two automatic attempts spent, a real escalation, a
+   * recorded resolution with a note, and no restart already granted against it. Pressing this
+   * without those answers 400/409 and nothing is granted — which is why hiding the button is
+   * not the boundary.
+   */
+  const grantCalibratedRestart = useCallback(async (clientId: string) => {
+    setCalBusy('restart_proof_calibrated'); setCalErr(null)
+    try {
+      const j = await fetch(`/api/proxy/operator/proof-review/${encodeURIComponent(clientId)}/restart`, {
+        method: 'POST', headers: { 'content-type': 'application/json' },
+      }).then(r => r.json())
+      if (!j?.success) throw new Error(j?.error || 'The calibrated restart could not be granted')
+      setSaveMsg(notice.ok('One calibrated Proof set is available to this client. The two automatic attempts are not reset.'))
+    } catch (e) {
+      setSaveMsg(notice.error(e instanceof Error ? e.message : 'The calibrated restart could not be granted'))
+    } finally {
+      setCalBusy(null)
+      await loadCalibration(clientId)
+    }
+  }, [loadCalibration])
+
+  const onLifecycleAction = useCallback(async (key: PanelAction['key'], ceiling?: number, note?: string) => {
     switch (key) {
       // The safe continuation: it prepares what is missing and re-freezes. Already-checked
       // prospects are skipped, which is why the panel can promise the retry costs nothing.
@@ -2023,9 +2227,28 @@ export default function VidaConsolePage() {
       // helper carries the six approved DRAFT→LIVE moves and their money-bearing confirmations;
       // a seventh action inside it would widen a boundary a guard deliberately holds at six.
       case 'pause_programme': return void pauseProgramme()
+      // ── ⚑ 11 Sep (C40) — THE TWO CALIBRATION ACTIONS, WIRED TO REAL AUTHORITIES ───────
+      //
+      // 🛑 THESE FELL THROUGH `default: return` AND DID NOTHING. The panel drew them, the
+      // operator pressed them, and no request was made — on the one screen that decides
+      // whether a client gets another paid set.
+      case 'contact_recalibrate':
+        if (!selected) return
+        // ⚠️ THE NOTE COMES FROM THE PRESS, not from a field this component also keeps. One
+        // copy of the operator's sentence, held where it is typed.
+        return void resolveCalibration(selected, (note ?? '').trim())
+      case 'restart_proof_calibrated':
+        if (!selected) return
+        return void grantCalibratedRestart(selected)
+      // ── ⚑ 11 Sep (DAY 3) — THE ONE APPROVAL-STAGE CONTROL ────────────────────────────
+      //
+      // 🛑 IT IS THE REMEDY FOR A RULE THAT HAD NONE. A package that moved under a reviewing
+      // client made every approval press refuse and nothing could issue a new version, so the
+      // client sat on a dead button. This publishes one — and approves nothing.
+      case 'refreeze_package': return void refreezePackage()
       default: return
     }
-  }, [lifecycle, runOnceWith, pauseProgramme])
+  }, [lifecycle, runOnceWith, pauseProgramme, refreezePackage, selected, resolveCalibration, grantCalibratedRestart])
 
   return (
     <div className="flex h-full min-h-0">
@@ -2041,7 +2264,17 @@ export default function VidaConsolePage() {
           "Needs you / All" filter. Selecting a client still scopes this console and Vida. */}
       {/* ── PIPELINE ───────────────────────────────────────────────────────── */}
       <div className="flex-1 flex flex-col bg-[#fbfaff] overflow-hidden">
-        {!selected && (
+        {/* ── ⚑ MVP1 (Preview 07) — SOMEBODY WHO HAS SIGNED UP AND NOT CONFIRMED ────────
+            🛑 THIS WORKSPACE USED TO HAVE EXACTLY ONE EMPTY STATE — "Select a client" — and
+            for a person mid-brief that was the only thing Vida could say about them, because
+            no `clients` row exists until they confirm.
+
+            ⚠️ `selectedDraft` IS NOT `selected`, AND IS RENDERED ONLY WHEN `selected` IS
+            NULL. The two are cleared against each other in the provider; reading BOTH here
+            means the console cannot paint a client panel and a brief panel over one another
+            even if that ever drifted. Nothing below this branch sees a draft id. */}
+        {!selected && selectedDraft && <BriefPanel draftId={selectedDraft} />}
+        {!selected && !selectedDraft && (
           <div className="flex-1 flex items-center justify-center text-[#9b8ec4] text-sm">
             Select a client on the left to work their campaign.
           </div>
@@ -2469,7 +2702,7 @@ export default function VidaConsolePage() {
                   subtitle={lcCopy.subtitle}
                   cards={accountCard ? [...lcCopy.cards, accountCard] : lcCopy.cards}
                   actions={lcCopy.actions}
-                  busy={lcBusy ?? (runBusy ? 'run' : null)}
+                  busy={lcBusy ?? calBusy ?? (runBusy ? 'run' : null)}
                   message={runMsg
                     ? { text: runMsg.text, tone: runMsg.tone === 'error' ? 'err' : runMsg.tone === 'warn' ? 'warn' : 'ok' }
                     : lcMsg ? { text: lcMsg, tone: 'ok' } : null}

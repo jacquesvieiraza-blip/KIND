@@ -114,6 +114,46 @@ vi.mock('@kind/db', () => ({
   },
 }))
 vi.mock('./alerts', () => ({ sendFounderAlert: () => Promise.resolve() }))
+// ⚑ 11 Sep (DAY 3 HOLD) — INTERNAL P2 NOW PROVES THE APPROVAL STILL COVERS THE WORK.
+// `status === 'APPROVED'` is not "approved for THIS": the paid door was corrected to refuse a
+// drifted approval and the internal door asked only for the status, so House could settle its
+// second half against an approval that no longer describes the programme. The fixture drives
+// the drift directly so every branch is reachable without standing up a snapshot.
+const driftState = { value: { state: 'unchanged', hash: 'h1' } as Record<string, unknown> }
+// ⚠️ THE REAL MODULE IS KEPT AND ONLY THE TWO DRIFT READS ARE REPLACED. Replacing the whole
+// module also stubbed `buildPreparationSnapshot`, which the readiness rule needs — so a
+// separate case about missing campaigns and sequences started failing for a reason that had
+// nothing to do with it. Stub the question being driven, never the module around it.
+vi.mock('./preparation-snapshot', async (importOriginal) => ({
+  ...(await importOriginal<Record<string, unknown>>()),
+  preparationDrift: async () => driftState.value,
+  reviewDrift: async () => driftState.value,
+}))
+// ⚑ 11 Sep (C38) — INTERNAL P1 AUTHORITY IS NOW HOUSE-ONLY, so the fixtures have to say who
+// House is. `client_id: 'house'` throughout this file is exactly that account; a real client's
+// programme is refused, which is the whole point and is asserted below.
+//
+// ⛓️ CORRECTED 11 Sep — THE FAKE ANSWERS `houseClientIds`, NOT `excludedClientIds`. The first
+// cut of this guard used revenue exclusion (demo ∪ house), which is a DIFFERENT question: a
+// historic demo or test account is excluded from revenue and is not House. The fixture keeps
+// both sets so the distinction is exercised rather than assumed.
+vi.mock('./real-clients', () => ({
+  getClientExclusions: async () => {
+    if (houseState.unreadable) throw new Error('the client exclusions could not be read')
+    const houseClientIds = new Set(houseState.house)
+    const demoClientIds = new Set(houseState.demo)
+    return {
+      houseClientIds, demoClientIds,
+      excludedClientIds: new Set([...houseClientIds, ...demoClientIds]),
+    }
+  },
+}))
+const houseState = {
+  house: ['house'] as string[],
+  /** demo ∪ test ∪ archived — every one of them revenue-excluded, and NONE of them House. */
+  demo: ['demo-client', 'test-client', 'archived-demo'] as string[],
+  unreadable: false,
+}
 
 import {
   p1Authorised, p2Authorised, authoriseFirstInternal, authoriseSecondInternal,
@@ -236,6 +276,80 @@ describe('② internal P1 may only be recorded from AWAITING_FIRST_PAYMENT', () 
     }
   })
 
+  // ── 🛑 ⚑ 11 Sep (C38, DAY 3) — INTERNAL MONEY IS HOUSE'S ALONE ────────────────────────
+  //
+  // 🛑 THE GAP THIS CLOSES. This door records P1 authority WITHOUT a payment, and it asked only
+  // what STATE the programme was in — so an operator with the admin key could authorise P1 on
+  // ANY programme, a real paying client's included. That is a generic operator payment
+  // override, which the founder's Day-3 lock forbids by name.
+  it('🛑 C38 · 2 · an ordinary paying client cannot be internally authorised', async () => {
+    dbState.programme = asRow(P({ status: 'AWAITING_FIRST_PAYMENT', client_id: 'a-real-client' }))
+    const r = await authoriseFirstInternal('prog-1')
+    expect(r.ok).toBe(false)
+    expect(r.reason).toContain('House-only')
+    expect(dbState.writes, 'authority was recorded for a client programme').toEqual([])
+  })
+
+  // ── 🛑 ⛓️ CORRECTED 11 Sep — REVENUE EXCLUSION IS NOT HOUSE ───────────────────────────
+  //
+  // The first cut asked `getExcludedClientIds` (demo ∪ house) because that set already
+  // existed. It answers "should this account count in revenue?", not "is this the House
+  // account?" — so every demo, test and archived account in the book would have gained
+  // internal P1 money authority. These three cases are the difference.
+  it('🛑 C38 · 3 · a DEMO client cannot — revenue-excluded is not House', async () => {
+    dbState.programme = asRow(P({ status: 'AWAITING_FIRST_PAYMENT', client_id: 'demo-client' }))
+    const r = await authoriseFirstInternal('prog-1')
+    expect(r.ok, 'a demo account gained internal money authority').toBe(false)
+    expect(r.reason).toContain('House-only')
+    expect(dbState.writes).toEqual([])
+  })
+
+  it('🛑 C38 · 4 · a TEST client cannot', async () => {
+    dbState.programme = asRow(P({ status: 'AWAITING_FIRST_PAYMENT', client_id: 'test-client' }))
+    expect((await authoriseFirstInternal('prog-1')).ok).toBe(false)
+    expect(dbState.writes).toEqual([])
+  })
+
+  it('🛑 C38 · 5 · an ARCHIVED historic demo/test client cannot', async () => {
+    dbState.programme = asRow(P({ status: 'AWAITING_FIRST_PAYMENT', client_id: 'archived-demo' }))
+    expect((await authoriseFirstInternal('prog-1')).ok).toBe(false)
+    expect(dbState.writes).toEqual([])
+  })
+
+  it('🛑 C38 · 6 · an EMPTY House set is "we could not tell", and refuses', async () => {
+    // `resolveHouseUserIds` fails OPEN to an empty set for the revenue roll-ups, so "no House
+    // client" and "the auth directory was unreachable" look identical from here. Both refuse.
+    dbState.programme = asRow(P({ status: 'AWAITING_FIRST_PAYMENT', client_id: 'house' }))
+    houseState.house = []
+    const r = await authoriseFirstInternal('prog-1')
+    houseState.house = ['house']
+    expect(r.ok).toBe(false)
+    expect(r.reason).toContain('could not confirm the House account')
+    expect(dbState.writes).toEqual([])
+  })
+
+  it('🛑 C38 · 1 · 7 · House IS authorised — money authority only, and only House', async () => {
+    dbState.programme = asRow(P({ status: 'AWAITING_FIRST_PAYMENT', client_id: 'house' }))
+    expect((await authoriseFirstInternal('prog-1')).ok).toBe(true)
+  })
+
+  it('🛑 C38 · and it FAILS CLOSED when we cannot tell whose programme it is', async () => {
+    dbState.programme = asRow(P({ status: 'AWAITING_FIRST_PAYMENT', client_id: 'house' }))
+    houseState.unreadable = true
+    const r = await authoriseFirstInternal('prog-1')
+    houseState.unreadable = false
+    expect(r.ok).toBe(false)
+    expect(r.reason).toContain('could not establish')
+    expect(dbState.writes, 'an unreadable state minted authority').toEqual([])
+  })
+
+  it('🛑 C38 · it is the MONEY exception and not a safety one — no gate is skipped', async () => {
+    // House still goes through the same state machine: a programme that is not
+    // AWAITING_FIRST_PAYMENT is refused for House exactly as for anybody else.
+    dbState.programme = asRow(P({ status: 'DRAFT', client_id: 'house' }))
+    expect((await authoriseFirstInternal('prog-1')).ok).toBe(false)
+  })
+
   it('🛑 it refuses when ANY P1 payment evidence exists, the intent id included', async () => {
     for (const over of [{ first_paid_at: 'x' }, { first_payment_ref: 'cs_1' }, { first_payment_intent_id: 'pi_1' }]) {
       dbState.programme = asRow(P({ status: 'AWAITING_FIRST_PAYMENT', ...over })); dbState.writes = []
@@ -276,6 +390,112 @@ describe('③ internal P2 authorises the stage and does not take the programme l
     for (const money of ['second_paid_at', 'second_payment_ref', 'second_payment_intent_id']) {
       expect(patch).not.toHaveProperty(money)
     }
+    // ⚑ 11 Sep (DAY 3 HOLD) — AND IT ARMS NOTHING ELSE EITHER. P2 is money authority; Make
+    // Live, Run, sending and the kill switch are separate acts with separate gates.
+    for (const armed of ['run_at', 'run_by', 'went_live_by', 'kill_switch', 'campaign_status']) {
+      expect(patch, `internal P2 wrote ${armed}`).not.toHaveProperty(armed)
+    }
+  })
+
+  // ═══════════════════════════════════════════════════════════════════════════════════
+  // ⚑ 11 Sep (DAY 3 HOLD) — P2 IS HOUSE-ONLY, AND IT WAS NOT CHECKED AT ALL
+  //
+  // 🛑 THE DEFECT. `authoriseFirstInternal` was corrected on 11 Sep to prove the canonical
+  // House identity before minting P1 money authority. P2 was never given the same check: it
+  // proved APPROVED, an approval timestamp and the payment XOR, and would then record internal
+  // P2 on ANY client's programme. An operator with the admin key could settle a paying client's
+  // second half with no payment, no invoice and no revenue. P1 was fixed; P2 was not.
+  // ═══════════════════════════════════════════════════════════════════════════════════
+  describe('🛑 and it is HOUSE-ONLY — the same predicate P1 uses, not a wider one', () => {
+    const approvedFor = (clientId: string) =>
+      asRow(P({ client_id: clientId, status: 'APPROVED', approved_at: 'a' }))
+
+    it('actual canonical House, with a current approval, may authorise P2', async () => {
+      dbState.programme = approvedFor('house')
+      const r = await authoriseSecondInternal('prog-1')
+      expect(r.ok).toBe(true)
+      expect(dbState.writes).toHaveLength(1)
+    })
+
+    it('🛑 an ordinary client is REFUSED, and nothing is written', async () => {
+      dbState.programme = approvedFor('real-paying-client'); dbState.writes = []
+      const r = await authoriseSecondInternal('prog-1')
+      expect(r.ok).toBe(false)
+      expect(r.reason).toContain('House-only')
+      expect(dbState.writes, 'internal P2 was minted for a paying client').toHaveLength(0)
+    })
+
+    it('🛑 demo, test and archived accounts are REFUSED — revenue-excluded is not House', async () => {
+      // These three are exactly `demoClientIds`: every one of them is excluded from the revenue
+      // roll-ups, and not one of them is House. Using the wider set would hand internal P2
+      // money authority to every demo and test client in the book.
+      for (const clientId of ['demo-client', 'test-client', 'archived-demo']) {
+        dbState.programme = approvedFor(clientId); dbState.writes = []
+        const r = await authoriseSecondInternal('prog-1')
+        expect(r.ok, `${clientId} was allowed to authorise internal P2`).toBe(false)
+        expect(dbState.writes, `${clientId} wrote something`).toHaveLength(0)
+      }
+    })
+
+    it('🛑 an UNREADABLE House identity fails closed', async () => {
+      houseState.unreadable = true
+      dbState.programme = approvedFor('house'); dbState.writes = []
+      const r = await authoriseSecondInternal('prog-1')
+      houseState.unreadable = false
+      expect(r.ok).toBe(false)
+      expect(r.reason).toContain('could not establish')
+      expect(dbState.writes).toHaveLength(0)
+    })
+
+    it('🛑 an EMPTY House set fails closed, with its own sentence', async () => {
+      // `resolveHouseUserIds` deliberately fails OPEN to an empty set for the roll-ups, so
+      // "there is no House client" and "the auth directory is unreachable" are
+      // indistinguishable from here. Neither mints authority.
+      houseState.house = []
+      dbState.programme = approvedFor('house'); dbState.writes = []
+      const r = await authoriseSecondInternal('prog-1')
+      houseState.house = ['house']
+      expect(r.ok).toBe(false)
+      expect(r.reason).toContain('could not confirm the House account')
+      expect(dbState.writes).toHaveLength(0)
+    })
+
+    it('🛑 House P1 alone is not P2, and a House recommendation alone is not P2', async () => {
+      for (const over of [
+        { status: 'SOURCING_AUTHORISED' as const, first_authorised_at: 'a', approved_at: null },
+        { status: 'RECOMMENDED' as const, approved_at: null },
+        { status: 'READY_FOR_APPROVAL' as const, approved_at: null },
+      ]) {
+        dbState.programme = asRow(P({ client_id: 'house', ...over })); dbState.writes = []
+        const r = await authoriseSecondInternal('prog-1')
+        expect(r.ok, `House at ${over.status} was allowed P2`).toBe(false)
+        expect(dbState.writes).toHaveLength(0)
+      }
+    })
+
+    it('🛑 a STALE client approval is not P2 authority, even for House', async () => {
+      driftState.value = { state: 'changed', approved: 'h1', current: 'h2', detail: 'moved' }
+      dbState.programme = approvedFor('house'); dbState.writes = []
+      const r = await authoriseSecondInternal('prog-1')
+      driftState.value = { state: 'unchanged', hash: 'h1' }
+      expect(r.ok).toBe(false)
+      expect(r.reason).toContain('changed since it was approved')
+      expect(dbState.writes, 'P2 was minted against a superseded approval').toHaveLength(0)
+    })
+
+    it('🛑 "we cannot tell whether the approval still covers it" also refuses', async () => {
+      for (const d of [
+        { state: 'unreadable', detail: 'the snapshot could not be built' },
+        { state: 'not_approved' },
+      ]) {
+        driftState.value = d
+        dbState.programme = approvedFor('house'); dbState.writes = []
+        const r = await authoriseSecondInternal('prog-1')
+        expect(r.ok, `${d.state} was allowed to authorise P2`).toBe(false)
+        expect(dbState.writes).toHaveLength(0)
+      }
+      driftState.value = { state: 'unchanged', hash: 'h1' }
+    })
   })
 
   it('🛑 it refuses when ANY P2 payment evidence exists, the intent id included', async () => {
@@ -365,7 +585,7 @@ describe('④ the Stripe writers refuse when internal authority already exists',
     // the count as the repository's usual "adding a migration is never silent" tripwire.
     expect((mig.match(/20260902_programme_internal_authority/g) ?? []).length,
       'A1 must appear exactly once — a second entry would re-migrate columns production has run').toBe(1)
-    expect((mig.match(/key:\s*'[^']+'/g) ?? []), 'a migration was added').toHaveLength(59)   // ⛓️ 58 → 59 on 10 Sep (I2): +1 20260910_inbox_verification — client_inboxes.verified_at / verify_failed_at / verify_detail. `verifyInbox` has proved mailbox logins since #552 and the ANSWER WAS THROWN AWAY into an audit row's detail, so every gate could ask whether a host, username and password were SAVED and none could ask whether they WORK. Three nullable timestamptz/text columns, NO DEFAULT and NO BACKFILL: NULL means NEVER CHECKED, which is deliberately not the same as failed and is the honest reading of every row written before today.   // ⛓️ 57 → 58 on 10 Sep (B/C): +1 20260910_programme_calculator_choice — programmes.calculator_assumptions (jsonb) and recommendation_accepted_at. The COMMITTED figures were already stored; what was missing was the client's own ILLUSTRATIVE assumptions (so "reproduce exactly what they accepted" is possible at all) and acceptance as a fact SEPARATE from paying — accepting WAS paying, because the only client control was the Stripe button, so a client who agreed and then hesitated at checkout left no record of agreeing. One jsonb rather than four columns: it is a snapshot, read back together, never queried across or aggregated.   // ⛓️ 56 → 57 on 10 Sep (A): +1 20260910_proof_completion — clients.proof_completed_at. The accept control ("These are right") was `onAccept={() => void loadCalibration()}`, a GET: no column, stage or alert anywhere recorded that a client had accepted their Proof set, so the happy path ended in silence and only resumed if an operator noticed by other means. Client-level because Proof completes BEFORE any programme exists — the calculator is what creates one. Nullable, NO DEFAULT, NO BACKFILL; first acceptance wins.   // ⛓️ 55 → 56 on 10 Sep (H): +1 20260910_programme_run_authority — programmes.run_at/run_by/went_live_by. Run was a BUTTON that sent a bounded batch, never an AUTHORITY: nothing on the row recorded it and OUTREACH authority never asked, so LIVE (which Make Live produces, campaign active and every enrolment due) plus kill-switch OFF meant the two-hourly cron would deliver for every live programme with nobody pressing Run. Nullable, NO DEFAULT, NO BACKFILL — every existing row reads NULL and therefore cannot send, which is the founder's rule applied uniformly; a backfill would grant the exact authority the column exists to require.   // ⛓️ 51 → 52 on 9 Sep: +1 20260909_programme_qualification — leads.qualified_at/_disqualified_at/_disqualify_reason/_email_status and programme_batches.inserted, plus reconcile_programme_sourcing REPOINTED from delivered_at to qualified_at. Entitlement is consumed by QUALIFICATION, not by the legacy self-serve visibility stamp — which is capped at a constant 25 per run and ~5/day and would have settled a 250-candidate batch at 25 used. All five columns NULLABLE, NO DEFAULT, NO BACKFILL; the RPC keeps its name, signature and return type and gains one refusal: it will not settle while any candidate is unjudged, which is what makes the older Vida control harmless before any app code ships.   // ⛓️ 50 → 51 on 8 Sep: +1 20260908_review_freeze_and_schedule — programmes.review_preparation_hash/_snapshot/_at (the client must review the EXACT thing they later approve; freezing only at APPROVED proved what was approved and nothing about what was READ), programmes.send_schedule (there was NO schedule anywhere in the send path — `getDay`, `getHours` and "send window" appear nowhere — so outbound was ready to leave at 03:00 on a Sunday), and figsy_enrollments.sequence_id (so "which words will this person receive" is a positive fact rather than an unverifiable copy). All nullable, NO DEFAULT, NO BACKFILL.   // ⛓️ 49 → 50 on 7 Sep (House delivery preparation): +2 — 20260907_preparation_snapshot (figsy_sequences.campaign_id, the positive programme→campaign→sequence link, plus programmes.approved_preparation_hash/_snapshot/_at). Both nullable, NO DEFAULT, NO BACKFILL: a NULL campaign_id means historical client-scoped work, and guessing one would relink a retired desk's words to current programme work — the exact leak the column exists to stop. The snapshot columns are written ONLY in the same conditional UPDATE as status = APPROVED, so nothing is stamped approved before an approval happens.   // ⛓️ 48 → 49 on 7 Sep (HOUSE-009): +1 20260907_programme_sourcing_authority — functions only, no table, no column, no row. try_reserve_programme_sourcing is new and try_spend_sourcing is REPLACED with the same signature, the same return and a byte-unchanged legacy branch. It exists because programme ENTITLEMENT and PDL MONEY were one function body, so exempting the prepaid Apollo/house path from a fabricated $0.28-a-record ledger row also exempted it from the reservation, the 2,500 ceiling and the batch.   // ⛓️ 47 → 48 on 3 Sep (PR C3 · leads.proof_pass): +1 20260903_lead_proof_attribution — one NULLABLE smallint on leads with NO DEFAULT and NO BACKFILL, plus a guarded CHECK admitting NULL, 1 and 2, and a partial index. It exists because a free-proof lead and a retired legacy delivered lead were BYTE-IDENTICAL on every column that was traced (leads.source is the PROVIDER name and the same for both; programme_id is null for both; icp_run_outcomes holds no lead ids and no proof flag; sourcing_ledger and proof_ledger are money rows with no lead ids, and a pool-only proof pass writes no proof_ledger row at all; acquisition_memory is keyed on the provider identity; icps.proof_widened_candidate exists only for a pass-2 widened fallback). The withdrawn fix used clients.proof_passes_done, which is CUMULATIVE ACCOUNT STATE: any declared programme client with old legacy leads who later ran a proof they were entitled to run got their whole history back as current work. NULL means "not known to be proof work", which is the honest reading of every existing row, and no row is written by the migration. 🚀 UNLIKE C1 THIS ONE SHIPS WITH THE CODE THAT READS IT — run it from Vida → Engine immediately after deploying this build; until it is applied the customer desk attributes NOTHING, which fails closed to an empty desk and never to a historical one.   // ⛓️ 46 → 47 on 3 Sep (PR C1 · SCHEMA FIRST): +1 20260903_client_commercial_model — one NULLABLE text column on clients, NO DEFAULT, NO BACKFILL, plus a CHECK admitting NULL / 'programme' / 'legacy'. NULL is the migrated state for the whole existing book and resolves to exactly today's behaviour, so no row is written and nobody is reclassified. Nothing in C1 reads or writes it (expand/contract).      // ⛓️ 52 → 53 on 10 Sep: +1 20260910_lead_set_aside_reason — leads.set_aside_reason, the structural gate's record of a refused Proof candidate (C04)   // ⛓️ 53 → 54 on 10 Sep: +1 20260910_proof_calibration_handoff — the C07 escalation trigger, confirmed phone, operator note and the one calibrated restart   // ⛓️ 54 → 55 on 10 Sep: +1 20260910_client_stated_outcome — clients.outcome_kind / outcome_stated, the client's own words (C03)
+    expect((mig.match(/key:\s*'[^']+'/g) ?? []), 'a migration was added').toHaveLength(64)   // ⛓️ 62 → 63 on 11 Sep: +1 20260911_lead_proof_batch_kind — leads.proof_batch_kind. The calibrated restart was briefly encoded as proof_pass = 3, which the database would have REJECTED (leads_proof_pass_check admits NULL, 1, 2) and which put ambiguous truth in the row for rendering code to repair. Automatic proof-pass identity stays 1 and 2; the restart carries pass 2 plus this kind.   // ⛓️ 61 → 62 on 11 Sep (MVP1 C39/C23): +1 20260911_proof_restart_and_refinement — the granted calibrated restart could not be SPENT (spendDoors answered proof_passes_done < 2, false at 2 for ever; try_claim_proof_pass refuses at 2 for ever), so the operator pressed a real button and the client got nothing. Granted and used are now two facts. Plus the refinement gate for Attempt 2.   // ⛓️ 60 → 61 on 11 Sep (MVP1, Preview 07): +1 20260911_onboarding_brief_drafts — the partial Brief persisted BEFORE a clients row exists. Signup creates an auth user and nothing else; the clients row is created by the CONFIRM click, so the whole Brief lived in React state in one tab: a closed tab destroyed it and Vida could not see a person who had not confirmed. NOT a second Brief model — the eleven facts stay defined once, in packages/shared/src/brief-facts.ts, and every reader counts through it. One new table, RLS on with per-user SELECT/UPDATE policies (auth.uid(), not current_client_id(), because these rows exist precisely for people with no client). Additive, no backfill, no existing row written, and no change to what "a client" means anywhere.   // ⛓️ 59 → 60 on 11 Sep (MVP1 C04/C21): +1 20260911_icp_target_category_and_type — icps.target_category / target_company_type, the client's own words for the target market and the target's organisational form. Two columns because they are two facts (founder-locked). Additive, nullable, no default, no backfill; `industries` untouched.   // ⛓️ 58 → 59 on 10 Sep (I2): +1 20260910_inbox_verification — client_inboxes.verified_at / verify_failed_at / verify_detail. `verifyInbox` has proved mailbox logins since #552 and the ANSWER WAS THROWN AWAY into an audit row's detail, so every gate could ask whether a host, username and password were SAVED and none could ask whether they WORK. Three nullable timestamptz/text columns, NO DEFAULT and NO BACKFILL: NULL means NEVER CHECKED, which is deliberately not the same as failed and is the honest reading of every row written before today.   // ⛓️ 57 → 58 on 10 Sep (B/C): +1 20260910_programme_calculator_choice — programmes.calculator_assumptions (jsonb) and recommendation_accepted_at. The COMMITTED figures were already stored; what was missing was the client's own ILLUSTRATIVE assumptions (so "reproduce exactly what they accepted" is possible at all) and acceptance as a fact SEPARATE from paying — accepting WAS paying, because the only client control was the Stripe button, so a client who agreed and then hesitated at checkout left no record of agreeing. One jsonb rather than four columns: it is a snapshot, read back together, never queried across or aggregated.   // ⛓️ 56 → 57 on 10 Sep (A): +1 20260910_proof_completion — clients.proof_completed_at. The accept control ("These are right") was `onAccept={() => void loadCalibration()}`, a GET: no column, stage or alert anywhere recorded that a client had accepted their Proof set, so the happy path ended in silence and only resumed if an operator noticed by other means. Client-level because Proof completes BEFORE any programme exists — the calculator is what creates one. Nullable, NO DEFAULT, NO BACKFILL; first acceptance wins.   // ⛓️ 55 → 56 on 10 Sep (H): +1 20260910_programme_run_authority — programmes.run_at/run_by/went_live_by. Run was a BUTTON that sent a bounded batch, never an AUTHORITY: nothing on the row recorded it and OUTREACH authority never asked, so LIVE (which Make Live produces, campaign active and every enrolment due) plus kill-switch OFF meant the two-hourly cron would deliver for every live programme with nobody pressing Run. Nullable, NO DEFAULT, NO BACKFILL — every existing row reads NULL and therefore cannot send, which is the founder's rule applied uniformly; a backfill would grant the exact authority the column exists to require.   // ⛓️ 51 → 52 on 9 Sep: +1 20260909_programme_qualification — leads.qualified_at/_disqualified_at/_disqualify_reason/_email_status and programme_batches.inserted, plus reconcile_programme_sourcing REPOINTED from delivered_at to qualified_at. Entitlement is consumed by QUALIFICATION, not by the legacy self-serve visibility stamp — which is capped at a constant 25 per run and ~5/day and would have settled a 250-candidate batch at 25 used. All five columns NULLABLE, NO DEFAULT, NO BACKFILL; the RPC keeps its name, signature and return type and gains one refusal: it will not settle while any candidate is unjudged, which is what makes the older Vida control harmless before any app code ships.   // ⛓️ 50 → 51 on 8 Sep: +1 20260908_review_freeze_and_schedule — programmes.review_preparation_hash/_snapshot/_at (the client must review the EXACT thing they later approve; freezing only at APPROVED proved what was approved and nothing about what was READ), programmes.send_schedule (there was NO schedule anywhere in the send path — `getDay`, `getHours` and "send window" appear nowhere — so outbound was ready to leave at 03:00 on a Sunday), and figsy_enrollments.sequence_id (so "which words will this person receive" is a positive fact rather than an unverifiable copy). All nullable, NO DEFAULT, NO BACKFILL.   // ⛓️ 49 → 50 on 7 Sep (House delivery preparation): +2 — 20260907_preparation_snapshot (figsy_sequences.campaign_id, the positive programme→campaign→sequence link, plus programmes.approved_preparation_hash/_snapshot/_at). Both nullable, NO DEFAULT, NO BACKFILL: a NULL campaign_id means historical client-scoped work, and guessing one would relink a retired desk's words to current programme work — the exact leak the column exists to stop. The snapshot columns are written ONLY in the same conditional UPDATE as status = APPROVED, so nothing is stamped approved before an approval happens.   // ⛓️ 48 → 49 on 7 Sep (HOUSE-009): +1 20260907_programme_sourcing_authority — functions only, no table, no column, no row. try_reserve_programme_sourcing is new and try_spend_sourcing is REPLACED with the same signature, the same return and a byte-unchanged legacy branch. It exists because programme ENTITLEMENT and PDL MONEY were one function body, so exempting the prepaid Apollo/house path from a fabricated $0.28-a-record ledger row also exempted it from the reservation, the 2,500 ceiling and the batch.   // ⛓️ 47 → 48 on 3 Sep (PR C3 · leads.proof_pass): +1 20260903_lead_proof_attribution — one NULLABLE smallint on leads with NO DEFAULT and NO BACKFILL, plus a guarded CHECK admitting NULL, 1 and 2, and a partial index. It exists because a free-proof lead and a retired legacy delivered lead were BYTE-IDENTICAL on every column that was traced (leads.source is the PROVIDER name and the same for both; programme_id is null for both; icp_run_outcomes holds no lead ids and no proof flag; sourcing_ledger and proof_ledger are money rows with no lead ids, and a pool-only proof pass writes no proof_ledger row at all; acquisition_memory is keyed on the provider identity; icps.proof_widened_candidate exists only for a pass-2 widened fallback). The withdrawn fix used clients.proof_passes_done, which is CUMULATIVE ACCOUNT STATE: any declared programme client with old legacy leads who later ran a proof they were entitled to run got their whole history back as current work. NULL means "not known to be proof work", which is the honest reading of every existing row, and no row is written by the migration. 🚀 UNLIKE C1 THIS ONE SHIPS WITH THE CODE THAT READS IT — run it from Vida → Engine immediately after deploying this build; until it is applied the customer desk attributes NOTHING, which fails closed to an empty desk and never to a historical one.   // ⛓️ 46 → 47 on 3 Sep (PR C1 · SCHEMA FIRST): +1 20260903_client_commercial_model — one NULLABLE text column on clients, NO DEFAULT, NO BACKFILL, plus a CHECK admitting NULL / 'programme' / 'legacy'. NULL is the migrated state for the whole existing book and resolves to exactly today's behaviour, so no row is written and nobody is reclassified. Nothing in C1 reads or writes it (expand/contract).      // ⛓️ 52 → 53 on 10 Sep: +1 20260910_lead_set_aside_reason — leads.set_aside_reason, the structural gate's record of a refused Proof candidate (C04)   // ⛓️ 53 → 54 on 10 Sep: +1 20260910_proof_calibration_handoff — the C07 escalation trigger, confirmed phone, operator note and the one calibrated restart   // ⛓️ 54 → 55 on 10 Sep: +1 20260910_client_stated_outcome — clients.outcome_kind / outcome_stated, the client's own words (C03)
   })
 })
 

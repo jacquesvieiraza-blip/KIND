@@ -613,3 +613,150 @@ millaRouter.post('/notetaker', async (req: AuthRequest, res) => {
     res.status(500).json({ success: false, error: 'Failed to extract action items' })
   }
 })
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// THE PRE-CONFIRMATION BRIEF — the two doors Milla uses before a client exists.
+//
+// 🛑 WHY THEY EXIST. `/auth/signup` creates an auth user and nothing else; the `clients` row
+// is created by the CONFIRM click. So the whole Brief conversation lived in React state in one
+// browser tab — a closed tab destroyed it, and Vida could not see a person who had not
+// confirmed. Preview 07 ("signed up 14 minutes ago … 10 of 11 … confirmation pending") had no
+// data behind it.
+//
+// ⚠️ AUTH, NOT CLIENT. Every other route on this router resolves a `clients` row first. These
+// two deliberately do not: the entire point is the window BEFORE one exists. `requireAuth` at
+// the top of the router is the boundary, and the draft is keyed by the authenticated user.
+//
+// ⚠️ THEY STORE AND READ. They do not decide completeness — `draftProgress` is the shared
+// eleven-fact counter, the same one the builder gate calls. There is one definition of the
+// Brief in this codebase and it is not here.
+// ═══════════════════════════════════════════════════════════════════════════════════════
+
+/**
+ * The client's own draft, with its progress through the canonical eleven.
+ *
+ * ⚠️ A USER WITH NO DRAFT IS A 200 WITH `draft: null`, NEVER A 404. "You have not started" is
+ * a normal state for a person who signed up eight seconds ago, and a 404 would have the portal
+ * render an error over an empty conversation.
+ */
+millaRouter.get('/brief-draft', async (req: AuthRequest, res) => {
+  const { briefDraftFor, draftProgress } = await import('../lib/brief-draft')
+  const { BRIEF_FACT_LABEL } = await import('@kind/shared')
+  const draft = await briefDraftFor(req.userId!)
+  const progress = draftProgress(draft)
+  // ⚠️ THE NEXT FACT IS NAMED HERE, NOT WORKED OUT IN THE BROWSER. The portal's resume line
+  // says what Milla still needs; deriving that in the portal would mean a second eleven-fact
+  // list in a second app, which is exactly how Vida came to disagree with Milla about the
+  // count. `missing` is already in the approved order, so the next one is its head.
+  const nextId = progress.missing[0] ?? null
+  res.json({
+    success: true,
+    data: {
+      draft: draft ? { facts: draft.facts, confirmed_at: draft.confirmedAt, promoted_client_id: draft.promotedClientId } : null,
+      progress,
+      next: nextId ? { id: nextId, label: BRIEF_FACT_LABEL[nextId] } : null,
+    },
+  })
+})
+
+/**
+ * Persist what Milla has learned so far.
+ *
+ * ⚠️ MERGED, NOT REPLACED — see `saveBriefDraft`. Milla learns one thing at a time and a PUT
+ * carrying only the newest answer must never erase the ten before it.
+ *
+ * ⚠️ A PROMOTED DRAFT IS REFUSED WITH 409. It is evidence: the confirmed client and ICP are
+ * the operational truth, and a late write here could leave the draft's category wording and
+ * the ICP's disagreeing with nothing to say which was right.
+ *
+ * ⚠️ AND AN UNSTORABLE WRITE ANSWERS HONESTLY (503). Silently discarding a client's answers is
+ * the defect this whole table replaces; a portal that is told the save failed can keep its own
+ * state and try again, which is strictly better than believing a lie.
+ */
+/**
+ * 🛑 THE CLIENT CONFIRMS THEIR BRIEF — the separate gate, and the door promotion waits behind.
+ *
+ * ⚠️ ELEVEN FACTS DO NOT CONFIRM ANYTHING. Holding all eleven means Milla has stopped asking.
+ * It says nothing about whether the client read what she understood and agreed to it, and
+ * Proof is sourced against this brief. So confirmation is an ACT, never an inference from a
+ * count, from silence, or from the screen having got as far as showing a button.
+ *
+ * ⚠️ THE ELEVEN ARE RE-CHECKED HERE. 400 with the missing facts NAMED, so the client is told
+ * what is outstanding rather than that something went wrong.
+ *
+ * ⚠️ IT CREATES NOTHING. No client, no ICP, no Proof — it records agreement. `/auth/onboard`
+ * is what promotes, and it now refuses a draft this route has not stamped.
+ *
+ * ⚠️ AND IT IS THE CLIENT'S OWN, NOT AN OPERATOR'S. This router carries the client's token.
+ */
+millaRouter.post('/brief-draft/confirm', async (req: AuthRequest, res) => {
+  const { confirmBriefDraft } = await import('../lib/brief-draft')
+  const { BRIEF_FACT_LABEL } = await import('@kind/shared')
+  const r = await confirmBriefDraft(req.userId!)
+  if (r.ok) { res.json({ success: true, data: { confirmed_at: r.draft.confirmedAt } }); return }
+  if (r.reason === 'incomplete') {
+    res.status(400).json({
+      success: false,
+      error: `Milla still needs ${(r.missing ?? []).map(id => BRIEF_FACT_LABEL[id as keyof typeof BRIEF_FACT_LABEL]).join(', ')} before you can confirm.`,
+      missing: r.missing ?? [],
+    })
+    return
+  }
+  if (r.reason === 'promoted') {
+    res.status(409).json({
+      success: false,
+      error: 'This brief has already been confirmed. Your programme is the live record of it now.',
+    })
+    return
+  }
+  if (r.reason === 'no_draft') {
+    res.status(404).json({ success: false, error: 'There is no brief to confirm yet.' })
+    return
+  }
+  res.status(503).json({
+    success: false, retryable: true,
+    error: 'We could not record that just yet. Nothing you told Milla is lost — please try again.',
+  })
+})
+
+millaRouter.put('/brief-draft', async (req: AuthRequest, res) => {
+  const facts = z.object({
+    contact_name:        z.string().max(120).nullish(),
+    company_name:        z.string().max(200).nullish(),
+    website:             z.string().max(300).nullish(),
+    website_none:        z.boolean().nullish(),
+    what_they_do:        z.string().max(1200).nullish(),
+    target_category:     z.string().max(200).nullish(),
+    geographies:         z.array(z.string().max(80)).max(8).nullish(),
+    target_company_type: z.string().max(120).nullish(),
+    company_sizes:       z.array(z.string().max(40)).max(6).nullish(),
+    job_titles:          z.array(z.string().max(80)).max(10).nullish(),
+    seniority_levels:    z.array(z.string().max(40)).max(6).nullish(),
+    exclusions:          z.string().max(600).nullish(),
+    desired_outcome:     z.string().max(2000).nullish(),
+    country:             z.string().max(120).nullish(),
+    phone:               z.string().max(60).nullish(),
+  }).parse(req.body ?? {})
+
+  const { saveBriefDraft, draftProgress } = await import('../lib/brief-draft')
+  const r = await saveBriefDraft(req.userId!, facts)
+  if (!r.ok) {
+    if (r.reason === 'promoted') {
+      res.status(409).json({
+        success: false,
+        error: 'This brief has already been confirmed. Your programme is the live record of it now.',
+      })
+      return
+    }
+    // ⚠️ `unverifiable` IS ALSO 503-RETRYABLE, AND IT IS THE FAIL-CLOSED PATH. We could not
+    // establish whether this brief has already been confirmed, so we refuse rather than risk
+    // writing beside a confirmed client — and rather than upserting a facts object built from
+    // a read that failed, which would erase every answer already collected.
+    res.status(503).json({
+      success: false, retryable: true,
+      error: 'We could not save that just yet. Nothing you told Milla is lost — she still has it.',
+    })
+    return
+  }
+  res.json({ success: true, data: { progress: draftProgress(r.draft) } })
+})

@@ -107,6 +107,12 @@ const toolReply = (input: unknown, over: Record<string, unknown> = {}) => ({
 /** The smallest ICP the schema accepts, using only approved enum values. */
 const VALID_ICP = {
   name: 'US IT & Tech Solutions Leaders',
+  // ⚑ MVP1 (C21/C04) — the eleven-fact gate refuses a completion short of the canonical
+  // eleven, so every fixture that expects 200 must now carry them. These two are the
+  // client's own words for the target market and the target's organisational form; they
+  // are DISTINCT facts and `industries` below stays the closed provider-edge hint.
+  target_category: 'IT and technology solution companies',
+  target_company_type: 'solution provider',
   industries: ['Logistics', 'Consulting'],
   seniority_levels: ['C-Suite', 'VP / Director'],
   company_sizes: ['51–200', '201–500'],
@@ -115,6 +121,19 @@ const VALID_ICP = {
   keywords: ['supply chain'],
   apollo_only_consented: true,
 }
+
+// ⚑ MVP1 (C21) — THE REST OF THE ELEVEN, so a fixture proving something else (a closed
+// list, a clamp, a slice) is not silently also testing the brief gate. Each test still
+// overrides whatever it is actually about.
+const BRIEF_PROFILE = {
+  company_name: 'ABCV Logistics',
+  country: 'United States',
+  contact_name: 'Jacques',
+  website: 'https://abcv.example',
+  industry: 'Logistics for IT and technology solution companies.',
+}
+const BRIEF_BUSINESS = { bad_fit: 'No recruitment agencies.' }
+const BRIEF_INTENT = 'Book meetings with senior decision-makers.'
 
 // ── THE FIRST RUN BELONGS TO MILLA, AND SHE HAS TO LOOK LIKE HERSELF (24 Aug) ────────────
 //
@@ -321,8 +340,21 @@ describe('required client data is never fabricated or defaulted', () => {
     expect(flat(icpsSrc)).toContain('It is NOT where their customers are')
   })
 
-  it('the model may not declare itself complete without the two required facts', () => {
-    expect(icpsSrc).toContain('DO NOT ANSWER "complete" UNTIL YOU HOLD BOTH THEIR COMPANY NAME AND THEIR OWN COUNTRY')
+  // ⛓️ AMENDED — MVP1 (C21). The gate used to demand TWO facts (company name, own country),
+  // which is why "complete" could mean "I have enough to open an account" while Milla still
+  // did not know who to write to. It now demands the canonical ELEVEN, and the prompt half
+  // is asserted here while `millaReplyFor` enforces the same list in code.
+  it('the model may not declare itself complete without ALL ELEVEN brief facts', () => {
+    expect(icpsSrc).toContain('YOU ARE COMPLETE ONLY WHEN YOU HOLD ALL ELEVEN OF THESE')
+    // the two account facts are still named, in their own right
+    expect(flat(icpsSrc)).toContain('Their company name')
+    expect(icpsSrc).toContain('THE COUNTRY IS WHERE THEIR OWN BUSINESS IS BASED')
+    // and the two founder-locked additions
+    expect(flat(icpsSrc)).toContain('THE KIND OF COMPANY THEY WANT TO REACH, IN THEIR OWN WORDS')
+    expect(flat(icpsSrc)).toContain('WHAT TYPE OF ORGANISATION those companies are')
+    // ⚠️ ELEVEN FACTS, NOT ELEVEN QUESTIONS — the prompt must say so, or a model told it
+    // needs eleven things marches through eleven questions and rebuilds the form.
+    expect(flat(icpsSrc)).toContain('ELEVEN FACTS, NOT ELEVEN QUESTIONS')
   })
 
   it('a missing company name or country ASKS — it never submits', () => {
@@ -554,7 +586,12 @@ describe('everything downstream of the confirmation is byte-for-byte the same jo
     // ⚑ 24 Aug — the call is UNCHANGED; only its RESULT is now captured, so the saved id
     // can start free proof. Asserted on the payload rather than the whole statement, which
     // is what actually matters here: one call, still carrying all four things.
-    expect(welcomeCode).toContain("'/icps', { ...proposed, business, proof, campaign_intent: intent }, tk)")
+    // ⛓️ MVP1 — the payload gained `from_brief_draft: true`, and the anchor moved with it
+    // rather than being loosened: the claim is still ONE call carrying all four things, plus
+    // the flag that lets the server refuse a REPLAY of this exact save (see
+    // `promotion-idempotency.test.ts`). Asserted by parts so a later addition to this
+    // payload does not read as "the ICP save was rewritten".
+    expect(welcomeCode).toContain("'/icps', { ...proposed, business, proof, campaign_intent: intent, from_brief_draft: true }, tk)")
     expect(welcomeCode.match(/api\.post<?[^(]*\(\s*'\/icps',/g) ?? []).toHaveLength(1)
   })
 
@@ -632,7 +669,10 @@ describe('free proof runs before the client is ever asked to pay', () => {
   })
 
   it('free proof is started with that id — EXACTLY ONCE, and nowhere else in the path', () => {
-    expect(welcomeCode).toContain('await api.post(`/icps/${icpId}/proof`, {}, tk)')
+    // ⛓️ MVP1 — the body is no longer empty: `from_brief_draft` tells the server this is the
+    // promotion leg, so a REPLAYED promotion is answered without claiming a pass. The count
+    // guard below is unchanged and is still the real protection.
+    expect(welcomeCode).toContain('await api.post(`/icps/${icpId}/proof`, { from_brief_draft: true }, tk)')
     // ⚠️ The count is the guard, not the presence. A second call — a retry, a fallback, a
     // catch-block re-attempt — would claim the client's SECOND pass, leaving them two down
     // having seen no leads at all. One call site, repo-wide across the first-run path.
@@ -742,7 +782,7 @@ describe('free proof runs before the client is ever asked to pay', () => {
     expect(icpsSrc).toContain("icpRouter.post('/:id/proof'")
     expect(icpsSrc).toContain("db.rpc('try_claim_proof_pass', { p_client_id: clientId })")
     expect(icpsSrc).toContain('const PROOF_PASS_LEADS = 20')
-    expect(icpsSrc).toContain('runIcpJob(req.params.id, clientId, req.userId!, PROOF_PASS_LEADS, { proofPass: claimed })')
+    expect(icpsSrc).toContain('runIcpJob(req.params.id, clientId, req.userId!, PROOF_PASS_LEADS, { proofPass: claimed, proofKind: batchKind })')
     expect(flat(icpsSrc)).toContain('We have shown you two sets of leads.')
     expect(icpsSrc).toContain('PROOF_CLIENT_RECORD_CAP = 40')
     // …and the portal did not gain its own copy of any of it.
@@ -890,7 +930,20 @@ describe('the desk shows an honest finding state and refreshes itself', () => {
     expect((welcomeCode.match(/\/proof`/g) ?? []), 'welcome journey: one claim').toHaveLength(1)
     // ⚠️ The whole reason the poll may only read. A second POST claims the client's SECOND
     // pass — two passes gone, no leads seen, and no release RPC exists to undo it.
-    expect((deskCode.match(/\/proof`/g) ?? []), 'desk: one claim, the refinement').toHaveLength(1)
+    // ⛓️ 11 Sep (C39) — 1 → 2, AND THE GUARD IS TIGHTENED RATHER THAN LOOSENED. A SECOND
+    // deliberate claim now exists on this desk: the one human-authorised calibrated restart,
+    // which a person grants after calling the client and correcting their targeting. It is
+    // not a retry, not a fallback and not an automatic attempt — the server re-checks the
+    // grant, refuses without it, and `proof_passes_done` never moves.
+    //
+    // ⚠️ SO THE COUNT ALONE WOULD BE A WEAKER CLAIM THAN BEFORE, and the cases below replace
+    // what it used to carry: each of the two POSTs is pinned to its own named handler, so a
+    // third — or either of these moved into an effect, a poll or a catch — still fails.
+    expect((deskCode.match(/\/proof`/g) ?? []), 'desk: the refinement and the calibrated restart').toHaveLength(2)
+    // 🛑 AND EACH SITS IN ITS OWN NAMED HANDLER. A claim in a render path, an effect or a
+    // catch block is the defect this whole guard exists for.
+    expect(deskCode).toMatch(/onCalibratedSet=\{async \(\) => \{[\s\S]{0,900}?\/proof`/)
+    expect(deskCode, 'a proof claim sits in a catch block').not.toMatch(/catch[\s\S]{0,300}?api\.post\(`\/icps\/\$\{[^}]+\}\/proof`/)
     // …and it sits in the confirm handler, never in an effect, a poll or a render path.
     // ⚠️ BOUNDED AT THE NEXT TOP-LEVEL MEMBER, not end-of-file and not a named landmark.
     // Two earlier cuts of this bound were too loose and I caught both by mutation, not by
@@ -1067,7 +1120,10 @@ describe('a returning client is not re-interviewed about their own account', () 
   it('and carries NO completion gate and NO account-fields instruction', () => {
     // Both first-run-only prompt fragments resolve to '' when the flag is false.
     for (const name of ['completionGate', 'profileFieldsNote']) {
-      expect(icpsSrc, name).toMatch(new RegExp(`const ${name} = profile_required[\\s\\S]{0,900}?\\n      : ''`))
+      // ⛓️ bound widened — MVP1 (C21) made `completionGate` the eleven-fact list, which is
+      // far longer than the two-fact sentence it replaced. The SUBJECT is unchanged: both
+      // first-run-only fragments must still resolve to '' for a returning client.
+      expect(icpsSrc, name).toMatch(new RegExp(`const ${name} = profile_required[\\s\\S]{0,4000}?\\n      : ''`))
     }
     // …and the tool itself offers no `profile` property at all to a returning client, so
     // there is nowhere for one to be returned even if the model tried.
@@ -1918,9 +1974,9 @@ describe('EXECUTED · a completion round-trips validated and sanitised', () => {
     anthropicBox.reply = toolReply({
       type: 'complete',
       summary: 'ABCV Logistics moves hardware for IT and tech firms.',
-      profile: { company_name: 'ABCV Logistics', country: 'United States', contact_name: 'Jacques' },
+      profile: BRIEF_PROFILE,
       icp: VALID_ICP,
-      business: { product: 'Logistics for IT and technology solution companies.' },
+      business: { ...BRIEF_BUSINESS, product: 'Logistics for IT and technology solution companies.' },
       proof: [{ claim: 'Cut delivery time for a customer', permitted: false }],
       campaign_intent: 'Book meetings with senior decision-makers.',
     })
@@ -1954,14 +2010,107 @@ describe('EXECUTED · a completion round-trips validated and sanitised', () => {
 })
 
 describe('EXECUTED · the first-run account gate is real validation, not a request', () => {
+  // ⚑ MVP1 (C21) — the brief facts are supplied so this describe still isolates what it is
+  // named for: the ACCOUNT gate. `profile` is whatever the case under test passes, merged
+  // over the complete set, so a missing company name still fails for the right reason.
   const completion = (profile: Record<string, unknown>) => toolReply({
     type: 'complete', summary: 's', profile, icp: VALID_ICP,
+    business: BRIEF_BUSINESS, campaign_intent: BRIEF_INTENT,
   })
 
   it('company + own country present -> ACCEPTED', async () => {
-    anthropicBox.reply = completion({ company_name: 'ABCV Logistics', country: 'United States' })
+    anthropicBox.reply = completion(BRIEF_PROFILE)
     const out = await callBuilderChat({ messages: [{ role: 'user', content: 'x' }], profile_required: true })
     expect(out.code).toBe(200)
+  })
+
+  // ── ⚑ MVP1 (C21) — THE ELEVEN-FACT GATE, PROVED AT THE ROUTE ────────────────────────
+  //
+  // `brief-facts.test.ts` proves the counter. These prove the ROUTE actually calls it — the
+  // lesson this repo keeps relearning is that a helper can be right and the route can call
+  // it wrong (#541, #571). Each case drops exactly ONE fact from an otherwise complete
+  // reply, because a gate that accepts "most of" eleven is the gate we already had.
+  const short = (icp: Record<string, unknown>, profile: Record<string, unknown> = {}, rest: Record<string, unknown> = {}) =>
+    toolReply({
+      type: 'complete', summary: 's',
+      profile: { ...BRIEF_PROFILE, ...profile },
+      icp: { ...VALID_ICP, ...icp },
+      business: BRIEF_BUSINESS, campaign_intent: BRIEF_INTENT, ...rest,
+    })
+  const ask11 = () => callBuilderChat({ messages: [{ role: 'user', content: 'x' }], profile_required: true })
+
+  it('🛑 the target category missing -> REFUSED', async () => {
+    anthropicBox.reply = short({ target_category: undefined })
+    expect((await ask11()).code).toBe(503)
+  })
+
+  it('🛑 the company TYPE missing -> REFUSED, even with the category present', async () => {
+    // The founder-locked distinction: "Digital marketing" gives the category and NOT the
+    // organisational form. Collapsing the two is the decision that was explicitly refused.
+    anthropicBox.reply = short({ target_company_type: undefined })
+    expect((await ask11()).code).toBe(503)
+  })
+
+  it('🛑 no geography -> REFUSED', async () => {
+    anthropicBox.reply = short({ geographies: [] })
+    expect((await ask11()).code).toBe(503)
+  })
+
+  it('🛑 no company size -> REFUSED', async () => {
+    anthropicBox.reply = short({ company_sizes: [] })
+    expect((await ask11()).code).toBe(503)
+  })
+
+  it('🛑 no roles at all -> REFUSED', async () => {
+    anthropicBox.reply = short({ job_titles: [], seniority_levels: [] })
+    expect((await ask11()).code).toBe(503)
+  })
+
+  it('roles given as SENIORITY alone are enough — that fact is answered', async () => {
+    anthropicBox.reply = short({ job_titles: [] })
+    expect((await ask11()).code).toBe(200)
+  })
+
+  it('🛑 no exclusions -> REFUSED', async () => {
+    anthropicBox.reply = short({}, {}, { business: {} })
+    expect((await ask11()).code).toBe(503)
+  })
+
+  it('🛑 no desired outcome -> REFUSED', async () => {
+    anthropicBox.reply = short({}, {}, { campaign_intent: '' })
+    expect((await ask11()).code).toBe(503)
+  })
+
+  it('🛑 no contact name -> REFUSED', async () => {
+    anthropicBox.reply = short({}, { contact_name: '' })
+    expect((await ask11()).code).toBe(503)
+  })
+
+  it('🛑 no website and no explicit none -> REFUSED', async () => {
+    anthropicBox.reply = short({}, { website: '' })
+    expect((await ask11()).code).toBe(503)
+  })
+
+  it('an explicit "we have no website" IS an answer -> ACCEPTED', async () => {
+    anthropicBox.reply = short({}, { website: '', website_none: true })
+    expect((await ask11()).code).toBe(200)
+  })
+
+  it('🛑 website_none false is not an answer -> REFUSED', async () => {
+    anthropicBox.reply = short({}, { website: '', website_none: false })
+    expect((await ask11()).code).toBe(503)
+  })
+
+  it("the client's own words survive to the draft, unrewritten", async () => {
+    anthropicBox.reply = short({ target_category: 'Digital marketing agencies', target_company_type: 'agency' })
+    const out = await ask11()
+    const d = out.payload.data as Record<string, any>
+    expect(d.icp.target_category).toBe('Digital marketing agencies')
+    expect(d.icp.target_company_type).toBe('agency')
+    // ⚠️ AND THE PROVIDER LIST IS STILL THERE, UNTOUCHED. The two facts are carried
+    // ALONGSIDE `industries`, never instead of it — that is what keeps provider
+    // normalisation at the provider edge.
+    expect(d.icp.industries).toEqual(['Logistics', 'Consulting'])
   })
 
   it('company name MISSING -> REFUSED, and not as a Milla question', async () => {
@@ -2001,8 +2150,9 @@ describe('EXECUTED · the first-run account gate is real validation, not a reque
 describe('EXECUTED · the closed lists are enforced at the trust boundary', () => {
   const withIcp = (icp: Record<string, unknown>) => toolReply({
     type: 'complete', summary: 's',
-    profile: { company_name: 'ABCV Logistics', country: 'United States' },
+    profile: BRIEF_PROFILE,
     icp: { ...VALID_ICP, ...icp },
+    business: BRIEF_BUSINESS, campaign_intent: BRIEF_INTENT,
   })
   const run = () => callBuilderChat({ messages: [{ role: 'user', content: 'x' }], profile_required: true })
 
@@ -2133,8 +2283,9 @@ describe('EXECUTED · every unusable envelope is refused, none of them speaks as
   it('more proof claims than the budget are SLICED to it, never fatal', async () => {
     anthropicBox.reply = toolReply({
       type: 'complete', summary: 's',
-      profile: { company_name: 'A', country: 'B' },
+      profile: BRIEF_PROFILE,
       icp: VALID_ICP,
+      business: BRIEF_BUSINESS, campaign_intent: BRIEF_INTENT,
       proof: Array.from({ length: 13 }, (_, i) => ({ claim: `claim ${i}`, permitted: false })),
     })
     const out = await run()
@@ -2285,9 +2436,10 @@ describe('EXECUTED · the ordinary turn, and every failure class, through the re
   it('11 · business prose a paragraph over budget is clamped, and the turn survives', async () => {
     anthropicBox.reply = toolReply({
       type: 'complete', summary: 's',
-      profile: { company_name: 'ABCV Logistics', country: 'United States' },
+      profile: BRIEF_PROFILE,
       icp: VALID_ICP,
-      business: { product: 'p'.repeat(1300), pitch: 'fine' },
+      campaign_intent: BRIEF_INTENT,
+      business: { ...BRIEF_BUSINESS, product: 'p'.repeat(1300), pitch: 'fine' },
     })
     const out = await callBuilderChat({ messages: [{ role: 'user', content: 'x' }], profile_required: true })
     expect(out.code).toBe(200)
@@ -2393,8 +2545,9 @@ describe('an all-invalid closed list can NEVER silently broaden the targeting', 
   beforeEach(() => { anthropicBox.calls = 0; anthropicBox.error = null; anthropicBox.reply = null })
   const withIcp2 = (icp: Record<string, unknown>) => toolReply({
     type: 'complete', summary: 's',
-    profile: { company_name: 'ABCV Logistics', country: 'United States' },
+    profile: BRIEF_PROFILE,
     icp: { ...VALID_ICP, ...icp },
+    business: BRIEF_BUSINESS, campaign_intent: BRIEF_INTENT,
   })
   const run2 = () => callBuilderChat({ messages: [{ role: 'user', content: 'x' }], profile_required: true })
 
@@ -2526,8 +2679,9 @@ describe('EXECUTED · discriminated validation — questions survive junk target
     ]) {
       anthropicBox.reply = toolReply({
         type: 'complete', summary: 's',
-        profile: { company_name: 'ABCV Logistics', country: 'United States' },
+        profile: BRIEF_PROFILE,
         icp: { ...VALID_ICP, ...icp },
+        business: BRIEF_BUSINESS, campaign_intent: BRIEF_INTENT,
       })
       const out = await ask()
       expect(out.code, JSON.stringify(icp)).toBe(503)
@@ -2537,8 +2691,9 @@ describe('EXECUTED · discriminated validation — questions survive junk target
   it('I · complete + mixed → 200 with the canonical valid value only', async () => {
     anthropicBox.reply = toolReply({
       type: 'complete', summary: 's',
-      profile: { company_name: 'ABCV Logistics', country: 'United States' },
+      profile: BRIEF_PROFILE,
       icp: { ...VALID_ICP, industries: ['IT Solutions', 'fintech'] },
+      business: BRIEF_BUSINESS, campaign_intent: BRIEF_INTENT,
     })
     const out = await ask()
     expect(out.code).toBe(200)
@@ -2556,5 +2711,144 @@ describe('EXECUTED · discriminated validation — questions survive junk target
   it('an unknown reply type still falls to the strict schema and fails closed', async () => {
     anthropicBox.reply = toolReply({ type: 'banana', content: 'hi' })
     expect((await ask()).code).toBe(503)
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// ⑨ MVP1 — THE BRIEF SURVIVES A CLOSED TAB (incremental persistence)
+//
+// 🛑 THE DEFECT. The whole Brief conversation lived in React state until the confirm click.
+// Close the tab at question nine and everything Milla had established was gone — and Vida
+// could not see a person who had not confirmed, because no record of them existed anywhere.
+//
+// ⚠️ PERSISTED BY THE SERVER, ON EVERY TURN, NOT BY THE BROWSER. Saving from the portal would
+// mean a Brief survives only if the browser remembers to save it, which is the same defect
+// wearing a seatbelt. Every reply that reaches the route records what has been established.
+//
+// ⚠️ AND IT IS NOT THE ICP. `MillaQuestionReply` stays a strict shape so a QUESTION can never
+// smuggle targeting into the product; `brief_so_far` feeds the DRAFT only. Nothing is created,
+// nothing is spent, and the targeting the client pays for is still built solely from a
+// `complete` reply.
+// ═══════════════════════════════════════════════════════════════════════════════════════
+
+describe('⑨ the partial brief is persisted on every turn', () => {
+  const saved: Record<string, unknown>[] = []
+
+  beforeEach(() => {
+    saved.length = 0
+    anthropicBox.calls = 0
+    anthropicBox.error = null
+    anthropicBox.reply = null
+  })
+
+  const ask = () => callBuilderChat({
+    messages: [{ role: 'user', content: 'we are Redmayne & Co.' }],
+    profile_required: true,
+  })
+
+  it('🛑 a QUESTION turn persists what has been established so far', async () => {
+    anthropicBox.reply = toolReply({
+      type: 'question',
+      content: 'And which countries are those agencies in?',
+      brief_so_far: { company_name: 'Redmayne & Co.', target_category: 'Digital marketing agencies' },
+    })
+    const out = await ask()
+    expect(out.code).toBe(200)
+    expect((out.payload.data as Record<string, unknown>).type).toBe('question')
+  })
+
+  it('a question still carries NO icp and NO profile — the guard is untouched', async () => {
+    anthropicBox.reply = toolReply({
+      type: 'question', content: 'Which countries?',
+      brief_so_far: { company_name: 'Redmayne & Co.' },
+      // a model trying to smuggle targeting into a question turn
+      icp: VALID_ICP, profile: BRIEF_PROFILE,
+    })
+    const out = await ask()
+    const d = out.payload.data as Record<string, unknown>
+    expect(out.code).toBe(200)
+    expect(d.icp, 'a question must never produce targeting').toBeUndefined()
+    expect(d.profile, 'a question must never open an account').toBeUndefined()
+  })
+
+  it('a turn with no brief_so_far is still a perfectly good turn', async () => {
+    anthropicBox.reply = toolReply({ type: 'question', content: 'What is the company called?' })
+    expect((await ask()).code).toBe(200)
+  })
+
+  it("the client's own words are carried, not a tidied version", async () => {
+    // The schema clamps length and refuses wrong types; it does not rewrite, map to a closed
+    // list, or canonicalise. That is the whole reason the draft can hold their phrase.
+    expect(icpsSrc).toContain('target_category:     clampedStr(200)')
+    expect(icpsSrc).toContain('target_company_type: clampedStr(120)')
+  })
+
+  it('🛑 the route persists on EVERY turn, and merges rather than replacing', () => {
+    expect(icpsSrc).toContain('if (parsed.brief_so_far && req.userId)')
+    expect(icpsSrc).toContain("await import('../lib/brief-draft')")
+    expect(flat(icpsSrc)).toContain('MERGED, NEVER REPLACING')
+    // …and the persistence happens BEFORE the completion branch, so a question turn — which
+    // returns early — is covered too.
+    expect(icpsSrc.indexOf('if (parsed.brief_so_far && req.userId)'))
+      .toBeLessThan(icpsSrc.indexOf("if (parsed.type === 'complete' && parsed.icp)"))
+  })
+
+  it('the prompt asks for it on every turn, and forbids guessing', () => {
+    expect(flat(icpsSrc)).toContain('FILL "brief_so_far" ON EVERY SINGLE TURN, including questions')
+    expect(flat(icpsSrc)).toContain('if they have not said it, it does not go in')
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// ⚑ MVP1 — 14 · PROOF STARTS ONLY AFTER PROMOTION SUCCEEDS, AND THE ORDER IS THE GUARANTEE.
+//
+// 🛑 THE REQUIRED SEQUENCE: eleven facts → explicit confirmation → client and ICP promoted →
+// authority transition complete → Proof. Never Proof first with promotion failing after it.
+//
+// ⚠️ THIS IS A SOURCE ORDER ASSERTION AND IT IS THE RIGHT SHAPE FOR THIS SCREEN. The three
+// calls are sequential `await`s inside one `try`, so a failure at any of them throws past the
+// ones below it — the ordering IS the control flow, and the only way to break it is to move
+// or un-await a call, which is exactly what these lines catch.
+// ═══════════════════════════════════════════════════════════════════════════════════════
+describe('⑯ MVP1 — the promotion sequence, in order, on the real screen', () => {
+  const at = (needle: string) => welcomeSrc.indexOf(needle)
+
+  it('🛑 confirmation comes FIRST — before anything is created', () => {
+    const confirmAt = at("'/milla/brief-draft/confirm'")
+    const onboardAt = at("'/auth/onboard'")
+    expect(confirmAt, 'the confirmation call is gone').toBeGreaterThan(-1)
+    expect(onboardAt).toBeGreaterThan(-1)
+    expect(confirmAt, 'the account is opened before the client has confirmed').toBeLessThan(onboardAt)
+  })
+
+  it('🛑 the ICP is saved AFTER the account exists', () => {
+    expect(at("'/auth/onboard'")).toBeLessThan(at("'/icps', {"))
+  })
+
+  it('🛑 14 · Proof starts LAST, after both', () => {
+    expect(at("'/icps', {")).toBeLessThan(at('/proof`'))
+  })
+
+  it('🛑 every leg is AWAITED — an un-awaited promotion cannot be waited on', () => {
+    expect(welcomeSrc).toContain("await api.post('/milla/brief-draft/confirm'")
+    expect(welcomeSrc).toContain("await api.post('/auth/onboard'")
+    expect(welcomeSrc).toMatch(/await api\.post<[^>]*>\(\s*'\/icps',/)
+    expect(welcomeSrc).toContain('await api.post(`/icps/${icpId}/proof`')
+  })
+
+  it('🛑 the promotion legs NAME the act, so a replay can be refused server-side', () => {
+    // `from_brief_draft` is what lets the ICP save and the proof start tell "this is the
+    // promotion of my brief" from "I am revising my targeting" / "this is my second pass".
+    expect(welcomeSrc).toContain('from_brief_draft: true')
+    expect((welcomeSrc.match(/from_brief_draft: true/g) ?? []).length,
+      'both promotion legs must name the act').toBeGreaterThanOrEqual(2)
+  })
+
+  it('🛑 a failed confirmation stops the journey — it does not fall through to onboarding', () => {
+    const block = welcomeSrc.slice(at("'/milla/brief-draft/confirm'"), at("'/auth/onboard'"))
+    expect(block).toContain('setSaving(false)')
+    expect(block).toContain('return')
+    // ⚠️ BRANCHED ON THE STATUS, NEVER ON THE SENTENCE (the C01 lesson).
+    expect(block).toContain('status')
   })
 })

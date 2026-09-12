@@ -49,15 +49,32 @@ import { bandIndex } from './lead-feedback'
 /** One criterion's answer. `unknown` means the DATA is absent — never "we could not decide". */
 export type HardVerdict = 'yes' | 'no' | 'unknown'
 
-/** The four hard criteria, founder-locked 10 Sep. Nothing else is structural. */
+/**
+ * The hard criteria. Nothing else is structural.
+ *
+ * ⛓️ SIX SINCE MVP1, WAS FOUR (founder-locked 11 Sep). `category` and `company_type` are two
+ * INDEPENDENT required dimensions once a Brief is confirmed — they are not one fact wearing
+ * two names. A client who said "digital marketing" has stated the category and NOT the
+ * organisational form, and a prospect can satisfy one while contradicting the other.
+ *
+ * ⚠️ `industry` IS NOT RETIRED AND IS NOT THE SAME THING. It reads `icps.industries`, the
+ * closed sixteen-value PROVIDER list, and it keeps working for every legacy ICP that has
+ * nothing else. `category` reads `icps.target_category` — the client's own words — and that
+ * column is the only authority on client intent. A provider tag may be EVIDENCE toward a
+ * requirement; it may never BE the requirement.
+ */
 export type HardFit = {
   geography: HardVerdict
   size: HardVerdict
   industry: HardVerdict
+  category: HardVerdict
+  company_type: HardVerdict
   seniority: HardVerdict
 }
 
-export const HARD_CRITERIA = ['geography', 'size', 'industry', 'seniority'] as const
+export const HARD_CRITERIA = [
+  'geography', 'size', 'industry', 'category', 'company_type', 'seniority',
+] as const
 export type HardCriterion = typeof HARD_CRITERIA[number]
 
 /** The candidate fields this judgement reads. Every one is an existing `leads` column. */
@@ -67,13 +84,30 @@ export interface FitCandidate {
   industry?: string | null
   job_title?: string | null
   seniority?: string | null
+  /**
+   * ⚑ MVP1 — EVIDENCE FOR CATEGORY AND COMPANY TYPE. `leads.company` is the company NAME,
+   * which is where an organisational form most often actually appears ("Fathom Digital
+   * Agency", "Northgate Consultancy"). Thin evidence is the normal case, and thin evidence
+   * correctly produces `unknown` rather than a guess.
+   */
+  company?: string | null
+  /** Any longer description a provider returned. Optional; usually absent. */
+  company_description?: string | null
 }
 
 /** The ICP fields this judgement reads. Every one is an existing `icps` column. */
 export interface FitIcp {
   geographies?: string[] | null
   company_sizes?: string[] | null
+  /** The CLOSED sixteen-value provider list. Evidence and query hint — never client intent. */
   industries?: string[] | null
+  /**
+   * ⚑ MVP1 — THE CLIENT'S OWN WORDS for the kind of company to target. Authoritative.
+   * NULL means "not collected" for a legacy row and is never fabricated.
+   */
+  target_category?: string | null
+  /** ⚑ MVP1 — the organisational form of the target company, from client evidence only. */
+  target_company_type?: string | null
   job_titles?: string[] | null
   seniority_levels?: string[] | null
 }
@@ -162,6 +196,134 @@ function industryVerdict(icp: FitIcp, c: FitCandidate): HardVerdict {
   }) ? 'yes' : 'no'
 }
 
+// ── ⚑ MVP1 — CATEGORY AND COMPANY TYPE (founder-locked 11 Sep) ─────────────────────────
+//
+// 🛑 THREE ANSWERS, AND THE MIDDLE ONE IS THE POINT.
+//   PASS    — the evidence SUPPORTS the requirement
+//   FAIL    — the evidence CONTRADICTS it
+//   UNKNOWN — the evidence is missing, ambiguous, or insufficient to establish compatibility
+//
+// The old `industryVerdict` has only two outcomes: every significant word present, or `no`.
+// That is right for a closed provider tag and WRONG for a client's sentence — it would call
+// "Marketing & Advertising" a REFUSAL of "Digital marketing agencies", when the honest answer
+// is that it neither establishes nor contradicts it. A refusal we cannot justify throws away
+// real prospects; a pass we cannot justify is the live-canary card. So: neither.
+//
+// ⚠️ ORGANISATIONAL WORDS BELONG TO `company_type`, NOT TO `category`. "Digital marketing
+// agencies" carries a category ("digital marketing") and a form ("agency") in one phrase, and
+// the founder locked those as two facts. Requiring the word "agencies" to appear in the row's
+// INDUSTRY tag to satisfy the CATEGORY would fail every correct company whose provider tag is
+// simply "Marketing & Advertising" — and would do it twice, once per dimension.
+
+/**
+ * Words that name an organisational FORM rather than a market. Used two ways: stripped out of
+ * a category requirement, and searched for as company-type evidence.
+ *
+ * ⚠️ THIS IS OUR COMPARISON VOCABULARY, NOT A REDEFINITION OF CLIENT INTENT. It never
+ * overwrites `target_category` or `target_company_type`; it only helps decide whether a row's
+ * evidence satisfies what the client stored. Each entry maps a canonical form to the words
+ * that evidence it.
+ */
+const ORG_FORMS: Record<string, string[]> = {
+  agency:          ['agency', 'agencies'],
+  consultancy:     ['consultancy', 'consultancies', 'consulting', 'consultants', 'consultant'],
+  clinic:          ['clinic', 'clinics', 'practice', 'practices'],
+  recruiter:       ['recruitment', 'recruiter', 'recruiters', 'staffing', 'headhunter'],
+  saas:            ['saas', 'software', 'platform'],
+  law_firm:        ['law', 'solicitors', 'attorneys', 'legal'],
+  accountancy:     ['accountancy', 'accountants', 'accounting'],
+  manufacturer:    ['manufacturer', 'manufacturing', 'factory'],
+  studio:          ['studio', 'studios'],
+  contractor:      ['contractor', 'contractors', 'builders', 'construction'],
+}
+
+/** Which canonical form does this word evidence, if any? */
+function formOf(word: string): string | null {
+  for (const [form, words] of Object.entries(ORG_FORMS)) if (words.includes(word)) return form
+  return null
+}
+
+/** Every organisational form the candidate's evidence actually names. */
+function formsEvidenced(words: Set<string>): Set<string> {
+  const out = new Set<string>()
+  for (const w of words) { const f = formOf(w); if (f) out.add(f) }
+  return out
+}
+
+/**
+ * Everything we know about the company, as words. Deliberately several fields: the
+ * organisational form appears in the NAME far more often than in a provider tag.
+ */
+function evidenceWords(c: FitCandidate): Set<string> {
+  return new Set([
+    ...tokens(clean(c.industry)),
+    ...tokens(clean(c.company)),
+    ...tokens(clean(c.company_description)),
+  ])
+}
+
+/**
+ * TARGET COMPANY CATEGORY — the client's own words, matched semantically.
+ *
+ * ⚠️ TOLERANT, NEVER EXACT. "Digital marketing agencies" is satisfied by evidence carrying
+ * "digital" and "marketing" in any field, any order, any capitalisation, with or without the
+ * organisational word.
+ *
+ * ⚠️ AND THE THREE OUTCOMES ARE DECIDED BY OVERLAP, NOT BY A THRESHOLD NOBODY CAN EXPLAIN:
+ *   · every core word present  → the evidence supports it            → yes
+ *   · some core words present  → adjacent; establishes nothing       → unknown
+ *   · no core word present, with evidence → a different kind of company → no
+ *   · no evidence at all       → nothing to judge                    → unknown
+ */
+function categoryVerdict(icp: FitIcp, c: FitCandidate): HardVerdict {
+  const requirement = clean(icp.target_category)
+  // An unstated requirement is not a test. A legacy ICP carries NULL here — "not collected" —
+  // and making that `unknown` would empty every legacy client's Proof set.
+  if (!requirement) return 'yes'
+
+  // Core = the market words. The organisational word is `company_type`'s business.
+  const core = tokens(requirement).filter(w => formOf(w) === null)
+  if (core.length === 0) return 'unknown'   // the client said only a form, e.g. "agencies"
+
+  const words = evidenceWords(c)
+  if (words.size === 0) return 'unknown'
+
+  const hits = core.filter(w => words.has(w)).length
+  if (hits === core.length) return 'yes'
+  if (hits > 0) return 'unknown'
+  return 'no'
+}
+
+/**
+ * TARGET COMPANY TYPE — the organisational form, and only from evidence that names one.
+ *
+ * 🛑 NEVER INFERRED FROM A BROAD PROVIDER CATEGORY. "Marketing & Advertising" says nothing
+ * about whether this is an agency, an in-house team or a software vendor, and answering `yes`
+ * there is precisely the false confidence the founder refused.
+ *
+ * ⚠️ A FAIL REQUIRES A CONTRADICTION, not an absence. Evidence naming a DIFFERENT form —
+ * "consultancy" where an agency was asked for — contradicts. Evidence naming no form at all
+ * is `unknown`, however rich it is in other respects.
+ */
+function companyTypeVerdict(icp: FitIcp, c: FitCandidate): HardVerdict {
+  const requirement = clean(icp.target_company_type)
+  if (!requirement) return 'yes'
+
+  // The client's word, resolved to a canonical form. An unrecognised form is still usable:
+  // it compares as itself, so "brokerage" matches evidence saying "brokerage".
+  const wantWords = tokens(requirement)
+  const wantForms = new Set(wantWords.map(w => formOf(w) ?? w))
+  if (wantForms.size === 0) return 'unknown'
+
+  const words = evidenceWords(c)
+  if (words.size === 0) return 'unknown'
+
+  const haveForms = new Set([...formsEvidenced(words), ...[...words].filter(w => wantForms.has(w))])
+  if (haveForms.size === 0) return 'unknown'   // evidence, but none of it names a form
+  for (const f of haveForms) if (wantForms.has(f)) return 'yes'
+  return 'no'                                   // it named a form, and it was a different one
+}
+
 /**
  * SENIORITY / TITLE FAMILY — satisfied by EITHER the seniority band or the job title, because
  * the ICP carries both and providers populate one or the other inconsistently.
@@ -197,6 +359,8 @@ export function hardFit(candidate: FitCandidate, icp: FitIcp): HardFit {
     geography: geographyVerdict(icp, candidate),
     size: sizeVerdict(icp, candidate),
     industry: industryVerdict(icp, candidate),
+    category: categoryVerdict(icp, candidate),
+    company_type: companyTypeVerdict(icp, candidate),
     seniority: seniorityVerdict(icp, candidate),
   }
 }
@@ -211,9 +375,59 @@ export function unknownCriteria(f: HardFit): HardCriterion[] {
   return HARD_CRITERIA.filter(k => f[k] === 'unknown')
 }
 
-/** 🛑 A single `no` is a refusal. Nothing else refuses, and nothing overrides this. */
+/**
+ * THE OVERALL STRUCTURAL ANSWER — three states, founder-locked 11 Sep.
+ *
+ *   any required FAIL              → not_fit
+ *   no FAIL, one or more UNKNOWN   → unknown
+ *   all required dimensions PASS   → pass
+ */
+export type StructuralVerdict = 'pass' | 'unknown' | 'not_fit'
+
+export function structuralVerdict(f: HardFit): StructuralVerdict {
+  if (firstHardFailure(f) !== null) return 'not_fit'
+  return unknownCriteria(f).length > 0 ? 'unknown' : 'pass'
+}
+
+/**
+ * 🛑 IS THIS AN ELIGIBLE PROOF MATCH?
+ *
+ * ⛓️ TIGHTENED 11 Sep, AND THE CHANGE IS THE WHOLE POINT. This used to mean "nothing said
+ * no", so an UNKNOWN candidate counted as eligible and was merely never starred. The founder
+ * locked the opposite: **UNKNOWN MUST NEVER BE PROMOTED TO PASS MERELY TO FILL A PROOF SET.**
+ * A prospect we cannot confirm is not a match we found; it is a match we hope for, and the
+ * pressure to show twenty cards is exactly the pressure that turns one into the other.
+ *
+ * ⚠️ NOT COUNTED IS NOT NOT SHOWN. An unknown candidate is still surfaced, as a set-aside
+ * prospect with its reason printed — Preview 02 and Preview 08 both show that state
+ * explicitly ("4 eligible matches + 1 prospect set aside"). What it may never do is be
+ * counted as one of the eligible matches the client was promised.
+ */
 export function structurallyEligible(f: HardFit): boolean {
-  return firstHardFailure(f) === null
+  return structuralVerdict(f) === 'pass'
+}
+
+/**
+ * MAY THIS CANDIDATE BE SURFACED AT ALL? — a different question, and it needs its own name.
+ *
+ * 🛑 THE LESSON THIS FILE KEEPS TEACHING. Three separate concerns were reading one function:
+ * "may it be counted as a match", "which band does it display in", and "is this owned row
+ * worth reusing". Tightening the first silently changed the other two — it collapsed
+ * "Worth a look" into "Not a fit", and it stopped the pool reusing rows with a blank
+ * industry. Both were regressions dressed as a rule change.
+ *
+ * ⚠️ ADMISSIBLE MEANS NOTHING REFUSES IT. An unknown is admissible: it is shown, banded
+ * "Worth a look", capped at 74, never starred and never counted. Only a genuine `no` is
+ * inadmissible.
+ *
+ * ⚠️ AND FOR THE OWNED POOL THIS IS THE RIGHT QUESTION, not eligibility. Refusing to reuse a
+ * free row we already hold — because its industry column is blank — would spend provider
+ * money to replace a candidate that would have been surfaced anyway, as a set-aside, for
+ * nothing. The measured production failure behind that gate (85 rows with a NULL country,
+ * a geo-targeted pass serving zero) is about REFUSAL, and it stays exactly as it was.
+ */
+export function structurallyAdmissible(f: HardFit): boolean {
+  return structuralVerdict(f) !== 'not_fit'
 }
 
 /** Founder-plain, client-safe. Named criterion, no provider or column vocabulary. */
@@ -221,7 +435,25 @@ const FAILURE_COPY: Record<HardCriterion, string> = {
   geography: 'outside the countries you asked for',
   size: 'outside the company size you asked for',
   industry: 'not the kind of company you asked for',
+  category: 'not the kind of company you asked for',
+  company_type: 'not the type of organisation you asked for',
   seniority: 'not the seniority you asked for',
+}
+
+/**
+ * Why a candidate could not be CONFIRMED — distinct from why one was refused.
+ *
+ * ⚠️ "WE COULD NOT CONFIRM" IS NOT "THIS IS WRONG", and saying the second when you mean the
+ * first is a claim about a real company that we cannot support. Preview 02 shows both
+ * sentences on the same screen for exactly that reason.
+ */
+const UNKNOWN_COPY: Record<HardCriterion, string> = {
+  geography: 'their country could not be confirmed',
+  size: 'their headcount could not be confirmed',
+  industry: 'their industry could not be confirmed',
+  category: 'the kind of company could not be confirmed',
+  company_type: 'the type of organisation could not be confirmed',
+  seniority: 'their seniority could not be confirmed',
 }
 
 /**
@@ -233,7 +465,11 @@ const FAILURE_COPY: Record<HardCriterion, string> = {
  */
 export function setAsideReason(f: HardFit): string | null {
   const failed = firstHardFailure(f)
-  return failed ? `${failed}: ${FAILURE_COPY[failed]}` : null
+  if (failed) return `${failed}: ${FAILURE_COPY[failed]}`
+  // ⛓️ 11 Sep — AN UNKNOWN IS NOW SET ASIDE TOO, so it needs its own sentence. Reusing the
+  // refusal copy would tell a client we had judged a company we had merely failed to read.
+  const unknown = unknownCriteria(f)[0]
+  return unknown ? `${unknown}: ${UNKNOWN_COPY[unknown]}` : null
 }
 
 // ── THE BANDS ──────────────────────────────────────────────────────────────────────────
@@ -266,7 +502,14 @@ export const NOT_A_FIT_SCORE_CAP = 30
  *              judged, and #358's rule — never fabricate a score — applies to its label too.
  */
 export function fitBand(f: HardFit, score: number | null | undefined): FitBand {
-  if (!structurallyEligible(f)) return 'not_a_fit'
+  // ⛓️ 11 Sep — READS THE VERDICT, NOT `structurallyEligible`, AND THAT DISTINCTION IS THE
+  // WHOLE FIX. Those two questions used to share one function, so tightening eligibility to
+  // exclude UNKNOWN also collapsed "Worth a look" into "Not a fit" — deleting the middle band
+  // the founder locked on 10 Sep and that Preview 02 renders. They are different questions:
+  //   · `structuralVerdict` — what do we KNOW about this company?  (three answers)
+  //   · `structurallyEligible` — may it be COUNTED as a match?     (pass only)
+  // An unknown company is banded "Worth a look", shown, never starred, and never counted.
+  if (structuralVerdict(f) === 'not_fit') return 'not_a_fit'
   if (unknownCriteria(f).length > 0) return 'worth_a_look'
   if (typeof score !== 'number' || !Number.isFinite(score)) return 'worth_a_look'
   return score >= START_HERE_MIN_SCORE ? 'start_here' : 'worth_a_look'
@@ -283,7 +526,10 @@ export function fitBand(f: HardFit, score: number | null | undefined): FitBand {
 export function displayScore(f: HardFit, score: number | null | undefined): number | null {
   if (typeof score !== 'number' || !Number.isFinite(score)) return null
   const s = Math.max(0, Math.min(100, Math.round(score)))
-  if (!structurallyEligible(f)) return Math.min(s, NOT_A_FIT_SCORE_CAP)
+  // ⛓️ 11 Sep — same correction as `fitBand`. A refusal is capped at 30; an UNKNOWN is
+  // capped at 74 and keeps its band, because "we could not confirm this" is not "this is
+  // wrong" and the client's screen must not say the second when we mean the first.
+  if (structuralVerdict(f) === 'not_fit') return Math.min(s, NOT_A_FIT_SCORE_CAP)
   if (unknownCriteria(f).length > 0) return Math.min(s, UNKNOWN_SCORE_CAP)
   return s
 }

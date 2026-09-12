@@ -116,11 +116,62 @@ authRouter.post('/onboard', async (req, res) => {
       }
     }
 
+    // ── ⚑ MVP1 — PROMOTION IS GATED ON THE ELEVEN, SERVER-SIDE ────────────────────────
+    //
+    // 🛑 A DISABLED BUTTON IS NOT A GATE. This handler is what turns a draft Brief into a
+    // client, an ICP and a Proof run, and it must refuse a brief that is short of the facts
+    // Proof will be sourced against. The portal checks too; this is the check that counts.
+    //
+    // ⚠️ IT REFUSES BEFORE ANYTHING IS CREATED. Ordering is the whole safety: a partial state
+    // where the client row exists, promotion is stamped and the brief was never complete is
+    // worse than a clean refusal, because the draft is then sealed and the person has no
+    // editable Brief and no working account.
+    //
+    // ⚠️ ONLY WHEN A DRAFT EXISTS. A legacy client re-onboarding, an operator-created account
+    // and every path that predates the draft table have no draft at all — `briefDraftFor`
+    // answers null and this gate stands aside. It never invents a requirement for a journey
+    // that did not go through Milla.
+    const { briefDraftFor, mayConfirmBrief, markBriefDraftPromoted } = await import('../lib/brief-draft')
+    const { BRIEF_FACT_LABEL } = await import('@kind/shared')
+    const draft = await briefDraftFor(user.id)
+    if (draft && !draft.promotedClientId) {
+      const gate = mayConfirmBrief(draft)
+      if (!gate.ok) {
+        res.status(400).json({
+          success: false,
+          error: `Milla still needs ${gate.missing.map(id => BRIEF_FACT_LABEL[id as keyof typeof BRIEF_FACT_LABEL]).join(', ')} before this brief can be confirmed.`,
+          missing: gate.missing,
+        })
+        return
+      }
+      // ── 🛑 ⚑ MVP1 — AND ELEVEN FACTS ARE STILL NOT PERMISSION TO PROMOTE ──────────────
+      //
+      // ⚠️ CONFIRMATION IS A SEPARATE GATE AND IT IS THE CLIENT'S. Holding all eleven means
+      // Milla has stopped asking; it says nothing about whether the client read what she
+      // understood and agreed to it. Proof is sourced against this brief and the $299 is
+      // asked for on the strength of it, so agreement has to be an ACT — never inferred from
+      // a count, from silence, or from a screen having got as far as showing a button.
+      //
+      // ⚠️ AND IT IS NEVER INFERRED FROM THIS CALL EITHER. A browser reaching `/auth/onboard`
+      // is not evidence of consent; `POST /milla/brief-draft/confirm` is where the client
+      // gives it, and changing the brief afterwards clears it (see `saveBriefDraft`).
+      if (!draft.confirmedAt) {
+        res.status(400).json({
+          success: false,
+          error: 'This brief has not been confirmed yet. Confirm it with Milla and we will open your account.',
+          needs_confirmation: true,
+        })
+        return
+      }
+    }
+
     const now = new Date().toISOString()
 
     // Check if client already exists (and whether signup consent is already on record).
+    // ⚑ MVP1 (C27) — `contact_email` is read here so the writer below can fill it ONLY when
+    // it is empty. See that block for why it is never overwritten.
     const { data: existing } = await db.from('clients')
-      .select('id, signup_terms_accepted_at').eq('user_id', user.id).maybeSingle()
+      .select('id, signup_terms_accepted_at, contact_email').eq('user_id', user.id).maybeSingle()
 
     // P4 — self-referral loophole: a client can never be their own referrer. Ignore
     // the ref when it resolves to the caller's own client row.
@@ -196,6 +247,57 @@ authRouter.post('/onboard', async (req, res) => {
       if (nameErr) console.warn('[onboard] contact_name not stored (run 20260726_client_contact_name):', nameErr.message)
     }
 
+    // ── ⚑ MVP1 — THE DRAFT IS SEALED, AND ONLY NOW ───────────────────────────────────
+    //
+    // ⚠️ AFTER THE CLIENT ROW EXISTS, NEVER BEFORE. If promotion were stamped first and the
+    // insert then failed, the draft would be closed to further writes and the person left
+    // with no client and no editable Brief — every answer they gave stranded behind a door
+    // that will not open again.
+    //
+    // ⚠️ BEST-EFFORT, DELIBERATELY. By this line the client exists; failing the whole
+    // onboarding because the evidence row could not be stamped would throw away a successful
+    // promotion over bookkeeping. It is logged loudly inside `markBriefDraftPromoted`.
+    if (draft && !draft.promotedClientId) await markBriefDraftPromoted(user.id, clientId)
+
+    // ── ⚑ MVP1 (C27) — THE ADDRESS CHECKOUT REFUSES TO WORK WITHOUT ───────────────────
+    //
+    // 🛑 `clients.contact_email` HAD NO WRITER ANYWHERE IN THE REPO. The column has existed
+    // since 20260710 and TWO money routes fail closed on it before they will mint a Stripe
+    // session — `routes/programme.ts:49` and `routes/my-programme.ts:247` — because Stripe
+    // accepts a session with no `customer_email` and the client would simply never get a
+    // receipt. Both were right to refuse. Nothing ever filled the column, so Payment 1 was
+    // unreachable for every client who has ever signed up, and with it every stage after it.
+    //
+    // ⚠️ THIS IS NOT A NEW FACT TO COLLECT. It is the address they authenticated with,
+    // already in hand at the top of this handler, and it is the correct address to receipt
+    // to — a client cannot receive mail at an account they cannot sign in to.
+    //
+    // ⚠️ FILL WHEN EMPTY, NEVER OVERWRITE. The login address is the DEFAULT, not an
+    // override. An operator who corrected a billing address by hand in Vida must not have it
+    // silently undone the next time the client touches onboarding — that is the same
+    // class of defect as the pool country overwrite (`.is('country', null)`), and the same
+    // answer applies.
+    //
+    // ⚠️ BEST-EFFORT, LIKE `contact_name` ABOVE AND FOR THE SAME REASON. Inside the insert
+    // payload a missing column fails the whole insert — i.e. it would break every signup on
+    // a database where 20260710 has not run. Written separately, logged, swallowed.
+    const authEmail = (user.email ?? '').trim().slice(0, 320)
+    if (authEmail && !(existing as { contact_email?: string | null } | null)?.contact_email) {
+      const { error: mailErr } = await db.from('clients')
+        .update({ contact_email: authEmail }).eq('id', clientId)
+      if (mailErr) {
+        console.warn('[onboard] contact_email not stored (run 20260710_client_contact_email):', mailErr.message)
+        // ⚠️ LOUD, because the consequence is silent. Without this column the client reaches
+        // Programme, sees a price, presses pay and is refused — and nothing in that journey
+        // tells anybody why. A warning in a log nobody reads is how C27 survived this long.
+        void sendFounderAlert('new_signup', 'A client was created who cannot reach checkout', [
+          `Client ${clientId} (${authEmail}) has no contact_email stored: ${mailErr.message}`,
+          'Both programme checkout routes refuse without it, so this client cannot make Payment 1.',
+          'Fix: apply the clients.contact_email migration, then set the address in Vida.',
+        ])
+      }
+    }
+
     // Record partner referral attribution (idempotent — unique(client_id)).
     if (partnerRef) {
       // #349 — this used to end in `.then(() => {}, () => {})`, which discarded the error
@@ -268,11 +370,22 @@ authRouter.post('/onboard', async (req, res) => {
         `No freebies — they start at $0 and must load $${PACK_PRICE_USD} to begin. Assign a pooled inbox once they've paid.`,
       ])
     }
-    fetch(`${process.env.API_INTERNAL_URL || `http://localhost:${process.env.PORT || 4000}`}/founder/cs/followup`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-admin-key': process.env.ADMIN_SECRET_KEY || '' },
-      body: JSON.stringify({ client_id: clientId, step: 'day1' }),
-    }).catch(() => {})
+    // ── ⚑ MVP1 (C22) — ONE ONBOARDING EMAIL, NOT TWO ──────────────────────────────────
+    //
+    // 🛑 REMOVED: a fire-and-forget POST to `/founder/cs/followup` with `step: 'day1'`, which
+    // generated a CS follow-up with a model and sent it to the client who had just received
+    // `sendWelcomeEmail` above. Two onboarding emails from one signup, the second written by
+    // nobody and chosen by nobody. The MVP1 rule is one.
+    //
+    // ⚠️ THE ROUTE IS NOT DELETED, and deliberately so. `/founder/cs/followup` remains a
+    // real operator surface — an operator may still send a follow-up on purpose, by client
+    // id, having decided to. What is gone is the automatic call at signup.
+    //
+    // ⚠️ AND IT WAS A `fetch` FROM THE API TO ITSELF. Fire-and-forget, `.catch(() => {})`,
+    // through `API_INTERNAL_URL` or a guessed localhost port — so on any host where that
+    // guess was wrong it failed silently every single time and nobody could have known.
+    // Guarded by `onboard-brief.route.test.ts`, which asserts the handler makes NO outbound
+    // HTTP call at signup.
 
     res.json({ success: true, data: { id: clientId } })
   } catch (err) {

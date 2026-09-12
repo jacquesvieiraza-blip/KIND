@@ -47,10 +47,36 @@ describe('🛑 ① the paid Proof pass refuses an escalated client before it cla
       'the Proof route refuses before the hand-off can open a review').toBe(false)
   })
 
-  it('an unreadable calibration state defers to the RPC rather than swallowing the hand-off', () => {
-    expect(ICPS).toContain('deferring to try_claim_proof_pass')
-    expect(code(ICPS).includes('res.status(503).json({ success: false, error: SPEND_CLOSED_REFUSAL })'),
-      'an unreadable read refuses again, which loses the review and the alert').toBe(false)
+  // ── 🛑 ⛓️ 11 Sep (C43) — THIS CASE IS INVERTED, AND THE REASON IT CHANGED IS THE POINT ──
+  //
+  // It used to REQUIRE that an unreadable calibration state fall through to the claim RPC.
+  // That was right while the RPC was the only remaining door: it refuses a third AUTOMATIC
+  // pass whatever the read said, so continuing could not mint a paid batch, and refusing here
+  // instead would have returned before the hand-off that opens the operator review — losing
+  // the review and the alert.
+  //
+  // 🛑 IT IS NO LONGER THE ONLY DOOR. The calibrated restart is claimable in this route now
+  // (C39), and the RPC does not guard it. So "we could not read the calibration state" now
+  // means we do not know whether this client is escalated, whether a restart was granted, or
+  // whether it has already been spent — and the founder's rule for that answer is explicit:
+  // uncertain authority state must FAIL SAFE, do not expose restart because the read failed,
+  // and do not spend.
+  //
+  // ⚠️ THE OLD CONCERN IS ANSWERED, NOT OVERRULED. The refusal is 503-RETRYABLE and says
+  // nothing was spent, so a transient fault is not dressed as a final refusal and the client
+  // reaches the hand-off on the next attempt, when the state can actually be read.
+  it('🛑 H · an unreadable calibration state REFUSES — it cannot expose restart or spend', () => {
+    const c = code(ICPS)
+    expect(c, 'the unreadable read still falls through to the claim').not.toContain('deferring to try_claim_proof_pass')
+    expect(c).toContain('REFUSING (C43)')
+    // ⚠️ AND IT REFUSES AS RETRYABLE, so a blip is never a final-sounding "we have shown you
+    // two sets" to a client who may have neither.
+    const at = c.indexOf('REFUSING (C43)')
+    const after = c.slice(at, at + 700)
+    expect(after).toContain('res.status(503)')
+    expect(after).toContain('retryable: true')
+    expect(after).toContain('nothing was spent')
+    expect(after, 'an unreadable state must return, never fall through').toContain('return')
   })
 
   it('🛑 the hard server backstop is untouched — no migration re-defines the claim RPC', () => {

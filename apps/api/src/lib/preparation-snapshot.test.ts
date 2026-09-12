@@ -229,10 +229,42 @@ describe('④ outreach authority is where the comparison bites', () => {
     expect(PROG).toContain("approved_preparation_hash: rp.review_preparation_hash")
     expect(PROG).toContain("const drift = await reviewDrift(programmeId)")
     expect(PROG).toContain("if (drift.state !== 'unchanged') return null")
-    expect(PROG).toContain("await setStatus(programmeId, 'APPROVED', { approved_at: at, ...prepared })")
-    expect(PROG).toContain(".update({ status: 'APPROVED', approved_at: at, updated_at: at, ...prepared })")
+    // ⛓️ 11 Sep (DAY 3) — SCANNED AS A CALL, NOT AS A LINE. These were pinned to two exact
+    // source strings, so adding `approved_by_kind` to the same update broke a guard whose
+    // subject — *one write carries both the status and what it covered* — had not changed at
+    // all. A guard that fails on formatting trains people to edit the guard. Both calls are now
+    // bounded and their CONTENTS asserted, which is the invariant that actually matters.
+    // ⚠️ BOUNDED AT THE CALL'S OWN CLOSING `})`, never a fixed character window. A window that
+    // overshoots reads the NEXT function's code and can pass on somebody else's write.
+    const call = (from: string) => {
+      const i = PROG.indexOf(from)
+      expect(i, `${from} is no longer in programme.ts`).toBeGreaterThan(-1)
+      const end = PROG.indexOf('})', i)
+      return PROG.slice(i, end === -1 ? i : end)
+    }
+    // ⛓️ 11 Sep (DAY 3 HOLD) — THERE IS NO LONGER A `setStatus(…, 'APPROVED')` CALL TO CHECK,
+    // and its absence is the stronger property. `approveProgramme` — the admin-key door that
+    // used to make that call with no client, no ownership and no House check — now refuses from
+    // every state, because client approval is CLIENT-OWNED. So the assertion is inverted: the
+    // operator path must contain no approval write at all, and the ONE remaining writer is the
+    // customer's own conditional update, checked below.
+    expect(PROG, 'an operator path writes APPROVED again').not.toContain("setStatus(programmeId, 'APPROVED'")
+    const operator = PROG.slice(PROG.indexOf('export async function approveProgramme('))
+      .slice(0, PROG.slice(PROG.indexOf('export async function approveProgramme(')).indexOf('\n}'))
+    expect(operator).toContain('only be approved by the client')
+    for (const written of ['approved_at:', 'approved_by_kind', "status: 'APPROVED'", '...prepared']) {
+      expect(operator, `the withdrawn operator approval still writes ${written}`).not.toContain(written)
+    }
+    const claimApproved = call(".update({\n      status: 'APPROVED'")
+    expect(claimApproved).toContain('approved_at: at')
+    expect(claimApproved).toContain('updated_at: at')
+    expect(claimApproved).toContain('...prepared')
     // And a programme that cannot be described cannot be approved.
-    expect(PROG).toContain('the prepared work is not the work that was frozen for review')
+    // ⛓️ 11 Sep (DAY 3 HOLD) — THE SENTENCE MOVED WITH THE AUTHORITY. This quoted the operator
+    // approval's refusal; that function no longer approves at all, so the claim it guarded —
+    // *a programme that cannot be described cannot be approved* — is asserted on the one
+    // authority that can still approve, in the client's own words rather than an operator's.
+    expect(PROG).toContain('the prepared work is not the work you reviewed')
   })
 })
 

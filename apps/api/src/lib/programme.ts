@@ -312,6 +312,55 @@ export async function authoriseFirstInternal(programmeId: string): Promise<Progr
     return { ok: false, reason: `Internal P1 authority may only be recorded from AWAITING_FIRST_PAYMENT, not ${p.status}.` }
   }
   if (p.first_authorised_at) return { ok: true }   // idempotent: already internally authorised
+
+  // ── 🛑 ⚑ 11 Sep (C38, DAY 3) — INTERNAL MONEY IS HOUSE'S ALONE ─────────────────────
+  //
+  // 🛑 WHAT THIS CLOSES. This door records P1 AUTHORITY WITHOUT A PAYMENT — no Stripe object,
+  // no invoice, no revenue — and it asked only what STATE the programme was in. So an operator
+  // with the admin key could authorise P1 on ANY programme, including a real paying client's:
+  // a generic operator payment override, which the founder's Day-3 lock forbids by name.
+  // "House is the only internal-money exception."
+  //
+  // ⚠️ HOUSE, AND HOUSE ALONE — NOT "EXCLUDED FROM REVENUE".
+  //
+  // ⛓️ THE FIRST CUT OF THIS ASKED `getExcludedClientIds`, which is demo ∪ house. Those are
+  // two different questions: revenue exclusion answers "should this account count in the
+  // numbers?", and a historic demo or test account answers YES to that while being nothing to
+  // do with House. Reusing the broader set because it already existed would have handed
+  // internal P1 money authority to every demo and test client in the book.
+  //
+  // ⚠️ IT IS THE REPO'S OWN HOUSE CLASSIFICATION, NOT A SECOND ONE. `computeExcludedClientIds`
+  // already computes `houseClientIds` separately — clients whose `user_id` is the auth user
+  // holding `HOUSE_ACCOUNT_EMAIL` — and that is the canonical answer the revenue logic itself
+  // keeps apart from `demoClientIds`. Nothing new is defined here.
+  //
+  // ⚠️ AND IT FAILS CLOSED, IN BOTH DIRECTIONS OF DOUBT. A thrown lookup refuses; and an EMPTY
+  // House set refuses with a different sentence, because `resolveHouseUserIds` deliberately
+  // fails OPEN to an empty set for the revenue roll-ups — so "no House client" and "we could
+  // not reach the auth directory" look identical from here. Either way no authority is minted;
+  // only the wording distinguishes them, so an operator is sent to the right problem.
+  //
+  // ⚠️ IT IS NOT A SAFETY EXCEPTION. House still goes through the same Prepare, the same
+  // sender verification, the same Freeze and the same approval. This is the MONEY exception
+  // and nothing else.
+  try {
+    const { getClientExclusions } = await import('./real-clients')
+    const { houseClientIds } = await getClientExclusions()
+    if (!houseClientIds.has(p.client_id)) {
+      return {
+        ok: false,
+        reason: houseClientIds.size === 0
+          ? 'We could not confirm the House account, so no internal authority was recorded. Nothing was changed.'
+          : 'Internal P1 authority is House-only. This is a client programme, and a client programme is authorised by their payment. Nothing was changed.',
+      }
+    }
+  } catch (err) {
+    return {
+      ok: false,
+      reason: `We could not establish whether this is a House programme (${err instanceof Error ? err.message : String(err)}), so no internal authority was recorded. Nothing was changed.`,
+    }
+  }
+
   // 🛑 XOR, INCLUDING THE INTENT ID — a stage holding ANY payment evidence is a paid stage.
   if (p.first_paid_at || p.first_payment_ref || p.first_payment_intent_id) {
     return { ok: false, reason: 'This programme already has P1 PAYMENT evidence. A stage cannot hold both a payment and internal authority.' }
@@ -368,6 +417,64 @@ export async function authoriseSecondInternal(programmeId: string): Promise<Prog
   if (p.second_authorised_at) return { ok: true }   // idempotent
   if (p.second_paid_at || p.second_payment_ref || p.second_payment_intent_id) {
     return { ok: false, reason: 'This programme already has P2 PAYMENT evidence. A stage cannot hold both a payment and internal authority.' }
+  }
+
+  // ── 🛑 ⚑ 11 Sep (DAY 3 HOLD) — HOUSE-ONLY, AND IT WAS NOT CHECKED AT ALL ──────────────
+  //
+  // 🛑 THE DEFECT. `authoriseFirstInternal` was corrected on 11 Sep to prove the canonical
+  // House identity before minting P1 money authority. **P2 was never given the same check** —
+  // this function proved APPROVED, an approval timestamp and the payment XOR, and would then
+  // record internal P2 authority on ANY client's programme. An operator with the admin key
+  // could settle a paying client's second half with no payment, no invoice and no revenue.
+  // P1 was fixed, P2 was not, and the two are the same money exception.
+  //
+  // ⚠️ THE SAME PREDICATE AS P1, NOT A SECOND ONE. `houseClientIds` from
+  // `computeExcludedClientIds` — clients whose `user_id` is the auth user holding
+  // `HOUSE_ACCOUNT_EMAIL`. NOT `getExcludedClientIds` (demo ∪ house): that answers "whose
+  // numbers stay out of the revenue roll-ups", and every demo and test account answers YES to
+  // it while being nothing to do with House.
+  //
+  // ⚠️ FAILS CLOSED IN BOTH DIRECTIONS OF DOUBT. A thrown lookup refuses; an EMPTY House set
+  // refuses with its own sentence, because `resolveHouseUserIds` deliberately fails open to an
+  // empty set for the roll-ups — so "no House client" and "the auth directory is unreachable"
+  // are indistinguishable from here. Neither mints authority.
+  try {
+    const { getClientExclusions } = await import('./real-clients')
+    const { houseClientIds } = await getClientExclusions()
+    if (!houseClientIds.has(p.client_id)) {
+      return {
+        ok: false,
+        reason: houseClientIds.size === 0
+          ? 'We could not confirm the House account, so no internal P2 authority was recorded. Nothing was changed.'
+          : 'Internal P2 authority is House-only. This is a client programme, and a client programme settles its second half by payment. Nothing was changed.',
+      }
+    }
+  } catch (err) {
+    return {
+      ok: false,
+      reason: `We could not establish whether this is a House programme (${err instanceof Error ? err.message : String(err)}), so no internal P2 authority was recorded. Nothing was changed.`,
+    }
+  }
+
+  // ── 🛑 AND THE APPROVAL MUST STILL COVER THE WORK ────────────────────────────────────
+  //
+  // 🛑 `status === 'APPROVED'` IS NOT "APPROVED FOR THIS". The paid door was corrected on
+  // 11 Sep to refuse P2 when the prepared work has moved since the approval; the INTERNAL door
+  // asked only for the status, so House could settle its second half against an approval that
+  // no longer describes the programme — which the run gate would then correctly refuse to make
+  // live. The money exception is about WHO PAYS, never about WHAT WAS AGREED.
+  //
+  // ⚠️ "WE CANNOT TELL" REFUSES TOO. Not knowing whether the approval still covers the work is
+  // not permission to authorise against it.
+  const { preparationDrift } = await import('./preparation-snapshot')
+  const drift = await preparationDrift(programmeId)
+  if (drift.state !== 'unchanged') {
+    return {
+      ok: false,
+      reason: drift.state === 'changed'
+        ? 'This programme has changed since it was approved, so its second half is not due on it. Re-freeze it, have it approved again, and then record P2. Nothing was changed.'
+        : `The approval on this programme could not be confirmed to still cover the current work, so no internal P2 authority was recorded. ${drift.state === 'unreadable' ? drift.detail : 'There is no approval to authorise against.'} Nothing was changed.`,
+    }
   }
 
   const { error } = await db.from('programmes').update({
@@ -705,30 +812,173 @@ async function approvedPreparationColumns(programmeId: string, at: string): Prom
   if (drift.state !== 'unchanged') return null
 
   const { data: prog, error } = await db.from('programmes')
-    .select('review_preparation_hash, review_preparation_snapshot').eq('id', programmeId).maybeSingle()
+    .select('review_preparation_hash, review_preparation_snapshot, review_preparation_version')
+    .eq('id', programmeId).maybeSingle()
   if (error || !prog) return null
-  const rp = prog as { review_preparation_hash: string | null; review_preparation_snapshot: unknown }
+  const rp = prog as {
+    review_preparation_hash: string | null
+    review_preparation_snapshot: unknown
+    review_preparation_version?: number | null
+  }
   if (!rp.review_preparation_hash) return null
 
   return {
     approved_preparation_hash: rp.review_preparation_hash,
     approved_preparation_snapshot: rp.review_preparation_snapshot,
     approved_preparation_at: at,
+    // ⚑ 11 Sep (DAY 3) — WHICH VERSION WAS APPROVED, copied from the review freeze rather than
+    // recomputed. It stays put when a later re-freeze moves `review_preparation_version`, and
+    // the two disagreeing is how an approval is known not to cover the current package.
+    //
+    // ⚠️ `?? null` IS NOT A DEFAULT HERE. A programme frozen before versioning existed carries
+    // no version, and recording it as 1 would invent a claim about which package was read.
+    approved_preparation_version: rp.review_preparation_version ?? null,
   }
 }
 
-export async function approveProgramme(programmeId: string): Promise<ProgrammeResult> {
-  const p = await getProgramme(programmeId)
-  if (!p) return { ok: false, reason: 'No such programme.' }
-  if (p.paused_at) return { ok: false, reason: 'Cannot approve a paused programme.' }
-  if (p.status !== 'READY_FOR_APPROVAL') return { ok: false, reason: `Cannot approve from ${p.status}.` }
-  const at = new Date().toISOString()
-  const prepared = await approvedPreparationColumns(programmeId, at)
-  if (!prepared) {
-    return { ok: false, reason: 'This programme cannot be approved: the prepared work is not the work that was frozen for review, or no review freeze exists. Re-prepare it, freeze it again and have it reviewed. Nothing was changed.' }
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// ⚑ 11 Sep (DAY 3) — RE-FREEZING: THE MISSING HALF OF "A CHANGE MEANS A NEW VERSION"
+//
+// ── 🛑 THE DEAD END THIS CLOSES ─────────────────────────────────────────────────────────
+//
+// The rule was fully enforced and had no remedy. `reviewDrift` refuses an approval whose
+// package has moved — correctly — and the ONLY writer of a review freeze was
+// `markReadyForApproval`, which runs from `SOURCING` / `SOURCING_AUTHORISED` and from nowhere
+// else. Nothing moves a programme back out of `READY_FOR_APPROVAL`. So the moment anything
+// approval-relevant changed under a reviewing client — a prospect opted out, the sending
+// mailbox was re-assigned, the window was edited — the programme became **permanently
+// unapprovable**: every press answered "it must be re-frozen and reviewed again" and nothing in
+// the product could re-freeze it. A rule with no path forward is an outage with good manners.
+//
+// ── WHAT IT IS, AND WHAT IT REFUSES TO BE ───────────────────────────────────────────────
+//
+//   • it re-proves EVERY preparation requirement first, so a re-freeze cannot rescue a
+//     programme whose sender is unverified or whose review desk has emptied
+//   • it writes a NEW version — hash, snapshot, timestamp and a counter that only ever rises
+//   • an UNCHANGED package writes nothing at all, so re-opening a screen cannot churn the
+//     version a client is quoting back to us
+//   • it NEVER touches `approved_*`. The old approval does not carry forward; it is left
+//     exactly where it was, pointing at the version it actually covered.
+//
+// 🛑 AND IT GRANTS NOTHING. No approval, no P2, no LIVE, no send. It refreshes the question,
+// it does not answer it.
+// ═══════════════════════════════════════════════════════════════════════════════════════
+
+export type RefreezeResult =
+  | { ok: true; changed: boolean; hash: string; version: number | null }
+  | { ok: false; code: 'not_found' | 'wrong_state' | 'not_ready' | 'unreadable'; reason: string }
+
+export async function refreezeForReview(programmeId: string): Promise<RefreezeResult> {
+  let p: ProgrammeRow | null
+  try { p = await getProgramme(programmeId) }
+  catch (err) { return { ok: false, code: 'unreadable', reason: err instanceof Error ? err.message : String(err) } }
+  if (!p) return { ok: false, code: 'not_found', reason: 'No such programme.' }
+
+  // 🛑 ONLY FROM `READY_FOR_APPROVAL`, AND THAT IS THE WHOLE SCOPE. Earlier states reach their
+  // first freeze through `markReadyForApproval`; APPROVED and LIVE must NOT be re-frozen at all
+  // — re-freezing an approved programme is precisely the in-place mutation of approved work the
+  // founder's rule forbids, and `preparationDrift` already refuses the run for it.
+  if (p.status !== 'READY_FOR_APPROVAL') {
+    return { ok: false, code: 'wrong_state', reason: `This programme is ${p.status}, so there is no review package to re-freeze.` }
   }
-  await setStatus(programmeId, 'APPROVED', { approved_at: at, ...prepared })
-  return { ok: true }
+  if (p.paused_at) return { ok: false, code: 'wrong_state', reason: 'This programme is paused, so its review package was not re-frozen.' }
+
+  const { programmePreparationReadiness } = await import('./preparation-readiness')
+  const readiness = await programmePreparationReadiness(programmeId)
+  if (!readiness.ready) {
+    return {
+      ok: false, code: 'not_ready',
+      reason: 'This programme cannot be re-frozen for review yet — ' + readiness.blockers.map(b => b.detail).join(' '),
+    }
+  }
+
+  const { buildPreparationSnapshot } = await import('./preparation-snapshot')
+  const built = await buildPreparationSnapshot(programmeId)
+  if (!built.ok) {
+    return { ok: false, code: 'unreadable', reason: `The prepared work could not be described, so nothing was re-frozen. ${built.degraded}` }
+  }
+
+  const current = p as unknown as { review_preparation_hash?: string | null; review_preparation_version?: number | null }
+  if (current.review_preparation_hash === built.hash) {
+    // ⚠️ NOTHING WRITTEN. Bumping the version for an identical package would invalidate the
+    // exact version string a client is holding on an open screen, for no change at all.
+    return { ok: true, changed: false, hash: built.hash, version: current.review_preparation_version ?? null }
+  }
+
+  const at = new Date().toISOString()
+  const nextVersion = (typeof current.review_preparation_version === 'number' ? current.review_preparation_version : 0) + 1
+
+  // 🛑 COMPARE-AND-SET ON THE OLD HASH AND THE STATUS. Two operators pressing at once, or a
+  // client approving while this runs, must not produce a version that skipped a package: the
+  // loser matches no row and is told, rather than overwriting a freeze somebody has approved
+  // against in the meantime.
+  let claim = db.from('programmes')
+    .update({
+      review_preparation_hash: built.hash,
+      review_preparation_snapshot: built.snapshot as unknown,
+      review_preparation_at: at,
+      review_preparation_version: nextVersion,
+      updated_at: at,
+    })
+    .eq('id', programmeId)
+    .eq('status', 'READY_FOR_APPROVAL')
+  claim = current.review_preparation_hash
+    ? claim.eq('review_preparation_hash', current.review_preparation_hash)
+    : claim.is('review_preparation_hash', null)
+
+  const { data: won, error: writeErr } = await claim.select('id')
+  if (writeErr) {
+    return { ok: false, code: 'unreadable', reason: `The new review package could not be written (${writeErr.message}). Nothing was changed.` }
+  }
+  if (((won ?? []) as unknown[]).length === 0) {
+    return {
+      ok: false, code: 'wrong_state',
+      reason: 'This programme changed while it was being re-frozen, so nothing was written. Take another look and try again.',
+    }
+  }
+  return { ok: true, changed: true, hash: built.hash, version: nextVersion }
+}
+
+/**
+ * 🛑 THE OPERATOR APPROVAL IS WITHDRAWN. IT REFUSES, ALWAYS (founder-locked 11 Sep).
+ *
+ * ── ⛓️ WHAT THIS USED TO DO, AND WHY THAT WAS THE BYPASS ────────────────────────────────
+ *
+ * It took a programme id and nothing else, proved READY_FOR_APPROVAL and not-paused, and wrote
+ * `status = 'APPROVED'`. **No client, no ownership, no House check, no restriction of any
+ * kind.** So anybody holding the admin key could approve ANY client's programme — and the row
+ * afterwards was indistinguishable, to every downstream reader, from the client having agreed.
+ *
+ * The founder's rule: **client approval is CLIENT-OWNED. An operator must not be able to
+ * substitute for it.** House is not an exception — *"House still follows the same client
+ * approval truth. House gets a MONEY COLLECTION exception only."* P1 and P2 internal authority
+ * are that money exception, and neither of them replaces this step.
+ *
+ * ── ⚠️ WHY IT IS INVERTED RATHER THAN DELETED ───────────────────────────────────────────
+ *
+ * The repo's own discipline: a withdrawn rule becomes a guard that refuses, not a hole where a
+ * guard used to be. Deleting the export would leave `POST /programmes/:id/approve` to be
+ * re-implemented by the next person who wanted it, against a comment nobody reads. This way the
+ * refusal IS the code, the reason names the rule, and the sentence points at the only authority
+ * that can approve — the client, in Milla, through `approveProgrammeAsCustomer`.
+ *
+ * 🛑 THIS IS NOT A "NO OPERATOR PATH FOR A STUCK CLIENT" GAP. A client who cannot approve
+ * because the package moved is a real state, it is surfaced in Vida as `approval_package_stale`,
+ * and its remedy is `refreezeForReview` — which publishes a new version and asks THEM again.
+ * The remedy for "the client has not approved" is never "approve for them".
+ */
+export async function approveProgramme(programmeId: string): Promise<ProgrammeResult> {
+  // ⚠️ IT READS NOTHING AND WRITES NOTHING. There is no state in which this succeeds, so
+  // looking one up would only invite a future edit to branch on it.
+  void programmeId
+  return {
+    ok: false,
+    reason: 'A programme can only be approved by the client, in Milla, from their own session. '
+      + 'Approving on their behalf is not available to an operator — approval is consent to email real strangers, '
+      + 'and it is theirs to give. House is not an exception: internal P1 and P2 authority cover money collection only. '
+      + 'If the client cannot approve because the prepared work has changed, re-freeze it and they are asked again. '
+      + 'Nothing was changed.',
+  }
 }
 
 /**
@@ -767,10 +1017,42 @@ export type CustomerApprovalRefusal =
   | 'terminal'
   | 'wrong_state'
   | 'nothing_to_review'
+  /**
+   * ⚑ 11 Sep (DAY 3) — the client approved a version that is no longer the frozen one, or did
+   * not say which version they were approving. Never a fault: the package changed, so it needs
+   * a fresh look and a fresh approval. Nothing is written and nothing is charged.
+   */
+  | 'stale_version'
   | 'unreadable'
 
 export async function approveProgrammeAsCustomer(
   clientId: string, programmeId: string,
+  /**
+   * ⚑ 11 Sep (DAY 3) — THE EXACT VERSION THE CLIENT WAS LOOKING AT.
+   *
+   * 🛑 WHY IT IS REQUIRED. Approval used to record `approved_preparation_hash` from whatever
+   * was frozen AT THE MOMENT OF THE PRESS. The client never said WHICH package they were
+   * approving, so a re-preparation between the screen rendering and the button being pressed
+   * was approved in silence — the client would have approved a set of people, a set of words
+   * and a sending window they had never read.
+   *
+   * ⚠️ `null` IS ACCEPTED ONLY WHERE NO VERSION EXISTS TO QUOTE. A programme that is
+   * READY_FOR_APPROVAL always carries a frozen hash, so in practice null from a client is a
+   * refusal; the parameter is nullable so internal callers on a pre-freeze database behave
+   * exactly as they did.
+   */
+  expectedVersion: string | null = null,
+  /**
+   * ⚑ 11 Sep (DAY 3) — WHO IS APPROVING, taken from the session and never from the body.
+   *
+   * 🛑 AN APPROVAL RECORDED NO AUTHOR. `approved_at` said when and the snapshot said what, so
+   * *"the client approved this"* was a sentence the database could not support — on the single
+   * act that turns prepared work into work we are allowed to run.
+   *
+   * ⚠️ IT AUTHORISES NOTHING. Tenancy is still proved by `clientId` against the row; this is
+   * recorded alongside the approval, and no branch below reads it to decide anything.
+   */
+  approvedByUserId: string | null = null,
 ): Promise<CustomerApproval> {
   let p: ProgrammeRow | null
   try {
@@ -801,6 +1083,35 @@ export async function approveProgrammeAsCustomer(
   if (p.paused_at) return { ok: false, code: 'paused', reason: 'This programme is paused.' }
   if (p.status !== 'READY_FOR_APPROVAL') {
     return { ok: false, code: 'wrong_state', reason: `This programme is not ready to approve yet (${p.status}).` }
+  }
+
+  // ── 🛑 ⚑ 11 Sep (DAY 3) — THEY APPROVE THE EXACT VERSION THEY READ ──────────────────
+  //
+  // 🛑 WHAT THIS CLOSES. The approval recorded `approved_preparation_hash` from whatever was
+  // frozen at the moment of the press. If the work was re-prepared between the screen
+  // rendering and the button being pressed — a prospect evicted, a message re-drafted, the
+  // window changed, the sender re-assigned — the client approved a package they had never
+  // read, and nothing anywhere would have said so.
+  //
+  // ⚠️ THE FOUNDER'S RULE IS A NEW VERSION AND A NEW APPROVAL, never a mutated one. So a
+  // mismatch REFUSES and names the change; Milla re-renders the current package and asks
+  // again. Nothing is written, and the programme stays READY_FOR_APPROVAL.
+  //
+  // ⚠️ IT IS ASKED BEFORE THE WRITE AND AGAIN BY THE WRITE. The compare-and-set below pins
+  // `status`; this pins WHAT WAS FROZEN. A check without the write's own condition could be
+  // overtaken by a re-freeze landing in between.
+  const frozenNow = (p as unknown as { review_preparation_hash?: string | null }).review_preparation_hash ?? null
+  if (frozenNow && expectedVersion !== null && expectedVersion !== frozenNow) {
+    return {
+      ok: false, code: 'stale_version',
+      reason: 'This programme has been updated since you opened it, so that version cannot be approved. Nothing has been charged — take another look and approve the current one.',
+    }
+  }
+  if (frozenNow && expectedVersion === null) {
+    return {
+      ok: false, code: 'stale_version',
+      reason: 'We could not tell which version you were approving, so nothing was approved and nothing has been charged. Please reload and try again.',
+    }
   }
 
   // 🛑 THERE MUST BE SOMETHING THEY COULD ACTUALLY HAVE REVIEWED.
@@ -837,14 +1148,29 @@ export async function approveProgrammeAsCustomer(
       reason: 'This programme cannot be approved: the prepared work is not the work you reviewed, or no review freeze exists. It must be re-frozen and reviewed again. Nothing was changed.',
     }
   }
-  const { data: won, error: writeErr } = await db.from('programmes')
-    .update({ status: 'APPROVED', approved_at: at, updated_at: at, ...prepared })
+  let claim = db.from('programmes')
+    .update({
+      status: 'APPROVED', approved_at: at, updated_at: at,
+      // ⚠️ WRITTEN IN THE SAME CONDITIONAL UPDATE AS THE APPROVAL, so a programme can never
+      // hold an author it was not approved by — the same discipline the snapshot follows.
+      approved_by_kind: 'client',
+      approved_by_user_id: approvedByUserId,
+      ...prepared,
+    })
     .eq('id', programmeId)
     .eq('client_id', clientId)
     // 🛑 THE RACE GUARD. Only a row still in READY_FOR_APPROVAL is claimed, so of two
     // simultaneous approvals exactly one writes and `approved_at` is set once, ever.
     .eq('status', 'READY_FOR_APPROVAL')
-    .select('*')
+  // ── 🛑 ⚑ 11 Sep (DAY 3) — AND THE VERSION IS PINNED BY THE WRITE, NOT ONLY THE READ ──
+    //
+  // ⚠️ THE CHECK ABOVE CAN BE OVERTAKEN. A re-freeze landing between the read and this
+  // statement would move `review_preparation_hash` — and `prepared` was computed from the OLD
+  // read, so the row would be stamped APPROVED against a package the client read and a hash
+  // that had already moved on. Postgres re-evaluates this after taking the row lock, so a
+  // version that changed underneath simply matches no row and the customer is told.
+  if (frozenNow) claim = claim.eq('review_preparation_hash', frozenNow)
+  const { data: won, error: writeErr } = await claim.select('*')
   if (writeErr) return { ok: false, code: 'unreadable', reason: writeErr.message }
 
   const row = (won ?? [])[0] as ProgrammeRow | undefined
@@ -968,6 +1294,11 @@ export async function markReadyForApproval(programmeId: string): Promise<Program
     review_preparation_hash: frozen.hash,
     review_preparation_snapshot: frozen.snapshot as unknown,
     review_preparation_at: frozenAt,
+    // ⚑ 11 Sep (DAY 3) — VERSION 1, AND ONLY EVER 1 HERE. This transition is reachable only
+    // from SOURCING / SOURCING_AUTHORISED, so it is always a programme's FIRST review package;
+    // every later one is written by `refreezeForReview`, which counts up from whatever is
+    // stored. Two writers, one counter, and neither invents a number the other could reuse.
+    review_preparation_version: 1,
   })
   return { ok: true }
 }

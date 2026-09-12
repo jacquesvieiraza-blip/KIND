@@ -26,6 +26,19 @@ create table if not exists public.clients (
   proof_phone_confirmed_at timestamptz,
   proof_calibration_note text,
   proof_calibrated_restart_at timestamptz,
+  -- ⚑ 11 Sep (C39/C23) — the restart's SECOND fact, and the refinement gate. Migration:
+  -- 20260911_proof_restart_and_refinement.
+  --   `_used_at` is what makes the grant spendable AND self-limiting: with only `_at`, the
+  --   grant either bought nothing (proof_passes_done stays 2 and the claim RPC refuses at 2)
+  --   or bought unlimited sets, because nothing recorded that it had been taken.
+  --   The refinement columns gate Attempt 2: the model INTERPRETING a sentence is not the
+  --   client agreeing to it, and Attempt 2 is real paid sourcing.
+  -- Neither touches proof_passes_done, and try_claim_proof_pass is unchanged.
+  proof_calibrated_restart_used_at timestamptz,
+  proof_calibration_resolved_by text,
+  proof_refinement_text text,
+  proof_refinement_proposed_at timestamptz,
+  proof_refinement_confirmed_at timestamptz,
   -- ⚑ 10 Sep (C03) — what the client said they want, stated once. Client-level: it
   -- survives ICP revisions and predates any programme. NOT meeting_target.
   -- Migration: 20260910_client_stated_outcome.
@@ -71,6 +84,12 @@ create table if not exists public.icps (
   id                uuid primary key default uuid_generate_v4(),
   client_id         uuid not null references public.clients(id) on delete cascade,
   name              text not null,
+  -- MVP1 (C04/C21) — the client's own words for the target market, and the target's
+  -- organisational form. TWO facts, founder-locked: one utterance may supply both, but a
+  -- client who said only "digital marketing" has the category and not the type. `industries`
+  -- below stays the CLOSED sixteen-value provider-edge hint and is never their words.
+  target_category     text,
+  target_company_type text,
   industries        text[] not null default '{}',
   job_titles        text[] not null default '{}',
   seniority_levels  text[] not null default '{}',
@@ -86,6 +105,34 @@ create table if not exists public.icps (
 );
 
 create index if not exists icps_client_id_idx on public.icps(client_id);
+
+-- ─────────────────────────────────────────────
+-- MVP1 — THE BRIEF BEFORE THERE IS A CLIENT (Preview 07)
+--
+-- Signup creates an auth user; the clients row is created by the CONFIRM click. This is where
+-- the partial Brief lives in between, so a closed tab does not destroy it and so Vida can see
+-- "signed up 14 minutes ago, 10 of 11 facts, confirmation pending" at all.
+--
+-- NOT a second Brief model: the eleven facts are defined once, in
+-- packages/shared/src/brief-facts.ts, and every reader counts through that. Authoritative and
+-- writable until promotion; evidence only afterwards.
+-- ─────────────────────────────────────────────
+create table if not exists public.onboarding_brief_drafts (
+  id                 uuid primary key default uuid_generate_v4(),
+  user_id            uuid not null unique references auth.users(id) on delete cascade,
+  facts              jsonb not null default '{}'::jsonb,
+  conversation       jsonb,
+  -- Confirmation is a SEPARATE gate and is never one of the eleven facts.
+  confirmed_at       timestamptz,
+  promoted_client_id uuid references public.clients(id) on delete set null,
+  promoted_at        timestamptz,
+  created_at         timestamptz not null default now(),
+  updated_at         timestamptz not null default now()
+);
+
+create index if not exists onboarding_brief_drafts_open_idx
+  on public.onboarding_brief_drafts(created_at desc)
+  where promoted_client_id is null;
 
 -- ─────────────────────────────────────────────
 -- OPT-OUT BLOCKLIST (permanent, cross-client)
@@ -828,6 +875,21 @@ create table if not exists public.programmes (
   review_preparation_hash       text,
   review_preparation_snapshot   jsonb,
   review_preparation_at         timestamptz,
+  -- ── 11 Sep · a re-freeze is a NEW VERSION, not an edit (20260911_preparation_version)
+  -- The hash proves WHETHER the package changed; it cannot say how many times, cannot be spoken
+  -- to a client, and gives an approval no way to name a version rather than a digest. The
+  -- approved version stays put when a later re-freeze moves the review version — the two
+  -- disagreeing IS the statement "this approval does not cover the current package".
+  -- NULL = frozen before versioning existed. Never version zero.
+  review_preparation_version    int,
+  approved_preparation_version  int,
+  -- ── 11 Sep · WHO approved (20260911_preparation_version) ───────────────────────────
+  -- approved_at says when and the snapshot says what; nothing said WHO, so "the client approved
+  -- this" was a claim the database could not support. 'client' = the customer's own session in
+  -- Milla; 'operator' = admin-key authority in Vida, which carries no user id because it is not
+  -- a session and recording one would invent a person.
+  approved_by_kind              text,
+  approved_by_user_id           uuid,
   -- When outbound may leave, in the RECIPIENT's OWN local time — a persisted zone, else a
   -- region, else the intersection of every zone their country spans, else REFUSED. There was no
   -- schedule anywhere in the send path before this, and the first fix judged every American in
@@ -922,6 +984,17 @@ alter table public.leads
 -- the honest reading of every row written before this column existed.
 alter table public.leads
   add column if not exists proof_pass smallint;
+
+-- ⚑ 11 Sep — WHAT PRODUCED A PROOF ROW: one of the two automatic attempts, or the one
+-- human-authorised calibrated restart. Migration: 20260911_lead_proof_batch_kind.
+--   🛑 IT EXISTS BECAUSE A PASS NUMBER CANNOT SAY IT. `proof_pass` is constrained to 1 or 2
+--   (leads_proof_pass_check), so a restart could not be encoded as 3 — the insert would have
+--   been REJECTED — and even unconstrained, a 3 would have been read as a third automatic
+--   attempt by anything counting passes or guarding spend. The restart carries the pass it
+--   ran alongside (2) and is told apart by THIS column.
+--   NULL reads as 'automatic', the honest answer for every row written before it existed.
+alter table public.leads
+  add column if not exists proof_batch_kind text;
 
 -- ⚠️ `sourcing_ledger.programme_id`, `partner_commissions.programme_id` and
 -- `partner_commissions.basis` are ADDED BY THE MIGRATION AND ARE DELIBERATELY NOT DECLARED

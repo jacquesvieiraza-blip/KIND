@@ -2067,10 +2067,37 @@ leadRouter.get('/proof/calibration', async (req: AuthRequest, res) => {
     const { readCalibration } = await import('../lib/proof-calibration-io')
     const { proofUiState, PROOF_REASON_CODES, PROOF_REASON_LABELS } = await import('../lib/proof-calibration')
     const cal = await readCalibration(clientId)
+    const ui = proofUiState(cal, cal.phone, !!cal.phoneConfirmedAt, cal.contactName)
+
+    // ── ⚑ 11 Sep (C39) — THE ID THE CALIBRATED SET IS STARTED AGAINST ──────────────────
+    //
+    // 🛑 SENT ONLY WHEN THE SERVER SAYS THE CONTROL EXISTS, and read from the client's own
+    // core ICP. The screen posts it straight back to the ONE proof route, which re-checks the
+    // restart authority itself — so this is a convenience, never a permission. A browser that
+    // invents an id reaches a route that refuses it.
+    //
+    // ⚠️ AND THERE IS NO SECOND SPEND PATH. Everything about claiming, refusing and running
+    // stays in `POST /icps/:id/proof`; adding a client route that sourced would be a second
+    // door to the same money.
+    let coreIcpId: string | null = null
+    if (ui.showCalibratedSet) {
+      const { data: icp } = await db.from('icps')
+        .select('id').eq('client_id', clientId).eq('is_active', true)
+        .order('created_at', { ascending: false }).limit(1).maybeSingle()
+      coreIcpId = (icp as { id?: string } | null)?.id ?? null
+      if (!coreIcpId) {
+        const { data: any_ } = await db.from('icps')
+          .select('id').eq('client_id', clientId)
+          .order('created_at', { ascending: false }).limit(1).maybeSingle()
+        coreIcpId = (any_ as { id?: string } | null)?.id ?? null
+      }
+    }
+
     res.json({
       success: true,
       data: {
-        ...proofUiState(cal, cal.phone, !!cal.phoneConfirmedAt),
+        ...ui,
+        core_icp_id: coreIcpId,
         // The six the founder locked, sent from the server so the screen cannot drift from
         // the codes the summaries are actually counted by.
         reasons: PROOF_REASON_CODES.map(code => ({ code, label: PROOF_REASON_LABELS[code] })),

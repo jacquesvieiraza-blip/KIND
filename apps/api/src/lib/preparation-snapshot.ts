@@ -40,9 +40,29 @@ import { resolveProgrammeChain, type SequenceStep } from './programme-chain'
 
 /** The canonical, hashable description of a programme's prepared work. */
 export interface PreparationSnapshot {
-  /** Bumped only if the CONTENT of the digest changes shape, which invalidates every hash. */
-  v: 1
+  /**
+   * Bumped only if the CONTENT of the digest changes shape, which invalidates every hash.
+   *
+   * ⛓️ 1 → 2 on 11 Sep (DAY 3): `meeting_target` joined the digest. Every hash frozen under v1
+   * is therefore stale by construction, which is the correct and intended outcome — a v1 freeze
+   * cannot prove what target it was taken against, and `refreezeForReview` exists so a
+   * programme caught mid-review gets a new version rather than being stranded.
+   */
+  v: 2
   programme_id: string
+  /**
+   * ⚑ 11 Sep (DAY 3) — THE TARGET IS PART OF THE WORK, AND IT WAS NOT IN THE DIGEST.
+   *
+   * 🛑 WHAT THAT ALLOWED. `meeting_target` drives the recommended volume, the price and the
+   * whole shape of what the client bought — and it lived only on the `programmes` row, outside
+   * the freeze. So a target edited between the client reading the package and approving it
+   * changed the deal without moving the hash, and the drift check that exists to catch exactly
+   * this would have reported `unchanged`.
+   *
+   * ⚠️ IT IS A TARGET, NEVER A GUARANTEE (founder-locked). Freezing it records WHAT WAS
+   * PROMISED AS A TARGET, which is precisely what a later change must be measured against.
+   */
+  meeting_target: number | null
   batch_id: string | null
   /** Sorted. The people inside the batch — an id alone would not notice a different 250. */
   batch_lead_ids: string[]
@@ -111,9 +131,14 @@ export async function buildPreparationSnapshot(programmeId: string): Promise<Sna
   const chain = chainRes.chain
 
   const { data: progRow, error: progErr } = await db.from('programmes')
-    .select('id, send_schedule').eq('id', programmeId).maybeSingle()
+    .select('id, send_schedule, meeting_target').eq('id', programmeId).maybeSingle()
   if (progErr) return { ok: false, degraded: `This programme's send schedule could not be read (${progErr.message}).` }
   const sendSchedule = (progRow as { send_schedule?: unknown } | null)?.send_schedule ?? null
+  // ⚠️ A NUMBER OR NULL — never a coerced 0. `meeting_target` is `not null` in the schema, so a
+  // null here means the read gave us a row without it, and a zero target is a different promise
+  // from an unknown one. The hash must be able to tell those apart.
+  const rawTarget = (progRow as { meeting_target?: unknown } | null)?.meeting_target
+  const meetingTarget = typeof rawTarget === 'number' && Number.isFinite(rawTarget) ? rawTarget : null
 
   // ── THE BATCH, and the people in it ──────────────────────────────────────────────────
   const { data: batches, error: batchErr } = await db.from('programme_batches')
@@ -147,8 +172,9 @@ export async function buildPreparationSnapshot(programmeId: string): Promise<Sna
   }
 
   const snapshot: PreparationSnapshot = {
-    v: 1,
+    v: 2,
     programme_id: programmeId,
+    meeting_target: meetingTarget,
     batch_id: batchId,
     batch_lead_ids: batchLeadIds,
     campaign_id: chain.campaignId,

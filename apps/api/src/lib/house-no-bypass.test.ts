@@ -142,6 +142,11 @@ describe('① no gate the founder named knows what House is', () => {
  */
 const ALLOWED: Record<string, string> = {
   'commercial-model.ts': 'MONEY — resolves which economics apply; internal authority is the House difference',
+  // ⚑ 11 Sep (C38) — internal P1 authority records money authority with NO payment, and the
+  // founder's lock is that House is the only internal-money exception. It asks
+  // `getClientExclusions().houseClientIds` — the repo's own House classification, kept
+  // separate from `demoClientIds` by `computeExcludedClientIds` — and refuses everything else.
+  'programme.ts': 'MONEY — C38: internal P1 authority is House-only, so it must know which client is House',
   'customer-programme.ts': 'MONEY — internalBilling, so House is not told it owes itself a payment',
   'house-client.ts': 'MONEY — the identity resolver itself',
   'house-sequence.ts': 'CONTENT — the one launch programme\'s approved five-step copy',

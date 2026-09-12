@@ -19,6 +19,7 @@ import { canonicalLaunchCountry } from '@kind/shared'
 // `@kind/shared` and `lead-feedback`, both pure, so this module stays testable with no
 // environment. (An earlier lazy `require` here could not resolve a .ts sibling under Vitest.)
 import { hardFit, structurallyAdmissible } from './proof-fit'
+import { isPlaceholderEmail } from './email-hygiene'
 
 /** A row from the `lead_pool` table (only the fields the matcher reads). */
 export interface PoolRecord {
@@ -461,6 +462,42 @@ export function poolRefusalLine(refused: readonly PoolWriteCandidate[]): string 
   return `[pool] REFUSED ${refused.length} record(s) — not pool-eligible: ${named}. ` +
     `Only ${POOL_ELIGIBLE_SOURCES.join(', ')} may be reused across clients (F13/F15). ` +
     `The sourcing run was NOT affected; the client still has these leads.`
+}
+
+// ── ⚑ 12 Sep — AN ADDRESS THAT CANNOT BE MAILED IS NOT INVENTORY ───────────────────────
+//
+// 🛑 WHAT THIS CLOSES, AND WHAT IT DOES NOT. The pool read already refuses a HARD BOUNCE:
+// bounces and spam complaints land in `opt_out_blocklist` with `reason='hard_bounce' |
+// 'spam_complaint'` (sending-health.ts), and `selectPoolCandidates` queries that table with
+// no reason filter, so they have always been excluded. What was never asked is whether the
+// stored address is a REAL address at all.
+//
+// Two kinds of unusable row, both already named elsewhere in this repo and neither asked here:
+//   · PLACEHOLDER — `email_not_unlocked@…`, `example.com`, `domain.com`. `isPlaceholderEmail`
+//     has guarded the provider path since #375 (AR-38); the pool path never called it, so a
+//     placeholder that entered the pool was servable for ever.
+//   · UNDELIVERABLE DOMAIN — `.invalid` (RFC 2606, and the TLD every MBF demo address uses),
+//     `.test`, `localhost`. `email.ts` refuses these at the SEND seam — which is far too late:
+//     by then the row has been served, has consumed a slot, and has SHRUNK the external ask
+//     by one. A free row that can never be mailed costs money twice.
+//
+// ⚠️ WHY IT IS HERE AND PURE. Usability is a property of the string, not of the database. The
+// same predicate has to answer for the pool read, the lookalike provider half and the CMO
+// path, and three copies of a domain list is how they drift (the same reasoning that put
+// `GENERIC_EMAIL_DOMAINS` in one place).
+//
+// ⚠️ IT IS NOT A DELIVERABILITY CHECK AND MUST NOT GROW INTO ONE. It refuses addresses that
+// are structurally incapable of receiving mail. Whether a real mailbox is still alive is the
+// bounce ledger's question, and it is already answered.
+export function isPoolEmailUsable(email: string | null | undefined): boolean {
+  const e = (email ?? '').trim().toLowerCase()
+  if (isPlaceholderEmail(e)) return false
+  const domain = e.split('@')[1] ?? ''
+  if (!domain) return false
+  if (domain === 'invalid' || domain.endsWith('.invalid')) return false
+  if (domain === 'test' || domain.endsWith('.test')) return false
+  if (domain === 'localhost') return false
+  return true
 }
 
 /** Six months in ms — the freshness horizon for a pooled email. */

@@ -1,5 +1,9 @@
+import { db } from '@kind/db'
 import { searchPeopleWithFallback, ApolloContact } from './apollo'
 import { isPlaceholderEmail } from './email-hygiene'
+import { selectPoolCandidates, logPoolCounters, filterProviderContacts } from './pool-candidates'
+import { splitPoolAndRemainder, splitPoolEligible, poolRefusalLine, canonicalPoolCountry } from './pool-sourcing'
+import { normalizeRevealEmail } from './billing-rules'
 
 // K.I.N.D brand voice + messaging config — update this file to change how the CMO agent writes
 export const KIND_BRAND = {
@@ -78,24 +82,107 @@ export const KIND_BRAND = {
 // the client/PDL branch and the house/Apollo branch both swallow provider errors and
 // return []. Size stays capped at the 20/day self-outreach limit.
 //
-// ⚠️ POOL-FIRST (founder, 21 Aug) IS NOT APPLIED HERE, DELIBERATELY. This function creates
-// no leads — it returns contacts for the founder's own prospect digest, and `servePoolLeads`
-// is a lead-INSERTING step that needs a client id. Client Zero's ACTUAL sourcing, run through
-// Milla like any client, goes through routes/icps.ts — which is pool-first already and stays
-// pool-first. Applying the ruling here would mean changing what this route does, not where it
-// sources from.
+// ── 🛑 ⚑ 12 Sep — POOL FIRST NOW APPLIES HERE TOO (founder gate, 12 Sep) ─────────────────
+//
+// ⛓️ WHAT STOOD HERE, AND WHY IT WAS OVERRULED:
+//     ~~"POOL-FIRST (founder, 21 Aug) IS NOT APPLIED HERE, DELIBERATELY. This function creates
+//       no leads — it returns contacts for the founder's own prospect digest, and
+//       `servePoolLeads` is a lead-INSERTING step that needs a client id."~~
+//
+// That answered clause 1 (check owned inventory first) by pointing at an implementation
+// detail, and it answered clauses 6 and 7 not at all:
+//
+//   · CLAUSE 7 — *never pay externally for an eligible reusable identity we already have.*
+//     Every House prospecting run bought twenty Apollo records without once asking whether we
+//     already owned them. Whether the result becomes a lead is irrelevant to the invoice.
+//   · CLAUSE 6 — *newly acquired reusable Apollo/PDL records are written back.* Twenty bought
+//     records were formatted into an HTML table, emailed to the founder, and discarded. We
+//     paid, and kept nothing — so the next run could buy the same people again.
+//
+// The objection was real but it was about `servePoolLeads`, not about Pool First.
+// `selectPoolCandidates` is the READ half, needs no client id, and is the same code the ICP
+// path uses. The one rule that genuinely cannot apply without a client is the per-client
+// `owned` exclusion — House has no pipeline to duplicate — and every other rule still does.
+//
+// ⚠️ AR5 IS UNTOUCHED. `'house'` still routes the remainder to Apollo; PDL and Hunter remain
+// the CLIENTS' stack and K.I.N.D's own hunting must not spend them (#606, 30 Jul / 1 Aug).
+//
+// ⚠️ IT STILL NEVER THROWS. A pool read that fails returns empty and the Apollo branch runs as
+// before; both provider branches still swallow their errors and return []. Size stays capped
+// at the 20/day self-outreach limit.
+const HOUSE_PROSPECT_TARGET = 20
+
+/** The targeting K.I.N.D hunts on — one definition, used for the pool read and the Apollo body. */
+const HOUSE_ICP = {
+  industries:       KIND_BRAND.target_icp.industries,
+  job_titles:       KIND_BRAND.target_icp.job_titles,
+  seniority_levels: ['c_suite', 'owner', 'founder', 'director'],
+  company_sizes:    ['1,10', '11,50'],
+  geographies:      KIND_BRAND.target_icp.geographies,
+  tech_stack:       [] as string[],
+  keywords:         [] as string[],
+  apollo_only_consented: false,
+}
+
 export async function findKindProspects(): Promise<ApolloContact[]> {
-  const { contacts } = await searchPeopleWithFallback({
-    industries:       KIND_BRAND.target_icp.industries,
-    job_titles:       KIND_BRAND.target_icp.job_titles,
-    seniority_levels: ['c_suite', 'owner', 'founder', 'director'],
-    company_sizes:    ['1,10', '11,50'],
-    geographies:      KIND_BRAND.target_icp.geographies,
-    tech_stack:       [],
-    keywords:         [],
-    apollo_only_consented: false,
-  }, 1, 20, null, 'house')
-  // #375 (AR-38) — drop placeholder addresses at the source so no caller can
-  // insert/charge/cold-email a fake mailbox (reputation risk to our sending domain).
-  return contacts.filter(p => !isPlaceholderEmail(p.email))
+  // ① OWNED INVENTORY FIRST. Same selection the ICP path runs: R73 source rights, geography,
+  // the opt-out blocklist (which is also the hard-bounce fence), the do-not-contact floor,
+  // placeholder addresses and the hard fit. No client id — House has no pipeline of its own.
+  const pool = await selectPoolCandidates(HOUSE_ICP, { cap: HOUSE_PROSPECT_TARGET })
+  logPoolCounters('house-prospecting', pool.counters, pool.eligible.length)
+  const fromPool: ApolloContact[] = pool.eligible.map(c => ({
+    id:                null,
+    first_name:        c.first_name || '',
+    last_name:         c.last_name  || '',
+    email:             normalizeRevealEmail(c.email_norm),
+    title:             c.title      || null,
+    linkedin_url:      c.linkedin_url || null,
+    country:           c.country    || null,
+    organization_name: c.company    || null,
+    organization:      c.company ? { name: c.company } : null,
+  }) as unknown as ApolloContact)
+
+  // ② ONLY THE REMAINDER IS BOUGHT. A full pool contacts Apollo zero times — not a smaller
+  // request, NO request: clause 7 made structural rather than trusted to a smaller number.
+  const { pdlRemainder: remainder } = splitPoolAndRemainder(HOUSE_PROSPECT_TARGET, fromPool.length)
+  console.log(`[cmo] pool-first: ${fromPool.length} of ${HOUSE_PROSPECT_TARGET} House prospects served from owned inventory at $0; remainder to buy = ${remainder}.`)
+  if (remainder <= 0) return fromPool.filter(p => !isPlaceholderEmail(p.email))
+
+  const { contacts } = await searchPeopleWithFallback(HOUSE_ICP, 1, remainder, null, 'house')
+
+  // ③ THE BOUGHT HALF GOES BEHIND THE SAME PROTECTIONS as every other provider result —
+  // unmailable addresses, the do-not-contact floor and the opt-out blocklist.
+  const { accepted, refused } = await filterProviderContacts(contacts)
+  if (refused.unusable + refused.suppressed + refused.blocked > 0) {
+    console.log(`[cmo] stage=provider_suppression — refused ${refused.unusable} unmailable · ${refused.suppressed} do-not-contact · ${refused.blocked} opted-out of ${contacts.length} Apollo contact(s).`)
+  }
+
+  // ④ RETAIN WHAT WE BOUGHT (clause 6). `splitPoolEligible` is the cross-client rights
+  // tripwire (F13/F15), and the upsert is ON CONFLICT DO NOTHING exactly as the ICP path does
+  // it — a record bought once is reused and its cost is never rewritten. A failure here is
+  // non-fatal: the founder still gets the digest.
+  const poolUpserts = accepted
+    .map(p => ({
+      email_norm:   normalizeRevealEmail(p.email),
+      first_name:   p.first_name || null,
+      last_name:    p.last_name  || null,
+      title:        p.title      || null,
+      company:      p.organization?.name ?? p.organization_name ?? null,
+      country:      canonicalPoolCountry(p.country) || null,
+      linkedin_url: p.linkedin_url || null,
+      source:       'apollo',
+    }))
+    .filter(r => Boolean(r.email_norm))
+  const { eligible: writable, refused: refusedRows } = splitPoolEligible(poolUpserts)
+  if (refusedRows.length > 0) console.error(poolRefusalLine(refusedRows))
+  if (writable.length > 0) {
+    const { error } = await db.from('lead_pool')
+      .upsert(writable, { onConflict: 'email_norm', ignoreDuplicates: true })
+    if (error) console.error('[cmo] lead_pool upsert failed (non-fatal — the digest is unaffected):', error)
+    else console.log(`[cmo] stage=pool_write — ${writable.length} Apollo record(s) retained as reusable inventory.`)
+  }
+
+  // #375 (AR-38) — drop placeholder addresses so no caller can insert/charge/cold-email a fake
+  // mailbox (reputation risk to our sending domain).
+  return [...fromPool, ...accepted].filter(p => !isPlaceholderEmail(p.email))
 }

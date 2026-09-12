@@ -23,8 +23,17 @@ import { join } from 'node:path'
 import { poolRecordMatchesIcp, splitPoolAndRemainder, type PoolRecord } from './pool-sourcing'
 import { hardFit, structurallyAdmissible } from './proof-fit'
 
+// ⛓️ 12 Sep — THE SERVE PATH IS NOW TWO FILES, AND THIS GUARD READS BOTH.
+//
+// `servePoolLeads`'s candidate selection was extracted into `lib/pool-candidates.ts` so that
+// `/lookalike/generate` and House prospecting ask the SAME code (POOL-FIRST gate, founder
+// 12 Sep). The insert, the programme reservation, the $0 ledger row and the cost-avoided
+// counters stayed in `routes/icps.ts`. Every assertion below is unchanged; what it reads is
+// the whole serve path rather than one half of it.
 const ICPS = readFileSync(join(__dirname, '..', 'routes', 'icps.ts'), 'utf8')
+  + '\n' + readFileSync(join(__dirname, 'pool-candidates.ts'), 'utf8')
 const POOL = readFileSync(join(__dirname, 'pool-sourcing.ts'), 'utf8')
+const CANDIDATES = readFileSync(join(__dirname, 'pool-candidates.ts'), 'utf8')
 
 const code = (s: string) => s.split('\n')
   .filter(l => { const t = l.trim(); return t && !t.startsWith('//') && !t.startsWith('*') && !t.startsWith('/*') })
@@ -152,7 +161,8 @@ describe('🛑 ② the external ask is the ELIGIBLE shortfall — the founder\'s
 describe('🛑 ③ the exclusions, and the hard-fit decision, are all in the serve path', () => {
   it('hard fit is decided on the row, after the widened query', () => {
     const c = code(ICPS)
-    expect(c).toContain('if (!poolRecordMatchesIcp(c as never, icp as never)) { notHardFit++; return false }')
+    // ⛓️ 12 Sep — the counter is a field on the shared result now; the RULE is byte-identical.
+    expect(c).toContain('if (!poolRecordMatchesIcp(c as never, icp as never)) { counters.notHardFit++; return false }')
   })
 
   it('rights · geography · client-held · opt-out · suppression are all refused', () => {
@@ -203,12 +213,24 @@ describe('④ the operator counters — and no invented cost', () => {
   })
 
   it('the cost is read from lead_pool, beside its own select', () => {
-    const c = code(ICPS)
-    const mapAt = c.indexOf('const poolCostByEmail = new Map<string, number>()')
-    const leadsInsertAt = c.indexOf("db.from('leads').insert(rows)")
-    expect(mapAt).toBeGreaterThan(-1)
-    // Before the leads insert, so the column reads as what it is: a lead_pool column.
-    expect(mapAt).toBeLessThan(leadsInsertAt)
+    // ⛓️ 12 Sep — ASSERTED IN THE FILE THAT NOW OWNS IT, and this is stronger than before.
+    //
+    // The old form checked the map was built before the `leads` insert, both being in
+    // `routes/icps.ts`. The candidate selection now lives in `lib/pool-candidates.ts`, which
+    // does not insert leads at all — so the real property is the one that was always meant:
+    // `acquisition_cost` is read in the same function, and from the same rows, as the
+    // `lead_pool` select. A bare column name read anywhere else would be a column of whatever
+    // table is nearest, which is exactly the false `leads.acquisition_cost` reading this guard
+    // exists to stop.
+    const c = code(CANDIDATES)
+    const selectAt = c.indexOf("from('lead_pool').select('*')")
+    const mapAt    = c.indexOf('const costByEmail = new Map<string, number>()')
+    const costAt   = c.indexOf('c.acquisition_cost')
+    expect(selectAt, 'the pool select is still here').toBeGreaterThan(-1)
+    expect(mapAt, 'the cost map is still built here').toBeGreaterThan(selectAt)
+    expect(costAt, 'acquisition_cost is read from the pool rows').toBeGreaterThan(mapAt)
+    // And it is NOT read from a leads row anywhere on this path.
+    expect(c.includes('leads.acquisition_cost'), 'acquisition_cost is a lead_pool column').toBe(false)
   })
 
   it('none of it reaches the client', () => {

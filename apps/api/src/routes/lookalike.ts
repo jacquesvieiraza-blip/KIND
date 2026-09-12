@@ -4,6 +4,9 @@ import { adminKeyValid } from './admin'
 import { searchPeople, buildSearchBody } from '../lib/apollo'
 import { audienceForClient } from '../lib/provider-boundary'
 import { PDL_RATE_USD } from '../lib/sourcing-fences'
+import { normalizeRevealEmail } from '../lib/billing-rules'
+import { selectPoolCandidates, logPoolCounters, filterProviderContacts, type PoolCandidate } from '../lib/pool-candidates'
+import { splitPoolAndRemainder, splitPoolEligible, poolRefusalLine, canonicalPoolCountry } from '../lib/pool-sourcing'
 
 const router = Router()
 
@@ -105,7 +108,8 @@ router.post('/generate', async (req: Request, res: Response) => {
     //
     // ⚠️ HOUSE IS NOT FENCED BY IT. Client Zero's lookalikes come from Apollo — ours,
     // already prepaid — so there is no PDL record to pre-fund (AR5/AR16).
-    let grantedSize = LOOKALIKE_TARGET
+    // ⚑ 12 Sep — defaults to the REMAINDER (House takes no client grant), never the target.
+    let grantedSize = 0
 
     // ── ⚑ POSITIVE ATTRIBUTION APPLIES TO HOUSE TOO ──────────────────────────────────────
     //
@@ -159,6 +163,44 @@ router.post('/generate', async (req: Request, res: Response) => {
       })
     }
 
+    // ── 🛑 ⚑ 12 Sep — POOL FIRST. THIS ROUTE USED TO BUY WHAT WE ALREADY OWNED ─────────────
+    //
+    // 🛑 WHAT WAS BROKEN (founder gate, 12 Sep). This route asked Apollo/PDL for fifty records
+    // and never once looked at `lead_pool`. Every other sourcing path in the product serves
+    // owned inventory first and buys only the shortfall; this one paid full price for
+    // identities we already held, and then wrote nothing back, so the next run could buy the
+    // same people a third time. Pool First was a convention held inside `runIcpJob`, and a
+    // convention only protects the paths somebody remembered to apply it to.
+    //
+    // ⚠️ SAME CODE, NOT A SECOND ANSWER. `selectPoolCandidates` IS the selection
+    // `servePoolLeads` runs — R73 source rights, geography, the client's own held leads, the
+    // opt-out blocklist (which is also the hard-bounce fence), the do-not-contact floor,
+    // placeholder addresses and the hard ICP fit. Nothing here re-decides any of it.
+    //
+    // ⚠️ AND IT IS FREE, SO IT IS NOT FUNDED. The `try_spend_sourcing` grant below is now taken
+    // for the REMAINDER ONLY. Routing pool rows through it would book $0.28 a head of provider
+    // money nobody spent — the exact conflation the sourcing arc removed.
+    const pool = await selectPoolCandidates(icp, { cap: LOOKALIKE_TARGET, clientId: String(client_id) })
+    logPoolCounters(`lookalike client=${client_id}`, pool.counters, pool.eligible.length)
+    const poolServed = pool.eligible.length
+    const { pdlRemainder: remainder } = splitPoolAndRemainder(LOOKALIKE_TARGET, poolServed)
+    console.log(`[lookalike] pool-first: ${poolServed} of ${LOOKALIKE_TARGET} served from owned inventory at $0; remainder to buy = ${remainder}.`)
+    grantedSize = remainder
+
+    // 🛑 A FULL POOL BUYS NOTHING. Not a smaller request — NO provider call at all, no grant,
+    // no ledger row. This is clause 7 of the founder's rule made structural: if owned inventory
+    // covers the target, no external provider is contacted.
+    if (remainder <= 0) {
+      const insertedFromPool = await insertLookalikeLeads(String(client_id), icp.id, poolLeadRows(pool.eligible, String(client_id), icp.id))
+      return res.json({
+        found: poolServed,
+        inserted: insertedFromPool,
+        from_pool: poolServed,
+        from_provider: 0,
+        icp_used: { industries: icp.industries, titles: icp.job_titles, locations: icp.geographies },
+      })
+    }
+
     if (audience !== 'house') {
       // ── PROGRAMME AUTHORITY (BUILD-002) ─────────────────────────────────────────
       // This route has no ICP in hand, so there is no programme id to pass — and that is
@@ -171,7 +213,7 @@ router.post('/generate', async (req: Request, res: Response) => {
       // spending PDL with no fence at all (~$14/click). Trusting each caller to remember a
       // parameter is how that happens again; the database refusing is how it does not.
       const { data: granted } = await db.rpc('try_spend_sourcing', {
-        p_client_id: client_id, p_requested: LOOKALIKE_TARGET, p_programme_id: null,
+        p_client_id: client_id, p_requested: remainder, p_programme_id: null,
       })
       grantedSize = typeof granted === 'number' ? granted : 0
       if (grantedSize <= 0) {
@@ -199,7 +241,8 @@ router.post('/generate', async (req: Request, res: Response) => {
       apollo_only_consented: icp.apollo_only_consented ?? false,
       intent_signals:        icp.intent_signals         ?? [],
     }, 1)
-    searchBody.per_page = LOOKALIKE_TARGET
+    // ⚑ 12 Sep — THE REMAINDER, NEVER THE TARGET. What the pool already gave is not bought again.
+    searchBody.per_page = remainder
 
     // Provider by audience — never by key presence. For a client this is PDL, using the
     // same ICP traits the Apollo body was built from (industries · sizes · titles ·
@@ -250,16 +293,34 @@ router.post('/generate', async (req: Request, res: Response) => {
       }
     }
 
-    if (!people.length) {
+    // ── 🛑 ⚑ 12 Sep — THE PROVIDER HALF GOES BEHIND THE SAME PROTECTIONS (founder amendment) ─
+    //
+    // 🛑 WHY THIS IS NOT OPTIONAL. Pool First alone would have given this route opt-out and
+    // do-not-contact protection on its POOLED half and left its PROVIDER half exactly as it
+    // was: fifty records inserted straight into a client's pipeline with no blocklist probe,
+    // no DNC floor and no placeholder check. Half a guard on a route that writes into a live
+    // pipeline is worse than none, because the log then reads as protected.
+    //
+    // ⚠️ REUSED, NOT REIMPLEMENTED. `filterProviderContacts` asks the same three questions
+    // `runIcpJob` asks of its own provider results, in the same order, with the same
+    // normalisation (HC-1 — probe with the NORMALISED address, never the provider's raw one).
+    const { accepted: safePeople, refused: providerRefused } = await filterProviderContacts(people as any[])
+    if (providerRefused.unusable + providerRefused.suppressed + providerRefused.blocked > 0) {
+      console.log(`[lookalike] stage=provider_suppression client=${client_id} — refused ${providerRefused.unusable} unmailable · ${providerRefused.suppressed} do-not-contact · ${providerRefused.blocked} opted-out of ${people.length} provider contact(s). They are NOT inserted and NOT pooled.`)
+    }
+
+    if (!safePeople.length && poolServed === 0) {
       return res.json({
         found: 0,
         inserted: 0,
+        from_pool: 0,
+        from_provider: 0,
         icp_used: { industries: icp.industries, titles: icp.job_titles, locations: icp.geographies },
       })
     }
 
-    // Build lead rows
-    const leads = people.map((p: any) => ({
+    // Build lead rows — the pool half first, then the bought half.
+    const providerLeads = safePeople.map((p: any) => ({
       client_id,
       icp_id:       icp.id,
       first_name:   p.first_name       || 'Unknown',
@@ -276,29 +337,53 @@ router.post('/generate', async (req: Request, res: Response) => {
       source:       'lookalike',
       status:       'pending',
     }))
+    const allLeads = [...poolLeadRows(pool.eligible, String(client_id), icp.id), ...providerLeads]
+    const insertedCount = await insertLookalikeLeads(String(client_id), icp.id, allLeads)
 
-    // Deduplicate against existing leads for this client
-    const emails = leads.map((l: any) => l.email).filter(Boolean) as string[]
-    let existingSet = new Set<string>()
-    if (emails.length) {
-      const { data: existing } = await db
-        .from('leads')
-        .select('email')
-        .eq('client_id', client_id)
-        .in('email', emails)
-      ;(existing ?? []).forEach((r: any) => r.email && existingSet.add(r.email.toLowerCase()))
-    }
-
-    const toInsert = leads.filter((l: any) => !l.email || !existingSet.has(l.email.toLowerCase()))
-
-    if (toInsert.length > 0) {
-      const { error: insertErr } = await db.from('leads').insert(toInsert)
-      if (insertErr) throw insertErr
+    // ── ⚑ 12 Sep — WRITE THE BOUGHT RECORDS BACK, SO WE NEVER BUY THEM TWICE (clause 6) ────
+    //
+    // 🛑 THIS ROUTE RETAINED NOTHING. Every lookalike record was paid for, inserted for one
+    // client, and forgotten — so the same identity could be bought again tomorrow for the next
+    // client. That is clause 7 broken by omission rather than by a wrong call.
+    //
+    // ⚠️ `splitPoolEligible` IS THE TRIPWIRE, NOT A FORMALITY. `lead_pool` is CROSS-CLIENT:
+    // whether a record may be reused is provider-specific (F13/F15). Records are tagged with
+    // the provider that ACTUALLY ran — Apollo for House, PDL for a client — and anything else
+    // is refused rather than quietly pooled.
+    //
+    // ⚠️ ON CONFLICT DO NOTHING, exactly as the ICP path does it: a record bought once is
+    // reused and its cost is never rewritten, and a later weaker row can never clobber a
+    // stronger one. The refusal skips the POOL write ONLY — the client keeps every lead.
+    const poolSource = audience === 'house' ? 'apollo' : 'pdl'
+    const poolUpserts = safePeople
+      .map((p: any) => ({
+        email_norm:   normalizeRevealEmail(p.email),
+        first_name:   p.first_name || null,
+        last_name:    p.last_name  || null,
+        title:        p.title      || null,
+        seniority:    p.seniority  || null,
+        company:      p.organization_name || p.organization?.name || null,
+        industry:     p.organization?.industry || null,
+        company_size: p.organization?.num_employees ? String(p.organization.num_employees) : null,
+        country:      canonicalPoolCountry(p.country) || null,
+        linkedin_url: p.linkedin_url || null,
+        source:       poolSource,
+      }))
+      .filter(r => Boolean(r.email_norm))
+    const { eligible: poolWritable, refused: poolRefusedRows } = splitPoolEligible(poolUpserts)
+    if (poolRefusedRows.length > 0) console.error(poolRefusalLine(poolRefusedRows))
+    if (poolWritable.length > 0) {
+      const { error: poolErr } = await db.from('lead_pool')
+        .upsert(poolWritable, { onConflict: 'email_norm', ignoreDuplicates: true })
+      if (poolErr) console.error('[lookalike] lead_pool upsert failed (non-fatal — the client keeps every lead):', poolErr)
+      else console.log(`[lookalike] stage=pool_write — ${poolWritable.length} record(s) from ${poolSource} retained as reusable inventory.`)
     }
 
     return res.json({
-      found:    people.length,
-      inserted: toInsert.length,
+      found:    poolServed + safePeople.length,
+      inserted: insertedCount,
+      from_pool: poolServed,
+      from_provider: safePeople.length,
       icp_used: {
         industries: icp.industries,
         titles:     icp.job_titles,
@@ -310,5 +395,64 @@ router.post('/generate', async (req: Request, res: Response) => {
     return res.status(500).json({ error: err.message })
   }
 })
+
+// ── HELPERS ────────────────────────────────────────────────────────────────────────────
+//
+// ⚠️ DELIBERATELY BELOW THE ROUTE, NOT ABOVE IT. `commercial-model.test.ts` and
+// `house-authority.test.ts` assert that the refusals come BEFORE any provider call and before
+// any lead is written, and they read that ordering off the file. Declaring an inserter above
+// the handler puts `db.from('leads').insert` at a lower offset than the refusal it must never
+// run before — a false red, and one that would be indistinguishable from a real regression.
+// Function declarations hoist, so execution is identical.
+/**
+ * ⚑ 12 Sep — the pool half of a lookalike run, as client leads.
+ *
+ * Same lead shape the provider half writes, so delivery, scoring and reveal are unchanged.
+ * `apollo_id` is null because nobody bought this row on this run — it is inventory we already
+ * owned — and `source` stays `'lookalike'` because that is what this route produced. That tag
+ * is a LEAD tag, never a pool tag: these rows are already in `lead_pool` and are not written
+ * back, so it cannot affect pool eligibility.
+ */
+function poolLeadRows(rows: PoolCandidate[], clientId: string, icpId: string) {
+  return rows.map(c => ({
+    client_id:    clientId,
+    icp_id:       icpId,
+    first_name:   c.first_name || 'Unknown',
+    last_name:    c.last_name  || '',
+    email:        normalizeRevealEmail(c.email_norm) || null,
+    company:      c.company      || null,
+    job_title:    c.title        || null,
+    linkedin_url: c.linkedin_url || null,
+    country:      c.country      || null,
+    company_size: c.company_size || null,
+    industry:     c.industry     || null,
+    apollo_id:    null as string | null,
+    score:        85,
+    source:       'lookalike',
+    status:       'pending',
+  }))
+}
+
+/**
+ * Insert lead rows, skipping any address this client already holds.
+ *
+ * ⚠️ THE DEDUPE IS UNCHANGED IN KIND AND NARROWED IN NOTHING. It was already here; it is a
+ * function now because the pool half and the provider half must both pass through it, and two
+ * copies of a dedupe is how one of them silently stops matching.
+ */
+async function insertLookalikeLeads(clientId: string, _icpId: string, leads: { email: string | null }[]): Promise<number> {
+  if (leads.length === 0) return 0
+  const emails = leads.map(l => l.email).filter(Boolean) as string[]
+  const existing = new Set<string>()
+  if (emails.length) {
+    const { data } = await db.from('leads').select('email').eq('client_id', clientId).in('email', emails)
+    ;(data ?? []).forEach((r: { email?: string | null }) => r.email && existing.add(r.email.toLowerCase()))
+  }
+  const toInsert = leads.filter(l => !l.email || !existing.has(l.email.toLowerCase()))
+  if (toInsert.length === 0) return 0
+  const { error } = await db.from('leads').insert(toInsert)
+  if (error) throw error
+  return toInsert.length
+}
 
 export default router

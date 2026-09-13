@@ -404,7 +404,15 @@ describe('④ the control obeys the server, fires once, and never paints a failu
     // cleared only in `finally`, and the button disabled on it. Any one alone is not enough.
     expect(HANDLER).toContain('if (qualBusy) return')
     expect(HANDLER).toContain('setQualBusy(true)')
-    expect(HANDLER).toContain('} finally { setQualBusy(false) }')
+    // ⛓️ 13 Sep (BL-1 residual) — STRENGTHENED. This pinned
+    // ~~`} finally { setQualBusy(false) }`~~ — an UNCONDITIONAL settlement, which is itself the
+    // hole this case exists to close: an action started for ANOTHER client, finishing after the
+    // operator switched here, cleared THIS client's busy flag and re-opened the very guard
+    // asserted two lines up, on a request still in flight. The settlement is now scoped to the
+    // generation that raised it, and the unconditional shape is forbidden outright.
+    expect(HANDLER).toContain('const settleBusy = forThisProgramme(setQualBusy)')
+    expect(HANDLER).toContain('} finally { settleBusy(false) }')
+    expect(HANDLER, 'the busy flag is settled unconditionally again').not.toContain('setQualBusy(false) }')
     expect(CODE).toContain('<button onClick={qualifySourcedLeads} disabled={qualBusy}')
     // ⚠️ ORDERING, NOT PRESENCE. `setQualBusy(true)` after the fetch would leave the whole
     // request window unguarded, and every assertion above would still pass.

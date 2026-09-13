@@ -610,6 +610,19 @@ export default function VidaConsolePage() {
     setQualConfirm(false)
     // ⚑ 13 Sep (BL-1) — everything this call learns belongs to the client it was pressed for.
     const say = forThisProgramme(setQualMsg)
+    // ── 🛑 ⚑ 13 Sep (BL-1 residual) — THE BUSY FLAG IS SETTLED BY ITS OWN CLIENT ONLY ──
+    //
+    // ⛓️ WHAT STOOD HERE: ~~`finally { setQualBusy(false) }`~~ — unconditional, and that is a race the
+    // generation guards above do NOT cover. They stop a stale response being READ; they say
+    // nothing about a stale finalizer WRITING. The sequence is:
+    //
+    //   A's action starts and sets busy → operator switches to B (the switch clears busy) →
+    //   B starts its own action and IS busy → A's old finalizer runs → B's busy is cleared.
+    //
+    // 🛑 FOR QUALIFICATION THAT DEFEATS THE SINGLE-FLIGHT GUARD. `if (qualBusy) return` is the
+    // only thing stopping a second qualification while the first is in flight, so a stale A
+    // completion clearing B's flag re-opens the button on a request that has not come back.
+    const settleBusy = forThisProgramme(setQualBusy)
 
     setQualBusy(true); setQualMsg(null)
     try {
@@ -685,7 +698,7 @@ export default function VidaConsolePage() {
       if (selected) await loadProgramme(selected)
     } catch (e) {
       say({ tone: 'error', text: e instanceof Error ? e.message : 'The request did not complete. Read the programme before trying again — do not press this twice.' })
-    } finally { setQualBusy(false) }
+    } finally { settleBusy(false) }
   }, [programmeActionId, forThisProgramme, qualBusy, selected, loadProgramme])
 
   // ── ⚑ 3 Sep (C2) · DECLARING THE COMMERCIAL MODEL ──────────────────────────────────────
@@ -854,6 +867,18 @@ export default function VidaConsolePage() {
     const say = forThisProgramme(setLcMsg)
     const who = (clients ?? []).find(c => c.id === selected)?.company_name ?? 'this client'
     if (!confirm(`Pause ${who}'s programme?\n\nOutreach stops. Nobody loses their place in the sequence, nothing is refunded and nothing is unwound.`)) return
+    // ── 🛑 ⚑ 13 Sep (BL-1 residual) — THE BUSY FLAG IS SETTLED BY ITS OWN CLIENT ONLY ──
+    //
+    // ⛓️ WHAT STOOD HERE: ~~`finally { setLcBusy(null) }`~~ — unconditional, and that is a race
+    // the guards above do NOT cover. They stop a stale response being READ; they say nothing
+    // about a stale finalizer WRITING. A's action sets busy → the operator switches to B (the
+    // switch clears it) → B starts its own action and IS busy → A's old finalizer runs → B's
+    // busy is cleared under a request that has not come back.
+    //
+    // ⚠️ `lcBusy` HAS NO `if (lcBusy) return` GUARD — it drives the disabled attribute — so the
+    // consequence here is a control re-enabled mid-flight, not a second request admitted by the
+    // guard itself. Stated exactly, because that differs from `qualBusy`.
+    const settleBusy = forThisProgramme(setLcBusy)
     setLcBusy('pause'); setLcMsg(null)
     try {
       const j = await fetch(`/api/proxy/programmes/${encodeURIComponent(id)}/pause`, {
@@ -864,7 +889,7 @@ export default function VidaConsolePage() {
       if (selected) await loadProgramme(selected)
     } catch (e) {
       say(e instanceof Error ? e.message : 'The programme was not paused.')
-    } finally { setLcBusy(null) }
+    } finally { settleBusy(null) }
   }, [programmeActionId, forThisProgramme, selected, clients, loadProgramme])
 
   // ── ⚑ 11 Sep (DAY 3) — RE-FREEZE, AND IT IS DELIBERATELY *NOT* INSIDE `lifecycle()` ────
@@ -887,6 +912,18 @@ export default function VidaConsolePage() {
     const say = forThisProgramme(setLcMsg)
     const who = (clients ?? []).find(c => c.id === selected)?.company_name ?? 'this client'
     if (!confirm(`Publish a new version of ${who}'s review package?\n\nThe prepared work has changed since it was frozen, so they cannot approve what they are looking at. This publishes the current work as a NEW VERSION and asks them again.\n\nNOTHING is approved, charged or sent.`)) return
+    // ── 🛑 ⚑ 13 Sep (BL-1 residual) — THE BUSY FLAG IS SETTLED BY ITS OWN CLIENT ONLY ──
+    //
+    // ⛓️ WHAT STOOD HERE: ~~`finally { setLcBusy(null) }`~~ — unconditional, and that is a race
+    // the guards above do NOT cover. They stop a stale response being READ; they say nothing
+    // about a stale finalizer WRITING. A's action sets busy → the operator switches to B (the
+    // switch clears it) → B starts its own action and IS busy → A's old finalizer runs → B's
+    // busy is cleared under a request that has not come back.
+    //
+    // ⚠️ `lcBusy` HAS NO `if (lcBusy) return` GUARD — it drives the disabled attribute — so the
+    // consequence here is a control re-enabled mid-flight, not a second request admitted by the
+    // guard itself. Stated exactly, because that differs from `qualBusy`.
+    const settleBusy = forThisProgramme(setLcBusy)
     setLcBusy('refreeze'); setLcMsg(null)
     try {
       const j = await fetch(`/api/proxy/programmes/${encodeURIComponent(id)}/refreeze`, {
@@ -899,7 +936,7 @@ export default function VidaConsolePage() {
       if (selected) await loadProgramme(selected)
     } catch (e) {
       say(e instanceof Error ? e.message : 'Nothing was re-frozen.')
-    } finally { setLcBusy(null) }
+    } finally { settleBusy(null) }
   }, [programmeActionId, forThisProgramme, selected, clients, loadProgramme])
 
   const lifecycle = useCallback(async (action: string, label: string) => {
@@ -936,6 +973,18 @@ export default function VidaConsolePage() {
       'go-live': `Make ${name}'s programme LIVE?\n\nOutreach becomes permitted for this programme. Sending still obeys every downstream safety gate.`,
     }
     if (confirms[action] && !confirm(confirms[action])) return
+    // ── 🛑 ⚑ 13 Sep (BL-1 residual) — THE BUSY FLAG IS SETTLED BY ITS OWN CLIENT ONLY ──
+    //
+    // ⛓️ WHAT STOOD HERE: ~~`finally { setLcBusy(null) }`~~ — unconditional, and that is a race
+    // the guards above do NOT cover. They stop a stale response being READ; they say nothing
+    // about a stale finalizer WRITING. A's action sets busy → the operator switches to B (the
+    // switch clears it) → B starts its own action and IS busy → A's old finalizer runs → B's
+    // busy is cleared under a request that has not come back.
+    //
+    // ⚠️ `lcBusy` HAS NO `if (lcBusy) return` GUARD — it drives the disabled attribute — so the
+    // consequence here is a control re-enabled mid-flight, not a second request admitted by the
+    // guard itself. Stated exactly, because that differs from `qualBusy`.
+    const settleBusy = forThisProgramme(setLcBusy)
     setLcBusy(action); setLcMsg(null)
     try {
       // ⚠️ `id` IS THE ONE THE GATE PROVED, not a fresh read of `prog`. Re-resolving here
@@ -1017,7 +1066,7 @@ export default function VidaConsolePage() {
       if (selected) await loadProgramme(selected)
     } catch (e) {
       say(e instanceof Error ? e.message : `${label} failed`)
-    } finally { setLcBusy(null) }
+    } finally { settleBusy(null) }
   }, [programmeActionId, forThisProgramme, selected, clients, loadProgramme])
 
   const createProgrammeNow = useCallback(async () => {
@@ -1056,6 +1105,18 @@ export default function VidaConsolePage() {
       'Future sourcing from this ICP will belong to this programme.\n' +
       'Historical leads and enrolments are NOT changed.',
     )) return
+    // ── 🛑 ⚑ 13 Sep (BL-1 residual) — THE BUSY FLAG IS SETTLED BY ITS OWN CLIENT ONLY ──
+    //
+    // ⛓️ WHAT STOOD HERE: ~~`finally { setLcBusy(null) }`~~ — unconditional, and that is a race
+    // the guards above do NOT cover. They stop a stale response being READ; they say nothing
+    // about a stale finalizer WRITING. A's action sets busy → the operator switches to B (the
+    // switch clears it) → B starts its own action and IS busy → A's old finalizer runs → B's
+    // busy is cleared under a request that has not come back.
+    //
+    // ⚠️ `lcBusy` HAS NO `if (lcBusy) return` GUARD — it drives the disabled attribute — so the
+    // consequence here is a control re-enabled mid-flight, not a second request admitted by the
+    // guard itself. Stated exactly, because that differs from `qualBusy`.
+    const settleBusy = forThisProgramme(setLcBusy)
     setLcBusy(`icp:${icpId}`); setLcMsg(null)
     try {
       const j = await fetch(`/api/proxy/programmes/${encodeURIComponent(id)}/attach-icp`, {
@@ -1066,7 +1127,7 @@ export default function VidaConsolePage() {
       say(`"${icpName ?? 'ICP'}" now feeds this programme. Nothing historical was changed.`)
       if (selected) await loadProgramme(selected)
     } catch (e) { say(e instanceof Error ? e.message : 'Attach failed') }
-    finally { setLcBusy(null) }
+    finally { settleBusy(null) }
   }, [programmeActionId, forThisProgramme, selected, clients, loadProgramme])
 
   // ⚑ 30 Aug (BUILD-003 PR4) — POOL + EXCEPTIONS. Platform-wide, so they load independently of

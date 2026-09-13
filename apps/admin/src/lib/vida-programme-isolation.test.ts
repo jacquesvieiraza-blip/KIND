@@ -78,6 +78,8 @@ class Workspace {
   err: string | null = null
   /** Every programme id a press actually sent a request for. Must never hold a foreign one. */
   sent: string[] = []
+  /** Busy surfaces the client switch clears, exactly as the switch effect clears them. */
+  readonly surfaces: { clear(): void }[] = []
 
   select(clientId: string | null): void {
     // PROTECTION 1 — invalidation happens first, exactly as the switch effect does it.
@@ -85,6 +87,7 @@ class Workspace {
     this.programme = null
     this.loaded = false
     this.err = null
+    for (const s of this.surfaces) s.clear()
     this.selected = clientId
   }
 
@@ -122,6 +125,29 @@ class Workspace {
     this.sent.push(this.programme!.id as string)
     return 1
   }
+}
+
+/**
+ * A busy flag, settled the way the page settles it. (BL-1 residual.)
+ *
+ * `begin` is the press: it captures the generation — `forThisProgramme(setQualBusy)` /
+ * `forThisProgramme(setLcBusy)` — goes busy, and hands back the finalizer that runs in
+ * `finally`. The finalizer settles ONLY while that generation is still current, which is the
+ * whole correction: a stale completion may not settle a flag that now belongs to somebody else.
+ */
+class BusySurface<T> {
+  value: T
+  constructor(private readonly w: Workspace, private readonly idle: T) {
+    this.value = idle
+    w.surfaces.push(this)
+  }
+  begin(busy: T): () => void {
+    const gen = this.w.gen
+    this.value = busy
+    return () => { if (this.w.gen === gen) this.value = this.idle }
+  }
+  /** What the client-switch effect does to it. */
+  clear(): void { this.value = this.idle }
 }
 
 let w: Workspace
@@ -383,6 +409,127 @@ describe('§C · BEHAVIOURAL — async action completion (P-11)', () => {
 })
 
 // ═══════════════════════════════════════════════════════════════════════════════════════
+describe('§C2 · BEHAVIOURAL — a stale finalizer cannot settle another client’s busy state', () => {
+  // ── THE RESIDUAL THE GENERATION READ-GUARD DOES NOT COVER ────────────────────────────
+  //
+  // The guards in §A stop a stale response being READ. They say nothing about a stale
+  // finalizer WRITING, and `finally` runs whatever happened in between:
+  //
+  //   A's action starts and goes busy → the operator switches to B (the switch clears busy)
+  //   → B starts its own action and IS busy → A's old `finally` runs → B's busy is cleared.
+
+  it('🛑 A · QUALIFY BUSY — stale A cannot clear B’s busy, and cannot re-open the single-flight guard', () => {
+    const qual = new BusySurface<boolean>(w, false)
+    const requests: string[] = []
+    /** `qualifySourcedLeads` exactly: `if (qualBusy) return`, then go busy, then the finalizer. */
+    const attempt = (label: string): (() => void) | null => {
+      if (qual.value) return null                       // ← the real single-flight guard
+      requests.push(label)
+      return qual.begin(true)
+    }
+
+    // ① A's qualification starts.
+    w.select(A)
+    const finishA = attempt('A#1')
+    expect(finishA, 'A’s own qualification was refused').not.toBeNull()
+    expect(qual.value).toBe(true)
+
+    // ② The operator switches to B. The switch clears the busy state (protection 1).
+    w.select(B)
+    expect(qual.value, 'the client switch left the previous client’s busy flag set').toBe(false)
+
+    // ③ B starts its own qualification and becomes busy.
+    const finishB = attempt('B#1')
+    expect(finishB).not.toBeNull()
+    expect(qual.value).toBe(true)
+
+    // ④ A's old action finishes. Its finalizer must settle NOTHING.
+    finishA!()
+    expect(qual.value, 'a stale A completion cleared client B’s qualBusy').toBe(true)
+
+    // 🛑 ⑤ AND THE CONSEQUENCE THAT MAKES THIS AN AUTHORITY ISSUE: B must not be able to
+    // issue a SECOND qualification merely because a stale A finished. B's first request is
+    // still in flight.
+    expect(attempt('B#2'), 'a second B qualification was admitted because stale A finished').toBeNull()
+    expect(requests, 'more requests were issued than presses that were allowed').toEqual(['A#1', 'B#1'])
+
+    // ⑥ B's own finalizer still settles normally — the guard protects, it does not freeze.
+    finishB!()
+    expect(qual.value, 'the owning action could not clear its own busy state').toBe(false)
+    expect(attempt('B#3'), 'normal service did not resume').not.toBeNull()
+    expect(requests).toEqual(['A#1', 'B#1', 'B#3'])
+  })
+
+  it('🛑 B · LIFECYCLE BUSY — stale A cannot clear B’s lcBusy', () => {
+    const lc = new BusySurface<string | null>(w, null)
+
+    w.select(A)
+    const finishA = lc.begin('pause')
+    expect(lc.value).toBe('pause')
+
+    w.select(B)
+    expect(lc.value, 'the switch left the previous client’s lcBusy set').toBeNull()
+
+    const finishB = lc.begin('refreeze')
+    expect(lc.value).toBe('refreeze')
+
+    finishA()
+    expect(lc.value, 'a stale A completion cleared client B’s lcBusy').toBe('refreeze')
+
+    finishB()
+    expect(lc.value, 'the owning action could not clear its own lcBusy').toBeNull()
+  })
+
+  it('🛑 the SHARED lcBusy surface holds for every pairing of the four programme-id actions', () => {
+    // `lcBusy` is one flag for pause · refreeze · the whole ladder · attach-ICP, so the race is
+    // cross-action as well as cross-client: A's pause finishing must not clear B's re-freeze.
+    const ACTIONS = ['pause', 'refreeze', 'ready-for-approval', 'icp:icp-1']
+    for (const aAction of ACTIONS) {
+      for (const bAction of ACTIONS) {
+        const ws = new Workspace()
+        const lc = new BusySurface<string | null>(ws, null)
+        ws.select(A)
+        const finishA = lc.begin(aAction)
+        ws.select(B)
+        const finishB = lc.begin(bAction)
+        finishA()
+        expect(lc.value, `stale A "${aAction}" cleared B’s "${bAction}"`).toBe(bAction)
+        finishB()
+        expect(lc.value).toBeNull()
+      }
+    }
+  })
+
+  it('an action that completes with NO switch in between settles its own busy normally', () => {
+    // ⚠️ THE OTHER DIRECTION, AND IT MATTERS AS MUCH. A guard that also blocked the owning
+    // action would leave every control stuck busy for ever after one press.
+    const qual = new BusySurface<boolean>(w, false)
+    const lc = new BusySurface<string | null>(w, null)
+    w.select(B)
+    const q = qual.begin(true)
+    const l = lc.begin('pause')
+    q(); l()
+    expect(qual.value).toBe(false)
+    expect(lc.value).toBeNull()
+  })
+
+  it('A → B → A: a finalizer from the FIRST A visit cannot settle the SECOND A visit’s busy', () => {
+    // Identity alone would accept this: it really is client A both times. Only the generation
+    // tells the two visits apart — the same argument as P-3, on the busy surface.
+    const qual = new BusySurface<boolean>(w, false)
+    w.select(A)
+    const finishFirstA = qual.begin(true)
+    w.select(B)
+    w.select(A)
+    const finishSecondA = qual.begin(true)
+    finishFirstA()
+    expect(qual.value, 'a finalizer from the earlier A visit cleared the current one').toBe(true)
+    finishSecondA()
+    expect(qual.value).toBe(false)
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
 describe('§D · BEHAVIOURAL — the programme ACTION matrix', () => {
   /**
    * Every Vida action whose target derives from `prog.programme.id`. All six reach the network
@@ -522,6 +669,60 @@ describe('§E · SOURCE-PINNED WIRING — the page actually applies those decisi
       expect(ask, `no confirmation found in: ${fn}`).toBeGreaterThan(-1)
       expect(gate, `the confirmation is asked before the ownership gate in: ${fn}`).toBeLessThan(ask)
     }
+  })
+
+  it('🛑 every programme-id async finalizer settles through the generation-scoped writer', () => {
+    const code = codeOnly(PAGE)
+    const FINALIZERS: [string, string][] = [
+      ['const qualifySourcedLeads = useCallback(async () => {',                        'settleBusy(false)'],
+      ['const pauseProgramme = useCallback(async () => {',                             'settleBusy(null)'],
+      ['const refreezePackage = useCallback(async () => {',                            'settleBusy(null)'],
+      ['const lifecycle = useCallback(async (action: string, label: string) => {',     'settleBusy(null)'],
+      ['const attachIcp = useCallback(async (icpId: string, icpName: string | null) => {', 'settleBusy(null)'],
+    ]
+    for (const [fn, settle] of FINALIZERS) {
+      const body = fnBody(code, fn)
+      expect(body, `no generation-scoped busy writer in: ${fn}`).toContain('const settleBusy = forThisProgramme(')
+      expect(body, `the finalizer is not generation-scoped in: ${fn}`).toContain(`finally { ${settle} }`)
+      // 🛑 AND THE UNCONDITIONAL SHAPES ARE FORBIDDEN OUTRIGHT, in either surface.
+      expect(body, `an unconditional busy settlement survives in: ${fn}`).not.toContain('finally { setQualBusy(false) }')
+      expect(body, `an unconditional busy settlement survives in: ${fn}`).not.toContain('finally { setLcBusy(null) }')
+    }
+    // The busy flag is still SET before the request, not after it.
+    const qual = fnBody(code, 'const qualifySourcedLeads = useCallback(async () => {')
+    expect(qual.indexOf('setQualBusy(true)')).toBeLessThan(qual.indexOf('await fetch('))
+    // …and the generation is captured BEFORE the flag is raised, never after.
+    expect(qual.indexOf('const settleBusy = forThisProgramme(')).toBeLessThan(qual.indexOf('setQualBusy(true)'))
+  })
+
+  it('🛑 the writer ITSELF compares the generation — the one line every scoped write depends on', () => {
+    // ⚠️ WRITTEN BECAUSE A TOOTH FOUND THIS UNPROVEN. Gutting `forThisProgramme` so it writes
+    // unconditionally left every behavioural case in §C2 GREEN — they model the writer (it is
+    // component-local and cannot be imported without a component runtime this repo does not
+    // have), so they prove the RULE and not this implementation of it. This pin is the only
+    // thing standing between the two, and it is source-pinned wiring, not behaviour.
+    const body = fnBody(codeOnly(PAGE), 'const forThisProgramme = useCallback(<T,>(write: (v: T) => void): ((v: T) => void) => {')
+    expect(body, 'the writer no longer captures the generation').toContain('const gen = progGen.current')
+    expect(body, 'the writer no longer COMPARES the captured generation before writing')
+      .toContain('if (progGen.current === gen) write(v)')
+  })
+
+  it('🛑 the COMPLETE busy-finalizer inventory — nothing unguarded can be added silently', () => {
+    const code = codeOnly(PAGE)
+    const settlers = [...code.matchAll(/finally \{ (set(?:Qual|Lc|Run|Cm)Busy|settleBusy)\(/g)].map(m => m[1])
+    // Five generation-scoped finalizers: the five programme-id actions, and only those.
+    expect(settlers.filter(x => x === 'settleBusy'),
+      'a programme-id action lost its generation-scoped finalizer').toHaveLength(5)
+    // ⚠️ AND EXACTLY THREE THAT ARE NOT, EACH NAMED. `run` and the commercial model own their
+    // own busy surfaces and are not programme-id actions. `createProgrammeNow` SHARES `lcBusy`
+    // with the guarded four but is likewise not a programme-id action — it posts
+    // `{ clientId: selected }` — so it sits outside this correction's frozen scope and is
+    // REPORTED rather than changed. Pinned here so the set cannot grow unnoticed.
+    expect(settlers.filter(x => x !== 'settleBusy').sort())
+      .toEqual(['setCmBusy', 'setLcBusy', 'setRunBusy'])
+    expect(fnBody(code, 'const createProgrammeNow = useCallback(async () => {'),
+      'the reported create finalizer moved — re-classify it before changing this pin')
+      .toContain('finally { setLcBusy(null) }')
   })
 
   it('the background preparation poll stops when the operator leaves that client', () => {

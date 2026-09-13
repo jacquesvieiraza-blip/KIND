@@ -56,7 +56,22 @@ const onboardSchema = z.object({
   company_name: z.string().min(2),
   industry:     emptyToUndefined.optional(),
   country:      z.string().min(2),
-  website:      emptyToUndefined.pipe(z.string().url().optional()),
+  // ── 🛑 ⚑ 13 Sep (S1-AUDIT-002) — THE KEY IS OPTIONAL; THE VALUE IS VALIDATED AS BEFORE ──
+  //
+  // ⛓️ WHAT STOOD HERE: ~~`emptyToUndefined.pipe(z.string().url().optional())`~~
+  //
+  // The `.optional()` sat INSIDE the pipe, so the outer `z.string()` was REQUIRED: a body
+  // that omitted the key entirely 400'd the whole promotion, while `''` parsed fine. That
+  // made the BROWSER a precondition for a fact the SERVER already owns — a confirmed brief
+  // holding a website, or an explicit "we have none", could not be persisted at all unless
+  // the browser remembered to send a key it has no say over. The server-owned Brief rule
+  // cannot depend on the courier still being in the room.
+  //
+  // ⚠️ VALIDATION OF A SUPPLIED VALUE IS UNCHANGED, DELIBERATELY. The outer `.optional()`
+  // short-circuits ONLY on an absent key; `''` still becomes undefined, a valid URL still
+  // passes, and `'not-a-url'`, `'acme.com'` and `null` are still rejected exactly as they
+  // were. This widens what may be OMITTED, never what may be SENT.
+  website:      emptyToUndefined.pipe(z.string().url().optional()).optional(),
   phone:        emptyToUndefined.optional(),
   // Who we're speaking to (flow v2 step 0). Deliberately NOT signer_name, which is who
   // signs the outgoing emails — they are often different people.

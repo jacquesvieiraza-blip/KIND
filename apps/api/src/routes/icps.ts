@@ -4452,12 +4452,47 @@ icpRouter.post('/', async (req: AuthRequest, res) => {
     // destination is still `figsy_knowledge.bad_fit` via `business.bad_fit`, read by the same
     // FIGSY copywriter, with the same semantics — no exclusions redesign. What changes is
     // that on a PROMOTION the sentence is the confirmed draft's, not a browser copy of it.
+    // ── 🛑 ⚑ 13 Sep (S1-AUDIT-002) — AND BRIEF FACT #4 IS OWNED HERE TOO ───────────────
+    //
+    // 🛑 THE GAP THIS CLOSES, founder-locked. `what_they_do` — "what the company does /
+    // business context" — is one of the eleven. It is stored (`BriefDraftFacts.what_they_do`),
+    // written by `PUT /milla/brief-draft`, and the promotion gate REFUSES without it. Yet
+    // NOTHING in promotion read it: `figsy_knowledge.pitch.data.product` was taken entirely
+    // from `req.body.business.product`. So the browser could contradict the confirmed brief
+    // with a different business description, or omit the field and lose it altogether —
+    // exactly the defect S1-AUDIT-002 exists to close, at a second destination.
+    //
+    // 🛑 `clients.industry` IS NOT THIS FACT AND IS UNTOUCHED (founder-locked):
+    // WHAT THE BUSINESS DOES ≠ INDUSTRY. `industry` stays a separate classification field on
+    // the client row, still the body's, still meaning what it always meant. Nothing here
+    // reads or writes it.
+    //
+    // ⚠️ THE DESTINATION IS UNCHANGED IN EVERY RESPECT EXCEPT WHERE THE WORDS COME FROM —
+    // the same key, the same `figsy_knowledge` row, the same FIGSY reader. No new canonical
+    // field, no `figsy_knowledge` redesign. This is the identical shape as `bad_fit` below it,
+    // which is why the two share one gate.
+    //
+    // ⚠️ AND IT IS INJECTED BEFORE `persistMillaUnderstanding`, NOT INSIDE IT. That function
+    // returns early and writes NOTHING when the body carries no business content at all
+    // (`hasBusiness`), so a browser that omitted `business.product` would otherwise lose the
+    // confirmed fact to that early return. Injecting first makes the confirmed fact itself
+    // the reason the write happens.
     const understandingBody = req.body as Record<string, unknown>
     if (promotionDraft?.confirmedAt && !promotionDraft.promotedClientId) {
-      const bad = (promotionDraft.facts.exclusions ?? '').trim()
-      if (bad) {
+      const owned: Array<[string, string]> = [
+        // brief fact #4 -> figsy_knowledge.pitch.data.product
+        ['product', (promotionDraft.facts.what_they_do ?? '').trim()],
+        // brief fact #10 -> figsy_knowledge.pitch.data.bad_fit
+        ['bad_fit', (promotionDraft.facts.exclusions ?? '').trim()],
+      ]
+      // ⚠️ A BLANK DRAFT FACT IS NOT A VALUE. An override applies only when the draft holds
+      // something, so a fact the brief never captured falls back rather than BLANKING what
+      // the client approved on screen — the one direction R72 ⑦ forbids reading into an
+      // absence. The eleven-fact gate has already refused a brief missing either of these.
+      const present = owned.filter(([, v]) => v !== '')
+      if (present.length) {
         const business = { ...(understandingBody.business as Record<string, unknown> | undefined ?? {}) }
-        business.bad_fit = bad
+        for (const [key, value] of present) business[key] = value
         understandingBody.business = business
       }
     }

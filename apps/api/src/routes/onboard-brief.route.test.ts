@@ -443,20 +443,75 @@ describe('⑤ the confirmed brief owns the website, and the browser cannot overr
     expect(clientRow().website).toBe('https://redmayne.co.uk')
   })
 
-  // ⚠️ REPORTED, NOT FIXED — found by this correction's own test, pre-existing on `main`.
-  // `onboardSchema.website` is `emptyToUndefined.pipe(z.string().url().optional())`. The
-  // `.optional()` sits INSIDE the pipe, so the outer `z.string()` is REQUIRED: a body that
-  // omits the key entirely fails validation and 400s the whole promotion, while `''` parses
-  // fine. It is not a fact-loss bug — nothing is written on a 400 — but it does mean a client
-  // whose brief says "no website" still depends on the browser sending the key. Changing the
-  // schema would alter request validation for every caller, which this correction is scoped
-  // out of. Pinned so the behaviour is known rather than assumed.
-  it('🛑 REPORTED: a body with NO website key at all is refused by the schema (pre-existing)', async () => {
+  // ── 🛑 ⛓️ 13 Sep — THE BROWSER IS NO LONGER A PRECONDITION FOR FACT #3 ───────────────
+  //
+  // ~~"REPORTED: a body with NO website key at all is refused by the schema (pre-existing)"~~
+  // ~~expect(res.code).toBe(400)~~
+  //
+  // That WAS the behaviour: `onboardSchema.website` put `.optional()` inside the pipe, so the
+  // outer `z.string()` was required and an omitted key 400'd the whole promotion. Founder-
+  // ruled 13 Sep: a fact the SERVER owns cannot depend on the courier still being in the room.
+  // The assertion is INVERTED, not dropped, so the dependency cannot come back unnoticed.
+  it('🛑 5 · confirmed website + NO website key in the body → succeeds, and the brief wins', async () => {
     confirmed({ website: 'https://redmayne.co.uk' })
     const { website: _absent, ...noKey } = BODY
     const res = await onboard(noKey)
+    expect(res.code).toBe(200)
+    expect(state.inserts.filter(i => i.table === 'clients')).toHaveLength(1)
+    expect(clientRow().website).toBe('https://redmayne.co.uk')
+  })
+
+  it('🛑 6 · confirmed website_none=true + NO website key → succeeds, website is null', async () => {
+    confirmed({ website: null, website_none: true })
+    const { website: _absent, ...noKey } = BODY
+    const res = await onboard(noKey)
+    expect(res.code).toBe(200)
+    expect(clientRow().website).toBeNull()
+  })
+
+  it('🛑 7 · NO draft + NO website key → succeeds, and nothing is fabricated', async () => {
+    state.draft = null
+    const { website: _absent, ...noKey } = BODY
+    const res = await onboard(noKey)
+    expect(res.code).toBe(200)
+    expect(state.inserts.filter(i => i.table === 'clients')).toHaveLength(1)
+    // Absent stays absent: no key in the payload at all, so the column is left alone.
+    const row = clientRow()
+    expect('website' in row ? row.website : undefined).toBeUndefined()
+  })
+
+  it('8 · a supplied VALID website still works, unchanged', async () => {
+    state.draft = null
+    const res = await onboard({ ...BODY, website: 'https://redmayne.co.uk' })
+    expect(res.code).toBe(200)
+    expect(clientRow().website).toBe('https://redmayne.co.uk')
+  })
+
+  // ⚠️ WIDENING WHAT MAY BE OMITTED IS NOT WIDENING WHAT MAY BE SENT. A supplied value is
+  // validated exactly as before — the outer `.optional()` short-circuits only on an ABSENT
+  // key. If this ever passes, the schema stopped validating the value.
+  it('🛑 9 · a supplied INVALID website is still rejected, and nothing is created', async () => {
+    state.draft = null
+    // ⚠️ REPORTED, NOT FIXED — pre-existing on `main`, found by this correction's own test.
+    // `z.string().url()` is `new URL()` under the hood, so it ACCEPTS `javascript:alert(1)`
+    // and `ftp://…`. Those are not in this list because asserting they are rejected would be
+    // a false claim. Nothing renders `clients.website` as an href today, so it is not live
+    // exposure; tightening the URL rule changes validation for every caller and is outside
+    // this correction's bounds. Recorded in the build evidence.
+    for (const bad of ['not-a-url', 'redmayne.co.uk']) {
+      state.inserts = []
+      const res = await onboard({ ...BODY, website: bad })
+      expect(res.code, `"${bad}" was accepted as a website`).toBe(400)
+      expect(state.inserts.filter(i => i.table === 'clients')).toHaveLength(0)
+    }
+  })
+
+  it('9b · and a confirmed draft does not rescue an invalid SUPPLIED value — it still 400s', async () => {
+    // Validation runs before any draft is read, deliberately: the schema is about the shape of
+    // the request, not about whose fact wins. A caller sending junk is told so.
+    confirmed({ website: 'https://redmayne.co.uk' })
+    const res = await onboard({ ...BODY, website: 'not-a-url' })
     expect(res.code).toBe(400)
-    expect(state.inserts.filter(i => i.table === 'clients')).toHaveLength(0)
   })
 
   // ── C ─────────────────────────────────────────────────────────────────────────────────

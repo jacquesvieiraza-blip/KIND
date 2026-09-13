@@ -138,8 +138,13 @@ describe('S1-AUDIT-002 — the confirmed draft owns every fact it holds', () => 
     }
   })
 
+  // ⛓️ 13 Sep — RETARGETED, NOT WEAKENED. ~~`expect(ICPS).toMatch(/business\.bad_fit = bad/)`~~
+  // pinned a single-field assignment. Fact #4 now shares the same gate and the same injection,
+  // so the assignment is a keyed loop. The CLAIM is unchanged and is if anything tighter: the
+  // words are the confirmed draft's and the destination is still `business.bad_fit`.
   it('exclusions keep their EXACT destination — figsy_knowledge.bad_fit — with a server-owned source', () => {
-    expect(ICPS).toMatch(/business\.bad_fit = bad/)
+    expect(ICPS).toMatch(/\['bad_fit', \(promotionDraft\.facts\.exclusions \?\? ''\)\.trim\(\)\]/)
+    expect(ICPS).toMatch(/for \(const \[key, value\] of present\) business\[key\] = value/)
     expect(ICPS).toMatch(/promotionDraft\.facts\.exclusions/)
     // No redesign: the reader is unchanged.
     expect(ICPS).toMatch(/exclusions:\s+v\.business\?\.bad_fit/)
@@ -173,12 +178,13 @@ describe('S1-AUDIT-002 — the confirmed draft owns every fact it holds', () => 
 // value arrived and cannot prove the body is no longer read.
 // ═══════════════════════════════════════════════════════════════════════════════════════
 describe('S1-AUDIT-002 — the boundary audit across all eleven facts', () => {
-  it('the ten facts promotion persists are each read from the confirmed draft', () => {
+  it('all eleven facts promotion persists are each read from the confirmed draft', () => {
     // fact -> the expression that must appear, at the destination that owns it.
     const OWNED: Array<[string, string, RegExp]> = [
       ['1 contact name',    'auth', /text2\(draftFacts\?\.contact_name\)/],
       ['2 company',         'auth', /draftFacts\.company_name/],
       ['3 website/none',    'auth', /resolveOwnedWebsite\(draftFacts, profileFields\.website\)/],
+      ['4 what they do',    'icps', /promotionDraft\.facts\.what_they_do/],
       ['5 target category', 'icps', /f\.target_category\)/],
       ['6 geography',       'icps', /f\.geographies\)/],
       ['7 company type',    'icps', /f\.target_company_type\)/],
@@ -194,38 +200,54 @@ describe('S1-AUDIT-002 — the boundary audit across all eleven facts', () => {
     }
   })
 
-  // ── 🛑 REPORTED, NOT FIXED — BRIEF FACT #4, "WHAT THE COMPANY DOES" ──────────────────
+  // ── 🛑 ⛓️ 13 Sep — BRIEF FACT #4 IS NOW OWNED. WHAT THIS BLOCK USED TO RECORD: ───────
   //
-  // THE EVIDENCE:
-  //   · the fact is stored — `BriefDraftFacts.what_they_do` (packages/shared/src/brief-facts.ts),
-  //     written by `PUT /milla/brief-draft` (routes/milla.ts) and counted through
-  //     `briefFactsFromDraft` as `whatTheCompanyDoes`. It is one of the eleven and the gate
-  //     refuses promotion without it.
-  //   · NOTHING IN PROMOTION READS IT. Its two live destinations are `clients.industry`
-  //     (from `onboardSchema`, i.e. the request body) and `figsy_knowledge.pitch.data.product`
-  //     (from `req.body.business`, via `persistMillaUnderstanding`). Both are the browser's.
-  //   · so fact #4 can be overridden by a contradictory body AND lost entirely by an omitted
-  //     one — the same defect class as the website, at a different destination.
+  // ~~"REPORTED: brief fact #4 (what_they_do) still has NO promotion reader"~~
   //
-  // ⚠️ IT IS NOT FIXED HERE ON PURPOSE. Choosing between `clients.industry` and
-  // `figsy_knowledge…product` is choosing a canonical destination for a fact that currently
-  // has two, and that is a storage decision this correction was explicitly scoped out of.
-  // Inventing one silently is exactly what the instruction forbade.
-  //
-  // ⚠️ THIS TEST FAILS THE DAY IT IS FIXED, AND THAT IS THE POINT. A failure here is not a
-  // regression — it means a promotion reader now exists and this boundary record is stale.
-  // Update the matrix and move fact #4 into the owned list above; do not revert the fix.
-  it('🛑 REPORTED: brief fact #4 (what_they_do) still has NO promotion reader', () => {
-    expect(AUTH, 'a promotion reader for what_they_do appeared in /auth/onboard — update the audit')
-      .not.toMatch(/draftFacts[\s\S]{0,40}what_they_do/)
-    expect(ICPS, 'a promotion reader for what_they_do appeared in POST /icps — update the audit')
-      .not.toMatch(/promotionDraft[\s\S]{0,80}what_they_do|f\.what_they_do/)
+  // It was a boundary record, and it said so: the fact was stored, gated on, and read by
+  // nothing, so `figsy_knowledge.pitch.data.product` came entirely from the browser. Founder
+  // decision 13 Sep closed it — `what_they_do` is the canonical confirmed wording and feeds
+  // that exact existing destination; `clients.industry` stays a SEPARATE classification field
+  // and is explicitly NOT a substitute. The record is replaced by the guard it was waiting
+  // for, and the behaviour is driven in `routes/brief-fact-4-owned.route.test.ts`.
+  it('🛑 fact #4 reaches its EXISTING destination — no new canonical field', () => {
+    // The words are the draft's…
+    expect(ICPS).toMatch(/\['product', \(promotionDraft\.facts\.what_they_do \?\? ''\)\.trim\(\)\]/)
+    // …and the destination is the one that was already there, unchanged.
+    expect(ICPS, 'figsy_knowledge.pitch no longer takes `product` from `business`')
+      .toMatch(/product:\s+str\(biz\.product\)/)
+    // Injected BEFORE the write, or `hasBusiness`'s early return loses it when the browser
+    // omitted `business` entirely.
+    const inject = ICPS.indexOf("['product', (promotionDraft.facts.what_they_do")
+    const persist = ICPS.indexOf('await persistMillaUnderstanding(clientId, understandingBody')
+    expect(inject).toBeGreaterThan(-1)
+    expect(persist).toBeGreaterThan(inject)
   })
 
-  it('the destinations named in the fact #4 report are the ones that really exist', () => {
-    // If either of these moves, the report above is describing code that is no longer there.
-    expect(ICPS, 'figsy_knowledge.pitch no longer takes `product` from the body').toMatch(/product:\s+str\(biz\.product\)/)
-    expect(AUTH, 'industry is no longer a body field on the client row').toMatch(/industry:\s+emptyToUndefined\.optional\(\)|\.\.\.profileFields/)
+  it('🛑 WHAT THE BUSINESS DOES ≠ INDUSTRY — `clients.industry` is not touched by fact #4', () => {
+    // Founder-locked: they are different concepts and one must never stand in for the other.
+    expect(AUTH, 'the brief\'s words were written into clients.industry')
+      .not.toMatch(/industry[^\n]{0,60}what_they_do|what_they_do[^\n]{0,60}industry/)
+    expect(ICPS, 'POST /icps started writing clients.industry from the draft')
+      .not.toMatch(/industry[^\n]{0,60}what_they_do|what_they_do[^\n]{0,60}industry/)
+    // `industry` remains exactly what it was on the onboarding body: optional, and the
+    // client's own, with no draft field of that name to override it.
+    expect(AUTH).toMatch(/industry:\s+emptyToUndefined\.optional\(\)/)
+    expect(AUTH).not.toMatch(/draftFacts\.industry/)
+  })
+
+  // ── 🛑 ⛓️ 13 Sep — THE WEBSITE KEY IS NO LONGER A PRECONDITION ──────────────────────
+  //
+  // ~~`website: emptyToUndefined.pipe(z.string().url().optional()),`~~
+  //
+  // The `.optional()` sat inside the pipe, so the outer `z.string()` was REQUIRED and a body
+  // omitting the key 400'd the promotion — making the browser a precondition for a fact the
+  // server owns. Widened to allow an ABSENT key; a SUPPLIED value is validated exactly as
+  // before (driven in `routes/onboard-brief.route.test.ts` §⑤ cases 5–9).
+  it('🛑 an absent website key is allowed; a supplied value is still validated', () => {
+    expect(AUTH).toMatch(/website:\s+emptyToUndefined\.pipe\(z\.string\(\)\.url\(\)\.optional\(\)\)\.optional\(\),/)
+    // The value rule itself is untouched — this widened what may be OMITTED, not what may be SENT.
+    expect(AUTH).toContain('z.string().url()')
   })
 })
 

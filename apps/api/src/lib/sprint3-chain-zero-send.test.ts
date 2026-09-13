@@ -160,7 +160,8 @@ vi.mock('./programme-review', async orig => ({
   countProgrammeReviewable: async () => reviewable.impl(),
 }))
 
-const { recordFirstPayment, recordSecondPayment, approveProgrammeAsCustomer } = await import('./programme')
+const { recordFirstPayment, recordSecondPayment, approveProgrammeAsCustomer, refreezeForReview } =
+  await import('./programme')
 const { advanceAfterSettlement } = await import('./programme-advance')
 
 /** A programme the client has accepted, sitting at RECOMMENDED with nothing paid. */
@@ -367,6 +368,77 @@ describe('🛑 the chain fails closed, and still sends nothing', () => {
     expect(row().approved_preparation_hash).toBeNull()
     expect(row().status).toBe('READY_FOR_APPROVAL')
     expect(state.writes, 'a drift-refused approval wrote something').toEqual([])
+    expect(state.sends).toEqual([])
+  })
+
+  // ── 🛑 THE RE-FREEZE IDENTITY RULE, DRIVEN RATHER THAN READ ──────────────────────────
+  //
+  // `day3-prepare-freeze-approve.test.ts` #23 / #27 / #28 state this rule by SCANNING the
+  // source of `refreezeForReview` and `approvedPreparationColumns`. A source scan cannot fail
+  // for a behavioural reason, so these two cases run the real `refreezeForReview` against the
+  // real freeze the chain wrote, and assert on the row it leaves behind.
+  it('🛑 a RE-FREEZE makes the version the client is holding unapprovable', async () => {
+    await recordFirstPayment({ programmeId: PROGRAMME, sessionId: 'cs_1' })
+    row().status = 'SOURCING'
+    await advanceAfterSettlement(PROGRAMME, 'sourcing_run')
+    const held = row().review_preparation_hash as string
+    expect(held).toBe(FROZEN_HASH)
+    expect(row().review_preparation_version).toBe(1)
+
+    // The package genuinely moves, and the real re-freeze records it.
+    snapshot.impl = () => ({
+      ok: true, hash: 'sha256:frozen-v2',
+      snapshot: { prospects: 231, messages: 3, cadence: '3 steps', window: 'Mon-Fri 09:00-17:00', sender: 'inbox-1', target: 10 },
+    })
+    const re = await refreezeForReview(PROGRAMME) as { ok: boolean; changed?: boolean; version?: number | null }
+    expect(re.ok, 'the real re-freeze refused').toBe(true)
+    expect(re.changed, 'a moved package did not re-freeze').toBe(true)
+    expect(row().review_preparation_hash).toBe('sha256:frozen-v2')
+    expect(row().review_preparation_version, 'the counter did not rise').toBe(2)
+
+    const stale = await approveProgrammeAsCustomer(CLIENT, PROGRAMME, held, 'user-1') as
+      { ok: boolean; code?: string }
+    expect(stale.ok, 'the version they were holding still approved after a re-freeze').toBe(false)
+    expect(stale.code).toBe('stale_version')
+    expect(row().approved_at).toBeNull()
+    expect(state.sends).toEqual([])
+  })
+
+  it('🛑 the approval records the version it ACTUALLY covered, not version 1 by default', async () => {
+    await recordFirstPayment({ programmeId: PROGRAMME, sessionId: 'cs_1' })
+    row().status = 'SOURCING'
+    await advanceAfterSettlement(PROGRAMME, 'sourcing_run')
+    snapshot.impl = () => ({
+      ok: true, hash: 'sha256:frozen-v2',
+      snapshot: { prospects: 231, messages: 3, cadence: '3 steps', window: 'Mon-Fri 09:00-17:00', sender: 'inbox-1', target: 10 },
+    })
+    await refreezeForReview(PROGRAMME)
+
+    // They read the CURRENT package and approve it.
+    const ok = await approveProgrammeAsCustomer(
+      CLIENT, PROGRAMME, row().review_preparation_hash as string, 'user-1') as { ok: boolean }
+    expect(ok.ok, `the current version was refused: ${JSON.stringify(ok)}`).toBe(true)
+    // 🛑 THE APPROVAL POINTS AT VERSION 2 — the package they read — and NOT at 1.
+    expect(row().approved_preparation_version, 'the approval claimed the wrong version').toBe(2)
+    expect(row().approved_preparation_hash).toBe('sha256:frozen-v2')
+    expect(state.sends).toEqual([])
+  })
+
+  it('🛑 a programme frozen BEFORE versioning existed is approved with NO version, never 1', async () => {
+    // ⚠️ THE PREMISE IS SEEDED, AND IT HAS TO BE. `markReadyForApproval` always writes version
+    // 1, so the chain cannot produce a pre-versioning row; this is the legacy state that
+    // already exists in the database. Everything after the seed is the real approval.
+    Object.assign(row(), {
+      status: 'READY_FOR_APPROVAL',
+      review_preparation_hash: FROZEN_HASH,
+      review_preparation_version: null,
+      review_preparation_at: '2026-09-01T09:00:00.000Z',
+    })
+    const ok = await approveProgrammeAsCustomer(CLIENT, PROGRAMME, FROZEN_HASH, 'user-1') as { ok: boolean }
+    expect(ok.ok, `the legacy freeze was refused: ${JSON.stringify(ok)}`).toBe(true)
+    // 🛑 RECORDING 1 HERE WOULD INVENT A CLAIM about which package they read.
+    expect(row().approved_preparation_version, 'the approval invented a version').toBeNull()
+    expect(row().approved_preparation_hash).toBe(FROZEN_HASH)
     expect(state.sends).toEqual([])
   })
 

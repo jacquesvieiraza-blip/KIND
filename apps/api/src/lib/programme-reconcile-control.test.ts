@@ -380,20 +380,29 @@ describe('④ the control obeys the server, fires once, and never paints a failu
     expect(block, 'the control carries its own local visibility state').not.toContain('useState')
   })
 
-  it('🛑 5 · it can only POST the programme already loaded on screen', () => {
-    expect(HANDLER).toContain('const id = prog?.programme?.id')
+  it('🛑 5 · it can only POST the programme already loaded on screen, AND only if it is the selected client\'s', () => {
+    // ⛓️ 13 Sep (BL-1) — STRENGTHENED, NOT RELAXED. This pinned
+    // ~~`const id = prog?.programme?.id`~~, which proved the id came from the loaded programme
+    // and nowhere else — true, and not enough: a late response for ANOTHER client could put
+    // that client's programme in `prog`, and this control would then post their id under the
+    // selected client's name. `programmeActionId()` is the same "from the screen, never typed"
+    // rule PLUS the server-identity check, so what is pinned here is strictly more.
+    expect(HANDLER).toContain('const id = programmeActionId()')
     expect(HANDLER).toContain('`/api/proxy/operator/programme/${encodeURIComponent(id)}/qualify-batch`')
-    // Not typed, not chosen, not resolved from a client or a list.
-    for (const other of ['prompt(', 'selectedProgramme', 'programmes[', 'client_id:']) {
+    // Not typed, not chosen, not resolved from a client or a list — and NOT read back out of
+    // `prog` here either, which is what the gate exists to centralise.
+    for (const other of ['prompt(', 'selectedProgramme', 'programmes[', 'client_id:', 'prog?.programme?.id']) {
       expect(HANDLER, `the id can come from ${other}`).not.toContain(other)
     }
-    expect(HANDLER).toContain('if (!id || qualBusy) return')
+    // The two refusals, split so each says what it is: no owned programme, or already in flight.
+    expect(HANDLER).toContain('if (!id) {')
+    expect(HANDLER).toContain('if (qualBusy) return')
   })
 
   it('🛑 5 · a second click while the first is in flight cannot fire', () => {
     // Three things together: the guard at the top, the flag set before the request, the flag
     // cleared only in `finally`, and the button disabled on it. Any one alone is not enough.
-    expect(HANDLER).toContain('if (!id || qualBusy) return')
+    expect(HANDLER).toContain('if (qualBusy) return')
     expect(HANDLER).toContain('setQualBusy(true)')
     expect(HANDLER).toContain('} finally { setQualBusy(false) }')
     expect(CODE).toContain('<button onClick={qualifySourcedLeads} disabled={qualBusy}')
@@ -512,7 +521,11 @@ describe('④ the control obeys the server, fires once, and never paints a failu
     expect(OPENER, 'the button posts before anybody has confirmed').not.toContain('fetch(')
     // ⚠️ AND THE SINGLE-FLIGHT GUARD IS ON THE OPENER TOO — a dialog opened during a request
     // in flight is a second press waiting to happen.
-    expect(OPENER).toContain('if (!prog?.programme?.id || qualBusy) return')
+    expect(OPENER).toContain('if (qualBusy) return')
+    // ⛓️ 13 Sep (BL-1) — and the OWNERSHIP gate is on the opener too, because this button
+    // opens a dialog that names the SELECTED client over a programme that may be somebody
+    // else's. Refusing only at the post would still have shown an untrue sentence first.
+    expect(OPENER).toContain('programmeActionId()')
     // The native dialog is not in this path.
     expect(HANDLER, 'the browser confirm is still in the path').not.toContain('confirm(')
     expect(OPENER).not.toContain('window.confirm')
@@ -537,7 +550,7 @@ describe('④ the control obeys the server, fires once, and never paints a failu
     expect((CODE.match(/onClick=\{qualifySourcedLeads\}/g) ?? []).length).toBe(1)
     // Single-flight survives the change: the guard, the flag before the request, the finally,
     // and the confirmation closing FIRST so it cannot be pressed a second time.
-    expect(HANDLER).toContain('if (!id || qualBusy) return')
+    expect(HANDLER).toContain('if (qualBusy) return')
     expect(HANDLER).toContain('setQualConfirm(false)')
     const closeAt = HANDLER.indexOf('setQualConfirm(false)')
     const fetchAt = HANDLER.indexOf('await fetch(')

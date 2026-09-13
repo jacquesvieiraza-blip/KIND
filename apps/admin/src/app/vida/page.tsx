@@ -15,6 +15,13 @@ import ProofClassificationPanel from '@/components/vida/ProofClassificationPanel
 import {
   decideCalibrationResponse, calibrationActionable, CALIBRATION_READ_FAILED_COPY,
 } from '@/lib/vida-calibration-isolation'
+// ⚑ 13 Sep (BL-1) — a programme belongs to ONE client: the generation, selection and
+// server-identity checks that stop client A's programme ever being prepared, frozen, paused,
+// authorised or made live while the operator has client B selected.
+import {
+  decideProgrammeResponse, programmeActionable,
+  PROGRAMME_READ_FAILED_COPY, PROGRAMME_MISMATCH_COPY,
+} from '@/lib/vida-programme-isolation'
 // ⚑ MVP1 (Preview 07) — the brief-in-progress panel for somebody who is not a client yet.
 import { BriefPanel } from '@/components/vida/BriefPanel'
 import { lifecycleCopy, type LifecycleState, type VidaMode, type PanelAction } from '@/lib/vida-lifecycle-copy'
@@ -315,6 +322,15 @@ export default function VidaConsolePage() {
   // programme read failure can never blank the tabs an operator uses every day.
   type ProgrammeTruth = {
     programme: null | {
+      /**
+       * ⚑ 13 Sep (BL-1) — WHOSE PROGRAMME THIS IS. The server has always sent it
+       * (`operator-programme.ts`'s `PROGRAMME_COLUMNS` begins `'id, client_id, …'`); this type
+       * did not declare it, so nothing ever compared the programme's owner to the selected
+       * client — and a late response for another client could be read, and ACTED ON, as if it
+       * were theirs. Optional, because an older API against this UI must fail CLOSED
+       * (`programmeActionable` refuses without it) rather than acting on an unprovable owner.
+       */
+      client_id?: string | null
       id: string; status: string; state: string; meeting_target: number
       sourcing_ceiling: number; sourced_used: number; sourced_reserved: number; room_remaining: number
       paused_at: string | null; pause_reason: string | null
@@ -430,13 +446,102 @@ export default function VidaConsolePage() {
   }
   const [prog, setProg] = useState<ProgrammeTruth | null>(null)
   const [progErr, setProgErr] = useState<string | null>(null)
+  // ── 🛑 ⚑ 13 Sep (BL-1) — A PROGRAMME BELONGS TO ONE CLIENT ──────────────────────────
+  //
+  // ⛓️ WHAT STOOD HERE: ~~`setProg(j.data as ProgrammeTruth)`~~ — unguarded. A slow read for
+  // client A could land AFTER the operator selected B and write A's programme into B's view,
+  // while `qualifySourcedLeads`, `pauseProgramme`, `refreezePackage`, `lifecycle` and
+  // `attachIcp` all target `prog.programme.id` and the server scopes them by programme id
+  // alone. That is "read A → press → prepare/freeze/pause/authorise/make-live B's screen,
+  // A's programme", on the money surface.
+  //
+  // 🛑 A RESET ALONE WOULD NOT HAVE FIXED IT. The switch effect below already cleared `prog`;
+  // the late A response still arrives afterwards and writes itself into the now-empty B view.
+  // `decideProgrammeResponse` asks all three — GENERATION (is this request still the current
+  // one), SELECTION (was it issued for the client we are on), IDENTITY (does the SERVER say
+  // this programme is theirs) — and the press asks a fourth (`programmeActionable`).
+  //
+  // ⚠️ THE GENERATION LIVES IN A REF, not state: it must be readable by a promise that
+  // resolves long after the render it was issued from, and bumping it must not re-render.
+  const progGen = useRef(0)
   const loadProgramme = useCallback(async (clientId: string) => {
-    setProgErr(null)
+    const generation = progGen.current
+    // ⚠️ ONLY THE CURRENT CLIENT'S REQUEST MAY CLEAR THE CURRENT CLIENT'S ERROR. A follow-up
+    // read for A, fired by an action that legitimately completed for A after the operator
+    // moved to B, would otherwise wipe a genuine B error off the screen on its way to being
+    // discarded.
+    if (selectedRef.current === clientId) setProgErr(null)
+    // ⚠️ ONE DECISION, BOTH PATHS. The catch runs the SAME function with `apiSuccess: false`,
+    // so a thrown read is stale-silent or current-and-truthful by exactly the rule above —
+    // never by a second, slightly different copy of it written into the error handler.
+    const decide = (apiSuccess: boolean, apiError: string | null, programme: { client_id?: string | null } | null) =>
+      decideProgrammeResponse({
+        requestedClientId: clientId,
+        selectedClientId:  selectedRef.current,
+        requestGeneration: generation,
+        currentGeneration: progGen.current,
+        apiSuccess, apiError, programme,
+      })
     try {
       const j = await fetch(`/api/proxy/operator/programme?client_id=${encodeURIComponent(clientId)}`).then(r => r.json())
-      if (!j?.success) throw new Error(j?.error || 'Failed to load programme')
-      setProg(j.data as ProgrammeTruth)
-    } catch (e) { setProgErr(e instanceof Error ? e.message : 'Failed to load programme'); setProg(null) }
+      const payload = (j?.data ?? null) as ProgrammeTruth | null
+      const outcome = decide(
+        j?.success === true,
+        typeof j?.error === 'string' ? j.error : null,
+        payload?.programme ?? null,
+      )
+      // ⚠️ A DISCARD IS SILENT AND CHANGES NOTHING — a response for a client we have left is
+      // not a failure, it is simply not ours, and printing its error under the current client
+      // is exactly what the stale-request rule forbids.
+      if (outcome.action === 'discard') return
+      // ⚠️ A FAILURE IS CURRENT AND OURS: clear the programme and SAY SO. This covers the API's
+      // own refusal, a programme with no owner, and one the server attributes to somebody else.
+      // Clearing is what makes every action unavailable — `programmeActionable(null, …)` is
+      // false — so an unreadable or unowned state offers no control at all.
+      if (outcome.action === 'fail') {
+        setProg(null)
+        setProgErr(outcome.message ?? PROGRAMME_READ_FAILED_COPY)
+        return
+      }
+      setProg(payload)
+    } catch (e) {
+      const outcome = decide(false, e instanceof Error ? e.message : null, null)
+      if (outcome.action === 'discard') return
+      setProg(null)
+      setProgErr(outcome.message ?? PROGRAMME_READ_FAILED_COPY)
+    }
+  }, [])
+
+  /**
+   * 🛑 THE ONE GATE EVERY PROGRAMME-ID ACTION PASSES, AT THE PRESS. (BL-1.)
+   *
+   * Returns the programme id ONLY when the loaded programme provably belongs to the client the
+   * operator has selected RIGHT NOW — and `null` otherwise, which every caller treats as "do
+   * not fire, do not confirm, say why".
+   *
+   * ⚠️ IT IS CALLED BEFORE THE CONFIRMATION DIALOG, NEVER AFTER. A dialog naming client B over
+   * client A's programme is the misleading half of this defect: refusing after the operator
+   * has already agreed would still have shown them a sentence that was not true.
+   */
+  const programmeActionId = useCallback((): string | null => {
+    const p = prog?.programme ?? null
+    return programmeActionable(p, selected ?? null) ? (p!.id as string) : null
+  }, [prog, selected])
+
+  /**
+   * ⚑ 13 Sep (BL-1) — A WRITER THAT BELONGS TO ONE CLIENT.
+   *
+   * An action authorised while A was selected may legitimately finish for A after the operator
+   * has moved to B — that is correct, and cancelling it would be worse. What must NOT happen is
+   * its outcome landing on B's screen: "12 qualified · prepared and now with the client" beside
+   * client B, describing work done for client A, is a false sentence about somebody's account.
+   *
+   * ⚠️ THE GENERATION IS CAPTURED AT THE PRESS, so this needs no cancellation, no abort
+   * controller and no second source of truth — it is the same counter the read guard uses.
+   */
+  const forThisProgramme = useCallback(<T,>(write: (v: T) => void): ((v: T) => void) => {
+    const gen = progGen.current
+    return v => { if (progGen.current === gen) write(v) }
   }, [])
 
   // ── ⚑ 9 Sep (HOUSE-009) · QUALIFY SOURCED LEADS ────────────────────────────────────────
@@ -485,16 +590,26 @@ export default function VidaConsolePage() {
    * while a request is in flight is a second press waiting to happen.
    */
   const openQualifyConfirm = useCallback(() => {
-    if (!prog?.programme?.id || qualBusy) return
+    // 🛑 ⚑ 13 Sep (BL-1) — OWNERSHIP BEFORE THE CONFIRMATION, not after it. This control opens
+    // a dialog that names the SELECTED client over a programme that may be somebody else's;
+    // refusing at the post would still have shown the operator a sentence that was not true.
+    if (qualBusy) return
+    if (!programmeActionId()) { setQualMsg({ tone: 'error', text: PROGRAMME_MISMATCH_COPY }); return }
     setQualConfirm(true)
-  }, [prog, qualBusy])
+  }, [programmeActionId, qualBusy])
 
   const qualifySourcedLeads = useCallback(async () => {
     // The EXACT id of the programme already loaded on screen. Never typed, never chosen, never
     // resolved from the client — and the endpoint refuses anything that is not a uuid anyway.
-    const id = prog?.programme?.id
-    if (!id || qualBusy) return
+    // ⚑ 13 Sep (BL-1) — AND PROVED TO BE THE SELECTED CLIENT'S, at the press. The selection can
+    // change between the dialog opening and this confirm; the server scopes `qualify-batch` by
+    // programme id alone, so this is the only place that can see it.
+    const id = programmeActionId()
+    if (!id) { setQualConfirm(false); setQualMsg({ tone: 'error', text: PROGRAMME_MISMATCH_COPY }); return }
+    if (qualBusy) return
     setQualConfirm(false)
+    // ⚑ 13 Sep (BL-1) — everything this call learns belongs to the client it was pressed for.
+    const say = forThisProgramme(setQualMsg)
 
     setQualBusy(true); setQualMsg(null)
     try {
@@ -509,7 +624,7 @@ export default function VidaConsolePage() {
         // error would hide that the work is half done and safe to resume.
         const partial = j?.partial as { still_unjudged?: number; provider_failed?: boolean } | undefined
         if (partial && (Number(partial.still_unjudged ?? 0) > 0 || partial.provider_failed)) {
-          setQualMsg({ tone: 'warn', text:
+          say({ tone: 'warn', text:
             `Qualification paused. ${Number(partial.still_unjudged ?? 0)} leads still need checking. Nothing was settled.` })
           // The verdicts already written are real, so the programme is re-read: what is on
           // screen after this is the database's answer, not this screen's guess.
@@ -519,7 +634,7 @@ export default function VidaConsolePage() {
         // ⚠️ THE API'S OWN SENTENCE, VERBATIM. It is the one that knows what was refused — a
         // cheerful summary here is how a screen starts lying. And nothing is retried: an action
         // that refused for a reason must not be fired again by the thing that reported it.
-        setQualMsg({ tone: 'error', text: j?.error ?? 'The qualification did not complete, and no reason came back. Nothing was settled as far as this screen can tell — read the programme before trying again.' })
+        say({ tone: 'error', text: j?.error ?? 'The qualification did not complete, and no reason came back. Nothing was settled as far as this screen can tell — read the programme before trying again.' })
         return
       }
 
@@ -557,10 +672,10 @@ export default function VidaConsolePage() {
       // how an operator stops looking. The API's own sentence names the blocker — a missing
       // mailbox is something to go and connect, not something to press again.
       if (d.continued && d.continued.reviewable === false) {
-        setQualMsg({ tone: 'warn', text:
+        say({ tone: 'warn', text:
           `${settled}. Settled and safe, but this programme did not reach the client: ${d.continued.detail ?? 'the reason did not come back.'}` })
       } else {
-        setQualMsg({ tone: 'ok', text:
+        say({ tone: 'ok', text:
           `${settled} · ${d.status_after === 'READY_FOR_APPROVAL'
             ? 'prepared and now with the client to approve'
             : 'batch ready for review'}` })
@@ -569,9 +684,9 @@ export default function VidaConsolePage() {
       // recomputed by the server from the state that now exists.
       if (selected) await loadProgramme(selected)
     } catch (e) {
-      setQualMsg({ tone: 'error', text: e instanceof Error ? e.message : 'The request did not complete. Read the programme before trying again — do not press this twice.' })
+      say({ tone: 'error', text: e instanceof Error ? e.message : 'The request did not complete. Read the programme before trying again — do not press this twice.' })
     } finally { setQualBusy(false) }
-  }, [prog, qualBusy, selected, loadProgramme])
+  }, [programmeActionId, forThisProgramme, qualBusy, selected, loadProgramme])
 
   // ── ⚑ 3 Sep (C2) · DECLARING THE COMMERCIAL MODEL ──────────────────────────────────────
   //
@@ -731,8 +846,12 @@ export default function VidaConsolePage() {
    * must not pause by accident.
    */
   const pauseProgramme = useCallback(async () => {
-    const id = prog?.programme?.id
-    if (!id) return
+    // 🛑 ⚑ 13 Sep (BL-1) — OWNERSHIP FIRST, AND BEFORE THE CONFIRMATION. The dialog names the
+    // SELECTED client; asking it over another client's programme is the misleading half of
+    // this defect, so the refusal happens before the operator can agree to anything.
+    const id = programmeActionId()
+    if (!id) { setLcMsg(PROGRAMME_MISMATCH_COPY); return }
+    const say = forThisProgramme(setLcMsg)
     const who = (clients ?? []).find(c => c.id === selected)?.company_name ?? 'this client'
     if (!confirm(`Pause ${who}'s programme?\n\nOutreach stops. Nobody loses their place in the sequence, nothing is refunded and nothing is unwound.`)) return
     setLcBusy('pause'); setLcMsg(null)
@@ -741,12 +860,12 @@ export default function VidaConsolePage() {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}',
       }).then(r => r.json())
       if (!j?.success) throw new Error(j?.error || 'The programme was not paused.')
-      setLcMsg('Paused. Outreach has stopped and nobody lost their place.')
+      say('Paused. Outreach has stopped and nobody lost their place.')
       if (selected) await loadProgramme(selected)
     } catch (e) {
-      setLcMsg(e instanceof Error ? e.message : 'The programme was not paused.')
+      say(e instanceof Error ? e.message : 'The programme was not paused.')
     } finally { setLcBusy(null) }
-  }, [prog, selected, clients, loadProgramme])
+  }, [programmeActionId, forThisProgramme, selected, clients, loadProgramme])
 
   // ── ⚑ 11 Sep (DAY 3) — RE-FREEZE, AND IT IS DELIBERATELY *NOT* INSIDE `lifecycle()` ────
   //
@@ -760,8 +879,12 @@ export default function VidaConsolePage() {
   // operator can price. Nothing is approved, charged or sent, and a previous approval — if the
   // programme somehow has one — is untouched, which the server enforces rather than promises.
   const refreezePackage = useCallback(async () => {
-    const id = prog?.programme?.id
-    if (!id) return
+    // 🛑 ⚑ 13 Sep (BL-1) — the sharpest case for the action-time gate. A re-freeze publishes a
+    // NEW version and invalidates the exact version the client is holding on an open screen;
+    // doing that to the wrong client's programme is a live outage for somebody mid-approval.
+    const id = programmeActionId()
+    if (!id) { setLcMsg(PROGRAMME_MISMATCH_COPY); return }
+    const say = forThisProgramme(setLcMsg)
     const who = (clients ?? []).find(c => c.id === selected)?.company_name ?? 'this client'
     if (!confirm(`Publish a new version of ${who}'s review package?\n\nThe prepared work has changed since it was frozen, so they cannot approve what they are looking at. This publishes the current work as a NEW VERSION and asks them again.\n\nNOTHING is approved, charged or sent.`)) return
     setLcBusy('refreeze'); setLcMsg(null)
@@ -772,14 +895,29 @@ export default function VidaConsolePage() {
       if (!j?.success) throw new Error(j?.message || j?.error || 'Nothing was re-frozen.')
       // ⚠️ THE SERVER'S OWN SENTENCE, never a guess. It is the only thing that knows whether a
       // new version was written or the package had not actually changed.
-      setLcMsg(String(j?.data?.headline ?? 'The review package was re-frozen.'))
+      say(String(j?.data?.headline ?? 'The review package was re-frozen.'))
       if (selected) await loadProgramme(selected)
     } catch (e) {
-      setLcMsg(e instanceof Error ? e.message : 'Nothing was re-frozen.')
+      say(e instanceof Error ? e.message : 'Nothing was re-frozen.')
     } finally { setLcBusy(null) }
-  }, [prog, selected, clients, loadProgramme])
+  }, [programmeActionId, forThisProgramme, selected, clients, loadProgramme])
 
   const lifecycle = useCallback(async (action: string, label: string) => {
+    // ── 🛑 ⚑ 13 Sep (BL-1) — OWNERSHIP FIRST, ABOVE THE CONFIRMATIONS BELOW ──────────────
+    //
+    // This one helper carries EVERY ladder move — recommend · await-first-payment ·
+    // authorise/first · ready-for-approval · authorise/second · go-live — and each confirmation
+    // names `selected` while the request targets `prog.programme.id`. `routes/programme.ts`
+    // gates all of them by the admin key and the programme id, never by the client Vida has
+    // selected, so this is the only place the two can be compared. It sits above the dialog
+    // because a confirmation naming client B over client A's programme is itself the defect.
+    //
+    // ⚠️ `go-live` IS INCLUDED AND NOTHING ABOUT IT IS OTHERWISE CHANGED. It is a Sprint 4
+    // action on this Sprint 3 panel; leaving one unguarded programme-id mutation beside the
+    // guarded ones would mean the defect class is not closed.
+    const id = programmeActionId()
+    if (!id) { setLcMsg(PROGRAMME_MISMATCH_COPY); return }
+    const say = forThisProgramme(setLcMsg)
     const client = (clients ?? []).find(c => c.id === selected)
     const name = client?.company_name ?? 'this client'
     // ⚠️ EVERY CONFIRMATION NAMES THE CLIENT, and the money-bearing ones say IN WORDS that no
@@ -800,8 +938,9 @@ export default function VidaConsolePage() {
     if (confirms[action] && !confirm(confirms[action])) return
     setLcBusy(action); setLcMsg(null)
     try {
-      const id = prog?.programme?.id
-      if (!id) throw new Error('No programme loaded.')
+      // ⚠️ `id` IS THE ONE THE GATE PROVED, not a fresh read of `prog`. Re-resolving here
+      // would reintroduce exactly what the gate exists to stop: `prog` can change between the
+      // gate and this line, and the value that must travel is the one that was checked.
       const res = await fetch(`/api/proxy/programmes/${encodeURIComponent(id)}/${action}`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}',
       })
@@ -833,14 +972,20 @@ export default function VidaConsolePage() {
       // guess about how long 246 prospects take.
       if (action === 'ready-for-approval' && res.status === 202) {
         const bg = j?.data as { started?: boolean; already_running?: boolean; headline?: string } | null | undefined
-        setLcMsg(bg?.headline ?? 'Preparing in the background. Nothing is sent.')
+        say(bg?.headline ?? 'Preparing in the background. Nothing is sent.')
         if (selected) {
+          // ⚑ 13 Sep (BL-1) — the poll belongs to the client it started for. Every
+          // `loadProgramme` below is discarded by the read guard once the operator moves on,
+          // so this only stops ten minutes of pointless requests against a client nobody is
+          // looking at — the safety is the guard, not the break.
+          const gen = progGen.current
           for (let i = 0; i < 40; i++) {
+            if (progGen.current !== gen) break
             await loadProgramme(selected)
             // `loadProgramme` sets state asynchronously; a fresh read decides whether to wait.
             const still = await fetch(`/api/proxy/operator/programme?client_id=${encodeURIComponent(selected)}`)
               .then(r => r.json()).then(x => x?.data?.preparing === true).catch(() => false)
-            if (!still) break
+            if (!still || progGen.current !== gen) break
             await new Promise(r => setTimeout(r, 15000))
           }
           await loadProgramme(selected)
@@ -858,12 +1003,12 @@ export default function VidaConsolePage() {
         enrolled?: number; already_enrolled?: number; campaigns?: string[]; status_after?: string
       } | null | undefined
       if (action === 'ready-for-approval' && adv && typeof adv.enrolled === 'number') {
-        setLcMsg(
+        say(
           `${label} — done. ${(adv.campaigns ?? []).length} campaign(s) ready · ${adv.enrolled} prospect(s) prepared` +
           `${adv.already_enrolled ? ` · ${adv.already_enrolled} already prepared` : ''}` +
           `${adv.status_after ? ` · now ${adv.status_after}` : ''}. Nothing has been sent.`,
         )
-      } else setLcMsg(prep
+      } else say(prep
         ? `${label} — done. ${prep.campaigns.length} campaign(s) ready · ${prep.enrolled.length} prospect(s) enrolled` +
           `${prep.alreadyEnrolled ? ` · ${prep.alreadyEnrolled} already enrolled` : ''}. Nothing has been sent.`
         : `${label} — done.`)
@@ -871,9 +1016,9 @@ export default function VidaConsolePage() {
       // guesses the new state is a screen that can be wrong about it.
       if (selected) await loadProgramme(selected)
     } catch (e) {
-      setLcMsg(e instanceof Error ? e.message : `${label} failed`)
+      say(e instanceof Error ? e.message : `${label} failed`)
     } finally { setLcBusy(null) }
-  }, [prog, selected, clients, loadProgramme])
+  }, [programmeActionId, forThisProgramme, selected, clients, loadProgramme])
 
   const createProgrammeNow = useCallback(async () => {
     const client = (clients ?? []).find(c => c.id === selected)
@@ -898,6 +1043,12 @@ export default function VidaConsolePage() {
   }, [lcMeetings, selected, clients, loadProgramme])
 
   const attachIcp = useCallback(async (icpId: string, icpName: string | null) => {
+    // 🛑 ⚑ 13 Sep (BL-1) — ownership before the confirmation, like every other programme-id
+    // action. Attaching decides which targeting all downstream attribution belongs to; doing
+    // it to the wrong client's programme is a mis-attribution nothing later would question.
+    const id = programmeActionId()
+    if (!id) { setLcMsg(PROGRAMME_MISMATCH_COPY); return }
+    const say = forThisProgramme(setLcMsg)
     const client = (clients ?? []).find(c => c.id === selected)
     const name = client?.company_name ?? 'this client'
     if (!confirm(
@@ -907,18 +1058,16 @@ export default function VidaConsolePage() {
     )) return
     setLcBusy(`icp:${icpId}`); setLcMsg(null)
     try {
-      const id = prog?.programme?.id
-      if (!id) throw new Error('No programme loaded.')
       const j = await fetch(`/api/proxy/programmes/${encodeURIComponent(id)}/attach-icp`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ icp_id: icpId }),
       }).then(r => r.json())
       if (!j?.success) throw new Error(j?.error || 'Attach failed')
-      setLcMsg(`"${icpName ?? 'ICP'}" now feeds this programme. Nothing historical was changed.`)
+      say(`"${icpName ?? 'ICP'}" now feeds this programme. Nothing historical was changed.`)
       if (selected) await loadProgramme(selected)
-    } catch (e) { setLcMsg(e instanceof Error ? e.message : 'Attach failed') }
+    } catch (e) { say(e instanceof Error ? e.message : 'Attach failed') }
     finally { setLcBusy(null) }
-  }, [prog, selected, clients, loadProgramme])
+  }, [programmeActionId, forThisProgramme, selected, clients, loadProgramme])
 
   // ⚑ 30 Aug (BUILD-003 PR4) — POOL + EXCEPTIONS. Platform-wide, so they load independently of
   // the selected client and are refreshed when their tab is opened.
@@ -1015,7 +1164,20 @@ export default function VidaConsolePage() {
     setTestResult(null); setEnrollView(null)
     setIcpMode('list'); setIcpChat([]); setIcpProposal(null)
     setSeqPreview(null); setAsks(null); setFromClient([]); setAskInput(''); setSaveMsg(null)
+    // ── 🛑 ⚑ 13 Sep (BL-1) — PROTECTION 1: IMMEDIATE INVALIDATION, BEFORE ANYTHING LOADS ──
+    //
+    // The bump happens before `loadProgramme` is called, so a response issued for the previous
+    // client can no longer be accepted whatever order it arrives in — and so the new client's
+    // own request is the only one this generation will admit.
+    progGen.current += 1
     setProg(null); setProgErr(null); setCmMsg(null)
+    // ⚠️ AND THE PROGRAMME/LIFECYCLE ACTION STATE GOES WITH IT. Each of these describes what
+    // was done to, or is being done to, the PREVIOUS client's programme: a confirmation left
+    // open, a busy flag, or an outcome sentence carried across a switch would all read as
+    // belonging to the client now on screen. `runMsg` is included for the same reason — it
+    // reports what was sent for somebody else.
+    setQualBusy(false); setQualMsg(null); setQualConfirm(false)
+    setLcBusy(null); setLcMsg(null); setRunMsg(null)
     loadCockpit(selected)
     loadProgramme(selected)
   }, [selected, loadCockpit, loadProgramme])

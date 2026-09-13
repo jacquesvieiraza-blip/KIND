@@ -303,3 +303,167 @@ describe('🛑 B2 wiring — the controls exist, are mounted, and only render on
     expect(src, 'ProofClassificationPanel is no longer rendered').toMatch(/<ProofClassificationPanel/)
   })
 })
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// 🛑 CLIENT-SWITCH ISOLATION — A's classification state must NEVER reach B.
+//
+// ── THE DEFECT THIS CLOSES ─────────────────────────────────────────────────────────────
+//
+// The panel was mounted UNKEYED: `<ProofClassificationPanel clientId={selected ?? null} />`.
+// Every piece of its state is local `useState` — the loaded evidence, the pass choice, the
+// pass note, the restart choice, the restart note, busy and error — so switching client A → B
+// kept ONE instance alive and only changed the prop. Three unsafe states followed:
+//
+//   ① until B's evidence landed, A's controls were still rendered while the submit closures
+//      already pointed at B — a control that could classify B using A's evidence;
+//   ② A's typed pass count, restart status and notes survived the switch;
+//   ③ an A read that finished LATE overwrote the instance now showing B.
+//
+// ── THE FIX, AND WHY A KEY IS ENOUGH ──────────────────────────────────────────────────
+//
+// `key={selected}` makes A → B a real UNMOUNT and a fresh mount. All seven states are
+// destroyed and re-created; B starts at `{ state: 'loading', evidence: null }`, which renders
+// NOTHING; and a late A response resolves against A's discarded instance, where React drops
+// the update. No request-generation counter is needed because there is no longer one instance
+// serving two clients — which is the only way a generation could be stale.
+//
+// ⚠️ WHAT THESE GUARDS CAN AND CANNOT DO. There is no React component-test runtime here and
+// adding one is a dependency change this batch forbids. So the REMOUNT BOUNDARY is pinned on
+// source — that is the founder's tooth — while the CONSEQUENCE of a fresh mount (that the
+// initial state renders no control and enables no action) is driven for real, because those
+// are pure decisions over the exact values a fresh instance starts with.
+// ═══════════════════════════════════════════════════════════════════════════════════════
+
+/** The exact values a freshly-mounted instance starts with, read from the component source. */
+const FRESH = {
+  view: { state: 'loading' as const, evidence: null, error: null },
+  passes: null as number | null,
+  passNote: '',
+  restart: null as string | null,
+  restartNote: '',
+  busy: null as string | null,
+  error: null as string | null,
+}
+
+describe('🛑 B2 isolation — a fresh mount can do nothing for the new client until B answers', () => {
+  it('1 · a fresh instance renders NO control — A’s requirement cannot be actionable for B', () => {
+    // B's instance begins with no evidence at all, and no evidence means no control.
+    expect(controlsFor(FRESH.view.evidence)).toEqual({ passes: false, restart: false })
+  })
+
+  it('1b · and the panel returns null while loading, so nothing at all is on screen', () => {
+    const src = read('apps/admin/src/components/vida/ProofClassificationPanel.tsx')
+    expect(src).toMatch(/if \(view\.state === 'loading'\) return null/)
+    expect(src).toMatch(/useState<ClassificationView>\(\{ state: 'loading', evidence: null, error: null \}\)/)
+  })
+
+  it('🛑 2/3 · a fresh instance carries NO pass or restart choice and NO note', () => {
+    // Submitting with these values is refused locally and posts nothing — so even if a press
+    // somehow landed in the instant after a switch, it could not classify anyone.
+    expect(validatePasses(FRESH.passes, FRESH.passNote).ok).toBe(false)
+    expect(validateRestart(FRESH.restart, FRESH.restartNote).ok).toBe(false)
+  })
+
+  it('2b/3b · the component’s initial state literals are the empty ones', () => {
+    const src = read('apps/admin/src/components/vida/ProofClassificationPanel.tsx')
+    for (const init of [
+      'useState<PassChoice | null>(null)',
+      "useState('')",
+      'useState<RestartChoice | null>(null)',
+      "useState<'passes' | 'restart' | null>(null)",
+      'useState<string | null>(null)',
+    ]) {
+      expect(src, `a state no longer starts empty: ${init}`).toContain(init)
+    }
+  })
+
+  it('🛑 7 · nothing can be submitted for B using A’s values, because there are none', async () => {
+    const calls: string[] = []
+    const post = async (p: string) => { calls.push(p); return { success: true } }
+    await submitPassClassification(post, 'client-B', FRESH.passes, FRESH.passNote)
+    await submitRestartClassification(post, 'client-B', FRESH.restart, FRESH.restartNote)
+    expect(calls, 'a classification was posted from a fresh instance').toEqual([])
+  })
+
+  it('5 · once B’s truth is known and needs nothing, no control appears', () => {
+    const bTruth = ev({ legacy_passes_classification_required: false, legacy_restart_classification_required: false })
+    expect(controlsFor(bTruth)).toEqual({ passes: false, restart: false })
+  })
+
+  it('6 · and when B needs only the restart, only B’s restart control appears', () => {
+    const bTruth = ev({ legacy_passes_classification_required: false, legacy_restart_classification_required: true })
+    expect(controlsFor(bTruth)).toEqual({ passes: false, restart: true })
+  })
+
+  it('🛑 4 · every read is addressed to ONE client — A’s response is A’s, never B’s', async () => {
+    // The path carries the client id, so an in-flight A read is a read OF A. With the keyed
+    // remount its `setView` lands on A's discarded instance; nothing addressed to A can become
+    // B's evidence, because B's instance never issued it and never receives it.
+    const paths: string[] = []
+    const get = async (p: string) => {
+      paths.push(p)
+      return { success: true, data: { legacy_passes_classification_required: true } }
+    }
+    await loadClassificationEvidence(get, 'client-A')
+    await loadClassificationEvidence(get, 'client-B')
+    expect(paths).toEqual([
+      '/api/proxy/operator/proof-review/client-A/evidence',
+      '/api/proxy/operator/proof-review/client-B/evidence',
+    ])
+    expect(paths[0]).not.toBe(paths[1])
+  })
+})
+
+describe('🛑 B2 isolation — THE TOOTH: the mount is keyed by the selected client', () => {
+  const HOST  = 'apps/admin/src/app/vida/page.tsx'
+  const PANEL = 'apps/admin/src/components/vida/ProofClassificationPanel.tsx'
+
+  it('🛑 the panel is keyed by the selected client id', () => {
+    const src = read(HOST)
+    // ⛓️ WHAT STOOD HERE AND WAS UNSAFE:
+    // ~~`<ProofClassificationPanel clientId={selected ?? null} />`~~
+    expect(src, 'the classification panel is mounted UNKEYED — A\'s state survives a client switch')
+      .toMatch(/<ProofClassificationPanel\s+key=\{selected \?\? 'no-client'\}\s+clientId=\{selected \?\? null\}\s*\/>/)
+  })
+
+  it('🛑 the key and the clientId derive from the SAME `selected`', () => {
+    // If they ever diverge, one instance would serve two clients again and the isolation is
+    // gone without the mount looking any different.
+    const src = read(HOST)
+    const m = /<ProofClassificationPanel\s+key=\{([^}]+)\}\s+clientId=\{([^}]+)\}/.exec(src)
+    expect(m, 'the classification mount could not be read').toBeTruthy()
+    const [, keyExpr, idExpr] = m!
+    expect(keyExpr).toContain('selected')
+    expect(idExpr).toContain('selected')
+    expect(keyExpr.replace(/\s+/g, '')).toBe("selected??'no-client'")
+    expect(idExpr.replace(/\s+/g, '')).toBe('selected??null')
+  })
+
+  it('🛑 there is NO classification state outside the keyed component', () => {
+    // A cache in the page (or at module scope in the panel) would survive the remount and
+    // re-introduce exactly the defect the key removes.
+    const host = read(HOST)
+    for (const hoisted of [
+      'setClassification', 'classificationEvidence', 'setPassesRequired',
+      'setRestartRequired', 'classifyPasses', 'classifyRestart',
+    ]) {
+      expect(host, `the Vida page holds classification state (${hoisted}) outside the keyed panel`)
+        .not.toContain(hoisted)
+    }
+    // …and the panel keeps everything in `useState`, never at module scope.
+    const panel = read(PANEL)
+    const beforeComponent = panel.slice(0, panel.indexOf('export default function'))
+    expect(beforeComponent, 'the panel declares module-scope mutable state')
+      .not.toMatch(/^(let|var)\s/m)
+    for (const s of ['view', 'passes', 'passNote', 'restart', 'restartNote', 'busy', 'error']) {
+      expect(panel, `\`${s}\` is no longer component-local state`)
+        .toMatch(new RegExp(`const \\[${s},\\s*set`))
+    }
+  })
+
+  it('the panel still takes the client from its prop, so a remount really re-targets', () => {
+    const panel = read(PANEL)
+    expect(panel).toMatch(/\{ clientId \}: \{ clientId: string \| null \}/)
+    expect(panel).toMatch(/\}, \[clientId\]\)/)
+  })
+})

@@ -2719,7 +2719,22 @@ export default function VidaConsolePage() {
                   required, so it is silent for every other client — and it is mounted OUTSIDE
                   the `lcCopy` gate deliberately: an unclassified client is blocked at Proof and
                   is not necessarily in the escalated calibration state that gate describes. */}
-              <ProofClassificationPanel clientId={selected ?? null} />
+              {/* ── 🛑 ⚑ 13 Sep (B2 isolation) — KEYED BY THE CLIENT, AND THE KEY IS THE FIX ──
+                  Every piece of this panel's state is local `useState`: the loaded evidence,
+                  the pass choice, the pass note, the restart choice, the restart note, the busy
+                  flag and the error. UNKEYED, switching client A → B kept that instance alive
+                  and merely changed the `clientId` prop — so until B's evidence landed, A's
+                  controls were still on screen while the submit closures already pointed at B,
+                  and A's typed choices and note survived the switch. An A read that finished
+                  LATE would also write A's truth into the instance now showing B.
+                  Keying by the selected client makes A → B a real UNMOUNT and a fresh mount:
+                  every state above is destroyed and re-created, B starts at
+                  `{ state: 'loading', evidence: null }` (which renders nothing at all), and a
+                  late A response resolves against A's discarded instance where React drops it.
+                  ⚠️ THE KEY AND THE PROP MUST DERIVE FROM THE SAME `selected`. If they ever
+                  diverge the isolation is gone and the guard in
+                  `vida-proof-classification.test.ts` fails. */}
+              <ProofClassificationPanel key={selected ?? 'no-client'} clientId={selected ?? null} />
               {!lcCopy && (
                 <div className="flex-1 min-h-0 flex items-center justify-center px-6 text-center">
                   <p className="text-[13px] text-[#9b8ec4] max-w-sm">

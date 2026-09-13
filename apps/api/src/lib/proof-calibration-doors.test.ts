@@ -247,12 +247,20 @@ describe('🛑 ④ the one calibrated restart — operator-only, audited, self-l
     }
   })
 
+  // ⛓️ 13 Sep (B2) — THE WINDOW, NOT THE CLAIM, CHANGED. This sliced a fixed
+  // `at + 2200` characters; the evidence route grew past that when it began answering the two
+  // historical-classification booleans, so `read_only:` fell outside the window and the guard
+  // failed on correct code. The slice now runs to the NEXT route declaration — the real end of
+  // this handler — which is STRICTER in both directions: the write-absence checks cover the
+  // whole route instead of its first 2,200 characters, and `read_only:` is still required.
   it('the evidence route is read-only and says so', () => {
     const c = code(OPERATOR)
     const at = c.indexOf('/proof-review/:clientId/evidence')
-    const body = c.slice(at, at + 2200)
+    const next = c.indexOf('operatorRouter.', at + 1)
+    const body = c.slice(at, next > at ? next : undefined)
+    expect(body.length, 'the evidence route body could not be isolated').toBeGreaterThan(2200)
     expect(body).toContain('read_only:')
-    for (const write of ['.update(', '.insert(', '.delete(']) {
+    for (const write of ['.update(', '.insert(', '.delete(', '.upsert(', 'db.rpc(']) {
       expect(body.includes(write), `the evidence route performs a ${write} write`).toBe(false)
     }
   })

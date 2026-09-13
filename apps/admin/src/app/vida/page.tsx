@@ -7,6 +7,9 @@ import { loadError, panelView, notice, noticeClass, noticeText, vatBadge, PACK_P
 import { programmeSourcingAction } from '@/lib/programme-sourcing-action'
 import { LifecycleRibbon } from '@/components/vida/LifecycleRibbon'
 import { LifecyclePanel } from '@/components/vida/LifecyclePanel'
+// ⚑ 13 Sep (B2) — the two historical-classification controls, rendered only when the
+// server says this client's pre-ledger Proof history still needs a human decision.
+import ProofClassificationPanel from '@/components/vida/ProofClassificationPanel'
 // ⚑ MVP1 (Preview 07) — the brief-in-progress panel for somebody who is not a client yet.
 import { BriefPanel } from '@/components/vida/BriefPanel'
 import { lifecycleCopy, type LifecycleState, type VidaMode, type PanelAction } from '@/lib/vida-lifecycle-copy'
@@ -2709,6 +2712,14 @@ export default function VidaConsolePage() {
                   onAction={onLifecycleAction}
                 />
               )}
+              {/* ── 🛑 ⚑ 13 Sep (B2) — HISTORICAL PROOF CLASSIFICATION, WHERE THE OPERATOR IS ──
+                  A client whose pre-ledger Proof history cannot be read is correctly refused by
+                  `claim_proof_authority` and has no way out except these two protected routes.
+                  The panel renders ONLY when the server's own booleans say classification is
+                  required, so it is silent for every other client — and it is mounted OUTSIDE
+                  the `lcCopy` gate deliberately: an unclassified client is blocked at Proof and
+                  is not necessarily in the escalated calibration state that gate describes. */}
+              <ProofClassificationPanel clientId={selected ?? null} />
               {!lcCopy && (
                 <div className="flex-1 min-h-0 flex items-center justify-center px-6 text-center">
                   <p className="text-[13px] text-[#9b8ec4] max-w-sm">

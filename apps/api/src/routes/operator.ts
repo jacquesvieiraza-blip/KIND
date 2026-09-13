@@ -2450,6 +2450,67 @@ operatorRouter.get('/proof-review/:clientId/evidence', async (req: Request, res:
       await import('../lib/proof-calibration')
     const cal = await readCalibration(req.params.clientId)
     const restart = mayRestartCalibrated(cal)
+
+    // ── 🛑 ⚑ 13 Sep (B2) — IS HISTORICAL CLASSIFICATION REQUIRED? READ-ONLY, ONE DEFINITION ──
+    //
+    // 🛑 WHY THIS LIVES HERE AND NOWHERE ELSE. `claim_proof_authority` fails closed on
+    // pre-ledger ambiguity and the two classification POSTs are the remedy — but Vida could not
+    // tell a client who NEEDS classifying from one already classified, so the controls could
+    // not be shown to exactly the right clients. The browser must not re-derive an authority
+    // rule, so the SERVER answers it, from the SAME persisted columns the RPC locks and reads.
+    //
+    // ⚠️ THESE ARE THE RPC'S OWN PREDICATES, TRANSCRIBED. From
+    // `20260912_proof_pass_claims.sql` (`claim_proof_authority`), which reads
+    // `coalesce(proof_passes_done, 0)` into `v_done` and `proof_passes_legacy` into `v_legacy`:
+    //
+    //     ②  if v_legacy is null then
+    //           if v_done = 0 then  <auto-classify to 0>  else  return 'unclassified'  end if;
+    //        end if;
+    //
+    //     ③  if v_grant_used is not null and not exists (
+    //             select 1 from public.proof_pass_claims
+    //              where client_id = p_client_id and authority = 'calibrated_restart')
+    //        then return 'restart_unclassified'; end if;
+    //
+    // So: passes are unclassified when the classification column is NULL **and** the coalesced
+    // counter is non-zero; the restart is unclassified when it was SPENT and the ledger holds
+    // no `calibrated_restart` row of ANY status. Both are copied exactly — including the
+    // coalesce and including "any status" — because a second, nearly-identical definition is
+    // how the gate and the control come to disagree about one client.
+    //
+    // ⚠️ IT REPORTS BOTH INDEPENDENTLY; THE RPC SURFACES THEM ONE AT A TIME. The RPC returns
+    // `unclassified` first and never reaches ③ for that client, which is correct for a claim
+    // and useless for an operator who needs to see everything waiting on them. Reporting both
+    // is a reporting difference, not a semantic one: each boolean is that branch's own test.
+    //
+    // ⚠️ AND IT NEVER WRITES. The RPC's ② auto-classifies a zero-counter client to 0 as a side
+    // effect of claiming; this read must not, so a client with a NULL classification and a zero
+    // counter simply reports `false` — the same CONCLUSION (nothing to classify) reached
+    // without the write. A GET that classified anything by being loaded would be the exact
+    // "historical truth invented by the system" this whole design refuses.
+    //
+    // ⚠️ AN UNREADABLE ROW THROWS rather than answering `false`. "We could not tell" must never
+    // render as "no classification needed" — that would hide the one control that unblocks the
+    // client. The route's existing catch turns it into the same 503-shaped refusal the panel
+    // already handles.
+    const { data: clsRow, error: clsErr } = await db.from('clients')
+      .select('proof_passes_done, proof_passes_legacy, proof_calibrated_restart_used_at')
+      .eq('id', req.params.clientId).maybeSingle()
+    if (clsErr) throw new Error(`classification state unreadable — ${clsErr.message}`)
+    if (!clsRow) throw new Error('classification state unreadable — no such client')
+    const cls = clsRow as unknown as Record<string, unknown>
+    const clsPassesDone = Number(cls.proof_passes_done ?? 0) || 0
+    const clsLegacy = cls.proof_passes_legacy == null ? null : Number(cls.proof_passes_legacy)
+    const clsRestartUsedAt = (cls.proof_calibrated_restart_used_at as string | null) ?? null
+
+    const { data: restartLedger, error: ledgerErr } = await db.from('proof_pass_claims')
+      .select('id').eq('client_id', req.params.clientId).eq('authority', 'calibrated_restart').limit(1)
+    if (ledgerErr) throw new Error(`classification state unreadable — ${ledgerErr.message}`)
+    const hasRestartLedgerRow = ((restartLedger ?? []) as unknown[]).length > 0
+
+    const legacyPassesClassificationRequired = clsLegacy === null && clsPassesDone !== 0
+    const legacyRestartClassificationRequired = clsRestartUsedAt !== null && !hasRestartLedgerRow
+
     res.json({
       success: true,
       data: {
@@ -2485,8 +2546,19 @@ operatorRouter.get('/proof-review/:clientId/evidence', async (req: Request, res:
         // ⚑ 11 Sep — the one sentence naming what changed between the two AUTOMATIC sets,
         // built from the client's own reasons. The operator is about to phone them about it.
         what_changed: whatChangedSentence(automaticAttempt(cal, 1) ?? null),
+        // ── ⚑ 13 Sep (B2) — THE TWO CLASSIFICATION QUESTIONS, ANSWERED BY THE SERVER ────
+        //
+        // ⚠️ SERVER-OWNED BOOLEANS, NOT INGREDIENTS. Vida renders each control on its own
+        // boolean and re-derives nothing: an authority rule reconstructed in a browser is a
+        // second definition that drifts from the first one silently.
+        legacy_passes_classification_required:  legacyPassesClassificationRequired,
+        legacy_restart_classification_required: legacyRestartClassificationRequired,
+        // ⚠️ THE EXISTING PERSISTED COLUMN, SO THE OPERATOR CAN SEE WHAT IS ALREADY RECORDED
+        // and so a successful classification is visibly reflected by the refreshed read rather
+        // than by the screen assuming its own press worked. `null` means UNCLASSIFIED.
+        legacy_passes_classified_as: clsLegacy,
       },
-      read_only: 'This endpoint only reads. Nothing was changed by loading it.',
+      read_only: 'This endpoint only reads. Nothing was changed by loading it. The two classification booleans are derived from persisted columns and classify nothing.',
     })
   } catch (err) {
     console.error('[operator/proof-review/evidence]', err)

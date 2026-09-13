@@ -210,11 +210,28 @@ describe('23 · 25 · 29 · where the one calibrated restart stands', () => {
     expect(spendDoors(s).automaticProofPass, 'a second restart was available').toBe(false)
   })
 
-  it('a LATER grant after an earlier use is available again — one resolution, one set', () => {
-    // A client legitimately escalated, was resolved, spent their set, escalated again months
-    // later and was resolved again. Each resolution buys exactly one.
+  // ── 🛑 ⛓️ 12 Sep (R119) — THIS TEST ASSERTED THE DRIFT, SO IT IS INVERTED ──────────────
+  //
+  // ~~"a LATER grant after an earlier use is available again — one resolution, one set"~~
+  // ~~const s = st({ restartUsedAt: …, restartGrantedAt: <later> })~~
+  // ~~expect(calibratedRestart(s)).toBe('available')~~
+  //
+  // It encoded a PER-RESOLUTION allowance — "each resolution buys exactly one" — which is the
+  // model `main` shipped on 11 Sep and which the founder's locked rule forbids: "Exactly ONE
+  // calibrated restart per client, ever… A SECOND CALIBRATED RESTART IS REFUSED, whatever
+  // happens later." The rule was never in `docs/PRODUCT-RULES.md` (it contained no occurrence
+  // of "restart" until R119 was written), so the code and this test became the de-facto
+  // authority and agreed with each other while both disagreed with the founder.
+  //
+  // ⚠️ THE ASSERTION IS NOT DELETED, IT IS REVERSED — the same scenario, the opposite
+  // expectation, so the drift can never come back unnoticed.
+  it('🛑 R119 · a LATER grant after an earlier use is STILL used — one restart per client, ever', () => {
+    // A client escalated, was resolved, spent their set, escalated again months later and was
+    // resolved again. The re-escalation and the second resolution may both be legitimate;
+    // neither may produce a second restart.
     const s = st({ restartUsedAt: '2026-09-10T11:05:00Z', restartGrantedAt: '2026-10-01T09:00:00Z' })
-    expect(calibratedRestart(s)).toBe('available')
+    expect(calibratedRestart(s)).toBe('used')
+    expect(spendDoors(s).automaticProofPass, 'a second restart was offered to the client').toBe(false)
   })
 
   it('🛑 31 · and a spent restart still leaves NO automatic attempt behind it', () => {
@@ -575,15 +592,34 @@ describe('🛑 DAY-2 · a restart is never consumed unless its provenance can be
     const stmt = icps.slice(at, at + 1000)
     expect(stmt).toContain("proof_batch_kind: opts!.proofKind ?? 'automatic'")
     expect(stmt).toContain(".in('id', gatedIds)")
-    expect(icps).toContain("const batchKind: 'automatic' | 'calibrated_restart' = calibratedRestart ? 'calibrated_restart' : 'automatic'")
+    // ⛓️ 12 Sep (S2-AUDIT-001) — the provenance now comes from the LEDGER'S answer rather than
+    // from a local boolean the route set itself. Same fact: a restart batch is stamped
+    // `calibrated_restart` and an automatic one is not.
+    expect(icps).toContain("const batchKind: 'automatic' | 'calibrated_restart' = authority.ok ? authority.kind : 'automatic'")
     expect(icps).toContain('proofKind: batchKind')
   })
 
   it('🛑 the refusal is RETRYABLE at the route, never a final "your set is used"', async () => {
     const { readFileSync } = await import('node:fs')
     const icps = readFileSync(new URL('../routes/icps.ts', import.meta.url), 'utf8')
-    expect(icps).toContain("claim.reason === 'unreadable' || claim.reason === 'provenance_unavailable'")
-    expect(icps).toContain('res.status(retryable ? 503 : 409)')
+    // ⛓️ 12 Sep (S2-AUDIT-001) — RETARGETED, AND THE DUTY IS UNCHANGED: a client must never be
+    // told their one restart is used when it is not. The old shape combined two reasons into a
+    // `retryable` boolean at one call site; the ledger's refusals carry their own reason, so
+    // each is answered where it happens. The two cases this test named are both still 503:
+    //
+    //   · the provenance column is missing  — the restart is INTACT and the same press works
+    //     once the migration is applied, so the refusal is 503 and says nothing was spent;
+    //   · the claim could not be read       — an unreadable claim is not permission (C43).
+    expect(icps).toContain('if (!(await proofProvenanceAvailable())) {')
+    const prov = icps.indexOf('if (!(await proofProvenanceAvailable())) {')
+    expect(icps.slice(prov, prov + 500), 'a missing provenance column must be RETRYABLE').toContain('retryable: true')
+    expect(icps.slice(prov, prov + 500)).toContain('the restart is still available')
+    expect(icps).toContain("authority.reason === 'unreadable'")
+    const unread = icps.indexOf("authority.reason === 'unreadable'")
+    expect(icps.slice(unread, unread + 500), 'an unreadable claim must be RETRYABLE').toContain('retryable: true')
+    // 🛑 AND NEITHER IS EVER A 409. That is the sentence this test exists to forbid.
+    expect(icps.slice(prov, prov + 500)).not.toContain('res.status(409)')
+    expect(icps.slice(unread, unread + 500)).not.toContain('res.status(409)')
   })
 
   it('🛑 the probe costs nothing and fails closed on any doubt', async () => {

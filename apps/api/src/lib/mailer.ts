@@ -139,11 +139,11 @@ export async function sendAs(inbox: InboxRow, mail: OutgoingMail): Promise<Check
     // possible while the switch is on.
     const { killSwitchBlocks, KILL_SWITCH_REFUSAL } = await import('./outreach-kill-switch')
     if (killSwitchBlocks('smtp', `${inbox.email ?? 'unknown mailbox'} → ${mail.to}`)) {
-      return { ok: false, id: null, error: new Error(KILL_SWITCH_REFUSAL) }
+      return { ok: false, id: null, error: new Error(KILL_SWITCH_REFUSAL), errorName: null }
     }
 
     if (!inbox.smtp_host || !inbox.smtp_user || !inbox.smtp_pass_enc) {
-      return { ok: false, id: null, error: new Error('mailer: inbox has no SMTP details — refusing to send') }
+      return { ok: false, id: null, error: new Error('mailer: inbox has no SMTP details — refusing to send'), errorName: null }
     }
 
     const { decryptSecret } = await import('./inbox-secret')
@@ -152,7 +152,7 @@ export async function sendAs(inbox: InboxRow, mail: OutgoingMail): Promise<Check
       password = decryptSecret(inbox.smtp_pass_enc)
     } catch (e) {
       // An unreadable password is a refusal, not a reason to send from anywhere else.
-      return { ok: false, id: null, error: e }
+      return { ok: false, id: null, error: e, errorName: null }
     }
 
     const nodemailer = await import('nodemailer')
@@ -177,16 +177,19 @@ export async function sendAs(inbox: InboxRow, mail: OutgoingMail): Promise<Check
       return {
         ok: false,
         id: null,
+        // SMTP, not Resend: there is no provider error code to carry, and `null` is the
+        // honest value rather than a manufactured one.
+        errorName: null,
         error: new Error(`mailer: the mail server accepted no recipients${info?.response ? ` — ${info.response}` : ''}`),
       }
     }
 
     const id = typeof info?.messageId === 'string' && info.messageId ? info.messageId : null
-    if (!id) return { ok: false, id: null, error: new Error('mailer: no message id returned') }
+    if (!id) return { ok: false, id: null, error: new Error('mailer: no message id returned'), errorName: null }
 
-    return { ok: true, id, error: null }
+    return { ok: true, id, error: null, errorName: null }
   } catch (e) {
-    return { ok: false, id: null, error: e }
+    return { ok: false, id: null, error: e, errorName: null }
   } finally {
     // Nothing to close: a per-send transport is deliberate. A pooled connection shared
     // across clients is one more thing that could send a client's mail down another

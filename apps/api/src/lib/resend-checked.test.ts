@@ -4,7 +4,11 @@ import { interpretSend } from './resend-checked'
 describe('interpretSend (#338 — Resend returns {error}, never throws)', () => {
   it('ok when a message id came back and no error', () => {
     const v = interpretSend({ data: { id: 'msg_123' }, error: null })
-    expect(v).toEqual({ ok: true, id: 'msg_123', error: null })
+    // ⛓️ 12 Sep (R120) — `errorName` joined the verdict. A success has no provider error, so
+    // it is null here; the reason it exists is that four provider FAILURES need four different
+    // actions (in-flight, payload conflict, ambiguous, definitively refused) and a boolean
+    // collapses all of them — which is how a 409 got misread as a send in this build's first draft.
+    expect(v).toEqual({ ok: true, id: 'msg_123', error: null, errorName: null })
   })
 
   it('NOT ok when Resend returned an error (the phantom-send case)', () => {

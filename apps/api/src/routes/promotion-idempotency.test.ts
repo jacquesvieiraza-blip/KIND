@@ -1,5 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
+// ⛓️ 12 Sep (S2-AUDIT-001) — RETARGETED, NOT WEAKENED. Every assertion below keeps its
+// exact meaning; only the NAME of the claim changed. `try_claim_proof_pass` incremented a
+// counter nothing could release, so a run that crashed at the PDL boundary consumed the
+// client's pass and left them with nothing. Authority now comes from the durable claim
+// ledger (`claim_proof_authority` -> `proof_pass_claims`), which can give it back. The old
+// RPC is retained in the database for rollback and has ZERO live callers
+// (`proof-authority-bypass.test.ts` asserts that, and it is what keeps it dead).
+
 // ═══════════════════════════════════════════════════════════════════════════════════════
 // ⚑ MVP1 — PROMOTION SURVIVES A DOUBLE CLICK, AND A RETRY NEVER REPLAYS A STALE BRIEF.
 //
@@ -230,7 +238,7 @@ describe('⑦ 21 · a retried promotion cannot start Proof twice', () => {
   it('1 · the first start reaches the claim', async () => {
     state.icps = [{ id: 'icp-1', client_id: 'client-1', is_active: true }]
     await call('/:id/proof', 'post', PROOF, { id: 'icp-1' })
-    expect(state.rpcs).toContain('try_claim_proof_pass')
+    expect(state.rpcs).toContain('claim_proof_authority')
   })
 
   it('2 · 🛑 a replay claims NOTHING — the second free pass is not spent', async () => {
@@ -250,7 +258,7 @@ describe('⑦ 21 · a retried promotion cannot start Proof twice', () => {
     state.rpcs = []
     // No `from_brief_draft` — this is the refinement path, not a replayed promotion.
     await call('/:id/proof', 'post', {}, { id: 'icp-1' })
-    expect(state.rpcs).toContain('try_claim_proof_pass')
+    expect(state.rpcs).toContain('claim_proof_authority')
   })
 
   it('4 · 🛑 14 · Proof never starts for somebody who has no client at all', async () => {

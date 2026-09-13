@@ -314,9 +314,18 @@ export async function markBriefDraftPromoted(
     // which quietly made "confirmed" a synonym for "promoted" — and a synonym cannot be the
     // gate that must happen BEFORE promotion. The client's own confirmation is stamped by
     // `confirmBriefDraft`, and `/auth/onboard` refuses to promote a draft that has not been.
+    // ── ⚑ 12 Sep (S1-AUDIT-003) — THE FIRST PROMOTION IS THE ONE RECORDED ─────────────
+    //
+    // ⚠️ `.is('promoted_client_id', null)` MATTERS NOW THAT THIS IS CALLED FROM TWO PLACES.
+    // The seal moved to `POST /icps` (the last durable step of promotion) and the replay
+    // branch there calls it too, so an interrupted promotion can be finished by a retry.
+    // Without this filter a replay would re-stamp `promoted_at`, moving the recorded moment
+    // of promotion to whenever somebody last pressed the button — and this row is evidence.
+    // Zero rows matched is success: it means the seal was already taken.
     const { error } = await db.from('onboarding_brief_drafts')
       .update({ promoted_client_id: clientId, promoted_at: now, updated_at: now })
       .eq('user_id', userId)
+      .is('promoted_client_id', null)
     if (error) {
       console.warn('[brief-draft] promotion not stamped (run 20260911_onboarding_brief_drafts):', error.message)
       return { ok: false }

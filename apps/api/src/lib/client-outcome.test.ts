@@ -156,7 +156,14 @@ describe('🛑 ④ the number stays separate, and the client cannot dictate the 
   it('onboarding accepts the SENTENCE and derives the kind server-side', () => {
     const c = code(AUTH)
     expect(c).toContain('outcome_stated: emptyToUndefined.optional()')
-    expect(c).toContain('const outcome = readStatedOutcome(outcome_stated)')
+    // ⛓️ 12 Sep (S1-AUDIT-002) — RETARGETED, NOT WEAKENED. The FACT is unchanged and still
+    // asserted: the request supplies a SENTENCE and the server derives the KIND from it. What
+    // moved is WHICH sentence — the browser's copy in the body was replaced by the confirmed
+    // draft's, because the browser was couriering facts the server already held.
+    expect(c).toContain('const outcome = readStatedOutcome(outcomeStatedOwned)')
+    expect(c).toContain('text2(draftFacts?.desired_outcome) ?? outcome_stated')
+    // The body still cannot name the kind — the original point of this assertion.
+    expect(c).not.toContain('outcome_kind: req.body')
     // 🛑 `outcome_kind` MUST NOT BE ACCEPTED FROM THE REQUEST. If it were, a screen could
     // declare a "meetings" outcome for an answer that never asked for one, and a meeting
     // target would later be agreed against it.

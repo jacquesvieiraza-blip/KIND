@@ -376,8 +376,25 @@ export function mayRestartCalibrated(r: CalibrationRecord): { allowed: boolean; 
   if (!(r.operatorNote ?? '').trim()) {
     return { allowed: false, why: 'There is no resolution note. A restart without one would spend a pass on the targeting that already failed twice.' }
   }
-  if (r.restartAt && r.restartAt >= r.resolvedAt) {
-    return { allowed: false, why: 'The calibrated restart for this resolution has already been granted. Resolve the calibration again before granting another pass.' }
+  // ── 🛑 ⛓️ 12 Sep (R119) — ONE GRANT, PER CLIENT, FOR EVER ──────────────────────────
+  //
+  // ⛓️ THE STRUCK TEST: ~~`if (r.restartAt && r.restartAt >= r.resolvedAt)`~~ — refuse only
+  // while the grant is NEWER than the resolution. That is a per-resolution allowance: a
+  // re-opened review plus a second resolution moved `resolvedAt` past the grant and the
+  // clause stopped refusing, so grant #2 was permitted. R119: "A SECOND CALIBRATED RESTART
+  // IS REFUSED, whatever happens later."
+  //
+  // ⚠️ THE EXISTENCE OF A GRANT IS NOW THE WHOLE TEST — no timestamp comparison, so nothing
+  // that happens later can make it pass. A client whose one restart was BURNED by
+  // infrastructure does not need a second grant: the original grant is still on the row and
+  // the durable claim ledger reissues the authority against it.
+  if (r.restartAt) {
+    return { allowed: false, why: 'This client has already had their one calibrated restart. There is no second restart — the ladder is two automatic attempts and one human-authorised set.' }
+  }
+  // A consumption with no grant is impossible under current code. If the data ever says
+  // otherwise, refuse: an unexplained consumption is not a reason to hand out a new grant.
+  if (r.restartUsedAt) {
+    return { allowed: false, why: 'This client\'s record shows a calibrated restart was already consumed. Nothing further is granted from here.' }
   }
   return { allowed: true }
 }
@@ -444,6 +461,27 @@ export async function proofProvenanceAvailable(): Promise<boolean> {
   } catch { return false }
 }
 
+/**
+ * ═══════════════════════════════════════════════════════════════════════════════════════
+ * 🛑 ⛓️ 12 Sep — SUPERSEDED. ROLLBACK COMPATIBILITY ONLY. DO NOT CALL THIS.
+ *
+ * The one calibrated restart is claimed by the DURABLE AUTHORITY LEDGER now —
+ * `claim_proof_authority` in `20260912_proof_pass_claims`, reached through
+ * `lib/proof-claim.ts`. This function writes `clients.proof_calibrated_restart_used_at`
+ * DIRECTLY, and as of that migration that column is a COMPATIBILITY MIRROR of the ledger
+ * rather than the authority. Calling this would set the mirror without a claim row, which
+ * makes the two disagree — and the disagreeing one is the one the operator reads.
+ *
+ * ⚠️ IT SURVIVES ONLY BECAUSE NOTHING LIVE REACHES IT. The founder's condition, verbatim:
+ * "Old RPC/function may remain for rollback compatibility only if ZERO live caller can
+ * reach it." `proof-authority-bypass.test.ts` asserts exactly that, and it is what stops a
+ * future edit from quietly making this reachable again.
+ *
+ * ⚠️ AND IT IS NOT DELETED, DELIBERATELY. `try_claim_proof_pass` is likewise left in place
+ * unchanged, so a rollback of this build degrades to the previous behaviour rather than to
+ * no behaviour at all.
+ * ═══════════════════════════════════════════════════════════════════════════════════════
+ */
 export async function claimCalibratedRestart(clientId: string): Promise<RestartClaim> {
   let r: CalibrationRecord
   try {

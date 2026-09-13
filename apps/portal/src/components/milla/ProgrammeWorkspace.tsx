@@ -52,6 +52,23 @@ export type CustomerProgramme = {
     stated: string | null
   }
   progress: { delivered: number; authorised: number; outcomesAchieved: number | null }
+  /**
+   * ⚑ 13 Sep (B1) — THE RECOMMENDATION AND WHETHER THE CLIENT HAS ACCEPTED IT.
+   *
+   * The server has always sent this block (`lib/customer-programme.ts`); the type simply did
+   * not name it, so no screen could read `acceptedAt` — which is how the payment card came to
+   * render for a client who had never accepted and could only ever meet `409 not_accepted`.
+   *
+   * ⚠️ OPTIONAL DELIBERATELY. An older API response reads as "acceptance not established",
+   * which `acceptanceGate` treats as still-to-accept: the client is asked (safe and
+   * idempotent) and payment stays shut. Absent must never read as accepted.
+   */
+  recommendation?: {
+    recommendedVolume?: number | null
+    costPerMeetingCents?: number | null
+    /** `programmes.recommendation_accepted_at` — the persisted act, never a local flag. */
+    acceptedAt?: string | null
+  } | null
   money: {
     totalCents: number
     /** The two halves, from the row. Milla never divides a price. */

@@ -21,6 +21,14 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { readFileSync } from 'fs'
 import { join } from 'path'
 
+// ⛓️ 12 Sep (S2-AUDIT-001) — RETARGETED, NOT WEAKENED. Every assertion below keeps its
+// exact meaning; only the NAME of the claim changed. `try_claim_proof_pass` incremented a
+// counter nothing could release, so a run that crashed at the PDL boundary consumed the
+// client's pass and left them with nothing. Authority now comes from the durable claim
+// ledger (`claim_proof_authority` -> `proof_pass_claims`), which can give it back. The old
+// RPC is retained in the database for rollback and has ZERO live callers
+// (`proof-authority-bypass.test.ts` asserts that, and it is what keeps it dead).
+
 type Rec = {
   rpcs: Array<{ fn: string; args: Record<string, unknown> }>
   leadUpdates: Array<Record<string, unknown>>
@@ -209,6 +217,18 @@ async function runJob(opts: {
         from: (t: string) => makeQuery(t),
         rpc: async (fn: string, args: Record<string, unknown>) => {
           jctx.rec.rpcs.push({ fn, args })
+          // ── ⛓️ 12 Sep (S2-AUDIT-001) — THE LEDGER, STANDING IN FOR THE OLD COUNTER ────────
+          // The route claims through `claim_proof_authority` now. The old RPC branch is kept
+          // beside it so a rollback needs no fixture change; this one mirrors the SAME rule —
+          // two automatic passes then refuse — so every assertion below is unchanged.
+          if (fn === 'claim_proof_authority') {
+            const pass = jctx.opts.pass ?? 1
+            if (pass <= 0) return { data: { ok: false, reason: 'exhausted' }, error: null }
+            return { data: {
+              ok: true, claim_id: 'claim-1', authority: `automatic_${pass}`, pass, kind: 'automatic', reason: 'granted',
+            }, error: null }
+          }
+          if (fn === 'settle_proof_claim')         return { data: { ok: true, status: args.p_status }, error: null }
           if (fn === 'try_claim_proof_pass')       return { data: jctx.opts.pass ?? 1, error: null }
           // The corrected contract (22 Aug round 2): reserve returns jsonb with the
           // reservation's identity, and release must address that identity.
@@ -369,7 +389,7 @@ describe('runIcpJob routes an unpaid prospect to the PROOF authority, never the 
     expect(names).not.toContain('try_spend_sourcing')
     expect(names).not.toContain('add_sourcing_allowance')
     // The pass travels IN — the run claiming one itself is exactly the round-4 defect.
-    expect(names).not.toContain('try_claim_proof_pass')
+    expect(names).not.toContain('claim_proof_authority')
   })
 
   it('THE ROUTE CLAIMS THE PASS BEFORE ANYTHING RUNS — a pool-only batch still spends one', async () => {
@@ -380,7 +400,7 @@ describe('runIcpJob routes an unpaid prospect to the PROOF authority, never the 
     const names = rec.rpcs.map(r => r.fn)
     // The claim is the FIRST rpc of the whole flow — before the pool serve, before any
     // reservation — so a prospect with a well-covered pool still spends a pass.
-    expect(names[0]).toBe('try_claim_proof_pass')
+    expect(names[0]).toBe('claim_proof_authority')
   })
 
   it('WHEN BOTH PASSES ARE USED, THE ROUTE REFUSES — a human takes over, nothing runs', async () => {
@@ -389,7 +409,7 @@ describe('runIcpJob routes an unpaid prospect to the PROOF authority, never the 
     expect(res.statusCode).toBe(409)
     expect(String((res.body as { error: string }).error)).toMatch(/two sets of leads/i)
     const names = rec.rpcs.map(r2 => r2.fn)
-    expect(names).toContain('try_claim_proof_pass')
+    expect(names).toContain('claim_proof_authority')
     expect(names).not.toContain('try_reserve_proof_records')
     expect(names).not.toContain('try_spend_sourcing')
     expect(rec.leadInserts).toBe(0)
@@ -436,7 +456,7 @@ describe('runIcpJob leaves the PAID path exactly as it was', () => {
     await runJob({ funded: 'real', grant: 15, contacts: 15 }, rec)
     const names = rec.rpcs.map(r => r.fn)
     expect(names).toContain('try_spend_sourcing')
-    expect(names).not.toContain('try_claim_proof_pass')
+    expect(names).not.toContain('claim_proof_authority')
     expect(names).not.toContain('try_reserve_proof_records')
     expect(names).not.toContain('release_proof_records')
   })
@@ -603,7 +623,7 @@ describe('round 4 — proof is an execution mode, not an account property', () =
     const rec = emptyRec()
     await runJob({ funded: null, pool: 0, contacts: 0 }, rec)
     const names = rec.rpcs.map(r => r.fn)
-    expect(names).not.toContain('try_claim_proof_pass')
+    expect(names).not.toContain('claim_proof_authority')
     expect(names).not.toContain('try_reserve_proof_records')
     // The normal fence answers instead — and for a never-funded account it grants 0.
     expect(names).toContain('try_spend_sourcing')
@@ -666,7 +686,7 @@ describe('POST /icps/:id/proof — the client\'s one proof entry, and its fences
     // carries the caller's own client_id, so someone else's ICP id reads as missing.
     expect(rec.eqs.some(e => e.table === 'icps' && e.col === 'client_id' && e.val === 'c1')).toBe(true)
     // Nothing was claimed for an ICP they do not own.
-    expect(rec.rpcs.map(r => r.fn)).not.toContain('try_claim_proof_pass')
+    expect(rec.rpcs.map(r => r.fn)).not.toContain('claim_proof_authority')
   })
 
   it('THE PROOF REQUEST NEVER MAKES THE ICP LIVE', async () => {
@@ -683,7 +703,7 @@ describe('POST /icps/:id/proof — the client\'s one proof entry, and its fences
     expect(res.statusCode).toBe(403)
     expect(String((res.body as { error: string }).error)).toMatch(/already live/i)
     const names = rec.rpcs.map(r => r.fn)
-    expect(names).not.toContain('try_claim_proof_pass')
+    expect(names).not.toContain('claim_proof_authority')
     expect(names).not.toContain('try_reserve_proof_records')
   })
 
@@ -860,9 +880,9 @@ describe('free proof never reaches the paid reveal/delivery path', () => {
     // because the comments that explain the fences legitimately name them — the same
     // assert-absence-on-prose trap this file has hit before. `db.rpc(` is the thing that
     // actually spends authority, so that is what is counted.
-    expect((src.match(/db\.rpc\('try_claim_proof_pass'/g) ?? []), 'one pass claim').toHaveLength(1)
+    expect((src.match(/claimProofAuthority\(/g) ?? []), 'one pass claim').toHaveLength(1)
     expect((src.match(/db\.rpc\('try_reserve_proof_records'/g) ?? []), 'one reservation').toHaveLength(1)
-    expect(src).toContain("db.rpc('try_claim_proof_pass', { p_client_id: clientId })")
+    expect(src).toContain("await claimProofAuthority(clientId, req.params.id)")
     expect(src).toContain("db.rpc('try_reserve_proof_records'")
     expect(src).toContain('const PROOF_PASS_LEADS = 20')
     expect(src).toContain('PROOF_CLIENT_RECORD_CAP = 40')
@@ -1332,7 +1352,7 @@ describe('one reflect-back truth, and two labelled proof sets', () => {
     expect(exhausted).not.toMatch(/<button|onClick|api\.post/)
     // And the server's own fence is exactly as it was.
     expect(icps).toContain('We have shown you two sets of leads.')
-    expect(icps).toContain("db.rpc('try_claim_proof_pass', { p_client_id: clientId })")
+    expect(icps).toContain("await claimProofAuthority(clientId, req.params.id)")
   })
 
   it('39/40 · no provider, request-count, reveal, send or charge path moved', () => {

@@ -649,6 +649,20 @@ alter table public.clients
   add column if not exists proof_review_requested_at        timestamptz,  -- set ONLY when a prospect who has used both passes asks for another (20260827_proof_review_handoff)
   add column if not exists proof_review_resolved_at         timestamptz,  -- stamped by an operator in Vida; non-null clears it from the unresolved feed
   add column if not exists proof_review_icp_id              uuid,         -- which ICP they were looking at when they asked — a pointer, not the identity of the review
+  -- ⚑ 12 Sep (S2-AUDIT-001) — HOW MUCH AUTOMATIC PROOF AUTHORITY WAS LEGITIMATELY USED
+  -- BEFORE the durable claim ledger existed. NULLABLE, no default, NEVER backfilled: NULL
+  -- means UNCLASSIFIED and `claim_proof_authority` FAILS CLOSED on it. The founder refused a
+  -- snapshot of `proof_passes_done` by name — it "would memorialise the defect we are fixing".
+  add column if not exists proof_passes_legacy              int,          -- 20260912_proof_pass_claims; NULL = unclassified = refuse
+  -- ⚑ 12 Sep (S1-AUDIT-006 · R120) — ONE AUTOMATIC WELCOME EMAIL PER CLIENT.
+  -- 🛑 `claimed_at` IS THE CLAIM, NOT THE SEND, and the names say so: an earlier cut used
+  -- `sent_at` as the pre-send claim, which records a send that has not happened. `sent_at` is
+  -- written ONLY when Resend returns a message id, and a CHECK enforces it.
+  add column if not exists welcome_email_claimed_at         timestamptz,  -- 20260912_welcome_email_once; the CAS column
+  add column if not exists welcome_email_sent_at            timestamptz,  -- positively confirmed only; needs a provider id
+  add column if not exists welcome_email_outcome            text,         -- sent|in_progress|payload_conflict|ambiguous|refused|unresolved_expired
+  add column if not exists welcome_email_message_id         text,         -- Resend's id — the only evidence a send landed
+  add column if not exists welcome_email_payload_hash       text,         -- proves a retry's payload is identical before the key is reused
   add column if not exists terms_accepted_at                timestamptz,
   add column if not exists terms_accepted_ip                text,
   add column if not exists trial_sourcing_granted           int NOT NULL DEFAULT 0,

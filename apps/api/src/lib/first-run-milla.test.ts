@@ -780,7 +780,16 @@ describe('free proof runs before the client is ever asked to pay', () => {
   it('NOT ONE LINE of proof accounting changed — the route, its fences and its caps', () => {
     // The entry moved; the engine did not. Every fence asserted where it actually lives.
     expect(icpsSrc).toContain("icpRouter.post('/:id/proof'")
-    expect(icpsSrc).toContain("db.rpc('try_claim_proof_pass', { p_client_id: clientId })")
+    // ⛓️ 12 Sep (S2-AUDIT-001) — RETARGETED TO THE SAME FACT. This assertion exists to prove
+    // the proof route still CLAIMS authority before it runs, and that this file's changes did
+    // not touch proof accounting. Both still hold. What changed — under explicit founder
+    // authority, not by this file — is the MECHANISM: `try_claim_proof_pass` incremented a
+    // counter nothing could release, so a crashed run consumed the client's pass. Authority
+    // now comes from the durable claim ledger, which can give it back.
+    expect(icpsSrc).toContain('await claimProofAuthority(clientId, req.params.id)')
+    // And it is still claimed BEFORE the run, which is what this test was really pinning.
+    expect(icpsSrc.indexOf('await claimProofAuthority('))
+      .toBeLessThan(icpsSrc.indexOf('runIcpJob(req.params.id, clientId, req.userId!, PROOF_PASS_LEADS'))
     expect(icpsSrc).toContain('const PROOF_PASS_LEADS = 20')
     expect(icpsSrc).toContain('runIcpJob(req.params.id, clientId, req.userId!, PROOF_PASS_LEADS, { proofPass: claimed, proofKind: batchKind })')
     expect(flat(icpsSrc)).toContain('We have shown you two sets of leads.')

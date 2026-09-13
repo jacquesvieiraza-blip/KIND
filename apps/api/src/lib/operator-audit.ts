@@ -92,6 +92,18 @@ export type OperatorAction =
   // ever taken", and both are questions somebody will ask about a paid batch.
   | 'proof_calibration_resolved'
   | 'proof_calibrated_restart_claimed'
+  // ⚑ 12 Sep — THE DURABLE AUTHORITY LEDGER'S HUMAN ACTS. The migration classifies nobody
+  // and releases nothing on a timer, both deliberately, so every one of these is a person
+  // recording a judgement about a client's Proof entitlement — which is exactly the class of
+  // decision that must never be answerable only by reading code.
+  //
+  // ⚠️ NONE OF THEM GRANTS AUTHORITY. Classification records what ALREADY happened before the
+  // ledger existed; reconciliation settles a claim whose run is over. The three unique
+  // indexes remain the only thing that decides whether a pass can be claimed.
+  | 'proof_legacy_passes_classified'      // how many automatic passes a pre-ledger client consumed (0/1/2)
+  | 'proof_legacy_passes_reclassified'    // the same, DELIBERATELY overwritten — a separate decision, never a retry
+  | 'proof_legacy_restart_classified'     // a pre-ledger calibrated restart: completed, or burned and returned
+  | 'proof_claim_reconciled'              // an OPEN claim with no trustworthy terminal outcome, settled by a person
   | 'programme_go_live'      // the explicit, separate Go Live. Never a side effect of P2.
   // ⚑ 10 Sep (H) — RUN, and it is a DIFFERENT act from Go Live. Go Live arms and sends zero;
   // this is the grant that lets any send path consider the programme at all. Two acts, two

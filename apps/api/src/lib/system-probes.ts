@@ -376,11 +376,36 @@ const REQUIRED_FUNCTIONS: FunctionProbe[] = [
   // the same reason as the fences above: if the migration has not run, sourcing for a
   // prospect silently reserves nothing and the fence that is supposed to bound the spend
   // is not there at all.
+  // ── ⚑ 12 Sep (S2-AUDIT-001) — THE DURABLE PROOF AUTHORITY LEDGER ────────────────────
+  //
+  // ⛓️ `try_claim_proof_pass` IS NO LONGER LISTED, AND THAT IS DELIBERATE. It is retained in
+  // the database for rollback, but nothing live calls it any more
+  // (`proof-authority-bypass.test.ts` asserts zero live callers), and this list's own rule —
+  // asserted by `system-probes-functions.test.ts` — is that a function nobody calls must not
+  // be probed: "a stale probe is noise". The four below replace it.
   {
-    name: 'try_claim_proof_pass',
-    args: { p_client_id: NO_SUCH_ROW_UUID },                  // no matching row → RETURN 0
-    why: 'two free proof passes then a human — without it a prospect could be shown free batches forever',
-    migration: '20260822_free_proof_acquisition',
+    name: 'claim_proof_authority',
+    args: { p_client_id: NO_SUCH_ROW_UUID, p_icp_id: null },   // unknown client → refuse, no write
+    why: 'the one door to Proof authority — without it a prospect cannot start Proof at all, and the two-pass ceiling and the one calibrated restart have no enforcement',
+    migration: '20260912_proof_pass_claims',
+  },
+  {
+    name: 'settle_proof_claim',
+    args: { p_claim_id: NO_SUCH_ROW_UUID, p_status: 'released', p_reason: 'probe' },  // no open claim → not_open
+    why: 'what RETURNS a Proof attempt after a provider or infrastructure failure — without it every crashed run consumes a client pass again',
+    migration: '20260912_proof_pass_claims',
+  },
+  {
+    name: 'classify_legacy_proof_passes',
+    args: { p_client_id: NO_SUCH_ROW_UUID, p_passes: 0, p_note: 'probe', p_force: false },  // unknown client → refuse
+    why: 'the only way to clear a pre-ledger client whose historical authority is unclassified — without it those clients are refused Proof for ever',
+    migration: '20260912_proof_pass_claims',
+  },
+  {
+    name: 'classify_legacy_restart',
+    args: { p_client_id: NO_SUCH_ROW_UUID, p_status: 'released', p_note: 'probe' },  // unknown client → refuse
+    why: 'the same for a pre-ledger calibrated restart — without it a client whose one restart was burned can never be given it back',
+    migration: '20260912_proof_pass_claims',
   },
   {
     name: 'try_reserve_proof_records',

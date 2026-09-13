@@ -16,6 +16,14 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { PENDING_MIGRATIONS } from './pending-migrations'
 
+// ⛓️ 12 Sep (S2-AUDIT-001) — RETARGETED, NOT WEAKENED. Every assertion below keeps its
+// exact meaning; only the NAME of the claim changed. `try_claim_proof_pass` incremented a
+// counter nothing could release, so a run that crashed at the PDL boundary consumed the
+// client's pass and left them with nothing. Authority now comes from the durable claim
+// ledger (`claim_proof_authority` -> `proof_pass_claims`), which can give it back. The old
+// RPC is retained in the database for rollback and has ZERO live callers
+// (`proof-authority-bypass.test.ts` asserts that, and it is what keeps it dead).
+
 const API = join(__dirname, '..')
 const ICPS = readFileSync(join(API, 'routes', 'icps.ts'), 'utf8')
 const LEADS = readFileSync(join(API, 'routes', 'leads.ts'), 'utf8')
@@ -32,7 +40,10 @@ describe('🛑 ① the paid Proof pass refuses an escalated client before it cla
   it('the guard is there, and it runs BEFORE try_claim_proof_pass', () => {
     const c = code(ICPS)
     const guardAt = c.indexOf('if (cal.escalated) {')
-    const claimAt = c.indexOf("db.rpc('try_claim_proof_pass'")
+    // ⛓️ 12 Sep (S2-AUDIT-001) — RETARGETED TO THE SAME FACT. The escalated-client guard must
+    // still run BEFORE authority is claimed; only the claim's name changed, from a counter that
+    // could not be released to the durable ledger that can.
+    const claimAt = c.indexOf('await claimProofAuthority(clientId, req.params.id)')
     expect(guardAt, 'the escalated-client guard is gone from the Proof route').toBeGreaterThan(-1)
     expect(claimAt).toBeGreaterThan(-1)
     expect(guardAt, 'the guard runs after the claim, so an escalated client can spend').toBeLessThan(claimAt)
@@ -67,7 +78,7 @@ describe('🛑 ① the paid Proof pass refuses an escalated client before it cla
   // reaches the hand-off on the next attempt, when the state can actually be read.
   it('🛑 H · an unreadable calibration state REFUSES — it cannot expose restart or spend', () => {
     const c = code(ICPS)
-    expect(c, 'the unreadable read still falls through to the claim').not.toContain('deferring to try_claim_proof_pass')
+    expect(c, 'the unreadable read still falls through to the claim').not.toContain('deferring to claim_proof_authority')
     expect(c).toContain('REFUSING (C43)')
     // ⚠️ AND IT REFUSES AS RETRYABLE, so a blip is never a final-sounding "we have shown you
     // two sets" to a client who may have neither.
@@ -92,7 +103,7 @@ describe('🛑 ① the paid Proof pass refuses an escalated client before it cla
       // ⚠️ TESTED AS A REDEFINITION, NOT AS A WORD. The C07 migration's own COMMENT explains
       // that it leaves the RPC alone, so a bare substring search matches the very prose that
       // documents the rule. What must never appear is a CREATE/REPLACE or DROP against it.
-      expect(/(?:create\s+(?:or\s+replace\s+)?function|drop\s+function)[^;]*try_claim_proof_pass/i.test(m!.sql),
+      expect(/(?:create\s+(?:or\s+replace\s+)?function|drop\s+function)[^;]*claim_proof_authority/i.test(m!.sql),
         `migration ${key} redefines the pass-claim backstop`).toBe(false)
     }
     // ⚠️ AND THE RESTART ROUTE NEVER CALLS IT. Asserted as a CALL, because the audit detail
@@ -100,7 +111,7 @@ describe('🛑 ① the paid Proof pass refuses an escalated client before it cla
     const restartBody = code(OPERATOR).slice(
       code(OPERATOR).indexOf('/proof-review/:clientId/restart'),
       code(OPERATOR).indexOf('/proof-review/:clientId/restart') + 2600)
-    expect(/rpc\(\s*['"]try_claim_proof_pass/.test(restartBody),
+    expect(/rpc\(\s*['"]claim_proof_authority/.test(restartBody),
       'the operator restart route claims through the automatic backstop').toBe(false)
   })
 })
@@ -202,7 +213,13 @@ describe('🛑 ④ the one calibrated restart — operator-only, audited, self-l
     const c = code(IO)
     expect(c).toContain('if (!r.resolvedAt)')
     expect(c).toContain("if (!(r.operatorNote ?? '').trim())")
-    expect(c).toContain('if (r.restartAt && r.restartAt >= r.resolvedAt)')
+    // ⛓️ 12 Sep (R119) — RETARGETED, AND STRICTER THAN BEFORE.
+    // ~~`if (r.restartAt && r.restartAt >= r.resolvedAt)`~~ refused only while the grant was
+    // NEWER than the resolution — a PER-RESOLUTION allowance, which is the drift R119 forbids:
+    // "A SECOND CALIBRATED RESTART IS REFUSED, whatever happens later." The existence of a
+    // grant is now the whole test, so nothing that happens afterwards can make it pass.
+    expect(c).toContain('if (r.restartAt) {')
+    expect(c, 'the per-resolution comparison came back').not.toContain('r.restartAt >= r.resolvedAt')
   })
 
   it('🛑 it never resets the two automatic attempts', () => {
@@ -230,12 +247,20 @@ describe('🛑 ④ the one calibrated restart — operator-only, audited, self-l
     }
   })
 
+  // ⛓️ 13 Sep (B2) — THE WINDOW, NOT THE CLAIM, CHANGED. This sliced a fixed
+  // `at + 2200` characters; the evidence route grew past that when it began answering the two
+  // historical-classification booleans, so `read_only:` fell outside the window and the guard
+  // failed on correct code. The slice now runs to the NEXT route declaration — the real end of
+  // this handler — which is STRICTER in both directions: the write-absence checks cover the
+  // whole route instead of its first 2,200 characters, and `read_only:` is still required.
   it('the evidence route is read-only and says so', () => {
     const c = code(OPERATOR)
     const at = c.indexOf('/proof-review/:clientId/evidence')
-    const body = c.slice(at, at + 2200)
+    const next = c.indexOf('operatorRouter.', at + 1)
+    const body = c.slice(at, next > at ? next : undefined)
+    expect(body.length, 'the evidence route body could not be isolated').toBeGreaterThan(2200)
     expect(body).toContain('read_only:')
-    for (const write of ['.update(', '.insert(', '.delete(']) {
+    for (const write of ['.update(', '.insert(', '.delete(', '.upsert(', 'db.rpc(']) {
       expect(body.includes(write), `the evidence route performs a ${write} write`).toBe(false)
     }
   })

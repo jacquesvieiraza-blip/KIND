@@ -93,9 +93,16 @@ describe('② Vida never shows a JSON parse error as the product error', () => {
   })
 
   it('the 202 background start is reported as started, not as done', () => {
-    const at = handler.indexOf("action === 'ready-for-approval' && res.status === 202")
+    // ⛓️ 13 Sep (BL-1) — COMMENTS STRIPPED BEFORE THE WINDOW IS TAKEN, and this is a
+    // strengthening rather than a workaround. The branch is sliced by CHARACTER COUNT, so an
+    // explanatory comment added inside it pushes the code being asserted out of the window —
+    // the guard then fails for a reason that has nothing to do with the rule it guards, which
+    // is the same class of false signal as a comment SATISFYING an assertion. Stripping first
+    // fixes both directions: the window now measures code, and no comment can answer for it.
+    const code = handler.split('\n').filter(l => !l.trim().startsWith('//')).join('\n')
+    const at = code.indexOf("action === 'ready-for-approval' && res.status === 202")
     expect(at, 'the background start is not handled').toBeGreaterThan(-1)
-    const branch = handler.slice(at, at + 900)
+    const branch = code.slice(at, at + 900)
     // The server's own sentence, never a cheerful one invented here.
     expect(branch).toContain('bg?.headline')
     expect(branch).toContain('preparing')

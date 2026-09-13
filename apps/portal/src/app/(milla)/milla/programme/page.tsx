@@ -32,6 +32,8 @@ import ProgrammeWorkspace, { type CustomerProgramme } from '@/components/milla/P
 import ProgrammeApproval, { type ApprovalPayload } from '@/components/milla/ProgrammeApproval'
 import ProgrammePayment from '@/components/milla/ProgrammePayment'
 import ProgrammeCalculator from '@/components/milla/ProgrammeCalculator'
+import ProgrammeAcceptance from '@/components/milla/ProgrammeAcceptance'
+import { acceptanceGate, paymentUnlocked } from '@/lib/programme-acceptance'
 
 export default function ProgrammePage() {
   const [p, setP] = useState<CustomerProgramme | null>(null)
@@ -113,8 +115,25 @@ export default function ProgrammePage() {
           the only way to take a programme payment was for an operator to mint a link by hand.
           These render only when that half is genuinely due — never for an internally
           authorised programme, which owes nothing and must never be shown a price to pay. */}
+      {/* ── 🛑 13 Sep (B1) — ACCEPTANCE, AND IT COMES BEFORE THE PRICE ─────────────────
+          `POST /my/programme/accept` is the ONE writer of `recommendation_accepted_at`, and
+          nothing in Milla called it — so `checkout/first` answered `409 not_accepted` for
+          every client and P1 was unreachable. The client is asked here, explicitly, and the
+          answer is persisted server-side before any price is put in front of them. */}
+      {acceptanceGate(p) === 'accept_required' && (
+        <div className="mt-3">
+          <ProgrammeAcceptance
+            meetingTarget={p.outcome.target}
+            totalCents={p.money.totalCents}
+            firstPaymentCents={p.money.firstPaymentCents ?? 0}
+            onAccepted={() => { void load() }}
+          />
+        </div>
+      )}
+      {/* ⚠️ `paymentUnlocked` READS THE PERSISTED COLUMN, never a local flag. A failed
+          acceptance leaves it null, so this card stays shut without any extra handling. */}
       {p.hasProgramme && !p.money.firstPaidAt && !p.money.firstAuthorisedAt
-        && (p.stage === 'Recommendation') && (
+        && (p.stage === 'Recommendation') && paymentUnlocked(p) && (
         <div className="mt-3">
           <ProgrammePayment
             stage="first"

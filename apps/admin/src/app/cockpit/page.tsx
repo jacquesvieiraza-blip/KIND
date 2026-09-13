@@ -7,6 +7,9 @@ import Link from 'next/link'
 import { getZarPerUsd, zarToUsd, fxLabel, type FxRate } from '../../lib/fx'
 import { getRevenueExclusions } from '../../lib/revenue-exclusions'
 import { PER_CLIENT_MONTHLY_USD, TOTAL_FLOOR_USD, PLATFORM_FLOOR_USD, COMPANY_FLOOR_USD } from '@kind/shared'
+// ⚑ 13 Sep (B3/B4) — the two operator surfaces for the states nothing resolves automatically.
+import StaleProofClaimsPanel from '@/components/vida/StaleProofClaimsPanel'
+import WelcomeEmailsPanel from '@/components/vida/WelcomeEmailsPanel'
 
 // ── Action Queue: at-risk clients are REAL (from /admin/churn-risk); the trigger
 // rows (signup→assign · payment→provision · day-29 switch · pool-low) are wired
@@ -418,6 +421,15 @@ export default async function AdminPage() {
 
       {/* NEEDS YOU NOW — the Action Queue */}
       <ActionQueue atRisk={atRisk} pastDue={pastDue} />
+
+      {/* ── 🛑 13 Sep (B3/B4) — THE TWO FAIL-CLOSED STATES THAT ONLY A PERSON RESOLVES ────
+          Both of these are states the system deliberately REFUSES to resolve on its own, and
+          both were invisible: a welcome email past Resend's 24-hour window is never resent
+          automatically, and a Proof claim is never released on a timer. The design is correct
+          and the cost of it is that somebody has to look — so this is where they look.
+          Client components inside this server page; each issues one GET and settles nothing. */}
+      <StaleProofClaimsPanel />
+      <WelcomeEmailsPanel />
 
       {/* UNIT ECONOMICS */}
       <UnitEconomics mrrUsd={stats.mrrUsd} activeSubs={stats.activeSubscriptions} />

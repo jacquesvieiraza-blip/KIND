@@ -208,13 +208,36 @@ authRouter.post('/onboard', async (req, res) => {
       if (country) profileFields.country = country
       const phone = text(draftFacts.phone)
       if (phone) profileFields.phone = phone
-      // ⚠️ WEBSITE IS THE ONE GUARDED OVERRIDE. The schema validates it as a URL, and the
-      // brief legitimately records an explicit "none" (`website_none`), so only a value that
-      // already parses as http(s) may replace it. A brief that says "no website" must not
-      // 400 the whole promotion, and it must not fabricate one either.
-      const site = text(draftFacts.website)
-      if (site && /^https?:\/\//i.test(site)) profileFields.website = site
     }
+    // ── 🛑 ⚑ 13 Sep (S1-AUDIT-002 correction) — WEBSITE IS RESOLVED, NOT NUDGED ─────────
+    //
+    // ⛓️ WHAT STOOD INSIDE THE BLOCK ABOVE, AND WHY IT WAS NOT ENOUGH:
+    // ~~`const site = text(draftFacts.website)`~~
+    // ~~`if (site && /^https?:\/\//i.test(site)) profileFields.website = site`~~
+    //
+    // It recognised that `website_none` exists and then did nothing with it. Two live holes:
+    //
+    //   ① A confirmed brief saying "WE HAVE NO WEBSITE" set nothing at all, so a stale or
+    //      contradictory `website` in the REQUEST BODY survived and was written to the
+    //      promoted client. The client confirmed "none"; the row said otherwise.
+    //   ② A confirmed brief holding a BARE DOMAIN ("redmayne.co.uk") failed the `^https?://`
+    //      test, so the body's different value won there too — even though the locked fact is
+    //      "website/DOMAIN or explicit none" and the canonical counter holds that fact.
+    //
+    // Both are the browser being the authority for a fact the client already confirmed, which
+    // is the exact defect S1-AUDIT-002 exists to close. The decision now lives in one pure
+    // function and is driven through every combination behaviourally.
+    //
+    // ⚠️ WRITTEN AS ITS OWN PAYLOAD FRAGMENT, NEVER BACK INTO `profileFields`. An explicit
+    // none must persist as `null`, and `profileFields.website` is typed `string | undefined`
+    // by the schema — `undefined` is dropped by JSON serialisation, which on the UPDATE branch
+    // of a re-onboarding leaves a stale website exactly where it is. `null` clears it.
+    const { resolveOwnedWebsite } = await import('../lib/brief-promotion')
+    const ownedWebsite = resolveOwnedWebsite(draftFacts, profileFields.website)
+    // `body` means no draft, or a draft silent on this fact: `profileFields.website` already
+    // carries the caller's own value and today's path is taken untouched.
+    const websiteFields: { website?: string | null } =
+      ownedWebsite.source === 'body' ? {} : { website: ownedWebsite.website ?? null }
     // ⚠️ `contact_name` AND `outcome_stated` WERE DESTRUCTURED OUT OF `profileFields` ABOVE,
     // so they are owned as their own locals rather than through the payload. In both cases the
     // body is now only a FALLBACK for a journey that has no draft at all.
@@ -256,6 +279,9 @@ authRouter.post('/onboard', async (req, res) => {
     // referred them (that would let a client rewrite attribution after the fact).
     const payload = {
       ...profileFields,
+      // AFTER `profileFields`, deliberately: this is the resolved owner of fact #3 and it must
+      // be able to overwrite the body's copy — including with `null` for an explicit none.
+      ...websiteFields,
       ...outcomeFields,
       onboarded_at: now,
       ...signupTermsFields,

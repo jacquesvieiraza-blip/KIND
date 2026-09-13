@@ -370,3 +370,175 @@ describe('③ promotion is gated and idempotent', () => {
     expect(state.sealed).toEqual([])
   })
 })
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// ⑤ 13 Sep (S1-AUDIT-002 correction) — BRIEF FACT #3 SURVIVES PROMOTION INTACT
+//
+// 🛑 THE DEFECT, THROUGH THE REAL HANDLER. The first cut recognised that `website_none`
+// exists and then did nothing with it:
+//
+//     ~~if (site && /^https?:\/\//i.test(site)) profileFields.website = site~~
+//
+// So a confirmed brief saying "we have no website" set NOTHING, the request body's stale
+// `website` survived, and the promoted client carried a website the client had explicitly
+// denied having. A confirmed BARE DOMAIN lost the same way — it does not match `^https?://`,
+// even though the locked fact is "website/DOMAIN or explicit none".
+//
+// ⚠️ THESE ARE ASSERTED ON THE ROW, NOT ON THE SOURCE. `brief-promotion.test.ts` proves the
+// decision; this proves the HANDLER applies it — the lesson this repo keeps relearning is
+// that a helper can be right and the route can call it wrong.
+// ═══════════════════════════════════════════════════════════════════════════════════════
+describe('⑤ the confirmed brief owns the website, and the browser cannot override it', () => {
+  /** a confirmed, unpromoted draft holding exactly these facts */
+  const confirmed = (facts: Record<string, unknown>) => {
+    state.draft = { promotedClientId: null, confirmedAt: '2026-09-11T16:41:00Z', facts }
+    state.confirmable = { ok: true, missing: [] }
+  }
+
+  // ── A ─────────────────────────────────────────────────────────────────────────────────
+  it('🛑 A · confirmed "no website" + a website in the body → the client has NO website', async () => {
+    confirmed({ website: null, website_none: true })
+    const res = await onboard({ ...BODY, website: 'https://stale-from-the-browser.example' })
+    expect(res.code).toBe(200)
+    expect(
+      clientRow().website,
+      'the browser reintroduced a website the client explicitly denied having',
+    ).toBeNull()
+  })
+
+  it('🛑 A · and on a RE-ONBOARDING it is cleared, not merely left out', async () => {
+    // The update branch. `undefined` would be dropped by JSON serialisation and a stale
+    // `clients.website` would survive untouched — which is the same defect wearing a
+    // different costume. The patch must carry an explicit null.
+    state.existingClient = {
+      id: 'client-1', signup_terms_accepted_at: null, contact_email: 'ellis@redmayne.co.uk',
+    }
+    confirmed({ website: null, website_none: true })
+    await onboard({ ...BODY, website: 'https://stale-from-the-browser.example' })
+    const patch = state.updates.filter(u => u.table === 'clients').map(u => u.patch)
+    const carried = patch.find(p => 'website' in p)
+    expect(carried, 'no patch carried the website key at all — a stale value would survive').toBeTruthy()
+    expect(carried!.website).toBeNull()
+  })
+
+  // ── B ─────────────────────────────────────────────────────────────────────────────────
+  it('🛑 B · confirmed website A + body website B → the client has A', async () => {
+    confirmed({ website: 'https://redmayne.co.uk' })
+    const res = await onboard({ ...BODY, website: 'https://someone-elses-site.example' })
+    expect(res.code).toBe(200)
+    expect(clientRow().website).toBe('https://redmayne.co.uk')
+  })
+
+  it('🛑 B · a confirmed BARE DOMAIN also beats the body', async () => {
+    confirmed({ website: 'redmayne.co.uk' })
+    await onboard({ ...BODY, website: 'https://someone-elses-site.example' })
+    expect(clientRow().website).toBe('https://redmayne.co.uk')
+  })
+
+  it('B · a body that sends a BLANK website cannot lose the confirmed one', async () => {
+    // `''` is how the portal sends "nothing here": `emptyToUndefined` turns it into undefined
+    // and the parsed payload carries no `website` key at all. The confirmed draft supplies it.
+    confirmed({ website: 'https://redmayne.co.uk' })
+    await onboard({ ...BODY, website: '' })
+    expect(clientRow().website).toBe('https://redmayne.co.uk')
+  })
+
+  // ⚠️ REPORTED, NOT FIXED — found by this correction's own test, pre-existing on `main`.
+  // `onboardSchema.website` is `emptyToUndefined.pipe(z.string().url().optional())`. The
+  // `.optional()` sits INSIDE the pipe, so the outer `z.string()` is REQUIRED: a body that
+  // omits the key entirely fails validation and 400s the whole promotion, while `''` parses
+  // fine. It is not a fact-loss bug — nothing is written on a 400 — but it does mean a client
+  // whose brief says "no website" still depends on the browser sending the key. Changing the
+  // schema would alter request validation for every caller, which this correction is scoped
+  // out of. Pinned so the behaviour is known rather than assumed.
+  it('🛑 REPORTED: a body with NO website key at all is refused by the schema (pre-existing)', async () => {
+    confirmed({ website: 'https://redmayne.co.uk' })
+    const { website: _absent, ...noKey } = BODY
+    const res = await onboard(noKey)
+    expect(res.code).toBe(400)
+    expect(state.inserts.filter(i => i.table === 'clients')).toHaveLength(0)
+  })
+
+  // ── C ─────────────────────────────────────────────────────────────────────────────────
+  it('🛑 C · NO draft — the legacy path is byte-for-byte unchanged', async () => {
+    state.draft = null
+    const res = await onboard(BODY)
+    expect(res.code).toBe(200)
+    expect(clientRow().website).toBe('https://redmayne.co.uk')
+  })
+
+  it('C · an UNCONFIRMED draft owns nothing — it is refused before any write', async () => {
+    state.draft = {
+      promotedClientId: null, confirmedAt: null, facts: { website_none: true },
+    }
+    state.confirmable = { ok: true, missing: [] }
+    const res = await onboard({ ...BODY, website: 'https://redmayne.co.uk' })
+    expect(res.code).toBe(400)
+    expect(state.inserts.filter(i => i.table === 'clients')).toHaveLength(0)
+  })
+
+  it('C · an ALREADY-PROMOTED draft owns nothing — the body stands', async () => {
+    state.draft = { promotedClientId: 'client-old', confirmedAt: '2026-09-11T16:41:00Z', facts: { website_none: true } }
+    await onboard(BODY)
+    expect(clientRow().website).toBe('https://redmayne.co.uk')
+  })
+
+  // ── THE SILENT DRAFT ──────────────────────────────────────────────────────────────────
+  it('🛑 a confirmed draft SILENT on the website does not blank what the caller sent', async () => {
+    confirmed({ company_name: 'Redmayne & Co.' })
+    await onboard(BODY)
+    expect(clientRow().website).toBe('https://redmayne.co.uk')
+  })
+
+  it('🛑 website_none=false is NOT an explicit none', async () => {
+    confirmed({ website: null, website_none: false })
+    await onboard(BODY)
+    expect(clientRow().website).toBe('https://redmayne.co.uk')
+  })
+
+  // ── THE OTHER CLIENT-ROW FACTS, ON THE ROW ────────────────────────────────────────────
+  // The same-defect boundary audit, driven rather than scanned: every fact `/auth/onboard`
+  // persists is taken from the confirmed draft when the draft holds it.
+  it('the confirmed draft owns contact name, company and the desired outcome too', async () => {
+    confirmed({
+      contact_name:    'Ellis Warner',
+      company_name:    'Redmayne & Co.',
+      desired_outcome: 'Book qualified meetings with founders and MDs.',
+    })
+    await onboard({
+      ...BODY,
+      contact_name:   'Someone Else',
+      company_name:   'A Different Company Ltd',
+      outcome_stated: 'Grow the newsletter list.',
+    })
+    const row = clientRow()
+    expect(row.contact_name).toBe('Ellis Warner')
+    expect(row.company_name).toBe('Redmayne & Co.')
+    expect(row.outcome_stated).toBe('Book qualified meetings with founders and MDs.')
+    // And the KIND is still derived from the SERVER-owned sentence.
+    expect(row.outcome_kind).toBe('meetings')
+  })
+
+  it('🛑 a body that OMITS the outcome no longer loses it', async () => {
+    confirmed({ desired_outcome: 'Book qualified meetings with founders and MDs.' })
+    await onboard(BODY)
+    expect(clientRow().outcome_stated).toBe('Book qualified meetings with founders and MDs.')
+  })
+
+  it('the account facts the draft carries are owned too — country and phone', async () => {
+    confirmed({ country: 'Ireland', phone: '+353 1 234 5678' })
+    await onboard({ ...BODY, country: 'United Kingdom', phone: '+44 20 7946 0000' })
+    expect(clientRow().country).toBe('Ireland')
+    expect(clientRow().phone).toBe('+353 1 234 5678')
+  })
+
+  // ⚠️ REPORTED, NOT FIXED — see the build evidence. `industry` is the body's, deliberately:
+  // it is not in `BriefDraftFacts` under that name. The draft's own words for brief fact #4
+  // live in `what_they_do`, and NOTHING in promotion reads them. That boundary is recorded in
+  // `brief-promotion-server-owned.test.ts` so it cannot be mistaken for covered ground.
+  it('industry is still the body\'s — the draft has no field of that name', async () => {
+    confirmed({ what_they_do: 'We restore and sell vintage watches.' })
+    await onboard({ ...BODY, industry: 'Retail' })
+    expect(clientRow().industry).toBe('Retail')
+  })
+})

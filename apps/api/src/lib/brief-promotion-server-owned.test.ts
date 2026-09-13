@@ -46,15 +46,12 @@ function code(relPath: string): string {
 }
 
 const AUTH = code('apps/api/src/routes/auth.ts')
-/**
- * The raw file, for the ONE assertion that must read a regex literal.
- *
- * ⚠️ THE COMMENT STRIPPER CANNOT BE USED THERE, AND THIS IS WHY. `/^https?:\/\//i` ends in
- * two adjacent slashes, so a `//`-comment stripper truncates the line mid-regex. A stripper
- * is the right instrument for "must NOT contain" assertions (the struck code is quoted in the
- * comments that explain it) and the wrong one for matching source that contains a regex.
- */
-const AUTH_RAW = readFileSync(join(REPO, 'apps/api/src/routes/auth.ts'), 'utf8')
+// ⛓️ 13 Sep — the raw-source handle that stood here is GONE, with the assertion that needed
+// it. It existed because `/^https?:\/\//i` ends in two adjacent slashes, so a `//`-comment
+// stripper truncates the line mid-regex — and that regex was the website guard. The guard has
+// been replaced by `resolveOwnedWebsite`, which is asserted behaviourally in
+// `brief-promotion.test.ts`, so nothing here needs to match a regex literal any more. The
+// lesson is kept because the next person to pin a line containing a regex will hit it again.
 const ICPS = code('apps/api/src/routes/icps.ts')
 const DRAFT = code('apps/api/src/lib/brief-draft.ts')
 
@@ -95,9 +92,35 @@ describe('S1-AUDIT-002 — the confirmed draft owns every fact it holds', () => 
     expect(AUTH).toMatch(/function text2\(v: string \| null \| undefined\): string \| undefined \{[\s\S]{0,140}t === '' \? undefined : t/)
   })
 
-  it('website only overrides with a value that already parses — a brief saying "none" cannot 400 the promotion', () => {
-    expect(AUTH_RAW).toContain('const site = text(draftFacts.website)')
-    expect(AUTH_RAW).toContain("if (site && /^https?:\\/\\//i.test(site)) profileFields.website = site")
+  // ── 🛑 ⛓️ 13 Sep (S1-AUDIT-002 correction) — WHAT THIS ASSERTION USED TO PIN ──────────
+  //
+  // ~~`expect(AUTH_RAW).toContain('const site = text(draftFacts.website)')`~~
+  // ~~`expect(AUTH_RAW).toContain("if (site && /^https?://i.test(site)) profileFields.website = site")`~~
+  //
+  // It pinned the guard EXACTLY, and the guard was wrong: it recognised that `website_none`
+  // exists and did nothing with it, so a confirmed "we have no website" left the request
+  // body's stale value standing, and a confirmed bare domain lost to the body as well. The
+  // assertion was not weakened — it is RETARGETED onto the correction, and the outcome it used
+  // to approximate is now driven for real in `brief-promotion.test.ts` (the decision) and
+  // `routes/onboard-brief.route.test.ts` (the row).
+  it('🛑 the struck guard is GONE — the body can no longer win fact #3', () => {
+    expect(AUTH, 'the old guarded assignment is still in the handler')
+      .not.toContain('profileFields.website = site')
+    expect(AUTH).not.toContain('const site = text(draftFacts.website)')
+  })
+
+  it('website is RESOLVED by the one pure owner, and the result reaches the payload', () => {
+    expect(AUTH).toMatch(/const \{ resolveOwnedWebsite \} = await import\('\.\.\/lib\/brief-promotion'\)/)
+    expect(AUTH).toMatch(/const ownedWebsite = resolveOwnedWebsite\(draftFacts, profileFields\.website\)/)
+    // `body` means "no draft, or the draft is silent" — only then is the caller's own value
+    // left alone. Anything else writes the resolved value, INCLUDING an explicit null.
+    expect(AUTH).toMatch(
+      /ownedWebsite\.source === 'body' \? \{\} : \{ website: ownedWebsite\.website \?\? null \}/)
+    // And it must land in the payload AFTER `profileFields`, or the body's copy wins the spread.
+    const fields = AUTH.indexOf('...websiteFields,')
+    const profile = AUTH.indexOf('...profileFields,')
+    expect(fields, 'the resolved website never reaches the payload').toBeGreaterThan(-1)
+    expect(fields).toBeGreaterThan(profile)
   })
 
   it('the account facts that are NOT brief facts are left to the body, deliberately', () => {
@@ -130,6 +153,79 @@ describe('S1-AUDIT-002 — the confirmed draft owns every fact it holds', () => 
     // `promoting` is the named act; without it nothing is read and nothing is overridden.
     expect(ICPS).toMatch(/const promoting = req\.body\?\.from_brief_draft === true/)
     expect(ICPS).toMatch(/const promotionDraft = promoting \? await briefDraftFor\(req\.userId!\) : null/)
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// THE SAME-DEFECT BOUNDARY AUDIT — ALL ELEVEN FACTS, NOT JUST THE ONE THAT WAS CAUGHT
+//
+// 🛑 WHY THIS EXISTS. The website hole was inside the fix for the very defect it belongs to:
+// the implementation claimed "the confirmed draft owns every fact it holds", and for fact #3
+// it did not. Claiming a class of defect closed while one member of the class is still open is
+// how #414 and #549 happened. So every one of the eleven is walked, and the one that is STILL
+// browser-authoritative is recorded here rather than left to be rediscovered.
+//
+// ⚠️ WHERE BEHAVIOURAL TESTING IS PRACTICAL IT IS USED, AND IT IS USED FIRST. The facts
+// `/auth/onboard` persists are driven through the real handler in
+// `routes/onboard-brief.route.test.ts` §⑤; fact #3's decision is driven pure in
+// `brief-promotion.test.ts`. What remains here is the structural half — WHICH SOURCE a line
+// consults — which no behavioural test can show, because a mocked route can prove the right
+// value arrived and cannot prove the body is no longer read.
+// ═══════════════════════════════════════════════════════════════════════════════════════
+describe('S1-AUDIT-002 — the boundary audit across all eleven facts', () => {
+  it('the ten facts promotion persists are each read from the confirmed draft', () => {
+    // fact -> the expression that must appear, at the destination that owns it.
+    const OWNED: Array<[string, string, RegExp]> = [
+      ['1 contact name',    'auth', /text2\(draftFacts\?\.contact_name\)/],
+      ['2 company',         'auth', /draftFacts\.company_name/],
+      ['3 website/none',    'auth', /resolveOwnedWebsite\(draftFacts, profileFields\.website\)/],
+      ['5 target category', 'icps', /f\.target_category\)/],
+      ['6 geography',       'icps', /f\.geographies\)/],
+      ['7 company type',    'icps', /f\.target_company_type\)/],
+      ['8 company size',    'icps', /f\.company_sizes\)/],
+      ['9 target roles',    'icps', /f\.job_titles\)/],
+      ['9 target roles',    'icps', /f\.seniority_levels\)/],
+      ['10 exclusions',     'icps', /promotionDraft\.facts\.exclusions/],
+      ['11 desired outcome','auth', /text2\(draftFacts\?\.desired_outcome\)/],
+    ]
+    for (const [fact, file, re] of OWNED) {
+      const src = file === 'auth' ? AUTH : ICPS
+      expect(src, `brief fact ${fact} is still couriered by the browser`).toMatch(re)
+    }
+  })
+
+  // ── 🛑 REPORTED, NOT FIXED — BRIEF FACT #4, "WHAT THE COMPANY DOES" ──────────────────
+  //
+  // THE EVIDENCE:
+  //   · the fact is stored — `BriefDraftFacts.what_they_do` (packages/shared/src/brief-facts.ts),
+  //     written by `PUT /milla/brief-draft` (routes/milla.ts) and counted through
+  //     `briefFactsFromDraft` as `whatTheCompanyDoes`. It is one of the eleven and the gate
+  //     refuses promotion without it.
+  //   · NOTHING IN PROMOTION READS IT. Its two live destinations are `clients.industry`
+  //     (from `onboardSchema`, i.e. the request body) and `figsy_knowledge.pitch.data.product`
+  //     (from `req.body.business`, via `persistMillaUnderstanding`). Both are the browser's.
+  //   · so fact #4 can be overridden by a contradictory body AND lost entirely by an omitted
+  //     one — the same defect class as the website, at a different destination.
+  //
+  // ⚠️ IT IS NOT FIXED HERE ON PURPOSE. Choosing between `clients.industry` and
+  // `figsy_knowledge…product` is choosing a canonical destination for a fact that currently
+  // has two, and that is a storage decision this correction was explicitly scoped out of.
+  // Inventing one silently is exactly what the instruction forbade.
+  //
+  // ⚠️ THIS TEST FAILS THE DAY IT IS FIXED, AND THAT IS THE POINT. A failure here is not a
+  // regression — it means a promotion reader now exists and this boundary record is stale.
+  // Update the matrix and move fact #4 into the owned list above; do not revert the fix.
+  it('🛑 REPORTED: brief fact #4 (what_they_do) still has NO promotion reader', () => {
+    expect(AUTH, 'a promotion reader for what_they_do appeared in /auth/onboard — update the audit')
+      .not.toMatch(/draftFacts[\s\S]{0,40}what_they_do/)
+    expect(ICPS, 'a promotion reader for what_they_do appeared in POST /icps — update the audit')
+      .not.toMatch(/promotionDraft[\s\S]{0,80}what_they_do|f\.what_they_do/)
+  })
+
+  it('the destinations named in the fact #4 report are the ones that really exist', () => {
+    // If either of these moves, the report above is describing code that is no longer there.
+    expect(ICPS, 'figsy_knowledge.pitch no longer takes `product` from the body').toMatch(/product:\s+str\(biz\.product\)/)
+    expect(AUTH, 'industry is no longer a body field on the client row').toMatch(/industry:\s+emptyToUndefined\.optional\(\)|\.\.\.profileFields/)
   })
 })
 

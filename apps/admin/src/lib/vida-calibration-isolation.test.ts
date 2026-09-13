@@ -2,8 +2,9 @@ import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'fs'
 import { join } from 'path'
 import {
-  acceptCalibrationResponse, calibrationActionable, CALIBRATION_MISMATCH_COPY,
-  type CalibrationAcceptance,
+  decideCalibrationResponse, calibrationActionable,
+  CALIBRATION_MISMATCH_COPY, CALIBRATION_READ_FAILED_COPY,
+  type CalibrationReason,
 } from './vida-calibration-isolation'
 
 // ═══════════════════════════════════════════════════════════════════════════════════════
@@ -37,7 +38,7 @@ class Workspace {
   view: { client_id?: string | null } | null = null
   error: string | null = null
   /** Every verdict, in order — so a test can assert what was discarded and why. */
-  verdicts: Array<{ forClient: string; verdict: CalibrationAcceptance }> = []
+  verdicts: Array<{ forClient: string; verdict: CalibrationReason }> = []
 
   /** The client-switch reset: bump first, clear, then (maybe) load. */
   select(clientId: string | null) {
@@ -47,24 +48,34 @@ class Workspace {
     this.selected = clientId
   }
 
-  /** Issue a read for the currently selected client; returns its deliver() thunk. */
+  /**
+   * Issue a read for the currently selected client; returns its deliver() thunk.
+   *
+   * ⚠️ THE THUNK MIRRORS THE LOADER EXACTLY: decide, then discard silently / fail loudly /
+   * accept. If the page and this driver ever diverge, the guards at the bottom of the file
+   * catch it.
+   */
   issue(forClient: string) {
     const generation = this.generation
-    return (ownerInPayload: string | null) => {
-      const verdict = acceptCalibrationResponse({
+    return (ownerInPayload: string | null, api: { success?: boolean; error?: string } = { success: true }) => {
+      const outcome = decideCalibrationResponse({
         requestedClientId: forClient,
         payloadClientId:   ownerInPayload,
         selectedClientId:  this.selected,
         requestGeneration: generation,
         currentGeneration: this.generation,
+        apiSuccess:        api.success === true,
+        apiError:          api.error ?? null,
       })
-      this.verdicts.push({ forClient, verdict })
-      if (verdict !== 'accept') {
-        if (verdict === 'identity_mismatch') this.error = CALIBRATION_MISMATCH_COPY
-        return verdict
+      this.verdicts.push({ forClient, verdict: outcome.reason })
+      if (outcome.action === 'discard') return outcome.reason
+      if (outcome.action === 'fail') {
+        this.view = null
+        this.error = outcome.message ?? CALIBRATION_READ_FAILED_COPY
+        return outcome.reason
       }
       this.view = payload(ownerInPayload)
-      return verdict
+      return outcome.reason
     }
   }
 
@@ -179,10 +190,11 @@ describe('🛑 R1-G · no client selected', () => {
   })
 
   it('and a response that is somehow current with no selection is still refused', () => {
-    expect(acceptCalibrationResponse({
+    expect(decideCalibrationResponse({
       requestedClientId: A, payloadClientId: A, selectedClientId: null,
       requestGeneration: 3, currentGeneration: 3,
-    })).toBe('no_selection')
+    apiSuccess: true,
+    }).reason).toBe('no_selection')
   })
 })
 
@@ -216,28 +228,31 @@ describe('🛑 R1-H · rapid A → B → A with out-of-order responses', () => {
   })
 
   it('🛑 and generation alone would NOT have caught R1-C — that response is perfectly current', () => {
-    expect(acceptCalibrationResponse({
+    expect(decideCalibrationResponse({
       requestedClientId: B, payloadClientId: A, selectedClientId: B,
       requestGeneration: 7, currentGeneration: 7,
-    })).toBe('identity_mismatch')
+    apiSuccess: true,
+    }).reason).toBe('identity_mismatch')
   })
 })
 
 describe('🛑 R1 · ownership is never INFERRED', () => {
   it('a payload with no client_id is not assumed to be the one we asked for', () => {
-    expect(acceptCalibrationResponse({
+    expect(decideCalibrationResponse({
       requestedClientId: B, payloadClientId: null, selectedClientId: B,
       requestGeneration: 1, currentGeneration: 1,
-    })).toBe('unowned')
+    apiSuccess: true,
+    }).reason).toBe('unowned')
     expect(calibrationActionable({ client_id: null }, B)).toBe(false)
     expect(calibrationActionable({}, B)).toBe(false)
   })
 
   it('a response issued for a client who is no longer selected is refused even at the same generation', () => {
-    expect(acceptCalibrationResponse({
+    expect(decideCalibrationResponse({
       requestedClientId: A, payloadClientId: A, selectedClientId: B,
       requestGeneration: 2, currentGeneration: 2,
-    })).toBe('not_selected')
+    apiSuccess: true,
+    }).reason).toBe('not_selected')
   })
 })
 
@@ -286,12 +301,13 @@ describe('🛑 R1 wiring — all three protections are applied in the page', () 
     const src = codeOnly(read(PAGE))
     // ⛓️ The struck line was `setCalib(j.data as CalibrationEvidence)` — unguarded.
     expect(src, 'the unguarded setCalib is back').not.toContain('setCalib(j.data as CalibrationEvidence)')
-    expect(src).toMatch(/if \(verdict !== 'accept'\) \{/)
-    // The only write of real evidence now happens after the verdict.
-    const verdictAt = src.indexOf("if (verdict !== 'accept')")
+    expect(src).toMatch(/if \(outcome\.action === 'discard'\) return/)
+    expect(src).toMatch(/if \(outcome\.action === 'fail'\) \{/)
+    // The only write of real evidence now happens after the decision.
+    const decideAt = src.indexOf('const outcome = decideCalibrationResponse(')
     const writeAt = src.indexOf('setCalib(payload)')
-    expect(verdictAt).toBeGreaterThan(-1)
-    expect(writeAt, 'the accepted write is gone').toBeGreaterThan(verdictAt)
+    expect(decideAt).toBeGreaterThan(-1)
+    expect(writeAt, 'the accepted write is gone').toBeGreaterThan(decideAt)
   })
 
   it('🛑 T-R1-4/T-R1-5 · BOTH authority actions are gated on ownership, at the press', () => {
@@ -315,5 +331,124 @@ describe('🛑 R1 wiring — all three protections are applied in the page', () 
     const src = read(PAGE)
     expect(src).toMatch(/const selectedRef = useRef<string \| null>\(selected \?\? null\)/)
     expect(src).toMatch(/selectedRef\.current = selected \?\? null/)
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// 🛑 R1-I…M — A CURRENT REQUEST THAT FAILS MUST SAY SO.
+//
+// ⛓️ THE DEFECT GPT FOUND IN THE ACTUAL DIFF. The first cut asked OWNERSHIP before it asked
+// whether the request had SUCCEEDED. A current read for the current client that returned
+// `{ success: false, error: … }` carries no `data.client_id`, so it was classified `unowned`
+// and the loader returned SILENTLY. The authority stayed correctly shut — and the operator
+// watched an escalated client go blank instead of being told their state could not be read.
+//
+// Fail-closed was never the problem. Being MUTE about it was.
+//
+// ⚠️ AND THE FIX MUST NOT BREAK THE STALE RULE. A failure belonging to a client the operator
+// has left must still be silent (R1-J): printing "database failed" under B, about A, is the
+// original cross-client defect wearing an error message.
+// ═══════════════════════════════════════════════════════════════════════════════════════
+describe('🛑 R1-I…M · API failure visibility, without breaking the stale rule', () => {
+  it('🛑 R1-I · a CURRENT request that the API refuses is SHOWN, and authorises nothing', () => {
+    const w = new Workspace()
+    w.select(B)
+    const reason = w.issue(B)(null, { success: false, error: 'The calibration evidence could not be read' })
+    expect(reason).toBe('api_error')
+    expect(w.view, 'a failed read left evidence on screen').toBeNull()
+    expect(w.error, 'the operator was told nothing about a current failure')
+      .toBe('The calibration evidence could not be read')
+    expect(w.actionable, 'a failed read left an authority available').toBe(false)
+  })
+
+  it('R1-I · and a refusal with no sentence still says something truthful', () => {
+    const w = new Workspace()
+    w.select(B)
+    expect(w.issue(B)(null, { success: false })).toBe('api_error')
+    expect(w.error).toBe(CALIBRATION_READ_FAILED_COPY)
+    expect(w.actionable).toBe(false)
+  })
+
+  it('🛑 R1-J · a STALE failure stays silent — A’s error never appears under B', () => {
+    const w = new Workspace()
+    w.select(A)
+    const deliverA = w.issue(A)
+    w.select(B)
+    const deliverB = w.issue(B)
+    deliverB(B)                                   // B is on screen and healthy
+    expect(w.view?.client_id).toBe(B)
+
+    // …then A's read fails, late.
+    expect(deliverA(null, { success: false, error: 'database failed' })).toBe('stale_generation')
+    expect(w.error, 'a stale client’s error was printed under the current client').toBeNull()
+    expect(w.view?.client_id, 'a stale failure blanked the current client’s evidence').toBe(B)
+    expect(w.actionable).toBe(true)
+  })
+
+  it('R1-J · and a stale failure arriving BEFORE the current response is equally silent', () => {
+    const w = new Workspace()
+    w.select(A)
+    const deliverA = w.issue(A)
+    w.select(B)
+    const deliverB = w.issue(B)
+    expect(deliverA(null, { success: false, error: 'database failed' })).toBe('stale_generation')
+    expect(w.error).toBeNull()
+    expect(w.view).toBeNull()
+    deliverB(B)
+    expect(w.view?.client_id).toBe(B)
+    expect(w.error).toBeNull()
+  })
+
+  it('🛑 R1-K · a SUCCESSFUL response with no client_id is `unowned`, shown, and inert', () => {
+    const w = new Workspace()
+    w.select(B)
+    expect(w.issue(B)(null, { success: true })).toBe('unowned')
+    expect(w.view).toBeNull()
+    expect(w.error).toBe(CALIBRATION_MISMATCH_COPY)
+    expect(w.actionable).toBe(false)
+  })
+
+  it('🛑 R1-L · a SUCCESSFUL response with the WRONG client_id is a mismatch, shown, and inert', () => {
+    const w = new Workspace()
+    w.select(B)
+    expect(w.issue(B)(A, { success: true })).toBe('identity_mismatch')
+    expect(w.view).toBeNull()
+    expect(w.error).toBe(CALIBRATION_MISMATCH_COPY)
+    expect(w.actionable).toBe(false)
+  })
+
+  it('R1-M · a SUCCESSFUL response with the correct client_id is accepted normally', () => {
+    const w = new Workspace()
+    w.select(B)
+    expect(w.issue(B)(B, { success: true })).toBe('accept')
+    expect(w.view?.client_id).toBe(B)
+    expect(w.error).toBeNull()
+    expect(w.actionable).toBe(true)
+  })
+
+  it('🛑 THE ORDER IS THE CONTRACT: currency is decided WITHOUT needing a successful payload', () => {
+    // A stale, failed, ownerless response — every later question would have had something to
+    // say about it. Currency answers first, so none of them is asked.
+    expect(decideCalibrationResponse({
+      requestedClientId: A, payloadClientId: null, selectedClientId: B,
+      requestGeneration: 1, currentGeneration: 2, apiSuccess: false, apiError: 'database failed',
+    })).toEqual({ action: 'discard', reason: 'stale_generation' })
+  })
+
+  it('🛑 …and success is decided BEFORE ownership, so a current failure is never `unowned`', () => {
+    const out = decideCalibrationResponse({
+      requestedClientId: B, payloadClientId: null, selectedClientId: B,
+      requestGeneration: 4, currentGeneration: 4, apiSuccess: false, apiError: 'boom',
+    })
+    expect(out.action).toBe('fail')
+    expect(out.reason, 'a current API failure was misreported as an ownership problem').toBe('api_error')
+    expect(out.reason).not.toBe('unowned')
+    expect(out.message).toBe('boom')
+  })
+
+  it('every non-accept outcome leaves the authority shut', () => {
+    for (const evidence of [null, { client_id: null }, { client_id: A }]) {
+      expect(calibrationActionable(evidence, B)).toBe(false)
+    }
   })
 })

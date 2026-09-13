@@ -52,38 +52,84 @@ export interface CalibrationResponseContext {
   requestGeneration: number
   /** The generation the page is on now. Any switch increments it. */
   currentGeneration: number
+  /** `j.success` — did the API itself say this read worked? */
+  apiSuccess: boolean
+  /** `j.error` — the server's own sentence when it did not. */
+  apiError?: string | null
 }
 
 /**
- *   accept            — this response describes the selected client and is current
+ *   accept            — current, successful, and the server says it is this client's
  *   stale_generation  — a newer request exists (the operator switched, or re-selected)
  *   not_selected      — it was issued for a client who is no longer selected
- *   identity_mismatch — the SERVER says this evidence belongs to somebody else
  *   no_selection      — nothing is selected; nothing may be shown or acted on
- *   unowned           — the payload carries no `client_id` at all, so ownership is unprovable
+ *   api_error         — CURRENT request, and the API said it failed
+ *   unowned           — a SUCCESSFUL payload that carries no `client_id`, so ownership is unprovable
+ *   identity_mismatch — a SUCCESSFUL payload the SERVER attributes to somebody else
  */
-export type CalibrationAcceptance =
-  | 'accept' | 'stale_generation' | 'not_selected' | 'identity_mismatch' | 'no_selection' | 'unowned'
+export type CalibrationReason =
+  | 'accept' | 'stale_generation' | 'not_selected' | 'no_selection'
+  | 'api_error' | 'unowned' | 'identity_mismatch'
 
 /**
- * 🛑 MAY THIS RESPONSE BE WRITTEN INTO THE VIEW?
- *
- * ⚠️ EVERY REFUSAL IS A DISCARD, NOT AN ERROR. A response for a client the operator has left is
- * not a failure of anything — it is simply not ours any more, and writing it would be the
- * defect. The caller drops it silently and leaves the current view alone.
- *
- * ⚠️ THE GENERATION IS ASKED FIRST because it is the cheapest and the most common: a switch
- * invalidates every request in flight regardless of what they say about themselves.
+ *   accept  — write the payload into the view
+ *   discard — SILENTLY do nothing: this response is not ours any more
+ *   fail    — CURRENT and ours, and it did not work: clear the view and SHOW the reason
  */
-export function acceptCalibrationResponse(c: CalibrationResponseContext): CalibrationAcceptance {
-  if (c.requestGeneration !== c.currentGeneration) return 'stale_generation'
-  if (!c.selectedClientId) return 'no_selection'
-  if (c.requestedClientId !== c.selectedClientId) return 'not_selected'
+export type CalibrationAction = 'accept' | 'discard' | 'fail'
+
+export interface CalibrationOutcome {
+  action: CalibrationAction
+  reason: CalibrationReason
+  /** Present only on `fail`. The sentence the operator must see. */
+  message?: string
+}
+
+export const CALIBRATION_READ_FAILED_COPY = 'The calibration state could not be read'
+
+/**
+ * 🛑 THE ONE CANONICAL DECISION. Three questions, strictly in this order.
+ *
+ * ⛓️ WHAT THIS REPLACES, AND WHY IT WAS WRONG. The first cut asked ownership BEFORE it asked
+ * whether the request had even succeeded. So a CURRENT request for the CURRENT client that came
+ * back `{ success: false, error: … }` carried no `data.client_id`, was classified `unowned`,
+ * and the loader returned **silently** — the operator saw an escalated client simply go blank
+ * instead of being told their state could not be read. Fail-closed, and mute. The authority was
+ * never wrong; the TRUTH-TELLING was.
+ *
+ *   ① IS IT STILL OURS?  generation → selection → requested-vs-selected.
+ *      Decided WITHOUT needing a successful payload, because a stale failure must stay silent:
+ *      client A's "database failed" must never appear while B is on screen.
+ *
+ *   ② DID IT WORK?  only now. A current failure is surfaced in the server's own words.
+ *
+ *   ③ IS IT THEIRS?  only on a SUCCESSFUL payload, because only then is there a body to
+ *      attribute. Missing id → `unowned`; wrong id → `identity_mismatch`. Both fail closed,
+ *      and both are visible: neither is an expected state.
+ *
+ * ⚠️ ORDER ① BEFORE ② IS THE STALE-REQUEST RULE, and it is not a style choice. Asking "did it
+ * work" first would let an old client's error message be printed under the new client's name.
+ */
+export function decideCalibrationResponse(c: CalibrationResponseContext): CalibrationOutcome {
+  // ① Still ours?
+  if (c.requestGeneration !== c.currentGeneration) return { action: 'discard', reason: 'stale_generation' }
+  if (!c.selectedClientId) return { action: 'discard', reason: 'no_selection' }
+  if (c.requestedClientId !== c.selectedClientId) return { action: 'discard', reason: 'not_selected' }
+
+  // ② Did it work?
+  if (c.apiSuccess !== true) {
+    const said = (c.apiError ?? '').trim()
+    return { action: 'fail', reason: 'api_error', message: said || CALIBRATION_READ_FAILED_COPY }
+  }
+
+  // ③ Is it theirs?
   // ⚠️ THE SERVER'S OWN STATEMENT, NOT OURS. A missing `client_id` cannot be read as "it must
   // be the one we asked for" — that is inferring ownership, which is what this exists to stop.
-  if (!c.payloadClientId) return 'unowned'
-  if (c.payloadClientId !== c.selectedClientId) return 'identity_mismatch'
-  return 'accept'
+  if (!c.payloadClientId) return { action: 'fail', reason: 'unowned', message: CALIBRATION_MISMATCH_COPY }
+  if (c.payloadClientId !== c.selectedClientId) {
+    return { action: 'fail', reason: 'identity_mismatch', message: CALIBRATION_MISMATCH_COPY }
+  }
+  return { action: 'accept', reason: 'accept' }
 }
 
 /**

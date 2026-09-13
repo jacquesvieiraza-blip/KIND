@@ -13,7 +13,7 @@ import ProofClassificationPanel from '@/components/vida/ProofClassificationPanel
 // ⚑ 13 Sep (R1) — calibration evidence belongs to ONE client: the generation, selection and
 // server-identity checks that stop client A's evidence ever acting against client B.
 import {
-  acceptCalibrationResponse, calibrationActionable, CALIBRATION_MISMATCH_COPY,
+  decideCalibrationResponse, calibrationActionable, CALIBRATION_READ_FAILED_COPY,
 } from '@/lib/vida-calibration-isolation'
 // ⚑ MVP1 (Preview 07) — the brief-in-progress panel for somebody who is not a client yet.
 import { BriefPanel } from '@/components/vida/BriefPanel'
@@ -2182,22 +2182,31 @@ export default function VidaConsolePage() {
       const j = await fetch(`/api/proxy/operator/proof-review/${encodeURIComponent(clientId)}/evidence`)
         .then(r => r.json())
       const payload = (j?.data ?? null) as (CalibrationEvidence | null)
-      const verdict = acceptCalibrationResponse({
+      // ⛓️ 13 Sep — THE ORDER OF THESE QUESTIONS IS THE FIX. The first cut asked OWNERSHIP
+      // before it asked whether the request had even SUCCEEDED, so a current read that came
+      // back `{ success: false, error: … }` carried no `data.client_id`, was classified
+      // `unowned`, and returned SILENTLY: the operator watched an escalated client go blank
+      // instead of being told their state could not be read. Fail-closed, and mute.
+      const outcome = decideCalibrationResponse({
         requestedClientId: clientId,
         payloadClientId:   payload?.client_id ?? null,
         selectedClientId:  selectedRef.current,
         requestGeneration: generation,
         currentGeneration: calGen.current,
+        apiSuccess:        j?.success === true,
+        apiError:          typeof j?.error === 'string' ? j.error : null,
       })
-      // ⚠️ A DISCARD IS SILENT AND CHANGES NOTHING. A response for a client we have left is not
-      // a failure — it is simply not ours, and writing it (or its error) into the current view
-      // is the defect. Only `identity_mismatch` is worth saying out loud: the server told us
-      // this evidence belongs to somebody else, which is never expected.
-      if (verdict !== 'accept') {
-        if (verdict === 'identity_mismatch') setCalErr(CALIBRATION_MISMATCH_COPY)
+      // ⚠️ A DISCARD IS SILENT AND CHANGES NOTHING — a response for a client we have left is
+      // not a failure, it is simply not ours, and printing its error under the current client
+      // is exactly what the stale-request rule forbids.
+      if (outcome.action === 'discard') return
+      // ⚠️ A FAILURE IS CURRENT AND OURS: clear the view and SAY SO. This covers the API's own
+      // refusal, a payload with no owner, and one the server attributes to somebody else.
+      if (outcome.action === 'fail') {
+        setCalib(null)
+        setCalErr(outcome.message ?? CALIBRATION_READ_FAILED_COPY)
         return
       }
-      if (!j?.success) throw new Error(j?.error || 'the calibration state could not be read')
       setCalib(payload)
     } catch (e) {
       // 🛑 FAIL CLOSED AND SAY SO. Leaving a stale `calib` in place would keep a restart

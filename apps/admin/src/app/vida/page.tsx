@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import SequenceQuality, { type Quality } from '@/components/SequenceQuality'
 import { useVidaConversation } from '@/components/vida/VidaConversation'
 import { loadError, panelView, notice, noticeClass, noticeText, vatBadge, PACK_PRICE_USD, MAX_SEQUENCE_STEPS, type Notice } from '@kind/shared'
@@ -10,6 +10,11 @@ import { LifecyclePanel } from '@/components/vida/LifecyclePanel'
 // ⚑ 13 Sep (B2) — the two historical-classification controls, rendered only when the
 // server says this client's pre-ledger Proof history still needs a human decision.
 import ProofClassificationPanel from '@/components/vida/ProofClassificationPanel'
+// ⚑ 13 Sep (R1) — calibration evidence belongs to ONE client: the generation, selection and
+// server-identity checks that stop client A's evidence ever acting against client B.
+import {
+  acceptCalibrationResponse, calibrationActionable, CALIBRATION_MISMATCH_COPY,
+} from '@/lib/vida-calibration-isolation'
 // ⚑ MVP1 (Preview 07) — the brief-in-progress panel for somebody who is not a client yet.
 import { BriefPanel } from '@/components/vida/BriefPanel'
 import { lifecycleCopy, type LifecycleState, type VidaMode, type PanelAction } from '@/lib/vida-lifecycle-copy'
@@ -253,6 +258,11 @@ export default function VidaConsolePage() {
   // ⚑ MVP1 — `selectedDraft` is read here for ONE branch (the brief panel) and passed nowhere
   // else. It is never a client id; see `VidaConversation.tsx`.
   const { selected, selectedName, setSelected, selectedDraft } = conversation
+  // ⚑ 13 Sep (R1) — `selected`, readable from a promise that resolves after later renders.
+  // A closure would capture the selection as it was when the request was ISSUED, which is
+  // exactly the value that must NOT decide whether the response may be written.
+  const selectedRef = useRef<string | null>(selected ?? null)
+  selectedRef.current = selected ?? null
   const [alerts, setAlerts] = useState<Alert[]>([])
   // PR2 — the one proof-review action: which client is being resolved, and what to say after.
   const [proofBusy, setProofBusy] = useState<string | null>(null)
@@ -2008,6 +2018,12 @@ export default function VidaConsolePage() {
    * input below. Two spellings in one file is how a field quietly stops being read.
    */
   type CalibrationEvidence = {
+    /**
+     * ⚑ 13 Sep (R1) — WHOSE EVIDENCE THIS IS. The server has always sent it; this type did not
+     * declare it, so nothing ever compared the evidence's owner to the selected client — and a
+     * late response for another client could be read, and acted on, as if it were theirs.
+     */
+    client_id?: string | null
     why: string | null
     passes_done: number
     phone: string | null
@@ -2062,7 +2078,11 @@ export default function VidaConsolePage() {
         contactName: calib.contact_name ?? null,
         phoneConfirmedAt: calib.phone_confirmed_at ?? null,
         operatorNote: calib.operator_note ?? null,
-        mayRestart: calib.may_restart === true,
+        // 🛑 ⚑ 13 Sep (R1) — OWNERSHIP FIRST, AUTHORITY SECOND. `may_restart` is the server's
+        // verdict about the client the evidence DESCRIBES; offering it while a different client
+        // is selected is how "read A, grant B" happened. Evidence that is not provably the
+        // selected client's authorises nothing.
+        mayRestart: calib.may_restart === true && calibrationActionable(calib, selected ?? null),
         mayRestartWhy: calib.may_restart_why ?? null,
         restartAt: calib.restart_at ?? null,
         restartUsedAt: calib.restart_used_at ?? null,
@@ -2139,26 +2159,67 @@ export default function VidaConsolePage() {
   // ⚠️ AND AN UNREADABLE STATE SHOWS NO RESTART (C43). `calErr` is surfaced and `calib` stays
   // null, which makes `mayRestart` false everywhere downstream: unknown authority means no
   // spend, and the operator is told rather than shown a control that may not work.
+  // ── 🛑 ⚑ 13 Sep (R1) — CALIBRATION EVIDENCE BELONGS TO ONE CLIENT ───────────────────
+  //
+  // ⛓️ WHAT STOOD HERE: ~~`setCalib(j.data as CalibrationEvidence)`~~ — unguarded. A slow read
+  // for client A could land AFTER the operator selected B and write A's evidence into B's
+  // view, while `resolveCalibration(selected)` and `grantCalibratedRestart(selected)` target
+  // B. That is "read A → click → grant B a calibrated restart", on spend-bearing authority.
+  //
+  // 🛑 A RESET ALONE WOULD NOT HAVE FIXED IT. Clearing on switch closes the transient window
+  // and nothing else: the late A response still arrives afterwards and writes itself into the
+  // now-empty B view. All three protections are required, and `acceptCalibrationResponse`
+  // asks all three — GENERATION (is this request still the current one), SELECTION (was it
+  // issued for the client we are on), IDENTITY (does the SERVER say this evidence is theirs).
+  //
+  // ⚠️ THE GENERATION LIVES IN A REF, not state: it must be readable by a promise that
+  // resolves long after the render it was issued from, and bumping it must not re-render.
+  const calGen = useRef(0)
   const loadCalibration = useCallback(async (clientId: string) => {
+    const generation = calGen.current
     setCalErr(null)
     try {
       const j = await fetch(`/api/proxy/operator/proof-review/${encodeURIComponent(clientId)}/evidence`)
         .then(r => r.json())
+      const payload = (j?.data ?? null) as (CalibrationEvidence | null)
+      const verdict = acceptCalibrationResponse({
+        requestedClientId: clientId,
+        payloadClientId:   payload?.client_id ?? null,
+        selectedClientId:  selectedRef.current,
+        requestGeneration: generation,
+        currentGeneration: calGen.current,
+      })
+      // ⚠️ A DISCARD IS SILENT AND CHANGES NOTHING. A response for a client we have left is not
+      // a failure — it is simply not ours, and writing it (or its error) into the current view
+      // is the defect. Only `identity_mismatch` is worth saying out loud: the server told us
+      // this evidence belongs to somebody else, which is never expected.
+      if (verdict !== 'accept') {
+        if (verdict === 'identity_mismatch') setCalErr(CALIBRATION_MISMATCH_COPY)
+        return
+      }
       if (!j?.success) throw new Error(j?.error || 'the calibration state could not be read')
-      setCalib(j.data as CalibrationEvidence)
+      setCalib(payload)
     } catch (e) {
       // 🛑 FAIL CLOSED AND SAY SO. Leaving a stale `calib` in place would keep a restart
       // control on screen that the server may no longer authorise.
+      // ⚠️ BUT ONLY FOR THE CURRENT REQUEST — an older read's failure must not blank the view
+      // that a newer one has already filled.
+      if (calGen.current !== generation) return
       setCalib(null)
       setCalErr(e instanceof Error ? e.message : 'The calibration state could not be read')
     }
   }, [])
 
   useEffect(() => {
-    if (!selected) { setCalib(null); setCalErr(null); return }
+    // 🛑 PROTECTION 1 — IMMEDIATE RESET, AND IT INVALIDATES EVERY REQUEST IN FLIGHT. The bump
+    // happens before anything else in this effect, so a response issued for the previous
+    // client can no longer be accepted whatever order it arrives in.
+    calGen.current += 1
+    setCalib(null); setCalErr(null); setCalBusy(null)
+    if (!selected) return
     // ⚠️ ONLY FOR THE STATE THAT HAS ONE. Every healthy client would otherwise 500 its way
     // through an endpoint that exists to describe a failure.
-    if (lc?.verdict.state !== 'proof_calibration_failed') { setCalib(null); setCalErr(null); return }
+    if (lc?.verdict.state !== 'proof_calibration_failed') return
     void loadCalibration(selected)
   }, [selected, lc?.verdict.state, loadCalibration])
 
@@ -2235,13 +2296,18 @@ export default function VidaConsolePage() {
       // 🛑 THESE FELL THROUGH `default: return` AND DID NOTHING. The panel drew them, the
       // operator pressed them, and no request was made — on the one screen that decides
       // whether a client gets another paid set.
+      // 🛑 ⚑ 13 Sep (R1) — ASKED AGAIN AT THE PRESS. The selection can change between the
+      // render that drew this control and the click that fires it, so the render-time gate is
+      // not the boundary — this is. Stale evidence submits nothing.
       case 'contact_recalibrate':
         if (!selected) return
+        if (!calibrationActionable(calib, selected)) return
         // ⚠️ THE NOTE COMES FROM THE PRESS, not from a field this component also keeps. One
         // copy of the operator's sentence, held where it is typed.
         return void resolveCalibration(selected, (note ?? '').trim())
       case 'restart_proof_calibrated':
         if (!selected) return
+        if (!calibrationActionable(calib, selected)) return
         return void grantCalibratedRestart(selected)
       // ── ⚑ 11 Sep (DAY 3) — THE ONE APPROVAL-STAGE CONTROL ────────────────────────────
       //
@@ -2251,7 +2317,7 @@ export default function VidaConsolePage() {
       case 'refreeze_package': return void refreezePackage()
       default: return
     }
-  }, [lifecycle, runOnceWith, pauseProgramme, refreezePackage, selected, resolveCalibration, grantCalibratedRestart])
+  }, [lifecycle, runOnceWith, pauseProgramme, refreezePackage, selected, calib, resolveCalibration, grantCalibratedRestart])
 
   return (
     <div className="flex h-full min-h-0">

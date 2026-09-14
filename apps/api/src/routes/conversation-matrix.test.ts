@@ -16,12 +16,16 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 // while the product lost facts — which is precisely how the live defect stayed invisible.
 // ═══════════════════════════════════════════════════════════════════════════════════════
 
-const model = vi.hoisted(() => ({ reply: null as unknown, fail: null as unknown, seenSystem: [] as string[] }))
+const model = vi.hoisted(() => ({ reply: null as unknown, fail: null as unknown, failOnce: null as unknown, seenSystem: [] as string[], calls: 0 }))
 vi.mock('@anthropic-ai/sdk', () => ({
   default: class {
     messages = {
       create: async (opts: { system?: string }) => {
+        model.calls += 1
         model.seenSystem.push(String(opts?.system ?? ''))
+        // `failOnce` fails the FIRST attempt only, so the route's own 25s→20s retry is
+        // exercised rather than simulated.
+        if (model.failOnce && model.calls === 1) throw model.failOnce
         if (model.fail) throw model.fail
         return model.reply
       },
@@ -57,7 +61,7 @@ vi.mock('../lib/brief-draft', () => {
     BRIEF_TRANSCRIPT_MAX_TURNS: 40,
   }
 })
-beforeEach(() => { store.facts = {}; store.conversation = []; model.fail = null; model.seenSystem = []; store.throwOnRead = false })
+beforeEach(() => { store.facts = {}; store.conversation = []; model.fail = null; model.failOnce = null; model.calls = 0; model.seenSystem = []; store.throwOnRead = false })
 
 type Said = { role: 'user' | 'assistant'; content: string }
 async function turn(messages: Said[]) {
@@ -395,5 +399,63 @@ describe('⑥ the targeting door remembers the client', () => {
     const r = await changeTargeting('add another country')
     store.throwOnRead = false
     expect(r.code, 'an unreadable Brief refused the client their turn').toBe(200)
+  })
+})
+
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// ⑦ F4 C–F — THE REMAINING DURABILITY CASES.
+//
+// A, B and G are above. These four close the set the founder named: the SERVER's own retry,
+// a refresh, leaving and returning, and the provider recovering afterwards.
+// ═══════════════════════════════════════════════════════════════════════════════════════
+describe('⑦ durability — the server retry, the refresh, the return, the recovery', () => {
+  it('F4 C the server’s own 25s→20s retry does not duplicate the message', async () => {
+    // 🛑 THE ROUTE RETRIES ONCE ITSELF. If the pre-call write ran per ATTEMPT rather than per
+    // TURN, an internal retry would store the customer's message twice and the transcript
+    // would stutter without anybody touching their browser.
+    const text = 'We restore vintage watches and sell to independent jewellers.'
+    model.failOnce = Object.assign(new Error('first attempt down'), { name: 'APIConnectionError' })
+    model.reply = q({ what_they_do: 'restore and sell vintage watches' })
+    const r = await turn([said(text)])
+    expect(r.code, JSON.stringify(r.payload)).toBe(200)
+    expect(model.calls, 'the route did not actually retry').toBe(2)
+    expect(store.conversation.filter(t => t.content === text)).toHaveLength(1)
+  })
+
+  it('F4 D a refresh after a provider failure finds the message on the server', async () => {
+    const text = 'UK and Ireland, and never pawnbrokers.'
+    model.fail = Object.assign(new Error('down'), { name: 'APIConnectionError' })
+    await turn([said(text)])
+    // The "refresh" is the store as the arrival call would read it — the browser is gone.
+    expect(store.conversation.map(t => t.content)).toContain(text)
+  })
+
+  it('F4 E leaving and returning after a failure keeps it in the conversation', async () => {
+    const first = 'We are Redmayne & Co.'
+    model.reply = q({ company_name: 'Redmayne & Co.' })
+    await turn([said(first)])
+    const second = 'We sell to independent jewellers.'
+    model.fail = Object.assign(new Error('down'), { name: 'APIConnectionError' })
+    await turn([said(first), { role: 'assistant', content: 'And who do you sell to?' }, said(second)])
+    model.fail = null
+    // They come back and the WHOLE thread is there, not just the last thing that worked.
+    expect(store.conversation.map(t => t.content)).toContain(first)
+    expect(store.conversation.map(t => t.content)).toContain(second)
+  })
+
+  it('F4 F when the provider recovers, the facts are merged exactly once', async () => {
+    const text = 'Add the United States as well.'
+    store.facts = { ...HELD }
+    model.fail = Object.assign(new Error('down'), { name: 'APIConnectionError' })
+    await turn([said(text)])
+    // Nothing was merged while the provider was down.
+    expect(store.facts.geographies).toEqual(['United Kingdom', 'Ireland'])
+    // They press Try again. The same transcript goes back and the change lands ONCE.
+    model.fail = null
+    model.reply = q({}, { brief_list_ops: { geographies: { add: ['United States'] } } })
+    await turn([said(text)])
+    expect(store.facts.geographies).toEqual(['United Kingdom', 'Ireland', 'United States'])
+    expect(store.conversation.filter(t => t.content === text)).toHaveLength(1)
   })
 })

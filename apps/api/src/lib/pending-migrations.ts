@@ -5330,6 +5330,44 @@ revoke execute on function public.apply_pending_revision(uuid, uuid, uuid) from 
 grant  execute on function public.apply_pending_revision(uuid, uuid, uuid) to service_role;`.trim(),
   },
   {
+    key: '20260710_founder_alerts',
+    title: 'founder_alerts — the durable home for every founder alert (RT-008)',
+    sql: `-- ═══════════════════════════════════════════════════════════════════════════════════════
+-- 🛑 ⚑ 14 Sep (RT-008 · F8) — THIS MIGRATION HAD ONLY ONE HOME, AND THAT MAY BE WHY
+-- GET HELP DID NOTHING.
+--
+-- S1-PD-09: a migration lives in TWO places — the .sql file AND this array, which is what
+-- the Vida engine actually applies. \`supabase/migrations/20260710_founder_alerts.sql\` has
+-- existed since 10 Jul and was never added here, so unless somebody ran it by hand,
+-- \`founder_alerts\` does not exist in production.
+--
+-- What that costs: \`sendFounderAlert\` writes every alert to this table precisely so an
+-- alert survives when email and Slack both fail. If the table is absent, the durable insert
+-- fails too — and before today the escalation route answered { success: true } regardless.
+-- A client stuck in the Milla Brief pressed Get help, was told the team had been told, and
+-- nobody had been.
+--
+-- ⚠️ RUNTIME UNVERIFIED. Code cannot see production. This is the most likely cause, not a
+-- proven one; the preview checklist in the packet is how the founder settles it.
+--
+-- ⚠️ FULLY IDEMPOTENT. Every statement is IF NOT EXISTS, so applying it where the table
+-- already exists changes nothing.
+-- ═══════════════════════════════════════════════════════════════════════════════════════
+CREATE TABLE IF NOT EXISTS public.founder_alerts (
+  id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  kind        text NOT NULL,
+  subject     text NOT NULL,
+  body        text,
+  email_ok    boolean NOT NULL DEFAULT false,
+  slack_ok    boolean NOT NULL DEFAULT false,
+  created_at  timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS founder_alerts_created_idx ON public.founder_alerts (created_at DESC);
+CREATE INDEX IF NOT EXISTS founder_alerts_kind_idx    ON public.founder_alerts (kind, created_at DESC);
+`,
+  },
+  {
     // ⚠️ LAST IN THE ARRAY AND LAST BY FILENAME, which is the S1-PD-09 contract: the only
     // executor applies in literal array order, and the filename must sort the same way so a
     // psql loop or a new contributor cannot produce a different one. '20260915_' sorts after

@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { HAVE_KEY, EVAL_TIMEOUT_MS, report } from './harness'
-import { CONVERSATION_MODEL } from '../lib/models'
 
 // ═══════════════════════════════════════════════════════════════════════════════════════
 // MILLA, AGAINST THE REAL MODEL — 30 conversations, through the REAL onboarding handler.
@@ -362,10 +361,13 @@ describe('MILLA · live', { timeout: EVAL_TIMEOUT_MS }, () => {
     })
   }
 
-  // ══════════════════════════════════════════════════════════════════════════════════════
-  // ⑦ THE MODEL IS THE ONE THE FOUNDER RULED FOR.
-  // ══════════════════════════════════════════════════════════════════════════════════════
-  evalIt('the conversation ran on the conversational model', () => {
-    expect(CONVERSATION_MODEL).toBe('claude-sonnet-5')
-  })
+  // ⛓️ 14 Sep — A CASE PINNING THE MODEL NAME STOOD HERE AND IS DELETED.
+  //
+  // ~~`expect(CONVERSATION_MODEL).toBe('claude-sonnet-5')`~~
+  //
+  // 🛑 BUILD 0'S OWN GUARD CAUGHT IT, and was right to: `models.test.ts:92` already pins that
+  // value, IN THE GATE, where it is checked on every run for free. Writing it again here was
+  // a second home for one fact — and a second home in the one file that only runs when
+  // somebody remembers to spend money on it, which is the worst possible place for it. The
+  // eval asks what the MODEL DID; what the model IS belongs to the gate.
 })

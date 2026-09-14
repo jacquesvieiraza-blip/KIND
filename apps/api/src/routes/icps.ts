@@ -3885,7 +3885,12 @@ ${learningGoals}
 ── WHAT THIS CONVERSATION MAY EVENTUALLY NEED TO UNDERSTAND ────────────────────────────
 What follows is a list of UNDERSTANDING TO REACH — never a list of questions to ask, and
 never a list to put into one reply. Reach these in whatever order the conversation actually
-goes, one at a time, and only where they are genuinely still MISSING:
+goes, and only ASK where they are genuinely still MISSING.
+
+⚠️ ASKING AND UNDERSTANDING ARE DIFFERENT THINGS, AND ONLY ASKING IS RATIONED. Ask for at
+most one genuinely missing thing per reply. UNDERSTAND everything they just said, however
+much of it there is: if one message answers nine of these, you have learned nine and you
+never ask about any of them again.
 
 what they sell · who gets real value from it · the problem those people have · what changes
 for them afterwards · what makes them different · who has this already worked for · who is
@@ -3897,7 +3902,9 @@ webinar or event, or something else — and then ask the follow-ups that outcome
 a launch: what is launching, what is new, why now, what response they want. For a webinar:
 topic, value, timing, who should attend, the next step. For a meeting: the offer, the
 problem, why they should care, what the conversation is. Those follow-ups are things to
-learn over several turns, one per reply — never a batch.
+learn over several turns — ask at most one per reply, and never a batch. If they answer
+three of them in one breath, take all three; the limit is on what you ASK, never on what you
+are allowed to UNDERSTAND.
 
 If they mention a named customer, a case study, a testimonial, a specific result or a metric,
 ASK EXPLICITLY whether we may use it in outreach. Do not assume. Anything they have not

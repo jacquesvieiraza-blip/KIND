@@ -1,4 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { readFileSync } from 'fs'
+import { join } from 'path'
 
 // ═══════════════════════════════════════════════════════════════════════════════════════
 // THE CONVERSATIONAL MATRIX — meaning survives the SERVER, whatever the style. (R121, Build 5.)
@@ -457,5 +459,85 @@ describe('⑦ durability — the server retry, the refresh, the return, the reco
     await turn([said(text)])
     expect(store.facts.geographies).toEqual(['United Kingdom', 'Ireland', 'United States'])
     expect(store.conversation.filter(t => t.content === text)).toHaveLength(1)
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// ⑧ F7 — THE FORM-DISGUISE AUDIT, PINNED.
+//
+// 🛑 THE ELEVEN FACTS ARE MEMORY TARGETS. The founder's words: "THEY ARE NOT 11 FORM
+// QUESTIONS. THEY MUST NOT CONTROL HOW THE CLIENT TALKS." What follows asserts that nothing
+// in the prompt, the schema or the gate turns them back into fields.
+// ═══════════════════════════════════════════════════════════════════════════════════════
+describe('⑧ F7 — the eleven are memory targets, not a form', () => {
+  const SRC = (() => {
+    const s = readFileSync(join(process.cwd(), 'apps/api/src/routes/icps.ts'), 'utf8')
+    const from = s.indexOf('const system = `You are Milla, onboarding')
+    return s.slice(from, s.indexOf('const recent = messages.slice(-40)', from))
+  })()
+
+  it('F7 the prompt rations ASKING, never UNDERSTANDING', () => {
+    // ⛓️ IT USED TO RATION BOTH. "Reach these … one at a time" and "things to learn over
+    // several turns, one per reply" constrained what she was allowed to LEARN in a turn —
+    // which is the eleven-field form wearing a conversational sentence. A client who said
+    // nine things was, by instruction, permitted to have been understood about one.
+    expect(SRC).toContain('ASKING AND UNDERSTANDING ARE DIFFERENT THINGS')
+    expect(SRC, 'understanding is rationed again').not.toMatch(/Reach these[\s\S]{0,120}one at a time/)
+    expect(SRC, 'learning is rationed again').not.toMatch(/learn over several turns, one per reply/)
+  })
+
+  it('F7 she is never told to ask in a fixed order, or to complete a stage', () => {
+    for (const banned of ['ask these questions', 'next field', 'in this order', 'complete this stage']) {
+      expect(SRC.toLowerCase(), `the prompt drives a form: "${banned}"`).not.toContain(banned)
+    }
+    expect(SRC, 'the precedence rule no longer says it is not a questionnaire')
+      .toContain('It is not a questionnaire')
+  })
+
+  it('F7 she never counts at the client', () => {
+    expect(SRC, 'the score is read out to the customer').not.toMatch(/\b\d+\s*of\s*(11|eleven)\b/i)
+    expect(SRC).not.toContain('Next up:')
+  })
+
+  it('F7 the completion gate only ever raises a READINESS issue — it never rejects a turn', async () => {
+    // Every gate refusal is `custom`, which `isPrematureCompletion` turns back into a
+    // question. A structural refusal is Zod's and stays a refusal. That split is what stops
+    // the model's misjudgement being charged to the client.
+    const { isPrematureCompletion, COMPLETION_READINESS_PATHS } = await import('../lib/milla-reply-shape')
+    expect(COMPLETION_READINESS_PATHS).toContain('brief')
+    expect(isPrematureCompletion([{ code: 'custom', path: ['brief'] }])).toBe(true)
+    expect(isPrematureCompletion([{ code: 'invalid_type', path: ['icp'] }]),
+      'a malformed reply is being waved through as merely premature').toBe(false)
+  })
+
+  it('F7 all eleven in one message are all held; one fact alone is held too', async () => {
+    const ALL = {
+      contact_name: 'Ellis', company_name: 'Redmayne & Co.', website: 'https://redmayne.co.uk',
+      what_they_do: 'restore vintage watches', target_category: 'independent jewellers',
+      target_company_type: 'retail', geographies: ['United Kingdom'], company_sizes: ['1-10'],
+      job_titles: ['Owner'], seniority_levels: ['Owner'], exclusions: 'no pawnbrokers',
+      desired_outcome: 'calls with buyers',
+    }
+    model.reply = q(ALL)
+    await turn([said('everything, all at once')])
+    expect(store.facts).toEqual(ALL)
+
+    store.facts = {}
+    model.reply = q({ company_name: 'Redmayne & Co.' })
+    await turn([said('Redmayne')])
+    expect(store.facts).toEqual({ company_name: 'Redmayne & Co.' })
+  })
+
+  it('F7 six good facts and one unreadable — the six survive', async () => {
+    model.reply = q({
+      contact_name: 'Ellis', company_name: 'Redmayne & Co.',
+      what_they_do: 'vintage watches', target_category: 'jewellers',
+      exclusions: 'no pawnbrokers', desired_outcome: 'calls with buyers',
+      geographies: 'United Kingdom and Ireland',    // ← a string where a list belongs
+    })
+    const r = await turn([said('all of it in one go')])
+    expect(r.code).toBe(200)
+    expect(Object.keys(store.facts).sort()).toEqual(
+      ['company_name', 'contact_name', 'desired_outcome', 'exclusions', 'target_category', 'what_they_do'])
   })
 })

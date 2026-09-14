@@ -38,6 +38,16 @@ import {
   translateProviderList, buildIcpReview, icpNeedsReview, deriveProviderReview,
   ICP_REVIEW_PROOF_REFUSAL as PROOF_PREPARING_COPY, type ProviderField,
 } from '../lib/icp-provider-translation'
+// ⚑ 14 Sep (S1-RT-007 / S1-RT-009) — the model interprets language; it is not the canonical
+// customer truth. These read harmless shape variation, keep model emptiness out of the
+// durable Brief, and salvage a turn whose facts would otherwise be discarded wholesale.
+import {
+  normaliseModelReply, isPrematureCompletion, modelFactsOnly, dropKeysNamedByIssues,
+  PREMATURE_COMPLETION,
+} from '../lib/milla-reply-shape'
+// ⚑ 14 Sep (S1-RT-009B) — the model may interpret language; it may not assert facts about the
+// client. These read the transcript to decide whether the CUSTOMER established a fact.
+import { countryHasCustomerEvidence } from '../lib/brief-truth-guards'
 // ⚑ 14 Sep (S1-RT-006) — the markets we can actually work in, interpolated into the prompt
 // so Milla asks naturally rather than the client discovering it at promotion. The GATE is
 // `confirmBriefDraft`; this only stops her walking them into it.
@@ -3165,7 +3175,21 @@ const MillaReplyInput = z.object({
  *  carries no profile at all, so the gate is bound to `profile_required` rather than baked
  *  into the schema. And `country` here means WHERE THEIR BUSINESS IS BASED — never the
  *  targeting geography, which is a different fact and lives in `icp.geographies`. */
-const millaReplyFor = (profileRequired: boolean) =>
+/**
+ * ⚑ 14 Sep (S1-RT-009) — `held` IS THE DURABLE BRIEF, AND THE GATE READS IT.
+ *
+ * 🛑 THE ELEVEN-FACT GATE USED TO COUNT ONE SAMPLE. `resolveBriefFacts(v)` sees only this
+ * turn's `icp`/`profile`/`business` and the `brief_so_far` THIS sample happened to carry — so
+ * a client who answered every question across nine turns was refused completion because the
+ * ninth reply did not restate all eleven. Their answers were in the database the whole time.
+ * The gate is unchanged in what it REQUIRES; it is changed in what it is allowed to SEE.
+ *
+ * ⚠️ THIS TURN STILL WINS. The stored record is the FALLBACK half, so a customer changing an
+ * answer now is honoured — their new value merged into the record moments ago and is in this
+ * turn's snapshot too. Widening the fallback cannot make a missing fact present: a fact in
+ * neither the record nor the reply is still absent, and still refuses.
+ */
+const millaReplyFor = (profileRequired: boolean, held: Record<string, unknown> = {}) =>
   MillaReplyInput.superRefine((v, ctx) => {
     if (!profileRequired || v.type !== 'complete') return
     // ── 🛑 ⚑ 14 Sep (S1-RT-002) — THE GATE ASKS WHERE THE CONTRACT SAYS THE FACT LIVES ──
@@ -3187,13 +3211,45 @@ const millaReplyFor = (profileRequired: boolean) =>
     // ⚠️ IT WIDENS WHERE A FACT MAY BE FOUND, NEVER WHETHER IT IS REQUIRED. All eleven are
     // still mandatory, still counted by the one canonical `briefFacts`, and a fact absent
     // from BOTH homes is still absent. Nothing is guessed, defaulted or fabricated.
-    const resolved = resolveBriefFacts(v)
+    const resolved = resolveBriefFacts(
+      Object.keys(held).length > 0
+        ? { ...v, brief_so_far: { ...held, ...(v.brief_so_far ?? {}) } as never }
+        : v,
+    )
     if (!resolved.companyName) {
       ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['profile', 'company_name'], message: 'a first-run completion must carry the company name' })
     }
-    if (!resolved.country) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['profile', 'country'], message: "a first-run completion must carry the client's own business country" })
-    }
+    // ── 🛑 ⚑ 14 Sep (S1-RT-009B) — THE COUNTRY REQUIREMENT IS GONE FROM HERE ───────────
+    //
+    // ⛓️ ~~`if (!resolved.country) ctx.addIssue({ path: ['profile','country'], message: "a
+    // first-run completion must carry the client's own business country" })`~~ STOOD HERE,
+    // and it made fabricating a country the only way for a client to finish their Brief.
+    //
+    // 🛑 THREE INSTRUCTIONS THAT COULD NOT ALL BE OBEYED:
+    //   · `completionGate` — "YOU ARE COMPLETE ONLY WHEN YOU HOLD ALL ELEVEN OF THESE", and
+    //     the client's own country is NOT one of the eleven (`brief-facts.ts`: "THE LAST TWO
+    //     ARE NOT BRIEF FACTS");
+    //   · `profileFieldsNote` — "NEVER invent … a country — leave the field out entirely and
+    //     ask for it instead";
+    //   · this rule — which REFUSED the completion when the model obeyed the second.
+    //
+    // 🛑 AND THE SYSTEM SELECTED FOR THE INVENTION. Omit the country → 503 → the client is
+    // told "Milla didn't catch that" and retries. Infer it from the only country in the
+    // transcript — their TARGET market — → 200, persisted, and rendered to them as
+    // "Based in — UK" about a business they never said was in the UK. Every retry raised the
+    // odds of landing on the fabricating sample. Live, that is exactly what happened.
+    //
+    // ⚠️ NOTHING REPLACES IT HERE, AND NO TWELFTH QUESTION IS ADDED. The affordance already
+    // exists and was unreachable only because this rule forced the model to fill the field
+    // first: `approve()` in the portal refuses to open an account without a country and asks
+    // for it CONVERSATIONALLY — "Before I can open your account I still need which country
+    // your business is based in". It is an ACCOUNT fact, asked when the account is opened,
+    // not a Brief fact gating the conversation. `onboardSchema.country` is unchanged, so the
+    // clients row still cannot be written without one and the 'South Africa' column default
+    // still cannot be reached.
+    //
+    // ⚠️ AND UNKNOWN STAYS UNKNOWN. If the client never says it, nothing here or downstream
+    // invents it; the confirmation renders "still needed" and the ask happens at promotion.
 
     // ── ⚑ MVP1 (C21) — THE ELEVEN-FACT GATE, ENFORCED RATHER THAN REQUESTED ───────────
     //
@@ -3788,8 +3844,21 @@ result or a number. "permitted" is false unless they explicitly said we may use 
     // else), and only a completion faces the strict targeting schema with its fail-closed
     // lists and the first-run gate. Any other `type` value falls through to the strict
     // schema, whose enum refuses it — unknown types keep failing closed.
-    const declaredType = call.input && typeof call.input === 'object'
-      ? (call.input as Record<string, unknown>).type
+    // ── 🛑 ⚑ 14 Sep (S1-RT-007) — ONE NORMALISATION, BEFORE ANYTHING READS THE REPLY ───
+    //
+    // 🛑 `null` AND "KEY ABSENT" ARE THE SAME STATEMENT AND MUST BE READ THE SAME WAY. Every
+    // field of this contract is `.optional()`, which in Zod is `T | undefined` and NOT
+    // `T | null` — so a model saying "I have no ICP yet" as `icp: null` was refused while the
+    // same model omitting the key was accepted. Live, that was a 503 on an answer the client
+    // had given perfectly, and the identical retry succeeded.
+    //
+    // ⚠️ SHAPE ONLY. It drops `null`; it never substitutes, defaults, repairs a wrong type or
+    // touches `false`/`0`/`''`. A string where an object belongs still reaches Zod and is
+    // still refused. See `lib/milla-reply-shape.ts`.
+    let replyInput = normaliseModelReply(call.input)
+
+    const declaredType = replyInput && typeof replyInput === 'object'
+      ? (replyInput as Record<string, unknown>).type
       : undefined
 
     // ── 🛑 ⚑ 14 Sep (S1-RT-002B) — VALID CUSTOMER TRUTH IS SAVED BEFORE ANY GATE CAN REFUSE ─
@@ -3813,8 +3882,40 @@ result or a number. "permitted" is false unless they explicitly said we may use 
     //
     // ⚠️ AND IT IS MERGED, NEVER REPLACING (`saveBriefDraft`), so a partial snapshot from a
     // turn that then failed cannot erase the answers before it.
-    if (req.userId && call.input && typeof call.input === 'object') {
-      const snapshot = BriefSoFar.safeParse((call.input as Record<string, unknown>).brief_so_far)
+
+    if (req.userId && replyInput && typeof replyInput === 'object') {
+      // 🛑 MODEL EMPTINESS IS NOISE, NOT A CLEAR. `''` and `[]` from a MODEL mean "I have not
+      // established this" — it has no way to express a deletion and the prompt tells it to
+      // omit what it does not know. Merged, they would erase a fact the customer gave three
+      // turns ago because one sample went quiet. The CUSTOMER's own clear mechanism is
+      // `PUT /milla/brief-draft`, whose fields are `.nullish()` for exactly that purpose, and
+      // it is untouched: this filter is on the model path only.
+      const rawFacts = modelFactsOnly((replyInput as Record<string, unknown>).brief_so_far)
+      let snapshot = BriefSoFar.safeParse(rawFacts)
+      if (!snapshot.success) {
+        // 🛑 ONE BAD FIELD MUST NOT COST THE WHOLE TURN. This parse is all-or-nothing, so a
+        // single wrong type anywhere discarded EVERY fact the customer gave in that turn —
+        // silently, with no log on the path. The offending keys are dropped and the rest
+        // re-parsed through the SAME schema. Nothing is repaired or guessed: a value we could
+        // not read is simply not saved, exactly as if it had never been mentioned.
+        const salvaged = dropKeysNamedByIssues(rawFacts, snapshot.error.errors)
+        const retry = BriefSoFar.safeParse(salvaged)
+        console.warn('[icps/builder/chat] brief snapshot partially unreadable —', JSON.stringify({
+          stage: 'snapshot',
+          // KEY NAMES ONLY, never values — a value here is client data.
+          dropped: [...new Set(snapshot.error.errors.map(e => String(e.path[0] ?? '')))].slice(0, 8),
+          salvaged: retry.success ? Object.keys(retry.data ?? {}).length : 0,
+        }))
+        if (retry.success) {
+          snapshot = retry
+          // 🛑 AND THE SALVAGED MEMO REPLACES THE BROKEN ONE FOR EVERYTHING DOWNSTREAM.
+          // `brief_so_far` is also a field of the REPLY schema, so leaving the unreadable
+          // value in place would fail the reply parse too and cost the client the turn we
+          // just rescued their facts from. One value — saved, counted by the gate, and read
+          // by the confirmation — so the three can never disagree about what was said.
+          replyInput = { ...(replyInput as Record<string, unknown>), brief_so_far: salvaged }
+        }
+      }
       if (snapshot.success && snapshot.data && Object.keys(snapshot.data).length > 0) {
         const { saveBriefDraft } = await import('../lib/brief-draft')
         const saved = await saveBriefDraft(req.userId, snapshot.data)
@@ -3824,20 +3925,105 @@ result or a number. "permitted" is false unless they explicitly said we may use 
       }
     }
 
+    // ── 🛑 ⚑ 14 Sep (S1-RT-009) — ONE READ OF THE DURABLE BRIEF, USED BY BOTH ─────────
+    //
+    // The snapshot above has just merged this turn's answers into the record, so this is the
+    // CUMULATIVE customer truth: every answer they have ever given. The eleven-fact gate
+    // counts against it, and the confirmation is built from it. One read, one truth — two
+    // reads could disagree about whether the client is finished.
+    //
+    // ⚠️ BEST-EFFORT, DEGRADING TO TODAY'S BEHAVIOUR. If the draft cannot be read, `held`
+    // stays empty and everything below behaves exactly as it did: the gate counts this
+    // sample alone. Worse, but never a reason to refuse the client's turn.
+    let held: Record<string, unknown> = {}
+    // 🛑 ⚑ 14 Sep (S1-RT-009) — "THE RECORD IS EMPTY" AND "WE COULD NOT READ THE RECORD" ARE
+    // DIFFERENT FACTS. A client on their first turn legitimately has no draft row; that is an
+    // empty record and a completion built on this sample alone is correct for them. A READ
+    // THAT THREW is the opposite: the record may hold nine facts we cannot see, and a
+    // confirmation built without them is exactly the one-sample projection this whole
+    // correction exists to abolish. Collapsing the two would quietly reinstate it on the one
+    // path where it is least visible.
+    let heldReadable = true
+    if (req.userId) {
+      try {
+        const { briefDraftFor } = await import('../lib/brief-draft')
+        const record = await briefDraftFor(req.userId)
+        held = (record?.facts ?? {}) as Record<string, unknown>
+      } catch {
+        // The turn may still ANSWER — a question needs no durable truth. It may not CONFIRM.
+        heldReadable = false
+        console.error('[icps/builder/chat] durable brief unreadable —', JSON.stringify({
+          stage: 'brief_read', consequence: 'no completion may be presented this turn',
+        }))
+      }
+    }
+
     const validated = declaredType === 'question'
-      ? MillaQuestionReply.safeParse(call.input)
-      : millaReplyFor(profile_required).safeParse(call.input)
-    if (!validated.success) {
+      ? MillaQuestionReply.safeParse(replyInput)
+      : millaReplyFor(profile_required, held).safeParse(replyInput)
+
+    // ── 🛑 ⚑ 14 Sep (S1-RT-007) — A COMPLETION CLAIMED TOO EARLY IS STILL A CONVERSATION ─
+    //
+    // 🛑 LIVE, THIS WAS `zod_paths:["brief"]` AND `zod_paths:["icp"]`, BOTH 503. Neither is a
+    // shape error: `MillaReplyInput` has no `brief` key and both paths are `millaReplyFor`'s
+    // OWN `custom` refusals — the eleven-fact gate and "a completion must carry an icp". The
+    // model declared `complete` before it was ready, and the product charged that judgement
+    // to the CUSTOMER as a failed turn, telling them to retry something they had done
+    // correctly. The retry only worked because the next sample said `question` instead.
+    //
+    // 🛑 NO GATE IS WEAKENED. `isPrematureCompletion` requires EVERY issue to be one of our
+    // own `custom` readiness refusals. A malformed reply raises `invalid_type` and still
+    // refuses — `icp: "agencies"` and `icp: null` land on the same PATH and are told apart by
+    // the CODE. And the answer is a QUESTION: the Brief stays incomplete, nothing is
+    // promoted, nothing is persisted as finished.
+    //
+    // ⚠️ THE SENTENCE IS MILLA'S OR THERE IS NONE. It is re-read through the SAME
+    // `MillaQuestionReply` every question faces, so a blank or missing `content` fails and
+    // the reply is refused exactly as before. Nothing composes a question on her behalf.
+    let parsed: z.infer<typeof MillaQuestionReply> | z.infer<ReturnType<typeof millaReplyFor>> | null =
+      validated.success ? validated.data : null
+    // 🛑 ⚑ 14 Sep (S1-RT-009) — AN UNREADABLE RECORD CANNOT PRODUCE A CONFIRMATION.
+    //
+    // The client's turn is not lost and their facts are already saved — the snapshot write
+    // happened above, before this read. What must not happen is presenting them a plan to
+    // APPROVE that was assembled from one model sample while the record they actually built
+    // was unreachable. So a completion is demoted to the conversation exactly as a premature
+    // one is: Milla's own sentence if she wrote one, and a plain retryable refusal if she did
+    // not. No promotion, no invented replacement state, nothing marked finished.
+    const mustNotConfirm = !heldReadable && declaredType === 'complete'
+    if (mustNotConfirm) {
+      // ⚠️ REGARDLESS OF WHETHER THE COMPLETION WAS OTHERWISE VALID. A premature completion
+      // and a well-formed one are demoted the same way here: neither may be presented as a
+      // plan to approve while the record is unreachable.
+      const asQuestion = MillaQuestionReply.safeParse({
+        ...(replyInput as Record<string, unknown>), type: 'question',
+      })
+      console.log('[icps/builder/chat] withholding completion —', JSON.stringify({
+        stage: 'reply', category: 'BRIEF_UNREADABLE_NO_CONFIRMATION', model: BUILDER_MODEL,
+      }))
+      parsed = asQuestion.success ? asQuestion.data : null
+    }
+    if (!mustNotConfirm && !validated.success && isPrematureCompletion(validated.error.errors)) {
+      const asQuestion = MillaQuestionReply.safeParse({
+        ...(replyInput as Record<string, unknown>), type: 'question',
+      })
+      if (asQuestion.success) {
+        console.log('[icps/builder/chat] continuing —', JSON.stringify({
+          stage: 'reply', category: PREMATURE_COMPLETION, model: BUILDER_MODEL,
+        }))
+        parsed = asQuestion.data
+      }
+    }
+    if (!parsed) {
       millaReplyFailed(res, 'INVALID_SHAPE', {
         ...meta,
         // A COUNT, never the keys themselves — a key name is client data here.
-        inputKeys: call.input && typeof call.input === 'object' ? Object.keys(call.input).length : 0,
+        inputKeys: replyInput && typeof replyInput === 'object' ? Object.keys(replyInput).length : 0,
         // OUR schema's paths (deduped), so a repeating refusal names its own cause.
-        zodPaths: [...new Set(validated.error.errors.map(e => e.path.join('.') || '(root)'))].slice(0, 8),
+        zodPaths: validated.success ? [] : [...new Set(validated.error.errors.map(e => e.path.join('.') || '(root)'))].slice(0, 8),
       })
       return
     }
-    const parsed = validated.data
 
     // ── ⚑ MVP1 — THE DRAFT IS WRITTEN HERE, ON EVERY TURN ─────────────────────────────
     //
@@ -3873,7 +4059,22 @@ result or a number. "permitted" is false unless they explicitly said we may use 
       // inside `millaReplyFor` would let fact #10 satisfy the eleven and then vanish on its
       // way to `figsy_knowledge.pitch.data.bad_fit` — a completion that counts eleven and
       // stores nine. The gate and this response read the SAME `resolveBriefFacts` output.
-      const resolved = resolveBriefFacts(parsed)
+      // ── 🛑 ⚑ 14 Sep (S1-RT-009) — THE CONFIRMATION READS THE DURABLE BRIEF ────────────
+      //
+      // 🛑 WHAT THE CLIENT WAS BEING ASKED TO APPROVE. This used to be
+      // `resolveBriefFacts(parsed)` — ONE TURN: this sample's fields, falling back to the
+      // `brief_so_far` this sample happened to carry. A fact given on turn 1 and not repeated
+      // on turn 9 was simply absent from the confirmation. Not lost from the database, which
+      // had merged it correctly all along — invisible on the one screen where they say yes.
+      // The client repeated their exclusions three times and still saw no sign of them.
+      //
+      // It now resolves against `held`, the same cumulative record the gate counted, so the
+      // flow is CUSTOMER WORDS → DURABLE BRIEF → DERIVED TARGETING → CONFIRMATION.
+      const resolved = resolveBriefFacts(
+        Object.keys(held).length > 0
+          ? { ...parsed, brief_so_far: { ...held, ...(parsed.brief_so_far ?? {}) } as never }
+          : parsed,
+      )
       // ── 🛑 ⚑ 14 Sep (S1-RT-005) — TRANSLATE, AND SAY SO WHEN WE CANNOT ────────────────
       //
       // Each closed vocabulary is asked the same question: which of these words can we prove
@@ -3994,7 +4195,35 @@ result or a number. "permitted" is false unless they explicitly said we may use 
             // never supplied: a fact absent from both homes stays empty and the portal's
             // own first-run gate still refuses it.
             company_name: str(p.company_name) || resolved.companyName || '',
-            country:      str(p.country) || resolved.country || '',
+            // ── 🛑 ⚑ 14 Sep (S1-RT-009B) — A COUNTRY THE CUSTOMER DID NOT ESTABLISH IS
+            //    NOT A COUNTRY ────────────────────────────────────────────────────────
+            //
+            // 🛑 REMOVING THE COMPLETION REQUIREMENT STOPPED US FORCING THE INVENTION. It did
+            // not stop the model VOLUNTEERING one, and this line took whatever arrived. The
+            // live failure survives that fix untouched: the client says their best customers
+            // are "in the UK and US", the model emits `profile.country = "United Kingdom"`,
+            // and their own account card reads "Based in — UK" about a business they never
+            // located anywhere.
+            //
+            // ⚠️ THE TRANSCRIPT DECIDES, NOT THE FIELD. `countryHasCustomerEvidence` accepts
+            // it only when the CUSTOMER located THEIR OWN BUSINESS — an own-business subject
+            // governing the sentence — or when a turn of OURS asked where their business is
+            // based and the next reply actually answered it. Both are the existing flow; no
+            // new field and no twelfth Brief fact.
+            //
+            // ⚠️ THE COMPANY NAME IS THE CANONICAL ONE, NOT `p.company_name`. It is what lets
+            // "Northstar Revenue is based in Ireland" count as self-location, so it must come
+            // from the customer's own record — a model that could supply the name could make
+            // its own invented sentence self-consistent.
+            //
+            // ⚠️ A REFUSAL COSTS ONE QUESTION. Unknown stays unknown, the panel renders
+            // "still needed", and `approve()` asks. Accepting a wrong one writes a false fact
+            // onto their client record and shows it to them as though they had said it.
+            country:      countryHasCustomerEvidence({
+              country: str(p.country) || resolved.country || '',
+              turns: messages,
+              companyName: resolved.companyName || '',
+            }) ? (str(p.country) || resolved.country || '') : '',
             contact_name: str(p.contact_name) || resolved.contactName || '',
             phone:        str(p.phone) || resolved.phone || '',
             website:      str(p.website) || resolved.website || '',
@@ -4014,7 +4243,28 @@ result or a number. "permitted" is false unless they explicitly said we may use 
       res.json({
         success: true,
         data: {
-          type: 'complete', icp: draft, summary: parsed.summary ?? null,
+          type: 'complete', icp: draft,
+          // ── 🛑 ⚑ 14 Sep (S1-RT-009) — THE FINAL CONFIRMATION CARRIES ONE TRUTH ─────────
+          //
+          // 🛑 THE MODEL'S SUMMARY IS NOT SENT. It was the last client-facing sentence written
+          // entirely by the model, and it sat directly beside cards built from the durable
+          // Brief — so it could assert "Northstar is based in the UK" next to a card correctly
+          // reading "still needed", or "you want recruitment agencies in the UK" against a
+          // record that EXCLUDES them, and the client would believe the sentence.
+          //
+          // ⛓️ SCREENING IT WAS NOT ENOUGH AND IS GONE. `summaryAssertsUnsupportedFacts`
+          // caught invented locations and contradictory geographies, and by construction
+          // could not catch a reworded exclusion — that needs semantics. A partial screen on
+          // a second version of the client's truth is still a second version of the client's
+          // truth. There is now no second version to police.
+          //
+          // ⚠️ MILLA IS NOT SILENCED. Every QUESTION she asks is still hers, unchanged, and
+          // the portal already renders its own neutral introduction when no summary arrives —
+          // a sentence that states no facts. What she may no longer do is narrate the client's
+          // own truth back to them in prose nobody checked, at the one moment they say yes.
+          // The facts are on the cards: company, targets, geography, roles, size, exclusions,
+          // outcome — every one of them resolved from the durable Brief.
+          summary: null,
           // ── ⚑ 14 Sep (S1-RT-005 · amended S1-PD-01) — DISPLAY STATE, AND ONLY THAT ─────
           //
           // 🛑 THE PORTAL NO LONGER CARRIES THIS ANYWHERE. It renders it — "we are finishing
@@ -4025,6 +4275,22 @@ result or a number. "permitted" is false unless they explicitly said we may use 
           // a human, never an input to a decision.
           icp_review: icpReview,
           profile, business, proof, website_hints: websiteHints,
+          // ── ⚑ 14 Sep (S1-RT-009A) — THE FACTS THE CLIENT MUST SEE BEFORE THEY APPROVE ──
+          //
+          // 🛑 EXCLUSIONS WERE NEVER LOST AND NEVER SHOWN. `business.bad_fit` has carried
+          // them the whole time and the portal declared the field and rendered nothing. A
+          // client who says "not recruitment agencies, not software companies" three times
+          // and sees no sign of it has no way to tell whether we heard them — so they say it
+          // again, which is the product failing to be believable rather than failing to work.
+          //
+          // ⚠️ NAMED SEPARATELY FROM `business.bad_fit`, WHICH IS UNCHANGED. That key is the
+          // FIGSY copywriter's input and keeps its meaning and its destination; this one is
+          // the CLIENT-FACING statement of fact #10, resolved from the durable Brief, and it
+          // exists so the confirmation renders canonical truth rather than a copy field it
+          // happens to share a value with today.
+          brief_exclusions: resolved.exclusions ?? '',
+          // Fact #6, from the same durable record — so the chips cannot disagree with it.
+          brief_geographies: resolved.geographies ?? [],
           // ⚠️ BRIEF FACT #11, RESOLVED (S1-RT-002). The portal carries this to
           // `/auth/onboard` as `outcome_stated` and to `POST /icps` as `campaign_intent`,
           // so the desired outcome the gate counted from the snapshot reaches BOTH of its

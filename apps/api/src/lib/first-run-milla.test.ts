@@ -1558,9 +1558,15 @@ describe('a system failure can never again speak as Milla', () => {
     // and it is checked BEFORE anything tries to read the reply
     const stop = icpsSrc.indexOf("response.stop_reason === 'max_tokens'")
     // ⛓️ 26 Aug — validation is discriminated now; the anchor is where EITHER schema runs.
-    const read = icpsSrc.indexOf("? MillaQuestionReply.safeParse(call.input)")
+    // ⛓️ 14 Sep (S1-RT-007) — the parsed value is `replyInput`, the NORMALISED tool input.
+    // The claim is unchanged and says more: truncation is still checked before anything reads
+    // the reply, AND the normalisation happens after that check, so a damaged reply can never
+    // be tidied into something readable.
+    const read = icpsSrc.indexOf("? MillaQuestionReply.safeParse(replyInput)")
+    const norm = icpsSrc.indexOf("let replyInput = normaliseModelReply(call.input)")
     expect(stop).toBeGreaterThan(-1)
     expect(read).toBeGreaterThan(stop)
+    expect(norm).toBeGreaterThan(stop)
   })
 
   it('the failure path never appends an assistant message in the portal', () => {
@@ -1605,18 +1611,41 @@ describe('the reply is a forced tool call, validated before it is trusted', () =
     // ⛓️ 26 Aug — the contract is discriminated: a question is validated as EXACTLY what
     // the route returns (type + content, all else stripped), and only a completion faces
     // the strict targeting schema. Both branches still go through Zod before any read.
-    expect(icpsSrc).toContain('? MillaQuestionReply.safeParse(call.input)')
-    expect(icpsSrc).toContain(': millaReplyFor(profile_required).safeParse(call.input)')
+    // ⛓️ 14 Sep (S1-RT-007) — STRENGTHENED. The tool input is still never trusted; it is now
+    // NORMALISED first (a `null` read as an absent key, nothing else) and the NORMALISED
+    // value is what faces Zod. Both halves are pinned.
+    expect(icpsSrc).toContain('let replyInput = normaliseModelReply(call.input)')
+    expect(icpsSrc).toContain('? MillaQuestionReply.safeParse(replyInput)')
+    expect(icpsSrc).toContain(': millaReplyFor(profile_required, held).safeParse(replyInput)')
     expect(icpsSrc).toContain('const MillaQuestionReply = z.object({')
-    expect(icpsSrc).toContain('if (!validated.success) {')
-    expect(icpsSrc).toContain('const parsed = validated.data')
+    // ⛓️ 14 Sep (S1-RT-007) — `const parsed = validated.data` became a narrowing that also
+    // carries the premature-completion continuation. The CLAIM is unchanged and stricter: a
+    // reply is used ONLY after a successful parse, and the one other way `parsed` can be set
+    // is a re-parse through `MillaQuestionReply` with `type: 'question'` FORCED.
+    expect(icpsSrc).toContain('validated.success ? validated.data : null')
+    // ⛓️ 14 Sep — the continuation is now also gated on `mustNotConfirm`, so an unreadable
+    // durable Brief cannot take the premature path and present a plan built from one sample.
+    expect(icpsSrc).toContain('if (!mustNotConfirm && !validated.success && isPrematureCompletion(validated.error.errors)) {')
+    expect(icpsSrc).toContain("const mustNotConfirm = !heldReadable && declaredType === 'complete'")
+    expect(icpsSrc).toContain("...(replyInput as Record<string, unknown>), type: 'question',")
+    expect(icpsSrc).toContain('if (!parsed) {')
   })
 
   it('the first-run account gate lives in the VALIDATOR, not only in the prompt', () => {
-    expect(icpsSrc).toContain('const millaReplyFor = (profileRequired: boolean) =>')
+    // ⛓️ 14 Sep (S1-RT-009) — the validator now also sees the DURABLE Brief, so a client who
+    // answered across nine turns is not refused because the ninth reply did not restate all
+    // eleven. What it REQUIRES is unchanged; what it may SEE is wider.
+    expect(icpsSrc).toContain('const millaReplyFor = (profileRequired: boolean, held: Record<string, unknown> = {}) =>')
     expect(icpsSrc).toContain("if (!profileRequired || v.type !== 'complete') return")
     expect(icpsSrc).toContain("message: 'a first-run completion must carry the company name'")
-    expect(icpsSrc).toContain('message: "a first-run completion must carry the client\'s own business country"')
+    // 🛑 INVERTED (S1-RT-009B). The country rule is GONE and must stay gone: the client's own
+    // country is not one of the eleven, the prompt forbids inventing it, and requiring it to
+    // COMPLETE made inventing it the only way through — live, a client's TARGET market was
+    // rendered back to them as where their own business is based. It is asked for at
+    // promotion instead, by `approve()`, which is where an account fact belongs.
+    const live = icpsSrc.split('\n').filter(l => !l.trimStart().startsWith('//') && !l.trimStart().startsWith('*')).join('\n')
+    expect(live).not.toContain('a first-run completion must carry the client\'s own business country')
+    expect(live).not.toContain('if (!resolved.country)')
   })
 
   it('the closed lists are enforced by Zod from the SAME constants, not a second copy', () => {
@@ -1915,7 +1944,15 @@ describe('one question per reply, and the business before the filter fields', ()
   it('and this prompt work introduced no new Anthropic call, no retry and no model change', () => {
     expect(routeCode.match(/anthropic\.messages\.create\(/g) ?? []).toHaveLength(1)
     expect(routeCode).toContain('model: BUILDER_MODEL,')
-    expect(routeCode).not.toMatch(/\bretry\b|\bsecond (call|attempt)\b/i)
+    // ⛓️ 14 Sep (S1-RT-007) — comment-stripped. The word "retry" now appears in the prose
+    // explaining the salvage (`const retry = BriefSoFar.safeParse(salvaged)`) and in the
+    // chained notes about the live incident. The CLAIM is unchanged and is about the
+    // PROVIDER: one model call per turn, no second attempt, same model.
+    const exec = routeCode.split('\n').filter(l => !l.trimStart().startsWith('//') && !l.trimStart().startsWith('*')).join('\n')
+    expect(exec).not.toMatch(/\bsecond (call|attempt)\b/i)
+    // The declaration and the call are the two occurrences; what matters is that the CALL
+    // happens once, which the first assertion already pins.
+    expect(exec.match(/anthropic\.messages\.create\(/g) ?? [], 'one provider call per turn').toHaveLength(1)
   })
 })
 
@@ -1961,7 +1998,9 @@ describe('diagnostics are safe — nothing of the client is logged', () => {
   })
 
   it('the raw tool input is NEVER logged — only how many keys it had', () => {
-    expect(icpsSrc).toContain('inputKeys: call.input && typeof call.input === \'object\' ? Object.keys(call.input).length : 0')
+    // ⛓️ 14 Sep (S1-RT-007) — the count is taken from `replyInput`. Still a COUNT and still
+    // never the keys themselves: a key name is client data here.
+    expect(icpsSrc).toContain('inputKeys: replyInput && typeof replyInput === \'object\' ? Object.keys(replyInput).length : 0')
     expect(icpsSrc).not.toMatch(/console\.\w+\([^)]*call\.input/)
     expect(icpsSrc).not.toMatch(/console\.\w+\([^)]*JSON\.stringify\(call\.input/)
   })

@@ -316,11 +316,20 @@ describe('🛑 S1-RT-002B · valid customer truth survives a later completion fa
 
   it('the facts write happens BEFORE any refusal can return', () => {
     const src = readFileSync(join(__dirname, '..', 'routes', 'icps.ts'), 'utf8')
-    const save = src.indexOf('const snapshot = BriefSoFar.safeParse')
+    // ⛓️ 14 Sep (S1-RT-009) — `const` became `let`: a snapshot whose one bad field would have
+    // discarded the whole turn is now salvaged and re-parsed. The CLAIM is unchanged and this
+    // pins MORE of it — the actual `saveBriefDraft` call, not just the parse, must precede any
+    // refusal, and the salvage must sit between them.
+    const save = src.indexOf('let snapshot = BriefSoFar.safeParse')
+    const write = src.indexOf('const saved = await saveBriefDraft(req.userId, snapshot.data)')
+    const salvage = src.indexOf('const salvaged = dropKeysNamedByIssues(rawFacts, snapshot.error.errors)')
     const gate = src.indexOf("millaReplyFailed(res, 'INVALID_SHAPE'")
     expect(save).toBeGreaterThan(-1)
+    expect(write).toBeGreaterThan(-1)
+    expect(salvage).toBeGreaterThan(save)
     expect(gate).toBeGreaterThan(-1)
     expect(save, 'a refusal that returns before the save is the whole defect').toBeLessThan(gate)
+    expect(write, 'the WRITE, not merely the parse, must precede every refusal').toBeLessThan(gate)
   })
 })
 

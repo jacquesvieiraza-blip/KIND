@@ -175,24 +175,19 @@ describe('M1 — every model call is inventoried and on the model the founder ru
     // running on Sonnet against ruling 5, reached from the client's own leads page. A
     // version-specific ban is not a ban.
     //
-    // ⚠️ AND THE ALLOWANCE IS NARROW AND NAMED. `lib/figsy.ts` holds a Sonnet id inside
-    // `MODEL_MAP`, reachable ONLY through a per-campaign `model_preference` an operator sets
-    // deliberately, defaulting to Haiku. That is a pre-existing operator choice, not a
-    // surface silently on the wrong model, and removing it would be this build deciding a
-    // product question. It is listed so it stays visible; anything else fails.
-    const SONNET_BY_OPERATOR_CHOICE: Record<string, string> = {
-      'apps/api/src/lib/figsy.ts':
-        "MODEL_MAP.sonnet — reachable only via a campaign's model_preference, default 'haiku'",
-    }
+    // ⛓️ 14 Sep (O2) — THE NARROW ALLOWANCE THAT STOOD HERE IS GONE, AND SO IS WHAT IT
+    // ALLOWED. `lib/figsy.ts` held a Sonnet id inside `MODEL_MAP`, reachable through a
+    // per-campaign `model_preference`; this test listed it as a pre-existing operator choice
+    // and deferred it as a founder question. That was wrong: the founder had already ruled
+    // "THE OTHER PARTS = HAIKU", FIGSY is one of the other parts, and a row in a table is not
+    // an exception to a ruling. The toggle is removed, so the allowlist has nothing to hold
+    // and the rule is now absolute — no Sonnet id of any version, anywhere, outside the one
+    // file that defines it.
     for (const f of API_FILES) {
       // `lib/models.ts` is the ONE home the conversational id is allowed to have — that is
       // the whole point of the file, and Build 0 exists because it previously had 46.
       if (f.endsWith('apps/api/src/lib/models.ts')) continue
       const hits = live(read(f)).match(/'claude-sonnet[^']*'/g) ?? []
-      if (SONNET_BY_OPERATOR_CHOICE[f]) {
-        expect(hits.length, `${f} grew a second Sonnet reference beyond the operator toggle`).toBe(1)
-        continue
-      }
       expect(hits, `${f} runs on Sonnet against ruling 5: ${hits.join(', ')}`).toEqual([])
     }
   })
@@ -210,7 +205,8 @@ const ENTRY_POINTS: Array<{ route: string; file: string; who: string; store: str
   { route: "operatorRouter.post('/command'",  file: 'apps/api/src/routes/operator.ts', who: 'operator — Vida',           store: 'vida_conversations (operator + client)' },
   { route: "operatorRouter.post('/icp/chat'", file: 'apps/api/src/routes/operator.ts', who: 'operator — Vida ICP',       store: 'vida_conversations' },
   { route: "operatorRouter.post('/ask'",      file: 'apps/api/src/routes/operator.ts', who: 'operator → client',         store: 'milla_messages (the client thread)' },
-  { route: "supportRouter.post(",             file: 'apps/api/src/routes/support.ts',  who: 'client — escalation',       store: 'founder_alerts' },
+  { route: "'/escalate',",                    file: 'apps/api/src/routes/support.ts',  who: 'client — escalation',       store: 'founder_alerts' },
+  { route: "millaRouter.get('/brief-draft'",  file: 'apps/api/src/routes/milla.ts',    who: 'client — re-entry read',    store: 'onboarding_brief_drafts' },
 ]
 
 describe('M2 — every entry point exists and names its store', () => {
@@ -244,11 +240,16 @@ describe('M3 — one authoritative home per fact', () => {
     // 🛑 THE ELEVEN BRIEF FACTS HAVE EXACTLY ONE AUTHORITATIVE HOME: the `facts` column of
     // `onboarding_brief_drafts`, merged only by `saveBriefDraft`. Everything else derives.
     const draft = live(read('apps/api/src/lib/brief-draft.ts'))
-    expect(draft, 'a second writer of the facts column').toContain('export async function saveBriefDraft')
+    // ⛓️ 14 Sep (O4) — THIS WAS A PREFIX MATCH AND A TOOTH WALKED THROUGH IT. Renaming the
+    // writer to `saveBriefDraftRENAMED` still CONTAINED `saveBriefDraft`, so the guard passed
+    // while the only writer of the eleven facts had been renamed out from under every caller.
+    // The boundary is now asserted.
+    expect(draft, 'the single writer of the facts column is gone or renamed')
+      .toMatch(/export async function saveBriefDraft\s*\(/)
     // The transcript has its own writers and they NEVER touch facts — writing a transcript
     // through the facts writer would un-confirm the Brief every time somebody spoke.
-    expect(draft).toContain('export async function saveBriefConversation')
-    expect(draft).toContain('export async function rememberCustomerTurn')
+    expect(draft).toMatch(/export async function saveBriefConversation\s*\(/)
+    expect(draft).toMatch(/export async function rememberCustomerTurn\s*\(/)
     // And the counter is shared, so no surface can hold a second opinion about completeness.
     expect(live(read('packages/shared/src/brief-facts.ts'))).toContain('export function briefFactsFromDraft')
     // The confirmation derives from the durable record, never from one model sample.
@@ -308,6 +309,18 @@ describe('M4 — a Milla or Vida answer is hers, or it is an honest error', () =
  * for here rather than added quietly.
  */
 const LANGUAGE_HITS: Array<{ file: string; what: string; klass: 'A' | 'B'; why: string }> = [
+  // ── THE CLIENT AND OPERATOR APPS (added 14 Sep, O3) ─────────────────────────────────
+  //
+  // ⛓️ M5 PINNED THE API ONLY, so "class A is empty" was true of half the product and
+  // asserted of all of it. The founder's rule reaches wherever customer language is read,
+  // and the browser is where they type it. Every hit below was found by sweeping the UI
+  // that sends to, or renders, a Milla or Vida conversation.
+  { file: 'apps/portal/src/app/(milla)/milla/welcome/page.tsx', what: 'normalizeWebsite / firstUrl — 8 URL-shape operations (whitespace, @, scheme, hostname, domain match, lowercase host, @host)', klass: 'B', why: 'spots a DOMAIN so Milla can offer to read their site; a miss costs nothing because she asks in words' },
+  { file: 'apps/portal/src/components/milla/MillaConversation.tsx', what: 'PAUSE_STAGES / ROI_STAGES / OUTREACH_STAGES .includes(prog.stage)', klass: 'B', why: 'membership on a STAGE ENUM the server issued, never on what the client typed' },
+  { file: 'apps/portal/src/app/(milla)/milla/page.tsx', what: 'OUTREACH_STAGES.includes(prog.stage)', klass: 'B', why: 'same stage enum, a render gate' },
+  { file: 'apps/portal/src/app/(dashboard)/AgentColumn.tsx', what: 'pathname regexes ×3', klass: 'B', why: 'URL routing; the subject is the address bar, not a sentence' },
+  { file: 'apps/admin/src/app/vida/page.tsx', what: 'status / tab / send-day .includes ×5', klass: 'B', why: 'enum membership on operator state' },
+
   { file: 'apps/api/src/routes/icps.ts',            what: '/check constraint|violates/i.test(error.message)', klass: 'B', why: 'matches a DATABASE error string, never a customer sentence' },
   { file: 'apps/api/src/routes/icps.ts',            what: '/column|schema cache/i.test(icpUpdateErr.message)', klass: 'B', why: 'same — a Postgres error' },
   { file: 'apps/api/src/routes/icps.ts',            what: 'CLEARABLE_ICP_FIELDS.includes(f)',                 klass: 'B', why: 'allowlist on a FIELD NAME the model sent, fail-closed' },
@@ -346,6 +359,20 @@ describe('M5 — no deterministic code decides what a customer meant', () => {
       'apps/api/src/lib/milla-chat-system.ts': 0,
       'apps/api/src/lib/vida-conversation.ts': 0,
       'apps/api/src/lib/brief-fact-resolution.ts': 0,
+      // ── THE BROWSER HALF (O3) ─────────────────────────────────────────────────────
+      // ⚠️ THESE FILES SEND TO, OR RENDER, A MILLA OR VIDA CONVERSATION. A new regex over a
+      // customer's words would land in one of them and push its count past the pin.
+      'apps/portal/src/app/(milla)/milla/welcome/page.tsx': 8,
+      'apps/portal/src/components/milla/MillaConversation.tsx': 3,
+      'apps/portal/src/app/(milla)/milla/page.tsx': 1,
+      'apps/portal/src/app/(dashboard)/AgentColumn.tsx': 3,
+      'apps/portal/src/components/ui/AgentSidePanel.tsx': 0,
+      'apps/portal/src/components/ui/AskFigsyButton.tsx': 0,
+      'apps/portal/src/components/ui/VidaHelpBubble.tsx': 0,
+      'apps/portal/src/app/(milla)/milla/chat/page.tsx': 0,
+      'apps/portal/src/lib/get-help-state.ts': 0,
+      'apps/admin/src/components/vida/VidaConversation.tsx': 0,
+      'apps/admin/src/app/vida/page.tsx': 5,
     }
     const RE = /\.match\(|\.test\(|new RegExp|toLowerCase\(\)|\.includes\(/g
     for (const [file, n] of Object.entries(EXPECTED)) {

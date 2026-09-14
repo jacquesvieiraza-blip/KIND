@@ -118,7 +118,31 @@ export function AgentColumn({ hasFigsy, hasMilla, hasVida, hasDenise, leadCount,
             { label: 'Ask me anything',   onClick: () => router.push('/dashboard/assistant') },
             { label: 'Upload knowledge',  onClick: () => router.push('/dashboard/knowledge') },
           ]}
-          liveChatEndpoint="/milla/chat"
+          // ── 🛑 ⚑ 14 Sep (O1) — THE SECOND MILLA IS GONE FROM HERE ────────────────────
+          //
+          // ⛓️ ~~`liveChatEndpoint="/milla/chat"`~~ STOOD HERE, and it was the last reachable
+          // way into a SECOND Milla. That endpoint is stateless: it takes ten turns of
+          // browser history, answers, and stores nothing. So a client typing into this card
+          // was talking to somebody with no memory of their Brief, whose every word was lost
+          // the moment the tab closed — beside a product whose whole promise is that she
+          // remembers.
+          //
+          // 🛑 IT IS STILL REACHABLE, WHICH IS WHY THIS MATTERS. The middleware redirects
+          // every signed-in `/dashboard/*` request to `/milla/*` EXCEPT the `partner`,
+          // `developer` and `client-partner` segments — and `/billing/confirm` lives in this
+          // route group without a `/dashboard` prefix at all. Four URL families still render
+          // this column.
+          //
+          // ⚠️ NOTHING ELSE CHANGED, DELIBERATELY. Without a live endpoint the panel falls
+          // back to its existing `onSend` — the component's own designed behaviour, which
+          // predates this change — and that navigation lands on the ONE persisted
+          // conversation rather than starting a rival to it. No replacement chat is added and
+          // this page is not redesigned.
+          //
+          // ⚠️ THE `?q=` IS LEFT EXACTLY AS IT WAS. Neither this destination nor the
+          // canonical one has ever read it, so removing or re-pointing it would change
+          // behaviour this ticket has no mandate to change. It is recorded as an
+          // out-of-scope finding instead.
           onSend={msg => router.push(`/dashboard/assistant?q=${encodeURIComponent(msg)}`)}
           inputPlaceholder="Ask Milla anything…"
           online={hasMilla}

@@ -4,6 +4,11 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { api } from '@/lib/api'
 import { createClient } from '@/lib/supabase/client'
+// ⚑ 14 Sep (S1-PD-08) — the Get Help state machine. Pure, executed by the gate, and the one
+// place that decides what this screen is allowed to claim happened.
+import {
+  mayStartHelp, helpStateAfter, helpCopy, helpButtonLabel, SUPPORT_EMAIL, type HelpState,
+} from '@/lib/get-help-state'
 // ⚑ 24 Aug — PACK_PRICE_USD / PACK_LEADS are no longer imported here, and that is the
 // point rather than a tidy-up: this screen no longer names a price at all. The pack ask
 // moved behind "Looks right" on the desk, where those constants are still interpolated.
@@ -51,7 +56,11 @@ type BuilderReply =
   | { type: 'question'; content: string }
   | { type: 'complete'; icp: IcpDraft; summary: string | null
       profile?: Profile; business?: Business; proof?: ProofClaim[]
-      website_hints?: string[]; campaign_intent?: string }
+      website_hints?: string[]; campaign_intent?: string
+      // ⚑ 14 Sep (S1-RT-005) — what the SERVER could not translate into provider values.
+      // Carried, never interpreted: this app decides nothing about it and shows the client
+      // nothing different because of it.
+      icp_review?: { requirements: Array<{ field: string; said: string[] }> } | null }
 type Msg = { role: 'user' | 'assistant'; content: string }
 
 async function token(): Promise<string | undefined> {
@@ -145,6 +154,9 @@ export default function MillaWelcomePage() {
   const [input, setInput] = useState('')
   const [thinking, setThinking] = useState(false)
   const [proposed, setProposed] = useState<IcpDraft | null>(null)
+  // ⚑ 14 Sep (S1-RT-005) — carried from the completion to `POST /icps`, which is what
+  // persists it. Held here for one hop only; this app never reads it to decide anything.
+  const [icpReview, setIcpReview] = useState<{ requirements: Array<{ field: string; said: string[] }> } | null>(null)
   // ⚑ 24 Aug — the VALUE is no longer read on this screen (the plan card that displayed it
   // is gone), but the setter stays: `propose()` still runs the gated preview and "Keep
   // adjusting the target" still clears it, and neither of those is copy. Bound as `[,
@@ -155,6 +167,10 @@ export default function MillaWelcomePage() {
   const [, setMatchCount] = useState<number | null>(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  // ⚑ 14 Sep (S1-RT-003/004) — the server's own eleven-fact progress, held so the resume
+  // path and the Get Help escape can both speak from it. The numbers are never derived here.
+  const [briefProgress, setBriefProgress] = useState<{ count: number; total: number } | null>(null)
+  const [briefNext, setBriefNext] = useState<string | null>(null)
   // What Milla understood about the business, alongside the targeting.
   const [business, setBusiness] = useState<Business | null>(null)
   const [proof, setProof] = useState<ProofClaim[]>([])
@@ -235,10 +251,45 @@ export default function MillaWelcomePage() {
       const d = await api.get<{ data: {
         progress: { count: number; total: number }
         next: { id: string; label: string } | null
+        conversation?: { role: 'user' | 'assistant'; content: string }[]
       } }>('/milla/brief-draft', tk)
       const p = d.data?.progress
       const next = d.data?.next ?? null
-      if (p && p.count > 0) {
+      const convo = d.data?.conversation ?? []
+      // ⚑ 14 Sep (S1-RT-004) — held so Get Help can tell an operator where they are stuck.
+      if (p) setBriefProgress(p)
+      setBriefNext(next?.label ?? null)
+      // ── 🛑 ⚑ 14 Sep (S1-RT-003) — THE CONVERSATION COMES BACK, NOT JUST THE COUNT ─────
+      //
+      // ⛓️ WHAT STOOD HERE replaced the greeting with a one-line "welcome back, that's N of
+      // 11" and nothing else, because the transcript existed nowhere but this tab. Two things
+      // followed, and both were live: the client saw what looked like a conversation that had
+      // restarted, and Milla's NEXT turn was sent with that single line as its entire history
+      // — so she genuinely had no memory of the last ten minutes and could not continue
+      // naturally. Milla is conversational precisely because every client says the same thing
+      // differently; a Milla who forgets is a different product.
+      //
+      // ⚠️ THE SERVER'S COPY, ALREADY BOUNDED AND VALIDATED (`readConversation`). This app
+      // does not decide the window, trim the turns or filter the roles — a second opinion
+      // about the transcript is how two copies drift apart.
+      //
+      // ⚠️ IT REPLACES ONLY THE UNTOUCHED GREETING, exactly as the resume line did. A client
+      // who reloaded mid-sentence keeps what is on their screen; this is for a conversation
+      // that has not started in THIS tab. So a refresh cannot duplicate a message — the
+      // restored transcript is assigned, never appended.
+      //
+      // ⚠️ AND THE RESUME LINE IS STILL SAID, AFTER the transcript. It is what tells them
+      // their answers survived and what is still needed — the count is the server's, and
+      // there is no eleven-fact list in this app.
+      if (convo.length > 0) {
+        setMessages(m => (m.length === 1 && m[0].content === GREETING)
+          ? [...convo, ...(p && p.count > 0
+              ? [{ role: 'assistant' as const, content: resumeGreeting(p.count, p.total, next?.label ?? null) }]
+              : [])]
+          : m)
+      } else if (p && p.count > 0) {
+        // No stored transcript (a Brief begun before this existed, or an unreadable value):
+        // exactly the previous behaviour, which is still strictly better than a bare greeting.
         setMessages(m => (m.length === 1 && m[0].content === GREETING)
           ? [{ role: 'assistant', content: resumeGreeting(p.count, p.total, next?.label ?? null) }] : m)
       }
@@ -297,6 +348,86 @@ export default function MillaWelcomePage() {
   // truthful recovery is to re-deliver the history AS IT STANDS, which is what `retry()`
   // does and what the failure banner now offers.
   const [canRetry, setCanRetry] = useState(false)
+  // ⚑ 14 Sep (S1-RT-004) — the Get Help escape, and whether it has already been taken.
+  // ⚑ 14 Sep (S1-PD-08) — ONE state with FOUR values, not two booleans that could both be
+  // wrong at once. `helpSent === true` used to be set by the catch block as well as the try,
+  // so a failed escalation told the client K.I.N.D had been told.
+  const [helpState, setHelpState] = useState<HelpState>('idle')
+
+  /**
+   * ⚑ 14 Sep (S1-RT-001) — the product's canonical sign-out, reached from onboarding.
+   *
+   * ⚠️ IDENTICAL TO `MillaShell.signOut`, deliberately. A second way to end a session is a
+   * second thing that can be wrong about what a session is; this is the same two lines.
+   * `window.location.href` rather than the router, so no React state outlives the sign-out.
+   */
+  async function signOut() {
+    try { await createClient().auth.signOut() } catch { /* ignore — leaving is not blocked */ }
+    window.location.href = '/login'
+  }
+
+  /**
+   * 🛑 ⚑ 14 Sep (S1-RT-004) — A HUMAN, WHEN MILLA CANNOT RECOVER.
+   *
+   * THE DEFECT. A failed turn offered exactly one action: Try again. When the failure was
+   * deterministic — and the live one was, because a retry re-sends the identical transcript
+   * to the same model — that button could never work, and a brand-new client's first
+   * experience of K.I.N.D was a dead end with no way to reach anybody.
+   *
+   * ⚠️ THE EXISTING PRIMITIVE, NOT A NEW ONE. `POST /support/escalate` is the same route
+   * `VidaHelpBubble` already uses; it resolves the person from their auth token and raises a
+   * `support_escalation` founder alert. It does `.maybeSingle()` on `clients`, so it already
+   * works for somebody who has no client row yet — which is every client in this screen.
+   *
+   * ⚠️ IT SENDS CONTEXT, NEVER A STACK TRACE. What Milla last asked, what the client last
+   * answered and how far through the eleven they are — enough for an operator to pick it up
+   * and continue by hand. The client is shown a plain sentence; the technical error text is
+   * ours and stays in the alert, not in their message.
+   */
+  async function getHelp() {
+    // ⚠️ `mayStartHelp` IS THE DUPLICATE FENCE TOO: `sending` and `sent` both refuse, so a
+    // second click after a successful ask cannot raise a second alert for the same moment.
+    // `failed` is the one state that lets a client try again.
+    if (!mayStartHelp(helpState)) return
+    setHelpState('sending')
+    try {
+      const { data: { session } } = await createClient().auth.getSession()
+      const lastAsk = [...messages].reverse().find(m => m.role === 'assistant')?.content ?? '(nothing yet)'
+      const lastAnswer = [...messages].reverse().find(m => m.role === 'user')?.content ?? '(nothing yet)'
+      await api.post('/support/escalate', {
+        message: [
+          '🆘 A client is STUCK IN THE MILLA BRIEF and asked for help from the onboarding screen.',
+          // ⚠️ STATED FROM WHAT WE ACTUALLY KNOW, NEVER ASSUMED. This screen is reached by
+          // people mid-signup AND by a client who already has an account revisiting it, so
+          // asserting "no client row" for everybody would put a false sentence in front of
+          // an operator. `hasClient` is the server's own answer to that question.
+          hasClient === false
+            ? 'They have NO client row yet — this is a signed-in onboarding identity (see reply-to).'
+            : hasClient === true
+              ? 'They DO already have a client account (see reply-to).'
+              : 'Whether they already have a client account could not be established from this screen.',
+          '',
+          `Brief progress: ${briefProgress ? `${briefProgress.count} of ${briefProgress.total} facts held` : 'not known'}.`,
+          `Still needed: ${briefNext ?? '(not known)'}.`,
+          '',
+          `Milla last asked: ${lastAsk}`,
+          `They last answered: ${lastAnswer}`,
+          '',
+          `What the screen showed them: ${error ?? '(no error text)'}`,
+        ].join('\n'),
+      }, session?.access_token)
+      // Reached ONLY when the POST resolved — `apiFetch` throws on every non-2xx and on a
+      // network failure, so there is no path where this line runs and nobody was told.
+      setHelpState(helpStateAfter(true))
+    } catch {
+      // ⛓️ ~~`setHelpSent(true)`~~ STOOD HERE, under a comment claiming the client was "given
+      // an address they can reach without us". They were not: this set the SUCCESS flag and
+      // rendered "K.I.N.D has been told" over a request that had failed. The escape hatch
+      // reported success while doing nothing — a stuck client waited for an email nobody was
+      // ever going to send, and stopped looking for another way through.
+      setHelpState(helpStateAfter(false))
+    }
+  }
 
   async function deliver(history: Msg[], evidence: WebsiteEvidence | null) {
     setError(null); setCanRetry(false); setThinking(true)
@@ -330,6 +461,10 @@ export default function MillaWelcomePage() {
         if (d.business) setBusiness(d.business)
         if (Array.isArray(d.proof)) setProof(d.proof)
         if (Array.isArray(d.website_hints)) setWebHints(d.website_hints)
+        // ⚠️ SET ON EVERY COMPLETION, including to `null`. A later completion that translated
+        // cleanly must CLEAR a review the earlier one recorded, or a stale flag would block
+        // a client whose targeting is now provider-safe.
+        setIcpReview(d.icp_review ?? null)
         if (typeof d.campaign_intent === 'string') setIntent(d.campaign_intent)
         await propose(d.icp)
       } else {
@@ -419,6 +554,33 @@ export default function MillaWelcomePage() {
           //   404 — nothing to confirm (a journey that predates drafts). Carry on.
           //   409 — already confirmed and promoted. Carry on; every call below is idempotent.
           //   anything else — a real refusal, and NOTHING has been created yet.
+          // ── 🛑 ⚑ 14 Sep (S1-RT-006) — AN UNSUPPORTED MARKET IS A CONVERSATION ──────
+          //
+          // 🛑 THE CLIENT ASKED FOR SOMEWHERE WE DO NOT WORK. Until now they learned that as a
+          // raw Zod 400 from `POST /icps` — the THIRD leg — by which point `/auth/onboard`
+          // had already created their canonical client row. A real person, now a client, with
+          // no ICP and a validation error on screen.
+          //
+          // ⚠️ MILLA SAYS IT, IN HER OWN THREAD, AND NOTHING IS CREATED. The server refused
+          // the CONFIRMATION, so the client row, the ICP, the welcome email and Proof are all
+          // still behind a door that did not open. Her sentence is appended as an assistant
+          // turn and the composer stays open — the client simply answers, revises the market,
+          // and confirms again.
+          //
+          // ⚠️ BRANCHED ON THE CODE, NEVER ON THE SENTENCE (C01). And placed BEFORE the
+          // status branch below, because 409 already means "already confirmed" there — two
+          // opposite situations that must not share a path.
+          //
+          // ⚠️ AND IT DOES NOT FALL THROUGH. `setSaving(false); return` is what keeps the
+          // account from being opened for somebody we cannot serve.
+          if ((e as { code?: string })?.code === 'unsupported_geography') {
+            const ask = e instanceof Error && e.message ? e.message : ''
+            setMessages(msgs => [...msgs, { role: 'assistant', content: ask
+              || 'We don\u2019t currently source in that market. Are there other markets you\u2019d like us to target?' }])
+            setProposed(null)          // the plan card closes; the conversation is live again
+            setSaving(false)
+            return
+          }
           const st = (e as { status?: number })?.status
           if (st !== 404 && st !== 409) {
             setMessages(msgs => [...msgs, { role: 'assistant', content: (e instanceof Error && e.message)
@@ -492,6 +654,15 @@ export default function MillaWelcomePage() {
       // promotion (double click, retry after an ambiguous response) is answered with the
       // core ICP the first call created and writes nothing, so a stale onboarding snapshot
       // can never overwrite confirmed targeting that has legitimately moved on since.
+      // ── 🛑 ⚑ 14 Sep (S1-PD-01) — `icp_review` IS NOT SENT, AND MUST NOT BE ────────────
+      //
+      // ⛓️ ~~`icp_review: icpReview`~~ was here for one round, under a comment calling this
+      // app "a courier for one hop". It was carrying the DECISION about whether a client's
+      // sourcing is blocked — through a browser, where it could be omitted by a stale build,
+      // dropped by a failed render, or replaced by anyone with the developer tools open.
+      // The server now derives that from the values it is about to write, so this page sends
+      // exactly the targeting and nothing about its own opinion of it. `icpReview` remains in
+      // state for ONE purpose: telling the person on screen what is happening.
       const saved = await api.post<{ data?: { id?: string } }>(
         '/icps', { ...proposed, business, proof, campaign_intent: intent, from_brief_draft: true }, tk)
 
@@ -517,7 +688,25 @@ export default function MillaWelcomePage() {
         // promotion must not claim the client's SECOND free pass before they have looked at
         // the first batch. The server answers `already_started` and claims nothing.
         await api.post(`/icps/${icpId}/proof`, { from_brief_draft: true }, tk)
-      } catch {
+      } catch (proofErr) {
+        // ── 🛑 ⚑ 14 Sep (S1-RT-005) — "WAITING ON US" IS NOT A FAILURE ─────────────────
+        //
+        // 🛑 THE CLIENT DID NOTHING WRONG AND MUST NOT BE TOLD THEY DID. When their own
+        // words could not be translated into provider values, the server refuses Proof —
+        // deliberately, so nothing is sourced or spent against targeting we cannot complete
+        // — and an operator finishes the translation. That is OUR work in progress, not a
+        // broken account, and it is not the terminal failure the branch below describes.
+        //
+        // ⚠️ BRANCHED ON THE CODE, NEVER ON THE SENTENCE. Matching prose is how two opposite
+        // refusals came to look identical to this app once already (C01); `code` is carried
+        // through `apiFetch` precisely so a caller need not guess.
+        //
+        // ⚠️ AND IT DOES NOT PRETEND PROOF STARTED. They go to the desk with no `finding=1`
+        // hint — because nothing is being found yet — and the desk's own honest copy stands.
+        if ((proofErr as { code?: string })?.code === 'needs_icp_review') {
+          router.push('/milla')
+          return
+        }
         // ── TERMINAL. NO RETRY, NO BILLING (founder-ruled 24 Aug) ───────────────────
         // A proof start that fails is OURS to fix, not something the client did. They
         // stay on this screen, they are told plainly, and there is deliberately no
@@ -595,6 +784,25 @@ export default function MillaWelcomePage() {
             anything new being drawn. FIGSY's own surfaces are untouched. */}
         <img src="/agents/milla.png" alt="Milla" className="w-8 h-8 rounded-[10px] object-cover object-top" />
         <b className="text-[15px]">Milla</b><span className="text-[#9b8ec4] text-[12.5px] font-semibold">· let&rsquo;s set up your campaign</span>
+        {/* ── 🛑 ⚑ 14 Sep (S1-RT-001) — THERE WAS NO WAY OUT OF ONBOARDING ────────────────
+            `MillaShell` returns `<>{children}</>` for /milla/welcome — onboarding is
+            deliberately full-screen, with no rail and no top bar. That is also where the
+            product's only Sign out lives, so a signed-in person mid-Brief had no normal way
+            to leave their own account. On a shared machine that is not a cosmetic gap.
+
+            ⚠️ THE CANONICAL MECHANISM, NOT A SECOND ONE. Byte-for-byte the same act as
+            `MillaShell.signOut` — `createClient().auth.signOut()` then a hard navigation to
+            /login. No new auth path, no new session concept, and it needs no client row, so
+            it works from the first second of onboarding.
+
+            ⚠️ AND IT LOSES NOTHING. The Brief lives in `onboarding_brief_drafts`, keyed on
+            the USER, so signing back in resumes the same draft — facts and conversation. */}
+        <button
+          onClick={() => void signOut()}
+          className="ml-auto shrink-0 text-[12.5px] font-semibold text-[#9b8ec4] hover:text-[#1f1235] underline underline-offset-2"
+        >
+          Sign out
+        </button>
       </header>
 
       <div className="shrink-0 flex items-center gap-3 px-6 py-3 bg-white border-b border-[#eee7f7] overflow-x-auto">
@@ -626,6 +834,39 @@ export default function MillaWelcomePage() {
                       className="shrink-0 text-[12px] font-bold text-red-700 underline underline-offset-2 disabled:opacity-50">
                       Try again
                     </button>
+                  )}
+                  {/* ── 🛑 ⚑ 14 Sep (S1-RT-004) — AND A HUMAN, WHEN TRY AGAIN CANNOT WORK ──
+                      Try again re-sends the identical transcript, so a deterministic failure
+                      repeats for ever — which is exactly what happened live. A first-time
+                      client was left with one button that could not help them and no way to
+                      reach anybody. This raises the SAME `support_escalation` the rest of
+                      the product uses, works with no client row, and says plainly that a
+                      person will pick it up. */}
+                  {/* ⚑ 14 Sep (S1-PD-08) — EVERY SENTENCE HERE COMES FROM `helpCopy`, so the
+                      screen cannot claim something the state does not support. `sent` is the
+                      only state whose copy says anybody was told. */}
+                  {helpState === 'sent' ? (
+                    <span className="shrink-0 text-[12px] font-semibold text-red-700">
+                      {helpCopy('sent').text}
+                    </span>
+                  ) : (
+                    <span className="shrink-0 flex flex-wrap items-center gap-x-2 gap-y-1 justify-end">
+                      {helpState === 'failed' && (
+                        <span className="text-[12px] text-red-700">{helpCopy('failed').text}</span>
+                      )}
+                      <button onClick={() => void getHelp()} disabled={helpState === 'sending'}
+                        className="shrink-0 text-[12px] font-bold text-red-700 underline underline-offset-2 disabled:opacity-50">
+                        {helpButtonLabel(helpState)}
+                      </button>
+                      {/* 🛑 A ROUTE OUT THAT DOES NOT DEPEND ON US BEING REACHABLE. If our own
+                          API cannot be reached, another button that calls it is not an escape. */}
+                      {helpCopy(helpState).showFallback && helpCopy(helpState).fallbackHref && (
+                        <a href={helpCopy(helpState).fallbackHref as string}
+                          className="shrink-0 text-[12px] font-bold text-red-700 underline underline-offset-2">
+                          Email {SUPPORT_EMAIL}
+                        </a>
+                      )}
+                    </span>
                   )}
                 </div>
               )}

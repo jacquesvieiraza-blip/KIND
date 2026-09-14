@@ -1,6 +1,9 @@
 export * from './types/index'
 export * from './constants/index'
 export * from './launch-countries'
+// ⚑ 14 Sep (S1-RT-006) — where we can commercially work, decided once. Distinct from the
+// provider-vocabulary problem: no human can translate a country we do not operate in.
+export * from './geography-support'
 export * from './company-details'
 export * from './cost-floor'
 export * from './panel-state'

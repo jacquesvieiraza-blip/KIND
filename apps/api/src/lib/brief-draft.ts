@@ -25,12 +25,25 @@
 // ═══════════════════════════════════════════════════════════════════════════════════════
 
 import { db } from '@kind/db'
+// ⚑ 14 Sep (S1-RT-006) — where we can commercially work. Deliberately NOT the provider
+// vocabulary problem: no human can translate a country we do not operate in.
+import { splitGeographies, unsupportedGeographyAsk } from '@kind/shared'
 import { briefDraftFacts, type BriefDraftFacts, type BriefFactsResult } from '@kind/shared'
 
 export type BriefDraft = {
   id: string
   userId: string
   facts: BriefDraftFacts
+  /**
+   * ⚑ 14 Sep (S1-RT-003) — THE CONVERSATION, so re-entry is a continuation not a restart.
+   *
+   * The column has existed since `20260911_onboarding_brief_drafts` — "the minimum needed to
+   * resume the conversation in another tab" — and was never written to. The whole transcript
+   * lived in one browser tab's React state, so a refresh, a closed tab or a logout left the
+   * client talking to somebody with no memory of the last ten minutes, and Milla with no
+   * context to continue from. The facts survived; the conversation did not.
+   */
+  conversation: BriefTurn[]
   /** Stamped when the client confirmed a COMPLETE brief. Never one of the eleven facts. */
   confirmedAt: string | null
   /** Once set, this row is evidence and may not be written again. */
@@ -41,6 +54,7 @@ export type BriefDraft = {
 }
 
 type Row = {
+  conversation?: unknown
   id: string
   user_id: string
   facts: unknown
@@ -51,7 +65,7 @@ type Row = {
   updated_at: string
 }
 
-const COLUMNS = 'id, user_id, facts, confirmed_at, promoted_client_id, promoted_at, created_at, updated_at'
+const COLUMNS = 'id, user_id, facts, conversation, confirmed_at, promoted_client_id, promoted_at, created_at, updated_at'
 
 /**
  * ⚠️ A NON-OBJECT `facts` IS TREATED AS EMPTY, NEVER TRUSTED INTO THE COUNTER. jsonb will
@@ -63,11 +77,56 @@ function readFacts(v: unknown): BriefDraftFacts {
   return v !== null && typeof v === 'object' && !Array.isArray(v) ? (v as BriefDraftFacts) : {}
 }
 
+/**
+ * ⚑ 14 Sep (S1-RT-003) — ONE TURN OF THE BRIEF. Deliberately the two fields the portal
+ * already renders and the model already consumes, and nothing else: this is a resume aid,
+ * not a chat platform, and the table's own comment says so.
+ */
+export type BriefTurn = { role: 'user' | 'assistant'; content: string }
+
+/**
+ * 🛑 THE TRANSCRIPT IS BOUNDED, AND BOTH BOUNDS MATTER.
+ *
+ * `MAX` caps the rows so a long Brief cannot grow one jsonb value without limit; `MAX_CHARS`
+ * caps each turn so a single pasted wall of text cannot do the same. The window keeps the
+ * MOST RECENT turns because that is what continuing the conversation needs — and the eleven
+ * facts are stored separately and completely, so nothing a trimmed turn carried is lost as
+ * FACT. Trimming costs context, never truth.
+ *
+ * ⚠️ THE VALUES ARE THE SAME ONES THE ROUTE ALREADY SENDS THE MODEL. `/icps/builder/chat`
+ * windows the transcript to the last 40 turns before every call, so storing 40 stores exactly
+ * what a resumed conversation would have used anyway.
+ */
+export const BRIEF_TRANSCRIPT_MAX_TURNS = 40
+export const BRIEF_TRANSCRIPT_MAX_CHARS = 4000
+
+/**
+ * ⚠️ VALIDATED ON THE WAY OUT, NOT TRUSTED. jsonb will hold anything, and a corrupt or
+ * hand-edited value must read as "no transcript" rather than putting a number or an object
+ * where the portal expects a string. Unknown roles are dropped: only the two the product
+ * renders are admitted, so nothing can be replayed into the model as a role it never had.
+ */
+export function readConversation(v: unknown): BriefTurn[] {
+  if (!Array.isArray(v)) return []
+  const out: BriefTurn[] = []
+  for (const raw of v) {
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) continue
+    const r = raw as { role?: unknown; content?: unknown }
+    if (r.role !== 'user' && r.role !== 'assistant') continue
+    if (typeof r.content !== 'string') continue
+    const content = r.content.slice(0, BRIEF_TRANSCRIPT_MAX_CHARS)
+    if (content.trim() === '') continue
+    out.push({ role: r.role, content })
+  }
+  return out.slice(-BRIEF_TRANSCRIPT_MAX_TURNS)
+}
+
 function toDraft(r: Row): BriefDraft {
   return {
     id: r.id,
     userId: r.user_id,
     facts: readFacts(r.facts),
+    conversation: readConversation(r.conversation),
     confirmedAt: r.confirmed_at,
     promotedClientId: r.promoted_client_id,
     promotedAt: r.promoted_at,
@@ -213,9 +272,61 @@ export async function saveBriefDraft(
   } catch { return { ok: false, reason: 'unstorable' } }
 }
 
+/**
+ * ⚑ 14 Sep (S1-RT-003) — PERSIST THE CONVERSATION, so re-entry continues it.
+ *
+ * 🛑 A SEPARATE WRITER, AND THE SEPARATION IS LOAD-BEARING. `saveBriefDraft` sets
+ * `confirmed_at: null` on every write, deliberately — changing the FACTS must un-confirm the
+ * Brief, because "confirmed" has to mean "confirmed THESE facts". A transcript is not a fact:
+ * storing the words that were exchanged changes nothing the client agreed to, so routing this
+ * through that function would silently revoke a confirmation every time somebody spoke.
+ *
+ * ⚠️ IT NEVER CREATES A ROW. `facts` owns creation; this only records the conversation
+ * belonging to a draft that already exists. Zero rows updated is a no-op, not an error — on
+ * the very first turn the facts write has already created the row moments earlier, and a turn
+ * that carried no facts at all has nothing to resume into.
+ *
+ * ⚠️ A PROMOTED DRAFT IS REFUSED, on the same authority as the facts writer and for the same
+ * reason: after promotion the row is evidence.
+ *
+ * ⚠️ BEST-EFFORT BY CONTRACT. A transcript that could not be stored must never cost the
+ * client their turn — the reply is already composed. The caller ignores the outcome.
+ */
+export async function saveBriefConversation(
+  userId: string, turns: BriefTurn[],
+): Promise<{ ok: boolean }> {
+  const read = await readDraft(userId)
+  if (!read.ok || !read.draft) return { ok: false }
+  if (read.draft.promotedClientId) return { ok: false }
+  const promoted = await promotedClientForUser(userId)
+  if (!promoted.ok || promoted.clientId) return { ok: false }
+
+  // ⚠️ BOUNDED BY THE SAME READER THAT LOADS IT, so what is stored and what is restored can
+  // never disagree about the window or the per-turn cap.
+  const bounded = readConversation(turns)
+  try {
+    const { error } = await db.from('onboarding_brief_drafts')
+      .update({ conversation: bounded, updated_at: new Date().toISOString() })
+      .eq('user_id', userId)
+      // 🛑 THE SAME `.is(...)` FENCE THE SEAL USES. A promotion landing between the read
+      // above and this write must not be overwritten by a transcript.
+      .is('promoted_client_id', null)
+    return { ok: !error }
+  } catch { return { ok: false } }
+}
+
 export type ConfirmOutcome =
   | { ok: true; draft: BriefDraft }
   | { ok: false; reason: 'no_draft' | 'promoted' | 'incomplete' | 'unstorable'; missing?: string[] }
+  /**
+   * ⚑ 14 Sep (S1-RT-006) — THEY ASKED FOR A MARKET WE DO NOT WORK IN.
+   *
+   * ⚠️ A RECOVERABLE CONVERSATIONAL STATE, NOT AN ERROR. It carries the sentence Milla says
+   * and the countries in question, so the portal can put it in the conversation and the
+   * client can simply answer — which is the whole difference between this and the raw Zod
+   * 400 that used to land AFTER their account had been created.
+   */
+  | { ok: false; reason: 'unsupported_geography'; unsupported: string[]; supported: string[]; ask: string }
 
 /**
  * 🛑 THE CLIENT CONFIRMS THEIR BRIEF. THE SEPARATE GATE, AND THE ONLY PLACE IT IS GIVEN.
@@ -249,6 +360,42 @@ export async function confirmBriefDraft(userId: string): Promise<ConfirmOutcome>
 
   const gate = mayConfirmBrief(read.draft)
   if (!gate.ok) return { ok: false, reason: 'incomplete', missing: gate.missing }
+
+  // ── 🛑 ⚑ 14 Sep (S1-RT-006) — WE DO NOT CREATE A CLIENT WE CANNOT SERVE ─────────────
+  //
+  // 🛑 THE DEFECT THIS CLOSES. `geographiesSchema` refuses a country outside
+  // `LAUNCH_SEND_COUNTRIES` — correctly, because a country we cannot send to is a country we
+  // do not buy leads in. But it refuses on `POST /icps`, the THIRD leg of promotion, and
+  // `/auth/onboard` has already created the canonical client row by then. A prospect who
+  // said "Brazil" became a real client with no ICP, an unsealed draft and a raw validation
+  // error on screen. Founder-ruled: if they cannot legitimately complete setup because we do
+  // not operate where they sell, we do not create them and strand them.
+  //
+  // 🛑 HERE IS THE ONLY PLACE IT CAN GO. Confirmation is the door every other leg is behind:
+  // `/auth/onboard` refuses a draft with no `confirmed_at`, and the ICP, the welcome email,
+  // Proof authority and every provider call are downstream of that. Blocking the stamp blocks
+  // ALL of them, structurally, without a second gate to keep in step.
+  //
+  // 🛑 AND IT IS NOT `NEEDS ICP REVIEW`. That state is for OUR provider vocabulary failing to
+  // take the client's words, which a human can finish. No human can translate a country we do
+  // not operate in — routing this there would promise an operator a job that does not exist
+  // and grow a queue nobody can clear. Two different problems, two different mechanisms.
+  //
+  // ⚠️ THE SUPPORTED HALF IS KEPT, AND THE UNSUPPORTED HALF IS NOT DROPPED. Both travel in
+  // the refusal so the client is told exactly what we can and cannot do and decides
+  // themselves — "UK, US and Brazil" must never quietly become "UK and US".
+  //
+  // ⚠️ IT WRITES NOTHING. A refusal at this line leaves the draft exactly as it was: still
+  // writable, still holding every answer, still holding the conversation. The client revises
+  // by talking to Milla, `saveBriefDraft` replaces the geography key, and they confirm again.
+  const geo = splitGeographies(read.draft.facts.geographies)
+  if (geo.unsupported.length > 0) {
+    return {
+      ok: false, reason: 'unsupported_geography',
+      unsupported: geo.unsupported, supported: geo.supported,
+      ask: unsupportedGeographyAsk(geo),
+    }
+  }
 
   // ⚠️ ALREADY CONFIRMED IS A SUCCESS, NOT A SECOND CONFIRMATION. Re-stamping would move the
   // recorded moment of agreement every time a retry arrived.

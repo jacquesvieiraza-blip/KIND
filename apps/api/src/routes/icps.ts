@@ -27,6 +27,21 @@ import {
 // ⚑ MVP1 (C21) — the canonical ELEVEN brief facts. One list, shared with Vida's progress
 // card, so "how complete is this brief?" has exactly one answer in the product.
 import { briefFacts, BRIEF_FACT_LABEL } from '@kind/shared'
+// ⚑ 14 Sep (S1-RT-002) — the ONE reconciliation of where a completion's eleven facts live.
+// Used by the completion gate AND by the completion response, so a fact cannot pass the gate
+// and then be lost on its way to `figsy_knowledge` / `icps`.
+import { resolveBriefFacts } from '../lib/brief-fact-resolution'
+// ⚑ 14 Sep (S1-RT-005) — the fail-soft provider translation. The client speaks naturally;
+// turning their words into Apollo/PDL vocabulary is ours, and failing at it reaches a human
+// rather than the client.
+import {
+  translateProviderList, buildIcpReview, icpNeedsReview, deriveProviderReview,
+  ICP_REVIEW_PROOF_REFUSAL as PROOF_PREPARING_COPY, type ProviderField,
+} from '../lib/icp-provider-translation'
+// ⚑ 14 Sep (S1-RT-006) — the markets we can actually work in, interpolated into the prompt
+// so Milla asks naturally rather than the client discovering it at promotion. The GATE is
+// `confirmBriefDraft`; this only stops her walking them into it.
+import { supportedCountriesPhrase } from '@kind/shared'
 import { splitPoolAndRemainder, poolWriteAllowed, splitPoolEligible, poolRefusalLine, poolCountryMatches, canonicalPoolCountry, isGeoServable } from '../lib/pool-sourcing'
 import { selectPoolCandidates, logPoolCounters } from '../lib/pool-candidates'
 import { toMemoryRecord, rememberAcquiredIdentities, type AcquisitionMemoryRecord, type SuppressionReason } from '../lib/acquisition-memory'
@@ -263,6 +278,25 @@ const icpSchema = z.object({
   // the same expand/contract rule as `clients.commercial_model`.
   target_category:       z.string().max(200).default(''),
   target_company_type:   z.string().max(120).default(''),
+  // ── 🛑 ⚑ 14 Sep (S1-PD-01) — `icp_review` IS NOT A REQUEST FIELD, AND MUST NEVER BE ───
+  //
+  // ⛓️ ~~`icp_review: z.object({ requirements: […] }).nullable().optional()`~~ STOOD HERE for
+  // one round, under a comment claiming the browser was "only a courier". It was not. The
+  // route wrote what arrived, so the browser was the authority on whether a review existed —
+  // and authority you can OMIT is not authority at all:
+  //   • omit the field           → no review → sourcing and Proof proceed on a provider list
+  //                                we could not complete. The block simply never happens.
+  //   • send `{requirements: []}` → same, with a shape that reads as deliberate.
+  //   • send a review nobody owed → an invented block on a client whose targeting is fine.
+  //   • ship a stale portal build → every client it serves silently loses the mechanism.
+  // A courier cannot decide whether the parcel exists. None of those four needs a forged
+  // request; the first two are what an ordinary older client already sends.
+  //
+  // 🛑 SO THE SERVER DERIVES IT, FROM THE VALUES IT IS ABOUT TO WRITE, AT THE WRITE BOUNDARY
+  // — see `deriveProviderReview` below. Zod's default behaviour STRIPS unknown keys, so a
+  // portal still sending `icp_review` is not an error and is not read: it is discarded before
+  // this route sees a body at all. There is exactly ONE review truth and the browser cannot
+  // reach it.
   industries:            z.array(z.string()).default([]),
   job_titles:            z.array(z.string()).default([]),
   seniority_levels:      z.array(z.string()).default([]),
@@ -598,6 +632,35 @@ export async function runIcpJob(
   const { data: icp, error: icpErr } = await db
     .from('icps').select('*').eq('id', icpId).eq('client_id', clientId).single()
   if (icpErr || !icp) throw new Error('ICP not found')
+
+  // ══ 🛑 ⚑ 14 Sep (S1-RT-005) — THE NEEDS-ICP-REVIEW GATE ══════════════════════════════
+  //
+  // 🛑 ONE DOOR, ONE GATE — the same argument the programme gate below makes, and for the
+  // same reason. NINE paths reach this function (the Stripe webhook via startWorkForClient,
+  // the client's Run button, ICP create's auto-run, the proof pass, operator run, operator
+  // bulk, programme sourcing, admin and partners), and gating them one by one is the shape
+  // that has already failed here once: `lookalike/generate` had no fence because it was the
+  // caller nobody remembered.
+  //
+  // 🛑 THE AUTO-RUN ON ICP CREATE IS WHY THIS CANNOT LIVE AT THE ROUTE. `POST /icps` fires
+  // `runIcpJob` for any client with a credit balance IMMEDIATELY after the row is written —
+  // in the same request that recorded the review. A gate on the Proof route alone would have
+  // let a client whose targeting we could not translate be sourced seconds after confirming.
+  //
+  // ⚠️ IT THROWS RATHER THAN RETURNING A STATUS. A caller that ignores the result must still
+  // stop, and every terminal status this function can record (`served`, `no_match`,
+  // `audience_exhausted`) would be a LIE about a run that never asked a provider anything.
+  //
+  // ⚠️ NO PROVIDER CALL, NO RESERVATION, NO LEDGER ROW, NO LEAD — the refusal is above all of
+  // them, so "zero provider spend while unresolved" is a property of where this line sits
+  // rather than a promise made about what comes after it.
+  if (icpNeedsReview(
+    (icp as { icp_review?: unknown }).icp_review,
+    (icp as { icp_review_resolved_at?: string | null }).icp_review_resolved_at ?? null,
+  )) {
+    console.log(`[icp] sourcing REFUSED for client ${clientId}, icp ${icpId} — the targeting is awaiting ICP review. Nothing was sourced and nothing was spent.`)
+    throw new Error('This targeting is still being prepared — some of what the client told us could not be translated into provider values yet, so nothing may be sourced against it until an operator has reviewed it.')
+  }
 
   // ══ THE PROGRAMME SOURCING GATE (BUILD-003 PR2) ═══════════════════════════════════════
   //
@@ -2926,49 +2989,32 @@ const boundedList = (maxItems: number, maxLen = 80) =>
   z.array(z.string()).optional()
     .transform(a => a?.map(s => s.slice(0, maxLen)).slice(0, maxItems))
 
-/** ⚠️ THE CLOSED LISTS ARE ENFORCED HERE TOO, NOT ONLY DECLARED TO THE MODEL (GPT review).
- *  The tool schema carries these as `enum`, which is guidance the provider's decoder applies
- *  — it is not our trust boundary. The SAME constants are reused; a second hand-written copy
- *  of the values is exactly how the schema and the validator drift apart.
- *
- *  ⛓️ AMENDED 26 Aug — FILTERED, NOT FATAL. The first shape refused the WHOLE reply when one
- *  value was off-list, which turned a single hallucinated "IT Solutions" into the lost-turn
- *  banner, deterministically, on every retry. The boundary itself is unchanged and absolute:
- *  nothing outside the canonical list can pass — an off-list value is DROPPED before it can
- *  reach `icps.industries` and the PDL/Apollo queries that read those columns. What changed
- *  is only the blast radius: the invalid VALUE dies, the client's TURN survives. Matching is
- *  case-insensitive against the canonical spelling so "fintech" becomes "Fintech" rather
- *  than being thrown away — the value stored is always the canonical one, never the model's. */
-const canonicalise = (values: readonly string[]) => {
-  const byLower = new Map(values.map(v => [v.toLowerCase(), v]))
-  return (arr: string[] | undefined, maxItems: number) =>
-    arr
-      ?.map(s => byLower.get(String(s).trim().toLowerCase()))
-      .filter((v): v is string => v !== undefined)
-      .filter((v, i, a) => a.indexOf(v) === i)
-      .slice(0, maxItems)
-}
-const boundedEnum = <T extends readonly [string, ...string[]]>(values: T, maxItems: number) => {
-  const canon = canonicalise(values)
-  // ⚠️ ALL-INVALID IS A REFUSAL, NOT AN EMPTY LIST (corrected 26 Aug, same day). Downstream,
-  // an empty closed list means UNCONSTRAINED — `buildPdlBody` adds no filter for a list with
-  // no length, `buildSearchBody` likewise, and the pool matcher deliberately "doesn't
-  // narrow" without a signal. So a reply whose every industry was off-list must not become
-  // `[]`: that would silently turn the specific constraint the client expressed into a
-  // broader search than anyone chose. Mixed replies keep their valid values (the turn
-  // survives); a NON-EMPTY list that canonicalises to NOTHING means the constraint itself
-  // was lost, no safe salvage exists, and the turn is refused with the field named in the
-  // log. A genuinely empty list from the model stays empty — that is "not specified", the
-  // same meaning it always had.
-  return z.array(z.string()).optional().transform((a, ctx) => {
-    const out = canon(a, maxItems)
-    if (a && a.length > 0 && out !== undefined && out.length === 0) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'every value was off-list — the constraint would be silently dropped' })
-      return z.NEVER
-    }
-    return out
-  })
-}
+// ── 🛑 ⚑ 14 Sep (S1-RT-005) — `canonicalise` AND `boundedEnum` ARE GONE FROM HERE ──────
+//
+// ⛓️ WHAT STOOD HERE, AND WHY IT HAD TO MOVE. `boundedEnum` was the trust boundary for the
+// three CLOSED PROVIDER VOCABULARIES — `industries`, `seniority_levels`, `company_sizes`. It
+// canonicalised case-insensitively, dropped off-list values, and on 26 Aug was amended so a
+// MIXED list kept its valid half rather than killing the turn. All of that was right and all
+// of it survives, in `lib/icp-provider-translation.ts`.
+//
+// What did NOT survive is its last branch: a non-empty list that canonicalised to NOTHING
+// returned `z.NEVER` and failed the whole reply. The reasoning was sound as far as it went —
+// an empty closed list means UNCONSTRAINED downstream (`buildPdlBody` adds no filter for a
+// list with no length), so silently turning the client's constraint into `[]` would widen
+// the search to everybody and spend their money on it.
+//
+// 🛑 BUT BOTH AVAILABLE ANSWERS WERE WRONG, AND A LIVE CLIENT PAID FOR THE ONE WE PICKED.
+// Refusing the reply refuses the CLIENT — "Milla didn't catch that", deterministically, for
+// describing their own market in their own words. The founder's rule is the third answer:
+//
+//     THE CLIENT SPEAKS NATURALLY. THE CLIENT NEVER HAS TO SPEAK APOLLO.
+//     PROVIDER TRANSLATION IS OUR PROBLEM, NOT THEIRS.
+//
+// So the split now happens in the completion block, where BOTH halves can be kept: the
+// canonical values reach the provider columns exactly as before, and the words we could not
+// translate become a NEEDS ICP REVIEW requirement that blocks Proof and provider spend until
+// a human resolves it. Nothing off-vocabulary reaches a provider column; nothing is dropped;
+// nothing is broadened; and the client is never refused for our vocabulary's limits.
 // ── ⚑ 26 Aug (final correction) — A QUESTION IS VALIDATED AS A QUESTION ─────────────────
 //
 // THE DEFECT THIS CLOSES, found in review of the literal diff. The all-invalid closed-list
@@ -3051,9 +3097,29 @@ const MillaReplyInput = z.object({
     target_company_type:   clampedStr(120),
     // Closed lists — off-list values are DROPPED at the trust boundary, never stored and
     // never allowed to cost the client the turn that carried them.
-    industries:            boundedEnum(ICP_INDUSTRIES, 6),
-    seniority_levels:      boundedEnum(ICP_SENIORITY, 6),
-    company_sizes:         boundedEnum(ICP_SIZES, 6),
+    // ── 🛑 ⚑ 14 Sep (S1-RT-005) — THE CLOSED LISTS NO LONGER REFUSE THE CLIENT ─────────
+    //
+    // ⛓️ WHAT STOOD HERE: ~~`boundedEnum(ICP_INDUSTRIES, 6)`~~ and the same for the other
+    // two. It canonicalised against the closed vocabulary and, when EVERY value was
+    // off-list, returned `z.NEVER` — failing the whole reply. The reasoning was sound as far
+    // as it went (an empty closed list means UNCONSTRAINED downstream, so silently dropping
+    // the constraint would widen the search and spend the client's money on it) but the
+    // conclusion was wrong, and a live client paid for it: describing their own market in
+    // their own words got them "Milla didn't catch that", deterministically, for ever.
+    //
+    // 🛑 THE CLIENT DID NOTHING WRONG. Our sixteen-value industry list did. So the trust
+    // boundary MOVES rather than disappearing: these accept the client's words here, and
+    // `translateProviderList` splits them into what we could canonicalise and what we could
+    // not, in the completion block below. Nothing off-list ever reaches the provider column
+    // — that guarantee is unchanged and is now asserted per field — and nothing is silently
+    // dropped either: the remainder becomes a NEEDS ICP REVIEW requirement that blocks Proof
+    // and provider spend until a human translates it.
+    //
+    // ⚠️ BOUNDED IN LENGTH AND COUNT, exactly as the free-text fields are. Widening WHICH
+    // values may be carried is not widening how many or how long.
+    industries:            boundedList(6),
+    seniority_levels:      boundedList(6, 40),
+    company_sizes:         boundedList(6, 40),
     // Genuinely open fields: a job title, a country and a keyword are the client's own
     // words by design. Bounded in length and count, not in vocabulary.
     job_titles:            boundedList(10),
@@ -3102,10 +3168,30 @@ const MillaReplyInput = z.object({
 const millaReplyFor = (profileRequired: boolean) =>
   MillaReplyInput.superRefine((v, ctx) => {
     if (!profileRequired || v.type !== 'complete') return
-    if (!(v.profile?.company_name ?? '').trim()) {
+    // ── 🛑 ⚑ 14 Sep (S1-RT-002) — THE GATE ASKS WHERE THE CONTRACT SAYS THE FACT LIVES ──
+    //
+    // 🛑 WHAT THIS FIXES, AND IT STRANDED A LIVE CLIENT ON THEIR FIRST BRIEF. Every check
+    // below used to read ONE hard-coded home per fact — #10 from `business.bad_fit`, #11
+    // from `campaign_intent` — while the system prompt told the model, on every single turn,
+    // to put everything it had established into `brief_so_far`. Neither gate field is named
+    // anywhere in the prompt and neither carries a `description` in the tool schema. So the
+    // model obeyed the contract, the gate looked somewhere else, `briefFacts` counted 9 of
+    // 11, and the client got "Milla didn't catch that" — for ever, because a retry re-sends
+    // the identical transcript to the same model and it makes the same correct choice again.
+    //
+    // ⚠️ RESOLVED ONCE, HERE AND DOWNSTREAM. `resolveBriefFacts` is the ONE reconciliation
+    // and the completion response is built from the SAME resolved values, so a fact cannot
+    // satisfy the gate and then be lost on its way to `figsy_knowledge` or `icps` — passing
+    // the gate and persisting the answer are the same act.
+    //
+    // ⚠️ IT WIDENS WHERE A FACT MAY BE FOUND, NEVER WHETHER IT IS REQUIRED. All eleven are
+    // still mandatory, still counted by the one canonical `briefFacts`, and a fact absent
+    // from BOTH homes is still absent. Nothing is guessed, defaulted or fabricated.
+    const resolved = resolveBriefFacts(v)
+    if (!resolved.companyName) {
       ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['profile', 'company_name'], message: 'a first-run completion must carry the company name' })
     }
-    if (!(v.profile?.country ?? '').trim()) {
+    if (!resolved.country) {
       ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['profile', 'country'], message: "a first-run completion must carry the client's own business country" })
     }
 
@@ -3125,19 +3211,19 @@ const millaReplyFor = (profileRequired: boolean) =>
     // honest-failure path as any other invalid shape: the client is never shown a Milla
     // sentence she did not say, and the model is asked again with the transcript intact.
     const facts = briefFacts({
-      contactName:        v.profile?.contact_name,
-      companyName:        v.profile?.company_name,
-      website:            v.profile?.website,
-      websiteNone:        v.profile?.website_none,
-      whatTheCompanyDoes: v.profile?.industry || v.business?.product,
-      targetCategory:     v.icp?.target_category,
-      geographies:        v.icp?.geographies,
-      targetCompanyType:  v.icp?.target_company_type,
-      companySizes:       v.icp?.company_sizes,
-      targetRoles:        v.icp?.job_titles,
-      targetSeniority:    v.icp?.seniority_levels,
-      exclusions:         v.business?.bad_fit,
-      desiredOutcome:     v.campaign_intent,
+      contactName:        resolved.contactName,
+      companyName:        resolved.companyName,
+      website:            resolved.website,
+      websiteNone:        resolved.websiteNone,
+      whatTheCompanyDoes: resolved.whatTheCompanyDoes,
+      targetCategory:     resolved.targetCategory,
+      geographies:        resolved.geographies,
+      targetCompanyType:  resolved.targetCompanyType,
+      companySizes:       resolved.companySizes,
+      targetRoles:        resolved.targetRoles,
+      targetSeniority:    resolved.targetSeniority,
+      exclusions:         resolved.exclusions,
+      desiredOutcome:     resolved.desiredOutcome,
     })
     if (!facts.complete) {
       ctx.addIssue({
@@ -3390,6 +3476,12 @@ YOU ARE COMPLETE ONLY WHEN YOU HOLD ALL ELEVEN OF THESE:
 agencies" gives you BOTH number 5 (their own words for the market) AND number 7 (the type is
 "agency", because they said the word). Never ask again for something they have already told
 you — re-asking is how a product tells someone it was not listening.
+
+⚠️ NUMBER 6 HAS A REAL LIMIT, AND IT IS OURS TO SAY OUT LOUD. We can only source and send
+in ${supportedCountriesPhrase()}. If they name anywhere else, tell them plainly — "we don't
+currently source in X" — and ask which other markets they want. Do NOT pick a replacement for
+them, do not quietly leave it out, and do not pretend we can. If they asked for a mix, say
+which ones we can do and let them decide. Their answer replaces what they said before.
 
 ⚠️ NUMBER 5 IS THEIR SENTENCE, NOT YOURS. Keep their phrase exactly as they said it. Do not
 tidy it, do not translate it into a category name, do not swap it for a neater label.
@@ -3699,6 +3791,39 @@ result or a number. "permitted" is false unless they explicitly said we may use 
     const declaredType = call.input && typeof call.input === 'object'
       ? (call.input as Record<string, unknown>).type
       : undefined
+
+    // ── 🛑 ⚑ 14 Sep (S1-RT-002B) — VALID CUSTOMER TRUTH IS SAVED BEFORE ANY GATE CAN REFUSE ─
+    //
+    // 🛑 WHAT THIS FIXES. `millaReplyFailed` returns, and the draft write sat BELOW it — so a
+    // turn that carried a perfectly good answer and then failed a LATER check (the
+    // completion gate, the first-run profile gate) had that answer discarded. The client
+    // typed it, we validated it, we threw it away, and the retry banner told them it was
+    // "still here" when only their browser's copy was. That is the client's truth being lost
+    // to OUR bookkeeping failure.
+    //
+    // 🛑 THE TWO QUESTIONS ARE NOW SEPARATE, WHICH IS THE WHOLE POINT:
+    //     "is this customer truth valid and worth saving?"   ← decided HERE, on its own
+    //     "is the Brief ready to promote?"                   ← decided BELOW, and may refuse
+    // A no to the second can no longer erase a yes to the first.
+    //
+    // ⚠️ IT IS STILL VALIDATED, NEVER RAW. `BriefSoFar` is the SAME schema the full parse
+    // uses — every string clamped, every list bounded, every wrong type refused. Malformed
+    // model junk is not persisted: a `brief_so_far` that fails this parse is simply not
+    // saved, and the turn goes on to fail below exactly as it would have.
+    //
+    // ⚠️ AND IT IS MERGED, NEVER REPLACING (`saveBriefDraft`), so a partial snapshot from a
+    // turn that then failed cannot erase the answers before it.
+    if (req.userId && call.input && typeof call.input === 'object') {
+      const snapshot = BriefSoFar.safeParse((call.input as Record<string, unknown>).brief_so_far)
+      if (snapshot.success && snapshot.data && Object.keys(snapshot.data).length > 0) {
+        const { saveBriefDraft } = await import('../lib/brief-draft')
+        const saved = await saveBriefDraft(req.userId, snapshot.data)
+        if (!saved.ok && saved.reason === 'unstorable') {
+          console.warn('[icps/builder/chat] brief draft not stored (run 20260911_onboarding_brief_drafts)')
+        }
+      }
+    }
+
     const validated = declaredType === 'question'
       ? MillaQuestionReply.safeParse(call.input)
       : millaReplyFor(profile_required).safeParse(call.input)
@@ -3729,13 +3854,12 @@ result or a number. "permitted" is false unless they explicitly said we may use 
     // not cost the client their turn: the reply is already composed and the conversation is
     // intact. A REFUSAL (the brief was already confirmed) is likewise not an error — it means
     // the operational truth has moved on and this snapshot is simply no longer wanted.
-    if (parsed.brief_so_far && req.userId) {
-      const { saveBriefDraft } = await import('../lib/brief-draft')
-      const saved = await saveBriefDraft(req.userId, parsed.brief_so_far)
-      if (!saved.ok && saved.reason === 'unstorable') {
-        console.warn('[icps/builder/chat] brief draft not stored (run 20260911_onboarding_brief_drafts)')
-      }
-    }
+    // ⛓️ 14 Sep (S1-RT-002B) — THE WRITE MOVED ABOVE THE VALIDATION, AND THAT IS THE FIX.
+    // ~~`if (parsed.brief_so_far && req.userId) await saveBriefDraft(...)`~~ stood here, BELOW
+    // every `millaReplyFailed(...)` return — so a turn carrying a good answer that then
+    // failed the completion gate lost the answer. It now runs before the gate, against the
+    // same `BriefSoFar` schema, so validity and readiness are decided separately. Nothing
+    // else changed: same function, same merge semantics, same best-effort handling.
 
     if (parsed.type === 'complete' && parsed.icp) {
       // Everything below is reading ALREADY-VALIDATED, ALREADY-BOUNDED data — Zod refused
@@ -3743,6 +3867,52 @@ result or a number. "permitted" is false unless they explicitly said we may use 
       // defaults that remain are about shape (an omitted array becomes [], an omitted name
       // becomes the placeholder), not about safety.
       const icp = parsed.icp
+      // ── 🛑 ⚑ 14 Sep (S1-RT-002) — THE SAME RESOLUTION THE GATE USED ──────────────────
+      //
+      // 🛑 PASSING THE GATE AND PERSISTING THE ANSWER MUST BE ONE ACT. Reconciling only
+      // inside `millaReplyFor` would let fact #10 satisfy the eleven and then vanish on its
+      // way to `figsy_knowledge.pitch.data.bad_fit` — a completion that counts eleven and
+      // stores nine. The gate and this response read the SAME `resolveBriefFacts` output.
+      const resolved = resolveBriefFacts(parsed)
+      // ── 🛑 ⚑ 14 Sep (S1-RT-005) — TRANSLATE, AND SAY SO WHEN WE CANNOT ────────────────
+      //
+      // Each closed vocabulary is asked the same question: which of these words can we prove
+      // a provider value for? What we can prove goes to the provider column. What we cannot
+      // is kept VERBATIM as a review requirement — never guessed at a "nearest" value, never
+      // dropped, never allowed to broaden the search by becoming an empty filter.
+      //
+      // ── 🛑 ⚑ 14 Sep (S1-PD-02) — TRANSLATED FROM THE *SAME* TRUTH THE GATE ACCEPTED ────
+      //
+      // 🛑 THE DEFECT THIS CLOSES, and it was silent by construction. The eleven-fact gate a
+      // few lines above reads `resolveBriefFacts`, which accepts fact #9 (company sizes) and
+      // fact #8 (seniority) from EITHER `icp.*` — the model's structured proposal for this
+      // turn — OR `brief_so_far`, the running snapshot. Translation read only `icp.*`. So a
+      // client who answered "companies with about 10 to 50 staff" on turn 3 and whose turn-9
+      // `complete` reply carried that fact only in the snapshot produced:
+      //   `icp.company_sizes` = []  →  translate([]) = { canonical: [], unmapped: [] }
+      //   →  NO unmapped  →  NO review  →  an EMPTY company-size filter, sourced against
+      // The gate counted the fact, the provider column lost it, and nothing anywhere said so:
+      // the client's targeting was silently BROADENED to every company size on earth. That is
+      // the precise failure mode this whole mechanism exists to make impossible.
+      //
+      // ⚠️ `resolved.*` IS THE SAME PRECEDENCE, NOT A NEW ONE. `resolveBriefFacts` already
+      // answers `icp.company_sizes` when it holds anything and the snapshot otherwise, so
+      // passing it here is exactly "whatever satisfied the gate" — never more, never less.
+      // `industries` is NOT one of the eleven facts and has no snapshot half, so it keeps
+      // reading Milla's proposal, which is its only source.
+      //
+      // ⚠️ AND THIS IS STILL NOT THE AUTHORITY. `POST /icps` re-derives the review from the
+      // values it is about to write (S1-PD-01). This computation exists so the CLIENT is told
+      // in the same breath, and so the two agree; the durable decision is made server-side at
+      // the write boundary and owes nothing to what the browser carries back.
+      const translated: Record<ProviderField, ReturnType<typeof translateProviderList>> = {
+        industries:       translateProviderList(icp.industries, ICP_INDUSTRIES, 6),
+        seniority_levels: translateProviderList(resolved.targetSeniority, ICP_SENIORITY, 6),
+        company_sizes:    translateProviderList(resolved.companySizes, ICP_SIZES, 6),
+      }
+      // `null` on the normal path — the overwhelming majority of clients translate cleanly
+      // and are completely unaffected by any of this.
+      const icpReview = buildIcpReview(translated)
       const draft = {
         name:                  icp.name?.trim() || 'My ICP',
         // ── ⚑ MVP1 (C04) — THE CLIENT'S OWN WORDS SURVIVE TO STORAGE ────────────────
@@ -3752,13 +3922,28 @@ result or a number. "permitted" is false unless they explicitly said we may use 
         // are the client's actual answer and the target's organisational form. Keeping both
         // is what lets provider normalisation stay at the provider edge without the client's
         // phrase being overwritten on the way in.
-        target_category:       icp.target_category?.trim() || '',
-        target_company_type:   icp.target_company_type?.trim() || '',
-        industries:            icp.industries ?? [],
-        job_titles:            icp.job_titles ?? [],
-        seniority_levels:      icp.seniority_levels ?? [],
-        company_sizes:         icp.company_sizes ?? [],
-        geographies:           icp.geographies ?? [],
+        // ⚠️ THE FOUR GENUINELY OPEN FIELDS FALL BACK TO THE SNAPSHOT; THE TWO CLOSED
+        // PROVIDER LISTS DELIBERATELY DO NOT (S1-RT-002). `target_category`,
+        // `target_company_type`, `job_titles` and `geographies` are the client's own words by
+        // design, so the snapshot's copy is the same kind of value and is safe here.
+        // `company_sizes` and `seniority_levels` are canonicalised against CLOSED provider
+        // lists that the PDL/Apollo bodies read directly — putting un-normalised free text
+        // into them would send the client's phrase to a provider as if it were a filter
+        // value. So they keep ONLY canonical values, and a size we could not normalise
+        // satisfies the eleven-fact gate (from the snapshot) without ever being smuggled
+        // into a provider query. That split is the founder's rule made structural: the
+        // client never speaks Apollo, and we never pretend their words are Apollo.
+        target_category:       icp.target_category?.trim() || resolved.targetCategory || '',
+        target_company_type:   icp.target_company_type?.trim() || resolved.targetCompanyType || '',
+        // 🛑 ONLY WHAT WE COULD PROVE. `translated` splits the client's words against each
+        // closed vocabulary; the canonical half goes here and the remainder becomes the
+        // review requirement below. An off-vocabulary value CANNOT reach these columns —
+        // the same guarantee `boundedEnum` gave, relocated so it costs the client nothing.
+        industries:            translated.industries.canonical,
+        job_titles:            icp.job_titles ?? resolved.targetRoles ?? [],
+        seniority_levels:      translated.seniority_levels.canonical,
+        company_sizes:         translated.company_sizes.canonical,
+        geographies:           icp.geographies ?? resolved.geographies ?? [],
         tech_stack:            icp.tech_stack ?? [],
         keywords:              icp.keywords ?? [],
         apollo_only_consented: icp.apollo_only_consented !== false,
@@ -3767,12 +3952,15 @@ result or a number. "permitted" is false unless they explicitly said we may use 
       const b = parsed.business ?? {}
       const str = (v: string | undefined) => (v ?? '').trim()
       const business = {
-        product:         str(b.product),
+        // ⚠️ `product` AND `bad_fit` ARE BRIEF FACTS #4 AND #10, so both take the resolved
+        // value when the canonical field is blank. Their destinations are unchanged —
+        // `figsy_knowledge.pitch.data.product` and `.bad_fit`, the same readers as before.
+        product:         str(b.product) || resolved.whatTheCompanyDoes || '',
         pitch:           str(b.pitch),
         pain_points:     str(b.pain_points),
         differentiators: str(b.differentiators),
         tone:            str(b.tone),
-        bad_fit:         str(b.bad_fit),
+        bad_fit:         str(b.bad_fit) || resolved.exclusions || '',
       }
       const proof = (parsed.proof ?? [])
         .map(p => ({ claim: str(p.claim), permitted: p.permitted === true }))
@@ -3799,15 +3987,21 @@ result or a number. "permitted" is false unless they explicitly said we may use 
       const p = parsed.profile ?? {}
       const profile = profile_required
         ? {
-            company_name: str(p.company_name),
-            country:      str(p.country),
-            contact_name: str(p.contact_name),
-            phone:        str(p.phone),
-            website:      str(p.website),
+            // ⚠️ RESOLVED, NOT RAW (S1-RT-002). The portal posts these straight to
+            // `/auth/onboard`, so a company name the gate accepted from the snapshot must
+            // reach the client row too — otherwise the completion passes and the account
+            // creation then refuses for the very fact we just counted. Still SANITISED,
+            // never supplied: a fact absent from both homes stays empty and the portal's
+            // own first-run gate still refuses it.
+            company_name: str(p.company_name) || resolved.companyName || '',
+            country:      str(p.country) || resolved.country || '',
+            contact_name: str(p.contact_name) || resolved.contactName || '',
+            phone:        str(p.phone) || resolved.phone || '',
+            website:      str(p.website) || resolved.website || '',
             // ⚑ MVP1 (C21) — an explicit "we have no website" travels as its own fact, so
             // an empty `website` can never be mistaken for an unanswered question.
-            website_none: p.website_none === true,
-            industry:     str(p.industry),
+            website_none: p.website_none === true || resolved.websiteNone === true,
+            industry:     str(p.industry) || resolved.whatTheCompanyDoes || '',
           }
         : null
 
@@ -3821,8 +4015,21 @@ result or a number. "permitted" is false unless they explicitly said we may use 
         success: true,
         data: {
           type: 'complete', icp: draft, summary: parsed.summary ?? null,
+          // ── ⚑ 14 Sep (S1-RT-005 · amended S1-PD-01) — DISPLAY STATE, AND ONLY THAT ─────
+          //
+          // 🛑 THE PORTAL NO LONGER CARRIES THIS ANYWHERE. It renders it — "we are finishing
+          // your targeting off by hand" — and that is the whole of its job. `POST /icps` does
+          // not read it, `icpSchema` does not accept it, and a caller that invents, alters,
+          // omits or replays it changes nothing about whether a review exists: the server
+          // re-derives that from the values it is about to write. This field is a message to
+          // a human, never an input to a decision.
+          icp_review: icpReview,
           profile, business, proof, website_hints: websiteHints,
-          campaign_intent: str(parsed.campaign_intent),
+          // ⚠️ BRIEF FACT #11, RESOLVED (S1-RT-002). The portal carries this to
+          // `/auth/onboard` as `outcome_stated` and to `POST /icps` as `campaign_intent`,
+          // so the desired outcome the gate counted from the snapshot reaches BOTH of its
+          // canonical homes rather than being counted and then dropped.
+          campaign_intent: str(parsed.campaign_intent) || resolved.desiredOutcome || '',
         },
       })
       return
@@ -3832,6 +4039,61 @@ result or a number. "permitted" is false unless they explicitly said we may use 
     // to substitute — which is the point: the old `?? 'Tell me a bit more about who you
     // want to reach.'` was the second place a plumbing failure could put words in Milla's
     // mouth. If we get here, she really did say this.
+    //
+    // ── ⚑ 14 Sep (S1-RT-003) — AND THE CONVERSATION IS RECORDED, SERVER-SIDE ───────────
+    //
+    // 🛑 HERE, NOT IN THE BROWSER, for the same reason the facts are: a transcript that
+    // survives only if the page remembers to save it is the defect being fixed, not the fix.
+    // The client's turns arrived in `messages` and Milla's reply is `parsed.content`, so this
+    // is the complete exchange as it actually happened — no reconstruction, no guessing.
+    //
+    // ⚠️ QUESTIONS ONLY, DELIBERATELY. A `complete` reply is not a conversational turn: the
+    // portal renders it as the confirmation panel rather than as a message, and promotion
+    // follows immediately. Storing it would put a message in the restored transcript that
+    // was never on screen.
+    //
+    // ⚠️ `parsed` is the union of both reply schemas, so `content` is `string | undefined` to
+    // the compiler even though `MillaQuestionReply` refuses a blank one. The guard is the
+    // honest narrowing: no reply text, nothing to record.
+    //
+    // ── 🛑 ⚑ 14 Sep (S1-PD-04) — AWAITED, NOT FIRED AND FORGOTTEN ──────────────────────
+    //
+    // ⛓️ ~~`void saveBriefConversation(...).catch(() => {})`~~ stood here, called "best-effort".
+    // It was not best-effort; it was best-LUCK. `res.json` ended the request in the same tick,
+    // and the write it had just started was left racing a response that was already gone:
+    //   • the client's browser has the answer and renders it; the turn LOOKS saved.
+    //   • serverless and container runtimes are entitled to stop doing work for a request
+    //     that has responded. A promise nobody is awaiting is exactly the work they stop.
+    //   • so the failure is invisible from both ends — no log line is reached on the unhappy
+    //     path, no status code changes, and the transcript is simply missing when the client
+    //     comes back. Which is S1-RT-003, the defect this code was written to fix, reopened
+    //     by the way its own fix was scheduled.
+    // Awaiting it costs one round-trip and makes the attempt a real event with a real result.
+    //
+    // ⚠️ AWAITING THE ATTEMPT IS NOT THE SAME AS REQUIRING IT TO SUCCEED. A transcript that
+    // cannot be stored must still never cost the client their turn: `saveBriefConversation`
+    // answers `{ok:false}` rather than throwing for every refusal it knows about, and the
+    // `catch` covers the ones it does not (the read above it can throw). BOTH paths fall
+    // through to the SAME `res.json` below with the SAME valid reply. The only thing that
+    // changes on a database failure is that a human can see it happened.
+    const askedContent = parsed.content
+    if (req.userId && typeof askedContent === 'string') {
+      const { saveBriefConversation } = await import('../lib/brief-draft')
+      try {
+        const stored = await saveBriefConversation(req.userId, [
+          ...messages.map(m => ({ role: m.role, content: m.content })),
+          { role: 'assistant' as const, content: askedContent },
+        ])
+        // ⚠️ NOT AN ERROR AND NOT ALWAYS A FAILURE. `{ok:false}` is also the honest answer for
+        // a client who has already promoted — their Brief is sealed and a transcript must not
+        // reopen it. Logged at info for that reason: it is a fact, not an incident.
+        if (!stored.ok) console.log('[milla] brief transcript not stored for this turn — the reply is unaffected')
+      } catch (convErr) {
+        // ⚠️ NAME ONLY, NEVER THE ERROR OBJECT. A Supabase error can embed the row it choked
+        // on, and the no-client-data rule admits no exceptions.
+        console.error('[milla] brief transcript write threw — the reply is unaffected:', (convErr as Error)?.name ?? 'unknown')
+      }
+    }
     res.json({ success: true, data: { type: 'question', content: parsed.content } })
   } catch (err) {
     // The request body itself was malformed — the caller's bug, not the model's turn.
@@ -4435,11 +4697,66 @@ icpRouter.post('/', async (req: AuthRequest, res) => {
       const sen = list(f.seniority_levels);    if (sen) body.seniority_levels = sen
     }
 
+    // ── 🛑 ⚑ 14 Sep (S1-PD-01/02/03) — THE WRITE BOUNDARY OWNS THE REVIEW ───────────────
+    //
+    // 🛑 THIS IS THE LAST LINE BEFORE THE VALUES BECOME A ROW, AND THAT POSITION IS THE
+    // WHOLE GUARANTEE. Everything that can still change `body` has changed it: Zod has
+    // bounded it, and the block directly above has let the CONFIRMED DRAFT overrule the
+    // browser for all six targeting facts. So whatever `body` holds now is exactly what is
+    // about to be persisted — and it is translated HERE, once, against the closed
+    // vocabularies, by the server.
+    //
+    // 🛑 AND IT CLOSES A SECOND HOLE THE DRAFT OVERRIDE OPENED (S1-PD-02). `f.company_sizes`
+    // and `f.seniority_levels` are the client's OWN WORDS — "about 10 to 50 staff" — and the
+    // override three lines up writes them straight over Milla's canonical proposal. Without
+    // this, a promotion sent the client's sentence to the provider AS A FILTER VALUE: the
+    // exact thing the founder's rule forbids, arriving through the very mechanism built to
+    // honour their words. Now those words are canonicalised or kept as review evidence, and
+    // neither outcome lets an untranslated phrase reach a provider.
+    //
+    // 🛑 ATOMIC WITH THE ROW, NOT PATCHED ONTO IT AFTERWARDS (S1-PD-03).
+    // ⛓️ An `UPDATE icps SET icp_review = …` stood BELOW `saveClientTargeting` for one round,
+    // with a founder alert and a 503 on failure. That is not a fence:
+    //   • between the INSERT and the UPDATE the row existed, was active, and carried no
+    //     review — `runIcpJob` and the Proof gate both read it as translatable. The window
+    //     was small; "small" is not a property anything may depend on.
+    //   • if the UPDATE failed, the 503 told the BROWSER. The row stayed. Nothing about a
+    //     response code makes a database safe, and an alert is a person being asked to
+    //     notice — a founder alert is not an authority fence.
+    // Writing it into `body` means the review is part of the same INSERT (a new client's
+    // first ICP) or the same UPDATE (a later revision) as the targeting it describes. There
+    // is no instant in which the values exist without their review. The row cannot be born
+    // unflagged, so no failure mode can leave it that way.
+    //
+    // ⚠️ SET-ONLY, STILL. A payload that translates cleanly leaves both columns untouched
+    // rather than writing `null` — an open review is cleared by the operator resolve route
+    // and by nothing else. Otherwise a client could lift their own block by re-saving with
+    // the untranslatable word simply removed, and be sourced against the emptied filter the
+    // block existed to prevent.
+    //
+    // ⚠️ ON THE HELD PATH (a live client's revision) `saveClientTargeting` puts this whole
+    // object into `pending_targeting` and touches no live column, so the live ICP's review
+    // state is correctly unchanged — its live targeting has not moved.
+    const decided = deriveProviderReview(
+      {
+        industries:       body.industries,
+        seniority_levels: body.seniority_levels,
+        company_sizes:    body.company_sizes,
+      },
+      { industries: ICP_INDUSTRIES, seniority_levels: ICP_SENIORITY, company_sizes: ICP_SIZES },
+    )
+    body.industries       = decided.values.industries
+    body.seniority_levels = decided.values.seniority_levels
+    body.company_sizes    = decided.values.company_sizes
+    const writeBody: Record<string, unknown> = decided.review
+      ? { ...body, icp_review: decided.review, icp_review_at: new Date().toISOString() }
+      : { ...body }
+
     const revisedIntent = typeof req.body?.campaign_intent === 'string' ? req.body.campaign_intent.trim() : ''
     // Unchanged caller: no `applyLive`, no pre-selected core, so it reads its own row and
     // takes exactly the branch it always took. `state_changed` is unreachable without
     // `applyLive`, so `!saved.ok` here means what `!saved` meant before.
-    const saved = await saveClientTargeting(clientId, body, revisedIntent)
+    const saved = await saveClientTargeting(clientId, writeBody, revisedIntent)
     if (!saved.ok) { res.status(404).json({ success: false, error: 'Could not save your targeting' }); return }
     const { row: data, pending } = saved
 
@@ -4477,6 +4794,13 @@ icpRouter.post('/', async (req: AuthRequest, res) => {
     // (`hasBusiness`), so a browser that omitted `business.product` would otherwise lose the
     // confirmed fact to that early return. Injecting first makes the confirmed fact itself
     // the reason the write happens.
+    // ⛓️ 14 Sep (S1-PD-03) — THE REVIEW USED TO BE PATCHED ON HERE, AND THAT WAS THE BUG.
+    // ~~`const reviewPayload = body.icp_review ?? null; if (reviewPayload…) await db.from
+    // ('icps').update({ icp_review: … })`~~ — an insert-then-patch with a 503 and a founder
+    // alert on failure. It has moved ABOVE `saveClientTargeting`, into the write itself, so
+    // the row is born carrying its review and there is no intermediate state to alert about.
+    // Nothing replaces it here: the correct number of statements at this point is zero.
+
     const understandingBody = req.body as Record<string, unknown>
     if (promotionDraft?.confirmedAt && !promotionDraft.promotedClientId) {
       const owned: Array<[string, string]> = [
@@ -4967,9 +5291,41 @@ icpRouter.post('/:id/proof', async (req: AuthRequest, res) => {
     const clientId = await getClientId(req.userId!)
     if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
 
-    const { data: icp } = await db.from('icps')
-      .select('id, is_active').eq('id', req.params.id).eq('client_id', clientId).maybeSingle()
+    const { data: icp, error: icpErr } = await db.from('icps')
+      .select('id, is_active, icp_review, icp_review_resolved_at')
+      .eq('id', req.params.id).eq('client_id', clientId).maybeSingle()
     if (!icp) { res.status(404).json({ success: false, error: 'ICP not found' }); return }
+
+    // ── 🛑 ⚑ 14 Sep (S1-RT-005) — NEEDS ICP REVIEW IS A HARD GATE ON PROOF ────────────
+    //
+    // 🛑 BEFORE THE AUTHORITY CLAIM, DELIBERATELY, AND THAT ORDER IS THE WHOLE GUARANTEE.
+    // `claimProofAuthority` is the line that spends a pass; refusing after it would consume
+    // the client's authority for a run that must not happen. Nothing below this point is
+    // reached while a translation is outstanding: no claim, no provider call, no ledger row,
+    // no lead, no spend.
+    //
+    // 🛑 AND IT IS THE SERVER, NOT A HIDDEN BUTTON. The founder's requirement is structural:
+    // a screen that declines to render a control proves nothing about a direct API call, a
+    // stale tab or a replay. This is the route the client's own token reaches.
+    //
+    // ⚠️ AN UNREADABLE ICP REFUSES TOO. If we cannot establish whether the targeting is
+    // provider-safe, the one thing we must not do is source against it — the same
+    // fail-closed direction as the unclassified-authority refusal below.
+    //
+    // ⚠️ THE CLIENT IS TOLD THE TRUTH AND NOTHING MORE. Not "Milla didn't catch that" (they
+    // did nothing wrong), not "Proof has started" (it has not). `retryable` is false: this
+    // does not clear by pressing again, it clears when a person has finished the translation.
+    if (icpErr) {
+      console.error(`[icps/proof] the ICP's review state was unreadable for client ${clientId} — refusing, nothing started or spent:`, (icpErr as { message?: string }).message ?? icpErr)
+      res.status(503).json({ success: false, retryable: true, error: PROOF_PREPARING_COPY })
+      return
+    }
+    const reviewRow = icp as { icp_review?: unknown; icp_review_resolved_at?: string | null }
+    if (icpNeedsReview(reviewRow.icp_review, reviewRow.icp_review_resolved_at ?? null)) {
+      console.log(`[icps/proof] client ${clientId} is awaiting ICP review — Proof refused, nothing claimed and nothing spent.`)
+      res.status(409).json({ success: false, retryable: false, code: 'needs_icp_review', needs_icp_review: true, error: PROOF_PREPARING_COPY })
+      return
+    }
 
     // ── ⚑ MVP1 — THE ONBOARDING PROOF START HAPPENS ONCE, AND ONLY ONCE ───────────────
     //

@@ -655,6 +655,22 @@ millaRouter.get('/brief-draft', async (req: AuthRequest, res) => {
       draft: draft ? { facts: draft.facts, confirmed_at: draft.confirmedAt, promoted_client_id: draft.promotedClientId } : null,
       progress,
       next: nextId ? { id: nextId, label: BRIEF_FACT_LABEL[nextId] } : null,
+      // ── ⚑ 14 Sep (S1-RT-003) — THE CONVERSATION, so re-entry continues it ────────────
+      //
+      // 🛑 THE FACTS ALONE WERE NEVER ENOUGH. The resume line could say "9 of 11", but the
+      // transcript lived in one tab's React state — so a refresh, a closed laptop or a
+      // logout put the client in front of a blank conversation, and sent Milla her NEXT turn
+      // with a one-line greeting as its entire history. She is conversational by design,
+      // because clients express the same truth in different ways; a Milla with no memory of
+      // the last ten minutes is a different product.
+      //
+      // ⚠️ ALREADY BOUNDED AND ALREADY VALIDATED by `readConversation` — at most the last 40
+      // turns, each clamped, unknown roles dropped. A corrupt jsonb value reads as `[]` and
+      // the page behaves exactly as it did before this existed.
+      //
+      // ⚠️ AND IT IS THE CLIENT'S OWN. This router carries the client's token and the draft
+      // is keyed on `user_id`, so no transcript can reach anybody but the person who spoke it.
+      conversation: draft?.conversation ?? [],
     },
   })
 })
@@ -699,6 +715,34 @@ millaRouter.post('/brief-draft/confirm', async (req: AuthRequest, res) => {
       success: false,
       error: `Milla still needs ${(r.missing ?? []).map(id => BRIEF_FACT_LABEL[id as keyof typeof BRIEF_FACT_LABEL]).join(', ')} before you can confirm.`,
       missing: r.missing ?? [],
+    })
+    return
+  }
+  // ── 🛑 ⚑ 14 Sep (S1-RT-006) — A RECOVERABLE CONVERSATIONAL STATE, NOT AN ERROR ──────
+  //
+  // 🛑 THE CLIENT ASKED FOR A MARKET WE DO NOT WORK IN, and until now they found that out as
+  // a raw Zod 400 on `POST /icps` — AFTER `/auth/onboard` had created their canonical client
+  // row. A real person, now a client, with no ICP and a validation error on screen.
+  //
+  // ⚠️ 409 WITH A `code`, SO THE CONVERSATION CAN HANDLE IT. The portal branches on the code
+  // and puts `ask` into the thread as Milla's own turn; the client answers in words. This is
+  // the difference between a limitation explained and a product that broke.
+  //
+  // ⚠️ NOTHING HAS BEEN CREATED AND NOTHING IS LOST. The stamp was not written, so the client
+  // row, the ICP, the welcome email and Proof are all still behind a door that did not open —
+  // and the draft still holds every answer and the whole conversation.
+  //
+  // ⚠️ BOTH HALVES TRAVEL. `supported` and `unsupported` are returned so the client is told
+  // exactly what we can and cannot do: "UK, US and Brazil" must never quietly become "UK and
+  // US" without them choosing it.
+  if (r.reason === 'unsupported_geography') {
+    res.status(409).json({
+      success: false,
+      code: 'unsupported_geography',
+      error: r.ask,
+      ask: r.ask,
+      unsupported: r.unsupported,
+      supported: r.supported,
     })
     return
   }

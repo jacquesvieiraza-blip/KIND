@@ -10,6 +10,9 @@ import { PER_CLIENT_MONTHLY_USD, TOTAL_FLOOR_USD, PLATFORM_FLOOR_USD, COMPANY_FL
 // ⚑ 13 Sep (B3/B4) — the two operator surfaces for the states nothing resolves automatically.
 import StaleProofClaimsPanel from '@/components/vida/StaleProofClaimsPanel'
 import WelcomeEmailsPanel from '@/components/vida/WelcomeEmailsPanel'
+// ⚑ 14 Sep (S1-RT-005) — clients whose own words could not be translated into provider
+// values. Their Proof and all sourcing are REFUSED server-side until this rail is used.
+import IcpReviewPanel from '@/components/vida/IcpReviewPanel'
 
 // ── Action Queue: at-risk clients are REAL (from /admin/churn-risk); the trigger
 // rows (signup→assign · payment→provision · day-29 switch · pool-low) are wired
@@ -430,6 +433,7 @@ export default async function AdminPage() {
           Client components inside this server page; each issues one GET and settles nothing. */}
       <StaleProofClaimsPanel />
       <WelcomeEmailsPanel />
+      <IcpReviewPanel />
 
       {/* UNIT ECONOMICS */}
       <UnitEconomics mrrUsd={stats.mrrUsd} activeSubs={stats.activeSubscriptions} />

@@ -468,8 +468,20 @@ millaRouter.post('/chat', async (req: AuthRequest, res) => {
     const access = await requireMillaAccess(req.userId!)
     if ('error' in access) { res.status(access.status).json({ success: false, error: access.error }); return }
 
+    // ── 🛑 ⚑ 14 Sep (M4) — A CONFIGURATION FAULT IS NOT MILLA SPEAKING ──────────────────
+    //
+    // ⛓️ THIS ANSWERED `success: true` WITH A SENTENCE IN HER VOICE: ~~"I can't reach my
+    // brain right now — please email hello@get-kind.com and the team will help."~~ To the
+    // client that reads as Milla having HEARD them and declined. It is an operational fault
+    // on our side, the same one the Vida console had, and it is reported as one.
+    //
+    // ⚠️ THE ADDRESS IS KEPT, because a client who cannot reach her still needs a way out —
+    // it just travels as an honest error rather than as her answer.
     if (!process.env.ANTHROPIC_API_KEY) {
-      res.json({ success: true, data: { reply: "I can't reach my brain right now — please email hello@get-kind.com and the team will help." } })
+      res.status(503).json({
+        success: false, retryable: true,
+        error: 'Milla is not reachable right now. Nothing you typed is lost — please try again, or email hello@get-kind.com.',
+      })
       return
     }
 

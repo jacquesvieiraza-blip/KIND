@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import { z } from 'zod'
 import { db } from '@kind/db'
+import { BACKGROUND_MODEL } from '../lib/models'
 // BUILD-003 item 2 — public.meetings is the sole source of meeting state.
 import { liveMeetingsByLead } from '../lib/meeting-truth'
 import { normalizeRevealEmail, normalizeRevealEmails } from '../lib/billing-rules'
@@ -1978,7 +1979,12 @@ Write a short, personalised cold email (150 words max). It must:
 Output only the email body, nothing else.`
 
     const message = await anthropic.messages.create({
-      model:      'claude-sonnet-4-6',
+      // ⚑ 14 Sep (ruling 5) — THIS RAN ON SONNET AND IS NEITHER MILLA NOR VIDA. A prospect
+      // email drafted from the client's leads page is a writer, not a conversation, and the
+      // founder ruled "THE OTHER PARTS = HAIKU". It was hand-typed as `'claude-sonnet-4-6'`,
+      // a version the earlier guard never looked for, so it was invisible to a check that
+      // banned only the exact conversational id.
+      model:      BACKGROUND_MODEL,
       max_tokens: 400,
       messages:   [{ role: 'user', content: prompt }],
     })

@@ -5365,6 +5365,22 @@ CREATE TABLE IF NOT EXISTS public.founder_alerts (
 
 CREATE INDEX IF NOT EXISTS founder_alerts_created_idx ON public.founder_alerts (created_at DESC);
 CREATE INDEX IF NOT EXISTS founder_alerts_kind_idx    ON public.founder_alerts (kind, created_at DESC);
+
+-- 🛑 RLS ON, WITH NO POLICY — AND THE REPO'S OWN GUARD IS WHY THIS LINE EXISTS.
+--
+-- The moment this migration entered the runner, \`migration-home.test.ts\` failed with:
+-- "A table exposed to PostgREST with RLS off is readable by anyone holding the public anon
+-- key — apps/portal ships that key to every browser."
+--
+-- It is right, and the contents make it serious: every founder alert body lands here —
+-- support escalations with a client's own words, their email address, payment failures,
+-- company names. The .sql file has carried this hole since 10 Jul and it was never caught
+-- because the migration was never in the runner to be checked.
+--
+-- ⚠️ NO POLICY IS DELIBERATE, and it is the same shape \`vida_conversations\` uses. The API
+-- reaches this table with the SERVICE ROLE, which bypasses RLS; the anon key must reach it
+-- with nothing at all. A policy here would be a door nobody asked for.
+ALTER TABLE public.founder_alerts ENABLE ROW LEVEL SECURITY;
 `,
   },
   {

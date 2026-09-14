@@ -1939,11 +1939,28 @@ describe('one question per reply, and the business before the filter fields', ()
 
   it('the topic list is framed as understanding to reach, never as questions to ask', () => {
     expect(flat(route)).toContain('What follows is a list of UNDERSTANDING TO REACH — never a list of questions to ask, and never a list to put into one reply.')
-    expect(flat(route)).toContain('one at a time, and only where they are genuinely still MISSING')
+    expect(flat(route)).toContain(// ⛓️ 14 Sep (F7) — THE LITERAL THIS PINNED IS DELIBERATELY GONE, THE CLAIM IS NOT.
+      // ~~'one at a time, and only where they are genuinely still MISSING'~~ constrained
+      // what Milla was allowed to LEARN in a turn, not what she was allowed to ASK — so a
+      // client who said nine things was, by instruction, permitted to have been understood
+      // about one. That is the eleven-field form wearing a conversational sentence, and it
+      // is the opposite of what the heading above it promises.
+      //
+      // The INVARIANT this test protects — the topic list is understanding to REACH, never
+      // questions to ask — is unchanged and is asserted more directly below.
+      'never a list of questions to ask')
     // The old framing — a bare "Cover…" imperative sitting above the method — is gone.
     expect(routeCode).not.toContain('Cover, in whatever order the conversation goes:')
     // …and the outcome follow-ups are explicitly not a batch either.
-    expect(flat(route)).toContain('Those follow-ups are things to learn over several turns, one per reply — never a batch.')
+    // ⛓️ 14 Sep (F7) — RETIRED LITERAL, PRESERVED CLAIM.
+    // ~~'Those follow-ups are things to learn over several turns, one per reply — never a
+    // batch.'~~ That sentence rationed LEARNING, not asking: a client who answered three of
+    // the follow-ups in one breath was, by instruction, permitted to have been understood
+    // about one. The prompt now separates the two explicitly, and the CLAIM this line
+    // protects — follow-ups are reached over the conversation, never fired as a batch — is
+    // asserted against the replacement wording.
+    expect(flat(route)).toContain('ask at most one per reply, and never a batch')
+    expect(flat(route)).toContain('the limit is on what you ASK, never on what you')
   })
 
   it('the no-checklist rule covers targeting, not only the account facts', () => {

@@ -246,3 +246,102 @@ describe('🛑 NORTHSTAR · the founder’s own three turns', () => {
     expect(store.facts.exclusions).toBe('no recruitment agencies or software companies')
   })
 })
+
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// F9 — THE FULL STATE, TURN BY TURN. Not "Northstar passes" — what is actually held.
+//
+// The founder asked for the state after each turn rather than a verdict, because a verdict
+// is the thing three rounds of this correction produced and none of them could be checked.
+// ═══════════════════════════════════════════════════════════════════════════════════════
+describe('🛑 F9 · Northstar — the state after every turn', () => {
+  it('F9 state after T1, T2, T3 and at confirmation', async () => {
+    const snapshots: Array<Record<string, unknown>> = []
+    const snap = (label: string, extra: Record<string, unknown> = {}) => {
+      const f = store.facts
+      snapshots.push({
+        turn: label,
+        transcript_turns: store.conversation.length,
+        contact_name: f.contact_name ?? null,
+        company_name: f.company_name ?? null,
+        website_none: f.website_none ?? null,
+        what_they_do: f.what_they_do ?? null,
+        target_category: f.target_category ?? null,
+        target_company_type: f.target_company_type ?? null,
+        geographies: f.geographies ?? null,
+        company_sizes: f.company_sizes ?? null,
+        job_titles: f.job_titles ?? null,
+        seniority_levels: f.seniority_levels ?? null,
+        exclusions: f.exclusions ?? null,
+        desired_outcome: f.desired_outcome ?? null,
+        desired_outcome_kind: f.desired_outcome_kind ?? null,
+        country_MUST_BE_ABSENT: f.country ?? null,
+        ...extra,
+      })
+    }
+
+    model.reply = millaSaid(READ_T1)
+    await turn([{ role: 'user', content: T1 }])
+    snap('T1')
+
+    model.reply = millaSaid(READ_T2)
+    await turn([
+      { role: 'user', content: T1 }, { role: 'assistant', content: READ_T1.content },
+      { role: 'user', content: T2 },
+    ])
+    snap('T2')
+
+    model.reply = millaSaid(READ_T3)
+    const final = await turn([
+      { role: 'user', content: T1 }, { role: 'assistant', content: READ_T1.content },
+      { role: 'user', content: T2 }, { role: 'assistant', content: READ_T2.content },
+      { role: 'user', content: T3 },
+    ])
+    const data = final.payload.data as Record<string, unknown>
+    const icp = data.icp as Record<string, unknown>
+    snap('T3 / confirmation', {
+      reply_type: data.type,
+      confirmation_brief_exclusions: data.brief_exclusions,
+      confirmation_brief_geographies: data.brief_geographies,
+      confirmation_icp_geographies: icp.geographies,
+      confirmation_icp_target_category: icp.target_category,
+      confirmation_icp_target_company_type: icp.target_company_type,
+      confirmation_profile_country: (data.profile as Record<string, unknown>).country ?? '',
+    })
+
+    // ── THE STATE, PRINTED. This is the packet's Northstar section, produced by the run.
+    // eslint-disable-next-line no-console
+    console.log('\n🛑 NORTHSTAR STATE TRACE\n' + JSON.stringify(snapshots, null, 2))
+
+    // ── AND ASSERTED, so it cannot quietly change.
+    const [t1, t2, t3] = snapshots
+    // T1: ten facts from one message, and no invented company country.
+    expect(t1.company_name).toBe('Northstar Revenue')
+    expect(t1.geographies).toEqual(['United Kingdom', 'United States'])
+    expect(t1.exclusions).toBe('no recruitment agencies or software companies')
+    expect(t1.desired_outcome_kind).toBe('meetings')
+    expect(t1.country_MUST_BE_ABSENT, 'a country was invented from the target markets').toBeNull()
+    // ⚠️ TWO, NOT ONE: their message is persisted BEFORE the model call, and her reply is
+    // appended after it. Both halves of the exchange are stored, which is what makes a
+    // refresh mid-conversation continue rather than restart.
+    expect(t1.transcript_turns).toBe(2)
+
+    // T2: two facts refined, nine untouched.
+    expect(t2.target_company_type).toBe('founder-led B2B service businesses')
+    expect(String(t2.target_category)).toContain('marketing agencies')
+    expect(t2.geographies, 'a turn about category damaged the markets').toEqual(['United Kingdom', 'United States'])
+    expect(t2.exclusions).toBe('no recruitment agencies or software companies')
+    expect(t2.job_titles).toEqual(['Founder', 'CEO', 'CRO', 'VP Sales'])
+    expect(t2.country_MUST_BE_ABSENT).toBeNull()
+
+    // T3: the confirmation is the durable Brief, not the last sample.
+    expect(t3.reply_type).toBe('complete')
+    expect(t3.confirmation_brief_geographies).toEqual(['United Kingdom', 'United States'])
+    expect(t3.confirmation_icp_geographies).toEqual(['United Kingdom', 'United States'])
+    expect(t3.confirmation_brief_exclusions).toBe('no recruitment agencies or software companies')
+    expect(String(t3.confirmation_icp_target_category)).toContain('management consultancies')
+    expect(t3.confirmation_icp_target_company_type).toBe('founder-led B2B service businesses')
+    expect(t3.confirmation_profile_country, 'a country was fabricated for the account').toBe('')
+    expect(t3.country_MUST_BE_ABSENT).toBeNull()
+  })
+})

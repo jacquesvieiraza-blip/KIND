@@ -785,6 +785,7 @@ millaRouter.put('/brief-draft', async (req: AuthRequest, res) => {
     seniority_levels:    z.array(z.string().max(40)).max(6).nullish(),
     exclusions:          z.string().max(600).nullish(),
     desired_outcome:     z.string().max(2000).nullish(),
+    desired_outcome_kind: z.string().max(20).nullish(),
     country:             z.string().max(120).nullish(),
     phone:               z.string().max(60).nullish(),
   }).parse(req.body ?? {})

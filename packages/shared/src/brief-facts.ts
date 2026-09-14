@@ -256,6 +256,20 @@ export type BriefDraftFacts = {
   seniority_levels?: string[] | null
   exclusions?: string | null
   desired_outcome?: string | null
+  /**
+   * ⚑ 14 Sep (R121, Build 4) — AN ATTRIBUTE OF FACT #11, NOT A TWELFTH FACT.
+   *
+   * 🛑 IT REPLACES A TEN-WORD LIST that decided a commercial fact. `MEETING_WORDS` was matched
+   * against the client's own sentence to choose between `meetings` and `other`, and whichever
+   * way it fell decided whether a MEETING TARGET could later be agreed against their
+   * programme — so "book qualified sales conversations" classified as `other` while "demo our
+   * platform at the trade show" classified as `meetings`.
+   *
+   * ⚠️ IT IS DELIBERATELY ABSENT FROM `briefFactsFromDraft` BELOW. The Brief is eleven facts;
+   * counting this would make it twelve by accident and ask the client for something they have
+   * already told us inside #11.
+   */
+  desired_outcome_kind?: string | null
   /** Account fact, not a Brief fact — where the client's OWN business is based. */
   country?: string | null
   /** Account fact, not a Brief fact. */

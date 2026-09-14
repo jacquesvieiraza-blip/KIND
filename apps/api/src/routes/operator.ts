@@ -4239,7 +4239,7 @@ operatorRouter.get('/cockpit', async (req: Request, res: Response) => {
     // Vida could not previously tell you a client was half-onboarded, so work started on
     // thin information. Scored off what we actually need to target well.
     const { data: prof } = await db.from('clients')
-      .select('company_name, industry, country, website, phone, signer_name').eq('id', cid).maybeSingle()
+      .select('user_id, company_name, industry, country, website, phone, signer_name').eq('id', cid).maybeSingle()
     const checks: { key: string; label: string; ok: boolean }[] = [
       { key: 'company_name', label: 'Company name',        ok: !!prof?.company_name },
       { key: 'industry',     label: 'Industry',            ok: !!prof?.industry },
@@ -4251,11 +4251,52 @@ operatorRouter.get('/cockpit', async (req: Request, res: Response) => {
       { key: 'campaign',     label: 'Campaign live',       ok: (campaigns.data ?? []).some((c: { status: string }) => c.status === 'active') },
     ]
     const done = checks.filter(c => c.ok).length
-    const onboarding = {
+    // ── ⚑ 14 Sep (R121, Build 4) — TWO DEFINITIONS OF "ONBOARDING" STOOD SIDE BY SIDE ──────
+    //
+    // 🛑 ON ONE SCREEN, AT THE SAME TIME: the SIGNING UP rail said "11 of 11 collected" from
+    // the Brief's eleven-fact counter, while this header said "Onboarding 88%" from the eight
+    // checks below. Both were correct about their own thing and neither said which thing it
+    // was, so an operator reading the header could not tell whether the CLIENT still owed us
+    // something or WE did.
+    //
+    // 🛑 THE BRIEF IS THE ONBOARDING TRUTH, because onboarding is what the CLIENT does: the
+    // eleven facts, counted by the one shared counter every other surface reads
+    // (`briefDraftFacts`). `percent` and `missing` now come from it.
+    //
+    // ⚠️ THE EIGHT CHECKS ARE NOT DELETED — THEY ARE RENAMED TO WHAT THEY ALWAYS WERE. An
+    // approved ICP, a written sequence and a live campaign are OUR work, not the client's;
+    // they answer "can this client go live?", which is a real and different question. They
+    // travel as `go_live` and the console labels them so.
+    const brief = await (async () => {
+      try {
+        const uid = (prof as { user_id?: string } | null)?.user_id
+        if (!uid) return null
+        const { briefDraftFor, draftProgress } = await import('../lib/brief-draft')
+        const { BRIEF_FACT_LABEL } = await import('@kind/shared')
+        const d = await briefDraftFor(uid)
+        if (!d) return null
+        const p = draftProgress(d)
+        return { count: p.count, total: p.total, missing: p.missing.map(id => BRIEF_FACT_LABEL[id]) }
+      } catch { return null }
+    })()
+    const goLive = {
       percent: Math.round((done / checks.length) * 100),
       missing: checks.filter(c => !c.ok).map(c => c.label),
       checks,
     }
+    const onboarding = brief
+      ? {
+          // 🛑 THE CLIENT'S OWN PROGRESS, from the shared counter. One denominator, everywhere.
+          percent: Math.round((brief.count / brief.total) * 100),
+          missing: brief.missing,
+          checks,
+          brief: { count: brief.count, total: brief.total },
+          go_live: goLive,
+        }
+      // ⚠️ NO BRIEF READ MEANS NO ONBOARDING CLAIM. A client who predates the draft table, or
+      // whose draft could not be read, falls back to the go-live checks rather than to a
+      // confident 0% — "we could not read it" must never render as "they have told us nothing".
+      : { ...goLive, brief: null, go_live: goLive }
 
     // Flatten the gates out of settings so the editor gets plain fields and never has to
     // know where they live (one mapping, in lib/campaign-settings.ts).

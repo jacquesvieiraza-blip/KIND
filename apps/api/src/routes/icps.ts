@@ -3043,6 +3043,12 @@ const millaReplyTool = (profileRequired: boolean) => ({
           seniority_levels:    { type: 'array', maxItems: 6,  items: { type: 'string', maxLength: 40 } },
           exclusions:          { type: 'string', maxLength: 600 },
           desired_outcome:     { type: 'string', maxLength: 2000 },
+          // ⚑ 14 Sep (R121, Build 4) — WHAT KIND OF OUTCOME THAT SENTENCE DESCRIBES. It used
+          // to be matched out of their words by a ten-item list here on the server; you read
+          // the conversation, so you say it. Not a twelfth thing to ask about — it is your
+          // reading of the answer they already gave.
+          desired_outcome_kind: { type: 'string', enum: ['meetings', 'other'],
+            description: "'meetings' ONLY when they want conversations with people — meetings, calls, demos. Anything else they might want from this is 'other', and a person shapes it with them." },
           country:             { type: 'string', maxLength: 120, description: "Where the CLIENT'S OWN business is based." },
           phone:               { type: 'string', maxLength: 60 },
         },
@@ -3166,6 +3172,7 @@ const BriefSoFar = z.object({
   seniority_levels:    boundedList(6, 40),
   exclusions:          clampedStr(600),
   desired_outcome:     clampedStr(2000),
+  desired_outcome_kind: clampedStr(20),
   country:             clampedStr(120),
   phone:               clampedStr(60),
 }).optional()

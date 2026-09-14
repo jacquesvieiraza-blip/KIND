@@ -38,19 +38,37 @@ const code = (s: string) => s.split('\n')
 const SAID = 'Book qualified meetings with those founders and CEOs.'
 
 describe('🛑 ① the sentence he actually said', () => {
-  it('is kept verbatim and classified as a meetings outcome', () => {
-    const o = readStatedOutcome(SAID)
-    expect(o).toEqual({ kind: 'meetings', stated: SAID })
+  it('is kept verbatim, and the KIND comes from the Brief rather than from the words', () => {
+    // ⛓️ 14 Sep (R121, Build 4) — ~~`readStatedOutcome(SAID)` matched ten words out of the
+    // sentence~~. The model reads the conversation and says what they meant; this function
+    // stores it. The sentence itself is untouched, which was always the load-bearing half.
+    expect(readStatedOutcome(SAID, 'meetings')).toEqual({ kind: 'meetings', stated: SAID })
+    expect(readStatedOutcome(SAID).stated, 'their words are still kept verbatim').toBe(SAID)
   })
 
-  it('🛑 the KIND is narrow — revenue and awareness are NOT meetings', () => {
-    // Classifying these as `meetings` would put a meeting target against an outcome nobody
-    // agreed to. `other` reaches a person instead.
-    for (const said of ['More revenue', 'Grow brand awareness', 'Get us into enterprise accounts']) {
-      expect(readStatedOutcome(said)!.kind, said).toBe('other')
+  it('🛑 ONLY AN EXPLICIT "meetings" IS A MEETINGS OUTCOME — everything else reaches a person', () => {
+    // ⛓️ 14 Sep (R121, Build 4) — this used to prove a WORD LIST was narrow. The list is
+    // deleted: ten words decided whether a MEETING TARGET could be agreed against a client's
+    // programme, and it got the founder's own fixture wrong ("book qualified sales
+    // conversations" → other) while calling "demo our platform at the trade show" a meeting.
+    //
+    // 🛑 THE SAFE DIRECTION IS UNCHANGED AND IS WHAT THIS NOW ASSERTS: anything that is not an
+    // explicit `meetings` is `other`, and `other` means a person shapes it. A missing, unknown
+    // or malformed kind can never become a meeting target by accident.
+    for (const kind of [undefined, null, '', 'Meetings', 'MEETINGS', 'probably meetings', 'other', 'revenue', 42, {}]) {
+      expect(readStatedOutcome('More revenue', kind)!.kind, String(kind)).toBe('other')
     }
-    for (const said of ['book meetings', 'I want demos', 'sales calls please']) {
-      expect(readStatedOutcome(said)!.kind, said).toBe('meetings')
+    expect(readStatedOutcome('book meetings', 'meetings')!.kind).toBe('meetings')
+  })
+
+  it('🛑 THE WORD LIST IS GONE — no sentence is matched against a vocabulary', () => {
+    const src = readFileSync(join(__dirname, 'client-outcome.ts'), 'utf8')
+    const live = src.split('\n')
+      .filter(l => { const t = l.trimStart(); return !t.startsWith('//') && !t.startsWith('*') && !t.startsWith('/*') })
+      .join('\n')
+    expect(live, 'the outcome vocabulary is back').not.toContain('MEETING_WORDS')
+    for (const w of ['appointment', 'consultation', 'demos']) {
+      expect(live.toLowerCase(), `${w} — the sentence is being matched again`).not.toContain(w)
     }
   })
 
@@ -145,8 +163,11 @@ describe('🛑 ③ every surface reads the SAME client-level truth', () => {
   })
 
   it('the operator line flags a non-meetings outcome rather than hiding it', () => {
-    expect(outcomeForOperator(readStatedOutcome(SAID))).toBe(SAID)
-    expect(outcomeForOperator(readStatedOutcome('More revenue')))
+    // ⛓️ 14 Sep (R121, Build 4) — the KIND is now an argument rather than matched out of the
+    // sentence, so these pass it. The operator line itself is unchanged, and so is the point:
+    // a non-meetings outcome is FLAGGED to the operator, never quietly hidden.
+    expect(outcomeForOperator(readStatedOutcome(SAID, 'meetings'))).toBe(SAID)
+    expect(outcomeForOperator(readStatedOutcome('More revenue', 'other')))
       .toBe('More revenue — not a meetings outcome; agree this with them')
     expect(outcomeForOperator(null)).toBe('Not stated yet')
   })
@@ -160,7 +181,11 @@ describe('🛑 ④ the number stays separate, and the client cannot dictate the 
     // asserted: the request supplies a SENTENCE and the server derives the KIND from it. What
     // moved is WHICH sentence — the browser's copy in the body was replaced by the confirmed
     // draft's, because the browser was couriering facts the server already held.
-    expect(c).toContain('const outcome = readStatedOutcome(outcomeStatedOwned)')
+    // ⛓️ 14 Sep (R121, Build 4) — the KIND is read from the BRIEF now, beside the sentence it
+    // describes, because the model read the conversation and a ten-word list never could. The
+    // original point of this assertion — the REQUEST supplies a sentence and never the kind —
+    // is unchanged and is asserted below.
+    expect(c).toContain('const outcome = readStatedOutcome(outcomeStatedOwned, draftFacts?.desired_outcome_kind)')
     expect(c).toContain('text2(draftFacts?.desired_outcome) ?? outcome_stated')
     // The body still cannot name the kind — the original point of this assertion.
     expect(c).not.toContain('outcome_kind: req.body')

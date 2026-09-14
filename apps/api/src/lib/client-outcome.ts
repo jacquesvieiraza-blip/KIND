@@ -53,17 +53,26 @@ export const OUTCOME_QUESTION = 'What should this achieve for you?'
 /** What Milla Home says when — and only when — we genuinely do not have it. */
 export const OUTCOME_UNSET_NEXT = 'Tell Milla the outcome you want'
 
-/**
- * Words that mean "a meeting" in the way this product delivers one.
- *
- * ⚠️ DELIBERATELY NARROW. A client who says "more revenue" or "brand awareness" has NOT
- * asked for meetings, and classifying them as `meetings` would put a meeting target against
- * an outcome nobody agreed to. Anything unrecognised is `other` and reaches a person.
- */
-const MEETING_WORDS = [
-  'meeting', 'meetings', 'call', 'calls', 'demo', 'demos',
-  'appointment', 'appointments', 'consultation', 'consultations',
-]
+// ⛓️ 14 Sep (R121, Build 4) — `MEETING_WORDS` STOOD HERE AND IS DELETED.
+//
+// 🛑 A TEN-WORD LIST DECIDED A COMMERCIAL FACT. `['meeting','meetings','call','calls','demo',
+// 'demos','appointment','appointments','consultation','consultations']` was matched against
+// the client's own sentence, and whichever way it fell decided whether a MEETING TARGET could
+// later be agreed against their programme. It was written narrow on purpose, and narrow does
+// not make it right — it is the same mechanism as the country parser, one field over:
+//
+//   "I want to get on calls with founders"      → meetings   ✓ (and it is)
+//   "book qualified sales conversations"        → OTHER      ✗ — the founder's own fixture
+//   "we want to stop cold-calling"              → meetings   ✗ — the opposite of asking
+//   "demo our platform at the trade show"       → meetings   ✗ — an event, not our outcome
+//
+// 🛑 THE MODEL SAYS WHAT THEY MEANT, because it read the conversation and this never could.
+// `desired_outcome_kind` comes from the Brief, beside the sentence it describes, and it is an
+// ATTRIBUTE OF FACT #11 — not a twelfth fact, not something the client is asked for twice.
+//
+// ⚠️ AND THE UNKNOWN CASE IS UNCHANGED AND STILL SAFE. A Brief with no kind resolves to
+// `other`, exactly as an unrecognised sentence did: `other` means a PERSON shapes the
+// programme, and no meeting target is ever agreed automatically against one.
 
 const clean = (s: unknown): string => String(s ?? '').trim()
 
@@ -75,14 +84,15 @@ const clean = (s: unknown): string => String(s ?? '').trim()
  *          empty `outcome_stated` would satisfy every "do we have it" check while telling
  *          the client's own screen nothing.
  */
-export function readStatedOutcome(said: unknown): ClientOutcome | null {
+export function readStatedOutcome(said: unknown, kind?: unknown): ClientOutcome | null {
   const stated = clean(said)
   // Two characters is not an answer. Deliberately permissive above that: "meetings" is a
   // complete answer, and so is a paragraph.
   if (stated.length < 3) return null
-  const words = stated.toLowerCase().split(/[^a-z]+/).filter(Boolean)
-  const kind: OutcomeKind = words.some(w => MEETING_WORDS.includes(w)) ? 'meetings' : 'other'
-  return { kind, stated }
+  // 🛑 THE KIND IS THE MODEL'S JUDGEMENT, READ FROM THE BRIEF — never matched out of the
+  // sentence here. Anything that is not an explicit `meetings` is `other`, which is the safe
+  // direction: `other` reaches a person, and no meeting target is agreed against it.
+  return { kind: clean(kind) === 'meetings' ? 'meetings' : 'other', stated }
 }
 
 /**

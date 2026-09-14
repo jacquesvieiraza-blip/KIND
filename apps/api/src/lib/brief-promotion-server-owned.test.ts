@@ -76,8 +76,23 @@ describe('S1-AUDIT-002 — the confirmed draft owns every fact it holds', () => 
   it('🛑 a body that OMITS the outcome no longer loses it — the draft supplies it', () => {
     expect(AUTH).toMatch(/const outcomeStatedOwned = text2\(draftFacts\?\.desired_outcome\) \?\? outcome_stated/)
     // And the classification reads the SERVER-owned sentence, never the body's copy.
-    expect(AUTH).toMatch(/readStatedOutcome\(outcomeStatedOwned\)/)
-    expect(AUTH).not.toMatch(/readStatedOutcome\(outcome_stated\)/)
+    //
+    // ⛓️ 14 Sep (R121, Build 4) — RETARGETED, SAME CLAIM. This pinned the exact call
+    // ~~`readStatedOutcome(outcomeStatedOwned)`~~ when the function classified the sentence
+    // itself by scanning it for meeting words. Build 4 deleted that word list: the KIND is now
+    // Milla's, carried on the draft as `desired_outcome_kind`, so the call takes a second
+    // argument. What this assertion has always protected is UNCHANGED and is what the two
+    // expectations below say — the sentence classified is the SERVER-owned one, and the
+    // browser's `outcome_stated` is never the thing handed to the classifier.
+    expect(AUTH).toMatch(/readStatedOutcome\(\s*outcomeStatedOwned\s*,/)
+    expect(AUTH).not.toMatch(/readStatedOutcome\(\s*outcome_stated\b/)
+    // 🛑 AND THE KIND COMES FROM THE BRIEF, NOT FROM THE SIGNUP BODY. This is the C03
+    // guarantee, restated for a kind that now exists: a request that could name its own kind
+    // would let a screen declare any signup "meetings" and have a meeting target agreed
+    // against an answer that never asked for one.
+    expect(AUTH).toMatch(/readStatedOutcome\([\s\S]{0,60}draftFacts\?\.desired_outcome_kind/)
+    const schema = AUTH.slice(AUTH.indexOf('const onboardSchema'), AUTH.indexOf('const UUID_RE'))
+    expect(schema, 'the signup body can now declare its own outcome kind').not.toMatch(/outcome_kind/)
   })
 
   it('contact_name is written from the draft-owned value', () => {

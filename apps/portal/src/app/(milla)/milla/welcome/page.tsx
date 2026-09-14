@@ -139,18 +139,25 @@ const REFINING_GREETING = "Welcome back 👋 Let's sharpen the same targeting ra
 /**
  * ⚑ MVP1 — the welcome back for somebody whose Brief is part-collected.
  *
- * ⚠️ THE NUMBERS ARE THE SERVER'S, INTERPOLATED — never typed. `count` and `total` come from
- * the shared eleven-fact counter and `nextLabel` from the same list; this app has no opinion
- * about what the facts are or how many there are.
+ * ⛓️ 14 Sep (R121) — IT USED TO COUNT AT THEM: ~~"that's 7 of 11 things I needed. Next up:
+ * target company type."~~ Every word of that was true and none of it was how a colleague
+ * talks. It told the client three things they should never have to know — that there is a
+ * list, how long it is, and where on it they are — and it did it in the first sentence after
+ * they came back, which is the moment the product most needs to sound like it remembers them
+ * rather than like it has been keeping score.
+ *
+ * ⚠️ THE FACTS ARE STILL THE SERVER'S AND ARE STILL USED — just not read out. Whether
+ * anything is outstanding decides which sentence she says; the NUMBER behind it never
+ * reaches the client, and this app still has no opinion about what the facts are.
  *
  * ⚠️ AND IT PROMISES NOTHING ABOUT CONFIRMATION. Holding every fact is not the same as having
  * confirmed the brief — that gate is separate, and it is the panel after this conversation.
  */
 function resumeGreeting(count: number, total: number, nextLabel: string | null): string {
-  const held = `Welcome back 👋 I still have everything you told me — that's ${count} of ${total} things I needed.`
+  void count; void total
   return nextLabel
-    ? `${held} Next up: ${nextLabel.toLowerCase()}.`
-    : `${held} I have everything I need — say the word and I'll put your plan together.`
+    ? `Welcome back 👋 I've still got everything you told me — we can pick up where we left off.`
+    : `Welcome back 👋 I've still got everything you told me, and I think I have what I need — say the word and I'll put your plan together.`
 }
 
 export default function MillaWelcomePage() {

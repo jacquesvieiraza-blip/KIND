@@ -321,7 +321,10 @@ describe('🛑 S1-RT-002B · valid customer truth survives a later completion fa
     // pins MORE of it — the actual `saveBriefDraft` call, not just the parse, must precede any
     // refusal, and the salvage must sit between them.
     const save = src.indexOf('let snapshot = BriefSoFar.safeParse')
-    const write = src.indexOf('const saved = await saveBriefDraft(req.userId, snapshot.data)')
+    // ⛓️ 14 Sep (R121) — the argument became `toStore`: the snapshot MERGED with any list
+    // corrections this turn carried. The claim is unchanged and covers more — what is
+    // written now includes the client's correction, and it still precedes every refusal.
+    const write = src.indexOf('const saved = await saveBriefDraft(req.userId, toStore)')
     const salvage = src.indexOf('const salvaged = dropKeysNamedByIssues(rawFacts, snapshot.error.errors)')
     const gate = src.indexOf("millaReplyFailed(res, 'INVALID_SHAPE'")
     expect(save).toBeGreaterThan(-1)

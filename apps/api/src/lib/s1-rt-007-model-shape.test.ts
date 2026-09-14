@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import { readFileSync } from 'fs'
+import { readFileSync, existsSync } from 'fs'
 import { join } from 'path'
 
 // ═══════════════════════════════════════════════════════════════════════════════════════
@@ -688,17 +688,31 @@ describe('🛑 S1-RT-009 · the confirmation is wired to canonical truth', () =>
 })
 
 // ═══════════════════════════════════════════════════════════════════════════════════════
-// § G — GAP 1 · COMPANY COUNTRY REQUIRES CUSTOMER EVIDENCE
+// § G — R121 · THE MODEL JUDGES THE CONVERSATION; THE SERVER NEITHER INVENTS NOR VETOES
 //
-// Removing the completion requirement stopped the product FORCING the invention. It did not
-// stop the model volunteering one, and `profile.country` was taken at face value — so the
-// live failure survived that fix untouched.
+// ⛓️ WHAT STOOD HERE WAS A PHRASE CATALOGUE, AND EVERY TEST IN IT ASSERTED A REGEX.
+// "Our partner is based in Ireland" → UNKNOWN · "We target Irish companies" → UNKNOWN ·
+// "Our office is in Ireland" → UNKNOWN. Each was green, each was added after the previous
+// round shipped, and together they were a specification for a parser that could never be
+// finished — there is no finite set of ways a person says where their business is.
+//
+// 🛑 WHAT REPLACES THEM IS THE PROPERTY THAT ACTUALLY MATTERS. The server has exactly two
+// obligations about the client's country, and neither is semantic:
+//
+//   · IT NEVER INVENTS ONE. A model that says nothing about the country leaves it empty,
+//     and empty still renders "still needed" and is still asked for conversationally.
+//   · IT NEVER VETOES ONE. A country the model DID establish reaches the card unchanged —
+//     no second opinion, no transcript re-reading, no silent override the client cannot see.
+//
+// ⚠️ AND THE WORDING-INVARIANCE TEST IS THE REAL GUARD (§ K). Whether the model reads a
+// given sentence correctly is a MODEL question, answered by the live eval and the founder's
+// walk — not by a unit test with a mocked model, which can only ever prove that the sentence
+// somebody wrote into the fixture matches the regex somebody wrote into the source.
 // ═══════════════════════════════════════════════════════════════════════════════════════
-describe('🛑 GAP 1 · target geography can never become company country', () => {
-  const COMPLETE_BODY = (country: string) => ({
-    type: 'complete',
-    summary: 'Founder-led agencies in the UK and US.',
-    profile: { company_name: 'Northstar Revenue', country, contact_name: 'Jacques', website_none: true },
+describe('🛑 R121 · the country is the model\'s judgement, and the server does not second-guess it', () => {
+  const COMPLETE = (profile: Record<string, unknown>) => ({
+    type: 'complete', summary: 'Founder-led agencies in the UK and US.',
+    profile: { company_name: 'Northstar Revenue', contact_name: 'Jacques', website_none: true, ...profile },
     icp: { target_category: 'agencies and consultancies', target_company_type: 'agency',
            geographies: ['United Kingdom', 'United States'], company_sizes: ['11–50'],
            job_titles: ['Founder'], seniority_levels: ['C-Suite'] },
@@ -706,66 +720,65 @@ describe('🛑 GAP 1 · target geography can never become company country', () =
     campaign_intent: 'book qualified sales conversations',
     brief_so_far: TURN_1_FACTS,
   })
+  const countryOf = (r: { json: Record<string, unknown> }) =>
+    ((r.json.data as Record<string, unknown>).profile as Record<string, unknown>).country
 
-  it('🛑 the model emits profile.country="United Kingdom" from a TARGET-only transcript → UNKNOWN', async () => {
-    // The transcript mentions the UK exactly once, as where their CUSTOMERS are.
-    const r = await dispatch(COMPLETE_BODY('United Kingdom'), {
-      userText: TURN_1,
-      turns: [{ role: 'user', content: TURN_1 }, { role: 'user', content: TURN_2 }],
+  it('🛑 NEVER INVENTED · the model says nothing about the country → it stays unknown', async () => {
+    // The transcript is FULL of countries — "the UK and US" are where their CUSTOMERS are —
+    // and the server must not turn any of them into the client's own location.
+    const r = await dispatch(COMPLETE({}), {
+      userText: TURN_1, turns: [{ role: 'user', content: TURN_1 }, { role: 'user', content: TURN_2 }],
     })
     expect(r.status).toBe(200)
-    const d = r.json.data as Record<string, unknown>
-    expect((d.profile as Record<string, unknown>).country,
-      'they never said where THEIR business is').toBe('')
-    // …and fact #6 is untouched and unconfused with it.
-    expect(d.brief_geographies).toEqual(['United Kingdom', 'United States'])
+    expect(countryOf(r), 'a country nobody supplied must stay empty').toBe('')
+    // …and fact #6 is untouched and never confused with it.
+    expect((r.json.data as Record<string, unknown>).brief_geographies).toEqual(['United Kingdom', 'United States'])
   })
 
-  it('🛑 the same for "UK", "Britain" and "England" — spelling is not evidence', async () => {
-    for (const spelling of ['UK', 'Britain', 'England', 'united kingdom']) {
-      const r = await dispatch(COMPLETE_BODY(spelling), {
-        userText: TURN_1, turns: [{ role: 'user', content: TURN_1 }],
+  it('🛑 NEVER VETOED · a country the model DID establish reaches the card unchanged', async () => {
+    const r = await dispatch(COMPLETE({ country: 'Ireland' }), {
+      userText: TURN_1,
+      turns: [{ role: 'user', content: TURN_1 }, { role: 'user', content: 'We are based in Ireland.' }],
+    })
+    expect(r.status).toBe(200)
+    expect(countryOf(r)).toBe('Ireland')
+  })
+
+  it('🛑 AND THE VERDICT DOES NOT DEPEND ON HOW THE CLIENT PHRASED IT', async () => {
+    // ⚠️ THIS IS THE ANTI-PARSER TOOTH FOR THE COUNTRY. The SAME model output is replayed
+    // against materially different transcripts — badly spelled, lower case, no punctuation,
+    // a sentence about somebody else entirely. If any of them changes the stored country,
+    // something in the server is reading the conversation again, and that is the defect
+    // R121 exists to forbid.
+    for (const said of [
+      'We are based in Ireland.',
+      'we uk based mate',                       // the model resolved this to Ireland? irrelevant —
+      'Our partner is based in Ireland.',       // the server must not re-decide either way
+      'HQ is Dublin',
+      'i am in ireland',
+      '',
+    ]) {
+      const r = await dispatch(COMPLETE({ country: 'Ireland' }), {
+        userText: TURN_1,
+        turns: [{ role: 'user', content: TURN_1 }, ...(said ? [{ role: 'user' as const, content: said }] : [])],
       })
-      expect((r.json.data as Record<string, unknown>).profile, spelling)
-        .toMatchObject({ country: '' })
+      expect(countryOf(r), `the server re-read the transcript for: ${said || '(no second turn)'}`)
+        .toBe('Ireland')
     }
   })
 
-  it('🛑 POSITIVE CONTROL · "we are based in Ireland" → Ireland survives', async () => {
-    const r = await dispatch(COMPLETE_BODY('Ireland'), {
-      userText: TURN_1,
-      turns: [
-        { role: 'user', content: TURN_1 },
-        { role: 'user', content: 'We are based in Ireland, by the way.' },
-      ],
-    })
-    expect(r.status).toBe(200)
-    expect((r.json.data as Record<string, unknown>).profile).toMatchObject({ country: 'Ireland' })
-  })
-
-  it('🛑 POSITIVE CONTROL · when WE asked, their answer counts even if it is also a target', async () => {
-    // A UK firm selling into the UK must be able to say so. `approve()` sends exactly this
-    // question, so the existing flow is what establishes the evidence — and without this the
-    // promotion ask would loop for ever.
-    const r = await dispatch(COMPLETE_BODY('United Kingdom'), {
-      userText: TURN_1,
-      turns: [
-        { role: 'user', content: TURN_1 },
-        { role: 'assistant', content: 'Before I can open your account I still need which country your business is based in — could you tell me?' },
-        { role: 'user', content: 'We are in the UK.' },
-      ],
-    })
-    expect(r.status).toBe(200)
-    expect((r.json.data as Record<string, unknown>).profile).toMatchObject({ country: 'United Kingdom' })
-  })
-
-  it('🛑 a country NOBODY said is refused even when it is not a target', async () => {
-    const r = await dispatch(COMPLETE_BODY('Australia'), {
-      userText: TURN_1, turns: [{ role: 'user', content: TURN_1 }],
-    })
-    expect((r.json.data as Record<string, unknown>).profile).toMatchObject({ country: '' })
+  it('🛑 NO DELETED PARSER MAY RETURN — the guard module is gone and nothing imports it', () => {
+    expect(existsSync(join(process.cwd(), 'apps/api/src/lib/brief-truth-guards.ts')),
+      'the language guard is back').toBe(false)
+    const ICPS = readFileSync(join(process.cwd(), 'apps/api/src/routes/icps.ts'), 'utf8')
+    const live = ICPS.split('\n').filter(l => !l.trimStart().startsWith('//') && !l.trimStart().startsWith('*')).join('\n')
+    expect(live).not.toContain('countryHasCustomerEvidence')
+    expect(live).not.toContain('brief-truth-guards')
+    // …and the country line is the same plain shape as the company name beside it.
+    expect(live).toContain("country:      str(p.country) || resolved.country || ''")
   })
 })
+
 
 // ═══════════════════════════════════════════════════════════════════════════════════════
 // § H — GAP 2 · AN UNREADABLE DURABLE BRIEF MAY NOT PRODUCE A CONFIRMATION
@@ -913,300 +926,120 @@ describe('🛑 GAP 3 · the model\'s completion summary never reaches the client
   })
 })
 
-describe('🛑 GAP 1 · self-location counts even when it is also a target market', () => {
-  it('🛑 "ABCV Logistics, based in the US" while TARGETING the US → the US is accepted', async () => {
-    // ⚠️ THIS CASE WAS FOUND BY AN OLDER FIXTURE, NOT BY DESIGN. The first version of the rule
-    // refused any country that was also a target, which threw away a plain statement about
-    // the speaker and would have refused every firm that sells at home.
-    //
-    // ⛓️ THE CANONICAL COMPANY NAME IS NOW PART OF THE FIXTURE, and it was wrong before. The
-    // Brief said the company was "Northstar Revenue" while the turn located "ABCV Logistics" —
-    // two different companies, which under the V4 rule is precisely a sentence about somebody
-    // else. A customer who types "ABCV Logistics, based in the US" has ABCV Logistics in their
-    // Brief; the fixture now says so, and the sentence still establishes the US.
-    const r = await dispatch({
-      type: 'complete', summary: 'US logistics buyers.',
-      profile: { company_name: 'ABCV Logistics', country: 'United States', contact_name: 'Jacques', website_none: true },
-      icp: { target_category: 'IT and tech firms', target_company_type: 'company',
-             geographies: ['United States'], company_sizes: ['51–200'],
-             job_titles: ['Head of Ops'], seniority_levels: ['Head of'] },
-      business: { product: 'Logistics', bad_fit: 'no recruitment agencies' },
-      brief_so_far: { ...TURN_1_FACTS, company_name: 'ABCV Logistics', geographies: ['United States'] },
-      campaign_intent: 'book meetings',
-    }, {
-      userText: 'ABCV Logistics, based in the US',
-      turns: [{ role: 'user', content: 'ABCV Logistics, based in the US' }],
-    })
-    expect(r.status).toBe(200)
-    expect((r.json.data as Record<string, unknown>).profile).toMatchObject({ country: 'United States' })
-  })
-
-  it('🛑 but NAMING the same country about their CUSTOMERS still does not', async () => {
-    const r = await dispatch({
-      type: 'complete', summary: 'US logistics buyers.',
-      profile: { company_name: 'ABCV Logistics', country: 'United States', contact_name: 'Jacques', website_none: true },
-      icp: { target_category: 'IT and tech firms', target_company_type: 'company',
-             geographies: ['United States'], company_sizes: ['51–200'],
-             job_titles: ['Head of Ops'], seniority_levels: ['Head of'] },
-      business: { product: 'Logistics', bad_fit: 'no recruitment agencies' },
-      campaign_intent: 'book meetings',
-      brief_so_far: { ...TURN_1_FACTS, geographies: ['United States'] },
-    }, {
-      userText: 'Our customers are IT firms in the US',
-      turns: [{ role: 'user', content: 'Our customers are IT firms in the US' }],
-    })
-    expect(r.status).toBe(200)
-    expect((r.json.data as Record<string, unknown>).profile).toMatchObject({ country: '' })
-  })
-})
 
 // ═══════════════════════════════════════════════════════════════════════════════════════
-// § J — GAP 1 (V3) · ONLY EXPLICIT SELF-LOCATION, OR THE ANSWER TO OUR QUESTION
+// § K — R121 · THE CONVERSATIONAL INVARIANTS
+//
+// 🛑 WHAT THESE PROVE, AND WHAT THEY CANNOT. They prove the SERVER keeps its side of the
+// bargain: it stores what the model understood, it never loses a fact to a correction, it
+// never lets a badly-typed turn become a technical error, and — the one that matters most —
+// IT DOES NOT READ THE CONVERSATION. Whether the model understands "we uk based mate" is a
+// model question that only the live eval and the founder's walk can answer.
+//
+// ⚠️ THE ANTI-PARSER TOOTH IS THE FIRST TEST AND IT IS THE POINT OF THE WHOLE BUILD. The same
+// model output is replayed against materially different transcripts. If the stored result
+// changes, something deterministic is interpreting the customer's words — which is exactly
+// what R121 forbids and exactly what five rounds of country regex kept re-introducing.
 // ═══════════════════════════════════════════════════════════════════════════════════════
-describe('🛑 GAP 1 V3 · a mention is not evidence, and an old question is not an answer', () => {
-  const completeWith = (country: string) => ({
-    type: 'complete', summary: 'x',
-    profile: { company_name: 'Northstar Revenue', country, contact_name: 'Jacques', website_none: true },
-    icp: { target_category: 'agencies and consultancies', target_company_type: 'agency',
-           geographies: ['United Kingdom', 'United States'], company_sizes: ['11–50'],
-           job_titles: ['Founder'], seniority_levels: ['C-Suite'] },
-    business: { product: 'B2B sales consultancy', bad_fit: 'no recruitment agencies or software companies' },
-    campaign_intent: 'book qualified sales conversations',
-    brief_so_far: TURN_1_FACTS,
-  })
-  const countryOf = (r: { json: Record<string, unknown> }) =>
-    ((r.json.data as Record<string, unknown>).profile as Record<string, unknown>).country
+describe('🛑 R121 · the server stores meaning; it does not read English', () => {
+  /** Materially different ways a person might say the same things. */
+  const PHRASINGS = [
+    "I'm Jacques and I run Northstar Revenue. We're a B2B sales consultancy.",
+    'jacques here. northstar. we do b2b sales consulting',
+    'JACQUES — NORTHSTAR REVENUE — b2b sales consultancy!!',
+    'hi im jacques i run northstar revenu we help founders with there pipeline',
+    'Northstar Revenue\nJacques\nB2B sales consultancy',
+    'so basically, right, we are called Northstar Revenue, i am Jacques, and what we actually do, if you want the long version, is we help founder-led service businesses build predictable pipeline, which is a fancy way of saying we get them meetings',
+  ]
 
-  it('🛑 PROBLEM A · an old target mention + a later question the client DID NOT ANSWER', async () => {
-    // The exact sequence the review named. Pairing any historical question with any
-    // historical mention recreates the original defect.
-    const r = await dispatch(completeWith('United Kingdom'), {
-      userText: TURN_1,
-      turns: [
-        { role: 'user', content: 'My target customers are in the UK and US.' },
-        { role: 'assistant', content: 'Which country is your business based in?' },
-        { role: 'user', content: "I'm not sure." },
-      ],
-    })
-    expect(countryOf(r), 'an unanswered question is not an answer').toBe('')
-  })
+  const SAME_REPLY = {
+    type: 'question' as const,
+    content: 'Got it. Who are your best customers?',
+    brief_so_far: { contact_name: 'Jacques', company_name: 'Northstar Revenue', what_they_do: 'B2B sales consultancy' },
+  }
 
-  it('🛑 PROBLEM B · "We have clients in Ireland" is not a head office', async () => {
-    const r = await dispatch(completeWith('Ireland'), {
-      userText: TURN_1,
-      turns: [{ role: 'user', content: TURN_1 }, { role: 'user', content: 'We have clients in Ireland.' }],
-    })
-    expect(countryOf(r)).toBe('')
-  })
-
-  it('🛑 PROBLEM B · nor is a partner, a refusal, or an office', async () => {
-    for (const said of [
-      'Our partner is in Ireland.',
-      "We don't sell into Ireland.",
-      'We opened an office in Ireland.',
-      'We sometimes work with a supplier in Ireland.',
-    ]) {
-      const r = await dispatch(completeWith('Ireland'), {
-        userText: TURN_1,
-        turns: [{ role: 'user', content: TURN_1 }, { role: 'user', content: said }],
-      })
-      expect(countryOf(r), said).toBe('')
+  it('🛑 THE ANTI-PARSER TOOTH · the same understanding stores identically however it was typed', async () => {
+    const results: string[] = []
+    for (const said of PHRASINGS) {
+      const r = await dispatch(SAME_REPLY, { userText: said, turns: [{ role: 'user', content: said }] })
+      expect(r.status, `a customer's phrasing became a technical failure: ${said.slice(0, 40)}`).toBe(200)
+      results.push(JSON.stringify(r.saved.map(s => s.facts)))
     }
+    // Every transcript produced the identical durable record. A difference here means some
+    // branch is reading the words.
+    expect(new Set(results).size, `the stored Brief depended on HOW they typed it:\n${[...new Set(results)].join('\n')}`)
+      .toBe(1)
   })
 
-  it('🛑 and a NEGATED self-location is not a location', async () => {
-    const r = await dispatch(completeWith('Ireland'), {
-      userText: TURN_1,
-      turns: [{ role: 'user', content: TURN_1 }, { role: 'user', content: 'We are not based in Ireland any more.' }],
-    })
-    expect(countryOf(r)).toBe('')
-  })
-
-  it('🛑 POSITIVE · "We are based in Ireland" → Ireland', async () => {
-    const r = await dispatch(completeWith('Ireland'), {
-      userText: TURN_1,
-      turns: [{ role: 'user', content: TURN_1 }, { role: 'user', content: 'We are based in Ireland.' }],
-    })
-    expect(countryOf(r)).toBe('Ireland')
-  })
-
-  it('🛑 POSITIVE · "We\'re an Irish company" → Ireland', async () => {
-    const r = await dispatch(completeWith('Ireland'), {
-      userText: TURN_1,
-      turns: [{ role: 'user', content: TURN_1 }, { role: 'user', content: "We're an Irish company, for what it's worth." }],
-    })
-    expect(countryOf(r)).toBe('Ireland')
-  })
-
-  it('🛑 POSITIVE · our question, answered immediately with "the UK" → United Kingdom', async () => {
-    const r = await dispatch(completeWith('United Kingdom'), {
-      userText: TURN_1,
-      turns: [
-        { role: 'user', content: 'My target customers are in the UK and US.' },
-        { role: 'assistant', content: 'Before I can open your account I still need which country your business is based in — could you tell me?' },
-        { role: 'user', content: 'The UK.' },
-      ],
-    })
-    expect(countryOf(r)).toBe('United Kingdom')
-  })
-
-  it('🛑 POSITIVE · "ABCV Logistics, based in the US" → United States', async () => {
+  it('🛑 several facts in ONE message are all captured — no one-fact-per-turn throttle', async () => {
     const r = await dispatch({
-      ...completeWith('United States'),
-      profile: { company_name: 'ABCV Logistics', country: 'United States', contact_name: 'Jacques', website_none: true },
-      icp: { target_category: 'IT firms', target_company_type: 'company', geographies: ['United States'],
-             company_sizes: ['51–200'], job_titles: ['Head of Ops'], seniority_levels: ['Head of'] },
-      brief_so_far: { ...TURN_1_FACTS, company_name: 'ABCV Logistics', geographies: ['United States'] },
-    }, {
-      userText: 'ABCV Logistics, based in the US',
-      turns: [{ role: 'user', content: 'ABCV Logistics, based in the US' }],
-    })
-    expect(countryOf(r)).toBe('United States')
+      type: 'question', content: 'And who should we avoid?',
+      brief_so_far: {
+        contact_name: 'Jacques', company_name: 'Northstar Revenue', website_none: true,
+        what_they_do: 'B2B sales consultancy', target_category: 'agencies and consultancies',
+        geographies: ['United Kingdom', 'United States'], company_sizes: ['11–50'],
+        job_titles: ['Founder', 'CEO'], seniority_levels: ['C-Suite'],
+      },
+    }, { userText: TURN_1 })
+    expect(r.status).toBe(200)
+    expect(Object.keys(r.saved[0].facts).length, 'the server dropped facts the model understood').toBe(9)
   })
 
-  // ═════════════════════════════════════════════════════════════════════════════════════
-  // § J-2 (V4) — WHO the sentence puts there is the whole question.
-  //
-  // Every case below reached the OPPOSITE result before this fix. The location pattern made
-  // the SUBJECT optional, so a bare `is`/`are` carried it; the demonym rule asked only
-  // whether `we`/`our` appeared somewhere in the sentence; and route B accepted any country
-  // mentioned in the reply that followed our question, answer or not.
-  // ═════════════════════════════════════════════════════════════════════════════════════
+  it('🛑 A CORRECTION ADDS · "also the US" keeps the UK', async () => {
+    const r = await dispatch({
+      type: 'question', content: 'Added — anything else?',
+      brief_list_ops: { geographies: { add: ['United States'] } },
+    }, { userText: 'actually include the US as well', held: { geographies: ['United Kingdom'] } })
+    expect(r.status).toBe(200)
+    expect(r.saved[0].facts.geographies).toEqual(['United Kingdom', 'United States'])
+  })
 
-  it('🛑 V4 · somebody ELSE being based there is not the client being based there', async () => {
-    for (const said of [
-      'Our partner is based in Ireland.',
-      'Our client is based in Ireland.',
-      'Recruitment agencies are based in Ireland.',
-      'One of our suppliers is headquartered in Ireland.',
-      'Our supplier is headquartered in Ireland.',
+  it('🛑 A CORRECTION REMOVES · and the rest of the list survives', async () => {
+    const r = await dispatch({
+      type: 'question', content: 'Dropped.',
+      brief_list_ops: { company_sizes: { remove: ['1–10'] } },
+    }, { userText: 'forget the tiny ones', held: { company_sizes: ['1–10', '11–50', '51–200'] } })
+    expect(r.status).toBe(200)
+    expect(r.saved[0].facts.company_sizes).toEqual(['11–50', '51–200'])
+  })
+
+  it('🛑 A RESTATEMENT STILL REPLACES — the client may narrow to one market deliberately', async () => {
+    const r = await dispatch({
+      type: 'question', content: 'Just the UK then.',
+      brief_so_far: { geographies: ['United Kingdom'] },
+    }, { userText: 'actually just the UK now', held: { geographies: ['United Kingdom', 'United States'] } })
+    expect(r.status).toBe(200)
+    expect(r.saved[0].facts.geographies).toEqual(['United Kingdom'])
+  })
+
+  it('🛑 AN UNRELATED QUESTION MID-BRIEF IS STILL A TURN — facts held, no error', async () => {
+    const r = await dispatch({
+      type: 'question', content: 'We charge $299 to start, then per approved lead. Now — who should we avoid?',
+      brief_so_far: { contact_name: 'Jacques' },
+    }, { userText: 'hang on, how much does this cost?', held: { company_name: 'Northstar Revenue' } })
+    expect(r.status).toBe(200)
+    expect((r.json.data as Record<string, unknown>).type).toBe('question')
+    expect(r.saved[0].facts.contact_name).toBe('Jacques')
+  })
+
+  it('🛑 NOTHING DETERMINISTIC READS THE TRANSCRIPT — the route never inspects message text', () => {
+    // ⚠️ SCOPED TO THE HANDLER. `messages` is the customer's own words; the route may WINDOW
+    // and FORWARD them, and must never test, match or search them. This is the guard that
+    // makes a returning parser fail rather than merely look wrong in review.
+    const ICPS = readFileSync(join(process.cwd(), 'apps/api/src/routes/icps.ts'), 'utf8')
+    const from = ICPS.indexOf("icpRouter.post('/builder/chat'")
+    const to = ICPS.indexOf('icpRouter.post(', from + 10)
+    const route = ICPS.slice(from, to > from ? to : undefined)
+    const live = route.split('\n').filter(l => {
+      const t = l.trimStart()
+      return !t.startsWith('//') && !t.startsWith('*') && !t.startsWith('/*')
+    }).join('\n')
+    for (const forbidden of [
+      /\bmessages\b[^\n]*\.(test|match|search)\(/,
+      /\.(test|match)\([^)]*\b(content|userText|message)\b/,
+      /\b(content|m\.content)\s*\.\s*(includes|toLowerCase|match|search)\s*\(/,
     ]) {
-      const r = await dispatch(completeWith('Ireland'), {
-        userText: TURN_1,
-        turns: [{ role: 'user', content: TURN_1 }, { role: 'user', content: said }],
-      })
-      expect(countryOf(r), said).toBe('')
+      expect(live, `the route is interpreting the customer's words: ${forbidden}`).not.toMatch(forbidden)
     }
-  })
-
-  it('🛑 V4 · a demonym about their CUSTOMERS or TARGETS is not their own country', async () => {
-    for (const said of [
-      'We target Irish companies.',
-      'Our best customers are Irish companies.',
-      'We have Irish clients.',
-      'We only sell to Irish businesses.',
-    ]) {
-      const r = await dispatch(completeWith('Ireland'), {
-        userText: TURN_1,
-        turns: [{ role: 'user', content: TURN_1 }, { role: 'user', content: said }],
-      })
-      expect(countryOf(r), said).toBe('')
-    }
-  })
-
-  it('🛑 V4 · following our question is NOT the same as answering it', async () => {
-    // ⚠️ THE MODEL EMITS THE COUNTRY IN EVERY ONE OF THESE. That is the point: the reply comes
-    // straight after the ask and names a real country, and it still says nothing about where
-    // THEIR business is.
-    for (const [said, emitted] of [
-      ["I'm not sure, but our customers are in the UK.", 'United Kingdom'],
-      ['We sell mainly into the UK.', 'United Kingdom'],
-      ['Our partner is in Ireland.', 'Ireland'],
-      ['Most of the agencies we want are in the UK.', 'United Kingdom'],
-    ] as const) {
-      const r = await dispatch(completeWith(emitted), {
-        userText: TURN_1,
-        turns: [
-          { role: 'user', content: TURN_1 },
-          { role: 'assistant', content: 'Which country is your business based in?' },
-          { role: 'user', content: said },
-        ],
-      })
-      expect(countryOf(r), said).toBe('')
-    }
-  })
-
-  it('🛑 V4 POSITIVE · the four ways a client locates their own business', async () => {
-    for (const said of [
-      'We are based in Ireland.',
-      'Our company is based in Ireland.',
-      'Northstar Revenue is based in Ireland.',
-      'We are headquartered in Ireland.',
-      "We're headquartered in Ireland.",
-      "We're an Irish company.",
-    ]) {
-      const r = await dispatch(completeWith('Ireland'), {
-        userText: TURN_1,
-        turns: [{ role: 'user', content: TURN_1 }, { role: 'user', content: said }],
-      })
-      expect(countryOf(r), said).toBe('Ireland')
-    }
-  })
-
-  it('🛑 V5 · an OFFICE or a PERSON is not the business, even straight after our question', async () => {
-    // ⚠️ THE BARE-ANSWER PATH IS NOT A SECOND WAY IN. Each of these follows the ask and names
-    // a country, and each locates something that is not the client's business: an office, or
-    // the person typing. The frozen rule is that neither establishes company country.
-    for (const said of [
-      'Our office is in Ireland.',
-      'My office is in Ireland.',
-      'I am in Ireland.',
-      "I'm currently in Ireland.",
-    ]) {
-      const r = await dispatch(completeWith('Ireland'), {
-        userText: TURN_1,
-        turns: [
-          { role: 'user', content: TURN_1 },
-          { role: 'assistant', content: 'Which country is your business based in?' },
-          { role: 'user', content: said },
-        ],
-      })
-      expect(countryOf(r), said).toBe('')
-    }
-  })
-
-  it('🛑 V5 POSITIVE · a bare country, or a SUBJECT that passes the ownership rule', async () => {
-    for (const said of ['Ireland.', 'We are based in Ireland.', 'Our company is in Ireland.']) {
-      const r = await dispatch(completeWith('Ireland'), {
-        userText: TURN_1,
-        turns: [
-          { role: 'user', content: TURN_1 },
-          { role: 'assistant', content: 'Which country is your business based in?' },
-          { role: 'user', content: said },
-        ],
-      })
-      expect(countryOf(r), said).toBe('Ireland')
-    }
-  })
-
-  it('🛑 V4 POSITIVE · our question, directly answered', async () => {
-    for (const said of [
-      'The UK.', 'United Kingdom.', 'Yes, the UK.',
-      "We're in the UK.", 'Our business is in the UK.', 'Our company is in the UK.',
-      'Northstar Revenue is in the UK.',
-    ]) {
-      const r = await dispatch(completeWith('United Kingdom'), {
-        userText: TURN_1,
-        turns: [
-          { role: 'user', content: TURN_1 },
-          { role: 'assistant', content: 'Which country is your business based in?' },
-          { role: 'user', content: said },
-        ],
-      })
-      expect(countryOf(r), said).toBe('United Kingdom')
-    }
-  })
-
-  it('🛑 the answer must follow the MOST RECENT ask, not an older one', async () => {
-    // A question, an answer that named nothing, then a later unrelated mention of a country.
-    const r = await dispatch(completeWith('Ireland'), {
-      userText: TURN_1,
-      turns: [
-        { role: 'assistant', content: 'Where is your business based?' },
-        { role: 'user', content: 'I would rather not say.' },
-        { role: 'user', content: 'We have clients in Ireland.' },
-      ],
-    })
-    expect(countryOf(r), 'the reply to the ask named no country').toBe('')
   })
 })

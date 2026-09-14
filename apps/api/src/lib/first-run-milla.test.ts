@@ -1547,10 +1547,16 @@ describe('a system failure can never again speak as Milla', () => {
     expect(icpsSrc).toContain('res.status(503)')
   })
 
-  it('all four failure categories are handled explicitly', () => {
-    for (const category of ['TRUNCATED', 'NO_TOOL_CALL', 'WRONG_TOOL', 'INVALID_SHAPE']) {
+  it('every failure category is still handled explicitly', () => {
+    // ⛓️ 14 Sep (R121) — `NO_TOOL_CALL` and `UNEXPECTED_STOP` now share one branch, because
+    // they are the same situation: the model answered in PROSE. Its sentence is used as her
+    // question when it is usable, and only an unusable one reaches the refusal — so the
+    // category is passed as an expression rather than a literal at two call sites.
+    for (const category of ['TRUNCATED', 'WRONG_TOOL', 'INVALID_SHAPE']) {
       expect(icpsSrc, category).toContain(`millaReplyFailed(res, '${category}'`)
     }
+    expect(icpsSrc, 'the prose branch must still be able to refuse')
+      .toContain("millaReplyFailed(res, response.stop_reason !== 'tool_use' ? 'UNEXPECTED_STOP' : 'NO_TOOL_CALL', meta)")
   })
 
   it('truncation is detected from stop_reason, not guessed from damaged output', () => {
@@ -1676,9 +1682,13 @@ describe('the reply is a forced tool call, validated before it is trusted', () =
     expect(icpsSrc).toContain('geographies:           boundedList(8)')
   })
 
-  it('the envelope demands stop_reason tool_use and EXACTLY one call', () => {
-    expect(icpsSrc).toContain("if (response.stop_reason !== 'tool_use') {")
-    expect(icpsSrc).toContain("millaReplyFailed(res, 'UNEXPECTED_STOP', meta)")
+  it('the envelope still demands tool_use and EXACTLY one call — prose is the one exception', () => {
+    // ⛓️ 14 Sep (R121) — ~~two separate refusals for "wrong stop reason" and "no tool
+    // block"~~. Both meant the model wrote prose, and both threw away a usable sentence the
+    // client was waiting for. They are one branch now, and it tries her words before it
+    // refuses. What did NOT relax: more than one tool call is still refused outright, because
+    // that is genuinely ambiguous rather than merely unconventional.
+    expect(icpsSrc).toContain("if (response.stop_reason !== 'tool_use' || toolBlocks.length === 0) {")
     expect(icpsSrc).toContain('if (toolBlocks.length > 1) {')
     expect(icpsSrc).toContain("millaReplyFailed(res, 'MULTIPLE_TOOL_CALLS', meta)")
   })
@@ -1687,8 +1697,18 @@ describe('the reply is a forced tool call, validated before it is trusted', () =
     expect(icpsSrc).toContain('if (call.name !== MILLA_REPLY_TOOL) {')
   })
 
-  it('a missing tool call is refused rather than read', () => {
-    expect(icpsSrc).toContain('if (toolBlocks.length === 0) {')
+  it('a missing tool call becomes her question when she wrote one, and is refused when she did not', () => {
+    // ⛓️ 14 Sep (R121) — ~~`if (toolBlocks.length === 0) { millaReplyFailed(...) }`~~. A
+    // model that replies in plain text has still ANSWERED; refusing it told a client who had
+    // done nothing wrong to try again while Milla's actual reply sat in the response.
+    expect(icpsSrc).toContain("if (response.stop_reason !== 'tool_use' || toolBlocks.length === 0) {")
+    // 🛑 AND IT IS RE-READ THROUGH THE SAME QUESTION SCHEMA, so a blank one still refuses…
+    expect(icpsSrc).toContain("const spoken = MillaQuestionReply.safeParse({ type: 'question', content: textReply })")
+    // …and it can NEVER become a completion: nothing is promoted or persisted from prose.
+    const from = icpsSrc.indexOf('const spoken = MillaQuestionReply.safeParse')
+    const window = icpsSrc.slice(from, from + 1_400)
+    expect(window).toContain("data: { type: 'question', content: spoken.data.content }")
+    expect(window, 'prose must never promote an account').not.toContain("type: 'complete'")
   })
 
   it('the schema BOUNDS every string and array — no unbounded object', () => {
@@ -1772,7 +1792,13 @@ describe('the conversational discipline the founder specified is in the prompt',
       'NEEDS CONFIRMING — anything you are working from that they have not actually endorsed.',
     ]) expect(route, line.slice(0, 20)).toContain(line)
     expect(flat(route)).toContain('This is your own reasoning — the client never sees it, and you never write it out')
-    expect(flat(route)).toContain('Then ask for ONE thing from MISSING. That is the whole method.')
+    // ⛓️ 14 Sep (R121) — ~~'Then ask for ONE thing from MISSING. That is the whole method.'~~
+    // The four lists survive and are still how she decides what to say; what went is the
+    // instruction to convert them into exactly one question per reply, which made a client
+    // who answered six things at once get asked about the seventh, then the eighth.
+    expect(flat(route)).toContain('Then talk to them about what is actually MISSING')
+    expect(flat(route), 'the lists must stay private reasoning, not a script')
+      .toContain('never something you recite')
   })
 
   it('an already-answered field is never re-asked', () => {
@@ -1856,16 +1882,52 @@ describe('one question per reply, and the business before the filter fields', ()
     expect(routeCode).not.toMatch(/\b(one or two|two or three|a couple of|two|three)\s+questions\s+(at a time|per reply)\b/i)
   })
 
-  it('ONE genuinely missing thing per reply is stated as the governing rule', () => {
-    expect(flat(route)).toContain('ASK FOR ONE GENUINELY MISSING THING PER REPLY. That is the governing rule of this entire conversation, and nothing below relaxes it.')
-    expect(flat(route)).toContain('but only ever one of them per reply')
-    // The original method sentence survives untouched — this reinforces it, it does not replace it.
-    expect(flat(route)).toContain('Then ask for ONE thing from MISSING. That is the whole method.')
+  it('🛑 R121 · she is told to be a colleague, and never to count out loud', () => {
+    // ⛓️ 14 Sep — ~~'ASK FOR ONE GENUINELY MISSING THING PER REPLY … nothing below relaxes
+    // it'~~. That rule was written against a real defect (the model firing the whole
+    // targeting checklist in one reply) and it over-corrected into its own: a client who
+    // gave nine facts in one message was then asked for the tenth, and the eleventh, one at
+    // a time, by a product that had understood everything already.
+    //
+    // 🛑 WHAT REPLACES IT IS THE PROPERTY, NOT A NEW NUMBER. Understand everything in the
+    // message; ask for what is genuinely missing the way a person would; never sweep; never
+    // read the count out. A future rewrite may phrase all of that differently — these
+    // assertions are about what the prompt must ACHIEVE.
+    expect(flat(route)).toContain('YOU ARE A CAPABLE COLLEAGUE HAVING A REAL CONVERSATION, not an interview script')
+    expect(flat(route)).toContain('Understand as much as you can from every single message')
+    expect(flat(route), 'nothing may re-introduce a per-reply quota')
+      .toContain('NEVER A CHECKLIST, AND NEVER A SWEEP')
+    expect(flat(route), 'the client must never hear the count').toContain('NEVER COUNT OUT LOUD')
+    // …and the old quota language is genuinely gone from the live prompt.
+    expect(stripComments(route)).not.toContain('That is the governing rule of this entire conversation')
+    expect(stripComments(route)).not.toContain('only ever one of them per reply')
+  })
+
+  it('🛑 R121 · the eleven are framed as understanding to reach, not a gate to clear', () => {
+    // The completion block used to open "YOU ARE COMPLETE ONLY WHEN YOU HOLD ALL ELEVEN OF
+    // THESE" — a gate, in the voice of a form. The facts are unchanged; the framing is not.
+    expect(flat(route)).toContain('BY THE END OF THIS CONVERSATION YOU NEED TO UNDERSTAND ELEVEN THINGS ABOUT THEM')
+    expect(flat(route)).toContain('ELEVEN THINGS TO UNDERSTAND, NOT ELEVEN QUESTIONS TO ASK')
+    expect(flat(route), 'one message may finish the whole conversation')
+      .toContain('A client who opens by telling you everything has finished the conversation in one message')
+    expect(stripComments(route)).not.toContain('YOU ARE COMPLETE ONLY WHEN YOU HOLD ALL ELEVEN')
+  })
+
+  it('🛑 R121 · a list correction has somewhere to go that is not a full restatement', () => {
+    // Without this the model answers "also add the US" with a one-item list and silently
+    // deletes the market the client gave an hour ago. The mechanism is in `brief-list-ops`;
+    // this is the half that tells her it exists.
+    expect(flat(route)).toContain('WHEN THEY CHANGE A LIST THEY ALREADY GAVE YOU, USE "brief_list_ops" INSTEAD')
+    expect(flat(route)).toContain('name only what MOVES')
+    expect(flat(route)).toContain('you have just deleted the market they gave you an hour ago')
   })
 
   it('the decision method is met BEFORE the topic-coverage block, not after it', () => {
     const methodAt = route.indexOf('── BEFORE YOU REPLY, WORK OUT WHERE YOU ACTUALLY ARE')
-    const oneAt    = route.indexOf('Then ask for ONE thing from MISSING.')
+    // ⛓️ 14 Sep (R121) — the anchor sentence was reworded; the ORDERING claim is unchanged
+    // and is the whole point of this test: she must meet the decision method before she
+    // meets a list of topics, or the list is what she acts on.
+    const oneAt    = route.indexOf('Then talk to them about what is actually MISSING')
     const topicsAt = route.indexOf('── WHAT THIS CONVERSATION MAY EVENTUALLY NEED TO UNDERSTAND')
     // A guard that reads nothing passes everything — prove all three anchors exist first.
     expect(methodAt, 'the method block').toBeGreaterThan(-1)
@@ -1893,7 +1955,11 @@ describe('one question per reply, and the business before the filter fields', ()
     expect(flat(route)).toContain('NEVER ask for industry, job titles, company size and geography together.')
     expect(flat(route)).toContain('Several targeting fields in one reply is a filter form wearing your name')
     expect(flat(route)).toContain('If several targeting facts are missing at once, that is NOT permission to ask for them all.')
-    expect(flat(route)).toContain('CHOOSE ONE — whichever would help most right now — and ask only that one.')
+    // ⛓️ 14 Sep (R121) — ~~'CHOOSE ONE … and ask only that one'~~. The sweep is still
+    // forbidden, which is the part that was ever load-bearing; the per-reply quota that rode
+    // along with it is not.
+    expect(flat(route)).toContain('Ask about the one that would help most, in ordinary words')
+    expect(flat(route)).toContain('let the rest come up when the conversation gets there')
   })
 
   it('business understanding takes precedence over collecting targeting fields', () => {
@@ -1974,16 +2040,29 @@ describe('one Anthropic call per turn, with headroom, on the same model', () => 
       .not.toMatch(/model:\s*'claude-/)
   })
 
-  it('EXACTLY ONE Anthropic call exists in this route — no repair retry was introduced', () => {
-    // The count IS the proof: a second call cannot exist without a second create. The
-    // response variable's TYPE annotation also names create (typeof ...), so the count is
-    // of awaited INVOCATIONS, which is the thing a repair retry would need a second of.
-    expect(route.match(/await anthropic\.messages\.create/g) ?? []).toHaveLength(1)
-    // …and it is not inside a loop that could run it twice.
+  it('ONE call site, at most TWO attempts, and no repair retry', () => {
+    // ⛓️ 14 Sep (R121) — ~~"EXACTLY ONE Anthropic call"~~. A transport failure is not the
+    // client's fault and was being charged to them as a failed turn, so a bounded second
+    // attempt was added. The claim that still matters is narrower and is asserted here:
+    //   · ONE place the model is called from, so a third attempt cannot be added quietly;
+    //   · the retry is for TRANSPORT ONLY — an unusable REPLY is never re-rolled, which is
+    //     how a product starts paying three times for one turn;
+    //   · no loop, so "two" cannot become "until it works".
     const code = stripComments(route)
-    const callAt = code.indexOf('anthropic.messages.create')
-    const before = code.slice(Math.max(0, callAt - 400), callAt)
-    expect(before).not.toMatch(/\b(for|while)\s*\(/)
+    // ⚠️ WITH THE PAREN: `Awaited<ReturnType<typeof anthropic.messages.create>>` is a TYPE,
+    // not a call, and counting it would make this assertion permanently wrong by one.
+    expect(code.match(/anthropic\.messages\.create\(/g) ?? [], 'more than one call site')
+      .toHaveLength(1)
+    expect(code.match(/await callModel\(/g) ?? [], 'more than two attempts').toHaveLength(2)
+    const callAt = code.indexOf('const callModel')
+    expect(code.slice(Math.max(0, callAt - 400), callAt)).not.toMatch(/\b(for|while)\s*\(/)
+    // 🛑 THE RETRY IS IN THE TRANSPORT CATCH, NOT AROUND THE VALIDATION. A second attempt
+    // after a reply ARRIVED would be re-rolling the model until it said something we liked.
+    const retryAt = code.indexOf('response = await callModel(20_000)')
+    const validateAt = code.indexOf('const validated = declaredType')
+    expect(retryAt).toBeGreaterThan(-1)
+    expect(retryAt, 'the retry sits after validation — that is a re-roll, not a transport retry')
+      .toBeLessThan(validateAt)
   })
 
   it('and the SDK dependency was not touched', () => {
@@ -2362,8 +2441,18 @@ describe('EXECUTED · every unusable envelope is refused, none of them speaks as
     expectHonestFailure(await run())
   })
 
-  it('NO_TOOL_CALL — the model wrote prose instead', async () => {
+  it('🛑 R121 · the model wrote PROSE — her sentence is used, not thrown away', async () => {
+    // ⛓️ 14 Sep — ~~`expectHonestFailure(...)`~~. This was a 503 and a "Milla didn't catch
+    // that" banner while Milla's actual reply to the client sat in the response body. The
+    // customer's turn was fine and so was her answer; only the envelope was unconventional.
     anthropicBox.reply = { stop_reason: 'tool_use', content: [{ type: 'text', text: 'Tell me more about your targeting' }] }
+    const out = await run()
+    expect(out.code).toBe(200)
+    expect(out.payload.data).toEqual({ type: 'question', content: 'Tell me more about your targeting' })
+  })
+
+  it('🛑 R121 · but BLANK prose is still refused — there is nothing to say', async () => {
+    anthropicBox.reply = { stop_reason: 'end_turn', content: [{ type: 'text', text: '   ' }] }
     expectHonestFailure(await run())
   })
 
@@ -2518,16 +2607,18 @@ describe('EXECUTED · the ordinary turn, and every failure class, through the re
     expect(out.payload.data).toBeUndefined()
   })
 
-  it('7 · SDK options are BOUNDED — 45s and one retry, under the portal’s 60s wait', async () => {
+  it('7 · SDK options are BOUNDED — 25s on the first attempt, under the portal’s 60s wait', async () => {
     // The old shape: SDK default 10 minutes + 2 retries behind a browser that aborts at 15s
     // — the server kept spending long after the client walked away, and this stateless
-    // route threw the eventual answer away. The order now: SDK 45s < portal 60s.
+    // route threw the eventual answer away.
+    // ⛓️ 14 Sep (R121) — ~~`{ timeout: 45_000, maxRetries: 0 }`~~, one attempt. The budget is
+    // SPLIT so a transport blip gets a second try inside the SAME browser wait: 25s + 20s =
+    // 45s worst case, still strictly under 60s. `maxRetries: 0` is unchanged and still
+    // load-bearing — the SDK's own retry sleeps on `retry-after` for up to ~60s BETWEEN
+    // attempts, which would make the worst case unprovable.
     anthropicBox.reply = toolReply({ type: 'question', content: 'ok' })
     await callBuilderChat({ messages: [{ role: 'user', content: 'hi' }], profile_required: false })
-    // ⛓️ CORRECTED same day: maxRetries 0, because the SDK honours a server retry-after
-    // of up to ~60s BETWEEN attempts (core.js 0.39.0), making any retrying shape unprovable
-    // against the 60s browser budget. One bounded attempt: worst case 45s < 60s, 15s spare.
-    expect(anthropicBox.lastOptions).toEqual({ timeout: 45_000, maxRetries: 0 })
+    expect(anthropicBox.lastOptions).toEqual({ timeout: 25_000, maxRetries: 0 })
   })
 
   it('8 · a LONG onboarding no longer hard-fails — the model sees the last 40, from a user turn', async () => {
@@ -2651,23 +2742,33 @@ describe('the timeout budget is ARITHMETIC, proven against the installed SDK', (
     expect(core).toContain('await (0, exports.sleep)(timeoutMillis)')
   })
 
-  it('so the route makes ONE bounded attempt: 45s worst case, strictly under the 60s browser wait', async () => {
+  it('so the route makes TWO bounded attempts: 45s worst case, strictly under the 60s browser wait', async () => {
+    // ⛓️ 14 Sep (R121) — the arithmetic is unchanged in SHAPE and in its conclusion; only the
+    // split moved. Both attempts carry `maxRetries: 0`, so no `retry-after` sleep can enter
+    // the sum, and the sum is read off the SOURCE rather than assumed.
+    const code = stripComments(builderChatRoute())
+    const timeouts = [...code.matchAll(/await callModel\((\d+)_000\)/g)].map(m => Number(m[1]) * 1000)
+    expect(timeouts, 'the two attempt budgets').toEqual([25_000, 20_000])
     anthropicBox.reply = toolReply({ type: 'question', content: 'ok' })
     await callBuilderChat({ messages: [{ role: 'user', content: 'hi' }], profile_required: false })
-    const opts = anthropicBox.lastOptions as { timeout: number; maxRetries: number }
-    expect(opts.maxRetries).toBe(0)                          // no retry → no retry-after sleep path
-    const worstCaseMs = opts.timeout * (opts.maxRetries + 1) // per-attempt × attempts, no sleeps
+    expect((anthropicBox.lastOptions as { maxRetries: number }).maxRetries).toBe(0)
+    expect(code, 'an SDK retry would make the worst case unprovable')
+      .toContain('{ timeout, maxRetries: 0 }')
+    const worstCaseMs = timeouts.reduce((a, b) => a + b, 0)
     expect(worstCaseMs).toBe(45_000)
     const browserBudget = 60_000                             // welcomeCode/builderPageCode pass 60_000
     expect(welcomeCode).toContain('60_000')
     expect(worstCaseMs, 'browser must outlast the whole server model budget').toBeLessThan(browserBudget)
   })
 
-  it('a provider failure with retries disabled is still ONE call, one truthful 503', async () => {
+  it('🛑 R121 · a transport failure is retried ONCE, then answered truthfully — never more', async () => {
+    // ⛓️ 14 Sep — ~~`expect(anthropicBox.calls).toBe(1)`~~. One attempt meant every blip was
+    // charged to the client as a failed turn. TWO is now correct and THREE would not be: an
+    // unbounded retry is how a stateless route spends a client's wait on nothing.
     anthropicBox.error = Object.assign(new Error('timeout'), { name: 'APIConnectionTimeoutError' })
     const out = await callBuilderChat({ messages: [{ role: 'user', content: 'no' }], profile_required: true })
     expect(out.code).toBe(503)
-    expect(anthropicBox.calls).toBe(1)
+    expect(anthropicBox.calls, 'exactly two attempts, never more').toBe(2)
   })
 })
 

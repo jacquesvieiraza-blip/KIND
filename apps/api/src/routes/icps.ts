@@ -2699,25 +2699,47 @@ icpRouter.post('/chat-build', async (req: AuthRequest, res) => {
       history: z.array(z.object({ role: z.enum(['user','assistant']), content: z.string() })).max(20).default([]),
     }).parse(req.body)
 
-    const system = `You are an ICP (Ideal Customer Profile) builder assistant for K.I.N.D, a B2B lead generation platform.
-Your job is to have a short conversation with the user to understand who they want to target, then extract structured ICP data.
+    // ── 🛑 ⚑ 14 Sep (R121, Build 2) — THE LAST JSON FORM IN A CLIENT'S PATH ─────────────
+    //
+    // ⛓️ WHAT STOOD HERE WAS A 2024-SHAPED EXTRACTOR. "Always respond with valid JSON only —
+    // no markdown, no explanation", the sixteen-value industry menu read out inline, and a
+    // `JSON.parse` whose failure answered the CLIENT with the filter form in words:
+    //
+    //     "Tell me more about who you want to target — industry, job title, company size,
+    //      location?"
+    //
+    // That sentence was Milla's voice on the one door a paying client uses to CHANGE their
+    // targeting. It is the form this whole correction exists to remove, and it was the last
+    // one left in front of a customer.
+    //
+    // 🛑 IT IS A TOOL NOW, LIKE EVERY OTHER MILLA DOOR. She talks; what she understood travels
+    // as structure. A malformed reply can no longer put a menu in front of the client, because
+    // there is no text to fail to parse.
+    //
+    // ⚠️ THE SERVER SIDE IS UNCHANGED. `clear_fields` keeps its fail-closed allowlist, the
+    // merge still preserves what the client already had, and AR9 still decides whether a live
+    // client's revision applies or waits for GO. This is HOW she says it, never what it means.
+    const system = `You are Milla, talking to a client who already has targeting with us and
+wants to change it. You are not filling in a form and they are not reading one.
 
-Based on the conversation, return a JSON object with:
-- "message": your conversational reply (plain text, friendly, max 2 sentences)
-- "name": suggested ICP name (e.g. "SA SaaS CTOs") — only if confident
-- "industries": array of industries from: Fintech, Healthtech, E-commerce, SaaS, Logistics, Agriculture, Education, Manufacturing, Real Estate, Media, Consulting, Retail, Banking, Insurance, Telecoms, Energy
-- "job_titles": array of job titles (e.g. ["CTO", "Head of Sales"])
-- "seniority_levels": array from: C-Suite, VP / Director, Head of, Manager, Senior, Individual Contributor
-- "company_sizes": array from: 1–10, 11–50, 51–200, 201–500, 501–1,000, 1,000+
-- "geographies": array of countries or regions
-- "tech_stack": array of tools they likely use
-- "keywords": array of intent signals (e.g. "hiring", "Series A", "expansion")
+Talk normally. Understand what they actually mean — "more like the first lot", "not the tiny
+ones", "add the US as well", "anyone in healthcare really" — and reply in one or two plain
+sentences.
 
-- "clear_fields": array — ONLY for filters the user EXPLICITLY asked to remove or broaden, e.g. "any industry", "remove the industry restriction", "company size doesn't matter", "anywhere". Permitted values: "job_titles", "seniority_levels", "industries", "company_sizes", "geographies".
+When you understand a change they want, call the propose_targeting tool with the WHOLE
+profile as it should end up. Start from what they already have and change only what they
+asked about. Leave a field out entirely when they have not established it — an empty list
+means "I do not know yet", never "remove this".
 
-Only include fields you're confident about. Leave arrays empty [] if not enough info yet.
-An empty array [] means "not enough information — leave that filter exactly as it is". It is NOT a request to remove a filter. Removing a filter is expressed ONLY through clear_fields.
-Always respond with valid JSON only — no markdown, no explanation outside the JSON.`
+⚠️ REMOVING A FILTER IS ITS OWN THING. If they explicitly want one gone — "any industry",
+"size doesn't matter", "anywhere" — name it in "clear_fields". That is the ONLY way to remove
+something, because an empty list already means something else.
+
+⚠️ NEVER READ A MENU OUT AT THEM. Some fields accept only certain values; map what they mean
+onto those quietly. If their meaning genuinely does not map — "IT Solutions" could be SaaS,
+Consulting or Telecoms — ask about that ONE thing in ordinary words, and nothing else.
+
+⚠️ NEVER INVENT THEIR TARGETING. If you are not sure what they meant, ask.`
 
     const messages = [
       ...history,
@@ -2728,16 +2750,59 @@ Always respond with valid JSON only — no markdown, no explanation outside the 
       model: CONVERSATION_MODEL,
       max_tokens: 600,
       system,
+      tools: [{
+        name: 'propose_targeting',
+        description: 'The targeting as it should end up after what the client just said. Send the WHOLE profile, starting from what they already have.',
+        input_schema: {
+          type: 'object' as const,
+          properties: {
+            name:             { type: 'string', maxLength: 120 },
+            industries:       { type: 'array', maxItems: 6,  items: { type: 'string', enum: [...ICP_INDUSTRIES] } },
+            job_titles:       { type: 'array', maxItems: 10, items: { type: 'string', maxLength: 80 } },
+            seniority_levels: { type: 'array', maxItems: 6,  items: { type: 'string', enum: [...ICP_SENIORITY] } },
+            company_sizes:    { type: 'array', maxItems: 6,  items: { type: 'string', enum: [...ICP_SIZES] } },
+            geographies:      { type: 'array', maxItems: 8,  items: { type: 'string', maxLength: 80 } },
+            tech_stack:       { type: 'array', maxItems: 10, items: { type: 'string', maxLength: 80 } },
+            keywords:         { type: 'array', maxItems: 10, items: { type: 'string', maxLength: 80 } },
+            clear_fields:     { type: 'array', maxItems: 5,  items: { type: 'string', enum: [...CLEARABLE_ICP_FIELDS] },
+                                description: 'ONLY filters the client explicitly asked to remove or broaden.' },
+          },
+        },
+      }] as never,
       messages,
     }, AI_TURN_BOUND)
 
-    const raw = (response.content[0] as { type: string; text: string }).text.trim()
-    let parsed: Record<string, unknown>
-    try {
-      parsed = JSON.parse(raw.replace(/^```json\n?/, '').replace(/\n?```$/, ''))
-    } catch {
-      parsed = { message: "Tell me more about who you want to target — industry, job title, company size, location?" }
+    // 🛑 HER SENTENCE AND HER PROPOSAL ARE TWO DIFFERENT BLOCKS, and neither can break the
+    // other. A turn with no proposal is a conversation; a turn with no sentence still carries
+    // the change. What cannot happen any more is a parse failure putting a form in front of
+    // the client.
+    const said = response.content.filter(b => b.type === 'text')
+      .map(b => (b as { type: 'text'; text: string }).text).join('').trim()
+    const tool = response.content.find(b => b.type === 'tool_use') as
+      { type: 'tool_use'; name: string; input: unknown } | undefined
+    const proposed = (tool?.name === 'propose_targeting' && tool.input && typeof tool.input === 'object' && !Array.isArray(tool.input))
+      ? { ...(tool.input as Record<string, unknown>) }
+      : {}
+    // ── 🛑 NO CANNED SENTENCE IS EVER PUT IN HER MOUTH ────────────────────────────────
+    //
+    // ⛓️ MY FIRST CUT OF THIS WROTE ONE — "Tell me a bit more about who you want to reach." —
+    // and an existing guard refused it by name. It was right to: that exact string is the
+    // SECOND canned fallback from a live walk, a system sentence the product spoke as Milla
+    // while she had said nothing. Writing it back as a "harmless default" is how that defect
+    // returns, and the JSON-parse fallback this build deleted was the same mistake.
+    //
+    // 🛑 SO A TURN WITH NEITHER A SENTENCE NOR A PROPOSAL IS AN UNUSABLE REPLY, and it is
+    // answered as one — the honest retryable error, exactly like every other unusable reply
+    // in this product. A turn that HAS a proposal but no words is usable: the client sees
+    // their updated targeting, and the portal's own copy fills the line. Ours, not hers.
+    if (!said && Object.keys(proposed).length === 0) {
+      console.error('[icps/chat-build] unusable model reply —', JSON.stringify({
+        stage: 'reply', category: 'NO_TEXT_NO_PROPOSAL', model: CONVERSATION_MODEL,
+      }))
+      res.status(503).json({ success: false, error: MILLA_RETRY_ERROR, retryable: true })
+      return
     }
+    const parsed: Record<string, unknown> = { ...proposed, message: said }
 
     // ── ⚑ 25 Aug — `clear_fields` IS SANITISED HERE, FAIL-CLOSED (founder-ruled) ─────────
     //
@@ -2760,7 +2825,16 @@ Always respond with valid JSON only — no markdown, no explanation outside the 
 
     res.json({ success: true, data: { ...parsed, clear_fields } })
   } catch (err) {
-    if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: err.errors }); return }
+    // ⚑ 14 Sep (R121) — OUR SCHEMA'S COMPLAINT IS NOT A SENTENCE FOR A CUSTOMER, here either.
+    // The raw Zod issue array was the answer to a client who typed too much.
+    if (err instanceof z.ZodError) {
+      console.error('[icps/chat-build] request refused —', JSON.stringify({
+        stage: 'request',
+        zod_paths: [...new Set(err.errors.map(e => e.path.join('.') || '(root)'))].slice(0, 8),
+      }))
+      res.status(400).json({ success: false, error: MILLA_RETRY_ERROR, retryable: true })
+      return
+    }
     console.error('[icps/chat-build]', err)
     res.status(500).json({ success: false, error: 'Failed to process message' })
   }

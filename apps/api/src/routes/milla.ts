@@ -386,7 +386,13 @@ millaRouter.post('/sessions/:sessionId/chat', async (req: AuthRequest, res) => {
       .select('role, content')
       .eq('session_id', req.params.sessionId)
       .order('created_at', { ascending: false })
-      .limit(10)
+      // ⚑ 14 Sep (R121, Build 2) — 10 → 40. Ten turns is about five exchanges: a client who
+      // explained something at the top of a conversation was talking to somebody who had
+      // forgotten it by the bottom. 40 matches the window the onboarding route gives her and
+      // the bound the Brief transcript is stored at, so "how much does Milla remember?" has
+      // one answer across the product. Deliberately NOT a summarisation call — that is a
+      // second model turn per message for a problem a bigger window already solves.
+      .limit(40)
 
     const messageHistory = (historyRows ?? []).reverse()
 

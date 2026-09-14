@@ -167,10 +167,18 @@ vi.mock('../lib/founder-alert', () => ({ sendFounderAlert: async () => undefined
 vi.mock('../middleware/auth', () => ({ requireAuth: (_q: unknown, _s: unknown, n: () => void) => n() }))
 
 /** Whatever `/icps/chat-build`'s model call should answer with, verbatim. */
-const modelBox = { text: '{}' }
+// ⛓️ 14 Sep (R121, Build 2) — the model answers `/chat-build` through a TOOL now, not a JSON
+// string. The "Reply with ONLY valid JSON" contract is gone, and with it the `JSON.parse`
+// whose failure put the five-field filter question in front of a paying client. The double
+// carries what the route actually reads: her sentence as text, her targeting as a
+// `propose_targeting` call.
+const modelBox: { text: string; tool: Record<string, unknown> | null } = { text: 'Got it.', tool: null }
 vi.mock('@anthropic-ai/sdk', () => ({
   default: class FakeAnthropic {
-    messages = { create: async () => ({ content: [{ type: 'text', text: modelBox.text }] }) }
+    messages = { create: async () => ({ content: [
+      { type: 'text', text: modelBox.text },
+      ...(modelBox.tool ? [{ type: 'tool_use', id: 't1', name: 'propose_targeting', input: modelBox.tool }] : []),
+    ] }) }
   },
 }))
 
@@ -214,7 +222,9 @@ async function callCreate(body: Row) {
 }
 
 async function callChatBuild(modelJson: unknown) {
-  modelBox.text = typeof modelJson === 'string' ? modelJson : JSON.stringify(modelJson)
+  // A string fixture is still honoured — it exercises "she said words and proposed nothing".
+  if (typeof modelJson === 'string') { modelBox.text = modelJson; modelBox.tool = null }
+  else { modelBox.text = 'Got it.'; modelBox.tool = modelJson as Record<string, unknown> }
   const { icpRouter } = await import('./icps')
   const layer = (icpRouter as unknown as { stack: Array<{ route?: { path: string; methods: Record<string, boolean>; stack: Array<{ handle: Function }> } }> })
     .stack.find(l => l.route?.path === '/chat-build' && l.route?.methods.post)
@@ -378,12 +388,18 @@ describe('/icps/chat-build exposes an explicit, allowlisted clear_fields', () =>
 
   it('the prompt tells the model what [] means, and what clear_fields is for', () => {
     const src = readFileSync(join(__dirname, './icps.ts'), 'utf8')
-    // The old sentence STAYS — `[]` still means "not enough info". That is what makes a
-    // separate signal necessary, so a build that deleted it would have changed the meaning
+    // ⛓️ 14 Sep (R121, Build 2) — the prompt was rewritten from a JSON contract into a
+    // conversation, so the three sentences moved. THE DISTINCTION THEY PROTECT IS UNCHANGED
+    // and is the whole reason `clear_fields` exists: an empty list still means "I do not know
+    // yet", never "remove this", and a build that collapsed the two would change the meaning
     // of every empty array in the system.
-    expect(src).toContain("Leave arrays empty [] if not enough info yet.")
-    expect(src).toContain('It is NOT a request to remove a filter.')
-    expect(src).toContain('"clear_fields": array — ONLY for filters the user EXPLICITLY asked to remove or broaden')
+    expect(src, 'an empty list must still mean "not established"')
+      .toContain('an empty list\nmeans "I do not know yet", never "remove this"')
+    expect(src, 'removing a filter must still be its own explicit signal')
+      .toContain('REMOVING A FILTER IS ITS OWN THING')
+    expect(src).toContain('That is the ONLY way to remove\nsomething, because an empty list already means something else.')
+    // …and the client never meets a menu, which is what the JSON contract used to print.
+    expect(src).toContain('NEVER READ A MENU OUT AT THEM')
   })
 })
 

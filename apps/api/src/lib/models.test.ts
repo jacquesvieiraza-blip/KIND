@@ -168,7 +168,10 @@ describe('🛑 BUILD 0 · the model a human talks to is Sonnet, and nothing else
     // 15s default and aborts a healthy Sonnet turn — invisible in review, obvious here.
     for (const file of [
       'apps/portal/src/components/milla/MillaConversation.tsx',
-      'apps/portal/src/app/(milla)/milla/chat/page.tsx',
+      // ⛓️ 14 Sep (R121, Build 2) — `(milla)/milla/chat/page.tsx` LEFT THIS LIST because it
+      // no longer calls a model: it used to build a SECOND transcript against the same
+      // session the shell conversation already owned, and it now focuses that one
+      // conversation instead. A route that waits on nothing needs no budget.
       'apps/portal/src/app/(milla)/milla/page.tsx',
       'apps/portal/src/components/ui/AgentSidePanel.tsx',
       'apps/portal/src/components/ui/AskFigsyButton.tsx',

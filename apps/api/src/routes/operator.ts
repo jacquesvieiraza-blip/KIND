@@ -7,6 +7,8 @@ import { documentReadFailure } from '../lib/document-read-failure'
 import { writeOperatorAudit, campaignAuditAction } from '../lib/operator-audit'
 import { PAID_TX_TYPES, CASH_TX_TYPES, packState, packLabel, PACK_PRICE_USD } from '../lib/onboarding-pack'
 import { MAX_SEQUENCE_STEPS } from '@kind/shared'
+// ⚑ 14 Sep — the model a human is waiting for. One name, one place.
+import { CONVERSATION_MODEL, AI_TURN_BOUND } from '../lib/models'
 import { namesPerApproval } from '../lib/money-path-math'
 import { invitePartner } from '../lib/partner-invite'
 import { coldView } from '../lib/cold-client'
@@ -1186,12 +1188,12 @@ Vocabulary — map what the operator says onto these; never read them out as a m
     const { default: Anthropic } = await import('@anthropic-ai/sdk')
     const ai = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
     const msg = await ai.messages.create({
-      model: 'claude-haiku-4-5-20251001', max_tokens: 900, system,
+      model: CONVERSATION_MODEL, max_tokens: 900, system,
       messages: [
         ...(history ?? []).slice(-12).map(m => ({ role: m.role, content: m.content })),
         { role: 'user' as const, content: message.slice(0, 2000) },
       ],
-    })
+    }, AI_TURN_BOUND)
     const raw = msg.content.filter(b => b.type === 'text').map(b => (b as { text: string }).text).join('')
       .trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '')
     let parsed: { message?: string; icp?: Record<string, unknown> }
@@ -4164,7 +4166,7 @@ operatorRouter.post('/replies/:id/draft', async (req: Request, res: Response) =>
     const { default: Anthropic } = await import('@anthropic-ai/sdk')
     const ai = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
     const msg = await ai.messages.create({
-      model: 'claude-haiku-4-5-20251001', max_tokens: 500,
+      model: CONVERSATION_MODEL, max_tokens: 500,
       messages: [{ role: 'user', content:
         `You write a short B2B email reply ON BEHALF OF ${c?.company_name ?? 'our client'}` +
         `${c?.industry ? ` (${c.industry})` : ''}. Write as them, never mention an agency or AI.\n\n` +

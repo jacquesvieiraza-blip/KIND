@@ -1,4 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk'
+// ⚑ 14 Sep — the model a human is waiting for. One name, one place.
+import { CONVERSATION_MODEL, AI_TURN_BOUND } from './models'
 import { db } from '@kind/db'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
@@ -244,15 +246,17 @@ export async function chat(params: ChatParams): Promise<ChatResult> {
              `Question: ${userMessage.slice(0, MAX_TURN_CHARS)}`,
   })
 
-  // Haiku, same as the stateless panel: with the client's numbers injected the desk
-  // chat is short factual Q&A (the prompt caps it at 2–4 sentences), and Sonnet's
-  // extra latency was most of the 15s budget. One model on both doors.
+  // ⛓️ 14 Sep — ~~"Haiku, same as the stateless panel: … Sonnet's extra latency was most of
+  // the 15s budget."~~ The founder ruled the other way: "sonnet on every human facing
+  // surface." The latency half of that reasoning was real and is answered where it belongs —
+  // the portal's 15s default was the constraint, and the callers of this door now pass a
+  // budget that fits the model. Still one model on both doors.
   const response = await anthropic.messages.create({
-    model:      'claude-haiku-4-5-20251001',
+    model:      CONVERSATION_MODEL,
     max_tokens: 600,
     system:     systemPrompt,
     messages:   history,
-  })
+  }, AI_TURN_BOUND)
 
   // Find the first text block — do not assume content[0] is text.
   const textBlock = response.content.find(

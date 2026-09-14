@@ -3,6 +3,7 @@
 import { Router } from 'express'
 import { z } from 'zod'
 import Anthropic from '@anthropic-ai/sdk'
+import { CONVERSATION_MODEL, AI_TURN_BOUND } from '../lib/models'
 import { db } from '@kind/db'
 import { requireAuth, AuthRequest } from '../middleware/auth'
 import { processDocument, chat } from '../lib/milla'
@@ -508,11 +509,11 @@ millaRouter.post('/chat', async (req: AuthRequest, res) => {
     const { buildMillaChatSystem } = await import('../lib/milla-chat-system')
 
     const response = await anthropic.messages.create({
-      model: 'claude-haiku-4-5-20251001',
+      model: CONVERSATION_MODEL,
       max_tokens: 600,
       system: buildMillaChatSystem(snapshot, programme, proof),
       messages,
-    })
+    }, AI_TURN_BOUND)
 
     const reply = response.content
       .filter(b => b.type === 'text')

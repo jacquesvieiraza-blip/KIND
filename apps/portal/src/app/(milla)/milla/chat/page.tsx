@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { api } from '@/lib/api'
+import { api, AI_TURN_TIMEOUT_MS } from '@/lib/api'
 import { createClient } from '@/lib/supabase/client'
 
 // #489 — MILLA CONCIERGE CHAT. Re-uses the EXISTING Milla sessions backend verbatim
@@ -55,7 +55,7 @@ export default function MillaChatPage() {
       const tok = await token()
       let sid = sessionId
       if (!sid) { const c = await api.post<{ sessionId: string }>('/milla/sessions', {}, tok); sid = c.sessionId; setSessionId(sid) }
-      const res = await api.post<{ success: boolean; reply: string }>(`/milla/sessions/${sid}/chat`, { message: msg }, tok)
+      const res = await api.post<{ success: boolean; reply: string }>(`/milla/sessions/${sid}/chat`, { message: msg }, tok, AI_TURN_TIMEOUT_MS)
       setMessages(m => [...m, { id: `a-${Date.now()}`, role: 'assistant', content: res.reply }])
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Milla is unavailable right now — please try again')

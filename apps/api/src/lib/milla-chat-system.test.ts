@@ -256,8 +256,13 @@ describe('both doors actually use the shared prompt (wiring, not intent)', () =>
     expect(src.slice(parallel, parallel + 1_400)).toContain('readCustomerProgramme')
     expect((src.match(/Promise\.all/g) ?? []), 'the lookups were split into serial batches')
       .toHaveLength(1)
-    expect(src).not.toMatch(/claude-sonnet/)
-    expect(src).toContain('claude-haiku-4-5')
+    // ⛓️ 14 Sep — ~~`not.toMatch(/claude-sonnet/)` + `toContain('claude-haiku-4-5')`~~.
+    // The founder ruled the conversational surfaces onto Sonnet, so a pin that forbade it
+    // by name was pinning the wrong thing: what matters is that this door reads the SHARED
+    // constant rather than typing a model id of its own, which is what let 46 hand-written
+    // ids drift in the first place.
+    expect(src, 'the desk chat must not hand-type a model id').not.toMatch(/model:\s*'claude-/)
+    expect(src).toContain('CONVERSATION_MODEL')
   })
 
   it('the summary route delegates to the SAME builder the chats read', () => {

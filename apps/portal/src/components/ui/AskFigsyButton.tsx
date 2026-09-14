@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react'
 import { X, Send, Loader2, Lock } from 'lucide-react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
-import { api } from '@/lib/api'
+import { api, AI_TURN_TIMEOUT_MS } from '@/lib/api'
 
 interface Message {
   role: 'user' | 'assistant'
@@ -77,6 +77,7 @@ export function AskFigsyButton({ hasFigsy = false }: { hasFigsy?: boolean }) {
           mode: hasFigsy ? 'full' : 'lead_gen',
         },
         session?.access_token,
+        AI_TURN_TIMEOUT_MS,
       )
       setMessages(prev => [...prev, { role: 'assistant', content: res.data.reply }])
     } catch {

@@ -26,9 +26,21 @@ async function proxy(req: NextRequest, path: string[]) {
   const url = `${API}/${path.join('/')}${req.nextUrl.search}`
   const isGet = req.method === 'GET'
   let res: Response
+  // ── ⚑ 14 Sep — THIS HOP HAD NO BOUND AT ALL, AND NOW ONE OF ITS ROUTES WAITS ON A MODEL ──
+  //
+  // 🛑 EVERY OPERATOR CALL GOES THROUGH HERE, including Vida's conversation. With no timeout
+  // an upstream that never answers holds the operator's request open for as long as the
+  // platform allows and the console shows a spinner that resolves into nothing.
+  //
+  // ⚠️ THE NUMBER IS THE UPSTREAM'S BUDGET PLUS MARGIN, not a guess. The conversational
+  // routes bound their own model call at 30s with no SDK retry (`AI_TURN_BOUND` in the API),
+  // so 45s here cannot be reached by a healthy turn and a call that does reach it is genuinely
+  // stuck. An abort is reported as the same honest "API unreachable" a network failure gets.
+  const bound = AbortSignal.timeout(45_000)
   try {
     res = await fetch(url, {
       method:  req.method,
+      signal:  bound,
       // #486 — forward the VERIFIED operator email (from the Supabase session checked
       // above). The API trusts x-operator-email ONLY because it always arrives with a
       // valid x-admin-key, which only this server-side proxy holds — a browser can never

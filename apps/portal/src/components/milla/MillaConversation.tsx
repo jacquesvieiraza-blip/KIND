@@ -2,7 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
-import { api } from '@/lib/api'
+import { api, AI_TURN_TIMEOUT_MS } from '@/lib/api'
 import { createClient } from '@/lib/supabase/client'
 import {
   STAGE_QUICK_ACTION, type MillaStage,
@@ -283,7 +283,7 @@ export function MillaConversationProvider(
         // no ICP, no version, no message row. The session chat below is deliberately NOT
         // wrapped, because it persists both turns and a re-send would double them.
         const r = await withOneRetry(() => api.post<{ data: IcpDraft & { message?: string } }>(
-          '/icps/chat-build', { message: msg, history }, tok))
+          '/icps/chat-build', { message: msg, history }, tok, AI_TURN_TIMEOUT_MS))
         const d = r.data ?? {}
         setMessages(m => [...m, { id: `a-${Date.now()}`, role: 'assistant', content: d.message || 'Got it — anything else to change?' }])
         // Only treat it as a draft once there is something real to target with.
@@ -298,7 +298,7 @@ export function MillaConversationProvider(
         if (!sid) { const c = await api.post<{ sessionId: string }>('/milla/sessions', {}, tok); sid = c.sessionId }
         setSessionId(sid)
       }
-      const res = await api.post<{ reply: string }>(`/milla/sessions/${sid}/chat`, { message: msg }, tok)
+      const res = await api.post<{ reply: string }>(`/milla/sessions/${sid}/chat`, { message: msg }, tok, AI_TURN_TIMEOUT_MS)
       setMessages(m => [...m, { id: `a-${Date.now()}`, role: 'assistant', content: res.reply }])
     } catch (e) {
       // ── 🛑 10 Sep (C01) — THE COLLAPSE IS GONE, AND SO IS THE THROWN-AWAY MESSAGE ───────

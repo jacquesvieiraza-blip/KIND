@@ -1964,9 +1964,14 @@ describe('one Anthropic call per turn, with headroom, on the same model', () => 
     expect(route).not.toContain('max_tokens: 700')
   })
 
-  it('the model is unchanged', () => {
-    expect(icpsSrc).toContain("const BUILDER_MODEL = 'claude-haiku-4-5-20251001'")
+  it('the model is the SHARED conversational one, never a hand-typed id', () => {
+    // ⛓️ 14 Sep — ~~`toContain("const BUILDER_MODEL = 'claude-haiku-4-5-20251001'")`~~. The
+    // founder ruled every human-facing surface onto Sonnet; this pin now protects the thing
+    // that actually matters, which is that the id has ONE home and this route reads it.
+    expect(icpsSrc).toContain('const BUILDER_MODEL = CONVERSATION_MODEL')
     expect(route).toContain('model: BUILDER_MODEL,')
+    expect(route, 'a hand-typed model id here is how the 46 copies happened')
+      .not.toMatch(/model:\s*'claude-/)
   })
 
   it('EXACTLY ONE Anthropic call exists in this route — no repair retry was introduced', () => {

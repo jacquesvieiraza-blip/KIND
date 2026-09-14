@@ -6,7 +6,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { Sparkles, Send, Loader2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
-import { api } from '@/lib/api'
+import { api, AI_TURN_TIMEOUT_MS } from '@/lib/api'
 
 const BRAND = '#7C3AED'
 const card = 'bg-white rounded-2xl border border-gray-200 shadow-sm'
@@ -44,6 +44,7 @@ export default function ConversationalSetup() {
         '/casey/chat',
         { message: msg, history },
         session?.access_token,
+        AI_TURN_TIMEOUT_MS,
       )
       setMessages(prev => [...prev, { role: 'assistant', content: res.data?.reply || "Sorry, I didn't catch that — could you rephrase?" }])
     } catch {

@@ -48,6 +48,8 @@ import {
 // ⚑ 14 Sep (S1-RT-009B) — the model may interpret language; it may not assert facts about the
 // client. These read the transcript to decide whether the CUSTOMER established a fact.
 import { countryHasCustomerEvidence } from '../lib/brief-truth-guards'
+// ⚑ 14 Sep — the model a human is waiting for. One name, one place (`lib/models.ts`).
+import { CONVERSATION_MODEL, AI_TURN_BOUND } from '../lib/models'
 // ⚑ 14 Sep (S1-RT-006) — the markets we can actually work in, interpolated into the prompt
 // so Milla asks naturally rather than the client discovering it at promotion. The GATE is
 // `confirmBriefDraft`; this only stops her walking them into it.
@@ -2723,11 +2725,11 @@ Always respond with valid JSON only — no markdown, no explanation outside the 
     ]
 
     const response = await anthropic.messages.create({
-      model: 'claude-haiku-4-5-20251001',
+      model: CONVERSATION_MODEL,
       max_tokens: 600,
       system,
       messages,
-    })
+    }, AI_TURN_BOUND)
 
     const raw = (response.content[0] as { type: string; text: string }).text.trim()
     let parsed: Record<string, unknown>
@@ -2840,8 +2842,11 @@ icpRouter.post('/fresh', async (req: AuthRequest, res) => {
 const MILLA_REPLY_TOOL = 'milla_reply'
 
 /** One definition, so the failure log and the request can never name different models.
- *  UNCHANGED by this fix — the founder ruled the model stays put (24 Aug). */
-const BUILDER_MODEL = 'claude-haiku-4-5-20251001'
+ *  ⛓️ 14 Sep — ~~"UNCHANGED by this fix — the founder ruled the model stays put (24 Aug)"~~.
+ *  That ruling was about a transport fix, not about the model itself; it is superseded by
+ *  "sonnet on every human facing surface." Milla's whole job on this route is understanding
+ *  what a person actually meant, and this is the model that does it. */
+const BUILDER_MODEL = CONVERSATION_MODEL
 
 /** The closed lists the launch targeting fields accept. ONE definition, used by both the
  *  tool schema (as `enum`) and the prompt (as prose) so the two can never drift apart —

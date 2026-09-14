@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import { z } from 'zod'
 import Anthropic from '@anthropic-ai/sdk'
+import { CONVERSATION_MODEL, AI_TURN_BOUND } from '../lib/models'
 import { db } from '@kind/db'
 import { requireAuth, AuthRequest } from '../middleware/auth'
 import { rateLimit } from '../lib/rate-limit'
@@ -67,11 +68,11 @@ supportRouter.post('/chat', supportAiLimit, async (req: AuthRequest, res) => {
     const { messages } = parsed.data
 
     const response = await anthropic.messages.create({
-      model:      'claude-haiku-4-5-20251001',
+      model:      CONVERSATION_MODEL,
       max_tokens: 400,
       system:     SYSTEM_PROMPT,
       messages,
-    })
+    }, AI_TURN_BOUND)
 
     const text = (response.content[0] as { type: string; text: string }).text
     res.json({ success: true, data: { reply: text } })

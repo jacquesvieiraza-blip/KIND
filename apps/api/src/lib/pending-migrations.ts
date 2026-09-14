@@ -5370,7 +5370,7 @@ grant  execute on function public.apply_pending_revision(uuid, uuid, uuid) to se
 -- ═══════════════════════════════════════════════════════════════════════════════════════
 
 create table if not exists public.vida_conversations (
-  id            uuid primary key default uuid_generate_v4(),
+  id            uuid primary key default gen_random_uuid(),
   -- The VERIFIED operator email, as the proxy forwards it and operator_audit_log records
   -- it. Text rather than a user id because operators are an allowlist, not a table.
   operator      text not null,

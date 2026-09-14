@@ -48,12 +48,36 @@ export function readVidaConversation(v: unknown): VidaTurn[] {
 export async function vidaConversationFor(
   operator: string, clientId: string,
 ): Promise<VidaTurn[]> {
+  return (await readThread(operator, clientId)).turns
+}
+
+/**
+ * 🛑 "THERE IS NO THREAD" AND "WE COULD NOT READ THE THREAD" ARE DIFFERENT FACTS.
+ *
+ * ⛓️ 14 Sep (F5) — THEY USED TO BE THE SAME `[]`, and that cost the operator their history.
+ * `appendVidaConversation` reads, merges and writes back. When the read FAILED it received an
+ * empty list, merged this turn onto nothing, and upserted the result — so a transient
+ * database blip did not lose one turn, it **overwrote the entire conversation with the single
+ * turn that happened to be in flight**, and reported `ok: true` while doing it.
+ *
+ * It is the same shape as the defect the Brief closed on the model path: an EMPTY that means
+ * "we do not know" being written as if it meant "there is nothing".
+ *
+ * ⚠️ READING STILL FAILS SOFT. A caller that only wants to SHOW the thread gets `[]` and Vida
+ * answers without her memory, which is right — an unreadable thread must never cost the
+ * operator their answer. Only the WRITER is allowed to care about the difference, because
+ * only the writer can destroy something.
+ */
+async function readThread(
+  operator: string, clientId: string,
+): Promise<{ ok: boolean; turns: VidaTurn[] }> {
   try {
     const { data, error } = await db.from('vida_conversations')
       .select('conversation').eq('operator', operator).eq('client_id', clientId).maybeSingle()
-    if (error || !data) return []
-    return readVidaConversation((data as { conversation: unknown }).conversation)
-  } catch { return [] }
+    if (error) return { ok: false, turns: [] }
+    if (!data) return { ok: true, turns: [] }          // genuinely no thread yet
+    return { ok: true, turns: readVidaConversation((data as { conversation: unknown }).conversation) }
+  } catch { return { ok: false, turns: [] } }
 }
 
 /**
@@ -69,8 +93,13 @@ export async function appendVidaConversation(
 ): Promise<{ ok: boolean }> {
   if (turns.length === 0) return { ok: true }
   try {
-    const existing = await vidaConversationFor(operator, clientId)
-    const merged = readVidaConversation([...existing, ...turns])
+    // 🛑 FAIL CLOSED ON AN UNKNOWN THREAD. Writing when we could not read means upserting a
+    // conversation assembled from nothing — every turn already exchanged, gone, replaced by
+    // whichever message happened to be in flight. The operator loses their answer for this
+    // turn; they do not lose the conversation.
+    const existing = await readThread(operator, clientId)
+    if (!existing.ok) return { ok: false }
+    const merged = readVidaConversation([...existing.turns, ...turns])
     const { error } = await db.from('vida_conversations')
       .upsert({
         operator, client_id: clientId,

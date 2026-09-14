@@ -1,3 +1,9 @@
+-- ⚑ 14 Sep (F5 rehearsal) — gen_random_uuid(), NOT uuid_generate_v4().
+-- 🛑 REHEARSING THIS ON A CLEAN POSTGRES 16 FAILED: uuid_generate_v4() lives in the
+-- uuid-ossp EXTENSION, and no migration in this repository creates it — the twelve files
+-- that call it rely on Supabase having installed it for them. gen_random_uuid() is built
+-- into Postgres 13+, needs no extension, and is already what 45 of this repo's migrations
+-- use. The earlier rehearsal of this file did not catch it.
 -- ═══════════════════════════════════════════════════════════════════════════════════════
 -- VIDA REMEMBERS THE CLIENT SHE IS WORKING ON. (R121, BUILD 3.)
 --
@@ -32,7 +38,7 @@
 -- ═══════════════════════════════════════════════════════════════════════════════════════
 
 create table if not exists public.vida_conversations (
-  id            uuid primary key default uuid_generate_v4(),
+  id            uuid primary key default gen_random_uuid(),
   -- The VERIFIED operator email, as the proxy forwards it and operator_audit_log records
   -- it. Text rather than a user id because operators are an allowlist, not a table.
   operator      text not null,

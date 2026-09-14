@@ -30,7 +30,25 @@ export type AlertKind = 'payment_failed' | 'new_signup' | 'sends_stalled' | 'api
   // — a human's action is never blocked by a logging hiccup — but never silent either.
   | 'audit_dropped'
 
-export async function sendFounderAlert(kind: AlertKind, subject: string, lines: string[]): Promise<void> {
+/**
+ * 🛑 ⚑ 14 Sep (RT-008) — IT NOW REPORTS WHETHER ANYBODY WAS ACTUALLY REACHED.
+ *
+ * ⛓️ IT RETURNED `void`. Every one of the three channels already tracked its own success
+ * here, and the function threw all three away — so a caller could not tell "the founder has
+ * been told" from "nothing landed anywhere". `POST /support/escalate` answered
+ * `{ success: true }` regardless, and the Milla Get Help button told a stuck client that a
+ * human was coming on the strength of a function that had just logged ⛔ ALERT LOST.
+ *
+ * ⚠️ NOTHING ABOUT DELIVERY CHANGED. Same three channels, same order, same swallowing of
+ * each individual failure — an alert must still never throw into a caller's path. The only
+ * change is that the outcome is now knowable by the caller that needs to be honest about it.
+ *
+ * ⚠️ `delivered` MEANS AT LEAST ONE CHANNEL LANDED, and the durable row counts: a founder
+ * alert sitting in `founder_alerts` is recoverable, where a lost one is not.
+ */
+export interface AlertDelivery { delivered: boolean; emailOk: boolean; slackOk: boolean; durableOk: boolean }
+
+export async function sendFounderAlert(kind: AlertKind, subject: string, lines: string[]): Promise<AlertDelivery> {
   const body = lines.filter(Boolean).join('\n')
   const tag = `[${kind}]`
 
@@ -89,4 +107,5 @@ export async function sendFounderAlert(kind: AlertKind, subject: string, lines: 
   if (!emailOk && !slackOk && !durableOk) {
     console.error(`[alerts] ⛔ ALERT LOST — no channel delivered: ${tag} ${subject} — ${body}`)
   }
+  return { delivered: emailOk || slackOk || durableOk, emailOk, slackOk, durableOk }
 }

@@ -1,7 +1,7 @@
 import { Router } from 'express'
 import { z } from 'zod'
 import Anthropic from '@anthropic-ai/sdk'
-import { CONVERSATION_MODEL, AI_TURN_BOUND } from '../lib/models'
+import { BACKGROUND_MODEL, AI_TURN_BOUND } from '../lib/models'
 import { db } from '@kind/db'
 import { requireAuth, AuthRequest } from '../middleware/auth'
 import { rateLimit } from '../lib/rate-limit'
@@ -68,7 +68,7 @@ supportRouter.post('/chat', supportAiLimit, async (req: AuthRequest, res) => {
     const { messages } = parsed.data
 
     const response = await anthropic.messages.create({
-      model:      CONVERSATION_MODEL,
+      model:      BACKGROUND_MODEL,
       max_tokens: 400,
       system:     SYSTEM_PROMPT,
       messages,
@@ -128,7 +128,7 @@ supportRouter.post(
       }
       const who = client?.company_name || onboardingName || 'a client'
 
-      await sendFounderAlert(
+      const delivery = await sendFounderAlert(
         'support_escalation',
         `🆘 Support request — ${who}`,
         [
@@ -146,6 +146,24 @@ supportRouter.post(
         ],
       )
 
+      // ── 🛑 ⚑ 14 Sep (RT-008) — WE ONLY SAY A HUMAN WAS TOLD IF ONE ACTUALLY WAS ────────
+      //
+      // ⛓️ THIS ANSWERED `{ success: true }` UNCONDITIONALLY, because `sendFounderAlert`
+      // returned `void`. A stuck client pressing Get Help on the Milla Brief was shown "we
+      // have told the team" while every channel could have failed silently — email
+      // unconfigured, Slack unconfigured, the durable insert rejected. The button reported a
+      // rescue that never happened, which is worse than a button that says it could not.
+      //
+      // ⚠️ THE CLIENT IS NEVER SHOWN THE TECHNICAL REASON. They get a plain sentence and a
+      // way out; the channel detail is logged for us.
+      if (!delivery.delivered) {
+        console.error('[support/escalate] ⛔ nobody was reached —', JSON.stringify(delivery))
+        res.status(503).json({
+          success: false, retryable: true,
+          error: 'We could not get a message to the team just now. Nothing you typed is lost — please try again, or email hello@get-kind.com.',
+        })
+        return
+      }
       res.json({ success: true, data: { escalated: true } })
     } catch (err) {
       if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: err.errors }); return }

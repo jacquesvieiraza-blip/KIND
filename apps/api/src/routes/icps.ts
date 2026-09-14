@@ -2741,6 +2741,38 @@ Consulting or Telecoms — ask about that ONE thing in ordinary words, and nothi
 
 ⚠️ NEVER INVENT THEIR TARGETING. If you are not sure what they meant, ask.`
 
+    // ── 🛑 ⚑ 14 Sep — SHE IS THE SAME MILLA HERE, AND SHE WAS NOT ────────────────────────
+    //
+    // 🛑 THE DEFECT. This door received twenty turns of BROWSER history and nothing else. No
+    // Brief, no durable transcript, no memory of the twenty minutes the client had already
+    // spent telling her what their business is and who to avoid. A client who came here to
+    // change one market met somebody who had never heard of them — and the founder's rule for
+    // the desk chat ("she remembers everything you've told her") was silently untrue on the
+    // one door a paying client uses to change their targeting.
+    //
+    // ⚠️ THE SAME MEMORY THE DESK CHAT READS, through the same helper, so there is ONE answer
+    // to "what does Milla know about this client". Nothing here writes a fact: this door
+    // proposes targeting and the merge happens elsewhere under AR9.
+    //
+    // ⚠️ BEST-EFFORT. A Brief we cannot read costs the client their memory, never their turn —
+    // she answers without it exactly as she did before, which is strictly today's behaviour.
+    let briefBlock = ''
+    if (req.userId) {
+      try {
+        const { briefDraftFor } = await import('../lib/brief-draft')
+        const { describeBriefMemory } = await import('../lib/milla-chat-system')
+        const d = await briefDraftFor(req.userId)
+        if (d) {
+          briefBlock = describeBriefMemory({
+            facts: d.facts as Record<string, unknown>,
+            conversation: (d.conversation ?? []) as Array<{ role: string; content: string }>,
+          })
+        }
+      } catch {
+        console.log('[icps/chat-build] brief memory unreadable — she answers without it')
+      }
+    }
+
     const messages = [
       ...history,
       { role: 'user' as const, content: message },
@@ -2749,7 +2781,7 @@ Consulting or Telecoms — ask about that ONE thing in ordinary words, and nothi
     const response = await anthropic.messages.create({
       model: CONVERSATION_MODEL,
       max_tokens: 600,
-      system,
+      system: system + briefBlock,
       tools: [{
         name: 'propose_targeting',
         description: 'The targeting as it should end up after what the client just said. Send the WHOLE profile, starting from what they already have.',
@@ -3972,6 +4004,31 @@ result or a number. "permitted" is false unless they explicitly said we may use 
       tool_choice: { type: 'tool', name: MILLA_REPLY_TOOL, disable_parallel_tool_use: true },
       messages: windowed.map(m => ({ role: m.role, content: m.content })),
     }, { timeout, maxRetries: 0 })
+
+    // ── 🛑 ⚑ 14 Sep — THE CUSTOMER'S MESSAGE IS OURS BEFORE THE PROVIDER IS ASKED ────────
+    //
+    // 🛑 FOUNDER RULING: "Do not make the customer retype because our AI/provider failed."
+    // The transcript used to be written only at the BOTTOM of a successful turn, so a
+    // provider outage stored nothing and what they had typed lived in React state alone. One
+    // refresh and it was gone — and the banner asked them to try again at something they had
+    // done correctly.
+    //
+    // ⚠️ THEIR WORDS ARE ALREADY TRUE. Whether we can answer is a separate question and it
+    // happens after this line. A failed turn now loses our reply, never their message.
+    //
+    // ⚠️ BEST-EFFORT AND NON-BLOCKING IN EFFECT: a store that refuses (promoted draft) or
+    // fails must not cost them the turn, so the outcome is logged and the conversation
+    // continues. Idempotent — the browser re-sends the whole transcript, so this is a
+    // snapshot write and a retry cannot duplicate a message.
+    if (req.userId) {
+      try {
+        const { rememberCustomerTurn } = await import('../lib/brief-draft')
+        const held = await rememberCustomerTurn(req.userId, windowed.map(m => ({ role: m.role, content: m.content })))
+        if (!held.ok) console.log('[icps/builder/chat] customer turn not persisted before the model call')
+      } catch (e) {
+        console.error('[icps/builder/chat] customer-turn write threw — the turn continues:', (e as Error)?.name ?? 'unknown')
+      }
+    }
 
     let response: Awaited<ReturnType<typeof anthropic.messages.create>>
     try {

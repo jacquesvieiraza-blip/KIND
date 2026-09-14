@@ -27,7 +27,10 @@ import {
 // surface simply does not register one — the generic operator command router then answers,
 // which is exactly as conservative as it already was.
 
-type CmdMsg = { role: 'operator' | 'vida'; text: string; link?: string | null }
+// ⚑ 14 Sep (R121, Build 5) — `notice` IS THE CONSOLE TALKING, NOT VIDA. A failed turn used to
+// be pushed into the log as a Vida bubble ("Command failed"), so the operator read a transport
+// fault as something she had said. A notice renders in the margin, in the console's voice.
+type CmdMsg = { role: 'operator' | 'vida' | 'notice'; text: string; link?: string | null }
 type Blockers = { send_gate: number; money_gate: number; unsent_sourced: number; replies_to_triage: number }
 type SourcePreview = { count: number; pool_free: number; pdl_needed: number; pdl_cost_est: number; allowance_left: number; leads_per_run: number; capped: boolean; is_demo: boolean; icp_name?: string | null; no_active_icp?: boolean }
 
@@ -353,7 +356,12 @@ export function VidaConversationProvider({ children }: { children: React.ReactNo
         try { sessionStorage.setItem(`vida:icp-handoff:${selected}`, String(json.handoff_text)) } catch { /* private mode */ }
         handlers.current.onHandoff?.(String(json.handoff_text))
       }
-      setCmdLog(l => [...l, { role: 'vida', text: json.reply, link: json.link }])
+      // ⚑ 14 Sep (R121, Build 5) — A PROPOSAL WITHOUT WORDS SHOWS THE CARD AND NO BUBBLE.
+      // The server no longer invents a sentence for that case, so an empty reply here means
+      // "she proposed and said nothing", never "she said nothing at all" — that is a 503.
+      if (typeof json.reply === 'string' && json.reply.trim()) {
+        setCmdLog(l => [...l, { role: 'vida', text: json.reply, link: json.link }])
+      }
 
       // ── ⚑ 14 Sep (R121) — SHE PROPOSED SOMETHING; THE OPERATOR STILL PRESSES THE BUTTON ──
       //
@@ -374,7 +382,7 @@ export function VidaConversationProvider({ children }: { children: React.ReactNo
         else void previewSource(Math.max(1, Math.min(200, Number(proposal.input?.count) || 20)))
       }
     } catch (e) {
-      setCmdLog(l => [...l, { role: 'vida', text: e instanceof Error ? e.message : 'Command failed' }])
+      setCmdLog(l => [...l, { role: 'notice', text: e instanceof Error ? e.message : 'Command failed' }])
     } finally { setCmdBusy(false) }
   }
 
@@ -448,7 +456,9 @@ export function VidaConversationProvider({ children }: { children: React.ReactNo
               Everything you do here is scoped to them.
             </div>
           )}
-          {cmdLog.map((m, i) => (
+          {cmdLog.map((m, i) => m.role === 'notice' ? (
+            <div key={i} className="text-center text-[12px] text-[#8b7fa8] italic px-2">{m.text}</div>
+          ) : (
             <div key={i} className={m.role === 'operator' ? 'text-right' : ''}>
               <span className={`inline-block text-[13.5px] leading-relaxed rounded-xl px-3.5 py-2 max-w-[85%] text-left ${m.role === 'operator' ? 'bg-[#1f1235] text-white' : 'bg-white border border-[#eee7f7] text-[#1f1235]'}`}>{m.text}</span>
               {/* ⚑ 4 Sep — SAME PAGE, SO NO NAVIGATION. The link is the console with a tab and

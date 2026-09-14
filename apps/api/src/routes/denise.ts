@@ -11,7 +11,7 @@
 import { Router } from 'express'
 import { z } from 'zod'
 import Anthropic from '@anthropic-ai/sdk'
-import { CONVERSATION_MODEL, AI_TURN_BOUND } from '../lib/models'
+import { BACKGROUND_MODEL, AI_TURN_BOUND } from '../lib/models'
 import { db } from '@kind/db'
 import { requireAuth, AuthRequest } from '../middleware/auth'
 import { draftFollowUp, draftProposal, draftMeetingPrep } from '../lib/denise'
@@ -108,7 +108,7 @@ deniseRouter.post('/chat', deniseAiLimit, async (req: AuthRequest, res) => {
     ]
 
     const response = await anthropic.messages.create({
-      model: CONVERSATION_MODEL,
+      model: BACKGROUND_MODEL,
       max_tokens: 600,
       system: DENISE_CHAT_SYSTEM,
       messages,

@@ -8,7 +8,7 @@ import { writeOperatorAudit, campaignAuditAction } from '../lib/operator-audit'
 import { PAID_TX_TYPES, CASH_TX_TYPES, packState, packLabel, PACK_PRICE_USD } from '../lib/onboarding-pack'
 import { MAX_SEQUENCE_STEPS } from '@kind/shared'
 // ⚑ 14 Sep — the model a human is waiting for. One name, one place.
-import { CONVERSATION_MODEL, AI_TURN_BOUND } from '../lib/models'
+import { CONVERSATION_MODEL, BACKGROUND_MODEL, AI_TURN_BOUND } from '../lib/models'
 import { namesPerApproval } from '../lib/money-path-math'
 import { invitePartner } from '../lib/partner-invite'
 import { coldView } from '../lib/cold-client'
@@ -4164,7 +4164,7 @@ operatorRouter.post('/replies/:id/draft', async (req: Request, res: Response) =>
     const { default: Anthropic } = await import('@anthropic-ai/sdk')
     const ai = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
     const msg = await ai.messages.create({
-      model: CONVERSATION_MODEL, max_tokens: 500,
+      model: BACKGROUND_MODEL, max_tokens: 500,
       messages: [{ role: 'user', content:
         `You write a short B2B email reply ON BEHALF OF ${c?.company_name ?? 'our client'}` +
         `${c?.industry ? ` (${c.industry})` : ''}. Write as them, never mention an agency or AI.\n\n` +
@@ -4634,9 +4634,13 @@ operatorRouter.post('/command', async (req: Request, res: Response) => {
       icp: icpRow,
     })
 
-    // ⚠️ NO KEY IS NOT A CRASH. She says so plainly and the operator keeps every other door.
+    // ⚠️ NO KEY IS NOT A CRASH — AND IT IS NOT VIDA SPEAKING, EITHER. ⛓️ This used to answer
+    // `success: true` with a sentence in her voice ("I can't reach my brain right now…"); an
+    // operator read that as Vida having heard them. It is an operational fault, reported as
+    // one, and every other door in the console stays open.
     if (!process.env.ANTHROPIC_API_KEY) {
-      res.json({ success: true, reply: "I can't reach my brain right now — the console still works, and the client tools below are all live.", kind: 'answer', link: null })
+      res.status(503).json({ success: false, retryable: false,
+        error: 'Vida is not configured on this server (no model key). The rest of the console still works.' })
       return
     }
 
@@ -4665,11 +4669,27 @@ operatorRouter.post('/command', async (req: Request, res: Response) => {
       proposal.input.count = boundedSourcingCount(proposal.input.count)
     }
 
-    // ⚠️ SHE ALWAYS SAYS SOMETHING. A turn that produced only a tool call would leave the
-    // operator with a button and no sentence; the fallback names what she proposed.
-    const spoken = reply || (proposal
-      ? 'Here — take a look and confirm if that is right.'
-      : 'I did not catch that — say it again?')
+    // ── 🛑 ⚑ 14 Sep (R121, Build 5) — HER WORDS ARE HERS, OR THERE ARE NONE ──────────────
+    //
+    // ⛓️ TWO CANNED SENTENCES STOOD HERE: ~~"Here — take a look and confirm if that is
+    // right."~~ when she proposed without speaking, and ~~"I did not catch that — say it
+    // again?"~~ when she produced nothing at all. The second is the regex router's own
+    // fallback with the regexes removed: it tells the operator she HEARD them and did not
+    // understand, when what happened is that no reply came back. The founder's rule for
+    // Milla is the rule for Vida — nothing composes a sentence on her behalf.
+    //
+    // ⚠️ A PROPOSAL WITHOUT WORDS IS STILL AN ANSWER. The console renders the proposal card
+    // and skips the empty bubble. NOTHING AT ALL is reported as what it is: a failed turn,
+    // retryable, with no sentence attached to her name.
+    if (!reply && !proposal) {
+      console.warn('[operator/command] the model returned neither words nor a proposal —', JSON.stringify({
+        stage: 'reply', stop_reason: msg.stop_reason ?? null, blocks: msg.content.length,
+      }))
+      res.status(503).json({ success: false, retryable: true,
+        error: 'Vida did not answer that time. Say it again.' })
+      return
+    }
+    const spoken = reply
 
     const { appendVidaConversation } = await import('../lib/vida-conversation')
     const at = new Date().toISOString()

@@ -20,7 +20,7 @@ import { logOutcomeEvent } from '../lib/outcomes'
 import { verifyUnsubscribeToken, warmupRampCap, spamScore } from '../lib/deliverability'
 import { emitSignal } from './signals'
 // ⚑ 14 Sep — the model a human is waiting for. One name, one place.
-import { CONVERSATION_MODEL, AI_TURN_BOUND } from '../lib/models'
+import { BACKGROUND_MODEL, AI_TURN_BOUND } from '../lib/models'
 import { rateLimit } from '../lib/rate-limit'
 import { isDuplicateWebhookEvent } from '../lib/webhook-idempotency'
 import { processInboundReply } from '../lib/reply-pipeline'
@@ -2968,7 +2968,7 @@ You help the user understand their ICP, lead scoring, and who to target first. Y
 For campaign management features (sequences, email sends, inbox), mention they can upgrade to full FIGSY.
 Keep replies concise (2-4 sentences max). Be direct and helpful.`
 
-    const model = CONVERSATION_MODEL
+    const model = BACKGROUND_MODEL
     const tools = [{
       name: 'enroll_leads',
       description: 'Enrol the user\'s campaign-ready (Apollo-verified) leads into their active FIGSY campaign and begin outreach. Call this when the user asks to enrol, launch, start, send, or activate outreach to their leads. Only verified leads are enrolled; opted-out and do-not-contact leads are always excluded automatically.',

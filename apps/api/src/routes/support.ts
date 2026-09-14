@@ -102,12 +102,44 @@ supportRouter.post(
         email = user?.email ?? ''
       } catch { /* best-effort — the alert still goes, just without a reply-to */ }
 
+      // ── ⚑ 14 Sep (S1-RT-004) — SOMEBODY STILL IN ONBOARDING HAS NO CLIENT ROW ────────
+      //
+      // 🛑 THIS ROUTE ALREADY WORKED FOR THEM — `.maybeSingle()` and the auth lookup mean a
+      // person with no `clients` row still reaches a human — but the alert then read
+      // "Client: (unknown)", which tells an operator nothing they can act on. The Milla
+      // Brief escape (S1-RT-004) is reached precisely by people who have no client row yet,
+      // so the one identity we DO hold is named instead of a blank.
+      //
+      // ⚠️ READ-ONLY AND BEST-EFFORT. A draft that cannot be read costs nobody their
+      // escalation; the alert simply goes without the company name, exactly as before.
+      let onboardingName = ''
+      let onboardingProgress = ''
+      if (!client?.company_name) {
+        try {
+          const { briefDraftFor, draftProgress } = await import('../lib/brief-draft')
+          const draft = await briefDraftFor(req.userId!)
+          if (draft) {
+            onboardingName = (draft.facts.company_name ?? '').trim()
+            const p = draftProgress(draft)
+            onboardingProgress = `${p.count} of ${p.total} Brief facts held`
+          }
+        } catch { /* the alert still goes — an unreadable draft is not a reason to drop it */ }
+      }
+      const who = client?.company_name || onboardingName || 'a client'
+
       await sendFounderAlert(
         'support_escalation',
-        `🆘 Support request — ${client?.company_name ?? 'a client'}`,
+        `🆘 Support request — ${who}`,
         [
-          `Client: ${client?.company_name ?? '(unknown)'}`,
+          client?.company_name
+            ? `Client: ${client.company_name}`
+            : `ONBOARDING (no client row yet): ${onboardingName || '(company not yet given)'}`,
           `Reply to: ${email || '(no email on file)'}`,
+          // ⚠️ THE AUTH USER ID, so Vida can find the exact draft. It is an internal
+          // identifier, never a secret, and it is the only durable handle a person who has
+          // not been promoted yet actually has.
+          `Onboarding user id: ${req.userId ?? '(unknown)'}`,
+          ...(onboardingProgress ? [`Brief progress: ${onboardingProgress}`] : []),
           '',
           message.trim(),
         ],

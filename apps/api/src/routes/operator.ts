@@ -11,6 +11,27 @@ import { namesPerApproval } from '../lib/money-path-math'
 import { invitePartner } from '../lib/partner-invite'
 import { coldView } from '../lib/cold-client'
 import type { InboxRow } from '../lib/sending-inbox'
+// ⚑ 14 Sep (S1-RT-005) — the fail-soft provider translation. The operator rail below is
+// where a Brief we could not translate reaches a person, before Proof or any spend.
+import {
+  icpNeedsReview, resolveReview, type ProviderField,
+} from '../lib/icp-provider-translation'
+
+/**
+ * 🛑 THE THREE CLOSED PROVIDER VOCABULARIES, IN ONE PLACE FOR THE OPERATOR RAIL.
+ *
+ * ⚠️ THEY ARE DECLARED HERE RATHER THAN IMPORTED FROM `routes/icps.ts` because that module
+ * keeps them module-private and importing the ICP route into the operator route to reach
+ * three arrays would pull a 5,000-line router in for a constant. A drift guard in
+ * `s1-icp-review.test.ts` asserts these are byte-identical to the ICP route's, so the two
+ * cannot disagree without a test going red — which is the property that matters, not where
+ * the literal lives.
+ */
+const ICP_REVIEW_VOCABULARIES: Record<ProviderField, readonly string[]> = {
+  industries:       ['Fintech', 'Healthtech', 'E-commerce', 'SaaS', 'Logistics', 'Agriculture', 'Education', 'Manufacturing', 'Real Estate', 'Media', 'Consulting', 'Retail', 'Banking', 'Insurance', 'Telecoms', 'Energy'],
+  seniority_levels: ['C-Suite', 'VP / Director', 'Head of', 'Manager', 'Senior', 'Individual Contributor'],
+  company_sizes:    ['1–10', '11–50', '51–200', '201–500', '501–1,000', '1,000+'],
+}
 
 // #483–#487 — VIDA OPERATOR CONSOLE API.
 // This is the server side of Vida: the surfaces WE (operators) use to run a client's
@@ -2678,6 +2699,197 @@ operatorRouter.post('/proof-review/:clientId/restart', async (req: Request, res:
  * ⚠️ IT CANNOT SILENTLY OVERWRITE. A second press answers `already_classified`; correcting a
  * classification requires `force: true`, which is a separate decision and is audited as one.
  */
+/**
+ * 🛑 ⚑ 14 Sep (S1-RT-005) — NEEDS ICP REVIEW: the rail, and the resolution.
+ *
+ * ── WHY THIS EXISTS ───────────────────────────────────────────────────────────────────
+ *
+ * A client described their own market in their own words and our CLOSED provider
+ * vocabularies could not take them. The old behaviour refused the whole Milla reply —
+ * "Milla didn't catch that", deterministically, for ever. Their words are now kept, only
+ * what we can prove is canonicalised, and what is left reaches THIS rail before Proof or any
+ * provider spend is possible.
+ *
+ *     THE CLIENT SPEAKS NATURALLY. THE CLIENT NEVER HAS TO SPEAK APOLLO.
+ *     PROVIDER TRANSLATION IS OUR PROBLEM, NOT THEIRS.
+ *
+ * ⚠️ READ-ONLY. It settles nothing and changes nothing; the resolve route below is the only
+ * thing that writes, and it re-canonicalises every value before it does.
+ */
+operatorRouter.get('/icp-review', async (req: Request, res: Response) => {
+  try {
+    if (!adminKeyValid(req.headers['x-admin-key'])) {
+      res.status(403).json({ success: false, error: 'Operator key required' }); return
+    }
+    const { data, error } = await db.from('icps')
+      .select('id, client_id, name, target_category, target_company_type, industries, seniority_levels, company_sizes, geographies, job_titles, icp_review, icp_review_at')
+      .not('icp_review', 'is', null)
+      .is('icp_review_resolved_at', null)
+      .order('icp_review_at', { ascending: true })
+      .limit(100)
+    if (error) { res.status(500).json({ success: false, error: error.message }); return }
+    const rows = (data ?? []) as Array<Record<string, unknown>>
+    // The company name and the CONFIRMED customer truth, so an operator translates from what
+    // the client actually said rather than from a field name. Two bounded reads, not a join:
+    // this rail is small by construction (the partial index exists for exactly that reason).
+    const out = []
+    for (const r of rows) {
+      const { data: c } = await db.from('clients')
+        .select('company_name, user_id').eq('id', r.client_id as string).maybeSingle()
+      const cl = (c ?? {}) as { company_name?: string | null; user_id?: string | null }
+      let briefFactsHeld: unknown = null
+      if (cl.user_id) {
+        try {
+          const { briefDraftFor } = await import('../lib/brief-draft')
+          const draft = await briefDraftFor(cl.user_id)
+          briefFactsHeld = draft?.facts ?? null
+        } catch { /* the rail still renders — the review payload carries their words too */ }
+      }
+      out.push({
+        icp_id: r.id, client_id: r.client_id, company_name: cl.company_name ?? null,
+        name: r.name, review: r.icp_review, review_at: r.icp_review_at,
+        // What DID translate, so the operator can see the shape they are completing.
+        canonical: {
+          industries: r.industries, seniority_levels: r.seniority_levels,
+          company_sizes: r.company_sizes, geographies: r.geographies, job_titles: r.job_titles,
+        },
+        // The confirmed customer truth, in the client's own words.
+        customer_truth: {
+          target_category: r.target_category, target_company_type: r.target_company_type,
+          brief: briefFactsHeld,
+        },
+      })
+    }
+    res.json({ success: true, data: { reviews: out, vocabularies: ICP_REVIEW_VOCABULARIES } })
+  } catch (err) {
+    console.error('[operator/icp-review]', err)
+    res.status(500).json({ success: false, error: 'The ICP review rail could not be read' })
+  }
+})
+
+/**
+ * 🛑 RESOLVE ONE REVIEW — the operator supplies provider-safe values, and ONLY then does the
+ * flag clear.
+ *
+ * ⚠️ EVERY VALUE IS RE-CANONICALISED SERVER-SIDE. An operator typing into Vida is not more
+ * trusted than a model: a value outside the closed vocabulary is REFUSED, because the entire
+ * point of the review is to produce a provider-safe list. A resolution that cannot be proven
+ * safe must not clear the flag.
+ *
+ * ⚠️ AN EMPTY RESOLUTION IS REFUSED for a field that needed one. Clearing the review by
+ * supplying nothing would leave the provider column empty — which downstream means
+ * UNCONSTRAINED — and that is the silent widening this whole design exists to prevent.
+ *
+ * ⚠️ THE WRITE IS ONE CONDITIONAL UPDATE, so the canonical values and the cleared flag land
+ * together or not at all: the flag can never clear without the values that justify it.
+ *
+ * ⚠️ AND IT IS FENCED ON THE CLIENT AND ON THE UNRESOLVED STATE. A wrong or stale client id
+ * matches zero rows; a replay finds `icp_review_resolved_at` already set and matches zero
+ * rows. Both answer the same way — no second write, no second ICP, no duplicate.
+ */
+operatorRouter.post('/icp-review/:icpId/resolve', async (req: Request, res: Response) => {
+  try {
+    if (!adminKeyValid(req.headers['x-admin-key'])) {
+      res.status(403).json({ success: false, error: 'Operator key required' }); return
+    }
+    const clientId = typeof req.body?.client_id === 'string' ? req.body.client_id : ''
+    if (!clientId) {
+      res.status(400).json({ success: false, error: 'client_id is required — a resolution must name the client it belongs to.' })
+      return
+    }
+    // ── 🛑 ⚑ 14 Sep (S1-PD-07) — THE THREE PROVIDER COLUMNS ARE READ, AND READ HERE ────
+    //
+    // 🛑 THE SERVER OWNS THE MERGE. A resolution completes the UNRESOLVED half of a mixed
+    // field; the half that already translated is the client's own targeting and must survive
+    // it. That half is read from the ROW — never accepted from Vida, which would put the
+    // browser back in charge of what a client's live targeting is (the S1-PD-01 defect, at a
+    // different door and with an operator key in front of it).
+    const { data: row, error: readErr } = await db.from('icps')
+      .select('id, client_id, icp_review, icp_review_resolved_at, industries, seniority_levels, company_sizes')
+      .eq('id', req.params.icpId).eq('client_id', clientId).maybeSingle()
+    if (readErr) { res.status(500).json({ success: false, error: readErr.message }); return }
+    if (!row) {
+      // ⚠️ THE SAME ANSWER FOR "no such ICP" AND "not this client's ICP", deliberately: an
+      // operator key is not a licence to discover which ids belong to whom.
+      res.status(404).json({ success: false, error: 'No such ICP for that client.' })
+      return
+    }
+    const r = row as { icp_review?: unknown; icp_review_resolved_at?: string | null }
+    if (r.icp_review_resolved_at) {
+      res.status(409).json({ success: false, error: 'This review is already resolved. Nothing was changed.' })
+      return
+    }
+    if (!icpNeedsReview(r.icp_review, null)) {
+      res.status(409).json({ success: false, error: 'This ICP is not awaiting review. Nothing was changed.' })
+      return
+    }
+    // ⚠️ SNAPSHOTTED BEFORE THE WRITE, NOT READ THROUGH `row` AFTERWARDS. `row` is whatever
+    // the database client handed back, and nothing here may depend on it still holding the
+    // PRE-update values once the update has run — the merge input and the audit's record of
+    // "what was already there" must both be the state this decision was made against.
+    const live = row as Record<string, unknown>
+    const listBefore = (k: string): string[] =>
+      Array.isArray(live[k]) ? (live[k] as unknown[]).map(v => String(v ?? '')) : []
+    const alreadyCanonical = {
+      industries:       listBefore('industries'),
+      seniority_levels: listBefore('seniority_levels'),
+      company_sizes:    listBefore('company_sizes'),
+    }
+    const outcome = resolveReview(
+      r.icp_review as { requirements: Array<{ field: ProviderField; said: string[] }> },
+      (req.body?.values ?? {}) as Partial<Record<string, string[]>>,
+      ICP_REVIEW_VOCABULARIES,
+      // The canonical half as the DATABASE holds it, at the moment of the read that this
+      // write is fenced against.
+      alreadyCanonical,
+    )
+    if (!outcome.ok) {
+      const msg = outcome.reason === 'off_vocabulary'
+        ? `These are not values the provider accepts for ${outcome.field}: ${(outcome.bad ?? []).join(', ')}. Pick from the list — the whole point of this review is to produce values a provider will take.`
+        : outcome.reason === 'empty'
+          ? `${outcome.field} needs at least one value. Leaving it empty would mean NO constraint downstream, which would widen this client's search rather than express it.`
+          : outcome.reason === 'over_max'
+            // 🛑 A REFUSAL, NOT A SLICE. The operator is told exactly what the union is and
+            // what the ceiling is, and makes the bounded choice themselves — because deciding
+            // by array position which of a client's constraints to drop is not ours to make.
+            ? `${outcome.field} would end up with ${(outcome.would ?? []).length} values and the provider takes at most ${outcome.max}. The full set is: ${(outcome.would ?? []).join(', ')} — the earlier ones are already live on this client's ICP. Nothing was changed. Send the COMPLETE final list for this field, at most ${outcome.max} values: deciding which of a client's constraints to drop is a person's call, not an array slice.`
+            : 'That is not a field under review.'
+      res.status(400).json({ success: false, error: msg })
+      return
+    }
+    const now = new Date().toISOString()
+    const { data: written, error: wErr } = await db.from('icps')
+      .update({ ...outcome.values, icp_review_resolved_at: now, icp_review_resolved_by: req.body?.resolved_by ?? null, updated_at: now })
+      .eq('id', req.params.icpId).eq('client_id', clientId)
+      // 🛑 THE REPLAY FENCE. Two operators pressing save, or one pressing twice, produce
+      // exactly one transition; the loser writes nothing and is told so.
+      .is('icp_review_resolved_at', null)
+      .select('id')
+    if (wErr) { res.status(500).json({ success: false, error: `The resolution could not be stored (${wErr.message}). Nothing was changed.` }); return }
+    if (!written || written.length === 0) {
+      res.status(409).json({ success: false, error: 'Somebody resolved this review a moment ago. Nothing was changed.' })
+      return
+    }
+    await writeOperatorAudit({
+      operatorEmail: operatorEmail(req), clientId,
+      action: 'icp_provider_review_resolved',
+      subjectType: 'icp', subjectId: req.params.icpId,
+      detail: {
+        values: outcome.values,
+        // ⚑ 14 Sep (S1-PD-07) — what was already live, so the audit row shows the MERGE and
+        // not just the operator's half. "industries became [Consulting, Media]" is only
+        // readable later if the record says Consulting was already there.
+        already_canonical: alreadyCanonical,
+        means: 'the client described their targeting in their own words; these are the provider values an operator translated the UNRESOLVED half into, UNIONED with the half that already translated. Proof and provider sourcing were refused until this was recorded.',
+      },
+    })
+    res.json({ success: true, data: { resolved_at: now, values: outcome.values } })
+  } catch (err) {
+    console.error('[operator/icp-review/resolve]', err)
+    res.status(500).json({ success: false, error: 'The resolution failed' })
+  }
+})
+
 operatorRouter.post('/proof-review/:clientId/classify-passes', async (req: Request, res: Response) => {
   try {
     if (!adminKeyValid(req.headers['x-admin-key'])) {

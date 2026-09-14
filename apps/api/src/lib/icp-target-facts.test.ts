@@ -106,7 +106,12 @@ describe('③ the builder collects them from the client, not from a list', () =>
     const draft = icpsSrc.slice(icpsSrc.indexOf('const draft = {'), icpsSrc.indexOf('// The business half'))
     expect(draft).toContain('target_category')
     expect(draft).toContain('target_company_type')
-    expect(draft).toContain('industries:            icp.industries ?? []')
+    expect(draft).toContain('industries:            translated.industries.canonical')
+    // ⛓️ 14 Sep (S1-RT-005) — RETARGETED, CLAIM UNCHANGED. `industries` still travels
+    // ALONGSIDE the client's own words and never instead of them; what moved is that the
+    // closed-vocabulary split now happens in `translateProviderList`, so a value we cannot
+    // map is recorded for a human rather than costing the client their whole Brief. The
+    // provider column still carries ONLY canonical values — asserted on the line above.
   })
 })
 

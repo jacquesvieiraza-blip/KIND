@@ -146,8 +146,21 @@ describe('S1-AUDIT-002 — the confirmed draft owns every fact it holds', () => 
     expect(ICPS).toMatch(/\['bad_fit', \(promotionDraft\.facts\.exclusions \?\? ''\)\.trim\(\)\]/)
     expect(ICPS).toMatch(/for \(const \[key, value\] of present\) business\[key\] = value/)
     expect(ICPS).toMatch(/promotionDraft\.facts\.exclusions/)
-    // No redesign: the reader is unchanged.
-    expect(ICPS).toMatch(/exclusions:\s+v\.business\?\.bad_fit/)
+    // ⛓️ 14 Sep (S1-RT-002) — RETARGETED, NOT WEAKENED, AND THE CLAIM IS NOW TIGHTER.
+    // ~~`expect(ICPS).toMatch(/exclusions:\s+v\.business\?\.bad_fit/)`~~ pinned the gate
+    // reading that ONE field and nothing else — and that exact line is what stranded a live
+    // client: the prompt tells the model to put exclusions in `brief_so_far.exclusions`, the
+    // gate looked only at `business.bad_fit`, counted 9 of 11 and refused the Brief for ever.
+    //
+    // The claim this case actually exists to defend is unchanged: `business.bad_fit` is the
+    // CANONICAL home of fact #10 and the destination is still `figsy_knowledge.bad_fit`. So
+    // it is pinned where that decision now lives, and with the PRECEDENCE asserted — which
+    // the old single-field regex never did.
+    const RESOLVER = code('apps/api/src/lib/brief-fact-resolution.ts')
+    expect(RESOLVER).toMatch(/exclusions:\s+text\(v\.business\?\.bad_fit\) \?\? text\(b\.exclusions\)/)
+    expect(ICPS).toMatch(/exclusions:\s+resolved\.exclusions/)
+    // And the downstream destination is still the same field, from the same resolution.
+    expect(ICPS).toMatch(/bad_fit:\s+str\(b\.bad_fit\) \|\| resolved\.exclusions/)
   })
 
   it('the ICP override is likewise gated on a CONFIRMED, UNPROMOTED draft', () => {

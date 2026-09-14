@@ -300,8 +300,18 @@ describe('⑨ 10 · 11 · the confirmed brief reaches the ICP exactly as the cli
 
   it('the provider-edge hint rides ALONGSIDE the category, never instead of it', async () => {
     await call('/', 'post', FROM_DRAFT)
-    expect(inserted().industries).toEqual(['Marketing and Advertising'])
+    // ⛓️ 14 Sep (S1-PD-02) — THE CLAIM IS UNCHANGED AND THE ASSERTION IS STRICTER.
+    // `industries` and `target_category` are two separate facts and one must never stand in
+    // for the other — that is what this test is about, and it still holds below. What moved
+    // is where an UNTRANSLATABLE industry goes: `'Marketing and Advertising'` is not a value
+    // of `ICP_INDUSTRIES` (the closed sixteen), and writing it into the provider column was
+    // sending the client's phrase to Apollo as if it were a filter. It is now kept verbatim
+    // as review evidence — so it is still carried, still alongside the category, and it now
+    // also BLOCKS sourcing instead of quietly matching nothing.
     expect(inserted().target_category).toBe('Digital marketing agencies')
+    expect(inserted().industries, 'no un-normalised word reaches a provider column').toEqual([])
+    expect(JSON.stringify(inserted().icp_review), 'and it is not lost either')
+      .toContain('Marketing and Advertising')
   })
 
   it('geography, roles and size are carried as given', async () => {

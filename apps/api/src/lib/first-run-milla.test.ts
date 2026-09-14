@@ -591,12 +591,26 @@ describe('everything downstream of the confirmation is byte-for-byte the same jo
     // the flag that lets the server refuse a REPLAY of this exact save (see
     // `promotion-idempotency.test.ts`). Asserted by parts so a later addition to this
     // payload does not read as "the ICP save was rewritten".
-    expect(welcomeCode).toContain("'/icps', { ...proposed, business, proof, campaign_intent: intent, from_brief_draft: true }, tk)")
+    // ⛓️ 14 Sep (S1-RT-005) — ASSERTED BY PARTS, WHICH IS WHAT THE NOTE ABOVE ALREADY ASKED
+    // FOR. The payload gained `icp_review` (what the server could not translate, carried to
+    // its durable home in this same call), and pinning the whole string meant every
+    // legitimate addition read as "the ICP save was rewritten". The CLAIM is unchanged and
+    // is now actually expressed: ONE call, still carrying all four things, plus the flag.
+    for (const part of ['...proposed', 'business', 'proof', 'campaign_intent: intent', 'from_brief_draft: true']) {
+      expect(welcomeCode, `the ICP save must still carry ${part}`).toContain(part)
+    }
     expect(welcomeCode.match(/api\.post<?[^(]*\(\s*'\/icps',/g) ?? []).toHaveLength(1)
   })
 
   it('one core ICP, refined — not a new row per save', () => {
-    expect(icpsSrc).toContain('const saved = await saveClientTargeting(clientId, body, revisedIntent)')
+    // ⛓️ 14 Sep (S1-PD-03) — STRENGTHENED, NOT RETARGETED. The argument is now `writeBody`,
+    // which is `body` PLUS the server-derived review, because the review has to be part of
+    // the same statement as the targeting it describes. So this pins the whole call AND the
+    // two facts that make the rename meaningful: `writeBody` is built from `body`, and it is
+    // built from the SERVER'S derivation rather than anything the caller sent.
+    expect(icpsSrc).toContain('const saved = await saveClientTargeting(clientId, writeBody, revisedIntent)')
+    expect(icpsSrc).toContain('const writeBody: Record<string, unknown> = decided.review')
+    expect(icpsSrc).toContain('const decided = deriveProviderReview(')
   })
 
   it('the money ask has MOVED behind free proof, and no price is left on the confirmation', () => {
@@ -699,8 +713,16 @@ describe('free proof runs before the client is ever asked to pay', () => {
     // leads waiting" while their run was still going. The flag is what turns the desk's
     // honest-empty state into an honest-finding state.
     expect(welcomeCode).toContain("router.push('/milla?finding=1')")
-    // …and that is the ONLY navigation out of a successful confirmation.
-    expect((welcomeCode.match(/router\.push\(/g) ?? [])).toHaveLength(1)
+    // ⛓️ 14 Sep (S1-RT-005) — STILL THE ONLY NAVIGATION OUT OF A SUCCESSFUL CONFIRMATION, and
+    // that is now asserted rather than counted. A second push exists for the NEEDS-ICP-REVIEW
+    // refusal — a client whose own words we could not translate into provider values — and it
+    // is deliberately NOT a success: it carries no `finding=1`, because nothing is being
+    // found for them yet and the desk must keep its honest copy.
+    const pushes = welcomeCode.match(/router\.push\('[^']*'\)/g) ?? []
+    expect(pushes).toHaveLength(2)
+    expect(pushes.filter(p => p.includes('finding=1')),
+      'exactly ONE navigation may claim a run has started').toHaveLength(1)
+    expect(pushes).toContain("router.push('/milla')")
   })
 
   it('THE ERROR PATH IS TERMINAL — no retry, no second call, no billing', () => {
@@ -719,11 +741,31 @@ describe('free proof runs before the client is ever asked to pay', () => {
     // try again". Banning the word globally would have forced the removal of a retry that
     // SHOULD exist. What must carry no retry is this block, because a second POST here
     // claims the client's second pass.
+    // ⛓️ 14 Sep (S1-RT-005) — THE SLICE NOW STARTS AT THE FAILURE ITSELF, NOT AT THE `catch`.
+    // A NEEDS-ICP-REVIEW refusal is handled first inside the same catch, and it is NOT this
+    // failure: the client's Brief is fine, their own words simply could not be translated
+    // into provider values yet, and they go to the desk while a person finishes it. Slicing
+    // from the `catch` swept that legitimate branch into a block asserted to contain no
+    // navigation. The TERMINAL-FAILURE claim is unchanged and is now scoped to the terminal
+    // failure; the review branch gets its own assertions immediately below, so widening the
+    // start anchor costs no coverage.
     const block = welcomeCode.slice(
-      welcomeCode.indexOf('/proof`'),
+      welcomeCode.indexOf("setError('Your targeting is saved"),
       welcomeCode.indexOf("router.push('/milla?finding=1')"),
     )
     expect(block.length, 'the proof failure block').toBeGreaterThan(0)
+    expect(welcomeCode.indexOf("setError('Your targeting is saved"), 'the failure copy must exist').toBeGreaterThan(-1)
+
+    // 🛑 AND THE REVIEW BRANCH IS HELD TO THE SAME RULES: no retry, no second call, no
+    // billing, and it must NOT claim a run has started.
+    const reviewBranch = welcomeCode.slice(
+      welcomeCode.indexOf("'needs_icp_review'"),
+      welcomeCode.indexOf("setError('Your targeting is saved"),
+    )
+    expect(reviewBranch.length, 'the needs-icp-review branch').toBeGreaterThan(0)
+    expect(reviewBranch).not.toMatch(/api\.post/)
+    expect(reviewBranch).not.toMatch(/retry|try again/i)
+    expect(reviewBranch).not.toContain('finding=1')
 
     // ⚠️ THE `return` IS WHAT MAKES IT TERMINAL, AND IT MUST BE ASSERTED *IN THIS BLOCK*.
     // A first cut asserted `flat(welcomeCode)` contained "setSaving(false) return" — and
@@ -1141,7 +1183,24 @@ describe('a returning client is not re-interviewed about their own account', () 
   })
 
   it('an existing client\'s reply carries no profile at all — not even an empty one', () => {
-    expect(icpsSrc).toMatch(/const profile = profile_required\s*\n\s*\?\s*\{[\s\S]{0,600}?\}\s*\n\s*: null/)
+    // ⛓️ 14 Sep (S1-RT-002) — STRENGTHENED, NOT RELAXED. This pinned the branch through a
+    // 600-CHARACTER WINDOW, so adding a comment inside the object turned the guard red while
+    // the behaviour it guards was untouched — the same character-count trap that has bitten
+    // this repo before. A guard that fails on prose is a guard that gets loosened to shut it
+    // up, which is how a real pin dies.
+    //
+    // It now reads CODE ONLY (comments stripped, exactly like `welcomeCode` above) and is
+    // ANCHORED rather than windowed: the `: null` alternative must be the one that closes
+    // this ternary, whatever its body grows into. That is strictly harder to satisfy by
+    // accident than the old regex, and it cannot be defeated by a comment.
+    const code = stripComments(icpsSrc)
+    const at = code.indexOf('const profile = profile_required')
+    expect(at, 'the first-run profile ternary must still exist').toBeGreaterThan(-1)
+    // The ELSE arm of this exact ternary, found by walking to its own `:` rather than by
+    // counting characters or letting a regex wander off into the rest of the file.
+    const ternary = code.slice(at)
+    const elseArm = ternary.slice(ternary.indexOf('\n        : ')).slice(0, 40).trim()
+    expect(elseArm.startsWith(': null'), `the else arm must be \`: null\`, found: ${elseArm}`).toBe(true)
   })
 
   it('so nothing this conversation produces can reach a record they already have', () => {
@@ -1561,10 +1620,28 @@ describe('the reply is a forced tool call, validated before it is trusted', () =
   })
 
   it('the closed lists are enforced by Zod from the SAME constants, not a second copy', () => {
-    expect(icpsSrc).toContain('const boundedEnum = <T extends readonly [string, ...string[]]>(values: T, maxItems: number) =>')
-    expect(icpsSrc).toContain('industries:            boundedEnum(ICP_INDUSTRIES, 6)')
-    expect(icpsSrc).toContain('seniority_levels:      boundedEnum(ICP_SENIORITY, 6)')
-    expect(icpsSrc).toContain('company_sizes:         boundedEnum(ICP_SIZES, 6)')
+    // ⛓️ 14 Sep (S1-RT-005) — RETARGETED, AND THE CLAIM IS UNCHANGED: the closed lists are
+    // enforced from the SAME constants, never a second hand-written copy. What moved is
+    // WHERE — out of Zod (where the only available outcomes were "drop the value" and
+    // "refuse the client") into `translateProviderList`, which can keep both halves. The
+    // enforcement is if anything tighter, because the un-mappable half is now recorded
+    // rather than discarded.
+    // ⛓️ 14 Sep (S1-PD-02) — the two CLOSED lists that are also BRIEF FACTS are translated
+    // from `resolved.*`, the same reconciliation the eleven-fact gate accepted, not from the
+    // model's proposal for this turn alone. Reading `icp.*` here is the defect: a fact held
+    // only in `brief_so_far` translated to `[]`, raised no review, and silently widened the
+    // search. `industries` is not a brief fact and has no second source, so it is unchanged.
+    expect(icpsSrc).toContain('translateProviderList(icp.industries, ICP_INDUSTRIES, 6)')
+    expect(icpsSrc).toContain('translateProviderList(resolved.targetSeniority, ICP_SENIORITY, 6)')
+    expect(icpsSrc).toContain('translateProviderList(resolved.companySizes, ICP_SIZES, 6)')
+    expect(icpsSrc, 'the model proposal alone may never be the translation input again')
+      .not.toContain('translateProviderList(icp.seniority_levels')
+    expect(icpsSrc).not.toContain('translateProviderList(icp.company_sizes')
+    // 🛑 AND ONLY THE CANONICAL HALF REACHES THE PROVIDER COLUMNS — the guarantee the old
+    // `boundedEnum` gave, asserted per field where it now lives.
+    expect(icpsSrc).toContain('industries:            translated.industries.canonical')
+    expect(icpsSrc).toContain('seniority_levels:      translated.seniority_levels.canonical')
+    expect(icpsSrc).toContain('company_sizes:         translated.company_sizes.canonical')
     // …and the open fields stayed open.
     expect(icpsSrc).toContain('job_titles:            boundedList(10)')
     expect(icpsSrc).toContain('geographies:           boundedList(8)')
@@ -2560,29 +2637,66 @@ describe('an all-invalid closed list can NEVER silently broaden the targeting', 
   })
   const run2 = () => callBuilderChat({ messages: [{ role: 'user', content: 'x' }], profile_required: true })
 
-  // ⚠️ WHY REFUSAL AND NOT [] — read from the query builders themselves: `buildPdlBody`
-  // adds NO filter for a list with no length, and the pool matcher "doesn't narrow"
-  // without a signal. An empty closed list therefore means UNCONSTRAINED downstream, and
-  // turning "IT Solutions" into [] would quietly search a wider market than anyone chose.
-  it('ALL-invalid industries → the turn is refused, never an unconstrained search', async () => {
+  // ⛓️ 14 Sep (S1-RT-005) — INVERTED, BECAUSE THESE THREE CASES ENCODED THE DEFECT.
+  //
+  // ⚠️ THE HALF THAT WAS RIGHT IS UNCHANGED AND IS STILL ASSERTED BELOW. `buildPdlBody` adds
+  // NO filter for a list with no length and the pool matcher "doesn't narrow" without a
+  // signal, so an empty closed list means UNCONSTRAINED downstream — turning "IT Solutions"
+  // into `[]` would quietly search a wider market than anyone chose. That must never happen
+  // and these cases still prove it does not.
+  //
+  // 🛑 THE HALF THAT WAS WRONG IS THE CONCLUSION: refusing the REPLY refuses the CLIENT.
+  // A live client described their own market in their own words and got "Milla didn't catch
+  // that", deterministically, for ever — because our sixteen-value industry list could not
+  // take their sentence. Founder-ruled: THE CLIENT SPEAKS NATURALLY, THE CLIENT NEVER HAS TO
+  // SPEAK APOLLO, PROVIDER TRANSLATION IS OUR PROBLEM.
+  //
+  // So the assertion moves from "the client is refused" to the three things that actually
+  // matter, all of which are STRICTLY MORE than the old case checked:
+  //   ① the client is NOT refused — the turn completes;
+  //   ② the constraint is NOT silently dropped or broadened — the provider column carries
+  //     only canonical values and their un-mapped words are kept verbatim;
+  //   ③ the ICP is flagged for human translation, and `s1-icp-review-gate.test.ts` proves
+  //     — by RUNNING `runIcpJob` — that a flagged ICP sources nothing and spends nothing.
+  it('🛑 ALL-invalid industries → the CLIENT is not refused, and nothing is broadened', async () => {
     anthropicBox.reply = withIcp2({ industries: ['IT Solutions', 'Digital Stuff'] })
     const out = await run2()
-    expect(out.code).toBe(503)
-    expect(out.payload.retryable).toBe(true)
-    expect(out.payload.data).toBeUndefined()                 // nothing broadened reaches the portal
+    expect(out.code, 'the client described their market and must not be refused for it').toBe(200)
+    const d = out.payload.data as Record<string, any>
+    // ② nothing off-vocabulary reached the provider column, and nothing was invented.
+    expect(d.icp.industries).toEqual([])
+    // ③ and it is flagged, with their own words, so a person finishes the translation.
+    expect(d.icp_review.requirements).toEqual([
+      { field: 'industries', said: ['IT Solutions', 'Digital Stuff'] },
+    ])
   })
 
-  it('ALL-invalid seniority → refused the same way', async () => {
+  it('🛑 ALL-invalid seniority → the same, in their own words', async () => {
     anthropicBox.reply = withIcp2({ seniority_levels: ['MD and above'] })
-    expect((await run2()).code).toBe(503)
+    const out = await run2()
+    expect(out.code).toBe(200)
+    const d = out.payload.data as Record<string, any>
+    expect(d.icp.seniority_levels).toEqual([])
+    expect(d.icp_review.requirements).toEqual([{ field: 'seniority_levels', said: ['MD and above'] }])
   })
 
-  it('ALL-invalid company sizes → refused the same way', async () => {
+  it('🛑 ALL-invalid company sizes → the same', async () => {
     anthropicBox.reply = withIcp2({ company_sizes: ['50 - 500'] })
-    expect((await run2()).code).toBe(503)
+    const out = await run2()
+    expect(out.code).toBe(200)
+    const d = out.payload.data as Record<string, any>
+    expect(d.icp.company_sizes).toEqual([])
+    expect(d.icp_review.requirements).toEqual([{ field: 'company_sizes', said: ['50 - 500'] }])
   })
 
-  it('MIXED stays a rescue: the valid value survives, the invented one dies, the turn lives', async () => {
+  it('🛑 a clean completion carries NO review — the normal path is untouched', async () => {
+    anthropicBox.reply = withIcp2({ industries: ['Fintech'] })
+    const out = await run2()
+    expect(out.code).toBe(200)
+    expect((out.payload.data as Record<string, any>).icp_review).toBeNull()
+  })
+
+  it('MIXED keeps the valid value, reports the invented one, and the turn lives', async () => {
     anthropicBox.reply = withIcp2({ industries: ['IT Solutions', 'Fintech'] })
     const out = await run2()
     expect(out.code).toBe(200)
@@ -2596,15 +2710,23 @@ describe('an all-invalid closed list can NEVER silently broaden the targeting', 
     expect((await run2()).code).toBe(200)
   })
 
-  it('the refusal names the field in the log path, so a repeat is diagnosable', async () => {
-    const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
+  // ⛓️ 14 Sep (S1-RT-005) — RETARGETED. There is no refusal left to log: an un-mappable
+  // value is no longer an error, it is a translation a person finishes. What the old case
+  // was really protecting is the rule that survives and is asserted here — THE CLIENT'S OWN
+  // WORDS NEVER REACH A LOG. The review payload carries them to the operator rail, which is
+  // an authenticated surface; the log gets nothing.
+  it('🛑 the client\'s own words never reach a log, however the turn ends', async () => {
+    const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
     try {
       anthropicBox.reply = withIcp2({ industries: ['IT Solutions'] })
-      await run2()
-      const logged = spy.mock.calls.map(c => c.join(' ')).join('\n')
-      expect(logged).toContain('icp.industries')
-      expect(logged, 'never the client value itself').not.toContain('IT Solutions')
-    } finally { spy.mockRestore() }
+      const out = await run2()
+      expect(out.code).toBe(200)
+      const logged = [...errSpy.mock.calls, ...logSpy.mock.calls].map(c => c.join(' ')).join('\n')
+      expect(logged, 'a client value in a log is client data in a log').not.toContain('IT Solutions')
+      // …and it DID reach the place a person can act on it.
+      expect(JSON.stringify((out.payload.data as Record<string, any>).icp_review)).toContain('IT Solutions')
+    } finally { errSpy.mockRestore(); logSpy.mockRestore() }
   })
 })
 
@@ -2680,12 +2802,16 @@ describe('EXECUTED · discriminated validation — questions survive junk target
 
   // F–H already hold above ('an all-invalid closed list can NEVER silently broaden') and
   // are re-asserted here so THIS describe proves the completion side did not soften.
-  it('F–H · complete + all-invalid industries / seniority / sizes → still 503, each', async () => {
-    for (const icp of [
-      { industries: ['IT Solutions'] },
-      { seniority_levels: ['MD and above'] },
-      { company_sizes: ['50 - 500'] },
-    ]) {
+  // ⛓️ 14 Sep (S1-RT-005) — INVERTED for the same reason as the block above: a completion
+  // is no longer refused because OUR provider vocabulary could not take the client's words.
+  // Each of the three now completes, carries an empty provider column (never a broadened
+  // one) and names the field a human must translate.
+  it('🛑 F–H · complete + all-invalid industries / seniority / sizes → completes, flagged, each', async () => {
+    for (const [field, icp] of [
+      ['industries', { industries: ['IT Solutions'] }],
+      ['seniority_levels', { seniority_levels: ['MD and above'] }],
+      ['company_sizes', { company_sizes: ['50 - 500'] }],
+    ] as Array<[string, Record<string, unknown>]>) {
       anthropicBox.reply = toolReply({
         type: 'complete', summary: 's',
         profile: BRIEF_PROFILE,
@@ -2693,7 +2819,10 @@ describe('EXECUTED · discriminated validation — questions survive junk target
         business: BRIEF_BUSINESS, campaign_intent: BRIEF_INTENT,
       })
       const out = await ask()
-      expect(out.code, JSON.stringify(icp)).toBe(503)
+      expect(out.code, JSON.stringify(icp)).toBe(200)
+      const d = out.payload.data as Record<string, any>
+      expect(d.icp[field], `${field} must not carry an off-vocabulary value`).toEqual([])
+      expect(d.icp_review.requirements.map((r: { field: string }) => r.field)).toEqual([field])
     }
   })
 

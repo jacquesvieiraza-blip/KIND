@@ -184,6 +184,40 @@ authRouter.post('/onboard', async (req, res) => {
         })
         return
       }
+
+      // ── 🛑 ⚑ 14 Sep (S1-RT-006) — AND WE DO NOT OPEN AN ACCOUNT WE CANNOT SERVE ──────
+      //
+      // 🛑 THE LINE BELOW THIS ONE CREATES THE CANONICAL CLIENT. `confirmBriefDraft` already
+      // refuses an unsupported market, so in the normal journey this can never fire — which
+      // is exactly why it is here. A draft CONFIRMED BEFORE this build shipped carries a
+      // stamp taken under the old rule, and without this it would walk straight through the
+      // confirmed-check above and create the client the whole correction exists to prevent.
+      //
+      // ⚠️ THE SAME SPLIT AND THE SAME SENTENCE as the confirm route — one decision, imported,
+      // never a second copy of the country rule. Two gates that could disagree about where we
+      // operate is worse than one gate in the wrong place.
+      //
+      // ⚠️ AND IT CREATES NOTHING ON THE WAY OUT. A refusal here writes no client, no ICP, no
+      // welcome email and spends no Proof authority — all of them are below this line.
+      const { splitGeographies, unsupportedGeographyAsk } = await import('@kind/shared')
+      // ⚠️ OPTIONAL, BECAUSE A THROW HERE WOULD BE A 500 ON A HEALTHY SIGNUP. `briefDraftFor`
+      // always defaults `facts` to an object, so this cannot be undefined in production — but
+      // a gate that can throw on an unexpected shape is a gate that takes the whole account
+      // creation down with it, and `splitGeographies` already reads an absent list as "no
+      // objection". Caught by `onboard-brief.route.test.ts`, whose draft fixture carries no
+      // facts at all.
+      const geoSplit = splitGeographies(draft.facts?.geographies)
+      if (geoSplit.unsupported.length > 0) {
+        res.status(409).json({
+          success: false,
+          code: 'unsupported_geography',
+          error: unsupportedGeographyAsk(geoSplit),
+          ask: unsupportedGeographyAsk(geoSplit),
+          unsupported: geoSplit.unsupported,
+          supported: geoSplit.supported,
+        })
+        return
+      }
     }
 
     // ── 🛑 ⚑ 12 Sep (S1-AUDIT-002) — THE CONFIRMED DRAFT IS THE SOURCE OF TRUTH ─────────

@@ -100,7 +100,11 @@ export type OperatorAction =
   // ⚠️ NONE OF THEM GRANTS AUTHORITY. Classification records what ALREADY happened before the
   // ledger existed; reconciliation settles a claim whose run is over. The three unique
   // indexes remain the only thing that decides whether a pass can be claimed.
-  | 'proof_legacy_passes_classified'      // how many automatic passes a pre-ledger client consumed (0/1/2)
+  | 'proof_legacy_passes_classified'
+  // ⚑ 14 Sep (S1-RT-005) — an operator translated a client's own words into provider values
+  // so their targeting could be sourced. Proof and spend were REFUSED until this happened,
+  // so the row is the evidence that the block was lifted deliberately and by whom.
+  | 'icp_provider_review_resolved'      // how many automatic passes a pre-ledger client consumed (0/1/2)
   | 'proof_legacy_passes_reclassified'    // the same, DELIBERATELY overwritten — a separate decision, never a retry
   | 'proof_legacy_restart_classified'     // a pre-ledger calibrated restart: completed, or burned and returned
   | 'proof_claim_reconciled'              // an OPEN claim with no trustworthy terminal outcome, settled by a person

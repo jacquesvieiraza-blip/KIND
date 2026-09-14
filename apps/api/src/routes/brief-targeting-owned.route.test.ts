@@ -156,6 +156,26 @@ const confirmed = (facts: Row) => {
   state.draft = { promotedClientId: null, confirmedAt: '2026-09-11T16:41:00Z', facts }
 }
 
+// ── ⛓️ 14 Sep (S1-PD-02) — WHERE AN UNTRANSLATABLE CONFIRMED WORD NOW LANDS ─────────────
+//
+// 🛑 THESE FIXTURES ARE THE CLIENT'S OWN WORDS AND THEY ARE NOT VOCABULARY: `'11-50'` is a
+// HYPHEN where `ICP_SIZES` holds an EN-DASH (`'11–50'`), and `'Director'` is not a value of
+// `ICP_SENIORITY` at all (it holds `'VP / Director'`). Until this round the promotion path
+// wrote them into the provider columns VERBATIM — the confirmed draft overrode the body and
+// nothing translated the result — which is precisely the founder's rule inverted: the
+// client's sentence handed to Apollo as if it were a filter value.
+//
+// ⚠️ SO THESE ASSERTIONS MOVED, AND EVERY ONE OF THEM GOT STRICTER. B5's claim is unchanged
+// and still proved: the CONFIRMED answer beats the browser's, and not one of B's values
+// survives anywhere. What is new is that A's untranslatable words must be somewhere provable
+// — as review evidence, blocking sourcing — rather than silently either dropped or shipped to
+// a provider. Each test below now pins BOTH halves: what reached the column, and what reached
+// the review. Nothing here asserts less than it did.
+const reviewSaid = (field: string): string[] => {
+  const review = icpRow().icp_review as { requirements?: Array<{ field: string; said: string[] }> } | undefined
+  return review?.requirements?.find(r => r.field === field)?.said ?? []
+}
+
 beforeEach(() => {
   state.client = { id: 'client-1', user_id: 'user-1', proof_passes_done: 0, credit_balance: 0 }
   state.icps = []
@@ -187,18 +207,30 @@ describe('🛑 B5-A · confirmed value A beats a contradictory browser value B',
     expect(icpRow().geographies).not.toContain('United States')
   })
 
-  it('fact 8 · company size — A wins, EXACTLY', async () => {
+  it('fact 8 · company size — A wins, EXACTLY, and A\'s untranslatable words are KEPT', async () => {
     confirmed(DRAFT_A)
     await postIcp(FROM_DRAFT)
-    expect(icpRow().company_sizes).toEqual(['11-50', '51-200'])
+    // Neither of A's two sizes is in `ICP_SIZES` (hyphen, not en-dash), so neither may reach
+    // the provider column — and the browser's `'1000+'` certainly may not.
+    expect(icpRow().company_sizes).toEqual([])
     expect(icpRow().company_sizes).not.toContain('1000+')
+    // 🛑 BUT THEY ARE NOT LOST. A's exact words, verbatim, as the evidence a human resolves.
+    expect(reviewSaid('company_sizes')).toEqual(['11-50', '51-200'])
+    expect(reviewSaid('company_sizes'), 'the browser\'s value is not evidence').not.toContain('1000+')
   })
 
   it('fact 9 · target roles — job titles AND seniority both come from A, separately', async () => {
     confirmed(DRAFT_A)
     await postIcp(FROM_DRAFT)
+    // `job_titles` is OPEN TEXT — no closed vocabulary sits between the client and this
+    // column, so A's answer reaches it exactly as it always did.
     expect(icpRow().job_titles).toEqual(['Managing Director', 'Head of Growth'])
-    expect(icpRow().seniority_levels).toEqual(['C-Suite', 'Director'])
+    // `seniority_levels` is CLOSED. A said two things; one is vocabulary and one is not, and
+    // the split is honoured in both directions rather than the pair being taken or dropped
+    // together.
+    expect(icpRow().seniority_levels).toEqual(['C-Suite'])
+    expect(reviewSaid('seniority_levels')).toEqual(['Director'])
+    expect(icpRow().seniority_levels, 'the browser\'s value never arrives').not.toContain('Manager')
   })
 
   it('🛑 all five at once — not one of B’s values survives anywhere on the row', async () => {
@@ -222,9 +254,13 @@ describe('🛑 B5-B · an omitted browser field cannot lose the confirmed answer
     expect(row.target_category).toBe('Digital marketing agencies')
     expect(row.target_company_type).toBe('agency')
     expect(row.geographies).toEqual(['United Kingdom', 'Ireland'])
-    expect(row.company_sizes).toEqual(['11-50', '51-200'])
     expect(row.job_titles).toEqual(['Managing Director', 'Head of Growth'])
-    expect(row.seniority_levels).toEqual(['C-Suite', 'Director'])
+    // The two CLOSED lists: what translated reached the column, what did not reached the
+    // review. A body carrying nothing still loses none of the confirmed answer.
+    expect(row.company_sizes).toEqual([])
+    expect(reviewSaid('company_sizes')).toEqual(['11-50', '51-200'])
+    expect(row.seniority_levels).toEqual(['C-Suite'])
+    expect(reviewSaid('seniority_levels')).toEqual(['Director'])
   })
 
   it('an EMPTY array from the browser does not blank a confirmed list', async () => {
@@ -232,8 +268,11 @@ describe('🛑 B5-B · an omitted browser field cannot lose the confirmed answer
     await postIcp({ ...bare, geographies: [], company_sizes: [], job_titles: [], seniority_levels: [] })
     const row = icpRow()
     expect(row.geographies).toEqual(['United Kingdom', 'Ireland'])
-    expect(row.company_sizes).toEqual(['11-50', '51-200'])
     expect(row.job_titles).toEqual(['Managing Director', 'Head of Growth'])
+    // An empty array from the browser does not blank the confirmed size either — it is still
+    // A's answer that is being carried, and it is carried to the review because it is not
+    // vocabulary, NOT because the browser sent `[]`.
+    expect(reviewSaid('company_sizes')).toEqual(['11-50', '51-200'])
   })
 
   it('🛑 and a BLANK draft fact falls back rather than blanking what Milla proposed', async () => {
@@ -246,7 +285,8 @@ describe('🛑 B5-B · an omitted browser field cannot lose the confirmed answer
     expect(row.job_titles).toEqual(['Practice Manager'])
     // …while the facts the draft DOES hold still win.
     expect(row.target_company_type).toBe('agency')
-    expect(row.company_sizes).toEqual(['11-50', '51-200'])
+    expect(reviewSaid('company_sizes'), 'the draft\'s size still wins over the body\'s').toEqual(['11-50', '51-200'])
+    expect(reviewSaid('company_sizes')).not.toContain('1000+')
   })
 })
 
@@ -259,8 +299,13 @@ describe('B5-C · no owning draft — the legacy/body path is unchanged', () => 
     expect(row.target_category).toBe('Healthcare businesses')
     expect(row.target_company_type).toBe('clinic')
     expect(row.geographies).toEqual(['United States'])
-    expect(row.company_sizes).toEqual(['1000+'])
     expect(row.job_titles).toEqual(['Practice Manager'])
+    // ⛓️ The body's own words face the SAME closed vocabularies — no door is exempt. `'1000+'`
+    // is not `'1,000+'`, so it becomes review evidence; `'Manager'` IS `ICP_SENIORITY`, so it
+    // reaches the column. The legacy path is unchanged in WHOSE words are used, which is what
+    // B5-C is about; it was never a licence to write un-normalised text to a provider column.
+    expect(row.company_sizes).toEqual([])
+    expect(reviewSaid('company_sizes')).toEqual(['1000+'])
     expect(row.seniority_levels).toEqual(['Manager'])
   })
 

@@ -687,7 +687,12 @@ alter table public.icps
   add column if not exists pending_submitted_at             timestamptz,
   add column if not exists pending_targeting                jsonb,
   add column if not exists proof_widened_candidate          jsonb,
-  add column if not exists settings                         jsonb;
+  add column if not exists settings                         jsonb,
+  -- 20260914_icp_provider_review; NULL = nothing ever failed to translate = NOT in review
+  add column if not exists icp_review                       jsonb,
+  add column if not exists icp_review_at                    timestamptz,
+  add column if not exists icp_review_resolved_at           timestamptz,
+  add column if not exists icp_review_resolved_by           uuid;
 -- sources: 20260527_icp_abm_organization_names.sql, 20260601_social_signals.sql, 20260603_schema_reconcile.sql, 20260727_pdl_cursor.sql, 20260825_proof_widened_candidate.sql
 
 -- ── LEADS ──────────────────────────────────────────────────────────────

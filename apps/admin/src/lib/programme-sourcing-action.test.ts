@@ -191,7 +191,17 @@ describe('J/K · no programme, or no authority, means no programme-native reques
     expect(CONV, 'the legacy sourcing shortcut was removed for ordinary clients').toContain("'Source 20 leads'")
     expect(CONV, 'the legacy preview was removed').toContain('source-preview')
     expect(CONV, 'the legacy sourcing POST was removed').toContain("'/api/proxy/operator/source'")
-    expect(CONV, 'the typed sourcing intent parser was removed').toContain('parseSourceIntent')
+    // ⛓️ 14 Sep (R121, Build 3) — ~~`toContain('parseSourceIntent')`~~. The browser-side
+    // language parser is DELETED: it required a sourcing verb AND a lead noun, so
+    // "get me some more people for these guys" fell through to a keyword router that
+    // answered "I'm not sure what you're asking me to do with that". Vida reads the
+    // sentence now and proposes a count.
+    //
+    // 🛑 WHAT THIS TEST IS ACTUALLY FOR IS UNCHANGED AND STILL ASSERTED ABOVE: the
+    // ordinary-client sourcing path — the chip, the preview, the POST — still exists and
+    // still goes through the operator's confirm. Only WHO decides it was meant changed.
+    expect(CONV, 'the proposal no longer reaches the ordinary-client preview')
+      .toContain("proposal?.kind === 'propose_sourcing'")
   })
 
   it('K · no sourcing authority → blocked, with the server\'s own reason', () => {

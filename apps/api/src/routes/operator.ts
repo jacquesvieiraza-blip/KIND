@@ -1113,138 +1113,17 @@ operatorRouter.get('/campaign/:id/enrollments', async (req: Request, res: Respon
 // one. `fresh: true` starts from nothing. It reads no ICP, seeds no ICP, and **writes
 // nothing** either way: this route only ever proposes, and the operator saves.
 //
-// 🛑 ② THE #1444 DISCIPLINE, IMPORTED RATHER THAN RE-WRITTEN. The prompt below used to ask for
-// the whole profile on every reply, with enum menus for industry, seniority and size — the
-// filter-form shape #1444 removed from Milla's builder and never removed from here. The rules
-// now come from `lib/icp-conversation-rules`, whose own test proves the text is VERBATIM the
-// text inside `/icps/builder/chat`. One authored source, two consoles, and a red test the day
-// either drifts.
+// 🛑 ② ⛓️ 14 Sep (R121, Build 3) — THE WELD IS RETIRED BECAUSE THERE IS NOTHING LEFT TO WELD.
+// ~~"The rules now come from `lib/icp-conversation-rules`, whose own test proves the text is
+// VERBATIM the text inside `/icps/builder/chat`. One authored source, two consoles."~~ That was
+// the right answer to having TWO conversational engines with two prompts, and Build 3 removed
+// the second engine instead of maintaining the copy: this route is the SAME Vida as
+// `/operator/command`, composing from `buildVidaSystem` with the same tools and the same
+// client context. There is no second prompt to drift, so `lib/icp-conversation-rules.ts` is
+// deleted rather than kept in step with itself.
 //
-// ⚠️ WHAT DELIBERATELY DID NOT CHANGE: the transport (one Haiku call), the JSON contract, the
-// vocabulary lists (they map operator words onto the columns FIGSY actually filters on), and
-// "save" still being a separate press in the form editor.
-operatorRouter.post('/icp/chat', async (req: Request, res: Response) => {
-  try {
-    const { client_id, message, history, fresh } = (req.body ?? {}) as
-      { client_id?: string; message?: string; history?: { role: 'user' | 'assistant'; content: string }[]; fresh?: boolean }
-    const client = await requireClient(client_id)
-    if (!client) { res.status(404).json({ success: false, error: 'Unknown client_id' }); return }
-    if (typeof message !== 'string' || !message.trim()) { res.status(400).json({ success: false, error: 'Say something first' }); return }
-
-    const startFresh = fresh === true
-    // 🛑 A FRESH BUILD DOES NOT READ THE EXISTING ICP AT ALL. Fetching it "just in case" is how
-    // a seed leaks back into the prompt on a later edit; the read is skipped, not filtered.
-    const { data: current } = startFresh
-      ? { data: null }
-      : await db.from('icps')
-          .select('id, name, industries, job_titles, seniority_levels, company_sizes, geographies, tech_stack, keywords')
-          .eq('client_id', client.id).eq('is_active', true)
-          .order('created_at', { ascending: false }).limit(1).maybeSingle()
-    const { data: c } = await db.from('clients').select('company_name, industry, country').eq('id', client.id).maybeSingle()
-
-    const { ICP_CONVERSATION_DISCIPLINE } = await import('../lib/icp-conversation-rules')
-
-    const system = `You are Vida, the operator-side ICP builder for K.I.N.D. You are talking to a K.I.N.D OPERATOR who is building or refining the ICP for their client ${c?.company_name ?? 'the client'}${c?.industry ? ` (${c.industry})` : ''}${c?.country ? `, based in ${c.country}` : ''}.
-
-${startFresh
-  ? 'BUILD A BRAND-NEW ICP FROM THIS CONVERSATION. Any earlier ICP this client has is deliberately NOT shown to you and must NOT be assumed, reused or referred to. Start from what the operator tells you now, and nothing else.'
-  : current
-    ? `Their CURRENT active ICP is:\n${JSON.stringify(current, null, 1)}\nRefine it — keep what is already right, change only what the operator asks about.`
-    : 'They have NO ICP yet — build the first one.'}
-
-${ICP_CONVERSATION_DISCIPLINE}
-
-── AND ONE THING THAT IS DIFFERENT HERE ────────────────────────────────────────────────
-You are talking to an OPERATOR about their client, not to the client. So "learn the business
-before you collect targeting fields" means the CLIENT'S business: if you do not understand
-what ${c?.company_name ?? 'this client'} actually sells, ask that before any targeting field.
-An operator often knows it already and will tell you in one line — take it and move on.
-
-Reply with ONLY valid JSON (no markdown fence):
-{"message":"<your reply to the operator — ONE question, or a short confirmation>","icp":{"name":"...","industries":[],"job_titles":[],"seniority_levels":[],"company_sizes":[],"geographies":[],"tech_stack":[],"keywords":[]}}
-
-Vocabulary — map what the operator says onto these; never read them out as a menu:
-- "industries" from: Fintech, Healthtech, E-commerce, SaaS, Logistics, Agriculture, Education, Manufacturing, Real Estate, Media, Consulting, Retail, Banking, Insurance, Telecoms, Energy
-- "seniority_levels" from: C-Suite, VP / Director, Head of, Manager, Senior, Individual Contributor
-- "company_sizes" from: 1–10, 11–50, 51–200, 201–500, 501–1,000, 1,000+
-
-- Include "icp" on EVERY reply, carrying the full proposed profile so far. That is a RECORD of what you have been told, not a prompt to fill it in: leave [] for anything genuinely still MISSING and ask for one of them in "message". Never fill a field to make the object look finished.
-- Never invent a fact about the client's business. Ask instead.
-- Nothing you propose is saved. The operator reviews and saves it themselves.`
-
-    if (!process.env.ANTHROPIC_API_KEY) {
-      // No LLM key: stay useful rather than failing the step — hand back exactly what
-      // exists so the operator can still edit and save it. On a FRESH build there is
-      // deliberately nothing to hand back.
-      res.json({ success: true, data: {
-        message: startFresh
-          ? 'I can’t reach my brain right now — start the new profile in the form and I’ll pick it up when I’m back.'
-          : 'I can’t reach my brain right now — here is the current profile to edit directly.',
-        icp: startFresh ? null : (current ?? null),
-      } })
-      return
-    }
-
-    const { default: Anthropic } = await import('@anthropic-ai/sdk')
-    const ai = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
-    const msg = await ai.messages.create({
-      model: CONVERSATION_MODEL, max_tokens: 900, system,
-      messages: [
-        ...(history ?? []).slice(-12).map(m => ({ role: m.role, content: m.content })),
-        { role: 'user' as const, content: message.slice(0, 2000) },
-      ],
-    }, AI_TURN_BOUND)
-    const raw = msg.content.filter(b => b.type === 'text').map(b => (b as { text: string }).text).join('')
-      .trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '')
-    let parsed: { message?: string; icp?: Record<string, unknown> }
-    // ⚑ 4 Sep — the unparseable-reply fallback used to read "Tell me more — industry, titles,
-    // seniority, size, region?": the filter-form checklist surviving in the one place nobody
-    // reviews. A fallback still speaks in Vida's voice and still obeys the one-thing rule.
-    try { parsed = JSON.parse(raw) } catch { parsed = { message: raw.slice(0, 400) || 'Say a bit more about who we should be hunting for.' } }
-
-    res.json({
-      success: true,
-      data: {
-        message: parsed.message ?? 'Tell me more about who we should be hunting.',
-        icp: parsed.icp ?? current ?? null,
-        icp_id: current?.id ?? null,
-      },
-    })
-  } catch (err) { console.error('[operator/icp-chat]', err); res.status(500).json({ success: false, error: 'Failed to work the ICP' }) }
-})
-
-// ── #612 — THE SEQUENCE QUALITY GATE, ASKED ONCE AND ASKED THE SAME WAY ─────────────────
-//
-// Founder-ruled 4 Aug: *"shit emails out = zero meetings booked. for all clients."* The four
-// Google boxes finish warming ~25 Aug, and the FIRST sends out of them set those domains'
-// reputation permanently — so the gate has to exist before the boxes do, not after.
-//
-// ⚠️ ONE HELPER, THREE ACTIVATION ROUTES. A campaign can be switched live from three separate
-// places (`/campaign/save` creating or patching to active, `/campaign/:id/status`, and
-// `/campaign/start`), and a gate wired into two of them is not a gate — it is a detour sign.
-// Every one calls THIS, so a fourth route added later fails the wiring test rather than
-// silently opening a hole.
-//
-// It reads the client's most recent sequence — the same row `smartlead-send.ts` and
-// `instantly-push.ts` read (`client_id`, newest first), because the copy that would actually
-// leave is the only copy worth judging.
-//
-// FAILS OPEN ON A READ ERROR, DELIBERATELY, and this is the one judgement call in the file:
-// if the sequence table cannot be READ we do not know the copy is bad, and refusing to start a
-// campaign because the database hiccuped would make an outage look like a copy problem — the
-// #565 shape. A missing sequence is likewise not this gate's business: `smartlead-send` already
-// refuses `no_sequence` at the point of sending, which is where that belongs.
-// ⚠️ IT JUDGES THE APPLIED SEQUENCE, NOT THE NEWEST SAVED ONE (#612 Part B).
-//
-// This first shipped reading the client's most recent `figsy_sequences` row. But a campaign
-// carries an APPLIED sequence — `figsy.ts` writes `settings.sequence` + `applied_sequence_id`
-// when a sequence is put on a campaign — and the two are not the same row. Save a clean new
-// draft while an older bad one is still applied and the gate green-lit copy that was never
-// going to send, while the copy that WAS going to send went unread. The gate has to judge what
-// will actually leave.
-//
-// `campaignId` is optional because `/campaign/start` has no campaign yet; there the newest
-// saved row is the only thing to judge, and it is the right thing to judge.
+// ⚠️ WHAT DELIBERATELY DID NOT CHANGE: this route still only ever PROPOSES — "save" is still a
+// separate press by the operator in the editor — and a fresh build still reads no existing ICP.
 async function sequenceGateFor(clientId: string, campaignId?: string | null): Promise<{ ok: true } | { ok: false; error: string; violations: unknown[] }> {
   const { lintSequence, refusalMessage } = await import('../lib/sequence-quality')
 
@@ -1272,6 +1151,125 @@ async function sequenceGateFor(clientId: string, campaignId?: string | null): Pr
 // V9 — AI PROPOSES A SEQUENCE, the operator approves it.
 // Drafted against a REAL top-scoring lead from this client's pool so the copy is honest,
 // then de-personalised back into {{tokens}} so it is reusable as a template.
+
+operatorRouter.post('/icp/chat', async (req: Request, res: Response) => {
+  try {
+    const { client_id, message, history, fresh } = (req.body ?? {}) as
+      { client_id?: string; message?: string; history?: { role: 'user' | 'assistant'; content: string }[]; fresh?: boolean }
+    const client = await requireClient(client_id)
+    if (!client) { res.status(404).json({ success: false, error: 'Unknown client_id' }); return }
+    if (typeof message !== 'string' || !message.trim()) { res.status(400).json({ success: false, error: 'Say something first' }); return }
+
+    const cid = client.id
+    const operator = operatorEmail(req)
+    const startFresh = fresh === true
+
+    // ── 🛑 ⚑ 14 Sep (R121) — THE SECOND CONVERSATIONAL ENGINE IS GONE ───────────────────
+    //
+    // ⛓️ WHAT STOOD HERE WAS A JSON-TEXT EXTRACTOR. Its own prompt ("Reply with ONLY valid
+    // JSON", the sixteen-value industry menu read out inline, "Include icp on EVERY reply"),
+    // its own 12-turn browser history, its own `JSON.parse` with a canned fallback sentence,
+    // and three client fields for context — while Milla had the client's ACTUAL WORDS stored
+    // the whole time. Two engines meant two prompts to keep in step, and #1444's conversation
+    // discipline had to be WELDED into this one by a test because it was written for the other.
+    //
+    // 🛑 IT IS NOW THE SAME VIDA. Same brain, same client context, same tool — she proposes a
+    // whole profile and the operator saves it, exactly as before. What changed is that she can
+    // see what the client said, and that the operator can talk to her like a person.
+    const [briefRow, current, clientMsgs] = await Promise.all([
+      (async () => {
+        try {
+          const { data: c } = await db.from('clients').select('user_id').eq('id', cid).maybeSingle()
+          const uid = (c as { user_id?: string } | null)?.user_id
+          if (!uid) return null
+          const { briefDraftFor, draftProgress } = await import('../lib/brief-draft')
+          const d = await briefDraftFor(uid)
+          if (!d) return null
+          const p = draftProgress(d)
+          return { facts: d.facts as Record<string, unknown>, conversation: d.conversation,
+                   progress: { count: p.count, total: p.total, missing: p.missing } }
+        } catch { return null }
+      })(),
+      // ⚠️ A FRESH BUILD IS DELIBERATELY BLIND to any earlier ICP — unchanged from before.
+      (async () => {
+        if (startFresh) return null
+        try {
+          const { data } = await db.from('icps')
+            .select('id, name, industries, job_titles, seniority_levels, company_sizes, geographies, tech_stack, keywords')
+            .eq('client_id', cid).eq('is_active', true)
+            .order('created_at', { ascending: false }).limit(1).maybeSingle()
+          return data as Record<string, unknown> | null
+        } catch { return null }
+      })(),
+      (async () => {
+        try {
+          const { data } = await db.from('milla_messages')
+            .select('role, content').eq('client_id', cid)
+            .order('created_at', { ascending: false }).limit(8)
+          return ((data ?? []) as { role: string; content: string }[]).reverse()
+        } catch { return null }
+      })(),
+    ])
+
+    const { buildVidaSystem, VIDA_TOOLS, readVidaProposal } = await import('../lib/vida-brain')
+    const system = buildVidaSystem({
+      clientName: client.company_name ?? 'this client',
+      clientId: cid,
+      operator,
+      brief: briefRow?.facts ?? null,
+      briefProgress: briefRow?.progress ?? null,
+      briefTranscript: briefRow?.conversation ?? null,
+      clientMessages: clientMsgs,
+      icp: current,
+    }) + (startFresh
+      ? `\n── THIS IS A BRAND-NEW PROFILE ─────────────────────────────────────────────────────────\nBuild it from what the operator tells you now. Any earlier ICP is deliberately not shown to\nyou and must not be assumed or referred to.\n`
+      : `\n── YOU ARE WORKING ON THE TARGETING ────────────────────────────────────────────────────\nRefine what is already there — keep what is right and change only what they ask about. When\nyou have something to show them, propose the WHOLE profile as it should end up.\n`)
+
+    if (!process.env.ANTHROPIC_API_KEY) {
+      res.json({ success: true, data: {
+        message: startFresh
+          ? "I can't reach my brain right now — start the new profile in the form and I'll pick it up when I'm back."
+          : "I can't reach my brain right now — here is the current profile to edit directly.",
+        icp: startFresh ? null : (current ?? null),
+      } })
+      return
+    }
+
+    const { default: Anthropic } = await import('@anthropic-ai/sdk')
+    const ai = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+    const msg = await ai.messages.create({
+      model: CONVERSATION_MODEL,
+      max_tokens: 900,
+      system,
+      tools: [...VIDA_TOOLS] as never,
+      messages: [
+        ...(history ?? []).slice(-12).map(m => ({ role: m.role, content: m.content })),
+        { role: 'user' as const, content: message.slice(0, 2000) },
+      ],
+    }, AI_TURN_BOUND)
+
+    const said = msg.content.filter(b => b.type === 'text')
+      .map(b => (b as { text: string }).text).join('').trim()
+    const toolBlock = msg.content.find(b => b.type === 'tool_use') as
+      { type: 'tool_use'; name: string; input: unknown } | undefined
+    const proposal = toolBlock ? readVidaProposal(toolBlock.name, toolBlock.input) : null
+    const proposed = proposal?.kind === 'propose_icp_change'
+      ? (proposal.input as Record<string, unknown>)
+      : null
+
+    res.json({
+      success: true,
+      data: {
+        message: said || 'Tell me more about who we should be hunting.',
+        // ⚠️ NOTHING HERE IS SAVED — unchanged from the engine this replaces. The operator
+        // reviews the profile and writes it themselves through `POST /operator/icp`.
+        icp: proposed ?? current ?? null,
+        icp_id: (current as { id?: string } | null)?.id ?? null,
+      },
+    })
+  } catch (err) { console.error('[operator/icp-chat]', err); res.status(500).json({ success: false, error: 'Failed to work the ICP' }) }
+})
+
 operatorRouter.post('/sequence/suggest', async (req: Request, res: Response) => {
   try {
     const { client_id, campaign_id, purpose: rawPurpose, depth: rawDepth, event_date } =
@@ -4513,87 +4511,156 @@ operatorRouter.post('/command', async (req: Request, res: Response) => {
     const q = (typeof text === 'string' ? text : '').trim()
     if (!q) { res.status(400).json({ success: false, error: 'Empty command' }); return }
     const cid = client.id
-    const lc = q.toLowerCase()
+    const operator = operatorEmail(req)
 
-    // Live counts for this client (the honest denominator behind every answer).
-    const [sourced, needs, sending, replied, enrolled, booked] = await Promise.all([
-      db.from('leads').select('id', { count: 'exact', head: true }).eq('client_id', cid).is('revealed_at', null).neq('status', 'passed').in('status', ['scored', 'pending']),
-      db.from('figsy_approval_queue').select('id', { count: 'exact', head: true }).eq('client_id', cid).eq('status', 'pending'),
-      db.from('figsy_enrollments').select('id', { count: 'exact', head: true }).eq('client_id', cid).eq('status', 'enrolled'),
-      db.from('figsy_replies').select('id', { count: 'exact', head: true }).eq('client_id', cid),
-      db.from('figsy_enrollments').select('id', { count: 'exact', head: true }).eq('client_id', cid),
-      db.from('calendar_bookings').select('id', { count: 'exact', head: true }).eq('client_id', cid).eq('status', 'confirmed'),
+    // ── 🛑 ⚑ 14 Sep (R121) — EVERYTHING SHE KNOWS, READ ONCE, SCOPED TO ONE CLIENT ───────
+    //
+    // 🛑 THE CLIENT ID COMES FROM `requireClient` AND NOWHERE ELSE. Every read below is keyed
+    // on `cid`, the row the operator actually selected — the model is never given a client id
+    // and has no tool that takes one, so it cannot reach a second client even if it asks to.
+    //
+    // ⚠️ INJECTED UP FRONT RATHER THAN FETCHED THROUGH TOOLS. The console already computes
+    // all of this; a tool round-trip would spend the operator's wait re-asking for facts we
+    // are holding. She gets them in the prompt and answers in one turn.
+    //
+    // ⚠️ EVERY LOOKUP FAILS SOFT AND SAYS SO. `null` reaches the prompt as "could not be
+    // read", which is a different sentence from "there is none" — an operator told a client
+    // has no Brief when we simply could not load it would act on a fact nobody established.
+    const [counts, briefRow, icpRow, clientMsgs, history] = await Promise.all([
+      (async () => {
+        try {
+          const [sourced, needs, sending, replied, booked] = await Promise.all([
+            db.from('leads').select('id', { count: 'exact', head: true }).eq('client_id', cid).is('revealed_at', null).neq('status', 'passed').in('status', ['scored', 'pending']),
+            db.from('figsy_approval_queue').select('id', { count: 'exact', head: true }).eq('client_id', cid).eq('status', 'pending'),
+            db.from('figsy_enrollments').select('id', { count: 'exact', head: true }).eq('client_id', cid).eq('status', 'enrolled'),
+            db.from('figsy_replies').select('id', { count: 'exact', head: true }).eq('client_id', cid),
+            db.from('calendar_bookings').select('id', { count: 'exact', head: true }).eq('client_id', cid).eq('status', 'confirmed'),
+          ])
+          return {
+            sourced: sourced.count ?? 0, 'needs approval': needs.count ?? 0,
+            sending: sending.count ?? 0, replied: replied.count ?? 0, booked: booked.count ?? 0,
+          }
+        } catch { return null }
+      })(),
+      (async () => {
+        try {
+          const { data: c } = await db.from('clients').select('user_id').eq('id', cid).maybeSingle()
+          const uid = (c as { user_id?: string } | null)?.user_id
+          if (!uid) return null
+          const { briefDraftFor, draftProgress } = await import('../lib/brief-draft')
+          const d = await briefDraftFor(uid)
+          if (!d) return null
+          const p = draftProgress(d)
+          return { facts: d.facts as Record<string, unknown>, conversation: d.conversation,
+                   progress: { count: p.count, total: p.total, missing: p.missing } }
+        } catch { return null }
+      })(),
+      (async () => {
+        try {
+          const { data } = await db.from('icps')
+            .select('id, name, industries, job_titles, seniority_levels, company_sizes, geographies, tech_stack, keywords')
+            .eq('client_id', cid).eq('is_active', true)
+            .order('created_at', { ascending: false }).limit(1).maybeSingle()
+          return data as Record<string, unknown> | null
+        } catch { return null }
+      })(),
+      (async () => {
+        try {
+          const { data } = await db.from('milla_messages')
+            .select('role, content').eq('client_id', cid)
+            .order('created_at', { ascending: false }).limit(8)
+          return ((data ?? []) as { role: string; content: string }[]).reverse()
+        } catch { return null }
+      })(),
+      (async () => {
+        const { vidaConversationFor } = await import('../lib/vida-conversation')
+        return vidaConversationFor(operator, cid)
+      })(),
     ])
-    const c = {
-      sourced: sourced.count ?? 0, needs: needs.count ?? 0, sending: sending.count ?? 0,
-      replied: replied.count ?? 0, enrolled: enrolled.count ?? 0, booked: booked.count ?? 0,
-    }
-    const surfaced = await db.from('leads').select('id', { count: 'exact', head: true })
-      .eq('client_id', cid).not('surfaced_for_approval_at', 'is', null).is('revealed_at', null)
 
-    let reply: string
-    let kind: 'answer' | 'handoff' = 'answer'
-    let link: string | null = null
-    /** The operator's own words, forwarded to the surface the handoff opens. Never a summary. */
-    let handoffText: string | null = null
+    const { buildVidaSystem, VIDA_TOOLS, readVidaProposal, boundedSourcingCount } =
+      await import('../lib/vida-brain')
 
-    if (/(block|stuck|waiting|what.?s left|to.?do|next)/.test(lc)) {
-      reply = `Blockers for ${client.company_name ?? 'this client'}: `
-        + `${c.needs} draft${c.needs === 1 ? '' : 's'} at your Send gate · `
-        + `${surfaced.count ?? 0} lead${(surfaced.count ?? 0) === 1 ? '' : 's'} sent to the client, awaiting their 👍 (Money gate) · `
-        + `${c.sourced} sourced lead${c.sourced === 1 ? '' : 's'} you haven't sent yet.`
-    } else if (/(status|how.*(going|doing)|summary|overview|pipeline)/.test(lc)) {
-      reply = `${client.company_name ?? 'Client'} pipeline — sourced ${c.sourced} · needs approval ${c.needs} · sending ${c.sending} · replied ${c.replied} · worked ${c.enrolled} · booked ${c.booked}.`
-    } else if (/(source|find|new lead|prospect|pull)/.test(lc)) {
-      kind = 'handoff'; link = `/vida?client=${cid}`
-      reply = `Sourcing runs in the FIGSY engine against this client's ICP. Open the ICP & Campaigns tools to source a new batch — new leads land in the Sourced column here. (One-click sourcing from this bar is on the build list.)`
-    } else if (/(sequence|email|copy|draft|campaign)/.test(lc)) {
-      kind = 'handoff'; link = `/vida?client=${cid}`
-      reply = `Campaigns & sequences live in the FIGSY engine. Build or edit there; drafts come back to the Needs-approval column for your Send gate.`
-    } else if (/(icp|target|persona|who)/.test(lc)) {
-      // ── ⚑ 4 Sep — THE TYPED DEFINITION IS CARRIED, NOT DISCARDED ────────────────────────
-      //
-      // 🛑 THE FOUNDER TYPED A WHOLE ICP INTO THIS BAR AND GOT A SENTENCE BACK. This branch
-      // matched on `/icp|target|persona|who/`, returned canned prose and threw `q` away, so he
-      // was told to go and say it again somewhere else. The two failures were separate and
-      // both are fixed here: the link named no destination (`/vida?client=` lands on the
-      // default tab, which is Inbox), and the words he had already written were dropped.
-      //
-      // ⚠️ THIS DOES NOT MAKE THE COMMAND BAR AN ICP ENGINE. It resolves no targeting, calls
-      // no model and proposes nothing — it hands the operator's own sentence to the surface
-      // that does, as the opening turn. `handoff_text` is exactly what they typed.
-      kind = 'handoff'; link = `/vida?client=${cid}&tab=ICP&mode=chat`
-      handoffText = q
-      reply = `Taking you to the ICP conversation with what you just said — Vida will pick it up from there.`
-    } else {
-      // ── ⚑ 4 Sep — THE FALLBACK NO LONGER SHRUGS AND DROPS THE SENTENCE ──────────────────
-      //
-      // 🛑 THE ICP BRANCH ABOVE ONLY FIRES ON THE WORDS "icp / target / persona / who". The
-      // founder typed *"Founder-led B2B agencies and consultancies in the UK and United
-      // States"* — a complete ICP containing none of those words — so it fell to here, and
-      // here used to reply with a menu and discard what he had written. He then had to say it
-      // again somewhere else.
-      //
-      // ⚠️ THE FIX IS NOT WIDER INTENT MATCHING. Guessing that an arbitrary sentence is
-      // targeting is how a status question becomes an ICP proposal. Nothing is classified and
-      // nothing is auto-opened: the words are simply KEPT and offered, and the operator
-      // decides by pressing or not pressing. The reply is honest that it did not understand.
-      kind = 'handoff'; link = `/vida?client=${cid}&tab=ICP&mode=chat`
-      handoffText = q
-      reply = `I'm not sure what you're asking me to do with that. If it describes who we should be hunting for, open the ICP conversation and I'll carry your words straight in. Otherwise try "status" or "what's blocking?".`
+    const system = buildVidaSystem({
+      clientName: client.company_name ?? 'this client',
+      clientId: cid,
+      operator,
+      pipeline: counts,
+      brief: briefRow?.facts ?? null,
+      briefProgress: briefRow?.progress ?? null,
+      briefTranscript: briefRow?.conversation ?? null,
+      clientMessages: clientMsgs,
+      icp: icpRow,
+    })
+
+    // ⚠️ NO KEY IS NOT A CRASH. She says so plainly and the operator keeps every other door.
+    if (!process.env.ANTHROPIC_API_KEY) {
+      res.json({ success: true, reply: "I can't reach my brain right now — the console still works, and the client tools below are all live.", kind: 'answer', link: null })
+      return
     }
+
+    const { default: Anthropic } = await import('@anthropic-ai/sdk')
+    const ai = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+    const msg = await ai.messages.create({
+      model: CONVERSATION_MODEL,
+      max_tokens: 900,
+      system,
+      tools: [...VIDA_TOOLS] as never,
+      messages: [
+        ...history.map(t => ({ role: (t.role === 'operator' ? 'user' : 'assistant') as 'user' | 'assistant', content: t.text })),
+        { role: 'user' as const, content: q.slice(0, 2000) },
+      ],
+    }, AI_TURN_BOUND)
+
+    const reply = msg.content.filter(b => b.type === 'text')
+      .map(b => (b as { text: string }).text).join('').trim()
+    const toolBlock = msg.content.find(b => b.type === 'tool_use') as
+      { type: 'tool_use'; name: string; input: unknown } | undefined
+    const proposal = toolBlock ? readVidaProposal(toolBlock.name, toolBlock.input) : null
+
+    // 🛑 A SOURCING COUNT IS BOUNDED HERE, NOT TRUSTED. It reaches a preview that prices real
+    // provider calls; "source 5000" must become something an operator can actually confirm.
+    if (proposal?.kind === 'propose_sourcing') {
+      proposal.input.count = boundedSourcingCount(proposal.input.count)
+    }
+
+    // ⚠️ SHE ALWAYS SAYS SOMETHING. A turn that produced only a tool call would leave the
+    // operator with a button and no sentence; the fallback names what she proposed.
+    const spoken = reply || (proposal
+      ? 'Here — take a look and confirm if that is right.'
+      : 'I did not catch that — say it again?')
+
+    const { appendVidaConversation } = await import('../lib/vida-conversation')
+    const at = new Date().toISOString()
+    await appendVidaConversation(operator, cid, [
+      { role: 'operator', text: q.slice(0, 4000), at },
+      { role: 'vida', text: spoken.slice(0, 4000), at },
+    ])
 
     await writeOperatorAudit({
-      operatorEmail: operatorEmail(req), clientId: cid, action: 'vida_command',
-      subjectType: 'client', subjectId: cid, detail: { text: q, kind },
+      operatorEmail: operator, clientId: cid, action: 'vida_command',
+      subjectType: 'client', subjectId: cid,
+      detail: { text: q.slice(0, 300), proposed: proposal?.kind ?? null },
     })
-    res.json({ success: true, reply, kind, link, handoff_text: handoffText, counts: c })
-  } catch (err) { console.error('[operator/command]', err); res.status(500).json({ success: false, error: 'Command failed' }) }
+
+    res.json({
+      success: true,
+      reply: spoken,
+      kind: proposal ? 'proposal' : 'answer',
+      proposal,
+      // ⛓️ `link` and `handoff_text` are kept so a console that has not been redeployed still
+      // behaves — it reads both and ignores what it does not know.
+      link: proposal?.kind === 'open_workspace'
+        ? `/vida?client=${cid}&tab=${encodeURIComponent(String(proposal.input.tab ?? 'ICP'))}`
+        : null,
+      handoff_text: null,
+    })
+  } catch (err) {
+    console.error('[operator/command]', err)
+    res.status(500).json({ success: false, error: 'Vida could not answer that just now — nothing has changed.' })
+  }
 })
 
-// ── LEAD QUEUE — every pending draft across ALL clients (the operator's inbox) ─────
-// So the operator never has to open each client to find what's waiting. Read-only; the
-// Approve & send / Reject actions reuse the per-draft /queue/:id endpoints above.
 operatorRouter.get('/queue', async (_req: Request, res: Response) => {
   try {
     const { listPendingDrafts } = await import('../lib/operator-queue')

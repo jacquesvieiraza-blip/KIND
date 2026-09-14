@@ -175,15 +175,16 @@ function initials(name: string | null): string {
 // #498b — detect a sourcing intent ("source 50 leads", "find 30 prospects", "source leads")
 // and route it to the pool-aware CONFIRM flow instead of the prose command handoff. Returns
 // the requested count (default 20) or null if the text isn't a sourcing command.
-function parseSourceIntent(t: string): number | null {
-  const lc = t.toLowerCase()
-  // (audit fix) Require a sourcing verb AND a lead/prospect noun, so ordinary commands
-  // ("find the CEO's email", "pull up the last reply") aren't hijacked into the pool-cost
-  // confirm. Only phrasing like "source 20 leads" / "find leads" routes to sourcing.
-  if (!/\b(source|find|pull|get|prospect)\b/.test(lc) || !/\b(lead|leads|prospect|prospects)\b/.test(lc)) return null
-  const m = lc.match(/(\d{1,3})/)
-  return m ? Math.max(1, Math.min(200, parseInt(m[1], 10))) : 20
-}
+// ⛓️ 14 Sep (R121) — `parseSourceIntent` STOOD HERE AND IS DELETED.
+//
+// 🛑 IT WAS A LANGUAGE PARSER IN THE BROWSER. Two regexes over what the operator typed —
+// /(source|find|pull|get|prospect)/ AND /(lead|leads|prospect|prospects)/ — plus the first
+// number it could find. "get me some more people for these guys" matched neither and fell
+// through to a keyword router that answered "I'm not sure what you're asking me to do with
+// that"; "we should get rid of the 1-10 band" matched BOTH and offered to source 10 leads.
+//
+// Vida reads the sentence now and proposes `propose_sourcing` with a count. The preview, the
+// real cost and the operator's "Run it" are all unchanged, so the money gate has not moved.
 
 export function VidaConversationProvider({ children }: { children: React.ReactNode }) {
   const [selected, setSelectedId] = useState<string | null>(null)
@@ -336,19 +337,6 @@ export function VidaConversationProvider({ children }: { children: React.ReactNo
       setCmd(''); setCmdLog(l => [...l, { role: 'operator', text: t }])
       return
     }
-    // Sourcing intent → pool-aware confirm (spends OUR PDL budget), not the prose handoff.
-    const srcCount = parseSourceIntent(t)
-    if (srcCount != null) {
-      setCmd('')
-      // ⚑ 7 Sep — AND THE TYPED SENTENCE IS NOT A QUANTITY EITHER. "source 40 leads" typed at a
-      // PROGRAMME client used to carry its own 40 into the client-scoped path. A programme's
-      // batch size is the programme's, so the sentence is read as INTENT only and the number
-      // in it is discarded.
-      const action = surface?.programmeSourcing ?? null
-      if (action) { previewProgrammeSource(action); return }
-      void previewSource(srcCount)
-      return
-    }
     setCmd(''); setCmdBusy(true)
     setCmdLog(l => [...l, { role: 'operator', text: t }])
     try {
@@ -366,6 +354,25 @@ export function VidaConversationProvider({ children }: { children: React.ReactNo
         handlers.current.onHandoff?.(String(json.handoff_text))
       }
       setCmdLog(l => [...l, { role: 'vida', text: json.reply, link: json.link }])
+
+      // ── ⚑ 14 Sep (R121) — SHE PROPOSED SOMETHING; THE OPERATOR STILL PRESSES THE BUTTON ──
+      //
+      // 🛑 EVERY PROPOSAL LANDS ON THE DOOR IT ALWAYS LANDED ON. Sourcing opens the SAME
+      // preview with the same real cost and the same "Run it"; an ICP goes to the editor the
+      // operator saves themselves. Nothing here executes, and nothing here is a new
+      // authority — the model chose which door, never whether to walk through it.
+      //
+      // ⚠️ AN UNKNOWN PROPOSAL IS IGNORED, NOT GUESSED AT. The server returns only the four
+      // it knows; a fifth would be a model inventing an action, and the right answer to that
+      // is her sentence and no button.
+      const proposal = json.proposal as { kind?: string; input?: Record<string, unknown> } | null
+      if (proposal?.kind === 'propose_sourcing') {
+        // ⚑ 7 Sep, UNCHANGED — a PROGRAMME's batch size is the programme's, so a count in the
+        // sentence is read as intent only and discarded on that path.
+        const action = surface?.programmeSourcing ?? null
+        if (action) previewProgrammeSource(action)
+        else void previewSource(Math.max(1, Math.min(200, Number(proposal.input?.count) || 20)))
+      }
     } catch (e) {
       setCmdLog(l => [...l, { role: 'vida', text: e instanceof Error ? e.message : 'Command failed' }])
     } finally { setCmdBusy(false) }
@@ -528,11 +535,12 @@ export function VidaConversationProvider({ children }: { children: React.ReactNo
                 className="text-[12.5px] font-semibold text-[#7C3AED] border border-[#e4dcf7] rounded-full px-3 py-1 hover:bg-[#f7f4fd] disabled:opacity-50">{c}</button>
             ))}
             {/* ⚑ 7 Sep (HOUSE-008) — ONE SHORTCUT, TWO PATHS, AND THE LABEL TELLS THE TRUTH.
-                It used to be the literal 'Source 20 leads' for everyone, and pressing it fed
-                that sentence back through `parseSourceIntent` so the WORDS ON THE BUTTON
-                decided how many records were bought. For a programme the quantity now comes
-                off programme truth and the click goes to the programme-native route; for an
-                ordinary client nothing about this changed. */}
+                It used to be the literal 'Source 20 leads' for everyone, and the WORDS ON THE
+                BUTTON decided how many records were bought. For a programme the quantity now
+                comes off programme truth and the click goes to the programme-native route.
+                ⛓️ 14 Sep (R121) — for an ordinary client the sentence now reaches VIDA, who
+                proposes a count; the preview and the operator's confirm are unchanged, so the
+                button still cannot spend anything on its own. */}
             <button
               onClick={() => {
                 const action = surface?.programmeSourcing ?? null

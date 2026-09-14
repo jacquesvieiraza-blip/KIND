@@ -28,7 +28,7 @@
 // ═══════════════════════════════════════════════════════════════════════════════════════
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { readFileSync } from 'fs'
+import { readFileSync, existsSync } from 'fs'
 import { join } from 'path'
 
 type Row = Record<string, unknown>
@@ -98,10 +98,19 @@ vi.mock('@anthropic-ai/sdk', () => ({
       create: async (opts: { system?: string; messages?: Array<{ role: string; content: string }> }) => {
         seenSystem.push(String(opts.system ?? ''))
         seenMessages.push((opts.messages ?? []).map(m => ({ role: String(m.role), content: String(m.content) })))
-        return { content: [{ type: 'text', text: JSON.stringify({
-          message: 'What does the client actually sell?',
-          icp: { name: 'UK + US founder-led agencies', industries: ['Consulting'], job_titles: ['Founder'], seniority_levels: ['C-Suite'], company_sizes: [], geographies: ['United Kingdom', 'United States'], tech_stack: [], keywords: [] },
-        }) }] }
+        // ⛓️ 14 Sep (R121, Build 3) — ~~a `text` block carrying JSON.stringify({message, icp})~~.
+        // Vida answers through a TOOL now, like Milla, so the double returns what the route
+        // actually reads: her sentence as text, her proposal as a `propose_icp_change` call.
+        // The JSON-text engine — "Reply with ONLY valid JSON", the enum menu read out inline,
+        // `JSON.parse` with a canned fallback sentence — is gone from the product.
+        return { content: [
+          { type: 'text', text: 'What does the client actually sell?' },
+          { type: 'tool_use', id: 't1', name: 'propose_icp_change', input: {
+            name: 'UK + US founder-led agencies', industries: ['Consulting'], job_titles: ['Founder'],
+            seniority_levels: ['C-Suite'], company_sizes: [], geographies: ['United Kingdom', 'United States'],
+            tech_stack: [], keywords: [],
+          } },
+        ] }
       },
     }
   },
@@ -173,7 +182,9 @@ describe('① build a NEW ICP by talking', () => {
     expect(reads, 'the icps table is not read at all on a fresh build').not.toContain('icps')
     expect(seenSystem[0], 'and nothing from a retired ICP reaches the prompt').not.toContain('Retired ICP')
     expect(seenSystem[0]).not.toContain('South Africa')
-    expect(seenSystem[0]).toContain('BUILD A BRAND-NEW ICP FROM THIS CONVERSATION')
+    // ⛓️ 14 Sep (R121, Build 3) — the wording moved into `buildVidaSystem`'s fresh block.
+    // The CLAIM is unchanged: no existing ICP is read, and none reaches the prompt.
+    expect(seenSystem[0]).toContain('THIS IS A BRAND-NEW PROFILE')
   })
 
   it('🛑 IT MUTATES NOTHING — a conversation is not a write', async () => {
@@ -193,8 +204,13 @@ describe('① build a NEW ICP by talking', () => {
   it('🛑 REFINE IS UNCHANGED — it still seeds the active ICP', async () => {
     await callOperator('post', '/icp/chat', { client_id: CLIENT, message: 'make it US only' })
     expect(reads).toContain('icps')
-    expect(seenSystem[0]).toContain('Their CURRENT active ICP is')
+    // ⛓️ 14 Sep (R121, Build 3) — ~~'Their CURRENT active ICP is'~~ followed by a JSON blob.
+    // The live targeting is rendered as readable lines now, beside the client's own words.
+    // The claim — refine SEEDS from the active ICP — is unchanged and is asserted on more:
+    // its name reaches her, and so does the market it targets.
+    expect(seenSystem[0]).toContain('THEIR LIVE TARGETING')
     expect(seenSystem[0]).toContain('Retired ICP 3')
+    expect(seenSystem[0]).toContain('South Africa')
     expect(writes, 'refining writes nothing either').toHaveLength(0)
   })
 
@@ -208,123 +224,103 @@ describe('① build a NEW ICP by talking', () => {
 })
 
 // ═══════════════════════════════════════════════════════════════════════════════════════
-// ② THE #1444 DISCIPLINE IS IMPORTED, NOT RE-WRITTEN
+// ② ⛓️ RETIRED 14 Sep (R121, BUILD 3) — THERE IS NO SECOND ENGINE LEFT TO KEEP IN STEP.
+//
+// 🛑 WHAT ② AND ③ USED TO PROVE, AND WHY THEY NO LONGER CAN.
+//
+// ② asserted that #1444's conversation discipline was WELDED into Vida's ICP prompt:
+// `lib/icp-conversation-rules.ts` held the authored copy, Milla's route held the original,
+// and a test compared them verbatim so neither could drift. It was a good answer to the
+// problem it had — TWO conversational engines with two prompts — and Build 3 removed the
+// problem instead of maintaining the weld. Vida's ICP surface is now the SAME Vida: one
+// `buildVidaSystem`, one set of tools, the client's own words in front of her. There is no
+// second copy left to drift.
+//
+// ③ asserted that `/operator/command` classified "icp|target|persona|who" and HANDED OFF to
+// the ICP conversation carrying the operator's sentence. That handoff existed because the
+// router could not answer — it was five regexes. Vida answers now, so the sentence does not
+// need carrying anywhere: she is already in the conversation it was typed into.
+//
+// ⚠️ WHAT REPLACES THEM IS NOT SMALLER. The properties both describes protected are asserted
+// in `vida-brain.test.ts` — no keyword router in the server OR the browser, one prompt
+// builder, the client's own words reaching her, no cross-client leak, every tool a proposal.
+// What is gone is the pair of mechanisms, not the guarantees.
 // ═══════════════════════════════════════════════════════════════════════════════════════
-describe('② one authored source, two consoles', () => {
+describe('② one Vida, and the operator reaches her without saying a magic word', () => {
   const API = join(__dirname, '..')
-  const icpsSrc = readFileSync(join(API, 'routes/icps.ts'), 'utf8')
-  const opSrc   = readFileSync(join(API, 'routes/operator.ts'), 'utf8')
-  const flat = (s: string) => s.replace(/\s+/g, ' ')
-
-  /** The builder/chat slice #1444's own guards read. Scoped identically. */
-  const builderChat = () => {
-    const start = icpsSrc.indexOf("const MILLA_REPLY_TOOL = 'milla_reply'")
-    const end = icpsSrc.indexOf("icpRouter.post('/'", start)
-    expect(start).toBeGreaterThan(-1); expect(end).toBeGreaterThan(start)
-    return icpsSrc.slice(start, end)
+  const opSrc = readFileSync(join(API, 'routes/operator.ts'), 'utf8')
+  const liveOf = (s: string) => s.split('\n')
+    .filter(l => { const t = l.trimStart(); return !t.startsWith('//') && !t.startsWith('*') && !t.startsWith('/*') })
+    .join('\n')
+  const slice = (path: string) => {
+    const from = opSrc.indexOf(`operatorRouter.post('${path}'`)
+    const to = opSrc.indexOf('operatorRouter.', from + 10)
+    return liveOf(opSrc.slice(from, to > from ? to : undefined))
   }
 
-  it('🛑 THE SHARED RULES ARE VERBATIM MILLA’S — neither copy can drift unseen', async () => {
-    const { ICP_ONE_THING_RULE, ICP_DECISION_METHOD } = await import('./icp-conversation-rules')
-    const milla = flat(builderChat())
-    for (const [label, block] of [['the ONE-thing rule', ICP_ONE_THING_RULE], ['the decision method', ICP_DECISION_METHOD]] as const) {
-      expect(block.length, `${label} is not empty`).toBeGreaterThan(200)
-      expect(milla, `${label} must still be word-for-word what Milla's builder says`).toContain(flat(block))
+  it('🛑 BOTH OPERATOR CONVERSATIONS COMPOSE FROM THE SAME BUILDER', () => {
+    for (const path of ['/command', '/icp/chat']) {
+      expect(slice(path), `${path} builds its own prompt`).toContain('buildVidaSystem')
+      expect(slice(path), `${path} carries its own tools`).toContain('VIDA_TOOLS')
     }
   })
 
-  it('🛑 ALL FOUR #1444 RULES REACH VIDA', async () => {
-    const { ICP_CONVERSATION_DISCIPLINE } = await import('./icp-conversation-rules')
-    const d = flat(ICP_CONVERSATION_DISCIPLINE)
-    for (const rule of [
-      'ASK FOR ONE GENUINELY MISSING THING PER REPLY',
-      'KNOWN',
-      'CONTRADICTORY',
-      'NEEDS CONFIRMING',
-      'NEVER A CHECKLIST — AND THAT INCLUDES TARGETING',
-      'NEVER ask for industry, job titles, company size and geography together.',
-      'LEARN WHAT THEY DO BEFORE YOU COLLECT TARGETING FIELDS',
-    ]) expect(d, rule).toContain(rule)
+  it('🛑 THE WELDED SECOND COPY IS RETIRED — the module and its import are gone', () => {
+    expect(existsSync(join(API, 'lib/icp-conversation-rules.ts')),
+      'a second authored prompt is back, and nothing welds it to Milla\'s').toBe(false)
+    expect(opSrc).not.toContain('ICP_CONVERSATION_DISCIPLINE')
   })
 
-  it('🛑 VIDA COMPOSES ITS PROMPT FROM THE MODULE — not from a second copy of the text', () => {
-    const fn = opSrc.slice(opSrc.indexOf("operatorRouter.post('/icp/chat'"))
-    expect(fn).toContain("await import('../lib/icp-conversation-rules')")
-    expect(fn).toContain('${ICP_CONVERSATION_DISCIPLINE}')
-    // The rule text itself must NOT be re-typed here — that is the drift this prevents.
-    expect(fn, 'the rules are imported, never restated').not.toContain('ASK FOR ONE GENUINELY MISSING THING PER REPLY. That is the governing rule')
-  })
-
-  it('🛑 AND THE LIVE PROMPT ACTUALLY CARRIES THEM', async () => {
-    house()
-    await callOperator('post', '/icp/chat', { client_id: CLIENT, fresh: true, message: 'UK agencies' })
-    expect(seenSystem[0]).toContain('ASK FOR ONE GENUINELY MISSING THING PER REPLY')
-    expect(seenSystem[0]).toContain('NEVER ask for industry, job titles, company size and geography together.')
-    expect(seenSystem[0]).toContain('LEARN WHAT THEY DO BEFORE YOU COLLECT TARGETING FIELDS')
-  })
-
-  it('🛑 THE FILTER-FORM PHRASING IS GONE FROM EVERY SURFACE', () => {
-    const vida = readFileSync(join(API, '../../admin/src/app/vida/page.tsx'), 'utf8')
-    for (const [where, src] of [['the route', opSrc], ['the Vida screen', vida]] as const) {
-      expect(src, `${where} must not read out a filter form`).not.toContain('industry, titles, seniority, size, region')
+  it('🛑 NEITHER ROUTE CLASSIFIES THE OPERATOR’S WORDS', () => {
+    for (const path of ['/command', '/icp/chat']) {
+      const s = slice(path)
+      expect(s, `${path} lowercases the operator's text to match on it`).not.toMatch(/toLowerCase\(\)/)
+      expect(s, `${path} still routes on keywords`).not.toMatch(/\.test\(\s*lc\s*\)/)
     }
-    expect(opSrc, 'the enum lists survive as VOCABULARY, not as a menu to recite').toContain('never read them out as a menu')
   })
 })
 
 // ═══════════════════════════════════════════════════════════════════════════════════════
-// ③ THE COMMAND BAR HANDS OVER WHAT WAS TYPED
+// ③ THE OPERATOR IS ANSWERED WHERE THEY ARE — no handoff, because none is needed
 // ═══════════════════════════════════════════════════════════════════════════════════════
-describe('③ the handoff carries both a destination and the words', () => {
+describe('③ she answers, rather than routing them somewhere else', () => {
   beforeEach(house)
-  const TYPED = 'Founder-led B2B agencies and consultancies in the UK and United States'
 
-  it('🛑 THE LINK NAMES THE ICP CONVERSATION — not the default tab', async () => {
-    const r = await callOperator('post', '/command', { client_id: CLIENT, text: TYPED })
-    expect(r.payload.link, 'never the bare /vida?client= that landed on Inbox')
-      .toBe(`/vida?client=${CLIENT}&tab=ICP&mode=chat`)
-    expect(r.payload.kind).toBe('handoff')
+  it('🛑 A SENTENCE WITH NONE OF THE OLD KEYWORDS IS STILL ANSWERED', async () => {
+    // The founder's own sentence on the walk that produced this file contains none of
+    // "icp", "target", "persona" or "who" — and the router replied with a menu and dropped a
+    // complete ICP. It reaches Vida now, like any other sentence.
+    const r = await callOperator('post', '/command', {
+      client_id: CLIENT,
+      text: 'Founder-led B2B agencies and consultancies in the UK and United States, 11-50 people',
+    })
+    expect(r.status).toBe(200)
+    expect(r.payload.success).toBe(true)
+    expect(r.payload.reply, 'she said nothing').toBeTruthy()
+    expect(String(r.payload.reply), 'the dead end is back')
+      .not.toContain("I'm not sure what you're asking me to do with that")
   })
 
-  it('🛑 THE OPERATOR’S OWN SENTENCE SURVIVES — verbatim, not summarised', async () => {
-    const r = await callOperator('post', '/command', { client_id: CLIENT, text: TYPED })
-    expect(r.payload.handoff_text).toBe(TYPED)
+  it('🛑 HIS WHOLE SENTENCE REACHES HER — verbatim, not summarised, not classified', async () => {
+    const said = 'Founder-led B2B agencies and consultancies in the UK and United States, 11-50 people'
+    await callOperator('post', '/command', { client_id: CLIENT, text: said })
+    const turns = seenMessages[0]
+    expect(turns[turns.length - 1]).toEqual({ role: 'user', content: said })
   })
 
-  it('🛑 IT IS STILL NOT AN ICP ENGINE — no model call, no proposal, no write', async () => {
-    await callOperator('post', '/command', { client_id: CLIENT, text: TYPED })
-    expect(seenSystem, 'the command bar resolves no targeting').toHaveLength(0)
-    expect(writes.filter(w => w.table === 'icps')).toHaveLength(0)
+  it('🛑 SHE SEES THIS CLIENT — their live targeting, not a bare client id', async () => {
+    await callOperator('post', '/command', { client_id: CLIENT, text: 'where are we with these guys?' })
+    expect(seenSystem[0]).toContain('House')
+    expect(seenSystem[0]).toContain('Retired ICP 3')
   })
 
-  it('🛑 AND A SENTENCE CONTAINING NONE OF THE INTENT WORDS IS STILL NOT DISCARDED', async () => {
-    // The founder's actual text has no "icp", no "target", no "persona", no "who" in it — so
-    // the intent branch cannot fire, and the fallback used to reply with a menu and drop it.
-    expect(/(icp|target|persona|who)/i.test(TYPED), 'the fixture really does miss every keyword').toBe(false)
-    const r = await callOperator('post', '/command', { client_id: CLIENT, text: TYPED })
-    expect(r.payload.handoff_text, 'his words are kept').toBe(TYPED)
-    expect(r.payload.link).toBe(`/vida?client=${CLIENT}&tab=ICP&mode=chat`)
-    expect(r.payload.reply, 'and it says plainly that it did not understand').toContain("I'm not sure what you're asking me to do")
-    expect(seenSystem, 'nothing is classified and no model is called').toHaveLength(0)
-  })
-
-  it('🛑 THE EXPLICIT WORDS STILL ROUTE STRAIGHT THERE', async () => {
-    const r = await callOperator('post', '/command', { client_id: CLIENT, text: 'redefine the ICP for this programme' })
-    expect(r.payload.kind).toBe('handoff')
-    expect(r.payload.link).toBe(`/vida?client=${CLIENT}&tab=ICP&mode=chat`)
-    expect(r.payload.handoff_text).toBe('redefine the ICP for this programme')
-    expect(r.payload.reply).toContain('Taking you to the ICP conversation')
-  })
-
-  it('the answering branches are untouched — they still answer, and carry nothing', async () => {
-    for (const text of ['status', "what's blocking?"]) {
-      const s = await callOperator('post', '/command', { client_id: CLIENT, text })
-      expect(s.payload.kind, text).toBe('answer')
-      expect(s.payload.handoff_text, text).toBeNull()
-      expect(s.payload.link, text).toBeNull()
-    }
+  it('🛑 AND A CONVERSATION IS STILL NOT A WRITE', async () => {
+    const before = snapshot()
+    await callOperator('post', '/command', { client_id: CLIENT, text: 'add the US as well' })
+    expect(snapshot(), 'talking to Vida changed the targeting').toEqual(before)
   })
 })
+
 
 // ═══════════════════════════════════════════════════════════════════════════════════════
 // ④ SAVE MAKES A FOURTH ICP — AND STOPS THERE
@@ -410,16 +406,23 @@ describe("⑥ the founder's own words, end to end", () => {
     const r = await callOperator('post', '/icp/chat', { client_id: CLIENT, fresh: true, message: SENTENCE })
     expect(r.status).toBe(200)
     expect(reads, 'the old ICPs are never read').not.toContain('icps')
-    expect(seenSystem[0]).toContain('BUILD A BRAND-NEW ICP FROM THIS CONVERSATION')
+    // ⛓️ 14 Sep (R121, Build 3) — the wording moved into `buildVidaSystem`'s fresh block.
+    // The CLAIM is unchanged: no existing ICP is read, and none reaches the prompt.
+    expect(seenSystem[0]).toContain('THIS IS A BRAND-NEW PROFILE')
     expect(seenSystem[0]).not.toContain('Retired ICP')
     expect(seenSystem[0]).not.toContain('South Africa')
   })
 
-  it('🛑 THE #1444 DISCIPLINE GOVERNS THE REPLY, AND THE WHOLE SENTENCE IS CARRIED', async () => {
+  it('🛑 SHE IS TOLD WHO SHE IS TALKING TO AND WHAT SHE MAY DO, AND THE WHOLE SENTENCE IS CARRIED', async () => {
     await callOperator('post', '/icp/chat', { client_id: CLIENT, fresh: true, message: SENTENCE })
-    expect(seenSystem[0]).toContain('ASK FOR ONE GENUINELY MISSING THING PER REPLY')
-    expect(seenSystem[0]).toContain('NEVER ask for industry, job titles, company size and geography together.')
-    expect(seenSystem[0]).toContain('LEARN WHAT THEY DO BEFORE YOU COLLECT TARGETING FIELDS')
+    // ⛓️ 14 Sep (R121, Build 3) — ~~the three #1444 prompt lines, welded in from Milla's
+    // route~~. Vida's prompt is her own now and the weld is retired (see ②); what this test
+    // was protecting — that the operator meets a conversation rather than a filter form — is
+    // asserted on Vida's own rules instead.
+    expect(seenSystem[0]).toContain('You are Vida, the K.I.N.D operator')
+    expect(seenSystem[0]).toContain('YOU PROPOSE. THE OPERATOR PRESSES THE BUTTON')
+    expect(seenSystem[0], 'she must not read an enum menu out at the operator')
+      .not.toContain('Fintech, Healthtech, E-commerce')
     // His words go in the USER turn, whole — the route caps at 2,000 chars and this is ~380.
     const lastUser = seenMessages[0].filter(m => m.role === 'user').pop()!
     expect(lastUser.content, 'the exclusions are not truncated away').toContain('Exclude recruitment agencies')

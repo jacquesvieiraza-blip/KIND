@@ -6,6 +6,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { AgentSidePanel } from '@/components/ui/AgentSidePanel'
 import { createClient } from '@/lib/supabase/client'
 import { api } from '@/lib/api'
+import { stashMillaHandoff } from '@kind/shared'
 
 const COLLAPSE_KEY = 'kind_agent_col_v1'
 
@@ -139,11 +140,30 @@ export function AgentColumn({ hasFigsy, hasMilla, hasVida, hasDenise, leadCount,
           // conversation rather than starting a rival to it. No replacement chat is added and
           // this page is not redesigned.
           //
-          // ⚠️ THE `?q=` IS LEFT EXACTLY AS IT WAS. Neither this destination nor the
-          // canonical one has ever read it, so removing or re-pointing it would change
-          // behaviour this ticket has no mandate to change. It is recorded as an
-          // out-of-scope finding instead.
-          onSend={msg => router.push(`/dashboard/assistant?q=${encodeURIComponent(msg)}`)}
+          // ── 🛑 ⚑ 15 Sep (O1 correction) — AND THE TYPED SENTENCE NOW SURVIVES ────────
+          //
+          // ⛓️ ~~`?q=${encodeURIComponent(msg)}`~~ STOOD HERE and was recorded on 14 Sep as
+          // "left exactly as it was… neither destination has ever read it". That was true and
+          // it was the bug: this `onSend` receives THE CUSTOMER'S TYPED MESSAGE, and handing
+          // it to a query string threw it away twice over —
+          //
+          //   1. `middleware.ts` rewrites `/dashboard/*` → `/milla/*` with
+          //      `new URL(path, base)`, which CARRIES NO QUERY STRING. `?q=` died at the
+          //      redirect, before any destination existed to ignore it.
+          //   2. Nothing at the destination reads `?q=` anyway.
+          //
+          // So a customer typed a sentence into Milla's own card, watched the screen change,
+          // and was greeted as though they had said nothing. Founder ruling: THE CUSTOMER
+          // NEVER RETYPES BECAUSE OUR SYSTEM FAILED. We chose this navigation; the loss is
+          // ours.
+          //
+          // ⚠️ NO SECOND MILLA COMES BACK. `stashMillaHandoff` talks to no endpoint and
+          // stores no conversation — it parks ONE sentence for ONE navigation. The canonical
+          // provider claims it on arrival and puts it through its EXISTING `send()`, so it is
+          // persisted by the one mechanism that has ever persisted a Milla message:
+          // `POST /milla/sessions/:id/chat` → `milla_messages`. Claim-once is what makes that
+          // exactly one copy.
+          onSend={msg => { stashMillaHandoff(msg); router.push('/dashboard/assistant') }}
           inputPlaceholder="Ask Milla anything…"
           online={hasMilla}
         />

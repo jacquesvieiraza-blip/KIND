@@ -12,6 +12,8 @@ import {
   // wearing "I hit a snag reaching the engine".
   refinementFailureMessage, chatFailureMessage, isRetryableOnce, REFINEMENT_RETRIES,
   REVISE_STATE_CHANGED_CODE, TARGETING_UNCHANGED_SENTENCE,
+  // ⚑ 15 Sep (O1) — the one sentence a customer typed on the way here, claimed once.
+  claimMillaHandoff,
 } from '@kind/shared'
 
 // ── ⚑ 4 Sep — THE ONE MILLA CONVERSATION (founder-approved shell) ────────────────────────
@@ -241,14 +243,40 @@ export function MillaConversationProvider(
         const tok = await token()
         const list = await api.get<{ data: { id: string }[] }>('/milla/sessions', tok)
         const sid = list.data?.[0]?.id
-        if (!sid) return
-        setSessionId(sid)
-        const hist = await api.get<{ data: Msg[] }>(`/milla/sessions/${sid}/messages`, tok)
-        const rows = (hist.data ?? []).slice(-20)
-        if (rows.length > 0) {
-          setMessages(m => [...m, ...rows.map(r => ({ id: r.id, role: r.role, content: r.content }))])
+        if (sid) {
+          setSessionId(sid)
+          const hist = await api.get<{ data: Msg[] }>(`/milla/sessions/${sid}/messages`, tok)
+          const rows = (hist.data ?? []).slice(-20)
+          if (rows.length > 0) {
+            setMessages(m => [...m, ...rows.map(r => ({ id: r.id, role: r.role, content: r.content }))])
+          }
         }
       } catch { /* no thread yet — the greeting stands on its own */ }
+
+      // ── 🛑 ⚑ 15 Sep (O1 correction) — THE SENTENCE TYPED BEFORE THE NAVIGATION ────────
+      //
+      // `AgentColumn`'s Milla card has a composer and no chat engine (the second stateless
+      // `/milla/chat` Milla was removed on 14 Sep and stays removed). Its `onSend` navigates
+      // here carrying the customer's typed message — and until now the message died on the
+      // way: `middleware.ts` redirects with `new URL(path, base)`, which drops the query
+      // string, and nothing here ever read `?q=` anyway. They typed, the screen changed, and
+      // Milla greeted them as if they had said nothing.
+      //
+      // ⚠️ IT GOES THROUGH `send()` — THE CANONICAL SENDER, UNCHANGED. Not a new endpoint,
+      // not a direct insert, not a pre-seeded transcript row: the same function the composer
+      // below calls, which posts to `/milla/sessions/:id/chat` and lets the server persist
+      // both turns into `milla_messages`. That is what puts it in the ONE thread and what
+      // makes it there on re-entry.
+      //
+      // ⚠️ AFTER THE RESTORE, DELIBERATELY. Their sentence is the newest turn in the thread,
+      // so it must land after the history it follows — and `send()` re-reads the session for
+      // itself, so it uses the same canonical session whether or not the restore above found
+      // one.
+      //
+      // ⚠️ CLAIM-ONCE IS WHAT STOPS A SECOND COPY. `claimMillaHandoff` deletes before it
+      // returns, so StrictMode's double-mount, a remount or a second tab claims nothing.
+      const handed = claimMillaHandoff()
+      if (handed) await send(handed)
     })()
   }, [])
 

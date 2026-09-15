@@ -1,7 +1,7 @@
 // Apollo.io people search — maps ICP criteria to API params and normalises results
 import { pdlSearchPage, pdlSearchDiagnostic, type PdlPage, type PdlSearchOptions } from './pdl-search'
 import { assertPaidProviderAllowed, rethrowIfProviderBlocked } from './paid-provider-guard'
-import { searchProviderFor, apolloRevealableIds, type Audience } from './provider-boundary'
+import { searchProviderFor, sourcingProviderFor, apolloRevealableIds, type Audience } from './provider-boundary'
 import { sendFounderAlert } from './alerts'
 import { isPlaceholderEmail } from './email-hygiene'
 
@@ -382,7 +382,12 @@ export async function searchPeopleWithFallback(
   // The union is gone rather than made conditional: it only ever existed because the two
   // audiences shared one function. `searchProviderFor` is the single decision — see
   // lib/provider-boundary.ts for why it does not live at the call sites.
-  const provider = searchProviderFor(audience)
+  // ⛓️ 15 Sep (S2-RT-001A) — `sourcingProviderFor`, NOT `searchProviderFor`. AR5 still decides
+  // every ordinary run; the ONE exception is FREE PROOF, which the founder locked onto Apollo
+  // after Northstar's Proof was sent to a PDL account with no search credits left. `opts` is
+  // the same object the PDL branch already reads `proofMode` from — no new parameter, no new
+  // call-site contract, and a non-proof client run is byte-identical to before.
+  const provider = sourcingProviderFor(audience, { proofMode: opts?.proofMode === true })
 
   // ⚑ 7 Sep — DERIVED FROM THE AUDIENCE, NEVER PASSED IN. A `verifiedEmailOnly` parameter
   // would have to be remembered at every call site, and the one that forgot it would relax

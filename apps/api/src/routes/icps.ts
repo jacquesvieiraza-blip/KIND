@@ -5,7 +5,7 @@ import { db } from '@kind/db'
 import { requireAuth, AuthRequest } from '../middleware/auth'
 import { rateLimit } from '../lib/rate-limit'
 import { searchPeopleWithFallback, ApolloCreditsExhaustedError, ApolloRateLimitError } from '../lib/apollo'
-import { audienceForClientStrict, audienceForUser } from '../lib/provider-boundary'
+import { audienceForClientStrict, audienceForUser, sourcingProviderFor } from '../lib/provider-boundary'
 import { scoreLeadsForIcp } from '../lib/scoring'
 import { sendFirstLeadsReadyEmail, sendConsentEmail } from '../lib/email'
 import { suggestIcpFromWebsite } from '../lib/scrape'
@@ -1039,6 +1039,13 @@ export async function runIcpJob(
   // fail-open for every other caller — see `audienceForClientStrict` for the truth table.
   const audience = await audienceForClientStrict(clientId)
 
+  // ⛓️ 15 Sep (S2-RT-001A) — WHICH PROVIDER THIS RUN WILL ACTUALLY USE, asked ONCE, from the
+  // same function `searchPeopleWithFallback` asks. Two things below depend on the PROVIDER and
+  // were written in terms of the AUDIENCE, which was the same fact until Proof moved to Apollo:
+  // the search-trust evidence rule, and the PDL budget alarm. Deriving it here rather than
+  // re-testing `audience === 'house'` at each site is what stops them drifting apart again.
+  const sourcingProvider = sourcingProviderFor(audience, { proofMode })
+
   // ── ⚑ 7 Sep — EVERY CRITERION THE CUSTOMER SET MUST HAVE AN OWNER, OR THIS RUN STOPS ──
   //
   // 🛑 A PROVIDER'S LIMITS MUST NEVER SILENTLY REDEFINE THE CUSTOMER'S ICP. Each stored
@@ -1234,7 +1241,10 @@ export async function runIcpJob(
     } else {
       // PDL-budget alarm only on a run that actually spends PDL. A house run buys no
       // PDL records, so raising the PDL budget alarm from it would be a false alert.
-      if (audience !== 'house') void maybeAlertPdlBudget()
+      // ⛓️ 15 Sep (S2-RT-001A) — and so does a client PROOF run, which is now Apollo. Keyed on
+      // the provider for the same reason as the trust rule above: `audience !== 'house'` stopped
+      // meaning "this run spends PDL" the moment Proof moved off PDL.
+      if (sourcingProvider === 'pdl') void maybeAlertPdlBudget()
 
       // #366 — resume from where the last run stopped. `cursor.token` is null on a first
       // run (or after an ICP edit), which is the old behaviour exactly.
@@ -1349,11 +1359,20 @@ export async function runIcpJob(
         // completion; timeout, 5xx, auth, two 429s, malformed body, out of credits and
         // no-API-key all leave `completed: false` — and therefore leave trust unproven.
         if (pdlPage.completed) searchTrust = 'proven'
-      } else if (audience === 'house' && !paidSourcingBlocked) {
-        // The Apollo house path has no PDL page and its failures THROW out of this run —
-        // so reaching this line at all IS the positive evidence of completion. A BLOCKED
-        // house run also has no page, and proved nothing: the guard refused before Apollo
+      } else if (sourcingProvider === 'apollo' && !paidSourcingBlocked) {
+        // The Apollo path has no PDL page and its failures THROW out of this run — so
+        // reaching this line at all IS the positive evidence of completion. A BLOCKED
+        // run also has no page, and proved nothing: the guard refused before Apollo
         // was ever asked, so trust must stay 'unproven'.
+        //
+        // ⛓️ 15 Sep (S2-RT-001A) — KEYED ON THE PROVIDER, NOT THE AUDIENCE. This read
+        // `audience === 'house'`, which was the same thing only while Apollo and house were
+        // the same thing. With client PROOF on Apollo it stopped being true, and the bug that
+        // left was exact: an Apollo search that COMPLETED and honestly matched nobody produced
+        // no PDL page, failed this test, left trust 'unproven', and `deriveRunStatus` recorded
+        // `failed` — showing the prospect "We hit a snag confirming your matches" for a
+        // provider answer we had in fact received. The same snag state this ticket exists to
+        // remove, re-created one branch further down.
         searchTrust = 'proven'
       }
       // A client run with no page: the call never produced an answer. Trust stays

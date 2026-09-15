@@ -54,6 +54,43 @@ export function searchProviderFor(audience: Audience): SearchProvider {
   return audience === 'house' ? 'apollo' : 'pdl'
 }
 
+/**
+ * THE SOURCING DECISION — AR5, plus the ONE founder-locked exception for FREE PROOF.
+ *
+ * ⛓️ 15 Sep (S2-RT-001A) — CLIENT **PROOF** SOURCES THROUGH APOLLO, NOT PDL. Founder-locked,
+ * verbatim: *"CLIENT PROOF SOURCING MUST USE APOLLO."* · *"DO NOT use PDL for client Proof."*
+ * · *"DO NOT add PDL as a fallback for Proof."*
+ *
+ * ⚠️ WHAT EARNED IT. Northstar Revenue completed its Brief, promoted to a client with an
+ * active ICP, and entered Proof normally. AR5 routed the client audience to PDL, PDL answered
+ * 402 — search credits exhausted — and the run resolved fail-closed with zero prospects. The
+ * claim was released `run_failed`, `proof_passes_done` stayed 0, and the customer was shown
+ * *"We hit a snag confirming your matches"*. Nothing was broken; Proof was simply pointed at a
+ * provider that had nothing left to give.
+ *
+ * ⚠️ IT IS A SEPARATE FUNCTION, NOT A NEW ARGUMENT ON `searchProviderFor`. That selector is
+ * AR5 itself and is read by the ICP PREVIEW (AR14) as well as by sourcing; widening it in
+ * place would move the preview's provider too, and a preview is not a Proof run. Every
+ * non-proof caller keeps the old function, unchanged, and the compiler shows exactly which
+ * call sites opted into the exception.
+ *
+ * ⚠️ AND IT IS SCOPED TO PROOF, NOT TO CLIENTS. `proofMode` false — or absent — is AR5
+ * byte-for-byte: a paying client's ordinary sourcing run still goes to PDL behind AR8's cash
+ * fence. This is not authority to move every sourcing flow onto Apollo.
+ *
+ * ⚠️ THERE IS NO FALLBACK IN EITHER DIRECTION. A Proof run that Apollo cannot serve FAILS
+ * CLOSED — it does not quietly try PDL, because "try the other provider" is precisely the
+ * silent cross-over AR5 exists to prevent, and a prospect served from an unintended stack is
+ * the defect wearing a success message.
+ */
+export function sourcingProviderFor(
+  audience: Audience,
+  opts?: { proofMode?: boolean },
+): SearchProvider {
+  if (opts?.proofMode === true) return 'apollo'
+  return searchProviderFor(audience)
+}
+
 // ⚠️ THERE IS DELIBERATELY NO `revealProviderFor()` HERE (removed 22 Aug).
 //
 // A `revealProviderFor(audience) => 'apollo' | 'hunter'` was written here and had

@@ -2,7 +2,9 @@
 
 import { Router } from 'express'
 import { z } from 'zod'
+import { createHash, randomUUID } from 'node:crypto'
 import Anthropic from '@anthropic-ai/sdk'
+import { CONVERSATION_MODEL, AI_TURN_BOUND } from '../lib/models'
 import { db } from '@kind/db'
 import { requireAuth, AuthRequest } from '../middleware/auth'
 import { processDocument, chat } from '../lib/milla'
@@ -355,6 +357,27 @@ millaRouter.get('/sessions/:sessionId/messages', async (req: AuthRequest, res) =
 
 // One alert per client per 15 minutes — in memory, same pattern as the approval-batch
 // throttle. A restart re-arms it, which is the safe direction to fail (an extra nudge).
+/**
+ * 🛑 THE ID OF MILLA'S ANSWER TO ONE CUSTOMER TURN — derived, never random.
+ *
+ * ⚑ 15 Sep (O1 durability). One sentence may have exactly one stored answer, however many
+ * times the send is replayed after an ambiguous failure. Deriving the reply's primary key
+ * from the customer row's makes that a property of the table rather than of the caller's
+ * retry discipline, and it costs one hash instead of a migration or a second column.
+ *
+ * ⚠️ IT IS A FORMATTING OF A DIGEST, NOT A SECURITY BOUNDARY. Nothing is authorised by this
+ * value; it identifies a row whose session and client are checked separately above.
+ */
+function replyRowIdFor(userRowId: string): string {
+  const h = createHash('sha256').update(`${userRowId}:milla-reply`).digest('hex')
+  // Shape it as a v4-looking UUID so the column's type is satisfied.
+  const v = h.slice(0, 32).split('')
+  v[12] = '4'
+  v[16] = '89ab'[parseInt(h[16], 16) & 0x3]
+  const s = v.join('')
+  return `${s.slice(0, 8)}-${s.slice(8, 12)}-${s.slice(12, 16)}-${s.slice(16, 20)}-${s.slice(20, 32)}`
+}
+
 const lastClientMessageAlert = new Map<string, number>()
 function shouldAlertClientMessage(clientId: string): boolean {
   const now = Date.now()
@@ -369,7 +392,14 @@ millaRouter.post('/sessions/:sessionId/chat', async (req: AuthRequest, res) => {
     // Cap the message length so a large paste can't blow Claude's context window
     // ("prompt is too long"). Matches the 2000-char cap used by every other chat
     // endpoint; the dedicated notetaker route handles long transcripts separately.
-    const { message } = z.object({ message: z.string().min(1).max(2000) }).parse(req.body)
+    // ⚑ 15 Sep (O1 durability) — `messageId` IS OPTIONAL AND IS THE EXACTLY-ONCE TOKEN.
+    // Absent (the ordinary composer), the row gets a server-side uuid exactly as before.
+    // Present (a handed-over sentence, or any retry of one), it becomes the PRIMARY KEY of
+    // the customer's row, so replaying the same send cannot create a second one.
+    const { message, messageId } = z.object({
+      message:   z.string().min(1).max(2000),
+      messageId: z.string().uuid().optional(),
+    }).parse(req.body)
 
     const access = await requireMillaAccess(req.userId!)
     if ('error' in access) { res.status(access.status).json({ success: false, error: access.error }); return }
@@ -385,9 +415,70 @@ millaRouter.post('/sessions/:sessionId/chat', async (req: AuthRequest, res) => {
       .select('role, content')
       .eq('session_id', req.params.sessionId)
       .order('created_at', { ascending: false })
-      .limit(10)
+      // ⚑ 14 Sep (R121, Build 2) — 10 → 40. Ten turns is about five exchanges: a client who
+      // explained something at the top of a conversation was talking to somebody who had
+      // forgotten it by the bottom. 40 matches the window the onboarding route gives her and
+      // the bound the Brief transcript is stored at, so "how much does Milla remember?" has
+      // one answer across the product. Deliberately NOT a summarisation call — that is a
+      // second model turn per message for a problem a bigger window already solves.
+      .limit(40)
 
     const messageHistory = (historyRows ?? []).reverse()
+
+    // ═══════════════════════════════════════════════════════════════════════════════════
+    // 🛑 ⚑ 15 Sep (O1 durability) — ONCE THEY HAVE SENT IT, WE OWN IT. BEFORE THE MODEL.
+    //
+    // ⛓️ BOTH INSERTS USED TO SIT BELOW THE `chat()` CALL. So every provider failure — a
+    // 529, a timeout, an interrupted response — ended with NOTHING of the customer's in
+    // `milla_messages`. The browser was the only thing still holding their sentence, and one
+    // reload took it. The founder's rule is that our failure never costs them their words,
+    // and the Brief path has written the customer's turn before the provider since 14 Sep
+    // (guarded by M6). This is the same rule, on the same kind of turn, a route later.
+    //
+    // ⚠️ AFTER THE HISTORY READ, DELIBERATELY. Reading first keeps the payload byte-identical
+    // to what it was: the new turn reaches the model as `userMessage`, exactly once, and not
+    // also as the newest row of `messageHistory`.
+    //
+    // ⚠️ AND IT IS IDEMPOTENT. `userRowId` is the client's `messageId` when one was sent, so a
+    // retry of the same send replays the same primary key. 23505 is Postgres refusing the
+    // duplicate — the repo's existing idempotency signal (`webhook-idempotency.ts`,
+    // `morning-brief-deliver.ts`, `approve-lead.ts`) — and it means ALREADY OWNED, which is
+    // success, not failure.
+    //
+    // ⚠️ FAIL-CLOSED ON ANYTHING ELSE. If the turn cannot be stored we do not call the model:
+    // answering a question we did not manage to record is how a conversation silently loses
+    // a turn, and the client's own composer still holds the sentence to try again.
+    // ═══════════════════════════════════════════════════════════════════════════════════
+    const userRowId      = messageId ?? randomUUID()
+    const assistantRowId = replyRowIdFor(userRowId)
+
+    const { error: ownErr } = await db.from('milla_messages').insert({
+      id:         userRowId,
+      session_id: req.params.sessionId,
+      client_id:  clientId,
+      role:       'user',
+      content:    message,
+      sources:    null,
+    })
+    const alreadyOwned = (ownErr as { code?: string } | null)?.code === '23505'
+    if (ownErr && !alreadyOwned) {
+      console.error('[milla/chat POST] could not store the customer turn', ownErr)
+      res.status(503).json({ success: false, error: 'Failed to send message' })
+      return
+    }
+
+    // 🛑 A RETRY OF A SEND THAT ALREADY SUCCEEDED REPLAYS THE ANSWER — IT DOES NOT RE-ASK.
+    // The reply row's id is derived from the customer row's, so this is one primary-key
+    // lookup. Without it an ambiguous failure after a complete turn would spend a second
+    // model call and leave the client with two Milla replies to one sentence.
+    if (alreadyOwned) {
+      const { data: prior } = await db.from('milla_messages')
+        .select('content, sources').eq('id', assistantRowId).maybeSingle()
+      if (prior?.content) {
+        res.json({ success: true, reply: prior.content, sources: prior.sources ?? [] })
+        return
+      }
+    }
 
     // Call Milla chat
     const { reply, sources } = await chat({
@@ -416,17 +507,14 @@ millaRouter.post('/sessions/:sessionId/chat', async (req: AuthRequest, res) => {
       ]).catch(() => {})
     })().catch(() => {})
 
-    // Persist user message
+    // ⛓️ 15 Sep (O1 durability) — the user insert that stood here has moved ABOVE the model
+    // call; see the block before `chat()`. Only her reply is written at this point, because
+    // only her reply exists at this point.
+    //
+    // ⚠️ THE REPLY ROW'S ID IS DERIVED FROM THE CUSTOMER'S, so one sentence can only ever
+    // have one answer stored against it, however many times the send is replayed.
     await db.from('milla_messages').insert({
-      session_id: req.params.sessionId,
-      client_id:  clientId,
-      role:       'user',
-      content:    message,
-      sources:    null,
-    })
-
-    // Persist assistant message
-    await db.from('milla_messages').insert({
+      id:         assistantRowId,
       session_id: req.params.sessionId,
       client_id:  clientId,
       role:       'assistant',
@@ -461,8 +549,20 @@ millaRouter.post('/chat', async (req: AuthRequest, res) => {
     const access = await requireMillaAccess(req.userId!)
     if ('error' in access) { res.status(access.status).json({ success: false, error: access.error }); return }
 
+    // ── 🛑 ⚑ 14 Sep (M4) — A CONFIGURATION FAULT IS NOT MILLA SPEAKING ──────────────────
+    //
+    // ⛓️ THIS ANSWERED `success: true` WITH A SENTENCE IN HER VOICE: ~~"I can't reach my
+    // brain right now — please email hello@get-kind.com and the team will help."~~ To the
+    // client that reads as Milla having HEARD them and declined. It is an operational fault
+    // on our side, the same one the Vida console had, and it is reported as one.
+    //
+    // ⚠️ THE ADDRESS IS KEPT, because a client who cannot reach her still needs a way out —
+    // it just travels as an honest error rather than as her answer.
     if (!process.env.ANTHROPIC_API_KEY) {
-      res.json({ success: true, data: { reply: "I can't reach my brain right now — please email hello@get-kind.com and the team will help." } })
+      res.status(503).json({
+        success: false, retryable: true,
+        error: 'Milla is not reachable right now. Nothing you typed is lost — please try again, or email hello@get-kind.com.',
+      })
       return
     }
 
@@ -508,11 +608,11 @@ millaRouter.post('/chat', async (req: AuthRequest, res) => {
     const { buildMillaChatSystem } = await import('../lib/milla-chat-system')
 
     const response = await anthropic.messages.create({
-      model: 'claude-haiku-4-5-20251001',
+      model: CONVERSATION_MODEL,
       max_tokens: 600,
       system: buildMillaChatSystem(snapshot, programme, proof),
       messages,
-    })
+    }, AI_TURN_BOUND)
 
     const reply = response.content
       .filter(b => b.type === 'text')
@@ -778,6 +878,7 @@ millaRouter.put('/brief-draft', async (req: AuthRequest, res) => {
     seniority_levels:    z.array(z.string().max(40)).max(6).nullish(),
     exclusions:          z.string().max(600).nullish(),
     desired_outcome:     z.string().max(2000).nullish(),
+    desired_outcome_kind: z.string().max(20).nullish(),
     country:             z.string().max(120).nullish(),
     phone:               z.string().max(60).nullish(),
   }).parse(req.body ?? {})

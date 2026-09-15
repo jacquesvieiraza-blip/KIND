@@ -2,7 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
-import { api } from '@/lib/api'
+import { api, AI_TURN_TIMEOUT_MS } from '@/lib/api'
 import { createClient } from '@/lib/supabase/client'
 import {
   STAGE_QUICK_ACTION, type MillaStage,
@@ -12,6 +12,11 @@ import {
   // wearing "I hit a snag reaching the engine".
   refinementFailureMessage, chatFailureMessage, isRetryableOnce, REFINEMENT_RETRIES,
   REVISE_STATE_CHANGED_CODE, TARGETING_UNCHANGED_SENTENCE,
+  // ⚑ 15 Sep (O1) — the one sentence a customer typed on the way here. Claimed on arrival
+  // and RELEASED only once canonical Milla durably owns it, so a failed turn is recoverable.
+  claimMillaHandoff, releaseMillaHandoff,
+  // ⚑ 15 Sep (O1, canonical boundary) — the ONE send-identity rule both callers use.
+  millaSendIdentity, unansweredCustomerTurn, type MillaSendIntent,
 } from '@kind/shared'
 
 // ── ⚑ 4 Sep — THE ONE MILLA CONVERSATION (founder-approved shell) ────────────────────────
@@ -208,6 +213,12 @@ export function MillaConversationProvider(
   const [prog, setProg] = useState<Programme | null>(null)
   const [summary, setSummary] = useState<Summary | null>(null)
   const [icps, setIcps] = useState<Icp[] | null>(null)
+  /**
+   * 🛑 THE ONE SEND THIS CONVERSATION HAS NOT RESOLVED. Held in a ref, not state: it must
+   * be readable by the very next `send()` the customer triggers, and a re-render is not
+   * something their retry is going to wait for.
+   */
+  const pendingSend = useRef<MillaSendIntent | null>(null)
   const chatBodyRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -237,18 +248,68 @@ export function MillaConversationProvider(
   // visit and an ask could never be seen, let alone answered.
   useEffect(() => {
     (async () => {
+      /** The canonical thread as it actually stands — the truth recovery is read from. */
+      let restored: Msg[] = []
       try {
         const tok = await token()
         const list = await api.get<{ data: { id: string }[] }>('/milla/sessions', tok)
         const sid = list.data?.[0]?.id
-        if (!sid) return
-        setSessionId(sid)
-        const hist = await api.get<{ data: Msg[] }>(`/milla/sessions/${sid}/messages`, tok)
-        const rows = (hist.data ?? []).slice(-20)
-        if (rows.length > 0) {
-          setMessages(m => [...m, ...rows.map(r => ({ id: r.id, role: r.role, content: r.content }))])
+        if (sid) {
+          setSessionId(sid)
+          const hist = await api.get<{ data: Msg[] }>(`/milla/sessions/${sid}/messages`, tok)
+          const rows = (hist.data ?? []).slice(-20)
+          if (rows.length > 0) {
+            restored = rows
+            setMessages(m => [...m, ...rows.map(r => ({ id: r.id, role: r.role, content: r.content }))])
+          }
         }
       } catch { /* no thread yet — the greeting stands on its own */ }
+
+      // ── 🛑 ⚑ 15 Sep (O1 correction) — THE SENTENCE TYPED BEFORE THE NAVIGATION ────────
+      //
+      // `AgentColumn`'s Milla card has a composer and no chat engine (the second stateless
+      // `/milla/chat` Milla was removed on 14 Sep and stays removed). Its `onSend` navigates
+      // here carrying the customer's typed message — and until now the message died on the
+      // way: `middleware.ts` redirects with `new URL(path, base)`, which drops the query
+      // string, and nothing here ever read `?q=` anyway. They typed, the screen changed, and
+      // Milla greeted them as if they had said nothing.
+      //
+      // ⚠️ IT GOES THROUGH `send()` — THE CANONICAL SENDER, UNCHANGED. Not a new endpoint,
+      // not a direct insert, not a pre-seeded transcript row: the same function the composer
+      // below calls, which posts to `/milla/sessions/:id/chat` and lets the server persist
+      // both turns into `milla_messages`. That is what puts it in the ONE thread and what
+      // makes it there on re-entry.
+      //
+      // ⚠️ AFTER THE RESTORE, DELIBERATELY. Their sentence is the newest turn in the thread,
+      // so it must land after the history it follows — and `send()` re-reads the session for
+      // itself, so it uses the same canonical session whether or not the restore above found
+      // one.
+      //
+      // ── 🛑 ⚑ 15 Sep (O1 durability) — AND IT IS NOT LET GO UNTIL SOMETHING OWNS IT ────
+      //
+      // ⛓️ ~~`const handed = claimMillaHandoff()`~~ used to DELETE the sentence as it read
+      // it. A provider failure then left it in React state alone, and a reload cost the
+      // customer their words. The claim now leaves it in the browser store; `send()`
+      // releases it only after the canonical route confirms the turn is in `milla_messages`,
+      // and a failed attempt is simply still waiting here on the next page load.
+      //
+      // ⚠️ THE ID TRAVELS WITH IT. `handed.id` becomes the primary key of the customer's
+      // canonical row, so this recovery replaying the same sentence cannot create a second.
+      const handed = claimMillaHandoff()
+      if (handed) { await send(handed.text, { handoffId: handed.id }); return }
+
+      // ── 🛑 ⚑ 15 Sep (O1, canonical boundary) — RECOVERY READS THE THREAD, NOT THE BROWSER ─
+      //
+      // A turn that was owned and then failed at the model is a row with no answer after it.
+      // React state died with the old page and the composer is empty, so the ONLY place that
+      // turn still exists is canonical persistence — which is exactly where it should be.
+      //
+      // ⚠️ IT CONTINUES UNDER THE ROW'S OWN ID, so the route reads 23505, finds no reply
+      // stored against it, and produces the answer that was missing. It cannot write a second
+      // customer row, and it cannot re-ask a question that was already answered — a thread
+      // ending on an assistant turn is finished and nothing happens here.
+      const unanswered = unansweredCustomerTurn(restored)
+      if (unanswered) await send(unanswered.text, { handoffId: unanswered.id, alreadyInTranscript: true })
     })()
   }, [])
 
@@ -270,10 +331,25 @@ export function MillaConversationProvider(
    * its reply lands in THIS transcript. Nothing else about the message changes, and no other
    * context reaches that endpoint.
    */
-  async function send(text: string) {
+  /**
+   * ⚑ 15 Sep (O1 durability) — `handoffId` is present ONLY for a sentence handed over from
+   * the agent card. It is the primary key the customer's canonical row is written under, so
+   * a retry after a failed or ambiguous attempt replays the same key instead of a new row.
+   * The ordinary composer passes nothing and the server mints an id exactly as before.
+   */
+  async function send(text: string, opts?: { handoffId?: string; alreadyInTranscript?: boolean }) {
     const msg = text.trim(); if (!msg || sending || icpSaving) return
+    // 🛑 IDENTITY BEFORE THE NETWORK. A retry of the one unresolved turn reuses its id; a
+    // new thing to say gets a new one. `millaSendIdentity` is the shared rule and the only
+    // place that decision is made, for the composer and the handoff alike.
+    const intent = millaSendIdentity(msg, pendingSend.current, opts?.handoffId)
+    pendingSend.current = intent
     setInput(''); setSending(true)
-    setMessages(m => [...m, { id: `u-${Date.now()}`, role: 'user', content: msg }])
+    // A continuation is already a row in the restored transcript — echoing it would show
+    // the customer their own sentence twice for one thing they said once.
+    if (!opts?.alreadyInTranscript) {
+      setMessages(m => [...m, { id: `u-${Date.now()}`, role: 'user', content: msg }])
+    }
     try {
       const tok = await token()
       if (isIcpContext(context)) {
@@ -283,7 +359,7 @@ export function MillaConversationProvider(
         // no ICP, no version, no message row. The session chat below is deliberately NOT
         // wrapped, because it persists both turns and a re-send would double them.
         const r = await withOneRetry(() => api.post<{ data: IcpDraft & { message?: string } }>(
-          '/icps/chat-build', { message: msg, history }, tok))
+          '/icps/chat-build', { message: msg, history }, tok, AI_TURN_TIMEOUT_MS))
         const d = r.data ?? {}
         setMessages(m => [...m, { id: `a-${Date.now()}`, role: 'assistant', content: d.message || 'Got it — anything else to change?' }])
         // Only treat it as a draft once there is something real to target with.
@@ -298,8 +374,22 @@ export function MillaConversationProvider(
         if (!sid) { const c = await api.post<{ sessionId: string }>('/milla/sessions', {}, tok); sid = c.sessionId }
         setSessionId(sid)
       }
-      const res = await api.post<{ reply: string }>(`/milla/sessions/${sid}/chat`, { message: msg }, tok)
+      // ⚠️ THE CALL IS KEPT ON ONE LINE — `milla-vida-shell.test.ts` pins this exact call as
+      // the one door the conversation posts through, so the body is built above it rather
+      // than inline. Splitting the call would pass behaviourally and fail that guard.
+      // ⚠️ EVERY send carries its identity now, not only a handed-over one. The route writes
+      // the customer's row under it BEFORE asking the model, so a replay is a primary-key
+      // collision rather than a second turn.
+      const body = { message: msg, messageId: intent.id }
+      const res = await api.post<{ reply: string }>(`/milla/sessions/${sid}/chat`, body, tok, AI_TURN_TIMEOUT_MS)
       setMessages(m => [...m, { id: `a-${Date.now()}`, role: 'assistant', content: res.reply }])
+      // RESOLVED. The turn has an answer, so it is no longer the one waiting to continue.
+      pendingSend.current = null
+      // 🛑 RELEASED ONLY HERE. A 200 from this route means the customer's turn is in
+      // `milla_messages` — the route writes it BEFORE the model and fails closed if it
+      // cannot. Anything short of that leaves the sentence waiting in the browser store for
+      // the next page load, which is what stops a provider failure costing them their words.
+      if (opts?.handoffId) releaseMillaHandoff(opts.handoffId)
     } catch (e) {
       // ── 🛑 10 Sep (C01) — THE COLLAPSE IS GONE, AND SO IS THE THROWN-AWAY MESSAGE ───────
       //

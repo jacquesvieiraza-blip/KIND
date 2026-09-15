@@ -1,4 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk'
+// ⚑ 14 Sep — the model a human is waiting for. One name, one place.
+import { CONVERSATION_MODEL, AI_TURN_BOUND } from './models'
 import { db } from '@kind/db'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
@@ -152,7 +154,7 @@ export async function chat(params: ChatParams): Promise<ChatResult> {
   // ⚑ 10 Sep (C06) — THE PROOF DESK JOINS THE SAME PARALLEL BATCH, for the same reason the
   // programme did: it is two bounded reads, so it costs nothing against the portal's 15s
   // abort, and serialising it is what pushed first questions over that edge in August.
-  const [chunks, snapshot, programme, proof] = await Promise.all([
+  const [chunks, snapshot, programme, proof, briefMemory] = await Promise.all([
     searchChunks(clientId, userMessage),
     (async (): Promise<import('./milla-chat-system').MillaSnapshot | null> => {
       try {
@@ -184,6 +186,24 @@ export async function chat(params: ChatParams): Promise<ChatResult> {
         return null
       }
     })(),
+    // ⚑ 14 Sep (R121, Build 2) — WHAT THEY TOLD HER AT SETUP, joining the SAME parallel batch
+    // for the same reason the others did: it is two bounded reads keyed on one row, so it
+    // costs nothing against the browser budget, and serialising it is what pushed first
+    // questions over the edge in August.
+    (async (): Promise<import('./milla-chat-system').MillaBriefMemory | null> => {
+      try {
+        const { data } = await db.from('clients').select('user_id').eq('id', clientId).maybeSingle()
+        const uid = (data as { user_id?: string } | null)?.user_id
+        if (!uid) return null
+        const { briefDraftFor } = await import('./brief-draft')
+        const d = await briefDraftFor(uid)
+        if (!d) return null
+        return { facts: d.facts as Record<string, unknown>, conversation: d.conversation }
+      } catch (e) {
+        console.error('[milla/chat] brief memory lookup failed — answering without it', e)
+        return null
+      }
+    })(),
   ])
 
   const hasContext = chunks.length > 0
@@ -203,7 +223,7 @@ export async function chat(params: ChatParams): Promise<ChatResult> {
   // a chat that answers without numbers beats a chat that is down.
   const { buildMillaChatSystem } = await import('./milla-chat-system')
   const systemPrompt =
-    buildMillaChatSystem(snapshot, programme, proof) +
+    buildMillaChatSystem(snapshot, programme, proof, briefMemory) +
     '\n\n' +
     (hasContext
       ? 'The client has uploaded business documents, and relevant excerpts are provided below. ' +
@@ -244,15 +264,17 @@ export async function chat(params: ChatParams): Promise<ChatResult> {
              `Question: ${userMessage.slice(0, MAX_TURN_CHARS)}`,
   })
 
-  // Haiku, same as the stateless panel: with the client's numbers injected the desk
-  // chat is short factual Q&A (the prompt caps it at 2–4 sentences), and Sonnet's
-  // extra latency was most of the 15s budget. One model on both doors.
+  // ⛓️ 14 Sep — ~~"Haiku, same as the stateless panel: … Sonnet's extra latency was most of
+  // the 15s budget."~~ The founder ruled the other way: "sonnet on every human facing
+  // surface." The latency half of that reasoning was real and is answered where it belongs —
+  // the portal's 15s default was the constraint, and the callers of this door now pass a
+  // budget that fits the model. Still one model on both doors.
   const response = await anthropic.messages.create({
-    model:      'claude-haiku-4-5-20251001',
+    model:      CONVERSATION_MODEL,
     max_tokens: 600,
     system:     systemPrompt,
     messages:   history,
-  })
+  }, AI_TURN_BOUND)
 
   // Find the first text block — do not assume content[0] is text.
   const textBlock = response.content.find(

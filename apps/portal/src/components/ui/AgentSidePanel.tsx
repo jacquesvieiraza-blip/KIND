@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react'
 import { Send, Loader2, Sparkles, CheckCircle2 } from 'lucide-react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
-import { api } from '@/lib/api'
+import { api, AI_TURN_TIMEOUT_MS } from '@/lib/api'
 import MarkdownLite from '@/components/MarkdownLite'
 
 export interface AgentChip {
@@ -168,6 +168,7 @@ export function AgentSidePanel({
           '/icps/chat-build',
           { message: msg, history: history.slice(0, -1) },
           token,
+          AI_TURN_TIMEOUT_MS,
         )
 
         const patch = res.data as IcpDraft & { message?: string }
@@ -186,6 +187,7 @@ export function AgentSidePanel({
           '/figsy/chat',
           { messages: next.slice(-10), mode: 'full' },
           token,
+          AI_TURN_TIMEOUT_MS,
         )
         setMessages(prev => [...prev, { role: 'assistant', content: res.data.reply }])
       }

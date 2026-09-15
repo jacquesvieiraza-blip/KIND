@@ -261,6 +261,63 @@ export function buildLifecycleReassertion(): string {
  * stateless side panel). Product facts here must describe the CURRENT product — the
  * truth test in milla-chat-truth.test.ts pins every claim.
  */
+/**
+ * 🛑 WHAT THE CLIENT ALREADY TOLD MILLA — AND COULD NOT SEE HER REMEMBER. (R121, Build 2.)
+ *
+ * ⛓️ THE CONCIERGE HAD NO ACCESS TO THE ONBOARDING CONVERSATION AT ALL. The client spent
+ * twenty minutes telling Milla what their business is, who to avoid and what they want out of
+ * it. That reached `figsy_knowledge` and `icps` as STRUCTURE; the WORDS stayed in
+ * `onboarding_brief_drafts`, where only the welcome screen ever read them. So the Milla they
+ * met on every page afterwards was a different person wearing the same name — one who had to
+ * be told again, by a client who had already said it.
+ *
+ * ⚠️ IT IS HER MEMORY, NOT A SECOND SOURCE OF TRUTH. These are the canonical Brief facts as
+ * stored; nothing here is re-derived, re-counted or re-interpreted, and the programme and
+ * outcome blocks remain the authority on everything they cover.
+ */
+export interface MillaBriefMemory {
+  facts?: Record<string, unknown> | null
+  /** Their own words, already bounded by the store that holds them. */
+  conversation?: Array<{ role: string; content: string }> | null
+}
+
+const BRIEF_MEMORY_LABELS: Array<[string, string]> = [
+  ['contact_name', 'Who I am speaking to'],
+  ['company_name', 'Their company'],
+  ['what_they_do', 'What they do'],
+  ['target_category', 'Who they want to reach, in their words'],
+  ['target_company_type', 'What type of organisation those are'],
+  ['geographies', 'Markets'],
+  ['company_sizes', 'Company sizes'],
+  ['job_titles', 'Roles'],
+  ['seniority_levels', 'Seniority'],
+  ['exclusions', 'Who they do NOT want'],
+  ['desired_outcome', 'What they want out of this'],
+]
+
+export function describeBriefMemory(mem: MillaBriefMemory | null | undefined): string {
+  if (!mem) return ''
+  const f = mem.facts ?? {}
+  const lines = BRIEF_MEMORY_LABELS
+    .map(([k, label]) => {
+      const v = f[k]
+      if (v === null || v === undefined) return ''
+      const s = Array.isArray(v) ? v.join(', ') : String(v).trim()
+      return s ? `  \u00b7 ${label}: ${s}` : ''
+    })
+    .filter(Boolean)
+  const said = (mem.conversation ?? []).slice(-8)
+    .map(t => `  ${t.role === 'user' ? 'THEM' : 'YOU'}: ${String(t.content).slice(0, 400)}`)
+  if (lines.length === 0 && said.length === 0) return ''
+  return [
+    'WHAT THEY ALREADY TOLD YOU WHEN THEY SET UP. This is THEIR record, in their own words — ' +
+      'you have it, so never ask them for any of it again and never sound like you are meeting ' +
+      'them for the first time.',
+    lines.length ? lines.join('\n') : '',
+    said.length ? 'Some of how they said it:\n' + said.join('\n') : '',
+  ].filter(Boolean).join('\n\n')
+}
+
 export function buildMillaChatSystem(
   snap: MillaSnapshot | null,
   prog: CustomerProgramme | null = null,
@@ -275,9 +332,16 @@ export function buildMillaChatSystem(
    * the doors that do serve Proof clients.
    */
   proof: ProofChatContext | null | undefined = undefined,
+  /**
+   * ⚑ 14 Sep (R121, Build 2) — WHAT THEY TOLD HER AT SETUP, so the Milla they meet afterwards
+   * is the same person. Optional on the same principle as `proof`: a door that cannot read it
+   * passes nothing and the prompt is exactly what it was before this existed.
+   */
+  brief: MillaBriefMemory | null | undefined = undefined,
 ): string {
   // Composed here rather than at each door, so both doors get the identical block.
   const proofBlock = proof === undefined ? [] : [describeProofContext(proof)]
+  const briefBlock = describeBriefMemory(brief)
   return [
     // ⚠️ WHO SHE IS. "Programme partner", not "campaign partner" — the customer bought a
     // programme; "campaign" is our internal word for the delivery mechanism.
@@ -334,6 +398,10 @@ export function buildMillaChatSystem(
     // AFTER the programme and outcome blocks because it is the most specific context and the
     // one most likely to be the subject of the question; empty when the door did not ask.
     ...proofBlock,
+    // ⚑ 14 Sep (R121, Build 2) — AND WHAT THEY TOLD HER AT SETUP, which she could not see at
+    // all: the onboarding words reached `figsy_knowledge` and `icps` as structure while the
+    // WORDS stayed in a table only the welcome screen read. Empty when the door did not ask.
+    ...(briefBlock ? [briefBlock] : []),
 
     // Behaviour.
     'Answer in 2–4 short sentences unless asked for a full draft. Warm, plain, founder-to-founder.',

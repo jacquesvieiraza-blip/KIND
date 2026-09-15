@@ -227,7 +227,13 @@ describe('both doors actually use the shared prompt (wiring, not intent)', () =>
     // ⛓️ RETARGETED 10 Sep (C06) — see the door above; the Proof desk is the third argument
     // on both doors, and the point of the pair of assertions is that neither door is left
     // behind.
-    expect(src).toContain('buildMillaChatSystem(snapshot, programme, proof)')
+    // ⛓️ 14 Sep (R121, Build 2) — a FOURTH argument on THIS door: what the client told her at
+    // setup. The desk chat is the one a client actually converses with, and it is where the
+    // Brief memory earns its cost; the side-panel door above is a short stateless Q&A that
+    // holds no session, so it is deliberately NOT given a fifth lookup per question. The pair
+    // this test protects — both doors build from the ONE shared builder — is unchanged.
+    expect(src).toContain('buildMillaChatSystem(snapshot, programme, proof, briefMemory)')
+    expect(src, 'the desk chat cannot see what they told her at setup').toContain('briefDraftFor')
     expect(src).toContain('readProofChatContext(clientId)')
     expect(src).toContain('buildMillaSummaryData(clientId)')
     expect(src).toContain('readCustomerProgramme(clientId)')
@@ -256,8 +262,13 @@ describe('both doors actually use the shared prompt (wiring, not intent)', () =>
     expect(src.slice(parallel, parallel + 1_400)).toContain('readCustomerProgramme')
     expect((src.match(/Promise\.all/g) ?? []), 'the lookups were split into serial batches')
       .toHaveLength(1)
-    expect(src).not.toMatch(/claude-sonnet/)
-    expect(src).toContain('claude-haiku-4-5')
+    // ⛓️ 14 Sep — ~~`not.toMatch(/claude-sonnet/)` + `toContain('claude-haiku-4-5')`~~.
+    // The founder ruled the conversational surfaces onto Sonnet, so a pin that forbade it
+    // by name was pinning the wrong thing: what matters is that this door reads the SHARED
+    // constant rather than typing a model id of its own, which is what let 46 hand-written
+    // ids drift in the first place.
+    expect(src, 'the desk chat must not hand-type a model id').not.toMatch(/model:\s*'claude-/)
+    expect(src).toContain('CONVERSATION_MODEL')
   })
 
   it('the summary route delegates to the SAME builder the chats read', () => {

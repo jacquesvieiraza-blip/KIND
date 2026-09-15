@@ -1,5 +1,25 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://kindapi-production-e64c.up.railway.app'
 
+/**
+ * 🛑 THE BUDGET FOR A CALL THAT IS WAITING ON A MODEL TURN. ⚑ 14 Sep.
+ *
+ * ⚠️ ONE NUMBER, AND IT IS HALF OF AN ARITHMETIC. The founder ruled the conversational
+ * surfaces onto Sonnet ("sonnet on every human facing surface"), which is slower than the
+ * model they ran on — so the 15s default below stopped being a budget and became a way to
+ * throw away replies that were still legitimately coming. These routes hold no state, so an
+ * abandoned turn is work the client paid for in waiting and never received.
+ *
+ * The other half is server-side: every one of these routes bounds its Anthropic call at
+ * **30s with no SDK retry** (`AI_TURN_BOUND` in the API), so the worst case a browser can be
+ * waiting on is 30s plus transport. 45s leaves 15s of margin and cannot be reached by a
+ * healthy turn.
+ *
+ * ⚠️ THE ONBOARDING ROUTE IS NOT THIS NUMBER and deliberately so — it passes 60s against a
+ * server that allows 45s, an arithmetic written before this one and proved in its own
+ * comment (`routes/icps.ts`, the builder/chat provider call). Two budgets, both stated.
+ */
+export const AI_TURN_TIMEOUT_MS = 45_000
+
 async function apiFetch<T>(path: string, options?: RequestInit, token?: string, timeoutMs = 15000): Promise<T> {
   // ⚑ 26 Aug — the timeout is now per-call. 15s is right for CRUD and was WRONG for the one
   // endpoint that waits on a model turn (`/icps/builder/chat`): the server allows Anthropic

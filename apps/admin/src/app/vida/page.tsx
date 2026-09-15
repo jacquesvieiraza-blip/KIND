@@ -104,7 +104,13 @@ type CampaignRow = {
 }
 type Cockpit = {
   client:    { id: string; company_name: string | null }
-  onboarding: { percent: number; missing: string[]; checks: { key: string; label: string; ok: boolean }[] }
+  // ⚑ 14 Sep (R121, Build 4) — `onboarding` is the CLIENT's eleven-fact Brief progress now,
+  // from the one shared counter; `go_live` is OUR eight checks, renamed to what they always
+  // were. Two screens used to say "11 of 11" and "88%" about the same client at the same
+  // time, each correct about its own thing and neither saying which.
+  onboarding: { percent: number; missing: string[]; checks: { key: string; label: string; ok: boolean }[]
+    brief: { count: number; total: number } | null
+    go_live: { percent: number; missing: string[]; checks: { key: string; label: string; ok: boolean }[] } }
   // `pending_*` carry a LIVE client's revision that is waiting for K.I.N.D review — saved,
   // and deliberately NOT in effect until an operator presses GO (founder-ruled 22 Aug).
   icps:      { id: string; name: string | null; created_at: string | null; last_run_at: string | null
@@ -2615,8 +2621,17 @@ export default function VidaConsolePage() {
                 {/* V11 ONBOARDING GATE — how complete is this client, and what's missing. */}
                 {cockpit && (
                   <span className={`ml-auto shrink-0 text-[12.5px] font-bold rounded-full px-2.5 py-1 ${cockpit.onboarding.percent === 100 ? 'text-emerald-700 bg-emerald-50' : 'text-[#b45309] bg-[#fffbeb]'}`}
-                    title={cockpit.onboarding.missing.length ? `Missing: ${cockpit.onboarding.missing.join(', ')}` : 'Fully onboarded'}>
-                    Onboarding {cockpit.onboarding.percent}%
+                    title={cockpit.onboarding.missing.length
+                      ? `They still have not told us: ${cockpit.onboarding.missing.join(', ')}`
+                      : 'They have told us everything'}>
+                    {/* ⚑ 14 Sep (R121, Build 4) — THE CLIENT'S BRIEF, COUNTED THE ONE WAY.
+                        It read 88% from our own eight checks while the SIGNING UP rail beside
+                        it read "11 of 11 collected" from the Brief — two answers, one client,
+                        neither saying which question it was answering. This is what the CLIENT
+                        has told us; what WE still owe them is `go_live` below. */}
+                    Brief {cockpit.onboarding.brief
+                      ? `${cockpit.onboarding.brief.count}/${cockpit.onboarding.brief.total}`
+                      : `${cockpit.onboarding.percent}%`}
                   </span>
                 )}
                 {/* ⚑ 3 Sep (C2) — THE WALLET IS STILL SHOWN, AND IT NO LONGER IMPLIES A MODEL.
@@ -2710,7 +2725,7 @@ export default function VidaConsolePage() {
                   surface that closes it. "Ask them for these" now reaches their Milla thread. */}
               {cockpit && cockpit.onboarding.missing.length > 0 && (
                 <div className="shrink-0 flex items-center gap-2 flex-wrap px-[22px] py-2 bg-[#fffbeb] border-b border-[#fde68a]">
-                  <span className="text-[12.5px] font-bold text-[#b45309]">Onboarding gaps:</span>
+                  <span className="text-[12.5px] font-bold text-[#b45309]">They still owe us:</span>
                   {cockpit.onboarding.missing.map(m => {
                     const go = GAP_TAB[m] ?? null
                     return go ? (
@@ -2720,10 +2735,21 @@ export default function VidaConsolePage() {
                       <span key={m} className="text-[12px] font-semibold text-[#b45309] bg-white border border-[#fcd34d] rounded-full px-2 py-0.5">{m}</span>
                     )
                   })}
+                  {/* ── ⚑ 14 Sep (R121, Build 4) — VIDA WRITES IT; THE OPERATOR SENDS IT ──────
+                      ⛓️ THIS USED TO POST OUR FIELD LABELS AT THE CLIENT. The message was
+                      built by joining `cockpit.onboarding.missing` into a sentence, so what
+                      landed in their Milla thread was "could you send us: Target company type,
+                      Desired outcome?" — internal column names, in a conversation, from an
+                      agent who is supposed to already know them. It is the checklist leaking
+                      through the one channel that was meant to be human.
+                      🛑 VIDA DRAFTS IT INSTEAD, with the client's own words in front of her,
+                      and the operator reads it before it goes. The channel (`/operator/ask`),
+                      the thread and the confirm are all unchanged — only the words are hers. */}
                   <button
-                    onClick={() => sendAsk(`Quick one so we can get your outreach sharper — could you send us: ${cockpit.onboarding.missing.filter(m => !GAP_TAB[m]).join(', ') || cockpit.onboarding.missing.join(', ')}?`)}
-                    disabled={cockpitBusy}
-                    className="ml-auto text-[12.5px] font-bold text-[#b45309] underline disabled:opacity-50">Ask them for these</button>
+                    onClick={() => conversation.run(
+                      `Draft a short message asking ${selectedClient?.company_name ?? 'this client'} for what they have not told us yet: ${cockpit.onboarding.missing.join(', ')}. Their words, not our field names.`)}
+                    disabled={cockpitBusy || conversation.busy}
+                    className="ml-auto text-[12.5px] font-bold text-[#b45309] underline disabled:opacity-50">Ask Vida to write it</button>
                 </div>
               )}
 

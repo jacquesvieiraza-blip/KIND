@@ -315,6 +315,55 @@ export async function saveBriefConversation(
   } catch { return { ok: false } }
 }
 
+/**
+ * 🛑 ONCE THEY HAVE SENT IT, WE OWN IT. (Founder ruling: "Do not make the customer retype
+ * because our AI/provider failed.")
+ *
+ * ⛓️ WHAT WAS WRONG. The transcript was written ONCE, at the very bottom of the turn, on the
+ * success path only. So the order was: take their message → call Anthropic → if that fails,
+ * return 503 and store NOTHING. The message survived only in the browser's React state. A
+ * provider outage plus a refresh, or a closed tab, and everything they had typed since the
+ * last successful turn was gone — and the banner told them to try again at something they
+ * had already done correctly.
+ *
+ * 🛑 SO THE CUSTOMER'S TURN IS PERSISTED BEFORE THE MODEL IS CALLED. What they said is theirs
+ * and is already true; whether we can answer it is our problem and happens afterwards.
+ *
+ * ⚠️ IT CREATES THE ROW, WHICH IS THE ONE THING `saveBriefConversation` DELIBERATELY WILL NOT
+ * DO. On the very first turn there is no draft yet — the facts writer creates it later in the
+ * same request — so a writer that refused to create would leave exactly the first message,
+ * the one carrying the most context, unprotected. It creates a row with NO FACTS: a
+ * transcript is not a fact, `confirmed_at` is untouched, and nothing here can assert anything
+ * about the client's business.
+ *
+ * ⚠️ IDEMPOTENT BY CONSTRUCTION. The browser re-sends the whole transcript every turn, so
+ * this stores a snapshot rather than appending. A retry of the same turn writes the same
+ * array and cannot duplicate a message.
+ *
+ * ⚠️ BEST-EFFORT, AND IT NEVER COSTS THEM THE TURN. A transcript we could not store is worse
+ * than one we could; refusing to answer them because of it would be worse still.
+ */
+export async function rememberCustomerTurn(
+  userId: string, turns: BriefTurn[],
+): Promise<{ ok: boolean }> {
+  const bounded = readConversation(turns)
+  if (bounded.length === 0) return { ok: true }
+  try {
+    const read = await readDraft(userId)
+    // A promoted draft is evidence and is never written to, exactly as the other writers hold.
+    if (read.ok && read.draft?.promotedClientId) return { ok: false }
+    const promoted = await promotedClientForUser(userId)
+    if (!promoted.ok || promoted.clientId) return { ok: false }
+    const { error } = await db.from('onboarding_brief_drafts')
+      .upsert({
+        user_id: userId,
+        conversation: bounded,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'user_id' })
+    return { ok: !error }
+  } catch { return { ok: false } }
+}
+
 export type ConfirmOutcome =
   | { ok: true; draft: BriefDraft }
   | { ok: false; reason: 'no_draft' | 'promoted' | 'incomplete' | 'unstorable'; missing?: string[] }

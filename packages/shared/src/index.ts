@@ -25,3 +25,7 @@ export * from './mvp1-stage'
 // ⚑ MVP1 — the canonical Brief: ELEVEN data facts, one counter, every reader. Client
 // confirmation is a separate gate and is deliberately not one of the eleven (C21).
 export * from './brief-facts'
+// ⚑ 15 Sep (O1) — carries ONE typed sentence across ONE navigation, claimed exactly once.
+// Not a store, not an endpoint, not a second Milla: it hands the customer's words to the
+// canonical persisted conversation so they never retype because we changed the screen.
+export * from './milla-handoff'

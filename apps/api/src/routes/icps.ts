@@ -38,6 +38,18 @@ import {
   translateProviderList, buildIcpReview, icpNeedsReview, deriveProviderReview,
   ICP_REVIEW_PROOF_REFUSAL as PROOF_PREPARING_COPY, type ProviderField,
 } from '../lib/icp-provider-translation'
+// ⚑ 14 Sep (S1-RT-007 / S1-RT-009) — the model interprets language; it is not the canonical
+// customer truth. These read harmless shape variation, keep model emptiness out of the
+// durable Brief, and salvage a turn whose facts would otherwise be discarded wholesale.
+import {
+  normaliseModelReply, isPrematureCompletion, modelFactsOnly, dropKeysNamedByIssues,
+  PREMATURE_COMPLETION,
+} from '../lib/milla-reply-shape'
+// ⚑ 14 Sep — the model a human is waiting for. One name, one place (`lib/models.ts`).
+import { CONVERSATION_MODEL, AI_TURN_BOUND } from '../lib/models'
+// ⚑ 14 Sep (R121) — a correction the client makes to a LIST travels as structure, so the
+// server never has to read a sentence to know they meant "as well" rather than "instead".
+import { applyListOps, LIST_FACTS, type ListOps } from '../lib/brief-list-ops'
 // ⚑ 14 Sep (S1-RT-006) — the markets we can actually work in, interpolated into the prompt
 // so Milla asks naturally rather than the client discovering it at promotion. The GATE is
 // `confirmBriefDraft`; this only stops her walking them into it.
@@ -2687,25 +2699,79 @@ icpRouter.post('/chat-build', async (req: AuthRequest, res) => {
       history: z.array(z.object({ role: z.enum(['user','assistant']), content: z.string() })).max(20).default([]),
     }).parse(req.body)
 
-    const system = `You are an ICP (Ideal Customer Profile) builder assistant for K.I.N.D, a B2B lead generation platform.
-Your job is to have a short conversation with the user to understand who they want to target, then extract structured ICP data.
+    // ── 🛑 ⚑ 14 Sep (R121, Build 2) — THE LAST JSON FORM IN A CLIENT'S PATH ─────────────
+    //
+    // ⛓️ WHAT STOOD HERE WAS A 2024-SHAPED EXTRACTOR. "Always respond with valid JSON only —
+    // no markdown, no explanation", the sixteen-value industry menu read out inline, and a
+    // `JSON.parse` whose failure answered the CLIENT with the filter form in words:
+    //
+    //     "Tell me more about who you want to target — industry, job title, company size,
+    //      location?"
+    //
+    // That sentence was Milla's voice on the one door a paying client uses to CHANGE their
+    // targeting. It is the form this whole correction exists to remove, and it was the last
+    // one left in front of a customer.
+    //
+    // 🛑 IT IS A TOOL NOW, LIKE EVERY OTHER MILLA DOOR. She talks; what she understood travels
+    // as structure. A malformed reply can no longer put a menu in front of the client, because
+    // there is no text to fail to parse.
+    //
+    // ⚠️ THE SERVER SIDE IS UNCHANGED. `clear_fields` keeps its fail-closed allowlist, the
+    // merge still preserves what the client already had, and AR9 still decides whether a live
+    // client's revision applies or waits for GO. This is HOW she says it, never what it means.
+    const system = `You are Milla, talking to a client who already has targeting with us and
+wants to change it. You are not filling in a form and they are not reading one.
 
-Based on the conversation, return a JSON object with:
-- "message": your conversational reply (plain text, friendly, max 2 sentences)
-- "name": suggested ICP name (e.g. "SA SaaS CTOs") — only if confident
-- "industries": array of industries from: Fintech, Healthtech, E-commerce, SaaS, Logistics, Agriculture, Education, Manufacturing, Real Estate, Media, Consulting, Retail, Banking, Insurance, Telecoms, Energy
-- "job_titles": array of job titles (e.g. ["CTO", "Head of Sales"])
-- "seniority_levels": array from: C-Suite, VP / Director, Head of, Manager, Senior, Individual Contributor
-- "company_sizes": array from: 1–10, 11–50, 51–200, 201–500, 501–1,000, 1,000+
-- "geographies": array of countries or regions
-- "tech_stack": array of tools they likely use
-- "keywords": array of intent signals (e.g. "hiring", "Series A", "expansion")
+Talk normally. Understand what they actually mean — "more like the first lot", "not the tiny
+ones", "add the US as well", "anyone in healthcare really" — and reply in one or two plain
+sentences.
 
-- "clear_fields": array — ONLY for filters the user EXPLICITLY asked to remove or broaden, e.g. "any industry", "remove the industry restriction", "company size doesn't matter", "anywhere". Permitted values: "job_titles", "seniority_levels", "industries", "company_sizes", "geographies".
+When you understand a change they want, call the propose_targeting tool with the WHOLE
+profile as it should end up. Start from what they already have and change only what they
+asked about. Leave a field out entirely when they have not established it — an empty list
+means "I do not know yet", never "remove this".
 
-Only include fields you're confident about. Leave arrays empty [] if not enough info yet.
-An empty array [] means "not enough information — leave that filter exactly as it is". It is NOT a request to remove a filter. Removing a filter is expressed ONLY through clear_fields.
-Always respond with valid JSON only — no markdown, no explanation outside the JSON.`
+⚠️ REMOVING A FILTER IS ITS OWN THING. If they explicitly want one gone — "any industry",
+"size doesn't matter", "anywhere" — name it in "clear_fields". That is the ONLY way to remove
+something, because an empty list already means something else.
+
+⚠️ NEVER READ A MENU OUT AT THEM. Some fields accept only certain values; map what they mean
+onto those quietly. If their meaning genuinely does not map — "IT Solutions" could be SaaS,
+Consulting or Telecoms — ask about that ONE thing in ordinary words, and nothing else.
+
+⚠️ NEVER INVENT THEIR TARGETING. If you are not sure what they meant, ask.`
+
+    // ── 🛑 ⚑ 14 Sep — SHE IS THE SAME MILLA HERE, AND SHE WAS NOT ────────────────────────
+    //
+    // 🛑 THE DEFECT. This door received twenty turns of BROWSER history and nothing else. No
+    // Brief, no durable transcript, no memory of the twenty minutes the client had already
+    // spent telling her what their business is and who to avoid. A client who came here to
+    // change one market met somebody who had never heard of them — and the founder's rule for
+    // the desk chat ("she remembers everything you've told her") was silently untrue on the
+    // one door a paying client uses to change their targeting.
+    //
+    // ⚠️ THE SAME MEMORY THE DESK CHAT READS, through the same helper, so there is ONE answer
+    // to "what does Milla know about this client". Nothing here writes a fact: this door
+    // proposes targeting and the merge happens elsewhere under AR9.
+    //
+    // ⚠️ BEST-EFFORT. A Brief we cannot read costs the client their memory, never their turn —
+    // she answers without it exactly as she did before, which is strictly today's behaviour.
+    let briefBlock = ''
+    if (req.userId) {
+      try {
+        const { briefDraftFor } = await import('../lib/brief-draft')
+        const { describeBriefMemory } = await import('../lib/milla-chat-system')
+        const d = await briefDraftFor(req.userId)
+        if (d) {
+          briefBlock = describeBriefMemory({
+            facts: d.facts as Record<string, unknown>,
+            conversation: (d.conversation ?? []) as Array<{ role: string; content: string }>,
+          })
+        }
+      } catch {
+        console.log('[icps/chat-build] brief memory unreadable — she answers without it')
+      }
+    }
 
     const messages = [
       ...history,
@@ -2713,19 +2779,62 @@ Always respond with valid JSON only — no markdown, no explanation outside the 
     ]
 
     const response = await anthropic.messages.create({
-      model: 'claude-haiku-4-5-20251001',
+      model: CONVERSATION_MODEL,
       max_tokens: 600,
-      system,
+      system: system + briefBlock,
+      tools: [{
+        name: 'propose_targeting',
+        description: 'The targeting as it should end up after what the client just said. Send the WHOLE profile, starting from what they already have.',
+        input_schema: {
+          type: 'object' as const,
+          properties: {
+            name:             { type: 'string', maxLength: 120 },
+            industries:       { type: 'array', maxItems: 6,  items: { type: 'string', enum: [...ICP_INDUSTRIES] } },
+            job_titles:       { type: 'array', maxItems: 10, items: { type: 'string', maxLength: 80 } },
+            seniority_levels: { type: 'array', maxItems: 6,  items: { type: 'string', enum: [...ICP_SENIORITY] } },
+            company_sizes:    { type: 'array', maxItems: 6,  items: { type: 'string', enum: [...ICP_SIZES] } },
+            geographies:      { type: 'array', maxItems: 8,  items: { type: 'string', maxLength: 80 } },
+            tech_stack:       { type: 'array', maxItems: 10, items: { type: 'string', maxLength: 80 } },
+            keywords:         { type: 'array', maxItems: 10, items: { type: 'string', maxLength: 80 } },
+            clear_fields:     { type: 'array', maxItems: 5,  items: { type: 'string', enum: [...CLEARABLE_ICP_FIELDS] },
+                                description: 'ONLY filters the client explicitly asked to remove or broaden.' },
+          },
+        },
+      }] as never,
       messages,
-    })
+    }, AI_TURN_BOUND)
 
-    const raw = (response.content[0] as { type: string; text: string }).text.trim()
-    let parsed: Record<string, unknown>
-    try {
-      parsed = JSON.parse(raw.replace(/^```json\n?/, '').replace(/\n?```$/, ''))
-    } catch {
-      parsed = { message: "Tell me more about who you want to target — industry, job title, company size, location?" }
+    // 🛑 HER SENTENCE AND HER PROPOSAL ARE TWO DIFFERENT BLOCKS, and neither can break the
+    // other. A turn with no proposal is a conversation; a turn with no sentence still carries
+    // the change. What cannot happen any more is a parse failure putting a form in front of
+    // the client.
+    const said = response.content.filter(b => b.type === 'text')
+      .map(b => (b as { type: 'text'; text: string }).text).join('').trim()
+    const tool = response.content.find(b => b.type === 'tool_use') as
+      { type: 'tool_use'; name: string; input: unknown } | undefined
+    const proposed = (tool?.name === 'propose_targeting' && tool.input && typeof tool.input === 'object' && !Array.isArray(tool.input))
+      ? { ...(tool.input as Record<string, unknown>) }
+      : {}
+    // ── 🛑 NO CANNED SENTENCE IS EVER PUT IN HER MOUTH ────────────────────────────────
+    //
+    // ⛓️ MY FIRST CUT OF THIS WROTE ONE — "Tell me a bit more about who you want to reach." —
+    // and an existing guard refused it by name. It was right to: that exact string is the
+    // SECOND canned fallback from a live walk, a system sentence the product spoke as Milla
+    // while she had said nothing. Writing it back as a "harmless default" is how that defect
+    // returns, and the JSON-parse fallback this build deleted was the same mistake.
+    //
+    // 🛑 SO A TURN WITH NEITHER A SENTENCE NOR A PROPOSAL IS AN UNUSABLE REPLY, and it is
+    // answered as one — the honest retryable error, exactly like every other unusable reply
+    // in this product. A turn that HAS a proposal but no words is usable: the client sees
+    // their updated targeting, and the portal's own copy fills the line. Ours, not hers.
+    if (!said && Object.keys(proposed).length === 0) {
+      console.error('[icps/chat-build] unusable model reply —', JSON.stringify({
+        stage: 'reply', category: 'NO_TEXT_NO_PROPOSAL', model: CONVERSATION_MODEL,
+      }))
+      res.status(503).json({ success: false, error: MILLA_RETRY_ERROR, retryable: true })
+      return
     }
+    const parsed: Record<string, unknown> = { ...proposed, message: said }
 
     // ── ⚑ 25 Aug — `clear_fields` IS SANITISED HERE, FAIL-CLOSED (founder-ruled) ─────────
     //
@@ -2748,7 +2857,16 @@ Always respond with valid JSON only — no markdown, no explanation outside the 
 
     res.json({ success: true, data: { ...parsed, clear_fields } })
   } catch (err) {
-    if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: err.errors }); return }
+    // ⚑ 14 Sep (R121) — OUR SCHEMA'S COMPLAINT IS NOT A SENTENCE FOR A CUSTOMER, here either.
+    // The raw Zod issue array was the answer to a client who typed too much.
+    if (err instanceof z.ZodError) {
+      console.error('[icps/chat-build] request refused —', JSON.stringify({
+        stage: 'request',
+        zod_paths: [...new Set(err.errors.map(e => e.path.join('.') || '(root)'))].slice(0, 8),
+      }))
+      res.status(400).json({ success: false, error: MILLA_RETRY_ERROR, retryable: true })
+      return
+    }
     console.error('[icps/chat-build]', err)
     res.status(500).json({ success: false, error: 'Failed to process message' })
   }
@@ -2830,8 +2948,11 @@ icpRouter.post('/fresh', async (req: AuthRequest, res) => {
 const MILLA_REPLY_TOOL = 'milla_reply'
 
 /** One definition, so the failure log and the request can never name different models.
- *  UNCHANGED by this fix — the founder ruled the model stays put (24 Aug). */
-const BUILDER_MODEL = 'claude-haiku-4-5-20251001'
+ *  ⛓️ 14 Sep — ~~"UNCHANGED by this fix — the founder ruled the model stays put (24 Aug)"~~.
+ *  That ruling was about a transport fix, not about the model itself; it is superseded by
+ *  "sonnet on every human facing surface." Milla's whole job on this route is understanding
+ *  what a person actually meant, and this is the model that does it. */
+const BUILDER_MODEL = CONVERSATION_MODEL
 
 /** The closed lists the launch targeting fields accept. ONE definition, used by both the
  *  tool schema (as `enum`) and the prompt (as prose) so the two can never drift apart —
@@ -2954,9 +3075,37 @@ const millaReplyTool = (profileRequired: boolean) => ({
           seniority_levels:    { type: 'array', maxItems: 6,  items: { type: 'string', maxLength: 40 } },
           exclusions:          { type: 'string', maxLength: 600 },
           desired_outcome:     { type: 'string', maxLength: 2000 },
+          // ⚑ 14 Sep (R121, Build 4) — WHAT KIND OF OUTCOME THAT SENTENCE DESCRIBES. It used
+          // to be matched out of their words by a ten-item list here on the server; you read
+          // the conversation, so you say it. Not a twelfth thing to ask about — it is your
+          // reading of the answer they already gave.
+          desired_outcome_kind: { type: 'string', enum: ['meetings', 'other'],
+            description: "'meetings' ONLY when they want conversations with people — meetings, calls, demos. Anything else they might want from this is 'other', and a person shapes it with them." },
           country:             { type: 'string', maxLength: 120, description: "Where the CLIENT'S OWN business is based." },
           phone:               { type: 'string', maxLength: 60 },
         },
+      },
+      // ── ⚑ 14 Sep (R121) — HOW A CLIENT CHANGES THEIR MIND ABOUT A LIST ───────────────
+      //
+      // 🛑 WITHOUT THIS, "ALSO ADD THE US" COST THEM THE UK. `brief_so_far` is merged
+      // shallowly, so a list it carries REPLACES the stored one — and a model that answered
+      // the client's actual meaning ("add the US") by emitting only the new value silently
+      // deleted the market they already had. The understanding was never the problem; the
+      // channel was, because the only thing it could say was "here is the whole list".
+      //
+      // ⚠️ USE `brief_so_far` WHEN RESTATING THE WHOLE LIST, THIS WHEN CHANGING IT. Both in
+      // one turn for the same fact and the full restatement wins, because it is the less
+      // ambiguous of the two — so do not send both for the same field.
+      brief_list_ops: {
+        type: 'object',
+        description: 'Use this when the client CHANGES a list they already gave you rather than restating it — "also add the US", "drop enterprise", "not managers any more". Name only what moves; everything else they told you stays. If you are restating the whole list instead, put it in "brief_so_far" and leave this out.',
+        properties: Object.fromEntries(LIST_FACTS.map(f => [f, {
+          type: 'object',
+          properties: {
+            add:    { type: 'array', maxItems: 8, items: { type: 'string', maxLength: 80 }, description: 'Values to ADD to what they have already told you.' },
+            remove: { type: 'array', maxItems: 8, items: { type: 'string', maxLength: 80 }, description: 'Values they no longer want, exactly as they were recorded.' },
+          },
+        }])),
       },
     },
     required: ['type'],
@@ -3055,9 +3204,29 @@ const BriefSoFar = z.object({
   seniority_levels:    boundedList(6, 40),
   exclusions:          clampedStr(600),
   desired_outcome:     clampedStr(2000),
+  desired_outcome_kind: clampedStr(20),
   country:             clampedStr(120),
   phone:               clampedStr(60),
 }).optional()
+
+/**
+ * ⚑ 14 Sep (R121) — the list CHANGE channel, bounded exactly like the snapshot it sits beside.
+ *
+ * ⚠️ ALLOWED ON BOTH BRANCHES, for the same reason `brief_so_far` is: a client corrects a
+ * market mid-conversation, not only at the moment they finish. A question that carries a
+ * correction must be able to record it.
+ *
+ * ⚠️ AND IT REACHES NOTHING BUT THE DRAFT. `applyListOps` writes to the durable Brief; the
+ * ICP the client pays for is still built only from a `complete` reply's `icp` and `profile`.
+ */
+const BriefListOps = z.object(
+  Object.fromEntries(LIST_FACTS.map(f => [f, z.object({
+    add:    boundedList(8),
+    remove: boundedList(8),
+  }).optional()])) as Record<(typeof LIST_FACTS)[number], z.ZodOptional<z.ZodObject<{
+    add: ReturnType<typeof boundedList>; remove: ReturnType<typeof boundedList>
+  }>>>,
+).optional()
 
 const MillaQuestionReply = z.object({
   type:    z.literal('question'),
@@ -3065,6 +3234,7 @@ const MillaQuestionReply = z.object({
     .transform(s => s.slice(0, 600))
     .refine(s => s.trim().length > 0, { message: 'a question must carry content' }),
   brief_so_far: BriefSoFar,
+  brief_list_ops: BriefListOps,
 })
 
 const MillaReplyInput = z.object({
@@ -3143,6 +3313,7 @@ const MillaReplyInput = z.object({
   website_hints:   boundedList(12, 200),
   campaign_intent: clampedStr(2000),
   brief_so_far:    BriefSoFar,
+  brief_list_ops:  BriefListOps,
 })
   // The discriminated half, which the flat JSON Schema deliberately leaves to Zod.
   // ⚠️ The question-content rule moved into `MillaQuestionReply` above — a reply whose
@@ -3165,7 +3336,21 @@ const MillaReplyInput = z.object({
  *  carries no profile at all, so the gate is bound to `profile_required` rather than baked
  *  into the schema. And `country` here means WHERE THEIR BUSINESS IS BASED — never the
  *  targeting geography, which is a different fact and lives in `icp.geographies`. */
-const millaReplyFor = (profileRequired: boolean) =>
+/**
+ * ⚑ 14 Sep (S1-RT-009) — `held` IS THE DURABLE BRIEF, AND THE GATE READS IT.
+ *
+ * 🛑 THE ELEVEN-FACT GATE USED TO COUNT ONE SAMPLE. `resolveBriefFacts(v)` sees only this
+ * turn's `icp`/`profile`/`business` and the `brief_so_far` THIS sample happened to carry — so
+ * a client who answered every question across nine turns was refused completion because the
+ * ninth reply did not restate all eleven. Their answers were in the database the whole time.
+ * The gate is unchanged in what it REQUIRES; it is changed in what it is allowed to SEE.
+ *
+ * ⚠️ THIS TURN STILL WINS. The stored record is the FALLBACK half, so a customer changing an
+ * answer now is honoured — their new value merged into the record moments ago and is in this
+ * turn's snapshot too. Widening the fallback cannot make a missing fact present: a fact in
+ * neither the record nor the reply is still absent, and still refuses.
+ */
+const millaReplyFor = (profileRequired: boolean, held: Record<string, unknown> = {}) =>
   MillaReplyInput.superRefine((v, ctx) => {
     if (!profileRequired || v.type !== 'complete') return
     // ── 🛑 ⚑ 14 Sep (S1-RT-002) — THE GATE ASKS WHERE THE CONTRACT SAYS THE FACT LIVES ──
@@ -3187,13 +3372,45 @@ const millaReplyFor = (profileRequired: boolean) =>
     // ⚠️ IT WIDENS WHERE A FACT MAY BE FOUND, NEVER WHETHER IT IS REQUIRED. All eleven are
     // still mandatory, still counted by the one canonical `briefFacts`, and a fact absent
     // from BOTH homes is still absent. Nothing is guessed, defaulted or fabricated.
-    const resolved = resolveBriefFacts(v)
+    const resolved = resolveBriefFacts(
+      Object.keys(held).length > 0
+        ? { ...v, brief_so_far: { ...held, ...(v.brief_so_far ?? {}) } as never }
+        : v,
+    )
     if (!resolved.companyName) {
       ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['profile', 'company_name'], message: 'a first-run completion must carry the company name' })
     }
-    if (!resolved.country) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['profile', 'country'], message: "a first-run completion must carry the client's own business country" })
-    }
+    // ── 🛑 ⚑ 14 Sep (S1-RT-009B) — THE COUNTRY REQUIREMENT IS GONE FROM HERE ───────────
+    //
+    // ⛓️ ~~`if (!resolved.country) ctx.addIssue({ path: ['profile','country'], message: "a
+    // first-run completion must carry the client's own business country" })`~~ STOOD HERE,
+    // and it made fabricating a country the only way for a client to finish their Brief.
+    //
+    // 🛑 THREE INSTRUCTIONS THAT COULD NOT ALL BE OBEYED:
+    //   · `completionGate` — "YOU ARE COMPLETE ONLY WHEN YOU HOLD ALL ELEVEN OF THESE", and
+    //     the client's own country is NOT one of the eleven (`brief-facts.ts`: "THE LAST TWO
+    //     ARE NOT BRIEF FACTS");
+    //   · `profileFieldsNote` — "NEVER invent … a country — leave the field out entirely and
+    //     ask for it instead";
+    //   · this rule — which REFUSED the completion when the model obeyed the second.
+    //
+    // 🛑 AND THE SYSTEM SELECTED FOR THE INVENTION. Omit the country → 503 → the client is
+    // told "Milla didn't catch that" and retries. Infer it from the only country in the
+    // transcript — their TARGET market — → 200, persisted, and rendered to them as
+    // "Based in — UK" about a business they never said was in the UK. Every retry raised the
+    // odds of landing on the fabricating sample. Live, that is exactly what happened.
+    //
+    // ⚠️ NOTHING REPLACES IT HERE, AND NO TWELFTH QUESTION IS ADDED. The affordance already
+    // exists and was unreachable only because this rule forced the model to fill the field
+    // first: `approve()` in the portal refuses to open an account without a country and asks
+    // for it CONVERSATIONALLY — "Before I can open your account I still need which country
+    // your business is based in". It is an ACCOUNT fact, asked when the account is opened,
+    // not a Brief fact gating the conversation. `onboardSchema.country` is unchanged, so the
+    // clients row still cannot be written without one and the 'South Africa' column default
+    // still cannot be reached.
+    //
+    // ⚠️ AND UNKNOWN STAYS UNKNOWN. If the client never says it, nothing here or downstream
+    // invents it; the confirmation renders "still needed" and the ask happens at promotion.
 
     // ── ⚑ MVP1 (C21) — THE ELEVEN-FACT GATE, ENFORCED RATHER THAN REQUESTED ───────────
     //
@@ -3457,7 +3674,7 @@ listening. This conversation is about their targeting and their business, nothin
     const completionGate = profile_required
       ? `
 
-YOU ARE COMPLETE ONLY WHEN YOU HOLD ALL ELEVEN OF THESE:
+BY THE END OF THIS CONVERSATION YOU NEED TO UNDERSTAND ELEVEN THINGS ABOUT THEM:
 
   1. Who you are speaking to — their name.
   2. Their company name.
@@ -3472,10 +3689,16 @@ YOU ARE COMPLETE ONLY WHEN YOU HOLD ALL ELEVEN OF THESE:
  10. Who they do NOT want — exclusions.
  11. What they said this should achieve for them.
 
-⚠️ ELEVEN FACTS, NOT ELEVEN QUESTIONS. One answer often settles two. "Digital marketing
-agencies" gives you BOTH number 5 (their own words for the market) AND number 7 (the type is
-"agency", because they said the word). Never ask again for something they have already told
-you — re-asking is how a product tells someone it was not listening.
+⚠️ ELEVEN THINGS TO UNDERSTAND, NOT ELEVEN QUESTIONS TO ASK — and that distinction is the
+whole difference between this and the form it replaced. One answer often settles two or
+three: "Digital marketing agencies in the UK, around 20 people" gives you number 5 (their own
+words for the market), number 7 (the type is "agency", because they said the word), number 6
+and number 8, in one sentence, without a single question. A client who opens by telling you
+everything has finished the conversation in one message, and the correct reply to that is to
+say so and move on — not to ask them the eleven questions they already answered.
+
+⚠️ NEVER ASK AGAIN FOR SOMETHING THEY HAVE ALREADY TOLD YOU. Re-asking is how a product
+tells someone it was not listening.
 
 ⚠️ NUMBER 6 HAS A REAL LIMIT, AND IT IS OURS TO SAY OUT LOUD. We can only source and send
 in ${supportedCountriesPhrase()}. If they name anywhere else, tell them plainly — "we don't
@@ -3492,14 +3715,23 @@ said "digital marketing" and nothing about what kind of organisation, you do NOT
 7 — ask a natural follow-up, something like "and what type of companies are those — agencies,
 consultancies, clinics, something else?", in your own words.
 
-If anything is missing, ask for ONE of them — that is a "question", not a "complete". Ask for
-the next missing thing the way a person would, never as a list, never all at once. A made-up
-value is far worse than one more question.
+If something is genuinely still missing, that is a "question" rather than a "complete" — and
+you ask about it the way a person would, in your own words, never as a list. A made-up value
+is far worse than one more question. When you do understand them well enough, say so: do not
+keep asking to be safe.
 
 ⚠️ FILL "brief_so_far" ON EVERY SINGLE TURN, including questions. Put in it everything the
 client has actually told you so far — their words, not your tidied version — and leave out
 anything they have not established yet. It is how their answers survive a closed tab, and it
-is never a guess: if they have not said it, it does not go in.`
+is never a guess: if they have not said it, it does not go in.
+
+⚠️ WHEN THEY CHANGE A LIST THEY ALREADY GAVE YOU, USE "brief_list_ops" INSTEAD. "Also add the
+US", "drop the tiny ones", "not managers any more" — name only what MOVES, in "add" or
+"remove", and everything else they told you stays exactly where it is. This matters because
+the lists are merged: if you answer "also add the US" by putting only the US into
+"brief_so_far", you have just deleted the market they gave you an hour ago. Use
+"brief_so_far" when you are genuinely restating the whole list, and "brief_list_ops" when
+they are changing one — never both for the same field in one reply.`
       : ''
 
     const profileFieldsNote = profile_required
@@ -3555,10 +3787,20 @@ them.`
 
 Have a natural, friendly conversation in plain language. Never present a numbered form.
 
-ASK FOR ONE GENUINELY MISSING THING PER REPLY. That is the governing rule of this entire
-conversation, and nothing below relaxes it. Ask as many questions as you genuinely need
-across the conversation — some businesses take three, some take ten — but only ever one of
-them per reply.
+YOU ARE A CAPABLE COLLEAGUE HAVING A REAL CONVERSATION, not an interview script. Understand
+as much as you can from every single message — if they tell you six things at once, you have
+learned six things and you do not ask about any of them again. Ask for what is genuinely
+still missing, the way a person would: usually one thing, sometimes two that naturally belong
+in the same breath, and sometimes nothing at all because they just asked YOU something and
+the right reply is an answer.
+
+⚠️ NEVER A CHECKLIST, AND NEVER A SWEEP. "Two that belong together" means two that a person
+would really say in one sentence — never a run of targeting fields, which is a filter form
+wearing your name. If several things are missing at once that is not permission to ask for
+them all; pick what would help most and leave the rest for the conversation to reach.
+
+⚠️ AND NEVER COUNT OUT LOUD. They are not filling in a form, so they never hear how many
+things you still need, how far through they are, or what is "next".
 
 ── WHAT THEY HAVE JUST BEEN ASKED ──────────────────────────────────────────────────────
 This conversation opens with you inviting them, on screen, to tell you about their company
@@ -3581,7 +3823,8 @@ reasoning — the client never sees it, and you never write it out:
   CONTRADICTORY    — anything they have said two different ways.
   NEEDS CONFIRMING — anything you are working from that they have not actually endorsed.
 
-Then ask for ONE thing from MISSING. That is the whole method.
+Then talk to them about what is actually MISSING. That is the whole method — the four
+lists are how you decide what to say, never something you recite.
 
   · NEVER re-ask something they have already answered. If it is in KNOWN, it is done.
   · KEEP PARTIAL ANSWERS. If you asked two things and they answered one, that one is now
@@ -3613,7 +3856,8 @@ can do here — it is what once made a client answer the same question three tim
 conclude that nobody was listening to him.
 
 If several targeting facts are missing at once, that is NOT permission to ask for them all.
-CHOOSE ONE — whichever would help most right now — and ask only that one.
+Ask about the one that would help most, in ordinary words, and let the rest come up when the
+conversation gets there.
 
 ── LEARN WHAT THEY DO BEFORE YOU COLLECT TARGETING FIELDS ──────────────────────────────
 If you do not yet understand what the CLIENT'S OWN BUSINESS actually sells or does, do NOT
@@ -3641,7 +3885,12 @@ ${learningGoals}
 ── WHAT THIS CONVERSATION MAY EVENTUALLY NEED TO UNDERSTAND ────────────────────────────
 What follows is a list of UNDERSTANDING TO REACH — never a list of questions to ask, and
 never a list to put into one reply. Reach these in whatever order the conversation actually
-goes, one at a time, and only where they are genuinely still MISSING:
+goes, and only ASK where they are genuinely still MISSING.
+
+⚠️ ASKING AND UNDERSTANDING ARE DIFFERENT THINGS, AND ONLY ASKING IS RATIONED. Ask for at
+most one genuinely missing thing per reply. UNDERSTAND everything they just said, however
+much of it there is: if one message answers nine of these, you have learned nine and you
+never ask about any of them again.
 
 what they sell · who gets real value from it · the problem those people have · what changes
 for them afterwards · what makes them different · who has this already worked for · who is
@@ -3653,7 +3902,9 @@ webinar or event, or something else — and then ask the follow-ups that outcome
 a launch: what is launching, what is new, why now, what response they want. For a webinar:
 topic, value, timing, who should attend, the next step. For a meeting: the offer, the
 problem, why they should care, what the conversation is. Those follow-ups are things to
-learn over several turns, one per reply — never a batch.
+learn over several turns — ask at most one per reply, and never a batch. If they answer
+three of them in one breath, take all three; the limit is on what you ASK, never on what you
+are allowed to UNDERSTAND.
 
 If they mention a named customer, a case study, a testimonial, a specific result or a metric,
 ASK EXPLICITLY whether we may use it in outreach. Do not assume. Anything they have not
@@ -3713,27 +3964,98 @@ result or a number. "permitted" is false unless they explicitly said we may use 
     // so 45s + 59.9s + 45s ≈ 150s worst case behind a 60s browser. The only shape whose
     // worst case is provable from the SDK's own code is a SINGLE bounded attempt:
     //   1 × 45s, no retry sleep possible  →  45s  <  60s browser, 15s headroom.
-    // The client-side Try again control IS the retry — visible, deliberate, never racing
-    // a browser that already gave up. (The old shape was worse still: SDK default 10
-    // minutes + 2 retries behind a 15s browser.)
+    // (The shape before THAT was worse still: SDK default 10 minutes + 2 retries behind a
+    // 15s browser.)
+    //
+    // ⛓️ 14 Sep (R121) — THE SINGLE ATTEMPT IS NOW TWO, AND THE REASONING ABOVE IS WHY IT
+    // COULD NOT SIMPLY BE DOUBLED. The conclusion "one bounded attempt" was correct about the
+    // SDK and wrong about the customer: it left every transport blip to be paid for by a
+    // person pressing Try again. The budget is SPLIT instead — see the block below — so the
+    // worst case is still provably under the browser's. The client-side Try again remains,
+    // as the third attempt rather than the second.
+    // ── 🛑 ⚑ 14 Sep (R121) — A TRANSPORT BLIP IS OURS TO ABSORB, NOT THEIRS TO RETYPE ────
+    //
+    // ⛓️ THIS WAS ONE ATTEMPT AND NOTHING ELSE. A timeout, a 429 or a 5xx — none of which the
+    // client caused and none of which their words affect — ended the turn with "Milla didn't
+    // catch that", and the only recovery was a human pressing a button. The founder's rule is
+    // that internal variability is our problem; a second attempt is the cheapest possible way
+    // to keep that promise.
+    //
+    // 🛑 THE ARITHMETIC, AND IT IS WHY THE NUMBERS ARE 25 AND 20 RATHER THAN 45 AND 45.
+    // The browser gives this route 60s (`welcome/page.tsx`). Two 45s attempts cannot fit, so
+    // the budget is SPLIT and the worst case is stated rather than hoped for:
+    //
+    //     25s  +  20s   =  45s   <  60s browser, 15s of headroom
+    //
+    // `maxRetries: 0` stays on BOTH attempts and is load-bearing: the SDK's own retry honours
+    // a server `retry-after` header with a sleep of up to just under 60 SECONDS between
+    // attempts, so delegating the retry to it makes the worst case unprovable. Our retry is
+    // immediate and bounded because we own the clock.
+    //
+    // ⚠️ ONLY A TRANSPORT FAILURE IS RETRIED. A reply that ARRIVES and is unusable is not
+    // retried here — re-rolling the model until it says something we like is how a product
+    // starts paying for the same turn three times, and the shape handling below is the right
+    // answer to a bad shape. This catch is reached only when nothing came back at all.
+    //
+    // ⚠️ AND THE SECOND ATTEMPT IS IDENTICAL. Same transcript, same system prompt, same
+    // tools — nothing about the client's turn is altered to "help it through".
+    const callModel = (timeout: number) => anthropic.messages.create({
+      model: BUILDER_MODEL,
+      // 700 was the old ceiling and it was not one the completion contract could fit — a
+      // verbose answer was cut mid-JSON, the parse threw, and the canned checklist went out
+      // under Milla's name. 4000 with a schema that bounds every string and array.
+      max_tokens: 4000,
+      system,
+      tools: [millaReplyTool(profile_required)],
+      // The model does not get to choose whether to answer in the agreed shape.
+      tool_choice: { type: 'tool', name: MILLA_REPLY_TOOL, disable_parallel_tool_use: true },
+      messages: windowed.map(m => ({ role: m.role, content: m.content })),
+    }, { timeout, maxRetries: 0 })
+
+    // ── 🛑 ⚑ 14 Sep — THE CUSTOMER'S MESSAGE IS OURS BEFORE THE PROVIDER IS ASKED ────────
+    //
+    // 🛑 FOUNDER RULING: "Do not make the customer retype because our AI/provider failed."
+    // The transcript used to be written only at the BOTTOM of a successful turn, so a
+    // provider outage stored nothing and what they had typed lived in React state alone. One
+    // refresh and it was gone — and the banner asked them to try again at something they had
+    // done correctly.
+    //
+    // ⚠️ THEIR WORDS ARE ALREADY TRUE. Whether we can answer is a separate question and it
+    // happens after this line. A failed turn now loses our reply, never their message.
+    //
+    // ⚠️ BEST-EFFORT AND NON-BLOCKING IN EFFECT: a store that refuses (promoted draft) or
+    // fails must not cost them the turn, so the outcome is logged and the conversation
+    // continues. Idempotent — the browser re-sends the whole transcript, so this is a
+    // snapshot write and a retry cannot duplicate a message.
+    if (req.userId) {
+      try {
+        const { rememberCustomerTurn } = await import('../lib/brief-draft')
+        const held = await rememberCustomerTurn(req.userId, windowed.map(m => ({ role: m.role, content: m.content })))
+        if (!held.ok) console.log('[icps/builder/chat] customer turn not persisted before the model call')
+      } catch (e) {
+        console.error('[icps/builder/chat] customer-turn write threw — the turn continues:', (e as Error)?.name ?? 'unknown')
+      }
+    }
+
     let response: Awaited<ReturnType<typeof anthropic.messages.create>>
     try {
-      response = await anthropic.messages.create({
-        model: BUILDER_MODEL,
-        // 700 was the old ceiling and it was not one the completion contract could fit — a
-        // verbose answer was cut mid-JSON, the parse threw, and the canned checklist went out
-        // under Milla's name. 4000 with a schema that bounds every string and array.
-        max_tokens: 4000,
-        system,
-        tools: [millaReplyTool(profile_required)],
-        // The model does not get to choose whether to answer in the agreed shape.
-        tool_choice: { type: 'tool', name: MILLA_REPLY_TOOL, disable_parallel_tool_use: true },
-        messages: windowed.map(m => ({ role: m.role, content: m.content })),
-      }, { timeout: 45_000, maxRetries: 0 })
+      try {
+        response = await callModel(25_000)
+      } catch (firstErr) {
+        const e1 = firstErr as { name?: string; status?: number }
+        console.warn('[icps/builder/chat] provider attempt 1 failed, retrying once —', JSON.stringify({
+          stage: 'provider_retry',
+          name: e1?.name ?? null,
+          status: typeof e1?.status === 'number' ? e1.status : null,
+          model: BUILDER_MODEL,
+        }))
+        response = await callModel(20_000)
+      }
     } catch (provErr) {
       const e = provErr as { name?: string; status?: number; message?: string }
       console.error('[icps/builder/chat] provider call failed —', JSON.stringify({
         stage: 'provider',
+        attempts: 2,
         name: e?.name ?? null,
         status: typeof e?.status === 'number' ? e.status : null,
         model: BUILDER_MODEL,
@@ -3755,18 +4077,47 @@ result or a number. "permitted" is false unless they explicitly said we may use 
       millaReplyFailed(res, 'TRUNCATED', meta)
       return
     }
-    // ⚑ GPT review: the first cut only rejected `max_tokens` and then went looking for a
-    // tool block. A forced tool_choice should always stop on 'tool_use'; anything else —
-    // 'end_turn', 'stop_sequence', null — means the turn did not do what we required, and
-    // guessing from whatever blocks happen to be present is how damaged output gets read
-    // as an answer. Refuse on the stop reason itself.
-    if (response.stop_reason !== 'tool_use') {
-      millaReplyFailed(res, 'UNEXPECTED_STOP', meta)
-      return
-    }
+    // ── 🛑 ⚑ 14 Sep (R121) — SHE ANSWERED IN WORDS. THAT IS STILL AN ANSWER. ────────────
+    //
+    // ⛓️ BOTH OF THESE USED TO 503, AND BOTH THREW AWAY A PERFECTLY GOOD SENTENCE. A forced
+    // `tool_choice` should always stop on 'tool_use' — but "should" is not "does", and when
+    // the model replies in plain text instead, what we had was Milla's actual answer to the
+    // client sitting in `response.content` while the client was told "Milla didn't catch
+    // that" and asked to try again. Their turn was fine. Her reply was fine. Only the
+    // envelope was wrong, and the customer paid for it.
+    //
+    // 🛑 SO A TEXT REPLY BECOMES HER QUESTION — AND ONLY EVER A QUESTION. It is re-read
+    // through the SAME `MillaQuestionReply` every other question faces, so a blank or
+    // unusable one still refuses. What it can never become is a COMPLETION: a completion
+    // promotes an account, writes targeting and asks the client to approve a plan, and none
+    // of that may rest on a reply that did not use the agreed contract. It carries NO facts
+    // either — `brief_so_far` lives in the tool input, so there is nothing here to persist
+    // and nothing is invented to fill the gap.
+    //
+    // ⚠️ TRUNCATION IS STILL REFUSED ABOVE, BEFORE THIS. A `max_tokens` stop means the text
+    // is CUT OFF mid-sentence, and half a question is not a question.
+    const textReply = response.content
+      .filter(b => b.type === 'text')
+      .map(b => (b as { type: 'text'; text: string }).text)
+      .join('')
+      .trim()
     const toolBlocks = response.content.filter(b => b.type === 'tool_use')
-    if (toolBlocks.length === 0) {
-      millaReplyFailed(res, 'NO_TOOL_CALL', meta)
+
+    if (response.stop_reason !== 'tool_use' || toolBlocks.length === 0) {
+      const spoken = MillaQuestionReply.safeParse({ type: 'question', content: textReply })
+      if (spoken.success) {
+        console.log('[icps/builder/chat] text reply used as her question —', JSON.stringify({
+          stage: 'reply',
+          category: 'TEXT_REPLY_CONTINUED',
+          stop_reason: response.stop_reason ?? null,
+          model: BUILDER_MODEL,
+        }))
+        // ⚠️ THE CONVERSATION CONTINUES AND NOTHING IS RECORDED AS FINISHED. No brief write,
+        // no completion, no promotion — this is one sentence back to the client.
+        res.json({ success: true, data: { type: 'question', content: spoken.data.content } })
+        return
+      }
+      millaReplyFailed(res, response.stop_reason !== 'tool_use' ? 'UNEXPECTED_STOP' : 'NO_TOOL_CALL', meta)
       return
     }
     // ⚑ GPT review: the first cut took toolBlocks[0] and ignored the rest. We asked for one
@@ -3788,8 +4139,21 @@ result or a number. "permitted" is false unless they explicitly said we may use 
     // else), and only a completion faces the strict targeting schema with its fail-closed
     // lists and the first-run gate. Any other `type` value falls through to the strict
     // schema, whose enum refuses it — unknown types keep failing closed.
-    const declaredType = call.input && typeof call.input === 'object'
-      ? (call.input as Record<string, unknown>).type
+    // ── 🛑 ⚑ 14 Sep (S1-RT-007) — ONE NORMALISATION, BEFORE ANYTHING READS THE REPLY ───
+    //
+    // 🛑 `null` AND "KEY ABSENT" ARE THE SAME STATEMENT AND MUST BE READ THE SAME WAY. Every
+    // field of this contract is `.optional()`, which in Zod is `T | undefined` and NOT
+    // `T | null` — so a model saying "I have no ICP yet" as `icp: null` was refused while the
+    // same model omitting the key was accepted. Live, that was a 503 on an answer the client
+    // had given perfectly, and the identical retry succeeded.
+    //
+    // ⚠️ SHAPE ONLY. It drops `null`; it never substitutes, defaults, repairs a wrong type or
+    // touches `false`/`0`/`''`. A string where an object belongs still reaches Zod and is
+    // still refused. See `lib/milla-reply-shape.ts`.
+    let replyInput = normaliseModelReply(call.input)
+
+    const declaredType = replyInput && typeof replyInput === 'object'
+      ? (replyInput as Record<string, unknown>).type
       : undefined
 
     // ── 🛑 ⚑ 14 Sep (S1-RT-002B) — VALID CUSTOMER TRUTH IS SAVED BEFORE ANY GATE CAN REFUSE ─
@@ -3813,31 +4177,175 @@ result or a number. "permitted" is false unless they explicitly said we may use 
     //
     // ⚠️ AND IT IS MERGED, NEVER REPLACING (`saveBriefDraft`), so a partial snapshot from a
     // turn that then failed cannot erase the answers before it.
-    if (req.userId && call.input && typeof call.input === 'object') {
-      const snapshot = BriefSoFar.safeParse((call.input as Record<string, unknown>).brief_so_far)
-      if (snapshot.success && snapshot.data && Object.keys(snapshot.data).length > 0) {
-        const { saveBriefDraft } = await import('../lib/brief-draft')
-        const saved = await saveBriefDraft(req.userId, snapshot.data)
-        if (!saved.ok && saved.reason === 'unstorable') {
-          console.warn('[icps/builder/chat] brief draft not stored (run 20260911_onboarding_brief_drafts)')
-        }
+
+    // ── 🛑 ⚑ 14 Sep (R121) — THE RECORD IS READ ONCE, BEFORE THIS TURN IS MERGED INTO IT ──
+    //
+    // ⛓️ THIS READ USED TO HAPPEN AFTER THE WRITE, and it moved for one reason: a list
+    // correction needs to know what is ALREADY held to add to it. Reading afterwards answers
+    // a different question — what the record looks like once this turn has already
+    // overwritten it — which is the very overwrite the correction exists to prevent.
+    //
+    // ⚠️ NOTHING ELSE ABOUT IT CHANGED. Same function, same failure handling, same meaning:
+    // "the record is empty" and "we could not READ the record" stay different facts, because
+    // a client on their first turn legitimately has no row while a read that THREW may be
+    // hiding nine facts — and a confirmation built without them is the one-sample projection
+    // this whole correction abolished. `held` is brought up to date from the write's own
+    // result below rather than by reading twice.
+    // ⚠️ BEST-EFFORT, DEGRADING TO TODAY'S BEHAVIOUR. If the draft cannot be read, `held`
+    // stays empty and everything below behaves exactly as it did: the gate counts this
+    // sample alone. Worse, but never a reason to refuse the client's turn.
+    let held: Record<string, unknown> = {}
+    let heldReadable = true
+    if (req.userId) {
+      try {
+        const { briefDraftFor } = await import('../lib/brief-draft')
+        const record = await briefDraftFor(req.userId)
+        held = (record?.facts ?? {}) as Record<string, unknown>
+      } catch {
+        // The turn may still ANSWER — a question needs no durable truth. It may not CONFIRM.
+        heldReadable = false
+        console.error('[icps/builder/chat] durable brief unreadable —', JSON.stringify({
+          stage: 'brief_read', consequence: 'no completion may be presented this turn',
+        }))
       }
     }
 
+    if (req.userId && replyInput && typeof replyInput === 'object') {
+      // 🛑 MODEL EMPTINESS IS NOISE, NOT A CLEAR. `''` and `[]` from a MODEL mean "I have not
+      // established this" — it has no way to express a deletion and the prompt tells it to
+      // omit what it does not know. Merged, they would erase a fact the customer gave three
+      // turns ago because one sample went quiet. The CUSTOMER's own clear mechanism is
+      // `PUT /milla/brief-draft`, whose fields are `.nullish()` for exactly that purpose, and
+      // it is untouched: this filter is on the model path only.
+      const rawFacts = modelFactsOnly((replyInput as Record<string, unknown>).brief_so_far)
+      let snapshot = BriefSoFar.safeParse(rawFacts)
+      if (!snapshot.success) {
+        // 🛑 ONE BAD FIELD MUST NOT COST THE WHOLE TURN. This parse is all-or-nothing, so a
+        // single wrong type anywhere discarded EVERY fact the customer gave in that turn —
+        // silently, with no log on the path. The offending keys are dropped and the rest
+        // re-parsed through the SAME schema. Nothing is repaired or guessed: a value we could
+        // not read is simply not saved, exactly as if it had never been mentioned.
+        const salvaged = dropKeysNamedByIssues(rawFacts, snapshot.error.errors)
+        const retry = BriefSoFar.safeParse(salvaged)
+        console.warn('[icps/builder/chat] brief snapshot partially unreadable —', JSON.stringify({
+          stage: 'snapshot',
+          // KEY NAMES ONLY, never values — a value here is client data.
+          dropped: [...new Set(snapshot.error.errors.map(e => String(e.path[0] ?? '')))].slice(0, 8),
+          salvaged: retry.success ? Object.keys(retry.data ?? {}).length : 0,
+        }))
+        if (retry.success) {
+          snapshot = retry
+          // 🛑 AND THE SALVAGED MEMO REPLACES THE BROKEN ONE FOR EVERYTHING DOWNSTREAM.
+          // `brief_so_far` is also a field of the REPLY schema, so leaving the unreadable
+          // value in place would fail the reply parse too and cost the client the turn we
+          // just rescued their facts from. One value — saved, counted by the gate, and read
+          // by the confirmation — so the three can never disagree about what was said.
+          replyInput = { ...(replyInput as Record<string, unknown>), brief_so_far: salvaged }
+        }
+      }
+      // ── 🛑 ⚑ 14 Sep (R121) — "ACTUALLY INCLUDE THE US AS WELL" ────────────────────────
+      //
+      // 🛑 THE MERGE IS SHALLOW, so a list fact is REPLACED by whatever this turn emitted. A
+      // client adding a second market got the second market and lost the first, depending
+      // entirely on whether the model happened to restate the whole list that turn. The model
+      // always understood "as well"; it had nowhere to PUT that understanding except a full
+      // list it had to remember perfectly. `brief_list_ops` is that somewhere.
+      //
+      // ⚠️ STRUCTURE, NOT PROSE. The model chooses between restating the list and naming an
+      // add/remove; the server applies the one it chose, against the record read above. No
+      // sentence is examined here or in `applyListOps` — a regex in this path would be R121's
+      // own defect, one layer down.
+      const ops = applyListOps(held, snapshot.success ? (snapshot.data ?? {}) : {},
+        (replyInput as Record<string, unknown>).brief_list_ops as ListOps | undefined)
+      const toStore = { ...(snapshot.success ? (snapshot.data ?? {}) : {}), ...ops }
+      if (Object.keys(toStore).length > 0) {
+        const { saveBriefDraft } = await import('../lib/brief-draft')
+        const saved = await saveBriefDraft(req.userId, toStore)
+        if (!saved.ok && saved.reason === 'unstorable') {
+          console.warn('[icps/builder/chat] brief draft not stored (run 20260911_onboarding_brief_drafts)')
+        }
+        // 🛑 `held` IS BROUGHT UP TO DATE WITHOUT READING THE ROW AGAIN — and it is computed
+        // from the same two things the store merged, not from the store's reply. `saveBriefDraft`
+        // merges `{ ...existing, ...facts }`, which is exactly this expression, so the gate and
+        // the confirmation below count what was actually written.
+        //
+        // ⚠️ AND ONLY WHEN THE WRITE SUCCEEDED. A failed store means the record still holds
+        // what it held before, so `held` must too — claiming otherwise would let a completion
+        // be built on facts that reached no database.
+        if (saved.ok) held = { ...held, ...toStore }
+      }
+    }
+
+    // ── 🛑 ⚑ 14 Sep (S1-RT-009) — ONE READ OF THE DURABLE BRIEF, USED BY BOTH ─────────
+    //
+    // The snapshot above has just merged this turn's answers into the record, so this is the
+    // CUMULATIVE customer truth: every answer they have ever given. The eleven-fact gate
     const validated = declaredType === 'question'
-      ? MillaQuestionReply.safeParse(call.input)
-      : millaReplyFor(profile_required).safeParse(call.input)
-    if (!validated.success) {
+      ? MillaQuestionReply.safeParse(replyInput)
+      : millaReplyFor(profile_required, held).safeParse(replyInput)
+
+    // ── 🛑 ⚑ 14 Sep (S1-RT-007) — A COMPLETION CLAIMED TOO EARLY IS STILL A CONVERSATION ─
+    //
+    // 🛑 LIVE, THIS WAS `zod_paths:["brief"]` AND `zod_paths:["icp"]`, BOTH 503. Neither is a
+    // shape error: `MillaReplyInput` has no `brief` key and both paths are `millaReplyFor`'s
+    // OWN `custom` refusals — the eleven-fact gate and "a completion must carry an icp". The
+    // model declared `complete` before it was ready, and the product charged that judgement
+    // to the CUSTOMER as a failed turn, telling them to retry something they had done
+    // correctly. The retry only worked because the next sample said `question` instead.
+    //
+    // 🛑 NO GATE IS WEAKENED. `isPrematureCompletion` requires EVERY issue to be one of our
+    // own `custom` readiness refusals. A malformed reply raises `invalid_type` and still
+    // refuses — `icp: "agencies"` and `icp: null` land on the same PATH and are told apart by
+    // the CODE. And the answer is a QUESTION: the Brief stays incomplete, nothing is
+    // promoted, nothing is persisted as finished.
+    //
+    // ⚠️ THE SENTENCE IS MILLA'S OR THERE IS NONE. It is re-read through the SAME
+    // `MillaQuestionReply` every question faces, so a blank or missing `content` fails and
+    // the reply is refused exactly as before. Nothing composes a question on her behalf.
+    let parsed: z.infer<typeof MillaQuestionReply> | z.infer<ReturnType<typeof millaReplyFor>> | null =
+      validated.success ? validated.data : null
+    // 🛑 ⚑ 14 Sep (S1-RT-009) — AN UNREADABLE RECORD CANNOT PRODUCE A CONFIRMATION.
+    //
+    // The client's turn is not lost and their facts are already saved — the snapshot write
+    // happened above, before this read. What must not happen is presenting them a plan to
+    // APPROVE that was assembled from one model sample while the record they actually built
+    // was unreachable. So a completion is demoted to the conversation exactly as a premature
+    // one is: Milla's own sentence if she wrote one, and a plain retryable refusal if she did
+    // not. No promotion, no invented replacement state, nothing marked finished.
+    const mustNotConfirm = !heldReadable && declaredType === 'complete'
+    if (mustNotConfirm) {
+      // ⚠️ REGARDLESS OF WHETHER THE COMPLETION WAS OTHERWISE VALID. A premature completion
+      // and a well-formed one are demoted the same way here: neither may be presented as a
+      // plan to approve while the record is unreachable.
+      const asQuestion = MillaQuestionReply.safeParse({
+        ...(replyInput as Record<string, unknown>), type: 'question',
+      })
+      console.log('[icps/builder/chat] withholding completion —', JSON.stringify({
+        stage: 'reply', category: 'BRIEF_UNREADABLE_NO_CONFIRMATION', model: BUILDER_MODEL,
+      }))
+      parsed = asQuestion.success ? asQuestion.data : null
+    }
+    if (!mustNotConfirm && !validated.success && isPrematureCompletion(validated.error.errors)) {
+      const asQuestion = MillaQuestionReply.safeParse({
+        ...(replyInput as Record<string, unknown>), type: 'question',
+      })
+      if (asQuestion.success) {
+        console.log('[icps/builder/chat] continuing —', JSON.stringify({
+          stage: 'reply', category: PREMATURE_COMPLETION, model: BUILDER_MODEL,
+        }))
+        parsed = asQuestion.data
+      }
+    }
+    if (!parsed) {
       millaReplyFailed(res, 'INVALID_SHAPE', {
         ...meta,
         // A COUNT, never the keys themselves — a key name is client data here.
-        inputKeys: call.input && typeof call.input === 'object' ? Object.keys(call.input).length : 0,
+        inputKeys: replyInput && typeof replyInput === 'object' ? Object.keys(replyInput).length : 0,
         // OUR schema's paths (deduped), so a repeating refusal names its own cause.
-        zodPaths: [...new Set(validated.error.errors.map(e => e.path.join('.') || '(root)'))].slice(0, 8),
+        zodPaths: validated.success ? [] : [...new Set(validated.error.errors.map(e => e.path.join('.') || '(root)'))].slice(0, 8),
       })
       return
     }
-    const parsed = validated.data
 
     // ── ⚑ MVP1 — THE DRAFT IS WRITTEN HERE, ON EVERY TURN ─────────────────────────────
     //
@@ -3873,7 +4381,22 @@ result or a number. "permitted" is false unless they explicitly said we may use 
       // inside `millaReplyFor` would let fact #10 satisfy the eleven and then vanish on its
       // way to `figsy_knowledge.pitch.data.bad_fit` — a completion that counts eleven and
       // stores nine. The gate and this response read the SAME `resolveBriefFacts` output.
-      const resolved = resolveBriefFacts(parsed)
+      // ── 🛑 ⚑ 14 Sep (S1-RT-009) — THE CONFIRMATION READS THE DURABLE BRIEF ────────────
+      //
+      // 🛑 WHAT THE CLIENT WAS BEING ASKED TO APPROVE. This used to be
+      // `resolveBriefFacts(parsed)` — ONE TURN: this sample's fields, falling back to the
+      // `brief_so_far` this sample happened to carry. A fact given on turn 1 and not repeated
+      // on turn 9 was simply absent from the confirmation. Not lost from the database, which
+      // had merged it correctly all along — invisible on the one screen where they say yes.
+      // The client repeated their exclusions three times and still saw no sign of them.
+      //
+      // It now resolves against `held`, the same cumulative record the gate counted, so the
+      // flow is CUSTOMER WORDS → DURABLE BRIEF → DERIVED TARGETING → CONFIRMATION.
+      const resolved = resolveBriefFacts(
+        Object.keys(held).length > 0
+          ? { ...parsed, brief_so_far: { ...held, ...(parsed.brief_so_far ?? {}) } as never }
+          : parsed,
+      )
       // ── 🛑 ⚑ 14 Sep (S1-RT-005) — TRANSLATE, AND SAY SO WHEN WE CANNOT ────────────────
       //
       // Each closed vocabulary is asked the same question: which of these words can we prove
@@ -3994,6 +4517,34 @@ result or a number. "permitted" is false unless they explicitly said we may use 
             // never supplied: a fact absent from both homes stays empty and the portal's
             // own first-run gate still refuses it.
             company_name: str(p.company_name) || resolved.companyName || '',
+            // ── 🛑 ⚑ 14 Sep (R121) — THE MODEL READS THE CONVERSATION. WE DO NOT. ────────
+            //
+            // ⛓️ WHAT STOOD HERE WAS A LANGUAGE PARSER, AND IT IS DELETED.
+            // ~~`countryHasCustomerEvidence({ country, turns: messages, companyName })`~~ —
+            // 366 lines of regex, demonym tables, pronoun rules and filler-word lists that
+            // re-read the transcript to decide whether the client had located THEIR OWN
+            // business. It was written to close a real defect (the model volunteering
+            // "United Kingdom" from a sentence about the client's CUSTOMERS) and it was the
+            // wrong layer for it. Five rounds each closed the hole the last one opened:
+            // subject-free "is/are based in", a pronoun anywhere in the sentence, any country
+            // mentioned after our question, and finally `office`/`I am` treated as harmless
+            // filler — so "Our office is in Ireland" and "I am in Ireland" both became the
+            // company's country. There is no finite set of ways a person says where they are.
+            //
+            // 🛑 SO THE SEMANTIC JUDGEMENT IS THE MODEL'S, and it is exactly the judgement it
+            // already makes for `company_name` on the line above. The prompt tells it the
+            // difference plainly — where their business is based is not where their customers
+            // are, never infer one from the other, never guess it from a domain or a currency,
+            // and if they have not said it, ask. A model that misreads that produces one wrong
+            // field the client can see and correct on the confirmation card; a parser that
+            // misreads it produces a wrong field NOBODY can correct, because it overrules the
+            // model silently and has no idea it was wrong.
+            //
+            // ⚠️ AND NOTHING IS INVENTED BY REMOVING IT. `str(p.country)` is still only what
+            // the model actually emitted: absent stays absent, empty stays empty, and an
+            // unknown country still renders "still needed" and is still asked for
+            // conversationally by `approve()` before an account can be opened. The country was
+            // never one of the eleven Brief facts and is not one now.
             country:      str(p.country) || resolved.country || '',
             contact_name: str(p.contact_name) || resolved.contactName || '',
             phone:        str(p.phone) || resolved.phone || '',
@@ -4014,7 +4565,28 @@ result or a number. "permitted" is false unless they explicitly said we may use 
       res.json({
         success: true,
         data: {
-          type: 'complete', icp: draft, summary: parsed.summary ?? null,
+          type: 'complete', icp: draft,
+          // ── 🛑 ⚑ 14 Sep (S1-RT-009) — THE FINAL CONFIRMATION CARRIES ONE TRUTH ─────────
+          //
+          // 🛑 THE MODEL'S SUMMARY IS NOT SENT. It was the last client-facing sentence written
+          // entirely by the model, and it sat directly beside cards built from the durable
+          // Brief — so it could assert "Northstar is based in the UK" next to a card correctly
+          // reading "still needed", or "you want recruitment agencies in the UK" against a
+          // record that EXCLUDES them, and the client would believe the sentence.
+          //
+          // ⛓️ SCREENING IT WAS NOT ENOUGH AND IS GONE. `summaryAssertsUnsupportedFacts`
+          // caught invented locations and contradictory geographies, and by construction
+          // could not catch a reworded exclusion — that needs semantics. A partial screen on
+          // a second version of the client's truth is still a second version of the client's
+          // truth. There is now no second version to police.
+          //
+          // ⚠️ MILLA IS NOT SILENCED. Every QUESTION she asks is still hers, unchanged, and
+          // the portal already renders its own neutral introduction when no summary arrives —
+          // a sentence that states no facts. What she may no longer do is narrate the client's
+          // own truth back to them in prose nobody checked, at the one moment they say yes.
+          // The facts are on the cards: company, targets, geography, roles, size, exclusions,
+          // outcome — every one of them resolved from the durable Brief.
+          summary: null,
           // ── ⚑ 14 Sep (S1-RT-005 · amended S1-PD-01) — DISPLAY STATE, AND ONLY THAT ─────
           //
           // 🛑 THE PORTAL NO LONGER CARRIES THIS ANYWHERE. It renders it — "we are finishing
@@ -4025,6 +4597,22 @@ result or a number. "permitted" is false unless they explicitly said we may use 
           // a human, never an input to a decision.
           icp_review: icpReview,
           profile, business, proof, website_hints: websiteHints,
+          // ── ⚑ 14 Sep (S1-RT-009A) — THE FACTS THE CLIENT MUST SEE BEFORE THEY APPROVE ──
+          //
+          // 🛑 EXCLUSIONS WERE NEVER LOST AND NEVER SHOWN. `business.bad_fit` has carried
+          // them the whole time and the portal declared the field and rendered nothing. A
+          // client who says "not recruitment agencies, not software companies" three times
+          // and sees no sign of it has no way to tell whether we heard them — so they say it
+          // again, which is the product failing to be believable rather than failing to work.
+          //
+          // ⚠️ NAMED SEPARATELY FROM `business.bad_fit`, WHICH IS UNCHANGED. That key is the
+          // FIGSY copywriter's input and keeps its meaning and its destination; this one is
+          // the CLIENT-FACING statement of fact #10, resolved from the durable Brief, and it
+          // exists so the confirmation renders canonical truth rather than a copy field it
+          // happens to share a value with today.
+          brief_exclusions: resolved.exclusions ?? '',
+          // Fact #6, from the same durable record — so the chips cannot disagree with it.
+          brief_geographies: resolved.geographies ?? [],
           // ⚠️ BRIEF FACT #11, RESOLVED (S1-RT-002). The portal carries this to
           // `/auth/onboard` as `outcome_stated` and to `POST /icps` as `campaign_intent`,
           // so the desired outcome the gate counted from the snapshot reaches BOTH of its
@@ -4096,8 +4684,22 @@ result or a number. "permitted" is false unless they explicitly said we may use 
     }
     res.json({ success: true, data: { type: 'question', content: parsed.content } })
   } catch (err) {
-    // The request body itself was malformed — the caller's bug, not the model's turn.
-    if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: err.errors }); return }
+    // ── 🛑 ⚑ 14 Sep (R121) — OUR SCHEMA'S COMPLAINT IS NOT A SENTENCE FOR A CUSTOMER ─────
+    //
+    // ⛓️ ~~`res.status(400).json({ success: false, error: err.errors })`~~ put the raw Zod
+    // issue array on the screen — `[{"code":"too_big","maximum":4000,"path":["messages",37,
+    // "content"]}]` — as the answer to somebody who had just typed a long message. It is our
+    // request contract failing, which is OUR bug, and the client can neither read it nor act
+    // on it. The paths are still LOGGED, where a human can use them.
+    if (err instanceof z.ZodError) {
+      console.error('[icps/builder/chat] request refused —', JSON.stringify({
+        stage: 'request',
+        // OUR field names, never the client's values — the same rule the reply logger keeps.
+        zod_paths: [...new Set(err.errors.map(e => e.path.join('.') || '(root)'))].slice(0, 8),
+      }))
+      res.status(400).json({ success: false, error: MILLA_RETRY_ERROR, retryable: true })
+      return
+    }
     // ⚑ 26 Aug — anything else here is OUR code failing between the stages that log for
     // themselves (provider and reply validation both answer inside the try). Stage-tagged
     // so a repeat is diagnosable; retryable because the client's turn is safe in their

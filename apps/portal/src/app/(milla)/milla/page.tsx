@@ -3,7 +3,7 @@
 import { Fragment, useCallback, useEffect, useRef, useState, useMemo } from 'react'
 import { ProofCalibration, type ProofCalibrationState } from '@/components/milla/ProofCalibration'
 import { useRouter } from 'next/navigation'
-import { api } from '@/lib/api'
+import { api, AI_TURN_TIMEOUT_MS } from '@/lib/api'
 import { createClient } from '@/lib/supabase/client'
 import ProductTour from '@/components/ProductTour'
 // ⚑ 30 Aug (BUILD-004A-1) — PACK_PRICE_USD / PACK_LEADS / deskCoverage are GONE from this
@@ -518,7 +518,7 @@ export default function MillaHomePage() {
     try {
       const tk = await token()
       const r = await api.post<{ data: IcpTargeting & { message?: string; clear_fields?: string[] } }>(
-        '/icps/chat-build', { message: msg, history: [] }, tk)
+        '/icps/chat-build', { message: msg, history: [] }, tk, AI_TURN_TIMEOUT_MS)
       const d = r.data ?? {}
       // The server already allowlisted these to the five clearable filters and fails closed;
       // filtering again here is belt-and-braces against a stale or hand-built response.

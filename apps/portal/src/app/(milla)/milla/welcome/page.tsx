@@ -60,7 +60,12 @@ type BuilderReply =
       // ⚑ 14 Sep (S1-RT-005) — what the SERVER could not translate into provider values.
       // Carried, never interpreted: this app decides nothing about it and shows the client
       // nothing different because of it.
-      icp_review?: { requirements: Array<{ field: string; said: string[] }> } | null }
+      icp_review?: { requirements: Array<{ field: string; said: string[] }> } | null
+      // ⚑ 14 Sep (S1-RT-009A/B) — fact #10 and fact #6 as the DURABLE Brief holds them, so
+      // the confirmation shows what the client actually said rather than whatever this one
+      // model sample remembered.
+      brief_exclusions?: string
+      brief_geographies?: string[] }
 type Msg = { role: 'user' | 'assistant'; content: string }
 
 async function token(): Promise<string | undefined> {
@@ -134,18 +139,25 @@ const REFINING_GREETING = "Welcome back 👋 Let's sharpen the same targeting ra
 /**
  * ⚑ MVP1 — the welcome back for somebody whose Brief is part-collected.
  *
- * ⚠️ THE NUMBERS ARE THE SERVER'S, INTERPOLATED — never typed. `count` and `total` come from
- * the shared eleven-fact counter and `nextLabel` from the same list; this app has no opinion
- * about what the facts are or how many there are.
+ * ⛓️ 14 Sep (R121) — IT USED TO COUNT AT THEM: ~~"that's 7 of 11 things I needed. Next up:
+ * target company type."~~ Every word of that was true and none of it was how a colleague
+ * talks. It told the client three things they should never have to know — that there is a
+ * list, how long it is, and where on it they are — and it did it in the first sentence after
+ * they came back, which is the moment the product most needs to sound like it remembers them
+ * rather than like it has been keeping score.
+ *
+ * ⚠️ THE FACTS ARE STILL THE SERVER'S AND ARE STILL USED — just not read out. Whether
+ * anything is outstanding decides which sentence she says; the NUMBER behind it never
+ * reaches the client, and this app still has no opinion about what the facts are.
  *
  * ⚠️ AND IT PROMISES NOTHING ABOUT CONFIRMATION. Holding every fact is not the same as having
  * confirmed the brief — that gate is separate, and it is the panel after this conversation.
  */
 function resumeGreeting(count: number, total: number, nextLabel: string | null): string {
-  const held = `Welcome back 👋 I still have everything you told me — that's ${count} of ${total} things I needed.`
+  void count; void total
   return nextLabel
-    ? `${held} Next up: ${nextLabel.toLowerCase()}.`
-    : `${held} I have everything I need — say the word and I'll put your plan together.`
+    ? `Welcome back 👋 I've still got everything you told me — we can pick up where we left off.`
+    : `Welcome back 👋 I've still got everything you told me, and I think I have what I need — say the word and I'll put your plan together.`
 }
 
 export default function MillaWelcomePage() {
@@ -157,6 +169,10 @@ export default function MillaWelcomePage() {
   // ⚑ 14 Sep (S1-RT-005) — carried from the completion to `POST /icps`, which is what
   // persists it. Held here for one hop only; this app never reads it to decide anything.
   const [icpReview, setIcpReview] = useState<{ requirements: Array<{ field: string; said: string[] }> } | null>(null)
+  // ⚑ 14 Sep (S1-RT-009A) — the canonical exclusions. Held separately from `business.bad_fit`
+  // because this is the CLIENT-FACING fact, resolved server-side from the durable Brief.
+  const [briefExclusions, setBriefExclusions] = useState('')
+  const [briefGeographies, setBriefGeographies] = useState<string[]>([])
   // ⚑ 24 Aug — the VALUE is no longer read on this screen (the plan card that displayed it
   // is gone), but the setter stays: `propose()` still runs the gated preview and "Keep
   // adjusting the target" still clears it, and neither of those is copy. Bound as `[,
@@ -465,6 +481,8 @@ export default function MillaWelcomePage() {
         // cleanly must CLEAR a review the earlier one recorded, or a stale flag would block
         // a client whose targeting is now provider-safe.
         setIcpReview(d.icp_review ?? null)
+        setBriefExclusions(typeof d.brief_exclusions === 'string' ? d.brief_exclusions : '')
+        setBriefGeographies(Array.isArray(d.brief_geographies) ? d.brief_geographies : [])
         if (typeof d.campaign_intent === 'string') setIntent(d.campaign_intent)
         await propose(d.icp)
       } else {
@@ -913,7 +931,10 @@ export default function MillaWelcomePage() {
               <div className="text-[15px] font-bold mb-1">Proposed ICP · <span className="text-[#7C3AED]">v1</span></div>
               <div className="text-[13px] text-[#5c5279] font-semibold mb-3">{proposed.name}</div>
               <div className="flex flex-wrap gap-1.5 mb-4">
-                {[...chips(proposed.seniority_levels), ...chips(proposed.job_titles), ...chips(proposed.industries), ...chips(proposed.geographies), ...chips(proposed.company_sizes).map(s => `${s} staff`)].map((c, i) => (
+                {/* ⚑ 14 Sep (S1-RT-009B) — geography comes from the DURABLE Brief when it
+                    holds one. The chips and the line below must never be able to disagree
+                    about which countries the client asked for. */}
+                {[...chips(proposed.seniority_levels), ...chips(proposed.job_titles), ...chips(proposed.industries), ...chips(briefGeographies.length ? briefGeographies : proposed.geographies), ...chips(proposed.company_sizes).map(s => `${s} staff`)].map((c, i) => (
                   <span key={i} className="text-[11.5px] font-semibold text-[#7C3AED] bg-[#f3ecff] rounded-full px-2.5 py-1">{c}</span>
                 ))}
               </div>
@@ -959,6 +980,13 @@ export default function MillaWelcomePage() {
                     {business.differentiators && <div><span className="text-[#9b8ec4] font-semibold">What makes you different — </span><span className="text-[#5c5279]">{business.differentiators}</span></div>}
                     {intent && <div><span className="text-[#9b8ec4] font-semibold">What this campaign is for — </span><span className="text-[#5c5279]">{intent}</span></div>}
                     {business.tone && <div><span className="text-[#9b8ec4] font-semibold">How you want to sound — </span><span className="text-[#5c5279]">{business.tone}</span></div>}
+                    {/* ── 🛑 ⚑ 14 Sep (S1-RT-009A) — WHO WE WILL NOT CONTACT ──────────────
+                        The client said it three times and this screen never once showed it
+                        back. `bad_fit` was declared on the type and rendered nowhere, so the
+                        only way to tell whether we had heard them was to say it again. The
+                        value is the server's resolution of fact #10 from the DURABLE Brief —
+                        not this turn's sample, and not a hard-coded string. */}
+                    {briefExclusions.trim() && <div><span className="text-[#9b8ec4] font-semibold">Who we will NOT contact — </span><span className="text-[#5c5279]">{briefExclusions}</span></div>}
                   </div>
 
                   {/* Proof is shown SPLIT, because the split is the promise: we may know

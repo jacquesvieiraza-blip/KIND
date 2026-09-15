@@ -19,6 +19,8 @@ import { enrolDraftGate } from '../lib/sequence-quality'
 import { logOutcomeEvent } from '../lib/outcomes'
 import { verifyUnsubscribeToken, warmupRampCap, spamScore } from '../lib/deliverability'
 import { emitSignal } from './signals'
+// ⚑ 14 Sep — the model a human is waiting for. One name, one place.
+import { BACKGROUND_MODEL, AI_TURN_BOUND } from '../lib/models'
 import { rateLimit } from '../lib/rate-limit'
 import { isDuplicateWebhookEvent } from '../lib/webhook-idempotency'
 import { processInboundReply } from '../lib/reply-pipeline'
@@ -2966,7 +2968,7 @@ You help the user understand their ICP, lead scoring, and who to target first. Y
 For campaign management features (sequences, email sends, inbox), mention they can upgrade to full FIGSY.
 Keep replies concise (2-4 sentences max). Be direct and helpful.`
 
-    const model = 'claude-haiku-4-5-20251001'
+    const model = BACKGROUND_MODEL
     const tools = [{
       name: 'enroll_leads',
       description: 'Enrol the user\'s campaign-ready (Apollo-verified) leads into their active FIGSY campaign and begin outreach. Call this when the user asks to enrol, launch, start, send, or activate outreach to their leads. Only verified leads are enrolled; opted-out and do-not-contact leads are always excluded automatically.',
@@ -2977,7 +2979,7 @@ Keep replies concise (2-4 sentences max). Be direct and helpful.`
 You can ACT, not just advise: when the user asks to enrol, launch, start, or activate outreach to their leads, call the enroll_leads tool to actually do it (do not just describe it). Verified-only; opted-out / DNC leads are always excluded.`
 
     const aiMessages: any[] = messages.map(m => ({ role: m.role, content: m.content }))
-    let response = await ai.messages.create({ model, max_tokens: 400, system: systemWithAction, tools, messages: aiMessages })
+    let response = await ai.messages.create({ model, max_tokens: 400, system: systemWithAction, tools, messages: aiMessages }, AI_TURN_BOUND)
 
     // One tool round is enough for enroll_leads.
     if (response.stop_reason === 'tool_use') {
@@ -2987,7 +2989,7 @@ You can ACT, not just advise: when the user asks to enrol, launch, start, or act
         : 'Unknown tool.'
       aiMessages.push({ role: 'assistant', content: response.content })
       aiMessages.push({ role: 'user', content: [{ type: 'tool_result', tool_use_id: toolUse?.id, content: result }] })
-      response = await ai.messages.create({ model, max_tokens: 400, system: systemWithAction, tools, messages: aiMessages })
+      response = await ai.messages.create({ model, max_tokens: 400, system: systemWithAction, tools, messages: aiMessages }, AI_TURN_BOUND)
     }
 
     const textBlock = response.content.find((b: any) => b.type === 'text') as { text?: string } | undefined

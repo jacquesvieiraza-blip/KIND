@@ -169,6 +169,19 @@ beforeEach(() => {
   })
 })
 
+/**
+ * A confirmed, unpromoted draft holding exactly these facts.
+ *
+ * ⛓️ 14 Sep (R121, Build 4) — HOISTED FROM DESCRIBE ⑤, where it was defined. Block ④ needs
+ * the same setup now that the outcome KIND is a draft fact, and one literal copied into two
+ * describes is the same "two homes for one fact" defect this repo deletes everywhere else.
+ * ⑤'s local name still points here, so its call sites are untouched.
+ */
+const confirmedDraft = (facts: Record<string, unknown>) => {
+  state.draft = { promotedClientId: null, confirmedAt: '2026-09-11T16:41:00Z', facts }
+  state.confirmable = { ok: true, missing: [] }
+}
+
 describe('① C27 — the client is reachable for checkout', () => {
   it('🛑 a first signup persists contact_email from the authenticated user', async () => {
     const res = await onboard(BODY)
@@ -249,7 +262,16 @@ describe('④ 12 · the desired outcome reaches the client row', () => {
     expect(clientRow().outcome_stated).toBe('Book qualified meetings with founders and MDs.')
   })
 
-  it('and the KIND is DERIVED here, never accepted from the request', async () => {
+  it('and the KIND comes from the BRIEF, never from the request', async () => {
+    // ⛓️ 14 Sep (R121, Build 4) — the kind used to be matched out of the sentence by a
+    // ten-word list; it is the model's reading now, carried on the Brief beside the sentence
+    // it describes. THE POINT OF THIS TEST IS UNCHANGED AND IS THE HALF THAT MATTERED: a
+    // SCREEN may never declare it, because a screen could then agree a meeting target against
+    // an answer that never asked for one.
+    confirmedDraft({
+      desired_outcome: 'Book qualified meetings with founders and MDs.',
+      desired_outcome_kind: 'meetings',
+    })
     await onboard({
       ...BODY,
       outcome_stated: 'Book qualified meetings with founders and MDs.',
@@ -257,6 +279,14 @@ describe('④ 12 · the desired outcome reaches the client row', () => {
       outcome_kind: 'event',
     })
     expect(clientRow().outcome_kind).toBe('meetings')
+  })
+
+  it('🛑 AND A BRIEF WITH NO KIND IS `other` — never guessed from the words', async () => {
+    // `other` reaches a person, and no meeting target is agreed against it. That is the safe
+    // direction and is exactly what an unrecognised sentence used to produce.
+    confirmedDraft({ desired_outcome: 'Book qualified meetings with founders and MDs.' })
+    await onboard({ ...BODY, outcome_stated: 'Book qualified meetings with founders and MDs.' })
+    expect(clientRow().outcome_kind).toBe('other')
   })
 
   it('🛑 an absent outcome is left absent — nothing is invented on their behalf', async () => {
@@ -390,10 +420,7 @@ describe('③ promotion is gated and idempotent', () => {
 // ═══════════════════════════════════════════════════════════════════════════════════════
 describe('⑤ the confirmed brief owns the website, and the browser cannot override it', () => {
   /** a confirmed, unpromoted draft holding exactly these facts */
-  const confirmed = (facts: Record<string, unknown>) => {
-    state.draft = { promotedClientId: null, confirmedAt: '2026-09-11T16:41:00Z', facts }
-    state.confirmable = { ok: true, missing: [] }
-  }
+  const confirmed = confirmedDraft
 
   // ── A ─────────────────────────────────────────────────────────────────────────────────
   it('🛑 A · confirmed "no website" + a website in the body → the client has NO website', async () => {
@@ -555,7 +582,7 @@ describe('⑤ the confirmed brief owns the website, and the browser cannot overr
   // The same-defect boundary audit, driven rather than scanned: every fact `/auth/onboard`
   // persists is taken from the confirmed draft when the draft holds it.
   it('the confirmed draft owns contact name, company and the desired outcome too', async () => {
-    confirmed({
+    confirmedDraft({
       contact_name:    'Ellis Warner',
       company_name:    'Redmayne & Co.',
       desired_outcome: 'Book qualified meetings with founders and MDs.',
@@ -570,12 +597,14 @@ describe('⑤ the confirmed brief owns the website, and the browser cannot overr
     expect(row.contact_name).toBe('Ellis Warner')
     expect(row.company_name).toBe('Redmayne & Co.')
     expect(row.outcome_stated).toBe('Book qualified meetings with founders and MDs.')
-    // And the KIND is still derived from the SERVER-owned sentence.
-    expect(row.outcome_kind).toBe('meetings')
+    // ⛓️ 14 Sep (R121, Build 4) — the SENTENCE is still server-owned, which is this test's
+    // subject and is unchanged. The KIND now travels on the Brief beside it; this fixture
+    // carries no kind, so `other` is correct — and `other` reaches a person.
+    expect(row.outcome_kind).toBe('other')
   })
 
   it('🛑 a body that OMITS the outcome no longer loses it', async () => {
-    confirmed({ desired_outcome: 'Book qualified meetings with founders and MDs.' })
+    confirmedDraft({ desired_outcome: 'Book qualified meetings with founders and MDs.' })
     await onboard(BODY)
     expect(clientRow().outcome_stated).toBe('Book qualified meetings with founders and MDs.')
   })

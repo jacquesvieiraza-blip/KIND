@@ -2,6 +2,7 @@ import Anthropic from '@anthropic-ai/sdk'
 import { pecrVerdict, pecrSkipReason } from './pecr'
 import { isLaunchSendCountry, launchHoldReason } from '@kind/shared'
 import { db } from '@kind/db'
+import { BACKGROUND_MODEL } from './models'
 import { normalizeRevealEmail } from './billing-rules'
 import { sequencePlan, normalisePurpose, normaliseDepth, type SequencePurpose, type SequenceDepth } from './sequence-templates'
 import { Resend } from 'resend'
@@ -1822,10 +1823,24 @@ export async function sendDay1OutreachBatch(
   }
 }
 
-const MODEL_MAP: Record<string, string> = {
-  haiku:  'claude-haiku-4-5-20251001',
-  sonnet: 'claude-sonnet-4-5',
-}
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// ⛓️ 14 Sep (O2) — `MODEL_MAP` STOOD HERE WITH A `sonnet` ENTRY, AND IT IS DELETED.
+//
+// 🛑 FIGSY COULD ESCAPE TO SONNET BY DATA. `MODEL_MAP[modelPreference ?? 'haiku']` read a
+// per-campaign `campaigns.model_preference`, and any authenticated client could set it to
+// `'sonnet'` through `PATCH /figsy/campaigns/:id`. The founder's ruling is not ambiguous:
+// "MILLA = SONNET. VIDA = SONNET. THE OTHER PARTS = HAIKU." FIGSY is one of the other parts,
+// and this was the one place in the repository where a row in a table could overrule that.
+//
+// ⚠️ IT WAS NOT A NEW PRODUCT DECISION TO REMOVE IT. The toggle predates the ruling (P0-14,
+// migration 20260531). The ruling came after and covers it.
+//
+// ⚠️ THE COLUMN IS LEFT ALONE — no migration, no backfill, no writes touched. Existing rows
+// holding `'sonnet'` are now INERT: the value is still stored, still editable, and simply no
+// longer selects a model. That is the least destabilising way to apply the ruling to live
+// campaigns, and it is why this is one line of behaviour rather than a schema change.
+// ═══════════════════════════════════════════════════════════════════════════════════════
+const FIGSY_MODEL = BACKGROUND_MODEL
 
 // Generate a sequence informed by FIGSY Memory (Campaign Intelligence).
 // Falls back to standard generateSequence if no memory exists.
@@ -2013,10 +2028,13 @@ ${senderName ? `- Sign off as exactly "${senderName}". Do NOT invent or use any 
 Return ONLY valid JSON:
 {${Array.from({ length: plan.depth }, (_, i) => `"step${i + 1}":{"subject":"...","body":"..."}`).join(',')}}`
 
-  const selectedModel = MODEL_MAP[modelPreference ?? 'haiku'] ?? MODEL_MAP.haiku
+  // 🛑 THE PREFERENCE IS READ AND IGNORED. `modelPreference` stays in the signature so no
+  // caller breaks and the stored value keeps its meaning for anyone reading the row; it
+  // cannot select a model. FIGSY is background work and background work is Haiku.
+  void modelPreference
 
   const message = await anthropic.messages.create({
-    model: selectedModel,
+    model: FIGSY_MODEL,
     // 5 emails + JSON overhead no longer fit the old 1024 (a truncation = parse
     // failure = silent fallback to the non-memory generator on every call).
     max_tokens: 2048,

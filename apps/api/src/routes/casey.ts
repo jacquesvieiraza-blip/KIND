@@ -8,6 +8,7 @@
 import { Router } from 'express'
 import { z } from 'zod'
 import Anthropic from '@anthropic-ai/sdk'
+import { BACKGROUND_MODEL, AI_TURN_BOUND } from '../lib/models'
 import { requireAuth, AuthRequest } from '../middleware/auth'
 import { rateLimit } from '../lib/rate-limit'
 
@@ -55,11 +56,11 @@ caseyRouter.post('/chat', caseyAiLimit, async (req: AuthRequest, res) => {
     ]
 
     const response = await anthropic.messages.create({
-      model: 'claude-haiku-4-5-20251001',
+      model: BACKGROUND_MODEL,
       max_tokens: 500,
       system: CASEY_CHAT_SYSTEM,
       messages,
-    })
+    }, AI_TURN_BOUND)
 
     const reply = response.content
       .filter(b => b.type === 'text')

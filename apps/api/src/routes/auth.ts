@@ -293,7 +293,11 @@ authRouter.post('/onboard', async (req, res) => {
     const contactNameOwned = text2(draftFacts?.contact_name) ?? contact_name
     const outcomeStatedOwned = text2(draftFacts?.desired_outcome) ?? outcome_stated
 
-    const outcome = readStatedOutcome(outcomeStatedOwned)
+    // ⚑ 14 Sep (R121, Build 4) — THE KIND COMES FROM THE BRIEF, beside the sentence it
+    // describes, because the MODEL read the conversation and a word list never could. The
+    // browser still cannot declare it — `outcome_kind` is not on `onboardSchema` and never
+    // was, which is the guarantee that mattered and is unchanged.
+    const outcome = readStatedOutcome(outcomeStatedOwned, draftFacts?.desired_outcome_kind)
     const outcomeFields = outcome
       ? { outcome_kind: outcome.kind, outcome_stated: outcome.stated }
       : {}

@@ -24,3 +24,11 @@ CREATE TABLE IF NOT EXISTS public.founder_alerts (
 -- Newest-first admin reads + "unseen failures" scans.
 CREATE INDEX IF NOT EXISTS founder_alerts_created_idx ON public.founder_alerts (created_at DESC);
 CREATE INDEX IF NOT EXISTS founder_alerts_kind_idx    ON public.founder_alerts (kind, created_at DESC);
+
+-- ⚑ 14 Sep (F8) — RLS ON, NO POLICY. Added when this migration finally entered
+-- PENDING_MIGRATIONS and the repo's own guard caught that the table would be created
+-- readable by anyone holding the public anon key, which apps/portal ships to every browser.
+-- Every founder alert body lands here: support escalations in a client's own words, their
+-- email address, payment failures. The API reaches it with the service role, which bypasses
+-- RLS; the anon key must reach it with nothing.
+ALTER TABLE public.founder_alerts ENABLE ROW LEVEL SECURITY;

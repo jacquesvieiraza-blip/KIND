@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { api } from '@/lib/api'
+import { api, AI_TURN_TIMEOUT_MS } from '@/lib/api'
 import type { ICP, ICPFormData } from '@kind/shared'
 import { SUPPORTED_COUNTRIES } from '@kind/shared'
 import { Settings2, Plus, Trash2, CheckCircle, Loader2, ArrowLeft, X, Sparkles, Send, Users2, Play, Building2 } from 'lucide-react'
@@ -36,7 +36,7 @@ function FigsySidePanel({ token, onFill }: { token: string; onFill: (data: Parti
     setSending(true)
     try {
       const res = await api.post<{ data: Partial<ICPFormData> & { message?: string } }>(
-        '/icps/chat-build', { message: msg, history: messages.map(m => ({ role: m.role === 'ai' ? 'assistant' : 'user', content: m.text })) }, token
+        '/icps/chat-build', { message: msg, history: messages.map(m => ({ role: m.role === 'ai' ? 'assistant' : 'user', content: m.text })) }, token, AI_TURN_TIMEOUT_MS
       )
       const { message, ...icpFields } = res.data
       const hasFields = Object.values(icpFields).some(v => Array.isArray(v) ? v.length > 0 : !!v)

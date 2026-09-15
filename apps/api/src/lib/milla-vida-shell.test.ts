@@ -435,8 +435,14 @@ describe('VIDA — ONE INSTANCE, ONE TRANSCRIPT, ONE COMPOSER', () => {
     const code = strip(VIDA_CHAT)
     expect(code).toContain('Command Vida in ${selectedName || \'client\'} context…')
     expect(code).toContain("'/api/proxy/operator/command'")
-    // The sourcing rules came across verbatim: a verb AND a noun, never one of them.
-    expect(code).toContain("if (!/\\b(source|find|pull|get|prospect)\\b/.test(lc) || !/\\b(lead|leads|prospect|prospects)\\b/.test(lc)) return null")
+    // ⛓️ 14 Sep (R121, Build 3) — ~~"The sourcing rules came across verbatim: a verb AND a
+    // noun"~~. They did come across verbatim, which was the claim this test was written to
+    // make in September when the conversation MOVED files. The rules themselves are now
+    // deleted: a verb-and-noun regex could not read "get me some more people for these guys"
+    // and sent it to a keyword router that answered "I'm not sure what you're asking me to do
+    // with that". What this test still proves — that the move was not a rewrite — is asserted
+    // on the things that DID survive it, above and below.
+    expect(code, 'the sourcing path lost its confirm in the move').toContain('previewSource(')
     // ONE composer.
     expect(code.match(/<form onSubmit/g) ?? [], 'the conversation has more than one composer').toHaveLength(1)
   })

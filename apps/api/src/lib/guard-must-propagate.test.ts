@@ -58,6 +58,14 @@ describe('rethrowIfProviderBlocked — lets one error past, swallows nothing els
   })
 })
 
+// ⛓️ 15 Sep (S2-RT-001A) — THE TWO SEARCH TESTS BELOW DROPPED `{ proofMode: true }`, and that
+// is a scope correction, not a weakening. This describe block is about **the PDL path**, as its
+// name says; `proofMode` was passed only because client + proof WAS the PDL path when it was
+// written. Client Proof now sources through Apollo (founder-locked), so leaving the flag in
+// would have quietly re-pointed these assertions at Apollo and stopped them guarding PDL at all.
+// `'client'` with no proof flag is still PDL under AR5, so both tests guard exactly what they
+// always guarded. The SAME two facts on the Apollo proof path — a block propagates, an ordinary
+// failure does not fake a success — are pinned in `proof-apollo-provider.test.ts`.
 describe('the PDL search path — a block escapes, a network error still soft-fails', () => {
   const saved = { ...process.env }
   let fetchSpy: ReturnType<typeof vi.spyOn>
@@ -77,7 +85,7 @@ describe('the PDL search path — a block escapes, a network error still soft-fa
 
     let thrown: unknown
     try {
-      await searchPeopleWithFallback(ICP as never, 1, 20, null, 'client', { proofMode: true })
+      await searchPeopleWithFallback(ICP as never, 1, 20, null, 'client')
       throw new Error('searchPeopleWithFallback RESOLVED — the block was swallowed again')
     } catch (e) { thrown = e }
     expectBlocked(thrown)
@@ -92,7 +100,7 @@ describe('the PDL search path — a block escapes, a network error still soft-fa
     fetchSpy = vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('ECONNRESET'))
     const { searchPeopleWithFallback } = await import('./apollo')
 
-    const out = await searchPeopleWithFallback(ICP as never, 1, 20, null, 'client', { proofMode: true })
+    const out = await searchPeopleWithFallback(ICP as never, 1, 20, null, 'client')
     expect(out.contacts).toEqual([])          // degraded, not thrown
     expect(fetchSpy).toHaveBeenCalled()       // it genuinely tried
   })

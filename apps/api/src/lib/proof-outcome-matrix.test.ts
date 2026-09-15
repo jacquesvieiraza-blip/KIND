@@ -251,11 +251,17 @@ describe('C · runIcpJob carries a FAIL-CLOSED trust state into the persisted st
     expect(call, 'the drop must precede the exact search').toBeGreaterThan(enter)
   })
 
-  it('promotion requires POSITIVE evidence: a completed page, or the throwing house path returning', () => {
+  it('promotion requires POSITIVE evidence: a completed page, or the throwing Apollo path returning', () => {
     expect(src).toContain("if (pdlPage.completed) searchTrust = 'proven'")
-    // ⛓️ 27 Aug — the house promotion is now gated on the run NOT having been refused by
-    // the zero-spend guard: a blocked house run also returns no page and proved nothing.
-    expect(src).toContain("} else if (audience === 'house' && !paidSourcingBlocked) {")
+    // ⛓️ 27 Aug — the Apollo promotion is gated on the run NOT having been refused by
+    // the zero-spend guard: a blocked run also returns no page and proved nothing.
+    // ⛓️ 15 Sep (S2-RT-001A) — and it is keyed on the PROVIDER, not the audience. This
+    // asserted `audience === 'house'`, which named the same branch only while Apollo and
+    // house were the same thing. Client Proof is Apollo now, so the audience spelling would
+    // have left a COMPLETED Apollo search that honestly matched nobody recorded as `failed`
+    // — the snag state, for an answer we actually received. The invariant is unchanged:
+    // promotion still requires positive evidence, never the mere absence of an error.
+    expect(src).toContain("} else if (sourcingProvider === 'apollo' && !paidSourcingBlocked) {")
     // No branch promotes on mere absence of error.
     expect(src).not.toMatch(/searchTrust = 'proven'\s*\/\/ default/)
   })

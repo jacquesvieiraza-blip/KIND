@@ -53,19 +53,30 @@ const clientRow: Row = {
 
 /** Every host the run actually contacted, in order. */
 let hits: string[] = []
+/** Every row the run actually PERSISTED, by table — provenance is proved from these. */
+let writes: Array<{ table: string; payload: unknown }> = []
 /** Rows handed to the pool read, so "pool first" can be exercised for real. */
 let poolRows: Row[] = []
 
+/**
+ * ⚠️ SHAPED FROM A LIVE `mixed_people/api_search` RESPONSE (captured 15 Sep), not invented.
+ *
+ * The real payload carries AVAILABILITY BOOLEANS and no values: `has_country: true`,
+ * `has_city`, `has_state`, `has_email`, plus `last_name_obfuscated` ("Al***u"). There is
+ * **no `country`, no `email` and no `email_status`** on a search record, on the person or
+ * the organization. An earlier version of this fixture handed each contact
+ * `country: 'United Kingdom'` — a field Apollo cannot produce — which made every geography
+ * test pass on an impossible payload and would have hidden the Proof geography gate entirely.
+ */
 function apolloPerson(n: number) {
   return {
     id: `apollo-${n}`,
-    first_name: `First${n}`, last_name: `Last${n}`,
-    name: `First${n} Last${n}`,
-    title: 'Founder', email: `person${n}@example.com`,
-    email_status: 'verified',
+    first_name: `First${n}`,
+    last_name_obfuscated: `La***${n}`,
+    title: 'Founder',
+    has_email: true, has_city: true, has_state: true, has_country: true,
     linkedin_url: `https://linkedin.com/in/person${n}`,
-    organization: { name: `Agency ${n}`, website_url: `https://agency${n}.example`, estimated_num_employees: 20 },
-    country: 'United Kingdom',
+    organization: { name: `Agency ${n}`, has_country: true, has_city: true, has_employee_count: true },
   }
 }
 
@@ -90,11 +101,16 @@ function installDbDouble() {
         if (table === 'clients') return { data: clientRow, error: null }
         return { data: null, error: null }
       }
-      q.insert  = () => ({ select: () => ({ maybeSingle: async () => ({ data: { id: 'x' }, error: null }),
-                                            single:      async () => ({ data: { id: 'x' }, error: null }) }),
-                           then: (r: (v: unknown) => void) => r({ data: [], error: null }) })
-      q.upsert  = () => ({ select: () => ({ maybeSingle: async () => ({ data: { id: 'x' }, error: null }) }),
-                           then: (r: (v: unknown) => void) => r({ data: [], error: null }) })
+      const record = (p: unknown) => {
+        for (const row of Array.isArray(p) ? p : [p]) writes.push({ table, payload: row })
+      }
+      q.insert  = (p: unknown) => { record(p); return {
+        select: () => ({ maybeSingle: async () => ({ data: { id: 'x' }, error: null }),
+                         single:      async () => ({ data: { id: 'x' }, error: null }) }),
+        then: (r: (v: unknown) => void) => r({ data: [{ id: 'x' }], error: null }) } }
+      q.upsert  = (p: unknown) => { record(p); return {
+        select: () => ({ maybeSingle: async () => ({ data: { id: 'x' }, error: null }) }),
+        then: (r: (v: unknown) => void) => r({ data: [], error: null }) } }
       q.update  = () => q
       q.delete  = () => q
       q.then = (r: (v: unknown) => void) => r({ data: table === 'lead_pool' ? poolRows : [], error: null })
@@ -115,10 +131,21 @@ function installDbDouble() {
   })
 }
 
-/** Records every host contacted. `apollo`/`pdl` decide what each provider answers. */
-function stubWire(opts: { apollo?: () => Response; pdl?: () => Response } = {}) {
+/**
+ * Records every host contacted, and distinguishes Apollo's two doors:
+ *   `apollo`        → `mixed_people/api_search`  (People Search — no country, no email)
+ *   `apollo:reveal` → `people/bulk_match`        (the ONLY source of a country)
+ * `reveal` supplies what bulk_match answers, so the two-stage geography behaviour is real.
+ */
+function stubWire(opts: { apollo?: () => Response; pdl?: () => Response; reveal?: () => Response } = {}) {
   vi.stubGlobal('fetch', async (url: unknown) => {
     const u = String(url)
+    if (u.includes('people/bulk_match')) {
+      hits.push('apollo:reveal')
+      return opts.reveal
+        ? opts.reveal()
+        : new Response(JSON.stringify({ matches: [] }), { status: 200, headers: { 'content-type': 'application/json' } })
+    }
     if (u.includes(APOLLO_HOST)) {
       hits.push('apollo')
       return opts.apollo
@@ -140,9 +167,21 @@ const apolloOk = (n: number) => () =>
   new Response(JSON.stringify({ people: Array.from({ length: n }, (_, i) => apolloPerson(i + 1)) }),
     { status: 200, headers: { 'content-type': 'application/json' } })
 
+/** What `people/bulk_match` answers. `country: null` models a match with no country. */
+const revealAll = (n: number, country: string | null) => () =>
+  new Response(JSON.stringify({
+    matches: Array.from({ length: n }, (_, i) => ({
+      // ⚠️ NOT @example.com — `email-hygiene.ts` classes that as a placeholder and
+      // `bulkMatchEmails` drops placeholder matches, so the reveal would answer nobody.
+      id: `apollo-${i + 1}`, email: `person${i + 1}@agency${i + 1}.co.uk`,
+      email_status: 'verified', country, last_name: `Last${i + 1}`,
+    })),
+  }), { status: 200, headers: { 'content-type': 'application/json' } })
+
 beforeEach(() => {
   vi.resetModules()
   hits = []
+  writes = []
   poolRows = []
   icpRow = { ...baseIcp }
   process.env.PDL_API_KEY = 'test-pdl-key-not-real'
@@ -230,7 +269,8 @@ describe('B — a real client Proof run contacts Apollo and never PDL', () => {
 // ─────────────────────────────────────────────────────────────────────────────────────
 describe('C — Apollo success and Apollo zero are different facts', () => {
   it('Apollo returning people produces a served run, not the snag state', async () => {
-    stubWire({ apollo: apolloOk(20) })
+    // Geography must be PROVEN for anyone to enter the set (AR20), so the reveal answers UK.
+    stubWire({ apollo: apolloOk(20), reveal: revealAll(20, 'United Kingdom') })
     const out = await runProof(1)
     expect(out.ok).toBe(true)
     if (out.ok) expect(out.r.inserted).toBeGreaterThan(0)
@@ -293,6 +333,131 @@ describe('D — Apollo failure fails closed with no PDL fallback', () => {
     const out = await runProof(1)
     expect(out.ok).toBe(false)
     expect(hits).not.toContain('pdl')
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────────────
+// F. PROVENANCE AND COST — what was actually WRITTEN, not what was queried
+//
+// ⚠️ ASSERTED ON PERSISTED ROWS. `actualProvider` fed five writers (acquisition_memory,
+// lead_pool, leads.source, the geo gate and the provenance log) from `audience === 'house'`,
+// which named the provider only while Apollo and house were the same thing. With Proof on
+// Apollo that wrote Apollo people into the two provenance tables as `source: 'pdl'` at PDL's
+// per-record rate — fabricated spend against the free-acquisition ceiling. Source-string
+// assertions cannot catch that; only the written values can.
+// ─────────────────────────────────────────────────────────────────────────────────────
+describe('F — persisted provenance follows the provider actually used', () => {
+  const rowsFor = (t: string) => writes.filter(w => w.table === t).map(w => w.payload as Row)
+
+  it('Apollo Proof persists APOLLO provenance and books NO PDL cost', async () => {
+    const { PDL_RATE_USD } = await import('./sourcing-fences')
+    stubWire({ apollo: apolloOk(20), reveal: revealAll(20, 'United Kingdom') })
+    const out = await runProof(1)
+    expect(out.ok).toBe(true)
+
+    const memory = rowsFor('acquisition_memory')
+    const pool   = rowsFor('lead_pool')
+    expect(memory.length + pool.length).toBeGreaterThan(0)   // something really was written
+
+    for (const r of [...memory, ...pool]) {
+      expect(r.source).toBe('apollo')                        // provenance is the truth
+      const cost = r.acquisition_cost ?? r.cost_usd
+      if (cost !== undefined) {
+        expect(cost).toBe(0)                                 // existing Apollo semantics
+        expect(cost).not.toBe(PDL_RATE_USD)                  // and NOT PDL's rate
+      }
+    }
+  })
+
+  it('an ordinary NON-proof client run still persists PDL provenance at the PDL rate', async () => {
+    const { PDL_RATE_USD } = await import('./sourcing-fences')
+    // PDL answers with real people so the same persistence path runs for the PDL provider.
+    stubWire({
+      pdl: () => new Response(JSON.stringify({
+        status: 200,
+        data: Array.from({ length: 5 }, (_, i) => ({
+          work_email: `pdl${i}@example.com`, full_name: `Pdl Person${i}`,
+          first_name: 'Pdl', last_name: `Person${i}`, job_title: 'Founder',
+          job_company_name: `Agency ${i}`, location_country: 'united kingdom',
+          linkedin_url: `linkedin.com/in/pdl${i}`,
+        })),
+      }), { status: 200, headers: { 'content-type': 'application/json' } }),
+    })
+    const { runIcpJob } = await import('../routes/icps')
+    await runIcpJob(ICP, CLIENT, 'user-1', 20).catch(() => undefined)
+
+    const rows = [...rowsFor('acquisition_memory'), ...rowsFor('lead_pool')]
+    expect(rows.length).toBeGreaterThan(0)
+    for (const r of rows) {
+      expect(r.source).toBe('pdl')                           // unchanged by this ticket
+      const cost = r.acquisition_cost ?? r.cost_usd
+      if (cost !== undefined) expect(cost).toBe(PDL_RATE_USD)
+    }
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────────────
+// G. PROOF GEOGRAPHY — UNKNOWN IS NEVER A PASS (founder-locked 15 Sep, AR20)
+//
+// People Search returns no country (live-proven), so geography for a Proof candidate is
+// established by the internal qualification lookup or not at all. Each case below drives the
+// real two-stage path: search answers with availability booleans, bulk_match answers (or
+// does not) with a country, and only a POSITIVE match may enter the set.
+// ─────────────────────────────────────────────────────────────────────────────────────
+describe('G — Proof geography must be positively proven', () => {
+  it('search country unknown + reveal says United Kingdom → ACCEPTED', async () => {
+    stubWire({ apollo: apolloOk(5), reveal: revealAll(5, 'United Kingdom') })
+    const out = await runProof(1)
+    expect(out.ok).toBe(true)
+    if (out.ok) expect(out.r.inserted, 'a proven UK match may join the Proof set').toBeGreaterThan(0)
+    expect(hits, 'the qualification lookup ran').toContain('apollo:reveal')
+  })
+
+  it('search country unknown + reveal says France → REJECTED', async () => {
+    stubWire({ apollo: apolloOk(5), reveal: revealAll(5, 'France') })
+    const out = await runProof(1)
+    expect(out.ok).toBe(true)
+    if (out.ok) expect(out.r.inserted, 'proven OUTSIDE the ICP geography — rejected').toBe(0)
+  })
+
+  it('search country unknown + reveal returns NO country → REJECTED (unknown ≠ pass)', async () => {
+    stubWire({ apollo: apolloOk(5), reveal: revealAll(5, null) })
+    const out = await runProof(1)
+    expect(out.ok).toBe(true)
+    if (out.ok) expect(out.r.inserted, 'still unknown after enrichment — rejected').toBe(0)
+  })
+
+  it('search country unknown + reveal matches NOBODY → REJECTED', async () => {
+    stubWire({ apollo: apolloOk(5), reveal: () => new Response(JSON.stringify({ matches: [] }), { status: 200 }) })
+    const out = await runProof(1)
+    expect(out.ok).toBe(true)
+    if (out.ok) expect(out.r.inserted, 'no answer is not a pass').toBe(0)
+  })
+
+  it('an ICP with NO geography asks nothing about location, so nothing is enriched or spent', async () => {
+    icpRow = { ...baseIcp, geographies: [] }
+    stubWire({ apollo: apolloOk(5), reveal: revealAll(5, 'United Kingdom') })
+    await runProof(1)
+    expect(hits, 'no qualification lookup for an ICP that set no geography').not.toContain('apollo:reveal')
+  })
+
+  it('the revealed EMAIL never reaches the persisted lead — Proof stays masked', async () => {
+    stubWire({ apollo: apolloOk(5), reveal: revealAll(5, 'United Kingdom') })
+    await runProof(1)
+    const leads = writes.filter(w => w.table === 'leads').map(w => w.payload as Row)
+    expect(leads.length).toBeGreaterThan(0)
+    for (const l of leads) {
+      expect(l.email ?? null, 'the qualification reveal supplies geography only').toBeNull()
+      expect(l.revealed_at ?? null, 'no commercial reveal state').toBeNull()
+    }
+  })
+
+  it('a NON-proof client run is untouched: no bulk_match, PDL as before', async () => {
+    stubWire({ apollo: apolloOk(5), reveal: revealAll(5, 'United Kingdom') })
+    const { runIcpJob } = await import('../routes/icps')
+    await runIcpJob(ICP, CLIENT, 'user-1', 20).catch(() => undefined)
+    expect(hits).toContain('pdl')
+    expect(hits).not.toContain('apollo:reveal')
   })
 })
 

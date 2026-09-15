@@ -237,7 +237,13 @@ describe('⑤ NO-TOUCH — the serve path, the reads and the PDL write are uncha
     // the loop is shared by both audiences, so a HOUSE run recorded Apollo people as PDL
     // people at PDL's rate. The pin now guards the fix — the tag and the cost both derive
     // from the provider that actually executed.
-    expect(ICPS).toContain("audience === 'house' ? 'apollo' : 'pdl'")
+    // ⛓️ 15 Sep (S2-RT-001A) — the derivation is now the run's RESOLVED provider. The pin
+    // named `audience === 'house' ? 'apollo' : 'pdl'`, which WAS the provider only while
+    // Apollo and house were the same thing; with client Proof on Apollo (AR19) that spelling
+    // wrote Apollo people as PDL at PDL's rate — this test's own defect, pointing the other
+    // way. The guarded intent is unchanged and now literally true: tag and cost both derive
+    // from the provider that actually executed.
+    expect(ICPS).toContain("const actualProvider: 'pdl' | 'apollo' = sourcingProvider")
     expect(ICPS).toContain('source:           actualProvider')
     expect(ICPS).toContain('acquisition_cost: actualProviderCost')
     expect(stripCommentsForEnvScan(ICPS)).not.toContain("source:           'pdl'")

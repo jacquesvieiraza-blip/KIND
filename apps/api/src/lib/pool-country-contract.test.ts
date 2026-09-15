@@ -330,7 +330,11 @@ describe('⑦⑧ upsert semantics — good country protected, null country heala
 describe('⑭⑮ every writer to lead_pool preserves country', () => {
   it('⑭ WRITER A — the runtime PDL path canonicalises country into the pool row', () => {
     const src = codeOnly(poolSurface())
-    expect(src).toContain('canonicalPoolCountry(contact.country) || null')
+    // ⛓️ 15 Sep (AR20) — `provenCountry`, not `contact.country`: the country this run actually
+    // ESTABLISHED, from the search (PDL) or the Proof qualification lookup (Apollo, which
+    // supplies none at search). The invariant is unchanged — one canonical form into the pool,
+    // and '' still stays NULL — but a country we proved is no longer discarded on write.
+    expect(src).toContain('canonicalPoolCountry(provenCountry) || null')
     // '' must never be stored: a present-looking value that matches nothing is worse than null.
     expect(src).not.toMatch(/country:\s*canonicalPoolCountry\(contact\.country\),/)
   })
@@ -463,7 +467,8 @@ describe('⚑ bounded candidate window cannot be starved by substring impostors'
 describe('the hard geography invariant is wired at both boundaries', () => {
   it('the provider insert loop gates on the SAME canonical predicate as the pool', () => {
     const src = codeOnly(poolSurface())
-    expect(src).toContain('!poolCountryMatches(contact.country, icpGeographies)')
+    // ⛓️ 15 Sep (AR20) — same predicate, same boundary, now fed the PROVEN country.
+    expect(src).toContain('!poolCountryMatches(provenCountry, icpGeographies)')
     expect(src).toContain('removedByGeoGate++')
   })
 

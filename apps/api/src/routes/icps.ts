@@ -1614,7 +1614,18 @@ export async function runIcpJob(
       // the 11-Jul promotion script booked owned Apollo records at 0 with the same reasoning
       // ("already owned — no marginal cost to reuse"). Reveal-time credits are a later,
       // separate event and are not modelled here — same as before this change.
-      const actualProvider: 'pdl' | 'apollo' = audience === 'house' ? 'apollo' : 'pdl'
+      //
+      // ⛓️ 15 Sep (S2-RT-001A) — AND IT IS NOW THE RUN'S RESOLVED PROVIDER, NOT THE AUDIENCE.
+      // The 27-Aug reasoning above is unchanged and still right; what changed is that
+      // `audience === 'house'` stopped BEING the provider. Client Proof sources from Apollo
+      // (AR19), so the audience spelling re-created the exact defect this line was written to
+      // fix, pointing the other way: Apollo-sourced Proof records written to
+      // `acquisition_memory` and `lead_pool` as `source: 'pdl'` at PDL's $0.28, booking
+      // fabricated PDL spend against the free-acquisition ceiling for money never spent —
+      // false provenance and false cost, in the two tables whose whole job is to remember the
+      // truth. `sourcingProvider` is the same value `searchPeopleWithFallback` actually
+      // routed on, resolved once above, so provenance cannot disagree with what was queried.
+      const actualProvider: 'pdl' | 'apollo' = sourcingProvider
       const actualProviderCost = actualProvider === 'pdl' ? PDL_RATE_USD : 0
       const poolUpserts: Array<Record<string, unknown>> = []
       let pdlKept = 0
@@ -1717,6 +1728,45 @@ export async function runIcpJob(
       // size, never countries). Empty ⇒ the client set no geography ⇒ no gate.
       const icpGeographies = ((icp as { geographies?: string[] | null }).geographies ?? []).filter(Boolean)
 
+      // ── 🛑 ⚑ 15 Sep (AR20) — PROOF PROVES GEOGRAPHY BEFORE ACCEPTANCE, IT NEVER DEFERS IT ──
+      //
+      // 🛑 THE FOUNDER'S RULING: for FREE PROOF, **UNKNOWN GEOGRAPHY ≠ PASS.** A prospect may
+      // not be shown a person whose country was never established.
+      //
+      // ⚠️ WHY AN ENRICHMENT CALL IS THE ONLY WAY TO OBEY IT, proved against a LIVE response
+      // (15 Sep, `mixed_people/api_search`): People Search returns **availability booleans** —
+      // `has_country: true`, `has_city`, `has_state` — and **no country value at all**, on the
+      // person or the organization. So `contact.country` is `undefined` for every Apollo
+      // candidate, and the deferral below (written for House, where the answer genuinely does
+      // arrive after the reveal) would let all 20 into a Proof set unproven. The ONLY source of
+      // a country is `bulkMatchEmails` — `people/bulk_match` — which is why the founder opened
+      // a narrow qualification exception to AR17 rather than accept unknown.
+      //
+      // ⚠️ IT IS A QUALIFICATION READ, NOT A CUSTOMER REVEAL. Only `.country` is taken; the
+      // email and surname the call also returns are DISCARDED here and never reach the row, so
+      // `revealed_at` stays NULL, no pack slot, no $4 charge, no approval count, no ledger and
+      // no send authority is created (the surfacing block below states that contract, and
+      // `/leads/for-approval` omits name, email and phone whatever the row holds).
+      //
+      // ⚠️ AND IT IS FENCED THREE WAYS so no other flow can reach it: `proofMode` only,
+      // Apollo only, and only when the customer actually named a geography. A Proof ICP with
+      // no geography asks nothing about location, so nothing needs proving and nothing is spent.
+      //
+      // ⚠️ A FAILED OR BLOCKED LOOKUP LEAVES THE MAP EMPTY, WHICH REJECTS. That is the correct
+      // direction: `bulkMatchEmails` swallows per-batch HTTP failures internally and returns
+      // what it has, so a partial answer qualifies only the people it actually answered for.
+      const proofGeoByApolloId = new Map<string, string | null>()
+      if (proofMode && actualProvider === 'apollo' && icpGeographies.length > 0) {
+        const needGeography = contacts
+          .filter(c => !(typeof c.country === 'string' && c.country.trim() !== '') && c.id)
+          .map(c => c.id)
+        if (needGeography.length > 0) {
+          const { bulkMatchEmails } = await import('../lib/apollo')
+          const revealed = await bulkMatchEmails(needGeography)
+          for (const [apolloId, person] of revealed) proofGeoByApolloId.set(apolloId, person.country)
+          console.log(`[icp] stage=proof_geo_qualification — ${needGeography.length} Apollo candidate(s) had no country from People Search; ${revealed.size} answered by bulk_match. Only a POSITIVE country match may enter the Proof set; unknown is a rejection, never a pass.`)
+        }
+      }
 
       for (const contact of contacts) {
         // Cap PDL insertions at the GRANTED budget (#445) — never keep more than we
@@ -1750,10 +1800,23 @@ export async function runIcpJob(
         // DOES return it, so for that provider an absent country still means the 27-Aug
         // contract-drift the invariant was written for — and still rejects. The difference is
         // a fact about the provider's search contract, not a relaxation of the rule.
-        const countryKnown = typeof contact.country === 'string' && contact.country.trim() !== ''
-        const geoAnswerComesLater = actualProvider === 'apollo' && !countryKnown
+        // ⛓️ 15 Sep (AR20) — THE COUNTRY THIS RUN ACTUALLY ESTABLISHED, from either stage.
+        // Search first (PDL returns it; Apollo never does), then the Proof qualification
+        // lookup above. Everything downstream reads THIS, so a country we proved is never
+        // thrown away and a country we did not prove is never invented.
+        const provenCountry = (typeof contact.country === 'string' && contact.country.trim() !== '')
+          ? contact.country
+          : (proofGeoByApolloId.get(contact.id) ?? null)
+        const countryKnown = typeof provenCountry === 'string' && provenCountry.trim() !== ''
+        // ⛓️ 15 Sep (AR20) — `&& !proofMode`: PROOF NEVER DEFERS. The deferral is correct for
+        // House, whose leads are revealed downstream and judged by `finalVerdict`. Proof is
+        // never revealed and never qualified downstream — `deliverNow` is capped by the
+        // prospect's zero credit balance — so "later" never arrives and an unproven country
+        // would reach the customer unchecked. For Proof the answer is already in
+        // `provenCountry` or it does not exist, and not existing is a rejection.
+        const geoAnswerComesLater = actualProvider === 'apollo' && !countryKnown && !proofMode
         if (icpGeographies.length > 0 && !geoAnswerComesLater
-            && !poolCountryMatches(contact.country, icpGeographies)) {
+            && !poolCountryMatches(provenCountry, icpGeographies)) {
           skipped++; removedByGeoGate++; continue
         }
 
@@ -1807,7 +1870,10 @@ export async function runIcpJob(
           job_title:        contact.title      || null,
           company:          contact.organization?.name ?? contact.organization_name ?? null,
           linkedin_url:     contact.linkedin_url || null,
-          country:          contact.country    || null,
+          // ⛓️ 15 Sep (AR20) — the country this run PROVED (search, or Proof qualification),
+          // never a country we merely asked for. Writing NULL for a fact we established would
+          // be the same truth-loss as the provenance defect fixed beside it.
+          country:          provenCountry      || null,
           industry:         contact.organization?.industry || null,
           company_size:     contact.organization?.num_employees
                               ? String(contact.organization.num_employees) : null,
@@ -1856,7 +1922,7 @@ export async function runIcpJob(
             // returns '' for an absent country, and '' must stay NULL — an empty string
             // would be a value that looks present and matches nothing, which is strictly
             // worse than a null that is honest about being unknown.
-            country:          canonicalPoolCountry(contact.country) || null,
+            country:          canonicalPoolCountry(provenCountry) || null,
             linkedin_url:     contact.linkedin_url || null,
             source:           actualProvider,
             acquisition_cost: actualProviderCost,

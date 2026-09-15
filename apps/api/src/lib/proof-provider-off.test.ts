@@ -261,6 +261,13 @@ async function buildProofModules(opts: ProofOpts, rec: Rec) {
     },
     ApolloCreditsExhaustedError: class extends Error {},
     ApolloRateLimitError: class extends Error {},
+    // ⛓️ 15 Sep (AR20) — THE PROOF GEOGRAPHY QUALIFICATION DOOR, ANSWERING NOBODY.
+    // `runIcpJob` now asks `bulkMatchEmails` for a country when a Proof candidate arrives
+    // without one, because People Search never supplies it. An empty Map is the honest
+    // answer for this harness — its candidates already carry a country from the search
+    // stub — and it means the geography test below proves the FULL path: the qualification
+    // step ran, established nothing, and the contacts were rejected rather than deferred.
+    bulkMatchEmails: async () => new Map(),
   }))
 
 }
@@ -270,6 +277,24 @@ async function runProofJob(opts: ProofOpts, rec: Rec) {
   await buildProofModules(opts, rec)
   const { runIcpJob } = await import('../routes/icps')
   return runIcpJob('icp-1', 'c1', 'u1', 20, { proofPass: 1 })
+}
+
+/**
+ * ⛓️ 15 Sep (S2-RT-001A) — AN ORDINARY CLIENT RUN, i.e. the PDL path, with no proof claim.
+ *
+ * The client-audience tests below are about **what the PDL provider's contract obliges**:
+ * PDL returns a country, so an absent one is contract drift and rejects; a PDL acquisition
+ * records PDL provenance at PDL's rate. They reached that path through `runProofJob` only
+ * because client + proof WAS the PDL path when they were written. Client Proof now sources
+ * through Apollo (AR19), so keeping the proof claim would have re-pointed every one of these
+ * assertions at Apollo and stopped them guarding PDL at all — the same scope slip corrected
+ * in `guard-must-propagate.test.ts`. This mirrors the HOUSE cases beside them, which already
+ * call `runIcpJob` directly with the comment *"an ordinary house run, not a proof claim"*.
+ */
+async function runClientJob(opts: ProofOpts, rec: Rec) {
+  await buildProofModules(opts, rec)
+  const { runIcpJob } = await import('../routes/icps')
+  return runIcpJob('icp-1', 'c1', 'u1', 20)
 }
 
 const released = (rec: Rec) => rec.rpcs.filter(r => r.fn === 'release_proof_records')
@@ -518,7 +543,7 @@ describe('EXECUTED · fresh provider contacts obey the hard geography invariant'
 
   it('⚑ provider lost the country (NULL) → NOT ONE lead row is created', async () => {
     const rec = fresh()
-    await runProofJob({ pool: 0, provider: 'serves', providerCount: 5, providerCountry: null }, rec)
+    await runClientJob({ pool: 0, provider: 'serves', providerCount: 5, providerCountry: null }, rec)
     expect(rec.leadInserts, 'no lead may exist with unverifiable geography').toBe(0)
     // And the outcome is the NEUTRAL review state — the search completed, K.I.N.D's own
     // gate emptied it, so targeting is never blamed and no_match is never claimed.
@@ -554,7 +579,7 @@ describe('EXECUTED · fresh provider contacts obey the hard geography invariant'
 describe('EXECUTED · provider provenance and cost are truthful, per audience', () => {
   it('⚑ CLIENT run → PDL provenance everywhere, PDL cost', async () => {
     const rec = fresh()
-    await runProofJob({ pool: 0, provider: 'serves', providerCount: 5, audience: 'client' }, rec)
+    await runClientJob({ pool: 0, provider: 'serves', providerCount: 5, audience: 'client' }, rec)
     expect(rec.memoryWrites.length, 'acquisition memory was written').toBeGreaterThan(0)
     for (const m of rec.memoryWrites) {
       expect(m.source, 'memory provenance').toBe('pdl')
@@ -605,7 +630,7 @@ describe('EXECUTED · provider provenance and cost are truthful, per audience', 
 describe('EXECUTED · the lead row records which provider produced it', () => {
   it('⚑ a fresh CLIENT/PDL acquisition stamps leads.source = pdl', async () => {
     const rec = fresh()
-    await runProofJob({ pool: 0, provider: 'serves', providerCount: 4, audience: 'client' }, rec)
+    await runClientJob({ pool: 0, provider: 'serves', providerCount: 4, audience: 'client' }, rec)
     const providerRows = rec.leadRows.filter(r => r.apollo_id)
     expect(providerRows.length).toBeGreaterThan(0)
     for (const r of providerRows) expect(r.source, 'the lead row itself says PDL').toBe('pdl')

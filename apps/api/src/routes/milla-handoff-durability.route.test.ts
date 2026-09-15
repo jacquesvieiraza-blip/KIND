@@ -42,7 +42,8 @@ import { readFileSync } from 'fs'
 import { join } from 'path'
 import {
   stashMillaHandoff, claimMillaHandoff, releaseMillaHandoff, peekMillaHandoff,
-  resetMillaHandoffPageLoad, type HandoffStore,
+  resetMillaHandoffPageLoad, millaSendIdentity, unansweredCustomerTurn,
+  type HandoffStore, type MillaSendIntent,
 } from '@kind/shared'
 
 type Row = Record<string, any>
@@ -173,6 +174,35 @@ async function sendThroughCanonicalMilla(
   await handler({ params: { sessionId: 'sess-1' }, userId: 'u1', body, headers: {} }, res, () => {})
   if (code === 200 && handoffId) releaseMillaHandoff(handoffId, store)
   return { code, reply: payload.reply as string | undefined }
+}
+
+/**
+ * 🛑 THE ORDINARY MILLA COMPOSER, DRIVEN THROUGH ITS OWN PRODUCTION RULE.
+ *
+ * `MillaConversation.send()` is a React function this repository cannot mount, so the piece
+ * that decides identity was extracted into `@kind/shared` and is CALLED HERE — this is
+ * `millaSendIdentity`, the real exported implementation, not a copy of its logic. What is
+ * reproduced is only the component's three-line bookkeeping around it: hold the intent while
+ * it is unresolved, clear it when the turn is answered.
+ */
+class Composer {
+  pending: MillaSendIntent | null = null
+  /** One customer send. Returns the identity it actually used, for the tests to assert on. */
+  async send(text: string, handoffId?: string, store?: HandoffStore) {
+    const intent = millaSendIdentity(text.trim(), this.pending, handoffId)
+    this.pending = intent
+    const r = await sendThroughCanonicalMilla(intent.text, intent.id, store)
+    if (r.code === 200) this.pending = null            // resolved — no longer continuable
+    return { ...r, id: intent.id }
+  }
+  /** A reload: React state, and with it the pending intent, is gone. The thread is not. */
+  reload() { this.pending = null; resetMillaHandoffPageLoad() }
+  /** What the provider does on mount: continue a customer turn canonical Milla never answered. */
+  async continueUnanswered(rows: Row[]) {
+    const waiting = unansweredCustomerTurn(rows as never)
+    if (!waiting) return null
+    return this.send(waiting.text, waiting.id)
+  }
 }
 
 /** The re-entry read — the same call `MillaConversation` makes when the client comes back. */
@@ -358,6 +388,158 @@ describe('O1 DURABILITY — our failure never costs the customer their sentence'
     expect(code).toBe(200)
     expect(userTurns('typed straight into Milla')).toHaveLength(1)
     expect(assistantTurns()).toHaveLength(1)
+  })
+})
+
+// ════════════════════════════════════════════════════════════════════════════════════════
+// 🛑 THE CANONICAL BOUNDARY — THE ORDINARY COMPOSER IS THE OTHER HALF OF O1.
+//
+// ⛓️ THE PREVIOUS ROUND FIXED ONE CALLER. The handed-over sentence carried a stable id; the
+// ordinary composer sent none, so the route minted a fresh uuid per request — and because the
+// same round moved the customer's row ABOVE the model call, the composer's own failure path
+// became a duplicate factory: send once, row A, model fails, the composer is refilled with
+// their sentence (C01), they press send, row B. Two canonical turns for one thing said.
+//
+// Every test below drives the REAL `millaSendIdentity` / `unansweredCustomerTurn` through the
+// REAL route. The identity decision is production code; only the component's bookkeeping
+// around it is reproduced (see `Composer`).
+describe('O1 CANONICAL BOUNDARY — one send intent is one canonical turn, whatever the entry path', () => {
+  const TEXT = 'Can you pause my programme please'
+
+  it('C — ORDINARY COMPOSER, SUCCESS: a stable id, one customer turn, one Milla turn', async () => {
+    const c = new Composer()
+    const { code, id } = await c.send(TEXT)
+    expect(code).toBe(200)
+    expect(id, 'the ordinary composer sent no stable identity').toBeTruthy()
+    expect(userTurns(TEXT)).toHaveLength(1)
+    expect(assistantTurns()).toHaveLength(1)
+    expect(millaMessages.find(m => m.role === 'user')!.id, 'the row was not written under the send id')
+      .toBe(id)
+    expect(c.pending, 'an answered turn is still marked unresolved').toBeNull()
+  })
+
+  it('D — 🛑 ORDINARY COMPOSER, PROVIDER FAILS: the turn is ours and they need not retype', async () => {
+    const c = new Composer()
+    modelFails = true
+    const { code } = await c.send(TEXT)
+    expect(code).toBe(500)
+    // Owned before the model was asked — so the sentence is not the browser's problem.
+    expect(userTurns(TEXT), 'the provider failed and canonical persistence kept NO customer turn')
+      .toHaveLength(1)
+    expect(assistantTurns()).toHaveLength(0)
+    // Their words are handed back to the composer (C01), and the turn stays continuable.
+    expect(c.pending?.text, 'the failed turn is not held for continuation').toBe(TEXT)
+    const thread = await readCanonicalThread()
+    expect(thread.filter(m => m.role === 'user' && m.content === TEXT)).toHaveLength(1)
+  })
+
+  it('E — 🛑 ORDINARY COMPOSER, RETRY: the same intent, the same id, still one row', async () => {
+    const c = new Composer()
+    modelFails = true
+    const first = await c.send(TEXT)
+    modelFails = false
+    // The customer presses send on the sentence the failure put back in the composer.
+    const retry = await c.send(TEXT)
+    expect(retry.id, 'the retry minted a new identity for the same send intent').toBe(first.id)
+    expect(retry.code).toBe(200)
+    expect(userTurns(TEXT), `one send intent produced ${userTurns(TEXT).length} canonical turns`)
+      .toHaveLength(1)
+    expect(assistantTurns(), 'the retry did not produce the missing answer').toHaveLength(1)
+    expect(modelCalls, 'the retry should ask the model exactly once more').toBe(2)
+    expect(c.pending).toBeNull()
+  })
+
+  it('F — 🛑 ORDINARY COMPOSER, AMBIGUOUS RESPONSE: accepted and answered, caller retries anyway', async () => {
+    const c = new Composer()
+    const first = await c.send(TEXT)
+    expect(modelCalls).toBe(1)
+    // The 200 never reached the browser, so the component still holds the intent.
+    c.pending = { id: first.id, text: TEXT }
+    const retry = await c.send(TEXT)
+    expect(retry.id).toBe(first.id)
+    expect(userTurns(TEXT), 'an ambiguous retry created a second canonical customer turn').toHaveLength(1)
+    expect(assistantTurns(), 'an ambiguous retry created a second authoritative reply').toHaveLength(1)
+    expect(modelCalls, 'the retry spent a second model call on a turn that had already run').toBe(1)
+    expect(retry.reply).toBe('Got it — tell me more.')
+  })
+
+  it('G — 🛑 RELOAD AFTER PROVIDER FAILURE: canonical persistence owns the turn, not the browser', async () => {
+    const c = new Composer()
+    modelFails = true
+    await c.send(TEXT)
+    expect(userTurns(TEXT)).toHaveLength(1)
+
+    // THE RELOAD. React state — including the pending intent and the refilled composer — is
+    // gone. Nothing of this turn survives in the browser at all.
+    c.reload()
+    expect(c.pending).toBeNull()
+
+    const thread = await readCanonicalThread()
+    expect(thread.filter(m => m.role === 'user' && m.content === TEXT),
+      'the customer came back and their sentence was not in the thread').toHaveLength(1)
+
+    // …and re-entry continues THAT turn, from the thread, with no retyping.
+    modelFails = false
+    const cont = await c.continueUnanswered(thread)
+    expect(cont, 're-entry did not continue the unanswered turn').not.toBeNull()
+    expect(cont!.id, 'the continuation invented a new identity').toBe(thread[thread.length - 1].id)
+    expect(userTurns(TEXT), 're-entry duplicated the customer turn').toHaveLength(1)
+    expect(assistantTurns()).toHaveLength(1)
+
+    // A finished thread is left alone — nothing to continue, no second model call.
+    const before = modelCalls
+    expect(await c.continueUnanswered(await readCanonicalThread())).toBeNull()
+    expect(modelCalls).toBe(before)
+  })
+
+  it('H — 🛑 SAME TEXT, TWO INTENTIONAL SENDS: two identities, two legitimate rows', async () => {
+    // The distinction the whole design turns on. This is NOT text deduplication.
+    const c = new Composer()
+    const first = await c.send('yes')
+    const second = await c.send('yes')
+    expect(second.id, 'two deliberate sends collapsed into one turn — that is text dedup')
+      .not.toBe(first.id)
+    expect(userTurns('yes'), 'two things the customer said were stored as one').toHaveLength(2)
+    expect(assistantTurns(), 'two turns did not get two answers').toHaveLength(2)
+  })
+
+  it('🛑 a DIFFERENT sentence after a failure is a new turn, not a continuation of the old one', async () => {
+    // The other half of H, and the one that proves the rule is scoped to the unresolved turn
+    // rather than "reuse whatever is pending". A customer whose turn failed and who then says
+    // something else has said TWO things, and both are theirs.
+    const c = new Composer()
+    modelFails = true
+    const failed = await c.send('Can you pause my programme please')
+    modelFails = false
+    const different = await c.send('actually, how is my ROI looking')
+    expect(different.id, 'a new sentence was folded into the failed turn').not.toBe(failed.id)
+    expect(userTurns('Can you pause my programme please')).toHaveLength(1)
+    expect(userTurns('actually, how is my ROI looking')).toHaveLength(1)
+    expect(millaMessages.filter(m => m.role === 'user'), 'two things said were not two turns')
+      .toHaveLength(2)
+  })
+
+  it('the identity rule itself: retry reuses, edit mints, handoff wins', () => {
+    // The production rule, called directly. Nothing here reimplements it.
+    const pending: MillaSendIntent = { id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', text: 'hello' }
+    expect(millaSendIdentity('hello', pending).id, 'an unchanged retry lost its identity')
+      .toBe(pending.id)
+    expect(millaSendIdentity('hello there', pending).id, 'an edited sentence reused a turn')
+      .not.toBe(pending.id)
+    expect(millaSendIdentity('hello', null).id, 'a first send got no identity').toBeTruthy()
+    expect(millaSendIdentity('hello', pending, 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb').id,
+      'a handed-over sentence did not keep the id minted at the card').toBe('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb')
+  })
+
+  it('only a thread ENDING on the customer is waiting for us', () => {
+    expect(unansweredCustomerTurn([])).toBeNull()
+    expect(unansweredCustomerTurn([{ id: 'u1', role: 'user', content: 'hi' }])?.id).toBe('u1')
+    expect(unansweredCustomerTurn([
+      { id: 'u1', role: 'user', content: 'hi' },
+      { id: 'a1', role: 'assistant', content: 'hello' },
+    ]), 'a finished exchange was treated as waiting').toBeNull()
+    expect(unansweredCustomerTurn([{ role: 'user', content: 'hi' }]),
+      'a row with no id cannot be continued safely').toBeNull()
   })
 })
 

@@ -318,10 +318,16 @@ describe('BOTH CALL SITES ARE STILL ON THE CANONICAL PATH', () => {
       .toMatch(/const handed = claimMillaHandoff\(\)/)
     // 🛑 THROUGH `send()`. Not a new endpoint, not a direct insert, not a seeded transcript.
     expect(src, 'the handed-over message bypasses the canonical sender')
-      .toMatch(/if \(handed\) await send\(handed\.text, handed\.id\)/)
+      .toMatch(/if \(handed\) \{ await send\(handed\.text, \{ handoffId: handed\.id \}\)/)
     // ⚑ 15 Sep (O1 durability) — and it is let go ONLY on a confirmed canonical turn.
     expect(src, 'the handoff is released without canonical Milla owning the turn')
-      .toMatch(/if \(handoffId\) releaseMillaHandoff\(handoffId\)/)
+      .toMatch(/if \(opts\?\.handoffId\) releaseMillaHandoff\(opts\.handoffId\)/)
+    // ⚑ 15 Sep (O1, canonical boundary) — EVERY send goes through the one identity rule,
+    // not just the handed-over one. That is the half the previous round left open.
+    expect(src, 'the ordinary composer sends without a stable identity')
+      .toMatch(/const intent = millaSendIdentity\(msg, pendingSend\.current, opts\?\.handoffId\)/)
+    expect(src, 'a send leaves the browser without carrying its identity')
+      .toMatch(/const body = \{ message: msg, messageId: intent\.id \}/)
     // The canonical sender still posts to the one persisted chat route.
     expect(src).toContain('/milla/sessions/${sid}/chat')
   })

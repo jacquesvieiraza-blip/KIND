@@ -229,3 +229,71 @@ export function releaseMillaHandoff(
   if (!waiting || waiting.id !== id) return
   try { store.removeItem(MILLA_HANDOFF_KEY) } catch { /* released regardless */ }
 }
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// 🛑 ⚑ 15 Sep (O1, canonical boundary) — ONE SEND INTENT = ONE ID = ONE CANONICAL TURN.
+//
+// ⛓️ THE PREVIOUS ROUND FIXED ONE CALLER AND LEFT THE OTHER. The handed-over sentence got a
+// stable id; the ORDINARY Milla composer got none, so the route minted a fresh uuid per
+// request. And because that same round moved the customer's row ABOVE the model call, the
+// ordinary composer's own failure path became a duplicate factory:
+//
+//   customer sends once → row A written → model fails → the composer is refilled with their
+//   sentence (C01) → they press send → row B. Two canonical turns, one thing said.
+//
+// 🛑 SO IDENTITY BELONGS TO THE SEND, NOT TO THE ENTRY PATH. Both callers now come through
+// the one rule below before the request leaves the browser, and the route's primary key
+// finishes the job.
+//
+// ⚠️ AND IT IS NOT TEXT DEDUPLICATION. Only the ONE unresolved turn is eligible to be
+// continued. Two deliberate "yes" sends are two intents and two rows, because the first is
+// resolved and cleared before the second is typed — the test matrix proves exactly that.
+// ═══════════════════════════════════════════════════════════════════════════════════════
+
+/** One thing the customer meant to say, and the identity its canonical row is written under. */
+export interface MillaSendIntent {
+  id: string
+  text: string
+}
+
+/**
+ * The identity for a send that is about to leave the browser.
+ *
+ * @param text     what the customer is sending, already trimmed.
+ * @param pending  the one send this conversation has not yet resolved, or `null`.
+ * @param handoffId an id already minted by the agent-card handoff, if this is that sentence.
+ *
+ * 🛑 THE RETRY RULE, EXACTLY: a send is a continuation of `pending` only when `pending` is
+ * the unresolved turn AND the text is unchanged — which is the state the failure path leaves
+ * behind when it puts their sentence back in the composer. Anything else is a new intent and
+ * gets a new id, because it is a new thing to say.
+ */
+export function millaSendIdentity(
+  text: string, pending: MillaSendIntent | null | undefined, handoffId?: string,
+): MillaSendIntent {
+  const msg = String(text ?? '').trim()
+  if (handoffId) return { id: handoffId, text: msg }
+  if (pending && pending.text === msg && pending.id) return pending
+  return { id: newId(), text: msg }
+}
+
+/**
+ * The customer turn canonical Milla never answered, read from the thread itself.
+ *
+ * 🛑 CANONICAL PERSISTENCE IS THE TRUTH AFTER A RELOAD, not the browser. React state is gone
+ * and the composer is empty, but the turn is a row — so re-entry finds it here and continues
+ * it under ITS OWN id, which is why continuing cannot produce a second row.
+ *
+ * ⚠️ ONLY THE TRAILING TURN. A user row with an answer after it is a finished exchange; only
+ * a thread that ENDS on the customer is waiting for us.
+ */
+export function unansweredCustomerTurn(
+  rows: ReadonlyArray<{ id?: string; role?: string; content?: string }> | null | undefined,
+): MillaSendIntent | null {
+  if (!rows || rows.length === 0) return null
+  const last = rows[rows.length - 1]
+  if (last?.role !== 'user') return null
+  const id = String(last.id ?? '').trim()
+  const text = String(last.content ?? '').trim()
+  return id && text ? { id, text } : null
+}

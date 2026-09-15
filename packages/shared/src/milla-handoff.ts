@@ -27,14 +27,37 @@
 // `milla_messages`, the same route the canonical conversation has always used. Nothing here
 // duplicates that, and nothing here is readable after the claim.
 //
-// ⚠️ CLAIM-ONCE IS THE WHOLE DESIGN. `claimMillaHandoff` DELETES BEFORE IT RETURNS, so a
-// second reader — React's StrictMode double-mount in dev, a re-render, a back-navigation,
-// two tabs racing the same key — gets `null` and sends nothing. That is what makes "persisted
-// exactly once" a property of the mechanism rather than a hope about call sites.
-//
 // ⚠️ THE PATTERN IS ALREADY IN THIS REPO. `VidaConversation.tsx` carries an ICP handoff
 // across a navigation through `sessionStorage` in exactly this shape. A new mechanism would
-// be a second way to do a thing we already do; this is the existing one, made claim-once.
+// be a second way to do a thing we already do; this is the existing one, made durable.
+//
+// ── 🛑 ⚑ 15 Sep (O1 durability) — CLAIMING IS NOT THE SAME AS OWNING ───────────────────
+//
+// ⛓️ ~~`claimMillaHandoff` DELETED BEFORE IT RETURNED.~~ That bought exactly-once and paid
+// for it with the founder's own rule. The sequence was: claim deletes → `send()` posts →
+// the canonical route calls the MODEL FIRST and only then writes `milla_messages`. So when
+// the provider failed there was no durable customer turn anywhere, the browser store had
+// already been emptied, and the sentence existed only in React state. One reload and the
+// customer had to retype it — which is the thing we are not allowed to make them do.
+//
+// 🛑 SO THE HANDOFF IS NOW HELD UNTIL SOMETHING DURABLE OWNS IT. `claim` hands the message
+// over and LEAVES IT IN THE STORE; only `release` removes it, and the destination calls
+// `release` only once the canonical route has confirmed the turn is in `milla_messages`.
+// `sessionStorage` survives a reload, so a failed attempt is recoverable by construction.
+//
+// ⚠️ AND EXACTLY-ONCE MOVED TO WHERE IT BELONGS — THE DATABASE. Every handoff carries an
+// `id` minted ONCE at stash time and never regenerated, which the route uses as the
+// `milla_messages` PRIMARY KEY for the customer's row. A retry replays the same id, Postgres
+// answers 23505, and no second row exists. That is the repo's own existing idempotency
+// primitive (`webhook-idempotency.ts`, `morning-brief-deliver.ts`, `approve-lead.ts`), not a
+// new one, and it needs no migration: `milla_messages.id` is already
+// `uuid primary key default gen_random_uuid()`.
+//
+// ⚠️ THE IN-PAGE GUARD IS SEPARATE AND SMALLER. A module-level claimed-set stops React's
+// StrictMode double-mount from firing two concurrent requests for one sentence. It is
+// deliberately NOT durable: a reload builds a fresh module, so the pending handoff is
+// re-claimable — which is exactly the recovery path. Correctness never rests on it; the
+// primary key does.
 // ═══════════════════════════════════════════════════════════════════════════════════════
 
 /**
@@ -76,37 +99,133 @@ function browserStore(): HandoffStore | null {
 }
 
 /**
- * Park the sentence the customer just typed, for the destination to claim on arrival.
+ * One handed-over sentence and the identity the canonical row will be written under.
  *
- * @returns whether anything was parked. `false` means the caller's navigation is about to
- *          lose the message — which is the state this module exists to make VISIBLE rather
- *          than silent. A blank sentence is not a message and is never parked.
+ * 🛑 `id` IS THE EXACTLY-ONCE TOKEN. It is minted once, at stash time, and travels with the
+ * message through every retry. The route writes `milla_messages.id = id` for the customer's
+ * row, so a replay is a primary-key collision rather than a second message.
  */
-export function stashMillaHandoff(
-  text: unknown, store: HandoffStore | null = browserStore(),
-): boolean {
-  const msg = String(text ?? '').trim()
-  if (!msg || !store) return false
-  try { store.setItem(MILLA_HANDOFF_KEY, msg); return true } catch { return false }
+export interface MillaHandoff {
+  id: string
+  text: string
+}
+
+/** A v4 UUID from whatever the runtime offers, with a dependency-free fallback. */
+function newId(): string {
+  const c = (globalThis as unknown as { crypto?: { randomUUID?: () => string } }).crypto
+  try { if (c?.randomUUID) return c.randomUUID() } catch { /* fall through */ }
+  // ⚠️ THE FALLBACK IS SHAPE-CORRECT, because the server parses this as a UUID. It is only
+  // reached on runtimes without `crypto.randomUUID`; collision risk over one browser tab's
+  // handful of handoffs is not a real risk, and a collision would at worst suppress one
+  // duplicate — never create one.
+  const hex = '0123456789abcdef'
+  let out = ''
+  for (let i = 0; i < 36; i++) {
+    if (i === 8 || i === 13 || i === 18 || i === 23) { out += '-'; continue }
+    if (i === 14) { out += '4'; continue }
+    const r = Math.floor(Math.random() * 16)
+    out += i === 19 ? hex[(r & 0x3) | 0x8] : hex[r]
+  }
+  return out
 }
 
 /**
- * Take the waiting sentence — and take it AWAY.
+ * 🛑 THE IN-PAGE CLAIM GUARD — one JS context, not one browser.
  *
- * 🛑 THE REMOVE HAPPENS BEFORE THE RETURN, ALWAYS, including when the value is unusable. A
- * claim that returned the text and left it behind would send it again on the next mount, and
- * a duplicated customer message in a persisted thread is worse than a lost one: it is our
- * words put in their mouth twice.
+ * StrictMode mounts effects twice in development, and a remount can happen at any time. Two
+ * concurrent posts for one sentence would produce one customer row (the primary key holds)
+ * but TWO Milla replies, so the send is gated here as well.
  *
- * @returns their sentence exactly as typed, or `null` when there is nothing waiting.
+ * ⚠️ DELIBERATELY NOT DURABLE. A reload builds a fresh module with an empty set, so a
+ * handoff left pending by a failed attempt is claimable again — that IS the recovery path.
  */
-export function claimMillaHandoff(
+const claimedInThisPageLoad = new Set<string>()
+
+/**
+ * Model a new page load (reload, or a fresh tab) in a test.
+ *
+ * ⚠️ A REAL BROWSER DOES THIS BY CONSTRUCTION — a reload re-evaluates the module and the set
+ * above starts empty. This exists so a test can reach that state without a browser, and it
+ * touches nothing else: the stored handoff is untouched, which is the point.
+ */
+export function resetMillaHandoffPageLoad(): void {
+  claimedInThisPageLoad.clear()
+}
+
+/**
+ * Park the sentence the customer just typed, for the destination to claim on arrival.
+ *
+ * @returns the handoff, including the id its canonical row will be written under, or `null`
+ *          when nothing was parked. `null` means the caller's navigation is about to lose the
+ *          message — the state this module exists to make VISIBLE rather than silent. A blank
+ *          sentence is not a message and is never parked.
+ */
+export function stashMillaHandoff(
+  text: unknown, store: HandoffStore | null = browserStore(),
+): MillaHandoff | null {
+  const msg = String(text ?? '').trim()
+  if (!msg || !store) return null
+  const handoff: MillaHandoff = { id: newId(), text: msg }
+  try { store.setItem(MILLA_HANDOFF_KEY, JSON.stringify(handoff)); return handoff } catch { return null }
+}
+
+/** Read what is waiting without claiming or removing it. */
+export function peekMillaHandoff(
   store: HandoffStore | null = browserStore(),
-): string | null {
+): MillaHandoff | null {
   if (!store) return null
   let raw: string | null = null
   try { raw = store.getItem(MILLA_HANDOFF_KEY) } catch { return null }
-  try { store.removeItem(MILLA_HANDOFF_KEY) } catch { /* claimed regardless */ }
-  const msg = String(raw ?? '').trim()
-  return msg || null
+  if (!raw) return null
+  try {
+    const p = JSON.parse(raw) as Partial<MillaHandoff>
+    const text = String(p?.text ?? '').trim()
+    const id = String(p?.id ?? '').trim()
+    return text && id ? { id, text } : null
+  } catch {
+    // ⚠️ A PLAIN STRING IS A PRE-DURABILITY HANDOFF written by an older tab mid-deploy. It is
+    // still the customer's sentence and must not be thrown away for being old — it is given
+    // an id now, which costs it nothing but the duplicate protection it never had.
+    const text = String(raw).trim()
+    return text ? { id: newId(), text } : null
+  }
+}
+
+/**
+ * Take the waiting sentence — and DELIBERATELY LEAVE IT WHERE IT IS.
+ *
+ * 🛑 CLAIMING IS NOT OWNING. Until the canonical route has the customer's turn in
+ * `milla_messages`, this store is the only thing holding their words; deleting here is what
+ * made a provider failure cost them the sentence. The caller calls `releaseMillaHandoff`
+ * once, and only once, the turn is durably owned.
+ *
+ * @returns the handoff, or `null` when nothing is waiting or it is already in flight in this
+ *          page load.
+ */
+export function claimMillaHandoff(
+  store: HandoffStore | null = browserStore(),
+): MillaHandoff | null {
+  const waiting = peekMillaHandoff(store)
+  if (!waiting) return null
+  if (claimedInThisPageLoad.has(waiting.id)) return null
+  claimedInThisPageLoad.add(waiting.id)
+  // A handoff that arrived without an id (older tab) is written back WITH one, so a retry
+  // after a reload replays the same id rather than minting a second.
+  if (store) { try { store.setItem(MILLA_HANDOFF_KEY, JSON.stringify(waiting)) } catch { /* best effort */ } }
+  return waiting
+}
+
+/**
+ * The turn is durably owned by canonical Milla — let the sentence go.
+ *
+ * ⚠️ ID-MATCHED. Releasing by id means a late release from a superseded attempt cannot delete
+ * a NEWER sentence the customer has since typed and handed over.
+ */
+export function releaseMillaHandoff(
+  id: string, store: HandoffStore | null = browserStore(),
+): void {
+  if (!store || !id) return
+  const waiting = peekMillaHandoff(store)
+  if (!waiting || waiting.id !== id) return
+  try { store.removeItem(MILLA_HANDOFF_KEY) } catch { /* released regardless */ }
 }

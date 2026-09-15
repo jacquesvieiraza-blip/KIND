@@ -12,8 +12,9 @@ import {
   // wearing "I hit a snag reaching the engine".
   refinementFailureMessage, chatFailureMessage, isRetryableOnce, REFINEMENT_RETRIES,
   REVISE_STATE_CHANGED_CODE, TARGETING_UNCHANGED_SENTENCE,
-  // ⚑ 15 Sep (O1) — the one sentence a customer typed on the way here, claimed once.
-  claimMillaHandoff,
+  // ⚑ 15 Sep (O1) — the one sentence a customer typed on the way here. Claimed on arrival
+  // and RELEASED only once canonical Milla durably owns it, so a failed turn is recoverable.
+  claimMillaHandoff, releaseMillaHandoff,
 } from '@kind/shared'
 
 // ── ⚑ 4 Sep — THE ONE MILLA CONVERSATION (founder-approved shell) ────────────────────────
@@ -273,10 +274,18 @@ export function MillaConversationProvider(
       // itself, so it uses the same canonical session whether or not the restore above found
       // one.
       //
-      // ⚠️ CLAIM-ONCE IS WHAT STOPS A SECOND COPY. `claimMillaHandoff` deletes before it
-      // returns, so StrictMode's double-mount, a remount or a second tab claims nothing.
+      // ── 🛑 ⚑ 15 Sep (O1 durability) — AND IT IS NOT LET GO UNTIL SOMETHING OWNS IT ────
+      //
+      // ⛓️ ~~`const handed = claimMillaHandoff()`~~ used to DELETE the sentence as it read
+      // it. A provider failure then left it in React state alone, and a reload cost the
+      // customer their words. The claim now leaves it in the browser store; `send()`
+      // releases it only after the canonical route confirms the turn is in `milla_messages`,
+      // and a failed attempt is simply still waiting here on the next page load.
+      //
+      // ⚠️ THE ID TRAVELS WITH IT. `handed.id` becomes the primary key of the customer's
+      // canonical row, so this recovery replaying the same sentence cannot create a second.
       const handed = claimMillaHandoff()
-      if (handed) await send(handed)
+      if (handed) await send(handed.text, handed.id)
     })()
   }, [])
 
@@ -298,7 +307,13 @@ export function MillaConversationProvider(
    * its reply lands in THIS transcript. Nothing else about the message changes, and no other
    * context reaches that endpoint.
    */
-  async function send(text: string) {
+  /**
+   * ⚑ 15 Sep (O1 durability) — `handoffId` is present ONLY for a sentence handed over from
+   * the agent card. It is the primary key the customer's canonical row is written under, so
+   * a retry after a failed or ambiguous attempt replays the same key instead of a new row.
+   * The ordinary composer passes nothing and the server mints an id exactly as before.
+   */
+  async function send(text: string, handoffId?: string) {
     const msg = text.trim(); if (!msg || sending || icpSaving) return
     setInput(''); setSending(true)
     setMessages(m => [...m, { id: `u-${Date.now()}`, role: 'user', content: msg }])
@@ -326,8 +341,17 @@ export function MillaConversationProvider(
         if (!sid) { const c = await api.post<{ sessionId: string }>('/milla/sessions', {}, tok); sid = c.sessionId }
         setSessionId(sid)
       }
-      const res = await api.post<{ reply: string }>(`/milla/sessions/${sid}/chat`, { message: msg }, tok, AI_TURN_TIMEOUT_MS)
+      // ⚠️ THE CALL IS KEPT ON ONE LINE — `milla-vida-shell.test.ts` pins this exact call as
+      // the one door the conversation posts through, so the body is built above it rather
+      // than inline. Splitting the call would pass behaviourally and fail that guard.
+      const body = handoffId ? { message: msg, messageId: handoffId } : { message: msg }
+      const res = await api.post<{ reply: string }>(`/milla/sessions/${sid}/chat`, body, tok, AI_TURN_TIMEOUT_MS)
       setMessages(m => [...m, { id: `a-${Date.now()}`, role: 'assistant', content: res.reply }])
+      // 🛑 RELEASED ONLY HERE. A 200 from this route means the customer's turn is in
+      // `milla_messages` — the route writes it BEFORE the model and fails closed if it
+      // cannot. Anything short of that leaves the sentence waiting in the browser store for
+      // the next page load, which is what stops a provider failure costing them their words.
+      if (handoffId) releaseMillaHandoff(handoffId)
     } catch (e) {
       // ── 🛑 10 Sep (C01) — THE COLLAPSE IS GONE, AND SO IS THE THROWN-AWAY MESSAGE ───────
       //

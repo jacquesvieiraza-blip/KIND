@@ -40,8 +40,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { readFileSync } from 'fs'
 import { join } from 'path'
-import { stashMillaHandoff, claimMillaHandoff, MILLA_HANDOFF_KEY, type HandoffStore }
-  from '@kind/shared'
+import {
+  stashMillaHandoff, claimMillaHandoff, releaseMillaHandoff, peekMillaHandoff,
+  resetMillaHandoffPageLoad, MILLA_HANDOFF_KEY, type HandoffStore,
+} from '@kind/shared'
 
 type Row = Record<string, any>
 
@@ -169,6 +171,7 @@ beforeEach(() => {
   vi.resetModules()
   millaMessages = []
   seq = 0
+  resetMillaHandoffPageLoad()
   // The Anthropic client is MOCKED above; this only gets past the "no key" short-circuit so
   // the route runs its persistence. It cannot reach a provider or spend anything (R66).
   process.env.ANTHROPIC_API_KEY = 'test-key-not-a-real-key'
@@ -188,7 +191,7 @@ describe('THE CHAIN — typed in the card, persisted once by canonical Milla, th
     // This is literally what `AgentColumn`'s `onSend` now does with their message.
     const store = makeStore()
     const parked = stashMillaHandoff(TYPED, store)
-    expect(parked, 'the card did not park the customer\'s sentence at all').toBe(true)
+    expect(parked, 'the card did not park the customer\'s sentence at all').not.toBeNull()
 
     // ── 2. NAVIGATION / TRANSITION ───────────────────────────────────────────────────
     // The old page is gone; nothing is carried but the store the browser keeps. Proving the
@@ -199,13 +202,13 @@ describe('THE CHAIN — typed in the card, persisted once by canonical Milla, th
     // ── 3. THE CANONICAL MILLA PATH RECEIVES IT ──────────────────────────────────────
     // What `MillaConversationProvider` does on mount.
     const claimed = claimMillaHandoff(store)
-    expect(claimed, 'the canonical conversation received nothing — the message was lost')
+    expect(claimed?.text, 'the canonical conversation received nothing — the message was lost')
       .toBe(TYPED)
 
     // ── 4. CANONICAL PERSISTENCE STORES IT ───────────────────────────────────────────
     // Through the REAL route, which is the only thing in this product that writes a Milla
     // message. Nothing below inserts a row by hand.
-    const { code } = await sendThroughCanonicalMilla(claimed!)
+    const { code } = await sendThroughCanonicalMilla(claimed!.text)
     expect(code, 'the canonical chat route rejected the handed-over message').toBe(200)
 
     // ── 5. EXACTLY ONE COPY ──────────────────────────────────────────────────────────
@@ -226,22 +229,33 @@ describe('THE CHAIN — typed in the card, persisted once by canonical Milla, th
   })
 
   it('🛑 a second mount claims nothing, so the thread is never doubled', async () => {
-    // StrictMode's double-mount, a remount, a back-navigation, a second tab. The claim
-    // DELETES before it returns, so only the first arrival has anything to send.
+    // StrictMode's double-mount, a remount, a back-navigation. The in-page claim guard means
+    // only the first arrival has anything to send.
+    //
+    // ⛓️ 15 Sep (O1 durability) — THE CLAIM NO LONGER DELETES, so the store still holds the
+    // sentence here. That is deliberate: it is released only once canonical Milla owns the
+    // turn, which is what makes a provider failure recoverable. Exactly-once is now the
+    // `milla_messages` primary key, proven behaviourally in
+    // `milla-handoff-durability.route.test.ts`.
     const store = makeStore()
     stashMillaHandoff(TYPED, store)
 
     const first = claimMillaHandoff(store)
     const second = claimMillaHandoff(store)
-    expect(first).toBe(TYPED)
+    expect(first?.text).toBe(TYPED)
     expect(second, 'a second mount would re-send the customer\'s sentence').toBeNull()
-    expect(store.raw.has(MILLA_HANDOFF_KEY), 'the claimed sentence was left behind').toBe(false)
+    expect(store.raw.has(MILLA_HANDOFF_KEY), 'the sentence was let go before anything owned it')
+      .toBe(true)
 
     // Drive the canonical route exactly as the provider would: once for a claim, never for a
     // null. The store is the evidence, not the intention.
-    for (const claimed of [first, second]) if (claimed) await sendThroughCanonicalMilla(claimed)
+    for (const claimed of [first, second]) if (claimed) await sendThroughCanonicalMilla(claimed.text)
     expect(millaMessages.filter(m => m.role === 'user' && m.content === TYPED),
       'two mounts produced two copies of one sentence').toHaveLength(1)
+
+    // …and once the turn is owned, the handoff is released.
+    releaseMillaHandoff(first!.id, store)
+    expect(peekMillaHandoff(store), 'a completed turn left the sentence waiting').toBeNull()
 
     const thread = await readCanonicalThread()
     expect(thread.filter(m => m.role === 'user' && m.content === TYPED)).toHaveLength(1)
@@ -254,8 +268,8 @@ describe('THE CHAIN — typed in the card, persisted once by canonical Milla, th
     stashMillaHandoff(awkward, store)
     const claimed = claimMillaHandoff(store)
     // Surrounding whitespace is all the handoff is allowed to touch.
-    expect(claimed).toBe(awkward.trim())
-    await sendThroughCanonicalMilla(claimed!)
+    expect(claimed?.text).toBe(awkward.trim())
+    await sendThroughCanonicalMilla(claimed!.text)
     const thread = await readCanonicalThread()
     expect(thread.filter(m => m.role === 'user').map(m => m.content)).toContain(awkward.trim())
   })
@@ -263,14 +277,15 @@ describe('THE CHAIN — typed in the card, persisted once by canonical Milla, th
   it('an empty composer parks nothing and sends nothing', async () => {
     // A blank send must not create a turn, and must not consume a real waiting sentence.
     const store = makeStore()
-    expect(stashMillaHandoff('   ', store)).toBe(false)
+    expect(stashMillaHandoff('   ', store)).toBeNull()
     expect(claimMillaHandoff(store)).toBeNull()
     expect(millaMessages, 'a blank composer reached canonical persistence').toHaveLength(0)
   })
 
   it('no store (server render, privacy mode) degrades to the old behaviour, never to a crash', () => {
-    expect(stashMillaHandoff('anything', null)).toBe(false)
+    expect(stashMillaHandoff('anything', null)).toBeNull()
     expect(claimMillaHandoff(null)).toBeNull()
+    expect(() => releaseMillaHandoff('any-id', null)).not.toThrow()
   })
 })
 
@@ -303,7 +318,10 @@ describe('BOTH CALL SITES ARE STILL ON THE CANONICAL PATH', () => {
       .toMatch(/const handed = claimMillaHandoff\(\)/)
     // 🛑 THROUGH `send()`. Not a new endpoint, not a direct insert, not a seeded transcript.
     expect(src, 'the handed-over message bypasses the canonical sender')
-      .toMatch(/if \(handed\) await send\(handed\)/)
+      .toMatch(/if \(handed\) await send\(handed\.text, handed\.id\)/)
+    // ⚑ 15 Sep (O1 durability) — and it is let go ONLY on a confirmed canonical turn.
+    expect(src, 'the handoff is released without canonical Milla owning the turn')
+      .toMatch(/if \(handoffId\) releaseMillaHandoff\(handoffId\)/)
     // The canonical sender still posts to the one persisted chat route.
     expect(src).toContain('/milla/sessions/${sid}/chat')
   })

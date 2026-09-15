@@ -2883,7 +2883,49 @@ operatorRouter.post('/icp-review/:icpId/resolve', async (req: Request, res: Resp
         means: 'the client described their targeting in their own words; these are the provider values an operator translated the UNRESOLVED half into, UNIONED with the half that already translated. Proof and provider sourcing were refused until this was recorded.',
       },
     })
-    res.json({ success: true, data: { resolved_at: now, values: outcome.values } })
+
+    // ── 🛑 ⚑ 15 Sep (S1-RT-004) — AND NOW IT CONTINUES INTO THE FIRST FREE PROOF RUN ────
+    //
+    // 🛑 WHAT EARNED THIS. Juniper Ridge Consulting finished its Brief, was promoted, reached
+    // the Proof desk — and `POST /icps/:id/proof` refused with `needs_icp_review` because
+    // "10-100 employees" is not a value any provider takes. An operator translated it here and
+    // the review resolved correctly. NOTHING THEN STARTED PROOF: `proof_started_at` stayed
+    // NULL, no claim row, no run outcome, no leads, Apollo never called. The client's only
+    // start door is on the confirmation screen they had already passed, and no Vida control
+    // issues that POST — so a correct, human-resolved refusal was terminal for their journey.
+    //
+    // Founder-ruled: the operator has already taken the corrective action, so resolution
+    // continues into the EXISTING free Proof flow, exactly once. No second Vida button, no
+    // second client action.
+    //
+    // ⚠️ AFTER THE WRITE, THE REPLAY FENCE AND THE AUDIT — NEVER BEFORE. The translation is a
+    // human's work and is already durable here. A provider or runtime failure in the run must
+    // not cost it (founder-ruled), so nothing below rolls anything back and no branch returns
+    // an error that would make Vida think the resolution did not persist.
+    //
+    // ⚠️ IDEMPOTENCY IS THE CLAIM LEDGER'S. `claimProofAuthority` stamps `proof_started_at`
+    // and inserts `proof_pass_claims` in one atomic RPC, answering `in_flight` when a run
+    // already holds authority — so a replayed resolution cannot produce a second run. There is
+    // deliberately no second fence here to disagree with it, and the replay fence above means
+    // a second resolve writes nothing and never reaches this line at all.
+    //
+    // ⚠️ PROOF MODE ONLY. The continuation always passes `proofPass`/`proofKind`, so this can
+    // never fall into the paid client path Vida GO uses, which sources against PDL behind
+    // AR8's cash fence — a budget no prospect has.
+    const { continueProofAfterReviewResolved } = await import('../lib/proof-run-launch')
+    const proof = await continueProofAfterReviewResolved(clientId, req.params.icpId)
+      .catch((e: unknown) => ({
+        started: false as const, reason: 'no_authority' as const,
+        detail: e instanceof Error ? e.message : String(e),
+      }))
+    if (!proof.started) {
+      console.error(`[operator/icp-review/resolve] the translation for client ${clientId} was SAVED, but Proof did not start (${proof.reason}${'detail' in proof ? `: ${proof.detail}` : ''}).`)
+    }
+
+    // ⚠️ THE RESPONSE SAYS WHAT ACTUALLY HAPPENED. Vida must never print "unblocked" for a
+    // resolution whose run did not start — that is the same class of untruth as the desk
+    // saying "finding your first examples" while nothing is being found.
+    res.json({ success: true, data: { resolved_at: now, values: outcome.values, proof } })
   } catch (err) {
     console.error('[operator/icp-review/resolve]', err)
     res.status(500).json({ success: false, error: 'The resolution failed' })

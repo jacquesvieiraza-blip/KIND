@@ -137,7 +137,12 @@ describe('no live path bypasses the durable Proof authority ledger', () => {
   })
 
   it('⑤ the Proof route claims through the ledger and nothing else', () => {
-    const route = LIVE_FILES.find(f => f.path === 'apps/api/src/routes/icps.ts')!
+    // ⛓️ 15 Sep (S1-RT-004) — reads the whole Proof path: the run-and-settle tail moved VERBATIM
+    // to `lib/proof-run-launch.ts` so the client route and Vida's continuation share ONE
+    // implementation. Same assertion, same specificity, truthful location.
+    const launch = LIVE_FILES.find(f => f.path === 'apps/api/src/lib/proof-run-launch.ts')!
+    const route = { path: 'apps/api/src/routes/icps.ts + lib/proof-run-launch.ts',
+                    src: LIVE_FILES.find(f => f.path === 'apps/api/src/routes/icps.ts')!.src + '\n' + launch.src }
     expect(route.src).toMatch(/claimProofAuthority\(/)
     expect(route.src).toMatch(/settleProofClaim\(/)
     expect(route.src).not.toMatch(/\.rpc\(\s*['"`]try_claim_proof_pass['"`]/)

@@ -181,7 +181,11 @@ describe('11 · 12 · 27 · the two automatic attempts are spent for ever', () =
   it('🛑 9 · the restart run is dispatched with explicit provenance, not a pass number', async () => {
     const { readFileSync } = await import('node:fs')
     const { join } = await import('node:path')
+    // ⛓️ 15 Sep (S1-RT-004) — reads the whole Proof path: the run-and-settle tail moved VERBATIM
+    // to `lib/proof-run-launch.ts` so the client route and Vida's continuation share ONE
+    // implementation. Same assertion, same specificity, truthful location.
     const icps = readFileSync(join(__dirname, '../routes/icps.ts'), 'utf8')
+      + '\n' + readFileSync(join(__dirname, 'proof-run-launch.ts'), 'utf8')
     expect(icps).toContain("proofKind: batchKind")
     expect(icps).toContain("proof_batch_kind: opts!.proofKind ?? 'automatic'")
     // ⚠️ WRITTEN IN THE SAME STATEMENT AS THE PASS AND THE SURFACING. A row that is visible
@@ -584,7 +588,10 @@ describe('🛑 DAY-2 · a restart is never consumed unless its provenance can be
 
   it('🛑 5 · the restart batch persists `proof_batch_kind = calibrated_restart` on its rows', async () => {
     const { readFileSync } = await import('node:fs')
+    // ⛓️ 15 Sep (S1-RT-004) — same assertion, truthful location: the run-and-settle tail
+    // moved VERBATIM to `lib/proof-run-launch.ts`; the Proof path spans both files.
     const icps = readFileSync(new URL('../routes/icps.ts', import.meta.url), 'utf8')
+      + '\n' + readFileSync(new URL('./proof-run-launch.ts', import.meta.url), 'utf8')
     // ⚠️ ON THE ONE SURFACING UPDATE, so provenance lands on EVERY row of the batch in the
     // same statement that makes them visible — no partial batch can lose it.
     const at = icps.indexOf('surfaced_for_approval_at: nowIso, delivered_at: nowIso')

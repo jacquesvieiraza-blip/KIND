@@ -289,7 +289,11 @@ describe('C · runIcpJob carries a FAIL-CLOSED trust state into the persisted st
 // D. FOUNDER RULES THAT MUST NOT HAVE MOVED
 // ─────────────────────────────────────────────────────────────────────────────
 describe('D · the rules this build must not have broken', () => {
+  // ⛓️ 15 Sep (S1-RT-004) — same assertion, truthful location: the run-and-settle tail
+  // moved VERBATIM to `lib/proof-run-launch.ts` so the route and Vida's continuation share
+  // ONE implementation, so the Proof path spans both production files.
   const src = readFileSync(join(__dirname, '..', 'routes', 'icps.ts'), 'utf8')
+    + '\n' + readFileSync(join(__dirname, 'proof-run-launch.ts'), 'utf8')
 
   it('suppression, opt-out and dedupe still gate serving', () => {
     expect(src).toContain('isSuppressed(')
@@ -311,7 +315,9 @@ describe('D · the rules this build must not have broken', () => {
   it('the crash boundary still writes `failed` and alerts', () => {
     const at = src.indexOf('[icps/proof] proof run failed:')
     const block = src.slice(at - 900, at + 1600)
-    expect(block).toContain("recordRunOutcome(req.params.id, clientId, 'failed'")
+    // ⛓️ 15 Sep (S1-RT-004) — same call, same specificity; the shared module names the icp
+    // `icpId` instead of re-reading `req.params.id`, because it is no longer inside the route.
+    expect(block).toContain("recordRunOutcome(icpId, clientId, 'failed'")
     expect(block).toContain('sendFounderAlert')
   })
 })
@@ -508,7 +514,11 @@ describe('F · the polling bound is derived, not picked', () => {
 })
 
 describe('F · the complete status space — no value exists as an untested assumption', () => {
+  // ⛓️ 15 Sep (S1-RT-004) — same assertion, truthful location: the run-and-settle tail
+  // moved VERBATIM to `lib/proof-run-launch.ts` so the route and Vida's continuation share
+  // ONE implementation, so the Proof path spans both production files.
   const src = readFileSync(join(__dirname, '..', 'routes', 'icps.ts'), 'utf8')
+    + '\n' + readFileSync(join(__dirname, 'proof-run-launch.ts'), 'utf8')
   const runner = readFileSync(join(__dirname, 'pending-migrations.ts'), 'utf8')
 
   it('the type, the DB CHECK and the producers agree on exactly six statuses', () => {
@@ -530,7 +540,9 @@ describe('F · the complete status space — no value exists as an untested assu
     expect((src.match(/recordRunOutcome\(/g) ?? []).length).toBe(6)  // 1 def + 5 producers
     expect(src).toContain("recordRunOutcome(icpId, clientId, 'failed', effectiveCap, pool.served, inserted, 0, didWiden)")
     expect(src).toContain("recordRunOutcome(icpId, clientId, 'quota_exhausted', effectiveCap, 0, 0)")
-    expect(src).toContain("recordRunOutcome(req.params.id, clientId, 'failed', PROOF_PASS_LEADS, 0, 0)")
+    // ⛓️ 15 Sep (S1-RT-004) — same call, same specificity; the shared module names the icp
+    // `icpId` instead of re-reading `req.params.id`, because it is no longer inside the route.
+    expect(src).toContain("recordRunOutcome(icpId, clientId, 'failed', PROOF_PASS_LEADS, 0, 0)")
     expect(src).toContain('recordRunOutcome(icpId, clientId, status, effectiveCap, pool.served, inserted, heldFromIcp, didWiden)')
   })
 

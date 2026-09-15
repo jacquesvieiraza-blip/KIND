@@ -31,7 +31,13 @@ import type { RunStatus } from './run-outcome'
 // ═══════════════════════════════════════════════════════════════════════════════════════
 
 const REPO = join(__dirname, '../../../..')
+// ⛓️ 15 Sep (S1-RT-004) — THE HAYSTACK IS THE WHOLE PROOF PATH, not one file. The
+// run-and-settle tail moved VERBATIM to `lib/proof-run-launch.ts` so the client route and
+// Vida's review-resolution continuation share ONE implementation. Every assertion below is
+// unchanged — same regexes, same strings, same count — they now read the two production
+// files that together ARE that path, which is where the behaviour they protect lives.
 const ICPS = readFileSync(join(REPO, 'apps/api/src/routes/icps.ts'), 'utf8')
+  + '\n' + readFileSync(join(REPO, 'apps/api/src/lib/proof-run-launch.ts'), 'utf8')
 
 /**
  * `icps.ts` with its comments removed.

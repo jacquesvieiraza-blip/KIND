@@ -274,6 +274,73 @@ export function resolvedReplyEventKey(retentionId: string): string {
   return `unattributed:${retentionId}`
 }
 
+export type ExistingAttribution =
+  | { ok: true; found: false }
+  | { ok: true; found: true; clientId: string; replyIds: string[] }
+  | { ok: false; reason: 'unreadable' | 'spans_clients'; detail: string }
+
+/**
+ * ⚑ 17 Sep — HAS THIS RETAINED REPLY ALREADY BEEN WRITTEN TO A CLIENT?
+ *
+ * ── 🛑 THE DEFECT THIS EXISTS TO CLOSE ─────────────────────────────────────────────────
+ *
+ * The resolve route writes the reply and THEN records the outcome, deliberately — recording
+ * first would leave a resolved exception with no reply. But if the second write failed, the
+ * reply existed, the exception stayed claimed, and a retry was refused with a 409 to avoid
+ * writing a second reply. That is safe and it is STUCK: the only remaining exit was editing
+ * the database by hand.
+ *
+ * ⚠️ THE ANSWER IS ALREADY PERSISTED, AND THIS ONLY READS IT. `figsy_replies.provider_event_key`
+ * carries `unattributed:<retention id>` for exactly this reason, and a partial unique index
+ * makes it at most one row per retention id per lead. So "was it written, and to whom" is a
+ * single indexed lookup on a value we chose to store — not an inference, not a heuristic.
+ *
+ * 🛑 AND IT READS NOTHING ELSE. Not the prospect address, not the sender, not a timestamp,
+ * not the newest row, not the candidate order. Those are the guesses the whole fail-closed
+ * design exists to refuse, and a reconciliation path that used one would reintroduce them
+ * where nobody would think to look.
+ *
+ * ⚠️ IT FAILS CLOSED IN BOTH DIRECTIONS OF DOUBT. An unreadable lookup is `unreadable`, never
+ * "no reply exists" — treating a failed read as absence is how a second reply gets written.
+ * And rows spanning more than one client are `spans_clients`: that should be impossible, so
+ * reaching it means an assumption has broken, and picking one would be inventing an answer to
+ * a question we have just discovered we cannot answer.
+ *
+ * ⚠️ SEVERAL ROWS FOR ONE CLIENT IS NORMAL AND IS NOT A CONFLICT. A client can legitimately
+ * hold the same prospect under two leads (two ICPs, two batches), and the pipeline writes one
+ * reply row per lead. That is one attribution, so `clientId` is singular and `replyIds` is not.
+ */
+export async function existingAttributionFor(retentionId: string): Promise<ExistingAttribution> {
+  try {
+    const { data, error } = await db.from('figsy_replies')
+      .select('id, client_id')
+      .eq('provider_event_key', resolvedReplyEventKey(retentionId))
+    if (error) {
+      return {
+        ok: false, reason: 'unreadable',
+        detail: `it could not be checked whether this reply has already been written to a client (${error.message})`,
+      }
+    }
+    const rows = ((data ?? []) as { id: string | null; client_id: string | null }[])
+      .filter(r => r.client_id)
+    if (rows.length === 0) return { ok: true, found: false }
+
+    const clients = [...new Set(rows.map(r => String(r.client_id)))]
+    if (clients.length > 1) {
+      return {
+        ok: false, reason: 'spans_clients',
+        detail: `this retained reply has already been written to ${clients.length} DIFFERENT clients (${clients.join(', ')}), which should be impossible. Nothing was changed, and nothing will be until it is understood.`,
+      }
+    }
+    return { ok: true, found: true, clientId: clients[0], replyIds: rows.map(r => String(r.id)) }
+  } catch (err) {
+    return {
+      ok: false, reason: 'unreadable',
+      detail: err instanceof Error ? err.message : 'the existing-attribution lookup failed',
+    }
+  }
+}
+
 /**
  * The operator-facing label for one candidate client.
  *

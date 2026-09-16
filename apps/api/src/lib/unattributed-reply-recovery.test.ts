@@ -40,6 +40,11 @@ type Store = {
   pipelineRefuses?: boolean
   /** Makes the reply pipeline throw, which is case F's other half. */
   pipelineThrows?: boolean
+  /**
+   * ⚑ 17 Sep — forces the EXISTING-ATTRIBUTION lookup to fail, which is the fail-closed case
+   * of the reconciliation path. Scoped to `figsy_replies` so it cannot break unrelated reads.
+   */
+  replyLookupError?: { message: string } | null
   /** What the pipeline was called with, so the owner override can be asserted. */
   pipelineCalls: Array<{ inbound: Row; ctx: Row }>
 }
@@ -73,7 +78,7 @@ function newStore(): Store {
       { id: 'client-B', company_name: 'Beta', is_demo: false, created_at: '2026-09-02T00:00:00.000Z', proof_review_requested_at: null, proof_review_resolved_at: null },
     ],
     icps: [], figsy_campaigns: [], figsy_replies: [], audits: [],
-    selectError: null, updateError: null, settleError: null,
+    selectError: null, updateError: null, settleError: null, replyLookupError: null,
     pipelineRefuses: false, pipelineThrows: false, pipelineCalls: [],
   }
 }
@@ -101,13 +106,16 @@ function installDb(store: Store) {
               : String(b[orderCol!]).localeCompare(String(a[orderCol!])))
         return out.slice(0, lim)
       }
-      const failedRead = () => store.selectError && table === 'unattributed_replies'
+      const failedRead = () =>
+        (store.selectError && table === 'unattributed_replies')
+        || (store.replyLookupError && table === 'figsy_replies')
+      const readErr = () => table === 'figsy_replies' ? store.replyLookupError : store.selectError
       q.maybeSingle = async () =>
-        failedRead() ? { data: null, error: store.selectError } : { data: matched()[0] ?? null, error: null }
+        failedRead() ? { data: null, error: readErr() } : { data: matched()[0] ?? null, error: null }
       q.single = async () =>
-        failedRead() ? { data: null, error: store.selectError } : { data: matched()[0] ?? null, error: null }
+        failedRead() ? { data: null, error: readErr() } : { data: matched()[0] ?? null, error: null }
       q.then = (res: (v: unknown) => void) => {
-        if (failedRead()) { res({ data: null, count: 0, error: store.selectError }); return }
+        if (failedRead()) { res({ data: null, count: 0, error: readErr() }); return }
         res({ data: matched(), count: matched().length, error: null })
       }
       q.insert = (row: Row) => {
@@ -158,7 +166,15 @@ function installDb(store: Store) {
       store.pipelineCalls.push({ inbound, ctx })
       if (store.pipelineThrows) throw new Error('the reply insert failed')
       if (store.pipelineRefuses) return { ok: false, dropped: 'no_lead_at_this_inbox' }
-      store.figsy_replies.push({ client_id: ctx.resolvedOwnerClientId, from_email: inbound.from_email ?? inbound.fromEmail })
+      // ⚠️ IT WRITES `provider_event_key`, BECAUSE THE REAL PIPELINE DOES. That column is the
+      // durable correlation the reconciliation path reads; a stub that omitted it would make
+      // every reconciliation test pass for the wrong reason (nothing to find).
+      store.figsy_replies.push({
+        id: `reply-${store.figsy_replies.length + 1}`,
+        client_id: ctx.resolvedOwnerClientId,
+        from_email: inbound.from_email ?? inbound.fromEmail,
+        provider_event_key: ctx.eventKey ?? null,
+      })
       return { ok: true, clients: 1, replyId: 'reply-1' }
     },
   }))
@@ -167,7 +183,15 @@ function installDb(store: Store) {
       store.pipelineCalls.push({ inbound, ctx })
       if (store.pipelineThrows) throw new Error('the reply insert failed')
       if (store.pipelineRefuses) return { ok: false, dropped: 'no_lead_at_this_inbox' }
-      store.figsy_replies.push({ client_id: ctx.resolvedOwnerClientId, from_email: inbound.from_email ?? inbound.fromEmail })
+      // ⚠️ IT WRITES `provider_event_key`, BECAUSE THE REAL PIPELINE DOES. That column is the
+      // durable correlation the reconciliation path reads; a stub that omitted it would make
+      // every reconciliation test pass for the wrong reason (nothing to find).
+      store.figsy_replies.push({
+        id: `reply-${store.figsy_replies.length + 1}`,
+        client_id: ctx.resolvedOwnerClientId,
+        from_email: inbound.from_email ?? inbound.fromEmail,
+        provider_event_key: ctx.eventKey ?? null,
+      })
       return { ok: true, clients: 1, replyId: 'reply-1' }
     },
   }))
@@ -200,8 +224,20 @@ function reqres(opts: { params?: Row; headers?: Row; body?: Row } = {}) {
   }
 }
 
-let store: Store
-beforeEach(() => { vi.resetModules(); store = newStore(); installDb(store) })
+// ⚠️ ONE STORE OBJECT, RESET IN PLACE — IT IS NEVER REASSIGNED, AND THAT IS DELIBERATE.
+//
+// 🛑 WHAT THIS FIXES, AND IT COST AN HOUR TO FIND. The harness used to do `store = newStore()`
+// in `beforeEach`. `vi.doMock`'s factory closes over whatever object it was handed, so a
+// module the registry had not genuinely re-evaluated kept writing into a PREVIOUS test's
+// store — and the symptom is the worst kind: the route reported success, the row this test
+// could see stayed pristine, and the test passed in isolation and failed in the full file.
+// The same class of leakage as a process-global set by one suite and read by another.
+//
+// Resetting the FIELDS of one stable object removes the failure mode entirely: every closure,
+// old or new, points at the object this test is asserting on.
+const store: Store = newStore()
+function resetStore() { Object.assign(store, newStore()) }
+beforeEach(() => { vi.resetModules(); resetStore(); installDb(store) })
 afterEach(() => { vi.restoreAllMocks(); vi.resetModules() })
 
 async function alerts(): Promise<Row[]> {
@@ -658,10 +694,337 @@ describe('R132 is recorded where it can be grepped', () => {
     expect(row).toMatch(/UNMERGED, UNDEPLOYED/)
   })
 
+  it('🛑 R132a RECORDS THE RECONCILIATION, and chains R132 rather than replacing it', () => {
+    // ⚠️ THE SAME DUTY AS R132's OWN GUARD, for the amendment that makes it recoverable. A
+    // consistency fix that lives only in code is one a future session will undo.
+    expect(rules).toMatch(/R132a/)
+    for (const clause of [
+      'Do not require the operator or Founder to manually edit the database.',
+      'USE THAT EXISTING CORRELATION.',
+      'Do NOT invent another attribution architecture.',
+      'The persisted correlation is authority.',
+      'Resolution cannot silently change to a different client later.',
+    ]) {
+      expect(rules, `R132a is missing the founder's clause: ${clause}`).toContain(clause)
+    }
+    const i = rules.indexOf('| **R132a** |')
+    const row = rules.slice(i, rules.indexOf('\n', i))
+    expect(row, 'R132a does not chain R132').toMatch(/chains \*\*R132\*\*/)
+    expect(row, 'a migration was claimed for a patch that adds none').toMatch(/NO NEW MIGRATION/)
+    expect(rules, 'R132 was replaced rather than amended').toMatch(/\| \*\*R132\*\* \|/)
+  })
+
   it('and it chains R131 rather than replacing it — R131 stays the fan-out lock', () => {
     const i = rules.indexOf('| **R132** |')
     const row = rules.slice(i, rules.indexOf('\n', i))
     expect(row).toMatch(/chains \*\*R131\*\*/)
     expect(rules, 'R131 was deleted rather than chained').toMatch(/\| \*\*R131\*\* \|/)
+  })
+})
+
+// ═════════════════════════════════════════════════════════════════════════════
+// POST-WRITE RECONCILIATION — THE STUCK STATE, AND THE WAY OUT
+// ═════════════════════════════════════════════════════════════════════════════
+//
+// 🛑 THE DEFECT, STATED PLAINLY. The reply is written BEFORE the outcome is recorded, and
+// that order is correct: recording first would leave a resolution with no reply. But when the
+// second write failed, the reply existed, the exception stayed CLAIMED, and a retry was
+// refused with a 409 to avoid writing a second one. Safe — and with no exit except editing
+// the database by hand, which is not an exit.
+//
+// ⚠️ THE ANSWER WAS ALREADY PERSISTED. `figsy_replies.provider_event_key` carries
+// `unattributed:<retention id>`, stored for exactly this purpose. So the retry can KNOW the
+// reply exists and who owns it, and finish only the bookkeeping. No address, no timestamp, no
+// newest-row, no fuzzy match — every one of those is a guess this design refuses, and a
+// recovery path built on one would smuggle it in where nobody would look for it.
+
+/** Simulate the exact failure: reply written, settlement refused. */
+async function resolveWithFailedSettle(clientId: string) {
+  store.settleError = { message: 'connection lost' }
+  const first = await resolveTo(clientId)
+  store.settleError = null
+  return first
+}
+
+describe('TEST 1 · the reply was written and the bookkeeping failed', () => {
+  it('🛑 THE FIRST ATTEMPT LEAVES EXACTLY ONE REPLY AND AN UNRESOLVED EXCEPTION', async () => {
+    const first = await resolveWithFailedSettle('client-A')
+    expect(first.code).toBe(500)
+    expect(store.figsy_replies).toHaveLength(1)
+    expect(store.figsy_replies[0].client_id).toBe('client-A')
+    expect(store.figsy_replies.filter(r => r.client_id === 'client-B')).toHaveLength(0)
+    expect(row().resolved_at, 'the exception was falsely marked resolved').toBeNull()
+    expect(row().resolution).toBeNull()
+  })
+
+  it('🛑 AND IT IS STUCK BEFORE THE FIX — the claim is held, which is why a retry needed one', async () => {
+    await resolveWithFailedSettle('client-A')
+    expect(row().resolve_claimed_at, 'the claim was released, which would invite a duplicate reply').toBeTruthy()
+  })
+
+  it('🛑 THE RETRY RECONCILES: NO SECOND REPLY, NO SECOND PROCESSING', async () => {
+    await resolveWithFailedSettle('client-A')
+    const callsBefore = store.pipelineCalls.length
+    const retry = await resolveTo('client-A')
+
+    expect(retry.code).toBe(200)
+    expect(store.figsy_replies, 'a second client-visible reply was created').toHaveLength(1)
+    expect(store.pipelineCalls.length, 'the reply was processed again — a second classification, a second CRM push')
+      .toBe(callsBefore)
+    expect(retry.body.data.reconciled).toBe(true)
+  })
+
+  it('🛑 AND THE EXCEPTION IS SETTLED TO THE CLIENT WHO ACTUALLY HAS THE REPLY', async () => {
+    await resolveWithFailedSettle('client-A')
+    await resolveTo('client-A')
+    expect(row().resolution).toBe('attributed')
+    expect(row().resolved_client_id).toBe('client-A')
+    expect(row().resolved_at).toBeTruthy()
+  })
+
+  it('🛑 SO IT DISAPPEARS FROM VIDA — the operator is no longer looking at a stuck task', async () => {
+    await resolveWithFailedSettle('client-A')
+    expect(replyAlerts(await alerts()), 'it vanished before it was actually resolved').toHaveLength(2)
+    await resolveTo('client-A')
+    expect(replyAlerts(await alerts())).toHaveLength(0)
+  })
+
+  it('the reconciliation is audited, and says what it actually did', async () => {
+    await resolveWithFailedSettle('client-A')
+    await resolveTo('client-A')
+    const audits = store.audits.filter(a => a.action === 'unattributed_reply_attributed')
+    const rec = audits.find(a => a.detail?.reconciled === true)
+    expect(rec, 'no audit describes the reconciliation').toBeTruthy()
+    expect(rec!.detail.attributed_to).toBe('client-A')
+    expect(rec!.detail.reply_ids).toEqual(['reply-1'])
+    expect(String(rec!.detail.means)).toContain('bookkeeping failed')
+  })
+
+  it('and it works WITHOUT the operator or founder touching the database', async () => {
+    // The whole point. Nothing in this test edits `resolve_claimed_at`; the retry is a normal
+    // press of the same button.
+    await resolveWithFailedSettle('client-A')
+    const before = JSON.stringify(row())
+    const retry = await resolveTo('client-A')
+    expect(before).not.toBe(JSON.stringify(row()))
+    expect(retry.body.success).toBe(true)
+  })
+})
+
+describe('TEST 2 · a retry naming the WRONG candidate is refused', () => {
+  it('🛑 THE PERSISTED REPLY WINS — client B is refused', async () => {
+    await resolveWithFailedSettle('client-A')
+    const wrong = await resolveTo('client-B')
+    expect(wrong.code).toBe(409)
+    expect(wrong.body.success).toBe(false)
+  })
+
+  it('🛑 NOTHING IS CREATED FOR B, AND A KEEPS THE REPLY', async () => {
+    await resolveWithFailedSettle('client-A')
+    await resolveTo('client-B')
+    expect(store.figsy_replies).toHaveLength(1)
+    expect(store.figsy_replies[0].client_id).toBe('client-A')
+    expect(store.figsy_replies.filter(r => r.client_id === 'client-B')).toHaveLength(0)
+  })
+
+  it('🛑 AND THE ATTRIBUTION IS NEVER MOVED', async () => {
+    await resolveWithFailedSettle('client-A')
+    await resolveTo('client-B')
+    expect(row().resolved_client_id, 'the exception was settled to a client who has no reply').not.toBe('client-B')
+    expect(row().resolution).not.toBe('attributed')
+  })
+
+  it('the refusal names who actually holds it, so the operator knows what to press', async () => {
+    await resolveWithFailedSettle('client-A')
+    const wrong = await resolveTo('client-B')
+    expect(String(wrong.body.error)).toContain('client-A')
+    expect(wrong.body.data.already_attributed_to).toBe('client-A')
+  })
+
+  it('and the correct client can still reconcile afterwards', async () => {
+    await resolveWithFailedSettle('client-A')
+    await resolveTo('client-B')
+    const right = await resolveTo('client-A')
+    expect(right.code).toBe(200)
+    expect(row().resolved_client_id).toBe('client-A')
+    expect(store.figsy_replies).toHaveLength(1)
+  })
+})
+
+describe('TEST 3 · discard after the reply was written', () => {
+  it('🛑 IT IS REFUSED — a written reply can never be recorded as belonging to nobody', async () => {
+    await resolveWithFailedSettle('client-A')
+    const d = await discard()
+    expect(d.code).toBe(409)
+    expect(row().resolution, 'a reply in a client\'s inbox was recorded as discarded').not.toBe('discarded')
+    expect(row().resolved_at).toBeNull()
+  })
+
+  it('🛑 AND THE REPLY IS UNTOUCHED', async () => {
+    await resolveWithFailedSettle('client-A')
+    await discard()
+    expect(store.figsy_replies).toHaveLength(1)
+    expect(store.figsy_replies[0].client_id).toBe('client-A')
+  })
+
+  it('it names the client and the remedy — one press of the button beside it', async () => {
+    await resolveWithFailedSettle('client-A')
+    const d = await discard()
+    expect(String(d.body.error)).toContain('client-A')
+    expect(String(d.body.error)).toContain('Attribute to this client')
+    expect(d.body.data.needs).toBe('attribution_reconciliation')
+  })
+
+  it('and after reconciling, discard is simply already-resolved', async () => {
+    await resolveWithFailedSettle('client-A')
+    await resolveTo('client-A')
+    const d = await discard()
+    expect(d.body.data.resolved).toBe('already_resolved')
+    expect(row().resolution).toBe('attributed')
+  })
+
+  it('an unreadable lookup also refuses a discard — not knowing is not permission', async () => {
+    store.replyLookupError = { message: 'timeout' }
+    const d = await discard()
+    expect(d.code).toBe(500)
+    expect(row().resolution).toBeNull()
+    expect(row().resolved_at).toBeNull()
+  })
+})
+
+describe('TEST 4 · the ordinary path is unchanged', () => {
+  it('🛑 NO EXISTING REPLY → PROCESS ONCE, REPLY ONCE, SETTLE ONCE, AUDIT ONCE', async () => {
+    const r = await resolveTo('client-A')
+    expect(r.code).toBe(200)
+    expect(store.pipelineCalls).toHaveLength(1)
+    expect(store.figsy_replies).toHaveLength(1)
+    expect(row().resolution).toBe('attributed')
+    expect(store.audits.filter(a => a.action === 'unattributed_reply_attributed')).toHaveLength(1)
+  })
+
+  it('and it is NOT reported as a reconciliation', async () => {
+    const r = await resolveTo('client-A')
+    expect(r.body.data.reconciled).toBeUndefined()
+    const audit = store.audits.find(a => a.action === 'unattributed_reply_attributed')
+    expect(audit!.detail.reconciled).toBeUndefined()
+  })
+
+  it('the claim is still taken on the ordinary path — concurrency is not weakened', async () => {
+    // The reconciliation lookup runs first, but on this path it finds nothing and the claim
+    // still guards the processing. A concurrent caller is still refused.
+    row().resolve_claimed_at = '2026-09-17T10:00:00.000Z'
+    const r = await resolveTo('client-A')
+    expect(r.code).toBe(409)
+    expect(store.figsy_replies).toHaveLength(0)
+  })
+
+  it('a non-candidate is still refused before anything else happens', async () => {
+    const r = await resolveTo('client-C')
+    expect(r.code).toBe(400)
+    expect(store.figsy_replies).toHaveLength(0)
+    expect(store.pipelineCalls).toHaveLength(0)
+  })
+})
+
+describe('TEST 5 · an already fully resolved exception', () => {
+  it('🛑 A RETRY CREATES NOTHING AND MOVES NOTHING', async () => {
+    await resolveTo('client-A')
+    const again = await resolveTo('client-A')
+    expect(again.code).toBe(200)
+    expect(store.figsy_replies).toHaveLength(1)
+    expect(store.pipelineCalls).toHaveLength(1)
+    expect(again.body.data.resolved).toBe('already_resolved')
+  })
+
+  it('🛑 AND IT CANNOT BE MOVED TO THE OTHER CANDIDATE', async () => {
+    await resolveTo('client-A')
+    await resolveTo('client-B')
+    expect(store.figsy_replies).toHaveLength(1)
+    expect(store.figsy_replies[0].client_id).toBe('client-A')
+    expect(row().resolved_client_id).toBe('client-A')
+  })
+})
+
+describe('TEST 6 · the correlation lookup cannot be read', () => {
+  beforeEach(() => { store.replyLookupError = { message: 'relation "figsy_replies" is unavailable' } })
+
+  it('🛑 FAIL CLOSED — no new reply', async () => {
+    const r = await resolveTo('client-A')
+    expect(r.code).toBe(500)
+    expect(store.figsy_replies, 'a reply was written without knowing whether one already existed').toHaveLength(0)
+    expect(store.pipelineCalls).toHaveLength(0)
+  })
+
+  it('🛑 NO SETTLEMENT EITHER', async () => {
+    await resolveTo('client-A')
+    expect(row().resolved_at).toBeNull()
+    expect(row().resolution).toBeNull()
+  })
+
+  it('🛑 AND NO DISCARD', async () => {
+    const d = await discard()
+    expect(d.code).toBe(500)
+    expect(row().resolution).toBeNull()
+  })
+
+  it('the operator is told, rather than the failure being silent', async () => {
+    const r = await resolveTo('client-A')
+    expect(String(r.body.error)).toContain('could not be checked')
+    expect(r.body.success).toBe(false)
+  })
+
+  it('the claim is not taken, so nothing is left stuck by the refusal', async () => {
+    await resolveTo('client-A')
+    expect(row().resolve_claimed_at).toBeNull()
+  })
+})
+
+describe('the impossible case — one exception, two clients', () => {
+  it('🛑 FAILS CLOSED AND PICKS NEITHER', async () => {
+    // Should be unreachable: the write path routes to one client and the DB carries a partial
+    // unique index on `provider_event_key`. Reaching it means an assumption has broken, and
+    // choosing one would be inventing an answer to a question we have just found we cannot
+    // answer.
+    store.figsy_replies.push(
+      { id: 'r1', client_id: 'client-A', provider_event_key: 'unattributed:unattr-1' },
+      { id: 'r2', client_id: 'client-B', provider_event_key: 'unattributed:unattr-1' },
+    )
+    const r = await resolveTo('client-A')
+    expect(r.code).toBe(500)
+    expect(String(r.body.error)).toContain('should be impossible')
+    expect(row().resolved_at).toBeNull()
+  })
+
+  it('and a discard is refused for it too', async () => {
+    store.figsy_replies.push(
+      { id: 'r1', client_id: 'client-A', provider_event_key: 'unattributed:unattr-1' },
+      { id: 'r2', client_id: 'client-B', provider_event_key: 'unattributed:unattr-1' },
+    )
+    const d = await discard()
+    expect(d.code).toBe(409)
+    expect(row().resolution).toBeNull()
+  })
+
+  it('⚠️ BUT TWO REPLIES FOR ONE CLIENT IS NORMAL AND RECONCILES FINE', async () => {
+    // A client legitimately holds the same prospect under two leads, and the pipeline writes
+    // one row per lead. That is ONE attribution, not a conflict.
+    store.figsy_replies.push(
+      { id: 'r1', client_id: 'client-A', provider_event_key: 'unattributed:unattr-1' },
+      { id: 'r2', client_id: 'client-A', provider_event_key: 'unattributed:unattr-1' },
+    )
+    const r = await resolveTo('client-A')
+    expect(r.code).toBe(200)
+    expect(row().resolved_client_id).toBe('client-A')
+    expect(r.body.data.reply_ids).toEqual(['r1', 'r2'])
+  })
+
+  it('and a reply for a DIFFERENT retention id is never mistaken for this one', async () => {
+    // The correlation is exact. A reply belonging to another exception must not satisfy this
+    // one — that would settle an open exception against somebody else's reply.
+    store.figsy_replies.push({ id: 'r9', client_id: 'client-A', provider_event_key: 'unattributed:unattr-999' })
+    const r = await resolveTo('client-A')
+    expect(r.code).toBe(200)
+    expect(store.pipelineCalls, 'it reconciled against an unrelated reply instead of processing').toHaveLength(1)
+    expect(r.body.data.reconciled).toBeUndefined()
   })
 })

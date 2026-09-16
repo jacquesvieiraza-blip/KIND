@@ -108,6 +108,12 @@ export type OperatorAction =
   | 'proof_legacy_passes_reclassified'    // the same, DELIBERATELY overwritten — a separate decision, never a retry
   | 'proof_legacy_restart_classified'     // a pre-ledger calibrated restart: completed, or burned and returned
   | 'proof_claim_reconciled'              // an OPEN claim with no trustworthy terminal outcome, settled by a person
+  | 'proof_retry_zero_eligible'  // ⚑ 16 Sep (A1b) — an operator retried Proof after K.I.N.D's
+                            // own structural gate refused every sourced candidate. Audited
+                            // whether or not it started, because "I pressed it and nothing
+                            // happened" is exactly what an audit trail has to be able to
+                            // answer — and because the press starts a real provider run
+                            // against a Proof attempt the failed run had released.
   | 'programme_go_live'      // the explicit, separate Go Live. Never a side effect of P2.
   // ⚑ 10 Sep (H) — RUN, and it is a DIFFERENT act from Go Live. Go Live arms and sends zero;
   // this is the grant that lets any send path consider the programme at all. Two acts, two

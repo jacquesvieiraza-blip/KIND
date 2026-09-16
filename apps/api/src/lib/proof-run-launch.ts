@@ -291,3 +291,80 @@ export async function continueProofAfterReviewResolved(
   })
   return { started: true, pass: authority.pass, kind: authority.kind }
 }
+
+export type ProofRetry =
+  | { started: true;  pass: number; kind: 'automatic' | 'calibrated_restart' }
+  | { started: false; reason: 'not_in_exception'; detail: string }
+  | { started: false; reason: 'already_started' }
+  | { started: false; reason: 'no_authority'; detail: string }
+  | { started: false; reason: 'unusable_client'; detail: string }
+
+/**
+ * ⚑ 16 Sep (MVP1 · A1b) — RETRY PROOF AFTER WE PRODUCED NOTHING THE CLIENT COULD USE.
+ *
+ * 🛑 THE THIRD CALLER, AND IT HAS ITS OWN PREDICATE FOR A REASON. `firstFreeProofEligibility`
+ * above refuses any client whose `proof_started_at` is set — which is every client who has
+ * ever entered Proof, including this one. That check is AR21 and it is correct: resolving a
+ * generic review must not start a second Proof. Weakening it to let this retry through would
+ * have re-opened exactly the fence it exists to hold. So this is a separate door with a
+ * separate question.
+ *
+ * 🛑 AND THE QUESTION IS THE STATE, NOT A PERMISSION. It asks the SAME persisted truth Vida's
+ * rail asks — `proofNoEligibleSetFor` — so the button can only be pressed on a client the
+ * product is already showing as a zero-eligible exception. There is no second definition of
+ * that state to drift against, and an operator cannot retry a healthy client into a free pass.
+ *
+ * ⚠️ IT GRANTS NOTHING AND COUNTS NOTHING. `claimProofAuthority` is the only door, exactly as
+ * it is for the client's own route and for the review continuation. The failed run RELEASED
+ * its claim and `refresh_proof_authority_mirror` does not count released claims, so the ladder
+ * hands back the attempt the client already had — `automatic_1` if they had delivered none.
+ * No counter is touched here, and `proof_passes_done` is never written by hand anywhere.
+ *
+ * ⚠️ NO INFINITE LOOP. Each retry is an operator PRESS, never automatic, and each one either
+ * delivers a set (consuming the attempt) or fails again and returns it. The ladder still caps
+ * DELIVERED automatic attempts at two and the calibrated restart at one — unchanged.
+ */
+export async function retryProofAfterZeroEligible(
+  clientId: string,
+  icpId: string,
+): Promise<ProofRetry> {
+  // ① THE STATE, asked of the one reader that defines it. Imported at call time to keep this
+  // module free of a static edge into the lifecycle facts gatherer.
+  const { proofNoEligibleSetFor } = await import('./programme-lifecycle-facts')
+  const inException = await proofNoEligibleSetFor(clientId)
+  if (inException !== true) {
+    return {
+      started: false, reason: 'not_in_exception',
+      detail: inException === null
+        ? 'this client\'s last Proof run could not be read, so nothing was retried'
+        : 'this client is not in a zero-eligible Proof exception, so there is nothing to retry',
+    }
+  }
+
+  // ② THE OWNER. `runIcpJob` needs a user to attribute the run to, and an operator's identity
+  // is not the client's — the same rule `firstFreeProofEligibility` applies for the same
+  // reason. A client row with no owner starts nothing.
+  const { data: row, error: rowErr } = await db.from('clients')
+    .select('user_id').eq('id', clientId).maybeSingle()
+  if (rowErr) {
+    return { started: false, reason: 'unusable_client', detail: `the client row could not be read (${rowErr.message})` }
+  }
+  const userId = (row as unknown as { user_id?: string | null } | null)?.user_id ?? null
+  if (!userId) {
+    return { started: false, reason: 'unusable_client', detail: 'this client row has no owner user, so a Proof run would have nobody to notify' }
+  }
+
+  // ③ THE AUTHORITY. One door, no exceptions, no hand-counting.
+  const { claimProofAuthority } = await import('./proof-claim')
+  const authority = await claimProofAuthority(clientId, icpId)
+  if (!authority.ok) {
+    if (authority.reason === 'in_flight') return { started: false, reason: 'already_started' }
+    return { started: false, reason: 'no_authority', detail: authority.detail ?? authority.reason }
+  }
+
+  launchProofRun({
+    icpId, clientId, userId,
+    claimed: authority.pass, batchKind: authority.kind, claimId: authority.claimId,
+  })
+  return { started: true, pass: authority.pass, kind: authority.kind }
+}

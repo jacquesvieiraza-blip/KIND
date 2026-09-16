@@ -2787,6 +2787,76 @@ operatorRouter.get('/icp-review', async (req: Request, res: Response) => {
  * matches zero rows; a replay finds `icp_review_resolved_at` already set and matches zero
  * rows. Both answer the same way — no second write, no second ICP, no duplicate.
  */
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// ⚑ 16 Sep (MVP1 · A1b) — RETRY PROOF, after we produced nothing the client could use.
+//
+// 🛑 THE CONTROL THE STATE WAS MISSING. A zero-eligible Proof run tells the client *"Your
+// setup is saved and has been flagged for K.I.N.D review"* and releases their attempt — and
+// before this route there was no way for the review it promises to actually resume anything.
+// An operator could correct the targeting and then had nowhere to press.
+//
+// ⚠️ IT DECIDES NOTHING ITSELF. The state is asked of `proofNoEligibleSetFor`, the same reader
+// Vida's rail uses, and the authority is claimed through `claimProofAuthority`, the same door
+// the client's own route uses. No counter is read or written here, and there is no second
+// definition of "is this client in the exception" to drift against the one on screen.
+//
+// ⚠️ AND IT NEVER WEAKENS `firstFreeProofEligibility`. That function refuses anyone whose
+// `proof_started_at` is set, which is AR21 and correct; the retry is a separate door with its
+// own question rather than a hole cut in that one.
+// ═══════════════════════════════════════════════════════════════════════════════════════
+operatorRouter.post('/proof-retry/:clientId', async (req: Request, res: Response) => {
+  try {
+    if (!adminKeyValid(req.headers['x-admin-key'])) {
+      res.status(403).json({ success: false, error: 'Operator key required' }); return
+    }
+    const clientId = req.params.clientId
+    const icpId = typeof req.body?.icp_id === 'string' ? req.body.icp_id.trim() : ''
+    if (!icpId) {
+      res.status(400).json({ success: false, error: 'icp_id is required — a Proof run must name the targeting it runs against.' })
+      return
+    }
+    // ⚠️ THE ICP MUST BE THIS CLIENT'S. An operator key is not a licence to run one client's
+    // Proof against another client's targeting, and the same 404 answers both "no such ICP"
+    // and "not theirs" so the key cannot be used to discover which ids belong to whom.
+    const { data: icpRow, error: icpErr } = await db.from('icps')
+      .select('id').eq('id', icpId).eq('client_id', clientId).maybeSingle()
+    if (icpErr) { res.status(500).json({ success: false, error: icpErr.message }); return }
+    if (!icpRow) { res.status(404).json({ success: false, error: 'No such ICP for that client.' }); return }
+
+    const { retryProofAfterZeroEligible } = await import('../lib/proof-run-launch')
+    const out = await retryProofAfterZeroEligible(clientId, icpId)
+
+    // ⚠️ AUDITED WHETHER IT STARTED OR NOT. A refusal is an operator action too, and "I
+    // pressed it and nothing happened" is exactly the thing an audit trail has to answer.
+    await writeOperatorAudit({
+      operatorEmail: operatorEmail(req), clientId, action: 'proof_retry_zero_eligible',
+      subjectType: 'icp', subjectId: icpId,
+      detail: out.started
+        ? { started: true, pass: out.pass, kind: out.kind }
+        : { started: false, reason: out.reason, detail: 'detail' in out ? out.detail : null },
+    })
+
+    if (!out.started) {
+      // `already_started` is not an error: a run already holds the authority, so the honest
+      // answer is that nothing more is needed.
+      const status = out.reason === 'already_started' ? 200 : 409
+      res.status(status).json({
+        success: out.reason === 'already_started',
+        started: false,
+        reason: out.reason,
+        error: out.reason === 'already_started'
+          ? undefined
+          : 'detail' in out ? out.detail : 'Proof was not retried.',
+      })
+      return
+    }
+    res.json({ success: true, started: true, pass: out.pass, kind: out.kind })
+  } catch (err) {
+    console.error('[operator/proof-retry]', err)
+    res.status(500).json({ success: false, error: 'Failed to retry Proof' })
+  }
+})
+
 operatorRouter.post('/icp-review/:icpId/resolve', async (req: Request, res: Response) => {
   try {
     if (!adminKeyValid(req.headers['x-admin-key'])) {

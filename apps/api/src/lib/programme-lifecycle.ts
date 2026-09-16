@@ -49,7 +49,26 @@ export const STAGE_LABEL: Record<LifecycleStage, string> = {
  * lifecycle stage with an exception state" — rather than being moved somewhere tidier.
  */
 export type LifecycleState =
-  | 'signup' | 'proof' | 'recommendation'
+  /**
+   * 🛑 ⚑ 16 Sep (MVP1 · A1b, found while building its sibling) — `proof_calibration_failed`
+   * IS A STATE HERE NOW, AND ITS ABSENCE WAS A LIVE DEFECT.
+   *
+   * Every other exception in this union is shaped `<stage>_<what is wrong>` and returned AS
+   * the state: `sourcing_exception`, `approval_package_stale`, `review_reply`. The 10-Sep
+   * calibration hand-off was the exception: it returned `verdict('proof', 'proof',
+   * 'proof_calibration_failed')` — the reason carried the name, the STATE stayed `'proof'`.
+   *
+   * ⚠️ AND TWO SURFACES WERE ALREADY KEYED TO THE NAME IT NEVER SENT. `vida-lifecycle-copy.ts`
+   * declares `'proof_calibration_failed'` in its own `LifecycleState` and has a full `case` for
+   * it — the phone number, the attempt summaries, the restart control — and `vida/page.tsx`
+   * gates `loadCalibration` on `lc?.verdict.state === 'proof_calibration_failed'`. Neither can
+   * ever match `'proof'`. So the one Proof-stage task the product already had rendered as an
+   * ordinary calm Proof client: built, shipped, and unreachable.
+   *
+   * It is corrected here rather than reported, because A1b adds its SIBLING state and
+   * modelling a new exception on a broken one would have shipped the same defect twice.
+   */
+  | 'signup' | 'proof' | 'proof_calibration_failed' | 'proof_exception' | 'recommendation'
   | 'sourcing' | 'sourcing_exception'
   | 'approval' | 'approval_awaiting_second_payment' | 'approval_package_stale'
   | 'live_ready_to_make_live' | 'live_ready_to_run'
@@ -99,6 +118,30 @@ export type NeedsYouReason =
    * waiting on us rather than the other way round.
    */
   | 'proof_calibration_failed'
+  /**
+   * 🛑 ⚑ 16 Sep (MVP1 · A1b) — THE SYSTEM COULD NOT PRODUCE A CLIENT-USABLE PROOF SET.
+   *
+   * The search completed, the provider returned people, and K.I.N.D's own structural gate
+   * refused every one of them — a hard criterion answered "no", or could not be confirmed at
+   * all. Nothing reached the desk.
+   *
+   * 🛑 WHY IT IS AN OPERATOR TASK WHEN ORDINARY PROOF IS NOT. The client has already been told
+   * the founder-locked sentence *"Your setup is saved and has been flagged for K.I.N.D
+   * review"*. The product has PROMISED a person. Before this reason existed that promise was
+   * false: the alert went to `founder_alerts`, which no operator surface reads, and the client
+   * was filtered out of Vida's rail for having nothing needing attention.
+   *
+   * ⚠️ IT IS NOT `proof_calibration_failed`, AND THE DIFFERENCE IS THE CAUSE (founder decision
+   * D, 16 Sep). That reason means the client SAW a set and said it was still not right — their
+   * judgement, cleared by a phone call, with the calibration doors closed behind it. This one
+   * means WE produced nothing — our defect or an unconfirmed fact — cleared by correcting the
+   * targeting and retrying. Same stage, opposite remedies. Reusing the other would show the
+   * client a phone-call UX for a failure that was ours, and would block the retry.
+   *
+   * ⚠️ AND IT NAMES CONTROLS THAT EXIST: the ICP tools Vida already has, then Retry Proof.
+   * The attempt was RELEASED by the `failed` run, so the retry costs nothing new.
+   */
+  | 'proof_no_eligible_set'
 
 /**
  * Everything the derivation is allowed to look at.
@@ -154,6 +197,25 @@ export type LifecycleFacts = {
    * direction, and the answer for every row read before the migration.
    */
   proofCompleted?: boolean | null
+  /**
+   * ⚑ 16 Sep (MVP1 · A1b) — the latest Proof run produced NOTHING the client can use, because
+   * our own structural gate refused every candidate it had inserted.
+   *
+   * Derived from two rows that already exist — the newest `icp_run_outcomes` row for the client
+   * reading `failed`, AND at least one of that client's `leads` carrying a `set_aside_reason`
+   * with no `surfaced_for_approval_at`. No new table and no new column.
+   *
+   * 🛑 THE SECOND CLAUSE IS NOT BELT-AND-BRACES, IT IS THE DISCRIMINATOR. `failed` has three
+   * writers and only one of them is the gate: the outer crash handler and a provider search
+   * that never completed both also write it, and neither leaves set-aside rows behind. Without
+   * that clause this state would claim a cause that is not its own and send an operator to
+   * correct targeting that was never the problem.
+   *
+   * ⚠️ `null`/`undefined` MEAN WE COULD NOT TELL, AND READ AS NO EXCEPTION. Reads fail soft in
+   * the direction that does not invent work — a transient error must not raise a false alarm
+   * on every client at once. This file's own header states that rule; this is it.
+   */
+  proofNoEligibleSet?: boolean | null
   /** Preparation refused, or a batch is unsettled with no run in flight. */
   preparationStopped: boolean
   /** A run IS in flight — the opposite of stopped, and it must never read as an exception. */
@@ -211,6 +273,11 @@ function stageOfProgress(p: NonNullable<LifecycleFacts['programme']>, sends: num
 const MODE_OF: Record<LifecycleState, VidaMode> = {
   signup: 'No action needed',
   proof: 'No action needed',
+  // 🛑 THE FIRST PROOF-STAGE TASK (10 Sep) — now reachable. See the union note above.
+  proof_calibration_failed: 'Needs you',
+  // 🛑 THE SECOND PROOF-STAGE TASK, and it earns it the same way the first did: the client is
+  // waiting on US, and a control exists that clears it. Ordinary Proof stays silent.
+  proof_exception: 'Needs you',
   recommendation: 'No action needed',
   sourcing: 'Working',
   sourcing_exception: 'Needs you',
@@ -260,7 +327,9 @@ export function deriveLifecycle(f: LifecycleFacts): LifecycleVerdict {
     // an escalated client has necessarily started Proof, so testing `proofStarted` first
     // would return the calm verdict and lose the task entirely.
     if (f.proofCalibrationFailed === true) {
-      return verdict('proof', 'proof', 'proof_calibration_failed')
+      // ⛓️ 16 Sep — THE STATE NOW CARRIES THE NAME, and the stage is still `proof`. The two
+      // admin surfaces that have always been keyed to this name can finally match it.
+      return verdict('proof_calibration_failed', 'proof', 'proof_calibration_failed')
     }
     // ── 🛑 10 Sep (A) — PROOF IS FINISHED, AND THE CLIENT IS AT THE CALCULATOR ──────────
     //
@@ -277,6 +346,29 @@ export function deriveLifecycle(f: LifecycleFacts): LifecycleVerdict {
     // somehow also existed, and BEFORE `proofStarted` because a completed Proof is
     // necessarily a started one.
     if (f.proofCompleted === true) return verdict('recommendation', 'recommendation', null)
+    // ── 🛑 ⚑ 16 Sep (MVP1 · A1b) — WE PRODUCED NOTHING, AND THE CLIENT HAS BEEN PROMISED A
+    //    PERSON ────────────────────────────────────────────────────────────────────────────
+    //
+    // The run completed, the provider found people, and our own structural gate refused every
+    // one. The client is already looking at `FAILED_RUN_BODY` — *"flagged for K.I.N.D
+    // review"* — so this is the person that sentence promises. Before this branch existed the
+    // promise was empty: the alert went to a table nobody reads and the client was filtered
+    // out of Vida's rail for having nothing that needed attention.
+    //
+    // ⚠️ CHECKED AFTER `proofCompleted`, DELIBERATELY. A client who has accepted a set is at
+    // the calculator and moving forward; a zero-eligible fact surviving from before that is
+    // moot, and pulling them back to Proof would be a false alarm about work that already
+    // succeeded.
+    //
+    // ⚠️ AND AFTER `proofCalibrationFailed`, which is checked at the top of this block. If
+    // both were somehow true the client's own verdict outranks ours: they are owed a call,
+    // and the call is the thing that unblocks them (founder decision D).
+    //
+    // ⚠️ IT IS INSIDE THE NO-PROGRAMME BLOCK, so it cannot fire for a programme client. Proof
+    // belongs to prospects; a programme's sourcing exceptions are `sourcing_exception`'s job.
+    if (f.proofNoEligibleSet === true) {
+      return verdict('proof_exception', 'proof', 'proof_no_eligible_set')
+    }
     return f.proofStarted === true ? verdict('proof', 'proof', null) : verdict('signup', 'signup', null)
   }
 

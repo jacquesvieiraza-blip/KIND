@@ -424,6 +424,12 @@ export default function VidaConsolePage() {
       replyAwaiting: { id: string; name: string | null; company: string | null } | null
       humanBlockers: { code: string; detail: string }[]
       stoppedDetail: string | null
+      /**
+       * ⚑ 16 Sep (MVP1 · A1b) — the gate's own grouped reasons for an empty Proof set.
+       * Present only for a `proof_exception` client; `null` otherwise and also when the
+       * evidence could not be read — the task stands either way.
+       */
+      proofException?: { sourced: number; setAside: number; reasons: Record<string, number> } | null
       senderSendable: boolean
       /** ⚑ 10 Sep (I2) — the send gate's own reason, so the panel stops sending every sender
        *  failure to "reconnect the mailbox" when three of the four have a different remedy. */
@@ -944,6 +950,46 @@ export default function VidaConsolePage() {
       say(e instanceof Error ? e.message : 'Nothing was re-frozen.')
     } finally { settleBusy(null) }
   }, [programmeActionId, forThisProgramme, selected, clients, loadProgramme])
+
+  // ── ⚑ 16 Sep (MVP1 · A1b) — RETRY PROOF AFTER A ZERO-ELIGIBLE RUN ─────────────────────
+  //
+  // 🛑 THE PRODUCT HAD ALREADY PROMISED THIS. The client's desk shows the founder-locked
+  // *"Your setup is saved and has been flagged for K.I.N.D review. You won't need to start
+  // again."* — and nothing in Vida could resume anything. This is the resume.
+  //
+  // ⚠️ IT TARGETS THE PROSPECT'S ACTIVE ICP, and the SERVER re-checks that the ICP belongs to
+  // that client: an operator key is not a licence to run one client's Proof against another's
+  // targeting, so the boundary lives on the server rather than in this choice.
+  //
+  // ⚠️ NOTHING HERE DECIDES ELIGIBILITY. The server asks the same reader the rail asks, and
+  // claims through `claimProofAuthority`. If the client is not actually in the exception it
+  // refuses, and the operator is told why.
+  const retryProof = useCallback(async () => {
+    if (!selected) return
+    const icp = (cockpit?.icps ?? []).find(i => i.is_active !== false) ?? (cockpit?.icps ?? [])[0]
+    if (!icp) {
+      setLcMsg('This client has no ICP to run Proof against. Build or activate one first.')
+      return
+    }
+    const who = (clients ?? []).find(c => c.id === selected)?.company_name ?? 'this client'
+    // ⚠️ THE CONFIRMATION SAYS WHAT IT COSTS, because the honest answer is "nothing" and an
+    // operator who assumes otherwise leaves the prospect stopped.
+    if (!confirm(`Retry Proof for ${who}?\n\nThis sources a fresh set against their current targeting.\n\nTheir Proof attempt was RELEASED by the failed run, so this does not cost them an attempt. Correct the targeting FIRST if the last run was emptied by a criterion they do not meet.`)) return
+    setLcBusy('retry_proof'); setLcMsg(null)
+    try {
+      const j = await fetch(`/api/proxy/operator/proof-retry/${encodeURIComponent(selected)}`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ icp_id: icp.id }),
+      }).then(r => r.json())
+      if (!j?.success) throw new Error(j?.error || 'Proof was not retried.')
+      setLcMsg(j?.started
+        ? 'Proof is running again. Their attempt was not spent — this is the one the failed run returned.'
+        : 'A Proof run already holds their authority, so nothing more was needed.')
+      if (selected) await loadProgramme(selected)
+    } catch (e) {
+      setLcMsg(e instanceof Error ? e.message : 'Proof was not retried.')
+    } finally { setLcBusy(null) }
+  }, [selected, cockpit, clients, loadProgramme])
 
   const lifecycle = useCallback(async (action: string, label: string) => {
     // ── 🛑 ⚑ 13 Sep (BL-1) — OWNERSHIP FIRST, ABOVE THE CONFIRMATIONS BELOW ──────────────
@@ -2296,6 +2342,11 @@ export default function VidaConsolePage() {
       // since it was written; this call site never passed it, so all three of its branches
       // fell through to "Being agreed" / "Not stated yet" for every client in the book.
       outcomeStated: lc.outcomeStated ?? null,
+      // ⚑ 16 Sep (MVP1 · A1b) — WHY the Proof set came out empty, from the gate's own
+      // persisted reasons. A Needs-you with no evidence is an alarm, not a task: without this
+      // leg the panel could only say "we produced nothing" and send the operator to the
+      // database to find out which criterion did it.
+      proofException: lc.proofException ?? null,
       // ⚑ 11 Sep (C40) — the last leg of THIS plumbing, and the same defect as `outcomeStated`
       // one line above: the copy module has read `calibration` since it was written and no
       // call site ever passed one, so every escalated client rendered with no attempt history,
@@ -2553,9 +2604,19 @@ export default function VidaConsolePage() {
       // client made every approval press refuse and nothing could issue a new version, so the
       // client sat on a dead button. This publishes one — and approves nothing.
       case 'refreeze_package': return void refreezePackage()
+      // ── ⚑ 16 Sep (MVP1 · A1b) — RETRY PROOF AFTER WE PRODUCED NOTHING ────────────────
+      //
+      // 🛑 THE CONTROL THE STATE HAD NO WAY TO OFFER. A zero-eligible Proof run tells the
+      // client their setup is saved and flagged for K.I.N.D review, and releases their
+      // attempt — and until now an operator who corrected the targeting had nowhere to press.
+      //
+      // ⚠️ IT SPENDS NOTHING NEW. The failed run released the claim, so the ladder hands back
+      // the attempt the client already had. Nothing here counts anything: the server claims
+      // through `claimProofAuthority` exactly as the client's own route does.
+      case 'retry_proof': return void retryProof()
       default: return
     }
-  }, [lifecycle, runOnceWith, pauseProgramme, refreezePackage, selected, calib, resolveCalibration, grantCalibratedRestart])
+  }, [lifecycle, runOnceWith, pauseProgramme, refreezePackage, retryProof, selected, calib, resolveCalibration, grantCalibratedRestart])
 
   return (
     <div className="flex h-full min-h-0">

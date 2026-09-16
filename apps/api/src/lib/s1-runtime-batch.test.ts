@@ -241,13 +241,25 @@ describe('🛑 S1-RT-002 · a completion whose facts live where the PROMPT put t
       brief_so_far: { exclusions: '', desired_outcome: LIVE_OUTCOME },
     })
     const r = await callBuilderChat({ messages: [{ role: 'user', content: 'x' }], profile_required: true })
-    expect(r.code).toBe(503)
-    expect(r.payload.error).toBe(RETRY_COPY)
+    // ⛓️ 16 Sep (S1-RT-010) — the refusal is now a 200 naming the missing fact instead of
+    // "Milla didn't catch that". The ELEVEN are exactly as required; what changed is that the
+    // customer is told which one is outstanding rather than being asked to retry blind.
+    expect(r.code).toBe(200)
+    expect((r.payload.data as Record<string, unknown>).type,
+      'a fact absent from BOTH homes may never complete').toBe('outstanding')
+    expect(r.payload.error).toBeUndefined()
   })
 
   it('🛑 and a completion cannot be minted from an EMPTY brief — nothing is invented', async () => {
     anthropicBox.reply = toolReply({ type: 'complete', summary: 's', icp: { name: 'x' }, brief_so_far: {} })
-    expect((await callBuilderChat({ messages: [{ role: 'user', content: 'x' }], profile_required: true })).code).toBe(503)
+    // ⛓️ 16 Sep (S1-RT-010) — refused as an outstanding-fact recovery, never a completion.
+    const empty = await callBuilderChat({ messages: [{ role: 'user', content: 'x' }], profile_required: true })
+    expect(empty.code).toBe(200)
+    const ed = empty.payload.data as Record<string, unknown>
+    expect(ed.type, 'nothing is invented from an empty brief').toBe('outstanding')
+    expect(ed.icp, 'and no targeting is proposed').toBeUndefined()
+    expect((ed.brief_outstanding as { remaining: number }).remaining,
+      'an empty brief is outstanding on all eleven').toBe(11)
   })
 
   it('🛑 THE CLIENT NEVER SPEAKS APOLLO — an un-normalisable company size still completes', async () => {
@@ -282,7 +294,10 @@ describe('🛑 S1-RT-002B · valid customer truth survives a later completion fa
       brief_so_far: { exclusions: LIVE_EXCLUSIONS, company_name: 'Redmayne Partners' },
     })
     const r = await callBuilderChat({ messages: [{ role: 'user', content: 'x' }], profile_required: true })
-    expect(r.code, 'the Brief is genuinely not ready — this refusal is correct').toBe(503)
+    // ⛓️ 16 Sep (S1-RT-010) — still refused, now as a named outstanding fact. The point of
+    // this test is the PERSISTENCE below, and it is unchanged.
+    expect(r.code, 'the Brief is genuinely not ready — this refusal is correct').toBe(200)
+    expect((r.payload.data as Record<string, unknown>).type).toBe('outstanding')
 
     // ⚠️ AND YET THE ANSWER IS SAVED. The two questions are separate: "is this customer truth
     // valid?" and "is the Brief ready to promote?". A no to the second may not erase the first.
@@ -531,7 +546,13 @@ describe('🛑 the existing authorities are untouched', () => {
 
   it('the eleven-fact list is still the one canonical counter', () => {
     const src = readFileSync(join(__dirname, '..', 'routes', 'icps.ts'), 'utf8')
-    expect(src).toContain('const facts = briefFacts({')
+    // ⛓️ 16 Sep (S1-RT-010) — the thirteen-key mapping into `briefFacts` was written out
+    // twice and is now ONE function, which is what makes "one canonical counter" structural
+    // rather than a substring that happened to appear. Both halves are pinned.
+    expect(src).toContain('function briefFactsFor(resolved: ReturnType<typeof resolveBriefFacts>)')
+    expect(src).toContain('return briefFacts({')
+    expect((src.match(/briefFactsFor\(/g) ?? []).length,
+      'defined once, called by the gate and by the recovery').toBe(3)
     expect(src).toContain('resolveBriefFacts')
   })
 

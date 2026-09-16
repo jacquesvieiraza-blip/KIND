@@ -245,9 +245,20 @@ describe('🛑 S1-RT-007 · the two live customer turns must not 503', () => {
     expect(r.status, `zod_paths were ${JSON.stringify(zodPathsIn(r.logs))}`).toBe(200)
     const d = r.json.data as Record<string, unknown>
     // 🛑 THE BRIEF IS NOT COMPLETE AND MUST NOT SAY IT IS. The customer keeps their turn and
-    // Milla keeps asking — which is the product rule, not a relaxation of it.
-    expect(d.type, 'a premature completion may NEVER be reported as complete').toBe('question')
-    expect(d.content, "and it is MILLA'S sentence, never one we wrote").toContain('NOT contact')
+    // the conversation continues — which is the product rule, not a relaxation of it.
+    //
+    // ⛓️ 16 Sep (S1-RT-010) — AND IT IS NO LONGER DELIVERED AS HER SENTENCE. Cedar Peak
+    // Advisory proved why: with ten facts held the model wrote "Great, that's everything I
+    // need — thanks Daniel!", and demoting THAT to a question delivered a sentence written to
+    // CLOSE the conversation as the turn meant to continue it. The customer was stranded. The
+    // vetoed sentence is now suppressed and the AUTHORITATIVE missing fact is returned as
+    // product state instead. Stronger, not weaker: this used to prove only "not complete",
+    // and now proves which fact blocked it.
+    expect(d.type, 'a premature completion may NEVER be reported as complete').toBe('outstanding')
+    expect(d.content, 'the completion sentence is not delivered as a turn').toBeUndefined()
+    const o = d.brief_outstanding as { next: { id: string }; remaining: number }
+    expect(o.next.id, 'TURN 1 gave no exclusions and no outcome').toBe('exclusions')
+    expect(o.remaining).toBe(2)
   })
 })
 
@@ -299,8 +310,10 @@ describe('🛑 S1-RT-007 · genuinely unsafe replies still fail closed', () => {
       brief_so_far: noCompany,
     }, { userText: TURN_1 })
     expect(r.status).toBe(200)
+    // ⛓️ 16 Sep (S1-RT-010) — still not a completion, and now it names the gap. `company` is
+    // one of the eleven, so the missing-fact path owns this refusal.
     expect((r.json.data as Record<string, unknown>).type,
-      'a completion missing the company name is still not a completion').toBe('question')
+      'a completion missing the company name is still not a completion').toBe('outstanding')
   })
 
   it('🛑 and with NO usable sentence that same reply is refused outright', async () => {
@@ -311,8 +324,19 @@ describe('🛑 S1-RT-007 · genuinely unsafe replies still fail closed', () => {
       icp: { target_category: 'agencies' },
       brief_so_far: noCompany,
     }, { userText: TURN_1 })
-    expect(r.status).toBe(503)
-    expect(zodPathsIn(r.logs).join(',')).toContain('profile.company_name')
+    // ⛓️ 16 Sep (S1-RT-010) — THE REFUSAL NO LONGER NEEDS A SENTENCE TO SURVIVE ON. It used
+    // to be a 503 ("Milla didn't catch that") purely because the reply carried no `content`
+    // to demote — the customer paid for the model's silence. The missing fact is the server's
+    // own truth, so it is returned whether or not the model wrote anything.
+    expect(r.status).toBe(200)
+    const d = r.json.data as Record<string, unknown>
+    expect(d.type, 'never a completion').toBe('outstanding')
+    expect(d.content, 'and never an invented sentence').toBeUndefined()
+    // ⚠️ AND THE REFUSAL IS STILL NAMED IN THE LOG — as the outstanding FACT ID rather than
+    // a zod path, because this path no longer reaches `millaReplyFailed`. `company` is fact
+    // #2, so the company name is exactly what it reports.
+    expect((d.brief_outstanding as { next: { id: string } }).next.id).toBe('company')
+    expect(r.logs.join('\n')).toContain('premature completion vetoed')
   })
 
   it('🛑 A MALFORMED `icp` IS REFUSED EVEN WHEN THE REPLY CARRIES A USABLE SENTENCE', async () => {
@@ -645,7 +669,14 @@ describe('🛑 S1-RT-009 · the confirmation is wired to canonical truth', () =>
     expect(ICPS).toContain("brief_exclusions: resolved.exclusions ?? ''")
     expect(ICPS).toContain('brief_geographies: resolved.geographies ?? []')
     // 🛑 AND `resolved` IS THE CUMULATIVE ONE — the durable record, not this sample.
-    expect(ICPS).toContain('? { ...parsed, brief_so_far: { ...held, ...(parsed.brief_so_far ?? {}) } as never }')
+    // ⛓️ 16 Sep (S1-RT-010) — that expression was written out in three places and is now ONE
+    // function, which is a stronger guarantee than the substring: the gate, the completion
+    // response and the premature-completion recovery cannot disagree about the resolution
+    // because they call the same code. Both halves are pinned.
+    expect(ICPS).toContain('const resolved = resolvedBriefFor(parsed, held)')
+    expect(ICPS).toContain('{ ...v, brief_so_far: { ...held, ...(v.brief_so_far ?? {}) } as never }')
+    expect((ICPS.match(/resolvedBriefFor\(/g) ?? []).length,
+      'defined once, called by the gate and by both responses').toBe(4)
   })
 
   it('🛑 the ELEVEN-FACT GATE counts the durable record too', () => {

@@ -241,7 +241,11 @@ describe('🛑 NORTHSTAR · the founder’s own three turns', () => {
     model.reply = millaSaid(READ_T3)
     const r = await turn([{ role: 'user', content: T3 }])
     expect(r.code, JSON.stringify(r.payload)).toBe(200)
-    expect((r.payload.data as { type: string }).type).toBe('question')
+    // ⛓️ 16 Sep (S1-RT-010) — she does not "keep talking" with the completion's own
+    // sentence any more; the server suppresses it and returns the outstanding fact as product
+    // state. Nobody is promoted, nothing is invented, and the facts he gave are still kept.
+    expect((r.payload.data as { type: string }).type).toBe('outstanding')
+    expect((r.payload.data as { icp?: unknown }).icp, 'no plan is proposed').toBeUndefined()
     // And the two facts he DID just say were kept, not thrown away with the refused plan.
     expect(store.facts.exclusions).toBe('no recruitment agencies or software companies')
   })

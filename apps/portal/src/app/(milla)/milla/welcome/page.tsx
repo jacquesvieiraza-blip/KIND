@@ -66,6 +66,20 @@ type BuilderReply =
       // model sample remembered.
       brief_exclusions?: string
       brief_geographies?: string[] }
+  // ── ⚑ 16 Sep (S1-RT-010) — THE SERVER VETOED A PREMATURE COMPLETION ─────────────────
+  //
+  // 🛑 NOT A MILLA TURN, AND THAT IS THE WHOLE POINT. The model declared the Brief finished
+  // while the server's eleven-fact gate still held a fact outstanding. Its sentence ("Great,
+  // that's everything I need") was SUPPRESSED server-side, because showing it and then
+  // contradicting it is the stranding this fixes. What arrives instead is product state.
+  //
+  // ⚠️ THIS APP DECIDES NOTHING ABOUT IT. `remaining`, `total` and `next` are the server's
+  // answer from the one canonical eleven-fact counter. There is no fact list in this file,
+  // no count computed here, and no opinion about which fact comes next.
+  | { type: 'outstanding'; brief_outstanding: {
+      remaining: number; total: number
+      next: { id: string; label: string }
+    } }
 type Msg = { role: 'user' | 'assistant'; content: string }
 
 async function token(): Promise<string | undefined> {
@@ -187,6 +201,10 @@ export default function MillaWelcomePage() {
   // path and the Get Help escape can both speak from it. The numbers are never derived here.
   const [briefProgress, setBriefProgress] = useState<{ count: number; total: number } | null>(null)
   const [briefNext, setBriefNext] = useState<string | null>(null)
+  // ⚑ 16 Sep (S1-RT-010) — set ONLY when the server vetoed a premature completion, cleared by
+  // the next turn that answers normally. It is the reason a NOTICE is shown rather than a
+  // bubble; the fact it names is `briefNext`, which is the server's, not this app's.
+  const [outstanding, setOutstanding] = useState<{ label: string; remaining: number } | null>(null)
   // What Milla understood about the business, alongside the targeting.
   const [business, setBusiness] = useState<Business | null>(null)
   const [proof, setProof] = useState<ProofClaim[]>([])
@@ -471,6 +489,24 @@ export default function MillaWelcomePage() {
         60_000,
       )
       const d = r.data
+      // ── 🛑 ⚑ 16 Sep (S1-RT-010) — PRODUCT STATE, NOT A SENTENCE FROM MILLA ────────────
+      //
+      // The server refused a completion it could prove was short of a fact, and suppressed the
+      // model's "that's everything I need" rather than delivering it as the turn that was
+      // meant to continue the conversation. Nothing is appended to `messages`: this must not
+      // read as Milla speaking, because she did not say it. The composer stays enabled — the
+      // client answers the outstanding fact in their own words, exactly as they have all along.
+      if (d.type === 'outstanding') {
+        const o = d.brief_outstanding
+        setOutstanding({ label: o.next.label, remaining: o.remaining })
+        // ⚠️ THE SAME STATE THE RESUME PATH AND Get Help ALREADY SPEAK FROM — reused, never
+        // duplicated, and still the server's numbers. `count` is derived by SUBTRACTION from
+        // the server's own `total` and `remaining`; there is no eleven-fact list in this app.
+        setBriefProgress({ count: Math.max(0, o.total - o.remaining), total: o.total })
+        setBriefNext(o.next.label)
+        return
+      }
+      setOutstanding(null)
       if (d.type === 'complete') {
         setMessages(m => [...m, { role: 'assistant', content: d.summary || "Here's the targeting plan I'd recommend — review it on the right." }])
         if (d.profile) setProfile(d.profile)
@@ -894,6 +930,23 @@ export default function MillaWelcomePage() {
             {/* The composer is closed until we know whether this person already has an
                 account — see the `status` comment above. A failed lookup offers a retry
                 rather than a guess, because both guesses are wrong for somebody. */}
+            {/* ── 🛑 ⚑ 16 Sep (S1-RT-010) — THE ONE THING STILL NEEDED, AS PRODUCT STATE ──
+                 Deliberately ABOVE the composer and deliberately NOT a chat bubble: it sits
+                 outside the message list, carries no avatar and is not attributed to Milla,
+                 because she did not say it — the server suppressed what she tried to say and
+                 sent this fact instead. The label is the server's; this file names no fact.
+                 The composer below stays exactly as enabled as it was: the client answers in
+                 their own words, and the next turn is an ordinary Milla turn. */}
+            {outstanding && status === 'ready' && (
+              <div role="status" className="max-w-2xl mx-auto mb-2 flex items-start gap-2.5 rounded-xl border border-[#e4dcf7] bg-[#faf7ff] px-4 py-3">
+                <span aria-hidden className="text-[13px] leading-none mt-0.5">📝</span>
+                <span className="text-[12.5px] text-[#5c5279] leading-relaxed">
+                  {outstanding.remaining === 1 ? 'One thing still needed' : `${outstanding.remaining} things still needed`}
+                  {' — '}<b className="text-[#1f1235]">{outstanding.label}</b>.
+                  {' '}Tell me below and I&rsquo;ll finish your targeting plan.
+                </span>
+              </div>
+            )}
             {status === 'error' ? (
               <div className="max-w-2xl mx-auto flex items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
                 <span className="text-[12.5px] text-[#7a6a3a]">I couldn&rsquo;t load your account just now, so I&rsquo;d rather not start until I can.</span>

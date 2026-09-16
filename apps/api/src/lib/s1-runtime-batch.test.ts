@@ -258,8 +258,16 @@ describe('🛑 S1-RT-002 · a completion whose facts live where the PROMPT put t
     const ed = empty.payload.data as Record<string, unknown>
     expect(ed.type, 'nothing is invented from an empty brief').toBe('outstanding')
     expect(ed.icp, 'and no targeting is proposed').toBeUndefined()
+    // ⛓️ 16 Sep (S1-ONB-002) — ELEVEN, NOT TWELVE, AND THE ACCOUNT GAP IS ITS OWN NUMBER.
+    // Combining them put "12 things still needed" in front of a customer whose Brief has
+    // eleven facts, and made operator progress read 9 of 11 for a client holding 10. The two
+    // classes are counted separately; `remaining` and `total` are a matched pair.
     expect((ed.brief_outstanding as { remaining: number }).remaining,
-      'an empty brief is outstanding on all eleven').toBe(11)
+      'the canonical Brief facts alone').toBe(11)
+    expect((ed.brief_outstanding as { total: number }).total,
+      'and its matched denominator').toBe(11)
+    expect((ed.brief_outstanding as { account: number }).account,
+      'the account country, counted apart').toBe(1)
   })
 
   it('🛑 THE CLIENT NEVER SPEAKS APOLLO — an un-normalisable company size still completes', async () => {
@@ -546,14 +554,16 @@ describe('🛑 the existing authorities are untouched', () => {
 
   it('the eleven-fact list is still the one canonical counter', () => {
     const src = readFileSync(join(__dirname, '..', 'routes', 'icps.ts'), 'utf8')
-    // ⛓️ 16 Sep (S1-RT-010) — the thirteen-key mapping into `briefFacts` was written out
-    // twice and is now ONE function, which is what makes "one canonical counter" structural
-    // rather than a substring that happened to appear. Both halves are pinned.
-    expect(src).toContain('function briefFactsFor(resolved: ReturnType<typeof resolveBriefFacts>)')
-    expect(src).toContain('return briefFacts({')
-    expect((src.match(/briefFactsFor\(/g) ?? []).length,
-      'defined once, called by the gate and by the recovery').toBe(3)
+    // ⛓️ 16 Sep (S1-ONB-001) — STRONGER THAN "ONE COUNTER": THE ROUTE CANNOT COUNT AT ALL.
+    // `briefFactsFor` is deleted. This route projects a resolution into the stored shape and
+    // ASKS the one authority — a route that cannot count cannot disagree about the count.
+    expect(src).not.toContain('function briefFactsFor')
+    expect(src).not.toContain('briefFacts({')
+    expect(src).toContain('onboardingState(draftFactsFromResolved(resolved))')
     expect(src).toContain('resolveBriefFacts')
+    const onb = readFileSync(join(__dirname, 'onboarding-state.ts'), 'utf8')
+    expect(onb, 'and the counter is still the shared eleven-fact one')
+      .toContain('briefDraftFacts(facts ?? null)')
   })
 
   it('confirmation is still a separate act, not an inference from eleven', async () => {

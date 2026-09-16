@@ -115,6 +115,11 @@ const USER = 'user-1'
 
 /** Ten of the eleven — everything except the target's organisational form. */
 const TEN: Record<string, unknown> = {
+  // ⛓️ 16 Sep (S1-ONB-001) — `country` added. It is NOT a twelfth Brief fact: the eleven are
+  // still eleven. It is the ACCOUNT requirement onboarding readiness now includes, and without
+  // it every confirm below would be held back by the country rather than by the Brief fact
+  // each case is actually named for.
+  country: 'United Kingdom',
   contact_name: 'Ellis Warner',
   company_name: 'Redmayne & Co.',
   website: 'https://redmayne.co.uk',

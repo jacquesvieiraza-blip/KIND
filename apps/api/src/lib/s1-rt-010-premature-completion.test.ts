@@ -37,8 +37,12 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { BRIEF_FACTS } from '@kind/shared'
 
-/** Cedar Peak's persisted Brief: ten facts held, `exclusions` absent. */
+/** Cedar Peak's persisted Brief: ten facts held, `exclusions` absent.
+ *  ⛓️ 16 Sep (S1-ONB-001) — `country` added. It is NOT a twelfth Brief fact; it is the account
+ *  requirement onboarding readiness now includes, so without it every case below would be held
+ *  back by the country instead of by the fact each test is actually named for. */
 const CEDAR_10: Record<string, unknown> = {
+  country:             'United Kingdom',
   contact_name:        'Daniel Brooks',
   company_name:        'Cedar Peak Advisory',
   website_none:        true,
@@ -342,7 +346,7 @@ describe('Ⓖ the portal consumes the structured recovery state', () => {
   it('renders a notice outside the message list, and it is not attributed to Milla', () => {
     const at = PORTAL.indexOf('{outstanding && status === ')
     expect(at, 'the notice renders').toBeGreaterThan(-1)
-    const block = PORTAL.slice(at, at + 900)
+    const block = PORTAL.slice(at, at + 1600)   // ⛓️ 16 Sep — the S1-ONB-002 comment widened it
     expect(block).toContain('role="status"')
     expect(block, 'the server\'s label, not a fact named here').toContain('{outstanding.label}')
     expect(block, 'no avatar, no Milla attribution').not.toContain('Milla')

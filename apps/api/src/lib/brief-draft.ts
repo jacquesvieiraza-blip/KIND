@@ -29,6 +29,7 @@ import { db } from '@kind/db'
 // vocabulary problem: no human can translate a country we do not operate in.
 import { splitGeographies, unsupportedGeographyAsk } from '@kind/shared'
 import { briefDraftFacts, type BriefDraftFacts, type BriefFactsResult } from '@kind/shared'
+import { onboardingState } from './onboarding-state'
 
 export type BriefDraft = {
   id: string
@@ -366,7 +367,14 @@ export async function rememberCustomerTurn(
 
 export type ConfirmOutcome =
   | { ok: true; draft: BriefDraft }
-  | { ok: false; reason: 'no_draft' | 'promoted' | 'incomplete' | 'unstorable'; missing?: string[] }
+  | {
+      ok: false; reason: 'no_draft' | 'promoted' | 'incomplete' | 'unstorable'
+      /** The canonical eleven only, as ids. */
+      missing?: string[]
+      /** ⚑ 16 Sep — BOTH CLASSES, sentence-ready. `missing` alone cannot name the account
+       *  requirement, and a refusal that lists nothing is worse than no refusal. */
+      missingLabels?: string[]
+    }
   /**
    * ⚑ 14 Sep (S1-RT-006) — THEY ASKED FOR A MARKET WE DO NOT WORK IN.
    *
@@ -408,7 +416,9 @@ export async function confirmBriefDraft(userId: string): Promise<ConfirmOutcome>
   if (read.draft.promotedClientId || promoted.clientId) return { ok: false, reason: 'promoted' }
 
   const gate = mayConfirmBrief(read.draft)
-  if (!gate.ok) return { ok: false, reason: 'incomplete', missing: gate.missing }
+  if (!gate.ok) {
+    return { ok: false, reason: 'incomplete', missing: gate.missing, missingLabels: gate.missingLabels }
+  }
 
   // ── 🛑 ⚑ 14 Sep (S1-RT-006) — WE DO NOT CREATE A CLIENT WE CANNOT SERVE ─────────────
   //
@@ -474,6 +484,20 @@ export function draftProgress(d: BriefDraft | null): BriefFactsResult {
   return briefDraftFacts(d?.facts ?? null)
 }
 
+// ⛓️ 16 Sep (S1-ONB-001) — THE AUTHORITY LIVES IN `onboarding-state.ts`, AND THE MOVE IS
+// STRUCTURAL, NOT TIDYING. It must be STATICALLY importable by `routes/icps.ts`, because the
+// eleven-fact gate is a Zod refinement and cannot await — and this file imports `@kind/db`,
+// so a static import of it would (a) drag the database client into that module graph and
+// (b) break every existing suite that replaces `./brief-draft` wholesale with a double,
+// taking the whole route down with a 503. The verdict is pure; it belongs somewhere pure.
+//
+// ⚠️ RE-EXPORTED SO EXISTING CALLERS ARE UNAFFECTED, and so there is still exactly one
+// definition — this is a second NAME for the same function, never a second answer.
+export {
+  onboardingState, ACCOUNT_FACTS, ACCOUNT_FACT_LABEL,
+  type OnboardingState, type AccountFactId,
+} from './onboarding-state'
+
 /**
  * 🛑 MAY THIS DRAFT BE CONFIRMED?
  *
@@ -484,9 +508,19 @@ export function draftProgress(d: BriefDraft | null): BriefFactsResult {
  * ⚠️ CONFIRMATION IS NOT THE TWELFTH FACT. This answers only "are the eleven present". Whether
  * the client has confirmed is `confirmedAt`, and it is asked separately everywhere.
  */
-export function mayConfirmBrief(d: BriefDraft | null): { ok: boolean; missing: string[] } {
-  const p = draftProgress(d)
-  return { ok: p.complete, missing: p.missing }
+export function mayConfirmBrief(
+  d: BriefDraft | null,
+): { ok: boolean; missing: string[]; missingLabels: string[] } {
+  // ⛓️ 16 Sep (S1-ONB-001) — DELEGATED, NOT REIMPLEMENTED. This used to count the eleven over
+  // the draft alone, which is a NARROWER input than the chat gate's, and it knew nothing about
+  // the account class — so a brief with no country was confirmable and the refusal arrived two
+  // legs later at `/auth/onboard`, after `confirmed_at` had already been stamped.
+  //
+  // ⚠️ `missing` KEEPS ITS SHAPE AND ITS MEANING: the canonical eleven, in the approved order,
+  // as ids that `BRIEF_FACT_LABEL` can render. Existing callers are unaffected. The account
+  // class travels in `missingLabels`, which is the complete sentence-ready list.
+  const s = onboardingState(d?.facts ?? null)
+  return { ok: s.state === 'ready', missing: s.unresolvedTargeting, missingLabels: s.unresolvedLabels }
 }
 
 /**

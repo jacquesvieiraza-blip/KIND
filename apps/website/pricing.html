@@ -383,6 +383,15 @@
     .inc-col li { position: relative; padding-left: 20px; font-size: 0.82rem; color: rgba(0,0,0,0.58); line-height: 1.5; }
     .inc-col li::before { content: ''; position: absolute; left: 0; top: 7px; width: 7px; height: 7px; border-radius: 50%; background: linear-gradient(120deg,#7c3aed,#a855f7); }
 
+
+    /* ══ THE RATE — one flat price, no volume tiers (founder, 16 Sep) ══ */
+    .pr-rate { max-width: 560px; margin: 0 auto; background: #fff; border: 1.5px solid var(--blue); border-radius: 26px; padding: 44px 32px 38px; text-align: center; box-shadow: 0 30px 60px -30px rgba(70,30,130,0.35); }
+    .pr-rate-num { font-size: 4.6rem; font-weight: 900; letter-spacing: -0.05em; line-height: 1; background: linear-gradient(120deg,#F5179B,#A62AD1 55%,#4B2BE0); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+    .pr-rate-unit { font-size: 0.8rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.14em; color: rgba(0,0,0,0.42); margin-top: 12px; }
+    .pr-rate-line { font-size: 0.88rem; color: rgba(0,0,0,0.5); line-height: 1.7; margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border); max-width: 380px; margin-left: auto; margin-right: auto; }
+    .pr-nots { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; margin-top: 22px; }
+    .pr-not { background: var(--light); border: 1px solid var(--border); border-radius: 100px; padding: 9px 20px; font-size: 0.82rem; font-weight: 600; color: rgba(0,0,0,0.55); }
+    @media (max-width: 640px) { .pr-rate-num { font-size: 3.6rem; } .pr-rate { padding: 34px 22px 30px; } }
     @media (max-width: 1024px) {
       .inc-grid { grid-template-columns: 1fr 1fr; }
       .proc-grid { grid-template-columns: 1fr 1fr; }
@@ -492,30 +501,26 @@
   </div>
 </div>
 
-<!-- ══ 4. THE PRICE CURVE ══ -->
+<!-- ══ 4. THE PRICE ══ -->
 <div class="plans-wrap" style="margin-top:96px">
   <div class="plans-head">
     <div class="s-label">The price</div>
-    <h2>$450 is the most you will ever pay for a meeting.</h2>
-    <p>The more meetings in the programme, the less each one costs. <strong>The discount is automatic — there is nothing to negotiate.</strong></p>
+    <h2>$450 a booked meeting.</h2>
+    <p>One rate. It does not move with the size of the programme, and there is nothing to negotiate.</p>
   </div>
 
-  <div class="pr-table-wrap">
-    <table class="pr-table">
-      <thead>
-        <tr><th>Booked meetings</th><th>Per meeting</th><th>Programme price</th></tr>
-      </thead>
-      <tbody>
-        <tr class="pr-row-worst"><td>1 <span class="pr-tag">worst case</span></td><td class="pr-ppm">$450.00</td><td class="pr-tot">$450.00</td></tr>
-        <tr><td>5</td><td class="pr-ppm">$444.44</td><td class="pr-tot">$2,222.22</td></tr>
-        <tr><td>10</td><td class="pr-ppm">$437.50</td><td class="pr-tot">$4,375.00</td></tr>
-        <tr><td>25</td><td class="pr-ppm">$423.44</td><td class="pr-tot">$10,585.94</td></tr>
-        <tr class="pr-row-floor"><td>50 <span class="pr-tag pr-tag-floor">floor</span></td><td class="pr-ppm">$400.00</td><td class="pr-tot">$20,000.00</td></tr>
-        <tr><td>50+</td><td class="pr-ppm">$400.00</td><td class="pr-tot">$400 per meeting, flat</td></tr>
-      </tbody>
-    </table>
+  <div class="pr-rate">
+    <div class="pr-rate-num">$450</div>
+    <div class="pr-rate-unit">per booked meeting</div>
+    <div class="pr-rate-line">A meeting accepted in your calendar. Nothing before it is charged for.</div>
   </div>
-  <p class="plans-fine">$400 is the floor. It does not go lower, and you do not have to ask for it.<br />No subscription · no retainer · no per-seat licence · no minimum term.</p>
+
+  <div class="pr-nots">
+    <div class="pr-not">No subscription</div>
+    <div class="pr-not">No retainer</div>
+    <div class="pr-not">No per-seat licence</div>
+    <div class="pr-not">No minimum term</div>
+  </div>
 </div>
 
 <!-- ══ 5. THE 50/50, EXPLAINED ══ -->

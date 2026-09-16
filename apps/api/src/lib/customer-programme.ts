@@ -388,20 +388,28 @@ export async function readCustomerProgramme(clientId: string): Promise<CustomerP
   // ⚠️ `null` ON AN UNREADABLE COUNT, and `programmeIsRunning` reads that as NOT running. A
   // zero would assert "nothing has been sent", which is a different claim from "we could not
   // count", and the difference is what the client is told about their own programme.
+  //
+  // 🛑 ⚑ 16 Sep — CORRECTED BEFORE IT SHIPPED, AND THE GUARD THAT CAUGHT IT IS THE POINT.
+  // My first cut read ~~`figsy_campaigns.programme_id`~~ — A COLUMN NO MIGRATION CREATES.
+  // `schema-truth.test.ts` named it exactly: supabase-js returns `{ error }` rather than
+  // throwing, so a rejected query renders identically to an empty one. The count would have
+  // come back 0 for every programme on earth, Milla would have said "Ready to start" for ever,
+  // and nothing would have broken loudly enough to notice. The programme→campaign link is
+  // `resolveProgrammeChain`, which is how every other reader in this repo asks.
   let emailsDelivered: number | null = null
   try {
-    const { data: camps, error: campErr } = await db.from('figsy_campaigns')
-      .select('id').eq('programme_id', p.id)
-    if (campErr) throw new Error(campErr.message)
-    const campaignIds = ((camps ?? []) as { id: string }[]).map(c => c.id)
-    if (campaignIds.length === 0) {
+    const { resolveProgrammeChain } = await import('./programme-chain')
+    const chain = await resolveProgrammeChain(String(p.id))
+    if (!chain.ok) throw new Error(chain.degraded)
+    const campaignId = chain.chain.campaignId
+    if (!campaignId) {
       // No campaign for this programme means nothing can have been sent for it. That is a
       // measured zero, not an unreadable one.
       emailsDelivered = 0
     } else {
       const { count, error: sentErr } = await db.from('figsy_sent_emails')
         .select('id', { count: 'exact', head: true })
-        .in('campaign_id', campaignIds)
+        .eq('campaign_id', campaignId)
       if (sentErr) throw new Error(sentErr.message)
       emailsDelivered = count ?? 0
     }

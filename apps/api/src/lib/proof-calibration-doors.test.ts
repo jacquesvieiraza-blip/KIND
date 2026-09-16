@@ -186,7 +186,23 @@ describe('🛑 ③ Proof reaches Needs you, as a REASON and not a stage', () => 
   })
 
   it('the verdict is a Proof-stage TASK — stage proof, reason set', () => {
-    expect(code(LIFECYCLE)).toContain("return verdict('proof', 'proof', 'proof_calibration_failed')")
+    // ⛓️ 16 Sep (MVP1 · A1b) — RE-POINTED, AND THE CORRECTION IS THE WHOLE REASON.
+    //
+    // 🛑 THE STATE USED TO BE `'proof'` AND THAT MADE THIS TASK UNREACHABLE. Every other
+    // exception in the union is returned AS its own state (`sourcing_exception`,
+    // `approval_package_stale`, `review_reply`); this one put the name in the REASON and left
+    // the state as plain `'proof'`. Both admin surfaces are keyed to the NAME —
+    // `vida-lifecycle-copy.ts` has a full `case 'proof_calibration_failed'` and
+    // `vida/page.tsx` gates `loadCalibration` on `verdict.state === 'proof_calibration_failed'`
+    // — and neither can match `'proof'`. So the one Proof-stage task the product already had
+    // was built, shipped, and never rendered. Found while building its sibling
+    // (`proof_exception`) and fixed, because modelling a new exception on a broken one would
+    // have shipped the same defect twice.
+    //
+    // ⚠️ THE DUTY THIS TEST NAMES IS UNCHANGED: the STAGE is still `proof` — it is a reason,
+    // not a ninth stage — and the reason is still set.
+    expect(code(LIFECYCLE))
+      .toContain("return verdict('proof_calibration_failed', 'proof', 'proof_calibration_failed')")
   })
 
   it('the fact is gathered, and fails SOFT to null rather than to false', () => {

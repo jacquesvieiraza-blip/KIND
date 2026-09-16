@@ -386,7 +386,12 @@ describe('ISOLATION — THIS SLICE CHANGED NOTHING OUTSIDE MILLA', () => {
   it('the Milla FLOW, Proof calibration and chat truth are intact', () => {
     const shell = strip(readFileSync(join(PORTAL, 'components/milla/MillaShell.tsx'), 'utf8'))
     const home  = strip(readFileSync(join(PORTAL, 'app/(milla)/milla/page.tsx'), 'utf8'))
-    expect(shell).toContain('{MILLA_STAGES.map((label, i, arr) => {')
+    /* ⛓️ 16 Sep (MVP1 · B1) — RE-POINTED. These isolation guards prove the Milla FLOW ribbon
+       still exists and was not collateral damage; the CONSTANT it maps changed from
+       `MILLA_STAGES` (seven, starting at Proof) to the canonical `MVP1_MILLA_STAGES` (six,
+       starting at Brief) — the same module Vida's ribbon now reads, so one client has one
+       position in both consoles. The duty asserted here is unchanged. */
+    expect(shell).toContain('{MVP1_MILLA_STAGES.map((label, i, arr) => {')
     expect(shell).not.toMatch(/wallet/i)
     for (const control of ['👍 Looks right', 'Not a fit', 'Tell Milla why']) {
       expect(home, `the calibration control "${control}" is gone`).toContain(control)

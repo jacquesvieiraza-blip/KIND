@@ -317,8 +317,14 @@ describe('④ Vida never offers an action that cannot clear the blocker', () => 
       sequenceId: 's', sequenceCampaignLinked: true, messageSteps: 3,
       cadenceConfigured: true, sendScheduleConfigured: true, senderAssigned: false, senderVerified: false, senderProblem: null,
     }))
+    // 🛑 FAILING CLOSED IS THE DUTY, AND IT IS UNCHANGED: the blocker fires and the programme
+    // cannot be put in front of a client.
     expect(b.map(x => x.code)).toContain('no_sender')
-    expect(onlyPreparationBlocks(b), 'a programme with no mailbox was called preparable').toBe(false)
+    expect(b.length, 'a programme with no mailbox was called ready').toBeGreaterThan(0)
+    // ⛓️ 16 Sep (MVP1 · C1d) — and it is now one preparation away, because preparation claims
+    // a pooled mailbox and verifies it. The button that clears this exists now; before this
+    // build the blocker was real and the remedy was not.
+    expect(onlyPreparationBlocks(b)).toBe(true)
   })
 })
 

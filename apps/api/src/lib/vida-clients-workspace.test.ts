@@ -145,11 +145,20 @@ describe('🛑 ② which controls exist — the half a correct rule can still ge
     expect(JSON.stringify(c.cards)).toContain('Make live arms it. Run is a separate step, later.')
   })
 
-  it('Run is the only control after it, and it REQUIRES a typed ceiling', () => {
+  it('Run is the only control after it, and it needs NO ceiling — Run sends nothing', () => {
     const c = copy('live_ready_to_run')
     expect(c.actions.map(a => a.key)).toEqual(['run'])
-    // 🛑 A DEFAULTED CEILING IS A NUMBER NOBODY CHOSE.
-    expect(c.actions[0].needsCeiling).toBe(true)
+    // ⛓️ 16 Sep (MVP1 · D1) — RE-POINTED, AND THE OLD ASSERTION WAS A SYMPTOM OF THE DEFECT.
+    //
+    // 🛑 "A DEFAULTED CEILING IS A NUMBER NOBODY CHOSE" IS STILL TRUE — of SEND-ONCE, which
+    // keeps its ceiling. It was never true of Run. `programmes.run_at` is an AUTHORITY: Run
+    // grants permission for the scheduled batches to send and delivers nothing itself, so
+    // there is no maximum for it to obey. Asking an operator for one implied the press
+    // delivers — and that confusion is exactly why `case 'run'` had been wired to
+    // `POST /operator/send-due/run-once` instead of `POST /programmes/:id/run`, so pressing
+    // Run sent real email and left `run_at` NULL.
+    expect(c.actions[0].needsCeiling, 'the lifecycle Run demands send-once\'s input again')
+      .toBeUndefined()
   })
 
   it('🛑 RUN IS NOT DRAWN AT ALL WHILE THE KILL-SWITCH IS ON', () => {
@@ -297,8 +306,21 @@ describe('🛑 ③ the copy locks — each replaced a claim the product could no
 })
 
 describe('④ the lifecycle ribbon', () => {
-  it('is the locked eight, in order', () => {
-    expect(RIBBON).toContain("'Signup', 'Proof', 'Recommendation', 'Sourcing', 'Approval', 'Live', 'Review', 'Completion'")
+  it('is the canonical SIX, in order, and typed nowhere in the component', () => {
+    // ⛓️ 16 Sep (MVP1 · B1) — RE-POINTED FROM THE ENGINE'S EIGHT TO THE FOUNDER'S SIX.
+    //
+    // 🛑 THE EIGHT WERE THE ENGINE'S VOCABULARY RENDERED AS IF IT WERE THE JOURNEY, and they
+    // were hand-typed into this component while Milla's ribbon drew a different SEVEN — so one
+    // client sat at a differently named and differently numbered stage depending on which
+    // console was open. `signup` is a position inside Brief; `recommendation` and `sourcing`
+    // are both Prepare; `review` is an exception inside delivery, not a place after it.
+    //
+    // ⚠️ AND THE STRONGER FORM OF THIS GUARD IS THE SECOND LINE: the labels are no longer in
+    // the component AT ALL. They come from `@kind/shared`, which is what makes drift between
+    // the two consoles impossible rather than merely noticed.
+    expect(RIBBON).toContain('MVP1_VIDA_STAGES')
+    expect(RIBBON, 'the ribbon declares its own stage vocabulary again')
+      .not.toContain("'Signup', 'Proof', 'Recommendation', 'Sourcing', 'Approval', 'Live', 'Review', 'Completion'")
   })
 
   it('🛑 IS READ-ONLY — no button, no link, no click handler', () => {
@@ -311,8 +333,20 @@ describe('④ the lifecycle ribbon', () => {
   })
 
   it('exactly one stage can be live, and the page feeds it the server\'s index', () => {
-    expect(RIBBON).toContain('const now = stageIndex === n')
-    expect(PAGE).toContain('<LifecycleRibbon stageIndex={lc?.verdict.stageIndex ?? null} />')
+    // ⛓️ 16 Sep (MVP1 · B1) — THE PAGE FEEDS IT THE SERVER'S STAGE, NOT THE SERVER'S INDEX.
+    //
+    // 🛑 THE NUMBER COULD NOT BE REUSED. `stageIndex` is 1-based into the ENGINE'S EIGHT;
+    // handing it to six labels lights the wrong stage from `sourcing` onwards and falls off
+    // the end at 7 and 8. The ribbon takes the stage NAME and projects it through the shared
+    // `mvp1VidaStage`, so there is no arithmetic left to get wrong.
+    //
+    // ⚠️ THE DUTY IS UNCHANGED: exactly one stage is live, and the answer comes from the
+    // server rather than from anything the browser worked out for itself.
+    expect(RIBBON).toContain('const now = at >= 0 && i === at')
+    expect(RIBBON).toContain('mvp1VidaStage(')
+    expect(PAGE).toContain('stage={lc?.verdict.stage ?? null}')
+    expect(PAGE, 'the page hands the ribbon an eight-stage index again')
+      .not.toContain('<LifecycleRibbon stageIndex=')
   })
 
   it('the Command Centre has no ribbon', () => {
@@ -340,8 +374,13 @@ describe('🛑 ⑤ the eleven tabs are no longer the Clients experience', () => 
     // "Do NOT delete its underlying capabilities." The ICP editor, the sequence editor, the
     // campaign settings, the asks and the pool have no other home in this product; removing
     // the strip would have made working capability unreachable.
+    // ⛓️ 16 Sep (MVP1 · A2) — `tab` → `shownTab` on the render side. The panes compare against
+    // the RESOLVED tab so a client-work tab WITHHELD during healthy Proof cannot leave a blank
+    // workspace. Withholding is not deleting — the duty this guard names is exactly right and
+    // is unchanged: all eleven panels still exist and every one returns the moment the client
+    // leaves Proof.
     for (const t of ['Inbox', 'Approvals', 'People', 'Campaign', 'ICP', 'Sequence', 'Asks', 'Bookings', 'Programme', 'Pool', 'Exceptions']) {
-      expect(PAGE.includes(`tab === '${t}'`), `the ${t} panel was deleted`).toBe(true)
+      expect(PAGE.includes(`shownTab === '${t}'`), `the ${t} panel was deleted`).toBe(true)
     }
   })
 
@@ -414,7 +453,9 @@ describe('⑧ switching client re-derives everything, and keeps no old state', (
     // `lc` is the server's answer for the selected client. Three surfaces, one source — so a
     // switch cannot leave one of them describing the previous client.
     expect(PAGE).toContain('const lc = prog?.lifecycle ?? null')
-    expect(PAGE).toContain('stageIndex={lc?.verdict.stageIndex ?? null}')
+    // ⛓️ 16 Sep (MVP1 · B1) — the ribbon is fed the STAGE, not the eight-stage index; `lc` is
+    // still the one verdict all three surfaces read, which is this guard's whole point.
+    expect(PAGE).toContain('stage={lc?.verdict.stage ?? null}')
     expect(PAGE).toContain('lifecycle: lcCopy && lc')
   })
 
@@ -457,7 +498,12 @@ describe('⑨ the panel renders decisions, it does not make them', () => {
   it('the routes it reaches for are the ones that already existed', () => {
     expect(PAGE).toContain("lifecycle('ready-for-approval', 'Try again')")
     expect(PAGE).toContain("lifecycle('go-live', 'Make live')")
-    expect(PAGE).toContain('runOnceWith(ceiling ?? 0)')
+    // ⛓️ 16 Sep (MVP1 · D1) — SEND-ONCE SURVIVES AS ITS OWN TOOL, which is what this guard
+    // is for: the routes are the ones that already existed. What changed is that the LIFECYCLE
+    // Run no longer calls it — it calls `POST /programmes/:id/run`, the audited route that
+    // writes `run_at`. Both routes still exist and both are still reached.
+    expect(PAGE).toContain('send-due/run-once')
+    expect(PAGE).toMatch(/\/programmes\/\$\{encodeURIComponent\([a-zA-Z]+\)\}\/run/)
     expect(existsSync(join(ADMIN, 'app', 'vida', 'engine', 'page.tsx')), 'the mailbox page is gone').toBe(true)
   })
 })

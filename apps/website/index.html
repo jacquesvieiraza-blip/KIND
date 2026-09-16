@@ -1400,6 +1400,12 @@
    ⚠️ COLOUR ONLY — no transform, no opacity on layout, no font swap. Nothing here can move
    the hero or cause layout shift. */
 .gp-sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+/* 🛑 `.gp-hero h1 span{display:block}` above makes EVERY span in the headline a block, so
+   the per-letter spans stacked one letter per line and the hero became a vertical column.
+   Caught on the first full-page render after the build. The letters and their aria-hidden
+   wrapper are forced back inline; the two LINE spans keep their block behaviour. */
+.gp-hero h1 .gp-resolve > span,
+.gp-resolve .gp-ltr{ display:inline; }
 .gp-resolve .gp-ltr{
   color:var(--ink);
   animation:gp-resolve 300ms ease-out both;

@@ -30,6 +30,60 @@ export const WIDENED_NO_MATCH_BODY =
   'That refined targeting didn’t return a second set. K.I.N.D will review it with you.'
 
 /**
+ * ⚑ 16 Sep (MVP1 · A1) — THE COUNT THE CLIENT CAN ACTUALLY RECEIVE.
+ *
+ * 🛑 WHY THIS EXISTS AS A NAMED FUNCTION RATHER THAN INLINE ARITHMETIC. `runIcpJob` counts
+ * `inserted` — every candidate row it wrote — and then the 10-Sep STRUCTURAL GATE refuses
+ * some of them, which are never surfaced and never shown. Two different numbers, one of
+ * which is the client's truth and the other of which is accounting's. They were the same
+ * variable, so the client was told the accounting number.
+ *
+ * ⚠️ THE RAW NUMBER IS NOT REDEFINED (founder decision C, 16 Sep). `icp_run_outcomes
+ * .total_inserted` still records what we sourced, because that is what the run cost and what
+ * an audit must be able to read. This is the OTHER number — what arrived on the desk — and
+ * it is the only one a client sentence or a Proof settlement may derive from.
+ *
+ * ⚠️ IT CANNOT GO NEGATIVE. A set-aside count larger than the insert count would be a bug
+ * upstream, but "less than nothing" downstream reads as a healthy zero in some comparisons
+ * and as a truthy negative in others, so it is clamped here rather than at each caller.
+ */
+export function clientUsableCount(totalInserted: number, setAside: number): number {
+  return Math.max(0, Math.round(totalInserted) - Math.round(setAside))
+}
+
+/**
+ * ⚑ 16 Sep (MVP1 · A1) — DID K.I.N.D'S OWN GATES EMPTY A SEARCH THAT WORKED?
+ *
+ * This is the 26-Aug rule — *"A ZERO THAT K.I.N.D ITSELF CREATED IS NEVER A TARGETING
+ * VERDICT"* — lifted out of `runIcpJob` so it can be proved rather than read. The rule and
+ * its consequences (`failed`, a released Proof attempt, `FAILED_RUN_BODY`, a founder alert)
+ * are unchanged; only the COUNT it asks about is corrected.
+ *
+ * 🛑 THE DEFECT IT FIXES. The predicate asked `inserted === 0` — the PRE-GATE count — and so
+ * a run that inserted twenty candidates and had all twenty refused by the structural gate
+ * looked like a healthy served batch: the client was told "Sourced 20 leads." with an empty
+ * desk, and the Proof attempt was consumed for a set that was never delivered.
+ *
+ * ⚠️ THREE CONDITIONS, AND EACH EXCLUDES A DIFFERENT CAUSE:
+ *   • `clientUsable === 0`         — nothing reached the desk. One eligible lead is a served
+ *                                    batch (the 26-Aug partial-proof rule) and never this.
+ *   • `searchTrusted`              — an untrusted search is a PROVIDER failure, and
+ *                                    `deriveRunStatus` already answers it through
+ *                                    `searchCompleted:false`. Claiming it here would give one
+ *                                    state two causes.
+ *   • `providerContactsReturned>0` — the provider found people. A search that returned nobody
+ *                                    is a targeting answer (`no_match` / `audience_exhausted`)
+ *                                    and must keep its own honest copy.
+ */
+export function gatesEmptiedTheRun(args: {
+  clientUsable: number
+  searchTrusted: boolean
+  providerContactsReturned: number
+}): boolean {
+  return args.clientUsable === 0 && args.searchTrusted && args.providerContactsReturned > 0
+}
+
+/**
  * Derive the outcome status from what actually happened in the run.
  * - quotaRefused: try_spend_sourcing granted 0 AND the pool served 0 (no pre-funded
  *   budget / monthly ceiling reached) — the run could not even attempt PDL.

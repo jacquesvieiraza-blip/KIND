@@ -476,7 +476,22 @@ export default function MillaHomePage() {
 
   // Zero is a RESULT, not an absence. It ends the wait and never triggers another search:
   // nothing here starts sourcing, and the one proof POST lives on the confirmation screen.
-  const proofEndedEmpty = !!terminalRun && terminalRun.total_inserted === 0
+  //
+  // ⛓️ 16 Sep (MVP1 · A1 / founder decision C) — AND "ZERO" MEANS ZERO CARDS, NOT ZERO
+  // SOURCED. ~~`terminalRun.total_inserted === 0`~~ read the RAW sourcing figure, which is
+  // what the run cost us and not what arrived on the desk. With twenty candidates sourced and
+  // all twenty refused by the structural gate it is 20, so the desk concluded the run had
+  // produced something — while rendering no cards at all. The client was left looking at an
+  // empty desk that believed it was full.
+  //
+  // ⚠️ `leads_awaiting` IS THE CARDS. `milla-summary.ts` builds it from "the same boundary the
+  // card list applies, clause for clause" — proof-attributed rows only, delivered, surfaced,
+  // unrevealed, not passed — precisely so what Milla SAYS and what the desk SHOWS cannot
+  // disagree. Asking it here is asking the cards.
+  //
+  // ⚠️ THE RAW FIGURE IS NOT REDEFINED ANYWHERE. `total_inserted` still carries the sourcing
+  // truth for audit and accounting; this line simply stops being the place that reads it.
+  const proofEndedEmpty = !!terminalRun && (summary?.leads_awaiting ?? 0) === 0
 
   // A crashed run is its own terminal state. The prospect is NEVER shown the word
   // "failed" — that is the internal status name; they get the approved recovery copy.

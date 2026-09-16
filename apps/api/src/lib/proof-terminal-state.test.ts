@@ -130,7 +130,17 @@ describe('the desk stops guessing', () => {
   })
 
   it('zero is treated as a RESULT, not as absence', () => {
-    expect(portal).toContain('const proofEndedEmpty = !!terminalRun && terminalRun.total_inserted === 0')
+    // ⛓️ 16 Sep (MVP1 · A1 / founder decision C) — RE-POINTED, AND THE DUTY IS UNCHANGED:
+    // a zero must still END the wait rather than read as "nothing has happened yet".
+    //
+    // What moved is WHICH zero. ~~`terminalRun.total_inserted === 0`~~ asked the RAW sourcing
+    // figure, so a run that sourced twenty and had all twenty refused by the structural gate
+    // reported 20 — the desk believed it had a result to show and rendered no cards. The
+    // question is now asked of `leads_awaiting`, which `milla-summary.ts` builds from the same
+    // boundary the card list applies, clause for clause. Zero cards is the zero that matters.
+    expect(portal).toContain('const proofEndedEmpty = !!terminalRun && (summary?.leads_awaiting ?? 0) === 0')
+    // And the raw figure is still NOT the thing driving it.
+    expect(portal).not.toContain('proofEndedEmpty = !!terminalRun && terminalRun.total_inserted === 0')
   })
 })
 

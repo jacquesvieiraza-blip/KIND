@@ -162,14 +162,19 @@
     .calc-head h2 { font-size: clamp(1.6rem, 3vw, 2.3rem); font-weight: 900; letter-spacing: -0.03em; color: var(--ink); line-height: 1.1; }
     .calc-head p { font-size: 0.95rem; color: rgba(30,17,71,0.55); margin-top: 10px; line-height: 1.7; }
     .calc-wrap { max-width: 1040px; margin: 32px auto 40px; padding: 0 48px; }
-    .calc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; align-items: start; }
+    .calc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; align-items: stretch; }
     .calc-card { border-radius: 24px; padding: 36px; }
-    .calc-card.inputs { background: #fff; border: 1px solid rgba(20,18,45,0.08); box-shadow: 0 30px 60px -30px rgba(70,30,130,0.4); }
-    .calc-card.results { background: var(--deep); color: #fff; position: sticky; top: 88px; overflow: hidden; }
+    .calc-card.inputs { display: flex; flex-direction: column; background: #fff; border: 1px solid rgba(20,18,45,0.08); box-shadow: 0 30px 60px -30px rgba(70,30,130,0.4); }
+    .calc-card.results { background: var(--deep); color: #fff; position: sticky; top: 88px; align-self: start; overflow: hidden; }
     .calc-card.results::before { content: ''; position: absolute; inset: 0; background: radial-gradient(520px 300px at 50% -10%, rgba(124,58,237,0.28) 0%, transparent 65%); pointer-events: none; }
     .calc-card.results > * { position: relative; z-index: 1; }
     .calc-card h2 { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; color: var(--blue); margin-bottom: 28px; }
     .calc-card.results h2 { color: #a78bfa; }
+    .calc-foot { margin-top: auto; padding-top: 26px; border-top: 1px dashed rgba(20,18,45,0.14); }
+    .calc-foot p { font-size: 0.78rem; color: rgba(30,17,71,0.45); line-height: 1.7; }
+    .calc-foot p + p { margin-top: 10px; }
+    .calc-foot strong { color: var(--ink); font-weight: 700; }
+    @media (max-width: 768px) { .calc-card.inputs { display: block; } .calc-foot { margin-top: 26px; } }
     .field { margin-bottom: 26px; }
     .field label { display: flex; justify-content: space-between; align-items: baseline; font-size: 0.85rem; font-weight: 600; color: rgba(30,17,71,0.7); margin-bottom: 10px; }
     .field .val { font-weight: 800; color: var(--blue); font-size: 0.95rem; }
@@ -597,6 +602,12 @@
           <label for="close">Meetings that become clients <span class="val" id="close-val">25%</span></label>
           <input type="range" id="close" min="0" max="100" step="1" value="25" />
           <div class="hint">This is your close rate. We get them to the table; you win them.</div>
+        </div>
+
+        <div class="calc-foot">
+          <p><strong>The meeting target is a target.</strong> It is the outcome we aim for and build the programme around — it is not a guarantee.</p>
+          <p>We source around 250 leads for every targeted booked meeting, and that volume is inside the price you see.</p>
+          <p><strong>Free Proof comes first.</strong> Nothing is charged until you have seen the work on your own market.</p>
         </div>
       </div>
 

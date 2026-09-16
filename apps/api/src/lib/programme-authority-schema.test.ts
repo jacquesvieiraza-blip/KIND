@@ -49,11 +49,26 @@ const dbState: {
   open: Record<string, unknown> | null
   writes: Record<string, unknown>[]
   inserts: Record<string, unknown>[]
-} = { programme: null, open: null, writes: [], inserts: [] }
+  /**
+   * ⛓️ 16 Sep (MVP1 · A3) — THE CLIENT'S JOURNEY, which `createProgramme` now proves before
+   * it inserts. This double ignored the table name entirely, so `db.from('clients')` was
+   * answered with `dbState.programme` (null) and the gate correctly refused.
+   *
+   * ⚠️ THE FIXTURE IS EXTENDED, NOT THE ASSERTIONS. This file proves that creation still
+   * writes a DRAFT and neither authority column; it now says out loud that the client it
+   * creates for has completed Proof and has targeting, which is the product's precondition.
+   */
+  client: Record<string, unknown> | null
+  icp: Record<string, unknown> | null
+} = {
+  programme: null, open: null, writes: [], inserts: [],
+  client: { id: 'client-1', proof_completed_at: '2026-09-01T00:00:00Z' },
+  icp: { id: 'icp-1', client_id: 'client-1' },
+}
 
 vi.mock('@kind/db', () => ({
   db: {
-    from: () => {
+    from: (table: string) => {
       let mode: 'byId' | 'open' = 'byId'
       const q: Record<string, unknown> = {
         select: () => q,
@@ -65,6 +80,9 @@ vi.mock('@kind/db', () => ({
         insert: (row: Record<string, unknown>) => { dbState.inserts.push(row); return q },
         update: (patch: Record<string, unknown>) => { dbState.writes.push(patch); return q },
         async maybeSingle() {
+          // ⛓️ 16 Sep (A3) — the journey tables are named rather than swept into `programmes`.
+          if (table === 'clients') return { data: dbState.client, error: null }
+          if (table === 'icps') return { data: dbState.icp, error: null }
           return { data: mode === 'open' ? dbState.open : dbState.programme, error: null }
         },
         async single() { return { data: dbState.inserts.at(-1) ?? null, error: null } },

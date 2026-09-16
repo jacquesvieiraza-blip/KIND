@@ -266,7 +266,31 @@ export async function readCustomerProgramme(clientId: string): Promise<CustomerP
   // become what the workspace shows.
   const all = (data ?? []) as unknown as Record<string, unknown>[]
   const TERMINAL = ['COMPLETED', 'CANCELLED']
-  const data0 = all.find(r => !TERMINAL.includes(String(r.status))) ?? all[0] ?? null
+  const open = all.find(r => !TERMINAL.includes(String(r.status))) ?? null
+
+  // ── 🛑 ⚑ 16 Sep (MVP1 · A4) — A TERMINAL ROW MAY OWN THE WORKSPACE ONLY IF THE CLIENT
+  //    ACTUALLY FINISHED A JOURNEY ─────────────────────────────────────────────────────────
+  //
+  // 🛑 WHAT `?? all[0]` DID ON ITS OWN. It fell back to ANY historical row, so a client whose
+  // only programme is COMPLETED or CANCELLED read as `hasProgramme: true` — and Milla rendered
+  // the ProgrammeWorkspace over a client who is mid-PROOF. The A3 defect makes that ordinary
+  // rather than exotic: until today an operator could create a programme for a client who had
+  // never seen a Proof set, and cancelling it left exactly this row behind.
+  //
+  // ⚠️ THE 10-SEP RULE IS PRESERVED EXACTLY, NOT TRADED AWAY. Founder, 10 Sep: *"COMPLETED
+  // must remain visible in Milla"* — a finished client must never be put back on the Proof
+  // screen. That client NECESSARILY completed Proof (it is how they reached a calculator at
+  // all), so `proofCompleted` is true for them and the terminal row still wins.
+  //
+  // ⚠️ AND IT IS PANEL SELECTION ONLY. Nothing is deleted, nothing is filtered from the
+  // query, the row is still read and still reportable, and an OPEN programme is untouched in
+  // every case. The only thing that changes is which row is CURRENT.
+  //
+  // ⚠️ `proofCompleteFor` FAILS SOFT TO `false`, which here means "show them Proof". That is
+  // the safe direction: a client wrongly shown Proof sees the stage they were in, whereas a
+  // mid-Proof client wrongly shown a dead programme has no way back.
+  const terminalMayOwnWorkspace = open ? true : await proofCompleteFor(clientId)
+  const data0 = open ?? (terminalMayOwnWorkspace ? (all[0] ?? null) : null)
 
   if (!data0) {
     // ── 🛑 ⚑ 10 Sep (C03) — THIS IS THE PROOF SCREEN, AND IT IS WHERE THE DEFECT SHOWED ──

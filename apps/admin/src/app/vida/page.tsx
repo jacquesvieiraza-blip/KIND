@@ -92,8 +92,22 @@ type Blockers = { send_gate: number; money_gate: number; unsent_sourced: number;
 // ⚠️ BOTH ARE PLATFORM-WIDE, not per-client, and the panels say so. They live in the cockpit
 // tab strip because that is where an operator already is — a separate page would be a second
 // place to remember, and the thing that goes unlooked-at is the thing you have to navigate to.
-const COCKPIT_TABS = ['Inbox', 'Approvals', 'People', 'Campaign', 'ICP', 'Sequence', 'Asks', 'Bookings', 'Programme', 'Pool', 'Exceptions'] as const
-type CockpitTab = typeof COCKPIT_TABS[number]
+// ⛓️ 16 Sep (MVP1 · A2) — THE TAB LIST AND ITS STAGE RULE MOVED TO ONE TESTED MODULE.
+//
+// 🛑 WHAT STOOD HERE: a flat eleven-item `COCKPIT_TABS` with no stage gate, plus the SAME
+// eleven strings re-typed inline at the render 3,000 lines below. Two hand-typed copies of
+// one list — the constant validated URLs, the inline copy drew the strip — so a tab could
+// legitimately exist in one and not the other. And because neither was conditional, a
+// prospect mid-Proof appeared in Vida with People, Approvals, Campaign and Sequence all
+// offering work on a pipeline that does not exist yet.
+//
+// ⚠️ IMPORTED, NOT RE-EXPORTED. A Next.js page module may only export its component and the
+// framework's own fields, so re-exporting the list from here fails the build — the module is
+// the home, and this file is one of its readers.
+import {
+  COCKPIT_TABS, cockpitTabsFor, resolveCockpitTab, isHealthyProof,
+  PROOF_TABS_WITHHELD_COPY, type CockpitTab,
+} from '@/lib/vida-cockpit-tabs'
 type CampaignRow = {
   id: string; name: string; status: string; leads_enrolled: number; emails_sent: number
   replies_total: number; replies_interested: number; created_at: string | null
@@ -2318,6 +2332,19 @@ export default function VidaConsolePage() {
   const [calErr, setCalErr] = useState<string | null>(null)
   const [calBusy, setCalBusy] = useState<string | null>(null)
 
+  // ── ⚑ 16 Sep (MVP1 · A2) — THE TAB THAT IS ACTUALLY SHOWN ─────────────────────────────
+  //
+  // 🛑 WITHHOLDING A TAB WITHOUT REDIRECTING IT RENDERS A BLANK WORKSPACE. Switching from a
+  // programme client sitting on People to a Proof client would leave People selected and
+  // invisible: no strip button, no pane, no explanation.
+  //
+  // ⚠️ `tab` IS NOT REWRITTEN. The operator's actual selection is preserved, so moving back to
+  // a programme client returns them to the tab they were on rather than to ICP. Only what is
+  // RENDERED is resolved.
+  const shownTab = resolveCockpitTab(tab, {
+    stage: lc?.verdict.stage ?? null, needsYou: lc?.verdict.needsYou ?? null,
+  })
+
   const lcCopy = useMemo(() => {
     if (!lc) return null
     return lifecycleCopy({
@@ -3161,8 +3188,18 @@ export default function VidaConsolePage() {
                   ⚠️ WRAPPING, NOT SHRINKING. Every tab keeps its label and its size; the row
                   becomes two rows when it must. Nothing is hidden at any width. */}
               <div className="shrink-0 flex flex-wrap items-end gap-0.5 px-3 pt-2.5 border-b border-[#eee7f7]">
-                {(['Inbox', 'Approvals', 'People', 'Campaign', 'ICP', 'Sequence', 'Asks', 'Bookings', 'Programme', 'Pool', 'Exceptions'] as CockpitTab[]).map(t => {
-                  const on = tab === t
+                {/* ── ⚑ 16 Sep (MVP1 · A2) — THE STRIP IS NOW STAGE-AWARE ─────────────────
+                    🛑 IT WAS THE SAME ELEVEN STRINGS HAND-TYPED A SECOND TIME, and neither
+                    copy was conditional. A prospect mid-Proof was shown People, Approvals,
+                    Campaign and Sequence — work on a pipeline that does not exist — which
+                    invites an operator into a calibration that is the client's and Milla's.
+
+                    ⚠️ GATED ON THE SERVER'S CANONICAL STAGE, never a local inference. The
+                    browser must not hold a second opinion about where a client is.
+                    ⚠️ AND AN EXCEPTION RE-OPENS EVERY TAB: once there is genuinely something
+                    for an operator to do, what was sourced is the evidence they need. */}
+                {cockpitTabsFor({ stage: lc?.verdict.stage ?? null, needsYou: lc?.verdict.needsYou ?? null }).map(t => {
+                  const on = shownTab === t
                   const n = t === 'Inbox' ? (cockpit?.replies.filter(r => !r.qualified_at && !r.meeting_booked_at).length ?? 0)
                     : t === 'Approvals' ? (cols?.needs_approval.count ?? 0)
                     : t === 'People' ? (cols?.sourced.count ?? 0)
@@ -3177,15 +3214,26 @@ export default function VidaConsolePage() {
                 })}
               </div>
 
-              <p className="shrink-0 px-4 pt-2 text-[12.5px] text-[#b3a9cc]">
-                Somewhere to look — the action above is what actually moves them.
-              </p>
+              {/* ⚑ 16 Sep (A2) — WHY FOUR TABS ARE MISSING, said out loud. A tab that simply
+                  vanishes reads as a bug; a sentence naming whose turn it is reads as the
+                  product working. Shown only while they are actually withheld. */}
+              {isHealthyProof({ stage: lc?.verdict.stage ?? null, needsYou: lc?.verdict.needsYou ?? null })
+                ? (
+                  <p className="shrink-0 px-4 pt-2 text-[12.5px] text-[#9b8ec4]">
+                    {PROOF_TABS_WITHHELD_COPY}
+                  </p>
+                )
+                : (
+                  <p className="shrink-0 px-4 pt-2 text-[12.5px] text-[#b3a9cc]">
+                    Somewhere to look — the action above is what actually moves them.
+                  </p>
+                )}
               <div className="flex-1 overflow-y-auto p-3.5">
                 {cockpitError && <p className="text-[13px] text-red-500 mb-2">{cockpitError}</p>}
                 {cockpitLoading && !cockpit && <p className="text-[13.5px] text-[#9b8ec4]">Loading…</p>}
 
                 {/* INBOX — a prospect asks; WE answer */}
-                {tab === 'Inbox' && (cockpit ? (
+                {shownTab === 'Inbox' && (cockpit ? (
                   openReply ? (
                     <div>
                       <button onClick={() => { setOpenReply(null); setThread(null); setDraft('') }} className="text-[12.5px] font-bold text-[#7C3AED] mb-2.5">&larr; All replies</button>
@@ -3240,7 +3288,7 @@ export default function VidaConsolePage() {
                 ) : null)}
 
                 {/* APPROVALS — drafts waiting on the operator's send gate */}
-                {tab === 'Approvals' && (
+                {shownTab === 'Approvals' && (
                   (cols?.needs_approval.cards.length ?? 0) === 0
                     ? <p className="text-[13.5px] text-[#9b8ec4] text-center py-8">Nothing waiting on your send gate.</p>
                     : cols!.needs_approval.cards.map(c => (
@@ -3267,7 +3315,7 @@ export default function VidaConsolePage() {
                 )}
 
                 {/* ── PEOPLE — V4 pick them, V5 put THOSE ones in the campaign ── */}
-                {tab === 'People' && (people === null ? (
+                {shownTab === 'People' && (people === null ? (
                   <p className="text-[13.5px] text-[#9b8ec4]">Loading people…</p>
                 ) : people.length === 0 ? (
                   <p className="text-[13.5px] text-[#9b8ec4] text-center py-8">Nobody sourced yet — ask Vida to source leads.</p>
@@ -3320,7 +3368,7 @@ export default function VidaConsolePage() {
                 </>))}
 
                 {/* ── CAMPAIGN — V6 propose · V7 edit · V8 pilot mode · V12 test · V13 run · V14 who's in it ── */}
-                {tab === 'Campaign' && (cockpit ? (
+                {shownTab === 'Campaign' && (cockpit ? (
                   enrollView ? (
                     <div>
                       <button onClick={() => setEnrollView(null)} className="text-[12.5px] font-bold text-[#7C3AED] mb-2.5">&larr; Back to campaigns</button>
@@ -3537,7 +3585,7 @@ export default function VidaConsolePage() {
                 ) : null)}
 
                 {/* ── ICP — V2 build it by TALKING; the form is the precise-edit fallback ── */}
-                {tab === 'ICP' && (cockpit ? (icpEdit ? (
+                {shownTab === 'ICP' && (cockpit ? (icpEdit ? (
                   <div>
                     <button onClick={() => setIcpEdit(null)} className="text-[12.5px] font-bold text-[#7C3AED] mb-2.5">&larr; Back to ICPs</button>
                     <b className="text-[14px] block mb-2">{icpEdit.icp_id ? 'Edit ICP' : 'New ICP version'}</b>
@@ -3695,7 +3743,7 @@ export default function VidaConsolePage() {
                 </>)) : null)}
 
                 {/* ── SEQUENCE — V9 propose · approve by saving · V11 preview ── */}
-                {tab === 'Sequence' && (cockpit ? (seqEdit ? (
+                {shownTab === 'Sequence' && (cockpit ? (seqEdit ? (
                   <div>
                     <button onClick={() => setSeqEdit(null)} className="text-[12.5px] font-bold text-[#7C3AED] mb-2.5">&larr; Back to sequences</button>
                     {saveMsg && <p className={`text-[12.5px] font-semibold mb-2 ${noticeClass(saveMsg.tone)}`}>{saveMsg.text}</p>}
@@ -3811,7 +3859,7 @@ export default function VidaConsolePage() {
                 </>)) : null)}
 
                 {/* ── ASKS — V3 we ask, M2 they answer in Milla ── */}
-                {tab === 'Asks' && (<>
+                {shownTab === 'Asks' && (<>
                   {/* WHAT THEY SAID, UNPROMPTED. Milla's chat cannot pause a campaign or
                       source anyone — it answers and writes a message. This is where those
                       messages surface; before this they went into a table nobody read.
@@ -3873,7 +3921,7 @@ export default function VidaConsolePage() {
                 </>)}
 
                 {/* BOOKINGS */}
-                {tab === 'Bookings' && (<>
+                {shownTab === 'Bookings' && (<>
                   {saveMsg && <p className={`text-[12.5px] font-semibold mb-2 ${noticeClass(saveMsg.tone)}`}>{saveMsg.text}</p>}
                   {(cols?.booked.cards.length ?? 0) === 0
                     ? <p className="text-[13.5px] text-[#9b8ec4] text-center py-8">No meetings booked yet.</p>
@@ -3928,7 +3976,7 @@ export default function VidaConsolePage() {
                     Every value here is a row that exists or a subtraction of two of them.
                     No health score, no projection, no invented metric: an operator acting on a
                     number we made up is worse off than one acting on nothing. */}
-                {tab === 'Programme' && (<>
+                {shownTab === 'Programme' && (<>
                   {progErr && <p className="text-[12.5px] font-semibold text-red-600 mb-2">Programme could not be loaded: {progErr}</p>}
                   {/* ⚠️ A DEGRADED READ IS NOT AN EMPTY ONE. Said loudly, because a quiet
                       console reads as "nothing is wrong" — the exact failure this panel exists
@@ -4393,7 +4441,7 @@ export default function VidaConsolePage() {
                     Every value is a count of rows that exist. No health score, no fill rate,
                     no projection: an operator acting on a number we made up is worse off than
                     one acting on nothing. */}
-                {tab === 'Pool' && (<>
+                {shownTab === 'Pool' && (<>
                   <p className="text-[11.5px] text-[#9b8ec4] mb-2">Platform-wide — not scoped to this client.</p>
                   {poolErr && <p className="text-[12.5px] font-semibold text-red-600 mb-2">Pool summary could not be loaded: {poolErr}</p>}
                   {(pool?.degraded ?? []).map((d, i) => (
@@ -4441,7 +4489,7 @@ export default function VidaConsolePage() {
                     Four states that each mean a person or a client is worse off right now, and
                     which before PR3 alerted by EMAIL or not at all. Each row names WHO it belongs
                     to, so an operator can act rather than go hunting. */}
-                {tab === 'Exceptions' && (<>
+                {shownTab === 'Exceptions' && (<>
                   <p className="text-[11.5px] text-[#9b8ec4] mb-2">Platform-wide — not scoped to this client.</p>
                   {saveMsg && <p className={`text-[12.5px] font-semibold mb-2 ${noticeClass(saveMsg.tone)}`}>{saveMsg.text}</p>}
                   {excErr && <p className="text-[12.5px] font-semibold text-red-600 mb-2">Exceptions could not be loaded: {excErr}</p>}

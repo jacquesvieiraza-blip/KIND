@@ -57,12 +57,23 @@ const LEGAL_SENTENCES = [
 const stripLegal = (html: string) =>
   LEGAL_SENTENCES.reduce((acc, s) => acc.split(s).join(''), html)
 
-describe('FIGSY is gone from the site the founder sells from', () => {
+// ⛓️ 16 Sep, SECOND PASS — FIGSY LEAVES THE CONTRACTS TOO, ON FOUNDER INSTRUCTION.
+//
+// The first pass stopped at the legal documents on purpose. Reading them settled it: not one
+// reference was a defined contract term. Every one DESCRIBED the engine by name — "FIGSY
+// campaigns", "powered by FIGSY, the engine", "every contact FIGSY touches" — so renaming
+// keeps each sentence true instead of altering an obligation. No clause, party, right or duty
+// moved. One line was already FALSE and had to change regardless: privacy.html listed the
+// booker as running on "our Demo, FIGSY and Support pages" after the FIGSY page was retired.
+//
+// K.I.N.D is untouched throughout. It is the registered company and it is the only correct
+// name on a contract; the two names were never the same decision.
+describe('FIGSY is gone from every page that is still served', () => {
   it('there are marketing pages to check', () => {
     expect(MARKETING.length).toBeGreaterThan(20)
   })
 
-  for (const page of MARKETING) {
+  for (const page of ALL.filter(f => !RETIRED.includes(f))) {
     it(`${page} does not name FIGSY`, () => {
       // Case-insensitive on purpose: the CSS classes and JS variables were `figsy`-cased and
       // a half-done rename that leaves `figsyThought` in the source is still a rename that
@@ -70,6 +81,19 @@ describe('FIGSY is gone from the site the founder sells from', () => {
       expect(read(page).toLowerCase()).not.toContain('figsy')
     })
   }
+
+  it('the contracts name Vida as the engine, so the sentences still say something', () => {
+    // ⚠️ NOT ENOUGH TO ASSERT FIGSY IS ABSENT. A rename that deleted the sentences would also
+    // pass that. The documents have to still describe the thing that does the work.
+    expect(read('terms.html')).toContain('powered by Vida, the engine')
+    expect(read('privacy.html')).toContain('Vida campaigns')
+    expect(read('trust.html')).toContain('Vida validates contact data')
+  })
+
+  it('privacy no longer points visitors at the retired page', () => {
+    expect(read('privacy.html')).not.toContain('Demo, FIGSY and Support pages')
+    expect(read('privacy.html')).toContain('Demo and Support pages')
+  })
 })
 
 describe('K.I.N.D is off the marketing pages and kept where it is the legal name', () => {
@@ -101,13 +125,11 @@ describe('the legal documents are untouched by the rename', () => {
     })
   }
 
-  it('the contracts still name FIGSY, because they were written naming it', () => {
-    // ⚠️ REQUIRED, NOT TOLERATED. Editing what a signed contract calls the service is a legal
-    // change and it is the founder's and his lawyer's, not a side effect of this sweep. If
-    // FIGSY is ever taken out of these, it is taken out on purpose and this line changes with it.
-    expect(read('terms.html')).toContain('FIGSY')
-    expect(read('privacy.html')).toContain('FIGSY')
-  })
+  // ⛓️ This asserted the opposite until 16 Sep — that the contracts MUST still say FIGSY,
+  // because at the time they were only to be corrected deliberately rather than swept. The
+  // founder then asked for it deliberately, so the requirement inverts and moves up to the
+  // FIGSY block above. What survives here is the half that never depended on that: these five
+  // documents keep K.I.N.D, the registered company.
 })
 
 describe('the domain and the code are not branding and were not swept', () => {

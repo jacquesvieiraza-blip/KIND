@@ -141,8 +141,40 @@ describe('④ the replacement claims are ones the CODE can prove', () => {
     }
   })
 
-  it('the badge says what is true, in every one of its 47 old homes', () => {
-    expect(PAGES.filter(f => read(f).includes('Privacy controls built in')).length).toBeGreaterThan(20)
+  // ⛓️ REWRITTEN 16 Sep — FROM A FREQUENCY COUNT TO A NAMED-PAGE REQUIREMENT.
+  //
+  // This asserted the badge appeared on MORE THAN 20 pages. It never measured 20 deliberate
+  // statements: the claim sat inside the global mega-menu, so one string in the shared nav
+  // scored 29 pages. The number was counting NAVIGATION DUPLICATION, not intent.
+  //
+  // Section 1 removed the mega-menus by founder direction, and the count fell to 4 — the pages
+  // that state the claim in their own body, which is where it was ever actually said. Nothing
+  // became false; a true claim lost a carrier it should never have depended on.
+  //
+  // 🛑 AND THE THRESHOLD IS NOT LOWERED TO 4, BECAUSE THAT WOULD REPEAT THE MISTAKE. A smaller
+  // number is still a count: it would pass if the claim vanished from `pricing.html` and
+  // appeared on any other page instead. The guard now names the pages, so it proves the thing
+  // it cares about — this claim, on these pages — and cannot be satisfied by coincidence.
+  //
+  // ⚠️ IT DELIBERATELY SAYS NOTHING ABOUT THE NAV OR FOOTER. Coupling a truth guard to a
+  // navigation shape is what made it stale in the first place, and the footer is a later
+  // founder-approved section this test must not pre-empt.
+  const PRIVACY_CLAIM = 'Privacy controls built in'
+  const PRIVACY_CLAIM_PAGES = ['about.html', 'demo.html', 'pricing.html', 'vs-hiring-an-sdr.html']
+
+  for (const page of PRIVACY_CLAIM_PAGES) {
+    it(`${page} states the privacy claim in its own body`, () => {
+      expect(read(page), `${page} lost "${PRIVACY_CLAIM}"`).toContain(PRIVACY_CLAIM)
+    })
+  }
+
+  it('the claim is a page statement, not a count of navigation copies', () => {
+    // Belt-and-braces on the rewrite itself: every required page is real, and the guard is
+    // measuring named pages rather than a total that any other page could top up.
+    for (const page of PRIVACY_CLAIM_PAGES) {
+      expect(PAGES, `${page} is required by this guard but is not on disk`).toContain(page)
+    }
+    expect(PRIVACY_CLAIM_PAGES.length).toBe(4)
   })
 
   it('⚠️ NOTHING claims paper nobody has produced (Fable\'s A1/A3)', () => {

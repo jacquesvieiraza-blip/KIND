@@ -266,16 +266,28 @@ describe('Ⓑ 🛑 THE DEFECT — the write FAILS and the fact exists only in th
 
 // ═══════════════════════════════════════════════════════════════════════════════════════
 describe('Ⓒ a failed write does not break the ordinary conversation', () => {
-  it('a QUESTION turn still answers — it needs no durable truth', async () => {
-    const d = await dispatch(
-      { type: 'question', content: 'And who should we leave out?', brief_so_far: { exclusions: FINAL_ITEM } },
-      { held: HELD_BUT_ONE, save: 'unstorable' },
-    )
+  // F · a question-shaped reply, through a failed write AND through a store that is not
+  //     there at all. ADVANCEMENT fails closed; the CONVERSATION does not.
+  for (const [label, held] of [
+    ['a failed write', HELD_BUT_ONE],
+    ['no durable store at all', {}],
+  ] as const) {
+    it(`a QUESTION turn still answers through ${label} — it needs no durable truth`, async () => {
+      const ASKED = 'And who should we leave out?'
+      const d = await dispatch(
+        { type: 'question', content: ASKED, brief_so_far: { exclusions: FINAL_ITEM } },
+        { held, save: 'unstorable' },
+      )
 
-    expect(d.status, 'the client is never charged a failed turn for our write').toBe(200)
-    expect(typeOf(d)).toBe('question')
-    expect((dataOf(d).content as string).length, "and it is Milla's own sentence").toBeGreaterThan(0)
-  })
+      expect(d.status, 'the client is never charged a failed turn for our write').toBe(200)
+      expect(typeOf(d)).toBe('question')
+      expect(dataOf(d).onboarding_state, 'answering is not advancing').not.toBe('ready')
+      // 🛑 MILLA'S OWN SENTENCE, UNCHANGED AND UNWRITTEN BY US. Nothing composes English on
+      // her behalf here or anywhere — the conversation must not become a form (R121).
+      expect(dataOf(d).content).toBe(ASKED)
+      expect(d.calls, 'one model call').toBe(1)
+    })
+  }
 
   it('a completion that was ALREADY short stays short — the write outcome changes nothing', async () => {
     const short = { ...HELD_BUT_ONE }
@@ -285,23 +297,57 @@ describe('Ⓒ a failed write does not break the ordinary conversation', () => {
     expect(typeOf(d), 'still not a completion').not.toBe('complete')
   })
 
-  it('🛑 NO RECORD TO EXTEND IS A DIFFERENT QUESTION, AND IT IS LEFT EXACTLY AS IT WAS', async () => {
-    // ⚠️ THE SCOPE LINE, PINNED. With an EMPTY `held` there was no canonical record to fail to
-    // extend: either this is a genuinely new client (we kept nothing because there was nothing
-    // to keep) or the draft store is unavailable altogether — and in that second case the gate
-    // has counted the model sample alone since long before S1-ONB-001, by the documented
-    // best-effort degradation. Whether an unavailable draft store should STOP onboarding
-    // rather than degrade is a real product question, it is OPEN, and it is the founder's.
-    //
-    // 🛑 THIS TEST EXISTS SO THAT DECISION CANNOT BE MADE BY ACCIDENT. If someone later widens
-    // the fix to every failed write, this goes red and names the ruling that is missing.
-    const everything = { ...HELD_BUT_ONE, exclusions: FINAL_ITEM }
+})
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+describe('Ⓔ 🛑 NO DURABLE CANONICAL BRIEF AT ALL — the same answer (S1-ONB-004)', () => {
+  // ⛓️ 16 Sep — THIS BLOCK USED TO ASSERT THE OPPOSITE. S1-ONB-003 deliberately spared the
+  // case where no durable record had been read, because the gate had counted the model sample
+  // alone in that state since long before S1-ONB-001, and widening it was a product decision
+  // I reported rather than took. **The founder ruled: FAIL CLOSED UNIVERSALLY.** The old
+  // best-effort degradation is SUPERSEDED, and the reason is that the two states look
+  // identical to the person on the screen — a finished plan with a live "Confirm my brief" is
+  // one click from PROMOTION, and a promotion whose Brief was never written is a client whose
+  // targeting exists nowhere. "We could not keep what you told us" is the only honest answer.
+  //
+  // ⚠️ THE MODEL SUPPLIES EVERYTHING HERE. Nothing is missing, nothing is premature, the
+  // reply would satisfy the gate on its own — and that is precisely the point being refused.
+  const EVERYTHING = { ...HELD_BUT_ONE, exclusions: FINAL_ITEM }
+  const FULL_REPLY = { ...COMPLETE_WITH_FINAL_ITEM, brief_so_far: EVERYTHING }
+
+  for (const [label, mode] of [
+    ['D · no durable draft + a failed write', 'unstorable'],
+    ['E · the draft store wholly unavailable', 'unverifiable'],
+  ] as const) {
+    it(`${label} → NOT ready, and nothing is presented for approval`, async () => {
+      const d = await dispatch(FULL_REPLY, { held: {}, save: mode })
+
+      expect(typeOf(d), 'a complete turn that cannot durably establish the Brief cannot complete')
+        .not.toBe('complete')
+      expect(dataOf(d).onboarding_state).not.toBe('ready')
+      expect(dataOf(d).icp, 'no plan').toBeFalsy()
+      expect(d.status, 'and it reads as our failure').toBe(503)
+      expect((d.json as { retryable?: boolean }).retryable).toBe(true)
+      expect(d.store.confirmed_at, 'nothing confirmed').toBeUndefined()
+      expect(d.store.promoted_client_id, 'nothing promoted').toBeUndefined()
+      expect(Object.keys(d.store), 'and the store is still empty — nothing was invented').toEqual([])
+      expect(d.calls, 'one model call').toBe(1)
+    })
+  }
+
+  it('🛑 and no country is inferred, defaulted or borrowed from the target geography', async () => {
+    const noCountry = { ...EVERYTHING }
+    delete noCountry.country
     const d = await dispatch(
-      { ...COMPLETE_WITH_FINAL_ITEM, brief_so_far: everything },
+      { ...FULL_REPLY, brief_so_far: noCountry },
       { held: {}, save: 'unstorable' },
     )
 
-    expect(typeOf(d), 'unchanged behaviour where there was no record to lose').toBe('complete')
+    expect(typeOf(d)).not.toBe('complete')
+    // `geographies` names where their BUYERS are. It is not where the CLIENT is, and a
+    // fallback from it would fabricate an account country out of a market list (AR23).
+    expect(d.raw).not.toContain('South Africa')
+    expect(d.store.country, 'and none was written').toBeUndefined()
   })
 })
 
@@ -319,8 +365,14 @@ describe('Ⓓ the rule is in the source, not only in behaviour', () => {
       .toMatch(/mustNotConfirm\s*=\s*\(!heldReadable \|\| !heldWritable\)/)
   })
 
-  it('and it is scoped to a record that actually existed', () => {
-    expect(ICPS).toContain('if (!saved.ok && Object.keys(held).length > 0) {')
+  it('🛑 the rule is UNCONDITIONAL — the old `held non-empty` exception is gone', () => {
+    // ⛓️ 16 Sep (S1-ONB-004, founder-locked). A failed canonical write blocks a completion
+    // whether or not a record had been read. This assertion is the exception's tombstone.
+    expect(ICPS).toContain('if (!saved.ok) {')
+    // Anchored to the start of a line, so the struck-through record of the old form inside
+    // the comment above it is not mistaken for the statement returning.
+    expect(ICPS, 'no scope exception may return')
+      .not.toMatch(/^\s*if \(!saved\.ok && Object\.keys\(held\)\.length > 0\)/m)
   })
 
   it('the scope is COMPLETIONS only — a failed write never refuses the conversation', () => {
@@ -336,7 +388,7 @@ describe('Ⓓ the rule is in the source, not only in behaviour', () => {
 })
 
 // ═══════════════════════════════════════════════════════════════════════════════════════
-describe('Ⓔ the UNREADABLE case (S1-RT-009) is unchanged by this fix', () => {
+describe('Ⓕ the UNREADABLE case (S1-RT-009) is unchanged by this fix', () => {
   const ICPS = readFileSync(join(__dirname, '..', 'routes', 'icps.ts'), 'utf8')
 
   it('an unreadable record still DEMOTES to the conversation, keeping Milla’s sentence', () => {

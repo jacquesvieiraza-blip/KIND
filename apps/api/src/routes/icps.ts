@@ -4489,22 +4489,32 @@ result or a number. "permitted" is false unless they explicitly said we may use 
         if (!saved.ok && saved.reason === 'unstorable') {
           console.warn('[icps/builder/chat] brief draft not stored (run 20260911_onboarding_brief_drafts)')
         }
-        // 🛑 ⚑ 16 Sep (S1-ONB-003) — THE WRITE OUTCOME IS NOW ACTED ON, NOT ONLY LOGGED.
+        // 🛑 ⚑ 16 Sep (S1-ONB-003) — THE WRITE OUTCOME IS ACTED ON, NOT ONLY LOGGED.
         // Every `SaveOutcome` failure — `unstorable`, `unverifiable`, `promoted` — means the
         // same thing to this turn: the record does not hold what we just resolved. A turn may
         // still ANSWER on a failed write; it may not CONFIRM.
         //
-        // ⚠️ AND IT IS SCOPED TO "THERE WAS A RECORD TO EXTEND" — `held` non-empty. That is
-        // deliberate and it is the line between this defect and a DIFFERENT, older question.
-        // A non-empty `held` proves we read a real canonical record this turn, so a failed
-        // write is exactly the proven defect: truth the customer gave, kept nowhere. An EMPTY
-        // `held` is either a genuinely new client (there is nothing we failed to keep) or the
-        // draft store being unavailable altogether — and in that second case the gate has
-        // counted the model sample alone since long before this build, by the documented
-        // best-effort degradation a few lines above. Whether an unavailable draft store should
-        // STOP onboarding instead of degrading is a real product question and a founder's to
-        // answer; it is not this ticket's defect and is not silently decided here.
-        if (!saved.ok && Object.keys(held).length > 0) {
+        // ── 🛑 ⚑ 16 Sep (S1-ONB-004) — AND IT IS UNCONDITIONAL (founder-locked) ──────────
+        //
+        // ⛓️ ~~`if (!saved.ok && Object.keys(held).length > 0)`~~ STOOD HERE and is gone. That
+        // exception spared the case where NO durable record had been read — either a genuinely
+        // new client or the draft store being unavailable altogether — because the gate had
+        // counted the model sample alone in that state since long before this build, by the
+        // best-effort degradation a few lines above. I scoped it there deliberately and
+        // reported it as the founder's to decide rather than deciding it myself.
+        //
+        // 🛑 THE FOUNDER RULED: FAIL CLOSED UNIVERSALLY. **NO DURABLE CANONICAL BRIEF = NO
+        // READY ADVANCEMENT.** The old degradation is SUPERSEDED, and the reason is that the
+        // two states are indistinguishable to the person on the screen: a client shown a
+        // finished plan and a live "Confirm my brief" is one click from PROMOTION, and a
+        // promotion whose Brief was never written is a client whose targeting exists nowhere.
+        // "We could not keep what you told us" is not a worse outcome than that — it is the
+        // only honest one.
+        //
+        // ⚠️ IT IS ADVANCEMENT THAT FAILS CLOSED, NOT THE CONVERSATION. This flag only ever
+        // reaches `mustNotConfirm`, which is gated on `declaredType === 'complete'`. A question
+        // turn still answers in Milla's own words through a wholly unavailable draft store.
+        if (!saved.ok) {
           heldWritable = false
           console.error('[icps/builder/chat] durable brief not written —', JSON.stringify({
             stage: 'brief_write', reason: saved.reason,

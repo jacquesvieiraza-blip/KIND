@@ -45,6 +45,43 @@ beforeEach(() => {
   anthropicBox.reply = null
   anthropicBox.lastParams = null
   anthropicBox.lastOptions = null
+  for (const k of Object.keys(draftBox.facts)) delete draftBox.facts[k]
+  draftBox.writable = true
+})
+
+// ── 🛑 ⚑ 16 Sep (S1-ONB-004) — A WORKING DRAFT STORE, BECAUSE THE RULE IS NOW UNIVERSAL ──
+//
+// ⛓️ THIS SUITE PREDATES `onboarding_brief_drafts`. It doubled `@kind/db` as a THROWING stub
+// (below) and never doubled the draft module, so `saveBriefDraft` resolved `{ok:false}` on
+// every turn — which was harmless while a completion could still be presented from one model
+// sample. The founder has now ruled **NO DURABLE CANONICAL BRIEF = NO READY ADVANCEMENT**, so
+// that arrangement makes every completion in this file fail closed, for a reason NONE of these
+// tests is about: they test the eleven-fact gate, the closed lists, clamping and the review
+// flags — not persistence.
+//
+// ⚠️ SO THE STORE IS MADE TO WORK, AND NOTHING ELSE IS TOUCHED. Each test keeps asserting
+// exactly what its name claims. The persistence rule itself is proved where it belongs, in
+// `s1-onb-003-persistence-authority.test.ts`, which drives the same real route.
+//
+// ⚠️ IT MERGES, EXACTLY AS `saveBriefDraft` DOES, so "the client's own words survive to the
+// draft" keeps testing a real read-back rather than an echo. `writable` lets a test switch the
+// store off deliberately — the honest-failure path — instead of it being off by accident.
+const draftBox = vi.hoisted(() => ({ facts: {} as Record<string, unknown>, writable: true }))
+
+vi.mock('./brief-draft', async () => {
+  const actual = await vi.importActual<typeof import('./brief-draft')>('./brief-draft')
+  return {
+    ...actual,
+    saveBriefDraft: async (_u: string, facts: Record<string, unknown>) => {
+      if (!draftBox.writable) return { ok: false, reason: 'unstorable' }
+      Object.assign(draftBox.facts, facts); return { ok: true }
+    },
+    briefDraftFor: async () => ({ confirmedAt: null, promotedClientId: null, facts: draftBox.facts }),
+    writableBriefDraft: async () => ({ confirmedAt: null, promotedClientId: null, facts: draftBox.facts }),
+    saveBriefConversation: async () => ({ ok: true }),
+    rememberCustomerTurn: async () => ({ ok: true }),
+    markBriefDraftPromoted: async () => ({ ok: true }),
+  }
 })
 
 vi.mock('@anthropic-ai/sdk', () => ({

@@ -22,6 +22,13 @@ const RETIRED = {
   // EMPTIED 1 Aug — founder order: "you shrunk it. i want it back now." The full 28-page
   // site is restored; every page #560 retired on 29 Jul is served again. The mechanism
   // stays so a future retirement is still one line here + one in _redirects.
+
+  // 16 Sep — founder: "remove figsy from the site completely... delete figsy.html redirect
+  // to vida." FIGSY was the engine's own product page; Vida is that engine now, so Vida is
+  // where the question the page answered is still answered. The FILE is left on disk because
+  // the 26-Jul CORE-MAP lock is "nothing gets deleted" — the page is off the site, and one
+  // removed line here puts it back.
+  '/figsy': '/vida',
 }
 
 

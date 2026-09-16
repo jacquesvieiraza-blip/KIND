@@ -38,4 +38,8 @@
 
 # Unknown paths fall back to the homepage with a 200 (same as the Express catch-all
 # `app.get('*')`). MUST STAY LAST — Cloudflare takes the first matching rule, so a `/*` above
+# 16 Sep — FIGSY is retired as a name and as a page (founder). Vida is the engine now.
+/figsy        /vida         301
+/figsy.html   /vida         301
+
 /*    /index.html   200

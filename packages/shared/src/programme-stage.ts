@@ -153,3 +153,56 @@ export type OutcomeKind = 'meetings' | 'other'
 export function outcomeIsAutoPriceable(kind: OutcomeKind): boolean {
   return kind === 'meetings'
 }
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// ⚑ 16 Sep (MVP1 · D2) — "RUNNING" MEANS SOMETHING ACTUALLY LEFT THE BUILDING.
+//
+// 🛑 THE DEFECT. `ProgrammeWorkspace.tsx` answered the `Live` stage with *"Running — nothing
+// needed from you"*, and `Live` is simply `status === 'LIVE'`, which MAKE LIVE alone produces.
+// Make Live arms a programme; it sends nothing. So a client whose programme was armed and
+// silent — no Run authority granted, not one email delivered — was told it was running, and
+// told there was nothing they needed to do about it.
+//
+// The screen could not have known better: the customer payload carried neither `run_at` nor a
+// send count. Two facts were missing, so a third (the status) was asked a question it cannot
+// answer.
+//
+// ⚠️ THE TWO CONDITIONS ARE BOTH REQUIRED, AND EACH RULES OUT A DIFFERENT LIE:
+//
+//   · `runAt`     — the operator granted external-delivery authority (`programmes.run_at`).
+//                   Without it the programme is ARMED, which is a real and honest state.
+//   · `delivered` — real rows in `figsy_sent_emails` for THIS programme's campaign. Not a
+//                   status, not a flag, not a queue depth. Under Co-Pilot a programme can
+//                   hold a full queue of messages awaiting per-email approval and have
+//                   delivered nothing; that is not running, and Co-Pilot is unchanged.
+//
+// ⚠️ IT FAILS CLOSED ON AN UNREADABLE COUNT. `null` means we could not count the sends, and
+// claiming delivery we cannot see is the one direction this function must never take.
+//
+// ⚠️ AND A DELIVERY WITH NO RUN AUTHORITY IS NOT RUNNING EITHER. That state should not exist;
+// reading it as "running" would paper over a real authority defect rather than surface it.
+// ═══════════════════════════════════════════════════════════════════════════════════════
+
+export type ProgrammeRunningFacts = {
+  /** `programmes.run_at` — the external-delivery authority. Null means armed, not started. */
+  runAt: string | null
+  /** REAL sent rows for this programme's campaign. `null` means the count was unreadable. */
+  delivered: number | null
+}
+
+export function programmeIsRunning(f: ProgrammeRunningFacts): boolean {
+  if (!f.runAt) return false
+  if (f.delivered === null || f.delivered === undefined) return false
+  return f.delivered > 0
+}
+
+/**
+ * The client-facing headline for a LIVE programme, chosen by the rule above.
+ *
+ * ⚠️ BOTH SENTENCES ARE THE FOUNDER'S EXISTING VOCABULARY. "Running — nothing needed from you"
+ * is the locked Live copy and is unchanged for the state it was true of. The armed sentence
+ * says what is true instead — the programme is ready and we have not started sending — and
+ * promises no timing, because nothing here knows one.
+ */
+export const PROGRAMME_RUNNING_COPY = 'Running — nothing needed from you'
+export const PROGRAMME_ARMED_COPY = 'Ready to start — nothing needed from you'

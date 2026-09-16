@@ -2409,7 +2409,9 @@ figsyRouter.post('/replies/:id/mark-booked', async (req: AuthRequest, res) => {
     if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
 
     const { data: reply } = await db.from('figsy_replies')
-      .select('id, campaign_id, meeting_booked_at')
+      // ⚑ 16 Sep (MVP1 · D4) — `lead_id` IS SELECTED NOW. Without it a canonical meeting
+      // cannot be attributed to anybody, which is why the reply stamp was all this route did.
+      .select('id, lead_id, campaign_id, meeting_booked_at')
       .eq('id', req.params.id)
       .eq('client_id', clientId)
       .maybeSingle()
@@ -2422,6 +2424,65 @@ figsyRouter.post('/replies/:id/mark-booked', async (req: AuthRequest, res) => {
     await db.from('figsy_replies').update({
       meeting_booked_at: new Date().toISOString(),
     }).eq('id', req.params.id)
+
+    // ── 🛑 ⚑ 16 Sep (MVP1 · D4) — AND IT NOW RECORDS A CANONICAL MEETING ────────────────
+    //
+    // 🛑 THE DEFECT. This route stamped `figsy_replies.meeting_booked_at` and logged an
+    // outcome event, and that was all. `public.meetings` is the SOLE meeting truth in this
+    // product — Milla's booked count, the programme's results, and the R77 review trigger all
+    // read it — and nothing was ever inserted into it. So the outcome the client is actually
+    // buying was recorded in a place none of the three surfaces that matter ever look: a
+    // client could have meetings booked through Vida and be told by their own screen that they
+    // had none, while the review hold counted zero and eventually fired.
+    //
+    // ⚠️ THE ATTRIBUTION COMES FROM THE ENROLMENT, never a guess. `resolveBookingAttribution`
+    // is the existing resolver and the enrolment is the only row that says *this person is
+    // being worked, under this campaign, for this programme*. A programme inferred from the
+    // client or from "the newest one" is a guess wearing a fact's clothes.
+    //
+    // ⚠️ IT IS `BOOKED_UNVERIFIED` BY CONSTRUCTION, and that is correct rather than a
+    // shortcut. `recordBooking` DERIVES the state from the presence of a Google event id, and
+    // there is none here: an operator marking a reply booked is telling us a meeting was
+    // agreed, not proving a calendar entry. Passing an invented id is the exact failure that
+    // state exists to make impossible, so none is passed.
+    //
+    // ⚠️ IDEMPOTENT TWICE OVER. The already-booked early return above is the first fence; the
+    // live-booking unique index inside `recordBooking` is the second, which is what makes two
+    // simultaneous presses safe rather than merely unlikely.
+    //
+    // ⚠️ AND A FAILURE HERE DOES NOT FAIL THE REQUEST. The reply stamp has already landed and
+    // the prospect's agreement is real; losing the canonical row is bad, telling the operator
+    // their action failed when it did not is worse. It is reported in the response instead.
+    let meetingRecorded = false
+    let meetingRefusal: string | null = null
+    if (reply.lead_id) {
+      try {
+        const { resolveBookingAttribution, recordBooking } = await import('../lib/meeting-truth')
+        const attribution = await resolveBookingAttribution(String(reply.lead_id))
+        const booked = await recordBooking({
+          clientId,
+          leadId: String(reply.lead_id),
+          // ⚠️ THE MARK TIME, and the state says we cannot prove a calendar entry. Nothing
+          // here knows when the meeting actually is — the operator was not asked — so this
+          // records THAT a meeting exists, which is what every count needs, without claiming
+          // a schedule nobody supplied.
+          scheduledAt: new Date().toISOString(),
+          campaignId: attribution.campaignId ?? reply.campaign_id ?? null,
+          enrollmentId: attribution.enrollmentId,
+          programmeId: attribution.programmeId,
+        })
+        meetingRecorded = booked.ok
+        if (!booked.ok) meetingRefusal = booked.refused.message
+      } catch (err) {
+        meetingRefusal = err instanceof Error ? err.message : 'The meeting could not be recorded.'
+        console.error('[figsy/mark-booked] canonical meeting NOT recorded:', meetingRefusal)
+      }
+    } else {
+      // A reply with no lead belongs to nobody we can attribute a meeting to. Said out loud
+      // rather than silently skipped, because a count that is quietly short is the defect.
+      meetingRefusal = 'This reply is not linked to a lead, so no canonical meeting could be recorded.'
+      console.error(`[figsy/mark-booked] reply ${reply.id} has no lead_id — no canonical meeting recorded.`)
+    }
 
     // THE DATA FLOOR (#17b) — the outcome that matters most for credits-per-meeting.
     void logOutcomeEvent({
@@ -2440,7 +2501,12 @@ figsyRouter.post('/replies/:id/mark-booked', async (req: AuthRequest, res) => {
       campaign_id: reply.campaign_id ?? null,
     })
 
-    res.json({ success: true, data: { booked: true } })
+    // ⚠️ THE RESPONSE REPORTS WHAT ACTUALLY HAPPENED TO BOTH RECORDS. "booked: true" alone
+    // would have been true of the old behaviour too, which recorded no meeting at all.
+    res.json({
+      success: true,
+      data: { booked: true, meeting_recorded: meetingRecorded, meeting_refusal: meetingRefusal },
+    })
   } catch (err) {
     console.error('[figsy/mark-booked]', err)
     res.status(500).json({ success: false, error: 'Failed to mark as booked' })

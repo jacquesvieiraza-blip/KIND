@@ -77,6 +77,28 @@ export type CustomerProgramme = {
     outcomesAchieved: number | null
   }
   /**
+   * ⚑ 16 Sep (MVP1 · D2) — IS THIS PROGRAMME ARMED, OR IS IT ACTUALLY RUNNING?
+   *
+   * 🛑 THE TWO FACTS THAT WERE MISSING, AND THE SENTENCE THAT WENT WRONG WITHOUT THEM. The
+   * workspace answered the `Live` stage with *"Running — nothing needed from you"*, and `Live`
+   * is simply `status === 'LIVE'` — which MAKE LIVE alone produces. Make Live arms a
+   * programme and sends nothing, so a client whose programme was armed and silent was told it
+   * was running. The screen could not have known better: neither of these facts reached it,
+   * so the status was asked a question it cannot answer.
+   *
+   * ⚠️ `emailsDelivered` IS REAL SENT ROWS, scoped through THIS programme's campaign — never
+   * a status, never a flag, never a queue depth. Under Co-Pilot a programme can hold a full
+   * queue awaiting per-email approval and have delivered nothing, and that is not running.
+   *
+   * ⚠️ `null` MEANS THE COUNT WAS UNREADABLE, and `programmeIsRunning` treats it as NOT
+   * running. Claiming delivery we cannot see is the one direction this must never take.
+   */
+  sending: {
+    /** `programmes.run_at` — external delivery authority. Null means armed, not started. */
+    runAt: string | null
+    emailsDelivered: number | null
+  }
+  /**
    * ⚑ 10 Sep (B/C) — WHAT THE CLIENT CHOSE, so the Recommendation screen can show the exact
    * thing being accepted. `recommendedVolume` is the lead volume from their own calculator
    * run; before this the client could not see it at all.
@@ -165,6 +187,8 @@ export const NO_PROGRAMME: CustomerProgramme = {
   // ⚑ 10 Sep (I5) — a client with no programme has not finished one either.
   terminal: null,
   outcome: { kind: 'meetings', target: null, stated: null },
+  // ⚑ 16 Sep (D2) — no programme, so no authority and nothing delivered. Stated, not omitted.
+  sending: { runAt: null, emailsDelivered: 0 },
   progress: { delivered: 0, authorised: 0, outcomesAchieved: 0 },
   recommendation: { recommendedVolume: null, costPerMeetingCents: null, acceptedAt: null, assumptions: null },
   money: {
@@ -232,7 +256,9 @@ export async function readCustomerProgramme(clientId: string): Promise<CustomerP
             'calculator_assumptions, recommendation_accepted_at, ' +
             'sourcing_ceiling, sourced_used, ' +
             'first_paid_at, second_paid_at, first_authorised_at, second_authorised_at, ' +
-            'approved_at, went_live_at, paused_at, ' +
+            // ⚑ 16 Sep (MVP1 · D2) — `run_at` IS THE AUTHORITY, and it was never selected. Without it the
+            // client's screen could not tell an armed programme from a started one.
+            'approved_at, went_live_at, run_at, paused_at, ' +
             'review_required_at, review_resolved_at, created_at')
     .eq('client_id', clientId)
     // ── 🛑 ⚑ 10 Sep (I5) — THE TERMINAL FILTER IS GONE, AND THE ORDER IS NEW ─────────────
@@ -353,10 +379,44 @@ export async function readCustomerProgramme(clientId: string): Promise<CustomerP
     console.error('[customer-programme] meeting counts unreadable for', clientId, err)
   }
 
+  // ── ⚑ 16 Sep (MVP1 · D2) — REAL DELIVERIES FOR THIS PROGRAMME, AND ONLY THIS ONE ──────
+  //
+  // 🛑 SCOPED THROUGH THE PROGRAMME'S OWN CAMPAIGN, never through `client_id`. A client-wide
+  // send count rendered beside a programme reads as that programme's result — the exact House
+  // defect `current-workspace.ts` exists to stop, and this is a number a client reads.
+  //
+  // ⚠️ `null` ON AN UNREADABLE COUNT, and `programmeIsRunning` reads that as NOT running. A
+  // zero would assert "nothing has been sent", which is a different claim from "we could not
+  // count", and the difference is what the client is told about their own programme.
+  let emailsDelivered: number | null = null
+  try {
+    const { data: camps, error: campErr } = await db.from('figsy_campaigns')
+      .select('id').eq('programme_id', p.id)
+    if (campErr) throw new Error(campErr.message)
+    const campaignIds = ((camps ?? []) as { id: string }[]).map(c => c.id)
+    if (campaignIds.length === 0) {
+      // No campaign for this programme means nothing can have been sent for it. That is a
+      // measured zero, not an unreadable one.
+      emailsDelivered = 0
+    } else {
+      const { count, error: sentErr } = await db.from('figsy_sent_emails')
+        .select('id', { count: 'exact', head: true })
+        .in('campaign_id', campaignIds)
+      if (sentErr) throw new Error(sentErr.message)
+      emailsDelivered = count ?? 0
+    }
+  } catch (err) {
+    console.error('[customer-programme] programme-scoped send count unreadable for', clientId, err)
+  }
+
   return {
     stage,
     quickAction: STAGE_QUICK_ACTION[stage],
     hasProgramme: true,
+    sending: {
+      runAt: (p.run_at as string | null) ?? null,
+      emailsDelivered,
+    },
     programmeId: (p.id as string | null) ?? null,
     paused: Boolean(p.paused_at),
     pausedCopy: p.paused_at ? MILLA_FAILURE_COPY.sourcingPaused : null,

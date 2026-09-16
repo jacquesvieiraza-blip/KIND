@@ -757,7 +757,14 @@ export function lifecycleCopy(i: LifecycleCopyInput): LifecycleCopy {
               : 'Run is unavailable — FIGSY_OPERATOR_SEND_ENABLED is not set on the API, so no run can start.',
           ),
         ],
-        actions: runnable ? [{ key: 'run', label: 'Run', kind: 'primary', needsCeiling: true }] : [],
+        // ⛓️ 16 Sep (MVP1 · D1) — `needsCeiling` IS GONE FROM RUN, and its absence is the point.
+        //
+        // A ceiling is SEND-ONCE's input: "send at most N emails now". Run grants delivery
+        // AUTHORITY and sends nothing, so asking an operator for a maximum implied this press
+        // delivers — which is exactly the confusion that had the button wired to the send-once
+        // tool instead of `POST /programmes/:id/run`. Send-once keeps its ceiling, where the
+        // number means something.
+        actions: runnable ? [{ key: 'run', label: 'Run', kind: 'primary' }] : [],
       }
     }
 

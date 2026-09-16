@@ -1005,6 +1005,49 @@ export default function VidaConsolePage() {
     } finally { setLcBusy(null) }
   }, [selected, cockpit, clients, loadProgramme])
 
+  // ── ⚑ 16 Sep (MVP1 · D1) — THE RUN BUTTON NOW RUNS ────────────────────────────────────
+  //
+  // 🛑 IT CALLED `runOnceWith`. `programmes.run_at` is the external-delivery authority and
+  // `POST /programmes/:id/run` is the audited route that writes it — and the lifecycle panel's
+  // "Run" action fired `POST /operator/send-due/run-once` instead: the operator's SEND-ONCE
+  // tool. So an operator could press Run, watch emails go out, and `run_at` would still be
+  // NULL. The authority the whole ladder is built on was never granted by the button named
+  // after it, and the next scheduled batch had no permission to exist.
+  //
+  // ⚠️ THREE DIFFERENT ACTS, AND THEY STAY THREE. Make Live arms the programme (`go-live`
+  // through `lifecycle()`); Run grants delivery authority (this); send-once pushes a bounded
+  // batch by hand (`runOnceWith`, unchanged, still its own tool with its own ceiling). The
+  // founder's boundary is explicit: *"Do not conflate Make Live / Run / send-now."*
+  //
+  // ⚠️ RUN NEEDS NO CEILING, because Run sends nothing. A ceiling is send-once's input; asking
+  // for one here implied this press delivers, which is the confusion that produced the defect.
+  //
+  // ⚠️ AND NO SEND GATE MOVES. Run records an authority. Delivery still passes the
+  // kill-switch, the schedule, the caps, the sender and every per-lead gate afterwards.
+  const runProgramme = useCallback(async () => {
+    const id = programmeActionId()
+    if (!id) { setLcMsg(PROGRAMME_MISMATCH_COPY); return }
+    const say = forThisProgramme(setLcMsg)
+    const settleBusy = forThisProgramme(setLcBusy)
+    const who = (clients ?? []).find(c => c.id === selected)?.company_name ?? 'this client'
+    if (!confirm(`Start ${who}'s programme?\n\nThis grants external delivery authority — from here the scheduled batches may send.\n\nNOTHING is sent by this press: delivery still obeys the kill-switch, the sending schedule, the caps, the sender checks and every per-lead gate.`)) return
+    setLcBusy('run'); setLcMsg(null)
+    try {
+      const j = await fetch(`/api/proxy/programmes/${encodeURIComponent(id)}/run`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}',
+      }).then(r => r.json())
+      if (!j?.success) throw new Error(j?.error || 'The programme was not started.')
+      // ⚠️ THE SERVER SAYS WHICH IT WAS. A repeat press is a no-op and must not read as a
+      // second start — the route reports `already_running` and the first press keeps the record.
+      say(j?.already_running
+        ? 'This programme was already started — nothing changed.'
+        : 'Started. Scheduled batches may now send; nothing was sent by this press.')
+      if (selected) await loadProgramme(selected)
+    } catch (e) {
+      say(e instanceof Error ? e.message : 'The programme was not started.')
+    } finally { settleBusy(null) }
+  }, [programmeActionId, forThisProgramme, selected, clients, loadProgramme])
+
   const lifecycle = useCallback(async (action: string, label: string) => {
     // ── 🛑 ⚑ 13 Sep (BL-1) — OWNERSHIP FIRST, ABOVE THE CONFIRMATIONS BELOW ──────────────
     //
@@ -2596,7 +2639,10 @@ export default function VidaConsolePage() {
       // prospects are skipped, which is why the panel can promise the retry costs nothing.
       case 'try_again': return void lifecycle('ready-for-approval', 'Try again')
       case 'make_live': return void lifecycle('go-live', 'Make live')
-      case 'run': return void runOnceWith(ceiling ?? 0)
+      // ⛓️ 16 Sep (MVP1 · D1) — THE CANONICAL RUN, not the send-once tool. See `runProgramme`.
+      // `ceiling` is deliberately ignored here: Run grants authority and sends nothing, so it
+      // has no ceiling to obey. Send-once keeps its own control and its own ceiling.
+      case 'run': return void runProgramme()
       // Existing surfaces, opened in place rather than duplicated into this panel.
       case 'handle_reply': setToolsOpen(true); setTab('Inbox'); return
       case 'book_call': setToolsOpen(true); setTab('Bookings'); return
@@ -2643,7 +2689,7 @@ export default function VidaConsolePage() {
       case 'retry_proof': return void retryProof()
       default: return
     }
-  }, [lifecycle, runOnceWith, pauseProgramme, refreezePackage, retryProof, selected, calib, resolveCalibration, grantCalibratedRestart])
+  }, [lifecycle, runProgramme, pauseProgramme, refreezePackage, retryProof, selected, calib, resolveCalibration, grantCalibratedRestart])
 
   return (
     <div className="flex h-full min-h-0">

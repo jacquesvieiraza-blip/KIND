@@ -952,3 +952,76 @@ export async function checkLegacyPerLeadAuthority(clientId: string): Promise<Leg
     }
   }
 }
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// ⚑ 16 Sep (MVP1 · D3) — THE REVIEW HOLD CAN NOW BE CLEARED, AND ONLY BY A PERSON.
+//
+// 🛑 THE DEFECT WAS A MISSING WRITER, NOT A BROKEN RULE. `maybeRaiseProgrammeReview` above
+// writes `review_required_at`, and `reviewIsOpen` is `review_required_at && !review_resolved_at`
+// — but NOTHING IN THE PRODUCT EVER WROTE `review_resolved_at`. A grep returned reads only. So
+// the hold was a one-way door: once the R77 benchmark was reached, that programme's next batch
+// authority never came back, for ever, and no screen could return it.
+//
+// ⚠️ THE TRIGGER IS UNTOUCHED. The threshold, the reason sentence, `reviewTriggerReached` and
+// `reviewIsOpen`'s definition are all exactly as they were. This build adds the RESOLUTION and
+// changes nothing about when a hold is raised.
+//
+// ⚠️ AND NOTHING RESOLVES IT AUTOMATICALLY. It takes an operator identity and it is audited by
+// its route. A review that a cron could clear is not a review — the whole point of the hold is
+// that a person looked at a programme which is not converting.
+// ═══════════════════════════════════════════════════════════════════════════════════════
+
+export type ReviewResolution =
+  | { ok: true;  resolvedAt: string }
+  | { ok: false; reason: 'not_open' | 'not_found' | 'unreadable'; detail: string }
+
+export async function resolveProgrammeReview(
+  programmeId: string,
+  by: string,
+): Promise<ReviewResolution> {
+  try {
+    const { data, error } = await db.from('programmes')
+      .select(PROGRAMME_COLUMNS).eq('id', programmeId).maybeSingle()
+    if (error) {
+      return { ok: false, reason: 'unreadable', detail: `the programme could not be read (${error.message})` }
+    }
+    if (!data) return { ok: false, reason: 'not_found', detail: 'No such programme.' }
+    const p = data as unknown as ProgrammeRow
+
+    // 🛑 ONLY AN OPEN HOLD MAY BE RESOLVED. Stamping a programme that was never held would
+    // write a resolution for a review nobody did, and it would then be indistinguishable from
+    // one somebody had — which is the fact `reviewIsOpen` is read for.
+    if (!reviewIsOpen(p)) {
+      return {
+        ok: false, reason: 'not_open',
+        detail: 'This programme has no open review hold, so there was nothing to resolve. Nothing was changed.',
+      }
+    }
+
+    const resolvedAt = new Date().toISOString()
+    const { data: hit, error: upErr } = await db.from('programmes')
+      .update({ review_resolved_at: resolvedAt })
+      .eq('id', programmeId)
+      // ⚠️ COMPARE-AND-SET, the same shape the raise uses. Two operators pressing at once must
+      // produce one resolution: the second finds the column already written and matches no row.
+      .is('review_resolved_at', null)
+      .not('review_required_at', 'is', null)
+      .select('id')
+    if (upErr) {
+      return { ok: false, reason: 'unreadable', detail: `the resolution could not be written (${upErr.message})` }
+    }
+    if (!hit || (hit as unknown[]).length === 0) {
+      return {
+        ok: false, reason: 'not_open',
+        detail: 'This review was resolved by somebody else first. Nothing was changed.',
+      }
+    }
+    console.warn(`[programme-authority] review hold RESOLVED on programme ${programmeId} by ${by}. New batch authority resumes.`)
+    return { ok: true, resolvedAt }
+  } catch (err) {
+    return {
+      ok: false, reason: 'unreadable',
+      detail: err instanceof Error ? err.message : 'The review could not be resolved.',
+    }
+  }
+}

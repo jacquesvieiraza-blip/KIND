@@ -21,7 +21,7 @@ import { join } from 'path'
 vi.mock('@kind/db', () => ({ db: {} }))
 
 import {
-  millaStage, MILLA_STAGES, STAGE_QUICK_ACTION, MILLA_FAILURE_COPY,
+  millaStage, MILLA_STAGES, MVP1_MILLA_STAGES, STAGE_QUICK_ACTION, MILLA_FAILURE_COPY,
   outcomeIsAutoPriceable, type EngineProgrammeStatus,
 } from '@kind/shared'
 
@@ -548,15 +548,32 @@ describe('THE MILLA SHELL CARRIES NO RETIRED COMMERCIAL TRUTH', () => {
   // These guards exist because "derive it from the constant" is a promise that decays the
   // moment somebody adds one convenient extra step to the array.
   describe('THE FLOW BAR IS THE APPROVED LIFECYCLE, AND ONLY THAT', () => {
-    it('⑦ it is sourced from MILLA_STAGES, and the shared constant is the seven stages', () => {
+    it('⑦ it is sourced from the shared stage constant, and that constant is the canonical six', () => {
+      // ⛓️ 16 Sep (MVP1 · B1) — RE-POINTED FROM `MILLA_STAGES` TO `MVP1_MILLA_STAGES`.
+      //
+      // The DUTY is unchanged and is the whole point of this describe block: the ribbon maps a
+      // SHARED constant, declares no vocabulary of its own, and types no label.
+      //
+      // What moved is WHICH shared constant. `MILLA_STAGES` is seven and starts at Proof, so
+      // the client's own ribbon had no Brief on it — the first thing they ever do was not on
+      // their map — and its numbering did not match the operator's ribbon, which ran on a
+      // different eight. `MVP1_MILLA_STAGES` is the founder's canonical six, and Vida's ribbon
+      // reads the same module, so one client now has one position in both consoles.
+      //
+      // ⚠️ `MILLA_STAGES` IS NOT DELETED. It remains the transport vocabulary `/my/programme`
+      // answers in, and the projection from it is `mvp1MillaStageFromLegacy`.
       expect(SHELL_CODE, 'the FLOW bar no longer maps the shared stage constant')
-        .toContain('{MILLA_STAGES.map((label, i, arr) => {')
-      expect(SHELL_CODE, 'MILLA_STAGES is not imported from the shared package')
-        .toMatch(/import \{[^}]*MILLA_STAGES[^}]*\} from '@kind\/shared'/)
+        .toContain('{MVP1_MILLA_STAGES.map((label, i, arr) => {')
+      expect(SHELL_CODE, 'MVP1_MILLA_STAGES is not imported from the shared package')
+        .toMatch(/import \{[\s\S]*?MVP1_MILLA_STAGES[\s\S]*?\} from '@kind\/shared'/)
       // ⚠️ AND THE CONSTANT IS THE REAL ONE. A guard that only checks the shell would pass if
-      // someone declared a local `MILLA_STAGES` beside it — which is the exact defect (a
-      // second vocabulary) this decision removed.
-      expect(SHELL_CODE, 'the shell declares its own MILLA_STAGES').not.toMatch(/const MILLA_STAGES/)
+      // someone declared a local copy beside it — which is the exact defect (a second
+      // vocabulary) this decision removed.
+      expect(SHELL_CODE, 'the shell declares its own stage list')
+        .not.toMatch(/const (MILLA_STAGES|MVP1_MILLA_STAGES)/)
+      expect(MVP1_MILLA_STAGES).toEqual(
+        ['Brief', 'Proof', 'Programme', 'Approval', 'Results', 'Complete'])
+      // The legacy seven survive as the transport, unchanged.
       expect(MILLA_STAGES).toEqual(
         ['Proof', 'Recommendation', 'Sourcing', 'Approval', 'Live', 'Review', 'Completion'])
     })
@@ -583,8 +600,10 @@ describe('THE MILLA SHELL CARRIES NO RETIRED COMMERCIAL TRUTH', () => {
       // /my/programme, so the ribbon cannot say one thing while the Stage card says another —
       // which was the shape of the "Paused vs Proof — current" finding.
       expect(SHELL_CODE, 'the shell no longer reads the programme stage').toContain("'/my/programme'")
+      // ⛓️ 16 Sep (B1) — the live stage still drives the current step; it is now PROJECTED
+      // into the canonical six on the way in, so this ribbon and Vida's cannot disagree.
       expect(SHELL_CODE, 'the current step is not derived from the live stage')
-        .toContain('const at = stage ? arr.indexOf(stage) : -1')
+        .toContain('const at = stage ? arr.indexOf(mvp1MillaStageFromLegacy(stage)) : -1')
       expect(SHELL_CODE).toContain('const isCurrent = at >= 0 && i === at')
       // 🛑 AN UNKNOWN STAGE MARKS NOTHING CURRENT. Defaulting to index 0 would tell every
       // client whose read failed that they are at Proof — a claim about their programme made

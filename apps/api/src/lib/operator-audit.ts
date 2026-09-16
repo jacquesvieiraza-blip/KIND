@@ -119,6 +119,11 @@ export type OperatorAction =
   // this is the grant that lets any send path consider the programme at all. Two acts, two
   // audit actions, so "who armed it" and "who started it" are separately answerable.
   | 'programme_run'
+  | 'programme_review_resolved'  // ⚑ 16 Sep (D3) — an operator cleared the R77 review hold, so
+                            // this programme's next batch may start again. Audited because it
+                            // returns authority to spend on a programme that is not
+                            // converting, and because before this build the hold had no
+                            // writer for its resolution at all — it was a one-way door.
   | 'programme_icp_attached' // the ONLY writer of icps.programme_id — what future sourcing feeds
   | 'client_commercial_model_set'  // ⚑ 3 Sep (C2) — an operator DECLARED which commercial model
                             // governs a client: programme, legacy, or back to unclassified. Its

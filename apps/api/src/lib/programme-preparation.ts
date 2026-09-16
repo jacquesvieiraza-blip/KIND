@@ -146,6 +146,18 @@ export type PrepareResult = {
   /** Fully prepared: every eligible lead enrolled, nothing outstanding, no problems. */
   ok: boolean
   /**
+   * ⚑ 16 Sep (MVP1 · C1) — why the automatic sender claim did not produce a verified mailbox.
+   *
+   * 🛑 DELIBERATELY NOT IN `problems`, AND THEREFORE NOT IN `ok`. A missing pooled mailbox must
+   * not discard a campaign, a generated sequence and a set of enrolments that are all real and
+   * reusable — and this function builds, it does not judge. `preparation-readiness.ts` is the
+   * single gate and already refuses `no_sender` and `sender_unverified`, so a client with no
+   * verified mailbox cannot freeze Ready for Approval whatever this field says.
+   *
+   * ⚠️ `null` MEANS THE SENDER IS SETTLED — either newly claimed and verified, or already held.
+   */
+  senderProblem: string | null
+  /**
    * ⚑ `complete === false` MEANS THE PROGRAMME MUST NOT GO LIVE. It is separate from `ok`
    * because they answer different questions: `ok` is "did everything I attempted succeed",
    * `complete` is "is there anything LEFT". A run that succeeded on every lead it touched and
@@ -306,7 +318,7 @@ export async function assertGoingLive(
  */
 export async function prepareProgrammeOutreach(programmeId: string): Promise<PrepareResult> {
   const out: PrepareResult = {
-    ok: false, complete: false, remaining: 0, total: 0,
+    ok: false, complete: false, remaining: 0, total: 0, senderProblem: null,
     campaigns: [], enrolled: [], alreadyEnrolled: 0, skipped: 0, failed: [],
     refusals: {}, problems: [],
   }
@@ -315,6 +327,56 @@ export async function prepareProgrammeOutreach(programmeId: string): Promise<Pre
   if (!p) { out.problems.push('No such programme.'); return out }
   const stage = preparationStageFor(p)
   if (!stage.ok) { out.problems.push(`This programme cannot be prepared: ${stage.reason}.`); return out }
+
+  // ── ⓿ ⚑ 16 Sep (MVP1 · C1) — THE SENDING MAILBOX, CLAIMED AND PROVEN AUTOMATICALLY ───
+  //
+  // 🛑 THIS STEP DID NOT EXIST, AND IT WAS THE WHOLE STALL. Readiness blocks
+  // READY_FOR_APPROVAL on `no_sender` and `sender_unverified`, and both were classified as
+  // blockers preparation cannot clear. The manual remedy could not be taken either: `POST
+  // /operator/inboxes/assign` needs an operator to TYPE a pooled address, it never set SMTP
+  // credentials so `verifyInbox` refused whatever it created, and there was no inventory of
+  // pooled addresses anywhere to type one from. Every paying client's programme therefore
+  // stopped dead one step before Ready for Approval, waiting on a person who had no working
+  // control to press. Founder decision E: *"No normal operator GO."*
+  //
+  // ⚠️ IT RUNS FIRST, deliberately. The sender is the one requirement whose absence cannot be
+  // repaired by anything further down, so finding out about it after building a campaign, a
+  // sequence and a set of enrolments would mean an operator reads the LAST problem in a long
+  // list as the cause.
+  //
+  // ⚠️ IT DECIDES NOTHING ABOUT READINESS. `claimPooledSender` either produces a verified
+  // mailbox or it does not; the GATE is still `preparation-readiness.ts`, unchanged, and an
+  // assigned-but-unverified row is still refused by `sender_unverified` exactly as before.
+  // Nothing here relaxes a requirement — it satisfies one.
+  //
+  // ⚠️ AND IT IS NON-FATAL TO THE REST OF PREPARATION. A missing pool must not stop the
+  // campaign, the words and the audience from being built: that work is real, it is reusable,
+  // and the programme simply cannot freeze until a mailbox exists. So the problem is RECORDED
+  // and preparation continues — which is what turns this into a legible Vida blocker instead
+  // of a silent early return.
+  const { claimPooledSender } = await import('./sender-claim')
+  const senderClaim = await claimPooledSender(p.client_id)
+  if (!senderClaim.ok && senderClaim.reason !== 'already_has_sender') {
+    // 🛑 RECORDED HERE, GATED THERE — AND THE SPLIT IS THE POINT (corrected on first run).
+    //
+    // My first cut pushed this into `out.problems`, which feeds `out.complete` and therefore
+    // `out.ok`. That was wrong twice over. It made a missing mailbox fail the whole
+    // preparation — throwing away a campaign, a generated sequence and a set of enrolments
+    // that are all real, reusable work — and it put a second opinion about whether a programme
+    // may freeze inside a function whose job is to BUILD, not to judge.
+    //
+    // `preparation-readiness.ts` is the single gate and it already refuses `no_sender` and
+    // `sender_unverified`. So the honest division is: preparation ATTEMPTS the claim (which is
+    // what makes the happy path automatic), and readiness decides. A missing pool therefore
+    // surfaces as the existing `no_sender` blocker — a legible Vida Needs-you with a sentence
+    // on it — rather than as a preparation that reports failure for a reason buried in a list.
+    out.senderProblem = senderClaim.reason === 'verify_failed'
+      ? `The sending mailbox ${senderClaim.email} was assigned but could not be verified, so nothing can send from it yet. ${senderClaim.detail}`
+      : senderClaim.reason === 'unreadable'
+        ? `The sending mailbox could not be settled: ${senderClaim.detail}`
+        : senderClaim.detail
+    console.warn(`[programme-preparation] programme ${programmeId}: no verified sending mailbox — ${out.senderProblem}`)
+  }
 
   // ── ① A PROGRAMME-SAFE CAMPAIGN PER ATTACHED ICP ─────────────────────────────────────
   //

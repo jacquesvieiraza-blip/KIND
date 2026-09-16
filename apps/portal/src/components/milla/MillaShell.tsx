@@ -10,7 +10,18 @@ import {
   LayoutGrid, Users, Star, User, CreditCard, Gauge, FileText, Gift, ChevronDown, MessageSquare,
   Menu, X, ChevronLeft, ChevronUp,
 } from 'lucide-react'
-import { MILLA_STAGES, type MillaStage } from '@kind/shared'
+// ⛓️ 16 Sep (MVP1 · B1) — THE RIBBON PRINTS THE CANONICAL SIX.
+//
+// 🛑 `MILLA_STAGES` IS SEVEN AND STARTS AT PROOF. So the client's own ribbon had no Brief on
+// it at all — the first thing they ever do was not on their map — and its numbering did not
+// match the operator's, which ran on a different eight. `packages/shared/src/mvp1-stage.ts`
+// held the founder's six-stage projection for both consoles and NOTHING IMPORTED IT.
+//
+// ⚠️ `MillaStage` IS STILL THE TRANSPORT. `/my/programme` answers in the engine's own
+// customer vocabulary and that is unchanged; only what the ribbon PRINTS is projected.
+import {
+  MVP1_MILLA_STAGES, mvp1MillaStageFromLegacy, type MillaStage,
+} from '@kind/shared'
 import { MillaConversationProvider } from '@/components/milla/MillaConversation'
 
 // #490/#510 — the Milla client shell (docs/mv-previews/milla2.html): slim top bar (brand +
@@ -232,10 +243,12 @@ export function MillaShell({ children }: { children: React.ReactNode }) {
           deleted from the rail. And the whole list was a SECOND, INDEPENDENT stage vocabulary
           living beside the approved one, with nothing keeping the two in step.
 
-          THE BAR IS NOW DERIVED, NOT WRITTEN. `MILLA_STAGES` is the single approved
-          seven-stage lifecycle (@kind/shared/programme-stage) — the same constant the
-          Programme workspace builds its strip from — so there is exactly one place a stage
-          name can be added, renamed or reordered, and both surfaces move together.
+          THE BAR IS NOW DERIVED, NOT WRITTEN. ⛓️ 16 Sep (B1): the constant is
+          `MVP1_MILLA_STAGES` — the founder's canonical SIX in @kind/shared/mvp1-stage, the
+          same module Vida's ribbon reads — so there is exactly one place a stage name can be
+          added, renamed or reordered, and BOTH CONSOLES move together. It replaces
+          `MILLA_STAGES` (seven, starting at Proof), which gave the client a ribbon with no
+          Brief on it and a numbering that did not match the operator's.
 
           ⚠️ NOT ONE LABEL IS TYPED HERE. Nothing is mapped, aliased or supplemented: what
           renders is what the constant holds, in its order. Adding a step that is not a stage
@@ -251,16 +264,18 @@ export function MillaShell({ children }: { children: React.ReactNode }) {
           The design, placement, colours, numbering and chevrons are untouched: the current
           step is marked using the ribbon's own existing accent, which is the only thing the
           old bar could not do. */}
-      {/* ⚑ 4 Sep (UI-008) — DESKTOP ONLY, founder-approved. Seven stages plus chevrons cannot
+      {/* ⚑ 4 Sep (UI-008) — DESKTOP ONLY, founder-approved. Six stages plus chevrons cannot
           be read on a 390px strip, and on the approved phone screen the conversation is the
           screen. The ribbon is unchanged at every width where it fits. */}
       <div className="hidden md:flex shrink-0 items-center gap-1 overflow-x-auto px-5 py-2 bg-[#2a1747] text-white">
         <span className="text-[11px] font-extrabold tracking-[0.1em] text-[#b9a6e6] mr-2.5">FLOW</span>
-        {MILLA_STAGES.map((label, i, arr) => {
+        {MVP1_MILLA_STAGES.map((label, i, arr) => {
           // ⚠️ -1 WHEN THE STAGE IS UNKNOWN, and that is a real state, not a default. A
           // failed or still-loading `/my/programme` marks NOTHING current — the ribbon shows
           // the journey without claiming where the client is in it.
-          const at = stage ? arr.indexOf(stage) : -1
+          // ⛓️ 16 Sep (B1) — PROJECTED, NOT LOOKED UP. The transport is still the engine's
+          // seven; the position is the canonical six, so this ribbon and Vida's agree.
+          const at = stage ? arr.indexOf(mvp1MillaStageFromLegacy(stage)) : -1
           const isCurrent = at >= 0 && i === at
           const isDone    = at >= 0 && i < at
           return (

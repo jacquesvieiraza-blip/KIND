@@ -190,7 +190,11 @@ describe('MILLA · PHONE — the section covers her, and never unmounts her', ()
     expect(shell, 'the Account chip is not phone-gated').toContain('ml-auto hidden md:flex items-center gap-3.5')
     // 🛑 AND NEITHER IS HIDDEN ON DESKTOP — the guard above would pass on a deletion, this
     // one would not: both must still carry their desktop markup.
-    expect(shell).toContain('{MILLA_STAGES.map((label, i, arr) => {')
+    // ⛓️ 16 Sep (MVP1 · B1) — RE-POINTED. The DUTY is unchanged: prove the ribbon still
+    // carries its desktop markup, so the phone-gating guard above cannot pass on a deletion.
+    // What moved is the CONSTANT — `MILLA_STAGES` (seven, no Brief) became the canonical
+    // `MVP1_MILLA_STAGES` (six), the same module Vida's ribbon now reads.
+    expect(shell).toContain('{MVP1_MILLA_STAGES.map((label, i, arr) => {')
     expect(shell).toContain('Account <ChevronDown')
   })
 
@@ -542,7 +546,19 @@ describe('VIDA · UI-009 — Clients is a nav group, and the workspace got its w
       expect(RETIRED, 'this list must not contain a retired route').not.toContain(href)
       expect(nav, `the operator destination ${href} is gone`).toContain(`href: '${href}'`)
     }
-    expect(page).toContain("const COCKPIT_TABS = ['Inbox', 'Approvals', 'People', 'Campaign', 'ICP', 'Sequence', 'Asks', 'Bookings', 'Programme', 'Pool', 'Exceptions'] as const")
+    // ⛓️ 16 Sep (MVP1 · A2) — RE-POINTED TO WHERE THE LIST LIVES, AND STILL ELEVEN.
+    //
+    // The DUTY is unchanged: prove no operator destination went missing. What moved is the
+    // HOME — the list was declared in `vida/page.tsx` AND re-typed inline at the render (two
+    // hand-typed copies of one list), and now lives once in `vida-cockpit-tabs.ts` beside the
+    // stage rule that decides which of them a healthy-Proof client may see.
+    const tabsModule = strip(read(join(ADMIN, 'lib/vida-cockpit-tabs.ts')))
+    expect(tabsModule).toContain('export const COCKPIT_TABS = [')
+    for (const t of ['Inbox', 'Approvals', 'People', 'Campaign', 'ICP', 'Sequence',
+      'Asks', 'Bookings', 'Programme', 'Pool', 'Exceptions']) {
+      expect(tabsModule, `the cockpit destination ${t} is gone`).toContain(`'${t}'`)
+    }
+    expect(page, 'the page no longer reads the shared tab list').toContain("from '@/lib/vida-cockpit-tabs'")
     // 🛑 WRAPPING, NOT SCROLLING. The strip needs 894px; a scroll with no affordance is how
     // eight tabs became undiscoverable.
     expect(page).toContain('flex flex-wrap items-end gap-0.5 px-3 pt-2.5 border-b border-[#eee7f7]')
@@ -633,9 +649,13 @@ describe('VIDA · UI-011 — Pool and Exceptions belong to the workspace', () =>
 
   it('🛑 BOTH RENDER INSIDE THE TAB CONTAINER, not as siblings of the console', () => {
     const aside = page.indexOf('</aside>')
-    const pool  = page.indexOf("{tab === 'Pool' && (<>")
-    const exc   = page.indexOf("{tab === 'Exceptions' && (<>")
-    const inbox = page.indexOf("{tab === 'Inbox' && (")
+    // ⛓️ 16 Sep (MVP1 · A2) — RE-POINTED FROM `tab` TO `shownTab`. The render-side panes now
+    // compare against the RESOLVED tab, so a client-work tab withheld during healthy Proof
+    // cannot leave a blank workspace. The duty this guard protects — Pool and Exceptions
+    // render INSIDE the tab container, not as siblings of the console — is untouched.
+    const pool  = page.indexOf("{shownTab === 'Pool' && (<>")
+    const exc   = page.indexOf("{shownTab === 'Exceptions' && (<>")
+    const inbox = page.indexOf("{shownTab === 'Inbox' && (")
     for (const [at, what] of [[pool, 'Pool'], [exc, 'Exceptions']] as [number, string][]) {
       expect(at, `${what} is missing`).toBeGreaterThan(-1)
       // 🛑 THE WHOLE DEFECT IN ONE COMPARISON: they used to sit AFTER the closing tag.

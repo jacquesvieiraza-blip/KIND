@@ -2682,7 +2682,12 @@ export default function VidaConsolePage() {
               Two ribbons, two vocabularies, neither of them the client's lifecycle.
               🛑 READ-ONLY. A stage is where the client IS; a clickable one would invite the
               belief that an operator moves them, which is the belief this workspace removes. */}
-          <LifecycleRibbon stageIndex={lc?.verdict.stageIndex ?? null} />
+          <LifecycleRibbon
+            // ⛓️ 16 Sep (MVP1 · B1) — THE STAGE, NOT AN INDEX. `stageIndex` was 1-based into
+            // the EIGHT engine stages; the ribbon now prints the canonical SIX, so the number
+            // would light the wrong one from `sourcing` onwards. It projects the stage itself.
+            stage={lc?.verdict.stage ?? null}
+          />
 
           {/* THE CONSOLE: Vida (conversation) | cockpit (this client's work surfaces) */}
           <div className="flex-1 flex min-h-0">

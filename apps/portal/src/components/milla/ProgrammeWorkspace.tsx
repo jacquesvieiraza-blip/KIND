@@ -21,7 +21,12 @@
 // subtraction of two. A made-up number in front of a paying customer is a promise.
 // ═══════════════════════════════════════════════════════════════════════════════════════
 
-import { MILLA_STAGES, type MillaStage } from '@kind/shared'
+// ⛓️ 16 Sep (MVP1 · B1) — THE STRIP PRINTS THE CANONICAL SIX, same module as Vida's ribbon
+// and as `MillaShell`'s. `MILLA_STAGES` (seven, starting at Proof) is still the transport
+// vocabulary `/my/programme` answers in; it is no longer what any ribbon draws.
+import {
+  MVP1_MILLA_STAGES, mvp1MillaStageFromLegacy, type MillaStage,
+} from '@kind/shared'
 
 export type CustomerProgramme = {
   stage: MillaStage
@@ -135,7 +140,9 @@ export function nextActionFor(p: CustomerProgramme): string {
 }
 
 export default function ProgrammeWorkspace({ p }: { p: CustomerProgramme }) {
-  const stageIndex = MILLA_STAGES.indexOf(p.stage)
+  // ⛓️ 16 Sep (B1) — PROJECTED. The index is a position in the canonical six, so this strip,
+  // the Milla shell ribbon and Vida's operator ribbon cannot number one client three ways.
+  const stageIndex = MVP1_MILLA_STAGES.indexOf(mvp1MillaStageFromLegacy(p.stage))
   // ⛓️ CORRECTED 3 Sep — DERIVING THIS FROM `firstAuthorisedAt` ALONE WAS STILL FALSE FOR
   // HOUSE. Before internal P1 that stamp is null too, so House fell to the default and read
   // "First 50% not yet paid" — a debt to itself that does not exist. The programme row cannot
@@ -150,15 +157,15 @@ export default function ProgrammeWorkspace({ p }: { p: CustomerProgramme }) {
   return (
     <div className="max-w-3xl">
         {/* ── WHERE THE PROGRAMME IS ─────────────────────────────────────────────────
-            The seven stages, with the current one marked. Stage names are the founder's. */}
+            The canonical six, with the current one marked. Stage names are the founder's. */}
         <div className="flex items-center gap-1.5 overflow-x-auto pb-3 mb-4">
-          {MILLA_STAGES.map((s, i) => (
+          {MVP1_MILLA_STAGES.map((s, i) => (
             <div key={s} className="flex items-center gap-1.5 shrink-0">
               <span className={`text-[12.5px] px-2.5 py-1 rounded-full whitespace-nowrap ${
                 i === stageIndex ? 'bg-[#7C3AED] text-white font-bold'
                 : i < stageIndex ? 'text-[#7C3AED] font-semibold'
                 : 'text-[#b3a9cc]'}`}>{s}</span>
-              {i < MILLA_STAGES.length - 1 && <span className="text-[#e3daf7] text-[11px]">›</span>}
+              {i < MVP1_MILLA_STAGES.length - 1 && <span className="text-[#e3daf7] text-[11px]">›</span>}
             </div>
           ))}
         </div>

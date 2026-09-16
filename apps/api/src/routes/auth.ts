@@ -5,7 +5,11 @@ import { sendWelcomeEmail } from '../lib/email'
 import { sendFounderAlert } from '../lib/alerts'
 import { rateLimit } from '../lib/rate-limit'
 import { signupSubscriptionRow, signupSubscriptionRowCompat, isPeriodEndNotNullRejection, SIGNUP_SUBSCRIPTION_PRODUCT } from '../lib/signup-subscription'
-import { PACK_PRICE_USD } from '@kind/shared'
+// ⛓️ 16 Sep (MVP1 · F3) — `PACK_PRICE_USD` IS NO LONGER IMPORTED HERE. Its only use in this
+// file was the retired signup alert sentence *"they start at $0 and must load $299 to begin"*.
+// R124 retired that model, so nothing on the signup path quotes a pack price any more.
+// ⚠️ THE CONSTANT ITSELF IS UNTOUCHED in `@kind/shared` — the legacy billing screens that
+// legitimately still read it are outside MVP1 and are not part of this fence.
 
 export const authRouter = Router()
 
@@ -537,10 +541,23 @@ authRouter.post('/onboard', async (req, res) => {
     sendWelcomeEmail(user.email!, profileFields.company_name, clientId).catch(() => {})
     // #285 alerting — tell the founder a new client just onboarded (new clients only).
     if (!existing) {
+      // ── ⛓️ 16 Sep (MVP1 · F3) — THE ALERT SPEAKS THE PROGRAMME ────────────────────────
+      //
+      // 🛑 WHAT STOOD HERE: ~~"No freebies — they start at $0 and must load $299 to begin.
+      // Assign a pooled inbox once they've paid."~~ Every clause of it described the retired
+      // model. R124 (founder-locked 16 Sep): *"299/4 is gone. out. we are on the programme.
+      // all clients."* There is no pack to load, nothing is payable at signup, and the inbox
+      // is no longer something an operator assigns after a payment — Prepare claims one.
+      //
+      // ⚠️ AND NO FIGURE IS TYPED INTO IT. The working method's rule 7 — every price a client
+      // can read is interpolated from the shared constants — applies here for a different
+      // reason: this sentence told an operator a number, and an operator acts on it.
+      // The honest answer is that the first thing that happens is free.
       void sendFounderAlert('new_signup', `New signup — ${profileFields.company_name}`, [
         `${profileFields.company_name} just completed onboarding (${user.email}).`,
         profileFields.country ? `Country: ${profileFields.country}.` : '',
-        `No freebies — they start at $0 and must load $${PACK_PRICE_USD} to begin. Assign a pooled inbox once they've paid.`,
+        'Nothing is payable yet. They go to Milla for their Brief, then their free Proof set — no operator GO exists for either.',
+        'A programme is priced only after they confirm the Proof is right, and Prepare claims their sending mailbox automatically.',
       ])
     }
     // ── ⚑ MVP1 (C22) — ONE ONBOARDING EMAIL, NOT TWO ──────────────────────────────────

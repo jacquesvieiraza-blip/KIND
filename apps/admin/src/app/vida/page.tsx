@@ -2717,9 +2717,34 @@ export default function VidaConsolePage() {
                         it read "11 of 11 collected" from the Brief — two answers, one client,
                         neither saying which question it was answering. This is what the CLIENT
                         has told us; what WE still owe them is `go_live` below. */}
+                    {/* ⛓️ 16 Sep (MVP1 · F3) — AND THE FALLBACK WAS THE DEFECT SURVIVING.
+                        ~~`: `${cockpit.onboarding.percent}%``~~ — under the label "Brief",
+                        that renders OUR eight go-live checks as the CLIENT's eleven-fact
+                        count. It is the exact competing answer R121 Build 4 closed, still
+                        live in the branch nobody looks at.
+                        ⚠️ AN UNREADABLE COUNT NOW SAYS SO. Borrowing a different question's
+                        number is worse than admitting we could not read this one. */}
                     Brief {cockpit.onboarding.brief
                       ? `${cockpit.onboarding.brief.count}/${cockpit.onboarding.brief.total}`
-                      : `${cockpit.onboarding.percent}%`}
+                      : '—'}
+                  </span>
+                )}
+                {/* ── ⚑ 16 Sep (MVP1 · F3) — AND OUR OWN CHECKS, UNDER THEIR OWN NAME ──────
+                    🛑 THEY WERE COMPUTED, SHIPPED AND TYPED, AND NEVER RENDERED. `go_live` has
+                    been in this payload since R121 Build 4, and the comment above it says
+                    *"what WE still owe them is `go_live` below"* — there was no below. The
+                    only place our eight checks ever surfaced was as the FALLBACK inside the
+                    Brief chip, i.e. wearing the client's label.
+
+                    The founder's boundary, verbatim: *"Keep go-live checks where they
+                    legitimately belong under their own name."* This is that name. Two chips,
+                    two questions, neither borrowing the other's number. */}
+                {cockpit && (
+                  <span className={`shrink-0 text-[12.5px] font-bold rounded-full px-2.5 py-1 ${cockpit.onboarding.go_live.percent === 100 ? 'text-emerald-700 bg-emerald-50' : 'text-[#5c5279] bg-[#f6f3fb]'}`}
+                    title={cockpit.onboarding.go_live.missing.length
+                      ? `We still owe them: ${cockpit.onboarding.go_live.missing.join(', ')}`
+                      : 'Everything on our side is ready'}>
+                    Go-live {cockpit.onboarding.go_live.percent}%
                   </span>
                 )}
                 {/* ⚑ 3 Sep (C2) — THE WALLET IS STILL SHOWN, AND IT NO LONGER IMPLIES A MODEL.

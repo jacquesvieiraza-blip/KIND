@@ -65,7 +65,9 @@ type BuilderReply =
       // the confirmation shows what the client actually said rather than whatever this one
       // model sample remembered.
       brief_exclusions?: string
-      brief_geographies?: string[] }
+      brief_geographies?: string[]
+      // ⚑ 16 Sep (S1-ONB-001) — the server saying READY. The plan object is only the CONTENT.
+      onboarding_state?: 'ready' }
   // ── ⚑ 16 Sep (S1-RT-010) — THE SERVER VETOED A PREMATURE COMPLETION ─────────────────
   //
   // 🛑 NOT A MILLA TURN, AND THAT IS THE WHOLE POINT. The model declared the Brief finished
@@ -205,6 +207,18 @@ export default function MillaWelcomePage() {
   // the next turn that answers normally. It is the reason a NOTICE is shown rather than a
   // bubble; the fact it names is `briefNext`, which is the server's, not this app's.
   const [outstanding, setOutstanding] = useState<{ label: string; remaining: number } | null>(null)
+  // ── 🛑 ⚑ 16 Sep (S1-ONB-001) — THE SERVER'S PROGRESSION STATE, AND IT IS THE AUTHORITY.
+  //
+  // 🛑 `proposed !== null` USED TO GATE THE PLAN AND THE CONFIRM CTA, and it is not a fact
+  // check — it records that a completion once arrived in THIS TAB. That is how a finished
+  // targeting plan with a live Confirm button came to sit above a line reading "Based in —
+  // still needed": the panel's existence and the panel's contents were answered by two
+  // different systems, and the thing that actually blocked was a third check after the click.
+  //
+  // ⚠️ THIS APP COMPUTES NOTHING. The server's own onboarding-state authority is the only
+  // definition of ready; there is no fact list, no count and no threshold in this file — and
+  // a guard in `s1-onb-001-clean-onboarding.test.ts` asserts that by name.
+  const [serverReady, setServerReady] = useState(false)
   // What Milla understood about the business, alongside the targeting.
   const [business, setBusiness] = useState<Business | null>(null)
   const [proof, setProof] = useState<ProofClaim[]>([])
@@ -286,10 +300,47 @@ export default function MillaWelcomePage() {
         progress: { count: number; total: number }
         next: { id: string; label: string } | null
         conversation?: { role: 'user' | 'assistant'; content: string }[]
+        onboarding_state?: 'conversing' | 'ready'
+        onboarding_profile?: Partial<Profile>
+        onboarding_business?: Partial<Business>
       } }>('/milla/brief-draft', tk)
       const p = d.data?.progress
       const next = d.data?.next ?? null
       const convo = d.data?.conversation ?? []
+      // ── 🛑 ⚑ 16 Sep (S1-ONB-001) — HYDRATE FROM CANONICAL TRUTH, NOT FROM MEMORY ──────
+      //
+      // 🛑 THE CARDS USED TO COME ONLY FROM A COMPLETION REPLY held in this tab. So a client
+      // who had already told Milla where they are based, then refreshed, was shown
+      // "Based in — still needed" about a country the DRAFT was holding — and `/auth/onboard`
+      // would have read that same draft and found it perfectly well. The screen was the only
+      // thing that did not know.
+      //
+      // ⚠️ RENDER-ONLY, AND IT DECIDES NOTHING. The server sends finished render objects, so
+      // this app never learns our fact vocabulary and never counts anything. Every gate reads
+      // the server's onboarding state, derived from the same persisted facts.
+      const op = d.data?.onboarding_profile
+      const ob = d.data?.onboarding_business
+      if (op && Object.values(op).some(v => typeof v === 'string' && v.trim() !== '')) {
+        setProfile(prev => ({
+          company_name: op.company_name || prev?.company_name || '',
+          country:      op.country      || prev?.country      || '',
+          contact_name: op.contact_name || prev?.contact_name || '',
+          phone:        op.phone        || prev?.phone        || '',
+          website:      op.website      || prev?.website      || '',
+          industry:     op.industry     || prev?.industry     || '',
+        }))
+      }
+      if (ob && Object.values(ob).some(v => typeof v === 'string' && v.trim() !== '')) {
+        setBusiness(prev => ({
+          product:         ob.product || prev?.product         || '',
+          pitch:           prev?.pitch           || '',
+          pain_points:     prev?.pain_points     || '',
+          differentiators: prev?.differentiators || '',
+          tone:            prev?.tone            || '',
+          bad_fit:         ob.bad_fit || prev?.bad_fit         || '',
+        }))
+      }
+      setServerReady(d.data?.onboarding_state === 'ready')
       // ⚑ 14 Sep (S1-RT-004) — held so Get Help can tell an operator where they are stuck.
       if (p) setBriefProgress(p)
       setBriefNext(next?.label ?? null)
@@ -499,6 +550,8 @@ export default function MillaWelcomePage() {
       if (d.type === 'outstanding') {
         const o = d.brief_outstanding
         setOutstanding({ label: o.next.label, remaining: o.remaining })
+        // The server refused a completion, so onboarding is not ready whatever this tab holds.
+        setServerReady(false)
         // ⚠️ THE SAME STATE THE RESUME PATH AND Get Help ALREADY SPEAK FROM — reused, never
         // duplicated, and still the server's numbers. `count` is derived by SUBTRACTION from
         // the server's own `total` and `remaining`; there is no eleven-fact list in this app.
@@ -507,6 +560,10 @@ export default function MillaWelcomePage() {
         return
       }
       setOutstanding(null)
+      // ⚑ 16 Sep (S1-ONB-001) — a QUESTION turn means the server has not said ready, so the
+      // gate closes even if a completion reached this tab earlier in the conversation. That is
+      // what makes a later correction able to take READY back.
+      setServerReady(d.type === 'complete' && d.onboarding_state === 'ready')
       if (d.type === 'complete') {
         setMessages(m => [...m, { role: 'assistant', content: d.summary || "Here's the targeting plan I'd recommend — review it on the right." }])
         if (d.profile) setProfile(d.profile)
@@ -643,17 +700,18 @@ export default function MillaWelcomePage() {
             return
           }
         }
+        // ── ⛓️ 16 Sep (S1-ONB-001) — THE BROWSER-LOCAL ACCOUNT CHECK IS GONE ───────────
+        //
+        // 🛑 WHAT STOOD HERE WAS A READINESS AUTHORITY IN A COMPONENT, and it ran AFTER the
+        // client had already pressed Confirm — so the plan rendered, the CTA was live, the
+        // panel said "Based in — still needed", and the refusal arrived on the click, phrased
+        // as a sentence from Milla that she never wrote.
+        //
+        // ⚠️ NOTHING IS WEAKENED. `country` is now part of the server's readiness answer, so a Brief
+        // without it is not READY, this screen never offers Confirm, `/milla/brief-draft/
+        // confirm` refuses it server-side, and `/auth/onboard` refuses it again. Milla asks
+        // for it in the conversation instead — in her own words, before the button exists.
         const p = profile
-        const missing = [
-          !p?.company_name?.trim() ? 'your company name' : '',
-          !p?.country?.trim() ? 'which country your business is based in' : '',
-        ].filter(Boolean)
-        if (missing.length) {
-          setMessages(m => [...m, { role: 'assistant', content:
-            `Before I can open your account I still need ${missing.join(' and ')} — could you tell me?` }])
-          setSaving(false)
-          return
-        }
         // Partner attribution (P4) and the Item-186 T&C tick were carried from signup by
         // /onboard. It no longer posts, so they are carried from here — to the SAME
         // unchanged handler. Losing the referral would mean a partner is never paid for
@@ -861,8 +919,8 @@ export default function MillaWelcomePage() {
 
       <div className="shrink-0 flex items-center gap-3 px-6 py-3 bg-white border-b border-[#eee7f7] overflow-x-auto">
         {stepDot(1, 'Welcome', 'done')}<span className="w-8 h-0.5 bg-[#e7ddf7]" />
-        {stepDot(2, 'Your target', proposed ? 'done' : 'on')}<span className="w-8 h-0.5 bg-[#e7ddf7]" />
-        {stepDot(3, 'Your plan', proposed ? 'on' : 'todo')}<span className="w-8 h-0.5 bg-[#e7ddf7]" />
+        {stepDot(2, 'Your target', serverReady && proposed ? 'done' : 'on')}<span className="w-8 h-0.5 bg-[#e7ddf7]" />
+        {stepDot(3, 'Your plan', serverReady && proposed ? 'on' : 'todo')}<span className="w-8 h-0.5 bg-[#e7ddf7]" />
         {stepDot(4, 'Go live', 'todo')}
       </div>
 
@@ -966,7 +1024,12 @@ export default function MillaWelcomePage() {
 
         {/* proposal */}
         <aside className="w-[420px] shrink-0 border-l border-[#eee7f7] bg-white overflow-y-auto">
-          {!proposed ? (
+          {/* ── 🛑 ⚑ 16 Sep (S1-ONB-001) — THE SERVER'S STATE GATES THE PANEL ────────────
+               `proposed` is the plan's CONTENT — the provider-translated arrays, which exist
+               nowhere but a completion reply. `serverReady` is the AUTHORITY. Both are
+               required: content without authority is what rendered a finished plan and a live
+               Confirm button above "Based in — still needed". */}
+          {!(serverReady && proposed) ? (
             <div className="p-6 text-[13px] text-[#9b8ec4] leading-relaxed">
               <div className="text-[15px] font-bold text-[#1f1235] mb-2">Your targeting plan</div>
               {/* ⛓️ 30 Aug (BUILD-004A-1 live-walk, FOUNDER DECISION 4) — FOUNDER'S EXACT

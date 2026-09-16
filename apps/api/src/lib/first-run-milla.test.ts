@@ -360,10 +360,22 @@ describe('required client data is never fabricated or defaulted', () => {
     expect(flat(icpsSrc)).toContain('ELEVEN FACTS, NOT ELEVEN QUESTIONS')
   })
 
-  it('a missing company name or country ASKS — it never submits', () => {
-    expect(welcomeCode).toContain("!p?.company_name?.trim() ? 'your company name' : ''")
-    expect(welcomeCode).toContain("!p?.country?.trim() ? 'which country your business is based in' : ''")
-    expect(welcomeCode).toMatch(/if \(missing\.length\)[\s\S]{0,320}?setSaving\(false\)\s*\n\s*return/)
+  // ⛓️ 16 Sep (S1-ONB-001) — THE ASK MOVED EARLIER, AND THAT IS THE FIX.
+  //
+  // ⛓️ This asserted a BROWSER-LOCAL check that ran AFTER the client pressed Confirm — so the
+  // plan rendered, the CTA was live, and the panel itself said "Based in — still needed" while
+  // the refusal waited behind the click. Company name and country are now part of the server's
+  // one readiness answer, so the CTA never appears and Milla asks in the conversation instead.
+  it('a missing company name or country is asked for BEFORE the plan, by the server', () => {
+    expect(welcomeCode, 'the browser-side ask is gone')
+      .not.toContain("!p?.country?.trim() ? 'which country your business is based in' : ''")
+    expect(welcomeCode).not.toContain('Before I can open your account I still need ')
+    // The gate the plan and the CTA now sit behind is the server's state, not this tab's.
+    expect(welcomeCode).toContain('{!(serverReady && proposed) ? (')
+    const onb = readFileSync(join(process.cwd(), 'apps/api/src/lib/onboarding-state.ts'), 'utf8')
+    expect(onb, 'and the requirement lives in the one authority').toContain("ACCOUNT_FACTS = ['country']")
+    expect(onb, 'company name is still one of the canonical eleven, counted there')
+      .toContain('briefDraftFacts(facts ?? null)')
   })
 
   it('no placeholder value is hard-coded anywhere in the new first-run path', () => {

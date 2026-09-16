@@ -741,9 +741,17 @@ millaRouter.post('/notetaker', async (req: AuthRequest, res) => {
  */
 millaRouter.get('/brief-draft', async (req: AuthRequest, res) => {
   const { briefDraftFor, draftProgress } = await import('../lib/brief-draft')
+  const { onboardingState } = await import('../lib/onboarding-state')
   const { BRIEF_FACT_LABEL } = await import('@kind/shared')
   const draft = await briefDraftFor(req.userId!)
   const progress = draftProgress(draft)
+  // ⚑ 16 Sep (S1-ONB-001) — THE SAME AUTHORITY THE CHAT AND CONFIRM DOORS USE, so a refresh
+  // returns the client to the state the server actually holds rather than to whatever the
+  // browser last believed. This is the portal's progression gate.
+  const onboarding = onboardingState(draft?.facts ?? null)
+  const onboardingFacts = (draft?.facts ?? {}) as Record<string, unknown>
+  const onboardingText = (k: string): string =>
+    typeof onboardingFacts[k] === 'string' ? (onboardingFacts[k] as string).trim() : ''
   // ⚠️ THE NEXT FACT IS NAMED HERE, NOT WORKED OUT IN THE BROWSER. The portal's resume line
   // says what Milla still needs; deriving that in the portal would mean a second eleven-fact
   // list in a second app, which is exactly how Vida came to disagree with Milla about the
@@ -755,6 +763,31 @@ millaRouter.get('/brief-draft', async (req: AuthRequest, res) => {
       draft: draft ? { facts: draft.facts, confirmed_at: draft.confirmedAt, promoted_client_id: draft.promotedClientId } : null,
       progress,
       next: nextId ? { id: nextId, label: BRIEF_FACT_LABEL[nextId] } : null,
+      // ⚠️ THE STATE IS THE SERVER'S ANSWER, not a count for the client to read. The portal
+      // gates the targeting plan and the Confirm CTA on it and renders no counter.
+      onboarding_state: onboarding.state,
+      onboarding_unresolved: onboarding.unresolvedLabels,
+      // ── ⚑ 16 Sep (S1-ONB-001) — THE RENDER SHAPE, BUILT HERE AND NOT IN THE BROWSER ───
+      //
+      // 🛑 THE CARDS USED TO COME ONLY FROM A COMPLETION REPLY held in one tab, so a client
+      // who had already said where they are based and then refreshed was shown
+      // "Based in — still needed" about a country THIS VERY ROW was holding.
+      //
+      // ⚠️ MAPPED SERVER-SIDE ON PURPOSE. Sending raw `facts` would make the portal learn our
+      // fact vocabulary — `exclusions`, `what_they_do` — which is the first step back towards
+      // a second opinion about the Brief. It receives finished render objects and assigns them.
+      onboarding_profile: {
+        company_name: onboardingText('company_name'),
+        country:      onboardingText('country'),
+        contact_name: onboardingText('contact_name'),
+        phone:        onboardingText('phone'),
+        website:      onboardingText('website'),
+        industry:     onboardingText('what_they_do'),
+      },
+      onboarding_business: {
+        product: onboardingText('what_they_do'),
+        bad_fit: onboardingText('exclusions'),
+      },
       // ── ⚑ 14 Sep (S1-RT-003) — THE CONVERSATION, so re-entry continues it ────────────
       //
       // 🛑 THE FACTS ALONE WERE NEVER ENOUGH. The resume line could say "9 of 11", but the
@@ -811,9 +844,16 @@ millaRouter.post('/brief-draft/confirm', async (req: AuthRequest, res) => {
   const r = await confirmBriefDraft(req.userId!)
   if (r.ok) { res.json({ success: true, data: { confirmed_at: r.draft.confirmedAt } }); return }
   if (r.reason === 'incomplete') {
+    // ⛓️ 16 Sep (S1-ONB-001) — THE SENTENCE NAMES BOTH CLASSES. `missing` is the canonical
+    // eleven as ids and is unchanged for existing callers; `missingLabels` is the complete
+    // list, so a Brief held back only by the client's own country no longer produces
+    // "Milla still needs  before you can confirm."
+    const names = (r.missingLabels && r.missingLabels.length > 0)
+      ? r.missingLabels
+      : (r.missing ?? []).map(id => BRIEF_FACT_LABEL[id as keyof typeof BRIEF_FACT_LABEL])
     res.status(400).json({
       success: false,
-      error: `Milla still needs ${(r.missing ?? []).map(id => BRIEF_FACT_LABEL[id as keyof typeof BRIEF_FACT_LABEL]).join(', ')} before you can confirm.`,
+      error: `Milla still needs ${names.join(', ')} before you can confirm.`,
       missing: r.missing ?? [],
     })
     return

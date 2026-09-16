@@ -200,8 +200,28 @@ describe('🛑 NORTHSTAR · the founder’s own three turns', () => {
       { role: 'user', content: T3 },
     ])
     expect(r3.code, JSON.stringify(r3.payload)).toBe(200)
-    const data = r3.payload.data as Record<string, unknown>
+    // ── ⛓️ 16 Sep (S1-ONB-001) — THE THIRD TURN NO LONGER FINISHES IT, AND THAT IS CORRECT.
+    //
+    // The founder's own three turns never say where NORTHSTAR is based — "the UK and US" are
+    // his customers. The account cannot be opened without his own country, so onboarding is
+    // not READY and Milla asks for it. Nothing is invented: that is the same guarantee this
+    // file was written for, now enforced a step earlier instead of at the Confirm click.
+    const held = r3.payload.data as Record<string, unknown>
+    expect(held.type).toBe('outstanding')
+    expect((held.brief_outstanding as { next: { id: string } }).next.id).toBe('country')
+    expect(store.facts.country, 'still never derived from the target markets').toBeUndefined()
+
+    // ── Turn 4 — he answers it, and only then does the plan exist ───────────────────────
+    model.reply = millaSaid({ ...READ_T3, profile: { ...(READ_T3 as { profile?: Record<string, unknown> }).profile, country: 'South Africa' } })
+    const r4 = await turn([
+      { role: 'user', content: T1 }, { role: 'assistant', content: READ_T1.content },
+      { role: 'user', content: T2 }, { role: 'assistant', content: READ_T2.content },
+      { role: 'user', content: T3 }, { role: 'user', content: 'We are based in South Africa.' },
+    ])
+    expect(r4.code, JSON.stringify(r4.payload)).toBe(200)
+    const data = r4.payload.data as Record<string, unknown>
     expect(data.type).toBe('complete')
+    expect(store.facts.country, 'HIS answer, persisted').toBe('South Africa')
 
     // 🛑 THE CONFIRMATION IS THE DURABLE BRIEF, NOT THE LAST SAMPLE. The completion carried
     // no geographies at all; the plan he is asked to approve still has both markets.
@@ -213,19 +233,22 @@ describe('🛑 NORTHSTAR · the founder’s own three turns', () => {
     // Category and type are the refined ones from turn 2, not the first guess.
     expect(String((data.icp as Record<string, unknown>).target_category)).toContain('management consultancies')
     expect((data.icp as Record<string, unknown>).target_company_type).toBe('founder-led B2B service businesses')
-    // And still no country: the account facts carry it as EMPTY for the portal to ask, never
-    // as a value we made up.
-    expect((data.profile as Record<string, unknown>).country ?? '').toBe('')
-    expect(store.facts.country).toBeUndefined()
+    // ⛓️ 16 Sep — the country on the card is HIS, and it is never the market he sells into.
+    expect((data.profile as Record<string, unknown>).country).toBe('South Africa')
+    expect((data.profile as Record<string, unknown>).country).not.toBe('United Kingdom')
+    expect((data.profile as Record<string, unknown>).country).not.toBe('United States')
 
     // One model call per turn — no schema-shape roulette.
-    expect(model.calls).toBe(3)
+    expect(model.calls).toBe(4)
   })
 
   it('🛑 THE THIRD TURN ALONE, ON A RECORD THAT ALREADY HOLDS THE OTHER NINE — re-entry', async () => {
     // He left after turn 2 and came back. The transcript is whatever the browser has; the
     // Brief is what the server has. The plan must come from the second.
-    store.facts = { ...READ_T1.brief_so_far, ...READ_T2.brief_so_far }
+    // ⛓️ 16 Sep (S1-ONB-001) — the record he comes back to now holds the country he gave, so
+    // this test still exercises what it is named for: RE-ENTRY, and the plan coming from the
+    // server's Brief rather than from the browser's transcript.
+    store.facts = { ...READ_T1.brief_so_far, ...READ_T2.brief_so_far, country: 'South Africa' }
     model.reply = millaSaid(READ_T3)
     const r = await turn([{ role: 'user', content: T3 }])
     expect(r.code, JSON.stringify(r.payload)).toBe(200)
@@ -295,11 +318,24 @@ describe('🛑 F9 · Northstar — the state after every turn', () => {
     ])
     snap('T2')
 
+    // ⛓️ 16 Sep (S1-ONB-001) — T3 alone no longer confirms: he never said where NORTHSTAR is.
+    // The trace records that refusal and then his answer, so the packet shows both states.
     model.reply = millaSaid(READ_T3)
-    const final = await turn([
+    const held = await turn([
       { role: 'user', content: T1 }, { role: 'assistant', content: READ_T1.content },
       { role: 'user', content: T2 }, { role: 'assistant', content: READ_T2.content },
       { role: 'user', content: T3 },
+    ])
+    snap('T3 / still needed', {
+      reply_type: (held.payload.data as Record<string, unknown>).type,
+      outstanding_next: ((held.payload.data as Record<string, unknown>).brief_outstanding as { next?: { id?: string } } | undefined)?.next?.id,
+    })
+
+    model.reply = millaSaid({ ...READ_T3, profile: { ...(READ_T3 as { profile?: Record<string, unknown> }).profile, country: 'South Africa' } })
+    const final = await turn([
+      { role: 'user', content: T1 }, { role: 'assistant', content: READ_T1.content },
+      { role: 'user', content: T2 }, { role: 'assistant', content: READ_T2.content },
+      { role: 'user', content: T3 }, { role: 'user', content: 'We are based in South Africa.' },
     ])
     const data = final.payload.data as Record<string, unknown>
     const icp = data.icp as Record<string, unknown>
@@ -318,7 +354,7 @@ describe('🛑 F9 · Northstar — the state after every turn', () => {
     console.log('\n🛑 NORTHSTAR STATE TRACE\n' + JSON.stringify(snapshots, null, 2))
 
     // ── AND ASSERTED, so it cannot quietly change.
-    const [t1, t2, t3] = snapshots
+    const [t1, t2, tHeld, t3] = snapshots
     // T1: ten facts from one message, and no invented company country.
     expect(t1.company_name).toBe('Northstar Revenue')
     expect(t1.geographies).toEqual(['United Kingdom', 'United States'])
@@ -338,6 +374,12 @@ describe('🛑 F9 · Northstar — the state after every turn', () => {
     expect(t2.job_titles).toEqual(['Founder', 'CEO', 'CRO', 'VP Sales'])
     expect(t2.country_MUST_BE_ABSENT).toBeNull()
 
+    // ⛓️ T3 HELD: ten Brief facts and his own country still unknown → not ready, and the
+    // country is the thing asked for. Nothing was invented from the UK/US target markets.
+    expect(tHeld.reply_type).toBe('outstanding')
+    expect(tHeld.outstanding_next).toBe('country')
+    expect(tHeld.country_MUST_BE_ABSENT, 'no country was derived while it was unknown').toBeNull()
+
     // T3: the confirmation is the durable Brief, not the last sample.
     expect(t3.reply_type).toBe('complete')
     expect(t3.confirmation_brief_geographies).toEqual(['United Kingdom', 'United States'])
@@ -345,7 +387,9 @@ describe('🛑 F9 · Northstar — the state after every turn', () => {
     expect(t3.confirmation_brief_exclusions).toBe('no recruitment agencies or software companies')
     expect(String(t3.confirmation_icp_target_category)).toContain('management consultancies')
     expect(t3.confirmation_icp_target_company_type).toBe('founder-led B2B service businesses')
-    expect(t3.confirmation_profile_country, 'a country was fabricated for the account').toBe('')
-    expect(t3.country_MUST_BE_ABSENT).toBeNull()
+    // ⛓️ 16 Sep — HIS answer is on the card, and it is never the market he sells into.
+    expect(t3.confirmation_profile_country).toBe('South Africa')
+    expect(t3.confirmation_profile_country, 'a country was fabricated from the targets').not.toBe('United Kingdom')
+    expect(t3.confirmation_profile_country).not.toBe('United States')
   })
 })

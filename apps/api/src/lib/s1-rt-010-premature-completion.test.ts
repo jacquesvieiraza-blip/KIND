@@ -37,8 +37,12 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { BRIEF_FACTS } from '@kind/shared'
 
-/** Cedar Peak's persisted Brief: ten facts held, `exclusions` absent. */
+/** Cedar Peak's persisted Brief: ten facts held, `exclusions` absent.
+ *  ⛓️ 16 Sep (S1-ONB-001) — `country` added. It is NOT a twelfth Brief fact; it is the account
+ *  requirement onboarding readiness now includes, so without it every case below would be held
+ *  back by the country instead of by the fact each test is actually named for. */
 const CEDAR_10: Record<string, unknown> = {
+  country:             'United Kingdom',
   contact_name:        'Daniel Brooks',
   company_name:        'Cedar Peak Advisory',
   website_none:        true,

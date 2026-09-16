@@ -475,10 +475,18 @@ describe('🛑 S1-RT-007 · truth is preserved, never fabricated', () => {
 // § D — S1-RT-009B · THE CLIENT'S OWN COUNTRY IS NOT A BRIEF FACT
 // ═══════════════════════════════════════════════════════════════════════════════════════
 describe('🛑 S1-RT-009B · target geography never becomes company country', () => {
-  it('🛑 4 · eleven valid facts COMPLETE without the client\'s own country', async () => {
-    // TURN 1 gives all eleven and never says where Northstar Revenue is based. Until now
-    // that completion was REFUSED, so the only way through was for the model to infer a
-    // country from the client's TARGET market.
+  // ⛓️ 16 Sep (S1-ONB-001, founder-ruled) — THIS TEST IS RETARGETED, AND ONLY THIS HALF.
+  //
+  // ⛓️ IT USED TO READ "eleven valid facts COMPLETE without the client's own country", and
+  // that expectation is SUPERSEDED. The eleven are still eleven and country is still NOT a
+  // twelfth Brief fact — but the account cannot be opened without it (`onboardSchema` refuses,
+  // `clients.country` defaults to 'South Africa'), so onboarding is not READY while it is
+  // unknown. Before this, a client could be stamped CONFIRMED and only then be refused.
+  //
+  // 🛑 WHAT S1-RT-009B ACTUALLY PROTECTS IS UNTOUCHED AND IS PROVED IN THE SAME TEST: the
+  // country is never INFERRED from the target market. That was always the point — the 503
+  // retry loop that selected for invention is what has gone, replaced by asking the customer.
+  it('🛑 4 · eleven facts WITHOUT the client\'s own country do NOT complete — and none is invented', async () => {
     const r = await dispatch({
       type: 'complete',
       summary: 'Founder-led UK & US agencies.',
@@ -491,10 +499,43 @@ describe('🛑 S1-RT-009B · target geography never becomes company country', ()
       brief_so_far: TURN_1_FACTS,
     }, { userText: TURN_1 })
     expect(r.status, `zod_paths were ${JSON.stringify(zodPathsIn(r.logs))}`).toBe(200)
-    expect((r.json.data as Record<string, unknown>).type).toBe('complete')
+    const d4 = r.json.data as Record<string, unknown>
+    expect(d4.type, 'not ready: the account cannot be opened without it').toBe('outstanding')
+    const o4 = d4.brief_outstanding as { next: { id: string; label: string }; total: number }
+    expect(o4.next.id, 'and the customer is asked for it, in the conversation').toBe('country')
+    // 🛑 NOTHING IS INFERRED FROM THE TARGET MARKET. UK and US are where their CUSTOMERS are.
+    expect(JSON.stringify(d4), 'no country is proposed anywhere in the reply').not.toContain('"country":"United Kingdom"')
+    expect(JSON.stringify(d4)).not.toContain('"country":"United States"')
+    expect(o4.total, 'and the Brief is still eleven facts').toBe(11)
   })
 
-  it('🛑 5 · and the completion does NOT invent a company country from UK/US targets', async () => {
+  it('🛑 4b · then the CUSTOMER supplies it, and only then does it complete', async () => {
+    // The one acceptable path to account readiness: they said it. No default, no retry loop,
+    // no inference — the same transcript plus one more customer answer.
+    const r = await dispatch({
+      type: 'complete',
+      summary: 'Founder-led UK & US agencies.',
+      profile: { company_name: 'Northstar Revenue', contact_name: 'Jacques', website_none: true, country: 'Ireland' },
+      icp: { target_category: 'agencies and consultancies', target_company_type: 'agency',
+             geographies: ['United Kingdom', 'United States'], company_sizes: ['11–50'],
+             job_titles: ['Founder', 'CEO'], seniority_levels: ['C-Suite'] },
+      business: { product: 'B2B sales consultancy', bad_fit: 'no recruitment agencies or software companies' },
+      campaign_intent: 'book qualified sales conversations',
+      brief_so_far: TURN_1_FACTS,
+    }, {
+      userText: TURN_1,
+      turns: [{ role: 'user', content: TURN_1 }, { role: 'user', content: 'We are based in Ireland.' }],
+    })
+    expect(r.status, `zod_paths were ${JSON.stringify(zodPathsIn(r.logs))}`).toBe(200)
+    const d = r.json.data as Record<string, unknown>
+    expect(d.type).toBe('complete')
+    expect((d.profile as Record<string, unknown>).country, 'THEIRS, not their market').toBe('Ireland')
+    expect(d.brief_geographies, 'and the target market is untouched').toEqual(['United Kingdom', 'United States'])
+    // ⚠️ AND IT IS PERSISTED, so a refresh cannot lose it and ask again.
+    expect((r.saved.at(-1)?.facts as Record<string, unknown>).country).toBe('Ireland')
+  })
+
+  it('🛑 5 · and a refused completion does NOT invent a company country from UK/US targets', async () => {
     const r = await dispatch({
       type: 'complete',
       summary: 'x',
@@ -505,11 +546,18 @@ describe('🛑 S1-RT-009B · target geography never becomes company country', ()
     }, { userText: TURN_1 })
     expect(r.status).toBe(200)
     const d = r.json.data as Record<string, unknown>
-    const profile = d.profile as Record<string, unknown>
-    // 🛑 UNKNOWN STAYS UNKNOWN. The portal renders "still needed" and asks at promotion.
-    expect(profile.country, 'the client never said where THEIR business is').toBe('')
-    // …while the TARGET geography is intact and unconfused with it.
-    expect(d.brief_geographies).toEqual(['United Kingdom', 'United States'])
+    // ⛓️ 16 Sep — the reply is now the outstanding-fact recovery rather than a completion, so
+    // there is no `profile` to inspect. The GUARANTEE is stronger, not weaker: UNKNOWN STAYS
+    // UNKNOWN, and no country reaches the client at all.
+    expect(d.type).toBe('outstanding')
+    expect((d.brief_outstanding as { next: { id: string } }).next.id).toBe('country')
+    expect(JSON.stringify(d), 'the target market never becomes their country')
+      .not.toContain('"country":"United Kingdom"')
+    // …and the stored TARGET geography is intact and unconfused with it.
+    expect((r.saved.at(-1)?.facts as Record<string, unknown>).geographies)
+      .toEqual(['United Kingdom', 'United States'])
+    expect((r.saved.at(-1)?.facts as Record<string, unknown>).country,
+      'no default is inserted').toBeUndefined()
   })
 
   it('🛑 an explicitly stated own-country IS preserved', async () => {
@@ -675,8 +723,11 @@ describe('🛑 S1-RT-009 · the confirmation is wired to canonical truth', () =>
     // because they call the same code. Both halves are pinned.
     expect(ICPS).toContain('const resolved = resolvedBriefFor(parsed, held)')
     expect(ICPS).toContain('{ ...v, brief_so_far: { ...held, ...(v.brief_so_far ?? {}) } as never }')
+    // ⛓️ 16 Sep (S1-ONB-001) — five now, not four: the PERSIST calls it too, which is the
+    // whole reconciliation. The resolution flows into the draft instead of being computed
+    // twice beside it, so the gate and the confirm door stop being able to disagree.
     expect((ICPS.match(/resolvedBriefFor\(/g) ?? []).length,
-      'defined once, called by the gate and by both responses').toBe(4)
+      'defined once; called by the gate, the persist and both responses').toBe(5)
   })
 
   it('🛑 the ELEVEN-FACT GATE counts the durable record too', () => {
@@ -697,14 +748,19 @@ describe('🛑 S1-RT-009 · the confirmation is wired to canonical truth', () =>
     expect(live).toContain('if (!resolved.companyName)')
   })
 
-  it('🛑 and the ACCOUNT still cannot be opened without one — the ask just moved', () => {
+  it('🛑 and the ACCOUNT still cannot be opened without one — the ask moved AGAIN, earlier', () => {
     // `onboardSchema.country` is unchanged, so the `clients` row still cannot be written
-    // without a country and the 'South Africa' column default is still unreachable. The
-    // portal asks for it conversationally at promotion, which is where it belongs.
+    // without a country and the 'South Africa' column default is still unreachable.
     const AUTH = readFileSync(join(process.cwd(), 'apps/api/src/routes/auth.ts'), 'utf8')
     expect(AUTH).toContain('country:      z.string().min(2),')
-    expect(PAGE).toContain("!p?.country?.trim() ? 'which country your business is based in' : ''")
-    expect(PAGE).toContain('Before I can open your account I still need ')
+    // ⛓️ 16 Sep (S1-ONB-001) — THE BROWSER-SIDE ASK IS GONE, and that is the fix, not a loss.
+    // It ran AFTER the client pressed Confirm, so the plan rendered and the CTA was live while
+    // the panel itself said "Based in — still needed". Country is now part of the server's
+    // readiness answer, so Milla asks for it in the CONVERSATION and the button never appears.
+    expect(PAGE).not.toContain("!p?.country?.trim() ? 'which country your business is based in' : ''")
+    expect(PAGE).not.toContain('Before I can open your account I still need ')
+    const ONB = readFileSync(join(process.cwd(), 'apps/api/src/lib/onboarding-state.ts'), 'utf8')
+    expect(ONB, 'the requirement lives in the one authority now').toContain("ACCOUNT_FACTS = ['country']")
   })
 
   it('🛑 14+15 · the provider and Proof gates are untouched', () => {
@@ -749,7 +805,11 @@ describe('🛑 R121 · the country is the model\'s judgement, and the server doe
            job_titles: ['Founder'], seniority_levels: ['C-Suite'] },
     business: { product: 'B2B sales consultancy', bad_fit: 'no recruitment agencies or software companies' },
     campaign_intent: 'book qualified sales conversations',
-    brief_so_far: TURN_1_FACTS,
+    // ⛓️ 16 Sep (S1-ONB-001) — the STORED country, so these tests still exercise what they are
+    // named for: whether the MODEL's `profile.country` is invented or vetoed. Readiness now
+    // requires a country, and without one every completion here would be refused before the
+    // question this describe block asks could even be reached.
+    brief_so_far: { ...TURN_1_FACTS, country: 'Ireland' },
   })
   const countryOf = (r: { json: Record<string, unknown> }) =>
     ((r.json.data as Record<string, unknown>).profile as Record<string, unknown>).country
@@ -761,7 +821,12 @@ describe('🛑 R121 · the country is the model\'s judgement, and the server doe
       userText: TURN_1, turns: [{ role: 'user', content: TURN_1 }, { role: 'user', content: TURN_2 }],
     })
     expect(r.status).toBe(200)
-    expect(countryOf(r), 'a country nobody supplied must stay empty').toBe('')
+    // ⛓️ 16 Sep — the customer established Ireland earlier in the Brief, so THAT is what the
+    // card shows. What must never appear is a country taken from the TARGET market, and the
+    // transcript is full of them.
+    expect(countryOf(r), 'their own country, from their own words').toBe('Ireland')
+    expect(countryOf(r), 'never the market they sell into').not.toBe('United Kingdom')
+    expect(countryOf(r)).not.toBe('United States')
     // …and fact #6 is untouched and never confused with it.
     expect((r.json.data as Record<string, unknown>).brief_geographies).toEqual(['United Kingdom', 'United States'])
   })
@@ -884,7 +949,10 @@ describe('🛑 GAP 3 · the model\'s completion summary never reaches the client
            job_titles: ['Founder'], seniority_levels: ['C-Suite'] },
     business: { product: 'B2B sales consultancy', bad_fit: 'no recruitment agencies or software companies' },
     campaign_intent: 'book qualified sales conversations',
-    brief_so_far: TURN_1_FACTS,
+    // ⛓️ 16 Sep (S1-ONB-001) — the stored country, so this block still tests what it is named
+    // for: that the model's SUMMARY never reaches the client. Without it the completion would
+    // be refused for readiness and there would be no summary to suppress.
+    brief_so_far: { ...TURN_1_FACTS, country: 'Ireland' },
   })
   const turns = [{ role: 'user' as const, content: TURN_1 }]
 
@@ -905,7 +973,12 @@ describe('🛑 GAP 3 · the model\'s completion summary never reaches the client
     expect(r.status).toBe(200)
     const d = r.json.data as Record<string, unknown>
     expect(d.summary).toBeNull()
-    expect((d.profile as Record<string, unknown>).country).toBe('')
+    // ⛓️ 16 Sep (S1-ONB-001) — the fixture now holds a STORED country (readiness requires one),
+    // so the assertion sharpens from "empty" to "not the one the summary invented". The
+    // guarantee is the same and stronger: the sentence claimed the UK and the card says Ireland.
+    expect((d.profile as Record<string, unknown>).country, 'the card carries THEIR answer').toBe('Ireland')
+    expect((d.profile as Record<string, unknown>).country,
+      'never the country the suppressed summary asserted').not.toBe('United Kingdom')
   })
 
   it('🛑 and neither does a PERFECTLY ACCURATE one — the cards carry the facts, not prose', async () => {

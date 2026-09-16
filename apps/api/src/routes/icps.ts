@@ -27,11 +27,15 @@ import {
 } from '@kind/shared'
 // ⚑ MVP1 (C21) — the canonical ELEVEN brief facts. One list, shared with Vida's progress
 // card, so "how complete is this brief?" has exactly one answer in the product.
-import { briefFacts, BRIEF_FACT_LABEL } from '@kind/shared'
+import { BRIEF_FACT_LABEL } from '@kind/shared'
 // ⚑ 14 Sep (S1-RT-002) — the ONE reconciliation of where a completion's eleven facts live.
 // Used by the completion gate AND by the completion response, so a fact cannot pass the gate
 // and then be lost on its way to `figsy_knowledge` / `icps`.
 import { resolveBriefFacts } from '../lib/brief-fact-resolution'
+// ⚑ 16 Sep (S1-ONB-001) — STATIC, because the eleven-fact gate is a Zod refinement and cannot
+// await. It resolves to `lib/onboarding-state.ts`, which imports ONLY `@kind/shared` — no
+// database, and nothing a `brief-draft` test double can take away from this route.
+import { onboardingState, ACCOUNT_FACT_LABEL } from '../lib/onboarding-state'
 // ⚑ 14 Sep (S1-RT-005) — the fail-soft provider translation. The client speaks naturally;
 // turning their words into Apollo/PDL vocabulary is ours, and failing at it reaches a human
 // rather than the client.
@@ -3461,24 +3465,49 @@ function resolvedBriefFor(
   )
 }
 
-/** The canonical eleven-fact answer over a resolution. The gate's own counter, unchanged. */
-function briefFactsFor(resolved: ReturnType<typeof resolveBriefFacts>) {
-  return briefFacts({
-    contactName:        resolved.contactName,
-    companyName:        resolved.companyName,
-    website:            resolved.website,
-    websiteNone:        resolved.websiteNone,
-    whatTheCompanyDoes: resolved.whatTheCompanyDoes,
-    targetCategory:     resolved.targetCategory,
-    geographies:        resolved.geographies,
-    targetCompanyType:  resolved.targetCompanyType,
-    companySizes:       resolved.companySizes,
-    targetRoles:        resolved.targetRoles,
-    targetSeniority:    resolved.targetSeniority,
-    exclusions:         resolved.exclusions,
-    desiredOutcome:     resolved.desiredOutcome,
-  })
+/**
+ * ⚑ 16 Sep (S1-ONB-001) — THE ONE PROJECTION FROM A RESOLUTION INTO THE STORED SHAPE.
+ *
+ * 🛑 IT EXISTS SO THE DRAFT AND THE GATE CAN NEVER SEE DIFFERENT TRUTH. The persist writes
+ * this, and the chat boundary asks `onboardingState` about this — so "what we stored" and
+ * "what we counted" are the same object shape produced by the same code.
+ *
+ * ⚠️ DEFINED VALUES ONLY. Anything that did not survive `resolveBriefFacts`' own trimming is
+ * simply absent, so merging this can never blank a fact the customer already gave. That is
+ * the MODEL-EMPTINESS-IS-NOISE rule, held one layer wider.
+ *
+ * ⚠️ `country` AND `phone` TRAVEL TOO, and they are not Brief facts — `brief-facts.ts` says
+ * so by name. They are carried because the account cannot be opened without the first and the
+ * second must not be lost; neither is counted among the eleven anywhere.
+ */
+function draftFactsFromResolved(r: ReturnType<typeof resolveBriefFacts>): Record<string, unknown> {
+  const out: Record<string, unknown> = {}
+  const put = (k: string, v: unknown) => {
+    const keep = typeof v === 'string' ? v.trim() !== '' : Array.isArray(v) ? v.length > 0 : v !== undefined
+    if (keep) out[k] = v
+  }
+  put('contact_name',        r.contactName)
+  put('company_name',        r.companyName)
+  put('website',             r.website)
+  if (r.websiteNone === true) out.website_none = true
+  put('what_they_do',        r.whatTheCompanyDoes)
+  put('target_category',     r.targetCategory)
+  put('geographies',         r.geographies)
+  put('target_company_type', r.targetCompanyType)
+  put('company_sizes',       r.companySizes)
+  put('job_titles',          r.targetRoles)
+  put('seniority_levels',    r.targetSeniority)
+  put('exclusions',          r.exclusions)
+  put('desired_outcome',     r.desiredOutcome)
+  put('country',             r.country)
+  put('phone',               r.phone)
+  return out
 }
+
+// ⛓️ 16 Sep (S1-ONB-001) — ~~`briefFactsFor(resolved)`~~ STOOD HERE and is deleted, which is
+// the strongest form of "one authority": this route no longer counts the eleven at all. It
+// projects a resolution into the stored shape (above) and ASKS `onboardingState`. A route that
+// cannot count cannot disagree about the count.
 
 const millaReplyFor = (profileRequired: boolean, held: Record<string, unknown> = {}) =>
   MillaReplyInput.superRefine((v, ctx) => {
@@ -3553,12 +3582,25 @@ const millaReplyFor = (profileRequired: boolean, held: Record<string, unknown> =
     // ⚠️ IT REFUSES THE COMPLETION, NOT THE TURN. A Zod issue here routes to the same
     // honest-failure path as any other invalid shape: the client is never shown a Milla
     // sentence she did not say, and the model is asked again with the transcript intact.
-    const facts = briefFactsFor(resolved)
-    if (!facts.complete) {
+    // ── 🛑 ⚑ 16 Sep (S1-ONB-001) — THE SAME AUTHORITY THE CONFIRM DOOR USES ────────────
+    //
+    // 🛑 THIS USED TO BE ITS OWN ANSWER. The eleven were counted here over `draft ∪ this reply`
+    // while `mayConfirmBrief` counted them over the draft alone, and NEITHER knew about the
+    // client's own country — so a Brief could pass here, be CONFIRMED, and only then be
+    // refused an account at `/auth/onboard`. `confirmed_at` was being stamped on briefs that
+    // could not open an account.
+    //
+    // ⚠️ ONE FUNCTION, TWO INPUTS, AND THAT IS THE POINT. `onboardingState` takes stored-shaped
+    // facts; here it is handed this turn's RESOLUTION (draft ∪ reply, which is what the gate
+    // has always counted, unchanged), and at the confirm and onboard doors it is handed the
+    // draft. One definition of ready; the input differs because what those callers HAVE
+    // differs. The wider persist above is what makes the two converge.
+    const ready = onboardingState(draftFactsFromResolved(resolved))
+    if (ready.state !== 'ready') {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['brief'],
-        message: `a completion must carry all ${facts.total} brief facts — still missing: ${facts.missing.map(id => BRIEF_FACT_LABEL[id]).join(', ')}`,
+        message: `a completion needs everything onboarding requires — still missing: ${ready.unresolvedLabels.join(', ')}`,
       })
     }
   })
@@ -3718,7 +3760,7 @@ HOW YOU MUST TREAT IT:
         // reading it back here would put a superseded copy of the Brief in front of Milla as
         // if it were current — the competing-truth rule applies to reads, not only writes.
         const { writableBriefDraft } = await import('../lib/brief-draft')
-        const { briefFactsFromDraft, briefFactLines, briefDraftFacts } = await import('@kind/shared')
+        const { briefFactsFromDraft, briefFactLines } = await import('@kind/shared')
         const draft = await writableBriefDraft(req.userId)
         const lines = draft ? briefFactLines(briefFactsFromDraft(draft.facts)) : []
         // ── ⚑ 16 Sep (S1-RT-010) — THE OTHER HALF OF THE SAME TRUTH ───────────────────
@@ -3732,7 +3774,11 @@ HOW YOU MUST TREAT IT:
         // ⚠️ GUIDANCE, NOT AUTHORITY — and that distinction is load-bearing. `millaReplyFor`
         // still refuses a short completion whatever this text says. This half exists so she
         // ASKS rather than being refused, which is the same reason `completionGate` exists.
-        const outstanding = draft ? briefDraftFacts(draft.facts).missing : []
+        // ⛓️ 16 Sep (S1-ONB-001) — FROM THE ONE AUTHORITY, so the block cannot name a
+        // different gap from the one that will refuse the completion — and so the client's own
+        // country is asked NATURALLY, in the conversation, instead of by a browser check after
+        // they have already pressed Confirm.
+        const outstanding = draft ? onboardingState(draft.facts).unresolvedLabels : []
         if (lines.length > 0) {
           resumeBlock = `
 
@@ -3752,7 +3798,7 @@ anything new. Continue from what is still genuinely missing.${outstanding.length
 ── WHAT IS STILL OUTSTANDING — OUR RECORD, NOT YOUR RECOLLECTION ─────────
 These ${outstanding.length === 1 ? 'is the ONE thing' : `are the ${outstanding.length} things`} we do NOT yet hold for this client:
 
-${outstanding.map(id => `  · ${BRIEF_FACT_LABEL[id]}`).join('\n')}
+${outstanding.map(label => `  · ${label}`).join('\n')}
 
 Ask about ${outstanding.length === 1 ? 'it' : 'them'} the way a person would, in your own words, one at a time — never as a
 list and never as a form. You may NOT answer "complete" while any of the above is still
@@ -4392,7 +4438,38 @@ result or a number. "permitted" is false unless they explicitly said we may use 
       // own defect, one layer down.
       const ops = applyListOps(held, snapshot.success ? (snapshot.data ?? {}) : {},
         (replyInput as Record<string, unknown>).brief_list_ops as ListOps | undefined)
-      const toStore = { ...(snapshot.success ? (snapshot.data ?? {}) : {}), ...ops }
+      // ── 🛑 ⚑ 16 Sep (S1-ONB-001) — THE DRAFT NOW RECEIVES WHAT THE GATE COUNTS ─────────
+      //
+      // 🛑 THE ASYMMETRY THIS CLOSES, AND IT IS THE ROOT OF THE WHOLE SPLIT. `resolveBriefFacts`
+      // reads FOUR homes — `profile.*`, `business.*`, `icp.*` and `brief_so_far` — because the
+      // prompt never told the model which one to use and S1-RT-002 proved that demanding one
+      // stranded a live client. But this write only ever received `brief_so_far`. So the
+      // completion gate counted facts the DRAFT DID NOT HOLD, and every later reader —
+      // `mayConfirmBrief`, `/auth/onboard`, the resume prompt, the portal — saw the narrower
+      // record and could legitimately disagree with the gate about whether onboarding was done.
+      //
+      // 🛑 SO THE RESOLUTION FLOWS INTO THE RECORD rather than being computed twice beside it.
+      // After this write the draft is SUFFICIENT, which is what lets one authority read the
+      // draft ALONE (`onboardingState`) and still agree with the gate — the confirm endpoint
+      // and `/auth/onboard` have no model reply and never could have used the wider input.
+      //
+      // ⚠️ DEFINED VALUES ONLY, AND THAT IS LOAD-BEARING. `resolveBriefFacts` returns
+      // `undefined` for anything that did not survive trimming, so a blank can never be written
+      // over a fact the customer gave three turns ago. The rule above — MODEL EMPTINESS IS
+      // NOISE, NOT A CLEAR — is preserved exactly, one layer wider.
+      //
+      // ⚠️ `brief_so_far` AND `brief_list_ops` STILL WIN. They are spread AFTER the resolution,
+      // so this turn's explicit snapshot and the customer's list corrections are never
+      // overridden by a value derived from `icp.*` or `profile.*`.
+      //
+      // ⚠️ AND IT CARRIES THE ACCOUNT FACTS TOO. `country` and `phone` are resolved from
+      // `profile.*` and were the clearest casualties: the model routinely puts the country in
+      // `profile.country` alone, so it reached the browser and the client row but NEVER the
+      // draft — which is why a refresh lost it and the panel could say "Based in — still
+      // needed" about a country the customer had already given.
+      const base = MillaReplyInput.safeParse(replyInput)
+      const resolvedForDraft = base.success ? draftFactsFromResolved(resolvedBriefFor(base.data, held)) : {}
+      const toStore = { ...resolvedForDraft, ...(snapshot.success ? (snapshot.data ?? {}) : {}), ...ops }
       if (Object.keys(toStore).length > 0) {
         const { saveBriefDraft } = await import('../lib/brief-draft')
         const saved = await saveBriefDraft(req.userId, toStore)
@@ -4492,23 +4569,34 @@ result or a number. "permitted" is false unless they explicitly said we may use 
     // missing, so we do not say. Nothing is inferred, nothing is fabricated, and the customer
     // is never asked to re-enter a fact because our own read failed.
     if (!mustNotConfirm && !validated.success && isPrematureCompletion(validated.error.errors)) {
-      const base = MillaReplyInput.safeParse(replyInput)
-      const facts = base.success ? briefFactsFor(resolvedBriefFor(base.data, held)) : null
-      const next = facts?.missing[0] ?? null
-      if (facts && next) {
+      // ⛓️ 16 Sep (S1-ONB-001) — the safety net now names BOTH classes, because it reads the
+      // same authority the gate refused on. Targeting first, in the canonical order; the
+      // account requirement last, because it is the one the client answers about themselves.
+      const baseReply = MillaReplyInput.safeParse(replyInput)
+      const st = baseReply.success
+        ? onboardingState(draftFactsFromResolved(resolvedBriefFor(baseReply.data, held)))
+        : null
+      const nextTargeting = st?.unresolvedTargeting[0] ?? null
+      const nextAccount   = st?.unresolvedAccount[0] ?? null
+      const next = nextTargeting
+        ? { id: nextTargeting as string, label: BRIEF_FACT_LABEL[nextTargeting] }
+        : nextAccount ? { id: nextAccount as string, label: ACCOUNT_FACT_LABEL[nextAccount] } : null
+      if (st && next) {
         console.log('[icps/builder/chat] premature completion vetoed —', JSON.stringify({
           stage: 'reply', category: PREMATURE_COMPLETION, model: BUILDER_MODEL,
           // The FACT ID, never the client's own words. An id is our vocabulary, not their data.
-          outstanding: facts.missing.length, next_fact: next,
+          outstanding: st.unresolvedLabels.length, next_fact: next.id,
         }))
         res.json({
           success: true,
           data: {
             type: 'outstanding',
             brief_outstanding: {
-              remaining: facts.missing.length,
-              total:     facts.total,
-              next:      { id: next, label: BRIEF_FACT_LABEL[next] },
+              remaining: st.unresolvedLabels.length,
+              // ⚠️ THE DENOMINATOR STAYS THE ELEVEN. Country is not a twelfth fact and must
+              // never make the canonical count read as twelve on any surface.
+              total:     st.targeting.total,
+              next,
             },
           },
         })
@@ -4531,7 +4619,7 @@ result or a number. "permitted" is false unless they explicitly said we may use 
       if (asQuestion.success) {
         console.log('[icps/builder/chat] continuing —', JSON.stringify({
           stage: 'reply', category: PREMATURE_COMPLETION, model: BUILDER_MODEL,
-          outstanding: facts?.missing.length ?? null,
+          outstanding: st?.unresolvedLabels.length ?? null,
         }))
         parsed = asQuestion.data
       }
@@ -4762,6 +4850,11 @@ result or a number. "permitted" is false unless they explicitly said we may use 
         success: true,
         data: {
           type: 'complete', icp: draft,
+          // ⚑ 16 Sep (S1-ONB-001) — THE SERVER STATES READINESS, AND THE PORTAL OBEYS IT.
+          // `proposed !== null` was the progression authority in the browser, which is not a
+          // fact check at all — it records that a completion once arrived in this tab. This
+          // reply is the server saying READY; the plan object is only its CONTENT.
+          onboarding_state: 'ready' as const,
           // ── 🛑 ⚑ 14 Sep (S1-RT-009) — THE FINAL CONFIRMATION CARRIES ONE TRUTH ─────────
           //
           // 🛑 THE MODEL'S SUMMARY IS NOT SENT. It was the last client-facing sentence written

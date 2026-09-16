@@ -106,11 +106,40 @@ describe('nav and footer are byte-identical across the whole site', () => {
     expect(foots.size, 'footer has drifted on some page').toBe(1)
   })
 
-  it('the nav is the FULL pre-shrink nav — Nexus, Product, Solutions, Resources, Company', () => {
+  // ⛓️ REWRITTEN 16 Sep (R124 session) — THE NAV WAS DELIBERATELY SHRUNK, SO THE GUARD PINS THE
+  // SHRINK INSTEAD OF FORBIDDING IT.
+  //
+  // This assertion demanded the FULL pre-shrink nav, because the shrink it was written against
+  // was an accident nobody had approved. The founder has now ruled the opposite — "Nexus is
+  // out. Product all of it is out." — so the assertion, left alone, would have held the
+  // correction OUT rather than protecting the site. It failed for seven commits before anyone
+  // ran it, which is its own lesson: a guard is only a guard if it is in the set that runs.
+  //
+  // What it pins now is the founder's nav. The byte-identity check above is unchanged and is
+  // what makes one page's worth of truth true for all 29.
+  it('the nav is the founder-locked nav — Solutions, Resources, Company, Pricing', () => {
     const nav = blockOf(readFileSync(join(WEB, 'index.html'), 'utf8'), '<nav>', '</nav>')
-    for (const link of ['nexus.html', 'figsy.html', 'milla.html', 'vida.html', 'about.html', 'the-drop.html', 'help-centre.html']) {
+    for (const link of ['solutions.html', 'the-drop.html', 'help-centre.html', 'about.html', 'pricing.html']) {
       expect(nav, `nav lost its ${link} link`).toContain(`href="${link}"`)
     }
+    // Nexus is DEMOTED, not deleted — the page survives and stays reachable from Company,
+    // which is the founder's ruling. Out of the top level, still linked.
+    expect(nav, 'nexus should stay reachable from the Company menu').toContain('href="nexus.html"')
+    expect(nav, 'nexus is a top-level nav link again').not.toContain('class="nav-link nav-nexus"')
+  })
+
+  it('🛑 the retired Product mega-menu and its per-lead price stay out of the nav', () => {
+    const nav = blockOf(readFileSync(join(WEB, 'index.html'), 'utf8'), '<nav>', '</nav>')
+    expect(nav, 'the Product mega-menu is back').not.toContain('The product &middot; your AI agents')
+    expect(nav, 'the Product nav item is back').not.toMatch(/class="nav-link">Product/)
+    expect(nav, 'a NEW badge is back in the nav').not.toContain('mm-new')
+    // The mega-menu promo card carried "You only pay $4 when you approve a lead" into the nav
+    // of all 29 pages — one of the three shared-chrome strings that put the retired commercial
+    // model on every page of the site.
+    expect(nav, 'the nav is selling the retired per-lead model again').not.toContain('$4')
+    // The retired calculator is unlinked; the programme one points at pricing.
+    expect(nav, 'the retired calculator is linked from the nav again').not.toContain('pipeline-calculator.html')
+    expect(nav).toContain('Programme Calculator')
   })
 
   it('every internal link on every page resolves to a file on disk — no dead ends anywhere', () => {

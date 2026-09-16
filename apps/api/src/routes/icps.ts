@@ -6,6 +6,7 @@ import { requireAuth, AuthRequest } from '../middleware/auth'
 import { rateLimit } from '../lib/rate-limit'
 import { searchPeopleWithFallback, ApolloCreditsExhaustedError, ApolloRateLimitError } from '../lib/apollo'
 import { audienceForClientStrict, audienceForUser, sourcingProviderFor } from '../lib/provider-boundary'
+import { launchProofRun } from '../lib/proof-run-launch'
 import { scoreLeadsForIcp } from '../lib/scoring'
 import { sendFirstLeadsReadyEmail, sendConsentEmail } from '../lib/email'
 import { suggestIcpFromWebsite } from '../lib/scrape'
@@ -82,7 +83,9 @@ import { fundedVia } from '../lib/onboarding-pack'
 // PR-A — record ONE honest outcome row per ICP run so the client learns WHY a run
 // produced no leads (quota outage vs narrow ICP). Best-effort: a write failure here
 // must never break the run itself, so it swallows errors (the run already happened).
-async function recordRunOutcome(
+// ⛓️ 15 Sep (S1-RT-004) — EXPORTED for the shared Proof run-and-settle tail; the crash
+// boundary that records `failed` must be the same one, whichever surface started the run.
+export async function recordRunOutcome(
   icpId: string,
   clientId: string,
   status: RunStatus,
@@ -343,7 +346,9 @@ async function getClientId(userId: string): Promise<string | null> {
  * is the CUSTOMER-EXPERIENCE rule and is deliberately NOT the spend rule — pool records
  * are free and never touch the PDL fence, but they still fill this 20.
  */
-const PROOF_PASS_LEADS = 20
+// ⛓️ 15 Sep (S1-RT-004) — EXPORTED so `lib/proof-run-launch.ts` uses THIS number rather than
+// declaring a second 20. Two constants for one pass size is two places to change.
+export const PROOF_PASS_LEADS = 20
 /** Lifetime PDL records one unpaid prospect may cost, across BOTH passes. Mirrors the
  *  hard ceiling inside `try_reserve_proof_records`; used here only for honest logging. */
 const PROOF_CLIENT_RECORD_CAP = 40
@@ -6174,7 +6179,7 @@ icpRouter.post('/:id/proof', async (req: AuthRequest, res) => {
     // ⚠️ THE THREE DOORS ARE DECIDED IN ONE PLACE NOW. Automatic 1, automatic 2 and the one
     // calibrated restart all come from this call, so the restart can no longer be a second
     // mechanism that drifts from the first (R119).
-    const { claimProofAuthority, settleProofClaim } = await import('../lib/proof-claim')
+    const { claimProofAuthority } = await import('../lib/proof-claim')
     const authority = await claimProofAuthority(clientId, req.params.id)
     // ── 🛑 ⛓️ 11 Sep — THE RESTART IS NOT A PASS NUMBER, IT IS PROVENANCE ─────────────
     //
@@ -6363,58 +6368,17 @@ icpRouter.post('/:id/proof', async (req: AuthRequest, res) => {
     // So the `.then` settles from `r.terminal`, which `runIcpJob` derives from the status it
     // actually recorded via an exhaustive map. The `.catch` settles a throw. Between them
     // every terminal exit is covered, and a new exit cannot compile without choosing one.
-    const claimId = authority.claimId
-    runIcpJob(req.params.id, clientId, req.userId!, PROOF_PASS_LEADS, { proofPass: claimed, proofKind: batchKind })
-      .then(async r => {
-        const settled = await settleProofClaim(claimId, r.terminal, r.terminal === 'released' ? 'run_failed' : undefined)
-        if (!settled.settled) {
-          // The claim stays OPEN. That is the fail-closed direction — nothing is granted — but
-          // the client cannot retry until an operator reconciles it, so a human must know.
-          void sendFounderAlert('source_down', 'A Proof authority claim could not be settled — the client cannot retry', [
-            `Prospect ${clientId}, ICP ${req.params.id}, claim ${claimId}.`,
-            `The run finished with terminal "${r.terminal}" but the settle write did not persist: ${settled.detail ?? 'unknown'}.`,
-            'Their claim is still OPEN, so nothing was granted and nothing was consumed — but their next Proof request will answer "already started".',
-            'ACTION: Vida -> Command Centre -> System -> stale Proof claims, and reconcile it.',
-          ]).catch(() => {})
-        }
-        if (r.terminal === 'released') {
-          console.log(`[icps/proof] the run for prospect ${clientId} did not deliver a set — the Proof attempt has been RETURNED, not consumed.`)
-        }
-      })
-      .catch(async e => {
-        console.error('[icps/proof] proof run failed:', e)
-        // ⚠️ THE AUTHORITY COMES BACK FIRST. Provider and infrastructure failure must not
-        // consume Proof authority (founder-locked), and this is the crash boundary.
-        const settled = await settleProofClaim(claimId, 'released', 'run_threw')
-        // ⚑ 26 Aug — PERSIST THE CRASH AS A TERMINAL FACT (founder-approved `failed`).
-        // Written HERE, at the crash boundary, because this is the only place that knows
-        // the run threw. Never derived, and never folded into `no_match`: the query did
-        // not complete, so claiming it matched nobody would be false (R72).
-        const recorded = await recordRunOutcome(req.params.id, clientId, 'failed', PROOF_PASS_LEADS, 0, 0)
-          .then(() => true)
-          .catch(re => { console.error('[icps/proof] could not record the failed outcome:', re); return false })
-        void sendFounderAlert('source_down', 'A free-proof run crashed — the prospect is waiting on a desk that cannot finish', [
-          `Prospect ${clientId}, ICP ${req.params.id}, ${attemptLabelFor({ pass: claimed, kind: batchKind })}.`,
-          `Reason: ${e instanceof Error ? e.message : String(e)}`,
-          // ── ⛓️ 12 Sep (S2-AUDIT-003 half A) — THIS SENTENCE WAS FALSE ─────────────────
-          //
-          // It read: "Their proof pass is CONSUMED and no run outcome was recorded, so the
-          // desk shows no terminal state for this attempt." BOTH HALVES WERE WRONG. The line
-          // directly above it records the `failed` outcome, so the desk DOES have a terminal
-          // state — and as of this build the pass is RETURNED rather than consumed.
-          //
-          // ⚠️ AND IT NOW REPORTS WHAT ACTUALLY HAPPENED rather than asserting either. If the
-          // outcome write or the settle failed, the alert says which — the two facts it used
-          // to state blindly are the two it now measures.
-          settled.settled
-            ? 'Their Proof attempt has been RETURNED, not consumed — provider and infrastructure failure must not spend a pass.'
-            : `⚠️ The attempt could NOT be returned (${settled.detail ?? 'settle failed'}) — their claim is still OPEN and needs reconciling in Vida.`,
-          recorded
-            ? 'The failed run outcome WAS recorded, so the desk shows a terminal state for this attempt.'
-            : '⚠️ The failed run outcome could NOT be recorded, so the desk has no terminal state and will fall back to its bounded recovery copy.',
-          'If this reads SAFE_TEST_MODE / PAID_PROVIDERS_ENABLED, the guard refused to spend — that is correct behaviour, not a bug.',
-        ]).catch(() => {})
-      })
+    // ⛓️ 15 Sep (S1-RT-004) — THE RUN-AND-SETTLE TAIL MOVED TO `lib/proof-run-launch.ts`,
+    // VERBATIM, and this route's behaviour is unchanged. It is shared now because the
+    // operator's ICP-review resolution must continue into the SAME first Proof run rather
+    // than a second idea of one: Juniper Ridge's review was resolved correctly and nothing
+    // started, because this door sits on a confirmation screen the client had already passed.
+    // Everything ABOVE this line — every gate, refusal code and client sentence — is this
+    // route's own and was not touched.
+    launchProofRun({
+      icpId: req.params.id, clientId, userId: req.userId!,
+      claimed, batchKind, claimId: authority.claimId,
+    })
 
     // ⚠️ "pass 3 of 2" IS THE SENTENCE THIS AVOIDS. The restart is not an automatic attempt
     // and must never be numbered as one on either surface — see `attemptLabel`.

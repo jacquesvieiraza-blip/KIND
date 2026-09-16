@@ -135,14 +135,21 @@ describe('the desk stops guessing', () => {
 })
 
 describe('a crashed run is a TERMINAL FACT — founder-approved `failed` (26 Aug)', () => {
-  const proofRoute = route('icps.ts')
+  // ⛓️ 15 Sep (S1-RT-004) — THE HAYSTACK IS THE WHOLE PROOF PATH, not one file. The
+  // run-and-settle tail moved VERBATIM to `lib/proof-run-launch.ts` so the client route and
+  // Vida's review-resolution continuation share ONE implementation. Every assertion below is
+  // unchanged — same regexes, same strings, same count — they now read the two production
+  // files that together ARE that path, which is where the behaviour they protect lives.
+  const proofRoute = route('icps.ts') + '\n' + api('proof-run-launch.ts')
   const crash = () => {
     const at = proofRoute.indexOf("[icps/proof] proof run failed:")
     return proofRoute.slice(at - 900, at + 1600)
   }
 
   it('persists `failed` at the crash boundary', () => {
-    expect(crash()).toContain("recordRunOutcome(req.params.id, clientId, 'failed'")
+    // ⛓️ 15 Sep (S1-RT-004) — same call, same specificity; the shared module names the icp
+    // `icpId` instead of re-reading `req.params.id`, because it is no longer inside the route.
+    expect(crash()).toContain("recordRunOutcome(icpId, clientId, 'failed'")
   })
 
   it('NEVER records a crash as no_match or audience_exhausted', () => {

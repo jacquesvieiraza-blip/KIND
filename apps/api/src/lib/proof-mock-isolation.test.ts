@@ -141,7 +141,11 @@ describe('the real harness is wired that way — structural guard', () => {
 
 describe('the Proof business rules are untouched by the harness change', () => {
   const src = readFileSync(join(__dirname, 'proof-review-handoff.test.ts'), 'utf8')
+  // ⛓️ 15 Sep (S1-RT-004) — reads the whole Proof path: the run-and-settle tail moved VERBATIM
+  // to `lib/proof-run-launch.ts` so the client route and Vida's continuation share ONE
+  // implementation. Same assertion, same specificity, truthful location.
   const icps = readFileSync(join(__dirname, '../routes/icps.ts'), 'utf8')
+    + '\n' + readFileSync(join(__dirname, 'proof-run-launch.ts'), 'utf8')
 
   it('the suite still asserts 200, 200, 409 and a pass count of exactly 2', () => {
     expect(src).toContain('expect(codes).toEqual([200, 200, 409])')
@@ -169,8 +173,10 @@ describe('the Proof business rules are untouched by the harness change', () => {
     // ADDED is a `.then` beside the `.catch`, because settling only on a throw missed two real
     // non-throwing failure paths (the structural gate, and a provider search that did not
     // complete) — both of which used to consume the client's Proof attempt silently.
-    expect(icps).toMatch(/runIcpJob\(req\.params\.id, clientId, req\.userId!, PROOF_PASS_LEADS, \{ proofPass: claimed, proofKind: batchKind \}\)\n\s*\.then\(/)
-    expect(icps, 'the dispatch is no longer fire-and-forget').not.toMatch(/await runIcpJob\(req\.params\.id, clientId, req\.userId!, PROOF_PASS_LEADS/)
+        // ⛓️ 15 Sep (S1-RT-004) — same assertion, truthful location: the run-and-settle tail moved
+    // VERBATIM to `lib/proof-run-launch.ts` so the route and Vida share ONE implementation.
+    expect(icps).toMatch(/runIcpJob\(icpId, clientId, userId, PROOF_PASS_LEADS, \{ proofPass: claimed, proofKind: batchKind \}\)\n\s*\.then\(/)
+    expect(icps, 'the dispatch is no longer fire-and-forget').not.toMatch(/await runIcpJob\(icpId, clientId, userId, PROOF_PASS_LEADS/)
     expect(icps).toMatch(/\.catch\(async e => \{/)
     expect(icps, 'a background-ownership wrapper was left in production').not.toMatch(/trackBackground/)
   })

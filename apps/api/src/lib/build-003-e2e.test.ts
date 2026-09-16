@@ -55,7 +55,13 @@ function stripComments(src: string): string {
 const code = (p: string) => stripComments(readFileSync(p, 'utf8'))
 
 const OPERATOR = code(join(ROUTES, 'operator.ts'))
+// ⛓️ 15 Sep (S1-RT-004) — THE HAYSTACK IS THE WHOLE PROOF PATH, not one file. The
+// run-and-settle tail moved VERBATIM to `lib/proof-run-launch.ts` so the client route and
+// Vida's review-resolution continuation share ONE implementation. Every assertion below is
+// unchanged — same regexes, same strings, same count — they now read the two production
+// files that together ARE that path, which is where the behaviour they protect lives.
 const ICPS = code(join(ROUTES, 'icps.ts'))
+  + '\n' + code(join(ROUTES, '..', 'lib', 'proof-run-launch.ts'))
 const VIDA = code(join(ADMIN, 'vida/page.tsx'))
 
 describe('the sweep is not vacuous', () => {
@@ -115,7 +121,9 @@ describe('③ FREE PROOF REVIEW — the full chain, link by link', () => {
 // ── CRASHED-RUN RECOVERY ─────────────────────────────────────────────────────────────────
 describe('CRASHED RUNS REACH A HUMAN', () => {
   it('R72 writes the terminal fact', () => {
-    expect(ICPS).toContain("recordRunOutcome(req.params.id, clientId, 'failed'")
+    // ⛓️ 15 Sep (S1-RT-004) — same call, same specificity; the shared module names the icp
+    // `icpId` instead of re-reading `req.params.id`, because it is no longer inside the route.
+    expect(ICPS).toContain("recordRunOutcome(icpId, clientId, 'failed'")
   })
 
   it('🛑 AND SOMETHING NOW READS IT — the half that was missing', () => {

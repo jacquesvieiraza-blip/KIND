@@ -187,7 +187,10 @@ const onboardSrc  = read(join(PORTAL, 'app/(auth)/onboard/page.tsx'))
 const welcomeSrc  = read(join(PORTAL, 'app/(milla)/milla/welcome/page.tsx'))
 const mwSrc       = read(join(PORTAL, 'middleware.ts'))
 const authSrc     = read(join(API, 'routes/auth.ts'))
+// ⛓️ 15 Sep (S1-RT-004) — same assertion, truthful location: the run-and-settle tail moved
+// VERBATIM to `lib/proof-run-launch.ts` so the route and Vida share ONE implementation.
 const icpsSrc     = read(join(API, 'routes/icps.ts'))
+  + '\n' + read(join(API, 'lib/proof-run-launch.ts'))
 
 /** Prompt text is hard-wrapped in the source, so a sentence a human reads as one line is
  *  split across two. Assert against the flattened form or the guard fails on formatting. */
@@ -831,9 +834,9 @@ describe('free proof runs before the client is ever asked to pay', () => {
     expect(icpsSrc).toContain('await claimProofAuthority(clientId, req.params.id)')
     // And it is still claimed BEFORE the run, which is what this test was really pinning.
     expect(icpsSrc.indexOf('await claimProofAuthority('))
-      .toBeLessThan(icpsSrc.indexOf('runIcpJob(req.params.id, clientId, req.userId!, PROOF_PASS_LEADS'))
-    expect(icpsSrc).toContain('const PROOF_PASS_LEADS = 20')
-    expect(icpsSrc).toContain('runIcpJob(req.params.id, clientId, req.userId!, PROOF_PASS_LEADS, { proofPass: claimed, proofKind: batchKind })')
+      .toBeLessThan(icpsSrc.indexOf('runIcpJob(icpId, clientId, userId, PROOF_PASS_LEADS'))
+    expect(icpsSrc).toContain('export const PROOF_PASS_LEADS = 20')
+    expect(icpsSrc).toContain('runIcpJob(icpId, clientId, userId, PROOF_PASS_LEADS, { proofPass: claimed, proofKind: batchKind })')
     expect(flat(icpsSrc)).toContain('We have shown you two sets of leads.')
     expect(icpsSrc).toContain('PROOF_CLIENT_RECORD_CAP = 40')
     // …and the portal did not gain its own copy of any of it.

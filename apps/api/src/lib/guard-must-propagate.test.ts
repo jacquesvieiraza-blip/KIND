@@ -131,10 +131,16 @@ describe('the outcome a blocked run produces', () => {
   })
 
   it('the crash boundary still records `failed` and alerts', () => {
+    // ⛓️ 15 Sep (S1-RT-004) — reads the whole Proof path: the run-and-settle tail moved VERBATIM
+    // to `lib/proof-run-launch.ts` so the client route and Vida's continuation share ONE
+    // implementation. Same assertion, same specificity, truthful location.
     const src = readFileSync(join(__dirname, '..', 'routes', 'icps.ts'), 'utf8')
+      + '\n' + readFileSync(join(__dirname, 'proof-run-launch.ts'), 'utf8')
     const at = src.indexOf('[icps/proof] proof run failed:')
     const block = src.slice(at - 900, at + 1600)
-    expect(block).toContain("recordRunOutcome(req.params.id, clientId, 'failed'")
+    // ⛓️ 15 Sep (S1-RT-004) — same call, same specificity; the shared module names the icp
+    // `icpId` instead of re-reading `req.params.id`, because it is no longer inside the route.
+    expect(block).toContain("recordRunOutcome(icpId, clientId, 'failed'")
     expect(block).toContain('sendFounderAlert')
     expect(block).not.toContain("'no_match'")
   })

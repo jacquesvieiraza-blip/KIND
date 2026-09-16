@@ -389,6 +389,10 @@
     .pr-rate-num { font-size: 4.6rem; font-weight: 900; letter-spacing: -0.05em; line-height: 1; background: linear-gradient(120deg,#F5179B,#A62AD1 55%,#4B2BE0); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
     .pr-rate-unit { font-size: 0.8rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.14em; color: rgba(0,0,0,0.42); margin-top: 12px; }
     .pr-rate-line { font-size: 0.88rem; color: rgba(0,0,0,0.5); line-height: 1.7; margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border); max-width: 380px; margin-left: auto; margin-right: auto; }
+    .pr-vol { max-width: 560px; margin: 18px auto 0; text-align: center; font-size: 0.84rem; color: rgba(0,0,0,0.5); line-height: 1.7; }
+    .pr-vol strong { color: var(--dark); }
+    .pr-vol a { color: var(--blue); font-weight: 700; text-decoration: none; border-bottom: 1px solid rgba(124,58,237,0.3); }
+    .pr-vol a:hover { border-bottom-color: var(--blue); }
     .pr-nots { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; margin-top: 22px; }
     .pr-not { background: var(--light); border: 1px solid var(--border); border-radius: 100px; padding: 9px 20px; font-size: 0.82rem; font-weight: 600; color: rgba(0,0,0,0.55); }
     @media (max-width: 640px) { .pr-rate-num { font-size: 3.6rem; } .pr-rate { padding: 34px 22px 30px; } }
@@ -506,7 +510,7 @@
   <div class="plans-head">
     <div class="s-label">The price</div>
     <h2>$450 a booked meeting.</h2>
-    <p>One rate. It does not move with the size of the programme, and there is nothing to negotiate.</p>
+    <p>That is the rate for a single booked meeting. There is nothing to negotiate — the price comes down on its own as the programme grows.</p>
   </div>
 
   <div class="pr-rate">
@@ -514,6 +518,8 @@
     <div class="pr-rate-unit">per booked meeting</div>
     <div class="pr-rate-line">A meeting accepted in your calendar. Nothing before it is charged for.</div>
   </div>
+
+  <p class="pr-vol"><strong>Volume pricing applies.</strong> The more booked meetings in your programme, the less each one costs. <a href="#calculator">Work out your own programme in the calculator below ↓</a></p>
 
   <div class="pr-nots">
     <div class="pr-not">No subscription</div>
@@ -561,7 +567,7 @@
 </div>
 
 <!-- ══ 6. THE CALCULATOR ══ -->
-<section class="calc-band">
+<section class="calc-band" id="calculator">
   <div class="calc-head">
     <div class="s-label">The calculator</div>
     <h2>Put your own numbers in.</h2>

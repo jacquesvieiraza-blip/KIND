@@ -285,8 +285,14 @@ describe('④ partial understanding is saved; ambiguity becomes a question; unkn
     })
     const r = await turn([said('yeah just build it')])
     expect(r.code, 'the client was charged for the model’s misjudgement').toBe(200)
-    expect((r.payload.data as { type: string }).type).toBe('question')
-    expect(store.facts.target_category).toBe('jewellers')
+    // ⛓️ 16 Sep (S1-RT-010) — still a conversation and still not a refusal; the shape is now
+    // an outstanding-fact recovery rather than her sentence, because Cedar Peak showed that
+    // demoting a completion's own wrap-up sentence closes the conversation it was meant to
+    // continue. What the client keeps — their turn, their facts — is unchanged.
+    expect((r.payload.data as { type: string }).type).toBe('outstanding')
+    expect((r.payload.data as { content?: string }).content,
+      'the completion sentence is suppressed, not re-labelled').toBeUndefined()
+    expect(store.facts.target_category, 'and the facts they just gave are kept').toBe('jewellers')
   })
 
   it('a reply in plain words is her question, not a failed turn', async () => {

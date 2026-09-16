@@ -3440,6 +3440,46 @@ const MillaReplyInput = z.object({
  * turn's snapshot too. Widening the fallback cannot make a missing fact present: a fact in
  * neither the record nor the reply is still absent, and still refuses.
  */
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// 🛑 ⚑ 16 Sep (S1-RT-010) — ONE RESOLUTION, ONE COUNT, THREE CALLERS.
+//
+// These two lines used to be written out THREE times: inside the gate below, inside the
+// completion response, and — as of this build — inside the premature-completion recovery. A
+// recovery that named a DIFFERENT missing fact from the one the gate refused on would be a
+// second answer to "is this Brief done?", which is the exact class of defect `brief-facts.ts`
+// exists to make impossible. Extracted verbatim; neither caller's behaviour changes.
+// ═══════════════════════════════════════════════════════════════════════════════════════
+
+/** This turn's reply, reconciled against the durable record. THIS TURN STILL WINS. */
+function resolvedBriefFor(
+  v: z.infer<typeof MillaReplyInput>, held: Record<string, unknown>,
+): ReturnType<typeof resolveBriefFacts> {
+  return resolveBriefFacts(
+    Object.keys(held).length > 0
+      ? { ...v, brief_so_far: { ...held, ...(v.brief_so_far ?? {}) } as never }
+      : v,
+  )
+}
+
+/** The canonical eleven-fact answer over a resolution. The gate's own counter, unchanged. */
+function briefFactsFor(resolved: ReturnType<typeof resolveBriefFacts>) {
+  return briefFacts({
+    contactName:        resolved.contactName,
+    companyName:        resolved.companyName,
+    website:            resolved.website,
+    websiteNone:        resolved.websiteNone,
+    whatTheCompanyDoes: resolved.whatTheCompanyDoes,
+    targetCategory:     resolved.targetCategory,
+    geographies:        resolved.geographies,
+    targetCompanyType:  resolved.targetCompanyType,
+    companySizes:       resolved.companySizes,
+    targetRoles:        resolved.targetRoles,
+    targetSeniority:    resolved.targetSeniority,
+    exclusions:         resolved.exclusions,
+    desiredOutcome:     resolved.desiredOutcome,
+  })
+}
+
 const millaReplyFor = (profileRequired: boolean, held: Record<string, unknown> = {}) =>
   MillaReplyInput.superRefine((v, ctx) => {
     if (!profileRequired || v.type !== 'complete') return
@@ -3462,11 +3502,7 @@ const millaReplyFor = (profileRequired: boolean, held: Record<string, unknown> =
     // ⚠️ IT WIDENS WHERE A FACT MAY BE FOUND, NEVER WHETHER IT IS REQUIRED. All eleven are
     // still mandatory, still counted by the one canonical `briefFacts`, and a fact absent
     // from BOTH homes is still absent. Nothing is guessed, defaulted or fabricated.
-    const resolved = resolveBriefFacts(
-      Object.keys(held).length > 0
-        ? { ...v, brief_so_far: { ...held, ...(v.brief_so_far ?? {}) } as never }
-        : v,
-    )
+    const resolved = resolvedBriefFor(v, held)
     if (!resolved.companyName) {
       ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['profile', 'company_name'], message: 'a first-run completion must carry the company name' })
     }
@@ -3517,21 +3553,7 @@ const millaReplyFor = (profileRequired: boolean, held: Record<string, unknown> =
     // ⚠️ IT REFUSES THE COMPLETION, NOT THE TURN. A Zod issue here routes to the same
     // honest-failure path as any other invalid shape: the client is never shown a Milla
     // sentence she did not say, and the model is asked again with the transcript intact.
-    const facts = briefFacts({
-      contactName:        resolved.contactName,
-      companyName:        resolved.companyName,
-      website:            resolved.website,
-      websiteNone:        resolved.websiteNone,
-      whatTheCompanyDoes: resolved.whatTheCompanyDoes,
-      targetCategory:     resolved.targetCategory,
-      geographies:        resolved.geographies,
-      targetCompanyType:  resolved.targetCompanyType,
-      companySizes:       resolved.companySizes,
-      targetRoles:        resolved.targetRoles,
-      targetSeniority:    resolved.targetSeniority,
-      exclusions:         resolved.exclusions,
-      desiredOutcome:     resolved.desiredOutcome,
-    })
+    const facts = briefFactsFor(resolved)
     if (!facts.complete) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
@@ -3696,9 +3718,21 @@ HOW YOU MUST TREAT IT:
         // reading it back here would put a superseded copy of the Brief in front of Milla as
         // if it were current — the competing-truth rule applies to reads, not only writes.
         const { writableBriefDraft } = await import('../lib/brief-draft')
-        const { briefFactsFromDraft, briefFactLines } = await import('@kind/shared')
+        const { briefFactsFromDraft, briefFactLines, briefDraftFacts } = await import('@kind/shared')
         const draft = await writableBriefDraft(req.userId)
         const lines = draft ? briefFactLines(briefFactsFromDraft(draft.facts)) : []
+        // ── ⚑ 16 Sep (S1-RT-010) — THE OTHER HALF OF THE SAME TRUTH ───────────────────
+        //
+        // 🛑 THIS BLOCK LISTED WHAT IS HELD AND NEVER WHAT IS MISSING, so the model had to
+        // derive the gap itself by subtracting this list from the eleven in `completionGate`.
+        // Cedar Peak is what that subtraction failing looks like: 10 facts held, `exclusions`
+        // absent, and "Great, that's everything I need" — a declaration the server then had
+        // to veto. The server knows the answer; it simply never said it out loud.
+        //
+        // ⚠️ GUIDANCE, NOT AUTHORITY — and that distinction is load-bearing. `millaReplyFor`
+        // still refuses a short completion whatever this text says. This half exists so she
+        // ASKS rather than being refused, which is the same reason `completionGate` exists.
+        const outstanding = draft ? briefDraftFacts(draft.facts).missing : []
         if (lines.length > 0) {
           resumeBlock = `
 
@@ -3713,7 +3747,18 @@ DO NOT ASK FOR ANY OF THESE AGAIN, and do not read them back to the client one b
 confirmation — they told you, and being re-interviewed about answers they have already given
 is the single worst thing this conversation can do to somebody who came back.
 Carry every one of them forward in "brief_so_far" on every turn, unchanged, alongside
-anything new. Continue from what is still genuinely missing.`
+anything new. Continue from what is still genuinely missing.${outstanding.length > 0 ? `
+
+── WHAT IS STILL OUTSTANDING — OUR RECORD, NOT YOUR RECOLLECTION ─────────
+These ${outstanding.length === 1 ? 'is the ONE thing' : `are the ${outstanding.length} things`} we do NOT yet hold for this client:
+
+${outstanding.map(id => `  · ${BRIEF_FACT_LABEL[id]}`).join('\n')}
+
+Ask about ${outstanding.length === 1 ? 'it' : 'them'} the way a person would, in your own words, one at a time — never as a
+list and never as a form. You may NOT answer "complete" while any of the above is still
+outstanding: that answer will be refused and the client will be shown a plain product notice
+instead of a reply from you, which is a worse experience than one more natural question.`
+    : ''}`
         }
       } catch { /* the draft is unreadable; the conversation proceeds exactly as before */ }
     }
@@ -4415,13 +4460,78 @@ result or a number. "permitted" is false unless they explicitly said we may use 
       }))
       parsed = asQuestion.success ? asQuestion.data : null
     }
+    // ── 🛑 ⚑ 16 Sep (S1-RT-010) — THE VETOED SENTENCE IS NOT SHOWN TO THE CUSTOMER ──────
+    //
+    // 🛑 WHAT THIS FIXES, AND IT STRANDED A LIVE CUSTOMER. Cedar Peak Advisory reached 10 of
+    // 11 facts — `exclusions` was never asked and never given — and the model declared
+    // `complete` anyway with the sentence **"Great, that's everything I need — thanks
+    // Daniel!"**. S1-RT-007 correctly refused the completion and correctly refused to charge
+    // the customer a failed turn. What it then did was demote the reply to a question WHILE
+    // KEEPING THAT SENTENCE, and `MillaQuestionReply` asks only that `content` be non-empty.
+    // So a sentence written to CLOSE the conversation was delivered as the turn that was
+    // supposed to CONTINUE it: the portal never received `complete`, so no plan and no
+    // "Confirm my brief" rendered, and the last thing the customer was told was that nothing
+    // more was needed. There was no next action a new person could have found.
+    //
+    // 🛑 THE SENTENCE IS SUPPRESSED, NOT REPLACED (founder-ruled 16 Sep). Nothing here writes
+    // English on Milla's behalf — that rule is unchanged — and nothing re-asks the model:
+    // **NO SECOND PROVIDER CALL**, because re-rolling a turn we have already paid for is how a
+    // product pays three times for one answer. Instead the response carries the AUTHORITATIVE
+    // missing-fact truth the gate just computed, and the portal renders it as PRODUCT STATE.
+    // Not a Milla bubble: she did not say it, so it must not look like she did.
+    //
+    // ⚠️ THE FACT NAMED IS THE FACT THE GATE REFUSED ON. `resolvedBriefFor` + `briefFactsFor`
+    // are the gate's own two lines, extracted — so the recovery cannot name a different
+    // missing fact from the one that blocked the completion. `missing[0]` IS
+    // `nextBriefFact`'s definition (`brief-facts.ts`), i.e. the canonical approved order, so
+    // the choice of WHICH outstanding fact to surface is never made here and never in the
+    // browser.
+    //
+    // ⚠️ AND IT REQUIRES A READABLE RECORD. `mustNotConfirm` (the unreadable-Brief case) is
+    // handled above and deliberately keeps its existing behaviour: we do not know what is
+    // missing, so we do not say. Nothing is inferred, nothing is fabricated, and the customer
+    // is never asked to re-enter a fact because our own read failed.
     if (!mustNotConfirm && !validated.success && isPrematureCompletion(validated.error.errors)) {
+      const base = MillaReplyInput.safeParse(replyInput)
+      const facts = base.success ? briefFactsFor(resolvedBriefFor(base.data, held)) : null
+      const next = facts?.missing[0] ?? null
+      if (facts && next) {
+        console.log('[icps/builder/chat] premature completion vetoed —', JSON.stringify({
+          stage: 'reply', category: PREMATURE_COMPLETION, model: BUILDER_MODEL,
+          // The FACT ID, never the client's own words. An id is our vocabulary, not their data.
+          outstanding: facts.missing.length, next_fact: next,
+        }))
+        res.json({
+          success: true,
+          data: {
+            type: 'outstanding',
+            brief_outstanding: {
+              remaining: facts.missing.length,
+              total:     facts.total,
+              next:      { id: next, label: BRIEF_FACT_LABEL[next] },
+            },
+          },
+        })
+        return
+      }
+      // ── ⚠️ NO OUTSTANDING FACT MEANS S1-RT-007's ORIGINAL DEMOTION, UNCHANGED ─────────
+      //
+      // 🛑 THIS IS NOT THE CEDAR PEAK CASE AND MUST NOT BE TREATED AS ONE. A completion can
+      // be refused while holding ALL ELEVEN facts — `icp: null` is the live example
+      // (S1-RT-007's own TURN 2): the readiness rule at path `icp` fires, the Brief is
+      // complete, and `missing` is empty. There is nothing outstanding to tell the customer.
+      //
+      // What the model wrote in that case is a GENUINE question ("roughly how big are the
+      // agencies you do your best work with?") wearing the wrong label — so it is delivered
+      // exactly as S1-RT-007 delivered it, through the same `MillaQuestionReply`. Suppressing
+      // it here would throw away a good sentence and replace it with a notice about nothing.
       const asQuestion = MillaQuestionReply.safeParse({
         ...(replyInput as Record<string, unknown>), type: 'question',
       })
       if (asQuestion.success) {
         console.log('[icps/builder/chat] continuing —', JSON.stringify({
           stage: 'reply', category: PREMATURE_COMPLETION, model: BUILDER_MODEL,
+          outstanding: facts?.missing.length ?? null,
         }))
         parsed = asQuestion.data
       }
@@ -4482,11 +4592,7 @@ result or a number. "permitted" is false unless they explicitly said we may use 
       //
       // It now resolves against `held`, the same cumulative record the gate counted, so the
       // flow is CUSTOMER WORDS → DURABLE BRIEF → DERIVED TARGETING → CONFIRMATION.
-      const resolved = resolveBriefFacts(
-        Object.keys(held).length > 0
-          ? { ...parsed, brief_so_far: { ...held, ...(parsed.brief_so_far ?? {}) } as never }
-          : parsed,
-      )
+      const resolved = resolvedBriefFor(parsed, held)
       // ── 🛑 ⚑ 14 Sep (S1-RT-005) — TRANSLATE, AND SAY SO WHEN WE CANNOT ────────────────
       //
       // Each closed vocabulary is asked the same question: which of these words can we prove

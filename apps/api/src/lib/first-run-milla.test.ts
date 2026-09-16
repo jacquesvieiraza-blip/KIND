@@ -2238,6 +2238,40 @@ describe('EXECUTED · a completion round-trips validated and sanitised', () => {
   })
 })
 
+// ── ⛓️ 16 Sep (S1-RT-010) — "REFUSED" IS NOW A 200 THAT NAMES THE MISSING FACT ──────────
+//
+// 🛑 WHAT CHANGED AND WHY, because `toBe(503)` used to BE the refusal assertion here. Cedar
+// Peak Advisory reached 10 of 11 facts and the model declared `complete`; the gate refused
+// it — correctly — and the customer was left with either "Milla didn't catch that" or, when
+// the reply happened to carry a sentence, her own "that's everything I need" delivered as the
+// turn meant to continue the conversation. Neither told them what was actually needed.
+//
+// The refusal is now a 200 carrying `type: 'outstanding'` and the AUTHORITATIVE missing fact,
+// which the portal renders as product state. The HTTP code was never the guarantee — this is:
+//
+//   · the completion may NEVER be reported as `complete`;
+//   · no targeting may be proposed;
+//   · and the refusal must NAME the fact that caused it.
+//
+// ⚠️ EVERY CASE BELOW NOW PROVES MORE THAN IT DID. A test that only knew "503" could not tell
+// a missing geography from a missing website; each one now pins the exact fact, so a gate
+// that refused for the WRONG reason would fail where it used to pass.
+function expectCompletionRefused(
+  out: { code: number; payload: Record<string, unknown> },
+  expect_: { next?: string; includes?: string } = {},
+) {
+  const d = (out.payload.data ?? {}) as Record<string, unknown>
+  expect(d.type, 'a completion short of the eleven may never be reported as complete').not.toBe('complete')
+  expect(d.icp, 'and no targeting may be proposed from it').toBeUndefined()
+  expect(out.code, 'the customer is not charged a failed turn for the model misjudging itself').toBe(200)
+  expect(d.type).toBe('outstanding')
+  const o = d.brief_outstanding as { remaining: number; total: number; next: { id: string } }
+  expect(o?.next?.id, 'the refusal names the fact that caused it').toBeTruthy()
+  expect(o.total, 'the denominator is the canonical one').toBe(11)
+  if (expect_.next) expect(o.next.id, 'and it is the RIGHT fact').toBe(expect_.next)
+  if (expect_.includes) expect(o.remaining, 'more than one fact is outstanding').toBeGreaterThan(0)
+}
+
 describe('EXECUTED · the first-run account gate is real validation, not a request', () => {
   // ⚑ MVP1 (C21) — the brief facts are supplied so this describe still isolates what it is
   // named for: the ACCOUNT gate. `profile` is whatever the case under test passes, merged
@@ -2270,29 +2304,29 @@ describe('EXECUTED · the first-run account gate is real validation, not a reque
 
   it('🛑 the target category missing -> REFUSED', async () => {
     anthropicBox.reply = short({ target_category: undefined })
-    expect((await ask11()).code).toBe(503)
+    expectCompletionRefused(await ask11(), { next: 'target_category' })
   })
 
   it('🛑 the company TYPE missing -> REFUSED, even with the category present', async () => {
     // The founder-locked distinction: "Digital marketing" gives the category and NOT the
     // organisational form. Collapsing the two is the decision that was explicitly refused.
     anthropicBox.reply = short({ target_company_type: undefined })
-    expect((await ask11()).code).toBe(503)
+    expectCompletionRefused(await ask11(), { next: 'company_type' })
   })
 
   it('🛑 no geography -> REFUSED', async () => {
     anthropicBox.reply = short({ geographies: [] })
-    expect((await ask11()).code).toBe(503)
+    expectCompletionRefused(await ask11(), { next: 'geography' })
   })
 
   it('🛑 no company size -> REFUSED', async () => {
     anthropicBox.reply = short({ company_sizes: [] })
-    expect((await ask11()).code).toBe(503)
+    expectCompletionRefused(await ask11(), { next: 'company_size' })
   })
 
   it('🛑 no roles at all -> REFUSED', async () => {
     anthropicBox.reply = short({ job_titles: [], seniority_levels: [] })
-    expect((await ask11()).code).toBe(503)
+    expectCompletionRefused(await ask11(), { next: 'target_roles' })
   })
 
   it('roles given as SENIORITY alone are enough — that fact is answered', async () => {
@@ -2302,22 +2336,22 @@ describe('EXECUTED · the first-run account gate is real validation, not a reque
 
   it('🛑 no exclusions -> REFUSED', async () => {
     anthropicBox.reply = short({}, {}, { business: {} })
-    expect((await ask11()).code).toBe(503)
+    expectCompletionRefused(await ask11(), { next: 'exclusions' })
   })
 
   it('🛑 no desired outcome -> REFUSED', async () => {
     anthropicBox.reply = short({}, {}, { campaign_intent: '' })
-    expect((await ask11()).code).toBe(503)
+    expectCompletionRefused(await ask11(), { next: 'desired_outcome' })
   })
 
   it('🛑 no contact name -> REFUSED', async () => {
     anthropicBox.reply = short({}, { contact_name: '' })
-    expect((await ask11()).code).toBe(503)
+    expectCompletionRefused(await ask11(), { next: 'contact_name' })
   })
 
   it('🛑 no website and no explicit none -> REFUSED', async () => {
     anthropicBox.reply = short({}, { website: '' })
-    expect((await ask11()).code).toBe(503)
+    expectCompletionRefused(await ask11(), { next: 'website' })
   })
 
   it('an explicit "we have no website" IS an answer -> ACCEPTED', async () => {
@@ -2327,7 +2361,7 @@ describe('EXECUTED · the first-run account gate is real validation, not a reque
 
   it('🛑 website_none false is not an answer -> REFUSED', async () => {
     anthropicBox.reply = short({}, { website: '', website_none: false })
-    expect((await ask11()).code).toBe(503)
+    expectCompletionRefused(await ask11(), { next: 'website' })
   })
 
   it("the client's own words survive to the draft, unrewritten", async () => {
@@ -2345,16 +2379,16 @@ describe('EXECUTED · the first-run account gate is real validation, not a reque
   it('company name MISSING -> REFUSED, and not as a Milla question', async () => {
     anthropicBox.reply = completion({ country: 'United States' })
     const out = await callBuilderChat({ messages: [{ role: 'user', content: 'x' }], profile_required: true })
-    expect(out.code).toBe(503)
-    expect(out.payload.retryable).toBe(true)
-    expect((out.payload.data as unknown) ?? null).toBeNull()
-    expect(JSON.stringify(out.payload)).not.toContain('question')
+    // ⛓️ 16 Sep (S1-RT-010) — the refusal is a named outstanding fact, not a null body. What
+    // it still may never be is a COMPLETION, and it is still never a sentence from Milla.
+    expectCompletionRefused(out, { includes: 'company' })
+    expect(JSON.stringify(out.payload), 'still never attributed to Milla').not.toContain('"question"')
   })
 
   it('company name BLANK counts as missing', async () => {
     anthropicBox.reply = completion({ company_name: '   ', country: 'United States' })
     const out = await callBuilderChat({ messages: [{ role: 'user', content: 'x' }], profile_required: true })
-    expect(out.code).toBe(503)
+    expectCompletionRefused(out)
   })
 
   it('own country MISSING -> REFUSED (target geography is NOT a substitute)', async () => {
@@ -2362,7 +2396,7 @@ describe('EXECUTED · the first-run account gate is real validation, not a reque
     // they sell and where they are based are different facts.
     anthropicBox.reply = completion({ company_name: 'ABCV Logistics' })
     const out = await callBuilderChat({ messages: [{ role: 'user', content: 'x' }], profile_required: true })
-    expect(out.code).toBe(503)
+    expectCompletionRefused(out)
   })
 
   it('a RETURNING client is not held to the gate at all', async () => {
@@ -2692,8 +2726,9 @@ describe('EXECUTED · the ordinary turn, and every failure class, through the re
     // and inventing one would put words in Milla’s mouth (founder-ruled, unchanged).
     anthropicBox.reply = toolReply({ type: 'complete', summary: 's', icp: VALID_ICP })
     const out = await callBuilderChat({ messages: [{ role: 'user', content: 'x' }], profile_required: true })
-    expect(out.code).toBe(503)
-    expect(out.payload.retryable).toBe(true)
+    // ⛓️ 16 Sep (S1-RT-010) — still refused, and now it says WHAT is missing. Clamps still
+    // rescue budgets and never structure; no company name still opens no account.
+    expectCompletionRefused(out)
   })
 
   it('13 · a retry after a transient failure succeeds from the same transcript', async () => {

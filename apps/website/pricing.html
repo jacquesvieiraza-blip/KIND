@@ -11,10 +11,10 @@
        Do not re-add a tracker here without a consent gate AND a matching privacy.html edit. -->
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Pricing — Milla &amp; Vida managed lead service</title>
-  <meta name="description" content="$299 gets you fully onboarded — your first 100 approved leads included, sending from day one on your own warmed inbox. After that you pay $4 only when you approve a lead. Reviewing is always free. No subscriptions, no retainer." />
-  <meta property="og:title" content="Pricing — Milla &amp; Vida" />
-  <meta property="og:description" content="$299 gets you fully onboarded — your first 100 approved leads included, sending from day one on your own warmed inbox. Then $4 each, only when you tap approve. Reviewing is free. No subscriptions." />
+  <title>Pricing — $450 per booked meeting | Milla &amp; Vida</title>
+  <meta name="description" content="One booked meeting is $450 — a real meeting in your calendar, not a lead or a reply. Bigger programmes cost less per meeting, down to a $400 floor. Half to start, half to go live. No subscription, no retainer." />
+  <meta property="og:title" content="Pricing — $450 per booked meeting | Milla &amp; Vida" />
+  <meta property="og:description" content="You choose how many booked meetings you want and we price the programme on that. $450 for one, down to $400 each at fifty. Half to start, half to go live. Free Proof before you pay." />
   <meta property="og:type" content="website" />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -299,6 +299,106 @@
     @media (max-width: 600px) {
       .cta-banner { padding: 44px 24px; }
     }
+    /* ══ PROGRAMME PRICING (16 Sep) — the page moved from $4-per-approved-lead to the
+       programme. Every money figure rendered here is derived from the R81 curve, and the
+       curve lives in @kind/shared — `website-programme-price.test.ts` recomputes each one
+       and fails check.sh if this HTML and the shared package ever disagree. Do not type a
+       new price in here without adding it to that guard. ══ */
+    .pr-hero-num { background: linear-gradient(120deg,#F5179B,#A62AD1 55%,#4B2BE0); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+    .pr-hero-worst { margin-top: 10px !important; }
+    .pr-hero-worst strong { color: var(--dark); }
+
+    .pr-two { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; max-width: 880px; margin: 0 auto; }
+    .pr-box { background: #fff; border: 1px solid var(--border); border-radius: 22px; padding: 30px 28px; }
+    .pr-box-lit { border: 1.5px solid var(--blue); box-shadow: 0 24px 60px rgba(124,58,237,0.14); }
+    .pr-box-k { font-size: 0.66rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.12em; color: var(--blue); margin-bottom: 10px; }
+    .pr-box-h { font-size: 1.05rem; font-weight: 800; letter-spacing: -0.01em; color: var(--dark); line-height: 1.3; margin-bottom: 10px; }
+    .pr-box p { font-size: 0.85rem; color: rgba(0,0,0,0.55); line-height: 1.65; }
+
+    .pr-def { max-width: 880px; margin: 22px auto 0; background: var(--light); border: 1px solid var(--border); border-radius: 22px; padding: 30px 32px; text-align: center; }
+    .pr-def-h { font-size: 1.15rem; font-weight: 900; letter-spacing: -0.02em; color: var(--dark); margin-bottom: 10px; }
+    .pr-def p { font-size: 0.88rem; color: rgba(0,0,0,0.55); line-height: 1.7; max-width: 620px; margin: 0 auto; }
+    .pr-def-fine { margin-top: 14px !important; font-size: 0.78rem !important; color: rgba(0,0,0,0.38) !important; font-style: italic; }
+
+    /* ── THE PROCESS ── */
+    .proc-band { background: linear-gradient(180deg,#F5F0FF 0%, #FBFAFF 100%); border-top: 1px solid rgba(124,58,237,0.08); border-bottom: 1px solid rgba(124,58,237,0.08); padding: 72px 0 64px; margin-top: 96px; }
+    .proc-wrap { max-width: 1080px; margin: 34px auto 0; padding: 0 24px; }
+    .proc-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    .proc-step { background: #fff; border: 1px solid rgba(20,18,45,0.08); border-radius: 20px; padding: 26px 24px; }
+    .proc-n { width: 30px; height: 30px; border-radius: 50%; background: var(--light); color: var(--blue); font-size: 0.8rem; font-weight: 800; display: flex; align-items: center; justify-content: center; margin-bottom: 14px; }
+    .proc-step h3 { font-size: 0.95rem; font-weight: 800; letter-spacing: -0.01em; color: var(--dark); margin-bottom: 8px; line-height: 1.3; }
+    .proc-step p { font-size: 0.82rem; color: rgba(0,0,0,0.52); line-height: 1.65; }
+    .proc-you { border: 1.5px solid var(--blue); }
+    .proc-you .proc-n { background: linear-gradient(120deg,#7c3aed,#a855f7); color: #fff; }
+    .proc-end { background: var(--dark); border-color: var(--dark); }
+    .proc-end h3 { color: #fff; }
+    .proc-end p { color: rgba(255,255,255,0.6); }
+    .proc-end .proc-n { background: rgba(255,255,255,0.12); color: #c4b5fd; }
+    .proc-note { max-width: 780px; margin: 26px auto 0; text-align: center; }
+    .proc-note p { font-size: 0.82rem; color: rgba(30,17,71,0.5); line-height: 1.75; }
+    .proc-note strong { color: var(--ink); }
+
+    /* ── THE PRICE TABLE ── */
+    .pr-table-wrap { max-width: 720px; margin: 0 auto; border: 1px solid var(--border); border-radius: 20px; background: #fff; overflow: hidden; }
+    .pr-table { width: 100%; border-collapse: collapse; }
+    .pr-table th, .pr-table td { padding: 15px 22px; text-align: right; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
+    .pr-table th:first-child, .pr-table td:first-child { text-align: left; }
+    .pr-table thead th { font-size: 0.66rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; color: rgba(0,0,0,0.42); background: var(--light); }
+    .pr-table td:first-child { font-weight: 800; color: var(--dark); }
+    .pr-ppm { font-weight: 800; color: var(--blue); font-variant-numeric: tabular-nums; }
+    .pr-tot { color: rgba(0,0,0,0.6); font-variant-numeric: tabular-nums; }
+    .pr-table tbody tr:last-child td { border-bottom: none; }
+    .pr-row-worst { background: rgba(245,23,155,0.04); }
+    .pr-row-floor { background: rgba(124,58,237,0.05); }
+    .pr-tag { font-family: 'JetBrains Mono', monospace; font-size: 8px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: #fff; background: #db2777; padding: 2px 6px; border-radius: 4px; vertical-align: middle; margin-left: 8px; }
+    .pr-tag-floor { background: var(--blue); }
+
+    /* ── THE 50/50 ── */
+    .split-band { max-width: 1080px; margin: 96px auto 0; padding: 0 24px; }
+    .split-wrap { display: grid; grid-template-columns: 1.3fr 1fr; gap: 20px; align-items: start; margin-top: 34px; }
+    .split-card { background: #fff; border: 1.5px solid var(--blue); border-radius: 24px; padding: 32px; box-shadow: 0 30px 60px -30px rgba(70,30,130,0.35); }
+    .split-card-h { font-size: 0.68rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.12em; color: var(--blue); margin-bottom: 20px; }
+    .split-line { display: flex; justify-content: space-between; align-items: baseline; padding: 13px 0; border-bottom: 1px solid var(--border); font-size: 0.88rem; color: rgba(0,0,0,0.55); }
+    .split-line b { font-weight: 800; color: var(--dark); font-variant-numeric: tabular-nums; }
+    .split-line-total { border-bottom: none; }
+    .split-line-total span { font-weight: 700; color: var(--dark); }
+    .split-line-total b { font-size: 1.5rem; letter-spacing: -0.02em; }
+    .split-pays { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 20px; }
+    .split-pay { background: var(--light); border-radius: 18px; padding: 22px 20px; }
+    .split-pay-k { font-size: 0.66rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; color: rgba(0,0,0,0.42); margin-bottom: 8px; }
+    .split-pay-n { font-size: 1.5rem; font-weight: 900; letter-spacing: -0.03em; color: var(--blue); margin-bottom: 10px; font-variant-numeric: tabular-nums; }
+    .split-pay p { font-size: 0.78rem; color: rgba(0,0,0,0.52); line-height: 1.6; }
+    .split-side { display: flex; flex-direction: column; gap: 12px; }
+    .split-fact { background: #fff; border: 1px solid var(--border); border-radius: 16px; padding: 20px 22px; font-size: 0.84rem; color: rgba(0,0,0,0.55); line-height: 1.65; }
+    .split-fact b { display: block; color: var(--dark); font-weight: 800; margin-bottom: 4px; }
+
+    /* ── CALCULATOR: the committed/illustrative divider inside the dark card ── */
+    .res-split { margin: 26px 0 4px; padding-top: 22px; border-top: 1px dashed rgba(255,255,255,0.22); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; color: #a78bfa; }
+
+    /* ── WHAT'S INCLUDED ── */
+    .inc-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+    .inc-col { background: #fff; border: 1px solid var(--border); border-radius: 20px; padding: 26px 24px; }
+    .inc-col h3 { font-size: 0.72rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; color: var(--blue); margin-bottom: 16px; }
+    .inc-col ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 11px; }
+    .inc-col li { position: relative; padding-left: 20px; font-size: 0.82rem; color: rgba(0,0,0,0.58); line-height: 1.5; }
+    .inc-col li::before { content: ''; position: absolute; left: 0; top: 7px; width: 7px; height: 7px; border-radius: 50%; background: linear-gradient(120deg,#7c3aed,#a855f7); }
+
+    @media (max-width: 1024px) {
+      .inc-grid { grid-template-columns: 1fr 1fr; }
+      .proc-grid { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 860px) {
+      .split-wrap { grid-template-columns: 1fr; }
+      .pr-two { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 640px) {
+      .inc-grid, .proc-grid { grid-template-columns: 1fr; }
+      .split-pays { grid-template-columns: 1fr; }
+      .split-band, .proc-wrap { padding-left: 20px; padding-right: 20px; }
+      .split-card { padding: 24px 20px; }
+      .pr-table th, .pr-table td { padding: 13px 14px; font-size: 0.82rem; }
+      .pr-table-wrap { margin: 0 -4px; }
+    }
   </style>
   <!-- Shared K.I.N.D design system (loaded last so it wins) -->
   <link rel="stylesheet" href="kind.css" />
@@ -331,8 +431,9 @@
 <!-- ══ 1. HERO ══ -->
 <div class="page-hero">
   <div class="eyebrow">Pricing</div>
-  <h1>You only pay when you approve.</h1>
-  <p>$4 per approved lead — one flat price for a fully-worked lead. Reviewing leads is always free. No subscriptions, no retainer, no per-seat.</p>
+  <h1>One booked meeting. <span class="pr-hero-num">$450</span></h1>
+  <p>Not a lead. Not a reply. A meeting, in your calendar, with a real buyer who agreed to be there.</p>
+  <p class="pr-hero-worst"><strong>That is the worst case</strong> — one meeting on its own. Every meeting after it costs less, automatically.</p>
   <p style="font-size:0.78rem;color:rgba(0,0,0,0.35);margin-top:16px">Privacy controls built in · EU-hosted, encrypted at rest and in transit · Your data, deletable anytime · No data sold to third parties</p>
 </div>
 
@@ -341,251 +442,290 @@
   <canvas id="node-canvas"></canvas>
 </div>
 
-<!-- ══ 2. PLAN CARDS ══ -->
+<!-- ══ 2. WHAT YOU ARE BUYING ══ -->
 <div class="plans-wrap">
   <div class="plans-head">
-    <div class="s-label">Simple pricing</div>
-    <h2>One price — per approved lead.</h2>
-    <p><strong>$299 gets you fully onboarded — your first 100 approved leads included, and your own warmed sending inbox live from day one.</strong> After that, <strong>$4</strong> per approved lead — one flat price that reveals the contact and puts our team to work on it. It fires only when you tap 👍 approve — reviewing is free. One prepaid wallet, no subscriptions, no retainer.</p>
+    <div class="s-label">The model</div>
+    <h2>The result is the meeting.</h2>
+    <p>Most outbound is sold to you by the input — leads bought, emails sent, seats licensed. You pay for the effort and carry the risk on the outcome. <strong>We price the other end.</strong></p>
   </div>
 
-  <div class="plans-grid">
-    <!-- Approved lead (the model) -->
-    <div class="plan pop">
-      <div class="plan-badge">The model</div>
-      <div class="plan-name">Approved lead</div>
-      <div class="plan-role">Reveal + work · fully managed</div>
-      <div class="plan-price">$4<span>/approved lead</span></div>
-      <div class="plan-note">One flat $4 — reveals the contact and puts our operator team to work on it. Fires only when you tap 👍 approve — never before. Reviewing is free.</div>
-      <ul>
-        <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>We source &amp; score (PDL + Hunter); leads land masked in your portal</li>
-        <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>Verified contact revealed on your 👍 · a dead email is never charged</li>
-        <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>Personalised outreach, written &amp; sent for you</li>
-        <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>Follow-up sequence (up to 7 steps)</li>
-        <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>Reply triage with human approval · Google Calendar booking</li>
-        <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>Kill-switch &amp; 20/day cap · GDPR &amp; POPIA workflow</li>
-      </ul>
-      <a href="demo.html" class="plan-btn grad">Book a walkthrough &rarr;</a>
+  <div class="pr-two">
+    <div class="pr-box">
+      <div class="pr-box-k">You choose</div>
+      <div class="pr-box-h">How many booked meetings you want</div>
+      <p>That is the whole brief. The programme is priced on that number and nothing else.</p>
     </div>
-
-    <!-- Volume -->
-    <div class="plan">
-      <div class="plan-name">Volume</div>
-      <div class="plan-role">High volume · Dedicated operator</div>
-      <div class="plan-price">Custom</div>
-      <div class="plan-note">Running a high volume of approved leads? We tailor a prepaid-wallet plan and give you a dedicated operator. Still $4 per approved lead economics.</div>
-      <ul>
-        <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>Dedicated operator &amp; onboarding</li>
-        <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>Volume credit pricing</li>
-        <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>Priority support</li>
-        <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>SSO / DPA on request</li>
-      </ul>
-      <a href="mailto:hello@get-kind.com?subject=Milla%26Vida%20volume%20enquiry" class="plan-btn out">Let&rsquo;s talk &rarr;</a>
+    <div class="pr-box pr-box-lit">
+      <div class="pr-box-k">We deliver</div>
+      <div class="pr-box-h">Everything between here and there</div>
+      <p>Sourcing, writing, sending, chasing, reply handling, the calendar. All of it is inside the price.</p>
     </div>
   </div>
 
-  <p class="plans-fine">💳 One prepaid wallet, billed in USD · Stripe-secured · No subscription · We never chase you for payment</p>
-
-  <div class="bundles-strip">
-    <div class="bt-head">One wallet — prepaid, topped up when you choose</div>
-    <div class="bt-tiers">
-      <div class="bt-tier">Get started · <strong>$299</strong> · fully onboarded · 100 leads included</div>
-    </div>
-    <div class="bt-tiers">
-      <div class="bt-tier">Top up · <strong>$40</strong></div>
-      <div class="bt-tier">Top up · <strong>$100</strong></div>
-      <div class="bt-tier">Top up · <strong>$200</strong></div>
-    </div>
-    <div class="bt-note">Your first purchase is $299 — the onboarding pack, which <strong>includes your first 100 approved leads</strong>, builds and warms your own sending domain and inbox, and includes a personal onboarding session. We begin the moment it lands. It is not a wallet top-up. Once those 100 are used, top up any amount whenever you like and each approved lead draws a flat $4 from the wallet — spent only on your approval, never automatically. Funds never expire; a dead email is never charged.</div>
+  <div class="pr-def">
+    <div class="pr-def-h">A booked meeting is a meeting accepted in your calendar.</div>
+    <p>Not a warm reply. Not an “interested, send more info”. A confirmed slot with a real person at a company that matches your brief.</p>
+    <p class="pr-def-fine">This is the outcome we aim for and build the programme around. It is a target, not a guarantee.</p>
   </div>
-
-  <!-- ══ 3. COMPARE — EXPANDABLE DROPDOWN (native, no JS) ══ -->
-  <details class="cmp-details">
-    <summary class="cmp-summary">Compare the full feature list <span class="caret">▾</span></summary>
-    <div class="cmp-scroll">
-      <table class="cmp-table">
-        <thead>
-          <tr>
-            <th>Feature</th>
-            <th class="cmp-col-pop"><span class="cmp-plan-name">Approved lead</span><div class="cmp-plan-price">$4 / approved</div></th>
-            <th><span class="cmp-plan-name">Volume</span><div class="cmp-plan-price">Custom</div></th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr class="cmp-grouprow"><td colspan="3">Data</td></tr>
-          <tr><td>ICP-matched lead sourcing</td><td class="cmp-col-pop cmp-yes">✓</td><td class="cmp-yes">✓</td></tr>
-          <tr><td>Verified contact</td><td class="cmp-col-pop cmp-yes">✓</td><td class="cmp-yes">✓</td></tr>
-          <tr><td>AI lead score 0–100</td><td class="cmp-col-pop cmp-yes">✓</td><td class="cmp-yes">✓</td></tr>
-          <tr><td>CRM dedup</td><td class="cmp-col-pop cmp-yes">✓</td><td class="cmp-yes">✓</td></tr>
-          <tr><td>CSV export</td><td class="cmp-col-pop cmp-yes">✓</td><td class="cmp-yes">✓</td></tr>
-
-          <tr class="cmp-grouprow"><td colspan="3">Outbound work</td></tr>
-          <tr><td>Personalised outreach, sent by our team</td><td class="cmp-col-pop cmp-yes">✓</td><td class="cmp-yes">✓</td></tr>
-          <tr><td>Follow-up sequence (≤7 steps)</td><td class="cmp-col-pop cmp-yes">✓</td><td class="cmp-yes">✓</td></tr>
-          <tr><td>Sequences tuned to purpose<span class="cmp-new">NEW</span></td><td class="cmp-col-pop cmp-yes">✓</td><td class="cmp-yes">✓</td></tr>
-          <tr><td>Event campaigns timed to your date<span class="cmp-new">NEW</span></td><td class="cmp-col-pop cmp-yes">✓</td><td class="cmp-yes">✓</td></tr>
-          <tr><td>3–7 touch depth, set per campaign<span class="cmp-new">NEW</span></td><td class="cmp-col-pop cmp-yes">✓</td><td class="cmp-yes">✓</td></tr>
-          <tr><td>5-touch follow-up as standard<span class="cmp-new">NEW</span></td><td class="cmp-col-pop cmp-yes">✓</td><td class="cmp-yes">✓</td></tr>
-          <tr><td>Reply triage with human approval</td><td class="cmp-col-pop cmp-yes">✓</td><td class="cmp-yes">✓</td></tr>
-          <tr><td>Booking link in every email</td><td class="cmp-col-pop cmp-yes">✓</td><td class="cmp-yes">✓</td></tr>
-          <tr><td>Google Calendar booking</td><td class="cmp-col-pop cmp-yes">✓</td><td class="cmp-yes">✓</td></tr>
-          <tr><td>Kill-switch &amp; 20/day cap</td><td class="cmp-col-pop cmp-yes">✓</td><td class="cmp-yes">✓</td></tr>
-
-          <tr class="cmp-grouprow"><td colspan="3">Delivery &amp; compliance</td></tr>
-          <tr><td>Privacy controls built in</td><td class="cmp-col-pop cmp-yes">✓</td><td class="cmp-yes">✓</td></tr>
-          <tr><td>Suppression / opt-out handling</td><td class="cmp-col-pop cmp-yes">✓</td><td class="cmp-yes">✓</td></tr>
-          <tr><td>SSO / DPA on request</td><td class="cmp-col-pop cmp-no">—</td><td class="cmp-yes">✓</td></tr>
-
-          <tr class="cmp-grouprow"><td colspan="3">Support</td></tr>
-          <tr><td>Email support</td><td class="cmp-col-pop cmp-yes">✓</td><td class="cmp-yes">✓</td></tr>
-          <tr><td>Dedicated onboarding</td><td class="cmp-col-pop cmp-no">—</td><td class="cmp-yes">✓</td></tr>
-          <tr><td>Priority support</td><td class="cmp-col-pop cmp-no">—</td><td class="cmp-yes">✓</td></tr>
-        </tbody>
-      </table>
-    </div>
-  </details>
 </div>
 
-<!-- ══ 4. CALCULATOR (embedded — real Pipeline Calculator) ══ -->
+<!-- ══ 3. HOW A BOOKED MEETING HAPPENS ══ -->
+<div class="proc-band">
+  <div class="calc-head">
+    <div class="s-label">The process</div>
+    <h2>How we get there.</h2>
+    <p>Six steps, and only one of them is yours.</p>
+  </div>
+  <div class="proc-wrap">
+    <div class="proc-grid">
+      <div class="proc-step"><div class="proc-n">1</div><h3>You set the outcome</h3><p>How many meetings you want, and who they should be with.</p></div>
+      <div class="proc-step"><div class="proc-n">2</div><h3>Milla builds the programme</h3><p>Your market, your list, your sequences, your inbox — assembled and shown to you before a single email exists.</p></div>
+      <div class="proc-step proc-you"><div class="proc-n">3</div><h3>You approve it. Once.</h3><p>One approval covers the whole programme. You are not asked to tick 250 boxes.</p></div>
+      <div class="proc-step"><div class="proc-n">4</div><h3>Vida does the work</h3><p>Sourcing, writing, sending, following up — day after day, without a person having to remember.</p></div>
+      <div class="proc-step"><div class="proc-n">5</div><h3>A human handles every reply</h3><p>Replies are read and answered by our team, not by a bot guessing at intent.</p></div>
+      <div class="proc-step proc-end"><div class="proc-n">6</div><h3>The meeting lands in your calendar</h3><p>That is the finish line. That is what you paid for.</p></div>
+    </div>
+    <div class="proc-note">
+      <p>We plan around <strong>250 sourced leads for every targeted booked meeting</strong>. That is the volume we build and pay for on your behalf. It is a planning benchmark — we never promise you that a fixed number of leads produces a fixed number of meetings.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ══ 4. THE PRICE CURVE ══ -->
+<div class="plans-wrap" style="margin-top:96px">
+  <div class="plans-head">
+    <div class="s-label">The price</div>
+    <h2>$450 is the most you will ever pay for a meeting.</h2>
+    <p>The more meetings in the programme, the less each one costs. <strong>The discount is automatic — there is nothing to negotiate.</strong></p>
+  </div>
+
+  <div class="pr-table-wrap">
+    <table class="pr-table">
+      <thead>
+        <tr><th>Booked meetings</th><th>Per meeting</th><th>Programme price</th></tr>
+      </thead>
+      <tbody>
+        <tr class="pr-row-worst"><td>1 <span class="pr-tag">worst case</span></td><td class="pr-ppm">$450.00</td><td class="pr-tot">$450.00</td></tr>
+        <tr><td>5</td><td class="pr-ppm">$444.44</td><td class="pr-tot">$2,222.22</td></tr>
+        <tr><td>10</td><td class="pr-ppm">$437.50</td><td class="pr-tot">$4,375.00</td></tr>
+        <tr><td>25</td><td class="pr-ppm">$423.44</td><td class="pr-tot">$10,585.94</td></tr>
+        <tr class="pr-row-floor"><td>50 <span class="pr-tag pr-tag-floor">floor</span></td><td class="pr-ppm">$400.00</td><td class="pr-tot">$20,000.00</td></tr>
+        <tr><td>50+</td><td class="pr-ppm">$400.00</td><td class="pr-tot">$400 per meeting, flat</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="plans-fine">$400 is the floor. It does not go lower, and you do not have to ask for it.<br />No subscription · no retainer · no per-seat licence · no minimum term.</p>
+</div>
+
+<!-- ══ 5. THE 50/50, EXPLAINED ══ -->
+<div class="split-band">
+  <div class="calc-head">
+    <div class="s-label">How you pay</div>
+    <h2>Half to start. Half to go live.</h2>
+    <p>Worked through on a real programme, so there is nothing to interpret.</p>
+  </div>
+
+  <div class="split-wrap">
+    <div class="split-card">
+      <div class="split-card-h">A 10-meeting programme</div>
+      <div class="split-line"><span>Booked meetings you are targeting</span><b>10</b></div>
+      <div class="split-line"><span>Price per meeting</span><b>$437.50</b></div>
+      <div class="split-line split-line-total"><span>Programme price</span><b>$4,375.00</b></div>
+      <div class="split-pays">
+        <div class="split-pay">
+          <div class="split-pay-k">Payment 1 — to start</div>
+          <div class="split-pay-n">$2,187.50</div>
+          <p>Authorises us to source and build the whole programme — all 2,500 leads, the sequences, the inbox. You see the finished thing before anything is sent.</p>
+        </div>
+        <div class="split-pay">
+          <div class="split-pay-k">Payment 2 — to go live</div>
+          <div class="split-pay-n">$2,187.50</div>
+          <p>Nothing leaves our system until you have seen the programme and paid the second half.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="split-side">
+      <div class="split-fact"><b>Free Proof comes first.</b> We show you the work on your own market before you pay us anything.</div>
+      <div class="split-fact"><b>Pause before go-live and the second half is never charged.</b> You are not locked in between the two payments.</div>
+      <div class="split-fact"><b>Unused programme value stays on your account</b> and never expires.</div>
+      <div class="split-fact"><b>No subscription.</b> You buy a programme, we deliver it, you decide whether to buy another.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ 6. THE CALCULATOR ══ -->
 <section class="calc-band">
   <div class="calc-head">
     <div class="s-label">The calculator</div>
-    <h2>See what this could add.</h2>
-    <p>Put in your own numbers — every assumption below is yours to move. We'd rather show you a conservative estimate you trust than a flashy one you don't.</p>
+    <h2>Put your own numbers in.</h2>
+    <p>Move the meeting target and we price it off the same curve your programme is priced on. Add what a client is worth to you and see what comes back.</p>
   </div>
 
   <div class="calc-wrap">
     <div class="calc-grid">
-      <!-- INPUTS -->
       <div class="calc-card inputs">
-        <h2>Your pipeline today</h2>
+        <h2>Your programme</h2>
 
         <div class="field">
-          <label for="leads">Approved leads we work each month <span class="val" id="leads-val">300</span></label>
-          <input type="number" id="leads" min="0" step="10" value="300" />
-          <p class="hint">New enquiries plus any dormant list you'd put back into play.</p>
+          <label for="meetings">Booked meetings you want <span class="val" id="meetings-val">10</span></label>
+          <input type="range" id="meetings" min="1" max="50" step="1" value="10" />
+          <div class="hint">One meeting is $450. Fifty is $400 each. Everything in between follows the same curve.</div>
         </div>
 
+        <div class="assume-head">Your business — your figures</div>
+
         <div class="field">
-          <label for="deal">Average value of one client <span class="val" id="deal-val">$25,000</span></label>
+          <label for="deal">What one new client is worth to you <span class="val" id="deal-val">$25,000</span></label>
           <input type="number" id="deal" min="0" step="1000" value="25000" />
-          <p class="hint">Use whatever a single closed client is worth to you — first deal or lifetime, your call.</p>
-        </div>
-
-        <div class="assume-head">Assumptions — drag to match your reality</div>
-
-        <div class="field">
-          <label for="reply">Share of leads that reply <span class="val" id="reply-val">8%</span></label>
-          <input type="range" id="reply" min="1" max="30" step="1" value="8" />
-          <p class="hint">Set conservatively by default. Move it to whatever your own outreach actually achieves.</p>
-        </div>
-
-        <div class="field">
-          <label for="meeting">Replies that turn into a meeting <span class="val" id="meeting-val">40%</span></label>
-          <input type="range" id="meeting" min="5" max="80" step="5" value="40" />
+          <div class="hint">First deal or lifetime value — your call, your figure.</div>
         </div>
 
         <div class="field">
           <label for="close">Meetings that become clients <span class="val" id="close-val">25%</span></label>
-          <input type="range" id="close" min="5" max="80" step="5" value="25" />
-          <p class="hint">This is your close rate — the part only you can do. We get them to the table; you win them.</p>
+          <input type="range" id="close" min="0" max="100" step="1" value="25" />
+          <div class="hint">This is your close rate. We get them to the table; you win them.</div>
         </div>
       </div>
 
-      <!-- RESULTS -->
       <div class="calc-card results">
-        <h2>What that could look like</h2>
-        <div class="result-row">
-          <span class="label">Replies / month</span>
-          <span class="num" id="out-replies">24</span>
-        </div>
-        <div class="result-row">
-          <span class="label">Meetings booked / month</span>
-          <span class="num" id="out-meetings">10</span>
-        </div>
-        <div class="result-row">
-          <span class="label">New clients / month</span>
-          <span class="num" id="out-clients">2</span>
-        </div>
+        <h2>What you pay — fixed by the programme</h2>
+        <div class="result-row"><span class="label">Price per meeting</span><span class="num" id="out-ppm">$437.50</span></div>
+        <div class="result-row"><span class="label">Programme price</span><span class="num" id="out-total">$4,375.00</span></div>
+        <div class="result-row"><span class="label">Payment 1 — to start</span><span class="num" id="out-p1">$2,187.50</span></div>
+        <div class="result-row"><span class="label">Payment 2 — to go live</span><span class="num" id="out-p2">$2,187.50</span></div>
+        <div class="result-row"><span class="label">Leads we source for it</span><span class="num" id="out-leads">2,500</span></div>
+
+        <div class="res-split">What it could return — your figures</div>
+        <div class="result-row"><span class="label">New clients</span><span class="num" id="out-clients">2.5</span></div>
+        <div class="result-row"><span class="label">Revenue</span><span class="num" id="out-revenue">$62,500</span></div>
+
         <div class="result-hero">
-          <div class="label">Estimated revenue added / year</div>
-          <div class="num" id="out-revenue">$720,000</div>
-          <div class="sub">based entirely on the numbers you entered above</div>
+          <div class="label">Return on programme cost</div>
+          <div class="num" id="out-multiple">14.3×</div>
+          <div class="sub" id="out-multiple-sub">your figures, against what you pay us</div>
         </div>
+
         <a href="demo.html" class="btn-cta">Book a walkthrough →</a>
       </div>
     </div>
   </div>
 
-  <!-- DISCLAIMER -->
   <div class="disclaimer">
     <div class="disclaimer-box">
-      <div class="icon">ℹ️</div>
-      <p><strong>This is an estimate, not a promise.</strong> Every figure is calculated live from the numbers and assumptions you set — we don't pre-load inflated rates or quote results we can't stand behind. Real outcomes depend on your market, your offer, and your list. We'd rather you start from a number you believe.</p>
+      <div class="icon">⚖️</div>
+      <p><strong>Two kinds of number, kept apart on purpose.</strong> What you pay is ours and it is fixed by the programme curve — the price per meeting, the programme price and the 50/50 split are the same figures you would be charged. What it could return is arithmetic on <strong>your own guesses</strong> about your business. Your own figures, worked through — an illustration, not a forecast or a promise from us. The meeting target is a target, not a guarantee.</p>
     </div>
   </div>
 </section>
 
-<!-- ══ 5. PRICING FAQ ══ -->
-<div class="faq-section" id="faq">
+<!-- ══ 7. WHAT'S INSIDE THE PRICE ══ -->
+<div class="plans-wrap" style="margin-top:96px">
+  <div class="plans-head">
+    <div class="s-label">What's included</div>
+    <h2>Everything below is in the price.</h2>
+    <p>There is one programme and there is no second tier. Nothing here is an add-on.</p>
+  </div>
+
+  <div class="inc-grid">
+    <div class="inc-col">
+      <h3>Finding them</h3>
+      <ul>
+        <li>ICP-matched lead sourcing</li>
+        <li>Verified contacts</li>
+        <li>AI lead score 0–100</li>
+        <li>CRM dedup</li>
+        <li>Suppression checked before send</li>
+      </ul>
+    </div>
+    <div class="inc-col">
+      <h3>Reaching them</h3>
+      <ul>
+        <li>Personalised outreach, written and sent for you</li>
+        <li>Follow-up sequences, 3–7 touches</li>
+        <li>Sequences tuned to purpose</li>
+        <li>Event campaigns timed to your date</li>
+        <li>Your own warmed sending inbox</li>
+      </ul>
+    </div>
+    <div class="inc-col">
+      <h3>Converting them</h3>
+      <ul>
+        <li>Every reply read and handled by a human</li>
+        <li>Booking link in every email</li>
+        <li>Google Calendar booking</li>
+        <li>A named contact, not a ticket queue</li>
+      </ul>
+    </div>
+    <div class="inc-col">
+      <h3>Protecting you</h3>
+      <ul>
+        <li>Privacy controls built in</li>
+        <li>Kill-switch and daily send cap</li>
+        <li>One-click unsubscribe and our postal address on every email</li>
+        <li>Contact on a legitimate-interest basis</li>
+        <li>GDPR &amp; POPIA workflow · SSO / DPA on request</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ══ 8. FAQ ══ -->
+<div class="faq-section">
   <div class="faq-header reveal">
     <div class="s-label">FAQ</div>
     <h2>Pricing questions</h2>
   </div>
 
   <div class="faq-item">
-    <button class="faq-q" onclick="toggleFaq(this)">
-      Do I pay to review leads?
-      <span class="fq-icon">▾</span>
-    </button>
-    <div class="faq-a"><p>No. Reviewing is free, forever. Every lead we source lands masked in your Milla portal — you tap 👍 approve or ✕ pass at no cost. You're only ever charged the moment you approve a lead. No time limit, no auto-charge, no subscription.</p></div>
+    <button class="faq-q" onclick="toggleFaq(this)">What exactly is a &ldquo;booked meeting&rdquo;?<span class="fq-icon">▾</span></button>
+    <div class="faq-a"><p>A meeting accepted into your calendar by a real person at a company that matches your brief. A reply is not a meeting. Interest is not a meeting. A confirmed slot is.</p></div>
   </div>
 
   <div class="faq-item">
-    <button class="faq-q" onclick="toggleFaq(this)">
-      What does "$4 per approved lead" mean?
-      <span class="fq-icon">▾</span>
-    </button>
-    <div class="faq-a"><p>One flat price, charged only when you tap approve. The <strong>$4</strong> reveals the contact (a net-new, verified contact matched to your ICP, suppression-checked, not already in your CRM) and puts our operator team to work on it — personalised outreach, follow-up sequence, reply triage, and booking the meeting. That's <strong>$4 for a fully-worked, approved lead</strong>. Pass on a lead and it costs nothing. No subscription, no minimums.</p></div>
+    <button class="faq-q" onclick="toggleFaq(this)">What if the programme does not hit the number?<span class="fq-icon">▾</span></button>
+    <div class="faq-a"><p>The meeting target is what we build and source the programme around — a target, not a guarantee. If a programme runs its full volume without producing a meeting, we review it with you: targeting, offer, messaging, timing and deliverability. <strong>That review is not a sales call, and we do not automatically tell you to buy more.</strong></p></div>
   </div>
 
   <div class="faq-item">
-    <button class="faq-q" onclick="toggleFaq(this)">
-      Is there a subscription or contract?
-      <span class="fq-icon">▾</span>
-    </button>
-    <div class="faq-a"><p>None. There's no per-seat licence, no retainer and no annual lock-in — just a prepaid wallet you top up when you choose. We never chase you for payment, and you can pause anytime.</p></div>
+    <button class="faq-q" onclick="toggleFaq(this)">Why is one meeting $450 and fifty meetings $400 each?<span class="fq-icon">▾</span></button>
+    <div class="faq-a"><p>The work that is not per-meeting — building your market, warming your inbox, writing your sequences — gets spread further across a bigger programme. So the price per meeting falls as the programme grows, down to a $400 floor at fifty. The discount is automatic and there is nothing to negotiate.</p></div>
   </div>
 
   <div class="faq-item">
-    <button class="faq-q" onclick="toggleFaq(this)">
-      How does the prepaid wallet work — does it expire?
-      <span class="fq-icon">▾</span>
-    </button>
-    <div class="faq-a"><p>You keep one prepaid wallet and top it up when you choose. Your first purchase is $299 — the onboarding pack, which <strong>includes your first 100 approved leads</strong> rather than loading the wallet, and covers building and warming your own sending inbox. After those 100 you add any amount whenever you like, and each approved lead draws a flat $4 — spent only on your approval, never automatically. <strong>Funds never expire</strong>, and we never chase you for payment. Higher volume? <a href="mailto:hello@get-kind.com?subject=Milla%26Vida%20volume%20enquiry">Let's talk</a>.</p></div>
+    <button class="faq-q" onclick="toggleFaq(this)">Is there a subscription or a contract?<span class="fq-icon">▾</span></button>
+    <div class="faq-a"><p>No. No retainer, no per-seat licence, no annual lock-in. You buy a programme, we deliver it, and you decide whether to buy another.</p></div>
   </div>
 
   <div class="faq-item">
-    <button class="faq-q" onclick="toggleFaq(this)">
-      What happens if an approved lead's email is dead?
-      <span class="fq-icon">▾</span>
-    </button>
-    <div class="faq-a"><p>You're never charged for it. If a contact we reveal on your approval turns out to have a dead email, the $4 isn't taken — you only ever pay for a real, usable contact.</p></div>
+    <button class="faq-q" onclick="toggleFaq(this)">When do I actually pay?<span class="fq-icon">▾</span></button>
+    <div class="faq-a"><p>Half when you approve the programme, half before it goes live. Free Proof comes first and costs nothing. Pause before go-live and the second half is never charged, and any unused programme value stays on your account and never expires.</p></div>
   </div>
 
+  <div class="faq-item">
+    <button class="faq-q" onclick="toggleFaq(this)">Do I have to approve every lead?<span class="fq-icon">▾</span></button>
+    <div class="faq-a"><p>No — and this is the change. You approve the programme once, before anything is sent. You are not reviewing a queue.</p></div>
+  </div>
+
+  <div class="faq-item">
+    <button class="faq-q" onclick="toggleFaq(this)">How many leads does a programme source?<span class="fq-icon">▾</span></button>
+    <div class="faq-a"><p>We plan around 250 sourced leads for every targeted booked meeting, so a ten-meeting programme is built and paid for around 2,500 leads. That is a planning benchmark for the volume we buy on your behalf — it is not a promise that a fixed number of leads produces a fixed number of meetings.</p></div>
+  </div>
 </div>
 
-<!-- ══ 6. CTA ══ -->
+<!-- ══ 9. CTA ══ -->
 <div class="cta-wrap">
   <div class="cta-banner reveal">
-    <h2>Reviewing is free. You only pay when you say yes.</h2>
-    <p>See the managed service on your own market — then approve the leads worth your time at $4 each. No subscription &mdash; reviewing is free.</p>
+    <h2>One approval. Then meetings in your calendar.</h2>
+    <p>See the work on your own market first — Free Proof, before you pay us anything.</p>
     <div class="cta-btns">
       <a href="demo.html" class="btn-cta-primary">Book a walkthrough →</a>
       <a href="https://app.get-kind.com/login" class="btn-cta-ghost">Client login</a>
     </div>
   </div>
 </div>
+
 
 <footer>
   <div class="footer-strip" style="height:5px;background:linear-gradient(90deg,#FFD4B2 0%,#F9C8FF 34%,#C4B5FD 68%,#7C3AED 100%)"></div>
@@ -723,41 +863,74 @@
 
 <!-- ── PIPELINE CALCULATOR (embedded, live compute) ── -->
 <script>
-  var DEFAULTS = { leads: 300, deal: 25000, reply: 8, meeting: 40, close: 25 }
-  var CURRENCY = '$'
+  /* ══ THE PROGRAMME CALCULATOR — a mirror of `calculateProgramme` in @kind/shared.
+     🛑 THIS DERIVES NO PRICE OF ITS OWN. Every constant and every formula below is the R81
+     curve as implemented in `packages/shared/src/programme-pricing.ts`, transcribed because
+     `apps/website` is static and cannot import it. That transcription is the risk, so it is
+     guarded: `website-programme-price.test.ts` recomputes each figure from @kind/shared and
+     fails check.sh the moment this file and the package disagree.
+     COMMITTED  — meetings, price, split, volume. Ours, from the curve.
+     ILLUSTRATIVE — clients, revenue, multiple. Arithmetic on the client's own guesses. ══ */
+  var A1 = 450, A10 = 437.5, A50 = 400, LEADS_PER_TARGETED_MEETING = 250
 
-  function fmtMoney(n) {
-    return CURRENCY + Math.round(n).toLocaleString('en-US')
+  function pricePerMeetingUsd(m) {
+    if (m === 1) return A1
+    if (m <= 10) return A1 - ((m - 1) * 12.5) / 9
+    if (m <= 50) return A10 - ((m - 10) * 37.5) / 40
+    return A50
+  }
+  /* Rounded ONCE at the end — rounding the per-meeting price first drifts by up to a cent
+     per meeting, which is why the shared package does it in this order too. */
+  function programmeTotalCents(m) { return Math.round(pricePerMeetingUsd(m) * m * 100) }
+  function firstPaymentCents(t) { return Math.floor(t / 2) }
+  /* By subtraction, deliberately: the odd cent goes to payment two (R81) and this is the
+     only formulation where first + second === total for every input. */
+  function secondPaymentCents(t) { return t - firstPaymentCents(t) }
+
+  function money(cents) {
+    return '$' + (cents / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  }
+  function moneyRound(cents) {
+    return '$' + Math.round(cents / 100).toLocaleString('en-US')
   }
 
   var el = function(id) { return document.getElementById(id) }
-  var inputs = ['leads','deal','reply','meeting','close']
 
   function recalc() {
-    var leads   = Math.max(0, +el('leads').value || 0)
-    var deal    = Math.max(0, +el('deal').value || 0)
-    var replyPc = +el('reply').value
-    var meetPc  = +el('meeting').value
-    var closePc = +el('close').value
+    var meetings = Math.min(50, Math.max(1, parseInt(el('meetings').value, 10) || 1))
+    var deal     = Math.max(0, +el('deal').value || 0)
+    var closePc  = Math.min(100, Math.max(0, +el('close').value || 0))
 
-    var replies  = leads * (replyPc / 100)
-    var meetings = replies * (meetPc / 100)
-    var clients  = meetings * (closePc / 100)
-    var revenue  = clients * deal * 12
+    var total = programmeTotalCents(meetings)
+    var p1    = firstPaymentCents(total)
+    var p2    = secondPaymentCents(total)
+    var leads = meetings * LEADS_PER_TARGETED_MEETING
 
-    el('leads-val').textContent   = leads.toLocaleString('en-US')
-    el('deal-val').textContent    = fmtMoney(deal)
-    el('reply-val').textContent   = replyPc + '%'
-    el('meeting-val').textContent = meetPc + '%'
-    el('close-val').textContent   = closePc + '%'
+    var clients  = (meetings * closePc) / 100
+    var revCents = Math.round(clients * deal * 100)
+    /* Null rather than 0× — a client who has given no deal value has no multiple to see, and
+       rendering "0×" beside their programme price reads as a verdict on it. */
+    var multiple = revCents > 0 && total > 0 ? revCents / total : null
 
-    el('out-replies').textContent  = Math.round(replies).toLocaleString('en-US')
-    el('out-meetings').textContent = Math.round(meetings).toLocaleString('en-US')
-    el('out-clients').textContent  = Math.round(clients).toLocaleString('en-US')
-    el('out-revenue').textContent  = fmtMoney(revenue)
+    el('meetings-val').textContent = meetings
+    el('deal-val').textContent     = '$' + deal.toLocaleString('en-US')
+    el('close-val').textContent    = closePc + '%'
+
+    el('out-ppm').textContent   = money(Math.round(pricePerMeetingUsd(meetings) * 100))
+    el('out-total').textContent = money(total)
+    el('out-p1').textContent    = money(p1)
+    el('out-p2').textContent    = money(p2)
+    el('out-leads').textContent = leads.toLocaleString('en-US')
+
+    el('out-clients').textContent = clients.toLocaleString('en-US', { maximumFractionDigits: 1 })
+    el('out-revenue').textContent = moneyRound(revCents)
+    el('out-multiple').textContent = multiple === null ? '—' : multiple.toFixed(1) + '×'
+    el('out-multiple-sub').textContent = multiple === null
+      ? 'add what a client is worth to you'
+      : 'your figures, against what you pay us'
   }
 
-  inputs.forEach(function(id) {
+  ;['meetings', 'deal', 'close'].forEach(function(id) {
     el(id).addEventListener('input', recalc)
   })
   recalc()

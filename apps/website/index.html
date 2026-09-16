@@ -1737,27 +1737,6 @@
 .gp-gal-img{display:block;width:100%;height:auto;margin-top:16px;border-radius:12px;border:1px solid #e7e2f5;background:#faf8ff;padding:10px}
 .gp-illus{margin-top:26px;text-align:center;font-size:12px;color:#73737a}
 
-/* ── SECTION 8 — BOOKED MEETINGS. Founder-locked 16 Sep. ───────────────────────────────
-   Sits between "See it happen." and the pricing block: demonstration, then proof, then price.
-
-   🛑 THE NUMBER IS SYNTHETIC AND THE PAGE SAYS SO. It starts at 1,053 and advances by one a
-   day from a fixed epoch — a founder decision, recorded in the map. The provenance line is
-   not decoration: while the figure is not production truth the page must not imply it is,
-   which is the founder's own instruction in the build baton.
-
-   ⚠️ WHEN THE LIVE COUNTER ARRIVES, ONLY THE SOURCE CHANGES. The eventual read model is
-   `meetingCounts()` in `apps/api/src/lib/meeting-truth.ts` — the one place a meeting count is
-   derived — behind an aggregate public endpoint. The website must never derive meeting truth
-   itself, exactly as the programme calculator never derives money. */
-.gp-count{padding:104px 0 96px;text-align:center;border-top:1px solid var(--line)}
-.gp-count-num{
-  font-size:clamp(96px,15vw,190px);font-weight:900;letter-spacing:-.06em;line-height:.9;
-  background:linear-gradient(100deg,#F5179B,#A62AD1,#4B2BE0);
-  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent;
-  /* Tabular figures so the digits do not jitter when the count changes. */
-  font-variant-numeric:tabular-nums}
-.gp-count-say{font-size:31px;font-weight:850;letter-spacing:-.035em;margin-top:26px}
-.gp-count-prov{font-size:12px;color:var(--muted);margin-top:30px}
 
 /* the four capability-card renders — full image, no crop, kills the old 190px flex band */
 #gp-page .gp-feature-visual.gp-has-img{height:auto;padding:0;display:block;background:#fff;border-bottom:1px solid var(--line);overflow:hidden}
@@ -1949,17 +1928,6 @@ nav, nav *, footer, footer *{font-family:'Plus Jakarta Sans',-apple-system,Blink
   </section>
 
 
-  <section class="gp-section gp-count" id="booked">
-    <div class="gp-narrow">
-      <div class="gp-eyebrow">Booked meetings</div>
-      <!-- The rendered value is the floor the page ships with; the script advances it. If the
-           script never runs, the visitor sees a real number rather than an empty space or a
-           zero — 0 and "not loaded" are opposite facts and must never look the same. -->
-      <div class="gp-count-num" id="gp-booked">1,053</div>
-      <div class="gp-count-say">meetings booked, and counting.</div>
-      <p class="gp-count-prov">Illustrative figure &mdash; the live counter replaces it when production data is connected.</p>
-    </div>
-  </section>
 
   <section class="gp-section gp-pricing" id="pricing">
     <div class="gp-narrow">
@@ -2313,18 +2281,5 @@ nav, nav *, footer, footer *{font-family:'Plus Jakarta Sans',-apple-system,Blink
 })();
 </script>
 
-<script>
-  /* SECTION 8 — one meeting a day from a fixed epoch. Deterministic: every visitor on the
-     same date sees the same number, and there is no request to fail. Replaced by the real
-     aggregate when production truth is connected. */
-  (function () {
-    var START = 1053, EPOCH = Date.UTC(2026, 8, 16); // 16 Sep 2026
-    var el = document.getElementById('gp-booked');
-    if (!el) return;
-    var days = Math.floor((Date.now() - EPOCH) / 86400000);
-    if (!isFinite(days) || days < 0) days = 0;          // a wrong clock never subtracts
-    el.textContent = (START + days).toLocaleString('en-US');
-  })();
-</script>
 </body>
 </html>

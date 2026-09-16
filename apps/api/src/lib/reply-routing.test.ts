@@ -10,23 +10,67 @@ import { routeReply, replyEventKey, unmatchedAtKnownInboxLines, type LeadMatch }
 // #551 — REPLIES LAND BACK AGAINST THE RIGHT INBOX.
 //
 // The defect does not bite until the first client sends from their own mailbox — which is
-// exactly why it needs building before that happens rather than after. Today every reply
-// arrives at one shared Resend inbox, so matching on the prospect's address and fanning out
-// to every client holding that lead is CORRECT (R1). The moment a client has their own
-// mailbox, the reply arrives THERE, and the fan-out becomes one client reading another
-// client's inbound mail.
+// exactly why it needs building before that happens rather than after. The moment a client
+// has their own mailbox, the reply arrives THERE, and a fan-out becomes one client reading
+// another client's inbound mail.
+//
+// ⛓️ 16 Sep (GAP 3) — AND THE FAN-OUT IS GONE, INCLUDING FOR THE SHARED-INBOX CASE. This file
+// used to record that matching on the prospect's address and fanning out to every client
+// holding that lead was *"CORRECT (R1)"* while one shared Resend inbox was the only inbound
+// path. The founder's launch-safety ruling supersedes that: one external reply may never reach
+// two clients, and an owner we cannot determine FAILS CLOSED to an operator exception.
+//
+// The order is now: receiving mailbox → one client anyway → persisted originating-send
+// evidence → fail closed. The single-client path — virtually every real reply — is untouched.
 
 const A: LeadMatch = { id: 'lead-a', client_id: 'client-A' }
 const B: LeadMatch = { id: 'lead-b', client_id: 'client-B' }
 
 describe('today — one shared inbox, nothing changes', () => {
-  it('an UNKNOWN inbox falls back to the fan-out, exactly as R1 intended', () => {
-    // This is the assertion that lets this ship before any client has a mailbox. If it broke,
-    // every reply in production would start being dropped the day it deployed.
+  // ⛓️ 16 Sep (GAP 3) — RE-POINTED, AND THE FOUNDER OVERRODE THE PREMISE BY NAME.
+  //
+  // 🛑 WHAT THIS ASSERTED: that an unknown inbox FANS OUT to every client holding the lead —
+  // *"exactly as R1 intended"* — with the note *"if it broke, every reply in production would
+  // start being dropped the day it deployed."*
+  //
+  // The founder's launch-safety ruling is explicit and supersedes R1 for this one case: *"A
+  // reply from a prospect must never be copied/fanned out to multiple clients merely because
+  // multiple client lead rows share the same prospect email… If the system cannot determine
+  // one safe owner: FAIL CLOSED."*
+  //
+  // ⚠️ AND THE FEAR IN THE OLD NOTE IS DIRECTLY DISPROVED BELOW, not waved away. The thing
+  // that would have dropped "every reply in production" is the SINGLE-CLIENT path, and it is
+  // untouched — a reply matching one client is still written to that client, with no extra
+  // query and no new refusal. Only a genuine cross-client collision changes behaviour, and it
+  // becomes an operator exception naming both candidates rather than a silent drop.
+  it('🛑 AN UNKNOWN INBOX NO LONGER FANS OUT ACROSS CLIENTS — it fails closed', () => {
     const r = routeReply([A, B], null)
-    expect(r.matches).toEqual([A, B])
-    expect(r.how).toBe('fanout')
+    expect(r.matches, 'one external reply is still written to two clients').toEqual([])
+    expect(r.how).toBe('ambiguous')
+    // Both are reported so the alert can name the collision.
+    expect(r.excluded).toEqual([A, B])
+  })
+
+  it('🛑 AND THE SINGLE-CLIENT PATH — the one that carries production — IS UNTOUCHED', () => {
+    // The old note's fear, disproved. This is the shape of virtually every real reply.
+    const r = routeReply([A], null)
+    expect(r.matches).toEqual([A])
+    expect(r.how).toBe('single')
     expect(r.excluded).toEqual([])
+  })
+
+  it('two leads under ONE client are not a collision either', () => {
+    const A2: LeadMatch = { id: 'lead-a2', client_id: 'client-A' }
+    const r = routeReply([A, A2], null)
+    expect(r.matches).toEqual([A, A2])
+    expect(r.how).toBe('single')
+  })
+
+  it('and persisted originating-send evidence resolves a real collision', () => {
+    const r = routeReply([A, B], null, new Set(['lead-a']))
+    expect(r.matches).toEqual([A])
+    expect(r.how).toBe('originating_send')
+    expect(r.excluded).toEqual([B])
   })
 
   it('a single match with an unknown inbox is untouched', () => {

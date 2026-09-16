@@ -21,7 +21,14 @@
 // subtraction of two. A made-up number in front of a paying customer is a promise.
 // ═══════════════════════════════════════════════════════════════════════════════════════
 
-import { MILLA_STAGES, type MillaStage } from '@kind/shared'
+// ⛓️ 16 Sep (MVP1 · B1) — THE STRIP PRINTS THE CANONICAL SIX, same module as Vida's ribbon
+// and as `MillaShell`'s. `MILLA_STAGES` (seven, starting at Proof) is still the transport
+// vocabulary `/my/programme` answers in; it is no longer what any ribbon draws.
+import {
+  MVP1_MILLA_STAGES, mvp1MillaStageFromLegacy, type MillaStage,
+  programmeIsRunning, PROGRAMME_RUNNING_COPY, PROGRAMME_ARMED_COPY,
+  remainingProgrammeValue,
+} from '@kind/shared'
 
 export type CustomerProgramme = {
   stage: MillaStage
@@ -52,6 +59,18 @@ export type CustomerProgramme = {
     stated: string | null
   }
   progress: { delivered: number; authorised: number; outcomesAchieved: number | null }
+  /**
+   * ⚑ 16 Sep (MVP1 · D2) — ARMED OR ACTUALLY RUNNING.
+   *
+   * `runAt` is `programmes.run_at`, the external-delivery authority; `emailsDelivered` is REAL
+   * sent rows scoped through this programme's own campaign. Both are required before this
+   * screen may say "Running" — Make Live alone produces `Live` and sends nothing, and under
+   * Co-Pilot a full approval queue has delivered nothing either.
+   *
+   * ⚠️ OPTIONAL, so an older API response reads as "not running" rather than breaking the
+   * screen — which is the same direction `programmeIsRunning` fails in.
+   */
+  sending?: { runAt: string | null; emailsDelivered: number | null }
   /**
    * ⚑ 13 Sep (B1) — THE RECOMMENDATION AND WHETHER THE CLIENT HAS ACCEPTED IT.
    *
@@ -116,7 +135,21 @@ export function nextActionFor(p: CustomerProgramme): string {
     case 'Recommendation': return 'Your recommendation is ready'
     case 'Sourcing':       return 'Milla is preparing your programme'
     case 'Approval':       return 'Ready for your approval'
-    case 'Live':           return 'Running — nothing needed from you'
+    // ── ⛓️ 16 Sep (MVP1 · D2) — ARMED IS NOT RUNNING ────────────────────────────────
+    //
+    // 🛑 WHAT STOOD HERE: ~~`return 'Running — nothing needed from you'`~~, unconditionally.
+    // `Live` is `status === 'LIVE'`, which MAKE LIVE alone produces — and Make Live arms a
+    // programme without sending anything. So a client with no Run authority and not one
+    // delivered email was told their programme was running, and told there was nothing they
+    // needed to do about it.
+    //
+    // ⚠️ THE RULE IS SHARED, NOT LOCAL. `programmeIsRunning` lives in `@kind/shared` so the
+    // client's screen and anything else that ever asks the question cannot answer it two ways.
+    // Both sentences are existing founder vocabulary.
+    case 'Live':           return programmeIsRunning({
+                             runAt: p.sending?.runAt ?? null,
+                             delivered: p.sending?.emailsDelivered ?? null,
+                           }) ? PROGRAMME_RUNNING_COPY : PROGRAMME_ARMED_COPY
     case 'Review':         return 'Review — waiting on a decision'
     // ── 🛑 ⚑ 10 Sep (I5) — CANCELLED IS NOT COMPLETE ──────────────────────────────────
     //
@@ -135,7 +168,9 @@ export function nextActionFor(p: CustomerProgramme): string {
 }
 
 export default function ProgrammeWorkspace({ p }: { p: CustomerProgramme }) {
-  const stageIndex = MILLA_STAGES.indexOf(p.stage)
+  // ⛓️ 16 Sep (B1) — PROJECTED. The index is a position in the canonical six, so this strip,
+  // the Milla shell ribbon and Vida's operator ribbon cannot number one client three ways.
+  const stageIndex = MVP1_MILLA_STAGES.indexOf(mvp1MillaStageFromLegacy(p.stage))
   // ⛓️ CORRECTED 3 Sep — DERIVING THIS FROM `firstAuthorisedAt` ALONE WAS STILL FALSE FOR
   // HOUSE. Before internal P1 that stamp is null too, so House fell to the default and read
   // "First 50% not yet paid" — a debt to itself that does not exist. The programme row cannot
@@ -145,20 +180,24 @@ export default function ProgrammeWorkspace({ p }: { p: CustomerProgramme }) {
   //
   // 🛑 A PAYING CLIENT NEVER SETS EITHER TERM. `internalBilling` is false for them, they never
   // carry an authorisation stamp, and `firstPaidAt` wins ahead of both regardless.
+  // ⚑ 16 Sep (MVP1 · E2) — the shared rule, so the number cannot be computed two ways.
+  const remaining = remainingProgrammeValue({
+    authorised: p.progress.authorised, delivered: p.progress.delivered,
+  })
   const internallyAuthorised =
     p.money.internalBilling === true || (!p.money.firstPaidAt && !!p.money.firstAuthorisedAt)
   return (
     <div className="max-w-3xl">
         {/* ── WHERE THE PROGRAMME IS ─────────────────────────────────────────────────
-            The seven stages, with the current one marked. Stage names are the founder's. */}
+            The canonical six, with the current one marked. Stage names are the founder's. */}
         <div className="flex items-center gap-1.5 overflow-x-auto pb-3 mb-4">
-          {MILLA_STAGES.map((s, i) => (
+          {MVP1_MILLA_STAGES.map((s, i) => (
             <div key={s} className="flex items-center gap-1.5 shrink-0">
               <span className={`text-[12.5px] px-2.5 py-1 rounded-full whitespace-nowrap ${
                 i === stageIndex ? 'bg-[#7C3AED] text-white font-bold'
                 : i < stageIndex ? 'text-[#7C3AED] font-semibold'
                 : 'text-[#b3a9cc]'}`}>{s}</span>
-              {i < MILLA_STAGES.length - 1 && <span className="text-[#e3daf7] text-[11px]">›</span>}
+              {i < MVP1_MILLA_STAGES.length - 1 && <span className="text-[#e3daf7] text-[11px]">›</span>}
             </div>
           ))}
         </div>
@@ -212,6 +251,28 @@ export default function ProgrammeWorkspace({ p }: { p: CustomerProgramme }) {
               </div>
             </div>
           </div>
+          {/* ── ⚑ 16 Sep (MVP1 · E2) — WHAT A FINISHED PROGRAMME LEFT UNWORKED ───────────
+              🛑 BOTH NUMBERS WERE ALREADY HERE and the difference was never stated. R74's
+              promise to the client — "unused programme value stays on account and never
+              expires" — was a sentence on the website with nothing in the product able to
+              give the number behind it. So a client who finished a programme without using
+              all of it had no way to see what they still had.
+
+              ⚠️ TERMINAL ONLY. Mid-programme, "remaining" is simply work not done yet and
+              stating it as retained value would be a promise about an unfinished thing.
+
+              ⚠️ NO NEW ENDPOINT, and `null` renders NOTHING rather than a reassuring zero:
+              "you have nothing left" is a claim, and an unreadable number is not it.
+              ⚠️ CANCELLED IS INCLUDED DELIBERATELY — the value is retained either way — but
+              the heading above still says "Programme cancelled", so the two stay distinct. */}
+          {p.terminal !== null && p.terminal !== undefined && remaining !== null && remaining > 0 && (
+            <div className="mt-3 pt-3 border-t border-[#f2ecfb]">
+              <div className="text-[13px] font-extrabold">{remaining.toLocaleString()} qualified prospects unused</div>
+              <div className="text-[12px] text-[#9b8ec4]">
+                This stays on your account and never expires.
+              </div>
+            </div>
+          )}
         </div>
 
         {/* ── WHAT HAS BEEN PAID ──────────────────────────────────────────────────────

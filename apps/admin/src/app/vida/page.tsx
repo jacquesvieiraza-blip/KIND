@@ -92,8 +92,22 @@ type Blockers = { send_gate: number; money_gate: number; unsent_sourced: number;
 // ⚠️ BOTH ARE PLATFORM-WIDE, not per-client, and the panels say so. They live in the cockpit
 // tab strip because that is where an operator already is — a separate page would be a second
 // place to remember, and the thing that goes unlooked-at is the thing you have to navigate to.
-const COCKPIT_TABS = ['Inbox', 'Approvals', 'People', 'Campaign', 'ICP', 'Sequence', 'Asks', 'Bookings', 'Programme', 'Pool', 'Exceptions'] as const
-type CockpitTab = typeof COCKPIT_TABS[number]
+// ⛓️ 16 Sep (MVP1 · A2) — THE TAB LIST AND ITS STAGE RULE MOVED TO ONE TESTED MODULE.
+//
+// 🛑 WHAT STOOD HERE: a flat eleven-item `COCKPIT_TABS` with no stage gate, plus the SAME
+// eleven strings re-typed inline at the render 3,000 lines below. Two hand-typed copies of
+// one list — the constant validated URLs, the inline copy drew the strip — so a tab could
+// legitimately exist in one and not the other. And because neither was conditional, a
+// prospect mid-Proof appeared in Vida with People, Approvals, Campaign and Sequence all
+// offering work on a pipeline that does not exist yet.
+//
+// ⚠️ IMPORTED, NOT RE-EXPORTED. A Next.js page module may only export its component and the
+// framework's own fields, so re-exporting the list from here fails the build — the module is
+// the home, and this file is one of its readers.
+import {
+  COCKPIT_TABS, cockpitTabsFor, resolveCockpitTab, isHealthyProof,
+  PROOF_TABS_WITHHELD_COPY, type CockpitTab,
+} from '@/lib/vida-cockpit-tabs'
 type CampaignRow = {
   id: string; name: string; status: string; leads_enrolled: number; emails_sent: number
   replies_total: number; replies_interested: number; created_at: string | null
@@ -124,7 +138,14 @@ type Cockpit = {
 }
 
 // V17 — the bell. Derived live from real rows (GET /operator/alerts).
-type Alert = { client_id: string; company_name: string | null; kind: string; label: string; severity: 'high' | 'normal' }
+// ⚑ 17 Sep — `unattributed_reply_id` is carried ONLY by `reply_unattributed` rows, and those
+// rows cannot be acted on without it: the two buttons address a retained inbound reply, not a
+// client, so a client id alone would be an action with no subject.
+type Alert = {
+  client_id: string; company_name: string | null; kind: string; label: string
+  severity: 'high' | 'normal'
+  unattributed_reply_id?: string
+}
 // THE WORKLIST — where each client is and the ONE next action. Replaces "eight tabs and work
 // out where you are"; the step logic is a tested decision table in lib/client-step.ts.
 type NextAction = {
@@ -339,6 +360,13 @@ export default function VidaConsolePage() {
       client_id?: string | null
       id: string; status: string; state: string; meeting_target: number
       sourcing_ceiling: number; sourced_used: number; sourced_reserved: number; room_remaining: number
+      /**
+       * ⚑ 16 Sep (MVP1 · E1) — the server's completion verdict and its refusal sentence.
+       * Optional so an older API reads as "no control" rather than offering a terminal action
+       * on an unprovable verdict.
+       */
+      may_complete?: boolean
+      complete_blocked_reason?: string | null
       paused_at: string | null; pause_reason: string | null
       approved_at: string | null; second_paid_at: string | null
       review_required_at: string | null; review_reason: string | null; review_resolved_at: string | null
@@ -424,6 +452,12 @@ export default function VidaConsolePage() {
       replyAwaiting: { id: string; name: string | null; company: string | null } | null
       humanBlockers: { code: string; detail: string }[]
       stoppedDetail: string | null
+      /**
+       * ⚑ 16 Sep (MVP1 · A1b) — the gate's own grouped reasons for an empty Proof set.
+       * Present only for a `proof_exception` client; `null` otherwise and also when the
+       * evidence could not be read — the task stands either way.
+       */
+      proofException?: { sourced: number; setAside: number; reasons: Record<string, number> } | null
       senderSendable: boolean
       /** ⚑ 10 Sep (I2) — the send gate's own reason, so the panel stops sending every sender
        *  failure to "reconnect the mailbox" when three of the four have a different remedy. */
@@ -945,6 +979,118 @@ export default function VidaConsolePage() {
     } finally { settleBusy(null) }
   }, [programmeActionId, forThisProgramme, selected, clients, loadProgramme])
 
+  // ── ⚑ 16 Sep (MVP1 · A1b) — RETRY PROOF AFTER A ZERO-ELIGIBLE RUN ─────────────────────
+  //
+  // 🛑 THE PRODUCT HAD ALREADY PROMISED THIS. The client's desk shows the founder-locked
+  // *"Your setup is saved and has been flagged for K.I.N.D review. You won't need to start
+  // again."* — and nothing in Vida could resume anything. This is the resume.
+  //
+  // ⚠️ IT TARGETS THE PROSPECT'S ACTIVE ICP, and the SERVER re-checks that the ICP belongs to
+  // that client: an operator key is not a licence to run one client's Proof against another's
+  // targeting, so the boundary lives on the server rather than in this choice.
+  //
+  // ⚠️ NOTHING HERE DECIDES ELIGIBILITY. The server asks the same reader the rail asks, and
+  // claims through `claimProofAuthority`. If the client is not actually in the exception it
+  // refuses, and the operator is told why.
+  const retryProof = useCallback(async () => {
+    if (!selected) return
+    const icp = (cockpit?.icps ?? []).find(i => i.is_active !== false) ?? (cockpit?.icps ?? [])[0]
+    if (!icp) {
+      setLcMsg('This client has no ICP to run Proof against. Build or activate one first.')
+      return
+    }
+    const who = (clients ?? []).find(c => c.id === selected)?.company_name ?? 'this client'
+    // ⚠️ THE CONFIRMATION SAYS WHAT IT COSTS, because the honest answer is "nothing" and an
+    // operator who assumes otherwise leaves the prospect stopped.
+    if (!confirm(`Retry Proof for ${who}?\n\nThis sources a fresh set against their current targeting.\n\nTheir Proof attempt was RELEASED by the failed run, so this does not cost them an attempt. Correct the targeting FIRST if the last run was emptied by a criterion they do not meet.`)) return
+    setLcBusy('retry_proof'); setLcMsg(null)
+    try {
+      const j = await fetch(`/api/proxy/operator/proof-retry/${encodeURIComponent(selected)}`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ icp_id: icp.id }),
+      }).then(r => r.json())
+      if (!j?.success) throw new Error(j?.error || 'Proof was not retried.')
+      setLcMsg(j?.started
+        ? 'Proof is running again. Their attempt was not spent — this is the one the failed run returned.'
+        : 'A Proof run already holds their authority, so nothing more was needed.')
+      if (selected) await loadProgramme(selected)
+    } catch (e) {
+      setLcMsg(e instanceof Error ? e.message : 'Proof was not retried.')
+    } finally { setLcBusy(null) }
+  }, [selected, cockpit, clients, loadProgramme])
+
+  // ── ⚑ 16 Sep (MVP1 · D1) — THE RUN BUTTON NOW RUNS ────────────────────────────────────
+  //
+  // 🛑 IT CALLED `runOnceWith`. `programmes.run_at` is the external-delivery authority and
+  // `POST /programmes/:id/run` is the audited route that writes it — and the lifecycle panel's
+  // "Run" action fired `POST /operator/send-due/run-once` instead: the operator's SEND-ONCE
+  // tool. So an operator could press Run, watch emails go out, and `run_at` would still be
+  // NULL. The authority the whole ladder is built on was never granted by the button named
+  // after it, and the next scheduled batch had no permission to exist.
+  //
+  // ⚠️ THREE DIFFERENT ACTS, AND THEY STAY THREE. Make Live arms the programme (`go-live`
+  // through `lifecycle()`); Run grants delivery authority (this); send-once pushes a bounded
+  // batch by hand (`runOnceWith`, unchanged, still its own tool with its own ceiling). The
+  // founder's boundary is explicit: *"Do not conflate Make Live / Run / send-now."*
+  //
+  // ⚠️ RUN NEEDS NO CEILING, because Run sends nothing. A ceiling is send-once's input; asking
+  // for one here implied this press delivers, which is the confusion that produced the defect.
+  //
+  // ⚠️ AND NO SEND GATE MOVES. Run records an authority. Delivery still passes the
+  // kill-switch, the schedule, the caps, the sender and every per-lead gate afterwards.
+  const runProgramme = useCallback(async () => {
+    const id = programmeActionId()
+    if (!id) { setLcMsg(PROGRAMME_MISMATCH_COPY); return }
+    const say = forThisProgramme(setLcMsg)
+    const settleBusy = forThisProgramme(setLcBusy)
+    const who = (clients ?? []).find(c => c.id === selected)?.company_name ?? 'this client'
+    if (!confirm(`Start ${who}'s programme?\n\nThis grants external delivery authority — from here the scheduled batches may send.\n\nNOTHING is sent by this press: delivery still obeys the kill-switch, the sending schedule, the caps, the sender checks and every per-lead gate.`)) return
+    setLcBusy('run'); setLcMsg(null)
+    try {
+      const j = await fetch(`/api/proxy/programmes/${encodeURIComponent(id)}/run`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}',
+      }).then(r => r.json())
+      if (!j?.success) throw new Error(j?.error || 'The programme was not started.')
+      // ⚠️ THE SERVER SAYS WHICH IT WAS. A repeat press is a no-op and must not read as a
+      // second start — the route reports `already_running` and the first press keeps the record.
+      say(j?.already_running
+        ? 'This programme was already started — nothing changed.'
+        : 'Started. Scheduled batches may now send; nothing was sent by this press.')
+      if (selected) await loadProgramme(selected)
+    } catch (e) {
+      say(e instanceof Error ? e.message : 'The programme was not started.')
+    } finally { settleBusy(null) }
+  }, [programmeActionId, forThisProgramme, selected, clients, loadProgramme])
+
+  // ── ⚑ 16 Sep (MVP1 · E1) — COMPLETE, THROUGH THE EXISTING ROUTE ───────────────────────
+  //
+  // ⚠️ NOTHING HERE DECIDES WHETHER IT MAY BE COMPLETED. The control only exists because the
+  // server said `may_complete`, and the route asks `mayComplete` again for itself — so a
+  // verdict that changed between the render and the press is refused by the authority rather
+  // than by this function.
+  //
+  // ⚠️ AND IT IS TERMINAL, so the confirmation says what stops. A completed programme blocks
+  // future sending; an operator pressing this must know that before they press it.
+  const completeProgramme = useCallback(async () => {
+    const id = programmeActionId()
+    if (!id) { setLcMsg(PROGRAMME_MISMATCH_COPY); return }
+    const say = forThisProgramme(setLcMsg)
+    const settleBusy = forThisProgramme(setLcBusy)
+    const who = (clients ?? []).find(c => c.id === selected)?.company_name ?? 'this client'
+    if (!confirm(`Complete ${who}'s programme?\n\nThis CLOSES it: all future sending for this programme stops permanently, and the results and open replies are kept intact.\n\nAny unused programme value stays on their account and never expires. This cannot be undone.`)) return
+    setLcBusy('complete'); setLcMsg(null)
+    try {
+      const j = await fetch(`/api/proxy/programmes/${encodeURIComponent(id)}/complete`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}',
+      }).then(r => r.json())
+      if (!j?.success) throw new Error(j?.error || 'The programme was not completed.')
+      say('Completed. Future sending for this programme is stopped; results and open replies are kept.')
+      if (selected) await loadProgramme(selected)
+    } catch (e) {
+      say(e instanceof Error ? e.message : 'The programme was not completed.')
+    } finally { settleBusy(null) }
+  }, [programmeActionId, forThisProgramme, selected, clients, loadProgramme])
+
   const lifecycle = useCallback(async (action: string, label: string) => {
     // ── 🛑 ⚑ 13 Sep (BL-1) — OWNERSHIP FIRST, ABOVE THE CONFIRMATIONS BELOW ──────────────
     //
@@ -1324,6 +1470,53 @@ export default function VidaConsolePage() {
       }
     } catch {
       setProofMsg('Could not mark it reviewed — it is still open.')
+    }
+    setProofBusy(null)
+  }
+
+  // ⚑ 17 Sep — ATTRIBUTE OR DISCARD AN UNATTRIBUTED INBOUND REPLY.
+  //
+  // 🛑 WHAT THE ALERT MEANS. A prospect replied, and two or more clients hold a lead with that
+  // address. No receiving mailbox and no record of us emailing them names one owner, so the
+  // reply was written to NOBODY and retained instead — because showing one client another
+  // client's inbound mail is the harm the refusal exists to prevent. This is the only way it
+  // becomes anyone's.
+  //
+  // ⚠️ SAME SHAPE AS `resolveProofReview` ABOVE, deliberately — proxy POST, read `success`,
+  // re-read the feed from the server. A second pattern for two buttons is a second pattern to
+  // keep, and re-reading rather than splicing means a write that FAILED cannot render as done.
+  async function actOnUnattributedReply(a: Alert, action: 'resolve' | 'discard') {
+    if (!a.unattributed_reply_id) {
+      setProofMsg('That alert is missing its reply id, so no action could be taken. Refresh and try again.')
+      return
+    }
+    // ⚠️ THE DESTRUCTIVE ONE ASKS FIRST, and it names what it is doing. "Discard" here means
+    // this reply belongs to NONE of the candidate clients — not "not this one", which with
+    // several candidates would be ambiguous in exactly the way the alert is.
+    if (action === 'discard' && !window.confirm(
+      `Discard this reply?\n\n${a.label}\n\nThis records that it belongs to NONE of the candidate clients. No client will ever see it. The message itself is kept.`,
+    )) return
+
+    setProofBusy(a.unattributed_reply_id); setProofMsg(null)
+    try {
+      const j = await fetch(`/api/proxy/operator/unattributed-replies/${encodeURIComponent(a.unattributed_reply_id)}/${action}`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: action === 'resolve' ? JSON.stringify({ client_id: a.client_id }) : undefined,
+      }).then(r => r.json())
+      if (j?.success) {
+        const fresh = await fetch('/api/proxy/operator/alerts').then(r => r.json())
+        if (fresh?.success) setAlerts(fresh.data)
+        setProofMsg(
+          j.data?.resolved === 'attributed' ? 'Attributed — the reply is now in this client\'s inbox.'
+            : j.data?.resolved === 'discarded' ? 'Discarded — no client received it.'
+              : 'Already handled.',
+        )
+      } else {
+        setProofMsg(j?.error || 'It could not be done — the reply is still waiting.')
+      }
+    } catch {
+      setProofMsg('It could not be done — the reply is still waiting.')
     }
     setProofBusy(null)
   }
@@ -2272,6 +2465,19 @@ export default function VidaConsolePage() {
   const [calErr, setCalErr] = useState<string | null>(null)
   const [calBusy, setCalBusy] = useState<string | null>(null)
 
+  // ── ⚑ 16 Sep (MVP1 · A2) — THE TAB THAT IS ACTUALLY SHOWN ─────────────────────────────
+  //
+  // 🛑 WITHHOLDING A TAB WITHOUT REDIRECTING IT RENDERS A BLANK WORKSPACE. Switching from a
+  // programme client sitting on People to a Proof client would leave People selected and
+  // invisible: no strip button, no pane, no explanation.
+  //
+  // ⚠️ `tab` IS NOT REWRITTEN. The operator's actual selection is preserved, so moving back to
+  // a programme client returns them to the tab they were on rather than to ICP. Only what is
+  // RENDERED is resolved.
+  const shownTab = resolveCockpitTab(tab, {
+    stage: lc?.verdict.stage ?? null, needsYou: lc?.verdict.needsYou ?? null,
+  })
+
   const lcCopy = useMemo(() => {
     if (!lc) return null
     return lifecycleCopy({
@@ -2296,6 +2502,18 @@ export default function VidaConsolePage() {
       // since it was written; this call site never passed it, so all three of its branches
       // fell through to "Being agreed" / "Not stated yet" for every client in the book.
       outcomeStated: lc.outcomeStated ?? null,
+      // ⚑ 16 Sep (MVP1 · A1b) — WHY the Proof set came out empty, from the gate's own
+      // persisted reasons. A Needs-you with no evidence is an alarm, not a task: without this
+      // leg the panel could only say "we produced nothing" and send the operator to the
+      // database to find out which criterion did it.
+      proofException: lc.proofException ?? null,
+      // ⚑ 16 Sep (MVP1 · E1) — THE VERDICT, NOT THE RULE. The panel draws Complete on this
+      // boolean alone; the eligibility test stays in `lib/programme.ts` where it is the only
+      // copy. Absent reads as "no control", which is the safe direction for a terminal action.
+      mayComplete: prog?.programme
+        ? { allowed: prog.programme.may_complete === true,
+            reason: prog.programme.complete_blocked_reason ?? undefined }
+        : null,
       // ⚑ 11 Sep (C40) — the last leg of THIS plumbing, and the same defect as `outcomeStated`
       // one line above: the copy module has read `calibration` since it was written and no
       // call site ever passed one, so every escalated client rendered with no attempt history,
@@ -2518,7 +2736,10 @@ export default function VidaConsolePage() {
       // prospects are skipped, which is why the panel can promise the retry costs nothing.
       case 'try_again': return void lifecycle('ready-for-approval', 'Try again')
       case 'make_live': return void lifecycle('go-live', 'Make live')
-      case 'run': return void runOnceWith(ceiling ?? 0)
+      // ⛓️ 16 Sep (MVP1 · D1) — THE CANONICAL RUN, not the send-once tool. See `runProgramme`.
+      // `ceiling` is deliberately ignored here: Run grants authority and sends nothing, so it
+      // has no ceiling to obey. Send-once keeps its own control and its own ceiling.
+      case 'run': return void runProgramme()
       // Existing surfaces, opened in place rather than duplicated into this panel.
       case 'handle_reply': setToolsOpen(true); setTab('Inbox'); return
       case 'book_call': setToolsOpen(true); setTab('Bookings'); return
@@ -2553,9 +2774,25 @@ export default function VidaConsolePage() {
       // client made every approval press refuse and nothing could issue a new version, so the
       // client sat on a dead button. This publishes one — and approves nothing.
       case 'refreeze_package': return void refreezePackage()
+      // ── ⚑ 16 Sep (MVP1 · A1b) — RETRY PROOF AFTER WE PRODUCED NOTHING ────────────────
+      //
+      // 🛑 THE CONTROL THE STATE HAD NO WAY TO OFFER. A zero-eligible Proof run tells the
+      // client their setup is saved and flagged for K.I.N.D review, and releases their
+      // attempt — and until now an operator who corrected the targeting had nowhere to press.
+      //
+      // ⚠️ IT SPENDS NOTHING NEW. The failed run released the claim, so the ladder hands back
+      // the attempt the client already had. Nothing here counts anything: the server claims
+      // through `claimProofAuthority` exactly as the client's own route does.
+      case 'retry_proof': return void retryProof()
+      // ── ⚑ 16 Sep (MVP1 · E1) — CLOSE THE PROGRAMME ───────────────────────────────────
+      //
+      // 🛑 THE SIXTH STAGE HAD NO BUTTON. `completeProgramme` and its audited route existed
+      // and nothing in the product could reach them. This calls the EXISTING route and adds
+      // no completion logic of its own.
+      case 'complete_programme': return void completeProgramme()
       default: return
     }
-  }, [lifecycle, runOnceWith, pauseProgramme, refreezePackage, selected, calib, resolveCalibration, grantCalibratedRestart])
+  }, [lifecycle, runProgramme, pauseProgramme, refreezePackage, retryProof, completeProgramme, selected, calib, resolveCalibration, grantCalibratedRestart])
 
   return (
     <div className="flex h-full min-h-0">
@@ -2594,7 +2831,12 @@ export default function VidaConsolePage() {
               Two ribbons, two vocabularies, neither of them the client's lifecycle.
               🛑 READ-ONLY. A stage is where the client IS; a clickable one would invite the
               belief that an operator moves them, which is the belief this workspace removes. */}
-          <LifecycleRibbon stageIndex={lc?.verdict.stageIndex ?? null} />
+          <LifecycleRibbon
+            // ⛓️ 16 Sep (MVP1 · B1) — THE STAGE, NOT AN INDEX. `stageIndex` was 1-based into
+            // the EIGHT engine stages; the ribbon now prints the canonical SIX, so the number
+            // would light the wrong one from `sourcing` onwards. It projects the stage itself.
+            stage={lc?.verdict.stage ?? null}
+          />
 
           {/* THE CONSOLE: Vida (conversation) | cockpit (this client's work surfaces) */}
           <div className="flex-1 flex min-h-0">
@@ -2629,9 +2871,34 @@ export default function VidaConsolePage() {
                         it read "11 of 11 collected" from the Brief — two answers, one client,
                         neither saying which question it was answering. This is what the CLIENT
                         has told us; what WE still owe them is `go_live` below. */}
+                    {/* ⛓️ 16 Sep (MVP1 · F3) — AND THE FALLBACK WAS THE DEFECT SURVIVING.
+                        ~~`: `${cockpit.onboarding.percent}%``~~ — under the label "Brief",
+                        that renders OUR eight go-live checks as the CLIENT's eleven-fact
+                        count. It is the exact competing answer R121 Build 4 closed, still
+                        live in the branch nobody looks at.
+                        ⚠️ AN UNREADABLE COUNT NOW SAYS SO. Borrowing a different question's
+                        number is worse than admitting we could not read this one. */}
                     Brief {cockpit.onboarding.brief
                       ? `${cockpit.onboarding.brief.count}/${cockpit.onboarding.brief.total}`
-                      : `${cockpit.onboarding.percent}%`}
+                      : '—'}
+                  </span>
+                )}
+                {/* ── ⚑ 16 Sep (MVP1 · F3) — AND OUR OWN CHECKS, UNDER THEIR OWN NAME ──────
+                    🛑 THEY WERE COMPUTED, SHIPPED AND TYPED, AND NEVER RENDERED. `go_live` has
+                    been in this payload since R121 Build 4, and the comment above it says
+                    *"what WE still owe them is `go_live` below"* — there was no below. The
+                    only place our eight checks ever surfaced was as the FALLBACK inside the
+                    Brief chip, i.e. wearing the client's label.
+
+                    The founder's boundary, verbatim: *"Keep go-live checks where they
+                    legitimately belong under their own name."* This is that name. Two chips,
+                    two questions, neither borrowing the other's number. */}
+                {cockpit && (
+                  <span className={`shrink-0 text-[12.5px] font-bold rounded-full px-2.5 py-1 ${cockpit.onboarding.go_live.percent === 100 ? 'text-emerald-700 bg-emerald-50' : 'text-[#5c5279] bg-[#f6f3fb]'}`}
+                    title={cockpit.onboarding.go_live.missing.length
+                      ? `We still owe them: ${cockpit.onboarding.go_live.missing.join(', ')}`
+                      : 'Everything on our side is ready'}>
+                    Go-live {cockpit.onboarding.go_live.percent}%
                   </span>
                 )}
                 {/* ⚑ 3 Sep (C2) — THE WALLET IS STILL SHOWN, AND IT NO LONGER IMPLIES A MODEL.
@@ -2701,7 +2968,7 @@ export default function VidaConsolePage() {
                   {myAlerts.map((a, i) => (
                     <span key={`${a.kind}-${i}`} className="flex items-center gap-1">
                       <button
-                        onClick={() => setTab(a.kind === 'replies' ? 'Inbox' : a.kind === 'no_campaign' ? 'Campaign' : 'ICP')}
+                        onClick={() => setTab(a.kind === 'replies' || a.kind === 'reply_unattributed' ? 'Inbox' : a.kind === 'no_campaign' ? 'Campaign' : 'ICP')}
                         className="text-[12px] font-semibold text-[#9d174d] bg-white border border-[#fbcfe8] rounded-full px-2 py-0.5 hover:border-[#EC4899]">
                         {a.label} &rarr;
                       </button>
@@ -2714,6 +2981,27 @@ export default function VidaConsolePage() {
                           className="text-[12px] font-semibold text-white bg-[#9d174d] border border-[#9d174d] rounded-full px-2 py-0.5 hover:bg-[#EC4899] disabled:opacity-50">
                           {proofBusy === a.client_id ? 'Marking…' : 'Mark reviewed'}
                         </button>
+                      )}
+                      {/* ⚑ 17 Sep — the two ways an unattributable reply becomes decided.
+                          Same chip language as every alert beside it; no modal, no new
+                          section. The destructive one is visually separate and says
+                          "Discard reply" rather than "Not ours" — with several candidate
+                          clients, "not ours" is ambiguous in exactly the way the alert is. */}
+                      {a.kind === 'reply_unattributed' && (
+                        <>
+                          <button
+                            onClick={() => actOnUnattributedReply(a, 'resolve')}
+                            disabled={proofBusy === a.unattributed_reply_id}
+                            className="text-[12px] font-semibold text-white bg-[#9d174d] border border-[#9d174d] rounded-full px-2 py-0.5 hover:bg-[#EC4899] disabled:opacity-50">
+                            {proofBusy === a.unattributed_reply_id ? 'Working…' : 'Attribute to this client'}
+                          </button>
+                          <button
+                            onClick={() => actOnUnattributedReply(a, 'discard')}
+                            disabled={proofBusy === a.unattributed_reply_id}
+                            className="text-[12px] font-semibold text-[#7f1d1d] bg-white border border-[#fca5a5] rounded-full px-2 py-0.5 hover:border-[#dc2626] disabled:opacity-50">
+                            Discard reply
+                          </button>
+                        </>
                       )}
                     </span>
                   ))}
@@ -3100,8 +3388,18 @@ export default function VidaConsolePage() {
                   ⚠️ WRAPPING, NOT SHRINKING. Every tab keeps its label and its size; the row
                   becomes two rows when it must. Nothing is hidden at any width. */}
               <div className="shrink-0 flex flex-wrap items-end gap-0.5 px-3 pt-2.5 border-b border-[#eee7f7]">
-                {(['Inbox', 'Approvals', 'People', 'Campaign', 'ICP', 'Sequence', 'Asks', 'Bookings', 'Programme', 'Pool', 'Exceptions'] as CockpitTab[]).map(t => {
-                  const on = tab === t
+                {/* ── ⚑ 16 Sep (MVP1 · A2) — THE STRIP IS NOW STAGE-AWARE ─────────────────
+                    🛑 IT WAS THE SAME ELEVEN STRINGS HAND-TYPED A SECOND TIME, and neither
+                    copy was conditional. A prospect mid-Proof was shown People, Approvals,
+                    Campaign and Sequence — work on a pipeline that does not exist — which
+                    invites an operator into a calibration that is the client's and Milla's.
+
+                    ⚠️ GATED ON THE SERVER'S CANONICAL STAGE, never a local inference. The
+                    browser must not hold a second opinion about where a client is.
+                    ⚠️ AND AN EXCEPTION RE-OPENS EVERY TAB: once there is genuinely something
+                    for an operator to do, what was sourced is the evidence they need. */}
+                {cockpitTabsFor({ stage: lc?.verdict.stage ?? null, needsYou: lc?.verdict.needsYou ?? null }).map(t => {
+                  const on = shownTab === t
                   const n = t === 'Inbox' ? (cockpit?.replies.filter(r => !r.qualified_at && !r.meeting_booked_at).length ?? 0)
                     : t === 'Approvals' ? (cols?.needs_approval.count ?? 0)
                     : t === 'People' ? (cols?.sourced.count ?? 0)
@@ -3116,15 +3414,26 @@ export default function VidaConsolePage() {
                 })}
               </div>
 
-              <p className="shrink-0 px-4 pt-2 text-[12.5px] text-[#b3a9cc]">
-                Somewhere to look — the action above is what actually moves them.
-              </p>
+              {/* ⚑ 16 Sep (A2) — WHY FOUR TABS ARE MISSING, said out loud. A tab that simply
+                  vanishes reads as a bug; a sentence naming whose turn it is reads as the
+                  product working. Shown only while they are actually withheld. */}
+              {isHealthyProof({ stage: lc?.verdict.stage ?? null, needsYou: lc?.verdict.needsYou ?? null })
+                ? (
+                  <p className="shrink-0 px-4 pt-2 text-[12.5px] text-[#9b8ec4]">
+                    {PROOF_TABS_WITHHELD_COPY}
+                  </p>
+                )
+                : (
+                  <p className="shrink-0 px-4 pt-2 text-[12.5px] text-[#b3a9cc]">
+                    Somewhere to look — the action above is what actually moves them.
+                  </p>
+                )}
               <div className="flex-1 overflow-y-auto p-3.5">
                 {cockpitError && <p className="text-[13px] text-red-500 mb-2">{cockpitError}</p>}
                 {cockpitLoading && !cockpit && <p className="text-[13.5px] text-[#9b8ec4]">Loading…</p>}
 
                 {/* INBOX — a prospect asks; WE answer */}
-                {tab === 'Inbox' && (cockpit ? (
+                {shownTab === 'Inbox' && (cockpit ? (
                   openReply ? (
                     <div>
                       <button onClick={() => { setOpenReply(null); setThread(null); setDraft('') }} className="text-[12.5px] font-bold text-[#7C3AED] mb-2.5">&larr; All replies</button>
@@ -3179,7 +3488,7 @@ export default function VidaConsolePage() {
                 ) : null)}
 
                 {/* APPROVALS — drafts waiting on the operator's send gate */}
-                {tab === 'Approvals' && (
+                {shownTab === 'Approvals' && (
                   (cols?.needs_approval.cards.length ?? 0) === 0
                     ? <p className="text-[13.5px] text-[#9b8ec4] text-center py-8">Nothing waiting on your send gate.</p>
                     : cols!.needs_approval.cards.map(c => (
@@ -3206,7 +3515,7 @@ export default function VidaConsolePage() {
                 )}
 
                 {/* ── PEOPLE — V4 pick them, V5 put THOSE ones in the campaign ── */}
-                {tab === 'People' && (people === null ? (
+                {shownTab === 'People' && (people === null ? (
                   <p className="text-[13.5px] text-[#9b8ec4]">Loading people…</p>
                 ) : people.length === 0 ? (
                   <p className="text-[13.5px] text-[#9b8ec4] text-center py-8">Nobody sourced yet — ask Vida to source leads.</p>
@@ -3259,7 +3568,7 @@ export default function VidaConsolePage() {
                 </>))}
 
                 {/* ── CAMPAIGN — V6 propose · V7 edit · V8 pilot mode · V12 test · V13 run · V14 who's in it ── */}
-                {tab === 'Campaign' && (cockpit ? (
+                {shownTab === 'Campaign' && (cockpit ? (
                   enrollView ? (
                     <div>
                       <button onClick={() => setEnrollView(null)} className="text-[12.5px] font-bold text-[#7C3AED] mb-2.5">&larr; Back to campaigns</button>
@@ -3476,7 +3785,7 @@ export default function VidaConsolePage() {
                 ) : null)}
 
                 {/* ── ICP — V2 build it by TALKING; the form is the precise-edit fallback ── */}
-                {tab === 'ICP' && (cockpit ? (icpEdit ? (
+                {shownTab === 'ICP' && (cockpit ? (icpEdit ? (
                   <div>
                     <button onClick={() => setIcpEdit(null)} className="text-[12.5px] font-bold text-[#7C3AED] mb-2.5">&larr; Back to ICPs</button>
                     <b className="text-[14px] block mb-2">{icpEdit.icp_id ? 'Edit ICP' : 'New ICP version'}</b>
@@ -3634,7 +3943,7 @@ export default function VidaConsolePage() {
                 </>)) : null)}
 
                 {/* ── SEQUENCE — V9 propose · approve by saving · V11 preview ── */}
-                {tab === 'Sequence' && (cockpit ? (seqEdit ? (
+                {shownTab === 'Sequence' && (cockpit ? (seqEdit ? (
                   <div>
                     <button onClick={() => setSeqEdit(null)} className="text-[12.5px] font-bold text-[#7C3AED] mb-2.5">&larr; Back to sequences</button>
                     {saveMsg && <p className={`text-[12.5px] font-semibold mb-2 ${noticeClass(saveMsg.tone)}`}>{saveMsg.text}</p>}
@@ -3750,7 +4059,7 @@ export default function VidaConsolePage() {
                 </>)) : null)}
 
                 {/* ── ASKS — V3 we ask, M2 they answer in Milla ── */}
-                {tab === 'Asks' && (<>
+                {shownTab === 'Asks' && (<>
                   {/* WHAT THEY SAID, UNPROMPTED. Milla's chat cannot pause a campaign or
                       source anyone — it answers and writes a message. This is where those
                       messages surface; before this they went into a table nobody read.
@@ -3812,7 +4121,7 @@ export default function VidaConsolePage() {
                 </>)}
 
                 {/* BOOKINGS */}
-                {tab === 'Bookings' && (<>
+                {shownTab === 'Bookings' && (<>
                   {saveMsg && <p className={`text-[12.5px] font-semibold mb-2 ${noticeClass(saveMsg.tone)}`}>{saveMsg.text}</p>}
                   {(cols?.booked.cards.length ?? 0) === 0
                     ? <p className="text-[13.5px] text-[#9b8ec4] text-center py-8">No meetings booked yet.</p>
@@ -3867,7 +4176,7 @@ export default function VidaConsolePage() {
                     Every value here is a row that exists or a subtraction of two of them.
                     No health score, no projection, no invented metric: an operator acting on a
                     number we made up is worse off than one acting on nothing. */}
-                {tab === 'Programme' && (<>
+                {shownTab === 'Programme' && (<>
                   {progErr && <p className="text-[12.5px] font-semibold text-red-600 mb-2">Programme could not be loaded: {progErr}</p>}
                   {/* ⚠️ A DEGRADED READ IS NOT AN EMPTY ONE. Said loudly, because a quiet
                       console reads as "nothing is wrong" — the exact failure this panel exists
@@ -4332,7 +4641,7 @@ export default function VidaConsolePage() {
                     Every value is a count of rows that exist. No health score, no fill rate,
                     no projection: an operator acting on a number we made up is worse off than
                     one acting on nothing. */}
-                {tab === 'Pool' && (<>
+                {shownTab === 'Pool' && (<>
                   <p className="text-[11.5px] text-[#9b8ec4] mb-2">Platform-wide — not scoped to this client.</p>
                   {poolErr && <p className="text-[12.5px] font-semibold text-red-600 mb-2">Pool summary could not be loaded: {poolErr}</p>}
                   {(pool?.degraded ?? []).map((d, i) => (
@@ -4380,7 +4689,7 @@ export default function VidaConsolePage() {
                     Four states that each mean a person or a client is worse off right now, and
                     which before PR3 alerted by EMAIL or not at all. Each row names WHO it belongs
                     to, so an operator can act rather than go hunting. */}
-                {tab === 'Exceptions' && (<>
+                {shownTab === 'Exceptions' && (<>
                   <p className="text-[11.5px] text-[#9b8ec4] mb-2">Platform-wide — not scoped to this client.</p>
                   {saveMsg && <p className={`text-[12.5px] font-semibold mb-2 ${noticeClass(saveMsg.tone)}`}>{saveMsg.text}</p>}
                   {excErr && <p className="text-[12.5px] font-semibold text-red-600 mb-2">Exceptions could not be loaded: {excErr}</p>}

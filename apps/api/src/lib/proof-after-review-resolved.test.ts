@@ -288,7 +288,21 @@ describe('⑤ only a genuine pre-first-free-Proof prospect continues into a run'
   })
 
   it('claimProofAuthority is still the ONLY authority owner', () => {
-    expect((LAUNCH_CODE.match(/claimProofAuthority\(/g) ?? []).length, 'claimed in exactly one place').toBe(1)
+    // ⛓️ 16 Sep (MVP1 · A1b) — RE-POINTED FROM 1 TO 2, AND THE INVARIANT IS UNCHANGED.
+    //
+    // The number was never the point; it was a proxy for "nothing in this file grants
+    // authority by itself". This module now has a THIRD caller — `retryProofAfterZeroEligible`,
+    // the operator's retry after our own structural gate emptied a Proof set — and it claims
+    // through the same single door, which is exactly what this guard demands.
+    //
+    // ⚠️ THE THREE ASSERTIONS BELOW ARE THE REAL FENCE and they are untouched: no second
+    // ledger write, no second claim RPC, no direct RPC of any kind. A new caller that tried to
+    // grant itself authority would still fail all three, whatever this count said.
+    //
+    // ⚠️ AND THE COUNT IS STILL PINNED rather than removed, so a FOURTH claim site cannot
+    // appear unnoticed. Two callers, two claims.
+    expect((LAUNCH_CODE.match(/claimProofAuthority\(/g) ?? []).length,
+      'claimed once per caller, and only through the shared door').toBe(2)
     expect(LAUNCH_CODE, 'no second ledger write').not.toContain("from('proof_pass_claims')")
     expect(LAUNCH_CODE, 'no second claim RPC').not.toContain('try_claim_proof_pass')
     expect(LAUNCH_CODE, 'no direct RPC of any kind').not.toContain('db.rpc(')

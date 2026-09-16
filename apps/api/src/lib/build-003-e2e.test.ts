@@ -175,7 +175,7 @@ describe('① PROGRAMME TRUTH IS VISIBLE — the gap that blocked runtime verifi
   it('Vida renders the Programme tab and loads it', () => {
     expect(VIDA).toContain("'Programme'")
     expect(VIDA).toContain('/api/proxy/operator/programme?client_id=')
-    expect(VIDA).toContain("tab === 'Programme'")
+    expect(VIDA).toContain("shownTab === 'Programme'")
   })
 
   it('the panel shows the states, the ceiling and the batches — not a health score', () => {
@@ -344,7 +344,11 @@ describe('PR4 — EVERY OPERATOR READ SURFACE IS REACHABLE BY CLICKING', () => {
       expect(
         VIDA,
         `the '${t}' PANEL is not rendered. A loader with no panel fetches data nobody sees — and a grep for "tab === '${t}'" alone passes on that, because the loader effect contains it too.`,
-      ).toContain(`{tab === '${t}' && (<>`)
+      // ⛓️ 16 Sep (MVP1 · A2) — `tab` → `shownTab` on the RENDER side. The panes now compare
+      // against the RESOLVED tab so a client-work tab withheld during healthy Proof cannot
+      // leave a blank workspace. The LOADER effects below still key off `tab`, which is why
+      // this guard's own tightening note (above) remains exactly as true as it was.
+      ).toContain(`{shownTab === '${t}' && (<>`)
     }
   })
 

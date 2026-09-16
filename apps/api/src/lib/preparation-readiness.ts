@@ -167,6 +167,31 @@ export const PREPARATION_CLEARS: string[] = [
   // conservative default schedule, so these ARE cleared for everybody and the split has no
   // subject left. **If that generation branch is ever removed, these five must move back out.**
   'no_sequence', 'sequence_not_campaign_linked', 'no_message_steps', 'no_cadence', 'no_send_schedule',
+  // ── ⛓️ 16 Sep (MVP1 · C1d) — THE TWO SENDER CODES MOVED IN, AND IT IS A REAL CHANGE IN
+  //    WHAT PREPARATION DOES, not a relaxation of the rule above ─────────────────────────
+  //
+  // 🛑 THIS FILE USED TO SAY, IN THE NOTE DIRECTLY ABOVE: *"`no_sender` is a mailbox somebody
+  // has to connect."* That was true and it was the stall — and the manual remedy it pointed at
+  // could not actually be taken. `POST /operator/inboxes/assign` requires an operator to TYPE
+  // a pooled address, it never set SMTP credentials so `verifyInbox` refused whatever it
+  // created, and no inventory of pooled addresses existed anywhere to type one from. So the
+  // sentence described a step nobody could complete, and every paying client's programme
+  // stopped one requirement short of Ready for Approval.
+  //
+  // `prepareProgrammeOutreach` now claims a mailbox from the pooled inventory and runs the
+  // EXISTING `verifyInbox` against it before anything else (step ⓿). These two codes are
+  // therefore things preparation demonstrably produces, which is exactly this list's own test
+  // for membership.
+  //
+  // 🛑 NOTHING IS LOOSENED. Both still BLOCK readiness — `block('no_sender')` and
+  // `block('sender_unverified')` are untouched, `senderAssigned` and `senderVerified` are
+  // still two separate facts, and an assigned-but-unverified mailbox still refuses
+  // READY_FOR_APPROVAL. Membership here changes only whether the SCREEN offers Try again; and
+  // it should, because pressing it is now what claims the mailbox.
+  //
+  // ⚠️ AND IF THE CLAIM CAPABILITY IS EVER REMOVED, THESE TWO MUST MOVE BACK OUT — the same
+  // standing condition the five sequence codes above carry.
+  'no_sender', 'sender_unverified',
 ]
 
 /**

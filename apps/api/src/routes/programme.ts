@@ -370,7 +370,12 @@ function pressedBy(req: Request): string {
 }
 
 async function auditProgramme(
-  req: Request, action: 'programme_lifecycle' | 'programme_internal_authority' | 'programme_go_live' | 'programme_icp_attached' | 'programme_run',
+  req: Request,
+  // ⛓️ 16 Sep (MVP1 · D3) — `programme_review_resolved` joins the list. Every member is a
+  // material act that moves no money, which is exactly why each is audited: a payment leaves a
+  // Stripe object behind it, an authority leaves one timestamp.
+  action: 'programme_lifecycle' | 'programme_internal_authority' | 'programme_go_live'
+    | 'programme_icp_attached' | 'programme_run' | 'programme_review_resolved',
   programmeId: string, detail: Record<string, unknown>,
 ) {
   const { writeOperatorAudit } = await import('../lib/operator-audit')
@@ -522,6 +527,38 @@ programmeRouter.post('/:id/run', guard(async (req: Request, res: Response) => {
     success: r.ok, error: r.reason,
     already_running: r.alreadyRunning ?? false,
     run_at: r.runAt ?? null,
+  })
+}))
+
+/**
+ * ⚑ 16 Sep (MVP1 · D3) — RESOLVE THE REVIEW HOLD. The door that was missing.
+ *
+ * 🛑 `review_required_at` had a writer and `review_resolved_at` had none, so the R77 benchmark
+ * hold was a one-way door: a programme that reached it lost its next-batch authority for ever
+ * and no screen in the product could return it.
+ *
+ * ⚠️ IT RESOLVES A REVIEW; IT DOES NOT CHANGE ONE. The trigger, its threshold and its reason
+ * sentence are untouched. Nothing is paused, refunded, sent or approved here.
+ *
+ * ⚠️ AND IT IS AUDITED, because clearing this hold returns authority to spend on a programme
+ * that is not converting — which is exactly the decision a person must be answerable for.
+ */
+programmeRouter.post('/:id/resolve-review', guard(async (req: Request, res: Response) => {
+  const { resolveProgrammeReview } = await import('../lib/programme-authority')
+  const r = await resolveProgrammeReview(req.params.id, pressedBy(req))
+  if (r.ok) {
+    await auditProgramme(req, 'programme_review_resolved', req.params.id, {
+      by: pressedBy(req),
+      resolved_at: r.resolvedAt,
+      granted: 'new-batch authority for this programme resumes',
+      sent: 'nothing — resolving a review grants no delivery; every send gate still applies',
+    })
+  }
+  res.status(r.ok ? 200 : 409).json({
+    success: r.ok,
+    error: r.ok ? undefined : r.detail,
+    reason: r.ok ? undefined : r.reason,
+    resolved_at: r.ok ? r.resolvedAt : null,
   })
 }))
 

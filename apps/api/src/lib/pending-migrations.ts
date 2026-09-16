@@ -5446,6 +5446,165 @@ create unique index if not exists vida_conversations_operator_client_idx
 alter table public.vida_conversations enable row level security;
 `,
   },
+  {
+    key: '20260916_client_inboxes_one_live_per_email',
+    title: 'client_inboxes — one mailbox may be LIVE on at most one client (MVP1 C1b)',
+    sql: `-- ═══════════════════════════════════════════════════════════════════════════════════════
+-- ⚑ 16 Sep (MVP1 · C1b) — ONE MAILBOX CANNOT BE LIVE ON TWO CLIENTS.
+--
+-- ── 🛑 WHY THIS MIGRATION IS NECESSARY, AND WHY IT IS THE ONLY ONE IN THIS BUILD ────────
+--
+-- \`20260725_client_inboxes.sql\` created exactly one unique index:
+--
+--     CREATE UNIQUE INDEX client_inboxes_one_live_per_kind
+--       ON public.client_inboxes(client_id, kind)
+--       WHERE status IN ('assigned','warming','active');
+--
+-- That is a rule about ONE CLIENT: it stops a single client holding two live pooled inboxes.
+-- It says NOTHING about one ADDRESS being live on two DIFFERENT clients — and that is the
+-- rule that matters the moment mailboxes are handed out automatically.
+--
+-- \`lib/programme-sender.ts\` has always known this. Its own comment says *"\`client_inboxes\` is
+-- keyed per client, so nothing stops the same address being attached to"* another one, and it
+-- compensates with a RUNTIME READ that looks for the address on other clients. That read is a
+-- check-then-act: two preparations running at the same moment both read "free" and both
+-- insert. With an operator typing addresses by hand that race was theoretical. With
+-- preparation claiming senders automatically it is the normal case — two programmes reaching
+-- the sender step together is exactly what a queue does.
+--
+-- ⚠️ SO THE EXISTING CONSTRAINT DOES NOT PROVE IT, which is the founder's own test for whether
+-- a migration is warranted: *"if an existing unique constraint proves that safely, reuse it.
+-- otherwise add only the smallest DB constraint/migration required."* This is that constraint,
+-- and it is the whole of it.
+--
+-- ── WHAT IT DOES, AND WHAT IT CAREFULLY DOES NOT ───────────────────────────────────────
+--
+-- ⚠️ ADDITIVE ONLY. One index. Nothing is dropped, altered, renamed or deleted; no column
+-- changes type; no row is touched. The existing per-kind index stays exactly as it is — the
+-- two rules are different and both are wanted.
+--
+-- ⚠️ SCOPED TO LIVE ROWS, AND THAT IS WHAT MAKES IT SAFE TO ADD. \`released\` and \`retired\`
+-- rows are history: a mailbox handed from one client to the next legitimately appears many
+-- times, and a full unique index would refuse that and destroy the audit trail. Only rows in
+-- play are constrained.
+--
+-- ⚠️ LOWER(email), because a mailbox is not case-sensitive and \`Outreach1@…\` and
+-- \`outreach1@…\` are one inbox. The claim path normalises to lower case before inserting; this
+-- index is what makes that a guarantee rather than a convention.
+--
+-- 🛑 IF IT CANNOT BE CREATED, THE DATA ALREADY VIOLATES IT. A duplicate live address is a
+-- real defect — two clients sending from one mailbox — and the create failing is how it gets
+-- discovered. Resolve the duplicates (release one), then re-run. It is deliberately NOT
+-- written as a nullable/soft check that would hide that.
+-- ═══════════════════════════════════════════════════════════════════════════════════════
+
+CREATE UNIQUE INDEX IF NOT EXISTS client_inboxes_one_live_per_email
+  ON public.client_inboxes (lower(email))
+  WHERE status IN ('assigned', 'warming', 'active');
+
+COMMENT ON INDEX public.client_inboxes_one_live_per_email IS
+  'MVP1 C1b: one mailbox address may be LIVE on at most one client. Scoped to assigned/warming/active so released and retired history can reuse an address. This is the arbiter for automatic pooled-sender claims — the application read that preceded it was a check-then-act race.';`.trim(),
+  },
+  {
+    key: '20260917_unattributed_replies',
+    title: 'unattributed_replies — the durable home for a reply we refused to attribute',
+    sql: `-- ═══════════════════════════════════════════════════════════════════════════════════════
+-- ⚑ 17 Sep — THE AMBIGUOUS REPLY GETS A DURABLE HOME.
+--
+-- ── 🛑 WHY THIS MIGRATION IS NECESSARY ─────────────────────────────────────────────────
+--
+-- 16 Sep closed the cross-client fan-out: a reply whose prospect address is held by two
+-- clients, with no receiving mailbox and no originating-send evidence, is now written to
+-- NOBODY. That is the correct safety answer and it created a second defect in its place.
+--
+-- The inbound content lived only in process memory. Resend's \`email.received\` webhook is
+-- METADATA-ONLY, so the body is fetched from their API into a local variable; the dedup
+-- ledger (\`processed_webhook_events\`) stores an id and a source and nothing else. So the
+-- ambiguous path was: accept the webhook, record the dedup claim, fetch the body, refuse to
+-- attribute it, email an alert, answer 200 — and the reply itself was gone. The provider
+-- will not redeliver, because we told it we had the event.
+--
+-- A privacy leak was replaced with silent data loss. This table is the fix.
+--
+-- ── ⚠️ WHY NOT \`figsy_replies\` ──────────────────────────────────────────────────────────
+--
+-- \`figsy_replies.client_id\`, \`.lead_id\` and \`.campaign_id\` are all NOT NULL and have been
+-- since 002_figsy.sql. An unattributed reply has no client by definition, so parking it
+-- there would mean either relaxing those constraints — the very columns that make one reply
+-- belong to one client — or inventing a placeholder client, which is a guess wearing a
+-- fact's clothes. It gets its own table precisely so that nothing client-visible exists
+-- until a human names the owner.
+--
+-- ── ⚠️ WHY \`UNIQUE (provider, provider_event_key)\` AND NOT THE KEY ALONE ────────────────
+--
+-- Event ids are PROVIDER-SCOPED. Smartlead message "123" and Instantly message "123" are two
+-- different emails, and a global unique on the key alone would let one provider's reply
+-- silently suppress the other's — the identical trap \`replyEventKey\` was written to avoid by
+-- namespacing. NULL is deliberately not deduplicated: an operator-typed or demo reply has no
+-- provider event, and a NULL key that collided would drop the second real one.
+--
+-- ⚠️ ADDITIVE. A new table, two indexes and RLS. Nothing existing is altered, nothing is
+-- backfilled, and the application is safe whether or not this has run: until it exists,
+-- \`retainUnattributedReply\` fails, the webhook is REFUSED with a 500 and the dedup claim is
+-- released, so the provider keeps the reply and redelivers rather than anything being lost.
+-- ═══════════════════════════════════════════════════════════════════════════════════════
+
+CREATE TABLE IF NOT EXISTS public.unattributed_replies (
+  id                    uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+
+  provider              text        NOT NULL,
+  provider_event_key    text,
+
+  from_email            text        NOT NULL,
+  from_name             text,
+  to_email              text,
+  subject               text,
+  body                  text        NOT NULL,
+  raw_payload           jsonb,
+
+  candidate_client_ids  uuid[]      NOT NULL,
+  candidate_lead_ids    uuid[]      NOT NULL,
+
+  received_at           timestamptz NOT NULL DEFAULT now(),
+
+  -- ⚑ THE CLAIM, AND IT IS NOT THE RESOLUTION. Two operators pressing at once must not
+  -- produce two replies, and an attribution that FAILS must leave the exception recoverable.
+  -- One column cannot do both, so the claim is taken first (compare-and-set on NULL), the
+  -- reply is written, and only then is the resolution recorded. A failure releases the claim.
+  resolve_claimed_at    timestamptz,
+  resolve_claimed_by    text,
+
+  resolved_at           timestamptz,
+  resolved_client_id    uuid REFERENCES public.clients(id),
+  resolved_by           text,
+  resolution            text CHECK (resolution IN ('attributed', 'discarded')),
+
+  -- 🛑 THE TWO HALVES OF AN OUTCOME CANNOT DISAGREE. A row carrying \`resolution\` with no
+  -- \`resolved_at\` (or the reverse) is a state no reader could interpret, and an \`attributed\`
+  -- row with no client is the guess this whole table exists to prevent.
+  CONSTRAINT unattributed_replies_resolution_complete CHECK (
+    (resolved_at IS NULL AND resolution IS NULL AND resolved_client_id IS NULL)
+    OR (resolved_at IS NOT NULL AND resolution = 'discarded')
+    OR (resolved_at IS NOT NULL AND resolution = 'attributed' AND resolved_client_id IS NOT NULL)
+  )
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS unattributed_replies_provider_event_key
+  ON public.unattributed_replies (provider, provider_event_key)
+  WHERE provider_event_key IS NOT NULL;
+
+CREATE INDEX IF NOT EXISTS unattributed_replies_open_idx
+  ON public.unattributed_replies (received_at)
+  WHERE resolved_at IS NULL;
+
+-- Enabled with NO policy: the API uses the service role, which bypasses RLS, and every other
+-- role is denied by default. A client can never read an inbound reply that was never
+-- attributed to them — which is the isolation this table was built to preserve.
+ALTER TABLE public.unattributed_replies ENABLE ROW LEVEL SECURITY;
+
+COMMENT ON TABLE public.unattributed_replies IS
+  'An inbound reply whose owner could not be determined safely: several clients hold a lead with that prospect address, no receiving mailbox names one, and no originating-send record names one. Retained in full, visible to nobody, until an operator attributes it to one of its stored candidates or discards it. NEVER a client-visible reply — that is figsy_replies.';`.trim(),
+  },
 ]
 
 // Runs the statements against DATABASE_URL. Uses node-postgres because the Supabase JS

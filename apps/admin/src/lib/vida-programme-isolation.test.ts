@@ -639,7 +639,7 @@ describe('§E · SOURCE-PINNED WIRING — the page actually applies those decisi
     expect(code).toContain('programmeActionable(p, selected ?? null)')
   })
 
-  it('🛑 every one of the six programme-id actions calls the gate', () => {
+  it('🛑 every one of the eight programme-id actions calls the gate', () => {
     const code = codeOnly(PAGE)
     for (const fn of [
       'const openQualifyConfirm = useCallback(() => {',
@@ -648,11 +648,27 @@ describe('§E · SOURCE-PINNED WIRING — the page actually applies those decisi
       'const refreezePackage = useCallback(async () => {',
       'const lifecycle = useCallback(async (action: string, label: string) => {',
       'const attachIcp = useCallback(async (icpId: string, icpName: string | null) => {',
+      // ⛓️ 16 Sep (MVP1 · D1 + E1) — TWO NEW PROGRAMME-ID ACTIONS, REGISTERED RATHER THAN
+      // ARRIVING QUIETLY, which is precisely what this inventory exists for.
+      //
+      // `runProgramme` grants external-delivery authority (`POST /programmes/:id/run`). The
+      // lifecycle Run action used to call the SEND-ONCE tool instead, so `run_at` was never
+      // written by the button named after it.
+      //
+      // `completeProgramme` closes the programme (`POST /programmes/:id/complete`). The route,
+      // the writer and the `mayComplete` gate all existed and nothing in the product could
+      // reach them — the sixth stage of a six-stage product had no button.
+      //
+      // Both are programme-id actions and both therefore pass the ownership gate: each targets
+      // `prog.programme.id` while its confirmation names the SELECTED client, which is the
+      // exact mismatch this gate exists to refuse.
+      'const runProgramme = useCallback(async () => {',
+      'const completeProgramme = useCallback(async () => {',
     ]) {
       expect(fnBody(code, fn), `no ownership gate in: ${fn}`).toContain('programmeActionId()')
     }
-    // Six call sites, and no seventh action left outside them.
-    expect(code.split('programmeActionId()').length - 1).toBe(6)
+    // Eight call sites, and no ninth action left outside them.
+    expect(code.split('programmeActionId()').length - 1).toBe(8)
   })
 
   it('🛑 the gate runs BEFORE the confirmation dialog, so no dialog can name the wrong client', () => {
@@ -710,16 +726,23 @@ describe('§E · SOURCE-PINNED WIRING — the page actually applies those decisi
   it('🛑 the COMPLETE busy-finalizer inventory — nothing unguarded can be added silently', () => {
     const code = codeOnly(PAGE)
     const settlers = [...code.matchAll(/finally \{ (set(?:Qual|Lc|Run|Cm)Busy|settleBusy)\(/g)].map(m => m[1])
-    // Five generation-scoped finalizers: the five programme-id actions, and only those.
+    // ⛓️ 16 Sep (MVP1 · D1 + E1) — SEVEN, not five: `runProgramme` and `completeProgramme` are
+    // new programme-id actions and each carries the generation-scoped finalizer for the same
+    // reason the other five do — an unconditional `finally` lets a stale response for client A
+    // clear client B's busy flag mid-flight.
     expect(settlers.filter(x => x === 'settleBusy'),
-      'a programme-id action lost its generation-scoped finalizer').toHaveLength(5)
+      'a programme-id action lost its generation-scoped finalizer').toHaveLength(7)
     // ⚠️ AND EXACTLY THREE THAT ARE NOT, EACH NAMED. `run` and the commercial model own their
     // own busy surfaces and are not programme-id actions. `createProgrammeNow` SHARES `lcBusy`
     // with the guarded four but is likewise not a programme-id action — it posts
     // `{ clientId: selected }` — so it sits outside this correction's frozen scope and is
     // REPORTED rather than changed. Pinned here so the set cannot grow unnoticed.
+    // ⛓️ 16 Sep (MVP1 · A1b) — a FOURTH unguarded finalizer, named: `retryProof`. It is a
+    // CLIENT-id action (it posts to `/operator/proof-retry/:clientId`), not a programme-id one
+    // — a zero-eligible Proof exception exists precisely because there is no programme yet — so
+    // it is outside this correction's frozen scope and is REPORTED here rather than changed.
     expect(settlers.filter(x => x !== 'settleBusy').sort())
-      .toEqual(['setCmBusy', 'setLcBusy', 'setRunBusy'])
+      .toEqual(['setCmBusy', 'setLcBusy', 'setLcBusy', 'setRunBusy'])
     expect(fnBody(code, 'const createProgrammeNow = useCallback(async () => {'),
       'the reported create finalizer moved — re-classify it before changing this pin')
       .toContain('finally { setLcBusy(null) }')

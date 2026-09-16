@@ -408,7 +408,12 @@ describe('EVERYTHING 4A-1 FIXED IS STILL FIXED', () => {
   const SHELL = code(join(PORTAL, 'components/milla/MillaShell.tsx'))
 
   it('the FLOW bar is still sourced from MILLA_STAGES', () => {
-    expect(SHELL).toContain('{MILLA_STAGES.map((label, i, arr) => {')
+    /* ⛓️ 16 Sep (MVP1 · B1) — RE-POINTED. These isolation guards prove the Milla FLOW ribbon
+       still exists and was not collateral damage; the CONSTANT it maps changed from
+       `MILLA_STAGES` (seven, starting at Proof) to the canonical `MVP1_MILLA_STAGES` (six,
+       starting at Brief) — the same module Vida's ribbon now reads, so one client has one
+       position in both consoles. The duty asserted here is unchanged. */
+    expect(SHELL).toContain('{MVP1_MILLA_STAGES.map((label, i, arr) => {')
     expect(SHELL).toContain("'/my/programme'")
   })
 

@@ -97,6 +97,27 @@ const MILLA_SIX: Record<MillaStage, Mvp1MillaStage> = {
   Completion:     'Complete',
 }
 
+/**
+ * ⚑ 16 Sep (MVP1 · B1) — THE BRIDGE FROM THE LEGACY SEVEN, EXPORTED.
+ *
+ * 🛑 IT ALREADY EXISTED — INSIDE A TEST FILE. `mvp1-stage.test.ts` declared its own private
+ * copy of this mapping so it could assert the collapse, which means the mapping lived in two
+ * places and only one of them was shippable. Exporting it is what lets Milla's ribbons render
+ * the canonical six without the client re-deriving the engine truth in the browser.
+ *
+ * ⚠️ USE THIS ONLY WHERE THE LEGACY STAGE IS WHAT YOU ALREADY HAVE. `mvp1MillaStage` above is
+ * the real projection — it reads the engine truth and answers the Brief question too. This is
+ * the narrower conversion for a surface already holding a `MillaStage`.
+ *
+ * ⚠️ AND IT CANNOT ANSWER "Brief". The legacy seven start at `Proof`, so there is no legacy
+ * value that maps to `Brief`. That is correct for every caller: a surface holding a
+ * `MillaStage` is reading a client who has a client row, and a client row exists only after
+ * the Brief was confirmed — so Brief is BEHIND them and renders as done, never as current.
+ */
+export function mvp1MillaStageFromLegacy(stage: MillaStage): Mvp1MillaStage {
+  return MILLA_SIX[stage]
+}
+
 export function mvp1MillaStage(input: Mvp1MillaStageInput): Mvp1MillaStage {
   // Brief outranks everything, because it is the only stage that exists before the engine
   // has an opinion. It is checked FIRST and it is checked strictly.

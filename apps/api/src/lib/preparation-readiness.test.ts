@@ -304,18 +304,49 @@ describe('⑦ timing is approved work, not a system setting', () => {
 // ═══════════════════════════════════════════════════════════════════════════════════════
 
 describe('⑦ a programme with no proved sender cannot be put in front of a client', () => {
-  it('🛑 `no_sender` is NOT a blocker preparation clears', () => {
-    expect(PREPARATION_CLEARS,
-      'preparation would offer the button on a programme that can never send').not.toContain('no_sender')
+  // ⛓️ 16 Sep (MVP1 · C1d) — RE-POINTED, AND THE FOUNDER'S RULE IS UNTOUCHED.
+  //
+  // 🛑 WHAT THESE TWO USED TO ASSERT: that `no_sender` is NOT in `PREPARATION_CLEARS`, on the
+  // grounds that *"preparation would offer the button on a programme that can never send"*.
+  // That reasoning was correct and is now false, because the thing it described has changed:
+  // `prepareProgrammeOutreach` CLAIMS a pooled mailbox from the env-backed inventory and runs
+  // the existing `verifyInbox` against it before anything else (step ⓿). So pressing the
+  // button is now exactly what settles the sender, and withholding it would leave an operator
+  // looking at a blocker with no control — the defect in the opposite direction.
+  //
+  // ⚠️ WHAT THE FOUNDER RULED IS UNCHANGED AND IS ASSERTED BELOW, BEHAVIOURALLY. *"zero valid
+  // assigned senders = refuse … READY_FOR_APPROVAL must not be reachable without it."* Both
+  // blockers still fire, `senderAssigned` and `senderVerified` are still two separate facts,
+  // and a programme with no verified mailbox still cannot freeze. Membership in
+  // `PREPARATION_CLEARS` decides only whether the SCREEN offers Try again.
+  it('🛑 THE REFUSAL ITSELF IS UNCHANGED — both sender blockers still fire', () => {
+    // This is the founder's rule, stated as behaviour rather than as list membership.
+    expect(codes(without({ senderAssigned: false, senderVerified: false }))).toContain('no_sender')
+    expect(codes(without({ senderAssigned: true, senderVerified: false }))).toContain('sender_unverified')
+    // And neither programme is free of blockers, so neither can be put in front of a client.
+    expect(preparationBlockers(without({ senderAssigned: false, senderVerified: false })).length)
+      .toBeGreaterThan(0)
+    expect(preparationBlockers(without({ senderAssigned: true, senderVerified: false })).length)
+      .toBeGreaterThan(0)
   })
 
-  it('🛑 and a sender blocker alone makes the programme NOT one preparation away', () => {
-    // The behavioural half: `onlyPreparationBlocks` is what the console gates the button on, so
-    // it is the function that would draw a control that cannot possibly succeed.
-    expect(onlyPreparationBlocks([{ code: 'no_sender', detail: 'no mailbox' }])).toBe(false)
-    expect(onlyPreparationBlocks([
-      { code: 'no_campaign', detail: 'x' }, { code: 'no_sender', detail: 'no mailbox' },
-    ]), 'one un-clearable blocker among clearable ones was ignored').toBe(false)
+  it('preparation now CLEARS them, because preparation now does them', () => {
+    // The list's own rule for membership: a code belongs here when preparation demonstrably
+    // produces it. It claims and verifies a sender, so these two qualify — and if that
+    // capability is ever removed they must come back out.
+    expect(PREPARATION_CLEARS).toContain('no_sender')
+    expect(PREPARATION_CLEARS).toContain('sender_unverified')
+    expect(onlyPreparationBlocks([{ code: 'no_sender', detail: 'no mailbox' }])).toBe(true)
+  })
+
+  it('🛑 AND NOTHING UN-CLEARABLE CAME WITH THEM', () => {
+    // The guard that matters most now: the list grew, so prove it grew by exactly two.
+    for (const never of ['no_attached_icp', 'no_batch', 'no_reviewable_leads',
+      'foreign_enrolments', 'wrong_status', 'paused']) {
+      expect(PREPARATION_CLEARS, `${never} is not something preparation can do`).not.toContain(never)
+      expect(onlyPreparationBlocks([{ code: never, detail: 'x' }]),
+        `${never} now reads as one preparation away`).toBe(false)
+    }
   })
 
   it('a programme whose ONLY gaps are ones preparation clears is still preparable', () => {

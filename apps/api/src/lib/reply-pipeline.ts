@@ -37,8 +37,13 @@ import { emitSignal } from '../routes/signals'
 import {
   isUnusable, findLeadMatches, suppressOptOut, alertDroppedReply, describeBodyFetch,
   REPLY_LOOKUP_STATUSES, resolveInboxOwner, routeReply, unmatchedAtKnownInboxLines,
+  // ⚑ 16 Sep (GAP 3) — the originating-send evidence, and the operator exception for a reply
+  // no evidence can attribute.
+  sentLeadIdsFor, ambiguousReplyLines,
   type InboundReply,
 } from './reply-ingest'
+// ⚑ 17 Sep — the durable home for a reply we refuse to attribute. See `unattributed-reply.ts`.
+import { retainUnattributedReply } from './unattributed-reply'
 
 /** Provider-specific extras the pipeline needs but cannot derive from `InboundReply`. */
 export type ReplyContext = {
@@ -69,6 +74,24 @@ export type ReplyContext = {
    * That is the deliberate fail-open case; see 20260829_reply_idempotency.sql.
    */
   eventKey?: string | null
+  /**
+   * ⚑ 17 Sep — THE OWNER A HUMAN SUPPLIED, for a reply this pipeline previously REFUSED to
+   * attribute.
+   *
+   * 🛑 IT IS NOT A WAY BACK TO THE FAN-OUT, and the mechanism is the reason. It is read at
+   * exactly one place — in place of `resolveInboxOwner`'s answer — so the reply then travels
+   * the EXISTING `how: 'inbox'` branch of `routeReply`, which filters the matches to that one
+   * client and reports the rest as excluded. One client or none; there is no code path from
+   * here to two.
+   *
+   * ⚠️ THE CALLER HAS ALREADY PROVED THE CLIENT WAS A STORED CANDIDATE. This field carries a
+   * decision, never permission to make one: the operator route refuses an id outside
+   * `candidate_client_ids` before it ever reaches here.
+   *
+   * ⚠️ AND IT SUPPRESSES RE-RETENTION. The exception already exists — that is where this
+   * value came from — so an ambiguous outcome on this path must not mint a second one.
+   */
+  resolvedOwnerClientId?: string | null
 }
 
 export type ReplyResult =
@@ -121,10 +144,108 @@ export async function processInboundReply(
   // match is kept, exactly as R1 intended. Once a client sends from their own mailbox, the
   // reply arrives THERE and only that client's thread receives it — because fanning out at
   // that point would drop one client's inbound mail into another client's unibox.
-  const inboxOwner = await resolveInboxOwner(inbound.toEmail)
-  const routed = routeReply(matches, inboxOwner)
+  //
+  // ⚑ 17 Sep — AND A HUMAN'S DECISION OUTRANKS THE LOOKUP. `resolvedOwnerClientId` is set only
+  // by the operator resolve route, for a reply this pipeline already refused once; it enters
+  // here so the attribution travels the SAME `inbox` branch as a known mailbox rather than
+  // through a second reply implementation. The mailbox lookup is skipped, not overridden —
+  // asking again would be a wasted read whose answer is already known to be absent.
+  const inboxOwner = ctx.resolvedOwnerClientId ?? await resolveInboxOwner(inbound.toEmail)
+
+  // ── 🛑 ⚑ 16 Sep (GAP 3) — THE EVIDENCE, GATHERED ONLY WHEN IT COULD POSSIBLY MATTER ────
+  //
+  // 🛑 WHAT THIS REPLACES. `routeReply(matches, null)` used to return EVERY match across EVERY
+  // client, and the loop below wrote a reply row for each — one external reply becoming two
+  // clients' inbound mail. That was the right answer while one shared inbox was the only
+  // inbound path; C1 gives clients their own mailboxes, and any provider that does not report
+  // `to` still arrives here.
+  //
+  // ⚠️ THE READ IS CONDITIONAL, so the single-client happy path costs exactly what it did
+  // before: no extra query, no extra latency. Only a genuine cross-client collision pays.
+  const candidateClients = new Set(matches.map(m => m.client_id))
+  const sentLeadIds = (!inboxOwner && candidateClients.size > 1)
+    ? await sentLeadIdsFor(matches.map(m => m.id))
+    : undefined
+
+  const routed = routeReply(matches, inboxOwner, sentLeadIds)
   if (routed.how === 'inbox' && routed.excluded.length > 0) {
     console.log(`[figsy/replies/inbound] routed by inbox ${inbound.toEmail} → client ${inboxOwner}; ${routed.excluded.length} match(es) at other clients deliberately excluded`)
+  }
+  if (routed.how === 'originating_send') {
+    console.log(`[figsy/replies/inbound] ${candidateClients.size} clients hold ${inbound.fromEmail}; resolved to the one we actually emailed (${routed.matches[0]?.client_id}) from figsy_sent_emails; ${routed.excluded.length} excluded`)
+  }
+
+  // ── 🛑 AMBIGUOUS: WRITTEN TO NOBODY, RETAINED IN FULL, AND A PERSON IS TOLD ────────────
+  //
+  // ⛓️ 17 Sep — THE RETENTION IS NEW, AND IT IS WHAT MAKES THE REFUSAL SAFE RATHER THAN
+  // MERELY CORRECT.
+  //
+  // 🛑 WHAT THIS BRANCH USED TO DO: log, email an alert, return. The inbound content existed
+  // only in this function's arguments — Resend's webhook is metadata-only, so the body had
+  // been fetched into a local variable — and the dedup claim was already taken, so the
+  // provider would never send it again. The reply was GONE. The fan-out was fixed by losing
+  // the mail instead, which is a different failure and not a smaller one.
+  //
+  // ⚠️ NOTHING IS REPORTED UNTIL THE EVIDENCE IS DURABLE. On a retention failure this returns
+  // a DIFFERENT code, and the route releases the dedup claim and answers 500 so the provider
+  // redelivers. A 200 here is a promise we can only keep once the row exists.
+  if (routed.how === 'ambiguous') {
+    console.error(`[figsy/replies/inbound] AMBIGUOUS reply from ${inbound.fromEmail} — matches span ${candidateClients.size} clients and no evidence names one. NOT written to any of them.`)
+
+    // ⚠️ SKIPPED ON THE HUMAN-RESOLVED PATH. If an operator-supplied owner somehow reached an
+    // ambiguous verdict, the exception it came from already exists; minting a second retention
+    // row would split one reply's history across two records.
+    let retainedId: string | null = null
+    if (!ctx.resolvedOwnerClientId) {
+      const retained = await retainUnattributedReply({
+        provider: inbound.provider,
+        providerEventKey: ctx.eventKey ?? null,
+        fromEmail: inbound.fromEmail,
+        fromName: inbound.fromName,
+        toEmail: inbound.toEmail ?? null,
+        subject: inbound.subject,
+        body: inbound.body,
+        rawPayload: ctx.rawPayload,
+        // The candidates AS THEY WERE at ingest — both halves, because the resolve path needs
+        // the leads as well as the clients to write the reply against the right rows.
+        candidateClientIds: [...candidateClients],
+        candidateLeadIds: matches.map(m => m.id),
+      })
+      if (!retained.ok) {
+        console.error(`[figsy/replies/inbound] ⛔ AMBIGUOUS REPLY COULD NOT BE RETAINED — refusing the webhook so it is redelivered: ${retained.detail}`)
+        void sendFounderAlert('sends_stalled', 'An unattributable reply could not be retained — the webhook was REFUSED',
+          [
+            `A reply from ${inbound.fromEmail} matched leads under ${candidateClients.size} clients and could not be attributed.`,
+            `It could ALSO not be stored: ${retained.detail}`,
+            'Nothing was written to any client, and the webhook was answered with a 500 so the provider redelivers it.',
+            'If 20260917_unattributed_replies has not been run, run it from Vida → Engine — until then every ambiguous reply is refused rather than retained.',
+          ]).catch(() => {})
+        return { ok: false as const, dropped: 'ambiguous_owner_unretained' as const }
+      }
+      retainedId = retained.id
+      console.log(`[figsy/replies/inbound] retained as unattributed_replies ${retainedId}${retained.already ? ' (already retained by an earlier delivery)' : ''} — awaiting an operator decision in Vida.`)
+    }
+
+    // ⚠️ THE SAME KIND THE SIBLING CASE USES. `sends_stalled` is what the unmatched-at-a-known-
+    // inbox alert below already carries, and widening `AlertKind` for one more reply-routing
+    // exception would add a channel nobody configured for a family that already has one.
+    //
+    // ⚠️ AND THIS ALERT IS NOW SECONDARY. `founder_alerts` has no reader anywhere in the
+    // product, which is precisely why it cannot be the recovery mechanism; the authority is
+    // the retained row, which Vida's existing operator feed reads. The alert is kept because
+    // it costs nothing and it is the only channel that reaches a phone.
+    void sendFounderAlert('sends_stalled', 'A reply matched more than one client and could not be attributed',
+      [
+        ...ambiguousReplyLines({
+          fromEmail: inbound.fromEmail,
+          toEmail: inbound.toEmail ?? null,
+          clientIds: [...candidateClients],
+        }),
+        ...(retainedId
+          ? [`It is RETAINED IN FULL as unattributed_replies ${retainedId} and is waiting for you in Vida — attribute it to one client, or discard it. Nothing was lost.`]
+          : []),
+      ]).catch(() => {})
+    return { ok: false as const, dropped: 'ambiguous_owner' as const }
   }
   if (routed.matches.length === 0) {
     // A real person replied to a real client mailbox and is not one of their leads. NOT
@@ -153,6 +274,33 @@ export async function processInboundReply(
   // Found by reading the handler end to end after the founder pointed out that grepping
   // off the last action never shows what is missing (P10).
   const { classification, reasoning } = await classifyReply(inbound.body)
+
+  // ── 🛑 ⚑ 16 Sep (GAP 3) — THE LAST LINE OF DEFENCE, AND IT IS DELIBERATELY REDUNDANT ──
+  //
+  // `routeReply` already guarantees one client or none. This asserts it again at the only
+  // place the guarantee actually matters: the write. A future change to the routing, or a new
+  // caller assembling its own match list, would otherwise reintroduce the exact defect
+  // silently — and the cost of being wrong here is one client reading another's inbound mail.
+  // ONE CLIENT, OR WE DO NOT WRITE.
+  {
+    const writing = new Set(matches.map(m => m.client_id))
+    if (writing.size > 1) {
+      console.error(`[figsy/replies/inbound] REFUSED: the write set spans ${writing.size} clients (${[...writing].join(', ')}). Routing should have made this impossible; nothing was written.`)
+      void sendFounderAlert('sends_stalled', 'A reply write was refused for spanning two clients',
+        ambiguousReplyLines({
+          fromEmail: inbound.fromEmail,
+          toEmail: inbound.toEmail ?? null,
+          clientIds: [...writing],
+        })).catch(() => {})
+      // ⛓️ 17 Sep — `ambiguous_owner_unretained`, NOT `ambiguous_owner`, and the difference is
+      // deliberate. This branch is unreachable by construction, so reaching it means a
+      // assumption has broken — and the one outcome that must NOT follow is a 200 telling the
+      // provider we kept a reply that was neither written nor retained. The refusal code sends
+      // the route down the release-and-500 path, so the provider redelivers and nothing is lost
+      // while the impossible is being investigated.
+      return { ok: false as const, dropped: 'ambiguous_owner_unretained' as const }
+    }
+  }
 
   let lastReplyId: string | undefined
   for (const lead of matches) {

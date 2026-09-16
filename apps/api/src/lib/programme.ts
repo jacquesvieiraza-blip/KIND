@@ -164,6 +164,58 @@ export async function getProgramme(programmeId: string): Promise<ProgrammeRow | 
 }
 
 /**
+ * ⚑ 16 Sep (MVP1 · A3) — MAY THIS CLIENT HAVE A PROGRAMME AT ALL?
+ *
+ * Two facts, both already the rule on the client's own path:
+ *
+ *   ① `clients.proof_completed_at` — the client said their examples are RIGHT. A programme is
+ *      priced against a Proof they accepted; without that acceptance there is nothing to
+ *      price against and no decision to bill.
+ *   ② an ICP exists — a programme with no targeting cannot source, and the P1 continuation
+ *      refuses without exactly one attached ICP. Discovering that AFTER a client has paid is
+ *      what stranding looks like, so it is refused before the row is written.
+ *
+ * ⚠️ IT FAILS CLOSED ON AN UNREADABLE ANSWER. A programme is the commercial object; creating
+ * one because a read failed is exactly the direction that must never be taken.
+ *
+ * ⚠️ THE REASONS ARE OPERATOR-FACING. The client calculator wraps its own sentences around
+ * the same two facts, because a client and an operator are not reading the same screen.
+ */
+async function programmeEntryAllowed(clientId: string): Promise<{ ok: true } | { ok: false; reason: string }> {
+  const { data: client, error: clientErr } = await db.from('clients')
+    .select('proof_completed_at').eq('id', clientId).maybeSingle()
+  if (clientErr) {
+    return { ok: false, reason: `This client's Proof state could not be read (${clientErr.message}), so nothing was created.` }
+  }
+  if (!client) {
+    return { ok: false, reason: 'There is no such client, so no programme was created.' }
+  }
+  const completedAt = (client as unknown as { proof_completed_at?: string | null }).proof_completed_at
+  if (!completedAt) {
+    return {
+      ok: false,
+      reason: 'This client has not completed Proof yet, so a programme cannot be created. They confirm their examples are right in Milla first — the same rule their own calculator applies.',
+    }
+  }
+
+  // ⚠️ THE CLIENT'S LIVE ICP, ELSE THEIR NEWEST — the same resolution the calculator uses, so
+  // the targeting a programme is born against is the targeting they calibrated during Proof.
+  const { data: icp, error: icpErr } = await db.from('icps')
+    .select('id').eq('client_id', clientId)
+    .order('created_at', { ascending: false }).limit(1).maybeSingle()
+  if (icpErr) {
+    return { ok: false, reason: `This client's targeting could not be read (${icpErr.message}), so nothing was created.` }
+  }
+  if (!(icp as { id?: string } | null)?.id) {
+    return {
+      ok: false,
+      reason: 'This client has no ICP, so a programme created now could never source. Build their targeting first.',
+    }
+  }
+  return { ok: true }
+}
+
+/**
  * Create a priced programme in DRAFT.
  *
  * Every money figure is derived ONCE from the shared curve and STORED. Storing rather than
@@ -173,6 +225,27 @@ export async function getProgramme(programmeId: string): Promise<ProgrammeRow | 
 export async function createProgramme(clientId: string, meetings: number): Promise<ProgrammeResult> {
   const existing = await openProgrammeForClient(clientId)
   if (existing) return { ok: false, reason: 'This client already has an open programme.' }
+
+  // ── 🛑 ⚑ 16 Sep (MVP1 · A3) — THE JOURNEY IS CHECKED BEFORE THE ROW IS WRITTEN ────────
+  //
+  // 🛑 TWO DOORS INTO ONE TABLE, AND ONLY ONE WAS GATED. This function is the only INSERT
+  // into `programmes`, and it had two callers: Milla's calculator, which refuses unless
+  // `proof_completed_at` is set and an accepted ICP exists, and `POST /programmes` behind the
+  // operator key, which checked NEITHER. So an operator could price and create a programme
+  // for a client who had never seen a Proof set — and that programme then OWNS the journey,
+  // because `deriveLifecycle` only awards Recommendation on `proofCompleted`. The result is a
+  // commercial object with no client decision underneath it.
+  //
+  // ⚠️ THE GATE IS HERE, NOT IN THE ROUTE, and that is the founder's boundary: *"Do not
+  // create a second commercial path."* One insert, one gate — a third door added later
+  // cannot forget it, because there is nowhere else to write the row.
+  //
+  // ⚠️ IT IS THE SAME RULE, NOT A SECOND OPINION. `programmeEntryAllowed` reads the same two
+  // facts the calculator reads. The calculator keeps its own client-facing sentences (a client
+  // needs a sentence, an operator needs a reason) and simply passes this check on the way
+  // through, because it has already proved both.
+  const entry = await programmeEntryAllowed(clientId)
+  if (!entry.ok) return { ok: false, reason: entry.reason }
 
   const q = quoteProgramme(meetings)
   const { data, error } = await db.from('programmes').insert({

@@ -64,7 +64,9 @@ import { selectPoolCandidates, logPoolCounters } from '../lib/pool-candidates'
 import { toMemoryRecord, rememberAcquiredIdentities, type AcquisitionMemoryRecord, type SuppressionReason } from '../lib/acquisition-memory'
 import { assertIcpFullyOwned } from '../lib/icp-coverage'
 import { rethrowIfProviderBlocked, isPaidProviderBlocked } from '../lib/paid-provider-guard'
-import { deriveRunStatus, runOutcomeMessage, type RunStatus } from '../lib/run-outcome'
+import {
+  deriveRunStatus, runOutcomeMessage, clientUsableCount, gatesEmptiedTheRun, type RunStatus,
+} from '../lib/run-outcome'
 import { terminalForRunStatus, type RunTerminal } from '../lib/proof-claim'
 import { authorityFor, ProgrammeAuthorityError } from '../lib/programme-authority'
 import { type ProgrammeRow } from '../lib/programme'
@@ -101,6 +103,21 @@ export async function recordRunOutcome(
    *  not be told to widen again. Only changes the `no_match` sentence; the status is
    *  unchanged and still true. */
   alreadyWidened = false,
+  /**
+   * ⚑ 16 Sep (MVP1 · A1) — THE COUNT THE CLIENT CAN ACTUALLY RECEIVE, for the SENTENCE only.
+   *
+   * 🛑 ONE NUMBER WAS DOING TWO JOBS. `total_inserted` is what the run sourced — the cost, the
+   * audit trail, the accounting truth — and it also fed `runOutcomeMessage`, which is what the
+   * client reads. When the 10-Sep structural gate refuses candidates those two diverge, and a
+   * client whose whole batch was set aside was told "Sourced 20 leads." over an empty desk.
+   *
+   * ⚠️ THE COLUMN IS UNCHANGED (founder decision C, 16 Sep). `total_inserted` still records the
+   * raw figure; only `message` derives from this one. Nothing about non-Proof accounting moves.
+   *
+   * ⚠️ IT DEFAULTS TO `totalInserted`, so every existing caller is byte-identical in behaviour
+   * and no run that has no gate has to learn about one.
+   */
+  clientUsable = totalInserted,
 ): Promise<void> {
   try {
     // supabase-js RETURNS `{ error }` — it does not throw. The try/catch alone therefore
@@ -114,8 +131,11 @@ export async function recordRunOutcome(
       status,
       records_requested: Math.max(0, Math.round(recordsRequested)),
       pool_served: Math.max(0, Math.round(poolServed)),
+      // RAW — what the run sourced. Audit and accounting truth, deliberately untouched.
       total_inserted: Math.max(0, Math.round(totalInserted)),
-      message: runOutcomeMessage(status, totalInserted, alreadyHeld, alreadyWidened),
+      // 🛑 CLIENT-USABLE — what reached the desk. The client's sentence may derive from
+      // nothing else (A1). Defaults to the raw count for every caller that has no gate.
+      message: runOutcomeMessage(status, Math.max(0, Math.round(clientUsable)), alreadyHeld, alreadyWidened),
     })
     if (error) {
       console.error(`[icp] recordRunOutcome REJECTED status "${status}" for icp ${icpId}:`, error.message)
@@ -2362,6 +2382,17 @@ export async function runIcpJob(
     // the client's own hard criteria (C05: calibration among the structurally eligible).
     scoreLeadsForIcp(gatedIds, icp, clientRow?.company_name ?? '', clientId)
       .then(() => {
+        // 🛑 ⚑ 16 Sep (MVP1 · F1) — A FREE PROOF NEVER COLD-EMAILS THE CLIENT'S PROSPECTS.
+        //
+        // Proof exists to show ONE client a sample of who we can reach. Consent mail is real
+        // outbound contact to real strangers, and sending it because somebody looked at a
+        // free sample is outreach nobody bought. Fenced by `proofMode` — the SAME flag the
+        // reservation, the PDL query and the surfacing use — so there is no second notion of
+        // proof-ness to drift. The env switch is retained underneath, not replaced.
+        if (proofMode) {
+          console.log(`[icp] auto-consent FENCED OFF — free proof run for prospect ${clientId}; ${gatedIds.length} eligible lead(s) scored for the desk, no consent emails sent (F1).`)
+          return undefined
+        }
         if (process.env.AUTO_OUTREACH_ENABLED === 'true') {
           return autoConsentScoredLeads(gatedIds, clientRow?.company_name ?? '', clientId)
         }
@@ -2370,6 +2401,30 @@ export async function runIcpJob(
       })
       .catch(console.error)
 
+    // ═════════════════════════════════════════════════════════════════════════════════════
+    // 🛑 ⚑ 16 Sep (MVP1 · F1) — EVERYTHING BELOW IS THE RETIRED COMMERCIAL MODEL, AND A FREE
+    //    PROOF MUST NOT TOUCH ANY OF IT.
+    //
+    // R124 (founder-locked 16 Sep): *"299/4 is gone. out. we are on the programme. all
+    // clients."* These four side-effects were written for that retired model and all four
+    // fire on the RAW insert count, so a free Proof run — a prospect looking at a sample,
+    // who has bought nothing — currently:
+    //
+    //   • is granted 100 legacy wallet credits (`grant_first_run_credits`)
+    //   • has `first_icp_run_at` stamped, which is the legacy first-run flag
+    //   • is emailed the legacy "your first leads are ready" email
+    //   • is entered into FIGSY auto-enrolment or day-1 legacy outreach — REAL cold email
+    //
+    // ⚠️ THIS IS A FENCE, NOT A DELETION. Nothing legacy is removed and no non-Proof
+    // behaviour changes: a programme or legacy run reaches exactly the same code it always
+    // did. `proofMode` is the SAME flag the fence, the reservation, the PDL query and the
+    // surfacing already use — not a second notion of proof-ness.
+    //
+    // ⚠️ SCORING STAYS OUTSIDE THE FENCE, deliberately. `scoreLeadsForIcp` above orders the
+    // client's own Proof desk (C05: calibration among the structurally eligible). It is the
+    // product, not a legacy side-effect.
+    // ═════════════════════════════════════════════════════════════════════════════════════
+    if (!proofMode) {
     // S5 — FIGSY auto-start: enroll all scored leads (POPIA legitimate interest — no consent gate needed)
     // If client has no active FIGSY campaign, send Lead Gen Pro Day 1 outreach instead.
     // GATED: auto-outreach sends REAL emails to sourced prospects on every run. It only
@@ -2444,6 +2499,11 @@ export async function runIcpJob(
         console.error('[icps] first-leads email failed:', emailErr)
       }
     }
+    } else {
+      // ⚑ 16 Sep (F1) — SAID OUT LOUD, so an operator reading the log can tell a fenced
+      // Proof run from a legacy run that simply had nothing to do.
+      console.log(`[icp] LEGACY SIDE-EFFECTS FENCED OFF for free proof run — prospect ${clientId}: no welcome credits, no first_icp_run_at stamp, no first-leads email, no FIGSY enrolment, no day-1 outreach (F1 · R124).`)
+    }
   }
 
   // #366 — AN EXHAUSTED ICP SAYS SO OUT LOUD.
@@ -2463,13 +2523,32 @@ export async function runIcpJob(
   // that status means the audience is finished, its copy says "widen the ICP", and after a
   // dedupe-all the cursor has advanced — the next page may hold brand-new people. Both of
   // its claims would be false here.)
-  const gatesAteEverything = inserted === 0 && searchTrust !== 'unproven' && providerContactsReturned > 0
+  // ⛓️ 16 Sep (MVP1 · A1) — AND THE STRUCTURAL GATE IS ONE OF THOSE GATES.
+  //
+  // 🛑 THE PREDICATE PREDATED THE GATE. Everything above was written on 26 Aug, when the only
+  // K.I.N.D-side removals were suppression, dedupe and insert failure — all of which happen
+  // BEFORE `inserted` is counted, so `inserted === 0` caught every one of them. The STRUCTURAL
+  // GATE arrived on 10 Sep and refuses candidates AFTER they are inserted, which the old
+  // predicate could not see. A run that inserted twenty and had all twenty set aside therefore
+  // read as a healthy `served` batch: "Sourced 20 leads." over an empty desk, and the client's
+  // Proof attempt CONSUMED for a set that was never delivered.
+  //
+  // ⚠️ THE RULE IS UNCHANGED — only the count it asks about is. `clientUsableCount` is the
+  // number that reached the desk; `inserted` remains the raw sourcing figure and still goes to
+  // `icp_run_outcomes.total_inserted` untouched (founder decision C).
+  //
+  // ⚠️ ONE ELIGIBLE LEAD IS STILL A SERVED BATCH. The 26-Aug partial-proof rule is preserved by
+  // construction: `clientUsable` is only 0 when NOTHING reached the desk.
+  const clientUsable = clientUsableCount(inserted, setAsideCount)
   const trusted = searchTrust !== 'unproven'
+  const gatesAteEverything = gatesEmptiedTheRun({
+    clientUsable, searchTrusted: trusted, providerContactsReturned,
+  })
   const status = gatesAteEverything
     ? 'failed'
-    : deriveRunStatus(!!clientSettings?.is_demo, inserted, false, audienceExhausted, trusted)
+    : deriveRunStatus(!!clientSettings?.is_demo, clientUsable, false, audienceExhausted, trusted)
   if (gatesAteEverything) {
-    console.log(`[icp] icp ${icpId} — search completed and returned ${providerContactsReturned} contact(s); K.I.N.D removed every one (${removedByGeoGate} geography unknown/non-matching · ${removedBySuppression} suppression/opt-out/DNC · ${removedByDedupe} already owned · rest insert/cap). Neutral review state; targeting NOT blamed.`)
+    console.log(`[icp] icp ${icpId} — search completed and returned ${providerContactsReturned} contact(s); K.I.N.D removed every one (${removedByGeoGate} geography unknown/non-matching · ${removedBySuppression} suppression/opt-out/DNC · ${removedByDedupe} already owned · ${setAsideCount} set aside by the structural gate · rest insert/cap). Neutral review state; targeting NOT blamed.`)
     void sendFounderAlert('source_down', 'A completed search was emptied entirely by K.I.N.D-side gates', [
       `Client ${clientId}, ICP ${icpId}.`,
       `${providerContactsReturned} contact(s) matched the targeting; removed: ${removedByGeoGate} by the hard geography gate (country missing or not canonically in the client's targeting), ${removedBySuppression} by suppression/opt-out/DNC, ${removedByDedupe} already owned by this client, remainder by insert failure or cap.`,
@@ -2478,6 +2557,13 @@ export async function runIcpJob(
       // (guarded by proof-outcome-matrix.test.ts) and holds in EVERY variant of this state.
       ...(removedByGeoGate > 0
         ? ['Geography rejections on a healthy PDL run should be ZERO (the query already filters by location_country) — a non-zero count means the provider result contract drifted or a mapping lost the country field. Investigate the provider, not the targeting.']
+        : []),
+      // ⚑ 16 Sep (A1) — APPENDED, NEVER SUBSTITUTED. The sentence above is this alert's
+      // invariant promise (guarded by proof-outcome-matrix.test.ts) and holds in every
+      // variant of this state. This line names the NEW variant the predicate can now see:
+      // candidates that were inserted and then structurally refused.
+      ...(setAsideCount > 0
+        ? [`${setAsideCount} of them were INSERTED and then set aside by the structural gate (a hard criterion answered "no", or could not be confirmed at all). The rows are still there, unsurfaced, each carrying its own set_aside_reason — Vida's Proof exception panel groups them. Correct the targeting or confirm the missing facts, then Retry Proof: the attempt was RELEASED, not spent.`]
         : []),
     ]).catch(() => {})
   }
@@ -2636,7 +2722,10 @@ export async function runIcpJob(
     }
   }
 
-  await recordRunOutcome(icpId, clientId, status, effectiveCap, pool.served, inserted, heldFromIcp, didWiden)
+  // ⛓️ 16 Sep (A1) — TWO COUNTS, AND THE ARGUMENT ORDER SAYS WHICH IS WHICH. `inserted` stays
+  // in the `total_inserted` position (raw sourcing truth, for audit and accounting);
+  // `clientUsable` is appended and drives ONLY the sentence the client reads.
+  await recordRunOutcome(icpId, clientId, status, effectiveCap, pool.served, inserted, heldFromIcp, didWiden, clientUsable)
   // The ordinary end. `status` is whatever `deriveRunStatus` concluded — including `failed`
   // when the provider search did not COMPLETE, which is a provider failure that returns the
   // pass, and `quota_exhausted`, which spent nothing. served / no_match / audience_exhausted

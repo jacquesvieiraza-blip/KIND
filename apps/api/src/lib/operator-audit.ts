@@ -108,11 +108,22 @@ export type OperatorAction =
   | 'proof_legacy_passes_reclassified'    // the same, DELIBERATELY overwritten — a separate decision, never a retry
   | 'proof_legacy_restart_classified'     // a pre-ledger calibrated restart: completed, or burned and returned
   | 'proof_claim_reconciled'              // an OPEN claim with no trustworthy terminal outcome, settled by a person
+  | 'proof_retry_zero_eligible'  // ⚑ 16 Sep (A1b) — an operator retried Proof after K.I.N.D's
+                            // own structural gate refused every sourced candidate. Audited
+                            // whether or not it started, because "I pressed it and nothing
+                            // happened" is exactly what an audit trail has to be able to
+                            // answer — and because the press starts a real provider run
+                            // against a Proof attempt the failed run had released.
   | 'programme_go_live'      // the explicit, separate Go Live. Never a side effect of P2.
   // ⚑ 10 Sep (H) — RUN, and it is a DIFFERENT act from Go Live. Go Live arms and sends zero;
   // this is the grant that lets any send path consider the programme at all. Two acts, two
   // audit actions, so "who armed it" and "who started it" are separately answerable.
   | 'programme_run'
+  | 'programme_review_resolved'  // ⚑ 16 Sep (D3) — an operator cleared the R77 review hold, so
+                            // this programme's next batch may start again. Audited because it
+                            // returns authority to spend on a programme that is not
+                            // converting, and because before this build the hold had no
+                            // writer for its resolution at all — it was a one-way door.
   | 'programme_icp_attached' // the ONLY writer of icps.programme_id — what future sourcing feeds
   | 'client_commercial_model_set'  // ⚑ 3 Sep (C2) — an operator DECLARED which commercial model
                             // governs a client: programme, legacy, or back to unclassified. Its
@@ -219,6 +230,16 @@ export type OperatorAction =
                             // action rather than a flag on the success row, because "we imported"
                             // and "we imported 340 of 900 and stopped" are different events, and
                             // the log that blurs them is the one that stops you looking (#564).
+  | 'unattributed_reply_attributed'  // ⚑ 17 Sep — a human decided WHO an inbound reply belongs
+                            // to, after the system refused to guess. Audited because it is the
+                            // only act in the product that makes an external reply visible to a
+                            // client on a person's judgement rather than on evidence — so who
+                            // chose, which client they chose, and which candidates they chose
+                            // from all have to survive the decision.
+  | 'unattributed_reply_discarded'   // the same decision the other way: it belongs to NONE of
+                            // the candidates. Its own action, not a flag, for the #564 reason
+                            // above — "attributed to Acme" and "belongs to nobody" are different
+                            // events and the log that blurs them is the one nobody reads.
 
 export interface OperatorAuditEntry {
   operatorEmail: string

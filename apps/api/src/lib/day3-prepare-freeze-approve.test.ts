@@ -207,11 +207,20 @@ describe('🛑 ③ assigned and verified are two facts', () => {
     const { preparationBlockers } = await import('./preparation-readiness')
     expect(preparationBlockers({ ...READY, senderVerified: false }).length,
       'an unverified sender let the programme become reviewable').toBeGreaterThan(0)
-    // ⚠️ AND PREPARATION CANNOT CLEAR IT — a mailbox login is not something a preparation run
-    // can go and prove, so listing it would draw a button that cannot succeed.
+    // ⛓️ 16 Sep (MVP1 · C1d) — RE-POINTED. This test's OWN duty — "an unverified sender blocks
+    // the FREEZE" — is asserted above and is untouched: the programme still has blockers and
+    // still cannot become reviewable.
+    //
+    // 🛑 WHAT WAS RE-POINTED IS THE CLAUSE BENEATH IT: ~~"a mailbox login is not something a
+    // preparation run can go and prove, so listing it would draw a button that cannot
+    // succeed."~~ That was true of preparation as it was. `prepareProgrammeOutreach` now
+    // claims a pooled mailbox from the env-backed inventory and runs the existing `verifyInbox`
+    // against it (step ⓿), so proving a login is now precisely what a preparation run does —
+    // and withholding the button would leave an operator staring at a blocker with no control,
+    // which is the same defect pointing the other way.
     const { PREPARATION_CLEARS } = await import('./preparation-readiness')
-    expect(PREPARATION_CLEARS).not.toContain('sender_unverified')
-    expect(PREPARATION_CLEARS).not.toContain('no_sender')
+    expect(PREPARATION_CLEARS).toContain('sender_unverified')
+    expect(PREPARATION_CLEARS).toContain('no_sender')
   })
 
   // ⛓️ 11 Sep — THESE TWO CASES EXIST BECAUSE A TOOTH DID NOT BITE. The mapping from the sender

@@ -19,8 +19,21 @@ type Row = Record<string, unknown>
 // carries the programme — a programme with nothing sourced cannot be put to a client for
 // approval. Before this the fake mapped every unknown table onto `programmes`, so the head
 // count came back with no `count` at all and the transition was refused for the wrong reason.
-const state: { programmes: Row[]; batches: Row[]; commissions: Row[]; ledger: Row[]; leads: Row[]; alerts: string[] } = {
-  programmes: [], batches: [], commissions: [], ledger: [], leads: [], alerts: [],
+// ⛓️ 16 Sep (MVP1 · A3) — `clients` AND `icps` ARE NOW REAL TABLES IN THIS DOUBLE.
+//
+// 🛑 THEY USED TO FALL THROUGH TO `programmes`. `makeTable`'s router sent every unrecognised
+// table name to the programmes array, so `db.from('clients')` read a PROGRAMME row. That was
+// harmless while nothing in this file's code path read another table — and it stopped being
+// harmless the moment `createProgramme` began proving the client's journey before inserting.
+//
+// ⚠️ THE FIXTURE IS EXTENDED, NOT THE ASSERTIONS. Every test below proves what it always
+// proved; they simply now describe a client who has actually completed Proof and has
+// targeting, which is the precondition the product enforces (A3).
+const state: {
+  programmes: Row[]; batches: Row[]; commissions: Row[]; ledger: Row[]; leads: Row[]
+  clients: Row[]; icps: Row[]; alerts: string[]
+} = {
+  programmes: [], batches: [], commissions: [], ledger: [], leads: [], clients: [], icps: [], alerts: [],
 }
 
 /**
@@ -93,7 +106,10 @@ vi.mock('@kind/db', () => ({
     from: (t: string) => makeTable(t === 'programme_batches' ? 'batches'
       : t === 'partner_commissions' ? 'commissions'
       : t === 'sourcing_ledger' ? 'ledger'
-      : t === 'leads' ? 'leads' : 'programmes'),
+      : t === 'leads' ? 'leads'
+      // ⛓️ 16 Sep (A3) — named explicitly rather than swept into `programmes`.
+      : t === 'clients' ? 'clients'
+      : t === 'icps' ? 'icps' : 'programmes'),
     rpc: async (fn: string, args: Record<string, unknown>) => {
       if (fn === 'settle_programme_batch') {
         const b = state.batches.find(x => x.id === args.p_batch_id) as Row | undefined
@@ -163,7 +179,16 @@ function seed(over: Partial<ProgrammeRow> = {}): ProgrammeRow {
   return p as unknown as ProgrammeRow
 }
 
-beforeEach(() => { state.programmes = []; state.batches = []; state.commissions = []; state.ledger = []; state.leads = []; state.alerts = [] })
+beforeEach(() => {
+  state.programmes = []; state.batches = []; state.commissions = []; state.ledger = []
+  state.leads = []; state.alerts = []
+  // ⛓️ 16 Sep (A3) — THE CLIENT THIS FILE HAS ALWAYS BEEN ABOUT, stated rather than assumed:
+  // one who confirmed their Proof examples and has targeting to source from. Without these
+  // two rows `createProgramme` now (correctly) refuses, and the tests below would be proving
+  // the new gate instead of the payment and lifecycle writers they were written for.
+  state.clients = [{ id: 'client-1', proof_completed_at: '2026-09-01T00:00:00Z' }]
+  state.icps = [{ id: 'icp-1', client_id: 'client-1', is_active: true, created_at: '2026-09-01T00:00:00Z' }]
+})
 
 describe('① the lifecycle has no PAUSED status — pause is orthogonal', () => {
   it('PAUSED is not a status, and every status is one of the ten', () => {

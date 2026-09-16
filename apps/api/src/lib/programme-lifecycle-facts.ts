@@ -151,6 +151,103 @@ async function proofCompletedFor(clientId: string): Promise<boolean | null> {
 }
 
 /**
+ * ⚑ 16 Sep (MVP1 · A1b) — DID THE LAST PROOF RUN PRODUCE NOTHING THE CLIENT CAN USE?
+ *
+ * 🛑 THE STATE WITH NO READER. A completed search whose every candidate our structural gate
+ * refused records `icp_run_outcomes.status = 'failed'`, releases the Proof attempt, and shows
+ * the client *"Your setup is saved and has been flagged for K.I.N.D review."* Nothing then
+ * told a human: `founder_alerts` is written and read by no operator surface, `/operator/alerts`
+ * has no run-failure kind, and `deriveLifecycle` returned "No action needed" — so Vida's rail
+ * filtered the client out entirely. The promise of a person was empty.
+ *
+ * ⚠️ TWO CONDITIONS, AND THE SECOND IS THE DISCRIMINATOR, NOT A SAFETY NET. `failed` has three
+ * writers: the outer crash handler, a provider search that did not complete, and the gate. Only
+ * the gate leaves rows behind — candidates INSERTED and then refused, each carrying its own
+ * `set_aside_reason` and no `surfaced_for_approval_at`. Requiring at least one of those is what
+ * stops this exception claiming a crash as its own and sending an operator to fix targeting
+ * that was never the problem.
+ *
+ * ⚠️ NO NEW TABLE AND NO NEW COLUMN. Both facts are rows that already exist.
+ *
+ * ⚠️ FAILS SOFT TO `null`, like every other read in this file: an unreadable answer must not
+ * invent an operator task, because a transient error would raise one on every client at once.
+ */
+export async function proofNoEligibleSetFor(clientId: string): Promise<boolean | null> {
+  try {
+    const { data: run, error: runErr } = await db.from('icp_run_outcomes')
+      .select('status').eq('client_id', clientId)
+      .order('created_at', { ascending: false }).limit(1).maybeSingle()
+    if (runErr) return null
+    // No run at all is not an exception — it is a client Proof has not reached yet.
+    if (!run) return false
+    if (String((run as unknown as { status: string }).status) !== 'failed') return false
+
+    // 🛑 THE GATE'S OWN FOOTPRINT. Unsurfaced, reason-carrying rows exist only where the
+    // structural gate refused candidates it had already inserted.
+    const { count, error: leadErr } = await db.from('leads')
+      .select('id', { count: 'exact', head: true })
+      .eq('client_id', clientId)
+      .not('set_aside_reason', 'is', null)
+      .is('surfaced_for_approval_at', null)
+    if (leadErr) return null
+    return (count ?? 0) > 0
+  } catch { return null }
+}
+
+/**
+ * ⚑ 16 Sep (MVP1 · A1b) — THE EVIDENCE BEHIND THE EXCEPTION, in the gate's own words.
+ *
+ * 🛑 A NEEDS-YOU WITH NO EVIDENCE IS AN ALARM, NOT A TASK. An operator told only "we could not
+ * produce a set" has to go and read the database. The gate already persisted the answer:
+ * `leads.set_aside_reason` holds human-readable text per refused candidate — *"geography: their
+ * country could not be confirmed"* — written by `setAsideReason` in `proof-fit.ts`. This groups
+ * it, so the panel can say WHICH criterion emptied the batch and how many times.
+ *
+ * ⚠️ IT READS, IT DOES NOT RE-JUDGE. No criterion is re-evaluated here and `hardFit` is not
+ * called: re-deriving the reason would be a second opinion about a refusal that already
+ * happened, and the two could disagree.
+ *
+ * ⚠️ THE RAW SOURCED COUNT COMES FROM THE OUTCOME ROW, which is the raw figure on purpose —
+ * this is the OPERATOR's panel, and an operator needs to know twenty were paid for.
+ *
+ * ⚠️ FAILS SOFT TO `null`. The verdict does not depend on this; a client is a task because the
+ * run failed, not because the evidence was legible.
+ */
+async function proofExceptionEvidenceFor(clientId: string): Promise<{
+  sourced: number; setAside: number; reasons: Record<string, number>
+} | null> {
+  try {
+    const { data: run } = await db.from('icp_run_outcomes')
+      .select('status, total_inserted').eq('client_id', clientId)
+      .order('created_at', { ascending: false }).limit(1).maybeSingle()
+    if (!run) return null
+    const r = run as unknown as { status: string; total_inserted: number | null }
+    if (String(r.status) !== 'failed') return null
+
+    const { data: rows, error } = await db.from('leads')
+      .select('set_aside_reason').eq('client_id', clientId)
+      .not('set_aside_reason', 'is', null)
+      .is('surfaced_for_approval_at', null)
+      .limit(500)
+    if (error || !rows) return null
+    const reasons: Record<string, number> = {}
+    for (const row of rows as unknown as { set_aside_reason: string | null }[]) {
+      const text = (row.set_aside_reason ?? '').trim()
+      if (!text) continue
+      // The persisted text is `"<criterion>: <sentence>"`. Group on the criterion so a panel
+      // reads "geography 18 · seniority 2" rather than eighteen identical sentences.
+      const key = text.includes(':') ? text.slice(0, text.indexOf(':')).trim() : text
+      reasons[key] = (reasons[key] ?? 0) + 1
+    }
+    return {
+      sourced: Math.max(0, Number(r.total_inserted ?? 0)),
+      setAside: rows.length,
+      reasons,
+    }
+  } catch { return null }
+}
+
+/**
  * ⚑ MVP1 (C03) — WHAT THE CLIENT SAID THEY WANT, IN THEIR OWN WORDS.
  *
  * 🛑 THE FACT VIDA WAS NEVER TOLD. `clients.outcome_stated` has existed since
@@ -358,6 +455,13 @@ export type LifecycleDetail = {
     meetingTarget: number | null
     entitlementUsed: number; entitlementTotal: number; entitlementRemaining: number
   }
+  /**
+   * ⚑ 16 Sep (MVP1 · A1b) — WHY the Proof set came out empty, from the gate's own persisted
+   * reasons. Present only for a `proof_exception` client; `null` for everybody else, and also
+   * when the evidence could not be read — the task stands either way, because the verdict
+   * derives from the run, not from this.
+   */
+  proofException: { sourced: number; setAside: number; reasons: Record<string, number> } | null
   /** The named person behind a `review_reply`, so the card is about somebody. */
   replyAwaiting: { id: string; name: string | null; company: string | null; classification: string | null } | null
   /** Blockers a human must clear, in the plain sentences readiness already writes. */
@@ -414,21 +518,30 @@ export async function lifecycleDetailFor(clientId: string): Promise<LifecycleDet
   const p = currentProgramme(rows)
 
   if (!p) {
-    const [proofStarted, proofCalibrationFailed, proofCompleted, outcomeStated] = await Promise.all([
+    const [
+      proofStarted, proofCalibrationFailed, proofCompleted, outcomeStated,
+      proofNoEligibleSet, proofException,
+    ] = await Promise.all([
       proofStartedFor(clientId), proofCalibrationFailedFor(clientId), proofCompletedFor(clientId),
       // ⚑ MVP1 (C03) — read on BOTH branches. This one is the Brief/Proof client, and it is
       // the branch where an operator most needs the client's own sentence: there is no
       // meeting target yet, so it is the only statement of what they want that exists.
       outcomeStatedFor(clientId),
+      // ⚑ 16 Sep (A1b) — the verdict-driving fact, and the evidence that explains it. Read
+      // separately because the VERDICT must not depend on the evidence being readable: a
+      // client is a task because the run failed, not because we could group its reasons.
+      proofNoEligibleSetFor(clientId),
+      proofExceptionEvidenceFor(clientId),
     ])
     return {
       verdict: deriveLifecycle({
-        programme: null, proofStarted, proofCalibrationFailed, proofCompleted,
+        programme: null, proofStarted, proofCalibrationFailed, proofCompleted, proofNoEligibleSet,
         preparationStopped: false, preparing: false,
         humanBlockers: [], readinessReady: false, sends: 0, repliesAwaitingDecision: 0,
         senderSendable: true, killSwitchOff, operatorRunEnabled,
         remainingEntitlement: 0, hasNewerProgramme: false, repeatDismissed: false,
       }),
+      proofException,
       // ⚠️ NO PROGRAMME MEANS NO PACKAGE. A client at Brief or Proof has nothing frozen, and
       // saying so is the honest answer — not an omitted field the panel would read as fine.
       counts: { ...NO_COUNTS }, programme: null, replyAwaiting: null, frozenPackage: null,
@@ -591,6 +704,10 @@ export async function lifecycleDetailFor(clientId: string): Promise<LifecycleDet
     verdict, counts, replyAwaiting, humanBlockers, stoppedDetail,
     senderSendable, senderDetail: sender.detail, killSwitchOff, operatorRunEnabled, outcomeStated,
     frozenPackage,
+    // ⚑ 16 Sep (A1b) — A PROGRAMME CLIENT IS NEVER A PROOF EXCEPTION. Proof belongs to
+    // prospects, and a programme's own sourcing failures are `sourcing_exception`'s job.
+    // Stated rather than omitted: an absent field would read as "not checked".
+    proofException: null,
     programme: {
       id: p.id, status: String(p.status), meetingTarget: p.meeting_target,
       entitlementUsed, entitlementTotal, entitlementRemaining,
@@ -660,6 +777,8 @@ export async function lifecycleBoard(clientIds: string[]): Promise<LifecycleBoar
   // Proof — never as a silent "this client needs nothing".
   const escalatedProof = new Set<string>()
   const completedProof = new Set<string>()
+  /** ⚑ 16 Sep (A1b) — clients whose latest run failed AND who carry the gate's footprint. */
+  const noEligibleProof = new Set<string>()
   let proofFactsRead = true
   try {
     const { data, error } = await db.from('clients')
@@ -672,6 +791,41 @@ export async function lifecycleBoard(clientIds: string[]): Promise<LifecycleBoar
     }[])) {
       if (r.proof_review_requested_at && !r.proof_review_resolved_at) escalatedProof.add(r.id)
       if (r.proof_completed_at) completedProof.add(r.id)
+    }
+    // ── 🛑 ⚑ 16 Sep (MVP1 · A1b) — AND THE ZERO-ELIGIBLE EXCEPTION, IN TWO MORE BULK READS ──
+    //
+    // Same lesson as the escalation above, one step further on: the board is the source of the
+    // LIST, the stage word and the Needs-you COUNT, so a task the board cannot see is a task
+    // nobody is shown — and the client filtered out of the rail entirely.
+    //
+    // ⚠️ TWO QUERIES FOR EVERYBODY, never one per row. The failed-run set and the set-aside
+    // footprint are each a single `.in('client_id', ids)` read, matching every other bulk read
+    // in this function.
+    const { data: runRows, error: runErr } = await db.from('icp_run_outcomes')
+      .select('client_id, status, created_at').in('client_id', ids)
+      .order('created_at', { ascending: false })
+    if (runErr) throw new Error(runErr.message)
+    // Newest row per client wins — the list arrives newest-first, so the first sighting is it.
+    const latestRunStatus = new Map<string, string>()
+    for (const r of ((runRows ?? []) as { client_id: string; status: string }[])) {
+      if (!latestRunStatus.has(r.client_id)) latestRunStatus.set(r.client_id, String(r.status))
+    }
+    const failedClients = [...latestRunStatus.entries()]
+      .filter(([, s]) => s === 'failed').map(([id]) => id)
+
+    // 🛑 THE DISCRIMINATOR, in bulk. Only the structural gate leaves refused-but-inserted rows;
+    // a crash and an incomplete search leave none. Asked ONLY of the clients whose latest run
+    // failed, so a healthy board costs nothing.
+    if (failedClients.length > 0) {
+      const { data: setAsideRows, error: saErr } = await db.from('leads')
+        .select('client_id').in('client_id', failedClients)
+        .not('set_aside_reason', 'is', null)
+        .is('surfaced_for_approval_at', null)
+        .limit(2000)
+      if (saErr) throw new Error(saErr.message)
+      for (const r of ((setAsideRows ?? []) as { client_id: string }[])) {
+        noEligibleProof.add(r.client_id)
+      }
     }
   } catch (e) {
     proofFactsRead = false
@@ -749,6 +903,9 @@ export async function lifecycleBoard(clientIds: string[]): Promise<LifecycleBoar
         // asserting the client is fine — the same rule `proofCalibrationFailedFor` applies.
         proofCalibrationFailed: proofFactsRead ? escalatedProof.has(clientId) : null,
         proofCompleted: proofFactsRead ? completedProof.has(clientId) : null,
+        // ⚑ 16 Sep (A1b) — same fail-soft rule: `null` on an unreadable board asserts nothing
+        // rather than inventing a Needs-you for every client at once.
+        proofNoEligibleSet: proofFactsRead ? noEligibleProof.has(clientId) : null,
         preparationStopped: false, preparing: false, humanBlockers: [], readinessReady: false,
         sends: 0, repliesAwaitingDecision: 0, senderSendable: true,
         killSwitchOff, operatorRunEnabled, remainingEntitlement: 0,

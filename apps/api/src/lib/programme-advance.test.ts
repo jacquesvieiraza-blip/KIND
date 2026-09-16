@@ -235,15 +235,28 @@ describe('the preparable/ready split is honest', () => {
   it('never claims to clear a blocker preparation cannot clear', () => {
     // 🛑 THESE ARE THE ONES A HUMAN MUST GO AND FIX. Listing any of them would draw the button
     // on a programme where pressing it changes nothing — the loop the split exists to prevent.
+    // ⛓️ 16 Sep (MVP1 · C1d) — `no_sender` LEFT THIS LIST, and the reason is a real change in
+    // what preparation DOES rather than a relaxation. `prepareProgrammeOutreach` now claims a
+    // pooled mailbox from the env-backed inventory and runs the existing `verifyInbox` against
+    // it (step ⓿), so pressing the button is exactly what settles a sender — and withholding
+    // it would leave an operator staring at a blocker with no control, which is the same
+    // unreachable-button defect pointing the other way. Every code that a human genuinely must
+    // go and fix is still here, and this guard is still the one that proves it.
     for (const code of [
       'wrong_status', 'paused', 'no_attached_icp', 'no_batch',
-      'no_reviewable_leads', 'no_sender', 'foreign_enrolments',
+      'no_reviewable_leads', 'foreign_enrolments',
     ]) {
       expect(PREPARATION_CLEARS, `${code} is claimed to be cleared by preparation`).not.toContain(code)
     }
   })
 
-  it('a missing sender keeps the programme unpreparable, however much else is ready', () => {
+  // ⛓️ 16 Sep (MVP1 · C1d) — RE-POINTED TO THE DUTY THAT SURVIVED.
+  //
+  // 🛑 A MISSING SENDER STILL BLOCKS READINESS — that is the founder's rule and it is asserted
+  // below. What changed is whether it makes the programme UNPREPARABLE: preparation now claims
+  // and verifies a mailbox, so a programme whose only gap is a sender IS one press away, and
+  // that press is what fixes it.
+  it('a missing sender still BLOCKS, and is now one preparation away', () => {
     const facts: PreparationFacts = {
       programmeId: 'p', programmeStatus: 'SOURCING', paused: false,
       attachedIcpId: 'i', batchId: 'b', reviewableLeads: 246,
@@ -253,8 +266,11 @@ describe('the preparable/ready split is honest', () => {
       senderAssigned: false, senderVerified: false, senderProblem: null, eligibleEnrolments: 0, foreignEnrolments: 0, snapshotSupported: false,
     }
     const blockers = preparationBlockers(facts)
+    // The rule the founder locked: zero valid assigned senders = refuse.
     expect(blockers.map(b => b.code)).toContain('no_sender')
-    expect(onlyPreparationBlocks(blockers), 'a programme with no mailbox was called preparable').toBe(false)
+    expect(blockers.length, 'a programme with no mailbox was called ready').toBeGreaterThan(0)
+    // And the change: the press that clears it now exists.
+    expect(onlyPreparationBlocks(blockers), 'the sender can no longer be settled by preparing').toBe(true)
   })
 
   // ⛓️ RETARGETED 9 Sep (twice, same day) — AND THE SECOND MOVE IS A BEHAVIOUR CHANGE, NOT A

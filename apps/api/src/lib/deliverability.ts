@@ -16,7 +16,10 @@ import { POSTAL_FOOTER_LINE } from '@kind/shared'
 // D4 — cold outreach identity. MUST be a dedicated warmed domain in production,
 // NOT the transactional domain. Falls back to the transactional identity only in
 // dev (with a loud warning) so local sends still work.
-const COLD_FROM_DEFAULT = 'K.I.N.D <hello@get-kind.com>'
+// ⚑ 16 Sep (GAP 1) — EXPORTED so `sender-pool.ts` can reserve it rather than re-typing the
+// address. It is the transactional identity every invoice, password reset and welcome email
+// leaves from, and the value `COLD_FROM` falls back to; a client must never be handed either.
+export const COLD_FROM_DEFAULT = 'K.I.N.D <hello@get-kind.com>'
 export const COLD_FROM = process.env.FIGSY_COLD_FROM || COLD_FROM_DEFAULT
 export const COLD_REPLY_TO =
   process.env.FIGSY_COLD_REPLY_TO || process.env.FIGSY_REPLY_TO || 'hello@get-kind.com'

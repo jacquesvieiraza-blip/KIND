@@ -276,7 +276,14 @@ describe('C · runIcpJob carries a FAIL-CLOSED trust state into the persisted st
 
   it('the persisted status is derived from the trust reader', () => {
     expect(src).toContain("const trusted = searchTrust !== 'unproven'")
-    expect(src).toContain('deriveRunStatus(!!clientSettings?.is_demo, inserted, false, audienceExhausted, trusted)')
+    // ⛓️ 16 Sep (MVP1 · A1) — RE-POINTED, NOT WEAKENED. The count argument moved from the raw
+    // `inserted` to `clientUsable` (raw minus structurally set aside), because a batch whose
+    // every candidate was refused was deriving `served`. The DUTY this guard protects is
+    // unchanged and still asserted: the trust reader, not an absence of error, decides the
+    // status, and `trusted` is what carries it in.
+    expect(src).toContain('deriveRunStatus(!!clientSettings?.is_demo, clientUsable, false, audienceExhausted, trusted)')
+    // And the count it is given is the gated one, derived by the shared pure function.
+    expect(src).toContain('const clientUsable = clientUsableCount(inserted, setAsideCount)')
   })
 
   it('the PROVED-ZERO widened branch stays trustworthy — a real zero is still no_match', () => {
@@ -332,7 +339,15 @@ describe('E · suppression must never be reported as a targeting failure', () =>
   // truth — a zero that K.I.N.D itself created (suppression, dedupe, insert failure) is
   // never a targeting verdict. One condition now covers every K.I.N.D-side removal.
   it('a completed search whose contacts K.I.N.D removed does NOT derive no_match', () => {
-    expect(src).toContain("const gatesAteEverything = inserted === 0 && searchTrust !== 'unproven' && providerContactsReturned > 0")
+    // ⛓️ 16 Sep (MVP1 · A1) — RE-POINTED, AND THE RULE GOT WIDER RATHER THAN NARROWER.
+    //
+    // The predicate was inline and asked `inserted === 0`, which caught every K.I.N.D-side
+    // removal that happens BEFORE the insert (suppression, dedupe, insert failure) and missed
+    // the one that happens after it: the 10-Sep STRUCTURAL GATE. It is now the shared pure
+    // `gatesEmptiedTheRun`, asked about the count that actually reached the desk — so the
+    // set-aside case joins the very family this test was written to defend.
+    expect(src).toContain('const gatesAteEverything = gatesEmptiedTheRun({')
+    expect(src).toContain('clientUsable, searchTrusted: trusted, providerContactsReturned,')
     expect(src).toContain("? 'failed'")
   })
 
@@ -464,8 +479,9 @@ describe('F · dedupe-all is a neutral review state, not a targeting verdict', (
   })
 
   it('a completed search fully deduped routes to the SAME neutral state as suppression-all', () => {
-    // One condition covers every K.I.N.D-side removal: returned > 0, inserted 0, trusted.
-    expect(src).toContain("const gatesAteEverything = inserted === 0 && searchTrust !== 'unproven' && providerContactsReturned > 0")
+    // One condition covers every K.I.N.D-side removal: returned > 0, nothing usable, trusted.
+    // ⛓️ 16 Sep (A1) — and "nothing usable" now means AFTER the structural gate, not before it.
+    expect(src).toContain('const gatesAteEverything = gatesEmptiedTheRun({')
   })
 
   it('audience_exhausted was REJECTED for this case, with the reason in the source', () => {
@@ -543,7 +559,10 @@ describe('F · the complete status space — no value exists as an untested assu
     // ⛓️ 15 Sep (S1-RT-004) — same call, same specificity; the shared module names the icp
     // `icpId` instead of re-reading `req.params.id`, because it is no longer inside the route.
     expect(src).toContain("recordRunOutcome(icpId, clientId, 'failed', PROOF_PASS_LEADS, 0, 0)")
-    expect(src).toContain('recordRunOutcome(icpId, clientId, status, effectiveCap, pool.served, inserted, heldFromIcp, didWiden)')
+    // ⛓️ 16 Sep (MVP1 · A1) — RE-POINTED. One argument was APPENDED: the client-usable count,
+    // which drives the SENTENCE only. `inserted` is still in the `total_inserted` position, so
+    // the raw sourcing figure this guard protects is provably unchanged (founder decision C).
+    expect(src).toContain('recordRunOutcome(icpId, clientId, status, effectiveCap, pool.served, inserted, heldFromIcp, didWiden, clientUsable)')
   })
 
   it('every status carries client copy, and none leaks mechanics', () => {
@@ -1055,8 +1074,14 @@ describe('H · a completed zero AFTER the one widened fallback never advises wid
     expect(flag, 'the flag is set inside the widen branch').toBeGreaterThan(branch)
     expect(flag, 'and BEFORE the search, so every exit carries it').toBeLessThan(search)
     // And it reaches the persisted message through the single record call.
-    expect(src).toContain('heldFromIcp, didWiden)')
-    expect(src).toContain('runOutcomeMessage(status, totalInserted, alreadyHeld, alreadyWidened)')
+    // ⛓️ 16 Sep (A1) — the tail call gained the client-usable count; `didWiden` still reaches
+    // the persisted message through that single record call, which is this guard's whole point.
+    expect(src).toContain('heldFromIcp, didWiden, clientUsable)')
+    // ⛓️ 16 Sep (A1) — the message now derives from the CLIENT-USABLE count rather than the raw
+    // one. `alreadyWidened` still travels with it, unchanged, and `total_inserted` is asserted
+    // separately (below) to still be written from the raw figure.
+    expect(src).toContain('runOutcomeMessage(status, Math.max(0, Math.round(clientUsable)), alreadyHeld, alreadyWidened)')
+    expect(src).toContain('total_inserted: Math.max(0, Math.round(totalInserted)),')
   })
 
   it('THE WIDENED FALLBACK IS STILL REACHED — an exact trustworthy zero leads into it', () => {

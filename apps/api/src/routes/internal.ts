@@ -1912,11 +1912,35 @@ internalRouter.post('/leads/drip', async (_req: Request, res: Response) => {
         //
         // Programme prospects are judged by `qualifyCandidates` and made visible by
         // `surfaceQualifiedBatch`. Legacy, non-programme behaviour below is untouched.
+        // ── 🛑 ⚑ 16 Sep (MVP1 · F2) — AND NEITHER CAN A PROOF SET OR A REFUSED CANDIDATE ──
+        //
+        // 🛑 THE 9-SEP FENCE ABOVE WAS NOT ENOUGH, because `programme_id IS NULL` is EXACTLY
+        // what the two newest kinds of row look like:
+        //
+        //   · a free-Proof lead never acquires a programme identity (proof runs are excluded
+        //     from the programme-identity block by design), so `programme_id` is null;
+        //   · a candidate the STRUCTURAL GATE refused is inserted and never surfaced, so
+        //     `delivered_at` is null too.
+        //
+        // With no `qualifyAgainst`, this drip runs NO ICP gate. So the next morning it would
+        // have revealed and CHARGED FOR people our own gate had just decided not to show —
+        // ungated — and paced a client's calibration set at five a day as if it were legacy
+        // work. Both of those are money spent against a decision we had already made.
+        //
+        // ⚠️ ROW-LEVEL, NOT CLIENT-LEVEL. `proof_pass` is stamped by `runIcpJob` on exactly
+        // the ids one Proof run inserted, and `set_aside_reason` by the gate on exactly the
+        // ones it refused. Asking a counter on the client record instead is the defect
+        // `current-workspace.ts` withdrew its own first fix for.
+        //
+        // ⚠️ AND IT IS ADDITIVE. Legacy, non-programme, non-proof behaviour below is
+        // untouched: a row with no proof attribution and no refusal drips exactly as it did.
         const { data: pending } = await db.from('leads')
           .select('id')
           .eq('client_id', client.id)
           .is('programme_id', null)
           .is('delivered_at', null)
+          .is('proof_pass', null)
+          .is('set_aside_reason', null)
           .order('created_at', { ascending: true })
           .limit(toDeliver)
 

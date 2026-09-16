@@ -33,6 +33,14 @@ export type LifecycleState =
   | 'completion' | 'completion_repeat'
   /** ⚑ 10 Sep (C07) — Proof, handed to a person. A REASON, never a ninth stage. */
   | 'proof_calibration_failed'
+  /**
+   * ⚑ 16 Sep (MVP1 · A1b) — Proof produced NOTHING the client can use, and it was OUR gate.
+   *
+   * ⚠️ NOT `proof_calibration_failed`. That is the client saying a set they SAW is still not
+   * right; this is the system failing to produce a set at all. The client has already been
+   * shown *"flagged for K.I.N.D review"*, so this is the review that sentence promises.
+   */
+  | 'proof_exception'
   | 'blocked'
 
 export type VidaMode = 'No action needed' | 'Working' | 'Watching' | 'Needs you'
@@ -57,6 +65,25 @@ export type PanelAction = {
     // serves had no remedy: a package that moved under a reviewing client made every approval
     // press refuse, with nothing in the product able to issue a new version.
     | 'refreeze_package'
+    /**
+     * ⚑ 16 Sep (MVP1 · A1b) — RETRY PROOF after the operator has corrected the targeting.
+     *
+     * ⚠️ IT SPENDS NOTHING NEW. The `failed` run RELEASED the claim, so the ladder hands back
+     * the attempt the client already had. The route claims through `claimProofAuthority` like
+     * every other Proof start — no counter is touched by hand anywhere.
+     */
+    | 'retry_proof'
+    /**
+     * ⚑ 16 Sep (MVP1 · E1) — CLOSE THE PROGRAMME. The sixth stage's control.
+     *
+     * 🛑 IT DID NOT EXIST IN THE PRODUCT. `mayComplete`, `completeProgramme` and `POST
+     * /programmes/:id/complete` were all real and all reachable only by calling the API by
+     * hand, because Vida's payload never carried the verdict and the panel never drew a
+     * control. The final stage of a six-stage product had no button.
+     *
+     * ⚠️ IT APPEARS ONLY ON THE SERVER'S VERDICT, never on a stage. See `lifecycleCopy`.
+     */
+    | 'complete_programme'
   label: string
   kind: 'primary' | 'secondary'
   needsCeiling?: boolean
@@ -162,6 +189,32 @@ export type LifecycleCopyInput = {
    * blank the card.
    */
   senderDetail?: string | null
+  /**
+   * ⚑ 16 Sep (MVP1 · A1b) — WHY THE PROOF SET CAME OUT EMPTY, from the gate's own reasons.
+   *
+   * 🛑 A NEEDS-YOU WITH NO EVIDENCE IS AN ALARM, NOT A TASK. `leads.set_aside_reason` already
+   * holds a human sentence per refused candidate — *"geography: their country could not be
+   * confirmed"* — so the panel can name WHICH criterion emptied the batch instead of sending
+   * an operator to read the database.
+   *
+   * ⚠️ `sourced` IS THE RAW FIGURE ON PURPOSE. This is the operator's screen, and an operator
+   * needs to know twenty were paid for. The CLIENT never sees this object.
+   *
+   * ⚠️ `null` MEANS THE EVIDENCE COULD NOT BE READ, never "there is none". The task stands
+   * either way — the verdict derives from the run, not from this.
+   */
+  proofException?: { sourced: number; setAside: number; reasons: Record<string, number> } | null
+  /**
+   * ⚑ 16 Sep (MVP1 · E1) — THE SERVER'S COMPLETION VERDICT, and only the verdict.
+   *
+   * `mayComplete(p)` from `lib/programme.ts`, carried on the operator programme payload. The
+   * panel renders the control when `allowed` is true and explains the refusal with `reason`
+   * when it is not — it never learns the rule. A second copy of the eligibility test in the
+   * browser would be a second opinion about when a client's programme may end.
+   *
+   * ⚠️ `null`/absent MEANS NO CONTROL. An unreadable verdict must not offer a terminal action.
+   */
+  mayComplete?: { allowed: boolean; reason?: string } | null
 }
 
 export type LifecycleCopy = {
@@ -233,7 +286,34 @@ function vidaCard(value: string, caption?: string): PanelCard {
  * something is in the way rather than rendering an empty panel. There is no "unknown" screen:
  * an operator who is shown nothing assumes nothing is wrong.
  */
+/**
+ * ⚑ 16 Sep (MVP1 · E1) — THE PANEL, PLUS THE ONE CONTROL THAT IS NOT A STAGE'S.
+ *
+ * 🛑 COMPLETE IS APPENDED HERE RATHER THAN WRITTEN INTO A `case`, deliberately. `mayComplete`
+ * is a verdict about the PROGRAMME, not about a stage: it can be true on a delivering
+ * programme that has met its target, on one in review, and on one whose entitlement is spent.
+ * Putting it in one case would have meant discovering the missing cases later, one complaint
+ * at a time — which is exactly how a product ends up with a stage that has no button.
+ *
+ * ⚠️ THE SERVER DECIDES. If `mayComplete.allowed` is not exactly `true` — refused, absent, or
+ * unreadable — no control is added. Nothing here re-derives eligibility.
+ *
+ * ⚠️ AND IT IS SECONDARY, never primary. Whatever the stage's own next step is stays the
+ * emphasised one; closing a programme is available, not urged.
+ */
 export function lifecycleCopy(i: LifecycleCopyInput): LifecycleCopy {
+  const base = lifecycleCopyForState(i)
+  if (i.mayComplete?.allowed !== true) return base
+  if (base.actions.some(a => a.key === 'complete_programme')) return base
+  return {
+    ...base,
+    actions: [...base.actions, {
+      key: 'complete_programme', label: 'Complete programme', kind: 'secondary',
+    }],
+  }
+}
+
+function lifecycleCopyForState(i: LifecycleCopyInput): LifecycleCopy {
   const c = i.counts
   const target = i.programme?.meetingTarget ?? null
 
@@ -378,6 +458,74 @@ export function lifecycleCopy(i: LifecycleCopyInput): LifecycleCopy {
             ? [{ key: 'restart_proof_calibrated' as const, label: 'Restart Proof (calibrated)', kind: 'secondary' as const }]
             : []),
         ],
+      }
+    }
+
+    // ── ②c PROOF, AND WE PRODUCED NOTHING — the system exception (A1b, 16 Sep) ────────
+    //
+    // 🛑 THE OTHER PROOF-STAGE TASK, AND ITS CAUSE IS THE OPPOSITE OF ②b's. There the client
+    // looked at real people and said they were wrong. Here nobody looked at anything: the
+    // search worked, the provider returned people, and K.I.N.D's own structural gate refused
+    // every one of them — a hard criterion answered "no", or could not be confirmed at all.
+    //
+    // ⚠️ THE CLIENT HAS ALREADY BEEN PROMISED THIS CONVERSATION. Their desk shows the
+    // founder-locked *"Your setup is saved and has been flagged for K.I.N.D review. You won't
+    // need to start again."* This panel is that review. Before it existed the promise was
+    // empty: the alert went to a table no operator surface reads, and the client was filtered
+    // out of the rail for having nothing that needed attention.
+    //
+    // ⚠️ IT SAYS THE ATTEMPT IS STILL THERE, and that is not reassurance — it is the sentence
+    // that makes the retry pressable. An operator who thinks a retry costs the client a pass
+    // will not press it, and the prospect stays stopped for ever.
+    //
+    // ⚠️ AND IT NEVER TELLS THE OPERATOR TO PHONE THEM. That is ②b's remedy for ②b's cause.
+    // The remedy here is the ICP tools Vida already has, then Retry Proof.
+    case 'proof_exception': {
+      const ex = i.proofException ?? null
+      const ranked = Object.entries(ex?.reasons ?? {})
+        .filter(([, count]) => (count ?? 0) > 0)
+        .sort((a, b) => b[1] - a[1])
+      const breakdown = ranked.map(([label, count]) => `${label} ${n(count)}`).join(' · ')
+      const messages: string[] = [
+        `We could not produce a Proof set for ${i.clientName}. The search ran and found people — every one of them was then set aside by our own qualification, so nothing reached their desk.`,
+      ]
+      if (ex && ex.sourced > 0) {
+        messages.push(
+          `${plural(ex.sourced, 'prospect was', 'prospects were')} sourced and ${n(ex.setAside)} set aside` +
+          (breakdown ? ` — ${breakdown}.` : '.'),
+        )
+      }
+      if (ranked.length > 0) {
+        // The leading criterion is the one to act on; naming it stops an operator guessing.
+        messages.push(`Most of them failed on ${ranked[0][0]}. Correct that in their targeting, or confirm the fact we could not read, then retry.`)
+      } else {
+        messages.push(`I could not read the individual reasons. Open their ICP and check the hard criteria — geography is the usual one, because an unconfirmed country is treated as a miss.`)
+      }
+      messages.push(`Their attempt was NOT spent — the run released it. Retrying costs them nothing.`)
+      return {
+        subtitle: 'Proof · nothing we could show them',
+        messages,
+        chips: ['Why were they all set aside?', 'What should I change?'],
+        cards: [
+          { kind: 'fact', label: 'Stage', value: 'Proof', caption: 'We produced nothing to show' },
+          { kind: 'note', label: 'What happened', tone: 'exception',
+            body: breakdown
+              ? `Every sourced prospect failed a hard criterion: ${breakdown}. Nothing was shown to the client.`
+              : `Every sourced prospect failed a hard criterion. The individual reasons could not be read.` },
+          { kind: 'stats', label: 'This run', stats: [
+            { value: n(ex?.sourced ?? 0), label: 'Sourced' },
+            { value: '0', label: 'Eligible' },
+            { value: n(ex?.setAside ?? 0), label: 'Set aside' },
+          ] },
+          // 🛑 THE FACT THAT MAKES THE BUTTON PRESSABLE.
+          { kind: 'fact', label: 'Their attempt', value: 'Still available',
+            caption: 'The failed run released it — a retry spends nothing' },
+          { kind: 'fact', label: 'Client sees',
+            value: 'Flagged for review',
+            caption: 'They are told their setup is saved and nothing needs restarting' },
+          vidaCard('Needs you'),
+        ],
+        actions: [{ key: 'retry_proof', label: 'Retry Proof', kind: 'primary' }],
       }
     }
 
@@ -658,7 +806,14 @@ export function lifecycleCopy(i: LifecycleCopyInput): LifecycleCopy {
               : 'Run is unavailable — FIGSY_OPERATOR_SEND_ENABLED is not set on the API, so no run can start.',
           ),
         ],
-        actions: runnable ? [{ key: 'run', label: 'Run', kind: 'primary', needsCeiling: true }] : [],
+        // ⛓️ 16 Sep (MVP1 · D1) — `needsCeiling` IS GONE FROM RUN, and its absence is the point.
+        //
+        // A ceiling is SEND-ONCE's input: "send at most N emails now". Run grants delivery
+        // AUTHORITY and sends nothing, so asking an operator for a maximum implied this press
+        // delivers — which is exactly the confusion that had the button wired to the send-once
+        // tool instead of `POST /programmes/:id/run`. Send-once keeps its ceiling, where the
+        // number means something.
+        actions: runnable ? [{ key: 'run', label: 'Run', kind: 'primary' }] : [],
       }
     }
 

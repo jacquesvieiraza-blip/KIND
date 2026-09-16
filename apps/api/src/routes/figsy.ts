@@ -22,7 +22,7 @@ import { emitSignal } from './signals'
 // ⚑ 14 Sep — the model a human is waiting for. One name, one place.
 import { BACKGROUND_MODEL, AI_TURN_BOUND } from '../lib/models'
 import { rateLimit } from '../lib/rate-limit'
-import { isDuplicateWebhookEvent } from '../lib/webhook-idempotency'
+import { isDuplicateWebhookEvent, releaseWebhookEvent } from '../lib/webhook-idempotency'
 import { processInboundReply } from '../lib/reply-pipeline'
 import { parseSmartleadInbound, isSmartleadReplyEvent } from '../lib/smartlead-inbound'
 import { sendFounderAlert } from '../lib/alerts'
@@ -364,6 +364,21 @@ figsyRouter.post('/replies/inbound', async (req, res) => {
       // index protects the same identity rather than a second opinion about it.
       eventKey: dedupKey,
     })
+    // ── 🛑 ⚑ 17 Sep — THE ONE CASE WHERE A WEBHOOK MUST **NOT** GET A 200 ────────────────
+    //
+    // Every other refusal is safe to 200: the reply is either written, already known, or
+    // genuinely unusable, and the provider has nothing useful to redeliver. This one is
+    // different. `ambiguous_owner_unretained` means we could not attribute the reply AND could
+    // not store it — so a 200 would promise we had kept something we had just lost, and the
+    // provider would never send it again. The dedup claim is handed back and the delivery is
+    // refused, which is how a webhook asks to be redelivered.
+    if (!result.ok && result.dropped === 'ambiguous_owner_unretained') {
+      const released = await releaseWebhookEvent(db, dedupKey, 'resend')
+      res.status(500).json({
+        received: false, dropped: result.dropped, retry: true, dedup_released: released,
+      })
+      return
+    }
     if (!result.ok) { res.status(200).json({ received: true, dropped: result.dropped }); return }
     res.status(200).json({ received: true, id: result.replyId, clients: result.clients })
   } catch (err) {
@@ -449,6 +464,16 @@ figsyRouter.post('/replies/smartlead', unsubscribeLimiter, async (req, res) => {
     // BUILD-003 item 7 — the exact key this route deduped on, passed through so the database
     // backstop protects the same identity the application reasons about.
     const result = await processInboundReply(inbound, { rawPayload: raw, eventKey: dedupKey })
+    // ⚑ 17 Sep — the same single exception as the Resend route. See the note there: a reply we
+    // could neither attribute nor retain must be REFUSED, because a 200 is a promise we kept
+    // it. The general rule below ("never 500 at a webhook") stands for every other outcome.
+    if (!result.ok && result.dropped === 'ambiguous_owner_unretained') {
+      const released = await releaseWebhookEvent(db, dedupKey, 'smartlead')
+      res.status(500).json({
+        received: false, dropped: result.dropped, retry: true, dedup_released: released,
+      })
+      return
+    }
     if (!result.ok) { res.status(200).json({ received: true, dropped: result.dropped }); return }
     res.status(200).json({ received: true, id: result.replyId, clients: result.clients })
   } catch (err) {
@@ -2409,7 +2434,9 @@ figsyRouter.post('/replies/:id/mark-booked', async (req: AuthRequest, res) => {
     if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
 
     const { data: reply } = await db.from('figsy_replies')
-      .select('id, campaign_id, meeting_booked_at')
+      // ⚑ 16 Sep (MVP1 · D4) — `lead_id` IS SELECTED NOW. Without it a canonical meeting
+      // cannot be attributed to anybody, which is why the reply stamp was all this route did.
+      .select('id, lead_id, campaign_id, meeting_booked_at')
       .eq('id', req.params.id)
       .eq('client_id', clientId)
       .maybeSingle()
@@ -2422,6 +2449,65 @@ figsyRouter.post('/replies/:id/mark-booked', async (req: AuthRequest, res) => {
     await db.from('figsy_replies').update({
       meeting_booked_at: new Date().toISOString(),
     }).eq('id', req.params.id)
+
+    // ── 🛑 ⚑ 16 Sep (MVP1 · D4) — AND IT NOW RECORDS A CANONICAL MEETING ────────────────
+    //
+    // 🛑 THE DEFECT. This route stamped `figsy_replies.meeting_booked_at` and logged an
+    // outcome event, and that was all. `public.meetings` is the SOLE meeting truth in this
+    // product — Milla's booked count, the programme's results, and the R77 review trigger all
+    // read it — and nothing was ever inserted into it. So the outcome the client is actually
+    // buying was recorded in a place none of the three surfaces that matter ever look: a
+    // client could have meetings booked through Vida and be told by their own screen that they
+    // had none, while the review hold counted zero and eventually fired.
+    //
+    // ⚠️ THE ATTRIBUTION COMES FROM THE ENROLMENT, never a guess. `resolveBookingAttribution`
+    // is the existing resolver and the enrolment is the only row that says *this person is
+    // being worked, under this campaign, for this programme*. A programme inferred from the
+    // client or from "the newest one" is a guess wearing a fact's clothes.
+    //
+    // ⚠️ IT IS `BOOKED_UNVERIFIED` BY CONSTRUCTION, and that is correct rather than a
+    // shortcut. `recordBooking` DERIVES the state from the presence of a Google event id, and
+    // there is none here: an operator marking a reply booked is telling us a meeting was
+    // agreed, not proving a calendar entry. Passing an invented id is the exact failure that
+    // state exists to make impossible, so none is passed.
+    //
+    // ⚠️ IDEMPOTENT TWICE OVER. The already-booked early return above is the first fence; the
+    // live-booking unique index inside `recordBooking` is the second, which is what makes two
+    // simultaneous presses safe rather than merely unlikely.
+    //
+    // ⚠️ AND A FAILURE HERE DOES NOT FAIL THE REQUEST. The reply stamp has already landed and
+    // the prospect's agreement is real; losing the canonical row is bad, telling the operator
+    // their action failed when it did not is worse. It is reported in the response instead.
+    let meetingRecorded = false
+    let meetingRefusal: string | null = null
+    if (reply.lead_id) {
+      try {
+        const { resolveBookingAttribution, recordBooking } = await import('../lib/meeting-truth')
+        const attribution = await resolveBookingAttribution(String(reply.lead_id))
+        const booked = await recordBooking({
+          clientId,
+          leadId: String(reply.lead_id),
+          // ⚠️ THE MARK TIME, and the state says we cannot prove a calendar entry. Nothing
+          // here knows when the meeting actually is — the operator was not asked — so this
+          // records THAT a meeting exists, which is what every count needs, without claiming
+          // a schedule nobody supplied.
+          scheduledAt: new Date().toISOString(),
+          campaignId: attribution.campaignId ?? reply.campaign_id ?? null,
+          enrollmentId: attribution.enrollmentId,
+          programmeId: attribution.programmeId,
+        })
+        meetingRecorded = booked.ok
+        if (!booked.ok) meetingRefusal = booked.refused.message
+      } catch (err) {
+        meetingRefusal = err instanceof Error ? err.message : 'The meeting could not be recorded.'
+        console.error('[figsy/mark-booked] canonical meeting NOT recorded:', meetingRefusal)
+      }
+    } else {
+      // A reply with no lead belongs to nobody we can attribute a meeting to. Said out loud
+      // rather than silently skipped, because a count that is quietly short is the defect.
+      meetingRefusal = 'This reply is not linked to a lead, so no canonical meeting could be recorded.'
+      console.error(`[figsy/mark-booked] reply ${reply.id} has no lead_id — no canonical meeting recorded.`)
+    }
 
     // THE DATA FLOOR (#17b) — the outcome that matters most for credits-per-meeting.
     void logOutcomeEvent({
@@ -2440,7 +2526,12 @@ figsyRouter.post('/replies/:id/mark-booked', async (req: AuthRequest, res) => {
       campaign_id: reply.campaign_id ?? null,
     })
 
-    res.json({ success: true, data: { booked: true } })
+    // ⚠️ THE RESPONSE REPORTS WHAT ACTUALLY HAPPENED TO BOTH RECORDS. "booked: true" alone
+    // would have been true of the old behaviour too, which recorded no meeting at all.
+    res.json({
+      success: true,
+      data: { booked: true, meeting_recorded: meetingRecorded, meeting_refusal: meetingRefusal },
+    })
   } catch (err) {
     console.error('[figsy/mark-booked]', err)
     res.status(500).json({ success: false, error: 'Failed to mark as booked' })

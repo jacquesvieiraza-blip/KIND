@@ -22,6 +22,11 @@ const state = {
   /** client_inboxes: which client owns the receiving address */
   inboxOwner: null as string | null,
   inboxLookupError: null as { message: string } | null,
+  /**
+   * ⚑ 16 Sep (GAP 3) — `figsy_sent_emails`: the lead ids we can PROVE we emailed. This is the
+   * only tie-breaker left once the receiving mailbox is unknown; empty means no evidence.
+   */
+  sentLeadIds: [] as string[],
   replyInserts: [] as Record<string, unknown>[],
   alerts: [] as { kind: string; subject: string; lines: string[] }[],
   dedupSeen: [] as string[],
@@ -35,6 +40,9 @@ function query(table: string) {
   for (const m of ['select', 'eq', 'in', 'not', 'is', 'neq', 'order', 'limit', 'gte', 'ilike']) q[m] = () => q
   q.then = (resolve: (v: unknown) => void) => {
     if (table === 'leads') return resolve({ data: state.leadMatches, error: null })
+    if (table === 'figsy_sent_emails') {
+      return resolve({ data: state.sentLeadIds.map(id => ({ lead_id: id })), error: null })
+    }
     return resolve({ data: [], error: null })
   }
   q.maybeSingle = async () => {
@@ -121,6 +129,7 @@ beforeEach(() => {
   state.leadMatches = [{ id: 'lead-A', client_id: 'client-A' }]
   state.inboxOwner = 'client-A'
   state.inboxLookupError = null
+  state.sentLeadIds = []
   state.replyInserts = []
   state.alerts = []
   state.dedupSeen = []
@@ -171,20 +180,71 @@ describe('a reply is routed to the client whose MAILBOX received it', () => {
     expect(state.replyInserts[0]).toMatchObject({ client_id: 'client-B' })
   })
 
-  it('an UNKNOWN receiving mailbox falls back to the fan-out rather than dropping', async () => {
-    // Unknown must never mean dropped. A mailbox not yet recorded, or a provider that omits
-    // the field, has to behave exactly as today: every match gets the reply.
+  // ⛓️ 16 Sep (GAP 3) — THE TWO FAN-OUT CASES BELOW ARE RE-POINTED, NOT WEAKENED.
+  //
+  // 🛑 WHAT THEY ASSERTED: that an unknown receiving mailbox, and an inbox lookup OUTAGE,
+  // each *"fall back to the fan-out rather than dropping"* — two inserts, one per client.
+  // The reasoning was sound at the time: *"unknown must never mean dropped."*
+  //
+  // The founder's launch-safety ruling overrides the remedy, not the concern: *"A reply from a
+  // prospect must never be copied/fanned out to multiple clients merely because multiple client
+  // lead rows share the same prospect email… If the system cannot determine one safe owner:
+  // FAIL CLOSED."* A cross-client fan-out IS one client reading another's inbound mail, which
+  // the second test in this very block exists to prevent — the two assertions contradicted each
+  // other, and the founder resolved it.
+  //
+  // ⚠️ AND "UNKNOWN MUST NEVER MEAN DROPPED" IS STILL HONOURED, by a better route than a
+  // fan-out: the reply is first attributed from PERSISTED ORIGINATING-SEND EVIDENCE, and only a
+  // genuine tie becomes a founder alert naming both candidates. Nothing is silently dropped,
+  // and the single-client path — every reply in production today — is untouched.
+  it('🛑 AN UNKNOWN MAILBOX NO LONGER FANS OUT ACROSS CLIENTS — it fails closed', async () => {
     state.leadMatches = [{ id: 'lead-A', client_id: 'client-A' }, { id: 'lead-B', client_id: 'client-B' }]
     state.inboxOwner = null
-    await post(reply())
-    expect(state.replyInserts).toHaveLength(2)
+    const res = await post(reply())
+    await settle()
+    expect(state.replyInserts, 'one prospect reply reached two clients').toHaveLength(0)
+    expect(res.payload).toMatchObject({ dropped: 'ambiguous_owner' })
+    const alert = state.alerts.find(a => a.lines.join(' ').includes('client-A'))
+    expect(alert, 'the refusal was silent — no operator exception raised').toBeDefined()
+    expect(alert!.lines.join(' ')).toContain('client-B')
   })
 
-  it('an inbox LOOKUP FAILURE also fans out — an outage costs precision, never a reply', async () => {
+  it('an unknown mailbox with ONE client matching is still delivered — unchanged', async () => {
+    // The shape of virtually every real reply, and the thing a blunt refusal would have broken.
+    state.leadMatches = [{ id: 'lead-A', client_id: 'client-A' }]
+    state.inboxOwner = null
+    await post(reply())
+    expect(state.replyInserts).toHaveLength(1)
+    expect(state.replyInserts[0]).toMatchObject({ client_id: 'client-A' })
+  })
+
+  it('and an unknown mailbox WITH originating-send evidence goes to the client we emailed', async () => {
+    state.leadMatches = [{ id: 'lead-A', client_id: 'client-A' }, { id: 'lead-B', client_id: 'client-B' }]
+    state.inboxOwner = null
+    state.sentLeadIds = ['lead-B']
+    await post(reply())
+    expect(state.replyInserts).toHaveLength(1)
+    expect(state.replyInserts[0]).toMatchObject({ client_id: 'client-B' })
+  })
+
+  it('an inbox LOOKUP FAILURE costs precision, never a reply — but never a fan-out either', async () => {
+    // An outage still must not drop the reply. It now falls through to the same evidence-then-
+    // fail-closed ladder as an unknown mailbox, so the outage cannot hand one client another's
+    // mail while it lasts.
     state.leadMatches = [{ id: 'lead-A', client_id: 'client-A' }, { id: 'lead-B', client_id: 'client-B' }]
     state.inboxLookupError = { message: 'timeout' }
+    state.sentLeadIds = ['lead-A']
     await post(reply())
-    expect(state.replyInserts).toHaveLength(2)
+    expect(state.replyInserts).toHaveLength(1)
+    expect(state.replyInserts[0]).toMatchObject({ client_id: 'client-A' })
+  })
+
+  it('an inbox lookup failure with NO evidence fails closed rather than fanning out', async () => {
+    state.leadMatches = [{ id: 'lead-A', client_id: 'client-A' }, { id: 'lead-B', client_id: 'client-B' }]
+    state.inboxLookupError = { message: 'timeout' }
+    const res = await post(reply())
+    expect(state.replyInserts).toHaveLength(0)
+    expect(res.payload).toMatchObject({ dropped: 'ambiguous_owner' })
   })
 })
 
@@ -259,10 +319,26 @@ describe('non-reply events and retries', () => {
     expect(state.dedupSeen).toContain('smartlead:shared-id-1')
   })
 
-  it('classifies ONCE even when the reply fans out to two clients', async () => {
+  // ⛓️ 16 Sep (GAP 3) — RE-POINTED with the fan-out, and the DUTY IS UNCHANGED: one inbound
+  // email is classified at most once, whatever routing decides. Two LLM calls on identical
+  // input cost twice and can disagree. What changed is the case that reaches several leads:
+  // with evidence naming one client it is one insert and one classification; with no evidence
+  // it is refused, and refusing costs zero classifications — still never one per client.
+  it('classifies AT MOST ONCE however many leads match', async () => {
     // The #589 dividend: this is the classify-once shape `reply-fanout.route.test.ts` pins for
     // Resend, and Smartlead inherits it by sharing the pipeline rather than copying it.
     state.leadMatches = [{ id: 'lead-A', client_id: 'client-A' }, { id: 'lead-B', client_id: 'client-B' }]
+    state.inboxOwner = null
+    state.sentLeadIds = ['lead-A']
+    await post(reply())
+    expect(state.replyInserts).toHaveLength(1)
+    expect(state.classifyCalls).toBe(1)
+  })
+
+  it('and TWO leads under ONE client share a single classification', async () => {
+    // The case where several inserts still happen — same client, so no cross-client leak — and
+    // the assertion this file was really written for holds there too.
+    state.leadMatches = [{ id: 'lead-A', client_id: 'client-A' }, { id: 'lead-A2', client_id: 'client-A' }]
     state.inboxOwner = null
     await post(reply())
     expect(state.replyInserts).toHaveLength(2)

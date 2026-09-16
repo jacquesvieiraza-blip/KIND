@@ -1647,7 +1647,12 @@ describe('the reply is a forced tool call, validated before it is trusted', () =
     // ⛓️ 14 Sep — the continuation is now also gated on `mustNotConfirm`, so an unreadable
     // durable Brief cannot take the premature path and present a plan built from one sample.
     expect(icpsSrc).toContain('if (!mustNotConfirm && !validated.success && isPrematureCompletion(validated.error.errors)) {')
-    expect(icpsSrc).toContain("const mustNotConfirm = !heldReadable && declaredType === 'complete'")
+    // ⛓️ 16 Sep (S1-ONB-003) — the same fail-closed rule, now with its WRITE-SIDE twin. An
+    // unreadable record already withheld a completion; an unWRITEABLE one did not, so the
+    // last missing fact could satisfy the gate from this turn's reply alone and reach no
+    // database. The CLAIM here is unchanged — a completion is withheld unless canonical
+    // memory can be trusted — only the set of untrustworthy states grew by one.
+    expect(icpsSrc).toContain("const mustNotConfirm = (!heldReadable || !heldWritable) && declaredType === 'complete'")
     expect(icpsSrc).toContain("...(replyInput as Record<string, unknown>), type: 'question',")
     expect(icpsSrc).toContain('if (!parsed) {')
   })

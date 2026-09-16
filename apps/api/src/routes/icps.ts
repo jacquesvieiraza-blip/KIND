@@ -4377,6 +4377,19 @@ result or a number. "permitted" is false unless they explicitly said we may use 
     // sample alone. Worse, but never a reason to refuse the client's turn.
     let held: Record<string, unknown> = {}
     let heldReadable = true
+    // ── 🛑 ⚑ 16 Sep (S1-ONB-003) — THE WRITE-SIDE TWIN OF `heldReadable` ───────────────
+    //
+    // 🛑 NO DURABLE WRITE = NO NEW FACT AUTHORITY = NO READY ADVANCEMENT. An UNREADABLE
+    // record has withheld a completion since S1-RT-009; an UNWRITEABLE one did not, and the
+    // gap was reachable in one turn. `held` is correctly held back when the save fails — but
+    // the gate does not count `held`, it counts the RESOLUTION: the record UNIONED WITH THIS
+    // TURN'S REPLY. That union is right while the write lands, because the
+    // write stored exactly the same projection. When the write FAILS the reply half still
+    // carries the final fact, so the last missing item could satisfy the gate while reaching
+    // no database — `type: 'complete'`, `onboarding_state: 'ready'` and a plan to Confirm,
+    // built on a fact the record does not hold. The client's next act is CONFIRM, which
+    // PROMOTES the draft: they would approve a plan their Brief cannot honour.
+    let heldWritable = true
     if (req.userId) {
       try {
         const { briefDraftFor } = await import('../lib/brief-draft')
@@ -4476,6 +4489,28 @@ result or a number. "permitted" is false unless they explicitly said we may use 
         if (!saved.ok && saved.reason === 'unstorable') {
           console.warn('[icps/builder/chat] brief draft not stored (run 20260911_onboarding_brief_drafts)')
         }
+        // 🛑 ⚑ 16 Sep (S1-ONB-003) — THE WRITE OUTCOME IS NOW ACTED ON, NOT ONLY LOGGED.
+        // Every `SaveOutcome` failure — `unstorable`, `unverifiable`, `promoted` — means the
+        // same thing to this turn: the record does not hold what we just resolved. A turn may
+        // still ANSWER on a failed write; it may not CONFIRM.
+        //
+        // ⚠️ AND IT IS SCOPED TO "THERE WAS A RECORD TO EXTEND" — `held` non-empty. That is
+        // deliberate and it is the line between this defect and a DIFFERENT, older question.
+        // A non-empty `held` proves we read a real canonical record this turn, so a failed
+        // write is exactly the proven defect: truth the customer gave, kept nowhere. An EMPTY
+        // `held` is either a genuinely new client (there is nothing we failed to keep) or the
+        // draft store being unavailable altogether — and in that second case the gate has
+        // counted the model sample alone since long before this build, by the documented
+        // best-effort degradation a few lines above. Whether an unavailable draft store should
+        // STOP onboarding instead of degrading is a real product question and a founder's to
+        // answer; it is not this ticket's defect and is not silently decided here.
+        if (!saved.ok && Object.keys(held).length > 0) {
+          heldWritable = false
+          console.error('[icps/builder/chat] durable brief not written —', JSON.stringify({
+            stage: 'brief_write', reason: saved.reason,
+            consequence: 'no completion may be presented this turn',
+          }))
+        }
         // 🛑 `held` IS BROUGHT UP TO DATE WITHOUT READING THE ROW AGAIN — and it is computed
         // from the same two things the store merged, not from the store's reply. `saveBriefDraft`
         // merges `{ ...existing, ...facts }`, which is exactly this expression, so the gate and
@@ -4524,7 +4559,34 @@ result or a number. "permitted" is false unless they explicitly said we may use 
     // was unreachable. So a completion is demoted to the conversation exactly as a premature
     // one is: Milla's own sentence if she wrote one, and a plain retryable refusal if she did
     // not. No promotion, no invented replacement state, nothing marked finished.
-    const mustNotConfirm = !heldReadable && declaredType === 'complete'
+    // ── 🛑 ⚑ 16 Sep (S1-ONB-003) — AND NEITHER CAN A RECORD WE FAILED TO WRITE ─────────
+    //
+    // 🛑 THE TWO CASES SHARE A RULE AND SPLIT ON THE SENTENCE, and the split is the whole
+    // care in this fix:
+    //
+    //   · UNREADABLE (S1-RT-009) — we do not know what the client has told us, so a
+    //     completion is DEMOTED TO THE CONVERSATION and Milla's own sentence carries the turn.
+    //     Byte-for-byte the behaviour that shipped; nothing here weakens or reshapes it.
+    //
+    //   · UNWRITEABLE (this) — we know exactly what they told us and we FAILED TO KEEP IT.
+    //     Demoting would deliver a sentence written to CLOSE the conversation ("that's
+    //     everything I need") as the turn meant to CONTINUE it — the Cedar Peak stranding
+    //     S1-RT-010/AR22 exists to stop. And the S1-RT-010 recovery is equally wrong here:
+    //     it would name an outstanding fact the customer HAS ALREADY GIVEN, which is false.
+    //     So this is an HONEST SYSTEM FAILURE (`parsed = null` → `millaReplyFailed`): a
+    //     retryable error the portal renders as an error, with NOTHING attributed to Milla.
+    //     It is our failure and it reads as one.
+    //
+    // ⚠️ NOTHING IS LOST AND NOTHING IS RETYPED. The portal keeps the client's turn in its own
+    // transcript and re-sends the whole history on the next attempt, which is exactly what
+    // `MILLA_RETRY_ERROR` already promises — and the next save merges, so the fact lands then.
+    //
+    // ⚠️ NO SECOND PROVIDER CALL. One turn, one request, unchanged.
+    //
+    // ⚠️ A QUESTION TURN IS UNTOUCHED BY EITHER CASE. `declaredType === 'complete'` is the
+    // whole scope: a client may keep talking through a failed write, which is what makes this
+    // fail closed on AUTHORITY without failing closed on the conversation.
+    const mustNotConfirm = (!heldReadable || !heldWritable) && declaredType === 'complete'
     if (mustNotConfirm) {
       // ⚠️ REGARDLESS OF WHETHER THE COMPLETION WAS OTHERWISE VALID. A premature completion
       // and a well-formed one are demoted the same way here: neither may be presented as a
@@ -4533,9 +4595,10 @@ result or a number. "permitted" is false unless they explicitly said we may use 
         ...(replyInput as Record<string, unknown>), type: 'question',
       })
       console.log('[icps/builder/chat] withholding completion —', JSON.stringify({
-        stage: 'reply', category: 'BRIEF_UNREADABLE_NO_CONFIRMATION', model: BUILDER_MODEL,
+        stage: 'reply', model: BUILDER_MODEL,
+        category: heldReadable ? 'BRIEF_UNWRITTEN_NO_CONFIRMATION' : 'BRIEF_UNREADABLE_NO_CONFIRMATION',
       }))
-      parsed = asQuestion.success ? asQuestion.data : null
+      parsed = heldReadable ? null : (asQuestion.success ? asQuestion.data : null)
     }
     // ── 🛑 ⚑ 16 Sep (S1-RT-010) — THE VETOED SENTENCE IS NOT SHOWN TO THE CUSTOMER ──────
     //

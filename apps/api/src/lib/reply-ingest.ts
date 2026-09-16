@@ -284,16 +284,73 @@ export async function alertDroppedReply(
 // the chain is **inbox → client → lead → thread**, and the prospect's address stops being the
 // routing key and becomes only the lead lookup.
 //
-// FALLS BACK TO TODAY'S BEHAVIOUR when the inbox is unknown — a shared inbox, a provider that
-// does not report `to`, a mailbox not yet recorded. Unknown must never mean dropped.
+// ⛓️ 16 Sep (GAP 3) — AND "FALLS BACK TO TODAY'S BEHAVIOUR" IS WHAT HAD TO GO.
+//
+// 🛑 WHAT STOOD HERE: *"Falls back to today's behaviour when the inbox is unknown — a shared
+// inbox, a provider that does not report `to`, a mailbox not yet recorded."* That fallback WAS
+// the fan-out: every match across every client kept, and the pipeline writing a reply row for
+// each. Correct while one shared Resend inbox was the only inbound path and the prospect's
+// address was genuinely all we had (R1) — and live the moment C1 started giving clients their
+// own mailboxes, because any provider that does not report `to` still lands here.
+//
+// The order is now: the receiving mailbox → one client anyway → persisted originating-send
+// evidence → FAIL CLOSED. Unknown still never means dropped: an ambiguous reply becomes an
+// operator exception naming both candidates, which is a person deciding rather than us
+// handing one client another client's inbound mail.
 
 export type ReplyRouting = {
-  /** The matches this reply should actually be written to. */
+  /** The matches this reply should actually be written to. ALWAYS one client, or empty. */
   matches: LeadMatch[]
-  /** How it was decided — for the log, and for the alert when nothing matched. */
-  how: 'inbox' | 'fanout'
+  /**
+   * How it was decided — for the log, and for the alert when nothing matched.
+   *
+   * ⛓️ 16 Sep (GAP 3) — `'fanout'` IS GONE, and its absence is the fix. It meant "write this
+   * one external reply to every client holding a lead with that address", which is one
+   * client reading another client's inbound mail.
+   *
+   *   · `inbox`            — the receiving mailbox names the owner (#551). Strongest.
+   *   · `single`           — every match is the same client. No ambiguity to resolve.
+   *   · `originating_send` — matches span clients, and persisted send evidence names exactly
+   *                          one of them as the client we actually emailed.
+   *   · `ambiguous`        — matches span clients and nothing can name one owner. FAILS
+   *                          CLOSED: `matches` is empty and an operator is told.
+   */
+  how: 'inbox' | 'single' | 'originating_send' | 'ambiguous'
   /** Matches deliberately EXCLUDED because they belong to another client. */
   excluded: LeadMatch[]
+}
+
+/** The distinct clients a match set spans. The whole question this module now answers. */
+function clientsOf(matches: LeadMatch[]): string[] {
+  return [...new Set(matches.map(m => m.client_id))]
+}
+
+export type SendOwner =
+  | { ok: true;  clientId: string }
+  | { ok: false; reason: 'no_evidence' | 'evidence_spans_clients' }
+
+/**
+ * ⚑ 16 Sep (GAP 3) — WHICH CLIENT DID WE ACTUALLY EMAIL?
+ *
+ * 🛑 THE ONLY HONEST TIEBREAK, AND IT IS PERSISTED RATHER THAN INFERRED. When two clients hold
+ * a lead with the same prospect address, the prospect replied to ONE outbound message. That
+ * message is a row in `figsy_sent_emails`, keyed to the lead it went to — so the set of lead
+ * ids we have actually sent to is the evidence, and it is evidence rather than a heuristic.
+ *
+ * ⚠️ IT REFUSES RATHER THAN RANKING. If we emailed leads under BOTH clients, both have a real
+ * claim and choosing between them would be a guess with a client's inbound mail attached.
+ * `evidence_spans_clients` is a refusal, not a tie to be broken.
+ *
+ * ⚠️ AND IT NEVER READS A DATE. "The newest client", "the most recent send" and "the latest
+ * programme" are all the same guess wearing a fact's clothes — the founder ruled that out by
+ * name. Order carries no authority here: the function is a set operation.
+ */
+export function replyOwnerFromSends(matches: LeadMatch[], sentLeadIds: Set<string>): SendOwner {
+  const evidenced = matches.filter(m => sentLeadIds.has(m.id))
+  if (evidenced.length === 0) return { ok: false, reason: 'no_evidence' }
+  const owners = clientsOf(evidenced)
+  if (owners.length > 1) return { ok: false, reason: 'evidence_spans_clients' }
+  return { ok: true, clientId: owners[0] }
 }
 
 /**
@@ -310,11 +367,47 @@ export type ReplyRouting = {
  * leads. The caller must report it rather than fall back to the fan-out, because falling back
  * is precisely the harm — handing one client's inbound mail to another.
  */
-export function routeReply(matches: LeadMatch[], ownerClientId: string | null): ReplyRouting {
-  if (!ownerClientId) return { matches, how: 'fanout', excluded: [] }
-  const mine = matches.filter(m => m.client_id === ownerClientId)
-  const excluded = matches.filter(m => m.client_id !== ownerClientId)
-  return { matches: mine, how: 'inbox', excluded }
+export function routeReply(
+  matches: LeadMatch[],
+  ownerClientId: string | null,
+  sentLeadIds?: Set<string>,
+): ReplyRouting {
+  // ① THE RECEIVING MAILBOX, when we know it. Strongest evidence there is: the prospect
+  // replied to THAT address, so the client who owns it owns the reply.
+  if (ownerClientId) {
+    const mine = matches.filter(m => m.client_id === ownerClientId)
+    const excluded = matches.filter(m => m.client_id !== ownerClientId)
+    return { matches: mine, how: 'inbox', excluded }
+  }
+
+  // ② ONE CLIENT ANYWAY — the happy path, and it is unchanged. A prospect legitimately
+  // appearing twice under the SAME client (two ICPs, two batches) is not ambiguity, and an
+  // empty match set has nothing to be ambiguous about.
+  const owners = clientsOf(matches)
+  if (owners.length <= 1) return { matches, how: 'single', excluded: [] }
+
+  // ③ MATCHES SPAN CLIENTS. Persisted originating-send evidence may still name one owner.
+  if (sentLeadIds) {
+    const owner = replyOwnerFromSends(matches, sentLeadIds)
+    if (owner.ok) {
+      return {
+        matches: matches.filter(m => m.client_id === owner.clientId),
+        how: 'originating_send',
+        excluded: matches.filter(m => m.client_id !== owner.clientId),
+      }
+    }
+  }
+
+  // ── 🛑 ④ FAIL CLOSED ───────────────────────────────────────────────────────────────────
+  //
+  // Two clients, no mailbox owner, no send evidence that names one. Every remaining option is
+  // a guess, and the founder's launch rule is explicit: NEVER fan one external reply out to
+  // more than one client, and never guess the newest.
+  //
+  // ⚠️ AN EMPTY `matches` IS NOT A DROP. The caller raises an operator exception naming both
+  // candidates — the reply exists, a person decides where it belongs, and neither client is
+  // shown another client's mail in the meantime.
+  return { matches: [], how: 'ambiguous', excluded: matches }
 }
 
 /**
@@ -362,6 +455,61 @@ export function replyEventKey(reply: Pick<InboundReply, 'provider' | 'providerMe
   // Returning null rather than an empty string keeps `isDuplicateWebhookEvent` failing OPEN,
   // which is right: unable to dedup must mean process, never drop.
   return d ? `${reply.provider}:delivery:${d}` : null
+}
+
+/**
+ * ⚑ 16 Sep (GAP 3) — WHICH OF THESE LEADS HAVE WE ACTUALLY SENT TO?
+ *
+ * The persisted evidence behind `replyOwnerFromSends`. `figsy_sent_emails.lead_id` is written
+ * by the sender on every real outbound message, so a lead id appearing here means we emailed
+ * that person under that client.
+ *
+ * ⚠️ FAILS CLOSED TO AN EMPTY SET. An unreadable evidence table must not resolve an ambiguity
+ * — an empty set means "no evidence", which routes to the operator exception rather than to a
+ * client. Failing the other way would hand a reply to whichever client a partial read happened
+ * to return.
+ *
+ * ⚠️ AND IT IS ONLY EVER ASKED ABOUT A HANDFUL OF IDS — the candidate matches for one reply.
+ */
+export async function sentLeadIdsFor(leadIds: string[]): Promise<Set<string>> {
+  const out = new Set<string>()
+  if (leadIds.length === 0) return out
+  try {
+    const { data, error } = await db.from('figsy_sent_emails')
+      .select('lead_id').in('lead_id', leadIds)
+    if (error) {
+      console.error('[reply-ingest] originating-send evidence unreadable — treating as NO evidence:', error.message)
+      return out
+    }
+    for (const r of ((data ?? []) as { lead_id: string | null }[])) {
+      if (r.lead_id) out.add(r.lead_id)
+    }
+  } catch (err) {
+    console.error('[reply-ingest] originating-send evidence lookup threw — treating as NO evidence:', err)
+  }
+  return out
+}
+
+/**
+ * ⚑ 16 Sep (GAP 3) — the operator exception for a reply we cannot safely attribute.
+ *
+ * ⚠️ IT NAMES EVERY CANDIDATE. "We could not tell" is not actionable; "these two clients both
+ * hold this person, and we emailed neither of them" is.
+ */
+export function ambiguousReplyLines(a: {
+  fromEmail: string
+  toEmail: string | null
+  clientIds: string[]
+}): string[] {
+  return [
+    `A reply from ${a.fromEmail} matches leads under ${a.clientIds.length} DIFFERENT clients, and nothing can say which one it belongs to.`,
+    `Candidates: ${a.clientIds.join(', ')}.`,
+    a.toEmail
+      ? `It arrived at ${a.toEmail}, which is not a mailbox recorded against any client — so the receiving address cannot decide it either.`
+      : 'The provider did not report which mailbox it arrived at, so the receiving address cannot decide it.',
+    'We have no originating-send record naming one of them, so there is no evidence to choose on.',
+    'IT HAS NOT BEEN WRITTEN TO ANY OF THEM, deliberately: showing one client another client\'s inbound mail is the harm this refusal exists to prevent. Attribute it by hand in Vida.',
+  ]
 }
 
 /** The alert body for a reply that reached a KNOWN client mailbox but matched no lead. */

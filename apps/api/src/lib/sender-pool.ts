@@ -44,6 +44,63 @@
 // FIELD, because those are what an operator needs and a password is not.
 // ═══════════════════════════════════════════════════════════════════════════════════════
 
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// ⚑ 16 Sep (GAP 1) — K.I.N.D'S OWN SENDING IDENTITIES ARE NOT CLAIMABLE BY A CLIENT.
+//
+// 🛑 THE GAP THE DB FILTER COULD NOT CLOSE. `sender-claim.ts` already refuses any address that
+// is LIVE in `client_inboxes` on ANY client — which is what makes a HOUSE-ASSIGNED mailbox
+// unclaimable, because House's mailboxes are ordinary rows in that table. Existing DB
+// assignment truth wins over the env inventory, and that half was already right.
+//
+// But K.I.N.D's OWN sending addresses hold no `client_inboxes` row at all:
+//
+//   · `FIGSY_COLD_FROM` — boot-critical, and the From every cold send in the product uses;
+//   · `hello@get-kind.com` — the transactional identity every invoice, password reset and
+//     welcome email leaves from, and the fallback `COLD_FROM` resolves to when unset.
+//
+// Neither is a client mailbox, so neither is in the table, so nothing stopped an operator
+// populating `POOLED_SENDERS_JSON` from "the mailboxes we own" and handing one to an ordinary
+// client — who would then send cold outreach AS K.I.N.D, on K.I.N.D's domain reputation, with
+// their own story and their own suppression list. When it bounced, our transactional mail
+// would burn with it.
+//
+// ⚠️ THESE ARE NOT HARD-CODED PRIVATE ADDRESSES, and that distinction is the founder's
+// boundary. Both are read from `deliverability.ts`'s OWN constants — the same values the mailer
+// sends from — so the fence moves when the configuration moves. Nothing is typed twice.
+//
+// ⚠️ IT IS NOT A HOUSE-IDENTITY CHECK EITHER. House-the-client is protected by the DB truth
+// above, through the canonical `HOUSE_ACCOUNT_EMAIL` identity. This protects K.I.N.D-the-sender,
+// which is a different thing and has no client row to protect it.
+// ═══════════════════════════════════════════════════════════════════════════════════════
+
+import { COLD_FROM, COLD_FROM_DEFAULT } from './deliverability'
+
+/** `K.I.N.D <hello@get-kind.com>` → `hello@get-kind.com`. Bare addresses pass through. */
+function bareAddress(v: string): string {
+  const m = v.match(/<([^>]+)>/)
+  return (m ? m[1] : v).trim().toLowerCase()
+}
+
+/**
+ * Every address K.I.N.D itself sends from, and which therefore may never be handed to a client.
+ *
+ * ⚠️ BUILT AT CALL TIME rather than cached, so the set cannot keep protecting yesterday's
+ * address after the configuration moves.
+ *
+ * ⚠️ AND IT IS A STATIC IMPORT. `deliverability.ts` pulls in only `crypto` and one shared
+ * constant — no database, no provider — so importing it here costs nothing and keeps the two
+ * values the ONE pair the mailer itself sends from.
+ */
+export function reservedSenderAddresses(): Set<string> {
+  return new Set([bareAddress(COLD_FROM), bareAddress(COLD_FROM_DEFAULT)])
+}
+
+/** Is this address one of K.I.N.D's own? Case- and `Name <addr>`-insensitive. */
+export function senderIsReserved(email: string): boolean {
+  const addr = bareAddress(email)
+  return addr !== '' && reservedSenderAddresses().has(addr)
+}
+
 /**
  * The variable that holds the inventory, as a JSON array.
  *
@@ -152,6 +209,14 @@ export function parseSenderPool(raw: string | undefined | null): SenderPool {
       continue
     }
     seen.add(email)
+
+    // 🛑 K.I.N.D'S OWN IDENTITY IS NEVER INVENTORY. Checked HERE, at the parse, so a reserved
+    // address cannot reach the claim at all — and reported by name, because an operator who
+    // listed it needs to know it was ignored rather than silently missing a mailbox.
+    if (senderIsReserved(email)) {
+      problems.push(`${SENDER_POOL_ENV} lists ${email}, which is one of K.I.N.D's OWN sending addresses (the cold or transactional From). It cannot be assigned to a client and was ignored.`)
+      continue
+    }
 
     const portRaw = e.smtp_port
     const port = typeof portRaw === 'number' && Number.isFinite(portRaw)

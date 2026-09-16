@@ -35,7 +35,7 @@
 
 import { db } from '@kind/db'
 import { encryptSecret } from './inbox-secret'
-import { senderPoolFromEnv, SENDER_POOL_ENV, type PooledSender } from './sender-pool'
+import { senderPoolFromEnv, SENDER_POOL_ENV, senderIsReserved, type PooledSender } from './sender-pool'
 
 /**
  * Statuses that mean "this mailbox is in play right now".
@@ -125,7 +125,18 @@ export async function claimPooledSender(clientId: string): Promise<SenderClaim> 
     }
   }
 
-  const candidates = pool.senders.filter(s => !taken.has(s.email))
+  // ── 🛑 ⚑ 16 Sep (GAP 1) — AND K.I.N.D'S OWN ADDRESSES, BELT AND BRACES ───────────────
+  //
+  // `parseSenderPool` already drops a reserved address, so this is defence in depth rather
+  // than the primary fence — and it is here deliberately. This module is one import away from
+  // being called by something new that builds its own candidate list, and the consequence of
+  // getting it wrong once is a client sending cold outreach AS K.I.N.D from K.I.N.D's own
+  // domain. A second, cheap check at the moment of the claim is the right trade.
+  const reserved = pool.senders.filter(s => senderIsReserved(s.email))
+  if (reserved.length > 0) {
+    console.error(`[sender-claim] ${reserved.length} reserved K.I.N.D address(es) reached the candidate list and were refused at the claim — the inventory parser should already have dropped them.`)
+  }
+  const candidates = pool.senders.filter(s => !taken.has(s.email) && !senderIsReserved(s.email))
   if (candidates.length === 0) {
     return {
       ok: false, reason: 'all_taken',

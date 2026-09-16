@@ -37,6 +37,9 @@ import { emitSignal } from '../routes/signals'
 import {
   isUnusable, findLeadMatches, suppressOptOut, alertDroppedReply, describeBodyFetch,
   REPLY_LOOKUP_STATUSES, resolveInboxOwner, routeReply, unmatchedAtKnownInboxLines,
+  // ⚑ 16 Sep (GAP 3) — the originating-send evidence, and the operator exception for a reply
+  // no evidence can attribute.
+  sentLeadIdsFor, ambiguousReplyLines,
   type InboundReply,
 } from './reply-ingest'
 
@@ -122,9 +125,43 @@ export async function processInboundReply(
   // reply arrives THERE and only that client's thread receives it — because fanning out at
   // that point would drop one client's inbound mail into another client's unibox.
   const inboxOwner = await resolveInboxOwner(inbound.toEmail)
-  const routed = routeReply(matches, inboxOwner)
+
+  // ── 🛑 ⚑ 16 Sep (GAP 3) — THE EVIDENCE, GATHERED ONLY WHEN IT COULD POSSIBLY MATTER ────
+  //
+  // 🛑 WHAT THIS REPLACES. `routeReply(matches, null)` used to return EVERY match across EVERY
+  // client, and the loop below wrote a reply row for each — one external reply becoming two
+  // clients' inbound mail. That was the right answer while one shared inbox was the only
+  // inbound path; C1 gives clients their own mailboxes, and any provider that does not report
+  // `to` still arrives here.
+  //
+  // ⚠️ THE READ IS CONDITIONAL, so the single-client happy path costs exactly what it did
+  // before: no extra query, no extra latency. Only a genuine cross-client collision pays.
+  const candidateClients = new Set(matches.map(m => m.client_id))
+  const sentLeadIds = (!inboxOwner && candidateClients.size > 1)
+    ? await sentLeadIdsFor(matches.map(m => m.id))
+    : undefined
+
+  const routed = routeReply(matches, inboxOwner, sentLeadIds)
   if (routed.how === 'inbox' && routed.excluded.length > 0) {
     console.log(`[figsy/replies/inbound] routed by inbox ${inbound.toEmail} → client ${inboxOwner}; ${routed.excluded.length} match(es) at other clients deliberately excluded`)
+  }
+  if (routed.how === 'originating_send') {
+    console.log(`[figsy/replies/inbound] ${candidateClients.size} clients hold ${inbound.fromEmail}; resolved to the one we actually emailed (${routed.matches[0]?.client_id}) from figsy_sent_emails; ${routed.excluded.length} excluded`)
+  }
+
+  // ── 🛑 AMBIGUOUS: WRITTEN TO NOBODY, AND A PERSON IS TOLD ──────────────────────────────
+  if (routed.how === 'ambiguous') {
+    console.error(`[figsy/replies/inbound] AMBIGUOUS reply from ${inbound.fromEmail} — matches span ${candidateClients.size} clients and no evidence names one. NOT written to any of them.`)
+    // ⚠️ THE SAME KIND THE SIBLING CASE USES. `sends_stalled` is what the unmatched-at-a-known-
+    // inbox alert below already carries, and widening `AlertKind` for one more reply-routing
+    // exception would add a channel nobody configured for a family that already has one.
+    void sendFounderAlert('sends_stalled', 'A reply matched more than one client and could not be attributed',
+      ambiguousReplyLines({
+        fromEmail: inbound.fromEmail,
+        toEmail: inbound.toEmail ?? null,
+        clientIds: [...candidateClients],
+      })).catch(() => {})
+    return { ok: false as const, dropped: 'ambiguous_owner' as const }
   }
   if (routed.matches.length === 0) {
     // A real person replied to a real client mailbox and is not one of their leads. NOT
@@ -153,6 +190,27 @@ export async function processInboundReply(
   // Found by reading the handler end to end after the founder pointed out that grepping
   // off the last action never shows what is missing (P10).
   const { classification, reasoning } = await classifyReply(inbound.body)
+
+  // ── 🛑 ⚑ 16 Sep (GAP 3) — THE LAST LINE OF DEFENCE, AND IT IS DELIBERATELY REDUNDANT ──
+  //
+  // `routeReply` already guarantees one client or none. This asserts it again at the only
+  // place the guarantee actually matters: the write. A future change to the routing, or a new
+  // caller assembling its own match list, would otherwise reintroduce the exact defect
+  // silently — and the cost of being wrong here is one client reading another's inbound mail.
+  // ONE CLIENT, OR WE DO NOT WRITE.
+  {
+    const writing = new Set(matches.map(m => m.client_id))
+    if (writing.size > 1) {
+      console.error(`[figsy/replies/inbound] REFUSED: the write set spans ${writing.size} clients (${[...writing].join(', ')}). Routing should have made this impossible; nothing was written.`)
+      void sendFounderAlert('sends_stalled', 'A reply write was refused for spanning two clients',
+        ambiguousReplyLines({
+          fromEmail: inbound.fromEmail,
+          toEmail: inbound.toEmail ?? null,
+          clientIds: [...writing],
+        })).catch(() => {})
+      return { ok: false as const, dropped: 'ambiguous_owner' as const }
+    }
+  }
 
   let lastReplyId: string | undefined
   for (const lead of matches) {

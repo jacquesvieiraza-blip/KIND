@@ -230,6 +230,16 @@ export type OperatorAction =
                             // action rather than a flag on the success row, because "we imported"
                             // and "we imported 340 of 900 and stopped" are different events, and
                             // the log that blurs them is the one that stops you looking (#564).
+  | 'unattributed_reply_attributed'  // ⚑ 17 Sep — a human decided WHO an inbound reply belongs
+                            // to, after the system refused to guess. Audited because it is the
+                            // only act in the product that makes an external reply visible to a
+                            // client on a person's judgement rather than on evidence — so who
+                            // chose, which client they chose, and which candidates they chose
+                            // from all have to survive the decision.
+  | 'unattributed_reply_discarded'   // the same decision the other way: it belongs to NONE of
+                            // the candidates. Its own action, not a flag, for the #564 reason
+                            // above — "attributed to Acme" and "belongs to nobody" are different
+                            // events and the log that blurs them is the one nobody reads.
 
 export interface OperatorAuditEntry {
   operatorEmail: string

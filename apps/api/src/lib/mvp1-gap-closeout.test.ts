@@ -327,8 +327,14 @@ describe('GAP 3 · Ⓒ the pipeline actually applies it', () => {
     const fence = s.slice(at, s.indexOf('for (const lead of matches)', at))
     expect(fence, 'a multi-client write set is no longer refused')
       .toMatch(/if \(writing\.size > 1\)/)
+    // ⛓️ 17 Sep — RE-POINTED, AND THE DUTY IS UNCHANGED. It pinned the exact string
+    // `dropped: 'ambiguous_owner'`; this branch now returns `ambiguous_owner_unretained`,
+    // because reaching it means an assumption has broken and the one outcome that must NOT
+    // follow is a 200 telling the provider we kept a reply that was neither written nor
+    // retained. What this guard is FOR — the refusal actually returns, so the loop below is
+    // unreachable — is what it now asserts, without binding to which refusal code.
     expect(fence, 'the refusal does not return — the loop would still run')
-      .toMatch(/return \{ ok: false as const, dropped: 'ambiguous_owner' as const \}/)
+      .toMatch(/return \{ ok: false as const, dropped: 'ambiguous_owner(_unretained)?' as const \}/)
   })
 
   it('classification still happens ONCE, before the loop', () => {
@@ -450,5 +456,78 @@ describe('R131 is recorded where it can be grepped, and D7/D15 are chained', () 
     const row = rules.slice(i, rules.indexOf('\n', i))
     expect(row).toContain('closes none of Sprint 1')
     expect(row, 'the unapplied migration is not flagged in the rule row').toMatch(/UNAPPLIED/i)
+  })
+})
+
+// ═════════════════════════════════════════════════════════════════════════════
+// S5-C · A LEGACY CREDIT BALANCE IS NOT PROGRAMME PAYMENT AUTHORITY
+// ═════════════════════════════════════════════════════════════════════════════
+//
+// ⚠️ TEST ONLY — NO PRODUCTION CODE WAS CHANGED FOR THIS, and none needed to be. The
+// independent review found S5-C already correct and said so; what it also found is that no
+// test anywhere CONSTRUCTS the dangerous row. Every existing assertion proves "no P1 evidence
+// → refused" on a row with nothing else on it either, so a future change that let a wallet
+// balance answer for a payment would break no test in this repo.
+//
+// 🛑 WHY THE ROW BELOW IS THE DANGEROUS ONE. The legacy model sold a $299 pack and $4 per
+// approved lead, and a client could carry a five-figure `figsy_credits_remaining` from it. The
+// programme model does not use the wallet at all — P1 is `first_paid_at` (Stripe) or
+// `first_authorised_at` (House, internal) and nothing else. So the row that must be refused is
+// a client with PLENTY of legacy money and no programme payment: exactly the shape where
+// "they have paid us, surely that counts" is a tempting one-line change.
+//
+// ⚠️ IT ASSERTS ON THE PREDICATE, NOT ON A ROUTE. `p1Authorised` is where the question is
+// answered for every caller, so a guard placed anywhere else could be bypassed by the next one.
+describe('S5-C · legacy credits can never satisfy programme P1', () => {
+  // A SOURCING programme with no payment and no internal authority — and, in the fixture the
+  // production code actually reads, no notion of a wallet at all. That absence IS the design:
+  // if `p1Authorised` could see a credit balance, it would have to be given one.
+  const noP1 = {
+    id: 'prog-1', client_id: 'client-rich', status: 'SOURCING',
+    recommended_volume: 1000, sourcing_ceiling: 1000, sourced_used: 0, sourced_reserved: 0,
+    first_paid_at: null, first_payment_ref: null, first_payment_intent_id: null,
+    first_authorised_at: null,
+    second_paid_at: null, second_payment_ref: null, second_payment_intent_id: null,
+    second_authorised_at: null,
+    approved_at: null, went_live_at: null, run_at: null, paused_at: null,
+    review_required_at: null, review_resolved_at: null,
+  }
+
+  it('🛑 SOURCING IS REFUSED — `first_payment_missing`, whatever the wallet says', async () => {
+    const { authorityFor } = await import('./programme-authority')
+    const v = authorityFor(noP1 as never, 'SOURCING')
+    expect(v.allowed, 'a legacy credit balance bought programme sourcing').toBe(false)
+    if (!v.allowed) expect(v.reason).toBe('first_payment_missing')
+  })
+
+  it('🛑 AND SO IS THE NEXT BATCH', async () => {
+    const { authorityFor } = await import('./programme-authority')
+    const v = authorityFor(noP1 as never, 'NEXT_BATCH')
+    expect(v.allowed).toBe(false)
+  })
+
+  it('🛑 `p1Authorised` READS EXACTLY TWO FACTS, and neither is money we already hold', async () => {
+    const { p1Authorised } = await import('./programme')
+    // The two that DO authorise.
+    expect(p1Authorised({ ...noP1, first_paid_at: '2026-09-01T00:00:00Z' } as never)).toBe(true)
+    expect(p1Authorised({ ...noP1, first_authorised_at: '2026-09-01T00:00:00Z' } as never)).toBe(true)
+    // And the row with neither, however much legacy value sits beside it.
+    expect(p1Authorised(noP1 as never)).toBe(false)
+  })
+
+  it('🛑 NO WALLET, CREDIT, GRANT OR BALANCE WORD APPEARS IN THE P1/P2 PREDICATES', () => {
+    // The structural half. A source guard, because the defect being prevented is somebody
+    // ADDING a term to these two functions — which no behavioural test can see coming.
+    const prog = src('apps/api/src/lib/programme.ts')
+    const at = prog.indexOf('export function p1Authorised')
+    const end = prog.indexOf('export function isInternallySettled', at) > -1
+      ? prog.indexOf('export function isInternallySettled', at)
+      : at + 1200
+    const block = prog.slice(at, end)
+    expect(at, 'p1Authorised has moved — re-point this guard').toBeGreaterThan(-1)
+    for (const banned of ['credit', 'wallet', 'balance', 'grant', 'figsy_credits']) {
+      expect(block.toLowerCase(), `the P1/P2 predicates now consider "${banned}" — legacy money cannot buy a programme`)
+        .not.toContain(banned)
+    }
   })
 })

@@ -138,7 +138,14 @@ type Cockpit = {
 }
 
 // V17 — the bell. Derived live from real rows (GET /operator/alerts).
-type Alert = { client_id: string; company_name: string | null; kind: string; label: string; severity: 'high' | 'normal' }
+// ⚑ 17 Sep — `unattributed_reply_id` is carried ONLY by `reply_unattributed` rows, and those
+// rows cannot be acted on without it: the two buttons address a retained inbound reply, not a
+// client, so a client id alone would be an action with no subject.
+type Alert = {
+  client_id: string; company_name: string | null; kind: string; label: string
+  severity: 'high' | 'normal'
+  unattributed_reply_id?: string
+}
 // THE WORKLIST — where each client is and the ONE next action. Replaces "eight tabs and work
 // out where you are"; the step logic is a tested decision table in lib/client-step.ts.
 type NextAction = {
@@ -1463,6 +1470,53 @@ export default function VidaConsolePage() {
       }
     } catch {
       setProofMsg('Could not mark it reviewed — it is still open.')
+    }
+    setProofBusy(null)
+  }
+
+  // ⚑ 17 Sep — ATTRIBUTE OR DISCARD AN UNATTRIBUTED INBOUND REPLY.
+  //
+  // 🛑 WHAT THE ALERT MEANS. A prospect replied, and two or more clients hold a lead with that
+  // address. No receiving mailbox and no record of us emailing them names one owner, so the
+  // reply was written to NOBODY and retained instead — because showing one client another
+  // client's inbound mail is the harm the refusal exists to prevent. This is the only way it
+  // becomes anyone's.
+  //
+  // ⚠️ SAME SHAPE AS `resolveProofReview` ABOVE, deliberately — proxy POST, read `success`,
+  // re-read the feed from the server. A second pattern for two buttons is a second pattern to
+  // keep, and re-reading rather than splicing means a write that FAILED cannot render as done.
+  async function actOnUnattributedReply(a: Alert, action: 'resolve' | 'discard') {
+    if (!a.unattributed_reply_id) {
+      setProofMsg('That alert is missing its reply id, so no action could be taken. Refresh and try again.')
+      return
+    }
+    // ⚠️ THE DESTRUCTIVE ONE ASKS FIRST, and it names what it is doing. "Discard" here means
+    // this reply belongs to NONE of the candidate clients — not "not this one", which with
+    // several candidates would be ambiguous in exactly the way the alert is.
+    if (action === 'discard' && !window.confirm(
+      `Discard this reply?\n\n${a.label}\n\nThis records that it belongs to NONE of the candidate clients. No client will ever see it. The message itself is kept.`,
+    )) return
+
+    setProofBusy(a.unattributed_reply_id); setProofMsg(null)
+    try {
+      const j = await fetch(`/api/proxy/operator/unattributed-replies/${encodeURIComponent(a.unattributed_reply_id)}/${action}`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: action === 'resolve' ? JSON.stringify({ client_id: a.client_id }) : undefined,
+      }).then(r => r.json())
+      if (j?.success) {
+        const fresh = await fetch('/api/proxy/operator/alerts').then(r => r.json())
+        if (fresh?.success) setAlerts(fresh.data)
+        setProofMsg(
+          j.data?.resolved === 'attributed' ? 'Attributed — the reply is now in this client\'s inbox.'
+            : j.data?.resolved === 'discarded' ? 'Discarded — no client received it.'
+              : 'Already handled.',
+        )
+      } else {
+        setProofMsg(j?.error || 'It could not be done — the reply is still waiting.')
+      }
+    } catch {
+      setProofMsg('It could not be done — the reply is still waiting.')
     }
     setProofBusy(null)
   }
@@ -2914,7 +2968,7 @@ export default function VidaConsolePage() {
                   {myAlerts.map((a, i) => (
                     <span key={`${a.kind}-${i}`} className="flex items-center gap-1">
                       <button
-                        onClick={() => setTab(a.kind === 'replies' ? 'Inbox' : a.kind === 'no_campaign' ? 'Campaign' : 'ICP')}
+                        onClick={() => setTab(a.kind === 'replies' || a.kind === 'reply_unattributed' ? 'Inbox' : a.kind === 'no_campaign' ? 'Campaign' : 'ICP')}
                         className="text-[12px] font-semibold text-[#9d174d] bg-white border border-[#fbcfe8] rounded-full px-2 py-0.5 hover:border-[#EC4899]">
                         {a.label} &rarr;
                       </button>
@@ -2927,6 +2981,27 @@ export default function VidaConsolePage() {
                           className="text-[12px] font-semibold text-white bg-[#9d174d] border border-[#9d174d] rounded-full px-2 py-0.5 hover:bg-[#EC4899] disabled:opacity-50">
                           {proofBusy === a.client_id ? 'Marking…' : 'Mark reviewed'}
                         </button>
+                      )}
+                      {/* ⚑ 17 Sep — the two ways an unattributable reply becomes decided.
+                          Same chip language as every alert beside it; no modal, no new
+                          section. The destructive one is visually separate and says
+                          "Discard reply" rather than "Not ours" — with several candidate
+                          clients, "not ours" is ambiguous in exactly the way the alert is. */}
+                      {a.kind === 'reply_unattributed' && (
+                        <>
+                          <button
+                            onClick={() => actOnUnattributedReply(a, 'resolve')}
+                            disabled={proofBusy === a.unattributed_reply_id}
+                            className="text-[12px] font-semibold text-white bg-[#9d174d] border border-[#9d174d] rounded-full px-2 py-0.5 hover:bg-[#EC4899] disabled:opacity-50">
+                            {proofBusy === a.unattributed_reply_id ? 'Working…' : 'Attribute to this client'}
+                          </button>
+                          <button
+                            onClick={() => actOnUnattributedReply(a, 'discard')}
+                            disabled={proofBusy === a.unattributed_reply_id}
+                            className="text-[12px] font-semibold text-[#7f1d1d] bg-white border border-[#fca5a5] rounded-full px-2 py-0.5 hover:border-[#dc2626] disabled:opacity-50">
+                            Discard reply
+                          </button>
+                        </>
                       )}
                     </span>
                   ))}

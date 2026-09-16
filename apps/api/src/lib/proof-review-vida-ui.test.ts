@@ -141,8 +141,30 @@ describe('the Vida shell is untouched — this is one filter clause and one butt
     }
   })
 
+  // ⛓️ 17 Sep — RE-POINTED, AND THE DUTY IS UNCHANGED.
+  //
+  // 🛑 WHAT IT ASSERTED: the exact expressions `a.kind === 'replies' ? 'Inbox'` and
+  // `a.kind === 'no_campaign' ? 'Campaign'`. The first no longer appears verbatim, because
+  // the new `reply_unattributed` kind routes to the SAME tab and shares the branch:
+  // `a.kind === 'replies' || a.kind === 'reply_unattributed' ? 'Inbox'`.
+  //
+  // ⚠️ SO IT NOW MEASURES THE ROUTING RATHER THAN THE PUNCTUATION. What this guard is for is
+  // that an older kind keeps landing on its own tab — pinning the character sequence made it
+  // fail for a change that did exactly that. The assertions below are bound to the pairing of
+  // the kind and its destination, which is the thing that must not break, and the new kind's
+  // own routing is pinned beside them rather than being an untested addition.
   it('the existing kind-based tab routing still works for the older alert kinds', () => {
-    expect(code).toContain("a.kind === 'replies' ? 'Inbox'")
-    expect(code).toContain("a.kind === 'no_campaign' ? 'Campaign'")
+    const at = code.indexOf('onClick={() => setTab(')
+    expect(at, 'the alert chip no longer routes to a tab at all').toBeGreaterThan(-1)
+    const route = code.slice(at, code.indexOf('\n', at))
+    expect(route, "the 'replies' kind no longer lands on the Inbox").toMatch(/'replies'[\s\S]*\?\s*'Inbox'/)
+    expect(route, "the 'no_campaign' kind no longer lands on Campaign").toContain("a.kind === 'no_campaign' ? 'Campaign'")
+    expect(route, 'an unrecognised kind no longer falls back to the ICP tab').toContain("'ICP'")
+  })
+
+  it('and an unattributed reply lands on the Inbox — the surface it is about', () => {
+    const at = code.indexOf('onClick={() => setTab(')
+    const route = code.slice(at, code.indexOf('\n', at))
+    expect(route).toMatch(/'reply_unattributed'[\s\S]*\?\s*'Inbox'/)
   })
 })

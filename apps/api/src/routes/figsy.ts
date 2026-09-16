@@ -22,7 +22,7 @@ import { emitSignal } from './signals'
 // ⚑ 14 Sep — the model a human is waiting for. One name, one place.
 import { BACKGROUND_MODEL, AI_TURN_BOUND } from '../lib/models'
 import { rateLimit } from '../lib/rate-limit'
-import { isDuplicateWebhookEvent } from '../lib/webhook-idempotency'
+import { isDuplicateWebhookEvent, releaseWebhookEvent } from '../lib/webhook-idempotency'
 import { processInboundReply } from '../lib/reply-pipeline'
 import { parseSmartleadInbound, isSmartleadReplyEvent } from '../lib/smartlead-inbound'
 import { sendFounderAlert } from '../lib/alerts'
@@ -364,6 +364,21 @@ figsyRouter.post('/replies/inbound', async (req, res) => {
       // index protects the same identity rather than a second opinion about it.
       eventKey: dedupKey,
     })
+    // ── 🛑 ⚑ 17 Sep — THE ONE CASE WHERE A WEBHOOK MUST **NOT** GET A 200 ────────────────
+    //
+    // Every other refusal is safe to 200: the reply is either written, already known, or
+    // genuinely unusable, and the provider has nothing useful to redeliver. This one is
+    // different. `ambiguous_owner_unretained` means we could not attribute the reply AND could
+    // not store it — so a 200 would promise we had kept something we had just lost, and the
+    // provider would never send it again. The dedup claim is handed back and the delivery is
+    // refused, which is how a webhook asks to be redelivered.
+    if (!result.ok && result.dropped === 'ambiguous_owner_unretained') {
+      const released = await releaseWebhookEvent(db, dedupKey, 'resend')
+      res.status(500).json({
+        received: false, dropped: result.dropped, retry: true, dedup_released: released,
+      })
+      return
+    }
     if (!result.ok) { res.status(200).json({ received: true, dropped: result.dropped }); return }
     res.status(200).json({ received: true, id: result.replyId, clients: result.clients })
   } catch (err) {
@@ -449,6 +464,16 @@ figsyRouter.post('/replies/smartlead', unsubscribeLimiter, async (req, res) => {
     // BUILD-003 item 7 — the exact key this route deduped on, passed through so the database
     // backstop protects the same identity the application reasons about.
     const result = await processInboundReply(inbound, { rawPayload: raw, eventKey: dedupKey })
+    // ⚑ 17 Sep — the same single exception as the Resend route. See the note there: a reply we
+    // could neither attribute nor retain must be REFUSED, because a 200 is a promise we kept
+    // it. The general rule below ("never 500 at a webhook") stands for every other outcome.
+    if (!result.ok && result.dropped === 'ambiguous_owner_unretained') {
+      const released = await releaseWebhookEvent(db, dedupKey, 'smartlead')
+      res.status(500).json({
+        received: false, dropped: result.dropped, retry: true, dedup_released: released,
+      })
+      return
+    }
     if (!result.ok) { res.status(200).json({ received: true, dropped: result.dropped }); return }
     res.status(200).json({ received: true, id: result.replyId, clients: result.clients })
   } catch (err) {

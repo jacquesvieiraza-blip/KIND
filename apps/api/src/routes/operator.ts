@@ -1682,7 +1682,17 @@ operatorRouter.get('/alerts', async (_req: Request, res: Response) => {
       replyByClient.set(k, (replyByClient.get(k) ?? 0) + 1)
     }
 
-    const out: { client_id: string; company_name: string | null; kind: string; label: string; severity: 'high' | 'normal' }[] = []
+    const out: {
+      client_id: string; company_name: string | null; kind: string; label: string
+      severity: 'high' | 'normal'
+      /**
+       * ⚑ 17 Sep — WHICH RETAINED RECORD AN ACTION REFERS TO. Only `reply_unattributed` rows
+       * carry it, and they cannot be acted on without it: the two buttons address a row in
+       * `unattributed_replies`, not a client, so a client id alone would be an action with no
+       * subject.
+       */
+      unattributed_reply_id?: string
+    }[] = []
     for (const c of (clients.data ?? []) as Record<string, unknown>[]) {
       const id = c.id as string
       if (c.is_demo === true || excluded.has(id)) continue
@@ -1790,13 +1800,59 @@ operatorRouter.get('/alerts', async (_req: Request, res: Response) => {
       programmeDegraded.push(`Programme exceptions could not be checked (${err instanceof Error ? err.message : String(err)}).`)
     }
 
+    // ══ ⚑ 17 Sep — UNATTRIBUTED INBOUND REPLIES REACH THE BELL ════════════════════════════
+    //
+    // 🛑 THE GAP THIS CLOSES. An ambiguous reply is retained and NOT written to any client —
+    // correct — and until now the only notification was `sendFounderAlert`, which writes to
+    // `founder_alerts`, a table with **no reader anywhere in this product**. So the safety fix
+    // had no recovery path: the reply sat in the database and nobody could see it, let alone
+    // act on it. This is where it becomes visible, in the feed Vida already polls.
+    //
+    // ⚠️ ONE ROW PER CANDIDATE CLIENT, DELIBERATELY. Vida's whole surface is scoped to the
+    // selected client (`alertsByClient`), so a single row keyed to one of the candidates would
+    // be invisible while the operator worked the other. Every candidate is offered the
+    // decision, and the row carries the retained id so both point at the SAME record — which
+    // is what makes attributing from either side resolve the one exception.
+    //
+    // ⚠️ AND NO REPLY BODY IS IN THE LABEL. These render into a shared chip row beside every
+    // other alert; an inbound message from a stranger is not list decoration. The sender, the
+    // candidate count and the id are what the decision needs.
+    const replyOut: typeof out = []
+    const replyDegraded: string[] = []
+    try {
+      const { openUnattributedReplies, unattributedAlertLabel } = await import('../lib/unattributed-reply')
+      const open = await openUnattributedReplies()
+      if (open.degraded) replyDegraded.push(open.degraded)
+      for (const r of open.rows) {
+        const candidates = (r.candidate_client_ids ?? []).filter(Boolean)
+        const label = unattributedAlertLabel({ fromEmail: r.from_email, candidateCount: candidates.length })
+        for (const cid of candidates) {
+          // Demo and House accounts are filtered from every other section of this feed for the
+          // same reason: an exception on an account nobody is operating is noise.
+          if (excluded.has(cid)) continue
+          replyOut.push({
+            client_id: cid,
+            company_name: null,
+            kind: 'reply_unattributed',
+            label,
+            severity: 'high',
+            unattributed_reply_id: r.id,
+          })
+        }
+      }
+    } catch (err) {
+      // Same rule as the programme section: degrade, say so, never break the existing feed.
+      replyDegraded.push(`Unattributed inbound replies could not be checked (${err instanceof Error ? err.message : String(err)}). An empty list does NOT mean none are waiting.`)
+    }
+
     res.json({
       success: true,
-      data: [...proofOut, ...programmeOut, ...out],
-      ...(proofReviewErr || programmeDegraded.length > 0
+      data: [...replyOut, ...proofOut, ...programmeOut, ...out],
+      ...(proofReviewErr || programmeDegraded.length > 0 || replyDegraded.length > 0
         ? { degraded: {
             ...(proofReviewErr ? { proof_review: `Proof-review queue could not be checked — operator review state may be incomplete. Do NOT read an empty list as "nobody is waiting". Check the database and whether 20260827_proof_review_handoff has been run (Vida → Engine). Reason: ${proofReviewErr.message}` } : {}),
             ...(programmeDegraded.length > 0 ? { programme: programmeDegraded.join(' ') } : {}),
+            ...(replyDegraded.length > 0 ? { unattributed_replies: replyDegraded.join(' ') } : {}),
           } }
         : {}),
     })
@@ -2445,6 +2501,243 @@ operatorRouter.post('/proof-review/:clientId/resolve', async (req: Request, res:
   } catch (err) {
     console.error('[operator/proof-review/resolve]', err)
     res.status(500).json({ success: false, error: 'Failed to resolve the proof review' })
+  }
+})
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// ⚑ 17 Sep — ATTRIBUTE OR DISCARD AN UNATTRIBUTED INBOUND REPLY.
+//
+// ── 🛑 WHY THESE TWO ROUTES EXIST ──────────────────────────────────────────────────────
+//
+// A reply whose prospect address is held by two clients, with no receiving mailbox and no
+// originating-send record, is retained and shown to NOBODY. That is the locked safety answer
+// — "if the system cannot determine one safe owner: FAIL CLOSED" — and a refusal with no way
+// out is a reply nobody can ever act on. These are the way out: a human names one of the
+// STORED candidates, or says it belongs to none of them.
+//
+// ── ⚠️ THE ORDER IS THE WHOLE DESIGN, AND IT IS WHY THERE IS A CLAIM COLUMN ─────────────
+//
+//   validate candidate → CLAIM the exception → write the reply → record the resolution
+//
+// 🛑 Marking it resolved FIRST would produce a resolved exception with no client-visible
+// reply if the write then failed — the reply lost for a second time, now invisibly. Marking
+// it only at the END would let two operators pressing at once each write a reply. The claim
+// is a compare-and-set that exactly one caller wins; a FAILED attribution hands it back, so
+// the exception stays open, stays visible and stays recoverable.
+//
+// ⚠️ IT IS NOT A SECOND REPLY IMPLEMENTATION. The reply is written by `processInboundReply` —
+// the same function every provider webhook uses — given one extra field naming the owner a
+// human chose. Classification, the hot path, CRM, counters and the meeting logic all run
+// exactly as they do for an ordinary reply, because it IS the ordinary path.
+// ═══════════════════════════════════════════════════════════════════════════════════════
+
+operatorRouter.post('/unattributed-replies/:id/resolve', async (req: Request, res: Response) => {
+  try {
+    if (!adminKeyValid(req.headers['x-admin-key'])) {
+      res.status(403).json({ success: false, error: 'Operator key required' })
+      return
+    }
+    const clientId = typeof req.body?.client_id === 'string' ? req.body.client_id.trim() : ''
+    if (!clientId) {
+      res.status(400).json({ success: false, error: 'client_id is required — this action attributes the reply to one client.' })
+      return
+    }
+
+    const {
+      getUnattributedReply, claimUnattributedReply, releaseUnattributedClaim,
+      settleUnattributedReply, resolvedReplyEventKey,
+    } = await import('../lib/unattributed-reply')
+
+    const found = await getUnattributedReply(req.params.id)
+    if (!found.ok) {
+      res.status(500).json({ success: false, error: `The retained reply could not be read, so nothing was attributed. ${found.detail}` })
+      return
+    }
+    if (!found.row) {
+      res.status(404).json({ success: false, error: 'No such retained reply.' })
+      return
+    }
+    if (found.row.resolved_at) {
+      // Not an error: the operator's intent is already satisfied. Same language as the
+      // proof-review route's `already_resolved`.
+      res.json({ success: true, data: { resolved: 'already_resolved' } })
+      return
+    }
+
+    // ── 🛑 THE CANDIDATE CHECK. THIS IS THE ONE THAT CANNOT BE REMOVED ───────────────────
+    //
+    // The stored candidate set is the list of clients who actually held a lead with this
+    // prospect's address WHEN THE REPLY ARRIVED. Attributing outside it would hand one
+    // client an external reply on the strength of nothing at all — the precise harm the
+    // fail-closed routing exists to prevent, arriving through the recovery door instead of
+    // the front one. A typo in the UI, a stale tab, a replayed request: all refused.
+    const candidates = (found.row.candidate_client_ids ?? []).filter(Boolean)
+    if (!candidates.includes(clientId)) {
+      console.error(`[operator/unattributed-replies/resolve] REFUSED: client ${clientId} is not one of the ${candidates.length} stored candidates for retained reply ${req.params.id}.`)
+      res.status(400).json({
+        success: false,
+        error: `That client was not one of the candidates for this reply, so it was NOT attributed. Only a client who held a lead with ${found.row.from_email} when the reply arrived may receive it. Candidates: ${candidates.join(', ') || '(none)'}.`,
+      })
+      return
+    }
+
+    // CLAIM — exactly one caller proceeds past here.
+    const claim = await claimUnattributedReply(req.params.id, operatorEmail(req) ?? null)
+    if (!claim.ok) {
+      if (claim.reason === 'already_resolved') {
+        res.json({ success: true, data: { resolved: 'already_resolved' } })
+        return
+      }
+      res.status(claim.reason === 'already_claimed' ? 409 : 500).json({
+        success: false,
+        error: `Nothing was attributed: ${claim.detail}`,
+      })
+      return
+    }
+
+    // ── WRITE THE REPLY THROUGH THE ORDINARY PIPELINE ───────────────────────────────────
+    //
+    // ⚠️ THE EVENT KEY IS THE RETENTION ROW'S ID, not the provider's original key. The
+    // provider key is already on the dedup ledger for the ingest that REFUSED, and reusing it
+    // would conflate "we received this" with "a human attributed this". Keying on the
+    // retention id also means `figsy_replies`' partial unique index refuses a duplicate even
+    // if our own bookkeeping is interrupted between the write and the settle.
+    const { processInboundReply } = await import('../lib/reply-pipeline')
+    let result: { ok: boolean; dropped?: string; replyId?: string; clients?: number }
+    try {
+      result = await processInboundReply({
+        fromEmail: found.row.from_email,
+        fromName: found.row.from_name,
+        subject: found.row.subject,
+        body: found.row.body,
+        providerMessageId: found.row.provider_event_key,
+        provider: found.row.provider as 'resend' | 'smartlead' | 'instantly',
+        toEmail: found.row.to_email,
+      }, {
+        rawPayload: (found.row.raw_payload ?? {}) as Record<string, unknown>,
+        eventKey: resolvedReplyEventKey(found.row.id),
+        resolvedOwnerClientId: clientId,
+      })
+    } catch (err) {
+      await releaseUnattributedClaim(req.params.id)
+      console.error(`[operator/unattributed-replies/resolve] the reply write THREW for ${req.params.id}; the claim was released and the exception is still open:`, err)
+      res.status(500).json({
+        success: false,
+        error: `The reply could not be written, so nothing was attributed and the exception is still open. ${err instanceof Error ? err.message : String(err)}`,
+      })
+      return
+    }
+
+    // 🛑 A REFUSED WRITE RELEASES THE CLAIM. The exception must remain exactly as it was —
+    // open, visible, recoverable — rather than becoming a resolution with no reply behind it.
+    if (!result.ok) {
+      await releaseUnattributedClaim(req.params.id)
+      console.error(`[operator/unattributed-replies/resolve] the pipeline refused the write for ${req.params.id} (${result.dropped}); the claim was released and the exception is still open.`)
+      res.status(500).json({
+        success: false,
+        error: `The reply was not written (${result.dropped}), so nothing was attributed and the exception is still open for another attempt.`,
+      })
+      return
+    }
+
+    // RECORD THE OUTCOME — only now, and only because the write above succeeded.
+    const settled = await settleUnattributedReply({
+      id: req.params.id, resolution: 'attributed', clientId, by: operatorEmail(req) ?? null,
+    })
+
+    await writeOperatorAudit({
+      operatorEmail: operatorEmail(req), clientId,
+      action: 'unattributed_reply_attributed', subjectType: 'client', subjectId: req.params.id,
+      detail: {
+        from_email: found.row.from_email,
+        candidates,
+        attributed_to: clientId,
+        reply_id: result.replyId ?? null,
+        outcome_recorded: settled.changed,
+        means: 'a human chose the owner of an inbound reply that the system refused to attribute; it is now visible to exactly this one client',
+      },
+    })
+
+    // ⚠️ THE ONE STATE WORTH NAMING OUT LOUD: the reply IS written and the bookkeeping is not.
+    // The claim is deliberately NOT released here — releasing it would invite a second press
+    // and a second reply, and a duplicate client-visible reply cannot be undone while a stuck
+    // exception can. It stays visible in the feed, and the DB's unique index on
+    // `provider_event_key` refuses a duplicate even if someone forces it.
+    if (!settled.ok) {
+      console.error(`[operator/unattributed-replies/resolve] the reply WAS written for ${req.params.id} but the outcome could not be recorded: ${settled.detail}`)
+      res.status(500).json({
+        success: false,
+        error: `The reply WAS attributed to this client and is visible to them, but recording the outcome failed (${settled.detail}). The exception is still listed. Do NOT press again — the reply exists; this needs the record corrected by hand.`,
+        data: { reply_id: result.replyId ?? null, written: true, outcome_recorded: false },
+      })
+      return
+    }
+
+    res.json({
+      success: true,
+      data: {
+        resolved: settled.changed ? 'attributed' : 'already_resolved',
+        client_id: clientId,
+        reply_id: result.replyId ?? null,
+      },
+    })
+  } catch (err) {
+    console.error('[operator/unattributed-replies/resolve]', err)
+    res.status(500).json({ success: false, error: 'Failed to attribute the reply' })
+  }
+})
+
+// ── DISCARD — "this belongs to none of the candidates" ────────────────────────────────
+//
+// ⚠️ IT IS A DECISION, NOT A DELETE. The retained row keeps the full inbound, its candidates
+// and who discarded it; only the exception closes. Nothing is written to any client, and
+// nothing is destroyed — a discard made in error is still readable evidence afterwards.
+operatorRouter.post('/unattributed-replies/:id/discard', async (req: Request, res: Response) => {
+  try {
+    if (!adminKeyValid(req.headers['x-admin-key'])) {
+      res.status(403).json({ success: false, error: 'Operator key required' })
+      return
+    }
+    const { getUnattributedReply, settleUnattributedReply } = await import('../lib/unattributed-reply')
+
+    const found = await getUnattributedReply(req.params.id)
+    if (!found.ok) {
+      res.status(500).json({ success: false, error: `The retained reply could not be read, so nothing was discarded. ${found.detail}` })
+      return
+    }
+    if (!found.row) {
+      res.status(404).json({ success: false, error: 'No such retained reply.' })
+      return
+    }
+    if (found.row.resolved_at) {
+      res.json({ success: true, data: { resolved: 'already_resolved' } })
+      return
+    }
+
+    // Compare-and-set on `resolved_at IS NULL`, so a double-click cannot overwrite the first
+    // operator's decision and a discard can never land on an already-attributed reply.
+    const settled = await settleUnattributedReply({
+      id: req.params.id, resolution: 'discarded', clientId: null, by: operatorEmail(req) ?? null,
+    })
+    if (!settled.ok) {
+      res.status(500).json({ success: false, error: `The reply was NOT discarded and is still listed. ${settled.detail}` })
+      return
+    }
+    if (settled.changed) {
+      await writeOperatorAudit({
+        operatorEmail: operatorEmail(req), clientId: null,
+        action: 'unattributed_reply_discarded', subjectType: 'client', subjectId: req.params.id,
+        detail: {
+          from_email: found.row.from_email,
+          candidates: (found.row.candidate_client_ids ?? []).filter(Boolean),
+          means: 'a human confirmed this inbound reply belongs to NONE of its candidate clients; no client-visible reply was created and the inbound is still retained',
+        },
+      })
+    }
+    res.json({ success: true, data: { resolved: settled.changed ? 'discarded' : 'already_resolved' } })
+  } catch (err) {
+    console.error('[operator/unattributed-replies/discard]', err)
+    res.status(500).json({ success: false, error: 'Failed to discard the reply' })
   }
 })
 

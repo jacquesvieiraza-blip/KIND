@@ -349,6 +349,97 @@ describe('Ⓒ the conversation continues until the system is genuinely ready', (
 })
 
 // ═══════════════════════════════════════════════════════════════════════════════════════
+// Ⓘ S1-ONB-002 — THE TWO CLASSES ARE COUNTED SEPARATELY, AND EVERY NUMBER IS TRUE.
+//
+// 🛑 WHAT THIS CLOSES. `remaining` was `unresolvedLabels.length`, which added the account class
+// to the Brief class while `total` stayed at eleven. Two things followed, and neither was
+// internal: the portal renders `remaining` VERBATIM, so an empty Brief was reported to the
+// customer as **"12 things still needed"** about an eleven-fact Brief; and the portal derives
+// operator progress as `total - remaining`, so a client holding **10 of 11** facts with no
+// country was emailed to a human as **"9 of 11 facts held"**.
+//
+// ⚠️ READY, QUESTION ORDER, CONFIRMATION AND PROOF ARE UNTOUCHED BY THIS — `state` never read
+// either number. The group below pins that too, so a future count change cannot leak into them.
+// ═══════════════════════════════════════════════════════════════════════════════════════
+describe('Ⓘ canonical Brief progress and account readiness are separate numbers', () => {
+  it('① an EMPTY onboarding: eleven of eleven outstanding, country counted apart', async () => {
+    const r = await dispatch(completeWith({ brief_so_far: {} }))
+    const o = outstandingOf(r)!
+    expect(o.total, 'the canonical denominator').toBe(11)
+    expect(o.remaining, 'the canonical Brief facts ALONE — never 12').toBe(11)
+    expect(o.account, 'the account class, counted separately').toBe(1)
+    // 🛑 AND THE CUSTOMER CAN NEVER BE TOLD "12". The portal renders `remaining` verbatim.
+    expect(o.remaining).toBeLessThanOrEqual(o.total)
+  })
+
+  it('② TEN of eleven + country missing → 10 of 11, and the account gap is its own', async () => {
+    const { exclusions: _drop, ...tenPlusCountryMissing } = ELEVEN
+    const r = await dispatch(completeWith({ brief_so_far: {} }), { held: tenPlusCountryMissing })
+    const o = outstandingOf(r)!
+    expect(o.remaining, 'one Brief fact outstanding').toBe(1)
+    expect(o.total - o.remaining, 'operator progress: 10 of 11 — not 9').toBe(10)
+    expect(o.account).toBe(1)
+    expect(o.next.id, 'targeting is asked first, in the canonical order').toBe('exclusions')
+  })
+
+  it('③ ELEVEN of eleven + country missing → 11 of 11, conversing, and country is next', async () => {
+    const r = await dispatch(completeWith({ brief_so_far: {} }), { held: ELEVEN })
+    const o = outstandingOf(r)!
+    expect(o.remaining, 'no Brief fact is outstanding').toBe(0)
+    expect(o.total - o.remaining, 'operator progress: 11 of 11').toBe(11)
+    expect(o.account).toBe(1)
+    expect(o.next.id, 'the account fact is still what is asked for').toBe('country')
+    // 🛑 AND THE NOTICE MUST NOT SAY "0 things still needed" WHILE ASKING FOR IT.
+    expect(PORTAL).toContain('outstanding.remaining === 0')
+    expect(PORTAL, 'a count of zero is never printed as a count').toContain("'Just one more thing'")
+    // …and the state is still conversing: a count of 0 is not readiness.
+    const { onboardingState } = await authority()
+    expect(onboardingState(ELEVEN).state).toBe('conversing')
+  })
+
+  it('④ ELEVEN of eleven + country present → ready', async () => {
+    const r = await dispatch(completeWith({ brief_so_far: {} }), { held: READY_FACTS })
+    expect(typeOf(r)).toBe('complete')
+    const { onboardingState } = await authority()
+    expect(onboardingState(READY_FACTS).state).toBe('ready')
+  })
+
+  it('🛑 OPERATOR PROGRESS IS THE ELEVEN MINUS THE BRIEF GAP, AND NOTHING ELSE', () => {
+    // ⛓️ This guard exists because mutation B did NOT go red without it: the API-level
+    // assertions above prove the SHAPE, and nothing proved the portal's own arithmetic. The
+    // count in the Get Help email is `total - remaining` — subtracting the account gap as well
+    // is exactly the "9 of 11 for a client holding 10" defect, one layer further out.
+    expect(PORTAL).toContain('setBriefProgress({ count: Math.max(0, o.total - o.remaining), total: o.total })')
+    expect(PORTAL, 'the account class must never enter the progress arithmetic')
+      .not.toMatch(/setBriefProgress\([^)]*o\.account/)
+    // …and the sentence it feeds still reads out of the canonical denominator.
+    expect(PORTAL).toContain('facts held')
+  })
+
+  it('🛑 NEITHER CLASS MAY BE FOLDED INTO THE OTHER, in the source', () => {
+    expect(ICPS, 'the Brief count is the targeting class alone')
+      .toContain('remaining: st.unresolvedTargeting.length')
+    expect(ICPS, 'the combined label list is NOT a count')
+      .not.toContain('remaining: st.unresolvedLabels.length')
+    expect(ICPS, 'and the account class is its own number')
+      .toContain('account:   st.unresolvedAccount.length')
+  })
+
+  it('🛑 AND THE COUNTS REACH NO AUTHORITY', async () => {
+    const { onboardingState } = await authority()
+    const ONB_SRC = readFileSync(join(process.cwd(), 'apps/api/src/lib/onboarding-state.ts'), 'utf8')
+    // `state` is derived from completeness and the account class, never from any length
+    // arithmetic against the denominator.
+    expect(ONB_SRC).toContain("state: targeting.complete && unresolvedAccount.length === 0 ? 'ready' : 'conversing'")
+    expect(ONB_SRC, 'no readiness verdict is derived from a subtraction').not.toMatch(/state:[^\n]*total\s*-/)
+    // And the verdict is identical whichever way the counts land.
+    expect(onboardingState(ELEVEN).state).toBe('conversing')
+    expect(onboardingState({}).state).toBe('conversing')
+    expect(onboardingState(READY_FACTS).state).toBe('ready')
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
 const ICPS   = readFileSync(join(process.cwd(), 'apps/api/src/routes/icps.ts'), 'utf8')
 const MILLA  = readFileSync(join(process.cwd(), 'apps/api/src/routes/milla.ts'), 'utf8')
 const DRAFT  = readFileSync(join(process.cwd(), 'apps/api/src/lib/brief-draft.ts'), 'utf8')

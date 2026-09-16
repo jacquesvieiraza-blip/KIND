@@ -346,7 +346,7 @@ describe('Ⓖ the portal consumes the structured recovery state', () => {
   it('renders a notice outside the message list, and it is not attributed to Milla', () => {
     const at = PORTAL.indexOf('{outstanding && status === ')
     expect(at, 'the notice renders').toBeGreaterThan(-1)
-    const block = PORTAL.slice(at, at + 900)
+    const block = PORTAL.slice(at, at + 1600)   // ⛓️ 16 Sep — the S1-ONB-002 comment widened it
     expect(block).toContain('role="status"')
     expect(block, 'the server\'s label, not a fact named here').toContain('{outstanding.label}')
     expect(block, 'no avatar, no Milla attribution').not.toContain('Milla')

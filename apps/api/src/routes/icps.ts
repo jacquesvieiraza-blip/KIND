@@ -4591,11 +4591,28 @@ result or a number. "permitted" is false unless they explicitly said we may use 
           success: true,
           data: {
             type: 'outstanding',
+            // ── 🛑 ⚑ 16 Sep (S1-ONB-002) — THE TWO CLASSES ARE COUNTED SEPARATELY ────
+            //
+            // ⛓️ `remaining` USED TO BE `unresolvedLabels.length`, WHICH MIXED THEM. With an
+            // empty Brief that read 12 against a total of 11, and the portal renders
+            // `remaining` verbatim — so a customer could be told "12 things still needed"
+            // about an eleven-fact Brief. Worse, the portal derives operator progress as
+            // `total - remaining`, so a client holding 10 of 11 facts with no country was
+            // reported to a human as "9 of 11 facts held".
+            //
+            // 🛑 CANONICAL BRIEF PROGRESS IS THE ELEVEN AND NOTHING ELSE. `remaining` and
+            // `total` are now a matched pair over `BRIEF_FACTS`; the account class is its own
+            // number. Neither class can distort the other, and no surface has to know that
+            // two classes exist to print a truthful number.
+            //
+            // ⚠️ `next` IS UNCHANGED and still crosses the classes: targeting first, in the
+            // canonical order, then the account fact. That is the question order and it is not
+            // a count.
             brief_outstanding: {
-              remaining: st.unresolvedLabels.length,
-              // ⚠️ THE DENOMINATOR STAYS THE ELEVEN. Country is not a twelfth fact and must
-              // never make the canonical count read as twelve on any surface.
+              remaining: st.unresolvedTargeting.length,
               total:     st.targeting.total,
+              /** Unresolved ACCOUNT facts — outside the eleven, and never added to `remaining`. */
+              account:   st.unresolvedAccount.length,
               next,
             },
           },

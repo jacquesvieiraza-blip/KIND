@@ -79,7 +79,10 @@ type BuilderReply =
   // answer from the one canonical eleven-fact counter. There is no fact list in this file,
   // no count computed here, and no opinion about which fact comes next.
   | { type: 'outstanding'; brief_outstanding: {
+      /** ⚑ 16 Sep (S1-ONB-002) — the canonical ELEVEN only. `total` is its matched denominator. */
       remaining: number; total: number
+      /** Unresolved ACCOUNT facts, counted separately and never folded into `remaining`. */
+      account?: number
       next: { id: string; label: string }
     } }
 type Msg = { role: 'user' | 'assistant'; content: string }
@@ -550,11 +553,16 @@ export default function MillaWelcomePage() {
       if (d.type === 'outstanding') {
         const o = d.brief_outstanding
         setOutstanding({ label: o.next.label, remaining: o.remaining })
+        void o.account
         // The server refused a completion, so onboarding is not ready whatever this tab holds.
         setServerReady(false)
         // ⚠️ THE SAME STATE THE RESUME PATH AND Get Help ALREADY SPEAK FROM — reused, never
         // duplicated, and still the server's numbers. `count` is derived by SUBTRACTION from
         // the server's own `total` and `remaining`; there is no eleven-fact list in this app.
+        // ⛓️ 16 Sep (S1-ONB-002) — CANONICAL BRIEF PROGRESS, and now actually true. `remaining`
+        // is the eleven alone, so this is facts held out of eleven — 10 of 11 stays 10 of 11
+        // when the only thing outstanding is the client's own country. It used to subtract the
+        // account gap too and under-report to the operator reading the Get Help email.
         setBriefProgress({ count: Math.max(0, o.total - o.remaining), total: o.total })
         setBriefNext(o.next.label)
         return
@@ -999,7 +1007,15 @@ export default function MillaWelcomePage() {
               <div role="status" className="max-w-2xl mx-auto mb-2 flex items-start gap-2.5 rounded-xl border border-[#e4dcf7] bg-[#faf7ff] px-4 py-3">
                 <span aria-hidden className="text-[13px] leading-none mt-0.5">📝</span>
                 <span className="text-[12.5px] text-[#5c5279] leading-relaxed">
-                  {outstanding.remaining === 1 ? 'One thing still needed' : `${outstanding.remaining} things still needed`}
+                  {/* ── 🛑 ⚑ 16 Sep (S1-ONB-002) — THE NUMBER IS THE ELEVEN, OR THERE IS NO NUMBER.
+                       `remaining` is now canonical Brief facts only, so it can be 0 while an
+                       ACCOUNT fact is still outstanding — and "0 things still needed" beside a
+                       request for that fact would be a lie. In that state the count is simply
+                       not said. Still no checklist, still no "11/11", and the thing being
+                       asked for is the server's own label either way. */}
+                  {outstanding.remaining === 0
+                    ? 'Just one more thing'
+                    : outstanding.remaining === 1 ? 'One thing still needed' : `${outstanding.remaining} things still needed`}
                   {' — '}<b className="text-[#1f1235]">{outstanding.label}</b>.
                   {' '}Tell me below and I&rsquo;ll finish your targeting plan.
                 </span>

@@ -258,13 +258,16 @@ describe('🛑 S1-RT-002 · a completion whose facts live where the PROMPT put t
     const ed = empty.payload.data as Record<string, unknown>
     expect(ed.type, 'nothing is invented from an empty brief').toBe('outstanding')
     expect(ed.icp, 'and no targeting is proposed').toBeUndefined()
-    // ⛓️ 16 Sep (S1-ONB-001) — TWELVE OUTSTANDING THINGS, ELEVEN BRIEF FACTS. The account's
-    // country is counted as outstanding because onboarding cannot progress without it, and it
-    // is still NOT one of the eleven — which is exactly what the denominator proves.
+    // ⛓️ 16 Sep (S1-ONB-002) — ELEVEN, NOT TWELVE, AND THE ACCOUNT GAP IS ITS OWN NUMBER.
+    // Combining them put "12 things still needed" in front of a customer whose Brief has
+    // eleven facts, and made operator progress read 9 of 11 for a client holding 10. The two
+    // classes are counted separately; `remaining` and `total` are a matched pair.
     expect((ed.brief_outstanding as { remaining: number }).remaining,
-      'the eleven Brief facts plus the account country').toBe(12)
+      'the canonical Brief facts alone').toBe(11)
     expect((ed.brief_outstanding as { total: number }).total,
-      'and the canonical Brief is still eleven').toBe(11)
+      'and its matched denominator').toBe(11)
+    expect((ed.brief_outstanding as { account: number }).account,
+      'the account country, counted apart').toBe(1)
   })
 
   it('🛑 THE CLIENT NEVER SPEAKS APOLLO — an un-normalisable company size still completes', async () => {

@@ -44,6 +44,26 @@ const homeRaw = site('index.html')
 const home = homeRaw.replace(/<!--[\s\S]*?-->/g, '').replace(/<script[\s\S]*?<\/script>/gi, '')
 const PAGES: Array<[string, string]> = [['terms.html', terms], ['pricing.html', pricing], ['index.html', home]]
 
+// ── R124 (16 Sep) — THE HOMEPAGE LEFT THE LEGACY MODEL AND THESE TWO PAGES HAVE NOT ──────
+//
+// The founder retired $299 + $4-per-approved-lead outright: "299/4 is gone. out. we are on the
+// programme. all clients." The homepage pricing block now states the programme, so it can no
+// longer satisfy assertions that REQUIRE the legacy figures — and those assertions must not be
+// deleted, because `terms.html` and `pricing.html` still carry the legacy wording and are
+// founder+legal territory (E35/E36). They are the contract; they get corrected deliberately,
+// not as a side effect of a marketing edit.
+//
+// So the positive legacy-money assertions narrow to the two pages that still make the claim,
+// and the homepage gets its own programme guard below. Every NEGATIVE assertion keeps covering
+// all three — a page that has moved on must still never reacquire a false claim.
+const LEGACY_PAGES: Array<[string, string]> = [['terms.html', terms], ['pricing.html', pricing]]
+
+/** The homepage pricing block alone — the footer is a 29-page shared string, swept separately. */
+const homePricing = homeRaw.slice(
+  homeRaw.indexOf('<section class="gp-section gp-pricing"'),
+  homeRaw.indexOf('<section class="gp-trust"'),
+)
+
 describe('the site no longer calls the first purchase a wallet top-up', () => {
   for (const [name, html] of PAGES) {
     it(`${name} does not say the $99 "loads your wallet"`, () => {
@@ -64,7 +84,7 @@ describe('the site no longer calls the first purchase a wallet top-up', () => {
 })
 
 describe('both pages disclose the included leads, with the real numbers', () => {
-  for (const [name, html] of PAGES) {
+  for (const [name, html] of LEGACY_PAGES) {
     it(`${name} names the pack price from the constant (${PACK_PRICE_USD})`, () => {
       expect(html).toContain(`$${PACK_PRICE_USD}`)
     })
@@ -135,9 +155,68 @@ describe('#327 — the CSV claim now matches what a client can actually do', () 
   })
 })
 
-describe('P30 — the homepage states the whole offer in what a visitor can read', () => {
-  it('one visible line carries the pack price AND the included count together', () => {
-    const line = home.split('\n').find(l => l.includes(`$${PACK_PRICE_USD}`) && l.includes(`${PACK_LEADS} approved leads`))
-    expect(line, 'the $299 pack line is missing from the visible homepage').toBeTruthy()
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// P30, REWRITTEN FOR THE PROGRAMME — the homepage states the whole offer, and the offer changed.
+//
+// P30's requirement is unchanged: a visitor must be able to read the WHOLE commercial offer in
+// visible homepage content, not infer it. What changed is the offer. The old test demanded one
+// visible line carrying "$299" and "100 approved leads" together — that line is exactly what
+// the founder retired, so the guard would have blocked the correction it exists to protect.
+//
+// 🛑 AND THE HOMEPAGE PUBLISHES NO PRICE AT ALL. The founder chose structure-only, and R81 is
+// still live on this point: the curve is "UNBUILT AND UNQUOTABLE" as public copy. The only
+// calculator is the canonical one inside Milla, fed by `GET /my/programme/calculator`. A static
+// page cannot interpolate from `@kind/shared` (no build step), so a number typed here would be
+// a second pricing engine with no way to stay in sync — the working method's rule 7.
+// ═══════════════════════════════════════════════════════════════════════════════════════
+describe('P30 — the homepage states the whole programme offer in what a visitor can read', () => {
+  it('the pricing block carries no retired per-lead or pack money', () => {
+    expect(homePricing).not.toContain(`$${PACK_PRICE_USD}`)
+    expect(homePricing).not.toContain(`${PACK_LEADS} approved leads`)
+    expect(homePricing).not.toContain(`$${LEAD_PRICE_USD}`)
+    expect(homePricing).not.toMatch(/per (approved )?lead/i)
+    expect(homePricing).not.toMatch(/wallet|top up|prepaid/i)
+  })
+
+  it('no retired pack figure survives anywhere a visitor can read', () => {
+    expect(home).not.toContain(`$${PACK_PRICE_USD}`)
+    expect(home).not.toContain(`${PACK_LEADS} approved leads`)
+  })
+
+  it('the block states the payment structure the client actually meets', () => {
+    // R74: 50% authorises bounded sourcing/preparation, 50% at Approve & Go Live.
+    expect(homePricing).toContain('50/50')
+    expect(homePricing).toMatch(/Half to start, half to go live/)
+    expect(homePricing).toMatch(/second half is never charged/)
+  })
+
+  it('it states the free proof, the single approval and the no-subscription promise', () => {
+    expect(homePricing).toMatch(/Free Proof/)
+    expect(homePricing).toMatch(/One programme\. One approval\./)
+    expect(homePricing).toContain('No subscription.')
+  })
+
+  it('it states that unused programme value does not expire', () => {
+    // R74's locked wording: "unused programme value remains on account and never expires".
+    expect(homePricing).toMatch(/[Uu]nused programme value .*never expires/)
+  })
+
+  it('🛑 it publishes NO figure from the pricing curve (R81 — unquotable)', () => {
+    // The R81 anchors: 1 meeting $450 · 10 meetings $437.50 · 50+ meetings $400 floor.
+    for (const n of ['$450', '$437.50', '$437.5', '$400']) {
+      expect(home, `the homepage publishes the curve anchor ${n}`).not.toContain(n)
+    }
+    // And no typed per-meeting price in any shape.
+    expect(home).not.toMatch(/\$\s?\d[\d,.]*\s*(per|a|\/)\s*(targeted )?(booked )?meeting/i)
+  })
+
+  // ⚠️ KNOWN REMAINDER, GUARDED RATHER THAN IGNORED. The footer tagline still reads "you only
+  // pay $4 when you approve a lead" on all 29 pages and is swept as one shared string, not
+  // page by page. Until then this pins the count at exactly one so a NEW per-lead claim cannot
+  // slip onto the homepage unnoticed — and this assertion goes to 0 when the footer is swept.
+  it('the only surviving per-lead price on the homepage is the shared footer tagline', () => {
+    const hits = home.split(`$${LEAD_PRICE_USD}`).length - 1
+    expect(hits, 'expected exactly the one footer occurrence pending the 29-page sweep').toBe(1)
+    expect(home).toContain('you only pay $4 when you approve a lead')
   })
 })

@@ -117,29 +117,59 @@ describe('nav and footer are byte-identical across the whole site', () => {
   //
   // What it pins now is the founder's nav. The byte-identity check above is unchanged and is
   // what makes one page's worth of truth true for all 29.
-  it('the nav is the founder-locked nav — Solutions, Resources, Company, Pricing', () => {
+  // ⛓️ REWRITTEN 16 Sep — SECTION 1, THE SHARED HEADER. Founder-locked shape:
+  //
+  //     [M&V]   About Us   Pricing              Client login   [ Book a walkthrough ]
+  //
+  // The previous version pinned a four-item nav with three dropdowns. The founder has ruled
+  // the header down to two links and two actions, so that assertion would now forbid the very
+  // shape it is meant to protect. It is re-pointed, not deleted — third time on this file, and
+  // each time for the same reason: the guard pins the CURRENT founder-locked nav, whatever it is.
+  //
+  // ⚠️ THE DESTINATIONS THAT LEFT THE HEADER ARE NOT GONE FROM THE SITE. Solutions, The Drop,
+  // Help Centre and Nexus are footer/secondary work in later sections and their files are
+  // untouched (P2). This guard deliberately says nothing about where they live — asserting a
+  // footer shape here would fail the moment the footer section is built.
+  it('the nav is the founder-locked Section 1 header — About Us, Pricing, and the two actions', () => {
     const nav = blockOf(readFileSync(join(WEB, 'index.html'), 'utf8'), '<nav>', '</nav>')
-    for (const link of ['solutions.html', 'the-drop.html', 'help-centre.html', 'about.html', 'pricing.html']) {
-      expect(nav, `nav lost its ${link} link`).toContain(`href="${link}"`)
-    }
-    // Nexus is DEMOTED, not deleted — the page survives and stays reachable from Company,
-    // which is the founder's ruling. Out of the top level, still linked.
-    expect(nav, 'nexus should stay reachable from the Company menu').toContain('href="nexus.html"')
-    expect(nav, 'nexus is a top-level nav link again').not.toContain('class="nav-link nav-nexus"')
+    expect(nav, 'nav lost About Us').toContain('href="about.html"')
+    expect(nav, 'nav lost Pricing').toContain('href="pricing.html"')
+    expect(nav, 'nav lost Client login').toContain('btn-nav-ghost')
+    expect(nav, 'nav lost Book a walkthrough').toContain('btn-nav-primary')
+    expect(nav, 'nav lost the M&V mark').toContain('logo-icon')
+    expect(nav).toMatch(/>About Us</)
+    expect(nav).toMatch(/>Pricing</)
   })
 
-  it('🛑 the retired Product mega-menu and its per-lead price stay out of the nav', () => {
+  it('🛑 the header carries NO dropdowns and no retired commercial model', () => {
     const nav = blockOf(readFileSync(join(WEB, 'index.html'), 'utf8'), '<nav>', '</nav>')
+    // Founder: "No dropdowns." The mega-menu markup is the hover-only structure that was
+    // unopenable on touch — removing it removes that defect by construction rather than
+    // patching it. These assertions are what stop it coming back.
+    for (const gone of ['nav-dropdown', 'nav-item', 'chevron', 'mm-link', 'mm-head', 'mm-grid', 'mm-feat', 'mm-new']) {
+      expect(nav, `the ${gone} dropdown markup is back in the header`).not.toContain(gone)
+    }
     expect(nav, 'the Product mega-menu is back').not.toContain('The product &middot; your AI agents')
-    expect(nav, 'the Product nav item is back').not.toMatch(/class="nav-link">Product/)
-    expect(nav, 'a NEW badge is back in the nav').not.toContain('mm-new')
     // The mega-menu promo card carried "You only pay $4 when you approve a lead" into the nav
     // of all 29 pages — one of the three shared-chrome strings that put the retired commercial
-    // model on every page of the site.
+    // model on every page of the site. It must never return with a restored menu.
     expect(nav, 'the nav is selling the retired per-lead model again').not.toContain('$4')
-    // The retired calculator is unlinked; the programme one points at pricing.
-    expect(nav, 'the retired calculator is linked from the nav again').not.toContain('pipeline-calculator.html')
-    expect(nav).toContain('Programme Calculator')
+    expect(nav, 'the retired calculator is linked from the header again').not.toContain('pipeline-calculator.html')
+  })
+
+  // 🛑 THE MOBILE HEADER, GUARDED AT THE CASCADE RATHER THAN THE SCREENSHOT.
+  //
+  // Every page's inline <style> still carries `@media (max-width:768px){ .nav-links{display:none} }`
+  // from when the nav was five dropdowns wide. `kind.css` is linked AFTER that block and its
+  // `.nav-links{display:flex}` is unconditional, so for as long as both existed the mobile rule
+  // was being cancelled by accident rather than by decision — the links rendered on a phone
+  // with nothing sizing them. Section 1 makes it deliberate. This pins the deliberate part:
+  // if someone deletes the mobile block from kind.css, the inline `display:none` silently wins
+  // again and the phone header loses its links with every test still green.
+  it('kind.css states the mobile header deliberately, overriding the inline display:none', () => {
+    const css = readFileSync(join(WEB, 'kind.css'), 'utf8')
+    expect(css, 'the mobile header block is gone from kind.css').toMatch(/@media \(max-width:768px\)\{[\s\S]*?\.nav-links\{ display:flex; \}/)
+    expect(css, 'the narrow-phone row split is gone').toMatch(/@media \(max-width:560px\)/)
   })
 
   it('every internal link on every page resolves to a file on disk — no dead ends anywhere', () => {

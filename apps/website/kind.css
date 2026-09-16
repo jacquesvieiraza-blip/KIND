@@ -236,3 +236,46 @@ footer { padding: 64px 48px 40px; }
 /* Nexus nav mark (N logo + wordmark, replaces the old "Brain" text link) */
 .nav-link.nav-nexus{display:inline-flex;align-items:center;gap:6px}
 .nexus-nav-logo{height:20px;width:auto;display:block;flex-shrink:0}
+
+/* ════════════════════════════════════════════════════════════════════════════════════
+   SECTION 1 — SHARED HEADER, MOBILE.  Founder GO, 16 Sep.
+
+   🛑 THE DEFECT THIS CLOSES, AND IT WAS NEVER A MOBILE RULE — IT WAS A CASCADE ACCIDENT.
+   Every page's inline <style> carries `@media (max-width:768px){ .nav-links{display:none} }`,
+   written when the nav was five dropdowns wide and could not fit a phone. This file is linked
+   AFTER that inline block, and `.nav-links{display:flex}` above is unconditional — so it won
+   the cascade and the links rendered on mobile anyway, overflowing the viewport. The site has
+   therefore had no working mobile nav and no deliberate rule about it: one declaration was
+   silently cancelling the other.
+
+   The simplified header is two short links, so they now FIT — and the fix is to make that
+   deliberate rather than accidental. Nothing is hidden, no destination is lost, no label is
+   changed, and no new component (hamburger, drawer, icon) is introduced.
+
+   ⚠️ DROPDOWN CSS IS LEFT EXACTLY WHERE IT IS. `.nav-item`, `.chevron`, `.nav-dropdown` and
+   the `mm-*` rules are now unused by the header but are NOT deleted — P2, and removing them
+   is a separate bounded change the founder has not authorised.
+   ════════════════════════════════════════════════════════════════════════════════════ */
+@media (max-width:768px){
+  nav{ padding:0 20px; }
+  /* Deliberate, and it must out-specify the inline `display:none` that every page still carries. */
+  .nav-links{ display:flex; }
+  .nav-link{ padding:6px 10px; font-size:.84rem; white-space:nowrap; }
+  .nav-right{ gap:8px; }
+  .btn-nav-ghost{ padding:6px 12px; font-size:.8rem; white-space:nowrap; }
+  .btn-nav-primary{ padding:7px 14px; font-size:.8rem; white-space:nowrap; }
+}
+
+/* Below ~560px the five elements cannot share one 64px row without shrinking the approved
+   labels. They wrap instead: logo and the two actions on the first row, the two links centred
+   beneath. Every destination stays reachable and every approved word stays intact — which a
+   truncated label or a hidden "Client login" would not. */
+@media (max-width:560px){
+  nav{ height:auto; min-height:64px; flex-wrap:wrap; padding:10px 14px; row-gap:10px; column-gap:14px; }
+  /* Row one: the mark and the two links. Row two: the two actions, right-aligned.
+     Keeping both actions on row one with the logo is what overflowed a 320px phone —
+     measured at 390px and 320px, not assumed. Nothing is hidden and no label is shortened. */
+  .logo{ order:1; }
+  .nav-links{ order:2; gap:2px; }
+  .nav-right{ order:3; flex-basis:100%; justify-content:flex-end; margin-left:0; gap:8px; }
+}

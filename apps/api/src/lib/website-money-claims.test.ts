@@ -210,13 +210,25 @@ describe('P30 — the homepage states the whole programme offer in what a visito
     expect(home).not.toMatch(/\$\s?\d[\d,.]*\s*(per|a|\/)\s*(targeted )?(booked )?meeting/i)
   })
 
-  // ⚠️ KNOWN REMAINDER, GUARDED RATHER THAN IGNORED. The footer tagline still reads "you only
-  // pay $4 when you approve a lead" on all 29 pages and is swept as one shared string, not
-  // page by page. Until then this pins the count at exactly one so a NEW per-lead claim cannot
-  // slip onto the homepage unnoticed — and this assertion goes to 0 when the footer is swept.
-  it('the only surviving per-lead price on the homepage is the shared footer tagline', () => {
+  // ✅ THE FOOTER IS SWEPT, SO THIS IS NOW ZERO. It was pinned at exactly one while the shared
+  // footer tagline still read "you only pay $4 when you approve a lead" on all 29 pages; that
+  // string is gone and the count drops as the comment said it would. The homepage now carries
+  // no per-lead price anywhere a visitor can read.
+  it('the homepage carries no per-lead price at all', () => {
     const hits = home.split(`$${LEAD_PRICE_USD}`).length - 1
-    expect(hits, 'expected exactly the one footer occurrence pending the 29-page sweep').toBe(1)
-    expect(home).toContain('you only pay $4 when you approve a lead')
+    expect(hits, 'a per-lead price is back on the homepage').toBe(0)
+    expect(home).not.toContain('you only pay $4 when you approve a lead')
+  })
+
+  // 🛑 THE SHARED FOOTER IS THE OTHER HALF OF THE HOMEPAGE'S COMMERCIAL STORY, and it is one
+  // string on 29 pages. A homepage on the programme above a footer on the per-lead model is one
+  // page telling two stories — the R88 defect — so the replacement is asserted, not assumed.
+  it('the shared footer states the programme, on the homepage and everywhere else', () => {
+    const foot = (h: string) => h.slice(h.indexOf('<footer'), h.indexOf('</footer>') + 9)
+    for (const [name, html] of PAGES) {
+      expect(foot(html), `${name} footer still sells the retired model`).not.toContain('approve a lead')
+      expect(foot(html), `${name} footer lost the programme sentence`).toContain('You choose the outcome')
+      expect(foot(html), `${name} footer still links the retired calculator`).not.toContain('pipeline-calculator.html')
+    }
   })
 })

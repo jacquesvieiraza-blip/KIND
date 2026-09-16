@@ -41,13 +41,31 @@ describe('the signup modal tells the truth about money', () => {
     expect(offenders, `retired pricing phrase on: ${offenders.join(', ')}`).toEqual([])
   })
 
-  it('every page that shows the signup subtitle states the pack correctly', () => {
+  // ⛓️ REWRITTEN 16 Sep (R124) — THE SUBTITLE SELLS THE PROGRAMME NOW, AND THE MODAL IS DEAD.
+  //
+  // This demanded the $299 pack and the 100 included in the signup subtitle. The founder has
+  // retired that model outright — "299/4 is gone. out. we are on the programme. all clients." —
+  // so the assertion would now REQUIRE a retired price on nine pages.
+  //
+  // 🛑 AND THE MODAL IT GUARDS CANNOT BE OPENED. `<div id="auth-modal">` exists on 0 of 29 pages
+  // and there are 0 call sites for `openAuth`, so `auth-sub` is written by script into an
+  // element that was never in the markup. That is why this guard passed for months while the
+  // sentence was unreachable: it proves a STRING is present, never that a customer can read it.
+  // The subtitle is corrected rather than deleted, because dead code carrying a retired price is
+  // what a future restore of the modal would put straight back in front of a buyer.
+  it('the signup subtitle states the programme, not the retired pack', () => {
     const withModal = pages.filter(f => read(f).includes("getElementById('auth-sub')"))
-    expect(withModal.length, 'the signup modal disappeared entirely').toBeGreaterThan(0)
+    expect(withModal.length, 'the signup subtitle disappeared entirely').toBeGreaterThan(0)
     for (const f of withModal) {
-      const s = read(f)
-      expect(s, `${f} does not state the $${PACK_PRICE_USD} pack`).toContain(`$${PACK_PRICE_USD}`)
-      expect(s, `${f} does not state the ${PACK_LEADS} included`).toMatch(new RegExp(`${PACK_LEADS} approved leads included`, 'i'))
+      // ⚠️ SCOPED TO THE SUBTITLE ASSIGNMENT, NOT THE WHOLE PAGE. `pricing.html` and
+      // `terms.html` still carry the legacy figures in BODY COPY — they are the contract and
+      // the price page, they are founder+legal (E35/E36), and `website-money-claims` still
+      // REQUIRES those figures there. A page-wide assertion here would collide with that guard
+      // and fail on copy this change deliberately does not touch.
+      const line = read(f).split('\n').find(l => l.includes("getElementById('auth-sub')")) ?? ''
+      expect(line, `${f} still promises the retired $${PACK_PRICE_USD} pack in the signup subtitle`).not.toContain(`$${PACK_PRICE_USD}`)
+      expect(line, `${f} still promises the ${PACK_LEADS} included in the signup subtitle`).not.toMatch(new RegExp(`${PACK_LEADS} approved leads`, 'i'))
+      expect(line, `${f} subtitle lost the programme sentence`).toContain('Free Proof before you pay')
     }
   })
 })

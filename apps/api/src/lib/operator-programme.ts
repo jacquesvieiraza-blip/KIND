@@ -28,6 +28,8 @@ import { db } from '@kind/db'
 import {
   type ProgrammeRow, type ProgrammeStatus,
   TERMINAL_STATUSES, PROGRAMME_BATCH_SIZE, nextBatchSize,
+  // ⚑ 16 Sep (MVP1 · E1) — the completion gate, so Vida's payload can carry its verdict.
+  mayComplete,
 } from './programme'
 import { reviewIsOpen, REVIEW_TRIGGER_LEADS, authorityFor } from './programme-authority'
 
@@ -113,6 +115,15 @@ export type ProgrammeTruth = {
     may_source: boolean
     /** The refusal in the operator's words, or null when sourcing is authorised. */
     source_blocked_reason: string | null
+    /**
+     * ⚑ 16 Sep (MVP1 · E1) — may this programme be completed, and if not, why.
+     *
+     * The shared `mayComplete` gate's own verdict, sent to the payload Vida actually reads.
+     * The admin app renders the control on this boolean and shows this sentence when it is
+     * refused; it never learns the rule itself.
+     */
+    may_complete: boolean
+    complete_blocked_reason: string | null
   } | null
   // ── ⚑ 7 Sep (HOUSE-024 / HOUSE-026) · READ-ONLY TRUTH, NO NEW SCREEN ────────────────
   //
@@ -269,6 +280,8 @@ export async function programmeTruthFor(clientId: string): Promise<ProgrammeTrut
   // NEXT_BATCH, not SOURCING: a run IS the opening of a new batch, so the review hold and the
   // remaining ceiling both apply — exactly as they do inside `sourceProgramme`.
   const sourcingVerdict = authorityFor(p, 'NEXT_BATCH')
+  // ⚑ 16 Sep (E1) — the SHARED gate, asked here so no screen re-implements it. See below.
+  const completeVerdict = mayComplete(p)
 
   // ── ⚑ 7 Sep · SENDER AND PREPARATION TRUTH, both read-only and both best-effort ───────
   //
@@ -324,6 +337,23 @@ export async function programmeTruthFor(clientId: string): Promise<ProgrammeTrut
       next_batch: nextBatchSize(p),
       may_source: sourcingVerdict.allowed,
       source_blocked_reason: sourcingVerdict.allowed ? null : sourcingVerdict.message,
+      // ── ⚑ 16 Sep (MVP1 · E1) — MAY THIS PROGRAMME BE COMPLETED, AND IF NOT, WHY ────────
+      //
+      // 🛑 THE VERDICT EXISTED AND VIDA COULD NOT SEE IT. `mayComplete` is a real gate,
+      // `completeProgramme` a real writer, `POST /programmes/:id/complete` a real audited
+      // route — and `GET /programmes/:id` already returned this verdict. Vida reads THIS
+      // payload, which never carried it, so the sixth and final stage of the product was
+      // reachable only by calling the API by hand.
+      //
+      // ⚠️ THE SERVER DECIDES; THE PANEL RENDERS. The rule stays here, beside every other
+      // `may_*` read-out, precisely so the admin app never learns why completion is allowed —
+      // a second copy of it in the browser would be a second opinion about when a client's
+      // programme may end.
+      //
+      // ⚠️ AND THE REASON TRAVELS WITH IT. A control that is absent with no explanation is
+      // the defect this whole panel exists to remove.
+      may_complete: completeVerdict.allowed,
+      complete_blocked_reason: completeVerdict.allowed ? null : (completeVerdict.reason ?? null),
     },
     sender,
     preparation,

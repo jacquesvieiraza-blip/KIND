@@ -353,6 +353,13 @@ export default function VidaConsolePage() {
       client_id?: string | null
       id: string; status: string; state: string; meeting_target: number
       sourcing_ceiling: number; sourced_used: number; sourced_reserved: number; room_remaining: number
+      /**
+       * ⚑ 16 Sep (MVP1 · E1) — the server's completion verdict and its refusal sentence.
+       * Optional so an older API reads as "no control" rather than offering a terminal action
+       * on an unprovable verdict.
+       */
+      may_complete?: boolean
+      complete_blocked_reason?: string | null
       paused_at: string | null; pause_reason: string | null
       approved_at: string | null; second_paid_at: string | null
       review_required_at: string | null; review_reason: string | null; review_resolved_at: string | null
@@ -1045,6 +1052,35 @@ export default function VidaConsolePage() {
       if (selected) await loadProgramme(selected)
     } catch (e) {
       say(e instanceof Error ? e.message : 'The programme was not started.')
+    } finally { settleBusy(null) }
+  }, [programmeActionId, forThisProgramme, selected, clients, loadProgramme])
+
+  // ── ⚑ 16 Sep (MVP1 · E1) — COMPLETE, THROUGH THE EXISTING ROUTE ───────────────────────
+  //
+  // ⚠️ NOTHING HERE DECIDES WHETHER IT MAY BE COMPLETED. The control only exists because the
+  // server said `may_complete`, and the route asks `mayComplete` again for itself — so a
+  // verdict that changed between the render and the press is refused by the authority rather
+  // than by this function.
+  //
+  // ⚠️ AND IT IS TERMINAL, so the confirmation says what stops. A completed programme blocks
+  // future sending; an operator pressing this must know that before they press it.
+  const completeProgramme = useCallback(async () => {
+    const id = programmeActionId()
+    if (!id) { setLcMsg(PROGRAMME_MISMATCH_COPY); return }
+    const say = forThisProgramme(setLcMsg)
+    const settleBusy = forThisProgramme(setLcBusy)
+    const who = (clients ?? []).find(c => c.id === selected)?.company_name ?? 'this client'
+    if (!confirm(`Complete ${who}'s programme?\n\nThis CLOSES it: all future sending for this programme stops permanently, and the results and open replies are kept intact.\n\nAny unused programme value stays on their account and never expires. This cannot be undone.`)) return
+    setLcBusy('complete'); setLcMsg(null)
+    try {
+      const j = await fetch(`/api/proxy/programmes/${encodeURIComponent(id)}/complete`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}',
+      }).then(r => r.json())
+      if (!j?.success) throw new Error(j?.error || 'The programme was not completed.')
+      say('Completed. Future sending for this programme is stopped; results and open replies are kept.')
+      if (selected) await loadProgramme(selected)
+    } catch (e) {
+      say(e instanceof Error ? e.message : 'The programme was not completed.')
     } finally { settleBusy(null) }
   }, [programmeActionId, forThisProgramme, selected, clients, loadProgramme])
 
@@ -2417,6 +2453,13 @@ export default function VidaConsolePage() {
       // leg the panel could only say "we produced nothing" and send the operator to the
       // database to find out which criterion did it.
       proofException: lc.proofException ?? null,
+      // ⚑ 16 Sep (MVP1 · E1) — THE VERDICT, NOT THE RULE. The panel draws Complete on this
+      // boolean alone; the eligibility test stays in `lib/programme.ts` where it is the only
+      // copy. Absent reads as "no control", which is the safe direction for a terminal action.
+      mayComplete: prog?.programme
+        ? { allowed: prog.programme.may_complete === true,
+            reason: prog.programme.complete_blocked_reason ?? undefined }
+        : null,
       // ⚑ 11 Sep (C40) — the last leg of THIS plumbing, and the same defect as `outcomeStated`
       // one line above: the copy module has read `calibration` since it was written and no
       // call site ever passed one, so every escalated client rendered with no attempt history,
@@ -2687,9 +2730,15 @@ export default function VidaConsolePage() {
       // the attempt the client already had. Nothing here counts anything: the server claims
       // through `claimProofAuthority` exactly as the client's own route does.
       case 'retry_proof': return void retryProof()
+      // ── ⚑ 16 Sep (MVP1 · E1) — CLOSE THE PROGRAMME ───────────────────────────────────
+      //
+      // 🛑 THE SIXTH STAGE HAD NO BUTTON. `completeProgramme` and its audited route existed
+      // and nothing in the product could reach them. This calls the EXISTING route and adds
+      // no completion logic of its own.
+      case 'complete_programme': return void completeProgramme()
       default: return
     }
-  }, [lifecycle, runProgramme, pauseProgramme, refreezePackage, retryProof, selected, calib, resolveCalibration, grantCalibratedRestart])
+  }, [lifecycle, runProgramme, pauseProgramme, refreezePackage, retryProof, completeProgramme, selected, calib, resolveCalibration, grantCalibratedRestart])
 
   return (
     <div className="flex h-full min-h-0">

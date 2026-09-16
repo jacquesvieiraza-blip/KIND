@@ -27,6 +27,7 @@
 import {
   MVP1_MILLA_STAGES, mvp1MillaStageFromLegacy, type MillaStage,
   programmeIsRunning, PROGRAMME_RUNNING_COPY, PROGRAMME_ARMED_COPY,
+  remainingProgrammeValue,
 } from '@kind/shared'
 
 export type CustomerProgramme = {
@@ -179,6 +180,10 @@ export default function ProgrammeWorkspace({ p }: { p: CustomerProgramme }) {
   //
   // 🛑 A PAYING CLIENT NEVER SETS EITHER TERM. `internalBilling` is false for them, they never
   // carry an authorisation stamp, and `firstPaidAt` wins ahead of both regardless.
+  // ⚑ 16 Sep (MVP1 · E2) — the shared rule, so the number cannot be computed two ways.
+  const remaining = remainingProgrammeValue({
+    authorised: p.progress.authorised, delivered: p.progress.delivered,
+  })
   const internallyAuthorised =
     p.money.internalBilling === true || (!p.money.firstPaidAt && !!p.money.firstAuthorisedAt)
   return (
@@ -246,6 +251,28 @@ export default function ProgrammeWorkspace({ p }: { p: CustomerProgramme }) {
               </div>
             </div>
           </div>
+          {/* ── ⚑ 16 Sep (MVP1 · E2) — WHAT A FINISHED PROGRAMME LEFT UNWORKED ───────────
+              🛑 BOTH NUMBERS WERE ALREADY HERE and the difference was never stated. R74's
+              promise to the client — "unused programme value stays on account and never
+              expires" — was a sentence on the website with nothing in the product able to
+              give the number behind it. So a client who finished a programme without using
+              all of it had no way to see what they still had.
+
+              ⚠️ TERMINAL ONLY. Mid-programme, "remaining" is simply work not done yet and
+              stating it as retained value would be a promise about an unfinished thing.
+
+              ⚠️ NO NEW ENDPOINT, and `null` renders NOTHING rather than a reassuring zero:
+              "you have nothing left" is a claim, and an unreadable number is not it.
+              ⚠️ CANCELLED IS INCLUDED DELIBERATELY — the value is retained either way — but
+              the heading above still says "Programme cancelled", so the two stay distinct. */}
+          {p.terminal !== null && p.terminal !== undefined && remaining !== null && remaining > 0 && (
+            <div className="mt-3 pt-3 border-t border-[#f2ecfb]">
+              <div className="text-[13px] font-extrabold">{remaining.toLocaleString()} qualified prospects unused</div>
+              <div className="text-[12px] text-[#9b8ec4]">
+                This stays on your account and never expires.
+              </div>
+            </div>
+          )}
         </div>
 
         {/* ── WHAT HAS BEEN PAID ──────────────────────────────────────────────────────

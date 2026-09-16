@@ -73,6 +73,17 @@ export type PanelAction = {
      * every other Proof start — no counter is touched by hand anywhere.
      */
     | 'retry_proof'
+    /**
+     * ⚑ 16 Sep (MVP1 · E1) — CLOSE THE PROGRAMME. The sixth stage's control.
+     *
+     * 🛑 IT DID NOT EXIST IN THE PRODUCT. `mayComplete`, `completeProgramme` and `POST
+     * /programmes/:id/complete` were all real and all reachable only by calling the API by
+     * hand, because Vida's payload never carried the verdict and the panel never drew a
+     * control. The final stage of a six-stage product had no button.
+     *
+     * ⚠️ IT APPEARS ONLY ON THE SERVER'S VERDICT, never on a stage. See `lifecycleCopy`.
+     */
+    | 'complete_programme'
   label: string
   kind: 'primary' | 'secondary'
   needsCeiling?: boolean
@@ -193,6 +204,17 @@ export type LifecycleCopyInput = {
    * either way — the verdict derives from the run, not from this.
    */
   proofException?: { sourced: number; setAside: number; reasons: Record<string, number> } | null
+  /**
+   * ⚑ 16 Sep (MVP1 · E1) — THE SERVER'S COMPLETION VERDICT, and only the verdict.
+   *
+   * `mayComplete(p)` from `lib/programme.ts`, carried on the operator programme payload. The
+   * panel renders the control when `allowed` is true and explains the refusal with `reason`
+   * when it is not — it never learns the rule. A second copy of the eligibility test in the
+   * browser would be a second opinion about when a client's programme may end.
+   *
+   * ⚠️ `null`/absent MEANS NO CONTROL. An unreadable verdict must not offer a terminal action.
+   */
+  mayComplete?: { allowed: boolean; reason?: string } | null
 }
 
 export type LifecycleCopy = {
@@ -264,7 +286,34 @@ function vidaCard(value: string, caption?: string): PanelCard {
  * something is in the way rather than rendering an empty panel. There is no "unknown" screen:
  * an operator who is shown nothing assumes nothing is wrong.
  */
+/**
+ * ⚑ 16 Sep (MVP1 · E1) — THE PANEL, PLUS THE ONE CONTROL THAT IS NOT A STAGE'S.
+ *
+ * 🛑 COMPLETE IS APPENDED HERE RATHER THAN WRITTEN INTO A `case`, deliberately. `mayComplete`
+ * is a verdict about the PROGRAMME, not about a stage: it can be true on a delivering
+ * programme that has met its target, on one in review, and on one whose entitlement is spent.
+ * Putting it in one case would have meant discovering the missing cases later, one complaint
+ * at a time — which is exactly how a product ends up with a stage that has no button.
+ *
+ * ⚠️ THE SERVER DECIDES. If `mayComplete.allowed` is not exactly `true` — refused, absent, or
+ * unreadable — no control is added. Nothing here re-derives eligibility.
+ *
+ * ⚠️ AND IT IS SECONDARY, never primary. Whatever the stage's own next step is stays the
+ * emphasised one; closing a programme is available, not urged.
+ */
 export function lifecycleCopy(i: LifecycleCopyInput): LifecycleCopy {
+  const base = lifecycleCopyForState(i)
+  if (i.mayComplete?.allowed !== true) return base
+  if (base.actions.some(a => a.key === 'complete_programme')) return base
+  return {
+    ...base,
+    actions: [...base.actions, {
+      key: 'complete_programme', label: 'Complete programme', kind: 'secondary',
+    }],
+  }
+}
+
+function lifecycleCopyForState(i: LifecycleCopyInput): LifecycleCopy {
   const c = i.counts
   const target = i.programme?.meetingTarget ?? null
 

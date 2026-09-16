@@ -206,3 +206,31 @@ export function programmeIsRunning(f: ProgrammeRunningFacts): boolean {
  */
 export const PROGRAMME_RUNNING_COPY = 'Running — nothing needed from you'
 export const PROGRAMME_ARMED_COPY = 'Ready to start — nothing needed from you'
+
+/**
+ * ⚑ 16 Sep (MVP1 · E2) — WHAT A FINISHED PROGRAMME LEFT UNWORKED.
+ *
+ * 🛑 BOTH NUMBERS WERE ALREADY IN THE CLIENT PAYLOAD. `progress.authorised` is the programme's
+ * `sourcing_ceiling` and `progress.delivered` is its `sourced_used` — and the terminal view
+ * showed neither the difference nor any statement of it. R74's promise to the client
+ * (*"unused programme value stays on account and never expires"*) was a sentence on the
+ * website with nothing in the product able to state the number behind it.
+ *
+ * ⚠️ NO NEW ENDPOINT, and that is the founder's instruction: *"Do not add another endpoint if
+ * existing payload has both values."* It does.
+ *
+ * ⚠️ IT CLAMPS AT ZERO. Over-delivery is a real state — a batch can settle above the ceiling —
+ * and a negative number here would read to a client as value we owe them, which is a claim
+ * about money that no rule supports.
+ *
+ * ⚠️ AND `null` IS NOT ZERO. Zero says "you have nothing left", which is an assertion. An
+ * unreadable number says nothing, and the screen renders nothing rather than a false
+ * reassurance about a client's own account.
+ */
+export function remainingProgrammeValue(
+  p: { authorised: number | null | undefined; delivered: number | null | undefined },
+): number | null {
+  if (p.authorised === null || p.authorised === undefined) return null
+  if (p.delivered === null || p.delivered === undefined) return null
+  return Math.max(0, Math.round(p.authorised) - Math.round(p.delivered))
+}

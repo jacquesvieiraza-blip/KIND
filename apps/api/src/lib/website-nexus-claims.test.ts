@@ -94,10 +94,14 @@ describe('the page is reachable again, and honestly linked', () => {
     expect(readFileSync(join(WEB, '_redirects'), 'utf8')).not.toMatch(/^\/nexus/m)
   })
 
-  it('FIGSY is shown on it', () => {
-    // #604 restored the full site, so figsy.html is a real page again and linking it is
-    // correct. (Under #603 this test asserted the opposite — FIGSY unlinked — because its
-    // page 301d then. The claim that changed is the site, not the standard.)
-    expect(prose).toMatch(/FIGSY/)
+  // ⛓️ 16 Sep — THIS ASSERTION HAS NOW FLIPPED TWICE AND BOTH FLIPS WERE THE SITE MOVING.
+  // #603 required FIGSY unlinked (its page 301d); #604 required it shown (the page came back);
+  // now the founder has retired the NAME, not just the page: "remove figsy from the site
+  // completely. replace it with either Milla or Vida pending the place." Vida is the engine
+  // that sources, writes and books, so Vida is what this page must name. The standard has
+  // never changed — the page must name the thing that actually does the work.
+  it('the engine it names is Vida, and FIGSY is gone', () => {
+    expect(prose).not.toMatch(/FIGSY/i)
+    expect(prose).toMatch(/Vida/)
   })
 })

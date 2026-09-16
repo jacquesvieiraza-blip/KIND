@@ -300,33 +300,33 @@
       max-width: 360px;
     }
 
-    /* FIGSY DARK SECTION */
-    .figsy-section {
+    /* Vida DARK SECTION */
+    .vida-section {
       background: var(--dark);
       padding: 100px 48px;
     }
-    .figsy-inner { max-width: 1080px; margin: 0 auto; }
-    .figsy-header { max-width: 600px; margin-bottom: 64px; }
-    .figsy-header .s-label { color: #a78bfa; }
-    .figsy-header .s-title { color: #fff; }
-    .figsy-header .s-sub { color: rgba(255,255,255,0.4); margin-bottom: 0; }
-    .figsy-flow { display: grid; grid-template-columns: repeat(4, 1fr); gap: 2px; margin-bottom: 48px; }
-    .figsy-step {
+    .vida-inner { max-width: 1080px; margin: 0 auto; }
+    .vida-header { max-width: 600px; margin-bottom: 64px; }
+    .vida-header .s-label { color: #a78bfa; }
+    .vida-header .s-title { color: #fff; }
+    .vida-header .s-sub { color: rgba(255,255,255,0.4); margin-bottom: 0; }
+    .vida-flow { display: grid; grid-template-columns: repeat(4, 1fr); gap: 2px; margin-bottom: 48px; }
+    .vida-step {
       background: rgba(255,255,255,0.04);
       border: 1px solid rgba(255,255,255,0.07);
       border-radius: 16px;
       padding: 28px 24px;
     }
-    .figsy-step-num { font-size: 0.65rem; font-weight: 700; letter-spacing: 0.1em; color: rgba(255,255,255,0.2); text-transform: uppercase; margin-bottom: 12px; }
-    .figsy-step h4 { font-size: 0.95rem; font-weight: 700; color: #fff; margin-bottom: 8px; }
-    .figsy-step p { font-size: 0.8rem; color: rgba(255,255,255,0.35); line-height: 1.6; }
-    .figsy-feats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
-    .figsy-feat {
+    .vida-step-num { font-size: 0.65rem; font-weight: 700; letter-spacing: 0.1em; color: rgba(255,255,255,0.2); text-transform: uppercase; margin-bottom: 12px; }
+    .vida-step h4 { font-size: 0.95rem; font-weight: 700; color: #fff; margin-bottom: 8px; }
+    .vida-step p { font-size: 0.8rem; color: rgba(255,255,255,0.35); line-height: 1.6; }
+    .vida-feats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    .vida-feat {
       border-top: 1px solid rgba(255,255,255,0.08);
       padding-top: 24px;
     }
-    .figsy-feat h4 { font-size: 0.9rem; font-weight: 700; color: #fff; margin-bottom: 6px; }
-    .figsy-feat p { font-size: 0.8rem; color: rgba(255,255,255,0.35); line-height: 1.6; }
+    .vida-feat h4 { font-size: 0.9rem; font-weight: 700; color: #fff; margin-bottom: 6px; }
+    .vida-feat p { font-size: 0.8rem; color: rgba(255,255,255,0.35); line-height: 1.6; }
 
     /* REASONING LOOP */
     .reasoning-loop {
@@ -781,7 +781,7 @@
       letter-spacing: 0.1em; text-transform: uppercase;
       padding: 4px 10px; border-radius: 100px; margin-bottom: 14px;
     }
-    .tag-figsy { background: rgba(124,58,237,0.08); color: #7C3AED; }
+    .tag-vida { background: rgba(124,58,237,0.08); color: #7C3AED; }
     .tag-milla { background: rgba(139,92,246,0.08); color: #7C3AED; }
     .tag-vida  { background: rgba(99,102,241,0.08); color: #7C3AED; }
     .agent-card h3 { font-size: 1.25rem; font-weight: 800; letter-spacing: -0.02em; color: var(--dark); margin-bottom: 8px; }
@@ -800,10 +800,10 @@
       position: absolute; border-radius: 50%; pointer-events: none;
       opacity: 0; transition: opacity 0.55s ease;
     }
-    .orb-hl-figsy { width: 440px; height: 440px; background: radial-gradient(circle, rgba(124,58,237,0.14) 0%, transparent 65%); bottom: -60px; left: -60px; }
+    .orb-hl-vida { width: 440px; height: 440px; background: radial-gradient(circle, rgba(124,58,237,0.14) 0%, transparent 65%); bottom: -60px; left: -60px; }
     .orb-hl-milla { width: 420px; height: 420px; background: radial-gradient(circle, rgba(124,58,237,0.11) 0%, transparent 65%); top: 20%; left: 30%; }
     .orb-hl-vida  { width: 440px; height: 440px; background: radial-gradient(circle, rgba(124,58,237,0.14) 0%, transparent 65%); top: -80px; right: -60px; }
-    .hero-orb-wrap.hov-figsy .orb-hl-figsy,
+    .hero-orb-wrap.hov-vida .orb-hl-vida,
     .hero-orb-wrap.hov-milla .orb-hl-milla,
     .hero-orb-wrap.hov-vida  .orb-hl-vida  { opacity: 1; }
 
@@ -826,8 +826,8 @@
     }
     .reveal-left.visible { opacity: 1; transform: none; }
 
-    /* PHASE 1 — FIGSY VOICE TYPEWRITER */
-    #figsy-voice-text { min-height: 3.6em; }
+    /* PHASE 1 — Vida VOICE TYPEWRITER */
+    #vida-voice-text { min-height: 3.6em; }
 
     /* PHASE 1 — REDUCED MOTION */
     @media (prefers-reduced-motion: reduce) {
@@ -859,13 +859,13 @@
     }
     @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
 
-    /* FIGSY SCROLL SCENE */
-    .figsy-scene {
+    /* Vida SCROLL SCENE */
+    .vida-scene {
       max-width: 1080px; margin: 0 auto;
       display: grid; grid-template-columns: 1fr 1fr; gap: 80px; align-items: start;
     }
-    .figsy-sticky { position: sticky; top: 96px; }
-    .figsy-character {
+    .vida-sticky { position: sticky; top: 96px; }
+    .vida-character {
       background: #0a0a0a;
       border: 1px solid rgba(255,255,255,0.08);
       border-radius: 28px;
@@ -875,13 +875,13 @@
       overflow: hidden;
       box-shadow: 0 0 80px rgba(124,58,237,0.15);
     }
-    .figsy-character::before {
+    .vida-character::before {
       content: '';
       position: absolute; top: 0; left: 50%; transform: translateX(-50%);
       width: 70%; height: 2px;
       background: linear-gradient(90deg, transparent, var(--blue), transparent);
     }
-    .figsy-avatar {
+    .vida-avatar {
       width: 120px; height: 120px; border-radius: 50%;
       background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
       margin: 0 auto 20px;
@@ -890,66 +890,66 @@
       border: 2px solid rgba(124,58,237,0.3);
       box-shadow: 0 0 40px rgba(124,58,237,0.2);
     }
-    .figsy-avatar img {
+    .vida-avatar img {
       width: 100%; height: 100%; border-radius: 50%; object-fit: cover;
     }
-    .figsy-avatar-ring {
+    .vida-avatar-ring {
       position: absolute; inset: -8px; border-radius: 50%;
       border: 1.5px solid rgba(124,58,237,0.2);
       animation: spin-ring 8s linear infinite;
     }
-    .figsy-avatar-ring::before {
+    .vida-avatar-ring::before {
       content: ''; position: absolute; top: 4px; left: 50%; transform: translateX(-50%);
       width: 6px; height: 6px; background: var(--blue); border-radius: 50%;
     }
     @keyframes spin-ring { to { transform: rotate(360deg); } }
-    .figsy-name { font-size: 1.1rem; font-weight: 800; color: #fff; letter-spacing: -0.02em; margin-bottom: 4px; }
-    .figsy-role { font-size: 0.75rem; color: rgba(255,255,255,0.35); margin-bottom: 20px; }
-    .figsy-status-bar {
+    .vida-name { font-size: 1.1rem; font-weight: 800; color: #fff; letter-spacing: -0.02em; margin-bottom: 4px; }
+    .vida-role { font-size: 0.75rem; color: rgba(255,255,255,0.35); margin-bottom: 20px; }
+    .vida-status-bar {
       display: flex; justify-content: center; gap: 12px; margin-bottom: 24px;
     }
-    .figsy-badge {
+    .vida-badge {
       display: inline-flex; align-items: center; gap: 6px;
       background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08);
       border-radius: 100px; padding: 5px 12px;
       font-size: 0.7rem; font-weight: 600; color: rgba(255,255,255,0.5);
     }
-    .figsy-badge.on { color: #34d399; border-color: rgba(52,211,153,0.2); background: rgba(52,211,153,0.06); }
-    .figsy-thinking {
+    .vida-badge.on { color: #34d399; border-color: rgba(52,211,153,0.2); background: rgba(52,211,153,0.06); }
+    .vida-thinking {
       background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.07);
       border-radius: 16px; padding: 16px; text-align: left;
     }
-    .figsy-thinking-label { font-size: 0.65rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(255,255,255,0.2); margin-bottom: 8px; }
-    .figsy-thinking-text { font-size: 0.82rem; color: rgba(255,255,255,0.55); line-height: 1.6; min-height: 60px; transition: opacity 0.4s; }
-    .figsy-typing-dots { display: inline-flex; gap: 3px; align-items: center; margin-top: 8px; }
-    .figsy-typing-dots span {
+    .vida-thinking-label { font-size: 0.65rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(255,255,255,0.2); margin-bottom: 8px; }
+    .vida-thinking-text { font-size: 0.82rem; color: rgba(255,255,255,0.55); line-height: 1.6; min-height: 60px; transition: opacity 0.4s; }
+    .vida-typing-dots { display: inline-flex; gap: 3px; align-items: center; margin-top: 8px; }
+    .vida-typing-dots span {
       width: 4px; height: 4px; background: var(--blue); border-radius: 50%;
       animation: typing-dot 1.2s ease-in-out infinite;
     }
-    .figsy-typing-dots span:nth-child(2) { animation-delay: 0.2s; }
-    .figsy-typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+    .vida-typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+    .vida-typing-dots span:nth-child(3) { animation-delay: 0.4s; }
     @keyframes typing-dot { 0%,80%,100%{transform:scale(0.6);opacity:0.3} 40%{transform:scale(1);opacity:1} }
 
-    .figsy-steps { padding: 8px 0; }
-    .figsy-scroll-step {
+    .vida-steps { padding: 8px 0; }
+    .vida-scroll-step {
       padding: 48px 0;
       border-bottom: 1px solid rgba(255,255,255,0.07);
       opacity: 0.3;
       transition: opacity 0.5s;
     }
-    .figsy-scroll-step:last-child { border-bottom: none; }
-    .figsy-scroll-step.active { opacity: 1; }
-    .figsy-scroll-step .step-num {
+    .vida-scroll-step:last-child { border-bottom: none; }
+    .vida-scroll-step.active { opacity: 1; }
+    .vida-scroll-step .step-num {
       font-size: 0.65rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase;
       color: var(--blue); margin-bottom: 16px;
     }
-    .figsy-scroll-step h4 {
+    .vida-scroll-step h4 {
       font-size: 1.6rem; font-weight: 800; color: #fff; letter-spacing: -0.03em; margin-bottom: 12px; line-height: 1.2;
     }
-    .figsy-scroll-step p {
+    .vida-scroll-step p {
       font-size: 0.92rem; color: rgba(255,255,255,0.45); line-height: 1.75;
     }
-    .figsy-scroll-step .step-detail {
+    .vida-scroll-step .step-detail {
       display: flex; gap: 8px; margin-top: 20px; flex-wrap: wrap;
     }
     .step-pill {
@@ -1069,7 +1069,7 @@
     .logo-strip-logos { display: flex; align-items: center; gap: 24px; flex: 1; flex-wrap: wrap; }
     .logo-slot { height: 18px; background: rgba(0,0,0,0.06); border-radius: 4px; flex: 1; min-width: 60px; max-width: 100px; }
 
-    /* WHY KIND PILLARS */
+    /* WHY M&amp;V PILLARS */
     .why-kind { padding: 80px 48px; }
     .why-kind-inner { max-width: 1080px; margin: 0 auto; }
     .wk-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-top: 48px; }
@@ -1130,12 +1130,12 @@
       .nav-links { display: none; }
       .hero { padding: 64px 24px 0; }
       .section { padding: 48px 24px; }
-      .problem-section, .figsy-section, .stats-section, .pricing-section, .cta-section { padding: 48px 24px; }
+      .problem-section, .vida-section, .stats-section, .pricing-section, .cta-section { padding: 48px 24px; }
       .level-section { padding: 64px 24px; }
       .popia-band { padding: 48px 24px; }
       .prod-grid { grid-template-columns: 1fr; }
       .prod.featured { grid-column: span 1; grid-template-columns: 1fr; gap: 24px; }
-      .problem-cards, .figsy-flow, .figsy-feats, .hiw-grid, .p-cards, .level-grid { grid-template-columns: 1fr; }
+      .problem-cards, .vida-flow, .vida-feats, .hiw-grid, .p-cards, .level-grid { grid-template-columns: 1fr; }
       .stats-inner { grid-template-columns: 1fr 1fr; }
       .footer-grid { grid-template-columns: 1fr; }
       .cta-banner { padding: 48px 28px; }
@@ -1148,9 +1148,9 @@
       .hero-agents { grid-template-columns: 1fr; gap: 12px; margin-top: 24px; padding: 0 24px; }
       .hero-agent-card { height: 360px; }
       .hero-visual { margin: 0 -24px 0; }
-      .figsy-scene { grid-template-columns: 1fr; gap: 40px; }
-      .figsy-sticky { position: static; }
-      .figsy-scroll-step { opacity: 1; }
+      .vida-scene { grid-template-columns: 1fr; gap: 40px; }
+      .vida-sticky { position: static; }
+      .vida-scroll-step { opacity: 1; }
       .video-section { padding: 64px 24px; }
       .products-intro { padding: 24px; }
       .reasoning-loop { padding: 20px 20px; }
@@ -1173,7 +1173,7 @@
     /* ── AI FAMILY SCROLL SHOWCASE ── */
     .af-section { background:linear-gradient(180deg,#f6f3fd 0%,#efe9fb 42%,#efe9fb 86%,#0a0a0a 100%); position:relative; }
     .af-intro,.af-stack{position:relative;z-index:1}
-    .af-figsy{--ac:#ec4899;--ac2:#a3155f}.af-milla{--ac:#8b5cf6;--ac2:#5b21b6}.af-vida{--ac:#3b82f6;--ac2:#1e40af}.af-denise{--ac:#f59e0b;--ac2:#b45309}.af-tony{--ac:#14b8a6;--ac2:#0f766e}
+    .af-vida{--ac:#ec4899;--ac2:#a3155f}.af-milla{--ac:#8b5cf6;--ac2:#5b21b6}.af-vida{--ac:#3b82f6;--ac2:#1e40af}.af-denise{--ac:#f59e0b;--ac2:#b45309}.af-tony{--ac:#14b8a6;--ac2:#0f766e}
     .af-intro { position:relative; text-align:center; padding:118px 24px 74px; overflow:hidden;
       background:transparent; }
     .af-intro::before { content:''; position:absolute; top:-32%; left:50%; transform:translateX(-50%); width:78%; height:80%;
@@ -1207,7 +1207,7 @@
     .afs-village .afs-eyebrow,.afs-village h3 span{color:#7c3aed}.afs-village .afs-visual{overflow:hidden;border-radius:18px;align-self:stretch}
     .afs-village .afs-visual img{width:100%;height:100%;object-fit:cover;object-position:center top;filter:none;max-height:none;border-radius:0}
     @media(max-width:820px){.afs-village .afs-visual{min-height:240px;border-radius:16px}}
-    .afs-figsy{background:#ffe3f1}.afs-milla{background:#ece8ff}.afs-vida{background:#e0efff}.afs-denise{background:#fff2d6}.afs-tony{background:#d9f7ef}
+    .afs-vida{background:#ffe3f1}.afs-milla{background:#ece8ff}.afs-vida{background:#e0efff}.afs-denise{background:#fff2d6}.afs-tony{background:#d9f7ef}
     .afs-copy{max-width:470px}
     .afs-eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:.7rem;font-weight:800;letter-spacing:.14em;text-transform:uppercase;margin-bottom:16px}
     .afs-eyebrow .d{width:7px;height:7px;border-radius:50%;background:currentColor}
@@ -1224,7 +1224,7 @@
     .afs-soon{margin-left:10px;font-size:.6rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#0d9488;background:rgba(13,148,136,.14);padding:5px 10px;border-radius:100px;vertical-align:middle}
     .afs-visual{position:relative;display:flex;align-items:center;justify-content:center}
     .afs-visual img{max-width:100%;max-height:300px;object-fit:contain;filter:drop-shadow(0 18px 34px rgba(20,10,40,.18))}
-    .afs-figsy .afs-eyebrow,.afs-figsy h3 span,.afs-figsy .afs-feats svg{color:#db2777;stroke:#db2777}.afs-figsy .afs-pill{background:#db2777}
+    .afs-vida .afs-eyebrow,.afs-vida h3 span,.afs-vida .afs-feats svg{color:#db2777;stroke:#db2777}.afs-vida .afs-pill{background:#db2777}
     .afs-milla .afs-eyebrow,.afs-milla h3 span,.afs-milla .afs-feats svg{color:#7c3aed;stroke:#7c3aed}.afs-milla .afs-pill{background:#7c3aed}
     .afs-vida .afs-eyebrow,.afs-vida h3 span,.afs-vida .afs-feats svg{color:#2563eb;stroke:#2563eb}.afs-vida .afs-pill{background:#2563eb}
     .afs-denise .afs-eyebrow,.afs-denise h3 span,.afs-denise .afs-feats svg{color:#b45309;stroke:#b45309}.afs-denise .afs-pill{background:#b45309}
@@ -1241,7 +1241,7 @@
       background:radial-gradient(ellipse at center, rgba(255,255,255,.6), rgba(255,255,255,0) 60%); filter:blur(36px); z-index:1; }
     .af-scene.on .af-bg::before { animation: afpulse 4.2s ease-in-out infinite; }
     @keyframes afpulse { 0%,100%{opacity:.55;transform:translateX(-50%) scale(1)} 50%{opacity:.85;transform:translateX(-50%) scale(1.07)} }
-    .af-figsy .af-bg{background:radial-gradient(125% 125% at 50% 118%,#e11d74,#f63ea0 42%,#ffa9d6)}
+    .af-vida .af-bg{background:radial-gradient(125% 125% at 50% 118%,#e11d74,#f63ea0 42%,#ffa9d6)}
     .af-milla .af-bg{background:radial-gradient(125% 125% at 50% 118%,#7c2fe0,#a06bff 42%,#d6c2ff)}
     .af-vida  .af-bg{background:radial-gradient(125% 125% at 50% 118%,#1e5fff,#4f93ff 42%,#a9ccff)}
     .af-denise .af-bg{background:radial-gradient(125% 125% at 50% 118%,#d97706,#ffaa1d 42%,#ffe09a)}
@@ -1326,7 +1326,7 @@
     .sp-who-role{font-size:.76rem;color:rgba(0,0,0,.45)}
     @media(max-width:760px){.sp-quotes{grid-template-columns:1fr}}
   </style>
-  <!-- Shared K.I.N.D design system (loaded last so it wins) -->
+  <!-- Shared M&amp;V design system (loaded last so it wins) -->
   <link rel="stylesheet" href="kind.css" />
 
 <!-- P30 — the founder-approved look: GPT's original Milla design, his three
@@ -1771,7 +1771,7 @@ nav, nav *, footer, footer *{font-family:'Plus Jakarta Sans',-apple-system,Blink
 
 <!-- NAV -->
 <nav>
-  <a href="/" class="logo" aria-label="K.I.N.D home">
+  <a href="/" class="logo" aria-label="M&amp;V home">
     <div class="logo-icon" style="height:34px;width:auto;background:none;border-radius:0;display:flex;align-items:center;flex-shrink:0;"><img src="logo-mv-v2.png" alt="M&amp;V" style="height:26px;width:auto;object-fit:contain;display:block;" /></div>
   </a>
   <div class="nav-links">
@@ -1955,7 +1955,7 @@ nav, nav *, footer, footer *{font-family:'Plus Jakarta Sans',-apple-system,Blink
       <div class="gp-trust-copy">
         <div class="gp-eyebrow">Trust</div>
         <p style="margin-top:24px"><strong>Built with privacy and suppression controls from the start.</strong></p>
-        <p>As K.I.N.D's jurisdiction-aware contact-policy engine is completed and independently verified, this section can expand to make more specific market-by-market claims.</p>
+        <p>As M&amp;V's jurisdiction-aware contact-policy engine is completed and independently verified, this section can expand to make more specific market-by-market claims.</p>
       </div>
     </div>
   </section>
@@ -1983,7 +1983,6 @@ nav, nav *, footer, footer *{font-family:'Plus Jakarta Sans',-apple-system,Blink
       </div>
       <div class="footer-col">
         <h4>Product</h4>
-        <a href="figsy.html">FIGSY</a>
         <a href="milla.html">Milla</a>
         <a href="vida.html">Vida</a>
         <a href="pricing.html">Pricing</a>
@@ -2039,7 +2038,7 @@ nav, nav *, footer, footer *{font-family:'Plus Jakarta Sans',-apple-system,Blink
     authMode = mode
     document.getElementById('tab-signup').classList.toggle('active', mode === 'signup')
     document.getElementById('tab-login').classList.toggle('active', mode === 'login')
-    document.getElementById('auth-title').textContent = mode === 'signup' ? 'Welcome to K.I.N.D' : 'Welcome back'
+    document.getElementById('auth-title').textContent = mode === 'signup' ? 'Welcome to M&amp;V' : 'Welcome back'
     document.getElementById('auth-sub').textContent = mode === 'signup' ? 'Free Proof before you pay. You choose the outcome, Milla prepares the programme, and you approve it once before anything is sent.' : 'Log in to your dashboard.'
     document.getElementById('auth-submit').textContent = mode === 'signup' ? 'Create account' : 'Log in'
     document.getElementById('forgot-link').style.display = mode === 'login' ? 'block' : 'none'
@@ -2158,27 +2157,27 @@ nav, nav *, footer, footer *{font-family:'Plus Jakarta Sans',-apple-system,Blink
     setTimeout(typeStep, 1800)
   }
 
-  // FIGSY SCROLL STEPS
-  var figsySteps = document.querySelectorAll('.figsy-scroll-step')
-  var figsyThought = document.getElementById('figsy-thought')
-  if (figsySteps.length && figsyThought) {
+  // Vida SCROLL STEPS
+  var vidaSteps = document.querySelectorAll('.vida-scroll-step')
+  var vidaThought = document.getElementById('vida-thought')
+  if (vidaSteps.length && vidaThought) {
     var stepObserver = new IntersectionObserver(function(entries) {
       entries.forEach(function(entry) {
         if (!entry.isIntersecting) return
-        figsySteps.forEach(function(s) { s.classList.remove('active') })
+        vidaSteps.forEach(function(s) { s.classList.remove('active') })
         entry.target.classList.add('active')
-        figsyThought.style.opacity = '0'
+        vidaThought.style.opacity = '0'
         setTimeout(function() {
-          figsyThought.textContent = entry.target.dataset.thought
-          figsyThought.style.opacity = '1'
+          vidaThought.textContent = entry.target.dataset.thought
+          vidaThought.style.opacity = '1'
         }, 200)
       })
     }, { threshold: 0.5, rootMargin: '-10% 0px -40% 0px' })
-    figsySteps.forEach(function(s) { stepObserver.observe(s) })
+    vidaSteps.forEach(function(s) { stepObserver.observe(s) })
   }
 
-  // FIGSY VOICE TYPEWRITER
-  var voiceEl = document.getElementById('figsy-voice-text')
+  // Vida VOICE TYPEWRITER
+  var voiceEl = document.getElementById('vida-voice-text')
   if (voiceEl) {
     var voiceSamples = [
       '“Saw you’re leading growth at [Company] — thought what we’re doing might be relevant. Worth a 15-minute call this week?”',

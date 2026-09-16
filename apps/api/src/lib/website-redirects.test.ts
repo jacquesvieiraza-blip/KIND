@@ -27,13 +27,37 @@ const serverPaths = (() => {
 const redirectPairs = [...redirects.matchAll(/^(\/[a-z0-9-]+)(?:\.html)?\s+(\/[a-z0-9-]*)\s+301$/gm)]
   .map(m => ({ from: m[1], to: m[2] }))
 
-describe('the full site is restored — founder order, 1 Aug', () => {
-  it('NOTHING is retired in server.js', () => {
-    expect(serverPaths).toHaveLength(0)
+// ⛓️ 16 Sep — THE MAP IS NO LONGER EMPTY, AND "EMPTY" WAS NEVER THE GUARANTEE.
+//
+// The founder retired FIGSY as a name and as a page: "remove figsy from the site completely...
+// delete figsy.html redirect to vida." So `/figsy` is retired at both front doors and this
+// file goes back to doing what its own header says it is for — keeping the two doors
+// agreeing. Asserting length 0 only ever encoded "nothing is retired TODAY"; the real defect
+// #560 found was a page retired at one door and reachable at the other, and that is what is
+// asserted below. The 1-Aug restore is still guarded, by name, in RESTORED_1_AUG.
+const RETIRED_NOW = [{ from: '/figsy', to: '/vida' }]
+
+describe('retirements are the same at both front doors', () => {
+  it('server.js retires exactly what we expect', () => {
+    expect(serverPaths).toEqual(RETIRED_NOW)
   })
 
-  it('NOTHING is 301d at the CDN', () => {
-    expect(redirectPairs).toHaveLength(0)
+  it('the CDN 301s exactly the same paths, to the same targets', () => {
+    // Both the clean URL and the .html form are matched at the CDN, so the pair list can
+    // carry a path twice; what must hold is that the SET agrees with Express.
+    const uniq = [...new Map(redirectPairs.map(r => [r.from, r])).values()]
+    expect(uniq).toEqual(RETIRED_NOW)
+  })
+
+  it('no retired page is still linked from any page on the site', () => {
+    const pages = readdirSync(WEB).filter(f => f.endsWith('.html'))
+    for (const { from } of RETIRED_NOW) {
+      const file = from.slice(1) + '.html'
+      for (const page of pages) {
+        if (page === file) continue
+        expect(readFileSync(join(WEB, page), 'utf8')).not.toContain(`href="${file}"`)
+      }
+    }
   })
 
   // ⛓️ 15 Aug — this asserted `toHaveLength(28)`, which made ADDING a page fail a guard whose

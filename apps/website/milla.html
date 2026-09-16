@@ -12,7 +12,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Milla &mdash; Your client portal | Milla &amp; Vida</title>
-  <meta name="description" content="Milla is your client portal — every lead our team sources lands here masked. You tap approve or pass, chat to your operator, and see every booked meeting. Reviewing is free; you only pay $4 when you approve a lead." />
+  <meta name="description" content="Milla is your client portal — every lead our team sources lands here masked. You tap approve or pass, chat to your operator, and see every booked meeting. Free Proof before you pay; $450 per booked meeting." />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
@@ -243,7 +243,7 @@
     @media(max-width:640px){ .k-band{ padding:60px 24px; } .k-cards.c3,.k-cards.c2{ grid-template-columns:1fr; } .k-dogfood{ grid-template-columns:1fr !important; } }
 
   </style>
-  <!-- Shared K.I.N.D design system (loaded last so it wins) -->
+  <!-- Shared M&amp;V design system (loaded last so it wins) -->
   <link rel="stylesheet" href="kind.css" />
   <!-- W1 (21 Aug 2026) — the homepage's visual system, shared. Loaded LAST so it
        wins the cascade without rewriting this page's markup. Two corrections to the
@@ -258,7 +258,7 @@
 
 <!-- NAV -->
 <nav>
-  <a href="/" class="logo" aria-label="K.I.N.D home">
+  <a href="/" class="logo" aria-label="M&amp;V home">
     <div class="logo-icon" style="height:34px;width:auto;background:none;border-radius:0;display:flex;align-items:center;flex-shrink:0;"><img src="logo-mv-v2.png" alt="M&amp;V" style="height:26px;width:auto;object-fit:contain;display:block;" /></div>
   </a>
   <div class="nav-links">
@@ -328,7 +328,7 @@
         <div class="rpos">The one screen you touch &mdash; where every lead we source lands <span style="color:#c4b5fd">masked</span> until you say yes.</div>
         <p class="rsub">Our operator team fills Milla with sourced, scored leads &mdash; each one masked, with the fit explained but the contact hidden. You tap 👍 approve to pursue or ✕ pass. Reviewing is always free; your approval is what reveals the contact and sets our team to work. You never run a tool &mdash; you just make the call.</p>
         <div class="feats"><div class="feat"><span class="tick" style="background:rgba(124,58,237,.25);color:#c4b5fd">&#10003;</span>Every sourced lead shown masked, with its fit &amp; score</div><div class="feat"><span class="tick" style="background:rgba(124,58,237,.25);color:#c4b5fd">&#10003;</span>Tap 👍 approve or ✕ pass &mdash; reviewing costs nothing</div><div class="feat"><span class="tick" style="background:rgba(124,58,237,.25);color:#c4b5fd">&#10003;</span>On approve, the verified contact is revealed and we start the outreach</div><div class="feat"><span class="tick" style="background:rgba(124,58,237,.25);color:#c4b5fd">&#10003;</span>Chat to your operator on any lead, right in the portal</div><div class="feat"><span class="tick" style="background:rgba(124,58,237,.25);color:#c4b5fd">&#10003;</span>See every booked meeting land in your calendar</div><div class="feat"><span class="tick" style="background:rgba(124,58,237,.25);color:#c4b5fd">&#10003;</span>Track credits, spend &amp; reports in one place &mdash; a dead email is never charged</div></div>
-        <div class="pricechip"><b style="color:#c4b5fd">$4 only when you approve</b><span>one flat price &middot; reviewing is always free</span></div>
+        <div class="pricechip"><b style="color:#c4b5fd">$450 per booked meeting</b><span>one flat price &middot; reviewing is always free</span></div>
         <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:8px">
           <a href="demo.html" class="btn2">Book a walkthrough &rarr;</a>
           <a href="https://app.get-kind.com/login" class="btn2" style="background:transparent;border:1px solid rgba(255,255,255,.25)">Client login</a>
@@ -339,9 +339,9 @@
   <section class="fam">
     <div class="card">
       <div class="eyebrow">One service &middot; one private Nexus</div>
-      <div class="faces"><span class="f"><img src="figsy-cut.png" alt=""></span><span class="f"><img src="milla-cut.png" alt=""></span><span class="f"><img src="vida-cut.png" alt=""></span></div>
+      <div class="faces"><span class="f"><img src="vida-cut.png" alt=""></span><span class="f"><img src="milla-cut.png" alt=""></span><span class="f"><img src="vida-cut.png" alt=""></span></div>
       <h3>One portal. One private Nexus.</h3>
-      <p>Milla is where you approve; Vida is our operator team's console; FIGSY is the engine that sources, writes and books. All three run on Nexus &mdash; a private brain that learns from <b>your</b> results only, never shared with another client. Every approval you make sharpens your outreach.</p>
+      <p>Milla is where you approve; Vida is where it gets done — she sources, writes, sends, handles the replies and books the meeting. Both run on Nexus &mdash; a private brain that learns from <b>your</b> results only, never shared with another client. Every approval you make sharpens your outreach.</p>
       
     </div>
   </section>
@@ -360,7 +360,6 @@
       </div>
       <div class="footer-col">
         <h4>Product</h4>
-        <a href="figsy.html">FIGSY</a>
         <a href="milla.html">Milla</a>
         <a href="vida.html">Vida</a>
         <a href="pricing.html">Pricing</a>
@@ -411,7 +410,7 @@
     authMode = mode
     document.getElementById('tab-signup').classList.toggle('active', mode === 'signup')
     document.getElementById('tab-login').classList.toggle('active', mode === 'login')
-    document.getElementById('auth-title').textContent = mode === 'signup' ? 'Welcome to K.I.N.D' : 'Welcome back'
+    document.getElementById('auth-title').textContent = mode === 'signup' ? 'Welcome to M&amp;V' : 'Welcome back'
     document.getElementById('auth-sub').textContent = mode === 'signup' ? 'Free Proof before you pay. You choose the outcome, Milla prepares the programme, and you approve it once before anything is sent.' : 'Log in to your dashboard.'
     document.getElementById('auth-submit').textContent = mode === 'signup' ? 'Create account' : 'Log in'
     document.getElementById('forgot-link').style.display = mode === 'login' ? 'block' : 'none'

@@ -243,7 +243,7 @@
     @media(max-width:640px){ .k-band{ padding:60px 24px; } .k-cards.c3,.k-cards.c2{ grid-template-columns:1fr; } .k-dogfood{ grid-template-columns:1fr !important; } }
 
   </style>
-  <!-- Shared K.I.N.D design system (loaded last so it wins) -->
+  <!-- Shared M&amp;V design system (loaded last so it wins) -->
   <link rel="stylesheet" href="kind.css" />
 </head>
 <body>
@@ -253,7 +253,7 @@
 
 <!-- NAV -->
 <nav>
-  <a href="/" class="logo" aria-label="K.I.N.D home">
+  <a href="/" class="logo" aria-label="M&amp;V home">
     <div class="logo-icon" style="height:34px;width:auto;background:none;border-radius:0;display:flex;align-items:center;flex-shrink:0;"><img src="logo-mv-v2.png" alt="M&amp;V" style="height:26px;width:auto;object-fit:contain;display:block;" /></div>
   </a>
   <div class="nav-links">
@@ -268,7 +268,7 @@
 
 <style>
 .bp{min-height:100vh}
-:root{--figsy:#db2777;--purple:#7C3AED;--vida:#2563eb;--ink:#0a0a0a;--soft:#8f8aa0;--muted:#b9b2cc}
+:root{--vida:#db2777;--purple:#7C3AED;--vida:#2563eb;--ink:#0a0a0a;--soft:#8f8aa0;--muted:#b9b2cc}
 .bp *{box-sizing:border-box}
 .bp{margin:0;background:#08060f;color:#fff;font-family:'Outfit',-apple-system,'Segoe UI',sans-serif;line-height:1.55;-webkit-font-smoothing:antialiased;overflow-x:hidden}
 .bp h1, .bp h2, .bp h3, .bp h4{margin:0;line-height:1.08;letter-spacing:-.02em;text-wrap:balance;font-family:'Outfit',sans-serif}
@@ -320,8 +320,8 @@
 .bp .orb{position:absolute;width:84px;height:84px;border-radius:50%;overflow:hidden;background:#0a0a0a;border:2px solid;z-index:4;box-shadow:0 8px 30px rgba(0,0,0,.5)}
 .bp .orb img{width:100%;height:auto;display:block;transform:scale(1.32) translateY(8%)}
 .bp .orb .nm{position:absolute;bottom:-22px;left:50%;transform:translateX(-50%);font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;white-space:nowrap}
-.bp .orb.figsy{left:calc(50% - 42px);top:6px;border-color:#db2777}
-.bp .orb.figsy .nm{color:#f472b6}
+.bp .orb.vida{left:calc(50% - 42px);top:6px;border-color:#db2777}
+.bp .orb.vida .nm{color:#f472b6}
 .bp .orb.milla{left:8%;bottom:20px;border-color:#a78bfa}
 .bp .orb.milla .nm{color:#a78bfa}
 .bp .orb.vida{right:8%;bottom:20px;border-color:#60a5fa}
@@ -381,7 +381,7 @@
 .bp .mf-step .av img{width:100%;transform:scale(1.3) translateY(8%)}
 .bp .mf-step .t b{display:block;font-size:14.5px;font-weight:700;color:#fff}
 .bp .mf-step .t span{font-size:12px;color:var(--soft);font-family:'JetBrains Mono',monospace}
-.bp .mf-step.a-figsy.on{color:#f472b6}
+.bp .mf-step.a-vida.on{color:#f472b6}
 .bp .mf-step.a-milla.on{color:#a78bfa}
 .bp .mf-step.a-vida.on{color:#60a5fa}
 .bp .mf-panel{border-radius:18px;border:1px solid rgba(167,139,250,.3);background:linear-gradient(160deg,#161029,#0a0812);padding:22px;min-height:320px;position:relative;box-shadow:0 0 60px -20px rgba(124,58,237,.6)}
@@ -392,7 +392,7 @@
 .bp .mf-fact.show{opacity:1;transform:none}
 .bp .mf-fact .k{font-size:14px;flex-shrink:0}
 .bp .mf-fact .who{font-family:'JetBrains Mono',monospace;font-size:9.5px;padding:1px 6px;border-radius:20px;margin-left:auto;flex-shrink:0;align-self:center}
-.bp .mf-fact .who.figsy{color:#f472b6;background:rgba(219,39,119,.14)}
+.bp .mf-fact .who.vida{color:#f472b6;background:rgba(219,39,119,.14)}
 .bp .mf-fact .who.milla{color:#a78bfa;background:rgba(124,58,237,.14)}
 .bp .mf-fact .who.vida{color:#60a5fa;background:rgba(37,99,235,.14)}
 .bp /* ---------- ④ JOURNEY (scroll reveal) ---------- */
@@ -402,12 +402,12 @@
 .bp .fs-stop:nth-child(2){transition-delay:.15s}
 .bp .fs-stop:nth-child(3){transition-delay:.3s}
 .bp .fs-face{width:62px;height:62px;border-radius:50%;overflow:hidden;background:#0a0a0a;border:2px solid;margin-bottom:15px}
-.bp .fs-stop.figsy .fs-face{border-color:#f472b6}
+.bp .fs-stop.vida .fs-face{border-color:#f472b6}
 .bp .fs-stop.milla .fs-face{border-color:#a78bfa}
 .bp .fs-stop.vida .fs-face{border-color:#60a5fa}
 .bp .fs-face img{width:100%;transform:scale(1.3) translateY(8%)}
 .bp .fs-step{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
-.bp .fs-stop.figsy .fs-step{color:#f472b6}
+.bp .fs-stop.vida .fs-step{color:#f472b6}
 .bp .fs-stop.milla .fs-step{color:#a78bfa}
 .bp .fs-stop.vida .fs-step{color:#60a5fa}
 .bp .fs-stop h4{font-size:17.5px;font-weight:800;margin:7px 0 9px}
@@ -427,7 +427,7 @@
 .bp .st.soon{background:rgba(255,255,255,.14);color:#e6e2f0}
 .bp .tcard .meta{padding:16px 20px 20px}
 .bp .tcard .nm{font-size:21px;font-weight:800}
-.bp .tcard.figsy .nm{color:#f472b6}
+.bp .tcard.vida .nm{color:#f472b6}
 .bp .tcard.milla .nm{color:#a78bfa}
 .bp .tcard.vida .nm{color:#60a5fa}
 .bp .tcard .role{font-size:13px;color:var(--muted);margin-top:6px}
@@ -481,7 +481,7 @@
           <span class="mc">who she is</span><span class="mc">why she fits</span><span class="mc">her objection</span><span class="mc">the right angle</span>
         </div>
       </div>
-      <div class="orb figsy"><img src="figsy-cut.png" alt="FIGSY"><span class="nm">FIGSY</span></div>
+      <div class="orb vida"><img src="vida-cut.png" alt="Vida"><span class="nm">Vida</span></div>
       <div class="orb milla"><img src="milla-cut.png" alt="Milla"><span class="nm">Milla</span></div>
       <div class="orb vida"><img src="vida-cut.png" alt="Vida"><span class="nm">Vida</span></div>
       <span class="signal s1" style="--tx:-4px;--ty:150px">new lead →</span>
@@ -509,7 +509,7 @@
       <div class="way new">
         <span class="waylbl good">● The Milla&amp;Vida way</span>
         <h3>One private brain. Yours alone.</h3>
-        <div class="brainmini"><div class="bm-faces"><span class="f"><img src="figsy-cut.png" alt=""></span><span class="f"><img src="milla-cut.png" alt=""></span><span class="f"><img src="vida-cut.png" alt=""></span></div><span style="color:#a78bfa;font-size:18px">→</span><div class="bm-brain"><img src="Nexus.png" alt="Nexus" style="width:34px;height:34px;object-fit:contain"></div></div>
+        <div class="brainmini"><div class="bm-faces"><span class="f"><img src="vida-cut.png" alt=""></span><span class="f"><img src="milla-cut.png" alt=""></span><span class="f"><img src="vida-cut.png" alt=""></span></div><span style="color:#a78bfa;font-size:18px">→</span><div class="bm-brain"><img src="Nexus.png" alt="Nexus" style="width:34px;height:34px;object-fit:contain"></div></div>
         <div class="known">Learns from you: <span class="ktag">✓ never shared with anyone</span></div>
         <ul class="wayul"><li><b>Solution.</b> Nexus is <em>your</em> private brain. It learns from your results only, is never shared with another client, and every lead you approve is recorded against <em>your</em> business &mdash; so your operators pick up a prospect with the whole history in hand.</li></ul>
       </div>
@@ -525,16 +525,16 @@
     <p class="lead">As we work each lead you approve, Nexus records what fits you — and it's yours alone, never shared with another client.</p>
     <div class="mf-grid">
       <div class="mf-steps" id="mfSteps">
-        <div class="mf-step a-figsy" data-step="0"><span class="av"><img src="figsy-cut.png" alt=""></span><span class="t"><b>FIGSY finds Sarah</b><span>sources &amp; scores</span></span></div>
-        <div class="mf-step a-figsy" data-step="1"><span class="av"><img src="figsy-cut.png" alt=""></span><span class="t"><b>It records what fits you</b><span>→ your Nexus</span></span></div>
+        <div class="mf-step a-vida" data-step="0"><span class="av"><img src="vida-cut.png" alt=""></span><span class="t"><b>Vida finds Sarah</b><span>sources &amp; scores</span></span></div>
+        <div class="mf-step a-vida" data-step="1"><span class="av"><img src="vida-cut.png" alt=""></span><span class="t"><b>It records what fits you</b><span>→ your Nexus</span></span></div>
         <div class="mf-step a-milla" data-step="2"><span class="av"><img src="milla-cut.png" alt=""></span><span class="t"><b>You approve in Milla</b><span>Nexus learns from it</span></span></div>
         <div class="mf-step a-vida" data-step="3"><span class="av"><img src="vida-cut.png" alt=""></span><span class="t"><b>Your team picks it up</b><span>nothing forgotten</span></span></div>
       </div>
       <div class="mf-panel">
         <div class="ph"><span class="dot"></span>Your private memory · Sarah Chen</div>
         <div class="mf-facts" id="mfFacts">
-          <div class="mf-fact" data-f="0"><span class="k">👤</span><span>VP Ops at a scaling logistics firm — a strong ICP match.</span><span class="who figsy">FIGSY</span></div>
-          <div class="mf-fact" data-f="1"><span class="k">🎯</span><span>Why she fits + the angle that landed the open.</span><span class="who figsy">FIGSY</span></div>
+          <div class="mf-fact" data-f="0"><span class="k">👤</span><span>VP Ops at a scaling logistics firm — a strong ICP match.</span><span class="who vida">Vida</span></div>
+          <div class="mf-fact" data-f="1"><span class="k">🎯</span><span>Why she fits + the angle that landed the open.</span><span class="who vida">Vida</span></div>
           <div class="mf-fact" data-f="2"><span class="k">💬</span><span>The fit you approved, the offer that suits, what to say next.</span><span class="who milla">Milla</span></div>
           <div class="mf-fact" data-f="3"><span class="k">🕑</span><span>Her whole history — yours alone, picked up anytime.</span><span class="who vida">Vida</span></div>
         </div>
@@ -549,7 +549,7 @@
     <div class="eyebrow grad">One lead · your memory</div>
     <h2 class="big" style="margin-top:14px">Follow a single lead <span class="grad">through your Nexus.</span></h2>
     <div class="fs-track" id="journey">
-      <div class="fs-stop figsy"><div class="fs-face"><img src="figsy-cut.png" alt=""></div><div class="fs-step">Step 01 · The engine finds her</div><h4>Sourced &amp; scored</h4><p>FIGSY finds Sarah, sees she fits your ICP, and lands her masked in your Milla portal.</p><div class="fs-knows"><div class="kbox">🧠 <span>Your Nexus holds: <b>who she is · why she fits · the angle</b>.</span></div></div></div>
+      <div class="fs-stop vida"><div class="fs-face"><img src="vida-cut.png" alt=""></div><div class="fs-step">Step 01 · The engine finds her</div><h4>Sourced &amp; scored</h4><p>Vida finds Sarah, sees she fits your ICP, and lands her masked in your Milla portal.</p><div class="fs-knows"><div class="kbox">🧠 <span>Your Nexus holds: <b>who she is · why she fits · the angle</b>.</span></div></div></div>
       <div class="fs-stop milla"><div class="fs-face"><img src="milla-cut.png" alt=""></div><div class="fs-step">Step 02 · You approve her</div><h4>Learned from you</h4><p>You tap approve in Milla — and Nexus records the fit you chose.</p><div class="fs-knows"><div class="kbox">🧠 <span>Nexus adds: <b>the fit you approved · the offer · what to say</b>.</span></div></div></div>
       <div class="fs-stop vida"><div class="fs-face"><img src="vida-cut.png" alt=""></div><div class="fs-step">Step 03 · Your team runs it</div><h4>Nothing forgotten</h4><p>Our operators pick her up with her whole history in hand — yours alone.</p><div class="fs-knows"><div class="kbox">🧠 <span>The team picks up <b>exactly where the engine left off</b>.</span></div></div></div>
     </div>
@@ -562,10 +562,10 @@
     <div class="eyebrow grad">The service</div>
     <h2 class="big" style="margin-top:14px">Three roles. <span class="grad">One private Nexus.</span></h2>
     <div class="three">
-      <!-- FIGSY is NOT a link. Its standalone page was retired 29 Jul (#560) because the engine
+      <!-- Vida is NOT a link. Its standalone page was retired 29 Jul (#560) because the engine
            is no longer sold on its own — the 22 Jul pivot makes it the engine UNDER Milla&Vida.
            index.html's family reveal shows it the same way: a card you read, not a door. -->
-      <div class="tcard figsy"><div class="ph"><span class="st live">ENGINE</span><img src="figsy-cut.png" alt="FIGSY"></div><div class="meta"><div class="nm">FIGSY</div><div class="role">The engine — finds, writes &amp; books</div><div class="go" style="color:#f472b6">Under the whole service</div></div></div>
+      <div class="tcard vida"><div class="ph"><span class="st live">ENGINE</span><img src="vida-cut.png" alt="Vida"></div><div class="meta"><div class="nm">Vida</div><div class="role">The engine — finds, writes &amp; books</div><div class="go" style="color:#f472b6">Under the whole service</div></div></div>
       <a href="milla.html" class="tcard milla"><div class="ph"><span class="st live">YOUR PORTAL</span><img src="milla-cut.png" alt="Milla"></div><div class="meta"><div class="nm">Milla</div><div class="role">Your portal — review &amp; approve</div><div class="go" style="color:#a78bfa">Meet Milla →</div></div></a>
       <a href="vida.html" class="tcard vida"><div class="ph"><span class="st live">OUR TEAM</span><img src="vida-cut.png" alt="Vida"></div><div class="meta"><div class="nm">Vida</div><div class="role">Our team — we run it end to end</div><div class="go" style="color:#60a5fa">Meet Vida →</div></div></a>
     </div>
@@ -590,7 +590,7 @@
 <section class="final">
   <div class="wrap">
     <h2>A memory of your buyers<br><span class="grad">that grows with every yes.</span></h2>
-    <p class="lead">Milla&amp;Vida runs on your private Nexus — $4 per approved lead, only when you approve. Reviewing is always free, and the brain is yours alone.</p>
+    <p class="lead">Milla&amp;Vida runs on your private Nexus — $450 per booked meeting, priced on the outcome you choose. Free Proof comes first, and the brain is yours alone.</p>
     <div class="cta" style="display:flex;gap:14px;justify-content:center;margin-top:26px;flex-wrap:wrap"><a href="demo.html" class="btn">Book a walkthrough &rarr;</a><a href="https://app.get-kind.com/login" class="btn ghost">Client login</a></div>
   </div>
 </section>
@@ -630,7 +630,6 @@
       </div>
       <div class="footer-col">
         <h4>Product</h4>
-        <a href="figsy.html">FIGSY</a>
         <a href="milla.html">Milla</a>
         <a href="vida.html">Vida</a>
         <a href="pricing.html">Pricing</a>
@@ -680,7 +679,7 @@
     authMode = mode
     document.getElementById('tab-signup').classList.toggle('active', mode === 'signup')
     document.getElementById('tab-login').classList.toggle('active', mode === 'login')
-    document.getElementById('auth-title').textContent = mode === 'signup' ? 'Welcome to K.I.N.D' : 'Welcome back'
+    document.getElementById('auth-title').textContent = mode === 'signup' ? 'Welcome to M&amp;V' : 'Welcome back'
     document.getElementById('auth-sub').textContent = mode === 'signup' ? 'Free Proof before you pay. You choose the outcome, Milla prepares the programme, and you approve it once before anything is sent.' : 'Log in to your dashboard.'
     document.getElementById('auth-submit').textContent = mode === 'signup' ? 'Create account' : 'Log in'
     document.getElementById('forgot-link').style.display = mode === 'login' ? 'block' : 'none'

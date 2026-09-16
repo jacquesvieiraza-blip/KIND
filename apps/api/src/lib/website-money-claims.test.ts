@@ -56,7 +56,13 @@ const PAGES: Array<[string, string]> = [['terms.html', terms], ['pricing.html', 
 // So the positive legacy-money assertions narrow to the two pages that still make the claim,
 // and the homepage gets its own programme guard below. Every NEGATIVE assertion keeps covering
 // all three — a page that has moved on must still never reacquire a false claim.
-const LEGACY_PAGES: Array<[string, string]> = [['terms.html', terms], ['pricing.html', pricing]]
+// ⛓️ 16 Sep, SECOND NARROWING — `pricing.html` has now moved to the programme too, so it
+// leaves this list for exactly the reason the homepage did. `terms.html` is the last page
+// still carrying $299 / $4 / 100-included, and it stays here because it is the CONTRACT:
+// founder+legal territory (E35/E36), corrected deliberately and not by a marketing sweep.
+// The NEGATIVE assertions above still cover all three pages — a page that has moved on must
+// never reacquire the claim it dropped.
+const LEGACY_PAGES: Array<[string, string]> = [['terms.html', terms]]
 
 /** The homepage pricing block alone — the footer is a 29-page shared string, swept separately. */
 const homePricing = homeRaw.slice(
@@ -78,8 +84,12 @@ describe('the site no longer calls the first purchase a wallet top-up', () => {
     expect(terms).toContain('not a wallet top-up')
   })
 
-  it('pricing says the same, so the marketing and the contract agree', () => {
-    expect(pricing).toContain('not a wallet top-up')
+  // ⛓️ 16 Sep — pricing.html no longer describes a wallet at all, so it cannot state that
+  // the first purchase is "not a wallet top-up": the sentence has nothing left to deny. The
+  // guard inverts rather than disappears — the page must carry NO wallet language at all.
+  it('pricing has no wallet language left to reconcile', () => {
+    expect(pricing).not.toContain('wallet')
+    expect(pricing).not.toContain('Top up')
   })
 })
 

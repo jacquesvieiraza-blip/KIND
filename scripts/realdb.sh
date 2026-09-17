@@ -60,6 +60,31 @@ set -uo pipefail
 cd "$(git rev-parse --show-toplevel)"
 REPO_ROOT="$(pwd)"
 
+# ══════════════════════════════════════════════════════════════════════════════════════════
+# 🛑 WHICH TREE'S SCHEMA GETS SEEDED — `REALDB_SCHEMA_TREE`
+#
+# Default: this repo. The RED run overrides it, and Fable's C-12 ruling (17 Sep) is why.
+#
+# ── WHAT WENT WRONG WITHOUT IT ──────────────────────────────────────────────────────────
+#
+# The first Batch 1b RED run booted the PRE-BATCH-1 product against the CURRENT schema,
+# because these two paths were bare and relative. So check 6 — the free-Proof record fence
+# — PASSED at a commit that does not contain the fence, purely because the harness had
+# already installed `try_reserve_proof_records` for it. A RED that passes for a reason
+# belonging to the harness is not evidence about the product, and it was reported and
+# rejected as such.
+#
+# ⚠️ THE DECLARATIONS STAY WITH THE SCRIPT, NOT THE TREE. `KNOWN_BROKEN`,
+# `EXPECTED_UNSUPPORTED` and `BASELINE_SORT_KEY` below are THIS script's declarations about
+# specific filenames. Seeding an older tree does not import that tree's versions of them —
+# a file that tree has and this list does not is simply counted on its own merits, and a
+# declared name that tree lacks matches nothing. That is deliberate: the declarations are
+# the harness's honesty ledger, and a RED run must not be able to quietly widen them.
+# ══════════════════════════════════════════════════════════════════════════════════════════
+SCHEMA_TREE="${REALDB_SCHEMA_TREE:-$REPO_ROOT}"
+[ -f "$SCHEMA_TREE/supabase/staging-schema.sql" ] \
+  || { echo "🛑 realdb: $SCHEMA_TREE/supabase/staging-schema.sql does not exist — REALDB_SCHEMA_TREE is wrong" >&2; exit 1; }
+
 REALDB_ROOT="${REALDB_ROOT:-${TMPDIR:-/tmp}/kind-realdb}"
 REALDB_PORT="${REALDB_PORT:-55432}"
 REALDB_DB="${REALDB_DB:-kind_test}"
@@ -291,21 +316,23 @@ cmd_up() {
     > "$REALDB_ROOT/bootstrap.log" 2>&1 || { tail -30 "$REALDB_ROOT/bootstrap.log"; fail "bootstrap.sql failed"; }
   say "auth schema, RLS helpers and API roles created"
 
-  echo "── realdb: applying the baseline (supabase/staging-schema.sql)"
+  echo "── realdb: applying the baseline ($SCHEMA_TREE/supabase/staging-schema.sql)"
   # ⚠️ THIS IS A FINDING, NOT A CONVENIENCE. `supabase/migrations/` is NOT self-sufficient:
   # nothing in it creates `public.clients`, `public.icps`, `public.leads`, `subscriptions`
   # or the `figsy_*` tables. Those were created by hand in the Supabase SQL editor that can
   # no longer be opened, and every migration since only ALTERs them. The nearest thing the
   # repo has to a baseline is this consolidated file, whose own header says "paste this
   # entire file into your NEW Supabase project".
-  "$PGBIN/psql" -q -v ON_ERROR_STOP=1 "$URL" -f supabase/staging-schema.sql \
+  "$PGBIN/psql" -q -v ON_ERROR_STOP=1 "$URL" -f "$SCHEMA_TREE/supabase/staging-schema.sql" \
     > "$REALDB_ROOT/baseline.log" 2>&1 || { tail -30 "$REALDB_ROOT/baseline.log"; fail "staging-schema.sql (baseline) failed"; }
   say "baseline applied"
 
-  echo "── realdb: applying supabase/migrations in filename order"
+  echo "── realdb: applying $SCHEMA_TREE/supabase/migrations in filename order"
+  [ "$SCHEMA_TREE" = "$REPO_ROOT" ] \
+    || say "⚠️  SCHEMA FROM ANOTHER TREE — this database is NOT this repo's schema"
   : > "$APPLY_LOG"
   local applied=0 skipped=0 superseded=0 broken=0 failed=0 f base err sha
-  for f in supabase/migrations/*.sql; do
+  for f in "$SCHEMA_TREE"/supabase/migrations/*.sql; do
     base="$(basename "$f")"
     sha="$(sha_of "$f")"
     # One transaction per file, exactly like `supabase db push`: a file either applies

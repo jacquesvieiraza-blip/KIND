@@ -84,7 +84,7 @@ Not as a promise — as a property:
 | Supabase gateway | a **path rewrite only** — see below |
 | Apollo / PDL / Hunter / Stripe / Google / Resend / Anthropic | recording fakes on loopback |
 | SMTP | a sink that completes the protocol and delivers nothing |
-| GoTrue | **absent** — no Batch 1b check needs a browser session |
+| GoTrue | **absent** — three read-only Auth endpoints only (below); no login, no token issuance |
 
 ### The gateway is a path rewrite, not a PostgREST substitute
 
@@ -95,14 +95,49 @@ resolves this with Kong in front doing exactly this rewrite. `gateway.mjs` strip
 `/rest/v1`, forwards everything else **verbatim** — including `Authorization`, `apikey`,
 `Prefer` and `Accept`, several of which *are* the semantics under test — and counts requests.
 
-It also answers **two Auth admin reads itself**, `GET /auth/v1/admin/users` and
-`GET /auth/v1/admin/users/<id>`, straight out of `auth.users`. PostgREST cannot serve either,
-and `audienceForClientStrict` — which decides *which provider a run is allowed to use* — asks
-`getUserById` and **throws** when it cannot resolve an identity. Without them the entire MVP1
-sourcing path is unreachable and checks 4, 5 and 7 cannot run at all. There is no login, no
-password, no token, no session, no GoTrue. ⚠️ **This is beyond Batch 1b's literally permitted
-component list and is reported as such** — the alternative was mocking the answer to the one
-question that selects the provider, which is not acceptable evidence for FD-6.
+It also answers **exactly three read-only Auth endpoints itself** — authorised by Fable's
+C-8/C-10 ruling of 17 Sep — straight out of `auth.users`:
+
+| Endpoint | Product caller | Why PostgREST can't serve it |
+|---|---|---|
+| `GET /auth/v1/admin/users` | `resolveHouseUserIds` → `listUsers()` | Auth admin API |
+| `GET /auth/v1/admin/users/<id>` | `audienceForClientStrict` → `getUserById()` | Auth admin API |
+| `GET /auth/v1/user` | the admin middleware → `getUser()` | Auth session API |
+
+The first two decide *which provider a run is allowed to use*, and `audienceForClientStrict`
+**throws** when it cannot resolve an identity — so without them the whole MVP1 sourcing path is
+unreachable and checks 4, 5 and 7 cannot run. The third lets check 3's timeout half cross the
+**real** admin middleware and the **real** proxy.
+
+🛑 **`/auth/v1/user` VERIFIES, it does not trust.** It recomputes HMAC-SHA256 over
+`header.payload` with the same secret PostgREST was started with, compares in constant time,
+checks `exp`, requires a `sub`, and looks that subject up in `auth.users` — a signed token for
+a deleted user is still 401. A gateway that decoded the payload and believed it would be a
+bypass wearing an endpoint's clothes: any caller could assert any email and walk straight
+through #308's allowlist.
+
+🛑 **Every other `/auth/v1/**` path answers 501** — including `/token`, `/signup`, `/logout` and
+`/recover`, the four that would make this GoTrue. Check 0 asserts all four, plus that a forged
+and an absent session token are both refused with 401. No password exists anywhere in the
+harness, nothing is issued or refreshed, and `middleware.ts` is not modified.
+
+⚠️ **These three reads are beyond Batch 1b's original component list and were reported as such
+before being ruled on.** The alternative was mocking the answer to the one question that
+selects the provider — not acceptable evidence for FD-6 — or leaving check 3 permanently
+NOT-RUN.
+
+⚠️ **The session is used by check 3 only.** Check 1 reads all three health endpoints with plain
+unauthenticated HTTP, exactly as `ship.sh` does, so the harness session cannot paper over the
+admin `/api/health` 401 defect.
+
+**The cookie name and encoding are read out of the installed package, never recalled.**
+`@supabase/ssr@0.4.1`'s `createServerClient` only sets `storageKey` when `cookieOptions.name`
+is given, which `middleware.ts` does not — so `@supabase/supabase-js@2.105.4`'s default applies:
+``sb-${baseUrl.hostname.split(".")[0]}-auth-token``, i.e. `sb-127-auth-token` against the
+gateway. `cookieEncoding` defaults to `"base64url"` and `cookies.js` writes
+`"base64-" + stringToBase64URL(value)`. `checks.mjs` derives the name from `ENV` and **imports
+that same encoder from the package**, so the harness cannot disagree with the reader about the
+format.
 
 ⚠️ **The two shapes are not interchangeable.** `gotrue-js` passes the single-user body through
 as `data.user`, so answering `/users/<id>` with the collection's `{users:[…]}` yields an object
@@ -183,16 +218,35 @@ them resolve into the RED tree's own packages. Symlinking the directory instead 
 every workspace import back at *this* repo's code — and since Batch 1 changed
 `packages/shared`, the RED run would have been silently running Batch 1 code.
 
-⚠️ **The database is seeded by this repo's `realdb.sh` and migrations**, so the RED product
-runs against the post-Batch-1 *schema*. That is deliberate — it isolates the RED result to
-missing PRODUCT behaviour rather than a missing table — but it means a RED run is not a
-statement about that commit's schema.
+🛑 **The schema comes from the SAME tree as the product** (`REALDB_SCHEMA_TREE`, which
+`fullstack.sh` sets from `FULLSTACK_TREE`). This was Fable's C-12 ruling and it corrected a
+real defect in the first RED run: those two paths were bare and relative, so the pre-Batch-1
+product was booted against the **current** schema and check 6 PASSED at a commit that does not
+contain the fence — a green light earned entirely by the harness. That RED was rejected.
 
-⚠️ **And it is why check 6 PASSES at RED.** The free-Proof record ceiling held at the
-pre-Batch-1 commit only because `try_reserve_proof_records` was already in the database the
-harness had seeded — the same run's check 10 proves that commit has no
-`20260917_proof_fence_in_records.sql` at all. A RED pass here is a fact about the seeded
-schema, not evidence that the old product had the fence. Read it that way.
+With the seam in place, `4357bc7f` replays its own 184 migrations (166 applied · 17
+superseded-by-baseline · 1 declared-known-broken · **0 failed**, versus 168 on this tree —
+exactly the two migrations Batch 1 added) and check 6 fails by name:
+
+```
+❌ CHECK 6 — THE RECORD FENCE IS NOT IN THIS SCHEMA — absent: column
+   public.money_settings.proof_monthly_cap_records (the RECORDS unit — the fence here is
+   still dollar-based)
+```
+
+⚠️ **The artifact to ask for is the records COLUMN, not the function.**
+`try_reserve_proof_records` already exists at `4357bc7f` in its dollar-based form (from
+`20260822_free_proof_acquisition.sql`) — which is the same fact check 10 exploits, since
+J5-C9's migration is a `CREATE OR REPLACE`. Asking whether the function existed let the check
+through, and it then threw on the missing column three frames deep.
+
+⚠️ **A replay failure would be evidence, not an abort to tidy away.** If an older tree's
+migration set cannot replay, `fullstack.sh` fails with the log and says the log *is* the
+finding; check 6 must then FAIL loudly, never be skipped or called passed.
+
+**Check 6's teeth, on the GREEN tree** (`FULLSTACK_ONLY=6`): good state PASS → replace
+`try_reserve_proof_records` with an always-grant body → FAIL (`booked NO proof_ledger row`) →
+restore by re-running `supabase/migrations/20260917_proof_fence_in_records.sql` → PASS.
 
 ## Adding a check
 

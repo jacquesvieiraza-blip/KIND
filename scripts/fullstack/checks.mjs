@@ -57,6 +57,44 @@ const operator = (p, o = {}) => http(`${ENV.api}${p}`, {
 const portal = (p, o = {}) => http(`${ENV.portal}${p}`, { ...o, headers: { ...HTTPS_FWD, ...(o.headers ?? {}) } })
 const admin = (p, o = {}) => http(`${ENV.admin}${p}`, { ...o, headers: { ...HTTPS_FWD, ...(o.headers ?? {}) } })
 
+// ══════════════════════════════════════════════════════════════════════════════════════════
+// 🛑 THE ADMIN SESSION COOKIE — DERIVED FROM THE INSTALLED LIBRARY, NEVER FROM MEMORY
+//
+// Check 3's timeout half must cross the REAL admin middleware, which reads its session from a
+// cookie whose NAME and ENCODING are `@supabase/ssr`'s business, not ours. Both were read out
+// of the installed package rather than recalled:
+//
+//   · NAME — `@supabase/ssr@0.4.1`'s `createServerClient` sets `storageKey` only when
+//     `cookieOptions.name` is given. `middleware.ts` does not give one, so the default from
+//     `@supabase/supabase-js@2.105.4` applies: `sb-${baseUrl.hostname.split(".")[0]}-auth-token`.
+//     Against the gateway (`http://127.0.0.1:<port>`) that is `sb-127-auth-token` — derived
+//     below from ENV rather than hardcoded, so a port or host change cannot silently break it.
+//   · ENCODING — `createServerClient` defaults `cookieEncoding` to `"base64url"`, and
+//     `cookies.js` writes `BASE64_PREFIX + stringToBase64URL(value)` where `BASE64_PREFIX`
+//     is the literal `"base64-"`. The encoder is IMPORTED from the package, so the harness
+//     cannot disagree with the reader about the format.
+//
+// ⚠️ THE SESSION IS A REAL SIGNED TOKEN, and the gateway verifies its signature. This cookie
+// is not an assertion the middleware takes on trust; it is the credential the middleware
+// checks. Used ONLY by check 3 — check 1 deliberately sends no session at all.
+// ══════════════════════════════════════════════════════════════════════════════════════════
+const { stringToBase64URL } = await import('@supabase/ssr/dist/main/utils/base64url.js')
+
+function adminSessionCookie() {
+  if (!ENV.adminJwt) throw new Error('env.json has no adminJwt — fullstack.sh did not seed the admin identity')
+  const host = new URL(ENV.supabaseUrl ?? ENV.gateway).hostname
+  const name = `sb-${host.split('.')[0]}-auth-token`
+  const session = {
+    access_token: ENV.adminJwt,
+    token_type: 'bearer',
+    expires_in: 3600,
+    expires_at: Math.floor(Date.now() / 1000) + 3600,
+    refresh_token: 'fullstack-harness-no-refresh',
+    user: { id: ENV.adminUserId, email: ENV.adminEmail, aud: 'authenticated', role: 'authenticated' },
+  }
+  return `${name}=base64-${stringToBase64URL(JSON.stringify(session))}`
+}
+
 const fakeCount = async (name) => (await http(`${ENV.fakes[name]}/__fake/count`)).json?.calls ?? -1
 const fakeRequests = async (name) => (await http(`${ENV.fakes[name]}/__fake/requests`)).json?.requests ?? []
 const fakeReset = (name) => http(`${ENV.fakes[name]}/__fake/reset`)
@@ -125,7 +163,34 @@ async function check0() {
   if (!/127\.0\.0\.1.*kind_test/.test(ENV.db)) return bad(0, `not the disposable database: ${ENV.db}`)
   const gw = await http(`${ENV.gateway}/__gateway/stats`)
   if (gw.status !== 200) return bad(0, `the Supabase gateway is not answering: ${gw.status}`)
-  ok(0, `${pgrst} behind a path-rewriting gateway · all fakes on loopback · db=${ENV.db.replace(/.*@/, '')}`)
+
+  // ══════════════════════════════════════════════════════════════════════════════════════
+  // 🛑 THE AUTH WALL — EXACTLY THREE READS EXIST, AND GoTrue'S OWN ENDPOINTS DO NOT
+  //
+  // Fable's C-8/C-10 ruling authorised three read-only Auth surfaces and nothing else. That
+  // boundary is worth no more than the test that holds it: the four endpoints below are the
+  // ones that would turn this harness into GoTrue — a login, a signup, a logout and a
+  // password recovery — and each must answer 501.
+  //
+  // ⚠️ 501 IS THE REQUIRED ANSWER, NOT MERELY "NOT 200". A 404 would be ambiguous (a typo
+  // looks the same) and forwarding would produce PostgREST's misleading PGRST125. 501 is the
+  // gateway saying "this is a GoTrue endpoint I deliberately do not have".
+  // ══════════════════════════════════════════════════════════════════════════════════════
+  const wall = []
+  for (const [p, method] of [['/auth/v1/token?grant_type=password', 'POST'], ['/auth/v1/signup', 'POST'],
+                             ['/auth/v1/logout', 'POST'], ['/auth/v1/recover', 'POST']]) {
+    const r = await http(`${ENV.gateway}${p}`, { method, body: '{}' })
+    if (r.status !== 501) wall.push(`${p} → ${r.status} (want 501)`)
+  }
+  if (wall.length) return bad(0, `🛑 THE AUTH WALL LEAKS: ${wall.join(', ')} — this harness must not have GoTrue endpoints`)
+
+  // And the three authorised reads must behave: the session read must REFUSE an unsigned token.
+  const forged = await http(`${ENV.gateway}/auth/v1/user`, { headers: { authorization: 'Bearer aaa.bbb.ccc' } })
+  if (forged.status !== 401) return bad(0, `🛑 GET /auth/v1/user accepted a forged token (HTTP ${forged.status}) — it must verify the signature, not decode it`)
+  const noTok = await http(`${ENV.gateway}/auth/v1/user`)
+  if (noTok.status !== 401) return bad(0, `GET /auth/v1/user with no token → ${noTok.status}, want 401`)
+
+  ok(0, `${pgrst} behind a path-rewriting gateway · all fakes on loopback · db=${ENV.db.replace(/.*@/, '')} · auth wall: /token /signup /logout /recover all 501, forged+absent session tokens both 401`)
 }
 
 // ══════════════════════════════════════════════════════════════════════════════════════════
@@ -235,24 +300,33 @@ async function check3() {
     note('the 504 sub-case was not run: no second admin instance was booted (FULLSTACK_SLOW_ADMIN=0)')
     return ok(3, `ledger truth read from the database through the stack (${d.counts.applied} applied, ${d.counts.failed} failed) — timeout sub-case skipped`)
   }
+  // 🛑 THE REQUEST CARRIES A REAL SESSION COOKIE (Fable C-8, 17 Sep) — AND THE MIDDLEWARE
+  //    IS NOT BYPASSED, IT IS SATISFIED.
+  //
+  // The first version of this sub-case sent no session. `apps/admin/src/app/api/proxy/[...path]`
+  // sits behind the admin middleware, which treats only `/login` and `/auth*` as public —
+  // correctly, because the proxy injects ADMIN_SECRET_KEY and #308 requires it to verify its
+  // caller. So the proxy answered 401 and the 45s bound was never reached; the sub-case was
+  // reported NOT-RUN. Fable's ruling was to use the middleware's OWN authentication path
+  // rather than weaken it: the harness seeds one allowlisted `auth.users` row, mints a
+  // session token for it, and the gateway answers `GET /auth/v1/user` by VERIFYING that
+  // token's HS256 signature against the same secret PostgREST validates.
+  //
+  // ⚠️ THE MIDDLEWARE RUNS IN FULL. `supabase.auth.getUser()` really goes out, the signature
+  // is really checked, and the allowlist comparison against ADMIN_ALLOWED_EMAILS really
+  // happens. There is no header bypass, no VIDA_DEV_PREVIEW, and no product change.
+  // ⚠️ A 401 HERE IS NOW A FAILURE, NOT A NOTE. With a session supplied, 401 means the
+  // session mechanism is broken — and a check that shrugged at that would be back to
+  // reporting NOT-RUN as though it were fine.
   const slow = await http(`${ENV.adminSlow}/api/proxy/operator/migrations/run`, {
-    method: 'POST', body: '{}', headers: HTTPS_FWD, timeoutMs: 70000,
+    method: 'POST', body: '{}', headers: { ...HTTPS_FWD, cookie: adminSessionCookie() }, timeoutMs: 70000,
   })
 
-  // 🛑 AND THE THIRD FINDING: THE PROXY CANNOT BE REACHED HEADLESSLY AT ALL.
-  //
-  // `apps/admin/src/app/api/proxy/[...path]` is gated by the admin middleware, which treats
-  // only `/login` and `/auth*` as public — correctly, because the proxy injects ADMIN_SECRET_KEY
-  // and #308 requires it to verify the caller itself. So an unauthenticated request gets 401
-  // and the 45s bound is never reached. Proving the 504 needs a real Supabase session, which
-  // needs GoTrue, which Batch 1b explicitly forbids.
-  //
-  // ⚠️ SO THIS SUB-CASE IS NOT-RUN, NOT PASSED. The behaviour is covered by
-  // `xc3-schema-truth.test.ts` at source level; a full-stack proof of it belongs to the batch
-  // that brings GoTrue in. Saying "pass" here would be claiming evidence that does not exist.
   if (slow.status === 401) {
-    note(`THE ADMIN PROXY'S 504 PATH IS NOT PROVABLE WITHOUT GoTrue — apps/admin/src/middleware.ts:59 gates every /api path, so the proxy answered 401 before its 45s bound could be reached. Correct security behaviour (the proxy injects the admin key and #308 requires it to verify the caller); it means the timeout sub-case needs a browser session. NOT-RUN rather than passed. Same root cause as the admin /api/health finding.`)
-    return ok(3, `ledger truth read from the database through the stack (${d.counts.applied} applied, ${d.counts.failed} failed) · the 504 sub-case is NOT-RUN (needs GoTrue — see the finding)`)
+    return bad(3, `the admin proxy answered 401 WITH a real session cookie (${adminSessionCookie().split('=')[0]}) — `
+      + `the middleware did not accept the harness session, so the 45s bound was never reached. `
+      + `Check the gateway's GET /auth/v1/user and ADMIN_ALLOWED_EMAILS=${ENV.adminEmail}. `
+      + `Body: ${slow.text.slice(0, 160)}`)
   }
   if (slow.status !== 504) return bad(3, `a hanging upstream gave HTTP ${slow.status}, not 504 (body: ${slow.text.slice(0, 120)})`)
   if (slow.json?.timeout !== true) return bad(3, `504 without timeout:true — ${slow.text.slice(0, 120)}`)
@@ -396,6 +470,45 @@ async function check5() {
 // CHECK 6 — J5-C9 · the free-Proof fence counts RECORDS
 // ══════════════════════════════════════════════════════════════════════════════════════════
 async function check6() {
+  // ══════════════════════════════════════════════════════════════════════════════════════
+  // 🛑 THE FENCE MUST BE PRESENT, AND ITS ABSENCE IS A NAMED FAILURE — NOT A STACK TRACE
+  //    AND NEVER A SKIP (Fable C-12, 17 Sep).
+  //
+  // This check's first RED was rejected precisely here. The harness had seeded the CURRENT
+  // schema behind a PRE-BATCH-1 product, so `try_reserve_proof_records` existed at a commit
+  // that does not contain it and the check PASSED — a green light earned entirely by the
+  // harness. The schema now comes from the same tree as the product
+  // (`REALDB_SCHEMA_TREE`), which means on an older tree this function is genuinely gone.
+  //
+  // ⚠️ SO IT IS ASKED FOR BY NAME FIRST. Letting the `select` throw would also fail, but it
+  // would fail as "threw: ... function does not exist" three frames deep — indistinguishable
+  // at a glance from a harness fault, which is the exact ambiguity that produced the invalid
+  // RED. A check that cannot establish its fact says which fact and why.
+  // ══════════════════════════════════════════════════════════════════════════════════════
+  // ⚠️ THE ARTIFACT TO ASK FOR IS THE **RECORDS COLUMN**, NOT THE FUNCTION. My first version of
+  // this precondition asked whether `try_reserve_proof_records` existed — and it does at
+  // 4357bc7f, created by `20260822_free_proof_acquisition.sql` in its DOLLAR-based form. (That
+  // pre-existence is the same fact check 10 exploits: J5-C9's migration is a `CREATE OR
+  // REPLACE`, which is why a deliberate return-type conflict makes it fail.) So the
+  // precondition passed and the check then threw on the missing column three frames deep.
+  // What makes the fence a RECORDS fence is `money_settings.proof_monthly_cap_records`, so
+  // that is what is asked for by name.
+  const missing = []
+  for (const t of ['money_settings', 'proof_ledger']) {
+    const [{ c }] = await sql(`select count(*)::int as c from information_schema.tables where table_schema='public' and table_name=$1`, [t])
+    if (c === 0) missing.push(`table public.${t}`)
+  }
+  if (!missing.length) {
+    const [{ col }] = await sql(`select count(*)::int as col from information_schema.columns
+                                 where table_schema='public' and table_name='money_settings' and column_name='proof_monthly_cap_records'`)
+    if (col === 0) missing.push('column public.money_settings.proof_monthly_cap_records (the RECORDS unit — the fence here is still dollar-based)')
+  }
+  if (missing.length) {
+    return bad(6, `THE RECORD FENCE IS NOT IN THIS SCHEMA — absent: ${missing.join(', ')}. `
+      + `This is the correct verdict for a tree without J5-C9's proof-fence migration; the fence cannot be `
+      + `proved against a schema that does not contain it.`)
+  }
+
   await sql(`insert into public.money_settings(id) values (1) on conflict (id) do nothing`)
   await sql(`update public.money_settings set proof_monthly_cap_records = 25 where id = 1`)
   await sql('delete from public.proof_ledger')
@@ -408,7 +521,16 @@ async function check6() {
 
     // 🛑 THE FENCE MUST BIND IN RECORDS. Under FD-6 an Apollo record costs $0, so a dollar
     // fence divides an untouched budget by a rate that buys nothing and never refuses.
-    const [{ records, cost_usd }] = await sql('select records, cost_usd::text as cost_usd from public.proof_ledger where client_id = $1', [a.clientId])
+    const booked = await sql('select records, cost_usd::text as cost_usd from public.proof_ledger where client_id = $1', [a.clientId])
+    // ⚠️ NO ROW IS ITS OWN VERDICT, NOT A TypeError. A fence that grants without booking
+    // leaves `proof_ledger` empty, and destructuring that threw three frames deep — the same
+    // "is this the product or the harness?" ambiguity that produced the invalid check-6 RED.
+    // This is the exact shape the GOOD→BAD→RESTORED teeth proof puts the check into.
+    if (booked.length === 0) {
+      return bad(6, `the reservation reported GRANTED but booked NO proof_ledger row — entitlement was handed out `
+        + `without being recorded, so the monthly fence has nothing to count and cannot ever bind.`)
+    }
+    const { records, cost_usd } = booked[0]
     if (records !== 20) return bad(6, `the ledger booked ${records} records, not 20`)
     if (Number(cost_usd) !== 0) return bad(6, `🛑 a PDL rate was booked: cost_usd=${cost_usd}`)
 

@@ -400,7 +400,18 @@ cmd_up() {
 
   # ── 1 · the disposable database ──
   head2 "disposable PostgreSQL (scripts/realdb.sh)"
-  bash scripts/realdb.sh up >"$RUN_DIR/realdb.log" 2>&1 || { tail -30 "$RUN_DIR/realdb.log"; fail "realdb.sh up failed"; }
+  # 🛑 THE SCHEMA COMES FROM THE SAME TREE AS THE PRODUCT (Fable C-12, 17 Sep). A RED run
+  # that boots old code against the current schema can PASS for a reason that belongs to the
+  # harness — which is exactly how check 6's first RED was rejected. One variable, one tree.
+  [ "$TREE" = "$REPO" ] || say "⚠️  RED/ALT TREE — schema AND product both from $TREE"
+  REALDB_SCHEMA_TREE="$TREE" \
+    bash scripts/realdb.sh up >"$RUN_DIR/realdb.log" 2>&1 || {
+      tail -40 "$RUN_DIR/realdb.log"
+      # ⚠️ A REPLAY FAILURE IS EVIDENCE, NOT AN ABORT TO TIDY AWAY. If an older tree's
+      # migration set cannot replay, that fact is the finding and the log above is its
+      # record — Fable's C-12 ruling requires it reported rather than worked around.
+      fail "realdb.sh up failed with schema from $TREE — the replay log above IS the evidence"
+    }
   DB_URL="$(bash scripts/realdb.sh url)"
   say "$DB_URL"
   case "$DB_URL" in
@@ -413,6 +424,33 @@ cmd_up() {
   ANON_JWT="$(node scripts/fullstack/mint-jwt.mjs anon "$JWT_SECRET")"
   say "service_role and anon JWTs minted (HS256, harness secret)"
 
+  # ── 2b · ONE ADMIN IDENTITY, FOR CHECK 3's TIMEOUT HALF ONLY ────────────────────────────
+  #
+  # 🛑 WHAT THIS IS FOR, AND WHAT IT IS EXPLICITLY NOT FOR (Fable C-8, 17 Sep).
+  #
+  # Check 3's second half must prove the admin proxy answers 504 `timeout:true` — not "API
+  # unreachable" — when its 45s bound is reached. The proxy sits behind #308's real
+  # middleware, which requires a signed-in Supabase user on the admin allowlist. Without an
+  # identity the middleware returns 401 long before the bound, so the sub-case was NOT-RUN.
+  #
+  # This seeds ONE `auth.users` row whose address is already the allowlist value exported in
+  # `export_env`, and mints a session token for it with the SAME `mint-jwt.mjs` and the SAME
+  # secret PostgREST validates — which the gateway then verifies by signature, not by trust.
+  #
+  # ⚠️ IT IS NOT A LOGIN AND IT DOES NOT WEAKEN #308. No password exists anywhere in this
+  # harness, nothing is issued or refreshed, and `middleware.ts` is untouched — the product's
+  # allowlist check runs for real against a real signed session.
+  # ⚠️ AND IT IS NOT USED BY CHECK 1. Check 1 reads all three health endpoints with plain
+  # unauthenticated HTTP, exactly as `ship.sh` does in production, precisely so that this
+  # session cannot paper over the admin `/api/health` 401 defect (C-6, still unfixed).
+  ADMIN_USER_ID="$(uuidgen 2>/dev/null || node -e 'process.stdout.write(require("crypto").randomUUID())')"
+  ADMIN_EMAIL="fullstack-operator@example.invalid"
+  PGPASSWORD="" "$(dirname "$(command -v psql 2>/dev/null || echo /usr/bin/psql)")/psql" -q "$DB_URL" -c \
+    "insert into auth.users(id, email) values ('$ADMIN_USER_ID', '$ADMIN_EMAIL') on conflict (id) do nothing" \
+    >/dev/null 2>&1 || fail "could not seed the admin auth.users row"
+  ADMIN_JWT="$(node scripts/fullstack/mint-jwt.mjs authenticated "$JWT_SECRET" "$ADMIN_USER_ID" "$ADMIN_EMAIL")"
+  say "one admin identity seeded ($ADMIN_EMAIL) and a session token minted — for check 3 only"
+
   # ── 3 · real PostgREST, then the path-rewriting gateway ──
   head2 "PostgREST + Supabase gateway"
   PGRST_DB_URI="$DB_URL" PGRST_DB_SCHEMAS="public" PGRST_DB_ANON_ROLE="anon" \
@@ -421,7 +459,10 @@ cmd_up() {
   track $! postgrest
   sleep 2
   grep -q "Listening on port" "$RUN_DIR/postgrest.log" 2>/dev/null || sleep 3
+  # ⚠️ THE GATEWAY GETS THE SAME SECRET POSTGREST GOT. That is what lets it VERIFY a session
+  # token's signature rather than decode and believe it — see `verifyBearer` in gateway.mjs.
   GATEWAY_PORT="$PORT_GATEWAY" GATEWAY_UPSTREAM_PORT="$PORT_PGRST" GATEWAY_DB_URL="$DB_URL" \
+  GATEWAY_JWT_SECRET="$JWT_SECRET" \
     nohup node scripts/fullstack/gateway.mjs > "$RUN_DIR/gateway.log" 2>&1 &
   track $! gateway
   sleep 1
@@ -488,6 +529,10 @@ cmd_up() {
   "postgrestVersion": "$PGRST_VERSION",
   "db": "$DB_URL",
   "serviceJwt": "$SERVICE_JWT",
+  "adminJwt": "$ADMIN_JWT",
+  "adminUserId": "$ADMIN_USER_ID",
+  "adminEmail": "$ADMIN_EMAIL",
+  "supabaseUrl": "http://127.0.0.1:$PORT_GATEWAY",
   "fakes": {
     "apollo": "http://127.0.0.1:$PORT_APOLLO",
     "pdl": "http://127.0.0.1:$PORT_PDL",

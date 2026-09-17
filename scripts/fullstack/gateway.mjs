@@ -17,8 +17,9 @@
 // ── WHAT IT MAY AND MAY NOT DO ──────────────────────────────────────────────────────────
 //
 // MAY: strip a leading `/rest/v1`, forward verbatim, stream the response back verbatim — and
-// answer exactly TWO non-PostgREST platform reads, `GET /auth/v1/admin/users` and
-// `GET /auth/v1/admin/users/<id>`, which are documented and justified in their own block below.
+// answer exactly THREE non-PostgREST platform READS — `GET /auth/v1/admin/users`,
+// `GET /auth/v1/admin/users/<id>` and `GET /auth/v1/user` — each documented and justified in
+// its own block below, and each authorised by Fable's C-8/C-10 ruling of 17 Sep.
 //
 // MUST NOT: read a body, parse SQL, rewrite a query string, translate an error, cache, or
 // answer anything in PostgREST's domain — no table, no view, no RPC, no filter. If a future
@@ -36,23 +37,28 @@
 // ══════════════════════════════════════════════════════════════════════════════════════════
 
 import { createServer, request as httpRequest } from 'node:http'
+import { createHmac, timingSafeEqual } from 'node:crypto'
 import { Client } from 'pg'
 
 const UPSTREAM_PORT = Number(process.env.GATEWAY_UPSTREAM_PORT || 58599)
 const PORT = Number(process.env.GATEWAY_PORT || 58598)
 const PREFIX = '/rest/v1'
 const DB_URL = process.env.GATEWAY_DB_URL || ''
+/** The SAME secret PostgREST was started with — see `verifyBearer`. */
+const JWT_SECRET = process.env.GATEWAY_JWT_SECRET || ''
 
 let forwarded = 0
 let authListings = 0
 let authGets = 0
+let authUserReads = 0
 const byPath = new Map()
 const AUTH_USERS = '/auth/v1/admin/users'
 /** `<collection>/<uuid>`, and nothing else — a stricter test than "starts with". */
 const AUTH_USER_BY_ID = new RegExp(`^${AUTH_USERS}/([0-9a-fA-F-]{36})/?(?:\\?.*)?$`)
+const AUTH_USER = '/auth/v1/user'
 
 // ══════════════════════════════════════════════════════════════════════════════════════════
-// 🛑 TWO PLATFORM READS THE GATEWAY ANSWERS ITSELF:
+// 🛑 THE TWO ADMIN READS (the session read has its own block further down):
 //      GET /auth/v1/admin/users        → `listUsers()`    → { users: [...], aud }
 //      GET /auth/v1/admin/users/<id>   → `getUserById()`  → the user object ITSELF
 //
@@ -124,6 +130,78 @@ async function authAdminUsersList(url, res) {
   } catch (err) { authFail(res, 'list auth.users', err) }
 }
 
+// ══════════════════════════════════════════════════════════════════════════════════════════
+// 🛑 THE THIRD READ: GET /auth/v1/user — THE SESSION READ, AND IT REALLY VERIFIES
+//
+// Fable's C-8 ruling (17 Sep) authorised exactly this to prove check 3's admin-proxy 504
+// through the REAL middleware without a browser login. `apps/admin/src/middleware.ts` calls
+// `supabase.auth.getUser()`, which `@supabase/auth-js` sends as `GET /auth/v1/user` with the
+// session's access token as a bearer. Without an answer the middleware sees no user, returns
+// 401, and the proxy's 45s bound is never reached — so the timeout half was NOT-RUN.
+//
+// ⚠️ THE SIGNATURE IS VERIFIED, NOT TRUSTED. A gateway that decoded the payload and believed
+// it would be a bypass wearing an endpoint's clothes: any caller could assert any email and
+// walk through #308's allowlist. It recomputes HMAC-SHA256 over `header.payload` with the
+// SAME secret PostgREST was started with, compares in constant time, and checks `exp`. An
+// unsigned, foreign-signed, malformed or expired token is 401 — which is exactly what the
+// real product does with one.
+//
+// ⚠️ IT IS STILL NOT GoTrue, AND THE DIFFERENCE IS NOT COSMETIC. There is no `/token`, no
+// `/signup`, no `/logout`, no `/recover`, no password, no refresh, no session storage, no
+// cookie minting — the harness hands the token it already minted and this endpoint only
+// answers "whose token is this?" from a table it already fronts. Every other `/auth/v1/**`
+// path returns 501 below, so the wall is enforced rather than promised.
+// ══════════════════════════════════════════════════════════════════════════════════════════
+function verifyBearer(req) {
+  const raw = String(req.headers.authorization || '')
+  const m = /^Bearer\s+(.+)$/i.exec(raw.trim())
+  if (!m) return { ok: false, why: 'no bearer token' }
+  const parts = m[1].split('.')
+  if (parts.length !== 3) return { ok: false, why: 'not a three-part JWT' }
+  const [h, p, s] = parts
+  if (!JWT_SECRET) return { ok: false, why: 'gateway has no GATEWAY_JWT_SECRET' }
+
+  const expected = createHmac('sha256', JWT_SECRET).update(`${h}.${p}`).digest('base64url')
+  const a = Buffer.from(s), b = Buffer.from(expected)
+  if (a.length !== b.length || !timingSafeEqual(a, b)) return { ok: false, why: 'bad signature' }
+
+  let claims
+  try { claims = JSON.parse(Buffer.from(p, 'base64url').toString('utf8')) }
+  catch { return { ok: false, why: 'payload is not JSON' } }
+  if (typeof claims.exp === 'number' && claims.exp < Math.floor(Date.now() / 1000)) {
+    return { ok: false, why: 'expired' }
+  }
+  if (!claims.sub) return { ok: false, why: 'no sub claim — this is a role token, not a session token' }
+  return { ok: true, claims }
+}
+
+async function authUser(req, res) {
+  authUserReads++
+  const v = verifyBearer(req)
+  if (!v.ok) {
+    // The shape `auth-js` expects for a rejected session, so the middleware's `user` is null
+    // and the product takes its own real unauthenticated branch.
+    res.writeHead(401, { 'content-type': 'application/json' })
+    res.end(JSON.stringify({ code: 401, msg: `invalid session token: ${v.why}` }))
+    return
+  }
+  if (!DB_URL) return authFail(res, 'read auth.users', 'no GATEWAY_DB_URL')
+  try {
+    const { rows } = await (await db_()).query(
+      `select id::text, email, created_at from auth.users where id = $1::uuid`, [v.claims.sub],
+    )
+    if (rows.length === 0) {
+      // ⚠️ A SIGNED TOKEN FOR A USER WHO NO LONGER EXISTS IS NOT A USER. 401, not a
+      // synthesised row from the claims — believing the claims here is the bypass again.
+      res.writeHead(401, { 'content-type': 'application/json' })
+      res.end(JSON.stringify({ code: 401, msg: `session subject ${v.claims.sub} is not in auth.users` }))
+      return
+    }
+    res.writeHead(200, { 'content-type': 'application/json' })
+    res.end(JSON.stringify(authUserRow(rows[0])))
+  } catch (err) { authFail(res, 'read auth.users', err) }
+}
+
 /** `getUserById()` — ONE user, returned BARE. A 404 for an unknown id, never an empty object:
  *  the strict resolver distinguishes "no such user" from "a user with no email", and both of
  *  those are throws it must be able to reach on their own evidence. */
@@ -150,7 +228,7 @@ const server = createServer((req, res) => {
   // Harness-only introspection. `supabase-js` never builds this path, so it cannot collide.
   if (original.startsWith('/__gateway/stats')) {
     res.writeHead(200, { 'content-type': 'application/json' })
-    res.end(JSON.stringify({ forwarded, authListings, authGets, byPath: Object.fromEntries(byPath) }))
+    res.end(JSON.stringify({ forwarded, authListings, authGets, authUserReads, byPath: Object.fromEntries(byPath) }))
     return
   }
 
@@ -162,13 +240,18 @@ const server = createServer((req, res) => {
   if (original === AUTH_USERS || original.startsWith(`${AUTH_USERS}?`)) {
     void authAdminUsersList(original, res); return
   }
-  // ⚠️ ANY OTHER `/auth/v1/**` PATH IS REFUSED LOUDLY, not forwarded to PostgREST, which would
-  // answer the misleading PGRST125. If a product path needs a third Auth endpoint, that is a
-  // scope decision for the founder — not something this file should absorb quietly.
+  if (original === AUTH_USER || original.startsWith(`${AUTH_USER}?`)) {
+    void authUser(req, res); return
+  }
+  // 🛑 THE WALL. ANY OTHER `/auth/v1/**` PATH IS REFUSED LOUDLY — including `/token`,
+  // `/signup`, `/logout` and `/recover`, the four that would make this GoTrue. It is not
+  // forwarded to PostgREST either, which would answer the misleading PGRST125. Three reads
+  // are authorised (Fable C-8/C-10, 17 Sep); a fourth is a scope decision for the founder,
+  // not something this file absorbs quietly.
   if (original.startsWith('/auth/v1/')) {
     res.writeHead(501, { 'content-type': 'application/json' })
     res.end(JSON.stringify({
-      msg: `the fullstack gateway serves only ${AUTH_USERS} and ${AUTH_USERS}/<id>; ` +
+      msg: `the fullstack gateway serves only ${AUTH_USERS}, ${AUTH_USERS}/<id> and ${AUTH_USER}; ` +
         `${original.split('?')[0]} is a GoTrue endpoint this harness deliberately does not have`,
     }))
     return
@@ -211,5 +294,5 @@ const server = createServer((req, res) => {
 })
 
 server.listen(PORT, '127.0.0.1', () => {
-  console.log(`[gateway] ${PORT} → postgrest ${UPSTREAM_PORT} (strips ${PREFIX}; serves GET ${AUTH_USERS} and ${AUTH_USERS}/<id> from auth.users, 501 for any other /auth/v1/**; forwards everything else verbatim)`)
+  console.log(`[gateway] ${PORT} → postgrest ${UPSTREAM_PORT} (strips ${PREFIX}; serves GET ${AUTH_USERS}, ${AUTH_USERS}/<id> and ${AUTH_USER} (HS256-verified) from auth.users, 501 for any other /auth/v1/**; forwards everything else verbatim)`)
 })

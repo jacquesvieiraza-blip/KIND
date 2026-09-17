@@ -136,6 +136,13 @@ describe('Batch 1b · the seam is wired where it has to be, and nowhere it must 
   it('🛑 gcal.ts OAUTH SCOPES ARE UNTOUCHED — they are identifiers, not addresses', () => {
     // Rewriting a scope string would break consent for every connected client: Google matches
     // them exactly. They are pinned by `gcal-scopes.test.ts` and must never be injected.
+    //
+    // ⛓️ AMENDED BY C-11 (founder-approved 17 Sep). This test used to also assert that gcal.ts
+    // does not import `provider-hosts` AT ALL — a blunt way to keep injection away from the
+    // scopes, and correct while Google was not redirected. C-11 requires the Calendar DATA
+    // endpoints to be redirectable, so the import now exists and the protection has to be
+    // precise instead of absolute: the four scope literals are still asserted verbatim here,
+    // and the test below proves the injection reaches `rootUrl` and nothing else.
     const src = read('gcal.ts')
     for (const scope of [
       'https://www.googleapis.com/auth/calendar.events',
@@ -143,8 +150,62 @@ describe('Batch 1b · the seam is wired where it has to be, and nowhere it must 
       'https://www.googleapis.com/auth/calendar.calendars.readonly',
       'https://www.googleapis.com/auth/userinfo.email',
     ]) expect(src, `a Google OAuth scope was altered: ${scope}`).toContain(scope)
-    // And gcal must not import the host module at all, so no future edit can reach them.
-    expect(code(src)).not.toMatch(/provider-hosts/)
+
+    // 🛑 AND NO SCOPE IS BUILT FROM THE BASE URL. This is the assertion that replaces the
+    // blanket ban: a scope must never be interpolated, because `${googleApiBase()}/auth/...`
+    // would silently rewrite consent for every connected client the moment a base URL is set.
+    expect(code(src), 'a Google OAuth scope is being interpolated from the base URL')
+      .not.toMatch(/\$\{googleApiBase\(\)\}\/auth/)
+    expect(code(src)).not.toMatch(/googleApiBase\(\)[^\n]*auth\/(calendar|userinfo)/)
+  })
+
+  // ══════════════════════════════════════════════════════════════════════════════════════
+  // C-11 · GOOGLE CALENDAR'S DATA ENDPOINTS ARE REDIRECTABLE (founder-approved 17 Sep)
+  //
+  // The Batch 1b scope card listed Google among the five providers requiring base-URL
+  // injection, and it was the one left incomplete: `GOOGLE_API_BASE_URL` reached the
+  // `system-probes.ts` probe surface but not the runtime Calendar client, because that client
+  // takes its endpoint from its OWN options rather than from `fetch`. So a harness could
+  // redirect the probe and still have a real Calendar call leave the box.
+  //
+  // `googleapis`'s generated client resolves every URL as `options.rootUrl || 'https://
+  // www.googleapis.com/'` — verified against the installed package
+  // (`node_modules/googleapis/build/src/apis/calendar/v3.js`) — so `rootUrl` is the supported
+  // injection point and no URL is hand-built.
+  //
+  // ⚠️ CODE VERIFIED ONLY. No Batch 1b check exercises Google Calendar, and none was added.
+  // This asserts the seam exists and defaults to production; it does not claim a runtime proof.
+  // ══════════════════════════════════════════════════════════════════════════════════════
+  it('C-11 · all THREE google.calendar() sites take rootUrl: googleApiBase()', () => {
+    const src = code(read('gcal.ts'))
+    const sites = src.match(/google\.calendar\(\{[^}]*\}\)/g) ?? []
+    expect(sites, 'gcal.ts should build exactly three Calendar clients').toHaveLength(3)
+    for (const [i, s] of sites.entries()) {
+      expect(s, `calendar client #${i + 1} does not take rootUrl: googleApiBase()`)
+        .toMatch(/rootUrl:\s*googleApiBase\(\)/)
+    }
+    // Not a hand-built URL anywhere: the SDK owns the path, we only move the host.
+    expect(src).not.toMatch(/googleapis\.com\/calendar\/v3/)
+  })
+
+  it('C-11 · GOOGLE_API_BASE_URL unset still resolves to production googleapis.com', () => {
+    // The default is the whole safety property: an unset variable must change nothing.
+    delete process.env.GOOGLE_API_BASE_URL
+    expect(googleApiBase()).toBe('https://www.googleapis.com')
+    process.env.GOOGLE_API_BASE_URL = 'http://127.0.0.1:58511'
+    expect(googleApiBase()).toBe('http://127.0.0.1:58511')
+  })
+
+  it('C-11 · the OAuth2 TOKEN exchange is deliberately NOT redirected', () => {
+    // 🛑 EXPLICITLY OUT OF SCOPE, and recorded as a decision rather than an omission. The
+    // token exchange lives in `google-auth-library` and talks to `oauth2.googleapis.com`,
+    // which is an auth handshake rather than a data call and is reached by no Batch 1 check.
+    // `new google.auth.OAuth2(...)` therefore takes no base URL, and this asserts it stays
+    // that way so nobody "completes" the injection without a ruling.
+    const src = code(read('gcal.ts'))
+    const oauth = src.match(/new google\.auth\.OAuth2\([^)]*\)/g) ?? []
+    expect(oauth.length, 'gcal.ts should build the OAuth2 client').toBeGreaterThanOrEqual(1)
+    for (const o of oauth) expect(o, 'the OAuth2 client must not take a base URL').not.toMatch(/googleApiBase|rootUrl/)
   })
 
   it('the boot check shouts when a provider is redirected', () => {

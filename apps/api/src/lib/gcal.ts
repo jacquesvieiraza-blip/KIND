@@ -7,6 +7,18 @@
 // package off the BUILD graph — but the dependency itself is not missing.
 
 import { createHash } from 'crypto'
+// C-11 (17 Sep) — the Calendar DATA endpoints must be redirectable, because `googleapis`
+// takes its endpoint from its OWN client options and never from `fetch`: redirecting
+// GOOGLE_API_BASE_URL reached the probe surface but not this runtime path, so a harness could
+// look redirected while a real Calendar call left the box. `rootUrl` is the SDK's supported
+// injection point — its generated client resolves every URL as `options.rootUrl ||
+// 'https://www.googleapis.com/'` — so no URL is hand-built here.
+//
+// 🛑 THE OAUTH SCOPES BELOW ARE NOT ADDRESSES AND ARE NEVER INTERPOLATED. Google matches them
+// exactly; building one from this base URL would silently rewrite consent for every connected
+// client the moment the variable is set. The OAuth2 TOKEN exchange is also deliberately NOT
+// redirected (it lives in `google-auth-library` and is out of Batch 1b's scope by ruling).
+import { googleApiBase } from './provider-hosts'
 
 const CLIENT_ID     = process.env.GOOGLE_CLIENT_ID     ?? ''
 const CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET ?? ''
@@ -139,7 +151,7 @@ export async function getAvailableSlots(
 ): Promise<Array<{ start: string; end: string }>> {
   const google = await loadGoogle()
   const auth     = await getCalendarClient(accessToken, refreshToken)
-  const calendar = google.calendar({ version: 'v3', auth })
+  const calendar = google.calendar({ version: 'v3', auth, rootUrl: googleApiBase() })
 
   const timeZone = await getPrimaryTimeZone(calendar)
 
@@ -191,7 +203,7 @@ export async function isSlotFree(
 ): Promise<boolean> {
   const google = await loadGoogle()
   const auth     = await getCalendarClient(accessToken, refreshToken)
-  const calendar = google.calendar({ version: 'v3', auth })
+  const calendar = google.calendar({ version: 'v3', auth, rootUrl: googleApiBase() })
   const { data } = await calendar.freebusy.query({
     requestBody: { timeMin: start, timeMax: end, items: [{ id: 'primary' }] },
   })
@@ -220,7 +232,7 @@ export async function createMeeting(params: {
 }): Promise<{ eventId: string; meetLink: string | null }> {
   const google = await loadGoogle()
   const auth     = await getCalendarClient(params.accessToken, params.refreshToken)
-  const calendar = google.calendar({ version: 'v3', auth })
+  const calendar = google.calendar({ version: 'v3', auth, rootUrl: googleApiBase() })
 
   const meetLinkOf = (event: { conferenceData?: { entryPoints?: { entryPointType: string; uri?: string }[] } }) =>
     event.conferenceData?.entryPoints?.find((ep) => ep.entryPointType === 'video')?.uri ?? null

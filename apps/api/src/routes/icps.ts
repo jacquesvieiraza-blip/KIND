@@ -694,6 +694,9 @@ export async function runIcpJob(
   // POOL-ONLY programme run (no provider remainder, therefore no batch) left it null and
   // those leads carried no programme at all, despite being programme delivery.
   let programmeIdForRun: string | null = null
+  /** ⛓️ 18 Sep — does this run hold LEGACY authority? Set once at the gate, read at the
+   *  programme-less grant; `false` until proven, so it is fail-closed. Full note at the fence. */
+  let legacyAuthority = false
   /**
    * Rows THIS invocation inserted from the PROVIDER. Kept apart from `insertedIds` because
    * `batch_id` and `programme_id` answer different questions — see the stamp below.
@@ -785,8 +788,11 @@ export async function runIcpJob(
     // is called.
     //
     // ⚠️ UNREADABLE REFUSES TOO, and a client with NO declaration behaves exactly as before.
-    const { clientCommercialModel } = await import('../lib/commercial-model')
+    const { clientCommercialModel, isLegacyModel } = await import('../lib/commercial-model')
     const model = await clientCommercialModel(clientId)
+    // ⛓️ 18 Sep — carried to the programme-less fence below, from the ONE resolution that
+    // also decides this gate. See `legacyAuthority`'s declaration for why it is not re-read.
+    legacyAuthority = isLegacyModel(model)
     if (model.model === 'unreadable') {
       // ⚠️ NO APOSTROPHE INSIDE THIS TEMPLATE LITERAL. `schema-truth.ts` strips comments and
       // strings with a scanner that treats a lone `'` inside a backtick as a string opener, so
@@ -1288,9 +1294,47 @@ export async function runIcpJob(
         // Whether a legacy client may source on K.I.N.D's Apollo credits with no lifetime
         // ceiling is a commercial decision, not an engineering one — it is in the
         // out-of-scope report, and Batch 1 does not decide it.
-        grantedSize = pdlRemainder
-        noProgrammeAuthority = true
-        console.log(`[icp] client run for ${clientId} — Apollo remainder ${grantedSize}; this ICP carries no programme, so there is no reservation to make (mirrors the House path). ⚠️ NO LIFETIME CEILING APPLIES: the PDL allowance and monthly dollar cap that used to fence this client bound nothing under FD-6.`)
+        //
+        // ── 🛑 ⛓️ 18 Sep — AND IT IS NOW FENCED TO THE LEGACY PATH, POSITIVELY ──────────────
+        //
+        // GPT verification was right to push on this: my previous note said the absence of a
+        // lifetime ceiling was "reported, not fixed" and left it there. What it did NOT say is
+        // WHO can reach this line, and that is the part that mattered.
+        //
+        // An MVP1 normal client cannot. The authority gate above refuses every programme-model
+        // client before the pool is served: a declared `programme` client with no open
+        // programme throws `not_this_programme`; one WITH an open programme and an unattached
+        // ICP throws `icp_not_attached_to_programme`; `compat_programme` (undeclared, but a
+        // programme is open) throws the same; `unreadable` throws `programme_unresolvable`. So
+        // the only model left standing here is LEGACY — the retired $299-pack book.
+        //
+        // ⚠️ THAT WAS TRUE BY CONSEQUENCE, NOT BY CONSTRUCTION, and those are different things.
+        // The invariant lived 500 lines away in a different block, which is precisely the
+        // "gated at the entry point instead of at the act" shape that has failed in this file
+        // before (AR8, and `lookalike/generate` being the caller nobody remembered). A reorder,
+        // an early return, or one more caller and an unbounded grant reaches a paying client.
+        //
+        // So the grant now REQUIRES legacy authority at the point of grant. This is not a new
+        // commercial decision in either direction: a legacy client keeps exactly today's
+        // behaviour, and a non-legacy client gets 0 — which is what the gate above already
+        // guarantees, now stated where the money is actually handed out. A fence that only
+        // holds because of a distant condition is a fence nobody can verify.
+        //
+        // ⚠️ WHY A FLAG AND NOT A SECOND READ. `clientCommercialModel` is already resolved by
+        // the authority gate. Re-resolving it here would be a SECOND read of the same question
+        // that could disagree with the one that actually decided the gate — the defect shape
+        // this file keeps being bitten by. One resolution, one truth, carried forward; and it
+        // starts `false`, so a proof run (no commercial model at all) and any path that throws
+        // before the gate both grant nothing.
+        if (!legacyAuthority) {
+          grantedSize = 0
+          noProgrammeAuthority = true
+          console.error(`[icp] client run REFUSED for ${clientId} — this ICP carries no programme and the client does not hold legacy authority, so there is nothing to reserve against and no entitlement to draw on. Nothing was sourced. (The authority gate should already have refused this run; reaching here means a NEW sourcing path bypassed it.)`)
+        } else {
+          grantedSize = pdlRemainder
+          noProgrammeAuthority = true
+          console.log(`[icp] LEGACY client run for ${clientId} — Apollo remainder ${grantedSize}; this ICP carries no programme and the client is on the retired per-lead model, so there is no reservation to make (mirrors the House path). ⚠️ NO LIFETIME CEILING APPLIES: the PDL allowance and monthly dollar cap that used to fence this client bound nothing under FD-6. This is the legacy book only — an MVP1 programme client cannot reach this line.`)
+        }
       } else {
         const { data: reserved } = await db.rpc('try_reserve_programme_sourcing', {
           p_programme_id: programmeId, p_requested: pdlRemainder,

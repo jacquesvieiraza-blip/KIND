@@ -27,6 +27,13 @@ export type OperatorAction =
   | 'reveal_lead'           // stand-alone reveal
   | 'enroll_lead'           // stand-alone enroll into a campaign
   | 'set_pdl_cap'            // #626 — the founder set the monthly sourcing ceiling from Vida
+  // ⛓️ XC-5 — an operator closed a persisted exception, with a reason. Audited because the
+  // whole reason `operator_tasks` exists is that the previous mechanism (an email, or a value
+  // derived on read) left nothing behind: "who decided this was handled, and why" was
+  // unanswerable. Dismissed is a separate action from resolved on purpose — "this was not a
+  // real problem" and "I fixed it" are different claims about the same row.
+  | 'operator_task_resolved'
+  | 'operator_task_dismissed'
   | 'enrol_skips'           // #620 — an enrol run REFUSED somebody. Written only when the run
                             // skipped at least one lead, and it carries the named reasons. The
                             // response already returned them and no screen rendered them, so a

@@ -9,6 +9,7 @@ import { getRevenueExclusions } from '../../lib/revenue-exclusions'
 import { PER_CLIENT_MONTHLY_USD, TOTAL_FLOOR_USD, PLATFORM_FLOOR_USD, COMPANY_FLOOR_USD } from '@kind/shared'
 // ⚑ 13 Sep (B3/B4) — the two operator surfaces for the states nothing resolves automatically.
 import StaleProofClaimsPanel from '@/components/vida/StaleProofClaimsPanel'
+import OperatorTasksPanel from '@/components/vida/OperatorTasksPanel'
 import WelcomeEmailsPanel from '@/components/vida/WelcomeEmailsPanel'
 // ⚑ 14 Sep (S1-RT-005) — clients whose own words could not be translated into provider
 // values. Their Proof and all sourcing are REFUSED server-side until this rail is used.
@@ -431,6 +432,13 @@ export default async function AdminPage() {
           automatically, and a Proof claim is never released on a timer. The design is correct
           and the cost of it is that somebody has to look — so this is where they look.
           Client components inside this server page; each issues one GET and settles nothing. */}
+      {/* ⛓️ XC-5 — THE PERSISTED QUEUE, above the derived ones. Everything below this line
+          is recomputed from lifecycle facts on every read, so it can only describe what is
+          still true. These rows are RECORDS: a provider out of credits, a migration not run,
+          a charge that failed, work the system promised and never did. They used to be
+          emails, and an email is not a queue. */}
+      <OperatorTasksPanel />
+
       <StaleProofClaimsPanel />
       <WelcomeEmailsPanel />
       <IcpReviewPanel />

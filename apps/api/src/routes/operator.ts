@@ -3962,6 +3962,70 @@ operatorRouter.post('/settings/pdl-cap', async (req: Request, res: Response) => 
   }
 })
 
+// ── XC-5 · THE OPERATOR TASK QUEUE — Vida Needs-you, read from the database ─────────────
+//
+// Before this, Vida's Needs-you was entirely DERIVED: `deriveLifecycle` recomputed it from
+// lifecycle facts on every read. That works while the facts still hold and answers nothing
+// afterwards — an exception that cleared itself left no trace, and one that needed a human
+// disappeared the moment the derivation changed. Every other exception was an email.
+//
+// ⚠️ `ok: false` IS NOT AN EMPTY QUEUE, and the response says which. "Nothing needs you" is
+// the most reassuring sentence this console can print and it must never be printed because
+// a read failed — that inversion is the Vida "no action needed" defect that let Northvale
+// sit untouched.
+operatorRouter.get('/tasks', async (req: Request, res: Response) => {
+  try {
+    const { listOpenOperatorTasks } = await import('../lib/operator-tasks')
+    const clientId = typeof req.query.client_id === 'string' ? req.query.client_id : undefined
+    const out = await listOpenOperatorTasks({ clientId })
+    if (!out.ok) {
+      res.status(500).json({
+        success: false,
+        error: out.tableMissing
+          ? 'The operator_tasks table does not exist yet — run 20260917_operator_tasks_and_automatic_work from Vida → System → Engine. This is NOT an empty queue.'
+          : `The task queue could not be read: ${out.error ?? 'unknown'}`,
+        table_missing: out.tableMissing === true,
+      })
+      return
+    }
+    res.json({
+      success: true,
+      data: {
+        tasks: out.tasks,
+        open: out.tasks.length,
+        critical: out.tasks.filter(t => t.severity === 'critical').length,
+      },
+    })
+  } catch (err) {
+    console.error('[operator/tasks:get]', err)
+    res.status(500).json({ success: false, error: 'Could not read the task queue' })
+  }
+})
+
+// A note is REQUIRED, by the module and by this route. The whole reason the table exists is
+// that the previous mechanism left nothing behind; a resolution with no reason repeats that.
+operatorRouter.post('/tasks/:id/resolve', async (req: Request, res: Response) => {
+  try {
+    const { resolveOperatorTask } = await import('../lib/operator-tasks')
+    const body = (req.body ?? {}) as { note?: unknown; status?: unknown }
+    const note = typeof body.note === 'string' ? body.note : ''
+    const status = body.status === 'dismissed' ? 'dismissed' as const : 'resolved' as const
+    const out = await resolveOperatorTask(req.params.id, { by: null, note, status })
+    if (!out.ok) {
+      res.status(out.error?.includes('note') ? 400 : 500).json({ success: false, error: out.error })
+      return
+    }
+    await writeOperatorAudit({
+      operatorEmail: operatorEmail(req), clientId: null, action: `operator_task_${status}`,
+      subjectType: 'operator_task', subjectId: req.params.id, detail: { note },
+    })
+    res.json({ success: true })
+  } catch (err) {
+    console.error('[operator/tasks:resolve]', err)
+    res.status(500).json({ success: false, error: 'Could not resolve the task' })
+  }
+})
+
 operatorRouter.get('/engine', async (_req: Request, res: Response) => {
   try {
     const since = new Date(Date.now() - 7 * 864e5).toISOString()

@@ -6,7 +6,7 @@
 
 ## The number
 
-**109 distinct variables** across `apps/api`, `apps/portal` and `apps/admin` — **91** read by the API, **18** read only by the portal or the admin app.
+**114 distinct variables** across `apps/api`, `apps/portal` and `apps/admin` — **96** read by the API, **18** read only by the portal or the admin app.
 
 **#561 recorded 69, and that figure was wrong twice over.** The first was method: a `process.env.X` grep cannot see the **12 variables this repo reaches by indirection** —
 
@@ -60,6 +60,11 @@ Every row here fails **quietly**. Nothing throws; a feature just does not happen
 
 | Variable | Apps | Tier | What breaks when unset | Where it is set |
 |---|---|---|---|---|
+| `APOLLO_BASE_URL` | api | ⚪ optional | Nothing — unset is the real Apollo (`https://api.apollo.io/api/v1`), byte for byte. Set ONLY by the §8.2 full-stack harness to point the API at a recording fake; a set value in production means nothing you source is real, and boot shouts about it. | not set anywhere in production |
+| `RESEND_BASE_URL` | api | ⚪ optional | Nothing — unset is the real Resend. §8.2 harness only. | not set anywhere in production |
+| `STRIPE_BASE_URL` | api | ⚪ optional | Nothing — unset is the real Stripe, and the SDK keeps its own `DEFAULT_HOST`. §8.2 harness only; it also sets the SDK host/port/protocol. | not set anywhere in production |
+| `GOOGLE_API_BASE_URL` | api | ⚪ optional | Nothing — unset is the real Google. Used by the SYSTEM PROBE only: the `googleapis` SDK path is NOT redirected by it. §8.2 harness only. | not set anywhere in production |
+| `ANTHROPIC_BASE_URL` | api | ⚪ optional | Nothing — unset is the real Anthropic API. Read by the Anthropic SDK itself, so no code in this repo touches it; §8.2 harness only, and boot shouts when it is set. | not set anywhere in production |
 | `ADMIN_SECRET_KEY` | admin·api | 🟠 important | Admin API auth secret | Railway → **@kind/admin** + Railway → **@kind/api** |
 | `API_URL` | api | 🟠 important | Public API base — tracking/unsubscribe links and the MCP manifest | Railway → **@kind/api** |
 | `DATABASE_URL` | api | 🟠 important | Direct Postgres — Run migrations, RLS audit and backup manifest all need it (currently mangled, #558) | Railway → **@kind/api** |

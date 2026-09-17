@@ -1,4 +1,6 @@
 import { pecrVerdict, pecrSkipReason } from '../lib/pecr'
+// ⛓️ 18 Sep (Batch 1b) — the Resend host, default `https://api.resend.com` (unchanged when unset).
+import { resendBase } from '../lib/provider-hosts'
 import { isLaunchSendCountry, launchHoldReason } from '@kind/shared'
 import { recordEnrolSkips } from '../lib/operator-audit'
 import { Router } from 'express'
@@ -314,7 +316,7 @@ figsyRouter.post('/replies/inbound', async (req, res) => {
       } else {
         fetchAttempted = true
         try {
-          const r = await fetch(`https://api.resend.com/emails/receiving/${emailId}`, {
+          const r = await fetch(`${resendBase()}/emails/receiving/${emailId}`, {
             headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}` },
           })
           if (r.ok) {

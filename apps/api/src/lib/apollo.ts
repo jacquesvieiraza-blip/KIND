@@ -5,6 +5,7 @@
 // FENCE rather than a vendor; `pdl-search.ts` itself stays on disk, uncalled, because
 // historic `pdl_…` provenance is still read at the reveal door (AR15).
 import { type PdlSearchOptions } from './pdl-search'
+import { apolloBase } from './provider-hosts'
 import type { ProviderPage } from './provider-page'
 // ⛓️ J5-C14 — ONE timeout, shared with the desk that waits on it. `searchPeople` had NO
 // timeout and Node's `fetch` has no default, so Apollo's "worst case" was unbounded and the
@@ -36,7 +37,11 @@ function alertSourceDown(lines: string[]): void {
 // Apollo's PUBLIC REST API is under /api/v1. The bare /v1 host is Apollo's internal
 // web API (session/OAuth) — calling it with an X-Api-Key is accepted but runs
 // without account context, returning HTTP 200 with zero results. Must be /api/v1.
-const APOLLO_BASE = 'https://api.apollo.io/api/v1'
+// ⛓️ 18 Sep (Batch 1b) — READ FROM `provider-hosts.ts`, WHOSE DEFAULT IS THIS EXACT STRING.
+// Unset `APOLLO_BASE_URL` is production, byte for byte. The reason it is injectable at all is
+// the §8.2 zero-call proof: PDL and Hunter must be shown to receive ZERO calls with their keys
+// SET, and that requires a recording fake to be able to stand where a provider stands.
+const APOLLO_BASE = apolloBase()
 // People search endpoint. /mixed_people/search is deprecated for API callers (422);
 // the supported path is /mixed_people/api_search (no-credit, net-new prospecting).
 // Ref: https://docs.apollo.io/reference/people-api-search

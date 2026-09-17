@@ -10,10 +10,12 @@
 // paid at Approve & Go Live (R81 · founder locks 4 and 5).
 
 import Stripe from 'stripe'
+import { stripeSdkHostOptions } from './provider-hosts'
 import { programmeStripeAmountCents, type ProgrammeStage } from '@kind/shared'
 
 const key = process.env.STRIPE_SECRET_KEY
-const stripe = key ? new Stripe(key) : null
+// ⛓️ 18 Sep (Batch 1b) — spreads to `{}` when `STRIPE_BASE_URL` is unset: production unchanged.
+const stripe = key ? new Stripe(key, { ...stripeSdkHostOptions() }) : null
 
 function stripeErrorMessage(err: unknown): string {
   return err instanceof Error ? err.message : 'Stripe request failed'

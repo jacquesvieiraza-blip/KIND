@@ -29,6 +29,7 @@
 // `parseSenderPool` is pure (it imports only the deliverability constants), so importing
 // it here adds no database, no network and no environment dependency to boot.
 import { parseSenderPool } from './sender-pool'
+import { redirectedProviders } from './provider-hosts'
 
 interface VarSpec {
   key: string
@@ -98,6 +99,23 @@ const REQUIRED_VARS: VarSpec[] = [
   // programme stops at Prepare with "No pooled sending mailbox is available", and boot said
   // nothing at all. It is the inventory the automatic sender claim draws from.
   { key: 'POOLED_SENDERS_JSON',       level: 'important', description: 'The pooled sending mailboxes, as a JSON array. Unset = automatic preparation cannot assign a sender, so every programme stops at Prepare. Unparseable = the same outcome, silently' },
+
+  // ── ⚑ 18 Sep (Batch 1b) — PROVIDER BASE URLS (§8.2 full-stack harness) ──────────────
+  // ⚠️ UNSET IS PRODUCTION FOR EVERY ONE OF THESE. They exist so the full-stack run can point
+  // the real API at recording fakes — without which Batch 1's contract-required zero-call
+  // proof (PDL and Hunter receive NO calls with their keys SET) cannot be obtained at all.
+  // Registered as `optional` because unset is the correct and normal state; a SET one is
+  // shouted about separately at the end of this check, since a production process talking to
+  // a fake looks perfectly healthy while delivering nothing.
+  // ⚠️ LITERAL ROWS, NOT A `.map()` OVER `PROVIDER_BASE_URL_VARS`. `env-doc-drift.test.ts`
+  // scans this file's TEXT for `key: '...'`, so a spread would leave all five with "no tier"
+  // while looking perfectly correct here. `provider-hosts.test.ts` asserts the two lists agree,
+  // so there is still exactly one truth — it is just enforced by a test rather than by a loop.
+  { key: 'APOLLO_BASE_URL',           level: 'optional',  description: 'Apollo base URL override for the §8.2 full-stack harness. UNSET = the real Apollo (https://api.apollo.io/api/v1). Set = this process talks to a fake, and boot says so loudly' },
+  { key: 'RESEND_BASE_URL',           level: 'optional',  description: 'Resend base URL override for the §8.2 full-stack harness. UNSET = the real Resend. Set = a fake, announced at boot' },
+  { key: 'STRIPE_BASE_URL',           level: 'optional',  description: 'Stripe base URL override for the §8.2 full-stack harness — also reconfigures the Stripe SDK host/port/protocol. UNSET = the real Stripe. Set = a fake, announced at boot' },
+  { key: 'GOOGLE_API_BASE_URL',       level: 'optional',  description: 'Google API host override, used by the SYSTEM PROBE only — the googleapis SDK path is not redirected. UNSET = the real Google' },
+  { key: 'ANTHROPIC_BASE_URL',        level: 'optional',  description: 'Read by the Anthropic SDK itself, so no code change is needed. UNSET = the real Anthropic API. Set = the full-stack model harness, announced at boot' },
 
   // App URLs
   { key: 'PORTAL_URL',                level: 'important', description: 'Portal URL — used in email links and CORS' },
@@ -419,6 +437,21 @@ export function runStartupCheck(): void {
     for (const v of unparked) {
       lines.push(`     ${v.key.padEnd(30)} → ${v.description}`)
     }
+  }
+
+  // ── ⚑ 18 Sep (Batch 1b) — IS THIS PROCESS TALKING TO A FAKE? SAY SO, LOUDLY ──────────
+  //
+  // 🛑 THE WORST STATE A DEPLOYED SERVICE CAN BE IN is quietly pointed at a fake provider: it
+  // looks healthy, it spends nothing, and it delivers nothing to anybody. Base-URL injection
+  // exists for the §8.2 full-stack run, and the price of having it is that boot must announce
+  // it every time. The same line reassures in production (it never prints) and confirms in the
+  // harness (it must print, and the run asserts that it does).
+  const redirected = redirectedProviders()
+  if (redirected.length > 0) {
+    lines.push('')
+    lines.push(`  🧪🧪  ${redirected.length} PROVIDER BASE URL(S) REDIRECTED AWAY FROM PRODUCTION: ${redirected.join(', ')}`)
+    lines.push('        This process is NOT talking to the real providers. Correct for the full-stack')
+    lines.push('        harness; in production it means nothing you send or source is real.')
   }
 
   // ── 🚦 GO-LIVE READINESS — capability-level, impossible to miss ──────────────

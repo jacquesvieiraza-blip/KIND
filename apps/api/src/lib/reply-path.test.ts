@@ -178,7 +178,12 @@ describe('the probe actually asks', () => {
   })
 
   it('asks Resend for its domains, and tolerates being unable to', () => {
-    expect(body).toContain('api.resend.com/domains')
+    // ⛓️ RE-AIMED 18 Sep (Batch 1b) — was `toContain('api.resend.com/domains')`. The host is no
+    // longer a literal here: it comes from `resendBase()`, whose default IS
+    // `https://api.resend.com` (asserted in `provider-hosts.test.ts`, which also asserts this
+    // file no longer hardcodes it). The probe still asks Resend for its domains; what changed
+    // is only that the §8.2 full-stack harness can point it at a recording fake.
+    expect(body).toContain('${resendBase()}/domains')
     expect(body).toContain('resendDomains')
   })
 

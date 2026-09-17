@@ -7,6 +7,9 @@
 // vendor offers — never a paid call, never a send.
 
 import { findLeadCredits } from './apollo-credits'
+// ⛓️ 18 Sep (Batch 1b) — probe hosts from `provider-hosts.ts`; every default is the literal
+// that was inlined here, so an unset environment probes production exactly as before.
+import { apolloBase, resendBase, stripeBase } from './provider-hosts'
 import { db } from '@kind/db'
 import { ok, broken, unmeasured, probe, type Row, type Section } from './system-check'
 import { PDL_MONTHLY_CAP_KEY } from './app-settings'
@@ -38,7 +41,7 @@ async function dependencies(): Promise<Section> {
   rows.push(await probe('Stripe', async () => {
     const key = process.env.STRIPE_SECRET_KEY
     if (!key) return broken('Stripe', 'STRIPE_SECRET_KEY is not set — no client can pay.', 'Set it in Railway → @kind/api → Variables.')
-    const r = await fetchWithTimeout('https://api.stripe.com/v1/balance', { headers: { Authorization: `Bearer ${key}` } })
+    const r = await fetchWithTimeout(`${stripeBase()}/v1/balance`, { headers: { Authorization: `Bearer ${key}` } })
     return r.ok ? ok('Stripe', 'Key is live and Stripe answered.')
       : broken('Stripe', `Stripe rejected the key (HTTP ${r.status}) — payments will fail.`, 'Check the key in the Stripe dashboard.')
   }))
@@ -46,7 +49,7 @@ async function dependencies(): Promise<Section> {
   rows.push(await probe('Resend (transactional + inbound replies)', async () => {
     const key = process.env.RESEND_API_KEY
     if (!key) return broken('Resend', 'RESEND_API_KEY is not set — no transactional mail, and inbound replies cannot be fetched.', 'Set it in Railway.')
-    const r = await fetchWithTimeout('https://api.resend.com/domains', { headers: { Authorization: `Bearer ${key}` } })
+    const r = await fetchWithTimeout(`${resendBase()}/domains`, { headers: { Authorization: `Bearer ${key}` } })
     return r.ok ? ok('Resend', 'Key is live and Resend answered.')
       : broken('Resend', `Resend rejected the key (HTTP ${r.status}).`, 'Check the key in the Resend dashboard.')
   }))
@@ -82,7 +85,7 @@ async function dependencies(): Promise<Section> {
     }
     // People Search costs NOTHING (the credit is the email reveal), so unlike the retired PDL
     // row this one can actually prove the key works without spending. It asks for one record.
-    const r = await fetchWithTimeout('https://api.apollo.io/api/v1/mixed_people/api_search', {
+    const r = await fetchWithTimeout(`${apolloBase()}/mixed_people/api_search`, {
       method: 'POST',
       headers: { 'content-type': 'application/json', 'x-api-key': key },
       body: JSON.stringify({ page: 1, per_page: 1 }),
@@ -112,7 +115,7 @@ async function dependencies(): Promise<Section> {
         'No APOLLO_API_KEY, so the balance cannot be read. See the row above.',
         'Set APOLLO_API_KEY in Railway → @kind/api → Variables.')
     }
-    const r = await fetchWithTimeout('https://api.apollo.io/api/v1/usage_stats/api_usage_stats', {
+    const r = await fetchWithTimeout(`${apolloBase()}/usage_stats/api_usage_stats`, {
       headers: { 'x-api-key': key },
     })
     if (!r.ok) {
@@ -915,7 +918,7 @@ async function vida(): Promise<Section> {
     const key = process.env.RESEND_API_KEY
     if (key) {
       try {
-        const r = await fetchWithTimeout('https://api.resend.com/domains', { headers: { Authorization: `Bearer ${key}` } })
+        const r = await fetchWithTimeout(`${resendBase()}/domains`, { headers: { Authorization: `Bearer ${key}` } })
         if (r.ok) {
           const body = await r.json() as { data?: { name?: string }[] }
           resendDomains = (body?.data ?? []).map(d => String(d?.name ?? '')).filter(Boolean)

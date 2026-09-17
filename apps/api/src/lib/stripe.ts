@@ -1,8 +1,12 @@
 import Stripe from 'stripe'
+import { stripeSdkHostOptions } from './provider-hosts'
 import { PRICING, PACK_LEADS } from '@kind/shared'
 
+// ⛓️ 18 Sep (Batch 1b) — `stripeSdkHostOptions()` SPREADS TO `{}` WHEN UNSET, so this client is
+// byte-identical to today's in production. The SDK takes host/port/protocol rather than a URL,
+// which is why it needs a helper instead of a base string.
 const stripe = process.env.STRIPE_SECRET_KEY
-  ? new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2024-04-10' as any })
+  ? new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2024-04-10' as any, ...stripeSdkHostOptions() })
   : null
 
 // ── Credit bundle price IDs (one-time payments) — prices LOCKED to @kind/shared ──

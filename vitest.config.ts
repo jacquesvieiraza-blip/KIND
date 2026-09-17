@@ -1,4 +1,4 @@
-import { defineConfig } from 'vitest/config'
+import { defineConfig, configDefaults } from 'vitest/config'
 import path from 'path'
 
 // WHY A ROOT CONFIG EXISTS AT ALL.
@@ -18,5 +18,11 @@ export default defineConfig({
     // Deletes every provider API key before any test runs, so the suite is structurally
     // incapable of reaching PDL, Apollo, Hunter or Clearbit (R66).
     setupFiles: [path.resolve(__dirname, 'vitest.setup.ts')],
+    // ⛓️ ADDED with the real-database harness (§8.2-H). `*.realdb.test.ts` files need a
+    // live PostgreSQL that `scripts/realdb.sh` creates; they are run by
+    // `vitest.realdb.config.ts` and must NOT be picked up here. The gate has to stay
+    // runnable on a machine with no database — a gate that needs a server is a gate
+    // people stop running.
+    exclude: [...configDefaults.exclude, '**/*.realdb.test.ts'],
   },
 })

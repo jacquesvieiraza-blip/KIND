@@ -1,4 +1,4 @@
-import { defineConfig } from 'vitest/config'
+import { defineConfig, configDefaults } from 'vitest/config'
 import path from 'path'
 
 // WHY THIS FILE EXISTS.
@@ -28,6 +28,11 @@ export default defineConfig({
     // ⚠️ MUST live under `test:` — at the config root it is silently ignored, which is
     // exactly how the first attempt "passed" while running nothing.
     setupFiles: [path.resolve(__dirname, '../../vitest.setup.ts')],
+    // ⛓️ ADDED with the real-database harness (§8.2-H) — see the same note in the ROOT
+    // `vitest.config.ts`. Both halves are needed: the gate runs the root config, and
+    // `cd apps/api && npx vitest` runs this one. Excluding the pattern in only one of
+    // them is how a suite comes to be green in one place and red in the other.
+    exclude: [...configDefaults.exclude, '**/*.realdb.test.ts'],
   },
   resolve: {
     alias: {

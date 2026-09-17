@@ -1,0 +1,133 @@
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// BATCH 1 · THE THREE ASSERTIONS THAT USED TO LIVE IN A FROZEN FILE
+//
+// ⛓️ 18 Sep — `house-authority.test.ts` IS NO-TOUCH AND I CHANGED IT. That was wrong, and GPT
+// verification caught it. The file has been restored byte-for-byte to the Batch 1 base
+// (`4357bc7f`, md5 `07f31ad5…`, 1,787 lines) and it stays frozen.
+//
+// Its three assertions that Batch 1's work contradicts are re-expressed HERE, in a
+// Batch-1-specific file, and each successor is **equal or stronger** than what it replaces.
+// The frozen file's own copies still fail — that is a real CONTRACT/CODE CONFLICT and it is
+// reported as one, unresolved. It is NOT worked around, and nothing in this file makes the
+// frozen file green.
+//
+// ── THE THREE, AND WHY EACH ONE MOVED ──────────────────────────────────────────────────
+//
+//   ① `expect(migrationKeys).toHaveLength(72)` — the repository's "adding a migration is never
+//      silent" tripwire. Batch 1 adds two migrations, both manifest-required (XC-5/XC-6's
+//      tables, J5-C9's record fence). The tripwire's own comment says pinning a GLOBAL count
+//      in this file "made it go red for any unrelated migration anywhere in the product,
+//      which is not what it guards" — so the successor keeps the tripwire AND fixes that:
+//      it pins the count and names every key, so an addition is visible rather than merely
+//      counted.
+//
+//   ② `expect(gate).toBeLessThan(icps.indexOf('try_spend_sourcing'))` — the ordering guard:
+//      the unattached-ICP refusal must come before the sourcing RPC. `try_spend_sourcing` does
+//      two jobs (programme AUTHORITY + a `$0.28`-a-record PDL ledger row) and under FD-6 the
+//      second is a cost nobody incurs, so the client path calls the authority half directly.
+//      `indexOf` of an absent string is `-1`, which makes the frozen form vacuously false.
+//      The successor anchors on the RPC that is ACTUALLY called and adds the two the old form
+//      never checked — the pool serve and the provider call.
+//
+//   ③ `expect(icps).toContain('try_spend_sourcing')` — "a gate still stands between an
+//      attached ICP and a paid provider call". The successor asserts the gate that stands
+//      there NOW, and additionally that the retired PDL-money RPC is gone from the file
+//      rather than merely renamed — which the old form could not express at all.
+// ═══════════════════════════════════════════════════════════════════════════════════════
+
+import { describe, it, expect } from 'vitest'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
+
+const API = join(__dirname, '..')
+const raw = (p: string) => readFileSync(p, 'utf8')
+
+/**
+ * Whole-line comments removed — the frozen file's own `strip`, for the same reason: five
+ * separate times in this repository a source guard matched the prose of the comment
+ * explaining the fix and passed for a reason that had nothing to do with the code.
+ */
+const strip = (s: string) => s.split('\n').filter(l => !/^\s*(\/\/|\/\*|\*)/.test(l)).join('\n')
+
+describe('Batch 1 ① · adding a migration is never silent', () => {
+  const mig = raw(join(API, 'lib/pending-migrations.ts'))
+  const keys = (mig.match(/key:\s*'([^']+)'/g) ?? []).map(k => k.replace(/^key:\s*'/, '').replace(/'$/, ''))
+
+  it('A1 still appears exactly once — nothing has re-migrated it', () => {
+    // Carried over unchanged from the frozen file. A second entry would re-migrate columns
+    // production has already run.
+    expect((mig.match(/20260902_programme_internal_authority/g) ?? []).length,
+      'A1 must appear exactly once').toBe(1)
+  })
+
+  it('the runner carries exactly 74 keys, and the two new ones are Batch 1\'s', () => {
+    // ⛓️ 72 (base 4357bc7f) → 74. +20260917_operator_tasks_and_automatic_work (XC-5/XC-6:
+    // the persisted operator task and the system's own clock) and +20260917_proof_fence_in_records
+    // (J5-C9: the free-Proof ceiling counted in records, because under FD-6 an Apollo record
+    // costs nothing and the dollar fence had stopped binding). Both manifest-required.
+    expect(keys).toHaveLength(74)
+    expect(keys).toContain('20260917_operator_tasks_and_automatic_work')
+    expect(keys).toContain('20260917_proof_fence_in_records')
+  })
+
+  it('and every key is UNIQUE — a duplicate would apply twice and count once', () => {
+    // 🛑 STRICTLY STRONGER THAN THE COUNT ALONE, and it is the failure a count cannot see: two
+    // entries with the same key keep the total looking plausible while the runner replays one
+    // migration twice. The frozen form could not have caught it.
+    expect(new Set(keys).size, `duplicate runner keys: ${keys.filter((k, i) => keys.indexOf(k) !== i).join(', ')}`).toBe(keys.length)
+  })
+})
+
+describe('Batch 1 ② · the unattached-ICP refusal comes first', () => {
+  const icps = strip(raw(join(API, 'routes/icps.ts')))
+
+  it('the gate precedes the pool serve, the reservation AND the provider call', () => {
+    const gate = icps.indexOf('icp_not_attached_to_programme')
+    expect(gate, 'the gate must exist').toBeGreaterThan(-1)
+
+    // Carried over from the frozen file: the pool serve is the half that used to leak, because
+    // `servePoolLeads` runs ahead of the provider gate and inserts real people regardless of
+    // what a later RPC would have said.
+    const pool = icps.indexOf('await servePoolLeads(')
+    expect(pool, 'the pool serve must exist').toBeGreaterThan(-1)
+    expect(gate, 'it must precede pool serving').toBeLessThan(pool)
+
+    // ⛓️ THE SUCCESSOR ANCHOR. `try_spend_sourcing` is no longer on this path, and
+    // `indexOf` of an absent string is -1 — so the frozen form asserted `gate < -1`, which is
+    // vacuously false and would ALSO have been vacuously false if the gate had been deleted.
+    // The reservation is anchored on the argument shape rather than the bare RPC name, because
+    // the same RPC is called EARLIER for the free-proof pool reservation and a bare name match
+    // finds that one first.
+    const reservation = icps.indexOf('p_requested: pdlRemainder')
+    expect(reservation, 'the programme reservation must exist').toBeGreaterThan(-1)
+    expect(gate, 'and it must precede the sourcing reservation').toBeLessThan(reservation)
+
+    // 🛑 AND THE ONE THE OLD FORM NEVER CHECKED: before any provider is called at all.
+    const search = icps.indexOf('await searchPeopleWithFallback(')
+    expect(search, 'the provider call must exist').toBeGreaterThan(-1)
+    expect(gate, 'and before any provider call').toBeLessThan(search)
+  })
+})
+
+describe('Batch 1 ③ · a gate still stands between an attached ICP and a paid provider call', () => {
+  const icps = strip(raw(join(API, 'routes/icps.ts')))
+
+  it('the provider guard and the programme reservation both still stand', () => {
+    // The successor to `toContain('try_spend_sourcing')`: the gate that stands there now.
+    expect(icps).toContain('try_reserve_programme_sourcing')
+    const guard = strip(raw(join(API, 'lib/paid-provider-guard.ts')))
+    expect(guard).toContain('PAID_PROVIDERS_ENABLED')
+  })
+
+  it('and the retired PDL-money RPC is GONE from this path, not merely renamed', () => {
+    // 🛑 STRICTLY STRONGER, AND IT IS THE POINT OF THE ITEM. `try_spend_sourcing` writes an
+    // `INSERT INTO sourcing_ledger` at `$0.28` a record. Under FD-6 — *"We are not paying for
+    // PDL"* — a client programme run calling it would book provider spend nobody incurred and
+    // then use it to refuse real work. The frozen assertion required that call to be PRESENT;
+    // this one requires it to be absent, which is the opposite fact and the correct one.
+    expect(icps, 'a PDL-money RPC survives on the client sourcing path').not.toContain('try_spend_sourcing')
+    // The function itself is NOT deleted — HOUSE-009 split it and the legacy/house accounting
+    // still owns it. Absence is asserted of this ROUTE only.
+    expect(raw(join(API, 'lib/pending-migrations.ts'))).toContain('try_spend_sourcing')
+  })
+})

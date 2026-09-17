@@ -552,6 +552,27 @@ JSON
 
 cmd_checks() {
   [ -f "$RUN_DIR/env.json" ] || fail "nothing is up — run: bash scripts/fullstack.sh up"
+
+  # 🛑 THE CHECKS PROCESS NEEDS THE ENVIRONMENT TOO, AND FORGETTING IT COST TWO DIAGNOSES.
+  #
+  # `run` calls `export_env` on its way through `cmd_up`, so the checks inherited it and this
+  # was invisible. Invoked on its own against an already-`up` stack, `checks` had none of it —
+  # and several checks import product modules directly (`alerts.js` → `@kind/db`, which throws
+  # `Missing SUPABASE_URL` at module scope). Worse, the failures did not look like missing
+  # env: check 5 reported eight wrong outcome classes, and I spent a round reading the product
+  # before realising the harness had told the checks nothing.
+  #
+  # ⚠️ IT MUST MATCH WHAT THE PRODUCT WAS BOOTED WITH, so it is the same function and not a
+  # second copy of the values. Ports and the database URL are recovered from the run's own
+  # `env.json`/`realdb.sh`, which is what `up` wrote them from.
+  DB_URL="$(bash scripts/realdb.sh url)"
+  SERVICE_JWT="$(node -e 'process.stdout.write(require(process.argv[1]).serviceJwt)' "$RUN_DIR/env.json")"
+  ANON_JWT="$SERVICE_JWT"
+  ADMIN_JWT="$(node -e 'process.stdout.write(require(process.argv[1]).adminJwt || "")' "$RUN_DIR/env.json")"
+  ADMIN_USER_ID="$(node -e 'process.stdout.write(require(process.argv[1]).adminUserId || "")' "$RUN_DIR/env.json")"
+  ADMIN_EMAIL="$(node -e 'process.stdout.write(require(process.argv[1]).adminEmail || "")' "$RUN_DIR/env.json")"
+  export_env
+
   head2 "the ten Batch 1b checks"
   node scripts/fullstack/checks.mjs "$RUN_DIR/env.json"
 }

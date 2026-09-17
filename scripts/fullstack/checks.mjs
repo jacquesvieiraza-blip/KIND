@@ -95,6 +95,20 @@ function adminSessionCookie() {
   return `${name}=base64-${stringToBase64URL(JSON.stringify(session))}`
 }
 
+/**
+ * Ask real PostgREST for a table and hand back the error body VERBATIM.
+ *
+ * ⚠️ IT GOES THROUGH THE GATEWAY WITH THE SERVICE JWT, exactly as the product's supabase-js
+ * client does — same path, same auth, same binary. The point is to observe the code PostgREST
+ * itself chooses, so nothing here interprets or normalises it.
+ */
+async function pgrstError(table) {
+  const r = await http(`${ENV.gateway}/rest/v1/${table}?select=id&limit=1`, {
+    headers: { apikey: ENV.serviceJwt, authorization: `Bearer ${ENV.serviceJwt}` },
+  })
+  return { status: r.status, code: r.json?.code ?? '', message: r.json?.message ?? r.text }
+}
+
 const fakeCount = async (name) => (await http(`${ENV.fakes[name]}/__fake/count`)).json?.calls ?? -1
 const fakeRequests = async (name) => (await http(`${ENV.fakes[name]}/__fake/requests`)).json?.requests ?? []
 const fakeReset = (name) => http(`${ENV.fakes[name]}/__fake/reset`)
@@ -667,7 +681,68 @@ async function check9() {
   if (withNote.status !== 200) return bad(9, `resolving WITH a note → HTTP ${withNote.status}: ${withNote.text.slice(0, 140)}`)
 
   await sql(`delete from public.operator_tasks where title like $1`, [`%${marker}%`])
+
+  // ══════════════════════════════════════════════════════════════════════════════════════
+  // C-9 · THE ABSENCE CODE THE PRODUCT ACTUALLY RECEIVES — PGRST205, NOT 42P01
+  //
+  // ── WHY THIS CANNOT BE A UNIT TEST ────────────────────────────────────────────────────
+  //
+  // Batch 1 gave these paths loud absent-table tolerance keyed on PostgreSQL's `42P01`, and
+  // it was green. But the product reads tables through PostgREST, which resolves the name
+  // against its own SCHEMA CACHE before any SQL is planned and answers its own code —
+  // `PGRST205`. So the tolerance could not fire on the seam it was written for. No mock could
+  // show that: a mock returns whatever code the test author believed in. Only a real
+  // PostgREST, with a real missing table, produces the real code.
+  //
+  // ⚠️ THE RELOAD IS THE LOAD-BEARING STEP, and it is what distinguishes the two codes.
+  // Renaming the table alone leaves it in PostgREST's cache, so the query IS planned and
+  // PostgreSQL answers `42P01`. After `NOTIFY pgrst, 'reload schema'` the table is gone from
+  // the cache and PostgREST answers `PGRST205` without touching the database. Both are
+  // absence and `isRelationAbsent` accepts both — which is exactly why both are asserted
+  // here rather than one being assumed.
+  //
+  // 🛑 RESTORED IN A `finally`. A harness that left `operator_tasks` renamed would poison
+  // every later check in the run, and the failure would look like a product defect.
+  // ══════════════════════════════════════════════════════════════════════════════════════
+  let absence = ''
+  try {
+    await sql('alter table public.operator_tasks rename to operator_tasks_c9_hidden')
+
+    // PHASE 1 — cache still warm: PostgreSQL plans the query and refuses it.
+    const stale = await pgrstError('operator_tasks')
+    // PHASE 2 — cache reloaded: PostgREST refuses it itself, without planning anything.
+    await sql(`notify pgrst, 'reload schema'`)
+    await new Promise((r) => setTimeout(r, 1500))
+    const fresh = await pgrstError('operator_tasks')
+
+    if (fresh.code !== 'PGRST205') {
+      return bad(9, `a missing table through real PostgREST gave code ${fresh.code || '(none)'} `
+        + `("${String(fresh.message).slice(0, 90)}"), not PGRST205 — the premise of C-9 does not hold on this binary`)
+    }
+
+    // …and now the PRODUCT, through its own endpoint, on that same absent table.
+    const loud = await operator('/operator/tasks')
+    if (loud.status === 200) {
+      return bad(9, `🛑 GET /operator/tasks answered 200 with the table ABSENT — `
+        + `${JSON.stringify(loud.json?.data?.tasks ?? []).slice(0, 60)}. An unreadable queue was reported as a calm one, `
+        + `which is the exact defect XC-5's tolerance exists to prevent.`)
+    }
+    if (loud.json?.table_missing !== true) {
+      return bad(9, `the queue read failed but did not report table_missing (HTTP ${loud.status}): ${loud.text.slice(0, 160)}`)
+    }
+    if (!/NOT an empty queue/i.test(loud.text)) {
+      return bad(9, `the absence message no longer says it is NOT an empty queue: ${loud.text.slice(0, 160)}`)
+    }
+    absence = ` · C-9: real PostgREST gave ${stale.code || '(no code)'} with a warm cache and PGRST205 after reload; `
+      + `/operator/tasks answered HTTP ${loud.status} table_missing=true, never an empty queue`
+  } finally {
+    await sql('alter table if exists public.operator_tasks_c9_hidden rename to operator_tasks').catch(() => {})
+    await sql(`notify pgrst, 'reload schema'`).catch(() => {})
+    await new Promise((r) => setTimeout(r, 1500))
+  }
+
   ok(9, `${kinds.length} alert classes → ${tasks.length} persisted tasks · listed by /operator/tasks · resolve refused without a note (HTTP ${noNote.status}), accepted with one`
+    + absence
     + (cleared.length ? ` · ${cleared.length} already-open alert task(s) cleared first, incl. the source_down one the live sourcing raised — dedupe is working, see the note in this check` : ''))
 }
 

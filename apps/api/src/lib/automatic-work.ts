@@ -41,6 +41,8 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 
 import { db } from '@kind/db'
+// C-9: one predicate for "the relation is not there", across both the pg and PostgREST seams.
+import { isRelationAbsent } from './relation-absent'
 import { raiseOperatorTask } from './operator-tasks'
 
 /** Every kind of work the SYSTEM owns. Batch 2 wires the call sites; these are the names. */
@@ -90,13 +92,18 @@ export function boundSecondsFor(kind: AutomaticWorkKind): number {
   return typeof v === 'number' && v > 0 ? v : DEFAULT_BOUND_SECONDS
 }
 
-const UNDEFINED_TABLE = '42P01'
 const UNIQUE_VIOLATION = '23505'
 type PgError = { code?: string; message?: string } | null | undefined
 
+/**
+ * ⛓️ C-9 (17 Sep) — was `err.code === '42P01'`, which `supabase-js` never receives for a
+ * missing table: PostgREST answers its own `PGRST205` from its schema cache. `isRelationAbsent`
+ * accepts both, so this branch can finally fire on the seam the product actually uses — which
+ * matters most here, because the overdue detector going blind is the failure XC-6 exists for.
+ */
 function isTableMissing(err: PgError): boolean {
   if (!err) return false
-  return err.code === UNDEFINED_TABLE || /relation .*automatic_work.* does not exist/i.test(err.message ?? '')
+  return isRelationAbsent(err) || /relation .*automatic_work.* does not exist/i.test(err.message ?? '')
 }
 function isUniqueViolation(err: PgError): boolean {
   if (!err) return false

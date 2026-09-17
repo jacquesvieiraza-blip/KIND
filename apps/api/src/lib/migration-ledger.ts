@@ -45,6 +45,14 @@
 // pure, provable half unusable from the real-database harness, which connects to postgres
 // directly and has no Supabase project.
 
+// C-9: one predicate for "the relation is not there", across both the pg and PostgREST seams.
+//
+// ⚠️ THIS ONE **IS** A STATIC IMPORT, unlike `@kind/db` above, and deliberately: it is pure —
+// it reads a property off an error object and touches no client — so it cannot break the
+// write half's usability from the real-database harness, which is the whole reason `@kind/db`
+// is dynamic here.
+import { isRelationAbsent } from './relation-absent'
+
 /** The migration that creates the ledger's own columns. Named in every absence message. */
 export const LEDGER_MIGRATION = '20260917_operator_tasks_and_automatic_work'
 
@@ -99,9 +107,18 @@ const str = (v: unknown): string | null => (typeof v === 'string' && v !== '' ? 
 const codeOf = (e: unknown): string =>
   typeof (e as { code?: unknown } | null)?.code === 'string' ? String((e as { code: string }).code) : ''
 
-/** 42P01 undefined_table. The table itself is not there. */
+/**
+ * The table itself is not there.
+ *
+ * ⛓️ C-9 (17 Sep) — was `codeOf(e) === '42P01'`. That is right for the migration RUNNER, which
+ * connects with raw `pg`, and wrong for every read the product makes through `supabase-js`,
+ * where PostgREST answers `PGRST205` from its schema cache without ever planning the SQL.
+ * `isRelationAbsent` accepts both codes, which is exactly the point: this ledger is written by
+ * the `pg` path and read by the PostgREST path, so it is the one module that genuinely sees
+ * BOTH and would have been half-blind whichever single code it had picked.
+ */
 export const isLedgerTableMissing = (e: unknown): boolean =>
-  codeOf(e) === '42P01' || /relation .*app_migrations_applied.* does not exist/i.test(
+  isRelationAbsent(e) || /relation .*app_migrations_applied.* does not exist/i.test(
     String((e as { message?: unknown } | null)?.message ?? ''),
   )
 
@@ -267,7 +284,9 @@ export async function recordMigrationOutcome(
     const message = e instanceof Error ? e.message : String(e)
     // 🛑 NEVER THROWN. A ledger write failing must not fail a migration that applied — but it
     // must not be silent either, which is why the reason travels back to the response.
-    if (code === '42P01') return { recorded: false, reason: `the app_migrations_applied table does not exist (run ${LEDGER_MIGRATION})` }
+    // ⛓️ C-9 — both seams. The runner writes with raw `pg` (42P01), but this same catch is
+    // reached through supabase-js on other paths, where the code is PGRST205.
+    if (isRelationAbsent(e)) return { recorded: false, reason: `the app_migrations_applied table does not exist (run ${LEDGER_MIGRATION})` }
     if (code === '42703') return { recorded: false, reason: `the ledger's outcome columns do not exist yet (run ${LEDGER_MIGRATION})` }
     // 🛑 23502 not_null_violation — FOUND AGAINST A REAL POSTGRES, NOT BY READING. The original
     // `applied_at` is `NOT NULL DEFAULT now()`, because under the old ledger a row's mere

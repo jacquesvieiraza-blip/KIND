@@ -39,6 +39,8 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 
 import { db } from '@kind/db'
+// C-9: one predicate for "the relation is not there", across both the pg and PostgREST seams.
+import { isRelationAbsent } from './relation-absent'
 
 /**
  * The closed set of task classes. A free-string `kind` cannot be routed, deduped or
@@ -102,16 +104,26 @@ export interface RaiseResult {
   error?: string
 }
 
-/** Postgres: relation does not exist. */
-const UNDEFINED_TABLE = '42P01'
 /** Postgres: unique violation. */
 const UNIQUE_VIOLATION = '23505'
 
 type PgError = { code?: string; message?: string } | null | undefined
 
+/**
+ * Is the table absent?
+ *
+ * ⛓️ C-9 (17 Sep) — the code check moved to `isRelationAbsent`, which accepts PostgreSQL's
+ * `42P01` **and** PostgREST's `PGRST205`. This site previously compared `42P01` only, and
+ * `supabase-js` never receives that code for a missing table: PostgREST resolves the name
+ * against its schema cache first and answers its own. So this branch could not fire on the
+ * seam it was written for, and only a real PostgREST showed it.
+ *
+ * ⚠️ THE MESSAGE PATTERN STAYS, AND IT IS NOT REDUNDANT. It names THESE two tables, so an
+ * absence reported without a usable code is still recognised here and not somewhere else.
+ */
 function isTableMissing(err: PgError): boolean {
   if (!err) return false
-  if (err.code === UNDEFINED_TABLE) return true
+  if (isRelationAbsent(err)) return true
   return /relation .*(operator_tasks|automatic_work).* does not exist/i.test(err.message ?? '')
 }
 

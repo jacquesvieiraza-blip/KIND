@@ -1,0 +1,131 @@
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// §8.2-H · THE HARNESS MUST NOT CLAIM STRONGER SCHEMA FIDELITY THAN IT PROVIDES
+//
+// ⛓️ 18 Sep — WRITTEN BECAUSE MY BATCH 1 RETURN OVER-CLAIMED. It listed the baseline, the 17
+// superseded files and the one known-broken file, and then called §8.2-H green. Listing
+// caveats is not reconciling them. GPT verification asked for one of two things: demonstrate
+// that baseline + forward migrations IS the repo's authoritative supported path, or report a
+// contract/code reality conflict.
+//
+// ── THE EVIDENCE SAYS IT IS THE SECOND, AND THE EVIDENCE IS CHECKABLE ──────────────────
+//
+// There is no supported path in this repository that constructs the database:
+//
+//   · there is no `supabase/config.toml`, so the Supabase CLI was never wired up;
+//   · the ONLY glob over `supabase/migrations/` anywhere in the repo is `scripts/realdb.sh`
+//     — this harness. Nothing in the product reads that directory;
+//   · the product's one executor is `PENDING_MIGRATIONS`, a 74-key subset of 186 files, and
+//     it exists to move production FORWARD, not to build a database;
+//   · `docs/SCHEMA-DRIFT.md` (#558, derived from source) records that ~114 migrations were
+//     "pasted into the Supabase SQL editor by hand, in an unrecorded order, at unrecorded
+//     times, with no record of which ones took" — in an editor that can no longer be opened;
+//   · three files each claim to BE the schema, declaring different table counts.
+//
+// So the harness's schema is a FOURTH path that the harness itself constructs. That is fine
+// as object-level evidence — a CHECK constraint is a CHECK constraint — and it is NOT evidence
+// about production's schema. This file exists so that distinction cannot quietly erode into
+// "the repo's migrations are proven", which is the claim I actually made and should not have.
+//
+// ⚠️ THESE ARE ASSERTIONS ABOUT DISCLOSURE, and that is deliberate. The defect being guarded
+// is not a broken function — it is a true-but-misleading report, which is the failure mode
+// this whole repository's audit rules exist for.
+// ═══════════════════════════════════════════════════════════════════════════════════════
+
+import { describe, it, expect } from 'vitest'
+import { readFileSync, existsSync, readdirSync } from 'node:fs'
+import { join } from 'node:path'
+
+const REPO = join(__dirname, '..', '..', '..', '..')
+const read = (p: string) => readFileSync(join(REPO, p), 'utf8')
+
+describe('§8.2-H · the facts the fidelity statement rests on are true TODAY', () => {
+  it('the Supabase CLI is not wired up — nothing applies the directory for us', () => {
+    // If this ever becomes false, the fidelity statement is out of date and the conflict may
+    // be resolvable. Better to fail here than to keep telling the founder it is not.
+    expect(existsSync(join(REPO, 'supabase/config.toml')),
+      'supabase/config.toml now exists — re-read the §8.2-H fidelity statement, it may be stale').toBe(false)
+  })
+
+  it('the harness is the ONLY thing in the repo that globs the migration directory', () => {
+    // 🛑 THE LOAD-BEARING FACT. If the product executed that directory, the harness would be
+    // reproducing the supported path and §8.2-H would be satisfiable. It does not.
+    const globbers: string[] = []
+    const scan = (rel: string) => {
+      const dir = join(REPO, rel)
+      if (!existsSync(dir)) return
+      for (const name of readdirSync(dir, { withFileTypes: true })) {
+        if (name.name === 'node_modules' || name.name.startsWith('.')) continue
+        const child = `${rel}/${name.name}`
+        if (name.isDirectory()) { scan(child); continue }
+        if (!/\.(ts|sh|yml|yaml)$/.test(name.name)) continue
+        if (/\.test\.ts$/.test(name.name)) continue
+        const src = read(child)
+        if (/supabase\/migrations\/\*\.sql/.test(src)) globbers.push(child)
+      }
+    }
+    scan('apps/api/src'); scan('apps/admin/src'); scan('packages'); scan('scripts'); scan('.github')
+    expect(globbers, 'something other than the harness now executes the migration directory')
+      .toEqual(['scripts/realdb.sh'])
+  })
+
+  it('the executor is a strict SUBSET of the record — it cannot build a database', () => {
+    const runnerKeys = (read('apps/api/src/lib/pending-migrations.ts').match(/key:\s*'[^']+'/g) ?? []).length
+    const files = readdirSync(join(REPO, 'supabase/migrations')).filter(f => f.endsWith('.sql')).length
+    expect(runnerKeys).toBe(74)
+    expect(files).toBe(186)
+    // The gap is the point: 112 canonical migrations the product has no mechanism to apply.
+    expect(runnerKeys).toBeLessThan(files)
+  })
+
+  it('three files still each claim to be the schema, and they disagree', () => {
+    // A harness has to pick one. Which one is authoritative is exactly the unresolved
+    // question, so the count disagreement is asserted rather than described.
+    const tables = (p: string) => (read(p).match(/^\s*create table/gim) ?? []).length
+    const counts = {
+      'packages/db/src/schema.sql': tables('packages/db/src/schema.sql'),
+      'supabase/staging-schema.sql': tables('supabase/staging-schema.sql'),
+      'supabase/MASTER_SCHEMA.sql': tables('supabase/MASTER_SCHEMA.sql'),
+    }
+    for (const [f, n] of Object.entries(counts)) expect(n, `${f} declares no tables`).toBeGreaterThan(0)
+    expect(new Set(Object.values(counts)).size,
+      'the three schema files now agree — the fidelity statement may be stale').toBeGreaterThan(1)
+  })
+})
+
+describe('§8.2-H · the harness discloses its fidelity where it will actually be read', () => {
+  const sh = read('scripts/realdb.sh')
+  const readme = read('scripts/realdb/README.md')
+
+  it('every `up` prints what a real-DB result does and does NOT mean', () => {
+    // 🛑 A README NOBODY OPENS IS NOT A DISCLOSURE. The over-claim I made was made while the
+    // caveats sat in a file I had written myself, so the statement has to be on the run.
+    expect(sh).toContain('SCHEMA FIDELITY')
+    const block = sh.slice(sh.indexOf('SCHEMA FIDELITY'))
+    expect(block).toMatch(/NOT PROVEN/)
+    expect(block).toMatch(/PRODUCTION/)
+    expect(block).toMatch(/SNAPSHOT/)
+    expect(block).toMatch(/SCHEMA-DRIFT/)
+  })
+
+  it('the README states the conflict, and does not pretend the harness resolves it', () => {
+    expect(readme).toMatch(/CONTRACT ?\/ ?CODE REALITY CONFLICT/i)
+    expect(readme).toMatch(/There is no migration path in this repository that constructs the database/)
+    // It must name the decision as the founder's / Fable's, with real options — reporting a
+    // conflict without options is just a complaint.
+    expect(readme).toMatch(/Fable/)
+    expect(readme).toMatch(/Adopt a baseline formally/)
+    // …and it must not claim the item is done.
+    expect(readme).toMatch(/§8\.2-H is \*\*NOT green\*\*/)
+  })
+
+  it('the harness still refuses to hide the three migration findings', () => {
+    // Unchanged from Batch 1 and re-asserted here: the honest reconciliation replaces the
+    // green claim, not the findings.
+    expect(readme).toMatch(/cannot build the database from empty/)
+    expect(readme).toMatch(/not re-runnable/)
+    expect(readme).toMatch(/cannot execute anywhere/)
+    expect(sh).toContain('KNOWN_BROKEN')
+    // And a file that fails for any reason the rule does not cover still FAILS the harness.
+    expect(sh).toMatch(/FAILED/)
+  })
+})

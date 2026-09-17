@@ -338,6 +338,28 @@ cmd_up() {
     echo "   Declare a genuinely Supabase-only file in EXPECTED_UNSUPPORTED in this script."
     return 1
   fi
+  # ── 🛑 FIDELITY, STATED ON EVERY RUN (⛓️ 18 Sep, after GPT verification) ─────────────────
+  #
+  # A green real-DB suite is easy to over-read as "the repo's migrations are proven". It is
+  # not that, and the harness must not let anybody believe it is — a README nobody opens is
+  # not a disclosure. Every `up` therefore says what this schema IS:
+  #
+  #   bootstrap shim + the staging-schema SNAPSHOT + all canonical files in filename order.
+  #
+  # That combination is a path THIS SCRIPT constructs. Nothing else in the product uses it:
+  # there is no supabase/config.toml, the only glob over supabase/migrations/ is this file,
+  # and the product's one executor is PENDING_MIGRATIONS — a 74-of-186 subset. See
+  # scripts/realdb/README.md § SCHEMA FIDELITY and docs/SCHEMA-DRIFT.md (#558).
+  echo ""
+  say "SCHEMA FIDELITY — what a real-DB result here does and does not mean:"
+  say "   ✅ PROVEN: function bodies, CHECK constraints, partial unique indexes, ON CONFLICT,"
+  say "      row locking under real concurrency, NOT NULL — a real PostgreSQL running this"
+  say "      repo's own SQL. That is what the *.realdb.test.ts files assert."
+  say "   ⚠️ NOT PROVEN: that this equals PRODUCTION's schema. This is the staging-schema"
+  say "      SNAPSHOT plus a filename-order replay — a path this harness constructs, which no"
+  say "      other part of the product uses. Where the snapshot and production disagree, this"
+  say "      agrees with the snapshot and CANNOT detect the difference (docs/SCHEMA-DRIFT.md)."
+  say "   ⚠️ NOT a claim the migration set is healthy — see the findings printed above."
   echo ""
   say "READY → $URL"
   return 0

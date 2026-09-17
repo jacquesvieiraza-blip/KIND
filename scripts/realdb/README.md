@@ -16,6 +16,76 @@ enforces. Two facts this repo has paid for live only in the second one:
 
 So: anything whose truth lives in the schema is proven here, or it is not proven.
 
+## 🛑 SCHEMA FIDELITY — read this before believing a real-DB result
+
+**⛓️ 18 Sep — ADDED AFTER GPT VERIFICATION, which was right.** My Batch 1 return reported the
+baseline, the 17 superseded files and the one known-broken file and then called §8.2-H green.
+Listing the caveats is not the same as reconciling them, so here is the reconciliation.
+
+**The harness does NOT reproduce "the repo's supported migration path", because the repo does
+not have one that can build a database.** That is a statement about the repository, and every
+part of it is checkable today:
+
+| Claim | How to check it | Answer |
+|---|---|---|
+| The Supabase CLI was never wired up | `ls supabase/config.toml` | does not exist |
+| Nothing in the product executes `supabase/migrations/` | grep the source for a glob over it | the **only** glob is `scripts/realdb.sh` — this harness |
+| The product's one executor is a TypeScript constant | `PENDING_MIGRATIONS` in `apps/api/src/lib/pending-migrations.ts` | **74** keys |
+| …against how many canonical files | `ls supabase/migrations/*.sql \| wc -l` | **186** |
+| How production's schema was actually built | `docs/SCHEMA-DRIFT.md` (#558), derived from source | ~114 migrations "pasted into the Supabase SQL editor by hand, in an unrecorded order, at unrecorded times, with no record of which ones took" |
+| How many files claim to BE the schema | `schema.sql` / `staging-schema.sql` / `MASTER_SCHEMA.sql` | three, declaring **15 / 54 / 9** tables |
+
+So there are three different things in this repo, and none of them is a path from empty to
+production's schema:
+
+- **a RECORD** — `supabase/migrations/` (186 files), which nothing executes and which cannot
+  build a database from empty because no file creates `clients`, `icps`, `leads` or `figsy_*`;
+- **an EXECUTOR** — `PENDING_MIGRATIONS` (74 keys), which is a *subset* and was never intended
+  to construct a database, only to move production forward;
+- **a SNAPSHOT** — `supabase/staging-schema.sql`, whose own header says to paste it into a new
+  Supabase project, and whose provenance and currency are not recorded anywhere.
+
+**What the harness schema therefore IS:** `bootstrap.sql` (a Supabase shim) + the
+`staging-schema.sql` snapshot + all 186 canonical files applied in filename order. That
+combination is **a fourth path, constructed by this harness**, and no other part of the
+product uses it.
+
+**What that means for a real-DB result here — precisely:**
+
+- ✅ **Strong evidence** for anything the harness itself creates and then exercises: a
+  function body, a CHECK constraint, a partial unique index, `ON CONFLICT` behaviour, row
+  locking under concurrency, a NOT NULL that a mock cannot have. These are proven against a
+  real PostgreSQL executing the repo's own SQL, and they are what the real-DB suite asserts.
+- ⚠️ **NOT evidence about production's schema.** Where the snapshot and production disagree,
+  this harness agrees with the snapshot. It cannot detect that disagreement, and
+  `docs/SCHEMA-DRIFT.md` is the standing finding that such disagreements exist.
+- ⚠️ **NOT a claim that the migration set is healthy.** It demonstrably is not: see findings
+  ①–③ below.
+
+### CONTRACT / CODE REALITY CONFLICT — for Fable
+
+The frozen §8.2-H contract asks for the repo migration path to be "genuinely represented".
+It cannot be, and the reason is not the harness:
+
+> **There is no migration path in this repository that constructs the database.** The
+> directory is an unexecuted record with no baseline; the runner is a 74-of-186 subset; the
+> schema production actually has was assembled by hand in an editor that can no longer be
+> opened.
+
+**This is not something the harness can fix, and I have not invented a migration architecture
+to paper over it.** The options are a founder/Fable decision, not an engineering one:
+
+1. **Adopt a baseline formally** — designate one snapshot as the schema of record, dated and
+   regenerated from production, and declare migrations forward-only from it. This is closest
+   to what the harness does today, and it would make the harness's path *the* path.
+2. **Reconcile against production first** — dump the live schema, diff it against the
+   snapshot, and fix the snapshot before anything is declared authoritative.
+3. **Accept the harness as object-level evidence only** — which is what the table above says
+   it is — and keep schema-vs-production questions with `docs/SCHEMA-DRIFT.md`.
+
+Until one is chosen, §8.2-H is **NOT green**, and the real-DB evidence in this repo should be
+read as the ✅/⚠️ split above rather than as "the repo's migrations were proven".
+
 ## Running it
 
 ```bash
@@ -63,16 +133,17 @@ Not as a promise — as a property:
 3. **`supabase/migrations/*.sql`** in filename order, each in its own transaction, with the
    outcome recorded in `harness.applied_migrations`.
 
-Current state of a clean run: **166 applied · 17 superseded-by-baseline · 1 known-broken ·
-0 failed.**
+Current state of a clean run: **168 applied · 17 superseded-by-baseline · 1 known-broken ·
+0 failed** (186 files: 168 + 17 + 1). Batch 1 added two, which is why this is not 166 —
+the number is printed on every `up`, so the run itself is the source, not this line.
 
 ## Three findings the harness surfaced, that it does not hide
 
 **① `supabase/migrations/` cannot build the database from empty.** Nothing in it creates
 `public.clients`, `public.icps`, `public.leads`, `public.subscriptions` or the `figsy_*`
 tables. They were created by hand in a Supabase SQL editor that can no longer be opened,
-and every migration since only `ALTER`s them. Without a baseline, **159 of 184 migrations
-fail** on `relation "public.clients" does not exist`. The nearest thing the repo has to a
+and every migration since only `ALTER`s them. Without a baseline, **159 of the 184 files that existed at the time
+failed** on `relation "public.clients" does not exist`. The nearest thing the repo has to a
 baseline is `supabase/staging-schema.sql`, whose own header says "paste this entire file
 into your NEW Supabase project", so that is what the harness uses.
 

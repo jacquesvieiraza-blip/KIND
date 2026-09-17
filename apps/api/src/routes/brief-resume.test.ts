@@ -26,13 +26,16 @@ type Row = Record<string, unknown>
 const state = {
   drafts: [] as Row[],
   clients: [] as Row[],
+  /** ⛓️ J4-C1 — the two artifacts server-owned promotion now also produces. */
+  icps: [] as Row[],
+  claims: [] as Row[],
   /** the drafts table does not exist — the migration has not been applied */
   unreadable: false,
 }
 
 function table(name: string) {
   const filters: ((r: Row) => boolean)[] = []
-  const rows = () => (name === 'clients' ? state.clients : state.drafts)
+  const rows = () => (name === 'clients' ? state.clients : name === 'icps' ? state.icps : state.drafts)
   const q: Record<string, unknown> = {
     select() { return q },
     eq(c: string, v: unknown) { filters.push(r => r[c] === v); return q },
@@ -43,6 +46,17 @@ function table(name: string) {
       if (name !== 'clients' && state.unreadable) throw new Error(`${name} does not exist`)
       const hit = rows().filter(r => filters.every(f => f(r)))
       return { data: hit[0] ?? null, error: null }
+    },
+    insert(row: Row) {
+      const made = { id: `${name}-${rows().length + 1}`, ...row }
+      const push = () => { rows().push(made) }
+      return {
+        select: () => ({
+          async single() { push(); return { data: made, error: null } },
+          async maybeSingle() { push(); return { data: made, error: null } },
+        }),
+        then(resolve: (v: unknown) => unknown) { push(); return resolve({ data: made, error: null }) },
+      }
     },
     upsert(row: Row) {
       return { select: () => ({ async maybeSingle() {
@@ -82,7 +96,22 @@ function table(name: string) {
   return q
 }
 
-vi.mock('@kind/db', () => ({ db: { from: (t: string) => table(t) } }))
+// ⛓️ 17 Sep (J4-C1) — `icps`, `rpc` and `auth` ADDED to the double. The confirm route is now
+// server-owned promotion, so it writes an ICP and claims Proof authority through the ledger.
+// The ledger emulation grants once and then refuses `in_flight`, which is `claim_proof_authority`'s
+// contract and the reason a double click cannot spend a second free pass.
+vi.mock('@kind/db', () => ({
+  db: {
+    from: (t: string) => table(t),
+    rpc: async (fn: string, args: Record<string, unknown>) => {
+      if (fn !== 'claim_proof_authority') return { data: null, error: { message: `unexpected rpc ${fn}` } }
+      if (state.claims.some(c => c.client_id === args.p_client_id)) return { data: { ok: false, reason: 'in_flight' }, error: null }
+      state.claims.push({ id: `claim-${state.claims.length + 1}`, client_id: args.p_client_id })
+      return { data: { ok: true, claim_id: `claim-${state.claims.length}`, authority: 'free_proof', pass: 1, kind: 'automatic' }, error: null }
+    },
+    auth: { getUser: async () => ({ data: { user: { id: 'user-1', email: 'first@client.invalid' } }, error: null }) },
+  },
+}))
 vi.mock('../middleware/auth', () => ({
   requireAuth: (_req: unknown, _res: unknown, next: () => void) => next(),
 }))
@@ -157,6 +186,10 @@ function seedDraft(facts: Row, over: Row = {}) {
 beforeEach(() => {
   state.drafts = []
   state.clients = []
+  // ⛓️ J4-C1 — RESET THESE TOO. Omitting them let one test's ICP leak into the next and made
+  // a correct replay look like a duplicate write, which is a fixture fault dressed as a defect.
+  state.icps = []
+  state.claims = []
   state.unreadable = false
   anthropicBox.lastParams = null
   anthropicBox.reply = toolReply({ type: 'question', content: 'What kind of organisation are they?' })
@@ -356,12 +389,30 @@ describe('⑤ 7 · 8 · the confirmation gate, server-side', () => {
     expect(state.drafts[0].confirmed_at, 'a refused confirmation stamped one anyway').toBeNull()
   })
 
-  it('🛑 8 · eleven of eleven confirms — and creates nothing', async () => {
+  // ⛓️ 17 Sep (J4-C1) — INVERTED, AND THIS IS THE POINT OF THE ITEM, NOT A BROKEN TEST.
+  //
+  // ~~`it('🛑 8 · eleven of eleven confirms — and creates nothing')` … `expect(state.clients,
+  // 'confirming promoted somebody by itself').toEqual([])`~~
+  //
+  // That assertion was TRUE and RIGHT while promotion was four browser calls: confirming had
+  // to create nothing, because `/auth/onboard`, `POST /icps` and `POST /icps/:id/proof` came
+  // afterwards from the browser. J4-C1 is the founder-approved decision that the browser must
+  // not sequence a decision at all — every gap between those four calls strands a real person.
+  // So the old assertion now asserts the defect: "confirming created nothing" is exactly the
+  // half-promotion this item exists to end.
+  //
+  // ⚠️ THE GUARANTEE IT PROTECTED IS KEPT, AND MOVED UP ONE LEVEL. What mattered was never
+  // "create nothing" — it was "never create half of it". That is now asserted positively here
+  // (all four artifacts) and exhaustively in `j4c1-server-owned-promotion.test.ts`, which also
+  // holds the F-BROWSER, F-DUP and F-DBREAD cases. Nothing is weaker; the subject changed.
+  it('🛑 8 · eleven of eleven confirms — and promotion is SERVER-OWNED from that one call', async () => {
     seedDraft(ELEVEN)
     const r = await callMillaConfirm()
-    expect(r.code).toBe(200)
+    expect(r.code, JSON.stringify(r.payload)).toBe(200)
     expect(state.drafts[0].confirmed_at).toBeTruthy()
-    expect(state.clients, 'confirming promoted somebody by itself').toEqual([])
+    // The client exists because the SERVER made it — no second request was sent.
+    expect(state.clients, 'confirming left no client — the browser would have had to finish it').toHaveLength(1)
+    expect(state.drafts[0].promoted_client_id, 'promotion was not recorded against the draft').toBe(state.clients[0].id)
   })
 
   it('🛑 6 · and eleven facts UNCONFIRMED is a real, reachable state', async () => {
@@ -379,11 +430,31 @@ describe('⑤ 7 · 8 · the confirmation gate, server-side', () => {
     expect(state.drafts[0].confirmed_at).toBe(first)
   })
 
-  it('409 once promotion has happened — the draft is evidence now', async () => {
+  // ⛓️ 17 Sep (J4-C1) — 409 BECAME 200-WITH-THE-WINNER'S-IDS, and the manifest asks for it
+  // in those words: *"a duplicate confirm returns the winner's ids"*.
+  //
+  // ~~`expect(r.code).toBe(409)`~~ was right while confirming and promoting were separate
+  // acts — a second confirm genuinely had nothing to do. Now confirm IS promotion, so 409
+  // would punish the normal case (a double click on a slow connection, a retry after a
+  // response that never arrived) and, worse, would answer 409 FOR EVER to a client whose
+  // promotion was interrupted between the client row and the ICP.
+  //
+  // ⚠️ THE GUARANTEE IS UNCHANGED AND ASSERTED HERE: the replay CREATES NOTHING. The draft is
+  // still evidence — `promoted_at` cannot move, because `markBriefDraftPromoted` filters on
+  // `.is('promoted_client_id', null)`.
+  it('a replay after promotion returns the WINNER\u2019s ids and creates nothing', async () => {
     state.clients.push({ id: 'client-1', user_id: 'user-1' })
-    seedDraft(ELEVEN, { promoted_client_id: 'client-1' })
+    state.icps.push({ id: 'icp-1', client_id: 'client-1', created_at: '2026-09-17T10:00:00Z' })
+    seedDraft(ELEVEN, { confirmed_at: '2026-09-17T10:05:00Z', promoted_client_id: 'client-1', promoted_at: '2026-09-17T10:05:00Z' })
     const r = await callMillaConfirm()
-    expect(r.code).toBe(409)
+    expect(r.code, JSON.stringify(r.payload)).toBe(200)
+    const d = (r.payload.data ?? {}) as Record<string, unknown>
+    expect(d.client_id).toBe('client-1')
+    expect(d.icp_id).toBe('icp-1')
+    expect(d.replayed).toBe(true)
+    expect(state.clients, 'a second client row').toHaveLength(1)
+    expect(state.icps, 'a second ICP').toHaveLength(1)
+    expect(state.drafts[0].promoted_at, 'the recorded moment of promotion moved').toBe('2026-09-17T10:05:00Z')
   })
 
   it('404 when there is nothing to confirm — a journey that predates drafts', async () => {
@@ -407,12 +478,28 @@ describe('⑤ 7 · 8 · the confirmation gate, server-side', () => {
     expect(p.progress.total).toBe(11)
   })
 
-  it('🛑 and changing the brief afterwards clears it — the signature cannot outlive its document', async () => {
+  // ⛓️ 17 Sep (J4-C1) — THE SAME GUARANTEE, NOW HELD A STRONGER WAY.
+  //
+  // ~~`await saveBriefDraft(...); expect(confirmed_at).toBeNull()`~~ asserted that editing a
+  // confirmed brief CLEARS the confirmation, so a signature could never outlive its document.
+  // That mattered because there was a WINDOW: confirm stamped the seal, and promotion happened
+  // minutes later from the browser, so a client could edit in between.
+  //
+  // J4-C1 closes the window itself. Confirming promotes in the same call, and a promoted
+  // client makes the draft unwritable (`writableBriefDraft` refuses once a client row exists).
+  // So the document cannot change after the signature at all — which is the guarantee, held
+  // structurally rather than by a clearing rule. The clearing rule still exists for the
+  // confirmed-but-unpromoted state; there is simply no longer a path into it.
+  it('\u{1F6D1} the brief cannot change after it is confirmed — the window is gone, not the rule', async () => {
     seedDraft(ELEVEN)
     await callMillaConfirm()
     expect(state.drafts[0].confirmed_at).toBeTruthy()
+    expect(state.clients, 'promotion did not happen, so this asserts nothing').toHaveLength(1)
+
     const { saveBriefDraft } = await import('../lib/brief-draft')
-    await saveBriefDraft('user-1', { desired_outcome: 'actually, product demos' })
-    expect(state.drafts[0].confirmed_at, 'the brief moved and the confirmation stayed').toBeNull()
+    const r = await saveBriefDraft('user-1', { desired_outcome: 'actually, product demos' })
+    expect(r.ok, 'a promoted brief was still writable — the signature could outlive its document').toBe(false)
+    expect((r as { reason?: string }).reason).toBe('promoted')
+    expect(state.drafts[0].facts, 'the promoted brief was edited').toMatchObject({ desired_outcome: ELEVEN.desired_outcome })
   })
 })

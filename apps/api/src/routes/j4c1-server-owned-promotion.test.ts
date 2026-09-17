@@ -141,8 +141,28 @@ function table(name: string) {
 // user, not from the brief — `/auth/onboard` reads it that way today and promotion must keep
 // doing so. A server-owned promotion has no bearer token of its own, so it resolves the
 // identity from the caller's `userId`; either shape is served here.
+// ⚠️ `db.rpc` EMULATES THE AUTHORITY LEDGER, and only its contract — grant once, then refuse
+// `in_flight`. That is what `claim_proof_authority` does, and it is why a second confirm must
+// not produce a second claim: `proof_passes_done` is a MIRROR the ledger maintains, never
+// written by live code (the frozen `proof-authority-bypass.test.ts` asserts exactly that).
 vi.mock('@kind/db', () => ({
   db: {
+    rpc: async (fn: string, args: Record<string, unknown>) => {
+      if (fn !== 'claim_proof_authority') return { data: null, error: { message: `unexpected rpc ${fn}` } }
+      const open = state.proof_claims.find(c => c.client_id === args.p_client_id && c.settled_at == null)
+      if (open) return { data: { ok: false, reason: 'in_flight' }, error: null }
+      const pass = state.proof_claims.length + 1
+      if (pass > 2) return { data: { ok: false, reason: 'restart_already_used' }, error: null }
+      const claim = {
+        id: `claim-${pass}`, client_id: args.p_client_id, icp_id: args.p_icp_id,
+        pass, kind: 'automatic', settled_at: null,
+      }
+      state.proof_claims.push(claim)
+      // The mirror the ledger keeps in step — written HERE, by the "ledger", never by product code.
+      const c = state.clients.find(x => x.id === args.p_client_id)
+      if (c) { c.proof_passes_done = pass; c.proof_started_at = '2026-09-17T12:00:00Z' }
+      return { data: { ok: true, claim_id: claim.id, authority: 'free_proof', pass, kind: 'automatic' }, error: null }
+    },
     from: (t: string) => table(t),
     auth: {
       getUser: async () => ({ data: { user: { id: 'user-1', email: 'first@client.invalid' } }, error: null }),

@@ -842,7 +842,44 @@ millaRouter.post('/brief-draft/confirm', async (req: AuthRequest, res) => {
   const { confirmBriefDraft } = await import('../lib/brief-draft')
   const { BRIEF_FACT_LABEL } = await import('@kind/shared')
   const r = await confirmBriefDraft(req.userId!)
-  if (r.ok) { res.json({ success: true, data: { confirmed_at: r.draft.confirmedAt } }); return }
+  // ── 🛑 J4-C1 · PROMOTION IS THIS CALL'S JOB NOW, NOT THE BROWSER'S ──────────────────
+  //
+  // ⛓️ WHAT THIS REPLACED: ~~`res.json({ data: { confirmed_at } })`~~ and then THREE more
+  // browser calls — `/auth/onboard`, `POST /icps`, `POST /icps/:id/proof`. Every gap between
+  // them stranded a real person: a closed tab, a slept phone or a 500 on leg 3 left a seal
+  // with no client, or a client with no targeting, and nothing server-side knew the journey
+  // was meant to continue. LR 6/21 and PV 07: the four legs are ONE decision.
+  //
+  // ⚠️ VALIDATION STILL HAPPENS FIRST, AND THAT ORDER IS THE CONTRACT. `confirmBriefDraft`
+  // runs the eleven-fact gate and the geography refusal above; a refusal returns below having
+  // created nothing. Only a confirmed brief is ever promoted.
+  //
+  // ⚠️ PROMOTION FAILING DOES NOT UNDO THE CONFIRMATION, and must not. `confirmed_at` is the
+  // client's own act and is a fact once it happened; `promoteConfirmedBrief` is ensure-shaped,
+  // so the next call finishes what this one could not. What the client must never see is a
+  // success that created nothing — hence the 503 with `retryable`.
+  if (r.ok) {
+    const { promoteConfirmedBrief } = await import('../lib/promotion')
+    const p = await promoteConfirmedBrief(req.userId!, r.draft, { authEmail: req.authEmail ?? null })
+    if (!p.ok) {
+      res.status(503).json({
+        success: false, retryable: true, code: p.reason,
+        error: 'We recorded your confirmation but could not finish setting your account up. Nothing you told Milla is lost — please try again.',
+      })
+      return
+    }
+    res.json({ success: true, data: {
+      confirmed_at: r.draft.confirmedAt,
+      client_id: p.clientId,
+      icp_id: p.icpId,
+      // The desk uses this to decide whether to claim a wait. `proof_note` is carried so the
+      // surface can be honest when Proof did not start — never silently optimistic.
+      proof_started: Boolean(p.proofClaimId),
+      ...(p.proofNote ? { proof_note: p.proofNote } : {}),
+      replayed: p.replayed === true,
+    } })
+    return
+  }
   if (r.reason === 'incomplete') {
     // ⛓️ 16 Sep (S1-ONB-001) — THE SENTENCE NAMES BOTH CLASSES. `missing` is the canonical
     // eleven as ids and is unchanged for existing callers; `missingLabels` is the complete
@@ -886,10 +923,42 @@ millaRouter.post('/brief-draft/confirm', async (req: AuthRequest, res) => {
     })
     return
   }
+  // ── 🛑 J4-C1 · A REPLAY IS ANSWERED WITH THE WINNER'S IDS, NOT A 409 ────────────────
+  //
+  // ⛓️ WHAT THIS REPLACED: ~~`res.status(409)`~~ with "this brief has already been confirmed".
+  //
+  // That was right while confirming and promoting were separate acts — the second confirm
+  // genuinely had nothing to do. Now that confirm IS promotion, a 409 punishes the normal
+  // case: a double click on a slow connection, or a retry after a response we never received.
+  // The manifest's own GREEN for this item says it — *"a duplicate confirm returns the
+  // winner's ids"* — and the caller needs those ids to navigate.
+  //
+  // ⚠️ IT CREATES NOTHING. `promoteConfirmedBrief` is ensure-shaped, so this path also
+  // FINISHES an interrupted promotion (client exists, ICP never written) instead of leaving a
+  // real person behind a door that answers 409 for ever. `replayed: true` tells the caller
+  // which happened without it having to guess.
   if (r.reason === 'promoted') {
-    res.status(409).json({
-      success: false,
-      error: 'This brief has already been confirmed. Your programme is the live record of it now.',
+    const { promoteConfirmedBrief } = await import('../lib/promotion')
+    const { briefDraftFor } = await import('../lib/brief-draft')
+    const again = await briefDraftFor(req.userId!)
+    if (again) {
+      const p = await promoteConfirmedBrief(req.userId!, again, { authEmail: req.authEmail ?? null })
+      if (p.ok) {
+        res.json({ success: true, data: {
+          confirmed_at: again.confirmedAt,
+          client_id: p.clientId, icp_id: p.icpId,
+          proof_started: Boolean(p.proofClaimId),
+          ...(p.proofNote ? { proof_note: p.proofNote } : {}),
+          replayed: true,
+        } })
+        return
+      }
+    }
+    // Only when the replay itself cannot be completed does the client see a refusal — and it
+    // is retryable, because the ids exist and the next attempt will find them.
+    res.status(503).json({
+      success: false, retryable: true,
+      error: 'Your brief is confirmed. We could not read your account back just now — please try again.',
     })
     return
   }

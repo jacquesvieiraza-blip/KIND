@@ -123,6 +123,11 @@ function installDbDouble() {
         rpc: async (name: string) => {
           if (name === 'try_reserve_proof_records') return { data: { granted: 20, reservation_id: 'res-1', reason: 'ok' }, error: null }
           if (name === 'try_reserve_programme_sourcing') return { data: 20, error: null }
+          // ⛓️ 17 Sep (XC-13 / FD-6) — the client sourcing gate is the programme AUTHORITY
+          // reserve now, not `try_spend_sourcing`: that function books a $0.28-a-record PDL cost
+          // we no longer incur. Both are answered here so the harness keeps working whichever
+          // path a case drives.
+          if (name === 'try_reserve_programme_sourcing') return { data: 20, error: null }
           if (name === 'try_spend_sourcing') return { data: 20, error: null }
           return { data: null, error: null }
         },

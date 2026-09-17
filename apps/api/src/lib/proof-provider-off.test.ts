@@ -190,6 +190,11 @@ async function buildProofModules(opts: ProofOpts, rec: Rec) {
           }, error: null }
           if (fn === 'settle_proof_claim') return { data: { ok: true }, error: null }
           if (fn === 'try_claim_proof_pass') return { data: 1, error: null }
+          // ⛓️ 17 Sep (XC-13 / FD-6) — the client sourcing gate is the programme AUTHORITY
+          // reserve now, not `try_spend_sourcing`: that function books a $0.28-a-record PDL cost
+          // we no longer incur. Both are answered here so the harness keeps working whichever
+          // path a case drives.
+          if (fn === 'try_reserve_programme_sourcing') return { data: Number(args.p_requested ?? 0), error: null }
           if (fn === 'try_spend_sourcing') return { data: Number(args.p_requested ?? 0), error: null }
           if (fn === 'release_proof_records') return { data: Number(args.p_records ?? 0), error: null }
           return { data: null, error: null }
@@ -337,11 +342,21 @@ describe('EXECUTED · a blocked paid remainder no longer kills the run', () => {
     expect(rec.outcomes[0].status).toBe('failed')
   })
 
-  it('an ORDINARY provider crash still propagates to the crash boundary — only the block is absorbed', async () => {
+  it('an ORDINARY provider crash still propagates to the crash boundary — and now RECORDS on the way', async () => {
     const rec = fresh()
     await expect(runProofJob({ pool: 3, provider: 'crashes' }, rec)).rejects.toThrow(/ECONNRESET/)
-    // The absorb is NARROW: a network error keeps its existing crash-boundary handling.
-    expect(rec.outcomes).toHaveLength(0)
+    // The absorb is still NARROW — the throw reaches the crash boundary, which is what owns
+    // the journey outcome and settles the Proof claim.
+    //
+    // ⛓️ 17 Sep (XC-13) — WAS `toHaveLength(0)`. A bare re-throw skipped three things that a
+    // provider failure obliges: the programme reservation stayed OPEN (a client's paid volume
+    // reserved against a batch that delivered nothing), "out of credits" and "Apollo is down"
+    // were the same row, and nobody got a task. The handler now classifies, releases, records
+    // and raises — then re-throws. So one outcome IS written here, and the status must be the
+    // classified one and never `no_match`: a failure is not evidence about a market.
+    expect(rec.outcomes).toHaveLength(1)
+    expect(rec.outcomes[0].status).toBe('failed')
+    expect(rec.outcomes[0].status).not.toBe('no_match')
   })
 
   it('providers ON and serving is untouched: pool 5 + provider 15 → served 20', async () => {

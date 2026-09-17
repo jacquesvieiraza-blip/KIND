@@ -244,6 +244,11 @@ async function runJob(opts: {
           rec.rpcs.push(fn)
           if (fn === 'try_reserve_proof_records') return { data: { granted: 20, reservation_id: 'res-1', reason: 'GRANTED' }, error: null }
           if (fn === 'try_claim_proof_pass') return { data: 1, error: null }
+          // ⛓️ 17 Sep (XC-13 / FD-6) — the client sourcing gate is the programme AUTHORITY
+          // reserve now, not `try_spend_sourcing`: that function books a $0.28-a-record PDL cost
+          // we no longer incur. Both are answered here so the harness keeps working whichever
+          // path a case drives.
+          if (fn === 'try_reserve_programme_sourcing') return { data: 20, error: null }
           if (fn === 'try_spend_sourcing') return { data: 20, error: null }
           return { data: null, error: null }
         },

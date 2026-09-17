@@ -779,7 +779,15 @@ describe('⑧ an unattached ICP cannot source for a programme client', () => {
     const gate = icps.indexOf("icp_not_attached_to_programme")
     expect(gate, 'the gate must exist').toBeGreaterThan(-1)
     expect(gate, 'it must precede pool serving').toBeLessThan(icps.indexOf('await servePoolLeads('))
-    expect(gate, 'and it must precede the sourcing spend RPC').toBeLessThan(icps.indexOf("try_spend_sourcing"))
+  // ⛓️ RE-AIMED 17 Sep (XC-13 / FD-6) — the sourcing gate in `icps.ts` is now
+  // `try_reserve_programme_sourcing`, called DIRECTLY. `try_spend_sourcing` does two jobs in
+  // one body — programme AUTHORITY, and a `sourcing_ledger` row at $0.28 a PDL record — and
+  // under FD-6 the second is a fabricated cost: *"We are not paying for PDL."* HOUSE-009
+  // already split the two; this points the client path at the same half House uses. The
+  // INVARIANT asserted here is byte-identical; only the RPC's name changed.
+    // ⚠️ ANCHORED ON THE PROVIDER GRANT (`p_requested: pdlRemainder`), because the same RPC
+    // is also called earlier for the free POOL reservation — a bare name match finds that one.
+    expect(gate, 'and it must precede the sourcing reservation RPC').toBeLessThan(icps.indexOf("p_requested: pdlRemainder"))
   })
 
   it('it asks about the CLIENT\'S open programme, and a mismatch fails closed', () => {
@@ -848,9 +856,14 @@ describe('⑧ an unattached ICP cannot source for a programme client', () => {
   })
 
   it('provider authority is still a separate gate — attribution does not bypass the kill-switch', () => {
-    // Correct attribution grants nothing. `PAID_PROVIDERS_ENABLED` and `try_spend_sourcing`
-    // both still stand between an attached ICP and a paid provider call.
-    expect(icps).toContain('try_spend_sourcing')
+    // Correct attribution grants nothing. `PAID_PROVIDERS_ENABLED` and the sourcing
+    // reservation both still stand between an attached ICP and a paid provider call.
+    // ⛓️ RE-AIMED 17 Sep (XC-13 / FD-6) — the reservation is now
+    // `try_reserve_programme_sourcing`, the authority half HOUSE-009 split out of
+    // `try_spend_sourcing`. Same gate, same position, same strength: nothing about the
+    // house authority this file guards is changed, and the money half it dropped was a
+    // $0.28-a-record PDL cost we no longer incur.
+    expect(icps).toContain('try_reserve_programme_sourcing')
     const guard = strip(raw(join(API, 'lib/paid-provider-guard.ts')))
     expect(guard).toContain('PAID_PROVIDERS_ENABLED')
   })

@@ -335,7 +335,18 @@ describe('② identity is POSITIVELY proved, or the sourcing run stops', () => {
     const c = code(ICPS_SRC)
     const at = c.indexOf('const audience = await audienceForClientStrict(clientId)')
     expect(at, 'the sourcing run no longer resolves the audience strictly').toBeGreaterThan(-1)
-    expect(c.indexOf('try_spend_sourcing'), 'the cash fence now runs BEFORE the audience is proved')
+  // ⛓️ RE-AIMED 17 Sep (XC-13 / FD-6) — the sourcing gate in `icps.ts` is now
+  // `try_reserve_programme_sourcing`, called DIRECTLY. `try_spend_sourcing` does two jobs in
+  // one body — programme AUTHORITY, and a `sourcing_ledger` row at $0.28 a PDL record — and
+  // under FD-6 the second is a fabricated cost: *"We are not paying for PDL."* HOUSE-009
+  // already split the two; this points the client path at the same half House uses. The
+  // INVARIANT asserted here is byte-identical; only the RPC's name changed.
+    // ⚠️ ANCHORED ON THE PROVIDER GRANT, NOT ON THE RPC NAME. `try_reserve_programme_sourcing`
+    // is ALSO called earlier, for the POOL reservation (a pool record is free, so it takes
+    // entitlement without booking provider cost), and that call legitimately precedes the
+    // audience resolution. A bare `indexOf` finds that one and the assertion inverts. The
+    // provider grant is the one that asks for `pdlRemainder`.
+    expect(c.indexOf('p_requested: pdlRemainder'), 'the sourcing fence now runs BEFORE the audience is proved')
       .toBeGreaterThan(at)
     // ⚠️ THE CALL, NOT THE IMPORT. `indexOf('searchPeopleWithFallback')` finds line 7 — the
     // import — which sits above everything and would fail this assertion no matter what the

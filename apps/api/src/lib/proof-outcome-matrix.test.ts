@@ -560,7 +560,17 @@ describe('F · the complete status space — no value exists as an untested assu
     // the desk exactly like every other exit, which is the whole duty this case defends. It
     // writes `'failed'`, an enum value already covered below, so the status space is
     // unchanged; only the number of places that reach it moved.
-    expect((src.match(/recordRunOutcome\(/g) ?? []).length).toBe(6)  // 1 def + 5 producers
+    // ⛓️ 6 → 7 on 17 Sep (XC-13): +1 PRODUCER, and it is the PROVIDER-FAILURE handler. An
+    // Apollo failure used to propagate straight out of `runIcpJob` to the crash boundary, so
+    // three things were skipped: the programme reservation stayed open, "out of credits" and
+    // "Apollo is down" were the same row, and nobody got a task. It now classifies the
+    // failure, releases the reservation, records the run with `verdict.runStatus` — which is
+    // `quota_exhausted` or `failed`, NEVER `no_match` — raises a Needs-you task, and then
+    // re-throws so the crash boundary still owns the journey outcome. The status space is
+    // unchanged; only the number of places that reach it moved.
+    expect((src.match(/recordRunOutcome\(/g) ?? []).length).toBe(7)  // 1 def + 6 producers
+    expect(src, 'the provider-failure producer must write the CLASSIFIED status, never no_match')
+      .toContain("recordRunOutcome(icpId, clientId, verdict.runStatus, effectiveCap, pool.served, 0)")
     expect(src).toContain("recordRunOutcome(icpId, clientId, 'failed', effectiveCap, pool.served, inserted, 0, didWiden)")
     expect(src).toContain("recordRunOutcome(icpId, clientId, 'quota_exhausted', effectiveCap, 0, 0)")
     // ⛓️ 15 Sep (S1-RT-004) — same call, same specificity; the shared module names the icp

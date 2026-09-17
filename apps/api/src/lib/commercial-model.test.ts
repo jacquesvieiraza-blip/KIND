@@ -312,7 +312,13 @@ describe('④ the resolver is consumed at every path that sources, sends, enrols
     const at = icps.indexOf('clientCommercialModel(clientId)')
     expect(at, 'the sourcing path must resolve the model').toBeGreaterThan(-1)
     expect(at, 'before the pool is served').toBeLessThan(icps.indexOf('await servePoolLeads('))
-    expect(at, 'before the sourcing spend RPC').toBeLessThan(icps.indexOf('try_spend_sourcing'))
+    // ⛓️ RE-AIMED 17 Sep (XC-13 / FD-6) — the sourcing gate is now
+    // `try_reserve_programme_sourcing`, called DIRECTLY. `try_spend_sourcing` does two jobs
+    // in one body — programme AUTHORITY, and a `sourcing_ledger` row at $0.28 a PDL record
+    // — and under FD-6 the second is a fabricated cost: *"We are not paying for PDL."*
+    // HOUSE-009 already split the two; this points the client path at the half House uses.
+    // The INVARIANT asserted here is byte-identical; only the RPC's name changed.
+    expect(at, 'before the sourcing reservation RPC').toBeLessThan(icps.indexOf('p_requested: pdlRemainder'))
     expect(at, 'before any paid provider is reached').toBeLessThan(icps.indexOf('searchPeople('))
     // ⚠️ AND THE TWO REFUSALS ACTUALLY THROW, rather than merely being mentioned.
     expect(icps).toMatch(/if \(model\.model === 'unreadable'\) \{[\s\S]{0,400}throw new ProgrammeAuthorityError/)
@@ -395,10 +401,16 @@ describe('④ the resolver is consumed at every path that sources, sends, enrols
     expect(at, 'the route must resolve the commercial model').toBeGreaterThan(-1)
     expect(look, 'the old question must be gone')
       .not.toContain('const openProgramme = await openProgrammeForClient(String(client_id))')
-    expect(at, 'before the sourcing spend RPC').toBeLessThan(look.indexOf("db.rpc('try_spend_sourcing'"))
-    expect(at, 'before Apollo — the House path, which skips the RPC entirely')
+    // ⛓️ RE-AIMED 17 Sep (FD-6) — this route now calls NO sourcing RPC at all, and no PDL.
+    // `mayUseLegacyCommercialPath` refuses a programme client above, so the only client who
+    // reaches the provider is legacy or unclassified and has no programme to reserve against;
+    // the PDL money fence it used to call books a cost we no longer incur. The property this
+    // case guards — the model is resolved BEFORE anything is spent, searched or written — is
+    // unchanged, and the two remaining anchors are the ones that still exist.
+    expect(look, 'the retired PDL money fence must be gone').not.toContain("db.rpc('try_spend_sourcing'")
+    expect(look, 'and nothing here calls PDL any more').not.toContain('pdlSearchPeople')
+    expect(at, 'before Apollo — the one provider')
       .toBeLessThan(look.indexOf('await searchPeople(searchBody)'))
-    expect(at, 'before PDL').toBeLessThan(look.indexOf('pdlSearchPeople'))
     expect(at, 'before any lead is written').toBeLessThan(look.indexOf("from('leads')"))
     // ⚠️ THE CONDITION IS THE BARE NEGATION, WITH A RETURN — not merely a mention.
     expect(look.slice(at - 60)).toMatch(/if \(!mayUseLegacyCommercialPath\(model\)\) \{[\s\S]{0,1400}return res\.json/)

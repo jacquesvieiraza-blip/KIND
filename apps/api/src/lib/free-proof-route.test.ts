@@ -39,8 +39,11 @@ type Rec = {
   /** ⚑ 24 Aug — every enrichAndDeliverLeads() call: the PAID reveal/delivery path.
    *  A free-proof run must never appear here. Each entry is the candidate id list. */
   enrich: string[][]
+  /** ⛓️ 17 Sep (FD-6) — the SIZE asked of the provider on each search. With AR8's cash fence
+   *  retired, "how many did this run ask for?" is answerable only from the request itself. */
+  searchSizes: number[]
 }
-const emptyRec = (): Rec => ({ rpcs: [], leadUpdates: [], leadInserts: 0, alerts: [], poolCap: null, eqs: [], enrich: [] })
+const emptyRec = (): Rec => ({ rpcs: [], leadUpdates: [], leadInserts: 0, alerts: [], poolCap: null, eqs: [], enrich: [], searchSizes: [] })
 
 const ICP_ROW = {
   id: 'icp-1', client_id: 'c1',
@@ -238,6 +241,11 @@ async function runJob(opts: {
             reservation_id: (jctx.opts.reserve ?? 10) > 0 ? 'res-1' : null,
             reason: jctx.opts.reserveReason ?? ((jctx.opts.reserve ?? 10) > 0 ? 'GRANTED' : 'MONTHLY_PROOF_BUDGET_REACHED'),
           }, error: null }
+          // ⛓️ 17 Sep (XC-13 / FD-6) — the client sourcing gate is the programme AUTHORITY
+          // reserve now, not `try_spend_sourcing`: that function books a $0.28-a-record PDL cost
+          // we no longer incur. Both are answered here so the harness keeps working whichever
+          // path a case drives.
+          if (fn === 'try_reserve_programme_sourcing') return { data: jctx.opts.grant ?? 10, error: null }
           if (fn === 'try_spend_sourcing')         return { data: jctx.opts.grant ?? 10, error: null }
           return { data: null, error: null }
         },
@@ -283,7 +291,7 @@ async function runJob(opts: {
   }))
 
   vi.doMock('./apollo', () => ({
-    searchPeopleWithFallback: async () => ({ contacts, relaxed: false }),
+    searchPeopleWithFallback: async (_icp: unknown, _p: number, size: number) => { rec.searchSizes.push(size); return { contacts, relaxed: false } },
     ApolloCreditsExhaustedError: class extends Error {},
     ApolloRateLimitError: class extends Error {},
   }))
@@ -451,11 +459,15 @@ describe('runIcpJob leaves the PAID path exactly as it was', () => {
     restoreTestEnv()
   })
 
-  it('A PAYING CLIENT still spends AR8 and never touches proof state', async () => {
+  // ⛓️ RE-AIMED 17 Sep (XC-13 / FD-6) — was "still spends AR8". AR8's cash fence pre-funds
+  // PDL records out of `clients.sourcing_allowance` and books $0.28 a head; under FD-6 that
+  // cost does not exist. The SUBJECT of this case is untouched and is the important half: a
+  // PAID run must not touch proof state — no claim, no reservation, no release.
+  it('A PAYING CLIENT never touches proof state, whatever fences its own sourcing', async () => {
     const rec = emptyRec()
     await runJob({ funded: 'real', grant: 15, contacts: 15 }, rec)
     const names = rec.rpcs.map(r => r.fn)
-    expect(names).toContain('try_spend_sourcing')
+    expect(names, 'the retired PDL money fence must not be called').not.toContain('try_spend_sourcing')
     expect(names).not.toContain('claim_proof_authority')
     expect(names).not.toContain('try_reserve_proof_records')
     expect(names).not.toContain('release_proof_records')
@@ -532,8 +544,11 @@ describe('free proof — a proof pass surfaces at most 20 leads', () => {
   it('A PAYING CLIENT\'S CAP IS UNTOUCHED — still the full effectiveCap', async () => {
     const rec = emptyRec()
     await runJob({ funded: 'real', maxLeads: 200, pool: 0, grant: 200, contacts: 0 }, rec)
-    const spend = rec.rpcs.find(r => r.fn === 'try_spend_sourcing')!
-    expect(spend.args.p_requested).toBe(200)         // NOT 20 — the 20 is a proof rule only
+    // ⛓️ RE-AIMED 17 Sep (FD-6) — the amount used to be read off `try_spend_sourcing`'s
+    // arguments. That call is gone; the run is now sized by the provider request itself.
+    // The RULE is unchanged and is the whole point: 20 is a PROOF cap and must never leak
+    // onto a paid run.
+    expect(rec.searchSizes.at(-1), 'NOT 20 — the 20 is a proof rule only').toBe(200)
   })
 })
 
@@ -625,8 +640,12 @@ describe('round 4 — proof is an execution mode, not an account property', () =
     const names = rec.rpcs.map(r => r.fn)
     expect(names).not.toContain('claim_proof_authority')
     expect(names).not.toContain('try_reserve_proof_records')
-    // The normal fence answers instead — and for a never-funded account it grants 0.
-    expect(names).toContain('try_spend_sourcing')
+    // ⛓️ RE-AIMED 17 Sep (FD-6) — the normal path used to answer with AR8's cash fence, and
+    // for a never-funded account it granted 0. That fence is retired: a client with no
+    // programme now mirrors the House path and is bounded per run, which is a REPORTED gap
+    // (no lifetime ceiling) and not a licence to touch proof authority. The subject of this
+    // case is that boundary, and it holds: no proof claim, no proof reservation.
+    expect(names, 'the retired PDL money fence must not be called').not.toContain('try_spend_sourcing')
   })
 
   it('A NORMAL RUN DOES NOT AUTO-SURFACE A NEVER-FUNDED ACCOUNT\'S LEADS', async () => {

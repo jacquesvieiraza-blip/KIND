@@ -325,9 +325,16 @@ describe('⑨ DELIVERY ATTRIBUTION', () => {
     // page). Entitlement is now consumed by M&V's qualification verdict, so the settle moved
     // to AFTER judging — which is after the stamp. Asserting the old ordering would now demand
     // the settle move back in front of the inserts, i.e. demand the defect.
-    expect(settle, 'the settle is gone from runIcpJob').toBeGreaterThan(0)
-    expect(settle, 'the settle ran before the rows it accounts for existed').toBeGreaterThan(lastInsert)
-    expect(settle, 'attribution is back inside the settle block, where the rows do not exist yet').toBeGreaterThan(stamp)
+    // ⛓️ ANCHORED ON THE LAST SETTLE, NOT THE FIRST (17 Sep, XC-13). A provider failure now
+    // releases the reservation by settling the batch at zero BEFORE re-throwing — which is
+    // early in the function on purpose, because the alternative is a client's paid volume
+    // staying reserved against a batch that delivered nothing. `indexOf` finds that release
+    // and the assertion inverts; the settle this case is about is the one that accounts for
+    // delivered rows, which is still the last.
+    const settleLast = src.lastIndexOf('settleBatch(')
+    expect(settleLast, 'the settle is gone from runIcpJob').toBeGreaterThan(0)
+    expect(settleLast, 'the settle ran before the rows it accounts for existed').toBeGreaterThan(lastInsert)
+    expect(settleLast, 'attribution is back inside the settle block, where the rows do not exist yet').toBeGreaterThan(stamp)
   })
 
   it('🛑 attribution uses EXACT ROW IDS — no timestamp or window inference survives', () => {

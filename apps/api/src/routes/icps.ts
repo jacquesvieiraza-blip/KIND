@@ -6,6 +6,10 @@ import { requireAuth, AuthRequest } from '../middleware/auth'
 import { rateLimit } from '../lib/rate-limit'
 import { searchPeopleWithFallback, ApolloCreditsExhaustedError, ApolloRateLimitError } from '../lib/apollo'
 import { audienceForClientStrict, audienceForUser, sourcingProviderFor } from '../lib/provider-boundary'
+// ⛓️ 17 Sep (XC-5 / XC-13) — a refusal and a provider failure become PERSISTED operator
+// tasks, not emails. An email cannot be assigned, deduped, resolved with a reason or counted.
+import { raiseOperatorTask } from '../lib/operator-tasks'
+import { classifyProviderFailure } from '../lib/provider-failure'
 import { launchProofRun } from '../lib/proof-run-launch'
 import { scoreLeadsForIcp } from '../lib/scoring'
 import { sendFirstLeadsReadyEmail, sendConsentEmail } from '../lib/email'
@@ -1145,6 +1149,10 @@ export async function runIcpJob(
     // MONTHLY_PROOF_BUDGET_REACHED · FAIL_CLOSED_*. Only the second value in that list is a
     // company money event, and only it raises the acquisition alert.
     let proofReason = 'GRANTED'
+    // ⛓️ 17 Sep (XC-13) — a client ICP with no programme holds no sourcing authority under
+    // FD-6. Distinguished from an exhausted ceiling because the operator sentence differs:
+    // one needs a programme, the other needs room in one.
+    let noProgrammeAuthority = false
 
     if (audience === 'house') {
       // ── HOUSE-009 · NO PDL MONEY, BUT STILL PROGRAMME AUTHORITY (7 Sep) ───────────────
@@ -1199,31 +1207,75 @@ export async function runIcpJob(
       grantedSize = proofReserved
       console.log(`[icp] FREE PROOF run for prospect ${clientId} — reserved ${proofReserved} of ${pdlRemainder} PDL record(s) (reservation ${proofReservationId ?? 'none'}, ${proofReason}) against the acquisition fence (40 lifetime, $300/mo).`)
     } else {
-      // ── PROGRAMME AUTHORITY (BUILD-002) ─────────────────────────────────────────────
-      // The programme comes from the ICP ROW, never from the client. A programme may hold
-      // several ICPs, so deriving it from the client would guess as soon as there is more
-      // than one — and `icp` is already loaded with select('*') above, so this is a read of
-      // data the job is holding, not a second query that could disagree with it.
+      // ── PROGRAMME AUTHORITY, WITHOUT PDL MONEY (⛓️ 17 Sep · XC-13 / J12-C0) ───────────
       //
-      // ⚠️ PASSING NULL IS NOT A FALLBACK. If this client HAS an open programme, the RPC
-      // returns 0 for a NULL id rather than quietly spending their legacy wallet. The gate
-      // decides which regime applies from the database, so a caller that forgets is refused
-      // instead of silently sourcing outside programme authority.
+      // ⛓️ WAS: `db.rpc('try_spend_sourcing', { p_client_id, p_requested, p_programme_id })`.
+      //
+      // That function does TWO unrelated jobs in one body, and HOUSE-009 already split them:
+      // programme AUTHORITY (status, pause, ceiling, the 250 batch cap) and PDL MONEY (an
+      // `INSERT INTO sourcing_ledger` at `$0.28` a record). Under FD-6 the second half is a
+      // fabricated cost — *"We are not paying for PDL"* — so a client programme sourcing run
+      // would have booked provider spend nobody incurred, against a monthly PDL ceiling that
+      // constrains nothing, and used it to refuse real work.
+      //
+      // So the client path now calls the authority half DIRECTLY, exactly as the House path
+      // above it does. One implementation of the ceiling, three callers, no invented money.
+      // `programme_batches` is still the record, `settleBatch` still converts reserved →
+      // used, and the 2,500 ceiling is still enforced in one place.
+      //
+      // ⚠️ A CLIENT WITH NO PROGRAMME IS REFUSED, AND THAT IS THE SAFE DIRECTION.
+      //
+      // The old legacy branch of `try_spend_sourcing` fenced such a client by their
+      // `sourcing_allowance` and the monthly PDL dollar ceiling. Under FD-6 neither fences
+      // anything: the records come from K.I.N.D's own prepaid Apollo credits, so an
+      // allowance denominated in PDL records would authorise spending OUR credits with no
+      // ceiling at all. Refusing is fail-closed and it is legible: the run records
+      // `quota_exhausted` and Vida gets a Needs-you saying the client holds no programme
+      // authority. Granting would be a silent, unbounded spend of the one resource MVP1
+      // depends on.
+      //
+      // ⚠️ AND THE PROGRAMME COMES FROM THE ICP ROW, never from the client — a client may
+      // hold several ICPs, so deriving it from the client would guess as soon as there is
+      // more than one, and `icp` is already loaded here.
       const programmeId = (icp as { programme_id?: string | null }).programme_id ?? null
-      const { data: granted } = await db.rpc('try_spend_sourcing', {
-        p_client_id: clientId, p_requested: pdlRemainder, p_programme_id: programmeId,
-      })
-      grantedSize = typeof granted === 'number' ? granted : 0
-      // Reserve/release: authority is RESERVED at grant and converted to used only when the
-      // provider actually delivers, so a provider returning zero cannot permanently burn
-      // volume the client paid for. The batch row is the record that lets it be released.
-      // ⚑ 9 Sep — the batch covers the whole attempt (see the pool reservation above). The
-      // PDL money call itself is UNCHANGED and still asks only for `pdlRemainder`: a pool
-      // record is free, and putting it through `try_spend_sourcing` would book $0.28 a head
-      // of provider cost that nobody incurred.
-      if (programmeId && grantedSize + poolReserved > 0) {
-        const { openBatch } = await import('../lib/programme')
-        programmeBatch = await openBatch(programmeId, pdlRemainder + poolAttempted, grantedSize + poolReserved)
+      if (!programmeId) {
+        // ── A CLIENT ICP WITH NO PROGRAMME KEEPS TODAY'S BEHAVIOUR, EXACTLY AS HOUSE DOES ──
+        //
+        // ⚠️ I WROTE THE REFUSAL FIRST, AND IT WAS THE WRONG CALL. Refusing here is the
+        // tempting answer — under FD-6 these records come from K.I.N.D's prepaid Apollo
+        // credits, and only programme entitlement bounds them — but it is not the answer the
+        // manifest asks for and it is not one I may make. XC-13 says client shortfall is
+        // sourced "under programme entitlement … the existing House-on-Apollo model", and
+        // the House path's own answer for an ICP with no programme, eleven lines above, is to
+        // grant the remainder: there is nothing to reserve against, and inventing a refusal
+        // would break sourcing to fix a counter that does not exist.
+        //
+        // So this mirrors House exactly. The volume is still bounded per run by
+        // `effectiveCap` → `pdlRemainder`, which is the same limit the reservation would have
+        // capped; what is absent is a LIFETIME ceiling.
+        //
+        // 🛑 AND THAT ABSENCE IS A REAL GAP, REPORTED RATHER THAN SILENTLY FIXED. Before
+        // FD-6 a programme-less client was fenced by `clients.sourcing_allowance` and the
+        // monthly PDL dollar cap. Neither bounds anything now, because the records are ours.
+        // Whether a legacy client may source on K.I.N.D's Apollo credits with no lifetime
+        // ceiling is a commercial decision, not an engineering one — it is in the
+        // out-of-scope report, and Batch 1 does not decide it.
+        grantedSize = pdlRemainder
+        noProgrammeAuthority = true
+        console.log(`[icp] client run for ${clientId} — Apollo remainder ${grantedSize}; this ICP carries no programme, so there is no reservation to make (mirrors the House path). ⚠️ NO LIFETIME CEILING APPLIES: the PDL allowance and monthly dollar cap that used to fence this client bound nothing under FD-6.`)
+      } else {
+        const { data: reserved } = await db.rpc('try_reserve_programme_sourcing', {
+          p_programme_id: programmeId, p_requested: pdlRemainder,
+        })
+        grantedSize = typeof reserved === 'number' ? reserved : 0
+        // ⚑ 9 Sep — the batch is the whole ATTEMPT: the provider grant plus the pool volume
+        // reserved above. Recording only the provider half is what made the settle clamp a
+        // qualified pool candidate out of the customer's consumed ceiling.
+        if (grantedSize + poolReserved > 0) {
+          const { openBatch } = await import('../lib/programme')
+          programmeBatch = await openBatch(programmeId, pdlRemainder + poolAttempted, grantedSize + poolReserved)
+        }
+        console.log(`[icp] client programme run for ${clientId} — programme ${programmeId} reserved ${grantedSize} of ${pdlRemainder} Apollo record(s); no ledger row written, because entitlement and provider cost are different facts (HOUSE-009, extended to clients by FD-6).`)
       }
     }
     if (grantedSize <= 0) {
@@ -1243,7 +1295,32 @@ export async function runIcpJob(
       // budget alarm for it would tell the founder his clients' data budget had run out when
       // it is untouched — the same false-alert species the proof split above exists to stop.
       if (audience === 'house') console.error(`[icp] house sourcing refused for programme run on client ${clientId} — the programme reserved 0 of ${pdlRemainder}. Its ceiling is spent, it is paused, or it holds no sourcing authority. No PDL budget is involved and none was touched.`)
-      else if (!proofMode) void maybeAlertPdlBudget()
+      // ⛓️ 17 Sep (XC-13 / J5-C9) — `maybeAlertPdlBudget()` IS GONE FROM THIS PATH.
+      //
+      // WAS: `else if (!proofMode) void maybeAlertPdlBudget()`. A refused client grant raised
+      // "the monthly PDL data budget has been reached". Under FD-6 that sentence is false in
+      // both halves: we buy no PDL records, and the thing that refused is a PROGRAMME ceiling
+      // or the absence of a programme. Telling the founder his data budget ran out while it
+      // sits untouched is the exact false-alert species the proof/house splits below and
+      // above this line were each written to stop.
+      //
+      // The refusal becomes a Needs-you task instead, with the sentence that matches its
+      // actual cause.
+      else if (!proofMode) {
+        void raiseOperatorTask({
+          kind: 'sourcing_refused_no_authority',
+          severity: 'warn',
+          clientId,
+          subjectKind: 'icp',
+          subjectId: String(icpId),
+          // ⚠️ ONE SENTENCE, BECAUSE THERE IS ONLY ONE CAUSE LEFT. An ICP with no programme
+          // no longer reaches this branch — it mirrors House and grants the remainder, see
+          // above — so a zero grant here means the programme itself refused.
+          title: 'Sourcing refused — this programme has no sourcing authority left',
+          detail: 'The programme\'s ceiling is spent, it is paused, or it is not yet authorised. Raise the ceiling, resume it, or authorise it. Nothing was searched and nothing was spent.',
+          evidence: { requested: pdlRemainder, granted: 0, pool_served: pool.served, no_programme: noProgrammeAuthority },
+        }).catch(() => {})
+      }
       else if (proofReason === 'MONTHLY_PROOF_BUDGET_REACHED') void alertProofBudgetSpent(clientId)
       else if (proofReason === 'CLIENT_PROOF_LIMIT_REACHED') console.log(`[icp] FREE PROOF — prospect ${clientId} has used their ${PROOF_CLIENT_RECORD_CAP}-record allowance; the monthly acquisition budget is untouched.`)
       // A fail-closed reason is NOT "they used their 40" — saying so in a log the founder
@@ -1252,7 +1329,7 @@ export async function runIcpJob(
       else console.error(`[icp] FREE PROOF reservation did not complete for prospect ${clientId} (${proofReason}) — nothing was reserved and nothing spent. This is not a budget event.`)
       if (pool.served === 0) {
         // Nothing from the pool AND no PDL budget → identical to the pre-pool refusal.
-        console.log(`[icp] sourcing refused for client ${clientId} — no pre-funded budget (allowance/ceiling/daily). No PDL spend.`)
+        console.log(`[icp] sourcing refused for client ${clientId} — no sourcing authority (programme ceiling, pause, or no programme at all). Nothing was searched and nothing was spent.`)
         await db.from('icps').update({ last_run_at: new Date().toISOString() }).eq('id', icp.id)
         await recordRunOutcome(icpId, clientId, 'quota_exhausted', effectiveCap, 0, 0)
         // ⚠️ THE HOUSE REFUSAL HAS A DIFFERENT CAUSE, SO IT GETS A DIFFERENT SENTENCE. "Add
@@ -1261,9 +1338,14 @@ export async function runIcpJob(
         // to the wrong screen.
         // The budget fence refused before PDL was called: nothing was spent, so the Proof
         // authority returns rather than paying for a run that never happened.
-        return { inserted: 0, skipped: 0, terminal: terminalForRunStatus('quota_exhausted'), relaxed: audience === 'house'
-          ? 'Sourcing paused — this programme has no sourcing authority left (ceiling reached, paused, or not yet authorised).'
-          : 'Sourcing paused — add reveal credits (or the monthly data budget has been reached).' }
+        // ⛓️ 17 Sep (XC-13) — THE CLIENT SENTENCE CHANGED, because the old one was false.
+        // "Add reveal credits (or the monthly data budget has been reached)" described a PDL
+        // wallet and a PDL dollar ceiling, neither of which exists under FD-6. What actually
+        // refused is programme authority, which is the same thing that refuses for House —
+        // so both audiences now get the true sentence, and `relaxed` is client-facing copy,
+        // so it says it without naming a provider (C02: no provider terminology in Milla).
+        return { inserted: 0, skipped: 0, terminal: terminalForRunStatus('quota_exhausted'),
+          relaxed: 'Sourcing is paused for this programme — there is no volume authorised to source right now.' }
       }
       // Pool already served leads — deliver those; just skip the PDL top-up.
       console.log(`[icp] PDL top-up refused for client ${clientId} (no budget) — delivering ${pool.served} pool-served leads only.`)
@@ -1358,7 +1440,78 @@ export async function runIcpJob(
         // Only the DELIBERATE block is absorbed — every other throw keeps crashing to the
         // boundary, exactly as before. Recognised by its stable code, not instanceof, so a
         // reloaded module graph cannot unrecognise it.
-        if (!isPaidProviderBlocked(searchErr)) throw searchErr
+        if (!isPaidProviderBlocked(searchErr)) {
+          // ── ⛓️ 17 Sep (XC-13) — EVERY APOLLO FAILURE CLASS FAILS CLOSED, HERE ──────────
+          //
+          // 🛑 WHAT THE BARE `throw` LEFT BEHIND. `openBatch` above reserves the client's
+          // volume; `settleBatch` at the end of this function converts it. A throw between
+          // them skips the settle, so a client's PAID volume sat reserved against a batch
+          // that delivered nothing — for ever, until somebody reconciled by hand. HOUSE-009
+          // is the same defect from the other end, and it cost 246 people counted against
+          // `0 used / 0 reserved / 2500 left / no batch`.
+          //
+          // And with FD-6 there is no second provider, so an Apollo failure is the WHOLE
+          // answer: "out of credits" and "Apollo is down" need different responses, and
+          // `icp_run_outcomes` already carried the distinction nothing was using.
+          //
+          // ⚠️ IT STILL RE-THROWS. The crash boundary is what records `failed` for the
+          // journey and settles the Proof claim, and skipping it would change who owns the
+          // outcome. What this block adds is the three things the throw skipped: the
+          // reservation is RELEASED, the run is recorded with the right status, and a
+          // human gets a task naming the actual cause.
+          const verdict = classifyProviderFailure(searchErr)
+          console.error(`[icp] stage=provider_failed — class=${verdict.klass} status=${verdict.runStatus} client=${clientId} icp=${icpId}: ${verdict.operatorDetail}`)
+
+          // ① RELEASE. A failure must never hold volume a client paid for.
+          if (programmeBatch) {
+            const { settleBatch } = await import('../lib/programme')
+            // Zero delivered: the reservation is returned in full, because nothing arrived.
+            await settleBatch(programmeBatch.id, 0).catch(e =>
+              console.error(`[icp] batch ${programmeBatch?.id} could NOT be released after a provider failure — the reservation stands and must be reconciled:`, e))
+            // ⚠️ NO "already settled" FLAG IS NEEDED, and the absence is deliberate: this
+            // block RE-THROWS, so the settle at the end of the run is never reached on this
+            // path. A flag would imply a second settle were possible and invite one.
+          }
+          if (proofMode && proofReservationId && proofReserved > 0) {
+            const { error: relErr } = await db.rpc('release_proof_records', {
+              p_reservation_id: proofReservationId, p_records: proofReserved,
+            })
+            if (relErr) console.error(`[icp] PROOF reservation ${proofReservationId} could NOT be released after a provider failure (${proofReserved} records) — it stands, so future proof under-allows rather than overspends:`, relErr)
+          }
+
+          // ② RECORD. `quota_exhausted` when the account is spent, `failed` otherwise —
+          //    and NEVER `no_match`, because a failure is not evidence about a market.
+          await recordRunOutcome(icpId, clientId, verdict.runStatus, effectiveCap, pool.served, 0)
+            .catch(e => console.error('[icp] provider-failure outcome not recorded:', e))
+
+          // ③ TELL A HUMAN, in a form they can act on. Deduped by the index on
+          //    (kind, dedupe_key), so a 2-hourly cron hitting a dry account produces one row
+          //    a day rather than twelve — which is how a queue stays readable.
+          await raiseOperatorTask({
+            kind: verdict.taskKind,
+            severity: verdict.severity,
+            clientId,
+            subjectKind: 'icp',
+            subjectId: String(icpId),
+            title: verdict.klass === 'credits_exhausted' || verdict.klass === 'payment_required'
+              ? 'Apollo is out of lead credits — sourcing cannot complete'
+              : `The lead source failed (${verdict.klass}) — sourcing cannot complete`,
+            detail: verdict.operatorAction,
+            // ⚠️ THE DEDUPE KEY IS THE CONDITION, NOT THE CLIENT. An exhausted account is one
+            // fact about the company; keying it per client would file a row per client per
+            // cron tick for a single cause.
+            dedupeKey: `provider:${verdict.klass}`,
+            evidence: {
+              failure_class: verdict.klass,
+              run_status: verdict.runStatus,
+              retryable: verdict.retryable,
+              requested: grantedSize,
+              detail: verdict.operatorDetail,
+            },
+          }).catch(() => {})
+
+          throw searchErr
+        }
         paidSourcingBlocked = true
         console.error(`[icp] stage=provider_blocked — paid sourcing required (${grantedSize} record(s)) but the zero-spend guard refused it; pool served ${pool.served}. The run continues: pool leads surface, the reservation refunds, the outcome records honestly.`)
         void sendFounderAlert('source_down', 'Proof run needed paid sourcing but PAID_PROVIDERS_ENABLED is off', [

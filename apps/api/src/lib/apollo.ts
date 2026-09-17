@@ -6,6 +6,11 @@
 // historic `pdl_…` provenance is still read at the reveal door (AR15).
 import { type PdlSearchOptions } from './pdl-search'
 import type { ProviderPage } from './provider-page'
+// ⛓️ J5-C14 — ONE timeout, shared with the desk that waits on it. `searchPeople` had NO
+// timeout and Node's `fetch` has no default, so Apollo's "worst case" was unbounded and the
+// Proof desk's bound was arithmetic about nothing. A second copy of the number here would
+// silently invalidate the derivation, so it is imported.
+import { APOLLO_REQUEST_TIMEOUT_MS } from '@kind/shared'
 import { assertPaidProviderAllowed, rethrowIfProviderBlocked } from './paid-provider-guard'
 import { sourcingProviderFor, apolloRevealableIds, type Audience } from './provider-boundary'
 import { sendFounderAlert } from './alerts'
@@ -298,6 +303,7 @@ export async function previewCount(
   assertPaidProviderAllowed('apollo', 'previewCount')
   try {
     const res = await fetch(APOLLO_PEOPLE_SEARCH, {
+      signal: AbortSignal.timeout(APOLLO_REQUEST_TIMEOUT_MS),
       method:  'POST',
       headers: { 'Content-Type': 'application/json', 'X-Api-Key': apiKey },
       body:    JSON.stringify(body),
@@ -639,6 +645,10 @@ export async function searchPeople(body: ApolloSearchBody): Promise<ApolloContac
   const legalBody: ApolloSearchBody = { ...body, per_page: perPage }
 
   const res = await fetch(APOLLO_PEOPLE_SEARCH, {
+    // ⛓️ J5-C14 — BOUNDED. Without this an Apollo request could hang for as long as the
+    // socket stayed open, which is the "started and never came back" state XC-6's detector
+    // exists to find — and it would have made the Proof desk's wait bound undefinable.
+    signal:  AbortSignal.timeout(APOLLO_REQUEST_TIMEOUT_MS),
     method:  'POST',
     headers: { 'Content-Type': 'application/json', 'X-Api-Key': apiKey },
     body:    JSON.stringify(legalBody),
@@ -772,6 +782,8 @@ export async function bulkMatchEmails(apolloIds: string[]): Promise<Map<string, 
     assertPaidProviderAllowed('apollo', 'bulkMatch')
     try {
       const res = await fetch(bulkMatchUrl(), {
+        // ⛓️ J5-C14 — the reveal is the other half of a Proof run's worst case.
+        signal: AbortSignal.timeout(APOLLO_REQUEST_TIMEOUT_MS),
         method:  'POST',
         headers: { 'Content-Type': 'application/json', 'X-Api-Key': apiKey },
         // ⚠️ `details` ALONE. The four safety controls ride on the query string above — see

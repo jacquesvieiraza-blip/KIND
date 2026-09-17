@@ -1062,13 +1062,21 @@ describe('the desk shows an honest finding state and refreshes itself', () => {
     expect(rest.slice(0, end), 'the desk claim is inside confirmRefine').toContain('/proof`')
   })
 
-  it('the cadence is 3s, bounded at 80 checks (240s — sized to the backend worst case)', () => {
-    expect(deskCode).toContain('const FINDING_POLL_MS = 3000')
+  it('the cadence and the cap are IMPORTED, and the poll honours both', () => {
     // ⛓️ 26 Aug — 20 checks (~60s) could declare "We hit a snag" while a healthy slow
     // proof was still inside its legitimate ~160–180s worst case (2 × PDL size-ladder at
     // 15s/attempt + rate-limit retries). 80 × 3s = 240s clears that with margin and is
     // still a hard stop. The derivation lives next to the constant.
-    expect(deskCode).toContain('const FINDING_MAX_CHECKS = 80')
+    //
+    // ⛓️ 17 Sep (J5-C14 · FD-6) — WAS `toContain('const FINDING_POLL_MS = 3000')` and
+    // `toContain('const FINDING_MAX_CHECKS = 80')`. Both numbers were PDL's, and both were
+    // typed into the page a second time. They come from `@kind/shared` now, where the
+    // derivation is counted in Apollo requests, so this asserts the desk DERIVES them —
+    // a re-typed literal is the regression, and the two `not.toMatch` lines catch it.
+    expect(deskCode).toContain('const FINDING_POLL_MS = PROOF_DESK_POLL_MS')
+    expect(deskCode).toContain('const FINDING_MAX_CHECKS = PROOF_DESK_MAX_CHECKS')
+    expect(deskCode).not.toMatch(/const FINDING_POLL_MS = \d/)
+    expect(deskCode).not.toMatch(/const FINDING_MAX_CHECKS = \d/)
     expect(deskCode).toContain('}, FINDING_POLL_MS)')
     expect(deskCode).toContain('if (checks >= FINDING_MAX_CHECKS) { clearInterval(timer); setFindingTimedOut(true); return }')
   })

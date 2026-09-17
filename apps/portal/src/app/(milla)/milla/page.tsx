@@ -18,7 +18,7 @@ import ProgrammeWorkspace, { nextActionFor, type CustomerProgramme } from '@/com
 // approves in Milla"). ADDITIVE: it renders BELOW the existing workspace and only at the
 // Approval stage, so every other stage's screen is byte-for-byte what it was.
 import ProgrammeReview from '@/components/milla/ProgrammeReview'
-import { proofWaitState, invalidateProofSnapshot, classifyClaimFailure, isReconciling, PROOF_WAIT_MS } from '@/lib/proof-start'
+import { proofWaitState, invalidateProofSnapshot, classifyClaimFailure, isReconciling, PROOF_WAIT_MS, PROOF_DESK_POLL_MS, PROOF_DESK_MAX_CHECKS } from '@/lib/proof-start'
 
 // #497/#503/#506/#495 — MILLA HOME (docs/mv-previews/milla2.html): KPI cards row + Milla
 // chat as the SPINE (centre, full height) + the programme workspace (right).
@@ -171,33 +171,36 @@ function serverProofStartedAt(summary: Summary | null): number {
 /**
  * ⚑ 26 Aug (final review) — THE BOUND IS DERIVED FROM THE BACKEND'S OWN WORST CASE,
  * not picked. The previous 20 × 3s ≈ 60s could declare "We hit a snag" while a
- * perfectly healthy slow proof was still legitimately running. The math, from code:
+ * perfectly healthy slow proof was still legitimately running.
  *
- *   · one PDL attempt:            fetch AbortSignal.timeout(15000)  = 15s   (pdl-search.ts)
- *   · size ladder at batch 20:    [20, 10, 5, 1]                    = 4 attempts
- *   · worst ladder walk (402s):   4 × 15s                           = 60s
- *   · one global rate-limit retry: 2.5s pause + 15s                 = 17.5s
- *   · exact search worst case:                                     ≈ 77.5s
- *   · ONE widened fallback (same shape again):                     ≈ 77.5s
- *   · pool query, DB writes, memory pass, alerts:                  ≈ seconds
- *   → worst LEGITIMATE proof runtime                               ≈ 160–180s
+ * ⛓️ 17 Sep (J5-C14 · FD-6) — THE MATH MOVED, AND IT WAS RE-DERIVED FROM APOLLO. What stood
+ * here was a request-by-request accounting of **PDL**: *"one PDL attempt: fetch
+ * AbortSignal.timeout(15000) = 15s (pdl-search.ts) · size ladder at batch 20: [20, 10, 5, 1]
+ * = 4 attempts · worst ladder walk (402s): 4 × 15s = 60s · one global rate-limit retry: 2.5s
+ * pause + 15s = 17.5s → worst LEGITIMATE proof runtime ≈ 160–180s"* — so 80 × 3s = 240s.
+ * Under FD-6 Proof sources from Apollo, which has no size ladder at all: it pages, and a
+ * Proof batch of 20 fits in one page. The full derivation now lives once, in
+ * `packages/shared/src/proof-wait.ts`, counted in Apollo requests.
  *
- * 80 checks × 3s = 240s: above the honest worst case with ~60s of margin, and still a
- * hard stop — there is no server-side job timeout to lean on (the run is fire-and-forget
- * in-process), so this client-side bound is the final failsafe, sized so it cannot fire
- * before the backend could truly still be working. Bounded on purpose: an unbounded poll
- * on a run that died is a tab quietly hammering the API forever.
+ * 🛑 AND THESE TWO NUMBERS ARE NO LONGER TYPED HERE. They used to be declared locally
+ * (`3000` and `80`) and then ASSERTED against `PROOF_WAIT_MS` below — which catches drift,
+ * but only AFTER somebody has typed a third copy of the truth. They are imported now, so
+ * there is nothing left to drift. The assertion is kept anyway: it costs one comparison at
+ * module load and it is the thing that fails loudly if a future edit re-introduces a literal.
+ *
+ * Still a hard stop, still bounded on purpose — there is no server-side job timeout to lean
+ * on (the run is fire-and-forget in-process), so this client-side bound is the final
+ * failsafe, and an unbounded poll on a run that died is a tab quietly hammering the API.
  */
-const FINDING_POLL_MS = 3000
-const FINDING_MAX_CHECKS = 80
+const FINDING_POLL_MS = PROOF_DESK_POLL_MS
+const FINDING_MAX_CHECKS = PROOF_DESK_MAX_CHECKS
 /**
  * ⚑ 26 Aug (correction pass) — THE POLL BUDGET AND THE ELAPSED BOUND MUST BE THE SAME
  * NUMBER, because the wait can end in two different ways and they must agree:
  *   · the tab stayed open  → the poll hits `FINDING_MAX_CHECKS` and stops;
  *   · the tab was reopened → there is no poll history, so elapsed time is measured against
  *                            the durable start stamp instead (`PROOF_WAIT_MS`).
- * The bound itself lives beside the rule that reads it, in `lib/proof-start.ts`. This
- * assertion is what stops the two drifting into two different truths about one run.
+ * All three now come from one module, so this can only fail if somebody re-types one.
  */
 if (FINDING_POLL_MS * FINDING_MAX_CHECKS !== PROOF_WAIT_MS) {
   throw new Error('proof wait bound drifted: the desk poll budget and PROOF_WAIT_MS must match')

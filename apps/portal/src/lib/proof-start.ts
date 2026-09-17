@@ -29,13 +29,25 @@
 
 /** How long a healthy proof may take before the desk stops claiming to search.
  *
- *  Derived, not picked — from the backend's own worst case: one PDL attempt is a 15s
- *  timeout, the size ladder at batch 20 is four attempts (60s), one global rate-limit retry
- *  adds 2.5s + 15s, so an exact search is ~77.5s and the one widened fallback repeats it —
- *  ~160–180s with overheads. 240s clears that with ~60s of margin and is still a hard stop.
- *  The desk's poll budget (`FINDING_POLL_MS × FINDING_MAX_CHECKS`) must equal this; the desk
- *  asserts that at module load so the two can never drift into different truths. */
-export const PROOF_WAIT_MS = 240_000
+ * ⛓️ 17 Sep (J5-C14 · FD-6) — THE NUMBER MOVED TO `@kind/shared` BECAUSE IT WAS DERIVED FROM
+ * A PROVIDER WE DO NOT USE. What stood here was:
+ *
+ *     *"Derived, not picked — from the backend's own worst case: one PDL attempt is a 15s
+ *      timeout, the size ladder at batch 20 is four attempts (60s), one global rate-limit
+ *      retry adds 2.5s + 15s, so an exact search is ~77.5s and the one widened fallback
+ *      repeats it — ~160–180s with overheads. 240s clears that with ~60s of margin…"*
+ *
+ * Every term in that derivation is PDL's: its timeout, its 402 size ladder, its retry. Under
+ * FD-6 Proof sources from Apollo, which has no size ladder — it pages, and a Proof batch of
+ * 20 fits in ONE page. The bound was not wrong, it was measuring a different machine.
+ *
+ * ⚠️ IT IS RE-EXPORTED, NOT RE-DECLARED. The desk, the backend and the poll budget must read
+ * ONE number; a second declaration here is how the previous drift happened. The derivation
+ * itself — and the `APOLLO_REQUEST_TIMEOUT_MS` that makes a worst case exist at all — lives
+ * in `packages/shared/src/proof-wait.ts`.
+ */
+import { PROOF_WAIT_MS, PROOF_DESK_POLL_MS, PROOF_DESK_MAX_CHECKS } from '@kind/shared'
+export { PROOF_WAIT_MS, PROOF_DESK_POLL_MS, PROOF_DESK_MAX_CHECKS }
 
 /**
  * What the desk should show while it waits.

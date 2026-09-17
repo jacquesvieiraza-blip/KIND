@@ -34,3 +34,8 @@ export * from './milla-handoff'
 // because `railway up` injects no SHA and the `.deploy-stamp` ship.sh writes was never
 // read. Pure: no `fs` import, so both Next bundles still build.
 export * from './deployed-commit'
+// ⚑ J5-C14 (Batch 1) — how long a healthy Proof run may take, DERIVED from Apollo's worst
+// case and from a real request timeout. The old 240s was derived entirely from PDL's size
+// ladder and retry, and the worst case it measured did not exist: `searchPeople` had no
+// timeout at all, so "Apollo's worst case" was unbounded.
+export * from './proof-wait'

@@ -22,6 +22,15 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { deriveRunStatus, runOutcomeMessage, WIDENED_NO_MATCH_BODY } from './run-outcome'
 import { exhaustedMessage } from './pdl-cursor'
+// ⛓️ 17 Sep (J5-C14) — section F's arithmetic reads these instead of rebuilding a retired
+// provider's ladder from `pdl-search.ts`.
+import {
+  PROOF_WAIT_MS,
+  PROOF_DESK_POLL_MS,
+  PROOF_DESK_MAX_CHECKS,
+  APOLLO_REQUEST_TIMEOUT_MS,
+  APOLLO_PROOF_WORST_CASE_REQUESTS,
+} from '@kind/shared'
 
 const ICP = { job_titles: ['Head of Ops'], seniority_levels: [], company_sizes: [], geographies: ['United Kingdom'], industries: ['Logistics'] }
 
@@ -403,8 +412,12 @@ describe('E · the desk is bounded — a wait that never resolves ends in recove
   })
 
   it('the poll is bounded and offers no uncontrolled retry', () => {
-    // 80 × 3s = 240s — derived from the backend worst case, see section F below.
-    expect(portal).toContain('const FINDING_MAX_CHECKS = 80')
+    // ⛓️ 17 Sep (J5-C14) — WAS `toContain('const FINDING_MAX_CHECKS = 80')`. 80 was PDL's
+    // number (see section F) and, more importantly, a LOCALLY TYPED one. The desk now imports
+    // its budget, so the assertion is that the cap exists and is DERIVED — a re-typed literal
+    // is the defect this stopped being able to catch.
+    expect(portal).toContain('const FINDING_MAX_CHECKS = PROOF_DESK_MAX_CHECKS')
+    expect(portal).not.toMatch(/const FINDING_MAX_CHECKS = \d/)
     expect(portal).toContain('if (checks >= FINDING_MAX_CHECKS) { clearInterval(timer); setFindingTimedOut(true); return }')
   })
 })
@@ -510,29 +523,42 @@ describe('F · the polling bound is derived, not picked', () => {
   const portalSrc = codeOnly(readFileSync(
     join(__dirname, '..', '..', '..', 'portal', 'src', 'app', '(milla)', 'milla', 'page.tsx'), 'utf8'))
 
-  it('the client bound clears the backend worst case with margin', () => {
-    // Backend worst case, from code: 15s/attempt (pdl-search.ts AbortSignal.timeout),
-    // 4-rung ladder at batch 20, +17.5s rate-limit retry, ×2 for the widened fallback
-    // ≈ 155s, +overheads → ~180s. The client bound must exceed it.
-    const PDL_ATTEMPT_TIMEOUT = 15_000
-    const LADDER_RUNGS = 4
-    const RATE_LIMIT_RETRY = 2_500 + PDL_ATTEMPT_TIMEOUT
-    const WORST_ONE_SEARCH = LADDER_RUNGS * PDL_ATTEMPT_TIMEOUT + RATE_LIMIT_RETRY
-    const WORST_LEGITIMATE = 2 * WORST_ONE_SEARCH          // exact + one widened fallback
-    const pollMs = Number(/const FINDING_POLL_MS = (\d+)/.exec(portalSrc)?.[1])
-    const maxChecks = Number(/const FINDING_MAX_CHECKS = (\d+)/.exec(portalSrc)?.[1])
-    expect(pollMs).toBe(3000)
-    expect(maxChecks).toBe(80)
-    expect(pollMs * maxChecks, 'bound must exceed the legitimate worst case').toBeGreaterThan(WORST_LEGITIMATE)
-    // And the source constants the math rests on have not silently moved.
-    const pdl = readFileSync(join(__dirname, 'pdl-search.ts'), 'utf8')
-    expect(pdl.match(/AbortSignal\.timeout\(15000\)/g)?.length).toBeGreaterThanOrEqual(2)
-    expect(pdl).toContain('const ladder = [size, 25, 10, 5, 1]')
+  // ⛓️ 17 Sep (J5-C14 · FD-6) — THIS SECTION WAS MEASURING A PROVIDER WE DO NOT USE. It read
+  // `pdl-search.ts` and rebuilt PDL's worst case from its own constants —
+  //
+  //     `const PDL_ATTEMPT_TIMEOUT = 15_000; const LADDER_RUNGS = 4;`
+  //     `const RATE_LIMIT_RETRY = 2_500 + PDL_ATTEMPT_TIMEOUT; … expect(maxChecks).toBe(80)`
+  //
+  // — and then asserted the desk's two hand-typed literals against it. Under FD-6 Proof
+  // sources from Apollo, which has no size ladder: it pages. The assertions below are the
+  // SAME two facts (the bound clears the provider's worst case; the desk cannot declare
+  // failure early) re-derived from Apollo, and they no longer read a retired provider's file.
+  //
+  // ⚠️ AND THE PARSE IS GONE ON PURPOSE. Digging two integers out of the page with a regex
+  // only worked because they were typed there. They are imported now, so the assertion is
+  // that the page names the shared constants — a literal reappearing is the failure.
+
+  it('the client bound clears the provider worst case with margin', () => {
+    const WORST_PROVIDER_TIME = APOLLO_REQUEST_TIMEOUT_MS * APOLLO_PROOF_WORST_CASE_REQUESTS
+    expect(PROOF_WAIT_MS, 'bound must exceed the legitimate worst case').toBeGreaterThan(WORST_PROVIDER_TIME)
+    expect(PROOF_DESK_POLL_MS * PROOF_DESK_MAX_CHECKS).toBe(PROOF_WAIT_MS)
+    // 🛑 THE CONSTANT THE MATH RESTS ON MUST BE APPLIED, not merely declared. `searchPeople`
+    // had no timeout at all, and Node's `fetch` has no default — so the "worst case" this
+    // whole section computes did not exist until the signal was passed.
+    const apollo = readFileSync(join(__dirname, 'apollo.ts'), 'utf8')
+    expect(apollo.match(/AbortSignal\.timeout\(APOLLO_REQUEST_TIMEOUT_MS\)/g)?.length).toBeGreaterThanOrEqual(2)
+    expect(apollo).not.toMatch(/AbortSignal\.timeout\(\s*\d/)
+  })
+
+  it('the desk reads the shared budget rather than its own numbers', () => {
+    expect(portalSrc).toContain('const FINDING_POLL_MS = PROOF_DESK_POLL_MS')
+    expect(portalSrc).toContain('const FINDING_MAX_CHECKS = PROOF_DESK_MAX_CHECKS')
+    expect(portalSrc).not.toMatch(/const FINDING_POLL_MS = \d/)
+    expect(portalSrc).not.toMatch(/const FINDING_MAX_CHECKS = \d/)
   })
 
   it('a healthy slow proof cannot be declared failed before the backend could still be working', () => {
-    const pollMs = 3000, maxChecks = 80
-    expect(pollMs * maxChecks).toBeGreaterThanOrEqual(180_000)
+    expect(PROOF_DESK_POLL_MS * PROOF_DESK_MAX_CHECKS).toBeGreaterThanOrEqual(180_000)
   })
 })
 

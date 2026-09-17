@@ -204,7 +204,12 @@ describe('🛑 MILLA = SONNET · VIDA = SONNET · EVERYTHING ELSE = HAIKU (found
 
   it('🛑 the operator proxy is bounded too — one hop, every Vida call goes through it', () => {
     const proxy = read('apps/admin/src/app/api/proxy/[...path]/route.ts')
+    // ⛓️ 17 Sep (Batch 1 · XC-3) — WAS `toMatch(/AbortSignal\.timeout\(\s*45_000\s*\)/)`. The
+    // number is unchanged; it is now a NAMED constant because the operator-facing timeout
+    // sentence quotes it, and a literal inline would let the sentence and the bound disagree.
+    // Still exactly one bound, still 45s, still asserted on live code.
     expect(live(proxy), 'an unbounded proxy holds the operator on a spinner that resolves into nothing')
-      .toMatch(/AbortSignal\.timeout\(\s*45_000\s*\)/)
+      .toMatch(/AbortSignal\.timeout\(\s*UPSTREAM_BOUND_MS\s*\)/)
+    expect(live(proxy), 'the bound must still BE 45s').toMatch(/UPSTREAM_BOUND_MS\s*=\s*45_000/)
   })
 })

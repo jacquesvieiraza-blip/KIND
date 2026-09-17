@@ -892,6 +892,139 @@ export async function lifecycleBoard(clientIds: string[]): Promise<LifecycleBoar
     } catch { /* an unreadable trail flags nothing here — the detail call still will */ }
   }
 
+  // ── 🛑 ⚑ 17 Sep (XC-3) — THE LAST PER-CLIENT READS ON THIS BOARD, BATCHED ───────────────
+  //
+  // WHAT THIS REPLACED. The loop below used to `await` four things PER CLIENT:
+  //
+  //     const campaignId = await campaignIdFor(p.id)              // resolveProgrammeChain: 5 reads
+  //     const sends = await countRows('figsy_sent_emails', …)     // 1
+  //     const { data: leadRows } = await db.from('leads')…        // 1
+  //     const { data } = await db.from('figsy_replies')…          // 1
+  //
+  // Eight sequential round trips per client, inside a serial `for`. At 40 clients that is 320
+  // serialised queries on the page the console opens on, and the admin proxy abandons a
+  // request at 45s — so past some client count the board does not get slower, it STOPS
+  // ANSWERING, and the operator's list of clients is simply gone.
+  //
+  // ⚠️ THE CHAIN IS WALKED BY THE SAME POSITIVE LINKS `programme-chain.ts` USES, and its two
+  // refusals are kept: programme → `icps.programme_id` → `figsy_campaigns.icp_id`, with
+  // `client_id` as a TENANCY CHECK on a row already found positively, and AMBIGUITY (more than
+  // one attached ICP, or more than one campaign on it) resolving to NOTHING rather than to a
+  // guess. A client-scoped shortcut here would put an old campaign's sends on a new
+  // programme's row — right client, wrong work, and nothing would say so.
+  //
+  // ⚠️ AND AN UNREADABLE PART OF THE ANSWER IS NOT ZERO. Each batch records whether it was
+  // read; the loop uses the number only when it was, exactly as `proofFactsRead` already does.
+  const { readInChunks, mapBounded } = await import('./batched-reads')
+  const campaignByProgramme = new Map<string, string>()
+  const sendsByCampaign = new Map<string, number>()
+  const repliesByClient = new Map<string, number>()
+  let sendsRead = progIds.length === 0
+  let repliesRead = progIds.length === 0
+
+  if (progIds.length > 0) {
+    const clientOfProgramme = new Map<string, string>()
+    for (const [clientId, p] of currentByClient) clientOfProgramme.set(p.id, clientId)
+
+    // ① the attached ICPs, for every programme at once.
+    const icpRead = await readInChunks(progIds, async (someProgIds) => {
+      const { data, error } = await db.from('icps')
+        .select('id, client_id, programme_id').in('programme_id', someProgIds)
+      if (error) throw new Error(error.message)
+      return (data ?? []) as { id: string; client_id: string | null; programme_id: string | null }[]
+    })
+    const icpsByProgramme = new Map<string, string[]>()
+    for (const r of icpRead.rows) {
+      const pid = r.programme_id
+      if (!pid) continue
+      // Tenancy: a row naming this programme but another client is a corrupt link.
+      if (r.client_id !== clientOfProgramme.get(pid)) continue
+      icpsByProgramme.set(pid, [...(icpsByProgramme.get(pid) ?? []), r.id])
+    }
+    // Ambiguity is a refusal, not a pick — the same rule `resolveProgrammeChain` applies.
+    const icpOfProgramme = new Map<string, string>()
+    for (const [pid, list] of icpsByProgramme) if (list.length === 1) icpOfProgramme.set(pid, list[0])
+
+    // ② the campaign, by ICP.
+    const icpIds = [...icpOfProgramme.values()]
+    const campRead = await readInChunks(icpIds, async (someIcpIds) => {
+      const { data, error } = await db.from('figsy_campaigns')
+        .select('id, client_id, icp_id').in('icp_id', someIcpIds)
+      if (error) throw new Error(error.message)
+      return (data ?? []) as { id: string; client_id: string | null; icp_id: string | null }[]
+    })
+    const campsByIcp = new Map<string, { id: string; clientId: string | null }[]>()
+    for (const r of campRead.rows) {
+      if (!r.icp_id) continue
+      campsByIcp.set(r.icp_id, [...(campsByIcp.get(r.icp_id) ?? []), { id: r.id, clientId: r.client_id }])
+    }
+    for (const [pid, icpId] of icpOfProgramme) {
+      const clientId = clientOfProgramme.get(pid)
+      const list = (campsByIcp.get(icpId) ?? []).filter(c => c.clientId === clientId)
+      if (list.length === 1) campaignByProgramme.set(pid, list[0].id)
+    }
+
+    // ③ sends per campaign — head counts, bounded, so the exact count is kept.
+    //
+    // ⚠️ NOT a single `.in('campaign_id', …)` read summed in memory: `figsy_sent_emails` grows
+    // without limit, and a row-fetching read would be paginated by the gateway and under-count
+    // silently. A head count per campaign is exact; running them bounded-parallel is what stops
+    // "exact" from meaning "serial".
+    const campaignIds = [...campaignByProgramme.values()]
+    if (campaignIds.length === 0) sendsRead = true
+    else {
+      const counted = await mapBounded(campaignIds, async (campaignId) => {
+        const { count, error } = await db.from('figsy_sent_emails')
+          .select('id', { count: 'exact', head: true }).eq('campaign_id', campaignId)
+        if (error) throw new Error(error.message)
+        return { campaignId, count: count ?? 0 }
+      })
+      sendsRead = counted.every(s => s.ok)
+      for (const s of counted) if (s.ok) sendsByCampaign.set(s.value.campaignId, s.value.count)
+    }
+
+    // ④ replies awaiting a person — two batched reads for the whole board, not two per client.
+    const leadRead = await readInChunks(progIds, async (someProgIds) => {
+      const { data, error } = await db.from('leads')
+        .select('id, client_id, programme_id').in('programme_id', someProgIds).limit(50_000)
+      if (error) throw new Error(error.message)
+      return (data ?? []) as { id: string; client_id: string | null; programme_id: string | null }[]
+    })
+    const clientOfLead = new Map<string, string>()
+    for (const r of leadRead.rows) {
+      const pid = r.programme_id
+      if (!pid) continue
+      // Same tenancy rule: the lead must belong to the client whose programme found it.
+      const owner = clientOfProgramme.get(pid)
+      if (!owner || r.client_id !== owner) continue
+      clientOfLead.set(r.id, owner)
+    }
+    const leadIds = [...clientOfLead.keys()]
+    const replyRead = await readInChunks(leadIds, async (someLeadIds) => {
+      const { data, error } = await db.from('figsy_replies')
+        .select('lead_id, classification').in('lead_id', someLeadIds).is('qualified_at', null)
+      if (error) throw new Error(error.message)
+      return (data ?? []) as { lead_id: string | null; classification: string | null }[]
+    })
+    repliesRead = leadRead.complete && replyRead.complete
+    for (const r of replyRead.rows) {
+      if (!r.lead_id) continue
+      if (AUTO_HANDLED_REPLY.has(String(r.classification))) continue
+      const owner = clientOfLead.get(r.lead_id)
+      if (!owner) continue
+      repliesByClient.set(owner, (repliesByClient.get(owner) ?? 0) + 1)
+    }
+    if (!icpRead.complete || !campRead.complete) {
+      // The chain could not be walked for part of the board. Sends derived from a partial
+      // chain are an under-count, and saying so is cheaper than a wrong number.
+      sendsRead = false
+      console.error('[lifecycle-board] the programme→ICP→campaign chain could not be read in full — send counts are incomplete this render')
+    }
+    if (!repliesRead) {
+      console.error('[lifecycle-board] the reply reads were incomplete — replies awaiting a decision are under-counted this render')
+    }
+  }
+
   const out: LifecycleBoardRow[] = []
   for (const clientId of ids) {
     const rows = byClient.get(clientId) ?? []
@@ -915,25 +1048,15 @@ export async function lifecycleBoard(clientIds: string[]): Promise<LifecycleBoar
       continue
     }
 
-    const campaignId = await campaignIdFor(p.id)
-    const sends = campaignId
-      ? await countRows('figsy_sent_emails', q => (q as unknown as { eq: (c: string, v: string) => unknown }).eq('campaign_id', campaignId))
-      : 0
+    // ⚑ 17 Sep (XC-3) — both of these are now LOOKUPS. The reads happened once, above, for the
+    // whole board; nothing in this loop awaits anything, which is what makes the board's cost
+    // independent of the client count.
+    const campaignId = campaignByProgramme.get(p.id) ?? null
+    const sends = sendsRead && campaignId ? (sendsByCampaign.get(campaignId) ?? 0) : 0
 
-    // Replies awaiting a person, scoped through this programme's leads — the one per-client
-    // read the badge genuinely cannot do without, because it is a whole Needs-you rule.
-    let repliesAwaitingDecision = 0
-    try {
-      const { data: leadRows } = await db.from('leads')
-        .select('id').eq('programme_id', p.id).eq('client_id', clientId).limit(20000)
-      const leadIds = ((leadRows ?? []) as { id: string }[]).map(r => r.id)
-      if (leadIds.length > 0) {
-        const { data } = await db.from('figsy_replies')
-          .select('classification').in('lead_id', leadIds).is('qualified_at', null)
-        repliesAwaitingDecision = ((data ?? []) as { classification: string | null }[])
-          .filter(r => !AUTO_HANDLED_REPLY.has(String(r.classification))).length
-      }
-    } catch { /* zero — the list never invents a reply */ }
+    // Replies awaiting a person, scoped through this programme's leads — a whole Needs-you
+    // rule, so it is the one count the badge genuinely cannot do without.
+    const repliesAwaitingDecision = repliesRead ? (repliesByClient.get(clientId) ?? 0) : 0
 
     const entitlementRemaining = Math.max(0,
       (p.sourcing_ceiling ?? 0) - (p.sourced_used ?? 0) - (p.sourced_reserved ?? 0))

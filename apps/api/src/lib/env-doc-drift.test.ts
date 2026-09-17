@@ -83,9 +83,9 @@ describe('every variable the code reads is in ENVIRONMENT.md', () => {
     // injects RAILWAY_GIT_COMMIT_SHA only for git-source builds. Documented and tiered in
     // the same change. UNSET is the normal state — the `.deploy-stamp` fallback covers the
     // Railway path — which is exactly why an undocumented one would rot unnoticed.
-    expect(ALL.size).toBe(108)   // ⛓️ 17 Sep, Batch 1 · XC-8: +1 POOLED_SENDERS_JSON — the pooled sending inventory. It was in NEITHER the register nor the go-live capabilities while being what automatic preparation claims a sender from, so with it unset every programme stopped at Prepare and boot said nothing.   // 101 → 102 (26 Aug, R66): SAFE_TEST_MODE, the zero-spend guard
+    expect(ALL.size).toBe(109)   // ⛓️ 108 → 109 on 17 Sep (Batch 1 · XC-3): +1 ADMIN_API_UPSTREAM — the admin proxy's upstream was a HARDCODED production URL, so the console could only ever talk to one deployment and a PREVIEW build of Vida silently drove the LIVE database. Admin-only, so the API's startup check cannot see it (that is the gap the block below documents), and UNSET keeps today's behaviour exactly.   // ⛓️ 17 Sep, Batch 1 · XC-8: +1 POOLED_SENDERS_JSON — the pooled sending inventory. It was in NEITHER the register nor the go-live capabilities while being what automatic preparation claims a sender from, so with it unset every programme stopped at Prepare and boot said nothing.   // 101 → 102 (26 Aug, R66): SAFE_TEST_MODE, the zero-spend guard
     expect(API_VARS.length).toBe(91)   // +1 26 Aug (R66): SAFE_TEST_MODE · +1 2 Sep: FIGSY_OPERATOR_SEND_ENABLED · +1 17 Sep (XC-4): KIND_DEPLOY_COMMIT
-    expect(doc()).toContain('**108 distinct variables**')
+    expect(doc()).toContain('**109 distinct variables**')
   })
 
   it('NO variable is missing from the doc — checked against the TABLE, not the prose', () => {
@@ -129,11 +129,11 @@ describe('the runtime half agrees with the written half', () => {
   })
 
   it('the portal/admin-only variables are NOT in startup-check, and the doc says why', () => {
-    // Adding them would report all 17 missing on a healthy deploy, because they live in
+    // Adding them would report all 18 missing on a healthy deploy, because they live in
     // other Railway services. The honest move is to document the gap, not to fake coverage.
     const keys = startupCheckKeys()
     const nonApi = [...ALL.keys()].filter(k => !ALL.get(k)!.has('api'))
-    expect(nonApi).toHaveLength(17)
+    expect(nonApi).toHaveLength(18)   // ⛓️ 17 → 18 on 17 Sep (Batch 1 · XC-3): +1 ADMIN_API_UPSTREAM, read by the admin proxy only.
     for (const k of nonApi) expect(keys.has(k), `${k} should not be in startup-check`).toBe(false)
     expect(doc()).toContain("The API's startup check cannot see these")
   })

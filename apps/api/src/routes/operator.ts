@@ -3841,12 +3841,59 @@ operatorRouter.post('/migrations/run', async (req: Request, res: Response) => {
       success: true,
       data: {
         results, host: run.host, used_fallback: run.usedFallback, hint: run.hint ?? null,
+        // ⚑ XC-3 — the ledger half. `ledger_recorded` short of `results.length` means the run
+        // applied but its outcomes are not persisted, which is a different problem from a
+        // failed migration and needs saying separately.
+        ledger_recorded: run.ledgerRecorded,
+        ledger_note: run.ledgerNote,
         available: PENDING_MIGRATIONS.map(m => ({ key: m.key, title: m.title })),
       },
     })
   } catch (err) {
     console.error('[operator/migrations]', err)
     res.status(500).json({ success: false, error: err instanceof Error ? err.message : 'Failed to run migrations' })
+  }
+})
+
+// ── ⚑ 17 Sep (XC-3) — WHAT HAS ACTUALLY BEEN APPLIED, READ FROM THE DATABASE ────────────
+//
+// 🛑 THE ONLY ANSWER THAT EXISTED BEFORE THIS WAS A REPLAY. `POST /migrations/run` re-runs
+// every key and returns a transcript; nothing persisted, so "has X gone in?" could only be
+// answered by hunting for the object X creates — and an object that exists for another reason
+// is indistinguishable from a migration that ran. That confusion is literally what created
+// `app_migrations_applied`: `20260724_one_wallet.sql`'s `EXCEPTION WHEN undefined_table`
+// handler wrote a row into a table it then created as a side effect.
+//
+// ⚠️ READ-ONLY, AND CHEAP. One SELECT. It is safe to call while a run is still going, which is
+// the point: the run outlives the admin proxy's 45s bound, so this is how progress is seen.
+//
+// ⚠️ A TABLE THAT IS NOT THERE IS `ok: false`, NEVER AN EMPTY LIST. Reporting "nothing has
+// ever been applied" because the ledger itself is missing would invite somebody to re-run 74
+// migrations against a database that already has all of them.
+operatorRouter.get('/migrations/state', async (_req: Request, res: Response) => {
+  try {
+    const { readMigrationLedger } = await import('../lib/migration-ledger')
+    const state = await readMigrationLedger()
+    res.json({
+      success: true,
+      data: {
+        ok: state.ok,
+        table_missing: state.tableMissing,
+        columns_missing: state.columnsMissing,
+        note: state.note,
+        rows: state.rows,
+        counts: {
+          applied: state.rows.filter(r => r.state === 'applied').length,
+          failed: state.rows.filter(r => r.state === 'failed').length,
+          never_run: state.rows.filter(r => r.state === 'never_run').length,
+          unknown: state.rows.filter(r => r.state === 'unknown').length,
+        },
+        read_at: new Date().toISOString(),
+      },
+    })
+  } catch (err) {
+    console.error('[operator/migrations/state]', err)
+    res.status(500).json({ success: false, error: err instanceof Error ? err.message : 'Could not read the applied-migration ledger' })
   }
 })
 

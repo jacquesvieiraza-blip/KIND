@@ -5834,6 +5834,25 @@ ALTER TABLE public.app_migrations_applied
   ADD COLUMN IF NOT EXISTS last_run_at   timestamptz,
   ADD COLUMN IF NOT EXISTS run_count     int NOT NULL DEFAULT 0;
 
+-- 🛑 AND \`applied_at\` MUST BECOME NULLABLE, OR NO FAILURE CAN EVER BE RECORDED.
+--
+-- This was found by running the real migration against a real PostgreSQL (§8.2-H), not by
+-- reading: the original column is \`NOT NULL DEFAULT now()\`, because under the old ledger a
+-- row's mere EXISTENCE meant "applied". A failed run must be recorded WITHOUT claiming an
+-- application, so the insert proposes \`applied_at = NULL\` — and PostgreSQL checks NOT NULL on
+-- the proposed tuple BEFORE the ON CONFLICT clause resolves it, so every failure record threw
+-- 23502. The runner swallows ledger errors by design (a ledger problem must never fail a
+-- migration that applied), which means the failure would have been **silently unrecordable**:
+-- successes logged, failures dropped, and the one thing the ledger was added for missing.
+--
+-- ⚠️ THIS IS A WIDENING, NOT A CONTRACT. Dropping NOT NULL forbids nothing that was allowed
+-- before and invalidates no existing row — every row written to date has a value, and the
+-- DEFAULT is untouched, so \`20260724_one_wallet.sql\`'s accidental insert still fills it. Code
+-- that runs before this statement keeps working; code that runs after tolerates NULL (and
+-- \`migration-ledger.ts\` names this migration if it meets the constraint still in place).
+ALTER TABLE public.app_migrations_applied
+  ALTER COLUMN applied_at DROP NOT NULL;
+
 COMMENT ON TABLE public.app_migrations_applied IS
   'XC-3. What the migration runner has actually applied. Before this, the runner replayed every key on every run and recorded nothing, so "has this been applied?" could only be answered by hunting for the object the migration was supposed to create — and a migration whose object already existed for another reason was indistinguishable from one that had run.';
 
@@ -6134,6 +6153,17 @@ export type MigrationRunResult = {
   host: string
   usedFallback: boolean
   hint?: string
+  /**
+   * ⚑ XC-3 — HOW MANY OUTCOMES REACHED THE LEDGER, and why any did not.
+   *
+   * 🛑 A RUN THAT APPLIED BUT RECORDED NOTHING IS NOT A CLEAN RUN, and before this it looked
+   * identical to one that did. The runner replays every key on every run, so the response's
+   * `results` array is a TRANSCRIPT, not state: close the screen and the knowledge is gone.
+   * These two fields are what let the operator tell "74 applied and recorded" from "74
+   * applied and the ledger is not there", which need different actions.
+   */
+  ledgerRecorded: number
+  ledgerNote: string | null
 }
 
 export async function runPendingMigrations(passwordOverride?: string | null): Promise<MigrationRunResult> {
@@ -6200,22 +6230,50 @@ export async function runPendingMigrations(passwordOverride?: string | null): Pr
   const usedFallback = working !== url
   const results: { key: string; ok: boolean; error?: string }[] = []
 
+  // ── ⚑ 17 Sep (XC-3) — EVERY OUTCOME IS RECORDED AS IT HAPPENS ──────────────────────────
+  //
+  // 🛑 THE RUN IS LONGER THAN THE PROXY'S BOUND. 74 keys, each on its own connection, is
+  // minutes; `apps/admin/.../proxy` aborts at 45s and the operator saw "API unreachable"
+  // about a run that was working perfectly, with no way to see how far it had got. Writing
+  // the ledger row INSIDE the loop is what turns that into observable progress: the run
+  // continues server-side and `GET /operator/migrations/state` shows exactly which keys have
+  // landed so far, read from the database rather than from a response nobody received.
+  //
+  // ⚠️ A LEDGER FAILURE NEVER FAILS A MIGRATION, AND IS NEVER SILENT. It is counted, the
+  // first reason is kept, and both travel back in the result.
+  const { recordMigrationOutcome } = await import('./migration-ledger')
+  let ledgerRecorded = 0
+  let ledgerNote: string | null = null
+
   for (const m of PENDING_MIGRATIONS) {
     // A fresh connection per migration so one failure cannot poison the next.
     const client = new Client({ connectionString: working, ssl: { rejectUnauthorized: false }, connectionTimeoutMillis: 8000 })
+    let outcome: { ok: boolean; error?: string }
     try {
       await client.connect()
       await client.query(m.sql)
-      results.push({ key: m.key, ok: true })
+      outcome = { ok: true }
     } catch (e) {
-      results.push({ key: m.key, ok: false, error: e instanceof Error ? e.message : String(e) })
-    } finally {
-      await client.end().catch(() => {})
+      outcome = { ok: false, error: e instanceof Error ? e.message : String(e) }
     }
+    results.push({ key: m.key, ...outcome })
+
+    // ⚠️ RECORDED ON THE SAME CONNECTION THE MIGRATION RAN ON, while it is still open. A
+    // second connection could succeed where the migration's had failed, and then the ledger
+    // would be claiming a result for work that never reached this database.
+    try {
+      const rec = await recordMigrationOutcome(client, m.key, outcome.ok, outcome.error)
+      if (rec.recorded) ledgerRecorded++
+      else if (!ledgerNote) ledgerNote = `Outcomes were NOT recorded: ${rec.reason}. The migrations above did run — this is a ledger problem, not a migration one.`
+    } catch { /* the guard above already never throws; this is belt and braces */ }
+
+    await client.end().catch(() => {})
   }
 
   return {
     results,
+    ledgerRecorded,
+    ledgerNote,
     host: safeHost(working),
     usedFallback,
     hint: usedFallback

@@ -9,7 +9,7 @@
 //
 // Only a database can refuse the second row, so only this file can prove they do.
 
-import { describe, it, expect, beforeAll, afterAll } from 'vitest'
+import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest'
 import type { Client } from 'pg'
 import { realdbClient, migrationOutcome, createTestClient, dropTestClient } from './harness'
 
@@ -24,6 +24,21 @@ describe('XC-5 / XC-6 · the tables and their indexes', () => {
     if (!c) return
     for (const id of userIds) await dropTestClient(c, id)
     await c.end()
+  })
+
+  // ⛓️ 17 Sep (XC-3) — ADDED AFTER A SECOND RUN AGAINST THE SAME CLUSTER WENT RED. The
+  // counting cases below asserted absolute row counts, and the harness database is
+  // DELIBERATELY reused between runs (`realdb.sh up` once, the suite many times). So a second
+  // run saw its own first run's rows and read `9` where it expected `3`.
+  //
+  // 🛑 AND THAT IS THE MORE INTERESTING HALF: the failure was ORDER-DEPENDENT, which means
+  // these cases were only ever green on a fresh cluster. A test that passes on a clean
+  // database and fails on a used one is not proving the index, it is proving the setup. Each
+  // case now starts from a known state.
+  beforeEach(async () => {
+    if (!c) return
+    await c.query('delete from public.operator_tasks')
+    await c.query('delete from public.automatic_work')
   })
 
   it('the migration applied', async () => {

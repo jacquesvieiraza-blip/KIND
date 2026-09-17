@@ -224,6 +224,25 @@ ALTER TABLE public.app_migrations_applied
   ADD COLUMN IF NOT EXISTS last_run_at   timestamptz,
   ADD COLUMN IF NOT EXISTS run_count     int NOT NULL DEFAULT 0;
 
+-- 🛑 AND `applied_at` MUST BECOME NULLABLE, OR NO FAILURE CAN EVER BE RECORDED.
+--
+-- This was found by running the real migration against a real PostgreSQL (§8.2-H), not by
+-- reading: the original column is `NOT NULL DEFAULT now()`, because under the old ledger a
+-- row's mere EXISTENCE meant "applied". A failed run must be recorded WITHOUT claiming an
+-- application, so the insert proposes `applied_at = NULL` — and PostgreSQL checks NOT NULL on
+-- the proposed tuple BEFORE the ON CONFLICT clause resolves it, so every failure record threw
+-- 23502. The runner swallows ledger errors by design (a ledger problem must never fail a
+-- migration that applied), which means the failure would have been **silently unrecordable**:
+-- successes logged, failures dropped, and the one thing the ledger was added for missing.
+--
+-- ⚠️ THIS IS A WIDENING, NOT A CONTRACT. Dropping NOT NULL forbids nothing that was allowed
+-- before and invalidates no existing row — every row written to date has a value, and the
+-- DEFAULT is untouched, so `20260724_one_wallet.sql`'s accidental insert still fills it. Code
+-- that runs before this statement keeps working; code that runs after tolerates NULL (and
+-- `migration-ledger.ts` names this migration if it meets the constraint still in place).
+ALTER TABLE public.app_migrations_applied
+  ALTER COLUMN applied_at DROP NOT NULL;
+
 COMMENT ON TABLE public.app_migrations_applied IS
   'XC-3. What the migration runner has actually applied. Before this, the runner replayed every key on every run and recorded nothing, so "has this been applied?" could only be answered by hunting for the object the migration was supposed to create — and a migration whose object already existed for another reason was indistinguishable from one that had run.';
 

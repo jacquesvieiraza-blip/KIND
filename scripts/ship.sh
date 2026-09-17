@@ -120,3 +120,108 @@ echo "All four uploads accepted at $HEAD (api - portal - admin - website)."
 echo ""
 echo "Now confirm each actually BUILT: Railway -> service -> Deployments."
 echo "A 'Skipped' there only ever means: that app had nothing new since the last ship."
+
+# ══════════════════════════════════════════════════════════════════════════════════════════
+# == 4/4  WHAT IS ACTUALLY SERVING? (XC-11) ==
+#
+# 🛑 THE GAP THIS CLOSES. Everything above proves an UPLOAD was accepted. Nothing proved a
+# DEPLOY, and the two are different: Railway can accept an upload and then skip the build,
+# fail it, or roll back — and the script's own last words were "now confirm each actually
+# BUILT: Railway -> service -> Deployments", i.e. go and check by hand, four times, in a
+# browser. In practice nobody did, which is how "I deployed and nothing changed" survived.
+#
+# ⚠️ READ-ONLY, AND IT CHANGES NO DEPLOY TARGET. Three GETs. It cannot break a ship; it can
+# only tell you the ship did not land. It runs AFTER the summary so a deploy failure still
+# exits non-zero on its own terms.
+#
+# ⚠️ IT COMPARES COMMITS, NOT "DID IT ANSWER". A 200 from the OLD build is the failure this
+# is for — the service is up, healthy and serving last week's code. `/health` reports the
+# commit it was built from (XC-4), so the only honest check is `reported == shipped`.
+#
+# ⚠️ AND IT IS NOT INSTANT. A Railway build takes minutes, so an immediate read legitimately
+# shows the previous commit. It polls, and when it gives up it says NOT CONFIRMED rather than
+# FAILED — "we stopped waiting" is not "it did not deploy" (the same distinction XC-3 put
+# into the admin proxy).
+#
+# ⚠️ THE WEBSITE IS DELIBERATELY ABSENT. `apps/website/server.js` is FOUNDER-LOCKED (1 Aug,
+# #605) and has no /health route; `website-freeze.test.ts` refuses one. Adding the route to
+# make this list symmetrical would break a lock to satisfy a script, so the website is
+# checked by eye and this says so rather than quietly implying four-service coverage.
+# ══════════════════════════════════════════════════════════════════════════════════════════
+if [ "${SHIP_SKIP_HEALTH:-}" = "1" ]; then
+  echo ""
+  echo "(health read skipped: SHIP_SKIP_HEALTH=1)"
+  exit 0
+fi
+
+HEALTH_API="${SHIP_HEALTH_API:-https://kindapi-production-e64c.up.railway.app}"
+HEALTH_PORTAL="${SHIP_HEALTH_PORTAL:-https://app.get-kind.com}"
+HEALTH_ADMIN="${SHIP_HEALTH_ADMIN:-https://admin.get-kind.com}"
+HEALTH_TRIES="${SHIP_HEALTH_TRIES:-20}"     # 20 x 15s = five minutes
+HEALTH_WAIT="${SHIP_HEALTH_WAIT:-15}"
+
+echo ""
+echo "== 4/4  Reading /health on each service (expecting commit $HEAD) =="
+echo "   Polling up to $HEALTH_TRIES times, ${HEALTH_WAIT}s apart. Ctrl-C is safe — the deploy continues."
+
+# ⚠️ ALWAYS EXITS 0, AND THAT IS NOT LAZINESS — `set -euo pipefail` is on. A `curl` that
+# cannot reach a service returns non-zero, and with `pipefail` that fails the whole command
+# substitution, which under `set -e` would ABORT THE SHIP SCRIPT. A health READ must never be
+# able to do that: it is the thing that reports, not the thing that ships. "No answer" is a
+# result this function returns (as an empty string), never an error it raises.
+read_commit() {   # read_commit <base-url> — prints the reported short sha, or nothing
+  local body=""
+  # Next's App Router serves the portal/admin route at /api/health; the Express API at /health.
+  for path in /health /api/health; do
+    body=$(curl -fsS --max-time 10 "$1$path" 2>/dev/null || true)
+    case "$body" in
+      *'"commit"'*) printf '%s' "$body" | sed -n 's/.*"commit":"\([^"]*\)".*/\1/p'; return 0 ;;
+    esac
+  done
+  return 0
+}
+
+CONFIRMED=""
+PENDING="api portal admin"
+TRY=0
+while [ "$TRY" -lt "$HEALTH_TRIES" ] && [ -n "$PENDING" ]; do
+  TRY=$((TRY + 1))
+  STILL=""
+  for SVC in $PENDING; do
+    case "$SVC" in
+      api)    BASE="$HEALTH_API" ;;
+      portal) BASE="$HEALTH_PORTAL" ;;
+      admin)  BASE="$HEALTH_ADMIN" ;;
+      *)      BASE="" ;;
+    esac
+    GOT=$(read_commit "$BASE")
+    if [ "$GOT" = "$HEAD" ]; then
+      echo "   ✅ $SVC is serving $HEAD  ($BASE)"
+      CONFIRMED="$CONFIRMED $SVC"
+    else
+      STILL="$STILL $SVC"
+      [ "$TRY" -eq 1 ] && echo "   … $SVC reports ${GOT:-no answer} (waiting for $HEAD)"
+    fi
+  done
+  PENDING=$(echo "$STILL" | sed 's/^ *//')
+  [ -n "$PENDING" ] && [ "$TRY" -lt "$HEALTH_TRIES" ] && sleep "$HEALTH_WAIT"
+done
+
+echo ""
+echo "=================== LIVE COMMIT ==================="
+echo "Shipped commit:  $HEAD"
+[ -n "$CONFIRMED" ] && echo "Serving it:     $CONFIRMED"
+if [ -n "$PENDING" ]; then
+  # NOT a failure verdict. It is the honest one: the read stopped, the build may not have.
+  echo "NOT CONFIRMED:  $PENDING"
+  echo ""
+  echo "This does NOT mean the deploy failed — it means these services had not answered with"
+  echo "$HEAD by the time the read gave up. Either the build is still running, or it did not"
+  echo "happen. Check Railway -> service -> Deployments, or re-read by hand:"
+  echo "    curl -s $HEALTH_API/health | head -c 300"
+  exit 2
+fi
+echo "All three API/portal/admin services are serving $HEAD."
+echo ""
+echo "⚠️ The WEBSITE is not in this check: apps/website/server.js is founder-locked (#605) and"
+echo "   has no /health route. Confirm it by eye in Railway -> KIND -> Deployments."

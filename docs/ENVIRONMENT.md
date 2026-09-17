@@ -6,7 +6,7 @@
 
 ## The number
 
-**108 distinct variables** across `apps/api`, `apps/portal` and `apps/admin` — **91** read by the API, **17** read only by the portal or the admin app.
+**109 distinct variables** across `apps/api`, `apps/portal` and `apps/admin` — **91** read by the API, **18** read only by the portal or the admin app.
 
 **#561 recorded 69, and that figure was wrong twice over.** The first was method: a `process.env.X` grep cannot see the **12 variables this repo reaches by indirection** —
 
@@ -173,6 +173,7 @@ For these five, the startup check reports them when they **are** set. See the no
 |---|---|---|---|---|
 | `ADMIN_ALLOWED_EMAILS` | admin | 🔴 **required** | The admin app lets **nobody** in — every Vida page 401s. It is the allowlist the proxy checks before injecting the admin key. | Railway → **@kind/admin** |
 | `ADMIN_SECRET` | admin | ⚪ optional | Legacy alias read as a fallback for `ADMIN_SECRET_KEY`. Set the `_KEY` one instead. | Railway → **@kind/admin** |
+| `ADMIN_API_UPSTREAM` | admin | ⚪ optional | Nothing — the admin proxy falls back to the LIVE API URL, which is today's behaviour. Set it to point Vida at a different deployment (staging, or a local API); leaving it unset on a PREVIEW build of the console means that preview drives the LIVE database. | Railway → **@kind/admin** |
 | `FEATURE_PORTAL_V2` | portal | ⚪ optional | Portal v2 screens stay off. | Railway → **@kind/portal** |
 | `FEATURE_V2_SCREENS` | portal | ⚪ optional | Same switch, server side. | Railway → **@kind/portal** |
 | `MILLA_DEV_PREVIEW` | portal | ⚪ optional | Milla preview mode off. Local only — never set in production. | local only |

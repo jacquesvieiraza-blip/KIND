@@ -63,7 +63,29 @@ if [ "${SHIP_DRY_RUN:-0}" = "1" ]; then
   echo "Run without SHIP_DRY_RUN to ship for real."
   exit 0
 fi
-HEAD=$(git rev-parse --short HEAD)
+# ══════════════════════════════════════════════════════════════════════════════════════════
+# 🛑 THE SHIPPED SHA IS TRUNCATED HERE, TO THE PRODUCT'S LENGTH — NOT BY GIT (C-7, 17 Sep)
+#
+# This was `git rev-parse --short HEAD`, and that one word broke the whole four-service
+# confirmation. `--short` picks its own abbreviation length and widens it as the repository
+# grows: on this repo it returns **8** (`4977e45e`). Every service reports its commit through
+# `@kind/shared`'s `resolveDeployedCommit`, which truncates to `SHORT_SHA_LENGTH = 7`
+# (`4977e45`). So `[ "$GOT" = "$HEAD" ]` below compared 7 characters against 8 and could
+# never match — XC-11's "all four services name the commit they are running" was
+# unachievable in this repository, and `ship.sh` would have said NOT CONFIRMED for ever.
+#
+# ⚠️ NOTHING IN 9,000 TESTS COULD SEE IT. Every test of the resolver fed it a value and
+# checked the resolver's own truncation — a value compared against itself. The two sides
+# never met until the full-stack harness booted the real services and read them the way this
+# script does.
+#
+# ⚠️ THE PRODUCT OWNS THE LENGTH. The constant stays 7 and this script conforms to it. Not
+# `--short=7`: a length written in two places is a length that drifts, and `:0:7` here is
+# pinned to `SHORT_SHA_LENGTH` by `xc11-migration-discipline.test.ts`, which fails and names
+# the other side if either moves.
+# ══════════════════════════════════════════════════════════════════════════════════════════
+HEAD_FULL=$(git rev-parse HEAD)
+HEAD="${HEAD_FULL:0:7}"
 echo "Local main is at: $HEAD  ($(git log -1 --pretty=%s | cut -c1-70))"
 
 echo ""

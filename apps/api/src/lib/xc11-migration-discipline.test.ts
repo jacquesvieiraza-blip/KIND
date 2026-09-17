@@ -29,6 +29,9 @@
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
+// C-7: the canonical short-sha length and the resolver's own truncation, so this file can
+// assert that `ship.sh` conforms to the PRODUCT's number rather than to git's.
+import { SHORT_SHA_LENGTH, shortSha } from '@kind/shared'
 
 const REPO = join(__dirname, '..', '..', '..', '..')
 const read = (p: string) => readFileSync(join(REPO, p), 'utf8')
@@ -239,5 +242,66 @@ describe('XC-11 · ship.sh reads what is actually serving', () => {
     for (const v of ['SHIP_HEALTH_API', 'SHIP_HEALTH_PORTAL', 'SHIP_HEALTH_ADMIN']) {
       expect(ship, `${v} must be overridable`).toContain(`\${${v}:-`)
     }
+  })
+
+  // ══════════════════════════════════════════════════════════════════════════════════════
+  // C-7 · THE TWO SIDES MUST TRUNCATE THE SHA THE SAME WAY (founder-approved 17 Sep)
+  //
+  // ── THE DEFECT, AND WHY EVERY GREEN TEST MISSED IT ────────────────────────────────────
+  //
+  // `@kind/shared` truncates a reported commit to `SHORT_SHA_LENGTH = 7`. `ship.sh` derived
+  // the shipped sha with `git rev-parse --short`, which on THIS repository returns **8**
+  // (`4977e45e`, not `4977e45`) — git widens its abbreviation as the object count grows. The
+  // comparison `[ "$GOT" = "$HEAD" ]` therefore compared 7 characters against 8 and could
+  // never match, so XC-11's four-service confirmation was unachievable here.
+  //
+  // 🛑 NOTHING IN THE UNIT SUITE COULD SEE IT, and the reason generalises: every test of the
+  // resolver fed it a value and checked the resolver's own truncation — a value compared
+  // against itself. The two sides never met until the full-stack harness ran the real
+  // services and read them with the real script.
+  //
+  // ⚠️ THE PRODUCT OWNS THE LENGTH, NOT GIT. `SHORT_SHA_LENGTH` stays 7 and the script
+  // conforms to it. `--short` is banned outright rather than pinned with `--short=7`,
+  // because a length that lives in two places is a length that drifts.
+  // ══════════════════════════════════════════════════════════════════════════════════════
+  describe('C-7 · the shipped sha and the reported sha are the same 7 characters', () => {
+    it('ship.sh truncates the FULL sha itself and never asks git to abbreviate', () => {
+      expect(ship, 'ship.sh must read the full sha').toMatch(/HEAD_FULL=\$\(git rev-parse HEAD\)/)
+      expect(ship, 'ship.sh must truncate to 7 in the shell').toMatch(/HEAD="\$\{HEAD_FULL:0:7\}"/)
+
+      // 🛑 `git rev-parse --short` MUST BE GONE FROM THE SHIPPING PATH. Comments stripped
+      // first — this block's own prose names the banned command, and a guard a comment can
+      // fail is as broken as one a comment can satisfy (the repo's convention, and the
+      // `/POST/` incident three tests above is why it is spelled out again here).
+      const code = ship.replace(/^\s*#.*$/gm, '')
+      expect(code, 'git rev-parse --short must not decide the shipped sha').not.toMatch(/rev-parse --short/)
+    })
+
+    it('7 is the PRODUCT\'s number — the script conforms to SHORT_SHA_LENGTH, not the reverse', () => {
+      // If anybody changes `SHORT_SHA_LENGTH`, this fails and names the other side, instead
+      // of the mismatch reappearing silently in a deploy nobody can confirm.
+      expect(SHORT_SHA_LENGTH, 'SHORT_SHA_LENGTH is the canonical length and stays 7').toBe(7)
+      expect(ship).toContain(`:0:${SHORT_SHA_LENGTH}}`)
+    })
+
+    it('the SAME $HEAD drives both stamps and the comparison — one value, four services', () => {
+      // The failure shape this closes is a script that truncates for the comparison but
+      // stamps something else, which would report a mismatch for ever.
+      expect(ship, 'the app deploy stamp').toMatch(/echo "\$HEAD" > "apps\/\$APP\/\.deploy-stamp"/)
+      expect(ship, 'the website build identity').toMatch(/echo "\$HEAD" > "apps\/website\/build-identity\.txt"/)
+      expect(ship, 'the comparison').toMatch(/\[ "\$GOT" = "\$HEAD" \]/)
+    })
+
+    it('a real 40-character sha truncates to exactly what the resolver reports', () => {
+      // Both sides, computed from one input, asserted to agree — the assertion that was
+      // missing. `shortSha` is the resolver's own truncation; `:0:7` is the script's.
+      const full = 'e4b061cdf6b3d21ecd95a7a9b20cfce3c48b8f38'
+      expect(full).toHaveLength(40)
+      expect(shortSha(full)).toBe(full.slice(0, 7))
+      expect(shortSha(full)).toHaveLength(SHORT_SHA_LENGTH)
+      // …and the 8-character value git actually handed us must NOT equal the reported one,
+      // which is the defect stated as an assertion so it cannot come back.
+      expect(full.slice(0, 8)).not.toBe(shortSha(full))
+    })
   })
 })

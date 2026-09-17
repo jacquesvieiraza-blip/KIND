@@ -160,34 +160,79 @@ describe('XC-11 · ship.sh reads what is actually serving', () => {
     expect(tail).toMatch(/does NOT mean the deploy failed/)
   })
 
-  it('it declares XC-11 INCOMPLETE rather than implying four-service coverage', () => {
-    // ⛓️ 18 Sep — RE-AIMED AFTER GPT VERIFICATION. This used to assert only that the gap was
-    // *mentioned*, and my return then marked XC-11 green. A three-of-four read does not
-    // satisfy a four-service requirement, so the script must say INCOMPLETE — being honest
-    // about a gap is not the same as the gap being acceptable.
+  it('ALL FOUR services are in the read — the contract\'s actual requirement', () => {
+    // ⛓️ 18 Sep — RE-AIMED TWICE, AND THIS IS THE END STATE. My first cut read three services
+    // and called the item green. GPT verification was right that three-of-four does not
+    // satisfy a four-service requirement, so the guard was re-aimed to require the script to
+    // declare itself INCOMPLETE. The founder has since approved the website build-identity
+    // file by name under #605's own exception, so the requirement is met and the guard now
+    // asserts the thing the contract actually asks for.
     const block = ship.slice(ship.indexOf('== 4/4'))
-    expect(block).toMatch(/XC-11 IS \*\*NOT COMPLETE\*\*|XC-11 IS INCOMPLETE/)
-    expect(block).toMatch(/CONTRACT\/CODE CONFLICT/)
+    expect(block).toContain('PENDING="api portal admin website"')
+    // …and the incompleteness declaration is GONE, because it would now be false.
+    expect(block).not.toMatch(/XC-11 IS \*\*NOT COMPLETE\*\*|XC-11 IS INCOMPLETE/)
+    expect(ship).toContain('SHIP_HEALTH_WEBSITE')
+    expect(ship).toContain('build-identity.txt')
     expect(block).toContain('#605')
-    // Three services, named — never "all four".
-    expect(block).toContain('PENDING="api portal admin"')
-    expect(block).not.toMatch(/all four services are serving/i)
   })
 
-  it('and it records the PROVEN reason, including the 200-with-HTML trap', () => {
-    // 🛑 THE FINDING THAT MAKES THIS MORE THAN A MISSING ROUTE. `ship.sh` already writes
-    // `apps/website/.deploy-stamp`, but `express.static` ignores dotfiles and the locked
-    // server's catch-all answers **200 with index.html** for any unknown path. So a health
-    // read that checked only the status code would report the website GREEN forever, on
-    // evidence that is 119KB of HTML. Measured against the real locked server, not assumed.
+  it('the website is read by BODY CONTENT, never by status — the 200-with-HTML trap', () => {
+    // 🛑 THE FINDING THAT MAKES THIS MORE THAN A MISSING ROUTE, AND IT MUST STAY TESTED. The
+    // locked `server.js` ends with `app.get('*')` → `sendFile(index.html)`, so EVERY unknown
+    // path answers HTTP 200 with 119,926 bytes of markup — measured against the real locked
+    // server. A status-only check would report the website green for ever.
     const block = ship.slice(ship.indexOf('== 4/4'))
-    expect(block).toMatch(/200 with HTML|200, 119|200 with index\.html/i)
-    expect(block).toMatch(/dotfile/i)
-    // …and the one authorised change that WOULD satisfy the contract, named for the founder
-    // rather than taken. A non-dotfile is served by the locked server unchanged; adding it
-    // breaks the #605 freeze manifest, which only the founder may regenerate.
-    expect(block).toMatch(/build-identity\.txt/)
-    expect(block).toMatch(/freeze/i)
+    expect(block).toMatch(/200 with HTML|119,926|200 with index\.html/i)
+
+    // The website must NOT go through the JSON reader: /health on it returns the home page.
+    expect(ship).toContain('read_build_identity')
+    expect(ship).toMatch(/if \[ "\$SVC" = "website" \]/)
+
+    // 🛑 THE READER ITSELF MUST VALIDATE THE BODY'S SHAPE. Hex only, sha-length — an HTML page,
+    // an error page or a CDN interstitial cannot satisfy that whatever it answers with.
+    const fn = ship.slice(ship.indexOf('read_build_identity() {'), ship.indexOf('CONFIRMED=""'))
+    expect(fn).toContain('build-identity.txt')
+    expect(fn).toMatch(/\[!0-9a-fA-F\]/)                       // rejects any non-hex character
+    expect(fn).toMatch(/-ge 7/)                                // …and enforces a sha length
+    expect(fn).toContain('|| true')                            // still cannot abort the ship
+  })
+
+  it('the freeze excludes the file BY NAME, for the right reason, and stays narrow', () => {
+    const freeze = read('apps/api/src/lib/website-freeze.test.ts')
+    expect(freeze).toContain("if (name === 'build-identity.txt') continue")
+    // ⚠️ THE REASON MATTERS AS MUCH AS THE EXCLUSION. "Dotfiles are never served" is the
+    // rationale for `.deploy-stamp` and it is exactly INVERTED here — this file is
+    // deliberately not a dotfile so that it CAN be served. The comment must say the real
+    // thing: a ship-time artifact holding only the sha, which cannot alter a page.
+    const at = freeze.indexOf("if (name === 'build-identity.txt')")
+    const why = freeze.slice(Math.max(0, at - 1600), at)
+    expect(why).toMatch(/SHIP-TIME ARTIFACT/i)
+    expect(why).toMatch(/cannot alter a page/i)
+    expect(why).toMatch(/#605/)
+    expect(why).toMatch(/NOT FOR THE DOTFILE REASON|deliberately \*not\* a dotfile/i)
+    // And nothing else is relaxed: both freeze assertions are still there.
+    expect(freeze).toContain('no file has been added or removed')
+    expect(freeze).toContain('WEBSITE CHANGED WITHOUT FOUNDER APPROVAL')
+  })
+
+  it('the file is NOT gitignored — an ignored file never reaches the deployed artifact', () => {
+    // 🛑 THE TRAP THE OTHER WAY. `railway up` respects `.gitignore` — `.gitignore` itself
+    // records that about `.deploy-stamp`. Ignoring this file would mean it is never shipped,
+    // and the read below would poll for something that does not exist, for ever.
+    //
+    // ⚠️ PATTERN LINES ONLY, COMMENTS STRIPPED — and this guard caught itself on it for the
+    // third time in this batch. `.gitignore` now carries a NOTE *explaining* that this file
+    // must never be ignored, and a raw match found the word inside that very explanation. A
+    // guard a comment can fail is as broken as one a comment can satisfy; in a gitignore the
+    // comment is prose and the pattern line is the code.
+    const patterns = read('.gitignore')
+      .split('\n')
+      .map(l => l.trim())
+      .filter(l => l !== '' && !l.startsWith('#'))
+    expect(patterns.filter(l => /build-identity/.test(l)),
+      'build-identity.txt is gitignored, so `railway up` would strip it from the upload').toEqual([])
+    // …and the NOTE itself must be there, so the next person does not re-add the pattern.
+    expect(read('.gitignore')).toMatch(/build-identity\.txt/)
   })
 
   it('every URL it reads is overridable, so a staging ship does not poll production', () => {

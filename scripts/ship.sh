@@ -80,6 +80,28 @@ for APP in api portal admin website; do
   fi
 done
 
+# ── ⚑ 18 Sep (XC-11, FOUNDER-APPROVED under #605's own exception) ────────────────────────
+#
+# 🛑 THE WEBSITE'S BUILD IDENTITY HAS TO BE A NON-DOTFILE, and that is the whole reason this
+# line exists separately from the loop above. `apps/website/.deploy-stamp` has been written on
+# every ship for months and is UNREADABLE over HTTP: `express.static` ignores dotfiles, so the
+# locked catch-all answers with `index.html` instead — 119,926 bytes, at **HTTP 200**. Measured
+# against the real locked server, not assumed.
+#
+# ⚠️ `server.js` IS NOT TOUCHED. The existing static handler already serves any ordinary file
+# in this directory; it needs no route, no change and no redeploy of the lock. The founder
+# approved this file by name under #605's *"if it in the future requires a website change you
+# make it very clear then i approve"*.
+#
+# ⚠️ AND IT IS NOT GITIGNORED, DELIBERATELY. `.gitignore` already records why: `railway up`
+# respects `.gitignore`, so an ignored file never reaches the deployed artifact and the read
+# below would poll for something that was never shipped. `website-freeze.test.ts` excludes it
+# by NAME instead, with the reason written next to the exclusion.
+#
+# Contents: the short shipped SHA only, newline-terminated. Nothing else. It cannot alter a page.
+echo "$HEAD" > "apps/website/build-identity.txt"
+echo "  apps/website/build-identity.txt: $HEAD  (served build identity — server.js untouched)"
+
 echo ""
 echo "== 3/3  Deploying all four services =="
 # One service failing must NOT silently swallow the rest. With `set -e` a single bad
@@ -143,14 +165,16 @@ echo "A 'Skipped' there only ever means: that app had nothing new since the last
 # FAILED — "we stopped waiting" is not "it did not deploy" (the same distinction XC-3 put
 # into the admin proxy).
 #
-# 🛑 THE WEBSITE IS NOT COVERED, AND THAT MEANS XC-11 IS **NOT COMPLETE**.
+# ⛓️ 18 Sep — ALL FOUR SERVICES ARE NOW READ. C-2 RESOLVED.
 #
-# ⛓️ 18 Sep — THE FROZEN CONTRACT ASKS FOR ALL FOUR SERVICES. This reads three. My Batch 1
-# return called that "a deliberate gap" and marked the item green; GPT verification was right
-# that a three-of-four read does not satisfy a four-service requirement, whatever the reason.
-# It is reported as a CONTRACT/CODE CONFLICT for Fable, not as a completed item.
+# The frozen contract asks for all four. My first cut read three and called the item green;
+# GPT verification was right that three-of-four does not satisfy a four-service requirement,
+# and it was escalated as a CONTRACT/CODE CONFLICT rather than worked around. **The founder has
+# since approved the website build-identity file by name, under #605's own exception clause**
+# (*"if it in the future requires a website change you make it very clear then i approve"*), so
+# the website is in the read and XC-11 is no longer short of its requirement.
 #
-# ── WHAT IS ACTUALLY IN THE WAY, PROVEN RATHER THAN ASSUMED ───────────────────────────────
+# ── WHAT WAS IN THE WAY, PROVEN RATHER THAN ASSUMED ───────────────────────────────────────
 #
 # `apps/website/server.js` is FOUNDER-LOCKED (1 Aug, #605 — *"lock in the site does not change
 # after this. without my command and clear command"*). It has no /health route. I booted the
@@ -167,17 +191,18 @@ echo "A 'Skipped' there only ever means: that app had nothing new since the last
 #     naive health read would see a 200 and call it healthy. That is worse than no check.
 #   · A non-dotfile in the same directory IS served, with **no change to server.js at all**.
 #
-# ── THE ONE AUTHORISED CHANGE THAT WOULD SATISFY THE CONTRACT ─────────────────────────────
+# ── THE AUTHORISED CHANGE, AS IMPLEMENTED ─────────────────────────────────────────────────
 #
-# Write the commit to `apps/website/build-identity.txt` here, and read it back below. The
-# locked `server.js` is untouched. BUT `website-freeze.test.ts` asserts *"no file has been
-# added or removed"* under `apps/website`, and regenerating that manifest
-# (`scripts/freeze-website.sh`) is defined as a POST-APPROVAL act. Dotfiles are excluded from
-# the freeze, which is exactly why the existing stamp does not break it — and exactly why it
-# cannot be served.
+# `apps/website/build-identity.txt` is written in the stamping step above and read below. It
+# holds the short sha and nothing else, it cannot alter a page, and the locked `server.js` is
+# untouched — the static handler it already has serves it.
 #
-# So the change needs the founder's explicit approval, and it is not mine to take. It is NOT
-# implemented here. What is implemented is the three-service read plus this statement.
+# ⚠️ THE FREEZE IS NOT REGENERATED, AND THE FILE IS NOT GITIGNORED. `website-freeze.test.ts`
+# excludes it BY NAME, with the reason written beside the exclusion. Regenerating the manifest
+# would be wrong twice over: the file's content changes on every ship, so the manifest would
+# drift every ship; and gitignoring it would be worse, because `railway up` respects
+# `.gitignore` (the file already says so about `.deploy-stamp`) — an ignored file never reaches
+# the deployed artifact, so the read would poll for something that was never shipped.
 # ══════════════════════════════════════════════════════════════════════════════════════════
 if [ "${SHIP_SKIP_HEALTH:-}" = "1" ]; then
   echo ""
@@ -188,11 +213,12 @@ fi
 HEALTH_API="${SHIP_HEALTH_API:-https://kindapi-production-e64c.up.railway.app}"
 HEALTH_PORTAL="${SHIP_HEALTH_PORTAL:-https://app.get-kind.com}"
 HEALTH_ADMIN="${SHIP_HEALTH_ADMIN:-https://admin.get-kind.com}"
+HEALTH_WEBSITE="${SHIP_HEALTH_WEBSITE:-https://get-kind.com}"
 HEALTH_TRIES="${SHIP_HEALTH_TRIES:-20}"     # 20 x 15s = five minutes
 HEALTH_WAIT="${SHIP_HEALTH_WAIT:-15}"
 
 echo ""
-echo "== 4/4  Reading /health on each service (expecting commit $HEAD) =="
+echo "== 4/4  Reading the build identity of all four services (expecting commit $HEAD) =="
 echo "   Polling up to $HEALTH_TRIES times, ${HEALTH_WAIT}s apart. Ctrl-C is safe — the deploy continues."
 
 # ⚠️ ALWAYS EXITS 0, AND THAT IS NOT LAZINESS — `set -euo pipefail` is on. A `curl` that
@@ -212,20 +238,60 @@ read_commit() {   # read_commit <base-url> — prints the reported short sha, or
   return 0
 }
 
+# 🛑 THE WEBSITE IS READ BY **BODY CONTENT**, AND A STATUS CODE IS NOT EVIDENCE HERE.
+#
+# The locked `server.js` ends with `app.get('*')` → `sendFile(index.html)`. So EVERY unknown
+# path answers **HTTP 200** with 119,926 bytes of markup — measured, not assumed:
+#
+#   GET /build-identity.txt  (before this change)  → 200, 119,926 bytes, NOT the sha
+#   GET /.deploy-stamp                             → 200, 119,926 bytes, NOT the sha
+#   GET /health                                    → 200, 119,926 bytes, NOT the sha
+#
+# A check that trusted the status code would therefore report the website GREEN for ever, on
+# evidence that is the home page. This function returns a sha ONLY if the trimmed body IS a
+# sha-shaped token: whitespace stripped, and the whole body must be hex of the same length the
+# stamp writes. An HTML page cannot satisfy that, and neither can an error page, a CDN
+# interstitial or a redirect body.
+read_build_identity() {   # read_build_identity <base-url> — prints the served sha, or nothing
+  local body=""
+  body=$(curl -fsS --max-time 10 "$1/build-identity.txt" 2>/dev/null || true)
+  # `tr -d` rather than a shell trim: the file is newline-terminated and a CDN may add \r.
+  body=$(printf '%s' "$body" | tr -d '[:space:]')
+  case "$body" in
+    # Hex only, and 7–40 characters — the shape `git rev-parse --short` produces. Anything
+    # containing a `<`, a space or a quote is not a build identity, whatever its status code.
+    *[!0-9a-fA-F]*) return 0 ;;
+    "")             return 0 ;;
+  esac
+  if [ "${#body}" -ge 7 ] && [ "${#body}" -le 40 ]; then printf '%s' "$body"; fi
+  return 0
+}
+
 CONFIRMED=""
-PENDING="api portal admin"
+# ⚑ 18 Sep — ALL FOUR. The website joins the read via `build-identity.txt` (founder-approved
+# under #605's exception); `server.js` is unchanged and the file is served by the static
+# handler it already has.
+PENDING="api portal admin website"
 TRY=0
 while [ "$TRY" -lt "$HEALTH_TRIES" ] && [ -n "$PENDING" ]; do
   TRY=$((TRY + 1))
   STILL=""
   for SVC in $PENDING; do
     case "$SVC" in
-      api)    BASE="$HEALTH_API" ;;
-      portal) BASE="$HEALTH_PORTAL" ;;
-      admin)  BASE="$HEALTH_ADMIN" ;;
-      *)      BASE="" ;;
+      api)     BASE="$HEALTH_API" ;;
+      portal)  BASE="$HEALTH_PORTAL" ;;
+      admin)   BASE="$HEALTH_ADMIN" ;;
+      website) BASE="$HEALTH_WEBSITE" ;;
+      *)       BASE="" ;;
     esac
-    GOT=$(read_commit "$BASE")
+    # Two readers, because the two shapes are genuinely different: a JSON `/health` that
+    # REPORTS its commit, and a static file that IS its commit. The website must never be read
+    # by the JSON reader — `/health` on it returns the home page at 200.
+    if [ "$SVC" = "website" ]; then
+      GOT=$(read_build_identity "$BASE")
+    else
+      GOT=$(read_commit "$BASE")
+    fi
     if [ "$GOT" = "$HEAD" ]; then
       echo "   ✅ $SVC is serving $HEAD  ($BASE)"
       CONFIRMED="$CONFIRMED $SVC"
@@ -250,14 +316,17 @@ if [ -n "$PENDING" ]; then
   echo "$HEAD by the time the read gave up. Either the build is still running, or it did not"
   echo "happen. Check Railway -> service -> Deployments, or re-read by hand:"
   echo "    curl -s $HEALTH_API/health | head -c 300"
+  echo "    curl -s $HEALTH_WEBSITE/build-identity.txt"
   exit 2
 fi
-echo "All three API/portal/admin services are serving $HEAD."
+echo "All four services are serving $HEAD (api - portal - admin - website)."
 echo ""
-echo "🛑 XC-11 IS INCOMPLETE: this read covers THREE of four services."
-echo "   The WEBSITE is not in it. apps/website/server.js is founder-locked (#605) and has no"
-echo "   /health route, and its .deploy-stamp is a dotfile that express.static will not serve"
-echo "   (a request for it returns 200 with index.html, so a naive check would read as green)."
-echo "   A non-dotfile build-identity.txt WOULD be served by the locked server unchanged, but"
-echo "   adding it breaks the #605 freeze manifest, which only the founder may regenerate."
-echo "   Until that is approved: confirm the website by eye in Railway -> KIND -> Deployments."
+echo "How each was read, because the two shapes are not the same evidence:"
+echo "  api / portal / admin : GET /health (or /api/health) and the reported \"commit\" field."
+echo "  website              : GET /build-identity.txt and the BODY, matched as a sha."
+echo ""
+echo "⚠️ The website read never trusts the status code. apps/website/server.js is"
+echo "   founder-locked (#605) and its catch-all answers HTTP 200 with index.html for ANY"
+echo "   unknown path — 119,926 bytes, measured — so a status-only check would report the"
+echo "   website green for ever. The build-identity file is served by the static handler the"
+echo "   locked server already has; server.js is untouched, and the file holds the sha only."

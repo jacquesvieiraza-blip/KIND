@@ -558,6 +558,14 @@ describe('free proof — a proof pass surfaces at most 20 leads', () => {
 // is spent". It is not: a zero is far more often just this prospect finishing their own
 // 40 records. Alerting the founder that his acquisition budget is gone, when it is not,
 // is the kind of false alarm that trains someone to ignore the real one.
+// ⛓️ 17 Sep (J5-C9 · FD-6) — THE SUBJECT LINE MOVED FROM A BUDGET TO A CEILING, so the three
+// cases below matched nothing and a green suite would have meant "no alert is ever raised".
+// The old subject said the *$300 monthly acquisition BUDGET* was spent; under FD-6 an Apollo
+// record costs nothing, so the ceiling is a RECORD count and the sentence is *"Free-proof
+// acquisition ceiling reached"*. The RULE under test is untouched and is the whole point:
+// a prospect finishing their own 40 is not a company money event.
+const ACQUISITION_ALERT = /acquisition (budget|ceiling)/i
+
 describe('free proof — a prospect finishing their 40 is not a company budget alert', () => {
   beforeEach(() => {
     installTestEnv()
@@ -571,14 +579,14 @@ describe('free proof — a prospect finishing their 40 is not a company budget a
   it('CLIENT_PROOF_LIMIT_REACHED DOES NOT RAISE THE $300 ALERT', async () => {
     const rec = emptyRec()
     await runJob({ funded: null, proof: 1, reserve: 0, reserveReason: 'CLIENT_PROOF_LIMIT_REACHED', pool: 0 }, rec)
-    const budgetAlerts = rec.alerts.filter(a => /acquisition budget/i.test(a.subject))
+    const budgetAlerts = rec.alerts.filter(a => ACQUISITION_ALERT.test(a.subject))
     expect(budgetAlerts).toHaveLength(0)
   })
 
   it('MONTHLY_PROOF_BUDGET_REACHED DOES raise it', async () => {
     const rec = emptyRec()
     await runJob({ funded: null, proof: 1, reserve: 0, reserveReason: 'MONTHLY_PROOF_BUDGET_REACHED', pool: 0 }, rec)
-    const budgetAlerts = rec.alerts.filter(a => /acquisition budget/i.test(a.subject))
+    const budgetAlerts = rec.alerts.filter(a => ACQUISITION_ALERT.test(a.subject))
     expect(budgetAlerts).toHaveLength(1)
     // …and it must say plainly that paying clients are untouched, because the whole point
     // of the separate budget is that acquisition cannot starve delivery.
@@ -592,7 +600,7 @@ describe('free proof — a prospect finishing their 40 is not a company budget a
     // stating a fact about company money that nothing established.
     const rec = emptyRec()
     await runJob({ funded: null, proof: 1, reserveNoAnswer: true, pool: 0 }, rec)
-    expect(rec.alerts.filter(a => /acquisition budget/i.test(a.subject))).toHaveLength(0)
+    expect(rec.alerts.filter(a => ACQUISITION_ALERT.test(a.subject))).toHaveLength(0)
     // And nothing was bought: a refusal we cannot explain still spends nothing.
     expect(rec.rpcs.some(r => r.fn === 'try_spend_sourcing')).toBe(false)
   })

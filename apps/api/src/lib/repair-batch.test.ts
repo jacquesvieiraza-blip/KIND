@@ -80,7 +80,13 @@ describe('#627 isMissingTable — one definition of "the table is not there"', (
 
 describe('#627 the PDL-cap probe tells the two problems apart', () => {
   const file = src('system-probes.ts')
-  const body = probeBody(file, 'PDL spend against the monthly cap')
+  // ⛓️ 17 Sep (XC-13 · FD-6) — THE LABEL MOVED, THE PROBE DID NOT. It read
+  // `'PDL spend against the monthly cap'`, present tense, which under FD-6 describes spending
+  // that is not happening. It is now `'Historic PDL spend against its old monthly cap'`, and
+  // the row is KEPT rather than deleted because dollars genuinely committed before FD-6 are
+  // still real, and this test's actual subject — a missing TABLE being told apart from an
+  // unset VALUE — is unchanged and is the thing #627 was written for.
+  const body = probeBody(file, 'Historic PDL spend against its old monthly cap')
 
   it('checks the ERROR before it looks at the value', () => {
     // Reading `capRow.data` first is what produced the false sentence: a table-missing error

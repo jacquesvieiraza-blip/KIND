@@ -24,7 +24,19 @@
 // on demand (a 500, a timeout, a malformed body).
 // ═══════════════════════════════════════════════════════════════════════════════════════
 
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
+
+// ⚠️ HOISTED, the repo's convention for this (see `apollo-search-contract.test.ts`). The
+// error classes below come from `apollo.ts`, which reaches `@kind/db`, and that client throws
+// at module scope without these — a static import runs before any plain top-level statement,
+// so assigning them outside `vi.hoisted` is too late. Nothing here reaches a network or a
+// database: the URL is a localhost placeholder and no request is made at all.
+vi.hoisted(() => {
+  process.env.SUPABASE_URL ??= 'http://localhost:54321'
+  process.env.SUPABASE_SERVICE_ROLE_KEY ??= 'test-service-role-key'
+  process.env.SUPABASE_ANON_KEY ??= 'test-anon-key'
+})
+
 import {
   classifyProviderFailure,
   PROVIDER_FAILURE_CLASSES,
@@ -150,5 +162,22 @@ describe('XC-13 · the seven failure classes the contract names', () => {
     // notes. An error message that happens to echo a key must not be stored verbatim.
     const v = classifyProviderFailure(new Error('Apollo 401: bad key abcd1234secretkey'))
     expect(v.operatorDetail).not.toContain('abcd1234secretkey')
+    // …in the label shape too, whatever the punctuation. `api_key=…` and `token: …` are the
+    // two forms a provider actually echoes.
+    for (const shape of ['api_key=zk3Qp9wLmn4TvB8rYd2H', 'token: zk3Qp9wLmn4TvB8rYd2H', 'secret zk3Qp9wLmn4TvB8rYd2H']) {
+      expect(classifyProviderFailure(new Error(`Apollo 401: ${shape}`)).operatorDetail, shape)
+        .not.toContain('zk3Qp9wLmn4TvB8rYd2H')
+    }
+  })
+
+  it('but the provider ERROR CODE survives — over-redaction hides the only usable clue', () => {
+    // 🛑 THE OTHER DIRECTION OF THE SAME BUG. A flat "anything 24+ characters is a secret"
+    // rule also removed `SEARCH_VALIDATION_SEARCH_PARAMS_INVALID` — the one part of Apollo's
+    // 422 that tells an engineer which parameter was refused. A detail line redacted down to
+    // nothing is as useless as no task at all.
+    const v = classifyProviderFailure(
+      new Error('Apollo 422: {"error":"Per page not supported","code":"SEARCH_VALIDATION_SEARCH_PARAMS_INVALID"}'),
+    )
+    expect(v.operatorDetail).toContain('SEARCH_VALIDATION_SEARCH_PARAMS_INVALID')
   })
 })

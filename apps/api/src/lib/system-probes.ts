@@ -809,7 +809,12 @@ async function vida(): Promise<Section> {
     // write surfaced only because that write is checked (#349).
     const { isMissingTable } = await import('./schema-probe')
     if (isMissingTable(capRow.error as never)) {
-      return unmeasured('Historic PDL spend against its old monthly cap',
+      // ⚠️ STILL `broken`, AND FD-6 DOES NOT SOFTEN IT. A reached PDL cap constrains nothing
+      // any more, so that case became `unmeasured` below — but a MISSING TABLE is a schema
+      // fact, not a money fact: `app_settings` is where several operator-editable values
+      // live, and "there is nowhere to set one" is exactly the state #627 exists to surface.
+      // Re-labelling the row must not quietly downgrade the one finding it was written for.
+      return broken('Historic PDL spend against its old monthly cap',
         `$${spent.toFixed(2)} spent this month, and the app_settings table DOES NOT EXIST — so no cap can be stored and nothing is guarding sourcing spend but the code default. This row previously said "no usable setting exists", which read as "nobody has set one yet" rather than "there is nowhere to set one".`,
         'Run the 20260806_app_settings migration from Vida → Engine → Run migrations. That needs DATABASE_URL to be the Supabase SESSION POOLER string first (runlist A15).')
     }

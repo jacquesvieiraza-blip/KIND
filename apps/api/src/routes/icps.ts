@@ -398,24 +398,49 @@ async function alertProofBudgetSpent(clientId: string): Promise<void> {
     const today = new Date().toISOString().slice(0, 10)
     if (today === lastProofAlertDay) return
     lastProofAlertDay = today
-    const { data: settings } = await db.from('money_settings').select('proof_monthly_cap_usd').eq('id', 1).maybeSingle()
-    const cap = Number(settings?.proof_monthly_cap_usd ?? 300)
+
+    // ── ⛓️ 17 Sep (J5-C9 / FD-6) — COUNTED IN RECORDS, NOT IN PDL DOLLARS ─────────────
+    //
+    // WAS: read `money_settings.proof_monthly_cap_usd`, sum `proof_ledger.cost_usd` for the
+    // month, and tell the founder *"this month's free-proof PDL spend is $X of the $300
+    // acquisition cap"*. Under FD-6 every number in that sentence is a fiction: an Apollo
+    // People Search costs nothing, the reveal is the credit, and a free Proof set shows
+    // masked cards precisely so it reveals nobody — so the month's PDL spend is $0 and
+    // always will be. It also sent the operator to raise a dollar budget that is not the
+    // constraint.
+    //
+    // ⚠️ ABSENT-COLUMN TOLERANCE, AND IT NAMES WHICH COLUMN ANSWERED. If the J5-C9 migration
+    // has not been run, `proof_monthly_cap_records` is not selectable and supabase-js returns
+    // `{data:null,error}` — which a destructured read shows as an empty object. So the error
+    // is checked, the fallback is the historic translation, and the sentence says the ceiling
+    // could not be read rather than printing a number nobody set.
+    const { data: settings, error: settingsErr } = await db
+      .from('money_settings').select('proof_monthly_cap_records').eq('id', 1).maybeSingle()
+    const rawCap = (settings as { proof_monthly_cap_records?: unknown } | null)?.proof_monthly_cap_records
+    const capRecords = Number(rawCap)
+    const capKnown = !settingsErr && Number.isFinite(capRecords) && capRecords > 0
+
     // ⚠️ budget_month, NOT created_at (round 3). The authority inside
     // `try_reserve_proof_records` sums over budget_month so a late correction lands in the
-    // month the money was reserved. Summing this display by created_at instead would show
+    // month the records were reserved. Summing this display by created_at instead would show
     // the founder a September figure distorted by an August reconciliation — two different
     // numbers for one budget, which is how the $138 infra line went unchallenged for weeks.
     const monthStart = new Date(); monthStart.setUTCDate(1); monthStart.setUTCHours(0, 0, 0, 0)
     const budgetMonth = monthStart.toISOString().slice(0, 10)
     const { data: rows } = await db.from('proof_ledger')
-      .select('cost_usd').eq('budget_month', budgetMonth)
-    const spent = (rows ?? []).reduce((s, r: { cost_usd?: number | string }) => s + Number(r.cost_usd ?? 0), 0)
-    void sendFounderAlert('source_down', 'Free-proof ACQUISITION budget spent — no more paid proof sourcing this month', [
-      `This month's free-proof PDL spend is $${spent.toFixed(2)} of the $${cap.toFixed(0)} acquisition cap.`,
-      `Prospect ${clientId} was refused paid proof sourcing just now.`,
-      'PAYING CLIENTS ARE UNAFFECTED — paid delivery has its own separate ceiling and its own budget.',
+      .select('records').eq('budget_month', budgetMonth)
+    const usedRecords = (rows ?? []).reduce((s, r: { records?: number | string }) => s + Number(r.records ?? 0), 0)
+
+    void sendFounderAlert('source_down', 'Free-proof acquisition ceiling reached — no more proof sourcing this month', [
+      capKnown
+        ? `This month's free-proof sourcing is ${usedRecords} of the ${capRecords}-record acquisition ceiling.`
+        : `This month's free-proof sourcing is ${usedRecords} records, and the ceiling could NOT be read — so whether it is reached was not established here. Run the 20260917_proof_fence_in_records migration if it is missing.`,
+      `Prospect ${clientId} was refused proof sourcing just now.`,
+      'PAYING CLIENTS ARE UNAFFECTED — programme sourcing has its own separate entitlement.',
       'Pool-only proof still works: records we already own cost nothing, so a prospect can still be shown real leads.',
-      'Raise proof_monthly_cap_usd in the admin Money Path page if this is volume you want to fund.',
+      // ⚠️ NO DOLLAR FIGURE AND NO PROVIDER RATE. The ceiling is a RECORD count (J5-C9): an
+      // Apollo search costs nothing, so a spend figure here would be money nobody spent.
+      'Raise proof_monthly_cap_records in the admin Money Path page if this is volume you want to fund.',
     ])
   } catch (err) {
     console.error('[icp] alertProofBudgetSpent failed (non-fatal):', err)
@@ -1205,7 +1230,10 @@ export async function runIcpJob(
       // must NOT be reported as the acquisition budget running out.
       proofReason = typeof r.reason === 'string' ? r.reason : 'FAIL_CLOSED_NO_REASON'
       grantedSize = proofReserved
-      console.log(`[icp] FREE PROOF run for prospect ${clientId} — reserved ${proofReserved} of ${pdlRemainder} PDL record(s) (reservation ${proofReservationId ?? 'none'}, ${proofReason}) against the acquisition fence (40 lifetime, $300/mo).`)
+      // ⛓️ 17 Sep (J5-C9) — WAS: "PDL record(s) … against the acquisition fence (40 lifetime,
+      // $300/mo)". Both halves were wrong under FD-6: the records are Apollo's, and the
+      // monthly half of the fence is a RECORD count, not $300 at a PDL rate.
+      console.log(`[icp] FREE PROOF run for prospect ${clientId} — reserved ${proofReserved} of ${pdlRemainder} Apollo record(s) (reservation ${proofReservationId ?? 'none'}, ${proofReason}) against the acquisition fence (40 lifetime per prospect, plus a monthly record ceiling).`)
     } else {
       // ── PROGRAMME AUTHORITY, WITHOUT PDL MONEY (⛓️ 17 Sep · XC-13 / J12-C0) ───────────
       //

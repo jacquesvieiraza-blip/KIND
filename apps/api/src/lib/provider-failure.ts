@@ -86,8 +86,24 @@ export interface ProviderFailureVerdict {
  */
 function redact(message: string): string {
   return message
-    .replace(/\b[A-Za-z0-9_-]{24,}\b/g, '[redacted]')
-    .replace(/\b(?:[a-z]+_)?(?:key|token|secret)\s*[:=]\s*\S+/gi, '$&'.replace(/\S+$/, '[redacted]'))
+    // ① ANYTHING FOLLOWING A KEY-SHAPED LABEL, however it is punctuated. The first cut of
+    // this required `[:=]`, so `bad key abcd1234secretkey` — a real 401 shape — passed
+    // through untouched, and the second cut computed its replacement from the literal
+    // string `'$&'` at module load, which silently collapsed the label into the redaction
+    // too. Both were caught by the test, which could not run until today.
+    .replace(
+      /\b((?:[a-z]+[_-])?(?:api[_-]?)?(?:key|token|secret|password)s?)\b\s*[:=]?\s*\S+/gi,
+      '$1 [redacted]',
+    )
+    // ② ANYTHING LONG AND SECRET-SHAPED, labelled or not — but it must actually look like a
+    // secret. A flat `{24,}` length rule also ate `SEARCH_VALIDATION_SEARCH_PARAMS_INVALID`,
+    // which is the one part of a 422 an engineer needs to read. Requiring BOTH a lowercase
+    // letter and a digit keeps Apollo's SCREAMING_SNAKE error codes legible while still
+    // catching keys, tokens and JWT segments.
+    .replace(
+      /\b(?=[A-Za-z0-9_-]{16,}\b)(?=[A-Za-z0-9_-]*[a-z])(?=[A-Za-z0-9_-]*\d)[A-Za-z0-9_-]+\b/g,
+      '[redacted]',
+    )
     .slice(0, 400)
 }
 
@@ -180,7 +196,11 @@ export function classifyProviderFailure(err: unknown): ProviderFailureVerdict {
   if (name === 'SyntaxError' || /\b4\d\d\b|unexpected token|not supported|invalid/.test(lower)) {
     return verdict(
       'malformed', 'failed', 'provider_refused', 'critical', false,
-      'Apollo refused the request itself, or answered in a shape we do not parse. This is an engineering fault in the request, not a billing or targeting one — do not top up.',
+      // ⚠️ THE WORDS "TOP UP" ARE DELIBERATELY ABSENT, not negated. This sentence lands in a
+      // task list that gets scanned, and a scanned "do not top up" is read as "top up" often
+      // enough to matter — the guard in `provider-failure.test.ts` asserts the phrase never
+      // appears in a malformed action at all, which is stricter than asserting it is negated.
+      'Apollo refused the request itself, or answered in a shape we do not parse. This is an engineering fault in the request we sent — not a billing problem and not a targeting one, so the account and the ICP are both fine.',
     )
   }
 

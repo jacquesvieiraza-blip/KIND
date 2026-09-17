@@ -205,6 +205,49 @@ async function callInternal(path: string, method: 'GET' | 'POST' = 'POST'): Prom
   }
 }
 
+// ── XC-6 · THE OVERDUE-AUTOMATIC-WORK DETECTOR ──────────────────────────────────
+//
+// Reads `automatic_work` for anything past the bound recorded when it was requested, and
+// turns each one into an `operator_tasks` row so it appears in Vida Needs-you.
+//
+// ⚠️ IT CLAIMS ITS OWN SLOT. It does not go through `callInternal`, so without a claim two
+// replicas would both sweep and both raise — and the dedupe index would hide the second,
+// which is the good case; the bad case is two `stuck` transitions racing. The claim is
+// cheaper than either.
+//
+// ⚠️ NOT SILENT WHEN IT CANNOT WORK. If `automatic_work` is missing, the detector is blind,
+// and blindness is the condition this whole item exists to end — so it says so, once per
+// process, rather than logging "0 overdue" every five minutes forever.
+let alertedDetectorBlind = false
+async function detectOverdueWork(): Promise<void> {
+  try {
+    const claim = await claimCronSlot('detector:automatic-work', new Date())
+    if (claim.kind === 'taken') return
+    if (claim.kind === 'unavailable') reportClaimUnavailable('detector:automatic-work', claim)
+
+    const { detectOverdueAutomaticWork } = await import('./lib/automatic-work')
+    const res = await detectOverdueAutomaticWork({ nowMs: Date.now() })
+
+    if (!res.ok) {
+      console.error(`[cron] automatic-work detector could not read: ${res.error ?? 'unknown'}`)
+      if (res.tableMissing && !alertedDetectorBlind) {
+        alertedDetectorBlind = true
+        void sendFounderAlert('api_down', 'The overdue-work detector is blind', [
+          'automatic_work does not exist on this database, so nothing is watching the work the system promised to do by itself.',
+          'Run the pending migrations from Vida → System → Engine (20260917_operator_tasks_and_automatic_work).',
+          'Until then a Proof that never starts looks exactly like one that has not started yet.',
+        ])
+      }
+      return
+    }
+    if (res.raised > 0 || res.failed > 0) {
+      console.log(`[cron] automatic-work detector — checked ${res.checked}, raised ${res.raised}, could not report ${res.failed}`)
+    }
+  } catch (err) {
+    console.error('[cron] automatic-work detector threw', err)
+  }
+}
+
 // #285 — sends-stalled watchdog. FIGSY sending runs on /figsy/send-due-all every 2h;
 // if that pipeline silently dies (bad API key, crashed worker, DB error) enrollments
 // pile up "due" while nothing goes out. This detects that: enrollments that SHOULD have
@@ -420,6 +463,23 @@ export function startCrons(): void {
   // than a database function because a function nothing calls is not housekeeping, it is
   // dead code that reads like housekeeping.
   cron.schedule('30 2 * * *', () => { void pruneCronClaims() }, { timezone: 'UTC' })
+
+  // ── XC-6 · Every 5 minutes — THE OVERDUE-AUTOMATIC-WORK DETECTOR ────────────────
+  //
+  // The system promises to start a Proof, promote a Brief, prepare a programme. Until
+  // `automatic_work` existed, "requested and never started" was indistinguishable from
+  // "never requested", so a promise the system quietly dropped looked exactly like one it
+  // had not got to yet — forever. That is the Northvale shape: Milla said "finding your
+  // first examples", Vida said no action needed, and nothing was running.
+  //
+  // ⚠️ FIVE MINUTES, NOT HOURLY. The tightest bound is a Proof run at ten minutes, and a
+  // client is sitting on that screen. An hourly sweep would mean a dropped Proof is found
+  // up to an hour after the person watching it has given up.
+  //
+  // ⚠️ IT DETECTS; IT DOES NOT RETRY. Automatic recovery is FD-0's other half and belongs
+  // at the call site that knows how to redo that particular work — a generic retry here
+  // would be exactly the concurrent second run FD-0 forbids.
+  cron.schedule('*/5 * * * *', () => { void detectOverdueWork() }, { timezone: 'UTC' })
 
   // Daily 04:00 UTC — #287 MRR daily snapshot → metrics_daily (MRR-over-time + movement)
   cron.schedule('0 4 * * *', () => callInternal('/metrics/snapshot'), { timezone: 'UTC' })

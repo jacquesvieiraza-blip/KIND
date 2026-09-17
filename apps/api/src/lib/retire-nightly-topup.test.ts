@@ -110,7 +110,7 @@ describe('unrelated scheduled work is untouched — this retires one job, not th
     const count = (cronCode.match(/cron\.schedule\(/g) ?? []).length
     // 32 before this change, 31 after. Pinned as a floor so a future accidental deletion of
     // several jobs cannot pass by merely being "fewer than before".
-    expect(count).toBe(31)
+    expect(count).toBe(32)   // ⛓️ 31 → 32 on 17 Sep (Batch 1 · XC-6): +1 the overdue-automatic-work detector, every 5 minutes. It reads `automatic_work` for anything past the bound recorded when it was requested and turns each one into an operator task — the first job in this scheduler that watches the SYSTEM'S own promises rather than a client's. It claims its own slot; it detects and never retries, because a generic retry is exactly the concurrent second run FD-0 forbids.
   })
 })
 

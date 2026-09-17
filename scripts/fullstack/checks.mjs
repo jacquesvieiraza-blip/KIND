@@ -295,20 +295,42 @@ async function check4() {
 // ══════════════════════════════════════════════════════════════════════════════════════════
 // CHECK 5 — XC-13 / XC-5 · the eight-case Apollo failure matrix
 // ══════════════════════════════════════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════════════════════════════════════
+// THE MATRIX: fake mode → the `icp_run_outcomes.status` it must record → the ONE operator
+// task kind it must raise.
+//
+// ⚠️ THE THIRD COLUMN WAS WRONG FOR THREE CLASSES, AND THE CHECK PASSED ANYWAY — WHICH IS
+// THE MORE IMPORTANT HALF OF THIS NOTE. The loop destructured `[mode, wantStatus]` and simply
+// never read the third element: the kind was printed in the table and asserted nowhere. So
+// `rate_limited → provider_rate_limited` and `timeout|provider_error → provider_down` sat
+// here reading like verified expectations while being **names the product does not have**.
+// A green check was hiding one of the four facts the contract requires of it ("exactly one
+// CORRECTLY-KINDED task"), and an unread expectation is worse than a missing one, because it
+// looks like coverage.
+//
+// 🛑 THE VALUES BELOW ARE TAKEN FROM THE PRODUCT'S OWN DECLARED TABLE — `provider-failure.ts`
+// lines 156-209, where each class is declared as `(mode, run status, task kind, severity,
+// retryable)` — and NOT from the output of a run. They are written here as INDEPENDENT
+// LITERALS rather than imported from it, deliberately: importing the table would assert the
+// product against itself and this check would agree with any future edit to it, including a
+// wrong one. `provider_unavailable`, `provider_refused` and `provider_credits_exhausted` are
+// also the only three provider kinds `operator-tasks.ts` declares (lines 52-54).
+// ══════════════════════════════════════════════════════════════════════════════════════════
 const MATRIX = [
+  // fake mode            icp_run_outcomes.status   the one operator task kind
   ['unauthorised',      'failed',           'provider_refused'],
   ['payment_required',  'quota_exhausted',  'provider_credits_exhausted'],
   ['credits_exhausted', 'quota_exhausted',  'provider_credits_exhausted'],
   ['malformed_request', 'failed',           'provider_refused'],
-  ['rate_limited',      'failed',           'provider_rate_limited'],
-  ['provider_error',    'failed',           'provider_down'],
-  ['timeout',           'failed',           'provider_down'],
+  ['rate_limited',      'failed',           'provider_unavailable'],
+  ['provider_error',    'failed',           'provider_unavailable'],
+  ['timeout',           'failed',           'provider_unavailable'],
   ['malformed_body',    'failed',           'provider_refused'],
 ]
 
 async function check5() {
   const rows = []
-  for (const [mode, wantStatus] of MATRIX) {
+  for (const [mode, wantStatus, wantKind] of MATRIX) {
     await fakeReset('apollo'); await fakeReset('pdl'); await fakeReset('hunter')
     // A short hang, so the 8-case matrix does not take 16 minutes; the product's own bound is
     // what aborts it, and check 7 proves the real bound separately.
@@ -316,7 +338,12 @@ async function check5() {
     const f = await makeClient({ ceiling: 100 })
     let verdict = { mode, status: null, tasks: null, reserved: null, pdl: null, hunter: null }
     try {
-      await operator('/operator/source', { method: 'POST', body: JSON.stringify({ client_id: f.clientId, count: 20, confirm: true }), timeoutMs: 180000 })
+      // ⚠️ THE RESPONSE IS KEPT, BECAUSE DISCARDING IT COST AN HOUR. An earlier version fired
+      // and never looked: when every class came back `status=(none)` the table said only that
+      // nothing had been recorded, which reads as eight product defects and was in fact one
+      // refusal at the door. A check that throws away the answer it was given cannot tell
+      // "the run failed correctly" from "the run never started".
+      const res = await operator('/operator/source', { method: 'POST', body: JSON.stringify({ client_id: f.clientId, count: 20, confirm: true }), timeoutMs: 180000 })
 
       const outcomes = await sql('select status from public.icp_run_outcomes where client_id = $1 order by created_at desc limit 1', [f.clientId])
       const [authority] = await sql('select sourced_reserved from public.programmes where id = $1', [f.programmeId])
@@ -332,10 +359,20 @@ async function check5() {
         hunter: await fakeCount('hunter'),
       }
       const problems = []
+      // A run that never started is a HARNESS fault, and it must say so instead of being
+      // counted as eight wrong outcomes.
+      if (verdict.status === '(none)') {
+        problems.push(`no icp_run_outcomes row at all — POST /operator/source answered HTTP ${res.status}: ${String(res.text).slice(0, 160)}`)
+      }
       if (verdict.status !== wantStatus) problems.push(`status=${verdict.status} want=${wantStatus}`)
       if (verdict.status === 'no_match') problems.push('🛑 recorded as no_match — a failure was reported as an empty market')
       if (verdict.reserved !== 0) problems.push(`reservation NOT released (reserved=${verdict.reserved})`)
       if (verdict.tasks !== 1) problems.push(`${verdict.tasks} open tasks, want exactly 1`)
+      // ⚠️ THE KIND, NOT JUST THE COUNT. "One task was raised" and "the right person was told
+      // the right thing" are different facts: a credits-exhausted class that raises
+      // `provider_unavailable` sends somebody to check whether Apollo is down instead of to
+      // top up the account. The contract's wording is "exactly one CORRECTLY-KINDED task".
+      else if (verdict.kinds[0] !== wantKind) problems.push(`task kind=${verdict.kinds[0]} want=${wantKind}`)
       if (verdict.pdl !== 0 || verdict.hunter !== 0) problems.push(`🛑 PDL=${verdict.pdl} HUNTER=${verdict.hunter}`)
       rows.push({ ...verdict, problems })
     } finally { await drop(f.userId) }
@@ -352,7 +389,7 @@ async function check5() {
 
   const failed = rows.filter((r) => r.problems.length)
   if (failed.length) return bad(5, `${failed.length}/8 classes wrong — ${failed.map((r) => `${r.mode}: ${r.problems.join('; ')}`).join(' | ')}`)
-  ok(5, `all 8 failure classes: reservation released, run status correct, exactly one task each, PDL=0 HUNTER=0 throughout`)
+  ok(5, `all 8 failure classes: reservation released, icp_run_outcomes correct, exactly one task each OF THE RIGHT KIND, PDL=0 HUNTER=0 throughout`)
 }
 
 // ══════════════════════════════════════════════════════════════════════════════════════════
@@ -457,6 +494,27 @@ async function check9() {
   const kinds = Array.isArray(ALERT_KINDS) ? ALERT_KINDS : Object.keys(ALERT_KINDS ?? {})
   if (!kinds.length) return bad(9, 'ALERT_KINDS is empty — nothing to fire')
 
+  // ══════════════════════════════════════════════════════════════════════════════════════
+  // 🛑 THE DEDUPE SPACE IS CLEARED FIRST, AND THAT IS NOT TIDYING — IT IS THE DIFFERENCE
+  //    BETWEEN THIS CHECK MEASURING THE PRODUCT AND MEASURING CHECK ORDER.
+  //
+  // `raiseOperatorTask` is idempotent per `(kind, dedupeKey)` *while the previous task is
+  // still open*, and `alerts.ts` deduped classes globally (`alert:<kind>:…`). So a class that
+  // already has an open task does NOT get a second one — correct behaviour, and exactly what
+  // an operator queue should do.
+  //
+  // ⚠️ IT COST A RUN TO LEARN. Once checks 4/5/7 began reaching Apollo for real, `apollo.ts`
+  // fired its own `source_down` alert during sourcing. Check 9 then fired all ten classes and
+  // found nine marker-titled tasks: `source_down` had correctly deduped onto the task the
+  // sourcing run had already raised, whose title carries no marker. The check reported
+  // "NO TASK FOR: source_down" — a false defect report about the one class that had behaved
+  // best. Clearing the OPEN alert-derived tasks first makes every class start from the same
+  // state, so "one class, one task" is a fact about the product and not about what ran before.
+  // ══════════════════════════════════════════════════════════════════════════════════════
+  const cleared = await sql(
+    `delete from public.operator_tasks where dedupe_key like 'alert:%' and status = 'open' returning kind`,
+  )
+
   const marker = `fullstack-${Date.now()}`
   for (const kind of kinds) {
     await sendFounderAlert(kind, `${marker} ${kind}`, ['fullstack check 9'])
@@ -487,7 +545,8 @@ async function check9() {
   if (withNote.status !== 200) return bad(9, `resolving WITH a note → HTTP ${withNote.status}: ${withNote.text.slice(0, 140)}`)
 
   await sql(`delete from public.operator_tasks where title like $1`, [`%${marker}%`])
-  ok(9, `${kinds.length} alert classes → ${tasks.length} persisted tasks · listed by /operator/tasks · resolve refused without a note (HTTP ${noNote.status}), accepted with one`)
+  ok(9, `${kinds.length} alert classes → ${tasks.length} persisted tasks · listed by /operator/tasks · resolve refused without a note (HTTP ${noNote.status}), accepted with one`
+    + (cleared.length ? ` · ${cleared.length} already-open alert task(s) cleared first, incl. the source_down one the live sourcing raised — dedupe is working, see the note in this check` : ''))
 }
 
 // ══════════════════════════════════════════════════════════════════════════════════════════
@@ -534,10 +593,17 @@ async function check10() {
 // ══════════════════════════════════════════════════════════════════════════════════════════
 const CHECKS = [check0, check1, check2, check3, check4, check5, check6, check7, check8, check9, check10]
 
+// `FULLSTACK_ONLY=5` / `FULLSTACK_ONLY=0,5,7` runs a subset against an already-`up` stack.
+// ⚠️ FOR ITERATING AND FOR PROVING A CHECK'S TEETH, NEVER FOR A REPORTED RUN — a subset cannot
+// establish the cumulative claim, so the summary below says loudly when one was used.
+const ONLY = (process.env.FULLSTACK_ONLY ?? '').split(',').map((s) => s.trim()).filter(Boolean)
+const SELECTED = ONLY.length ? ONLY.map(Number).map((n) => CHECKS[n]).filter(Boolean) : CHECKS
+if (ONLY.length) console.log(`\n   ⚠️  FULLSTACK_ONLY=${ONLY.join(',')} — A SUBSET. This is not a cumulative run.\n`)
+
 db = new Client({ connectionString: ENV.db })
 await db.connect()
 
-for (const c of CHECKS) {
+for (const c of SELECTED) {
   try { await c() } catch (err) { bad(CHECKS.indexOf(c), `threw: ${err instanceof Error ? err.stack?.split('\n').slice(0, 3).join(' | ') : String(err)}`) }
 }
 

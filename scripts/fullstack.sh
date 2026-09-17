@@ -135,6 +135,43 @@ wait_http() {  # wait_http <url> <label> [tries]
   fail "$label did not come up at $url after ${tries}s — see $RUN_DIR"
 }
 
+# ══════════════════════════════════════════════════════════════════════════════════════════
+# 🛑 THE PRECONDITION FOR TURNING THE SPEND GUARD OFF — AND IT MUST REFUSE, NOT WARN
+#
+# This is the whole basis on which `PAID_PROVIDERS_ENABLED=true` is defensible (the long block
+# in `export_env`). It establishes two separate facts, because either alone is insufficient:
+#
+#   ① every provider base URL this process will export is a LOOPBACK url — so a provider call
+#     cannot leave the machine even if a key were real;
+#   ② the PAID providers' fakes are ACTUALLY ANSWERING on those ports — so "no provider was
+#     called" can never be confused with "the fake was not listening", which is precisely the
+#     ambiguity that would make `PDL_CALLS=0` worthless again.
+#
+# ⚠️ IT ASSERTS THE VARIABLES' VALUES, NOT THE PORT NUMBERS THAT BUILT THEM. Re-deriving
+# `http://127.0.0.1:$PORT_APOLLO` here would assert this function's own arithmetic against
+# itself. It reads what `export_env` is about to hand the product.
+# ══════════════════════════════════════════════════════════════════════════════════════════
+assert_providers_are_loopback() {
+  local bad="" v url
+  for v in APOLLO_BASE_URL RESEND_BASE_URL STRIPE_BASE_URL GOOGLE_API_BASE_URL ANTHROPIC_BASE_URL; do
+    url="$(eval "printf '%s' \"\${$v:-}\"")"
+    case "$url" in
+      http://127.0.0.1:*) ;;
+      *) bad="$bad $v=${url:-<unset>}" ;;
+    esac
+  done
+  [ -z "$bad" ] || fail "refusing to disable the zero-spend guard — these are not loopback:$bad"
+
+  # ② The paid providers must be reachable. A silent PDL fake would turn the contract's
+  #    headline zero into an artifact of a dead listener.
+  local p
+  for p in "$PORT_APOLLO:apollo" "$PORT_PDL:pdl" "$PORT_HUNTER:hunter"; do
+    curl -sS -o /dev/null --max-time 3 "http://127.0.0.1:${p%%:*}/__fake/count" 2>/dev/null \
+      || fail "refusing to disable the zero-spend guard — the ${p##*:} fake is not answering on ${p%%:*}"
+  done
+  say "zero-spend guard OFF — all 5 provider base URLs are loopback and apollo/pdl/hunter fakes answer"
+}
+
 # ── THE ENVIRONMENT THE PRODUCT GETS ──────────────────────────────────────────────────────
 #
 # 🛑 EVERY PROVIDER KEY IS SET, INCLUDING PDL's AND HUNTER's. That is the contract's
@@ -167,7 +204,67 @@ export_env() {
   export STRIPE_SECRET_KEY="sk_test_fullstack_fake"
   export ADMIN_SECRET_KEY="fullstack-admin-secret"
   export INBOX_SECRET_KEY="fullstack-inbox-secret-key-32-chars-minimum-ok"
-  export PAID_PROVIDERS_ENABLED="true"
+
+  # ══════════════════════════════════════════════════════════════════════════════════════════
+  # 🛑 THE SPEND GUARD IS OFF IN THIS PROCESS, AND THAT DECISION IS THE MOST DELICATE ONE
+  #    IN THIS FILE. READ ALL OF IT BEFORE CHANGING EITHER LINE.
+  #
+  # ── WHAT WENT WRONG WHEN IT WAS ON ──────────────────────────────────────────────────────
+  #
+  # An earlier version exported `SAFE_TEST_MODE=1` as an obvious belt. R66's guard sits at the
+  # `fetch` boundary and THROWS, so the real API did exactly what it should:
+  #
+  #   [icp] stage=provider_blocked — paid sourcing required (20 record(s)) but the zero-spend
+  #         guard refused it; pool served 0.
+  #
+  # Apollo was never called. Checks 4, 5 and 7 — the sourcing lifecycle, the eight-case
+  # failure matrix, the shared timeout — are checks ABOUT provider calls, so all three were
+  # unobtainable, and the harness was measuring its own guard.
+  #
+  # ⚠️ AND IT QUIETLY HOLLOWED OUT THE HEADLINE EVIDENCE. `PDL_CALLS=0` / `HUNTER_CALLS=0` are
+  # the contract's proof of FD-6. With the guard on, they were 0 because the guard refuses
+  # EVERY paid provider — Apollo included. A zero that a blanket refusal produces says nothing
+  # whatsoever about FD-6, and it would have read on the page as though it did. With the guard
+  # off, Apollo IS called, repeatedly, through the same code path and the same boundary — so
+  # PDL and Hunter staying at zero is now a real, discriminating absence. The guard being off
+  # is not a concession to get a green run; it is what makes the two zeroes mean anything.
+  #
+  # ── WHY THIS CANNOT SPEND MONEY, AS A PROPERTY AND NOT A PROMISE ────────────────────────
+  #
+  # `assert_providers_are_loopback` below runs FIRST and refuses the whole run unless all five
+  # provider base URLs are `127.0.0.1` AND the paid-provider fakes are answering there. Money
+  # leaves at the HTTP call; the HTTP call cannot leave the machine. Every key is an obvious
+  # fake, so even a redirect that failed could not authenticate. R66's protection is preserved
+  # in substance — spending is impossible — while the code path it guards stays exercisable.
+  #
+  # 🛑 DO NOT set `SAFE_TEST_MODE` here, and do not enable spend without the assertion. Either
+  # one alone reintroduces one of the two failures above.
+  # ══════════════════════════════════════════════════════════════════════════════════════════
+  # ── THE ONE EXCEPTION, AND IT IS THE RED RUN ────────────────────────────────────────────
+  #
+  # 🛑 `FULLSTACK_RED=1` PUTS THE GUARD BACK ON, BECAUSE THE RED TREE HAS NO SEAM TO REDIRECT.
+  #
+  # The RED run boots a PRE-BATCH-1 checkout, where `apollo.ts` reads
+  # `const APOLLO_BASE = 'https://api.apollo.io/api/v1'` as a hardcoded literal — the absence
+  # of that seam is the very thing RED is meant to demonstrate. So the assertion above would
+  # pass (the variables ARE loopback) while the product ignored every one of them and called
+  # the real Apollo with a fake key. `assert_providers_are_loopback` cannot catch that: it
+  # proves what the ENVIRONMENT says, and the RED product does not read the environment.
+  #
+  # ⚠️ SO THE RED RUN'S CHECKS 4/5/7 FAIL FOR TWO REASONS AT ONCE — no seam AND a guard that
+  # refuses paid calls — and the report must say so rather than implying a purely behavioural
+  # RED. That is a weaker demonstration than a redirected one, and it is the correct trade:
+  # the alternative is sending real traffic to a live provider to make a nicer-looking
+  # failure. R66 exists for exactly this decision.
+  if [ "${FULLSTACK_RED:-0}" = "1" ]; then
+    export SAFE_TEST_MODE="1"
+    unset PAID_PROVIDERS_ENABLED || true
+    say "🛑 RED RUN — zero-spend guard ON (this tree has no base-URL seam, so its provider calls could not be redirected)"
+  else
+    assert_providers_are_loopback
+    export PAID_PROVIDERS_ENABLED="true"
+    unset SAFE_TEST_MODE || true
+  fi
 
   # ── THE REST OF THE REGISTER, SO THE API ACTUALLY BOOTS ─────────────────────────────────
   #
@@ -228,7 +325,7 @@ export_env() {
   # ⚠️ WHICH IS ITSELF A SMALL PIECE OF EVIDENCE: a real process reading a real env var told me
   # I had the name wrong. A mocked scheduler would have accepted `DISABLE_CRON` in silence.
   export RUN_CRONS="false"
-  export SAFE_TEST_MODE="1"
+  # ⚠️ `SAFE_TEST_MODE` IS DELIBERATELY NOT SET — see the block above `PAID_PROVIDERS_ENABLED`.
 
   # ⚠️ EVERY INHERITED CONNECTION IS CLEARED FIRST, so a developer's shell cannot leak a real
   # database in. Nothing here is read from the environment it was given.
@@ -324,7 +421,7 @@ cmd_up() {
   track $! postgrest
   sleep 2
   grep -q "Listening on port" "$RUN_DIR/postgrest.log" 2>/dev/null || sleep 3
-  GATEWAY_PORT="$PORT_GATEWAY" GATEWAY_UPSTREAM_PORT="$PORT_PGRST" \
+  GATEWAY_PORT="$PORT_GATEWAY" GATEWAY_UPSTREAM_PORT="$PORT_PGRST" GATEWAY_DB_URL="$DB_URL" \
     nohup node scripts/fullstack/gateway.mjs > "$RUN_DIR/gateway.log" 2>&1 &
   track $! gateway
   sleep 1

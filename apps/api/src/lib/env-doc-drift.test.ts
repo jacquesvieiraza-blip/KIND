@@ -77,9 +77,14 @@ describe('every variable the code reads is in ENVIRONMENT.md', () => {
     // approved House launch sequence. Documented and tiered in the same change — an
     // undocumented variable whose UNSET state silently stops a launch is exactly the drift
     // this file exists to catch.
-    expect(ALL.size).toBe(106)   // 101 → 102 (26 Aug, R66): SAFE_TEST_MODE, the zero-spend guard
-    expect(API_VARS.length).toBe(89)   // +1 26 Aug (R66): SAFE_TEST_MODE · +1 2 Sep: FIGSY_OPERATOR_SEND_ENABLED
-    expect(doc()).toContain('**106 distinct variables**')
+    // 106 → 107 (17 Sep, XC-4): KIND_DEPLOY_COMMIT. `/health` answered `commit:"unknown"`
+    // on every deploy this repo ever made, because `ship.sh` uses `railway up` and Railway
+    // injects RAILWAY_GIT_COMMIT_SHA only for git-source builds. Documented and tiered in
+    // the same change. UNSET is the normal state — the `.deploy-stamp` fallback covers the
+    // Railway path — which is exactly why an undocumented one would rot unnoticed.
+    expect(ALL.size).toBe(107)   // 101 → 102 (26 Aug, R66): SAFE_TEST_MODE, the zero-spend guard
+    expect(API_VARS.length).toBe(90)   // +1 26 Aug (R66): SAFE_TEST_MODE · +1 2 Sep: FIGSY_OPERATOR_SEND_ENABLED · +1 17 Sep (XC-4): KIND_DEPLOY_COMMIT
+    expect(doc()).toContain('**107 distinct variables**')
   })
 
   it('NO variable is missing from the doc — checked against the TABLE, not the prose', () => {

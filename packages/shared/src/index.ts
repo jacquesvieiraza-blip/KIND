@@ -29,3 +29,8 @@ export * from './brief-facts'
 // Not a store, not an endpoint, not a second Milla: it hands the customer's words to the
 // canonical persisted conversation so they never retype because we changed the screen.
 export * from './milla-handoff'
+// ⚑ XC-4 (Batch 1) — ONE rule for "which commit is this build?", shared by the API, Milla,
+// Vida and the website. `/health` answered "unknown" on every deploy this repo ever made
+// because `railway up` injects no SHA and the `.deploy-stamp` ship.sh writes was never
+// read. Pure: no `fs` import, so both Next bundles still build.
+export * from './deployed-commit'

@@ -2,6 +2,7 @@
 import { createHash } from 'node:crypto'
 import 'dotenv/config'
 import { runStartupCheck } from './lib/startup-check'
+import { deployedCommit } from './lib/deployed-commit'
 runStartupCheck()
 import express from 'express'
 import cors from 'cors'
@@ -170,7 +171,19 @@ function millaPromptFingerprint(): { steps: number; rules: number; fp: string } 
 
 app.get('/health', async (_req, res) => {
   const v = '2026-06-22-health'
-  const commit = process.env.RAILWAY_GIT_COMMIT_SHA?.slice(0, 7) || 'unknown'
+  // ⛓️ XC-4 — WAS: `process.env.RAILWAY_GIT_COMMIT_SHA?.slice(0, 7) || 'unknown'`.
+  //
+  // That read the right variable and still answered `"unknown"` on every deploy this repo
+  // has ever made, because `scripts/ship.sh` uses `railway up` — a directory upload, not a
+  // git-source build — so **Railway never injects it**. Meanwhile `ship.sh` wrote the exact
+  // short SHA to `apps/api/.deploy-stamp` before every upload and nothing read it.
+  //
+  // `deployedCommit()` reads the platform variable FIRST (it is first-hand when present),
+  // then an explicit `KIND_DEPLOY_COMMIT`, then the stamp — and refuses any value that is
+  // not commit-shaped rather than echoing it. `commitSource` says which one answered,
+  // because the release checklist reads this field as a verified identity and a value
+  // whose provenance is invisible is a value nobody can check.
+  const { commit, source: commitSource } = deployedCommit()
   const email = process.env.RESEND_API_KEY ? 'configured' as const : 'missing' as const
   let db: 'ok' | 'fail' = 'fail'
 
@@ -197,6 +210,9 @@ app.get('/health', async (_req, res) => {
     v,
     // The deployed commit — the only field here that changes when the code does.
     commit,
+    // Where `commit` came from: RAILWAY_GIT_COMMIT_SHA | KIND_DEPLOY_COMMIT |
+    // .deploy-stamp | none. `none` is the only case in which `commit` is "unknown".
+    commitSource,
     // ⚑ 31 Aug — WHICH MILLA PROMPT IS THIS BUILD RUNNING?
     //
     // 🛑 #1616 merged and deployed, and both live accounts still answered the old way. There

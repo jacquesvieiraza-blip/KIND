@@ -181,6 +181,13 @@ const REQUIRED_VARS: VarSpec[] = [
   { key: 'PORT',                      level: 'platform',  description: 'Set by Railway; defaults to 4000 locally' },
   { key: 'NODE_ENV',                  level: 'platform',  description: 'Set by the runtime' },
   { key: 'RAILWAY_GIT_COMMIT_SHA',    level: 'platform',  description: 'Deploy identity, used in health/diagnostics' },
+  // ⛓️ XC-4 — the fallback that finally makes `/health.commit` answerable. Railway injects
+  // RAILWAY_GIT_COMMIT_SHA only for git-source builds, and `ship.sh` uses `railway up`, so
+  // the API answered `commit:"unknown"` on every deploy it has ever made. `/health` now
+  // resolves platform SHA → this override → `apps/api/.deploy-stamp`. UNSET IS NORMAL:
+  // this exists for a non-Railway pipeline that knows its own commit. Platform level, not
+  // critical — refusing to boot over a diagnostic would be a self-inflicted outage.
+  { key: 'KIND_DEPLOY_COMMIT',        level: 'platform',  description: 'Explicit deploy identity when the platform injects none; used in health/diagnostics' },
   { key: 'RAILWAY_REPLICA_ID',        level: 'platform',  description: 'Replica identity, used by the cron single-run guard (#343)' },
 
   // PARKED — deliberately unset. For these, PRESENCE is the fault.

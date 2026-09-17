@@ -173,10 +173,18 @@ export function extractEnvNames(src: string): Set<string> {
  *   • `*.test.ts` / `*.test.tsx` — a test that sets a variable is a fixture, not
  *     configuration. Counting them would demand the doc list variables no deploy has.
  *   • `*.d.ts` — declarations, no runtime reads.
+ *   • `src/realdb/**` — the real-database TEST harness (§8.2-H). Same reasoning as
+ *     `*.test.ts`, and it must be explicit because the harness's helper is deliberately
+ *     NOT a `.test.ts` file: test files cannot be imported by other test files' setup.
+ *     `REALDB_URL` / `REALDB_DB` are set by `scripts/realdb.sh` for a throwaway cluster
+ *     that exists for seconds on a developer's machine. No deploy has them, nothing in
+ *     `apps/api/dist` reads them, and documenting them in the environment register would
+ *     send somebody to set a production variable that must never exist there.
  */
 export function isScannableFile(path: string): boolean {
   if (!/\.(ts|tsx)$/.test(path)) return false
   if (/\.test\.(ts|tsx)$/.test(path)) return false
   if (/\.d\.ts$/.test(path)) return false
+  if (/(^|[\\/])realdb[\\/]/.test(path)) return false
   return true
 }

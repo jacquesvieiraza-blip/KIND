@@ -143,7 +143,12 @@ describe('XC-11 · ship.sh reads what is actually serving', () => {
     expect(fn).toContain('|| true')
     expect(fn).toContain('return 0')
     // Only GETs. Nothing in this block may write, deploy or migrate.
-    const block = ship.slice(ship.indexOf('== 4/4'))
+    //
+    // ⚠️ COMMENTS STRIPPED FIRST, and this guard caught itself on it: the block's own prose
+    // explains that regenerating the website freeze manifest is a "POST-APPROVAL act", and
+    // `/POST/` matched that word. A guard a comment can fail is as broken as one a comment
+    // can satisfy — the repo's convention is assert on CODE, and this is why.
+    const block = ship.slice(ship.indexOf('== 4/4')).replace(/^\s*#.*$/gm, '')
     expect(block).not.toMatch(/railway up|curl -X|--data|POST/)
   })
 
@@ -155,16 +160,34 @@ describe('XC-11 · ship.sh reads what is actually serving', () => {
     expect(tail).toMatch(/does NOT mean the deploy failed/)
   })
 
-  it('and it says out loud that the website is not covered, rather than implying it is', () => {
-    // 🛑 THE HONEST GAP. `apps/website/server.js` is founder-locked (#605) and has no /health
-    // route; `website-freeze.test.ts` refuses one. Adding the route to make the list
-    // symmetrical would break a lock to satisfy a script.
+  it('it declares XC-11 INCOMPLETE rather than implying four-service coverage', () => {
+    // ⛓️ 18 Sep — RE-AIMED AFTER GPT VERIFICATION. This used to assert only that the gap was
+    // *mentioned*, and my return then marked XC-11 green. A three-of-four read does not
+    // satisfy a four-service requirement, so the script must say INCOMPLETE — being honest
+    // about a gap is not the same as the gap being acceptable.
     const block = ship.slice(ship.indexOf('== 4/4'))
-    expect(block).toMatch(/WEBSITE is not in this check|website is not covered/i)
+    expect(block).toMatch(/XC-11 IS \*\*NOT COMPLETE\*\*|XC-11 IS INCOMPLETE/)
+    expect(block).toMatch(/CONTRACT\/CODE CONFLICT/)
     expect(block).toContain('#605')
     // Three services, named — never "all four".
     expect(block).toContain('PENDING="api portal admin"')
     expect(block).not.toMatch(/all four services are serving/i)
+  })
+
+  it('and it records the PROVEN reason, including the 200-with-HTML trap', () => {
+    // 🛑 THE FINDING THAT MAKES THIS MORE THAN A MISSING ROUTE. `ship.sh` already writes
+    // `apps/website/.deploy-stamp`, but `express.static` ignores dotfiles and the locked
+    // server's catch-all answers **200 with index.html** for any unknown path. So a health
+    // read that checked only the status code would report the website GREEN forever, on
+    // evidence that is 119KB of HTML. Measured against the real locked server, not assumed.
+    const block = ship.slice(ship.indexOf('== 4/4'))
+    expect(block).toMatch(/200 with HTML|200, 119|200 with index\.html/i)
+    expect(block).toMatch(/dotfile/i)
+    // …and the one authorised change that WOULD satisfy the contract, named for the founder
+    // rather than taken. A non-dotfile is served by the locked server unchanged; adding it
+    // breaks the #605 freeze manifest, which only the founder may regenerate.
+    expect(block).toMatch(/build-identity\.txt/)
+    expect(block).toMatch(/freeze/i)
   })
 
   it('every URL it reads is overridable, so a staging ship does not poll production', () => {

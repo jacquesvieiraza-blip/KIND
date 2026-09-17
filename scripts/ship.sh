@@ -143,10 +143,41 @@ echo "A 'Skipped' there only ever means: that app had nothing new since the last
 # FAILED — "we stopped waiting" is not "it did not deploy" (the same distinction XC-3 put
 # into the admin proxy).
 #
-# ⚠️ THE WEBSITE IS DELIBERATELY ABSENT. `apps/website/server.js` is FOUNDER-LOCKED (1 Aug,
-# #605) and has no /health route; `website-freeze.test.ts` refuses one. Adding the route to
-# make this list symmetrical would break a lock to satisfy a script, so the website is
-# checked by eye and this says so rather than quietly implying four-service coverage.
+# 🛑 THE WEBSITE IS NOT COVERED, AND THAT MEANS XC-11 IS **NOT COMPLETE**.
+#
+# ⛓️ 18 Sep — THE FROZEN CONTRACT ASKS FOR ALL FOUR SERVICES. This reads three. My Batch 1
+# return called that "a deliberate gap" and marked the item green; GPT verification was right
+# that a three-of-four read does not satisfy a four-service requirement, whatever the reason.
+# It is reported as a CONTRACT/CODE CONFLICT for Fable, not as a completed item.
+#
+# ── WHAT IS ACTUALLY IN THE WAY, PROVEN RATHER THAN ASSUMED ───────────────────────────────
+#
+# `apps/website/server.js` is FOUNDER-LOCKED (1 Aug, #605 — *"lock in the site does not change
+# after this. without my command and clear command"*). It has no /health route. I booted the
+# real locked server and read it:
+#
+#   GET /.deploy-stamp    → 200, 119,926 bytes of index.html      ← the catch-all, NOT the stamp
+#   GET /health           → 200, index.html                        ← same
+#   GET /build-identity.txt (a NON-dotfile placed beside index.html)
+#                         → 200, 8 bytes, the commit               ← served by the LOCKED server
+#
+# So two things are true at once:
+#   · `ship.sh` ALREADY writes `apps/website/.deploy-stamp` on every run — but `express.static`
+#     ignores dotfiles, so it is unreadable, and the catch-all answers **200 with HTML**. Any
+#     naive health read would see a 200 and call it healthy. That is worse than no check.
+#   · A non-dotfile in the same directory IS served, with **no change to server.js at all**.
+#
+# ── THE ONE AUTHORISED CHANGE THAT WOULD SATISFY THE CONTRACT ─────────────────────────────
+#
+# Write the commit to `apps/website/build-identity.txt` here, and read it back below. The
+# locked `server.js` is untouched. BUT `website-freeze.test.ts` asserts *"no file has been
+# added or removed"* under `apps/website`, and regenerating that manifest
+# (`scripts/freeze-website.sh`) is defined as a POST-APPROVAL act. Dotfiles are excluded from
+# the freeze, which is exactly why the existing stamp does not break it — and exactly why it
+# cannot be served.
+#
+# So the change needs the founder's explicit approval, and it is not mine to take. It is NOT
+# implemented here. What is implemented is the three-service read plus this statement.
 # ══════════════════════════════════════════════════════════════════════════════════════════
 if [ "${SHIP_SKIP_HEALTH:-}" = "1" ]; then
   echo ""
@@ -223,5 +254,10 @@ if [ -n "$PENDING" ]; then
 fi
 echo "All three API/portal/admin services are serving $HEAD."
 echo ""
-echo "⚠️ The WEBSITE is not in this check: apps/website/server.js is founder-locked (#605) and"
-echo "   has no /health route. Confirm it by eye in Railway -> KIND -> Deployments."
+echo "🛑 XC-11 IS INCOMPLETE: this read covers THREE of four services."
+echo "   The WEBSITE is not in it. apps/website/server.js is founder-locked (#605) and has no"
+echo "   /health route, and its .deploy-stamp is a dotfile that express.static will not serve"
+echo "   (a request for it returns 200 with index.html, so a naive check would read as green)."
+echo "   A non-dotfile build-identity.txt WOULD be served by the locked server unchanged, but"
+echo "   adding it breaks the #605 freeze manifest, which only the founder may regenerate."
+echo "   Until that is approved: confirm the website by eye in Railway -> KIND -> Deployments."

@@ -90,8 +90,12 @@ describe('① House sources from Apollo, and can never route to PDL', () => {
     expect(searchProviderFor('house' as Audience)).not.toBe('pdl')
   })
 
-  it('13 · a non-house client still routes to PDL — unchanged', () => {
-    expect(searchProviderFor('client')).toBe('pdl')
+  it('13 · a non-house client routes to APOLLO too, since FD-6', () => {
+    // ⛓️ RE-AIMED 17 Sep BY FD-6: *"We are not paying for PDL."* Every audience is Apollo.
+    // ⚠️ THE HOUSE LOCK IS UNCHANGED BY THAT. What made House safe was never "clients are
+    // somewhere else" — it is the verified-email floor, the company-name restriction and the
+    // programme ceiling, all of which key on the audience and all of which still do.
+    expect(searchProviderFor('client')).toBe('apollo')
   })
 })
 
@@ -523,10 +527,17 @@ describe('⑥ House never reaches Hunter or PDL', () => {
     }
   })
 
-  it('12 · the house search branch calls Apollo, and the PDL branch is the client branch', () => {
+  it('12 · there is ONE search branch and it is Apollo; the PDL branch is gone', () => {
+    // ⛓️ RE-AIMED 17 Sep BY FD-6. This asserted the literal `if (provider === 'pdl')` as
+    // proof that the two audiences went to two vendors. That branch is deleted — a branch
+    // pointing at an unpaid provider does not fail over, it just fails — so the assertion
+    // now proves the opposite property: nothing in this file can select PDL, and a non-Apollo
+    // decision is refused loudly instead of falling through to the Apollo walk.
     const APOLLO_CODE = code(APOLLO_SRC)
-    expect(APOLLO_CODE).toMatch(/if \(provider === 'pdl'\)/)
-    expect(APOLLO_CODE).toMatch(/searchProviderFor\(audience\)/)
+    expect(APOLLO_CODE).not.toMatch(/if \(provider === 'pdl'\)/)
+    expect(APOLLO_CODE).toMatch(/if \(provider !== 'apollo'\)/)
+    expect(APOLLO_CODE).toMatch(/sourcingProviderFor\(/)
+    expect(APOLLO_CODE, 'nothing may call the PDL search module any more').not.toMatch(/pdlSearchPage\(/)
   })
 })
 

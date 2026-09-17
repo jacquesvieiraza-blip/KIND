@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { readFileSync, readdirSync, statSync } from 'fs'
 import { join } from 'path'
 import { SCAN_ROOTS, extractEnvNames, isScannableFile, stripCommentsForEnvScan } from './env-inventory'
+import { CAPABILITIES } from './startup-check'
 
 // #561 — THE ENVIRONMENT DOC CANNOT GO STALE WITHOUT THE GATE GOING RED.
 //
@@ -82,9 +83,9 @@ describe('every variable the code reads is in ENVIRONMENT.md', () => {
     // injects RAILWAY_GIT_COMMIT_SHA only for git-source builds. Documented and tiered in
     // the same change. UNSET is the normal state — the `.deploy-stamp` fallback covers the
     // Railway path — which is exactly why an undocumented one would rot unnoticed.
-    expect(ALL.size).toBe(107)   // 101 → 102 (26 Aug, R66): SAFE_TEST_MODE, the zero-spend guard
-    expect(API_VARS.length).toBe(90)   // +1 26 Aug (R66): SAFE_TEST_MODE · +1 2 Sep: FIGSY_OPERATOR_SEND_ENABLED · +1 17 Sep (XC-4): KIND_DEPLOY_COMMIT
-    expect(doc()).toContain('**107 distinct variables**')
+    expect(ALL.size).toBe(108)   // ⛓️ 17 Sep, Batch 1 · XC-8: +1 POOLED_SENDERS_JSON — the pooled sending inventory. It was in NEITHER the register nor the go-live capabilities while being what automatic preparation claims a sender from, so with it unset every programme stopped at Prepare and boot said nothing.   // 101 → 102 (26 Aug, R66): SAFE_TEST_MODE, the zero-spend guard
+    expect(API_VARS.length).toBe(91)   // +1 26 Aug (R66): SAFE_TEST_MODE · +1 2 Sep: FIGSY_OPERATOR_SEND_ENABLED · +1 17 Sep (XC-4): KIND_DEPLOY_COMMIT
+    expect(doc()).toContain('**108 distinct variables**')
   })
 
   it('NO variable is missing from the doc — checked against the TABLE, not the prose', () => {
@@ -167,10 +168,13 @@ describe('the tiers this week\'s decisions turn on', () => {
   it('INBOX_SECRET_KEY is in the SENDING go-live capability — it was a false green', () => {
     // Without it not one stored mailbox password can be decrypted, so every per-client send
     // is refused. The readiness block printed ✅ CLIENT SENDING anyway.
-    // `[^)]*` would stop at the ")" inside "(FIGSY emails)" and read an empty var list —
-    // an assertion that fails while the code is right. Bound it to the array instead.
-    const caps = startupCheck().match(/capability\('✉️[\s\S]*?\]\)/)![0]
-    expect(caps).toContain('INBOX_SECRET_KEY')
+    // ⛓️ RE-AIMED 17 Sep (XC-8). The capabilities were an inline array inside
+    // `runStartupCheck`, so this had to match source text — and a source match is exactly
+    // why all three capability lines could be wrong about MVP1 at once with nothing noticing.
+    // They are now an exported table, so the assertion reads the real value.
+    const sending = CAPABILITIES.find(c => /CLIENT SENDING/.test(c.label))
+    expect(sending, 'the CLIENT SENDING capability must exist').toBeTruthy()
+    expect(sending!.vars).toContain('INBOX_SECRET_KEY')
   })
 
   it('SUPABASE_ANON_KEY is REQUIRED — the API does not boot without it', () => {

@@ -252,7 +252,14 @@ describe('C · runIcpJob carries a FAIL-CLOSED trust state into the persisted st
   })
 
   it('promotion requires POSITIVE evidence: a completed page, or the throwing Apollo path returning', () => {
-    expect(src).toContain("if (pdlPage.completed) searchTrust = 'proven'")
+// ⛓️ 17 Sep (FD-6) — `pdlPage` → `providerPage`, `scrollToken` → `cursor`. With one provider
+// the PDL-shaped names stopped describing anything: the page now carries Apollo's own
+// completed / exhausted / matchedNothing verdict, which the Apollo branch never reported
+// before (it returned null, so no client run could ever reach searchTrust = 'proven').
+    // ⛓️ RENAMED 17 Sep (FD-6) — `providerPage` → `providerPage`. The INVARIANT is unchanged and
+    // the rename actually strengthens it: the Apollo branch used to return no page at all, so
+    // no client run could ever reach 'proven' and every honest empty looked like an outage.
+    expect(src).toContain("if (providerPage.completed) searchTrust = 'proven'")
     // ⛓️ 27 Aug — the Apollo promotion is gated on the run NOT having been refused by
     // the zero-spend guard: a blocked run also returns no page and proved nothing.
     // ⛓️ 15 Sep (S2-RT-001A) — and it is keyed on the PROVIDER, not the audience. This
@@ -271,7 +278,7 @@ describe('C · runIcpJob carries a FAIL-CLOSED trust state into the persisted st
     const wideDrop = src.lastIndexOf("searchTrust = 'unproven'", wideCall)
     expect(wideDrop).toBeGreaterThan(-1)
     expect(wideCall).toBeGreaterThan(wideDrop)
-    expect(src).toContain("if (wide?.pdlPage?.completed) searchTrust = 'proven'")
+    expect(src).toContain("if (wide?.providerPage?.completed) searchTrust = 'proven'")
   })
 
   it('the persisted status is derived from the trust reader', () => {

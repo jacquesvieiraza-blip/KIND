@@ -23,6 +23,25 @@ import { join } from 'path'
 // the very person we have just been told not to process: the letter of the refusal honoured
 // while a dossier on the same human is handed back. Founder-ruled 20 Aug: *"1. discard all."*
 
+// ── ⛓️ 17 Sep (FD-6 / FD-5) — THE PROVIDERS THIS FILE EXERCISES ARE RETIRED ──────────
+//
+// `retired-providers.ts` refuses PDL, Hunter and Clearbit in CODE, not by a key check, so
+// `waterfallEnrich` now stands down before any request. That is the correct MVP1 behaviour
+// and it is asserted in its own block at the bottom of this file, WITHOUT this mock.
+//
+// ⚠️ THE MOCK IS HERE TO KEEP THE COVERAGE, NOT TO WEAKEN THE FENCE. What these cases prove
+// is a COMPLIANCE RULING — founder-ruled 20 Aug, *"1. discard all"* — about what must happen
+// if a provider ever tells us a person objected. Deleting them would delete the only record
+// of how that ruling is implemented, and the day a second provider is approved somebody would
+// have to rediscover it. Mocking a module inside a test is not a production bypass: there is
+// no runtime path that changes the fence, which is exactly what the un-mocked block proves.
+vi.mock('./retired-providers', async (orig) => {
+  const actual = (await orig()) as Record<string, unknown>
+  // BOTH exports must be stubbed: `refuseRetiredProvider` is what each stage asks, and
+  // `providerRetired` is what the waterfall asks before doing preparatory work for a stage.
+  return { ...actual, refuseRetiredProvider: () => false as unknown as true, providerRetired: () => false }
+})
+
 const state = {
   hunterStatus: 200,
   hunterBody: null as unknown,
@@ -283,5 +302,35 @@ describe('the documented gaps are written down, not left as folklore', () => {
     // cached before the person objected.
     expect(doc).toContain('lead_pool')
     expect(doc, 'the limit must be stated, not implied').toContain('reaches backwards into data we have already cached')
+  })
+})
+
+// ── ⛓️ 17 Sep — AND WITH THE REAL FENCE, NONE OF THE ABOVE CAN HAPPEN AT ALL ─────────
+//
+// The block above runs against a mocked `retired-providers` so the compliance ruling stays
+// covered. This block uses the REAL module, and it is the one that describes MVP1: the
+// waterfall reaches no provider, so a 451 can never arrive, and nothing is enriched.
+describe('FD-6 / FD-5 · the real fence — the waterfall reaches nobody', () => {
+  it('calls no provider and returns nothing, with every key set', async () => {
+    vi.doUnmock('./retired-providers')
+    vi.resetModules()
+    const prev = { ...process.env }
+    process.env.PDL_API_KEY = 'pdl-key'
+    process.env.HUNTER_API_KEY = 'hunter-key'
+    process.env.CLEARBIT_API_KEY = 'clearbit-key'
+    state.fetches.length = 0
+    try {
+      const { waterfallEnrich } = await import('./enrichment')
+      const r = await waterfallEnrich(LEAD)
+      expect(r.source, 'nothing may be claimed as a source').toBe('none')
+      expect(r.email).toBeUndefined()
+      // 🛑 THE ASSERTION THAT MATTERS: not one request left, even though all three keys are
+      // present. A key check alone would have let a pasted key re-enable a founder-locked
+      // provider silently, with the whole suite still green.
+      expect(state.fetches, `a retired provider was called: ${state.fetches.join(', ')}`).toEqual([])
+    } finally {
+      process.env = prev
+      vi.resetModules()
+    }
   })
 })

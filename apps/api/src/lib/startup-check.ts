@@ -26,6 +26,10 @@
  * `ENVIRONMENT.md` and verified by reading it, not by this.
  */
 
+// `parseSenderPool` is pure (it imports only the deliverability constants), so importing
+// it here adds no database, no network and no environment dependency to boot.
+import { parseSenderPool } from './sender-pool'
+
 interface VarSpec {
   key: string
   level: 'critical' | 'important' | 'optional' | 'platform' | 'parked'
@@ -72,15 +76,28 @@ const REQUIRED_VARS: VarSpec[] = [
   // a deploy dies at boot.
   { key: 'FIGSY_COLD_FROM',           level: 'critical',  description: 'S5 — the cold/consent From. Unset, every cold send falls back to hello@get-kind.com and poisons the domain every invoice and password reset leaves from' },
 
-  // Lead engine — we run PDL + Hunter. Apollo is optional/BYO, NOT used day-to-day.
-  { key: 'PDL_API_KEY',               level: 'important', description: 'People Data Labs — PRIMARY lead sourcing; unset (with no Apollo) = zero leads' },
+  // ── LEAD ENGINE — ⛓️ 17 Sep (FD-6): ONE PROVIDER, AND IT IS APOLLO ────────────────
+  //
+  // WAS: "we run PDL + Hunter. Apollo is optional/BYO, NOT used day-to-day." Every clause of
+  // that is now false, and the grades were the exact inverse of the truth: the two keys
+  // meant to be UNSET were `important`, and the one key without which nothing can be
+  // sourced at all was `optional`.
+  { key: 'PDL_API_KEY',               level: 'optional',  description: 'RETIRED (FD-6, 17 Sep): "PDL IS NOT A PAID/ACTIVE PROVIDER FOR MVP1. We are not paying for PDL." UNSET IS THE CORRECT STATE — the enrichment waterfall refuses PDL in code, so a key would not re-enable it' },
   // The ONE programme the approved five-step House launch sequence may be seeded into. Unset is
   // the safe default (nothing seeds anywhere) — and it is `important` rather than `optional`
   // precisely because unset is ALSO the state in which the House launch cannot prepare, and a
   // silent "no sequence" is how a launch day gets spent hunting for a missing uuid.
   { key: 'HOUSE_LAUNCH_PROGRAMME_ID', level: 'important', description: 'The uuid of the one programme the approved House launch sequence may seed. Unset = nothing seeds anywhere (safe), and the House launch programme cannot be prepared' },
-  { key: 'HUNTER_API_KEY',            level: 'important', description: 'Hunter.io — email reveal in the enrichment waterfall' },
-  { key: 'APOLLO_API_KEY',            level: 'optional',  description: 'Apollo — optional / BYO-key; not used in the day-to-day PDL+Hunter stack' },
+  { key: 'HUNTER_API_KEY',            level: 'optional',  description: 'LOCKED OFF (FD-5, 17 Sep): "Hunter remains LOCKED OFF. Do not silently re-enable Hunter." UNSET IS THE CORRECT STATE and the waterfall refuses it in code regardless' },
+  // ⚠️ `important`, NOT `critical`. `critical` REFUSES TO BOOT (see runStartupCheck), and a
+  // box that will not start cannot serve the health check, the migration runner or Vida — so
+  // an Apollo outage would become a total outage. It is in LAUNCH_CRITICAL_CAPABILITIES
+  // instead, which is loud and does not take the service down.
+  { key: 'APOLLO_API_KEY',            level: 'important', description: 'Apollo — THE ONLY lead source (FD-6). Unset = nothing can be sourced, for Proof or for any programme. People Search is free; the email reveal spends a credit' },
+  // 🛑 IT WAS IN NEITHER LIST UNTIL 17 Sep, and that absence had a cost: with it unset every
+  // programme stops at Prepare with "No pooled sending mailbox is available", and boot said
+  // nothing at all. It is the inventory the automatic sender claim draws from.
+  { key: 'POOLED_SENDERS_JSON',       level: 'important', description: 'The pooled sending mailboxes, as a JSON array. Unset = automatic preparation cannot assign a sender, so every programme stops at Prepare. Unparseable = the same outcome, silently' },
 
   // App URLs
   { key: 'PORTAL_URL',                level: 'important', description: 'Portal URL — used in email links and CORS' },
@@ -206,6 +223,133 @@ const REQUIRED_VARS: VarSpec[] = [
 const STAGING = process.env.IS_STAGING === 'true' || process.env.NEXT_PUBLIC_IS_STAGING === 'true'
 const STAGING_CRITICAL = new Set(['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY'])
 
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// XC-8 / J14-C1 · THE GO-LIVE CAPABILITIES — one line per STAGE OF THE JOURNEY
+//
+// ── WHY THIS IS A TABLE NOW, AND EXPORTED ─────────────────────────────────────
+//
+// The three capabilities used to be an inline array inside `runStartupCheck`, which meant
+// the only way to check them was to boot a process — so nothing checked them, and every one
+// of them was wrong about MVP1:
+//
+//   · 🎯 LEAD ENGINE required `PDL_API_KEY` and `HUNTER_API_KEY` and never mentioned Apollo.
+//     Under FD-6 that is exactly inverted: those two keys are meant to be UNSET, so a
+//     correctly configured box printed ❌ for a deliberate absence — and the one key without
+//     which nothing can be sourced was graded `optional`.
+//   · `POOLED_SENDERS_JSON` appeared in NEITHER the register nor the capabilities, while
+//     being the inventory automatic preparation claims a sender from. Unset, every programme
+//     stops at Prepare and boot said nothing.
+//   · The stages MVP1 actually walks — book a meeting, honour an unsubscribe, capture a
+//     reply — had no line at all.
+//
+// ── TWO RULES A CAPABILITY MUST OBEY ──────────────────────────────────────────
+//
+// ① **IT NAMES A STAGE, NOT A VENDOR.** "This stage of the client journey can happen" is
+//    something an operator can act on. A list of keys is not.
+// ② **PRESENT IS NOT ALWAYS SATISFIED.** `POOLED_SENDERS_JSON` is JSON: unparseable, it
+//    yields zero senders and every programme stops at Prepare with the same silence as an
+//    unset variable — under a green tick. So a capability may carry a `check`, and the
+//    check's verdict beats the variable's presence.
+// ═══════════════════════════════════════════════════════════════════════════════
+
+export interface Capability {
+  /** What an operator reads. A stage of the journey, in the founder's words. */
+  label: string
+  /** Every variable the stage genuinely needs. */
+  vars: string[]
+  /**
+   * An extra verdict for values whose PRESENCE proves nothing.
+   *
+   * ⚠️ IT MUST NEVER RETURN A CREDENTIAL. This string is printed at boot, into logs that get
+   * pasted into chat. `parseSenderPool`'s `problems` are written to that contract already.
+   */
+  check?: (env: Record<string, string | undefined>) => { ok: boolean; detail?: string }
+}
+
+/** Capabilities without which MVP1 cannot be walked at all. Loud, never boot-refusing. */
+export const LAUNCH_CRITICAL_CAPABILITIES: string[] = [
+  '🎯 LEAD ENGINE (Apollo — the only source)',
+  '✉️  CLIENT SENDING (FIGSY emails)',
+  '📬 PREPARATION (a sender to send from)',
+]
+
+export const CAPABILITIES: Capability[] = [
+  {
+    label: '💳 PAYMENTS   (customers can pay)',
+    vars: ['STRIPE_SECRET_KEY', 'STRIPE_WEBHOOK_SECRET', 'STRIPE_PRICE_LEADGEN_20', 'STRIPE_PRICE_LEADGEN_40', 'STRIPE_PRICE_LEADGEN_100', 'STRIPE_PRICE_FIGSY_20', 'STRIPE_PRICE_FIGSY_40', 'STRIPE_PRICE_FIGSY_100'],
+  },
+  {
+    // ⛓️ WAS: `['PDL_API_KEY', 'HUNTER_API_KEY', 'ANTHROPIC_API_KEY']` under the label
+    // "🎯 LEAD ENGINE (deliver leads)". FD-6: one provider, and it is Apollo. Anthropic stays
+    // — nothing is delivered unscored, and scoring is Claude.
+    label: '🎯 LEAD ENGINE (Apollo — the only source)',
+    vars: ['APOLLO_API_KEY', 'ANTHROPIC_API_KEY'],
+  },
+  {
+    // 🛑 THE CAPABILITY THAT DID NOT EXIST. Automatic preparation claims a pooled mailbox; with
+    // no inventory it refuses, every programme stops at READY_FOR_APPROVAL minus a sender, and
+    // the only symptom is a line in a run log.
+    label: '📬 PREPARATION (a sender to send from)',
+    vars: ['POOLED_SENDERS_JSON', 'INBOX_SECRET_KEY'],
+    check: (env) => {
+      const pool = parseSenderPool(env.POOLED_SENDERS_JSON)
+      if (pool.senders.length > 0) return { ok: true }
+      const why = pool.problems.length > 0
+        ? pool.problems.join(' · ')
+        : 'POOLED_SENDERS_JSON holds no usable mailbox, so automatic preparation cannot assign a sender.'
+      return { ok: false, detail: why }
+    },
+  },
+  {
+    // INBOX_SECRET_KEY added 30 Jul (#561/#600). Without it the API cannot decrypt a single
+    // stored mailbox password, so every per-client send is refused — and this block read
+    // ✅ SENDING while nothing could actually leave. A false green on the one line whose
+    // whole job is to prevent false greens.
+    label: '✉️  CLIENT SENDING (FIGSY emails)',
+    vars: ['RESEND_API_KEY', 'ANTHROPIC_API_KEY', 'ADMIN_SECRET_KEY', 'FIGSY_COLD_FROM', 'INBOX_SECRET_KEY', 'UNSUBSCRIBE_SECRET', 'TRACKING_URL'],
+  },
+  {
+    // ⛓️ 17 Sep — grouped under the STAGE that needs it. `RESEND_WEBHOOK_SECRET` was a loose
+    // `important` variable, so "can we capture a reply at all?" had no line anybody read.
+    label: '💬 REPLIES (a prospect can answer)',
+    vars: ['RESEND_WEBHOOK_SECRET'],
+  },
+  {
+    // ⛓️ 17 Sep — the three Google keys were loose `optional` rows. Booking a meeting is the
+    // MVP1 outcome boundary (MEETING_BOOKED), so "can a meeting be booked?" is not optional
+    // as a QUESTION even while the keys remain optional as VARIABLES.
+    label: '📅 MEETINGS (a prospect can book)',
+    vars: ['GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET', 'GOOGLE_REDIRECT_URI'],
+  },
+]
+
+/**
+ * Is this capability satisfied by this environment?
+ *
+ * Pure and exported so every line above is provable without booting a process — which is
+ * why all three previous capabilities could be wrong at once and nothing noticed.
+ */
+export function capabilityState(
+  cap: Capability,
+  env: Record<string, string | undefined>,
+): { label: string; ok: boolean; miss: string[]; detail: string } {
+  const isSet = (k: string) => !!env[k] && env[k]!.trim() !== ''
+  const miss = cap.vars.filter(k => !isSet(k))
+  if (miss.length > 0) {
+    return { label: cap.label, ok: false, miss, detail: `MISSING: ${miss.join(', ')}` }
+  }
+  if (cap.check) {
+    const verdict = cap.check(env)
+    if (!verdict.ok) {
+      // Every variable is present and the capability is still off. That distinction is the
+      // whole reason `check` exists, so the sentence says so rather than listing nothing.
+      return { label: cap.label, ok: false, miss: [], detail: verdict.detail ?? 'set, but not usable' }
+    }
+  }
+  return { label: cap.label, ok: true, miss: [], detail: 'ready' }
+}
+
 export function runStartupCheck(): void {
   const missing: VarSpec[]  = []
   const warnings: VarSpec[] = []
@@ -281,25 +425,12 @@ export function runStartupCheck(): void {
   // Each go-live capability fails SILENTLY at runtime if its config is missing, so
   // we surface ON/OFF here loudly. (Skipped in staging — secrets intentionally absent.)
   if (!STAGING) {
-    const isSet = (k: string) => !!process.env[k] && process.env[k]!.trim() !== ''
-    const capability = (label: string, vars: string[]) => {
-      const miss = vars.filter(k => !isSet(k))
-      return { label, ok: miss.length === 0, miss }
-    }
-    const caps = [
-      capability('💳 PAYMENTS   (customers can pay)',     ['STRIPE_SECRET_KEY', 'STRIPE_WEBHOOK_SECRET', 'STRIPE_PRICE_LEADGEN_20', 'STRIPE_PRICE_LEADGEN_40', 'STRIPE_PRICE_LEADGEN_100', 'STRIPE_PRICE_FIGSY_20', 'STRIPE_PRICE_FIGSY_40', 'STRIPE_PRICE_FIGSY_100']),
-      capability('🎯 LEAD ENGINE (deliver leads)',        ['PDL_API_KEY', 'HUNTER_API_KEY', 'ANTHROPIC_API_KEY']),
-      // INBOX_SECRET_KEY added 30 Jul (#561/#600). Without it the API cannot decrypt a
-      // single stored mailbox password, so every per-client send is refused — and this
-      // block read ✅ SENDING while nothing could actually leave. A false green on the one
-      // line whose whole job is to prevent false greens.
-      capability('✉️  CLIENT SENDING (FIGSY emails)',      ['RESEND_API_KEY', 'ANTHROPIC_API_KEY', 'ADMIN_SECRET_KEY', 'FIGSY_COLD_FROM', 'INBOX_SECRET_KEY']),
-    ]
+    const caps = CAPABILITIES.map(c => capabilityState(c, process.env))
     lines.push('  🚦 GO-LIVE READINESS')
     for (const c of caps) {
       lines.push(c.ok
         ? `     ✅ ${c.label}`
-        : `     ❌ ${c.label}  — MISSING: ${c.miss.join(', ')}`)
+        : `     ❌ ${c.label}  — ${c.detail}`)
     }
     const offCount = caps.filter(c => !c.ok).length
     if (offCount > 0) {

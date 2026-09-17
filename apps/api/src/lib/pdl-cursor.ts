@@ -95,8 +95,19 @@ export function decideCursor(stored: StoredCursor | null | undefined, q: CursorQ
   return { token: stored?.pdl_scroll_token ?? null, reset: false, exhausted: false }
 }
 
-/** What PDL told us this run. */
-export type PageResult = { scrollToken: string | null; exhausted: boolean }
+/**
+ * What the PROVIDER told us this run.
+ *
+ * ⛓️ 17 Sep (FD-6) — `cursor` is the provider-neutral name and the one `ProviderPage` uses.
+ * `scrollToken` is still accepted so every historic caller and test keeps working: PDL
+ * issued an opaque scroll token, Apollo pages by number, and the cursor is opaque to this
+ * module either way.
+ *
+ * ⚠️ THE STORED COLUMN NAMES STILL SAY `pdl_`. They are database columns and renaming them
+ * needs a migration nobody needs: `pdl_scroll_token` now holds an Apollo page number. The
+ * name is historic, the value is current, and this note is the bridge between them.
+ */
+export type PageResult = { cursor?: string | null; scrollToken?: string | null; exhausted: boolean }
 
 /**
  * The columns to write back to the ICP row after a run.
@@ -107,7 +118,7 @@ export type PageResult = { scrollToken: string | null; exhausted: boolean }
  */
 export function nextCursorState(q: CursorQuery, page: PageResult, now: string): StoredCursor {
   return {
-    pdl_scroll_token: page.exhausted ? null : page.scrollToken,
+    pdl_scroll_token: page.exhausted ? null : (page.cursor ?? page.scrollToken ?? null),
     pdl_scroll_query: cursorFingerprint(q),
     pdl_exhausted_at: page.exhausted ? now : null,
   }

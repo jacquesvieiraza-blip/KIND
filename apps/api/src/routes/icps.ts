@@ -1371,23 +1371,27 @@ export async function runIcpJob(
       }
       let contacts = exact?.contacts ?? []
       relaxed = exact?.relaxed ?? relaxed
-      const pdlPage = exact?.pdlPage ?? null
+      const providerPage = exact?.providerPage ?? null
 
-      // Remember where PDL got to, so NEXT month starts after these people instead of on
-      // top of them. Only written when PDL actually answered — a failed request leaves the
-      // stored cursor untouched, so the unserved page is retried rather than skipped.
+      // Remember where the PROVIDER got to, so NEXT month starts after these people instead
+      // of on top of them. Only written when the provider actually answered — a failed
+      // request leaves the stored cursor untouched, so the unserved page is retried rather
+      // than skipped.
+      // ⛓️ 17 Sep (FD-6) — the provider is Apollo and the cursor is a page number. The
+      // stored column is still called `pdl_scroll_token`; see `pdl-cursor.ts` for why the
+      // name is historic and the value is current.
       //
       // ⚠️ THE EXACT QUERY'S PAGE, ALWAYS — never the widened fallback's below. The cursor is
       // fingerprinted against the SAVED ICP, so storing a token that belongs to a different
       // query is precisely the stale-cursor trap `pdl-cursor.ts` exists to prevent.
-      if (pdlPage) {
-        cursorUpdate = nextCursorState(icp as CursorQuery, pdlPage, new Date().toISOString())
-        if (pdlPage.exhausted) audienceExhausted = true
+      if (providerPage) {
+        cursorUpdate = nextCursorState(icp as CursorQuery, providerPage, new Date().toISOString())
+        if (providerPage.exhausted) audienceExhausted = true
         // POSITIVE evidence only: the page's own verdict on itself. Results, a first-page
         // 404 (matched nobody) and a paged-to-the-end 404 (audience finished) prove
         // completion; timeout, 5xx, auth, two 429s, malformed body, out of credits and
         // no-API-key all leave `completed: false` — and therefore leave trust unproven.
-        if (pdlPage.completed) searchTrust = 'proven'
+        if (providerPage.completed) searchTrust = 'proven'
       } else if (sourcingProvider === 'apollo' && !paidSourcingBlocked) {
         // The Apollo path has no PDL page and its failures THROW out of this run — so
         // reaching this line at all IS the positive evidence of completion. A BLOCKED
@@ -1447,7 +1451,7 @@ export async function runIcpJob(
         opts?.proofKind !== 'calibrated_restart' &&
         audience === 'client' &&
         cursor.token === null &&
-        pdlPage?.matchedNothing === true &&
+        providerPage?.matchedNothing === true &&
         contacts.length === 0
       if (canWiden) {
         // ⚑ 26 Aug — RECORDED SO THE OUTCOME SENTENCE CANNOT ADVISE A WIDENING WE JUST DID.
@@ -1470,7 +1474,7 @@ export async function runIcpJob(
           paidSourcingBlocked = true
           console.error(`[icp] stage=provider_blocked — the widened fallback was refused by the zero-spend guard for prospect ${clientId}. The run continues.`)
         }
-        if (wide?.pdlPage?.completed) searchTrust = 'proven'
+        if (wide?.providerPage?.completed) searchTrust = 'proven'
         contacts = wide?.contacts ?? []
         // ⚑ 25 Aug (GPT review hold) — A ZERO IS NOT A ZERO UNTIL PDL PROVED IT.
         //
@@ -1510,7 +1514,7 @@ export async function runIcpJob(
             company_sizes:    [...((icp as ProofWidenedBasis).company_sizes    ?? [])],
             geographies:      [...((icp as ProofWidenedBasis).geographies      ?? [])],
           }
-        } else if (wide?.pdlPage?.matchedNothing === true) {
+        } else if (wide?.providerPage?.matchedNothing === true) {
           // PROVED ZERO. PDL answered, on a first page, that nobody matches. A human takes it
           // from here: no third query, no third pass, no retry control, and never the
           // exhaustion sentence — nobody was ever sourced from this targeting, so "you
@@ -1528,7 +1532,7 @@ export async function runIcpJob(
           // page produced no positive evidence, so trust is still 'unproven' here and the
           // run derives `failed`. Nothing to set — fail-closed means the honest state is
           // what remains when no code runs.
-          console.log(`[icp] PROOF PASS 2 — widened retry did NOT produce a trustworthy result for prospect ${clientId} (${wide?.pdlPage ? `error: ${wide.pdlPage.error ?? 'empty, unproven'}` : 'no page returned'}). Human review; no further automatic attempt.`)
+          console.log(`[icp] PROOF PASS 2 — widened retry did NOT produce a trustworthy result for prospect ${clientId} (${wide?.providerPage ? `error: ${wide.providerPage.error ?? 'empty, unproven'}` : 'no page returned'}). Human review; no further automatic attempt.`)
         }
       }
 

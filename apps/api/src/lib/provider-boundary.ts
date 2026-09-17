@@ -42,16 +42,47 @@ export type Audience = 'house' | 'client'
 
 export type SearchProvider = 'apollo' | 'pdl'
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// ⛓️ FD-6 (founder-locked, 17 Sep) — ONE PROVIDER. THE VENDOR SPLIT IS OVER.
+//
+// Verbatim: **"PDL IS NOT A PAID/ACTIVE PROVIDER FOR MVP1. We are not paying for PDL."**
+//
+// AR5 ("Apollo is OURS. PDL + Hunter are the CLIENTS'"), and AR8/AR15/AR16 which are
+// built on it, split one question — whose credits does this spend? — across two vendors.
+// One of the two no longer exists for us. A boundary whose safe branch points at an
+// unpaid provider is not a boundary; it is an outage with a comment attached.
+//
+// ── WHY THE FUNCTIONS KEEP THEIR SHAPE ────────────────────────────────────────
+//
+// `audience` STILL MATTERS, and removing the parameter would take a live rule with it:
+// `verifiedEmailOnly = audience === 'house'` (apollo.ts) and `companyNameSearchAllowed`
+// both read it, and FD-5 requires a verified business email before any send. So the
+// audience remains the single input, and the provider answer is now constant.
+//
+// `SearchProvider` still admits `'pdl'` deliberately. Historic rows carry `pdl_…`
+// provenance ids and AR15's grandfathering keeps them readable and revealable through
+// the path they were created under. The type describes what a row CAN say; these two
+// functions describe what we DO — and the second no longer includes PDL.
+//
+// ⚠️ THERE IS NO FALLBACK, IN EITHER DIRECTION. A run Apollo cannot serve FAILS CLOSED.
+// "Try the other provider" is precisely the silent cross-over the boundary exists to
+// prevent, and with FD-6 the other provider is one we do not pay.
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/** The one provider MVP1 sources from. Named once so no call site can disagree. */
+export const MVP1_SEARCH_PROVIDER: SearchProvider = 'apollo'
+
 /**
- * AR5, as a function. Pure — no keys, no environment, no database.
+ * Which provider searches for this audience. Pure — no keys, no environment, no database.
  *
- * `'house'` → Apollo. K.I.N.D hunting for K.I.N.D's own clients, on K.I.N.D's
- *             prepaid Apollo credits.
- * `'client'` → PDL. The clients' sourcing stack, fenced by AR8's pre-funded
- *             allowance exactly as it was before this module existed.
+ * ⛓️ WAS: `audience === 'house' ? 'apollo' : 'pdl'` (AR5, 21 Aug → 17 Sep).
+ *
+ * Every audience is Apollo now (FD-6). The keys are what used to decide this, before the
+ * boundary existed; they must not decide it again by the back door, so this function still
+ * reads nothing but its argument.
  */
-export function searchProviderFor(audience: Audience): SearchProvider {
-  return audience === 'house' ? 'apollo' : 'pdl'
+export function searchProviderFor(_audience: Audience): SearchProvider {
+  return MVP1_SEARCH_PROVIDER
 }
 
 /**
@@ -87,7 +118,12 @@ export function sourcingProviderFor(
   audience: Audience,
   opts?: { proofMode?: boolean },
 ): SearchProvider {
-  if (opts?.proofMode === true) return 'apollo'
+  // ⛓️ FD-6 — the proof exception has become the rule. This function is KEPT rather than
+  // collapsed into `searchProviderFor` because every call site reads as a statement about
+  // which question is being asked, and because `proofMode` still selects a different FENCE
+  // (records reserved against the acquisition authority, not programme entitlement) even
+  // though it no longer selects a different vendor.
+  void opts
   return searchProviderFor(audience)
 }
 
@@ -113,11 +149,15 @@ export function sourcingProviderFor(
  * Founder-ruled 21 Aug: **company-name search is house-only, for now.**
  *   "only the house account can search by company name. for now. only us."
  *
- * It is a separate question from `searchProviderFor` because it is not a provider
- * choice at all — PDL has no company-name targeting (its query builder maps
- * industries, sizes and titles only), so for a client the capability does not
- * exist rather than moving to a different vendor. The route refuses; nothing is
- * silently downgraded to a different feature.
+ * It is a separate question from `searchProviderFor` because it is not a provider choice
+ * at all. It is a founder ruling about who may use a capability.
+ *
+ * ⛓️ AMENDED BY FD-6 IN ITS REASONING, NOT ITS BEHAVIOUR. This used to say the capability
+ * "does not exist" for a client because PDL has no company-name targeting — a provider
+ * fact. With one provider, Apollo, the capability now technically exists for everybody, so
+ * the ONLY thing keeping it house-only is the founder's ruling. That is enough, and it is
+ * unchanged: the route still refuses. What changed is that nobody may now argue the refusal
+ * is a vendor limitation.
  */
 export function companyNameSearchAllowed(audience: Audience): boolean {
   return audience === 'house'

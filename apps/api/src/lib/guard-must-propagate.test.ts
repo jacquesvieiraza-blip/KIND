@@ -40,6 +40,11 @@ const ICP = { job_titles: ['Head of Ops'], industries: ['logistics'], geographie
 
 /** Simulate PRODUCTION with providers off: keys present, opt-in absent. */
 function productionWithProvidersOff() {
+  // ⛓️ 17 Sep (FD-6) — APOLLO'S KEY IS WHAT MATTERS NOW. The PDL and Hunter keys stay set on
+  // purpose: the zero-spend guard must refuse the call that IS made, and these two must not be
+  // called at all. Without the Apollo key the search throws `APOLLO_API_KEY env var is not set`
+  // BEFORE reaching the guard, so the test would pass for the wrong reason.
+  process.env.APOLLO_API_KEY = 'test-apollo'
   process.env.PDL_API_KEY = 'test-pdl'
   process.env.HUNTER_API_KEY = 'test-hunter'
   delete process.env.PAID_PROVIDERS_ENABLED
@@ -59,21 +64,22 @@ describe('rethrowIfProviderBlocked — lets one error past, swallows nothing els
 })
 
 // ⛓️ 15 Sep (S2-RT-001A) — THE TWO SEARCH TESTS BELOW DROPPED `{ proofMode: true }`, and that
-// is a scope correction, not a weakening. This describe block is about **the PDL path**, as its
-// name says; `proofMode` was passed only because client + proof WAS the PDL path when it was
-// written. Client Proof now sources through Apollo (founder-locked), so leaving the flag in
-// would have quietly re-pointed these assertions at Apollo and stopped them guarding PDL at all.
-// `'client'` with no proof flag is still PDL under AR5, so both tests guard exactly what they
-// always guarded. The SAME two facts on the Apollo proof path — a block propagates, an ordinary
-// failure does not fake a success — are pinned in `proof-apollo-provider.test.ts`.
-describe('the PDL search path — a block escapes, a network error still soft-fails', () => {
+// is a scope correction, not a weakening. This describe block was about **the PDL path**;
+// `proofMode` was passed only because client + proof WAS the PDL path when it was written.
+//
+// ⛓️ 17 Sep (FD-6) — AND NOW THERE IS ONLY ONE PATH. *"We are not paying for PDL."* So the
+// block is re-aimed at the client SEARCH path, which is Apollo, and the two facts it guards
+// are unchanged and if anything more important: a zero-spend BLOCK must escape (never read as
+// "no matches"), and an ordinary network error must still soft-fail rather than fake a
+// success. With one provider there is no second source to hide either behind.
+describe('the client search path — a block escapes, a network error still soft-fails', () => {
   const saved = { ...process.env }
   let fetchSpy: ReturnType<typeof vi.spyOn>
 
   beforeEach(() => { vi.resetModules() })
   afterEach(() => {
     fetchSpy?.mockRestore()
-    for (const k of ['PDL_API_KEY', 'HUNTER_API_KEY', 'PAID_PROVIDERS_ENABLED', 'SAFE_TEST_MODE']) {
+    for (const k of ['APOLLO_API_KEY', 'PDL_API_KEY', 'HUNTER_API_KEY', 'CLEARBIT_API_KEY', 'PAID_PROVIDERS_ENABLED', 'SAFE_TEST_MODE']) {
       if (saved[k] === undefined) delete process.env[k]; else process.env[k] = saved[k]
     }
   })
@@ -95,28 +101,60 @@ describe('the PDL search path — a block escapes, a network error still soft-fa
   })
 
   it('ORDINARY network error → still soft-fails to empty, exactly as before', async () => {
-    process.env.PDL_API_KEY = 'test-pdl'
+    process.env.APOLLO_API_KEY = 'test-apollo'
     process.env.PAID_PROVIDERS_ENABLED = 'true'      // spending allowed; the call itself fails
     fetchSpy = vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('ECONNRESET'))
     const { searchPeopleWithFallback } = await import('./apollo')
 
-    const out = await searchPeopleWithFallback(ICP as never, 1, 20, null, 'client')
-    expect(out.contacts).toEqual([])          // degraded, not thrown
+    // ⛓️ 17 Sep (FD-6) — IT THROWS NOW, AND THAT IS THE CORRECTION, NOT A REGRESSION.
+    // The old PDL branch swallowed a network error into an empty page, which is why a client
+    // could be told "no matches for this profile yet" about a search that never completed.
+    // With one provider there is nowhere to fail over to, so an Apollo failure propagates to
+    // the caller, which releases the batch, records the run and raises a Vida task. What must
+    // never happen — and is asserted here — is an EMPTY RESULT that reads as "nobody matches".
+    let out: unknown
+    let err: unknown
+    try {
+      out = await searchPeopleWithFallback(ICP as never, 1, 20, null, 'client')
+    } catch (e) { err = e }
     expect(fetchSpy).toHaveBeenCalled()       // it genuinely tried
+    expect(err, 'an ordinary failure must not resolve to a silent empty set').toBeTruthy()
+    expect((err as Error).message).toContain('ECONNRESET')
+    expect(out, 'nothing may be returned as a result').toBeUndefined()
   })
 
-  it('enrichment: a block escapes tryHunter instead of reading as "no address found"', async () => {
+  // ⛓️ RE-AIMED 17 Sep (FD-6 / FD-5) — was "a block escapes tryHunter instead of reading as
+  // 'no address found'".
+  //
+  // The zero-spend guard cannot refuse a call that is never made. Hunter, PDL and Clearbit
+  // are RETIRED IN CODE (`retired-providers.ts`), so the waterfall stands down before any of
+  // them, and `PaidProviderBlockedError` is unreachable on this path. That is a STRONGER
+  // position than the one this case was written for — the lock no longer depends on a
+  // Railway variable — so the assertion moves to the property that now holds: with all three
+  // keys set, nothing is called and nothing is claimed.
+  //
+  // The propagation behaviour itself is still guarded, on the path that can still reach a
+  // provider: the two search cases above.
+  it('enrichment: the retired providers are unreachable, so a block cannot even arise', async () => {
     productionWithProvidersOff()
+    process.env.CLEARBIT_API_KEY = 'test-clearbit'
     fetchSpy = vi.spyOn(globalThis, 'fetch')
     const { waterfallEnrich } = await import('./enrichment')
 
-    let thrown: unknown
-    try {
-      await waterfallEnrich({ first_name: 'A', last_name: 'B', company: 'Acme', domain: 'acme.com' } as never)
-      throw new Error('waterfallEnrich RESOLVED — a block read as "no address found"')
-    } catch (e) { thrown = e }
-    expectBlocked(thrown)
-    expect(fetchSpy).not.toHaveBeenCalled()
+    const out = await waterfallEnrich({ first_name: 'A', last_name: 'B', company: 'Acme', domain: 'acme.com' } as never)
+    expect(out.source, 'nothing may be claimed as a source').toBe('none')
+    expect(out.email).toBeUndefined()
+    // ⚠️ THE MONEY ASSERTION, UNCHANGED IN SPIRIT: not one PROVIDER request left the process,
+    // and here it is because the vendors are retired rather than because a key was missing.
+    //
+    // ⚠️ SCOPED TO PROVIDER HOSTS, NOT "never called". The previous case's fire-and-forget
+    // `alertSourceDown` resolves during this one and writes an operator task, so a bare
+    // `not.toHaveBeenCalled()` fails on an alert — which would be a test asserting the wrong
+    // thing rather than a defect.
+    const hosts = fetchSpy.mock.calls.map(c => String(c[0]))
+    for (const h of hosts) {
+      expect(h, `a retired provider was called: ${h}`).not.toMatch(/peopledatalabs|hunter\.io|clearbit/)
+    }
   })
 })
 
@@ -149,12 +187,20 @@ describe('the outcome a blocked run produces', () => {
 describe('every swallow site that could eat a block has been taught to let it past', () => {
   const read = (p: string[]) => readFileSync(join(__dirname, ...p), 'utf8')
 
-  it('apollo.ts — the reported bug', () => {
+  it('apollo.ts — the reported bug, and the branch it lived in is gone', () => {
     const src = read(['apollo.ts'])
     // ⚠️ Assert the EXPRESSION, not the substring — the fix's own comment quotes the old
     // shape, and an earlier version of this guard matched that comment and proved nothing.
     expect(src).not.toContain('pdlSearchPage(icp, size, pdlCursor, opts).catch(() => null)')
-    expect(src).toContain('.catch(e => { rethrowIfProviderBlocked(e); return null })')
+    // ⛓️ RE-AIMED 17 Sep (FD-6). The swallow site was `pdlSearchPage(…).catch(() => null)`
+    // inside the client → PDL branch, and the 15-Sep fix taught that catch to re-throw a
+    // block. **The branch itself is now deleted**, so the expression it was taught is gone
+    // too — and there is nothing left on this path that can swallow anything: the Apollo
+    // walk has no `.catch(() => …)` at all, and its one catch re-throws.
+    expect(src).not.toMatch(/\.catch\(\(\) => null\)/)
+    expect(src).not.toMatch(/\.catch\(\(\) => \[\]\)/)
+    expect(src, 'the Apollo catch must still let a block past untouched')
+      .toContain('rethrowIfProviderBlocked(apolloErr)')
   })
 
   it('icps.ts — searchPeople no longer degrades a block to "no results"', () => {

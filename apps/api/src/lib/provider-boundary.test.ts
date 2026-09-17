@@ -36,9 +36,12 @@ import {
 
 // ── The pure decision — the whole boundary in four assertions ────────────────
 describe('AR5 — the provider decision is pure and audience-driven', () => {
-  it('house searches Apollo; client searches PDL', () => {
+  it('house searches Apollo; client searches Apollo too, since FD-6', () => {
+    // ⛓️ RE-AIMED 17 Sep BY FD-6 — was `'pdl'`. *"PDL IS NOT A PAID/ACTIVE PROVIDER FOR
+    // MVP1. We are not paying for PDL."* The property this case guards is UNCHANGED: the
+    // decision is pure and depends on nothing but its argument. What changed is the answer.
     expect(searchProviderFor('house')).toBe('apollo')
-    expect(searchProviderFor('client')).toBe('pdl')
+    expect(searchProviderFor('client')).toBe('apollo')
   })
 
   // ⚠️ There is deliberately no `revealProviderFor` test — the function was removed on
@@ -61,7 +64,9 @@ describe('AR5 — the provider decision is pure and audience-driven', () => {
     try {
       // THE defect, in one assertion: with both keys present the old code mixed the
       // providers. The decision must be identical to the no-keys case.
-      expect(searchProviderFor('client')).toBe('pdl')
+      // ⛓️ 17 Sep (FD-6) — and it still is. The answer moved; the independence did not, and
+      // this is the case that would catch a key deciding provider choice by the back door.
+      expect(searchProviderFor('client')).toBe('apollo')
       expect(searchProviderFor('house')).toBe('apollo')
     } finally {
       process.env.APOLLO_API_KEY = prevA
@@ -688,13 +693,17 @@ describe('AR5 — the HOUSE preview COUNT never falls back to PDL', () => {
     expect(String(result.error)).toMatch(/socket hang up/)
   })
 
-  it('a CLIENT still counts on PDL — the boundary cuts one way only', async () => {
+  // ⛓️ INVERTED 17 Sep BY FD-6 — was "a CLIENT still counts on PDL — the boundary cuts one
+  // way only". The boundary now cuts the other way and cuts once: NOBODY reaches PDL. The
+  // case is kept rather than deleted because it is the one that proves a client preview does
+  // not silently fall back to a second vendor, which was the #243 behaviour AR5 inherited.
+  it('a CLIENT preview counts on Apollo and never falls back to PDL', async () => {
     process.env.APOLLO_API_KEY = 'apollo-key'
     process.env.PDL_API_KEY    = 'pdl-key'
     const { previewCount } = await import('./apollo')
     await previewCount(ICP, 'client')
-    expect(fetchSpy.mock.calls.some(c => String(c[0]).includes('apollo.io'))).toBe(false)
-    expect(hitPdl()).toBe(true)
+    expect(fetchSpy.mock.calls.some(c => String(c[0]).includes('apollo.io'))).toBe(true)
+    expect(hitPdl()).toBe(false)
   })
 })
 
@@ -737,10 +746,15 @@ describe('AR5 — searchPeopleWithFallback routes by audience, not by keys', () 
     process.env.PDL_API_KEY = prev.pdl
   })
 
-  it('CLIENT audience never calls Apollo — even with APOLLO_API_KEY set', async () => {
+  // ⛓️ INVERTED 17 Sep BY FD-6. Was "CLIENT audience never calls Apollo — even with
+  // APOLLO_API_KEY set", which was AR5 exactly. The half of this pair that still matters is
+  // the one below it, and it is now true of BOTH audiences: nothing calls PDL, with the key
+  // set. Keeping both directions is what makes the boundary provable rather than asserted.
+  it('CLIENT audience calls Apollo and NEVER PDL — even with PDL_API_KEY set', async () => {
     const { searchPeopleWithFallback } = await import('./apollo')
     await searchPeopleWithFallback(ICP, 1, 5, null, 'client' as Audience)
-    expect(hostsCalled()).not.toContain('apollo')
+    expect(hostsCalled()).toContain('apollo')
+    expect(hostsCalled()).not.toContain('pdl')
   })
 
   it('HOUSE audience never calls PDL — even with PDL_API_KEY set', async () => {
@@ -785,10 +799,12 @@ describe('AR5 — ICP preview counts on the audience provider', () => {
     process.env.PDL_API_KEY = prev.pdl
   })
 
-  it('CLIENT preview never hits Apollo', async () => {
+  // ⛓️ INVERTED 17 Sep BY FD-6 — was "CLIENT preview never hits Apollo".
+  it('CLIENT preview hits Apollo, and only Apollo', async () => {
     const { previewCount } = await import('./apollo')
     await previewCount(ICP, 'client')
     const urls = fetchSpy.mock.calls.map(c => String(c[0]))
-    expect(urls.some(u => u.includes('apollo.io'))).toBe(false)
+    expect(urls.some(u => u.includes('apollo.io'))).toBe(true)
+    expect(urls.some(u => u.includes('peopledatalabs'))).toBe(false)
   })
 })

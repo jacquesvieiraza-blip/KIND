@@ -165,9 +165,18 @@ describe('the paging is actually WIRED, not just written', () => {
   })
 
   it('the sourcing entry point accepts and returns a cursor', () => {
+// ⛓️ 17 Sep (FD-6) — `pdlPage` → `providerPage`, `scrollToken` → `cursor`. With one provider
+// the PDL-shaped names stopped describing anything: the page now carries Apollo's own
+// completed / exhausted / matchedNothing verdict, which the Apollo branch never reported
+// before (it returned null, so no client run could ever reach searchTrust = 'proven').
+    // ⛓️ RENAMED 17 Sep (FD-6) — was `pdlCursor` / `providerPage`. With one provider the names
+    // stopped describing anything: `providerCursor` now carries an Apollo PAGE NUMBER, and
+    // `providerPage` carries the completed/exhausted/matchedNothing facts Apollo finally
+    // reports. The wiring this case guards is unchanged, and the STORED COLUMN is still
+    // `pdl_scroll_token` (a database name; see `pdl-cursor.ts` for why it stays).
     const src = code('./apollo.ts')
-    expect(src).toContain('pdlCursor')
-    expect(src).toContain('pdlPage')
+    expect(src).toContain('providerCursor')
+    expect(src).toContain('providerPage')
   })
 
   it('runIcpJob READS the stored cursor and WRITES the next one', () => {

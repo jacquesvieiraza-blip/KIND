@@ -6,7 +6,7 @@
 
 ## The number
 
-**107 distinct variables** across `apps/api`, `apps/portal` and `apps/admin` — **90** read by the API, **17** read only by the portal or the admin app.
+**108 distinct variables** across `apps/api`, `apps/portal` and `apps/admin` — **91** read by the API, **17** read only by the portal or the admin app.
 
 **#561 recorded 69, and that figure was wrong twice over.** The first was method: a `process.env.X` grep cannot see the **12 variables this repo reaches by indirection** —
 
@@ -148,6 +148,7 @@ Listed for completeness. The startup check deliberately does **not** report them
 |---|---|---|---|---|
 | `KIND_DEPLOY_COMMIT` | admin·api·portal | ⚙️ platform | Explicit deploy identity for a pipeline that is not Railway. UNSET is normal: `/health` then falls back to the `.deploy-stamp` `ship.sh` writes, and reports `commit:"unknown"` only when there is no evidence at all (XC-4) | leave unset unless deploying outside Railway |
 | `NODE_ENV` | admin·api·portal | ⚙️ platform | Set by the runtime | set by Railway — nothing to do |
+| `POOLED_SENDERS_JSON` | api | 🟠 important | The pooled sending mailboxes, as a JSON array. Unset = automatic preparation cannot assign a sender, so every programme stops at Prepare; unparseable = the same outcome, silently (XC-8) | Railway → **@kind/api** |
 | `PORT` | api | ⚙️ platform | Set by Railway; defaults to 4000 locally | set by Railway — nothing to do |
 | `RAILWAY_GIT_COMMIT_SHA` | api | ⚙️ platform | Deploy identity, used in health/diagnostics | set by Railway — nothing to do |
 | `RAILWAY_REPLICA_ID` | api | ⚙️ platform | Replica identity, used by the cron single-run guard (#343) | set by Railway — nothing to do |

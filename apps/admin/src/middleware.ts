@@ -56,8 +56,26 @@ export async function middleware(request: NextRequest) {
   const fwdHost  = request.headers.get('x-forwarded-host') ?? request.headers.get('host')
   const base = fwdProto && fwdHost ? `${fwdProto}://${fwdHost}` : request.url
 
-  // Public paths: the login page + Supabase's own auth callback.
-  const isPublic = pathname === '/login' || pathname.startsWith('/auth')
+  // Public paths: the login page + Supabase's own auth callback + the build-identity read.
+  //
+  // 🛑 `/api/health` IS AN EXACT MATCH, DELIBERATELY (C-6, founder-approved 17 Sep).
+  //
+  // XC-4/XC-11 require all four services to name the commit they are running, and
+  // `scripts/ship.sh` reads each one with plain curl and NO Supabase session. With every
+  // `/api` path gated, this one answered 401 and the admin leg of that confirmation could
+  // never succeed in production — found by booting the real process in the full-stack
+  // harness, not by reading code.
+  //
+  // ⚠️ `===`, NEVER `startsWith`. A prefix would also exempt `/api/health/detail` and
+  // `/api/healthz`, and the next route someone adds under that path would be public without
+  // anybody deciding it. `middleware.test.ts` asserts those lookalikes stay 401.
+  //
+  // ⚠️ IT EXEMPTS NOTHING ELSE, AND `/api/proxy/*` IS THE REASON. That route injects
+  // ADMIN_SECRET_KEY into upstream calls — the confused-deputy hole #308 closed — so it stays
+  // gated along with every other `/api` path. The route this exempts returns only
+  // `status/service/commit/commitSource/ts`: a liveness read that discloses no client data,
+  // no keys and no PII.
+  const isPublic = pathname === '/login' || pathname.startsWith('/auth') || pathname === '/api/health'
 
   if (!allowed && !isPublic) {
     if (pathname.startsWith('/api')) {

@@ -133,6 +133,24 @@ else
   echo "   (needs local PostgreSQL server binaries; see scripts/realdb/README.md)"
 fi
 
+# ── [9] THE FULL-STACK PRE-PRODUCTION RUN (§8.2 · Batch 1b) ─────────────────────────────
+#
+# The real API, portal and admin as processes, against a disposable Postgres through real
+# PostgREST, with every provider replaced by a recording fake. Contract §9.1 requires a
+# cumulative run after every batch; Fable's 18 Sep ruling scoped this one to Batch 1's items.
+#
+# ⚠️ OPT-IN, FOR THE SAME REASON STAGE 8 IS. It needs PostgreSQL server binaries AND the real
+# PostgREST binary AND about four minutes; a gate that slow and that environment-dependent
+# would stop being run, and this repo has exactly one gate. It is REQUIRED before a batch is
+# handed over, which is the discipline rather than the default.
+if [ "${FULLSTACK_TESTS:-}" = "1" ]; then
+  step "Full-stack pre-production run (§8.2, Batch 1 scope)" bash scripts/fullstack.sh run
+else
+  echo ""
+  echo "── [skipped] Full-stack pre-production run — set FULLSTACK_TESTS=1 to run it"
+  echo "   (needs PostgreSQL server binaries + the real PostgREST binary; see scripts/fullstack/README.md)"
+fi
+
 echo ""
 echo "══════════════════════════════════════════════════════════"
 if [ -n "$FAILED" ]; then

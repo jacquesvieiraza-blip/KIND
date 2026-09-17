@@ -250,10 +250,36 @@ cmd_up() {
   as_pg "'$PGBIN/initdb' -D '$CLUSTER' -U postgres --auth=trust -E UTF8" \
     > "$REALDB_ROOT/initdb.log" 2>&1 || { tail -20 "$REALDB_ROOT/initdb.log"; fail "initdb failed"; }
 
-  as_pg "'$PGBIN/pg_ctl' -D '$CLUSTER' -o '-p $REALDB_PORT -k $REALDB_ROOT -c listen_addresses=127.0.0.1 -c fsync=off -c synchronous_commit=off -c full_page_writes=off' -l '$SERVER_LOG' -w start" \
+  # ── ⚑ 18 Sep (Batch 1b) — TLS ON THE DISPOSABLE CLUSTER, BECAUSE THE PRODUCT REQUIRES IT ──
+  #
+  # 🛑 THE MIGRATION RUNNER CONNECTS WITH `ssl: { rejectUnauthorized: false }` IN CODE, not
+  # from the connection string — so `sslmode=disable` in the URL changes nothing. Against a
+  # plain cluster it fails with *"The server does not support SSL connections"*, which is what
+  # `POST /operator/migrations/run` answered on the first full-stack attempt.
+  #
+  # ⚠️ AND THE PRODUCT IS RIGHT. Supabase mandates TLS; a harness without it is LESS faithful,
+  # not more convenient. A self-signed certificate is exactly what `rejectUnauthorized: false`
+  # is for, and it stays inside a directory destroyed at teardown.
+  #
+  # ⚠️ IT DEGRADES RATHER THAN FAILS. If `openssl` is missing the cluster still starts without
+  # TLS and says so — the real-DB suite connects over a unix-domain socket and does not care;
+  # only the full-stack migration check does, and it will report the reason itself.
+  SSL_ARGS=""
+  if command -v openssl >/dev/null 2>&1; then
+    openssl req -new -x509 -nodes -days 1 -subj "/CN=localhost" \
+      -keyout "$REALDB_ROOT/server.key" -out "$REALDB_ROOT/server.crt" >/dev/null 2>&1 || true
+    if [ -f "$REALDB_ROOT/server.key" ]; then
+      chmod 600 "$REALDB_ROOT/server.key"
+      [ -n "$PG_RUN_AS" ] && chown "$PG_RUN_AS" "$REALDB_ROOT/server.key" "$REALDB_ROOT/server.crt"
+      SSL_ARGS=" -c ssl=on -c ssl_cert_file=$REALDB_ROOT/server.crt -c ssl_key_file=$REALDB_ROOT/server.key"
+    fi
+  fi
+
+  as_pg "'$PGBIN/pg_ctl' -D '$CLUSTER' -o '-p $REALDB_PORT -k $REALDB_ROOT -c listen_addresses=127.0.0.1 -c fsync=off -c synchronous_commit=off -c full_page_writes=off$SSL_ARGS' -l '$SERVER_LOG' -w start" \
     > /dev/null 2>&1 || { tail -20 "$SERVER_LOG" 2>/dev/null; fail "pg_ctl start failed (port $REALDB_PORT already in use?)"; }
   running || fail "server started but is not accepting connections"
-  say "server up"
+  if [ -n "$SSL_ARGS" ]; then say "server up (TLS on — the migration runner connects with ssl enabled in code)"
+  else say "server up (NO TLS — openssl unavailable; the migration runner will refuse to connect)"; fi
 
   "$PGBIN/psql" -q -v ON_ERROR_STOP=1 "$ADMIN_URL" \
     -c "create database $REALDB_DB" >/dev/null || fail "could not create database $REALDB_DB"
@@ -338,6 +364,27 @@ cmd_up() {
     echo "   Declare a genuinely Supabase-only file in EXPECTED_UNSUPPORTED in this script."
     return 1
   fi
+  # ── ⚑ 18 Sep (Batch 1b) — RE-GRANT AFTER THE REPLAY ─────────────────────────────────────
+  #
+  # `bootstrap.sql` grants table privileges to the Supabase API roles, but it runs BEFORE the
+  # baseline and the migration replay — so every table those create is ungranted, and real
+  # PostgREST answers `permission denied` for it. `ALTER DEFAULT PRIVILEGES` does not cover
+  # them either: default privileges apply to the objects the GRANTING role creates afterwards,
+  # and here the migrations run as the same superuser but the defaults were set for `public`
+  # before those objects existed in this session's planning order.
+  #
+  # ⚠️ IT IS NOT A SECOND SOURCE OF TRUTH: the statements are the same ones bootstrap.sql
+  # holds, re-applied. Cheap, idempotent, and the alternative is a harness whose API cannot
+  # read the tables its own migrations just created.
+  "$PGBIN/psql" -q -v ON_ERROR_STOP=1 "$URL" >/dev/null 2>&1 <<'GRANTS' || fail "re-granting API-role privileges after the replay failed"
+grant usage on schema public to anon, authenticated, service_role;
+grant all     on all tables    in schema public to service_role;
+grant all     on all sequences in schema public to service_role;
+grant all     on all functions in schema public to service_role;
+grant select  on all tables    in schema public to anon, authenticated;
+GRANTS
+  say "API-role grants re-applied after the replay (PostgREST needs them; see bootstrap.sql)"
+
   # ── 🛑 FIDELITY, STATED ON EVERY RUN (⛓️ 18 Sep, after GPT verification) ─────────────────
   #
   # A green real-DB suite is easy to over-read as "the repo's migrations are proven". It is

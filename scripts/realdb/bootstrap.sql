@@ -159,3 +159,31 @@ create table if not exists harness.applied_migrations (
 );
 comment on table harness.applied_migrations is
   'Written by scripts/realdb.sh only. Never exists in production — a test that reads it is reading harness state, not product state.';
+
+
+-- ══════════════════════════════════════════════════════════════════════════════════════════
+-- ⚑ 18 Sep (Batch 1b) · THE TABLE GRANTS SUPABASE GIVES ITS API ROLES
+--
+-- 🛑 FOUND BY PUTTING REAL PostgREST IN FRONT OF THIS CLUSTER. The roles above exist, and the
+-- SCHEMA grants above exist, but nothing granted anything on the TABLES — so every request
+-- through PostgREST came back `permission denied for table clients`. That is a harness gap,
+-- not product behaviour: in a real Supabase project `service_role` holds full table
+-- privileges, which is exactly why `supabase-js` with the service key can read anything.
+--
+-- ⚠️ IT DOES NOT WEAKEN THE RLS FINDING. `service_role` is `bypassrls` by design here and in
+-- Supabase, and the README still says row-level security is not provable in this harness. What
+-- these grants fix is the API being unable to talk to its own database at all.
+--
+-- ⚠️ RUN AFTER THE MIGRATIONS TOO. This file executes BEFORE the baseline and the migration
+-- replay, so tables created later are not covered by the one-off grants — the ALTER DEFAULT
+-- PRIVILEGES below handles objects created by THIS role afterwards, and `realdb.sh` re-runs
+-- the grant block once the replay is finished. Both, because default privileges apply only to
+-- the granting role's own future objects.
+grant usage on schema public to anon, authenticated, service_role;
+grant all     on all tables    in schema public to service_role;
+grant all     on all sequences in schema public to service_role;
+grant all     on all functions in schema public to service_role;
+grant select  on all tables    in schema public to anon, authenticated;
+alter default privileges in schema public grant all on tables    to service_role;
+alter default privileges in schema public grant all on sequences to service_role;
+alter default privileges in schema public grant all on functions to service_role;

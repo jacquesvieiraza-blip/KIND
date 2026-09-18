@@ -125,7 +125,23 @@ export interface AlertDelivery {
   taskId?: string
 }
 
-export async function sendFounderAlert(kind: AlertKind, subject: string, lines: string[]): Promise<AlertDelivery> {
+/**
+ * ⚑ 18 Sep (J2-C1) — WHO THIS ALERT IS ABOUT, when it is about somebody.
+ *
+ * ⚠️ OPTIONAL BY DESIGN, AND ITS ABSENCE IS NOT A MISSING VALUE. `api_down` and `source_down`
+ * genuinely ARE facts about the company; an alert that omits this keeps the exact global
+ * behaviour it has always had, dedupe key included.
+ */
+export interface AlertSubject {
+  clientId?: string | null
+  programmeId?: string | null
+  subjectKind?: string | null
+  subjectId?: string | null
+}
+
+export async function sendFounderAlert(
+  kind: AlertKind, subject: string, lines: string[], about?: AlertSubject,
+): Promise<AlertDelivery> {
   const body = lines.filter(Boolean).join('\n')
   const tag = `[${kind}]`
 
@@ -188,15 +204,44 @@ export async function sendFounderAlert(kind: AlertKind, subject: string, lines: 
   let taskOk = false
   let taskId: string | undefined
   try {
+    // ⛓️ 18 Sep (J2-C1) — THE TASK NOW KNOWS WHO IT IS ABOUT, WHEN THE CALLER KNOWS.
+    //
+    // WHAT THIS REPLACED, and the sentence that justified it:
+    //   ~~`dedupeKey: NEVER_DEDUPED.has(kind) ? null : \`alert:${kind}:${dedupeKeyFor({})}\``~~
+    //   ~~"these classes are facts about the company, not about a client we can name here"~~
+    //
+    // 🛑 TRUE OF `api_down`, FALSE THE MOMENT AN ALERT CAN NAME A SUBJECT — and the function
+    // had no way to be given one, so every task was raised with `client_id: null`. Two
+    // consequences, both of which defeat XC-5's purpose:
+    //
+    //   ① `listOpenOperatorTasks({ clientId })` — the per-client rail — could never return it.
+    //      An operator working that exact client saw nothing, and the client id survived only
+    //      inside the title PROSE, which is the sentence-a-human-re-keys shape XC-5 replaced.
+    //   ② for a DEDUPED kind the key was `alert:<kind>:global`, so `charge_failed` for the
+    //      second client collided with the first client's row and filed nothing. A morning of
+    //      failed charges became one task about whoever it happened to first.
+    //
+    // ⚠️ AN ALERT WITH NO SUBJECT IS UNCHANGED IN EVERY RESPECT. Same key, same null client,
+    // same global dedupe — a correctly-global condition must not become one row per client.
     const t = await raiseOperatorTask({
       kind: ALERT_TASK_CLASS[kind],
       severity: ALERT_TASK_SEVERITY[kind],
       title: subject,
       detail: body || null,
-      // Null means "never dedupe" — see NEVER_DEDUPED above. Otherwise the condition
-      // dedupes globally, because these classes are facts about the company, not about a
-      // client we can name here.
-      dedupeKey: NEVER_DEDUPED.has(kind) ? null : `alert:${kind}:${dedupeKeyFor({})}`,
+      clientId: about?.clientId ?? null,
+      programmeId: about?.programmeId ?? null,
+      subjectKind: about?.subjectKind ?? null,
+      subjectId: about?.subjectId ?? null,
+      // Null means "never dedupe" — see NEVER_DEDUPED above. Otherwise the condition dedupes
+      // per SUBJECT when one was given, and globally when it was not.
+      dedupeKey: NEVER_DEDUPED.has(kind)
+        ? null
+        : `alert:${kind}:${dedupeKeyFor({
+            clientId: about?.clientId ?? undefined,
+            programmeId: about?.programmeId ?? undefined,
+            subjectKind: about?.subjectKind ?? undefined,
+            subjectId: about?.subjectId ?? undefined,
+          })}`,
       evidence: { alert_kind: kind, email_ok: emailOk, slack_ok: slackOk },
     })
     taskOk = t.ok === true

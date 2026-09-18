@@ -166,7 +166,19 @@ const apolloHandler = async (req, body, res, state) => {
       id: `apollo-person-${i}`, first_name: 'Test', last_name: `Person${i}`,
       name: `Test Person${i}`, title: 'Head of Operations', linkedin_url: null,
       email_status: 'verified', email: null,
-      organization: { id: `org-${i}`, name: `Fake Co ${i}`, website_url: `https://fake-${i}.invalid`, estimated_num_employees: 40, industry: 'logistics' },
+      // ⚠️ BOTH HEADCOUNT KEYS, AND THE REASON IS A REAL DISCREPANCY. This fake emitted only
+      // `estimated_num_employees`; `apollo.ts` reads `organization.num_employees`. With the
+      // key the product reads absent, every lead reached the structural gate with no
+      // confirmed headcount and was set aside — "size: their headcount could not be
+      // confirmed" — so Proof sourced 20 people and surfaced NONE, on every run.
+      //
+      // 🛑 WHICH KEY REAL APOLLO SENDS IS RUNTIME UNVERIFIED AND MATTERS. If it is
+      // `estimated_num_employees`, the product reads a field that is never there, and under
+      // FD-6 (Apollo only, no PDL) `company_size` has no other source — enrichment.ts fills it
+      // from PDL, which is forbidden — so no prospect would EVER clear the size criterion in
+      // production. Reported in the evidence package; the fake carries both so the journey can
+      // be walked either way.
+      organization: { id: `org-${i}`, name: `Fake Co ${i}`, website_url: `https://fake-${i}.invalid`, num_employees: 40, estimated_num_employees: 40, industry: 'logistics' },
       country: 'United Kingdom', city: 'London', state: 'England',
     })
     const perPage = 25
@@ -239,6 +251,35 @@ const anthropicHandler = async (req, body, res, state) => {
       content: [], stop_reason: 'refusal', usage: { input_tokens: 1, output_tokens: 0 },
     }), true
   }
+  // ── ⚑ 18 Sep (P6 §8.2) — ONE SCRIPTED ANSWER SHAPE: LEAD SCORING ────────────────────────
+  //
+  // 🛑 WITHOUT IT THE WHOLE PROOF JOURNEY IS UNREACHABLE. `scoreLeads` asks for a JSON array
+  // of `{id, score, reasoning, category_fit, category_fit_reason}` and, on anything it cannot
+  // parse, CORRECTLY refuses to invent a score: the leads stay unscored, nothing is surfaced
+  // to the client, and an alert fires. So against the generic canned completion every Proof
+  // run sourced 20 people and showed the client none of them — journeys 5, 6, 7 and 12 could
+  // not be walked at all.
+  //
+  // ⚠️ THE SCORES ARE THE HARNESS'S, AND NOTHING ABOUT SCORE QUALITY IS PROVEN BY THEM. What
+  // this makes testable is the machinery on the far side of the model — qualification,
+  // surfacing, accounting, the client's own view — which is what a journey is about. The ids
+  // are read back out of the prompt so the answer is about the leads actually asked about; a
+  // fake that returned a fixed id would exercise nothing.
+  const prompt = String(body ?? '')
+  if (prompt.includes('category_fit') && prompt.includes('JSON array')) {
+    const ids = [...new Set((prompt.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/g) ?? []))]
+    const scored = ids.map((id, i) => ({
+      id, score: 70 + (i % 25),
+      reasoning: 'Scored by the full-stack harness, not by a model.',
+      category_fit: 'yes', category_fit_reason: 'harness fixture',
+    }))
+    return json(res, 200, {
+      id: 'msg_fake_scoring', type: 'message', role: 'assistant', model: 'fake-harness-model',
+      content: [{ type: 'text', text: JSON.stringify(scored) }],
+      stop_reason: 'end_turn', usage: { input_tokens: 1, output_tokens: 1 },
+    }), true
+  }
+
   // The Messages API shape, enough for the SDK to parse. No model is called and nothing is
   // generated — a canned completion is the correct evidence for "the model seam is wired".
   return json(res, 200, {

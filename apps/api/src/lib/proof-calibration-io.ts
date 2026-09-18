@@ -286,8 +286,27 @@ export async function closeCalibrationLoop(
       ...(icpId ? { proof_review_icp_id: icpId } : {}),
     })
     .eq('id', clientId)
-    // The lock: one escalation per open cycle.
-    .or('proof_review_requested_at.is.null,proof_review_resolved_at.not.is.null')
+    // ── 🛑 ⚑ 18 Sep (P6 §8.2 · journey 7) — THE `.or()` IS GONE, AND IT WAS BREAKING THIS ───
+    //
+    // ⛓️ WHAT STOOD HERE: ~~`.or('proof_review_requested_at.is.null,proof_review_resolved_at.not.is.null')`~~
+    // beside the `.is(...)` below.
+    //
+    // 🛑 `.or()` ON AN UPDATE FAILS AGAINST REAL PostgREST. PostgREST 13 compiles the filter
+    // with a table qualification the UPDATE statement has no alias for, and Postgres answers
+    // `42703 column clients.proof_review_requested_at does not exist` — about a column that
+    // plainly does. So this write NEVER succeeded: every client who said "these still aren't
+    // the right people" had their escalation silently refused, and the failure was reported as
+    // `migration_required`, sending an operator to run a migration that was already applied.
+    // Isolated at the wire: the same PATCH without `or=` succeeds, with `or=` alone fails.
+    //
+    // ⚠️ REMOVING IT CHANGES NOTHING ABOUT THE LOCK, and that is why this fix is safe.
+    // `(A OR B) AND A` is `A` — the `.is(...)` below already implied the whole condition, so
+    // the `.or()` was doing no work even where it did compile.
+    //
+    // ⚠️ TWO OTHER SITES CARRY THE SAME BROKEN SHAPE and are NOT touched here, because their
+    // `.or()` is load-bearing rather than redundant and rewriting a compare-and-set condition
+    // deserves its own scoped change: `claimCalibratedRestart` below (line ~582) and the
+    // hand-off in `routes/icps.ts` (~7334). Both are in the evidence package.
     .is('proof_review_requested_at', null)
     .select('id')
 

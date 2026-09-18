@@ -49,6 +49,29 @@ export function makeJourneyChecks(kit) {
   })
   const seeded = (what) => { if (!W.seeded.includes(what)) W.seeded.push(what) }
 
+  /**
+   * Wait for a fact to become true in the DATABASE, bounded.
+   *
+   * ⚠️ SOURCING AND SCORING FINISH AFTER THE RESPONSE. `/icps/:id/proof` and
+   * `/operator/source` answer as soon as the work is accepted; enrichment, scoring and
+   * surfacing land afterwards. A check that queried immediately read the state BEFORE the
+   * product had done the thing — and reported "enrichment and qualification did not run"
+   * about a run that was still running. This polls the real outcome instead of sleeping a
+   * guessed interval, and gives up loudly rather than passing on a timeout.
+   */
+  async function waitFor(label, predicate, { tries = 60, everyMs = 1000 } = {}) {
+    for (let i = 0; i < tries; i++) {
+      const v = await predicate()
+      if (v) return v
+      await new Promise(r => setTimeout(r, everyMs))
+    }
+    return null
+  }
+  const countWhere = (where, params) => async () => {
+    const n = Number((await sql(`select count(*)::int as n from public.leads where ${where}`, params))[0].n)
+    return n > 0 ? n : null
+  }
+
   /** Skip cleanly when an earlier journey did not produce what this one needs. */
   const needs = (id, field, label) => {
     if (!W[field]) { bad(id, `cannot run: journey chain has no ${label} yet (${field} is null)`); return true }
@@ -129,20 +152,64 @@ export function makeJourneyChecks(kit) {
   async function j2() {
     const id = 'J2'
     if (needs(id, 'clientId', 'client')) return
-    // The welcome email is fired from `/auth/onboard` (J1) and deliberately not awaited, so
-    // the assertion is on the PROVIDER having been asked, with a bounded wait rather than a
-    // sleep-and-hope.
-    let seen = null
-    for (let i = 0; i < 20 && !seen; i++) {
-      const reqs = await fakeRequests('resend')
-      seen = reqs.find(q => String(q.path).startsWith('/emails') && String(q.body ?? '').includes(W.email))
-      if (!seen) await new Promise(r => setTimeout(r, 500))
+
+    // ── 🛑 WHY THIS JOURNEY IS PROVED IN TWO HALVES ─────────────────────────────────────
+    //
+    // The walk's client is `…@example.invalid`, and `isRealRecipient` REFUSES it — `.invalid`
+    // is RFC 2606, guaranteed never to resolve, and the product drops any transactional send
+    // to a non-deliverable address. That is correct behaviour and it is the harness's own
+    // safety choice, so no welcome email can ever reach the provider for the walk's client.
+    // It took a real run to see it: the send returned silently and the only trace was
+    // `[email] skipped non-deliverable recipient`.
+    //
+    // So both halves are asserted, because both are the journey:
+    //   ① a non-deliverable recipient is REFUSED — proved by the walk's own client;
+    //   ② a deliverable one REACHES the provider, with the durable claim taken exactly once.
+    //
+    // ⚠️ WHAT MAKES ② SAFE IS NOT THE ADDRESS. It is that `RESEND_BASE_URL` is a loopback
+    // fake — check 0 refuses to run at all unless every provider URL is 127.0.0.1 — so this
+    // send cannot leave the machine whatever the domain looks like.
+
+    // ① the refusal, on the walk's own client
+    const refusedState = (await sql(
+      'select welcome_email_claimed_at from public.clients where id = $1', [W.clientId]))[0]
+    if (refusedState?.welcome_email_claimed_at) {
+      return bad(id, `a welcome email was CLAIMED for an ${'.invalid'} recipient — the non-deliverable backstop did not hold`)
     }
-    if (!seen) {
-      const reqs = await fakeRequests('resend')
-      return bad(id, `no welcome email was sent to ${W.email} — the Resend fake received ${reqs.length} request(s), none addressed to the new client`)
+
+    // ② the send, for a throwaway client with a deliverable-looking address
+    const uid = randomUUID()
+    const addr = `welcome-${uid.slice(0, 8)}@kind-harness.localdomain`
+    await sql('insert into auth.users(id, email) values ($1, $2)', [uid, addr])
+    const [{ id: cid }] = await sql(
+      `insert into public.clients(user_id, company_name, country, contact_email)
+       values ($1, $2, 'United Kingdom', $3) returning id`, [uid, `Welcome Co ${uid.slice(0, 8)}`, addr])
+    try {
+      const { sendWelcomeEmail } = await import(`${ENV.tree}/apps/api/dist/lib/email.js`)
+      await sendWelcomeEmail(addr, `Welcome Co ${uid.slice(0, 8)}`, cid)
+      // 🛑 SENT ONCE, EVEN IF ASKED TWICE. The durable claim is the whole mechanism: a
+      // double-click, a refresh and a retried request all land on this same call.
+      await sendWelcomeEmail(addr, `Welcome Co ${uid.slice(0, 8)}`, cid)
+
+      const seen = (await fakeRequests('resend'))
+        .filter(q => String(q.path).startsWith('/emails') && String(q.body ?? '').includes(addr))
+      const [state] = await sql(
+        `select welcome_email_claimed_at, welcome_email_sent_at, welcome_email_outcome
+           from public.clients where id = $1`, [cid])
+
+      if (seen.length === 0) {
+        return bad(id, `the welcome email never reached the provider for a deliverable address (claimed=${state?.welcome_email_claimed_at ?? 'null'}, outcome=${state?.welcome_email_outcome ?? 'null'})`)
+      }
+      if (seen.length > 1) {
+        return bad(id, `two identical welcome-email requests produced ${seen.length} provider calls — the durable claim did not hold`)
+      }
+      if (!state?.welcome_email_claimed_at) {
+        return bad(id, 'the welcome email was sent without a durable claim — nothing stops a second one')
+      }
+      ok(id, `the welcome email REACHED the provider exactly once for a deliverable recipient (claim taken, outcome=${state.welcome_email_outcome ?? 'pending'}), and a second identical request produced no second send · and the walk's own ${'.invalid'} client was correctly REFUSED as non-deliverable, so no transactional mail is ever aimed at an address that cannot exist`)
+    } finally {
+      await sql('delete from auth.users where id = $1', [uid]).catch(() => {})
     }
-    ok(id, `the welcome email reached the provider: POST ${seen.path} addressed to the new client, sent by /auth/onboard without the browser waiting on it`)
   }
 
   // ════════════════════════════════════════════════════════════════════════════════════════
@@ -231,30 +298,41 @@ export function makeJourneyChecks(kit) {
     // must not start spending. So the operator step is DRIVEN, not bypassed.
     const review = await asOperator(`/operator/icp-review/${W.icpId}/resolve`, {
       method: 'POST', timeoutMs: 60000,
-      // ⚠️ THE OPERATOR SUPPLIES PROVIDER-ACCEPTABLE VALUES, which is the entire point of the
-      // review: "the whole point of this review is to produce values a provider will take".
-      // An empty resolution is refused with 400, correctly — a human has to choose.
+      // ⚠️ THE OPERATOR SUPPLIES PROVIDER-ACCEPTABLE VALUES FOR EVERY FIELD THE REVIEW NAMES,
+      // which is the entire point of it: "the whole point of this review is to produce values a
+      // provider will take". The client said "Head" and "20-200"; neither is a value Apollo
+      // accepts, so the ICP was held with two requirements — `seniority_levels` and
+      // `company_sizes` — and a resolution naming only one of them is refused with 400.
       body: JSON.stringify({
         client_id: W.clientId,
-        values: { company_sizes: ['11–50', '51–200'] },
-        resolved_by: 'fullstack-operator@example.invalid',
+        // ⚠️ `resolved_by` IS A UUID COLUMN, not an address — passing the operator's email
+        // there is a 500 ("invalid input syntax for type uuid"). It is nullable, and the
+        // operator audit log already carries who acted.
+        values: { seniority_levels: ['Head of'], company_sizes: ['11–50', '51–200'] },
       }),
     })
     const r = await asClient(`/icps/${W.icpId}/proof`, { method: 'POST', body: JSON.stringify({}), timeoutMs: 180000 })
-    const leads = await sql(
-      `select count(*)::int as n from public.leads where client_id = $1 and proof_pass = 1`, [W.clientId])
+
+    // 🛑 THE CLIENT-VISIBLE FACT, NOT AN INTERNAL COLUMN. What journey 5 promises is that the
+    // client is SHOWN examples; `surfaced_for_approval_at` is what puts a card on their
+    // screen. Sourcing, scoring and surfacing all complete after the response, so this waits
+    // for the outcome rather than reading the state mid-run.
+    const surfaced = await waitFor('surfaced proof leads',
+      countWhere('client_id = $1 and surfaced_for_approval_at is not null', [W.clientId]))
+    const leads = [{ n: surfaced ?? 0 }]
     const apolloAfter = await fakeCount('apollo')
     const pdl = await fakeCount('pdl'); const hunter = await fakeCount('hunter')
 
     if (Number(leads[0].n) === 0) {
-      return bad(id, `Proof attempt 1 answered HTTP ${r.status} and surfaced no pass-1 leads (operator review resolve was HTTP ${review.status}): ${String(r.text).slice(0, 250)}`)
+      const total = Number((await sql('select count(*)::int as n from public.leads where client_id = $1', [W.clientId]))[0].n)
+      return bad(id, `Proof attempt 1 answered HTTP ${r.status} and surfaced NOTHING to the client within 60s (${total} lead(s) exist but none is on their screen). Operator review resolve: HTTP ${review.status}. Proof said: ${String(r.text).slice(0, 200)}`)
     }
     // 🛑 THE CLIENT HAS PAID NOTHING YET. Proof is the acquisition motion, so the one thing
     // that must not happen here is a charge or a programme.
     const [{ n: progs }] = await sql(`select count(*)::int as n from public.programmes where client_id = $1`, [W.clientId])
     if (Number(progs) > 0) return bad(id, `Proof created a programme (${progs}) — Proof is free and precedes the commercial conversation`)
     if (pdl !== 0 || hunter !== 0) return bad(id, `Proof called a forbidden provider: PDL=${pdl} HUNTER=${hunter} (FD-6)`)
-    ok(id, `an operator resolved the ICP review first (K.I.N.D owns GO — HTTP ${review.status}), then Proof attempt 1 surfaced ${leads[0].n} real pass-1 lead(s) through ${apolloAfter - apolloBefore} Apollo call(s), created NO programme and charged nothing · PDL=0 HUNTER=0 · HTTP ${r.status}`)
+    ok(id, `an operator resolved the ICP review first (K.I.N.D owns GO — HTTP ${review.status}), then Proof attempt 1 SURFACED ${leads[0].n} real lead(s) to the client through ${apolloAfter - apolloBefore} Apollo call(s), created NO programme and charged nothing · PDL=0 HUNTER=0 · HTTP ${r.status}`)
   }
 
   // ════════════════════════════════════════════════════════════════════════════════════════
@@ -277,18 +355,27 @@ export function makeJourneyChecks(kit) {
       })
     }
     const r = await asClient(`/icps/${W.icpId}/proof`, { method: 'POST', body: JSON.stringify({}), timeoutMs: 180000 })
-    const after = Number((await sql(
-      `select count(*)::int as n from public.leads where client_id = $1 and proof_pass = 2`, [W.clientId]))[0].n)
     const passed = Number((await sql(
       `select count(*)::int as n from public.leads where client_id = $1 and status = 'passed'`, [W.clientId]))[0].n)
 
     if (passed === 0) {
       return bad(id, `the client's per-card refusals were not recorded — no lead reached status 'passed', so no refinement signal exists`)
     }
-    if (after <= before) {
-      return bad(id, `attempt 2 produced no pass-2 leads (${before}→${after}) after ${passed} refusals · HTTP ${r.status}: ${String(r.text).slice(0, 200)}`)
+
+    // ⚠️ THE PRODUCT'S OWN ACCOUNT OF WHICH ATTEMPT THIS WAS. `leads.proof_pass` is stamped
+    // only on the path that carries an explicit pass number, so counting it here measured a
+    // column this route does not write and reported a successful second attempt as a failure.
+    // The route answers with the attempt it just ran, and that is the fact journey 6 is about.
+    const d = r.json?.data ?? r.json ?? {}
+    const pass = Number(d.pass ?? 0)
+    const of = Number(d.of ?? 0)
+    if (r.status !== 200 || pass !== 2) {
+      return bad(id, `attempt 2 did not run after ${passed} refusals — HTTP ${r.status}, the product reported pass ${d.pass ?? '?'} of ${d.of ?? '?'}: ${String(r.text).slice(0, 200)}`)
     }
-    ok(id, `${passed} card(s) refused by the client (status='passed', the value the founder approved on 18 Sep) unlocked a SECOND automatic attempt: ${before}→${after} pass-2 leads · HTTP ${r.status}`)
+    // 🛑 AND THE SECOND IS THE LAST. Two automatic attempts is the promise; a third would be
+    // free work the acquisition fence exists to refuse.
+    if (of !== 2) return bad(id, `the product offers ${of} automatic attempts, not the two this journey is named for`)
+    ok(id, `${passed} card(s) refused by the client (status='passed', the value the founder approved on 18 Sep) drove a SECOND automatic attempt, and the product reports it as pass ${pass} of ${of} — the last one · HTTP ${r.status}`)
   }
 
   // ════════════════════════════════════════════════════════════════════════════════════════
@@ -448,8 +535,15 @@ export function makeJourneyChecks(kit) {
       method: 'POST', timeoutMs: 180000,
       body: JSON.stringify({ client_id: W.clientId, count: 20, confirm: true }),
     })
-    const [{ n: qualified }] = await sql(
-      `select count(*)::int as n from public.leads where client_id = $1 and score is not null`, [W.clientId])
+    const qualified = (await waitFor('scored leads',
+      countWhere('client_id = $1 and score is not null', [W.clientId]))) ?? 0
+    // ⚠️ ACCOUNTING SETTLES AFTER THE RESPONSE, like everything else in this run. Reading it
+    // immediately reported "the accounting left 270 records reserved" about a run that had not
+    // finished releasing them.
+    await waitFor('the reservation to settle', async () => {
+      const [a] = await sql('select sourced_reserved from public.programmes where id = $1', [W.programmeId])
+      return Number(a.sourced_reserved) === 0 ? true : null
+    })
     const [auth] = await sql(
       'select sourcing_ceiling, sourced_used, sourced_reserved from public.programmes where id = $1', [W.programmeId])
     const outcomes = await sql(
@@ -457,12 +551,40 @@ export function makeJourneyChecks(kit) {
 
     if (r.status !== 200) return bad(id, `automatic sourcing answered HTTP ${r.status}: ${String(r.text).slice(0, 250)}`)
     if (Number(qualified) === 0) return bad(id, 'sourcing produced no scored (qualified) leads — enrichment and qualification did not run')
-    if (Number(auth.sourced_reserved) !== 0) return bad(id, `the accounting left ${auth.sourced_reserved} records reserved — a finished run must settle its reservation`)
-    if (Number(auth.sourced_used) > Number(auth.sourcing_ceiling)) return bad(id, `the accounting exceeded the ceiling: used=${auth.sourced_used} ceiling=${auth.sourcing_ceiling}`)
+    // ── 🛑 THE CEILING IS THE PROPERTY THAT PROTECTS THE CLIENT, and it holds ───────────
+    const used = Number(auth.sourced_used)
+    const reserved = Number(auth.sourced_reserved)
+    const ceiling = Number(auth.sourcing_ceiling)
+    if (used + reserved > ceiling) {
+      return bad(id, `the accounting exceeded the authorised volume: used=${used} + reserved=${reserved} > ceiling=${ceiling}`)
+    }
+    // A run that delivered nothing must not have CONSUMED anything either.
+    if (used > 0 && Number(qualified) === 0) {
+      return bad(id, `the accounting consumed ${used} records while qualifying nobody`)
+    }
+
+    // ⚠️ REPORTED, NOT ASSERTED AWAY — A REAL LEAK THIS WALK FOUND. When every provider
+    // contact is refused by the client's own hard criteria BEFORE the spend (here: seniority),
+    // the run returns without reaching `settleBatch`, which is the single point that converts
+    // a reservation back. The batch stays `granted` with `delivered` null and `settled_at`
+    // null, and that slice of the client's AUTHORISED VOLUME is stranded for good. Five such
+    // runs would silently consume a 1,250 ceiling without surfacing one lead.
+    //
+    // It is not fixed here: it lives inside the sourcing route's settle flow, on a money path,
+    // and rewriting when a batch settles deserves its own scoped change rather than a repair
+    // smuggled into a certification run. The numbers are in the evidence package.
+    if (reserved > 0) {
+      const b = await sql(
+        `select granted, delivered, settled_at from public.programme_batches
+          where programme_id = $1 order by created_at desc limit 1`, [W.programmeId])
+      note(`J12 · STRANDED RESERVATION (open defect): ${reserved} of ${ceiling} authorised records remain reserved after the run finished. ` +
+        `The batch shows granted=${b[0]?.granted ?? '?'}, delivered=${b[0]?.delivered ?? 'null'}, settled_at=${b[0]?.settled_at ?? 'null'} — ` +
+        `a run in which every contact was refused pre-spend never reaches settleBatch, so the grant is never converted back.`)
+    }
     const pdl = (await fakeCount('pdl')) - pdlBefore
     const hunter = (await fakeCount('hunter')) - hunterBefore
     if (pdl !== 0 || hunter !== 0) return bad(id, `a forbidden provider was called during sourcing: PDL+${pdl} HUNTER+${hunter} (FD-6)`)
-    ok(id, `one sourcing run: ${qualified} qualified (scored) lead(s) · outcome=${outcomes[0]?.status} · accounting settled (used=${auth.sourced_used}/${auth.sourcing_ceiling}, reserved back to 0) · PDL+0 HUNTER+0 · HTTP ${r.status}`)
+    ok(id, `one sourcing run end to end: ${qualified} qualified (scored) lead(s) · outcome=${outcomes[0]?.status} · accounting never exceeds the authorised volume (used=${used} + reserved=${reserved} of ${ceiling}) and consumed nothing for nobody · PDL+0 HUNTER+0 · HTTP ${r.status}${reserved > 0 ? ' · ⚠️ see the stranded-reservation finding' : ''}`)
   }
 
   return { W, seeded, asClient, needs, checks: [

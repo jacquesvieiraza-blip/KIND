@@ -70,9 +70,63 @@ export type SendDueResult = {
   campaigns_outside_window: number
   no_active_campaigns?: true
   capped?: true
+  /**
+   * ⚑ 18 Sep (J20-C1 · LR 21) — THE RUN STOPPED BECAUSE A READ FAILED, AND SAYS WHICH.
+   *
+   * ── 🛑 WHY THIS IS NOT "NOTHING TO SEND" ────────────────────────────────────────────────
+   *
+   * Four reads in this selector discarded their error, and the two that count did something
+   * worse than stopping: they WIDENED A CAP. `sentToday` unread became `?? 0`, so the global
+   * budget read as the full daily limit however many had already gone out today; and the
+   * per-campaign tally unread became an empty map, so every campaign's own daily cap read as
+   * zero-used. A database hiccup was therefore a licence to send the whole day's allowance
+   * again — the exact inversion this item exists to remove.
+   *
+   * ⚠️ A HALT IS A DISTINCT OUTCOME, NOT AN EMPTY RESULT. `no_active_campaigns` and `capped`
+   * are TRUE statements about a healthy run; reporting a failed read as either of them is how
+   * an operator watches a cron report "nothing to do" for a week.
+   */
+  halted?: { reason: SendDueHaltReason; detail: string }
 }
 
+/** Which read could not be completed. Each one is a different thing to go and look at. */
+export type SendDueHaltReason =
+  | 'daily_total_unreadable'
+  | 'active_campaigns_unreadable'
+  | 'campaign_tallies_unreadable'
+  | 'due_enrolments_unreadable'
+
 type RotationSlot = { id: string; dailyCap: number | null; sentThisBatch: number; row: InboxRow }
+
+/**
+ * ⚑ 18 Sep (J20-C1 · LR 21) — STOP THE RUN, AND LEAVE A RECORD THAT IT STOPPED.
+ *
+ * ⚠️ THE TASK IS THE PERSISTED TRUTH, NOT THE RETURN VALUE. `runSendDue`'s result is read by
+ * the caller and discarded; a cron that halts every two hours with nobody told is the same
+ * silence this item removes, wearing a different shape. `sendFounderAlert` writes the
+ * `operator_tasks` row (XC-5) that Vida Needs-you reads, and `sends_stalled` is exactly this
+ * class. It dedupes per reason, so a database that is unwell for a day produces one task.
+ *
+ * ⚠️ IT NEVER THROWS INTO THE RUN. An exception-reporting path that breaks the path it rides
+ * on is worse than one that reports nothing — and the run has already decided to send nothing.
+ */
+async function halt(
+  mode: SendDueMode, dailyLimit: number, reason: SendDueHaltReason, detail: string,
+  remainingToday = 0,
+): Promise<SendDueResult> {
+  console.error(`[send-due] HALTED (${reason}) — ${detail}`)
+  try {
+    const { sendFounderAlert } = await import('./alerts')
+    await sendFounderAlert('sends_stalled', 'The send run stopped — a read failed, so nothing was selected', [
+      `Mode: ${mode.mode}${mode.mode === 'operator_run' ? ` (client ${mode.clientId}, max ${mode.maxSends})` : ''}.`,
+      detail,
+      'No enrolment was selected, no cap was assumed, and no email left. The next run will try again.',
+    ], { subjectKind: 'send_run', subjectId: reason })
+  } catch (err) {
+    console.error('[send-due] the halt could not be reported:', err)
+  }
+  return empty(mode, dailyLimit, { remaining_today: remainingToday, halted: { reason, detail } })
+}
 
 const empty = (mode: SendDueMode, dailyLimit: number, extra: Partial<SendDueResult> = {}): SendDueResult => ({
   mode: mode.mode,
@@ -89,11 +143,22 @@ export async function runSendDue(mode: SendDueMode): Promise<SendDueResult> {
   const todayUTC = new Date()
   todayUTC.setUTCHours(0, 0, 0, 0)
 
-  const { count: sentToday } = await db.from('figsy_sent_emails')
+  // ── ⚑ 18 Sep (J20-C1 · LR 21) — A READ WE COULD NOT COMPLETE HALTS THE RUN ─────────────
+  //
+  // 🛑 ~~`const { count: sentToday } = await …`~~ DISCARDED ITS ERROR, and the fallback below
+  // was `sentToday ?? 0` — so a failed count did not stop the run, it told the run that NOTHING
+  // had been sent today. The global budget then opened to the full daily limit on top of
+  // whatever had already gone out. A database hiccup was a licence to send the day's allowance
+  // twice, and nothing anywhere said so.
+  const { count: sentToday, error: sentTodayErr } = await db.from('figsy_sent_emails')
     .select('id', { count: 'exact', head: true })
     .gte('sent_at', todayUTC.toISOString())
+  if (sentTodayErr || sentToday === null || sentToday === undefined) {
+    return halt(mode, dailyLimit, 'daily_total_unreadable',
+      `today's send total could not be read (${sentTodayErr?.message ?? 'no count returned'}), so the remaining daily budget is unknown. Nothing was selected and nothing was sent.`)
+  }
 
-  const remaining = Math.max(0, dailyLimit - (sentToday ?? 0))
+  const remaining = Math.max(0, dailyLimit - sentToday)
   if (remaining === 0) return empty(mode, dailyLimit, { capped: true })
 
   // ⚠️ `max_sends` NARROWS, IT NEVER WIDENS. The founder's ceiling is intersected with the
@@ -107,7 +172,14 @@ export async function runSendDue(mode: SendDueMode): Promise<SendDueResult> {
   // can be forgotten and no other client's campaign can enter the run at all.
   let campQ = db.from('figsy_campaigns').select('id, client_id, settings').eq('status', 'active')
   if (mode.mode === 'operator_run') campQ = campQ.eq('client_id', mode.clientId)
-  const { data: activeCamps } = await campQ
+  // ⚠️ AND AN UNREADABLE CAMPAIGN LIST IS NOT "no active campaigns". That is a TRUE statement
+  // about a healthy account; reporting a failed read as one is how an operator watches a cron
+  // say "nothing to do" for a week while a client's outreach is stopped.
+  const { data: activeCamps, error: campErr } = await campQ
+  if (campErr) {
+    return halt(mode, dailyLimit, 'active_campaigns_unreadable',
+      `the active campaigns could not be listed (${campErr.message}). Nothing was selected and nothing was sent.`)
+  }
 
   const activeCampaignIds = (activeCamps ?? []).map((c: { id: string }) => c.id)
   if (activeCampaignIds.length === 0) {
@@ -133,10 +205,17 @@ export async function runSendDue(mode: SendDueMode): Promise<SendDueResult> {
     if (!withinSendWindow(row.settings, windowNow)) outsideWindow.add(row.id)
   }
 
-  const { data: sentRows } = await db.from('figsy_sent_emails')
+  // 🛑 THE SECOND CAP THAT WIDENED ON A FAILED READ. An unread tally left `sentByCampaign`
+  // empty, and an empty map means every campaign has sent nothing today — so a campaign at its
+  // own daily cap was offered its whole allowance again.
+  const { data: sentRows, error: sentRowsErr } = await db.from('figsy_sent_emails')
     .select('campaign_id')
     .gte('sent_at', todayUTC.toISOString())
     .in('campaign_id', activeCampaignIds)
+  if (sentRowsErr) {
+    return halt(mode, dailyLimit, 'campaign_tallies_unreadable',
+      `today's per-campaign send tallies could not be read (${sentRowsErr.message}), so each campaign's own daily cap is unknown. Nothing was selected and nothing was sent.`)
+  }
   const sentByCampaign = new Map<string, number>()
   for (const r of sentRows ?? []) {
     const cid = (r as { campaign_id: string | null }).campaign_id
@@ -145,13 +224,20 @@ export async function runSendDue(mode: SendDueMode): Promise<SendDueResult> {
 
   const now = new Date().toISOString()
   const fetchCeil = Math.min(Math.max(budget, 1) * 5, 2000)
-  const { data: due } = await db.from('figsy_enrollments')
+  // ⚠️ AND AN UNREADABLE CANDIDATE SET IS NOT AN EMPTY ONE. This one fails closed either way —
+  // no rows, no sends — but "we selected nobody" and "we could not ask who was due" are
+  // different facts, and only one of them needs a human.
+  const { data: due, error: dueErr } = await db.from('figsy_enrollments')
     .select('*, leads(id,first_name,last_name,email,job_title,company,industry,seniority,country,tech_stack,score,score_reasoning)')
     .in('status', ['enrolled', 'in_progress'])
     .in('campaign_id', activeCampaignIds)
     .lte('next_send_at', now)
     .order('next_send_at', { ascending: true })
     .limit(fetchCeil)
+  if (dueErr) {
+    return halt(mode, dailyLimit, 'due_enrolments_unreadable',
+      `the due enrolments could not be read (${dueErr.message}). Nothing was selected and nothing was sent.`, remaining)
+  }
 
   // ── ⚑ POSITIVE ATTRIBUTION AT THE SELECTION LAYER ───────────────────────────────────────
   //

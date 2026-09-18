@@ -239,8 +239,32 @@ async function performBooking(params: {
     // it is a booking the prospect has already accepted and we merely cannot verify.
     //
     // The retry ladder above reduces how often this happens; it cannot make it never happen.
-    // Recording BOOKED_UNVERIFIED is honest about the missing calendar entry, countable as
-    // the outcome it is, and reconcilable by verifyBooking() once an event id exists.
+    // Recording BOOKED_UNVERIFIED is honest about the missing calendar entry and countable as
+    // the outcome it is.
+    //
+    // ── ⛓️ 18 Sep (J23-C2 · LR 21) — AND THE THIRD CLAIM WAS FALSE ──────────────────────
+    //
+    // ~~"and reconcilable by verifyBooking() once an event id exists."~~
+    //
+    // 🛑 NOTHING CALLS `verifyBooking`. The function is real, it is correct, and its only
+    // references in this repository are its own definition and its tests — there is no cron,
+    // no operator control, no webhook and no route that hands it a meeting id and an event id.
+    // So there is no path by which an event id comes to exist for one of these rows, and a
+    // BOOKED_UNVERIFIED meeting recorded here stays BOOKED_UNVERIFIED for ever.
+    //
+    // 🛑 WHY A WRONG COMMENT IS WORTH ITS OWN ITEM. This one reads as a reassurance — the
+    // state is temporary, something will tidy it — and it sits at exactly the point where a
+    // person is deciding whether to build the thing that would. A sentence that says the work
+    // is already handled is how the work does not get done, and it was the only statement in
+    // this file about what happens to these meetings afterwards.
+    //
+    // ⚠️ WHAT IS TRUE INSTEAD: `verifyBooking()` is the CAPABILITY to reconcile one, and
+    // reconciliation is not a process anybody runs. Until something calls it, a meeting that
+    // lands here is verified by a human looking, or not at all.
+    //
+    // ⚠️ AND NOTHING ELSE IN THIS BLOCK CHANGED. The founder's 29-Aug ruling above stands
+    // untouched: a Google-side failure never makes the prospect disappear, the booking is
+    // still recorded, and no event id is invented.
     //
     // ⚠️ WE NEVER PRETEND IT IS VERIFIED: no event id is invented, verified_at stays NULL,
     // and the caller is told the invite is missing.

@@ -21,7 +21,10 @@ const state = {
 
 function query(table: string) {
   const q: Record<string, unknown> = {}
-  for (const m of ['select', 'eq', 'in', 'not', 'is', 'neq', 'order', 'limit', 'gte']) q[m] = () => q
+  // ⛓️ 18 Sep (J22-C3) — `ilike` JOINS THE CHAIN. The lead lookup matches case-insensitively
+  // now (a From header's case is not the stored case), and a method missing from this list is
+  // not a no-op — it throws, and every routing assertion below fails as "lookup_failed".
+  for (const m of ['select', 'eq', 'in', 'not', 'is', 'neq', 'order', 'limit', 'gte', 'ilike']) q[m] = () => q
   q.then = (resolve: (v: unknown) => void) => {
     if (table === 'leads') return resolve({ data: state.leadMatches, error: null })
     if (table === 'figsy_sent_emails') {
@@ -113,8 +116,8 @@ const REPLY = { from: 'Thabo <thabo@acme.com>', subject: 'Re: hello', text: 'Sou
 describe('a reply matching TWO clients', () => {
   beforeEach(() => {
     state.leadMatches = [
-      { id: 'lead-a', client_id: 'client-1' },
-      { id: 'lead-b', client_id: 'client-2' },
+      { id: 'lead-a', client_id: 'client-1', email: 'thabo@acme.com' },
+      { id: 'lead-b', client_id: 'client-2', email: 'thabo@acme.com' },
     ]
   })
 
@@ -148,8 +151,8 @@ describe('a reply matching TWO clients', () => {
 describe('a reply matching two clients WITH originating-send evidence', () => {
   beforeEach(() => {
     state.leadMatches = [
-      { id: 'lead-a', client_id: 'client-1' },
-      { id: 'lead-b', client_id: 'client-2' },
+      { id: 'lead-a', client_id: 'client-1', email: 'thabo@acme.com' },
+      { id: 'lead-b', client_id: 'client-2', email: 'thabo@acme.com' },
     ]
   })
 
@@ -171,7 +174,7 @@ describe('a reply matching two clients WITH originating-send evidence', () => {
 
 describe('the ordinary single-client reply is unchanged', () => {
   it('classifies once and inserts once', async () => {
-    state.leadMatches = [{ id: 'lead-a', client_id: 'client-1' }]
+    state.leadMatches = [{ id: 'lead-a', client_id: 'client-1', email: 'thabo@acme.com' }]
     await postReply(REPLY)
     expect(state.classifyCalls).toBe(1)
     expect(state.replyInserts).toHaveLength(1)
@@ -184,8 +187,8 @@ describe('the ordinary single-client reply is unchanged', () => {
   // prospect twice — so it is proved there instead.
   it('🛑 SEVERAL LEADS AT ONE CLIENT SHARE ONE CLASSIFICATION — they cannot disagree', async () => {
     state.leadMatches = [
-      { id: 'lead-a', client_id: 'client-1' },
-      { id: 'lead-a2', client_id: 'client-1' },
+      { id: 'lead-a', client_id: 'client-1', email: 'thabo@acme.com' },
+      { id: 'lead-a2', client_id: 'client-1', email: 'thabo@acme.com' },
     ]
     await postReply(REPLY)
     expect(state.replyInserts).toHaveLength(2)

@@ -17,7 +17,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 const state = {
-  leadMatches: [] as Array<{ id: string; client_id: string }>,
+  // ⛓️ 18 Sep (J22-C3) — the rows carry the ADDRESS. The lookup matches case-insensitively
+  // and re-checks each row for exact equality, so a row with no email is not a match.
+  leadMatches: [] as Array<{ id: string; client_id: string; email?: string }>,
   replyInserts: [] as Record<string, unknown>[],
   retained: [] as Record<string, unknown>[],
   sentLeadIds: [] as string[],
@@ -86,8 +88,8 @@ const INBOUND = {
 
 beforeEach(() => {
   state.leadMatches = [
-    { id: 'lead-a', client_id: 'client-A' },
-    { id: 'lead-b', client_id: 'client-B' },
+    { id: 'lead-a', client_id: 'client-A', email: 'thabo@acme.com' },
+    { id: 'lead-b', client_id: 'client-B', email: 'thabo@acme.com' },
   ]
   state.replyInserts = []
   state.retained = []
@@ -121,9 +123,9 @@ describe('the human-supplied owner writes to exactly one client', () => {
 
   it('several leads at the chosen client all receive it, and still only that client', async () => {
     state.leadMatches = [
-      { id: 'lead-a', client_id: 'client-A' },
-      { id: 'lead-a2', client_id: 'client-A' },
-      { id: 'lead-b', client_id: 'client-B' },
+      { id: 'lead-a', client_id: 'client-A', email: 'thabo@acme.com' },
+      { id: 'lead-a2', client_id: 'client-A', email: 'thabo@acme.com' },
+      { id: 'lead-b', client_id: 'client-B', email: 'thabo@acme.com' },
     ]
     await run({ resolvedOwnerClientId: 'client-A' })
     expect(state.replyInserts).toHaveLength(2)
@@ -160,14 +162,14 @@ describe('the override cannot invent a reply for a client with no lead', () => {
   it('🛑 A CHOSEN CLIENT WHO HOLDS NO MATCHING LEAD GETS NOTHING', async () => {
     // It cannot arrive from the route (the candidate check refuses it) — this proves the
     // pipeline itself would refuse too, so the guarantee does not rest on one caller.
-    state.leadMatches = [{ id: 'lead-b', client_id: 'client-B' }]
+    state.leadMatches = [{ id: 'lead-b', client_id: 'client-B', email: 'thabo@acme.com' }]
     const r = await run({ resolvedOwnerClientId: 'client-A' })
     expect(r.ok).toBe(false)
     expect(state.replyInserts).toHaveLength(0)
   })
 
   it('and no reply is quietly handed to whoever DOES hold the lead', async () => {
-    state.leadMatches = [{ id: 'lead-b', client_id: 'client-B' }]
+    state.leadMatches = [{ id: 'lead-b', client_id: 'client-B', email: 'thabo@acme.com' }]
     await run({ resolvedOwnerClientId: 'client-A' })
     expect(state.replyInserts.filter(x => x.client_id === 'client-B')).toHaveLength(0)
   })
@@ -191,7 +193,7 @@ describe('without the override, nothing changes', () => {
   })
 
   it('and the single-client path is untouched — no retention, no refusal', async () => {
-    state.leadMatches = [{ id: 'lead-a', client_id: 'client-A' }]
+    state.leadMatches = [{ id: 'lead-a', client_id: 'client-A', email: 'thabo@acme.com' }]
     const r = await run()
     expect(r.ok).toBe(true)
     expect(state.replyInserts).toHaveLength(1)

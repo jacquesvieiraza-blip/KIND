@@ -68,9 +68,12 @@ beforeEach(() => {
 // gone forever. Two clients prospecting the same person is ordinary; the pool is shared.
 describe('R1 — a reply matching leads at TWO clients', () => {
   it('returns EVERY match, not one, and not none', async () => {
+    // ⛓️ 18 Sep (J22-C3) — the rows carry the ADDRESS now: the lookup matches
+    // case-insensitively and then re-checks each row for exact equality, so a wildcard in the
+    // prefilter cannot widen the result. A fixture row with no email is not a match.
     leadsByEmail = [
-      { id: 'lead-a', client_id: 'client-1' },
-      { id: 'lead-b', client_id: 'client-2' },
+      { id: 'lead-a', client_id: 'client-1', email: 'shared@prospect.com' },
+      { id: 'lead-b', client_id: 'client-2', email: 'shared@prospect.com' },
     ]
     const matches = await findLeadMatches('shared@prospect.com')
     expect(matches).toHaveLength(2)
@@ -78,8 +81,23 @@ describe('R1 — a reply matching leads at TWO clients', () => {
   })
 
   it('still works for the ordinary single-client case', async () => {
-    leadsByEmail = [{ id: 'lead-a', client_id: 'client-1' }]
+    leadsByEmail = [{ id: 'lead-a', client_id: 'client-1', email: 'one@prospect.com' }]
     expect(await findLeadMatches('one@prospect.com')).toHaveLength(1)
+  })
+
+  it('🛑 AND THE CASE OF THE FROM HEADER NO LONGER DECIDES WHETHER WE FIND THEM', async () => {
+    // The defect this closed: `leads.email` is stored raw and the From header's case is the
+    // sending server's, so an exact compare was a coin toss — and no match is a silent 200.
+    leadsByEmail = [{ id: 'lead-a', client_id: 'client-1', email: 'Ada@Prospect.com' }]
+    expect(await findLeadMatches('  ADA@prospect.COM ')).toHaveLength(1)
+  })
+
+  it('🛑 AND A ROW THE PREFILTER LET THROUGH IS STILL RE-CHECKED', async () => {
+    // `_` and `%` are SQL wildcards and legal in a local part. They are escaped — and every
+    // row is compared exactly anyway, because a widened result here is one client reading
+    // another client's inbound mail.
+    leadsByEmail = [{ id: 'lead-x', client_id: 'client-9', email: 'axb@prospect.com' }]
+    expect(await findLeadMatches('a_b@prospect.com')).toEqual([])
   })
 
   it('an unknown address is empty, NOT an error', async () => {

@@ -133,7 +133,39 @@ export async function processInboundReply(
   try {
     matches = await findLeadMatches(inbound.fromEmail)
   } catch (e) {
-    await alertDroppedReply('the lead lookup failed', inbound, e instanceof Error ? e.message : String(e))
+    // ── 🛑 ⚑ 18 Sep (J22-C3 · R131) — A FAILED LOOKUP NO LONGER COSTS THE REPLY ──────────
+    //
+    // ⛓️ WHAT STOOD HERE: ~~an alert and `dropped: 'lookup_failed'`~~ — and the route answers
+    // that code with a **200**. So a transient database error while asking *"whose lead is
+    // this?"* consumed the delivery: the provider is told we kept it, the dedup claim stays,
+    // and the prospect's answer exists nowhere. The reply was never unattributable — we simply
+    // failed to ask the question, which is the most recoverable failure of the lot.
+    //
+    // ⚠️ RETAINED WITH NO CANDIDATES, WHICH IS THE HONEST SHAPE. The ambiguous path retains a
+    // reply whose candidates are known and contested; this one retains a reply whose candidates
+    // are UNKNOWN. Writing a guessed candidate list would invent the very evidence an operator
+    // is about to use.
+    //
+    // ⚠️ AND IF THE RETENTION ALSO FAILS, THE WEBHOOK IS REFUSED — the same
+    // `ambiguous_owner_unretained` path the sibling case uses, because a 200 is a promise we
+    // can only keep once the row exists.
+    const why = e instanceof Error ? e.message : String(e)
+    const retained = await retainUnattributedReply({
+      provider: inbound.provider,
+      providerEventKey: ctx.eventKey ?? null,
+      fromEmail: inbound.fromEmail,
+      fromName: inbound.fromName,
+      toEmail: inbound.toEmail ?? null,
+      subject: inbound.subject,
+      body: inbound.body,
+      rawPayload: ctx.rawPayload,
+      candidateClientIds: [],
+      candidateLeadIds: [],
+    })
+    await alertDroppedReply('the lead lookup failed', inbound, retained.ok
+      ? `${why} — the reply is RETAINED IN FULL as unattributed_replies ${retained.id} and is waiting in Vida. Nothing was lost.`
+      : `${why} — and it could ALSO not be retained (${retained.detail}), so the webhook was refused and the provider will redeliver it.`)
+    if (!retained.ok) return { ok: false as const, dropped: 'ambiguous_owner_unretained' as const }
     return { ok: false as const, dropped: 'lookup_failed' as const }
   }
   if (matches.length === 0) return { ok: true as const, clients: 0, replyId: undefined }

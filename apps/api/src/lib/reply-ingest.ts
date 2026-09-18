@@ -104,11 +104,53 @@ export type LeadMatch = { id: string; client_id: string }
  * thread, because the alternative — picking one — silently gives one client's reply to
  * another, which is worse than dropping it.
  */
+/**
+ * ⚑ 18 Sep (J22-C3 · R131) — HOW MANY MATCHES WE WILL LOOK AT BEFORE WE REFUSE TO GUESS.
+ *
+ * 🛑 NOT A SILENT CAP. The old `.limit(50)` truncated: a prospect address held by more than
+ * fifty leads returned an arbitrary fifty, and the true owner could be outside them — so a
+ * reply was routed to whoever happened to be in the window, or read as ambiguous because the
+ * evidence that would have resolved it was cut off. Hitting THIS ceiling throws, and the
+ * caller retains the reply for a human instead. A ceiling that stops us is a bound; a ceiling
+ * that trims the answer is a wrong answer.
+ */
+export const LEAD_MATCH_CEILING = 500
+
+/**
+ * Every lead holding this address, across every client.
+ *
+ * ⛓️ 18 Sep (J22-C3 · R131) — ~~`.eq('email', email).limit(50)`~~, AND BOTH HALVES WERE WRONG.
+ *
+ * 🛑 ① THE COMPARE WAS CASE-SENSITIVE, AND THIS REPO ALREADY KNEW BETTER. `suppressOptOut`
+ * fifty lines below carries the note: *"`leads.email` is stored raw… so an exact compare
+ * between the two is a coin toss on letter case."* The same is true here and it is worse: the
+ * address arrives as the SENDING server wrote the From header, `leads.email` is written raw
+ * from the provider, and neither is guaranteed lower case. `Ada@Prospect.com` replying to a
+ * lead stored as `ada@prospect.com` matched NOTHING — and no match is a silent 200, so the
+ * customer's reply was dropped by letter case.
+ *
+ * 🛑 ② THE CAP TRUNCATED SILENTLY. See `LEAD_MATCH_CEILING` above.
+ *
+ * ⚠️ THE `ilike` IS A PREFILTER; THE EXACT COMPARE IN JS IS THE AUTHORITY. `_` and `%` are
+ * SQL wildcards and are legal in an email local part, so they are escaped — and then every row
+ * is re-checked for exact normalised equality anyway. A pattern that widened the query cannot
+ * widen the RESULT, and on this path a widened result would be one client reading another's
+ * inbound mail.
+ */
 export async function findLeadMatches(email: string): Promise<LeadMatch[]> {
+  const normalised = (email ?? '').trim().toLowerCase()
+  if (normalised === '') return []
+  const pattern = normalised.replace(/([\\%_])/g, '\\$1')
   const { data, error } = await db.from('leads')
-    .select('id, client_id').eq('email', email).limit(50)
+    .select('id, client_id, email').ilike('email', pattern).limit(LEAD_MATCH_CEILING + 1)
   if (error) throw error
-  return (data ?? []) as LeadMatch[]
+  const rows = (data ?? []) as (LeadMatch & { email?: string | null })[]
+  if (rows.length > LEAD_MATCH_CEILING) {
+    throw new Error(`${normalised} matches more than ${LEAD_MATCH_CEILING} leads — refusing to route a reply on a truncated match set`)
+  }
+  return rows
+    .filter(r => (r.email ?? '').trim().toLowerCase() === normalised)
+    .map(r => ({ id: r.id, client_id: r.client_id }))
 }
 
 export type OptOutResult = { ok: boolean; failures: string[] }

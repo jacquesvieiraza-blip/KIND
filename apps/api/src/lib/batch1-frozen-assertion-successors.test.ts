@@ -65,7 +65,7 @@ describe('Batch 1 ① · adding a migration is never silent', () => {
     // the persisted operator task and the system's own clock) and +20260917_proof_fence_in_records
     // (J5-C9: the free-Proof ceiling counted in records, because under FD-6 an Apollo record
     // costs nothing and the dollar fence had stopped binding). Both manifest-required.
-    expect(keys).toHaveLength(74)
+    expect(keys).toHaveLength(75)   // ⛓️ 74 → 75 on 18 Sep (MVP1 · J1-C1): +1 20260918_clients_one_per_user — `clients.user_id` carried NO unique index anywhere in this repository, so `POST /auth/onboard`'s check-then-insert let two concurrent onboards for ONE auth user BOTH succeed: one person, two client rows, and every downstream `.eq('user_id', …).maybeSingle()` picking one arbitrarily. EXPAND ONLY: one partial unique index, created inside a DO block that REFUSES and names the offending users if duplicates already exist — which of two client rows to keep is a decision about somebody's account, never a migration's. NOT APPLIED. (This is the migration whose addition required founder DECISION B, 18 Sep: the global migration-count assertion in the frozen `house-authority.test.ts` was removed, because that tripwire carries no House invariant and blocked every legitimate migration. The protection lives HERE.)
     expect(keys).toContain('20260917_operator_tasks_and_automatic_work')
     expect(keys).toContain('20260917_proof_fence_in_records')
   })

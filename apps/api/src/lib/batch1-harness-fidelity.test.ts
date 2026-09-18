@@ -71,8 +71,8 @@ describe('§8.2-H · the facts the fidelity statement rests on are true TODAY', 
   it('the executor is a strict SUBSET of the record — it cannot build a database', () => {
     const runnerKeys = (read('apps/api/src/lib/pending-migrations.ts').match(/key:\s*'[^']+'/g) ?? []).length
     const files = readdirSync(join(REPO, 'supabase/migrations')).filter(f => f.endsWith('.sql')).length
-    expect(runnerKeys).toBe(74)
-    expect(files).toBe(186)
+    expect(runnerKeys).toBe(75)   // ⛓️ 74 → 75 on 18 Sep (MVP1 · J1-C1): +1 20260918_clients_one_per_user — `clients.user_id` carried NO unique index anywhere in this repository, so `POST /auth/onboard`'s check-then-insert let two concurrent onboards for ONE auth user BOTH succeed: one person, two client rows, and every downstream `.eq('user_id', …).maybeSingle()` picking one arbitrarily. EXPAND ONLY: one partial unique index, created inside a DO block that REFUSES and names the offending users if duplicates already exist — which of two client rows to keep is a decision about somebody's account, never a migration's. NOT APPLIED. (This is the migration whose addition required founder DECISION B, 18 Sep: the global migration-count assertion in the frozen `house-authority.test.ts` was removed, because that tripwire carries no House invariant and blocked every legitimate migration. The protection lives HERE.)
+    expect(files).toBe(187)   // ⛓️ 186 → 187 on 18 Sep (MVP1 · J1-C1): +1 20260918_clients_one_per_user.sql — the canonical copy of the one-client-row-per-auth-user fence. Every runner entry must have a file here (§①), so the file count moves with the runner count above it.
     // The gap is the point: 112 canonical migrations the product has no mechanism to apply.
     expect(runnerKeys).toBeLessThan(files)
   })

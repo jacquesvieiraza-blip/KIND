@@ -98,34 +98,31 @@ describe('J1-C1 · a duplicate onboard completes against the winner', () => {
   })
 
   // ══════════════════════════════════════════════════════════════════════════════════════
-  // 🛑 PARKED — BLOCKED BY A FROZEN TEST, AND THE FOUNDER'S DECISION IS REQUIRED (STOP §1)
+  // ⛓️ 18 Sep — UNPARKED. FOUNDER DECISION B.
   //
-  // The two cases below are WRITTEN AND CORRECT and are deliberately not running. The
-  // migration they ask for was authored, verified against them, and then withdrawn, because
-  // adding any entry to `PENDING_MIGRATIONS` trips a GLOBAL migration count inside
-  // `house-authority.test.ts` — one of XC-10's five frozen files, in which the founder
-  // authorised exactly THREE hunks under Fable's C-3 ruling. A fourth edit is not mine to make.
+  // These two cases were written, verified, and then SKIPPED for one turn: the migration they
+  // ask for trips a GLOBAL migration count inside `house-authority.test.ts`, one of XC-10's
+  // five frozen files, and a fourth edit there was not mine to make. It was raised as a STOP
+  // under MVP1_STOP_AND_SCOPE_RULES §1 (frozen-test conflict) and the founder ruled:
   //
-  // ⚠️ THE FROZEN FILE ITSELF NAMES THE PROBLEM AND THE REMEDY, at that very line: *"THIS FILE
-  // IS NO-TOUCH AND THE COUNT IS THE REASON IT KEEPS CONFLICTING … the tripwire has no House
-  // invariant in it, so every future batch collides with it. The same tripwire lives in
-  // `migration-home.test.ts` and `schema-drift.test.ts`, which is where it belongs … this line
-  // is kept in step, not relied upon."*
+  //     "B APPROVED. Authorise removing the one global migration-count assertion … that
+  //      global migration-count tripwire is already enforced by the non-frozen
+  //      migration/schema tests and is structurally blocking every future legitimate
+  //      migration." — founder, 18 Sep 2026
   //
-  // 🛑 IT IS STRUCTURAL, NOT LOCAL. It blocks EVERY remaining item in this wave that needs a
-  // migration, which is why it was raised rather than worked around.
-  //
-  // ⚠️ THE APPLICATION HALF IS SHIPPED AND IS NOT WAITING ON THIS. The route converges on the
-  // winning row with or without the index; what the index adds is that the second insert is
-  // REFUSED rather than merely unlikely to be noticed.
+  // ⚠️ THE FROZEN FILE LOST EXACTLY ONE `expect`, and nothing else. Both House XOR
+  // constraints, the "A1 appears exactly once" invariant and both named Batch 1 migration
+  // keys are untouched, and the count/key/uniqueness protection continues to live where it
+  // belongs — `migration-home.test.ts`, `schema-drift.test.ts` and
+  // `batch1-frozen-assertion-successors.test.ts`.
   // ══════════════════════════════════════════════════════════════════════════════════════
-  it.skip('🛑 PARKED (frozen-test conflict) · the race fence exists as a migration the founder can run', () => {
+  it('🛑 the race fence exists as a migration the founder can run', () => {
     const mig = readFileSync(join(__dirname, 'pending-migrations.ts'), 'utf8')
     expect(mig, 'nothing fences two client rows for one auth user at the database').toMatch(/clients_one_per_user/)
     expect(mig, 'the index is not unique, so it fences nothing').toMatch(/create unique index/i)
   })
 
-  it.skip('🛑 PARKED (frozen-test conflict) · the migration refuses to run over existing duplicates', () => {
+  it('🛑 the migration REFUSES to run over existing duplicates rather than failing half-way', () => {
     // A bare `CREATE UNIQUE INDEX` on a table that already holds duplicates aborts — and
     // deciding which of two client rows to keep is a data decision, never a migration's.
     const mig = readFileSync(join(__dirname, 'pending-migrations.ts'), 'utf8')

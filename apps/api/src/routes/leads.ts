@@ -1794,6 +1794,29 @@ leadRouter.post('/:id/feedback', rateLimit({ limit: 120, windowMs: 60_000, key: 
     //
     // ⚠️ IT NEVER FAILS THE FEEDBACK. The card verdict is already recorded above; a hand-off
     // that could not be written must not lose the client's answer as well.
+    // ── 🛑 ⚑ 18 Sep (J6-C3 · PV 02) — THE SET-LEVEL VERDICT IS RECORDED WHERE IT CHANGES ──
+    //
+    // This is the only place a client's judgement about a SET actually lands, so it is the
+    // only place the verdict about that set can move. `mayRequestStrongerSet` was derived,
+    // used and thrown away on every read: nothing recorded WHY a second automatic attempt was
+    // unlocked at the moment the client was looking at the screen, and no Vida route reads
+    // calibration at all, so an operator could not answer it either.
+    //
+    // ⚠️ IT DECIDES NOTHING AND CAN FAIL. The gate is still the live derivation; this writes a
+    // historical event beside it, once, by predicate. A verdict we could not record must never
+    // cost a client the second set the rule already granted them.
+    try {
+      const { recordStrongerSetVerdict, readCalibration } = await import('../lib/proof-calibration-io')
+      const out = await recordStrongerSetVerdict(clientId, await readCalibration(clientId))
+      if (out.recorded) {
+        console.log(`[leads/feedback] set-level verdict recorded for client ${clientId} — a second automatic Proof attempt is unlocked (${out.reason}).`)
+      } else if (out.why === 'migration_required' || out.why === 'unreadable') {
+        console.error(`[leads/feedback] the set-level Proof verdict for client ${clientId} could NOT be recorded: ${out.detail}`)
+      }
+    } catch (err) {
+      console.error('[leads/feedback] set-level verdict not recorded (the feedback itself is stored):', err)
+    }
+
     let calibration: { closed: boolean; trigger?: string } = { closed: false }
     try {
       const { closeCalibrationLoop } = await import('../lib/proof-calibration-io')

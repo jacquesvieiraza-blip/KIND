@@ -2968,10 +2968,35 @@ operatorRouter.get('/proof-review/:clientId/evidence', async (req: Request, res:
       res.status(403).json({ success: false, error: 'Operator key required' }); return
     }
     const { readCalibration, mayRestartCalibrated } = await import('../lib/proof-calibration-io')
-    const { ESCALATION_TRIGGER_COPY, PROOF_REASON_LABELS, whatChangedSentence, automaticAttempt } =
-      await import('../lib/proof-calibration')
+    const {
+      ESCALATION_TRIGGER_COPY, PROOF_REASON_LABELS, whatChangedSentence, automaticAttempt,
+      // ⚑ 18 Sep (J6-C3 · PV 02) — the SET-level verdict, and the plain sentence behind it.
+      strongerSetVerdict, STRONGER_SET_REASON_COPY,
+    } = await import('../lib/proof-calibration')
     const cal = await readCalibration(req.params.clientId)
     const restart = mayRestartCalibrated(cal)
+    const setVerdict = strongerSetVerdict(cal)
+
+    // ── ⚑ 18 Sep (J6-C3) — WHAT WAS RECORDED WHEN IT HAPPENED, BESIDE WHAT IS TRUE NOW ────
+    //
+    // ⚠️ TWO DIFFERENT FACTS AND BOTH ARE SHOWN. `stronger_set_*` is the live verdict — the
+    // actual spend gate, derived now. `stronger_set_recorded_at` is the EVENT: when a second
+    // automatic attempt was first unlocked for this client, and on what basis. An operator
+    // asking "why does this client have a second set?" is asking the second question, and
+    // before this there was no answer to it anywhere.
+    //
+    // ⚠️ A MISSING COLUMN IS NOT A MISSING ANSWER. The event columns are additive and the
+    // panel must keep working before the migration runs, so the read degrades to `null` —
+    // which correctly means "not recorded", never "refused".
+    let recordedAt: string | null = null
+    let recordedReason: string | null = null
+    try {
+      const { data: rec } = await db.from('clients')
+        .select('proof_stronger_set_unlocked_at, proof_stronger_set_unlocked_reason')
+        .eq('id', req.params.clientId).maybeSingle()
+      recordedAt = (rec as { proof_stronger_set_unlocked_at?: string | null } | null)?.proof_stronger_set_unlocked_at ?? null
+      recordedReason = (rec as { proof_stronger_set_unlocked_reason?: string | null } | null)?.proof_stronger_set_unlocked_reason ?? null
+    } catch { /* the columns are not there yet — the panel says "not recorded" */ }
 
     // ── 🛑 ⚑ 13 Sep (B2) — IS HISTORICAL CLASSIFICATION REQUIRED? READ-ONLY, ONE DEFINITION ──
     //
@@ -3065,6 +3090,21 @@ operatorRouter.get('/proof-review/:clientId/evidence', async (req: Request, res:
         })),
         may_restart: restart.allowed,
         may_restart_why: restart.why ?? null,
+        // ── ⚑ 18 Sep (J6-C3 · PV 02) — THE SET-LEVEL VERDICT, WHICH VIDA COULD NOT SEE ────
+        //
+        // `mayRequestStrongerSet` is the one spend gate between a client and their second
+        // automatic attempt. It was derived, used and thrown away on every read, so nobody
+        // could answer "does this client have a second set, and why?" from an operator screen.
+        //
+        // ⚠️ THE REASON IS A STABLE CODE *AND* A SENTENCE. The code is what a log or a filter
+        // keys on; the sentence is what the operator reads, and it is the server's, so the
+        // panel cannot reword a refusal into something softer than it is.
+        stronger_set_unlocked: setVerdict.unlocked,
+        stronger_set_reason: setVerdict.because,
+        stronger_set_why: STRONGER_SET_REASON_COPY[setVerdict.because],
+        // The EVENT: when it was first unlocked, and on what basis. `null` = not recorded.
+        stronger_set_recorded_at: recordedAt,
+        stronger_set_recorded_reason: recordedReason,
         // ⚑ 11 Sep — the one sentence naming what changed between the two AUTOMATIC sets,
         // built from the client's own reasons. The operator is about to phone them about it.
         what_changed: whatChangedSentence(automaticAttempt(cal, 1) ?? null),

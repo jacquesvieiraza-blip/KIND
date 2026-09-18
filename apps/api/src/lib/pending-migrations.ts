@@ -6284,6 +6284,35 @@ COMMENT ON COLUMN public.icps.target_size IS
   'MVP1 brief fact 8 — how big the target company should be, in the CLIENT''S OWN WORDS ("50 to 100 people", "under 20 staff"). Authoritative over company_sizes, which is the closed provider band list used as a query hint. NULL means never collected.';
 `,
   },
+  {
+    // Canonical file: supabase/migrations/20260918_proof_set_verdict.sql
+    //
+    // MVP1 (J6-C3 · PV 02) — `mayRequestStrongerSet` is the one spend gate between a client
+    // and their second automatic Proof attempt. It was derived, used and thrown away on every
+    // read, so nothing recorded WHY a second set was unlocked at the moment the client was
+    // looking at the screen — and no Vida route reads calibration at all, so an operator could
+    // not answer it either.
+    //
+    // ⚠️ AN EVENT, NOT A MIRROR. The live derivation REMAINS the gate; these two columns
+    // record that it first became true, when, and on what basis. An event cannot drift out of
+    // step with a derivation the way a cached boolean can, and nothing reads them to spend.
+    //
+    // EXPAND ONLY: two nullable columns, no default, NO BACKFILL — a client unlocked before
+    // today reads NULL, which means "not recorded", never "refused".
+    key: '20260918_proof_set_verdict',
+    title: 'clients.proof_stronger_set_unlocked_at / _reason — the set-level verdict that unlocks attempt 2, recorded and visible in Vida (MVP1 · J6-C3)',
+    sql: `
+ALTER TABLE public.clients
+  ADD COLUMN IF NOT EXISTS proof_stronger_set_unlocked_at     timestamptz,
+  ADD COLUMN IF NOT EXISTS proof_stronger_set_unlocked_reason text;
+
+COMMENT ON COLUMN public.clients.proof_stronger_set_unlocked_at IS
+  'MVP1 J6-C3 — when the SET-level verdict first unlocked a second automatic Proof attempt. A historical event; the live derivation remains the gate. NULL means never recorded, never ''refused''.';
+
+COMMENT ON COLUMN public.clients.proof_stronger_set_unlocked_reason IS
+  'MVP1 J6-C3 — the stable reason code behind that verdict: per_card_feedback | confirmed_refinement.';
+`,
+  },
 ]// Runs the statements against DATABASE_URL. Uses node-postgres because the Supabase JS
 // client speaks PostgREST, which cannot execute DDL.
 //

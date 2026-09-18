@@ -102,14 +102,43 @@ export const NEEDS_FEEDBACK_HINT =
   "Mark one or two that aren't right first, so I know what to change."
 
 /**
- * May the client ask for an improved set right now?
+ * ── 🛑 ⚑ 18 Sep (J6-C3 · PV 02) — THE SET-LEVEL VERDICT, WITH ITS REASON ────────────────
  *
- * ⚠️ THREE CONDITIONS, ALL NECESSARY: they are on pass 1 (not 2, not 0), they have said
- * something usable, and the loop is not already closed. Every one of them is a spend gate.
+ * `mayRequestStrongerSet` answers a BOOLEAN about a SET, and that answer is the one spend gate
+ * between a client and their second automatic attempt. It was computed, used and thrown away:
+ * nothing recorded WHY a second set was unlocked, or why it was refused, at the moment the
+ * client was looking at the screen — so nobody could answer either question afterwards, and
+ * Vida could not answer them at all (no operator route reads calibration).
+ *
+ * ⚠️ THE BOOLEAN IS UNCHANGED AND STAYS THE GATE. This states the same decision with the
+ * cause attached, so a recorded verdict and a live one can never disagree: there is one
+ * function, and the record is a historical EVENT rather than a second copy of a live answer.
  */
-export function mayRequestStrongerSet(s: CalibrationState): boolean {
-  if (s.escalated) return false
-  if (s.passesDone !== 1) return false
+export type StrongerSetVerdict = {
+  unlocked: boolean
+  /** Machine-readable, stable, and the thing an operator or a log can be keyed on. */
+  because:
+    | 'per_card_feedback'      // they marked cards with a reason or a note
+    | 'confirmed_refinement'   // they confirmed a targeting change, which IS the instruction
+    | 'no_usable_feedback'     // nothing said that could shape the next attempt
+    | 'refinement_in_flight'   // a proposal is waiting on their word
+    | 'not_on_pass_one'        // 0 sets, or both automatic attempts already used
+    | 'escalated'              // the loop is closed; a person has it
+}
+
+/** Founder-plain, operator-facing. Never shown to a client — Milla has her own copy. */
+export const STRONGER_SET_REASON_COPY: Record<StrongerSetVerdict['because'], string> = {
+  per_card_feedback:    'They marked cards with a reason or a note, so the next attempt has something to change.',
+  confirmed_refinement: 'They confirmed a targeting change, which is the instruction itself.',
+  no_usable_feedback:   'Nothing they have said yet could shape a second attempt — no reason and no note.',
+  refinement_in_flight: 'A targeting proposal is waiting on their word; sourcing would spend their last automatic attempt on our reading of it.',
+  not_on_pass_one:      'They are not between the two automatic attempts — either no set exists yet, or both are used.',
+  escalated:            'The automatic loop is closed and a person has this client.',
+}
+
+export function strongerSetVerdict(s: CalibrationState): StrongerSetVerdict {
+  if (s.escalated) return { unlocked: false, because: 'escalated' }
+  if (s.passesDone !== 1) return { unlocked: false, because: 'not_on_pass_one' }
   // ── 🛑 ⚑ 11 Sep (C23) — AN INTERPRETED REFINEMENT IS NOT A MANDATE TO SPEND ──────────
   //
   // Attempt 2 is real paid sourcing against a target the client is supposed to have
@@ -117,11 +146,27 @@ export function mayRequestStrongerSet(s: CalibrationState): boolean {
   // would spend their second and last automatic attempt on the model's reading of a sentence.
   // A proposal in flight therefore CLOSES this door rather than leaving it where it was.
   const r = s.refinement ?? null
-  if (r && r.proposedAt && !r.confirmedAt) return false
+  if (r && r.proposedAt && !r.confirmedAt) return { unlocked: false, because: 'refinement_in_flight' }
   // A confirmed refinement is itself the instruction — the client does not also have to mark
   // cards. Per-card feedback remains sufficient on its own, exactly as before.
-  if (r?.confirmedAt) return true
+  if (r?.confirmedAt) return { unlocked: true, because: 'confirmed_refinement' }
   return hasMeaningfulFeedback(automaticAttempt(s, 1) ?? null)
+    ? { unlocked: true, because: 'per_card_feedback' }
+    : { unlocked: false, because: 'no_usable_feedback' }
+}
+
+/**
+ * May the client ask for an improved set right now?
+ *
+ * ⚠️ THREE CONDITIONS, ALL NECESSARY: they are on pass 1 (not 2, not 0), they have said
+ * something usable, and the loop is not already closed. Every one of them is a spend gate.
+ *
+ * ⛓️ 18 Sep (J6-C3) — the conditions now live in `strongerSetVerdict`, which answers the same
+ * question WITH its reason. This is kept as the name every caller already uses, and delegates
+ * rather than restating: two copies of a spend gate is one copy too many.
+ */
+export function mayRequestStrongerSet(s: CalibrationState): boolean {
+  return strongerSetVerdict(s).unlocked
 }
 
 /** Everything the decision needs. All of it already exists somewhere canonical. */

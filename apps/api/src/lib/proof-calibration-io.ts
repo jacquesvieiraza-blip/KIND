@@ -197,6 +197,60 @@ export async function readAttempts(clientId: string): Promise<AttemptSummary[]> 
   return [...bySet.values()].sort((x, y) => rank(x) - rank(y))
 }
 
+/**
+ * ── 🛑 ⚑ 18 Sep (J6-C3 · PV 02) — RECORD THAT THE SECOND SET WAS UNLOCKED ───────────────
+ *
+ * Writes the moment the set-level verdict FIRST becomes true, with the reason code behind it.
+ *
+ * ⚠️ IT DECIDES NOTHING. `strongerSetVerdict` remains the gate and is still derived live from
+ * `lead_feedback` × `leads`; this is a historical event beside it, so the two can never
+ * disagree — there is nothing here for a live answer to drift away from.
+ *
+ * ⚠️ WRITTEN ONCE, BY PREDICATE. `.is('proof_stronger_set_unlocked_at', null)` is the lock:
+ * every later call matches no row and reports `already`, so the recorded reason is the one
+ * that actually opened the door rather than whatever was true the last time somebody looked.
+ *
+ * ⚠️ NEVER FATAL. A verdict we could not RECORD must not cost the client the second set the
+ * rule already granted them — the gate does not read this column. Failures are reported to
+ * the caller, which logs them.
+ */
+export type RecordVerdictOutcome =
+  | { recorded: true; reason: string }
+  | { recorded: false; why: 'not_unlocked' | 'already' | 'migration_required' | 'unreadable'; detail?: string }
+
+export const SET_VERDICT_MIGRATION = '20260918_proof_set_verdict'
+
+export async function recordStrongerSetVerdict(
+  clientId: string, state: CalibrationState,
+): Promise<RecordVerdictOutcome> {
+  const { strongerSetVerdict } = await import('./proof-calibration')
+  const v = strongerSetVerdict(state)
+  if (!v.unlocked) return { recorded: false, why: 'not_unlocked' }
+
+  const { data, error } = await db.from('clients')
+    .update({
+      proof_stronger_set_unlocked_at: new Date().toISOString(),
+      proof_stronger_set_unlocked_reason: v.because,
+    })
+    .eq('id', clientId)
+    .is('proof_stronger_set_unlocked_at', null)
+    .select('id')
+
+  if (error) {
+    const missing = /column .* does not exist|could not find the '.*' column|42703|PGRST204/i
+      .test(`${error.code ?? ''} ${error.message ?? ''}`)
+    return {
+      recorded: false,
+      why: missing ? 'migration_required' : 'unreadable',
+      detail: missing
+        ? `The set-level Proof verdict could not be recorded because \`clients.proof_stronger_set_unlocked_at\` does not exist yet. Run the ${SET_VERDICT_MIGRATION} migration (Vida → Command Centre → System → migrations). The client's second attempt is UNAFFECTED — the gate does not read this column.`
+        : `The set-level Proof verdict could not be recorded (${error.message}). The client's second attempt is unaffected.`,
+    }
+  }
+  if ((data ?? []).length === 0) return { recorded: false, why: 'already' }
+  return { recorded: true, reason: v.because }
+}
+
 export type CloseOutcome =
   | { closed: true; trigger: EscalationTrigger }
   | { closed: false; reason: 'not_yet' | 'already' | 'migration_required' | 'unreadable'; detail?: string }

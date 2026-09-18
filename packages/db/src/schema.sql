@@ -23,6 +23,13 @@ create table if not exists public.clients (
   -- ⚑ 10 Sep (C07) — the Proof calibration hand-off. Migration:
   -- 20260910_proof_calibration_handoff.
   proof_escalation_trigger text,
+  -- MVP1 (J6-C3 / PV 02) — the SET-level verdict that unlocks a second automatic Proof
+  -- attempt, recorded WHEN it first became true and on what basis. An EVENT, not a mirror:
+  -- the live derivation in proof-calibration.ts remains the gate, and nothing reads these to
+  -- decide whether to spend. Vida reads them so an operator can answer "why does this client
+  -- have a second set?". NULL means never recorded, never "refused".
+  proof_stronger_set_unlocked_at     timestamptz,
+  proof_stronger_set_unlocked_reason text,
   proof_phone_confirmed_at timestamptz,
   proof_calibration_note text,
   proof_calibrated_restart_at timestamptz,

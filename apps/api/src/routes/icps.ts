@@ -9,7 +9,7 @@ import { audienceForClientStrict, audienceForUser, sourcingProviderFor } from '.
 // ⛓️ 17 Sep (XC-5 / XC-13) — a refusal and a provider failure become PERSISTED operator
 // tasks, not emails. An email cannot be assigned, deduped, resolved with a reason or counted.
 import { raiseOperatorTask } from '../lib/operator-tasks'
-import { classifyProviderFailure } from '../lib/provider-failure'
+import { classifyProviderFailure, providerStopSentence } from '../lib/provider-failure'
 import { launchProofRun } from '../lib/proof-run-launch'
 import { scoreLeadsForIcp } from '../lib/scoring'
 import { sendFirstLeadsReadyEmail, sendConsentEmail } from '../lib/email'
@@ -1617,10 +1617,18 @@ export async function runIcpJob(
             clientId,
             subjectKind: 'icp',
             subjectId: String(icpId),
+            // ⛓️ 18 Sep (J12-C4 · PV 09 B) — THE NUMBER IS IN THE SENTENCE NOW.
+            //
+            // ~~`'Apollo is out of lead credits — sourcing cannot complete'`~~ and
+            // ~~`detail: verdict.operatorAction`~~ told an operator that a stop had happened
+            // and nothing they could size. 40 records short and 4,000 records short are the
+            // difference between topping up on the way past and a purchase somebody has to
+            // approve, and the number was already here — it went into `evidence`, which the
+            // queue does not read aloud.
             title: verdict.klass === 'credits_exhausted' || verdict.klass === 'payment_required'
-              ? 'Apollo is out of lead credits — sourcing cannot complete'
+              ? `Apollo is out of lead credits — sourcing stopped ${grantedSize.toLocaleString()} record${grantedSize === 1 ? '' : 's'} short`
               : `The lead source failed (${verdict.klass}) — sourcing cannot complete`,
-            detail: verdict.operatorAction,
+            detail: providerStopSentence(verdict, { requested: grantedSize, served: pool.served }),
             // ⚠️ THE DEDUPE KEY IS THE CONDITION, NOT THE CLIENT. An exhausted account is one
             // fact about the company; keying it per client would file a row per client per
             // cron tick for a single cause.

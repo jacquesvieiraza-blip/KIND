@@ -467,7 +467,13 @@ export default function VidaConsolePage() {
       frozenPackage?: {
         version: number | null; at: string | null; prospects: number
         messages: number; target: number | null; sender: string | null
+        /** ⚑ 18 Sep (J13-C1) — how many of the package we may actually email. `null` means a
+         *  v2 freeze that predates the field; it never means nobody is reachable. */
+        sendable?: number | null
       } | null
+      /** ⚑ 18 Sep (J12-C4 · PV 09 B) — whether the lead source can source at all, read
+       *  globally. `unknown` is the queue read failing, and is NOT "capacity is fine". */
+      providerCapacity?: { blocked: boolean; detail: string | null; unknown: boolean } | null
       killSwitchOff: boolean
       operatorRunEnabled: boolean
       /** ⚑ MVP1 (C03) — what the client said they want, in their own words, or null.
@@ -2498,6 +2504,12 @@ export default function VidaConsolePage() {
       // fire and the panel falls back to live counts — which is the defect, not the fallback:
       // the fallback is correct only where there is genuinely no package yet.
       frozenPackage: lc.frozenPackage ?? null,
+      // ⚑ 18 Sep (J12-C4 · PV 09 B) — CAPACITY, AND IT IS PASSED ON EVERY STAGE. An Apollo
+      // credit stop is one fact about the company, so it belongs on the panel of the client
+      // an operator is about to take a first payment from, not only on the one whose run hit
+      // it. Absent reads as "not supplied" and prints nothing; `unknown` prints, because a
+      // queue we could not read is not a queue that said everything is fine.
+      providerCapacity: lc.providerCapacity ?? null,
       // ⚑ MVP1 (C03) — the last leg of the plumbing. `vida-lifecycle-copy.ts` has read this
       // since it was written; this call site never passed it, so all three of its branches
       // fell through to "Being agreed" / "Not stated yet" for every client in the book.

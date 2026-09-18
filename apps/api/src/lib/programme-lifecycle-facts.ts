@@ -551,6 +551,52 @@ export type LifecycleDetail = {
    * only ever described a result.
    */
   outcomeStated: string | null
+  /**
+   * ⚑ 18 Sep (J12-C4 · PV 09 B) — CAN WE ACTUALLY SOURCE RIGHT NOW, AND IT IS ASKED BEFORE P1.
+   *
+   * ── 🛑 WHY THIS IS ON THE NO-PROGRAMME BRANCH TOO, WHICH IS THE POINT OF IT ─────────────
+   *
+   * An Apollo credit stop is a fact about the COMPANY, not about the client on screen — the
+   * task's dedupe key is `provider:credits_exhausted`, one row for the whole condition. So a
+   * capacity read scoped to the selected client would show it to whichever client happened to
+   * trigger it and to nobody else, and an operator taking a first payment from the next client
+   * would see a clean panel while nothing could be sourced for them either.
+   *
+   * ⚠️ `unknown` IS NOT `blocked === false`. The queue read can fail, and "we could not tell"
+   * must never render as "capacity is fine" — that inversion is the Vida no-action-needed
+   * defect (`listOpenOperatorTasks` returns `ok: false` with an empty array precisely so this
+   * distinction survives).
+   */
+  providerCapacity: ProviderCapacity
+}
+
+export type ProviderCapacity = {
+  /** An open `provider_credits_exhausted` task exists: sourcing cannot complete for anyone. */
+  blocked: boolean
+  /** The task's own sentence, which carries the number. `null` when nothing is blocked. */
+  detail: string | null
+  /** The queue could not be read. Not a clean answer, and never rendered as one. */
+  unknown: boolean
+}
+
+/**
+ * The provider stop, read GLOBALLY.
+ *
+ * ⚠️ IT NEVER THROWS AND NEVER BLOCKS ANYTHING. This is a statement on a panel, not a gate:
+ * an unreadable queue degrades to `unknown`, and the sourcing paths keep their own refusals.
+ */
+async function providerCapacityNow(): Promise<ProviderCapacity> {
+  try {
+    const { listOpenOperatorTasks } = await import('./operator-tasks')
+    const res = await listOpenOperatorTasks({ limit: 200 })
+    if (!res.ok) return { blocked: false, detail: null, unknown: true }
+    const stop = res.tasks.find(t => t.kind === 'provider_credits_exhausted')
+    if (!stop) return { blocked: false, detail: null, unknown: false }
+    return { blocked: true, detail: (stop.detail ?? '').trim() || stop.title, unknown: false }
+  } catch (err) {
+    console.error('[lifecycle] provider capacity could not be read:', err)
+    return { blocked: false, detail: null, unknown: true }
+  }
 }
 
 /**
@@ -573,7 +619,7 @@ export async function lifecycleDetailFor(clientId: string): Promise<LifecycleDet
   if (!p) {
     const [
       proofStarted, proofCalibrationFailed, proofCompleted, outcomeStated,
-      proofNoEligibleSet, proofException,
+      proofNoEligibleSet, proofException, providerCapacity,
     ] = await Promise.all([
       proofStartedFor(clientId), proofCalibrationFailedFor(clientId), proofCompletedFor(clientId),
       // ⚑ MVP1 (C03) — read on BOTH branches. This one is the Brief/Proof client, and it is
@@ -585,6 +631,10 @@ export async function lifecycleDetailFor(clientId: string): Promise<LifecycleDet
       // client is a task because the run failed, not because we could group its reasons.
       proofNoEligibleSetFor(clientId),
       proofExceptionEvidenceFor(clientId),
+      // ⚑ 18 Sep (J12-C4) — ON THIS BRANCH ESPECIALLY. This is the client BEFORE any
+      // programme exists, which is exactly where "capacity visible before P1" has to be true:
+      // the operator agreeing a target and taking a first payment is looking at this panel.
+      providerCapacityNow(),
     ])
     return {
       verdict: deriveLifecycle({
@@ -599,7 +649,7 @@ export async function lifecycleDetailFor(clientId: string): Promise<LifecycleDet
       // saying so is the honest answer — not an omitted field the panel would read as fine.
       counts: { ...NO_COUNTS }, programme: null, replyAwaiting: null, frozenPackage: null,
       humanBlockers: [], stoppedDetail: null, senderSendable: true, senderDetail: null,
-      killSwitchOff, operatorRunEnabled, outcomeStated,
+      killSwitchOff, operatorRunEnabled, outcomeStated, providerCapacity,
     }
   }
 
@@ -757,9 +807,12 @@ export async function lifecycleDetailFor(clientId: string): Promise<LifecycleDet
   // a meeting target must be able to read what the client actually asked for, and the target
   // is not a substitute for it: one is a number we proposed, the other is their sentence.
   const outcomeStated = await outcomeStatedFor(clientId)
+  // ⚑ 18 Sep (J12-C4) — the same global read on the programme branch. A stop that began
+  // while one client was mid-programme applies to every client, including this one.
+  const providerCapacity = await providerCapacityNow()
 
   return {
-    verdict, counts, replyAwaiting, humanBlockers, stoppedDetail,
+    verdict, counts, replyAwaiting, humanBlockers, stoppedDetail, providerCapacity,
     senderSendable, senderDetail: sender.detail, killSwitchOff, operatorRunEnabled, outcomeStated,
     frozenPackage,
     // ⚑ 16 Sep (A1b) — A PROGRAMME CLIENT IS NEVER A PROOF EXCEPTION. Proof belongs to

@@ -132,6 +132,14 @@ export type LifecycleCopyInput = {
      */
     sendable?: number | null
   } | null
+  /**
+   * ⚑ 18 Sep (J12-C4 · PV 09 B) — whether the lead source can source at all, read globally.
+   *
+   * ⚠️ OPTIONAL SO NO EXISTING CALLER CHANGES BEHAVIOUR, and absent means "not supplied",
+   * which prints nothing. `unknown: true` is different and DOES print: it is the queue read
+   * failing, and "we could not tell" must never look like "capacity is fine".
+   */
+  providerCapacity?: { blocked: boolean; detail: string | null; unknown: boolean } | null
   replyAwaiting: { name: string | null; company: string | null } | null
   stoppedDetail: string | null
   humanBlockers: { code: string; detail: string }[]
@@ -307,8 +315,49 @@ function vidaCard(value: string, caption?: string): PanelCard {
  * ⚠️ AND IT IS SECONDARY, never primary. Whatever the stage's own next step is stays the
  * emphasised one; closing a programme is available, not urged.
  */
+/**
+ * ⚑ 18 Sep (J12-C4 · PV 09 B) — CAPACITY IS SAID AT EVERY STAGE, WHICH IS HOW IT IS SAID
+ * BEFORE P1.
+ *
+ * ── 🛑 WHY IT IS HERE AND NOT IN A STAGE ────────────────────────────────────────────────
+ *
+ * An Apollo credit stop is a fact about the COMPANY — one open task for the whole condition —
+ * so it applies to the client an operator is about to take a first payment from just as much
+ * as to the one whose run hit it. Putting the sentence inside a stage would make it appear
+ * for whichever stage somebody remembered, and the stage that matters most for this item is
+ * the earliest one: an operator agreeing a target and taking P1 while nothing can be sourced.
+ * Wrapping the state copy means there is no stage it can be missing from.
+ *
+ * ⚠️ IT LEADS. Appending it would put "we cannot source" under a paragraph about what happens
+ * next, which is where it gets skipped.
+ *
+ * ⚠️ AND "WE COULD NOT TELL" IS ITS OWN SENTENCE. A failed queue read must never render as
+ * capacity being fine — that inversion is the whole reason the reader distinguishes them.
+ */
+export function withProviderCapacity(base: LifecycleCopy, i: LifecycleCopyInput): LifecycleCopy {
+  const cap = i.providerCapacity
+  if (!cap || (!cap.blocked && !cap.unknown)) return base
+  const message = cap.blocked
+    ? `🛑 The lead source is out of credits, so nothing can be sourced for anyone — including ${i.clientName} — until it is topped up. ${cap.detail ?? ''}`.trim()
+    : 'I could not read the exception queue, so I cannot tell you whether the lead source has capacity right now. Treat it as unknown rather than fine.'
+  return {
+    ...base,
+    messages: [message, ...base.messages],
+    cards: [
+      {
+        kind: 'fact', label: 'Lead source',
+        value: cap.blocked ? 'Out of credits' : 'Unknown',
+        caption: cap.blocked
+          ? 'Sourcing cannot complete for any client until Apollo is topped up.'
+          : 'The exception queue could not be read — this is not a statement that capacity is fine.',
+      },
+      ...base.cards,
+    ],
+  }
+}
+
 export function lifecycleCopy(i: LifecycleCopyInput): LifecycleCopy {
-  const base = lifecycleCopyForState(i)
+  const base = withProviderCapacity(lifecycleCopyForState(i), i)
   if (i.mayComplete?.allowed !== true) return base
   if (base.actions.some(a => a.key === 'complete_programme')) return base
   return {

@@ -118,6 +118,40 @@ const text = (err: unknown): string => {
 }
 
 /**
+ * ⚑ 18 Sep (J12-C4 · PV 09 B) — THE OPERATOR'S SENTENCE, WITH THE NUMBER IN IT.
+ *
+ * ── 🛑 WHAT A TASK WITHOUT A NUMBER COSTS ───────────────────────────────────────────────
+ *
+ * The task said *"Apollo is out of lead credits — sourcing cannot complete"* and nothing else
+ * a person could size. An operator reading it cannot tell a run that stopped 40 records short
+ * from one that stopped 4,000 short — which is the difference between topping up on the way
+ * past and a purchase somebody has to approve — and the number WAS known at the call site and
+ * went into `evidence`, a field the queue does not read aloud.
+ *
+ * ⚠️ IT NAMES WHAT WAS ASKED FOR, NOT WHAT IS LEFT. We do not hold Apollo's balance and are
+ * not going to guess at it: the honest number is the size of the request that was refused.
+ * Printing a remaining-credit figure we never read would be exactly the fabricated-number
+ * shape this repository refuses everywhere else.
+ */
+export interface ProviderStopCounts {
+  /** Records this run asked the lead source for, and did not get. */
+  requested: number
+  /** Records the shared pool had already served before the stop. */
+  served: number
+}
+
+export function providerStopSentence(v: ProviderFailureVerdict, c: ProviderStopCounts): string {
+  const rec = (x: number) => `${Math.max(0, Math.round(x)).toLocaleString()} record${Math.round(x) === 1 ? '' : 's'}`
+  const head = v.klass === 'credits_exhausted' || v.klass === 'payment_required'
+    ? `The lead source stopped this run ${rec(c.requested)} short — that is the size of the request it refused.`
+    : `This run asked the lead source for ${rec(c.requested)} and got none of them.`
+  const pool = c.served > 0
+    ? `${rec(c.served)} had already come from the shared pool before the stop and are unaffected.`
+    : 'Nothing had been served before the stop.'
+  return `${head} ${pool} ${v.operatorAction}`
+}
+
+/**
  * Classify a provider failure.
  *
  * ⚠️ MATCHED ON THE MESSAGE, NOT `instanceof`, FOR THE HTTP CLASSES. A reloaded module

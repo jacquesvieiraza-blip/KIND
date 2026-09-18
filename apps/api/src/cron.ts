@@ -27,10 +27,37 @@ export async function claimCronSlot(job: string, at: Date): Promise<ClaimOutcome
   }
 }
 
-// The claim table missing means the migration has not been run. The job RUNS ANYWAY —
-// failing closed would stop every send, digest, drip and charge across the business to
-// prevent a doubling that only happens above one replica — so this alert is the entire
-// safety net and must actually arrive. Deduped to once per process, like the admin-key one.
+/**
+ * ⚑ 18 Sep (J20-C2 · LR 17) — THE JOBS THAT EMAIL A STRANGER DO NOT RUN WITHOUT A CLAIM.
+ *
+ * ── 🛑 WHAT WAS TRUE BEFORE, AND WHY IT IS ONLY HALF RIGHT ──────────────────────────────
+ *
+ * The rule below was *"the job RUNS ANYWAY — failing closed would stop every send, digest,
+ * drip and charge across the business to prevent a doubling that only happens above one
+ * replica."* That reasoning is sound for a digest and for a watchdog: the cost of stopping
+ * them is certain and the cost of doubling them is an extra email to our own customer.
+ *
+ * 🛑 IT IS NOT SOUND FOR OUTBOUND. Doubling a prospect send is not an inconvenience — it is
+ * the same stranger emailed twice in one instant, from a cold mailbox, which is the single
+ * fastest way to burn a sending domain and the one thing outreach cannot take back. *"Missing
+ * claims table = no automatic sending"* is the ruling, and it is narrower than "no crons":
+ * everything else keeps the behaviour it has, deliberately.
+ *
+ * ⚠️ THE LIST IS EXPLICIT AND SHORT, and it is the two jobs that put an email in front of
+ * somebody who is not our customer: the sequence sender, and the self-outreach job that
+ * sources, enrols and sends in one pass. A job added here stops running on an unclaimed slot,
+ * so this is a list somebody must choose to join.
+ */
+export const CLAIMLESS_REFUSED_JOBS: readonly string[] = ['/figsy/send-due-all', '/cmo/self-outreach']
+
+export function refusesWithoutClaim(path: string): boolean {
+  return CLAIMLESS_REFUSED_JOBS.includes(path)
+}
+
+// The claim table missing means the migration has not been run. Every job EXCEPT the outbound
+// ones above runs anyway — failing closed on all of them would stop every digest, drip and
+// charge across the business to prevent a doubling that only happens above one replica — so
+// this alert is the entire safety net and must actually arrive. Deduped once per process.
 let alertedClaimUnavailable = false
 function reportClaimUnavailable(job: string, outcome: Extract<ClaimOutcome, { kind: 'unavailable' }>): void {
   console.error(`[cron] could not claim a slot for ${job} — RUNNING ANYWAY. ${outcome.why}`)
@@ -41,8 +68,12 @@ function reportClaimUnavailable(job: string, outcome: Extract<ClaimOutcome, { ki
     outcome.missingTable
       ? 'The cron_claims table does not exist — run the pending migrations from Vida → Engine (20260727_cron_claims).'
       : 'The database could not be reached for the claim.',
-    'Jobs are still running, deliberately — stopping every send and charge is worse than the risk.',
-    'BUT while this persists, if @kind/api has more than one replica, every email and every charge fires TWICE.',
+    // ⛓️ 18 Sep (J20-C2) — ~~"Jobs are still running, deliberately"~~ WAS NO LONGER TRUE OF
+    // ALL OF THEM, and a sentence that is true of most jobs is the wrong sentence to leave in
+    // front of the person deciding how urgent this is.
+    `Outbound sending STANDS DOWN while this persists (${CLAIMLESS_REFUSED_JOBS.join(', ')}) — no prospect is emailed without a claimed slot.`,
+    'Every other job still runs, deliberately — stopping every digest and charge is worse than the risk.',
+    'BUT while this persists, if @kind/api has more than one replica, every other email and every charge fires TWICE.',
     'Check Railway → @kind/api → Settings → Replicas until this is resolved.',
   ])
 }
@@ -165,7 +196,22 @@ async function callInternal(path: string, method: 'GET' | 'POST' = 'POST'): Prom
     console.log(`[cron] ${path} — another process already claimed this slot; standing down.`)
     return
   }
-  if (claim.kind === 'unavailable') reportClaimUnavailable(path, claim)
+  if (claim.kind === 'unavailable') {
+    reportClaimUnavailable(path, claim)
+    // ── ⚑ 18 Sep (J20-C2 · LR 17) — AND OUTBOUND STANDS DOWN ────────────────────────────
+    //
+    // 🛑 NO CLAIM, NO AUTOMATIC SENDING. Without the claim there is nothing stopping a second
+    // replica firing this same slot, and for these two jobs that means the same stranger
+    // emailed twice in one instant from a cold mailbox. The refusal is LOUD in all three
+    // places that matter: the log, the founder alert above, and a `cron_runs` row — a refusal
+    // that leaves no row looks exactly like a job that never fired.
+    if (refusesWithoutClaim(path)) {
+      const why = `the cron single-run guard is unavailable (${claim.why}), so this outbound job STOOD DOWN rather than risk emailing the same prospect twice. Nothing was sent.`
+      console.error(`[cron] ${path} — ${why}`)
+      await recordCronRun(path, new Date().toISOString(), false, `stood down: ${why}`)
+      return
+    }
+  }
 
   if (!ADMIN_KEY) {
     console.warn(`[cron] ADMIN_SECRET_KEY not set — skipping ${path}`)

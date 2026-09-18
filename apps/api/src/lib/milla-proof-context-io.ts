@@ -90,7 +90,7 @@ export async function readProofChatContext(clientId: string): Promise<ProofChatC
     // gate that produced the set, which is how a desk comes to band a candidate the gate
     // would have refused. `exclusions` joins them rather than arriving with the same defect.
     const { data: icpRow } = await db.from('icps')
-      .select('geographies, company_sizes, industries, job_titles, seniority_levels, target_category, target_company_type, exclusions')
+      .select('geographies, company_sizes, industries, job_titles, seniority_levels, target_category, target_company_type, target_size, exclusions')
       .eq('client_id', clientId).order('created_at', { ascending: false }).limit(1).maybeSingle()
     const icp = (icpRow ?? {}) as import('./proof-fit').FitIcp
 

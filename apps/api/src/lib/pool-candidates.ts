@@ -61,6 +61,8 @@ export type PoolCandidateIcp = {
    * short here is a suppression that stops short in the product, however correct the rule is.
    * The caller passes the ICP row whole, so the field arrives as long as the type admits it.
    */
+  /** ⚑ 18 Sep (J5-C4) — the size the client STATED; it outranks the six provider bands. */
+  target_size?:      string | null
   exclusions?:       string | null
 }
 

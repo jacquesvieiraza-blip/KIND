@@ -158,6 +158,25 @@ function icpFromDraft(d: BriefDraft): Record<string, unknown> {
     job_titles: arr(f.job_titles),
     seniority_levels: decided.values.seniority_levels,
     company_sizes: decided.values.company_sizes,
+    // ── ⚑ 18 Sep (J5-C4 · LR 10,12) — AND HOW BIG THEY SAID, IN THEIR OWN WORDS ─────────
+    //
+    // 🛑 `company_sizes` ABOVE IS CANONICAL-ONLY, and the six bands are ours. A client who
+    // says "fifty to a hundred people" is snapped to `['11–50','51–200']`, and the band rule
+    // then admits an 11-person company and a 190-person one as matches on a criterion they
+    // stated precisely. Their phrase survived only inside `icp_review.requirements[].said` —
+    // an operator artifact that is CLEARED when the review is resolved, so the moment a human
+    // translated it the client's actual answer stopped existing anywhere.
+    //
+    // This is `target_category` : `industries` applied to size, and for the same reason: the
+    // client's words are authoritative, the closed list is the provider hint.
+    //
+    // ⚠️ THE RAW FACT, JOINED, NEVER THE CANONICAL HALF. `f.company_sizes` is the brief's FREE
+    // TEXT (`boundedList(6, 40)`, no enum) — what they actually said. Writing
+    // `decided.values.company_sizes` here would store our translation twice and the client's
+    // answer zero times.
+    ...(arr(f.company_sizes).length > 0
+      ? { target_size: str(arr(f.company_sizes).join(', ')) }
+      : {}),
     geographies: arr(f.geographies),
     tech_stack: [],
     keywords: [],

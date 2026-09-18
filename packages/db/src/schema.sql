@@ -90,6 +90,13 @@ create table if not exists public.icps (
   -- below stays the CLOSED sixteen-value provider-edge hint and is never their words.
   target_category     text,
   target_company_type text,
+  -- MVP1 (J5-C4 / LR 10,12) — how big the target company should be, IN THE CLIENT'S OWN
+  -- WORDS ("50 to 100 people", "under 20 staff"). `company_sizes` below is our closed
+  -- six-band ladder and is to size exactly what `industries` is to category: an Apollo query
+  -- hint, never the requirement. "Fifty to a hundred" cannot be expressed in the ladder, so
+  -- it is snapped to two bands that between them admit an 11-person and a 190-person company.
+  -- Authoritative over `company_sizes` in `proof-fit.ts`; NULL means never collected.
+  target_size         text,
   -- MVP1 (J5-C12 / FD-1) — who the client asked us to LEAVE OUT, in their own words, as one
   -- sentence ("no recruitment agencies, nothing in gambling"). It is the seventh hard
   -- criterion in `proof-fit.ts`, and the only one that SUBTRACTS: a candidate matching it is

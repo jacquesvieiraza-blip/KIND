@@ -149,6 +149,19 @@ export interface FitIcp {
   target_category?: string | null
   /** ⚑ MVP1 — the organisational form of the target company, from client evidence only. */
   target_company_type?: string | null
+  /**
+   * ── ⚑ 18 Sep (J5-C4 · LR 10,12) — HOW BIG THEY SAID, IN THEIR OWN WORDS ──────────────
+   *
+   * 🛑 `company_sizes` IS OUR SIX-BAND LADDER, and it is to size what `industries` is to
+   * category: an Apollo query hint and evidence, never the requirement. A client who says
+   * *"fifty to a hundred people"* cannot be expressed in it — they are snapped to
+   * `['11–50','51–200']`, and the band rule then admits an 11-person company and a 190-person
+   * company as matches on a criterion they stated precisely.
+   *
+   * ⚠️ NULL IS "NOT COLLECTED" AND IS NEVER FABRICATED. A legacy ICP carries NULL and the band
+   * rule answers for it exactly as it did before this existed.
+   */
+  target_size?: string | null
   job_titles?: string[] | null
   seniority_levels?: string[] | null
   /**
@@ -207,7 +220,76 @@ function geographyVerdict(icp: FitIcp, c: FitCandidate): HardVerdict {
  * gap in vocabulary, not evidence the company is the wrong size, and refusing on it would
  * throw away candidates for a defect on our side.
  */
+/**
+ * ── 🛑 ⚑ 18 Sep (J5-C4 · LR 10,12) — THE RANGE THE CLIENT ACTUALLY STATED ──────────────
+ *
+ * `{ min, max }` in people, or `null` when their words name no number. `max: null` is an
+ * open-ended answer ("over 500", "1,000+") and stays open-ended.
+ *
+ * 🛑 AN ADJECTIVE IS NOT A NUMBER. *"small agencies"* returns `null`, deliberately: turning it
+ * into `1–10` would put a figure the client never said behind a hard refusal, which is the
+ * fabrication this whole file exists to refuse. A phrase we cannot read leaves the band rule
+ * in charge, exactly as before.
+ *
+ * ⚠️ EXPORTED FOR THE GUARD, and parsed here rather than in a new module for the same reason
+ * `exclusionPhrases` lives here: reading one sentence of the client's own words into a test is
+ * this file's job, and splitting it across two files is how two answers appear.
+ */
+export function statedSizeRange(
+  stated: string | null | undefined,
+): { min: number; max: number | null } | null {
+  const raw = clean(stated).replace(/,/g, '')
+  if (!raw) return null
+  // Every number in the phrase, in order. Two or more → the first two are the bounds.
+  const nums = (raw.match(/\d+/g) ?? []).map(Number).filter(n => Number.isFinite(n) && n >= 0)
+  if (nums.length === 0) return null
+  if (nums.length >= 2) {
+    const [a, b] = nums
+    return { min: Math.max(1, Math.min(a, b)), max: Math.max(a, b) }
+  }
+  const n = nums[0]
+  // ⚠️ ONE NUMBER, AND THE WORD AROUND IT DECIDES WHAT IT MEANS. "under 20" and "over 20" are
+  // opposite tests built from the same digit, so the qualifier is read, never assumed.
+  const upTo = /\b(under|below|less than|fewer than|up to|max|maximum|smaller than|no more than)\b|<\s*\d/.test(raw)
+  const from = /\b(over|above|more than|at least|min|minimum|bigger than|plus|from)\b|\d\s*\+|>\s*\d/.test(raw)
+  if (upTo && !from) return { min: 1, max: Math.max(1, n) }
+  if (from && !upTo) return { min: Math.max(1, n), max: null }
+  // A bare number is that number — "about 50 people". Not a range invented around it.
+  return { min: Math.max(1, n), max: Math.max(1, n) }
+}
+
+/** A candidate's headcount as a NUMBER, when the row carries one. A ladder label is not one. */
+function candidateHeadcount(value: string | null | undefined): number | null {
+  const raw = String(value ?? '').replace(/[\s,]/g, '')
+  if (!/^\d+$/.test(raw)) return null
+  const n = Number(raw)
+  return Number.isFinite(n) && n >= 1 ? n : null
+}
+
 function sizeVerdict(icp: FitIcp, c: FitCandidate): HardVerdict {
+  // ── 🛑 ⚑ 18 Sep (J5-C4) — THEIR STATED RANGE OUTRANKS OUR BAND ───────────────────────
+  //
+  // The bands are the Apollo query hint. What the client asked for is what they said, and
+  // when they said it in numbers we can read, that is the test — for the same reason
+  // `target_category` outranks `industries` (FD-2) and by the same mechanism.
+  //
+  // ⚠️ A LADDER LABEL ON THE CANDIDATE STILL FALLS THROUGH TO THE BAND RULE. `lead_pool` rows
+  // and portal-entered values are stored as `'11–50'`, which is a band and not a headcount:
+  // comparing a band to a numeric range would have to pick one end of it, and picking either
+  // would answer a question the row cannot support.
+  const stated = statedSizeRange(icp.target_size)
+  if (stated) {
+    const head = candidateHeadcount(c.company_size)
+    if (head !== null) {
+      if (head < stated.min) return 'no'
+      if (stated.max !== null && head > stated.max) return 'no'
+      return 'yes'
+    }
+    // No headcount to compare. If they also gave us bands, the band rule below still answers;
+    // if they did not, we have a requirement and an unreadable row, which is `unknown`.
+    if (present(icp.company_sizes).length === 0) return 'unknown'
+  }
+
   const required = present(icp.company_sizes)
   if (required.length === 0) return 'yes'
   const value = clean(c.company_size)

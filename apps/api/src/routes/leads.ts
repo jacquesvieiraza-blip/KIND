@@ -451,7 +451,7 @@ leadRouter.get('/for-approval', async (req: AuthRequest, res) => {
       .filter((v): v is string => typeof v === 'string' && v !== ''))]
     const { data: icpRows } = icpIds.length > 0
       ? await db.from('icps')
-          .select('id, geographies, company_sizes, industries, job_titles, seniority_levels, target_category, target_company_type, exclusions')
+          .select('id, geographies, company_sizes, industries, job_titles, seniority_levels, target_category, target_company_type, target_size, exclusions')
           .eq('client_id', clientId).in('id', icpIds)
       : { data: [] as Record<string, unknown>[] }
     const criteriaByIcp = new Map<string, import('../lib/proof-fit').FitIcp>(
@@ -1441,7 +1441,7 @@ leadRouter.post('/:id/proof-accept', rateLimit({ limit: 30, windowMs: 60_000, ke
     // effects, so moving it up changes nothing about the order those gates refuse in. It is
     // needed here because the structural refusal below must come before the feedback write.
     const { data: icp } = await db.from('icps')
-      .select('id, client_id, is_active, pending_targeting, job_titles, seniority_levels, industries, company_sizes, geographies, target_category, target_company_type, exclusions, proof_widened_candidate')
+      .select('id, client_id, is_active, pending_targeting, job_titles, seniority_levels, industries, company_sizes, geographies, target_category, target_company_type, target_size, exclusions, proof_widened_candidate')
       .eq('id', lead.icp_id).eq('client_id', clientId).maybeSingle()
 
     // ── 🛑 ⚑ 18 Sep (J5-C6 · PV 02) — A "NOT A FIT" CARD HAS NO ACCEPT CONTROL ─────────

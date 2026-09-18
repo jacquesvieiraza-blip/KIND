@@ -6256,6 +6256,34 @@ COMMENT ON COLUMN public.leads.category_fit IS
   'MVP1 J5-C13 / FD-2. The scoring model''s verdict on whether this company is the KIND the client asked for: yes | no | unknown. Read by proof-fit.ts''s category criterion. NULL means not judged and the word-overlap rule answers instead.';
 `,
   },
+  {
+    // Canonical file: supabase/migrations/20260918_icp_target_size.sql
+    //
+    // MVP1 (J5-C4 · LR 10,12) — `icps.company_sizes` is our CLOSED SIX-BAND LADDER and it is
+    // to size exactly what `industries` is to category: an Apollo query hint and evidence,
+    // never the requirement. 20260911_icp_target_category_and_type made that split for the
+    // market; this makes it for the headcount, for the same reason and with the same shape.
+    //
+    // 🛑 WHAT THE LADDER COSTS A CLIENT. "Fifty to a hundred people" cannot be expressed in it,
+    // so it is snapped to ['11–50','51–200'] — and the band rule then admits an 11-person
+    // company and a 190-person company as matches on a criterion they stated precisely. "Ten
+    // to fifty" is snapped to ['11–50'], which refuses the ten-person company they asked for.
+    //
+    // ADDITIVE, EXPAND ONLY (XC-11). Nullable, no default, NO BACKFILL: an existing row reads
+    // NULL, which correctly means "never collected", and the band rule answers for it exactly
+    // as it does today.
+    //
+    // DEPLOYMENT ORDERING: apply this BEFORE shipping the code that writes the column.
+    key: '20260918_icp_target_size',
+    title: "icps.target_size — how big the target company should be, in the client's own words (MVP1 · J5-C4)",
+    sql: `
+ALTER TABLE public.icps
+  ADD COLUMN IF NOT EXISTS target_size text;
+
+COMMENT ON COLUMN public.icps.target_size IS
+  'MVP1 brief fact 8 — how big the target company should be, in the CLIENT''S OWN WORDS ("50 to 100 people", "under 20 staff"). Authoritative over company_sizes, which is the closed provider band list used as a query hint. NULL means never collected.';
+`,
+  },
 ]// Runs the statements against DATABASE_URL. Uses node-postgres because the Supabase JS
 // client speaks PostgREST, which cannot execute DDL.
 //

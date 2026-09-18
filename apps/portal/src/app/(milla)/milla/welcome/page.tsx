@@ -66,6 +66,13 @@ type BuilderReply =
       // model sample remembered.
       brief_exclusions?: string
       brief_geographies?: string[]
+      // ⚑ 18 Sep (J5-C4 · LR 10,12) — the other four targeting facts, from the same durable
+      // record, so the approval card can show what the CLIENT said rather than the closed
+      // provider vocabularies we translated it into.
+      brief_target_category?: string
+      brief_company_sizes?: string[]
+      brief_roles?: string[]
+      brief_seniority?: string[]
       // ⚑ 16 Sep (S1-ONB-001) — the server saying READY. The plan object is only the CONTENT.
       onboarding_state?: 'ready' }
   // ── ⚑ 16 Sep (S1-RT-010) — THE SERVER VETOED A PREMATURE COMPLETION ─────────────────
@@ -192,6 +199,18 @@ export default function MillaWelcomePage() {
   // because this is the CLIENT-FACING fact, resolved server-side from the durable Brief.
   const [briefExclusions, setBriefExclusions] = useState('')
   const [briefGeographies, setBriefGeographies] = useState<string[]>([])
+  // ── ⚑ 18 Sep (J5-C4 · LR 10,12) — THE CLIENT'S OWN TARGETING WORDS ────────────────────
+  //
+  // 🛑 The chips below were built from `proposed.*` — the three CLOSED PROVIDER VOCABULARIES
+  // — so a client who said "digital marketing agencies, ten to fifty people" was shown
+  // "Marketing · Consulting · 11–50 staff" and asked to confirm it was their targeting. The
+  // founder's rule is the opposite: the client speaks naturally, and translating their words
+  // into provider format is OUR problem. `brief_geographies` already worked this way; these
+  // four finish the row. Every one is resolved server-side from the durable Brief.
+  const [briefTargetCategory, setBriefTargetCategory] = useState('')
+  const [briefCompanySizes, setBriefCompanySizes] = useState<string[]>([])
+  const [briefRoles, setBriefRoles] = useState<string[]>([])
+  const [briefSeniority, setBriefSeniority] = useState<string[]>([])
   // ⚑ 24 Aug — the VALUE is no longer read on this screen (the plan card that displayed it
   // is gone), but the setter stays: `propose()` still runs the gated preview and "Keep
   // adjusting the target" still clears it, and neither of those is copy. Bound as `[,
@@ -584,6 +603,10 @@ export default function MillaWelcomePage() {
         setIcpReview(d.icp_review ?? null)
         setBriefExclusions(typeof d.brief_exclusions === 'string' ? d.brief_exclusions : '')
         setBriefGeographies(Array.isArray(d.brief_geographies) ? d.brief_geographies : [])
+        setBriefTargetCategory(typeof d.brief_target_category === 'string' ? d.brief_target_category : '')
+        setBriefCompanySizes(Array.isArray(d.brief_company_sizes) ? d.brief_company_sizes : [])
+        setBriefRoles(Array.isArray(d.brief_roles) ? d.brief_roles : [])
+        setBriefSeniority(Array.isArray(d.brief_seniority) ? d.brief_seniority : [])
         if (typeof d.campaign_intent === 'string') setIntent(d.campaign_intent)
         await propose(d.icp)
       } else {
@@ -1066,7 +1089,24 @@ export default function MillaWelcomePage() {
                 {/* ⚑ 14 Sep (S1-RT-009B) — geography comes from the DURABLE Brief when it
                     holds one. The chips and the line below must never be able to disagree
                     about which countries the client asked for. */}
-                {[...chips(proposed.seniority_levels), ...chips(proposed.job_titles), ...chips(proposed.industries), ...chips(briefGeographies.length ? briefGeographies : proposed.geographies), ...chips(proposed.company_sizes).map(s => `${s} staff`)].map((c, i) => (
+                {/* ── 🛑 ⚑ 18 Sep (J5-C4 · LR 10,12) — THEIR WORDS, OURS ONLY AS A FALLBACK ──
+                    🛑 EVERY CHIP HERE USED TO BE PROVIDER VOCABULARY. `seniority_levels` and
+                    `industries` are closed lists; `company_sizes` is our six-band ladder. So
+                    a client who said "digital marketing agencies, ten to fifty people" was
+                    shown "Marketing · Consulting · 11–50 staff" on the one card they approve,
+                    and their own phrase appeared on no client screen in the portal.
+
+                    ⚠️ THE FALLBACK IS LOAD-BEARING, and it is why geography is written this
+                    way already: a conversation with no durable Brief behind it (an older tab,
+                    a failed resolve) must still render the plan rather than an empty row. The
+                    provider array is what it falls back TO, never what it prefers. */}
+                {[
+                  ...chips(briefSeniority.length ? briefSeniority : proposed.seniority_levels),
+                  ...chips(briefRoles.length ? briefRoles : proposed.job_titles),
+                  ...chips(briefTargetCategory ? [briefTargetCategory] : proposed.industries),
+                  ...chips(briefGeographies.length ? briefGeographies : proposed.geographies),
+                  ...chips(briefCompanySizes.length ? briefCompanySizes : proposed.company_sizes.map(s => `${s} staff`)),
+                ].map((c, i) => (
                   <span key={i} className="text-[11.5px] font-semibold text-[#7C3AED] bg-[#f3ecff] rounded-full px-2.5 py-1">{c}</span>
                 ))}
               </div>

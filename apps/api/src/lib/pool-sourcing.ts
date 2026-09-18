@@ -48,6 +48,13 @@ export interface PoolMatchIcp {
   /** ⚑ 10 Sep (C02) — company size is a HARD criterion and was not tested here at all. */
   company_sizes?:    string[] | null
   /**
+   * ⚑ 18 Sep (J5-C4 · LR 10,12) — the size the client STATED, which outranks our six bands.
+   * Dropping it here would leave the free path judging on the band we snapped them to while
+   * the provider path judges on their words — two answers to one criterion, which is the
+   * thing J5-C5 made one predicate to prevent.
+   */
+  target_size?:      string | null
+  /**
    * ⚑ 18 Sep (J5-C12 · FD-1) — the client's own exclusions, so the FREE path suppresses them
    * too. FD-1 is "in every path", and reusing an excluded company from the pool costs the
    * client the same relationship as buying one.
@@ -213,6 +220,9 @@ export function poolRecordMatchesIcp(rec: PoolRecord, icp: PoolMatchIcp): boolea
   }, {
     geographies: null,
     company_sizes: icp.company_sizes ?? null,
+    // ⚑ 18 Sep (J5-C4) — their stated range, so the pool and the provider path cannot
+    // disagree about how big "50 to 100 people" is.
+    target_size: icp.target_size ?? null,
     industries: icp.industries ?? null,
     job_titles: icp.job_titles ?? null,
     seniority_levels: icp.seniority_levels ?? null,

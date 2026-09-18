@@ -5484,6 +5484,29 @@ result or a number. "permitted" is false unless they explicitly said we may use 
           brief_exclusions: resolved.exclusions ?? '',
           // Fact #6, from the same durable record — so the chips cannot disagree with it.
           brief_geographies: resolved.geographies ?? [],
+          // ── 🛑 ⚑ 18 Sep (J5-C4 · LR 10,12) — AND THE OTHER FOUR TARGETING FACTS ────────
+          //
+          // 🛑 THE CARD SHOWED THE CLIENT OUR TRANSLATION AND ASKED THEM TO APPROVE IT.
+          // "Proposed ICP · v1" is the first thing anyone says yes to, and its chips were
+          // built from `proposed.seniority_levels`, `proposed.industries` and
+          // `proposed.company_sizes` — the three CLOSED PROVIDER VOCABULARIES. The panel's
+          // own note says as much: *"`proposed` is the plan's CONTENT — the provider-
+          // translated arrays"*. So a client who said "digital marketing agencies, ten to
+          // fifty people" was shown **"Marketing · Consulting · 11–50 staff"**, and
+          // `target_category` — the column the founder locked as the only authority on client
+          // intent — appeared on no client screen in the portal at all.
+          //
+          // ⚠️ THE PRECEDENT IS THE LINE ABOVE. `brief_geographies` was added on 14 Sep for
+          // exactly this reason, and geography alone was switched to the durable record. These
+          // four finish the row; every one is `resolved.*`, so the card and the Brief cannot
+          // disagree.
+          //
+          // ⚠️ DISPLAY ONLY. `POST /icps` still persists the provider arrays from `proposed`,
+          // unchanged — renaming the payload would break the search to fix the copy.
+          brief_target_category: resolved.targetCategory ?? '',
+          brief_company_sizes: resolved.companySizes ?? [],
+          brief_roles: resolved.targetRoles ?? [],
+          brief_seniority: resolved.targetSeniority ?? [],
           // ⚠️ BRIEF FACT #11, RESOLVED (S1-RT-002). The portal carries this to
           // `/auth/onboard` as `outcome_stated` and to `POST /icps` as `campaign_intent`,
           // so the desired outcome the gate counted from the snapshot reaches BOTH of its

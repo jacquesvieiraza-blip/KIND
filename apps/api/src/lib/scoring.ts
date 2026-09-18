@@ -2,6 +2,7 @@ import Anthropic from '@anthropic-ai/sdk'
 import { db } from '@kind/db'
 import { sendFounderAlert } from './alerts'
 import { unscoredOnFailure } from './scoring-failure'
+import { BACKGROUND_MODEL } from './models'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
@@ -242,7 +243,7 @@ Return ONLY a JSON array with no markdown, no code fences, no explanation:
 [{"id":"<lead-id>","score":<0-100>,"reasoning":"<one sentence>","category_fit":"yes|no|unknown","category_fit_reason":"<short phrase>"}]`
 
       const message = await anthropic.messages.create({
-        model:      'claude-haiku-4-5-20251001',
+        model:      BACKGROUND_MODEL,
         max_tokens: 1024,
         messages:   [{ role: 'user', content: prompt }],
       })

@@ -171,27 +171,36 @@ describe('THE REAL /milla CHAT ROUTE REACHES THE LIFECYCLE PROMPT', () => {
     }
   })
 
-  it('the stateless side-panel door sends the same lifecycle', async () => {
-    // 4A-2A touched both doors. Only one is what the founder typed into, but a divergence
-    // here is a second truth waiting to be found on a different screen.
+  it('🛑 THE STATELESS SIDE-PANEL DOOR IS UNMOUNTED — not merely unused (D-63)', async () => {
+    // ⛓️ 18 Sep (D-63) — THIS TEST USED TO DRIVE THAT DOOR and assert it sent the same
+    // lifecycle as the desk chat: ~~`expect(layer, 'the stateless side-panel chat route is
+    // gone').toBeTruthy()`~~. The assertion was right for as long as the door existed, and
+    // keeping it would now be a green tick over a surface that has been withdrawn.
+    //
+    // 🛑 WHY IT WENT, AND WHY "NOBODY CALLS IT" WAS NOT ENOUGH. It answered from the
+    // `history` array in the request body and stored nothing, so it was a second Milla who
+    // forgot the conversation the desk chat was busy remembering. O1 disconnected it on
+    // 14 Sep by taking `liveChatEndpoint` off the Milla card — but an unmounted route and an
+    // un-linked route are different facts, and only one of them is unreachable. The route
+    // stayed open, authenticated and subscription-gated, for anyone who still knew the URL.
+    //
+    // ⚠️ THE ASSERTION IS THE ROUTER'S OWN STACK, not a source scan. A file can stop
+    // mentioning a path while the handler is still mounted from somewhere else; what makes a
+    // door reachable is that Express is holding it.
     const { millaRouter } = await import('./milla')
     const layer = (millaRouter as unknown as { stack: any[] }).stack.find(
       l => l.route?.path === '/chat' && l.route?.methods?.post,
     )
-    expect(layer, 'the stateless side-panel chat route is gone').toBeTruthy()
-    sent.length = 0
-    const handler = layer.route.stack[layer.route.stack.length - 1].handle
-    const res = { status: () => res, json: () => res } as any
-    await handler({ userId: 'u1', body: { message: 'When does sourcing start?' }, headers: {} }, res, () => {})
-    expect(sent, 'the side-panel door did not call the model').toHaveLength(1)
-    expect(sent[0].system).toContain('THE PROGRAMME LIFECYCLE, IN ORDER')
-    expect(sent[0].system).toContain('7. PAYMENT 2')
-    // This door replays history from the request body, so it carries the same anchoring
-    // exposure and gets the same re-assertion in its final turn.
-    const last = sent[0].messages[sent[0].messages.length - 1]
-    expect(last.role).toBe('user')
-    expect(last.content, 'the side-panel door does not re-assert the lifecycle')
-      .toContain('CURRENT PROGRAMME TRUTH')
+    expect(layer, 'the stateless, memoryless Milla door is mounted again').toBeFalsy()
+
+    // 🛑 AND THE DOOR THAT REPLACED IT IS STILL THERE. An assertion that something is absent
+    // passes just as loudly when the whole router failed to load, so the surviving persisted
+    // door is named here — if this goes red together with the line above, the problem is the
+    // import, not the product.
+    const desk = (millaRouter as unknown as { stack: any[] }).stack.find(
+      l => l.route?.path === '/sessions/:sessionId/chat' && l.route?.methods?.post,
+    )
+    expect(desk, 'the persisted desk chat is gone — this guard is proving nothing').toBeTruthy()
   })
 })
 

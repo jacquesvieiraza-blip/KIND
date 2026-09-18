@@ -4,23 +4,18 @@ import { Router } from 'express'
 import { z } from 'zod'
 import { randomUUID } from 'node:crypto'
 import Anthropic from '@anthropic-ai/sdk'
-import { CONVERSATION_MODEL, AI_TURN_BOUND } from '../lib/models'
 import { db } from '@kind/db'
 import { requireAuth, AuthRequest } from '../middleware/auth'
 import { processDocument, chat } from '../lib/milla'
 import { ensureTodaysBrief } from '../lib/morning-brief-deliver'
 import { ensureBrief, approveBrief, editBrief } from '../lib/meeting-brief-deliver'
+import { BACKGROUND_MODEL } from '../lib/models'
 
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
-
-// Stateless side-panel chat persona (113a). Distinct from the session-backed
-// /sessions/:id/chat above (which does RAG + persistence): this is the quick
-// "ask Milla anything" thread that lives in the right-rail agent panel.
-// 12 Aug — the old constant here described the RETIRED product: the platform-era framing,
-// a deleted closer agent, and Vida as a website chatbot (Vida is the INTERNAL
-// operator room and never appears in anything a client reads), and portal pages from the
-// retired /dashboard. Both chat doors now share ONE prompt built in lib/milla-chat-system,
-// with the client's live snapshot injected — see that file for the whole story.
+// ⛓️ 18 Sep (D-63) — ~~`const anthropic = new Anthropic(…)`~~ AND THE PERSONA NOTE THAT STOOD
+// HERE WENT WITH THE STATELESS DOOR. The module-level client had exactly one reader, the
+// removed `POST /milla/chat`; `/notetaker` builds its own below. The note described how the
+// two chat doors shared one prompt — true, and now there is only one door, so the whole story
+// lives where it always did: `lib/milla-chat-system`.
 
 export const millaRouter = Router()
 millaRouter.use(requireAuth)
@@ -543,103 +538,28 @@ millaRouter.post('/sessions/:sessionId/chat', async (req: AuthRequest, res) => {
   }
 })
 
-// ── STATELESS SIDE-PANEL CHAT (113a) ───────────────────────────────────────────
-/**
- * POST /milla/chat — quick stateless "ask Milla anything" for the right-rail
- * agent panel. Gated on an active Milla subscription (fail-open on lookup error).
- * Body: { message, history?: [{role, content}] }  →  { success, data: { reply } }
- */
-millaRouter.post('/chat', async (req: AuthRequest, res) => {
-  try {
-    const { message, history } = z.object({
-      message: z.string().min(1).max(2000),
-      history: z.array(z.object({
-        role:    z.enum(['user', 'assistant']),
-        content: z.string().max(4000),
-      })).max(12).optional(),
-    }).parse(req.body)
-
-    const access = await requireMillaAccess(req.userId!)
-    if ('error' in access) { res.status(access.status).json({ success: false, error: access.error }); return }
-
-    // ── 🛑 ⚑ 14 Sep (M4) — A CONFIGURATION FAULT IS NOT MILLA SPEAKING ──────────────────
-    //
-    // ⛓️ THIS ANSWERED `success: true` WITH A SENTENCE IN HER VOICE: ~~"I can't reach my
-    // brain right now — please email hello@get-kind.com and the team will help."~~ To the
-    // client that reads as Milla having HEARD them and declined. It is an operational fault
-    // on our side, the same one the Vida console had, and it is reported as one.
-    //
-    // ⚠️ THE ADDRESS IS KEPT, because a client who cannot reach her still needs a way out —
-    // it just travels as an honest error rather than as her answer.
-    if (!process.env.ANTHROPIC_API_KEY) {
-      res.status(503).json({
-        success: false, retryable: true,
-        error: 'Milla is not reachable right now. Nothing you typed is lost — please try again, or email hello@get-kind.com.',
-      })
-      return
-    }
-
-    // ⚑ 31 Aug — SAME RE-ASSERTION AS THE DESK CHAT, AND FOR THE SAME REASON. This door
-    // replays `history` from the request body, so it carries the identical exposure: prior
-    // assistant turns stating the pre-#1616 sequence sit AFTER the system prompt in the
-    // payload and outweigh it. The correction goes in the final user turn, with the client's
-    // question still last.
-    const { buildLifecycleReassertion } = await import('../lib/milla-chat-system')
-    const messages: Anthropic.MessageParam[] = [
-      ...(history ?? []).map(m => ({ role: m.role, content: m.content })),
-      { role: 'user' as const, content: `${buildLifecycleReassertion()}\n\nQuestion: ${message}` },
-    ]
-
-    // Same fail-soft snapshot as the desk chat — one builder, every door.
-    let snapshot = null as import('../lib/milla-chat-system').MillaSnapshot | null
-    try {
-      const { buildMillaSummaryData } = await import('../lib/milla-summary')
-      snapshot = await buildMillaSummaryData(access.clientId)
-    } catch (e) {
-      console.error('[milla/chat stateless] snapshot lookup failed — answering without live numbers', e)
-    }
-    // ⚑ 30 Aug (BUILD-004A-2) — HER PROGRAMME TRUTH, from the SAME reader the workspace
-    // uses. Fail-soft in its own right: `null` tells her she cannot see it, which is very
-    // different from telling a paying client they have no programme.
-    let programme = null as import('../lib/customer-programme').CustomerProgramme | null
-    try {
-      const { readCustomerProgramme } = await import('../lib/customer-programme')
-      programme = await readCustomerProgramme(access.clientId)
-    } catch (e) {
-      console.error('[milla/chat stateless] programme lookup failed — answering without it', e)
-    }
-    // ⚑ 10 Sep (C06) — THE PROOF DESK, ON THIS DOOR TOO. Both chat doors share one system
-    // builder precisely so a fix cannot land on one of them; a Proof block on the desk chat
-    // alone would leave the side panel answering about the same set without seeing it.
-    let proof = null as import('../lib/milla-proof-context').ProofChatContext | null
-    try {
-      const { readProofChatContext } = await import('../lib/milla-proof-context-io')
-      proof = await readProofChatContext(access.clientId)
-    } catch (e) {
-      console.error('[milla/chat stateless] proof desk lookup failed — answering without it', e)
-    }
-    const { buildMillaChatSystem } = await import('../lib/milla-chat-system')
-
-    const response = await anthropic.messages.create({
-      model: CONVERSATION_MODEL,
-      max_tokens: 600,
-      system: buildMillaChatSystem(snapshot, programme, proof),
-      messages,
-    }, AI_TURN_BOUND)
-
-    const reply = response.content
-      .filter(b => b.type === 'text')
-      .map(b => (b as Anthropic.TextBlock).text)
-      .join('')
-      .trim() || "Sorry, I didn't catch that — could you rephrase?"
-
-    res.json({ success: true, data: { reply } })
-  } catch (err) {
-    if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: err.errors[0]?.message ?? 'Invalid input' }); return }
-    console.error('[milla/chat stateless]', err)
-    res.status(500).json({ success: false, error: 'Milla is temporarily unavailable' })
-  }
-})
+// ── ⛓️ STATELESS SIDE-PANEL CHAT (113a) — UNMOUNTED 18 Sep (D-63) ──────────────────────
+//
+// 🛑 ~~`millaRouter.post('/chat', …)`~~ STOOD HERE, AND IT WAS A SECOND MILLA WITH NO MEMORY.
+// It answered from the `history` array in the request body and stored nothing: close the tab
+// and every word was gone, while the desk conversation beside it remembered everything. Two
+// Millas, one client, and only one of them could be asked "what did we say last week?".
+//
+// ⛓️ IT WAS DISCONNECTED ON 14 Sep (R121 · O1) — `liveChatEndpoint="/milla/chat"` came off
+// `AgentColumn`'s Milla card and nothing in the product has posted to it since. But
+// DISCONNECTED IS NOT UNMOUNTED: the door stayed open on an authenticated, subscription-gated
+// route, so any caller that still knew the URL got the forgetful Milla back — and the guard
+// that protects this only ever proved no UI hands out the endpoint, never that the endpoint
+// was gone. That gap is what this closes.
+//
+// ⚠️ NOTHING MOVED WITH IT. Every capability this door had — the lifecycle re-assertion, the
+// snapshot, the programme read, the proof-desk context — is built by the SAME
+// `buildMillaChatSystem`/`buildLifecycleReassertion` the persisted desk chat uses, and the
+// desk chat is untouched. There was never a fact reachable here and nowhere else.
+//
+// ⚠️ THE ONE DISCLOSED CONSEQUENCE: a browser still running a bundle from before 14 Sep would
+// POST here and now receives 404 instead of an answer. A reload resolves it, and the reply it
+// used to get was one no session would have remembered.
 
 // ── NOTETAKER ─────────────────────────────────────────────────────────────────
 
@@ -676,7 +596,7 @@ millaRouter.post('/notetaker', async (req: AuthRequest, res) => {
       'Return ONLY the JSON array, no other text.'
 
     const response = await anthropic.messages.create({
-      model:      'claude-haiku-4-5-20251001',
+      model:      BACKGROUND_MODEL,
       max_tokens: 1024,
       system:     systemPrompt,
       messages:   [{ role: 'user', content: transcript }],

@@ -2,6 +2,7 @@
 import { checkSendAllowed } from './send-gate'
 import Anthropic from '@anthropic-ai/sdk'
 import { db } from '@kind/db'
+import { BACKGROUND_MODEL } from './models'
 
 const BASE_URL = 'https://graph.facebook.com/v19.0'
 
@@ -138,7 +139,7 @@ export async function classifyAndRespond(params: {
     const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
     const response = await anthropic.messages.create({
-      model: 'claude-haiku-4-5-20251001',
+      model: BACKGROUND_MODEL,
       max_tokens: 256,
       system: `You are Vida, a friendly AI assistant for ${companyName}. You help answer questions, qualify potential clients, and connect warm leads with the team. Keep responses short — 2-3 sentences max. Sound human and warm. If someone wants to buy, learn more, or book a call, ask for their name, email, and what they need. If they say stop or unsubscribe, say "No problem! I'll make sure you're not contacted again." and flag for opt-out.`,
       messages: [

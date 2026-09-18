@@ -338,7 +338,7 @@ Return ONLY valid JSON, no markdown, with EXACTLY ${plan.depth} steps:
 {${Array.from({ length: plan.depth }, (_, i) => `"step${i + 1}": {"subject": "...", "body": "..."}`).join(', ')}}`
 
   const message = await anthropic.messages.create({
-    model: 'claude-haiku-4-5-20251001',
+    model: BACKGROUND_MODEL,
     // 5 emails + JSON overhead no longer fit the old 1024 — a truncated response
     // here silently becomes a parse failure and a thrown enrolment.
     max_tokens: 2048,
@@ -421,7 +421,7 @@ Rules:
 Return ONLY valid JSON: {"classification": "...", "reasoning": "one sentence max"}`
 
   const message = await anthropic.messages.create({
-    model: 'claude-haiku-4-5-20251001',
+    model: BACKGROUND_MODEL,
     max_tokens: 150,
     messages: [{ role: 'user', content: prompt }],
   })
@@ -1653,7 +1653,7 @@ ${senderName ? `- Sign off as exactly "${senderName}". Do NOT invent or use any 
 Return ONLY valid JSON: {"subject": "...", "body": "..."}`
 
   const message = await anthropic.messages.create({
-    model: 'claude-haiku-4-5-20251001',
+    model: BACKGROUND_MODEL,
     max_tokens: 400,
     messages: [{ role: 'user', content: prompt }],
   })

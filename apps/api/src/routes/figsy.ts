@@ -2254,7 +2254,7 @@ figsyRouter.post('/replies/:id/draft-followup', async (req: AuthRequest, res) =>
     const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
     const response = await anthropic.messages.create({
-      model: 'claude-haiku-4-5-20251001',
+      model: BACKGROUND_MODEL,
       max_tokens: 400,
       messages: [{
         role: 'user',
@@ -2305,7 +2305,7 @@ figsyRouter.post('/replies/:replyId/suggest', async (req: AuthRequest, res) => {
     const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
     const response = await anthropic.messages.create({
-      model: 'claude-haiku-4-5-20251001',
+      model: BACKGROUND_MODEL,
       max_tokens: 300,
       messages: [{
         role: 'user',
@@ -2392,7 +2392,7 @@ figsyRouter.post('/replies/:id/ai-draft', async (req: AuthRequest, res) => {
     ].filter(Boolean).join('\n')
 
     const response = await anthropic.messages.create({
-      model: 'claude-haiku-4-5-20251001',
+      model: BACKGROUND_MODEL,
       max_tokens: 500,
       system,
       messages: [{ role: 'user', content: userPrompt }],
@@ -3194,7 +3194,7 @@ figsyRouter.post('/suggest-campaign', async (req: AuthRequest, res) => {
     const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
     const response = await anthropic.messages.create({
-      model: 'claude-haiku-4-5-20251001',
+      model: BACKGROUND_MODEL,
       max_tokens: 512,
       messages: [{
         role: 'user',

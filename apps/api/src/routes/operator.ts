@@ -750,7 +750,7 @@ operatorRouter.post('/campaign/suggest', async (req: Request, res: Response) => 
         const { default: Anthropic } = await import('@anthropic-ai/sdk')
         const ai = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
         const msg = await ai.messages.create({
-          model: 'claude-haiku-4-5-20251001', max_tokens: 200,
+          model: BACKGROUND_MODEL, max_tokens: 200,
           messages: [{ role: 'user', content:
             `Name an outbound campaign for ${c?.company_name ?? 'a client'}${c?.industry ? ` (${c.industry})` : ''} targeting: ${who || icp.name}.\n` +
             `Reply as exactly two lines and nothing else:\nNAME: <max 6 words>\nHUNTING: <one sentence, who and why now>` }],

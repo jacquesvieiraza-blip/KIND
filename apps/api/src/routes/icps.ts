@@ -63,7 +63,7 @@ import {
   PREMATURE_COMPLETION,
 } from '../lib/milla-reply-shape'
 // ⚑ 14 Sep — the model a human is waiting for. One name, one place (`lib/models.ts`).
-import { CONVERSATION_MODEL, AI_TURN_BOUND } from '../lib/models'
+import { CONVERSATION_MODEL, AI_TURN_BOUND, BACKGROUND_MODEL } from '../lib/models'
 // ⚑ 14 Sep (R121) — a correction the client makes to a LIST travels as structure, so the
 // server never has to read a sentence to know they meant "as well" rather than "instead".
 import { applyListOps, LIST_FACTS, type ListOps } from '../lib/brief-list-ops'
@@ -6957,7 +6957,7 @@ Based on this data, suggest 3 specific ICP improvements that would increase repl
 }`
 
     const message = await anthropic.messages.create({
-      model: 'claude-haiku-4-5-20251001',
+      model: BACKGROUND_MODEL,
       max_tokens: 600,
       messages: [{ role: 'user', content: prompt }],
     })

@@ -40,6 +40,7 @@ import {
   decideLapse, webhookSuspectLines, LAPSED_STATUS, LAPSED_FALLBACK, type LapseCandidate,
 } from '../lib/subscription-lapse'
 import { pickAbWinner, type VariantOutcome } from '../lib/ab-winner'
+import { BACKGROUND_MODEL } from '../lib/models'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
@@ -370,7 +371,7 @@ Write a 3-4 sentence check-in email that:
 Output only the email body. No subject line. No placeholders.`
 
     const message = await anthropic.messages.create({
-      model: 'claude-haiku-4-5-20251001',
+      model: BACKGROUND_MODEL,
       max_tokens: 300,
       messages: [{ role: 'user', content: prompt }],
     })
@@ -531,7 +532,7 @@ Write a 4-5 sentence founder digest that:
 Tone: honest, direct, no fluff. Like a trusted advisor, not a PR spin.`
 
     const message = await anthropic.messages.create({
-      model: 'claude-haiku-4-5-20251001',
+      model: BACKGROUND_MODEL,
       max_tokens: 400,
       messages: [{ role: 'user', content: prompt }],
     })
@@ -768,7 +769,7 @@ Write ${count} LinkedIn post drafts for K.I.N.D. Each post should:
 Separate posts with "---POST---".`
 
     const message = await anthropic.messages.create({
-      model:      'claude-haiku-4-5-20251001',
+      model:      BACKGROUND_MODEL,
       max_tokens: 1200,
       messages:   [{ role: 'user', content: prompt }],
     })

@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { db } from '@kind/db'
+import { BACKGROUND_MODEL } from './models'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
@@ -113,7 +114,7 @@ export function deniseSystemPrompt(): string {
 // (calendar webhooks, call transcription, Stripe) is gated behind the launch
 // run-through — these are the persona-driven generators, ready to call.
 
-const MODEL = 'claude-haiku-4-5-20251001'
+const MODEL = BACKGROUND_MODEL
 
 interface ProspectContext {
   first_name?: string | null

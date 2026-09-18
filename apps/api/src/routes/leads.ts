@@ -838,7 +838,7 @@ leadRouter.post('/coaching/:leadId/brief', async (req: AuthRequest, res) => {
     const { default: Anthropic } = await import('@anthropic-ai/sdk')
     const ai = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
     const msg = await ai.messages.create({
-      model: 'claude-haiku-4-5-20251001', max_tokens: 700,
+      model: BACKGROUND_MODEL, max_tokens: 700,
       messages: [{ role: 'user', content:
         `Prepare ${me?.company_name ?? 'a seller'} for a first sales call.\n\n` +
         `THEM: ${[lead.first_name, lead.last_name].filter(Boolean).join(' ')} — ${lead.job_title ?? 'unknown role'} at ${lead.company ?? 'unknown company'}` +
@@ -2060,7 +2060,7 @@ Generate a JSON object with EXACTLY these fields (no extra text, no markdown, ju
 Output ONLY the JSON object, nothing else.`
 
     const message = await anthropic.messages.create({
-      model:      'claude-haiku-4-5-20251001',
+      model:      BACKGROUND_MODEL,
       max_tokens: 400,
       messages:   [{ role: 'user', content: prompt }],
     })
@@ -2794,7 +2794,7 @@ leadRouter.get('/:id/research', async (req: AuthRequest, res) => {
     }
 
     const msg = await anthropic.messages.create({
-      model: 'claude-haiku-4-5-20251001',
+      model: BACKGROUND_MODEL,
       max_tokens: 400,
       messages: [{
         role: 'user',

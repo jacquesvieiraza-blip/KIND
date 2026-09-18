@@ -4,6 +4,7 @@ import Anthropic from '@anthropic-ai/sdk'
 import { db } from '@kind/db'
 import { requireAuth, AuthRequest } from '../middleware/auth'
 import { testCrmConnection } from '../lib/crm'
+import { BACKGROUND_MODEL } from '../lib/models'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
@@ -240,7 +241,7 @@ clientRouter.post('/me/suggest-icp', async (req: AuthRequest, res) => {
     ].filter(Boolean).join('\n')
 
     const msg = await anthropic.messages.create({
-      model: 'claude-haiku-4-5-20251001',
+      model: BACKGROUND_MODEL,
       max_tokens: 500,
       messages: [{
         role: 'user',

@@ -7,6 +7,7 @@ import { db } from '@kind/db'
 import { requireAuth, AuthRequest } from '../middleware/auth'
 import { generateVidaReply, scoreSession, notifyHotLead, speedToLeadHandoff } from '../lib/vida'
 import { rateLimit } from '../lib/rate-limit'
+import { BACKGROUND_MODEL } from '../lib/models'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
@@ -163,7 +164,7 @@ portalRouter.post('/help', vidaHelpAiLimit, async (req: AuthRequest, res) => {
     ]
 
     const response = await anthropic.messages.create({
-      model: 'claude-haiku-4-5-20251001',
+      model: BACKGROUND_MODEL,
       max_tokens: 400,
       system: VIDA_HELP_SYSTEM,
       messages,

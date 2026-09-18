@@ -3,6 +3,7 @@ import { db } from '@kind/db'
 import { requireAuth, AuthRequest } from '../middleware/auth'
 import { rateLimit } from '../lib/rate-limit'
 import Anthropic from '@anthropic-ai/sdk'
+import { BACKGROUND_MODEL } from '../lib/models'
 
 const router = Router()
 const claude = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
@@ -78,7 +79,7 @@ async function processTask(taskId: string, clientId: string, title: string, desc
     ).join('\n') || 'No campaigns yet.'
 
     const response = await claude.messages.create({
-      model: 'claude-haiku-4-5-20251001',
+      model: BACKGROUND_MODEL,
       max_tokens: 500,
       messages: [{
         role: 'user',

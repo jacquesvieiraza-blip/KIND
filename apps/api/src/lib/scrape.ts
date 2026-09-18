@@ -1,4 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk'
+import { BACKGROUND_MODEL } from './models'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
@@ -49,7 +50,7 @@ ${text}`
   let raw: string
   try {
     const message = await anthropic.messages.create({
-      model: 'claude-haiku-4-5-20251001',
+      model: BACKGROUND_MODEL,
       max_tokens: 512,
       messages: [{ role: 'user', content: prompt }],
     })

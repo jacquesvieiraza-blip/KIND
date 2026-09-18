@@ -3,6 +3,9 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { api, AI_TURN_TIMEOUT_MS } from '@/lib/api'
+import { loadError } from '@kind/shared'
+// J3-C5 — the one rule for what an unrestored thread is allowed to claim.
+import { restoreView } from '@/lib/conversation-restore'
 import { createClient } from '@/lib/supabase/client'
 import {
   STAGE_QUICK_ACTION, type MillaStage,
@@ -203,7 +206,15 @@ export function MillaConversationProvider(
   },
 ) {
   const [sessionId, setSessionId] = useState<string | null>(null)
-  const [messages, setMessages] = useState<Msg[]>([{ id: 'greet', role: 'assistant', content: MILLA_GREETING }])
+  // ⛓️ 18 Sep (J3-C5) — THE GREETING IS NO LONGER THE STARTING STATE.
+  // WHAT THIS REPLACED: ~~`useState<Msg[]>([{ id: 'greet', … MILLA_GREETING }])`~~ — the
+  // greeting was seeded before anything had been read, so a restore that FAILED left it
+  // standing alone and a client with twenty turns of history was welcomed as new. It is now
+  // added only by the one state that earns it: a read that worked and found nothing.
+  const [messages, setMessages] = useState<Msg[]>([])
+  /** How the thread restore went. `null` while it is still in flight. */
+  const [restoreErr, setRestoreErr] = useState<string | null>(null)
+  const [restoreDone, setRestoreDone] = useState(false)
   const [input, setInput] = useState('')
   const [sending, setSending] = useState(false)
   const [context, setContext] = useState<ConversationContext>(null)
@@ -255,16 +266,33 @@ export function MillaConversationProvider(
         const tok = await token()
         const list = await api.get<{ data: { id: string }[] }>('/milla/sessions', tok)
         const sid = list.data?.[0]?.id
+        let rows: Msg[] = []
         if (sid) {
           setSessionId(sid)
           const hist = await api.get<{ data: Msg[] }>(`/milla/sessions/${sid}/messages`, tok)
-          const rows = (hist.data ?? []).slice(-20)
+          rows = (hist.data ?? []).slice(-20)
           if (rows.length > 0) {
             restored = rows
             setMessages(m => [...m, ...rows.map(r => ({ id: r.id, role: r.role, content: r.content }))])
           }
         }
-      } catch { /* no thread yet — the greeting stands on its own */ }
+        // 🛑 THE GREETING IS EARNED BY A READ THAT WORKED AND FOUND NOTHING — see below.
+        const view = restoreView({ ok: true, count: rows.length })
+        if (view.greet) setMessages(m => [{ id: 'greet', role: 'assistant', content: MILLA_GREETING }, ...m])
+        setRestoreErr(null)
+        setRestoreDone(true)
+      } catch (e) {
+        // ── ⛓️ 18 Sep (J3-C5) — A FAILED RESTORE IS NOT A NEW CONVERSATION ──────────────
+        //
+        // WHAT THIS REPLACED: ~~`catch { /* no thread yet — the greeting stands on its own */ }`~~.
+        // Two opposite facts, one branch: "this client has never spoken to Milla" and "we could
+        // not read what they said" produced the identical screen. A client with twenty turns of
+        // history saw a greeting over a blank thread — and their composer still worked, so their
+        // next sentence joined the real thread the screen had just denied existed, and they
+        // re-explained things Milla had already been given as context.
+        setRestoreErr(loadError(e))
+        setRestoreDone(true)
+      }
 
       // ── 🛑 ⚑ 15 Sep (O1 correction) — THE SENTENCE TYPED BEFORE THE NAVIGATION ────────
       //
@@ -595,6 +623,25 @@ export function MillaConversationProvider(
         </div>
         <div ref={chatBodyRef} className="flex-1 overflow-y-auto px-4 py-4">
           <div className="max-w-2xl space-y-3">
+            {/* ⛓️ 18 Sep (J3-C5) — A THREAD WE COULD NOT READ SAYS SO, ABOVE ITS OWN ABSENCE.
+                Rendered first because it is about everything below it: the client is looking at
+                a conversation that is missing, and the one thing they need to know is that it
+                is missing rather than gone. `restoreView` is the rule; this only draws it. */}
+            {(() => {
+              const v = restoreView(
+                restoreErr ? { ok: false, error: restoreErr } : restoreDone ? { ok: true, count: messages.length } : { ok: 'pending' },
+              )
+              return v.kind === 'unreadable'
+                ? (
+                  <div
+                    data-testid="restore-unreadable"
+                    className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-[13px] text-amber-900"
+                  >
+                    {v.message}
+                  </div>
+                )
+                : null
+            })()}
             {messages.map(m => (
               <div key={m.id} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                 <div className={`max-w-[86%] rounded-2xl px-4 py-2.5 text-[14px] leading-relaxed whitespace-pre-wrap ${m.role === 'user' ? 'bg-[#1f1235] text-white' : 'bg-[#f3ecff] text-[#1f1235]'}`}>{m.role === 'assistant' ? rich(m.content) : m.content}</div>

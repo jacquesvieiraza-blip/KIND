@@ -75,6 +75,18 @@ export type FrozenWork = {
    */
   sender_email?: string | null
   /**
+   * ⚑ 18 Sep (J14-C3 · R129) — WHOSE MAILBOX THAT ADDRESS IS.
+   *
+   * 🛑 "Sent from ada@…" AND NOTHING ELSE READS AS THE CLIENT'S OWN ADDRESS. R129 (16 Sep,
+   * founder-locked) put MVP1 on an *"ENV-BACKED POOLED SENDER INVENTORY"*, so for most clients
+   * it is one we own and assign to them for the duration of their programme. `branded` is a
+   * client's own domain, and claiming that one is ours would be the same defect reversed.
+   *
+   * ⚠️ `null` MEANS WE DID NOT READ IT, and the screen then says nothing about whose it is —
+   * a guess here is worse than the bare address.
+   */
+  sender_kind?: string | null
+  /**
    * ⚑ 18 Sep (J16-C1) — HOW MANY OF THESE PEOPLE WE MAY ACTUALLY EMAIL (FD-5).
    *
    * 🛑 THE SEVENTH FACT, AND IT IS THE ONE THAT WAS MISSING FROM THE SCREEN THEY SAY YES TO.
@@ -307,6 +319,27 @@ export default function ProgrammeApproval({
             <p className="text-[12.5px] text-[#4c4368]">
               <span className="text-[#9b8ec4]">Sent from</span>{' '}
               <b className="font-semibold">{frozen.sender_email}</b>
+              {/* ── ⚑ 18 Sep (J14-C3 · R129) — AND WHOSE MAILBOX THAT IS ─────────────────
+                  🛑 THE ADDRESS ALONE READS AS THEIRS. Under R129 the MVP1 sender comes from
+                  an env-backed POOLED inventory: we own it and assign it to them while their
+                  programme runs. A client who believes it is their own mailbox will go looking
+                  for the replies in it, and will read a warm-up limit as their own domain
+                  being throttled.
+
+                  ⚠️ `branded` IS THEIR OWN DOMAIN and says so — the same sentence for both
+                  would be the same untruth pointing the other way.
+
+                  ⚠️ AND AN UNREAD KIND SAYS NOTHING. The address still shows; the claim about
+                  whose it is only appears when it was actually read. */}
+              {frozen.sender_kind === 'pooled' && (
+                <span data-testid="sender-pooled" className="text-[#9b8ec4]">
+                  {' '}— a sending address we provide and keep for you while your programme
+                  runs, not your own mailbox. Replies come back to us and appear in Milla.
+                </span>
+              )}
+              {frozen.sender_kind === 'branded' && (
+                <span className="text-[#9b8ec4]"> — your own sending address.</span>
+              )}
             </p>
           )}
           {frozen?.meeting_target != null && (

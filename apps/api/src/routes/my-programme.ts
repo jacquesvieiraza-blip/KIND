@@ -213,6 +213,40 @@ myProgrammeRouter.get('/review', async (req: AuthRequest, res) => {
       })(),
     } : null
 
+    // ── ⚑ 18 Sep (J14-C3 · R129) — WHOSE ADDRESS IS THAT, ACTUALLY ───────────────────────
+    //
+    // 🛑 THE SCREEN SAID "Sent from ada@…" AND STOPPED THERE. R129 (16 Sep, founder-locked):
+    // *"ENV-BACKED POOLED SENDER INVENTORY + `client_inboxes` as durable assignment/claim
+    // truth."* So for most clients that address is one WE own and assign to them for the
+    // duration of their programme — and a bare from-line reads as the client's own mailbox,
+    // which is the one reading the copy must not leave available.
+    //
+    // ⚠️ IT IS NOT ALWAYS POOLED. `client_inboxes.kind` also admits `branded` — a client's own
+    // domain — and saying "this is ours" about theirs would be the same defect pointing the
+    // other way. The KIND is read, never assumed.
+    //
+    // ⚠️ READING IT LIVE DOES NOT BREAK THE FREEZE. The frozen package pins WHICH mailbox
+    // (`sender` is `id|email`); this reads a property OF that exact mailbox by its frozen id.
+    // Nothing here can change which sender was approved.
+    //
+    // ⚠️ AND AN UNREADABLE KIND IS `null`, WHICH RENDERS NO CLAIM AT ALL. A guess about whose
+    // mailbox a client is sending from is worse than the bare address they had before.
+    let senderKind: string | null = null
+    if (frozen?.sender_email) {
+      const rawSender = typeof snapObj?.sender === 'string' ? snapObj.sender : ''
+      const inboxId = rawSender.includes('|') ? rawSender.slice(0, rawSender.indexOf('|')).trim() : ''
+      if (inboxId) {
+        const { data: inboxRow, error: inboxErr } = await db.from('client_inboxes')
+          .select('kind').eq('id', inboxId).eq('client_id', clientId).maybeSingle()
+        if (inboxErr) {
+          console.error(`[programme/me/review] the sending mailbox kind could not be read for programme ${p.id}: ${inboxErr.message}. The address is shown without a claim about whose it is.`)
+        } else {
+          const k = (inboxRow as { kind?: string | null } | null)?.kind
+          senderKind = typeof k === 'string' && k.trim() !== '' ? k.trim() : null
+        }
+      }
+    }
+
     // ── ⚑ 11 Sep (DAY 3) — THE PROSPECTS COME FROM THE FREEZE, AND ALL OF THEM CAN BE READ ──
     //
     // 🛑 THE TWO DEFECTS THIS CLOSES. The desk was a LIVE recomputation of "who is eligible
@@ -254,7 +288,10 @@ myProgrammeRouter.get('/review', async (req: AuthRequest, res) => {
           // exists precisely so a fourth module cannot invent its own answer.
           second_settled: p2Authorised(p),
         },
-        frozen,
+        // ⚑ 18 Sep (J14-C3 · R129) — the package, plus whose mailbox the from-line is. The
+        // kind rides ON the frozen block because it describes the frozen sender and belongs
+        // beside the address it qualifies; `null` states nothing rather than guessing.
+        frozen: frozen ? { ...frozen, sender_kind: senderKind } : null,
         prospects: set.prospects,
         total: set.total,
         /** Where this page starts, and the page size — so "view all" is a real parameter. */

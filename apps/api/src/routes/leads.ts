@@ -1192,6 +1192,12 @@ leadRouter.post('/:id/reveal', rateLimit({ limit: 60, windowMs: 60_000, key: 'le
     const { approveLead } = await import('../lib/approve-lead')
     const outcome = await approveLead(req.params.id, clientId)
     if (outcome.status === 'not_found') { res.status(404).json({ success: false, error: 'Lead not found' }); return }
+    // ⚑ 18 Sep (XC-2 · LR 21) — a read this path depends on could not be completed. A 503,
+    // not a 404: the lead is not missing, and nothing was revealed or charged.
+    if (outcome.status === 'unavailable') {
+      res.status(503).json({ success: false, error: 'unavailable', message: 'We could not check this lead just now, so nothing was approved and nothing was charged. Please try again shortly.' })
+      return
+    }
     // The function's own programme fence. `batchGate` above already refused this client, so
     // reaching here would mean the two layers disagree — answered identically either way.
     if (outcome.status === 'programme_fenced') { res.status(409).json({ success: false, error: outcome.code, message: outcome.message }); return }

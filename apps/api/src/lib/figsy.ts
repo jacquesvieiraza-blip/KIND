@@ -781,7 +781,14 @@ async function sendSequenceEmailCore(
     // fires (defence-in-depth for a missed call site).
     let demoClientId: string | null | undefined = lead.client_id
     if (!demoClientId && enrollmentId) {
-      const { data: enr } = await db.from('figsy_enrollments').select('client_id').eq('id', enrollmentId).maybeSingle()
+      // ⚑ 18 Sep (XC-2 · LR 21) — a read we could not complete is not "no client". An
+      // unread client id makes `isDemoClient(null)` false, which opens the DEMO BACKSTOP —
+      // the guard whose entire job is that a demo account can never email a real prospect.
+      const { data: enr, error: enrErr } = await db.from('figsy_enrollments').select('client_id').eq('id', enrollmentId).maybeSingle()
+      if (enrErr) {
+        console.error(`[figsy] sendSequenceEmail: the enrolment's client could not be read (${enrErr.message}) — step ${step} DEFERRED, because the demo backstop cannot be evaluated without it.`)
+        return 'deferred'
+      }
       demoClientId = (enr?.client_id as string | null | undefined) ?? null
     }
     if (await isDemoClient(demoClientId)) {
@@ -814,8 +821,15 @@ async function sendSequenceEmailCore(
   // single matched enrollment opted_out, not every enrollment for that email.
   // HC-1 — probe with the NORMALISED address. `leads.email` is stored raw, the blocklist is
   // stored normalised, so an exact compare between the two is a coin toss on letter case.
-  const { data: blocked } = await db.from('opt_out_blocklist')
+  // ⚑ 18 Sep (XC-2 · LR 21) — 🛑 THE ONE WITH A LEGAL EDGE. This read discarded its error, so
+  // a database hiccup made `blocked` undefined and the send proceeded — to somebody who had
+  // told us to stop. An opt-out we could not check is not an opt-out we do not have.
+  const { data: blocked, error: blockedErr } = await db.from('opt_out_blocklist')
     .select('id').eq('email', normalizeRevealEmail(lead.email)).is('opted_back_in_at', null).maybeSingle()
+  if (blockedErr) {
+    console.error(`[figsy] sendSequenceEmail: the opt-out blocklist could not be read (${blockedErr.message}) — step ${step} DEFERRED rather than sent to somebody we cannot prove has not opted out.`)
+    return 'deferred'
+  }
   if (blocked) {
     console.warn(`[figsy] sendSequenceEmail: ${lead.email} is on the opt-out blocklist — step ${step} NOT sent; marking enrollment opted_out.`)
     await updateEnrollmentState(enrollmentId, { status: 'opted_out' },
@@ -956,12 +970,23 @@ async function sendSequenceEmailCore(
       // fall back to the enrollment's for a client-less caller (defence-in-depth).
       let queueClientId: string | null | undefined = lead.client_id
       if (!queueClientId && enrollmentId) {
-        const { data: enr } = await db.from('figsy_enrollments').select('client_id').eq('id', enrollmentId).maybeSingle()
+        // ⚑ 18 Sep (XC-2 · LR 21) — a queued draft with no client is a draft nobody's review
+        // screen lists. Reported, not guessed: the queue insert below still happens, because
+        // losing the step entirely is worse than a row an operator has to attribute.
+        const { data: enr, error: enrErr } = await db.from('figsy_enrollments').select('client_id').eq('id', enrollmentId).maybeSingle()
+        if (enrErr) console.error(`[figsy] review queue: the enrolment's client could not be read (${enrErr.message}) — the draft is queued with no client id and will not appear on their review screen.`)
         queueClientId = (enr?.client_id as string | null | undefined) ?? null
       }
       // Don't pile up duplicate drafts if this enrollment-step is already pending review.
-      const { data: dupe } = await db.from('figsy_approval_queue')
+      // ⚑ 18 Sep (XC-2 · LR 21) — an unread duplicate check is not "there is no duplicate".
+      // It made `dupe` undefined and queued a SECOND pending draft of the same step, which a
+      // client then reviews twice.
+      const { data: dupe, error: dupeErr } = await db.from('figsy_approval_queue')
         .select('id').eq('enrollment_id', enrollmentId).eq('sequence_step', step).eq('status', 'pending').maybeSingle()
+      if (dupeErr) {
+        console.error(`[figsy] review queue: the pending-draft check failed (${dupeErr.message}) — step ${step} DEFERRED rather than queued twice for one enrolment.`)
+        return 'deferred'
+      }
       if (!dupe) {
         const { error: qErr } = await db.from('figsy_approval_queue').insert({
           client_id:      queueClientId,
@@ -1022,12 +1047,20 @@ async function sendSequenceEmailCore(
   // (no real enrollment row). Runs AFTER the defer guards above so a deferred send never
   // advances the step without sending. On send failure (#338) the claim is rolled back.
   if (!opts?.isPreview) {
-    const { data: claimed } = await db.from('figsy_enrollments')
+    const { data: claimed, error: claimErr } = await db.from('figsy_enrollments')
       .update({ current_step: step })
       .eq('id', enrollmentId)
       .eq('current_step', step - 1)
       .select('id')
       .maybeSingle()
+    // ⚑ 18 Sep (XC-2 · LR 21) — BOTH OUTCOMES DEFER, AND THEY ARE NOT THE SAME EVENT. An
+    // unclaimed step is the guard WORKING (another runner took it); a failed claim is a
+    // database we could not reach, and reading the second as the first hides a broken send
+    // path behind a line that says everything is fine.
+    if (claimErr) {
+      console.error(`[figsy] sendSequenceEmail: the atomic step claim FAILED for enrollment ${enrollmentId} step ${step} (${claimErr.message}) — nothing was claimed and nothing was sent.`)
+      return 'deferred'
+    }
     if (!claimed) {
       console.warn(`[figsy] sendSequenceEmail: step ${step} for enrollment ${enrollmentId} already claimed/advanced — skipping (no double-send)`)
       return 'deferred'
@@ -1080,7 +1113,7 @@ async function sendSequenceEmailCore(
   const sendingInbox = opts.inbox ?? resolved.inbox
 
   // Insert the DB record first so we have the emailId for the tracking pixel
-  const { data: emailRecord } = await db.from('figsy_sent_emails').insert({
+  const { data: emailRecord, error: emailRecordErr } = await db.from('figsy_sent_emails').insert({
     enrollment_id: enrollmentId,
     campaign_id:   campaignId,
     // #637 — WHOSE SEND IS THIS. Five surfaces read `figsy_sent_emails.client_id` — the
@@ -1098,6 +1131,22 @@ async function sendSequenceEmailCore(
   }).select('id').single()
 
   const emailId = (emailRecord as { id?: string } | null)?.id ?? null
+  if (emailRecordErr) {
+    console.error(`[figsy] sendSequenceEmail: the send-log insert failed for enrollment ${enrollmentId} step ${step}: ${emailRecordErr.message}`)
+  }
+  // ⚑ 18 Sep (XC-2 · LR 21) — 🛑 NO ROW, NO SEND, AND THE CLAIM GOES BACK.
+  //
+  // `figsy_sent_emails` is the send log every counter recomputes from — this file says so
+  // itself: *"the count IS the truth"*. An email sent with no row is a send nothing can count,
+  // whose step has already been CLAIMED, so the prospect never receives it again and no
+  // surface knows. Roll the claim back and defer, exactly as a failed send does below.
+  if (!emailId && !opts?.isPreview) {
+    console.error(`[figsy] sendSequenceEmail: the send-log row could not be written for enrollment ${enrollmentId} step ${step} — NOT sending, and the step claim is rolled back so a later run retries.`)
+    await db.from('figsy_enrollments')
+      .update({ current_step: step - 1, next_send_at: new Date().toISOString() })
+      .eq('id', enrollmentId)
+    return 'deferred'
+  }
 
   // resend is guaranteed configured here (deferred above otherwise).
   {

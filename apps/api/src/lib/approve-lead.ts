@@ -35,6 +35,19 @@ export type ApproveOutcome =
   // open. The verdict already knew which refusal it was; the outcome now carries it.
   | { status: 'programme_fenced'; revealed: false; message: string; code: 'programme_open' | 'programme_model' | 'programme_unresolvable' }
   | { status: 'not_found'; revealed: false }
+  /**
+   * ⚑ 18 Sep (XC-2 · LR 21) — A READ THIS PATH DEPENDS ON COULD NOT BE COMPLETED.
+   *
+   * 🛑 ITS OWN STATUS, NOT `not_found`. Three decisive reads here used to discard their error
+   * and fall through to an answer that was ABOUT THE CLIENT: "no such lead", "you were not
+   * charged", and — the expensive one — "you do not already own this reveal", which charges a
+   * second time for something already paid for. "We could not tell" is none of those, and
+   * collapsing it into one of them is how a database fault became a money event.
+   *
+   * ⚠️ NOTHING IS REVEALED AND NOTHING IS CHARGED. The caller answers 503: come back, this
+   * may resolve, and no money moved.
+   */
+  | { status: 'unavailable'; revealed: false }
 
 // ── #625 — THE NO-CAMPAIGN RULE, IN ONE PLACE ─────────────────────────────────────────────
 //
@@ -64,14 +77,34 @@ export type ApproveOutcome =
  * was never live and a completed one is finished; neither should spring back to sending because
  * somebody clicked approve.
  */
-async function resolveActiveCampaign(clientId: string): Promise<{ id: string } | null> {
-  const { data: active } = await db.from('figsy_campaigns')
+/**
+ * ⚑ 18 Sep (XC-2 · LR 21) — `undefined` MEANS "WE COULD NOT LOOK", AND THE CALLER MUST KNOW.
+ *
+ * 🛑 BOTH READS DISCARDED THEIR ERROR, and `null` here is a decision: the caller refuses the
+ * approval with `no_campaign` — *"Your campaign isn't live yet… we've been alerted and will
+ * switch it on"* — which is a sentence about the CLIENT'S account, said because our database
+ * did not answer. The client is then sent to look at a campaign that may be perfectly live.
+ *
+ * ⚠️ `undefined` IS THE THIRD ANSWER, deliberately, rather than a throw: the caller already
+ * distinguishes "no campaign" from every other refusal, and a throw would land in a catch that
+ * reports something else entirely.
+ */
+async function resolveActiveCampaign(clientId: string): Promise<{ id: string } | null | undefined> {
+  const { data: active, error: activeErr } = await db.from('figsy_campaigns')
     .select('id').eq('client_id', clientId).eq('status', 'active').limit(1).maybeSingle()
+  if (activeErr) {
+    console.error(`[approve] the client's campaigns could not be read for ${clientId} (${activeErr.message}) — refusing rather than telling them their campaign is not live.`)
+    return undefined
+  }
   if (active) return { id: active.id as string }
 
-  const { data: resumed } = await db.from('figsy_campaigns')
+  const { data: resumed, error: resumedErr } = await db.from('figsy_campaigns')
     .update({ status: 'active' }).eq('client_id', clientId).eq('status', 'paused')
     .select('id').limit(1)
+  if (resumedErr) {
+    console.error(`[approve] the paused-campaign resume failed for ${clientId} (${resumedErr.message}) — refusing rather than reporting no campaign.`)
+    return undefined
+  }
   if (resumed && resumed.length > 0) {
     console.log('[approve] client', clientId, 'came back — resumed paused campaign(s)')
     void sendFounderAlert('new_signup', 'A quiet client just came back', [
@@ -149,8 +182,15 @@ export async function approveLead(leadId: string, clientId: string): Promise<App
   // Lost the claim → already approved (idempotent). Return the existing state; never
   // a second charge.
   if (!claim) {
-    const { data: existing } = await db.from('leads')
+    // ⚑ 18 Sep (XC-2 · LR 21) — a read we could not complete is not "no such lead". Both
+    // answers refuse, which is why this was invisible; only one of them is about the client,
+    // and only one of them is worth a person looking at.
+    const { data: existing, error: existingErr } = await db.from('leads')
       .select('email, revealed_at, crm_existing').eq('id', leadId).eq('client_id', clientId).maybeSingle()
+    if (existingErr) {
+      console.error(`[approve-lead] the lead could not be read for ${leadId} (${existingErr.message}) — refusing rather than reporting it missing. Nothing was charged.`)
+      return { status: 'unavailable', revealed: false }
+    }
     if (!existing) return { status: 'not_found', revealed: false }
     if (existing.email) {
       // `charged: true` was hardcoded here, so a double-click, a retry or a refresh on a
@@ -158,10 +198,16 @@ export async function approveLead(leadId: string, clientId: string): Promise<App
       // cost nothing. #541 fixed that on the first-approval path and missed this one.
       // Ask the ledger what actually happened instead of assuming: a wallet charge writes
       // `lead:<id>`, a pack approval writes `pack_<id>` at $0.
-      const { data: charge } = await db.from('credit_transactions')
+      // ⚑ 18 Sep (XC-2 · LR 21) — an unread ledger made `charged: false` for a lead that HAD
+      // been charged, which is a statement about somebody's money made from an absence.
+      const { data: charge, error: chargeErr } = await db.from('credit_transactions')
         .select('id').eq('client_id', clientId)
         .eq('reference', `lead:${leadId}`).eq('type', 'wallet_charge')
         .limit(1).maybeSingle()
+      if (chargeErr) {
+        console.error(`[approve-lead] the charge ledger could not be read for lead ${leadId} (${chargeErr.message}) — refusing rather than telling the client they were not charged.`)
+        return { status: 'unavailable', revealed: false }
+      }
       return { status: 'approved', revealed: true, email: existing.email as string, charged: !!charge }
     }
     return { status: 'no_email', revealed: false }
@@ -191,7 +237,15 @@ export async function approveLead(leadId: string, clientId: string): Promise<App
   // 3b. #424 charge-once — this client already paid for this contact → free re-approve.
   const knownEmail = normalizeRevealEmail(claim.email)
   if (knownEmail) {
-    const { data: owned } = await db.rpc('reveal_is_owned', { p_client_id: clientId, p_email_norm: knownEmail })
+    // ⚑ 18 Sep (XC-2 · LR 21) — 🛑 THE MOST EXPENSIVE ONE IN THIS FILE. An unread answer made
+    // `owned` null, which reads as NOT owned — so a reveal this client had already paid for
+    // was charged for a second time. "We could not tell whether they own it" is the one state
+    // in which charging is certainly wrong.
+    const { data: owned, error: ownedErr } = await db.rpc('reveal_is_owned', { p_client_id: clientId, p_email_norm: knownEmail })
+    if (ownedErr) {
+      console.error(`[approve-lead] reveal ownership could not be checked for lead ${leadId} (${ownedErr.message}) — refusing rather than risking a second charge for a reveal they may already own.`)
+      return { status: 'unavailable', revealed: false }
+    }
     if (owned === true) {
       // #568④ — THE LAST SWALLOWED ENROL, and the one that hid the longest.
       //
@@ -211,7 +265,14 @@ export async function approveLead(leadId: string, clientId: string): Promise<App
       // the lead, enrolled nothing, and reported "approved". Free does not mean harmless: the
       // client paid for this contact earlier, and a lead in no sequence is somebody waiting on
       // outreach that will never arrive.
-      if (!(await resolveActiveCampaign(clientId))) {
+      // ⚑ 18 Sep (XC-2 · LR 21) — `undefined` IS NOT "no campaign". One refuses the client and
+      // tells them their campaign is not live; the other says our database did not answer.
+      const reCampaign = await resolveActiveCampaign(clientId)
+      if (reCampaign === undefined) {
+        await unclaim()
+        return { status: 'unavailable', revealed: false }
+      }
+      if (!reCampaign) {
         return refuseNoCampaign(clientId, leadId, unclaim, true)
       }
 
@@ -239,6 +300,12 @@ export async function approveLead(leadId: string, clientId: string): Promise<App
   // #625 — one shared resolver (lookup + paused-campaign resume) so this door and the
   // charge-once door at 3b can never disagree about whether a client has somewhere to run.
   const activeCampaign = await resolveActiveCampaign(clientId)
+  // ⚑ 18 Sep (XC-2 · LR 21) — the same distinction at the charging door: nothing is charged
+  // either way, and only one of the two answers is a statement about the client's account.
+  if (activeCampaign === undefined) {
+    await unclaim()
+    return { status: 'unavailable', revealed: false }
+  }
   if (!activeCampaign) return refuseNoCampaign(clientId, leadId, unclaim, false)
 
   // 3d. LAUNCH COUNTRY HOLD → we cannot send to this lead yet, so we must not take the money.

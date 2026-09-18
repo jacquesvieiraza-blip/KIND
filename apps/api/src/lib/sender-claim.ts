@@ -187,7 +187,30 @@ export async function claimPooledSender(clientId: string): Promise<SenderClaim> 
       : { verified_at: null, verify_failed_at: stampedAt, verify_detail: result.message }
     const { error: stampErr } = await db.from('client_inboxes').update(stamp).eq('id', inserted.id)
     if (stampErr) {
-      console.error(`[sender-claim] verification ran for ${sender.email} but the result could not be stored: ${stampErr.message}`)
+      // ── ⚑ 18 Sep (J14-C2 · LR 21) — A STAMP THAT DID NOT LAND IS A FAILED VERIFICATION ──
+      //
+      // ⛓️ WHAT STOOD HERE: ~~a `console.error` and nothing else~~, so a mailbox whose SMTP
+      // check PASSED and whose result could not be written returned
+      // `{ ok: true, verified: true }`. The row still said `verified_at: null` — because the
+      // write is the only thing that sets it — so `programmeSenderSafety` refused the
+      // programme with `sender_unverified` while the claim that produced it had just reported
+      // success. Preparation recorded no sender problem, and the blocker arrived from a
+      // different module with no explanation of where it came from.
+      //
+      // 🛑 THE CHECK IS NOT THE VERIFICATION. Nothing downstream reads the SMTP answer; they
+      // all read the COLUMN. A result nobody can read has not verified anything, whatever the
+      // mailbox said, and that is the whole of this item: a failed stamp write IS a failed
+      // verification.
+      //
+      // ⚠️ THE ROW STAYS ASSIGNED AND UNVERIFIED, exactly as on a failed check below — which
+      // is the state the gate already refuses, with the mailbox's own sentence on it.
+      console.error(`[sender-claim] verification ran for ${sender.email} but the result could not be stored: ${stampErr.message}. Treating the mailbox as NOT verified.`)
+      return {
+        ok: false, reason: 'verify_failed', inboxId: inserted.id, email: sender.email,
+        detail: result.ok
+          ? `The mailbox answered and let us in, but the result could not be stored (${stampErr.message}). Nothing downstream can read a check that was not recorded, so this mailbox counts as unverified until it is checked again.`
+          : `The mailbox refused us (${result.message}) and the result could not be stored either (${stampErr.message}).`,
+      }
     }
 
     if (!result.ok) {

@@ -4527,13 +4527,30 @@ operatorRouter.post('/inboxes/:id/verify', async (req: Request, res: Response) =
         '— run migration 20260910_inbox_verification if the columns are missing')
     }
 
+    // ── ⚑ 18 Sep (J14-C2 · LR 21) — AND THE OPERATOR IS TOLD IT DID NOT COUNT ───────────
+    //
+    // ⛓️ ~~`res.json({ success: true, data: result })`~~ reported the mailbox's own answer as
+    // the verdict. When the stamp failed, a green "connected" came back for a mailbox whose
+    // row still reads unverified — and the row is what every gate downstream reads, so the
+    // operator had been told a thing was done that nothing could see.
+    //
+    // ⚠️ THE EXISTING RULE IS KEPT, NOT REVERSED: the write still does not break the check,
+    // there is no throw, and the operator still hears exactly what the mailbox said. What
+    // changes is that an unrecorded pass is no longer reported as a verification.
+    const answer = stampErr
+      ? { ok: false, message: `${result.message} — but the result could not be recorded (${stampErr.message}), so this mailbox is NOT verified. Nothing downstream can read a check that was not stored. Try again once the storage error is fixed.` }
+      : result
+
     await writeOperatorAudit({
       operatorEmail: operatorEmail(req), clientId: client.id, action: 'assign_inbox',
       subjectType: 'inbox', subjectId: req.params.id,
-      detail: { verified: result.ok, stored: !stampErr },
+      // ⚠️ THREE FACTS, NOT ONE. What the mailbox said, whether it was recorded, and therefore
+      // whether this counts as verified — collapsing them is what let an unrecorded pass read
+      // as a verification.
+      detail: { connection_ok: result.ok, stored: !stampErr, verified: result.ok && !stampErr },
     })
     // 200 either way: "we asked and it said no" is a successful check, not a server error.
-    res.json({ success: true, data: result })
+    res.json({ success: true, data: answer })
   } catch (err) { console.error('[operator/inbox-verify]', err); res.status(500).json({ success: false, error: 'Failed to check the mailbox' }) }
 })
 

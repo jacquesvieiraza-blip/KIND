@@ -115,13 +115,38 @@ describe('② ONE TAP, NEVER MANDATORY, NEVER BLOCKS THE ACTION', () => {
     expect(r.hasSomething).toBe(true)
   })
 
-  it('the endpoint never returns an error status for a failed WRITE', () => {
-    // Read from the handler: a DB failure logs loudly and still answers success, because the
-    // pass stands and the client is not the person who can fix a database.
+  // ⛓️ 18 Sep (MVP1 · J5-C11 · LR 17) — REVERSED, AND THE REVERSAL IS THE POINT.
+  //
+  // ~~*"the endpoint never returns an error status for a failed WRITE"* — "a DB failure logs
+  // loudly and still answers success, because the pass stands and the client is not the person
+  // who can fix a database."~~
+  //
+  // 🛑 THE FIRST HALF OF THAT REASONING WAS RIGHT AND THE SECOND HALF WAS THE DEFECT. The pass
+  // DOES stand, and still does — it completes on `/leads/:id/pass`, a different route, before
+  // this one is called, and this handler writes nothing to `leads`. But answering
+  // `success: true` for a write that did not happen meant NO CALLER COULD EVER KNOW:
+  // `recorded: false` rode in the payload and nothing anywhere read it, so the portal resolved
+  // and the client was told their words were saved. J5-C11 requires them TOLD AND RETRIED, and
+  // a retry cannot be built on an answer that says it worked.
+  //
+  // ⚠️ THE ASSERTION IS REPLACED, NOT DELETED, AND THE PROPERTY IT PROTECTED IS ASSERTED
+  // BELOW. Nothing about the client's pass may depend on this write.
+  //
+  // ⚠️ P32 IS UNCHANGED — "one tap, never mandatory, never blocks the action". The screen keeps
+  // the client's own words, states once that they did not save, and offers the same tap again.
+  it('a failed WRITE is reported as a failure, and the PASS is still untouched', () => {
     const h = codeOf(ROUTES).slice(codeOf(ROUTES).indexOf("post('/:id/feedback'"))
     const handler = h.slice(0, h.indexOf('\n})'))
-    expect(handler).toMatch(/recorded: false/)
-    expect(handler, 'a write failure is logged, not thrown at the client').toMatch(/NOT RECORDED/)
+    expect(handler, 'a write failure is still logged loudly').toMatch(/NOT RECORDED/)
+    expect(handler, 'a lost note is still acknowledged as a saved one')
+      .toMatch(/status\(503\)[\s\S]{0,200}success: false/)
+    expect(handler, 'no stable code, so a caller must retry by matching on a sentence')
+      .toMatch(/code: 'feedback_not_recorded'/)
+    // THE PROPERTY THE OLD ASSERTION EXISTED FOR: this route cannot undo the pass.
+    expect(handler, 'the feedback route started writing the lead row')
+      .not.toMatch(/from\('leads'\)[\s\S]{0,120}\.(update|insert|delete)\(/)
+    // And "nothing to record" is still a success — it never reached the database.
+    expect(handler).toMatch(/if \(!hasSomething\) \{ res\.json\(\{ success: true, recorded: false \}\)/)
   })
 })
 
@@ -242,16 +267,38 @@ describe('⑧ the chips actually reach the client — Milla renders them', () =>
     expect(chipIdx, 'the chip is triggered after the pass, not before').toBeGreaterThan(passIdx)
   })
 
-  it('the chip send is fire-and-forget — it can never surface an error', () => {
+  // ⛓️ 18 Sep (MVP1 · J5-C11 · LR 17) — REVERSED. ~~*"the chip send is fire-and-forget — it
+  // can never surface an error"* — "and its failure is swallowed, never shown."~~
+  //
+  // 🛑 THE CHIP IS NOT A NICETY, AND `sendReason`'s OWN COMMENT SAYS SO: *"THIS TAP IS A SPEND
+  // GATE OPENING, AND SOMETIMES A LOOP CLOSING."* The reason unlocks "Show me stronger
+  // examples" on attempt 1, and on attempt 2 the same tap can be the trigger that hands the
+  // client to a person. A swallowed failure means the client taps, the gate never opens, and
+  // nothing on screen says why. J5-C11 requires it TOLD AND RETRIED.
+  //
+  // ⚠️ WHAT IS UNCHANGED IS THE THING THAT MATTERED: the chip still cannot reach the DESK's
+  // error banner (`setError`), still cannot block, delay or undo the pass, and is still
+  // skippable. The failure line is local to the prompt and disappears with it.
+  it('a lost chip is TOLD, and still cannot touch the pass or the desk banner', () => {
     const fn = MILLA.slice(MILLA.indexOf('async function sendReason'))
     const body = fn.slice(0, fn.indexOf('\n  }'))
     expect(body, 'the feedback endpoint is called').toContain('/feedback')
-    expect(body, 'and its failure is swallowed, never shown').toMatch(/catch \{/)
-    expect(body, 'no error state is set from a chip').not.toMatch(/setError/)
+    expect(body, 'the tap is still sent once and forgotten').toMatch(/saveDurably\(/)
+    expect(body, 'a lost chip is still invisible to the client').toMatch(/setNoteError\(/)
+    // 🛑 THE PROPERTY THE OLD ASSERTION EXISTED FOR. `setError` is the desk-wide banner; a
+    // calibration nicety must never raise it, and must never touch the pass.
+    expect(body, 'a chip raised the desk-wide error banner').not.toMatch(/setError\(/)
+    expect(body, 'a chip started touching the lead list').not.toMatch(/setLeads\(/)
   })
 
+  // ⛓️ 18 Sep (MVP1 · J5-C11) — the Skip assertion is unchanged in substance. It now also
+  // clears the local "not saved" line, because leaving a failure notice behind after the
+  // client has dismissed the whole prompt would be a message about nothing.
   it('there is a Skip — ignoring the prompt is a first-class action', () => {
     expect(MILLA).toContain('Skip')
-    expect(MILLA, 'and skipping records nothing').toMatch(/onClick=\{\(\) => setJustPassed\(null\)\}/)
+    expect(MILLA, 'skip stopped dismissing the prompt').toMatch(/setJustPassed\(null\); setNoteError\(null\)/)
+    // AND IT STILL RECORDS NOTHING: no write rides the dismissal.
+    const at = MILLA.indexOf('setJustPassed(null); setNoteError(null)')
+    expect(MILLA.slice(at, at + 200), 'skipping started filing something').not.toContain('/feedback')
   })
 })

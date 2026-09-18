@@ -2,6 +2,8 @@
 
 import { Fragment, useCallback, useEffect, useRef, useState, useMemo } from 'react'
 import { ProofCalibration, type ProofCalibrationState } from '@/components/milla/ProofCalibration'
+// ⚡ 18 Sep (J5-C11 · LR 17) — the client's words are not acknowledged until they are stored.
+import { saveDurably } from '@/lib/durable-note'
 import { useRouter } from 'next/navigation'
 import { api, AI_TURN_TIMEOUT_MS } from '@/lib/api'
 import { createClient } from '@/lib/supabase/client'
@@ -845,6 +847,10 @@ export default function MillaHomePage() {
   // slow, or is never made, the client's action stands and their screen is unaffected — which
   // is the whole difference between a calibration prompt and a gate.
   const [justPassed, setJustPassed] = useState<{ id: string; at: number } | null>(null)
+  // ⚡ 18 Sep (J5-C11 · LR 17) — the one sentence that says a reason or a note did not save,
+  // and the in-flight flag that stops a double send. Neither gates anything.
+  const [noteError, setNoteError] = useState<string | null>(null)
+  const [noteSaving, setNoteSaving] = useState(false)
   const REASON_CHIPS: { code: string; label: string }[] = [
     { code: 'too_big',         label: 'Too big' },
     { code: 'too_small',       label: 'Too small' },
@@ -855,13 +861,24 @@ export default function MillaHomePage() {
     { code: 'other',           label: 'Other' },
   ]
   async function sendReason(leadId: string, code: string) {
-    setJustPassed(null)                       // acknowledge the tap at once — no spinner on a nicety
-    // ⚑ 10 Sep (C07) — THIS TAP IS A SPEND GATE OPENING, AND SOMETIMES A LOOP CLOSING.
+    // ⛓️ 18 Sep (J5-C11 · LR 17) — WAS: `setJustPassed(null)` HERE, "acknowledge the tap at
+    // once — no spinner on a nicety", then a POST whose failure was swallowed.
+    //
+    // ⚡ 10 Sep (C07) — THIS TAP IS A SPEND GATE OPENING, AND SOMETIMES A LOOP CLOSING.
     // A reason is what unlocks "Show me stronger examples" on attempt 1; on attempt 2 the
     // same tap can be the half-rejected-nothing-kept trigger that hands the client to a
     // person. Either way the screen must re-ask the server rather than assume.
-    try { await api.post(`/leads/${leadId}/feedback`, { action: 'pass', reason_code: code }, await token()) }
-    catch { /* never surfaced: the pass stands, and a lost chip is not the client's problem */ }
+    //
+    // 🛑 WHICH IS EXACTLY WHY IT IS NOT A NICETY. A silently lost reason means the client
+    // taps, the gate never opens, and nothing on screen says why. The row stays until the
+    // answer is stored, and a failure keeps it there so the same tap can be repeated.
+    const tk = await token()
+    setNoteError(null); setNoteSaving(true)
+    const r = await saveDurably(() => api.post(`/leads/${leadId}/feedback`,
+      { action: 'pass', reason_code: code }, tk))
+    setNoteSaving(false)
+    if (r.kind === 'saved') setJustPassed(null)
+    else setNoteError(r.message)
     void loadCalibration()
   }
 
@@ -878,14 +895,30 @@ export default function MillaHomePage() {
   //
   // ⚠️ STORED, NEVER PARSED. `lib/lead-feedback.ts` reads structured codes only and a human
   // reads the free text in Vida — the founder gated auto-parsing, and nothing here changes it.
+  // ── 🛑 ⚡ 18 Sep (J5-C11 · LR 17) — DURABLE BEFORE ACKNOWLEDGED ─────────────
+  //
+  // ⛓️ WAS: `setNoteFor(null); setNoteText('')` on the FIRST line, then the POST, then
+  // `catch { }` with the note "never surfaced: ... a lost note is not their problem".
+  //
+  // 🛑 THE BOX CLOSED AND THE WORDS WERE ERASED BEFORE THE REQUEST WAS MADE. A client
+  // types "too corporate, we want independent agencies", presses Send, and if the write fails
+  // their sentence exists nowhere — not on the server, not on their screen, not in their
+  // hands. Nothing was told and nothing was retried.
+  //
+  // ⚠️ P32 STANDS: "one tap, never mandatory, never blocks the action". The action is the
+  // pass and it completed on its own route. This is still optional, still ungated, still
+  // ignorable — it simply stops claiming to have saved what it did not.
   async function sendNote(leadId: string) {
     const text = noteText.trim()
-    setNoteFor(null); setNoteText('')
-    if (!text) return
-    try {
-      await api.post(`/leads/${leadId}/feedback`,
-        { action: reacted[leadId] === 'approve' ? 'approve' : 'pass', free_text: text }, await token())
-    } catch { /* never surfaced: their reaction stands, and a lost note is not their problem */ }
+    if (!text) { setNoteFor(null); setNoteText(''); setNoteError(null); return }
+    const tk = await token()
+    setNoteError(null); setNoteSaving(true)
+    const r = await saveDurably(() => api.post(`/leads/${leadId}/feedback`,
+      { action: reacted[leadId] === 'approve' ? 'approve' : 'pass', free_text: text }, tk))
+    setNoteSaving(false)
+    if (r.kind === 'saved') { setNoteFor(null); setNoteText(''); return }
+    // Their words stay exactly where they typed them, and the box stays open.
+    setNoteError(r.message)
   }
 
   // #570 — pass() now reloads. It removed the row locally and never refreshed, so the KPI
@@ -1473,11 +1506,20 @@ export default function MillaHomePage() {
                       {c.label}
                     </button>
                   ))}
-                  <button onClick={() => setJustPassed(null)}
+                  <button onClick={() => { setJustPassed(null); setNoteError(null) }}
                     className="text-[12.5px] font-semibold text-[#9b8ec4] px-2.5 py-1.5">
                     Skip
                   </button>
                 </div>
+                {/* ⚡ 18 Sep (J5-C11 · LR 17) — TOLD. The tap used to dismiss this row
+                    before the write, so a lost reason was invisible — and this tap is what
+                    opens "Show me stronger examples". The row now stays until the answer is
+                    stored, and says so when it is not. Skipping still costs nothing. */}
+                {noteError && (
+                  <div data-testid="reaction-not-saved" className="text-[12.5px] text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1.5 mt-2">
+                    {noteError}
+                  </div>
+                )}
               </div>
             )}
             {/* ⛓️ 30 Aug — THE "APPROVED · CONTACT" CARD IS GONE. It was the receipt for a paid
@@ -1669,16 +1711,29 @@ export default function MillaHomePage() {
                       {/* THE OPTIONAL THIRD CONTROL. Ignoring it costs nothing and blocks
                           nothing; it is a text box, not a step. */}
                       {noteFor === l.id ? (
-                        <div className="flex gap-1.5 mt-1.5" onClick={e => e.stopPropagation()}>
-                          <input autoFocus value={noteText} onChange={e => setNoteText(e.target.value)}
-                            onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); void sendNote(l.id) } }}
-                            placeholder="Tell Milla why"
-                            className="flex-1 min-w-0 text-[12.5px] rounded-lg border border-[#e4dcf7] px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-[#7C3AED]/30" />
-                          <button onClick={e => { e.stopPropagation(); void sendNote(l.id) }}
-                            className="text-[12.5px] font-bold text-white rounded-lg px-3 bg-[#7C3AED]">Send</button>
+                        <div onClick={e => e.stopPropagation()}>
+                          <div className="flex gap-1.5 mt-1.5">
+                            <input autoFocus value={noteText} onChange={e => setNoteText(e.target.value)}
+                              onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); void sendNote(l.id) } }}
+                              placeholder="Tell Milla why"
+                              className="flex-1 min-w-0 text-[12.5px] rounded-lg border border-[#e4dcf7] px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-[#7C3AED]/30" />
+                            <button disabled={noteSaving} onClick={e => { e.stopPropagation(); void sendNote(l.id) }}
+                              className="text-[12.5px] font-bold text-white rounded-lg px-3 bg-[#7C3AED] disabled:opacity-50">
+                              {noteSaving ? 'Saving…' : 'Send'}
+                            </button>
+                          </div>
+                          {/* ⚡ 18 Sep (J5-C11 · LR 17) — THE WORDS ARE STILL IN THE BOX ABOVE.
+                              The old shape cleared the input on the first line of `sendNote`,
+                              so a failed write destroyed the client's sentence and said
+                              nothing. Sending again is one tap, not retyping. */}
+                          {noteError && (
+                            <div data-testid="note-not-saved" className="text-[12.5px] text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1.5 mt-1.5">
+                              {noteError}
+                            </div>
+                          )}
                         </div>
                       ) : (
-                        <button onClick={e => { e.stopPropagation(); setNoteFor(l.id); setNoteText('') }}
+                        <button onClick={e => { e.stopPropagation(); setNoteFor(l.id); setNoteText(''); setNoteError(null) }}
                           className="text-[12px] font-semibold text-[#9b8ec4] mt-1.5 hover:text-[#7C3AED]">
                           Tell Milla why
                         </button>

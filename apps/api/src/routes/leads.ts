@@ -1752,10 +1752,33 @@ leadRouter.post('/:id/feedback', rateLimit({ limit: 120, windowMs: 60_000, key: 
     }, { onConflict: 'client_id,lead_id,action' })
 
     if (error) {
-      // Never fatal to the client: the pass stands. Logged loudly, because a persistent
-      // failure here means calibration is silently collecting nothing.
+      // ── 🛑 ⚑ 18 Sep (J5-C11 · LR 17) — A WRITE THAT FAILED IS NOT ACKNOWLEDGED ────────
+      //
+      // ⛓️ WAS: `res.json({ success: true, recorded: false })`, with the reasoning *"never
+      // fatal to the client: the pass stands"*.
+      //
+      // 🛑 THE FIRST HALF OF THAT IS STILL RIGHT AND THE SECOND HALF WAS THE DEFECT. The pass
+      // DOES stand — it completed on `/leads/:id/pass`, a different route, before this one is
+      // ever called, and nothing in this handler touches the `leads` row. But answering
+      // `success: true` for a write that did not happen meant NO CALLER COULD EVER KNOW:
+      // `recorded: false` rode in the payload and nothing anywhere read it, so the portal's
+      // `api.post` resolved and the client was told their words were saved. You cannot build
+      // a retry on an answer that says it worked.
+      //
+      // ⚠️ P32 IS NOT WEAKENED — *"one tap, never mandatory, never blocks the action."* This
+      // gates nothing and requires nothing. The screen keeps the client's own words, states
+      // once that they did not save, and offers the same single tap again.
+      //
+      // ⚠️ 503, NOT 500. It is our storage that is unavailable, not their request that is
+      // wrong, and the distinction is what tells a caller this is worth retrying.
       console.error('[leads/feedback] NOT RECORDED for lead', req.params.id, error)
-      res.json({ success: true, recorded: false }); return
+      res.status(503).json({
+        success: false,
+        recorded: false,
+        code: 'feedback_not_recorded',
+        error: 'K.I.N.D couldn’t save that just now. Nothing else changed — your decision on that prospect stands.',
+      })
+      return
     }
 
     // ── 🛑 ⚑ 10 Sep (C07) — THE LOOP CLOSES ON THE EVIDENCE, NOT ON A THIRD REQUEST ──────

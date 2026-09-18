@@ -89,7 +89,30 @@ function LoginForm() {
         const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://kindapi-production-e64c.up.railway.app'}/auth/signup`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, password }),
+          // ── ⛓️ 18 Sep (J1-C3) — THE TWO SIGNUP FACTS TRAVEL WITH THE SIGNUP ────────────
+          //
+          // WHAT THIS REPLACED: ~~`JSON.stringify({ email, password })`~~, with the T&C tick
+          // and the referral left behind in `localStorage` for `/milla/welcome` to courier to
+          // `/auth/onboard` after the whole first-run conversation. The evidence that somebody
+          // accepted our terms was a browser key: a different browser, a phone, a private
+          // window or cleared site data and the account ends up with no consent record at all.
+          // The server now records both at the instant the account is created.
+          //
+          // ⚠️ THE localStorage WRITES BELOW ARE KEPT, DELIBERATELY. They are the fallback for
+          // a client who was mid-signup when this deployed, and for a signup whose POST body
+          // reached an older API. Losing consent to the fix for losing consent would be the
+          // same defect with better intentions.
+          body: JSON.stringify({
+            email,
+            password,
+            ...(agreed ? { terms_accepted: true } : {}),
+            ...(() => {
+              try {
+                const ref = localStorage.getItem('kind_referral')
+                return ref ? { referred_by: ref } : {}
+              } catch { return {} }
+            })(),
+          }),
         })
         const data = await res.json()
         if (!data.success) {

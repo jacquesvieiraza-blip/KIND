@@ -16,10 +16,43 @@ export const authRouter = Router()
 // ── SIGNUP — bypass email confirmation via admin SDK ──────────────────────────
 authRouter.post('/signup', rateLimit({ limit: 10, windowMs: 60_000, key: 'signup' }), async (req, res) => {
   try {
-    const { email, password } = z.object({
+    const { email, password, terms_accepted, referred_by } = z.object({
       email:    z.string().email(),
       password: z.string().min(6),
+      // ── ⚑ 18 Sep (J1-C3) — THE TWO FACTS SIGNUP ITSELF KNOWS ────────────────────────
+      //
+      // 🛑 BOTH LIVED IN `localStorage` UNTIL THIS. `login/page.tsx` wrote
+      // `kind_terms_accepted` and `kind_referral`, and `/milla/welcome` read them back and
+      // posted them to `/auth/onboard` — after the WHOLE first-run conversation. So the
+      // evidence that somebody accepted our terms was a browser key: a different browser, a
+      // phone, a private window or cleared site data, and the account ends up with
+      // `signup_terms_accepted_at: null` for ever. Item 186 created that column so that "even
+      // a trial user who never pays has proof of acceptance", and the proof was being
+      // couriered by the client.
+      //
+      // ⚠️ THE REFERRAL HAS THE SAME WINDOW AND A DIFFERENT COST: `referred_by` is written
+      // only on the insert and deliberately never updated (P4), so one lost in that gap is
+      // unrecoverable — the partner is never paid and nobody can tell it happened.
+      //
+      // ⚠️ BOTH OPTIONAL. A signup that sends neither behaves exactly as it always did.
+      terms_accepted: z.boolean().optional(),
+      referred_by:    z.string().max(200).optional(),
     }).parse(req.body)
+
+    // ⚠️ THE MOMENT IS TAKEN HERE, NOT AT ONBOARD. `signup_terms_accepted_at` used to be
+    // stamped `now` when the brief finished, which can be days after the box was ticked; a
+    // consent record should say when consent was given. The IP rides with it, because a
+    // consent record with no origin is weaker evidence.
+    const signupFacts: Record<string, unknown> = {
+      ...(terms_accepted === true
+        ? {
+            signup_terms_accepted_at: new Date().toISOString(),
+            signup_terms_accepted_ip:
+              req.headers['x-forwarded-for']?.toString().split(',')[0] || req.socket?.remoteAddress || '',
+          }
+        : {}),
+      ...(referred_by ? { referred_by } : {}),
+    }
 
     const PORTAL = process.env.PORTAL_URL || 'https://kindportal-production.up.railway.app'
 
@@ -28,6 +61,15 @@ authRouter.post('/signup', rateLimit({ limit: 10, windowMs: 60_000, key: 'signup
       email,
       password,
       email_confirm: true,
+      // ⚑ 18 Sep (J1-C3) — WRITTEN WITH THE USER, so there is no window in which the account
+      // exists and the consent does not. `user_metadata` is the one durable, server-side home
+      // available at this instant: no client row exists yet (it is created by the confirmation
+      // at the end of Milla's conversation), and inventing a table for two fields that are
+      // copied onto that row minutes later would be a second home for one fact.
+      //
+      // ⚠️ EMPTY WHEN THERE IS NOTHING TO SAY. A signup that ticks nothing writes nothing —
+      // absence is never a consent, and neither is `terms_accepted: false`.
+      ...(Object.keys(signupFacts).length > 0 ? { user_metadata: signupFacts } : {}),
     })
     if (createErr) {
       // User already exists — generate sign-in link instead
@@ -114,7 +156,28 @@ authRouter.post('/onboard', async (req, res) => {
     // 20260726_client_contact_name.sql and may not be applied yet. Inside the payload a
     // missing column fails the whole insert — i.e. it would break every signup. It is
     // written separately, best-effort, below.
-    const { referred_by, terms_accepted, contact_name, outcome_stated, ...profileFields } = onboardSchema.parse(req.body)
+    const { referred_by: bodyReferredBy, terms_accepted, contact_name, outcome_stated, ...profileFields } = onboardSchema.parse(req.body)
+
+    // ── 🛑 ⚑ 18 Sep (J1-C3) — THE SIGNUP-TIME FACTS, READ FROM THE SERVER ───────────────
+    //
+    // `POST /auth/signup` now records the T&C tick (with its moment and its IP) and the
+    // referral onto the auth user, because both are established AT SIGNUP and both used to
+    // travel here in `localStorage` — across the whole of Milla's first-run conversation. A
+    // client who ticked the box and finished their brief in another browser arrived with an
+    // empty body and got an account with no consent record at all.
+    //
+    // ⚠️ THE SERVER'S COPY WINS AND THE BODY IS A FALLBACK, NOT THE OTHER WAY ROUND. A client
+    // who was mid-signup when this deployed has the old browser keys and NO metadata, and must
+    // not lose their consent to the fix for losing consent — so the body is still read, and is
+    // still the only source for those journeys.
+    const signupMeta = ((user as { user_metadata?: Record<string, unknown> }).user_metadata ?? {})
+    const metaTermsAt = typeof signupMeta.signup_terms_accepted_at === 'string'
+      ? signupMeta.signup_terms_accepted_at : null
+    const metaTermsIp = typeof signupMeta.signup_terms_accepted_ip === 'string'
+      ? signupMeta.signup_terms_accepted_ip : null
+    const metaReferredBy = typeof signupMeta.referred_by === 'string' && signupMeta.referred_by.trim()
+      ? signupMeta.referred_by.trim() : null
+    const referred_by = metaReferredBy ?? bodyReferredBy
     // ── ⚑ 10 Sep (C03) — THE KIND IS DERIVED HERE, NEVER SENT ─────────────────────────
     //
     // ⚠️ THE REQUEST SUPPLIES THE SENTENCE AND NOTHING ELSE. If the body could name the
@@ -362,12 +425,22 @@ authRouter.post('/onboard', async (req, res) => {
 
     // Item 186 — record the signup T&C tick once, at account creation. Never overwrite
     // an existing consent timestamp (the first acceptance is the binding one).
-    const recordSignupTerms = terms_accepted === true && !existing?.signup_terms_accepted_at
+    // ⛓️ 18 Sep (J1-C3) — THE STAMP IS THE MOMENT THEY TICKED, NOT THE MOMENT THEY FINISHED.
+    // WHAT THIS REPLACED: ~~`signup_terms_accepted_at: now`~~ gated on `terms_accepted === true`
+    // from the BODY. Two things were wrong with it: the only evidence was a browser key, and
+    // even when that key survived, the recorded time was whenever the brief happened to finish
+    // — which can be days after consent was actually given.
+    //
+    // ⚠️ "FIRST ACCEPTANCE WINS" IS UNCHANGED (item 186). An existing consent timestamp is
+    // never overwritten; this only decides what is written when there is none.
+    const consentAt = metaTermsAt ?? (terms_accepted === true ? now : null)
+    const recordSignupTerms = consentAt !== null && !existing?.signup_terms_accepted_at
     const signupTermsFields = recordSignupTerms
       ? {
-          signup_terms_accepted_at: now,
+          signup_terms_accepted_at: consentAt,
           signup_terms_accepted_ip:
-            req.headers['x-forwarded-for']?.toString().split(',')[0] || req.socket.remoteAddress || '',
+            metaTermsIp
+            || req.headers['x-forwarded-for']?.toString().split(',')[0] || req.socket.remoteAddress || '',
         }
       : {}
 

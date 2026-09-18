@@ -5954,10 +5954,40 @@ operatorRouter.get('/source-preview', async (req: Request, res: Response) => {
     // MONEY GATES THE SPEND (flow v2). PDL is billed at SOURCING, whether the client ever
     // approves anyone or not — so sourcing for a client who has never paid spends OUR money
     // on someone who may never return. This had no check at all.
+    //
+    // ── ⛓️ 18 Sep (P6 §8.2 · journey 12) — A PROGRAMME PAYMENT IS A PAYMENT ───────────────
+    //
+    // 🛑 THIS GATE ONLY KNEW THE RETIRED ECONOMICS. It counted `credit_transactions` — the
+    // $299 wallet top-up — so a PROGRAMME client who had just settled Payment 1 through
+    // Stripe was refused with "They haven't paid the $299 yet", a sentence about a product
+    // R124 retired ("299/4 is gone. out. we are on the programme. all clients."). Sourcing
+    // was unreachable for exactly the clients the current product is built around, and the
+    // full-stack harness had been papering over it by writing a `wallet_topup` row into its
+    // own fixture.
+    //
+    // ⚠️ THE GATE IS WIDENED, NEVER WEAKENED. It still refuses a client who has paid nothing;
+    // it now also accepts the payment the product actually takes.
+    //
+    // 🛑 AND IT INTERPRETS NOTHING ITSELF. `p1Authorised` is the ONE definition of a settled
+    // Payment 1, imported from `programme.ts`; this route asks it a question and believes the
+    // answer. Naming the authority columns here would put a second reader of that meaning in a
+    // 6,000-line router — which is exactly what `programme-authority-schema.test.ts` refuses,
+    // and it caught this comment doing it.
     const { count: paid } = await db.from('credit_transactions').select('id', { count: 'exact', head: true })
       .eq('client_id', client.id).in('type', PAID_TX_TYPES)
     const { data: demoRow } = await db.from('clients').select('is_demo').eq('id', client.id).maybeSingle()
-    if ((paid ?? 0) === 0 && demoRow?.is_demo !== true) {
+    let programmePaid = false
+    try {
+      const { openProgrammeFor } = await import('../lib/programme-authority')
+      const { p1Authorised } = await import('../lib/programme')
+      const open = await openProgrammeFor(client.id)
+      programmePaid = !!open && p1Authorised(open as Parameters<typeof p1Authorised>[0])
+    } catch (err) {
+      // ⚠️ FAILS CLOSED. An unreadable programme is not evidence of a payment, so the legacy
+      // wallet test alone decides — the safe direction for a gate that guards our spend.
+      console.error(`[operator/source] the programme payment state could not be read for ${client.id} — falling back to the wallet test only:`, err)
+    }
+    if ((paid ?? 0) === 0 && !programmePaid && demoRow?.is_demo !== true) {
       res.status(402).json({ success: false, error: `They haven’t paid the $${PACK_PRICE_USD} yet — nothing sources until it lands.` }); return
     }
     const cid = client.id
@@ -6083,10 +6113,39 @@ operatorRouter.post('/source', async (req: Request, res: Response) => {
     // MONEY GATES THE SPEND (flow v2). PDL is billed at SOURCING, whether the client ever
     // approves anyone or not — so sourcing for a client who has never paid spends OUR money
     // on someone who may never return. This had no check at all.
+    //
+    // ── ⛓️ 18 Sep (P6 §8.2 · journey 12) — A PROGRAMME PAYMENT IS A PAYMENT ───────────────
+    //
+    // 🛑 THIS GATE ONLY KNEW THE RETIRED ECONOMICS. It counted `credit_transactions` — the
+    // $299 wallet top-up — so a PROGRAMME client who had just settled Payment 1 through
+    // Stripe was refused with "They haven't paid the $299 yet", a sentence about a product
+    // R124 retired ("299/4 is gone. out. we are on the programme. all clients."). Sourcing
+    // was unreachable for exactly the clients the current product is built around, and the
+    // full-stack harness had been papering over it by writing a `wallet_topup` row into its
+    // own fixture.
+    //
+    // ⚠️ THE GATE IS WIDENED, NEVER WEAKENED. It still refuses a client who has paid nothing;
+    // it now also accepts the payment the product actually takes.
+    //
+    // 🛑 AND IT INTERPRETS NOTHING ITSELF. `p1Authorised` is the ONE definition of a settled
+    // Payment 1, imported from `programme.ts`; this route asks it a question and believes the
+    // answer. Naming the authority columns here would put a second reader of that meaning in a
+    // 6,000-line router — which is exactly what `programme-authority-schema.test.ts` refuses.
     const { count: paid } = await db.from('credit_transactions').select('id', { count: 'exact', head: true })
       .eq('client_id', client.id).in('type', PAID_TX_TYPES)
     const { data: demoRow } = await db.from('clients').select('is_demo').eq('id', client.id).maybeSingle()
-    if ((paid ?? 0) === 0 && demoRow?.is_demo !== true) {
+    let programmePaid = false
+    try {
+      const { openProgrammeFor } = await import('../lib/programme-authority')
+      const { p1Authorised } = await import('../lib/programme')
+      const open = await openProgrammeFor(client.id)
+      programmePaid = !!open && p1Authorised(open as Parameters<typeof p1Authorised>[0])
+    } catch (err) {
+      // ⚠️ FAILS CLOSED. An unreadable programme is not evidence of a payment, so the legacy
+      // wallet test alone decides — the safe direction for a gate that guards our spend.
+      console.error(`[operator/source] the programme payment state could not be read for ${client.id} — falling back to the wallet test only:`, err)
+    }
+    if ((paid ?? 0) === 0 && !programmePaid && demoRow?.is_demo !== true) {
       res.status(402).json({ success: false, error: `They haven’t paid the $${PACK_PRICE_USD} yet — nothing sources until it lands.` }); return
     }
     if (confirm !== true) { res.status(400).json({ success: false, error: 'Sourcing spends our PDL budget — confirm required' }); return }

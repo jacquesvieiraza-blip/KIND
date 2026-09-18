@@ -15,6 +15,7 @@ import { spawn } from 'node:child_process'
 import { Client } from 'pg'
 import { createHmac, randomUUID } from 'node:crypto'
 import { makeFailureChecks } from './failure-classes.mjs'
+import { makeJourneyChecks } from './journeys.mjs'
 import { assessCoverage, printCoverage } from './coverage.mjs'
 
 const ENV = JSON.parse(readFileSync(process.argv[2] ?? `${process.env.TMPDIR ?? '/tmp'}/kind-fullstack/env.json`, 'utf8'))
@@ -850,12 +851,37 @@ async function restartArmedApi() {
   throw new Error('the armed API did not come back after F-RESTART killed it')
 }
 
-const KIT = {
-  ENV, http, api, operator, portal, admin, sql, ok, bad, note,
-  fakeCount, fakeRequests, fakeReset, fakeMode, makeClient, mintJwt, restartArmedApi,
+/**
+ * Deliver a signed `checkout.session.completed` to the real Stripe webhook route.
+ *
+ * ⚠️ SIGNED THE WAY STRIPE SIGNS. The route verifies `t=…,v1=…` over `${t}.${body}` with the
+ * webhook secret; an unsigned post is refused with 400, exactly as in production. Nothing
+ * here reaches Stripe — the product's Stripe base URL is a loopback fake.
+ */
+async function stripeCheckout(metadata, { eventId = `evt_${randomUUID()}` } = {}) {
+  const body = JSON.stringify({
+    id: eventId, type: 'checkout.session.completed',
+    data: { object: { id: `cs_${eventId}`, metadata } },
+  })
+  const t = Math.floor(Date.now() / 1000)
+  const v1 = createHmac('sha256', ENV.secrets.stripeWebhook).update(`${t}.${body}`).digest('hex')
+  return http(`${ENV.api}/stripe/webhook`, {
+    method: 'POST', body,
+    headers: { 'stripe-signature': `t=${t},v1=${v1}`, 'content-type': 'application/json' },
+    timeoutMs: 60000,
+  })
 }
 
-const EXTRA = ONLY.length ? [] : makeFailureChecks(KIT)
+const KIT = {
+  ENV, http, api, operator, portal, admin, sql, ok, bad, note,
+  fakeCount, fakeRequests, fakeReset, fakeMode, makeClient, mintJwt, restartArmedApi, stripeCheckout,
+}
+
+// ⚠️ THE JOURNEYS RUN FIRST AND IN ORDER. They are a single walk — one client carried from
+// signup to completion — so each one's precondition is the step before it, and running them
+// out of order would prove only that a fixture can be built.
+const WALK = ONLY.length ? { checks: [] } : makeJourneyChecks(KIT)
+const EXTRA = ONLY.length ? [] : [...WALK.checks, ...makeFailureChecks(KIT)]
 if (ONLY.length) console.log('   ⚠️  FULLSTACK_ONLY is set — the §8.2 journey and failure-class checks are SKIPPED, so coverage cannot be established.')
 
 for (const c of EXTRA) {
@@ -897,6 +923,12 @@ if (findings.length) {
 // ran and passed in THIS process, so a journey whose check was deleted, renamed or skipped is
 // an UNPROVEN row and fails the run. A printed table nobody enforces is how a certification
 // becomes a decoration.
+if (WALK.W && WALK.W.seeded && WALK.W.seeded.length) {
+  console.log('')
+  console.log('── THE WALK\'S SEEDED PRECONDITIONS (disclosed, not hidden) ──────────────')
+  for (const s2 of WALK.W.seeded) console.log(`  · ${s2}`)
+}
+
 const coverage = assessCoverage(results)
 printCoverage(coverage)
 

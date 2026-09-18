@@ -642,10 +642,30 @@ describe('⑥ Milla presents ONE programme approval and no legacy economics', ()
   const ui = readFileSync(
     join(__dirname, '../../../portal/src/components/milla/ProgrammeReview.tsx'), 'utf8')
   const visible = ui.split('\n').filter(l => !l.trim().startsWith('//') && !l.trim().startsWith('*')).join('\n')
+  /**
+   * ⛓️ 18 Sep (J16-C1) — THE APPROVAL MOVED, SO THIS SECTION READS TWO FILES.
+   *
+   * This whole section asserted the customer's one action against `ProgrammeReview`, because
+   * that is where the button was. It was in TWO places: this desk posted the approval having
+   * shown the client the cards and a total, while `ProgrammeApproval` posted it having shown
+   * them the words, the sender, the schedule and the version. The duplicate control is
+   * withdrawn; the desk mounts the one surface.
+   *
+   * 🛑 NOT ONE PROPERTY IS DROPPED. Every assertion below still runs — the founder's verbatim
+   * wording, one post and never a per-lead approve, disabled-in-flight, the empty-desk
+   * ordering, the approved state — against the file that now performs the act.
+   */
+  const SURFACE = readFileSync(
+    join(__dirname, '../../../portal/src/components/milla/ProgrammeApproval.tsx'), 'utf8')
+  const surfaceVisible = SURFACE.split('\n')
+    .filter(l => !l.trim().startsWith('//') && !l.trim().startsWith('*')).join('\n')
 
   it('🛑 the founder\'s locked wording, verbatim', () => {
-    expect(ui).toContain("export const APPROVE_LABEL = 'Approve this programme'")
-    expect(ui).toContain("export const APPROVED_COPY = 'Approved — nothing is sent until the programme goes Live.'")
+    expect(SURFACE).toContain("export const APPROVE_LABEL = 'Approve this programme'")
+    expect(SURFACE).toContain("export const APPROVED_COPY = 'Approved — nothing is sent until the programme goes Live.'")
+    // ⚠️ AND THE DESK STILL EXPORTS THEM UNCHANGED — the names did not break, the words did not
+    // move a character, and nothing that imported them from here reads a paraphrase.
+    expect(ui).toContain("export { APPROVED_COPY, APPROVE_LABEL } from './ProgrammeApproval'")
     // The rejected phrasing must not reach the SCREEN. It is named in the file's header — which
     // records why the founder rejected it — so this is asserted against executable text only;
     // searching the raw file would fail on the comment that documents the ruling.
@@ -660,28 +680,43 @@ describe('⑥ Milla presents ONE programme approval and no legacy economics', ()
   })
 
   it('🛑 ONE action — it posts the programme approval, never a per-lead approve', () => {
-    expect(visible).toContain("api.post('/my/programme/approve'")
-    expect(visible).not.toMatch(/\/leads\/[^']*\/approve/)
-    expect(visible).not.toMatch(/\/leads\/[^']*\/reveal/)
-    expect(visible).not.toContain('approve-batch')
+    expect(surfaceVisible).toContain("'/my/programme/approve'")
+    // ⚠️ AND THE DESK NO LONGER POSTS IT AT ALL. This is the "nowhere else" half: a second
+    // component that could approve is what the one-surface rule forbids.
+    expect(visible, 'the desk still approves as well as the surface')
+      .not.toContain('/my/programme/approve')
+    for (const src of [visible, surfaceVisible]) {
+      expect(src).not.toMatch(/\/leads\/[^']*\/approve/)
+      expect(src).not.toMatch(/\/leads\/[^']*\/reveal/)
+      expect(src).not.toContain('approve-batch')
+    }
   })
 
   it('🛑 it renders loading, error+retry, disabled-in-flight, empty-inconsistency and success', () => {
     expect(visible).toContain('Loading the prospects for your programme…')
     expect(visible).toContain('Try again')
-    expect(visible).toContain('disabled={approving || !d.canApprove}')
     expect(visible).toContain('Your programme isn’t ready to review yet.')
-    expect(visible).toContain('data-testid="programme-approved"')
+    // ⛓️ 18 Sep (J16-C1) — ~~`disabled={approving || !d.canApprove}`~~ and the approved state
+    // were the desk's; they belong to the button, and the button moved. Both are re-asserted
+    // against the surface, and the in-flight guard is unchanged in substance: a double-click
+    // cannot show a customer two spinners for one act.
+    expect(surfaceVisible).toContain('disabled={busy}')
+    expect(surfaceVisible).toContain('data-testid="programme-approved"')
+    // The server's boolean still decides whether the action is offered at all.
+    expect(surfaceVisible).toContain('data.canApprove ?')
   })
 
   it('🛑 a READY programme with an empty desk shows NO approve button and NO fabricated cards', () => {
-    // The empty-inconsistency branch returns before the button and the card list are reached.
-    const emptyBranch = visible.slice(visible.indexOf('if (!approved && d.total === 0)'))
-    const buttonAt = visible.indexOf('data-testid="approve-programme"')
+    // The empty-inconsistency branch returns before the card list AND before the surface that
+    // holds the button is mounted — so an empty desk cannot present an approval.
     const branchAt = visible.indexOf('if (!approved && d.total === 0)')
+    const mountAt = visible.indexOf('<ProgrammeApproval')
     expect(branchAt).toBeGreaterThan(-1)
-    expect(buttonAt, 'the button is rendered AFTER the empty guard returns').toBeGreaterThan(branchAt)
-    expect(emptyBranch).toContain('Nothing has been approved and nothing has been sent')
+    expect(mountAt, 'the approval surface is mounted BEFORE the empty guard returns')
+      .toBeGreaterThan(branchAt)
+    expect(visible.slice(branchAt)).toContain('Nothing has been approved and nothing has been sent')
+    // And the button itself is inside the surface, behind the server's boolean.
+    expect(surfaceVisible).toContain('data-testid="approve-programme"')
   })
 
   it('the review is ADDITIVE — the existing workspace still renders at every stage', () => {

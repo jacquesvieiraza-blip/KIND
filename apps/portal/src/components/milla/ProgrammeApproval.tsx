@@ -74,7 +74,35 @@ export type FrozenWork = {
    * the server and are not in this payload at all.
    */
   sender_email?: string | null
+  /**
+   * ⚑ 18 Sep (J16-C1) — HOW MANY OF THESE PEOPLE WE MAY ACTUALLY EMAIL (FD-5).
+   *
+   * 🛑 THE SEVENTH FACT, AND IT IS THE ONE THAT WAS MISSING FROM THE SCREEN THEY SAY YES TO.
+   * A client approved "40 prospects" when the number we could write to was eighteen, and
+   * nothing here said so. *"Verified business email required before send; QUALIFIED ≠
+   * SENDABLE."*
+   *
+   * ⚠️ NULL WHEN THE PACKAGE DOES NOT STATE IT — a freeze taken before the field existed, or a
+   * count that could not be read. It is then OMITTED, never rendered as 0: "nobody is
+   * reachable" is a claim about a number nobody took.
+   */
+  sendable?: number | null
 }
+
+/**
+ * The founder's primary action label, locked 3 Sep.
+ *
+ * ⛓️ 18 Sep (J16-C1) — DEFINED HERE NOW, AND THE MOVE IS THE POINT. These two sentences lived
+ * in `ProgrammeReview`, which is where the button used to be; this screen had its own
+ * unlocked wording ("Approve programme", "You approved this programme."). Two approval
+ * buttons with two different labels is exactly what "approve nowhere else" forbids, and when
+ * the duplicate control was withdrawn the founder's words had to come with the surviving one
+ * rather than be left behind on a component that no longer approves anything.
+ * `ProgrammeReview` re-exports both, so nothing that imported them from there is broken.
+ */
+export const APPROVE_LABEL = 'Approve this programme'
+/** The founder's post-approval sentence, locked 3 Sep. Never paraphrased. */
+export const APPROVED_COPY = 'Approved — nothing is sent until the programme goes Live.'
 
 export type ApprovalPayload = {
   programme: {
@@ -159,10 +187,12 @@ export default function ProgrammeApproval({
 
   if (p.approved_at) {
     return (
-      <div className="border border-emerald-200 bg-emerald-50/60 rounded-2xl px-4 py-3.5">
+      <div data-testid="programme-approved" className="border border-emerald-200 bg-emerald-50/60 rounded-2xl px-4 py-3.5">
         <div className="text-[11.5px] uppercase tracking-wide text-emerald-800 font-bold mb-1">Approved</div>
+        {/* ⛓️ 18 Sep (J16-C1) — ~~"You approved this programme."~~ was this screen's own wording.
+            The founder's locked sentence is `APPROVED_COPY`, and it travels with the button. */}
         <p className="text-[13.5px] font-semibold text-emerald-900">
-          You approved this programme. {p.second_settled
+          {APPROVED_COPY} {p.second_settled
             ? 'Nothing else is needed from you — we will let you know as meetings come in.'
             : 'The second half is due next, and outreach starts after that.'}
         </p>
@@ -202,6 +232,25 @@ export default function ProgrammeApproval({
         {population > 8 && (
           <p className="text-[12px] text-[#9b8ec4] mt-1.5">
             …and {(population - 8).toLocaleString()} more like these.
+          </p>
+        )}
+        {/* ── ⚑ 18 Sep (J16-C1) — HOW MANY WE CAN ACTUALLY WRITE TO (FD-5) ───────────────
+            🛑 THE NUMBER THAT WAS NOT ON THIS SCREEN. The package said how many people were in
+            it and never how many were reachable, so "40 prospects" could mean eighteen emails.
+
+            ⚠️ OMITTED, NEVER ZEROED, when the package does not state it — a freeze taken
+            before the field existed, or a count that could not be read. "0 reachable" is a
+            claim about a number nobody took.
+
+            ⚠️ AND IT IS NOT A SHORTFALL NOTICE. It sits beside the population as a fact, with
+            no arithmetic and no explanation invented for the difference: we do not know why any
+            particular person has no verified address yet, and saying would be a fabrication
+            about real people. */}
+        {typeof frozen?.sendable === 'number' && (
+          <p data-testid="frozen-sendable" className="text-[12px] text-[#6b5f8c] mt-1.5">
+            <b className="font-semibold">{frozen.sendable.toLocaleString()}</b> of them have a
+            verified work email address today. We keep checking the rest, and we only write to
+            the ones we can reach.
           </p>
         )}
       </div>
@@ -295,11 +344,14 @@ export default function ProgrammeApproval({
         <>
           <button
             type="button"
+            data-testid="approve-programme"
             onClick={approve}
             disabled={busy}
             className="w-full sm:w-auto bg-[#7C3AED] text-white font-bold text-[13.5px] rounded-xl px-5 py-2.5 disabled:opacity-50"
           >
-            {busy ? 'Approving…' : 'Approve programme'}
+            {/* ⛓️ 18 Sep (J16-C1) — ~~'Approve programme'~~ was this screen's own label, beside a
+                second button elsewhere that carried the founder's. One surface, his words. */}
+            {busy ? 'Approving…' : APPROVE_LABEL}
           </button>
           <p className="text-[12px] text-[#9b8ec4] mt-2">
             {p.second_settled

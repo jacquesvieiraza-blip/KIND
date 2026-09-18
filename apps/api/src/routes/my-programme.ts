@@ -167,6 +167,23 @@ myProgrammeRouter.get('/review', async (req: AuthRequest, res) => {
       })),
       /** How many prospects the frozen set holds — the exact population being approved. */
       prospects: frozenLeadIds.length,
+      /**
+       * ⚑ 18 Sep (J16-C1) — HOW MANY OF THEM WE MAY ACTUALLY EMAIL (FD-5).
+       *
+       * 🛑 THE NUMBER THAT WAS NOT ON THE SCREEN THEY SAY YES TO. The package stated WHO would
+       * receive this and never how many were reachable, so a client approved "40 prospects"
+       * when the number we could write to was eighteen. FD-5: *"verified business email
+       * required before send; QUALIFIED ≠ SENDABLE."*
+       *
+       * ⚠️ READ FROM THE FREEZE, NEVER RE-COUNTED HERE. Counting now would state a number that
+       * has moved since the package was fixed — the exact drift the freeze exists to stop, and
+       * the reason `sendable_count` is inside the digest (J13-C1).
+       *
+       * ⚠️ NULL IS NOT ZERO. A v2 package predates the field and a failed count could not be
+       * taken; both mean "not stated". Rendering 0 would tell a client nobody in their package
+       * is reachable, which is a claim about a number nobody took.
+       */
+      sendable: typeof snapObj.sendable_count === 'number' ? snapObj.sendable_count : null,
       send_schedule: snapObj.send_schedule ?? null,
       /**
        * ⚑ 11 Sep (DAY 3) — THE TARGET, FROM THE FREEZE AND NOT FROM THE LIVE ROW.

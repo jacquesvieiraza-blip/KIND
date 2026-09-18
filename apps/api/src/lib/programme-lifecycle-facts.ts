@@ -520,6 +520,18 @@ export type LifecycleDetail = {
   frozenPackage: {
     version: number | null; at: string | null; prospects: number
     messages: number; target: number | null; sender: string | null
+    /**
+     * ⚑ 18 Sep (J13-C1 · FD-5 · LR 13) — HOW MANY OF THOSE PROSPECTS WE MAY ACTUALLY EMAIL.
+     *
+     * The package stated WHO would receive this and never how many were reachable, so a
+     * client approved "40 prospects" when the number we could write to was eighteen. Read
+     * from the FROZEN snapshot, so the panel states what was frozen rather than re-counting
+     * a number that has moved since.
+     *
+     * ⚠️ NULL MEANS THE SNAPSHOT DOES NOT CARRY IT — a v2 freeze taken before the field
+     * existed. It never means zero, and the copy must not print one.
+     */
+    sendable: number | null
   } | null
   /**
    * ⚑ 10 Sep (I2) — WHY the sender is not usable, in the gate's own words.
@@ -693,6 +705,7 @@ export async function lifecycleDetailFor(clientId: string): Promise<LifecycleDet
   const frozenPackage = ((): {
     version: number | null; at: string | null; prospects: number
     messages: number; target: number | null; sender: string | null
+    sendable: number | null
   } | null => {
     const raw = (p as unknown as { review_preparation_snapshot?: unknown }).review_preparation_snapshot
     const hash = (p as unknown as { review_preparation_hash?: string | null }).review_preparation_hash
@@ -708,6 +721,10 @@ export async function lifecycleDetailFor(clientId: string): Promise<LifecycleDet
       // The mailbox IDENTITY only — the snapshot stores `id|email` and the id is ours, not
       // something an operator panel needs.
       sender: senderRaw.includes('|') ? (senderRaw.slice(senderRaw.indexOf('|') + 1) || null) : null,
+      // ⚑ 18 Sep (J13-C1 · FD-5) — FROM THE SNAPSHOT, and `null` when it does not carry one.
+      // A v2 freeze predates the field; printing 0 for it would tell an operator nobody in a
+      // frozen package is reachable, which is a claim about a number nobody took.
+      sendable: typeof snap.sendable_count === 'number' ? snap.sendable_count : null,
     }
   })()
 

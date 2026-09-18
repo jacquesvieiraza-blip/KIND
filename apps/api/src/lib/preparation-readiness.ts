@@ -67,6 +67,25 @@ export interface PreparationFacts {
   batchId: string | null
   /** Prospects that can actually appear in the customer's review set. */
   reviewableLeads: number
+  /**
+   * ── ⚑ 18 Sep (J13-C1 · FD-5) — HOW MANY OF THE PREPARED AUDIENCE WE MAY ACTUALLY EMAIL ──
+   *
+   * FD-5: *"Verified business email required before send; QUALIFIED ≠ SENDABLE."* Preparation
+   * counted the enrolments and never the reachable ones, so "40 prepared" could mean eighteen
+   * people we are allowed to write to.
+   *
+   * ⚠️ COUNTED FROM THE FACT (`isSendable` over `leads.email_status` and the address), never
+   * from `apollo_consented` — that flag is set on a guess at insert and forced true at reveal.
+   *
+   * ⚠️ IT DOES NOT BLOCK. FD-5 separates qualified from sendable rather than making one gate
+   * the other, and `PREPARATION_REQUIREMENTS` is unchanged: a programme is not refused
+   * readiness because the provider has not finished verifying. The number is REPORTED, and the
+   * package states it — which is what the customer needed and did not have.
+   *
+   * ⚠️ NULL WHEN IT COULD NOT BE COUNTED, never 0. Printing zero for a failed read would tell
+   * an operator nobody is reachable, which is a claim rather than an absence.
+   */
+  sendableEnrolments: number | null
   campaignId: string | null
   /** Positively linked to this programme — not inferred from `client_id`. */
   campaignProgrammeLinked: boolean
@@ -445,6 +464,43 @@ export async function programmePreparationReadiness(programmeId: string): Promis
     return notReady(`The prepared work could not be described for freezing (${err instanceof Error ? err.message : String(err)}).`)
   }
 
+  // ── ⚑ 18 Sep (J13-C1 · FD-5) — HOW MANY OF THE PREPARED AUDIENCE ARE REACHABLE ────────
+  //
+  // ⚠️ IT NEVER BLOCKS AND IT NEVER FAILS READINESS. A count we could not take is `null` —
+  // reported as unknown — and a programme is not refused because the provider has not finished
+  // verifying. FD-5 separates qualified from sendable; it does not make one the gate for the
+  // other. What it requires is that the number be STATED, which is J13-C1's other half.
+  let sendableEnrolments: number | null = null
+  {
+    const { data: enrRows, error: enrRowsErr } = await db.from('figsy_enrollments')
+      .select('lead_id').eq('programme_id', programmeId)
+    if (enrRowsErr) {
+      console.error(`[preparation] sendable count unavailable for programme ${programmeId} — the enrolments could not be listed (${enrRowsErr.message}). Readiness is unaffected.`)
+    } else {
+      const ids = ((enrRows ?? []) as { lead_id: string | null }[])
+        .map(r => r.lead_id).filter((v): v is string => typeof v === 'string')
+      if (ids.length === 0) sendableEnrolments = 0
+      else {
+        const { isSendable } = await import('./sendable')
+        let counted = 0
+        let unreadable = false
+        for (let i = 0; i < ids.length; i += 500) {
+          const { data: rows, error: rowsErr } = await db.from('leads')
+            .select('id, email, email_status').in('id', ids.slice(i, i + 500))
+          if (rowsErr) {
+            console.error(`[preparation] sendable count unavailable for programme ${programmeId} — ${rowsErr.message}. Readiness is unaffected.`)
+            unreadable = true
+            break
+          }
+          for (const r of (rows ?? []) as { email?: string | null; email_status?: string | null }[]) {
+            if (isSendable(r)) counted++
+          }
+        }
+        sendableEnrolments = unreadable ? null : counted
+      }
+    }
+  }
+
   const facts: PreparationFacts = {
     programmeId,
     programmeStatus: p.status,
@@ -452,6 +508,7 @@ export async function programmePreparationReadiness(programmeId: string): Promis
     attachedIcpId,
     batchId,
     reviewableLeads: reviewable ?? 0,
+    sendableEnrolments,
     campaignId: chain.campaignId,
     // The campaign was found THROUGH the programme's own ICP, so finding one at all is the
     // positive link. There is no separate weaker way to have found it.

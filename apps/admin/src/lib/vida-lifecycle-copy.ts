@@ -125,6 +125,12 @@ export type LifecycleCopyInput = {
   frozenPackage?: {
     version: number | null; at: string | null; prospects: number
     messages: number; target: number | null; sender: string | null
+    /**
+     * ⚑ 18 Sep (J13-C1 · FD-5 · LR 13) — how many of those prospects we may actually email.
+     * `null` means the FROZEN snapshot does not carry the number (a v2 freeze, taken before
+     * the field existed). It never means zero, and the copy below must not print one.
+     */
+    sendable?: number | null
   } | null
   replyAwaiting: { name: string | null; company: string | null } | null
   stoppedDetail: string | null
@@ -717,6 +723,17 @@ function lifecycleCopyForState(i: LifecycleCopyInput): LifecycleCopy {
           { kind: 'stats', label: i.frozenPackage ? 'Frozen for review' : 'Ready for review', stats: [
             { value: n(i.frozenPackage ? i.frozenPackage.prospects : (c.qualified || c.enrolled)),
               label: i.frozenPackage ? 'Prospects in the package' : 'Qualified prospects' },
+            // ── ⚑ 18 Sep (J13-C1 · FD-5 · LR 13) — AND HOW MANY WE MAY ACTUALLY EMAIL ────
+            //
+            // 🛑 QUALIFIED ≠ SENDABLE. The package said "40 prospects" and the number we
+            // could write to was eighteen — the single most consequential figure on the
+            // screen the client approves, and it was not on it.
+            //
+            // ⚠️ SHOWN ONLY WHEN THE FROZEN PACKAGE CARRIES IT. A v2 freeze predates the
+            // field; printing "0 sendable" for it would state a number nobody took.
+            ...(i.frozenPackage && typeof i.frozenPackage.sendable === 'number'
+              ? [{ value: n(i.frozenPackage.sendable), label: 'Sendable today' }]
+              : []),
             { value: String((i.frozenPackage ? i.frozenPackage.target : target) ?? '—'),
               // 🛑 TARGET, NEVER GUARANTEE — founder-locked, and the caveat travels with the
               // number on the operator screen exactly as it does on the client's.

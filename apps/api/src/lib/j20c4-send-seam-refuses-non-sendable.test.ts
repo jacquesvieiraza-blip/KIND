@@ -20,11 +20,28 @@
 // like the do-not-contact list and the opt-out blocklist — both of which are unconditional at
 // this seam for the same reason, preview included.
 //
-// ⚠️ AND IT SITS BELOW THE TWO SWITCHES ON PURPOSE. The kill-switch stays the FIRST gate and
-// the operator key stays second, so the frozen kill-switch cases keep their exact
-// discriminating power — cases 11 and 12 still defer at the operator key, before sendability
-// is ever asked. The only change in that frozen file is one fixture field, for its
-// anti-vacuity case: a fixture that cannot reach the seam cannot prove the seam is reached.
+// ── ⚠️ THE FROZEN KILL-SWITCH TEST, AND THE ONE LINE THAT HAD TO MOVE ───────────────────
+//
+// This item's own GREEN asks for two things at once: *"Send seam refuses independently of every
+// other gate… kill-switch frozen test intact."* Both hold, and the seam between them is exactly
+// one token wide.
+//
+// 🛑 THE GATE SITS BELOW THE TWO SWITCHES ON PURPOSE. The kill-switch stays the FIRST gate and
+// the operator key stays second, so cases 11 and 12 of the frozen file keep their exact
+// discriminating power: they still defer at the operator key, before sendability is ever asked.
+// Every assertion, every case, and the order of those two gates are untouched.
+//
+// 🛑 WHAT COULD NOT BE AVOIDED is case 13 — the file's own ANTI-VACUITY case, which proves the
+// seam is reachable at all by watching a message arrive at the mail server. Its fixture lead
+// carried no `email_status`, so under FD-5 that lead is somebody we may not email, and no
+// correct placement of a refusal lets an unsendable fixture reach the provider. A fixture that
+// cannot reach the seam cannot prove the seam is reached.
+//
+// ⚠️ SO THE DEVIATION IS ONE FIELD ON ONE LINE, AND NOTHING ELSE — no added prose inside the
+// frozen file, which is why this explanation lives here instead. `xc10-frozen-tests-intact.test.ts`
+// PINS it: that file diffs the frozen tests against the certified baseline and fails if the
+// kill-switch deviation is anything other than this single added field, so the exception cannot
+// grow into a habit.
 //
 // ── AND HUNTER IS NOT RE-ENABLED — BY CONSTRUCTION, NOT BY PROMISE ─────────────────────
 //

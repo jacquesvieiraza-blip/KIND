@@ -11,10 +11,34 @@
 // so there is one implementation of the reply experience rather than a second copy that drifts.
 import SourcePage from '@/app/(dashboard)/dashboard/inbox/page'
 
+/**
+ * ⚑ 18 Sep (J22-C2 · PV 11 C) — WHAT HAPPENS TO A REPLY WE CANNOT PLACE, SAID HERE.
+ *
+ * ── 🛑 THE CLIENT COULD NOT LEARN THIS ANYWHERE ─────────────────────────────────────────
+ *
+ * A reply that cannot be matched to exactly one client is held: written to nobody, retained in
+ * full, and put in front of a person at K.I.N.D who attributes or discards it. That is the
+ * right behaviour — R131's *"if the system cannot determine one safe owner: FAIL CLOSED"* —
+ * and until now the client's side of it was silence. Somebody who knows a prospect answered
+ * them, and does not see it here, is left to conclude we lost it.
+ *
+ * ⚠️ IT DESCRIBES THE RULE, NEVER A PARTICULAR REPLY. A held reply may belong to another
+ * client — that is precisely why it is held — so naming one here would hand a client the
+ * knowledge that somebody replied to somebody. The sentence says what happens and how long it
+ * takes, and nothing about who.
+ *
+ * ⚠️ AND IT PROMISES NO AUTOMATIC ARRIVAL. "A person checks it" is what actually occurs; "it
+ * will appear shortly" would be a claim about an outcome an operator has not decided yet.
+ */
 export default function MillaNative_replies() {
   return (
     <div className="h-full overflow-y-auto p-5 sm:p-6">
       <SourcePage />
+      <p data-testid="held-reply-note" className="mt-4 text-[12.5px] text-[#9b8ec4]">
+        Very occasionally a reply arrives that we cannot match to your programme automatically.
+        When that happens it is not lost and it is not deleted — a person at K.I.N.D reads it and
+        places it, and it appears here once they have.
+      </p>
     </div>
   )
 }

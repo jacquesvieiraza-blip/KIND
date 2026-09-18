@@ -1900,15 +1900,40 @@ operatorRouter.get('/alerts', async (_req: Request, res: Response) => {
       for (const r of open.rows) {
         const candidates = (r.candidate_client_ids ?? []).filter(Boolean)
         const label = unattributedAlertLabel({ fromEmail: r.from_email, candidateCount: candidates.length })
+        let shown = 0
         for (const cid of candidates) {
           // Demo and House accounts are filtered from every other section of this feed for the
           // same reason: an exception on an account nobody is operating is noise.
           if (excluded.has(cid)) continue
+          shown++
           replyOut.push({
             client_id: cid,
             company_name: null,
             kind: 'reply_unattributed',
             label,
+            severity: 'high',
+            unattributed_reply_id: r.id,
+          })
+        }
+        // ── ⚑ 18 Sep (J22-C2 · PV 11 C) — A HOLD WITH NO CANDIDATE IS STILL A HOLD ────────
+        //
+        // 🛑 THIS FEED RENDERED A RETAINED REPLY ONCE PER CANDIDATE CLIENT — so a retention
+        // with NO candidates produced NO row, and a held reply that nothing displays cannot be
+        // resolved by anybody. It became reachable only by reading the table by hand.
+        //
+        // Two real cases produce one: a lookup failure, where the candidates are genuinely
+        // unknown (J22-C3), and a collision whose every candidate is a demo or House account
+        // filtered out of this feed. Both are a real person waiting on an answer.
+        //
+        // ⚠️ `client_id: ''` IS THE HONEST VALUE AND THE UI TREATS IT AS ONE. There is no
+        // client to name — that is the whole condition — so the operator names one, and the
+        // row says so rather than attaching the reply to whoever happened to be first.
+        if (shown === 0) {
+          replyOut.push({
+            client_id: '',
+            company_name: null,
+            kind: 'reply_unattributed_unknown',
+            label: `${label} — no candidate client to offer, so it needs one naming`,
             severity: 'high',
             unattributed_reply_id: r.id,
           })
@@ -2855,6 +2880,93 @@ operatorRouter.post('/unattributed-replies/:id/resolve', async (req: Request, re
   } catch (err) {
     console.error('[operator/unattributed-replies/resolve]', err)
     res.status(500).json({ success: false, error: 'Failed to attribute the reply' })
+  }
+})
+
+// ── ⚑ 18 Sep (J22-C2 · PV 11 C) — RE-CHECK: ASK THE QUESTION WE COULD NOT ASK ──────────
+//
+// ── 🛑 THE HOLD THAT NO CONTROL COULD RESOLVE ───────────────────────────────────────────
+//
+// A retained reply whose candidate set is EMPTY cannot be attributed, and that refusal is
+// correct: `resolve` above refuses any client outside the stored candidates — *"attributing
+// outside it would hand one client an external reply on the strength of nothing at all"* — and
+// an empty set means we never learned who held that address. So the only control an operator
+// had for it was DISCARD, which throws away a real person's answer.
+//
+// The candidates are empty for one reason (J22-C3): the lead lookup FAILED while the reply was
+// arriving. That is a transient database condition, not a fact about the world — so the honest
+// control is to ask again.
+//
+// ⚠️ IT GUESSES NOTHING AND WEAKENS NOTHING. It re-runs the same lookup the pipeline runs, and
+// writes back what it finds. The candidate check stays exactly as it is; this fills the set it
+// checks against with evidence rather than with an operator's opinion, and a re-check that
+// still finds nobody says so and changes nothing.
+//
+// ⚠️ AND IT ONLY EVER ADDS TO AN UNRESOLVED, UNCLAIMED HOLD. Re-checking a decided reply could
+// only invite a second decision.
+operatorRouter.post('/unattributed-replies/:id/recheck', async (req: Request, res: Response) => {
+  try {
+    if (!adminKeyValid(req)) {
+      res.status(403).json({ success: false, error: 'Operator key required' })
+      return
+    }
+    const { getUnattributedReply } = await import('../lib/unattributed-reply')
+    const found = await getUnattributedReply(req.params.id)
+    if (!found.ok) {
+      res.status(500).json({ success: false, error: `The retained reply could not be read, so nothing was re-checked. ${found.detail}` })
+      return
+    }
+    if (!found.row) { res.status(404).json({ success: false, error: 'No such retained reply.' }); return }
+    if (found.row.resolved_at) { res.json({ success: true, data: { rechecked: 'already_resolved' } }); return }
+
+    const { findLeadMatches } = await import('../lib/reply-ingest')
+    let matches: { id: string; client_id: string }[]
+    try {
+      matches = await findLeadMatches(found.row.from_email)
+    } catch (err) {
+      // The same failure that produced this hold. Say so plainly rather than recording a
+      // re-check that answered nothing.
+      res.status(503).json({
+        success: false,
+        error: `The lead lookup failed again (${err instanceof Error ? err.message : String(err)}), so the candidates are still unknown. The reply is untouched and still waiting.`,
+      })
+      return
+    }
+
+    const clientIds = [...new Set(matches.map(m => m.client_id).filter(Boolean))]
+    const leadIds = [...new Set(matches.map(m => m.id).filter(Boolean))]
+    if (clientIds.length === 0) {
+      res.json({
+        success: true,
+        data: { rechecked: 'still_unknown', candidates: 0 },
+        message: `Nobody holds a lead with ${found.row.from_email}, so there is still no client this reply can be attributed to. It stays retained.`,
+      })
+      return
+    }
+
+    const { error: updErr } = await db.from('unattributed_replies')
+      .update({ candidate_client_ids: clientIds, candidate_lead_ids: leadIds })
+      .eq('id', req.params.id).is('resolved_at', null)
+    if (updErr) {
+      res.status(500).json({ success: false, error: `The candidates were found but could not be written back (${updErr.message}), so nothing changed.` })
+      return
+    }
+
+    await writeOperatorAudit({
+      operatorEmail: operatorEmail(req), clientId: null,
+      action: 'unattributed_reply_rechecked', subjectType: 'client', subjectId: req.params.id,
+      detail: {
+        from_email: found.row.from_email,
+        candidates_before: (found.row.candidate_client_ids ?? []).filter(Boolean),
+        candidates_after: clientIds,
+        means: 'the lead lookup that failed while this reply arrived was re-run; the candidate set is now evidence rather than absence, and the attribution control refuses anything outside it exactly as before',
+      },
+    })
+
+    res.json({ success: true, data: { rechecked: 'candidates_found', candidates: clientIds.length } })
+  } catch (err) {
+    console.error('[operator/unattributed-replies/recheck]', err)
+    res.status(500).json({ success: false, error: 'Failed to re-check the reply' })
   }
 })
 

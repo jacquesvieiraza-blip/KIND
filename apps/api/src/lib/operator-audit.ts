@@ -248,6 +248,14 @@ export type OperatorAction =
                             // client on a person's judgement rather than on evidence — so who
                             // chose, which client they chose, and which candidates they chose
                             // from all have to survive the decision.
+  | 'unattributed_reply_rechecked'   // ⚑ 18 Sep (J22-C2) — a human asked the lead lookup AGAIN
+                            // for a hold whose candidate set was empty because that lookup had
+                            // failed while the reply arrived. Its own action, not a flag on the
+                            // two below, because it decides NOTHING: it replaces an absence with
+                            // evidence, and the attribution that may follow is still refused
+                            // outside the set. What is audited is that the set MOVED — before
+                            // and after — since an operator who widened it is the one case
+                            // where the candidate check could be argued into.
   | 'unattributed_reply_discarded'   // the same decision the other way: it belongs to NONE of
                             // the candidates. Its own action, not a flag, for the #564 reason
                             // above — "attributed to Acme" and "belongs to nobody" are different

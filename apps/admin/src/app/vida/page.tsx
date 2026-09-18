@@ -1503,12 +1503,23 @@ export default function VidaConsolePage() {
       `Discard this reply?\n\n${a.label}\n\nThis records that it belongs to NONE of the candidate clients. No client will ever see it. The message itself is kept.`,
     )) return
 
+    // ⚑ 18 Sep (J22-C2 · PV 11 C) — WHICH CLIENT, WHEN THE ALERT NAMES NONE.
+    //
+    // A hold with no candidate arrives with `client_id: ''` — there is no client to offer,
+    // which is the whole condition — so the operator's own selection is the answer. Attributing
+    // it with no client chosen would be an action with no subject, and the button is disabled
+    // for exactly that reason; this refusal is the second half of the same guard.
+    const owner = a.client_id || selected
+    if (action === 'resolve' && !owner) {
+      setProofMsg('Choose the client this reply belongs to first — select them on the left, then attribute it.')
+      return
+    }
     setProofBusy(a.unattributed_reply_id); setProofMsg(null)
     try {
       const j = await fetch(`/api/proxy/operator/unattributed-replies/${encodeURIComponent(a.unattributed_reply_id)}/${action}`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: action === 'resolve' ? JSON.stringify({ client_id: a.client_id }) : undefined,
+        body: action === 'resolve' ? JSON.stringify({ client_id: owner }) : undefined,
       }).then(r => r.json())
       if (j?.success) {
         const fresh = await fetch('/api/proxy/operator/alerts').then(r => r.json())
@@ -1523,6 +1534,41 @@ export default function VidaConsolePage() {
       }
     } catch {
       setProofMsg('It could not be done — the reply is still waiting.')
+    }
+    setProofBusy(null)
+  }
+
+  /**
+   * ⚑ 18 Sep (J22-C2 · PV 11 C) — ASK THE LEAD LOOKUP AGAIN FOR A HOLD THAT HAS NO CANDIDATES.
+   *
+   * ⚠️ SAME SHAPE AS THE TWO BUTTONS ABOVE — proxy POST, read `success`, re-read the feed from
+   * the server. The re-check writes only the candidate set, so a feed that comes back with the
+   * ordinary attribute buttons is the server saying it found somebody; nothing here decides it.
+   */
+  async function recheckUnattributedReply(a: Alert) {
+    if (!a.unattributed_reply_id) {
+      setProofMsg('That alert is missing its reply id, so no action could be taken. Refresh and try again.')
+      return
+    }
+    setProofBusy(a.unattributed_reply_id); setProofMsg(null)
+    try {
+      const j = await fetch(`/api/proxy/operator/unattributed-replies/${encodeURIComponent(a.unattributed_reply_id)}/recheck`, {
+        method: 'POST', headers: { 'content-type': 'application/json' },
+      }).then(r => r.json())
+      if (j?.success) {
+        const fresh = await fetch('/api/proxy/operator/alerts').then(r => r.json())
+        if (fresh?.success) setAlerts(fresh.data)
+        setProofMsg(
+          j.data?.rechecked === 'candidates_found'
+            ? `Found ${j.data.candidates} client${j.data.candidates === 1 ? '' : 's'} holding that address — attribute it to the right one.`
+            : j.data?.rechecked === 'already_resolved' ? 'Already handled.'
+              : j.message || 'Still nobody holds that address. The reply stays retained.',
+        )
+      } else {
+        setProofMsg(j?.error || 'The re-check could not be done — the reply is still waiting.')
+      }
+    } catch {
+      setProofMsg('The re-check could not be done — the reply is still waiting.')
     }
     setProofBusy(null)
   }
@@ -2430,7 +2476,22 @@ export default function VidaConsolePage() {
   const alertsByClient = alerts.reduce<Record<string, Alert[]>>((m, a) => {
     (m[a.client_id] ||= []).push(a); return m
   }, {})
-  const myAlerts = selected ? (alertsByClient[selected] ?? []) : []
+  /**
+   * ⚑ 18 Sep (J22-C2 · PV 11 C) — A HELD REPLY WITH NO CANDIDATE BELONGS TO NOBODY, SO IT
+   * SHOWS WHEREVER THE OPERATOR IS.
+   *
+   * 🛑 THE FEED IS GROUPED BY CLIENT, so a row the server sends with `client_id: ''` — a
+   * retained reply whose candidates are unknown, or are all demo/House accounts filtered out
+   * of the feed — lands in a bucket no selection ever opens. It was reachable only by reading
+   * the table by hand, which is not a control.
+   *
+   * ⚠️ AND IT SHOWS WITH NO CLIENT SELECTED TOO. It is real work that is not about a client;
+   * hiding it until somebody picks one would be the same invisibility with an extra step.
+   */
+  const unassignedHolds = alertsByClient[''] ?? []
+  const myAlerts = selected
+    ? [...(alertsByClient[selected] ?? []), ...unassignedHolds]
+    : unassignedHolds
   const unansweredAsks = (asks ?? []).filter(a => a.answers.length === 0).length
 
   // ── ⚑ 9 Sep · THE CLIENTS WORKSPACE BODY ────────────────────────────────────────────
@@ -3006,6 +3067,46 @@ export default function VidaConsolePage() {
                             disabled={proofBusy === a.unattributed_reply_id}
                             className="text-[12px] font-semibold text-white bg-[#9d174d] border border-[#9d174d] rounded-full px-2 py-0.5 hover:bg-[#EC4899] disabled:opacity-50">
                             {proofBusy === a.unattributed_reply_id ? 'Working…' : 'Attribute to this client'}
+                          </button>
+                          <button
+                            onClick={() => actOnUnattributedReply(a, 'discard')}
+                            disabled={proofBusy === a.unattributed_reply_id}
+                            className="text-[12px] font-semibold text-[#7f1d1d] bg-white border border-[#fca5a5] rounded-full px-2 py-0.5 hover:border-[#dc2626] disabled:opacity-50">
+                            Discard reply
+                          </button>
+                        </>
+                      )}
+                      {/* ⚑ 18 Sep (J22-C2 · PV 11 C) — THE SAME TWO DECISIONS FOR A HOLD THAT
+                          NAMES NO CANDIDATE. The reply is real and somebody is waiting on it;
+                          what is missing is a client to offer, so the operator's own selection
+                          is the answer and the button says so. Attributing with nothing
+                          selected would be an action with no subject, and it is refused in the
+                          handler as well as disabled here. */}
+                      {a.kind === 'reply_unattributed_unknown' && (
+                        <>
+                          {/* 🛑 RE-CHECK FIRST, AND IT IS THE ONLY ONE THAT CAN FILL THE GAP.
+                              This hold has no candidates because the lead lookup FAILED while
+                              the reply was arriving, and the attribution route refuses any
+                              client outside the stored candidates — correctly. Asking the
+                              question again is evidence; naming a client by hand would be the
+                              guess that guard exists to stop. */}
+                          <button
+                            onClick={() => recheckUnattributedReply(a)}
+                            disabled={proofBusy === a.unattributed_reply_id}
+                            title="Re-run the lead lookup that failed when this reply arrived"
+                            className="text-[12px] font-semibold text-[#9d174d] bg-white border border-[#fbcfe8] rounded-full px-2 py-0.5 hover:border-[#EC4899] disabled:opacity-50">
+                            {proofBusy === a.unattributed_reply_id ? 'Working…' : 'Re-check who it belongs to'}
+                          </button>
+                          <button
+                            onClick={() => actOnUnattributedReply(a, 'resolve')}
+                            disabled={proofBusy === a.unattributed_reply_id || !selected}
+                            title={selected
+                              ? 'Attribute this reply to the client selected on the left — only possible once a re-check has found candidates'
+                              : 'Select the client this reply belongs to first'}
+                            className="text-[12px] font-semibold text-white bg-[#9d174d] border border-[#9d174d] rounded-full px-2 py-0.5 hover:bg-[#EC4899] disabled:opacity-50">
+                            {proofBusy === a.unattributed_reply_id
+                              ? 'Working…'
+                              : selected ? 'Attribute to the selected client' : 'Select a client to attribute'}
                           </button>
                           <button
                             onClick={() => actOnUnattributedReply(a, 'discard')}

@@ -67,9 +67,32 @@ describe('① the two facts have columns', () => {
 })
 
 describe('② the client save carries them', () => {
+  // ⛓️ 18 Sep (MVP1 · J6-C1 · LR 10) — ~~`.default('')`~~ → `.optional()`.
+  //
+  // 🛑 `.default('')` WAS WHAT BLANKED THE COLUMN. An ABSENT key became `''` in the parsed
+  // object, that object IS the update patch (`saveClientTargeting` writes `{ ...body }`), and
+  // the statement reaching Postgres was `SET target_category = ''`. The portal's refinement
+  // payload never sent the field, so this fired on EVERY refinement — wiping the column the
+  // founder locked as the only authority on client intent, which then made the category
+  // criterion return `yes` for every company on earth.
+  //
+  // ⚠️ WHAT THIS ASSERTION IS FOR IS UNCHANGED: the schema must ADMIT both fields so the
+  // client's own words can reach the insert. `.optional()` admits them and adds the property
+  // J6-C1 needs — absent means untouched, an explicit `''` still clears.
   it('icpSchema admits both, so the insert payload carries them', () => {
-    expect(icpsSrc).toMatch(/target_category:\s*z\.string\(\)\.max\(200\)\.default\(''\)/)
-    expect(icpsSrc).toMatch(/target_company_type:\s*z\.string\(\)\.max\(120\)\.default\(''\)/)
+    expect(icpsSrc).toMatch(/target_category:\s*z\.string\(\)\.max\(200\)\.optional\(\)/)
+    expect(icpsSrc).toMatch(/target_company_type:\s*z\.string\(\)\.max\(120\)\.optional\(\)/)
+    // 🛑 AND NEITHER MAY GO BACK TO A DEFAULT, which is the defect wearing a value.
+    //
+    // ⚠️ COMMENT-STRIPPED, and this file is exactly why the convention exists: the note beside
+    // the fix QUOTES the struck `.default('')` so the next reader knows what was wrong, and a
+    // naive scan matches the explanation and fails for the wrong reason.
+    const icpsCode = icpsSrc
+      .split('\n')
+      .filter(l => { const t = l.trim(); return !t.startsWith('//') && !t.startsWith('*') && !t.startsWith('/*') })
+      .join('\n')
+    expect(icpsCode, 'a default would blank the column on every refinement that omits it')
+      .not.toMatch(/target_(category|company_type):\s*z\.string\(\)[^\n]*\.default\(/)
   })
 
   it('the write path is still one spread into one insert — no second ICP system', () => {

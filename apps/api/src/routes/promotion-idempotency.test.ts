@@ -323,9 +323,26 @@ describe('⑨ 10 · 11 · the confirmed brief reaches the ICP exactly as the cli
 
   it('🛑 nothing is invented for a fact the client did not give', async () => {
     // A brief that established the category and NOT the organisational form. The column must
-    // read empty — never guessed from the category, the website or a default.
+    // never be guessed from the category, the website or a default.
+    //
+    // ⛓️ 18 Sep (MVP1 · J6-C1) — the expected value moved from `''` to ABSENT, and the column
+    // it produces from `''` to NULL. `icpSchema` used `.default('')`, which turned an omitted
+    // field into an empty string — harmless on an INSERT and destructive on the UPDATE that
+    // every refinement performs, because `{ ...body }` then wrote `SET target_company_type =
+    // ''` over whatever the client had said. `.optional()` leaves the key out entirely.
+    //
+    // ⚠️ AND NULL IS THE BETTER ANSWER HERE TOO, not merely an acceptable one: it is the same
+    // "never collected" this column's own COMMENT ON documents, where `''` is a value that
+    // looks stated and means nothing. The assertion this replaces was checking that nothing
+    // was INVENTED, and an absent key satisfies that more exactly than an empty string.
     const { target_company_type: _none, ...short } = FROM_DRAFT
     await call('/', 'post', short)
-    expect(inserted().target_company_type, 'a company type was invented').toBe('')
+    expect(inserted().target_company_type ?? null, 'a company type was invented').toBeNull()
+    expect(
+      Object.prototype.hasOwnProperty.call(inserted(), 'target_company_type'),
+      'an unstated fact still reached the write',
+    ).toBe(false)
+    // The fact the client DID give is still written.
+    expect(inserted().target_category).toBeTruthy()
   })
 })

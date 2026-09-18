@@ -46,6 +46,14 @@ type Msg = { id: string; role: 'user' | 'assistant'; content: string }
 type IcpDraft = {
   name?: string; industries?: string[]; job_titles?: string[]; seniority_levels?: string[]
   company_sizes?: string[]; geographies?: string[]; tech_stack?: string[]; keywords?: string[]
+  /**
+   * ⚡ 18 Sep (J6-C1 · LR 10) — THE CLIENT'S OWN WORDS, when this turn actually changed
+   * them. `/icps/chat-build` has always been able to return these two; this payload dropped
+   * them before the request, so an explicit change to the category could not be expressed at
+   * all — and the server's `.default('')` then blanked the stored one on every refinement.
+   * Sent only when present: an absent field now means "no change", which is the whole rule.
+   */
+  target_category?: string; target_company_type?: string
 }
 
 type Programme = { stage: MillaStage; hasProgramme?: boolean }
@@ -494,6 +502,11 @@ export function MillaConversationProvider(
         seniority_levels: icpDraft.seniority_levels ?? [], company_sizes: icpDraft.company_sizes ?? [],
         geographies: icpDraft.geographies ?? [], tech_stack: icpDraft.tech_stack ?? [],
         keywords: icpDraft.keywords ?? [],
+        // ⚡ 18 Sep (J6-C1 · LR 10) — CONDITIONAL, AND THAT IS THE WHOLE CARE HERE.
+        // Sending `target_category: ''` unconditionally would re-create the defect one layer
+        // up: every refinement would carry an explicit CLEAR rather than saying nothing.
+        ...(icpDraft.target_category ? { target_category: icpDraft.target_category } : {}),
+        ...(icpDraft.target_company_type ? { target_company_type: icpDraft.target_company_type } : {}),
       }, tok))
       // ── ⚑ 10 Sep (C01) — WHAT ACTUALLY MOVED, IN THE SERVER'S OWN WORDS ────────────────
       //

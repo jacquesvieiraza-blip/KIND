@@ -319,16 +319,31 @@ const icpSchema = z.object({
   name:                  z.string().min(1),
   // ── ⚑ MVP1 (C04) — THE CLIENT'S OWN WORDS REACH THE COLUMN ────────────────────────
   //
-  // ⚠️ DEFAULTED TO '' RATHER THAN OMITTED, so an older client saving a targeting change
-  // does not silently blank a category they already have… and equally does not carry one
-  // it never had. Both are plain text: the whole point is that no closed vocabulary sits
-  // between the client's answer and storage.
+  // ⛓️ 18 Sep (MVP1 · J6-C1 · LR 10) — `.optional()`, AND THE OLD NOTE HAD IT EXACTLY
+  // BACKWARDS. What stood here was:
+  //
+  //   ~~`target_category: z.string().max(200).default('')`~~, under the comment *"DEFAULTED TO
+  //   '' RATHER THAN OMITTED, so an older client saving a targeting change does not silently
+  //   blank a category they already have."*
+  //
+  // 🛑 `.default('')` IS WHAT SILENTLY BLANKED IT. An ABSENT key becomes `''` in the parsed
+  // object, that object IS the update patch (`saveClientTargeting` writes `{ ...body }`), and
+  // the statement reaching Postgres was `SET target_category = ''`. The portal's
+  // `saveIcpDraft` never sent the field at all, so this fired on EVERY refinement: a client
+  // who said "digital marketing agencies" and then asked for smaller ones had the column the
+  // founder locked as the only authority on client intent wiped — and an unstated category is
+  // not a test, so their pass 2 sourced with that criterion switched off entirely.
+  //
+  // ⚠️ OPTIONAL PRESERVES BOTH DIRECTIONS, which is what *"change only by explicit
+  // statement"* requires: ABSENT is not in the patch and the stored value stands; an
+  // explicitly sent `''` IS in the patch and clears it. `exclusions` has had this property
+  // all along, by never being declared here at all.
   //
   // ⚠️ ORDERING. These reach the insert payload via `{ ...body }` in `saveClientTargeting`,
   // so `20260911_icp_target_category_and_type` MUST be applied before this code ships —
   // the same expand/contract rule as `clients.commercial_model`.
-  target_category:       z.string().max(200).default(''),
-  target_company_type:   z.string().max(120).default(''),
+  target_category:       z.string().max(200).optional(),
+  target_company_type:   z.string().max(120).optional(),
   // ── 🛑 ⚑ 14 Sep (S1-PD-01) — `icp_review` IS NOT A REQUEST FIELD, AND MUST NEVER BE ───
   //
   // ⛓️ ~~`icp_review: z.object({ requirements: […] }).nullable().optional()`~~ STOOD HERE for
@@ -5737,10 +5752,36 @@ function revisionIsRepeat(
   /** True when this write would be PARKED rather than applied (`saveClientTargeting`'s hold). */
   hold: boolean,
 ): boolean {
+  // ── 🛑 ⚡ 18 Sep (J6-C1 · LR 10) — THE CLIENT'S OWN WORDS COUNT AS A CHANGE ───────
+  //
+  // `diffTargeting` compares `TARGETING_FIELDS`, which is the seven LIST columns and
+  // deliberately nothing else — its own guard pins that list. So a refinement whose ONLY
+  // change was the client's stated category or company type matched "nothing moved" and was
+  // short-circuited before any write: the route answered 200, `wrote: false`, and the
+  // explicit statement was discarded.
+  //
+  // 🛑 THAT IS THE SAME RULE FAILING IN THE OTHER DIRECTION. J6-C1 is "change only by
+  // explicit statement", and an explicit statement we drop breaks it exactly as an omission we
+  // write does. `target_category` is the column the founder locked as the only authority on
+  // client intent; it is a free-text fact rather than one of those seven lists, so it must not
+  // join `TARGETING_FIELDS` — but it is certainly a change.
+  //
+  // ⚠️ ONLY WHEN THE BODY CARRIES THE FIELD. An absent key means "no change" (that is what
+  // `.optional()` now buys), so it must not be read as a move to `undefined`.
+  const categoryMoved = (against: Record<string, unknown>): boolean => {
+    for (const f of ['target_category', 'target_company_type'] as const) {
+      if (!Object.prototype.hasOwnProperty.call(body, f)) continue
+      if (String(body[f] ?? '') !== String(against[f] ?? '')) return true
+    }
+    return false
+  }
   const same = (a: TargetingLists, b: TargetingLists) => targetingUnchanged(diffTargeting(a, b))
   const parked = core.pending_targeting as TargetingLists | null | undefined
   if (hold && parked) {
     if (!same(parked, body as TargetingLists)) return false
+    // ⚑ 18 Sep (J6-C1) — the parked revision is the thing being repeated, so it is what the
+    // stated category is compared against.
+    if (categoryMoved(parked as unknown as Record<string, unknown>)) return false
     // A revision that also carries a NEW brief is not a repeat of one that carries a
     // different brief — the targeting matching is not enough to drop the words with it.
     const held = String(core.pending_campaign_intent ?? '').trim()
@@ -5748,6 +5789,7 @@ function revisionIsRepeat(
   }
   // Nothing is parked, or the write goes to the live columns: a request that already matches
   // the live columns has nothing to change and nothing to park.
+  if (categoryMoved(core)) return false
   return same(core as TargetingLists, body as TargetingLists)
 }
 

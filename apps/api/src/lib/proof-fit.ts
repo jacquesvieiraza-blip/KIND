@@ -641,6 +641,29 @@ export function setAsideReason(f: HardFit): string | null {
   return unknown ? `${unknown}: ${UNKNOWN_COPY[unknown]}` : null
 }
 
+/**
+ * ── 🛑 ⚑ 18 Sep (J5-C6 · PV 02) — THE SAME REASON, WITHOUT THE CRITERION KEY ────────────
+ *
+ * `setAsideReason` prefixes the criterion (`"category: not the kind of company you asked
+ * for"`) because that string is the OPERATOR'S record: it is stamped on `leads.set_aside_reason`
+ * and grouped by Vida's Proof exception panel, where naming the criterion is the point.
+ *
+ * 🛑 THE CLIENT MAY NOT BE SHOWN THAT KEY. `mvp1-proof-exception.test.ts` locks it — *"the
+ * operator panel names criteria; the CLIENT keeps `FAILED_RUN_BODY`… the criterion vocabulary
+ * lives only in the admin app"* — and `category` / `company_type` / `excluded` are exactly
+ * that vocabulary. What a client may be shown is the SENTENCE, which is already written in
+ * their own terms and is what Preview 02 prints beside a set-aside prospect.
+ *
+ * ⚠️ SAME FUNCTION, SAME ORDER, SAME ANSWER — only the prefix differs, so the two can never
+ * describe different criteria.
+ */
+export function setAsideSentence(f: HardFit): string | null {
+  const failed = firstHardFailure(f)
+  if (failed) return FAILURE_COPY[failed]
+  const unknown = unknownCriteria(f)[0]
+  return unknown ? UNKNOWN_COPY[unknown] : null
+}
+
 // ── THE BANDS ──────────────────────────────────────────────────────────────────────────
 
 /** Founder-locked 10 Sep. Three bands, and the star belongs to exactly one of them. */

@@ -44,6 +44,21 @@ type MaskedLead = { id: string; role: string; company: string; industry: string 
   band?: 'start_here' | 'worth_a_look' | 'not_a_fit' | null
   /** The server's own words for that band, so the screen cannot reword it. */
   band_label?: string | null
+  /**
+   * ⚑ 18 Sep (J5-C6 · PV 02) — WHY a card is "Not a fit", in the client's own terms; null on
+   * every other band. It takes the place of `why_fits`, which the server now withholds from a
+   * refused card: the scorer's case FOR a company we had just refused was the label and the
+   * prose making opposite claims about one person.
+   */
+  band_reason?: string | null
+  /**
+   * ⚑ 18 Sep (J5-C6) — MAY THIS CARD BE ACCEPTED? The server's answer, from the same band the
+   * label came from. `/leads/:id/proof-accept` adopts a widened proof basis onto the LIVE ICP,
+   * so "👍 Looks right" on a refused card would rewrite the client's targeting on the strength
+   * of a company we told them was not one of theirs. Absent (an older payload) behaves exactly
+   * as before; the route refuses a refused card regardless of what this screen renders.
+   */
+  can_accept?: boolean
   /** ⚑ 25 Aug — WHICH PROOF BATCH this card came from. One shared timestamp per proof run,
    *  written once and never rewritten, so it separates pass 1 from pass 2 exactly. */
   surfaced_for_approval_at?: string | null }
@@ -1606,7 +1621,18 @@ export default function MillaHomePage() {
                             ? <span data-testid="lead-not-scored" title="We could not produce a fit score for this prospect. They are still part of your set." className="ml-auto text-right"><span className="text-[11px] font-extrabold uppercase tracking-wide text-[#9b8ec4]">Not scored</span></span>
                             : null}
                       </div>
+                      {/* ── ⚑ 18 Sep (J5-C6 · PV 02) — THE CLAIM MATCHES THE LABEL ────────
+                          🛑 A "Not a fit" card used to render "Why this fits: …" — the
+                          scorer's case FOR a company the product had just refused, which is
+                          the 72/100 card one band over. The server no longer sends
+                          `why_fits` on a refused card; it sends `band_reason` instead, the
+                          criterion in the client's own words. Neither is reworded here. */}
                       {l.why_fits && <div className="text-[13px] text-[#5c5279] mt-2 leading-relaxed bg-[#faf8ff] rounded-lg px-2.5 py-2"><b className="text-[#7c6f9b]">Why this fits:</b> {l.why_fits}</div>}
+                      {/* ⚠️ THE LABEL IS THE BAND'S OWN WORDS, and it deliberately avoids the
+                          operator vocabulary: `mvp1-proof-exception.test.ts` locks the
+                          criterion names (and the phrase this panel would naturally use) out
+                          of the client app. The sentence itself is the server's. */}
+                      {l.band_reason && <div data-testid="lead-band-reason" className="text-[13px] text-[#6b6383] mt-2 leading-relaxed bg-[#f6f4fa] rounded-lg px-2.5 py-2"><b className="text-[#8d85a5]">Why this isn&rsquo;t a fit:</b> {l.band_reason}</div>}
                       {/* ⛓️ 30 Aug (BUILD-004A-1, Option B) — THE THREE CONTROLS THE FOUNDER
                           SPECIFIED, AND ONLY THOSE: Looks right · Not a fit · an optional
                           "Tell Milla why". What was here instead: the proof signal, a pick-N
@@ -1614,14 +1640,31 @@ export default function MillaHomePage() {
                           last two were the paid desk and are gone — no button on this card
                           reveals a contact, spends a pass or costs anything. */}
                       <div className="flex gap-1.5 mt-2.5">
-                        <button disabled={busy || !!reacted[l.id]} onClick={e => { e.stopPropagation(); void acceptProof(l.id) }}
-                          className="flex-1 text-[13px] font-bold text-white rounded-lg py-2 bg-gradient-to-br from-[#7C3AED] to-[#EC4899] disabled:opacity-50">
-                          {/* ⚠️ THE ACKNOWLEDGEMENT IS ONE WORD AND PROMISES NOTHING. Not that
-                              anything starts, not that anyone is contacted, not what it is
-                              worth — it states only that the reaction was recorded. */}
-                          {busy ? 'Saving…' : reacted[l.id] === 'approve' ? 'Noted' : '👍 Looks right'}
-                        </button>
-                        <button disabled={busy} onClick={e => { e.stopPropagation(); pass(l.id) }} className="text-[13px] font-semibold text-[#5c5279] rounded-lg py-2 px-3 border border-[#ece5fb] disabled:opacity-50">Not a fit</button>
+                        {/* ── 🛑 ⚑ 18 Sep (J5-C6) — NO ACCEPT CONTROL ON A REFUSED CARD ────
+                            "👍 Looks right" is not a reaction: `/leads/:id/proof-accept`
+                            ADOPTS a widened proof basis onto the live ICP, so accepting a
+                            card the product refused would rewrite the client's targeting on
+                            the strength of it — and write the `approve` feedback the
+                            calibration escalation counts.
+
+                            ⚠️ THE SERVER DECIDES, NOT THIS SCREEN. `can_accept` comes from
+                            the same band the card's label came from; re-deriving the refused
+                            band here would be a second authority on fit, which is what
+                            `band_label` was introduced to stop. `!== false` so an older
+                            payload without the field behaves exactly as before.
+
+                            ⚠️ AND THE ROUTE REFUSES IT TOO. A control absent from a browser
+                            is not a refusal. */}
+                        {l.can_accept !== false && (
+                          <button disabled={busy || !!reacted[l.id]} onClick={e => { e.stopPropagation(); void acceptProof(l.id) }}
+                            className="flex-1 text-[13px] font-bold text-white rounded-lg py-2 bg-gradient-to-br from-[#7C3AED] to-[#EC4899] disabled:opacity-50">
+                            {/* ⚠️ THE ACKNOWLEDGEMENT IS ONE WORD AND PROMISES NOTHING. Not that
+                                anything starts, not that anyone is contacted, not what it is
+                                worth — it states only that the reaction was recorded. */}
+                            {busy ? 'Saving…' : reacted[l.id] === 'approve' ? 'Noted' : '👍 Looks right'}
+                          </button>
+                        )}
+                        <button disabled={busy} onClick={e => { e.stopPropagation(); pass(l.id) }} className={`text-[13px] font-semibold text-[#5c5279] rounded-lg py-2 px-3 border border-[#ece5fb] disabled:opacity-50${l.can_accept === false ? ' flex-1' : ''}`}>Not a fit</button>
                       </div>
                       {/* THE OPTIONAL THIRD CONTROL. Ignoring it costs nothing and blocks
                           nothing; it is a text box, not a step. */}

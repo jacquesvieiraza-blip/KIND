@@ -344,7 +344,10 @@ leadRouter.get('/for-approval', async (req: AuthRequest, res) => {
       // reads it, but `leads.company_description` does not exist — no migration creates it and
       // nothing writes it. Selecting it would make PostgREST reject the whole query, which
       // `.data ?? []` renders as an empty desk. Reported rather than invented.
-      .select('id, first_name, last_name, job_title, company, industry, country, company_size, seniority, score, score_reasoning, category_fit, created_at, surfaced_for_approval_at')
+      // ⛓️ 18 Sep (J5-C6) — `icp_id` JOINS THE SELECT, AND IT IS NOT SHOWN. It is how the card
+      // is judged against the targeting it was SOURCED for rather than the client's newest
+      // ICP — see the read below. Not added to the masked shape: the client sees a band.
+      .select('id, icp_id, first_name, last_name, job_title, company, industry, country, company_size, seniority, score, score_reasoning, category_fit, created_at, surfaced_for_approval_at')
       .eq('client_id', clientId)
       // 🛑 10 Sep — A SET-ASIDE CANDIDATE IS NEVER ON THE DESK. It failed a hard criterion the
       // client themselves named, and it was recorded rather than deleted so an operator can
@@ -423,11 +426,40 @@ leadRouter.get('/for-approval', async (req: AuthRequest, res) => {
     // unconditionally `yes` — this surface judged with a weaker rule than the structural
     // gate that produced the set, which is how a desk comes to band a candidate the gate
     // would have refused. `exclusions` joins them rather than arriving with the same defect.
-    const { data: icpRow } = await db.from('icps')
-      .select('geographies, company_sizes, industries, job_titles, seniority_levels, target_category, target_company_type, exclusions')
-      .eq('client_id', clientId).order('created_at', { ascending: false }).limit(1).maybeSingle()
-    const hardCriteria = (icpRow ?? {}) as import('../lib/proof-fit').FitIcp
-    const { hardFit, fitBand, displayScore, isStarred, BAND_LABEL } = await import('../lib/proof-fit')
+    // ── 🛑 ⚑ 18 Sep (J5-C6) — EACH CARD IS JUDGED AGAINST THE ICP IT WAS SOURCED FOR ─────
+    //
+    // ⛓️ WHAT THIS REPLACES, and it is one clause:
+    //     ~~`.eq('client_id', clientId).order('created_at', { ascending: false }).limit(1)`~~
+    //
+    // 🛑 THE CLIENT'S NEWEST ICP, NOT THE LEAD'S. The structural gate judged each batch against
+    // THE ICP THE RUN USED; this desk re-derives the band at read time — correctly, so the
+    // model's recorded verdict can refine it (J5-C13) — but it was re-deriving it against
+    // different targeting. One client with two ICPs, or one ICP replaced after a refinement,
+    // and a perfect UK marketing-agency match that the gate admitted and surfaced is banded
+    // **"Not a fit"** because a newer ICP says Germany. The gate and the desk disagreeing about
+    // one row is the C05 shape exactly, and `leads.icp_id` has been on the row the whole time
+    // — `/proof-accept` two hundred lines below has always read it.
+    //
+    // ⚠️ ONE EXTRA READ, BOUNDED BY THE PAGE. At most 50 rows come back, so this is an `.in()`
+    // over at most 50 ids and in practice one or two. Client-scoped, like everything here.
+    //
+    // ⚠️ A LEAD WITH NO ICP KEEPS TODAY'S ANSWER. A legacy row, or one whose ICP was deleted,
+    // gets `{}` — no requirements, nothing to fail — which is precisely what a failed ICP read
+    // has always produced on this desk. The score still decides its band.
+    const icpIds = [...new Set((data ?? [])
+      .map((l: Record<string, unknown>) => l.icp_id)
+      .filter((v): v is string => typeof v === 'string' && v !== ''))]
+    const { data: icpRows } = icpIds.length > 0
+      ? await db.from('icps')
+          .select('id, geographies, company_sizes, industries, job_titles, seniority_levels, target_category, target_company_type, exclusions')
+          .eq('client_id', clientId).in('id', icpIds)
+      : { data: [] as Record<string, unknown>[] }
+    const criteriaByIcp = new Map<string, import('../lib/proof-fit').FitIcp>(
+      (icpRows ?? []).map((r: Record<string, unknown>) =>
+        [String(r.id), r as import('../lib/proof-fit').FitIcp]),
+    )
+    const NO_CRITERIA = {} as import('../lib/proof-fit').FitIcp
+    const { hardFit, fitBand, displayScore, isStarred, BAND_LABEL, setAsideSentence } = await import('../lib/proof-fit')
 
     // ⚑ 18 Sep (J5-C8) — ONE PREDICATE FOR "SCORING FAILED", SHARED WITH THE HOURLY SWEEPER.
     // `score_reasoning` is a dual-purpose column: the model's explanation on a scored lead, and
@@ -437,9 +469,21 @@ leadRouter.get('/for-approval', async (req: AuthRequest, res) => {
     const { scoringFailed } = await import('../lib/scoring-failure')
 
     const masked = (data ?? []).map((l: Record<string, any>) => {
-      const fit = hardFit(l as import('../lib/proof-fit').FitCandidate, hardCriteria)
+      const fit = hardFit(
+        l as import('../lib/proof-fit').FitCandidate,
+        criteriaByIcp.get(String(l.icp_id ?? '')) ?? NO_CRITERIA,
+      )
       const band = fitBand(fit, l.score ?? null)
       const failed = scoringFailed(l.score_reasoning ?? null)
+      // ── 🛑 ⚑ 18 Sep (J5-C6 · PV 02) — A REFUSED CARD MAKES NO POSITIVE CLAIM ───────────
+      //
+      // 🛑 `why_fits` IS THE SCORER'S CASE *FOR* THIS PERSON, and it was rendered verbatim
+      // under a label reading "Not a fit" — the label and the prose making opposite claims
+      // about one company, which is the 72/100 card one band over. The reason the product
+      // actually holds is the criterion that refused them, and `setAsideReason` already writes
+      // it in the client's own terms ("not the kind of company you asked for"). PV 02 shows a
+      // set-aside prospect WITH its reason printed, so the refusal is stated, not left blank.
+      const refused = band === 'not_a_fit'
       return {
       id: l.id,
       role: l.job_title ?? 'Decision-maker',
@@ -467,8 +511,33 @@ leadRouter.get('/for-approval', async (req: AuthRequest, res) => {
        * score is absent, whether scoring failed or has not run yet.
        */
       not_scored: failed || (l.score ?? null) === null,
-      // 🛑 THE MARKER IS RECOGNISED, NEVER FORWARDED.
-      why_fits: failed ? null : scrub(l.score_reasoning ?? null, l.first_name ?? null, l.last_name ?? null),
+      // 🛑 THE MARKER IS RECOGNISED, NEVER FORWARDED — and neither is a positive sentence
+      // about a company this desk has refused (J5-C6).
+      // ⚠️ ONE LINE ON PURPOSE. `free-proof-route.test.ts` asserts the scrub call by its exact
+      // shape — the prospect's name must be stripped out of the reasoning before it leaves the
+      // server — and that guard is line-anchored. The refusal is the leading term.
+      why_fits: failed || refused ? null : scrub(l.score_reasoning ?? null, l.first_name ?? null, l.last_name ?? null),
+      /**
+       * Why this card is "Not a fit", in the client's own terms — null on every other band.
+       *
+       * ⚠️ THE SENTENCE, NOT THE CRITERION KEY. `setAsideReason`'s `"category: …"` prefix is
+       * the OPERATOR'S record (Vida's Proof exception panel groups by it);
+       * `mvp1-proof-exception.test.ts` locks that vocabulary out of the client app. The
+       * sentence itself is already written in the client's own terms, and it is what Preview
+       * 02 prints beside a set-aside prospect.
+       *
+       * ⚠️ AND IT IS A NAMED REASON, NEVER A SCORE. "Not the kind of company you asked for"
+       * is answerable by the client; "score too low" is the unfalsifiable shape C05 removed.
+       */
+      band_reason: refused ? setAsideSentence(fit) : null,
+      /**
+       * 🛑 MAY THIS CARD BE ACCEPTED? — the SERVER'S answer, so the screen does not carry a
+       * second rule about fit. "👍 Looks right" is not a reaction: `/proof-accept` adopts a
+       * widened proof basis onto the LIVE ICP, so accepting a card the product refused would
+       * rewrite the client's targeting on the strength of it. The route refuses it too — a
+       * control hidden in a browser is not a refusal.
+       */
+      can_accept: !refused,
       created_at: l.created_at ?? null,
       // A timestamp, not identity — it says WHICH BATCH, never who. The masked shape is
       // otherwise unchanged: no name, no email, no phone, whatever the row holds.
@@ -1359,10 +1428,57 @@ leadRouter.post('/:id/proof-accept', rateLimit({ limit: 30, windowMs: 60_000, ke
     // ── A · the card belongs to the caller ────────────────────────────────────────────
     // Scoped to their own client row, so another client's lead id is INDISTINGUISHABLE from
     // one that does not exist. 404 either way — no probe learns whether an id is real.
+    // ⛓️ 18 Sep (J5-C6) — the fit columns join the select so this route can ask the SAME
+    // question the desk asked before it drew the card. Nothing here is returned to the client.
     const { data: lead } = await db.from('leads')
-      .select('id, client_id, icp_id, surfaced_for_approval_at, delivered_at, revealed_at, status')
+      .select('id, client_id, icp_id, surfaced_for_approval_at, delivered_at, revealed_at, status, country, company_size, industry, job_title, seniority, company, category_fit, score')
       .eq('id', req.params.id).eq('client_id', clientId).maybeSingle()
     if (!lead) { res.status(404).json({ success: false, error: 'Lead not found' }); return }
+
+    // ── THE ICP THIS CARD WAS SOURCED FOR ─────────────────────────────────────────────
+    // ⛓️ 18 Sep (J5-C6) — HOISTED, NOT DUPLICATED. This read used to sit below, after the
+    // funding and pass checks; it is the same query, scoped identically, and it has no side
+    // effects, so moving it up changes nothing about the order those gates refuse in. It is
+    // needed here because the structural refusal below must come before the feedback write.
+    const { data: icp } = await db.from('icps')
+      .select('id, client_id, is_active, pending_targeting, job_titles, seniority_levels, industries, company_sizes, geographies, target_category, target_company_type, exclusions, proof_widened_candidate')
+      .eq('id', lead.icp_id).eq('client_id', clientId).maybeSingle()
+
+    // ── 🛑 ⚑ 18 Sep (J5-C6 · PV 02) — A "NOT A FIT" CARD HAS NO ACCEPT CONTROL ─────────
+    //
+    // 🛑 AND THIS ROUTE IS WHY THE CONTROL MATTERS. "👍 Looks right" is not a reaction: the
+    // acceptance path below ADOPTS a widened proof basis, writing `job_titles` and
+    // `seniority_levels` onto the client's LIVE ICP. Accepting a card the product itself
+    // refused would rewrite their targeting on the strength of a company it had just told them
+    // was not one of theirs.
+    //
+    // ⚠️ BEFORE THE FEEDBACK WRITE, AND THAT IS A DELIBERATE EXCEPTION TO THE NOTE BELOW.
+    // The approve row is written first because a client's reaction is theirs whatever this
+    // route later decides about widening, funding or batch state — all of which are facts
+    // about US. This is not one of those: the control was never on the card, so there is no
+    // reaction to honour, and `lead_feedback.action = 'approve'` is the `looksRight` counter
+    // the calibration escalation reads. Recording one here would teach that rule from a click
+    // the client was never offered.
+    //
+    // ⚠️ NO ICP MEANS NO REQUIREMENTS, NOT A REFUSAL. The gates below already refuse a card
+    // with no `icp_id`; inventing a structural refusal for one here would answer the wrong
+    // question with the wrong sentence.
+    if (icp) {
+      const { hardFit, fitBand } = await import('../lib/proof-fit')
+      const band = fitBand(
+        hardFit(lead as import('../lib/proof-fit').FitCandidate, icp as import('../lib/proof-fit').FitIcp),
+        (lead as { score?: number | null }).score ?? null,
+      )
+      if (band === 'not_a_fit') {
+        console.warn(`[leads/proof-accept] client ${clientId} accepted lead ${req.params.id}, which this desk bands "Not a fit" — refused. The card carries no accept control, so this reached the route another way.`)
+        res.status(409).json({
+          success: false,
+          code: 'proof_acceptance_not_a_fit',
+          error: 'That one isn’t a fit for what you asked for, so K.I.N.D can’t treat it as an example of what works. Pick one of the others, or tell Milla what was off.',
+        })
+        return
+      }
+    }
 
     // ── 🛑 10 Sep (A) — "LOOKS RIGHT" NOW WRITES THE POSITIVE FEEDBACK IT ALWAYS MEANT ───
     //
@@ -1420,9 +1536,11 @@ leadRouter.post('/:id/proof-accept', rateLimit({ limit: 30, windowMs: 60_000, ke
     if (passesDone !== 1 && passesDone !== 2) { needsReview(); return }
 
     // ── B/C/D · the ICP is theirs, live, and has no revision parked ───────────────────
-    const { data: icp } = await db.from('icps')
-      .select('id, client_id, is_active, pending_targeting, job_titles, seniority_levels, industries, company_sizes, geographies, proof_widened_candidate')
-      .eq('id', lead.icp_id).eq('client_id', clientId).maybeSingle()
+    // ⛓️ 18 Sep (J5-C6) — THE READ MOVED UP, THE CHECKS DID NOT. The query that was here is
+    // now performed right after the lead read (the structural refusal needs it before the
+    // feedback write); it was already scoped `.eq('id', lead.icp_id).eq('client_id', clientId)`
+    // and is unchanged apart from three extra targeting columns. These three refusals still
+    // fire exactly where they did, in the same order, after the funding and pass checks.
     if (!icp) { needsReview(); return }
     if (icp.is_active !== true) { needsReview(); return }
     if (icp.pending_targeting !== null && icp.pending_targeting !== undefined) { needsReview(); return }

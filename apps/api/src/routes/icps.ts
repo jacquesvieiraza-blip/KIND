@@ -3311,6 +3311,43 @@ Consulting or Telecoms — ask about that ONE thing in ordinary words, and nothi
       }
     }
 
+    // ── 🛑 ⚑ 18 Sep (J6-C2 · LR 11,13 · FD-1) — WHAT THEY ALREADY HAVE, ACTUALLY SHOWN ──
+    //
+    // 🛑 THE PROMPT ABOVE SAYS *"Start from what they already have and change only what they
+    // asked about"*, AND THIS DOOR NEVER READ THEIR ICP. Its context was the durable Brief
+    // and twenty turns of browser history, and nothing else — `icps` was not queried anywhere
+    // in the handler. So the model was told to start from something it had never been shown,
+    // and `propose_targeting` returns the WHOLE profile as the end state: whatever it omitted
+    // was what got written.
+    //
+    // ⚠️ THE BRIEF IS NOT THE ICP, AND THAT IS WHY THE BRIEF BLOCK ABOVE IS NOT ENOUGH. The
+    // Brief is what they said at signup; the ICP is what is live now — after a refinement,
+    // after an operator translated a phrase we could not map, after a widened proof pass was
+    // adopted. A client who changed their geography last month and came back to change their
+    // size was described by the older of the two.
+    //
+    // 🛑 EXCLUSIONS ARE THE SHARPEST CASE (FD-1). "Not recruitment agencies" is canonical
+    // targeting truth on `icps.exclusions`, it was invisible here, and a proposal that
+    // contradicted it is exactly what would have been written.
+    //
+    // ⚠️ BEST-EFFORT, LIKE THE BRIEF BLOCK, AND FOR THE SAME REASON: an ICP we cannot read
+    // costs the client their context, never their turn.
+    let currentBlock = ''
+    if (req.userId) {
+      try {
+        const cid = await getClientId(req.userId)
+        if (cid) {
+          const { data: currentIcp } = await db.from('icps')
+            .select('name, target_category, target_company_type, target_size, exclusions, geographies, company_sizes, job_titles, seniority_levels, industries')
+            .eq('client_id', cid).order('created_at', { ascending: false }).limit(1).maybeSingle()
+          const { describeCurrentTargeting } = await import('../lib/icp-refine-context')
+          currentBlock = describeCurrentTargeting(currentIcp as never)
+        }
+      } catch {
+        console.log('[icps/chat-build] current targeting unreadable — she refines without it')
+      }
+    }
+
     // ══════════════════════════════════════════════════════════════════════════════════
     // 🛑 ⚑ 18 Sep (J3-C2) — ONCE THEY HAVE SENT IT, WE OWN IT. BEFORE THE MODEL.
     //
@@ -3367,7 +3404,7 @@ Consulting or Telecoms — ask about that ONE thing in ordinary words, and nothi
     const response = await anthropic.messages.create({
       model: CONVERSATION_MODEL,
       max_tokens: 600,
-      system: system + briefBlock,
+      system: system + currentBlock + briefBlock,
       tools: [{
         name: 'propose_targeting',
         description: 'The targeting as it should end up after what the client just said. Send the WHOLE profile, starting from what they already have.',

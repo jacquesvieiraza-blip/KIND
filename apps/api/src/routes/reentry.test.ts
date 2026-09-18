@@ -208,7 +208,13 @@ describe('🛑 F3 · she is the same person when they come back', () => {
     const millaLib = readFileSync(join(process.cwd(), 'apps/api/src/lib/milla.ts'), 'utf8')
     expect(millaLib).toContain('briefDraftFor')
     const icps = readFileSync(join(process.cwd(), 'apps/api/src/routes/icps.ts'), 'utf8')
-    expect(icps).toContain('system: system + briefBlock')
+    // ⛓️ 18 Sep (MVP1 · J6-C2) — `currentBlock` joined the concatenation. The property this
+    // asserts is unchanged and is asserted more directly: the durable Brief still reaches the
+    // model on the targeting door. What is added beside it is the client's LIVE ICP, because
+    // the prompt tells the model to "start from what they already have" and this door had
+    // never read it.
+    expect(icps).toMatch(/system: system \+ [^\n]*briefBlock/)
+    expect(icps, 'the Brief block stopped being built at all').toContain('briefBlock = describeBriefMemory(')
 
     // ── The browser half: the welcome page REPLACES the untouched greeting, never appends.
     // ⚠️ A SOURCE PIN, AND IT IS THE HONEST KIND. There is no DOM here; what this protects is

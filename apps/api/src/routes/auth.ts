@@ -129,14 +129,41 @@ authRouter.post('/onboard', async (req, res) => {
     // A ref can be a client UUID (client referral) or an 8-char partner code.
     let resolvedReferredBy: string | undefined   // client referrer id
     let partnerRef: { partner_id: string; code: string } | undefined
+    // ── ⛓️ 18 Sep (J1-C2) — A LOST REFERRAL CAN NEVER BE SET AGAIN, SO IT IS NOT DROPPED ──
+    //
+    // WHAT THIS REPLACED: ~~`const { data: referrer } = await db.from('clients')…`~~ and the
+    // same shape for `partners`, both discarding the error. `referred_by` is written ONLY on
+    // the insert below and is deliberately never updated (P4: a client must not be able to
+    // rewrite their own attribution after the fact) — so a referral dropped by a transient
+    // read error is gone permanently, and nobody would ever know it had been sent.
+    //
+    // ⚠️ REFUSED, NOT GUESSED. A `ref` that resolves to nothing is an ordinary, expected
+    // answer and still proceeds without attribution; a ref we COULD NOT LOOK UP is a different
+    // fact, and the honest response is to ask them to try again a moment later rather than to
+    // open an account whose attribution is silently wrong for its whole life.
     if (referred_by) {
       if (UUID_RE.test(referred_by)) {
-        const { data: referrer } = await db.from('clients').select('id').eq('id', referred_by).maybeSingle()
+        const { data: referrer, error: referrerErr } = await db.from('clients')
+          .select('id').eq('id', referred_by).maybeSingle()
+        if (referrerErr) {
+          res.status(503).json({
+            success: false, retryable: true,
+            error: 'We could not check who referred you just now. Nothing has been created — please try again in a moment.',
+          })
+          return
+        }
         if (referrer) resolvedReferredBy = referrer.id
       } else {
         // Treat as a partner referral code — record attribution after client exists.
-        const { data: partner } = await db.from('partners')
+        const { data: partner, error: partnerErr } = await db.from('partners')
           .select('id').eq('referral_code', referred_by).maybeSingle()
+        if (partnerErr) {
+          res.status(503).json({
+            success: false, retryable: true,
+            error: 'We could not check your referral code just now. Nothing has been created — please try again in a moment.',
+          })
+          return
+        }
         if (partner) partnerRef = { partner_id: partner.id, code: referred_by }
       }
     }
@@ -311,8 +338,21 @@ authRouter.post('/onboard', async (req, res) => {
     // Check if client already exists (and whether signup consent is already on record).
     // ⚑ MVP1 (C27) — `contact_email` is read here so the writer below can fill it ONLY when
     // it is empty. See that block for why it is never overwritten.
-    const { data: existing } = await db.from('clients')
+    // ── 🛑 ⛓️ 18 Sep (J1-C2) — THE MOST DANGEROUS OF THE FOUR SILENT READS ──────────────
+    //
+    // WHAT THIS REPLACED: ~~`const { data: existing } = await db.from('clients')…`~~. An
+    // unreadable answer became `null`, which reads as "this user is new" and takes the INSERT
+    // branch below — for somebody who already has a client row. That is the second-client-row
+    // defect J1-C1 is about, reached without any concurrency at all: one flaky read is enough.
+    const { data: existing, error: existingErr } = await db.from('clients')
       .select('id, signup_terms_accepted_at, contact_email').eq('user_id', user.id).maybeSingle()
+    if (existingErr) {
+      res.status(503).json({
+        success: false, retryable: true,
+        error: 'We could not open your account just now. Nothing has been created — please try again in a moment.',
+      })
+      return
+    }
 
     // P4 — self-referral loophole: a client can never be their own referrer. Ignore
     // the ref when it resolves to the caller's own client row.
@@ -379,8 +419,41 @@ authRouter.post('/onboard', async (req, res) => {
         .insert({ user_id: user.id, ...payload, ...(resolvedReferredBy ? { referred_by: resolvedReferredBy } : {}), plan: 'figsy', commercial_model: 'programme' })
         .select()
         .single()
-      if (insertErr) throw new Error(`Insert failed: ${insertErr.message} (${insertErr.code})`)
-      clientId = inserted.id
+      if (insertErr) {
+        // ── 🛑 ⚑ 18 Sep (J1-C1) — THE LOSER OF A RACE COMPLETES AGAINST THE WINNER ──────
+        //
+        // WHAT THIS REPLACED: ~~`if (insertErr) throw new Error(\`Insert failed: …\`)`~~ — a
+        // 500 to somebody whose account had in fact just been created, by their own second
+        // request. Two onboards for one auth user (a double-tap, a retried request, two tabs)
+        // both read `existing` as null and both insert; once `clients_one_per_user` is applied
+        // the second one collides, and a collision is not a failure — it is the winner telling
+        // us the work is done.
+        //
+        // ⚠️ IT RE-READS RATHER THAN TRUSTING THE ERROR CODE. `23505` is the expected signal,
+        // but the only thing that actually settles the question is whether a row is there now;
+        // an insert that failed for any other reason and left nothing behind must still be
+        // reported, which is what the throw below does.
+        //
+        // ⚠️ AND IT TAKES THE WINNER'S ROW EXACTLY AS IT STANDS. It does not re-apply the
+        // payload over it: the winner wrote the same confirmed brief, and a second write here
+        // would be this request overruling one that has already completed.
+        // ⚠️ AND THIS READ CHECKS ITS OWN ERROR TOO (J1-C2). The safe direction is already the
+        // throw below, so a silent failure here would not be dangerous — but "the insert failed
+        // and we could not tell whether a winner exists" and "the insert failed and there is no
+        // winner" are different facts, and the person reading the log needs the first one named.
+        const { data: winner, error: winnerErr } = await db.from('clients')
+          .select('id').eq('user_id', user.id).maybeSingle()
+        if (winnerErr || !winner?.id) {
+          throw new Error(
+            `Insert failed: ${insertErr.message} (${insertErr.code})`
+            + (winnerErr ? ` — and the winning-row check also failed: ${winnerErr.message}` : ''),
+          )
+        }
+        console.warn(`[onboard] duplicate onboard for ${user.id} completed against the winning row ${winner.id}`)
+        clientId = winner.id
+      } else {
+        clientId = inserted.id
+      }
     }
 
     // Who we're speaking to. Best-effort: an un-migrated database must never cost us a
@@ -493,8 +566,15 @@ authRouter.post('/onboard', async (req, res) => {
     // ENUM — its FIGSY value is 'lead_gen_figsy', NOT 'figsy', which isn't in the enum →
     // 22P02 on insert. clients.plan + credit_transactions.plan are separate TEXT fields where
     // 'figsy' is correct — only this enum column uses 'lead_gen_figsy'.)
-    const { data: existingSub } = await db.from('subscriptions')
+    // ⛓️ 18 Sep (J1-C2) — `error` READ. An unreadable answer became `!existingSub`, which
+    // inserts a SECOND entitlement row for a client who already has one — and the entitlement
+    // is what every spend gate reads. Refusing is safe: the client row is already written, so
+    // a retry of this call takes the update branch and completes.
+    const { data: existingSub, error: existingSubErr } = await db.from('subscriptions')
       .select('id').eq('client_id', clientId).eq('product', SIGNUP_SUBSCRIPTION_PRODUCT).maybeSingle()
+    if (existingSubErr) {
+      throw new Error(`Subscription read failed: ${existingSubErr.message} (${existingSubErr.code}) — no second entitlement was written.`)
+    }
     if (!existingSub) {
       const { error: subErr } = await db.from('subscriptions').insert(signupSubscriptionRow(clientId, now))
       // 4 Aug — the live schema has NOT NULL on current_period_end and the relaxing migration

@@ -1267,7 +1267,15 @@ describe('one reflect-back truth, and two labelled proof sets', () => {
       src.indexOf('res.json({ success: true, data: masked })')))
     expect(masked).not.toMatch(/email|phone|first_name:|last_name:/)
     // The names ARE read — as arguments to the scrubber that removes them from why_fits.
-    expect(masked).toContain('why_fits: scrub(l.score_reasoning ?? null, l.first_name ?? null, l.last_name ?? null)')
+    // ⛓️ RELAXED FROM AN EXACT SLICE 18 Sep (J5-C8) · THE DUTY IS UNCHANGED.
+    // WHAT THIS REPLACED: ~~`.toContain('why_fits: scrub(l.score_reasoning ?? null,
+    // l.first_name ?? null, l.last_name ?? null)')`~~ — the whole expression, character for
+    // character. J5-C8 put a guard in front of it (`why_fits: failed ? null : scrub(…)`) so
+    // the internal `SCORING_FAILED` sentence is never forwarded as the reason a prospect fits,
+    // and the exact-string assertion failed on a change that made the card MORE careful.
+    // The duty this line exists for is that the scrubber still receives both names, which is
+    // what keeps a prospect's identity out of `why_fits` — asserted directly now.
+    expect(masked).toMatch(/why_fits:[^\n]*scrub\(l\.score_reasoning \?\? null, l\.first_name \?\? null, l\.last_name \?\? null\)/)
   })
 
   it('26 · nothing is deleted, passed or filtered away to separate the batches', () => {

@@ -42,6 +42,8 @@ export type ReviewProspect = {
   country: string | null
   score: number | null
   why_fits: string | null
+  /** ⚑ 18 Sep (J5-C8) — no fit number is available for this person, and the card says so. */
+  not_scored?: boolean
   surfaced_for_approval_at: string | null
 }
 
@@ -254,9 +256,25 @@ export default function ProgrammeReview({ token }: { token: () => Promise<string
                 <div className="text-[13.5px] font-bold text-[#2f2a44] truncate">{p.role}</div>
                 <div className="text-[12.5px] text-[#6b6288] truncate">{p.company}</div>
               </div>
-              {p.score != null && (
+              {/* ⛓️ 18 Sep (J5-C8) — THE CARD NOW SAYS "NOT SCORED" INSTEAD OF SHOWING NOTHING.
+                  WHAT THIS REPLACED: ~~`{p.score != null && (<span>{p.score}</span>)}`~~ — an
+                  unscored prospect's card simply had no badge, which reads as "we chose not to
+                  show a fit here", not as "we have no fit for this person". The server records
+                  the difference (`not_scored`), so the desk states it.
+                  ⚠️ NO NUMBER IS IMPLIED AND NONE IS IMPLIED TO BE MISSING-BUT-FINE. It is a
+                  quiet grey chip, not an alarm: the prospect is still in the programme and still
+                  gets worked, and the hourly sweeper retries the scoring by itself. */}
+              {p.score != null ? (
                 <span className="text-[11.5px] font-bold text-[#7C3AED] bg-[#f4efff] rounded-full px-2 py-0.5 shrink-0">
                   {p.score}
+                </span>
+              ) : (
+                <span
+                  data-testid="prospect-not-scored"
+                  title="We could not produce a fit score for this prospect. They are still part of your programme."
+                  className="text-[11.5px] font-semibold text-[#6b6288] bg-[#f3f1f8] rounded-full px-2 py-0.5 shrink-0"
+                >
+                  Not scored
                 </span>
               )}
             </div>

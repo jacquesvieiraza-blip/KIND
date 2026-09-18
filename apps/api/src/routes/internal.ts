@@ -2572,10 +2572,16 @@ internalRouter.post('/figsy/ab-winner-check', async (_req: Request, res: Respons
 // it is safe to run repeatedly). Called hourly by cron.
 internalRouter.post('/figsy/rescore-stranded', async (_req: Request, res: Response) => {
   try {
+    // ⛓️ 18 Sep (J5-C8) — THE PATTERN IS DERIVED, NOT TYPED HERE.
+    // WHAT THIS REPLACED: ~~`.like('score_reasoning', 'SCORING_FAILED%')`~~ — a second,
+    // independent spelling of the marker `scoring-failure.ts` writes. Rewording the recorded
+    // sentence there would have unhooked this sweep silently, and this sweep is the only thing
+    // that ever retries a stranded lead. `SCORING_FAILED_LIKE` comes from the same constant.
+    const { SCORING_FAILED_LIKE } = await import('../lib/scoring-failure')
     const { data: stranded } = await db.from('leads')
       .select('id, icp_id')
       .is('score', null)
-      .like('score_reasoning', 'SCORING_FAILED%')
+      .like('score_reasoning', SCORING_FAILED_LIKE)
       .not('icp_id', 'is', null)
       .limit(500)
     if (!stranded || stranded.length === 0) {

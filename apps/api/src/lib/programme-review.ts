@@ -64,6 +64,9 @@
 
 import { db } from '@kind/db'
 import { normalizeRevealEmail, normalizeRevealEmails } from './billing-rules'
+// J5-C8: one predicate for "this lead's scoring failed", shared with the hourly sweeper that
+// retries them. The marker lives in `score_reasoning`, which is also what a card renders.
+import { scoringFailed } from './scoring-failure'
 
 /** One masked prospect card. No identity field exists on this type, by construction. */
 export type ReviewProspect = {
@@ -74,6 +77,19 @@ export type ReviewProspect = {
   country: string | null
   score: number | null
   why_fits: string | null
+  /**
+   * ⚑ 18 Sep (J5-C8) — NO FIT NUMBER IS AVAILABLE FOR THIS PERSON, SAID OUT LOUD.
+   *
+   * 🛑 A NULL `score` WAS NOT ENOUGH, AND THAT WAS THE DEFECT. The card rendered its badge
+   * behind `{p.score != null && …}`, so an unscored prospect's card was simply missing it —
+   * indistinguishable from a card whose fit we deliberately do not show. LR 21 wants the
+   * recorded state reported, including the state where the recorded state is "we could not".
+   *
+   * ⚠️ IT IS TRUE FOR BOTH CAUSES, deliberately. "Our scorer broke" (the `SCORING_FAILED`
+   * marker) and "this one has not been through the scorer yet" are one fact on a review desk.
+   * The DISTINCTION matters only to the hourly sweeper, which reads the marker, not the card.
+   */
+  not_scored: boolean
   created_at: string | null
   /** Which batch, never who — the same timestamp discriminator the lead desk already returns. */
   surfaced_for_approval_at: string | null
@@ -218,17 +234,34 @@ async function scanEligible(
   }
 }
 
-/** Map an eligible row to its masked card. The email is dropped here and never leaves. */
+/**
+ * Map an eligible row to its masked card. The email is dropped here and never leaves.
+ *
+ * ⚑ 18 Sep (J5-C8) — AND SO IS THE SCORING FAILURE. `score_reasoning` is a DUAL-PURPOSE
+ * column: on a scored lead it holds the model's explanation, and on a failed one it holds our
+ * own marker sentence. Forwarding it unconditionally put
+ * *"SCORING_FAILED: AI scoring unavailable — not a real score (retried hourly by
+ * /figsy/rescore-stranded)"* on a client's approval card as the reason a prospect fitted them.
+ * `scrub` removed the prospect's NAME and had no opinion about the rest.
+ */
 function toCard(l: ScanRow): ReviewProspect {
+  const reasoning = (l.score_reasoning as string | null) ?? null
+  const score = (l.score as number | null) ?? null
+  // 🛑 THE MARKER IS RECOGNISED, NEVER FORWARDED. One predicate, shared with the sweeper.
+  const failed = scoringFailed(reasoning)
   return {
     id: l.id as string,
     role: (l.job_title as string | null) ?? 'Decision-maker',
     company: (l.company as string | null) ?? '—',
     industry: (l.industry as string | null) ?? null,
     country: (l.country as string | null) ?? null,
-    score: (l.score as number | null) ?? null,
-    why_fits: scrub(
-      (l.score_reasoning as string | null) ?? null,
+    // ⚠️ A FAILED SCORING RUN HAS NO SCORE BY CONSTRUCTION (`unscoredOnFailure` writes null),
+    // so this is belt-and-braces rather than a correction — and it is the belt that holds if a
+    // future write ever records a number beside the marker.
+    score: failed ? null : score,
+    not_scored: failed || score === null,
+    why_fits: failed ? null : scrub(
+      reasoning,
       (l.first_name as string | null) ?? null,
       (l.last_name as string | null) ?? null,
     ),

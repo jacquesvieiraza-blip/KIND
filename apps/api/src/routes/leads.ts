@@ -413,9 +413,17 @@ leadRouter.get('/for-approval', async (req: AuthRequest, res) => {
     const hardCriteria = (icpRow ?? {}) as import('../lib/proof-fit').FitIcp
     const { hardFit, fitBand, displayScore, isStarred, BAND_LABEL } = await import('../lib/proof-fit')
 
+    // ⚑ 18 Sep (J5-C8) — ONE PREDICATE FOR "SCORING FAILED", SHARED WITH THE HOURLY SWEEPER.
+    // `score_reasoning` is a dual-purpose column: the model's explanation on a scored lead, and
+    // OUR OWN marker sentence on a failed one. `scrub` below removes the prospect's NAME and has
+    // no opinion about the rest, so the marker was being handed to the client as the reason a
+    // prospect fitted them — on this desk as well as the programme approval desk.
+    const { scoringFailed } = await import('../lib/scoring-failure')
+
     const masked = (data ?? []).map((l: Record<string, any>) => {
       const fit = hardFit(l as import('../lib/proof-fit').FitCandidate, hardCriteria)
       const band = fitBand(fit, l.score ?? null)
+      const failed = scoringFailed(l.score_reasoning ?? null)
       return {
       id: l.id,
       role: l.job_title ?? 'Decision-maker',
@@ -431,7 +439,20 @@ leadRouter.get('/for-approval', async (req: AuthRequest, res) => {
       band_label: BAND_LABEL[band],
       /** Kept so the star is the band on every surface, not each surface's own rule. */
       recommended: isStarred(band),
-      why_fits: scrub(l.score_reasoning ?? null, l.first_name ?? null, l.last_name ?? null),
+      /**
+       * ⚑ 18 Sep (J5-C8) — NO FIT NUMBER IS AVAILABLE FOR THIS PERSON, SAID OUT LOUD.
+       *
+       * 🛑 A NULL SCORE WAS NOT ENOUGH. The card rendered its number behind `l.score != null`,
+       * so an unscored prospect's card was simply missing it — which reads as "we chose not to
+       * show a fit", never as "we have no fit for this person".
+       *
+       * ⚠️ `displayScore` CAN RETURN NULL FOR A SCORED LEAD TOO (a structurally-unknown card),
+       * so this asks the ROW, not the displayed number: it is `not_scored` when the recorded
+       * score is absent, whether scoring failed or has not run yet.
+       */
+      not_scored: failed || (l.score ?? null) === null,
+      // 🛑 THE MARKER IS RECOGNISED, NEVER FORWARDED.
+      why_fits: failed ? null : scrub(l.score_reasoning ?? null, l.first_name ?? null, l.last_name ?? null),
       created_at: l.created_at ?? null,
       // A timestamp, not identity — it says WHICH BATCH, never who. The masked shape is
       // otherwise unchanged: no name, no email, no phone, whatever the row holds.

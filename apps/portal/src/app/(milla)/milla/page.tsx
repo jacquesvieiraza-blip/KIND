@@ -29,6 +29,8 @@ import { proofWaitState, invalidateProofSnapshot, classifyClaimFailure, isReconc
 // PROGRAMME and renders the shared workspace; the conversation stays the spine.
 
 type MaskedLead = { id: string; role: string; company: string; industry: string | null; country: string | null; score: number | null; why_fits: string | null; recommended?: boolean
+  /** ⚑ 18 Sep (J5-C8) — no fit number is available for this person, and the card says so. */
+  not_scored?: boolean
   /**
    * ⚑ 10 Sep (C06) — THE BAND, AND IT IS THE ONLY THING THAT MAY LABEL A CARD.
    *
@@ -1584,7 +1586,15 @@ export default function MillaHomePage() {
                     <div className="min-w-0 flex-1">
                       <div className="flex items-start gap-2">
                         <div className="min-w-0"><b className="text-[14px] block leading-tight">{l.role}</b><span className="text-[12.5px] text-[#9b8ec4]">@ {l.company}</span></div>
-                        {l.score != null && <span className="ml-auto text-right"><span className="text-[16px] font-extrabold text-[#7C3AED] tabular-nums">{l.score}</span><span className="block text-[10px] uppercase tracking-wide text-[#b3a9cc] font-extrabold">score</span></span>}
+                        {/* ⛓️ 18 Sep (J5-C8) — WAS `{l.score != null && <span>…}` ALONE, so an
+                            unscored prospect's card was silently missing its number. The server
+                            records the difference (`not_scored`), so the card states it rather
+                            than leaving a gap the client has to interpret. */}
+                        {l.score != null
+                          ? <span className="ml-auto text-right"><span className="text-[16px] font-extrabold text-[#7C3AED] tabular-nums">{l.score}</span><span className="block text-[10px] uppercase tracking-wide text-[#b3a9cc] font-extrabold">score</span></span>
+                          : l.not_scored
+                            ? <span data-testid="lead-not-scored" title="We could not produce a fit score for this prospect. They are still part of your set." className="ml-auto text-right"><span className="text-[11px] font-extrabold uppercase tracking-wide text-[#9b8ec4]">Not scored</span></span>
+                            : null}
                       </div>
                       {l.why_fits && <div className="text-[13px] text-[#5c5279] mt-2 leading-relaxed bg-[#faf8ff] rounded-lg px-2.5 py-2"><b className="text-[#7c6f9b]">Why this fits:</b> {l.why_fits}</div>}
                       {/* ⛓️ 30 Aug (BUILD-004A-1, Option B) — THE THREE CONTROLS THE FOUNDER

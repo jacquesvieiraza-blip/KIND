@@ -461,12 +461,46 @@ millaRouter.post('/sessions/:sessionId/chat', async (req: AuthRequest, res) => {
     }
 
     // Call Milla chat
-    const { reply, sources } = await chat({
+    const { reply, sources, stillNotRight } = await chat({
       clientId,
       sessionId:      req.params.sessionId,
       userMessage:    message,
       messageHistory,
     })
+
+    // ── 🛑 ⚑ 18 Sep (J7-C2 · FD-3) — SAYING IT IN CHAT IS SAYING IT ────────────────────
+    //
+    // 🛑 THE ONLY WAY TO SAY IT WAS TO PRESS A BUTTON. `POST /leads/proof/still-not-right` is
+    // the canonical escalation; it is reached by ONE control on the Proof panel. A client who
+    // typed "honestly these still aren't the right people" into their own conversation got a
+    // reply and nothing else — their sentence reached no decision at all.
+    //
+    // ⚠️ THE SAME CALL THE BUTTON MAKES, AND THAT IS THE ITEM. Not a second escalation path,
+    // not a variant trigger, not an alert standing in for one. `closeCalibrationLoop` decides
+    // (via `calibrationVerdict`, which still refuses before pass 2 — FD-3 makes the signal
+    // reachable, it does not make it a bypass) and writes ONCE: its
+    // `.is('proof_review_requested_at', null)` predicate is what makes "once" true whatever
+    // combination of button and sentence a client uses.
+    //
+    // ⚠️ BEST-EFFORT, AND THE DIRECTION IS DELIBERATE. Their reply is already produced; an
+    // escalation we could not record must not turn their message into an error. Logged loudly,
+    // because a persistent failure here means people are asking for help and not reaching one.
+    if (stillNotRight.said) {
+      try {
+        const { closeCalibrationLoop } = await import('../lib/proof-calibration-io')
+        const outcome = await closeCalibrationLoop(clientId, 'still_not_right')
+        console.log(
+          `[milla/chat] client ${clientId} said the set is still not right, in chat — ` +
+          `${outcome.closed ? `escalated (${outcome.trigger})` : `not closed (${outcome.reason})`}.` +
+          (stillNotRight.quote ? ` Their words: "${stillNotRight.quote}"` : ''),
+        )
+        if (!outcome.closed && (outcome.reason === 'migration_required' || outcome.reason === 'unreadable')) {
+          console.error(`[milla/chat] the hand-off for client ${clientId} could NOT be recorded: ${outcome.detail}`)
+        }
+      } catch (err) {
+        console.error('[milla/chat] escalation from chat failed (their reply is unaffected):', err)
+      }
+    }
 
     // ── THE CLIENT'S ONLY CHANNEL HAS TO REACH SOMEONE ────────────────────────────
     // Milla's chat cannot pause a campaign, source people or change an ICP — it writes a

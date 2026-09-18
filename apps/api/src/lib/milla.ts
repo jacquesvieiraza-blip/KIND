@@ -128,6 +128,15 @@ interface ChatParams {
 interface ChatResult {
   reply: string
   sources: Array<{ document_name: string; chunk_content: string }>
+  /**
+   * ⚡ 18 Sep (J7-C2 · FD-3) — did the client PLAINLY SAY the set is still not right?
+   *
+   * ⚠️ REPORTED, NEVER ACTED ON HERE. The caller performs the canonical escalation — the
+   * same one the Proof panel's button performs, idempotent by predicate. The prohibition
+   * (never from silence, a timer or a read of their mood) is in the tool's description, in
+   * `proof-escalation-signal.ts`, which is where the model actually reads it.
+   */
+  stillNotRight: import('./proof-escalation-signal').StillNotRightRead
 }
 
 // Defensive per-message cap when assembling the prompt. The /chat routes already
@@ -269,12 +278,27 @@ export async function chat(params: ChatParams): Promise<ChatResult> {
   // surface." The latency half of that reasoning was real and is answered where it belongs —
   // the portal's 15s default was the constraint, and the callers of this door now pass a
   // budget that fits the model. Still one model on both doors.
+  // ── 🛑 ⚡ 18 Sep (J7-C2 · FD-3) — SHE CAN HEAR "STILL NOT RIGHT" NOW ───────────
+  //
+  // 🛑 THE ONLY WAY TO SAY IT WAS TO PRESS A BUTTON. `POST /leads/proof/still-not-right` is
+  // the canonical escalation and works; it is reached by ONE control on the Proof panel. A
+  // client who instead TYPED "honestly these still aren't the right people" got a
+  // conversational reply and nothing else, because this door returns text and only text.
+  //
+  // ⚠️ ONE CALL, NOT TWO. The tool rides the reply she was already producing, so there is no
+  // second model round trip and no added latency on a surface the founder put Sonnet on.
+  //
+  // ⚠️ AND SHE DECIDES NOTHING. This reports that the client said it; the ROUTE performs the
+  // canonical `closeCalibrationLoop`, which is idempotent by predicate.
+  const { STILL_NOT_RIGHT_TOOL, readStillNotRight } = await import('./proof-escalation-signal')
   const response = await anthropic.messages.create({
     model:      CONVERSATION_MODEL,
     max_tokens: 600,
     system:     systemPrompt,
     messages:   history,
+    tools:      [STILL_NOT_RIGHT_TOOL as never],
   }, AI_TURN_BOUND)
+  const stillNotRight = readStillNotRight(response.content as never)
 
   // Find the first text block — do not assume content[0] is text.
   const textBlock = response.content.find(
@@ -287,5 +311,6 @@ export async function chat(params: ChatParams): Promise<ChatResult> {
     chunk_content: c.content.slice(0, 200),
   }))
 
-  return { reply, sources }
+  // ⚡ 18 Sep (J7-C2) — reported, never acted on here. The caller owns the write.
+  return { reply, sources, stillNotRight }
 }

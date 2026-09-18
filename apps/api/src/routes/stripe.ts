@@ -744,6 +744,55 @@ stripeRouter.post('/webhook', async (req: Request, res: Response) => {
         // #613 — the same settlement stamp on the credit-purchase path. LAST, after every
         // money write has completed, so a Stripe read failure can cost nothing but a note.
         await annotateSettlement(session.id)
+      } else {
+        // ── ⚑ 18 Sep (J11-C1) — MONEY WE CANNOT PLACE IS AN EXCEPTION, NOT A 200 (LR 21) ──
+        //
+        // 🛑 THIS BRANCH DID NOT EXIST, AND ITS ABSENCE WAS THE DEFECT. Every branch above
+        // ends in a 200 and a completed checkout matching none of them fell out of the chain
+        // to the handler's final `res.sendStatus(200)`. A programme payment whose
+        // `programmeId` was missing — the stripped test-mode event, a truncated metadata
+        // write, a session created by an older deploy — was therefore ACCEPTED and forgotten:
+        // the money sits in Stripe, no payment row exists, nobody is told, and the event is
+        // permanently consumed because Stripe does not resend a delivery it was told was fine.
+        //
+        // ⚠️ THE ALERT IS THE RECORD, NOT AN EMAIL. `sendFounderAlert` writes the
+        // `operator_tasks` row (XC-5) that Vida Needs-you reads, and the subject is the STRIPE
+        // EVENT ID — so every redelivery of this same event hits the one-open-per-key index and
+        // is read as already reported. Twelve retries produce one task.
+        //
+        // ⚠️ AND IT IS AWAITED. A fire-and-forget alert here would let the route answer before
+        // knowing whether the exception was recorded, which is the exact shape XC-5 exists to
+        // remove — the honest answer needs `taskOk`.
+        const { unattributableReason, unattributableLines, unattributableKey } =
+          await import('../lib/unattributable-payment')
+        const facts = {
+          eventId: typeof (event as { id?: unknown }).id === 'string' ? (event as { id: string }).id : null,
+          sessionId: session.id,
+          metadata: meta as Record<string, unknown>,
+          amountTotal: (session as unknown as { amount_total?: number | null }).amount_total ?? null,
+          currency: (session as unknown as { currency?: string | null }).currency ?? null,
+          paymentStatus: (session as unknown as { payment_status?: string | null }).payment_status ?? null,
+        }
+        // 🛑 `null` MEANS A BRANCH ABOVE HANDLED IT. Reaching here with an attributable event
+        // would mean the chain and this classifier disagree, and filing an exception about
+        // money we had just banked correctly is how an operator learns to ignore the list.
+        const reason = unattributableReason(facts) ?? 'unrecognised_metadata'
+        const lines = unattributableLines(facts, reason)
+        console.error(`[Stripe] UNATTRIBUTABLE completed checkout (${reason}) — session ${session.id}, event ${facts.eventId ?? 'none'}. Nothing was written.`)
+        const delivery = await sendFounderAlert(
+          'payment_failed',
+          'A completed Stripe checkout could not be attributed — nothing was recorded',
+          lines,
+          { clientId: null, subjectKind: 'stripe_event', subjectId: unattributableKey(facts) },
+        )
+        if (!delivery.taskOk) {
+          console.error('[Stripe] 🛑 the unattributable payment could NOT be written to operator_tasks — the only remaining record is this log line and whatever the email mirror delivered.')
+        }
+        // ⚠️ NON-2XX ON PURPOSE. The metadata will not improve on retry, so these retries will
+        // exhaust — what they buy is that the failure stays visible on BOTH sides, in Stripe's
+        // own dashboard and on the operator's list, rather than the event being marked handled.
+        res.status(500).json({ error: 'completed checkout could not be attributed — recorded as an operator task' })
+        return
       }
     }
 

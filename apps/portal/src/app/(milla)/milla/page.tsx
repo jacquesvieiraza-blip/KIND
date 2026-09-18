@@ -65,6 +65,15 @@ type Summary = {
    *  Lets the desk tell 0 / 1 / 2 apart WITHOUT making the client press something
    *  just to discover a 409. */
   proof_passes_done?: number
+  /**
+   * ⛓️ 18 Sep (J5-C2 · LR 6) — THE RUN'S RECORDED STATE, the input that lets this screen stop
+   * asking a clock what only the record can answer. `undefined`/`null` means nothing is
+   * recorded, and only then does the bounded poll decide.
+   */
+  proof_work_state?: 'requested' | 'started' | 'completed' | 'failed' | 'stuck' | null
+  /** ⛓️ J5-C2 — a person is finishing the translation; decided by the same predicate the
+   *  Proof route gates on, so this screen cannot claim a search the gate is refusing. */
+  needs_icp_review?: boolean
   /** ⚑ 26 Aug — when the CURRENT pass was claimed (ISO), written by `try_claim_proof_pass`
    *  in the same atomic statement as the counter above. The desk's authoritative clock.
    *  Absent/null = UNKNOWN (a row predating the column), never "long ago". */
@@ -955,9 +964,21 @@ export default function MillaHomePage() {
     urlFinding:         finding,
     now:                Date.now(),
     pollExhausted:      findingTimedOut,
+    // ⛓️ 18 Sep (J5-C2 · LR 6) — THE RECORDED STATE, so the desk's word comes from the record
+    // and not from the bound. Before this the desk asked a clock a question only the record
+    // could answer: a run the server had marked `failed` was described as "finding your
+    // matches" until PROOF_WAIT_MS elapsed, and `stuck` — we know it is broken and an operator
+    // has been told — could not be said at all.
+    recordedRunState:   summary?.proof_work_state ?? null,
+    recordedOutcome:    terminalRun?.status ?? null,
+    needsIcpReview:     summary?.needs_icp_review === true,
   })
   const proofAwaiting = proofWait !== 'none'
-  const proofWaitEnded = proofWait === 'recovery'
+  // ⛓️ J5-C2 — `recovery` is now only the CLOCK's verdict (nothing recorded, bound passed).
+  // The recorded endings are their own states, so the desk must treat them as ended too —
+  // otherwise a recorded failure would keep the spinner it used to keep.
+  const proofWaitEnded = proofWait === 'recovery' || proofWait === 'failed'
+    || proofWait === 'released' || proofWait === 'stuck'
 
   // ── ⚑ 24 Aug — THE BATCH VERDICT (founder-ruled) ──────────────────────────────────────
   //

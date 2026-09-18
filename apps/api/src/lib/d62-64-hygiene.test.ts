@@ -159,26 +159,85 @@ describe('D-64 · the model a call uses is named in one place', () => {
 })
 
 // ═════════════════════════════════════════════════════════════════════════════════════════
-// ④ THE 'passed' CHECK — OPEN, AND PINNED SO IT STAYS VISIBLE
+// ④ THE 'passed' CHECK — CLOSED BY FOUNDER DECISION, 18 Sep 2026
 // ═════════════════════════════════════════════════════════════════════════════════════════
-describe("D-62 · 'passed' is written by the product and absent from the CHECK (OPEN)", () => {
+describe("D-62 · 'passed' is a status the constraint allows (founder-approved 18 Sep)", () => {
   const MIG = join(API, '../../../supabase/migrations')
   const migration = (f: string) => readFileSync(join(MIG, f), 'utf8')
+
+  /** The eight that 20260525 allowed. Every one of them must survive the widening. */
+  const PRESERVED = [
+    'pending', 'scored', 'contacted', 'consent_sent',
+    'consent_given', 'exported', 'rejected', 'opted_out',
+  ]
 
   it('🛑 THE PRODUCT WRITES `status: passed`', () => {
     expect(codeOnly(read('lib/approve-lead.ts')), 'passLead no longer writes the value this item is about')
       .toContain("update({ status: 'passed'")
   })
 
-  it("🛑 AND THE REPOSITORY'S ONLY CHECK RECORD DOES NOT ALLOW IT — this is the contradiction", () => {
-    // ⚠️ IF THIS GOES RED, THE ITEM MOVED. Either somebody widened `leads_status_check` — in
-    // which case the founder lock on that constraint was acted on and this guard must be
-    // re-read, not deleted — or the migration was rewritten. Both deserve a human.
-    const check = migration('20260525_fix_leads_status_and_figsy_memory.sql')
-    const allowed = check.slice(check.indexOf('CHECK (status IN ('), check.indexOf('))', check.indexOf('CHECK (status IN (')))
-    expect(allowed, 'the CHECK migration no longer has a status list to read').not.toBe('')
-    expect(allowed, "leads_status_check now allows 'passed' — the divergence is resolved and this item needs re-reading")
-      .not.toContain("'passed'")
+  /** The constraint's OWNER — the one migration allowed to declare it. */
+  const OWNER = '20260525_fix_leads_status_and_figsy_memory.sql'
+
+  /** The value list of the owner's `ADD CONSTRAINT leads_status_check`. */
+  const allowedList = () => {
+    const mig = migration(OWNER)
+    const at = mig.indexOf('ADD CONSTRAINT leads_status_check')
+    return mig.slice(at, mig.indexOf('));', at))
+  }
+
+  it("🛑 AND THE CONSTRAINT NOW ALLOWS IT — the contradiction is resolved, not documented", () => {
+    // ⛓️ 18 Sep — THIS ASSERTED THE OPPOSITE, and asserting it was right at the time:
+    // ~~`expect(allowed, "leads_status_check now allows 'passed' …").not.toContain("'passed'")`~~
+    // pinned a KNOWN divergence so it could not be forgotten while the question was open.
+    //
+    // 🛑 THE FOUNDER ANSWERED IT. 18 Sep, verbatim: *"APPROVE PASSED. Add `passed` to the
+    // allowed lead-status CHECK."* So the guard is inverted rather than deleted — the same
+    // duty, pointed at the state he ruled for.
+    const allowed = allowedList()
+    expect(allowed, 'the owner no longer has a status list to read').not.toBe('')
+    expect(allowed, 'the approved status is not in the constraint').toContain("'passed'")
+  })
+
+  it('🛑 AND EVERY PREVIOUSLY-ALLOWED STATUS SURVIVED — his first boundary, asserted one by one', () => {
+    // ⚠️ "Preserve every existing allowed status." A widening that dropped one would be a
+    // constraint violation on the next write of whichever value went missing — a silent
+    // narrowing wearing an approval's authority.
+    const allowed = allowedList()
+    for (const status of PRESERVED) {
+      expect(allowed, `the widening dropped '${status}', which this constraint allowed`).toContain(`'${status}'`)
+    }
+    // And nothing was smuggled in beside it: exactly the eight plus the one he approved.
+    expect((allowed.match(/'[a-z_]+'/g) ?? []).length,
+      'the constraint gained a status the founder did not approve').toBe(PRESERVED.length + 1)
+  })
+
+  it('🛑 AND THE `set_aside` LOCK IS UNTOUCHED — his second boundary', () => {
+    // ⚠️ THE 10 Sep LOCK REFUSES A REASON IN A LIFECYCLE CONSTRAINT and is not in scope of
+    // this approval. `set_aside` must not have ridden in on the widening.
+    expect(allowedList(), '`set_aside` was added to the status constraint — the 10 Sep lock forbids it')
+      .not.toContain("'set_aside'")
+    expect(migration('20260910_lead_set_aside_reason.sql'), 'the set_aside lock was edited')
+      .toContain('Founder-locked: do not widen that CHECK')
+  })
+
+  it('🛑 AND THE WIDENING WENT IN THE OWNER — one constraint, one declaring migration', () => {
+    // 🛑 THE REPO'S OWN RULE, AND IT IS NOT STYLE. `constraint-ownership.test.ts` refuses two
+    // migrations declaring one constraint name because PENDING_MIGRATIONS executes in ARRAY
+    // order, not date order, so the loser's narrower definition can silently win. The first
+    // cut of this work added a separate `20260918_leads_status_allow_passed`; that guard
+    // caught it, and the remedy it prescribes — widen the OWNER — is what is here.
+    //
+    // ⚠️ AND A SEPARATE MIGRATION WOULD HAVE BEEN UNSAFE ON PRODUCTION BESIDES. 20260723
+    // records prod's `leads.status` as an ENUM with no `leads_status_check` at all, so a new
+    // migration re-declaring the constraint would CREATE one there, on a column that never
+    // carried it.
+    const declaring = readdirSync(join(API, '../../../supabase/migrations'))
+      .filter(f => f.endsWith('.sql'))
+      .filter(f => /add\s+constraint\s+leads_status_check/i.test(
+        readFileSync(join(API, '../../../supabase/migrations', f), 'utf8')
+          .split('\n').filter(l => !l.trim().startsWith('--')).join('\n')))
+    expect(declaring, 'leads_status_check is declared by more than one migration').toEqual([OWNER])
   })
 
   it('🛑 AND THE ONLY RECORD THAT MAKES PRODUCTION WORK IS AN ENUM ALTERED OUTSIDE THE RUNNER', () => {

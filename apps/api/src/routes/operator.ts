@@ -3250,6 +3250,90 @@ operatorRouter.post('/proof-retry/:clientId', async (req: Request, res: Response
     if (icpErr) { res.status(500).json({ success: false, error: icpErr.message }); return }
     if (!icpRow) { res.status(404).json({ success: false, error: 'No such ICP for that client.' }); return }
 
+    // ══════════════════════════════════════════════════════════════════════════════════════
+    // 🛑 XC-12 (FD-0) · RECOVERY IS AN EXCEPTION TAKEN FROM A STATE THE SYSTEM GAVE UP ON
+    //
+    // Until J5-C1 there was nothing to check: the run was a promise inside one process, so
+    // this control retried whatever was happening. An operator watching a client wait could
+    // press it mid-run and get a SECOND live run against the same targeting — two runs, one
+    // claim, and whichever finished last wrote the desk.
+    //
+    // FD-0 keeps the SYSTEM as primary owner; a human recovery is the exception. So:
+    //   ① a note is required — "what were you recovering from?" must have an answer;
+    //   ② only `failed` or `stuck` may be recovered — a live run is not broken, it is RUNNING;
+    //   ③ the LATEST run decides, never any historical one;
+    //   ④ the claim is a compare-and-set, so two clicks produce exactly ONE recovery.
+    // ══════════════════════════════════════════════════════════════════════════════════════
+    const note = typeof req.body?.note === 'string' ? req.body.note.trim() : ''
+    if (!note) {
+      res.status(400).json({
+        success: false,
+        error: 'A note is required: a recovery has to record what it is recovering from.',
+      })
+      return
+    }
+
+    // ⚠️ ORDERED BY `updated_at`, TAKING ONE. A stale `failed` row from last week must never
+    // unlock recovery of the run that is going right now.
+    const { data: lastWork, error: workErr } = await db.from('automatic_work')
+      .select('id, state, attempt, failure_reason, updated_at')
+      .eq('kind', 'proof_run').eq('subject_kind', 'icp').eq('subject_id', icpId)
+      .order('updated_at', { ascending: false }).limit(1).maybeSingle()
+
+    // ⚠️ AN UNREADABLE OWNER IS NOT AN ABSENT ONE. Failing open here would restore exactly the
+    // behaviour this item removes, so the read failing REFUSES.
+    if (workErr) {
+      res.status(503).json({ success: false, retryable: true, error: `The Proof run's state could not be read (${workErr.message}), so recovery was refused.` })
+      return
+    }
+
+    const RECOVERABLE = ['failed', 'stuck']
+    const observedState = lastWork ? String((lastWork as { state?: unknown }).state ?? '') : ''
+    // ⚠️ NO ROW AT ALL IS ALLOWED THROUGH, and deliberately: a run that predates J5-C1's
+    // ownership has no record, and refusing every one of those would make the control useless
+    // for exactly the clients most likely to need it. A row that EXISTS must be recoverable.
+    if (lastWork && !RECOVERABLE.includes(observedState)) {
+      await writeOperatorAudit({
+        operatorEmail: operatorEmail(req), clientId, action: 'proof_retry_refused',
+        subjectType: 'icp', subjectId: icpId,
+        detail: { started: false, reason: 'not_recoverable', recovered_from: observedState, note },
+      })
+      res.status(409).json({
+        success: false, started: false, reason: 'not_recoverable',
+        error: `This Proof run is "${observedState}", not failed or stuck. A run that is still going is not recovered — it is interrupted.`,
+      })
+      return
+    }
+
+    // ④ THE COMPARE-AND-SET. `attempt` is the version: claiming recovery moves it, and only
+    // one caller can move it from the value it observed. No new column, no second lock, and
+    // the database — not a check in this handler — is what refuses the loser.
+    if (lastWork) {
+      const observedAttempt = Number((lastWork as { attempt?: unknown }).attempt ?? 1)
+      const { data: won, error: casErr } = await db.from('automatic_work')
+        .update({ attempt: observedAttempt + 1, updated_at: new Date().toISOString() })
+        .eq('id', (lastWork as { id: string }).id)
+        .eq('attempt', observedAttempt)
+        .in('state', RECOVERABLE)
+        .select('id').maybeSingle()
+      if (casErr) {
+        res.status(503).json({ success: false, retryable: true, error: `Recovery could not be claimed (${casErr.message}).` })
+        return
+      }
+      if (!won) {
+        await writeOperatorAudit({
+          operatorEmail: operatorEmail(req), clientId, action: 'proof_retry_refused',
+          subjectType: 'icp', subjectId: icpId,
+          detail: { started: false, reason: 'already_recovering', recovered_from: observedState, note },
+        })
+        res.status(409).json({
+          success: false, started: false, reason: 'already_recovering',
+          error: 'Another recovery for this Proof run was already taken. Nothing was started twice.',
+        })
+        return
+      }
+    }
+
     const { retryProofAfterZeroEligible } = await import('../lib/proof-run-launch')
     const out = await retryProofAfterZeroEligible(clientId, icpId)
 
@@ -3259,8 +3343,8 @@ operatorRouter.post('/proof-retry/:clientId', async (req: Request, res: Response
       operatorEmail: operatorEmail(req), clientId, action: 'proof_retry_zero_eligible',
       subjectType: 'icp', subjectId: icpId,
       detail: out.started
-        ? { started: true, pass: out.pass, kind: out.kind }
-        : { started: false, reason: out.reason, detail: 'detail' in out ? out.detail : null },
+        ? { started: true, pass: out.pass, kind: out.kind, recovered_from: observedState || 'no_recorded_run', note }
+        : { started: false, reason: out.reason, detail: 'detail' in out ? out.detail : null, recovered_from: observedState || 'no_recorded_run', note },
     })
 
     if (!out.started) {

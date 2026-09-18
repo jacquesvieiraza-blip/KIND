@@ -116,6 +116,11 @@ export type OperatorAction =
   | 'proof_legacy_restart_classified'     // a pre-ledger calibrated restart: completed, or burned and returned
   | 'proof_claim_reconciled'              // an OPEN claim with no trustworthy terminal outcome, settled by a person
   | 'proof_retry_zero_eligible'  // ⚑ 16 Sep (A1b) — an operator retried Proof after K.I.N.D's
+  // ⚑ 18 Sep (XC-12 · FD-0) — a recovery the control REFUSED. A refusal is an operator action
+  // too: "I pressed it and nothing happened" is exactly what an audit trail has to answer, and
+  // the reason (`not_recoverable` / `already_recovering`) plus the state recovered from travel
+  // in the detail.
+  | 'proof_retry_refused'
                             // own structural gate refused every sourced candidate. Audited
                             // whether or not it started, because "I pressed it and nothing
                             // happened" is exactly what an audit trail has to be able to

@@ -6194,11 +6194,49 @@ icpRouter.post('/', async (req: AuthRequest, res) => {
 
     const understandingBody = req.body as Record<string, unknown>
     if (promotionDraft?.confirmedAt && !promotionDraft.promotedClientId) {
+      // ── 🛑 ⚑ 18 Sep (J4-C2) — BRIEF FACT #11 IS OWNED HERE TOO ────────────────────────
+      //
+      // S1-AUDIT-002 took facts #4 and #10 off the browser on this exact path and left #11 on
+      // it. `campaign_intent` is the client's DESIRED OUTCOME — "what would make this worth
+      // it" — and it is the brief every outbound email is written from. It was read straight
+      // out of `req.body` by `persistMillaUnderstanding`, and the welcome screen posts it from
+      // React state it assembled turns earlier:
+      //
+      //     '/icps', { …proposed, business, proof, campaign_intent: intent, … }
+      //
+      // The same three consequences S1-AUDIT-002 named apply unchanged: a body that OMITS it
+      // writes no intent for a client who answered the question; a body that sends something
+      // DIFFERENT wins over the brief they confirmed; and the eleven-fact gate reads the DRAFT
+      // while this write read the BODY — two sources for one decision.
+      //
+      // ⚠️ IT IS WRITTEN AS `campaign_intent` ON THE BODY, NOT INTO `business`, because that
+      // is the key `persistMillaUnderstanding` reads and it lands on `figsy_campaigns`, not in
+      // `figsy_knowledge.pitch`. Same override rule, different destination.
+      const ownedIntent = (promotionDraft.facts.desired_outcome ?? '').trim()
+      if (ownedIntent) understandingBody.campaign_intent = ownedIntent
+
       const owned: Array<[string, string]> = [
         // brief fact #4 -> figsy_knowledge.pitch.data.product
         ['product', (promotionDraft.facts.what_they_do ?? '').trim()],
         // brief fact #10 -> figsy_knowledge.pitch.data.bad_fit
         ['bad_fit', (promotionDraft.facts.exclusions ?? '').trim()],
+        // ── 🛑 ⚑ 18 Sep (J4-C2) — `industry` IS DELIBERATELY NOT OWNED HERE ────────────
+        //
+        // The manifest REQ reads "campaign_intent AND INDUSTRY from the draft, body ignored",
+        // and I implemented both — then `brief-promotion-server-owned.test.ts` refused it, by
+        // name and correctly: *"WHAT THE BUSINESS DOES ≠ INDUSTRY — `clients.industry` is not
+        // touched by fact #4"*, which is founder-locked.
+        //
+        // 🛑 THE LOCK IS ABOUT THE CONCEPT, NOT ONE COLUMN. Milla's tool schema happens to
+        // describe `industry` as "a short plain phrase for what their business does", so
+        // writing fact #4 into a field of that name re-creates the exact conflation the lock
+        // forbids — even though this payload lands on `figsy_knowledge` rather than `clients`.
+        // A founder ruling outranks a manifest line (PROTOCOL v1 rule 3), so the lock wins.
+        //
+        // ⚠️ AND IT WOULD HAVE BOUGHT NOTHING. `business.industry` has NO consumer anywhere in
+        // this repository — searched. The only `industry` on the promotion path with a
+        // server-side write is `clients.industry`, which `/auth/onboard` takes from the body
+        // deliberately and which the lock protects. Reported in the evidence package.
       ]
       // ⚠️ A BLANK DRAFT FACT IS NOT A VALUE. An override applies only when the draft holds
       // something, so a fact the brief never captured falls back rather than BLANKING what

@@ -718,73 +718,72 @@ millaRouter.post('/notetaker', async (req: AuthRequest, res) => {
  * a normal state for a person who signed up eight seconds ago, and a 404 would have the portal
  * render an error over an empty conversation.
  */
-millaRouter.get('/brief-draft', async (req: AuthRequest, res) => {
+/**
+ * ── 🛑 ⚑ 18 Sep (J3-C2's sibling, J3-C3) — ONE BRIEF READ MODEL ────────────────────────
+ *
+ * LR 6: two projections of one truth that nobody reconciles WILL drift. `GET /brief-draft`
+ * answered with the draft, the progress, the next fact, the onboarding state and unresolved
+ * labels, the two render blocks and the conversation. `PUT /brief-draft` answered with
+ * `{ progress }` and nothing else.
+ *
+ * 🛑 SO EVERY CALLER HELD A STALE ANSWER THE MOMENT IT SAVED. A PUT that completes the tenth
+ * fact returns a progress object while `onboarding_state`, `next` and the render cards in the
+ * browser still describe the state BEFORE the save — which is the "Based in — still needed"
+ * shape S1-ONB-001 already fixed once, arriving through the other verb. A caller either
+ * re-GETs (a second round trip and a window in which the two disagree) or renders something
+ * the server does not believe.
+ *
+ * ⚠️ IT IS BUILT ONCE AND RETURNED BY BOTH VERBS. Not "the same fields" — the same function,
+ * so a field added to one is added to both by construction and there is no reconciliation to
+ * forget.
+ */
+async function briefReadModel(userId: string): Promise<Record<string, unknown>> {
   const { briefDraftFor, draftProgress } = await import('../lib/brief-draft')
   const { onboardingState } = await import('../lib/onboarding-state')
   const { BRIEF_FACT_LABEL } = await import('@kind/shared')
-  const draft = await briefDraftFor(req.userId!)
-  const progress = draftProgress(draft)
-  // ⚑ 16 Sep (S1-ONB-001) — THE SAME AUTHORITY THE CHAT AND CONFIRM DOORS USE, so a refresh
-  // returns the client to the state the server actually holds rather than to whatever the
-  // browser last believed. This is the portal's progression gate.
-  const onboarding = onboardingState(draft?.facts ?? null)
+  const draft = await briefDraftFor(userId)
+  return briefReadModelFrom(draft, draftProgress(draft), onboardingState(draft?.facts ?? null), BRIEF_FACT_LABEL)
+}
+
+/** The shape, from facts already in hand — so a writer that just saved need not re-read. */
+function briefReadModelFrom(
+  draft: Awaited<ReturnType<typeof import('../lib/brief-draft')['briefDraftFor']>>,
+  progress: { missing: string[] } & Record<string, unknown>,
+  onboarding: { state: unknown; unresolvedLabels: unknown },
+  labels: Record<string, string>,
+): Record<string, unknown> {
   const onboardingFacts = (draft?.facts ?? {}) as Record<string, unknown>
   const onboardingText = (k: string): string =>
     typeof onboardingFacts[k] === 'string' ? (onboardingFacts[k] as string).trim() : ''
-  // ⚠️ THE NEXT FACT IS NAMED HERE, NOT WORKED OUT IN THE BROWSER. The portal's resume line
-  // says what Milla still needs; deriving that in the portal would mean a second eleven-fact
-  // list in a second app, which is exactly how Vida came to disagree with Milla about the
-  // count. `missing` is already in the approved order, so the next one is its head.
   const nextId = progress.missing[0] ?? null
-  res.json({
-    success: true,
-    data: {
-      draft: draft ? { facts: draft.facts, confirmed_at: draft.confirmedAt, promoted_client_id: draft.promotedClientId } : null,
-      progress,
-      next: nextId ? { id: nextId, label: BRIEF_FACT_LABEL[nextId] } : null,
-      // ⚠️ THE STATE IS THE SERVER'S ANSWER, not a count for the client to read. The portal
-      // gates the targeting plan and the Confirm CTA on it and renders no counter.
-      onboarding_state: onboarding.state,
-      onboarding_unresolved: onboarding.unresolvedLabels,
-      // ── ⚑ 16 Sep (S1-ONB-001) — THE RENDER SHAPE, BUILT HERE AND NOT IN THE BROWSER ───
-      //
-      // 🛑 THE CARDS USED TO COME ONLY FROM A COMPLETION REPLY held in one tab, so a client
-      // who had already said where they are based and then refreshed was shown
-      // "Based in — still needed" about a country THIS VERY ROW was holding.
-      //
-      // ⚠️ MAPPED SERVER-SIDE ON PURPOSE. Sending raw `facts` would make the portal learn our
-      // fact vocabulary — `exclusions`, `what_they_do` — which is the first step back towards
-      // a second opinion about the Brief. It receives finished render objects and assigns them.
-      onboarding_profile: {
-        company_name: onboardingText('company_name'),
-        country:      onboardingText('country'),
-        contact_name: onboardingText('contact_name'),
-        phone:        onboardingText('phone'),
-        website:      onboardingText('website'),
-        industry:     onboardingText('what_they_do'),
-      },
-      onboarding_business: {
-        product: onboardingText('what_they_do'),
-        bad_fit: onboardingText('exclusions'),
-      },
-      // ── ⚑ 14 Sep (S1-RT-003) — THE CONVERSATION, so re-entry continues it ────────────
-      //
-      // 🛑 THE FACTS ALONE WERE NEVER ENOUGH. The resume line could say "9 of 11", but the
-      // transcript lived in one tab's React state — so a refresh, a closed laptop or a
-      // logout put the client in front of a blank conversation, and sent Milla her NEXT turn
-      // with a one-line greeting as its entire history. She is conversational by design,
-      // because clients express the same truth in different ways; a Milla with no memory of
-      // the last ten minutes is a different product.
-      //
-      // ⚠️ ALREADY BOUNDED AND ALREADY VALIDATED by `readConversation` — at most the last 40
-      // turns, each clamped, unknown roles dropped. A corrupt jsonb value reads as `[]` and
-      // the page behaves exactly as it did before this existed.
-      //
-      // ⚠️ AND IT IS THE CLIENT'S OWN. This router carries the client's token and the draft
-      // is keyed on `user_id`, so no transcript can reach anybody but the person who spoke it.
-      conversation: draft?.conversation ?? [],
+  return {
+    draft: draft ? { facts: draft.facts, confirmed_at: draft.confirmedAt, promoted_client_id: draft.promotedClientId } : null,
+    progress,
+    next: nextId ? { id: nextId, label: labels[nextId] } : null,
+    onboarding_state: onboarding.state,
+    onboarding_unresolved: onboarding.unresolvedLabels,
+    onboarding_profile: {
+      company_name: onboardingText('company_name'),
+      country:      onboardingText('country'),
+      contact_name: onboardingText('contact_name'),
+      phone:        onboardingText('phone'),
+      website:      onboardingText('website'),
+      industry:     onboardingText('what_they_do'),
     },
-  })
+    onboarding_business: {
+      product: onboardingText('what_they_do'),
+      bad_fit: onboardingText('exclusions'),
+    },
+    conversation: draft?.conversation ?? [],
+  }
+}
+
+millaRouter.get('/brief-draft', async (req: AuthRequest, res) => {
+  // ⛓️ 18 Sep (J3-C3) — THE PAYLOAD MOVED INTO `briefReadModel`, UNCHANGED FIELD FOR FIELD.
+  // It is the same object this route has always returned; what changed is that `PUT` now
+  // returns it too, from the same function, so the two verbs cannot describe one draft
+  // differently. The commentary that explained each field lives with the builder above.
+  res.json({ success: true, data: await briefReadModel(req.userId!) })
 })
 
 /**
@@ -991,5 +990,27 @@ millaRouter.put('/brief-draft', async (req: AuthRequest, res) => {
     })
     return
   }
-  res.json({ success: true, data: { progress: draftProgress(r.draft) } })
+  // ── ⛓️ 18 Sep (J3-C3) — THE SAME TRUTH THE GET CARRIES, FROM THE SAME BUILDER ────────
+  //
+  // WHAT THIS REPLACED: ~~`res.json({ success: true, data: { progress: draftProgress(r.draft) } })`~~
+  // — a progress object and nothing else. So a save that completed the tenth fact left every
+  // other answer in the browser describing the state BEFORE it: `onboarding_state`, the next
+  // fact to ask for, and the render cards. That is the "Based in — still needed" defect
+  // S1-ONB-001 already fixed once, arriving through the other verb, and the caller's only
+  // remedies were a second round trip or rendering something the server does not believe.
+  //
+  // ⚠️ BUILT FROM THE ROW THIS WRITE JUST RETURNED, not from a re-read. `saveBriefDraft` hands
+  // back the merged draft, so re-reading would be a query for what we are holding — and worse,
+  // a second read is a second chance to disagree with the write that produced it.
+  const { onboardingState } = await import('../lib/onboarding-state')
+  const { BRIEF_FACT_LABEL } = await import('@kind/shared')
+  res.json({
+    success: true,
+    data: briefReadModelFrom(
+      r.draft,
+      draftProgress(r.draft),
+      onboardingState(r.draft?.facts ?? null),
+      BRIEF_FACT_LABEL,
+    ),
+  })
 })

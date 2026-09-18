@@ -115,9 +115,19 @@ operatorRouter.get('/clients', async (_req: Request, res: Response) => {
     // Matching on company name would merge two different companies that share one, and would
     // fail to merge the same person whose draft said "Redmayne" and whose row says
     // "Redmayne & Co." It is an id the operator console already handles, not a new fact.
-    const { data: clients } = await db.from('clients')
+    // ⛓️ 18 Sep (J7-C1) — THE ERROR IS READ, AND A FAILED READ IS NOT AN EMPTY BOOK.
+    // WHAT THIS REPLACED: ~~`const { data: clients } = await db.from('clients')…`~~ — the
+    // error discarded, so a failed read answered `200 { success: true, data: [] }`. The console
+    // then correctly reported what it was told: no clients, nothing to do. A surface cannot be
+    // honest about a read whose failure never reached it, and "nothing needs you" is computed
+    // from exactly this list.
+    const { data: clients, error: clientsErr } = await db.from('clients')
       .select('id, user_id, company_name, industry, country, created_at, is_demo, wallet_balance_usd')
       .order('created_at', { ascending: false })
+    if (clientsErr) {
+      res.status(500).json({ success: false, error: `The client list could not be read (${clientsErr.message}). This is NOT an empty book.` })
+      return
+    }
     const excluded = await getExcludedClientIds()   // house/demo — labelled, not hidden
     const rows = (clients ?? []).map((c: Record<string, unknown>) => ({
       ...c,
@@ -161,7 +171,10 @@ operatorRouter.get('/lifecycle-board', async (_req: Request, res: Response) => {
 // per-client loop would be ~8 round trips × N clients on the console's front door.
 operatorRouter.get('/worklist', async (_req: Request, res: Response) => {
   try {
-    const { data: clients } = await db.from('clients')
+    // ⛓️ 18 Sep (J7-C1) — SAME CORRECTION, SAME REASON. A worklist that answers 200-with-empty
+    // over a failed read is the "nothing needs you" lie told by the server rather than by the
+    // browser, and the browser has no way to tell the difference.
+    const { data: clients, error: clientsErr } = await db.from('clients')
       // #626/C6 — `vat_number` rides the query that was already being made. It is the ONE field
       // `vatBadge` needs (the sentinel NOT_REGISTERED lives in it, #615), and a second query per
       // client to fetch it would be exactly the round trip this endpoint exists to avoid.
@@ -170,6 +183,10 @@ operatorRouter.get('/worklist', async (_req: Request, res: Response) => {
       // client to learn it would be exactly the round trip this endpoint exists to avoid.
       .select('id, company_name, industry, country, is_demo, wallet_balance_usd, created_at, vat_number, commercial_model')
       .order('created_at', { ascending: false }).limit(200)
+    if (clientsErr) {
+      res.status(500).json({ success: false, error: `The worklist could not be read (${clientsErr.message}). This is NOT "nothing to do".` })
+      return
+    }
     const rows = (clients ?? []) as Record<string, unknown>[]
     const ids = rows.map(c => c.id as string)
     if (ids.length === 0) { res.json({ success: true, data: [] }); return }
@@ -320,7 +337,17 @@ operatorRouter.get('/worklist', async (_req: Request, res: Response) => {
     // the answer the console gives today rather than losing their row.
     const withProgramme = new Set<string>()
     try {
-      const { data } = await db.from('programmes').select('client_id').in('client_id', ids)
+      // ⛓️ 18 Sep (J7-C1) — THE ERROR IS READ HERE TOO, AND IT CHANGES NOTHING BUT THE LOG.
+      // The fail-soft direction above is right and is unchanged: a client who cannot be placed
+      // keeps their legacy step rather than losing their row, so this read cannot empty the
+      // list or produce "nothing needs you". What it could do before was fail SILENTLY —
+      // `supabase-js` answers `{ data: null, error }` rather than throwing, so the `catch`
+      // below never ran and the intended log never appeared. A read whose failure nobody can
+      // see is how the worklist quietly starts describing every programme client as legacy.
+      const { data, error } = await db.from('programmes').select('client_id').in('client_id', ids)
+      if (error) {
+        console.error(`[operator/worklist] programme membership unreadable — every client keeps the legacy step: ${error.message}`)
+      }
       for (const r of ((data ?? []) as { client_id: string | null }[])) if (r.client_id) withProgramme.add(r.client_id)
     } catch (err) {
       console.error('[operator/worklist] programme membership unreadable — every client keeps the legacy step:', err)

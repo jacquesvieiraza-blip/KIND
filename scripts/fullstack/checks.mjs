@@ -10,9 +10,12 @@
 // reason, never "probably fine". Two of them found real defects on their first run and say so.
 // ══════════════════════════════════════════════════════════════════════════════════════════
 
-import { readFileSync } from 'node:fs'
+import { readFileSync, writeFileSync } from 'node:fs'
+import { spawn } from 'node:child_process'
 import { Client } from 'pg'
-import { randomUUID } from 'node:crypto'
+import { createHmac, randomUUID } from 'node:crypto'
+import { makeFailureChecks } from './failure-classes.mjs'
+import { assessCoverage, printCoverage } from './coverage.mjs'
 
 const ENV = JSON.parse(readFileSync(process.argv[2] ?? `${process.env.TMPDIR ?? '/tmp'}/kind-fullstack/env.json`, 'utf8'))
 const results = []
@@ -804,6 +807,63 @@ for (const c of SELECTED) {
   try { await c() } catch (err) { bad(CHECKS.indexOf(c), `threw: ${err instanceof Error ? err.stack?.split('\n').slice(0, 3).join(' | ') : String(err)}`) }
 }
 
+// ══════════════════════════════════════════════════════════════════════════════════════════
+// P6 §8.2 — THE JOURNEYS AND FAILURE CLASSES BATCH 1b DID NOT COVER
+//
+// ⚠️ THEY RUN AFTER, AND AGAINST THE SAME STACK. Batch 1b's eleven checks are the regression
+// half of this run and are not re-implemented: the contract asks for the complete set, not a
+// replacement for the set that already works.
+// ══════════════════════════════════════════════════════════════════════════════════════════
+
+/** A Supabase-shaped session for a user the check created — see `jwtSecret` in env.json. */
+function mintJwt(sub, email) {
+  const b64 = (o) => Buffer.from(JSON.stringify(o)).toString('base64url')
+  const now = Math.floor(Date.now() / 1000)
+  const header = b64({ alg: 'HS256', typ: 'JWT' })
+  const payload = b64({ role: 'authenticated', iss: 'kind-fullstack-harness', iat: now, exp: now + 86400, sub, aud: 'authenticated', email })
+  const sig = createHmac('sha256', ENV.jwtSecret).update(`${header}.${payload}`).digest('base64url')
+  return `${header}.${payload}.${sig}`
+}
+
+/**
+ * Put the ARMED API back after F-RESTART kills it.
+ *
+ * 🛑 A CHECK THAT LEAVES A PROCESS DEAD TURNS ITS OWN EVIDENCE INTO EVERY LATER CHECK'S
+ * FAILURE. F-RESTART's whole method is SIGKILL, so it owes the stack a live process
+ * afterwards — and restarting it here, from the same environment `cmd_checks` exported, is
+ * the same artifact with the same variables the harness booted.
+ */
+async function restartArmedApi() {
+  const port = new URL(ENV.apiArmed).port
+  const child = spawn('node', ['dist/index.js'], {
+    cwd: `${ENV.tree}/apps/api`,
+    env: { ...process.env, PORT: port, AUTO_OUTREACH_ENABLED: 'true' },
+    detached: true, stdio: 'ignore',
+  })
+  child.unref()
+  writeFileSync(`${ENV.runDir}/api-armed.pid`, String(child.pid))
+  for (let i = 0; i < 60; i++) {
+    const r = await http(`${ENV.apiArmed}/health`, { timeoutMs: 2000 })
+    if (r.status === 200) return true
+    await new Promise(r2 => setTimeout(r2, 1000))
+  }
+  throw new Error('the armed API did not come back after F-RESTART killed it')
+}
+
+const KIT = {
+  ENV, http, api, operator, portal, admin, sql, ok, bad, note,
+  fakeCount, fakeRequests, fakeReset, fakeMode, makeClient, mintJwt, restartArmedApi,
+}
+
+const EXTRA = ONLY.length ? [] : makeFailureChecks(KIT)
+if (ONLY.length) console.log('   ⚠️  FULLSTACK_ONLY is set — the §8.2 journey and failure-class checks are SKIPPED, so coverage cannot be established.')
+
+for (const c of EXTRA) {
+  try { await c.fn() } catch (err) {
+    bad(c.id, `threw: ${err instanceof Error ? (err.stack?.split('\n').slice(0, 3).join(' | ')) : String(err)}`)
+  }
+}
+
 // ── THE ZERO-CALL PROOF ───────────────────────────────────────────────────────────────────
 const PDL_CALLS = await fakeCount('pdl')
 const HUNTER_CALLS = await fakeCount('hunter')
@@ -831,12 +891,25 @@ if (findings.length) {
   for (const f of findings) console.log(`  ⚠️ ${f}`)
 }
 
+// ── §8.2 COVERAGE — THE 26 JOURNEYS AND THE 14 FAILURE CLASSES ───────────────────────────
+//
+// 🛑 THE TABLE IS A GATE, NOT A REPORT. Every row resolves against the checks that actually
+// ran and passed in THIS process, so a journey whose check was deleted, renamed or skipped is
+// an UNPROVEN row and fails the run. A printed table nobody enforces is how a certification
+// becomes a decoration.
+const coverage = assessCoverage(results)
+printCoverage(coverage)
+
 const failed = results.filter((r) => !r.pass)
 const zeroCallOk = PDL_CALLS === 0 && HUNTER_CALLS === 0
+const unproven = [...coverage.journeys.filter(j => !j.proven).map(j => `journey ${j.n}`),
+                  ...coverage.classes.filter(c => !c.proven).map(c => c.id)]
 console.log('')
-if (failed.length === 0 && zeroCallOk) {
-  console.log(`✅ ALL ${results.length} CHECKS PASSED · PDL_CALLS=0 · HUNTER_CALLS=0`)
+if (failed.length === 0 && zeroCallOk && coverage.allProven) {
+  console.log(`✅ ALL ${results.length} CHECKS PASSED · 26/26 JOURNEYS · 14/14 FAILURE CLASSES · PDL_CALLS=0 · HUNTER_CALLS=0`)
   process.exit(0)
 }
-console.log(`🛑 ${failed.length} CHECK(S) FAILED${zeroCallOk ? '' : ' · ZERO-CALL PROOF BROKEN'}: ${failed.map((r) => r.n).join(', ')}`)
+if (failed.length) console.log(`🛑 ${failed.length} CHECK(S) FAILED: ${failed.map((r) => r.n).join(', ')}`)
+if (!zeroCallOk) console.log(`🛑 ZERO-CALL PROOF BROKEN: PDL=${PDL_CALLS} HUNTER=${HUNTER_CALLS}`)
+if (unproven.length) console.log(`🛑 ${unproven.length} §8.2 ROW(S) UNPROVEN: ${unproven.join(', ')}`)
 process.exit(1)

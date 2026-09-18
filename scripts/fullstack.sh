@@ -59,6 +59,8 @@ PORT_GOOGLE=$((P + 11))
 PORT_RESEND=$((P + 12))
 PORT_ANTHROPIC=$((P + 13))
 PORT_SMTP=$((P + 14))
+# ⚑ 18 Sep (P6 §8.2) — the ARMED API: the same artifact with the kill-switch ON. See its boot.
+PORT_API_ARMED=$((P + 24))
 
 RUN_DIR="${FULLSTACK_RUN_DIR:-${TMPDIR:-/tmp}/kind-fullstack}"
 PID_FILE="$RUN_DIR/pids"
@@ -111,7 +113,7 @@ teardown() {
   # nothing and `ss -ltnp` printed no pid for the same live listener; `fuser -n tcp <port>`
   # named it correctly. Measured, not assumed — and every fallback is tried in turn so this
   # does not depend on one tool being installed.
-  for port in "$PORT_API" "$PORT_PORTAL" "$PORT_ADMIN" $((P + 23)); do
+  for port in "$PORT_API" "$PORT_PORTAL" "$PORT_ADMIN" "$PORT_API_ARMED" $((P + 23)); do
     pids="$(fuser -n tcp "$port" 2>/dev/null | tr -d ' \t' || true)"
     [ -z "$pids" ] && pids="$(lsof -ti tcp:"$port" 2>/dev/null || true)"
     [ -z "$pids" ] && pids="$(ss -ltnp 2>/dev/null | grep -oE "127.0.0.1:$port .*pid=[0-9]+" | grep -oE 'pid=[0-9]+' | cut -d= -f2 || true)"
@@ -203,7 +205,19 @@ export_env() {
   export RESEND_API_KEY="fullstack-fake-resend-key"
   export STRIPE_SECRET_KEY="sk_test_fullstack_fake"
   export ADMIN_SECRET_KEY="fullstack-admin-secret"
-  export INBOX_SECRET_KEY="fullstack-inbox-secret-key-32-chars-minimum-ok"
+  # ── ⚑ 18 Sep (P6 §8.2) — 64 HEX CHARACTERS, BECAUSE THE PRODUCT REQUIRES EXACTLY THAT ────
+  #
+  # 🛑 THE OLD VALUE WAS A PASSPHRASE, AND IT MADE SENDING IMPOSSIBLE HERE. `inbox-secret.ts`
+  # refuses anything that is not 32 bytes of hex — "INBOX_SECRET_KEY is not 64 hex characters
+  # … mailbox passwords cannot be read, so nothing can send." So `secretOk` was false for
+  # every run this harness has ever done, no mailbox was ever sendable, and any check that
+  # concluded "nothing was sent" would have been right for a reason that had nothing to do
+  # with the product. Found by the first check that tried to make a send SUCCEED.
+  #
+  # ⚠️ STILL AN OBVIOUS FAKE. It is 64 hex characters of nothing, on a loopback database that
+  # is destroyed at teardown, encrypting one fake SMTP password for a sink that delivers
+  # nothing.
+  export INBOX_SECRET_KEY="00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff"
 
   # ══════════════════════════════════════════════════════════════════════════════════════════
   # 🛑 THE SPEND GUARD IS OFF IN THIS PROCESS, AND THAT DECISION IS THE MOST DELICATE ONE
@@ -325,6 +339,20 @@ export_env() {
   # ⚠️ WHICH IS ITSELF A SMALL PIECE OF EVIDENCE: a real process reading a real env var told me
   # I had the name wrong. A mocked scheduler would have accepted `DISABLE_CRON` in silence.
   export RUN_CRONS="false"
+
+  # ── ⚑ 18 Sep (P6 §8.2 · F-KILL) — THE OPERATOR SEND CONTROL IS ARMED, DELIBERATELY ──────
+  #
+  # 🛑 OTHERWISE F-KILL PROVES THE WRONG REFUSAL. `POST /operator/send-due/run-once` refuses
+  # with 503 when `FIGSY_OPERATOR_SEND_ENABLED` is unset — a different gate, earlier in the
+  # path than the kill-switch. A "zero sends" result obtained that way says nothing whatever
+  # about `AUTO_OUTREACH_ENABLED`, and it reads on the page exactly as though it did.
+  #
+  # So this control is ON for the whole run, on BOTH APIs, and the kill-switch is then the
+  # ONLY thing that differs between the API that sends nothing and the one that sends. It
+  # authorises nothing by itself (startup-check.ts: "it authorises nothing on its own — a
+  # founder must still press the button, for one named client, with an explicit max_sends"),
+  # and every provider base URL is loopback.
+  export FIGSY_OPERATOR_SEND_ENABLED="true"
   # ⚠️ `SAFE_TEST_MODE` IS DELIBERATELY NOT SET — see the block above `PAID_PROVIDERS_ENABLED`.
 
   # ⚠️ EVERY INHERITED CONNECTION IS CLEARED FIRST, so a developer's shell cannot leak a real
@@ -383,7 +411,7 @@ cmd_up() {
   mkdir -p "$RUN_DIR"
   assert_ports_free "$PORT_API" "$PORT_PORTAL" "$PORT_ADMIN" "$PORT_PGRST" "$PORT_GATEWAY" \
     "$PORT_APOLLO" "$PORT_PDL" "$PORT_HUNTER" "$PORT_STRIPE" "$PORT_GOOGLE" "$PORT_RESEND" \
-    "$PORT_ANTHROPIC" "$PORT_SMTP" $((P + 15)) $((P + 23))
+    "$PORT_ANTHROPIC" "$PORT_SMTP" "$PORT_API_ARMED" $((P + 15)) $((P + 23))
   : > "$PID_FILE"
 
   # ── 0 · the binary must be REAL PostgREST ──
@@ -490,6 +518,28 @@ cmd_up() {
   track "$(cat "$RUN_DIR/api.pid")" api
   wait_http "http://127.0.0.1:$PORT_API/health" "api" 90
 
+  # ── ⚑ 18 Sep (P6 §8.2) — A SECOND API, IDENTICAL BUT ARMED ────────────────────────────
+  #
+  # 🛑 TWO OF THE CONTRACT'S REQUIREMENTS CONTRADICT EACH OTHER IN ONE PROCESS. F-KILL demands
+  # that with `AUTO_OUTREACH_ENABLED` unset there are ZERO sends through every send path;
+  # journey 20 demands that outbound delivery actually be exercised. The switch is read from
+  # `process.env` at the send seam, so one process cannot be both — and a harness that only
+  # ever ran with it unset would report "no sends" as a triumph while never having shown that
+  # a send works at all. That is a green tick for a product that cannot send.
+  #
+  # So the ARMED API is the SAME `dist/index.js`, the same database, the same fakes, differing
+  # in exactly one variable. F-KILL drives the main API and proves zero; journey 20 drives this
+  # one and watches the provider fake receive real traffic. The contrast is the evidence: the
+  # only difference between "nothing left" and "something left" is the switch.
+  #
+  # ⚠️ IT SHARES THE DATABASE DELIBERATELY. A separate database would prove a send leaves some
+  # process somewhere; sharing one means the send is visible in the same `figsy_sent_emails`
+  # the kill-switch checks read, so the two claims are about one system.
+  ( cd "$TREE/apps/api" && PORT="$PORT_API_ARMED" AUTO_OUTREACH_ENABLED=true \
+      nohup node dist/index.js > "$RUN_DIR/api-armed.log" 2>&1 & echo $! > "$RUN_DIR/api-armed.pid" )
+  track "$(cat "$RUN_DIR/api-armed.pid")" api-armed
+  wait_http "http://127.0.0.1:$PORT_API_ARMED/health" "api-armed (AUTO_OUTREACH_ENABLED=true)" 90
+
   # ── ⚑ 18 Sep (P6 §8.2) — THE NEXT APPS ARE BUILT HERE TOO, AND THEY WERE NOT ─────────────
   #
   # 🛑 THE HARNESS COULD NOT BOOT FROM A CLEAN CHECKOUT. The API is compiled above precisely
@@ -546,6 +596,7 @@ cmd_up() {
 {
   "tree": "$TREE",
   "api": "http://127.0.0.1:$PORT_API",
+  "apiArmed": "http://127.0.0.1:$PORT_API_ARMED",
   "portal": "http://127.0.0.1:$PORT_PORTAL",
   "admin": "http://127.0.0.1:$PORT_ADMIN",
   "adminSlow": "$ADMIN_SLOW_URL",
@@ -554,6 +605,13 @@ cmd_up() {
   "postgrestVersion": "$PGRST_VERSION",
   "db": "$DB_URL",
   "serviceJwt": "$SERVICE_JWT",
+  "_comment_jwtSecret": "⚑ 18 Sep (P6 §8.2) — the harness's own HS256 secret, so a check can mint a SESSION for a client it created. requireAuth calls supabase.auth.getUser(), which the gateway serves by VERIFYING this signature against the same secret PostgREST was started with: a client-authenticated journey is therefore reachable without GoTrue, and a forged token is still refused. It authorises nothing but a loopback database destroyed at teardown.",
+  "jwtSecret": "$JWT_SECRET",
+  "secrets": {
+    "adminKey": "$ADMIN_SECRET_KEY",
+    "resendWebhook": "$RESEND_WEBHOOK_SECRET",
+    "stripeWebhook": "$STRIPE_WEBHOOK_SECRET"
+  },
   "adminJwt": "$ADMIN_JWT",
   "adminUserId": "$ADMIN_USER_ID",
   "adminEmail": "$ADMIN_EMAIL",

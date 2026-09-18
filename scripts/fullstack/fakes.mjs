@@ -77,6 +77,15 @@ const json = (res, status, payload, headers = {}) => {
  * through to a recorded 200 `{}`, so an unexpected path is a recorded fact rather than a
  * connection error the product would classify as a network fault.
  */
+// ── ⚑ 18 Sep (P6 §8.2 · J20) — THE SMTP SINK NEEDS A WAY TO BE ASKED ─────────────────────
+//
+// The sink recorded every message it accepted and there was no way to READ that record: it is
+// a TCP server, so it has no control plane of its own. J20 must prove mail actually LEFT, and
+// a row in `figsy_sent_emails` is what the product wrote, not what the mailer delivered — the
+// distinction the whole harness exists for. Every HTTP fake shares this process, so any of
+// their control planes can answer for it.
+const SMTP_DELIVERED = []
+
 function startFake({ name, port, handler }) {
   const rec = makeRecorder(name)
   const state = { mode: 'success', hangMs: 0, calls: 0 }
@@ -87,6 +96,9 @@ function startFake({ name, port, handler }) {
     // ── harness control plane, on paths no provider SDK generates ──
     if (path === '/__fake/requests') return json(res, 200, { name, calls: rec.requests.length, requests: rec.requests })
     if (path === '/__fake/count') return json(res, 200, { name, calls: rec.requests.length })
+    // The SMTP sink's record, reachable over HTTP from any fake port.
+    if (path === '/__fake/smtp') return json(res, 200, { name: 'smtp', calls: SMTP_DELIVERED.length, messages: SMTP_DELIVERED })
+    if (path === '/__fake/smtp/reset') { SMTP_DELIVERED.length = 0; return json(res, 200, { ok: true }) }
     if (path === '/__fake/reset') { rec.requests.length = 0; state.calls = 0; return json(res, 200, { ok: true }) }
     if (path === '/__fake/mode') {
       const body = await readBody(req)
@@ -191,8 +203,42 @@ const resendHandler = async (req, body, res) => {
   return json(res, 200, { data: [] }), true
 }
 
-const anthropicHandler = async (req, body, res) => {
+// ── ⚑ 18 Sep (P6 §8.2 · F-MODEL) — THE MODEL FAKE HONOURS MODES TOO ───────────────────────
+//
+// 🛑 IT DID NOT, AND THAT MADE AN F-MODEL CHECK VACUOUS. `state` was already handed to every
+// handler and this one ignored it, so `__fake/mode` on the anthropic port set a field nothing
+// read: the model answered its canned completion, the route answered 200, and a check written
+// to prove "a model failure is reported honestly" would have passed while nothing had failed.
+// Found by the check going green for the wrong reason.
+//
+// The four modes are the four the contract names: throw · timeout · malformed JSON · refusal.
+// Each reproduces the SHAPE the SDK actually meets, because the product classifies on what it
+// receives — a tidy `{error:"failed"}` would test a path production never takes.
+const anthropicHandler = async (req, body, res, state) => {
   void body
+  if (state.mode === 'hang' || state.mode === 'timeout') {
+    // Never answer: the product's own bound (AI_TURN_BOUND) has to be what ends this.
+    await new Promise((r) => setTimeout(r, state.hangMs || 120000))
+    return true
+  }
+  if (state.mode === 'unauthorised') return json(res, 401, { type: 'error', error: { type: 'authentication_error', message: 'invalid x-api-key' } }), true
+  if (state.mode === 'provider_error') return json(res, 500, { type: 'error', error: { type: 'api_error', message: 'internal server error' } }), true
+  if (state.mode === 'rate_limited') return json(res, 429, { type: 'error', error: { type: 'rate_limit_error', message: 'rate limited' } }, { 'retry-after': '1' }), true
+  if (state.mode === 'malformed_body') {
+    // A 200 whose body is not the Messages shape at all — the proxy-error-page case.
+    res.writeHead(200, { 'content-type': 'application/json' })
+    res.end('<html><body>upstream error</body></html>')
+    return true
+  }
+  if (state.mode === 'refusal') {
+    // 🛑 A REFUSAL IS A SUCCESSFUL CALL. The HTTP layer is 200 and the SDK parses it happily;
+    // what is missing is the ANSWER. Anything reading `content[0].text` gets an empty string,
+    // which is exactly the case that used to render as Milla saying nothing at all.
+    return json(res, 200, {
+      id: 'msg_fake_refusal', type: 'message', role: 'assistant', model: 'fake-harness-model',
+      content: [], stop_reason: 'refusal', usage: { input_tokens: 1, output_tokens: 0 },
+    }), true
+  }
   // The Messages API shape, enough for the SDK to parse. No model is called and nothing is
   // generated — a canned completion is the correct evidence for "the model seam is wired".
   return json(res, 200, {
@@ -232,7 +278,12 @@ function startSmtpSink(port) {
         const line = buffer.slice(0, idx)
         buffer = buffer.slice(idx + 2)
         if (stage === 'data') {
-          if (line === '.') { messages.push({ ...current, at: new Date().toISOString() }); current = { from: null, to: [], data: '' }; stage = 'greet'; socket.write('250 OK queued\r\n') }
+          if (line === '.') {
+            const msg = { ...current, at: new Date().toISOString() }
+            messages.push(msg)
+            SMTP_DELIVERED.push({ from: msg.from, to: msg.to, at: msg.at, bytes: msg.data.length })
+            current = { from: null, to: [], data: '' }; stage = 'greet'; socket.write('250 OK queued\r\n')
+          }
           else current.data += line + '\n'
           continue
         }

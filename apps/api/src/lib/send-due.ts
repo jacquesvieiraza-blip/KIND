@@ -227,8 +227,21 @@ export async function runSendDue(mode: SendDueMode): Promise<SendDueResult> {
   // ⚠️ AND AN UNREADABLE CANDIDATE SET IS NOT AN EMPTY ONE. This one fails closed either way —
   // no rows, no sends — but "we selected nobody" and "we could not ask who was due" are
   // different facts, and only one of them needs a human.
+  // ── 🛑 ⚑ 18 Sep (P6 §8.2 · J20) — `client_id` IS SELECTED ON THE LEAD, AND IT IS LOAD-BEARING
+  //
+  // 🛑 WITHOUT IT NOTHING COULD EVER SEND. The send seam resolves the client's mailbox from
+  // `lead.client_id` (`figsy.ts`: `const inboxFor = lead.client_id ?? null`) and REFUSES when
+  // it is absent — "This lead has no client on it, so there is no mailbox to send from." This
+  // projection did not ask for the column, so every enrolment reached the seam with an
+  // undefined client, every send was deferred, the step was rolled back to stay due, and a
+  // `sends_stalled` alert fired. The run reported `attempted: 1, deferred: 1` and zero sent,
+  // for every client, on every run.
+  //
+  // ⚠️ THE UNIT SUITE CANNOT SEE THIS, and that is the point of the full-stack run. Those
+  // tests construct the `lead` object by hand and naturally include `client_id`; only a real
+  // PostgREST answering a real embedded select omits what the projection did not name.
   const { data: due, error: dueErr } = await db.from('figsy_enrollments')
-    .select('*, leads(id,first_name,last_name,email,job_title,company,industry,seniority,country,tech_stack,score,score_reasoning)')
+    .select('*, leads(id,client_id,first_name,last_name,email,job_title,company,industry,seniority,country,tech_stack,score,score_reasoning)')
     .in('status', ['enrolled', 'in_progress'])
     .in('campaign_id', activeCampaignIds)
     .lte('next_send_at', now)

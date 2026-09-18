@@ -1381,7 +1381,7 @@ figsyRouter.post('/campaigns/:id/send-now', async (req: AuthRequest, res) => {
 
     const now = new Date().toISOString()
     const { data: due } = await db.from('figsy_enrollments')
-      .select('*, leads(id,first_name,last_name,email,job_title,company,industry,seniority,country,tech_stack,score,score_reasoning)')
+      .select('*, leads(id,client_id,first_name,last_name,email,job_title,company,industry,seniority,country,tech_stack,score,score_reasoning)')
       .eq('campaign_id', req.params.id)
       .in('status', ['enrolled', 'in_progress'])
       .lte('next_send_at', now)
@@ -2168,7 +2168,7 @@ figsyRouter.post('/send-due', rateLimit({ limit: 30, windowMs: 60_000, key: 'fig
 
     const now = new Date().toISOString()
     const { data: due } = await db.from('figsy_enrollments')
-      .select('*, leads(id,first_name,last_name,email,job_title,company,industry,seniority,country,tech_stack,score,score_reasoning)')
+      .select('*, leads(id,client_id,first_name,last_name,email,job_title,company,industry,seniority,country,tech_stack,score,score_reasoning)')
       .eq('client_id', clientId)
       .in('campaign_id', activeCampaignIds)
       .in('status', ['enrolled', 'in_progress'])

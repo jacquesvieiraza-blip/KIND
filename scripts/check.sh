@@ -144,7 +144,7 @@ fi
 # would stop being run, and this repo has exactly one gate. It is REQUIRED before a batch is
 # handed over, which is the discipline rather than the default.
 if [ "${FULLSTACK_TESTS:-}" = "1" ]; then
-  step "Full-stack pre-production run (§8.2, Batch 1 scope)" bash scripts/fullstack.sh run
+  step "Full-stack certification run (§8.2 — 26 journeys + 14 failure classes)" bash scripts/fullstack.sh run
 else
   echo ""
   echo "── [skipped] Full-stack pre-production run — set FULLSTACK_TESTS=1 to run it"

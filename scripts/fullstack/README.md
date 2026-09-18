@@ -22,7 +22,9 @@ FULLSTACK_TESTS=1 bash scripts/check.sh         # as an opt-in gate stage
 prove a **seam**: a base URL, an HTTP status code, PostgREST's own error codes, a middleware
 redirect, a process that refuses to boot. Contract §9.1 requires a cumulative full-stack run
 after every batch; Fable's 18 Sep ruling scoped this one to Batch 1's items and failure
-classes, with the complete 26-journey run remaining Batch 6's exit condition.
+classes. ⛓️ **18 Sep — that scoping is history: this is now the COMPLETE run**, walking all 26
+journeys and all 14 failure classes, with `coverage.mjs` enforcing the table rather than
+printing it.
 
 **The headline evidence is a pair of zeroes.** PDL and Hunter run with their **keys SET** and
 their fakes **listening and answering 200**. If FD-6's code lock regressed, a call would
@@ -170,7 +172,9 @@ authorises nothing but a database created seconds earlier and destroyed at teard
 
 ## What this run does NOT establish
 
-- ⚠️ **Not the 26-journey run.** Batch 6's exit condition. This is the Batch-1-scoped run.
+- ✅ **It IS the 26-journey run.** All 26 journeys and all 14 failure classes, enforced by
+  `coverage.mjs`: every row names the check(s) that prove it and resolves against checks that
+  actually ran AND passed, so an unproven row fails the run.
 - ⚠️ **Not production-schema fidelity** — `scripts/realdb/README.md` § SCHEMA FIDELITY.
 - ⚠️ **Not a browser test.** No GoTrue, no login, no browser-loss journeys (Batch 2).
 - ⚠️ **Not RLS.** PostgREST connects as a superuser-owned pool and `service_role` is

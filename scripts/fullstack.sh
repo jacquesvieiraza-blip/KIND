@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ══════════════════════════════════════════════════════════════════════════════════════════
-# BATCH 1b · THE FULL-STACK PRE-PRODUCTION RUN (§8.2, scoped to Batch 1)
+# §8.2 · THE FULL-STACK CERTIFICATION RUN — 26 JOURNEYS + 14 FAILURE CLASSES
 #
 #   bash scripts/fullstack.sh            # up → the ten checks → teardown      ← the usual one
 #   bash scripts/fullstack.sh up         # up and leave it running; prints every URL
@@ -23,8 +23,11 @@
 #
 # ── WHAT IT IS NOT ──────────────────────────────────────────────────────────────────────
 #
-# ⚠️ NOT the complete 26-journey run. That is Batch 6's exit condition. This is the cumulative
-# scoped run Fable ruled is owed after Batch 1, covering Batch 1's items and failure classes.
+# ⛓️ 18 Sep — THIS WAS THE BATCH-1-SCOPED RUN AND IS NOW THE COMPLETE ONE. What stood here:
+# ~~"NOT the complete 26-journey run. That is Batch 6's exit condition."~~ It now walks all 26
+# of the founder's journeys and all 14 failure classes, and `coverage.mjs` is a GATE: a row
+# whose check was deleted, renamed, skipped or failed fails the run, so the table cannot become
+# decoration. Batch 1b's original eleven checks still run unchanged as the regression half.
 # ⚠️ NOT production-schema fidelity — see scripts/realdb/README.md § SCHEMA FIDELITY.
 # ⚠️ NOT a browser test. No GoTrue, no login journeys; every check here is API-side or
 # operator-key-side, and browser-loss journeys belong to Batch 2.

@@ -2530,6 +2530,79 @@ export async function runIcpJob(
   // ⚠️ PAID IS UNTOUCHED. A non-proof run takes this block exactly as it always did: same
   // `deliveryCapBalance`, same `DAILY_BROWSE_CAP`, same Apollo reveal, same Hunter waterfall,
   // same delivery. Nothing inside the block changed — only who may enter it.
+  // ── 🛑 ⚑ 18 Sep (J12-C2 · FD-1) — THE GATE MOVED UP, AND ITS POSITION WAS THE DEFECT ──
+  //
+  // 🛑 IT USED TO RUN ~150 LINES BELOW THIS POINT, which put it AFTER the programme path had
+  // already qualified, settled and SURFACED the batch. So on a programme run:
+  //
+  //   · `qualifyCandidates(clientId, insertedIds, …)` judged the WHOLE batch on email and
+  //     geography — the only two things `finalVerdict` reads;
+  //   · `settleBatch` consumed the customer's ceiling on that count;
+  //   · `surfaceQualifiedBatch` put them in front of the customer;
+  //   · and only THEN did this gate ask whether they were the kind of company the client had
+  //     asked for, or one of the companies they had asked us to LEAVE OUT.
+  //
+  // FD-1 is "in every path", and this was the path where an excluded company cost the client
+  // their entitlement and then appeared on their screen. J5-C12 built the criterion; this is
+  // where the programme path finally consults it.
+  //
+  // ⚠️ ITS OWN HEADER ALREADY SAID WHERE IT BELONGED — *"BEFORE ANYTHING IS SCORED OR
+  // SURFACED"* — and that was true of the proof path it was written for and false of the
+  // programme path, which surfaces through a different function. A comment can only speak for
+  // the code it sits above.
+  //
+  // ⚠️ NOTHING ABOUT THE GATE ITSELF CHANGED: same call, same fail-closed refusal, same
+  // outcome record, same `gatedIds`. Only the line it sits on.
+  //
+  // ⚠️ AND THE FAIL-CLOSED EXIT IS NOW EARLIER, WHICH IS THE SAFE DIRECTION. A batch whose
+  // refusals cannot be RECORDED returns before qualification, so the programme reservation
+  // stays OPEN and recoverable rather than being settled on candidates nobody had judged.
+  // ── 🛑 ⚑ 10 Sep (C04) — THE STRUCTURAL GATE, BEFORE ANYTHING IS SCORED OR SURFACED ────
+  //
+  // WHAT THE FOUNDER SAW. He targeted UK digital marketing agencies, 10–50 staff, Founder or
+  // CEO. Proof showed him management consultancies and procurement firms. `start-work.ts`
+  // states the old policy plainly — *"Every sourced person goes to the client, scored, with
+  // our top 20 marked. We don't filter first — that adds work and delays the money."* On a
+  // paid client's continuously-topped-up desk that trade was defensible. On a PROSPECT'S FIRST
+  // IMPRESSION it means the client does our data cleaning, which is the opposite of the
+  // product we sell.
+  //
+  // ⚠️ IT RUNS HERE, NOT LATER, FOR TWO REASONS. Scoring is handed `gatedIds` below, so the
+  // model only ever judges candidates that already match what the client asked for — its
+  // number can no longer overturn a structural refusal. And the surfacing stamp far below
+  // reads the same list, so a refused candidate is never shown even once.
+  //
+  // 🛑 FAIL CLOSED (founder-locked 10 Sep). If `leads.set_aside_reason` does not exist yet,
+  // this refuses the batch rather than surfacing it: a refusal we cannot RECORD is a refusal
+  // that does not survive to the next pass, and `surfaceEverything` would re-offer the same
+  // people. The run outcome says which migration to run.
+  let gatedIds = insertedIds
+  let setAsideCount = 0
+  if (insertedIds.length > 0) {
+    const { applyStructuralGate } = await import('../lib/proof-gate')
+    const gate = await applyStructuralGate(icp, insertedIds)
+    if (!gate.ok) {
+      console.error(`[icp] STRUCTURAL GATE REFUSED the batch for client ${clientId}: ${gate.detail}`)
+      // ⚠️ `heldFromIcp` IS DELIBERATELY NOT PASSED. It is computed further down (the
+      // entitlement-exhaustion count) and is not yet known here; passing a zero for it would
+      // record a number nobody measured, which is the exact defect `recordRunOutcome`'s own
+      // honesty rules exist to stop. The refusal reports what it actually knows.
+      await recordRunOutcome(icpId, clientId, 'failed', effectiveCap, pool.served, inserted, 0, didWiden)
+      // ⚠️ THE LEADS ARE LEFT EXACTLY WHERE THEY ARE — inserted, unsurfaced, unscored. Nothing
+      // is deleted (that would destroy what the run bought) and nothing is shown. The next
+      // attempt after the migration re-judges them from the same rows.
+      // 🛑 THE CLIENT RECEIVES NO PROOF SET HERE, SO THE ATTEMPT MUST NOT BE CONSUMED.
+      // This path records `failed` and RETURNS — it never throws, so the proof route's outer
+      // `.catch` cannot see it. The founder named this exit by name; it releases.
+      return { inserted, skipped, relaxed: gate.detail, terminal: terminalForRunStatus('failed') }
+    }
+    gatedIds = gate.eligible
+    setAsideCount = gate.setAside.length
+    if (setAsideCount > 0) {
+      console.log(`[icp] structural gate: ${gate.eligible.length} of ${insertedIds.length} candidates match the targeting for client ${clientId} — ${setAsideCount} set aside (${[...new Set(gate.setAside.map(s => s.reason))].join(' · ')}).`)
+    }
+  }
+
   if (!proofMode && insertedIds.length > 0) {
     if (programmeIdForRun) {
       // ══ ⚑ 9 Sep (HOUSE-009) — A PROGRAMME RUN QUALIFIES; IT DOES NOT "DELIVER" ═══════
@@ -2547,8 +2620,13 @@ export async function runIcpJob(
       //
       // ⚠️ IT WRITES NO `delivered_at`. Customer visibility is `surfaceQualifiedBatch`, after
       // a verdict exists. Tying the ledger to a screen is the whole defect.
+      // ⛓️ 18 Sep (J12-C2 · FD-1) — `gatedIds`, NOT `insertedIds`. `finalVerdict` reads email,
+      // email status and country and nothing else, so qualification cannot see a category, a
+      // size, a seniority or an EXCLUSION. Handing it the whole batch meant a company the
+      // client had asked us to leave out was qualified, settled their ceiling and reached
+      // their screen. The structural gate above has already answered for these ids.
       const { qualifyCandidates } = await import('../lib/programme-qualification')
-      const q = await qualifyCandidates(clientId, insertedIds, {
+      const q = await qualifyCandidates(clientId, gatedIds, {
         // The customer's own criteria, read off the ICP THIS RUN is using — never a second
         // lookup that could disagree with it.
         geographies: ((icp as { geographies?: string[] | null }).geographies ?? []).filter(Boolean),
@@ -2663,51 +2741,6 @@ export async function runIcpJob(
     }
   }
 
-  // ── 🛑 ⚑ 10 Sep (C04) — THE STRUCTURAL GATE, BEFORE ANYTHING IS SCORED OR SURFACED ────
-  //
-  // WHAT THE FOUNDER SAW. He targeted UK digital marketing agencies, 10–50 staff, Founder or
-  // CEO. Proof showed him management consultancies and procurement firms. `start-work.ts`
-  // states the old policy plainly — *"Every sourced person goes to the client, scored, with
-  // our top 20 marked. We don't filter first — that adds work and delays the money."* On a
-  // paid client's continuously-topped-up desk that trade was defensible. On a PROSPECT'S FIRST
-  // IMPRESSION it means the client does our data cleaning, which is the opposite of the
-  // product we sell.
-  //
-  // ⚠️ IT RUNS HERE, NOT LATER, FOR TWO REASONS. Scoring is handed `gatedIds` below, so the
-  // model only ever judges candidates that already match what the client asked for — its
-  // number can no longer overturn a structural refusal. And the surfacing stamp far below
-  // reads the same list, so a refused candidate is never shown even once.
-  //
-  // 🛑 FAIL CLOSED (founder-locked 10 Sep). If `leads.set_aside_reason` does not exist yet,
-  // this refuses the batch rather than surfacing it: a refusal we cannot RECORD is a refusal
-  // that does not survive to the next pass, and `surfaceEverything` would re-offer the same
-  // people. The run outcome says which migration to run.
-  let gatedIds = insertedIds
-  let setAsideCount = 0
-  if (insertedIds.length > 0) {
-    const { applyStructuralGate } = await import('../lib/proof-gate')
-    const gate = await applyStructuralGate(icp, insertedIds)
-    if (!gate.ok) {
-      console.error(`[icp] STRUCTURAL GATE REFUSED the batch for client ${clientId}: ${gate.detail}`)
-      // ⚠️ `heldFromIcp` IS DELIBERATELY NOT PASSED. It is computed further down (the
-      // entitlement-exhaustion count) and is not yet known here; passing a zero for it would
-      // record a number nobody measured, which is the exact defect `recordRunOutcome`'s own
-      // honesty rules exist to stop. The refusal reports what it actually knows.
-      await recordRunOutcome(icpId, clientId, 'failed', effectiveCap, pool.served, inserted, 0, didWiden)
-      // ⚠️ THE LEADS ARE LEFT EXACTLY WHERE THEY ARE — inserted, unsurfaced, unscored. Nothing
-      // is deleted (that would destroy what the run bought) and nothing is shown. The next
-      // attempt after the migration re-judges them from the same rows.
-      // 🛑 THE CLIENT RECEIVES NO PROOF SET HERE, SO THE ATTEMPT MUST NOT BE CONSUMED.
-      // This path records `failed` and RETURNS — it never throws, so the proof route's outer
-      // `.catch` cannot see it. The founder named this exit by name; it releases.
-      return { inserted, skipped, relaxed: gate.detail, terminal: terminalForRunStatus('failed') }
-    }
-    gatedIds = gate.eligible
-    setAsideCount = gate.setAside.length
-    if (setAsideCount > 0) {
-      console.log(`[icp] structural gate: ${gate.eligible.length} of ${insertedIds.length} candidates match the targeting for client ${clientId} — ${setAsideCount} set aside (${[...new Set(gate.setAside.map(s => s.reason))].join(' · ')}).`)
-    }
-  }
 
   if (inserted > 0) {
     const { data: clientRow } = await db.from('clients')

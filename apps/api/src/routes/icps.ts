@@ -19,6 +19,13 @@ import { getOrCreateConsentToken, buildConsentUrl } from '../lib/consent'
 import { enrichAndDeliverLeads } from '../lib/lead-delivery'
 import { deliveryCapBalance, normalizePlan, normalizeRevealEmail } from '../lib/billing-rules'
 import { isSuppressed } from '../lib/suppression'
+// ⚑ 18 Sep (J5-C5) — STATICALLY IMPORTED, AND THAT IS NOT A STYLE CHOICE. `pool-sourcing.ts`
+// states the same reason for the same predicate: it pulls only `proof-fit`, which pulls only
+// `@kind/shared` and `lead-feedback`, so there is no environment to defer and no cycle to
+// break. A lazy `await import()` here also inserts extra awaits into `runIcpJob`'s fire-and-
+// forget prologue, which is enough to reorder an already-racy activation ("has this ICP ever
+// run?") in `launch-journey.test.ts`. Nothing about this module needs deferring.
+import { splitPreSpendFit, describePreSpendRefusals } from '../lib/pre-spend-fit'
 import { sendFounderAlert } from '../lib/alerts'
 import { PDL_RATE_USD } from '../lib/sourcing-fences'
 import { isLaunchSendCountry, launchTargetRefusal } from '@kind/shared'
@@ -946,6 +953,15 @@ export async function runIcpJob(
   // never surfaced, never revealed — and counted here so the outcome can say why. NULL is
   // never a wildcard, on either the pool path or this one.
   let removedByGeoGate = 0
+  // ── ⚑ 18 Sep (J5-C5) — REFUSED BY THE FIT RULE *BEFORE* A RESERVED SLOT WAS CONSUMED ──
+  //
+  // The pool path has asked the whole rule since C02; this path asked one criterion of seven
+  // (geography, above) and left the other six to `applyStructuralGate` — which runs AFTER the
+  // insert, and the insert is what spends `grantedSize`. `grantedSize` is reserved entitlement:
+  // a programme's ceiling, or a prospect's FORTY LIFETIME RECORDS. Counted here for the same
+  // reason `removedByGeoGate` is: a run emptied by our own fit rule must never be reported to
+  // the client as "your targeting matched nobody".
+  let refusedBeforeSpend = 0
   // How many contacts the provider ACTUALLY returned this run, recorded before any
   // K.I.N.D-side gate touches them — the fact the neutral-review decision reads.
   let providerContactsReturned = 0
@@ -1501,6 +1517,15 @@ export async function runIcpJob(
         console.error('[icp] calibration read failed — sourcing continues unnarrowed:', err)
       }
 
+      // ── ⚑ 18 Sep (J5-C5) — THE TARGETING THIS BATCH WAS ACTUALLY SEARCHED WITH ──────────
+      //
+      // The pre-spend fit rule below must judge candidates against the criteria that FETCHED
+      // them, not against the ICP as saved. The one widened proof retry deliberately drops
+      // seniority and size; judging its results against the saved row would refuse exactly
+      // what the widening existed to find, and would do it before the reservation was even
+      // reconciled. Reassigned in that branch and nowhere else.
+      let icpAsSearched = icpForSearch
+
       // ── AR5 BOUNDARY (21 Aug) ──────────────────────────────────────────────────
       // House → Apollo (our hunting, our prepaid credits); client → PDL under the AR8
       // fence spent just above. `audience` is resolved BEFORE that fence now — see the
@@ -1696,6 +1721,9 @@ export async function runIcpJob(
         // zero, unproven zero, or matches — carries the fact that the one fallback was used.
         didWiden = true
         const widened = { ...icpForSearch, seniority_levels: [], company_sizes: [] }
+        // ⚑ 18 Sep (J5-C5) — and the pre-spend fit rule judges against THIS, so the widening
+        // cannot be undone by a criterion it deliberately dropped.
+        icpAsSearched = widened
         console.log(`[icp] PROOF PASS 2 — exact targeting matched nobody for prospect ${clientId}; ONE widened retry (titles/industries/countries kept, seniority + size dropped).`)
         // A SECOND provider answer is now required; the exact search's proof does not
         // transfer to it. Unproven again until the widened page shows its own evidence.
@@ -1785,7 +1813,48 @@ export async function runIcpJob(
       // grant to refund and no PDL money was spent — refunding here would credit the
       // house a PDL allowance it never bought and book a negative PDL ledger row for a
       // run that cost no PDL. The reconcile belongs to the fence, so it lives with it.
-      const returnedCount = Math.min(contacts.length, grantedSize)
+      // ── 🛑 ⚑ 18 Sep (J5-C5 · LR 10 · FD-1/2) — THE FIT RULE, BEFORE A SLOT IS CONSUMED ──
+      //
+      // 🛑 THE DEFECT, AND IT IS ONE SENTENCE. The insertion loop below applies exactly ONE of
+      // the seven hard criteria — the geography invariant, whose own note says it is *"the SAME
+      // rule at the provider boundary"* as the pool's. Size, industry, category, company type,
+      // seniority and the client's EXCLUSIONS were never asked here at all; they are asked a
+      // few hundred lines down by `applyStructuralGate`, AFTER the candidate has become a lead
+      // row and AFTER it has consumed one of `grantedSize`.
+      //
+      // `grantedSize` is RESERVED ENTITLEMENT — `try_reserve_programme_sourcing`, or
+      // `try_reserve_proof_records`, which is **forty records for a prospect's entire
+      // lifetime**. A page of 40 where 35 are companies the client's own criteria refuse
+      // consumed all 40 to show 5, and the 35 were refused for free, later, by this same
+      // predicate. The pool path never had this problem: `poolRecordMatchesIcp` asks the whole
+      // rule BEFORE a record is served and before it shrinks the external ask.
+      //
+      // ⚠️ PURE, AND `contacts` IS NOT SHRUNK HERE. R67 outranks this filter — every paid
+      // identity is written to `acquisition_memory` BEFORE any client gate can drop it — and
+      // `providerContactsReturned` must stay the page the provider genuinely handed us, or a
+      // run our own rule emptied would be reported to the client as a thin search. So this
+      // computes a REFUSAL SET; the loop below skips those contacts by identity.
+      //
+      // ⚠️ AND IT ASKS `structurallyAdmissible`, THE LENIENT QUESTION. The gate sets UNKNOWNS
+      // aside too (11 Sep); an unknown is still a real candidate, surfaced and banded "Worth a
+      // look". Only a criterion that answered a definite `no` may cost a candidate its slot —
+      // so nothing refused here could have reached the desk anyway (`/leads/for-approval`
+      // filters `set_aside_reason IS NULL`), and the client's set is unchanged by construction.
+      const preSpend = splitPreSpendFit(contacts, icpAsSearched as Parameters<typeof splitPreSpendFit>[1])
+      const refusedPreSpend = new Set<unknown>(preSpend.refused.map(r => r.contact))
+      if (preSpend.refused.length > 0) {
+        console.log(`[icp] stage=pre_spend_refused — ${preSpend.refused.length} of ${contacts.length} provider contact(s) are refused by the client's own hard criteria (${describePreSpendRefusals(preSpend.counts)}). Judged BEFORE the reservation is reconciled, so their reserved records are released rather than spent on candidates the structural gate would set aside.`)
+      }
+
+      // ⛓️ 18 Sep (J5-C5) — WHAT THE RESERVATION ACTUALLY CONSUMED, AND THE TWO PROVIDERS
+      // GENUINELY DIFFER. PDL bills per record RETURNED, so its reservation is spent by the
+      // page whatever we then decide about it — releasing there would refund an allowance for
+      // money we really did spend and book a negative ledger row that is simply false. Apollo
+      // is PREPAID (FD-6), so what its reservation should consume is the volume that may
+      // become a usable lead: exactly the reasoning HOUSE-009 already applied to `settleBatch`,
+      // now applied to the half of the reconcile that runs before it.
+      const consumedFromGrant = sourcingProvider === 'pdl' ? contacts.length : preSpend.admissible.length
+      const returnedCount = Math.min(consumedFromGrant, grantedSize)
       const unusedGrant = audience === 'house' ? 0 : grantedSize - returnedCount
 
       // ── PROGRAMME RESERVE → USED, AND RELEASE THE REST (BUILD-002) ──────────────────
@@ -2039,6 +2108,21 @@ export async function runIcpJob(
       }
 
       for (const contact of contacts) {
+        // ── 🛑 ⚑ 18 Sep (J5-C5) — REFUSED BY THE CLIENT'S OWN CRITERIA, BEFORE THE SLOT ────
+        //
+        // 🛑 FIRST IN THE LOOP, AND THAT POSITION IS THE ENTIRE ITEM. `pdlKept` is the meter
+        // that consumes `grantedSize`, so anything placed after the cap below has already
+        // spent the slot it was supposed to save. Every one of these would have been inserted,
+        // scored and then set aside by `applyStructuralGate` — this refuses them where the
+        // pool path has always refused them: before they cost anything.
+        //
+        // ⚠️ THE IDENTITIES ARE ALREADY REMEMBERED. `rememberAcquiredIdentities` ran above, on
+        // the WHOLE page, so R67 is satisfied before this drops anybody — we never forget a
+        // record we own merely because this client cannot use it.
+        if (refusedPreSpend.has(contact)) {
+          skipped++; refusedBeforeSpend++; continue
+        }
+
         // Cap PDL insertions at the GRANTED budget (#445) — never keep more than we
         // pre-funded. grantedSize ≤ pdlRemainder ≤ effectiveCap, so this binds. (Counts
         // only PDL keeps, NOT pool serves, so the pool never eats the PDL budget.)
@@ -2789,7 +2873,7 @@ export async function runIcpJob(
     ? 'failed'
     : deriveRunStatus(!!clientSettings?.is_demo, clientUsable, false, audienceExhausted, trusted)
   if (gatesAteEverything) {
-    console.log(`[icp] icp ${icpId} — search completed and returned ${providerContactsReturned} contact(s); K.I.N.D removed every one (${removedByGeoGate} geography unknown/non-matching · ${removedBySuppression} suppression/opt-out/DNC · ${removedByDedupe} already owned · ${setAsideCount} set aside by the structural gate · rest insert/cap). Neutral review state; targeting NOT blamed.`)
+    console.log(`[icp] icp ${icpId} — search completed and returned ${providerContactsReturned} contact(s); K.I.N.D removed every one (${removedByGeoGate} geography unknown/non-matching · ${refusedBeforeSpend} refused by the client's own hard criteria before a slot was spent · ${removedBySuppression} suppression/opt-out/DNC · ${removedByDedupe} already owned · ${setAsideCount} set aside by the structural gate · rest insert/cap). Neutral review state; targeting NOT blamed.`)
     void sendFounderAlert('source_down', 'A completed search was emptied entirely by K.I.N.D-side gates', [
       `Client ${clientId}, ICP ${icpId}.`,
       `${providerContactsReturned} contact(s) matched the targeting; removed: ${removedByGeoGate} by the hard geography gate (country missing or not canonically in the client's targeting), ${removedBySuppression} by suppression/opt-out/DNC, ${removedByDedupe} already owned by this client, remainder by insert failure or cap.`,
@@ -2803,6 +2887,14 @@ export async function runIcpJob(
       // invariant promise (guarded by proof-outcome-matrix.test.ts) and holds in every
       // variant of this state. This line names the NEW variant the predicate can now see:
       // candidates that were inserted and then structurally refused.
+      // ⚑ 18 Sep (J5-C5) — APPENDED, NEVER SUBSTITUTED, for the same reason as the two lines
+      // around it. This names the variant that produces NO set-aside row to inspect: a
+      // candidate the client's own criteria refuse is now judged at the provider boundary, so
+      // its reserved record is released instead of spent — and the only record of it is this
+      // count and the `stage=pre_spend_refused` line, which names the criteria.
+      ...(refusedBeforeSpend > 0
+        ? [`${refusedBeforeSpend} of them were refused by the client's own hard criteria BEFORE a reserved record was spent (J5-C5) — never inserted, so there is no set_aside_reason row for these; the run log's stage=pre_spend_refused line names which criteria refused them. Their reserved records were RELEASED. If that count is most of the page, the targeting and the provider query disagree — investigate the query, not the client.`]
+        : []),
       ...(setAsideCount > 0
         ? [`${setAsideCount} of them were INSERTED and then set aside by the structural gate (a hard criterion answered "no", or could not be confirmed at all). The rows are still there, unsurfaced, each carrying its own set_aside_reason — Vida's Proof exception panel groups them. Correct the targeting or confirm the missing facts, then Retry Proof: the attempt was RELEASED, not spent.`]
         : []),

@@ -44,7 +44,18 @@
 // ═══════════════════════════════════════════════════════════════════════════════════════
 
 import { canonicalLaunchCountry } from '@kind/shared'
-import { bandIndex } from './lead-feedback'
+import { bandIndex, headcountBandIndex } from './lead-feedback'
+
+/**
+ * A CANDIDATE's size band, from either spelling of the same fact: a ladder label (portal,
+ * `lead_pool` rows written from one) or a raw headcount (`String(num_employees)`, which is
+ * what `runIcpJob` writes into `leads` and `lead_pool` for every provider-sourced record).
+ * ⚑ 18 Sep (J5-C5) — see `headcountBandIndex`'s note for the measured defect this closes.
+ */
+function candidateBandIndex(value: string | null): number {
+  const label = bandIndex(value)
+  return label >= 0 ? label : headcountBandIndex(value)
+}
 
 /** One criterion's answer. `unknown` means the DATA is absent — never "we could not decide". */
 export type HardVerdict = 'yes' | 'no' | 'unknown'
@@ -201,7 +212,13 @@ function sizeVerdict(icp: FitIcp, c: FitCandidate): HardVerdict {
   if (required.length === 0) return 'yes'
   const value = clean(c.company_size)
   if (!value) return 'unknown'
-  const have = bandIndex(c.company_size ?? null)
+  // ⛓️ 18 Sep (J5-C5) — A LABEL *OR* A RAW HEADCOUNT. `lead_pool` and the portal store a
+  // ladder label; `runIcpJob` writes `String(num_employees)` into both `leads` and
+  // `lead_pool`, so every provider-sourced candidate reached here as an unreadable value and
+  // this criterion answered `unknown` for a 4,000-person company against an 11–50 target. One
+  // ladder, two spellings of the same fact. The ICP side stays label-only: `company_sizes` is
+  // written by the portal and a headcount there would be a different defect.
+  const have = candidateBandIndex(c.company_size ?? null)
   if (have < 0) return 'unknown'
   const wanted = required.map(r => bandIndex(r)).filter(i => i >= 0)
   if (wanted.length === 0) return 'unknown'

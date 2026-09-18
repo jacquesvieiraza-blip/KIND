@@ -162,12 +162,24 @@ describe('② the derivation, state by state', () => {
     expect(at({ programme: prog({ status: 'COMPLETED' }) }).state).toBe('completion')
   })
 
-  it('🛑 CANCELLED keeps its truthful stage and is NEVER a task', () => {
+  it('🛑 CANCELLED is NEVER a task, and its step is `completion`', () => {
     // There is nothing to press on a cancelled programme, so a row in Needs you could never
-    // clear. It keeps the stage it reached, and says it is on hold.
+    // clear. It says it is on hold, and it is never a task.
+    //
+    // ⛓️ AMENDED 18 Sep (XC-1) · THE STAGE MOVED — `review` → `completion`.
+    // WHAT THIS REPLACED: ~~`expect(v.stage).toBe('review')`~~, which came from
+    // `verdict('blocked', stageOfProgress(p, f.sends), null)` — "keep the stage it reached".
+    // XC-1's GREEN requires Milla and Vida to agree per step, and the agreement matrix in
+    // `xc1-one-lifecycle-derivation.test.ts` found that they did not for exactly this case:
+    //     Vida  `recommendation` → mvp1VidaStage → "Prepare"  = step 3
+    //     Milla `Completion`     → mvp1Milla…    → "Complete" = step 6
+    // One cancelled account, described to the operator as step 3 and to the client as step 6.
+    // `millaStage` has always answered `Completion` for CANCELLED; Vida is the side that was
+    // wrong, so Vida is the side that moved. `state: 'blocked'` and `needsYou: false` — the
+    // two properties this test was written to protect — are unchanged and still asserted.
     const v = at({ programme: prog({ status: 'CANCELLED', approved: true, secondAuthorised: true, live: true }), sends: 5 })
     expect(v.state).toBe('blocked')
-    expect(v.stage).toBe('review')
+    expect(v.stage).toBe('completion')
     expect(v.needsYou).toBe(false)
   })
 })

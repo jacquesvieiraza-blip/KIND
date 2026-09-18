@@ -173,6 +173,18 @@ vi.mock('@kind/db', () => ({
 vi.mock('../middleware/auth', () => ({
   requireAuth: (_req: unknown, _res: unknown, next: () => void) => next(),
 }))
+// ⚠️ THE RUN IS STUBBED, AND THAT IS THE BOUNDARY, NOT A CONVENIENCE. `promoteConfirmedBrief`
+// owns the CLAIM (a row, written before the response) and HANDS OFF the RUN (a provider call,
+// fire-and-forget). Letting the real `launchProofRun` execute here would make this file a test
+// of the sourcing engine — and, because it is deliberately unawaited, its dynamic import of
+// `routes/icps` → `lib/apollo` resolved AFTER vitest tore the environment down, which surfaced
+// as three EnvironmentTeardownErrors in the full run. So the stub RECORDS the hand-off instead:
+// the claim is still asserted from real state above, and `launched` proves the run was started
+// with the ids promotion created. What the run then does is `j5c1-proof-owner.test.ts`'s job.
+const launched: Array<Record<string, unknown>> = []
+vi.mock('../lib/proof-run-launch', () => ({
+  launchProofRun: (input: Record<string, unknown>) => { launched.push(input) },
+}))
 
 /** The eleven canonical facts, complete — the only state from which confirm may proceed. */
 const ELEVEN = {
@@ -215,6 +227,7 @@ beforeEach(() => {
   state.proof_claims = []; state.audit = []
   state.partners = []; state.partner_referrals = []; state.subscriptions = []
   state.unreadable = null
+  launched.length = 0
   vi.resetModules()
 })
 
@@ -239,6 +252,12 @@ describe('J4-C1 · one confirm produces all four artifacts, or none', () => {
     const d = (r.payload.data ?? {}) as Row
     expect(d.client_id, 'the route did not return the client id it created').toBeTruthy()
     expect(d.icp_id, 'the route did not return the icp id it created').toBeTruthy()
+
+    // 🛑 AND THE RUN WAS HANDED OFF — with the ids promotion itself created, not ids a second
+    // request would have had to supply. A claim with no run is the desk spinning for ever.
+    expect(launched, 'the Proof claim was made but no run was ever started').toHaveLength(1)
+    expect(launched[0].clientId).toBe(d.client_id)
+    expect(launched[0].icpId).toBe(d.icp_id)
   })
 
   it('🛑 F-DUP · a replayed confirm returns the WINNER\'s ids and creates nothing second', async () => {
@@ -254,6 +273,9 @@ describe('J4-C1 · one confirm produces all four artifacts, or none', () => {
     // have seen the first batch of leads.
     const claims = state.proof_claims.length || Number(state.clients[0].proof_passes_done ?? 0)
     expect(claims, 'a SECOND Proof pass was claimed by a double click').toBe(1)
+    // The run follows the claim, so a refused claim must not start a second search either —
+    // two concurrent runs against one ICP is how the same leads get paid for twice.
+    expect(launched, 'a double click started a SECOND Proof run').toHaveLength(1)
 
     const a = (first.payload.data ?? {}) as Row
     const b = (again.payload.data ?? {}) as Row

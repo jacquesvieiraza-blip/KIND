@@ -1652,7 +1652,10 @@ operatorRouter.get('/alerts', async (_req: Request, res: Response) => {
   try {
     const since = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString()
     const [clients, icps, camps, replies] = await Promise.all([
-      db.from('clients').select('id, company_name, created_at, is_demo').order('created_at', { ascending: false }).limit(200),
+      // ⛓️ 18 Sep (J5-C3 · PV 07 · R117) — `commercial_model` RIDES THIS QUERY. Two of the
+      // four alerts below describe the RETIRED per-lead operator flow, and this fetch had no
+      // way to tell whether the client is on it. See the suppression note at the loop.
+      db.from('clients').select('id, company_name, created_at, is_demo, commercial_model').order('created_at', { ascending: false }).limit(200),
       // NOT date-filtered on purpose. "ICP approved, no campaign — they can't be worked" is
       // the highest-value alert here, and a 14-day window would go silent for exactly the
       // clients it matters most for: the ones onboarded a while ago and still not working.
@@ -1702,6 +1705,48 @@ operatorRouter.get('/alerts', async (_req: Request, res: Response) => {
       replyByClient.set(k, (replyByClient.get(k) ?? 0) + 1)
     }
 
+    // ── 🛑 ⚑ 18 Sep (J5-C3 · PV 07 · R117) — WHO IS ON THE PROGRAMME MODEL ──────────────
+    //
+    // R117: **ONE DERIVATION, FIVE SURFACES** — *"five copies of 'where is this client' is
+    // five chances to disagree"* — and **NORMAL IS SILENT**: *"NORMAL HEALTHY AUTOMATION MUST
+    // NOT APPEAR IN NEEDS YOU. Do not invent fake urgency."*
+    //
+    // 🛑 THIS BELL IS A SIXTH SURFACE AND IT DERIVES NOTHING. Two of the four alerts below are
+    // sentences from the retired per-lead flow — an operator who approves a client's first ICP
+    // and then builds them a campaign. Under the programme model neither step exists:
+    // promotion is server-owned (J4-C1), Proof starts itself (J5-C1) and preparation runs
+    // automatically (XC-6). So a brand-new programme client — healthy, automatic, nothing owed
+    // by anybody — rang this bell at HIGH severity on their signup day and kept ringing it
+    // until somebody hand-built a `figsy_campaigns` row to clear it.
+    //
+    // ⚠️ THE SAME TWO-PART QUESTION THE WORKLIST ALREADY ASKS, and for the same reason:
+    // membership alone misses a declared client whose programme is not created yet, and the
+    // column alone misses every programme created before it was written.
+    //
+    // ⚠️ FAIL-SOFT, AND THE DIRECTION IS DELIBERATE. A failed membership read leaves the
+    // DECLARED column still answering, so a client we KNOW is on a programme is still
+    // suppressed, and every other client keeps exactly today's behaviour. The opposite
+    // direction — suppressing on a failed read — would silently empty an operator's bell.
+    const programmeClients = new Set<string>()
+    for (const c of (clients.data ?? []) as Record<string, unknown>[]) {
+      if (c.commercial_model === 'programme') programmeClients.add(c.id as string)
+    }
+    try {
+      const ids = ((clients.data ?? []) as Record<string, unknown>[]).map(c => c.id as string)
+      if (ids.length > 0) {
+        const { data: progRows, error: progErr } = await db.from('programmes')
+          .select('client_id').in('client_id', ids)
+        if (progErr) {
+          console.error(`[operator/alerts] programme membership unreadable — only DECLARED programme clients are suppressed: ${progErr.message}`)
+        }
+        for (const r of ((progRows ?? []) as { client_id: string | null }[])) {
+          if (r.client_id) programmeClients.add(r.client_id)
+        }
+      }
+    } catch (err) {
+      console.error('[operator/alerts] programme membership unreadable — only DECLARED programme clients are suppressed:', err)
+    }
+
     const out: {
       client_id: string; company_name: string | null; kind: string; label: string
       severity: 'high' | 'normal'
@@ -1722,7 +1767,16 @@ operatorRouter.get('/alerts', async (_req: Request, res: Response) => {
       const hasActive = myCamps.some(x => x.status === 'active')
       const newish = (c.created_at as string) >= since
 
-      if (newish && myIcps.length > 0 && !hasActive) {
+      // 🛑 ⚑ 18 Sep (J5-C3) — BOTH OF THESE ARE THE RETIRED MODEL'S SENTENCES, and they are
+      // the only two here that are. "Waiting on us" and "they can't be worked" both name an
+      // operator step the programme model does not have; see the note above the set. The two
+      // below — `icp_revised` and `replies` — are facts about any client under any commercial
+      // model, and a reply waiting on a person is precisely what R117 says Needs-you is FOR,
+      // so silencing those would be the opposite defect.
+      if (programmeClients.has(id)) {
+        // Nothing. Their state is derived once, by `lifecycleBoard`, and rendered on the five
+        // surfaces R117 names.
+      } else if (newish && myIcps.length > 0 && !hasActive) {
         out.push({ client_id: id, company_name: name, kind: 'new_client_icp', label: 'New client — first ICP is waiting on us', severity: 'high' })
       } else if (!hasActive && myCamps.length === 0 && myIcps.length > 0) {
         out.push({ client_id: id, company_name: name, kind: 'no_campaign', label: 'ICP approved, no campaign yet — they can’t be worked', severity: 'high' })

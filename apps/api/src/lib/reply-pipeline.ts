@@ -273,7 +273,38 @@ export async function processInboundReply(
   //
   // Found by reading the handler end to end after the founder pointed out that grepping
   // off the last action never shows what is missing (P10).
-  const { classification, reasoning } = await classifyReply(inbound.body)
+  // ── 🛑 ⚑ 18 Sep (J22-C1 · R132) — THE REPLY SURVIVES A CLASSIFIER THAT DOES NOT ────────
+  //
+  // ⛓️ WHAT STOOD HERE: ~~`const { classification, reasoning } = await classifyReply(body)`~~,
+  // unguarded. `classifyReply` handles a bad PARSE (it falls back to `other`) and nothing at
+  // all handles the CALL: a 429, a 5xx, a timeout or a missing key throws straight out of this
+  // function.
+  //
+  // 🛑 AND THAT THROW LOST THE REPLY, PERMANENTLY. The webhook's dedup claim is taken BEFORE
+  // processing — that is what stops a Svix retry re-running a hot reply — so the 500 this
+  // throw produces is answered by a redelivery that `isDuplicateWebhookEvent` then skips. The
+  // provider believes it delivered, we believe we have seen it, and the prospect's answer
+  // exists nowhere. A model being busy is not a reason to lose a customer's reply.
+  //
+  // ⚠️ UNCLASSIFIED IS `null`, NOT `other`. `other` is a real classification — a bounce, spam,
+  // something unclear — and a human reading "other" is told we looked and decided. `null` says
+  // we did not manage to look, which is the truth, and the UI already renders it as "New
+  // reply" rather than inventing a verdict.
+  //
+  // ⚠️ THE FAILURE IS NEVER DEDUPED. Every unclassified reply is a different person waiting on
+  // an answer, so each one needs its own line on somebody's list — the same reasoning that
+  // makes `hot_reply` and `support_escalation` never-deduped classes.
+  let classification: Awaited<ReturnType<typeof classifyReply>>['classification'] | null = null
+  let reasoning = ''
+  let classifierFailure: string | null = null
+  try {
+    const verdict = await classifyReply(inbound.body)
+    classification = verdict.classification
+    reasoning = verdict.reasoning
+  } catch (err) {
+    classifierFailure = err instanceof Error ? err.message : String(err)
+    console.error(`[figsy/replies/inbound] the classifier failed (${classifierFailure}) — the reply is stored UNCLASSIFIED and a human is asked to read it. Nothing was lost.`)
+  }
 
   // ── 🛑 ⚑ 16 Sep (GAP 3) — THE LAST LINE OF DEFENCE, AND IT IS DELIBERATELY REDUNDANT ──
   //
@@ -339,6 +370,28 @@ export async function processInboundReply(
     processed_at:                new Date().toISOString(),
     received_at:                 new Date().toISOString(),
   }).select('id').single()
+
+  // ── ⚑ 18 Sep (J22-C1 · R132) — AN UNCLASSIFIED REPLY IS SOMEBODY'S JOB, NOW ────────────
+  //
+  // 🛑 RAISED AFTER THE WRITE, DELIBERATELY. The task names the stored row, so the person who
+  // picks it up opens the reply rather than being told that one exists somewhere. The reply is
+  // already durable by this line — which is the whole point of the item.
+  //
+  // ⚠️ AND NOT DEDUPED. Every unclassified reply is a different person waiting on an answer.
+  if (classifierFailure) {
+    const replyId = (reply as { id?: string } | null)?.id ?? null
+    void sendFounderAlert('support_escalation',
+      'A reply could not be classified — it is stored and needs a human read', [
+        `Client: ${lead.client_id}`,
+        `From: ${inbound.fromEmail}`,
+        `Subject: ${inbound.subject ?? '(none)'}`,
+        replyId
+          ? `Stored as figsy_replies ${replyId}, with no classification — open it in the inbox and answer it by hand.`
+          : 'The reply was processed but its stored id could not be read back — find it by the sender address in the inbox.',
+        `The classifier itself failed: ${classifierFailure}. Nothing was lost and nothing was guessed.`,
+      ], { clientId: lead.client_id, subjectKind: 'reply', subjectId: replyId ?? inbound.fromEmail },
+    ).catch(() => {})
+  }
 
   // THE DATA FLOOR (#17b) — append-only raw outcome log. Fire-and-forget.
   void logOutcomeEvent({

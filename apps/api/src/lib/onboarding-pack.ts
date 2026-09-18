@@ -239,3 +239,38 @@ export function sourcingTarget(
   const pref = Number(leadsPerRun)
   return Number.isFinite(pref) && pref > 0 ? Math.floor(pref) : 20
 }
+
+// ══════════════════════════════════════════════════════════════════════════════════════════
+// J5-C7 (LR 21) · READING THE FUNDING STATE, WITH NO WAY TO DROP THE ERROR
+//
+// `fundedVia` above is PURE: give it rows, it tells you how the client is funded. The defect
+// was never in it — it was in the three callers that fetched those rows like this:
+//
+//     const { data: fundingRows } = await db.from('credit_transactions')…
+//     if (fundedVia(fundingRows ?? []) !== null) { …they are live… }
+//
+// The `error` was destructured away at all three (`routes/icps.ts` at the Proof route, the
+// `proofMode` branch, and `proofRefinementVerdict`). supabase-js answers a failed read with
+// `{ data: null, error }`, so one blip made the rows null, `fundedVia([])` answered "not
+// funded", and a client who may be live and paying had a free Proof pass spent on them.
+//
+// 🛑 SO THE FETCH LIVES HERE AND RETURNS A VERDICT THAT CANNOT BE MISREAD. There is no `data`
+// on the failure branch to accidentally use: an unreadable funding state is `ok: false`, and a
+// caller that ignores it gets a type error rather than a silent "not funded". Three call sites
+// that each had to remember the rule became one that enforces it.
+// ══════════════════════════════════════════════════════════════════════════════════════════
+export type FundingRead =
+  | { ok: true; funded: FundedVia }
+  | { ok: false; detail: string }
+
+export async function readFundingState(clientId: string): Promise<FundingRead> {
+  const { db } = await import('@kind/db')
+  try {
+    const { data, error } = await db.from('credit_transactions')
+      .select('type, reference').eq('client_id', clientId)
+    if (error) return { ok: false, detail: error.message ?? String(error) }
+    return { ok: true, funded: fundedVia((data ?? []) as Array<{ type?: unknown; reference?: unknown }>) }
+  } catch (e) {
+    return { ok: false, detail: e instanceof Error ? e.message : String(e) }
+  }
+}

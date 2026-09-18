@@ -88,7 +88,7 @@ import {
 import { adminKeyValid } from './admin'
 // Free proof (22 Aug) — reuses the EXISTING real/comp/never-funded distinction rather than
 // inventing a second notion of "has this account paid us".
-import { fundedVia } from '../lib/onboarding-pack'
+import { readFundingState } from '../lib/onboarding-pack'
 
 // PR-A — record ONE honest outcome row per ICP run so the client learns WHY a run
 // produced no leads (quota outage vs narrow ICP). Best-effort: a write failure here
@@ -1017,9 +1017,20 @@ export async function runIcpJob(
   // `onboarding-pack.ts` already draws this distinction, and #619 exists precisely
   // because a surface once read entitlement and printed "Paid $299".
   if (proofMode) {
-    const { data: fundingRows } = await db.from('credit_transactions')
-      .select('type, reference').eq('client_id', clientId)
-    if (fundedVia(fundingRows ?? []) !== null) {
+    // ⛓️ J5-C7 — same inversion as the Proof route, same fix. An unreadable funding state is
+    // NOT "unfunded": treated as `real` here would be wrong in the opposite direction, so the
+    // caller is given the failure and decides.
+    const fundingRead = await readFundingState(clientId)
+    if (!fundingRead.ok) {
+      // ⚠️ THE RUN FAILS, IT DOES NOT PROCEED. This is inside `runIcpJob`, so the honest exit
+      // is a terminal `failed` with no provider call — the pass comes back via
+      // `terminalForRunStatus`. Carrying on would source against an account we could not
+      // classify, which is the AR18 budget mixing this branch exists to prevent.
+      console.error(`[icp] PROOF MODE: funding state unreadable for client ${clientId} — refusing, nothing sourced:`, fundingRead.detail)
+      await recordRunOutcome(icpId, clientId, 'failed', effectiveCap, 0, 0)
+      return { inserted: 0, skipped: 0, relaxed: 'We could not check your account state, so nothing was sourced. Please try again shortly.', terminal: terminalForRunStatus('failed') }
+    }
+    if (fundingRead.funded !== null) {
       console.error(`[icp] PROOF MODE REFUSED for client ${clientId} — the account is funded. Proof authority is for prospects only; nothing was sourced.`)
       await recordRunOutcome(icpId, clientId, 'quota_exhausted', effectiveCap, 0, 0)
       // REFUSED BEFORE ANY PROVIDER CALL — the pass must come back (terminalForRunStatus).
@@ -5752,7 +5763,11 @@ function stateChanged(res: Response): void {
  * ⚠️ NO REQUEST FIELD IS CONSULTED FOR ANY OF THE THREE. `icpSchema` strips unknown keys, so
  * a body carrying `pending_targeting: null` cannot make a waiting revision look absent.
  */
-type ProofRefinementVerdict = 'normal' | 'apply' | 'conflict' | 'state_changed'
+// ⛓️ J5-C7 — `'unreadable'` ADDED. Before it, an unreadable funding read fell through to
+// `'normal'`, which is this function's "carry on as usual" answer — so a client we could not
+// classify quietly got the ordinary path. "We could not tell" needed somewhere to go that is
+// not a decision.
+type ProofRefinementVerdict = 'normal' | 'apply' | 'conflict' | 'state_changed' | 'unreadable'
 
 async function proofRefinementVerdict(
   clientId: string,
@@ -5761,9 +5776,15 @@ async function proofRefinementVerdict(
 ): Promise<ProofRefinementVerdict> {
   if ((rawBody as { proof_refinement?: unknown } | null)?.proof_refinement !== true) return 'normal'
 
-  const { data: fundingRows } = await db.from('credit_transactions')
-    .select('type, reference').eq('client_id', clientId)
-  if (fundedVia(fundingRows ?? []) !== null) return 'normal'
+  // ⛓️ J5-C7 — an unreadable funding state must not silently become 'normal'. `'normal'` is
+  // this function's "carry on as usual" answer, so a dropped error here quietly re-enabled the
+  // ordinary path for a client we could not classify.
+  const fundingRead = await readFundingState(clientId)
+  if (!fundingRead.ok) {
+    console.error(`[icps] proofRefinementVerdict: funding unreadable for ${clientId} — refusing to classify:`, fundingRead.detail)
+    return 'unreadable'
+  }
+  if (fundingRead.funded !== null) return 'normal'
 
   const { data: client } = await db.from('clients')
     .select('proof_passes_done').eq('id', clientId).maybeSingle()
@@ -6204,6 +6225,17 @@ icpRouter.post('/revise', async (req: AuthRequest, res) => {
     // revision is untouched, and no proof pass can be claimed because the desk never gets a
     // success to act on. That is the founder's ruling for this collision — stop, and a human
     // resolves it — not "pick one of the two revisions and lose the other".
+    // ⛓️ J5-C7 — `'unreadable'` REFUSES, and refuses BEFORE the conflict branch. It is not a
+    // verdict about the client, it is the absence of one: we could not read whether they are
+    // funded, so we must not classify their refinement at all. Retryable, and nothing written.
+    if (verdict === 'unreadable') {
+      res.status(503).json({
+        success: false, retryable: true,
+        error: 'We could not check your account state just yet, so nothing was changed. Please try again shortly.',
+      })
+      return
+    }
+
     if (verdict === 'conflict') {
       res.status(409).json({
         success: false,
@@ -6651,9 +6683,20 @@ icpRouter.post('/:id/proof', async (req: AuthRequest, res) => {
       }
     }
 
-    const { data: fundingRows } = await db.from('credit_transactions')
-      .select('type, reference').eq('client_id', clientId)
-    if (fundedVia(fundingRows ?? []) !== null) {
+    // ── 🛑 J5-C7 (LR 21) · "WE COULD NOT READ IT" IS NOT "IT IS NOT THERE" ──────────────
+    //
+    // ⛓️ ~~`const { data: fundingRows } = await db.from('credit_transactions')…`~~ — the error
+    // was destructured away, so a blip answered "not funded" and this route walked on to CLAIM
+    // A FREE PROOF PASS for a client who may be live and paying. `readFundingState` has no
+    // `data` on its failure branch, so the mistake cannot be made again here or at the two
+    // other sites that had it.
+    const funding = await readFundingState(clientId)
+    if (!funding.ok) {
+      console.error(`[icps/proof] funding state unreadable for client ${clientId} — REFUSING, nothing started or spent:`, funding.detail)
+      res.status(503).json({ success: false, retryable: true, error: PROOF_PREPARING_COPY })
+      return
+    }
+    if (funding.funded !== null) {
       res.status(403).json({
         success: false,
         error: 'Your account is already live — your leads arrive through your campaign, not a proof batch.',

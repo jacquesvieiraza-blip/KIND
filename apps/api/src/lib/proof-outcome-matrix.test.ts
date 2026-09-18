@@ -594,7 +594,12 @@ describe('F · the complete status space — no value exists as an untested assu
     // `quota_exhausted` or `failed`, NEVER `no_match` — raises a Needs-you task, and then
     // re-throws so the crash boundary still owns the journey outcome. The status space is
     // unchanged; only the number of places that reach it moved.
-    expect((src.match(/recordRunOutcome\(/g) ?? []).length).toBe(7)  // 1 def + 6 producers
+    // ⛓️ 7 → 8 on 18 Sep (J5-C7): +1 PRODUCER, the UNREADABLE-FUNDING refusal in the proofMode
+    // branch of `runIcpJob`. The funding read there dropped its error, so an unreadable state
+    // was indistinguishable from "not funded" and the run proceeded. It now records `'failed'`
+    // — an enum value already covered below — and returns before any provider call. The status
+    // space is unchanged; only the number of places that reach it moved.
+    expect((src.match(/recordRunOutcome\(/g) ?? []).length).toBe(8)  // 1 def + 7 producers
     expect(src, 'the provider-failure producer must write the CLASSIFIED status, never no_match')
       .toContain("recordRunOutcome(icpId, clientId, verdict.runStatus, effectiveCap, pool.served, 0)")
     expect(src).toContain("recordRunOutcome(icpId, clientId, 'failed', effectiveCap, pool.served, inserted, 0, didWiden)")

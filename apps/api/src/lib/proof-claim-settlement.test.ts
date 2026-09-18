@@ -100,10 +100,17 @@ describe('every terminal exit of runIcpJob names its settlement', () => {
     .split('\n')
     .filter(l => /^\s{2,8}return \{/.test(l))
 
-  it('there are exactly four object-literal returns (the four terminal exits)', () => {
+  it('there are exactly five object-literal returns (the five terminal exits)', () => {
     // ① funded-account refusal · ② no-budget refusal · ③ structural gate · ④ the ordinary end.
-    // If this number moves, a new exit was added and the next assertion is what checks it.
-    expect(objectReturns.length).toBe(4)
+    // ⛓️ 4 → 5 on 18 Sep (J5-C7): +1 EXIT — ⑤ the UNREADABLE FUNDING refusal in the proofMode
+    // branch. That branch used to read `credit_transactions` with the error destructured away,
+    // so a blip answered "not funded" and the run sourced against an account it could not
+    // classify — mixing the two budgets AR18 rules separate. It now exits terminally with
+    // `failed` and no provider call, so the pass comes back through `terminalForRunStatus`.
+    // The status space is unchanged; only the number of places that reach it moved.
+    //
+    // If this number moves again, a new exit was added and the next assertion is what checks it.
+    expect(objectReturns.length).toBe(5)
   })
 
   it('🛑 EVERY ONE of them carries a `terminal:` decision', () => {

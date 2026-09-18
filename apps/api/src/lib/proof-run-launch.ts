@@ -75,8 +75,59 @@ export function launchProofRun(input: LaunchProofRunInput): void {
     const { runIcpJob, recordRunOutcome, PROOF_PASS_LEADS } = await import('../routes/icps')
     const { attemptLabel: attemptLabelFor } = await import('./proof-calibration')
 
+    // ── 🛑 J5-C1 (FD-0) · THE RUN GETS A SERVER OWNER BEFORE IT STARTS ─────────────────
+    //
+    // Fire-and-forget is right for the CLIENT's surface — it must never wait for a provider.
+    // Fire-and-forget with NO RECORD is what made this unownable: the run existed only as a
+    // promise inside one Node process, so a restart lost it, a hang was never overdue
+    // (nothing was ever due), two replicas both started, and a failure told nobody. FD-0
+    // requires the system to stay the primary owner of failed/stuck automatic Proof, and you
+    // cannot own what you never recorded.
+    //
+    // ⚠️ IT USES THE MACHINERY XC-6 ALREADY BUILT, and `'proof_run'` was already one of its
+    // declared kinds — the vocabulary existed and nothing was wired to it. The bound is stored
+    // ON the row by `requestAutomaticWork`, so a later deploy cannot retroactively make a late
+    // run look punctual, and `detectOverdueAutomaticWork` turns silence into an operator task.
+    //
+    // ⚠️ THE UNIQUE INDEX IS THE AUTHORITY FOR "ONE OWNER". Two replicas racing is the normal
+    // case, so the second is refused by the DATABASE (`alreadyLive`), never by a check here.
+    // A refused second owner ABANDONS this launch: the first replica owns the run.
+    //
+    // ⚠️ AND A MISSING TABLE DOES NOT STOP PROOF. If `automatic_work` has not been migrated
+    // yet the run proceeds unowned and says so — refusing to serve a client because our own
+    // observability table is absent would be the cure killing the patient.
+    const {
+      requestAutomaticWork, markAutomaticWorkStarted,
+      markAutomaticWorkCompleted, markAutomaticWorkFailed,
+    } = await import('./automatic-work')
+
+    const requested = await requestAutomaticWork({
+      kind: 'proof_run', subjectKind: 'icp', subjectId: icpId,
+      clientId, attempt: claimed, now: new Date().toISOString(),
+    })
+    if (requested.alreadyLive) {
+      console.warn(`[icps/proof] a Proof run for ICP ${icpId} is already owned and in flight — this launch is abandoned.`)
+      return
+    }
+    const workId = requested.workId ?? null
+    if (!workId) {
+      console.warn(`[icps/proof] this Proof run is UNOWNED (${requested.error ?? 'no work id'}) — it will not be detectable if it stalls.`)
+    }
+    if (workId) await markAutomaticWorkStarted(workId, { now: new Date().toISOString() })
+
     runIcpJob(icpId, clientId, userId, PROOF_PASS_LEADS, { proofPass: claimed, proofKind: batchKind })
       .then(async r => {
+        // ⚠️ `released` IS A FAILURE FOR OWNERSHIP EVEN THOUGH IT NEVER THREW. The structural
+        // gate records `failed` WITH LEADS INSERTED and simply returns, and `deriveRunStatus`
+        // returns `failed` when the search did not complete. Both leave the client with no
+        // Proof set, so both must leave a recovered-from state — not `completed`.
+        if (workId) {
+          if (r.terminal === 'released') {
+            await markAutomaticWorkFailed(workId, { reason: `the run returned "${r.terminal}" without delivering a set`, now: new Date().toISOString() })
+          } else {
+            await markAutomaticWorkCompleted(workId, { now: new Date().toISOString() })
+          }
+        }
         const settled = await settleProofClaim(claimId, r.terminal, r.terminal === 'released' ? 'run_failed' : undefined)
         if (!settled.settled) {
           // The claim stays OPEN. That is the fail-closed direction — nothing is granted — but
@@ -94,6 +145,14 @@ export function launchProofRun(input: LaunchProofRunInput): void {
       })
       .catch(async e => {
         console.error('[icps/proof] proof run failed:', e)
+        // J5-C1 — the crash boundary is where the owner learns it failed. The reason is
+        // required by the signature: FD-0's audited recovery has to say what it recovers FROM.
+        if (workId) {
+          await markAutomaticWorkFailed(workId, {
+            reason: e instanceof Error ? e.message : String(e),
+            now: new Date().toISOString(),
+          })
+        }
         // ⚠️ THE AUTHORITY COMES BACK FIRST. Provider and infrastructure failure must not
         // consume Proof authority (founder-locked), and this is the crash boundary.
         const settled = await settleProofClaim(claimId, 'released', 'run_threw')

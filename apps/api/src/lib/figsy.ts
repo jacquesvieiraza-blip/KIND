@@ -2075,15 +2075,39 @@ Return ONLY valid JSON:
  * per-lead inside autoEnrollLead, and suppression + opt-out are re-checked at send time.
  */
 export async function campaignReadyLeadIds(clientId: string): Promise<string[]> {
-  // Filter in JS — PostgREST boolean + or/not combinations are error-prone and
-  // were silently returning 0. Lead volumes per client are small enough for this.
+  // ── 🛑 ⚑ 18 Sep (J12-C3 · FD-5) — SENDABLE IS A FACT, NOT A FLAG ────────────────────
+  //
+  // ⛓️ WAS: `(l.apollo_consented === true || l.status === 'consent_given')`.
+  //
+  // 🛑 `apollo_consented` IS UNRELIABLE IN TWO INDEPENDENT WAYS, and both are written down in
+  // this repository already:
+  //
+  //   ① At INSERT it is `email_status === 'verified' || email_status === 'likely_to_engage'`,
+  //      under a comment saying exactly what that costs — *"`likely_to_engage` is Apollo's
+  //      PREDICTION that an address will engage, not a verification that it exists. This is
+  //      the one write that sets the flag on a guess."* So a guessed address was enrolled.
+  //   ② At REVEAL, `lead-delivery.ts` patches `apollo_consented: true` UNCONDITIONALLY,
+  //      whatever status came back — so the flag this read depended on is forced true on
+  //      every revealed lead, including the ones the reveal proved unverified.
+  //
+  // And nothing here ever asked whether the address was a BUSINESS address. FD-5:
+  // *"Verified business email required before send."*
+  //
+  // ⚠️ THE STATUS IS WHAT THE PROVIDER SAID; THE FLAG IS WHAT WE SET. `leads.email_status` is
+  // written by both writers that reveal an address, so the fact is derived from the row.
+  //
+  // ⚠️ AND CONSENT DOES NOT SUBSTITUTE FOR AN ADDRESS WE HAVE VERIFIED. `consent_given` is a
+  // statement about permission; it is not evidence that the mailbox exists, and sending to an
+  // address nobody verified bounces whatever the client agreed to. FD-5 says required, with
+  // no exception stated, so it is required of everyone. The legitimate-interest basis in the
+  // note above is unchanged — what changed is the evidence it rests on.
   const { data } = await db.from('leads')
-    .select('id, apollo_consented, status')
+    .select('id, email, email_status, status')
     .eq('client_id', clientId)
+  const { isSendable } = await import('./sendable')
   return (data ?? [])
-    .filter((l: { apollo_consented?: boolean | null; status?: string | null }) =>
-      (l.apollo_consented === true || l.status === 'consent_given') &&
-      l.status !== 'opted_out' && l.status !== 'rejected')
+    .filter((l: { email?: string | null; email_status?: string | null; status?: string | null }) =>
+      isSendable(l) && l.status !== 'opted_out' && l.status !== 'rejected')
     .map((l: { id: string }) => l.id)
 }
 

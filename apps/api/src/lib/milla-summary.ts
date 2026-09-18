@@ -21,7 +21,15 @@ import { PAID_TX_TYPES, PACK_PRICE_USD, LEAD_PRICE_USD, packState } from './onbo
 
 export interface MillaSummaryData {
   wallet_balance_usd: number
-  has_funded: boolean
+  /**
+   * ⚑ 18 Sep (J24-C1) — `null` WHEN THE FUNDING HISTORY COULD NOT BE READ.
+   *
+   * 🛑 THIS ONE GATES A DOOR. It was `(purchases.count ?? 0) > 0`, so an unreadable
+   * `credit_transactions` became "this client has never paid" — which locks a paying client
+   * out of their own product on a transient read error. `null` is "we do not know", and a
+   * caller that cannot act on `null` must refuse rather than assume the worse answer.
+   */
+  has_funded: boolean | null
   /** ⚑ 24 Aug — HOW MANY FREE-PROOF BATCHES THIS PROSPECT HAS ALREADY BEEN SHOWN.
    *  Read straight from `clients.proof_passes_done`, the SAME column
    *  `try_claim_proof_pass` increments — there is no second counter, and this is a
@@ -53,12 +61,29 @@ export interface MillaSummaryData {
    */
   proof_started_at: string | null
   pack: ReturnType<typeof packState>
-  leads_awaiting: number
-  meetings_booked: number
-  leads_approved_total: number
-  replies_total: number
-  meetings_total: number
-  spend_usd: number
+  /**
+   * ── 🛑 ⚑ 18 Sep (J24-C1) — EVERY COUNT BELOW IS `number | null`, AND `null` MEANS
+   * "WE COULD NOT COUNT IT" ─────────────────────────────────────────────────────────────
+   *
+   * WHAT THIS REPLACED: ~~`leads_awaiting: number` … `meetings_total: number`~~, produced by
+   * `awaiting.count ?? 0` / `meetings?.booked ?? 0`. Both ends of this chain were already
+   * right and this layer threw the answer away: `meetingCounts` returns `null` on an
+   * unreadable read (guarded since `meeting-truth.test.ts`: *"'We could not read the table'
+   * and 'there were no meetings' are opposite facts"*) and `ValueCard` renders `null` as an
+   * em dash (*"`null` IS STILL A DASH"*). The `?? 0` in between converted the careful answer
+   * into the most misleading number available, on a client's own dashboard.
+   *
+   * ⚠️ ZERO IS A REAL AND COMMON ANSWER, WHICH IS WHY IT CANNOT BE THE ERROR VALUE. A new
+   * client legitimately has 0 meetings. The number carries no warning of its own, and it is
+   * the one a client reads as "this is not working".
+   */
+  leads_awaiting: number | null
+  meetings_booked: number | null
+  leads_approved_total: number | null
+  replies_total: number | null
+  meetings_total: number | null
+  /** ⚑ 18 Sep (J24-C1) — `null` when the approval count it is derived from is unreadable. */
+  spend_usd: number | null
   active_campaign: string | null
   campaign_name: string | null
   campaign_status: string | null
@@ -119,7 +144,13 @@ export interface MillaSummaryData {
    * price, no wallet and no queue. It is derived from the SAME bounded count the cards use,
    * so the sentence she speaks and the screen beside her cannot disagree.
    */
-  calibration_set_on_desk: boolean
+  /**
+   * ⛓️ 18 Sep (J24-C1) — `boolean | null`. It is DERIVED from `leads_awaiting`, so it
+   * inherited that count's fabricated zero: an unreadable desk became `false`, and `false`
+   * here is a sentence Milla says out loud — *"there is nothing on your desk"* — about a
+   * client whose desk we simply could not read.
+   */
+  calibration_set_on_desk: boolean | null
 }
 
 /**
@@ -296,9 +327,12 @@ export async function buildMillaSummaryData(clientId: string): Promise<MillaSumm
   // CHOICE. Two conditional narrowings on one supabase-js builder inside an eleven-element
   // tuple makes TypeScript give up ("type instantiation is excessively deep"). The annotation
   // caps it at the one shape this value actually has. The QUERY is unchanged.
-  const awaitingQuery: PromiseLike<{ count: number | null }> = (() => {
+  // ⛓️ 18 Sep (J24-C1) — `error` JOINS THE ANNOTATION. It was `{ count: number | null }`, so
+  // the one thing that distinguishes "nothing is waiting" from "we could not look" was not
+  // even in the type, and `awaiting.count ?? 0` could not have done better.
+  const awaitingQuery: PromiseLike<{ count: number | null; error?: { message?: string } | null }> = (() => {
     /** The two chainable methods this one query needs, and nothing else — see above. */
-    type CountQuery = PromiseLike<{ count: number | null }> & {
+    type CountQuery = PromiseLike<{ count: number | null; error?: { message?: string } | null }> & {
       eq(column: string, value: unknown): CountQuery
       not(column: string, operator: string, value: unknown): CountQuery
     }
@@ -393,6 +427,11 @@ export async function buildMillaSummaryData(clientId: string): Promise<MillaSumm
   const { count: approvedEver } = await db.from('leads').select('id', { count: 'exact', head: true })
     .eq('client_id', clientId).not('revealed_at', 'is', null)
   const pack = packState((purchases.count ?? 0) > 0, approvedEver ?? 0)
+
+  // ⚑ 18 Sep (J24-C1) — ONE DERIVATION FOR THE DESK COUNT, because two things read it: the
+  // number on the card and the boolean Milla speaks from. Computing it twice is how they came
+  // to disagree about whether an unreadable desk is an empty one.
+  const awaitingCount: number | null = awaiting.error ? null : awaiting.count ?? 0
 
   const icpRows = (icps.data ?? []) as Array<Record<string, unknown>>
   const arr = (v: unknown): string[] => Array.isArray(v) ? (v as string[]).filter(Boolean) : []
@@ -508,17 +547,29 @@ export async function buildMillaSummaryData(clientId: string): Promise<MillaSumm
     })(),
     // NO FREEBIES — true once the client has made their first purchase. The Milla
     // dashboard gates on this: no purchase → paywall to Billing.
-    has_funded: (purchases.count ?? 0) > 0,
+    has_funded: purchases.error ? null : (purchases.count ?? 0) > 0,
     // THE PACK — included approvals counted rather than faked into the wallet.
     pack,
-    leads_awaiting:  awaiting.count ?? 0,
+    leads_awaiting:  awaitingCount,
     // ⚑ 3 Sep — DERIVED FROM THE SAME BOUNDED COUNT THE CARDS USE, so what Milla says about
     // the desk and what the desk shows cannot disagree. See the field's note above for why it
     // is a boolean rather than the number.
-    calibration_set_on_desk: (awaiting.count ?? 0) > 0,
+    calibration_set_on_desk: awaitingCount === null ? null : awaitingCount > 0,
     // ⚠️ null means the meetings read FAILED. Reporting 0 would tell a client with three
     // meetings that they had none — Milla speaking a false number in her own voice.
-    meetings_booked: meetings?.booked ?? 0,
+    // ── 🛑 ⚑ 18 Sep (J24-C1) — "NOT COUNTED" AND "COULD NOT BE COUNTED" ARE DIFFERENT, AND
+    // COLLAPSING THEM WAS A DEFECT IN THE FIRST CUT OF THIS ITEM ────────────────────────
+    //
+    // The read above is `outreach ? meetingCounts(…) : Promise.resolve(null)`. When a client
+    // has no CURRENT outreach the count is deliberately not taken, and the honest answer is a
+    // genuine **0** — nothing has been sent under this scope, so nothing has been booked under
+    // it. That is the whole point of the attribution boundary: a proof-scoped client must not
+    // read a retired desk's meeting as a current result.
+    //
+    // ⚠️ SO `null` ONLY MEANS UNREADABLE INSIDE THE BRANCH THAT ACTUALLY ASKED. Writing
+    // `meetings?.booked ?? null` unconditionally turned "we correctly did not ask" into "we
+    // could not read it", which would have put an em dash where a client should see 0.
+    meetings_booked: outreach ? (meetings?.booked ?? null) : 0,
     // Real all-time totals + true $ spend.
     //
     // ⚠️ NOT `approved × $4`. The first PACK_LEADS approvals are INSIDE the pack, so a
@@ -526,12 +577,19 @@ export async function buildMillaSummaryData(clientId: string): Promise<MillaSumm
     // payment — a 4× overstatement, on the client's own Reports page. Same bug was
     // fixed on the Vida side and missed here, which is the worse of the two: they read
     // this one. Spend = the pack they bought + $4 for each approval BEYOND it.
-    leads_approved_total: approvedTotal.count ?? 0,
-    replies_total:        repliesTotal.count ?? 0,
-    meetings_total:       meetingsTotal?.booked ?? 0,
-    spend_usd:            pack.active
-      ? PACK_PRICE_USD + Math.max(0, (approvedTotal.count ?? 0) - pack.included) * LEAD_PRICE_USD
-      : (approvedTotal.count ?? 0) * LEAD_PRICE_USD,
+    leads_approved_total: approvedTotal.error ? null : approvedTotal.count ?? 0,
+    replies_total:        repliesTotal.error ? null : repliesTotal.count ?? 0,
+    meetings_total:       meetingsTotal?.booked ?? null,
+    // ⛓️ 18 Sep (J24-C1) — `null` WHEN THE APPROVAL COUNT IS UNREADABLE. This is a MONEY
+    // SENTENCE the client reads on their own Reports page, and it was derived from
+    // `approvedTotal.count ?? 0` — so an unreadable count produced a confident "$299.00
+    // spent", or "$0.00", with nothing to say it was a guess. Founder rule 7 governs where
+    // the constants come from; this governs whether we may state the figure at all.
+    spend_usd:            approvedTotal.error
+      ? null
+      : pack.active
+        ? PACK_PRICE_USD + Math.max(0, (approvedTotal.count ?? 0) - pack.included) * LEAD_PRICE_USD
+        : (approvedTotal.count ?? 0) * LEAD_PRICE_USD,
     // active_campaign stays "the name of a LIVE campaign" so existing readers are
     // unchanged; campaign_status is the honest one.
     active_campaign: (campaign.data as { status?: string } | null)?.status === 'active'

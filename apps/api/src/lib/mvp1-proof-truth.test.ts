@@ -224,7 +224,15 @@ describe('Ⓓ2 · the desk\'s "zero" decision', () => {
 
   it('and the server still ships that bounded count, gated exactly as the cards are', () => {
     const summary = codeOnly(readFileSync(join(REPO, 'apps/api/src/lib/milla-summary.ts'), 'utf8'))
-    expect(summary).toMatch(/leads_awaiting:\s*awaiting\.count/)
+    // ⛓️ RE-POINTED 18 Sep (J24-C1). WHAT THIS REPLACED: ~~`/leads_awaiting:\s*awaiting\.count/`~~
+    // — the field was written straight from `awaiting.count ?? 0`, which reported an unreadable
+    // desk as an empty one. It now goes through `awaitingCount`, ONE derivation shared with
+    // `calibration_set_on_desk` (the boolean Milla speaks from), so the number on the card and
+    // the sentence she says cannot disagree about whether the desk could be read at all. The
+    // duty here — the shipped count is the bounded one, gated as the cards are — is unchanged
+    // and is asserted on that derivation.
+    expect(summary).toMatch(/leads_awaiting:\s*awaitingCount/)
+    expect(summary).toMatch(/const awaitingCount[^\n]*awaiting\.error \? null : awaiting\.count/)
     expect(summary).toMatch(/if \(summaryScope\.kind === 'proof'\) q = q\.not\('proof_pass', 'is', null\)/)
   })
 })

@@ -138,7 +138,21 @@ describe('the desk stops guessing', () => {
     // reported 20 — the desk believed it had a result to show and rendered no cards. The
     // question is now asked of `leads_awaiting`, which `milla-summary.ts` builds from the same
     // boundary the card list applies, clause for clause. Zero cards is the zero that matters.
-    expect(portal).toContain('const proofEndedEmpty = !!terminalRun && (summary?.leads_awaiting ?? 0) === 0')
+    // ⛓️ RE-POINTED AGAIN 18 Sep (J24-C1) · THE DUTY IS STILL UNCHANGED, AND IS NOW STRICTER.
+    // WHAT THIS REPLACED: ~~`'const proofEndedEmpty = !!terminalRun && (summary?.leads_awaiting
+    // ?? 0) === 0'`~~. The `??` could not tell three different things apart — not loaded yet,
+    // the count failed, and genuinely none — and collapsed all of them to 0, which renders the
+    // sentence telling the client their Proof run found nobody. The server now sends `null` for
+    // an unreadable count, so the question is asked of a real zero only.
+    expect(portal).toContain('const proofEndedEmpty = !!terminalRun && summary?.leads_awaiting === 0')
+    // ⚠️ ON CODE, NOT SOURCE. The chained note directly above the line in `milla/page.tsx`
+    // quotes the retired expression in order to explain it, so an absence assertion that reads
+    // comments asserts against its own documentation. Fifth time in this build.
+    const portalCode = portal.split('\n')
+      .filter(l => { const t = l.trim(); return !t.startsWith('//') && !t.startsWith('*') && !t.startsWith('/*') })
+      .join('\n')
+    expect(portalCode, 'the `??` that made an unreadable count look like an empty desk came back')
+      .not.toContain('(summary?.leads_awaiting ?? 0) === 0')
     // And the raw figure is still NOT the thing driving it.
     expect(portal).not.toContain('proofEndedEmpty = !!terminalRun && terminalRun.total_inserted === 0')
   })

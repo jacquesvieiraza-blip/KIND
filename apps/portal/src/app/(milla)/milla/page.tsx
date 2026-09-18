@@ -54,13 +54,18 @@ type Summary = {
   // ⛓️ `wallet_balance_usd` REMOVED from this screen's type (BUILD-004A-1). The endpoint still
   // returns it for Billing; this home no longer reads it, and dropping the field means a future
   // edit cannot quietly render a wallet balance back onto the programme home.
-  has_funded: boolean; leads_awaiting: number; meetings_booked: number
+  // ⛓️ 18 Sep (J24-C1) — `null` MEANS THE COUNT COULD NOT BE READ, and it now arrives.
+  // WHAT THIS REPLACED: ~~`has_funded: boolean; leads_awaiting: number; meetings_booked: number`~~.
+  // The server used to convert every failed count to 0 before this type ever saw it, so the
+  // three sentences below — "your proof found nobody", "you have never paid", "0 meetings" —
+  // could each be produced by a read error with nothing to distinguish them from the truth.
+  has_funded: boolean | null; leads_awaiting: number | null; meetings_booked: number | null
   active_campaign: string | null; icp_versions: IcpVersion[]
   /** The newest campaign's real state, whatever it is — drives the live/paused badge. */
   campaign_name?: string | null
   campaign_status?: 'draft' | 'active' | 'paused' | 'paused_low_performance' | 'completed' | 'archived' | null
   /** Every lead they have ever approved — releases the minimum-20 gate at 20. */
-  leads_approved_total?: number
+  leads_approved_total?: number | null
   pack?: Pack
   /** ⚑ 24 Aug — how many free-proof batches this prospect has been shown, from
    *  `clients.proof_passes_done` (the same column try_claim_proof_pass increments).
@@ -505,7 +510,12 @@ export default function MillaHomePage() {
   //
   // ⚠️ THE RAW FIGURE IS NOT REDEFINED ANYWHERE. `total_inserted` still carries the sourcing
   // truth for audit and accounting; this line simply stops being the place that reads it.
-  const proofEndedEmpty = !!terminalRun && (summary?.leads_awaiting ?? 0) === 0
+  // ⛓️ 18 Sep (J24-C1) — `=== 0` ONLY WHEN WE ACTUALLY COUNTED. It was
+  // ~~`(summary?.leads_awaiting ?? 0) === 0`~~, and `??` cannot tell "not loaded yet" from
+  // "the count failed" from "genuinely none" — all three became 0, and 0 here renders the
+  // sentence that tells the client their Proof run found nobody. A client whose desk is full
+  // and whose count read failed would have been shown it.
+  const proofEndedEmpty = !!terminalRun && summary?.leads_awaiting === 0
 
   // A crashed run is its own terminal state. The prospect is NEVER shown the word
   // "failed" — that is the internal status name; they get the approved recovery copy.

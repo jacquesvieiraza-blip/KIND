@@ -36,7 +36,11 @@ import { MILLA_FAILURE_COPY, type MillaStage } from '@kind/shared'
 import { type CustomerProgramme } from '@/components/milla/ProgrammeWorkspace'
 
 /** The slice of the summary this page reads. Both counts are client-scoped and real. */
-type Outcomes = { replies_total: number; meetings_total: number; meetings_booked: number }
+// ⛓️ 18 Sep (J24-C1) — `number | null`. The server used to send 0 for a count it could not
+// read; it now sends `null`, and `ValueCard` has always rendered `null` as an em dash
+// ("`null` IS STILL A DASH … Every figure here distinguishes 'we could not read it' from
+// zero"). The type was the last place still claiming a number was always available.
+type Outcomes = { replies_total: number | null; meetings_total: number | null; meetings_booked: number | null }
 
 async function token(): Promise<string | undefined> {
   try { const { data } = await createClient().auth.getSession(); return data.session?.access_token } catch { return undefined }
@@ -140,13 +144,19 @@ export default function MillaUsagePage() {
                 — either way not this programme's work. `null` is unreadable, never zero. */}
             {live && (
               <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                {/* ⛓️ 18 Sep (J24-C1) — THE PER-FIELD CASE, which is the ordinary one.
+                    WHAT THIS REPLACED: ~~`o === null ? '—' : o.replies_total.toLocaleString()`~~
+                    — it handled the WHOLE outcomes read failing and could not express one count
+                    failing, because the server had already turned that into a confident `0`.
+                    The comment three lines up ("`null` is unreadable, never zero") was the
+                    intent all along; this is the first version in which it is true per number. */}
                 <Stat
-                  v={o === null ? '—' : o.replies_total.toLocaleString()}
-                  k={o === null ? 'Replies — not available right now' : 'Replies, all time'}
+                  v={o?.replies_total == null ? '—' : o.replies_total.toLocaleString()}
+                  k={o?.replies_total == null ? 'Replies — not available right now' : 'Replies, all time'}
                 />
                 <Stat
-                  v={o === null ? '—' : o.meetings_total.toLocaleString()}
-                  k={o === null ? 'Meetings — not available right now' : 'Meetings, all time'}
+                  v={o?.meetings_total == null ? '—' : o.meetings_total.toLocaleString()}
+                  k={o?.meetings_total == null ? 'Meetings — not available right now' : 'Meetings, all time'}
                 />
               </div>
             )}

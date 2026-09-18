@@ -43,7 +43,14 @@ type Summary = {
   // by 4A-1 ruling 1) and then the FLOW bar's "You approve" (removed by Decision 1). The
   // endpoint still returns it; this shell no longer has a place to put a per-lead approval
   // count, and leaving it in the type is an invitation to find one.
-  meetings_booked: number
+  /**
+   * ⚑ 18 Sep (J24-C1) — `null` when the count could not be read.
+   *
+   * ⚠️ THE BADGE BELOW ALREADY DID THE RIGHT THING BY ACCIDENT AND NOW DOES IT ON PURPOSE:
+   * `s?.meetings_booked || undefined` renders no badge for `null`, which is correct — an
+   * unreadable count has no number to show, and showing "0" would be the fabrication.
+   */
+  meetings_booked: number | null
   recent_replies: { name: string; classification: string }[]
 }
 

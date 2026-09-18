@@ -28,7 +28,11 @@ import { ValueCard, ProgressBar, Panel, StageRail, PreLiveState, ProgrammeHeader
 import { outreachHasRun } from '@/lib/programme-report'
 import { Target, CalendarCheck, MessageSquare, Users } from 'lucide-react'
 
-type Outcomes = { replies_total: number; meetings_total: number; meetings_booked: number }
+// ⛓️ 18 Sep (J24-C1) — `number | null`. The server used to send 0 for a count it could not
+// read; it now sends `null`, and `ValueCard` has always rendered `null` as an em dash
+// ("`null` IS STILL A DASH … Every figure here distinguishes 'we could not read it' from
+// zero"). The type was the last place still claiming a number was always available.
+type Outcomes = { replies_total: number | null; meetings_total: number | null; meetings_booked: number | null }
 
 async function token(): Promise<string | undefined> {
   try { const { data } = await createClient().auth.getSession(); return data.session?.access_token } catch { return undefined }

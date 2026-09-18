@@ -97,12 +97,24 @@ async function campaignIdFor(programmeId: string): Promise<string | null> {
   } catch { return null }
 }
 
-async function countRows(table: string, apply: (q: never) => unknown): Promise<number> {
+/**
+ * ⚑ 18 Sep (J24-C1) — COUNT ONE THING, AND SAY SO WHEN YOU COULD NOT.
+ *
+ * ⛓️ WHAT THIS REPLACED: ~~`countRows(...)` returning `error ? 0 : (count ?? 0)`~~ — an
+ * unreadable count and a genuine zero produced the same number, and that number is what an
+ * operator reads to decide whether a programme is working. "0 sends" on a programme that has
+ * sent hundreds is a worse answer than no answer.
+ *
+ * ⚠️ ZERO IS A REAL AND COMMON ANSWER, WHICH IS EXACTLY WHY IT MAY NOT BE THE ERROR VALUE.
+ * A programme sourced this morning legitimately has 0 sends; the number carries no warning of
+ * its own, so the caller has to be told the difference.
+ */
+export async function countRowsOrNull(table: string, apply: (q: never) => unknown): Promise<number | null> {
   try {
     const q = db.from(table).select('id', { count: 'exact', head: true })
     const { count, error } = await (apply(q as never) as Promise<{ count: number | null; error: unknown }>)
-    return error ? 0 : (count ?? 0)
-  } catch { return 0 }
+    return error ? null : (count ?? 0)
+  } catch { return null }
 }
 
 /**
@@ -322,11 +334,26 @@ export type LifecycleCounts = {
   enrolled: number
   sends: number; replies: number; positive: number; meetings: number
   repliesAwaitingDecision: number
+  /**
+   * ── 🛑 ⚑ 18 Sep (J24-C1) — WHICH OF THE NUMBERS ABOVE ARE NOT REAL ────────────────────
+   *
+   * Every count stays a `number`, and that is deliberate: `sends` feeds `deriveLifecycle`,
+   * whose documented and founder-reasoned fail-soft direction is to UNDER-count rather than
+   * invent a task ("a badge that cried wolf would be worse than one that is occasionally
+   * quiet"). Widening it to `null` would force that rule to be re-decided inside this item.
+   *
+   * 🛑 BUT THE OPERATOR MUST NOT READ A FABRICATED ZERO. So the count keeps its safe value for
+   * the DERIVATION and this list names the ones that are a placeholder rather than a fact, so
+   * the panel can render "—" for exactly those. One count plus a trustworthiness flag — the
+   * same shape `panelView` already uses — never two competing numbers.
+   */
+  unreadable: string[]
 }
 
 const NO_COUNTS: LifecycleCounts = {
   sourced: 0, qualified: 0, rejected: 0, stillToCheck: 0, enrolled: 0,
   sends: 0, replies: 0, positive: 0, meetings: 0, repliesAwaitingDecision: 0,
+  unreadable: [],
 }
 
 /** Every number the panels show, all of them scoped to this exact programme. */
@@ -343,27 +370,41 @@ async function countsFor(programmeId: string, clientId: string, campaignId: stri
   if (batchId) {
     const onBatch = () => db.from('leads').select('id', { count: 'exact', head: true })
       .eq('programme_id', programmeId).eq('client_id', clientId).eq('batch_id', batchId)
+    // ⚑ 18 Sep (J24-C1) — `null` on a failed read, not 0. These three are the numbers beside
+    // the batch a client is about to approve, and "0 sourced" on an unreadable batch reads as
+    // a programme that found nobody.
+    const asCount = (r: { count: number | null; error?: unknown }): number | null =>
+      r.error ? null : r.count ?? 0
     const [sourced, qualified, rejected] = await Promise.all([
-      onBatch().then(r => r.count ?? 0, () => 0),
-      onBatch().not('qualified_at', 'is', null).then(r => r.count ?? 0, () => 0),
-      onBatch().not('disqualified_at', 'is', null).then(r => r.count ?? 0, () => 0),
+      onBatch().then(asCount, () => null),
+      onBatch().not('qualified_at', 'is', null).then(asCount, () => null),
+      onBatch().not('disqualified_at', 'is', null).then(asCount, () => null),
     ])
-    out.sourced = sourced
-    out.qualified = qualified
-    out.rejected = rejected
-    out.stillToCheck = Math.max(0, sourced - qualified - rejected)
+    for (const [name, v] of [['sourced', sourced], ['qualified', qualified], ['rejected', rejected]] as const) {
+      if (v === null) out.unreadable.push(name)
+    }
+    out.sourced = sourced ?? 0
+    out.qualified = qualified ?? 0
+    out.rejected = rejected ?? 0
+    // ⚠️ THE DERIVED ONE IS UNREADABLE IF ANY OF ITS THREE INPUTS IS. A subtraction over a
+    // placeholder is a placeholder, and this number decides whether Vida says "still checking".
+    if (sourced === null || qualified === null || rejected === null) out.unreadable.push('stillToCheck')
+    out.stillToCheck = Math.max(0, (sourced ?? 0) - (qualified ?? 0) - (rejected ?? 0))
   }
 
-  out.enrolled = await countRows('figsy_enrollments', q =>
+  // ⚑ 18 Sep (J24-C1) — `null` is recorded as unreadable and the count keeps its safe 0.
+  const enrolled = await countRowsOrNull('figsy_enrollments', q =>
     (q as unknown as { eq: (c: string, v: string) => unknown }).eq('programme_id', programmeId))
+  if (enrolled === null) out.unreadable.push('enrolled'); else out.enrolled = enrolled
 
   if (campaignId) {
     // ⚠️ SENDS STAY CAMPAIGN-KEYED, and that is not an inconsistency with the meetings read
     // below. `figsy_sent_emails` has no `programme_id` column — its own module says so — so the
     // campaign IS the bridge to this programme's sends. Founder, 10 Sep: "preserve campaign_id
     // as operational metadata/bridge where needed."
-    out.sends = await countRows('figsy_sent_emails', q =>
+    const sends = await countRowsOrNull('figsy_sent_emails', q =>
       (q as unknown as { eq: (c: string, v: string) => unknown }).eq('campaign_id', campaignId))
+    if (sends === null) out.unreadable.push('sends'); else out.sends = sends
   }
 
   // ── 🛑 ⚑ 10 Sep (I4) — MEETINGS ARE ATTRIBUTED BY `programme_id`, NEVER BY CAMPAIGN ────

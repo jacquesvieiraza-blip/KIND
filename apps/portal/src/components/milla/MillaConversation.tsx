@@ -49,7 +49,8 @@ type Programme = { stage: MillaStage; hasProgramme?: boolean }
 /** Only the two fields the handle's rule reads. The My ICP screen reads the same endpoint. */
 type Icp = { id: string; is_active: boolean | null }
 type Summary = {
-  has_funded: boolean
+  /** ⚑ 18 Sep (J24-C1) — `null` when the funding history could not be read. Never `false`. */
+  has_funded: boolean | null
   icp_versions: { version: string }[]
   campaign_status?: 'draft' | 'active' | 'paused' | 'paused_low_performance' | 'completed' | 'archived' | null
   calibration_set_on_desk?: boolean
@@ -488,12 +489,22 @@ export function MillaConversationProvider(
     finally { setIcpSaving(false) }
   }
 
-  const needsGoLive = !!summary && summary.icp_versions.length > 0 && !summary.has_funded
+  // ⛓️ 18 Sep (J24-C1) — `=== false`, NOT `!`. `has_funded` is now `boolean | null`, and
+  // WHAT THIS REPLACED — ~~`!summary.has_funded`~~ — turned `null` ("we could not read their
+  // funding history") into `true`, which shows a PAYING client the go-live/pay prompt on a
+  // transient read error. Only a read that actually answered "they have not funded" may.
+  const needsGoLive = !!summary && summary.icp_versions.length > 0 && summary.has_funded === false
 
   // ── ⛓️ 3 Sep — A CHIP THAT POINTS AT "THESE" NEEDS THERE TO BE SOME ────────────────────
   // ⚠️ "CONTEXTUALLY VALID" IS THE TEST THE FOUNDER SET. Offering "Please pause my programme"
   // to someone at Proof invites them to pause a programme that does not exist; a calibration
   // chip naming "these" needs a set on the desk, not merely the right stage.
+  // ⚠️ `?? false` IS CORRECT HERE AND IS KEPT (J24-C1). `calibration_set_on_desk` may now be
+  // `null`, and this decides whether to OFFER a chip that says "these" — offering it over an
+  // empty desk invites a client to react to nothing, so the safe direction for an unknown is
+  // not to offer it. The `|| (deskSet ?? 0) > 0` clause still admits a desk we can see
+  // directly. What may never happen is the opposite: telling the client their desk IS empty,
+  // which is `describeOutcomes`' job and is handled there.
   const proofSetOnDesk = (summary?.calibration_set_on_desk ?? false) || (deskSet ?? 0) > 0
   const chips = !prog ? CHIPS : [
     ...(prog.stage === 'Proof' && !proofSetOnDesk ? [] : [STAGE_QUICK_ACTION[prog.stage]]),

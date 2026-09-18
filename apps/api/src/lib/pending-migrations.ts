@@ -6223,6 +6223,39 @@ COMMENT ON COLUMN public.icps.exclusions IS
   'MVP1 J5-C12 / FD-1. The client''s own words for who NOT to contact, as one sentence. Read by proof-fit.ts''s \`excluded\` hard criterion, which sets a matching candidate aside with a reason in every path. NULL means not stated and refuses nobody.';
 `,
   },
+  {
+    key: '20260918_lead_category_fit',
+    title: 'leads.category_fit — the model\'s verdict on the client\'s own category (MVP1 · J5-C13 · FD-2)',
+    sql: `
+-- Canonical copy: supabase/migrations/20260918_lead_category_fit.sql
+--
+-- FD-2 makes category fit MODEL-INTERPRETED: adjacent qualifies, vague B2B does not, UNKNOWN
+-- is never eligible. A model cannot be called from \`proof-fit.ts\` (a pure synchronous
+-- predicate every surface depends on), so the model writes a FACT here and the predicate reads
+-- it — the shape every other criterion in that file already uses.
+--
+-- 🛑 THE MODEL HAD NEVER BEEN TOLD THE REQUIREMENT. The scoring prompt described the ICP with
+-- \`Industries:\` — the closed sixteen-value provider list — and nothing else, so a client who
+-- said "digital marketing agencies" reached the scorer as "Industries: any".
+--
+-- ⚠️ EXPAND ONLY (XC-11): both nullable, NO DEFAULT, NO BACKFILL, CHECK admits NULL. A lead
+-- scored before today reads NULL and the existing word-overlap rule answers for it, unchanged.
+ALTER TABLE public.leads ADD COLUMN IF NOT EXISTS category_fit        text;
+ALTER TABLE public.leads ADD COLUMN IF NOT EXISTS category_fit_reason text;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'leads_category_fit_check') THEN
+    ALTER TABLE public.leads
+      ADD CONSTRAINT leads_category_fit_check
+      CHECK (category_fit IS NULL OR category_fit IN ('yes', 'no', 'unknown'));
+  END IF;
+END $$;
+
+COMMENT ON COLUMN public.leads.category_fit IS
+  'MVP1 J5-C13 / FD-2. The scoring model''s verdict on whether this company is the KIND the client asked for: yes | no | unknown. Read by proof-fit.ts''s category criterion. NULL means not judged and the word-overlap rule answers instead.';
+`,
+  },
 ]// Runs the statements against DATABASE_URL. Uses node-postgres because the Supabase JS
 // client speaks PostgREST, which cannot execute DDL.
 //

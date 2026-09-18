@@ -109,6 +109,20 @@ export interface FitCandidate {
   company?: string | null
   /** Any longer description a provider returned. Optional; usually absent. */
   company_description?: string | null
+  /**
+   * ── 🛑 ⚑ 18 Sep (J5-C13 · FD-2) — THE MODEL'S RECORDED VERDICT ON THE CATEGORY ───────
+   *
+   * `leads.category_fit`, written by `scoreLeadsForIcp` when the client stated a category.
+   * FD-2 makes this judgement MODEL-INTERPRETED, and a model cannot be called from a pure
+   * synchronous predicate — so the model writes a FACT and this file reads it, which is the
+   * same shape every other criterion here uses.
+   *
+   * ⚠️ ABSENT IS NOT A PASS AND NOT A FAIL. A lead scored before this existed, or one whose
+   * scoring failed, carries nothing — and the word-overlap rule below still answers, exactly
+   * as it did yesterday. The model REFINES the structural answer; it never replaces the
+   * product's ability to judge without one.
+   */
+  category_fit?: 'yes' | 'no' | 'unknown' | null
 }
 
 /** The ICP fields this judgement reads. Every one is an existing `icps` column. */
@@ -384,6 +398,32 @@ function excludedVerdict(icp: FitIcp, c: FitCandidate): HardVerdict {
 
 function categoryVerdict(icp: FitIcp, c: FitCandidate): HardVerdict {
   const requirement = clean(icp.target_category)
+
+  // ── 🛑 ⚑ 18 Sep (J5-C13 · FD-2) — THE MODEL'S VERDICT OUTRANKS THE WORD OVERLAP ───────
+  //
+  // FD-2: *"Model-interpreted fit; adjacent qualifies; vague B2B does not; UNKNOWN never
+  // eligible."* The rule below this block is word overlap, and it is wrong in both directions
+  // for a client's own sentence: it refuses a BRAND agency for "digital marketing agencies"
+  // (adjacent, and the client's actual market), and it passes anything whose tag happens to
+  // carry both words. Neither is something a word set can fix — which is why the founder ruled
+  // it a model's judgement.
+  //
+  // ⚠️ IT IS READ, NOT CALLED. A model cannot be invoked from a pure synchronous predicate,
+  // and making this async would make every caller async. `scoreLeadsForIcp` records the verdict
+  // on the row; this reads a fact, exactly like every other criterion in this file.
+  //
+  // ⚠️ AND ONLY WHEN THERE IS A REQUIREMENT TO JUDGE. A client who stated no category has no
+  // test here, and a recorded verdict against a requirement they never gave would be a
+  // judgement about nothing.
+  if (requirement) {
+    const judged = c.category_fit
+    if (judged === 'yes' || judged === 'no') return judged
+    // `unknown` falls through DELIBERATELY: the word overlap may still be able to say
+    // something useful, and "the model was unsure" is not itself evidence of anything. If
+    // the overlap is also unsure it returns `unknown`, which is the honest joint answer —
+    // and `structurallyEligible` already refuses to count an unknown as a match (FD-2's
+    // "UNKNOWN never eligible", which needs no new rule here).
+  }
   // An unstated requirement is not a test. A legacy ICP carries NULL here — "not collected" —
   // and making that `unknown` would empty every legacy client's Proof set.
   if (!requirement) return 'yes'

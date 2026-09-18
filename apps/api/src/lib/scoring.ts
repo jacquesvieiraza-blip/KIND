@@ -12,12 +12,35 @@ interface IcpCriteria {
   company_sizes:    string[]
   geographies:      string[]
   keywords:         string[]
+  /**
+   * ── 🛑 ⚑ 18 Sep (J5-C13 · FD-2) — THE CLIENT'S OWN WORDS, WHICH THE MODEL HAD NEVER SEEN
+   *
+   * The prompt below described the ICP with `Industries:` — the CLOSED sixteen-value provider
+   * list — and nothing else about what kind of company the client asked for. So the model
+   * judging fit had never been told the one fact that defines it: a client who said "digital
+   * marketing agencies" reached the scorer as `Industries: Media, Consulting` or, more often,
+   * as `Industries: any`.
+   *
+   * ⚠️ OPTIONAL, SO A LEGACY ICP IS UNCHANGED. Absent means the prompt is byte-identical to
+   * what it was and the verdict is `unknown`, which `structurallyEligible` already refuses to
+   * count as a match — FD-2's "UNKNOWN never eligible", with no new rule needed.
+   */
+  target_category?:     string | null
+  target_company_type?: string | null
+  /** FD-1's sentence, so the model can recognise what the client asked us to leave out. */
+  exclusions?:          string | null
 }
 
 interface ScoreResult {
   id:        string
   score:     number
   reasoning: string
+  /**
+   * ⚑ 18 Sep (J5-C13 · FD-2) — the MODEL'S verdict on whether this company is the kind the
+   * client asked for. Absent on a legacy reply, which reads as `unknown`.
+   */
+  category_fit?:        'yes' | 'no' | 'unknown'
+  category_fit_reason?: string
 }
 
 // Strip markdown code fences that Claude sometimes wraps JSON in
@@ -41,7 +64,15 @@ function parseScoringResponse(raw: string): ScoreResult[] {
       typeof r?.id === 'string' &&
       typeof r?.score === 'number' &&
       typeof r?.reasoning === 'string'
-    )
+    ).map((r: ScoreResult) => ({
+      ...r,
+      // ⚠️ AN UNRECOGNISED VERDICT IS `unknown`, NEVER `yes`. The model could return anything;
+      // the only two values that may narrow or clear a client's targeting are the two we
+      // named, and everything else is an answer we did not understand.
+      category_fit: r.category_fit === 'yes' || r.category_fit === 'no' ? r.category_fit : 'unknown',
+      category_fit_reason: typeof r.category_fit_reason === 'string'
+        ? r.category_fit_reason.slice(0, 300) : undefined,
+    }))
   } catch (err) {
     console.error('[scoring] JSON parse failed:', err, '| raw:', raw.slice(0, 200))
     return []
@@ -145,9 +176,18 @@ export async function scoreLeadsForIcp(
       if (!leads?.length) continue
 
       const icpDescription = [
+        // ── 🛑 ⚑ 18 Sep (J5-C13 · FD-2) — THE CLIENT'S OWN WORDS COME FIRST ─────────────
+        //
+        // They are the requirement; `Industries` below is a provider tag and is EVIDENCE
+        // toward it, never the thing itself. Listing the provider tag first (and alone, as
+        // this prompt did) is how a model comes to judge "Media" instead of "digital
+        // marketing agencies".
+        ...(icp.target_category ? [`Kind of company they asked for (THEIR OWN WORDS): ${icp.target_category}`] : []),
+        ...(icp.target_company_type ? [`Type of organisation: ${icp.target_company_type}`] : []),
+        ...(icp.exclusions ? [`They asked us to LEAVE OUT: ${icp.exclusions}`] : []),
         `Job titles: ${icp.job_titles.join(', ') || 'any'}`,
         `Seniority levels: ${icp.seniority_levels.join(', ') || 'any'}`,
-        `Industries: ${icp.industries.join(', ') || 'any'}`,
+        `Industries (provider tags — evidence only, not the requirement): ${icp.industries.join(', ') || 'any'}`,
         `Company sizes: ${icp.company_sizes.join(', ') || 'any'}`,
         `Geographies: ${icp.geographies.join(', ') || 'any'}`,
         `Keywords: ${icp.keywords.join(', ') || 'none'}`,
@@ -160,6 +200,32 @@ export async function scoreLeadsForIcp(
         )
         .join('\n')
 
+      // ── 🛑 ⚑ 18 Sep (J5-C13 · FD-2) — THE FOUNDER'S THREE RULES, STATED AS RULES ───────
+      //
+      // FD-2 is not "score it higher"; it is a THREE-VALUED judgement with two named edges,
+      // and both edges exist because the founder was shown a real card that broke them:
+      //
+      //   · ADJACENT QUALIFIES — a brand agency for "digital marketing agencies" is the same
+      //     kind of company. Refusing it throws away the client's actual market for a wording
+      //     difference, which is what a word-overlap rule does and why this is a model's job.
+      //   · VAGUE DOES NOT — "B2B services", "technology company", "consultancy" establish
+      //     nothing. The 72/100 card beside the words "no evidence of digital marketing or
+      //     agency focus" was exactly this: a plausible-sounding company admitted on vagueness.
+      //   · UNKNOWN IS AN ANSWER — and it is the one to give whenever the evidence is thin.
+      //     `structurallyEligible` already refuses to COUNT an unknown as a match, so an
+      //     honest "I cannot tell" costs the client nothing and a confident guess costs them
+      //     a card they have to read and reject.
+      //
+      // ⚠️ THE TASK IS OMITTED ENTIRELY WHEN THE CLIENT STATED NO CATEGORY. A legacy ICP gets
+      // the byte-identical prompt it got yesterday, and its verdict stays `unknown`.
+      const categoryTask = icp.target_category
+        ? `\nSEPARATELY from the score, judge ONE thing about each lead's company: is it the KIND of company described above in the client's own words?
+- "yes"     — the evidence shows it is that kind of company, INCLUDING an adjacent or differently-worded version of it (a brand agency for "digital marketing agencies" is a yes).
+- "no"      — the evidence shows it is a DIFFERENT kind of company, or one the client asked us to leave out.
+- "unknown" — the evidence is vague, generic or missing. "B2B services", "technology company" or a bare company name establish NOTHING and are always "unknown", never "yes".
+Answer "unknown" whenever you are not sure. An honest "unknown" costs nothing; a confident guess puts a company in front of the client that they have to read and reject.`
+        : ''
+
       const prompt = `You are scoring sales leads for ${clientName} against their Ideal Customer Profile (ICP).
 
 ICP criteria:
@@ -170,8 +236,10 @@ Score each lead from 0 to 100 based on how well they match the ICP. 100 = perfec
 Leads to score:
 ${leadsText}
 
+${categoryTask}
+
 Return ONLY a JSON array with no markdown, no code fences, no explanation:
-[{"id":"<lead-id>","score":<0-100>,"reasoning":"<one sentence>"}]`
+[{"id":"<lead-id>","score":<0-100>,"reasoning":"<one sentence>","category_fit":"yes|no|unknown","category_fit_reason":"<short phrase>"}]`
 
       const message = await anthropic.messages.create({
         model:      'claude-haiku-4-5-20251001',
@@ -219,6 +287,11 @@ Return ONLY a JSON array with no markdown, no code fences, no explanation:
               scored_at:                now,
               status:                   'scored',
               estimated_deal_value_usd: r.score * 100,
+              // ⚑ 18 Sep (J5-C13 · FD-2) — the model's verdict, RECORDED so the gate can read
+              // it. A judgement that lives only in the score is a judgement nothing can act
+              // on: `proof-fit.ts` needs a fact, not a number it has to re-interpret.
+              category_fit:             r.category_fit ?? 'unknown',
+              category_fit_reason:      r.category_fit_reason ?? null,
             })
             .eq('id', r.id)
         ),

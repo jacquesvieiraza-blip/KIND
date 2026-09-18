@@ -201,6 +201,11 @@ create table if not exists public.leads (
   disqualify_reason text,
   -- scoring
   score             integer check (score >= 0 and score <= 100),
+  -- MVP1 (J5-C13 / FD-2) — the scoring model's verdict on whether this company is the KIND the
+  -- client asked for, in the client's own words: yes | no | unknown. `proof-fit.ts` prefers it
+  -- over its word-overlap rule. NULL means not judged and the overlap answers instead.
+  category_fit        text,
+  category_fit_reason text,
   score_reasoning   text,
   scored_at         timestamptz,
   -- outreach

@@ -1249,7 +1249,14 @@ describe('one reflect-back truth, and two labelled proof sets', () => {
     // band is derived from, and they are read but never rendered. The duty here is only that
     // `surfaced_for_approval_at` is still selected and returned, which is what makes the two
     // proof sets tellable apart — so the assertion stays pointed at exactly that.
-    expect(src).toContain('score, score_reasoning, created_at, surfaced_for_approval_at')
+    // ⛓️ RE-POINTED 18 Sep (J5-C13 · FD-2) · THE DUTY IS UNCHANGED.
+    // WHAT THIS REPLACED: ~~`'score, score_reasoning, created_at, surfaced_for_approval_at'`~~
+    // — an exact tail of the desk's select list. `category_fit` now sits inside it, because
+    // this desk bands with `hardFit` at read time and FD-2 made the category judgement the
+    // MODEL's; without the column the band would keep using the word overlap the founder ruled
+    // insufficient. The duty here is only that `surfaced_for_approval_at` is still selected and
+    // returned, which is what makes the two proof sets tellable apart.
+    expect(src).toMatch(/score, score_reasoning, category_fit, created_at, surfaced_for_approval_at/)
     expect(src).toContain('surfaced_for_approval_at: l.surfaced_for_approval_at ?? null,')
     // …and the masked card is otherwise unchanged: still no name, email or phone.
     // ⚠️ ON CODE, NOT SOURCE. The comment sitting inside this very block says "no name, no

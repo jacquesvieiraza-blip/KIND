@@ -334,7 +334,17 @@ leadRouter.get('/for-approval', async (req: AuthRequest, res) => {
       // They are two of the four hard criteria the band is derived from (`proof-fit.ts`), and
       // the derivation must see the same row the gate saw. Neither is added to the masked
       // shape below: the client sees a band, never our criteria.
-      .select('id, first_name, last_name, job_title, company, industry, country, company_size, seniority, score, score_reasoning, created_at, surfaced_for_approval_at')
+      // ⛓️ 18 Sep (J5-C13 · FD-2) — `category_fit` JOINS IT. This desk
+      // is the surface FD-2's runtime proof names ("Founder reviews set"), and `hardFit` runs
+      // here at READ time — on a row that has been scored by now, so the model's recorded
+      // verdict is what bands it. Without it the band would keep judging with the word overlap
+      // the founder ruled insufficient.
+      //
+      // ⚠️ `company_description` IS NOT HERE. `FitCandidate` declares it and `evidenceWords`
+      // reads it, but `leads.company_description` does not exist — no migration creates it and
+      // nothing writes it. Selecting it would make PostgREST reject the whole query, which
+      // `.data ?? []` renders as an empty desk. Reported rather than invented.
+      .select('id, first_name, last_name, job_title, company, industry, country, company_size, seniority, score, score_reasoning, category_fit, created_at, surfaced_for_approval_at')
       .eq('client_id', clientId)
       // 🛑 10 Sep — A SET-ASIDE CANDIDATE IS NEVER ON THE DESK. It failed a hard criterion the
       // client themselves named, and it was recorded rather than deleted so an operator can

@@ -407,8 +407,14 @@ leadRouter.get('/for-approval', async (req: AuthRequest, res) => {
     // when the client has no ICP or it could not be read; `fitBand` then sees no requirements,
     // which correctly means "nothing to fail" — but an unscored or sub-threshold lead still
     // cannot be starred, because the band asks about the score as well.
+    // ⛓️ 18 Sep (J5-C12 · FD-1) — THE SELECT NOW CARRIES EVERY FIELD THE GATE READS.
+    // WHAT THIS REPLACED: ~~five columns~~, cast to `FitIcp`. So `target_category` and
+    // `target_company_type` were ALWAYS undefined here and their verdicts were
+    // unconditionally `yes` — this surface judged with a weaker rule than the structural
+    // gate that produced the set, which is how a desk comes to band a candidate the gate
+    // would have refused. `exclusions` joins them rather than arriving with the same defect.
     const { data: icpRow } = await db.from('icps')
-      .select('geographies, company_sizes, industries, job_titles, seniority_levels')
+      .select('geographies, company_sizes, industries, job_titles, seniority_levels, target_category, target_company_type, exclusions')
       .eq('client_id', clientId).order('created_at', { ascending: false }).limit(1).maybeSingle()
     const hardCriteria = (icpRow ?? {}) as import('../lib/proof-fit').FitIcp
     const { hardFit, fitBand, displayScore, isStarred, BAND_LABEL } = await import('../lib/proof-fit')

@@ -6198,6 +6198,31 @@ BEGIN
 END $$;
 `,
   },
+  {
+    key: '20260918_icp_exclusions',
+    title: 'icps.exclusions — who the client asked us to leave out (MVP1 · J5-C12 · FD-1)',
+    sql: `
+-- Canonical copy: supabase/migrations/20260918_icp_exclusions.sql
+--
+-- 🛑 ALREADY BEING WRITTEN AND DOES NOT EXIST. \`lib/promotion.ts\` (J4-C1) includes
+-- \`exclusions\` in the core-ICP insert whenever the confirmed brief holds it, and brief fact
+-- #10 is REQUIRED by \`mayConfirmBrief\` — so every promoted client holds it, and a Postgres
+-- insert naming a column that does not exist fails the whole statement. Server-owned
+-- promotion could not create an ICP at all. Caught by \`schema-truth.test.ts\`.
+--
+-- WHAT IT IS FOR (FD-1). The client's exclusions become canonical ON THE ICP, where
+-- \`proof-fit.ts\`'s seventh hard criterion reads them and sets a matching candidate aside
+-- with a reason in every path. Before it the sentence lived only in the brief draft and in
+-- \`figsy_knowledge.bad_fit\` (the copywriter's input), and no gate read either.
+--
+-- ⚠️ EXPAND ONLY (XC-11): nullable, NO DEFAULT, NO BACKFILL. NULL is "not stated" and refuses
+-- nobody, which is exactly how every existing ICP behaves today. Idempotent.
+ALTER TABLE public.icps ADD COLUMN IF NOT EXISTS exclusions text;
+
+COMMENT ON COLUMN public.icps.exclusions IS
+  'MVP1 J5-C12 / FD-1. The client''s own words for who NOT to contact, as one sentence. Read by proof-fit.ts''s \`excluded\` hard criterion, which sets a matching candidate aside with a reason in every path. NULL means not stated and refuses nobody.';
+`,
+  },
 ]// Runs the statements against DATABASE_URL. Uses node-postgres because the Supabase JS
 // client speaks PostgREST, which cannot execute DDL.
 //

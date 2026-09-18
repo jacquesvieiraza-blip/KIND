@@ -47,6 +47,12 @@ export interface PoolMatchIcp {
   seniority_levels?: string[] | null
   /** ⚑ 10 Sep (C02) — company size is a HARD criterion and was not tested here at all. */
   company_sizes?:    string[] | null
+  /**
+   * ⚑ 18 Sep (J5-C12 · FD-1) — the client's own exclusions, so the FREE path suppresses them
+   * too. FD-1 is "in every path", and reusing an excluded company from the pool costs the
+   * client the same relationship as buying one.
+   */
+  exclusions?:       string | null
 }
 
 /** case-insensitive "does `hay` contain any of `needles`" (ILIKE %needle%). */
@@ -200,12 +206,23 @@ export function poolRecordMatchesIcp(rec: PoolRecord, icp: PoolMatchIcp): boolea
     industry: rec.industry ?? null,
     job_title: rec.title ?? null,
     seniority: rec.seniority ?? null,
+    // ⚑ 18 Sep (J5-C12) — the company name is EVIDENCE, and the pool record carries it. It was
+    // omitted, so `excludedVerdict` had nothing to read here and the reuse path could not have
+    // recognised an excluded company even with the criterion in place.
+    company: rec.company ?? null,
   }, {
     geographies: null,
     company_sizes: icp.company_sizes ?? null,
     industries: icp.industries ?? null,
     job_titles: icp.job_titles ?? null,
     seniority_levels: icp.seniority_levels ?? null,
+    // ── ⚑ 18 Sep (J5-C12 · FD-1) — "IN EVERY PATH" INCLUDES THE FREE ONE ────────────────
+    //
+    // This is the POOL REUSE decision: may we serve a record we already hold instead of
+    // buying one. An excluded company reused from the pool is exactly as wrong as an excluded
+    // company bought from Apollo, and costs the client the same relationship — so the same
+    // suppression applies. It is also the cheapest possible place to apply it.
+    exclusions: icp.exclusions ?? null,
   }))
 }
 

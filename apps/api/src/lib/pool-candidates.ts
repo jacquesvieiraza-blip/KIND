@@ -51,6 +51,17 @@ export type PoolCandidateIcp = {
   industries?:       string[] | null
   geographies?:      string[] | null
   seniority_levels?: string[] | null
+  /** ⚑ 18 Sep (J5-C12) — company size, carried so `poolRecordMatchesIcp` can test it. */
+  company_sizes?:    string[] | null
+  /**
+   * ── ⚑ 18 Sep (J5-C12 · FD-1) — THE CLIENT'S EXCLUSIONS, ON THE FREE PATH TOO ─────────
+   *
+   * ⚠️ IT TRAVELS AS FAR AS THE DECISION DOES. `selectPoolCandidates` hands this to
+   * `poolRecordMatchesIcp`, which delegates to the one hard-fit rule — so a type that stops
+   * short here is a suppression that stops short in the product, however correct the rule is.
+   * The caller passes the ICP row whole, so the field arrives as long as the type admits it.
+   */
+  exclusions?:       string | null
 }
 
 /** A row of `lead_pool`, as read. */

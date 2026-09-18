@@ -90,6 +90,11 @@ create table if not exists public.icps (
   -- below stays the CLOSED sixteen-value provider-edge hint and is never their words.
   target_category     text,
   target_company_type text,
+  -- MVP1 (J5-C12 / FD-1) — who the client asked us to LEAVE OUT, in their own words, as one
+  -- sentence ("no recruitment agencies, nothing in gambling"). It is the seventh hard
+  -- criterion in `proof-fit.ts`, and the only one that SUBTRACTS: a candidate matching it is
+  -- set aside with a reason in every path. NULL is "not stated" and refuses nobody.
+  exclusions          text,
   industries        text[] not null default '{}',
   job_titles        text[] not null default '{}',
   seniority_levels  text[] not null default '{}',

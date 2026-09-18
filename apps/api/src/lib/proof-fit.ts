@@ -70,10 +70,26 @@ export type HardFit = {
   category: HardVerdict
   company_type: HardVerdict
   seniority: HardVerdict
+  /**
+   * ── 🛑 ⚑ 18 Sep (J5-C12 · FD-1) — WHO THEY TOLD US TO LEAVE OUT ────────────────────
+   *
+   * 🛑 SEVEN NOW, AND THE SEVENTH IS THE ONLY ONE THAT SUBTRACTS. The six above ask "does
+   * this candidate MEET the requirement". This one asks "did the client already tell us NOT
+   * to contact companies like this" — and until now nothing anywhere asked it. `icps.exclusions`
+   * has been written since promotion existed, `figsy_knowledge.bad_fit` carries the same
+   * sentence to the copywriter, and NO GATE READ EITHER: a client who said "not recruitment
+   * agencies, not our competitors" three times could still have one sourced, surfaced,
+   * approved and emailed.
+   *
+   * ⚠️ IT IS A SUPPRESSION, NOT A PREFERENCE. FD-1 is explicit that a match is SET ASIDE with
+   * a reason, in every path — not ranked lower, not shown with a warning. An excluded company
+   * on a review desk is a client watching us ignore something they said out loud.
+   */
+  excluded: HardVerdict
 }
 
 export const HARD_CRITERIA = [
-  'geography', 'size', 'industry', 'category', 'company_type', 'seniority',
+  'geography', 'size', 'industry', 'category', 'company_type', 'seniority', 'excluded',
 ] as const
 export type HardCriterion = typeof HARD_CRITERIA[number]
 
@@ -110,6 +126,17 @@ export interface FitIcp {
   target_company_type?: string | null
   job_titles?: string[] | null
   seniority_levels?: string[] | null
+  /**
+   * ⚑ 18 Sep (J5-C12 · FD-1) — THE CANONICAL EXCLUSIONS, in the client's own words.
+   *
+   * ⚠️ ONE SENTENCE, NOT A LIST, because that is how a person answers the question: *"no
+   * recruitment agencies, nothing in gambling, and not our competitors."* It is split into
+   * phrases here rather than asking the client to structure it.
+   *
+   * ⚠️ NULL IS "NOT STATED" AND IS NEVER FABRICATED. A legacy ICP carries NULL and every
+   * candidate passes this criterion, exactly as they did before it existed.
+   */
+  exclusions?: string | null
 }
 
 const clean = (s: unknown): string => String(s ?? '').trim().toLowerCase()
@@ -275,6 +302,86 @@ function evidenceWords(c: FitCandidate): Set<string> {
  *   · no core word present, with evidence → a different kind of company → no
  *   · no evidence at all       → nothing to judge                    → unknown
  */
+/**
+ * ── 🛑 EXCLUSIONS (J5-C12 · FD-1) — THE CLIENT ALREADY TOLD US NO ──────────────────────
+ *
+ * 🛑 THE DIRECTION IS INVERTED AND THAT IS THE WHOLE CARE THIS FUNCTION NEEDS. Everywhere
+ * else in this file, evidence supporting the requirement is `yes`. Here, evidence supporting
+ * the EXCLUSION is `no` — the candidate is refused — so a copy-paste of `categoryVerdict`
+ * would have admitted exactly the companies it was meant to remove.
+ *
+ * ── HOW A SENTENCE BECOMES A TEST ──────────────────────────────────────────────────────
+ *
+ * The client writes one sentence. It is split on the separators people actually use — commas,
+ * "and", "or", semicolons, "no"/"not"/"nothing" — into PHRASES, and each phrase is matched the
+ * same tolerant way `categoryVerdict` matches a requirement: every significant word of the
+ * phrase present somewhere in the candidate's evidence.
+ *
+ * ⚠️ EVERY WORD, NOT ANY WORD. "no recruitment agencies" must not exclude every company whose
+ * name contains "agencies" — that would delete the entire target market of a client who asked
+ * for agencies and excluded recruitment ones, which is the ordinary case.
+ *
+ * ⚠️ AND STOP WORDS ARE DROPPED, so "not our competitors" does not reduce to the word "our"
+ * and match everything. A phrase with no significant words left is not a test and is skipped:
+ * "not our competitors" names no company we can recognise, and pretending otherwise would be
+ * the unfalsifiable judgement this file refuses everywhere else.
+ *
+ * ⚠️ THE SEMANTIC UPGRADE IS J5-C13'S (FD-2), DELIBERATELY. This is the STRUCTURAL half: the
+ * criterion, the canonical field, the reason and the suppression in every path. Model-
+ * interpreted matching — "TalentBridge Staffing" against "no recruitment agencies" — arrives
+ * with the same mechanism that makes category fit model-interpreted, and lands on this
+ * criterion rather than beside it.
+ */
+const EXCLUSION_SPLIT = /[,;/]|\band\b|\bor\b|\bnor\b|\bno\b|\bnot\b|\bnothing\b|\bexcept\b|\bavoid\b|\bexclude\b/i
+
+/** Words that carry no company meaning and must never be a match on their own. */
+const EXCLUSION_STOP = new Set([
+  'our', 'ours', 'we', 'us', 'their', 'they', 'any', 'all', 'the', 'a', 'an',
+  'of', 'in', 'on', 'at', 'to', 'for', 'with', 'from', 'by', 'like', 'similar',
+  'companies', 'company', 'business', 'businesses', 'firms', 'firm', 'org', 'orgs',
+  'organisation', 'organisations', 'organization', 'organizations', 'please', 'want',
+  // ⚠️ RELATIONSHIP WORDS, NOT COMPANY WORDS. "not our competitors" and "nobody we already
+  // work with" describe a relationship to the CLIENT, which no provider field records — so
+  // they can never be recognised from a candidate's evidence. Leaving them in would make
+  // `['competitors']` a live filter that matches nothing and looks like a working suppression,
+  // which is worse than no filter: the client believes their instruction is being honoured.
+  //
+  // 🛑 THIS IS A REPORTED LIMIT, NOT A SILENT ONE. Suppressing "our competitors" needs a list
+  // of who they are, which nothing in the product collects today — see the evidence package.
+  'competitor', 'competitors', 'competition', 'rivals', 'clients', 'customers', 'partners',
+])
+
+/** The phrases a client's exclusion sentence actually tests for. Exported for the guard. */
+export function exclusionPhrases(sentence: string | null | undefined): string[][] {
+  const raw = clean(sentence)
+  if (!raw) return []
+  return raw
+    .split(EXCLUSION_SPLIT)
+    .map(part => tokens(part).filter(w => !EXCLUSION_STOP.has(w)))
+    .filter(words => words.length > 0)
+}
+
+function excludedVerdict(icp: FitIcp, c: FitCandidate): HardVerdict {
+  const phrases = exclusionPhrases(icp.exclusions)
+  // Nothing was excluded, or nothing they said names a company we could recognise. Either way
+  // there is no test here, and an untested criterion passes — it never invents a refusal.
+  if (phrases.length === 0) return 'yes'
+
+  const words = evidenceWords(c)
+  // ⚠️ NO EVIDENCE IS `unknown`, NOT `yes`. We cannot say this company is not one they
+  // excluded, and `setAsideReason` already treats an unknown as set-aside-with-a-reason
+  // (11 Sep) — so a candidate we cannot read does not quietly clear a suppression. It does not
+  // make them WORSE off either: a candidate with no evidence is already unknown on category
+  // and industry for the same reason.
+  if (words.size === 0) return 'unknown'
+
+  // 🛑 EVERY SIGNIFICANT WORD OF A PHRASE, so "recruitment agencies" needs both words. A match
+  // on "agencies" alone would delete the whole market of a client who asked for agencies and
+  // excluded the recruitment ones.
+  const hit = phrases.some(phrase => phrase.every(w => words.has(w)))
+  return hit ? 'no' : 'yes'
+}
+
 function categoryVerdict(icp: FitIcp, c: FitCandidate): HardVerdict {
   const requirement = clean(icp.target_category)
   // An unstated requirement is not a test. A legacy ICP carries NULL here — "not collected" —
@@ -360,6 +467,7 @@ export function hardFit(candidate: FitCandidate, icp: FitIcp): HardFit {
     size: sizeVerdict(icp, candidate),
     industry: industryVerdict(icp, candidate),
     category: categoryVerdict(icp, candidate),
+    excluded: excludedVerdict(icp, candidate),
     company_type: companyTypeVerdict(icp, candidate),
     seniority: seniorityVerdict(icp, candidate),
   }
@@ -438,6 +546,9 @@ const FAILURE_COPY: Record<HardCriterion, string> = {
   category: 'not the kind of company you asked for',
   company_type: 'not the type of organisation you asked for',
   seniority: 'not the seniority you asked for',
+  // ⚑ 18 Sep (J5-C12 · FD-1) — the only sentence here that quotes the CLIENT back to
+  // themselves, because the reason is something they said rather than something we judged.
+  excluded: 'you asked us to leave companies like this out',
 }
 
 /**
@@ -454,6 +565,7 @@ const UNKNOWN_COPY: Record<HardCriterion, string> = {
   category: 'the kind of company could not be confirmed',
   company_type: 'the type of organisation could not be confirmed',
   seniority: 'their seniority could not be confirmed',
+  excluded: 'we could not confirm this is not one of the companies you asked us to leave out',
 }
 
 /**

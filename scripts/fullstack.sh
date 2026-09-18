@@ -490,6 +490,31 @@ cmd_up() {
   track "$(cat "$RUN_DIR/api.pid")" api
   wait_http "http://127.0.0.1:$PORT_API/health" "api" 90
 
+  # ── ⚑ 18 Sep (P6 §8.2) — THE NEXT APPS ARE BUILT HERE TOO, AND THEY WERE NOT ─────────────
+  #
+  # 🛑 THE HARNESS COULD NOT BOOT FROM A CLEAN CHECKOUT. The API is compiled above precisely
+  # so the run exercises the artifact that ships — and then the portal and admin were started
+  # with `next start`, which REQUIRES a production build and makes none. On any tree that had
+  # not been built by hand first, the portal died instantly with "Could not find a production
+  # build in the '.next' directory" and the run failed after ~4 minutes of setup.
+  #
+  # ⚠️ IT FAILED IN THE DIRECTION THAT HIDES. A developer who had run `next build` at some
+  # point saw a green harness; CI, a fresh clone or a new container saw a boot failure that
+  # looks like a timeout rather than a missing step. And a STALE `.next` is worse than no
+  # `.next`: the checks would pass against a build from before the change under test.
+  #
+  # So both Next apps are built from source on every run, exactly as the API is compiled on
+  # every run, and a build failure stops the harness with its own log rather than surfacing
+  # 90 seconds later as "the portal did not come up".
+  build_next() {
+    local app="$1"
+    ( cd "$TREE/apps/$app" && npx next build > "$RUN_DIR/$app-build.log" 2>&1 ) \
+      || { tail -30 "$RUN_DIR/$app-build.log"; fail "the $app did not build"; }
+    say "$app built (npx next build — the artifact \`next start\` serves)"
+  }
+  build_next portal
+  build_next admin
+
   ( cd "$TREE/apps/portal" && nohup npx next start -p "$PORT_PORTAL" > "$RUN_DIR/portal.log" 2>&1 & echo $! > "$RUN_DIR/portal.pid" )
   track "$(cat "$RUN_DIR/portal.pid")" portal
   wait_http "http://127.0.0.1:$PORT_PORTAL/api/health" "portal" 90

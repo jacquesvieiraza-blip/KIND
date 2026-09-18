@@ -2,7 +2,7 @@
 
 import { Router } from 'express'
 import { z } from 'zod'
-import { createHash, randomUUID } from 'node:crypto'
+import { randomUUID } from 'node:crypto'
 import Anthropic from '@anthropic-ai/sdk'
 import { CONVERSATION_MODEL, AI_TURN_BOUND } from '../lib/models'
 import { db } from '@kind/db'
@@ -357,26 +357,11 @@ millaRouter.get('/sessions/:sessionId/messages', async (req: AuthRequest, res) =
 
 // One alert per client per 15 minutes — in memory, same pattern as the approval-batch
 // throttle. A restart re-arms it, which is the safe direction to fail (an extra nudge).
-/**
- * 🛑 THE ID OF MILLA'S ANSWER TO ONE CUSTOMER TURN — derived, never random.
- *
- * ⚑ 15 Sep (O1 durability). One sentence may have exactly one stored answer, however many
- * times the send is replayed after an ambiguous failure. Deriving the reply's primary key
- * from the customer row's makes that a property of the table rather than of the caller's
- * retry discipline, and it costs one hash instead of a migration or a second column.
- *
- * ⚠️ IT IS A FORMATTING OF A DIGEST, NOT A SECURITY BOUNDARY. Nothing is authorised by this
- * value; it identifies a row whose session and client are checked separately above.
- */
-function replyRowIdFor(userRowId: string): string {
-  const h = createHash('sha256').update(`${userRowId}:milla-reply`).digest('hex')
-  // Shape it as a v4-looking UUID so the column's type is satisfied.
-  const v = h.slice(0, 32).split('')
-  v[12] = '4'
-  v[16] = '89ab'[parseInt(h[16], 16) & 0x3]
-  const s = v.join('')
-  return `${s.slice(0, 8)}-${s.slice(8, 12)}-${s.slice(12, 16)}-${s.slice(16, 20)}-${s.slice(20, 32)}`
-}
+// ⛓️ 18 Sep (J3-C2) — `replyRowIdFor` MOVED TO `lib/customer-turn.ts`, WITH THE RULE AROUND IT.
+// WHAT STOOD HERE: ~~the whole derivation, private to this file~~. It was built here on 15 Sep
+// (O1) and the Brief path had built the same idempotency shape a day earlier — two copies of
+// "one sentence, one answer", which is exactly how a THIRD door (`/icps/chat-build`) came to be
+// built with neither. The rule is now one module and every door imports it.
 
 const lastClientMessageAlert = new Map<string, number>()
 function shouldAlertClientMessage(clientId: string): boolean {
@@ -449,32 +434,27 @@ millaRouter.post('/sessions/:sessionId/chat', async (req: AuthRequest, res) => {
     // answering a question we did not manage to record is how a conversation silently loses
     // a turn, and the client's own composer still holds the sentence to try again.
     // ═══════════════════════════════════════════════════════════════════════════════════
-    const userRowId      = messageId ?? randomUUID()
-    const assistantRowId = replyRowIdFor(userRowId)
-
-    const { error: ownErr } = await db.from('milla_messages').insert({
-      id:         userRowId,
-      session_id: req.params.sessionId,
-      client_id:  clientId,
-      role:       'user',
-      content:    message,
-      sources:    null,
+    const { ownCustomerTurn, existingReply, storeMillaReply } = await import('../lib/customer-turn')
+    const owned = await ownCustomerTurn({
+      sessionId: req.params.sessionId,
+      clientId,
+      content: message,
+      userRowId: messageId ?? randomUUID(),
     })
-    const alreadyOwned = (ownErr as { code?: string } | null)?.code === '23505'
-    if (ownErr && !alreadyOwned) {
-      console.error('[milla/chat POST] could not store the customer turn', ownErr)
+    if (!owned.ok) {
+      console.error('[milla/chat POST] could not store the customer turn', owned.error)
       res.status(503).json({ success: false, error: 'Failed to send message' })
       return
     }
+    const { assistantRowId, alreadyOwned } = owned
 
     // 🛑 A RETRY OF A SEND THAT ALREADY SUCCEEDED REPLAYS THE ANSWER — IT DOES NOT RE-ASK.
     // The reply row's id is derived from the customer row's, so this is one primary-key
     // lookup. Without it an ambiguous failure after a complete turn would spend a second
     // model call and leave the client with two Milla replies to one sentence.
     if (alreadyOwned) {
-      const { data: prior } = await db.from('milla_messages')
-        .select('content, sources').eq('id', assistantRowId).maybeSingle()
-      if (prior?.content) {
+      const prior = await existingReply(assistantRowId)
+      if (prior) {
         res.json({ success: true, reply: prior.content, sources: prior.sources ?? [] })
         return
       }
@@ -513,13 +493,12 @@ millaRouter.post('/sessions/:sessionId/chat', async (req: AuthRequest, res) => {
     //
     // ⚠️ THE REPLY ROW'S ID IS DERIVED FROM THE CUSTOMER'S, so one sentence can only ever
     // have one answer stored against it, however many times the send is replayed.
-    await db.from('milla_messages').insert({
-      id:         assistantRowId,
-      session_id: req.params.sessionId,
-      client_id:  clientId,
-      role:       'assistant',
-      content:    reply,
-      sources:    sources.length > 0 ? sources : null,
+    await storeMillaReply({
+      assistantRowId,
+      sessionId: req.params.sessionId,
+      clientId,
+      content: reply,
+      sources,
     })
 
     res.json({ success: true, reply, sources })

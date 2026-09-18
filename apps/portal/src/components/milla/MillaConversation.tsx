@@ -356,11 +356,35 @@ export function MillaConversationProvider(
       if (isIcpContext(context)) {
         // Only the turns of THIS conversation, which is the same window the drawer sent.
         const history = messages.filter(m => m.id !== 'greet').slice(-12).map(m => ({ role: m.role, content: m.content }))
-        // ⚠️ RETRIED ONCE, AND SAFE TO BE: `/icps/chat-build` proposes and writes NOTHING —
-        // no ICP, no version, no message row. The session chat below is deliberately NOT
-        // wrapped, because it persists both turns and a re-send would double them.
+        // ── ⛓️ 18 Sep (J3-C2) — THE TARGETING TURN IS DURABLE TOO ──────────────────────
+        //
+        // WHAT THIS REPLACED, and it was accurate when it was written: ~~"RETRIED ONCE, AND
+        // SAFE TO BE: `/icps/chat-build` proposes and writes NOTHING — no ICP, no version, no
+        // message row."~~ Writing nothing is exactly why it was not safe for the CLIENT: their
+        // sentence lived only in this component's state, in the same transcript as session
+        // turns that survive a reload. Half a conversation coming back is the failure LR 17
+        // forbids, with a smaller blast radius.
+        //
+        // ⚠️ THE RETRY IS STILL SAFE, AND NOW FOR A REAL REASON RATHER THAN BY ACCIDENT: the
+        // route stores the turn under `intent.id`, so a re-send is a primary-key collision
+        // that replays the stored answer instead of asking twice.
+        //
+        // ⚠️ THE SESSION IS RESOLVED FIRST, exactly as the ordinary branch does it, because a
+        // turn with nowhere to be stored is a turn the server cannot keep.
+        let icpSid = sessionId
+        if (!icpSid) {
+          const list = await api.get<{ data: { id: string }[] }>('/milla/sessions', tok).catch(() => null)
+          icpSid = list?.data?.[0]?.id ?? null
+          if (!icpSid) {
+            const c = await api.post<{ sessionId: string }>('/milla/sessions', {}, tok).catch(() => null)
+            icpSid = c?.sessionId ?? null
+          }
+          if (icpSid) setSessionId(icpSid)
+        }
         const r = await withOneRetry(() => api.post<{ data: IcpDraft & { message?: string } }>(
-          '/icps/chat-build', { message: msg, history }, tok, AI_TURN_TIMEOUT_MS))
+          '/icps/chat-build',
+          { message: msg, history, sessionId: icpSid, messageId: intent.id },
+          tok, AI_TURN_TIMEOUT_MS))
         const d = r.data ?? {}
         setMessages(m => [...m, { id: `a-${Date.now()}`, role: 'assistant', content: d.message || 'Got it — anything else to change?' }])
         // Only treat it as a draft once there is something real to target with.

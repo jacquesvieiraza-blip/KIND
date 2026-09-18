@@ -3118,9 +3118,16 @@ icpRouter.post('/prefill', async (req: AuthRequest, res) => {
 // ── CHAT BUILD — conversational ICP builder (must be before /:id routes) ─────
 icpRouter.post('/chat-build', async (req: AuthRequest, res) => {
   try {
-    const { message, history = [] } = z.object({
+    const { message, history = [], sessionId, messageId } = z.object({
       message: z.string().min(1).max(1000),
       history: z.array(z.object({ role: z.enum(['user','assistant']), content: z.string() })).max(20).default([]),
+      // ⚑ 18 Sep (J3-C2) — WHERE THIS TURN BELONGS, AND WHICH TURN IT IS.
+      // ⚠️ BOTH OPTIONAL, because this endpoint is also reached from surfaces that hold no
+      // Milla session (the retired ICP drawer, the side panel). A turn with nowhere to be
+      // stored is answered exactly as it always was — what may not happen is a turn that HAS
+      // a home being answered without being put in it.
+      sessionId: z.string().uuid().nullish(),
+      messageId: z.string().uuid().nullish(),
     }).parse(req.body)
 
     // ── 🛑 ⚑ 14 Sep (R121, Build 2) — THE LAST JSON FORM IN A CLIENT'S PATH ─────────────
@@ -3197,6 +3204,54 @@ Consulting or Telecoms — ask about that ONE thing in ordinary words, and nothi
       }
     }
 
+    // ══════════════════════════════════════════════════════════════════════════════════
+    // 🛑 ⚑ 18 Sep (J3-C2) — ONCE THEY HAVE SENT IT, WE OWN IT. BEFORE THE MODEL.
+    //
+    // ⛓️ THIS DOOR PERSISTED NOTHING, and its own header above says so — *"twenty turns of
+    // BROWSER history and nothing else … no durable transcript"*. `MillaConversation` posts
+    // through here and the reply lands in the SAME visible transcript as the session chat,
+    // which writes its turn before the model and fails closed. One conversation, one screen,
+    // two durability rules — and the client cannot tell which turn is which until they reload
+    // after a provider wobble and half of it is gone. This is the door a PAYING client uses to
+    // change their targeting, so the turns being lost are the ones where they explain what
+    // they actually want.
+    //
+    // ⚠️ AFTER THE HISTORY IS ASSEMBLED, DELIBERATELY, so the payload stays byte-identical:
+    // the new turn reaches the model once, as the final `user` message, and not also as a row
+    // the history read picked up.
+    //
+    // ⚠️ AND IT IS FAIL-CLOSED, exactly as the session door is. Answering a question we did
+    // not manage to record is how a conversation silently loses a turn, and the client's own
+    // composer still holds the sentence to try again.
+    // ══════════════════════════════════════════════════════════════════════════════════
+    const { ownCustomerTurn, existingReply, storeMillaReply } = await import('../lib/customer-turn')
+    let owned: { userRowId: string; assistantRowId: string } | null = null
+    let ownedClientId: string | null = null
+    if (sessionId && messageId && req.userId) {
+      // `getClientId` is this module's own, declared above — the turn is stored against the
+      // same client every other route in this file resolves.
+      const turnClientId = await getClientId(req.userId)
+      if (turnClientId) {
+        const r = await ownCustomerTurn({
+          sessionId, clientId: turnClientId, content: message, userRowId: messageId,
+        })
+        if (!r.ok) {
+          console.error('[icps/chat-build] could not store the customer turn —', r.error)
+          res.status(503).json({ success: false, error: MILLA_RETRY_ERROR, retryable: true })
+          return
+        }
+        owned = { userRowId: r.userRowId, assistantRowId: r.assistantRowId }
+        // 🛑 A REPLAY OF A SEND THAT ALREADY SUCCEEDED REPLAYS THE ANSWER — IT DOES NOT
+        // RE-ASK. Without it the component's `withOneRetry` around this call spends a second
+        // model call and puts two Milla replies under one sentence.
+        if (r.alreadyOwned) {
+          const prior = await existingReply(r.assistantRowId)
+          if (prior) { res.json({ success: true, data: { message: prior.content } }); return }
+        }
+        ownedClientId = turnClientId
+      }
+    }
+
     const messages = [
       ...history,
       { role: 'user' as const, content: message },
@@ -3259,6 +3314,14 @@ Consulting or Telecoms — ask about that ONE thing in ordinary words, and nothi
       return
     }
     const parsed: Record<string, unknown> = { ...proposed, message: said }
+
+    // ⚑ 18 Sep (J3-C2) — and her answer joins the same transcript. Best-effort: the client has
+    // it on screen, and their words — the half we cannot reproduce — are already safe above.
+    if (owned && ownedClientId && sessionId && said) {
+      await storeMillaReply({
+        assistantRowId: owned.assistantRowId, sessionId, clientId: ownedClientId, content: said,
+      })
+    }
 
     // ── ⚑ 25 Aug — `clear_fields` IS SANITISED HERE, FAIL-CLOSED (founder-ruled) ─────────
     //

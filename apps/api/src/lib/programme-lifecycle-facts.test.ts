@@ -304,6 +304,61 @@ describe('② the LIST shows it too, because nothing else would make anybody ope
     const [row] = await lifecycleBoard([CLIENT])
     expect(row.needs_you).toBe(false)
   })
+
+  // ═════════════════════════════════════════════════════════════════════════════════════
+  // ⚑ 18 Sep (J12-C1) — THE OWNER'S ROW REACHES THE BOARD, AND IT HAD TO
+  //
+  // The four cases above read the AUDIT TRAIL, which is all there was on 10 Sep. J12-C1 gave
+  // the continuation a `automatic_work` owner, and its two stopped states are exactly the ones
+  // the trail cannot see: `failed`, and `stuck` — set by XC-6's detector for a run that went
+  // silent and therefore audited nothing at all.
+  //
+  // 🛑 WITHOUT THIS THE TWO SURFACES DISAGREED. `p1ContinuationHealth` asks the unit first, so
+  // a stuck programme read `sourcing_exception` · Needs you when OPENED and `sourcing` ·
+  // **Working** on the list — with the Needs-you filter, which reads these same facts, saying
+  // nothing needed the operator. That is this file's own founding defect, one state along.
+  // ═════════════════════════════════════════════════════════════════════════════════════
+
+  /** A unit written by a process that is no longer here. */
+  const unit = (state_: string, over: Row = {}): Row => ({
+    id: `aw-${state_}`, kind: 'p1_continuation', subject_kind: 'programme', subject_id: PROG,
+    client_id: CLIENT, state: state_, attempt: 1, bound_seconds: 1800,
+    requested_at: '2026-09-10T09:00:00Z', started_at: '2026-09-10T09:00:01Z',
+    updated_at: '2026-09-10T09:31:00Z', failure_reason: null, ...over,
+  })
+
+  it('🛑 J12-C1 · a STUCK continuation flags the row — the state the audit trail can never hold', async () => {
+    // Nothing in the trail: a run that died mid-flight reports nothing, which is why this is
+    // the case that proves the unit read is actually wired rather than shadowed by the trail.
+    state.automatic_work = [unit('stuck')]
+    const [row] = await lifecycleBoard([CLIENT])
+    expect(row.state, 'a stuck continuation read as ordinary work in progress on the list').toBe('sourcing_exception')
+    expect(row.needs_you).toBe(true)
+    expect(row.needs_you_reason).toBe('preparation_stopped')
+  })
+
+  it('🛑 J12-C1 · a FAILED continuation flags the row, with its recorded reason', async () => {
+    state.automatic_work = [unit('failed', { failure_reason: 'Apollo refused the search (402 credits exhausted).' })]
+    const [row] = await lifecycleBoard([CLIENT])
+    expect(row.needs_you).toBe(true)
+    expect(row.state).toBe('sourcing_exception')
+  })
+
+  it('🛑 J12-C1 · a live unit CLEARS a stale refusal — the trail keeps refusals for ever', async () => {
+    // The programme refused once, was fixed, and is running again. The trail still holds the
+    // refusal and always will; the unit is the newer truth and outranks it.
+    state.operator_audit_log = [auditRow('programme_p1_auto_refused', refusal, '2026-09-10T09:00:00Z')]
+    state.automatic_work = [unit('started')]
+    const [row] = await lifecycleBoard([CLIENT])
+    expect(row.needs_you, 'a refusal the unit has since superseded kept the badge lit').toBe(false)
+  })
+
+  it('J12-C1 · an unreadable unit leaves the trail\'s verdict standing, neither inventing nor erasing', async () => {
+    state.operator_audit_log = [auditRow('programme_p1_auto_refused', refusal, '2026-09-10T09:00:00Z')]
+    unreadable.add('automatic_work')
+    const [row] = await lifecycleBoard([CLIENT])
+    expect(row.needs_you, 'a failed unit read erased a refusal the trail had recorded').toBe(true)
+  })
 })
 
 // ═══════════════════════════════════════════════════════════════════════════════════════

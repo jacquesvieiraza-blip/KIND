@@ -106,6 +106,43 @@ export function isP1ContinuationRunning(programmeId: string): boolean {
 // opened deliberately by the advance/operator paths under `NEXT_BATCH` authority. What may
 // never happen twice is the AUTOMATIC start that one P1 payment buys.
 // ═══════════════════════════════════════════════════════════════════════════════════════
+//
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// ⛓️ 18 Sep (J12-C1) — THE DURABLE CLAIM THE SECTION ABOVE DECLINED TO BUILD NOW EXISTS,
+// SO IT IS USED. The argument above is kept because it is still right about the crash case;
+// it was WRONG ABOUT THE RACE, and this is the correction.
+//
+// ── WHAT THE OLD ARGUMENT MISSED ────────────────────────────────────────────────────────
+//
+// `alreadySpent` is a READ, and the gap between it and the batch the run opens is the entire
+// length of `sourceProgramme` — a provider search, minutes long. So:
+//
+//     replica A: alreadySpent → false ─┐
+//     replica B: alreadySpent → false ─┴→ BOTH pass every check on the row → BOTH source
+//
+// Two Apollo searches and two batches for one payment. `try_spend_sourcing` then holds them
+// inside the CEILING, which is a different promise from "one payment buys one automatic
+// start": the second batch is entitlement the client has not agreed to spend yet. A redelivered
+// Stripe webhook against two pods is the ordinary way this happens, and `inFlight` — a `Map`
+// in one process — cannot see across it. `j12c1-continuation-ownership.test.ts` reproduces it
+// with two module instances and one database; before this change it sourced twice.
+//
+// ── WHY THIS IS NOT THE HAND-ROLLED LOCK THAT WAS REFUSED ───────────────────────────────
+//
+// XC-6 already shipped the claim, as a by-product of giving every automatic step an owner:
+// `automatic_work` carries a PARTIAL UNIQUE INDEX over `(kind, subject_kind, subject_id)
+// WHERE state IN ('requested','started')`, and it declared the kind `'p1_continuation'` with
+// a 30-minute bound that nothing has ever requested. The database refuses the second live
+// unit outright — no check-then-insert, nothing for two replicas to interleave — and the same
+// row carries the persisted state, so the stranded-lock objection is answered by the thing
+// that answers it everywhere else in this package: XC-6's detector marks an overdue unit
+// `stuck` and raises an operator task, rather than leaving a lock nobody will ever clear.
+//
+// ⚠️ `alreadySpent` AND `try_spend_sourcing` STAY. Three checks of one fact, and the cheapest
+// of them is a query. They also remain the ONLY fences on a database where the 20260917
+// migration has not run — see the `tableMissing` branch, which starts the programme rather
+// than stranding a paying client over a tracking table.
+// ═══════════════════════════════════════════════════════════════════════════════════════
 
 /** Outcome audit actions, newest-first, that say a continuation actually finished. */
 const OUTCOME_ACTIONS = ['programme_p1_auto_started', 'programme_p1_auto_refused'] as const
@@ -174,6 +211,27 @@ export type P1ContinuationHealth = {
 const HEALTHY: P1ContinuationHealth = { stopped: false, detail: null }
 
 /**
+ * The operator's sentence for a unit that stopped. ⚑ 18 Sep (J12-C1).
+ *
+ * ⚠️ THE TWO STATES READ DIFFERENTLY BECAUSE THEY ARE DIFFERENT NEWS. `failed` is a run that
+ * came back and said what went wrong — the reason is the useful part. `stuck` is a run that
+ * never came back at all: there is no reason to quote, and pretending to one would be worse
+ * than saying plainly that nothing has been heard.
+ */
+export function p1ContinuationStoppedSentence(
+  r: { state: string; failure_reason: string | null; bound_seconds: number },
+): string {
+  if (r.state === 'failed') {
+    return r.failure_reason?.trim()
+      || 'This programme\'s automatic start failed and recorded no reason. Nothing will restart it by itself.'
+  }
+  const minutes = Math.max(1, Math.round((r.bound_seconds || 1800) / 60))
+  return 'This programme started sourcing automatically and then went silent for more than '
+    + `${minutes} minutes, so it has been handed to a person. Nothing will restart it by itself. `
+    + 'Check what the run actually did before starting anything else.'
+}
+
+/**
  * 🛑 DID THE AUTOMATIC START ACTUALLY HAPPEN — the question Vida never asked.
  *
  * Four answers, and only one of them is an exception:
@@ -186,11 +244,40 @@ const HEALTHY: P1ContinuationHealth = { stopped: false, detail: null }
  * ⚠️ NO OUTCOME AND NO BATCH IS NOT AN EXCEPTION. That is a programme whose payment has only
  * just landed, or one this process has never been asked about. Calling it broken would put
  * every freshly paid client into Needs you for the seconds before their run starts.
+ *
+ * ⛓️ 18 Sep (J12-C1) — THE OWNER'S OWN ROW IS ASKED FIRST, AND THE AUDIT TRAIL IS DEMOTED
+ * RATHER THAN REPLACED. The unit records `failed` and — the state nothing else can produce —
+ * `stuck`, set by XC-6's detector when a run went silent inside its bound. Reading the audit
+ * log first would miss `stuck` entirely: a run that died without reporting writes no outcome
+ * row at all, which is the case the batch fallback below has to guess at.
+ *
+ * 🛑 THIS IS A PRECEDENCE ORDER, NOT A SECOND ANSWER. One function, one verdict; the unit wins
+ * where it exists, the audit trail answers for the programmes that ran before ownership did.
+ * Two functions each willing to call a programme broken is the defect class this package spends
+ * most of its guards on.
  */
 export async function p1ContinuationHealth(programmeId: string): Promise<P1ContinuationHealth> {
   const id = typeof programmeId === 'string' ? programmeId.trim() : ''
   if (!UUID.test(id)) return HEALTHY
   if (inFlight.has(id)) return HEALTHY
+
+  // ── ① THE OWNER'S ROW ──
+  // ⚠️ AN UNREADABLE UNIT FALLS THROUGH, IT DOES NOT INVENT. "We could not ask" is never
+  // "your programme is broken" — the operator would be sent to a healthy client, and after
+  // the second one nobody reads the list. The reads below still get their turn.
+  try {
+    const { latestAutomaticWork } = await import('./automatic-work')
+    const read = await latestAutomaticWork('p1_continuation', 'programme', id)
+    if (read.ok && read.row) {
+      const r = read.row
+      if (r.state === 'failed' || r.state === 'stuck') {
+        return { stopped: true, detail: p1ContinuationStoppedSentence(r) }
+      }
+      // `requested`/`started` — running, and not yet overdue as far as this row knows.
+      // `completed` — the chain carries on by itself from there.
+      return HEALTHY
+    }
+  } catch { /* the unit is an optimisation on top of the reads below, never a gate on them */ }
 
   const [attempt, spent] = await Promise.all([lastP1ContinuationAttempt(id), alreadySpent(id)])
 
@@ -339,8 +426,45 @@ export async function startProgrammeAfterP1(
 
   const clientId = verdict.programme.client_id
 
+  // ── 🛑 THE DURABLE CLAIM (J12-C1). The last thing before the spend, and the only one of
+  // these checks that survives a second process ───────────────────────────────────────────
+  const { requestAutomaticWork, markAutomaticWorkStarted, markAutomaticWorkCompleted, markAutomaticWorkFailed } =
+    await import('./automatic-work')
+  const requested = await requestAutomaticWork({
+    kind: 'p1_continuation', subjectKind: 'programme', subjectId: id,
+    clientId, attempt: 1, now: new Date().toISOString(),
+  })
+
+  if (requested.alreadyLive) {
+    // ⚠️ NOT AUDITED AS A REFUSAL, for the reason `alreadyDone` has its own branch: a lost
+    // race is a HEALTHY programme, and `p1ContinuationHealth` reads the newest refusal as an
+    // exception — so auditing it would put a paying client into Needs you for succeeding.
+    console.log(`[p1-continuation] ${trigger} → programme ${id} already claimed by another owner`)
+    return {
+      started: false, already_running: true,
+      detail: 'This programme is already starting. Nothing new was started.',
+    }
+  }
+
+  if (!requested.ok && !requested.tableMissing) {
+    // 🛑 THE CLAIM WOULD NOT ANSWER. It is the only thing that knows whether another replica
+    // is already inside this programme's run, so authorising a spend on its silence is a guess
+    // with the client's entitlement — the same answer `alreadySpent` gives to `null`.
+    const reason = 'This programme\'s automatic start could not be claimed '
+      + `(${requested.error ?? 'the ownership record would not answer'}), so whether another `
+      + 'process is already sourcing it is unknown. Nothing was sourced.'
+    console.error(`[p1-continuation] ${trigger} → programme ${id} NOT started: ${reason}`)
+    await audit(id, clientId, actor, false, trigger, reason)
+    return { started: false, already_running: false, detail: reason }
+  }
+
+  // `null` where the table is absent: the run proceeds UNTRACKED (loudly — `requestAutomaticWork`
+  // has already logged the missing migration) behind the pre-J12-C1 fences.
+  const workId = requested.workId ?? null
+
   const run = (async () => {
     try {
+      if (workId) await markAutomaticWorkStarted(workId, { now: new Date().toISOString() })
       const { sourceProgramme } = await import('./programme-sourcing')
       const r = await sourceProgramme(id)
       // ⚠️ THE SOURCING RUN CARRIES THE REST OF THE CHAIN ITSELF — enrich, qualify, settle,
@@ -353,15 +477,21 @@ export async function startProgrammeAfterP1(
           `${r.skipped ? ` · ${r.skipped} skipped` : ''}.`
         console.log(`[p1-continuation] ${trigger} → programme ${id} sourced: ${summary}`)
         await audit(id, clientId, actor, true, trigger, summary)
+        if (workId) await markAutomaticWorkCompleted(workId, { now: new Date().toISOString() })
       } else {
         console.error(`[p1-continuation] ${trigger} → programme ${id} sourcing refused: ${r.message}`)
         await audit(id, clientId, actor, false, trigger, r.message)
+        // ⚠️ A REFUSED RUN IS A `failed` UNIT, NOT A `completed` ONE. It reached the provider
+        // seam and came back with nothing, which is exactly the state FD-0's recovery acts on —
+        // and, unlike `completed`, it releases the claim while still reading as stopped.
+        if (workId) await markAutomaticWorkFailed(workId, { reason: r.message, now: new Date().toISOString() })
       }
     } catch (err) {
       const why = err instanceof Error ? err.message : String(err)
       console.error(`[p1-continuation] ${trigger} → programme ${id} threw while sourcing:`, why)
       await audit(id, clientId, actor, false, trigger,
         `Sourcing could not be completed (${why}). The programme's authority and entitlement are unchanged.`)
+      if (workId) await markAutomaticWorkFailed(workId, { reason: why, now: new Date().toISOString() })
     }
   })()
 

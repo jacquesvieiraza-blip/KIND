@@ -249,6 +249,47 @@ export function markAutomaticWorkFailed(workId: string, opts: { reason: string; 
   })
 }
 
+/**
+ * ⚑ 18 Sep (J12-C1) — THE UNIT'S OWN LATEST WORD ABOUT ONE SUBJECT.
+ *
+ * Every surface that wants to say what the system is doing needs the same row: the newest unit
+ * of one kind for one subject. Three callers now want it — the Milla summary (J5-C2), the
+ * operator's recovery control (XC-12) and the continuation's health (J12-C1) — and each was
+ * about to read it with its own hand-rolled query.
+ *
+ * ⚠️ AN UNREADABLE ANSWER IS `{ ok: false }`, NEVER AN EMPTY ROW. "No unit" and "we could not
+ * ask" are different facts and every caller here decides differently between them: a missing
+ * unit is a programme nobody has started, an unreadable one is a programme whose owner we
+ * cannot identify. Collapsing them is the shape of defect XC-2 exists to remove.
+ *
+ * ⚠️ IT DOES NOT FILTER BY STATE. The newest row is the answer whatever state it is in —
+ * filtering to the live ones would make a `failed` unit look like no unit at all, which is
+ * precisely the reading that let a stopped programme sit on **Working** for ever.
+ */
+export type LatestWorkRead =
+  | { ok: true; row: AutomaticWorkRow | null }
+  | { ok: false; tableMissing: boolean; error: string }
+
+export async function latestAutomaticWork(
+  kind: AutomaticWorkKind, subjectKind: string, subjectId: string,
+): Promise<LatestWorkRead> {
+  try {
+    const { data, error } = await db.from('automatic_work')
+      .select('*')
+      .eq('kind', kind).eq('subject_kind', subjectKind).eq('subject_id', subjectId)
+      .order('updated_at', { ascending: false })
+      .limit(1)
+    if (error) {
+      const missing = isTableMissing(error)
+      if (missing) console.error(`[automatic-work] 🛑 ${TABLE_MISSING_MESSAGE}`)
+      return { ok: false, tableMissing: missing, error: error.message ?? String(error) }
+    }
+    return { ok: true, row: ((data ?? []) as AutomaticWorkRow[])[0] ?? null }
+  } catch (err) {
+    return { ok: false, tableMissing: false, error: err instanceof Error ? err.message : String(err) }
+  }
+}
+
 /** The two things silence can mean. Both are operator task classes. */
 export type OverdueVerdict = 'automatic_work_never_started' | 'automatic_work_stuck'
 

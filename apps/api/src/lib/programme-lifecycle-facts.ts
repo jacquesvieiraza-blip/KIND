@@ -890,6 +890,53 @@ export async function lifecycleBoard(clientIds: string[]): Promise<LifecycleBoar
           : 'This programme did not start automatically, and no reason was recorded.')
       }
     } catch { /* an unreadable trail flags nothing here — the detail call still will */ }
+
+    // ── 🛑 ⚑ 18 Sep (J12-C1) — THE OWNER'S ROWS, BATCHED, AND THEY OUTRANK THE TRAIL ───────
+    //
+    // The read above was the board's ONLY source of "this continuation stopped", and it can
+    // only see a refusal that was AUDITED. The unit records two states it cannot:
+    //
+    //   `failed` — reported by the run itself, and now written by `startProgrammeAfterP1`
+    //   `stuck`  — set by XC-6's detector when a run went silent inside its bound; a run that
+    //              died without reporting audits NOTHING, so the trail is empty for it
+    //
+    // 🛑 WITHOUT THIS, THE BOARD AND THE PANEL DISAGREE. `p1ContinuationHealth` (the single
+    // client path) asks the unit first as of today, so a stuck programme would read
+    // `sourcing_exception` · Needs you when opened, and `sourcing` · **Working** on the board
+    // the operator is scanning — with the Needs-you FILTER, which reads these same facts,
+    // saying nothing needs them. That is the silent disagreement this file's own header names
+    // as the reason the derivation is one function.
+    //
+    // ⚠️ SAME PRECEDENCE AS THE SINGLE PATH, SO THEY CANNOT DIVERGE: a unit that exists is the
+    // answer for its programme, whatever the trail says; the trail answers for programmes that
+    // ran before ownership existed. And it fails soft in the same direction — an unreadable
+    // unit table leaves the trail's verdict standing rather than inventing or erasing one.
+    try {
+      const { data } = await db.from('automatic_work')
+        .select('subject_id, state, failure_reason, bound_seconds, updated_at')
+        .eq('kind', 'p1_continuation').eq('subject_kind', 'programme')
+        .in('subject_id', progIds)
+        .order('updated_at', { ascending: false }).limit(5000)
+      const seenUnit = new Set<string>()
+      for (const r of ((data ?? []) as {
+        subject_id: string | null; state: string; failure_reason: string | null; bound_seconds: number | null
+      }[])) {
+        const sid = r.subject_id
+        if (!sid || seenUnit.has(sid)) continue
+        seenUnit.add(sid)
+        if (r.state === 'failed' || r.state === 'stuck') {
+          const { p1ContinuationStoppedSentence } = await import('./programme-p1-continuation')
+          continuationStopped.set(sid, p1ContinuationStoppedSentence({
+            state: r.state, failure_reason: r.failure_reason ?? null, bound_seconds: r.bound_seconds ?? 1800,
+          }))
+        } else {
+          // 🛑 A LIVE OR COMPLETED UNIT CLEARS A STALE REFUSAL. The trail keeps every refusal
+          // for ever; a programme that refused, was fixed and started again must not stay in
+          // Needs you because the older row is still there.
+          continuationStopped.delete(sid)
+        }
+      }
+    } catch { /* the unit is an addition to the trail above, never a gate on it */ }
   }
 
   // ── 🛑 ⚑ 17 Sep (XC-3) — THE LAST PER-CLIENT READS ON THIS BOARD, BATCHED ───────────────

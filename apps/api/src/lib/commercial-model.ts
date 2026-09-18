@@ -200,3 +200,56 @@ export function commercialModelLabel(m: CommercialModel): string {
     case 'unreadable':      return 'Unresolved — needs an operator'
   }
 }
+
+// ══════════════════════════════════════════════════════════════════════════════════════════
+// ⚑ 18 Sep (XC-7 · R124 · LR 18) — THE LEGACY DOORS, AND THE ONE WAY THEY REFUSE
+//
+// ── 🛑 WHY A HELPER RATHER THAN THE PREDICATE ABOVE ────────────────────────────────────
+//
+// `mayUseLegacyCommercialPath` answers a question; every caller then had to decide what to DO
+// with `unreadable`, and that decision is the whole safety property. R124 (16 Sep,
+// founder-locked): *"299/4 is gone. out. we are on the programme. all clients."* — so a door
+// built on the retired wallet must not open for a programme customer, and it must not open for
+// a customer we could not classify either. One helper, one refusal, one status code per case.
+//
+// ⚠️ `unreadable` IS A 503, NOT A 403. "We could not tell" and "you are on the programme" are
+// different sentences and only one of them is about the client. A 503 also says the honest
+// thing to a retry: come back, this may resolve.
+//
+// ⚠️ AND A LEGACY CLIENT IS UNAFFECTED, WHICH IS THE POINT. R74 keeps the retired runtime live
+// until the coordinated migration ships; this fences the doors for PROGRAMME customers only.
+// ══════════════════════════════════════════════════════════════════════════════════════════
+
+/** What a programme customer is told at a door built on the retired wallet. */
+export const LEGACY_DOOR_REFUSAL =
+  'This account is on the programme, so the per-lead credit path is not part of it. '
+  + 'Everything for this client runs through their programme.'
+
+export type LegacyDoorVerdict =
+  | { allowed: true }
+  | { allowed: false; status: 403 | 503; reason: string }
+
+/**
+ * May this client use a door built on the retired per-lead model?
+ *
+ * ⚠️ IT NEVER THROWS. A door that crashes on its own gate is a door that fails OPEN the moment
+ * somebody wraps it in a try/catch that logs and continues.
+ */
+export async function legacyDoorVerdict(clientId: string): Promise<LegacyDoorVerdict> {
+  try {
+    const model = await clientCommercialModel(clientId)
+    if (model.model === 'unreadable') {
+      return {
+        allowed: false, status: 503,
+        reason: `This account's commercial model could not be read (${model.reason}), so nothing was done. Try again shortly.`,
+      }
+    }
+    if (mayUseLegacyCommercialPath(model)) return { allowed: true }
+    return { allowed: false, status: 403, reason: LEGACY_DOOR_REFUSAL }
+  } catch (err) {
+    return {
+      allowed: false, status: 503,
+      reason: `This account's commercial model could not be read (${err instanceof Error ? err.message : String(err)}), so nothing was done.`,
+    }
+  }
+}

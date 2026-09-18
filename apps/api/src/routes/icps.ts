@@ -2762,7 +2762,10 @@ export async function runIcpJob(
     // ⚠️ `gatedIds`, NOT `insertedIds` — the model judges only candidates that already match
     // the client's own hard criteria (C05: calibration among the structurally eligible).
     scoreLeadsForIcp(gatedIds, icp, clientRow?.company_name ?? '', clientId)
-      .then(() => {
+      // ⚠️ `async` SO THE COMMERCIAL-MODEL FENCE BELOW CAN BE AWAITED. The callback already
+      // returns a promise on one branch (`autoConsentScoredLeads`), so the chain's shape is
+      // unchanged — what is new is that one of its own decisions needs a read.
+      .then(async () => {
         // 🛑 ⚑ 16 Sep (MVP1 · F1) — A FREE PROOF NEVER COLD-EMAILS THE CLIENT'S PROSPECTS.
         //
         // Proof exists to show ONE client a sample of who we can reach. Consent mail is real
@@ -2774,7 +2777,23 @@ export async function runIcpJob(
           console.log(`[icp] auto-consent FENCED OFF — free proof run for prospect ${clientId}; ${gatedIds.length} eligible lead(s) scored for the desk, no consent emails sent (F1).`)
           return undefined
         }
+        // ── 🛑 ⚑ 18 Sep (XC-7 · R124 · LR 18) — AND NOT FOR A PROGRAMME CLIENT EITHER ────
+        //
+        // Auto-consent is the LEGACY outreach motion: a consent email to a stranger, fired
+        // because a sourcing run scored them, with no programme approval anywhere behind it.
+        // A programme customer's outbound has one door — approval, then the prepared sequence
+        // — and this is a second one that opens on sourcing alone.
+        //
+        // ⚠️ THE TWO EXISTING FENCES ARE UNTOUCHED: free proof is still refused above, and
+        // `AUTO_OUTREACH_ENABLED` is still required below. This adds a third, and it is about
+        // WHO rather than about the switch.
         if (process.env.AUTO_OUTREACH_ENABLED === 'true') {
+          const { legacyDoorVerdict } = await import('../lib/commercial-model')
+          const door = await legacyDoorVerdict(clientId)
+          if (!door.allowed) {
+            console.warn(`[icp] auto-consent FENCED OFF for client ${clientId} — ${door.reason} ${gatedIds.length} lead(s) scored, no consent emails sent.`)
+            return undefined
+          }
           return autoConsentScoredLeads(gatedIds, clientRow?.company_name ?? '', clientId)
         }
         console.log(`[icp] auto-consent SKIPPED (AUTO_OUTREACH_ENABLED != true) — ${insertedIds.length} leads scored, no consent emails sent`)
@@ -6719,6 +6738,29 @@ icpRouter.post('/:id/run', rateLimit({ limit: 10, windowMs: 60_000, key: 'icp-ru
     const clientId = await getClientId(req.userId!)
     if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
 
+    // ── 🛑 ⚑ 18 Sep (XC-7 · R124 · LR 18) — A LEGACY DOOR, FENCED FOR A PROGRAMME CLIENT ──
+    //
+    // Everything below this line is the retired per-lead model: twenty welcome REVEAL CREDITS,
+    // a wallet balance, a `$1 each` sourcing allowance and a legacy `runIcpJob`. R124 (16 Sep,
+    // founder-locked): *"299/4 is gone. out. we are on the programme. all clients."*
+    //
+    // 🛑 AND IT IS NOT MERELY UNTIDY FOR A PROGRAMME CLIENT — IT SPENDS. A programme customer
+    // pressing this sources outside their programme's entitlement, against a provider budget
+    // their programme did not buy, and can be granted credits the product no longer sells.
+    // Their sourcing has one door and it is the programme's.
+    //
+    // ⚠️ THE FENCE IS FIRST, before the welcome-credit grant and before any read that leads to
+    // one. A refusal after a grant is a refusal that already cost something.
+    {
+      const { legacyDoorVerdict } = await import('../lib/commercial-model')
+      const door = await legacyDoorVerdict(clientId)
+      if (!door.allowed) {
+        console.warn(`[icp] /icps/:id/run REFUSED for client ${clientId} — ${door.reason}`)
+        res.status(door.status).json({ success: false, error: door.reason })
+        return
+      }
+    }
+
     // #420/#422 — browsing is FREE: a run sources MASKED leads (no email exposed,
     // nothing charged), so a $0 client may run. The wallet gates the REVEAL ($1),
     // not the sourcing. What bounds our PDL spend instead is the #423 daily
@@ -7545,7 +7587,24 @@ async function activateIcpHandler(req: AuthRequest, res: Response) {
       // above. A client row with no owner therefore starts NOTHING: sourcing whose "your
       // first leads are ready" email has no recipient is spend the client never learns about.
       const ownerUserId = (bal?.user_id as string | null) ?? null
-      if (!ownerUserId) {
+      // ── 🛑 ⚑ 18 Sep (XC-7 · R124 · LR 18) — THE AUTO-RUN IS THE LEGACY DOOR HERE ───────
+      //
+      // Activation itself is an operator act on the client's TARGETING, and a programme
+      // client's ICP revision is a legitimate thing for an operator to apply — so the ICP and
+      // the brief still go live exactly as they did. What must not follow is THIS: a
+      // `runIcpJob` started on `credit_balance`, falling back to twenty free reveals, outside
+      // any programme entitlement. A programme client's sourcing starts at P1 and nowhere else.
+      //
+      // ⚠️ THE RESPONSE STILL SAYS WHAT HAPPENED. `sourcing: false` is the honest answer, and
+      // it is the same answer an already-run ICP has always produced — the operator is not
+      // told a run started that did not.
+      const legacyRunDoor = await (async () => {
+        const { legacyDoorVerdict } = await import('../lib/commercial-model')
+        return legacyDoorVerdict(clientId)
+      })()
+      if (!legacyRunDoor.allowed) {
+        console.warn(`[icps/activate] the legacy first-run was NOT started for client ${clientId} — ${legacyRunDoor.reason} Their targeting is live; sourcing runs through their programme.`)
+      } else if (!ownerUserId) {
         console.error(`[icps/activate] client ${clientId} has no owner user_id — the ICP is live but no first run was started, because the leads email would have nowhere to go.`)
       } else if (credits > 0 || !bal?.first_icp_run_at) {
         started = true

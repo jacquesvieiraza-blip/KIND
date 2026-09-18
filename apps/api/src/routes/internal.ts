@@ -1658,10 +1658,31 @@ internalRouter.post('/clients/chase-unpaid', async (_req: Request, res: Response
       .select('client_id').in('client_id', ids).in('type', PAID_TX_TYPES)
     const paid = new Set((paidRows ?? []).map((r: { client_id: string }) => r.client_id))
 
+    // ── 🛑 ⚑ 18 Sep (XC-7 · R124 · LR 18) — THIS PUSH QUOTES THE RETIRED PACK ────────────
+    //
+    // The body below is interpolated from `PACK_PRICE_USD` and `PACK_LEADS` — the $299 pack
+    // and its first 100 approved leads — and it lands on a real person's PHONE, linking to a
+    // checkout. R124 (16 Sep, founder-locked): *"299/4 is gone. out. we are on the programme.
+    // all clients."*
+    //
+    // 🛑 AND A PROGRAMME CLIENT QUALIFIES FOR IT TODAY. The sweep selects everybody with an
+    // active ICP and no legacy `credit_transactions` row — which is every programme customer
+    // who has ever had targeting, because they never buy a pack. Their phone was the one
+    // surface the retired economics could still reach.
+    //
+    // ⚠️ ONE READ FOR THE WHOLE SWEEP, like the zero-credits job above: a per-client query
+    // inside the loop is the same decision made once per client, and a second copy of the
+    // rule is how two copies drift.
+    const chaseProgrammes = await programmeClientIds([...icpByClient.keys()])
+
     const now = Date.now()
     let reminded = 0
     for (const [cid, at] of icpByClient) {
       if (paid.has(cid)) continue
+      // ⚠️ `mayNotify` WITHHOLDS ON `null` — an unreadable programme table is not permission
+      // to quote a retired price at somebody. Same refusal as every other retired-wallet
+      // notification, from the same function, so there is one rule rather than two.
+      if (!mayNotify('zero_credits', { onProgramme: onProgramme(chaseProgrammes, cid) })) continue
       const days = Math.floor((now - new Date(at).getTime()) / 86_400_000)
       if (!REMIND_ON_DAYS.includes(days)) continue
       await sendPushToClient(cid, {

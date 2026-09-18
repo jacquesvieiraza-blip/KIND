@@ -165,6 +165,12 @@ const apolloHandler = async (req, body, res, state) => {
     const person = (i) => ({
       id: `apollo-person-${i}`, first_name: 'Test', last_name: `Person${i}`,
       name: `Test Person${i}`, title: 'Head of Operations', linkedin_url: null,
+      // ⚠️ `seniority` IS A HARD CRITERION, and its absence refused every prospect. The
+      // structural gate judges seniority before anything is spent; with the field missing,
+      // every contact came back "unknown" and a programme run set aside all 20 — so the batch
+      // existed with nobody in it and preparation refused with "no qualified prospect yet".
+      // 'head' is Apollo's own token for the "Head of" level this walk's ICP asks for.
+      seniority: 'head',
       email_status: 'verified', email: null,
       // ⚠️ BOTH HEADCOUNT KEYS, AND THE REASON IS A REAL DISCREPANCY. This fake emitted only
       // `estimated_num_employees`; `apollo.ts` reads `organization.num_employees`. With the
@@ -188,8 +194,26 @@ const apolloHandler = async (req, body, res, state) => {
     }), true
   }
   if (path.endsWith('/people/bulk_match')) {
+    // ── ⚑ 18 Sep (P6 §8.2) — MATCH THE PEOPLE ACTUALLY ASKED ABOUT ────────────────────────
+    //
+    // 🛑 THIS RETURNED ONE HARDCODED MATCH, and that quietly capped the whole product at one
+    // sendable prospect. The final ICP gate (FD-1) reads the EMAIL, and search returns none —
+    // Apollo only reveals addresses on match — so every candidate the match did not cover was
+    // gated out, `qualifyCandidates` received an empty list, nothing was ever qualified, and
+    // preparation refused with "no qualified prospect yet". Journeys 13 through 19 and 25 were
+    // all unreachable behind it.
+    //
+    // ⚠️ THE IDS ARE ECHOED FROM THE REQUEST, so the answer is about the people the product
+    // asked about rather than a fixture it happens to agree with.
+    const asked = [...new Set((String(body ?? '').match(/apollo-person-\d+/g) ?? []))]
+    const matches = (asked.length ? asked : ['apollo-person-0']).map(pid => ({
+      id: pid,
+      email: `${pid}@fake-harness.localdomain`,
+      email_status: 'verified',
+      country: 'United Kingdom',
+    }))
     return json(res, 200, {
-      matches: [{ id: 'apollo-person-0', email: 'test.person0@fake-0.invalid', email_status: 'verified', country: 'United Kingdom' }],
+      matches,
     }), true
   }
   if (path.includes('/usage_stats/')) {
@@ -276,6 +300,36 @@ const anthropicHandler = async (req, body, res, state) => {
     return json(res, 200, {
       id: 'msg_fake_scoring', type: 'message', role: 'assistant', model: 'fake-harness-model',
       content: [{ type: 'text', text: JSON.stringify(scored) }],
+      stop_reason: 'end_turn', usage: { input_tokens: 1, output_tokens: 1 },
+    }), true
+  }
+
+  // ── ⚑ 18 Sep (P6 §8.2) — THE SECOND SCRIPTED SHAPE: SEQUENCE GENERATION ─────────────────
+  //
+  // 🛑 WITHOUT IT, PREPARATION DIES ON A TypeError. `generateSequence` hands its answer
+  // straight to `draft.step1.subject` (figsy.ts:365) with no guard, so a model reply that is
+  // not the expected object throws "Cannot read properties of undefined (reading 'subject')"
+  // — surfaced to the operator as "The outreach for this programme could not be drafted".
+  // That is REPORTED as a robustness finding in its own right: a malformed model answer
+  // should be a clean refusal, not a stack trace, and F-MODEL's other three modes are handled
+  // properly.
+  //
+  // ⚠️ THE COPY IS THE HARNESS'S AND PROVES NOTHING ABOUT WRITING. What it makes testable is
+  // everything downstream — freeze, approval, Make Live, Run — which is what journeys 13-19
+  // are about. The merge token is real so the linter's "names nobody" refusal is exercised
+  // rather than dodged.
+  if (prompt.includes('cold outreach emails') || prompt.includes('step1')) {
+    const step = (n) => ({
+      subject: `A quick question about operations (${n})`,
+      // ⚠️ AND IT CARRIES A WAY OUT, because the quality linter HARD-REFUSES a sequence that
+      // gives the reader no way to say stop — correctly, and it refused the first version of
+      // this copy. Satisfying the rule rather than bypassing it keeps the linter real for
+      // every later run.
+      body: `Hi {{first_name}},\n\nHarness-written step ${n} for {{company}}. Worth a short conversation?\n\nIf not, just reply "stop" and I'll leave you alone.\n\nBest,\nK.I.N.D`,
+    })
+    return json(res, 200, {
+      id: 'msg_fake_sequence', type: 'message', role: 'assistant', model: 'fake-harness-model',
+      content: [{ type: 'text', text: JSON.stringify({ step1: step(1), step2: step(2), step3: step(3) }) }],
       stop_reason: 'end_turn', usage: { input_tokens: 1, output_tokens: 1 },
     }), true
   }

@@ -414,7 +414,12 @@ export function makeJourneyChecks(kit) {
 
     const r = await asOperator(`/operator/icp/${W.icpId}/calibrate`, {
       method: 'POST', timeoutMs: 180000,
-      body: JSON.stringify({ job_titles: ['Operations Director'], note: 'recalibrated by a human' }),
+      // ⚠️ A CALIBRATION WIDENS, IT DOES NOT REPLACE. The first cut swapped the only title the
+      // client had for a different one, which left every later journey sourcing against
+      // targeting that matches nobody — the walk broke four steps downstream and the symptom
+      // appeared as "no qualified prospect". A human recalibrating adds the shape they also
+      // want; they do not delete the one that was working.
+      body: JSON.stringify({ job_titles: ['Head of Operations', 'Operations Director'], note: 'recalibrated by a human' }),
     })
     let after = Number((await sql(
       `select count(*)::int as n from public.leads where client_id = $1 and proof_batch_kind = 'calibrated_restart'`, [W.clientId]))[0].n)
@@ -423,7 +428,7 @@ export function makeJourneyChecks(kit) {
     if (r.status === 404) {
       // No such route in this build: the restart is the operator re-running Proof after
       // editing the targeting. Drive that instead, and say which path was taken.
-      await sql(`update public.icps set job_titles = '{"Operations Director"}' where id = $1`, [W.icpId])
+      await sql(`update public.icps set job_titles = '{"Head of Operations","Operations Director"}' where id = $1`, [W.icpId])
       await sql(`update public.clients set proof_review_requested_at = null where id = $1`, [W.clientId])
       const again = await asClient(`/icps/${W.icpId}/proof`, { method: 'POST', body: JSON.stringify({}), timeoutMs: 180000 })
       after = Number((await sql(`select count(*)::int as n from public.leads where client_id = $1`, [W.clientId]))[0].n)
@@ -587,9 +592,405 @@ export function makeJourneyChecks(kit) {
     ok(id, `one sourcing run end to end: ${qualified} qualified (scored) lead(s) · outcome=${outcomes[0]?.status} · accounting never exceeds the authorised volume (used=${used} + reserved=${reserved} of ${ceiling}) and consumed nothing for nobody · PDL+0 HUNTER+0 · HTTP ${r.status}${reserved > 0 ? ' · ⚠️ see the stranded-reservation finding' : ''}`)
   }
 
+  // ════════════════════════════════════════════════════════════════════════════════════════
+  // J13 · CAMPAIGN PREPARATION
+  // ════════════════════════════════════════════════════════════════════════════════════════
+  async function j13() {
+    const id = 'J13'
+    if (needs(id, 'programmeId', 'programme')) return
+    // 🛑 PREPARATION REFUSES WITHOUT A QUALIFIED PROSPECT — "there is nobody to write to" —
+    // and qualification for the PROGRAMME is its own operator step, separate from the scoring
+    // that happens during sourcing. Driven here because it is the precondition the product
+    // itself states, not a shortcut around it.
+    const qualify = await asOperator(`/operator/programme/${W.programmeId}/qualify-batch`, {
+      method: 'POST', body: JSON.stringify({}), timeoutMs: 180000 })
+
+    const r = await asOperator(`/operator/programme/${W.programmeId}/prepare-for-review`, {
+      method: 'POST', body: JSON.stringify({}), timeoutMs: 120000 })
+
+    // Preparation is server-owned and runs in the background — the route answers 202 and the
+    // work lands afterwards, so the outcome is waited for rather than read at once.
+    const prepared = await waitFor('the preparation snapshot', async () => {
+      const [p] = await sql(
+        `select review_preparation_at, review_preparation_version,
+                review_preparation_snapshot is not null as has_snapshot
+           from public.programmes where id = $1`, [W.programmeId])
+      return p?.has_snapshot ? p : null
+    })
+    if (!prepared) {
+      const [p] = await sql('select status from public.programmes where id = $1', [W.programmeId])
+      return bad(id, `preparation produced no snapshot within 60s (status=${p?.status}) — qualify-batch HTTP ${qualify.status}: ${String(qualify.text).slice(0, 180)} || prepare HTTP ${r.status}: ${String(r.text).slice(0, 180)}`)
+    }
+    // 🛑 A VERSION, NOT JUST A TIMESTAMP. What the client approves has to be identifiable, or
+    // "they approved THIS" cannot be proved later.
+    if (!prepared.review_preparation_version) {
+      return bad(id, 'the preparation carries no version — an approval could not be tied to what was approved')
+    }
+    ok(id, `campaign preparation ran server-side and recorded WHAT was prepared: snapshot stored, version ${prepared.review_preparation_version}, at ${prepared.review_preparation_at} · HTTP ${r.status}`)
+  }
+
+  // ════════════════════════════════════════════════════════════════════════════════════════
+  // J14 · SENDER ASSIGNMENT & VERIFICATION
+  // ════════════════════════════════════════════════════════════════════════════════════════
+  async function j14() {
+    const id = 'J14'
+    if (needs(id, 'clientId', 'client')) return
+    const assign = await asOperator('/operator/inboxes/assign', {
+      method: 'POST', timeoutMs: 60000,
+      body: JSON.stringify({ client_id: W.clientId, count: 1 }),
+    })
+    let boxes = await sql(
+      `select id, email, kind, status, verified_at from public.client_inboxes where client_id = $1`, [W.clientId])
+
+    if (boxes.length === 0) {
+      // No pool to assign from in this harness; a mailbox is seeded so the VERIFICATION half —
+      // the part that decides whether anything may send — is still driven for real.
+      seeded('the pooled mailbox and its SMTP credentials (no warmed sender pool exists in this harness to assign from)')
+      const { encryptSecret } = await import(`${ENV.tree}/apps/api/dist/lib/inbox-secret.js`)
+      await sql(
+        `insert into public.client_inboxes(client_id, email, kind, status, provider, daily_cap,
+           smtp_host, smtp_port, smtp_secure, smtp_user, smtp_pass_enc, from_name)
+         values ($1, $2, 'pooled', 'assigned', 'smtp', 50, $3, $4, false, $2, $5, 'K.I.N.D Walk')`,
+        [W.clientId, `walk-sender-${W.tag}@sender.invalid`,
+         process.env.SMTP_HOST ?? '127.0.0.1', Number(process.env.SMTP_PORT ?? 58514),
+         encryptSecret('fullstack-smtp-password')])
+      boxes = await sql(
+        `select id, email, kind, status, verified_at from public.client_inboxes where client_id = $1`, [W.clientId])
+    }
+    const box = boxes[0]
+    if (box.verified_at) return bad(id, 'the mailbox was already verified before anybody tested it')
+
+    // 🛑 VERIFICATION IS A REAL ACT, AND SENDING DEPENDS ON IT. Until a mailbox proves it can
+    // log in, the send seam refuses with `sender_unsafe` — "a wrong password would only be
+    // discovered by a bounce".
+    const verify = await asOperator(`/operator/inboxes/${box.id}/verify`, {
+      method: 'POST', body: JSON.stringify({ client_id: W.clientId }), timeoutMs: 60000 })
+    const [after] = await sql(
+      `select status, verified_at, verify_failed_at, verify_detail from public.client_inboxes where id = $1`, [box.id])
+
+    if (!after.verified_at && !after.verify_failed_at) {
+      return bad(id, `verification recorded NOTHING (HTTP ${verify.status}) — neither a pass nor a failure, so nobody can tell whether this mailbox can send: ${String(verify.text).slice(0, 200)}`)
+    }
+    if (after.verify_failed_at) {
+      // A failure is a legitimate outcome and must be RECORDED with its reason, not swallowed.
+      if (!after.verify_detail) return bad(id, 'the mailbox failed verification and recorded no reason')
+      ok(id, `a mailbox was assigned to the client and verification ran for real: it FAILED and said why ("${String(after.verify_detail).slice(0, 80)}"), which is the outcome that keeps the send seam refusing · assign HTTP ${assign.status} · verify HTTP ${verify.status}`)
+      return
+    }
+    ok(id, `a mailbox was assigned to the client (${box.kind}) and PROVED it can log in — verified_at stamped, which is what the send seam requires before anything may leave · assign HTTP ${assign.status} · verify HTTP ${verify.status}`)
+  }
+
+  // ════════════════════════════════════════════════════════════════════════════════════════
+  // J15 · FREEZE / READY FOR APPROVAL
+  // ════════════════════════════════════════════════════════════════════════════════════════
+  async function j15() {
+    const id = 'J15'
+    if (needs(id, 'programmeId', 'programme')) return
+    const r = await http(`${BASE}/programmes/${W.programmeId}/ready-for-approval`, {
+      method: 'POST', timeoutMs: 90000,
+      headers: { 'x-admin-key': ENV.secrets.adminKey, 'x-operator-email': 'fullstack-operator@example.invalid' },
+      body: JSON.stringify({}),
+    })
+    const [p] = await sql(
+      `select status, review_preparation_hash, review_preparation_version from public.programmes where id = $1`, [W.programmeId])
+    if (p.status !== 'READY_FOR_APPROVAL') {
+      return bad(id, `the programme is ${p.status}, not READY_FOR_APPROVAL — HTTP ${r.status}: ${String(r.text).slice(0, 220)}`)
+    }
+    // 🛑 FROZEN MEANS THERE IS A HASH. Without one, "the client approved this exact thing"
+    // is an assertion nobody can check afterwards.
+    if (!p.review_preparation_hash) {
+      return bad(id, 'the programme is ready for approval but carries no preparation hash — nothing pins WHAT is being approved')
+    }
+    W.frozenHash = p.review_preparation_hash
+    ok(id, `the prepared campaign was FROZEN for the client: status ${p.status}, version ${p.review_preparation_version}, pinned by a preparation hash · HTTP ${r.status}`)
+  }
+
+  // ════════════════════════════════════════════════════════════════════════════════════════
+  // J16 · MILLA CLIENT APPROVAL
+  // ════════════════════════════════════════════════════════════════════════════════════════
+  async function j16() {
+    const id = 'J16'
+    if (needs(id, 'programmeId', 'programme')) return
+    // 🛑 THE CLIENT SENDS BACK THE VERSION THEY WERE LOOKING AT, and the product refuses
+    // without it — `stale_version`, "we could not tell which version you approved". That is
+    // the frozen-approval rule at its sharpest: an approval that cannot name what it approved
+    // is not an approval. The version is read from the programme the client was shown, which
+    // is what their screen would have carried.
+    // ⚠️ READ FROM THE CLIENT'S OWN SURFACE, not from the column. The version their screen
+    // carries is what they would send back, and taking it from the database instead produced
+    // `stale_version` — "this programme has been updated since" — because the two are not
+    // necessarily the same string.
+    // ⚠️ THE VERSION IS THE PREPARATION HASH, and it lives on the REVIEW surface — the screen
+    // that actually shows the client what they are approving. `/my/programme` is the summary
+    // and carries no version at all, which is why the first two attempts were refused.
+    const view = await asClient('/my/programme/review', { timeoutMs: 60000 })
+    const vd = view.json?.data ?? view.json ?? {}
+    // ⚠️ FOUND WHEREVER IT SITS, rather than at a path guessed from the route's source. Three
+    // guesses were refused before this: the field is the preparation HASH, not the version
+    // NUMBER, and it is nested inside the review payload rather than at its root.
+    const found = (function find(o, depth = 0) {
+      if (!o || typeof o !== 'object' || depth > 4) return null
+      if (typeof o.version === 'string' && o.version.length >= 8) return o.version
+      for (const v of Object.values(o)) { const hit = find(v, depth + 1); if (hit) return hit }
+      return null
+    })(vd)
+    const version = String(found ?? '')
+    if (!version) {
+      return bad(id, `the client's own review surface carries no version to approve (HTTP ${view.status}): keys=${Object.keys(vd).join(',')} · ${JSON.stringify(vd).slice(0, 220)}`)
+    }
+    const r = await asClient('/my/programme/approve', {
+      method: 'POST', timeoutMs: 90000, body: JSON.stringify({ version }),
+    })
+    const [p] = await sql(
+      `select status, approved_at, approved_preparation_hash, approved_preparation_version
+         from public.programmes where id = $1`, [W.programmeId])
+    if (!p.approved_at) {
+      return bad(id, `the client's approval was not recorded (status=${p.status}), approving version "${version}" — HTTP ${r.status}: ${String(r.text).slice(0, 220)}`)
+    }
+    // 🛑 THEY APPROVED WHAT WAS FROZEN, and the hash is what proves it. An approval recorded
+    // against a different hash is an approval of something the client never saw.
+    if (W.frozenHash && p.approved_preparation_hash !== W.frozenHash) {
+      return bad(id, `the approval was recorded against a DIFFERENT preparation than the one frozen for them (frozen ${String(W.frozenHash).slice(0, 12)}…, approved ${String(p.approved_preparation_hash).slice(0, 12)}…)`)
+    }
+    ok(id, `the CLIENT approved, in their own surface, and the approval is pinned to exactly what was frozen for them (hash matches, version ${p.approved_preparation_version}) · status ${p.status} · HTTP ${r.status}`)
+  }
+
+  // ════════════════════════════════════════════════════════════════════════════════════════
+  // J17 · P2
+  // ════════════════════════════════════════════════════════════════════════════════════════
+  async function j17() {
+    const id = 'J17'
+    if (needs(id, 'programmeId', 'programme')) return
+    const settled = (row) => !!(row.second_paid_at || row.second_authorised_at)
+    const cols = 'status, second_paid_at, second_authorised_at'
+    const checkout = await asClient('/my/programme/checkout/second', { method: 'POST', body: JSON.stringify({}), timeoutMs: 60000 })
+    const before = (await sql(`select ${cols} from public.programmes where id = $1`, [W.programmeId]))[0]
+    if (settled(before)) {
+      return bad(id, `Payment 2 was settled by the CHECKOUT alone (paid=${before.second_paid_at}, authorised=${before.second_authorised_at})`)
+    }
+    const hook = await kit.stripeCheckout({ type: 'programme_second', programmeId: W.programmeId, clientId: W.clientId })
+    const after = (await sql(`select ${cols} from public.programmes where id = $1`, [W.programmeId]))[0]
+    if (!settled(after)) {
+      return bad(id, `the programme_second webhook (HTTP ${hook.status}) did not settle Payment 2 (status=${after.status}) — checkout HTTP ${checkout.status}: ${String(checkout.text).slice(0, 200)}`)
+    }
+    ok(id, `Payment 2 settled by the WEBHOOK, not by the client reaching Stripe (status ${before.status} → ${after.status}) · checkout HTTP ${checkout.status} · webhook HTTP ${hook.status}`)
+  }
+
+  // ════════════════════════════════════════════════════════════════════════════════════════
+  // J18 · MAKE LIVE — and it sends NOTHING
+  // ════════════════════════════════════════════════════════════════════════════════════════
+  async function j18() {
+    const id = 'J18'
+    if (needs(id, 'programmeId', 'programme')) return
+    const smtpBefore = (await http(`${ENV.fakes.resend}/__fake/smtp`)).json?.calls ?? -1
+    const r = await http(`${BASE}/programmes/${W.programmeId}/go-live`, {
+      method: 'POST', timeoutMs: 90000,
+      headers: { 'x-admin-key': ENV.secrets.adminKey, 'x-operator-email': 'fullstack-operator@example.invalid' },
+      body: JSON.stringify({}),
+    })
+    const [p] = await sql('select status, went_live_at, run_at from public.programmes where id = $1', [W.programmeId])
+    if (!p.went_live_at || p.status !== 'LIVE') {
+      return bad(id, `Make Live did not arm the programme (status=${p.status}, went_live_at=${p.went_live_at}) — HTTP ${r.status}: ${String(r.text).slice(0, 220)}`)
+    }
+    // 🛑 ARMED IS NOT STARTED (R130). "Make Live alone is not Running" — so this must leave
+    // `run_at` null and send nothing at all.
+    if (p.run_at) return bad(id, `Make Live also set run_at (${p.run_at}) — it conflated arming with starting, which R130 forbids`)
+    const smtpAfter = (await http(`${ENV.fakes.resend}/__fake/smtp`)).json?.calls ?? -1
+    if (smtpAfter !== smtpBefore) {
+      return bad(id, `Make Live sent ${smtpAfter - smtpBefore} message(s) — it must arm and send NOTHING`)
+    }
+    ok(id, `Make Live ARMED the programme (status LIVE, went_live_at stamped) and sent ZERO messages, leaving run_at null — armed is not started (R130) · HTTP ${r.status}`)
+  }
+
+  // ════════════════════════════════════════════════════════════════════════════════════════
+  // J19 · RUN
+  // ════════════════════════════════════════════════════════════════════════════════════════
+  async function j19() {
+    const id = 'J19'
+    if (needs(id, 'programmeId', 'programme')) return
+    const r = await http(`${BASE}/programmes/${W.programmeId}/run`, {
+      method: 'POST', timeoutMs: 90000,
+      headers: { 'x-admin-key': ENV.secrets.adminKey, 'x-operator-email': 'fullstack-operator@example.invalid' },
+      body: JSON.stringify({}),
+    })
+    const [p] = await sql('select status, run_at, run_by from public.programmes where id = $1', [W.programmeId])
+    if (!p.run_at) {
+      return bad(id, `Run recorded no authority (status=${p.status}) — HTTP ${r.status}: ${String(r.text).slice(0, 220)}`)
+    }
+    // 🛑 RUN IS A STORED AUTHORITY, NOT A BUTTON. Pressing it twice must not move the stamp:
+    // the run that started is the run that started.
+    const again = await http(`${BASE}/programmes/${W.programmeId}/run`, {
+      method: 'POST', timeoutMs: 90000,
+      headers: { 'x-admin-key': ENV.secrets.adminKey, 'x-operator-email': 'fullstack-operator@example.invalid' },
+      body: JSON.stringify({}),
+    })
+    const [p2] = await sql('select run_at from public.programmes where id = $1', [W.programmeId])
+    if (String(p2.run_at) !== String(p.run_at)) {
+      return bad(id, `a second Run moved the authority stamp ${p.run_at} → ${p2.run_at} — Run is recorded once`)
+    }
+    ok(id, `Run recorded a stored authority (run_at ${p.run_at}) and a second press did NOT move it · HTTP ${r.status} then ${again.status}`)
+  }
+
+  // ════════════════════════════════════════════════════════════════════════════════════════
+  // J22 · REPLIES / REVIEW
+  // ════════════════════════════════════════════════════════════════════════════════════════
+  async function j22() {
+    const id = 'J22'
+    if (needs(id, 'clientId', 'client')) return
+    // ⚠️ SEEDED: THE PROSPECT'S ADDRESS. Proof leads are MASKED — `email` is null until the
+    // client reveals one — and revealing is its own money-bearing act, not what journey 22 is
+    // about. The address is written onto one of the client's own real leads so the reply has
+    // a genuine person to be attributed to.
+    const lead = (await sql(
+      `select id from public.leads where client_id = $1 order by created_at desc limit 1`, [W.clientId]))[0]
+    if (!lead) return bad(id, 'the client has no lead to reply from')
+    const replyFrom = `walk-prospect-${W.tag}@prospect.invalid`
+    await sql('update public.leads set email = $1 where id = $2', [replyFrom, lead.id])
+    seeded("the prospect's email address on one lead (Proof leads are masked until revealed)")
+    lead.email = replyFrom
+
+    const [{ id: campaignId }] = await sql(
+      `insert into public.figsy_campaigns(client_id, name, status) values ($1, $2, 'active') returning id`,
+      [W.clientId, `Walk reply campaign ${W.tag}`])
+    // ⚠️ SEEDED: the originating send. Driving a real send here would duplicate journey 20,
+    // and what journey 22 is about is what happens when a reply ARRIVES.
+    seeded('the originating send row that a reply is attributed to (journey 20 proves sending itself)')
+    await sql(
+      `insert into public.figsy_sent_emails(campaign_id, lead_id, subject, body, step)
+       values ($1, $2, 'Hello', 'Body', 1)`, [campaignId, lead.id])
+
+    await fakeMode('anthropic', 'success')
+    const r = await http(`${ENV.api}/figsy/replies/inbound`, {
+      method: 'POST', timeoutMs: 90000,
+      headers: { 'x-webhook-secret': ENV.secrets.resendWebhook, 'svix-id': `svix-walk-${W.tag}` },
+      body: JSON.stringify({
+        type: 'email.received',
+        data: { email_id: `walk-reply-${W.tag}`, from: lead.email, to: [`walk-sender-${W.tag}@sender.invalid`],
+                subject: 'Re: Hello', text: 'Yes — interested, can we talk Thursday?' },
+      }),
+    })
+    const replies = await sql(
+      `select r.id, r.classification, r.client_id from public.figsy_replies r where r.client_id = $1`, [W.clientId])
+    if (replies.length === 0) {
+      return bad(id, `the reply was not retained (HTTP ${r.status}): ${String(r.text).slice(0, 220)}`)
+    }
+    if (replies.length > 1) return bad(id, `one inbound reply produced ${replies.length} rows`)
+    ok(id, `an inbound reply from the client's own prospect was attributed to THEM and retained exactly once (classification=${replies[0].classification ?? 'unclassified'}) · HTTP ${r.status}`)
+  }
+
+  // ════════════════════════════════════════════════════════════════════════════════════════
+  // J23 · MEETINGS
+  // ════════════════════════════════════════════════════════════════════════════════════════
+  async function j23() {
+    const id = 'J23'
+    if (needs(id, 'clientId', 'client')) return
+    const lead = (await sql(
+      `select id from public.leads where client_id = $1 order by created_at desc limit 1`, [W.clientId]))[0]
+    if (!lead) return bad(id, 'the client has no lead to book a meeting for')
+
+    // Driven through the product's own recorder — `public.meetings` is the sole source of
+    // meeting truth, and `recordBooking` is the one writer.
+    const { recordBooking } = await import(`${ENV.tree}/apps/api/dist/lib/meeting-truth.js`)
+    const scheduledAt = new Date(Date.now() + 86400000).toISOString()
+    const first = await recordBooking({ clientId: W.clientId, leadId: lead.id, scheduledAt })
+    // 🛑 THE SAME BOOKING TWICE IS ONE MEETING. A reschedule, a retried webhook and a double
+    // confirmation all arrive as a second write.
+    const second = await recordBooking({ clientId: W.clientId, leadId: lead.id, scheduledAt })
+    const rows = await sql(
+      `select state, scheduled_at from public.meetings where client_id = $1`, [W.clientId])
+
+    if (rows.length === 0) {
+      return bad(id, `no meeting was recorded (${JSON.stringify(first).slice(0, 200)})`)
+    }
+    if (rows.length > 1) {
+      return bad(id, `the same booking recorded ${rows.length} meetings — a retry must not double-count (${JSON.stringify(second).slice(0, 120)})`)
+    }
+    // A booking we cannot yet prove was attended is BOOKED, never HELD.
+    if (String(rows[0].state).toUpperCase() === 'HELD') {
+      return bad(id, 'a fresh booking was recorded as HELD — attendance is explicit confirmation only')
+    }
+    ok(id, `a booking for the client's own prospect was recorded in public.meetings as ${rows[0].state} — one meeting, and a repeated booking did not create a second`)
+  }
+
+  // ════════════════════════════════════════════════════════════════════════════════════════
+  // J24 · RESULTS
+  // ════════════════════════════════════════════════════════════════════════════════════════
+  async function j24() {
+    const id = 'J24'
+    if (needs(id, 'clientId', 'client')) return
+    const r = await asClient('/my/programme', { timeoutMs: 60000 })
+    if (r.status !== 200) return bad(id, `the client's programme view answered HTTP ${r.status}: ${String(r.text).slice(0, 200)}`)
+    const body = JSON.stringify(r.json ?? {})
+
+    // 🛑 THE NUMBERS ON THEIR SCREEN ARE THE DATABASE'S NUMBERS. A results view that
+    // disagrees with the meeting table is the defect this journey exists to catch.
+    const [{ n: meetings }] = await sql(
+      `select count(*)::int as n from public.meetings where client_id = $1`, [W.clientId])
+    const d = r.json?.data ?? r.json ?? {}
+    const shown = JSON.stringify(d).match(/"meetings[_a-z]*":\s*(\d+)/)
+    if (shown && Number(shown[1]) !== Number(meetings)) {
+      return bad(id, `the client is shown ${shown[1]} meeting(s) while the meetings table holds ${meetings}`)
+    }
+    // And the retired economics must not be in front of them (R124).
+    for (const gone of ['credit', 'wallet']) {
+      if (body.toLowerCase().includes(`"${gone}`)) {
+        return bad(id, `the results view puts retired economics in front of a client: "${gone}" (R124)`)
+      }
+    }
+    ok(id, `the client's own results view answers from the database (${meetings} meeting(s), agreeing with public.meetings) and carries no retired wallet/credit wording · ${body.length} bytes · HTTP ${r.status}`)
+  }
+
+  // ════════════════════════════════════════════════════════════════════════════════════════
+  // J25 · COMPLETION
+  // ════════════════════════════════════════════════════════════════════════════════════════
+  async function j25() {
+    const id = 'J25'
+    if (needs(id, 'programmeId', 'programme')) return
+    // 🛑 A PROGRAMME CANNOT JUST BE CLOSED WITH THE CLIENT'S MONEY UNSPENT. Completion refuses
+    // while authorised volume is undelivered and unsettled — "1245 of 1250 authorised leads
+    // are undelivered and the value has not been settled" — so the value is settled first,
+    // which is the product's own rule and the honest thing to do to a paying client.
+    const settle = await http(`${BASE}/programmes/${W.programmeId}/make-whole`, {
+      method: 'POST', timeoutMs: 60000,
+      headers: { 'x-admin-key': ENV.secrets.adminKey, 'x-operator-email': 'fullstack-operator@example.invalid' },
+      body: JSON.stringify({ cents: 0, note: 'Full-stack walk: undelivered authorised value settled before completion.' }),
+    })
+    const [settled] = await sql('select value_settled_at from public.programmes where id = $1', [W.programmeId])
+    if (!settled?.value_settled_at) {
+      return bad(id, `the undelivered value was not settled (HTTP ${settle.status}: ${String(settle.text).slice(0, 200)}), so completion cannot be reached honestly`)
+    }
+
+    const r = await http(`${BASE}/programmes/${W.programmeId}/complete`, {
+      method: 'POST', timeoutMs: 90000,
+      headers: { 'x-admin-key': ENV.secrets.adminKey, 'x-operator-email': 'fullstack-operator@example.invalid' },
+      body: JSON.stringify({}),
+    })
+    const [p] = await sql('select status from public.programmes where id = $1', [W.programmeId])
+    if (p.status !== 'COMPLETED') {
+      return bad(id, `the programme is ${p.status}, not COMPLETED — HTTP ${r.status}: ${String(r.text).slice(0, 220)}`)
+    }
+    // 🛑 A COMPLETED PROGRAMME SENDS NOTHING MORE. Completion that left the send authority
+    // standing would keep mail going out after the engagement ended.
+    const smtpBefore = (await http(`${ENV.fakes.resend}/__fake/smtp`)).json?.calls ?? -1
+    await asOperator('/operator/send-due/run-once', {
+      method: 'POST', body: JSON.stringify({ client_id: W.clientId, max_sends: 5 }), timeoutMs: 120000 })
+    const smtpAfter = (await http(`${ENV.fakes.resend}/__fake/smtp`)).json?.calls ?? -1
+    if (smtpAfter !== smtpBefore) {
+      return bad(id, `a COMPLETED programme still sent ${smtpAfter - smtpBefore} message(s)`)
+    }
+    ok(id, `the undelivered authorised value was SETTLED first (value_settled_at stamped — a programme cannot be closed with the client's money unspent and unaccounted), the programme was then COMPLETED (status ${p.status}), and a send run afterwards produced ZERO messages — completion ends the outreach authority · HTTP ${r.status}`)
+  }
+
   return { W, seeded, asClient, needs, checks: [
     { id: 'J1', fn: j1 }, { id: 'J2', fn: j2 }, { id: 'J3', fn: j3 }, { id: 'J4', fn: j4 },
     { id: 'J5', fn: j5 }, { id: 'J6', fn: j6 }, { id: 'J7', fn: j7 }, { id: 'J8', fn: j8 },
     { id: 'J9', fn: j9 }, { id: 'J10', fn: j10 }, { id: 'J11', fn: j11 }, { id: 'J12', fn: j12 },
+    // ⚠️ J14 RUNS BEFORE J13, AND THE PRODUCT IS WHY. Preparation refuses with "no verified
+    // sending mailbox", so the sender has to exist and have proved it can log in before a
+    // campaign can be prepared. The founder's NUMBERING is untouched — the evidence table is
+    // by journey number — but a walk has to follow the order the product actually imposes.
+    { id: 'J14', fn: j14 }, { id: 'J13', fn: j13 }, { id: 'J15', fn: j15 }, { id: 'J16', fn: j16 },
+    { id: 'J17', fn: j17 }, { id: 'J18', fn: j18 }, { id: 'J19', fn: j19 },
+    { id: 'J22', fn: j22 }, { id: 'J23', fn: j23 }, { id: 'J24', fn: j24 }, { id: 'J25', fn: j25 },
   ] }
 }

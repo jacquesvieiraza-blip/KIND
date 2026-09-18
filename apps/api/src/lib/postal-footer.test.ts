@@ -130,7 +130,25 @@ describe('⚠️ the Smartlead path — the one that does not run our code', () 
 })
 
 describe('every cold send path is wired to a footer-carrying builder', () => {
+  /**
+   * ⛓️ 18 Sep (J20-C4) — COMMENTS STRIPPED BEFORE THE SCAN, AND THE COUNT STAYS 2.
+   *
+   * 🛑 THE TRIPWIRE FIRED ON PROSE. This repo documents a seam by QUOTING the call it
+   * describes, and a comment explaining why the new FD-5 gate sits where it does contained the
+   * words `sendAs(sendingInbox, { to: lead.email, … })`. The walk below found that text,
+   * opened a block at its brace, ran on to the next real closing brace and counted a THIRD
+   * `text:` — so a guard whose whole purpose is to notice a new send site went red for a
+   * sentence that sends nothing.
+   *
+   * ⚠️ THE COUNT IS NOT BUMPED, WHICH IS THE POINT. There are still exactly two cold send
+   * sites; the guard was counting something that is not one. Reading code rather than prose
+   * makes it stricter, not looser — a third real `sendAs` still turns this red.
+   */
   const figsy = readFileSync(join(__dirname, 'figsy.ts'), 'utf8')
+    .replace(/\/\*[\s\S]*?\*\//g, ' ')
+    .split('\n')
+    .map(l => { const i = l.search(/(?<!:)\/\//); return i === -1 ? l : l.slice(0, i) })
+    .join('\n')
 
   it('no cold send passes a raw body as text', () => {
     // The failure this catches is a NEW send path added later that calls `sendAs` with the

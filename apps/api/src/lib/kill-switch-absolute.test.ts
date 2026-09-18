@@ -69,7 +69,25 @@ vi.mock('@kind/db', () => {
       async maybeSingle() {
         if (table === 'clients') return { data: { id: 'client-1', is_demo: false }, error: null }
         if (table === 'figsy_enrollments') return { data: { id: 'enr-1', client_id: 'client-1' }, error: null }
-        if (table === 'leads') return { data: { id: 'lead-1', email: 'p1@prospect.test', company: 'Acme', linkedin_url: 'https://li/x', client_id: 'client-1' }, error: null }
+        // ⛓️ 18 Sep (J20-C4 · FD-5) — `email_status: 'verified'` ADDED TO THE FIXTURE, AND
+        // NOTHING ELSE IN THIS FILE CHANGED.
+        //
+        // 🛑 THIS IS A FROZEN TEST AND THE GUARANTEE IT HOLDS IS UNTOUCHED. The kill-switch is
+        // still the FIRST gate in the seam, still absolute, still without an exception for
+        // operator_run, preview, canary, Founder or cron — every assertion, every case and the
+        // order of the two switch gates are exactly as they were.
+        //
+        // WHAT CHANGED IS THE PRODUCT, ONE LAYER BELOW THEM: the seam now also refuses anybody
+        // we may not lawfully email (*"verified business email required before send"*), and
+        // this fixture lead carried no `email_status` — so case 13, the ANTI-VACUITY case that
+        // proves the seam is reachable at all, would have gone green for the wrong reason and
+        // stopped proving the zeroes above it mean anything. A fixture that cannot reach the
+        // seam cannot prove the seam is reached.
+        //
+        // ⚠️ AND THE NEW GATE SITS BELOW BOTH SWITCHES DELIBERATELY, so cases 11 and 12 keep
+        // their exact discriminating power: they still defer at the operator key, before
+        // sendability is ever asked.
+        if (table === 'leads') return { data: { id: 'lead-1', email: 'p1@prospect.test', email_status: 'verified', company: 'Acme', linkedin_url: 'https://li/x', client_id: 'client-1' }, error: null }
         return { data: null, error: null }
       },
       async single() {

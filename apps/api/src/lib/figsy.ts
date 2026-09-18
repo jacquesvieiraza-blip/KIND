@@ -714,6 +714,59 @@ async function sendSequenceEmailCore(
     return 'deferred'
   }
 
+  // ══ 🛑 FD-5 · WE MAY ONLY EMAIL A VERIFIED BUSINESS ADDRESS (J20-C4 · LR 17) ═══════════
+  //
+  // *"Verified business email required before send; QUALIFIED ≠ SENDABLE."*
+  //
+  // ── WHY IT IS HERE, AND NOT ONLY AT THE ENROL GATE ──────────────────────────────────────
+  //
+  // J12-C3 made `campaignReadyLeadIds` ask `isSendable`, which stops the wrong people being
+  // ENROLLED from today onwards. It cannot touch the rows that are already enrolled and due —
+  // every enrollment created before that gate existed, and any lead reaching a send by a path
+  // the gate does not sit on. This function is the single chokepoint every real sequence-step
+  // send funnels through, exactly as the demo backstop and the opt-out net above say in their
+  // own words, so one check here covers all of them.
+  //
+  // 🛑 INDEPENDENT OF EVERY OTHER GATE, WHICH IS THE POINT OF THE ITEM. It asks no other
+  // question: not the kill-switch, not programme authority, not the review queue, not the
+  // caps, not whether anybody approved anything. A verified business address is a property of
+  // the PERSON, like the do-not-contact list and the opt-out blocklist directly below — and
+  // both of those are unconditional here for the same reason.
+  //
+  // ⚠️ NO PREVIEW EXEMPTION, AND THE CODE BELOW IS WHY. The provider call is
+  // `sendAs(sendingInbox, { to: lead.email, … })` on every path through this function,
+  // preview included — so a preview is not a send to somewhere else, it is a send to this
+  // person. The kill-switch reached the same conclusion about `isPreview` and says so.
+  //
+  // ⚠️ `deferred`, NOT `suppressed`. An unverified address can become verified: a later reveal
+  // stamps `email_status`, and the enrollment must still be due when it does. This is the
+  // launch-country hold's situation, not the opt-out list's — except that re-arming here is
+  // per-person and automatic, so leaving it due is the whole recovery path.
+  //
+  // ⚠️ AND IT FAILS CLOSED. `email_status` is not on the `Lead` the callers carry, so it is
+  // read here; a read we could not complete is not permission to email a stranger.
+  {
+    const { data: sendableRow, error: sendableErr } = await db.from('leads')
+      .select('email, email_status').eq('id', lead.id).maybeSingle()
+    if (sendableErr) {
+      console.error(`[figsy] sendSequenceEmail: could not read the sendable facts for lead ${lead.id} (step ${step}) — NOT sending (fail-closed):`, sendableErr.message)
+      return 'deferred'
+    }
+    const { notSendableReason, NOT_SENDABLE_COPY } = await import('./sendable')
+    const row = sendableRow as { email?: string | null; email_status?: string | null } | null
+    // 🛑 THE ROW WINS WHEREVER THERE IS ONE, BOTH FIELDS. The caller's `Lead` is whatever a
+    // cron loaded minutes ago; the row is what is true now. A row that says this person has no
+    // address must refuse even when the caller is holding one — and a row that is not there at
+    // all tells us nothing, so the status is `null` and the answer is the same refusal.
+    const why = row
+      ? notSendableReason({ email: row.email ?? null, email_status: row.email_status ?? null })
+      : notSendableReason({ email: lead.email, email_status: null })
+    if (why) {
+      console.warn(`[figsy] sendSequenceEmail: step ${step} to lead ${lead.id} DEFERRED — ${NOT_SENDABLE_COPY[why]} (FD-5).`)
+      return 'deferred'
+    }
+  }
+
   // #453 — DEMO BACKSTOP (safety-critical). This is the single chokepoint every real
   // sequence-step send funnels through (the three cron paths call it directly), so an
   // is_demo client can NEVER email a real prospect from here — even if a higher-level

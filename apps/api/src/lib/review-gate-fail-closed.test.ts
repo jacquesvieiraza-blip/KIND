@@ -78,6 +78,10 @@ vi.mock('@kind/db', () => ({
           if (table === 'opt_out_blocklist')   return { data: state.blocked ? { id: 'b1' } : null, error: null }
           if (table === 'figsy_approval_queue') return { data: null, error: null }   // no duplicate draft
           if (table === 'figsy_enrollments')    return { data: { client_id: 'c1' }, error: null }
+          // ⛓️ 18 Sep (J20-C4 · FD-5) — the seam refuses anybody we may not lawfully email,
+          // and an unreadable `email_status` is unverified. Without this every case here
+          // defers before the review gate is reached, and this file is about that gate.
+          if (table === 'leads')                return { data: { email: 'prospect@acme.com', email_status: 'verified' }, error: null }
           // ⛓️ C2 — THE CLIENT ROW. The send gate resolves `clients.commercial_model` before it
           // reads the programme, and a client that does not exist fails CLOSED — correctly —
           // which would defer every send in this file for a reason that is not the review gate.

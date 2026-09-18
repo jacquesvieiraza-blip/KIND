@@ -16,24 +16,17 @@ import type { InboxRow } from '../lib/sending-inbox'
 // ⚑ 14 Sep (S1-RT-005) — the fail-soft provider translation. The operator rail below is
 // where a Brief we could not translate reaches a person, before Proof or any spend.
 import {
-  icpNeedsReview, resolveReview, type ProviderField,
+  icpNeedsReview, resolveReview, PROVIDER_VOCABULARIES, type ProviderField,
 } from '../lib/icp-provider-translation'
 
-/**
- * 🛑 THE THREE CLOSED PROVIDER VOCABULARIES, IN ONE PLACE FOR THE OPERATOR RAIL.
- *
- * ⚠️ THEY ARE DECLARED HERE RATHER THAN IMPORTED FROM `routes/icps.ts` because that module
- * keeps them module-private and importing the ICP route into the operator route to reach
- * three arrays would pull a 5,000-line router in for a constant. A drift guard in
- * `s1-icp-review.test.ts` asserts these are byte-identical to the ICP route's, so the two
- * cannot disagree without a test going red — which is the property that matters, not where
- * the literal lives.
- */
-const ICP_REVIEW_VOCABULARIES: Record<ProviderField, readonly string[]> = {
-  industries:       ['Fintech', 'Healthtech', 'E-commerce', 'SaaS', 'Logistics', 'Agriculture', 'Education', 'Manufacturing', 'Real Estate', 'Media', 'Consulting', 'Retail', 'Banking', 'Insurance', 'Telecoms', 'Energy'],
-  seniority_levels: ['C-Suite', 'VP / Director', 'Head of', 'Manager', 'Senior', 'Individual Contributor'],
-  company_sizes:    ['1–10', '11–50', '51–200', '201–500', '501–1,000', '1,000+'],
-}
+// ⛓️ 18 Sep (J5-C10) — THIS IS NOW AN ALIAS, NOT A SECOND COPY.
+// WHAT THIS REPLACED: ~~a byte-identical re-declaration of the three vocabularies~~, with a
+// comment explaining that importing `routes/icps.ts` to reach three arrays would pull a
+// 5,000-line router in for a constant, and a drift guard in `s1-icp-review.test.ts` asserting
+// the two copies matched. The reasoning about the routers was right; the destination was
+// wrong. They now live in `lib/icp-provider-translation.ts` — the module that owns translating
+// INTO them, which imports nothing — so there is one copy and drift is not expressible.
+const ICP_REVIEW_VOCABULARIES: Record<ProviderField, readonly string[]> = PROVIDER_VOCABULARIES
 
 // #483–#487 — VIDA OPERATOR CONSOLE API.
 // This is the server side of Vida: the surfaces WE (operators) use to run a client's
@@ -3464,6 +3457,27 @@ operatorRouter.post('/icp-review/:icpId/resolve', async (req: Request, res: Resp
         means: 'the client described their targeting in their own words; these are the provider values an operator translated the UNRESOLVED half into, UNIONED with the half that already translated. Proof and provider sourcing were refused until this was recorded.',
       },
     })
+
+    // ── ⚑ 18 Sep (J5-C10) — THE NEEDS-YOU ROW CLOSES ITSELF ─────────────────────────────
+    //
+    // The condition that raised it has gone. The migration's own words: *"A task is resolved
+    // by a human with a note, or BY THE CONDITION CLEARING, and either way the row survives as
+    // evidence."* Without this the queue only ever grows, and a list that keeps resolved work
+    // in it is a list people learn to scroll past — the exact failure XC-5 exists to prevent,
+    // reached from the other end.
+    //
+    // ⚠️ IT NEVER FAILS THIS ROUTE. The operator's translation is already durable above and is
+    // a human's work; refusing their resolution because a task row would not close would be
+    // the tail wagging the dog. It is logged and the sweep moves on.
+    try {
+      const { clearIcpReviewTask } = await import('../lib/icp-review-tasks')
+      const cleared = await clearIcpReviewTask(clientId, req.params.icpId)
+      if (!cleared.ok) {
+        console.error(`[operator/icp-review] the Needs-you row for ${req.params.icpId} did not close: ${cleared.error ?? 'unknown'}`)
+      }
+    } catch (e) {
+      console.error(`[operator/icp-review] closing the Needs-you row for ${req.params.icpId} threw:`, e)
+    }
 
     // ── 🛑 ⚑ 15 Sep (S1-RT-004) — AND NOW IT CONTINUES INTO THE FIRST FREE PROOF RUN ────
     //

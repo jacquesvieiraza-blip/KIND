@@ -45,6 +45,7 @@ import { onboardingState, ACCOUNT_FACT_LABEL } from '../lib/onboarding-state'
 // rather than the client.
 import {
   translateProviderList, buildIcpReview, icpNeedsReview, deriveProviderReview,
+  PROVIDER_VOCABULARIES,
   ICP_REVIEW_PROOF_REFUSAL as PROOF_PREPARING_COPY, type ProviderField,
 } from '../lib/icp-provider-translation'
 // ⚑ 14 Sep (S1-RT-007 / S1-RT-009) — the model interprets language; it is not the canonical
@@ -3380,9 +3381,16 @@ const BUILDER_MODEL = CONVERSATION_MODEL
 /** The closed lists the launch targeting fields accept. ONE definition, used by both the
  *  tool schema (as `enum`) and the prompt (as prose) so the two can never drift apart —
  *  the old code stated them only inside a fake-JSON example. Values are unchanged. */
-const ICP_INDUSTRIES = ['Fintech', 'Healthtech', 'E-commerce', 'SaaS', 'Logistics', 'Agriculture', 'Education', 'Manufacturing', 'Real Estate', 'Media', 'Consulting', 'Retail', 'Banking', 'Insurance', 'Telecoms', 'Energy'] as const
-const ICP_SENIORITY  = ['C-Suite', 'VP / Director', 'Head of', 'Manager', 'Senior', 'Individual Contributor'] as const
-const ICP_SIZES      = ['1–10', '11–50', '51–200', '201–500', '501–1,000', '1,000+'] as const
+// ⛓️ 18 Sep (J5-C10) — THESE ARE NOW ALIASES, NOT DECLARATIONS.
+// WHAT THIS REPLACED: ~~three `as const` literals spelled out here~~, plus a byte-identical
+// second copy in `routes/operator.ts` and a drift guard asserting the two matched. The copies
+// existed because neither router wanted to import the other; the vocabulary now lives in
+// `lib/icp-provider-translation.ts`, the module that owns translating INTO it, which imports
+// nothing and can be read by a `lib/` module. `promoteConfirmedBrief` needed exactly that.
+// The names are kept because ~40 references in this file read them.
+const ICP_INDUSTRIES = PROVIDER_VOCABULARIES.industries
+const ICP_SENIORITY  = PROVIDER_VOCABULARIES.seniority_levels
+const ICP_SIZES      = PROVIDER_VOCABULARIES.company_sizes
 
 /** JSON Schema for the one tool the model may call.
  *

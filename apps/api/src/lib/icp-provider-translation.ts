@@ -54,6 +54,34 @@ export const PROVIDER_FIELD_LABEL: Record<ProviderField, string> = {
   company_sizes:    'Company size',
 }
 
+/**
+ * 🛑 THE THREE CLOSED PROVIDER VOCABULARIES — ⚑ 18 Sep (J5-C10), ONE HOME AT LAST.
+ *
+ * ── WHY THEY MOVED HERE ─────────────────────────────────────────────────────────────────
+ *
+ * There were TWO copies: `routes/icps.ts` kept them module-private as `ICP_INDUSTRIES` /
+ * `ICP_SENIORITY` / `ICP_SIZES`, and `routes/operator.ts` re-declared them as
+ * `ICP_REVIEW_VOCABULARIES` with a comment explaining that importing a 5,000-line router to
+ * reach three arrays was worse than a copy, plus a drift guard asserting the two byte-identical.
+ * That reasoning was right about the routers and wrong about the destination: the module that
+ * owns TRANSLATION is where the vocabulary being translated INTO belongs, and it imports
+ * nothing.
+ *
+ * ⚠️ AND IT IS WHAT MADE J5-C10 POSSIBLE. `promoteConfirmedBrief` has to call
+ * `deriveProviderReview` — otherwise a promoted ICP is born unflagged with the client's own
+ * sentence in a provider column (S1-PD-03's exact prohibition) — and a `lib/` module cannot
+ * reach a router's private const. The alternative was a THIRD copy.
+ *
+ * 🛑 THE VALUES ARE UNCHANGED, CHARACTER FOR CHARACTER, INCLUDING THE EN-DASHES IN THE SIZE
+ * BANDS. `'11–50'` is U+2013, not a hyphen, and it is what every stored row already holds —
+ * a "tidy-up" to ASCII here would silently stop matching every ICP in the database.
+ */
+export const PROVIDER_VOCABULARIES: Record<ProviderField, readonly string[]> = {
+  industries:       ['Fintech', 'Healthtech', 'E-commerce', 'SaaS', 'Logistics', 'Agriculture', 'Education', 'Manufacturing', 'Real Estate', 'Media', 'Consulting', 'Retail', 'Banking', 'Insurance', 'Telecoms', 'Energy'],
+  seniority_levels: ['C-Suite', 'VP / Director', 'Head of', 'Manager', 'Senior', 'Individual Contributor'],
+  company_sizes:    ['1–10', '11–50', '51–200', '201–500', '501–1,000', '1,000+'],
+}
+
 export interface TranslationOutcome {
   /** Canonical values, deduped, capped. Safe to put in the provider column. */
   canonical: string[]

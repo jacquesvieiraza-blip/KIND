@@ -46,6 +46,8 @@
 
 import { db } from '@kind/db'
 import type { BriefDraft } from './brief-draft'
+// J5-C10: the row cannot be born unflagged (S1-PD-03). One derivation, one vocabulary.
+import { deriveProviderReview, translateProviderList, PROVIDER_VOCABULARIES } from './icp-provider-translation'
 
 export type PromotionFailure =
   /** A decisive read failed. Nothing was written; the draft is untouched and still writable. */
@@ -71,21 +73,91 @@ export interface PromotionResult {
   detail?: string
 }
 
-/** The six targeting facts the core ICP is built from — the client's own words, nothing else. */
+/**
+ * The six targeting facts the core ICP is built from — the client's own words, nothing else.
+ *
+ * ── 🛑 ⚑ 18 Sep (J5-C10) — AND THE REVIEW THEY OWE, DERIVED HERE (S1-PD-03) ─────────────
+ *
+ * THE DEFECT THIS CLOSES WAS INTRODUCED BY J4-C1, IN THIS BUILD. The three provider columns
+ * were written straight from the brief:
+ *
+ *     ~~company_sizes: arr(f.company_sizes)~~        // "about 10 to 50 staff"
+ *     ~~seniority_levels: arr(f.seniority_levels)~~  // "whoever owns the P&L"
+ *
+ * Those are how a PERSON answers the question. `'11–50'` is the only thing Apollo takes. So a
+ * promoted ICP was born active, untranslatable and UNFLAGGED: `icpNeedsReview` answered
+ * `false`, the Proof gate opened, and `runIcpJob` sent the client's sentence to the provider
+ * as a filter value — the exact thing the founder's rule forbids, through the mechanism built
+ * to honour their words.
+ *
+ * 🛑 S1-PD-03's PROPERTY IS ABOUT THE ROW, NOT ABOUT ONE ROUTE: *"the row cannot be born
+ * unflagged, so no failure mode can leave it that way."* `PUT /icps` honoured it; server-owned
+ * promotion was built as a second door beside the fence rather than through it. The review is
+ * therefore derived from the SAME values this function is about to return, in the same object,
+ * so there is no instant in which the values exist without their review.
+ *
+ * ⚠️ AND THE CLIENT'S WORDS ARE NOT LOST. `deriveProviderReview` keeps every untranslatable
+ * phrase inside `icp_review.requirements[].said` — which is what the operator translates FROM.
+ * Dropping them would be the other way to be wrong: the column would be EMPTY, and empty
+ * downstream means unconstrained.
+ */
 function icpFromDraft(d: BriefDraft): Record<string, unknown> {
   const f = (d.facts ?? {}) as Record<string, unknown>
   const arr = (v: unknown): string[] =>
     Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string' && x.trim() !== '') : []
   const str = (v: unknown): string => (typeof v === 'string' ? v.trim() : '')
 
+  // 🛑 THE ONE SERVER-SIDE DERIVATION, over the values this write is ABOUT to persist.
+  // `values` are canonical-only; `review` is what is still owed. Same bytes, same breath.
+  //
+  // ── ⚠️ AND `industries` IS DELIBERATELY NOT IN IT — WHICH IS A SECOND CORRECTION ───────
+  //
+  // `target_category` is BRIEF FACT #5: *what kind of company do you want to reach*, answered
+  // in the client's own words ("marketing agencies", "independent dental practices"). The
+  // `industries` column is Apollo's CLOSED 16-value vocabulary. They are not the same thing,
+  // and mapping the first onto the second — ~~`industries: [str(f.target_category)]`~~ — was
+  // wrong before this item and would have become newly visible through it:
+  //
+  //   · as a FILTER it is broken. "marketing agencies" is not an Apollo industry, so the
+  //     search either errors or returns nothing, and the client's Proof comes back empty.
+  //   · as a REVIEW REQUIREMENT it would flood the queue. Almost no client's own category is
+  //     one of our sixteen, so every single signup would become an operator task — a Needs-you
+  //     list with everybody on it is the "normal is silent" rule inverted.
+  //
+  // So the category is canonicalised WITHOUT owing a review (a client who says "SaaS" gets
+  // `['SaaS']`; one who says "marketing agencies" gets `[]`), which is exactly the state
+  // `translateProviderList` already calls legitimate: *"A client who never mentioned an
+  // industry has an empty list and NOTHING unmapped."* Their words are not lost — they are the
+  // ICP's `name`, and FD-2's semantic category gate is what enforces the category on the set.
+  //
+  // ⚠️ SENIORITY AND SIZE ARE DIFFERENT AND DO OWE A REVIEW. Milla asks those two with OUR
+  // bands in the question, so an answer we cannot translate means the conversation produced
+  // something unusable — a person has to look at it before anything runs.
+  const category = translateProviderList(
+    str(f.target_category) ? [str(f.target_category)] : [], PROVIDER_VOCABULARIES.industries, 6,
+  )
+  const decided = deriveProviderReview(
+    {
+      industries:       category.canonical,
+      seniority_levels: arr(f.seniority_levels),
+      company_sizes:    arr(f.company_sizes),
+    },
+    PROVIDER_VOCABULARIES,
+  )
+
   return {
     // ⚠️ THE NAME IS THE CLIENT'S CATEGORY, NOT A GENERATED LABEL. J5-C4's rule — the
-    // client's words on the card — starts at the write, not at the render.
+    // client's words on the card — starts at the write, not at the render. It is the NAME,
+    // which is copy, never a provider filter — so it keeps their exact phrasing while the
+    // three provider columns below carry canonical values only.
     name: str(f.target_category) || 'Core ICP',
-    industries: str(f.target_category) ? [str(f.target_category)] : [],
+    industries: decided.values.industries,
+    // ⚠️ `job_titles` IS NOT A CLOSED VOCABULARY and is deliberately absent from the
+    // derivation. Apollo takes free-text titles; "Managing Director" needs no translation and
+    // there is nothing for a review to be owed about.
     job_titles: arr(f.job_titles),
-    seniority_levels: arr(f.seniority_levels),
-    company_sizes: arr(f.company_sizes),
+    seniority_levels: decided.values.seniority_levels,
+    company_sizes: decided.values.company_sizes,
     geographies: arr(f.geographies),
     tech_stack: [],
     keywords: [],
@@ -93,6 +165,10 @@ function icpFromDraft(d: BriefDraft): Record<string, unknown> {
     // the promotion itself. There is no second provider for it to mean anything else about.
     apollo_only_consented: true,
     ...(str(f.exclusions) ? { exclusions: str(f.exclusions) } : {}),
+    // ⚠️ SET-ONLY, LIKE `PUT /icps`. A brief that translates cleanly writes NEITHER column
+    // rather than writing `null` — clearing a review belongs to the operator resolve route
+    // alone, which re-canonicalises every value first.
+    ...(decided.review ? { icp_review: decided.review, icp_review_at: new Date().toISOString() } : {}),
   }
 }
 
@@ -184,9 +260,10 @@ export async function promoteConfirmedBrief(
   }
 
   if (!icpId) {
+    const icpBody = icpFromDraft(draft)
     try {
       const { data, error } = await db.from('icps')
-        .insert({ ...icpFromDraft(draft), client_id: clientId, is_active: true })
+        .insert({ ...icpBody, client_id: clientId, is_active: true })
         .select('id').single()
       if (error || !(data as { id?: string } | null)?.id) {
         return { ok: false, clientId, reason: 'icp_unwritable', detail: error?.message ?? 'no id returned' }
@@ -194,6 +271,37 @@ export async function promoteConfirmedBrief(
       icpId = (data as { id: string }).id
     } catch (e) {
       return { ok: false, clientId, reason: 'icp_unwritable', detail: e instanceof Error ? e.message : String(e) }
+    }
+
+    // ── 🛑 ⚑ 18 Sep (J5-C10) — A BORN-FLAGGED ICP TELLS SOMEBODY, NOW ───────────────────
+    //
+    // The review is already on the row (`icpFromDraft` derived it), so the client is already
+    // correctly blocked. What was missing is that a person has to translate it, and the sweep
+    // in `icp-review-tasks.ts` runs every five minutes — five minutes in which a client who
+    // has just confirmed their brief is waiting and Vida's queue says nothing needs anybody.
+    //
+    // ⚠️ SAME RAISE, SAME DEDUPE KEY AS THE SWEEP. Not a second mechanism: whichever gets
+    // there first creates the row and the partial unique index refuses the other.
+    //
+    // ⚠️ AND IT NEVER FAILS PROMOTION. The account exists, the ICP exists and is flagged; a
+    // queue that could not be written to is the sweep's problem on its next tick, not a
+    // reason to tell this client their signup did not work.
+    if (icpBody.icp_review) {
+      try {
+        const { raiseIcpReviewTask } = await import('./icp-review-tasks')
+        const raised = await raiseIcpReviewTask({
+          icpId, clientId,
+          // Straight from the confirmed brief — fact #2. The client row was written from the
+          // same value a moment ago, so reading it back would be a query for what we hold.
+          companyName: typeof draft.facts?.company_name === 'string' ? draft.facts.company_name.trim() : null,
+          review: icpBody.icp_review,
+        })
+        if (!raised.ok) {
+          console.error(`[promotion] the ICP review task for ${icpId} was not raised: ${raised.error ?? 'unknown'}`)
+        }
+      } catch (e) {
+        console.error(`[promotion] raising the ICP review task for ${icpId} threw:`, e)
+      }
     }
   }
 

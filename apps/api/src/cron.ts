@@ -248,6 +248,37 @@ async function detectOverdueWork(): Promise<void> {
   }
 }
 
+/**
+ * ⚑ 18 Sep (J5-C10) — sweep unresolved ICP reviews into Vida's Needs-you.
+ *
+ * ⚠️ CRON-CLAIMED, LIKE ITS SIBLING. Two replicas both sweeping would both raise, and while
+ * the partial unique index would refuse the second row, the wasted reads and the duplicate
+ * error logs are avoidable for one claim.
+ *
+ * ⚠️ AND IT IS NOT SILENT ABOUT A FAILED READ. `detectPendingIcpReviews` answers `ok: false`
+ * rather than "no reviews", because "nothing needs you" over a broken read is the one
+ * inversion the whole Needs-you design exists to prevent.
+ */
+async function detectIcpReviews(): Promise<void> {
+  try {
+    const claim = await claimCronSlot('detector:icp-review', new Date())
+    if (claim.kind === 'taken') return
+    if (claim.kind === 'unavailable') reportClaimUnavailable('detector:icp-review', claim)
+
+    const { detectPendingIcpReviews } = await import('./lib/icp-review-tasks')
+    const res = await detectPendingIcpReviews()
+    if (!res.ok) {
+      console.error(`[cron] icp-review detector could not read: ${res.error ?? 'unknown'}`)
+      return
+    }
+    if (res.raised > 0 || res.failed > 0) {
+      console.log(`[cron] icp-review detector — checked ${res.checked}, raised ${res.raised}, could not report ${res.failed}`)
+    }
+  } catch (err) {
+    console.error('[cron] icp-review detector threw', err)
+  }
+}
+
 // #285 — sends-stalled watchdog. FIGSY sending runs on /figsy/send-due-all every 2h;
 // if that pipeline silently dies (bad API key, crashed worker, DB error) enrollments
 // pile up "due" while nothing goes out. This detects that: enrollments that SHOULD have
@@ -480,6 +511,23 @@ export function startCrons(): void {
   // at the call site that knows how to redo that particular work — a generic retry here
   // would be exactly the concurrent second run FD-0 forbids.
   cron.schedule('*/5 * * * *', () => { void detectOverdueWork() }, { timezone: 'UTC' })
+
+  // ── ⚑ 18 Sep (J5-C10) — PENDING ICP REVIEWS INTO THE ONE QUEUE ──────────────────────
+  //
+  // A client whose own words our closed provider vocabulary cannot take is BLOCKED: no Proof,
+  // no spend, and they have been told their targeting is being prepared. A person has to
+  // translate it, and until now the only place that said so was a dedicated rail nobody was
+  // sent to — which is the Northvale sentence above, in its other half: *"the ICP sat in
+  // unresolved `icp_review`, nothing ran, and Vida said no action was needed."*
+  //
+  // ⚠️ A SWEEP AND NOT ONLY AN EVENT, because a pending review is a persisted CONDITION.
+  // `promoteConfirmedBrief` raises the same task immediately for the client who just signed
+  // up; this finds the ones that were already sitting there when the mechanism was built.
+  //
+  // ⚠️ TEN MINUTES, NOT FIVE. Nothing is being lost or spent while it waits, and a human
+  // resolving it takes minutes anyway — so this is paced to the operator, not to a client
+  // watching a screen. Deduped per ICP, so the interval cannot produce a second row.
+  cron.schedule('*/10 * * * *', () => { void detectIcpReviews() }, { timezone: 'UTC' })
 
   // Daily 04:00 UTC — #287 MRR daily snapshot → metrics_daily (MRR-over-time + movement)
   cron.schedule('0 4 * * *', () => callInternal('/metrics/snapshot'), { timezone: 'UTC' })

@@ -58,6 +58,17 @@ export const OPERATOR_TASK_KINDS = [
   // ── automatic work that did not happen (XC-6 / FD-0) ──
   'automatic_work_never_started',
   'automatic_work_stuck',
+  /**
+   * ⚑ 18 Sep (J5-C10) — A CLIENT IS BLOCKED ON US TRANSLATING THEIR OWN WORDS.
+   *
+   * 🛑 THIS IS THE CASE THIS FILE'S SIBLING HEADER ALREADY NAMED AND NOTHING RAISED.
+   * `vida-operator-tasks.ts` opens with it: *"Northvale's ICP sat in unresolved `icp_review`,
+   * nothing ran, and Vida said no action was needed."* There was a dedicated rail
+   * (`GET /operator/icp-review`) and R117 wants ONE queue, so the rail was a list nobody was
+   * sent to. Proof cannot start, no provider spend is possible, and the client has been told
+   * their targeting is being prepared — every property of a Needs-you.
+   */
+  'icp_review_pending',
   // ── the existing founder-alert classes, now records ──
   'sends_stalled',
   'api_down',
@@ -292,6 +303,61 @@ export async function listOpenOperatorTasks(opts?: { clientId?: string; limit?: 
     const msg = err instanceof Error ? err.message : String(err)
     console.error(`[operator-tasks] read threw: ${msg}`)
     return { ok: false, tasks: [], error: msg }
+  }
+}
+
+/**
+ * ⚑ 18 Sep (J5-C10) — CLOSE EVERY OPEN TASK FOR A CONDITION THAT HAS CLEARED.
+ *
+ * The migration's own words: *"A task is resolved by a human with a note, OR BY THE CONDITION
+ * CLEARING, and either way the row survives as evidence that it happened."* The second half
+ * had no implementation — `resolveOperatorTask` needs a task id, which a condition does not
+ * have, so every raise-from-a-condition class could only ever be closed by hand.
+ *
+ * 🛑 A QUEUE THAT ONLY GROWS IS NOT A QUEUE. A pending ICP review resolved by an operator
+ * through the resolve route would leave its Needs-you row open for ever, and after the second
+ * one the list is something people scroll past. That is the failure XC-5 exists to prevent,
+ * reintroduced from the other end.
+ *
+ * ⚠️ IT MATCHES BY `(kind, dedupeKey)` — the same pair the partial unique index dedupes on —
+ * so it closes exactly the row(s) a re-raise would have collided with, and nothing else.
+ *
+ * ⚠️ NOT FINDING A ROW IS SUCCESS. A condition that clears before anything raised it is the
+ * ordinary case (the review was resolved inside five minutes, before the sweep ran), and
+ * reporting that as a failure would make every caller log noise about working correctly.
+ */
+export async function resolveOperatorTasksForCondition(
+  kind: OperatorTaskKind, dedupeKey: string, note: string,
+): Promise<{ ok: boolean; closed: number; tableMissing?: boolean; error?: string }> {
+  const reason = (note ?? '').trim()
+  if (!reason) {
+    return { ok: false, closed: 0, error: 'a resolution note is required — a resolution with no reason is not evidence' }
+  }
+  try {
+    const now = new Date().toISOString()
+    const res = (await db
+      .from('operator_tasks')
+      .update({
+        status: 'resolved',
+        resolved_at: now,
+        // ⚠️ `resolved_by` IS NULL BECAUSE NOBODY PRESSED ANYTHING. Naming an operator here
+        // would credit a person with a resolution the system made, and the note says which.
+        resolved_by: null,
+        resolution_note: reason,
+        updated_at: now,
+      })
+      .eq('kind', kind)
+      .eq('dedupe_key', dedupeKey)
+      .eq('status', 'open')
+      .select('id')) as { data?: Array<{ id?: string }> | null; error?: PgError }
+
+    if (res?.error) {
+      const tableMissing = isTableMissing(res.error)
+      return { ok: false, closed: 0, tableMissing, error: res.error.message ?? String(res.error) }
+    }
+    return { ok: true, closed: (res?.data ?? []).length }
+  } catch (err) {
+    return { ok: false, closed: 0, error: err instanceof Error ? err.message : String(err) }
   }
 }
 

@@ -12,7 +12,7 @@ import ProductTour from '@/components/ProductTour'
 // screen. They are the $299-pack and $4-per-lead economics, and the live customer path has no
 // legacy customers left to serve them to. `shortfallMessage` stays imported only where the
 // wallet top-up still belongs (it does not appear on this home any more).
-import { MILLA_FAILURE_COPY } from '@kind/shared'
+import { MILLA_FAILURE_COPY, LEAD_REASON_CODES, LEAD_REASON_LABELS } from '@kind/shared'
 // ⚑ 4 Sep — the ONE conversation's controls, and the ONE list of outreach-capable stages.
 import { useMillaConversation, OUTREACH_STAGES } from '@/components/milla/MillaConversation'
 import ProgrammeWorkspace, { nextActionFor, type CustomerProgramme } from '@/components/milla/ProgrammeWorkspace'
@@ -851,15 +851,12 @@ export default function MillaHomePage() {
   // and the in-flight flag that stops a double send. Neither gates anything.
   const [noteError, setNoteError] = useState<string | null>(null)
   const [noteSaving, setNoteSaving] = useState(false)
-  const REASON_CHIPS: { code: string; label: string }[] = [
-    { code: 'too_big',         label: 'Too big' },
-    { code: 'too_small',       label: 'Too small' },
-    { code: 'wrong_industry',  label: 'Wrong industry' },
-    { code: 'wrong_role',      label: 'Wrong role' },
-    { code: 'wrong_geography', label: 'Wrong geography' },
-    { code: 'bad_timing',      label: 'Bad timing' },
-    { code: 'other',           label: 'Other' },
-  ]
+  // ⛓️ 18 Sep (J6-C4 · LR 6) — DERIVED, NOT HAND-TYPED. This was the fourth copy of the
+  // reason-code list, and two of the four disagreed: the calibration side had six and read
+  // "Bad timing" back as "Other", so an operator saw a reason the client never gave. One list
+  // now, in `@kind/shared`, which the API stores against and Vida labels from.
+  const REASON_CHIPS: { code: string; label: string }[] =
+    LEAD_REASON_CODES.map(code => ({ code, label: LEAD_REASON_LABELS[code] }))
   async function sendReason(leadId: string, code: string) {
     // ⛓️ 18 Sep (J5-C11 · LR 17) — WAS: `setJustPassed(null)` HERE, "acknowledge the tap at
     // once — no spinner on a nicety", then a POST whose failure was swallowed.

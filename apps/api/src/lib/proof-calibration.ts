@@ -26,21 +26,33 @@
 // logic where being wrong costs money on every run. The DB glue is `proof-calibration-io.ts`.
 // ═══════════════════════════════════════════════════════════════════════════════════════
 
-/** The reason codes a client may give per card. The founder's six, 10 Sep. */
-export const PROOF_REASON_CODES = [
-  'wrong_industry', 'wrong_role', 'too_big', 'too_small', 'wrong_geography', 'other',
-] as const
-export type ProofReasonCode = typeof PROOF_REASON_CODES[number]
-
-/** Client-facing labels, in the founder's words. */
-export const PROOF_REASON_LABELS: Record<ProofReasonCode, string> = {
-  wrong_industry: 'Wrong industry',
-  wrong_role: 'Wrong role',
-  too_big: 'Too big',
-  too_small: 'Too small',
-  wrong_geography: 'Wrong geography',
-  other: 'Other',
-}
+// ── ⛓️ 18 Sep (J6-C4 · LR 6) — ONE LIST, AND THIS COPY WAS THE ONE THAT WAS WRONG ────
+//
+// ⛓️ WAS: a six-item literal here — *"The founder's six, 10 Sep"* — beside a SEVEN-item
+// `REASON_CODES` in `lead-feedback.ts`. The missing one was `bad_timing`.
+//
+// 🛑 SO THE CLIENT'S OWN ANSWER WAS ERASED IN THE READ. The Milla card renders the chip, the
+// route stores it, the database CHECK accepts it — and then `readAttempts` asks THIS list
+// whether `bad_timing` is a reason, is told no, and records it as `other`:
+//
+//     const code: ProofReasonCode = isReason(f.reason_code) ? f.reason_code : 'other'
+//
+// Vida's calibration evidence then showed an operator "Other" where the client had said "Bad
+// timing", and `whatChangedSentence` — the one line a person reads before phoning them about
+// it — could not name the thing they actually said.
+//
+// ⚠️ THE SEVEN ARE THE SUPERSET AND THE DATABASE ALREADY STORES THEM, so this is the six
+// CORRECTED rather than the seven narrowed: narrowing would make a value already in production
+// unreadable, which is the same defect pointing the other way.
+//
+// ⚠️ THE NAMES STAY so no caller moves. They are now aliases of the shared list, not a copy
+// that happens to agree with it today.
+export {
+  LEAD_REASON_CODES as PROOF_REASON_CODES,
+  LEAD_REASON_LABELS as PROOF_REASON_LABELS,
+} from '@kind/shared'
+export type { LeadReasonCode as ProofReasonCode } from '@kind/shared'
+import type { LeadReasonCode as ProofReasonCode } from '@kind/shared'
 
 /** What a client did to one card in a pass. */
 export type CardVerdict = 'looks_right' | 'not_a_fit'
@@ -595,6 +607,13 @@ const CHANGE_OF: Record<ProofReasonCode, string> = {
   too_big: 'brought the company size down',
   too_small: 'raised the company size',
   wrong_geography: 'tightened where we look',
+  // ⚡ 18 Sep (J6-C4) — `bad_timing` JOINS THE MAP, because it is a real chip the client has
+  // always been able to tap; it was simply unreadable on this side (see the note at the top).
+  //
+  // ⚠️ AND ITS VERB IS HONEST ABOUT WHAT WE CAN DO. "Bad timing" is not a targeting fault —
+  // the company may be exactly right and this may be the wrong month — so the sentence must
+  // not claim we narrowed anything on the strength of it.
+  bad_timing: 'noted that the timing was wrong for them',
   other: 'adjusted the targeting',
 }
 

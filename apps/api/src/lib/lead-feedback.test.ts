@@ -250,10 +250,23 @@ describe('⑧ the chips actually reach the client — Milla renders them', () =>
   const MILLA = readFileSync(
     join(__dirname, '../../../portal/src/app/(milla)/milla/page.tsx'), 'utf8')
 
-  it('all seven chips are rendered, with the same codes the API accepts', () => {
-    // A chip list that drifts from REASON_CODES means a client taps something the database
-    // rejects — and the CHECK constraint takes their free text down with it.
-    for (const c of REASON_CODES) expect(MILLA, `${c} missing from Milla`).toContain(`'${c}'`)
+  // ⛓️ 18 Sep (MVP1 · J6-C4 · LR 6) — the property is unchanged and now holds BY CONSTRUCTION.
+  //
+  // ~~`for (const c of REASON_CODES) expect(MILLA).toContain(\`'${c}'\`)`~~ checked that a
+  // hand-typed list in the card happened to contain the same seven strings. The card was the
+  // FOURTH copy of that list, and two of the four had already drifted — `proof-calibration.ts`
+  // had six, so "Bad timing" was stored and read back as "Other".
+  //
+  // The card now derives its chips from the one shared constant, so it cannot drift from the
+  // codes the API accepts: there is nothing left to compare.
+  it('the chips are DERIVED from the one list the API accepts, so they cannot drift', () => {
+    expect(MILLA, 'the client card hand-types the reason list again')
+      .toMatch(/LEAD_REASON_CODES\.map\(code => \(\{ code, label: LEAD_REASON_LABELS\[code\] \}\)\)/)
+    expect(MILLA, 'the shared list is not imported at all')
+      .toMatch(/import \{[^}]*LEAD_REASON_CODES[^}]*\} from '@kind\/shared'/)
+    // And the codes the API accepts are that same list — asserted by identity in
+    // `j6c4-one-reason-code-list.test.ts`, which is where the one-list rule lives.
+    expect(REASON_CODES.length).toBe(7)
   })
 
   it('⚠️ THE CHIP ROW APPEARS AFTER THE PASS, NOT BEFORE IT', () => {

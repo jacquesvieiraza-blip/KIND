@@ -39,3 +39,7 @@ export * from './deployed-commit'
 // ladder and retry, and the worst case it measured did not exist: `searchPeople` had no
 // timeout at all, so "Apollo's worst case" was unbounded.
 export * from './proof-wait'
+// ⚑ 18 Sep (J6-C4 · LR 6) — the ONE reason-code list. Four copies existed and two of them
+// disagreed: "Bad timing" was stored by the API and read back as "Other" by the calibration
+// side, so an operator saw a reason the client never gave.
+export * from './lead-reason-codes'

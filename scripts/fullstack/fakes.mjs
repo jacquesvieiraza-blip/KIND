@@ -186,19 +186,22 @@ const apolloHandler = async (req, body, res, state) => {
       // 'head' is Apollo's own token for the "Head of" level this walk's ICP asks for.
       seniority: 'head',
       email_status: 'verified', email: null,
-      // ⚠️ BOTH HEADCOUNT KEYS, AND THE REASON IS A REAL DISCREPANCY. This fake emitted only
-      // `estimated_num_employees`; `apollo.ts` reads `organization.num_employees`. With the
-      // key the product reads absent, every lead reached the structural gate with no
-      // confirmed headcount and was set aside — "size: their headcount could not be
-      // confirmed" — so Proof sourced 20 people and surfaced NONE, on every run.
+      // ── 🛑 ⚑ 19 Sep — ONE HEADCOUNT KEY, AND IT IS THE ONE APOLLO SENDS ────────────────
       //
-      // 🛑 WHICH KEY REAL APOLLO SENDS IS RUNTIME UNVERIFIED AND MATTERS. If it is
-      // `estimated_num_employees`, the product reads a field that is never there, and under
-      // FD-6 (Apollo only, no PDL) `company_size` has no other source — enrichment.ts fills it
-      // from PDL, which is forbidden — so no prospect would EVER clear the size criterion in
-      // production. Reported in the evidence package; the fake carries both so the journey can
-      // be walked either way.
-      organization: { id: `org-${i}`, name: `Fake Co ${i}`, website_url: `https://fake-${i}.invalid`, num_employees: 40, estimated_num_employees: 40, industry: 'logistics' },
+      // ⛓️ THIS FAKE USED TO EMIT BOTH `estimated_num_employees` AND `num_employees`, with a
+      // note saying which key real Apollo sends was "RUNTIME UNVERIFIED AND MATTERS" and that
+      // if it were `estimated_num_employees` then "no prospect would EVER clear the size
+      // criterion in production". Carrying both meant the journey passed either way.
+      //
+      // 🛑 SO THE HARNESS SUPPLIED WHAT THE CODE WANTED, AND PRODUCTION DID NOT. 26/26
+      // journeys were green while GREAT Studio's first real run sourced 20 people and
+      // surfaced none — every one set aside on size. A fixture that answers the question the
+      // code is asking proves the fixture, not the product.
+      //
+      // ⚠️ RUNTIME VERIFIED 19 Sep: Apollo sends `estimated_num_employees`. This fake now sends
+      // ONLY that, so the harness can never again hide a mapping the live payload does not
+      // have. `apolloHeadcount` reads both keys, so the product still tolerates either.
+      organization: { id: `org-${i}`, name: `Fake Co ${i}`, website_url: `https://fake-${i}.invalid`, estimated_num_employees: 40, industry: 'logistics' },
       country: 'United Kingdom', city: 'London', state: 'England',
     })
     const perPage = 25

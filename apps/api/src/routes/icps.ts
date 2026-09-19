@@ -5,6 +5,8 @@ import { db } from '@kind/db'
 import { requireAuth, AuthRequest } from '../middleware/auth'
 import { rateLimit } from '../lib/rate-limit'
 import { searchPeopleWithFallback, ApolloCreditsExhaustedError, ApolloRateLimitError } from '../lib/apollo'
+// ⚑ 19 Sep — its own module, because 18 test stubs replace `./apollo` wholesale. See the file.
+import { apolloHeadcount } from '../lib/apollo-headcount'
 import { audienceForClientStrict, audienceForUser, sourcingProviderFor } from '../lib/provider-boundary'
 // ⛓️ 17 Sep (XC-5 / XC-13) — a refusal and a provider failure become PERSISTED operator
 // tasks, not emails. An email cannot be assigned, deduped, resolved with a reason or counted.
@@ -2272,8 +2274,10 @@ export async function runIcpJob(
           // be the same truth-loss as the provenance defect fixed beside it.
           country:          provenCountry      || null,
           industry:         contact.organization?.industry || null,
-          company_size:     contact.organization?.num_employees
-                              ? String(contact.organization.num_employees) : null,
+          // ⚑ 19 Sep — BOTH KEYS, via one reader. Apollo sends `estimated_num_employees`;
+          // reading only `num_employees` meant every prospect arrived with no headcount and
+          // was set aside on the size criterion after being paid for. See `apolloHeadcount`.
+          company_size:     apolloHeadcount(contact) !== null ? String(apolloHeadcount(contact)) : null,
           seniority:        contact.seniority  || null,
           tech_stack:       contact.organization?.technology_names ?? [],
           apollo_id:        contact.id,
@@ -2311,8 +2315,8 @@ export async function runIcpJob(
             seniority:        contact.seniority  || null,
             company:          contact.organization?.name ?? contact.organization_name ?? null,
             industry:         contact.organization?.industry ?? null,
-            company_size:     contact.organization?.num_employees
-                                ? String(contact.organization.num_employees) : null,
+            // ⚑ 19 Sep — the pool's copy of the same fact, from the same reader.
+            company_size:     apolloHeadcount(contact) !== null ? String(apolloHeadcount(contact)) : null,
             // ⚑ 27 Aug — CANONICAL AT THE WRITE BOUNDARY. The provider's own spelling is
             // whatever that provider indexes on ("US", "GB", "united states"); the pool is
             // read by every future client, so it stores ONE form. `canonicalPoolCountry`

@@ -218,38 +218,43 @@ describe('🛑 S1-PD-01 · review authority is server-derived, never carried', (
     const rec = freshRec()
     // The payload carries NO `icp_review` at all, exactly like an older portal build, and a
     // company size that is not in `ICP_SIZES`.
-    const res = await dispatchIcpSave({ ...BASE, company_sizes: ['about 10 to 50 staff'] }, rec)
+    // ⛓️ 19 Sep (R135) — THE FIXTURE PHRASE CHANGED, THE AUTHORITY DID NOT. These cases prove a
+    // review cannot be omitted, forged, nulled, emptied or patched on afterwards. They used
+    // ~~`'about 10 to 50 staff'`~~, which `expandSizeSpan` now UNDERSTANDS — the founder ruled
+    // that a client's own numbers are interpreted rather than parked. A test of review
+    // authority needs a value that genuinely owes a review, so it carries one.
+    const res = await dispatchIcpSave({ ...BASE, company_sizes: ['whatever size feels right to you'] }, rec)
     expect(res.status).toBe(201)
     const row = icpInsert(rec)
     expect(row, 'the ICP must have been created').toBeTruthy()
     expect(row!.icp_review, 'a review the caller never sent').toEqual({
-      requirements: [{ field: 'company_sizes', said: ['about 10 to 50 staff'] }],
+      requirements: [{ field: 'company_sizes', said: ['whatever size feels right to you'] }],
     })
     expect(row!.icp_review_at, 'and it is stamped').toBeTruthy()
   })
 
   it('🛑 AND THE UNTRANSLATED WORD NEVER REACHES THE PROVIDER COLUMN', async () => {
     const rec = freshRec()
-    await dispatchIcpSave({ ...BASE, company_sizes: ['about 10 to 50 staff'] }, rec)
+    await dispatchIcpSave({ ...BASE, company_sizes: ['whatever size feels right to you'] }, rec)
     const row = icpInsert(rec)!
     expect(row.company_sizes, 'canonical values only, always').toEqual([])
   })
 
   it('🛑 SENDING `icp_review: null` DOES NOT CLEAR IT — a forged null is simply not read', async () => {
     const rec = freshRec()
-    await dispatchIcpSave({ ...BASE, company_sizes: ['about 10 to 50 staff'], icp_review: null }, rec)
+    await dispatchIcpSave({ ...BASE, company_sizes: ['whatever size feels right to you'], icp_review: null }, rec)
     const row = icpInsert(rec)!
     expect(row.icp_review).toEqual({
-      requirements: [{ field: 'company_sizes', said: ['about 10 to 50 staff'] }],
+      requirements: [{ field: 'company_sizes', said: ['whatever size feels right to you'] }],
     })
   })
 
   it('🛑 SENDING AN EMPTY REQUIREMENTS LIST DOES NOT CLEAR IT EITHER', async () => {
     const rec = freshRec()
     await dispatchIcpSave(
-      { ...BASE, company_sizes: ['about 10 to 50 staff'], icp_review: { requirements: [] } }, rec)
+      { ...BASE, company_sizes: ['whatever size feels right to you'], icp_review: { requirements: [] } }, rec)
     expect(icpInsert(rec)!.icp_review).toEqual({
-      requirements: [{ field: 'company_sizes', said: ['about 10 to 50 staff'] }],
+      requirements: [{ field: 'company_sizes', said: ['whatever size feels right to you'] }],
     })
   })
 
@@ -271,11 +276,11 @@ describe('🛑 S1-PD-01 · review authority is server-derived, never carried', (
     const rec = freshRec()
     await dispatchIcpSave({
       ...BASE,
-      company_sizes: ['about 10 to 50 staff'],
+      company_sizes: ['whatever size feels right to you'],
       icp_review: { requirements: [{ field: 'seniority_levels', said: ['ATTACKER SUPPLIED'] }] },
     }, rec)
     const stored = JSON.stringify(icpInsert(rec)!.icp_review)
-    expect(stored).toContain('about 10 to 50 staff')
+    expect(stored).toContain('whatever size feels right to you')
     expect(stored, 'the caller\'s words are not evidence of anything').not.toContain('ATTACKER SUPPLIED')
     expect(stored).not.toContain('seniority_levels')
   })
@@ -308,7 +313,11 @@ describe('🛑 S1-PD-01 · review authority is server-derived, never carried', (
 // ═══════════════════════════════════════════════════════════════════════════════════════
 describe('🛑 S1-PD-02 · a fact the gate accepted cannot vanish into an empty filter', () => {
   it('A · COMPANY SIZES held only as the client\'s words → review raised, column not widened', async () => {
-    const rec = freshRec({ draftFacts: { company_sizes: ['around 10 to 50 people'] } })
+    // ⛓️ 19 Sep (R135) — WAS: ~~`['around 10 to 50 people']`~~, a phrase `expandSizeSpan` now
+    // reads. PD-02's rule is that a fact the gate accepted cannot vanish into an empty filter,
+    // so the case keeps a phrase that genuinely cannot be placed — and the guarantee is
+    // unchanged: the client's sentence never reaches the column, and a review is raised.
+    const rec = freshRec({ draftFacts: { company_sizes: ['whatever size feels right to you'] } })
     // The BODY carries a perfectly canonical size. The confirmed draft overrides it with what
     // the client actually said — which is not vocabulary. Before PD-02 this went to the
     // provider column verbatim, with no review.
@@ -316,7 +325,7 @@ describe('🛑 S1-PD-02 · a fact the gate accepted cannot vanish into an empty 
     const row = icpInsert(rec)!
     expect(row.company_sizes, 'the client\'s sentence is NOT a provider filter value').toEqual([])
     expect(row.icp_review).toEqual({
-      requirements: [{ field: 'company_sizes', said: ['around 10 to 50 people'] }],
+      requirements: [{ field: 'company_sizes', said: ['whatever size feels right to you'] }],
     })
   })
 
@@ -403,7 +412,7 @@ describe('🛑 S1-PD-02 · a fact the gate accepted cannot vanish into an empty 
 describe('🛑 S1-PD-03 · the review is atomic with the targeting it describes', () => {
   it('🛑 THE REVIEW IS IN THE INSERT ITSELF — the row never exists without it', async () => {
     const rec = freshRec()
-    await dispatchIcpSave({ ...BASE, company_sizes: ['about 10 to 50 staff'] }, rec)
+    await dispatchIcpSave({ ...BASE, company_sizes: ['whatever size feels right to you'] }, rec)
     const row = icpInsert(rec)!
     // Both halves in ONE payload: the targeting and the state that blocks it.
     expect(row.client_id).toBe('c1')
@@ -413,7 +422,7 @@ describe('🛑 S1-PD-03 · the review is atomic with the targeting it describes'
 
   it('🛑 AND NOTHING PATCHES IT ON AFTERWARDS — exactly one write carries a review', async () => {
     const rec = freshRec()
-    await dispatchIcpSave({ ...BASE, company_sizes: ['about 10 to 50 staff'] }, rec)
+    await dispatchIcpSave({ ...BASE, company_sizes: ['whatever size feels right to you'] }, rec)
     const writes = reviewWrites(rec)
     expect(writes).toHaveLength(1)
     expect(writes[0].kind, 'an insert-then-patch is the defect, not the fix').toBe('insert')
@@ -421,13 +430,18 @@ describe('🛑 S1-PD-03 · the review is atomic with the targeting it describes'
 
   it('🛑 NO `icps` UPDATE HAPPENS AT ALL on the creation path', async () => {
     const rec = freshRec()
-    await dispatchIcpSave({ ...BASE, company_sizes: ['about 10 to 50 staff'] }, rec)
+    await dispatchIcpSave({ ...BASE, company_sizes: ['whatever size feels right to you'] }, rec)
     expect(rec.updates.filter(u => u.table === 'icps'), 'the row is written once, complete').toEqual([])
   })
 
   it('🛑 IF THE INSERT FAILS THERE IS NO ICP AND NO ORPHANED REVIEW — and no 200', async () => {
     const rec = freshRec({ failIcpInsert: true })
-    const res = await dispatchIcpSave({ ...BASE, company_sizes: ['about 10 to 50 staff'] }, rec)
+    // ⛓️ 19 Sep (R135) — THE FIXTURE PHRASE CHANGED, THE AUTHORITY DID NOT. These cases prove a
+    // review cannot be omitted, forged, nulled, emptied or patched on afterwards. They used
+    // ~~`'about 10 to 50 staff'`~~, which `expandSizeSpan` now UNDERSTANDS — the founder ruled
+    // that a client's own numbers are interpreted rather than parked. A test of review
+    // authority needs a value that genuinely owes a review, so it carries one.
+    const res = await dispatchIcpSave({ ...BASE, company_sizes: ['whatever size feels right to you'] }, rec)
     expect(res.status).not.toBe(201)
     expect(icpInsert(rec), 'nothing was written').toBeUndefined()
     expect(reviewWrites(rec), 'and nothing carries a review').toEqual([])
@@ -437,7 +451,7 @@ describe('🛑 S1-PD-03 · the review is atomic with the targeting it describes'
     // An existing, NOT-live core ICP takes `saveClientTargeting`'s ordinary update branch, so
     // the patch IS the body — review included, one statement.
     const rec = freshRec({ coreIcp: { id: 'icp-1', is_active: false, pending_targeting: null } })
-    await dispatchIcpSave({ ...BASE, from_brief_draft: false, company_sizes: ['about 10 to 50 staff'] }, rec)
+    await dispatchIcpSave({ ...BASE, from_brief_draft: false, company_sizes: ['whatever size feels right to you'] }, rec)
     const writes = reviewWrites(rec)
     expect(writes).toHaveLength(1)
     expect(writes[0].kind).toBe('update')
@@ -449,7 +463,7 @@ describe('🛑 S1-PD-03 · the review is atomic with the targeting it describes'
     // The live targeting has not changed, so flagging the live row would be a FALSE block on a
     // client whose live ICP is perfectly translatable.
     const rec = freshRec({ coreIcp: { id: 'icp-1', is_active: true, pending_targeting: null } })
-    await dispatchIcpSave({ ...BASE, from_brief_draft: false, company_sizes: ['about 10 to 50 staff'] }, rec)
+    await dispatchIcpSave({ ...BASE, from_brief_draft: false, company_sizes: ['whatever size feels right to you'] }, rec)
     const icpPatches = rec.updates.filter(u => u.table === 'icps')
     expect(icpPatches.length).toBeGreaterThan(0)
     for (const u of icpPatches) {

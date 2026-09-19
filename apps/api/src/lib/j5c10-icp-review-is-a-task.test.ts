@@ -233,8 +233,14 @@ describe('J5-C10 ① · the promoted ICP is BORN carrying its review (S1-PD-03)'
     expect(icp.seniority_levels, 'a sentence was written into a provider column').not.toContain('whoever owns the P&L')
     // ⚠️ AND THE WORDS ARE NOT LOST — they survive as the review's own evidence, which is what
     // the operator translates FROM. Dropping them silently would be the other way to be wrong.
+    //
+    // ⛓️ 19 Sep — WAS: ~~`.toContain('about 10 to 50 staff')`~~. That phrase is now UNDERSTOOD:
+    // `expandSizeSpan` reads the client's own numbers and returns the bands they cover, so the
+    // size field owes no review and correctly holds nothing to translate. The guarantee is
+    // unchanged and is asserted on the phrase that is still genuinely untranslatable — a value
+    // we cannot place must reach a human in the client's own spelling, never silently dropped.
     expect(JSON.stringify(icp.icp_review), 'the client\'s words were discarded rather than kept for review')
-      .toContain('about 10 to 50 staff')
+      .toContain('whoever owns the P&L')
   })
 
   it('a brief that translates cleanly gets NO review — the normal path stays cheap', async () => {

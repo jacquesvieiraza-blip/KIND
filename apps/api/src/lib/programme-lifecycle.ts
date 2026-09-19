@@ -68,7 +68,7 @@ export type LifecycleState =
    * It is corrected here rather than reported, because A1b adds its SIBLING state and
    * modelling a new exception on a broken one would have shipped the same defect twice.
    */
-  | 'signup' | 'proof' | 'proof_calibration_failed' | 'proof_exception' | 'recommendation'
+  | 'signup' | 'proof' | 'proof_calibration_failed' | 'proof_exception' | 'proof_awaiting_translation' | 'recommendation'
   | 'sourcing' | 'sourcing_exception'
   | 'approval' | 'approval_awaiting_second_payment' | 'approval_package_stale'
   | 'live_ready_to_make_live' | 'live_ready_to_run'
@@ -142,6 +142,21 @@ export type NeedsYouReason =
    * The attempt was RELEASED by the `failed` run, so the retry costs nothing new.
    */
   | 'proof_no_eligible_set'
+  /**
+   * 🛑 ⚑ 19 Sep — WE HAVE NOT SEARCHED AT ALL: THEIR TARGETING IS STILL WAITING FOR A HUMAN.
+   *
+   * `icps.icp_review` is set and unresolved, so `POST /icps/:id/proof` refuses before claiming
+   * anything. The client has been told their setup is *"flagged for K.I.N.D review"*, and the
+   * `icp_review_pending` task promotion writes is read by no surface in Vida — so the promise
+   * was empty in a second, distinct way from A1b's.
+   *
+   * ⚠️ IT IS NOT `proof_no_eligible_set`. That one means we produced a set and refused every
+   * candidate — their targeting needs correcting. This one means nothing was ever searched,
+   * because their targeting has not been translated yet. Measured on production: Northstar
+   * Operations Studio, `proof_passes_done` 0, `proof_records_committed` 0, zero leads, with six
+   * more clients behind them in the same state.
+   */
+  | 'icp_awaiting_translation'
 
 /**
  * Everything the derivation is allowed to look at.
@@ -216,6 +231,26 @@ export type LifecycleFacts = {
    * on every client at once. This file's own header states that rule; this is it.
    */
   proofNoEligibleSet?: boolean | null
+  /**
+   * ⚑ 19 Sep — THE CLIENT IS PARKED WAITING FOR A HUMAN TO TRANSLATE THEIR TARGETING.
+   *
+   * 🛑 WHAT EARNED IT, MEASURED ON PRODUCTION. `icps.icp_review` set with no
+   * `icp_review_resolved_at` makes `POST /icps/:id/proof` refuse at `icps.ts:7105` — before any
+   * claim, any provider call and any spend. The client is told their setup is *"flagged for
+   * K.I.N.D review"*. Promotion even writes the `icp_review_pending` operator task. And this
+   * function returned `proof` / "No action needed", so Vida's panel offered no control and the
+   * rail showed nothing to do. Northstar sat in that state with `proof_passes_done` 0 and zero
+   * leads, and six more behind them.
+   *
+   * ⚠️ IT OUTRANKS `proofNoEligibleSet` DELIBERATELY. That exception means we produced a set
+   * and our own gate refused every candidate — targeting that needs correcting. THIS means we
+   * never searched at all, because the targeting has not been translated yet. Different cause,
+   * different remedy, and the one no human was ever shown.
+   *
+   * ⚠️ AND IT FAILS SOFT LIKE EVERY OTHER FACT HERE. `null` reads as no block: an unreadable
+   * answer must not invent an operator task on every client at once.
+   */
+  awaitingIcpTranslation?: boolean | null
   /** Preparation refused, or a batch is unsettled with no run in flight. */
   preparationStopped: boolean
   /** A run IS in flight — the opposite of stopped, and it must never read as an exception. */
@@ -280,6 +315,9 @@ const MODE_OF: Record<LifecycleState, VidaMode> = {
   // 🛑 THE SECOND PROOF-STAGE TASK, and it earns it the same way the first did: the client is
   // waiting on US, and a control exists that clears it. Ordinary Proof stays silent.
   proof_exception: 'Needs you',
+  // ⚑ 19 Sep — the client is parked waiting for a human to translate their targeting. Nothing
+  // searches until somebody does, so this is a task and never an ambient state.
+  proof_awaiting_translation: 'Needs you',
   recommendation: 'No action needed',
   sourcing: 'Working',
   sourcing_exception: 'Needs you',
@@ -368,6 +406,14 @@ export function deriveLifecycle(f: LifecycleFacts): LifecycleVerdict {
     //
     // ⚠️ IT IS INSIDE THE NO-PROGRAMME BLOCK, so it cannot fire for a programme client. Proof
     // belongs to prospects; a programme's sourcing exceptions are `sourcing_exception`'s job.
+    // ── 🛑 ⚑ 19 Sep — WE NEVER SEARCHED, BECAUSE NOBODY TRANSLATED THEIR TARGETING ────────
+    //
+    // Checked BEFORE `proofNoEligibleSet`: a client whose ICP is still awaiting translation
+    // cannot have produced a set to refuse, so if both were somehow true this is the cause and
+    // the other is noise. See the field's own note for what this cost.
+    if (f.awaitingIcpTranslation === true) {
+      return verdict('proof_awaiting_translation', 'proof', 'icp_awaiting_translation')
+    }
     if (f.proofNoEligibleSet === true) {
       return verdict('proof_exception', 'proof', 'proof_no_eligible_set')
     }

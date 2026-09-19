@@ -3355,7 +3355,28 @@ icpRouter.post('/chat-build', async (req: AuthRequest, res) => {
   try {
     const { message, history = [], sessionId, messageId } = z.object({
       message: z.string().min(1).max(1000),
-      history: z.array(z.object({ role: z.enum(['user','assistant']), content: z.string() })).max(20).default([]),
+      // ── 🛑 ⚑ 19 Sep — A LONG CONVERSATION IS NOT A BAD REQUEST ────────────────────────
+      //
+      // ⛓️ WAS: ~~`.max(20)`~~. The browser posts the WHOLE conversation on every turn, so the
+      // twenty-first message made this door answer 400 — before the model was ever called —
+      // and every turn after it did the same. The client was shown *"Milla didn't catch that…
+      // Just try again in a moment"*, and the retry re-posted the same conversation, which was
+      // still over twenty. It could never succeed. Measured: it happens to EVERY client who
+      // has a real conversation, at the same depth, and the founder counted at least fifty.
+      //
+      // ⛓️ AND ITS OWN TWIN HAD ALREADY BEEN FIXED. `/icps/builder/chat` carries the note from
+      // 26 Aug: *".max(40) used to REFUSE the whole request once a one-question-at-a-time
+      // onboarding ran long… The cap now bounds abuse (200), and the model window below takes
+      // the most recent 40 turns."* That is this exact defect and this exact repair, applied to
+      // one of two doors — the shape of half the bugs this repo keeps paying for.
+      //
+      // ⚠️ 200 BOUNDS ABUSE, IT DOES NOT BOUND A CONVERSATION. Nobody reaches it by talking to
+      // Milla; a script posting a megabyte of turns does. The MODEL window is trimmed below,
+      // so a long conversation costs the model call nothing it cannot take, and costs the
+      // client nothing at all.
+      history: z.array(z.object({
+        role: z.enum(['user','assistant']), content: z.string().max(4000),
+      })).max(200).default([]),
       // ⚑ 18 Sep (J3-C2) — WHERE THIS TURN BELONGS, AND WHICH TURN IT IS.
       // ⚠️ BOTH OPTIONAL, because this endpoint is also reached from surfaces that hold no
       // Milla session (the retired ICP drawer, the side panel). A turn with nowhere to be
@@ -3524,8 +3545,12 @@ Consulting or Telecoms — ask about that ONE thing in ordinary words, and nothi
       }
     }
 
+    // ⚑ 19 Sep — THE MOST RECENT TURNS, NEVER A REFUSAL. The window bounds what the model is
+    // asked to read; the client's conversation is never truncated on their screen and never
+    // rejected. `MILLA_MODEL_WINDOW` is generous enough that no real Milla conversation is
+    // shortened — it exists so a pathological history cannot reach the provider.
     const messages = [
-      ...history,
+      ...history.slice(-MILLA_MODEL_WINDOW),
       { role: 'user' as const, content: message },
     ]
 
@@ -3623,7 +3648,19 @@ Consulting or Telecoms — ask about that ONE thing in ordinary words, and nothi
         stage: 'request',
         zod_paths: [...new Set(err.errors.map(e => e.path.join('.') || '(root)'))].slice(0, 8),
       }))
-      res.status(400).json({ success: false, error: MILLA_RETRY_ERROR, retryable: true })
+      // ── 🛑 ⚑ 19 Sep — A REQUEST WE REFUSED IS NOT SOMETHING A RETRY CAN FIX ───────────
+      //
+      // ⛓️ WAS: ~~`{ error: MILLA_RETRY_ERROR, retryable: true }`~~. Eight sites answer with
+      // that one sentence — *"Just try again in a moment"* — and some of them are genuinely
+      // transient (a model hiccup) while THIS one is not: the request itself did not satisfy
+      // the schema, so the identical body will be refused identically, for ever. Telling a
+      // client to retry something that cannot succeed is how the twenty-turn refusal above
+      // went unrecognised through at least fifty occurrences: every failure looked the same,
+      // and "try again" was true of some of them.
+      //
+      // ⚠️ THE COPY IS UNCHANGED FOR THE CLIENT. What changes is `retryable`, which is what
+      // the desk and the logs read — an honest flag on a deterministic refusal.
+      res.status(400).json({ success: false, error: MILLA_RETRY_ERROR, retryable: false })
       return
     }
     console.error('[icps/chat-build]', err)
@@ -4302,6 +4339,13 @@ const millaReplyFor = (profileRequired: boolean, held: Record<string, unknown> =
  *  the SAME TAB (which is where this sentence is read), and it does not survive a refresh.
  *  "Still here" claims exactly the first and nothing more — and the sentence itself vanishes
  *  with the state it describes, so it can never outlive its own truth. */
+/**
+ * How many prior turns the MODEL is shown. Not a limit on the conversation: the client's
+ * history is accepted whole (see `/chat-build`'s schema note) and only the provider call is
+ * windowed. 120 is far beyond any real Milla brief and still nowhere near the model's context.
+ */
+const MILLA_MODEL_WINDOW = 120
+
 const MILLA_RETRY_ERROR = 'Milla didn’t catch that — your last answer is still here, so there’s no need to retype it. Just try again in a moment.'
 
 // ⚑ 26 Aug — `zodPaths` names WHICH schema paths failed, so a repeating INVALID_SHAPE is
@@ -5771,7 +5815,9 @@ result or a number. "permitted" is false unless they explicitly said we may use 
         // OUR field names, never the client's values — the same rule the reply logger keeps.
         zod_paths: [...new Set(err.errors.map(e => e.path.join('.') || '(root)'))].slice(0, 8),
       }))
-      res.status(400).json({ success: false, error: MILLA_RETRY_ERROR, retryable: true })
+      // ⚑ 19 Sep — the same honesty as `/chat-build`'s request refusal above: a body the
+      // schema rejected is rejected identically on every retry.
+      res.status(400).json({ success: false, error: MILLA_RETRY_ERROR, retryable: false })
       return
     }
     // ⚑ 26 Aug — anything else here is OUR code failing between the stages that log for

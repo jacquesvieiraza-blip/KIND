@@ -118,10 +118,28 @@ export interface ApolloContact {
   organization: {
     name:              string | null
     num_employees:     number | null
+    /**
+     * 🛑 ⚑ 19 Sep — THE KEY APOLLO ACTUALLY SENDS, AND IT COST EVERY PROSPECT OF EVERY RUN.
+     *
+     * `num_employees` above is what this file has always read, and production has now proved
+     * it is never there: GREAT Studio's first real Proof sourced **20 people and surfaced
+     * none** — *"Every sourced prospect failed a hard criterion: size 20."* With no headcount
+     * on the row, `sizeVerdict` in `proof-fit.ts` answers `unknown`, and unknown fails a hard
+     * criterion, so all twenty were set aside after being bought.
+     *
+     * ⚠️ WE WROTE THIS DOWN BEFORE IT HAPPENED, IN `scripts/fullstack/fakes.mjs`: *"WHICH KEY
+     * REAL APOLLO SENDS IS RUNTIME UNVERIFIED AND MATTERS. If it is `estimated_num_employees`,
+     * the product reads a field that is never there… no prospect would EVER clear the size
+     * criterion in production."* The fake was then made to emit BOTH keys so the journey could
+     * be walked either way — which is exactly why 26/26 journeys were green while production
+     * produced nothing. RUNTIME VERIFIED, 19 Sep: it is `estimated_num_employees`.
+     */
+    estimated_num_employees?: number | null
     industry:          string | null
     technology_names:  string[]
   } | null
 }
+
 
 interface ApolloSearchBody {
   page:     number

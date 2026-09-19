@@ -207,6 +207,37 @@ export async function proofNoEligibleSetFor(clientId: string): Promise<boolean |
 }
 
 /**
+ * ⚑ 19 Sep — IS THIS CLIENT'S TARGETING STILL WAITING FOR A HUMAN TO TRANSLATE IT?
+ *
+ * 🛑 THE STATE WITH NO READER, AGAIN, AND IT COST SEVEN CLIENTS. `icps.icp_review` set with no
+ * `icp_review_resolved_at` makes `POST /icps/:id/proof` refuse at `icps.ts:7105` — before any
+ * claim, any provider call and any spend — and the client is shown *"flagged for K.I.N.D
+ * review"*. Promotion writes an `icp_review_pending` operator task, and **nothing in
+ * `apps/admin/src` reads that kind**, so Vida's panel said "No action needed" and offered no
+ * control. Northstar Operations Studio sat there with `proof_passes_done` 0 and zero leads.
+ *
+ * ⚠️ IT READS THE SAME TWO COLUMNS THE GATE ITSELF READS, through the same predicate
+ * (`icpNeedsReview`), so the panel and the refusal can never disagree about who is blocked.
+ *
+ * ⚠️ FAILS SOFT TO `null`, like every read in this file: an unreadable answer must not invent
+ * an operator task on every client at once.
+ */
+export async function awaitingIcpTranslationFor(clientId: string): Promise<boolean | null> {
+  try {
+    const { data, error } = await db.from('icps')
+      .select('icp_review, icp_review_resolved_at')
+      .eq('client_id', clientId)
+      .order('created_at', { ascending: false })
+    if (error) return null
+    const rows = (data ?? []) as unknown as { icp_review: unknown; icp_review_resolved_at: string | null }[]
+    if (rows.length === 0) return false
+    const { icpNeedsReview } = await import('./icp-provider-translation')
+    // ANY unresolved ICP blocks that client's Proof, so any one of them is the answer.
+    return rows.some(r => icpNeedsReview(r.icp_review, r.icp_review_resolved_at ?? null))
+  } catch { return null }
+}
+
+/**
  * ⚑ 16 Sep (MVP1 · A1b) — THE EVIDENCE BEHIND THE EXCEPTION, in the gate's own words.
  *
  * 🛑 A NEEDS-YOU WITH NO EVIDENCE IS AN ALARM, NOT A TASK. An operator told only "we could not
@@ -619,7 +650,7 @@ export async function lifecycleDetailFor(clientId: string): Promise<LifecycleDet
   if (!p) {
     const [
       proofStarted, proofCalibrationFailed, proofCompleted, outcomeStated,
-      proofNoEligibleSet, proofException, providerCapacity,
+      proofNoEligibleSet, proofException, providerCapacity, awaitingIcpTranslation,
     ] = await Promise.all([
       proofStartedFor(clientId), proofCalibrationFailedFor(clientId), proofCompletedFor(clientId),
       // ⚑ MVP1 (C03) — read on BOTH branches. This one is the Brief/Proof client, and it is
@@ -635,10 +666,14 @@ export async function lifecycleDetailFor(clientId: string): Promise<LifecycleDet
       // programme exists, which is exactly where "capacity visible before P1" has to be true:
       // the operator agreeing a target and taking a first payment is looking at this panel.
       providerCapacityNow(),
+      // ⚑ 19 Sep — the fact that makes an untranslated ICP visible. Without it this client
+      // reads as an ordinary calm Proof, which is how seven of them went unnoticed.
+      awaitingIcpTranslationFor(clientId),
     ])
     return {
       verdict: deriveLifecycle({
         programme: null, proofStarted, proofCalibrationFailed, proofCompleted, proofNoEligibleSet,
+        awaitingIcpTranslation,
         preparationStopped: false, preparing: false,
         humanBlockers: [], readinessReady: false, sends: 0, repliesAwaitingDecision: 0,
         senderSendable: true, killSwitchOff, operatorRunEnabled,
@@ -865,9 +900,29 @@ export async function lifecycleBoard(clientIds: string[]): Promise<LifecycleBoar
 
   // Which clients have an ICP at all — the Proof signal, read once for everybody.
   const withIcp = new Set<string>()
+  // ── ⚑ 19 Sep (R135) — AND WHICH OF THEM ARE PARKED WAITING FOR A HUMAN TO TRANSLATE ────
+  //
+  // 🛑 IN THE SAME READ, DELIBERATELY. The board is the source of the client LIST, the stage
+  // word on every row and the Needs-you COUNT. A per-client lookup here would be one round
+  // trip per client on the page the console opens on, which `xc3-schema-truth.test.ts` forbids
+  // by name — so the two review columns come back with the ICP read that already happens.
+  //
+  // ⚠️ AND `awaitingRead` IS TRACKED SEPARATELY. A failed read must assert nothing rather than
+  // clearing every client's flag, which would hide exactly the state this exists to surface.
+  const awaitingTranslation = new Set<string>()
+  let awaitingRead = false
   try {
-    const { data } = await db.from('icps').select('client_id').in('client_id', ids)
-    for (const r of ((data ?? []) as { client_id: string | null }[])) if (r.client_id) withIcp.add(r.client_id)
+    const { data } = await db.from('icps')
+      .select('client_id, icp_review, icp_review_resolved_at').in('client_id', ids)
+    const { icpNeedsReview } = await import('./icp-provider-translation')
+    for (const r of ((data ?? []) as {
+      client_id: string | null; icp_review: unknown; icp_review_resolved_at: string | null
+    }[])) {
+      if (!r.client_id) continue
+      withIcp.add(r.client_id)
+      if (icpNeedsReview(r.icp_review, r.icp_review_resolved_at ?? null)) awaitingTranslation.add(r.client_id)
+    }
+    awaitingRead = true
   } catch { /* no ICP read → every client without a programme reads as Signup */ }
 
   // ── 🛑 10 Sep — THE CLIENT-LEVEL PROOF FACTS, READ ONCE FOR THE WHOLE BOARD ──────────
@@ -1197,6 +1252,9 @@ export async function lifecycleBoard(clientIds: string[]): Promise<LifecycleBoar
         // ⚑ 16 Sep (A1b) — same fail-soft rule: `null` on an unreadable board asserts nothing
         // rather than inventing a Needs-you for every client at once.
         proofNoEligibleSet: proofFactsRead ? noEligibleProof.has(clientId) : null,
+        // ⚑ 19 Sep (R135) — the rail's half of the repair. Without this the client is in the
+        // list but not in Needs you, which is how seven of them went unnoticed for days.
+        awaitingIcpTranslation: awaitingRead ? awaitingTranslation.has(clientId) : null,
         preparationStopped: false, preparing: false, humanBlockers: [], readinessReady: false,
         sends: 0, repliesAwaitingDecision: 0, senderSendable: true,
         killSwitchOff, operatorRunEnabled, remainingEntitlement: 0,

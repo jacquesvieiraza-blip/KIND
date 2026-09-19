@@ -41,6 +41,8 @@ export type LifecycleState =
    * shown *"flagged for K.I.N.D review"*, so this is the review that sentence promises.
    */
   | 'proof_exception'
+  // ⚑ 19 Sep — nothing searched yet: their targeting is still awaiting human translation.
+  | 'proof_awaiting_translation'
   | 'blocked'
 
 export type VidaMode = 'No action needed' | 'Working' | 'Watching' | 'Needs you'
@@ -583,6 +585,39 @@ function lifecycleCopyForState(i: LifecycleCopyInput): LifecycleCopy {
         actions: [{ key: 'retry_proof', label: 'Retry Proof', kind: 'primary' }],
       }
     }
+
+    // ── 🛑 ⚑ 19 Sep — NOTHING HAS BEEN SEARCHED, AND UNTIL TODAY NOBODY WAS TOLD ──────────
+    //
+    // 🛑 WHAT EARNED THIS SCREEN, MEASURED ON PRODUCTION. Northstar Operations Studio's ICP was
+    // flagged for human translation at promotion, so `POST /icps/:id/proof` refused before
+    // claiming anything: `proof_passes_done` 0, `proof_records_committed` 0, zero leads. The
+    // client was shown *"flagged for K.I.N.D review"*. This panel showed the ordinary `proof`
+    // case below — "Targeting: Calibrating · Vida: No action needed" — with no control at all,
+    // and the `icp_review_pending` task promotion writes is read by nothing in this console.
+    // Six more clients were behind them in the same state.
+    //
+    // ⚠️ THE FACTS SAY WHAT IS TRUE AND WHO IS WAITING. Not "calibrating", which reads as work
+    // in progress: nothing is in progress and nothing will be until a person acts.
+    case 'proof_awaiting_translation':
+      return {
+        subtitle: 'Waiting on us — their targeting is not translated yet',
+        messages: [
+          `${i.clientName} finished their brief, and part of how they described their targeting is not something we can send to a provider yet.`,
+          `Nothing has been searched and nothing has been spent. Resolve their targeting and Proof runs.`,
+        ],
+        chips: ['What could we not translate?', 'What did the client say?'],
+        cards: [
+          { kind: 'fact', label: 'Stage', value: 'Proof', caption: 'Blocked before any search' },
+          { kind: 'fact', label: 'Searched', value: 'Nothing yet',
+            caption: 'No attempt claimed, no records bought — a retry costs them nothing' },
+          { kind: 'fact', label: 'Client sees',
+            value: 'Flagged for review',
+            caption: 'They are told their setup is saved and nothing needs restarting' },
+          { kind: 'fact', label: 'Waiting on', value: 'Us' },
+          vidaCard('Needs you'),
+        ],
+        actions: [{ key: 'resolve_icp_review', label: 'Resolve targeting', kind: 'primary' }],
+      }
 
     case 'proof':
       return {

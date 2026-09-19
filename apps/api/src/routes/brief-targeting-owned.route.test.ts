@@ -207,16 +207,22 @@ describe('🛑 B5-A · confirmed value A beats a contradictory browser value B',
     expect(icpRow().geographies).not.toContain('United States')
   })
 
-  it('fact 8 · company size — A wins, EXACTLY, and A\'s untranslatable words are KEPT', async () => {
+  it('fact 8 · company size — A wins, EXACTLY, and A\'s words are HONOURED', async () => {
     confirmed(DRAFT_A)
     await postIcp(FROM_DRAFT)
-    // Neither of A's two sizes is in `ICP_SIZES` (hyphen, not en-dash), so neither may reach
-    // the provider column — and the browser's `'1000+'` certainly may not.
-    expect(icpRow().company_sizes).toEqual([])
-    expect(icpRow().company_sizes).not.toContain('1000+')
-    // 🛑 BUT THEY ARE NOT LOST. A's exact words, verbatim, as the evidence a human resolves.
-    expect(reviewSaid('company_sizes')).toEqual(['11-50', '51-200'])
-    expect(reviewSaid('company_sizes'), 'the browser\'s value is not evidence').not.toContain('1000+')
+    // ⛓️ 19 Sep (R135) — WAS: ~~`expect(icpRow().company_sizes).toEqual([])` with A's two
+    // sizes kept as review evidence~~, because `'11-50'` is a hyphen where the vocabulary uses
+    // an en-dash. The founder ruled after seven clients were stranded on exactly this kind of
+    // near-miss: *"we then interpret the clients conversation and mould the icp to get them
+    // leads."* A punctuation difference is not a question for a human, so A's answer now
+    // reaches the column in its canonical spelling.
+    //
+    // 🛑 AND WHAT THIS TEST IS ACTUALLY FOR IS UNCHANGED: A's answer wins, B's never arrives.
+    expect(icpRow().company_sizes).toEqual(['11–50', '51–200'])
+    expect(icpRow().company_sizes, 'the browser\'s value reached the row').not.toContain('1000+')
+    expect(icpRow().company_sizes, 'the browser\'s value reached the row').not.toContain('1,000+')
+    // Nothing is owed to a human any more, because nothing was left untranslated.
+    expect(reviewSaid('company_sizes')).toEqual([])
   })
 
   it('fact 9 · target roles — job titles AND seniority both come from A, separately', async () => {
@@ -225,11 +231,14 @@ describe('🛑 B5-A · confirmed value A beats a contradictory browser value B',
     // `job_titles` is OPEN TEXT — no closed vocabulary sits between the client and this
     // column, so A's answer reaches it exactly as it always did.
     expect(icpRow().job_titles).toEqual(['Managing Director', 'Head of Growth'])
-    // `seniority_levels` is CLOSED. A said two things; one is vocabulary and one is not, and
-    // the split is honoured in both directions rather than the pair being taken or dropped
-    // together.
-    expect(icpRow().seniority_levels).toEqual(['C-Suite'])
-    expect(reviewSaid('seniority_levels')).toEqual(['Director'])
+    // `seniority_levels` is CLOSED. A said two things, and both are honoured.
+    //
+    // ⛓️ 19 Sep (R135) — WAS: ~~`toEqual(['C-Suite'])` with `'Director'` left as review
+    // evidence~~. "Director" is a stated seniority whose canonical band is `VP / Director`;
+    // parking a client for a word that obviously maps is the defect that stranded seven of
+    // them. B's `'Manager'` still never arrives, which is what this case exists to prove.
+    expect(icpRow().seniority_levels).toEqual(['C-Suite', 'VP / Director'])
+    expect(reviewSaid('seniority_levels')).toEqual([])
     expect(icpRow().seniority_levels, 'the browser\'s value never arrives').not.toContain('Manager')
   })
 
@@ -255,12 +264,13 @@ describe('🛑 B5-B · an omitted browser field cannot lose the confirmed answer
     expect(row.target_company_type).toBe('agency')
     expect(row.geographies).toEqual(['United Kingdom', 'Ireland'])
     expect(row.job_titles).toEqual(['Managing Director', 'Head of Growth'])
-    // The two CLOSED lists: what translated reached the column, what did not reached the
-    // review. A body carrying nothing still loses none of the confirmed answer.
-    expect(row.company_sizes).toEqual([])
-    expect(reviewSaid('company_sizes')).toEqual(['11-50', '51-200'])
-    expect(row.seniority_levels).toEqual(['C-Suite'])
-    expect(reviewSaid('seniority_levels')).toEqual(['Director'])
+    // The two CLOSED lists: A's answers reach the columns in canonical spelling. A body
+    // carrying nothing still loses none of the confirmed answer — which is this case's point.
+    // ⛓️ 19 Sep (R135) — both lists used to be review evidence over punctuation and a synonym.
+    expect(row.company_sizes).toEqual(['11–50', '51–200'])
+    expect(reviewSaid('company_sizes')).toEqual([])
+    expect(row.seniority_levels).toEqual(['C-Suite', 'VP / Director'])
+    expect(reviewSaid('seniority_levels')).toEqual([])
   })
 
   it('an EMPTY array from the browser does not blank a confirmed list', async () => {
@@ -270,9 +280,9 @@ describe('🛑 B5-B · an omitted browser field cannot lose the confirmed answer
     expect(row.geographies).toEqual(['United Kingdom', 'Ireland'])
     expect(row.job_titles).toEqual(['Managing Director', 'Head of Growth'])
     // An empty array from the browser does not blank the confirmed size either — it is still
-    // A's answer that is being carried, and it is carried to the review because it is not
-    // vocabulary, NOT because the browser sent `[]`.
-    expect(reviewSaid('company_sizes')).toEqual(['11-50', '51-200'])
+    // A's answer that is being carried, and it reaches the column because it translates.
+    // ⛓️ 19 Sep (R135) — it used to land in the review over a hyphen-vs-en-dash difference.
+    expect(row.company_sizes).toEqual(['11–50', '51–200'])
   })
 
   it('🛑 and a BLANK draft fact falls back rather than blanking what Milla proposed', async () => {
@@ -285,8 +295,10 @@ describe('🛑 B5-B · an omitted browser field cannot lose the confirmed answer
     expect(row.job_titles).toEqual(['Practice Manager'])
     // …while the facts the draft DOES hold still win.
     expect(row.target_company_type).toBe('agency')
-    expect(reviewSaid('company_sizes'), 'the draft\'s size still wins over the body\'s').toEqual(['11-50', '51-200'])
-    expect(reviewSaid('company_sizes')).not.toContain('1000+')
+    // ⛓️ 19 Sep (R135) — the draft's size still wins over the body's; it is now asserted on the
+    // COLUMN rather than on review evidence, because A's answer translates instead of parking.
+    expect(row.company_sizes, 'the draft\'s size still wins over the body\'s').toEqual(['11–50', '51–200'])
+    expect(row.company_sizes, 'the body\'s size reached the row').not.toContain('1,000+')
   })
 })
 
@@ -300,12 +312,13 @@ describe('B5-C · no owning draft — the legacy/body path is unchanged', () => 
     expect(row.target_company_type).toBe('clinic')
     expect(row.geographies).toEqual(['United States'])
     expect(row.job_titles).toEqual(['Practice Manager'])
-    // ⛓️ The body's own words face the SAME closed vocabularies — no door is exempt. `'1000+'`
-    // is not `'1,000+'`, so it becomes review evidence; `'Manager'` IS `ICP_SENIORITY`, so it
-    // reaches the column. The legacy path is unchanged in WHOSE words are used, which is what
-    // B5-C is about; it was never a licence to write un-normalised text to a provider column.
-    expect(row.company_sizes).toEqual([])
-    expect(reviewSaid('company_sizes')).toEqual(['1000+'])
+    // ⛓️ The body's own words face the SAME closed vocabularies — no door is exempt, and
+    // under R135 they get the same interpretation the confirmed brief does: `'1000+'` is the
+    // client's spelling of `'1,000+'` and reaches the column canonically; `'Manager'` IS
+    // `ICP_SENIORITY` and always did. B5-C is about WHOSE words are used, and that is
+    // unchanged — it was never a licence to write un-normalised text to a provider column.
+    expect(row.company_sizes).toEqual(['1,000+'])
+    expect(reviewSaid('company_sizes')).toEqual([])
     expect(row.seniority_levels).toEqual(['Manager'])
   })
 

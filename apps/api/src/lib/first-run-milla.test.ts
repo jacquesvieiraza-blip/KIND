@@ -2531,11 +2531,15 @@ describe('EXECUTED · the closed lists are enforced at the trust boundary', () =
     expect((out.payload.data as Record<string, any>).icp.seniority_levels).toEqual(['Manager'])
   })
 
-  it('an off-list company size is dropped the same way', async () => {
+  it('an off-list company size is READ rather than dropped (R135)', async () => {
+    // ⛓️ 19 Sep — WAS: ~~`toEqual(['51–200'])`~~, i.e. `'50 - 500'` silently discarded. The
+    // founder ruled after seven clients were stranded: a stated span is the answer, and it
+    // covers three bands. Discarding it narrowed the audience to a third of what was asked for.
     anthropicBox.reply = withIcp({ company_sizes: ['50 - 500', '51–200'] })
     const out = await run()
     expect(out.code).toBe(200)
-    expect((out.payload.data as Record<string, any>).icp.company_sizes).toEqual(['51–200'])
+    expect((out.payload.data as Record<string, any>).icp.company_sizes)
+      .toEqual(['11–50', '51–200', '201–500'])
   })
 
   it('a case drift is CANONICALISED, never stored as the model spelt it', async () => {
@@ -2961,13 +2965,15 @@ describe('an all-invalid closed list can NEVER silently broaden the targeting', 
     expect(d.icp_review.requirements).toEqual([{ field: 'seniority_levels', said: ['MD and above'] }])
   })
 
-  it('🛑 ALL-invalid company sizes → the same', async () => {
-    anthropicBox.reply = withIcp2({ company_sizes: ['50 - 500'] })
+  it('🛑 AN UNREADABLE company size → still flagged, nothing invented', async () => {
+    // ⛓️ 19 Sep (R135) — the fixture was `'50 - 500'`, a span we now read. This case is about
+    // what happens when we genuinely cannot place the answer, so it carries a phrase we cannot.
+    anthropicBox.reply = withIcp2({ company_sizes: ['whatever size feels right to you'] })
     const out = await run2()
     expect(out.code).toBe(200)
     const d = out.payload.data as Record<string, any>
     expect(d.icp.company_sizes).toEqual([])
-    expect(d.icp_review.requirements).toEqual([{ field: 'company_sizes', said: ['50 - 500'] }])
+    expect(d.icp_review.requirements).toEqual([{ field: 'company_sizes', said: ['whatever size feels right to you'] }])
   })
 
   it('🛑 a clean completion carries NO review — the normal path is untouched', async () => {
@@ -3091,7 +3097,9 @@ describe('EXECUTED · discriminated validation — questions survive junk target
     for (const [field, icp] of [
       ['industries', { industries: ['IT Solutions'] }],
       ['seniority_levels', { seniority_levels: ['MD and above'] }],
-      ['company_sizes', { company_sizes: ['50 - 500'] }],
+      // ⛓️ 19 Sep (R135) — a readable span is no longer a flag, so this case carries one we
+      // genuinely cannot place; the F–H rule (complete + flagged, per field) is unchanged.
+      ['company_sizes', { company_sizes: ['whatever size feels right to you'] }],
     ] as Array<[string, Record<string, unknown>]>) {
       anthropicBox.reply = toolReply({
         type: 'complete', summary: 's',

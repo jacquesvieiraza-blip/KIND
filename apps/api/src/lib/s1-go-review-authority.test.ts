@@ -46,7 +46,7 @@ const PARKED_WITH_REVIEW = {
   seniority_levels: ['C-Suite'],
   company_sizes: [],
   geographies: ['United Kingdom'],
-  icp_review: { requirements: [{ field: 'company_sizes', said: ['around 10 to 50 people'] }] },
+  icp_review: { requirements: [{ field: 'company_sizes', said: ['whatever size feels right to you'] }] },
   icp_review_at: '2026-09-14T09:00:00.000Z',
 }
 
@@ -146,7 +146,11 @@ describe('🛑 S1-PD-05 §A · the SAVE parks the canonical half AND the server-
   const revision = {
     name: 'UK agencies', target_category: 'Agencies', target_company_type: 'agency',
     industries: ['Consulting'], job_titles: ['Founder'], seniority_levels: ['C-Suite'],
-    company_sizes: ['around 10 to 50 people'],          // ← the off-vocabulary constraint
+    // ⛓️ 19 Sep (R135) — WAS: ~~`['around 10 to 50 people']`~~. That phrase is now UNDERSTOOD:
+    // `expandSizeSpan` reads the client's own numbers and returns the bands they cover, so it
+    // no longer parks anybody. This case is about a PARKED review transferring correctly, so it
+    // keeps a phrase that genuinely cannot be placed — otherwise it would prove nothing.
+    company_sizes: ['whatever size feels right to you'],          // ← the off-vocabulary constraint
     geographies: ['United Kingdom'], tech_stack: [], keywords: [],
   }
 
@@ -171,7 +175,7 @@ describe('🛑 S1-PD-05 §A · the SAVE parks the canonical half AND the server-
       .patch.pending_targeting as Record<string, unknown>
     expect(parked.company_sizes, 'the un-normalised phrase never reaches a provider list').toEqual([])
     expect(parked.seniority_levels).toEqual(['C-Suite'])
-    expect(JSON.stringify(parked.icp_review)).toContain('around 10 to 50 people')
+    expect(JSON.stringify(parked.icp_review)).toContain('whatever size feels right to you')
     // 🛑 AND THE PARKED REVIEW IS WHAT GO WILL READ — proved by running the rule on it.
     const t = pendingReviewTransfer(parked)
     expect(t.ok).toBe(true)
@@ -195,11 +199,11 @@ describe('🛑 S1-PD-05 §B · what GO must do with the parked review', () => {
     const mixed = {
       seniority_levels: ['C-Suite'],                       // translated, goes live
       company_sizes: [],                                   // the unmapped half, emptied
-      icp_review: { requirements: [{ field: 'company_sizes', said: ['around 10 to 50 people'] }] },
+      icp_review: { requirements: [{ field: 'company_sizes', said: ['whatever size feels right to you'] }] },
     }
     const t = pendingReviewTransfer(mixed)
     expect(t.ok && t.apply, 'keeping the canonical half without the review is the bypass').toBe(true)
-    expect(JSON.stringify(t.ok && t.apply && t.review)).toContain('around 10 to 50 people')
+    expect(JSON.stringify(t.ok && t.apply && t.review)).toContain('whatever size feels right to you')
   })
 
   it('5 · a CLEAN pending revision applies with no review invented', () => {

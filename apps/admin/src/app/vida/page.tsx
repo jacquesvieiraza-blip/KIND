@@ -2863,6 +2863,23 @@ export default function VidaConsolePage() {
       // and nothing in the product could reach them. This calls the EXISTING route and adds
       // no completion logic of its own.
       case 'complete_programme': return void completeProgramme()
+      // ── ⚑ 19 Sep (R135) — THE TARGETING REVIEW HAD A CARD, A STATE AND A DEAD BUTTON ──
+      //
+      // 🛑 THE THIRD SURFACE OF THE SAME DEADLOCK. `proof_awaiting_translation` was built on
+      // 18 Sep so a client parked for translation reads as a Needs-you instead of a calm
+      // Proof card, and the card carries a `Resolve targeting` control — which fell through
+      // `default: return` below and did nothing. So the panel finally SAID somebody was
+      // blocked and still gave the operator no way to act, which is C40 exactly: a button
+      // with no server authority behind it is worse than no button, because it reads as done.
+      //
+      // ⚠️ IT NAVIGATES RATHER THAN POSTING, AND THAT IS THE HONEST WIRING. Resolving a
+      // review is not a one-click act: `POST /operator/icp-review/:icpId/resolve` requires the
+      // operator's MAPPING of the client's own unmapped words onto provider vocabulary, and
+      // re-canonicalises everything they send. That editor already exists and is already
+      // mounted — `IcpReviewPanel` on `/cockpit`. This takes them to it, exactly as
+      // `reconnect_mailbox` hands off to the engine screen, instead of growing a second
+      // review editor inside the client workspace.
+      case 'resolve_icp_review': window.location.href = '/cockpit'; return
       default: return
     }
   }, [lifecycle, runProgramme, pauseProgramme, refreezePackage, retryProof, completeProgramme, selected, calib, resolveCalibration, grantCalibratedRestart])

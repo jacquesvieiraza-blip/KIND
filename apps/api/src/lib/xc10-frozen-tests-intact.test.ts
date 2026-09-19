@@ -105,8 +105,33 @@ describe('XC-10 · the baseline and the files are where this expects', () => {
   it('🛑 THE CERTIFIED BASELINE EXISTS IN THIS REPOSITORY', () => {
     // A guard that cannot resolve the baseline would throw, not pass — but naming it here
     // makes the failure say WHY rather than printing a git error.
-    const sha = execFileSync('git', ['rev-parse', '--short', BASELINE], { cwd: REPO, encoding: 'utf8' }).trim()
-    expect(sha, 'the certified baseline is not reachable from this checkout').toBe(BASELINE)
+    //
+    // ── 🛑 ⚑ 19 Sep — THE ANSWER MUST NOT DEPEND ON WHOSE MACHINE RUNS IT ─────────────────
+    //
+    // ⛓️ WHAT STOOD HERE: ~~`git rev-parse --short BASELINE` compared with `.toBe(BASELINE)`~~.
+    //
+    // 🛑 `--short` IS ADAPTIVE. Git picks the shortest unambiguous abbreviation for the clone it
+    // is standing in, so the SAME commit answers `60e6e9ba` in one checkout and `60e6e9b` in
+    // another — both correct, and only the first equals this 8-character literal. The container
+    // this build was certified in returns 8 and the suite was green; the founder's own clone
+    // returns 7, so `bash scripts/ship.sh` failed its gate on `main` and REFUSED TO DEPLOY a
+    // build whose product code was fine. A guard that passes or fails on where it is run is not
+    // a guard, and this one sat in front of the release.
+    //
+    // ⛓️ AND THE REPOSITORY HAD ALREADY PAID FOR THIS LESSON ONCE. `ship.sh` carries it in its
+    // own words — *"`--short` picks its own abbreviation length and widens it as the repository
+    // grows"* — which is why the shipped sha is `${HEAD_FULL:0:7}` and why
+    // `xc11-migration-discipline.test.ts` forbids `rev-parse --short` on the shipping path. The
+    // same mistake walked back in through a test.
+    //
+    // ⚠️ THE GUARD KEEPS ITS TEETH. `rev-parse <sha>^{commit}` still THROWS when the baseline is
+    // absent or is not a commit — which is the thing this case exists to catch — and the full
+    // 40-character answer is compared against the baseline as a PREFIX, so no abbreviation
+    // length can change the verdict. A wrong baseline still fails: no other commit's sha
+    // starts with these eight characters.
+    const full = execFileSync('git', ['rev-parse', `${BASELINE}^{commit}`], { cwd: REPO, encoding: 'utf8' }).trim()
+    expect(full.length, 'git did not answer with a full commit sha').toBe(40)
+    expect(full.startsWith(BASELINE), `the certified baseline is not reachable from this checkout (git resolved ${full})`).toBe(true)
   })
 
   it('🛑 AND ALL FIVE FROZEN FILES ARE STILL THERE — a deleted frozen test is the loudest drift', () => {

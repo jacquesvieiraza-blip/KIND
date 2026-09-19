@@ -2611,6 +2611,50 @@ export async function runIcpJob(
     }
   }
 
+  // ── 🛑 ⚑ 19 Sep (MVP1 · Journey 12) — A RUN THAT BOUGHT NOBODY STILL SETTLES ITS BATCH ──
+  //
+  // 🛑 THE SIBLING OF THE STRANDING `claim_programme_batch` NOW FIXES, AND IT IS THIS FILE'S
+  // HALF. Every settle in this function lives inside the block below, which is gated on
+  // `insertedIds.length > 0`. So a run that reserved volume, opened a batch and then inserted
+  // NOBODY — every provider contact refused by the client's own hard criteria before the
+  // spend, a pool serve that wrote nothing after its grant, a dedupe that removed the page —
+  // reached the end holding a reservation with no batch event that could ever release it. The
+  // batch stays `running`, `delivered` stays null, and that slice of the client's PAID ceiling
+  // is gone. Founder lock 6 says unused programme value never expires.
+  //
+  // ⚠️ ONLY WHEN THE BATCH HOLDS NOBODY AT ALL, and the check is a count rather than this
+  // run's own list. A batch is shared: the claim hands an in-flight batch to a second run, and
+  // the first run's candidates may be sitting in it unjudged, deliberately left for the
+  // operator re-run ("the reservation stays open; re-run qualification"). Settling on zero
+  // there would release volume those candidates legitimately hold and throw away a recovery
+  // the code above chose on purpose. `count(leads where batch_id = X) = 0` is the only state
+  // in which releasing everything is unambiguously right: nobody was bought, so nobody can
+  // ever be qualified against it.
+  //
+  // ⚠️ IT INVENTS NO NEW ACCOUNTING. `settleBatch(id, 0)` is the same call the provider-failure
+  // path a thousand lines above already makes for the same reason, and the RPC is idempotent —
+  // a batch another run settles first refuses this one with a no-op.
+  //
+  // ⚠️ AND IT CANNOT FIRE ON THE STRUCTURAL-GATE REFUSAL, which returns before this line with
+  // its reservation deliberately open and its candidates still on the table.
+  if (!proofMode && programmeBatch && insertedIds.length === 0) {
+    const { count: attributed, error: attErr } = await db.from('leads')
+      .select('id', { count: 'exact', head: true })
+      .eq('batch_id', programmeBatch.id)
+    if (attErr) {
+      // Fail closed: an unreadable count is not evidence that the batch is empty, and
+      // releasing a reservation on a guess is the one outcome worse than holding it.
+      console.error(`[icp] batch ${programmeBatch.id} inserted NOBODY, and its attributed-candidate count could not be read (${attErr.message}) — the reservation stays open and must be reconciled.`)
+    } else if ((attributed ?? 0) > 0) {
+      console.log(`[icp] batch ${programmeBatch.id} inserted nobody on this run, but holds ${attributed} candidate(s) from an earlier one — the reservation stays open for that run's qualification, not released here.`)
+    } else {
+      const { settleBatch } = await import('../lib/programme')
+      const r = await settleBatch(programmeBatch.id, 0)
+      if (r.ok) console.log(`[icp] batch ${programmeBatch.id} settled at ZERO — the run created no candidate, so the whole grant is released back to the client's ceiling.`)
+      else console.error(`[icp] batch ${programmeBatch.id} created no candidate and could NOT be settled — marked stranded; the granted volume stays reserved until reconciled.`)
+    }
+  }
+
   if (!proofMode && insertedIds.length > 0) {
     if (programmeIdForRun) {
       // ══ ⚑ 9 Sep (HOUSE-009) — A PROGRAMME RUN QUALIFIES; IT DOES NOT "DELIVER" ═══════

@@ -128,6 +128,7 @@ DECLARE
   v_existing public.programme_batches;
   v_next_seq int;
   v_row      public.programme_batches;
+  v_reserved int;
 BEGIN
   -- Serialise every claimer for this programme behind one row lock.
   PERFORM 1 FROM public.programmes WHERE id = p_programme_id FOR UPDATE;
@@ -139,7 +140,45 @@ BEGIN
 
   -- ALREADY RUNNING → hand back the same batch. This is the idempotent path: a retry, a
   -- redelivered webhook and a double-clicked operator button all land here.
+  --
+  -- ── 🛑 ⛓️ 19 Sep (MVP1 · Journey 12) — AND THE JOINER'S RESERVATION JOINS IT TOO ────────
+  --
+  -- 🛑 IT USED TO `RETURN v_existing` UNCHANGED, AND THAT STRANDED CLIENT MONEY. The full-
+  -- stack walk ended a green run with `used=5 · reserved=20 · ceiling=1250` and the 20 never
+  -- came back. Three functions, one number, and until now they disagreed about it:
+  --
+  --   · try_reserve_programme_sourcing raises programmes.sourced_reserved on EVERY call, so a
+  --     second run reserves its own volume whatever else is in flight;
+  --   · this function hands that second caller the batch already running — deliberately, so a
+  --     retry cannot open two — and recorded NOTHING about the grant it arrived with;
+  --   · settle_programme_batch releases programme_batches.granted, which is all it has.
+  --
+  -- One settle therefore released 250 of the 270 that were reserved. The other 20 of the
+  -- client's PAID volume was stranded for good: no batch left to release it, no error, no
+  -- 'stranded' row, nothing to find it by. Founder lock 6 says unused programme value never
+  -- expires; this expired it silently.
+  --
+  -- ⚠️ CLAMPED TO WHAT THE PROGRAMME ACTUALLY HOLDS, NOT BLINDLY ADDED. A genuine retry — a
+  -- dropped response, a redelivered webhook — reserved NOTHING the second time, so adding its
+  -- p_granted would make the batch claim reservation that does not exist, and the settle would
+  -- then convert against it. `sourced_reserved` is the truth both other functions move, so the
+  -- batch is reconciled to it: a batch may never record more reserved volume than its
+  -- programme holds. The joining run raises it; the retry leaves it exactly where it was.
+  --
+  -- ⚠️ `requested` IS ADDED, NOT CLAMPED — it is what the runs ASKED for, a reporting number
+  -- no settle reads, and the CHECK only requires it to stay positive.
   IF FOUND THEN
+    IF COALESCE(p_granted, 0) > 0 THEN
+      SELECT sourced_reserved INTO v_reserved
+        FROM public.programmes WHERE id = p_programme_id;
+
+      UPDATE public.programme_batches
+         SET requested = requested + GREATEST(COALESCE(p_requested, 0), 0),
+             granted   = GREATEST(granted,
+                                  LEAST(granted + p_granted, COALESCE(v_reserved, granted)))
+       WHERE id = v_existing.id
+      RETURNING * INTO v_existing;
+    END IF;
     RETURN v_existing;
   END IF;
 

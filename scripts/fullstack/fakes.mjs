@@ -162,6 +162,20 @@ const apolloHandler = async (req, body, res, state) => {
 
   // ── success ──
   if (path.endsWith('/mixed_people/api_search')) {
+    // ── 🛑 ⚑ 19 Sep (J12) — A FRESH PAGE PER SEARCH, BECAUSE A REPEATED ONE PROVES NOTHING ──
+    //
+    // 🛑 THIS RETURNED THE SAME 25 IDENTITIES TO EVERY CALL, and the product's own dedupe then
+    // hollowed out every run after the first one for a client: `already owned` removed all 20,
+    // the run inserted nobody, and the sourcing journey passed on leads an EARLIER journey had
+    // bought. One certification run showed exactly that — J12 reporting "20 qualified" while
+    // its own sourcing call created no candidate at all. A check that can pass without the
+    // work happening is the defect F-KILL taught this harness to look for.
+    //
+    // ⚠️ REAL APOLLO DOES NOT REPEAT ITSELF EITHER — a paged search walks forward — so this is
+    // closer to the provider, not a convenience. Each call takes the next block of identities;
+    // nothing else about the shape changes, and `bulk_match` still echoes the ids it is asked
+    // about, so a page and its reveal always agree.
+    const offset = state.peopleServed ?? 0
     const person = (i) => ({
       id: `apollo-person-${i}`, first_name: 'Test', last_name: `Person${i}`,
       name: `Test Person${i}`, title: 'Head of Operations', linkedin_url: null,
@@ -188,8 +202,9 @@ const apolloHandler = async (req, body, res, state) => {
       country: 'United Kingdom', city: 'London', state: 'England',
     })
     const perPage = 25
+    state.peopleServed = offset + perPage
     return json(res, 200, {
-      people: Array.from({ length: perPage }, (_, i) => person(i)),
+      people: Array.from({ length: perPage }, (_, i) => person(offset + i)),
       pagination: { page: 1, per_page: perPage, total_entries: perPage, total_pages: 1 },
     }), true
   }

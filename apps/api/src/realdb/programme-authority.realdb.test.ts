@@ -478,4 +478,80 @@ describe('XC-13 · programme authority under provider failure', () => {
     expect(a.sourced_used).toBe(a.sourcing_ceiling)
     expect(await reserve(programmeId, 1)).toBe(0)
   })
+
+  // ── ⑥ TWO RUNS, ONE OPEN BATCH — THE JOINER'S RESERVATION MUST BE RELEASED TOO ─────
+  //
+  // 🛑 WHAT THE FULL-STACK WALK FOUND (18 Sep, Journey 12 — "automatic sourcing /
+  // enrichment / qualification / ACCOUNTING"). At the end of a green run the programme read
+  // `used=5 · reserved=20 · ceiling=1250`, and the 20 never came back. The batch behind it
+  // read `granted=250, delivered=5, settled_at=<set>` — settled, correctly, for 250.
+  //
+  // THE MECHANISM, and it is two functions disagreeing about one number:
+  //   · `try_reserve_programme_sourcing` raises `programmes.sourced_reserved` on EVERY call.
+  //     A second run reserves its own volume, whatever else is in flight.
+  //   · `claim_programme_batch` hands a second caller the batch that is already running —
+  //     deliberately, so a retry cannot open two — and, until this fix, returned it UNCHANGED.
+  //     The joiner's grant was never recorded anywhere.
+  //   · `settle_programme_batch` releases `programme_batches.granted`, which is the only
+  //     number it has.
+  //
+  // So one settle released 250 of the 270 that were reserved, and the remaining 20 of the
+  // client's PAID volume was stranded for good — no batch left to release it, no error, no
+  // stranded row, nothing to find it by. Founder lock 6 is explicit that unused programme
+  // value never expires; this made it expire silently.
+  //
+  // ⚠️ IT CANNOT BE PROVEN BY A UNIT TEST. Both halves are database functions: what a claim
+  // does to a row, and what a settle then reads back. A mocked `db.rpc` returns whatever the
+  // test author types for both.
+
+  it('⑥ a second run that JOINS the open batch has its reservation released by the settle', async () => {
+    const { programmeId } = await newProgramme(1250)
+
+    // The first run — the one the first payment authorises.
+    const first = await reserve(programmeId, 250)
+    expect(first).toBe(250)
+    const b1 = await claimBatch(programmeId, 250, first)
+
+    // A second run starts while that batch is still open (the operator sources 20 more).
+    const second = await reserve(programmeId, 20)
+    expect(second).toBe(20)
+    const b2 = await claimBatch(programmeId, 20, second)
+    expect(b2.id, 'a second RUNNING batch was opened — each would hold its own reservation').toBe(b1.id)
+
+    // Both reservations are real and both are against the client's ceiling.
+    expect((await authority(programmeId)).sourced_reserved).toBe(270)
+    // And the batch that now owns both of them says so.
+    expect(b2.granted, 'the joining run’s grant was not recorded against the batch that absorbed it').toBe(270)
+
+    // The run finishes: five candidates qualified.
+    await settle(b2.id, 5)
+
+    const a = await authority(programmeId)
+    expect(a.sourced_used).toBe(5)
+    expect(a.sourced_reserved,
+      'the joining run’s reservation is stranded — that slice of the client’s paid volume can never be used again').toBe(0)
+    expect(a.sourced_used + a.sourced_reserved).toBeLessThanOrEqual(a.sourcing_ceiling)
+  })
+
+  it('⑥ a retried claim that reserved NOTHING does not inflate the grant', async () => {
+    // 🛑 THE OTHER DIRECTION, AND IT IS WHY THE FIX IS CLAMPED RATHER THAN ADDITIVE. ⑤ above
+    // establishes that a retried claim — a dropped response, a redelivered webhook — must
+    // return the same batch. Such a retry did NOT reserve a second time, so adding its
+    // `p_granted` blindly would make the batch claim 40 of reservation the programme has
+    // never held, and the settle would then convert up to 40 against a 20-record reservation.
+    //
+    // A batch may never record more reserved volume than the programme actually holds, so
+    // the claim clamps to `programmes.sourced_reserved` and this retry changes nothing.
+    const { programmeId } = await newProgramme(200)
+    await reserve(programmeId, 20)
+    const a1 = await claimBatch(programmeId, 20, 20)
+    const a2 = await claimBatch(programmeId, 20, 20)
+    expect(a2.id).toBe(a1.id)
+    expect(a2.granted, 'a retry that reserved nothing inflated the batch’s grant').toBe(20)
+
+    await settle(a1.id, 0)
+    const a = await authority(programmeId)
+    expect(a.sourced_reserved).toBe(0)
+    expect(a.sourced_used).toBe(0)
+  })
 })

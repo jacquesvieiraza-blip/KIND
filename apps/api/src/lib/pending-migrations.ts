@@ -3092,6 +3092,7 @@ DECLARE
   v_existing public.programme_batches;
   v_next_seq int;
   v_row      public.programme_batches;
+  v_reserved int;
 BEGIN
   -- PERFORM ... FOR UPDATE on the programme row is the serialiser: two callers arriving
   -- together are ordered by that lock, so the second one's SELECT runs after the first one's
@@ -3105,7 +3106,31 @@ BEGIN
   WHERE programme_id = p_programme_id AND status = 'running'
   LIMIT 1;
 
+  -- 19 Sep (MVP1 · Journey 12) -- THE JOINER'S RESERVATION JOINS THE BATCH TOO.
+  --
+  -- This used to RETURN v_existing unchanged, and that stranded client money. Every call to
+  -- try_reserve_programme_sourcing raises programmes.sourced_reserved; settle_programme_batch
+  -- releases programme_batches.granted. A second run reserving 20 against an open batch of 250
+  -- therefore left the programme holding 270 reserved and the batch holding 250 -- one settle
+  -- released 250, and 20 of the client's PAID volume was stranded with no batch left to
+  -- release it. Founder lock 6: unused programme value never expires.
+  --
+  -- CLAMPED TO WHAT THE PROGRAMME ACTUALLY HOLDS, NOT BLINDLY ADDED. A genuine retry -- a
+  -- dropped response, a redelivered webhook -- reserved nothing the second time, so adding its
+  -- p_granted would make the batch claim reservation that does not exist. sourced_reserved is
+  -- the truth both other functions move, so the batch is reconciled to it, and it never shrinks.
   IF FOUND THEN
+    IF COALESCE(p_granted, 0) > 0 THEN
+      SELECT sourced_reserved INTO v_reserved
+        FROM public.programmes WHERE id = p_programme_id;
+
+      UPDATE public.programme_batches
+         SET requested = requested + GREATEST(COALESCE(p_requested, 0), 0),
+             granted   = GREATEST(granted,
+                                  LEAST(granted + p_granted, COALESCE(v_reserved, granted)))
+       WHERE id = v_existing.id
+      RETURNING * INTO v_existing;
+    END IF;
     RETURN v_existing;
   END IF;
 

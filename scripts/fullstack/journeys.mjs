@@ -30,7 +30,7 @@
 import { randomUUID } from 'node:crypto'
 
 export function makeJourneyChecks(kit) {
-  const { ENV, http, api, operator, sql, ok, bad, note, fakeCount, fakeMode, fakeRequests, mintJwt } = kit
+  const { ENV, http, api, operator, sql, ok, bad, fakeCount, fakeMode, fakeRequests, mintJwt } = kit
 
   /** The walk's shared state — each journey adds what it produced. */
   const W = { tag: null, userId: null, email: null, jwt: null, clientId: null, icpId: null, programmeId: null, campaignId: null, leadId: null, seeded: [] }
@@ -536,12 +536,24 @@ export function makeJourneyChecks(kit) {
     await fakeMode('apollo', 'success')
     const pdlBefore = await fakeCount('pdl'); const hunterBefore = await fakeCount('hunter')
 
+    // ── 🛑 ⛓️ 19 Sep — WHAT THIS RUN DID, NOT WHAT THE CLIENT HAPPENS TO OWN ─────────────
+    //
+    // 🛑 IT USED TO COUNT `leads where client_id = … and score is not null` AND CALL THAT
+    // "sourcing produced qualified leads". Every earlier journey in this walk buys leads for
+    // the same client, so that count is never zero by the time J12 runs — and one measured
+    // certification run proved it: the sourcing call created NO candidate at all (Apollo
+    // handed back people this client already owned) and the journey still reported
+    // "20 qualified", because it was counting Proof's leads. The sourcing half was vacuous.
+    //
+    // So everything below is measured as a DELTA across this one call, or read off the row
+    // this run itself wrote.
+    const [before] = await sql(
+      'select sourced_used, sourced_reserved from public.programmes where id = $1', [W.programmeId])
+
     const r = await asOperator('/operator/source', {
       method: 'POST', timeoutMs: 180000,
       body: JSON.stringify({ client_id: W.clientId, count: 20, confirm: true }),
     })
-    const qualified = (await waitFor('scored leads',
-      countWhere('client_id = $1 and score is not null', [W.clientId]))) ?? 0
     // ⚠️ ACCOUNTING SETTLES AFTER THE RESPONSE, like everything else in this run. Reading it
     // immediately reported "the accounting left 270 records reserved" about a run that had not
     // finished releasing them.
@@ -552,10 +564,36 @@ export function makeJourneyChecks(kit) {
     const [auth] = await sql(
       'select sourcing_ceiling, sourced_used, sourced_reserved from public.programmes where id = $1', [W.programmeId])
     const outcomes = await sql(
-      `select status from public.icp_run_outcomes where client_id = $1 order by created_at desc limit 1`, [W.clientId])
+      `select status, total_inserted from public.icp_run_outcomes
+        where client_id = $1 order by created_at desc limit 1`, [W.clientId])
+    // The batch this run sourced against, and what it actually bought and judged.
+    const [batch] = await sql(
+      `select id, granted, delivered, settled_at from public.programme_batches
+        where programme_id = $1 order by created_at desc limit 1`, [W.programmeId])
+    const [batchRows] = batch ? await sql(
+      `select count(*)::int as candidates,
+              count(*) filter (where qualified_at is not null)::int as qualified,
+              count(*) filter (where score is not null)::int as scored
+         from public.leads where batch_id = $1`, [batch.id]) : [{ candidates: 0, qualified: 0, scored: 0 }]
 
     if (r.status !== 200) return bad(id, `automatic sourcing answered HTTP ${r.status}: ${String(r.text).slice(0, 250)}`)
-    if (Number(qualified) === 0) return bad(id, 'sourcing produced no scored (qualified) leads — enrichment and qualification did not run')
+    // ① SOURCING — this call created candidates of its own.
+    const inserted = Number(outcomes[0]?.total_inserted ?? 0)
+    if (inserted === 0) {
+      return bad(id, `the sourcing run created NO candidate (run outcome ${outcomes[0]?.status ?? 'none'}, total_inserted=0) — there is nothing here for enrichment, qualification or accounting to be true of`)
+    }
+    if (!batch) return bad(id, 'the run sourced candidates and opened no programme batch — nothing accounts for the volume it took')
+    if (Number(batchRows.candidates) === 0) {
+      return bad(id, `batch ${batch.id} holds no candidate, so the ${inserted} lead(s) this run inserted are attributed to nothing`)
+    }
+    // ② ENRICHMENT + QUALIFICATION — of THIS batch, judged and scored.
+    const qualified = Number(batchRows.qualified)
+    if (qualified === 0) {
+      return bad(id, `none of the ${batchRows.candidates} candidate(s) in batch ${batch.id} was qualified — enrichment and qualification did not run on what this call sourced`)
+    }
+    if (Number(batchRows.scored) === 0) {
+      return bad(id, `no candidate in batch ${batch.id} carries a score — the model never judged what this run sourced`)
+    }
     // ── 🛑 THE CEILING IS THE PROPERTY THAT PROTECTS THE CLIENT, and it holds ───────────
     const used = Number(auth.sourced_used)
     const reserved = Number(auth.sourced_reserved)
@@ -563,33 +601,65 @@ export function makeJourneyChecks(kit) {
     if (used + reserved > ceiling) {
       return bad(id, `the accounting exceeded the authorised volume: used=${used} + reserved=${reserved} > ceiling=${ceiling}`)
     }
-    // A run that delivered nothing must not have CONSUMED anything either.
-    if (used > 0 && Number(qualified) === 0) {
-      return bad(id, `the accounting consumed ${used} records while qualifying nobody`)
+    // ── ③ ACCOUNTING — THE LEDGER MOVED BY EXACTLY WHAT THE BATCH SETTLED ON ───────────
+    //
+    // ⚠️ AND THE BATCH IS THE UNIT, NOT THE RUN — measured, not assumed. `claim_programme_batch`
+    // hands a second run the batch already open, and `settleBatch` settles on
+    // `count(leads where batch_id = … and qualified_at is not null)`: the whole bucket, not one
+    // run's share of it. A walk that asserted "the ceiling moved by what THIS call qualified"
+    // failed on a healthy run — this call qualified 20, the batch held 38 qualified, and 38 is
+    // the honest number because the other 18 are equally the client's qualified prospects.
+    //
+    // So what is asserted is the chain that actually protects the client: the ledger moved by
+    // what the batch RECORDED, the batch never recorded more than it was granted, and it never
+    // consumed a record for anybody it had not qualified.
+    const consumed = used - Number(before.sourced_used)
+    const delivered = Number(batch.delivered ?? -1)
+    if (delivered < 0) {
+      return bad(id, `batch ${batch.id} recorded no delivered count, so nothing states what the ${consumed} consumed record(s) were consumed FOR`)
+    }
+    if (consumed !== delivered) {
+      return bad(id, `the ceiling moved by ${consumed} record(s) while batch ${batch.id} settled on ${delivered} — the ledger and the batch disagree about the same event`)
+    }
+    if (delivered > Number(batch.granted)) {
+      return bad(id, `batch ${batch.id} consumed ${delivered} of a ${batch.granted}-record grant — more than the client authorised for it`)
+    }
+    if (delivered > Number(batchRows.qualified)) {
+      return bad(id, `batch ${batch.id} consumed ${delivered} record(s) but holds only ${batchRows.qualified} qualified prospect(s) — entitlement is consumed by QUALIFIED prospects`)
+    }
+    if (consumed === 0) {
+      return bad(id, `the run inserted ${inserted} candidate(s) and qualified ${qualified}, and the ceiling did not move at all — the work was done and nothing was accounted for`)
+    }
+    if (!batch.settled_at) {
+      return bad(id, `batch ${batch.id} was never settled (granted=${batch.granted}, delivered=${batch.delivered ?? 'null'}) — the reservation it holds has nothing left to release it`)
     }
 
-    // ⚠️ REPORTED, NOT ASSERTED AWAY — A REAL LEAK THIS WALK FOUND. When every provider
-    // contact is refused by the client's own hard criteria BEFORE the spend (here: seniority),
-    // the run returns without reaching `settleBatch`, which is the single point that converts
-    // a reservation back. The batch stays `granted` with `delivered` null and `settled_at`
-    // null, and that slice of the client's AUTHORISED VOLUME is stranded for good. Five such
-    // runs would silently consume a 1,250 ceiling without surfacing one lead.
+    // ── 🛑 THE ACCOUNTING CLOSES: EVERY RESERVATION THIS RUN TOOK IS RELEASED ────────────
     //
-    // It is not fixed here: it lives inside the sourcing route's settle flow, on a money path,
-    // and rewriting when a batch settles deserves its own scoped change rather than a repair
-    // smuggled into a certification run. The numbers are in the evidence package.
+    // ⛓️ 19 Sep — THIS WAS A `note()`, AND REPORTING IT WHILE PASSING THE JOURNEY WAS ITSELF
+    // THE DEFECT IN THE CHECK. Journey 12 IS the accounting journey ("automatic sourcing /
+    // enrichment / qualification / ACCOUNTING"); a run that leaves a client's authorised
+    // volume reserved for ever has not passed it, whatever else it did. The founder's reading
+    // on 19 Sep, and he is right.
+    //
+    // 🛑 AND THE NOTE NAMED THE WRONG MECHANISM. It said a run whose contacts were all refused
+    // pre-spend "never reaches settleBatch". The run this walk measured DID settle — the batch
+    // read `granted=250, delivered=5, settled_at` set — and still stranded 20. The real cause
+    // was two functions disagreeing about one number: every reservation raises
+    // `programmes.sourced_reserved`, but `claim_programme_batch` handed a second run the batch
+    // already running WITHOUT recording the grant it arrived with, and the settle releases
+    // `programme_batches.granted`. 250 released, 270 reserved, 20 stranded.
+    //
+    // Both that and its sibling — a run that opens a batch and inserts NOBODY, whose settle
+    // sat inside a block gated on `insertedIds.length > 0` — are fixed, so this asserts.
     if (reserved > 0) {
-      const b = await sql(
-        `select granted, delivered, settled_at from public.programme_batches
-          where programme_id = $1 order by created_at desc limit 1`, [W.programmeId])
-      note(`J12 · STRANDED RESERVATION (open defect): ${reserved} of ${ceiling} authorised records remain reserved after the run finished. ` +
-        `The batch shows granted=${b[0]?.granted ?? '?'}, delivered=${b[0]?.delivered ?? 'null'}, settled_at=${b[0]?.settled_at ?? 'null'} — ` +
-        `a run in which every contact was refused pre-spend never reaches settleBatch, so the grant is never converted back.`)
+      return bad(id, `the accounting STRANDED ${reserved} of ${ceiling} authorised records — they are reserved with nothing left to release them. ` +
+        `The batch shows granted=${batch.granted}, delivered=${batch.delivered ?? 'null'}, settled_at=${batch.settled_at ?? 'null'}.`)
     }
     const pdl = (await fakeCount('pdl')) - pdlBefore
     const hunter = (await fakeCount('hunter')) - hunterBefore
     if (pdl !== 0 || hunter !== 0) return bad(id, `a forbidden provider was called during sourcing: PDL+${pdl} HUNTER+${hunter} (FD-6)`)
-    ok(id, `one sourcing run end to end: ${qualified} qualified (scored) lead(s) · outcome=${outcomes[0]?.status} · accounting never exceeds the authorised volume (used=${used} + reserved=${reserved} of ${ceiling}) and consumed nothing for nobody · PDL+0 HUNTER+0 · HTTP ${r.status}${reserved > 0 ? ' · ⚠️ see the stranded-reservation finding' : ''}`)
+    ok(id, `one sourcing run end to end: THIS call inserted ${inserted} candidate(s) into batch ${String(batch.id).slice(0, 8)} (${batchRows.candidates} in it, ${batchRows.scored} scored, ${qualified} qualified) · outcome=${outcomes[0]?.status} · the ledger moved by exactly what the batch settled on (used ${before.sourced_used}→${used} of ${ceiling}, delivered=${delivered} of granted=${batch.granted}) and every reservation this run took was RELEASED (reserved back to 0) · PDL+0 HUNTER+0 · HTTP ${r.status}`)
   }
 
   // ════════════════════════════════════════════════════════════════════════════════════════

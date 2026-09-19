@@ -137,6 +137,21 @@ export interface AlertSubject {
   programmeId?: string | null
   subjectKind?: string | null
   subjectId?: string | null
+  /**
+   * ⛓️ 19 Sep (J22-C1) — AN EXPLICIT KEY, FOR THE CALLER THAT ALREADY RAISED THE ROW ITSELF.
+   *
+   * 🛑 WHY IT HAD TO EXIST. An unclassified reply's task must be DURABLE BEFORE its provider is
+   * answered 200 (R132), and this function cannot be what waits: it sends the email and the
+   * Slack post FIRST, so awaiting it would hang a stranger's reply-acknowledgement on our email
+   * vendor. So `reply-pipeline` awaits `raiseOperatorTask` itself and then sends the mirror
+   * here — and without a key to collide on, `support_escalation` being NEVER_DEDUPED would file
+   * a SECOND row for the same reply, which is the duplicate the item forbids.
+   *
+   * ⚠️ OPT-IN, AND EVERY EXISTING CALLER IS UNCHANGED. Omitted (the default) keeps exactly the
+   * behaviour below: null for a never-deduped class, the computed subject key otherwise.
+   * Passing `null` still means "never dedupe".
+   */
+  dedupeKey?: string | null
 }
 
 export async function sendFounderAlert(
@@ -234,7 +249,11 @@ export async function sendFounderAlert(
       subjectId: about?.subjectId ?? null,
       // Null means "never dedupe" — see NEVER_DEDUPED above. Otherwise the condition dedupes
       // per SUBJECT when one was given, and globally when it was not.
-      dedupeKey: NEVER_DEDUPED.has(kind)
+      // ⛓️ 19 Sep (J22-C1) — an explicit key from the caller wins, so a caller that has already
+      // written this exact row can send the mirror without filing a second one. See `AlertSubject`.
+      dedupeKey: about?.dedupeKey !== undefined
+        ? about.dedupeKey
+        : NEVER_DEDUPED.has(kind)
         ? null
         : `alert:${kind}:${dedupeKeyFor({
             clientId: about?.clientId ?? undefined,

@@ -69,6 +69,22 @@ export const OPERATOR_TASK_KINDS = [
    * their targeting is being prepared — every property of a Needs-you.
    */
   'icp_review_pending',
+  /**
+   * ⚑ 19 Sep — A CLIENT'S BRIEF COULD NOT BE SAVED, AND THEY WERE CARRIED THROUGH ANYWAY.
+   *
+   * 🛑 THIS EXISTS BECAUSE THE ALTERNATIVE WAS TRIED AND COST FIFTY-TWO TURNS. Until today a
+   * failed `saveBriefDraft` STOPPED the client: the completion was withheld, they were shown
+   * *"Milla didn't catch that — just try again in a moment"*, and the retry re-ran the same
+   * deterministic refusal. The founder reversed it (*"yes agreed"*) — the client now carries
+   * on exactly as they did before 16 Sep — which puts this product back in the state that
+   * rule was written to prevent: **a degradation nobody is told about.**
+   *
+   * ⚠️ SO THE DEGRADATION IS THE TASK. One row per (reason, user), because fifty-two turns
+   * must not file fifty-two rows. `promoted` means their targeting lives on `clients`+`icps`
+   * and is merely unedited here; `unstorable` / `unverifiable` mean the draft store itself
+   * needs looking at — most often `20260911_onboarding_brief_drafts` never applied.
+   */
+  'brief_write_failed',
   // ── the existing founder-alert classes, now records ──
   'sends_stalled',
   'api_down',

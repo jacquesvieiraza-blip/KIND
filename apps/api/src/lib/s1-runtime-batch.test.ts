@@ -347,7 +347,11 @@ describe('🛑 S1-RT-002B · valid customer truth survives a later completion fa
     // ⛓️ 14 Sep (R121) — the argument became `toStore`: the snapshot MERGED with any list
     // corrections this turn carried. The claim is unchanged and covers more — what is
     // written now includes the client's correction, and it still precedes every refusal.
-    const write = src.indexOf('const saved = await saveBriefDraft(req.userId, toStore)')
+    // ⛓️ 19 Sep — `const saved = await …` became `saved = await …` inside a try/catch, because
+    // the one path that THREW escaped to the outer catch and answered 500: the same stranding
+    // the write-rule reversal exists to end, wearing a different status code. The CLAIM here
+    // is untouched — the write still happens before any refusal can return.
+    const write = src.indexOf('saved = await saveBriefDraft(req.userId, toStore)')
     const salvage = src.indexOf('const salvaged = dropKeysNamedByIssues(rawFacts, snapshot.error.errors)')
     const gate = src.indexOf("millaReplyFailed(res, 'INVALID_SHAPE'")
     expect(save).toBeGreaterThan(-1)

@@ -894,7 +894,52 @@ millaRouter.post('/brief-draft/confirm', async (req: AuthRequest, res) => {
     })
     return
   }
-  if (r.reason === 'no_draft') {
+  // ── 🛑 ⚑ 19 Sep — A DRAFT STORE THAT IS NOT THERE MUST NOT END THE JOURNEY ──────────
+  //
+  // ⛓️ `store_unavailable` USED TO FALL THROUGH TO THE 503 BELOW, and that was the second
+  // door of the same dead end the chat had. The client finishes talking to Milla, presses
+  // Confirm, and is told *"please try again"* — on a refusal that is identical on every
+  // retry and for every client, because the draft table cannot be read at all.
+  //
+  // 🛑 IT IS ANSWERED EXACTLY LIKE `no_draft`, WHICH IS WHAT IT ACTUALLY IS. With no readable
+  // store this user HAS no draft, and the whole promotion path is already built to stand
+  // aside in that state: `welcome/page.tsx` treats 404 as "carry on" in as many words —
+  // *"a client whose draft predates this table, or whose draft could not be stored, has
+  // nothing to confirm; promotion then behaves exactly as it did before drafts existed"* —
+  // `/auth/onboard` skips its brief gate when `briefDraftFor` answers null (`auth.ts:252`),
+  // and the draft override at `POST /icps` skips too. So the browser's own four legs create
+  // the client exactly as they did before drafts existed: the path every client this product
+  // has ever had was created through.
+  //
+  // ⚠️ AND IT IS NOT SILENT — that is the whole difference from the pre-16-Sep behaviour.
+  // The founder is alerted and Vida gets a `brief_write_failed` task, deduped per user, so a
+  // store that is down is something we find out today rather than from a client.
+  //
+  // ⚠️ NARROW ON PURPOSE. Only the READ of the draft store degrades. `unstorable` below still
+  // means the row is right there and the stamp would not write — a real transient where a
+  // retry can succeed, and where 404 would push the client into `/auth/onboard` only to be
+  // refused again with *"this brief has not been confirmed yet"*. Different failure, different
+  // answer. `incomplete` and `unsupported_geography` above are product refusals and unmoved.
+  if (r.reason === 'no_draft' || r.reason === 'store_unavailable') {
+    if (r.reason === 'store_unavailable') {
+      console.error('[milla/brief-draft/confirm] draft store unreadable —', JSON.stringify({
+        stage: 'confirm', reason: r.reason,
+        consequence: 'the founder is alerted; the client is carried through the pre-draft path',
+      }))
+      void import('../lib/alerts')
+        .then(({ sendFounderAlert }) => sendFounderAlert(
+          'brief_write_failed',
+          'The brief draft store could not be read at Confirm',
+          [
+            'Reason: store_unavailable (the onboarding_brief_drafts read failed).',
+            'The client was NOT stopped — they were carried through the pre-draft promotion path.',
+            'Check that 20260911_onboarding_brief_drafts is applied (Vida → Engine → Run).',
+            `User: ${req.userId}`,
+          ],
+          { dedupeKey: `brief_write_failed:store_unavailable:${req.userId}` },
+        ))
+        .catch(() => {})
+    }
     res.status(404).json({ success: false, error: 'There is no brief to confirm yet.' })
     return
   }

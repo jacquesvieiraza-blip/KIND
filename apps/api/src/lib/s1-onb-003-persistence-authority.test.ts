@@ -1,34 +1,54 @@
 // ═══════════════════════════════════════════════════════════════════════════════════════
-// S1-ONB-003 — A FACT THAT REACHED NO DATABASE MAY NOT ADVANCE ONBOARDING.
+// ⛓️ 19 Sep — THIS RULE IS REVERSED BY THE FOUNDER, AND THE REVERSAL IS WHAT THIS FILE NOW
+// PROVES. A FAILED BRIEF WRITE ALERTS US AND NEVER SILENCES MILLA.
 //
-// ── THE QUESTION THIS ANSWERS ──────────────────────────────────────────────────────────
+// ── ⛓️ THE RULE THAT STOOD HERE, STRUCK 19 Sep ─────────────────────────────────────────
 //
-// S1-ONB-001 made the draft SUFFICIENT: the turn resolves all four homes and writes that
-// resolution into `onboarding_brief_drafts`, so one authority reading the draft alone agrees
-// with the chat gate. `held` is deliberately only advanced `if (saved.ok)`.
+// ~~S1-ONB-003 / S1-ONB-004 — A FACT THAT REACHED NO DATABASE MAY NOT ADVANCE ONBOARDING.
+// NO DURABLE WRITE = NO NEW FACT AUTHORITY = NO READY ADVANCEMENT, UNCONDITIONALLY.~~
 //
-// 🛑 BUT THE GATE DOES NOT COUNT `held`. It counts `resolvedBriefFor(v, held)` — the durable
-// record UNIONED WITH THIS TURN'S MODEL REPLY. That union is correct while the write
-// succeeds, because the write stored exactly the same projection. It is NOT correct when the
-// write FAILS: `held` correctly stays behind, and the reply half of the union carries the
-// final fact anyway.
+// Its reasoning was sound and is recorded in full in PRODUCT-RULES AR24: a client shown a
+// finished plan and a live "Confirm my brief" is one click from PROMOTION, and a promotion
+// whose Brief was never written is a client whose targeting exists nowhere. Nothing below
+// disputes that a durable Brief is better. What it got wrong is what to do when we cannot
+// write one.
 //
-// So the shape under test is precisely:
+// 🛑 WHAT IT COST, MEASURED ON PRODUCTION, AND THE FOUNDER COUNTED FIFTY-TWO. The live log
+// line is the whole diagnosis:
 //
-//   persisted draft is missing ONE required item
-//   → the customer supplies it in THIS turn
-//   → the model returns a valid `complete`
-//   → `saveBriefDraft` FAILS
-//   → the record still lacks that item
-//   → may the API answer `complete` / `onboarding_state: 'ready'`?
+//     [icps/builder/chat] unusable model reply —
+//       {"stage":"reply","category":"INVALID_SHAPE","stop_reason":"tool_use",
+//        "model":"claude-sonnet-5","content_blocks":1,"input_key_count":5,"zod_paths":[]}
 //
-// ⚠️ THE RULE: NO DURABLE WRITE = NO NEW FACT AUTHORITY = NO READY ADVANCEMENT. A model may
-// understand something perfectly; if that truth did not reach canonical memory, the turn must
-// not advance onboarding on it. The client's next act after `ready` is CONFIRM, which promotes
-// a draft — and a draft that never received the fact cannot honour the plan they approved.
+// `zod_paths: []` means `validated.success` — **Milla understood the client perfectly and
+// produced a well-formed complete Brief.** The ONLY code that can null a validated completion
+// is the `mustNotConfirm` branch, reached because `saveBriefDraft` refused and `heldWritable`
+// went false. So a good answer was thrown away and the client was shown *"Milla didn't catch
+// that — just try again in a moment."* The retry re-ran the identical state and was refused
+// identically. **It could never succeed**, and every occurrence looked like a fresh transient
+// hiccup because eight refusals share that one sentence.
 //
-// ⚠️ THIS IS THE WRITE-SIDE TWIN OF `mustNotConfirm`. An unreadable record already withholds
-// a completion (S1-RT-009). An unWRITEable one did not.
+// ⚠️ AND THE THREE REFUSALS IT FIRED ON ARE NOT THE CLIENT'S FAULT IN ANY OF THEM:
+//   · `promoted`    — the draft is SEALED because the client is already real. Their targeting
+//                     lives on `clients` + `icps`, which is a BETTER home than the draft.
+//   · `unstorable`  — the upsert errored, e.g. `20260911_onboarding_brief_drafts` not applied.
+//   · `unverifiable`— we could not read the row first, so we fail closed on the write itself.
+// In all three the conversation is fine and the client is stopped by OUR infrastructure.
+//
+// 🛑 THE FOUNDER'S RULING (19 Sep), on the proposal *"if the notebook write fails, we alert
+// you and let the client carry on — the way it worked before"*: **"yes agreed."** Before
+// 16 Sep a failed draft write was logged and the journey continued; every client this product
+// ever created was created that way. That behaviour is RESTORED, with one thing added that it
+// never had: **the failure is now an alert and a Vida task**, so a silent degradation becomes
+// a visible one.
+//
+// ⚠️ WHAT IS NOT WEAKENED, AND THIS IS THE CARE IN THE REVERSAL:
+//   ① `held` is STILL only advanced on a successful save. A failed write grants no fact
+//      authority — the gate simply no longer REFUSES on it.
+//   ② The UNREADABLE case (S1-RT-009) is BYTE-UNCHANGED. Not knowing what the client told us
+//      is a different thing from knowing and failing to keep it.
+//   ③ Nothing is fabricated, no write is reported as succeeding, and there is NO SECOND
+//      PROVIDER CALL.
 //
 // ⚠️ EVERY TEST DRIVES THE REAL ROUTE. The Anthropic SDK is a double returning an exact tool
 // payload; the schema, the gate, the persist and the response are the live ones. The double
@@ -70,6 +90,12 @@ type Dispatched = {
   calls: number
   /** The draft as it stands AFTER the turn — the canonical record. */
   store: Record<string, unknown>
+  /**
+   * ⚑ 19 Sep — every `sendFounderAlert` the turn raised. A degradation the founder is not
+   * told about is the silent failure this reversal exists to end, so the alert is asserted
+   * as load-bearing behaviour and not treated as decoration.
+   */
+  alerts: Array<{ kind: string; subject: string; lines: string[]; about?: Record<string, unknown> }>
 }
 
 async function dispatch(
@@ -105,6 +131,19 @@ async function dispatch(
   // 🛑 A REAL MERGING STORE, AND A REAL REFUSAL. On a failed save the store is left exactly as
   // it was — which is the whole point: the record genuinely does not hold the final item.
   const store: Record<string, unknown> = { ...(opts.held ?? {}) }
+  // ⚑ 19 Sep — the alert is observed, never sent. It must also never be AWAITED into the
+  // client's turn: a founder's email vendor is not allowed to hold up somebody's answer.
+  const alerts: Dispatched['alerts'] = []
+  vi.doMock('./alerts', async () => {
+    const actual = await vi.importActual<typeof import('./alerts')>('./alerts')
+    return {
+      ...actual,
+      sendFounderAlert: async (kind: string, subject: string, lines: string[], about?: Record<string, unknown>) => {
+        alerts.push({ kind, subject, lines, about })
+        return { delivered: true, emailOk: true, slackOk: false, durableOk: true, taskOk: true }
+      },
+    }
+  })
   vi.doMock('./brief-draft', async () => {
     const actual = await vi.importActual<typeof import('./brief-draft')>('./brief-draft')
     return {
@@ -158,14 +197,22 @@ async function dispatch(
         })
         r.on('error', reject); r.write(payload); r.end()
       })
-      return { ...out, logs, store, calls: counter.calls }
+      // 🛑 THE ALERT IS DELIBERATELY NOT AWAITED INTO THE RESPONSE — that is the contract, so
+      // it has NOT landed when the client is answered. It arrives after a dynamic `import()`
+      // resolves, which is several ticks, so this waits for it rather than sampling once. A
+      // single tick passed here by luck and would have been flaky in CI.
+      const expectsAlert = (opts.save ?? 'ok') !== 'ok'
+      for (let i = 0; i < 50 && expectsAlert && alerts.length === 0; i++) {
+        await new Promise<void>(r => setTimeout(r, 5))
+      }
+      return { ...out, logs, store, calls: counter.calls, alerts }
     } finally { await new Promise<void>(r => server.close(() => r())) }
   } finally { console.error = err; console.log = log; console.warn = warn }
 }
 
 afterEach(() => {
   vi.doUnmock('@anthropic-ai/sdk'); vi.doUnmock('@kind/db')
-  vi.doUnmock('../middleware/auth'); vi.doUnmock('./brief-draft')
+  vi.doUnmock('../middleware/auth'); vi.doUnmock('./brief-draft'); vi.doUnmock('./alerts')
   vi.resetModules()
 })
 
@@ -196,70 +243,93 @@ describe('Ⓐ the control — the same turn, with the write SUCCEEDING', () => {
 })
 
 // ═══════════════════════════════════════════════════════════════════════════════════════
-describe('Ⓑ 🛑 THE DEFECT — the write FAILS and the fact exists only in the reply', () => {
-  //  Each mode is a real `SaveOutcome` from `saveBriefDraft`: `unstorable` is the upsert
-  //  erroring or the migration not being applied; `unverifiable` is fail-closed because the
-  //  row could not be read first, which is the MORE dangerous one — it means we do not know
-  //  what the record holds at all.
-  for (const mode of ['unstorable', 'unverifiable'] as const) {
-    it(`a failed save (${mode}) MUST NOT produce a completion`, async () => {
+describe('Ⓑ 🛑 THE REVERSAL — the write FAILS and the client is carried through anyway', () => {
+  //  Each mode is a real `SaveOutcome` from `saveBriefDraft`. `promoted` is the one that ran
+  //  fifty-two times: the client is already real, so the draft is sealed by design and their
+  //  targeting lives on `clients` + `icps` instead. `unstorable` is the upsert erroring or
+  //  `20260911_onboarding_brief_drafts` not being applied. `unverifiable` is the row being
+  //  unreadable before the write. NONE of the three is the client's doing, and under the old
+  //  rule all three ended the conversation permanently.
+  for (const mode of ['promoted', 'unstorable', 'unverifiable'] as const) {
+    it(`🛑 a failed save (${mode}) STILL COMPLETES — this is the exact turn that 503'd`, async () => {
       const d = await dispatch(COMPLETE_WITH_FINAL_ITEM, { held: HELD_BUT_ONE, save: mode })
 
       expect(d.store.exclusions, 'precondition: the record still lacks the final item').toBeUndefined()
-      expect(typeOf(d), 'a fact that reached no database may not advance onboarding').not.toBe('complete')
-      expect(dataOf(d).onboarding_state, 'and READY is never claimed').not.toBe('ready')
+      expect(d.status, 'the client was charged our write failure').toBe(200)
+      expect(typeOf(d), 'Milla understood perfectly and was silenced anyway').toBe('complete')
+      expect(dataOf(d).onboarding_state).toBe('ready')
     })
 
-    it(`a failed save (${mode}) grants no Confirm authority and promotes nothing`, async () => {
+    it(`a failed save (${mode}) delivers a plan to approve — and still narrates nothing`, async () => {
       const d = await dispatch(COMPLETE_WITH_FINAL_ITEM, { held: HELD_BUT_ONE, save: mode })
       const data = dataOf(d)
 
-      // `proposed` is built from `data.icp`; without it the portal has no plan content, and
-      // `serverReady && proposed` therefore cannot open the Confirm CTA on either half.
-      expect(data.icp, 'no plan content may be presented for approval').toBeFalsy()
-      expect(d.store.confirmed_at, 'nothing is confirmed').toBeUndefined()
-      expect(d.store.promoted_client_id, 'nothing is promoted').toBeUndefined()
+      // `proposed` is built from `data.icp`; without it the portal has no plan content and the
+      // Confirm CTA can never open — which is precisely how the journey died.
+      expect(data.icp, 'the plan the client is asked to approve').toBeTruthy()
+
+      // 🛑 AND S1-RT-009 IS STILL IN FORCE. A completion deliberately carries `summary: null`:
+      // the model's closing prose was the last client-facing sentence nobody checked, and it
+      // sat beside cards built from the durable Brief. Carrying the client through a failed
+      // write must not smuggle that sentence back — the facts live on the cards.
+      expect(data.summary, 'the unchecked closing prose is back beside the plan').toBeNull()
     })
 
-    it(`a failed save (${mode}) fabricates nothing and costs no second model call`, async () => {
+    it(`a failed save (${mode}) still writes nothing and costs no second model call`, async () => {
       const d = await dispatch(COMPLETE_WITH_FINAL_ITEM, { held: HELD_BUT_ONE, save: mode })
 
       expect(d.calls, 'NO SECOND PROVIDER CALL — a failed write is not a reason to re-roll').toBe(1)
-      // The record is the record. A failure must not invent the fact, a default, or a blank.
+      // 🛑 THE RECORD IS STILL THE RECORD. Carrying the client through must not be confused
+      // with pretending the write happened: nothing is invented, defaulted or blanked.
       expect(Object.keys(d.store).sort(), 'the record is untouched by a failed write')
         .toEqual(Object.keys(HELD_BUT_ONE).sort())
+      expect(d.store.confirmed_at, 'nothing is confirmed by a chat turn').toBeUndefined()
+      expect(d.store.promoted_client_id, 'nothing is promoted by a chat turn').toBeUndefined()
     })
 
-    it(`a failed save (${mode}) reads as OUR failure, not as Milla and not as a missing fact`, async () => {
+    it(`🛑 a failed save (${mode}) IS NOT SILENT — the founder is alerted and Vida gets a task`, async () => {
       const d = await dispatch(COMPLETE_WITH_FINAL_ITEM, { held: HELD_BUT_ONE, save: mode })
 
-      // 🛑 AN HONEST SYSTEM FAILURE. Retryable, and the portal renders it as an error.
-      expect(d.status).toBe(503)
-      expect((d.json as { retryable?: boolean }).retryable).toBe(true)
-      expect(d.json.success).toBe(false)
+      // 🛑 THIS IS WHAT THE OLD BEHAVIOUR NEVER HAD. Before 16 Sep a failed write was logged
+      // into a console nobody reads and the journey continued; the rule that replaced it
+      // stopped the client instead. The answer is neither: carry the client, tell the founder.
+      const raised = d.alerts.filter(a => a.kind === 'brief_write_failed')
+      expect(raised.length, 'a degradation nobody is told about is the silent failure again').toBe(1)
+      expect(raised[0].lines.join(' '), 'the alert does not name which refusal it was').toContain(mode)
 
-      // 🛑 NOTHING IS ATTRIBUTED TO MILLA. Her closing sentence was written to END the
-      // conversation; delivering it as the turn meant to CONTINUE it is the Cedar Peak
-      // stranding (AR22). It must not appear anywhere in the response.
-      expect(d.raw).not.toContain('That is everything I need')
+      // One condition, one row — fifty-two turns must not file fifty-two tasks.
+      expect(raised[0].about?.dedupeKey, 'every turn would file its own task').toBe(
+        `brief_write_failed:${mode}:owner-user`,
+      )
 
-      // 🛑 AND WE DO NOT ASK FOR SOMETHING THEY ALREADY GAVE. The S1-RT-010 recovery names an
-      // OUTSTANDING fact; here nothing is outstanding — we simply failed to keep it. Naming
-      // `exclusions` would be false.
-      expect(d.json.data, 'no recovery state on a write failure').toBeUndefined()
-      expect(d.raw).not.toContain('exclusions')
+      // 🛑 AND NOTHING THE CLIENT SAID TRAVELS IN IT. An alert is our vocabulary — a reason
+      // and an id — never their words.
+      const text = JSON.stringify(raised[0])
+      for (const secret of [FINAL_ITEM, 'Cedar Peak Advisory', 'Daniel Brooks']) {
+        expect(text, `the client's own words reached an alert: ${secret}`).not.toContain(secret)
+      }
 
-      // The write failure is diagnosable, and it is told apart from the read failure.
-      expect(d.logs.join('\n')).toContain('BRIEF_UNWRITTEN_NO_CONFIRMATION')
+      // The write failure stays diagnosable, and is still told apart from the read failure.
       expect(d.logs.join('\n')).toContain('"stage":"brief_write"')
+      expect(d.logs.join('\n'), 'the reason must be greppable in the logs').toContain(mode)
+    })
+
+    it(`🛑 a failed save (${mode}) NEVER shows the retry sentence that could not work`, async () => {
+      const d = await dispatch(COMPLETE_WITH_FINAL_ITEM, { held: HELD_BUT_ONE, save: mode })
+
+      // ⛓️ THE FIFTY-TWO. `MILLA_RETRY_ERROR` promised that trying again would help, on a
+      // refusal that was deterministic. It must not be reachable from a write outcome at all.
+      expect(d.raw, 'the sentence that could never come true is back').not.toContain('didn’t catch that')
+      expect(d.logs.join('\n'), 'the completion is being withheld again')
+        .not.toContain('BRIEF_UNWRITTEN_NO_CONFIRMATION')
     })
   }
 
-  it('a save that THROWS cannot produce a completion either', async () => {
+  it('a save that THROWS is carried exactly like a refusal', async () => {
     const d = await dispatch(COMPLETE_WITH_FINAL_ITEM, { held: HELD_BUT_ONE, save: 'throws' })
 
-    expect(typeOf(d), 'an exception is not an advancement').not.toBe('complete')
-    expect(dataOf(d).onboarding_state).not.toBe('ready')
+    expect(d.status, 'an exception must not be a dead end either').toBe(200)
+    expect(typeOf(d)).toBe('complete')
     expect(d.store.exclusions, 'and nothing was written').toBeUndefined()
   })
 })
@@ -300,18 +370,25 @@ describe('Ⓒ a failed write does not break the ordinary conversation', () => {
 })
 
 // ═══════════════════════════════════════════════════════════════════════════════════════
-describe('Ⓔ 🛑 NO DURABLE CANONICAL BRIEF AT ALL — the same answer (S1-ONB-004)', () => {
-  // ⛓️ 16 Sep — THIS BLOCK USED TO ASSERT THE OPPOSITE. S1-ONB-003 deliberately spared the
-  // case where no durable record had been read, because the gate had counted the model sample
-  // alone in that state since long before S1-ONB-001, and widening it was a product decision
-  // I reported rather than took. **The founder ruled: FAIL CLOSED UNIVERSALLY.** The old
-  // best-effort degradation is SUPERSEDED, and the reason is that the two states look
-  // identical to the person on the screen — a finished plan with a live "Confirm my brief" is
-  // one click from PROMOTION, and a promotion whose Brief was never written is a client whose
-  // targeting exists nowhere. "We could not keep what you told us" is the only honest answer.
+describe('Ⓔ 🛑 NO DURABLE CANONICAL BRIEF AT ALL — carried too (reverses S1-ONB-004)', () => {
+  // ⛓️ THIS BLOCK HAS NOW BEEN WRITTEN THREE TIMES, AND THE HISTORY IS THE POINT.
+  //   · S1-ONB-003 (16 Sep) deliberately SPARED this case — no durable record had been read,
+  //     and the gate had counted the model sample alone in that state for weeks.
+  //   · S1-ONB-004 (16 Sep, same day) reversed that on the founder's ruling *"fail closed
+  //     universally"*, because a finished plan one click from PROMOTION is dangerous.
+  //   · 19 Sep — the founder reversed it again, on evidence: **"yes agreed."** Failing closed
+  //     did not protect a single client, because no client got past it. A draft store that is
+  //     wholly unavailable is exactly the state every client was in.
   //
-  // ⚠️ THE MODEL SUPPLIES EVERYTHING HERE. Nothing is missing, nothing is premature, the
-  // reply would satisfy the gate on its own — and that is precisely the point being refused.
+  // ⚠️ THE DANGER S1-ONB-004 NAMED IS REAL AND IS ANSWERED ELSEWHERE, NOT DENIED. Promotion
+  // without a draft does not invent targeting: `/auth/onboard` stands aside when there is no
+  // draft (`auth.ts:252`), the draft override at `icps.ts:6444` stands aside, and the browser's
+  // own four legs create the client exactly as they did before drafts existed — the path every
+  // client this product has ever had was created through. What is NEW is that the founder is
+  // told it happened.
+  //
+  // ⚠️ THE MODEL SUPPLIES EVERYTHING HERE. Nothing is missing and nothing is premature — so
+  // the ONLY thing that could refuse this turn is the write outcome.
   const EVERYTHING = { ...HELD_BUT_ONE, exclusions: FINAL_ITEM }
   const FULL_REPLY = { ...COMPLETE_WITH_FINAL_ITEM, brief_so_far: EVERYTHING }
 
@@ -319,23 +396,27 @@ describe('Ⓔ 🛑 NO DURABLE CANONICAL BRIEF AT ALL — the same answer (S1-ONB
     ['D · no durable draft + a failed write', 'unstorable'],
     ['E · the draft store wholly unavailable', 'unverifiable'],
   ] as const) {
-    it(`${label} → NOT ready, and nothing is presented for approval`, async () => {
+    it(`🛑 ${label} → READY, with the plan presented and the founder told`, async () => {
       const d = await dispatch(FULL_REPLY, { held: {}, save: mode })
 
-      expect(typeOf(d), 'a complete turn that cannot durably establish the Brief cannot complete')
-        .not.toBe('complete')
-      expect(dataOf(d).onboarding_state).not.toBe('ready')
-      expect(dataOf(d).icp, 'no plan').toBeFalsy()
-      expect(d.status, 'and it reads as our failure').toBe(503)
-      expect((d.json as { retryable?: boolean }).retryable).toBe(true)
-      expect(d.store.confirmed_at, 'nothing confirmed').toBeUndefined()
-      expect(d.store.promoted_client_id, 'nothing promoted').toBeUndefined()
+      expect(typeOf(d), 'a client with a complete Brief was stopped by our own storage')
+        .toBe('complete')
+      expect(dataOf(d).onboarding_state).toBe('ready')
+      expect(dataOf(d).icp, 'the plan to approve').toBeTruthy()
+      expect(d.status).toBe(200)
+      expect(d.store.confirmed_at, 'nothing confirmed by a chat turn').toBeUndefined()
+      expect(d.store.promoted_client_id, 'nothing promoted by a chat turn').toBeUndefined()
       expect(Object.keys(d.store), 'and the store is still empty — nothing was invented').toEqual([])
       expect(d.calls, 'one model call').toBe(1)
+      expect(d.alerts.filter(a => a.kind === 'brief_write_failed').length, 'silently degraded').toBe(1)
     })
   }
 
   it('🛑 and no country is inferred, defaulted or borrowed from the target geography', async () => {
+    // ⚠️ UNCHANGED IN INTENT BY THE REVERSAL. The turn now completes, but the gate that
+    // refuses an INCOMPLETE Brief is untouched: a missing `country` is still missing, and it
+    // is still never fabricated from the market list (AR23). This is the anti-vacuity proof
+    // that the reversal loosened the WRITE rule and not the readiness rule.
     const noCountry = { ...EVERYTHING }
     delete noCountry.country
     const d = await dispatch(
@@ -343,7 +424,8 @@ describe('Ⓔ 🛑 NO DURABLE CANONICAL BRIEF AT ALL — the same answer (S1-ONB
       { held: {}, save: 'unstorable' },
     )
 
-    expect(typeOf(d)).not.toBe('complete')
+    expect(typeOf(d), 'an incomplete Brief completed — the readiness gate was loosened too')
+      .not.toBe('complete')
     // `geographies` names where their BUYERS are. It is not where the CLIENT is, and a
     // fallback from it would fabricate an account country out of a market list (AR23).
     expect(d.raw).not.toContain('South Africa')
@@ -355,28 +437,43 @@ describe('Ⓔ 🛑 NO DURABLE CANONICAL BRIEF AT ALL — the same answer (S1-ONB
 describe('Ⓓ the rule is in the source, not only in behaviour', () => {
   const ICPS = readFileSync(join(__dirname, '..', 'routes', 'icps.ts'), 'utf8')
 
-  it('`held` is still advanced ONLY on a successful save', () => {
+  it('🛑 `held` is STILL advanced ONLY on a successful save — this did NOT change', () => {
+    // The reversal loosens what a failed write REFUSES. It must not loosen what a failed
+    // write CLAIMS: the record still holds only what was actually kept.
     expect(ICPS).toContain('if (saved.ok) held = { ...held, ...toStore }')
   })
 
-  it('the write outcome is carried to the completion boundary, not discarded', () => {
-    expect(ICPS, 'the write outcome is recorded').toContain('heldWritable = false')
-    expect(ICPS, 'the completion boundary knows whether the write landed')
-      .toMatch(/mustNotConfirm\s*=\s*\(!heldReadable \|\| !heldWritable\)/)
+  it('🛑 THE WRITE OUTCOME CANNOT REACH THE COMPLETION BOUNDARY AT ALL', () => {
+    // ⛓️ WAS: ~~`mustNotConfirm = (!heldReadable || !heldWritable) && …`~~. The flag is not
+    // merely unset — no STATEMENT may declare or assign it, so no later edit can quietly
+    // re-arm it. Anchored to the line start so the struck-through tombstones recording its
+    // deletion are not mistaken for its return (the same guard the old Ⓓ block used).
+    expect(ICPS, 'the flag that silenced fifty-two turns was re-declared')
+      .not.toMatch(/^\s*(let|const|var) heldWritable/m)
+    expect(ICPS, 'the flag that silenced fifty-two turns is being assigned again')
+      .not.toMatch(/^\s*heldWritable\s*=/m)
+    expect(ICPS, 'the completion boundary must consult the READ outcome alone')
+      .toMatch(/mustNotConfirm\s*=\s*!heldReadable && declaredType === 'complete'/)
   })
 
-  it('🛑 the rule is UNCONDITIONAL — the old `held non-empty` exception is gone', () => {
-    // ⛓️ 16 Sep (S1-ONB-004, founder-locked). A failed canonical write blocks a completion
-    // whether or not a record had been read. This assertion is the exception's tombstone.
-    expect(ICPS).toContain('if (!saved.ok) {')
-    // Anchored to the start of a line, so the struck-through record of the old form inside
-    // the comment above it is not mistaken for the statement returning.
-    expect(ICPS, 'no scope exception may return')
-      .not.toMatch(/^\s*if \(!saved\.ok && Object\.keys\(held\)\.length > 0\)/m)
+  it('🛑 A FAILED WRITE IS ALERTED, NOT SWALLOWED — and never awaited into the turn', () => {
+    // Restoring the pre-16-Sep behaviour without this would restore its silence too.
+    expect(ICPS, 'the failure is not raised to the founder').toContain("'brief_write_failed'")
+    expect(ICPS, 'the log the reason is greppable from').toContain('durable brief not written')
+    // 🛑 FIRE-AND-FORGET BY CONTRACT. `void` + `.catch` is what keeps an email vendor out of
+    // a client's turn; an `await` here would hand our outage to the person on the screen.
+    expect(ICPS).toMatch(/void[\s\S]{0,400}sendFounderAlert/)
   })
 
-  it('the scope is COMPLETIONS only — a failed write never refuses the conversation', () => {
-    expect(ICPS).toMatch(/mustNotConfirm\s*=\s*\(!heldReadable \|\| !heldWritable\) && declaredType === 'complete'/)
+  it('🛑 AND A THROWN SAVE IS CARRIED LIKE A REFUSAL, NOT PROPAGATED AS A 500', () => {
+    // `saveBriefDraft` returns its failures, but a client must not be stranded by the one
+    // path that throws instead — that would be the same dead end wearing a 500.
+    expect(ICPS).toMatch(/try \{[\s\S]{0,200}await saveBriefDraft\(/)
+  })
+
+  it('the client is never told a retry will help on a deterministic write refusal', () => {
+    expect(ICPS, 'the withheld-completion branch is back')
+      .not.toContain('BRIEF_UNWRITTEN_NO_CONFIRMATION')
   })
 
   it('the route still owns no second readiness definition', () => {
@@ -392,10 +489,12 @@ describe('Ⓕ the UNREADABLE case (S1-RT-009) is unchanged by this fix', () => {
   const ICPS = readFileSync(join(__dirname, '..', 'routes', 'icps.ts'), 'utf8')
 
   it('an unreadable record still DEMOTES to the conversation, keeping Milla’s sentence', () => {
-    // 🛑 THE TWO CASES SPLIT ON THE SENTENCE. Unreadable = we do not know what they told us,
-    // so Milla carries the turn. Unwriteable = we know and failed to keep it, so it is our
-    // error. Collapsing them would either strand the customer or hide a real system failure.
-    expect(ICPS).toContain("parsed = heldReadable ? null : (asQuestion.success ? asQuestion.data : null)")
+    // 🛑 THE TWO CASES ALWAYS SPLIT, AND ONLY ONE OF THEM MOVED ON 19 Sep. Unreadable = we do
+    // not know what the client has told us, so a completion is demoted and Milla's own
+    // sentence carries the turn. That is S1-RT-009 and it is untouched here — the reversal is
+    // about the WRITE, where we know exactly what they said and merely failed to keep a copy.
     expect(ICPS).toContain('BRIEF_UNREADABLE_NO_CONFIRMATION')
+    expect(ICPS, 'the unreadable demotion must survive the write-rule reversal')
+      .toMatch(/parsed = asQuestion\.success \? asQuestion\.data : null/)
   })
 })

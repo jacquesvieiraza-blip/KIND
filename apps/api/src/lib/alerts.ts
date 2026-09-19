@@ -30,6 +30,10 @@ export type AlertKind = 'payment_failed' | 'new_signup' | 'sends_stalled' | 'api
   // An operator action happened and the ONLY record of it could not be written. Not fail-closed
   // — a human's action is never blocked by a logging hiccup — but never silent either.
   | 'audit_dropped'
+  // ⚑ 19 Sep — a client's Brief could not be written and they were carried through anyway.
+  // Exactly the same shape as `audit_dropped`: the person is never blocked by our storage,
+  // and we are never allowed to find out later. See `operator-tasks.ts` for what earned it.
+  | 'brief_write_failed'
 
 // ── XC-5 · EVERY ALERT CLASS IS ALSO A PERSISTED TASK (R117 / D-47) ───────────────────
 //
@@ -49,6 +53,7 @@ export type AlertKind = 'payment_failed' | 'new_signup' | 'sends_stalled' | 'api
 export const ALERT_KINDS = [
   'payment_failed', 'new_signup', 'sends_stalled', 'api_down', 'churn_risk',
   'charge_failed', 'source_down', 'hot_reply', 'support_escalation', 'audit_dropped',
+  'brief_write_failed',
 ] as const satisfies readonly AlertKind[]
 
 export const ALERT_TASK_CLASS: Record<AlertKind, OperatorTaskKind> = {
@@ -62,6 +67,7 @@ export const ALERT_TASK_CLASS: Record<AlertKind, OperatorTaskKind> = {
   hot_reply:          'hot_reply',
   support_escalation: 'support_escalation',
   audit_dropped:      'audit_dropped',
+  brief_write_failed: 'brief_write_failed',
 }
 
 /**
@@ -80,6 +86,10 @@ export const ALERT_TASK_SEVERITY: Record<AlertKind, OperatorTaskSeverity> = {
   churn_risk:         'warn',
   support_escalation: 'warn',
   audit_dropped:      'warn',
+  // ⚑ 19 Sep — `warn`, and deliberately not `critical`. The client is NOT blocked (that is
+  // the whole point of the reversal), so this is not an outage; but a Brief we failed to keep
+  // is somebody's targeting living only in a browser tab, and that is a today problem.
+  brief_write_failed: 'warn',
   hot_reply:          'info',
   new_signup:         'info',
 }

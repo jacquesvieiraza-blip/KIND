@@ -1700,7 +1700,12 @@ describe('the reply is a forced tool call, validated before it is trusted', () =
     // last missing fact could satisfy the gate from this turn's reply alone and reach no
     // database. The CLAIM here is unchanged — a completion is withheld unless canonical
     // memory can be trusted — only the set of untrustworthy states grew by one.
-    expect(icpsSrc).toContain("const mustNotConfirm = (!heldReadable || !heldWritable) && declaredType === 'complete'")
+    // ⛓️ 19 Sep — AND THE FOUNDER TOOK THAT ONE BACK OUT. The write-side twin silenced
+    // fifty-two VALIDATED completions in production (`zod_paths: []`) and protected nobody,
+    // because no client ever got past it. A failed write is now alerted and the client is
+    // carried through; the UNREADABLE half — not knowing what they told us at all — is
+    // untouched and is what this line still pins. PRODUCT-RULES AR24 carries both, chained.
+    expect(icpsSrc).toContain("const mustNotConfirm = !heldReadable && declaredType === 'complete'")
     expect(icpsSrc).toContain("...(replyInput as Record<string, unknown>), type: 'question',")
     expect(icpsSrc).toContain('if (!parsed) {')
   })

@@ -83,8 +83,14 @@ export async function readProofChatContext(clientId: string): Promise<ProofChatC
 
     // The client's own targeting — the same single read the desk route makes, for the same
     // reason: the band is derived from what THEY asked for, not from a global idea of good.
+    // ⛓️ 18 Sep (J5-C12 · FD-1) — THE SELECT NOW CARRIES EVERY FIELD THE GATE READS.
+    // WHAT THIS REPLACED: ~~five columns~~, cast to `FitIcp`. So `target_category` and
+    // `target_company_type` were ALWAYS undefined here and their verdicts were
+    // unconditionally `yes` — this surface judged with a weaker rule than the structural
+    // gate that produced the set, which is how a desk comes to band a candidate the gate
+    // would have refused. `exclusions` joins them rather than arriving with the same defect.
     const { data: icpRow } = await db.from('icps')
-      .select('geographies, company_sizes, industries, job_titles, seniority_levels')
+      .select('geographies, company_sizes, industries, job_titles, seniority_levels, target_category, target_company_type, target_size, exclusions')
       .eq('client_id', clientId).order('created_at', { ascending: false }).limit(1).maybeSingle()
     const icp = (icpRow ?? {}) as import('./proof-fit').FitIcp
 

@@ -6,6 +6,10 @@
 // Every probe is cheap and READ-ONLY. Provider probes use the smallest free endpoint each
 // vendor offers — never a paid call, never a send.
 
+import { findLeadCredits } from './apollo-credits'
+// ⛓️ 18 Sep (Batch 1b) — probe hosts from `provider-hosts.ts`; every default is the literal
+// that was inlined here, so an unset environment probes production exactly as before.
+import { apolloBase, resendBase, stripeBase } from './provider-hosts'
 import { db } from '@kind/db'
 import { ok, broken, unmeasured, probe, type Row, type Section } from './system-check'
 import { PDL_MONTHLY_CAP_KEY } from './app-settings'
@@ -37,7 +41,7 @@ async function dependencies(): Promise<Section> {
   rows.push(await probe('Stripe', async () => {
     const key = process.env.STRIPE_SECRET_KEY
     if (!key) return broken('Stripe', 'STRIPE_SECRET_KEY is not set — no client can pay.', 'Set it in Railway → @kind/api → Variables.')
-    const r = await fetchWithTimeout('https://api.stripe.com/v1/balance', { headers: { Authorization: `Bearer ${key}` } })
+    const r = await fetchWithTimeout(`${stripeBase()}/v1/balance`, { headers: { Authorization: `Bearer ${key}` } })
     return r.ok ? ok('Stripe', 'Key is live and Stripe answered.')
       : broken('Stripe', `Stripe rejected the key (HTTP ${r.status}) — payments will fail.`, 'Check the key in the Stripe dashboard.')
   }))
@@ -45,7 +49,7 @@ async function dependencies(): Promise<Section> {
   rows.push(await probe('Resend (transactional + inbound replies)', async () => {
     const key = process.env.RESEND_API_KEY
     if (!key) return broken('Resend', 'RESEND_API_KEY is not set — no transactional mail, and inbound replies cannot be fetched.', 'Set it in Railway.')
-    const r = await fetchWithTimeout('https://api.resend.com/domains', { headers: { Authorization: `Bearer ${key}` } })
+    const r = await fetchWithTimeout(`${resendBase()}/domains`, { headers: { Authorization: `Bearer ${key}` } })
     return r.ok ? ok('Resend', 'Key is live and Resend answered.')
       : broken('Resend', `Resend rejected the key (HTTP ${r.status}).`, 'Check the key in the Resend dashboard.')
   }))
@@ -60,40 +64,102 @@ async function dependencies(): Promise<Section> {
       : broken('Anthropic', `Anthropic rejected the key (HTTP ${r.status}).`, 'Check the key.')
   }))
 
-  rows.push(await probe('PDL (sourcing)', async () => {
-    const key = process.env.PDL_API_KEY
-    if (!key) return broken('PDL', 'PDL_API_KEY is not set — nothing can be sourced.', 'Set it in Railway.')
-    return unmeasured('PDL', 'Key is set. Not called: every PDL request costs money, so this report will not spend to prove a key works.',
-      'Vida → Engine has a read-only PDL test that spends nothing.')
+  // ── ⛓️ 17 Sep (FD-6) — WAS TWO PDL ROWS: 'PDL (sourcing)' AND 'PDL tier (R26 — unlock day)'
+  //
+  // Both are retired with the provider. **"PDL IS NOT A PAID/ACTIVE PROVIDER FOR MVP1. We are
+  // not paying for PDL."** A System page that reported `PDL_API_KEY is not set — nothing can be
+  // sourced` was stating the opposite of the truth: with FD-6, PDL_API_KEY being unset is the
+  // CORRECT state, and a red row for a deliberate absence trains an operator to ignore the
+  // page. The R26 tier row described buying a $98/mo plan on unlock day — a plan nobody is
+  // buying.
+  //
+  // What replaces them is the row that actually decides whether anybody gets leads: our Apollo
+  // account, and how many lead credits are left in this cycle.
+
+  rows.push(await probe('Apollo (the only lead source)', async () => {
+    const key = process.env.APOLLO_API_KEY
+    if (!key) {
+      return broken('Apollo (the only lead source)',
+        'APOLLO_API_KEY is not set. Apollo is the ONLY lead source (FD-6) — nothing can be sourced, for Proof or for a programme.',
+        'Set APOLLO_API_KEY in Railway → @kind/api → Variables.')
+    }
+    // People Search costs NOTHING (the credit is the email reveal), so unlike the retired PDL
+    // row this one can actually prove the key works without spending. It asks for one record.
+    const r = await fetchWithTimeout(`${apolloBase()}/mixed_people/api_search`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'x-api-key': key },
+      body: JSON.stringify({ page: 1, per_page: 1 }),
+    })
+    if (r.ok) return ok('Apollo (the only lead source)', 'Key is live and Apollo answered. People Search costs no credit; the reveal does.')
+    if (r.status === 401 || r.status === 403) {
+      return broken('Apollo (the only lead source)', `Apollo rejected the key (HTTP ${r.status}).`,
+        'Regenerate it in Apollo → Settings → Integrations → API, then re-paste into Railway.')
+    }
+    return broken('Apollo (the only lead source)', `Apollo answered HTTP ${r.status}.`,
+      'Check status.apollo.io, then the key. Every client run sources zero until this clears.')
   }))
 
-  // R26 (12 Aug) — the $98/mo tier is bought THE SAME DAY as Smartlead: "a new client's pack
-  // sources 200 names on day 1, which no free key covers". This row cannot detect a plan tier
-  // without spending, so it never claims to — it states the rule and where the fence is, which
-  // is the honest half. Same discipline as the PDL key row above it.
-  rows.push(await probe('PDL tier (R26 — unlock day)', async () => {
-    // Read the cap the way every other reader does — the app_settings row, by the shared key
-    // constant. (First draft of this row called a `getPdlMonthlyCapUsd()` helper that does not
-    // exist: a function name asserted from memory, which is the exact failure the working
-    // method forbids and the type-check caught immediately.)
-    const { data: capRow } = await db.from('app_settings')
-      .select('value').eq('key', PDL_MONTHLY_CAP_KEY).maybeSingle()
-    const capRaw = (capRow as { value?: unknown } | null)?.value
-    const cap = typeof capRaw === 'number' ? capRaw : (typeof capRaw === 'string' ? Number(capRaw) : null)
-    const capLine = cap === null || Number.isNaN(cap)
-      ? 'The A17 monthly spend cap could not be read from app_settings, so the fence state is unknown on this row.'
-      : `The A17 monthly spend cap reads $${cap} — that fence is live and independent of the tier.`
-    return unmeasured('PDL tier (R26 — unlock day)',
-      `Whether the paid $98/mo tier is active CANNOT be established without making a billable request, so this report does not try. ${capLine} R26: the tier is bought the same day as Smartlead — the day a client is in the works — because a new client's pack sources 200 names on day 1 and no free key covers that.`,
-      'On unlock day: docs/UNLOCK-DAY-RUNBOOK.md. Confirm the tier on the PDL dashboard — this page will not spend to find out.')
+  // ── XC-8 / J14-C1 · THE CREDIT BALANCE, READ-ONLY ───────────────────────────────────
+  //
+  // The one number that decides whether a Proof set or a programme batch can be delivered,
+  // and nothing in the product had ever read it. "Apollo credits ran out" was discoverable
+  // only by a run failing.
+  //
+  // ⚠️ IT REPORTS WHAT IT READ, OR NOT-MEASURED — NEVER A GUESS. If the usage endpoint answers
+  // in a shape this code does not recognise, the row says so and names the endpoint. A
+  // fabricated balance on this page is worse than no balance: the release checklist reads it.
+  rows.push(await probe('Apollo credits (this cycle)', async () => {
+    const key = process.env.APOLLO_API_KEY
+    if (!key) {
+      return unmeasured('Apollo credits (this cycle)',
+        'No APOLLO_API_KEY, so the balance cannot be read. See the row above.',
+        'Set APOLLO_API_KEY in Railway → @kind/api → Variables.')
+    }
+    const r = await fetchWithTimeout(`${apolloBase()}/usage_stats/api_usage_stats`, {
+      headers: { 'x-api-key': key },
+    })
+    if (!r.ok) {
+      return unmeasured('Apollo credits (this cycle)',
+        `Apollo's usage endpoint answered HTTP ${r.status}, so the balance is UNKNOWN — not zero, and not fine.`,
+        'Read it by hand at Apollo → Settings → Credits, and note it before any certification run.')
+    }
+    const body = await r.json().catch(() => null) as unknown
+    const found = findLeadCredits(body)
+    if (!found) {
+      return unmeasured('Apollo credits (this cycle)',
+        'Apollo answered, but not in a shape this probe recognises, so no number is reported rather than a wrong one. Endpoint: /api/v1/usage_stats/api_usage_stats.',
+        'Read the balance at Apollo → Settings → Credits and note it before any certification run.')
+    }
+    const left = found.limit - found.used
+    if (left <= 0) {
+      return broken('Apollo credits (this cycle)',
+        `ZERO lead credits left (${found.used} of ${found.limit} used). Every reveal fails, so no Proof set and no programme batch can be delivered.`,
+        'Top up at Apollo → Settings → Billing. Until then Vida raises a Needs-you task on every refused run.')
+    }
+    return ok('Apollo credits (this cycle)',
+      `${left} lead credit(s) left this cycle (${found.used} of ${found.limit} used). A reveal costs one; People Search costs nothing.`)
   }))
 
-  rows.push(await probe('Hunter (email fallback)', async () => {
+  // ── ⛓️ 17 Sep — HUNTER IS RETIRED, AND THE ROW SAYS SO INSTEAD OF PROBING IT ────────
+  //
+  // FD-5: *"Hunter remains LOCKED OFF. Do not silently re-enable Hunter."* The old row read
+  // `HUNTER_API_KEY is not set. Hunter is the fallback when PDL has no email` and offered
+  // "Optional, but it lowers the dead-email rate" as the action — an invitation to set a key
+  // the founder had deliberately removed (workbook APOLLO-011). A System page that recommends
+  // undoing a founder lock is worse than one that omits the row.
+  //
+  // ⚠️ AND IT IS CHECKED-OK, NOT NOT-MEASURED. "Hunter is off" is a fact this page CAN
+  // establish, and it is the desired state. Grading a correct configuration as unmeasured
+  // would leave a permanent amber row that everybody learns to skip.
+  rows.push(await probe('Hunter (retired)', async () => {
     const key = process.env.HUNTER_API_KEY
-    if (!key) return unmeasured('Hunter', 'HUNTER_API_KEY is not set. Hunter is the fallback when PDL has no email — without it, some approvals will find no address.', 'Optional, but it lowers the dead-email rate.')
-    const r = await fetchWithTimeout(`https://api.hunter.io/v2/account?api_key=${encodeURIComponent(key)}`)
-    return r.ok ? ok('Hunter', 'Key is live and Hunter answered.')
-      : broken('Hunter', `Hunter rejected the key (HTTP ${r.status}).`, 'Check the key.')
+    if (!key) {
+      return ok('Hunter (retired)',
+        'HUNTER_API_KEY is unset, which is the CORRECT state. FD-5 locks Hunter off; the enrichment waterfall refuses it in code, so a key would not re-enable it either.')
+    }
+    return broken('Hunter (retired)',
+      'HUNTER_API_KEY IS SET. FD-5 locks Hunter off. The code refuses to call it regardless, so nothing is being spent — but a key nobody expects to exist is a key somebody will act on.',
+      'Remove HUNTER_API_KEY from Railway → @kind/api → Variables.')
   }))
 
   rows.push(await probe('Instantly (OUR outreach)', async () => {
@@ -715,10 +781,21 @@ async function vida(): Promise<Section> {
     return ok('Operator audit log', `Recording. Last ${data!.length}: ${data!.map((r: { action: string }) => r.action).join(', ')}.`)
   }))
 
-  // PDL SPEND *AGAINST* THE CAP — the spec said "PDL spend vs monthly cap" and the first
-  // build showed only the cap. A ceiling with no reading against it tells you nothing about
-  // whether you are near it, which is the only reason to have a ceiling.
-  rows.push(await probe('PDL spend against the monthly cap', async () => {
+  // ── PROVIDER SPEND AGAINST THE MONTHLY CAP ──────────────────────────────────────────
+  //
+  // ⛓️ 17 Sep (FD-6) — RE-LABELLED, AND THE READING IS NOW HISTORIC. The row is titled
+  // "PDL spend against the monthly cap" in every previous build, and both halves of that
+  // label are stale: we are not paying for PDL, and `sourcing_ledger` is the ledger of PDL
+  // records bought at $0.28 each. Nothing on any MVP1 path writes to it any more — the
+  // programme path reserves entitlement through `try_reserve_programme_sourcing`, which
+  // deliberately writes no ledger row because entitlement and provider cost are different
+  // facts (HOUSE-009).
+  //
+  // ⚠️ THE ROW IS KEPT, NOT DELETED, AND IT SAYS WHAT IT IS. Historic spend is real money
+  // that was really spent, and a page that silently stops reporting a budget reads as a
+  // budget that stopped existing. What it must not do is present a stale figure as the
+  // current provider constraint — the current constraint is Apollo credits, two rows up.
+  rows.push(await probe('Historic PDL spend against its old monthly cap', async () => {
     const monthStart = new Date(); monthStart.setUTCDate(1); monthStart.setUTCHours(0, 0, 0, 0)
     const [capRow, ledger] = await Promise.all([
       // #626 — the key is a CONSTANT shared with the setter route. Two spellings of one key
@@ -735,28 +812,36 @@ async function vida(): Promise<Section> {
     // write surfaced only because that write is checked (#349).
     const { isMissingTable } = await import('./schema-probe')
     if (isMissingTable(capRow.error as never)) {
-      return broken('PDL spend against the monthly cap',
+      // ⚠️ STILL `broken`, AND FD-6 DOES NOT SOFTEN IT. A reached PDL cap constrains nothing
+      // any more, so that case became `unmeasured` below — but a MISSING TABLE is a schema
+      // fact, not a money fact: `app_settings` is where several operator-editable values
+      // live, and "there is nowhere to set one" is exactly the state #627 exists to surface.
+      // Re-labelling the row must not quietly downgrade the one finding it was written for.
+      return broken('Historic PDL spend against its old monthly cap',
         `$${spent.toFixed(2)} spent this month, and the app_settings table DOES NOT EXIST — so no cap can be stored and nothing is guarding sourcing spend but the code default. This row previously said "no usable setting exists", which read as "nobody has set one yet" rather than "there is nowhere to set one".`,
         'Run the 20260806_app_settings migration from Vida → Engine → Run migrations. That needs DATABASE_URL to be the Supabase SESSION POOLER string first (runlist A15).')
     }
     if (capRow.error) {
-      return unmeasured('PDL spend against the monthly cap',
+      return unmeasured('Historic PDL spend against its old monthly cap',
         `$${spent.toFixed(2)} spent this month, but app_settings could not be read (${capRow.error.message}), so whether a cap exists was NOT established.`,
         'Re-run once the database answers.')
     }
     const capRaw = (capRow.data as { value?: unknown } | null)?.value
     const cap = Number(capRaw)
     if (!capRow.data || !Number.isFinite(cap) || cap <= 0) {
-      return unmeasured('PDL spend against the monthly cap',
+      return unmeasured('Historic PDL spend against its old monthly cap',
         `$${spent.toFixed(2)} spent this month, but no usable pdl_monthly_cap_usd setting exists, so there is nothing to measure it against — the code default applies.`,
         'Set it in Vida → Engine → PDL monthly spend cap.')
     }
     const pct = Math.round((spent / cap) * 100)
-    if (spent >= cap) {
-      return broken('PDL spend against the monthly cap', `$${spent.toFixed(2)} of $${cap} used (${pct}%) — the cap is reached, so sourcing is refused.`,
-        'Raise the cap or wait for the month to roll.')
-    }
-    return ok('PDL spend against the monthly cap', `$${spent.toFixed(2)} of $${cap} used this month (${pct}%).`)
+    // ⚠️ NO LONGER `broken` WHEN THE CAP IS REACHED. Under FD-6 this ledger is historic: a
+    // spent PDL cap refuses nothing, because nothing spends PDL. Reporting it red would send
+    // an operator to raise a budget that constrains no live path, while the constraint that
+    // DOES bite — Apollo credits — sits two rows up in green.
+    const line = `$${spent.toFixed(2)} of the old $${cap} PDL cap used this month (${pct}%). HISTORIC: no MVP1 path writes to sourcing_ledger any more (FD-6). The live constraint is Apollo credits.`
+    return spent >= cap
+      ? unmeasured('Historic PDL spend against its old monthly cap', line, 'No action: this cap constrains nothing. Watch the Apollo credit row instead.')
+      : ok('Historic PDL spend against its old monthly cap', line)
   }))
 
   // DAILY SEND CAPS — read from the environment they are actually enforced from.
@@ -833,7 +918,7 @@ async function vida(): Promise<Section> {
     const key = process.env.RESEND_API_KEY
     if (key) {
       try {
-        const r = await fetchWithTimeout('https://api.resend.com/domains', { headers: { Authorization: `Bearer ${key}` } })
+        const r = await fetchWithTimeout(`${resendBase()}/domains`, { headers: { Authorization: `Bearer ${key}` } })
         if (r.ok) {
           const body = await r.json() as { data?: { name?: string }[] }
           resendDomains = (body?.data ?? []).map(d => String(d?.name ?? '')).filter(Boolean)

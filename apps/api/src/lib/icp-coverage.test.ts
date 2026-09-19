@@ -266,7 +266,18 @@ describe('⑤ what we cannot enforce, we refuse to pretend we enforced', () => {
   it('🛑 the sourcing run asserts coverage BEFORE the cash fence and BEFORE any provider call', () => {
     const at = ICPS_ROUTE.indexOf('assertIcpFullyOwned(')
     expect(at, 'the sourcing run never asserts ICP coverage').toBeGreaterThan(-1)
-    expect(ICPS_ROUTE.indexOf('try_spend_sourcing'), 'coverage is asserted AFTER the cash fence')
+  // ⛓️ RE-AIMED 17 Sep (XC-13 / FD-6) — the sourcing gate in `icps.ts` is now
+  // `try_reserve_programme_sourcing`, called DIRECTLY. `try_spend_sourcing` does two jobs in
+  // one body — programme AUTHORITY, and a `sourcing_ledger` row at $0.28 a PDL record — and
+  // under FD-6 the second is a fabricated cost: *"We are not paying for PDL."* HOUSE-009
+  // already split the two; this points the client path at the same half House uses. The
+  // INVARIANT asserted here is byte-identical; only the RPC's name changed.
+    // ⚠️ ANCHORED ON THE PROVIDER GRANT, NOT ON THE RPC NAME. `try_reserve_programme_sourcing`
+    // is ALSO called earlier, for the POOL reservation (a pool record is free, so it takes
+    // entitlement without booking provider cost), and that call legitimately precedes the
+    // audience resolution. A bare `indexOf` finds that one and the assertion inverts. The
+    // provider grant is the one that asks for `pdlRemainder`.
+    expect(ICPS_ROUTE.indexOf('p_requested: pdlRemainder'), 'coverage is asserted AFTER the sourcing fence')
       .toBeGreaterThan(at)
     for (const call of [...ICPS_ROUTE.matchAll(/await searchPeopleWithFallback\(/g)].map(m => m.index ?? -1)) {
       expect(call, 'a provider is called BEFORE ICP coverage is asserted').toBeGreaterThan(at)

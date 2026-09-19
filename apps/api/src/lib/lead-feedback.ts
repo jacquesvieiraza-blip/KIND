@@ -14,26 +14,24 @@
 // `applicableAntiSignals` below reads ONLY the structured codes, and its own test asserts that
 // free text cannot influence it.
 
-/** The seven chips, in the order Milla renders them. */
-export const REASON_CODES = [
-  'too_big', 'too_small', 'wrong_industry', 'wrong_role', 'wrong_geography', 'bad_timing', 'other',
-] as const
-export type ReasonCode = typeof REASON_CODES[number]
+// ── ⛓️ 18 Sep (J6-C4 · LR 6) — ONE LIST, IN `@kind/shared` ─────────────────────
+//
+// The seven codes and their labels were declared HERE and, separately, as
+// `PROOF_REASON_CODES` in `proof-calibration.ts` — where there were only SIX. `bad_timing` was
+// missing from that copy, so a client who tapped "Bad timing" had it stored by this route and
+// read back as `other` by `readAttempts`: Vida showed an operator a reason the client never
+// gave. A third copy was hand-typed into the Milla card and a fourth is the database CHECK.
+//
+// ⚠️ THE NAMES ARE UNCHANGED so no caller moves, and a guard asserts they still ARE the
+// shared list rather than a copy that happens to match today.
+import {
+  LEAD_REASON_CODES, LEAD_REASON_LABELS, isLeadReasonCode, type LeadReasonCode,
+} from '@kind/shared'
 
-/** What a client sees on the chip. Kept beside the code so the two can never drift apart. */
-export const REASON_LABELS: Record<ReasonCode, string> = {
-  too_big:         'Too big',
-  too_small:       'Too small',
-  wrong_industry:  'Wrong industry',
-  wrong_role:      'Wrong role',
-  wrong_geography: 'Wrong geography',
-  bad_timing:      'Bad timing',
-  other:           'Other',
-}
-
-export function isReasonCode(v: unknown): v is ReasonCode {
-  return typeof v === 'string' && (REASON_CODES as readonly string[]).includes(v)
-}
+export const REASON_CODES = LEAD_REASON_CODES
+export const REASON_LABELS = LEAD_REASON_LABELS
+export const isReasonCode = isLeadReasonCode
+export type ReasonCode = LeadReasonCode
 
 /**
  * Normalise what arrived on the request into something storable, or reject it.
@@ -114,6 +112,45 @@ export function bandIndex(companySize: string | null | undefined): number {
   if (!companySize) return -1
   const s = companySize.replace(/[\s,]/g, '').replace(/[–—]/g, '-')
   return SIZE_LADDER.findIndex(b => b.replace(/[\s,]/g, '').replace(/[–—]/g, '-') === s)
+}
+
+// ── 🛑 ⚑ 18 Sep (J5-C5) — A RAW HEADCOUNT IS A BAND, AND IT WAS BEING READ AS SILENCE ────
+//
+// 🛑 WHAT THIS FIXES, MEASURED. `bandIndex` matches the six LADDER LABELS and nothing else —
+// which is right for the portal and for `lead_pool` rows written from a label. But the two
+// writers that actually populate a sourced candidate's size write a RAW HEADCOUNT:
+//
+//     company_size: contact.organization?.num_employees ? String(...num_employees) : null
+//
+// — in `leads` and in `lead_pool`, in `runIcpJob`. So `bandIndex('4000')` is `-1`, and
+// `sizeVerdict` answered **`unknown`** for a four-thousand-person company shown to a client
+// who asked for 11–50. Not "no". Not a refusal. *"Their headcount could not be confirmed"* —
+// about a company whose headcount the provider told us exactly.
+//
+// The consequence is that ONE OF THE FOUNDER'S FOUR CANARY CRITERIA — *"UK digital marketing
+// agencies, 10–50 staff, Founder or CEO"* — has never refused a single provider-sourced
+// candidate. The existing guard did not catch it because every size case in it is written
+// with a ladder label, which is the one shape the provider path never produces.
+//
+// ⚠️ `bandIndex` ITSELF IS UNTOUCHED, DELIBERATELY. `narrowSizeBands` (the calibration
+// anti-signal) reads it too, and widening a shared function would change what a client's own
+// "too big" passes exclude from their next run — a different behaviour, not asked for here.
+// This is a SECOND resolver over the SAME ladder, so there is still one size vocabulary.
+
+/** Upper bound of each `SIZE_LADDER` band, in people. The last band is open-ended. */
+const LADDER_MAX = [10, 50, 200, 500, 1000, Number.POSITIVE_INFINITY]
+
+/**
+ * The ladder band a RAW HEADCOUNT falls in — `'24'` → `11–50`. `-1` when the value is not a
+ * plain headcount (a label, a range, free text, or a nonsense zero), which keeps it honestly
+ * unknown rather than guessing a band from a string we did not understand.
+ */
+export function headcountBandIndex(companySize: string | null | undefined): number {
+  const raw = String(companySize ?? '').replace(/[\s,]/g, '')
+  if (!/^\d+$/.test(raw)) return -1
+  const n = Number(raw)
+  if (!Number.isFinite(n) || n < 1) return -1
+  return LADDER_MAX.findIndex(max => n <= max)
 }
 
 export type SizedFeedback = { reason_code: ReasonCode | null; company_size?: string | null }

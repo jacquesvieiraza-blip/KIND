@@ -27,10 +27,37 @@ export async function claimCronSlot(job: string, at: Date): Promise<ClaimOutcome
   }
 }
 
-// The claim table missing means the migration has not been run. The job RUNS ANYWAY —
-// failing closed would stop every send, digest, drip and charge across the business to
-// prevent a doubling that only happens above one replica — so this alert is the entire
-// safety net and must actually arrive. Deduped to once per process, like the admin-key one.
+/**
+ * ⚑ 18 Sep (J20-C2 · LR 17) — THE JOBS THAT EMAIL A STRANGER DO NOT RUN WITHOUT A CLAIM.
+ *
+ * ── 🛑 WHAT WAS TRUE BEFORE, AND WHY IT IS ONLY HALF RIGHT ──────────────────────────────
+ *
+ * The rule below was *"the job RUNS ANYWAY — failing closed would stop every send, digest,
+ * drip and charge across the business to prevent a doubling that only happens above one
+ * replica."* That reasoning is sound for a digest and for a watchdog: the cost of stopping
+ * them is certain and the cost of doubling them is an extra email to our own customer.
+ *
+ * 🛑 IT IS NOT SOUND FOR OUTBOUND. Doubling a prospect send is not an inconvenience — it is
+ * the same stranger emailed twice in one instant, from a cold mailbox, which is the single
+ * fastest way to burn a sending domain and the one thing outreach cannot take back. *"Missing
+ * claims table = no automatic sending"* is the ruling, and it is narrower than "no crons":
+ * everything else keeps the behaviour it has, deliberately.
+ *
+ * ⚠️ THE LIST IS EXPLICIT AND SHORT, and it is the two jobs that put an email in front of
+ * somebody who is not our customer: the sequence sender, and the self-outreach job that
+ * sources, enrols and sends in one pass. A job added here stops running on an unclaimed slot,
+ * so this is a list somebody must choose to join.
+ */
+export const CLAIMLESS_REFUSED_JOBS: readonly string[] = ['/figsy/send-due-all', '/cmo/self-outreach']
+
+export function refusesWithoutClaim(path: string): boolean {
+  return CLAIMLESS_REFUSED_JOBS.includes(path)
+}
+
+// The claim table missing means the migration has not been run. Every job EXCEPT the outbound
+// ones above runs anyway — failing closed on all of them would stop every digest, drip and
+// charge across the business to prevent a doubling that only happens above one replica — so
+// this alert is the entire safety net and must actually arrive. Deduped once per process.
 let alertedClaimUnavailable = false
 function reportClaimUnavailable(job: string, outcome: Extract<ClaimOutcome, { kind: 'unavailable' }>): void {
   console.error(`[cron] could not claim a slot for ${job} — RUNNING ANYWAY. ${outcome.why}`)
@@ -41,8 +68,12 @@ function reportClaimUnavailable(job: string, outcome: Extract<ClaimOutcome, { ki
     outcome.missingTable
       ? 'The cron_claims table does not exist — run the pending migrations from Vida → Engine (20260727_cron_claims).'
       : 'The database could not be reached for the claim.',
-    'Jobs are still running, deliberately — stopping every send and charge is worse than the risk.',
-    'BUT while this persists, if @kind/api has more than one replica, every email and every charge fires TWICE.',
+    // ⛓️ 18 Sep (J20-C2) — ~~"Jobs are still running, deliberately"~~ WAS NO LONGER TRUE OF
+    // ALL OF THEM, and a sentence that is true of most jobs is the wrong sentence to leave in
+    // front of the person deciding how urgent this is.
+    `Outbound sending STANDS DOWN while this persists (${CLAIMLESS_REFUSED_JOBS.join(', ')}) — no prospect is emailed without a claimed slot.`,
+    'Every other job still runs, deliberately — stopping every digest and charge is worse than the risk.',
+    'BUT while this persists, if @kind/api has more than one replica, every other email and every charge fires TWICE.',
     'Check Railway → @kind/api → Settings → Replicas until this is resolved.',
   ])
 }
@@ -165,7 +196,22 @@ async function callInternal(path: string, method: 'GET' | 'POST' = 'POST'): Prom
     console.log(`[cron] ${path} — another process already claimed this slot; standing down.`)
     return
   }
-  if (claim.kind === 'unavailable') reportClaimUnavailable(path, claim)
+  if (claim.kind === 'unavailable') {
+    reportClaimUnavailable(path, claim)
+    // ── ⚑ 18 Sep (J20-C2 · LR 17) — AND OUTBOUND STANDS DOWN ────────────────────────────
+    //
+    // 🛑 NO CLAIM, NO AUTOMATIC SENDING. Without the claim there is nothing stopping a second
+    // replica firing this same slot, and for these two jobs that means the same stranger
+    // emailed twice in one instant from a cold mailbox. The refusal is LOUD in all three
+    // places that matter: the log, the founder alert above, and a `cron_runs` row — a refusal
+    // that leaves no row looks exactly like a job that never fired.
+    if (refusesWithoutClaim(path)) {
+      const why = `the cron single-run guard is unavailable (${claim.why}), so this outbound job STOOD DOWN rather than risk emailing the same prospect twice. Nothing was sent.`
+      console.error(`[cron] ${path} — ${why}`)
+      await recordCronRun(path, new Date().toISOString(), false, `stood down: ${why}`)
+      return
+    }
+  }
 
   if (!ADMIN_KEY) {
     console.warn(`[cron] ADMIN_SECRET_KEY not set — skipping ${path}`)
@@ -202,6 +248,80 @@ async function callInternal(path: string, method: 'GET' | 'POST' = 'POST'): Prom
     await recordCronRun(path, startedAt, ok, noteToRecord)
     // #390 — a failed run is dead-lettered so it's visible/retryable, not just logged.
     if (!ok) await recordDeadLetter(`cron:${path}`, note)
+  }
+}
+
+// ── XC-6 · THE OVERDUE-AUTOMATIC-WORK DETECTOR ──────────────────────────────────
+//
+// Reads `automatic_work` for anything past the bound recorded when it was requested, and
+// turns each one into an `operator_tasks` row so it appears in Vida Needs-you.
+//
+// ⚠️ IT CLAIMS ITS OWN SLOT. It does not go through `callInternal`, so without a claim two
+// replicas would both sweep and both raise — and the dedupe index would hide the second,
+// which is the good case; the bad case is two `stuck` transitions racing. The claim is
+// cheaper than either.
+//
+// ⚠️ NOT SILENT WHEN IT CANNOT WORK. If `automatic_work` is missing, the detector is blind,
+// and blindness is the condition this whole item exists to end — so it says so, once per
+// process, rather than logging "0 overdue" every five minutes forever.
+let alertedDetectorBlind = false
+async function detectOverdueWork(): Promise<void> {
+  try {
+    const claim = await claimCronSlot('detector:automatic-work', new Date())
+    if (claim.kind === 'taken') return
+    if (claim.kind === 'unavailable') reportClaimUnavailable('detector:automatic-work', claim)
+
+    const { detectOverdueAutomaticWork } = await import('./lib/automatic-work')
+    const res = await detectOverdueAutomaticWork({ nowMs: Date.now() })
+
+    if (!res.ok) {
+      console.error(`[cron] automatic-work detector could not read: ${res.error ?? 'unknown'}`)
+      if (res.tableMissing && !alertedDetectorBlind) {
+        alertedDetectorBlind = true
+        void sendFounderAlert('api_down', 'The overdue-work detector is blind', [
+          'automatic_work does not exist on this database, so nothing is watching the work the system promised to do by itself.',
+          'Run the pending migrations from Vida → System → Engine (20260917_operator_tasks_and_automatic_work).',
+          'Until then a Proof that never starts looks exactly like one that has not started yet.',
+        ])
+      }
+      return
+    }
+    if (res.raised > 0 || res.failed > 0) {
+      console.log(`[cron] automatic-work detector — checked ${res.checked}, raised ${res.raised}, could not report ${res.failed}`)
+    }
+  } catch (err) {
+    console.error('[cron] automatic-work detector threw', err)
+  }
+}
+
+/**
+ * ⚑ 18 Sep (J5-C10) — sweep unresolved ICP reviews into Vida's Needs-you.
+ *
+ * ⚠️ CRON-CLAIMED, LIKE ITS SIBLING. Two replicas both sweeping would both raise, and while
+ * the partial unique index would refuse the second row, the wasted reads and the duplicate
+ * error logs are avoidable for one claim.
+ *
+ * ⚠️ AND IT IS NOT SILENT ABOUT A FAILED READ. `detectPendingIcpReviews` answers `ok: false`
+ * rather than "no reviews", because "nothing needs you" over a broken read is the one
+ * inversion the whole Needs-you design exists to prevent.
+ */
+async function detectIcpReviews(): Promise<void> {
+  try {
+    const claim = await claimCronSlot('detector:icp-review', new Date())
+    if (claim.kind === 'taken') return
+    if (claim.kind === 'unavailable') reportClaimUnavailable('detector:icp-review', claim)
+
+    const { detectPendingIcpReviews } = await import('./lib/icp-review-tasks')
+    const res = await detectPendingIcpReviews()
+    if (!res.ok) {
+      console.error(`[cron] icp-review detector could not read: ${res.error ?? 'unknown'}`)
+      return
+    }
+    if (res.raised > 0 || res.failed > 0) {
+      console.log(`[cron] icp-review detector — checked ${res.checked}, raised ${res.raised}, could not report ${res.failed}`)
+    }
+  } catch (err) {
+    console.error('[cron] icp-review detector threw', err)
   }
 }
 
@@ -420,6 +540,40 @@ export function startCrons(): void {
   // than a database function because a function nothing calls is not housekeeping, it is
   // dead code that reads like housekeeping.
   cron.schedule('30 2 * * *', () => { void pruneCronClaims() }, { timezone: 'UTC' })
+
+  // ── XC-6 · Every 5 minutes — THE OVERDUE-AUTOMATIC-WORK DETECTOR ────────────────
+  //
+  // The system promises to start a Proof, promote a Brief, prepare a programme. Until
+  // `automatic_work` existed, "requested and never started" was indistinguishable from
+  // "never requested", so a promise the system quietly dropped looked exactly like one it
+  // had not got to yet — forever. That is the Northvale shape: Milla said "finding your
+  // first examples", Vida said no action needed, and nothing was running.
+  //
+  // ⚠️ FIVE MINUTES, NOT HOURLY. The tightest bound is a Proof run at ten minutes, and a
+  // client is sitting on that screen. An hourly sweep would mean a dropped Proof is found
+  // up to an hour after the person watching it has given up.
+  //
+  // ⚠️ IT DETECTS; IT DOES NOT RETRY. Automatic recovery is FD-0's other half and belongs
+  // at the call site that knows how to redo that particular work — a generic retry here
+  // would be exactly the concurrent second run FD-0 forbids.
+  cron.schedule('*/5 * * * *', () => { void detectOverdueWork() }, { timezone: 'UTC' })
+
+  // ── ⚑ 18 Sep (J5-C10) — PENDING ICP REVIEWS INTO THE ONE QUEUE ──────────────────────
+  //
+  // A client whose own words our closed provider vocabulary cannot take is BLOCKED: no Proof,
+  // no spend, and they have been told their targeting is being prepared. A person has to
+  // translate it, and until now the only place that said so was a dedicated rail nobody was
+  // sent to — which is the Northvale sentence above, in its other half: *"the ICP sat in
+  // unresolved `icp_review`, nothing ran, and Vida said no action was needed."*
+  //
+  // ⚠️ A SWEEP AND NOT ONLY AN EVENT, because a pending review is a persisted CONDITION.
+  // `promoteConfirmedBrief` raises the same task immediately for the client who just signed
+  // up; this finds the ones that were already sitting there when the mechanism was built.
+  //
+  // ⚠️ TEN MINUTES, NOT FIVE. Nothing is being lost or spent while it waits, and a human
+  // resolving it takes minutes anyway — so this is paced to the operator, not to a client
+  // watching a screen. Deduped per ICP, so the interval cannot produce a second row.
+  cron.schedule('*/10 * * * *', () => { void detectIcpReviews() }, { timezone: 'UTC' })
 
   // Daily 04:00 UTC — #287 MRR daily snapshot → metrics_daily (MRR-over-time + movement)
   cron.schedule('0 4 * * *', () => callInternal('/metrics/snapshot'), { timezone: 'UTC' })

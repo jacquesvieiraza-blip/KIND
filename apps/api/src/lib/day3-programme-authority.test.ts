@@ -282,12 +282,18 @@ describe('🛑 ③ the client approves the exact version they read', () => {
   it('the client is GIVEN the version to send back', () => {
     const route = stripComments(read('apps/api/src/routes/my-programme.ts'))
     expect(route).toContain('version: (p as unknown as { review_preparation_hash?: string | null }).review_preparation_hash ?? null')
-    for (const f of [
-      'apps/portal/src/components/milla/ProgrammeApproval.tsx',
-      'apps/portal/src/components/milla/ProgrammeReview.tsx',
-    ]) {
-      expect(stripComments(read(f)), `${f} approves without naming a version`).toContain('version')
-    }
+    // ⛓️ 18 Sep (J16-C1) — ~~BOTH FILES HAD TO NAME A VERSION, BECAUSE BOTH APPROVED.~~ The
+    // duplicate approve control in `ProgrammeReview` is withdrawn: it shows the prospects and
+    // mounts the one surface, and a component that approves nothing names no version. The duty
+    // is unchanged and is asserted where the act happens — plus the desk must hand the whole
+    // frozen package down, or the surface would have no version to send back.
+    const surface = stripComments(read('apps/portal/src/components/milla/ProgrammeApproval.tsx'))
+    expect(surface, 'the approval is sent without naming a version')
+      .toContain('version: data.frozen?.version ?? null')
+    const desk = stripComments(read('apps/portal/src/components/milla/ProgrammeReview.tsx'))
+    expect(desk, 'the desk approves as well as the surface').not.toContain('/my/programme/approve')
+    expect(desk, 'the desk does not pass the frozen package to the surface')
+      .toContain('frozen: d.frozen ?? null')
   })
 })
 

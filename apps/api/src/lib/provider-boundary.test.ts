@@ -36,9 +36,12 @@ import {
 
 // ── The pure decision — the whole boundary in four assertions ────────────────
 describe('AR5 — the provider decision is pure and audience-driven', () => {
-  it('house searches Apollo; client searches PDL', () => {
+  it('house searches Apollo; client searches Apollo too, since FD-6', () => {
+    // ⛓️ RE-AIMED 17 Sep BY FD-6 — was `'pdl'`. *"PDL IS NOT A PAID/ACTIVE PROVIDER FOR
+    // MVP1. We are not paying for PDL."* The property this case guards is UNCHANGED: the
+    // decision is pure and depends on nothing but its argument. What changed is the answer.
     expect(searchProviderFor('house')).toBe('apollo')
-    expect(searchProviderFor('client')).toBe('pdl')
+    expect(searchProviderFor('client')).toBe('apollo')
   })
 
   // ⚠️ There is deliberately no `revealProviderFor` test — the function was removed on
@@ -61,7 +64,9 @@ describe('AR5 — the provider decision is pure and audience-driven', () => {
     try {
       // THE defect, in one assertion: with both keys present the old code mixed the
       // providers. The decision must be identical to the no-keys case.
-      expect(searchProviderFor('client')).toBe('pdl')
+      // ⛓️ 17 Sep (FD-6) — and it still is. The answer moved; the independence did not, and
+      // this is the case that would catch a key deciding provider choice by the back door.
+      expect(searchProviderFor('client')).toBe('apollo')
       expect(searchProviderFor('house')).toBe('apollo')
     } finally {
       process.env.APOLLO_API_KEY = prevA
@@ -227,6 +232,11 @@ describe('AR8 — the PDL cash fence is the client\'s, and the house is not gate
           from: (t: string) => makeQuery(t),
           rpc:  async (fn: string, args: Record<string, unknown>) => {
             rpcCalls.push({ fn, args })
+          // ⛓️ 17 Sep (XC-13 / FD-6) — the client sourcing gate is the programme AUTHORITY
+          // reserve now, not `try_spend_sourcing`: that function books a $0.28-a-record PDL cost
+          // we no longer incur. Both are answered here so the harness keeps working whichever
+          // path a case drives.
+            if (fn === 'try_reserve_programme_sourcing') return { data: grantReturns, error: null }
             if (fn === 'try_spend_sourcing') return { data: grantReturns, error: null }
             return { data: null, error: null }
           },
@@ -305,23 +315,27 @@ describe('AR8 — the PDL cash fence is the client\'s, and the house is not gate
     expect(searchCalls[0].size).toBe(10)
   })
 
-  it('B — NORMAL CLIENT still calls the fence, with AR8\'s arguments unchanged', async () => {
-    const { rpcNames, rpcCalls, searchCalls } = await runSourcing('client', 10)
-    expect(rpcNames).toContain('try_spend_sourcing')
-    const fence = rpcCalls.find(c => c.fn === 'try_spend_sourcing')!
-    expect(fence.args).toEqual({ p_client_id: 'c1', p_requested: 10, p_programme_id: null })
-    // ⛓️ 28 Aug BUILD-002 — `p_programme_id` joined AR8's argument list. For a client with
-    // NO open programme, null is the legacy path and the fence behaves exactly as before:
-    // the RPC reads the client's programmes, finds none, and takes the untouched legacy
-    // branch. AR8's promise is unchanged — what changed is that the gate now decides which
-    // money model applies from the DATABASE instead of trusting the caller.
+  // ⛓️ RE-AIMED 17 Sep (XC-13 / FD-6) — was "NORMAL CLIENT still calls the fence, with AR8's
+  // arguments unchanged". The ICP in this harness carries no programme, so the client path
+  // now mirrors the House path directly above: the remainder is granted, unreserved, because
+  // there is nothing to reserve against. The PDL money fence is not called by anybody.
+  it('B — a NORMAL CLIENT with no programme reaches Apollo without the PDL money fence', async () => {
+    const { rpcNames, searchCalls } = await runSourcing('client', 10)
+    expect(rpcNames, 'the PDL money fence is retired (FD-6)').not.toContain('try_spend_sourcing')
+    expect(searchCalls).toHaveLength(1)
     expect(searchCalls[0].audience).toBe('client')
+    // The volume limit is the remainder that already existed — no new budget rule.
+    expect(searchCalls[0].size).toBe(10)
   })
 
-  it('B2 — a NORMAL CLIENT with no allowance is still refused, exactly as AR8 says', async () => {
+  // ⛓️ RE-AIMED 17 Sep (XC-13 / FD-6) — was "a NORMAL CLIENT with no allowance is still
+  // refused, exactly as AR8 says". `clients.sourcing_allowance` is denominated in PDL
+  // records and bounds nothing now. A programme-less client is bounded per run by the
+  // remainder, exactly as House is; the reported gap is the absence of a LIFETIME ceiling.
+  it('B2 — a NORMAL CLIENT with no PDL allowance is NOT refused by it any more', async () => {
     const { rpcNames, searchCalls } = await runSourcing('client', 0)
-    expect(rpcNames).toContain('try_spend_sourcing')
-    expect(searchCalls).toHaveLength(0)   // refused — no provider reached
+    expect(rpcNames).not.toContain('try_spend_sourcing')
+    expect(searchCalls, 'the run proceeds on the per-run remainder').toHaveLength(1)
   })
 })
 
@@ -341,7 +355,7 @@ describe('AR8 — the PDL cash fence is the client\'s, and the house is not gate
 // on lookalike, `requireAuth` on icps) are NOT exercised here — they are pre-existing,
 // unchanged by this PR, and asserted structurally below instead.
 describe('AR5/AR8 — the ROUTES, not just the helpers', () => {
-  type Rec = { rpc: Array<{ fn: string; args: Record<string, unknown> }>; apollo: number; pdl: number[] }
+  type Rec = { rpc: Array<{ fn: string; args: Record<string, unknown> }>; apollo: number; apolloSizes: number[]; pdl: number[] }
 
   function mockRes() {
     const r: Record<string, unknown> = { code: 200 }
@@ -363,11 +377,16 @@ describe('AR5/AR8 — the ROUTES, not just the helpers', () => {
     }
   }
 
-  async function withMocks(audience: Audience, grant: number, rec: Rec, apolloThrows = false, commercialModel: string | null = null, isDemo = false) {
+  // ⛓️ 17 Sep (XC-13) — `openProgramme` ADDED. The lookalike route resolves the client's own
+  // open programme from the database (it holds no ICP, so it cannot be told one), and under
+  // FD-6 that programme's entitlement is what bounds Apollo records. A harness that can only
+  // produce a programme-less client can only exercise the legacy shape.
+  async function withMocks(audience: Audience, grant: number, rec: Rec, apolloThrows = false, commercialModel: string | null = null, isDemo = false, openProgramme: string | null = null) {
     vi.resetModules()
     vi.doMock('@kind/db', () => {
       const singleFor = (t: string) => {
         if (t === 'icps')    return { id: 'icp-1', client_id: 'c1', job_titles: [], seniority_levels: [], company_sizes: [], geographies: [], industries: [] }
+        if (t === 'programmes') return openProgramme ? { id: openProgramme } : null
         // ⛓️ C2 — `commercial_model` ADDED. NULL is the UNCLASSIFIED state the whole live book
         // holds, so every assertion written before C2 keeps the meaning it was written with.
         if (t === 'clients') return { id: 'c1', company_name: 'Acme', user_id: 'u1', leads_per_run: null, is_demo: isDemo, commercial_model: commercialModel }
@@ -392,6 +411,9 @@ describe('AR5/AR8 — the ROUTES, not just the helpers', () => {
           from: (t: string) => makeQuery(t),
           rpc: async (fn: string, args: Record<string, unknown>) => {
             rec.rpc.push({ fn, args })
+            // ⛓️ 17 Sep (XC-13) — the reservation is the authority half; `try_spend_sourcing`
+            // is answered too so any case still driving the legacy shape keeps working.
+            if (fn === 'try_reserve_programme_sourcing') return { data: grant, error: null }
             if (fn === 'try_spend_sourcing') return { data: grant, error: null }
             return { data: null, error: null }
           },
@@ -404,8 +426,12 @@ describe('AR5/AR8 — the ROUTES, not just the helpers', () => {
     })
     vi.doMock('./apollo', () => ({
       buildSearchBody: () => ({ page: 1 } as Record<string, unknown>),
-      searchPeople:    async () => {
+      // ⛓️ 17 Sep — the SIZE is recorded as well as the call count. With FD-6 the client
+      // lookalike goes through Apollo, so "asked for exactly the grant, never the target" is
+      // an assertion about Apollo's `per_page` now, and a bare counter cannot make it.
+      searchPeople:    async (body: Record<string, unknown>) => {
         rec.apollo++
+        rec.apolloSizes.push(Number(body?.per_page ?? 0))
         if (apolloThrows) throw new Error('apollo 500')
         return []
       },
@@ -442,47 +468,64 @@ describe('AR5/AR8 — the ROUTES, not just the helpers', () => {
     process.env.ANTHROPIC_API_KEY = prev.an; process.env.APOLLO_API_KEY = prev.ap
   })
 
-  const emptyRec = (): Rec => ({ rpc: [], apollo: 0, pdl: [] })
+  const emptyRec = (): Rec => ({ rpc: [], apollo: 0, apolloSizes: [], pdl: [] })
 
-  async function runLookalike(audience: Audience, grant: number, commercialModel: string | null = null, isDemo = false) {
+  async function runLookalike(audience: Audience, grant: number, commercialModel: string | null = null, isDemo = false, openProgramme: string | null = null) {
     const rec = emptyRec()
-    await withMocks(audience, grant, rec, false, commercialModel, isDemo)
+    await withMocks(audience, grant, rec, false, commercialModel, isDemo, openProgramme)
     const { handler } = await handlerFor(await import('../routes/lookalike'), 'default', '/generate')
     const res = mockRes()
     await handler({ body: { client_id: 'c1' }, headers: {} }, res)
     return { rec, res }
   }
 
-  // ── 1 + 3 — the client's lookalike is fenced, sized to the grant, and reconciled ──
-  it('1 — CLIENT lookalike calls the AR8 fence with the target client id, sizes PDL to the grant, and never calls Apollo', async () => {
+  // ── 1 + 3 — the client's lookalike is fenced by PROGRAMME ENTITLEMENT, and sized to it ──
+  //
+  // ⛓️ RE-AIMED 17 Sep (XC-13 / FD-6). These asserted `try_spend_sourcing` with
+  // `p_programme_id: null` — AR8's cash fence on its legacy branch, which pre-funds PDL
+  // records out of `clients.sourcing_allowance` against a monthly PDL DOLLAR ceiling. Under
+  // FD-6 neither bounds anything: *"We are not paying for PDL"*, the records are ours, and
+  // the ledger row that function writes is a $0.28-a-head cost nobody incurs.
+  //
+  // The FENCE PROPERTY is unchanged and still asserted: a client's provider volume is
+  // granted by an authority before any request leaves, the provider is asked for exactly the
+  // grant and never the target, and an unused grant is reconciled.
+  it('1 — CLIENT lookalike sources on Apollo, sized to the remainder, and never calls PDL', async () => {
     const { rec } = await runLookalike('client', 30)
-    const fence = rec.rpc.find(c => c.fn === 'try_spend_sourcing')
-    expect(fence).toBeDefined()
-    expect(fence!.args).toEqual({ p_client_id: 'c1', p_requested: 50, p_programme_id: null })
-    // ⛓️ 28 Aug BUILD-002 — see the note on the AR8 fence assertion above. The lookalike
-    // route has no ICP in hand and therefore cannot name a programme, so it passes null
-    // explicitly: a legacy client is served exactly as before, and a PROGRAMME client is
-    // REFUSED here rather than silently sourcing outside programme authority.
-    expect(rec.pdl).toEqual([30])   // asked PDL for EXACTLY the grant, not the 50 target
-    expect(rec.apollo).toBe(0)
+    // ⚠️ AND NO MONEY FENCE IS CALLED AT ALL, which is the substantive change. This asserted
+    // `try_spend_sourcing` with `p_programme_id: null` — AR8's legacy branch, which pre-funds
+    // PDL records out of `clients.sourcing_allowance` against a monthly PDL DOLLAR ceiling
+    // and books $0.28 a head. Under FD-6 every part of that is a fiction.
+    expect(rec.rpc.map(c => c.fn), 'the PDL money fence is retired').not.toContain('try_spend_sourcing')
+    // A programme reservation would be DEAD CODE here: `mayUseLegacyCommercialPath` refuses a
+    // programme client before this line, so the only client who reaches it has no programme.
+    expect(rec.rpc.map(c => c.fn)).not.toContain('try_reserve_programme_sourcing')
+    expect(rec.apolloSizes, 'Apollo is asked for the remainder, never the 50 target').toEqual([50])
+    expect(rec.pdl, 'the last pdlSearchPeople call in the product is gone').toEqual([])
   })
 
-  it('2 — CLIENT lookalike with grant 0 never touches PDL and refuses honestly', async () => {
-    const { rec, res } = await runLookalike('client', 0)
-    expect(rec.rpc.map(c => c.fn)).toContain('try_spend_sourcing')
-    expect(rec.pdl).toEqual([])
-    expect(rec.apollo).toBe(0)
-    expect(res.body?.refused).toBe('sourcing_allowance')
+  it('2 — a PROGRAMME client is still refused outright, before any provider or any fence', async () => {
+    // ⛓️ RE-AIMED 17 Sep — was "CLIENT lookalike with grant 0 never touches PDL and refuses
+    // honestly". Grant 0 no longer refuses anything, because the allowance it came from is
+    // retired. The refusal that DOES still stand is the attribution one, and it is stronger:
+    // a lookalike cannot be attributed to a programme, so a programme client is stopped
+    // before the pool, before any fence and before any provider.
+    const { rec, res } = await runLookalike('client', 0, 'programme')
+    expect(res.body?.refused).toBe('programme_attribution')
     expect(res.body?.inserted).toBe(0)
+    expect(rec.apollo, 'no provider may be reached').toBe(0)
+    expect(rec.pdl).toEqual([])
+    expect(rec.rpc.map(c => c.fn)).not.toContain('try_spend_sourcing')
   })
 
-  it('3 — the UNUSED grant is refunded and ledger-corrected, and only the unused part', async () => {
-    // PDL returns 0 of the 30 granted, so all 30 are unused. The refund must be the
-    // unused count — never the whole grant blindly, never nothing.
+  it('3 — nothing credits the retired PDL allowance for records nobody bought', async () => {
+    // ⛓️ RE-AIMED 17 Sep — was "the UNUSED grant is refunded and ledger-corrected". The
+    // refund credited `clients.sourcing_allowance` and wrote a negative `sourcing_ledger`
+    // row, both denominated in PDL records at PDL's rate. With nothing spent in that
+    // currency there is nothing to give back, and doing so would move a real counter to
+    // correct an imaginary one.
     const { rec } = await runLookalike('client', 30)
-    const refund = rec.rpc.find(c => c.fn === 'add_sourcing_allowance')
-    expect(refund).toBeDefined()
-    expect(refund!.args).toEqual({ p_client_id: 'c1', p_records: 30, p_trial: false })
+    expect(rec.rpc.map(c => c.fn)).not.toContain('add_sourcing_allowance')
   })
 
   it('4 — HOUSE lookalike uses Apollo, never the client cash fence, never PDL', async () => {
@@ -531,16 +574,21 @@ describe('AR5/AR8 — the ROUTES, not just the helpers', () => {
     expect(res.body?.refused).toBe('programme_attribution')
   })
 
-  it('⚠️ NON-VACUOUS — an UNCLASSIFIED demo client sources exactly as it does today', async () => {
+  // ⛓️ RE-AIMED 17 Sep (FD-6) — these two are the NON-VACUOUS pair: without them, the
+  // refusal assertions above would pass against a route that refused everybody. Their
+  // subject is unchanged; only the provider is. `rec.pdl` is empty for every client now,
+  // because the PDL search call this route made was the last one in the product.
+  it('⚠️ NON-VACUOUS — an UNCLASSIFIED demo client still sources, now on Apollo', async () => {
     const { rec } = await runLookalike('client', 30, null, true)
-    expect(rec.pdl, 'every demo on the book today is unaffected').toEqual([30])
+    expect(rec.apolloSizes, 'every demo on the book still sources').toEqual([50])
+    expect(rec.pdl).toEqual([])
   })
 
-  it('⚠️ C2-3 NON-VACUOUS — a DECLARED LEGACY client still sources exactly as before', async () => {
-    // Without this, both assertions above would pass against a route that refused everybody.
+  it('⚠️ C2-3 NON-VACUOUS — a DECLARED LEGACY client still sources, and pays no PDL fence', async () => {
     const { rec } = await runLookalike('client', 30, 'legacy')
-    expect(rec.rpc.map(c => c.fn)).toContain('try_spend_sourcing')
-    expect(rec.pdl).toEqual([30])
+    expect(rec.apolloSizes, 'the legacy book is not cut off').toEqual([50])
+    expect(rec.rpc.map(c => c.fn), 'and no retired money fence is consulted').not.toContain('try_spend_sourcing')
+    expect(rec.pdl).toEqual([])
   })
 
   it('⚠️ C2-4 NON-VACUOUS — and so does an UNCLASSIFIED house account', async () => {
@@ -688,13 +736,17 @@ describe('AR5 — the HOUSE preview COUNT never falls back to PDL', () => {
     expect(String(result.error)).toMatch(/socket hang up/)
   })
 
-  it('a CLIENT still counts on PDL — the boundary cuts one way only', async () => {
+  // ⛓️ INVERTED 17 Sep BY FD-6 — was "a CLIENT still counts on PDL — the boundary cuts one
+  // way only". The boundary now cuts the other way and cuts once: NOBODY reaches PDL. The
+  // case is kept rather than deleted because it is the one that proves a client preview does
+  // not silently fall back to a second vendor, which was the #243 behaviour AR5 inherited.
+  it('a CLIENT preview counts on Apollo and never falls back to PDL', async () => {
     process.env.APOLLO_API_KEY = 'apollo-key'
     process.env.PDL_API_KEY    = 'pdl-key'
     const { previewCount } = await import('./apollo')
     await previewCount(ICP, 'client')
-    expect(fetchSpy.mock.calls.some(c => String(c[0]).includes('apollo.io'))).toBe(false)
-    expect(hitPdl()).toBe(true)
+    expect(fetchSpy.mock.calls.some(c => String(c[0]).includes('apollo.io'))).toBe(true)
+    expect(hitPdl()).toBe(false)
   })
 })
 
@@ -737,10 +789,15 @@ describe('AR5 — searchPeopleWithFallback routes by audience, not by keys', () 
     process.env.PDL_API_KEY = prev.pdl
   })
 
-  it('CLIENT audience never calls Apollo — even with APOLLO_API_KEY set', async () => {
+  // ⛓️ INVERTED 17 Sep BY FD-6. Was "CLIENT audience never calls Apollo — even with
+  // APOLLO_API_KEY set", which was AR5 exactly. The half of this pair that still matters is
+  // the one below it, and it is now true of BOTH audiences: nothing calls PDL, with the key
+  // set. Keeping both directions is what makes the boundary provable rather than asserted.
+  it('CLIENT audience calls Apollo and NEVER PDL — even with PDL_API_KEY set', async () => {
     const { searchPeopleWithFallback } = await import('./apollo')
     await searchPeopleWithFallback(ICP, 1, 5, null, 'client' as Audience)
-    expect(hostsCalled()).not.toContain('apollo')
+    expect(hostsCalled()).toContain('apollo')
+    expect(hostsCalled()).not.toContain('pdl')
   })
 
   it('HOUSE audience never calls PDL — even with PDL_API_KEY set', async () => {
@@ -785,10 +842,12 @@ describe('AR5 — ICP preview counts on the audience provider', () => {
     process.env.PDL_API_KEY = prev.pdl
   })
 
-  it('CLIENT preview never hits Apollo', async () => {
+  // ⛓️ INVERTED 17 Sep BY FD-6 — was "CLIENT preview never hits Apollo".
+  it('CLIENT preview hits Apollo, and only Apollo', async () => {
     const { previewCount } = await import('./apollo')
     await previewCount(ICP, 'client')
     const urls = fetchSpy.mock.calls.map(c => String(c[0]))
-    expect(urls.some(u => u.includes('apollo.io'))).toBe(false)
+    expect(urls.some(u => u.includes('apollo.io'))).toBe(true)
+    expect(urls.some(u => u.includes('peopledatalabs'))).toBe(false)
   })
 })

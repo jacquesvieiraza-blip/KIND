@@ -495,13 +495,29 @@ describe('22 · 24 · 26 · 32 · the restart grant, against the real record', (
 
 // ═══════════════════════════════════════════════════════════════════════════════════════
 describe('36 · none of this needs a provider', () => {
+  // ⛓️ 18 Sep (MVP1 · J6-C4 · LR 6) — the proxy is narrowed to the property this test NAMES.
+  //
+  // ~~`expect(src).not.toMatch(/^import /m)`~~ — "imports NOTHING" was a strong stand-in for
+  // "imports nothing that can spend", and it held while the module needed no imports at all.
+  // J6-C4 removed the duplicated reason-code list: this module now takes it from `@kind/shared`,
+  // which is the package the PORTAL and the ADMIN BROWSER BUNDLE already import, so it cannot
+  // reach a provider, a database or the network by construction.
+  //
+  // ⚠️ THE ALLOWLIST IS EXACT, so the proxy has not merely been loosened: every import line in
+  // the module must be `@kind/shared`, and the forbidden-substring scan below is unchanged.
   it('the decision module imports nothing that can spend', async () => {
     const { readFileSync } = await import('node:fs')
     const src = readFileSync(new URL('./proof-calibration.ts', import.meta.url), 'utf8')
-    expect(src).not.toMatch(/^import /m)
+    const imports = src.split('\n').filter(l => /^\s*(import|export)\s.*\sfrom\s/.test(l))
+    for (const line of imports) {
+      expect(line, 'the pure rule module imports something other than @kind/shared')
+        .toMatch(/from '@kind\/shared'/)
+    }
     for (const forbidden of ['apollo', 'pdl', 'peopledatalabs', 'fetch(', 'axios']) {
       expect(src.toLowerCase(), `the pure rule module reaches ${forbidden}`).not.toContain(forbidden)
     }
+    // 🛑 AND NO DYNAMIC IMPORT EITHER, which a line-based scan would otherwise walk past.
+    expect(src, 'the pure rule module reaches for a module at runtime').not.toMatch(/await import\(|require\(/)
   })
 })
 

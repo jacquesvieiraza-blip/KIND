@@ -97,12 +97,24 @@ async function campaignIdFor(programmeId: string): Promise<string | null> {
   } catch { return null }
 }
 
-async function countRows(table: string, apply: (q: never) => unknown): Promise<number> {
+/**
+ * ⚑ 18 Sep (J24-C1) — COUNT ONE THING, AND SAY SO WHEN YOU COULD NOT.
+ *
+ * ⛓️ WHAT THIS REPLACED: ~~`countRows(...)` returning `error ? 0 : (count ?? 0)`~~ — an
+ * unreadable count and a genuine zero produced the same number, and that number is what an
+ * operator reads to decide whether a programme is working. "0 sends" on a programme that has
+ * sent hundreds is a worse answer than no answer.
+ *
+ * ⚠️ ZERO IS A REAL AND COMMON ANSWER, WHICH IS EXACTLY WHY IT MAY NOT BE THE ERROR VALUE.
+ * A programme sourced this morning legitimately has 0 sends; the number carries no warning of
+ * its own, so the caller has to be told the difference.
+ */
+export async function countRowsOrNull(table: string, apply: (q: never) => unknown): Promise<number | null> {
   try {
     const q = db.from(table).select('id', { count: 'exact', head: true })
     const { count, error } = await (apply(q as never) as Promise<{ count: number | null; error: unknown }>)
-    return error ? 0 : (count ?? 0)
-  } catch { return 0 }
+    return error ? null : (count ?? 0)
+  } catch { return null }
 }
 
 /**
@@ -322,11 +334,26 @@ export type LifecycleCounts = {
   enrolled: number
   sends: number; replies: number; positive: number; meetings: number
   repliesAwaitingDecision: number
+  /**
+   * ── 🛑 ⚑ 18 Sep (J24-C1) — WHICH OF THE NUMBERS ABOVE ARE NOT REAL ────────────────────
+   *
+   * Every count stays a `number`, and that is deliberate: `sends` feeds `deriveLifecycle`,
+   * whose documented and founder-reasoned fail-soft direction is to UNDER-count rather than
+   * invent a task ("a badge that cried wolf would be worse than one that is occasionally
+   * quiet"). Widening it to `null` would force that rule to be re-decided inside this item.
+   *
+   * 🛑 BUT THE OPERATOR MUST NOT READ A FABRICATED ZERO. So the count keeps its safe value for
+   * the DERIVATION and this list names the ones that are a placeholder rather than a fact, so
+   * the panel can render "—" for exactly those. One count plus a trustworthiness flag — the
+   * same shape `panelView` already uses — never two competing numbers.
+   */
+  unreadable: string[]
 }
 
 const NO_COUNTS: LifecycleCounts = {
   sourced: 0, qualified: 0, rejected: 0, stillToCheck: 0, enrolled: 0,
   sends: 0, replies: 0, positive: 0, meetings: 0, repliesAwaitingDecision: 0,
+  unreadable: [],
 }
 
 /** Every number the panels show, all of them scoped to this exact programme. */
@@ -343,27 +370,41 @@ async function countsFor(programmeId: string, clientId: string, campaignId: stri
   if (batchId) {
     const onBatch = () => db.from('leads').select('id', { count: 'exact', head: true })
       .eq('programme_id', programmeId).eq('client_id', clientId).eq('batch_id', batchId)
+    // ⚑ 18 Sep (J24-C1) — `null` on a failed read, not 0. These three are the numbers beside
+    // the batch a client is about to approve, and "0 sourced" on an unreadable batch reads as
+    // a programme that found nobody.
+    const asCount = (r: { count: number | null; error?: unknown }): number | null =>
+      r.error ? null : r.count ?? 0
     const [sourced, qualified, rejected] = await Promise.all([
-      onBatch().then(r => r.count ?? 0, () => 0),
-      onBatch().not('qualified_at', 'is', null).then(r => r.count ?? 0, () => 0),
-      onBatch().not('disqualified_at', 'is', null).then(r => r.count ?? 0, () => 0),
+      onBatch().then(asCount, () => null),
+      onBatch().not('qualified_at', 'is', null).then(asCount, () => null),
+      onBatch().not('disqualified_at', 'is', null).then(asCount, () => null),
     ])
-    out.sourced = sourced
-    out.qualified = qualified
-    out.rejected = rejected
-    out.stillToCheck = Math.max(0, sourced - qualified - rejected)
+    for (const [name, v] of [['sourced', sourced], ['qualified', qualified], ['rejected', rejected]] as const) {
+      if (v === null) out.unreadable.push(name)
+    }
+    out.sourced = sourced ?? 0
+    out.qualified = qualified ?? 0
+    out.rejected = rejected ?? 0
+    // ⚠️ THE DERIVED ONE IS UNREADABLE IF ANY OF ITS THREE INPUTS IS. A subtraction over a
+    // placeholder is a placeholder, and this number decides whether Vida says "still checking".
+    if (sourced === null || qualified === null || rejected === null) out.unreadable.push('stillToCheck')
+    out.stillToCheck = Math.max(0, (sourced ?? 0) - (qualified ?? 0) - (rejected ?? 0))
   }
 
-  out.enrolled = await countRows('figsy_enrollments', q =>
+  // ⚑ 18 Sep (J24-C1) — `null` is recorded as unreadable and the count keeps its safe 0.
+  const enrolled = await countRowsOrNull('figsy_enrollments', q =>
     (q as unknown as { eq: (c: string, v: string) => unknown }).eq('programme_id', programmeId))
+  if (enrolled === null) out.unreadable.push('enrolled'); else out.enrolled = enrolled
 
   if (campaignId) {
     // ⚠️ SENDS STAY CAMPAIGN-KEYED, and that is not an inconsistency with the meetings read
     // below. `figsy_sent_emails` has no `programme_id` column — its own module says so — so the
     // campaign IS the bridge to this programme's sends. Founder, 10 Sep: "preserve campaign_id
     // as operational metadata/bridge where needed."
-    out.sends = await countRows('figsy_sent_emails', q =>
+    const sends = await countRowsOrNull('figsy_sent_emails', q =>
       (q as unknown as { eq: (c: string, v: string) => unknown }).eq('campaign_id', campaignId))
+    if (sends === null) out.unreadable.push('sends'); else out.sends = sends
   }
 
   // ── 🛑 ⚑ 10 Sep (I4) — MEETINGS ARE ATTRIBUTED BY `programme_id`, NEVER BY CAMPAIGN ────
@@ -479,6 +520,18 @@ export type LifecycleDetail = {
   frozenPackage: {
     version: number | null; at: string | null; prospects: number
     messages: number; target: number | null; sender: string | null
+    /**
+     * ⚑ 18 Sep (J13-C1 · FD-5 · LR 13) — HOW MANY OF THOSE PROSPECTS WE MAY ACTUALLY EMAIL.
+     *
+     * The package stated WHO would receive this and never how many were reachable, so a
+     * client approved "40 prospects" when the number we could write to was eighteen. Read
+     * from the FROZEN snapshot, so the panel states what was frozen rather than re-counting
+     * a number that has moved since.
+     *
+     * ⚠️ NULL MEANS THE SNAPSHOT DOES NOT CARRY IT — a v2 freeze taken before the field
+     * existed. It never means zero, and the copy must not print one.
+     */
+    sendable: number | null
   } | null
   /**
    * ⚑ 10 Sep (I2) — WHY the sender is not usable, in the gate's own words.
@@ -498,6 +551,52 @@ export type LifecycleDetail = {
    * only ever described a result.
    */
   outcomeStated: string | null
+  /**
+   * ⚑ 18 Sep (J12-C4 · PV 09 B) — CAN WE ACTUALLY SOURCE RIGHT NOW, AND IT IS ASKED BEFORE P1.
+   *
+   * ── 🛑 WHY THIS IS ON THE NO-PROGRAMME BRANCH TOO, WHICH IS THE POINT OF IT ─────────────
+   *
+   * An Apollo credit stop is a fact about the COMPANY, not about the client on screen — the
+   * task's dedupe key is `provider:credits_exhausted`, one row for the whole condition. So a
+   * capacity read scoped to the selected client would show it to whichever client happened to
+   * trigger it and to nobody else, and an operator taking a first payment from the next client
+   * would see a clean panel while nothing could be sourced for them either.
+   *
+   * ⚠️ `unknown` IS NOT `blocked === false`. The queue read can fail, and "we could not tell"
+   * must never render as "capacity is fine" — that inversion is the Vida no-action-needed
+   * defect (`listOpenOperatorTasks` returns `ok: false` with an empty array precisely so this
+   * distinction survives).
+   */
+  providerCapacity: ProviderCapacity
+}
+
+export type ProviderCapacity = {
+  /** An open `provider_credits_exhausted` task exists: sourcing cannot complete for anyone. */
+  blocked: boolean
+  /** The task's own sentence, which carries the number. `null` when nothing is blocked. */
+  detail: string | null
+  /** The queue could not be read. Not a clean answer, and never rendered as one. */
+  unknown: boolean
+}
+
+/**
+ * The provider stop, read GLOBALLY.
+ *
+ * ⚠️ IT NEVER THROWS AND NEVER BLOCKS ANYTHING. This is a statement on a panel, not a gate:
+ * an unreadable queue degrades to `unknown`, and the sourcing paths keep their own refusals.
+ */
+async function providerCapacityNow(): Promise<ProviderCapacity> {
+  try {
+    const { listOpenOperatorTasks } = await import('./operator-tasks')
+    const res = await listOpenOperatorTasks({ limit: 200 })
+    if (!res.ok) return { blocked: false, detail: null, unknown: true }
+    const stop = res.tasks.find(t => t.kind === 'provider_credits_exhausted')
+    if (!stop) return { blocked: false, detail: null, unknown: false }
+    return { blocked: true, detail: (stop.detail ?? '').trim() || stop.title, unknown: false }
+  } catch (err) {
+    console.error('[lifecycle] provider capacity could not be read:', err)
+    return { blocked: false, detail: null, unknown: true }
+  }
 }
 
 /**
@@ -520,7 +619,7 @@ export async function lifecycleDetailFor(clientId: string): Promise<LifecycleDet
   if (!p) {
     const [
       proofStarted, proofCalibrationFailed, proofCompleted, outcomeStated,
-      proofNoEligibleSet, proofException,
+      proofNoEligibleSet, proofException, providerCapacity,
     ] = await Promise.all([
       proofStartedFor(clientId), proofCalibrationFailedFor(clientId), proofCompletedFor(clientId),
       // ⚑ MVP1 (C03) — read on BOTH branches. This one is the Brief/Proof client, and it is
@@ -532,6 +631,10 @@ export async function lifecycleDetailFor(clientId: string): Promise<LifecycleDet
       // client is a task because the run failed, not because we could group its reasons.
       proofNoEligibleSetFor(clientId),
       proofExceptionEvidenceFor(clientId),
+      // ⚑ 18 Sep (J12-C4) — ON THIS BRANCH ESPECIALLY. This is the client BEFORE any
+      // programme exists, which is exactly where "capacity visible before P1" has to be true:
+      // the operator agreeing a target and taking a first payment is looking at this panel.
+      providerCapacityNow(),
     ])
     return {
       verdict: deriveLifecycle({
@@ -546,7 +649,7 @@ export async function lifecycleDetailFor(clientId: string): Promise<LifecycleDet
       // saying so is the honest answer — not an omitted field the panel would read as fine.
       counts: { ...NO_COUNTS }, programme: null, replyAwaiting: null, frozenPackage: null,
       humanBlockers: [], stoppedDetail: null, senderSendable: true, senderDetail: null,
-      killSwitchOff, operatorRunEnabled, outcomeStated,
+      killSwitchOff, operatorRunEnabled, outcomeStated, providerCapacity,
     }
   }
 
@@ -652,6 +755,7 @@ export async function lifecycleDetailFor(clientId: string): Promise<LifecycleDet
   const frozenPackage = ((): {
     version: number | null; at: string | null; prospects: number
     messages: number; target: number | null; sender: string | null
+    sendable: number | null
   } | null => {
     const raw = (p as unknown as { review_preparation_snapshot?: unknown }).review_preparation_snapshot
     const hash = (p as unknown as { review_preparation_hash?: string | null }).review_preparation_hash
@@ -667,6 +771,10 @@ export async function lifecycleDetailFor(clientId: string): Promise<LifecycleDet
       // The mailbox IDENTITY only — the snapshot stores `id|email` and the id is ours, not
       // something an operator panel needs.
       sender: senderRaw.includes('|') ? (senderRaw.slice(senderRaw.indexOf('|') + 1) || null) : null,
+      // ⚑ 18 Sep (J13-C1 · FD-5) — FROM THE SNAPSHOT, and `null` when it does not carry one.
+      // A v2 freeze predates the field; printing 0 for it would tell an operator nobody in a
+      // frozen package is reachable, which is a claim about a number nobody took.
+      sendable: typeof snap.sendable_count === 'number' ? snap.sendable_count : null,
     }
   })()
 
@@ -699,9 +807,12 @@ export async function lifecycleDetailFor(clientId: string): Promise<LifecycleDet
   // a meeting target must be able to read what the client actually asked for, and the target
   // is not a substitute for it: one is a number we proposed, the other is their sentence.
   const outcomeStated = await outcomeStatedFor(clientId)
+  // ⚑ 18 Sep (J12-C4) — the same global read on the programme branch. A stop that began
+  // while one client was mid-programme applies to every client, including this one.
+  const providerCapacity = await providerCapacityNow()
 
   return {
-    verdict, counts, replyAwaiting, humanBlockers, stoppedDetail,
+    verdict, counts, replyAwaiting, humanBlockers, stoppedDetail, providerCapacity,
     senderSendable, senderDetail: sender.detail, killSwitchOff, operatorRunEnabled, outcomeStated,
     frozenPackage,
     // ⚑ 16 Sep (A1b) — A PROGRAMME CLIENT IS NEVER A PROOF EXCEPTION. Proof belongs to
@@ -890,6 +1001,186 @@ export async function lifecycleBoard(clientIds: string[]): Promise<LifecycleBoar
           : 'This programme did not start automatically, and no reason was recorded.')
       }
     } catch { /* an unreadable trail flags nothing here — the detail call still will */ }
+
+    // ── 🛑 ⚑ 18 Sep (J12-C1) — THE OWNER'S ROWS, BATCHED, AND THEY OUTRANK THE TRAIL ───────
+    //
+    // The read above was the board's ONLY source of "this continuation stopped", and it can
+    // only see a refusal that was AUDITED. The unit records two states it cannot:
+    //
+    //   `failed` — reported by the run itself, and now written by `startProgrammeAfterP1`
+    //   `stuck`  — set by XC-6's detector when a run went silent inside its bound; a run that
+    //              died without reporting audits NOTHING, so the trail is empty for it
+    //
+    // 🛑 WITHOUT THIS, THE BOARD AND THE PANEL DISAGREE. `p1ContinuationHealth` (the single
+    // client path) asks the unit first as of today, so a stuck programme would read
+    // `sourcing_exception` · Needs you when opened, and `sourcing` · **Working** on the board
+    // the operator is scanning — with the Needs-you FILTER, which reads these same facts,
+    // saying nothing needs them. That is the silent disagreement this file's own header names
+    // as the reason the derivation is one function.
+    //
+    // ⚠️ SAME PRECEDENCE AS THE SINGLE PATH, SO THEY CANNOT DIVERGE: a unit that exists is the
+    // answer for its programme, whatever the trail says; the trail answers for programmes that
+    // ran before ownership existed. And it fails soft in the same direction — an unreadable
+    // unit table leaves the trail's verdict standing rather than inventing or erasing one.
+    try {
+      const { data } = await db.from('automatic_work')
+        .select('subject_id, state, failure_reason, bound_seconds, updated_at')
+        .eq('kind', 'p1_continuation').eq('subject_kind', 'programme')
+        .in('subject_id', progIds)
+        .order('updated_at', { ascending: false }).limit(5000)
+      const seenUnit = new Set<string>()
+      for (const r of ((data ?? []) as {
+        subject_id: string | null; state: string; failure_reason: string | null; bound_seconds: number | null
+      }[])) {
+        const sid = r.subject_id
+        if (!sid || seenUnit.has(sid)) continue
+        seenUnit.add(sid)
+        if (r.state === 'failed' || r.state === 'stuck') {
+          const { p1ContinuationStoppedSentence } = await import('./programme-p1-continuation')
+          continuationStopped.set(sid, p1ContinuationStoppedSentence({
+            state: r.state, failure_reason: r.failure_reason ?? null, bound_seconds: r.bound_seconds ?? 1800,
+          }))
+        } else {
+          // 🛑 A LIVE OR COMPLETED UNIT CLEARS A STALE REFUSAL. The trail keeps every refusal
+          // for ever; a programme that refused, was fixed and started again must not stay in
+          // Needs you because the older row is still there.
+          continuationStopped.delete(sid)
+        }
+      }
+    } catch { /* the unit is an addition to the trail above, never a gate on it */ }
+  }
+
+  // ── 🛑 ⚑ 17 Sep (XC-3) — THE LAST PER-CLIENT READS ON THIS BOARD, BATCHED ───────────────
+  //
+  // WHAT THIS REPLACED. The loop below used to `await` four things PER CLIENT:
+  //
+  //     const campaignId = await campaignIdFor(p.id)              // resolveProgrammeChain: 5 reads
+  //     const sends = await countRows('figsy_sent_emails', …)     // 1
+  //     const { data: leadRows } = await db.from('leads')…        // 1
+  //     const { data } = await db.from('figsy_replies')…          // 1
+  //
+  // Eight sequential round trips per client, inside a serial `for`. At 40 clients that is 320
+  // serialised queries on the page the console opens on, and the admin proxy abandons a
+  // request at 45s — so past some client count the board does not get slower, it STOPS
+  // ANSWERING, and the operator's list of clients is simply gone.
+  //
+  // ⚠️ THE CHAIN IS WALKED BY THE SAME POSITIVE LINKS `programme-chain.ts` USES, and its two
+  // refusals are kept: programme → `icps.programme_id` → `figsy_campaigns.icp_id`, with
+  // `client_id` as a TENANCY CHECK on a row already found positively, and AMBIGUITY (more than
+  // one attached ICP, or more than one campaign on it) resolving to NOTHING rather than to a
+  // guess. A client-scoped shortcut here would put an old campaign's sends on a new
+  // programme's row — right client, wrong work, and nothing would say so.
+  //
+  // ⚠️ AND AN UNREADABLE PART OF THE ANSWER IS NOT ZERO. Each batch records whether it was
+  // read; the loop uses the number only when it was, exactly as `proofFactsRead` already does.
+  const { readInChunks, mapBounded } = await import('./batched-reads')
+  const campaignByProgramme = new Map<string, string>()
+  const sendsByCampaign = new Map<string, number>()
+  const repliesByClient = new Map<string, number>()
+  let sendsRead = progIds.length === 0
+  let repliesRead = progIds.length === 0
+
+  if (progIds.length > 0) {
+    const clientOfProgramme = new Map<string, string>()
+    for (const [clientId, p] of currentByClient) clientOfProgramme.set(p.id, clientId)
+
+    // ① the attached ICPs, for every programme at once.
+    const icpRead = await readInChunks(progIds, async (someProgIds) => {
+      const { data, error } = await db.from('icps')
+        .select('id, client_id, programme_id').in('programme_id', someProgIds)
+      if (error) throw new Error(error.message)
+      return (data ?? []) as { id: string; client_id: string | null; programme_id: string | null }[]
+    })
+    const icpsByProgramme = new Map<string, string[]>()
+    for (const r of icpRead.rows) {
+      const pid = r.programme_id
+      if (!pid) continue
+      // Tenancy: a row naming this programme but another client is a corrupt link.
+      if (r.client_id !== clientOfProgramme.get(pid)) continue
+      icpsByProgramme.set(pid, [...(icpsByProgramme.get(pid) ?? []), r.id])
+    }
+    // Ambiguity is a refusal, not a pick — the same rule `resolveProgrammeChain` applies.
+    const icpOfProgramme = new Map<string, string>()
+    for (const [pid, list] of icpsByProgramme) if (list.length === 1) icpOfProgramme.set(pid, list[0])
+
+    // ② the campaign, by ICP.
+    const icpIds = [...icpOfProgramme.values()]
+    const campRead = await readInChunks(icpIds, async (someIcpIds) => {
+      const { data, error } = await db.from('figsy_campaigns')
+        .select('id, client_id, icp_id').in('icp_id', someIcpIds)
+      if (error) throw new Error(error.message)
+      return (data ?? []) as { id: string; client_id: string | null; icp_id: string | null }[]
+    })
+    const campsByIcp = new Map<string, { id: string; clientId: string | null }[]>()
+    for (const r of campRead.rows) {
+      if (!r.icp_id) continue
+      campsByIcp.set(r.icp_id, [...(campsByIcp.get(r.icp_id) ?? []), { id: r.id, clientId: r.client_id }])
+    }
+    for (const [pid, icpId] of icpOfProgramme) {
+      const clientId = clientOfProgramme.get(pid)
+      const list = (campsByIcp.get(icpId) ?? []).filter(c => c.clientId === clientId)
+      if (list.length === 1) campaignByProgramme.set(pid, list[0].id)
+    }
+
+    // ③ sends per campaign — head counts, bounded, so the exact count is kept.
+    //
+    // ⚠️ NOT a single `.in('campaign_id', …)` read summed in memory: `figsy_sent_emails` grows
+    // without limit, and a row-fetching read would be paginated by the gateway and under-count
+    // silently. A head count per campaign is exact; running them bounded-parallel is what stops
+    // "exact" from meaning "serial".
+    const campaignIds = [...campaignByProgramme.values()]
+    if (campaignIds.length === 0) sendsRead = true
+    else {
+      const counted = await mapBounded(campaignIds, async (campaignId) => {
+        const { count, error } = await db.from('figsy_sent_emails')
+          .select('id', { count: 'exact', head: true }).eq('campaign_id', campaignId)
+        if (error) throw new Error(error.message)
+        return { campaignId, count: count ?? 0 }
+      })
+      sendsRead = counted.every(s => s.ok)
+      for (const s of counted) if (s.ok) sendsByCampaign.set(s.value.campaignId, s.value.count)
+    }
+
+    // ④ replies awaiting a person — two batched reads for the whole board, not two per client.
+    const leadRead = await readInChunks(progIds, async (someProgIds) => {
+      const { data, error } = await db.from('leads')
+        .select('id, client_id, programme_id').in('programme_id', someProgIds).limit(50_000)
+      if (error) throw new Error(error.message)
+      return (data ?? []) as { id: string; client_id: string | null; programme_id: string | null }[]
+    })
+    const clientOfLead = new Map<string, string>()
+    for (const r of leadRead.rows) {
+      const pid = r.programme_id
+      if (!pid) continue
+      // Same tenancy rule: the lead must belong to the client whose programme found it.
+      const owner = clientOfProgramme.get(pid)
+      if (!owner || r.client_id !== owner) continue
+      clientOfLead.set(r.id, owner)
+    }
+    const leadIds = [...clientOfLead.keys()]
+    const replyRead = await readInChunks(leadIds, async (someLeadIds) => {
+      const { data, error } = await db.from('figsy_replies')
+        .select('lead_id, classification').in('lead_id', someLeadIds).is('qualified_at', null)
+      if (error) throw new Error(error.message)
+      return (data ?? []) as { lead_id: string | null; classification: string | null }[]
+    })
+    repliesRead = leadRead.complete && replyRead.complete
+    for (const r of replyRead.rows) {
+      if (!r.lead_id) continue
+      if (AUTO_HANDLED_REPLY.has(String(r.classification))) continue
+      const owner = clientOfLead.get(r.lead_id)
+      if (!owner) continue
+      repliesByClient.set(owner, (repliesByClient.get(owner) ?? 0) + 1)
+    }
+    if (!icpRead.complete || !campRead.complete) {
+      // The chain could not be walked for part of the board. Sends derived from a partial
+      // chain are an under-count, and saying so is cheaper than a wrong number.
+      sendsRead = false
+      console.error('[lifecycle-board] the programme→ICP→campaign chain could not be read in full — send counts are incomplete this render')
+    }
+    if (!repliesRead) {
+      console.error('[lifecycle-board] the reply reads were incomplete — replies awaiting a decision are under-counted this render')
+    }
   }
 
   const out: LifecycleBoardRow[] = []
@@ -915,25 +1206,15 @@ export async function lifecycleBoard(clientIds: string[]): Promise<LifecycleBoar
       continue
     }
 
-    const campaignId = await campaignIdFor(p.id)
-    const sends = campaignId
-      ? await countRows('figsy_sent_emails', q => (q as unknown as { eq: (c: string, v: string) => unknown }).eq('campaign_id', campaignId))
-      : 0
+    // ⚑ 17 Sep (XC-3) — both of these are now LOOKUPS. The reads happened once, above, for the
+    // whole board; nothing in this loop awaits anything, which is what makes the board's cost
+    // independent of the client count.
+    const campaignId = campaignByProgramme.get(p.id) ?? null
+    const sends = sendsRead && campaignId ? (sendsByCampaign.get(campaignId) ?? 0) : 0
 
-    // Replies awaiting a person, scoped through this programme's leads — the one per-client
-    // read the badge genuinely cannot do without, because it is a whole Needs-you rule.
-    let repliesAwaitingDecision = 0
-    try {
-      const { data: leadRows } = await db.from('leads')
-        .select('id').eq('programme_id', p.id).eq('client_id', clientId).limit(20000)
-      const leadIds = ((leadRows ?? []) as { id: string }[]).map(r => r.id)
-      if (leadIds.length > 0) {
-        const { data } = await db.from('figsy_replies')
-          .select('classification').in('lead_id', leadIds).is('qualified_at', null)
-        repliesAwaitingDecision = ((data ?? []) as { classification: string | null }[])
-          .filter(r => !AUTO_HANDLED_REPLY.has(String(r.classification))).length
-      }
-    } catch { /* zero — the list never invents a reply */ }
+    // Replies awaiting a person, scoped through this programme's leads — a whole Needs-you
+    // rule, so it is the one count the badge genuinely cannot do without.
+    const repliesAwaitingDecision = repliesRead ? (repliesByClient.get(clientId) ?? 0) : 0
 
     const entitlementRemaining = Math.max(0,
       (p.sourcing_ceiling ?? 0) - (p.sourced_used ?? 0) - (p.sourced_reserved ?? 0))

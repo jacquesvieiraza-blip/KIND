@@ -1,7 +1,19 @@
 // Apollo.io people search — maps ICP criteria to API params and normalises results
-import { pdlSearchPage, pdlSearchDiagnostic, type PdlPage, type PdlSearchOptions } from './pdl-search'
+// ⛓️ 17 Sep (FD-6) — WAS: `import { pdlSearchPage, pdlSearchDiagnostic, type PdlPage, … }`.
+// PDL is not a provider of ours any more ("We are not paying for PDL"), so nothing here
+// calls it. `PdlSearchOptions` is still imported for its `proofMode` flag, which selects a
+// FENCE rather than a vendor; `pdl-search.ts` itself stays on disk, uncalled, because
+// historic `pdl_…` provenance is still read at the reveal door (AR15).
+import { type PdlSearchOptions } from './pdl-search'
+import { apolloBase } from './provider-hosts'
+import type { ProviderPage } from './provider-page'
+// ⛓️ J5-C14 — ONE timeout, shared with the desk that waits on it. `searchPeople` had NO
+// timeout and Node's `fetch` has no default, so Apollo's "worst case" was unbounded and the
+// Proof desk's bound was arithmetic about nothing. A second copy of the number here would
+// silently invalidate the derivation, so it is imported.
+import { APOLLO_REQUEST_TIMEOUT_MS } from '@kind/shared'
 import { assertPaidProviderAllowed, rethrowIfProviderBlocked } from './paid-provider-guard'
-import { searchProviderFor, sourcingProviderFor, apolloRevealableIds, type Audience } from './provider-boundary'
+import { sourcingProviderFor, apolloRevealableIds, type Audience } from './provider-boundary'
 import { sendFounderAlert } from './alerts'
 import { isPlaceholderEmail } from './email-hygiene'
 
@@ -25,7 +37,11 @@ function alertSourceDown(lines: string[]): void {
 // Apollo's PUBLIC REST API is under /api/v1. The bare /v1 host is Apollo's internal
 // web API (session/OAuth) — calling it with an X-Api-Key is accepted but runs
 // without account context, returning HTTP 200 with zero results. Must be /api/v1.
-const APOLLO_BASE = 'https://api.apollo.io/api/v1'
+// ⛓️ 18 Sep (Batch 1b) — READ FROM `provider-hosts.ts`, WHOSE DEFAULT IS THIS EXACT STRING.
+// Unset `APOLLO_BASE_URL` is production, byte for byte. The reason it is injectable at all is
+// the §8.2 zero-call proof: PDL and Hunter must be shown to receive ZERO calls with their keys
+// SET, and that requires a recording fake to be able to stand where a provider stands.
+const APOLLO_BASE = apolloBase()
 // People search endpoint. /mixed_people/search is deprecated for API callers (422);
 // the supported path is /mixed_people/api_search (no-credit, net-new prospecting).
 // Ref: https://docs.apollo.io/reference/people-api-search
@@ -249,11 +265,14 @@ export interface PreviewCountResult {
 
 export async function previewCount(
   icp: Parameters<typeof buildSearchBody>[0],
-  // ⚠️ REQUIRED (AR5, 21 Aug) — same reasoning as `searchPeopleWithFallback`. The preview
-  // spends no Apollo CREDITS (People Search is free), but running a client's preview on
-  // K.I.N.D's Apollo key is still the boundary in the wrong place.
+  // ⚠️ KEPT AFTER FD-6, AND STILL REQUIRED READING. It no longer selects a VENDOR — every
+  // audience previews on Apollo now — but it is the parameter that made the boundary
+  // explicit at every call site, and `verifiedEmailOnly` elsewhere still rides on the same
+  // fact. Removing it would delete the record of a distinction the product still makes.
+  // The preview spends no Apollo CREDITS: People Search is free; the reveal is the cost.
   audience: Audience = 'client',
 ): Promise<PreviewCountResult> {
+  void audience   // see the note on the parameter: documented, no longer a vendor switch
   const apiKey = process.env.APOLLO_API_KEY
   const body = buildSearchBody(icp, 1)
   body.per_page = 1
@@ -266,34 +285,22 @@ export async function previewCount(
     sentBody: body,
   }
 
-  // #243: when Apollo is unusable (no key / error), fall back to a PDL count so the
-  // ICP preview works Apollo-free once PDL_API_KEY is set. Returns null if PDL isn't
-  // configured or also fails → caller keeps Apollo's original 0/error.
-  const pdlFallback = async (reason: string): Promise<PreviewCountResult | null> => {
-    // ⚠️ AR5 AT THE FALLBACK ITSELF (22 Aug, third review round). #243 built this as a
-    // "when Apollo is unusable" escape hatch and AR5 later made it the CLIENT'S primary
-    // path — but neither step stopped the HOUSE reaching it. Three call sites below
-    // (`!apiKey`, a non-OK response, and the catch) each handed a house preview to the
-    // clients' provider. Guarding HERE closes all three at once and cannot be missed by
-    // a future edit that adds a fourth. For the house every `?? {…}` below now yields
-    // Apollo's own honest error or zero, which is the correct answer.
-    if (searchProviderFor(audience) !== 'pdl') return null
-    if (!process.env.PDL_API_KEY) return null
-    const d = await pdlSearchDiagnostic(icp)
-    return d.ok ? { count: d.count, error: null, debug: { ...baseDebug, rawCountField: `pdl:${reason}` } } : null
-  }
-
-  // AR5 — a client's preview counts against PDL and never touches our Apollo key. The
-  // #243 fallback above is the same code path; for a client it is simply the only path.
-  if (searchProviderFor(audience) === 'pdl') {
-    return (await pdlFallback('client-audience')) ?? {
-      count: 0, error: null,
-      debug: { ...baseDebug, keyConfigured: false, keyTail: null, rawCountField: 'pdl:unconfigured' },
-    }
-  }
+  // ── 🪦 REMOVED 17 Sep BY FD-6 — THE PDL PREVIEW FALLBACK ────────────────────────
+  //
+  // #243 added `pdlFallback` so the ICP preview would work "Apollo-free once PDL_API_KEY is
+  // set", and AR5 then made it the CLIENT'S primary preview path. FD-6 ends both: **"PDL IS
+  // NOT A PAID/ACTIVE PROVIDER FOR MVP1. We are not paying for PDL."**
+  //
+  // ⚠️ THE HONEST ANSWER WHEN APOLLO CANNOT ANSWER IS APOLLO'S OWN ERROR, NOT A SECOND
+  // VENDOR'S NUMBER. Returning PDL's count as an Apollo preview would state a size for an
+  // audience we cannot actually source from — a preview is a promise about what a run will
+  // find, and a promise measured against a provider we do not pay is not one.
+  //
+  // Three call sites used it (`!apiKey`, a non-OK response and the catch). All three now
+  // return Apollo's own zero-or-error, which is what the House audience already got.
 
   if (!apiKey) {
-    return (await pdlFallback('no-apollo-key')) ?? { count: 0, error: 'APOLLO_API_KEY is not set on the API service', debug: baseDebug }
+    return { count: 0, error: 'APOLLO_API_KEY is not set on the API service', debug: baseDebug }
   }
 
   // ⚠️ OUTSIDE THE `try` (R66) — the catch below degrades to a count of 0, which reads as
@@ -301,13 +308,14 @@ export async function previewCount(
   assertPaidProviderAllowed('apollo', 'previewCount')
   try {
     const res = await fetch(APOLLO_PEOPLE_SEARCH, {
+      signal: AbortSignal.timeout(APOLLO_REQUEST_TIMEOUT_MS),
       method:  'POST',
       headers: { 'Content-Type': 'application/json', 'X-Api-Key': apiKey },
       body:    JSON.stringify(body),
     })
     if (!res.ok) {
       const text = await res.text().catch(() => '')
-      return (await pdlFallback(`apollo-${res.status}`)) ?? { count: 0, error: `Apollo ${res.status}: ${text.slice(0, 240)}`, debug: { ...baseDebug, httpStatus: res.status } }
+      return { count: 0, error: `Apollo ${res.status}: ${text.slice(0, 240)}`, debug: { ...baseDebug, httpStatus: res.status } }
     }
     // Apollo returns the match count as a top-level `total_entries` on the current
     // API; older/other shapes nest it under `pagination.total_entries`. Read both,
@@ -322,7 +330,7 @@ export async function previewCount(
     const rawCountField = fromPagination != null ? 'pagination.total_entries' : fromTop != null ? 'total_entries' : 'none-found'
     return { count, error: null, debug: { ...baseDebug, httpStatus: res.status, rawCountField } }
   } catch (e) {
-    return (await pdlFallback('apollo-exception')) ?? { count: 0, error: e instanceof Error ? e.message : 'preview request failed', debug: baseDebug }
+    return { count: 0, error: e instanceof Error ? e.message : 'preview request failed', debug: baseDebug }
   }
 }
 
@@ -337,9 +345,11 @@ function contactDedupKey(c: ApolloContact): string {
   return `nc:${name}|${company}`
 }
 
-// Merge two contact lists, deduped by contactDedupKey. `primary` wins on collision
-// (Apollo is the primary source — its ids drive the downstream bulk_match reveal).
-function mergeContacts(primary: ApolloContact[], extra: ApolloContact[]): ApolloContact[] {
+// ── 🪦 UNUSED SINCE 17 Sep (FD-6) — there is only one contact list to return ─────────
+// This merged Apollo's results with a PDL supplement. With one provider there is nothing to
+// merge. Kept (CORE-MAP rule 3: nothing gets deleted) and exported so the compiler stops
+// calling it dead without anybody deleting a tested function.
+export function mergeContacts(primary: ApolloContact[], extra: ApolloContact[]): ApolloContact[] {
   const seen = new Set(primary.map(contactDedupKey))
   const out  = [...primary]
   for (const c of extra) {
@@ -356,10 +366,14 @@ export async function searchPeopleWithFallback(
   page = 1,
   size = 50,   // #445 — ask each source for exactly what we may KEEP (the granted
                // sourcing-budget batch), not a fixed 50. Kills the buy-50-keep-20 waste.
-  // #366 — where PDL got to last run for THIS ICP. Null on a first run. The caller stores
-  // the returned `pdlPage.scrollToken` on the ICP row and hands it back next time, which is
-  // what makes a client's second month find people their first month did not.
-  pdlCursor: string | null = null,
+  // #366 — where the PROVIDER got to last run for THIS ICP. Null on a first run. The caller
+  // stores the returned `providerPage.cursor` on the ICP row and hands it back next time,
+  // which is what makes a client's second month find people their first month did not.
+  // ⛓️ 17 Sep — OPAQUE TO EVERY CALLER. PDL issued a scroll token; Apollo pages by number, so
+  // this now carries a page number as a string. A stored PDL-era token is not a number and is
+  // ignored rather than coerced — `Number('eyJ…')` is NaN, and a NaN page reaches Apollo as
+  // garbage.
+  providerCursor: string | null = null,
   // ⚠️ REQUIRED, and required ON PURPOSE (AR5, 21 Aug). Optional-with-a-default would let a
   // future call site inherit whatever that default was and silently re-open the boundary —
   // the exact failure this parameter exists to close. It sits after `pdlCursor` (which keeps
@@ -372,7 +386,7 @@ export async function searchPeopleWithFallback(
   // take it — this is a change to one clause of one provider's query, not to provider
   // selection, order, or anything Apollo does.
   opts?: PdlSearchOptions,
-): Promise<{ contacts: ApolloContact[]; relaxed: string | null; pdlPage: PdlPage | null }> {
+): Promise<{ contacts: ApolloContact[]; relaxed: string | null; providerPage: ProviderPage | null }> {
   // ── THE AR5 BOUNDARY (21 Aug) ─────────────────────────────────────────────────────
   // This function used to run **Apollo ∪ PDL for everyone**, with the mix decided by
   // which global keys existed. That is the defect: a paying client's sourcing consumed
@@ -397,154 +411,220 @@ export async function searchPeopleWithFallback(
 
   // Every exit point must report the page, so a stored cursor can never silently stop
   // advancing. Threading it by hand through nine returns is exactly how one gets missed.
-  const out = (contacts: ApolloContact[], relaxed: string | null, pdlPage: PdlPage | null) =>
-    ({ contacts, relaxed, pdlPage })
+  const out = (contacts: ApolloContact[], relaxed: string | null, providerPage: ProviderPage | null) =>
+    ({ contacts, relaxed, providerPage })
 
-  // ── CLIENT AUDIENCE → PDL ONLY ────────────────────────────────────────────────────
-  // No Apollo pass at all, whatever APOLLO_API_KEY holds. PDL's own size-ladder, cursor
-  // and error-swallowing are untouched — this is the same `pdlSearchPage` the supplement
-  // used, called directly instead of merged.
-  if (provider === 'pdl') {
-    // ⚠️ `.catch(() => null)` ALONE WAS THE DEFECT. It exists for network flakiness, and
-    // for that it is right — but it also ate the zero-spend guard's deliberate refusal, so
-    // a blocked run finished with zero contacts, derived `no_match`, and told a prospect
-    // their targeting matched nobody when PDL was never asked. A block now propagates to
-    // the proof crash boundary and lands on the approved `failed` state; every other
-    // error still degrades exactly as before.
-    const pdlPage = await pdlSearchPage(icp, size, pdlCursor, opts)
-      .catch(e => { rethrowIfProviderBlocked(e); return null })
-    const contacts = pdlPage?.contacts ?? []
-    if (contacts.length > 0) return out(contacts, null, pdlPage)
-    return out([], pdlPage?.error
-      ? 'Lead sourcing is temporarily unavailable — we will retry automatically.'
-      : 'No matches for this profile yet — widening the search next run.', pdlPage)
+  // ── 🪦 REMOVED 17 Sep BY FD-6 — THE CLIENT → PDL BRANCH ───────────────────────────
+  //
+  // This block called `pdlSearchPage` for every client audience, which was AR5 exactly as
+  // written. The founder's ruling ends it: **"PDL IS NOT A PAID/ACTIVE PROVIDER FOR MVP1.
+  // We are not paying for PDL."** A branch pointing at an unpaid provider does not fail
+  // over; it just fails, and it fails while reporting "no matches for this profile yet" to
+  // a client whose profile was never searched.
+  //
+  // `sourcingProviderFor` now answers `'apollo'` for every audience and every mode, so this
+  // branch became unreachable the moment the boundary changed. It is deleted rather than
+  // left behind a condition nothing satisfies: dead policy code reads as policy.
+  //
+  // `pdl-search.ts` STAYS ON DISK, untouched — CORE-MAP rule 3 (founder-locked 26 Jul:
+  // "nothing gets deleted"), and historic `pdl_…` provenance is still read by
+  // `apolloRevealableIds`. Nothing on any MVP1 path calls it, which
+  // `one-provider-apollo.test.ts` proves behaviourally WITH BOTH KEYS SET.
+  if (provider !== 'apollo') {
+    // Unreachable by construction, and loud rather than silent if that ever stops being
+    // true. A guard that cannot fire costs nothing; a silent fall-through to the Apollo
+    // walk under a non-Apollo decision would be the boundary breaking quietly.
+    throw new Error(
+      `provider-boundary returned "${provider}" for audience "${audience}" — FD-6 admits only apollo. ` +
+      'Nothing was searched.',
+    )
   }
 
-  // ── HOUSE AUDIENCE → APOLLO ONLY ──────────────────────────────────────────────────
-  // Apollo's relax ladder below is unchanged. PDL is never consulted for house work,
-  // whatever PDL_API_KEY holds — the clients' stack is not ours to spend.
-  const pdlConfigured = false
-
-  const pdlSupplement: Promise<PdlPage | null> = Promise.resolve(null)
-
-  // ── ASK FOR `size`, IN PAGES APOLLO WILL ACCEPT (7 Sep) ──────────────────────────────
+  // ── APOLLO, THE ONLY PROVIDER (FD-6) ─────────────────────────────────────────────
   //
-  // This used to be `b.per_page = size`, which sent `per_page: 250` for a House batch and
-  // earned a 422. Apollo serves at most `APOLLO_MAX_PER_PAGE` per page, so a batch larger
-  // than one page is a WALK, not a bigger request.
+  // ⛓️ 17 Sep — WAS "HOUSE AUDIENCE → APOLLO ONLY", with `pdlConfigured = false` and a
+  // `pdlSupplement` hardcoded to null: three merge branches and a fail-over branch that had
+  // already been reduced to dead weight by AR5 and were still being awaited on every pass.
+  // FD-6 removes the second vendor entirely, so the merge, the supplement and the fail-over
+  // are gone. What replaces them is the thing their presence was hiding: **Apollo now has to
+  // answer the questions the PDL page used to answer.**
   //
-  // ⚠️ THE STOP CONDITION IS A SHORT PAGE, NOT AN ERROR. Apollo returning fewer records than
-  // asked for means the audience is exhausted; asking again would be an identical request for
-  // an answer we already have. And it never over-delivers: an authorised batch is a ceiling as
-  // well as a target, so the walk stops the moment `size` is reached.
+  // ── WHY THE PAGE MATTERS MORE THAN THE CONTACTS ──────────────────────────────────
+  //
+  // `icps.ts` does not only count rows. It reads `completed`, `exhausted` and
+  // `matchedNothing` to decide whether a ZERO is evidence:
+  //
+  //   · `completed` — did the search actually happen? A run with no key, a timeout or a 5xx
+  //     returns zero and proves nothing. Telling a client "nobody matches your profile" on
+  //     that basis is a false statement about their market, and `searchTrust` exists to stop
+  //     it. The Apollo branch used to return `pdlPage: null` for every run, so **no client
+  //     run could ever reach `searchTrust = 'proven'`** — every honest empty looked identical
+  //     to an outage, and the widening ladder could not tell them apart either.
+  //   · `exhausted` — Apollo had more pages and we walked to the end of them. A fact about
+  //     this ICP, not about us.
+  //   · `matchedNothing` — the FIRST page matched nobody, from a cold start. Never paged,
+  //     nothing ever sourced. Distinct from `exhausted` by construction, and collapsing the
+  //     two is what once told a client that "every matching person our data source holds has
+  //     already been sourced for you" about an audience nobody had ever sourced from.
+  //   · `cursor` — where to resume. Apollo pages by NUMBER, so the cursor is the next page
+  //     number as a string. That is what makes a client's second month find people their
+  //     first month did not.
   const perPage = Math.max(1, Math.min(size, APOLLO_MAX_PER_PAGE))
   const sized = (b: ApolloSearchBody): ApolloSearchBody => { b.per_page = perPage; return b }
+
+  // ⛓️ THE CURSOR IS A PAGE NUMBER NOW. PDL issued an opaque scroll token; Apollo takes
+  // `page`. A stored token from a PDL era run is not a number, so it is ignored rather than
+  // coerced — `Number('eyJ…')` is NaN and a NaN page would be sent to Apollo as garbage.
+  const resumeFrom = (() => {
+    const n = Number(providerCursor)
+    return Number.isFinite(n) && n >= 1 ? Math.floor(n) : page
+  })()
 
   /**
    * Walk Apollo's pages until `size` records are gathered or the audience runs out.
    *
-   * `makeBody` is called per page so every request is built by the SAME builder the single-page
-   * version used — the verified-only filter, the consent proxy and every other clause ride along
-   * unchanged onto page 2 and page 3, rather than being set once and forgotten.
+   * `makeBody` is called per page so every request is built by the SAME builder the
+   * single-page version used — the verified-only filter, the consent proxy and every other
+   * clause ride onto page 2 and page 3 rather than being set once and forgotten.
+   *
+   * ⚠️ THE STOP CONDITION IS A SHORT PAGE, NOT AN ERROR. Apollo returning fewer records than
+   * asked for means the audience is exhausted; asking again would be an identical request
+   * for an answer we already have. And it never over-delivers: an authorised batch is a
+   * ceiling as well as a target, so the walk stops the moment `size` is reached.
    */
-  const searchPaged = async (makeBody: (p: number) => ApolloSearchBody): Promise<ApolloContact[]> => {
+  const searchPaged = async (
+    makeBody: (p: number) => ApolloSearchBody,
+  ): Promise<{ contacts: ApolloContact[]; lastPage: number; shortPage: boolean; pagesWalked: number }> => {
     const gathered: ApolloContact[] = []
-    for (let p = page; p < page + APOLLO_MAX_PAGE && gathered.length < size; p++) {
+    let lastPage = resumeFrom
+    let shortPage = false
+    let pagesWalked = 0
+    for (let p = resumeFrom; p < resumeFrom + APOLLO_MAX_PAGE && gathered.length < size; p++) {
       const batch = await searchPeople(sized(makeBody(p)))
+      pagesWalked += 1
+      lastPage = p
       gathered.push(...batch)
-      if (batch.length < perPage) break   // Apollo has no more for this query
+      if (batch.length < perPage) { shortPage = true; break }   // Apollo has no more for this query
     }
-    return gathered.slice(0, size)
+    return { contacts: gathered.slice(0, size), lastPage, shortPage, pagesWalked }
   }
 
-  try {
-    // Pass 1 — full query
-    const contacts1 = await searchPaged(p => buildSearchBody(icp, p, { verifiedEmailOnly }))
-    if (contacts1.length > 0) {
-      const pdl = await pdlSupplement
-      if (pdl && pdl.contacts.length > 0) {
-        const merged = mergeContacts(contacts1, pdl.contacts)
-        const added  = merged.length - contacts1.length
-        if (added > 0) console.log(`[apollo] merged PDL supplement: +${added} net-new (Apollo ${contacts1.length} ∪ PDL ${pdl.contacts.length} = ${merged.length})`)
-        return out(merged, null, pdl)
-      }
-      return out(contacts1, null, pdl)
-    }
+  /** A page that records a COMPLETED search — Apollo answered, whatever the count. */
+  const answered = (
+    w: { contacts: ApolloContact[]; lastPage: number; shortPage: boolean; pagesWalked: number },
+    coldStart: boolean,
+  ): ProviderPage => ({
+    provider: 'apollo',
+    contacts: w.contacts,
+    // No next page when Apollo ran short; otherwise resume after the last page we read.
+    cursor: w.shortPage ? null : String(w.lastPage + 1),
+    // Exhausted requires having PAGED to the end — the mutually exclusive partner of
+    // `matchedNothing`, which requires never having paged at all.
+    exhausted: w.shortPage && w.contacts.length > 0,
+    matchedNothing: coldStart && w.contacts.length === 0 && w.pagesWalked > 0,
+    error: null,
+    completed: true,
+  })
 
-    // Pass 2 — remove consent filter (consent gate was cutting the pool)
+  /** A page that records a search that did NOT happen. Zero here proves nothing. */
+  const didNotAnswer = (why: string): ProviderPage => ({
+    provider: 'apollo',
+    contacts: [],
+    // ⚠️ THE CURSOR IS PRESERVED, NOT CLEARED. An outage must not lose a client's place in
+    // their own audience; clearing it would silently restart them from page 1 next month and
+    // re-source people they already have.
+    cursor: providerCursor,
+    exhausted: false,
+    matchedNothing: false,
+    error: why,
+    completed: false,
+  })
+
+  const coldStart = resumeFrom <= 1
+
+  try {
+    // Pass 1 — the full query, exactly as the client's ICP states it.
+    const w1 = await searchPaged(p => buildSearchBody(icp, p, { verifiedEmailOnly }))
+    if (w1.contacts.length > 0) return out(w1.contacts, null, answered(w1, coldStart))
+
+    // Pass 2 — remove the consent proxy (the consent gate was cutting the pool).
     // ⚑ 7 Sep — HOUSE NEVER RELAXES THE EMAIL-STATUS FILTER. Thin results are an answer; for
     // House they are not a reason to accept an unverified address. Pass 2 exists to widen the
     // CONSENT proxy, so for House it has nothing left to widen and is skipped entirely.
+    //
+    // ⚠️ AND FD-5 MAKES THAT FLOOR MATTER FOR EVERY AUDIENCE AT SEND TIME, not here: a
+    // relaxed search may QUALIFY somebody it may not make SENDABLE. Separating those two is
+    // the send gate's job (`email_status = 'verified'`), and relaxing this filter never
+    // relaxes that one.
     if (icp.apollo_only_consented && !verifiedEmailOnly) {
-      const contacts2 = await searchPaged(p => {
+      const w2 = await searchPaged(p => {
         const relaxed2 = { ...buildSearchBody(icp, p, { verifiedEmailOnly }) }
         delete relaxed2.contact_email_status
         return relaxed2
       })
-      if (contacts2.length > 0) {
-        console.log('[apollo] fallback pass 2: removed consent filter — found', contacts2.length)
-        const pdl = await pdlSupplement
-        return out(mergeContacts(contacts2, pdl?.contacts ?? []), 'Consent filter relaxed to find results. Apollo-verified emails were too restrictive for this geography.', pdl)
+      if (w2.contacts.length > 0) {
+        console.log('[apollo] fallback pass 2: removed consent filter — found', w2.contacts.length)
+        return out(
+          w2.contacts,
+          'Consent filter relaxed to find results. Apollo-verified emails were too restrictive for this geography.',
+          answered(w2, coldStart),
+        )
       }
     }
 
-    // Pass 3 — remove employee ranges (geo + titles only)
-    const contacts3 = await searchPaged(p => {
+    // Pass 3 — remove employee ranges (geography + titles only).
+    const w3 = await searchPaged(p => {
       const relaxed3 = { ...buildSearchBody(icp, p, { verifiedEmailOnly }) }
       // ⚑ 7 Sep — the SIZE widening still applies to House; the email-status floor does not move.
       if (!verifiedEmailOnly) delete relaxed3.contact_email_status
       delete relaxed3.organization_num_employees_ranges
       return relaxed3
     })
-    if (contacts3.length > 0) {
-      console.log('[apollo] fallback pass 3: removed size + consent filters — found', contacts3.length)
-      const pdl = await pdlSupplement
-      return out(mergeContacts(contacts3, pdl?.contacts ?? []), 'Company size + consent filters relaxed to find results. Try widening the company size range in your ICP.', pdl)
+    if (w3.contacts.length > 0) {
+      console.log('[apollo] fallback pass 3: removed size + consent filters — found', w3.contacts.length)
+      return out(
+        w3.contacts,
+        'Company size + consent filters relaxed to find results. Try widening the company size range in your ICP.',
+        answered(w3, coldStart),
+      )
     }
+
+    // 🛑 EVERY PASS ANSWERED AND EVERY PASS WAS EMPTY. That is a TRUSTWORTHY zero — the one
+    // kind of zero a client may be told about, because the search demonstrably happened.
+    console.log('[apollo] all passes returned 0 — no contacts found for this ICP')
+    return out(
+      [],
+      'No contacts found even with relaxed filters. Try broader job titles or add more geographies.',
+      answered(w3, coldStart),
+    )
   } catch (apolloErr) {
-    // Apollo unavailable. If PDL is configured, fail over to it; else preserve the
-    // original behaviour (let the credits/rate/other error propagate to the caller).
+    // ── THERE IS NOWHERE TO FAIL OVER TO, AND THAT IS THE POINT (FD-6) ──────────────
+    //
+    // ⛓️ WAS: "if PDL is configured, fail over to it". PDL is not a provider of ours, so an
+    // Apollo failure is now the whole answer. It FAILS CLOSED: the error propagates to the
+    // caller, which releases the batch, records the run and raises an operator task. What it
+    // must never do is return an empty list that reads as "nobody matches".
     const errMsg = apolloErr instanceof Error ? apolloErr.message : String(apolloErr)
-    if (!pdlConfigured) {
-      // #337④ — discovery is COMPLETELY down: Apollo errored and there is no second
-      // source configured. Clients are getting zero leads. Alert, then propagate.
-      alertSourceDown([
-        'Apollo lead search errored and no secondary provider (PDL) is configured.',
-        `Apollo error: ${errMsg}`,
-        'Every client ICP run is returning zero leads until this recovers.',
-      ])
-      throw apolloErr
-    }
-    console.warn('[apollo] search failed — failing over to PDL:', errMsg)
-    // Reuse the in-flight supplement fetch rather than calling PDL twice.
-    const pdl = await pdlSupplement
-    if (pdl && pdl.contacts.length > 0) return out(pdl.contacts, 'Sourced via the secondary data provider (Apollo was unavailable).', pdl)
-    // #337④ — both sources are down: Apollo errored AND PDL returned nothing.
-    // EXCEPT when PDL says `exhausted`: that is not an outage, it is this ICP having no
-    // more people in it. Alerting "both sources are down" for a finished audience sends the
-    // founder chasing an infrastructure fault that does not exist — and buries the real
-    // message, which is that this client needs a wider ICP (#366).
-    if (!pdl?.exhausted) {
-      alertSourceDown([
-        'Apollo lead search errored and the secondary provider (PDL) returned zero.',
-        `Apollo error: ${errMsg}`,
-        'Every client ICP run is returning zero leads until at least one source recovers.',
-      ])
-    }
-    return out([], 'No contacts found — Apollo was unavailable and the secondary provider returned none.', pdl)
-  }
 
-  // Apollo returned 0 across all passes — use the second source before giving up.
-  const pdl = pdlConfigured ? await pdlSupplement : null
-  if (pdl && pdl.contacts.length > 0) {
-    console.log('[apollo] 0 from Apollo — PDL second-source found', pdl.contacts.length)
-    return out(pdl.contacts, 'Apollo found nobody for this ICP — sourced from the secondary provider instead.', pdl)
-  }
+    // ⚠️ A CREDIT/RATE/BLOCK ERROR IS RE-THROWN UNWRAPPED. The caller classifies on the
+    // error's TYPE (ApolloCreditsExhaustedError, ApolloRateLimitError, the zero-spend block)
+    // to choose between `quota_exhausted` and `failed`, and flattening them into one generic
+    // failure would erase the distinction the run outcome depends on.
+    rethrowIfProviderBlocked(apolloErr)
 
-  console.log('[apollo] all passes returned 0 — no contacts found for this ICP')
-  return out([], 'No contacts found even with relaxed filters. Try broader job titles or add more geographies.', pdl)
+    // #337④ — discovery is completely down: there is one source and it errored.
+    alertSourceDown([
+      'Apollo lead search errored. Apollo is the ONLY lead source (FD-6) — there is no secondary provider.',
+      `Apollo error: ${errMsg}`,
+      'Every client ICP run is returning zero leads until this recovers.',
+    ])
+
+    // The page records that the search did not complete, so no caller can derive "no
+    // matches" from the empty list — and then the error propagates.
+    void didNotAnswer(errMsg)
+    throw apolloErr
+  }
 }
-
 export class ApolloCreditsExhaustedError extends Error {
   constructor() { super('Apollo credits exhausted — upgrade plan or wait for monthly reset') }
 }
@@ -570,6 +650,10 @@ export async function searchPeople(body: ApolloSearchBody): Promise<ApolloContac
   const legalBody: ApolloSearchBody = { ...body, per_page: perPage }
 
   const res = await fetch(APOLLO_PEOPLE_SEARCH, {
+    // ⛓️ J5-C14 — BOUNDED. Without this an Apollo request could hang for as long as the
+    // socket stayed open, which is the "started and never came back" state XC-6's detector
+    // exists to find — and it would have made the Proof desk's wait bound undefinable.
+    signal:  AbortSignal.timeout(APOLLO_REQUEST_TIMEOUT_MS),
     method:  'POST',
     headers: { 'Content-Type': 'application/json', 'X-Api-Key': apiKey },
     body:    JSON.stringify(legalBody),
@@ -703,6 +787,8 @@ export async function bulkMatchEmails(apolloIds: string[]): Promise<Map<string, 
     assertPaidProviderAllowed('apollo', 'bulkMatch')
     try {
       const res = await fetch(bulkMatchUrl(), {
+        // ⛓️ J5-C14 — the reveal is the other half of a Proof run's worst case.
+        signal: AbortSignal.timeout(APOLLO_REQUEST_TIMEOUT_MS),
         method:  'POST',
         headers: { 'Content-Type': 'application/json', 'X-Api-Key': apiKey },
         // ⚠️ `details` ALONE. The four safety controls ride on the query string above — see

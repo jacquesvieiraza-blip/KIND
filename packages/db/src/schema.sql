@@ -23,6 +23,13 @@ create table if not exists public.clients (
   -- ⚑ 10 Sep (C07) — the Proof calibration hand-off. Migration:
   -- 20260910_proof_calibration_handoff.
   proof_escalation_trigger text,
+  -- MVP1 (J6-C3 / PV 02) — the SET-level verdict that unlocks a second automatic Proof
+  -- attempt, recorded WHEN it first became true and on what basis. An EVENT, not a mirror:
+  -- the live derivation in proof-calibration.ts remains the gate, and nothing reads these to
+  -- decide whether to spend. Vida reads them so an operator can answer "why does this client
+  -- have a second set?". NULL means never recorded, never "refused".
+  proof_stronger_set_unlocked_at     timestamptz,
+  proof_stronger_set_unlocked_reason text,
   proof_phone_confirmed_at timestamptz,
   proof_calibration_note text,
   proof_calibrated_restart_at timestamptz,
@@ -90,6 +97,18 @@ create table if not exists public.icps (
   -- below stays the CLOSED sixteen-value provider-edge hint and is never their words.
   target_category     text,
   target_company_type text,
+  -- MVP1 (J5-C4 / LR 10,12) — how big the target company should be, IN THE CLIENT'S OWN
+  -- WORDS ("50 to 100 people", "under 20 staff"). `company_sizes` below is our closed
+  -- six-band ladder and is to size exactly what `industries` is to category: an Apollo query
+  -- hint, never the requirement. "Fifty to a hundred" cannot be expressed in the ladder, so
+  -- it is snapped to two bands that between them admit an 11-person and a 190-person company.
+  -- Authoritative over `company_sizes` in `proof-fit.ts`; NULL means never collected.
+  target_size         text,
+  -- MVP1 (J5-C12 / FD-1) — who the client asked us to LEAVE OUT, in their own words, as one
+  -- sentence ("no recruitment agencies, nothing in gambling"). It is the seventh hard
+  -- criterion in `proof-fit.ts`, and the only one that SUBTRACTS: a candidate matching it is
+  -- set aside with a reason in every path. NULL is "not stated" and refuses nobody.
+  exclusions          text,
   industries        text[] not null default '{}',
   job_titles        text[] not null default '{}',
   seniority_levels  text[] not null default '{}',
@@ -196,6 +215,11 @@ create table if not exists public.leads (
   disqualify_reason text,
   -- scoring
   score             integer check (score >= 0 and score <= 100),
+  -- MVP1 (J5-C13 / FD-2) — the scoring model's verdict on whether this company is the KIND the
+  -- client asked for, in the client's own words: yes | no | unknown. `proof-fit.ts` prefers it
+  -- over its word-overlap rule. NULL means not judged and the overlap answers instead.
+  category_fit        text,
+  category_fit_reason text,
   score_reasoning   text,
   scored_at         timestamptz,
   -- outreach

@@ -69,7 +69,7 @@ vi.mock('@kind/db', () => {
       async maybeSingle() {
         if (table === 'clients') return { data: { id: 'client-1', is_demo: false }, error: null }
         if (table === 'figsy_enrollments') return { data: { id: 'enr-1', client_id: 'client-1' }, error: null }
-        if (table === 'leads') return { data: { id: 'lead-1', email: 'p1@prospect.test', company: 'Acme', linkedin_url: 'https://li/x', client_id: 'client-1' }, error: null }
+        if (table === 'leads') return { data: { id: 'lead-1', email: 'p1@prospect.test', email_status: 'verified', company: 'Acme', linkedin_url: 'https://li/x', client_id: 'client-1' }, error: null }
         return { data: null, error: null }
       },
       async single() {

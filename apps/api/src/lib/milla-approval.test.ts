@@ -43,25 +43,48 @@ describe('① the client is shown the FROZEN work, never a live re-resolution', 
     }
   })
 
-  it('the frozen payload carries the messages, the timing, the population and the schedule', () => {
+  /**
+   * The frozen payload literal — from `const frozen = snapObj ? {` to the `} : null` that ends
+   * it.
+   *
+   * ⛓️ 18 Sep (J16-C1) — ~~`ROUTE.slice(at, at + 2200)`~~, A FIXED CHARACTER WINDOW, AND IT
+   * WAS MEASURING THE WRONG THING. It was widened 1200 → 2200 on 11 Sep when the payload gained
+   * a field and a comment; on 18 Sep the payload gained `sendable` the same way and
+   * `send_schedule:` fell off the end of the window — so a guard about what the client is sent
+   * failed against a payload that had lost nothing and gained a field.
+   *
+   * 🛑 AND THE LEAK GUARD BELOW WAS PASSING BY ACCIDENT OF THAT WINDOW. It forbids the
+   * substring `sender`, while the payload has deliberately carried `sender_email` since 11 Sep
+   * — the client's own from-line, which the founder's own reversal put there. The only reason
+   * it stayed green is that 2200 characters stopped short of it. Bounded properly, the
+   * prohibition has to say what it actually means: the raw `sender` field, not the address.
+   */
+  const frozenBlock = (() => {
     const at = ROUTE.indexOf('const frozen = snapObj ?')
     expect(at, 'the frozen payload is gone').toBeGreaterThan(-1)
-    // ⛓️ 11 Sep (DAY 3) — 1200 → 2200, and `version:` JOINS THE REQUIRED FIELDS. The payload
-    // gained the version the client is reading, plus the comment explaining why it exists, so
-    // the window widened; the DUTY is unchanged and one field stronger.
-    const block = ROUTE.slice(at, at + 2200)
+    const end = ROUTE.indexOf('} : null', at)
+    expect(end, 'the frozen payload literal no longer ends where this expects').toBeGreaterThan(at)
+    return ROUTE.slice(at, end)
+  })()
+
+  it('the frozen payload carries the messages, the timing, the population and the schedule', () => {
     for (const field of ['version:', 'messages:', 'wait_days:', 'prospects:', 'send_schedule:', 'at:']) {
-      expect(block, `the frozen payload lost ${field}`).toContain(field)
+      expect(frozenBlock, `the frozen payload lost ${field}`).toContain(field)
     }
   })
 
   it('🛑 AND NO IDENTIFIERS REACH THE CUSTOMER', () => {
-    const at = ROUTE.indexOf('const frozen = snapObj ?')
-    const block = ROUTE.slice(at, at + 2200)
     // The snapshot holds all of these; none of them is the customer's business.
-    for (const leak of ['enrolled_lead_ids:', 'batch_lead_ids', 'campaign_id', 'sequence_id', 'sender']) {
-      expect(block.includes(leak), `${leak} was handed to the customer`).toBe(false)
+    //
+    // ⚠️ `sender:` WITH ITS COLON — the raw `id|email` field. The ADDRESS (`sender_email`) is
+    // deliberately sent: it is the from-line every recipient sees, so it is part of what the
+    // client approves. The inbox id, the provider and the credentials are what stay behind, and
+    // the raw field is where the id lives.
+    for (const leak of ['enrolled_lead_ids:', 'batch_lead_ids', 'campaign_id', 'sequence_id', 'sender:']) {
+      expect(frozenBlock.includes(leak), `${leak} was handed to the customer`).toBe(false)
     }
+    // And the id half of the raw field never reaches the payload even through the address.
+    expect(frozenBlock).toContain('raw.slice(raw.indexOf(\'|\') + 1)')
   })
 
   it('the screen renders the frozen messages and says they are frozen', () => {
@@ -112,8 +135,15 @@ describe('② the four things the client must be given', () => {
   })
 
   it('an explicit APPROVE PROGRAMME action', () => {
-    expect(APPROVAL).toContain('Approve programme')
-    expect(APPROVAL).toContain("'/my/programme/approve'")
+    // ⛓️ 18 Sep (J16-C1) — ~~`expect(APPROVAL).toContain('Approve programme')`~~, ON THE RAW
+    // FILE. This screen's own label was replaced by the founder's locked one when the duplicate
+    // button elsewhere was withdrawn — and the assertion kept passing, because the chained note
+    // recording the change QUOTES the old label. A presence guard that a comment can satisfy is
+    // a guard about the comment. Read from code, and name the constant.
+    const c = code(APPROVAL)
+    expect(c, 'the action no longer carries the founder\'s locked label').toContain('APPROVE_LABEL')
+    expect(APPROVAL).toContain("export const APPROVE_LABEL = 'Approve this programme'")
+    expect(c).toContain("'/my/programme/approve'")
   })
 
   it('and the P2 status, so the next step is never a guess', () => {
@@ -147,11 +177,19 @@ describe('③ the screen decides nothing', () => {
   })
 
   it('an already-approved programme says so and offers nothing', () => {
-    expect(APPROVAL).toContain('You approved this programme.')
-    const at = APPROVAL.indexOf('if (p.approved_at) {')
+    // ⛓️ 18 Sep (J16-C1) — ~~`toContain('You approved this programme.')`~~ was this screen's
+    // own sentence, and the same comment-matching problem as the label above. The founder's
+    // locked sentence is what an approved programme says now, and it is asserted verbatim.
+    const c = code(APPROVAL)
+    expect(c).toContain('{APPROVED_COPY}')
+    expect(APPROVAL).toContain(
+      "export const APPROVED_COPY = 'Approved — nothing is sent until the programme goes Live.'")
+    const at = c.indexOf('if (p.approved_at) {')
     expect(at).toBeGreaterThan(-1)
-    expect(APPROVAL.slice(at, APPROVAL.indexOf('return (', at) + 900))
-      .not.toContain('Approve programme')
+    const approvedBranch = c.slice(at, c.indexOf('return (', at) + 900)
+    for (const action of ['APPROVE_LABEL', 'onClick={approve}', 'data-testid="approve-programme"']) {
+      expect(approvedBranch, `an approved programme is offered ${action}`).not.toContain(action)
+    }
   })
 })
 

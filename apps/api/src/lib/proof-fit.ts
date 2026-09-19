@@ -44,7 +44,18 @@
 // ═══════════════════════════════════════════════════════════════════════════════════════
 
 import { canonicalLaunchCountry } from '@kind/shared'
-import { bandIndex } from './lead-feedback'
+import { bandIndex, headcountBandIndex } from './lead-feedback'
+
+/**
+ * A CANDIDATE's size band, from either spelling of the same fact: a ladder label (portal,
+ * `lead_pool` rows written from one) or a raw headcount (`String(num_employees)`, which is
+ * what `runIcpJob` writes into `leads` and `lead_pool` for every provider-sourced record).
+ * ⚑ 18 Sep (J5-C5) — see `headcountBandIndex`'s note for the measured defect this closes.
+ */
+function candidateBandIndex(value: string | null): number {
+  const label = bandIndex(value)
+  return label >= 0 ? label : headcountBandIndex(value)
+}
 
 /** One criterion's answer. `unknown` means the DATA is absent — never "we could not decide". */
 export type HardVerdict = 'yes' | 'no' | 'unknown'
@@ -70,10 +81,26 @@ export type HardFit = {
   category: HardVerdict
   company_type: HardVerdict
   seniority: HardVerdict
+  /**
+   * ── 🛑 ⚑ 18 Sep (J5-C12 · FD-1) — WHO THEY TOLD US TO LEAVE OUT ────────────────────
+   *
+   * 🛑 SEVEN NOW, AND THE SEVENTH IS THE ONLY ONE THAT SUBTRACTS. The six above ask "does
+   * this candidate MEET the requirement". This one asks "did the client already tell us NOT
+   * to contact companies like this" — and until now nothing anywhere asked it. `icps.exclusions`
+   * has been written since promotion existed, `figsy_knowledge.bad_fit` carries the same
+   * sentence to the copywriter, and NO GATE READ EITHER: a client who said "not recruitment
+   * agencies, not our competitors" three times could still have one sourced, surfaced,
+   * approved and emailed.
+   *
+   * ⚠️ IT IS A SUPPRESSION, NOT A PREFERENCE. FD-1 is explicit that a match is SET ASIDE with
+   * a reason, in every path — not ranked lower, not shown with a warning. An excluded company
+   * on a review desk is a client watching us ignore something they said out loud.
+   */
+  excluded: HardVerdict
 }
 
 export const HARD_CRITERIA = [
-  'geography', 'size', 'industry', 'category', 'company_type', 'seniority',
+  'geography', 'size', 'industry', 'category', 'company_type', 'seniority', 'excluded',
 ] as const
 export type HardCriterion = typeof HARD_CRITERIA[number]
 
@@ -93,6 +120,20 @@ export interface FitCandidate {
   company?: string | null
   /** Any longer description a provider returned. Optional; usually absent. */
   company_description?: string | null
+  /**
+   * ── 🛑 ⚑ 18 Sep (J5-C13 · FD-2) — THE MODEL'S RECORDED VERDICT ON THE CATEGORY ───────
+   *
+   * `leads.category_fit`, written by `scoreLeadsForIcp` when the client stated a category.
+   * FD-2 makes this judgement MODEL-INTERPRETED, and a model cannot be called from a pure
+   * synchronous predicate — so the model writes a FACT and this file reads it, which is the
+   * same shape every other criterion here uses.
+   *
+   * ⚠️ ABSENT IS NOT A PASS AND NOT A FAIL. A lead scored before this existed, or one whose
+   * scoring failed, carries nothing — and the word-overlap rule below still answers, exactly
+   * as it did yesterday. The model REFINES the structural answer; it never replaces the
+   * product's ability to judge without one.
+   */
+  category_fit?: 'yes' | 'no' | 'unknown' | null
 }
 
 /** The ICP fields this judgement reads. Every one is an existing `icps` column. */
@@ -108,8 +149,32 @@ export interface FitIcp {
   target_category?: string | null
   /** ⚑ MVP1 — the organisational form of the target company, from client evidence only. */
   target_company_type?: string | null
+  /**
+   * ── ⚑ 18 Sep (J5-C4 · LR 10,12) — HOW BIG THEY SAID, IN THEIR OWN WORDS ──────────────
+   *
+   * 🛑 `company_sizes` IS OUR SIX-BAND LADDER, and it is to size what `industries` is to
+   * category: an Apollo query hint and evidence, never the requirement. A client who says
+   * *"fifty to a hundred people"* cannot be expressed in it — they are snapped to
+   * `['11–50','51–200']`, and the band rule then admits an 11-person company and a 190-person
+   * company as matches on a criterion they stated precisely.
+   *
+   * ⚠️ NULL IS "NOT COLLECTED" AND IS NEVER FABRICATED. A legacy ICP carries NULL and the band
+   * rule answers for it exactly as it did before this existed.
+   */
+  target_size?: string | null
   job_titles?: string[] | null
   seniority_levels?: string[] | null
+  /**
+   * ⚑ 18 Sep (J5-C12 · FD-1) — THE CANONICAL EXCLUSIONS, in the client's own words.
+   *
+   * ⚠️ ONE SENTENCE, NOT A LIST, because that is how a person answers the question: *"no
+   * recruitment agencies, nothing in gambling, and not our competitors."* It is split into
+   * phrases here rather than asking the client to structure it.
+   *
+   * ⚠️ NULL IS "NOT STATED" AND IS NEVER FABRICATED. A legacy ICP carries NULL and every
+   * candidate passes this criterion, exactly as they did before it existed.
+   */
+  exclusions?: string | null
 }
 
 const clean = (s: unknown): string => String(s ?? '').trim().toLowerCase()
@@ -155,12 +220,87 @@ function geographyVerdict(icp: FitIcp, c: FitCandidate): HardVerdict {
  * gap in vocabulary, not evidence the company is the wrong size, and refusing on it would
  * throw away candidates for a defect on our side.
  */
+/**
+ * ── 🛑 ⚑ 18 Sep (J5-C4 · LR 10,12) — THE RANGE THE CLIENT ACTUALLY STATED ──────────────
+ *
+ * `{ min, max }` in people, or `null` when their words name no number. `max: null` is an
+ * open-ended answer ("over 500", "1,000+") and stays open-ended.
+ *
+ * 🛑 AN ADJECTIVE IS NOT A NUMBER. *"small agencies"* returns `null`, deliberately: turning it
+ * into `1–10` would put a figure the client never said behind a hard refusal, which is the
+ * fabrication this whole file exists to refuse. A phrase we cannot read leaves the band rule
+ * in charge, exactly as before.
+ *
+ * ⚠️ EXPORTED FOR THE GUARD, and parsed here rather than in a new module for the same reason
+ * `exclusionPhrases` lives here: reading one sentence of the client's own words into a test is
+ * this file's job, and splitting it across two files is how two answers appear.
+ */
+export function statedSizeRange(
+  stated: string | null | undefined,
+): { min: number; max: number | null } | null {
+  const raw = clean(stated).replace(/,/g, '')
+  if (!raw) return null
+  // Every number in the phrase, in order. Two or more → the first two are the bounds.
+  const nums = (raw.match(/\d+/g) ?? []).map(Number).filter(n => Number.isFinite(n) && n >= 0)
+  if (nums.length === 0) return null
+  if (nums.length >= 2) {
+    const [a, b] = nums
+    return { min: Math.max(1, Math.min(a, b)), max: Math.max(a, b) }
+  }
+  const n = nums[0]
+  // ⚠️ ONE NUMBER, AND THE WORD AROUND IT DECIDES WHAT IT MEANS. "under 20" and "over 20" are
+  // opposite tests built from the same digit, so the qualifier is read, never assumed.
+  const upTo = /\b(under|below|less than|fewer than|up to|max|maximum|smaller than|no more than)\b|<\s*\d/.test(raw)
+  const from = /\b(over|above|more than|at least|min|minimum|bigger than|plus|from)\b|\d\s*\+|>\s*\d/.test(raw)
+  if (upTo && !from) return { min: 1, max: Math.max(1, n) }
+  if (from && !upTo) return { min: Math.max(1, n), max: null }
+  // A bare number is that number — "about 50 people". Not a range invented around it.
+  return { min: Math.max(1, n), max: Math.max(1, n) }
+}
+
+/** A candidate's headcount as a NUMBER, when the row carries one. A ladder label is not one. */
+function candidateHeadcount(value: string | null | undefined): number | null {
+  const raw = String(value ?? '').replace(/[\s,]/g, '')
+  if (!/^\d+$/.test(raw)) return null
+  const n = Number(raw)
+  return Number.isFinite(n) && n >= 1 ? n : null
+}
+
 function sizeVerdict(icp: FitIcp, c: FitCandidate): HardVerdict {
+  // ── 🛑 ⚑ 18 Sep (J5-C4) — THEIR STATED RANGE OUTRANKS OUR BAND ───────────────────────
+  //
+  // The bands are the Apollo query hint. What the client asked for is what they said, and
+  // when they said it in numbers we can read, that is the test — for the same reason
+  // `target_category` outranks `industries` (FD-2) and by the same mechanism.
+  //
+  // ⚠️ A LADDER LABEL ON THE CANDIDATE STILL FALLS THROUGH TO THE BAND RULE. `lead_pool` rows
+  // and portal-entered values are stored as `'11–50'`, which is a band and not a headcount:
+  // comparing a band to a numeric range would have to pick one end of it, and picking either
+  // would answer a question the row cannot support.
+  const stated = statedSizeRange(icp.target_size)
+  if (stated) {
+    const head = candidateHeadcount(c.company_size)
+    if (head !== null) {
+      if (head < stated.min) return 'no'
+      if (stated.max !== null && head > stated.max) return 'no'
+      return 'yes'
+    }
+    // No headcount to compare. If they also gave us bands, the band rule below still answers;
+    // if they did not, we have a requirement and an unreadable row, which is `unknown`.
+    if (present(icp.company_sizes).length === 0) return 'unknown'
+  }
+
   const required = present(icp.company_sizes)
   if (required.length === 0) return 'yes'
   const value = clean(c.company_size)
   if (!value) return 'unknown'
-  const have = bandIndex(c.company_size ?? null)
+  // ⛓️ 18 Sep (J5-C5) — A LABEL *OR* A RAW HEADCOUNT. `lead_pool` and the portal store a
+  // ladder label; `runIcpJob` writes `String(num_employees)` into both `leads` and
+  // `lead_pool`, so every provider-sourced candidate reached here as an unreadable value and
+  // this criterion answered `unknown` for a 4,000-person company against an 11–50 target. One
+  // ladder, two spellings of the same fact. The ICP side stays label-only: `company_sizes` is
+  // written by the portal and a headcount there would be a different defect.
+  const have = candidateBandIndex(c.company_size ?? null)
   if (have < 0) return 'unknown'
   const wanted = required.map(r => bandIndex(r)).filter(i => i >= 0)
   if (wanted.length === 0) return 'unknown'
@@ -275,8 +415,114 @@ function evidenceWords(c: FitCandidate): Set<string> {
  *   · no core word present, with evidence → a different kind of company → no
  *   · no evidence at all       → nothing to judge                    → unknown
  */
+/**
+ * ── 🛑 EXCLUSIONS (J5-C12 · FD-1) — THE CLIENT ALREADY TOLD US NO ──────────────────────
+ *
+ * 🛑 THE DIRECTION IS INVERTED AND THAT IS THE WHOLE CARE THIS FUNCTION NEEDS. Everywhere
+ * else in this file, evidence supporting the requirement is `yes`. Here, evidence supporting
+ * the EXCLUSION is `no` — the candidate is refused — so a copy-paste of `categoryVerdict`
+ * would have admitted exactly the companies it was meant to remove.
+ *
+ * ── HOW A SENTENCE BECOMES A TEST ──────────────────────────────────────────────────────
+ *
+ * The client writes one sentence. It is split on the separators people actually use — commas,
+ * "and", "or", semicolons, "no"/"not"/"nothing" — into PHRASES, and each phrase is matched the
+ * same tolerant way `categoryVerdict` matches a requirement: every significant word of the
+ * phrase present somewhere in the candidate's evidence.
+ *
+ * ⚠️ EVERY WORD, NOT ANY WORD. "no recruitment agencies" must not exclude every company whose
+ * name contains "agencies" — that would delete the entire target market of a client who asked
+ * for agencies and excluded recruitment ones, which is the ordinary case.
+ *
+ * ⚠️ AND STOP WORDS ARE DROPPED, so "not our competitors" does not reduce to the word "our"
+ * and match everything. A phrase with no significant words left is not a test and is skipped:
+ * "not our competitors" names no company we can recognise, and pretending otherwise would be
+ * the unfalsifiable judgement this file refuses everywhere else.
+ *
+ * ⚠️ THE SEMANTIC UPGRADE IS J5-C13'S (FD-2), DELIBERATELY. This is the STRUCTURAL half: the
+ * criterion, the canonical field, the reason and the suppression in every path. Model-
+ * interpreted matching — "TalentBridge Staffing" against "no recruitment agencies" — arrives
+ * with the same mechanism that makes category fit model-interpreted, and lands on this
+ * criterion rather than beside it.
+ */
+const EXCLUSION_SPLIT = /[,;/]|\band\b|\bor\b|\bnor\b|\bno\b|\bnot\b|\bnothing\b|\bexcept\b|\bavoid\b|\bexclude\b/i
+
+/** Words that carry no company meaning and must never be a match on their own. */
+const EXCLUSION_STOP = new Set([
+  'our', 'ours', 'we', 'us', 'their', 'they', 'any', 'all', 'the', 'a', 'an',
+  'of', 'in', 'on', 'at', 'to', 'for', 'with', 'from', 'by', 'like', 'similar',
+  'companies', 'company', 'business', 'businesses', 'firms', 'firm', 'org', 'orgs',
+  'organisation', 'organisations', 'organization', 'organizations', 'please', 'want',
+  // ⚠️ RELATIONSHIP WORDS, NOT COMPANY WORDS. "not our competitors" and "nobody we already
+  // work with" describe a relationship to the CLIENT, which no provider field records — so
+  // they can never be recognised from a candidate's evidence. Leaving them in would make
+  // `['competitors']` a live filter that matches nothing and looks like a working suppression,
+  // which is worse than no filter: the client believes their instruction is being honoured.
+  //
+  // 🛑 THIS IS A REPORTED LIMIT, NOT A SILENT ONE. Suppressing "our competitors" needs a list
+  // of who they are, which nothing in the product collects today — see the evidence package.
+  'competitor', 'competitors', 'competition', 'rivals', 'clients', 'customers', 'partners',
+])
+
+/** The phrases a client's exclusion sentence actually tests for. Exported for the guard. */
+export function exclusionPhrases(sentence: string | null | undefined): string[][] {
+  const raw = clean(sentence)
+  if (!raw) return []
+  return raw
+    .split(EXCLUSION_SPLIT)
+    .map(part => tokens(part).filter(w => !EXCLUSION_STOP.has(w)))
+    .filter(words => words.length > 0)
+}
+
+function excludedVerdict(icp: FitIcp, c: FitCandidate): HardVerdict {
+  const phrases = exclusionPhrases(icp.exclusions)
+  // Nothing was excluded, or nothing they said names a company we could recognise. Either way
+  // there is no test here, and an untested criterion passes — it never invents a refusal.
+  if (phrases.length === 0) return 'yes'
+
+  const words = evidenceWords(c)
+  // ⚠️ NO EVIDENCE IS `unknown`, NOT `yes`. We cannot say this company is not one they
+  // excluded, and `setAsideReason` already treats an unknown as set-aside-with-a-reason
+  // (11 Sep) — so a candidate we cannot read does not quietly clear a suppression. It does not
+  // make them WORSE off either: a candidate with no evidence is already unknown on category
+  // and industry for the same reason.
+  if (words.size === 0) return 'unknown'
+
+  // 🛑 EVERY SIGNIFICANT WORD OF A PHRASE, so "recruitment agencies" needs both words. A match
+  // on "agencies" alone would delete the whole market of a client who asked for agencies and
+  // excluded the recruitment ones.
+  const hit = phrases.some(phrase => phrase.every(w => words.has(w)))
+  return hit ? 'no' : 'yes'
+}
+
 function categoryVerdict(icp: FitIcp, c: FitCandidate): HardVerdict {
   const requirement = clean(icp.target_category)
+
+  // ── 🛑 ⚑ 18 Sep (J5-C13 · FD-2) — THE MODEL'S VERDICT OUTRANKS THE WORD OVERLAP ───────
+  //
+  // FD-2: *"Model-interpreted fit; adjacent qualifies; vague B2B does not; UNKNOWN never
+  // eligible."* The rule below this block is word overlap, and it is wrong in both directions
+  // for a client's own sentence: it refuses a BRAND agency for "digital marketing agencies"
+  // (adjacent, and the client's actual market), and it passes anything whose tag happens to
+  // carry both words. Neither is something a word set can fix — which is why the founder ruled
+  // it a model's judgement.
+  //
+  // ⚠️ IT IS READ, NOT CALLED. A model cannot be invoked from a pure synchronous predicate,
+  // and making this async would make every caller async. `scoreLeadsForIcp` records the verdict
+  // on the row; this reads a fact, exactly like every other criterion in this file.
+  //
+  // ⚠️ AND ONLY WHEN THERE IS A REQUIREMENT TO JUDGE. A client who stated no category has no
+  // test here, and a recorded verdict against a requirement they never gave would be a
+  // judgement about nothing.
+  if (requirement) {
+    const judged = c.category_fit
+    if (judged === 'yes' || judged === 'no') return judged
+    // `unknown` falls through DELIBERATELY: the word overlap may still be able to say
+    // something useful, and "the model was unsure" is not itself evidence of anything. If
+    // the overlap is also unsure it returns `unknown`, which is the honest joint answer —
+    // and `structurallyEligible` already refuses to count an unknown as a match (FD-2's
+    // "UNKNOWN never eligible", which needs no new rule here).
+  }
   // An unstated requirement is not a test. A legacy ICP carries NULL here — "not collected" —
   // and making that `unknown` would empty every legacy client's Proof set.
   if (!requirement) return 'yes'
@@ -360,6 +606,7 @@ export function hardFit(candidate: FitCandidate, icp: FitIcp): HardFit {
     size: sizeVerdict(icp, candidate),
     industry: industryVerdict(icp, candidate),
     category: categoryVerdict(icp, candidate),
+    excluded: excludedVerdict(icp, candidate),
     company_type: companyTypeVerdict(icp, candidate),
     seniority: seniorityVerdict(icp, candidate),
   }
@@ -438,6 +685,9 @@ const FAILURE_COPY: Record<HardCriterion, string> = {
   category: 'not the kind of company you asked for',
   company_type: 'not the type of organisation you asked for',
   seniority: 'not the seniority you asked for',
+  // ⚑ 18 Sep (J5-C12 · FD-1) — the only sentence here that quotes the CLIENT back to
+  // themselves, because the reason is something they said rather than something we judged.
+  excluded: 'you asked us to leave companies like this out',
 }
 
 /**
@@ -454,6 +704,7 @@ const UNKNOWN_COPY: Record<HardCriterion, string> = {
   category: 'the kind of company could not be confirmed',
   company_type: 'the type of organisation could not be confirmed',
   seniority: 'their seniority could not be confirmed',
+  excluded: 'we could not confirm this is not one of the companies you asked us to leave out',
 }
 
 /**
@@ -470,6 +721,29 @@ export function setAsideReason(f: HardFit): string | null {
   // refusal copy would tell a client we had judged a company we had merely failed to read.
   const unknown = unknownCriteria(f)[0]
   return unknown ? `${unknown}: ${UNKNOWN_COPY[unknown]}` : null
+}
+
+/**
+ * ── 🛑 ⚑ 18 Sep (J5-C6 · PV 02) — THE SAME REASON, WITHOUT THE CRITERION KEY ────────────
+ *
+ * `setAsideReason` prefixes the criterion (`"category: not the kind of company you asked
+ * for"`) because that string is the OPERATOR'S record: it is stamped on `leads.set_aside_reason`
+ * and grouped by Vida's Proof exception panel, where naming the criterion is the point.
+ *
+ * 🛑 THE CLIENT MAY NOT BE SHOWN THAT KEY. `mvp1-proof-exception.test.ts` locks it — *"the
+ * operator panel names criteria; the CLIENT keeps `FAILED_RUN_BODY`… the criterion vocabulary
+ * lives only in the admin app"* — and `category` / `company_type` / `excluded` are exactly
+ * that vocabulary. What a client may be shown is the SENTENCE, which is already written in
+ * their own terms and is what Preview 02 prints beside a set-aside prospect.
+ *
+ * ⚠️ SAME FUNCTION, SAME ORDER, SAME ANSWER — only the prefix differs, so the two can never
+ * describe different criteria.
+ */
+export function setAsideSentence(f: HardFit): string | null {
+  const failed = firstHardFailure(f)
+  if (failed) return FAILURE_COPY[failed]
+  const unknown = unknownCriteria(f)[0]
+  return unknown ? UNKNOWN_COPY[unknown] : null
 }
 
 // ── THE BANDS ──────────────────────────────────────────────────────────────────────────

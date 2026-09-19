@@ -244,6 +244,11 @@ async function runJob(opts: {
           rec.rpcs.push(fn)
           if (fn === 'try_reserve_proof_records') return { data: { granted: 20, reservation_id: 'res-1', reason: 'GRANTED' }, error: null }
           if (fn === 'try_claim_proof_pass') return { data: 1, error: null }
+          // ⛓️ 17 Sep (XC-13 / FD-6) — the client sourcing gate is the programme AUTHORITY
+          // reserve now, not `try_spend_sourcing`: that function books a $0.28-a-record PDL cost
+          // we no longer incur. Both are answered here so the harness keeps working whichever
+          // path a case drives.
+          if (fn === 'try_reserve_programme_sourcing') return { data: 20, error: null }
           if (fn === 'try_spend_sourcing') return { data: 20, error: null }
           return { data: null, error: null }
         },
@@ -278,14 +283,18 @@ async function runJob(opts: {
       // apart — so the harness must be able to make them differ.
       const cfg = first ? opts.page : opts.widePage
       const pg = cfg === null ? null : {
-        contacts: mk(n), scrollToken: null,
+        provider: 'apollo' as const, contacts: mk(n), cursor: null,
         exhausted: cfg?.exhausted ?? false,
         // Default: an empty page from PDL is a PROVED zero. A test that wants an UNPROVEN
         // empty page says so explicitly, with `error` or a null page.
         matchedNothing: cfg?.matchedNothing ?? (n === 0),
         error: cfg?.error ?? null,
       }
-      return { contacts: mk(n), relaxed: null, pdlPage: pg }
+// ⛓️ 17 Sep (FD-6) — `pdlPage` → `providerPage`, `scrollToken` → `cursor`. With one provider
+// the PDL-shaped names stopped describing anything: the page now carries Apollo's own
+// completed / exhausted / matchedNothing verdict, which the Apollo branch never reported
+// before (it returned null, so no client run could ever reach searchTrust = 'proven').
+      return { contacts: mk(n), relaxed: null, providerPage: pg }
     },
     ApolloCreditsExhaustedError: class extends Error {},
     ApolloRateLimitError: class extends Error {},
@@ -670,12 +679,12 @@ describe('the widened retry changes nothing else', () => {
       'opts?.proofPass === 2 &&',
       "audience === 'client' &&",
       'cursor.token === null &&',
-      'pdlPage?.matchedNothing === true &&',
+      'providerPage?.matchedNothing === true &&',
       'contacts.length === 0',
     ]) expect(gate, `gate condition: ${cond}`).toContain(cond)
     // ⚠️ NOT gated on `exhausted` — that would widen a finished audience, and it is the
     // condition the old collapsed boolean would have offered.
-    expect(src).not.toMatch(/canWiden[\s\S]{0,300}pdlPage\?\.exhausted/)
+    expect(src).not.toMatch(/canWiden[\s\S]{0,300}providerPage\?\.exhausted/)
     // ⚠️ SEVERAL OF THOSE CONDITIONS ARE DEFENCE IN DEPTH, AND THAT IS WHY THEY ARE PINNED
     // HERE RATHER THAN ONLY BEHAVIOURALLY. `proofMode` is implied by `proofPass === 2`,
     // `cursor.token === null` is implied by `matchedNothing`, and `contacts.length === 0` is
@@ -722,14 +731,14 @@ describe('the widened retry changes nothing else', () => {
     // ⚠️ THREE BRANCHES, AND THE MIDDLE ONE IS THE PROOF. Success · PROVED zero · unknown.
     // A two-branch `if/else` on `contacts.length` cannot express the difference, which is
     // exactly the collapse the review caught.
-    expect(block, 'the proved-zero test, on the WIDENED page').toContain('} else if (wide?.pdlPage?.matchedNothing === true) {')
+    expect(block, 'the proved-zero test, on the WIDENED page').toContain('} else if (wide?.providerPage?.matchedNothing === true) {')
     expect(block, 'and a final catch-all for everything unproven').toContain('        } else {\n')
     // The unknown branch may not be reachable only from an error — a null page lands there
     // too, so it must not be spelled as an error test.
-    expect(block).not.toMatch(/else if \(wide\.pdlPage\?\.error/)
-    // ⚠️ THE WIDENED PAGE, NOT THE EXACT ONE. Reading `pdlPage` here would discriminate on
+    expect(block).not.toMatch(/else if \(wide\.providerPage\?\.error/)
+    // ⚠️ THE WIDENED PAGE, NOT THE EXACT ONE. Reading `providerPage` here would discriminate on
     // the query that already failed, and every widened outcome would read as a proved zero.
-    expect(block).not.toMatch(/else if \(pdlPage\?\.matchedNothing/)
+    expect(block).not.toMatch(/else if \(providerPage\?\.matchedNothing/)
     // ⚠️ AND THE SHIPPED SENTENCES ARE THESE THREE, IN THIS ORDER. Without this the copy
     // tests above only constrain constants declared in this file, and a mutation that made
     // the unknown branch say "That search matched nobody" stayed GREEN — the guard was

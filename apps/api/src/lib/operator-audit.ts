@@ -27,6 +27,13 @@ export type OperatorAction =
   | 'reveal_lead'           // stand-alone reveal
   | 'enroll_lead'           // stand-alone enroll into a campaign
   | 'set_pdl_cap'            // #626 — the founder set the monthly sourcing ceiling from Vida
+  // ⛓️ XC-5 — an operator closed a persisted exception, with a reason. Audited because the
+  // whole reason `operator_tasks` exists is that the previous mechanism (an email, or a value
+  // derived on read) left nothing behind: "who decided this was handled, and why" was
+  // unanswerable. Dismissed is a separate action from resolved on purpose — "this was not a
+  // real problem" and "I fixed it" are different claims about the same row.
+  | 'operator_task_resolved'
+  | 'operator_task_dismissed'
   | 'enrol_skips'           // #620 — an enrol run REFUSED somebody. Written only when the run
                             // skipped at least one lead, and it carries the named reasons. The
                             // response already returned them and no screen rendered them, so a
@@ -109,6 +116,11 @@ export type OperatorAction =
   | 'proof_legacy_restart_classified'     // a pre-ledger calibrated restart: completed, or burned and returned
   | 'proof_claim_reconciled'              // an OPEN claim with no trustworthy terminal outcome, settled by a person
   | 'proof_retry_zero_eligible'  // ⚑ 16 Sep (A1b) — an operator retried Proof after K.I.N.D's
+  // ⚑ 18 Sep (XC-12 · FD-0) — a recovery the control REFUSED. A refusal is an operator action
+  // too: "I pressed it and nothing happened" is exactly what an audit trail has to answer, and
+  // the reason (`not_recoverable` / `already_recovering`) plus the state recovered from travel
+  // in the detail.
+  | 'proof_retry_refused'
                             // own structural gate refused every sourced candidate. Audited
                             // whether or not it started, because "I pressed it and nothing
                             // happened" is exactly what an audit trail has to be able to
@@ -236,6 +248,14 @@ export type OperatorAction =
                             // client on a person's judgement rather than on evidence — so who
                             // chose, which client they chose, and which candidates they chose
                             // from all have to survive the decision.
+  | 'unattributed_reply_rechecked'   // ⚑ 18 Sep (J22-C2) — a human asked the lead lookup AGAIN
+                            // for a hold whose candidate set was empty because that lookup had
+                            // failed while the reply arrived. Its own action, not a flag on the
+                            // two below, because it decides NOTHING: it replaces an absence with
+                            // evidence, and the attribution that may follow is still refused
+                            // outside the set. What is audited is that the set MOVED — before
+                            // and after — since an operator who widened it is the one case
+                            // where the candidate check could be argued into.
   | 'unattributed_reply_discarded'   // the same decision the other way: it belongs to NONE of
                             // the candidates. Its own action, not a flag, for the #564 reason
                             // above — "attributed to Acme" and "belongs to nobody" are different

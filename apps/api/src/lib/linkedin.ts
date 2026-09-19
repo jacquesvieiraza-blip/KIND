@@ -5,6 +5,7 @@ import { db } from '@kind/db'
 import { checkSendAllowed } from './send-gate'
 // 🛑 The highest-level delivery stop. A connection request is externally delivered outreach.
 import { killSwitchBlocks } from './outreach-kill-switch'
+import { BACKGROUND_MODEL } from './models'
 
 const anthropic = new Anthropic()
 
@@ -16,7 +17,7 @@ export async function generateLinkedInNote(lead: {
   industry?: string | null
 }, icpContext: string): Promise<string> {
   const msg = await anthropic.messages.create({
-    model: 'claude-haiku-4-5-20251001',
+    model: BACKGROUND_MODEL,
     max_tokens: 150,
     messages: [{
       role: 'user',

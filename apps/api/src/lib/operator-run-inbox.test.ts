@@ -45,6 +45,10 @@ vi.mock('@kind/db', () => {
       async maybeSingle() {
         if (table === 'clients') return { data: { id: 'client-1', is_demo: false }, error: null }
         if (table === 'figsy_enrollments') return { data: { id: 'enr-1' }, error: null }
+        // ⛓️ 18 Sep (J20-C4 · FD-5) — the seam now refuses anybody we may not lawfully
+        // email, and an unreadable `email_status` is unverified. Without this the send
+        // defers before the mailbox is ever chosen, and this file is about the mailbox.
+        if (table === 'leads') return { data: { email: 'p1@prospect.test', email_status: 'verified' }, error: null }
         return { data: null, error: null }
       },
       insert() { return { select: () => ({ single: async () => ({ data: { id: 'row-1' }, error: null }) }) } },

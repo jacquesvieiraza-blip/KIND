@@ -1,7 +1,14 @@
 'use client'
 
 // ═══════════════════════════════════════════════════════════════════════════════════════
-// THE CUSTOMER'S REVIEW, AND THE ONE APPROVAL THEY GIVE
+// THE CUSTOMER'S REVIEW — THE PROSPECTS THEY READ BEFORE THE ONE APPROVAL
+//
+// ⛓️ 18 Sep (J16-C1) — ~~"AND THE ONE APPROVAL THEY GIVE"~~. This file held a SECOND approve
+// button: it posted `/my/programme/approve` having shown the client the cards, a total and a
+// target, and none of the words, the sender, the schedule, the version or the reachable count.
+// The decision now belongs to `ProgrammeApproval` — the one surface that renders the whole
+// frozen package — and this component mounts it. Everything below about what the review is
+// NOT still stands, unchanged: this is the desk, and the desk never sold anything.
 //
 // R39, founder-locked 15 Aug: **"We run it in Vida; the client approves in Milla."** This is
 // that half of the lifecycle: the customer sees who will be worked, and gives ONE approval for
@@ -33,6 +40,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { api } from '@/lib/api'
+import ProgrammeApproval, { type FrozenWork } from './ProgrammeApproval'
 
 export type ReviewProspect = {
   id: string
@@ -42,6 +50,8 @@ export type ReviewProspect = {
   country: string | null
   score: number | null
   why_fits: string | null
+  /** ⚑ 18 Sep (J5-C8) — no fit number is available for this person, and the card says so. */
+  not_scored?: boolean
   surfaced_for_approval_at: string | null
 }
 
@@ -53,7 +63,12 @@ export type ReviewPayload = {
    * approval so a re-preparation between this screen rendering and the button being pressed
    * is REFUSED rather than approved in silence.
    */
-  frozen?: { version: string | null } | null
+  /**
+   * ⛓️ 18 Sep (J16-C1) — ~~`{ version: string | null }`~~. This screen read ONE field of the
+   * frozen package — the version — and approved against it while showing the client none of
+   * the rest. The whole package is now passed to the one surface that renders it.
+   */
+  frozen?: FrozenWork | null
   prospects: ReviewProspect[]
   total: number
   /** false ⟹ the server stopped counting at its scan budget: the total is a floor, not a count. */
@@ -75,16 +90,18 @@ export type ReviewPayload = {
   canApprove: boolean
 }
 
-/** The founder's post-approval sentence, locked 3 Sep. Never paraphrased. */
-export const APPROVED_COPY = 'Approved — nothing is sent until the programme goes Live.'
-/** The founder's primary action label, locked 3 Sep. */
-export const APPROVE_LABEL = 'Approve this programme'
+/**
+ * ⛓️ 18 Sep (J16-C1) — THE FOUNDER'S TWO LOCKED SENTENCES NOW LIVE WITH THE BUTTON, and the
+ * button is no longer here. They are re-exported unchanged so every importer still reads the
+ * same words from the same name; what moved is the file that defines them, because the surface
+ * that says them is `ProgrammeApproval`. Nothing is re-worded — a paraphrase of a locked
+ * sentence is not the sentence.
+ */
+export { APPROVED_COPY, APPROVE_LABEL } from './ProgrammeApproval'
 
 export default function ProgrammeReview({ token }: { token: () => Promise<string | undefined> }) {
   const [data, setData] = useState<ReviewPayload | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
-  const [approving, setApproving] = useState(false)
-  const [approveError, setApproveError] = useState<string | null>(null)
   /**
    * Which page of the frozen package is on screen.
    *
@@ -111,25 +128,25 @@ export default function ProgrammeReview({ token }: { token: () => Promise<string
 
   useEffect(() => { void load() }, [load])
 
-  async function approve() {
-    // ⚠️ DISABLED IN FLIGHT. The server is idempotent by compare-and-set, so a double-click
-    // cannot move `approved_at` — this is about the customer not being shown two spinners for
-    // one act, not about protecting the data. Both guards exist because they answer to
-    // different failures.
-    if (approving) return
-    setApproving(true); setApproveError(null)
-    try {
-      await api.post('/my/programme/approve', { version: data?.frozen?.version ?? null }, await token())
-      // Re-read rather than patching local state: the server is the only source of
-      // `status` and `approved_at`, and guessing them here is how two surfaces start
-      // disagreeing about one programme.
-      await load()
-    } catch (e) {
-      setApproveError(e instanceof Error ? e.message : 'We couldn’t approve your programme. Nothing has changed.')
-    } finally {
-      setApproving(false)
-    }
-  }
+  // ── ⛓️ 18 Sep (J16-C1) — THE APPROVAL THAT USED TO LIVE HERE IS WITHDRAWN ─────────────
+  //
+  // ~~`async function approve()` → `api.post('/my/programme/approve', …)` → the button.~~
+  //
+  // 🛑 IT WAS A SECOND PLACE TO SAY YES, AND IT SHOWED LESS THAN THE FIRST. This screen posted
+  // the approval having rendered the prospect cards, a total and a target — and not the words
+  // that would go out, not the sending address, not the schedule, not which version this was,
+  // and not how many of those people we could actually email. Its own header said so: *"Only
+  // `version` is read here; the full package is rendered by `ProgrammeApproval`."* A client on
+  // the Milla home approved a package they had been shown a quarter of, while the same act on
+  // `/milla/programme` showed them all of it. Two surfaces, one consent, different information.
+  //
+  // ⚠️ NOTHING IS TAKEN AWAY FROM THE CLIENT. The one surface is mounted below, on this very
+  // screen, in the same position — so the button is still here, with the founder's locked
+  // label, above the full package rather than instead of it.
+  //
+  // ⚠️ AND THE RE-READ IS KEPT. `onApproved` re-loads from the server rather than patching
+  // local state: the server is the only source of `status` and `approved_at`, and guessing them
+  // here is how two surfaces start disagreeing about one programme.
 
   // ── LOADING ────────────────────────────────────────────────────────────────────────
   if (!data && !loadError) {
@@ -192,7 +209,14 @@ export default function ProgrammeReview({ token }: { token: () => Promise<string
               rather than a count. `toLocaleString` on a locale-free render would vary by the
               viewer's browser, so the locale is pinned. */}
           {d.total.toLocaleString('en-GB')}{d.complete === false ? '+' : ''} prospect{d.total === 1 ? '' : 's'} selected
-          {d.programme.meeting_target ? ` · ${d.programme.meeting_target} meeting target` : ''}
+          {/* ⛓️ 18 Sep (J16-C1) — ~~`d.programme.meeting_target`~~ ALONE. The package below
+              states the target FROM THE FREEZE; reading the live row here put two targets on
+              one screen, and a change since the freeze made them different numbers in the same
+              sentence. The frozen one wins where there is a freeze, which is the only state in
+              which anything is being approved. */}
+          {(d.frozen?.meeting_target ?? d.programme.meeting_target)
+            ? ` · ${d.frozen?.meeting_target ?? d.programme.meeting_target} meeting target`
+            : ''}
           {/* ⛓️ 11 Sep (DAY 3) — THIS SAID "showing the top 50" AND THERE WAS NO OTHER PAGE.
               It now says which slice of the set is on screen, and the controls below actually
               fetch the rest. */}
@@ -215,33 +239,20 @@ export default function ProgrammeReview({ token }: { token: () => Promise<string
         )}
       </div>
 
-      {/* ── THE ONE ACTION ─────────────────────────────────────────────────────────────
-          Founder-locked wording. One button, no price, no selection, no minimum. */}
-      {approved ? (
-        <div
-          data-testid="programme-approved"
-          className="text-[13.5px] text-[#065f46] bg-emerald-50 border border-emerald-200 rounded-2xl px-4 py-3 font-semibold"
-        >
-          {APPROVED_COPY}
-        </div>
-      ) : (
-        <div className="grid gap-2">
-          <button
-            data-testid="approve-programme"
-            onClick={() => void approve()}
-            disabled={approving || !d.canApprove}
-            className="w-full bg-[#7C3AED] text-white font-bold text-[14px] rounded-2xl px-4 py-3 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {approving ? 'Approving…' : APPROVE_LABEL}
-          </button>
-          {approveError && (
-            <div className="text-[13px] text-red-700 bg-red-50 border border-red-200 rounded-xl px-3 py-2">
-              {approveError}
-              <button onClick={() => void approve()} className="ml-2 underline font-semibold">Try again</button>
-            </div>
-          )}
-        </div>
-      )}
+      {/* ── THE ONE ACTION, AND IT IS NOT DEFINED HERE ─────────────────────────────────
+          🛑 THE WHOLE PACKAGE, THEN THE DECISION. `ProgrammeApproval` renders the six frozen
+          elements — the people, the words, the cadence, the sending window, the from-address
+          and the target — plus how many of those people we may actually email, and holds the
+          single button with the founder's locked label. It is mounted, never re-implemented:
+          a second copy of the button is the defect this item removed.
+
+          ⚠️ `complete` DEFAULTS TO TRUE WHEN ABSENT, because `complete === false` is the
+          server saying "the total is a floor". An absent field is not that claim, and
+          defaulting the other way would mark every count on this screen with a "+". */}
+      <ProgrammeApproval
+        data={{ ...d, complete: d.complete !== false, frozen: d.frozen ?? null }}
+        onApproved={() => { void load() }}
+      />
 
       {/* ── THE PROSPECTS ──────────────────────────────────────────────────────────────
           Masked cards. Role, company, sector, market, fit score and why it fits — enough to
@@ -254,9 +265,25 @@ export default function ProgrammeReview({ token }: { token: () => Promise<string
                 <div className="text-[13.5px] font-bold text-[#2f2a44] truncate">{p.role}</div>
                 <div className="text-[12.5px] text-[#6b6288] truncate">{p.company}</div>
               </div>
-              {p.score != null && (
+              {/* ⛓️ 18 Sep (J5-C8) — THE CARD NOW SAYS "NOT SCORED" INSTEAD OF SHOWING NOTHING.
+                  WHAT THIS REPLACED: ~~`{p.score != null && (<span>{p.score}</span>)}`~~ — an
+                  unscored prospect's card simply had no badge, which reads as "we chose not to
+                  show a fit here", not as "we have no fit for this person". The server records
+                  the difference (`not_scored`), so the desk states it.
+                  ⚠️ NO NUMBER IS IMPLIED AND NONE IS IMPLIED TO BE MISSING-BUT-FINE. It is a
+                  quiet grey chip, not an alarm: the prospect is still in the programme and still
+                  gets worked, and the hourly sweeper retries the scoring by itself. */}
+              {p.score != null ? (
                 <span className="text-[11.5px] font-bold text-[#7C3AED] bg-[#f4efff] rounded-full px-2 py-0.5 shrink-0">
                   {p.score}
+                </span>
+              ) : (
+                <span
+                  data-testid="prospect-not-scored"
+                  title="We could not produce a fit score for this prospect. They are still part of your programme."
+                  className="text-[11.5px] font-semibold text-[#6b6288] bg-[#f3f1f8] rounded-full px-2 py-0.5 shrink-0"
+                >
+                  Not scored
                 </span>
               )}
             </div>

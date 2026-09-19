@@ -19,6 +19,7 @@
  */
 import { Resend } from 'resend'
 import { db } from '@kind/db'
+import { raiseOperatorTask, dedupeKeyFor, type OperatorTaskKind, type OperatorTaskSeverity } from './operator-tasks'
 
 const resend  = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
 const FROM    = 'K.I.N.D Alerts <hello@get-kind.com>'
@@ -29,6 +30,68 @@ export type AlertKind = 'payment_failed' | 'new_signup' | 'sends_stalled' | 'api
   // An operator action happened and the ONLY record of it could not be written. Not fail-closed
   // — a human's action is never blocked by a logging hiccup — but never silent either.
   | 'audit_dropped'
+
+// ── XC-5 · EVERY ALERT CLASS IS ALSO A PERSISTED TASK (R117 / D-47) ───────────────────
+//
+// An email is not a queue. It cannot be assigned, deduped, resolved with a reason,
+// counted, or shown in Vida Needs-you — which is where the person who has to act looks.
+// So the durable half of an alert now ALSO writes an `operator_tasks` row, and the email
+// becomes a mirror of it.
+//
+// ⚠️ `founder_alerts` IS KEPT. It is what the existing admin surface reads; removing it
+// would break a working screen in order to tidy a layer.
+//
+// ⚠️ THE LISTS BELOW MUST STAY TOTAL. An `AlertKind` with no task class would push an
+// email and silently write no task — this item's own defect, reintroduced for one value.
+// `alerts-become-tasks.test.ts` fails the gate if a kind is added without both entries.
+
+/** Every alert kind, as a value, so the mapping below can be proven total. */
+export const ALERT_KINDS = [
+  'payment_failed', 'new_signup', 'sends_stalled', 'api_down', 'churn_risk',
+  'charge_failed', 'source_down', 'hot_reply', 'support_escalation', 'audit_dropped',
+] as const satisfies readonly AlertKind[]
+
+export const ALERT_TASK_CLASS: Record<AlertKind, OperatorTaskKind> = {
+  payment_failed:     'payment_failed',
+  new_signup:         'new_signup',
+  sends_stalled:      'sends_stalled',
+  api_down:           'api_down',
+  churn_risk:         'churn_risk',
+  charge_failed:      'charge_failed',
+  source_down:        'source_down',
+  hot_reply:          'hot_reply',
+  support_escalation: 'support_escalation',
+  audit_dropped:      'audit_dropped',
+}
+
+/**
+ * How loudly each class lands in Needs-you.
+ *
+ * ⚠️ A SIGNUP IS GOOD NEWS. Filing it as an exception would train the operator to ignore
+ * the list, and "NORMAL IS SILENT" is the entire design of Needs-you. Money failures and
+ * outages are `critical`; everything a human should look at today is `warn`.
+ */
+export const ALERT_TASK_SEVERITY: Record<AlertKind, OperatorTaskSeverity> = {
+  payment_failed:     'critical',
+  charge_failed:      'critical',
+  api_down:           'critical',
+  source_down:        'critical',
+  sends_stalled:      'warn',
+  churn_risk:         'warn',
+  support_escalation: 'warn',
+  audit_dropped:      'warn',
+  hot_reply:          'info',
+  new_signup:         'info',
+}
+
+/**
+ * Classes where EVERY OCCURRENCE is its own event, so they are never deduped.
+ *
+ * A second prospect replying is not a repeat of the first, and a second signup is not a
+ * repeat of the first. Everything else — an outage, a stalled sender, a failing provider —
+ * is one condition that persists, and twelve identical rows a day is a list nobody reads.
+ */
+const NEVER_DEDUPED: ReadonlySet<AlertKind> = new Set<AlertKind>(['hot_reply', 'new_signup', 'support_escalation'])
 
 /**
  * 🛑 ⚑ 14 Sep (RT-008) — IT NOW REPORTS WHETHER ANYBODY WAS ACTUALLY REACHED.
@@ -46,9 +109,54 @@ export type AlertKind = 'payment_failed' | 'new_signup' | 'sends_stalled' | 'api
  * ⚠️ `delivered` MEANS AT LEAST ONE CHANNEL LANDED, and the durable row counts: a founder
  * alert sitting in `founder_alerts` is recoverable, where a lost one is not.
  */
-export interface AlertDelivery { delivered: boolean; emailOk: boolean; slackOk: boolean; durableOk: boolean }
+export interface AlertDelivery {
+  delivered: boolean
+  emailOk: boolean
+  slackOk: boolean
+  durableOk: boolean
+  /**
+   * ⛓️ XC-5 — did the OPERATOR TASK get written? Reported for the same reason the three
+   * flags above are: a caller that must be honest about whether a human will see this
+   * cannot be honest if the function swallows its own outcome. `delivered` keeps its
+   * existing meaning exactly — a `founder_alerts` row still counts — so no existing caller
+   * changes behaviour.
+   */
+  taskOk: boolean
+  taskId?: string
+}
 
-export async function sendFounderAlert(kind: AlertKind, subject: string, lines: string[]): Promise<AlertDelivery> {
+/**
+ * ⚑ 18 Sep (J2-C1) — WHO THIS ALERT IS ABOUT, when it is about somebody.
+ *
+ * ⚠️ OPTIONAL BY DESIGN, AND ITS ABSENCE IS NOT A MISSING VALUE. `api_down` and `source_down`
+ * genuinely ARE facts about the company; an alert that omits this keeps the exact global
+ * behaviour it has always had, dedupe key included.
+ */
+export interface AlertSubject {
+  clientId?: string | null
+  programmeId?: string | null
+  subjectKind?: string | null
+  subjectId?: string | null
+  /**
+   * ⛓️ 19 Sep (J22-C1) — AN EXPLICIT KEY, FOR THE CALLER THAT ALREADY RAISED THE ROW ITSELF.
+   *
+   * 🛑 WHY IT HAD TO EXIST. An unclassified reply's task must be DURABLE BEFORE its provider is
+   * answered 200 (R132), and this function cannot be what waits: it sends the email and the
+   * Slack post FIRST, so awaiting it would hang a stranger's reply-acknowledgement on our email
+   * vendor. So `reply-pipeline` awaits `raiseOperatorTask` itself and then sends the mirror
+   * here — and without a key to collide on, `support_escalation` being NEVER_DEDUPED would file
+   * a SECOND row for the same reply, which is the duplicate the item forbids.
+   *
+   * ⚠️ OPT-IN, AND EVERY EXISTING CALLER IS UNCHANGED. Omitted (the default) keeps exactly the
+   * behaviour below: null for a never-deduped class, the computed subject key otherwise.
+   * Passing `null` still means "never dedupe".
+   */
+  dedupeKey?: string | null
+}
+
+export async function sendFounderAlert(
+  kind: AlertKind, subject: string, lines: string[], about?: AlertSubject,
+): Promise<AlertDelivery> {
   const body = lines.filter(Boolean).join('\n')
   const tag = `[${kind}]`
 
@@ -103,9 +211,67 @@ export async function sendFounderAlert(kind: AlertKind, subject: string, lines: 
     console.error('[alerts] durable insert threw', err)
   }
 
+  // ── THE OPERATOR TASK (XC-5) — the record, of which the email is a mirror ────────
+  //
+  // ⚠️ IT NEVER THROWS INTO THE CALLER, for the same reason nothing else here does: this
+  // function rides on the payment webhook, the signup path and the send gate. An exception
+  // path that breaks the path it rides on is worse than one that reports nothing.
+  let taskOk = false
+  let taskId: string | undefined
+  try {
+    // ⛓️ 18 Sep (J2-C1) — THE TASK NOW KNOWS WHO IT IS ABOUT, WHEN THE CALLER KNOWS.
+    //
+    // WHAT THIS REPLACED, and the sentence that justified it:
+    //   ~~`dedupeKey: NEVER_DEDUPED.has(kind) ? null : \`alert:${kind}:${dedupeKeyFor({})}\``~~
+    //   ~~"these classes are facts about the company, not about a client we can name here"~~
+    //
+    // 🛑 TRUE OF `api_down`, FALSE THE MOMENT AN ALERT CAN NAME A SUBJECT — and the function
+    // had no way to be given one, so every task was raised with `client_id: null`. Two
+    // consequences, both of which defeat XC-5's purpose:
+    //
+    //   ① `listOpenOperatorTasks({ clientId })` — the per-client rail — could never return it.
+    //      An operator working that exact client saw nothing, and the client id survived only
+    //      inside the title PROSE, which is the sentence-a-human-re-keys shape XC-5 replaced.
+    //   ② for a DEDUPED kind the key was `alert:<kind>:global`, so `charge_failed` for the
+    //      second client collided with the first client's row and filed nothing. A morning of
+    //      failed charges became one task about whoever it happened to first.
+    //
+    // ⚠️ AN ALERT WITH NO SUBJECT IS UNCHANGED IN EVERY RESPECT. Same key, same null client,
+    // same global dedupe — a correctly-global condition must not become one row per client.
+    const t = await raiseOperatorTask({
+      kind: ALERT_TASK_CLASS[kind],
+      severity: ALERT_TASK_SEVERITY[kind],
+      title: subject,
+      detail: body || null,
+      clientId: about?.clientId ?? null,
+      programmeId: about?.programmeId ?? null,
+      subjectKind: about?.subjectKind ?? null,
+      subjectId: about?.subjectId ?? null,
+      // Null means "never dedupe" — see NEVER_DEDUPED above. Otherwise the condition dedupes
+      // per SUBJECT when one was given, and globally when it was not.
+      // ⛓️ 19 Sep (J22-C1) — an explicit key from the caller wins, so a caller that has already
+      // written this exact row can send the mirror without filing a second one. See `AlertSubject`.
+      dedupeKey: about?.dedupeKey !== undefined
+        ? about.dedupeKey
+        : NEVER_DEDUPED.has(kind)
+        ? null
+        : `alert:${kind}:${dedupeKeyFor({
+            clientId: about?.clientId ?? undefined,
+            programmeId: about?.programmeId ?? undefined,
+            subjectKind: about?.subjectKind ?? undefined,
+            subjectId: about?.subjectId ?? undefined,
+          })}`,
+      evidence: { alert_kind: kind, email_ok: emailOk, slack_ok: slackOk },
+    })
+    taskOk = t.ok === true
+    taskId = t.taskId
+  } catch (err) {
+    console.error('[alerts] operator task write threw', err)
+  }
+
   // ── LAST RESORT — nothing landed anywhere. Make it loud + greppable. ─────────────
-  if (!emailOk && !slackOk && !durableOk) {
+  if (!emailOk && !slackOk && !durableOk && !taskOk) {
     console.error(`[alerts] ⛔ ALERT LOST — no channel delivered: ${tag} ${subject} — ${body}`)
   }
-  return { delivered: emailOk || slackOk || durableOk, emailOk, slackOk, durableOk }
+  return { delivered: emailOk || slackOk || durableOk, emailOk, slackOk, durableOk, taskOk, taskId }
 }

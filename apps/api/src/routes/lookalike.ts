@@ -3,7 +3,9 @@ import { db } from '@kind/db'
 import { adminKeyValid } from './admin'
 import { searchPeople, buildSearchBody } from '../lib/apollo'
 import { audienceForClient } from '../lib/provider-boundary'
-import { PDL_RATE_USD } from '../lib/sourcing-fences'
+// ⛓️ 17 Sep (FD-6) — `PDL_RATE_USD` is no longer imported here: this route books no PDL cost
+// and credits no PDL allowance, so the rate has nothing to multiply. The constant itself
+// stays in `sourcing-fences.ts` for the historic ledger it still describes.
 import { normalizeRevealEmail } from '../lib/billing-rules'
 import { selectPoolCandidates, logPoolCounters, filterProviderContacts, type PoolCandidate } from '../lib/pool-candidates'
 import { splitPoolAndRemainder, splitPoolEligible, poolRefusalLine, canonicalPoolCountry } from '../lib/pool-sourcing'
@@ -202,34 +204,35 @@ router.post('/generate', async (req: Request, res: Response) => {
     }
 
     if (audience !== 'house') {
-      // ── PROGRAMME AUTHORITY (BUILD-002) ─────────────────────────────────────────
-      // This route has no ICP in hand, so there is no programme id to pass — and that is
-      // exactly why the gate must decide from the database. If this client has an open
-      // programme, the RPC returns 0 for a NULL id, so a programme client's lookalike run
-      // is REFUSED rather than silently spending outside programme authority. A legacy
-      // client is unaffected: no programme, NULL id, legacy behaviour unchanged.
+      // ── ⛓️ 17 Sep (XC-13 / FD-6) — THE PDL CASH FENCE IS GONE, AND NOTHING REPLACES IT ──
       //
-      // ⚠️ THIS IS THE BYPASS THE GATE EXISTS FOR. AR8's history is this very route
-      // spending PDL with no fence at all (~$14/click). Trusting each caller to remember a
-      // parameter is how that happens again; the database refusing is how it does not.
-      const { data: granted } = await db.rpc('try_spend_sourcing', {
-        p_client_id: client_id, p_requested: remainder, p_programme_id: null,
-      })
-      grantedSize = typeof granted === 'number' ? granted : 0
-      if (grantedSize <= 0) {
-        // Honest controlled refusal, in the shape this route already returns. Nothing is
-        // sourced and nothing is spent — the operator is told why rather than shown an
-        // empty result that reads as "this client has no lookalikes".
-        console.log(`[lookalike] refused for client ${client_id} — no pre-funded sourcing budget (allowance/ceiling/daily). No PDL spend.`)
-        return res.json({
-          found: 0, inserted: 0, refused: 'sourcing_allowance',
-          message: 'Sourcing paused — add reveal credits (or the monthly data budget has been reached).',
-          icp_used: { industries: icp.industries, titles: icp.job_titles, locations: icp.geographies },
-        })
-      }
+      // ⛓️ WAS: `db.rpc('try_spend_sourcing', { p_client_id, p_requested, p_programme_id: null })`.
+      //
+      // That reserved PDL records out of `clients.sourcing_allowance` against a monthly PDL
+      // DOLLAR ceiling, and wrote a `sourcing_ledger` row at $0.28 a record. Under FD-6 —
+      // *"PDL IS NOT A PAID/ACTIVE PROVIDER FOR MVP1. We are not paying for PDL."* — all
+      // three are fictions: the records come from K.I.N.D's prepaid Apollo credits, the
+      // allowance is denominated in a currency we no longer buy, and the ledger cost is
+      // money nobody spends. Keeping it would let a fabricated budget refuse real work.
+      //
+      // ⚠️ I FIRST REPLACED IT WITH A PROGRAMME RESERVATION, AND THAT WAS DEAD CODE.
+      // `mayUseLegacyCommercialPath` above already refuses a PROGRAMME client outright
+      // (*"Lookalikes cannot be attributed to a programme"*), so the only client who reaches
+      // this line is legacy or unclassified — and has no programme to reserve against. A
+      // reservation here could never fire, and dead policy code reads as policy.
+      //
+      // So this route grants the remainder, mirroring the House path: bounded per run by
+      // `LOOKALIKE_TARGET` minus what the pool already served.
+      //
+      // 🛑 WHAT IS MISSING IS A LIFETIME CEILING, AND IT IS REPORTED, NOT INVENTED. Before
+      // FD-6 this client was fenced by their allowance and the monthly dollar cap. Neither
+      // bounds anything now. Whether a legacy client may draw on K.I.N.D's Apollo credits
+      // with no lifetime limit is a commercial decision, and Batch 1 does not make it.
+      console.log(`[lookalike] client ${client_id} (legacy/unclassified) — granting the remainder ${remainder} on Apollo, unreserved: there is no programme to reserve against, mirroring the House path. ⚠️ NO LIFETIME CEILING APPLIES under FD-6 — the PDL allowance and monthly dollar cap that used to fence this client bound nothing.`)
+      grantedSize = remainder
     }
 
-    // Use the existing buildSearchBody helper which maps ICP fields correctly
+    // Use the existing buildSearchBody helper which maps ICP fields correctly.
     const searchBody = buildSearchBody({
       job_titles:            icp.job_titles            ?? [],
       seniority_levels:      icp.seniority_levels      ?? [],
@@ -241,57 +244,47 @@ router.post('/generate', async (req: Request, res: Response) => {
       apollo_only_consented: icp.apollo_only_consented ?? false,
       intent_signals:        icp.intent_signals         ?? [],
     }, 1)
-    // ⚑ 12 Sep — THE REMAINDER, NEVER THE TARGET. What the pool already gave is not bought again.
-    searchBody.per_page = remainder
 
-    // Provider by audience — never by key presence. For a client this is PDL, using the
-    // same ICP traits the Apollo body was built from (industries · sizes · titles ·
-    // seniority · geographies), which PDL's own query builder maps natively.
-    // ⚠️ Result QUALITY may differ between providers; the FEATURE does not. That is the
-    // price of AR5, and it is disclosed rather than hidden.
-    const people = audience === 'house'
-      ? await searchPeople(searchBody)
-      : await (async () => {
-          const { pdlSearchPeople } = await import('../lib/pdl-search')
-          // PDL's query shape is the five ICP traits it can actually target. `tech_stack`,
-          // `keywords` and `apollo_only_consented` are Apollo-only concepts and are not
-          // silently pretended at — see the quality note above.
-          // Ask for EXACTLY what was granted — never more than we pre-funded.
-          return pdlSearchPeople({
-            job_titles:       icp.job_titles       ?? [],
-            seniority_levels: icp.seniority_levels ?? [],
-            company_sizes:    icp.company_sizes    ?? [],
-            geographies:      icp.geographies      ?? [],
-            industries:       icp.industries       ?? [],
-          }, grantedSize)
-        })()
-
-    // ── RECONCILE (Fable F1's rule, applied here too) ───────────────────────────
-    // PDL bills per record RETURNED, not per record granted. A thin or empty search must
-    // not drain the client's allowance or book ledger cost for money never spent. Refund
-    // the unused grant (`p_trial: false` — back to spendable allowance without touching
-    // the trial counter, so retries stay possible) and book a negative ledger correction.
+    // ── ⛓️ 17 Sep (FD-6) — ONE PROVIDER, SO NO BRANCH ────────────────────────────────
     //
-    // ⚠️ THIS RUNS BEFORE THE EMPTY-RESULT RETURN BELOW, DELIBERATELY. A zero-result run
-    // is exactly the case that must refund; reconciling after the early return would
-    // silently keep the whole grant for a search that returned nobody.
-    if (audience !== 'house') {
-      const returnedCount = Math.min(people.length, grantedSize)
-      const unusedGrant   = grantedSize - returnedCount
-      if (unusedGrant > 0) {
-        const { error: refundErr } = await db.rpc('add_sourcing_allowance', {
-          p_client_id: client_id, p_records: unusedGrant, p_trial: false,
-        })
-        if (refundErr) {
-          console.error(`[lookalike] sourcing-grant refund FAILED for client ${client_id} (${unusedGrant} records) —`, refundErr)
-        } else {
-          const { error: ledgerErr } = await db.from('sourcing_ledger').insert({
-            client_id, records: -unusedGrant, cost_usd: -(unusedGrant * PDL_RATE_USD),
-          })
-          if (ledgerErr) console.error('[lookalike] sourcing-ledger correction failed (allowance already refunded):', ledgerErr)
-        }
-      }
-    }
+    // WAS: `audience === 'house' ? searchPeople(body) : pdlSearchPeople(fiveTraits, grant)`.
+    // That was AR5 exactly, and it carried a disclosed cost: PDL can target only five of the
+    // ICP's traits, so `tech_stack`, `keywords` and the consent proxy were dropped for a
+    // client and the comment said so — *"result QUALITY may differ between providers; the
+    // FEATURE does not"*.
+    //
+    // FD-6 removes the branch: *"PDL IS NOT A PAID/ACTIVE PROVIDER FOR MVP1."* Both audiences
+    // now go through the SAME Apollo body that was already built above, which means the
+    // disclosed quality gap is gone too — a client's lookalike is targeted on every trait
+    // their ICP states, not on the five one vendor could map.
+    //
+    // ⚠️ THIS WAS THE LAST `pdlSearchPeople` CALL IN THE PRODUCT. `pdl-search.ts` stays on
+    // disk (CORE-MAP rule 3: nothing gets deleted) and is now reachable from nothing, which
+    // `one-provider-apollo.test.ts` proves behaviourally with both keys set.
+    //
+    // ⚠️ AND IT ASKS FOR EXACTLY WHAT WAS GRANTED. `searchBody.per_page = remainder` above
+    // sizes the request to what the pool did not already cover; `grantedSize` is what the
+    // authority allowed. The smaller of the two is what may be kept, so it is what is asked
+    // for — never the target.
+    searchBody.per_page = Math.max(1, Math.min(remainder, grantedSize))
+    const people = await searchPeople(searchBody)
+
+    // ── 🪦 RECONCILE — REMOVED 17 Sep BY FD-6 (Fable F1's rule had nothing left to correct) ──
+    //
+    // WAS: refund the unused grant with `add_sourcing_allowance` and book a negative
+    // `sourcing_ledger` row at `-(unused * PDL_RATE_USD)`.
+    //
+    // The rule it implemented is still right — *a thin or empty search must not drain a
+    // client's allowance or book ledger cost for money never spent* — and under FD-6 it is
+    // satisfied by there being nothing to drain: no allowance is decremented and no ledger
+    // row is written, because no PDL record is bought. Crediting the allowance now would be
+    // the mirror-image defect: moving a REAL counter to correct an imaginary one, handing a
+    // client spendable PDL records for a search that cost K.I.N.D Apollo credits.
+    //
+    // ⚠️ THE PROGRAMME PATH IS WHERE RECONCILIATION LIVES NOW, and this route never reaches
+    // it: `mayUseLegacyCommercialPath` refuses a programme client before any of this. For an
+    // ICP-driven run the reservation is released by `settleBatch`, which converts reserved →
+    // used from what actually qualified — see `icps.ts`.
 
     // ── 🛑 ⚑ 12 Sep — THE PROVIDER HALF GOES BEHIND THE SAME PROTECTIONS (founder amendment) ─
     //

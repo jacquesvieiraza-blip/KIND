@@ -8,7 +8,9 @@ import {
   visibleDrafts, reconcileDrafts,
 } from '@/lib/vida-rail-refresh'
 import { useSearchParams } from 'next/navigation'
-import { panelView } from '@kind/shared'
+import { panelView, loadError } from '@kind/shared'
+// J7-C1 — the one rule for what an empty Needs-you list is allowed to claim.
+import { needsYouEmptyState } from '@/lib/vida-needs-you-state'
 import { useVidaConversation } from '@/components/vida/VidaConversation'
 
 // ── ⚑ 4 Sep (UI-009) — THE CLIENT LIST IS A NAV GROUP NOW, NOT A COLUMN ──────────────────
@@ -101,6 +103,11 @@ export function VidaClients({ open }: { open: boolean }) {
   // ⚑ MVP1 — open onboarding drafts, merged into the rail beside confirmed clients.
   const [drafts, setDrafts] = useState<DraftRow[] | null>(null)
   const [lifecycle, setLifecycle] = useState<Record<string, LifecycleRow>>({})
+  // ⚑ 18 Sep (J7-C1) — THE BOARD READ'S OWN STATE, because an empty `lifecycle` map meant two
+  // different things and the rail could not tell them apart: "every client is calm" and "we
+  // could not ask". `null` while in flight, a sentence once it has failed.
+  const [boardError, setBoardError] = useState<string | null>(null)
+  const [boardLoaded, setBoardLoaded] = useState(false)
   // ⚑ 9 Sep — THE FILTER IS THE RAIL'S, NOT THIS COMPONENT'S. `Needs you` in the Clients rail
   // is a link to this same screen carrying `?needs=1`, so the URL is the single place the
   // filter lives — bookmarkable, shareable, and impossible to disagree with the nav row that
@@ -173,13 +180,27 @@ export function VidaClients({ open }: { open: boolean }) {
         }),
       fetch('/api/proxy/operator/lifecycle-board').then(r => r.json())
         .then(j => {
-          if (!alive() || !j?.success) return
+          if (!alive()) return
+          // ⛓️ 18 Sep (J7-C1) — `!j?.success` NO LONGER RETURNS SILENTLY.
+          // WHAT THIS REPLACED: ~~`if (!alive() || !j?.success) return`~~ — a refusal from the
+          // API left `lifecycle` empty and said nothing, and `needsYou` reads an absent row as
+          // `false`. So a broken board emptied the Needs-you filter and the rail printed
+          // "Nothing needs you right now. 🎉" — the calm sentence as the output of blindness.
+          if (!j?.success) throw new Error(j?.error || 'the API returned no data')
           const m: Record<string, LifecycleRow> = {}
           for (const r of (j.data ?? []) as LifecycleRow[]) m[r.client_id] = r
           setLifecycle(m)
+          setBoardError(null)
+          setBoardLoaded(true)
         })
-        // ⚠️ A FAILED READ LEAVES THE ROWS WITHOUT A STAGE WORD, never with a guessed one.
-        .catch(() => { /* rows fall back to industry · country, which is a fact we do have */ }),
+        // ⚠️ A FAILED READ STILL LEAVES THE ROWS WITHOUT A STAGE WORD, never with a guessed
+        // one — that part was always right. What is new is that the FAILURE IS RECORDED, so
+        // `needsYouEmptyState` can refuse to claim the board is clear.
+        .catch(e => {
+          if (!alive()) return
+          setBoardError(loadError(e))
+          setBoardLoaded(true)
+        }),
       // ⚑ MVP1 — the fifth read, under the SAME policy as the rest: a good read replaces, a
       // failed one changes nothing. A draft that flickers off the rail on a transient blip
       // reads to an operator as "that person gave up", which is a worse lie than a stale row.
@@ -279,9 +300,28 @@ export function VidaClients({ open }: { open: boolean }) {
       {v.state === 'ready' && needsFilter && (
         <p className="text-[11px] font-bold text-[#7C3AED] px-2.5 pb-1.5">Showing clients that need you</p>
       )}
-      {visible.length === 0 && (clients?.length ?? 0) > 0 && (
-        <p className="text-[11.5px] text-[#9b8ec4] px-2.5 py-3 text-center">Nothing needs you right now. 🎉</p>
-      )}
+      {/* ⛓️ 18 Sep (J7-C1) — THE SENTENCE COMES FROM THE RULE, NOT FROM AN EMPTY ARRAY.
+          WHAT THIS REPLACED: ~~`{visible.length === 0 && (clients?.length ?? 0) > 0 && <p>…the
+          calm sentence…</p>}`~~ — which printed it whenever the list was empty, INCLUDING when
+          the board read had failed and `needsYou` was answering `false` for everybody because
+          the map was empty. `needsYouEmptyState` keeps `failed` apart from `empty`, exactly as
+          `vida-operator-tasks.ts` already does for the task queue. */}
+      {(() => {
+        const ny = needsYouEmptyState({
+          board: boardError ? { ok: false, error: boardError } : boardLoaded ? { ok: true } : { ok: 'pending' },
+          clientCount: clients?.length ?? 0,
+          visibleCount: visible.length,
+        })
+        if (ny.kind === 'silent') return null
+        return (
+          <p
+            data-testid={`needs-you-${ny.kind}`}
+            className={`text-[11.5px] px-2.5 py-3 text-center ${ny.trustworthy ? 'text-[#9b8ec4]' : 'text-amber-700'}`}
+          >
+            {ny.message}
+          </p>
+        )
+      })()}
       {visible.map(c => {
         const active = c.id === selected
         // ── ⚑ 9 Sep — THE APPROVED ROW: NAME, STAGE, AND "needs you" WHEN IT IS TRUE ────

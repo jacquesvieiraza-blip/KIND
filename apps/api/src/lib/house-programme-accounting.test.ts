@@ -339,23 +339,41 @@ describe('HOUSE-009 — the house batch settles on what was ACCEPTED, not on wha
     expect(body).toContain('settleBatch(programmeBatch.id, qualified ?? 0)')
   })
 
+  // ⛓️ 18 Sep (MVP1 · J12-C2 · FD-1) — the argument moved from `insertedIds` to `gatedIds`.
+  // The ORDERING this asserts is unchanged and is what it was always about.
   it('🛑 it runs after qualifyCandidates, because that is when a verdict exists', () => {
-    const qualify = ICPS.indexOf('const q = await qualifyCandidates(clientId, insertedIds, {')
+    const qualify = ICPS.indexOf('const q = await qualifyCandidates(clientId, gatedIds, {')
     const settle = ICPS.indexOf('settleBatch(programmeBatch.id, qualified ?? 0)')
     expect(qualify, 'the programme run no longer qualifies its candidates').toBeGreaterThan(-1)
     expect(settle, 'the settle runs before the verdicts exist, so it would count nothing')
       .toBeGreaterThan(qualify)
   })
 
+  // ⛓️ 18 Sep (MVP1 · J12-C2 · FD-1) — `insertedIds` → `gatedIds`, AND THE DIFFERENCE IS THE
+  // WHOLE POINT OF BOTH ITEMS.
+  //
+  // HOUSE-009's defect was a SAMPLE: `insertedIds.slice(0, deliveryCapBalance(...))`, a
+  // self-serve visibility throttle constant at 25, deciding how many of a customer's paid
+  // prospects M&V bothered to assess. The other 225 were never judged at all.
+  //
+  // `gatedIds` is not a sample and not a cap. Every candidate IS judged — by the structural
+  // gate, which now runs before this block — and what reaches `qualifyCandidates` is what the
+  // client's own criteria admit. `finalVerdict` reads email, email status and country and
+  // NOTHING else, so it cannot see a category, a size, a seniority or an EXCLUSION: handing it
+  // the whole batch meant a company the client had asked us to leave out was qualified,
+  // settled their ceiling and reached their screen (FD-1, "in every path").
+  //
+  // ⚠️ SO THE ANTI-CAP ASSERTIONS STAY, AND ONE IS ADDED: nothing in this branch may slice
+  // either list. A throttle is still forbidden; a refusal the client asked for is not one.
   it('🛑 EVERY candidate is judged — not `insertedIds.slice(0, deliveryCapBalance(...))`', () => {
-    // The defect in one line: a self-serve throttle deciding how many of a customer's paid
-    // prospects M&V bothers to assess.
-    expect(ICPS).toContain('qualifyCandidates(clientId, insertedIds, {')
+    expect(ICPS).toContain('qualifyCandidates(clientId, gatedIds, {')
     const at = ICPS.indexOf('if (programmeIdForRun) {', ICPS.indexOf('if (!proofMode && insertedIds.length > 0) {'))
     const programmeBranch = ICPS.slice(at, ICPS.indexOf('} else {', at))
     expect(programmeBranch, 'the programme path is capped by the self-serve delivery cap again')
       .not.toContain('deliveryCapBalance')
     expect(programmeBranch).not.toContain('insertedIds.slice(')
+    expect(programmeBranch, 'the programme path judges a SAMPLE of what the gate admitted')
+      .not.toContain('gatedIds.slice(')
     expect(programmeBranch, 'a programme run writes delivery stamps again — that is surfacing\'s job')
       .not.toContain('enrichAndDeliverLeads')
   })

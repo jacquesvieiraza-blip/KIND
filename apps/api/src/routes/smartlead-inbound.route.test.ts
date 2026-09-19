@@ -18,7 +18,10 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 const state = {
   /** every lead row matching the sender, across all clients */
-  leadMatches: [] as Array<{ id: string; client_id: string }>,
+  // ⛓️ 18 Sep (J22-C3) — the fixtures carry the ADDRESS now. The lead lookup matches
+  // case-insensitively and then re-checks each row for exact equality, so a match row with no
+  // email is filtered out and every routing assertion here fails as "nobody matched".
+  leadMatches: [] as Array<{ id: string; client_id: string; email?: string }>,
   /** client_inboxes: which client owns the receiving address */
   inboxOwner: null as string | null,
   inboxLookupError: null as { message: string } | null,
@@ -126,7 +129,7 @@ const settle = () => new Promise(r => setTimeout(r, 0))
 
 beforeEach(() => {
   process.env.SMARTLEAD_WEBHOOK_SECRET = SECRET
-  state.leadMatches = [{ id: 'lead-A', client_id: 'client-A' }]
+  state.leadMatches = [{ id: 'lead-A', client_id: 'client-A', email: 'thandi@prospect.co' }]
   state.inboxOwner = 'client-A'
   state.inboxLookupError = null
   state.sentLeadIds = []
@@ -161,7 +164,7 @@ describe('it ships inert until the founder configures it', () => {
 
 describe('a reply is routed to the client whose MAILBOX received it', () => {
   it('reply to client A\'s mailbox lands against client A', async () => {
-    state.leadMatches = [{ id: 'lead-A', client_id: 'client-A' }]
+    state.leadMatches = [{ id: 'lead-A', client_id: 'client-A', email: 'thandi@prospect.co' }]
     state.inboxOwner = 'client-A'
     const res = await post(reply({ to_email: 'ada@acme-client.com' }))
     expect(res.code).toBe(200)
@@ -173,7 +176,7 @@ describe('a reply is routed to the client whose MAILBOX received it', () => {
     // The assertion this whole item exists for. Both clients hold this person as a lead —
     // legitimate and common — so the lead match alone cannot decide. Only the receiving
     // mailbox can, and choosing wrong hands one client's inbound mail to another.
-    state.leadMatches = [{ id: 'lead-A', client_id: 'client-A' }, { id: 'lead-B', client_id: 'client-B' }]
+    state.leadMatches = [{ id: 'lead-A', client_id: 'client-A', email: 'thandi@prospect.co' }, { id: 'lead-B', client_id: 'client-B', email: 'thandi@prospect.co' }]
     state.inboxOwner = 'client-B'
     await post(reply({ to_email: 'ben@beta-client.com' }))
     expect(state.replyInserts).toHaveLength(1)
@@ -198,7 +201,7 @@ describe('a reply is routed to the client whose MAILBOX received it', () => {
   // genuine tie becomes a founder alert naming both candidates. Nothing is silently dropped,
   // and the single-client path — every reply in production today — is untouched.
   it('🛑 AN UNKNOWN MAILBOX NO LONGER FANS OUT ACROSS CLIENTS — it fails closed', async () => {
-    state.leadMatches = [{ id: 'lead-A', client_id: 'client-A' }, { id: 'lead-B', client_id: 'client-B' }]
+    state.leadMatches = [{ id: 'lead-A', client_id: 'client-A', email: 'thandi@prospect.co' }, { id: 'lead-B', client_id: 'client-B', email: 'thandi@prospect.co' }]
     state.inboxOwner = null
     const res = await post(reply())
     await settle()
@@ -211,7 +214,7 @@ describe('a reply is routed to the client whose MAILBOX received it', () => {
 
   it('an unknown mailbox with ONE client matching is still delivered — unchanged', async () => {
     // The shape of virtually every real reply, and the thing a blunt refusal would have broken.
-    state.leadMatches = [{ id: 'lead-A', client_id: 'client-A' }]
+    state.leadMatches = [{ id: 'lead-A', client_id: 'client-A', email: 'thandi@prospect.co' }]
     state.inboxOwner = null
     await post(reply())
     expect(state.replyInserts).toHaveLength(1)
@@ -219,7 +222,7 @@ describe('a reply is routed to the client whose MAILBOX received it', () => {
   })
 
   it('and an unknown mailbox WITH originating-send evidence goes to the client we emailed', async () => {
-    state.leadMatches = [{ id: 'lead-A', client_id: 'client-A' }, { id: 'lead-B', client_id: 'client-B' }]
+    state.leadMatches = [{ id: 'lead-A', client_id: 'client-A', email: 'thandi@prospect.co' }, { id: 'lead-B', client_id: 'client-B', email: 'thandi@prospect.co' }]
     state.inboxOwner = null
     state.sentLeadIds = ['lead-B']
     await post(reply())
@@ -231,7 +234,7 @@ describe('a reply is routed to the client whose MAILBOX received it', () => {
     // An outage still must not drop the reply. It now falls through to the same evidence-then-
     // fail-closed ladder as an unknown mailbox, so the outage cannot hand one client another's
     // mail while it lasts.
-    state.leadMatches = [{ id: 'lead-A', client_id: 'client-A' }, { id: 'lead-B', client_id: 'client-B' }]
+    state.leadMatches = [{ id: 'lead-A', client_id: 'client-A', email: 'thandi@prospect.co' }, { id: 'lead-B', client_id: 'client-B', email: 'thandi@prospect.co' }]
     state.inboxLookupError = { message: 'timeout' }
     state.sentLeadIds = ['lead-A']
     await post(reply())
@@ -240,7 +243,7 @@ describe('a reply is routed to the client whose MAILBOX received it', () => {
   })
 
   it('an inbox lookup failure with NO evidence fails closed rather than fanning out', async () => {
-    state.leadMatches = [{ id: 'lead-A', client_id: 'client-A' }, { id: 'lead-B', client_id: 'client-B' }]
+    state.leadMatches = [{ id: 'lead-A', client_id: 'client-A', email: 'thandi@prospect.co' }, { id: 'lead-B', client_id: 'client-B', email: 'thandi@prospect.co' }]
     state.inboxLookupError = { message: 'timeout' }
     const res = await post(reply())
     expect(state.replyInserts).toHaveLength(0)
@@ -264,7 +267,7 @@ describe('a reply that cannot be attributed is never silently dropped', () => {
   it('a reply at client A\'s mailbox from a person only client B holds goes to NEITHER, and alerts', async () => {
     // The harm this prevents: falling back to the fan-out here would post client B's lead's
     // reply into client B's unibox off client A's mailbox.
-    state.leadMatches = [{ id: 'lead-B', client_id: 'client-B' }]
+    state.leadMatches = [{ id: 'lead-B', client_id: 'client-B', email: 'thandi@prospect.co' }]
     state.inboxOwner = 'client-A'
     const res = await post(reply({ to_email: 'ada@acme-client.com' }))
     await settle()
@@ -327,7 +330,7 @@ describe('non-reply events and retries', () => {
   it('classifies AT MOST ONCE however many leads match', async () => {
     // The #589 dividend: this is the classify-once shape `reply-fanout.route.test.ts` pins for
     // Resend, and Smartlead inherits it by sharing the pipeline rather than copying it.
-    state.leadMatches = [{ id: 'lead-A', client_id: 'client-A' }, { id: 'lead-B', client_id: 'client-B' }]
+    state.leadMatches = [{ id: 'lead-A', client_id: 'client-A', email: 'thandi@prospect.co' }, { id: 'lead-B', client_id: 'client-B', email: 'thandi@prospect.co' }]
     state.inboxOwner = null
     state.sentLeadIds = ['lead-A']
     await post(reply())
@@ -338,7 +341,7 @@ describe('non-reply events and retries', () => {
   it('and TWO leads under ONE client share a single classification', async () => {
     // The case where several inserts still happen — same client, so no cross-client leak — and
     // the assertion this file was really written for holds there too.
-    state.leadMatches = [{ id: 'lead-A', client_id: 'client-A' }, { id: 'lead-A2', client_id: 'client-A' }]
+    state.leadMatches = [{ id: 'lead-A', client_id: 'client-A', email: 'thandi@prospect.co' }, { id: 'lead-A2', client_id: 'client-A', email: 'thandi@prospect.co' }]
     state.inboxOwner = null
     await post(reply())
     expect(state.replyInserts).toHaveLength(2)

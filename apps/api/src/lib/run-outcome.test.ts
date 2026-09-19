@@ -23,9 +23,18 @@ describe('deriveRunStatus', () => {
 })
 
 describe('runOutcomeMessage', () => {
-  it('quota_exhausted reassures credits are safe, never blames the ICP', () => {
+  it('quota_exhausted reassures nothing of theirs was spent, never blames the ICP', () => {
+    // ⛓️ 18 Sep (J12-C4 · PV 09 B) — ~~`expect(m).toMatch(/credits are untouched/i)`~~.
+    //
+    // 🛑 THE REASSURANCE IS KEPT AND ITS SUBJECT IS CORRECTED. R124 (16 Sep, founder-locked):
+    // *"299/4 is gone. out. we are on the programme. all clients."* — so a client reassured
+    // about their CREDITS is being reassured about a wallet the product no longer has, which
+    // R94 had already named as one of *"three false claims in one card."* What the client is
+    // owed is the same promise about the thing they DO have: their programme volume, which
+    // this path genuinely releases in full.
     const m = runOutcomeMessage('quota_exhausted', 0)
-    expect(m).toMatch(/credits are untouched/i)
+    expect(m).toMatch(/none of your programme volume has been used/i)
+    expect(m, 'the retired economics are back in front of a client').not.toMatch(/credit|wallet/i)
     expect(m).not.toMatch(/widen/i)
   })
   it('no_match tells the client to widen the ICP', () => {

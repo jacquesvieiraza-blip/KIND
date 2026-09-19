@@ -6,6 +6,10 @@ import { requireAuth, AuthRequest } from '../middleware/auth'
 import { rateLimit } from '../lib/rate-limit'
 import { searchPeopleWithFallback, ApolloCreditsExhaustedError, ApolloRateLimitError } from '../lib/apollo'
 import { audienceForClientStrict, audienceForUser, sourcingProviderFor } from '../lib/provider-boundary'
+// ⛓️ 17 Sep (XC-5 / XC-13) — a refusal and a provider failure become PERSISTED operator
+// tasks, not emails. An email cannot be assigned, deduped, resolved with a reason or counted.
+import { raiseOperatorTask } from '../lib/operator-tasks'
+import { classifyProviderFailure, providerStopSentence } from '../lib/provider-failure'
 import { launchProofRun } from '../lib/proof-run-launch'
 import { scoreLeadsForIcp } from '../lib/scoring'
 import { sendFirstLeadsReadyEmail, sendConsentEmail } from '../lib/email'
@@ -15,6 +19,13 @@ import { getOrCreateConsentToken, buildConsentUrl } from '../lib/consent'
 import { enrichAndDeliverLeads } from '../lib/lead-delivery'
 import { deliveryCapBalance, normalizePlan, normalizeRevealEmail } from '../lib/billing-rules'
 import { isSuppressed } from '../lib/suppression'
+// ⚑ 18 Sep (J5-C5) — STATICALLY IMPORTED, AND THAT IS NOT A STYLE CHOICE. `pool-sourcing.ts`
+// states the same reason for the same predicate: it pulls only `proof-fit`, which pulls only
+// `@kind/shared` and `lead-feedback`, so there is no environment to defer and no cycle to
+// break. A lazy `await import()` here also inserts extra awaits into `runIcpJob`'s fire-and-
+// forget prologue, which is enough to reorder an already-racy activation ("has this ICP ever
+// run?") in `launch-journey.test.ts`. Nothing about this module needs deferring.
+import { splitPreSpendFit, describePreSpendRefusals } from '../lib/pre-spend-fit'
 import { sendFounderAlert } from '../lib/alerts'
 import { PDL_RATE_USD } from '../lib/sourcing-fences'
 import { isLaunchSendCountry, launchTargetRefusal } from '@kind/shared'
@@ -41,6 +52,7 @@ import { onboardingState, ACCOUNT_FACT_LABEL } from '../lib/onboarding-state'
 // rather than the client.
 import {
   translateProviderList, buildIcpReview, icpNeedsReview, deriveProviderReview,
+  PROVIDER_VOCABULARIES,
   ICP_REVIEW_PROOF_REFUSAL as PROOF_PREPARING_COPY, type ProviderField,
 } from '../lib/icp-provider-translation'
 // ⚑ 14 Sep (S1-RT-007 / S1-RT-009) — the model interprets language; it is not the canonical
@@ -51,7 +63,7 @@ import {
   PREMATURE_COMPLETION,
 } from '../lib/milla-reply-shape'
 // ⚑ 14 Sep — the model a human is waiting for. One name, one place (`lib/models.ts`).
-import { CONVERSATION_MODEL, AI_TURN_BOUND } from '../lib/models'
+import { CONVERSATION_MODEL, AI_TURN_BOUND, BACKGROUND_MODEL } from '../lib/models'
 // ⚑ 14 Sep (R121) — a correction the client makes to a LIST travels as structure, so the
 // server never has to read a sentence to know they meant "as well" rather than "instead".
 import { applyListOps, LIST_FACTS, type ListOps } from '../lib/brief-list-ops'
@@ -84,7 +96,7 @@ import {
 import { adminKeyValid } from './admin'
 // Free proof (22 Aug) — reuses the EXISTING real/comp/never-funded distinction rather than
 // inventing a second notion of "has this account paid us".
-import { fundedVia } from '../lib/onboarding-pack'
+import { readFundingState } from '../lib/onboarding-pack'
 
 // PR-A — record ONE honest outcome row per ICP run so the client learns WHY a run
 // produced no leads (quota outage vs narrow ICP). Best-effort: a write failure here
@@ -307,16 +319,31 @@ const icpSchema = z.object({
   name:                  z.string().min(1),
   // ── ⚑ MVP1 (C04) — THE CLIENT'S OWN WORDS REACH THE COLUMN ────────────────────────
   //
-  // ⚠️ DEFAULTED TO '' RATHER THAN OMITTED, so an older client saving a targeting change
-  // does not silently blank a category they already have… and equally does not carry one
-  // it never had. Both are plain text: the whole point is that no closed vocabulary sits
-  // between the client's answer and storage.
+  // ⛓️ 18 Sep (MVP1 · J6-C1 · LR 10) — `.optional()`, AND THE OLD NOTE HAD IT EXACTLY
+  // BACKWARDS. What stood here was:
+  //
+  //   ~~`target_category: z.string().max(200).default('')`~~, under the comment *"DEFAULTED TO
+  //   '' RATHER THAN OMITTED, so an older client saving a targeting change does not silently
+  //   blank a category they already have."*
+  //
+  // 🛑 `.default('')` IS WHAT SILENTLY BLANKED IT. An ABSENT key becomes `''` in the parsed
+  // object, that object IS the update patch (`saveClientTargeting` writes `{ ...body }`), and
+  // the statement reaching Postgres was `SET target_category = ''`. The portal's
+  // `saveIcpDraft` never sent the field at all, so this fired on EVERY refinement: a client
+  // who said "digital marketing agencies" and then asked for smaller ones had the column the
+  // founder locked as the only authority on client intent wiped — and an unstated category is
+  // not a test, so their pass 2 sourced with that criterion switched off entirely.
+  //
+  // ⚠️ OPTIONAL PRESERVES BOTH DIRECTIONS, which is what *"change only by explicit
+  // statement"* requires: ABSENT is not in the patch and the stored value stands; an
+  // explicitly sent `''` IS in the patch and clears it. `exclusions` has had this property
+  // all along, by never being declared here at all.
   //
   // ⚠️ ORDERING. These reach the insert payload via `{ ...body }` in `saveClientTargeting`,
   // so `20260911_icp_target_category_and_type` MUST be applied before this code ships —
   // the same expand/contract rule as `clients.commercial_model`.
-  target_category:       z.string().max(200).default(''),
-  target_company_type:   z.string().max(120).default(''),
+  target_category:       z.string().max(200).optional(),
+  target_company_type:   z.string().max(120).optional(),
   // ── 🛑 ⚑ 14 Sep (S1-PD-01) — `icp_review` IS NOT A REQUEST FIELD, AND MUST NEVER BE ───
   //
   // ⛓️ ~~`icp_review: z.object({ requirements: […] }).nullable().optional()`~~ STOOD HERE for
@@ -394,24 +421,49 @@ async function alertProofBudgetSpent(clientId: string): Promise<void> {
     const today = new Date().toISOString().slice(0, 10)
     if (today === lastProofAlertDay) return
     lastProofAlertDay = today
-    const { data: settings } = await db.from('money_settings').select('proof_monthly_cap_usd').eq('id', 1).maybeSingle()
-    const cap = Number(settings?.proof_monthly_cap_usd ?? 300)
+
+    // ── ⛓️ 17 Sep (J5-C9 / FD-6) — COUNTED IN RECORDS, NOT IN PDL DOLLARS ─────────────
+    //
+    // WAS: read `money_settings.proof_monthly_cap_usd`, sum `proof_ledger.cost_usd` for the
+    // month, and tell the founder *"this month's free-proof PDL spend is $X of the $300
+    // acquisition cap"*. Under FD-6 every number in that sentence is a fiction: an Apollo
+    // People Search costs nothing, the reveal is the credit, and a free Proof set shows
+    // masked cards precisely so it reveals nobody — so the month's PDL spend is $0 and
+    // always will be. It also sent the operator to raise a dollar budget that is not the
+    // constraint.
+    //
+    // ⚠️ ABSENT-COLUMN TOLERANCE, AND IT NAMES WHICH COLUMN ANSWERED. If the J5-C9 migration
+    // has not been run, `proof_monthly_cap_records` is not selectable and supabase-js returns
+    // `{data:null,error}` — which a destructured read shows as an empty object. So the error
+    // is checked, the fallback is the historic translation, and the sentence says the ceiling
+    // could not be read rather than printing a number nobody set.
+    const { data: settings, error: settingsErr } = await db
+      .from('money_settings').select('proof_monthly_cap_records').eq('id', 1).maybeSingle()
+    const rawCap = (settings as { proof_monthly_cap_records?: unknown } | null)?.proof_monthly_cap_records
+    const capRecords = Number(rawCap)
+    const capKnown = !settingsErr && Number.isFinite(capRecords) && capRecords > 0
+
     // ⚠️ budget_month, NOT created_at (round 3). The authority inside
     // `try_reserve_proof_records` sums over budget_month so a late correction lands in the
-    // month the money was reserved. Summing this display by created_at instead would show
+    // month the records were reserved. Summing this display by created_at instead would show
     // the founder a September figure distorted by an August reconciliation — two different
     // numbers for one budget, which is how the $138 infra line went unchallenged for weeks.
     const monthStart = new Date(); monthStart.setUTCDate(1); monthStart.setUTCHours(0, 0, 0, 0)
     const budgetMonth = monthStart.toISOString().slice(0, 10)
     const { data: rows } = await db.from('proof_ledger')
-      .select('cost_usd').eq('budget_month', budgetMonth)
-    const spent = (rows ?? []).reduce((s, r: { cost_usd?: number | string }) => s + Number(r.cost_usd ?? 0), 0)
-    void sendFounderAlert('source_down', 'Free-proof ACQUISITION budget spent — no more paid proof sourcing this month', [
-      `This month's free-proof PDL spend is $${spent.toFixed(2)} of the $${cap.toFixed(0)} acquisition cap.`,
-      `Prospect ${clientId} was refused paid proof sourcing just now.`,
-      'PAYING CLIENTS ARE UNAFFECTED — paid delivery has its own separate ceiling and its own budget.',
+      .select('records').eq('budget_month', budgetMonth)
+    const usedRecords = (rows ?? []).reduce((s, r: { records?: number | string }) => s + Number(r.records ?? 0), 0)
+
+    void sendFounderAlert('source_down', 'Free-proof acquisition ceiling reached — no more proof sourcing this month', [
+      capKnown
+        ? `This month's free-proof sourcing is ${usedRecords} of the ${capRecords}-record acquisition ceiling.`
+        : `This month's free-proof sourcing is ${usedRecords} records, and the ceiling could NOT be read — so whether it is reached was not established here. Run the 20260917_proof_fence_in_records migration if it is missing.`,
+      `Prospect ${clientId} was refused proof sourcing just now.`,
+      'PAYING CLIENTS ARE UNAFFECTED — programme sourcing has its own separate entitlement.',
       'Pool-only proof still works: records we already own cost nothing, so a prospect can still be shown real leads.',
-      'Raise proof_monthly_cap_usd in the admin Money Path page if this is volume you want to fund.',
+      // ⚠️ NO DOLLAR FIGURE AND NO PROVIDER RATE. The ceiling is a RECORD count (J5-C9): an
+      // Apollo search costs nothing, so a spend figure here would be money nobody spent.
+      'Raise proof_monthly_cap_records in the admin Money Path page if this is volume you want to fund.',
     ])
   } catch (err) {
     console.error('[icp] alertProofBudgetSpent failed (non-fatal):', err)
@@ -665,6 +717,9 @@ export async function runIcpJob(
   // POOL-ONLY programme run (no provider remainder, therefore no batch) left it null and
   // those leads carried no programme at all, despite being programme delivery.
   let programmeIdForRun: string | null = null
+  /** ⛓️ 18 Sep — does this run hold LEGACY authority? Set once at the gate, read at the
+   *  programme-less grant; `false` until proven, so it is fail-closed. Full note at the fence. */
+  let legacyAuthority = false
   /**
    * Rows THIS invocation inserted from the PROVIDER. Kept apart from `insertedIds` because
    * `batch_id` and `programme_id` answer different questions — see the stamp below.
@@ -756,8 +811,11 @@ export async function runIcpJob(
     // is called.
     //
     // ⚠️ UNREADABLE REFUSES TOO, and a client with NO declaration behaves exactly as before.
-    const { clientCommercialModel } = await import('../lib/commercial-model')
+    const { clientCommercialModel, isLegacyModel } = await import('../lib/commercial-model')
     const model = await clientCommercialModel(clientId)
+    // ⛓️ 18 Sep — carried to the programme-less fence below, from the ONE resolution that
+    // also decides this gate. See `legacyAuthority`'s declaration for why it is not re-read.
+    legacyAuthority = isLegacyModel(model)
     if (model.model === 'unreadable') {
       // ⚠️ NO APOSTROPHE INSIDE THIS TEMPLATE LITERAL. `schema-truth.ts` strips comments and
       // strings with a scanner that treats a lone `'` inside a backtick as a string opener, so
@@ -910,6 +968,15 @@ export async function runIcpJob(
   // never surfaced, never revealed — and counted here so the outcome can say why. NULL is
   // never a wildcard, on either the pool path or this one.
   let removedByGeoGate = 0
+  // ── ⚑ 18 Sep (J5-C5) — REFUSED BY THE FIT RULE *BEFORE* A RESERVED SLOT WAS CONSUMED ──
+  //
+  // The pool path has asked the whole rule since C02; this path asked one criterion of seven
+  // (geography, above) and left the other six to `applyStructuralGate` — which runs AFTER the
+  // insert, and the insert is what spends `grantedSize`. `grantedSize` is reserved entitlement:
+  // a programme's ceiling, or a prospect's FORTY LIFETIME RECORDS. Counted here for the same
+  // reason `removedByGeoGate` is: a run emptied by our own fit rule must never be reported to
+  // the client as "your targeting matched nobody".
+  let refusedBeforeSpend = 0
   // How many contacts the provider ACTUALLY returned this run, recorded before any
   // K.I.N.D-side gate touches them — the fact the neutral-review decision reads.
   let providerContactsReturned = 0
@@ -982,9 +1049,20 @@ export async function runIcpJob(
   // `onboarding-pack.ts` already draws this distinction, and #619 exists precisely
   // because a surface once read entitlement and printed "Paid $299".
   if (proofMode) {
-    const { data: fundingRows } = await db.from('credit_transactions')
-      .select('type, reference').eq('client_id', clientId)
-    if (fundedVia(fundingRows ?? []) !== null) {
+    // ⛓️ J5-C7 — same inversion as the Proof route, same fix. An unreadable funding state is
+    // NOT "unfunded": treated as `real` here would be wrong in the opposite direction, so the
+    // caller is given the failure and decides.
+    const fundingRead = await readFundingState(clientId)
+    if (!fundingRead.ok) {
+      // ⚠️ THE RUN FAILS, IT DOES NOT PROCEED. This is inside `runIcpJob`, so the honest exit
+      // is a terminal `failed` with no provider call — the pass comes back via
+      // `terminalForRunStatus`. Carrying on would source against an account we could not
+      // classify, which is the AR18 budget mixing this branch exists to prevent.
+      console.error(`[icp] PROOF MODE: funding state unreadable for client ${clientId} — refusing, nothing sourced:`, fundingRead.detail)
+      await recordRunOutcome(icpId, clientId, 'failed', effectiveCap, 0, 0)
+      return { inserted: 0, skipped: 0, relaxed: 'We could not check your account state, so nothing was sourced. Please try again shortly.', terminal: terminalForRunStatus('failed') }
+    }
+    if (fundingRead.funded !== null) {
       console.error(`[icp] PROOF MODE REFUSED for client ${clientId} — the account is funded. Proof authority is for prospects only; nothing was sourced.`)
       await recordRunOutcome(icpId, clientId, 'quota_exhausted', effectiveCap, 0, 0)
       // REFUSED BEFORE ANY PROVIDER CALL — the pass must come back (terminalForRunStatus).
@@ -1145,6 +1223,10 @@ export async function runIcpJob(
     // MONTHLY_PROOF_BUDGET_REACHED · FAIL_CLOSED_*. Only the second value in that list is a
     // company money event, and only it raises the acquisition alert.
     let proofReason = 'GRANTED'
+    // ⛓️ 17 Sep (XC-13) — a client ICP with no programme holds no sourcing authority under
+    // FD-6. Distinguished from an exhausted ceiling because the operator sentence differs:
+    // one needs a programme, the other needs room in one.
+    let noProgrammeAuthority = false
 
     if (audience === 'house') {
       // ── HOUSE-009 · NO PDL MONEY, BUT STILL PROGRAMME AUTHORITY (7 Sep) ───────────────
@@ -1185,8 +1267,28 @@ export async function runIcpJob(
         console.log(`[icp] house run for client ${clientId} — Apollo remainder ${grantedSize}; no programme on this ICP, so there is no reservation to make. The PDL cash fence does not apply (AR5/AR8).`)
       }
     } else if (proofMode) {
+      // ── 🛑 ⚑ 19 Sep (J8 · FOUNDER RULING) — THE RESERVATION IS TOLD WHAT AUTHORITY IT IS ──
+      //
+      // 🛑 WHAT THIS FIXES, AND IT WAS MEASURED, NOT IMAGINED. The canonical Journey 8 walked
+      // the real chain — escalation, recorded resolution, one audited grant, a claim that
+      // returned `kind = calibrated_restart` — and then the run sourced NOTHING:
+      // `try_reserve_proof_records` refused with `CLIENT_PROOF_LIMIT_REACHED`, because the
+      // prospect had committed 40 of 40 records across their two AUTOMATIC attempts and the
+      // fence knew nothing about authority kind. The operator pressed a real button, an audit
+      // row was written, and the client could not get a set.
+      //
+      // ⛓️ AR17 scopes its 40 to *"across BOTH passes"*; R119 grants a THIRD, human-authorised
+      // set. Raising a founder-set funding fence is a founder decision, so it was raised as a
+      // §1 STOP and ruled on 19 Sep 2026: *"APPROVED: OPTION A. The ONE human-authorised
+      // calibrated restart receives its own additional allowance of: 20 RECORDS."*
+      //
+      // ⚠️ THE KIND IS THE ONE THE LEDGER GRANTED, NEVER ONE THIS RUN CHOSE. `opts.proofKind`
+      // is set by the proof route from `claimProofAuthority`'s own `authority.kind`, so an
+      // automatic pass cannot name itself a restart to reach the extra allowance — and the
+      // function checks the grant and the unconsumed claim itself besides.
       const { data: reserved } = await db.rpc('try_reserve_proof_records', {
         p_client_id: clientId, p_requested: pdlRemainder,
+        p_kind: opts?.proofKind ?? 'automatic',
       })
       const r = (reserved ?? {}) as { granted?: number; reservation_id?: string | null; reason?: string }
       proofReserved = typeof r.granted === 'number' ? r.granted : 0
@@ -1197,33 +1299,118 @@ export async function runIcpJob(
       // must NOT be reported as the acquisition budget running out.
       proofReason = typeof r.reason === 'string' ? r.reason : 'FAIL_CLOSED_NO_REASON'
       grantedSize = proofReserved
-      console.log(`[icp] FREE PROOF run for prospect ${clientId} — reserved ${proofReserved} of ${pdlRemainder} PDL record(s) (reservation ${proofReservationId ?? 'none'}, ${proofReason}) against the acquisition fence (40 lifetime, $300/mo).`)
+      // ⛓️ 17 Sep (J5-C9) — WAS: "PDL record(s) … against the acquisition fence (40 lifetime,
+      // $300/mo)". Both halves were wrong under FD-6: the records are Apollo's, and the
+      // monthly half of the fence is a RECORD count, not $300 at a PDL rate.
+      console.log(`[icp] FREE PROOF run for prospect ${clientId} — reserved ${proofReserved} of ${pdlRemainder} Apollo record(s) (reservation ${proofReservationId ?? 'none'}, ${proofReason}) against the acquisition fence (40 lifetime per prospect, plus a monthly record ceiling).`)
     } else {
-      // ── PROGRAMME AUTHORITY (BUILD-002) ─────────────────────────────────────────────
-      // The programme comes from the ICP ROW, never from the client. A programme may hold
-      // several ICPs, so deriving it from the client would guess as soon as there is more
-      // than one — and `icp` is already loaded with select('*') above, so this is a read of
-      // data the job is holding, not a second query that could disagree with it.
+      // ── PROGRAMME AUTHORITY, WITHOUT PDL MONEY (⛓️ 17 Sep · XC-13 / J12-C0) ───────────
       //
-      // ⚠️ PASSING NULL IS NOT A FALLBACK. If this client HAS an open programme, the RPC
-      // returns 0 for a NULL id rather than quietly spending their legacy wallet. The gate
-      // decides which regime applies from the database, so a caller that forgets is refused
-      // instead of silently sourcing outside programme authority.
+      // ⛓️ WAS: `db.rpc('try_spend_sourcing', { p_client_id, p_requested, p_programme_id })`.
+      //
+      // That function does TWO unrelated jobs in one body, and HOUSE-009 already split them:
+      // programme AUTHORITY (status, pause, ceiling, the 250 batch cap) and PDL MONEY (an
+      // `INSERT INTO sourcing_ledger` at `$0.28` a record). Under FD-6 the second half is a
+      // fabricated cost — *"We are not paying for PDL"* — so a client programme sourcing run
+      // would have booked provider spend nobody incurred, against a monthly PDL ceiling that
+      // constrains nothing, and used it to refuse real work.
+      //
+      // So the client path now calls the authority half DIRECTLY, exactly as the House path
+      // above it does. One implementation of the ceiling, three callers, no invented money.
+      // `programme_batches` is still the record, `settleBatch` still converts reserved →
+      // used, and the 2,500 ceiling is still enforced in one place.
+      //
+      // ⚠️ A CLIENT WITH NO PROGRAMME IS REFUSED, AND THAT IS THE SAFE DIRECTION.
+      //
+      // The old legacy branch of `try_spend_sourcing` fenced such a client by their
+      // `sourcing_allowance` and the monthly PDL dollar ceiling. Under FD-6 neither fences
+      // anything: the records come from K.I.N.D's own prepaid Apollo credits, so an
+      // allowance denominated in PDL records would authorise spending OUR credits with no
+      // ceiling at all. Refusing is fail-closed and it is legible: the run records
+      // `quota_exhausted` and Vida gets a Needs-you saying the client holds no programme
+      // authority. Granting would be a silent, unbounded spend of the one resource MVP1
+      // depends on.
+      //
+      // ⚠️ AND THE PROGRAMME COMES FROM THE ICP ROW, never from the client — a client may
+      // hold several ICPs, so deriving it from the client would guess as soon as there is
+      // more than one, and `icp` is already loaded here.
       const programmeId = (icp as { programme_id?: string | null }).programme_id ?? null
-      const { data: granted } = await db.rpc('try_spend_sourcing', {
-        p_client_id: clientId, p_requested: pdlRemainder, p_programme_id: programmeId,
-      })
-      grantedSize = typeof granted === 'number' ? granted : 0
-      // Reserve/release: authority is RESERVED at grant and converted to used only when the
-      // provider actually delivers, so a provider returning zero cannot permanently burn
-      // volume the client paid for. The batch row is the record that lets it be released.
-      // ⚑ 9 Sep — the batch covers the whole attempt (see the pool reservation above). The
-      // PDL money call itself is UNCHANGED and still asks only for `pdlRemainder`: a pool
-      // record is free, and putting it through `try_spend_sourcing` would book $0.28 a head
-      // of provider cost that nobody incurred.
-      if (programmeId && grantedSize + poolReserved > 0) {
-        const { openBatch } = await import('../lib/programme')
-        programmeBatch = await openBatch(programmeId, pdlRemainder + poolAttempted, grantedSize + poolReserved)
+      if (!programmeId) {
+        // ── A CLIENT ICP WITH NO PROGRAMME KEEPS TODAY'S BEHAVIOUR, EXACTLY AS HOUSE DOES ──
+        //
+        // ⚠️ I WROTE THE REFUSAL FIRST, AND IT WAS THE WRONG CALL. Refusing here is the
+        // tempting answer — under FD-6 these records come from K.I.N.D's prepaid Apollo
+        // credits, and only programme entitlement bounds them — but it is not the answer the
+        // manifest asks for and it is not one I may make. XC-13 says client shortfall is
+        // sourced "under programme entitlement … the existing House-on-Apollo model", and
+        // the House path's own answer for an ICP with no programme, eleven lines above, is to
+        // grant the remainder: there is nothing to reserve against, and inventing a refusal
+        // would break sourcing to fix a counter that does not exist.
+        //
+        // So this mirrors House exactly. The volume is still bounded per run by
+        // `effectiveCap` → `pdlRemainder`, which is the same limit the reservation would have
+        // capped; what is absent is a LIFETIME ceiling.
+        //
+        // 🛑 AND THAT ABSENCE IS A REAL GAP, REPORTED RATHER THAN SILENTLY FIXED. Before
+        // FD-6 a programme-less client was fenced by `clients.sourcing_allowance` and the
+        // monthly PDL dollar cap. Neither bounds anything now, because the records are ours.
+        // Whether a legacy client may source on K.I.N.D's Apollo credits with no lifetime
+        // ceiling is a commercial decision, not an engineering one — it is in the
+        // out-of-scope report, and Batch 1 does not decide it.
+        //
+        // ── 🛑 ⛓️ 18 Sep — AND IT IS NOW FENCED TO THE LEGACY PATH, POSITIVELY ──────────────
+        //
+        // GPT verification was right to push on this: my previous note said the absence of a
+        // lifetime ceiling was "reported, not fixed" and left it there. What it did NOT say is
+        // WHO can reach this line, and that is the part that mattered.
+        //
+        // An MVP1 normal client cannot. The authority gate above refuses every programme-model
+        // client before the pool is served: a declared `programme` client with no open
+        // programme throws `not_this_programme`; one WITH an open programme and an unattached
+        // ICP throws `icp_not_attached_to_programme`; `compat_programme` (undeclared, but a
+        // programme is open) throws the same; `unreadable` throws `programme_unresolvable`. So
+        // the only model left standing here is LEGACY — the retired $299-pack book.
+        //
+        // ⚠️ THAT WAS TRUE BY CONSEQUENCE, NOT BY CONSTRUCTION, and those are different things.
+        // The invariant lived 500 lines away in a different block, which is precisely the
+        // "gated at the entry point instead of at the act" shape that has failed in this file
+        // before (AR8, and `lookalike/generate` being the caller nobody remembered). A reorder,
+        // an early return, or one more caller and an unbounded grant reaches a paying client.
+        //
+        // So the grant now REQUIRES legacy authority at the point of grant. This is not a new
+        // commercial decision in either direction: a legacy client keeps exactly today's
+        // behaviour, and a non-legacy client gets 0 — which is what the gate above already
+        // guarantees, now stated where the money is actually handed out. A fence that only
+        // holds because of a distant condition is a fence nobody can verify.
+        //
+        // ⚠️ WHY A FLAG AND NOT A SECOND READ. `clientCommercialModel` is already resolved by
+        // the authority gate. Re-resolving it here would be a SECOND read of the same question
+        // that could disagree with the one that actually decided the gate — the defect shape
+        // this file keeps being bitten by. One resolution, one truth, carried forward; and it
+        // starts `false`, so a proof run (no commercial model at all) and any path that throws
+        // before the gate both grant nothing.
+        if (!legacyAuthority) {
+          grantedSize = 0
+          noProgrammeAuthority = true
+          console.error(`[icp] client run REFUSED for ${clientId} — this ICP carries no programme and the client does not hold legacy authority, so there is nothing to reserve against and no entitlement to draw on. Nothing was sourced. (The authority gate should already have refused this run; reaching here means a NEW sourcing path bypassed it.)`)
+        } else {
+          grantedSize = pdlRemainder
+          noProgrammeAuthority = true
+          console.log(`[icp] LEGACY client run for ${clientId} — Apollo remainder ${grantedSize}; this ICP carries no programme and the client is on the retired per-lead model, so there is no reservation to make (mirrors the House path). ⚠️ NO LIFETIME CEILING APPLIES: the PDL allowance and monthly dollar cap that used to fence this client bound nothing under FD-6. This is the legacy book only — an MVP1 programme client cannot reach this line.`)
+        }
+      } else {
+        const { data: reserved } = await db.rpc('try_reserve_programme_sourcing', {
+          p_programme_id: programmeId, p_requested: pdlRemainder,
+        })
+        grantedSize = typeof reserved === 'number' ? reserved : 0
+        // ⚑ 9 Sep — the batch is the whole ATTEMPT: the provider grant plus the pool volume
+        // reserved above. Recording only the provider half is what made the settle clamp a
+        // qualified pool candidate out of the customer's consumed ceiling.
+        if (grantedSize + poolReserved > 0) {
+          const { openBatch } = await import('../lib/programme')
+          programmeBatch = await openBatch(programmeId, pdlRemainder + poolAttempted, grantedSize + poolReserved)
+        }
+        console.log(`[icp] client programme run for ${clientId} — programme ${programmeId} reserved ${grantedSize} of ${pdlRemainder} Apollo record(s); no ledger row written, because entitlement and provider cost are different facts (HOUSE-009, extended to clients by FD-6).`)
       }
     }
     if (grantedSize <= 0) {
@@ -1243,7 +1430,32 @@ export async function runIcpJob(
       // budget alarm for it would tell the founder his clients' data budget had run out when
       // it is untouched — the same false-alert species the proof split above exists to stop.
       if (audience === 'house') console.error(`[icp] house sourcing refused for programme run on client ${clientId} — the programme reserved 0 of ${pdlRemainder}. Its ceiling is spent, it is paused, or it holds no sourcing authority. No PDL budget is involved and none was touched.`)
-      else if (!proofMode) void maybeAlertPdlBudget()
+      // ⛓️ 17 Sep (XC-13 / J5-C9) — `maybeAlertPdlBudget()` IS GONE FROM THIS PATH.
+      //
+      // WAS: `else if (!proofMode) void maybeAlertPdlBudget()`. A refused client grant raised
+      // "the monthly PDL data budget has been reached". Under FD-6 that sentence is false in
+      // both halves: we buy no PDL records, and the thing that refused is a PROGRAMME ceiling
+      // or the absence of a programme. Telling the founder his data budget ran out while it
+      // sits untouched is the exact false-alert species the proof/house splits below and
+      // above this line were each written to stop.
+      //
+      // The refusal becomes a Needs-you task instead, with the sentence that matches its
+      // actual cause.
+      else if (!proofMode) {
+        void raiseOperatorTask({
+          kind: 'sourcing_refused_no_authority',
+          severity: 'warn',
+          clientId,
+          subjectKind: 'icp',
+          subjectId: String(icpId),
+          // ⚠️ ONE SENTENCE, BECAUSE THERE IS ONLY ONE CAUSE LEFT. An ICP with no programme
+          // no longer reaches this branch — it mirrors House and grants the remainder, see
+          // above — so a zero grant here means the programme itself refused.
+          title: 'Sourcing refused — this programme has no sourcing authority left',
+          detail: 'The programme\'s ceiling is spent, it is paused, or it is not yet authorised. Raise the ceiling, resume it, or authorise it. Nothing was searched and nothing was spent.',
+          evidence: { requested: pdlRemainder, granted: 0, pool_served: pool.served, no_programme: noProgrammeAuthority },
+        }).catch(() => {})
+      }
       else if (proofReason === 'MONTHLY_PROOF_BUDGET_REACHED') void alertProofBudgetSpent(clientId)
       else if (proofReason === 'CLIENT_PROOF_LIMIT_REACHED') console.log(`[icp] FREE PROOF — prospect ${clientId} has used their ${PROOF_CLIENT_RECORD_CAP}-record allowance; the monthly acquisition budget is untouched.`)
       // A fail-closed reason is NOT "they used their 40" — saying so in a log the founder
@@ -1252,7 +1464,7 @@ export async function runIcpJob(
       else console.error(`[icp] FREE PROOF reservation did not complete for prospect ${clientId} (${proofReason}) — nothing was reserved and nothing spent. This is not a budget event.`)
       if (pool.served === 0) {
         // Nothing from the pool AND no PDL budget → identical to the pre-pool refusal.
-        console.log(`[icp] sourcing refused for client ${clientId} — no pre-funded budget (allowance/ceiling/daily). No PDL spend.`)
+        console.log(`[icp] sourcing refused for client ${clientId} — no sourcing authority (programme ceiling, pause, or no programme at all). Nothing was searched and nothing was spent.`)
         await db.from('icps').update({ last_run_at: new Date().toISOString() }).eq('id', icp.id)
         await recordRunOutcome(icpId, clientId, 'quota_exhausted', effectiveCap, 0, 0)
         // ⚠️ THE HOUSE REFUSAL HAS A DIFFERENT CAUSE, SO IT GETS A DIFFERENT SENTENCE. "Add
@@ -1261,9 +1473,14 @@ export async function runIcpJob(
         // to the wrong screen.
         // The budget fence refused before PDL was called: nothing was spent, so the Proof
         // authority returns rather than paying for a run that never happened.
-        return { inserted: 0, skipped: 0, terminal: terminalForRunStatus('quota_exhausted'), relaxed: audience === 'house'
-          ? 'Sourcing paused — this programme has no sourcing authority left (ceiling reached, paused, or not yet authorised).'
-          : 'Sourcing paused — add reveal credits (or the monthly data budget has been reached).' }
+        // ⛓️ 17 Sep (XC-13) — THE CLIENT SENTENCE CHANGED, because the old one was false.
+        // "Add reveal credits (or the monthly data budget has been reached)" described a PDL
+        // wallet and a PDL dollar ceiling, neither of which exists under FD-6. What actually
+        // refused is programme authority, which is the same thing that refuses for House —
+        // so both audiences now get the true sentence, and `relaxed` is client-facing copy,
+        // so it says it without naming a provider (C02: no provider terminology in Milla).
+        return { inserted: 0, skipped: 0, terminal: terminalForRunStatus('quota_exhausted'),
+          relaxed: 'Sourcing is paused for this programme — there is no volume authorised to source right now.' }
       }
       // Pool already served leads — deliver those; just skip the PDL top-up.
       console.log(`[icp] PDL top-up refused for client ${clientId} (no budget) — delivering ${pool.served} pool-served leads only.`)
@@ -1335,6 +1552,15 @@ export async function runIcpJob(
         console.error('[icp] calibration read failed — sourcing continues unnarrowed:', err)
       }
 
+      // ── ⚑ 18 Sep (J5-C5) — THE TARGETING THIS BATCH WAS ACTUALLY SEARCHED WITH ──────────
+      //
+      // The pre-spend fit rule below must judge candidates against the criteria that FETCHED
+      // them, not against the ICP as saved. The one widened proof retry deliberately drops
+      // seniority and size; judging its results against the saved row would refuse exactly
+      // what the widening existed to find, and would do it before the reservation was even
+      // reconciled. Reassigned in that branch and nowhere else.
+      let icpAsSearched = icpForSearch
+
       // ── AR5 BOUNDARY (21 Aug) ──────────────────────────────────────────────────
       // House → Apollo (our hunting, our prepaid credits); client → PDL under the AR8
       // fence spent just above. `audience` is resolved BEFORE that fence now — see the
@@ -1358,7 +1584,86 @@ export async function runIcpJob(
         // Only the DELIBERATE block is absorbed — every other throw keeps crashing to the
         // boundary, exactly as before. Recognised by its stable code, not instanceof, so a
         // reloaded module graph cannot unrecognise it.
-        if (!isPaidProviderBlocked(searchErr)) throw searchErr
+        if (!isPaidProviderBlocked(searchErr)) {
+          // ── ⛓️ 17 Sep (XC-13) — EVERY APOLLO FAILURE CLASS FAILS CLOSED, HERE ──────────
+          //
+          // 🛑 WHAT THE BARE `throw` LEFT BEHIND. `openBatch` above reserves the client's
+          // volume; `settleBatch` at the end of this function converts it. A throw between
+          // them skips the settle, so a client's PAID volume sat reserved against a batch
+          // that delivered nothing — for ever, until somebody reconciled by hand. HOUSE-009
+          // is the same defect from the other end, and it cost 246 people counted against
+          // `0 used / 0 reserved / 2500 left / no batch`.
+          //
+          // And with FD-6 there is no second provider, so an Apollo failure is the WHOLE
+          // answer: "out of credits" and "Apollo is down" need different responses, and
+          // `icp_run_outcomes` already carried the distinction nothing was using.
+          //
+          // ⚠️ IT STILL RE-THROWS. The crash boundary is what records `failed` for the
+          // journey and settles the Proof claim, and skipping it would change who owns the
+          // outcome. What this block adds is the three things the throw skipped: the
+          // reservation is RELEASED, the run is recorded with the right status, and a
+          // human gets a task naming the actual cause.
+          const verdict = classifyProviderFailure(searchErr)
+          console.error(`[icp] stage=provider_failed — class=${verdict.klass} status=${verdict.runStatus} client=${clientId} icp=${icpId}: ${verdict.operatorDetail}`)
+
+          // ① RELEASE. A failure must never hold volume a client paid for.
+          if (programmeBatch) {
+            const { settleBatch } = await import('../lib/programme')
+            // Zero delivered: the reservation is returned in full, because nothing arrived.
+            await settleBatch(programmeBatch.id, 0).catch(e =>
+              console.error(`[icp] batch ${programmeBatch?.id} could NOT be released after a provider failure — the reservation stands and must be reconciled:`, e))
+            // ⚠️ NO "already settled" FLAG IS NEEDED, and the absence is deliberate: this
+            // block RE-THROWS, so the settle at the end of the run is never reached on this
+            // path. A flag would imply a second settle were possible and invite one.
+          }
+          if (proofMode && proofReservationId && proofReserved > 0) {
+            const { error: relErr } = await db.rpc('release_proof_records', {
+              p_reservation_id: proofReservationId, p_records: proofReserved,
+            })
+            if (relErr) console.error(`[icp] PROOF reservation ${proofReservationId} could NOT be released after a provider failure (${proofReserved} records) — it stands, so future proof under-allows rather than overspends:`, relErr)
+          }
+
+          // ② RECORD. `quota_exhausted` when the account is spent, `failed` otherwise —
+          //    and NEVER `no_match`, because a failure is not evidence about a market.
+          await recordRunOutcome(icpId, clientId, verdict.runStatus, effectiveCap, pool.served, 0)
+            .catch(e => console.error('[icp] provider-failure outcome not recorded:', e))
+
+          // ③ TELL A HUMAN, in a form they can act on. Deduped by the index on
+          //    (kind, dedupe_key), so a 2-hourly cron hitting a dry account produces one row
+          //    a day rather than twelve — which is how a queue stays readable.
+          await raiseOperatorTask({
+            kind: verdict.taskKind,
+            severity: verdict.severity,
+            clientId,
+            subjectKind: 'icp',
+            subjectId: String(icpId),
+            // ⛓️ 18 Sep (J12-C4 · PV 09 B) — THE NUMBER IS IN THE SENTENCE NOW.
+            //
+            // ~~`'Apollo is out of lead credits — sourcing cannot complete'`~~ and
+            // ~~`detail: verdict.operatorAction`~~ told an operator that a stop had happened
+            // and nothing they could size. 40 records short and 4,000 records short are the
+            // difference between topping up on the way past and a purchase somebody has to
+            // approve, and the number was already here — it went into `evidence`, which the
+            // queue does not read aloud.
+            title: verdict.klass === 'credits_exhausted' || verdict.klass === 'payment_required'
+              ? `Apollo is out of lead credits — sourcing stopped ${grantedSize.toLocaleString()} record${grantedSize === 1 ? '' : 's'} short`
+              : `The lead source failed (${verdict.klass}) — sourcing cannot complete`,
+            detail: providerStopSentence(verdict, { requested: grantedSize, served: pool.served }),
+            // ⚠️ THE DEDUPE KEY IS THE CONDITION, NOT THE CLIENT. An exhausted account is one
+            // fact about the company; keying it per client would file a row per client per
+            // cron tick for a single cause.
+            dedupeKey: `provider:${verdict.klass}`,
+            evidence: {
+              failure_class: verdict.klass,
+              run_status: verdict.runStatus,
+              retryable: verdict.retryable,
+              requested: grantedSize,
+              detail: verdict.operatorDetail,
+            },
+          }).catch(() => {})
+
+          throw searchErr
+        }
         paidSourcingBlocked = true
         console.error(`[icp] stage=provider_blocked — paid sourcing required (${grantedSize} record(s)) but the zero-spend guard refused it; pool served ${pool.served}. The run continues: pool leads surface, the reservation refunds, the outcome records honestly.`)
         void sendFounderAlert('source_down', 'Proof run needed paid sourcing but PAID_PROVIDERS_ENABLED is off', [
@@ -1371,23 +1676,27 @@ export async function runIcpJob(
       }
       let contacts = exact?.contacts ?? []
       relaxed = exact?.relaxed ?? relaxed
-      const pdlPage = exact?.pdlPage ?? null
+      const providerPage = exact?.providerPage ?? null
 
-      // Remember where PDL got to, so NEXT month starts after these people instead of on
-      // top of them. Only written when PDL actually answered — a failed request leaves the
-      // stored cursor untouched, so the unserved page is retried rather than skipped.
+      // Remember where the PROVIDER got to, so NEXT month starts after these people instead
+      // of on top of them. Only written when the provider actually answered — a failed
+      // request leaves the stored cursor untouched, so the unserved page is retried rather
+      // than skipped.
+      // ⛓️ 17 Sep (FD-6) — the provider is Apollo and the cursor is a page number. The
+      // stored column is still called `pdl_scroll_token`; see `pdl-cursor.ts` for why the
+      // name is historic and the value is current.
       //
       // ⚠️ THE EXACT QUERY'S PAGE, ALWAYS — never the widened fallback's below. The cursor is
       // fingerprinted against the SAVED ICP, so storing a token that belongs to a different
       // query is precisely the stale-cursor trap `pdl-cursor.ts` exists to prevent.
-      if (pdlPage) {
-        cursorUpdate = nextCursorState(icp as CursorQuery, pdlPage, new Date().toISOString())
-        if (pdlPage.exhausted) audienceExhausted = true
+      if (providerPage) {
+        cursorUpdate = nextCursorState(icp as CursorQuery, providerPage, new Date().toISOString())
+        if (providerPage.exhausted) audienceExhausted = true
         // POSITIVE evidence only: the page's own verdict on itself. Results, a first-page
         // 404 (matched nobody) and a paged-to-the-end 404 (audience finished) prove
         // completion; timeout, 5xx, auth, two 429s, malformed body, out of credits and
         // no-API-key all leave `completed: false` — and therefore leave trust unproven.
-        if (pdlPage.completed) searchTrust = 'proven'
+        if (providerPage.completed) searchTrust = 'proven'
       } else if (sourcingProvider === 'apollo' && !paidSourcingBlocked) {
         // The Apollo path has no PDL page and its failures THROW out of this run — so
         // reaching this line at all IS the positive evidence of completion. A BLOCKED
@@ -1447,7 +1756,7 @@ export async function runIcpJob(
         opts?.proofKind !== 'calibrated_restart' &&
         audience === 'client' &&
         cursor.token === null &&
-        pdlPage?.matchedNothing === true &&
+        providerPage?.matchedNothing === true &&
         contacts.length === 0
       if (canWiden) {
         // ⚑ 26 Aug — RECORDED SO THE OUTCOME SENTENCE CANNOT ADVISE A WIDENING WE JUST DID.
@@ -1455,6 +1764,9 @@ export async function runIcpJob(
         // zero, unproven zero, or matches — carries the fact that the one fallback was used.
         didWiden = true
         const widened = { ...icpForSearch, seniority_levels: [], company_sizes: [] }
+        // ⚑ 18 Sep (J5-C5) — and the pre-spend fit rule judges against THIS, so the widening
+        // cannot be undone by a criterion it deliberately dropped.
+        icpAsSearched = widened
         console.log(`[icp] PROOF PASS 2 — exact targeting matched nobody for prospect ${clientId}; ONE widened retry (titles/industries/countries kept, seniority + size dropped).`)
         // A SECOND provider answer is now required; the exact search's proof does not
         // transfer to it. Unproven again until the widened page shows its own evidence.
@@ -1470,7 +1782,7 @@ export async function runIcpJob(
           paidSourcingBlocked = true
           console.error(`[icp] stage=provider_blocked — the widened fallback was refused by the zero-spend guard for prospect ${clientId}. The run continues.`)
         }
-        if (wide?.pdlPage?.completed) searchTrust = 'proven'
+        if (wide?.providerPage?.completed) searchTrust = 'proven'
         contacts = wide?.contacts ?? []
         // ⚑ 25 Aug (GPT review hold) — A ZERO IS NOT A ZERO UNTIL PDL PROVED IT.
         //
@@ -1510,7 +1822,7 @@ export async function runIcpJob(
             company_sizes:    [...((icp as ProofWidenedBasis).company_sizes    ?? [])],
             geographies:      [...((icp as ProofWidenedBasis).geographies      ?? [])],
           }
-        } else if (wide?.pdlPage?.matchedNothing === true) {
+        } else if (wide?.providerPage?.matchedNothing === true) {
           // PROVED ZERO. PDL answered, on a first page, that nobody matches. A human takes it
           // from here: no third query, no third pass, no retry control, and never the
           // exhaustion sentence — nobody was ever sourced from this targeting, so "you
@@ -1528,7 +1840,7 @@ export async function runIcpJob(
           // page produced no positive evidence, so trust is still 'unproven' here and the
           // run derives `failed`. Nothing to set — fail-closed means the honest state is
           // what remains when no code runs.
-          console.log(`[icp] PROOF PASS 2 — widened retry did NOT produce a trustworthy result for prospect ${clientId} (${wide?.pdlPage ? `error: ${wide.pdlPage.error ?? 'empty, unproven'}` : 'no page returned'}). Human review; no further automatic attempt.`)
+          console.log(`[icp] PROOF PASS 2 — widened retry did NOT produce a trustworthy result for prospect ${clientId} (${wide?.providerPage ? `error: ${wide.providerPage.error ?? 'empty, unproven'}` : 'no page returned'}). Human review; no further automatic attempt.`)
         }
       }
 
@@ -1544,7 +1856,48 @@ export async function runIcpJob(
       // grant to refund and no PDL money was spent — refunding here would credit the
       // house a PDL allowance it never bought and book a negative PDL ledger row for a
       // run that cost no PDL. The reconcile belongs to the fence, so it lives with it.
-      const returnedCount = Math.min(contacts.length, grantedSize)
+      // ── 🛑 ⚑ 18 Sep (J5-C5 · LR 10 · FD-1/2) — THE FIT RULE, BEFORE A SLOT IS CONSUMED ──
+      //
+      // 🛑 THE DEFECT, AND IT IS ONE SENTENCE. The insertion loop below applies exactly ONE of
+      // the seven hard criteria — the geography invariant, whose own note says it is *"the SAME
+      // rule at the provider boundary"* as the pool's. Size, industry, category, company type,
+      // seniority and the client's EXCLUSIONS were never asked here at all; they are asked a
+      // few hundred lines down by `applyStructuralGate`, AFTER the candidate has become a lead
+      // row and AFTER it has consumed one of `grantedSize`.
+      //
+      // `grantedSize` is RESERVED ENTITLEMENT — `try_reserve_programme_sourcing`, or
+      // `try_reserve_proof_records`, which is **forty records for a prospect's entire
+      // lifetime**. A page of 40 where 35 are companies the client's own criteria refuse
+      // consumed all 40 to show 5, and the 35 were refused for free, later, by this same
+      // predicate. The pool path never had this problem: `poolRecordMatchesIcp` asks the whole
+      // rule BEFORE a record is served and before it shrinks the external ask.
+      //
+      // ⚠️ PURE, AND `contacts` IS NOT SHRUNK HERE. R67 outranks this filter — every paid
+      // identity is written to `acquisition_memory` BEFORE any client gate can drop it — and
+      // `providerContactsReturned` must stay the page the provider genuinely handed us, or a
+      // run our own rule emptied would be reported to the client as a thin search. So this
+      // computes a REFUSAL SET; the loop below skips those contacts by identity.
+      //
+      // ⚠️ AND IT ASKS `structurallyAdmissible`, THE LENIENT QUESTION. The gate sets UNKNOWNS
+      // aside too (11 Sep); an unknown is still a real candidate, surfaced and banded "Worth a
+      // look". Only a criterion that answered a definite `no` may cost a candidate its slot —
+      // so nothing refused here could have reached the desk anyway (`/leads/for-approval`
+      // filters `set_aside_reason IS NULL`), and the client's set is unchanged by construction.
+      const preSpend = splitPreSpendFit(contacts, icpAsSearched as Parameters<typeof splitPreSpendFit>[1])
+      const refusedPreSpend = new Set<unknown>(preSpend.refused.map(r => r.contact))
+      if (preSpend.refused.length > 0) {
+        console.log(`[icp] stage=pre_spend_refused — ${preSpend.refused.length} of ${contacts.length} provider contact(s) are refused by the client's own hard criteria (${describePreSpendRefusals(preSpend.counts)}). Judged BEFORE the reservation is reconciled, so their reserved records are released rather than spent on candidates the structural gate would set aside.`)
+      }
+
+      // ⛓️ 18 Sep (J5-C5) — WHAT THE RESERVATION ACTUALLY CONSUMED, AND THE TWO PROVIDERS
+      // GENUINELY DIFFER. PDL bills per record RETURNED, so its reservation is spent by the
+      // page whatever we then decide about it — releasing there would refund an allowance for
+      // money we really did spend and book a negative ledger row that is simply false. Apollo
+      // is PREPAID (FD-6), so what its reservation should consume is the volume that may
+      // become a usable lead: exactly the reasoning HOUSE-009 already applied to `settleBatch`,
+      // now applied to the half of the reconcile that runs before it.
+      const consumedFromGrant = sourcingProvider === 'pdl' ? contacts.length : preSpend.admissible.length
+      const returnedCount = Math.min(consumedFromGrant, grantedSize)
       const unusedGrant = audience === 'house' ? 0 : grantedSize - returnedCount
 
       // ── PROGRAMME RESERVE → USED, AND RELEASE THE REST (BUILD-002) ──────────────────
@@ -1798,6 +2151,21 @@ export async function runIcpJob(
       }
 
       for (const contact of contacts) {
+        // ── 🛑 ⚑ 18 Sep (J5-C5) — REFUSED BY THE CLIENT'S OWN CRITERIA, BEFORE THE SLOT ────
+        //
+        // 🛑 FIRST IN THE LOOP, AND THAT POSITION IS THE ENTIRE ITEM. `pdlKept` is the meter
+        // that consumes `grantedSize`, so anything placed after the cap below has already
+        // spent the slot it was supposed to save. Every one of these would have been inserted,
+        // scored and then set aside by `applyStructuralGate` — this refuses them where the
+        // pool path has always refused them: before they cost anything.
+        //
+        // ⚠️ THE IDENTITIES ARE ALREADY REMEMBERED. `rememberAcquiredIdentities` ran above, on
+        // the WHOLE page, so R67 is satisfied before this drops anybody — we never forget a
+        // record we own merely because this client cannot use it.
+        if (refusedPreSpend.has(contact)) {
+          skipped++; refusedBeforeSpend++; continue
+        }
+
         // Cap PDL insertions at the GRANTED budget (#445) — never keep more than we
         // pre-funded. grantedSize ≤ pdlRemainder ≤ effectiveCap, so this binds. (Counts
         // only PDL keeps, NOT pool serves, so the pool never eats the PDL budget.)
@@ -2190,6 +2558,123 @@ export async function runIcpJob(
   // ⚠️ PAID IS UNTOUCHED. A non-proof run takes this block exactly as it always did: same
   // `deliveryCapBalance`, same `DAILY_BROWSE_CAP`, same Apollo reveal, same Hunter waterfall,
   // same delivery. Nothing inside the block changed — only who may enter it.
+  // ── 🛑 ⚑ 18 Sep (J12-C2 · FD-1) — THE GATE MOVED UP, AND ITS POSITION WAS THE DEFECT ──
+  //
+  // 🛑 IT USED TO RUN ~150 LINES BELOW THIS POINT, which put it AFTER the programme path had
+  // already qualified, settled and SURFACED the batch. So on a programme run:
+  //
+  //   · `qualifyCandidates(clientId, insertedIds, …)` judged the WHOLE batch on email and
+  //     geography — the only two things `finalVerdict` reads;
+  //   · `settleBatch` consumed the customer's ceiling on that count;
+  //   · `surfaceQualifiedBatch` put them in front of the customer;
+  //   · and only THEN did this gate ask whether they were the kind of company the client had
+  //     asked for, or one of the companies they had asked us to LEAVE OUT.
+  //
+  // FD-1 is "in every path", and this was the path where an excluded company cost the client
+  // their entitlement and then appeared on their screen. J5-C12 built the criterion; this is
+  // where the programme path finally consults it.
+  //
+  // ⚠️ ITS OWN HEADER ALREADY SAID WHERE IT BELONGED — *"BEFORE ANYTHING IS SCORED OR
+  // SURFACED"* — and that was true of the proof path it was written for and false of the
+  // programme path, which surfaces through a different function. A comment can only speak for
+  // the code it sits above.
+  //
+  // ⚠️ NOTHING ABOUT THE GATE ITSELF CHANGED: same call, same fail-closed refusal, same
+  // outcome record, same `gatedIds`. Only the line it sits on.
+  //
+  // ⚠️ AND THE FAIL-CLOSED EXIT IS NOW EARLIER, WHICH IS THE SAFE DIRECTION. A batch whose
+  // refusals cannot be RECORDED returns before qualification, so the programme reservation
+  // stays OPEN and recoverable rather than being settled on candidates nobody had judged.
+  // ── 🛑 ⚑ 10 Sep (C04) — THE STRUCTURAL GATE, BEFORE ANYTHING IS SCORED OR SURFACED ────
+  //
+  // WHAT THE FOUNDER SAW. He targeted UK digital marketing agencies, 10–50 staff, Founder or
+  // CEO. Proof showed him management consultancies and procurement firms. `start-work.ts`
+  // states the old policy plainly — *"Every sourced person goes to the client, scored, with
+  // our top 20 marked. We don't filter first — that adds work and delays the money."* On a
+  // paid client's continuously-topped-up desk that trade was defensible. On a PROSPECT'S FIRST
+  // IMPRESSION it means the client does our data cleaning, which is the opposite of the
+  // product we sell.
+  //
+  // ⚠️ IT RUNS HERE, NOT LATER, FOR TWO REASONS. Scoring is handed `gatedIds` below, so the
+  // model only ever judges candidates that already match what the client asked for — its
+  // number can no longer overturn a structural refusal. And the surfacing stamp far below
+  // reads the same list, so a refused candidate is never shown even once.
+  //
+  // 🛑 FAIL CLOSED (founder-locked 10 Sep). If `leads.set_aside_reason` does not exist yet,
+  // this refuses the batch rather than surfacing it: a refusal we cannot RECORD is a refusal
+  // that does not survive to the next pass, and `surfaceEverything` would re-offer the same
+  // people. The run outcome says which migration to run.
+  let gatedIds = insertedIds
+  let setAsideCount = 0
+  if (insertedIds.length > 0) {
+    const { applyStructuralGate } = await import('../lib/proof-gate')
+    const gate = await applyStructuralGate(icp, insertedIds)
+    if (!gate.ok) {
+      console.error(`[icp] STRUCTURAL GATE REFUSED the batch for client ${clientId}: ${gate.detail}`)
+      // ⚠️ `heldFromIcp` IS DELIBERATELY NOT PASSED. It is computed further down (the
+      // entitlement-exhaustion count) and is not yet known here; passing a zero for it would
+      // record a number nobody measured, which is the exact defect `recordRunOutcome`'s own
+      // honesty rules exist to stop. The refusal reports what it actually knows.
+      await recordRunOutcome(icpId, clientId, 'failed', effectiveCap, pool.served, inserted, 0, didWiden)
+      // ⚠️ THE LEADS ARE LEFT EXACTLY WHERE THEY ARE — inserted, unsurfaced, unscored. Nothing
+      // is deleted (that would destroy what the run bought) and nothing is shown. The next
+      // attempt after the migration re-judges them from the same rows.
+      // 🛑 THE CLIENT RECEIVES NO PROOF SET HERE, SO THE ATTEMPT MUST NOT BE CONSUMED.
+      // This path records `failed` and RETURNS — it never throws, so the proof route's outer
+      // `.catch` cannot see it. The founder named this exit by name; it releases.
+      return { inserted, skipped, relaxed: gate.detail, terminal: terminalForRunStatus('failed') }
+    }
+    gatedIds = gate.eligible
+    setAsideCount = gate.setAside.length
+    if (setAsideCount > 0) {
+      console.log(`[icp] structural gate: ${gate.eligible.length} of ${insertedIds.length} candidates match the targeting for client ${clientId} — ${setAsideCount} set aside (${[...new Set(gate.setAside.map(s => s.reason))].join(' · ')}).`)
+    }
+  }
+
+  // ── 🛑 ⚑ 19 Sep (MVP1 · Journey 12) — A RUN THAT BOUGHT NOBODY STILL SETTLES ITS BATCH ──
+  //
+  // 🛑 THE SIBLING OF THE STRANDING `claim_programme_batch` NOW FIXES, AND IT IS THIS FILE'S
+  // HALF. Every settle in this function lives inside the block below, which is gated on
+  // `insertedIds.length > 0`. So a run that reserved volume, opened a batch and then inserted
+  // NOBODY — every provider contact refused by the client's own hard criteria before the
+  // spend, a pool serve that wrote nothing after its grant, a dedupe that removed the page —
+  // reached the end holding a reservation with no batch event that could ever release it. The
+  // batch stays `running`, `delivered` stays null, and that slice of the client's PAID ceiling
+  // is gone. Founder lock 6 says unused programme value never expires.
+  //
+  // ⚠️ ONLY WHEN THE BATCH HOLDS NOBODY AT ALL, and the check is a count rather than this
+  // run's own list. A batch is shared: the claim hands an in-flight batch to a second run, and
+  // the first run's candidates may be sitting in it unjudged, deliberately left for the
+  // operator re-run ("the reservation stays open; re-run qualification"). Settling on zero
+  // there would release volume those candidates legitimately hold and throw away a recovery
+  // the code above chose on purpose. `count(leads where batch_id = X) = 0` is the only state
+  // in which releasing everything is unambiguously right: nobody was bought, so nobody can
+  // ever be qualified against it.
+  //
+  // ⚠️ IT INVENTS NO NEW ACCOUNTING. `settleBatch(id, 0)` is the same call the provider-failure
+  // path a thousand lines above already makes for the same reason, and the RPC is idempotent —
+  // a batch another run settles first refuses this one with a no-op.
+  //
+  // ⚠️ AND IT CANNOT FIRE ON THE STRUCTURAL-GATE REFUSAL, which returns before this line with
+  // its reservation deliberately open and its candidates still on the table.
+  if (!proofMode && programmeBatch && insertedIds.length === 0) {
+    const { count: attributed, error: attErr } = await db.from('leads')
+      .select('id', { count: 'exact', head: true })
+      .eq('batch_id', programmeBatch.id)
+    if (attErr) {
+      // Fail closed: an unreadable count is not evidence that the batch is empty, and
+      // releasing a reservation on a guess is the one outcome worse than holding it.
+      console.error(`[icp] batch ${programmeBatch.id} inserted NOBODY, and its attributed-candidate count could not be read (${attErr.message}) — the reservation stays open and must be reconciled.`)
+    } else if ((attributed ?? 0) > 0) {
+      console.log(`[icp] batch ${programmeBatch.id} inserted nobody on this run, but holds ${attributed} candidate(s) from an earlier one — the reservation stays open for that run's qualification, not released here.`)
+    } else {
+      const { settleBatch } = await import('../lib/programme')
+      const r = await settleBatch(programmeBatch.id, 0)
+      if (r.ok) console.log(`[icp] batch ${programmeBatch.id} settled at ZERO — the run created no candidate, so the whole grant is released back to the client's ceiling.`)
+      else console.error(`[icp] batch ${programmeBatch.id} created no candidate and could NOT be settled — marked stranded; the granted volume stays reserved until reconciled.`)
+    }
+  }
+
   if (!proofMode && insertedIds.length > 0) {
     if (programmeIdForRun) {
       // ══ ⚑ 9 Sep (HOUSE-009) — A PROGRAMME RUN QUALIFIES; IT DOES NOT "DELIVER" ═══════
@@ -2207,8 +2692,13 @@ export async function runIcpJob(
       //
       // ⚠️ IT WRITES NO `delivered_at`. Customer visibility is `surfaceQualifiedBatch`, after
       // a verdict exists. Tying the ledger to a screen is the whole defect.
+      // ⛓️ 18 Sep (J12-C2 · FD-1) — `gatedIds`, NOT `insertedIds`. `finalVerdict` reads email,
+      // email status and country and nothing else, so qualification cannot see a category, a
+      // size, a seniority or an EXCLUSION. Handing it the whole batch meant a company the
+      // client had asked us to leave out was qualified, settled their ceiling and reached
+      // their screen. The structural gate above has already answered for these ids.
       const { qualifyCandidates } = await import('../lib/programme-qualification')
-      const q = await qualifyCandidates(clientId, insertedIds, {
+      const q = await qualifyCandidates(clientId, gatedIds, {
         // The customer's own criteria, read off the ICP THIS RUN is using — never a second
         // lookup that could disagree with it.
         geographies: ((icp as { geographies?: string[] | null }).geographies ?? []).filter(Boolean),
@@ -2323,51 +2813,6 @@ export async function runIcpJob(
     }
   }
 
-  // ── 🛑 ⚑ 10 Sep (C04) — THE STRUCTURAL GATE, BEFORE ANYTHING IS SCORED OR SURFACED ────
-  //
-  // WHAT THE FOUNDER SAW. He targeted UK digital marketing agencies, 10–50 staff, Founder or
-  // CEO. Proof showed him management consultancies and procurement firms. `start-work.ts`
-  // states the old policy plainly — *"Every sourced person goes to the client, scored, with
-  // our top 20 marked. We don't filter first — that adds work and delays the money."* On a
-  // paid client's continuously-topped-up desk that trade was defensible. On a PROSPECT'S FIRST
-  // IMPRESSION it means the client does our data cleaning, which is the opposite of the
-  // product we sell.
-  //
-  // ⚠️ IT RUNS HERE, NOT LATER, FOR TWO REASONS. Scoring is handed `gatedIds` below, so the
-  // model only ever judges candidates that already match what the client asked for — its
-  // number can no longer overturn a structural refusal. And the surfacing stamp far below
-  // reads the same list, so a refused candidate is never shown even once.
-  //
-  // 🛑 FAIL CLOSED (founder-locked 10 Sep). If `leads.set_aside_reason` does not exist yet,
-  // this refuses the batch rather than surfacing it: a refusal we cannot RECORD is a refusal
-  // that does not survive to the next pass, and `surfaceEverything` would re-offer the same
-  // people. The run outcome says which migration to run.
-  let gatedIds = insertedIds
-  let setAsideCount = 0
-  if (insertedIds.length > 0) {
-    const { applyStructuralGate } = await import('../lib/proof-gate')
-    const gate = await applyStructuralGate(icp, insertedIds)
-    if (!gate.ok) {
-      console.error(`[icp] STRUCTURAL GATE REFUSED the batch for client ${clientId}: ${gate.detail}`)
-      // ⚠️ `heldFromIcp` IS DELIBERATELY NOT PASSED. It is computed further down (the
-      // entitlement-exhaustion count) and is not yet known here; passing a zero for it would
-      // record a number nobody measured, which is the exact defect `recordRunOutcome`'s own
-      // honesty rules exist to stop. The refusal reports what it actually knows.
-      await recordRunOutcome(icpId, clientId, 'failed', effectiveCap, pool.served, inserted, 0, didWiden)
-      // ⚠️ THE LEADS ARE LEFT EXACTLY WHERE THEY ARE — inserted, unsurfaced, unscored. Nothing
-      // is deleted (that would destroy what the run bought) and nothing is shown. The next
-      // attempt after the migration re-judges them from the same rows.
-      // 🛑 THE CLIENT RECEIVES NO PROOF SET HERE, SO THE ATTEMPT MUST NOT BE CONSUMED.
-      // This path records `failed` and RETURNS — it never throws, so the proof route's outer
-      // `.catch` cannot see it. The founder named this exit by name; it releases.
-      return { inserted, skipped, relaxed: gate.detail, terminal: terminalForRunStatus('failed') }
-    }
-    gatedIds = gate.eligible
-    setAsideCount = gate.setAside.length
-    if (setAsideCount > 0) {
-      console.log(`[icp] structural gate: ${gate.eligible.length} of ${insertedIds.length} candidates match the targeting for client ${clientId} — ${setAsideCount} set aside (${[...new Set(gate.setAside.map(s => s.reason))].join(' · ')}).`)
-    }
-  }
 
   if (inserted > 0) {
     const { data: clientRow } = await db.from('clients')
@@ -2381,7 +2826,10 @@ export async function runIcpJob(
     // ⚠️ `gatedIds`, NOT `insertedIds` — the model judges only candidates that already match
     // the client's own hard criteria (C05: calibration among the structurally eligible).
     scoreLeadsForIcp(gatedIds, icp, clientRow?.company_name ?? '', clientId)
-      .then(() => {
+      // ⚠️ `async` SO THE COMMERCIAL-MODEL FENCE BELOW CAN BE AWAITED. The callback already
+      // returns a promise on one branch (`autoConsentScoredLeads`), so the chain's shape is
+      // unchanged — what is new is that one of its own decisions needs a read.
+      .then(async () => {
         // 🛑 ⚑ 16 Sep (MVP1 · F1) — A FREE PROOF NEVER COLD-EMAILS THE CLIENT'S PROSPECTS.
         //
         // Proof exists to show ONE client a sample of who we can reach. Consent mail is real
@@ -2393,7 +2841,23 @@ export async function runIcpJob(
           console.log(`[icp] auto-consent FENCED OFF — free proof run for prospect ${clientId}; ${gatedIds.length} eligible lead(s) scored for the desk, no consent emails sent (F1).`)
           return undefined
         }
+        // ── 🛑 ⚑ 18 Sep (XC-7 · R124 · LR 18) — AND NOT FOR A PROGRAMME CLIENT EITHER ────
+        //
+        // Auto-consent is the LEGACY outreach motion: a consent email to a stranger, fired
+        // because a sourcing run scored them, with no programme approval anywhere behind it.
+        // A programme customer's outbound has one door — approval, then the prepared sequence
+        // — and this is a second one that opens on sourcing alone.
+        //
+        // ⚠️ THE TWO EXISTING FENCES ARE UNTOUCHED: free proof is still refused above, and
+        // `AUTO_OUTREACH_ENABLED` is still required below. This adds a third, and it is about
+        // WHO rather than about the switch.
         if (process.env.AUTO_OUTREACH_ENABLED === 'true') {
+          const { legacyDoorVerdict } = await import('../lib/commercial-model')
+          const door = await legacyDoorVerdict(clientId)
+          if (!door.allowed) {
+            console.warn(`[icp] auto-consent FENCED OFF for client ${clientId} — ${door.reason} ${gatedIds.length} lead(s) scored, no consent emails sent.`)
+            return undefined
+          }
           return autoConsentScoredLeads(gatedIds, clientRow?.company_name ?? '', clientId)
         }
         console.log(`[icp] auto-consent SKIPPED (AUTO_OUTREACH_ENABLED != true) — ${insertedIds.length} leads scored, no consent emails sent`)
@@ -2548,7 +3012,7 @@ export async function runIcpJob(
     ? 'failed'
     : deriveRunStatus(!!clientSettings?.is_demo, clientUsable, false, audienceExhausted, trusted)
   if (gatesAteEverything) {
-    console.log(`[icp] icp ${icpId} — search completed and returned ${providerContactsReturned} contact(s); K.I.N.D removed every one (${removedByGeoGate} geography unknown/non-matching · ${removedBySuppression} suppression/opt-out/DNC · ${removedByDedupe} already owned · ${setAsideCount} set aside by the structural gate · rest insert/cap). Neutral review state; targeting NOT blamed.`)
+    console.log(`[icp] icp ${icpId} — search completed and returned ${providerContactsReturned} contact(s); K.I.N.D removed every one (${removedByGeoGate} geography unknown/non-matching · ${refusedBeforeSpend} refused by the client's own hard criteria before a slot was spent · ${removedBySuppression} suppression/opt-out/DNC · ${removedByDedupe} already owned · ${setAsideCount} set aside by the structural gate · rest insert/cap). Neutral review state; targeting NOT blamed.`)
     void sendFounderAlert('source_down', 'A completed search was emptied entirely by K.I.N.D-side gates', [
       `Client ${clientId}, ICP ${icpId}.`,
       `${providerContactsReturned} contact(s) matched the targeting; removed: ${removedByGeoGate} by the hard geography gate (country missing or not canonically in the client's targeting), ${removedBySuppression} by suppression/opt-out/DNC, ${removedByDedupe} already owned by this client, remainder by insert failure or cap.`,
@@ -2562,6 +3026,14 @@ export async function runIcpJob(
       // invariant promise (guarded by proof-outcome-matrix.test.ts) and holds in every
       // variant of this state. This line names the NEW variant the predicate can now see:
       // candidates that were inserted and then structurally refused.
+      // ⚑ 18 Sep (J5-C5) — APPENDED, NEVER SUBSTITUTED, for the same reason as the two lines
+      // around it. This names the variant that produces NO set-aside row to inspect: a
+      // candidate the client's own criteria refuse is now judged at the provider boundary, so
+      // its reserved record is released instead of spent — and the only record of it is this
+      // count and the `stage=pre_spend_refused` line, which names the criteria.
+      ...(refusedBeforeSpend > 0
+        ? [`${refusedBeforeSpend} of them were refused by the client's own hard criteria BEFORE a reserved record was spent (J5-C5) — never inserted, so there is no set_aside_reason row for these; the run log's stage=pre_spend_refused line names which criteria refused them. Their reserved records were RELEASED. If that count is most of the page, the targeting and the provider query disagree — investigate the query, not the client.`]
+        : []),
       ...(setAsideCount > 0
         ? [`${setAsideCount} of them were INSERTED and then set aside by the structural gate (a hard criterion answered "no", or could not be confirmed at all). The rows are still there, unsurfaced, each carrying its own set_aside_reason — Vida's Proof exception panel groups them. Correct the targeting or confirm the missing facts, then Retry Proof: the attempt was RELEASED, not spent.`]
         : []),
@@ -2877,9 +3349,16 @@ icpRouter.post('/prefill', async (req: AuthRequest, res) => {
 // ── CHAT BUILD — conversational ICP builder (must be before /:id routes) ─────
 icpRouter.post('/chat-build', async (req: AuthRequest, res) => {
   try {
-    const { message, history = [] } = z.object({
+    const { message, history = [], sessionId, messageId } = z.object({
       message: z.string().min(1).max(1000),
       history: z.array(z.object({ role: z.enum(['user','assistant']), content: z.string() })).max(20).default([]),
+      // ⚑ 18 Sep (J3-C2) — WHERE THIS TURN BELONGS, AND WHICH TURN IT IS.
+      // ⚠️ BOTH OPTIONAL, because this endpoint is also reached from surfaces that hold no
+      // Milla session (the retired ICP drawer, the side panel). A turn with nowhere to be
+      // stored is answered exactly as it always was — what may not happen is a turn that HAS
+      // a home being answered without being put in it.
+      sessionId: z.string().uuid().nullish(),
+      messageId: z.string().uuid().nullish(),
     }).parse(req.body)
 
     // ── 🛑 ⚑ 14 Sep (R121, Build 2) — THE LAST JSON FORM IN A CLIENT'S PATH ─────────────
@@ -2956,6 +3435,91 @@ Consulting or Telecoms — ask about that ONE thing in ordinary words, and nothi
       }
     }
 
+    // ── 🛑 ⚑ 18 Sep (J6-C2 · LR 11,13 · FD-1) — WHAT THEY ALREADY HAVE, ACTUALLY SHOWN ──
+    //
+    // 🛑 THE PROMPT ABOVE SAYS *"Start from what they already have and change only what they
+    // asked about"*, AND THIS DOOR NEVER READ THEIR ICP. Its context was the durable Brief
+    // and twenty turns of browser history, and nothing else — `icps` was not queried anywhere
+    // in the handler. So the model was told to start from something it had never been shown,
+    // and `propose_targeting` returns the WHOLE profile as the end state: whatever it omitted
+    // was what got written.
+    //
+    // ⚠️ THE BRIEF IS NOT THE ICP, AND THAT IS WHY THE BRIEF BLOCK ABOVE IS NOT ENOUGH. The
+    // Brief is what they said at signup; the ICP is what is live now — after a refinement,
+    // after an operator translated a phrase we could not map, after a widened proof pass was
+    // adopted. A client who changed their geography last month and came back to change their
+    // size was described by the older of the two.
+    //
+    // 🛑 EXCLUSIONS ARE THE SHARPEST CASE (FD-1). "Not recruitment agencies" is canonical
+    // targeting truth on `icps.exclusions`, it was invisible here, and a proposal that
+    // contradicted it is exactly what would have been written.
+    //
+    // ⚠️ BEST-EFFORT, LIKE THE BRIEF BLOCK, AND FOR THE SAME REASON: an ICP we cannot read
+    // costs the client their context, never their turn.
+    let currentBlock = ''
+    if (req.userId) {
+      try {
+        const cid = await getClientId(req.userId)
+        if (cid) {
+          const { data: currentIcp } = await db.from('icps')
+            .select('name, target_category, target_company_type, target_size, exclusions, geographies, company_sizes, job_titles, seniority_levels, industries')
+            .eq('client_id', cid).order('created_at', { ascending: false }).limit(1).maybeSingle()
+          const { describeCurrentTargeting } = await import('../lib/icp-refine-context')
+          currentBlock = describeCurrentTargeting(currentIcp as never)
+        }
+      } catch {
+        console.log('[icps/chat-build] current targeting unreadable — she refines without it')
+      }
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════════════
+    // 🛑 ⚑ 18 Sep (J3-C2) — ONCE THEY HAVE SENT IT, WE OWN IT. BEFORE THE MODEL.
+    //
+    // ⛓️ THIS DOOR PERSISTED NOTHING, and its own header above says so — *"twenty turns of
+    // BROWSER history and nothing else … no durable transcript"*. `MillaConversation` posts
+    // through here and the reply lands in the SAME visible transcript as the session chat,
+    // which writes its turn before the model and fails closed. One conversation, one screen,
+    // two durability rules — and the client cannot tell which turn is which until they reload
+    // after a provider wobble and half of it is gone. This is the door a PAYING client uses to
+    // change their targeting, so the turns being lost are the ones where they explain what
+    // they actually want.
+    //
+    // ⚠️ AFTER THE HISTORY IS ASSEMBLED, DELIBERATELY, so the payload stays byte-identical:
+    // the new turn reaches the model once, as the final `user` message, and not also as a row
+    // the history read picked up.
+    //
+    // ⚠️ AND IT IS FAIL-CLOSED, exactly as the session door is. Answering a question we did
+    // not manage to record is how a conversation silently loses a turn, and the client's own
+    // composer still holds the sentence to try again.
+    // ══════════════════════════════════════════════════════════════════════════════════
+    const { ownCustomerTurn, existingReply, storeMillaReply } = await import('../lib/customer-turn')
+    let owned: { userRowId: string; assistantRowId: string } | null = null
+    let ownedClientId: string | null = null
+    if (sessionId && messageId && req.userId) {
+      // `getClientId` is this module's own, declared above — the turn is stored against the
+      // same client every other route in this file resolves.
+      const turnClientId = await getClientId(req.userId)
+      if (turnClientId) {
+        const r = await ownCustomerTurn({
+          sessionId, clientId: turnClientId, content: message, userRowId: messageId,
+        })
+        if (!r.ok) {
+          console.error('[icps/chat-build] could not store the customer turn —', r.error)
+          res.status(503).json({ success: false, error: MILLA_RETRY_ERROR, retryable: true })
+          return
+        }
+        owned = { userRowId: r.userRowId, assistantRowId: r.assistantRowId }
+        // 🛑 A REPLAY OF A SEND THAT ALREADY SUCCEEDED REPLAYS THE ANSWER — IT DOES NOT
+        // RE-ASK. Without it the component's `withOneRetry` around this call spends a second
+        // model call and puts two Milla replies under one sentence.
+        if (r.alreadyOwned) {
+          const prior = await existingReply(r.assistantRowId)
+          if (prior) { res.json({ success: true, data: { message: prior.content } }); return }
+        }
+        ownedClientId = turnClientId
+      }
+    }
+
     const messages = [
       ...history,
       { role: 'user' as const, content: message },
@@ -2964,7 +3528,7 @@ Consulting or Telecoms — ask about that ONE thing in ordinary words, and nothi
     const response = await anthropic.messages.create({
       model: CONVERSATION_MODEL,
       max_tokens: 600,
-      system: system + briefBlock,
+      system: system + currentBlock + briefBlock,
       tools: [{
         name: 'propose_targeting',
         description: 'The targeting as it should end up after what the client just said. Send the WHOLE profile, starting from what they already have.',
@@ -3018,6 +3582,14 @@ Consulting or Telecoms — ask about that ONE thing in ordinary words, and nothi
       return
     }
     const parsed: Record<string, unknown> = { ...proposed, message: said }
+
+    // ⚑ 18 Sep (J3-C2) — and her answer joins the same transcript. Best-effort: the client has
+    // it on screen, and their words — the half we cannot reproduce — are already safe above.
+    if (owned && ownedClientId && sessionId && said) {
+      await storeMillaReply({
+        assistantRowId: owned.assistantRowId, sessionId, clientId: ownedClientId, content: said,
+      })
+    }
 
     // ── ⚑ 25 Aug — `clear_fields` IS SANITISED HERE, FAIL-CLOSED (founder-ruled) ─────────
     //
@@ -3140,9 +3712,16 @@ const BUILDER_MODEL = CONVERSATION_MODEL
 /** The closed lists the launch targeting fields accept. ONE definition, used by both the
  *  tool schema (as `enum`) and the prompt (as prose) so the two can never drift apart —
  *  the old code stated them only inside a fake-JSON example. Values are unchanged. */
-const ICP_INDUSTRIES = ['Fintech', 'Healthtech', 'E-commerce', 'SaaS', 'Logistics', 'Agriculture', 'Education', 'Manufacturing', 'Real Estate', 'Media', 'Consulting', 'Retail', 'Banking', 'Insurance', 'Telecoms', 'Energy'] as const
-const ICP_SENIORITY  = ['C-Suite', 'VP / Director', 'Head of', 'Manager', 'Senior', 'Individual Contributor'] as const
-const ICP_SIZES      = ['1–10', '11–50', '51–200', '201–500', '501–1,000', '1,000+'] as const
+// ⛓️ 18 Sep (J5-C10) — THESE ARE NOW ALIASES, NOT DECLARATIONS.
+// WHAT THIS REPLACED: ~~three `as const` literals spelled out here~~, plus a byte-identical
+// second copy in `routes/operator.ts` and a drift guard asserting the two matched. The copies
+// existed because neither router wanted to import the other; the vocabulary now lives in
+// `lib/icp-provider-translation.ts`, the module that owns translating INTO it, which imports
+// nothing and can be read by a `lib/` module. `promoteConfirmedBrief` needed exactly that.
+// The names are kept because ~40 references in this file read them.
+const ICP_INDUSTRIES = PROVIDER_VOCABULARIES.industries
+const ICP_SENIORITY  = PROVIDER_VOCABULARIES.seniority_levels
+const ICP_SIZES      = PROVIDER_VOCABULARIES.company_sizes
 
 /** JSON Schema for the one tool the model may call.
  *
@@ -5081,6 +5660,29 @@ result or a number. "permitted" is false unless they explicitly said we may use 
           brief_exclusions: resolved.exclusions ?? '',
           // Fact #6, from the same durable record — so the chips cannot disagree with it.
           brief_geographies: resolved.geographies ?? [],
+          // ── 🛑 ⚑ 18 Sep (J5-C4 · LR 10,12) — AND THE OTHER FOUR TARGETING FACTS ────────
+          //
+          // 🛑 THE CARD SHOWED THE CLIENT OUR TRANSLATION AND ASKED THEM TO APPROVE IT.
+          // "Proposed ICP · v1" is the first thing anyone says yes to, and its chips were
+          // built from `proposed.seniority_levels`, `proposed.industries` and
+          // `proposed.company_sizes` — the three CLOSED PROVIDER VOCABULARIES. The panel's
+          // own note says as much: *"`proposed` is the plan's CONTENT — the provider-
+          // translated arrays"*. So a client who said "digital marketing agencies, ten to
+          // fifty people" was shown **"Marketing · Consulting · 11–50 staff"**, and
+          // `target_category` — the column the founder locked as the only authority on client
+          // intent — appeared on no client screen in the portal at all.
+          //
+          // ⚠️ THE PRECEDENT IS THE LINE ABOVE. `brief_geographies` was added on 14 Sep for
+          // exactly this reason, and geography alone was switched to the durable record. These
+          // four finish the row; every one is `resolved.*`, so the card and the Brief cannot
+          // disagree.
+          //
+          // ⚠️ DISPLAY ONLY. `POST /icps` still persists the provider arrays from `proposed`,
+          // unchanged — renaming the payload would break the search to fix the copy.
+          brief_target_category: resolved.targetCategory ?? '',
+          brief_company_sizes: resolved.companySizes ?? [],
+          brief_roles: resolved.targetRoles ?? [],
+          brief_seniority: resolved.targetSeniority ?? [],
           // ⚠️ BRIEF FACT #11, RESOLVED (S1-RT-002). The portal carries this to
           // `/auth/onboard` as `outcome_stated` and to `POST /icps` as `campaign_intent`,
           // so the desired outcome the gate counted from the snapshot reaches BOTH of its
@@ -5311,10 +5913,36 @@ function revisionIsRepeat(
   /** True when this write would be PARKED rather than applied (`saveClientTargeting`'s hold). */
   hold: boolean,
 ): boolean {
+  // ── 🛑 ⚡ 18 Sep (J6-C1 · LR 10) — THE CLIENT'S OWN WORDS COUNT AS A CHANGE ───────
+  //
+  // `diffTargeting` compares `TARGETING_FIELDS`, which is the seven LIST columns and
+  // deliberately nothing else — its own guard pins that list. So a refinement whose ONLY
+  // change was the client's stated category or company type matched "nothing moved" and was
+  // short-circuited before any write: the route answered 200, `wrote: false`, and the
+  // explicit statement was discarded.
+  //
+  // 🛑 THAT IS THE SAME RULE FAILING IN THE OTHER DIRECTION. J6-C1 is "change only by
+  // explicit statement", and an explicit statement we drop breaks it exactly as an omission we
+  // write does. `target_category` is the column the founder locked as the only authority on
+  // client intent; it is a free-text fact rather than one of those seven lists, so it must not
+  // join `TARGETING_FIELDS` — but it is certainly a change.
+  //
+  // ⚠️ ONLY WHEN THE BODY CARRIES THE FIELD. An absent key means "no change" (that is what
+  // `.optional()` now buys), so it must not be read as a move to `undefined`.
+  const categoryMoved = (against: Record<string, unknown>): boolean => {
+    for (const f of ['target_category', 'target_company_type'] as const) {
+      if (!Object.prototype.hasOwnProperty.call(body, f)) continue
+      if (String(body[f] ?? '') !== String(against[f] ?? '')) return true
+    }
+    return false
+  }
   const same = (a: TargetingLists, b: TargetingLists) => targetingUnchanged(diffTargeting(a, b))
   const parked = core.pending_targeting as TargetingLists | null | undefined
   if (hold && parked) {
     if (!same(parked, body as TargetingLists)) return false
+    // ⚑ 18 Sep (J6-C1) — the parked revision is the thing being repeated, so it is what the
+    // stated category is compared against.
+    if (categoryMoved(parked as unknown as Record<string, unknown>)) return false
     // A revision that also carries a NEW brief is not a repeat of one that carries a
     // different brief — the targeting matching is not enough to drop the words with it.
     const held = String(core.pending_campaign_intent ?? '').trim()
@@ -5322,6 +5950,7 @@ function revisionIsRepeat(
   }
   // Nothing is parked, or the write goes to the live columns: a request that already matches
   // the live columns has nothing to change and nothing to park.
+  if (categoryMoved(core)) return false
   return same(core as TargetingLists, body as TargetingLists)
 }
 
@@ -5523,7 +6152,11 @@ function stateChanged(res: Response): void {
  * ⚠️ NO REQUEST FIELD IS CONSULTED FOR ANY OF THE THREE. `icpSchema` strips unknown keys, so
  * a body carrying `pending_targeting: null` cannot make a waiting revision look absent.
  */
-type ProofRefinementVerdict = 'normal' | 'apply' | 'conflict' | 'state_changed'
+// ⛓️ J5-C7 — `'unreadable'` ADDED. Before it, an unreadable funding read fell through to
+// `'normal'`, which is this function's "carry on as usual" answer — so a client we could not
+// classify quietly got the ordinary path. "We could not tell" needed somewhere to go that is
+// not a decision.
+type ProofRefinementVerdict = 'normal' | 'apply' | 'conflict' | 'state_changed' | 'unreadable'
 
 async function proofRefinementVerdict(
   clientId: string,
@@ -5532,9 +6165,15 @@ async function proofRefinementVerdict(
 ): Promise<ProofRefinementVerdict> {
   if ((rawBody as { proof_refinement?: unknown } | null)?.proof_refinement !== true) return 'normal'
 
-  const { data: fundingRows } = await db.from('credit_transactions')
-    .select('type, reference').eq('client_id', clientId)
-  if (fundedVia(fundingRows ?? []) !== null) return 'normal'
+  // ⛓️ J5-C7 — an unreadable funding state must not silently become 'normal'. `'normal'` is
+  // this function's "carry on as usual" answer, so a dropped error here quietly re-enabled the
+  // ordinary path for a client we could not classify.
+  const fundingRead = await readFundingState(clientId)
+  if (!fundingRead.ok) {
+    console.error(`[icps] proofRefinementVerdict: funding unreadable for ${clientId} — refusing to classify:`, fundingRead.detail)
+    return 'unreadable'
+  }
+  if (fundingRead.funded !== null) return 'normal'
 
   const { data: client } = await db.from('clients')
     .select('proof_passes_done').eq('id', clientId).maybeSingle()
@@ -5873,11 +6512,49 @@ icpRouter.post('/', async (req: AuthRequest, res) => {
 
     const understandingBody = req.body as Record<string, unknown>
     if (promotionDraft?.confirmedAt && !promotionDraft.promotedClientId) {
+      // ── 🛑 ⚑ 18 Sep (J4-C2) — BRIEF FACT #11 IS OWNED HERE TOO ────────────────────────
+      //
+      // S1-AUDIT-002 took facts #4 and #10 off the browser on this exact path and left #11 on
+      // it. `campaign_intent` is the client's DESIRED OUTCOME — "what would make this worth
+      // it" — and it is the brief every outbound email is written from. It was read straight
+      // out of `req.body` by `persistMillaUnderstanding`, and the welcome screen posts it from
+      // React state it assembled turns earlier:
+      //
+      //     '/icps', { …proposed, business, proof, campaign_intent: intent, … }
+      //
+      // The same three consequences S1-AUDIT-002 named apply unchanged: a body that OMITS it
+      // writes no intent for a client who answered the question; a body that sends something
+      // DIFFERENT wins over the brief they confirmed; and the eleven-fact gate reads the DRAFT
+      // while this write read the BODY — two sources for one decision.
+      //
+      // ⚠️ IT IS WRITTEN AS `campaign_intent` ON THE BODY, NOT INTO `business`, because that
+      // is the key `persistMillaUnderstanding` reads and it lands on `figsy_campaigns`, not in
+      // `figsy_knowledge.pitch`. Same override rule, different destination.
+      const ownedIntent = (promotionDraft.facts.desired_outcome ?? '').trim()
+      if (ownedIntent) understandingBody.campaign_intent = ownedIntent
+
       const owned: Array<[string, string]> = [
         // brief fact #4 -> figsy_knowledge.pitch.data.product
         ['product', (promotionDraft.facts.what_they_do ?? '').trim()],
         // brief fact #10 -> figsy_knowledge.pitch.data.bad_fit
         ['bad_fit', (promotionDraft.facts.exclusions ?? '').trim()],
+        // ── 🛑 ⚑ 18 Sep (J4-C2) — `industry` IS DELIBERATELY NOT OWNED HERE ────────────
+        //
+        // The manifest REQ reads "campaign_intent AND INDUSTRY from the draft, body ignored",
+        // and I implemented both — then `brief-promotion-server-owned.test.ts` refused it, by
+        // name and correctly: *"WHAT THE BUSINESS DOES ≠ INDUSTRY — `clients.industry` is not
+        // touched by fact #4"*, which is founder-locked.
+        //
+        // 🛑 THE LOCK IS ABOUT THE CONCEPT, NOT ONE COLUMN. Milla's tool schema happens to
+        // describe `industry` as "a short plain phrase for what their business does", so
+        // writing fact #4 into a field of that name re-creates the exact conflation the lock
+        // forbids — even though this payload lands on `figsy_knowledge` rather than `clients`.
+        // A founder ruling outranks a manifest line (PROTOCOL v1 rule 3), so the lock wins.
+        //
+        // ⚠️ AND IT WOULD HAVE BOUGHT NOTHING. `business.industry` has NO consumer anywhere in
+        // this repository — searched. The only `industry` on the promotion path with a
+        // server-side write is `clients.industry`, which `/auth/onboard` takes from the body
+        // deliberately and which the lock protects. Reported in the evidence package.
       ]
       // ⚠️ A BLANK DRAFT FACT IS NOT A VALUE. An override applies only when the draft holds
       // something, so a fact the brief never captured falls back rather than BLANKING what
@@ -5975,6 +6652,17 @@ icpRouter.post('/revise', async (req: AuthRequest, res) => {
     // revision is untouched, and no proof pass can be claimed because the desk never gets a
     // success to act on. That is the founder's ruling for this collision — stop, and a human
     // resolves it — not "pick one of the two revisions and lose the other".
+    // ⛓️ J5-C7 — `'unreadable'` REFUSES, and refuses BEFORE the conflict branch. It is not a
+    // verdict about the client, it is the absence of one: we could not read whether they are
+    // funded, so we must not classify their refinement at all. Retryable, and nothing written.
+    if (verdict === 'unreadable') {
+      res.status(503).json({
+        success: false, retryable: true,
+        error: 'We could not check your account state just yet, so nothing was changed. Please try again shortly.',
+      })
+      return
+    }
+
     if (verdict === 'conflict') {
       res.status(409).json({
         success: false,
@@ -6113,6 +6801,29 @@ icpRouter.post('/:id/run', rateLimit({ limit: 10, windowMs: 60_000, key: 'icp-ru
   try {
     const clientId = await getClientId(req.userId!)
     if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+
+    // ── 🛑 ⚑ 18 Sep (XC-7 · R124 · LR 18) — A LEGACY DOOR, FENCED FOR A PROGRAMME CLIENT ──
+    //
+    // Everything below this line is the retired per-lead model: twenty welcome REVEAL CREDITS,
+    // a wallet balance, a `$1 each` sourcing allowance and a legacy `runIcpJob`. R124 (16 Sep,
+    // founder-locked): *"299/4 is gone. out. we are on the programme. all clients."*
+    //
+    // 🛑 AND IT IS NOT MERELY UNTIDY FOR A PROGRAMME CLIENT — IT SPENDS. A programme customer
+    // pressing this sources outside their programme's entitlement, against a provider budget
+    // their programme did not buy, and can be granted credits the product no longer sells.
+    // Their sourcing has one door and it is the programme's.
+    //
+    // ⚠️ THE FENCE IS FIRST, before the welcome-credit grant and before any read that leads to
+    // one. A refusal after a grant is a refusal that already cost something.
+    {
+      const { legacyDoorVerdict } = await import('../lib/commercial-model')
+      const door = await legacyDoorVerdict(clientId)
+      if (!door.allowed) {
+        console.warn(`[icp] /icps/:id/run REFUSED for client ${clientId} — ${door.reason}`)
+        res.status(door.status).json({ success: false, error: door.reason })
+        return
+      }
+    }
 
     // #420/#422 — browsing is FREE: a run sources MASKED leads (no email exposed,
     // nothing charged), so a $0 client may run. The wallet gates the REVEAL ($1),
@@ -6310,7 +7021,7 @@ Based on this data, suggest 3 specific ICP improvements that would increase repl
 }`
 
     const message = await anthropic.messages.create({
-      model: 'claude-haiku-4-5-20251001',
+      model: BACKGROUND_MODEL,
       max_tokens: 600,
       messages: [{ role: 'user', content: prompt }],
     })
@@ -6422,9 +7133,20 @@ icpRouter.post('/:id/proof', async (req: AuthRequest, res) => {
       }
     }
 
-    const { data: fundingRows } = await db.from('credit_transactions')
-      .select('type, reference').eq('client_id', clientId)
-    if (fundedVia(fundingRows ?? []) !== null) {
+    // ── 🛑 J5-C7 (LR 21) · "WE COULD NOT READ IT" IS NOT "IT IS NOT THERE" ──────────────
+    //
+    // ⛓️ ~~`const { data: fundingRows } = await db.from('credit_transactions')…`~~ — the error
+    // was destructured away, so a blip answered "not funded" and this route walked on to CLAIM
+    // A FREE PROOF PASS for a client who may be live and paying. `readFundingState` has no
+    // `data` on its failure branch, so the mistake cannot be made again here or at the two
+    // other sites that had it.
+    const funding = await readFundingState(clientId)
+    if (!funding.ok) {
+      console.error(`[icps/proof] funding state unreadable for client ${clientId} — REFUSING, nothing started or spent:`, funding.detail)
+      res.status(503).json({ success: false, retryable: true, error: PROOF_PREPARING_COPY })
+      return
+    }
+    if (funding.funded !== null) {
       res.status(403).json({
         success: false,
         error: 'Your account is already live — your leads arrive through your campaign, not a proof batch.',
@@ -6929,7 +7651,24 @@ async function activateIcpHandler(req: AuthRequest, res: Response) {
       // above. A client row with no owner therefore starts NOTHING: sourcing whose "your
       // first leads are ready" email has no recipient is spend the client never learns about.
       const ownerUserId = (bal?.user_id as string | null) ?? null
-      if (!ownerUserId) {
+      // ── 🛑 ⚑ 18 Sep (XC-7 · R124 · LR 18) — THE AUTO-RUN IS THE LEGACY DOOR HERE ───────
+      //
+      // Activation itself is an operator act on the client's TARGETING, and a programme
+      // client's ICP revision is a legitimate thing for an operator to apply — so the ICP and
+      // the brief still go live exactly as they did. What must not follow is THIS: a
+      // `runIcpJob` started on `credit_balance`, falling back to twenty free reveals, outside
+      // any programme entitlement. A programme client's sourcing starts at P1 and nowhere else.
+      //
+      // ⚠️ THE RESPONSE STILL SAYS WHAT HAPPENED. `sourcing: false` is the honest answer, and
+      // it is the same answer an already-run ICP has always produced — the operator is not
+      // told a run started that did not.
+      const legacyRunDoor = await (async () => {
+        const { legacyDoorVerdict } = await import('../lib/commercial-model')
+        return legacyDoorVerdict(clientId)
+      })()
+      if (!legacyRunDoor.allowed) {
+        console.warn(`[icps/activate] the legacy first-run was NOT started for client ${clientId} — ${legacyRunDoor.reason} Their targeting is live; sourcing runs through their programme.`)
+      } else if (!ownerUserId) {
         console.error(`[icps/activate] client ${clientId} has no owner user_id — the ICP is live but no first run was started, because the leads email would have nowhere to go.`)
       } else if (credits > 0 || !bal?.first_icp_run_at) {
         started = true

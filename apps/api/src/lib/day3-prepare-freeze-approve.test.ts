@@ -305,9 +305,14 @@ describe('🛑 ④ the frozen package holds everything the client is agreeing to
     expect(builder).not.toContain('meeting_target ?? 0')
   })
 
-  it('13 · adding the target moved the digest version, so no old hash can silently pass', () => {
-    expect(code(SNAP)).toContain('v: 2')
+  // ⛓️ 18 Sep (MVP1 · J13-C1 · FD-5) — 2 → 3. The property is unchanged and is the whole
+  // point of the test: a digest that GREW a field must move its version, or a hash frozen
+  // before the field existed silently passes a comparison it cannot answer. `sendable_count`
+  // is that field — a v2 freeze cannot prove how many of its prospects were reachable.
+  it('13 · adding a digest field moves the version, so no old hash can silently pass', () => {
+    expect(code(SNAP)).toContain('v: 3')
     expect(code(SNAP)).not.toContain('v: 1,')
+    expect(code(SNAP)).not.toContain('v: 2,')
   })
 
   it('14 · the hash is deterministic and covers the target', async () => {
@@ -1062,8 +1067,12 @@ describe('🛑 HOLD-② Milla and Vida read the SAME persisted package', () => {
           : t === 'leads' ? [{ id: 'l1' }, { id: 'l2' }]
           : t === 'figsy_enrollments' ? world.enrolled
           : []
+        // ⛓️ 18 Sep (MVP1 · J13-C1) — `.in()` JOINS THE FAKE. The builder now counts how many
+        // of the enrolled prospects are SENDABLE (FD-5), which reads `leads` by id. The
+        // fixture's leads carry no `email_status`, so the count is 0 — exactly right for a
+        // digest test, which is about whether the hash MOVES and not about the number.
         const q: Record<string, unknown> = {
-          select() { return q }, eq() { return q }, order() { return q },
+          select() { return q }, eq() { return q }, order() { return q }, in() { return q },
           async maybeSingle() { return { data: rows[0] ?? null, error: null } },
           then: (r: (v: unknown) => unknown) => r({ data: rows, error: null }),
         }

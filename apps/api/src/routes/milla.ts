@@ -2,25 +2,20 @@
 
 import { Router } from 'express'
 import { z } from 'zod'
-import { createHash, randomUUID } from 'node:crypto'
+import { randomUUID } from 'node:crypto'
 import Anthropic from '@anthropic-ai/sdk'
-import { CONVERSATION_MODEL, AI_TURN_BOUND } from '../lib/models'
 import { db } from '@kind/db'
 import { requireAuth, AuthRequest } from '../middleware/auth'
 import { processDocument, chat } from '../lib/milla'
 import { ensureTodaysBrief } from '../lib/morning-brief-deliver'
 import { ensureBrief, approveBrief, editBrief } from '../lib/meeting-brief-deliver'
+import { BACKGROUND_MODEL } from '../lib/models'
 
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
-
-// Stateless side-panel chat persona (113a). Distinct from the session-backed
-// /sessions/:id/chat above (which does RAG + persistence): this is the quick
-// "ask Milla anything" thread that lives in the right-rail agent panel.
-// 12 Aug — the old constant here described the RETIRED product: the platform-era framing,
-// a deleted closer agent, and Vida as a website chatbot (Vida is the INTERNAL
-// operator room and never appears in anything a client reads), and portal pages from the
-// retired /dashboard. Both chat doors now share ONE prompt built in lib/milla-chat-system,
-// with the client's live snapshot injected — see that file for the whole story.
+// ⛓️ 18 Sep (D-63) — ~~`const anthropic = new Anthropic(…)`~~ AND THE PERSONA NOTE THAT STOOD
+// HERE WENT WITH THE STATELESS DOOR. The module-level client had exactly one reader, the
+// removed `POST /milla/chat`; `/notetaker` builds its own below. The note described how the
+// two chat doors shared one prompt — true, and now there is only one door, so the whole story
+// lives where it always did: `lib/milla-chat-system`.
 
 export const millaRouter = Router()
 millaRouter.use(requireAuth)
@@ -357,26 +352,11 @@ millaRouter.get('/sessions/:sessionId/messages', async (req: AuthRequest, res) =
 
 // One alert per client per 15 minutes — in memory, same pattern as the approval-batch
 // throttle. A restart re-arms it, which is the safe direction to fail (an extra nudge).
-/**
- * 🛑 THE ID OF MILLA'S ANSWER TO ONE CUSTOMER TURN — derived, never random.
- *
- * ⚑ 15 Sep (O1 durability). One sentence may have exactly one stored answer, however many
- * times the send is replayed after an ambiguous failure. Deriving the reply's primary key
- * from the customer row's makes that a property of the table rather than of the caller's
- * retry discipline, and it costs one hash instead of a migration or a second column.
- *
- * ⚠️ IT IS A FORMATTING OF A DIGEST, NOT A SECURITY BOUNDARY. Nothing is authorised by this
- * value; it identifies a row whose session and client are checked separately above.
- */
-function replyRowIdFor(userRowId: string): string {
-  const h = createHash('sha256').update(`${userRowId}:milla-reply`).digest('hex')
-  // Shape it as a v4-looking UUID so the column's type is satisfied.
-  const v = h.slice(0, 32).split('')
-  v[12] = '4'
-  v[16] = '89ab'[parseInt(h[16], 16) & 0x3]
-  const s = v.join('')
-  return `${s.slice(0, 8)}-${s.slice(8, 12)}-${s.slice(12, 16)}-${s.slice(16, 20)}-${s.slice(20, 32)}`
-}
+// ⛓️ 18 Sep (J3-C2) — `replyRowIdFor` MOVED TO `lib/customer-turn.ts`, WITH THE RULE AROUND IT.
+// WHAT STOOD HERE: ~~the whole derivation, private to this file~~. It was built here on 15 Sep
+// (O1) and the Brief path had built the same idempotency shape a day earlier — two copies of
+// "one sentence, one answer", which is exactly how a THIRD door (`/icps/chat-build`) came to be
+// built with neither. The rule is now one module and every door imports it.
 
 const lastClientMessageAlert = new Map<string, number>()
 function shouldAlertClientMessage(clientId: string): boolean {
@@ -449,44 +429,73 @@ millaRouter.post('/sessions/:sessionId/chat', async (req: AuthRequest, res) => {
     // answering a question we did not manage to record is how a conversation silently loses
     // a turn, and the client's own composer still holds the sentence to try again.
     // ═══════════════════════════════════════════════════════════════════════════════════
-    const userRowId      = messageId ?? randomUUID()
-    const assistantRowId = replyRowIdFor(userRowId)
-
-    const { error: ownErr } = await db.from('milla_messages').insert({
-      id:         userRowId,
-      session_id: req.params.sessionId,
-      client_id:  clientId,
-      role:       'user',
-      content:    message,
-      sources:    null,
+    const { ownCustomerTurn, existingReply, storeMillaReply } = await import('../lib/customer-turn')
+    const owned = await ownCustomerTurn({
+      sessionId: req.params.sessionId,
+      clientId,
+      content: message,
+      userRowId: messageId ?? randomUUID(),
     })
-    const alreadyOwned = (ownErr as { code?: string } | null)?.code === '23505'
-    if (ownErr && !alreadyOwned) {
-      console.error('[milla/chat POST] could not store the customer turn', ownErr)
+    if (!owned.ok) {
+      console.error('[milla/chat POST] could not store the customer turn', owned.error)
       res.status(503).json({ success: false, error: 'Failed to send message' })
       return
     }
+    const { assistantRowId, alreadyOwned } = owned
 
     // 🛑 A RETRY OF A SEND THAT ALREADY SUCCEEDED REPLAYS THE ANSWER — IT DOES NOT RE-ASK.
     // The reply row's id is derived from the customer row's, so this is one primary-key
     // lookup. Without it an ambiguous failure after a complete turn would spend a second
     // model call and leave the client with two Milla replies to one sentence.
     if (alreadyOwned) {
-      const { data: prior } = await db.from('milla_messages')
-        .select('content, sources').eq('id', assistantRowId).maybeSingle()
-      if (prior?.content) {
+      const prior = await existingReply(assistantRowId)
+      if (prior) {
         res.json({ success: true, reply: prior.content, sources: prior.sources ?? [] })
         return
       }
     }
 
     // Call Milla chat
-    const { reply, sources } = await chat({
+    const { reply, sources, stillNotRight } = await chat({
       clientId,
       sessionId:      req.params.sessionId,
       userMessage:    message,
       messageHistory,
     })
+
+    // ── 🛑 ⚑ 18 Sep (J7-C2 · FD-3) — SAYING IT IN CHAT IS SAYING IT ────────────────────
+    //
+    // 🛑 THE ONLY WAY TO SAY IT WAS TO PRESS A BUTTON. `POST /leads/proof/still-not-right` is
+    // the canonical escalation; it is reached by ONE control on the Proof panel. A client who
+    // typed "honestly these still aren't the right people" into their own conversation got a
+    // reply and nothing else — their sentence reached no decision at all.
+    //
+    // ⚠️ THE SAME CALL THE BUTTON MAKES, AND THAT IS THE ITEM. Not a second escalation path,
+    // not a variant trigger, not an alert standing in for one. `closeCalibrationLoop` decides
+    // (via `calibrationVerdict`, which still refuses before pass 2 — FD-3 makes the signal
+    // reachable, it does not make it a bypass) and writes ONCE: its
+    // `.is('proof_review_requested_at', null)` predicate is what makes "once" true whatever
+    // combination of button and sentence a client uses.
+    //
+    // ⚠️ BEST-EFFORT, AND THE DIRECTION IS DELIBERATE. Their reply is already produced; an
+    // escalation we could not record must not turn their message into an error. Logged loudly,
+    // because a persistent failure here means people are asking for help and not reaching one.
+    if (stillNotRight.said) {
+      try {
+        const { closeCalibrationLoop } = await import('../lib/proof-calibration-io')
+        const outcome = await closeCalibrationLoop(clientId, 'still_not_right')
+        console.log(
+          `[milla/chat] client ${clientId} said the set is still not right, in chat — ` +
+          `${outcome.closed ? `escalated (${outcome.trigger})` : `not closed (${outcome.reason})`}.` +
+          (stillNotRight.quote ? ` Their words: "${stillNotRight.quote}"` : ''),
+        )
+        if (!outcome.closed && (outcome.reason === 'migration_required' || outcome.reason === 'unreadable')) {
+          console.error(`[milla/chat] the hand-off for client ${clientId} could NOT be recorded: ${outcome.detail}`)
+        }
+      } catch (err) {
+        console.error('[milla/chat] escalation from chat failed (their reply is unaffected):', err)
+      }
+    }
 
     // ── THE CLIENT'S ONLY CHANNEL HAS TO REACH SOMEONE ────────────────────────────
     // Milla's chat cannot pause a campaign, source people or change an ICP — it writes a
@@ -513,13 +522,12 @@ millaRouter.post('/sessions/:sessionId/chat', async (req: AuthRequest, res) => {
     //
     // ⚠️ THE REPLY ROW'S ID IS DERIVED FROM THE CUSTOMER'S, so one sentence can only ever
     // have one answer stored against it, however many times the send is replayed.
-    await db.from('milla_messages').insert({
-      id:         assistantRowId,
-      session_id: req.params.sessionId,
-      client_id:  clientId,
-      role:       'assistant',
-      content:    reply,
-      sources:    sources.length > 0 ? sources : null,
+    await storeMillaReply({
+      assistantRowId,
+      sessionId: req.params.sessionId,
+      clientId,
+      content: reply,
+      sources,
     })
 
     res.json({ success: true, reply, sources })
@@ -530,103 +538,28 @@ millaRouter.post('/sessions/:sessionId/chat', async (req: AuthRequest, res) => {
   }
 })
 
-// ── STATELESS SIDE-PANEL CHAT (113a) ───────────────────────────────────────────
-/**
- * POST /milla/chat — quick stateless "ask Milla anything" for the right-rail
- * agent panel. Gated on an active Milla subscription (fail-open on lookup error).
- * Body: { message, history?: [{role, content}] }  →  { success, data: { reply } }
- */
-millaRouter.post('/chat', async (req: AuthRequest, res) => {
-  try {
-    const { message, history } = z.object({
-      message: z.string().min(1).max(2000),
-      history: z.array(z.object({
-        role:    z.enum(['user', 'assistant']),
-        content: z.string().max(4000),
-      })).max(12).optional(),
-    }).parse(req.body)
-
-    const access = await requireMillaAccess(req.userId!)
-    if ('error' in access) { res.status(access.status).json({ success: false, error: access.error }); return }
-
-    // ── 🛑 ⚑ 14 Sep (M4) — A CONFIGURATION FAULT IS NOT MILLA SPEAKING ──────────────────
-    //
-    // ⛓️ THIS ANSWERED `success: true` WITH A SENTENCE IN HER VOICE: ~~"I can't reach my
-    // brain right now — please email hello@get-kind.com and the team will help."~~ To the
-    // client that reads as Milla having HEARD them and declined. It is an operational fault
-    // on our side, the same one the Vida console had, and it is reported as one.
-    //
-    // ⚠️ THE ADDRESS IS KEPT, because a client who cannot reach her still needs a way out —
-    // it just travels as an honest error rather than as her answer.
-    if (!process.env.ANTHROPIC_API_KEY) {
-      res.status(503).json({
-        success: false, retryable: true,
-        error: 'Milla is not reachable right now. Nothing you typed is lost — please try again, or email hello@get-kind.com.',
-      })
-      return
-    }
-
-    // ⚑ 31 Aug — SAME RE-ASSERTION AS THE DESK CHAT, AND FOR THE SAME REASON. This door
-    // replays `history` from the request body, so it carries the identical exposure: prior
-    // assistant turns stating the pre-#1616 sequence sit AFTER the system prompt in the
-    // payload and outweigh it. The correction goes in the final user turn, with the client's
-    // question still last.
-    const { buildLifecycleReassertion } = await import('../lib/milla-chat-system')
-    const messages: Anthropic.MessageParam[] = [
-      ...(history ?? []).map(m => ({ role: m.role, content: m.content })),
-      { role: 'user' as const, content: `${buildLifecycleReassertion()}\n\nQuestion: ${message}` },
-    ]
-
-    // Same fail-soft snapshot as the desk chat — one builder, every door.
-    let snapshot = null as import('../lib/milla-chat-system').MillaSnapshot | null
-    try {
-      const { buildMillaSummaryData } = await import('../lib/milla-summary')
-      snapshot = await buildMillaSummaryData(access.clientId)
-    } catch (e) {
-      console.error('[milla/chat stateless] snapshot lookup failed — answering without live numbers', e)
-    }
-    // ⚑ 30 Aug (BUILD-004A-2) — HER PROGRAMME TRUTH, from the SAME reader the workspace
-    // uses. Fail-soft in its own right: `null` tells her she cannot see it, which is very
-    // different from telling a paying client they have no programme.
-    let programme = null as import('../lib/customer-programme').CustomerProgramme | null
-    try {
-      const { readCustomerProgramme } = await import('../lib/customer-programme')
-      programme = await readCustomerProgramme(access.clientId)
-    } catch (e) {
-      console.error('[milla/chat stateless] programme lookup failed — answering without it', e)
-    }
-    // ⚑ 10 Sep (C06) — THE PROOF DESK, ON THIS DOOR TOO. Both chat doors share one system
-    // builder precisely so a fix cannot land on one of them; a Proof block on the desk chat
-    // alone would leave the side panel answering about the same set without seeing it.
-    let proof = null as import('../lib/milla-proof-context').ProofChatContext | null
-    try {
-      const { readProofChatContext } = await import('../lib/milla-proof-context-io')
-      proof = await readProofChatContext(access.clientId)
-    } catch (e) {
-      console.error('[milla/chat stateless] proof desk lookup failed — answering without it', e)
-    }
-    const { buildMillaChatSystem } = await import('../lib/milla-chat-system')
-
-    const response = await anthropic.messages.create({
-      model: CONVERSATION_MODEL,
-      max_tokens: 600,
-      system: buildMillaChatSystem(snapshot, programme, proof),
-      messages,
-    }, AI_TURN_BOUND)
-
-    const reply = response.content
-      .filter(b => b.type === 'text')
-      .map(b => (b as Anthropic.TextBlock).text)
-      .join('')
-      .trim() || "Sorry, I didn't catch that — could you rephrase?"
-
-    res.json({ success: true, data: { reply } })
-  } catch (err) {
-    if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: err.errors[0]?.message ?? 'Invalid input' }); return }
-    console.error('[milla/chat stateless]', err)
-    res.status(500).json({ success: false, error: 'Milla is temporarily unavailable' })
-  }
-})
+// ── ⛓️ STATELESS SIDE-PANEL CHAT (113a) — UNMOUNTED 18 Sep (D-63) ──────────────────────
+//
+// 🛑 ~~`millaRouter.post('/chat', …)`~~ STOOD HERE, AND IT WAS A SECOND MILLA WITH NO MEMORY.
+// It answered from the `history` array in the request body and stored nothing: close the tab
+// and every word was gone, while the desk conversation beside it remembered everything. Two
+// Millas, one client, and only one of them could be asked "what did we say last week?".
+//
+// ⛓️ IT WAS DISCONNECTED ON 14 Sep (R121 · O1) — `liveChatEndpoint="/milla/chat"` came off
+// `AgentColumn`'s Milla card and nothing in the product has posted to it since. But
+// DISCONNECTED IS NOT UNMOUNTED: the door stayed open on an authenticated, subscription-gated
+// route, so any caller that still knew the URL got the forgetful Milla back — and the guard
+// that protects this only ever proved no UI hands out the endpoint, never that the endpoint
+// was gone. That gap is what this closes.
+//
+// ⚠️ NOTHING MOVED WITH IT. Every capability this door had — the lifecycle re-assertion, the
+// snapshot, the programme read, the proof-desk context — is built by the SAME
+// `buildMillaChatSystem`/`buildLifecycleReassertion` the persisted desk chat uses, and the
+// desk chat is untouched. There was never a fact reachable here and nowhere else.
+//
+// ⚠️ THE ONE DISCLOSED CONSEQUENCE: a browser still running a bundle from before 14 Sep would
+// POST here and now receives 404 instead of an answer. A reload resolves it, and the reply it
+// used to get was one no session would have remembered.
 
 // ── NOTETAKER ─────────────────────────────────────────────────────────────────
 
@@ -663,7 +596,7 @@ millaRouter.post('/notetaker', async (req: AuthRequest, res) => {
       'Return ONLY the JSON array, no other text.'
 
     const response = await anthropic.messages.create({
-      model:      'claude-haiku-4-5-20251001',
+      model:      BACKGROUND_MODEL,
       max_tokens: 1024,
       system:     systemPrompt,
       messages:   [{ role: 'user', content: transcript }],
@@ -739,73 +672,72 @@ millaRouter.post('/notetaker', async (req: AuthRequest, res) => {
  * a normal state for a person who signed up eight seconds ago, and a 404 would have the portal
  * render an error over an empty conversation.
  */
-millaRouter.get('/brief-draft', async (req: AuthRequest, res) => {
+/**
+ * ── 🛑 ⚑ 18 Sep (J3-C2's sibling, J3-C3) — ONE BRIEF READ MODEL ────────────────────────
+ *
+ * LR 6: two projections of one truth that nobody reconciles WILL drift. `GET /brief-draft`
+ * answered with the draft, the progress, the next fact, the onboarding state and unresolved
+ * labels, the two render blocks and the conversation. `PUT /brief-draft` answered with
+ * `{ progress }` and nothing else.
+ *
+ * 🛑 SO EVERY CALLER HELD A STALE ANSWER THE MOMENT IT SAVED. A PUT that completes the tenth
+ * fact returns a progress object while `onboarding_state`, `next` and the render cards in the
+ * browser still describe the state BEFORE the save — which is the "Based in — still needed"
+ * shape S1-ONB-001 already fixed once, arriving through the other verb. A caller either
+ * re-GETs (a second round trip and a window in which the two disagree) or renders something
+ * the server does not believe.
+ *
+ * ⚠️ IT IS BUILT ONCE AND RETURNED BY BOTH VERBS. Not "the same fields" — the same function,
+ * so a field added to one is added to both by construction and there is no reconciliation to
+ * forget.
+ */
+async function briefReadModel(userId: string): Promise<Record<string, unknown>> {
   const { briefDraftFor, draftProgress } = await import('../lib/brief-draft')
   const { onboardingState } = await import('../lib/onboarding-state')
   const { BRIEF_FACT_LABEL } = await import('@kind/shared')
-  const draft = await briefDraftFor(req.userId!)
-  const progress = draftProgress(draft)
-  // ⚑ 16 Sep (S1-ONB-001) — THE SAME AUTHORITY THE CHAT AND CONFIRM DOORS USE, so a refresh
-  // returns the client to the state the server actually holds rather than to whatever the
-  // browser last believed. This is the portal's progression gate.
-  const onboarding = onboardingState(draft?.facts ?? null)
+  const draft = await briefDraftFor(userId)
+  return briefReadModelFrom(draft, draftProgress(draft), onboardingState(draft?.facts ?? null), BRIEF_FACT_LABEL)
+}
+
+/** The shape, from facts already in hand — so a writer that just saved need not re-read. */
+function briefReadModelFrom(
+  draft: Awaited<ReturnType<typeof import('../lib/brief-draft')['briefDraftFor']>>,
+  progress: { missing: string[] } & Record<string, unknown>,
+  onboarding: { state: unknown; unresolvedLabels: unknown },
+  labels: Record<string, string>,
+): Record<string, unknown> {
   const onboardingFacts = (draft?.facts ?? {}) as Record<string, unknown>
   const onboardingText = (k: string): string =>
     typeof onboardingFacts[k] === 'string' ? (onboardingFacts[k] as string).trim() : ''
-  // ⚠️ THE NEXT FACT IS NAMED HERE, NOT WORKED OUT IN THE BROWSER. The portal's resume line
-  // says what Milla still needs; deriving that in the portal would mean a second eleven-fact
-  // list in a second app, which is exactly how Vida came to disagree with Milla about the
-  // count. `missing` is already in the approved order, so the next one is its head.
   const nextId = progress.missing[0] ?? null
-  res.json({
-    success: true,
-    data: {
-      draft: draft ? { facts: draft.facts, confirmed_at: draft.confirmedAt, promoted_client_id: draft.promotedClientId } : null,
-      progress,
-      next: nextId ? { id: nextId, label: BRIEF_FACT_LABEL[nextId] } : null,
-      // ⚠️ THE STATE IS THE SERVER'S ANSWER, not a count for the client to read. The portal
-      // gates the targeting plan and the Confirm CTA on it and renders no counter.
-      onboarding_state: onboarding.state,
-      onboarding_unresolved: onboarding.unresolvedLabels,
-      // ── ⚑ 16 Sep (S1-ONB-001) — THE RENDER SHAPE, BUILT HERE AND NOT IN THE BROWSER ───
-      //
-      // 🛑 THE CARDS USED TO COME ONLY FROM A COMPLETION REPLY held in one tab, so a client
-      // who had already said where they are based and then refreshed was shown
-      // "Based in — still needed" about a country THIS VERY ROW was holding.
-      //
-      // ⚠️ MAPPED SERVER-SIDE ON PURPOSE. Sending raw `facts` would make the portal learn our
-      // fact vocabulary — `exclusions`, `what_they_do` — which is the first step back towards
-      // a second opinion about the Brief. It receives finished render objects and assigns them.
-      onboarding_profile: {
-        company_name: onboardingText('company_name'),
-        country:      onboardingText('country'),
-        contact_name: onboardingText('contact_name'),
-        phone:        onboardingText('phone'),
-        website:      onboardingText('website'),
-        industry:     onboardingText('what_they_do'),
-      },
-      onboarding_business: {
-        product: onboardingText('what_they_do'),
-        bad_fit: onboardingText('exclusions'),
-      },
-      // ── ⚑ 14 Sep (S1-RT-003) — THE CONVERSATION, so re-entry continues it ────────────
-      //
-      // 🛑 THE FACTS ALONE WERE NEVER ENOUGH. The resume line could say "9 of 11", but the
-      // transcript lived in one tab's React state — so a refresh, a closed laptop or a
-      // logout put the client in front of a blank conversation, and sent Milla her NEXT turn
-      // with a one-line greeting as its entire history. She is conversational by design,
-      // because clients express the same truth in different ways; a Milla with no memory of
-      // the last ten minutes is a different product.
-      //
-      // ⚠️ ALREADY BOUNDED AND ALREADY VALIDATED by `readConversation` — at most the last 40
-      // turns, each clamped, unknown roles dropped. A corrupt jsonb value reads as `[]` and
-      // the page behaves exactly as it did before this existed.
-      //
-      // ⚠️ AND IT IS THE CLIENT'S OWN. This router carries the client's token and the draft
-      // is keyed on `user_id`, so no transcript can reach anybody but the person who spoke it.
-      conversation: draft?.conversation ?? [],
+  return {
+    draft: draft ? { facts: draft.facts, confirmed_at: draft.confirmedAt, promoted_client_id: draft.promotedClientId } : null,
+    progress,
+    next: nextId ? { id: nextId, label: labels[nextId] } : null,
+    onboarding_state: onboarding.state,
+    onboarding_unresolved: onboarding.unresolvedLabels,
+    onboarding_profile: {
+      company_name: onboardingText('company_name'),
+      country:      onboardingText('country'),
+      contact_name: onboardingText('contact_name'),
+      phone:        onboardingText('phone'),
+      website:      onboardingText('website'),
+      industry:     onboardingText('what_they_do'),
     },
-  })
+    onboarding_business: {
+      product: onboardingText('what_they_do'),
+      bad_fit: onboardingText('exclusions'),
+    },
+    conversation: draft?.conversation ?? [],
+  }
+}
+
+millaRouter.get('/brief-draft', async (req: AuthRequest, res) => {
+  // ⛓️ 18 Sep (J3-C3) — THE PAYLOAD MOVED INTO `briefReadModel`, UNCHANGED FIELD FOR FIELD.
+  // It is the same object this route has always returned; what changed is that `PUT` now
+  // returns it too, from the same function, so the two verbs cannot describe one draft
+  // differently. The commentary that explained each field lives with the builder above.
+  res.json({ success: true, data: await briefReadModel(req.userId!) })
 })
 
 /**
@@ -842,7 +774,44 @@ millaRouter.post('/brief-draft/confirm', async (req: AuthRequest, res) => {
   const { confirmBriefDraft } = await import('../lib/brief-draft')
   const { BRIEF_FACT_LABEL } = await import('@kind/shared')
   const r = await confirmBriefDraft(req.userId!)
-  if (r.ok) { res.json({ success: true, data: { confirmed_at: r.draft.confirmedAt } }); return }
+  // ── 🛑 J4-C1 · PROMOTION IS THIS CALL'S JOB NOW, NOT THE BROWSER'S ──────────────────
+  //
+  // ⛓️ WHAT THIS REPLACED: ~~`res.json({ data: { confirmed_at } })`~~ and then THREE more
+  // browser calls — `/auth/onboard`, `POST /icps`, `POST /icps/:id/proof`. Every gap between
+  // them stranded a real person: a closed tab, a slept phone or a 500 on leg 3 left a seal
+  // with no client, or a client with no targeting, and nothing server-side knew the journey
+  // was meant to continue. LR 6/21 and PV 07: the four legs are ONE decision.
+  //
+  // ⚠️ VALIDATION STILL HAPPENS FIRST, AND THAT ORDER IS THE CONTRACT. `confirmBriefDraft`
+  // runs the eleven-fact gate and the geography refusal above; a refusal returns below having
+  // created nothing. Only a confirmed brief is ever promoted.
+  //
+  // ⚠️ PROMOTION FAILING DOES NOT UNDO THE CONFIRMATION, and must not. `confirmed_at` is the
+  // client's own act and is a fact once it happened; `promoteConfirmedBrief` is ensure-shaped,
+  // so the next call finishes what this one could not. What the client must never see is a
+  // success that created nothing — hence the 503 with `retryable`.
+  if (r.ok) {
+    const { promoteConfirmedBrief } = await import('../lib/promotion')
+    const p = await promoteConfirmedBrief(req.userId!, r.draft, { authEmail: req.authEmail ?? null })
+    if (!p.ok) {
+      res.status(503).json({
+        success: false, retryable: true, code: p.reason,
+        error: 'We recorded your confirmation but could not finish setting your account up. Nothing you told Milla is lost — please try again.',
+      })
+      return
+    }
+    res.json({ success: true, data: {
+      confirmed_at: r.draft.confirmedAt,
+      client_id: p.clientId,
+      icp_id: p.icpId,
+      // The desk uses this to decide whether to claim a wait. `proof_note` is carried so the
+      // surface can be honest when Proof did not start — never silently optimistic.
+      proof_started: Boolean(p.proofClaimId),
+      ...(p.proofNote ? { proof_note: p.proofNote } : {}),
+      replayed: p.replayed === true,
+    } })
+    return
+  }
   if (r.reason === 'incomplete') {
     // ⛓️ 16 Sep (S1-ONB-001) — THE SENTENCE NAMES BOTH CLASSES. `missing` is the canonical
     // eleven as ids and is unchanged for existing callers; `missingLabels` is the complete
@@ -886,10 +855,42 @@ millaRouter.post('/brief-draft/confirm', async (req: AuthRequest, res) => {
     })
     return
   }
+  // ── 🛑 J4-C1 · A REPLAY IS ANSWERED WITH THE WINNER'S IDS, NOT A 409 ────────────────
+  //
+  // ⛓️ WHAT THIS REPLACED: ~~`res.status(409)`~~ with "this brief has already been confirmed".
+  //
+  // That was right while confirming and promoting were separate acts — the second confirm
+  // genuinely had nothing to do. Now that confirm IS promotion, a 409 punishes the normal
+  // case: a double click on a slow connection, or a retry after a response we never received.
+  // The manifest's own GREEN for this item says it — *"a duplicate confirm returns the
+  // winner's ids"* — and the caller needs those ids to navigate.
+  //
+  // ⚠️ IT CREATES NOTHING. `promoteConfirmedBrief` is ensure-shaped, so this path also
+  // FINISHES an interrupted promotion (client exists, ICP never written) instead of leaving a
+  // real person behind a door that answers 409 for ever. `replayed: true` tells the caller
+  // which happened without it having to guess.
   if (r.reason === 'promoted') {
-    res.status(409).json({
-      success: false,
-      error: 'This brief has already been confirmed. Your programme is the live record of it now.',
+    const { promoteConfirmedBrief } = await import('../lib/promotion')
+    const { briefDraftFor } = await import('../lib/brief-draft')
+    const again = await briefDraftFor(req.userId!)
+    if (again) {
+      const p = await promoteConfirmedBrief(req.userId!, again, { authEmail: req.authEmail ?? null })
+      if (p.ok) {
+        res.json({ success: true, data: {
+          confirmed_at: again.confirmedAt,
+          client_id: p.clientId, icp_id: p.icpId,
+          proof_started: Boolean(p.proofClaimId),
+          ...(p.proofNote ? { proof_note: p.proofNote } : {}),
+          replayed: true,
+        } })
+        return
+      }
+    }
+    // Only when the replay itself cannot be completed does the client see a refusal — and it
+    // is retryable, because the ids exist and the next attempt will find them.
+    res.status(503).json({
+      success: false, retryable: true,
+      error: 'Your brief is confirmed. We could not read your account back just now — please try again.',
     })
     return
   }
@@ -943,5 +944,27 @@ millaRouter.put('/brief-draft', async (req: AuthRequest, res) => {
     })
     return
   }
-  res.json({ success: true, data: { progress: draftProgress(r.draft) } })
+  // ── ⛓️ 18 Sep (J3-C3) — THE SAME TRUTH THE GET CARRIES, FROM THE SAME BUILDER ────────
+  //
+  // WHAT THIS REPLACED: ~~`res.json({ success: true, data: { progress: draftProgress(r.draft) } })`~~
+  // — a progress object and nothing else. So a save that completed the tenth fact left every
+  // other answer in the browser describing the state BEFORE it: `onboarding_state`, the next
+  // fact to ask for, and the render cards. That is the "Based in — still needed" defect
+  // S1-ONB-001 already fixed once, arriving through the other verb, and the caller's only
+  // remedies were a second round trip or rendering something the server does not believe.
+  //
+  // ⚠️ BUILT FROM THE ROW THIS WRITE JUST RETURNED, not from a re-read. `saveBriefDraft` hands
+  // back the merged draft, so re-reading would be a query for what we are holding — and worse,
+  // a second read is a second chance to disagree with the write that produced it.
+  const { onboardingState } = await import('../lib/onboarding-state')
+  const { BRIEF_FACT_LABEL } = await import('@kind/shared')
+  res.json({
+    success: true,
+    data: briefReadModelFrom(
+      r.draft,
+      draftProgress(r.draft),
+      onboardingState(r.draft?.facts ?? null),
+      BRIEF_FACT_LABEL,
+    ),
+  })
 })

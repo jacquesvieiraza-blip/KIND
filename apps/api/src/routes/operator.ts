@@ -16,24 +16,17 @@ import type { InboxRow } from '../lib/sending-inbox'
 // ⚑ 14 Sep (S1-RT-005) — the fail-soft provider translation. The operator rail below is
 // where a Brief we could not translate reaches a person, before Proof or any spend.
 import {
-  icpNeedsReview, resolveReview, type ProviderField,
+  icpNeedsReview, resolveReview, PROVIDER_VOCABULARIES, type ProviderField,
 } from '../lib/icp-provider-translation'
 
-/**
- * 🛑 THE THREE CLOSED PROVIDER VOCABULARIES, IN ONE PLACE FOR THE OPERATOR RAIL.
- *
- * ⚠️ THEY ARE DECLARED HERE RATHER THAN IMPORTED FROM `routes/icps.ts` because that module
- * keeps them module-private and importing the ICP route into the operator route to reach
- * three arrays would pull a 5,000-line router in for a constant. A drift guard in
- * `s1-icp-review.test.ts` asserts these are byte-identical to the ICP route's, so the two
- * cannot disagree without a test going red — which is the property that matters, not where
- * the literal lives.
- */
-const ICP_REVIEW_VOCABULARIES: Record<ProviderField, readonly string[]> = {
-  industries:       ['Fintech', 'Healthtech', 'E-commerce', 'SaaS', 'Logistics', 'Agriculture', 'Education', 'Manufacturing', 'Real Estate', 'Media', 'Consulting', 'Retail', 'Banking', 'Insurance', 'Telecoms', 'Energy'],
-  seniority_levels: ['C-Suite', 'VP / Director', 'Head of', 'Manager', 'Senior', 'Individual Contributor'],
-  company_sizes:    ['1–10', '11–50', '51–200', '201–500', '501–1,000', '1,000+'],
-}
+// ⛓️ 18 Sep (J5-C10) — THIS IS NOW AN ALIAS, NOT A SECOND COPY.
+// WHAT THIS REPLACED: ~~a byte-identical re-declaration of the three vocabularies~~, with a
+// comment explaining that importing `routes/icps.ts` to reach three arrays would pull a
+// 5,000-line router in for a constant, and a drift guard in `s1-icp-review.test.ts` asserting
+// the two copies matched. The reasoning about the routers was right; the destination was
+// wrong. They now live in `lib/icp-provider-translation.ts` — the module that owns translating
+// INTO them, which imports nothing — so there is one copy and drift is not expressible.
+const ICP_REVIEW_VOCABULARIES: Record<ProviderField, readonly string[]> = PROVIDER_VOCABULARIES
 
 // #483–#487 — VIDA OPERATOR CONSOLE API.
 // This is the server side of Vida: the surfaces WE (operators) use to run a client's
@@ -122,9 +115,19 @@ operatorRouter.get('/clients', async (_req: Request, res: Response) => {
     // Matching on company name would merge two different companies that share one, and would
     // fail to merge the same person whose draft said "Redmayne" and whose row says
     // "Redmayne & Co." It is an id the operator console already handles, not a new fact.
-    const { data: clients } = await db.from('clients')
+    // ⛓️ 18 Sep (J7-C1) — THE ERROR IS READ, AND A FAILED READ IS NOT AN EMPTY BOOK.
+    // WHAT THIS REPLACED: ~~`const { data: clients } = await db.from('clients')…`~~ — the
+    // error discarded, so a failed read answered `200 { success: true, data: [] }`. The console
+    // then correctly reported what it was told: no clients, nothing to do. A surface cannot be
+    // honest about a read whose failure never reached it, and "nothing needs you" is computed
+    // from exactly this list.
+    const { data: clients, error: clientsErr } = await db.from('clients')
       .select('id, user_id, company_name, industry, country, created_at, is_demo, wallet_balance_usd')
       .order('created_at', { ascending: false })
+    if (clientsErr) {
+      res.status(500).json({ success: false, error: `The client list could not be read (${clientsErr.message}). This is NOT an empty book.` })
+      return
+    }
     const excluded = await getExcludedClientIds()   // house/demo — labelled, not hidden
     const rows = (clients ?? []).map((c: Record<string, unknown>) => ({
       ...c,
@@ -168,7 +171,10 @@ operatorRouter.get('/lifecycle-board', async (_req: Request, res: Response) => {
 // per-client loop would be ~8 round trips × N clients on the console's front door.
 operatorRouter.get('/worklist', async (_req: Request, res: Response) => {
   try {
-    const { data: clients } = await db.from('clients')
+    // ⛓️ 18 Sep (J7-C1) — SAME CORRECTION, SAME REASON. A worklist that answers 200-with-empty
+    // over a failed read is the "nothing needs you" lie told by the server rather than by the
+    // browser, and the browser has no way to tell the difference.
+    const { data: clients, error: clientsErr } = await db.from('clients')
       // #626/C6 — `vat_number` rides the query that was already being made. It is the ONE field
       // `vatBadge` needs (the sentinel NOT_REGISTERED lives in it, #615), and a second query per
       // client to fetch it would be exactly the round trip this endpoint exists to avoid.
@@ -177,6 +183,10 @@ operatorRouter.get('/worklist', async (_req: Request, res: Response) => {
       // client to learn it would be exactly the round trip this endpoint exists to avoid.
       .select('id, company_name, industry, country, is_demo, wallet_balance_usd, created_at, vat_number, commercial_model')
       .order('created_at', { ascending: false }).limit(200)
+    if (clientsErr) {
+      res.status(500).json({ success: false, error: `The worklist could not be read (${clientsErr.message}). This is NOT "nothing to do".` })
+      return
+    }
     const rows = (clients ?? []) as Record<string, unknown>[]
     const ids = rows.map(c => c.id as string)
     if (ids.length === 0) { res.json({ success: true, data: [] }); return }
@@ -327,7 +337,17 @@ operatorRouter.get('/worklist', async (_req: Request, res: Response) => {
     // the answer the console gives today rather than losing their row.
     const withProgramme = new Set<string>()
     try {
-      const { data } = await db.from('programmes').select('client_id').in('client_id', ids)
+      // ⛓️ 18 Sep (J7-C1) — THE ERROR IS READ HERE TOO, AND IT CHANGES NOTHING BUT THE LOG.
+      // The fail-soft direction above is right and is unchanged: a client who cannot be placed
+      // keeps their legacy step rather than losing their row, so this read cannot empty the
+      // list or produce "nothing needs you". What it could do before was fail SILENTLY —
+      // `supabase-js` answers `{ data: null, error }` rather than throwing, so the `catch`
+      // below never ran and the intended log never appeared. A read whose failure nobody can
+      // see is how the worklist quietly starts describing every programme client as legacy.
+      const { data, error } = await db.from('programmes').select('client_id').in('client_id', ids)
+      if (error) {
+        console.error(`[operator/worklist] programme membership unreadable — every client keeps the legacy step: ${error.message}`)
+      }
       for (const r of ((data ?? []) as { client_id: string | null }[])) if (r.client_id) withProgramme.add(r.client_id)
     } catch (err) {
       console.error('[operator/worklist] programme membership unreadable — every client keeps the legacy step:', err)
@@ -730,7 +750,7 @@ operatorRouter.post('/campaign/suggest', async (req: Request, res: Response) => 
         const { default: Anthropic } = await import('@anthropic-ai/sdk')
         const ai = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
         const msg = await ai.messages.create({
-          model: 'claude-haiku-4-5-20251001', max_tokens: 200,
+          model: BACKGROUND_MODEL, max_tokens: 200,
           messages: [{ role: 'user', content:
             `Name an outbound campaign for ${c?.company_name ?? 'a client'}${c?.industry ? ` (${c.industry})` : ''} targeting: ${who || icp.name}.\n` +
             `Reply as exactly two lines and nothing else:\nNAME: <max 6 words>\nHUNTING: <one sentence, who and why now>` }],
@@ -1632,7 +1652,10 @@ operatorRouter.get('/alerts', async (_req: Request, res: Response) => {
   try {
     const since = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString()
     const [clients, icps, camps, replies] = await Promise.all([
-      db.from('clients').select('id, company_name, created_at, is_demo').order('created_at', { ascending: false }).limit(200),
+      // ⛓️ 18 Sep (J5-C3 · PV 07 · R117) — `commercial_model` RIDES THIS QUERY. Two of the
+      // four alerts below describe the RETIRED per-lead operator flow, and this fetch had no
+      // way to tell whether the client is on it. See the suppression note at the loop.
+      db.from('clients').select('id, company_name, created_at, is_demo, commercial_model').order('created_at', { ascending: false }).limit(200),
       // NOT date-filtered on purpose. "ICP approved, no campaign — they can't be worked" is
       // the highest-value alert here, and a 14-day window would go silent for exactly the
       // clients it matters most for: the ones onboarded a while ago and still not working.
@@ -1682,6 +1705,48 @@ operatorRouter.get('/alerts', async (_req: Request, res: Response) => {
       replyByClient.set(k, (replyByClient.get(k) ?? 0) + 1)
     }
 
+    // ── 🛑 ⚑ 18 Sep (J5-C3 · PV 07 · R117) — WHO IS ON THE PROGRAMME MODEL ──────────────
+    //
+    // R117: **ONE DERIVATION, FIVE SURFACES** — *"five copies of 'where is this client' is
+    // five chances to disagree"* — and **NORMAL IS SILENT**: *"NORMAL HEALTHY AUTOMATION MUST
+    // NOT APPEAR IN NEEDS YOU. Do not invent fake urgency."*
+    //
+    // 🛑 THIS BELL IS A SIXTH SURFACE AND IT DERIVES NOTHING. Two of the four alerts below are
+    // sentences from the retired per-lead flow — an operator who approves a client's first ICP
+    // and then builds them a campaign. Under the programme model neither step exists:
+    // promotion is server-owned (J4-C1), Proof starts itself (J5-C1) and preparation runs
+    // automatically (XC-6). So a brand-new programme client — healthy, automatic, nothing owed
+    // by anybody — rang this bell at HIGH severity on their signup day and kept ringing it
+    // until somebody hand-built a `figsy_campaigns` row to clear it.
+    //
+    // ⚠️ THE SAME TWO-PART QUESTION THE WORKLIST ALREADY ASKS, and for the same reason:
+    // membership alone misses a declared client whose programme is not created yet, and the
+    // column alone misses every programme created before it was written.
+    //
+    // ⚠️ FAIL-SOFT, AND THE DIRECTION IS DELIBERATE. A failed membership read leaves the
+    // DECLARED column still answering, so a client we KNOW is on a programme is still
+    // suppressed, and every other client keeps exactly today's behaviour. The opposite
+    // direction — suppressing on a failed read — would silently empty an operator's bell.
+    const programmeClients = new Set<string>()
+    for (const c of (clients.data ?? []) as Record<string, unknown>[]) {
+      if (c.commercial_model === 'programme') programmeClients.add(c.id as string)
+    }
+    try {
+      const ids = ((clients.data ?? []) as Record<string, unknown>[]).map(c => c.id as string)
+      if (ids.length > 0) {
+        const { data: progRows, error: progErr } = await db.from('programmes')
+          .select('client_id').in('client_id', ids)
+        if (progErr) {
+          console.error(`[operator/alerts] programme membership unreadable — only DECLARED programme clients are suppressed: ${progErr.message}`)
+        }
+        for (const r of ((progRows ?? []) as { client_id: string | null }[])) {
+          if (r.client_id) programmeClients.add(r.client_id)
+        }
+      }
+    } catch (err) {
+      console.error('[operator/alerts] programme membership unreadable — only DECLARED programme clients are suppressed:', err)
+    }
+
     const out: {
       client_id: string; company_name: string | null; kind: string; label: string
       severity: 'high' | 'normal'
@@ -1702,7 +1767,16 @@ operatorRouter.get('/alerts', async (_req: Request, res: Response) => {
       const hasActive = myCamps.some(x => x.status === 'active')
       const newish = (c.created_at as string) >= since
 
-      if (newish && myIcps.length > 0 && !hasActive) {
+      // 🛑 ⚑ 18 Sep (J5-C3) — BOTH OF THESE ARE THE RETIRED MODEL'S SENTENCES, and they are
+      // the only two here that are. "Waiting on us" and "they can't be worked" both name an
+      // operator step the programme model does not have; see the note above the set. The two
+      // below — `icp_revised` and `replies` — are facts about any client under any commercial
+      // model, and a reply waiting on a person is precisely what R117 says Needs-you is FOR,
+      // so silencing those would be the opposite defect.
+      if (programmeClients.has(id)) {
+        // Nothing. Their state is derived once, by `lifecycleBoard`, and rendered on the five
+        // surfaces R117 names.
+      } else if (newish && myIcps.length > 0 && !hasActive) {
         out.push({ client_id: id, company_name: name, kind: 'new_client_icp', label: 'New client — first ICP is waiting on us', severity: 'high' })
       } else if (!hasActive && myCamps.length === 0 && myIcps.length > 0) {
         out.push({ client_id: id, company_name: name, kind: 'no_campaign', label: 'ICP approved, no campaign yet — they can’t be worked', severity: 'high' })
@@ -1826,15 +1900,40 @@ operatorRouter.get('/alerts', async (_req: Request, res: Response) => {
       for (const r of open.rows) {
         const candidates = (r.candidate_client_ids ?? []).filter(Boolean)
         const label = unattributedAlertLabel({ fromEmail: r.from_email, candidateCount: candidates.length })
+        let shown = 0
         for (const cid of candidates) {
           // Demo and House accounts are filtered from every other section of this feed for the
           // same reason: an exception on an account nobody is operating is noise.
           if (excluded.has(cid)) continue
+          shown++
           replyOut.push({
             client_id: cid,
             company_name: null,
             kind: 'reply_unattributed',
             label,
+            severity: 'high',
+            unattributed_reply_id: r.id,
+          })
+        }
+        // ── ⚑ 18 Sep (J22-C2 · PV 11 C) — A HOLD WITH NO CANDIDATE IS STILL A HOLD ────────
+        //
+        // 🛑 THIS FEED RENDERED A RETAINED REPLY ONCE PER CANDIDATE CLIENT — so a retention
+        // with NO candidates produced NO row, and a held reply that nothing displays cannot be
+        // resolved by anybody. It became reachable only by reading the table by hand.
+        //
+        // Two real cases produce one: a lookup failure, where the candidates are genuinely
+        // unknown (J22-C3), and a collision whose every candidate is a demo or House account
+        // filtered out of this feed. Both are a real person waiting on an answer.
+        //
+        // ⚠️ `client_id: ''` IS THE HONEST VALUE AND THE UI TREATS IT AS ONE. There is no
+        // client to name — that is the whole condition — so the operator names one, and the
+        // row says so rather than attaching the reply to whoever happened to be first.
+        if (shown === 0) {
+          replyOut.push({
+            client_id: '',
+            company_name: null,
+            kind: 'reply_unattributed_unknown',
+            label: `${label} — no candidate client to offer, so it needs one naming`,
             severity: 'high',
             unattributed_reply_id: r.id,
           })
@@ -2784,6 +2883,93 @@ operatorRouter.post('/unattributed-replies/:id/resolve', async (req: Request, re
   }
 })
 
+// ── ⚑ 18 Sep (J22-C2 · PV 11 C) — RE-CHECK: ASK THE QUESTION WE COULD NOT ASK ──────────
+//
+// ── 🛑 THE HOLD THAT NO CONTROL COULD RESOLVE ───────────────────────────────────────────
+//
+// A retained reply whose candidate set is EMPTY cannot be attributed, and that refusal is
+// correct: `resolve` above refuses any client outside the stored candidates — *"attributing
+// outside it would hand one client an external reply on the strength of nothing at all"* — and
+// an empty set means we never learned who held that address. So the only control an operator
+// had for it was DISCARD, which throws away a real person's answer.
+//
+// The candidates are empty for one reason (J22-C3): the lead lookup FAILED while the reply was
+// arriving. That is a transient database condition, not a fact about the world — so the honest
+// control is to ask again.
+//
+// ⚠️ IT GUESSES NOTHING AND WEAKENS NOTHING. It re-runs the same lookup the pipeline runs, and
+// writes back what it finds. The candidate check stays exactly as it is; this fills the set it
+// checks against with evidence rather than with an operator's opinion, and a re-check that
+// still finds nobody says so and changes nothing.
+//
+// ⚠️ AND IT ONLY EVER ADDS TO AN UNRESOLVED, UNCLAIMED HOLD. Re-checking a decided reply could
+// only invite a second decision.
+operatorRouter.post('/unattributed-replies/:id/recheck', async (req: Request, res: Response) => {
+  try {
+    if (!adminKeyValid(req)) {
+      res.status(403).json({ success: false, error: 'Operator key required' })
+      return
+    }
+    const { getUnattributedReply } = await import('../lib/unattributed-reply')
+    const found = await getUnattributedReply(req.params.id)
+    if (!found.ok) {
+      res.status(500).json({ success: false, error: `The retained reply could not be read, so nothing was re-checked. ${found.detail}` })
+      return
+    }
+    if (!found.row) { res.status(404).json({ success: false, error: 'No such retained reply.' }); return }
+    if (found.row.resolved_at) { res.json({ success: true, data: { rechecked: 'already_resolved' } }); return }
+
+    const { findLeadMatches } = await import('../lib/reply-ingest')
+    let matches: { id: string; client_id: string }[]
+    try {
+      matches = await findLeadMatches(found.row.from_email)
+    } catch (err) {
+      // The same failure that produced this hold. Say so plainly rather than recording a
+      // re-check that answered nothing.
+      res.status(503).json({
+        success: false,
+        error: `The lead lookup failed again (${err instanceof Error ? err.message : String(err)}), so the candidates are still unknown. The reply is untouched and still waiting.`,
+      })
+      return
+    }
+
+    const clientIds = [...new Set(matches.map(m => m.client_id).filter(Boolean))]
+    const leadIds = [...new Set(matches.map(m => m.id).filter(Boolean))]
+    if (clientIds.length === 0) {
+      res.json({
+        success: true,
+        data: { rechecked: 'still_unknown', candidates: 0 },
+        message: `Nobody holds a lead with ${found.row.from_email}, so there is still no client this reply can be attributed to. It stays retained.`,
+      })
+      return
+    }
+
+    const { error: updErr } = await db.from('unattributed_replies')
+      .update({ candidate_client_ids: clientIds, candidate_lead_ids: leadIds })
+      .eq('id', req.params.id).is('resolved_at', null)
+    if (updErr) {
+      res.status(500).json({ success: false, error: `The candidates were found but could not be written back (${updErr.message}), so nothing changed.` })
+      return
+    }
+
+    await writeOperatorAudit({
+      operatorEmail: operatorEmail(req), clientId: null,
+      action: 'unattributed_reply_rechecked', subjectType: 'client', subjectId: req.params.id,
+      detail: {
+        from_email: found.row.from_email,
+        candidates_before: (found.row.candidate_client_ids ?? []).filter(Boolean),
+        candidates_after: clientIds,
+        means: 'the lead lookup that failed while this reply arrived was re-run; the candidate set is now evidence rather than absence, and the attribution control refuses anything outside it exactly as before',
+      },
+    })
+
+    res.json({ success: true, data: { rechecked: 'candidates_found', candidates: clientIds.length } })
+  } catch (err) {
+    console.error('[operator/unattributed-replies/recheck]', err)
+    res.status(500).json({ success: false, error: 'Failed to re-check the reply' })
+  }
+})
+
 // ── DISCARD — "this belongs to none of the candidates" ────────────────────────────────
 //
 // ⚠️ IT IS A DECISION, NOT A DELETE. The retained row keeps the full inbound, its candidates
@@ -2894,10 +3080,35 @@ operatorRouter.get('/proof-review/:clientId/evidence', async (req: Request, res:
       res.status(403).json({ success: false, error: 'Operator key required' }); return
     }
     const { readCalibration, mayRestartCalibrated } = await import('../lib/proof-calibration-io')
-    const { ESCALATION_TRIGGER_COPY, PROOF_REASON_LABELS, whatChangedSentence, automaticAttempt } =
-      await import('../lib/proof-calibration')
+    const {
+      ESCALATION_TRIGGER_COPY, PROOF_REASON_LABELS, whatChangedSentence, automaticAttempt,
+      // ⚑ 18 Sep (J6-C3 · PV 02) — the SET-level verdict, and the plain sentence behind it.
+      strongerSetVerdict, STRONGER_SET_REASON_COPY,
+    } = await import('../lib/proof-calibration')
     const cal = await readCalibration(req.params.clientId)
     const restart = mayRestartCalibrated(cal)
+    const setVerdict = strongerSetVerdict(cal)
+
+    // ── ⚑ 18 Sep (J6-C3) — WHAT WAS RECORDED WHEN IT HAPPENED, BESIDE WHAT IS TRUE NOW ────
+    //
+    // ⚠️ TWO DIFFERENT FACTS AND BOTH ARE SHOWN. `stronger_set_*` is the live verdict — the
+    // actual spend gate, derived now. `stronger_set_recorded_at` is the EVENT: when a second
+    // automatic attempt was first unlocked for this client, and on what basis. An operator
+    // asking "why does this client have a second set?" is asking the second question, and
+    // before this there was no answer to it anywhere.
+    //
+    // ⚠️ A MISSING COLUMN IS NOT A MISSING ANSWER. The event columns are additive and the
+    // panel must keep working before the migration runs, so the read degrades to `null` —
+    // which correctly means "not recorded", never "refused".
+    let recordedAt: string | null = null
+    let recordedReason: string | null = null
+    try {
+      const { data: rec } = await db.from('clients')
+        .select('proof_stronger_set_unlocked_at, proof_stronger_set_unlocked_reason')
+        .eq('id', req.params.clientId).maybeSingle()
+      recordedAt = (rec as { proof_stronger_set_unlocked_at?: string | null } | null)?.proof_stronger_set_unlocked_at ?? null
+      recordedReason = (rec as { proof_stronger_set_unlocked_reason?: string | null } | null)?.proof_stronger_set_unlocked_reason ?? null
+    } catch { /* the columns are not there yet — the panel says "not recorded" */ }
 
     // ── 🛑 ⚑ 13 Sep (B2) — IS HISTORICAL CLASSIFICATION REQUIRED? READ-ONLY, ONE DEFINITION ──
     //
@@ -2991,6 +3202,21 @@ operatorRouter.get('/proof-review/:clientId/evidence', async (req: Request, res:
         })),
         may_restart: restart.allowed,
         may_restart_why: restart.why ?? null,
+        // ── ⚑ 18 Sep (J6-C3 · PV 02) — THE SET-LEVEL VERDICT, WHICH VIDA COULD NOT SEE ────
+        //
+        // `mayRequestStrongerSet` is the one spend gate between a client and their second
+        // automatic attempt. It was derived, used and thrown away on every read, so nobody
+        // could answer "does this client have a second set, and why?" from an operator screen.
+        //
+        // ⚠️ THE REASON IS A STABLE CODE *AND* A SENTENCE. The code is what a log or a filter
+        // keys on; the sentence is what the operator reads, and it is the server's, so the
+        // panel cannot reword a refusal into something softer than it is.
+        stronger_set_unlocked: setVerdict.unlocked,
+        stronger_set_reason: setVerdict.because,
+        stronger_set_why: STRONGER_SET_REASON_COPY[setVerdict.because],
+        // The EVENT: when it was first unlocked, and on what basis. `null` = not recorded.
+        stronger_set_recorded_at: recordedAt,
+        stronger_set_recorded_reason: recordedReason,
         // ⚑ 11 Sep — the one sentence naming what changed between the two AUTOMATIC sets,
         // built from the client's own reasons. The operator is about to phone them about it.
         what_changed: whatChangedSentence(automaticAttempt(cal, 1) ?? null),
@@ -3250,6 +3476,90 @@ operatorRouter.post('/proof-retry/:clientId', async (req: Request, res: Response
     if (icpErr) { res.status(500).json({ success: false, error: icpErr.message }); return }
     if (!icpRow) { res.status(404).json({ success: false, error: 'No such ICP for that client.' }); return }
 
+    // ══════════════════════════════════════════════════════════════════════════════════════
+    // 🛑 XC-12 (FD-0) · RECOVERY IS AN EXCEPTION TAKEN FROM A STATE THE SYSTEM GAVE UP ON
+    //
+    // Until J5-C1 there was nothing to check: the run was a promise inside one process, so
+    // this control retried whatever was happening. An operator watching a client wait could
+    // press it mid-run and get a SECOND live run against the same targeting — two runs, one
+    // claim, and whichever finished last wrote the desk.
+    //
+    // FD-0 keeps the SYSTEM as primary owner; a human recovery is the exception. So:
+    //   ① a note is required — "what were you recovering from?" must have an answer;
+    //   ② only `failed` or `stuck` may be recovered — a live run is not broken, it is RUNNING;
+    //   ③ the LATEST run decides, never any historical one;
+    //   ④ the claim is a compare-and-set, so two clicks produce exactly ONE recovery.
+    // ══════════════════════════════════════════════════════════════════════════════════════
+    const note = typeof req.body?.note === 'string' ? req.body.note.trim() : ''
+    if (!note) {
+      res.status(400).json({
+        success: false,
+        error: 'A note is required: a recovery has to record what it is recovering from.',
+      })
+      return
+    }
+
+    // ⚠️ ORDERED BY `updated_at`, TAKING ONE. A stale `failed` row from last week must never
+    // unlock recovery of the run that is going right now.
+    const { data: lastWork, error: workErr } = await db.from('automatic_work')
+      .select('id, state, attempt, failure_reason, updated_at')
+      .eq('kind', 'proof_run').eq('subject_kind', 'icp').eq('subject_id', icpId)
+      .order('updated_at', { ascending: false }).limit(1).maybeSingle()
+
+    // ⚠️ AN UNREADABLE OWNER IS NOT AN ABSENT ONE. Failing open here would restore exactly the
+    // behaviour this item removes, so the read failing REFUSES.
+    if (workErr) {
+      res.status(503).json({ success: false, retryable: true, error: `The Proof run's state could not be read (${workErr.message}), so recovery was refused.` })
+      return
+    }
+
+    const RECOVERABLE = ['failed', 'stuck']
+    const observedState = lastWork ? String((lastWork as { state?: unknown }).state ?? '') : ''
+    // ⚠️ NO ROW AT ALL IS ALLOWED THROUGH, and deliberately: a run that predates J5-C1's
+    // ownership has no record, and refusing every one of those would make the control useless
+    // for exactly the clients most likely to need it. A row that EXISTS must be recoverable.
+    if (lastWork && !RECOVERABLE.includes(observedState)) {
+      await writeOperatorAudit({
+        operatorEmail: operatorEmail(req), clientId, action: 'proof_retry_refused',
+        subjectType: 'icp', subjectId: icpId,
+        detail: { started: false, reason: 'not_recoverable', recovered_from: observedState, note },
+      })
+      res.status(409).json({
+        success: false, started: false, reason: 'not_recoverable',
+        error: `This Proof run is "${observedState}", not failed or stuck. A run that is still going is not recovered — it is interrupted.`,
+      })
+      return
+    }
+
+    // ④ THE COMPARE-AND-SET. `attempt` is the version: claiming recovery moves it, and only
+    // one caller can move it from the value it observed. No new column, no second lock, and
+    // the database — not a check in this handler — is what refuses the loser.
+    if (lastWork) {
+      const observedAttempt = Number((lastWork as { attempt?: unknown }).attempt ?? 1)
+      const { data: won, error: casErr } = await db.from('automatic_work')
+        .update({ attempt: observedAttempt + 1, updated_at: new Date().toISOString() })
+        .eq('id', (lastWork as { id: string }).id)
+        .eq('attempt', observedAttempt)
+        .in('state', RECOVERABLE)
+        .select('id').maybeSingle()
+      if (casErr) {
+        res.status(503).json({ success: false, retryable: true, error: `Recovery could not be claimed (${casErr.message}).` })
+        return
+      }
+      if (!won) {
+        await writeOperatorAudit({
+          operatorEmail: operatorEmail(req), clientId, action: 'proof_retry_refused',
+          subjectType: 'icp', subjectId: icpId,
+          detail: { started: false, reason: 'already_recovering', recovered_from: observedState, note },
+        })
+        res.status(409).json({
+          success: false, started: false, reason: 'already_recovering',
+          error: 'Another recovery for this Proof run was already taken. Nothing was started twice.',
+        })
+        return
+      }
+    }
+
     const { retryProofAfterZeroEligible } = await import('../lib/proof-run-launch')
     const out = await retryProofAfterZeroEligible(clientId, icpId)
 
@@ -3259,8 +3569,8 @@ operatorRouter.post('/proof-retry/:clientId', async (req: Request, res: Response
       operatorEmail: operatorEmail(req), clientId, action: 'proof_retry_zero_eligible',
       subjectType: 'icp', subjectId: icpId,
       detail: out.started
-        ? { started: true, pass: out.pass, kind: out.kind }
-        : { started: false, reason: out.reason, detail: 'detail' in out ? out.detail : null },
+        ? { started: true, pass: out.pass, kind: out.kind, recovered_from: observedState || 'no_recorded_run', note }
+        : { started: false, reason: out.reason, detail: 'detail' in out ? out.detail : null, recovered_from: observedState || 'no_recorded_run', note },
     })
 
     if (!out.started) {
@@ -3380,6 +3690,27 @@ operatorRouter.post('/icp-review/:icpId/resolve', async (req: Request, res: Resp
         means: 'the client described their targeting in their own words; these are the provider values an operator translated the UNRESOLVED half into, UNIONED with the half that already translated. Proof and provider sourcing were refused until this was recorded.',
       },
     })
+
+    // ── ⚑ 18 Sep (J5-C10) — THE NEEDS-YOU ROW CLOSES ITSELF ─────────────────────────────
+    //
+    // The condition that raised it has gone. The migration's own words: *"A task is resolved
+    // by a human with a note, or BY THE CONDITION CLEARING, and either way the row survives as
+    // evidence."* Without this the queue only ever grows, and a list that keeps resolved work
+    // in it is a list people learn to scroll past — the exact failure XC-5 exists to prevent,
+    // reached from the other end.
+    //
+    // ⚠️ IT NEVER FAILS THIS ROUTE. The operator's translation is already durable above and is
+    // a human's work; refusing their resolution because a task row would not close would be
+    // the tail wagging the dog. It is logged and the sweep moves on.
+    try {
+      const { clearIcpReviewTask } = await import('../lib/icp-review-tasks')
+      const cleared = await clearIcpReviewTask(clientId, req.params.icpId)
+      if (!cleared.ok) {
+        console.error(`[operator/icp-review] the Needs-you row for ${req.params.icpId} did not close: ${cleared.error ?? 'unknown'}`)
+      }
+    } catch (e) {
+      console.error(`[operator/icp-review] closing the Needs-you row for ${req.params.icpId} threw:`, e)
+    }
 
     // ── 🛑 ⚑ 15 Sep (S1-RT-004) — AND NOW IT CONTINUES INTO THE FIRST FREE PROOF RUN ────
     //
@@ -3841,12 +4172,59 @@ operatorRouter.post('/migrations/run', async (req: Request, res: Response) => {
       success: true,
       data: {
         results, host: run.host, used_fallback: run.usedFallback, hint: run.hint ?? null,
+        // ⚑ XC-3 — the ledger half. `ledger_recorded` short of `results.length` means the run
+        // applied but its outcomes are not persisted, which is a different problem from a
+        // failed migration and needs saying separately.
+        ledger_recorded: run.ledgerRecorded,
+        ledger_note: run.ledgerNote,
         available: PENDING_MIGRATIONS.map(m => ({ key: m.key, title: m.title })),
       },
     })
   } catch (err) {
     console.error('[operator/migrations]', err)
     res.status(500).json({ success: false, error: err instanceof Error ? err.message : 'Failed to run migrations' })
+  }
+})
+
+// ── ⚑ 17 Sep (XC-3) — WHAT HAS ACTUALLY BEEN APPLIED, READ FROM THE DATABASE ────────────
+//
+// 🛑 THE ONLY ANSWER THAT EXISTED BEFORE THIS WAS A REPLAY. `POST /migrations/run` re-runs
+// every key and returns a transcript; nothing persisted, so "has X gone in?" could only be
+// answered by hunting for the object X creates — and an object that exists for another reason
+// is indistinguishable from a migration that ran. That confusion is literally what created
+// `app_migrations_applied`: `20260724_one_wallet.sql`'s `EXCEPTION WHEN undefined_table`
+// handler wrote a row into a table it then created as a side effect.
+//
+// ⚠️ READ-ONLY, AND CHEAP. One SELECT. It is safe to call while a run is still going, which is
+// the point: the run outlives the admin proxy's 45s bound, so this is how progress is seen.
+//
+// ⚠️ A TABLE THAT IS NOT THERE IS `ok: false`, NEVER AN EMPTY LIST. Reporting "nothing has
+// ever been applied" because the ledger itself is missing would invite somebody to re-run 74
+// migrations against a database that already has all of them.
+operatorRouter.get('/migrations/state', async (_req: Request, res: Response) => {
+  try {
+    const { readMigrationLedger } = await import('../lib/migration-ledger')
+    const state = await readMigrationLedger()
+    res.json({
+      success: true,
+      data: {
+        ok: state.ok,
+        table_missing: state.tableMissing,
+        columns_missing: state.columnsMissing,
+        note: state.note,
+        rows: state.rows,
+        counts: {
+          applied: state.rows.filter(r => r.state === 'applied').length,
+          failed: state.rows.filter(r => r.state === 'failed').length,
+          never_run: state.rows.filter(r => r.state === 'never_run').length,
+          unknown: state.rows.filter(r => r.state === 'unknown').length,
+        },
+        read_at: new Date().toISOString(),
+      },
+    })
+  } catch (err) {
+    console.error('[operator/migrations/state]', err)
+    res.status(500).json({ success: false, error: err instanceof Error ? err.message : 'Could not read the applied-migration ledger' })
   }
 })
 
@@ -3959,6 +4337,70 @@ operatorRouter.post('/settings/pdl-cap', async (req: Request, res: Response) => 
   } catch (err) {
     console.error('[operator/settings/pdl-cap:post]', err)
     res.status(500).json({ success: false, error: 'Could not save the PDL cap' })
+  }
+})
+
+// ── XC-5 · THE OPERATOR TASK QUEUE — Vida Needs-you, read from the database ─────────────
+//
+// Before this, Vida's Needs-you was entirely DERIVED: `deriveLifecycle` recomputed it from
+// lifecycle facts on every read. That works while the facts still hold and answers nothing
+// afterwards — an exception that cleared itself left no trace, and one that needed a human
+// disappeared the moment the derivation changed. Every other exception was an email.
+//
+// ⚠️ `ok: false` IS NOT AN EMPTY QUEUE, and the response says which. "Nothing needs you" is
+// the most reassuring sentence this console can print and it must never be printed because
+// a read failed — that inversion is the Vida "no action needed" defect that let Northvale
+// sit untouched.
+operatorRouter.get('/tasks', async (req: Request, res: Response) => {
+  try {
+    const { listOpenOperatorTasks } = await import('../lib/operator-tasks')
+    const clientId = typeof req.query.client_id === 'string' ? req.query.client_id : undefined
+    const out = await listOpenOperatorTasks({ clientId })
+    if (!out.ok) {
+      res.status(500).json({
+        success: false,
+        error: out.tableMissing
+          ? 'The operator_tasks table does not exist yet — run 20260917_operator_tasks_and_automatic_work from Vida → System → Engine. This is NOT an empty queue.'
+          : `The task queue could not be read: ${out.error ?? 'unknown'}`,
+        table_missing: out.tableMissing === true,
+      })
+      return
+    }
+    res.json({
+      success: true,
+      data: {
+        tasks: out.tasks,
+        open: out.tasks.length,
+        critical: out.tasks.filter(t => t.severity === 'critical').length,
+      },
+    })
+  } catch (err) {
+    console.error('[operator/tasks:get]', err)
+    res.status(500).json({ success: false, error: 'Could not read the task queue' })
+  }
+})
+
+// A note is REQUIRED, by the module and by this route. The whole reason the table exists is
+// that the previous mechanism left nothing behind; a resolution with no reason repeats that.
+operatorRouter.post('/tasks/:id/resolve', async (req: Request, res: Response) => {
+  try {
+    const { resolveOperatorTask } = await import('../lib/operator-tasks')
+    const body = (req.body ?? {}) as { note?: unknown; status?: unknown }
+    const note = typeof body.note === 'string' ? body.note : ''
+    const status = body.status === 'dismissed' ? 'dismissed' as const : 'resolved' as const
+    const out = await resolveOperatorTask(req.params.id, { by: null, note, status })
+    if (!out.ok) {
+      res.status(out.error?.includes('note') ? 400 : 500).json({ success: false, error: out.error })
+      return
+    }
+    await writeOperatorAudit({
+      operatorEmail: operatorEmail(req), clientId: null, action: `operator_task_${status}`,
+      subjectType: 'operator_task', subjectId: req.params.id, detail: { note },
+    })
+    res.json({ success: true })
+  } catch (err) {
+    console.error('[operator/tasks:resolve]', err)
+    res.status(500).json({ success: false, error: 'Could not resolve the task' })
   }
 })
 
@@ -4197,13 +4639,30 @@ operatorRouter.post('/inboxes/:id/verify', async (req: Request, res: Response) =
         '— run migration 20260910_inbox_verification if the columns are missing')
     }
 
+    // ── ⚑ 18 Sep (J14-C2 · LR 21) — AND THE OPERATOR IS TOLD IT DID NOT COUNT ───────────
+    //
+    // ⛓️ ~~`res.json({ success: true, data: result })`~~ reported the mailbox's own answer as
+    // the verdict. When the stamp failed, a green "connected" came back for a mailbox whose
+    // row still reads unverified — and the row is what every gate downstream reads, so the
+    // operator had been told a thing was done that nothing could see.
+    //
+    // ⚠️ THE EXISTING RULE IS KEPT, NOT REVERSED: the write still does not break the check,
+    // there is no throw, and the operator still hears exactly what the mailbox said. What
+    // changes is that an unrecorded pass is no longer reported as a verification.
+    const answer = stampErr
+      ? { ok: false, message: `${result.message} — but the result could not be recorded (${stampErr.message}), so this mailbox is NOT verified. Nothing downstream can read a check that was not stored. Try again once the storage error is fixed.` }
+      : result
+
     await writeOperatorAudit({
       operatorEmail: operatorEmail(req), clientId: client.id, action: 'assign_inbox',
       subjectType: 'inbox', subjectId: req.params.id,
-      detail: { verified: result.ok, stored: !stampErr },
+      // ⚠️ THREE FACTS, NOT ONE. What the mailbox said, whether it was recorded, and therefore
+      // whether this counts as verified — collapsing them is what let an unrecorded pass read
+      // as a verification.
+      detail: { connection_ok: result.ok, stored: !stampErr, verified: result.ok && !stampErr },
     })
     // 200 either way: "we asked and it said no" is a successful check, not a server error.
-    res.json({ success: true, data: result })
+    res.json({ success: true, data: answer })
   } catch (err) { console.error('[operator/inbox-verify]', err); res.status(500).json({ success: false, error: 'Failed to check the mailbox' }) }
 })
 
@@ -5495,10 +5954,40 @@ operatorRouter.get('/source-preview', async (req: Request, res: Response) => {
     // MONEY GATES THE SPEND (flow v2). PDL is billed at SOURCING, whether the client ever
     // approves anyone or not — so sourcing for a client who has never paid spends OUR money
     // on someone who may never return. This had no check at all.
+    //
+    // ── ⛓️ 18 Sep (P6 §8.2 · journey 12) — A PROGRAMME PAYMENT IS A PAYMENT ───────────────
+    //
+    // 🛑 THIS GATE ONLY KNEW THE RETIRED ECONOMICS. It counted `credit_transactions` — the
+    // $299 wallet top-up — so a PROGRAMME client who had just settled Payment 1 through
+    // Stripe was refused with "They haven't paid the $299 yet", a sentence about a product
+    // R124 retired ("299/4 is gone. out. we are on the programme. all clients."). Sourcing
+    // was unreachable for exactly the clients the current product is built around, and the
+    // full-stack harness had been papering over it by writing a `wallet_topup` row into its
+    // own fixture.
+    //
+    // ⚠️ THE GATE IS WIDENED, NEVER WEAKENED. It still refuses a client who has paid nothing;
+    // it now also accepts the payment the product actually takes.
+    //
+    // 🛑 AND IT INTERPRETS NOTHING ITSELF. `p1Authorised` is the ONE definition of a settled
+    // Payment 1, imported from `programme.ts`; this route asks it a question and believes the
+    // answer. Naming the authority columns here would put a second reader of that meaning in a
+    // 6,000-line router — which is exactly what `programme-authority-schema.test.ts` refuses,
+    // and it caught this comment doing it.
     const { count: paid } = await db.from('credit_transactions').select('id', { count: 'exact', head: true })
       .eq('client_id', client.id).in('type', PAID_TX_TYPES)
     const { data: demoRow } = await db.from('clients').select('is_demo').eq('id', client.id).maybeSingle()
-    if ((paid ?? 0) === 0 && demoRow?.is_demo !== true) {
+    let programmePaid = false
+    try {
+      const { openProgrammeFor } = await import('../lib/programme-authority')
+      const { p1Authorised } = await import('../lib/programme')
+      const open = await openProgrammeFor(client.id)
+      programmePaid = !!open && p1Authorised(open as Parameters<typeof p1Authorised>[0])
+    } catch (err) {
+      // ⚠️ FAILS CLOSED. An unreadable programme is not evidence of a payment, so the legacy
+      // wallet test alone decides — the safe direction for a gate that guards our spend.
+      console.error(`[operator/source] the programme payment state could not be read for ${client.id} — falling back to the wallet test only:`, err)
+    }
+    if ((paid ?? 0) === 0 && !programmePaid && demoRow?.is_demo !== true) {
       res.status(402).json({ success: false, error: `They haven’t paid the $${PACK_PRICE_USD} yet — nothing sources until it lands.` }); return
     }
     const cid = client.id
@@ -5624,10 +6113,39 @@ operatorRouter.post('/source', async (req: Request, res: Response) => {
     // MONEY GATES THE SPEND (flow v2). PDL is billed at SOURCING, whether the client ever
     // approves anyone or not — so sourcing for a client who has never paid spends OUR money
     // on someone who may never return. This had no check at all.
+    //
+    // ── ⛓️ 18 Sep (P6 §8.2 · journey 12) — A PROGRAMME PAYMENT IS A PAYMENT ───────────────
+    //
+    // 🛑 THIS GATE ONLY KNEW THE RETIRED ECONOMICS. It counted `credit_transactions` — the
+    // $299 wallet top-up — so a PROGRAMME client who had just settled Payment 1 through
+    // Stripe was refused with "They haven't paid the $299 yet", a sentence about a product
+    // R124 retired ("299/4 is gone. out. we are on the programme. all clients."). Sourcing
+    // was unreachable for exactly the clients the current product is built around, and the
+    // full-stack harness had been papering over it by writing a `wallet_topup` row into its
+    // own fixture.
+    //
+    // ⚠️ THE GATE IS WIDENED, NEVER WEAKENED. It still refuses a client who has paid nothing;
+    // it now also accepts the payment the product actually takes.
+    //
+    // 🛑 AND IT INTERPRETS NOTHING ITSELF. `p1Authorised` is the ONE definition of a settled
+    // Payment 1, imported from `programme.ts`; this route asks it a question and believes the
+    // answer. Naming the authority columns here would put a second reader of that meaning in a
+    // 6,000-line router — which is exactly what `programme-authority-schema.test.ts` refuses.
     const { count: paid } = await db.from('credit_transactions').select('id', { count: 'exact', head: true })
       .eq('client_id', client.id).in('type', PAID_TX_TYPES)
     const { data: demoRow } = await db.from('clients').select('is_demo').eq('id', client.id).maybeSingle()
-    if ((paid ?? 0) === 0 && demoRow?.is_demo !== true) {
+    let programmePaid = false
+    try {
+      const { openProgrammeFor } = await import('../lib/programme-authority')
+      const { p1Authorised } = await import('../lib/programme')
+      const open = await openProgrammeFor(client.id)
+      programmePaid = !!open && p1Authorised(open as Parameters<typeof p1Authorised>[0])
+    } catch (err) {
+      // ⚠️ FAILS CLOSED. An unreadable programme is not evidence of a payment, so the legacy
+      // wallet test alone decides — the safe direction for a gate that guards our spend.
+      console.error(`[operator/source] the programme payment state could not be read for ${client.id} — falling back to the wallet test only:`, err)
+    }
+    if ((paid ?? 0) === 0 && !programmePaid && demoRow?.is_demo !== true) {
       res.status(402).json({ success: false, error: `They haven’t paid the $${PACK_PRICE_USD} yet — nothing sources until it lands.` }); return
     }
     if (confirm !== true) { res.status(400).json({ success: false, error: 'Sourcing spends our PDL budget — confirm required' }); return }

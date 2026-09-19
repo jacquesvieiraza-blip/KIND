@@ -197,6 +197,60 @@ export async function readAttempts(clientId: string): Promise<AttemptSummary[]> 
   return [...bySet.values()].sort((x, y) => rank(x) - rank(y))
 }
 
+/**
+ * ── 🛑 ⚑ 18 Sep (J6-C3 · PV 02) — RECORD THAT THE SECOND SET WAS UNLOCKED ───────────────
+ *
+ * Writes the moment the set-level verdict FIRST becomes true, with the reason code behind it.
+ *
+ * ⚠️ IT DECIDES NOTHING. `strongerSetVerdict` remains the gate and is still derived live from
+ * `lead_feedback` × `leads`; this is a historical event beside it, so the two can never
+ * disagree — there is nothing here for a live answer to drift away from.
+ *
+ * ⚠️ WRITTEN ONCE, BY PREDICATE. `.is('proof_stronger_set_unlocked_at', null)` is the lock:
+ * every later call matches no row and reports `already`, so the recorded reason is the one
+ * that actually opened the door rather than whatever was true the last time somebody looked.
+ *
+ * ⚠️ NEVER FATAL. A verdict we could not RECORD must not cost the client the second set the
+ * rule already granted them — the gate does not read this column. Failures are reported to
+ * the caller, which logs them.
+ */
+export type RecordVerdictOutcome =
+  | { recorded: true; reason: string }
+  | { recorded: false; why: 'not_unlocked' | 'already' | 'migration_required' | 'unreadable'; detail?: string }
+
+export const SET_VERDICT_MIGRATION = '20260918_proof_set_verdict'
+
+export async function recordStrongerSetVerdict(
+  clientId: string, state: CalibrationState,
+): Promise<RecordVerdictOutcome> {
+  const { strongerSetVerdict } = await import('./proof-calibration')
+  const v = strongerSetVerdict(state)
+  if (!v.unlocked) return { recorded: false, why: 'not_unlocked' }
+
+  const { data, error } = await db.from('clients')
+    .update({
+      proof_stronger_set_unlocked_at: new Date().toISOString(),
+      proof_stronger_set_unlocked_reason: v.because,
+    })
+    .eq('id', clientId)
+    .is('proof_stronger_set_unlocked_at', null)
+    .select('id')
+
+  if (error) {
+    const missing = /column .* does not exist|could not find the '.*' column|42703|PGRST204/i
+      .test(`${error.code ?? ''} ${error.message ?? ''}`)
+    return {
+      recorded: false,
+      why: missing ? 'migration_required' : 'unreadable',
+      detail: missing
+        ? `The set-level Proof verdict could not be recorded because \`clients.proof_stronger_set_unlocked_at\` does not exist yet. Run the ${SET_VERDICT_MIGRATION} migration (Vida → Command Centre → System → migrations). The client's second attempt is UNAFFECTED — the gate does not read this column.`
+        : `The set-level Proof verdict could not be recorded (${error.message}). The client's second attempt is unaffected.`,
+    }
+  }
+  if ((data ?? []).length === 0) return { recorded: false, why: 'already' }
+  return { recorded: true, reason: v.because }
+}
+
 export type CloseOutcome =
   | { closed: true; trigger: EscalationTrigger }
   | { closed: false; reason: 'not_yet' | 'already' | 'migration_required' | 'unreadable'; detail?: string }
@@ -232,8 +286,27 @@ export async function closeCalibrationLoop(
       ...(icpId ? { proof_review_icp_id: icpId } : {}),
     })
     .eq('id', clientId)
-    // The lock: one escalation per open cycle.
-    .or('proof_review_requested_at.is.null,proof_review_resolved_at.not.is.null')
+    // ── 🛑 ⚑ 18 Sep (P6 §8.2 · journey 7) — THE `.or()` IS GONE, AND IT WAS BREAKING THIS ───
+    //
+    // ⛓️ WHAT STOOD HERE: ~~`.or('proof_review_requested_at.is.null,proof_review_resolved_at.not.is.null')`~~
+    // beside the `.is(...)` below.
+    //
+    // 🛑 `.or()` ON AN UPDATE FAILS AGAINST REAL PostgREST. PostgREST 13 compiles the filter
+    // with a table qualification the UPDATE statement has no alias for, and Postgres answers
+    // `42703 column clients.proof_review_requested_at does not exist` — about a column that
+    // plainly does. So this write NEVER succeeded: every client who said "these still aren't
+    // the right people" had their escalation silently refused, and the failure was reported as
+    // `migration_required`, sending an operator to run a migration that was already applied.
+    // Isolated at the wire: the same PATCH without `or=` succeeds, with `or=` alone fails.
+    //
+    // ⚠️ REMOVING IT CHANGES NOTHING ABOUT THE LOCK, and that is why this fix is safe.
+    // `(A OR B) AND A` is `A` — the `.is(...)` below already implied the whole condition, so
+    // the `.or()` was doing no work even where it did compile.
+    //
+    // ⚠️ TWO OTHER SITES CARRY THE SAME BROKEN SHAPE and are NOT touched here, because their
+    // `.or()` is load-bearing rather than redundant and rewriting a compare-and-set condition
+    // deserves its own scoped change: `claimCalibratedRestart` below (line ~582) and the
+    // hand-off in `routes/icps.ts` (~7334). Both are in the evidence package.
     .is('proof_review_requested_at', null)
     .select('id')
 

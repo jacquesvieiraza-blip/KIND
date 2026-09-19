@@ -2,6 +2,8 @@
 
 import { Fragment, useCallback, useEffect, useRef, useState, useMemo } from 'react'
 import { ProofCalibration, type ProofCalibrationState } from '@/components/milla/ProofCalibration'
+// ⚡ 18 Sep (J5-C11 · LR 17) — the client's words are not acknowledged until they are stored.
+import { saveDurably } from '@/lib/durable-note'
 import { useRouter } from 'next/navigation'
 import { api, AI_TURN_TIMEOUT_MS } from '@/lib/api'
 import { createClient } from '@/lib/supabase/client'
@@ -10,7 +12,7 @@ import ProductTour from '@/components/ProductTour'
 // screen. They are the $299-pack and $4-per-lead economics, and the live customer path has no
 // legacy customers left to serve them to. `shortfallMessage` stays imported only where the
 // wallet top-up still belongs (it does not appear on this home any more).
-import { MILLA_FAILURE_COPY } from '@kind/shared'
+import { MILLA_FAILURE_COPY, LEAD_REASON_CODES, LEAD_REASON_LABELS } from '@kind/shared'
 // ⚑ 4 Sep — the ONE conversation's controls, and the ONE list of outreach-capable stages.
 import { useMillaConversation, OUTREACH_STAGES } from '@/components/milla/MillaConversation'
 import ProgrammeWorkspace, { nextActionFor, type CustomerProgramme } from '@/components/milla/ProgrammeWorkspace'
@@ -18,7 +20,7 @@ import ProgrammeWorkspace, { nextActionFor, type CustomerProgramme } from '@/com
 // approves in Milla"). ADDITIVE: it renders BELOW the existing workspace and only at the
 // Approval stage, so every other stage's screen is byte-for-byte what it was.
 import ProgrammeReview from '@/components/milla/ProgrammeReview'
-import { proofWaitState, invalidateProofSnapshot, classifyClaimFailure, isReconciling, PROOF_WAIT_MS } from '@/lib/proof-start'
+import { proofWaitState, invalidateProofSnapshot, classifyClaimFailure, isReconciling, PROOF_WAIT_MS, PROOF_DESK_POLL_MS, PROOF_DESK_MAX_CHECKS } from '@/lib/proof-start'
 
 // #497/#503/#506/#495 — MILLA HOME (docs/mv-previews/milla2.html): KPI cards row + Milla
 // chat as the SPINE (centre, full height) + the programme workspace (right).
@@ -29,6 +31,8 @@ import { proofWaitState, invalidateProofSnapshot, classifyClaimFailure, isReconc
 // PROGRAMME and renders the shared workspace; the conversation stays the spine.
 
 type MaskedLead = { id: string; role: string; company: string; industry: string | null; country: string | null; score: number | null; why_fits: string | null; recommended?: boolean
+  /** ⚑ 18 Sep (J5-C8) — no fit number is available for this person, and the card says so. */
+  not_scored?: boolean
   /**
    * ⚑ 10 Sep (C06) — THE BAND, AND IT IS THE ONLY THING THAT MAY LABEL A CARD.
    *
@@ -42,6 +46,21 @@ type MaskedLead = { id: string; role: string; company: string; industry: string 
   band?: 'start_here' | 'worth_a_look' | 'not_a_fit' | null
   /** The server's own words for that band, so the screen cannot reword it. */
   band_label?: string | null
+  /**
+   * ⚑ 18 Sep (J5-C6 · PV 02) — WHY a card is "Not a fit", in the client's own terms; null on
+   * every other band. It takes the place of `why_fits`, which the server now withholds from a
+   * refused card: the scorer's case FOR a company we had just refused was the label and the
+   * prose making opposite claims about one person.
+   */
+  band_reason?: string | null
+  /**
+   * ⚑ 18 Sep (J5-C6) — MAY THIS CARD BE ACCEPTED? The server's answer, from the same band the
+   * label came from. `/leads/:id/proof-accept` adopts a widened proof basis onto the LIVE ICP,
+   * so "👍 Looks right" on a refused card would rewrite the client's targeting on the strength
+   * of a company we told them was not one of theirs. Absent (an older payload) behaves exactly
+   * as before; the route refuses a refused card regardless of what this screen renders.
+   */
+  can_accept?: boolean
   /** ⚑ 25 Aug — WHICH PROOF BATCH this card came from. One shared timestamp per proof run,
    *  written once and never rewritten, so it separates pass 1 from pass 2 exactly. */
   surfaced_for_approval_at?: string | null }
@@ -52,19 +71,33 @@ type Summary = {
   // ⛓️ `wallet_balance_usd` REMOVED from this screen's type (BUILD-004A-1). The endpoint still
   // returns it for Billing; this home no longer reads it, and dropping the field means a future
   // edit cannot quietly render a wallet balance back onto the programme home.
-  has_funded: boolean; leads_awaiting: number; meetings_booked: number
+  // ⛓️ 18 Sep (J24-C1) — `null` MEANS THE COUNT COULD NOT BE READ, and it now arrives.
+  // WHAT THIS REPLACED: ~~`has_funded: boolean; leads_awaiting: number; meetings_booked: number`~~.
+  // The server used to convert every failed count to 0 before this type ever saw it, so the
+  // three sentences below — "your proof found nobody", "you have never paid", "0 meetings" —
+  // could each be produced by a read error with nothing to distinguish them from the truth.
+  has_funded: boolean | null; leads_awaiting: number | null; meetings_booked: number | null
   active_campaign: string | null; icp_versions: IcpVersion[]
   /** The newest campaign's real state, whatever it is — drives the live/paused badge. */
   campaign_name?: string | null
   campaign_status?: 'draft' | 'active' | 'paused' | 'paused_low_performance' | 'completed' | 'archived' | null
   /** Every lead they have ever approved — releases the minimum-20 gate at 20. */
-  leads_approved_total?: number
+  leads_approved_total?: number | null
   pack?: Pack
   /** ⚑ 24 Aug — how many free-proof batches this prospect has been shown, from
    *  `clients.proof_passes_done` (the same column try_claim_proof_pass increments).
    *  Lets the desk tell 0 / 1 / 2 apart WITHOUT making the client press something
    *  just to discover a 409. */
   proof_passes_done?: number
+  /**
+   * ⛓️ 18 Sep (J5-C2 · LR 6) — THE RUN'S RECORDED STATE, the input that lets this screen stop
+   * asking a clock what only the record can answer. `undefined`/`null` means nothing is
+   * recorded, and only then does the bounded poll decide.
+   */
+  proof_work_state?: 'requested' | 'started' | 'completed' | 'failed' | 'stuck' | null
+  /** ⛓️ J5-C2 — a person is finishing the translation; decided by the same predicate the
+   *  Proof route gates on, so this screen cannot claim a search the gate is refusing. */
+  needs_icp_review?: boolean
   /** ⚑ 26 Aug — when the CURRENT pass was claimed (ISO), written by `try_claim_proof_pass`
    *  in the same atomic statement as the counter above. The desk's authoritative clock.
    *  Absent/null = UNKNOWN (a row predating the column), never "long ago". */
@@ -171,33 +204,36 @@ function serverProofStartedAt(summary: Summary | null): number {
 /**
  * ⚑ 26 Aug (final review) — THE BOUND IS DERIVED FROM THE BACKEND'S OWN WORST CASE,
  * not picked. The previous 20 × 3s ≈ 60s could declare "We hit a snag" while a
- * perfectly healthy slow proof was still legitimately running. The math, from code:
+ * perfectly healthy slow proof was still legitimately running.
  *
- *   · one PDL attempt:            fetch AbortSignal.timeout(15000)  = 15s   (pdl-search.ts)
- *   · size ladder at batch 20:    [20, 10, 5, 1]                    = 4 attempts
- *   · worst ladder walk (402s):   4 × 15s                           = 60s
- *   · one global rate-limit retry: 2.5s pause + 15s                 = 17.5s
- *   · exact search worst case:                                     ≈ 77.5s
- *   · ONE widened fallback (same shape again):                     ≈ 77.5s
- *   · pool query, DB writes, memory pass, alerts:                  ≈ seconds
- *   → worst LEGITIMATE proof runtime                               ≈ 160–180s
+ * ⛓️ 17 Sep (J5-C14 · FD-6) — THE MATH MOVED, AND IT WAS RE-DERIVED FROM APOLLO. What stood
+ * here was a request-by-request accounting of **PDL**: *"one PDL attempt: fetch
+ * AbortSignal.timeout(15000) = 15s (pdl-search.ts) · size ladder at batch 20: [20, 10, 5, 1]
+ * = 4 attempts · worst ladder walk (402s): 4 × 15s = 60s · one global rate-limit retry: 2.5s
+ * pause + 15s = 17.5s → worst LEGITIMATE proof runtime ≈ 160–180s"* — so 80 × 3s = 240s.
+ * Under FD-6 Proof sources from Apollo, which has no size ladder at all: it pages, and a
+ * Proof batch of 20 fits in one page. The full derivation now lives once, in
+ * `packages/shared/src/proof-wait.ts`, counted in Apollo requests.
  *
- * 80 checks × 3s = 240s: above the honest worst case with ~60s of margin, and still a
- * hard stop — there is no server-side job timeout to lean on (the run is fire-and-forget
- * in-process), so this client-side bound is the final failsafe, sized so it cannot fire
- * before the backend could truly still be working. Bounded on purpose: an unbounded poll
- * on a run that died is a tab quietly hammering the API forever.
+ * 🛑 AND THESE TWO NUMBERS ARE NO LONGER TYPED HERE. They used to be declared locally
+ * (`3000` and `80`) and then ASSERTED against `PROOF_WAIT_MS` below — which catches drift,
+ * but only AFTER somebody has typed a third copy of the truth. They are imported now, so
+ * there is nothing left to drift. The assertion is kept anyway: it costs one comparison at
+ * module load and it is the thing that fails loudly if a future edit re-introduces a literal.
+ *
+ * Still a hard stop, still bounded on purpose — there is no server-side job timeout to lean
+ * on (the run is fire-and-forget in-process), so this client-side bound is the final
+ * failsafe, and an unbounded poll on a run that died is a tab quietly hammering the API.
  */
-const FINDING_POLL_MS = 3000
-const FINDING_MAX_CHECKS = 80
+const FINDING_POLL_MS = PROOF_DESK_POLL_MS
+const FINDING_MAX_CHECKS = PROOF_DESK_MAX_CHECKS
 /**
  * ⚑ 26 Aug (correction pass) — THE POLL BUDGET AND THE ELAPSED BOUND MUST BE THE SAME
  * NUMBER, because the wait can end in two different ways and they must agree:
  *   · the tab stayed open  → the poll hits `FINDING_MAX_CHECKS` and stops;
  *   · the tab was reopened → there is no poll history, so elapsed time is measured against
  *                            the durable start stamp instead (`PROOF_WAIT_MS`).
- * The bound itself lives beside the rule that reads it, in `lib/proof-start.ts`. This
- * assertion is what stops the two drifting into two different truths about one run.
+ * All three now come from one module, so this can only fail if somebody re-types one.
  */
 if (FINDING_POLL_MS * FINDING_MAX_CHECKS !== PROOF_WAIT_MS) {
   throw new Error('proof wait bound drifted: the desk poll budget and PROOF_WAIT_MS must match')
@@ -491,7 +527,12 @@ export default function MillaHomePage() {
   //
   // ⚠️ THE RAW FIGURE IS NOT REDEFINED ANYWHERE. `total_inserted` still carries the sourcing
   // truth for audit and accounting; this line simply stops being the place that reads it.
-  const proofEndedEmpty = !!terminalRun && (summary?.leads_awaiting ?? 0) === 0
+  // ⛓️ 18 Sep (J24-C1) — `=== 0` ONLY WHEN WE ACTUALLY COUNTED. It was
+  // ~~`(summary?.leads_awaiting ?? 0) === 0`~~, and `??` cannot tell "not loaded yet" from
+  // "the count failed" from "genuinely none" — all three became 0, and 0 here renders the
+  // sentence that tells the client their Proof run found nobody. A client whose desk is full
+  // and whose count read failed would have been shown it.
+  const proofEndedEmpty = !!terminalRun && summary?.leads_awaiting === 0
 
   // A crashed run is its own terminal state. The prospect is NEVER shown the word
   // "failed" — that is the internal status name; they get the approved recovery copy.
@@ -806,23 +847,35 @@ export default function MillaHomePage() {
   // slow, or is never made, the client's action stands and their screen is unaffected — which
   // is the whole difference between a calibration prompt and a gate.
   const [justPassed, setJustPassed] = useState<{ id: string; at: number } | null>(null)
-  const REASON_CHIPS: { code: string; label: string }[] = [
-    { code: 'too_big',         label: 'Too big' },
-    { code: 'too_small',       label: 'Too small' },
-    { code: 'wrong_industry',  label: 'Wrong industry' },
-    { code: 'wrong_role',      label: 'Wrong role' },
-    { code: 'wrong_geography', label: 'Wrong geography' },
-    { code: 'bad_timing',      label: 'Bad timing' },
-    { code: 'other',           label: 'Other' },
-  ]
+  // ⚡ 18 Sep (J5-C11 · LR 17) — the one sentence that says a reason or a note did not save,
+  // and the in-flight flag that stops a double send. Neither gates anything.
+  const [noteError, setNoteError] = useState<string | null>(null)
+  const [noteSaving, setNoteSaving] = useState(false)
+  // ⛓️ 18 Sep (J6-C4 · LR 6) — DERIVED, NOT HAND-TYPED. This was the fourth copy of the
+  // reason-code list, and two of the four disagreed: the calibration side had six and read
+  // "Bad timing" back as "Other", so an operator saw a reason the client never gave. One list
+  // now, in `@kind/shared`, which the API stores against and Vida labels from.
+  const REASON_CHIPS: { code: string; label: string }[] =
+    LEAD_REASON_CODES.map(code => ({ code, label: LEAD_REASON_LABELS[code] }))
   async function sendReason(leadId: string, code: string) {
-    setJustPassed(null)                       // acknowledge the tap at once — no spinner on a nicety
-    // ⚑ 10 Sep (C07) — THIS TAP IS A SPEND GATE OPENING, AND SOMETIMES A LOOP CLOSING.
+    // ⛓️ 18 Sep (J5-C11 · LR 17) — WAS: `setJustPassed(null)` HERE, "acknowledge the tap at
+    // once — no spinner on a nicety", then a POST whose failure was swallowed.
+    //
+    // ⚡ 10 Sep (C07) — THIS TAP IS A SPEND GATE OPENING, AND SOMETIMES A LOOP CLOSING.
     // A reason is what unlocks "Show me stronger examples" on attempt 1; on attempt 2 the
     // same tap can be the half-rejected-nothing-kept trigger that hands the client to a
     // person. Either way the screen must re-ask the server rather than assume.
-    try { await api.post(`/leads/${leadId}/feedback`, { action: 'pass', reason_code: code }, await token()) }
-    catch { /* never surfaced: the pass stands, and a lost chip is not the client's problem */ }
+    //
+    // 🛑 WHICH IS EXACTLY WHY IT IS NOT A NICETY. A silently lost reason means the client
+    // taps, the gate never opens, and nothing on screen says why. The row stays until the
+    // answer is stored, and a failure keeps it there so the same tap can be repeated.
+    const tk = await token()
+    setNoteError(null); setNoteSaving(true)
+    const r = await saveDurably(() => api.post(`/leads/${leadId}/feedback`,
+      { action: 'pass', reason_code: code }, tk))
+    setNoteSaving(false)
+    if (r.kind === 'saved') setJustPassed(null)
+    else setNoteError(r.message)
     void loadCalibration()
   }
 
@@ -839,14 +892,30 @@ export default function MillaHomePage() {
   //
   // ⚠️ STORED, NEVER PARSED. `lib/lead-feedback.ts` reads structured codes only and a human
   // reads the free text in Vida — the founder gated auto-parsing, and nothing here changes it.
+  // ── 🛑 ⚡ 18 Sep (J5-C11 · LR 17) — DURABLE BEFORE ACKNOWLEDGED ─────────────
+  //
+  // ⛓️ WAS: `setNoteFor(null); setNoteText('')` on the FIRST line, then the POST, then
+  // `catch { }` with the note "never surfaced: ... a lost note is not their problem".
+  //
+  // 🛑 THE BOX CLOSED AND THE WORDS WERE ERASED BEFORE THE REQUEST WAS MADE. A client
+  // types "too corporate, we want independent agencies", presses Send, and if the write fails
+  // their sentence exists nowhere — not on the server, not on their screen, not in their
+  // hands. Nothing was told and nothing was retried.
+  //
+  // ⚠️ P32 STANDS: "one tap, never mandatory, never blocks the action". The action is the
+  // pass and it completed on its own route. This is still optional, still ungated, still
+  // ignorable — it simply stops claiming to have saved what it did not.
   async function sendNote(leadId: string) {
     const text = noteText.trim()
-    setNoteFor(null); setNoteText('')
-    if (!text) return
-    try {
-      await api.post(`/leads/${leadId}/feedback`,
-        { action: reacted[leadId] === 'approve' ? 'approve' : 'pass', free_text: text }, await token())
-    } catch { /* never surfaced: their reaction stands, and a lost note is not their problem */ }
+    if (!text) { setNoteFor(null); setNoteText(''); setNoteError(null); return }
+    const tk = await token()
+    setNoteError(null); setNoteSaving(true)
+    const r = await saveDurably(() => api.post(`/leads/${leadId}/feedback`,
+      { action: reacted[leadId] === 'approve' ? 'approve' : 'pass', free_text: text }, tk))
+    setNoteSaving(false)
+    if (r.kind === 'saved') { setNoteFor(null); setNoteText(''); return }
+    // Their words stay exactly where they typed them, and the box stays open.
+    setNoteError(r.message)
   }
 
   // #570 — pass() now reloads. It removed the row locally and never refreshed, so the KPI
@@ -952,9 +1021,21 @@ export default function MillaHomePage() {
     urlFinding:         finding,
     now:                Date.now(),
     pollExhausted:      findingTimedOut,
+    // ⛓️ 18 Sep (J5-C2 · LR 6) — THE RECORDED STATE, so the desk's word comes from the record
+    // and not from the bound. Before this the desk asked a clock a question only the record
+    // could answer: a run the server had marked `failed` was described as "finding your
+    // matches" until PROOF_WAIT_MS elapsed, and `stuck` — we know it is broken and an operator
+    // has been told — could not be said at all.
+    recordedRunState:   summary?.proof_work_state ?? null,
+    recordedOutcome:    terminalRun?.status ?? null,
+    needsIcpReview:     summary?.needs_icp_review === true,
   })
   const proofAwaiting = proofWait !== 'none'
-  const proofWaitEnded = proofWait === 'recovery'
+  // ⛓️ J5-C2 — `recovery` is now only the CLOCK's verdict (nothing recorded, bound passed).
+  // The recorded endings are their own states, so the desk must treat them as ended too —
+  // otherwise a recorded failure would keep the spinner it used to keep.
+  const proofWaitEnded = proofWait === 'recovery' || proofWait === 'failed'
+    || proofWait === 'released' || proofWait === 'stuck'
 
   // ── ⚑ 24 Aug — THE BATCH VERDICT (founder-ruled) ──────────────────────────────────────
   //
@@ -1422,11 +1503,20 @@ export default function MillaHomePage() {
                       {c.label}
                     </button>
                   ))}
-                  <button onClick={() => setJustPassed(null)}
+                  <button onClick={() => { setJustPassed(null); setNoteError(null) }}
                     className="text-[12.5px] font-semibold text-[#9b8ec4] px-2.5 py-1.5">
                     Skip
                   </button>
                 </div>
+                {/* ⚡ 18 Sep (J5-C11 · LR 17) — TOLD. The tap used to dismiss this row
+                    before the write, so a lost reason was invisible — and this tap is what
+                    opens "Show me stronger examples". The row now stays until the answer is
+                    stored, and says so when it is not. Skipping still costs nothing. */}
+                {noteError && (
+                  <div data-testid="reaction-not-saved" className="text-[12.5px] text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1.5 mt-2">
+                    {noteError}
+                  </div>
+                )}
               </div>
             )}
             {/* ⛓️ 30 Aug — THE "APPROVED · CONTACT" CARD IS GONE. It was the receipt for a paid
@@ -1560,9 +1650,28 @@ export default function MillaHomePage() {
                     <div className="min-w-0 flex-1">
                       <div className="flex items-start gap-2">
                         <div className="min-w-0"><b className="text-[14px] block leading-tight">{l.role}</b><span className="text-[12.5px] text-[#9b8ec4]">@ {l.company}</span></div>
-                        {l.score != null && <span className="ml-auto text-right"><span className="text-[16px] font-extrabold text-[#7C3AED] tabular-nums">{l.score}</span><span className="block text-[10px] uppercase tracking-wide text-[#b3a9cc] font-extrabold">score</span></span>}
+                        {/* ⛓️ 18 Sep (J5-C8) — WAS `{l.score != null && <span>…}` ALONE, so an
+                            unscored prospect's card was silently missing its number. The server
+                            records the difference (`not_scored`), so the card states it rather
+                            than leaving a gap the client has to interpret. */}
+                        {l.score != null
+                          ? <span className="ml-auto text-right"><span className="text-[16px] font-extrabold text-[#7C3AED] tabular-nums">{l.score}</span><span className="block text-[10px] uppercase tracking-wide text-[#b3a9cc] font-extrabold">score</span></span>
+                          : l.not_scored
+                            ? <span data-testid="lead-not-scored" title="We could not produce a fit score for this prospect. They are still part of your set." className="ml-auto text-right"><span className="text-[11px] font-extrabold uppercase tracking-wide text-[#9b8ec4]">Not scored</span></span>
+                            : null}
                       </div>
+                      {/* ── ⚑ 18 Sep (J5-C6 · PV 02) — THE CLAIM MATCHES THE LABEL ────────
+                          🛑 A "Not a fit" card used to render "Why this fits: …" — the
+                          scorer's case FOR a company the product had just refused, which is
+                          the 72/100 card one band over. The server no longer sends
+                          `why_fits` on a refused card; it sends `band_reason` instead, the
+                          criterion in the client's own words. Neither is reworded here. */}
                       {l.why_fits && <div className="text-[13px] text-[#5c5279] mt-2 leading-relaxed bg-[#faf8ff] rounded-lg px-2.5 py-2"><b className="text-[#7c6f9b]">Why this fits:</b> {l.why_fits}</div>}
+                      {/* ⚠️ THE LABEL IS THE BAND'S OWN WORDS, and it deliberately avoids the
+                          operator vocabulary: `mvp1-proof-exception.test.ts` locks the
+                          criterion names (and the phrase this panel would naturally use) out
+                          of the client app. The sentence itself is the server's. */}
+                      {l.band_reason && <div data-testid="lead-band-reason" className="text-[13px] text-[#6b6383] mt-2 leading-relaxed bg-[#f6f4fa] rounded-lg px-2.5 py-2"><b className="text-[#8d85a5]">Why this isn&rsquo;t a fit:</b> {l.band_reason}</div>}
                       {/* ⛓️ 30 Aug (BUILD-004A-1, Option B) — THE THREE CONTROLS THE FOUNDER
                           SPECIFIED, AND ONLY THOSE: Looks right · Not a fit · an optional
                           "Tell Milla why". What was here instead: the proof signal, a pick-N
@@ -1570,28 +1679,58 @@ export default function MillaHomePage() {
                           last two were the paid desk and are gone — no button on this card
                           reveals a contact, spends a pass or costs anything. */}
                       <div className="flex gap-1.5 mt-2.5">
-                        <button disabled={busy || !!reacted[l.id]} onClick={e => { e.stopPropagation(); void acceptProof(l.id) }}
-                          className="flex-1 text-[13px] font-bold text-white rounded-lg py-2 bg-gradient-to-br from-[#7C3AED] to-[#EC4899] disabled:opacity-50">
-                          {/* ⚠️ THE ACKNOWLEDGEMENT IS ONE WORD AND PROMISES NOTHING. Not that
-                              anything starts, not that anyone is contacted, not what it is
-                              worth — it states only that the reaction was recorded. */}
-                          {busy ? 'Saving…' : reacted[l.id] === 'approve' ? 'Noted' : '👍 Looks right'}
-                        </button>
-                        <button disabled={busy} onClick={e => { e.stopPropagation(); pass(l.id) }} className="text-[13px] font-semibold text-[#5c5279] rounded-lg py-2 px-3 border border-[#ece5fb] disabled:opacity-50">Not a fit</button>
+                        {/* ── 🛑 ⚑ 18 Sep (J5-C6) — NO ACCEPT CONTROL ON A REFUSED CARD ────
+                            "👍 Looks right" is not a reaction: `/leads/:id/proof-accept`
+                            ADOPTS a widened proof basis onto the live ICP, so accepting a
+                            card the product refused would rewrite the client's targeting on
+                            the strength of it — and write the `approve` feedback the
+                            calibration escalation counts.
+
+                            ⚠️ THE SERVER DECIDES, NOT THIS SCREEN. `can_accept` comes from
+                            the same band the card's label came from; re-deriving the refused
+                            band here would be a second authority on fit, which is what
+                            `band_label` was introduced to stop. `!== false` so an older
+                            payload without the field behaves exactly as before.
+
+                            ⚠️ AND THE ROUTE REFUSES IT TOO. A control absent from a browser
+                            is not a refusal. */}
+                        {l.can_accept !== false && (
+                          <button disabled={busy || !!reacted[l.id]} onClick={e => { e.stopPropagation(); void acceptProof(l.id) }}
+                            className="flex-1 text-[13px] font-bold text-white rounded-lg py-2 bg-gradient-to-br from-[#7C3AED] to-[#EC4899] disabled:opacity-50">
+                            {/* ⚠️ THE ACKNOWLEDGEMENT IS ONE WORD AND PROMISES NOTHING. Not that
+                                anything starts, not that anyone is contacted, not what it is
+                                worth — it states only that the reaction was recorded. */}
+                            {busy ? 'Saving…' : reacted[l.id] === 'approve' ? 'Noted' : '👍 Looks right'}
+                          </button>
+                        )}
+                        <button disabled={busy} onClick={e => { e.stopPropagation(); pass(l.id) }} className={`text-[13px] font-semibold text-[#5c5279] rounded-lg py-2 px-3 border border-[#ece5fb] disabled:opacity-50${l.can_accept === false ? ' flex-1' : ''}`}>Not a fit</button>
                       </div>
                       {/* THE OPTIONAL THIRD CONTROL. Ignoring it costs nothing and blocks
                           nothing; it is a text box, not a step. */}
                       {noteFor === l.id ? (
-                        <div className="flex gap-1.5 mt-1.5" onClick={e => e.stopPropagation()}>
-                          <input autoFocus value={noteText} onChange={e => setNoteText(e.target.value)}
-                            onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); void sendNote(l.id) } }}
-                            placeholder="Tell Milla why"
-                            className="flex-1 min-w-0 text-[12.5px] rounded-lg border border-[#e4dcf7] px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-[#7C3AED]/30" />
-                          <button onClick={e => { e.stopPropagation(); void sendNote(l.id) }}
-                            className="text-[12.5px] font-bold text-white rounded-lg px-3 bg-[#7C3AED]">Send</button>
+                        <div onClick={e => e.stopPropagation()}>
+                          <div className="flex gap-1.5 mt-1.5">
+                            <input autoFocus value={noteText} onChange={e => setNoteText(e.target.value)}
+                              onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); void sendNote(l.id) } }}
+                              placeholder="Tell Milla why"
+                              className="flex-1 min-w-0 text-[12.5px] rounded-lg border border-[#e4dcf7] px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-[#7C3AED]/30" />
+                            <button disabled={noteSaving} onClick={e => { e.stopPropagation(); void sendNote(l.id) }}
+                              className="text-[12.5px] font-bold text-white rounded-lg px-3 bg-[#7C3AED] disabled:opacity-50">
+                              {noteSaving ? 'Saving…' : 'Send'}
+                            </button>
+                          </div>
+                          {/* ⚡ 18 Sep (J5-C11 · LR 17) — THE WORDS ARE STILL IN THE BOX ABOVE.
+                              The old shape cleared the input on the first line of `sendNote`,
+                              so a failed write destroyed the client's sentence and said
+                              nothing. Sending again is one tap, not retyping. */}
+                          {noteError && (
+                            <div data-testid="note-not-saved" className="text-[12.5px] text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1.5 mt-1.5">
+                              {noteError}
+                            </div>
+                          )}
                         </div>
                       ) : (
-                        <button onClick={e => { e.stopPropagation(); setNoteFor(l.id); setNoteText('') }}
+                        <button onClick={e => { e.stopPropagation(); setNoteFor(l.id); setNoteText(''); setNoteError(null) }}
                           className="text-[12px] font-semibold text-[#9b8ec4] mt-1.5 hover:text-[#7C3AED]">
                           Tell Milla why
                         </button>

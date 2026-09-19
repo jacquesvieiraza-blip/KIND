@@ -1,6 +1,23 @@
-// P2-5: Waterfall enrichment — Apollo → PDL → Hunter → Clearbit → Claude fallback
-// Each provider fills missing fields. First successful hit wins per field.
+// P2-5: Waterfall enrichment.
+//
+// ⛓️ 17 Sep (FD-6 / FD-5) — WAS: "Apollo → PDL → Hunter → Clearbit → Claude fallback".
+// Three of those four vendors are retired (`retired-providers.ts`): PDL and Clearbit by
+// FD-6, Hunter by FD-5's explicit lock. The waterfall therefore has no stages left that
+// reveal an email, and every `try*` below stands down before touching its key.
+//
+// ⚠️ THE FILE IS KEPT, WHOLE. CORE-MAP rule 3 is founder-locked ("nothing gets deleted"),
+// the refusal-handling logic here encodes a compliance ruling that must not be lost, and the
+// day a second provider is approved this is where it goes. What has changed is that the
+// stages cannot RUN, and that fact is enforced in code rather than by a Railway variable.
+//
+// ⚠️ WHAT THIS MEANS FOR FD-5, STATED PLAINLY. FD-5 requires a VERIFIED business email
+// before any send. With the waterfall retired, the only source of an email on any MVP1 path
+// is Apollo's `people/bulk_match`, which returns `email_status` — and House already enforces
+// `verified`. That satisfies FD-5 without Hunter. If Apollo cannot verify a given person,
+// they are QUALIFIED and not SENDABLE, which is exactly the separation FD-5 asks for; the
+// requirement is never weakened to make a number look better.
 
+import { refuseRetiredProvider, providerRetired } from './retired-providers'
 import { assertPaidProviderAllowed, rethrowIfProviderBlocked } from './paid-provider-guard'
 
 export interface EnrichmentResult {
@@ -121,6 +138,13 @@ export function hunterRefusal(status: number, body: unknown): ProviderRefusal | 
 
 // Hunter.io: find email by name + domain
 async function tryHunter(lead: LeadProfile): Promise<EnrichmentResult | ProviderRefusal | null> {
+  // ⛓️ FD-5 (17 Sep) — HUNTER IS LOCKED OFF, IN CODE. *"Hunter remains LOCKED OFF. Do not
+  // silently re-enable Hunter."* The key check below is kept as a second layer, but it is a
+  // gate on CONFIGURATION: it makes the lock a property of a Railway variable, so pasting a
+  // key back in — to debug a reveal, because an old runbook says to — would turn a
+  // founder-locked provider back on silently, with the whole suite still green because
+  // `vitest.setup.ts` deletes the keys before it runs.
+  if (refuseRetiredProvider('hunter', 'tryHunter')) return null
   const key = process.env.HUNTER_API_KEY
   if (!key) return null
 
@@ -162,6 +186,9 @@ async function tryHunter(lead: LeadProfile): Promise<EnrichmentResult | Provider
 
 // People Data Labs: full profile enrichment
 async function tryPDL(lead: LeadProfile): Promise<EnrichmentResult | null> {
+  // ⛓️ FD-6 (17 Sep) — *"We are not paying for PDL."* Same reasoning as Hunter above: a key
+  // check is configuration, and this is architecture.
+  if (refuseRetiredProvider('pdl', 'tryPDL')) return null
   const key = process.env.PDL_API_KEY
   if (!key) return null
 
@@ -215,6 +242,11 @@ async function tryPDL(lead: LeadProfile): Promise<EnrichmentResult | null> {
 
 // Clearbit: company + person enrichment
 async function tryClearbit(lead: LeadProfile): Promise<EnrichmentResult | null> {
+  // ⛓️ 17 Sep — RETIRED WITH THE WATERFALL IT SAT IN. Clearbit is the third stage of a
+  // three-stage reveal whose first two are now retired, so the only way to reach it is a
+  // path that no longer exists. Fencing it explicitly rather than leaving it reachable-in-
+  // principle keeps the file honest about which vendors MVP1 has: one.
+  if (refuseRetiredProvider('clearbit', 'tryClearbit')) return null
   const key = process.env.CLEARBIT_API_KEY
   if (!key) return null
   if (!lead.email) return null
@@ -270,7 +302,12 @@ export async function waterfallEnrich(lead: LeadProfile): Promise<EnrichmentResu
 
   // 2. Still no email? Reveal it via Hunter — but Hunter needs a REAL domain.
   //    Resolve the best one we can (this is the email-reveal DEPTH fix, item 243).
-  if (!merged.email) {
+  //
+  // ⛓️ 17 Sep — AND NOT EVEN THE DOMAIN LOOKUP RUNS WHEN HUNTER IS RETIRED. `resolveDomain`
+  // asks Clearbit's free autocomplete so it can hand Hunter a real domain. With Hunter
+  // fenced, that request buys nothing and still sends a lead's company name to a third
+  // party. A fence at the last step is not a fence on the step before it.
+  if (!merged.email && !providerRetired('hunter')) {
     const domain = await resolveDomain(lead.domain ?? merged.domain, lead.company)
     if (domain) {
       merged.domain = merged.domain ?? domain

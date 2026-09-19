@@ -6,7 +6,7 @@
 
 ## The number
 
-**106 distinct variables** across `apps/api`, `apps/portal` and `apps/admin` — **89** read by the API, **17** read only by the portal or the admin app.
+**114 distinct variables** across `apps/api`, `apps/portal` and `apps/admin` — **96** read by the API, **18** read only by the portal or the admin app.
 
 **#561 recorded 69, and that figure was wrong twice over.** The first was method: a `process.env.X` grep cannot see the **12 variables this repo reaches by indirection** —
 
@@ -60,6 +60,11 @@ Every row here fails **quietly**. Nothing throws; a feature just does not happen
 
 | Variable | Apps | Tier | What breaks when unset | Where it is set |
 |---|---|---|---|---|
+| `APOLLO_BASE_URL` | api | ⚪ optional | Nothing — unset is the real Apollo (`https://api.apollo.io/api/v1`), byte for byte. Set ONLY by the §8.2 full-stack harness to point the API at a recording fake; a set value in production means nothing you source is real, and boot shouts about it. | not set anywhere in production |
+| `RESEND_BASE_URL` | api | ⚪ optional | Nothing — unset is the real Resend. §8.2 harness only. | not set anywhere in production |
+| `STRIPE_BASE_URL` | api | ⚪ optional | Nothing — unset is the real Stripe, and the SDK keeps its own `DEFAULT_HOST`. §8.2 harness only; it also sets the SDK host/port/protocol. | not set anywhere in production |
+| `GOOGLE_API_BASE_URL` | api | ⚪ optional | Nothing — unset is the real Google. Used by the SYSTEM PROBE only: the `googleapis` SDK path is NOT redirected by it. §8.2 harness only. | not set anywhere in production |
+| `ANTHROPIC_BASE_URL` | api | ⚪ optional | Nothing — unset is the real Anthropic API. Read by the Anthropic SDK itself, so no code in this repo touches it; §8.2 harness only, and boot shouts when it is set. | not set anywhere in production |
 | `ADMIN_SECRET_KEY` | admin·api | 🟠 important | Admin API auth secret | Railway → **@kind/admin** + Railway → **@kind/api** |
 | `API_URL` | api | 🟠 important | Public API base — tracking/unsubscribe links and the MCP manifest | Railway → **@kind/api** |
 | `DATABASE_URL` | api | 🟠 important | Direct Postgres — Run migrations, RLS audit and backup manifest all need it (currently mangled, #558) | Railway → **@kind/api** |
@@ -146,7 +151,9 @@ Listed for completeness. The startup check deliberately does **not** report them
 
 | Variable | Apps | Tier | What breaks when unset | Where it is set |
 |---|---|---|---|---|
+| `KIND_DEPLOY_COMMIT` | admin·api·portal | ⚙️ platform | Explicit deploy identity for a pipeline that is not Railway. UNSET is normal: `/health` then falls back to the `.deploy-stamp` `ship.sh` writes, and reports `commit:"unknown"` only when there is no evidence at all (XC-4) | leave unset unless deploying outside Railway |
 | `NODE_ENV` | admin·api·portal | ⚙️ platform | Set by the runtime | set by Railway — nothing to do |
+| `POOLED_SENDERS_JSON` | api | 🟠 important | The pooled sending mailboxes, as a JSON array. Unset = automatic preparation cannot assign a sender, so every programme stops at Prepare; unparseable = the same outcome, silently (XC-8) | Railway → **@kind/api** |
 | `PORT` | api | ⚙️ platform | Set by Railway; defaults to 4000 locally | set by Railway — nothing to do |
 | `RAILWAY_GIT_COMMIT_SHA` | api | ⚙️ platform | Deploy identity, used in health/diagnostics | set by Railway — nothing to do |
 | `RAILWAY_REPLICA_ID` | api | ⚙️ platform | Replica identity, used by the cron single-run guard (#343) | set by Railway — nothing to do |
@@ -171,6 +178,7 @@ For these five, the startup check reports them when they **are** set. See the no
 |---|---|---|---|---|
 | `ADMIN_ALLOWED_EMAILS` | admin | 🔴 **required** | The admin app lets **nobody** in — every Vida page 401s. It is the allowlist the proxy checks before injecting the admin key. | Railway → **@kind/admin** |
 | `ADMIN_SECRET` | admin | ⚪ optional | Legacy alias read as a fallback for `ADMIN_SECRET_KEY`. Set the `_KEY` one instead. | Railway → **@kind/admin** |
+| `ADMIN_API_UPSTREAM` | admin | ⚪ optional | Nothing — the admin proxy falls back to the LIVE API URL, which is today's behaviour. Set it to point Vida at a different deployment (staging, or a local API); leaving it unset on a PREVIEW build of the console means that preview drives the LIVE database. | Railway → **@kind/admin** |
 | `FEATURE_PORTAL_V2` | portal | ⚪ optional | Portal v2 screens stay off. | Railway → **@kind/portal** |
 | `FEATURE_V2_SCREENS` | portal | ⚪ optional | Same switch, server side. | Railway → **@kind/portal** |
 | `MILLA_DEV_PREVIEW` | portal | ⚪ optional | Milla preview mode off. Local only — never set in production. | local only |

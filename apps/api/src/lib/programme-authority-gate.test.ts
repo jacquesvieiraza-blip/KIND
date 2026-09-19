@@ -156,7 +156,13 @@ describe('⑤ the callers reach the gate correctly — no bypass', () => {
     // A programme may hold several ICPs, so deriving it from the client guesses the moment
     // there is more than one. `runIcpJob` already holds the ICP row (select('*')).
     expect(ICPS).toMatch(/const programmeId = \(icp as \{ programme_id\?: string \| null \}\)\.programme_id \?\? null/)
-    expect(ICPS).toMatch(/try_spend_sourcing'[\s\S]{0,160}p_programme_id: programmeId/)
+  // ⛓️ RE-AIMED 17 Sep (XC-13 / FD-6) — the sourcing gate in `icps.ts` is now
+  // `try_reserve_programme_sourcing`, called DIRECTLY. `try_spend_sourcing` does two jobs in
+  // one body — programme AUTHORITY, and a `sourcing_ledger` row at $0.28 a PDL record — and
+  // under FD-6 the second is a fabricated cost: *"We are not paying for PDL."* HOUSE-009
+  // already split the two; this points the client path at the same half House uses. The
+  // INVARIANT asserted here is byte-identical; only the RPC's name changed.
+    expect(ICPS).toMatch(/try_reserve_programme_sourcing'[\s\S]{0,160}p_programme_id: programmeId/)
   })
 
   it('⚠️ the LOOKALIKE route passes NULL — so a programme client is REFUSED there, not silently served', () => {

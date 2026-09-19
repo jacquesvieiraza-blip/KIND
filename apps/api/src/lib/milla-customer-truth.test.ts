@@ -66,10 +66,15 @@ describe('§1 — MILLA CANNOT TEACH THE RETIRED MODEL IN HER OWN VOICE', () => 
     // One reader, two doors. A second reader is a second truth — which is precisely the
     // shape of the 4A-1 finding (a campaign row saying "Paused" beside a programme at Proof).
     expect(PROMPT).toContain("from './customer-programme'")
-    for (const door of ['routes/milla.ts', 'lib/milla.ts']) {
-      expect(code(join(API, door)), `${door} does not read the customer programme`)
-        .toContain('readCustomerProgramme')
-    }
+    // ⛓️ 18 Sep (D-63) — ~~`for (const door of ['routes/milla.ts', 'lib/milla.ts'])`~~. The
+    // stateless `POST /milla/chat` was the second door and it is unmounted, so the loop now
+    // has one member — and a one-member loop hiding a withdrawn surface is exactly the stale
+    // green tick XC-9 exists to refuse. The reader requirement is stated for the door that
+    // survives, and the withdrawal of the other is asserted rather than inferred.
+    expect(code(join(API, 'lib/milla.ts')), 'the desk chat does not read the customer programme')
+      .toContain('readCustomerProgramme')
+    expect(code(join(API, 'routes/milla.ts')), 'a second Milla door reads the programme again')
+      .not.toContain('readCustomerProgramme')
   })
 
   it('🛑 an unreadable programme is never rendered as "you have no programme"', () => {

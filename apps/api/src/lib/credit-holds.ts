@@ -21,7 +21,13 @@ import { isDemoClient } from './demo'
 
 export type HoldOutcome =
   | { ok: true; demo?: boolean }
-  | { ok: false; reason: 'insufficient_work_credits' | 'error' }
+  /**
+   * ⚑ 18 Sep (XC-2 · LR 21) — `unreadable` JOINS THE TWO. A hold refused because the client
+   * has no work credits and a hold refused because we could not check for an existing one are
+   * different events: the first is about their balance, the second is about our database, and
+   * reporting the second as `error` loses which read failed. Both refuse, and neither holds.
+   */
+  | { ok: false; reason: 'insufficient_work_credits' | 'error' | 'unreadable'; detail?: string }
 
 function leadLabel(lead?: { first_name?: string | null; last_name?: string | null; company?: string | null }): string {
   if (!lead) return '(lead)'
@@ -38,8 +44,15 @@ export async function holdFigsyCredit(
   if (await isDemoClient(clientId)) return { ok: true, demo: true }
 
   // Idempotent: a lead already carrying an active hold is not double-held.
-  const { data: existing } = await db.from('credit_holds')
+  // ⚑ 18 Sep (XC-2 · LR 21) — an unread idempotency probe is not "no hold exists". It made
+  // `existing` undefined and placed a SECOND hold on the same lead — the client's money, held
+  // twice, by a database hiccup.
+  const { data: existing, error: existingErr } = await db.from('credit_holds')
     .select('id').eq('client_id', clientId).eq('lead_id', leadId).eq('status', 'held').maybeSingle()
+  if (existingErr) {
+    console.error(`[credit-holds] the existing-hold check failed for lead ${leadId} (${existingErr.message}) — NOT placing a hold, because a second hold on one lead is the client's money twice.`)
+    return { ok: false, reason: 'unreadable', detail: `the existing-hold check failed: ${existingErr.message}` }
+  }
   if (existing) return { ok: true }
 
   const { data: charged, error } = await db.rpc('try_charge_figsy_credit', { p_client_id: clientId })
@@ -93,15 +106,25 @@ export async function holdFigsyCredit(
 // a missing hold is logged loudly and NEVER charges — booking must not invent a debit.
 export async function captureFigsyHold(clientId: string, leadId: string): Promise<void> {
   if (await isDemoClient(clientId)) return // demo never holds → nothing to capture, no alarm
-  const { data: hold } = await db.from('credit_holds')
+  // ⚑ 18 Sep (XC-2 · LR 21) — an unread hold fell into the "no held $3 for a booked lead"
+  // branch below, which SHOUTS about an anomaly that may not exist. Both outcomes refuse to
+  // charge; only one of them is a fact about the data.
+  const { data: hold, error: holdErr } = await db.from('credit_holds')
     .select('id, status').eq('client_id', clientId).eq('lead_id', leadId).eq('status', 'held')
     .order('created_at', { ascending: false }).limit(1).maybeSingle()
+  if (holdErr) {
+    console.error(`[credit-holds] CAPTURE ABANDONED for lead ${leadId} — the hold could not be read (${holdErr.message}). No charge was made and no anomaly is claimed; the hold stands and the sweeper will find it.`)
+    return
+  }
 
   if (!hold) {
     // Already captured (idempotent re-book) is fine and silent; a truly absent hold on a
     // booking is an anomaly under the model — shout, but do not fabricate a charge.
-    const { data: already } = await db.from('credit_holds')
+    // ⚑ 18 Sep (XC-2 · LR 21) — this one only words a log line, and is bound so a failure
+    // does not make the line say the opposite of what happened.
+    const { data: already, error: alreadyErr } = await db.from('credit_holds')
       .select('id').eq('client_id', clientId).eq('lead_id', leadId).eq('status', 'captured').limit(1).maybeSingle()
+    if (alreadyErr) console.error(`[credit-holds] the captured-hold check failed for lead ${leadId} (${alreadyErr.message}) — the line below is written without it.`)
     if (!already) console.error('[credit-holds] CAPTURE with NO held $3 for booked lead', leadId, 'client', clientId, '— no charge made (model expects a hold from approval).')
     return
   }
@@ -132,8 +155,13 @@ export async function captureFigsyHold(clientId: string, leadId: string): Promis
 // Convenience: release by ENROLLMENT id (the terminal transitions in the send loop carry
 // the enrollment, not client+lead). Resolves the enrollment then releases. Idempotent.
 export async function releaseHoldForEnrollment(enrollmentId: string, reason: string): Promise<void> {
-  const { data: enr } = await db.from('figsy_enrollments')
+  // ⚑ 18 Sep (XC-2 · LR 21) — an unread enrolment silently released nothing.
+  const { data: enr, error: enrErr } = await db.from('figsy_enrollments')
     .select('client_id, lead_id').eq('id', enrollmentId).maybeSingle()
+  if (enrErr) {
+    console.error(`[credit-holds] the enrolment ${enrollmentId} could not be read (${enrErr.message}) — its hold was NOT released and is still held.`)
+    return
+  }
   if (enr?.client_id && enr?.lead_id) await releaseFigsyHold(enr.client_id as string, enr.lead_id as string, reason)
 }
 
@@ -141,9 +169,16 @@ export async function releaseHoldForEnrollment(enrollmentId: string, reason: str
 // (only acts on a 'held' row) — safe to call from every terminal transition.
 export async function releaseFigsyHold(clientId: string, leadId: string, reason: string): Promise<void> {
   if (await isDemoClient(clientId)) return // demo never holds → nothing to release
-  const { data: hold } = await db.from('credit_holds')
+  // ⚑ 18 Sep (XC-2 · LR 21) — an unread hold returned silently, so the client's money stayed
+  // held with nothing anywhere saying why. "Nothing to release" and "we could not look" are
+  // different, and only the second one needs somebody.
+  const { data: hold, error: holdErr } = await db.from('credit_holds')
     .select('id').eq('client_id', clientId).eq('lead_id', leadId).eq('status', 'held')
     .order('created_at', { ascending: false }).limit(1).maybeSingle()
+  if (holdErr) {
+    console.error(`[credit-holds] RELEASE ABANDONED for lead ${leadId} — the hold could not be read (${holdErr.message}). Any hold on this lead is still held.`)
+    return
+  }
   if (!hold) return // nothing held (never approved, or already captured/released)
 
   const { error } = await db.rpc('increment_figsy_credits', { p_client_id: clientId, p_amount: 1 })
@@ -191,26 +226,44 @@ export async function releaseFigsyHold(clientId: string, leadId: string, reason:
 //   • the lead has NO actively-sending enrollment (status enrolled/in_progress with a
 //     future next_send_at) — never free a hold a live campaign will still capture
 // Returns how many it released. Idempotent (releaseFigsyHold only acts on a 'held' row).
-export async function sweepStaleHolds(ttlDays = 60, limit = 500): Promise<{ scanned: number; released: number }> {
+export async function sweepStaleHolds(ttlDays = 60, limit = 500): Promise<{ scanned: number; released: number; degraded?: string }> {
   const cutoff = new Date(Date.now() - ttlDays * 86400000).toISOString()
-  const { data: stale } = await db.from('credit_holds')
+  // ⚑ 18 Sep (XC-2 · LR 21) — an unread selection is an empty sweep that reports success.
+  const { data: stale, error: staleErr } = await db.from('credit_holds')
     .select('id, client_id, lead_id, created_at').eq('status', 'held')
     .lt('created_at', cutoff).order('created_at', { ascending: true }).limit(limit)
+  if (staleErr) {
+    console.error(`[credit-holds] the stale-hold sweep could not list its candidates (${staleErr.message}) — nothing was swept, and this run is not evidence that nothing is stale.`)
+    // ⚠️ `scanned: 0` WITH A `degraded` SENTENCE — never a clean zero. A sweep that could not
+    // list its candidates has not established that nothing is stale.
+    return { scanned: 0, released: 0, degraded: `the stale-hold sweep could not run: ${staleErr.message}` }
+  }
   const rows = (stale ?? []) as { id: string; client_id: string; lead_id: string }[]
   let released = 0
   for (const h of rows) {
     // Guard 1 — a confirmed booking means this SHOULD have captured; never release. Log it.
-    const { data: booked } = await db.from('calendar_bookings')
+    // ⚑ 18 Sep (XC-2 · LR 21) — 🛑 AN UNREAD GUARD RELEASES. Both of these guards exist to
+    // STOP a release, so a discarded error turned each of them off: a booked lead's hold, and
+    // a live enrolment's hold, would have been reclaimed on a database hiccup.
+    const { data: booked, error: bookedErr } = await db.from('calendar_bookings')
       .select('id').eq('client_id', h.client_id).eq('lead_id', h.lead_id).eq('status', 'confirmed').limit(1).maybeSingle()
+    if (bookedErr) {
+      console.error(`[credit-holds] sweeper SKIPPED hold ${h.id} — the booking guard could not be read (${bookedErr.message}); a hold is never released on a guard we could not run.`)
+      continue
+    }
     if (booked) { console.error('[credit-holds] stale HELD hold on a BOOKED lead (should be captured) — left for review:', h.lead_id, 'client', h.client_id); continue }
     // Guard 2 — a live enrollment will still capture on booking; skip. NOTE: match on status
     // ALONE, not next_send_at — a co-pilot enrollment paused at the operator's Send gate stays
     // 'enrolled'/'in_progress' with next_send_at=null (figsy.ts), and a backlog leaves it in the
     // past; filtering on next_send_at>now would miss those live holds and wrongly refund the $3
     // on real work. Only holds whose enrollment is TERMINAL (or absent) are stragglers to reclaim.
-    const { data: active } = await db.from('figsy_enrollments')
+    const { data: active, error: activeErr } = await db.from('figsy_enrollments')
       .select('id').eq('client_id', h.client_id).eq('lead_id', h.lead_id)
       .in('status', ['enrolled', 'in_progress']).limit(1).maybeSingle()
+    if (activeErr) {
+      console.error(`[credit-holds] sweeper SKIPPED hold ${h.id} — the live-enrolment guard could not be read (${activeErr.message}); a hold is never released on a guard we could not run.`)
+      continue
+    }
     if (active) continue
     await releaseFigsyHold(h.client_id, h.lead_id, `stale_hold_ttl_${ttlDays}d`)
     released++

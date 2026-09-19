@@ -66,9 +66,13 @@ describe('🛑 ① the exact card he caught', () => {
     // `company_type` (the target's organisational form) are two independent required
     // dimensions, founder-locked. Both answer `yes` here because this ICP states neither —
     // an unstated requirement is not a test, which is this file's own rule.
+    // ⛓️ 18 Sep (J5-C12 · FD-1) — SEVEN, WAS SIX. `excluded` is the first criterion that
+    // SUBTRACTS: the six above ask whether a candidate MEETS the requirement, this one asks
+    // whether the client already told us not to contact companies like this. `yes` here
+    // because this ICP states no exclusions — an unstated requirement is not a test.
     expect(f).toEqual({
       geography: 'yes', size: 'yes', industry: 'yes',
-      category: 'yes', company_type: 'yes', seniority: 'yes',
+      category: 'yes', company_type: 'yes', seniority: 'yes', excluded: 'yes',
     })
     expect(fitBand(f, 82)).toBe('start_here')
     expect(isStarred(fitBand(f, 82))).toBe(true)
@@ -101,10 +105,22 @@ describe('🛑 ② each hard criterion refuses on its own', () => {
     // MVP1 ICP below states both, and each is given a candidate that genuinely contradicts
     // it. Dropping the two from this assertion instead would have been the exact "decorative
     // criterion" this case exists to forbid.
-    const MVP1: FitIcp = { ...CANARY, target_category: 'Digital marketing agencies', target_company_type: 'agency' }
+    //
+    // ⛓️ 18 Sep (J5-C12 · FD-1) — EXTENDED AGAIN, SAME RULE. `excluded` cannot refuse against
+    // an ICP that states no exclusions, so `MVP1` now states one and is given a candidate that
+    // matches it. Dropping `excluded` from the assertion instead would have made the first
+    // criterion that SUBTRACTS the one criterion nothing proved could subtract.
+    const MVP1: FitIcp = {
+      ...CANARY,
+      target_category: 'Digital marketing agencies',
+      target_company_type: 'agency',
+      exclusions: 'no recruitment agencies',
+    }
     const extra: [string, FitCandidate, string][] = [
       ['a construction firm', { ...GOOD, industry: 'Construction', company: 'Brick & Co' }, 'category'],
       ['a consultancy', { ...GOOD, company: 'Northgate Consultancy', industry: 'Digital Marketing' }, 'company_type'],
+      ['a recruitment agency the client excluded',
+        { ...GOOD, company: 'Apex Recruitment Agencies', industry: 'Digital Marketing' }, 'excluded'],
     ]
     for (const [what, cand, crit] of extra) {
       expect(hardFit(cand, MVP1)[crit as keyof typeof MVP1 & string] ?? hardFit(cand, MVP1)[crit as 'category'], what).toBe('no')
@@ -199,9 +215,13 @@ describe('🛑 ④ unknown is admissible, and never starred', () => {
     // `company_type` (the target's organisational form) are two independent required
     // dimensions, founder-locked. Both answer `yes` here because this ICP states neither —
     // an unstated requirement is not a test, which is this file's own rule.
+    // ⛓️ 18 Sep (J5-C12 · FD-1) — SEVEN, WAS SIX. `excluded` is the first criterion that
+    // SUBTRACTS: the six above ask whether a candidate MEETS the requirement, this one asks
+    // whether the client already told us not to contact companies like this. `yes` here
+    // because this ICP states no exclusions — an unstated requirement is not a test.
     expect(f).toEqual({
       geography: 'yes', size: 'yes', industry: 'yes',
-      category: 'yes', company_type: 'yes', seniority: 'yes',
+      category: 'yes', company_type: 'yes', seniority: 'yes', excluded: 'yes',
     })
     expect(fitBand(f, 90)).toBe('start_here')
   })
@@ -269,7 +289,14 @@ describe('⑥ the judgement is total — no input throws, nothing is silently ad
     // ⛓️ 11 Sep — the ICP now states all SIX, so "every asked criterion" still means every
     // one of them. Against CANARY the two MVP1 dimensions are unstated and answer `yes`,
     // which would have quietly shrunk what this case proves.
-    const ALL: FitIcp = { ...CANARY, target_category: 'Digital marketing agencies', target_company_type: 'agency' }
+    // ⛓️ 18 Sep (J5-C12) — and the SEVENTH is stated too, for the same reason: an ICP silent
+    // on exclusions answers `yes` there, which would quietly shrink what this case proves.
+    const ALL: FitIcp = {
+      ...CANARY,
+      target_category: 'Digital marketing agencies',
+      target_company_type: 'agency',
+      exclusions: 'no recruitment agencies',
+    }
     const f = hardFit({}, ALL)
     expect(unknownCriteria(f).sort()).toEqual([...HARD_CRITERIA].sort())
     // ⛓️ 11 Sep — WAS `true`. An UNKNOWN is no longer an eligible match (founder-locked);

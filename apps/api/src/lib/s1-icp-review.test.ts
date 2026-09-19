@@ -5,6 +5,9 @@ import { join } from 'path'
 import {
   translateProviderList, buildIcpReview, icpNeedsReview, resolveReview,
   PROVIDER_FIELDS, ICP_REVIEW_PROOF_REFUSAL, type ProviderField,
+  // ⚑ 18 Sep (J5-C10) — the ONE home of the three closed provider vocabularies. Imported so
+  // the drift guard in § E reads the real values rather than a third copy of them.
+  PROVIDER_VOCABULARIES,
 } from './icp-provider-translation'
 
 // ═══════════════════════════════════════════════════════════════════════════════════════
@@ -318,13 +321,35 @@ describe('🛑 § E · the resolution belongs to one client and happens once', (
     }
   })
 
-  it('🛑 the operator rail\'s vocabularies cannot drift from the ICP route\'s', () => {
-    // They are declared in two files for a stated reason (importing a 5,000-line router to
-    // reach three arrays). This is the guard that makes that safe.
-    for (const list of [INDUSTRIES, SENIORITY, SIZES]) {
-      const literal = `[${list.map(v => `'${v}'`).join(', ')}]`
-      expect(ICPS, 'the ICP route must hold this exact vocabulary').toContain(literal)
-      expect(OPERATOR, 'and the operator rail must hold the identical one').toContain(literal)
+  it('🛑 the vocabularies cannot drift — because there is only ONE of them', () => {
+    // ⛓️ REPOINTED 18 Sep (J5-C10) · THE DUTY IS THE SAME AND THE GUARANTEE IS STRONGER.
+    // WHAT THIS REPLACED: ~~a byte-identity check that the ICP route and the operator rail
+    // each CONTAINED the same three literals~~, with the note "they are declared in two files
+    // for a stated reason (importing a 5,000-line router to reach three arrays). This is the
+    // guard that makes that safe."
+    //
+    // The reasoning about the routers was right and the destination was wrong: the vocabulary
+    // now lives in `lib/icp-provider-translation.ts`, the module that owns translating INTO it,
+    // which imports nothing and can be read from a `lib/` module — which is what
+    // `promoteConfirmedBrief` needed in order to derive a review at all (S1-PD-03). With one
+    // copy, drift is not expressible, so the check becomes: the values are exactly these, and
+    // the two routers hold no second copy to drift from.
+    expect(PROVIDER_VOCABULARIES.industries, 'the industry vocabulary changed').toEqual([...INDUSTRIES])
+    expect(PROVIDER_VOCABULARIES.seniority_levels, 'the seniority vocabulary changed').toEqual([...SENIORITY])
+    expect(
+      PROVIDER_VOCABULARIES.company_sizes,
+      'the size bands changed — note the en-dashes (U+2013); an ASCII "tidy-up" stops matching every stored row',
+    ).toEqual([...SIZES])
+
+    // 🛑 NO SECOND COPY. A future edit that re-inlines a literal into either router puts the
+    // drift back, and this is what catches it.
+    for (const [name, src] of [['the ICP route', ICPS], ['the operator rail', OPERATOR]] as const) {
+      const code = src.split('\n').filter(l => !l.trimStart().startsWith('//')).join('\n')
+      for (const list of [INDUSTRIES, SENIORITY, SIZES]) {
+        const literal = `[${list.map(v => `'${v}'`).join(', ')}]`
+        expect(code, `${name} re-inlined a vocabulary literal — there is one home for these`).not.toContain(literal)
+      }
+      expect(code, `${name} does not read the shared vocabulary`).toContain('PROVIDER_VOCABULARIES')
     }
   })
 })

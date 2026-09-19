@@ -81,6 +81,15 @@ vi.mock('@kind/db', () => ({
           // No campaign row ⟹ no review required ⟹ the send proceeds. That is the legitimate
           // `{ data: null, error: null }` case C7 pinned, and it keeps this file about countries.
           if (table === 'opt_out_blocklist')  return { data: state.blocked ? { id: 'b1' } : null, error: null }
+          // ⛓️ 18 Sep (J20-C4 · FD-5) — THE SENDABLE FACTS, added for exactly the reason
+          // `not()` and the client row above were: the seam now refuses anybody we may not
+          // lawfully email, and a lead whose `email_status` cannot be read is unverified —
+          // correctly — so every send in this file would defer for a reason that has nothing
+          // to do with countries, and every suppression assertion would pass vacuously.
+          //
+          // ⚠️ THE ROW IS AUTHORITATIVE FOR BOTH FIELDS, so the fixture carries the address these
+          // cases use. What this file varies is the COUNTRY, which the gate does not read.
+          if (table === 'leads')              return { data: { email: 'prospect@acme.com', email_status: 'verified' }, error: null }
           if (table === 'figsy_enrollments')  return { data: { client_id: 'c1' }, error: null }
           // ⛓️ C2 — THE CLIENT ROW, added for the same reason `not()` was: the send gate now
           // resolves `clients.commercial_model` before it reads the programme, and a client that

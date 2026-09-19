@@ -22,6 +22,15 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { deriveRunStatus, runOutcomeMessage, WIDENED_NO_MATCH_BODY } from './run-outcome'
 import { exhaustedMessage } from './pdl-cursor'
+// ⛓️ 17 Sep (J5-C14) — section F's arithmetic reads these instead of rebuilding a retired
+// provider's ladder from `pdl-search.ts`.
+import {
+  PROOF_WAIT_MS,
+  PROOF_DESK_POLL_MS,
+  PROOF_DESK_MAX_CHECKS,
+  APOLLO_REQUEST_TIMEOUT_MS,
+  APOLLO_PROOF_WORST_CASE_REQUESTS,
+} from '@kind/shared'
 
 const ICP = { job_titles: ['Head of Ops'], seniority_levels: [], company_sizes: [], geographies: ['United Kingdom'], industries: ['Logistics'] }
 
@@ -252,7 +261,14 @@ describe('C · runIcpJob carries a FAIL-CLOSED trust state into the persisted st
   })
 
   it('promotion requires POSITIVE evidence: a completed page, or the throwing Apollo path returning', () => {
-    expect(src).toContain("if (pdlPage.completed) searchTrust = 'proven'")
+// ⛓️ 17 Sep (FD-6) — `pdlPage` → `providerPage`, `scrollToken` → `cursor`. With one provider
+// the PDL-shaped names stopped describing anything: the page now carries Apollo's own
+// completed / exhausted / matchedNothing verdict, which the Apollo branch never reported
+// before (it returned null, so no client run could ever reach searchTrust = 'proven').
+    // ⛓️ RENAMED 17 Sep (FD-6) — `providerPage` → `providerPage`. The INVARIANT is unchanged and
+    // the rename actually strengthens it: the Apollo branch used to return no page at all, so
+    // no client run could ever reach 'proven' and every honest empty looked like an outage.
+    expect(src).toContain("if (providerPage.completed) searchTrust = 'proven'")
     // ⛓️ 27 Aug — the Apollo promotion is gated on the run NOT having been refused by
     // the zero-spend guard: a blocked run also returns no page and proved nothing.
     // ⛓️ 15 Sep (S2-RT-001A) — and it is keyed on the PROVIDER, not the audience. This
@@ -271,7 +287,7 @@ describe('C · runIcpJob carries a FAIL-CLOSED trust state into the persisted st
     const wideDrop = src.lastIndexOf("searchTrust = 'unproven'", wideCall)
     expect(wideDrop).toBeGreaterThan(-1)
     expect(wideCall).toBeGreaterThan(wideDrop)
-    expect(src).toContain("if (wide?.pdlPage?.completed) searchTrust = 'proven'")
+    expect(src).toContain("if (wide?.providerPage?.completed) searchTrust = 'proven'")
   })
 
   it('the persisted status is derived from the trust reader', () => {
@@ -396,8 +412,12 @@ describe('E · the desk is bounded — a wait that never resolves ends in recove
   })
 
   it('the poll is bounded and offers no uncontrolled retry', () => {
-    // 80 × 3s = 240s — derived from the backend worst case, see section F below.
-    expect(portal).toContain('const FINDING_MAX_CHECKS = 80')
+    // ⛓️ 17 Sep (J5-C14) — WAS `toContain('const FINDING_MAX_CHECKS = 80')`. 80 was PDL's
+    // number (see section F) and, more importantly, a LOCALLY TYPED one. The desk now imports
+    // its budget, so the assertion is that the cap exists and is DERIVED — a re-typed literal
+    // is the defect this stopped being able to catch.
+    expect(portal).toContain('const FINDING_MAX_CHECKS = PROOF_DESK_MAX_CHECKS')
+    expect(portal).not.toMatch(/const FINDING_MAX_CHECKS = \d/)
     expect(portal).toContain('if (checks >= FINDING_MAX_CHECKS) { clearInterval(timer); setFindingTimedOut(true); return }')
   })
 })
@@ -503,29 +523,42 @@ describe('F · the polling bound is derived, not picked', () => {
   const portalSrc = codeOnly(readFileSync(
     join(__dirname, '..', '..', '..', 'portal', 'src', 'app', '(milla)', 'milla', 'page.tsx'), 'utf8'))
 
-  it('the client bound clears the backend worst case with margin', () => {
-    // Backend worst case, from code: 15s/attempt (pdl-search.ts AbortSignal.timeout),
-    // 4-rung ladder at batch 20, +17.5s rate-limit retry, ×2 for the widened fallback
-    // ≈ 155s, +overheads → ~180s. The client bound must exceed it.
-    const PDL_ATTEMPT_TIMEOUT = 15_000
-    const LADDER_RUNGS = 4
-    const RATE_LIMIT_RETRY = 2_500 + PDL_ATTEMPT_TIMEOUT
-    const WORST_ONE_SEARCH = LADDER_RUNGS * PDL_ATTEMPT_TIMEOUT + RATE_LIMIT_RETRY
-    const WORST_LEGITIMATE = 2 * WORST_ONE_SEARCH          // exact + one widened fallback
-    const pollMs = Number(/const FINDING_POLL_MS = (\d+)/.exec(portalSrc)?.[1])
-    const maxChecks = Number(/const FINDING_MAX_CHECKS = (\d+)/.exec(portalSrc)?.[1])
-    expect(pollMs).toBe(3000)
-    expect(maxChecks).toBe(80)
-    expect(pollMs * maxChecks, 'bound must exceed the legitimate worst case').toBeGreaterThan(WORST_LEGITIMATE)
-    // And the source constants the math rests on have not silently moved.
-    const pdl = readFileSync(join(__dirname, 'pdl-search.ts'), 'utf8')
-    expect(pdl.match(/AbortSignal\.timeout\(15000\)/g)?.length).toBeGreaterThanOrEqual(2)
-    expect(pdl).toContain('const ladder = [size, 25, 10, 5, 1]')
+  // ⛓️ 17 Sep (J5-C14 · FD-6) — THIS SECTION WAS MEASURING A PROVIDER WE DO NOT USE. It read
+  // `pdl-search.ts` and rebuilt PDL's worst case from its own constants —
+  //
+  //     `const PDL_ATTEMPT_TIMEOUT = 15_000; const LADDER_RUNGS = 4;`
+  //     `const RATE_LIMIT_RETRY = 2_500 + PDL_ATTEMPT_TIMEOUT; … expect(maxChecks).toBe(80)`
+  //
+  // — and then asserted the desk's two hand-typed literals against it. Under FD-6 Proof
+  // sources from Apollo, which has no size ladder: it pages. The assertions below are the
+  // SAME two facts (the bound clears the provider's worst case; the desk cannot declare
+  // failure early) re-derived from Apollo, and they no longer read a retired provider's file.
+  //
+  // ⚠️ AND THE PARSE IS GONE ON PURPOSE. Digging two integers out of the page with a regex
+  // only worked because they were typed there. They are imported now, so the assertion is
+  // that the page names the shared constants — a literal reappearing is the failure.
+
+  it('the client bound clears the provider worst case with margin', () => {
+    const WORST_PROVIDER_TIME = APOLLO_REQUEST_TIMEOUT_MS * APOLLO_PROOF_WORST_CASE_REQUESTS
+    expect(PROOF_WAIT_MS, 'bound must exceed the legitimate worst case').toBeGreaterThan(WORST_PROVIDER_TIME)
+    expect(PROOF_DESK_POLL_MS * PROOF_DESK_MAX_CHECKS).toBe(PROOF_WAIT_MS)
+    // 🛑 THE CONSTANT THE MATH RESTS ON MUST BE APPLIED, not merely declared. `searchPeople`
+    // had no timeout at all, and Node's `fetch` has no default — so the "worst case" this
+    // whole section computes did not exist until the signal was passed.
+    const apollo = readFileSync(join(__dirname, 'apollo.ts'), 'utf8')
+    expect(apollo.match(/AbortSignal\.timeout\(APOLLO_REQUEST_TIMEOUT_MS\)/g)?.length).toBeGreaterThanOrEqual(2)
+    expect(apollo).not.toMatch(/AbortSignal\.timeout\(\s*\d/)
+  })
+
+  it('the desk reads the shared budget rather than its own numbers', () => {
+    expect(portalSrc).toContain('const FINDING_POLL_MS = PROOF_DESK_POLL_MS')
+    expect(portalSrc).toContain('const FINDING_MAX_CHECKS = PROOF_DESK_MAX_CHECKS')
+    expect(portalSrc).not.toMatch(/const FINDING_POLL_MS = \d/)
+    expect(portalSrc).not.toMatch(/const FINDING_MAX_CHECKS = \d/)
   })
 
   it('a healthy slow proof cannot be declared failed before the backend could still be working', () => {
-    const pollMs = 3000, maxChecks = 80
-    expect(pollMs * maxChecks).toBeGreaterThanOrEqual(180_000)
+    expect(PROOF_DESK_POLL_MS * PROOF_DESK_MAX_CHECKS).toBeGreaterThanOrEqual(180_000)
   })
 })
 
@@ -553,7 +586,22 @@ describe('F · the complete status space — no value exists as an untested assu
     // the desk exactly like every other exit, which is the whole duty this case defends. It
     // writes `'failed'`, an enum value already covered below, so the status space is
     // unchanged; only the number of places that reach it moved.
-    expect((src.match(/recordRunOutcome\(/g) ?? []).length).toBe(6)  // 1 def + 5 producers
+    // ⛓️ 6 → 7 on 17 Sep (XC-13): +1 PRODUCER, and it is the PROVIDER-FAILURE handler. An
+    // Apollo failure used to propagate straight out of `runIcpJob` to the crash boundary, so
+    // three things were skipped: the programme reservation stayed open, "out of credits" and
+    // "Apollo is down" were the same row, and nobody got a task. It now classifies the
+    // failure, releases the reservation, records the run with `verdict.runStatus` — which is
+    // `quota_exhausted` or `failed`, NEVER `no_match` — raises a Needs-you task, and then
+    // re-throws so the crash boundary still owns the journey outcome. The status space is
+    // unchanged; only the number of places that reach it moved.
+    // ⛓️ 7 → 8 on 18 Sep (J5-C7): +1 PRODUCER, the UNREADABLE-FUNDING refusal in the proofMode
+    // branch of `runIcpJob`. The funding read there dropped its error, so an unreadable state
+    // was indistinguishable from "not funded" and the run proceeded. It now records `'failed'`
+    // — an enum value already covered below — and returns before any provider call. The status
+    // space is unchanged; only the number of places that reach it moved.
+    expect((src.match(/recordRunOutcome\(/g) ?? []).length).toBe(8)  // 1 def + 7 producers
+    expect(src, 'the provider-failure producer must write the CLASSIFIED status, never no_match')
+      .toContain("recordRunOutcome(icpId, clientId, verdict.runStatus, effectiveCap, pool.served, 0)")
     expect(src).toContain("recordRunOutcome(icpId, clientId, 'failed', effectiveCap, pool.served, inserted, 0, didWiden)")
     expect(src).toContain("recordRunOutcome(icpId, clientId, 'quota_exhausted', effectiveCap, 0, 0)")
     // ⛓️ 15 Sep (S1-RT-004) — same call, same specificity; the shared module names the icp

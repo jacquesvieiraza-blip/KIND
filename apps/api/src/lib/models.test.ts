@@ -57,7 +57,13 @@ const live = (src: string) =>
 const MILLA_AND_VIDA: Array<[string, string]> = [
   ['apps/api/src/routes/icps.ts',     'Milla onboarding (builder/chat) and Milla targeting (chat-build)'],
   ['apps/api/src/lib/milla.ts',       'Milla concierge — the desk chat'],
-  ['apps/api/src/routes/milla.ts',    'Milla concierge — the side-panel door'],
+  // ⛓️ 18 Sep (D-63) — ~~`['apps/api/src/routes/milla.ts', 'Milla concierge — the side-panel
+  // door']`~~. THE SIDE-PANEL DOOR IS UNMOUNTED, so there is no conversational call in that
+  // file to hold to the founder's ruling. Milla's remaining surfaces — the desk chat
+  // (`lib/milla.ts`) and onboarding/targeting (`routes/icps.ts`) — are still listed above,
+  // and `routes/milla.ts`'s only model call now is the Notetaker, which is background work an
+  // operator never waits on. Removing the row LOOSENS nothing: the file is asserted below to
+  // carry no conversational model at all.
   ['apps/api/src/routes/operator.ts', "Vida — the operator's colleague (/command and /icp/chat)"],
 ]
 
@@ -90,6 +96,12 @@ const NOT_MILLA_NOT_VIDA: Array<[string, string]> = [
   ['apps/api/src/routes/leads.ts',          'lead enrichment and batch work'],
   ['apps/api/src/routes/clients.ts',        'client batch work'],
   ['apps/api/src/routes/figsy-tasks.ts',    'FIGSY background tasks'],
+  // ⛓️ 18 Sep (D-63) — `routes/milla.ts` MOVED HERE FROM THE CONVERSATIONAL LIST. Its only
+  // remaining model call is the Notetaker, which chews a transcript into action items with
+  // nobody waiting on the reply. The conversational door that put this file on the other list
+  // is unmounted, and this row is what makes that a CLASSIFICATION rather than a deletion:
+  // the file is still checked, against the rule that now applies to it.
+  ['apps/api/src/routes/milla.ts',          'the Notetaker — a transcript, no one waiting'],
 ]
 
 describe('🛑 MILLA = SONNET · VIDA = SONNET · EVERYTHING ELSE = HAIKU (founder-ruled)', () => {
@@ -162,9 +174,13 @@ describe('🛑 MILLA = SONNET · VIDA = SONNET · EVERYTHING ELSE = HAIKU (found
     // `maxRetries: 0` is not tidiness — the SDK's retry sleeps on `retry-after` for up to
     // nearly 60s BETWEEN attempts, so any retry count makes the worst case unbounded.
     expect(AI_TURN_BOUND.maxRetries, 'an SDK retry makes the worst case unprovable').toBe(0)
+    // ⛓️ 18 Sep (D-63) — ~~`'apps/api/src/routes/milla.ts'`~~ LEFT THIS LIST BECAUSE THE CALL
+    // IT BOUNDED LEFT THE PRODUCT. The bound exists so a browser's 45s budget is arithmetic
+    // rather than coincidence, and that only means anything where a browser is waiting; the
+    // stateless door was the one conversational call in that file and it is unmounted. Every
+    // surface a person still waits on is below, unchanged.
     for (const file of [
       'apps/api/src/lib/milla.ts',
-      'apps/api/src/routes/milla.ts',
       'apps/api/src/routes/operator.ts',
     ]) {
       expect(live(read(file)), `${file} calls a model with no bound`).toContain('AI_TURN_BOUND')
@@ -204,7 +220,12 @@ describe('🛑 MILLA = SONNET · VIDA = SONNET · EVERYTHING ELSE = HAIKU (found
 
   it('🛑 the operator proxy is bounded too — one hop, every Vida call goes through it', () => {
     const proxy = read('apps/admin/src/app/api/proxy/[...path]/route.ts')
+    // ⛓️ 17 Sep (Batch 1 · XC-3) — WAS `toMatch(/AbortSignal\.timeout\(\s*45_000\s*\)/)`. The
+    // number is unchanged; it is now a NAMED constant because the operator-facing timeout
+    // sentence quotes it, and a literal inline would let the sentence and the bound disagree.
+    // Still exactly one bound, still 45s, still asserted on live code.
     expect(live(proxy), 'an unbounded proxy holds the operator on a spinner that resolves into nothing')
-      .toMatch(/AbortSignal\.timeout\(\s*45_000\s*\)/)
+      .toMatch(/AbortSignal\.timeout\(\s*UPSTREAM_BOUND_MS\s*\)/)
+    expect(live(proxy), 'the bound must still BE 45s').toMatch(/UPSTREAM_BOUND_MS\s*=\s*45_000/)
   })
 })

@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'fs'
 import { join } from 'path'
+import { resolveDeployedCommit } from './deployed-commit'
 
 // ── #673 — /health NAMES THE BUILD IT IS RUNNING ───────────────────────────────────────────
 //
@@ -19,6 +20,9 @@ import { join } from 'path'
 // used in health/diagnostics"* — a description that was not true until this change.
 
 const INDEX = join(__dirname, '../index.ts')
+/** The shared RULE (lookup order, sha shape) and the api-side ADAPTER (where the stamp is). */
+const RULE = readFileSync(join(__dirname, '../../../../packages/shared/src/deployed-commit.ts'), 'utf8')
+const ADAPTER = readFileSync(join(__dirname, 'deployed-commit.ts'), 'utf8')
 const src = readFileSync(INDEX, 'utf8')
 
 /** The `/health` handler as written, so assertions cannot drift onto some other route. */
@@ -37,9 +41,28 @@ describe('the guard is looking at the real handler', () => {
 })
 
 describe('#673 — the response carries the deployed commit', () => {
-  it('reads RAILWAY_GIT_COMMIT_SHA, not a hand-typed string', () => {
-    expect(handler).toContain('RAILWAY_GIT_COMMIT_SHA')
-    expect(handler, 'short form, so it can be eyeballed against git rev-parse --short').toContain('.slice(0, 7)')
+  // ⛓️ AMENDED BY XC-4 (Batch 1). The PROPERTY these cases guard is unchanged and nothing
+  // here is weakened — what changed is where the value comes from.
+  //
+  // #673 made `/health` read `RAILWAY_GIT_COMMIT_SHA` directly, and the two cases below
+  // used to assert that string and `.slice(0, 7)` inline in the handler. Both assertions
+  // passed for six weeks while production answered `commit: "unknown"` on every single
+  // deploy — because `ship.sh` uses `railway up`, a directory upload, and **Railway does
+  // not inject that variable for one**. A source-text assertion proved the line existed;
+  // it could not prove the line ever produced a value.
+  //
+  // So the guard now points at `deployedCommit()`, whose own unit tests
+  // (`deployed-commit.test.ts`) exercise every branch — platform variable, explicit
+  // override, `.deploy-stamp`, junk refused, nothing at all — instead of asserting one
+  // environment read that was necessary and insufficient.
+  it('resolves the commit through deployedCommit(), not a lone env read', () => {
+    expect(handler).toContain('deployedCommit()')
+    // The RULE lives in @kind/shared so all four services answer identically; the api
+    // file is only the node-side `.deploy-stamp` lookup.
+    expect(RULE, 'the platform variable is still the FIRST source').toContain('RAILWAY_GIT_COMMIT_SHA')
+    expect(ADAPTER, 'and the stamp ship.sh writes is finally READ').toContain('.deploy-stamp')
+    expect(RULE, 'short form, so it can be eyeballed against git rev-parse --short')
+      .toContain('SHORT_SHA_LENGTH = 7')
   })
 
   it('and actually RETURNS it — computing it and not shipping it would be the whole bug again', () => {
@@ -47,12 +70,16 @@ describe('#673 — the response carries the deployed commit', () => {
     // if nothing carries it to the caller.
     const body = handler.slice(handler.indexOf('res.status(200).json('))
     expect(body, 'the field must be in the response body').toMatch(/^\s*commit,\s*$/m)
+    expect(body, 'and its provenance, so the value can be checked').toMatch(/^\s*commitSource,\s*$/m)
   })
 
   it("⚠️ 'unknown' WHEN ABSENT — a build that cannot name itself must not read as one that matched", () => {
-    // Off-platform (local, CI) the variable is not set. Inventing a value there would make the
-    // verification worthless in exactly the case where it is most tempting to skip it.
-    expect(handler).toContain("|| 'unknown'")
+    // Off-platform (local, CI) nothing is set and no stamp exists. Inventing a value there
+    // would make the verification worthless in exactly the case where it is most tempting
+    // to skip it. Proven behaviourally in deployed-commit.test.ts; asserted here so the
+    // constant cannot quietly become a fabricated default.
+    expect(RULE).toContain("UNKNOWN_COMMIT = 'unknown'")
+    expect(resolveDeployedCommit({ env: {}, readStamp: () => null }).commit).toBe('unknown')
   })
 
   it('the hand-typed `v` is KEPT — monitors may key on it, and it answers a different question', () => {
@@ -87,6 +114,6 @@ describe('the environment register stops describing something that was not happe
     const startup = readFileSync(join(__dirname, 'startup-check.ts'), 'utf8')
     const line = startup.split('\n').find(l => l.includes("key: 'RAILWAY_GIT_COMMIT_SHA'"))!
     expect(line).toMatch(/health/i)
-    expect(handler, 'and health genuinely uses it now').toContain('RAILWAY_GIT_COMMIT_SHA')
+    expect(RULE, 'and health genuinely uses it now').toContain('RAILWAY_GIT_COMMIT_SHA')
   })
 })

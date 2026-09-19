@@ -190,6 +190,11 @@ async function buildProofModules(opts: ProofOpts, rec: Rec) {
           }, error: null }
           if (fn === 'settle_proof_claim') return { data: { ok: true }, error: null }
           if (fn === 'try_claim_proof_pass') return { data: 1, error: null }
+          // ⛓️ 17 Sep (XC-13 / FD-6) — the client sourcing gate is the programme AUTHORITY
+          // reserve now, not `try_spend_sourcing`: that function books a $0.28-a-record PDL cost
+          // we no longer incur. Both are answered here so the harness keeps working whichever
+          // path a case drives.
+          if (fn === 'try_reserve_programme_sourcing') return { data: Number(args.p_requested ?? 0), error: null }
           if (fn === 'try_spend_sourcing') return { data: Number(args.p_requested ?? 0), error: null }
           if (fn === 'release_proof_records') return { data: Number(args.p_records ?? 0), error: null }
           return { data: null, error: null }
@@ -256,7 +261,11 @@ async function buildProofModules(opts: ProofOpts, rec: Rec) {
           organization_name: 'Acme', organization: null,
         })),
         relaxed: null,
-        pdlPage: { contacts: [], scrollToken: null, exhausted: false, matchedNothing: n === 0, error: null, completed: true },
+// ⛓️ 17 Sep (FD-6) — `pdlPage` → `providerPage`, `scrollToken` → `cursor`. With one provider
+// the PDL-shaped names stopped describing anything: the page now carries Apollo's own
+// completed / exhausted / matchedNothing verdict, which the Apollo branch never reported
+// before (it returned null, so no client run could ever reach searchTrust = 'proven').
+        providerPage: { provider: 'apollo' as const, contacts: [], cursor: null, exhausted: false, matchedNothing: n === 0, error: null, completed: true },
       }
     },
     ApolloCreditsExhaustedError: class extends Error {},
@@ -333,11 +342,21 @@ describe('EXECUTED · a blocked paid remainder no longer kills the run', () => {
     expect(rec.outcomes[0].status).toBe('failed')
   })
 
-  it('an ORDINARY provider crash still propagates to the crash boundary — only the block is absorbed', async () => {
+  it('an ORDINARY provider crash still propagates to the crash boundary — and now RECORDS on the way', async () => {
     const rec = fresh()
     await expect(runProofJob({ pool: 3, provider: 'crashes' }, rec)).rejects.toThrow(/ECONNRESET/)
-    // The absorb is NARROW: a network error keeps its existing crash-boundary handling.
-    expect(rec.outcomes).toHaveLength(0)
+    // The absorb is still NARROW — the throw reaches the crash boundary, which is what owns
+    // the journey outcome and settles the Proof claim.
+    //
+    // ⛓️ 17 Sep (XC-13) — WAS `toHaveLength(0)`. A bare re-throw skipped three things that a
+    // provider failure obliges: the programme reservation stayed OPEN (a client's paid volume
+    // reserved against a batch that delivered nothing), "out of credits" and "Apollo is down"
+    // were the same row, and nobody got a task. The handler now classifies, releases, records
+    // and raises — then re-throws. So one outcome IS written here, and the status must be the
+    // classified one and never `no_match`: a failure is not evidence about a market.
+    expect(rec.outcomes).toHaveLength(1)
+    expect(rec.outcomes[0].status).toBe('failed')
+    expect(rec.outcomes[0].status).not.toBe('no_match')
   })
 
   it('providers ON and serving is untouched: pool 5 + provider 15 → served 20', async () => {
@@ -541,12 +560,40 @@ describe('EXECUTED · fresh provider contacts obey the hard geography invariant'
     expect(rec.outcomes[0]?.status).toBe('served')
   })
 
-  it('⚑ provider lost the country (NULL) → NOT ONE lead row is created', async () => {
+  // ⛓️ RE-AIMED 17 Sep BY FD-6, and the re-aim is a real behaviour change stated openly.
+  //
+  // This case used `runClientJob` — a NON-proof client run — because that was the PDL path,
+  // and PDL IS queried with `location_country` and returns it, so an absent country meant
+  // contract drift and rejected. Apollo's People Search returns availability BOOLEANS and
+  // never the country, which is why the Apollo path DEFERS the geography answer to the
+  // reveal (`finalVerdict` in lead-delivery), and why deferring produced a 250 → 0 run when
+  // it did not.
+  //
+  // With one provider, a non-proof client run is the Apollo path, so it defers — the House
+  // model applied to clients, which is what XC-13 asks for. The customer's geography is
+  // still enforced in full; it is enforced where the answer exists.
+  //
+  // 🛑 AND PROOF STILL REJECTS, which is the half that protects a customer: a Proof lead is
+  // never revealed downstream, so "later" never arrives. That is the case below it, on
+  // `runProofJob`, and it is unchanged.
+  it('⚑ a NON-proof client run DEFERS an absent country to the reveal — it does not invent one', async () => {
     const rec = fresh()
     await runClientJob({ pool: 0, provider: 'serves', providerCount: 5, providerCountry: null }, rec)
-    expect(rec.leadInserts, 'no lead may exist with unverifiable geography').toBe(0)
-    // And the outcome is the NEUTRAL review state — the search completed, K.I.N.D's own
-    // gate emptied it, so targeting is never blamed and no_match is never claimed.
+    expect(rec.leadInserts, 'the candidates are kept for the reveal to judge').toBe(5)
+    // ⚠️ AND NOT ONE OF THEM CARRIES AN INVENTED COUNTRY. Deferring the question is not the
+    // same as answering it, and writing a country nobody proved is the defect this whole
+    // describe block exists to prevent.
+    for (const r of rec.leadRows) {
+      expect(r.country ?? null, 'a country was invented for a contact that had none').toBeNull()
+    }
+  })
+
+  it('⚑ PROOF still REJECTS an absent country — a proof lead is never revealed later', async () => {
+    const rec = fresh()
+    await runProofJob({ pool: 0, provider: 'serves', providerCount: 5, providerCountry: null }, rec)
+    expect(rec.leadInserts, 'no proof lead may exist with unverifiable geography').toBe(0)
+    // The NEUTRAL review state — the search completed, K.I.N.D's own gate emptied it, so
+    // targeting is never blamed and no_match is never claimed.
     expect(rec.outcomes[0]?.status).toBe('failed')
     expect(rec.outcomes[0]?.status).not.toBe('no_match')
   })
@@ -582,13 +629,16 @@ describe('EXECUTED · provider provenance and cost are truthful, per audience', 
     await runClientJob({ pool: 0, provider: 'serves', providerCount: 5, audience: 'client' }, rec)
     expect(rec.memoryWrites.length, 'acquisition memory was written').toBeGreaterThan(0)
     for (const m of rec.memoryWrites) {
-      expect(m.source, 'memory provenance').toBe('pdl')
-      expect(Number(m.acquisition_cost_usd), 'memory cost is the PDL rate').toBeCloseTo(0.28)
+      // ⛓️ INVERTED 17 Sep BY FD-6 — was `'pdl'` at $0.28. Stamping a retired provider and
+      // booking its per-record rate for a record bought from Apollo is exactly the false
+      // provenance and false cost this block exists to catch, now pointing the other way.
+      expect(m.source, 'memory provenance').toBe('apollo')
+      expect(Number(m.acquisition_cost_usd ?? 0), 'Apollo search costs nothing; the reveal is the credit').toBe(0)
     }
     expect(rec.poolWrites.length, 'the pool was written').toBeGreaterThan(0)
     for (const p of rec.poolWrites) {
-      expect(p.source, 'pool provenance').toBe('pdl')
-      expect(Number(p.acquisition_cost), 'pool cost is the PDL rate').toBeCloseTo(0.28)
+      expect(p.source, 'pool provenance').toBe('apollo')
+      expect(Number(p.acquisition_cost ?? 0), 'Apollo search costs nothing').toBe(0)
       expect(p.country, 'country stored canonically').toBe('united kingdom')
     }
   })
@@ -628,12 +678,16 @@ describe('EXECUTED · provider provenance and cost are truthful, per audience', 
 // untagged store, which is exactly what made historical provenance unprovable row-by-row.
 // ═══════════════════════════════════════════════════════════════════════════════════════
 describe('EXECUTED · the lead row records which provider produced it', () => {
-  it('⚑ a fresh CLIENT/PDL acquisition stamps leads.source = pdl', async () => {
+  // ⛓️ INVERTED 17 Sep BY FD-6 — was "a fresh CLIENT/PDL acquisition stamps leads.source =
+  // pdl". A fresh client acquisition is an Apollo acquisition now. The property is unchanged
+  // and is the whole point of the block: the lead row says which provider genuinely produced
+  // it, so provenance is provable row by row.
+  it('⚑ a fresh CLIENT acquisition stamps leads.source = apollo — never pdl', async () => {
     const rec = fresh()
     await runClientJob({ pool: 0, provider: 'serves', providerCount: 4, audience: 'client' }, rec)
     const providerRows = rec.leadRows.filter(r => r.apollo_id)
     expect(providerRows.length).toBeGreaterThan(0)
-    for (const r of providerRows) expect(r.source, 'the lead row itself says PDL').toBe('pdl')
+    for (const r of providerRows) expect(r.source, 'the lead row itself says Apollo').toBe('apollo')
   })
 
   it('⚑ a fresh HOUSE/Apollo acquisition stamps leads.source = apollo — never pdl', async () => {

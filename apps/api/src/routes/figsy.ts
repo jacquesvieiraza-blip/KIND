@@ -1,4 +1,6 @@
 import { pecrVerdict, pecrSkipReason } from '../lib/pecr'
+// ⛓️ 18 Sep (Batch 1b) — the Resend host, default `https://api.resend.com` (unchanged when unset).
+import { resendBase } from '../lib/provider-hosts'
 import { isLaunchSendCountry, launchHoldReason } from '@kind/shared'
 import { recordEnrolSkips } from '../lib/operator-audit'
 import { Router } from 'express'
@@ -23,7 +25,7 @@ import { emitSignal } from './signals'
 import { BACKGROUND_MODEL, AI_TURN_BOUND } from '../lib/models'
 import { rateLimit } from '../lib/rate-limit'
 import { isDuplicateWebhookEvent, releaseWebhookEvent } from '../lib/webhook-idempotency'
-import { processInboundReply } from '../lib/reply-pipeline'
+import { processInboundReply, RETRYABLE_DROPS } from '../lib/reply-pipeline'
 import { parseSmartleadInbound, isSmartleadReplyEvent } from '../lib/smartlead-inbound'
 import { sendFounderAlert } from '../lib/alerts'
 // The provider-agnostic reply spine (#589). Resend feeds it today; Instantly and Smartlead
@@ -314,7 +316,7 @@ figsyRouter.post('/replies/inbound', async (req, res) => {
       } else {
         fetchAttempted = true
         try {
-          const r = await fetch(`https://api.resend.com/emails/receiving/${emailId}`, {
+          const r = await fetch(`${resendBase()}/emails/receiving/${emailId}`, {
             headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}` },
           })
           if (r.ok) {
@@ -372,7 +374,12 @@ figsyRouter.post('/replies/inbound', async (req, res) => {
     // not store it — so a 200 would promise we had kept something we had just lost, and the
     // provider would never send it again. The dedup claim is handed back and the delivery is
     // refused, which is how a webhook asks to be redelivered.
-    if (!result.ok && result.dropped === 'ambiguous_owner_unretained') {
+    //
+    // ⛓️ 19 Sep (J22-C1) — WAS: ~~`result.dropped === 'ambiguous_owner_unretained'`~~, the same
+    // literal written into both routes by hand. `unclassified_untasked` joined it and the list
+    // now lives beside the function that produces the codes, so a third one cannot be honoured
+    // by Resend and silently dropped by Smartlead.
+    if (!result.ok && RETRYABLE_DROPS.has(result.dropped)) {
       const released = await releaseWebhookEvent(db, dedupKey, 'resend')
       res.status(500).json({
         received: false, dropped: result.dropped, retry: true, dedup_released: released,
@@ -464,10 +471,12 @@ figsyRouter.post('/replies/smartlead', unsubscribeLimiter, async (req, res) => {
     // BUILD-003 item 7 — the exact key this route deduped on, passed through so the database
     // backstop protects the same identity the application reasons about.
     const result = await processInboundReply(inbound, { rawPayload: raw, eventKey: dedupKey })
-    // ⚑ 17 Sep — the same single exception as the Resend route. See the note there: a reply we
-    // could neither attribute nor retain must be REFUSED, because a 200 is a promise we kept
-    // it. The general rule below ("never 500 at a webhook") stands for every other outcome.
-    if (!result.ok && result.dropped === 'ambiguous_owner_unretained') {
+    // ⚑ 17 Sep — the same exceptions as the Resend route, and now literally the same list. See
+    // the note there: a reply we could neither attribute nor retain — and, from 19 Sep, one we
+    // stored unclassified but could not put on anybody's desk — must be REFUSED, because a 200
+    // is a promise we kept it and somebody will read it. The general rule below ("never 500 at a
+    // webhook") stands for every other outcome.
+    if (!result.ok && RETRYABLE_DROPS.has(result.dropped)) {
       const released = await releaseWebhookEvent(db, dedupKey, 'smartlead')
       res.status(500).json({
         received: false, dropped: result.dropped, retry: true, dedup_released: released,
@@ -1379,7 +1388,7 @@ figsyRouter.post('/campaigns/:id/send-now', async (req: AuthRequest, res) => {
 
     const now = new Date().toISOString()
     const { data: due } = await db.from('figsy_enrollments')
-      .select('*, leads(id,first_name,last_name,email,job_title,company,industry,seniority,country,tech_stack,score,score_reasoning)')
+      .select('*, leads(id,client_id,first_name,last_name,email,job_title,company,industry,seniority,country,tech_stack,score,score_reasoning)')
       .eq('campaign_id', req.params.id)
       .in('status', ['enrolled', 'in_progress'])
       .lte('next_send_at', now)
@@ -2166,7 +2175,7 @@ figsyRouter.post('/send-due', rateLimit({ limit: 30, windowMs: 60_000, key: 'fig
 
     const now = new Date().toISOString()
     const { data: due } = await db.from('figsy_enrollments')
-      .select('*, leads(id,first_name,last_name,email,job_title,company,industry,seniority,country,tech_stack,score,score_reasoning)')
+      .select('*, leads(id,client_id,first_name,last_name,email,job_title,company,industry,seniority,country,tech_stack,score,score_reasoning)')
       .eq('client_id', clientId)
       .in('campaign_id', activeCampaignIds)
       .in('status', ['enrolled', 'in_progress'])
@@ -2252,7 +2261,7 @@ figsyRouter.post('/replies/:id/draft-followup', async (req: AuthRequest, res) =>
     const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
     const response = await anthropic.messages.create({
-      model: 'claude-haiku-4-5-20251001',
+      model: BACKGROUND_MODEL,
       max_tokens: 400,
       messages: [{
         role: 'user',
@@ -2303,7 +2312,7 @@ figsyRouter.post('/replies/:replyId/suggest', async (req: AuthRequest, res) => {
     const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
     const response = await anthropic.messages.create({
-      model: 'claude-haiku-4-5-20251001',
+      model: BACKGROUND_MODEL,
       max_tokens: 300,
       messages: [{
         role: 'user',
@@ -2390,7 +2399,7 @@ figsyRouter.post('/replies/:id/ai-draft', async (req: AuthRequest, res) => {
     ].filter(Boolean).join('\n')
 
     const response = await anthropic.messages.create({
-      model: 'claude-haiku-4-5-20251001',
+      model: BACKGROUND_MODEL,
       max_tokens: 500,
       system,
       messages: [{ role: 'user', content: userPrompt }],
@@ -3192,7 +3201,7 @@ figsyRouter.post('/suggest-campaign', async (req: AuthRequest, res) => {
     const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
     const response = await anthropic.messages.create({
-      model: 'claude-haiku-4-5-20251001',
+      model: BACKGROUND_MODEL,
       max_tokens: 512,
       messages: [{
         role: 'user',

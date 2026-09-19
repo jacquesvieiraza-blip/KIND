@@ -187,9 +187,10 @@ describe('② an authorised batch of 250 is fulfilled across pages', () => {
 // ── ③ EVERY EXISTING HOUSE LOCK SURVIVES THIS FIX ─────────────────────────────────────
 
 describe('③ the House locks are untouched', () => {
-  it('House still routes to Apollo, and a client still routes to PDL', () => {
+  it('House still routes to Apollo — and so does a client, since FD-6', () => {
+    // ⛓️ RE-AIMED 17 Sep BY FD-6: *"We are not paying for PDL."* Every audience is Apollo.
     expect(searchProviderFor('house')).toBe('apollo')
-    expect(searchProviderFor('client')).toBe('pdl')
+    expect(searchProviderFor('client')).toBe('apollo')
   })
 
   it('verified-only is still asked for on every House page, not just the first', async () => {

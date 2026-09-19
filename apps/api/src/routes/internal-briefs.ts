@@ -13,6 +13,7 @@ import Anthropic from '@anthropic-ai/sdk'
 import { db } from '@kind/db'
 import { fetchDeniseData, deniseSystemPrompt } from '../lib/denise'
 import { getClientExclusions } from '../lib/real-clients'
+import { BACKGROUND_MODEL } from '../lib/models'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
@@ -265,7 +266,16 @@ Format: bullet points only, no headers, no markdown beyond bullets.`
     const userPrompt = `Here is today's data:\n${JSON.stringify(snapshot, null, 2)}\n\nWrite the brief.`
 
     const message = await anthropic.messages.create({
-      model: 'claude-haiku-4-5',
+      // ⛓️ 18 Sep (D-64) — ~~`model: 'claude-haiku-4-5'`~~. THIS IS THE DRIFT THE CONSTANT
+      // EXISTS TO PREVENT, and it had already happened: every other background call named the
+      // PINNED `claude-haiku-4-5-20251001`, and this one named the floating alias. Two model
+      // strings for one decision, differing by whether the version is nailed down — so the
+      // internal brief could silently change model under us while nothing else did.
+      //
+      // ⚠️ THIS PINS A CALL THAT WAS FLOATING, which is a real change and is disclosed as one:
+      // the alias resolves to the same model today, and from here it cannot drift away from
+      // the rest of the product's background work without the constant moving too.
+      model: BACKGROUND_MODEL,
       max_tokens: 512,
       messages: [{ role: 'user', content: userPrompt }],
       system: systemPrompt,

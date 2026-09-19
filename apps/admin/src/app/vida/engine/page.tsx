@@ -68,6 +68,25 @@ type Engine = {
   secret_key_set?: boolean
 }
 
+/**
+ * ⚑ 17 Sep (XC-3) — the applied-migration ledger, as returned by GET /operator/migrations/state.
+ *
+ * ⚠️ `ok` IS A FIELD, not an absence. `ok: false` with an empty `rows` means the ledger could
+ * not be READ; it does not mean nothing has been applied, and the card must not blur the two.
+ */
+type MigState = {
+  ok: boolean
+  note: string | null
+  rows: {
+    key: string; known: boolean
+    state: 'applied' | 'failed' | 'never_run' | 'unknown'
+    appliedAt: string | null; lastRunAt: string | null; lastError: string | null; runCount: number | null
+  }[]
+  counts: { applied: number; failed: number; never_run: number; unknown: number } | null
+  table_missing?: boolean
+  columns_missing?: boolean
+}
+
 /** #554 — the live RLS verdict, as returned by GET /operator/rls-audit. */
 type RlsAudit = {
   verdicts: { tablename: string; verdict: string; finding: string; offenders: string[] }[]
@@ -108,6 +127,10 @@ export default function VidaEnginePage() {
   const [form, setForm] = useState<{ clientId: string; email: string } | null>(null)
   const [brandFor, setBrandFor] = useState<{ clientId: string; email: string } | null>(null)
   const [migMsg, setMigMsg] = useState<string | null>(null)
+  // ⚑ 17 Sep (XC-3) — WHAT THE DATABASE SAYS, kept SEPARATE from `migMsg`, which is what the
+  // last run said. The same rule as `rls`/`rlsErr` below: a ledger that could not be read
+  // must render as "not known", never as an empty and therefore reassuring list.
+  const [migState, setMigState] = useState<MigState | null>(null)
   const [demoMsg, setDemoMsg] = useState<string | null>(null)
   // #552 — the mailbox-details form, and the result of asking the mailbox whether it will
   // let us in. Keyed by inbox id so two open cards can't overwrite each other's answer.
@@ -236,6 +259,29 @@ export default function VidaEnginePage() {
     setBusy(null)
   }
 
+  // ── ⚑ 17 Sep (XC-3) — WHAT THE DATABASE SAYS HAS BEEN APPLIED ──────────────────────────
+  //
+  // 🛑 THIS CARD USED TO SHOW A TRANSCRIPT, NOT STATE. `migrations/run` replays every key and
+  // returns its results; close the screen and the knowledge was gone. "Has this one gone in?"
+  // could only be answered by hunting for the object it creates — and an object that exists
+  // for another reason looks exactly like a migration that ran.
+  //
+  // ⚠️ AND IT IS HOW A TIMED-OUT RUN IS READ. The replay outlives the proxy's 45s bound, so
+  // the request gets abandoned while the server keeps going. This read is the progress.
+  const loadMigState = useCallback(async () => {
+    try {
+      const j = await fetch('/api/proxy/operator/migrations/state').then(r => r.json())
+      // ⚠️ `ok: false` IS KEPT, NOT DISCARDED. A missing ledger table must render as "not
+      // known", never as an empty list — an empty list reads as "nothing has been applied"
+      // and invites a 74-migration replay against a database that already has them all.
+      if (j?.success) setMigState(j.data)
+      else setMigState({ ok: false, note: j?.error || 'The applied-migration ledger could not be read.', rows: [], counts: null })
+    } catch (err) {
+      setMigState({ ok: false, note: err instanceof Error ? err.message : 'The applied-migration ledger could not be read.', rows: [], counts: null })
+    }
+  }, [])
+  useEffect(() => { void loadMigState() }, [loadMigState])
+
   async function runMigration(withPassword?: string) {
     setBusy('migration'); setMigMsg(null); setError(null)
     try {
@@ -243,7 +289,18 @@ export default function VidaEnginePage() {
         method: 'POST', headers: { 'content-type': 'application/json' },
         body: JSON.stringify(withPassword ? { db_password: withPassword } : {}),
       }).then(r => r.json())
+      // 🛑 A TIMEOUT IS NOT A FAILURE, AND MUST NOT OFFER A RETRY. The proxy now says which it
+      // is (XC-3). The run is still going server-side and recording each key as it lands, so
+      // the honest thing to show is the LEDGER — not "Migration failed", which is what sent an
+      // operator to press the button again and start a second replay.
+      if (j?.timeout) {
+        await loadMigState()
+        setMigMsg(`${j.error} The list below is re-read from the database and updates as the run lands each migration.`)
+        setBusy(null)
+        return
+      }
       if (!j?.success) throw new Error(j?.error || 'Migration failed')
+      await loadMigState()
       const failed = (j.data.results ?? []).filter((r: { ok: boolean }) => !r.ok)
       const ran = (j.data.results ?? []).filter((r: { ok: boolean }) => r.ok).length
       // Say WHERE it connected. The first run died with ENETUNREACH because Supabase's direct
@@ -267,7 +324,13 @@ export default function VidaEnginePage() {
           `The rest DID apply — each migration runs on its own connection, so one failure does not stop the others.`,
         )
       } else {
-        setMigMsg(`${ran} migration${ran === 1 ? '' : 's'} applied${via}. Inbox tracking is live.${j.data.hint ? ` — ${j.data.hint}` : ''}`)
+        // ⚠️ "APPLIED" AND "RECORDED" ARE TWO FACTS (XC-3). A run whose outcomes never reached
+        // the ledger looked identical to one that did, and the difference decides whether the
+        // list below can be trusted at all — so it is said out loud rather than assumed.
+        const ledger = typeof j.data.ledger_recorded === 'number' && j.data.ledger_recorded < ran
+          ? ` ⚠️ Only ${j.data.ledger_recorded} of ${ran} outcomes were RECORDED${j.data.ledger_note ? ` — ${j.data.ledger_note}` : '.'}`
+          : ''
+        setMigMsg(`${ran} migration${ran === 1 ? '' : 's'} applied${via}.${j.data.hint ? ` — ${j.data.hint}` : ''}${ledger}`)
         setNeedsPw(false); setDbPw('')
         await load()
       }
@@ -473,13 +536,44 @@ export default function VidaEnginePage() {
             {busy === 'migration' ? 'Running…' : 'Run migrations'}
           </button>
         </div>
+        {/* ⚑ 17 Sep (XC-3) — EACH KEY CARRIES WHAT THE DATABASE SAYS ABOUT IT.
+            🛑 THE LIST USED TO BE THE RUNNER'S MENU AND NOTHING MORE: 74 keys with titles and
+            no indication which had ever been applied. The state comes from
+            `app_migrations_applied`, so a failure survives the screen being closed and
+            "unknown" is said out loud when the ledger cannot be read. */}
+        {migState && !migState.ok && (
+          <p className="text-[11.5px] font-semibold text-[#9a3412] mt-2 leading-relaxed">
+            ⚠️ NOT KNOWN: {migState.note}
+          </p>
+        )}
+        {migState?.ok && migState.counts && (
+          <p className="text-[11.5px] text-[#1f1235] font-semibold mt-2">
+            The database says: {migState.counts.applied} applied
+            {migState.counts.failed > 0 && <span className="text-[#9a3412]"> · {migState.counts.failed} FAILED</span>}
+            {migState.counts.never_run > 0 && <span> · {migState.counts.never_run} never run</span>}
+            {migState.note && <span className="font-normal text-[#5c5279]"> — {migState.note}</span>}
+          </p>
+        )}
         {(e?.migrations?.length ?? 0) > 0 && (
           <ul className="mt-2 space-y-0.5">
-            {e!.migrations!.map(m => (
-              <li key={m.key} className="text-[11.5px] text-[#5c5279]">
-                <code className="px-1 bg-[#f8f6fd] rounded">{m.key}</code> — {m.title}
-              </li>
-            ))}
+            {e!.migrations!.map(m => {
+              const st = migState?.rows.find(r => r.key === m.key)
+              // ⚠️ NO BADGE AT ALL WHEN THE LEDGER HAS NOT BEEN READ. A default of "never run"
+              // is the reading that gets somebody to re-run everything.
+              const badge = st?.state === 'applied' ? { t: 'applied', c: 'text-[#166534] bg-[#dcfce7]' }
+                : st?.state === 'failed' ? { t: 'FAILED', c: 'text-[#9a3412] bg-[#ffedd5]' }
+                : st?.state === 'never_run' ? { t: 'not run', c: 'text-[#5c5279] bg-[#f1eefa]' }
+                : { t: 'not known', c: 'text-[#5c5279] bg-[#f8f6fd]' }
+              return (
+                <li key={m.key} className="text-[11.5px] text-[#5c5279]">
+                  <span className={`inline-block px-1.5 rounded font-bold mr-1.5 ${badge.c}`}>{badge.t}</span>
+                  <code className="px-1 bg-[#f8f6fd] rounded">{m.key}</code> — {m.title}
+                  {st?.state === 'failed' && st.lastError && (
+                    <span className="block ml-1 text-[#9a3412]">last error: {st.lastError}</span>
+                  )}
+                </li>
+              )
+            })}
           </ul>
         )}
         {migMsg && <p className="text-[11.5px] font-semibold text-[#5b21b6] mt-2 leading-relaxed">{migMsg}</p>}

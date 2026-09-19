@@ -90,8 +90,12 @@ describe('① House sources from Apollo, and can never route to PDL', () => {
     expect(searchProviderFor('house' as Audience)).not.toBe('pdl')
   })
 
-  it('13 · a non-house client still routes to PDL — unchanged', () => {
-    expect(searchProviderFor('client')).toBe('pdl')
+  it('13 · a non-house client routes to APOLLO too, since FD-6', () => {
+    // ⛓️ RE-AIMED 17 Sep BY FD-6: *"We are not paying for PDL."* Every audience is Apollo.
+    // ⚠️ THE HOUSE LOCK IS UNCHANGED BY THAT. What made House safe was never "clients are
+    // somewhere else" — it is the verified-email floor, the company-name restriction and the
+    // programme ceiling, all of which key on the audience and all of which still do.
+    expect(searchProviderFor('client')).toBe('apollo')
   })
 })
 
@@ -331,7 +335,18 @@ describe('② identity is POSITIVELY proved, or the sourcing run stops', () => {
     const c = code(ICPS_SRC)
     const at = c.indexOf('const audience = await audienceForClientStrict(clientId)')
     expect(at, 'the sourcing run no longer resolves the audience strictly').toBeGreaterThan(-1)
-    expect(c.indexOf('try_spend_sourcing'), 'the cash fence now runs BEFORE the audience is proved')
+  // ⛓️ RE-AIMED 17 Sep (XC-13 / FD-6) — the sourcing gate in `icps.ts` is now
+  // `try_reserve_programme_sourcing`, called DIRECTLY. `try_spend_sourcing` does two jobs in
+  // one body — programme AUTHORITY, and a `sourcing_ledger` row at $0.28 a PDL record — and
+  // under FD-6 the second is a fabricated cost: *"We are not paying for PDL."* HOUSE-009
+  // already split the two; this points the client path at the same half House uses. The
+  // INVARIANT asserted here is byte-identical; only the RPC's name changed.
+    // ⚠️ ANCHORED ON THE PROVIDER GRANT, NOT ON THE RPC NAME. `try_reserve_programme_sourcing`
+    // is ALSO called earlier, for the POOL reservation (a pool record is free, so it takes
+    // entitlement without booking provider cost), and that call legitimately precedes the
+    // audience resolution. A bare `indexOf` finds that one and the assertion inverts. The
+    // provider grant is the one that asks for `pdlRemainder`.
+    expect(c.indexOf('p_requested: pdlRemainder'), 'the sourcing fence now runs BEFORE the audience is proved')
       .toBeGreaterThan(at)
     // ⚠️ THE CALL, NOT THE IMPORT. `indexOf('searchPeopleWithFallback')` finds line 7 — the
     // import — which sits above everything and would fail this assertion no matter what the
@@ -523,10 +538,17 @@ describe('⑥ House never reaches Hunter or PDL', () => {
     }
   })
 
-  it('12 · the house search branch calls Apollo, and the PDL branch is the client branch', () => {
+  it('12 · there is ONE search branch and it is Apollo; the PDL branch is gone', () => {
+    // ⛓️ RE-AIMED 17 Sep BY FD-6. This asserted the literal `if (provider === 'pdl')` as
+    // proof that the two audiences went to two vendors. That branch is deleted — a branch
+    // pointing at an unpaid provider does not fail over, it just fails — so the assertion
+    // now proves the opposite property: nothing in this file can select PDL, and a non-Apollo
+    // decision is refused loudly instead of falling through to the Apollo walk.
     const APOLLO_CODE = code(APOLLO_SRC)
-    expect(APOLLO_CODE).toMatch(/if \(provider === 'pdl'\)/)
-    expect(APOLLO_CODE).toMatch(/searchProviderFor\(audience\)/)
+    expect(APOLLO_CODE).not.toMatch(/if \(provider === 'pdl'\)/)
+    expect(APOLLO_CODE).toMatch(/if \(provider !== 'apollo'\)/)
+    expect(APOLLO_CODE).toMatch(/sourcingProviderFor\(/)
+    expect(APOLLO_CODE, 'nothing may call the PDL search module any more').not.toMatch(/pdlSearchPage\(/)
   })
 })
 

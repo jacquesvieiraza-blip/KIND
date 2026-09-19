@@ -29,13 +29,25 @@
 
 /** How long a healthy proof may take before the desk stops claiming to search.
  *
- *  Derived, not picked — from the backend's own worst case: one PDL attempt is a 15s
- *  timeout, the size ladder at batch 20 is four attempts (60s), one global rate-limit retry
- *  adds 2.5s + 15s, so an exact search is ~77.5s and the one widened fallback repeats it —
- *  ~160–180s with overheads. 240s clears that with ~60s of margin and is still a hard stop.
- *  The desk's poll budget (`FINDING_POLL_MS × FINDING_MAX_CHECKS`) must equal this; the desk
- *  asserts that at module load so the two can never drift into different truths. */
-export const PROOF_WAIT_MS = 240_000
+ * ⛓️ 17 Sep (J5-C14 · FD-6) — THE NUMBER MOVED TO `@kind/shared` BECAUSE IT WAS DERIVED FROM
+ * A PROVIDER WE DO NOT USE. What stood here was:
+ *
+ *     *"Derived, not picked — from the backend's own worst case: one PDL attempt is a 15s
+ *      timeout, the size ladder at batch 20 is four attempts (60s), one global rate-limit
+ *      retry adds 2.5s + 15s, so an exact search is ~77.5s and the one widened fallback
+ *      repeats it — ~160–180s with overheads. 240s clears that with ~60s of margin…"*
+ *
+ * Every term in that derivation is PDL's: its timeout, its 402 size ladder, its retry. Under
+ * FD-6 Proof sources from Apollo, which has no size ladder — it pages, and a Proof batch of
+ * 20 fits in ONE page. The bound was not wrong, it was measuring a different machine.
+ *
+ * ⚠️ IT IS RE-EXPORTED, NOT RE-DECLARED. The desk, the backend and the poll budget must read
+ * ONE number; a second declaration here is how the previous drift happened. The derivation
+ * itself — and the `APOLLO_REQUEST_TIMEOUT_MS` that makes a worst case exist at all — lives
+ * in `packages/shared/src/proof-wait.ts`.
+ */
+import { PROOF_WAIT_MS, PROOF_DESK_POLL_MS, PROOF_DESK_MAX_CHECKS } from '@kind/shared'
+export { PROOF_WAIT_MS, PROOF_DESK_POLL_MS, PROOF_DESK_MAX_CHECKS }
 
 /**
  * What the desk should show while it waits.
@@ -43,7 +55,29 @@ export const PROOF_WAIT_MS = 240_000
  *   'finding'  — a run may still be legitimately working
  *   'recovery' — the justified bound has passed with no backend truth
  */
-export type ProofWaitState = 'none' | 'finding' | 'recovery'
+// ⛓️ 18 Sep (J5-C2 · LR 6) — FOUR WORDS ADDED, and the reason is that three words were doing
+// the work of six recorded states. `hasTerminalOutcome` collapsed EVERY terminal outcome to
+// `'none'`, so a run the server recorded as FAILED and a run that completed perfectly produced
+// the same desk state; and `'recovery'` was decided by a CLOCK
+// (`now - serverStartedAt > PROOF_WAIT_MS`), so a run that failed at second 3 was described as
+// "finding your matches" for the rest of the bound. J5-C1 then added `stuck` — the most
+// important state, *we know this is broken and a human has been told* — and nothing carried it.
+//
+// ⚠️ THE CLOCK IS NOT DELETED, IT IS DEMOTED. Where nothing is recorded (a claim the summary
+// has not caught up with, a row from before ownership existed) the bounded poll is still the
+// only thing there is. It must simply never outrank a record.
+export type ProofWaitState =
+  | 'none'
+  | 'finding'
+  | 'recovery'
+  /** The server RECORDED a failure. Not a timeout, not an inference. */
+  | 'failed'
+  /** The run delivered nothing and the pass came BACK — not a failure, and not a set. */
+  | 'released'
+  /** Our own vocabulary could not take their words; a person is finishing the translation. */
+  | 'needs_review'
+  /** Overdue its bound and given up on by the detector; an operator has a task. */
+  | 'stuck'
 
 /** The proof-shaped fields of the Milla summary. Only these are ever invalidated. */
 export interface ProofSnapshot {
@@ -197,14 +231,56 @@ export interface ProofWaitInput {
   now: number
   /** The bounded poll has used its whole budget on this page load. */
   pollExhausted: boolean
+  /**
+   * ⛓️ J5-C2 — THE RECORDED STATE OF THE RUN, from `automatic_work` (J5-C1's owner).
+   *
+   * `null`/absent means NOTHING IS RECORDED — a claim the summary has not caught up with, or
+   * a run from before ownership existed. That is the only case in which the clock decides.
+   */
+  recordedRunState?: 'requested' | 'started' | 'completed' | 'failed' | 'stuck' | null
+  /**
+   * ⛓️ J5-C2 — the run's terminal as recorded (`icp_run_outcomes` / `terminalForRunStatus`).
+   * `released` is carried separately because it is neither a failure nor a delivered set.
+   */
+  recordedOutcome?: string | null
+  /** ⛓️ J5-C2 — the ICP is in review: a person is finishing what our vocabulary could not. */
+  needsIcpReview?: boolean
 }
 
 export function proofWaitState(input: ProofWaitInput): ProofWaitState {
-  // 1 · BACKEND TRUTH WINS, immediately and at any time. A recorded outcome ends the wait
-  //     whether it arrives in the first second or long after the bound has passed.
-  if (input.hasTerminalOutcome) return 'none'
-  // 2 · REAL LEADS WIN over any waiting state.
+  // 1 · REAL LEADS WIN over any waiting state. A client looking at cards is not waiting for
+  //     them, whatever any row says — this is the one rule that outranks the record, because
+  //     the cards are in front of them.
   if (input.pendingCount > 0 || input.revealedCount > 0) return 'none'
+
+  // ── 2 · THE RECORD SPEAKS BEFORE THE CLOCK (J5-C2 · LR 6) ──────────────────────────────
+  //
+  // Every branch below is a RECORDED fact, so each produces its own word. Nothing here is
+  // inferred from elapsed time, and nothing collapses two different outcomes into one state.
+  //
+  // ⚠️ REVIEW FIRST, because it is the one state that is TRUE WHILE A RUN IS ALSO RECORDED:
+  // the run stopped precisely so a person could finish the translation, and "a human is on
+  // it" is what the client needs to read rather than "it failed".
+  if (input.needsIcpReview === true) return 'needs_review'
+
+  // `released` is its own word: the run delivered nothing and the pass came BACK. Saying
+  // "failed" would be wrong (nothing was consumed) and "none" would be wrong (no set arrived).
+  if (input.recordedOutcome === 'released') return 'released'
+
+  switch (input.recordedRunState) {
+    case 'failed':    return 'failed'
+    case 'stuck':     return 'stuck'
+    case 'completed': return 'none'
+    // A recorded `requested`/`started` is the honest present tense — and it is a FACT, not the
+    // absence of one, so the bound does not get to overrule it into 'recovery'.
+    case 'requested':
+    case 'started':   return 'finding'
+    default:          break   // nothing recorded — fall through to the clock
+  }
+
+  // 3 · A TERMINAL OUTCOME WITH NO OWNER ROW still ends the wait. This is the pre-J5-C1
+  //     shape and stays for the runs that predate ownership.
+  if (input.hasTerminalOutcome) return 'none'
 
   // ── 2b · THE FIRST SUMMARY IS STILL IN FLIGHT: claim nothing yet. ───────────────────────
   // A fresh `?finding=1` navigation is the one thing we already know without the server, so

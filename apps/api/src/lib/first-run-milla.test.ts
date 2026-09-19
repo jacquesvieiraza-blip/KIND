@@ -1,6 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { readFileSync, existsSync } from 'fs'
 import { join } from 'path'
+// ⚑ 18 Sep (J5-C10) — the ONE home of the three closed provider vocabularies. The enum guard
+// below reads the real values rather than sampling them out of the route's source text.
+import { PROVIDER_VOCABULARIES } from './icp-provider-translation'
 
 // ── THE TRANSPORT IS EXECUTED, NOT DESCRIBED (GPT review, 24 Aug) ────────────────────────
 // Every guard below this line reads source text, and source text cannot prove that a forced
@@ -1062,13 +1065,21 @@ describe('the desk shows an honest finding state and refreshes itself', () => {
     expect(rest.slice(0, end), 'the desk claim is inside confirmRefine').toContain('/proof`')
   })
 
-  it('the cadence is 3s, bounded at 80 checks (240s — sized to the backend worst case)', () => {
-    expect(deskCode).toContain('const FINDING_POLL_MS = 3000')
+  it('the cadence and the cap are IMPORTED, and the poll honours both', () => {
     // ⛓️ 26 Aug — 20 checks (~60s) could declare "We hit a snag" while a healthy slow
     // proof was still inside its legitimate ~160–180s worst case (2 × PDL size-ladder at
     // 15s/attempt + rate-limit retries). 80 × 3s = 240s clears that with margin and is
     // still a hard stop. The derivation lives next to the constant.
-    expect(deskCode).toContain('const FINDING_MAX_CHECKS = 80')
+    //
+    // ⛓️ 17 Sep (J5-C14 · FD-6) — WAS `toContain('const FINDING_POLL_MS = 3000')` and
+    // `toContain('const FINDING_MAX_CHECKS = 80')`. Both numbers were PDL's, and both were
+    // typed into the page a second time. They come from `@kind/shared` now, where the
+    // derivation is counted in Apollo requests, so this asserts the desk DERIVES them —
+    // a re-typed literal is the regression, and the two `not.toMatch` lines catch it.
+    expect(deskCode).toContain('const FINDING_POLL_MS = PROOF_DESK_POLL_MS')
+    expect(deskCode).toContain('const FINDING_MAX_CHECKS = PROOF_DESK_MAX_CHECKS')
+    expect(deskCode).not.toMatch(/const FINDING_POLL_MS = \d/)
+    expect(deskCode).not.toMatch(/const FINDING_MAX_CHECKS = \d/)
     expect(deskCode).toContain('}, FINDING_POLL_MS)')
     expect(deskCode).toContain('if (checks >= FINDING_MAX_CHECKS) { clearInterval(timer); setFindingTimedOut(true); return }')
   })
@@ -1798,10 +1809,26 @@ describe('the reply is a forced tool call, validated before it is trusted', () =
     expect(icpsSrc).toContain('enum: [...ICP_INDUSTRIES]')
     expect(icpsSrc).toContain('enum: [...ICP_SENIORITY]')
     expect(icpsSrc).toContain('enum: [...ICP_SIZES]')
-    // the approved launch values themselves are unchanged
-    for (const v of ['Fintech', 'Logistics', 'C-Suite', 'VP / Director', '51–200', '1,000+']) {
-      expect(icpsSrc, v).toContain(v)
+    // ⛓️ REPOINTED 18 Sep (J5-C10) · "DEFINED ONCE" IS NOW LITERALLY TRUE, AND THIS READS
+    // THE ONE DEFINITION.
+    // WHAT THIS REPLACED: ~~`for (const v of ['Fintech', … '1,000+']) expect(icpsSrc).toContain(v)`~~
+    // — six sample values looked for in the TEXT of `routes/icps.ts`. The three vocabularies
+    // moved to `lib/icp-provider-translation.ts` (one home, so `promoteConfirmedBrief` can
+    // derive a review — S1-PD-03), and the route now aliases them, so the literals are no
+    // longer in this file's text. The duty — the approved launch values are unchanged — is
+    // asserted against the values themselves, which is stronger than sampling six of them out
+    // of a 5,000-line string that also contains prose.
+    for (const v of ['Fintech', 'Logistics']) {
+      expect(PROVIDER_VOCABULARIES.industries, v).toContain(v)
     }
+    for (const v of ['C-Suite', 'VP / Director']) {
+      expect(PROVIDER_VOCABULARIES.seniority_levels, v).toContain(v)
+    }
+    for (const v of ['51–200', '1,000+']) {
+      expect(PROVIDER_VOCABULARIES.company_sizes, v).toContain(v)
+    }
+    // And the route reaches them through the shared constant, not a re-inlined copy.
+    expect(icpsSrc).toContain('PROVIDER_VOCABULARIES')
   })
 })
 

@@ -35,10 +35,22 @@
 // lead" and the route answered 404 "Lead not found or already actioned" to a client looking
 // straight at the card. It now returns a third outcome, `'failed'`, carrying the reason.
 //
-// ── THE FOUNDER'S STANDING DECISION, UNCHANGED ──────────────────────────────────────────
+// ── ⛓️ THE FOUNDER'S DECISION — SUPERSEDED 18 Sep 2026 ──────────────────────────────────
 //
-// "Do NOT add 'passed' to the CHECK constraint at this stage." Nothing in this stack does, and
-// this file asserts that nothing has.
+// ~~"Do NOT add 'passed' to the CHECK constraint at this stage."~~ (10 Sep, I7)
+//
+// 🛑 THAT DECISION WAS EXPLICITLY PROVISIONAL — "at this stage" — AND THE STAGE ENDED.
+// FOUNDER, 18 Sep 2026, verbatim: *"APPROVE PASSED. Add `passed` to the allowed lead-status
+// CHECK."* Bounded by *"preserve every existing allowed status"*, *"preserve the existing
+// `set_aside` rule/lock unchanged"* and *"do not change any other lead-status semantics."*
+//
+// Both are dated, the later governs, and neither is deleted — §3's trace below is unchanged
+// and still the reason the question was hard: the repo held three inconsistent records of one
+// column. What changed is that two of them now agree.
+//
+// ⚠️ THE WIDENING WENT INTO THE OWNER, `20260525_fix_leads_status_and_figsy_memory`, not into
+// a new migration — the repo's own one-constraint-one-owner rule, and the only shape that does
+// not risk CREATING a CHECK on production's ENUM column.
 // ═══════════════════════════════════════════════════════════════════════════════════════
 
 import { describe, it, expect } from 'vitest'
@@ -66,12 +78,19 @@ describe('① three records of one column, and they disagree', () => {
     expect(clause, 'the snapshot has drifted from what this trace recorded').toContain("'opted_out'")
   })
 
-  it('the 25 May migration re-adds the CHECK with `contacted` and still no `passed`', () => {
+  it('⛓️ the 25 May migration is the CONSTRAINT\'S OWNER, and it now permits `passed` too', () => {
+    // ⛓️ 18 Sep — ~~`expect(clause, 'the 25 May CHECK now permits `passed` — the trace is
+    // stale').not.toContain("'passed'")`~~. The trace it recorded was accurate for eight days
+    // and is exactly what made the question answerable; the founder then answered it.
     expect(CHECK_MIGRATION).toContain('DROP CONSTRAINT IF EXISTS leads_status_check')
     expect(CHECK_MIGRATION).toContain("'contacted'")
     const at = CHECK_MIGRATION.indexOf('ADD CONSTRAINT leads_status_check')
     const clause = CHECK_MIGRATION.slice(at, CHECK_MIGRATION.indexOf('));', at))
-    expect(clause, 'the 25 May CHECK now permits `passed` — the trace is stale').not.toContain("'passed'")
+    expect(clause, 'the approved status is not in the constraint that owns it').toContain("'passed'")
+    // ⚠️ AND 'contacted' — the value this migration was WRITTEN for — is still there. A
+    // widening that dropped it would break FIGSY's Day 1 outreach, the original defect.
+    expect(clause, "the widening dropped 'contacted', which this migration exists to add")
+      .toContain("'contacted'")
   })
 
   it('🛑 the 23 July migration says production is an ENUM, and adds `passed` to it', () => {
@@ -151,18 +170,32 @@ describe('③ whichever definition production carries, the client is told the tr
       .toBeLessThan(passAt)
   })
 
-  it('🛑 THE CONSTRAINT IS STILL NOT WIDENED — the founder\'s standing decision', () => {
-    // "Do NOT add 'passed' to the CHECK constraint at this stage." Nothing in the runner may
-    // quietly do it, including as part of some other migration.
+  it('🛑 THE WIDENING IS IN THE OWNER, AND THE RUNNER STILL DOES NOT TOUCH THIS CONSTRAINT', () => {
+    // ⛓️ 18 Sep — THE TITLE USED TO READ *"THE CONSTRAINT IS STILL NOT WIDENED — the
+    // founder's standing decision"*, on his 10 Sep *"do NOT add 'passed' … at this stage."*
+    // He lifted it on 18 Sep. What survives unchanged is the SECOND half of the duty, and it
+    // is the half with teeth: no migration may alter this constraint from inside the RUNNER.
+    //
+    // 🛑 WHY THAT STILL MATTERS AFTER THE APPROVAL. 20260723 records production's
+    // `leads.status` as an ENUM carrying no `leads_status_check` at all. A runner entry that
+    // re-declared the constraint would CREATE one there — on a column that never had it,
+    // against rows nobody checked — which is a different and larger act than the one he
+    // approved. The widening therefore went into the owning FILE, which governs only the
+    // databases built from this repo's own replay.
     //
     // ⚠️ THE CHECK IS FOR DDL, NOT FOR THE WORD. The runner MENTIONS `leads_status_check` twice
     // — once in a comment and once inside a COMMENT ON COLUMN string — and both are explaining
     // why the set-aside reason is a COLUMN rather than a status. Banning the word would fail on
     // the very text that records the decision. This repo has been caught by that shape before.
-    expect(RUNNER, "a migration in the runner now alters leads_status_check — that is the founder's call, not ours")
+    expect(RUNNER, 'a runner migration now alters leads_status_check — that would create a CHECK on production\'s enum column')
       .not.toMatch(/(ADD|DROP)\s+CONSTRAINT[^;]*leads_status_check/i)
     expect(RUNNER, 'a migration in the runner now widens the lead_status enum')
       .not.toMatch(/ALTER\s+TYPE\s+lead_status/i)
+
+    // And the approved value did land where it was supposed to.
+    const at = CHECK_MIGRATION.indexOf('ADD CONSTRAINT leads_status_check')
+    expect(CHECK_MIGRATION.slice(at, CHECK_MIGRATION.indexOf('));', at)),
+      'the approval was recorded in prose but never applied to the constraint').toContain("'passed'")
   })
 
   it('and the set-aside reason stayed a COLUMN rather than becoming a status', () => {

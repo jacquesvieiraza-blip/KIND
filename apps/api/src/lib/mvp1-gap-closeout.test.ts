@@ -347,10 +347,26 @@ describe('GAP 3 · Ⓒ the pipeline actually applies it', () => {
 })
 
 describe('GAP 3 · Ⓓ email matching stays a lookup aid, never the authority', () => {
-  it('the lead lookup is still case-insensitive-capable and bounded', () => {
+  it('the lead lookup is case-insensitive and bounded', () => {
+    // ⛓️ 18 Sep (J22-C3 · R131) — ~~`expect(s).toMatch(/\.limit\(50\)/)`~~, AND THE TITLE OF
+    // THIS CASE WAS ALREADY THE ANSWER. It said "case-insensitive-CAPABLE", which the lookup
+    // was not: `.eq('email', email)` compares a From header's casing against a raw stored
+    // address, so `Ada@Prospect.com` matched a lead stored as `ada@prospect.com` NOT AT ALL —
+    // and no match is a silent 200. The fifty was worse than a bound, too: it TRUNCATED, so a
+    // widely-held address returned an arbitrary fifty and the true owner could be outside them.
+    //
+    // 🛑 THE DUTY IS UNCHANGED AND BOTH HALVES ARE STRONGER. Matching is case-insensitive AND
+    // exact (the `ilike` is a prefilter; the normalised compare in JS is the authority, so no
+    // wildcard can widen the result), and the ceiling REFUSES rather than trimming.
     const s = src('apps/api/src/lib/reply-ingest.ts')
     expect(s).toMatch(/from\('leads'\)/)
-    expect(s).toMatch(/\.limit\(50\)/)
+    expect(s).toMatch(/\.ilike\('email', pattern\)/)
+    expect(s).toMatch(/export const LEAD_MATCH_CEILING = \d+/)
+    expect(s).toMatch(/limit\(LEAD_MATCH_CEILING \+ 1\)/)
+    expect(s, 'the ceiling trims the answer instead of refusing it')
+      .toMatch(/rows\.length > LEAD_MATCH_CEILING\) \{\s*throw/)
+    expect(s, 'the wildcard prefilter is not re-checked, so a pattern can widen the result')
+      .toMatch(/\.trim\(\)\.toLowerCase\(\) === normalised/)
   })
 
   it('🛑 BUT THE PROSPECT ADDRESS NEVER DECIDES THE OWNER ON ITS OWN', () => {

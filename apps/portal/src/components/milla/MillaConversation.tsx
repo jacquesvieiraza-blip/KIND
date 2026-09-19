@@ -3,6 +3,9 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { api, AI_TURN_TIMEOUT_MS } from '@/lib/api'
+import { loadError } from '@kind/shared'
+// J3-C5 — the one rule for what an unrestored thread is allowed to claim.
+import { restoreView } from '@/lib/conversation-restore'
 import { createClient } from '@/lib/supabase/client'
 import {
   STAGE_QUICK_ACTION, type MillaStage,
@@ -43,13 +46,22 @@ type Msg = { id: string; role: 'user' | 'assistant'; content: string }
 type IcpDraft = {
   name?: string; industries?: string[]; job_titles?: string[]; seniority_levels?: string[]
   company_sizes?: string[]; geographies?: string[]; tech_stack?: string[]; keywords?: string[]
+  /**
+   * ⚡ 18 Sep (J6-C1 · LR 10) — THE CLIENT'S OWN WORDS, when this turn actually changed
+   * them. `/icps/chat-build` has always been able to return these two; this payload dropped
+   * them before the request, so an explicit change to the category could not be expressed at
+   * all — and the server's `.default('')` then blanked the stored one on every refinement.
+   * Sent only when present: an absent field now means "no change", which is the whole rule.
+   */
+  target_category?: string; target_company_type?: string
 }
 
 type Programme = { stage: MillaStage; hasProgramme?: boolean }
 /** Only the two fields the handle's rule reads. The My ICP screen reads the same endpoint. */
 type Icp = { id: string; is_active: boolean | null }
 type Summary = {
-  has_funded: boolean
+  /** ⚑ 18 Sep (J24-C1) — `null` when the funding history could not be read. Never `false`. */
+  has_funded: boolean | null
   icp_versions: { version: string }[]
   campaign_status?: 'draft' | 'active' | 'paused' | 'paused_low_performance' | 'completed' | 'archived' | null
   calibration_set_on_desk?: boolean
@@ -202,7 +214,15 @@ export function MillaConversationProvider(
   },
 ) {
   const [sessionId, setSessionId] = useState<string | null>(null)
-  const [messages, setMessages] = useState<Msg[]>([{ id: 'greet', role: 'assistant', content: MILLA_GREETING }])
+  // ⛓️ 18 Sep (J3-C5) — THE GREETING IS NO LONGER THE STARTING STATE.
+  // WHAT THIS REPLACED: ~~`useState<Msg[]>([{ id: 'greet', … MILLA_GREETING }])`~~ — the
+  // greeting was seeded before anything had been read, so a restore that FAILED left it
+  // standing alone and a client with twenty turns of history was welcomed as new. It is now
+  // added only by the one state that earns it: a read that worked and found nothing.
+  const [messages, setMessages] = useState<Msg[]>([])
+  /** How the thread restore went. `null` while it is still in flight. */
+  const [restoreErr, setRestoreErr] = useState<string | null>(null)
+  const [restoreDone, setRestoreDone] = useState(false)
   const [input, setInput] = useState('')
   const [sending, setSending] = useState(false)
   const [context, setContext] = useState<ConversationContext>(null)
@@ -254,16 +274,33 @@ export function MillaConversationProvider(
         const tok = await token()
         const list = await api.get<{ data: { id: string }[] }>('/milla/sessions', tok)
         const sid = list.data?.[0]?.id
+        let rows: Msg[] = []
         if (sid) {
           setSessionId(sid)
           const hist = await api.get<{ data: Msg[] }>(`/milla/sessions/${sid}/messages`, tok)
-          const rows = (hist.data ?? []).slice(-20)
+          rows = (hist.data ?? []).slice(-20)
           if (rows.length > 0) {
             restored = rows
             setMessages(m => [...m, ...rows.map(r => ({ id: r.id, role: r.role, content: r.content }))])
           }
         }
-      } catch { /* no thread yet — the greeting stands on its own */ }
+        // 🛑 THE GREETING IS EARNED BY A READ THAT WORKED AND FOUND NOTHING — see below.
+        const view = restoreView({ ok: true, count: rows.length })
+        if (view.greet) setMessages(m => [{ id: 'greet', role: 'assistant', content: MILLA_GREETING }, ...m])
+        setRestoreErr(null)
+        setRestoreDone(true)
+      } catch (e) {
+        // ── ⛓️ 18 Sep (J3-C5) — A FAILED RESTORE IS NOT A NEW CONVERSATION ──────────────
+        //
+        // WHAT THIS REPLACED: ~~`catch { /* no thread yet — the greeting stands on its own */ }`~~.
+        // Two opposite facts, one branch: "this client has never spoken to Milla" and "we could
+        // not read what they said" produced the identical screen. A client with twenty turns of
+        // history saw a greeting over a blank thread — and their composer still worked, so their
+        // next sentence joined the real thread the screen had just denied existed, and they
+        // re-explained things Milla had already been given as context.
+        setRestoreErr(loadError(e))
+        setRestoreDone(true)
+      }
 
       // ── 🛑 ⚑ 15 Sep (O1 correction) — THE SENTENCE TYPED BEFORE THE NAVIGATION ────────
       //
@@ -355,11 +392,35 @@ export function MillaConversationProvider(
       if (isIcpContext(context)) {
         // Only the turns of THIS conversation, which is the same window the drawer sent.
         const history = messages.filter(m => m.id !== 'greet').slice(-12).map(m => ({ role: m.role, content: m.content }))
-        // ⚠️ RETRIED ONCE, AND SAFE TO BE: `/icps/chat-build` proposes and writes NOTHING —
-        // no ICP, no version, no message row. The session chat below is deliberately NOT
-        // wrapped, because it persists both turns and a re-send would double them.
+        // ── ⛓️ 18 Sep (J3-C2) — THE TARGETING TURN IS DURABLE TOO ──────────────────────
+        //
+        // WHAT THIS REPLACED, and it was accurate when it was written: ~~"RETRIED ONCE, AND
+        // SAFE TO BE: `/icps/chat-build` proposes and writes NOTHING — no ICP, no version, no
+        // message row."~~ Writing nothing is exactly why it was not safe for the CLIENT: their
+        // sentence lived only in this component's state, in the same transcript as session
+        // turns that survive a reload. Half a conversation coming back is the failure LR 17
+        // forbids, with a smaller blast radius.
+        //
+        // ⚠️ THE RETRY IS STILL SAFE, AND NOW FOR A REAL REASON RATHER THAN BY ACCIDENT: the
+        // route stores the turn under `intent.id`, so a re-send is a primary-key collision
+        // that replays the stored answer instead of asking twice.
+        //
+        // ⚠️ THE SESSION IS RESOLVED FIRST, exactly as the ordinary branch does it, because a
+        // turn with nowhere to be stored is a turn the server cannot keep.
+        let icpSid = sessionId
+        if (!icpSid) {
+          const list = await api.get<{ data: { id: string }[] }>('/milla/sessions', tok).catch(() => null)
+          icpSid = list?.data?.[0]?.id ?? null
+          if (!icpSid) {
+            const c = await api.post<{ sessionId: string }>('/milla/sessions', {}, tok).catch(() => null)
+            icpSid = c?.sessionId ?? null
+          }
+          if (icpSid) setSessionId(icpSid)
+        }
         const r = await withOneRetry(() => api.post<{ data: IcpDraft & { message?: string } }>(
-          '/icps/chat-build', { message: msg, history }, tok, AI_TURN_TIMEOUT_MS))
+          '/icps/chat-build',
+          { message: msg, history, sessionId: icpSid, messageId: intent.id },
+          tok, AI_TURN_TIMEOUT_MS))
         const d = r.data ?? {}
         setMessages(m => [...m, { id: `a-${Date.now()}`, role: 'assistant', content: d.message || 'Got it — anything else to change?' }])
         // Only treat it as a draft once there is something real to target with.
@@ -441,6 +502,11 @@ export function MillaConversationProvider(
         seniority_levels: icpDraft.seniority_levels ?? [], company_sizes: icpDraft.company_sizes ?? [],
         geographies: icpDraft.geographies ?? [], tech_stack: icpDraft.tech_stack ?? [],
         keywords: icpDraft.keywords ?? [],
+        // ⚡ 18 Sep (J6-C1 · LR 10) — CONDITIONAL, AND THAT IS THE WHOLE CARE HERE.
+        // Sending `target_category: ''` unconditionally would re-create the defect one layer
+        // up: every refinement would carry an explicit CLEAR rather than saying nothing.
+        ...(icpDraft.target_category ? { target_category: icpDraft.target_category } : {}),
+        ...(icpDraft.target_company_type ? { target_company_type: icpDraft.target_company_type } : {}),
       }, tok))
       // ── ⚑ 10 Sep (C01) — WHAT ACTUALLY MOVED, IN THE SERVER'S OWN WORDS ────────────────
       //
@@ -488,12 +554,22 @@ export function MillaConversationProvider(
     finally { setIcpSaving(false) }
   }
 
-  const needsGoLive = !!summary && summary.icp_versions.length > 0 && !summary.has_funded
+  // ⛓️ 18 Sep (J24-C1) — `=== false`, NOT `!`. `has_funded` is now `boolean | null`, and
+  // WHAT THIS REPLACED — ~~`!summary.has_funded`~~ — turned `null` ("we could not read their
+  // funding history") into `true`, which shows a PAYING client the go-live/pay prompt on a
+  // transient read error. Only a read that actually answered "they have not funded" may.
+  const needsGoLive = !!summary && summary.icp_versions.length > 0 && summary.has_funded === false
 
   // ── ⛓️ 3 Sep — A CHIP THAT POINTS AT "THESE" NEEDS THERE TO BE SOME ────────────────────
   // ⚠️ "CONTEXTUALLY VALID" IS THE TEST THE FOUNDER SET. Offering "Please pause my programme"
   // to someone at Proof invites them to pause a programme that does not exist; a calibration
   // chip naming "these" needs a set on the desk, not merely the right stage.
+  // ⚠️ `?? false` IS CORRECT HERE AND IS KEPT (J24-C1). `calibration_set_on_desk` may now be
+  // `null`, and this decides whether to OFFER a chip that says "these" — offering it over an
+  // empty desk invites a client to react to nothing, so the safe direction for an unknown is
+  // not to offer it. The `|| (deskSet ?? 0) > 0` clause still admits a desk we can see
+  // directly. What may never happen is the opposite: telling the client their desk IS empty,
+  // which is `describeOutcomes`' job and is handled there.
   const proofSetOnDesk = (summary?.calibration_set_on_desk ?? false) || (deskSet ?? 0) > 0
   const chips = !prog ? CHIPS : [
     ...(prog.stage === 'Proof' && !proofSetOnDesk ? [] : [STAGE_QUICK_ACTION[prog.stage]]),
@@ -560,6 +636,25 @@ export function MillaConversationProvider(
         </div>
         <div ref={chatBodyRef} className="flex-1 overflow-y-auto px-4 py-4">
           <div className="max-w-2xl space-y-3">
+            {/* ⛓️ 18 Sep (J3-C5) — A THREAD WE COULD NOT READ SAYS SO, ABOVE ITS OWN ABSENCE.
+                Rendered first because it is about everything below it: the client is looking at
+                a conversation that is missing, and the one thing they need to know is that it
+                is missing rather than gone. `restoreView` is the rule; this only draws it. */}
+            {(() => {
+              const v = restoreView(
+                restoreErr ? { ok: false, error: restoreErr } : restoreDone ? { ok: true, count: messages.length } : { ok: 'pending' },
+              )
+              return v.kind === 'unreadable'
+                ? (
+                  <div
+                    data-testid="restore-unreadable"
+                    className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-[13px] text-amber-900"
+                  >
+                    {v.message}
+                  </div>
+                )
+                : null
+            })()}
             {messages.map(m => (
               <div key={m.id} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                 <div className={`max-w-[86%] rounded-2xl px-4 py-2.5 text-[14px] leading-relaxed whitespace-pre-wrap ${m.role === 'user' ? 'bg-[#1f1235] text-white' : 'bg-[#f3ecff] text-[#1f1235]'}`}>{m.role === 'assistant' ? rich(m.content) : m.content}</div>

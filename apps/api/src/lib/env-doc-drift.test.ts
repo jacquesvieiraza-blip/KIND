@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { readFileSync, readdirSync, statSync } from 'fs'
 import { join } from 'path'
 import { SCAN_ROOTS, extractEnvNames, isScannableFile, stripCommentsForEnvScan } from './env-inventory'
+import { CAPABILITIES } from './startup-check'
 
 // #561 — THE ENVIRONMENT DOC CANNOT GO STALE WITHOUT THE GATE GOING RED.
 //
@@ -77,9 +78,14 @@ describe('every variable the code reads is in ENVIRONMENT.md', () => {
     // approved House launch sequence. Documented and tiered in the same change — an
     // undocumented variable whose UNSET state silently stops a launch is exactly the drift
     // this file exists to catch.
-    expect(ALL.size).toBe(106)   // 101 → 102 (26 Aug, R66): SAFE_TEST_MODE, the zero-spend guard
-    expect(API_VARS.length).toBe(89)   // +1 26 Aug (R66): SAFE_TEST_MODE · +1 2 Sep: FIGSY_OPERATOR_SEND_ENABLED
-    expect(doc()).toContain('**106 distinct variables**')
+    // 106 → 107 (17 Sep, XC-4): KIND_DEPLOY_COMMIT. `/health` answered `commit:"unknown"`
+    // on every deploy this repo ever made, because `ship.sh` uses `railway up` and Railway
+    // injects RAILWAY_GIT_COMMIT_SHA only for git-source builds. Documented and tiered in
+    // the same change. UNSET is the normal state — the `.deploy-stamp` fallback covers the
+    // Railway path — which is exactly why an undocumented one would rot unnoticed.
+    expect(ALL.size).toBe(114)   // ⛓️ 109 → 114 on 18 Sep (Batch 1b · §8.2 full-stack harness): +5 provider base-URL overrides — APOLLO_BASE_URL, RESEND_BASE_URL, STRIPE_BASE_URL, GOOGLE_API_BASE_URL, ANTHROPIC_BASE_URL. ⚠️ EVERY ONE IS PRODUCTION WHEN UNSET, and unset is the normal state; they exist because the contract's zero-call proof (PDL and Hunter receive NO calls with their keys SET) cannot be obtained unless a recording fake can stand where a provider stands. Node's `fetch` ignores HTTPS_PROXY, so a base URL is the only seam. A process with one SET is announced loudly at boot, because a deployed service quietly talking to a fake looks healthy and delivers nothing.   // ⛓️ 108 → 109 on 17 Sep (Batch 1 · XC-3): +1 ADMIN_API_UPSTREAM — the admin proxy's upstream was a HARDCODED production URL, so the console could only ever talk to one deployment and a PREVIEW build of Vida silently drove the LIVE database. Admin-only, so the API's startup check cannot see it (that is the gap the block below documents), and UNSET keeps today's behaviour exactly.   // ⛓️ 17 Sep, Batch 1 · XC-8: +1 POOLED_SENDERS_JSON — the pooled sending inventory. It was in NEITHER the register nor the go-live capabilities while being what automatic preparation claims a sender from, so with it unset every programme stopped at Prepare and boot said nothing.   // 101 → 102 (26 Aug, R66): SAFE_TEST_MODE, the zero-spend guard
+    expect(API_VARS.length).toBe(96)   // ⛓️ 91 → 96 on 18 Sep (Batch 1b): the five provider base-URL overrides are API-side.   // +1 26 Aug (R66): SAFE_TEST_MODE · +1 2 Sep: FIGSY_OPERATOR_SEND_ENABLED · +1 17 Sep (XC-4): KIND_DEPLOY_COMMIT
+    expect(doc()).toContain('**114 distinct variables**')
   })
 
   it('NO variable is missing from the doc — checked against the TABLE, not the prose', () => {
@@ -123,11 +129,11 @@ describe('the runtime half agrees with the written half', () => {
   })
 
   it('the portal/admin-only variables are NOT in startup-check, and the doc says why', () => {
-    // Adding them would report all 17 missing on a healthy deploy, because they live in
+    // Adding them would report all 18 missing on a healthy deploy, because they live in
     // other Railway services. The honest move is to document the gap, not to fake coverage.
     const keys = startupCheckKeys()
     const nonApi = [...ALL.keys()].filter(k => !ALL.get(k)!.has('api'))
-    expect(nonApi).toHaveLength(17)
+    expect(nonApi).toHaveLength(18)   // ⛓️ 17 → 18 on 17 Sep (Batch 1 · XC-3): +1 ADMIN_API_UPSTREAM, read by the admin proxy only.
     for (const k of nonApi) expect(keys.has(k), `${k} should not be in startup-check`).toBe(false)
     expect(doc()).toContain("The API's startup check cannot see these")
   })
@@ -162,10 +168,13 @@ describe('the tiers this week\'s decisions turn on', () => {
   it('INBOX_SECRET_KEY is in the SENDING go-live capability — it was a false green', () => {
     // Without it not one stored mailbox password can be decrypted, so every per-client send
     // is refused. The readiness block printed ✅ CLIENT SENDING anyway.
-    // `[^)]*` would stop at the ")" inside "(FIGSY emails)" and read an empty var list —
-    // an assertion that fails while the code is right. Bound it to the array instead.
-    const caps = startupCheck().match(/capability\('✉️[\s\S]*?\]\)/)![0]
-    expect(caps).toContain('INBOX_SECRET_KEY')
+    // ⛓️ RE-AIMED 17 Sep (XC-8). The capabilities were an inline array inside
+    // `runStartupCheck`, so this had to match source text — and a source match is exactly
+    // why all three capability lines could be wrong about MVP1 at once with nothing noticing.
+    // They are now an exported table, so the assertion reads the real value.
+    const sending = CAPABILITIES.find(c => /CLIENT SENDING/.test(c.label))
+    expect(sending, 'the CLIENT SENDING capability must exist').toBeTruthy()
+    expect(sending!.vars).toContain('INBOX_SECRET_KEY')
   })
 
   it('SUPABASE_ANON_KEY is REQUIRED — the API does not boot without it', () => {

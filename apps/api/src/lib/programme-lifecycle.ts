@@ -261,14 +261,16 @@ export type LifecycleVerdict = {
   needsYouReason: NeedsYouReason | null
 }
 
-/** Which stage a programme has reached, ignoring exceptions — used to place `blocked`. */
-function stageOfProgress(p: NonNullable<LifecycleFacts['programme']>, sends: number): LifecycleStage {
-  if (p.live) return sends > 0 ? 'review' : 'live'
-  if (p.approved) return p.secondAuthorised ? 'live' : 'approval'
-  if (p.status === 'READY_FOR_APPROVAL') return 'approval'
-  if (p.status === 'SOURCING' || p.status === 'SOURCING_AUTHORISED') return 'sourcing'
-  return 'recommendation'
-}
+// ⛓️ REMOVED 18 Sep (XC-1) · `stageOfProgress(p, sends)` — DELETED, NOT SUPERSEDED.
+// WHAT IT WAS: ~~a second, parallel status→stage ladder (`p.live ? sends > 0 ? 'review' : 'live'
+// : p.approved ? … : 'recommendation'`), used in exactly one place — to place a CANCELLED
+// programme on "the stage it reached".~~
+// WHY IT IS GONE: it WAS the second derivation XC-1 exists to remove. It read the same columns
+// as `deriveLifecycle` below and answered a different question with them, and where the two
+// met — CANCELLED — they disagreed with Milla: `recommendation` (step 3) against `Completion`
+// (step 6) for one account. A cancelled programme's step is `completion`, the same word Milla
+// has always used, so the ladder has no remaining caller and keeping it would only invite
+// the next one. `xc1-one-lifecycle-derivation.test.ts` is the guard.
 
 const MODE_OF: Record<LifecycleState, VidaMode> = {
   signup: 'No action needed',
@@ -387,9 +389,30 @@ export function deriveLifecycle(f: LifecycleFacts): LifecycleVerdict {
       : verdict('completion', 'completion', null)
   }
   if (p.status === 'CANCELLED') {
-    // 🛑 CANCELLED IS NOT A TASK. It keeps its truthful stage and says so, but there is nothing
-    // for the operator to press — putting it in Needs you would be a row that can never clear.
-    return verdict('blocked', stageOfProgress(p, f.sends), null)
+    // 🛑 CANCELLED IS NOT A TASK. There is nothing for the operator to press, so a row in
+    // Needs you could never clear. That part is unchanged.
+    //
+    // ── ⛓️ 18 Sep (XC-1) · THE STAGE IS `completion`, NOT WHERE IT DIED ─────────────────
+    //
+    // ⛓️ WHAT THIS REPLACED: ~~`verdict('blocked', stageOfProgress(p, f.sends), null)`~~ —
+    // "it keeps the stage it reached". Internally coherent, and it put the two consoles on
+    // DIFFERENT NUMBERS for the same account:
+    //
+    //     deriveLifecycle → 'recommendation' → mvp1VidaStage → "Prepare"  = stage 3
+    //     millaStage      → 'Completion'     → mvp1Milla…    → "Complete" = stage 6
+    //
+    // So an operator was describing stage 3 of a journey whose owner was reading stage 6.
+    // `mvp1-stage-agreement.test.ts` states the rule in its own words — *"an operator on the
+    // phone must not be describing stage 4 while the client is reading stage 5"* — and could
+    // not catch this, because it hand-supplies `engine: 'completion'` and never asks
+    // `deriveLifecycle` what it actually produces for a cancelled programme. The projection
+    // was proven; the PRODUCER was not.
+    //
+    // ⚠️ NOTHING IS LOST. `state` is still `blocked`, so the rail still distinguishes a
+    // cancelled programme from one that completed normally — and "how far it got" was never
+    // in the stage anyway, it is in the programme's own record. `COMPLETED` already maps to
+    // `completion`; this makes CANCELLED consistent with it rather than an exception.
+    return verdict('blocked', 'completion', null)
   }
 
   // ── LIVE AND PAST ────────────────────────────────────────────────────────────────────

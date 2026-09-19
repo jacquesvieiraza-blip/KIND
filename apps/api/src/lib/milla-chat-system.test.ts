@@ -201,20 +201,33 @@ describe('the live context block — the fix for "I don\'t have access to your d
   })
 })
 
-describe('both doors actually use the shared prompt (wiring, not intent)', () => {
-  it('routes/milla.ts builds the system from the shared builder and the snapshot', () => {
+describe('the one door uses the shared prompt (wiring, not intent)', () => {
+  it('🛑 routes/milla.ts BUILDS NO SYSTEM AT ALL — the second door is unmounted (D-63)', () => {
+    // 🛑 COMMENTS STRIPPED BEFORE THE SCAN, and the first cut of this guard proved why: the
+    // tombstone left where the door stood NAMES `buildMillaChatSystem` while explaining that
+    // nothing was lost with the route, so an absence assertion on the raw file failed against
+    // its own explanation. A guard that reads prose is not reading the product.
     const src = readFileSync(join(__dirname, '../routes/milla.ts'), 'utf8')
-    // ⛓️ RETARGETED 10 Sep (C06) — the builder takes a THIRD argument now: the Proof desk
-    // she could not see (`milla-proof-context.ts`). The duty is unchanged and is the reason
-    // this assertion exists at all — BOTH doors build from the ONE shared builder with the
-    // client's live context, so a fix cannot land on one of them. It is asserted with the
-    // proof argument named, not loosened to "calls the builder somehow".
-    expect(src).toContain('buildMillaChatSystem(snapshot, programme, proof)')
-    expect(src).toContain('readProofChatContext(access.clientId)')
-    expect(src).toContain('buildMillaSummaryData(access.clientId)')
-    // ⚑ 30 Aug — AND THE PROGRAMME, from the SAME reader the workspace uses. A second
-    // reader would be a second truth, which is exactly what the 4A-1 walk found.
-    expect(src).toContain('readCustomerProgramme(access.clientId)')
+      .replace(/\/\*[\s\S]*?\*\//g, ' ')
+      .split('\n')
+      .map(l => { const i = l.search(/(?<![:\\])\/\//); return i === -1 ? l : l.slice(0, i) })
+      .join('\n')
+    // ⛓️ 18 Sep (D-63) — THIS ASSERTED THE OPPOSITE, and it was right until the door went:
+    // ~~`expect(src).toContain('buildMillaChatSystem(snapshot, programme, proof)')`~~ plus the
+    // proof, snapshot and programme reads, under the heading "both doors".
+    //
+    // 🛑 THE DUTY IS NOT WEAKENED, IT IS SATISFIED A STRONGER WAY. That guard existed so a fix
+    // could not land on one door and miss the other. With `POST /milla/chat` unmounted there
+    // is exactly ONE door — the persisted desk chat in `lib/milla.ts`, asserted immediately
+    // below — so the divergence this protected against no longer has two places to occur in.
+    //
+    // ⚠️ AND THE ABSENCE IS ASSERTED, NOT ASSUMED. If a second door is ever rebuilt here it
+    // will name the builder, and this goes red — which is the same protection pointed at the
+    // thing that can actually go wrong now.
+    expect(src, 'a second Milla door is building its own system prompt again')
+      .not.toContain('buildMillaChatSystem')
+    expect(src, 'a second Milla door is reading the chat context again')
+      .not.toContain('readProofChatContext')
     // The retired prompt constant is gone entirely — no second prompt to drift.
     // (The file may still MENTION old names in dated history comments; the ban on the
     //  retired cast is enforced on the PROMPT STRING itself in the tests above, which is

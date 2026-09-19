@@ -111,6 +111,46 @@ step "Doc lint" bash scripts/doc-lint.sh
 # touches the real docs, and it fails if it ever does.
 step "Board tooling regression" bash scripts/board-tooling.test.sh
 
+# ── [8] REAL-DATABASE TESTS — OPT-IN (§8.2-H) ───────────────────────────────────
+#
+# The 3,900 tests above run against a MOCKED `supabase-js`. A mock returns what the test
+# author expected; a schema returns what it actually enforces. Anything whose truth lives
+# in the database — a partial unique index refusing a second claim, a check constraint, an
+# RPC's compare-and-set, a migration having applied at all — is unprovable above and
+# provable only here, against a disposable PostgreSQL with the repo's own migrations
+# applied (`scripts/realdb.sh`, documented in `scripts/realdb/README.md`).
+#
+# ⚠️ OPT-IN, and that is a deliberate trade. It needs local PostgreSQL SERVER binaries
+# (`initdb`/`pg_ctl`), which `psql` alone does not give you. A gate that goes red because
+# a machine lacks a server is a gate people stop running, and this repo has exactly one
+# gate. So: `REAL_DB_TESTS=1 bash scripts/check.sh` turns it on, and it is REQUIRED before
+# any batch of the MVP1 contract is handed over.
+if [ "${REAL_DB_TESTS:-}" = "1" ]; then
+  step "Real-database tests (disposable Postgres)" bash scripts/realdb.sh run
+else
+  echo ""
+  echo "── [skipped] Real-database tests — set REAL_DB_TESTS=1 to run them"
+  echo "   (needs local PostgreSQL server binaries; see scripts/realdb/README.md)"
+fi
+
+# ── [9] THE FULL-STACK PRE-PRODUCTION RUN (§8.2 · Batch 1b) ─────────────────────────────
+#
+# The real API, portal and admin as processes, against a disposable Postgres through real
+# PostgREST, with every provider replaced by a recording fake. Contract §9.1 requires a
+# cumulative run after every batch; Fable's 18 Sep ruling scoped this one to Batch 1's items.
+#
+# ⚠️ OPT-IN, FOR THE SAME REASON STAGE 8 IS. It needs PostgreSQL server binaries AND the real
+# PostgREST binary AND about four minutes; a gate that slow and that environment-dependent
+# would stop being run, and this repo has exactly one gate. It is REQUIRED before a batch is
+# handed over, which is the discipline rather than the default.
+if [ "${FULLSTACK_TESTS:-}" = "1" ]; then
+  step "Full-stack certification run (§8.2 — 26 journeys + 14 failure classes)" bash scripts/fullstack.sh run
+else
+  echo ""
+  echo "── [skipped] Full-stack pre-production run — set FULLSTACK_TESTS=1 to run it"
+  echo "   (needs PostgreSQL server binaries + the real PostgREST binary; see scripts/fullstack/README.md)"
+fi
+
 echo ""
 echo "══════════════════════════════════════════════════════════"
 if [ -n "$FAILED" ]; then

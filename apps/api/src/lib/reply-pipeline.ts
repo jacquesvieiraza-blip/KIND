@@ -28,6 +28,9 @@
 
 import { db } from '@kind/db'
 import { sendFounderAlert } from './alerts'
+// ⚑ 19 Sep (J22-C1) — the smallest primitive that writes the operator row itself, awaited.
+// See the note at the classifier-failure branch for why the alert is not what waits.
+import { raiseOperatorTask } from './operator-tasks'
 import { classifyReply, isRiskyReply, recomputeCampaignCounters } from './figsy'
 import { pushDealToCrm } from './crm'
 import { logOutcomeEvent } from './outcomes'
@@ -99,6 +102,30 @@ export type ReplyResult =
   | { ok: false; dropped: string }
 
 /**
+ * The refusals a webhook must NOT be answered 200 for.
+ *
+ * 🛑 ONE LIST, BECAUSE THERE ARE TWO ROUTES. Resend and Smartlead each serialise their own
+ * response, and the 17 Sep exception was written into both by hand. A second one written into
+ * only one of them is a reply that is refused correctly from one provider and lost from the
+ * other — so the rule lives beside the function that produces the codes.
+ *
+ * Every other refusal is safe to 200: the reply is written, already known, or genuinely
+ * unusable, and the provider has nothing useful to redeliver. These two are not. In both the
+ * provider still holds the only remaining copy of something we could not finish, so the dedup
+ * claim is handed back and the delivery is refused — which is how a webhook asks to be sent
+ * again.
+ *
+ *   · `ambiguous_owner_unretained` (17 Sep) — we could neither attribute the reply nor retain it.
+ *   · `unclassified_untasked` (19 Sep · J22-C1) — the reply is stored unclassified and the
+ *     operator task that makes it somebody's job could not be written. A 200 there promises a
+ *     human will see it, and nothing would ever tell one.
+ */
+export const RETRYABLE_DROPS: ReadonlySet<string> = new Set([
+  'ambiguous_owner_unretained',
+  'unclassified_untasked',
+])
+
+/**
  * Process one inbound reply. Never throws for an ordinary bad-input case — every refusal is a
  * returned `dropped` reason plus an alert, because a reply that vanishes behind a silent 200
  * is the defect this whole spine was built to end.
@@ -133,7 +160,39 @@ export async function processInboundReply(
   try {
     matches = await findLeadMatches(inbound.fromEmail)
   } catch (e) {
-    await alertDroppedReply('the lead lookup failed', inbound, e instanceof Error ? e.message : String(e))
+    // ── 🛑 ⚑ 18 Sep (J22-C3 · R131) — A FAILED LOOKUP NO LONGER COSTS THE REPLY ──────────
+    //
+    // ⛓️ WHAT STOOD HERE: ~~an alert and `dropped: 'lookup_failed'`~~ — and the route answers
+    // that code with a **200**. So a transient database error while asking *"whose lead is
+    // this?"* consumed the delivery: the provider is told we kept it, the dedup claim stays,
+    // and the prospect's answer exists nowhere. The reply was never unattributable — we simply
+    // failed to ask the question, which is the most recoverable failure of the lot.
+    //
+    // ⚠️ RETAINED WITH NO CANDIDATES, WHICH IS THE HONEST SHAPE. The ambiguous path retains a
+    // reply whose candidates are known and contested; this one retains a reply whose candidates
+    // are UNKNOWN. Writing a guessed candidate list would invent the very evidence an operator
+    // is about to use.
+    //
+    // ⚠️ AND IF THE RETENTION ALSO FAILS, THE WEBHOOK IS REFUSED — the same
+    // `ambiguous_owner_unretained` path the sibling case uses, because a 200 is a promise we
+    // can only keep once the row exists.
+    const why = e instanceof Error ? e.message : String(e)
+    const retained = await retainUnattributedReply({
+      provider: inbound.provider,
+      providerEventKey: ctx.eventKey ?? null,
+      fromEmail: inbound.fromEmail,
+      fromName: inbound.fromName,
+      toEmail: inbound.toEmail ?? null,
+      subject: inbound.subject,
+      body: inbound.body,
+      rawPayload: ctx.rawPayload,
+      candidateClientIds: [],
+      candidateLeadIds: [],
+    })
+    await alertDroppedReply('the lead lookup failed', inbound, retained.ok
+      ? `${why} — the reply is RETAINED IN FULL as unattributed_replies ${retained.id} and is waiting in Vida. Nothing was lost.`
+      : `${why} — and it could ALSO not be retained (${retained.detail}), so the webhook was refused and the provider will redeliver it.`)
+    if (!retained.ok) return { ok: false as const, dropped: 'ambiguous_owner_unretained' as const }
     return { ok: false as const, dropped: 'lookup_failed' as const }
   }
   if (matches.length === 0) return { ok: true as const, clients: 0, replyId: undefined }
@@ -273,7 +332,38 @@ export async function processInboundReply(
   //
   // Found by reading the handler end to end after the founder pointed out that grepping
   // off the last action never shows what is missing (P10).
-  const { classification, reasoning } = await classifyReply(inbound.body)
+  // ── 🛑 ⚑ 18 Sep (J22-C1 · R132) — THE REPLY SURVIVES A CLASSIFIER THAT DOES NOT ────────
+  //
+  // ⛓️ WHAT STOOD HERE: ~~`const { classification, reasoning } = await classifyReply(body)`~~,
+  // unguarded. `classifyReply` handles a bad PARSE (it falls back to `other`) and nothing at
+  // all handles the CALL: a 429, a 5xx, a timeout or a missing key throws straight out of this
+  // function.
+  //
+  // 🛑 AND THAT THROW LOST THE REPLY, PERMANENTLY. The webhook's dedup claim is taken BEFORE
+  // processing — that is what stops a Svix retry re-running a hot reply — so the 500 this
+  // throw produces is answered by a redelivery that `isDuplicateWebhookEvent` then skips. The
+  // provider believes it delivered, we believe we have seen it, and the prospect's answer
+  // exists nowhere. A model being busy is not a reason to lose a customer's reply.
+  //
+  // ⚠️ UNCLASSIFIED IS `null`, NOT `other`. `other` is a real classification — a bounce, spam,
+  // something unclear — and a human reading "other" is told we looked and decided. `null` says
+  // we did not manage to look, which is the truth, and the UI already renders it as "New
+  // reply" rather than inventing a verdict.
+  //
+  // ⚠️ THE FAILURE IS NEVER DEDUPED. Every unclassified reply is a different person waiting on
+  // an answer, so each one needs its own line on somebody's list — the same reasoning that
+  // makes `hot_reply` and `support_escalation` never-deduped classes.
+  let classification: Awaited<ReturnType<typeof classifyReply>>['classification'] | null = null
+  let reasoning = ''
+  let classifierFailure: string | null = null
+  try {
+    const verdict = await classifyReply(inbound.body)
+    classification = verdict.classification
+    reasoning = verdict.reasoning
+  } catch (err) {
+    classifierFailure = err instanceof Error ? err.message : String(err)
+    console.error(`[figsy/replies/inbound] the classifier failed (${classifierFailure}) — the reply is stored UNCLASSIFIED and a human is asked to read it. Nothing was lost.`)
+  }
 
   // ── 🛑 ⚑ 16 Sep (GAP 3) — THE LAST LINE OF DEFENCE, AND IT IS DELIBERATELY REDUNDANT ──
   //
@@ -339,6 +429,81 @@ export async function processInboundReply(
     processed_at:                new Date().toISOString(),
     received_at:                 new Date().toISOString(),
   }).select('id').single()
+
+  // ── ⚑ 18 Sep (J22-C1 · R132) — AN UNCLASSIFIED REPLY IS SOMEBODY'S JOB, NOW ────────────
+  //
+  // 🛑 RAISED AFTER THE WRITE, DELIBERATELY. The task names the stored row, so the person who
+  // picks it up opens the reply rather than being told that one exists somewhere. The reply is
+  // already durable by this line — which is the whole point of the item.
+  //
+  // ── 🛑 ⚑ 19 Sep (J22-C1 · R132) — AND THE TASK IS DURABLE BEFORE THE PROVIDER IS ANSWERED ──
+  //
+  // ⛓️ WHAT STOOD HERE: ~~`void sendFounderAlert('support_escalation', …).catch(() => {})`~~ —
+  // fire-and-forget, so the route answered the provider 200 while the operator row was still in
+  // flight.
+  //
+  // 🛑 IT WAS NOT A THEORY, AND IT WAS NOT THE HARNESS. Fable's independent certification run of
+  // this same tree failed F-INBOUND — *"THE CLASSIFIER FAILED, THE REPLY WAS KEPT (1 row(s)) AND
+  // NOBODY WAS TOLD"* — where the builder's run had seen the task. One SHA, two runs, two
+  // answers: the guarantee was a race that a read happening to land after the insert hid.
+  //
+  // 🛑 AND THE PROCESS DYING IN THAT WINDOW IS THE REAL COST. The webhook's dedup claim is taken
+  // BEFORE processing, so a provider that was already told 200 never redelivers: K.I.N.D. would
+  // hold an unclassified reply that nobody is ever told about, which is the precise outcome R132
+  // exists to forbid. A wait or a retry in the test would have hidden it rather than fixed it.
+  //
+  // ⚠️ THE TASK IS AWAITED, THE EMAIL IS NOT, AND THAT ORDER IS THE WHOLE POINT.
+  // `raiseOperatorTask` is the smallest primitive that writes the row this item requires.
+  // `sendFounderAlert` does its Resend and Slack work FIRST and the task LAST, so awaiting it
+  // would hang a stranger's reply-acknowledgement on our own email vendor being up. The mirror
+  // still goes out — under the SAME dedupe key, so it collapses into the row raised here instead
+  // of filing a second one.
+  //
+  // ⚠️ KEYED ON THE STORED ROW, so two unclassified replies are still two jobs — R132's
+  // "every unclassified reply is a different person waiting" is intact — while a REDELIVERY of
+  // the same one is not a second job.
+  if (classifierFailure) {
+    const replyId = (reply as { id?: string } | null)?.id ?? null
+    const subjectId = replyId ?? inbound.fromEmail
+    const taskKey = `reply-unclassified:${replyId ?? ctx.eventKey ?? inbound.fromEmail}`
+    const taskTitle = 'A reply could not be classified — it is stored and needs a human read'
+    const taskLines = [
+      `Client: ${lead.client_id}`,
+      `From: ${inbound.fromEmail}`,
+      `Subject: ${inbound.subject ?? '(none)'}`,
+      replyId
+        ? `Stored as figsy_replies ${replyId}, with no classification — open it in the inbox and answer it by hand.`
+        : 'The reply was processed but its stored id could not be read back — find it by the sender address in the inbox.',
+      `The classifier itself failed: ${classifierFailure}. Nothing was lost and nothing was guessed.`,
+    ]
+
+    const task = await raiseOperatorTask({
+      kind: 'support_escalation',
+      severity: 'warn',
+      title: taskTitle,
+      detail: taskLines.join('\n'),
+      clientId: lead.client_id,
+      subjectKind: 'reply',
+      subjectId,
+      dedupeKey: taskKey,
+      evidence: { classifier_failure: classifierFailure, reply_id: replyId, event_key: ctx.eventKey ?? null },
+    })
+
+    // 🛑 NO TASK, NO 2xx — the one honest answer left. The reply row STAYS (it is durable and
+    // losing it is the worse failure), and the delivery is refused so the provider sends it
+    // again. The redelivery's own insert loses to the idempotency index, and the task it raises
+    // carries the same key, so a retry produces one reply and one task rather than two of either.
+    if (!task.ok) {
+      console.error('[figsy/replies/inbound] the reply is stored but its operator task could NOT be raised'
+        + ` (${task.error ?? 'no reason given'}) — refusing this delivery so the provider redelivers it.`
+        + ' A reply nobody is told about is the one outcome a 200 must never cover.')
+      return { ok: false as const, dropped: 'unclassified_untasked' as const }
+    }
+
+    void sendFounderAlert('support_escalation', taskTitle, taskLines,
+      { clientId: lead.client_id, subjectKind: 'reply', subjectId, dedupeKey: taskKey },
+    ).catch(() => {})
+  }
 
   // THE DATA FLOOR (#17b) — append-only raw outcome log. Fire-and-forget.
   void logOutcomeEvent({

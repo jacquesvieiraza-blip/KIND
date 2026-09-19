@@ -74,7 +74,47 @@ export type FrozenWork = {
    * the server and are not in this payload at all.
    */
   sender_email?: string | null
+  /**
+   * ⚑ 18 Sep (J14-C3 · R129) — WHOSE MAILBOX THAT ADDRESS IS.
+   *
+   * 🛑 "Sent from ada@…" AND NOTHING ELSE READS AS THE CLIENT'S OWN ADDRESS. R129 (16 Sep,
+   * founder-locked) put MVP1 on an *"ENV-BACKED POOLED SENDER INVENTORY"*, so for most clients
+   * it is one we own and assign to them for the duration of their programme. `branded` is a
+   * client's own domain, and claiming that one is ours would be the same defect reversed.
+   *
+   * ⚠️ `null` MEANS WE DID NOT READ IT, and the screen then says nothing about whose it is —
+   * a guess here is worse than the bare address.
+   */
+  sender_kind?: string | null
+  /**
+   * ⚑ 18 Sep (J16-C1) — HOW MANY OF THESE PEOPLE WE MAY ACTUALLY EMAIL (FD-5).
+   *
+   * 🛑 THE SEVENTH FACT, AND IT IS THE ONE THAT WAS MISSING FROM THE SCREEN THEY SAY YES TO.
+   * A client approved "40 prospects" when the number we could write to was eighteen, and
+   * nothing here said so. *"Verified business email required before send; QUALIFIED ≠
+   * SENDABLE."*
+   *
+   * ⚠️ NULL WHEN THE PACKAGE DOES NOT STATE IT — a freeze taken before the field existed, or a
+   * count that could not be read. It is then OMITTED, never rendered as 0: "nobody is
+   * reachable" is a claim about a number nobody took.
+   */
+  sendable?: number | null
 }
+
+/**
+ * The founder's primary action label, locked 3 Sep.
+ *
+ * ⛓️ 18 Sep (J16-C1) — DEFINED HERE NOW, AND THE MOVE IS THE POINT. These two sentences lived
+ * in `ProgrammeReview`, which is where the button used to be; this screen had its own
+ * unlocked wording ("Approve programme", "You approved this programme."). Two approval
+ * buttons with two different labels is exactly what "approve nowhere else" forbids, and when
+ * the duplicate control was withdrawn the founder's words had to come with the surviving one
+ * rather than be left behind on a component that no longer approves anything.
+ * `ProgrammeReview` re-exports both, so nothing that imported them from there is broken.
+ */
+export const APPROVE_LABEL = 'Approve this programme'
+/** The founder's post-approval sentence, locked 3 Sep. Never paraphrased. */
+export const APPROVED_COPY = 'Approved — nothing is sent until the programme goes Live.'
 
 export type ApprovalPayload = {
   programme: {
@@ -159,10 +199,12 @@ export default function ProgrammeApproval({
 
   if (p.approved_at) {
     return (
-      <div className="border border-emerald-200 bg-emerald-50/60 rounded-2xl px-4 py-3.5">
+      <div data-testid="programme-approved" className="border border-emerald-200 bg-emerald-50/60 rounded-2xl px-4 py-3.5">
         <div className="text-[11.5px] uppercase tracking-wide text-emerald-800 font-bold mb-1">Approved</div>
+        {/* ⛓️ 18 Sep (J16-C1) — ~~"You approved this programme."~~ was this screen's own wording.
+            The founder's locked sentence is `APPROVED_COPY`, and it travels with the button. */}
         <p className="text-[13.5px] font-semibold text-emerald-900">
-          You approved this programme. {p.second_settled
+          {APPROVED_COPY} {p.second_settled
             ? 'Nothing else is needed from you — we will let you know as meetings come in.'
             : 'The second half is due next, and outreach starts after that.'}
         </p>
@@ -202,6 +244,25 @@ export default function ProgrammeApproval({
         {population > 8 && (
           <p className="text-[12px] text-[#9b8ec4] mt-1.5">
             …and {(population - 8).toLocaleString()} more like these.
+          </p>
+        )}
+        {/* ── ⚑ 18 Sep (J16-C1) — HOW MANY WE CAN ACTUALLY WRITE TO (FD-5) ───────────────
+            🛑 THE NUMBER THAT WAS NOT ON THIS SCREEN. The package said how many people were in
+            it and never how many were reachable, so "40 prospects" could mean eighteen emails.
+
+            ⚠️ OMITTED, NEVER ZEROED, when the package does not state it — a freeze taken
+            before the field existed, or a count that could not be read. "0 reachable" is a
+            claim about a number nobody took.
+
+            ⚠️ AND IT IS NOT A SHORTFALL NOTICE. It sits beside the population as a fact, with
+            no arithmetic and no explanation invented for the difference: we do not know why any
+            particular person has no verified address yet, and saying would be a fabrication
+            about real people. */}
+        {typeof frozen?.sendable === 'number' && (
+          <p data-testid="frozen-sendable" className="text-[12px] text-[#6b5f8c] mt-1.5">
+            <b className="font-semibold">{frozen.sendable.toLocaleString()}</b> of them have a
+            verified work email address today. We keep checking the rest, and we only write to
+            the ones we can reach.
           </p>
         )}
       </div>
@@ -258,6 +319,27 @@ export default function ProgrammeApproval({
             <p className="text-[12.5px] text-[#4c4368]">
               <span className="text-[#9b8ec4]">Sent from</span>{' '}
               <b className="font-semibold">{frozen.sender_email}</b>
+              {/* ── ⚑ 18 Sep (J14-C3 · R129) — AND WHOSE MAILBOX THAT IS ─────────────────
+                  🛑 THE ADDRESS ALONE READS AS THEIRS. Under R129 the MVP1 sender comes from
+                  an env-backed POOLED inventory: we own it and assign it to them while their
+                  programme runs. A client who believes it is their own mailbox will go looking
+                  for the replies in it, and will read a warm-up limit as their own domain
+                  being throttled.
+
+                  ⚠️ `branded` IS THEIR OWN DOMAIN and says so — the same sentence for both
+                  would be the same untruth pointing the other way.
+
+                  ⚠️ AND AN UNREAD KIND SAYS NOTHING. The address still shows; the claim about
+                  whose it is only appears when it was actually read. */}
+              {frozen.sender_kind === 'pooled' && (
+                <span data-testid="sender-pooled" className="text-[#9b8ec4]">
+                  {' '}— a sending address we provide and keep for you while your programme
+                  runs, not your own mailbox. Replies come back to us and appear in Milla.
+                </span>
+              )}
+              {frozen.sender_kind === 'branded' && (
+                <span className="text-[#9b8ec4]"> — your own sending address.</span>
+              )}
             </p>
           )}
           {frozen?.meeting_target != null && (
@@ -295,11 +377,14 @@ export default function ProgrammeApproval({
         <>
           <button
             type="button"
+            data-testid="approve-programme"
             onClick={approve}
             disabled={busy}
             className="w-full sm:w-auto bg-[#7C3AED] text-white font-bold text-[13.5px] rounded-xl px-5 py-2.5 disabled:opacity-50"
           >
-            {busy ? 'Approving…' : 'Approve programme'}
+            {/* ⛓️ 18 Sep (J16-C1) — ~~'Approve programme'~~ was this screen's own label, beside a
+                second button elsewhere that carried the founder's. One surface, his words. */}
+            {busy ? 'Approving…' : APPROVE_LABEL}
           </button>
           <p className="text-[12px] text-[#9b8ec4] mt-2">
             {p.second_settled

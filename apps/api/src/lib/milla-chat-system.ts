@@ -50,10 +50,21 @@ import { describeProofContext, type ProofChatContext } from './milla-proof-conte
  *  cannot reach the model even by accident. Removing them here is the guard.
  */
 export interface MillaSnapshot {
-  /** Booked meetings this month, and all time. The outcome, not the mechanism. */
-  meetings_booked: number
-  meetings_total: number
-  replies_total: number
+  /**
+   * Booked meetings this month, and all time. The outcome, not the mechanism.
+   *
+   * ── 🛑 ⚑ 18 Sep (J24-C1) — `null` MEANS "WE COULD NOT COUNT IT", AND IT REACHES THE MODEL
+   *
+   * WHAT THIS REPLACED: ~~`meetings_booked: number`~~, fed from `meetings?.booked ?? 0`. This
+   * interface is the PROMPT — whatever is in it, Milla states to the client as current fact —
+   * so an unreadable count arrived here as `0` and she wrote *"Meetings all-time: 0"* to a
+   * client whose meetings table simply could not be read. The whole-snapshot-null case below
+   * has always been handled correctly (*"Do NOT invent or estimate any figure"*); it is the
+   * PER-FIELD case that had no expression, and a partial failure is the ordinary one.
+   */
+  meetings_booked: number | null
+  meetings_total: number | null
+  replies_total: number | null
   /**
    * ⚑ 3 Sep — IS A CALIBRATION SET ACTUALLY IN FRONT OF THEM RIGHT NOW?
    *
@@ -68,8 +79,14 @@ export interface MillaSnapshot {
    * ⚠️ AND IT IS NOT THE RETIRED PER-LEAD COUNT SNEAKING BACK IN. The interface excludes
    * `leads_awaiting` so the retired ECONOMICS cannot reach the model; a yes/no about whether
    * the desk currently holds anything carries no price, no wallet and no approval queue.
+   *
+   * ⛓️ 18 Sep (J24-C1) — `boolean | null`. It is derived from the desk count, so `false` used
+   * to mean either "their desk is empty" or "we could not read their desk" — and the prompt
+   * below turns `false` into a five-clause instruction telling Milla to deny that anything is
+   * on their screen. Saying that to a client who is looking at a full desk is worse than
+   * saying nothing, which is what `null` now produces.
    */
-  calibration_set_on_desk: boolean
+  calibration_set_on_desk: boolean | null
 }
 
 /** Money the client can read, derived from the programme row — never typed. */
@@ -130,18 +147,34 @@ export function describeOutcomes(snap: MillaSnapshot | null): string {
     return 'Their reply and meeting counts are unavailable for this conversation (the lookup ' +
       'failed). Do NOT invent or estimate any figure — say you cannot see it right now.'
   }
+  // ⚑ 18 Sep (J24-C1) — A COUNT WE COULD NOT READ IS NAMED AS SUCH, PER FIELD.
+  // The whole-snapshot failure above already says "do NOT invent or estimate any figure"; this
+  // says the same thing about one number, because a partial failure is the ordinary one and
+  // the alternative was telling Milla a confident `0`.
+  const n = (v: number | null): string =>
+    v === null ? 'UNAVAILABLE (the count could not be read — do NOT state, estimate or imply a number for this)' : String(v)
+
   return [
     'WHAT THE WORK HAS PRODUCED (real, current):',
-    `- Replies all-time: ${snap.replies_total}`,
-    `- Meetings all-time: ${snap.meetings_total} (${snap.meetings_booked} this month)`,
+    `- Replies all-time: ${n(snap.replies_total)}`,
+    snap.meetings_total === null && snap.meetings_booked === null
+      ? `- Meetings all-time: ${n(null)}`
+      : `- Meetings all-time: ${n(snap.meetings_total)} (${n(snap.meetings_booked)} this month)`,
     // ⚑ 3 Sep — THE STATE OF THE SCREEN BESIDE HER, stated as a fact rather than left to be
     // inferred from the stage. See `calibration_set_on_desk` for the sentence that earned it.
-    snap.calibration_set_on_desk
-      ? '- Their desk currently HAS people on it for them to react to.'
-      : '- THEIR DESK IS EMPTY RIGHT NOW — there is nothing on it for them to react to. Do NOT ' +
-        'say you are showing them people, that a set is on their screen, or that they should ' +
-        'react to examples. Do NOT claim a search is running, has failed, or found nothing ' +
-        'unless a fact above says so.',
+    //
+    // ⛓️ 18 Sep (J24-C1) — THE THIRD BRANCH. `false` carries a five-clause instruction to deny
+    // that anything is on their screen, and it used to be what an UNREADABLE desk produced —
+    // so Milla would have told a client staring at a full desk that there was nothing on it.
+    snap.calibration_set_on_desk === null
+      ? '- WHETHER THEIR DESK HAS ANYTHING ON IT IS UNKNOWN (the read failed). Do NOT say a set '
+        + 'is on their screen, and do NOT say their desk is empty. Say you cannot see it right now.'
+      : snap.calibration_set_on_desk
+        ? '- Their desk currently HAS people on it for them to react to.'
+        : '- THEIR DESK IS EMPTY RIGHT NOW — there is nothing on it for them to react to. Do NOT ' +
+          'say you are showing them people, that a set is on their screen, or that they should ' +
+          'react to examples. Do NOT claim a search is running, has failed, or found nothing ' +
+          'unless a fact above says so.',
   ].join('\n')
 }
 

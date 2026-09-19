@@ -409,8 +409,13 @@ describe('buildPdlBody — free proof asks about FIT, paid still asks about reac
     // The one call site passes the SAME proofMode the fence and reservation already use.
     expect(icps).toContain('searchPeopleWithFallback(icpForSearch, 1, grantedSize, cursor.token, audience, { proofMode })')
     expect(icps).toContain('const proofMode = (opts?.proofPass ?? 0) > 0')
-    // …and it reaches the PDL branch only. Apollo's own body builder never receives it.
-    expect(apollo).toContain('pdlSearchPage(icp, size, pdlCursor, opts)')
+    // …and Apollo's own body builder still never receives it.
+    // ⛓️ RE-AIMED 17 Sep (FD-6). This asserted `pdlSearchPage(icp, size, pdlCursor, opts)`
+    // as proof that `proofMode` reached the PDL branch ONLY. That branch is deleted — *"We
+    // are not paying for PDL"* — so the assertion now proves the property that survives it:
+    // `proofMode` still selects a FENCE and never a query clause on the Apollo path, and
+    // nothing in apollo.ts calls the PDL search module at all.
+    expect(apollo, 'nothing may call the PDL search module').not.toMatch(/pdlSearchPage\(/)
     expect(apollo).not.toMatch(/buildSearchBody\([^)]*opts/)
     // Exactly ONE place decides, and it decides on a literal true.
     expect((pdl.match(/opts\?\.proofMode/g) ?? [])).toHaveLength(1)
@@ -455,7 +460,10 @@ describe('buildPdlBody — free proof asks about FIT, paid still asks about reac
   it('ONE PDL page, one search call — no backfill was introduced', () => {
     const apollo = readSrc(join(__dirname, './apollo.ts'), 'utf8')
     const pdl    = readSrc(join(__dirname, './pdl-search.ts'), 'utf8')
-    expect((apollo.match(/pdlSearchPage\(/g) ?? [])).toHaveLength(1)
+    // ⛓️ 17 Sep (FD-6) — ZERO now, not one: the branch that made the single call is gone.
+    // The rest of this case still guards `pdl-search.ts` itself, which stays on disk
+    // untouched (CORE-MAP rule 3) and is reachable from nothing.
+    expect((apollo.match(/pdlSearchPage\(/g) ?? [])).toHaveLength(0)
     // The ladder is the ONLY loop, and it steps DOWN on 402 — it never fetches more.
     expect(pdl).toContain('const ladder = [size, 25, 10, 5, 1]')
     expect((pdl.match(/pdlSearchOnce\(/g) ?? []).length).toBeLessThanOrEqual(2)   // decl + one call

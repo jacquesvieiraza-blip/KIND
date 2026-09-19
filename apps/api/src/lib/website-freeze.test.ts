@@ -34,6 +34,24 @@ function walk(dir: string): string[] {
   for (const name of readdirSync(dir)) {
     // .deploy-stamp is rewritten by every ship.sh run; dotfiles are never served.
     if (name.startsWith('.') || name === 'node_modules') continue
+    // ⚑ 18 Sep (XC-11) — `build-identity.txt` IS EXCLUDED, AND NOT FOR THE DOTFILE REASON.
+    //
+    // It is a SHIP-TIME ARTIFACT: `scripts/ship.sh` writes the short deployed commit sha into
+    // it on every run, so its content changes every ship and a content hash in the manifest
+    // would drift every ship. It contains the sha and nothing else — no markup, no copy, no
+    // route — so it cannot alter a page, which is what #605 protects.
+    //
+    // 🛑 AND IT IS DELIBERATELY *NOT* A DOTFILE, WHICH IS THE WHOLE POINT. `express.static`
+    // ignores dotfiles, so `.deploy-stamp` is unreachable over HTTP and the locked catch-all
+    // answers `index.html` at HTTP 200 instead — 119,926 bytes, measured against the real
+    // locked server. A build identity that cannot be READ proves nothing, so this one is an
+    // ordinary file, served by the static handler `server.js` already has.
+    //
+    // ⚠️ THE FOUNDER APPROVED THIS FILE BY NAME, under #605's own exception: *"if it in the
+    // future requires a website change you make it very clear then i approve."* `server.js`
+    // is untouched and no other website protection is relaxed — every other file under
+    // apps/website is still hashed, and a new file still fails the gate.
+    if (name === 'build-identity.txt') continue
     const p = join(dir, name)
     if (statSync(p).isDirectory()) out.push(...walk(p))
     else out.push(p)

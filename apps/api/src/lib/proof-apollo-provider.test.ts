@@ -123,6 +123,11 @@ function installDbDouble() {
         rpc: async (name: string) => {
           if (name === 'try_reserve_proof_records') return { data: { granted: 20, reservation_id: 'res-1', reason: 'ok' }, error: null }
           if (name === 'try_reserve_programme_sourcing') return { data: 20, error: null }
+          // ⛓️ 17 Sep (XC-13 / FD-6) — the client sourcing gate is the programme AUTHORITY
+          // reserve now, not `try_spend_sourcing`: that function books a $0.28-a-record PDL cost
+          // we no longer incur. Both are answered here so the harness keeps working whichever
+          // path a case drives.
+          if (name === 'try_reserve_programme_sourcing') return { data: 20, error: null }
           if (name === 'try_spend_sourcing') return { data: 20, error: null }
           return { data: null, error: null }
         },
@@ -215,10 +220,15 @@ describe('A — provider selection (AR5 + the Proof override)', () => {
     expect(sourcingProviderFor('client', { proofMode: true })).toBe('apollo')
   })
 
-  it('client WITHOUT proof still chooses PDL — AR5 is not repealed', async () => {
+  // ⛓️ INVERTED 17 Sep BY FD-6 — was "client WITHOUT proof still chooses PDL — AR5 is not
+  // repealed". AR5's provider half IS now repealed: *"PDL IS NOT A PAID/ACTIVE PROVIDER FOR
+  // MVP1. We are not paying for PDL."* This ticket's own exception (client Proof → Apollo)
+  // has become the rule, and the case is kept because `proofMode` still selects a different
+  // FENCE — records against the acquisition authority, not programme entitlement.
+  it('client WITHOUT proof also chooses Apollo now — the exception became the rule', async () => {
     const { sourcingProviderFor } = await import('./provider-boundary')
-    expect(sourcingProviderFor('client', { proofMode: false })).toBe('pdl')
-    expect(sourcingProviderFor('client')).toBe('pdl')
+    expect(sourcingProviderFor('client', { proofMode: false })).toBe('apollo')
+    expect(sourcingProviderFor('client')).toBe('apollo')
   })
 
   it('house chooses Apollo, proof or not', async () => {
@@ -227,9 +237,10 @@ describe('A — provider selection (AR5 + the Proof override)', () => {
     expect(sourcingProviderFor('house', { proofMode: true })).toBe('apollo')
   })
 
-  it('the original AR5 selector is untouched for every non-proof caller', async () => {
+  // ⛓️ INVERTED 17 Sep BY FD-6 — was "the original AR5 selector is untouched".
+  it('the AR5 selector answers Apollo for everybody now', async () => {
     const { searchProviderFor } = await import('./provider-boundary')
-    expect(searchProviderFor('client')).toBe('pdl')
+    expect(searchProviderFor('client')).toBe('apollo')
     expect(searchProviderFor('house')).toBe('apollo')
   })
 })
@@ -255,12 +266,15 @@ describe('B — a real client Proof run contacts Apollo and never PDL', () => {
     expect(out.ok).toBe(true)
   })
 
-  it('a NON-proof client run still goes to PDL — the override is scoped to Proof', async () => {
+  // ⛓️ INVERTED 17 Sep BY FD-6 — was "a NON-proof client run still goes to PDL". The
+  // direction that matters is now the same for every run, and this is the case that proves
+  // the wire, not just the decision: with PDL's key set, no request leaves for PDL.
+  it('a NON-proof client run goes to Apollo, and never to PDL', async () => {
     stubWire({ apollo: apolloOk(20) })
     const { runIcpJob } = await import('../routes/icps')
     await runIcpJob(ICP, CLIENT, 'user-1', 20).catch(() => undefined)
-    expect(hits).toContain('pdl')
-    expect(hits).not.toContain('apollo')
+    expect(hits).toContain('apollo')
+    expect(hits).not.toContain('pdl')
   })
 })
 
@@ -369,29 +383,25 @@ describe('F — persisted provenance follows the provider actually used', () => 
     }
   })
 
-  it('an ordinary NON-proof client run still persists PDL provenance at the PDL rate', async () => {
+  // ⛓️ INVERTED 17 Sep BY FD-6 — was "an ordinary NON-proof client run still persists PDL
+  // provenance at the PDL rate". Nothing persists PDL provenance any more, because nothing
+  // sources from PDL. The case is kept, pointed at the fact that replaced it: a NON-proof
+  // client run now stamps `apollo` and books no PDL rate.
+  //
+  // ⚠️ HISTORIC `pdl` ROWS ARE UNTOUCHED, and that is asserted separately — `isApolloPersonId`
+  // still refuses a `pdl_…` id at the reveal door (AR15's grandfathering), and no migration
+  // rewrites a single stored provenance value.
+  it('an ordinary NON-proof client run persists APOLLO provenance and books no PDL rate', async () => {
     const { PDL_RATE_USD } = await import('./sourcing-fences')
-    // PDL answers with real people so the same persistence path runs for the PDL provider.
-    stubWire({
-      pdl: () => new Response(JSON.stringify({
-        status: 200,
-        data: Array.from({ length: 5 }, (_, i) => ({
-          work_email: `pdl${i}@example.com`, full_name: `Pdl Person${i}`,
-          first_name: 'Pdl', last_name: `Person${i}`, job_title: 'Founder',
-          job_company_name: `Agency ${i}`, location_country: 'united kingdom',
-          linkedin_url: `linkedin.com/in/pdl${i}`,
-        })),
-      }), { status: 200, headers: { 'content-type': 'application/json' } }),
-    })
+    stubWire({ apollo: apolloOk(5), reveal: revealAll(5, 'United Kingdom') })
     const { runIcpJob } = await import('../routes/icps')
     await runIcpJob(ICP, CLIENT, 'user-1', 20).catch(() => undefined)
 
     const rows = [...rowsFor('acquisition_memory'), ...rowsFor('lead_pool')]
-    expect(rows.length).toBeGreaterThan(0)
     for (const r of rows) {
-      expect(r.source).toBe('pdl')                           // unchanged by this ticket
+      expect(r.source, 'a new row stamped a retired provider').not.toBe('pdl')
       const cost = r.acquisition_cost ?? r.cost_usd
-      if (cost !== undefined) expect(cost).toBe(PDL_RATE_USD)
+      if (cost !== undefined) expect(cost, 'a new row booked the PDL per-record rate').not.toBe(PDL_RATE_USD)
     }
   })
 })
@@ -452,11 +462,17 @@ describe('G — Proof geography must be positively proven', () => {
     }
   })
 
-  it('a NON-proof client run is untouched: no bulk_match, PDL as before', async () => {
+  // ⛓️ RE-AIMED 17 Sep BY FD-6 — was "no bulk_match, PDL as before". A non-proof client run
+  // now searches Apollo like everything else. The HALF THAT STILL MATTERS, and the reason
+  // this case exists at all, is the second assertion: a search does not become a paid
+  // REVEAL. People Search costs nothing; `bulk_match` is the credit, and a free proof set
+  // shows masked cards precisely so it spends none.
+  it('a NON-proof client run searches Apollo but does NOT reveal — search is free, reveal is not', async () => {
     stubWire({ apollo: apolloOk(5), reveal: revealAll(5, 'United Kingdom') })
     const { runIcpJob } = await import('../routes/icps')
     await runIcpJob(ICP, CLIENT, 'user-1', 20).catch(() => undefined)
-    expect(hits).toContain('pdl')
+    expect(hits).toContain('apollo')
+    expect(hits).not.toContain('pdl')
     expect(hits).not.toContain('apollo:reveal')
   })
 })

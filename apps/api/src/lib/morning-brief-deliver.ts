@@ -73,9 +73,6 @@ export async function ensureTodaysBrief(clientId: string, now: Date = new Date()
     // public.meetings is the sole count truth, and it knows all three.
     const counts = await meetingCounts({ clientId, since: weekStart })
 
-    // #136a — a number we could not measure must not render as zero. A failed
-    // count is not "no meetings"; treating it as one would report a quiet week
-    // to a client who had three. No brief beats a false brief.
     // #136a — a number we could not measure must not render as zero. A failed count is not
     // "no meetings"; treating it as one would report a quiet week to a client who had three.
     // No brief beats a false brief — which is exactly why meetingCounts returns null rather

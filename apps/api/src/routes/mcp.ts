@@ -3,6 +3,7 @@ import crypto from 'crypto'
 import Anthropic from '@anthropic-ai/sdk'
 import { db } from '@kind/db'
 import { rateLimit } from '../lib/rate-limit'
+import { BACKGROUND_MODEL } from '../lib/models'
 
 const router = Router()
 
@@ -107,7 +108,7 @@ router.post('/call', rateLimit({ limit: 20, windowMs: 60_000, key: 'mcp-call' })
         res.status(401).json({ error: 'A valid KIND API key (client_api_key) is required for this tool.' }); return
       }
       const msg = await anthropic.messages.create({
-        model: 'claude-haiku-4-5-20251001',
+        model: BACKGROUND_MODEL,
         max_tokens: 1024,
         system: 'You are Milla, the Business Operations AI from KIND. You are The Brain — knowledgeable, organised, and helpful. Answer questions about business operations, draft documents, and provide intelligent assistance.',
         messages: [{ role: 'user', content: String(input.question) }],
@@ -124,7 +125,7 @@ router.post('/call', rateLimit({ limit: 20, windowMs: 60_000, key: 'mcp-call' })
         res.status(401).json({ error: 'A valid KIND API key (client_api_key) is required for this tool.' }); return
       }
       const msg = await anthropic.messages.create({
-        model: 'claude-haiku-4-5-20251001',
+        model: BACKGROUND_MODEL,
         max_tokens: 512,
         system: 'You are FIGSY, an AI SDR known as The Opener. Suggest campaign strategies in a direct, results-focused tone.',
         messages: [{
@@ -160,7 +161,7 @@ router.post('/guide', rateLimit({ limit: 15, windowMs: 60_000, key: 'mcp-guide' 
   const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
   try {
     const msg = await anthropic.messages.create({
-      model: 'claude-haiku-4-5-20251001',
+      model: BACKGROUND_MODEL,
       max_tokens: 1024,
       system: `You are the KIND MCP Setup Guide — a friendly, concise AI assistant that helps clients connect their KIND account to Claude.ai, Cursor, and other MCP-compatible AI tools.
 

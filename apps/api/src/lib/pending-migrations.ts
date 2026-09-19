@@ -3092,6 +3092,7 @@ DECLARE
   v_existing public.programme_batches;
   v_next_seq int;
   v_row      public.programme_batches;
+  v_reserved int;
 BEGIN
   -- PERFORM ... FOR UPDATE on the programme row is the serialiser: two callers arriving
   -- together are ordered by that lock, so the second one's SELECT runs after the first one's
@@ -3105,7 +3106,31 @@ BEGIN
   WHERE programme_id = p_programme_id AND status = 'running'
   LIMIT 1;
 
+  -- 19 Sep (MVP1 · Journey 12) -- THE JOINER'S RESERVATION JOINS THE BATCH TOO.
+  --
+  -- This used to RETURN v_existing unchanged, and that stranded client money. Every call to
+  -- try_reserve_programme_sourcing raises programmes.sourced_reserved; settle_programme_batch
+  -- releases programme_batches.granted. A second run reserving 20 against an open batch of 250
+  -- therefore left the programme holding 270 reserved and the batch holding 250 -- one settle
+  -- released 250, and 20 of the client's PAID volume was stranded with no batch left to
+  -- release it. Founder lock 6: unused programme value never expires.
+  --
+  -- CLAMPED TO WHAT THE PROGRAMME ACTUALLY HOLDS, NOT BLINDLY ADDED. A genuine retry -- a
+  -- dropped response, a redelivered webhook -- reserved nothing the second time, so adding its
+  -- p_granted would make the batch claim reservation that does not exist. sourced_reserved is
+  -- the truth both other functions move, so the batch is reconciled to it, and it never shrinks.
   IF FOUND THEN
+    IF COALESCE(p_granted, 0) > 0 THEN
+      SELECT sourced_reserved INTO v_reserved
+        FROM public.programmes WHERE id = p_programme_id;
+
+      UPDATE public.programme_batches
+         SET requested = requested + GREATEST(COALESCE(p_requested, 0), 0),
+             granted   = GREATEST(granted,
+                                  LEAST(granted + p_granted, COALESCE(v_reserved, granted)))
+       WHERE id = v_existing.id
+      RETURNING * INTO v_existing;
+    END IF;
     RETURN v_existing;
   END IF;
 
@@ -5605,9 +5630,899 @@ ALTER TABLE public.unattributed_replies ENABLE ROW LEVEL SECURITY;
 COMMENT ON TABLE public.unattributed_replies IS
   'An inbound reply whose owner could not be determined safely: several clients hold a lead with that prospect address, no receiving mailbox names one, and no originating-send record names one. Retained in full, visible to nobody, until an operator attributes it to one of its stored candidates or discards it. NEVER a client-visible reply — that is figsy_replies.';`.trim(),
   },
-]
+  {
+    key: '20260917_operator_tasks_and_automatic_work',
+    title: 'operator_tasks + automatic_work + the applied-migration ledger (XC-5 / XC-6 / XC-3)',
+    sql: `-- ═════════════════════════════════════════════════════════════════════════════════════════
+-- XC-5 + XC-6 + XC-3 · THE THREE THINGS THE SYSTEM COULD NOT WRITE DOWN
+--
+-- ── EXPAND / CONTRACT ───────────────────────────────────────────────────────────────────
+-- **PHASE: EXPAND ONLY.** This migration ADDS three tables and their indexes. It alters no
+-- existing column, drops nothing, renames nothing and rewrites no row. Every reader of
+-- every existing table behaves identically before and after, so it is safe to apply while
+-- the old code is still serving, and safe to leave applied if the code is rolled back.
+--
+-- **THE CONTRACT PHASE IS A LATER, SEPARATE MIGRATION** and there is nothing to contract
+-- yet: no column is being replaced. When \`founder_alerts\` email-only mirroring is finally
+-- retired in favour of \`operator_tasks\`, that is the contract step, and it is not this one.
+--
+-- **ABSENT-COLUMN / ABSENT-TABLE TOLERANCE IS IN THE CODE, LOUDLY.** \`operator-tasks.ts\`
+-- and \`automatic-work.ts\` both detect "this table is not here yet" and say so — they do not
+-- read a \`supabase-js\` \`{data:null,error}\` as an empty list. That distinction is the single
+-- most expensive defect class in this repo (553 unchecked destructures), and a new table is
+-- exactly where it bites: the code ships before the migration is run, every time.
+--
+-- ── WHAT EARNED EACH TABLE ──────────────────────────────────────────────────────────────
+--
+-- ① \`operator_tasks\` (XC-5). Every operator-facing exception in this product is currently
+--    either an EMAIL (\`sendFounderAlert\`) or a value DERIVED on read (\`deriveLifecycle\`'s
+--    \`needsYou\`). Neither is a record. An email is not a queue: it cannot be assigned,
+--    resolved, deduped, counted or audited, and when it is missed there is nothing left
+--    behind. A derived flag is not a record either: it exists only while the facts that
+--    imply it still hold, so an exception that resolves itself leaves no trace that it ever
+--    happened — and one that needs a human is invisible the moment the derivation changes.
+--    Vida's Needs-you must be readable from the database, not recomputed from a guess.
+--
+-- ② \`automatic_work\` (XC-6). Nothing in this product owns TIME. Work that the system
+--    promises to do by itself — start a Proof, promote a Brief, prepare a programme — has
+--    no persisted "I said I would do this, at this moment, within this bound". So
+--    "requested but never started" is indistinguishable from "never requested", which is
+--    exactly how Northvale sat in unresolved \`icp_review\` with Milla saying it was
+--    "finding your first examples" and Vida saying no action was needed. FD-0 requires BOTH
+--    automatic recovery and an audited operator action, and both require a persisted state
+--    to recover FROM.
+--
+-- ③ \`app_migrations_applied\` (XC-3). It already exists — created as a SIDE EFFECT of
+--    \`20260724_one_wallet.sql\`'s exception handler, with two columns and no RLS. The
+--    migration runner does not write to it: it replays all of its keys on every run and
+--    keeps no applied-state record at all, so Vida → System cannot answer "has this been
+--    applied?" except by looking for the object the migration was supposed to create. This
+--    gives it the columns a ledger needs and enables RLS.
+--
+-- ⚠️ IDEMPOTENT THROUGHOUT. \`IF NOT EXISTS\` on every object, \`DROP POLICY IF EXISTS\` before
+-- each \`CREATE POLICY\` (PostgreSQL has no \`CREATE POLICY IF NOT EXISTS\` — a fact this repo
+-- learned the hard way: \`20260525_milla_vida_tables.sql\` has been unable to execute since
+-- the day it was written because it uses exactly that non-existent syntax). Nothing here
+-- tracks what has been applied, so every file must survive a re-run.
+-- ═════════════════════════════════════════════════════════════════════════════════════════
 
-// Runs the statements against DATABASE_URL. Uses node-postgres because the Supabase JS
+
+-- ── ① OPERATOR TASKS — the persisted Needs-you row ──────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS public.operator_tasks (
+  id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+
+  -- The machine class. Routing, dedupe and counting all key on this, never on the prose.
+  kind          text NOT NULL,
+
+  severity      text NOT NULL DEFAULT 'warn'
+                  CHECK (severity IN ('info', 'warn', 'critical')),
+
+  -- What the operator reads. One sentence, in the operator's language.
+  title         text NOT NULL,
+  detail        text,
+
+  -- Who it is about. \`client_id\` cascades: a deleted client's tasks are about nobody.
+  client_id     uuid REFERENCES public.clients(id) ON DELETE CASCADE,
+
+  -- ⚠️ \`programme_id\` IS DELIBERATELY NOT A FOREIGN KEY, matching the existing convention
+  -- for operator-attribution columns on \`operator_audit_log\`: the record of what an operator
+  -- was asked to do must outlive the thing it was about, and a cascade here would delete the
+  -- evidence along with the subject.
+  programme_id  uuid,
+  subject_kind  text,
+  subject_id    text,
+
+  -- ⚠️ DEDUPE IS AN INDEX, NOT AN APPLICATION READ. A check-then-insert is a race, and the
+  -- callers are crons: two slots firing on the same second is the normal case, not the edge
+  -- case. \`operator_tasks_one_open_per_key\` below IS the authority.
+  dedupe_key    text,
+
+  status        text NOT NULL DEFAULT 'open'
+                  CHECK (status IN ('open', 'resolved', 'dismissed')),
+
+  -- Machine-readable evidence: the provider status code, the run id, the counts. Whatever
+  -- the operator needs in order to decide without opening a terminal.
+  evidence      jsonb NOT NULL DEFAULT '{}'::jsonb,
+
+  created_at    timestamptz NOT NULL DEFAULT now(),
+  updated_at    timestamptz NOT NULL DEFAULT now(),
+  resolved_at   timestamptz,
+  resolved_by   uuid,
+  resolution_note text
+);
+
+COMMENT ON TABLE public.operator_tasks IS
+  'XC-5. The PERSISTED operator exception. Every sendFounderAlert class writes one; the email is a mirror, not the record. Vida Needs-you reads this table. A task is resolved by a human with a note, or by the condition clearing, and either way the row survives as evidence that it happened.';
+
+COMMENT ON COLUMN public.operator_tasks.dedupe_key IS
+  'One OPEN task per (kind, dedupe_key), enforced by a partial unique index. Null means "never dedupe this one" — used where each occurrence is its own event.';
+
+COMMENT ON COLUMN public.operator_tasks.evidence IS
+  'Machine-readable facts the operator needs to decide: provider status code, run id, counts. NEVER a secret, a key, a database URL or a prospect''s personal data — this table is read by a console and copied into notes.';
+
+-- 🛑 THE DEDUPE AUTHORITY. Without it, an Apollo 402 on a 2-hourly cron produces twelve
+-- identical rows a day and the operator learns to ignore the list — which is the failure
+-- mode the whole Needs-you design exists to prevent ("NORMAL IS SILENT").
+CREATE UNIQUE INDEX IF NOT EXISTS operator_tasks_one_open_per_key
+  ON public.operator_tasks (kind, dedupe_key)
+  WHERE status = 'open' AND dedupe_key IS NOT NULL;
+
+-- The two reads Vida actually performs: the open queue, and one client's history.
+CREATE INDEX IF NOT EXISTS operator_tasks_open_created
+  ON public.operator_tasks (created_at DESC) WHERE status = 'open';
+CREATE INDEX IF NOT EXISTS operator_tasks_client
+  ON public.operator_tasks (client_id, created_at DESC);
+
+ALTER TABLE public.operator_tasks ENABLE ROW LEVEL SECURITY;
+
+-- Operator-only, and that means service_role only: this is K.I.N.D's own queue and it
+-- names clients other than the reader. No \`authenticated\` policy exists on purpose — a
+-- client must never see another client's exception, and the safest way to guarantee that
+-- is for the client role to have no path to the table at all.
+DROP POLICY IF EXISTS operator_tasks_service_only ON public.operator_tasks;
+CREATE POLICY operator_tasks_service_only ON public.operator_tasks
+  FOR ALL TO service_role USING (true) WITH CHECK (true);
+
+
+-- ── ② AUTOMATIC WORK — the system's own promise, written down ────────────────────────────
+
+CREATE TABLE IF NOT EXISTS public.automatic_work (
+  id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+
+  -- WHAT was promised: 'proof_run', 'brief_promotion', 'programme_prepare', …
+  kind          text NOT NULL,
+
+  -- WHICH thing it was promised about. Text, not uuid: the subject is sometimes an icp id,
+  -- sometimes a programme id, sometimes a composite — and a typed column would force a
+  -- second table per kind for no gain.
+  subject_kind  text NOT NULL,
+  subject_id    text NOT NULL,
+
+  client_id     uuid REFERENCES public.clients(id) ON DELETE CASCADE,
+
+  -- ⚠️ FIVE STATES, AND \`stuck\` IS NOT A SYNONYM FOR \`failed\`. A failure is a thing that
+  -- happened and reported itself. STUCK is the absence of a report: it started and never
+  -- came back, or it was requested and never started. Those need different recoveries —
+  -- FD-0's automatic recovery can safely retry a failure, and must not silently retry
+  -- something that may still be running.
+  state         text NOT NULL DEFAULT 'requested'
+                  CHECK (state IN ('requested', 'started', 'completed', 'failed', 'stuck')),
+
+  -- How long this kind of work is allowed to take before silence becomes a finding. Stored
+  -- per row, not read from a constant, so a bound that was in force when the work was
+  -- requested cannot be retroactively changed by a deploy.
+  bound_seconds int NOT NULL CHECK (bound_seconds > 0),
+
+  requested_at  timestamptz NOT NULL DEFAULT now(),
+  started_at    timestamptz,
+  completed_at  timestamptz,
+  failed_at     timestamptz,
+  stuck_at      timestamptz,
+
+  attempt       int NOT NULL DEFAULT 1 CHECK (attempt >= 1),
+  failure_reason text,
+
+  -- The task the detector raised for this unit, so a second detector pass finds the row
+  -- already reported instead of raising again.
+  detected_task_id uuid REFERENCES public.operator_tasks(id) ON DELETE SET NULL,
+
+  updated_at    timestamptz NOT NULL DEFAULT now()
+);
+
+COMMENT ON TABLE public.automatic_work IS
+  'XC-6 / FD-0. One row per unit of work the SYSTEM promised to do by itself, with the moment it was promised and the bound it must finish inside. Nothing in this product owned time before this table: "requested but never started" was indistinguishable from "never requested", which is how a client sat on "finding your first examples" while nothing was running and Vida reported no action needed.';
+
+COMMENT ON COLUMN public.automatic_work.bound_seconds IS
+  'The bound in force WHEN THE WORK WAS REQUESTED. Stored per row rather than read from a constant so a later deploy cannot retroactively make a late run look punctual.';
+
+-- 🛑 ONE LIVE UNIT PER SUBJECT — the retry-safety property, enforced by the database.
+--
+-- FD-0 is explicit that recovery must not "create concurrent runs" or "create a second
+-- Proof entitlement". An application-level check-then-insert cannot promise that: the
+-- callers are a cron, an HTTP retry and an operator button, and any two of them can arrive
+-- together. This index refuses the second live row outright.
+CREATE UNIQUE INDEX IF NOT EXISTS automatic_work_one_live_per_subject
+  ON public.automatic_work (kind, subject_kind, subject_id)
+  WHERE state IN ('requested', 'started');
+
+-- The detector's own read: everything still live, oldest first.
+CREATE INDEX IF NOT EXISTS automatic_work_live
+  ON public.automatic_work (requested_at) WHERE state IN ('requested', 'started');
+CREATE INDEX IF NOT EXISTS automatic_work_client
+  ON public.automatic_work (client_id, requested_at DESC);
+
+ALTER TABLE public.automatic_work ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS automatic_work_service_only ON public.automatic_work;
+CREATE POLICY automatic_work_service_only ON public.automatic_work
+  FOR ALL TO service_role USING (true) WITH CHECK (true);
+
+
+-- ── ③ THE APPLIED-MIGRATION LEDGER (XC-3) ───────────────────────────────────────────────
+--
+-- The table already exists in production with two columns, created accidentally by
+-- \`20260724_one_wallet.sql\`'s \`EXCEPTION WHEN undefined_table\` handler. \`CREATE TABLE IF
+-- NOT EXISTS\` therefore does nothing there and creates it on a fresh database; the \`ADD
+-- COLUMN IF NOT EXISTS\` statements below are what actually change production.
+CREATE TABLE IF NOT EXISTS public.app_migrations_applied (
+  key         text PRIMARY KEY,
+  applied_at  timestamptz NOT NULL DEFAULT now()
+);
+
+-- EXPAND: four nullable columns. Nothing reads them until the runner writes them, and the
+-- runner tolerates their absence (see \`pending-migrations.ts\`) — so this migration and the
+-- code that uses it can land in either order without a window where either is broken.
+ALTER TABLE public.app_migrations_applied
+  ADD COLUMN IF NOT EXISTS last_outcome  text,
+  ADD COLUMN IF NOT EXISTS last_error    text,
+  ADD COLUMN IF NOT EXISTS last_run_at   timestamptz,
+  ADD COLUMN IF NOT EXISTS run_count     int NOT NULL DEFAULT 0;
+
+-- 🛑 AND \`applied_at\` MUST BECOME NULLABLE, OR NO FAILURE CAN EVER BE RECORDED.
+--
+-- This was found by running the real migration against a real PostgreSQL (§8.2-H), not by
+-- reading: the original column is \`NOT NULL DEFAULT now()\`, because under the old ledger a
+-- row's mere EXISTENCE meant "applied". A failed run must be recorded WITHOUT claiming an
+-- application, so the insert proposes \`applied_at = NULL\` — and PostgreSQL checks NOT NULL on
+-- the proposed tuple BEFORE the ON CONFLICT clause resolves it, so every failure record threw
+-- 23502. The runner swallows ledger errors by design (a ledger problem must never fail a
+-- migration that applied), which means the failure would have been **silently unrecordable**:
+-- successes logged, failures dropped, and the one thing the ledger was added for missing.
+--
+-- ⚠️ THIS IS A WIDENING, NOT A CONTRACT. Dropping NOT NULL forbids nothing that was allowed
+-- before and invalidates no existing row — every row written to date has a value, and the
+-- DEFAULT is untouched, so \`20260724_one_wallet.sql\`'s accidental insert still fills it. Code
+-- that runs before this statement keeps working; code that runs after tolerates NULL (and
+-- \`migration-ledger.ts\` names this migration if it meets the constraint still in place).
+ALTER TABLE public.app_migrations_applied
+  ALTER COLUMN applied_at DROP NOT NULL;
+
+COMMENT ON TABLE public.app_migrations_applied IS
+  'XC-3. What the migration runner has actually applied. Before this, the runner replayed every key on every run and recorded nothing, so "has this been applied?" could only be answered by hunting for the object the migration was supposed to create — and a migration whose object already existed for another reason was indistinguishable from one that had run.';
+
+COMMENT ON COLUMN public.app_migrations_applied.last_outcome IS
+  'ok | error, from the most recent run of this key. \`applied_at\` is the FIRST success and never moves; this and last_run_at describe the latest attempt.';
+
+ALTER TABLE IF EXISTS public.app_migrations_applied ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS app_migrations_applied_service_only ON public.app_migrations_applied;
+CREATE POLICY app_migrations_applied_service_only ON public.app_migrations_applied
+  FOR ALL TO service_role USING (true) WITH CHECK (true);
+`.trim(),
+  },
+  {
+    key: '20260917_proof_fence_in_records',
+    title: 'the free-proof fence is counted in RECORDS, not PDL dollars (J5-C9 / FD-6)',
+    sql: `-- ═════════════════════════════════════════════════════════════════════════════════════════
+-- J5-C9 · THE FREE-PROOF FENCE IS COUNTED IN RECORDS, NOT IN PDL DOLLARS
+--
+-- ── EXPAND / CONTRACT ───────────────────────────────────────────────────────────────────
+-- **PHASE: EXPAND, plus two \`CREATE OR REPLACE FUNCTION\` bodies.**
+--
+-- ADDS one nullable column (\`money_settings.proof_monthly_cap_records\`) and a ONE-TIME unit
+-- translation into it. Drops nothing, renames nothing, and leaves \`proof_monthly_cap_usd\`
+-- exactly where it is — a historic figure, still readable, describing the ledger rows that
+-- were genuinely booked in dollars.
+--
+-- **THE CONTRACT PHASE IS A LATER, SEPARATE MIGRATION**: dropping \`proof_monthly_cap_usd\`
+-- and the \`cost_usd\` column on \`proof_ledger\` once nothing reads them. Nothing here does
+-- that, because rows already written in dollars are the only record of money genuinely spent.
+--
+-- **ABSENT-COLUMN TOLERANCE IS IN BOTH DIRECTIONS.** \`try_reserve_proof_records\` below reads
+-- the new column with a COALESCE onto a translation of the old one, so it behaves correctly
+-- whether or not the \`ADD COLUMN\` has been applied. \`icps.ts\`'s alert reads whichever column
+-- answers and says which. Neither treats a missing column as a zero ceiling — that would
+-- refuse all free Proof, which is the loud-but-wrong direction.
+--
+-- ── WHAT EARNED IT (FD-6) ───────────────────────────────────────────────────────────────
+--
+-- The fence was denominated in PDL money. \`v_rate numeric := 0.28\` — "PDL $/record, verified
+-- 10 Jul" — converted a $300 monthly ceiling into a number of records, and every reservation
+-- wrote \`records * 0.28\` into \`proof_ledger.cost_usd\`.
+--
+-- The founder's ruling of 17 Sep: **"PDL IS NOT A PAID/ACTIVE PROVIDER FOR MVP1. We are not
+-- paying for PDL."** So every part of that arithmetic became fiction:
+--
+--   ① **THE RATE IS FOR A VENDOR WE DO NOT BUY FROM.** Apollo's People Search costs nothing;
+--      the credit is the email reveal, and a free Proof set shows MASKED cards precisely so
+--      it reveals nobody. A Proof run's true provider cost is $0.
+--   ② **SO THE CEILING STOPPED BINDING.** With \`cost_usd\` telling the truth ($0), the room
+--      calculation \`floor((cap - month_spend) / rate)\` divides an untouched budget by a rate
+--      that buys nothing — an unbounded fence. Leaving the fiction in place is what kept it
+--      bounded, which is the worst of both: a limit that works only while the number is wrong.
+--   ③ **AND IT MISREPORTED THE REFUSAL.** \`MONTHLY_PROOF_BUDGET_REACHED\` told the founder a
+--      $300 acquisition budget was spent. Under FD-6 no dollars are spent at all, so the
+--      operator was sent to raise a budget that was not the constraint.
+--
+-- ── THE TRANSLATION, AND WHY IT IS NOT A NEW DECISION ───────────────────────────────────
+--
+-- AR17 fences the PROSPECT at 40 records for life, and that is already counted in records —
+-- untouched here. The MONTHLY ceiling is the half that was in dollars, and it is translated
+-- once, at the rate the dollars were always divided by:
+--
+--     floor(proof_monthly_cap_usd / 0.28)  →  floor(300 / 0.28)  =  1071 records
+--
+-- So the operative limit on the day this applies is the SAME limit as the day before. The
+-- unit becomes honest; the number does not move. **Choosing a different monthly record
+-- ceiling is the founder's decision and is not made here** — this migration only stops the
+-- product from expressing his existing decision in a currency it no longer spends.
+--
+-- ⚠️ THE 0.28 IN THIS FILE IS HISTORIC ARITHMETIC, NOT A LIVE RATE. It appears exactly once,
+-- in the one-time backfill, to reproduce a limit that was set in dollars. No function body
+-- below multiplies by it, and nothing at runtime reads it.
+--
+-- ── WHAT APOLLO CREDIT TRUTH MEANS HERE ─────────────────────────────────────────────────
+--
+-- A database function cannot ask Apollo how many credits are left, and it must not pretend
+-- to. The credit fence therefore lives where the provider answers: a 402 or a credit-bearing
+-- 422 is classified by \`classifyProviderFailure\`, releases the reservation, records
+-- \`quota_exhausted\`, and raises a Vida task naming the top-up. This function's job is the
+-- ENTITLEMENT — 40 per prospect for life, and a monthly company ceiling in records.
+--
+-- ⚠️ IDEMPOTENT. \`ADD COLUMN IF NOT EXISTS\`, a backfill guarded on \`IS NULL\`, and
+-- \`CREATE OR REPLACE\` bodies. Nothing here tracks what has been applied, so every statement
+-- must survive a re-run.
+-- ═════════════════════════════════════════════════════════════════════════════════════════
+
+
+-- ── ① THE MONTHLY CEILING, IN RECORDS ───────────────────────────────────────────────────
+
+ALTER TABLE public.money_settings
+  ADD COLUMN IF NOT EXISTS proof_monthly_cap_records int;
+
+COMMENT ON COLUMN public.money_settings.proof_monthly_cap_records IS
+  'J5-C9 / FD-6: the free-proof ACQUISITION ceiling per calendar month, counted in RECORDS. Replaces proof_monthly_cap_usd, which denominated the same limit in PDL dollars at $0.28 a record — a rate for a provider we no longer buy from, which made the fence unbounded the moment the cost told the truth. Founder-set; never raised automatically. The per-prospect lifetime cap (40, AR17) is separate and was always counted in records.';
+
+-- THE ONE-TIME UNIT TRANSLATION. Guarded on NULL, so a re-run cannot overwrite a value the
+-- founder has since set by hand.
+UPDATE public.money_settings
+   SET proof_monthly_cap_records = GREATEST(1, FLOOR(COALESCE(proof_monthly_cap_usd, 300) / 0.28)::int)
+ WHERE id = 1
+   AND proof_monthly_cap_records IS NULL;
+
+COMMENT ON COLUMN public.money_settings.proof_monthly_cap_usd IS
+  'HISTORIC (J5-C9, 17 Sep): the free-proof acquisition ceiling as it was expressed while PDL was the provider — $300/month at $0.28 a record. Kept because proof_ledger rows written before FD-6 record dollars genuinely committed, and a ceiling with no unit makes them unreadable. NOT the live fence: that is proof_monthly_cap_records.';
+
+
+-- ── ② THE RESERVATION, WITH NO RATE IN IT ───────────────────────────────────────────────
+--
+-- Same name, same signature, same return shape, same reason strings — so every existing
+-- caller, guard and test reads it identically. Three things change inside:
+--   · the monthly room is a count of RECORDS, summed from \`proof_ledger.records\`;
+--   · nothing is multiplied by a rate;
+--   · a new row books \`cost_usd = 0\`, because that is what an Apollo-sourced record costs.
+
+CREATE OR REPLACE FUNCTION public.try_reserve_proof_records(p_client_id uuid, p_requested int)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
+declare
+  -- AR17, founder-set: lifetime proof records per prospect. Unchanged, and it was always
+  -- counted in records rather than money.
+  v_client_cap    int := 40;
+  v_committed     int;
+  v_client_room   int;
+  v_cap_records   int;
+  v_month_records int;
+  v_month         date := (date_trunc('month', now()))::date;
+  v_room          int;
+  v_grant         int;
+  v_res_id        uuid;
+begin
+  if p_client_id is null or p_requested is null or p_requested <= 0 then
+    return jsonb_build_object('granted', 0, 'reservation_id', null, 'reason', 'FAIL_CLOSED_BAD_ARGS');
+  end if;
+
+  -- ① GLOBAL LOCK FIRST. The singleton money_settings row is the one object every proof
+  --    reservation must pass through, which is what serialises DIFFERENT clients. Locking
+  --    per-client rows alone would let two prospects each read the same monthly room.
+  --
+  -- ⚠️ ABSENT-VALUE TOLERANCE, IN THE SAFE DIRECTION, AND WITH NO RATE IN THE BODY.
+  --
+  -- The column cannot be missing when this body is live: the \`ADD COLUMN\` above is in the
+  -- same file, and both the Vida runner and \`psql --single-transaction\` send a file as ONE
+  -- transaction, so either both landed or neither did. What CAN be null is the value — a
+  -- \`money_settings\` row created after the backfill ran.
+  --
+  -- ⚠️ SO THE DEFAULT IS A LITERAL, NOT ARITHMETIC. \`DEFAULT_CAP_RECORDS\` is the translation
+  -- of the historic $300-at-$0.28 ceiling, computed ONCE in this file's backfill and written
+  -- here as the number it produced. Dividing by 0.28 at runtime would leave a rate for a
+  -- provider we do not buy from inside the deployed fence — which is the whole thing J5-C9
+  -- removes, and a test reads \`pg_get_functiondef\` to prove it is gone.
+  --
+  -- A missing ceiling is NEVER read as zero: that would refuse all free Proof, which is loud
+  -- but wrong.
+  select coalesce(proof_monthly_cap_records, 1071)
+    into v_cap_records
+    from public.money_settings where id = 1 for update;
+
+  if v_cap_records is null then
+    return jsonb_build_object('granted', 0, 'reservation_id', null, 'reason', 'FAIL_CLOSED_NO_MONEY_SETTINGS');
+  end if;
+
+  -- ② then the prospect's own row. Always this order, so proof callers cannot deadlock.
+  select coalesce(proof_records_committed, 0) into v_committed
+    from public.clients where id = p_client_id for update;
+  if v_committed is null then
+    return jsonb_build_object('granted', 0, 'reservation_id', null, 'reason', 'FAIL_CLOSED_UNKNOWN_CLIENT');
+  end if;
+
+  -- THE PROSPECT'S OWN CEILING, ANSWERED BEFORE THE COMPANY'S. This is the common refusal
+  -- and it is not a company event: the prospect has had their two passes' worth of records.
+  v_client_room := greatest(0, v_client_cap - v_committed);
+  if v_client_room <= 0 then
+    return jsonb_build_object('granted', 0, 'reservation_id', null, 'reason', 'CLIENT_PROOF_LIMIT_REACHED');
+  end if;
+
+  -- THIS month's authority, IN RECORDS. Summed over budget_month, so an old month's late
+  -- correction can never inflate the current month's room. Outstanding reservations are
+  -- already in the sum, because the reservation IS a ledger row — and a release writes a
+  -- NEGATIVE records row, so the sum self-corrects without a rate anywhere in it.
+  select coalesce(sum(records), 0) into v_month_records
+    from public.proof_ledger where budget_month = v_month;
+
+  v_room := greatest(0, v_cap_records - v_month_records);
+  if v_room <= 0 then
+    -- THE ONE THAT IS ACTUALLY A COMPANY EVENT. Free acquisition has stopped for everybody
+    -- until the founder raises the ceiling, so this — and only this — raises the alert. The
+    -- reason string is UNCHANGED so no caller has to learn a new one; what changed is that
+    -- it is now true about a record count rather than about dollars nobody spent.
+    return jsonb_build_object('granted', 0, 'reservation_id', null, 'reason', 'MONTHLY_PROOF_BUDGET_REACHED');
+  end if;
+
+  v_grant := least(p_requested, v_client_room, v_room);
+  if v_grant <= 0 then
+    -- Unreachable: all three inputs are > 0 above. Kept as a fail-closed floor so a future
+    -- edit to any of them can only ever under-allow.
+    return jsonb_build_object('granted', 0, 'reservation_id', null, 'reason', 'FAIL_CLOSED_BAD_ARGS');
+  end if;
+
+  update public.clients
+     set proof_records_committed = v_committed + v_grant
+   where id = p_client_id;
+
+  -- ⚠️ \`cost_usd = 0\`, AND THAT IS THE HONEST FIGURE. An Apollo People Search costs nothing;
+  -- the credit is the email reveal, and a free Proof set shows masked cards precisely so it
+  -- reveals nobody. The column is kept so historic rows stay readable — see its comment.
+  insert into public.proof_ledger (client_id, records, cost_usd, budget_month)
+    values (p_client_id, v_grant, 0, v_month)
+    returning id into v_res_id;
+
+  return jsonb_build_object('granted', v_grant, 'reservation_id', v_res_id, 'reason', 'GRANTED');
+end;
+$$;
+
+REVOKE EXECUTE ON FUNCTION public.try_reserve_proof_records(uuid, int) FROM PUBLIC;
+GRANT  EXECUTE ON FUNCTION public.try_reserve_proof_records(uuid, int) TO service_role;
+
+COMMENT ON FUNCTION public.try_reserve_proof_records(uuid, int) IS
+  'J5-C9 / FD-6. The free-proof ENTITLEMENT fence, counted in RECORDS: 40 per prospect for life (AR17) and a monthly company ceiling in records. No provider rate appears in it. Apollo credit exhaustion is not this function''s business and it does not pretend otherwise — a 402 or credit-bearing 422 is classified at the caller, releases the reservation, records quota_exhausted and raises a Vida task.';
+
+
+-- ── ③ THE RELEASE, WITH NO RATE EITHER ──────────────────────────────────────────────────
+--
+-- ⛓️ WHY IT HAD TO CHANGE TOO. It computed \`v_rate := v_row.cost_usd / v_row.records\` — "the
+-- rate this reservation was booked at" — and wrote \`-(v_release * v_rate)\`. Against a
+-- reservation booked at $0 that is a division yielding 0, which is harmless; against a
+-- reservation with ZERO records it is a division by zero, and the \`v_row.records <= 0\` guard
+-- above it is the only thing that has ever stood between this function and that. Removing
+-- the rate removes the hazard with it.
+--
+-- The RECORDS half — which is the authority — is unchanged: clamp to this reservation, mark
+-- it reconciled once, give the prospect their committed records back, and write the negative
+-- row in the RESERVATION'S month rather than the current one.
+
+CREATE OR REPLACE FUNCTION public.release_proof_records(p_reservation_id uuid, p_records int)
+RETURNS int
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
+declare
+  v_row       public.proof_ledger%rowtype;
+  v_committed int;
+  v_release   int;
+begin
+  if p_reservation_id is null or p_records is null or p_records <= 0 then return 0; end if;
+
+  -- Lock THE reservation row. Everything below is scoped to it and nothing else.
+  select * into v_row from public.proof_ledger where id = p_reservation_id for update;
+  if not found then return 0; end if;
+  if v_row.records <= 0 then return 0; end if;              -- corrections are not reservations
+  if v_row.reconciled_at is not null then return 0; end if;  -- ONCE. A replay is a no-op.
+
+  -- Clamp to THIS reservation's size: reconciling A can never release B's authority.
+  v_release := least(p_records, v_row.records);
+
+  update public.proof_ledger
+     set reconciled_at = now(), released_records = v_release
+   where id = p_reservation_id;
+
+  select coalesce(proof_records_committed, 0) into v_committed
+    from public.clients where id = v_row.client_id for update;
+  update public.clients
+     set proof_records_committed = greatest(0, v_committed - v_release)
+   where id = v_row.client_id;
+
+  -- ⚠️ \`cost_usd = 0\` — NOT a rate-derived figure. A correction to a reservation that cost
+  -- nothing is a correction of nothing, and inventing one would put fabricated money back
+  -- into a ledger this migration exists to stop fabricating money in.
+  --
+  -- ⚠️ A HISTORIC RESERVATION, BOOKED IN DOLLARS, IS STILL CORRECTED IN RECORDS. Its own
+  -- \`cost_usd\` stays exactly as it was written; only the release row is zero. The month's
+  -- authority is summed from \`records\`, so the release corrects the authority in full.
+  insert into public.proof_ledger (client_id, records, cost_usd, budget_month, reservation_id)
+    values (v_row.client_id, -v_release, 0, v_row.budget_month, v_row.id);
+
+  return v_release;
+end;
+$$;
+
+REVOKE EXECUTE ON FUNCTION public.release_proof_records(uuid, int) FROM PUBLIC;
+GRANT  EXECUTE ON FUNCTION public.release_proof_records(uuid, int) TO service_role;
+`.trim(),
+  },
+  {
+    key: '20260919_calibrated_restart_record_allowance',
+    title: 'The ONE calibrated restart carries its own 20 records — FOUNDER RULING 19 Sep 2026 (MVP1 · J8 · AR17/R119)',
+    sql: `
+-- ── THE CALIBRATED RESTART'S OWN 20 RECORDS — FOUNDER RULING, 19 Sep 2026 ─────────────
+--
+-- Canonical copy: supabase/migrations/20260919_calibrated_restart_record_allowance.sql
+--
+-- The canonical Journey 8 measured it: an operator resolved the escalation, recorded the note
+-- and granted the one calibrated restart; the client's run claimed it (kind = calibrated_restart)
+-- and then sourced NOTHING, because try_reserve_proof_records refused with
+-- CLIENT_PROOF_LIMIT_REACHED -- the prospect had committed 40 of 40 across the two AUTOMATIC
+-- attempts, and this fence knew nothing about authority kind. AR17 scopes its 40 to "across BOTH
+-- passes"; R119 grants a third, human-authorised set. Raising a founder-set funding fence is a
+-- founder decision, so it was raised as a STOP and ruled:
+--
+--   "APPROVED: OPTION A. The ONE human-authorised calibrated restart receives its own
+--    additional allowance of: 20 RECORDS."
+--
+-- Three conditions, all durable facts written by somebody else: the kind comes from the claim
+-- ledger (claim_proof_authority), the grant from the operator's one-time write, and "not yet
+-- consumed" from the completed-claim row. proof_passes_done remains 2; there is no automatic
+-- attempt 3; a second restart is still refused by R119 and by
+-- proof_pass_claims_one_completed_restart.
+--
+-- EXPAND ONLY: one function replaced, one defaulted parameter. The old two-argument signature is
+-- dropped so no caller can reach the pre-ruling fence by arity.
+CREATE OR REPLACE FUNCTION public.try_reserve_proof_records(
+  p_client_id uuid,
+  p_requested int,
+  p_kind      text DEFAULT 'automatic'
+)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
+declare
+  v_client_cap    int := 40;
+  v_restart_bonus int := 20;
+  v_committed     int;
+  v_client_room   int;
+  v_cap_records   int;
+  v_month_records int;
+  v_month         date := (date_trunc('month', now()))::date;
+  v_room          int;
+  v_grant         int;
+  v_res_id        uuid;
+  v_granted_at    timestamptz;
+  v_consumed      boolean;
+begin
+  if p_client_id is null or p_requested is null or p_requested <= 0 then
+    return jsonb_build_object('granted', 0, 'reservation_id', null, 'reason', 'FAIL_CLOSED_BAD_ARGS');
+  end if;
+
+  select coalesce(proof_monthly_cap_records, 1071)
+    into v_cap_records
+    from public.money_settings where id = 1 for update;
+
+  if v_cap_records is null then
+    return jsonb_build_object('granted', 0, 'reservation_id', null, 'reason', 'FAIL_CLOSED_NO_MONEY_SETTINGS');
+  end if;
+
+  select coalesce(proof_records_committed, 0), proof_calibrated_restart_at
+    into v_committed, v_granted_at
+    from public.clients where id = p_client_id for update;
+  if v_committed is null then
+    return jsonb_build_object('granted', 0, 'reservation_id', null, 'reason', 'FAIL_CLOSED_UNKNOWN_CLIENT');
+  end if;
+
+  -- ── THE ONE HUMAN-AUTHORISED RESTART'S OWN 20 RECORDS (founder ruling, 19 Sep 2026) ────
+  --
+  -- All three conditions must hold together, and every one of them is a durable fact written
+  -- by somebody else: the kind comes from the claim ledger, the grant from the operator's
+  -- one-time write, and "not yet consumed" from the completed-claim row the ledger settles.
+  if p_kind = 'calibrated_restart' and v_granted_at is not null then
+    select exists (
+      select 1 from public.proof_pass_claims
+       where client_id = p_client_id
+         and authority = 'calibrated_restart'
+         and status    = 'completed'
+    ) into v_consumed;
+
+    if not v_consumed then
+      v_client_cap := v_client_cap + v_restart_bonus;
+    end if;
+  end if;
+
+  v_client_room := greatest(0, v_client_cap - v_committed);
+  if v_client_room <= 0 then
+    return jsonb_build_object('granted', 0, 'reservation_id', null, 'reason', 'CLIENT_PROOF_LIMIT_REACHED');
+  end if;
+
+  select coalesce(sum(records), 0) into v_month_records
+    from public.proof_ledger where budget_month = v_month;
+
+  v_room := greatest(0, v_cap_records - v_month_records);
+  if v_room <= 0 then
+    return jsonb_build_object('granted', 0, 'reservation_id', null, 'reason', 'MONTHLY_PROOF_BUDGET_REACHED');
+  end if;
+
+  v_grant := least(p_requested, v_client_room, v_room);
+  if v_grant <= 0 then
+    return jsonb_build_object('granted', 0, 'reservation_id', null, 'reason', 'FAIL_CLOSED_BAD_ARGS');
+  end if;
+
+  update public.clients
+     set proof_records_committed = v_committed + v_grant
+   where id = p_client_id;
+
+  insert into public.proof_ledger (client_id, records, cost_usd, budget_month)
+    values (p_client_id, v_grant, 0, v_month)
+    returning id into v_res_id;
+
+  return jsonb_build_object('granted', v_grant, 'reservation_id', v_res_id, 'reason', 'GRANTED');
+end;
+$$;
+
+-- 🛑 THE OLD TWO-ARGUMENT SIGNATURE IS REMOVED. PostgreSQL keeps overloads side by side, so
+-- leaving it would mean a caller could reach the pre-ruling fence by passing two arguments —
+-- a second definition of the same rule, which is the drift this repo keeps paying for. Every
+-- caller either omits the kind (and gets the default 'automatic') or names it.
+DROP FUNCTION IF EXISTS public.try_reserve_proof_records(uuid, int);
+
+REVOKE EXECUTE ON FUNCTION public.try_reserve_proof_records(uuid, int, text) FROM PUBLIC;
+GRANT  EXECUTE ON FUNCTION public.try_reserve_proof_records(uuid, int, text) TO service_role;
+
+COMMENT ON FUNCTION public.try_reserve_proof_records(uuid, int, text) IS
+  'The free-proof ENTITLEMENT fence, counted in RECORDS: 40 per prospect across the two AUTOMATIC attempts (AR17), plus a monthly company ceiling. FOUNDER RULING 19 Sep 2026: the ONE human-authorised calibrated restart (R119) carries its own additional 20 records — available only when p_kind = calibrated_restart (the kind claim_proof_authority granted), only once clients.proof_calibrated_restart_at is set, and only while no completed calibrated_restart claim exists. proof_passes_done remains 2 and there is no automatic attempt 3.';
+`.trim(),
+  },
+  {
+    key: '20260919_one_canonical_sequence_per_campaign',
+    title: 'ONE canonical sequence per campaign — the race that made a paid programme permanently unpreparable (MVP1 · J13)',
+    sql: `
+-- ── ONE CANONICAL SEQUENCE PER CAMPAIGN ───────────────────────────────────────────────
+--
+-- Canonical copy: supabase/migrations/20260919_one_canonical_sequence_per_campaign.sql
+--
+-- 🛑 MEASURED IN A CERTIFICATION RUN (19 Sep 2026). A programme settled its sourcing run, so
+-- \`advanceAfterSettlement\` began preparing it in the background; an operator pressed
+-- \`prepare-for-review\` in the same moment. Both call \`applyProgrammeSequence\`, which READS
+-- \`figsy_sequences\` for the campaign, finds none and INSERTS. Both found none. Both inserted.
+--
+-- From that instant the programme was PERMANENTLY UNPREPARABLE: \`resolveProgrammeChain\`
+-- refuses with "This campaign has 2 sequences, so the words the customer would approve are
+-- ambiguous" — correctly — and preparation, freeze, client approval, Make Live and Run are all
+-- closed behind it.
+--
+-- ⚠️ THE CODE ALREADY STATED THIS RULE AND COULD NOT KEEP IT: "EXACTLY ONE CANONICAL ROW PER
+-- CAMPAIGN … finding two is reported, never silently resolved by picking one." A
+-- read-then-insert cannot promise that. Same shape and same fix as \`clients_one_per_user\`,
+-- \`automatic_work_one_live_per_subject\` and \`programme_batches_one_running_uidx\`.
+--
+-- ⚠️ EXPAND ONLY: one partial unique index, no column, no default, no backfill.
+--
+-- 🛑 AND IT REFUSES TO CREATE ITSELF OVER EXISTING DUPLICATES. Which of two sequences a client
+-- would have approved is a decision about somebody's campaign, not a migration's.
+DO $$
+DECLARE
+  dupes text;
+BEGIN
+  SELECT string_agg(campaign_id::text, ', ')
+    INTO dupes
+    FROM (
+      SELECT campaign_id
+        FROM public.figsy_sequences
+       WHERE campaign_id IS NOT NULL
+       GROUP BY campaign_id
+      HAVING count(*) > 1
+       LIMIT 50
+    ) d;
+
+  IF dupes IS NOT NULL THEN
+    RAISE NOTICE 'figsy_sequences_one_per_campaign NOT created: these campaigns already carry more than one canonical sequence (%). Resolve them in Vida first.', dupes;
+  ELSE
+    CREATE UNIQUE INDEX IF NOT EXISTS figsy_sequences_one_per_campaign
+      ON public.figsy_sequences (campaign_id)
+      WHERE campaign_id IS NOT NULL;
+    RAISE NOTICE 'figsy_sequences_one_per_campaign is in place — a second canonical sequence for one campaign is now refused by the database.';
+  END IF;
+END $$;
+`.trim(),
+  },
+  {
+    key: '20260918_clients_one_per_user',
+    title: 'ONE client row per auth user — the fence J1-C1 found missing (MVP1 · J1-C1)',
+    sql: `
+-- ── ONE CLIENT ROW PER AUTH USER ──────────────────────────────────────────────────────
+--
+-- WHAT IS MISSING. \`POST /auth/onboard\` is check-then-insert: read \`clients\` by
+-- \`user_id\`, branch, INSERT. There is NO unique index on \`clients.user_id\` anywhere in
+-- this repository, so two concurrent onboards for one auth user do not collide — they BOTH
+-- succeed. One person, two client rows, and every downstream
+-- \`.eq('user_id', …).maybeSingle()\` then picks one of them arbitrarily: their Proof claim,
+-- their wallet and their programme can end up on the row their next request does not read.
+--
+-- A double-tap on the confirm button, a retried request and two open tabs all produce it.
+--
+-- ⚠️ THE APPLICATION HALF IS ALREADY SHIPPED AND DOES NOT DEPEND ON THIS. The route now
+-- re-reads after a failed insert and completes against the winning row, so it converges
+-- whether or not this index exists. What the index adds is that the second insert is
+-- REFUSED rather than merely unlikely to be noticed.
+--
+-- ── 🛑 IT REFUSES TO RUN OVER EXISTING DUPLICATES, AND DOES NOT TRY TO FIX THEM ────────
+--
+-- A bare CREATE UNIQUE INDEX aborts if duplicates already exist, which would make this
+-- migration fail half-way through a batch. And deciding WHICH of two client rows to keep is
+-- a data decision about somebody's account — their wallet, their programme, their leads —
+-- and it is never a migration's to make silently. So this checks first, creates the index
+-- when it can, and NAMES the offending users when it cannot.
+--
+-- ⚠️ IDEMPOTENT. Re-running is harmless: the index is created IF NOT EXISTS, and the notice
+-- branch writes nothing at all.
+-- ⚠️ EXPAND ONLY (XC-11). It adds a constraint and drops nothing; no column changes, no
+-- backfill, no rewrite. Code that predates it keeps working unchanged.
+DO $$
+DECLARE
+  dupes text;
+BEGIN
+  SELECT string_agg(user_id::text, ', ')
+    INTO dupes
+    FROM (
+      SELECT user_id
+        FROM public.clients
+       WHERE user_id IS NOT NULL
+       GROUP BY user_id
+      HAVING count(*) > 1
+       LIMIT 50
+    ) d;
+
+  IF dupes IS NOT NULL THEN
+    RAISE NOTICE 'clients_one_per_user NOT created: these auth users already have more than one client row (%). Resolve them in Vida first — which row to keep is a decision about somebody''s account, not a migration''s.', dupes;
+  ELSE
+    CREATE UNIQUE INDEX IF NOT EXISTS clients_one_per_user
+      ON public.clients (user_id)
+      WHERE user_id IS NOT NULL;
+    RAISE NOTICE 'clients_one_per_user is in place — a second onboard for one auth user is now refused by the database.';
+  END IF;
+END $$;
+`,
+  },
+  {
+    key: '20260918_icp_exclusions',
+    title: 'icps.exclusions — who the client asked us to leave out (MVP1 · J5-C12 · FD-1)',
+    sql: `
+-- Canonical copy: supabase/migrations/20260918_icp_exclusions.sql
+--
+-- 🛑 ALREADY BEING WRITTEN AND DOES NOT EXIST. \`lib/promotion.ts\` (J4-C1) includes
+-- \`exclusions\` in the core-ICP insert whenever the confirmed brief holds it, and brief fact
+-- #10 is REQUIRED by \`mayConfirmBrief\` — so every promoted client holds it, and a Postgres
+-- insert naming a column that does not exist fails the whole statement. Server-owned
+-- promotion could not create an ICP at all. Caught by \`schema-truth.test.ts\`.
+--
+-- WHAT IT IS FOR (FD-1). The client's exclusions become canonical ON THE ICP, where
+-- \`proof-fit.ts\`'s seventh hard criterion reads them and sets a matching candidate aside
+-- with a reason in every path. Before it the sentence lived only in the brief draft and in
+-- \`figsy_knowledge.bad_fit\` (the copywriter's input), and no gate read either.
+--
+-- ⚠️ EXPAND ONLY (XC-11): nullable, NO DEFAULT, NO BACKFILL. NULL is "not stated" and refuses
+-- nobody, which is exactly how every existing ICP behaves today. Idempotent.
+ALTER TABLE public.icps ADD COLUMN IF NOT EXISTS exclusions text;
+
+COMMENT ON COLUMN public.icps.exclusions IS
+  'MVP1 J5-C12 / FD-1. The client''s own words for who NOT to contact, as one sentence. Read by proof-fit.ts''s \`excluded\` hard criterion, which sets a matching candidate aside with a reason in every path. NULL means not stated and refuses nobody.';
+`,
+  },
+  {
+    key: '20260918_lead_category_fit',
+    title: 'leads.category_fit — the model\'s verdict on the client\'s own category (MVP1 · J5-C13 · FD-2)',
+    sql: `
+-- Canonical copy: supabase/migrations/20260918_lead_category_fit.sql
+--
+-- FD-2 makes category fit MODEL-INTERPRETED: adjacent qualifies, vague B2B does not, UNKNOWN
+-- is never eligible. A model cannot be called from \`proof-fit.ts\` (a pure synchronous
+-- predicate every surface depends on), so the model writes a FACT here and the predicate reads
+-- it — the shape every other criterion in that file already uses.
+--
+-- 🛑 THE MODEL HAD NEVER BEEN TOLD THE REQUIREMENT. The scoring prompt described the ICP with
+-- \`Industries:\` — the closed sixteen-value provider list — and nothing else, so a client who
+-- said "digital marketing agencies" reached the scorer as "Industries: any".
+--
+-- ⚠️ EXPAND ONLY (XC-11): both nullable, NO DEFAULT, NO BACKFILL, CHECK admits NULL. A lead
+-- scored before today reads NULL and the existing word-overlap rule answers for it, unchanged.
+ALTER TABLE public.leads ADD COLUMN IF NOT EXISTS category_fit        text;
+ALTER TABLE public.leads ADD COLUMN IF NOT EXISTS category_fit_reason text;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'leads_category_fit_check') THEN
+    ALTER TABLE public.leads
+      ADD CONSTRAINT leads_category_fit_check
+      CHECK (category_fit IS NULL OR category_fit IN ('yes', 'no', 'unknown'));
+  END IF;
+END $$;
+
+COMMENT ON COLUMN public.leads.category_fit IS
+  'MVP1 J5-C13 / FD-2. The scoring model''s verdict on whether this company is the KIND the client asked for: yes | no | unknown. Read by proof-fit.ts''s category criterion. NULL means not judged and the word-overlap rule answers instead.';
+`,
+  },
+  {
+    // Canonical file: supabase/migrations/20260918_icp_target_size.sql
+    //
+    // MVP1 (J5-C4 · LR 10,12) — `icps.company_sizes` is our CLOSED SIX-BAND LADDER and it is
+    // to size exactly what `industries` is to category: an Apollo query hint and evidence,
+    // never the requirement. 20260911_icp_target_category_and_type made that split for the
+    // market; this makes it for the headcount, for the same reason and with the same shape.
+    //
+    // 🛑 WHAT THE LADDER COSTS A CLIENT. "Fifty to a hundred people" cannot be expressed in it,
+    // so it is snapped to ['11–50','51–200'] — and the band rule then admits an 11-person
+    // company and a 190-person company as matches on a criterion they stated precisely. "Ten
+    // to fifty" is snapped to ['11–50'], which refuses the ten-person company they asked for.
+    //
+    // ADDITIVE, EXPAND ONLY (XC-11). Nullable, no default, NO BACKFILL: an existing row reads
+    // NULL, which correctly means "never collected", and the band rule answers for it exactly
+    // as it does today.
+    //
+    // DEPLOYMENT ORDERING: apply this BEFORE shipping the code that writes the column.
+    key: '20260918_icp_target_size',
+    title: "icps.target_size — how big the target company should be, in the client's own words (MVP1 · J5-C4)",
+    sql: `
+ALTER TABLE public.icps
+  ADD COLUMN IF NOT EXISTS target_size text;
+
+COMMENT ON COLUMN public.icps.target_size IS
+  'MVP1 brief fact 8 — how big the target company should be, in the CLIENT''S OWN WORDS ("50 to 100 people", "under 20 staff"). Authoritative over company_sizes, which is the closed provider band list used as a query hint. NULL means never collected.';
+`,
+  },
+  {
+    // Canonical file: supabase/migrations/20260918_proof_set_verdict.sql
+    //
+    // MVP1 (J6-C3 · PV 02) — `mayRequestStrongerSet` is the one spend gate between a client
+    // and their second automatic Proof attempt. It was derived, used and thrown away on every
+    // read, so nothing recorded WHY a second set was unlocked at the moment the client was
+    // looking at the screen — and no Vida route reads calibration at all, so an operator could
+    // not answer it either.
+    //
+    // ⚠️ AN EVENT, NOT A MIRROR. The live derivation REMAINS the gate; these two columns
+    // record that it first became true, when, and on what basis. An event cannot drift out of
+    // step with a derivation the way a cached boolean can, and nothing reads them to spend.
+    //
+    // EXPAND ONLY: two nullable columns, no default, NO BACKFILL — a client unlocked before
+    // today reads NULL, which means "not recorded", never "refused".
+    key: '20260918_proof_set_verdict',
+    title: 'clients.proof_stronger_set_unlocked_at / _reason — the set-level verdict that unlocks attempt 2, recorded and visible in Vida (MVP1 · J6-C3)',
+    sql: `
+ALTER TABLE public.clients
+  ADD COLUMN IF NOT EXISTS proof_stronger_set_unlocked_at     timestamptz,
+  ADD COLUMN IF NOT EXISTS proof_stronger_set_unlocked_reason text;
+
+COMMENT ON COLUMN public.clients.proof_stronger_set_unlocked_at IS
+  'MVP1 J6-C3 — when the SET-level verdict first unlocked a second automatic Proof attempt. A historical event; the live derivation remains the gate. NULL means never recorded, never ''refused''.';
+
+COMMENT ON COLUMN public.clients.proof_stronger_set_unlocked_reason IS
+  'MVP1 J6-C3 — the stable reason code behind that verdict: per_card_feedback | confirmed_refinement.';
+`,
+  },
+]// Runs the statements against DATABASE_URL. Uses node-postgres because the Supabase JS
 // client speaks PostgREST, which cannot execute DDL.
 //
 // The first attempt failed with `connect ENETUNREACH …:5432` against an IPv6 address:
@@ -5620,6 +6535,17 @@ export type MigrationRunResult = {
   host: string
   usedFallback: boolean
   hint?: string
+  /**
+   * ⚑ XC-3 — HOW MANY OUTCOMES REACHED THE LEDGER, and why any did not.
+   *
+   * 🛑 A RUN THAT APPLIED BUT RECORDED NOTHING IS NOT A CLEAN RUN, and before this it looked
+   * identical to one that did. The runner replays every key on every run, so the response's
+   * `results` array is a TRANSCRIPT, not state: close the screen and the knowledge is gone.
+   * These two fields are what let the operator tell "74 applied and recorded" from "74
+   * applied and the ledger is not there", which need different actions.
+   */
+  ledgerRecorded: number
+  ledgerNote: string | null
 }
 
 export async function runPendingMigrations(passwordOverride?: string | null): Promise<MigrationRunResult> {
@@ -5686,22 +6612,50 @@ export async function runPendingMigrations(passwordOverride?: string | null): Pr
   const usedFallback = working !== url
   const results: { key: string; ok: boolean; error?: string }[] = []
 
+  // ── ⚑ 17 Sep (XC-3) — EVERY OUTCOME IS RECORDED AS IT HAPPENS ──────────────────────────
+  //
+  // 🛑 THE RUN IS LONGER THAN THE PROXY'S BOUND. 74 keys, each on its own connection, is
+  // minutes; `apps/admin/.../proxy` aborts at 45s and the operator saw "API unreachable"
+  // about a run that was working perfectly, with no way to see how far it had got. Writing
+  // the ledger row INSIDE the loop is what turns that into observable progress: the run
+  // continues server-side and `GET /operator/migrations/state` shows exactly which keys have
+  // landed so far, read from the database rather than from a response nobody received.
+  //
+  // ⚠️ A LEDGER FAILURE NEVER FAILS A MIGRATION, AND IS NEVER SILENT. It is counted, the
+  // first reason is kept, and both travel back in the result.
+  const { recordMigrationOutcome } = await import('./migration-ledger')
+  let ledgerRecorded = 0
+  let ledgerNote: string | null = null
+
   for (const m of PENDING_MIGRATIONS) {
     // A fresh connection per migration so one failure cannot poison the next.
     const client = new Client({ connectionString: working, ssl: { rejectUnauthorized: false }, connectionTimeoutMillis: 8000 })
+    let outcome: { ok: boolean; error?: string }
     try {
       await client.connect()
       await client.query(m.sql)
-      results.push({ key: m.key, ok: true })
+      outcome = { ok: true }
     } catch (e) {
-      results.push({ key: m.key, ok: false, error: e instanceof Error ? e.message : String(e) })
-    } finally {
-      await client.end().catch(() => {})
+      outcome = { ok: false, error: e instanceof Error ? e.message : String(e) }
     }
+    results.push({ key: m.key, ...outcome })
+
+    // ⚠️ RECORDED ON THE SAME CONNECTION THE MIGRATION RAN ON, while it is still open. A
+    // second connection could succeed where the migration's had failed, and then the ledger
+    // would be claiming a result for work that never reached this database.
+    try {
+      const rec = await recordMigrationOutcome(client, m.key, outcome.ok, outcome.error)
+      if (rec.recorded) ledgerRecorded++
+      else if (!ledgerNote) ledgerNote = `Outcomes were NOT recorded: ${rec.reason}. The migrations above did run — this is a ledger problem, not a migration one.`
+    } catch { /* the guard above already never throws; this is belt and braces */ }
+
+    await client.end().catch(() => {})
   }
 
   return {
     results,
+    ledgerRecorded,
+    ledgerNote,
     host: safeHost(working),
     usedFallback,
     hint: usedFallback

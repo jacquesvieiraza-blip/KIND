@@ -16,6 +16,7 @@ import { Resend } from 'resend'
 import { computeChurnRisk } from './internal'
 import { suggestWinBack, adminKeyValid } from './admin'
 import { interpretSend } from '../lib/resend-checked'
+import { BACKGROUND_MODEL } from '../lib/models'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 const resend    = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
@@ -79,7 +80,7 @@ founderRouter.post('/support/inbound', async (req: Request, res: Response) => {
 
     // Classify the email
     const classifyRes = await anthropic.messages.create({
-      model:      'claude-haiku-4-5-20251001',
+      model:      BACKGROUND_MODEL,
       max_tokens: 200,
       messages: [{
         role: 'user',
@@ -114,7 +115,7 @@ Respond with JSON only: { "category": "billing|technical|sales|general", "urgenc
     }
     if (classification.can_auto_reply && mayEmail.ok) {
       const replyRes = await anthropic.messages.create({
-        model:      'claude-haiku-4-5-20251001',
+        model:      BACKGROUND_MODEL,
         max_tokens: 400,
         system: `You are K.I.N.D support. K.I.N.D is a B2B AI platform for lead generation and automated outreach (FIGSY). You answer support emails on behalf of the K.I.N.D team. Be helpful, warm, and concise. Sign off as "The K.I.N.D Team".`,
         messages: [{
@@ -207,7 +208,7 @@ Under 80 words. Output: SUBJECT: ...\nBODY: ...`,
     }
 
     const draftRes = await anthropic.messages.create({
-      model: 'claude-haiku-4-5-20251001', max_tokens: 400,
+      model: BACKGROUND_MODEL, max_tokens: 400,
       messages: [{ role: 'user', content: STEP_PROMPTS[step] }],
     })
     const draftText = (draftRes.content[0] as { type: string; text: string }).text
@@ -256,7 +257,7 @@ founderRouter.post('/ae/demo-request', async (req: Request, res: Response) => {
 
     // Claude drafts a personalised booking email
     const draftRes = await anthropic.messages.create({
-      model: 'claude-haiku-4-5-20251001', max_tokens: 500,
+      model: BACKGROUND_MODEL, max_tokens: 500,
       messages: [{
         role: 'user',
         content: `Draft a personalised demo booking email for a prospect who requested a demo of K.I.N.D.
@@ -396,7 +397,7 @@ The founder is currently on the "${screen || 'Cockpit'}" screen — bias your an
 Rules: be brief and practical (a few sentences or a short list). If you don't have live data, say what you'd check and where. Never invent specific numbers. Suggest the next concrete action.${retentionContext ? '\nWhen LIVE AT-RISK CLIENTS are listed below, this IS the retention playbook (#293): name the specific clients, cite their provided churn scores, and give each one its SAVE PLAY as the next action.' : ''}${retentionContext}`
 
     const response = await anthropic.messages.create({
-      model:      'claude-haiku-4-5-20251001',
+      model:      BACKGROUND_MODEL,
       max_tokens: 600,
       system,
       messages: messages.map(m => ({ role: m.role, content: m.content })),

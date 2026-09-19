@@ -639,9 +639,21 @@ describe('⑥ 1 · 4 · 5 · 23 · 27 · 29 · what the rest of the system is wi
     expect(block).toContain('p_programme_id: programmeIdForRun, p_requested: eligible,')
     // 🛑 ENTITLEMENT, NOT MONEY. `try_spend_sourcing` books $0.28 a head; a pool record is free,
     // and putting it through the money call is the exact conflation HOUSE-009 removed.
+  // ⛓️ RE-AIMED 17 Sep (XC-13 / FD-6) — the sourcing gate in `icps.ts` is now
+  // `try_reserve_programme_sourcing`, called DIRECTLY. `try_spend_sourcing` does two jobs in
+  // one body — programme AUTHORITY, and a `sourcing_ledger` row at $0.28 a PDL record — and
+  // under FD-6 the second is a fabricated cost: *"We are not paying for PDL."* HOUSE-009
+  // already split the two; this points the client path at the same half House uses. The
+  // INVARIANT asserted here is byte-identical; only the RPC's name changed.
     expect(block, 'pool volume is being booked as PDL provider cost').not.toContain('try_spend_sourcing')
-    // And the PDL money call still asks only for the provider remainder.
-    expect(ICPS).toContain('p_client_id: clientId, p_requested: pdlRemainder, p_programme_id: programmeId,')
+    expect(block, 'and the reservation is the authority half, not the money half').toContain('try_reserve_programme_sourcing')
+    // ⛓️ RE-AIMED 17 Sep (FD-6) — WAS: "the PDL money call still asks only for the provider
+    // remainder", anchored on `try_spend_sourcing`'s argument list. That call is gone: the
+    // client path reserves programme entitlement directly, exactly as House does, so there is
+    // no money call left to check. The RULE is unchanged and still asserted — the provider
+    // grant asks for `pdlRemainder` and never the whole cap — against the call that now
+    // makes it.
+    expect(ICPS).toContain('p_programme_id: programmeId, p_requested: pdlRemainder,')
   })
 
   it('🛑 BLOCKER 3 · the grant is taken BEFORE a pool row is written, and caps what is written', () => {
@@ -679,7 +691,11 @@ describe('⑥ 1 · 4 · 5 · 23 · 27 · 29 · what the rest of the system is wi
     }
     // A pool-only attempt still opens a batch — otherwise those candidates are orphaned.
     expect(ICPS).toContain('if (grantedSize + poolReserved > 0) {')
-    expect(ICPS).toContain('if (programmeId && grantedSize + poolReserved > 0) {')
+    // ⛓️ RE-AIMED 17 Sep (FD-6) — the client branch's guard lost its `programmeId &&` prefix
+    // because the branch is now only entered WITH a programme: an ICP without one mirrors the
+    // House path above and never reaches the reservation at all. The invariant is the same —
+    // a batch is opened only when there is volume to account for.
+    expect(ICPS).toContain('if (grantedSize + poolReserved > 0) {')
     // 🛑 AND THE THREE BRANCHES THAT NEVER REACH `openBatch` AT ALL. It lives inside
     // `pdlRemainder > 0`; a demo run, an exhausted cursor and a pool serve that filled the whole
     // target all skip it, which would leave reserved volume with no batch to settle it.

@@ -154,6 +154,11 @@ async function withMocks(sc: Scenario, rec: Rec) {
           // ⚠️ THE REAL RPC NEVER GRANTS MORE THAN WAS REQUESTED, so neither does this. A mock
           // that returns a flat number regardless would hide the very defect these tests exist
           // for: asking the provider for the TARGET after the pool already covered part of it.
+          // ⛓️ 17 Sep (XC-13 / FD-6) — the client sourcing gate is the programme AUTHORITY
+          // reserve now, not `try_spend_sourcing`: that function books a $0.28-a-record PDL cost
+          // we no longer incur. Both are answered here so the harness keeps working whichever
+          // path a case drives.
+          if (fn === 'try_reserve_programme_sourcing') return { data: Math.min(grant, Number(args.p_requested ?? grant)), error: null }
           if (fn === 'try_spend_sourcing') return { data: Math.min(grant, Number(args.p_requested ?? grant)), error: null }
           return { data: null, error: null }
         },
@@ -238,7 +243,8 @@ describe('① /lookalike/generate is Pool First', () => {
     // RED: delete the `selectPoolCandidates` call and the run buys all 50 — from_pool is 0.
     const { rec, res } = await runLookalike({ pool: Array.from({ length: 10 }, (_, i) => poolRow(i)), provider: [] })
     expect(res.body?.from_pool, 'owned inventory was served').toBe(10)
-    expect(rec.pdl[0], 'and the provider was asked for the shortfall, not the target').toBe(40)
+    // ⛓️ 17 Sep (FD-6) — the provider is Apollo, so the size is recorded in `rec.apollo`.
+    expect(rec.apollo[0], 'and the provider was asked for the shortfall, not the target').toBe(40)
   })
 
   it('2 — a FULL pool means the provider is never contacted at all', async () => {
@@ -257,9 +263,12 @@ describe('① /lookalike/generate is Pool First', () => {
   it('3 — a PARTIAL pool sends the provider the remainder and nothing more', async () => {
     // RED: pass LOOKALIKE_TARGET instead of `remainder` and this reads 50.
     const { rec } = await runLookalike({ pool: Array.from({ length: 18 }, (_, i) => poolRow(i)), provider: [] })
-    expect(rec.pdl[0]).toBe(32)
-    const grantCall = rec.rpc.find(r => r.fn === 'try_spend_sourcing')
-    expect(grantCall?.args.p_requested, 'and only the remainder is pre-funded — a pool row is free').toBe(32)
+    expect(rec.apollo[0]).toBe(32)
+    // ⛓️ RE-AIMED 17 Sep (FD-6) — there is no grant call on this route any more. The rule the
+    // second assertion guarded is UNCHANGED and is now carried entirely by the first one: a
+    // pool row is free, so only the remainder is ever asked of a provider. What is gone is
+    // the PDL money fence that used to pre-fund that remainder in a currency we no longer buy.
+    expect(rec.rpc.map(r => r.fn), 'the retired PDL fence must not be consulted').not.toContain('try_spend_sourcing')
   })
 
   it('4 — provider-acquired records are written back to lead_pool, tagged with the real provider', async () => {
@@ -358,7 +367,7 @@ describe('③ what the pool will and will not serve', () => {
         provider: [],
       })
       expect(res.body?.from_pool, 'stale inventory is still inventory').toBe(5)
-      expect(rec.pdl[0], 'and it still reduces what we buy').toBe(45)
+      expect(rec.apollo[0], 'and it still reduces what we buy').toBe(45)
       expect(logs.some(l => l.includes('stage=pool_stale')), 'the count is reported').toBe(true)
     } finally { spy.mockRestore() }
   })

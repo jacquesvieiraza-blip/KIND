@@ -338,7 +338,7 @@ Return ONLY valid JSON, no markdown, with EXACTLY ${plan.depth} steps:
 {${Array.from({ length: plan.depth }, (_, i) => `"step${i + 1}": {"subject": "...", "body": "..."}`).join(', ')}}`
 
   const message = await anthropic.messages.create({
-    model: 'claude-haiku-4-5-20251001',
+    model: BACKGROUND_MODEL,
     // 5 emails + JSON overhead no longer fit the old 1024 — a truncated response
     // here silently becomes a parse failure and a thrown enrolment.
     max_tokens: 2048,
@@ -421,7 +421,7 @@ Rules:
 Return ONLY valid JSON: {"classification": "...", "reasoning": "one sentence max"}`
 
   const message = await anthropic.messages.create({
-    model: 'claude-haiku-4-5-20251001',
+    model: BACKGROUND_MODEL,
     max_tokens: 150,
     messages: [{ role: 'user', content: prompt }],
   })
@@ -714,6 +714,59 @@ async function sendSequenceEmailCore(
     return 'deferred'
   }
 
+  // ══ 🛑 FD-5 · WE MAY ONLY EMAIL A VERIFIED BUSINESS ADDRESS (J20-C4 · LR 17) ═══════════
+  //
+  // *"Verified business email required before send; QUALIFIED ≠ SENDABLE."*
+  //
+  // ── WHY IT IS HERE, AND NOT ONLY AT THE ENROL GATE ──────────────────────────────────────
+  //
+  // J12-C3 made `campaignReadyLeadIds` ask `isSendable`, which stops the wrong people being
+  // ENROLLED from today onwards. It cannot touch the rows that are already enrolled and due —
+  // every enrollment created before that gate existed, and any lead reaching a send by a path
+  // the gate does not sit on. This function is the single chokepoint every real sequence-step
+  // send funnels through, exactly as the demo backstop and the opt-out net above say in their
+  // own words, so one check here covers all of them.
+  //
+  // 🛑 INDEPENDENT OF EVERY OTHER GATE, WHICH IS THE POINT OF THE ITEM. It asks no other
+  // question: not the kill-switch, not programme authority, not the review queue, not the
+  // caps, not whether anybody approved anything. A verified business address is a property of
+  // the PERSON, like the do-not-contact list and the opt-out blocklist directly below — and
+  // both of those are unconditional here for the same reason.
+  //
+  // ⚠️ NO PREVIEW EXEMPTION, AND THE CODE BELOW IS WHY. The provider call is
+  // `sendAs(sendingInbox, { to: lead.email, … })` on every path through this function,
+  // preview included — so a preview is not a send to somewhere else, it is a send to this
+  // person. The kill-switch reached the same conclusion about `isPreview` and says so.
+  //
+  // ⚠️ `deferred`, NOT `suppressed`. An unverified address can become verified: a later reveal
+  // stamps `email_status`, and the enrollment must still be due when it does. This is the
+  // launch-country hold's situation, not the opt-out list's — except that re-arming here is
+  // per-person and automatic, so leaving it due is the whole recovery path.
+  //
+  // ⚠️ AND IT FAILS CLOSED. `email_status` is not on the `Lead` the callers carry, so it is
+  // read here; a read we could not complete is not permission to email a stranger.
+  {
+    const { data: sendableRow, error: sendableErr } = await db.from('leads')
+      .select('email, email_status').eq('id', lead.id).maybeSingle()
+    if (sendableErr) {
+      console.error(`[figsy] sendSequenceEmail: could not read the sendable facts for lead ${lead.id} (step ${step}) — NOT sending (fail-closed):`, sendableErr.message)
+      return 'deferred'
+    }
+    const { notSendableReason, NOT_SENDABLE_COPY } = await import('./sendable')
+    const row = sendableRow as { email?: string | null; email_status?: string | null } | null
+    // 🛑 THE ROW WINS WHEREVER THERE IS ONE, BOTH FIELDS. The caller's `Lead` is whatever a
+    // cron loaded minutes ago; the row is what is true now. A row that says this person has no
+    // address must refuse even when the caller is holding one — and a row that is not there at
+    // all tells us nothing, so the status is `null` and the answer is the same refusal.
+    const why = row
+      ? notSendableReason({ email: row.email ?? null, email_status: row.email_status ?? null })
+      : notSendableReason({ email: lead.email, email_status: null })
+    if (why) {
+      console.warn(`[figsy] sendSequenceEmail: step ${step} to lead ${lead.id} DEFERRED — ${NOT_SENDABLE_COPY[why]} (FD-5).`)
+      return 'deferred'
+    }
+  }
+
   // #453 — DEMO BACKSTOP (safety-critical). This is the single chokepoint every real
   // sequence-step send funnels through (the three cron paths call it directly), so an
   // is_demo client can NEVER email a real prospect from here — even if a higher-level
@@ -728,7 +781,14 @@ async function sendSequenceEmailCore(
     // fires (defence-in-depth for a missed call site).
     let demoClientId: string | null | undefined = lead.client_id
     if (!demoClientId && enrollmentId) {
-      const { data: enr } = await db.from('figsy_enrollments').select('client_id').eq('id', enrollmentId).maybeSingle()
+      // ⚑ 18 Sep (XC-2 · LR 21) — a read we could not complete is not "no client". An
+      // unread client id makes `isDemoClient(null)` false, which opens the DEMO BACKSTOP —
+      // the guard whose entire job is that a demo account can never email a real prospect.
+      const { data: enr, error: enrErr } = await db.from('figsy_enrollments').select('client_id').eq('id', enrollmentId).maybeSingle()
+      if (enrErr) {
+        console.error(`[figsy] sendSequenceEmail: the enrolment's client could not be read (${enrErr.message}) — step ${step} DEFERRED, because the demo backstop cannot be evaluated without it.`)
+        return 'deferred'
+      }
       demoClientId = (enr?.client_id as string | null | undefined) ?? null
     }
     if (await isDemoClient(demoClientId)) {
@@ -761,8 +821,15 @@ async function sendSequenceEmailCore(
   // single matched enrollment opted_out, not every enrollment for that email.
   // HC-1 — probe with the NORMALISED address. `leads.email` is stored raw, the blocklist is
   // stored normalised, so an exact compare between the two is a coin toss on letter case.
-  const { data: blocked } = await db.from('opt_out_blocklist')
+  // ⚑ 18 Sep (XC-2 · LR 21) — 🛑 THE ONE WITH A LEGAL EDGE. This read discarded its error, so
+  // a database hiccup made `blocked` undefined and the send proceeded — to somebody who had
+  // told us to stop. An opt-out we could not check is not an opt-out we do not have.
+  const { data: blocked, error: blockedErr } = await db.from('opt_out_blocklist')
     .select('id').eq('email', normalizeRevealEmail(lead.email)).is('opted_back_in_at', null).maybeSingle()
+  if (blockedErr) {
+    console.error(`[figsy] sendSequenceEmail: the opt-out blocklist could not be read (${blockedErr.message}) — step ${step} DEFERRED rather than sent to somebody we cannot prove has not opted out.`)
+    return 'deferred'
+  }
   if (blocked) {
     console.warn(`[figsy] sendSequenceEmail: ${lead.email} is on the opt-out blocklist — step ${step} NOT sent; marking enrollment opted_out.`)
     await updateEnrollmentState(enrollmentId, { status: 'opted_out' },
@@ -903,12 +970,23 @@ async function sendSequenceEmailCore(
       // fall back to the enrollment's for a client-less caller (defence-in-depth).
       let queueClientId: string | null | undefined = lead.client_id
       if (!queueClientId && enrollmentId) {
-        const { data: enr } = await db.from('figsy_enrollments').select('client_id').eq('id', enrollmentId).maybeSingle()
+        // ⚑ 18 Sep (XC-2 · LR 21) — a queued draft with no client is a draft nobody's review
+        // screen lists. Reported, not guessed: the queue insert below still happens, because
+        // losing the step entirely is worse than a row an operator has to attribute.
+        const { data: enr, error: enrErr } = await db.from('figsy_enrollments').select('client_id').eq('id', enrollmentId).maybeSingle()
+        if (enrErr) console.error(`[figsy] review queue: the enrolment's client could not be read (${enrErr.message}) — the draft is queued with no client id and will not appear on their review screen.`)
         queueClientId = (enr?.client_id as string | null | undefined) ?? null
       }
       // Don't pile up duplicate drafts if this enrollment-step is already pending review.
-      const { data: dupe } = await db.from('figsy_approval_queue')
+      // ⚑ 18 Sep (XC-2 · LR 21) — an unread duplicate check is not "there is no duplicate".
+      // It made `dupe` undefined and queued a SECOND pending draft of the same step, which a
+      // client then reviews twice.
+      const { data: dupe, error: dupeErr } = await db.from('figsy_approval_queue')
         .select('id').eq('enrollment_id', enrollmentId).eq('sequence_step', step).eq('status', 'pending').maybeSingle()
+      if (dupeErr) {
+        console.error(`[figsy] review queue: the pending-draft check failed (${dupeErr.message}) — step ${step} DEFERRED rather than queued twice for one enrolment.`)
+        return 'deferred'
+      }
       if (!dupe) {
         const { error: qErr } = await db.from('figsy_approval_queue').insert({
           client_id:      queueClientId,
@@ -969,12 +1047,20 @@ async function sendSequenceEmailCore(
   // (no real enrollment row). Runs AFTER the defer guards above so a deferred send never
   // advances the step without sending. On send failure (#338) the claim is rolled back.
   if (!opts?.isPreview) {
-    const { data: claimed } = await db.from('figsy_enrollments')
+    const { data: claimed, error: claimErr } = await db.from('figsy_enrollments')
       .update({ current_step: step })
       .eq('id', enrollmentId)
       .eq('current_step', step - 1)
       .select('id')
       .maybeSingle()
+    // ⚑ 18 Sep (XC-2 · LR 21) — BOTH OUTCOMES DEFER, AND THEY ARE NOT THE SAME EVENT. An
+    // unclaimed step is the guard WORKING (another runner took it); a failed claim is a
+    // database we could not reach, and reading the second as the first hides a broken send
+    // path behind a line that says everything is fine.
+    if (claimErr) {
+      console.error(`[figsy] sendSequenceEmail: the atomic step claim FAILED for enrollment ${enrollmentId} step ${step} (${claimErr.message}) — nothing was claimed and nothing was sent.`)
+      return 'deferred'
+    }
     if (!claimed) {
       console.warn(`[figsy] sendSequenceEmail: step ${step} for enrollment ${enrollmentId} already claimed/advanced — skipping (no double-send)`)
       return 'deferred'
@@ -1027,7 +1113,7 @@ async function sendSequenceEmailCore(
   const sendingInbox = opts.inbox ?? resolved.inbox
 
   // Insert the DB record first so we have the emailId for the tracking pixel
-  const { data: emailRecord } = await db.from('figsy_sent_emails').insert({
+  const { data: emailRecord, error: emailRecordErr } = await db.from('figsy_sent_emails').insert({
     enrollment_id: enrollmentId,
     campaign_id:   campaignId,
     // #637 — WHOSE SEND IS THIS. Five surfaces read `figsy_sent_emails.client_id` — the
@@ -1045,6 +1131,22 @@ async function sendSequenceEmailCore(
   }).select('id').single()
 
   const emailId = (emailRecord as { id?: string } | null)?.id ?? null
+  if (emailRecordErr) {
+    console.error(`[figsy] sendSequenceEmail: the send-log insert failed for enrollment ${enrollmentId} step ${step}: ${emailRecordErr.message}`)
+  }
+  // ⚑ 18 Sep (XC-2 · LR 21) — 🛑 NO ROW, NO SEND, AND THE CLAIM GOES BACK.
+  //
+  // `figsy_sent_emails` is the send log every counter recomputes from — this file says so
+  // itself: *"the count IS the truth"*. An email sent with no row is a send nothing can count,
+  // whose step has already been CLAIMED, so the prospect never receives it again and no
+  // surface knows. Roll the claim back and defer, exactly as a failed send does below.
+  if (!emailId && !opts?.isPreview) {
+    console.error(`[figsy] sendSequenceEmail: the send-log row could not be written for enrollment ${enrollmentId} step ${step} — NOT sending, and the step claim is rolled back so a later run retries.`)
+    await db.from('figsy_enrollments')
+      .update({ current_step: step - 1, next_send_at: new Date().toISOString() })
+      .eq('id', enrollmentId)
+    return 'deferred'
+  }
 
   // resend is guaranteed configured here (deferred above otherwise).
   {
@@ -1551,7 +1653,7 @@ ${senderName ? `- Sign off as exactly "${senderName}". Do NOT invent or use any 
 Return ONLY valid JSON: {"subject": "...", "body": "..."}`
 
   const message = await anthropic.messages.create({
-    model: 'claude-haiku-4-5-20251001',
+    model: BACKGROUND_MODEL,
     max_tokens: 400,
     messages: [{ role: 'user', content: prompt }],
   })
@@ -2075,15 +2177,39 @@ Return ONLY valid JSON:
  * per-lead inside autoEnrollLead, and suppression + opt-out are re-checked at send time.
  */
 export async function campaignReadyLeadIds(clientId: string): Promise<string[]> {
-  // Filter in JS — PostgREST boolean + or/not combinations are error-prone and
-  // were silently returning 0. Lead volumes per client are small enough for this.
+  // ── 🛑 ⚑ 18 Sep (J12-C3 · FD-5) — SENDABLE IS A FACT, NOT A FLAG ────────────────────
+  //
+  // ⛓️ WAS: `(l.apollo_consented === true || l.status === 'consent_given')`.
+  //
+  // 🛑 `apollo_consented` IS UNRELIABLE IN TWO INDEPENDENT WAYS, and both are written down in
+  // this repository already:
+  //
+  //   ① At INSERT it is `email_status === 'verified' || email_status === 'likely_to_engage'`,
+  //      under a comment saying exactly what that costs — *"`likely_to_engage` is Apollo's
+  //      PREDICTION that an address will engage, not a verification that it exists. This is
+  //      the one write that sets the flag on a guess."* So a guessed address was enrolled.
+  //   ② At REVEAL, `lead-delivery.ts` patches `apollo_consented: true` UNCONDITIONALLY,
+  //      whatever status came back — so the flag this read depended on is forced true on
+  //      every revealed lead, including the ones the reveal proved unverified.
+  //
+  // And nothing here ever asked whether the address was a BUSINESS address. FD-5:
+  // *"Verified business email required before send."*
+  //
+  // ⚠️ THE STATUS IS WHAT THE PROVIDER SAID; THE FLAG IS WHAT WE SET. `leads.email_status` is
+  // written by both writers that reveal an address, so the fact is derived from the row.
+  //
+  // ⚠️ AND CONSENT DOES NOT SUBSTITUTE FOR AN ADDRESS WE HAVE VERIFIED. `consent_given` is a
+  // statement about permission; it is not evidence that the mailbox exists, and sending to an
+  // address nobody verified bounces whatever the client agreed to. FD-5 says required, with
+  // no exception stated, so it is required of everyone. The legitimate-interest basis in the
+  // note above is unchanged — what changed is the evidence it rests on.
   const { data } = await db.from('leads')
-    .select('id, apollo_consented, status')
+    .select('id, email, email_status, status')
     .eq('client_id', clientId)
+  const { isSendable } = await import('./sendable')
   return (data ?? [])
-    .filter((l: { apollo_consented?: boolean | null; status?: string | null }) =>
-      (l.apollo_consented === true || l.status === 'consent_given') &&
-      l.status !== 'opted_out' && l.status !== 'rejected')
+    .filter((l: { email?: string | null; email_status?: string | null; status?: string | null }) =>
+      isSendable(l) && l.status !== 'opted_out' && l.status !== 'rejected')
     .map((l: { id: string }) => l.id)
 }
 

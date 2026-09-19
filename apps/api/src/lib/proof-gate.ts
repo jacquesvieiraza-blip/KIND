@@ -48,7 +48,26 @@ export type GateOutcome =
   | { ok: false; reason: 'migration_required' | 'unreadable'; detail: string }
 
 /** The columns the judgement reads — all four hard criteria, and nothing else. */
-const CANDIDATE_COLUMNS = 'id, country, company_size, industry, job_title, seniority'
+// ⛓️ 18 Sep (J5-C12/J5-C13) — `company` AND `category_fit` JOIN THE SELECT, and `company`'s
+// absence was a real gap rather than an omission. `evidenceWords` reads the industry tag and
+// the company NAME; with only the tag available, `categoryVerdict`, `companyTypeVerdict` and
+// J5-C12's `excluded` were judging on one field — and the company name is where an
+// organisational form ("Northgate Consultancy") and an exclusion ("Apex Recruitment") most
+// often actually appear. `category_fit` joins them so the gate can read the model's verdict on
+// a RE-run, when one has been recorded.
+//
+// ⚠️ `company_description` IS DELIBERATELY ABSENT. `FitCandidate` declares it and
+// `evidenceWords` reads it, but `leads.company_description` DOES NOT EXIST — no migration
+// creates it and nothing writes it. Selecting a column that is not there makes PostgREST
+// reject the whole query, which `.data ?? []` renders as an empty result: the gate would have
+// gone silent rather than failed. Caught by `schema-truth.test.ts`. Reported, not invented:
+// adding a column nothing populates would be dead schema pretending to be evidence.
+//
+// ⚠️ ON A FIRST RUN THE GATE STILL PRECEDES SCORING, so `category_fit` is null and the
+// structural rule answers alone — which is unchanged behaviour and is why FD-2's model
+// judgement lands on the DESK BAND, the surface its runtime proof names.
+const CANDIDATE_COLUMNS =
+  'id, country, company_size, industry, job_title, seniority, company, category_fit'
 
 /**
  * Is `leads.set_aside_reason` there?

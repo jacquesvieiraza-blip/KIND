@@ -216,9 +216,28 @@ describe('Ⓓ · it is a SYSTEM exception, and stays one', () => {
   })
 
   it('the reader is a READ — the whole facts file writes nothing at all', () => {
+    // ⛓️ TIGHTENED 18 Sep (J12-C1) · THE PROPERTY IS UNCHANGED; THE PATTERN NOW MATCHES THE
+    // SEAM IT MEANS.
+    // WHAT THIS REPLACED: ~~`.not.toMatch(/\.(insert|upsert|update|delete)\(/)`~~ — a ban on
+    // those four words anywhere in the file, which also caught `someMap.delete(key)`. J12-C1
+    // batches the continuation's `automatic_work` rows into the board and clears a superseded
+    // refusal from a local `Map`, and the old pattern failed on it: a red light for a line that
+    // touches no database at all.
+    //
+    // 🛑 AND THE NEW PATTERN IS STRICTLY STRONGER, not a relaxation. It reads every `db.from(`
+    // in the file and refuses a write verb in its chain, so it now also names WHICH table a
+    // write appeared on — whereas the old one could be satisfied by spelling a real write
+    // `db.from(t)['upsert'](…)`. Every DB call in this file is a `db.from(…).…` chain.
     const src = facts()
+    const writes: string[] = []
+    for (const m of src.matchAll(/db\s*\.\s*from\(([^)]*)\)([\s\S]{0,400}?)(?=\bdb\s*\.\s*from\(|$)/g)) {
+      const verb = /\.\s*(insert|upsert|update|delete)\s*\(/.exec(m[2])
+      if (verb) writes.push(`${m[1].trim()} → .${verb[1]}()`)
+    }
+    expect(writes, 'the lifecycle facts gatherer has grown a write').toEqual([])
+    // The broad ban is kept for the three verbs that have no innocent local-collection twin.
     expect(src, 'the lifecycle facts gatherer has grown a write')
-      .not.toMatch(/\.(insert|upsert|update|delete)\(/)
+      .not.toMatch(/\.(insert|upsert)\(/)
   })
 
   it('and the two reasons remain separately nameable', () => {

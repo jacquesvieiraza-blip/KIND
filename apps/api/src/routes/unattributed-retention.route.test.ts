@@ -31,9 +31,17 @@ const state = {
 
 function query(table: string) {
   const q: Record<string, unknown> = {}
-  for (const m of ['select', 'eq', 'in', 'not', 'is', 'neq', 'order', 'limit', 'gte', 'ilike']) q[m] = () => q
+  for (const m of ['select', 'eq', 'in', 'not', 'is', 'neq', 'order', 'limit', 'gte']) q[m] = () => q
+  // ⛓️ 18 Sep (J22-C3) — THE LOOKUP IS CASE-INSENSITIVE NOW, AND IT RE-CHECKS EACH ROW FOR
+  // EXACT EQUALITY. So the fake table has to answer with the address it was ASKED for —
+  // this file posts a Resend payload and a Smartlead payload from two different senders
+  // against one `leadMatches` fixture, and a row carrying neither address is filtered out.
+  let asked = ''
+  q.ilike = (_col: string, pattern: string) => { asked = String(pattern).replace(/\\([\\%_])/g, '$1'); return q }
   q.then = (resolve: (v: unknown) => void) => {
-    if (table === 'leads') return resolve({ data: state.leadMatches, error: null })
+    if (table === 'leads') {
+      return resolve({ data: state.leadMatches.map(r => ({ ...r, email: r.email ?? asked })), error: null })
+    }
     if (table === 'figsy_sent_emails') {
       return resolve({ data: state.sentLeadIds.map(id => ({ lead_id: id })), error: null })
     }

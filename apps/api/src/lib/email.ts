@@ -417,7 +417,10 @@ export async function sendWelcomeEmail(
         : 'The welcome email now renders differently from the first attempt, so the idempotency key can no longer protect a retry.',
       'NOTHING has been sent automatically and nothing will be. Their claim is deliberately NOT released, so no duplicate can be created.',
       'ACTION: Vida -> Command Centre -> System -> unresolved welcome emails. Check the Resend log for this client, then send it by hand if it never arrived.',
-    ]).catch(() => {})
+    // ⚑ 18 Sep (J2-C1) — AND THE TASK IS ATTACHED TO THIS CLIENT. Without it the row carried
+    // `client_id: null`, so the one screen an operator opens when working this exact client
+    // showed nothing and the id survived only inside the prose above.
+    ], { clientId, subjectKind: 'client', subjectId: clientId }).catch(() => {})
     return
   }
 

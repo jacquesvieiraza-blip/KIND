@@ -289,11 +289,31 @@ describe('🛑 ⑥ Milla\'s words — founder-locked, and no SLA', () => {
   })
 })
 
-describe('⑦ the six reasons are the founder\'s six', () => {
-  it('exactly these, in this order', () => {
+// ⛓️ 18 Sep (MVP1 · J6-C4 · LR 6) — ~~"the six reasons are the founder's six"~~.
+//
+// 🛑 THIS FILE HELD THE COPY THAT WAS WRONG. `lead-feedback.ts` has declared SEVEN chips since
+// 21 Aug — "exactly as the founder listed them" — the database CHECK accepts seven, and the
+// Milla card renders seven. This list had six, and the missing one was `bad_timing`.
+//
+// So a client tapped "Bad timing", the route stored it, the CHECK accepted it, and then
+// `readAttempts` asked THIS list whether it was a reason, was told no, and wrote it down as
+// `other`. Vida showed an operator a reason the client never gave, and `whatChangedSentence`
+// could not name the thing they actually said.
+//
+// ⚠️ THE SEVEN ARE THE SUPERSET AND THE DATABASE ALREADY STORES THEM, so this is the six
+// CORRECTED rather than the seven narrowed — narrowing would make a value already in
+// production unreadable. There is now ONE list, in `@kind/shared`, and both names alias it.
+describe('⑦ the reasons are the one shared list', () => {
+  it('exactly these, in this order — and `bad_timing` is among them', () => {
     expect([...PROOF_REASON_CODES]).toEqual([
-      'wrong_industry', 'wrong_role', 'too_big', 'too_small', 'wrong_geography', 'other',
+      'too_big', 'too_small', 'wrong_industry', 'wrong_role', 'wrong_geography', 'bad_timing', 'other',
     ])
+  })
+
+  it('🛑 IT IS THE SAME OBJECT as the API-side list, not a copy that agrees today', async () => {
+    const { REASON_CODES, REASON_LABELS } = await import('./lead-feedback')
+    expect(PROOF_REASON_CODES).toBe(REASON_CODES)
+    expect(PROOF_REASON_LABELS).toBe(REASON_LABELS)
   })
 
   it('each has a client-facing label', () => {
@@ -302,6 +322,7 @@ describe('⑦ the six reasons are the founder\'s six', () => {
     }
     expect(PROOF_REASON_LABELS.wrong_industry).toBe('Wrong industry')
     expect(PROOF_REASON_LABELS.too_big).toBe('Too big')
+    expect(PROOF_REASON_LABELS.bad_timing).toBe('Bad timing')
   })
 })
 

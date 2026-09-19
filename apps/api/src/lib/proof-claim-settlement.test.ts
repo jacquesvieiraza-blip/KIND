@@ -100,10 +100,17 @@ describe('every terminal exit of runIcpJob names its settlement', () => {
     .split('\n')
     .filter(l => /^\s{2,8}return \{/.test(l))
 
-  it('there are exactly four object-literal returns (the four terminal exits)', () => {
+  it('there are exactly five object-literal returns (the five terminal exits)', () => {
     // ① funded-account refusal · ② no-budget refusal · ③ structural gate · ④ the ordinary end.
-    // If this number moves, a new exit was added and the next assertion is what checks it.
-    expect(objectReturns.length).toBe(4)
+    // ⛓️ 4 → 5 on 18 Sep (J5-C7): +1 EXIT — ⑤ the UNREADABLE FUNDING refusal in the proofMode
+    // branch. That branch used to read `credit_transactions` with the error destructured away,
+    // so a blip answered "not funded" and the run sourced against an account it could not
+    // classify — mixing the two budgets AR18 rules separate. It now exits terminally with
+    // `failed` and no provider call, so the pass comes back through `terminalForRunStatus`.
+    // The status space is unchanged; only the number of places that reach it moved.
+    //
+    // If this number moves again, a new exit was added and the next assertion is what checks it.
+    expect(objectReturns.length).toBe(5)
   })
 
   it('🛑 EVERY ONE of them carries a `terminal:` decision', () => {
@@ -132,8 +139,26 @@ describe('every terminal exit of runIcpJob names its settlement', () => {
 describe('the proof route settles from BOTH the resolved and the rejected path', () => {
   const route = ICPS.slice(ICPS.indexOf("icpRouter.post('/:id/proof'"))
 
+  // ⛓️ 18 Sep (J5-C1) — THE WINDOW BECAME A SLICE, and the assertion got STRONGER for it.
+  //
+  // ~~`toMatch(/\.then\(async r => \{[\s\S]{0,400}settleProofClaim\(claimId, r\.terminal/)`~~
+  //
+  // That 400-character window was a PROXIMITY GUESS standing in for the real rule: the
+  // resolved path must settle from the run's OWN terminal result, and never from the crash
+  // path. J5-C1 gave the run a server owner, so ~20 lines of `automatic_work` bookkeeping now
+  // sit between the two — and the guarantee was untouched while the magic number failed.
+  //
+  // ⚠️ A DISTANCE IS NOT A RELATIONSHIP. Widening the number to 900 would only move the next
+  // false failure, and a number nobody can justify is a number the next person deletes. The
+  // assertion now slices the ACTUAL `.then` block (up to `.catch`) and requires the settle
+  // inside it — which also proves what the window only implied: that this settle is not the
+  // `.catch`'s. Teeth kept, guess removed.
   it('`.then` settles from the run’s own terminal result', () => {
-    expect(route).toMatch(/\.then\(async r => \{[\s\S]{0,400}settleProofClaim\(claimId, r\.terminal/)
+    const thenBlock = route.slice(route.indexOf('.then(async r => {'), route.indexOf('.catch(async e =>'))
+    expect(thenBlock.length, 'the .then block could not be located').toBeGreaterThan(0)
+    expect(thenBlock).toMatch(/settleProofClaim\(claimId, r\.terminal/)
+    // …and the crash path's settle is NOT what satisfied it.
+    expect(thenBlock).not.toMatch(/'run_threw'/)
   })
 
   it('`.catch` releases — a throw is provider/infrastructure failure', () => {

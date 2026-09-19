@@ -1,6 +1,25 @@
 import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest'
 import { isRealEmail, normalizeDomain, resolveDomain, waterfallEnrich } from './enrichment'
 
+// ── ⛓️ 17 Sep (FD-6 / FD-5) — THE PROVIDERS THE WATERFALL CASES EXERCISE ARE RETIRED ──
+//
+// `retired-providers.ts` refuses PDL, Hunter and Clearbit in CODE rather than by a key
+// check, so `waterfallEnrich` stands down before any request. That is MVP1's behaviour and
+// it is asserted at the bottom of this file, WITHOUT this mock.
+//
+// ⚠️ THE MOCK KEEPS THE COVERAGE, IT DOES NOT WEAKEN THE FENCE. What these cases prove is
+// the #243/#244 depth fix — a boolean `work_email` is not an email, Hunter needs a REAL
+// domain, and the order of the stages matters. That knowledge is what a future approved
+// provider inherits, so deleting the cases would delete it. Mocking a module in a test is
+// not a production bypass: no runtime path changes the fence, which the un-mocked block
+// below is there to prove.
+vi.mock('./retired-providers', async (orig) => {
+  const actual = (await orig()) as Record<string, unknown>
+  // BOTH exports must be stubbed: `refuseRetiredProvider` is what each stage asks, and
+  // `providerRetired` is what the waterfall asks before doing preparatory work for a stage.
+  return { ...actual, refuseRetiredProvider: () => false as unknown as true, providerRetired: () => false }
+})
+
 // ── Pure-guard tests (the 244 bug) ───────────────────────────────────────────
 describe('isRealEmail — guards the PDL free-tier boolean', () => {
   it('rejects PDL boolean work_email (the 244 bug: work_email = true)', () => {
@@ -108,5 +127,38 @@ describe('waterfallEnrich — email-reveal (item 243)', () => {
     })
     const out = await waterfallEnrich({ first_name: 'Jill', last_name: 'Marais', company: 'Rivonia Premier Lodge', email: null, linkedin_url: null, domain: null })
     expect(out.email).toBeUndefined()  // NOT `true` — the bug is dead
+  })
+})
+
+// ── ⛓️ 17 Sep — THE REAL FENCE, UNMOCKED ────────────────────────────────────────────
+describe('FD-6 / FD-5 · with the real retired-providers module, nothing is called', () => {
+  it('returns no source and issues no request, with all three keys set', async () => {
+    vi.doUnmock('./retired-providers')
+    vi.resetModules()
+    const prev = { ...process.env }
+    const urls: string[] = []
+    vi.stubGlobal('fetch', async (u: unknown) => {
+      urls.push(String(u))
+      return { ok: true, status: 200, json: async () => ({}) } as never
+    })
+    process.env.PDL_API_KEY = 'pdl-key'
+    process.env.HUNTER_API_KEY = 'hunter-key'
+    process.env.CLEARBIT_API_KEY = 'clearbit-key'
+    try {
+      const { waterfallEnrich: real } = await import('./enrichment')
+      const out = await real({ first_name: 'Dave', last_name: 'Ungerer', company: 'SimplePay', email: null, linkedin_url: null, domain: null })
+      expect(out.source).toBe('none')
+      expect(out.email).toBeUndefined()
+      // 🛑 A key being present must not re-enable a retired provider.
+      for (const u of urls) {
+        expect(u).not.toContain('peopledatalabs')
+        expect(u).not.toContain('hunter.io')
+        expect(u).not.toContain('clearbit')
+      }
+    } finally {
+      process.env = prev
+      vi.unstubAllGlobals()
+      vi.resetModules()
+    }
   })
 })

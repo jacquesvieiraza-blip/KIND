@@ -67,7 +67,10 @@ type Klass = 'MILLA' | 'VIDA' | 'OTHER'
 const MODEL_CALLS: Array<{ file: string; line: number; surface: string; klass: Klass }> = [
   // ── MILLA — the client's colleague ────────────────────────────────────────────────────
   { file: 'apps/api/src/lib/milla.ts',      line: 272,  surface: 'Milla desk chat — lib chat()',            klass: 'MILLA' },
-  { file: 'apps/api/src/routes/milla.ts',   line: 517,  surface: 'POST /milla/chat (stateless door)',       klass: 'MILLA' },
+  // ⛓️ 18 Sep (D-63) — ~~`{ routes/milla.ts, 517, 'POST /milla/chat (stateless door)', MILLA }`~~
+  // LEFT THIS INVENTORY BECAUSE THE DOOR LEFT THE PRODUCT. It is not reclassified and not
+  // silently dropped: the route is unmounted, so it makes no model call to classify. That it
+  // STAYS gone is asserted below rather than left to the absence of a row here.
   { file: 'apps/api/src/routes/icps.ts',    line: 2781, surface: 'POST /icps/chat-build (targeting)',       klass: 'MILLA' },
   { file: 'apps/api/src/routes/icps.ts',    line: 3995, surface: 'POST /icps/builder/chat (onboarding)',    klass: 'MILLA' },
   // ── VIDA — the operator's colleague ───────────────────────────────────────────────────
@@ -201,7 +204,9 @@ const ENTRY_POINTS: Array<{ route: string; file: string; who: string; store: str
   { route: "icpRouter.post('/builder/chat'",  file: 'apps/api/src/routes/icps.ts',     who: 'client — onboarding',       store: 'onboarding_brief_drafts (facts + conversation)' },
   { route: "icpRouter.post('/chat-build'",    file: 'apps/api/src/routes/icps.ts',     who: 'client — change targeting', store: 'reads onboarding_brief_drafts; proposes only' },
   { route: "millaRouter.post('/sessions/:sessionId/chat'", file: 'apps/api/src/routes/milla.ts', who: 'client — desk',    store: 'milla_sessions / milla_messages' },
-  { route: "millaRouter.post('/chat'",        file: 'apps/api/src/routes/milla.ts',    who: 'client — stateless door',   store: 'NONE — stateless' },
+  // ⛓️ 18 Sep (D-63) — ~~`{ "millaRouter.post('/chat'", routes/milla.ts, 'client — stateless
+  // door', 'NONE — stateless' }`~~ WAS THE ONE ENTRY POINT WHOSE STORE WAS "NONE", and that was
+  // the whole problem with it: a door a client types into that remembers nothing. Unmounted.
   { route: "operatorRouter.post('/command'",  file: 'apps/api/src/routes/operator.ts', who: 'operator — Vida',           store: 'vida_conversations (operator + client)' },
   { route: "operatorRouter.post('/icp/chat'", file: 'apps/api/src/routes/operator.ts', who: 'operator — Vida ICP',       store: 'vida_conversations' },
   { route: "operatorRouter.post('/ask'",      file: 'apps/api/src/routes/operator.ts', who: 'operator → client',         store: 'milla_messages (the client thread)' },

@@ -29,3 +29,17 @@ export * from './brief-facts'
 // Not a store, not an endpoint, not a second Milla: it hands the customer's words to the
 // canonical persisted conversation so they never retype because we changed the screen.
 export * from './milla-handoff'
+// ⚑ XC-4 (Batch 1) — ONE rule for "which commit is this build?", shared by the API, Milla,
+// Vida and the website. `/health` answered "unknown" on every deploy this repo ever made
+// because `railway up` injects no SHA and the `.deploy-stamp` ship.sh writes was never
+// read. Pure: no `fs` import, so both Next bundles still build.
+export * from './deployed-commit'
+// ⚑ J5-C14 (Batch 1) — how long a healthy Proof run may take, DERIVED from Apollo's worst
+// case and from a real request timeout. The old 240s was derived entirely from PDL's size
+// ladder and retry, and the worst case it measured did not exist: `searchPeople` had no
+// timeout at all, so "Apollo's worst case" was unbounded.
+export * from './proof-wait'
+// ⚑ 18 Sep (J6-C4 · LR 6) — the ONE reason-code list. Four copies existed and two of them
+// disagreed: "Bad timing" was stored by the API and read back as "Other" by the calibration
+// side, so an operator saw a reason the client never gave.
+export * from './lead-reason-codes'

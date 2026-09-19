@@ -26,21 +26,33 @@
 // logic where being wrong costs money on every run. The DB glue is `proof-calibration-io.ts`.
 // ═══════════════════════════════════════════════════════════════════════════════════════
 
-/** The reason codes a client may give per card. The founder's six, 10 Sep. */
-export const PROOF_REASON_CODES = [
-  'wrong_industry', 'wrong_role', 'too_big', 'too_small', 'wrong_geography', 'other',
-] as const
-export type ProofReasonCode = typeof PROOF_REASON_CODES[number]
-
-/** Client-facing labels, in the founder's words. */
-export const PROOF_REASON_LABELS: Record<ProofReasonCode, string> = {
-  wrong_industry: 'Wrong industry',
-  wrong_role: 'Wrong role',
-  too_big: 'Too big',
-  too_small: 'Too small',
-  wrong_geography: 'Wrong geography',
-  other: 'Other',
-}
+// ── ⛓️ 18 Sep (J6-C4 · LR 6) — ONE LIST, AND THIS COPY WAS THE ONE THAT WAS WRONG ────
+//
+// ⛓️ WAS: a six-item literal here — *"The founder's six, 10 Sep"* — beside a SEVEN-item
+// `REASON_CODES` in `lead-feedback.ts`. The missing one was `bad_timing`.
+//
+// 🛑 SO THE CLIENT'S OWN ANSWER WAS ERASED IN THE READ. The Milla card renders the chip, the
+// route stores it, the database CHECK accepts it — and then `readAttempts` asks THIS list
+// whether `bad_timing` is a reason, is told no, and records it as `other`:
+//
+//     const code: ProofReasonCode = isReason(f.reason_code) ? f.reason_code : 'other'
+//
+// Vida's calibration evidence then showed an operator "Other" where the client had said "Bad
+// timing", and `whatChangedSentence` — the one line a person reads before phoning them about
+// it — could not name the thing they actually said.
+//
+// ⚠️ THE SEVEN ARE THE SUPERSET AND THE DATABASE ALREADY STORES THEM, so this is the six
+// CORRECTED rather than the seven narrowed: narrowing would make a value already in production
+// unreadable, which is the same defect pointing the other way.
+//
+// ⚠️ THE NAMES STAY so no caller moves. They are now aliases of the shared list, not a copy
+// that happens to agree with it today.
+export {
+  LEAD_REASON_CODES as PROOF_REASON_CODES,
+  LEAD_REASON_LABELS as PROOF_REASON_LABELS,
+} from '@kind/shared'
+export type { LeadReasonCode as ProofReasonCode } from '@kind/shared'
+import type { LeadReasonCode as ProofReasonCode } from '@kind/shared'
 
 /** What a client did to one card in a pass. */
 export type CardVerdict = 'looks_right' | 'not_a_fit'
@@ -102,14 +114,43 @@ export const NEEDS_FEEDBACK_HINT =
   "Mark one or two that aren't right first, so I know what to change."
 
 /**
- * May the client ask for an improved set right now?
+ * ── 🛑 ⚑ 18 Sep (J6-C3 · PV 02) — THE SET-LEVEL VERDICT, WITH ITS REASON ────────────────
  *
- * ⚠️ THREE CONDITIONS, ALL NECESSARY: they are on pass 1 (not 2, not 0), they have said
- * something usable, and the loop is not already closed. Every one of them is a spend gate.
+ * `mayRequestStrongerSet` answers a BOOLEAN about a SET, and that answer is the one spend gate
+ * between a client and their second automatic attempt. It was computed, used and thrown away:
+ * nothing recorded WHY a second set was unlocked, or why it was refused, at the moment the
+ * client was looking at the screen — so nobody could answer either question afterwards, and
+ * Vida could not answer them at all (no operator route reads calibration).
+ *
+ * ⚠️ THE BOOLEAN IS UNCHANGED AND STAYS THE GATE. This states the same decision with the
+ * cause attached, so a recorded verdict and a live one can never disagree: there is one
+ * function, and the record is a historical EVENT rather than a second copy of a live answer.
  */
-export function mayRequestStrongerSet(s: CalibrationState): boolean {
-  if (s.escalated) return false
-  if (s.passesDone !== 1) return false
+export type StrongerSetVerdict = {
+  unlocked: boolean
+  /** Machine-readable, stable, and the thing an operator or a log can be keyed on. */
+  because:
+    | 'per_card_feedback'      // they marked cards with a reason or a note
+    | 'confirmed_refinement'   // they confirmed a targeting change, which IS the instruction
+    | 'no_usable_feedback'     // nothing said that could shape the next attempt
+    | 'refinement_in_flight'   // a proposal is waiting on their word
+    | 'not_on_pass_one'        // 0 sets, or both automatic attempts already used
+    | 'escalated'              // the loop is closed; a person has it
+}
+
+/** Founder-plain, operator-facing. Never shown to a client — Milla has her own copy. */
+export const STRONGER_SET_REASON_COPY: Record<StrongerSetVerdict['because'], string> = {
+  per_card_feedback:    'They marked cards with a reason or a note, so the next attempt has something to change.',
+  confirmed_refinement: 'They confirmed a targeting change, which is the instruction itself.',
+  no_usable_feedback:   'Nothing they have said yet could shape a second attempt — no reason and no note.',
+  refinement_in_flight: 'A targeting proposal is waiting on their word; sourcing would spend their last automatic attempt on our reading of it.',
+  not_on_pass_one:      'They are not between the two automatic attempts — either no set exists yet, or both are used.',
+  escalated:            'The automatic loop is closed and a person has this client.',
+}
+
+export function strongerSetVerdict(s: CalibrationState): StrongerSetVerdict {
+  if (s.escalated) return { unlocked: false, because: 'escalated' }
+  if (s.passesDone !== 1) return { unlocked: false, because: 'not_on_pass_one' }
   // ── 🛑 ⚑ 11 Sep (C23) — AN INTERPRETED REFINEMENT IS NOT A MANDATE TO SPEND ──────────
   //
   // Attempt 2 is real paid sourcing against a target the client is supposed to have
@@ -117,11 +158,27 @@ export function mayRequestStrongerSet(s: CalibrationState): boolean {
   // would spend their second and last automatic attempt on the model's reading of a sentence.
   // A proposal in flight therefore CLOSES this door rather than leaving it where it was.
   const r = s.refinement ?? null
-  if (r && r.proposedAt && !r.confirmedAt) return false
+  if (r && r.proposedAt && !r.confirmedAt) return { unlocked: false, because: 'refinement_in_flight' }
   // A confirmed refinement is itself the instruction — the client does not also have to mark
   // cards. Per-card feedback remains sufficient on its own, exactly as before.
-  if (r?.confirmedAt) return true
+  if (r?.confirmedAt) return { unlocked: true, because: 'confirmed_refinement' }
   return hasMeaningfulFeedback(automaticAttempt(s, 1) ?? null)
+    ? { unlocked: true, because: 'per_card_feedback' }
+    : { unlocked: false, because: 'no_usable_feedback' }
+}
+
+/**
+ * May the client ask for an improved set right now?
+ *
+ * ⚠️ THREE CONDITIONS, ALL NECESSARY: they are on pass 1 (not 2, not 0), they have said
+ * something usable, and the loop is not already closed. Every one of them is a spend gate.
+ *
+ * ⛓️ 18 Sep (J6-C3) — the conditions now live in `strongerSetVerdict`, which answers the same
+ * question WITH its reason. This is kept as the name every caller already uses, and delegates
+ * rather than restating: two copies of a spend gate is one copy too many.
+ */
+export function mayRequestStrongerSet(s: CalibrationState): boolean {
+  return strongerSetVerdict(s).unlocked
 }
 
 /** Everything the decision needs. All of it already exists somewhere canonical. */
@@ -550,6 +607,13 @@ const CHANGE_OF: Record<ProofReasonCode, string> = {
   too_big: 'brought the company size down',
   too_small: 'raised the company size',
   wrong_geography: 'tightened where we look',
+  // ⚡ 18 Sep (J6-C4) — `bad_timing` JOINS THE MAP, because it is a real chip the client has
+  // always been able to tap; it was simply unreadable on this side (see the note at the top).
+  //
+  // ⚠️ AND ITS VERB IS HONEST ABOUT WHAT WE CAN DO. "Bad timing" is not a targeting fault —
+  // the company may be exactly right and this may be the wrong month — so the sentence must
+  // not claim we narrowed anything on the strength of it.
+  bad_timing: 'noted that the timing was wrong for them',
   other: 'adjusted the targeting',
 }
 

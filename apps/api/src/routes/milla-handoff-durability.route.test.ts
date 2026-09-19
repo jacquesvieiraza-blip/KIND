@@ -565,11 +565,25 @@ describe('the exactly-once primitive is the real table, not the test double', ()
   it('the route derives the reply row id from the customer row id, and supplies both', () => {
     // Behaviour is proven above; this pins the MECHANISM so a refactor to random ids is
     // visible rather than silently reintroducing the duplicate-reply case.
-    const src = read('apps/api/src/routes/milla.ts')
-    expect(src).toMatch(/function replyRowIdFor\s*\(/)
-    expect(src).toMatch(/const userRowId\s*=\s*messageId \?\? randomUUID\(\)/)
-    expect(src).toMatch(/const assistantRowId\s*=\s*replyRowIdFor\(userRowId\)/)
-    expect(src, 'the 23505 duplicate signal is no longer read as "already ours"')
+    //
+    // ⛓️ REPOINTED 18 Sep (J3-C2) · THE MECHANISM MOVED AND IS NOW SHARED.
+    // WHAT THIS REPLACED: the same four assertions read against `routes/milla.ts`, where the
+    // derivation, the id choice and the `23505` reading were all private to this one route.
+    // The Brief path had built the identical shape a day earlier, and that is precisely how a
+    // THIRD door (`/icps/chat-build`) came to be built with neither — J3-C2's defect. The rule
+    // now lives in `lib/customer-turn.ts` and both doors import it, so these assertions follow
+    // it there and the route is asserted to USE it rather than to re-implement it.
+    const rule = read('apps/api/src/lib/customer-turn.ts')
+    expect(rule).toMatch(/function replyRowIdFor\s*\(/)
+    expect(rule, 'the 23505 duplicate signal is no longer read as "already ours"')
       .toMatch(/code === '23505'/)
+    expect(rule, 'the reply id is no longer derived from the customer row id')
+      .toMatch(/replyRowIdFor\(input\.userRowId\)/)
+
+    const src = read('apps/api/src/routes/milla.ts')
+    expect(src, 'the session door stopped going through the shared rule').toMatch(/ownCustomerTurn/)
+    expect(src).toMatch(/userRowId:\s*messageId \?\? randomUUID\(\)/)
+    expect(src, 'the route grew a second private copy of the derivation')
+      .not.toMatch(/function replyRowIdFor\s*\(/)
   })
 })

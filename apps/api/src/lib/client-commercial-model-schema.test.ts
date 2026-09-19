@@ -208,9 +208,20 @@ describe('④ the runner entry, the canonical file and schema.sql all agree', ()
       'apps/api/src/lib/operator-audit.ts',
       // The batch read that fences the retired wallet emails.
       'apps/api/src/lib/programme-notifications.ts',
-      // The ONLY two writers: customer signup stamps 'programme'; Vida sets it by client id.
+      // The ONLY writers: customer signup stamps 'programme'; Vida sets it by client id.
       'apps/api/src/routes/auth.ts',
       'apps/api/src/routes/operator.ts',
+      // ⛓️ J4-C1 (17 Sep) — REVIEWED AND ADDED, which is what this allowlist is for.
+      // `lib/promotion.ts` is server-owned promotion: under MVP1 it is THE customer signup
+      // writer, replacing the browser's `/auth/onboard` leg. It stamps the same value signup
+      // has always stamped ('programme'), for the same reason, and reads the column to decide
+      // nothing.
+      //
+      // ⚠️ IT IS EXPLICIT ON PURPOSE. Letting the column default instead would have kept this
+      // file green while deciding how a client is CHARGED by omission — and a client created
+      // by promotion must be a programme client (R124 retired the per-lead model), not
+      // whatever a future default happens to be.
+      'apps/api/src/lib/promotion.ts',
       // The wallet endpoint, which reports whether the wallet governs this client at all.
       'apps/api/src/routes/credits.ts',
       // The retired /dashboard shell. Its ONE rule decides whether the wallet/credit chrome is

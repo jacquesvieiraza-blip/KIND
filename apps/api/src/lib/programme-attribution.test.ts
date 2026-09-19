@@ -197,7 +197,11 @@ async function build(opts: Opts, rec: Rec) {
         country: 'united kingdom', organization_name: 'Acme', organization: null,
       })),
       relaxed: null,
-      pdlPage: { contacts: [], scrollToken: null, exhausted: false, matchedNothing: false, error: null, completed: true },
+// ⛓️ 17 Sep (FD-6) — `pdlPage` → `providerPage`, `scrollToken` → `cursor`. With one provider
+// the PDL-shaped names stopped describing anything: the page now carries Apollo's own
+// completed / exhausted / matchedNothing verdict, which the Apollo branch never reported
+// before (it returned null, so no client run could ever reach searchTrust = 'proven').
+      providerPage: { provider: 'apollo' as const, contacts: [], cursor: null, exhausted: false, matchedNothing: false, error: null, completed: true },
     }),
     ApolloCreditsExhaustedError: class extends Error {},
     ApolloRateLimitError: class extends Error {},

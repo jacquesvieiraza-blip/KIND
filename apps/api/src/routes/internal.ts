@@ -40,6 +40,7 @@ import {
   decideLapse, webhookSuspectLines, LAPSED_STATUS, LAPSED_FALLBACK, type LapseCandidate,
 } from '../lib/subscription-lapse'
 import { pickAbWinner, type VariantOutcome } from '../lib/ab-winner'
+import { BACKGROUND_MODEL } from '../lib/models'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
@@ -370,7 +371,7 @@ Write a 3-4 sentence check-in email that:
 Output only the email body. No subject line. No placeholders.`
 
     const message = await anthropic.messages.create({
-      model: 'claude-haiku-4-5-20251001',
+      model: BACKGROUND_MODEL,
       max_tokens: 300,
       messages: [{ role: 'user', content: prompt }],
     })
@@ -531,7 +532,7 @@ Write a 4-5 sentence founder digest that:
 Tone: honest, direct, no fluff. Like a trusted advisor, not a PR spin.`
 
     const message = await anthropic.messages.create({
-      model: 'claude-haiku-4-5-20251001',
+      model: BACKGROUND_MODEL,
       max_tokens: 400,
       messages: [{ role: 'user', content: prompt }],
     })
@@ -768,7 +769,7 @@ Write ${count} LinkedIn post drafts for K.I.N.D. Each post should:
 Separate posts with "---POST---".`
 
     const message = await anthropic.messages.create({
-      model:      'claude-haiku-4-5-20251001',
+      model:      BACKGROUND_MODEL,
       max_tokens: 1200,
       messages:   [{ role: 'user', content: prompt }],
     })
@@ -1658,10 +1659,31 @@ internalRouter.post('/clients/chase-unpaid', async (_req: Request, res: Response
       .select('client_id').in('client_id', ids).in('type', PAID_TX_TYPES)
     const paid = new Set((paidRows ?? []).map((r: { client_id: string }) => r.client_id))
 
+    // ── 🛑 ⚑ 18 Sep (XC-7 · R124 · LR 18) — THIS PUSH QUOTES THE RETIRED PACK ────────────
+    //
+    // The body below is interpolated from `PACK_PRICE_USD` and `PACK_LEADS` — the $299 pack
+    // and its first 100 approved leads — and it lands on a real person's PHONE, linking to a
+    // checkout. R124 (16 Sep, founder-locked): *"299/4 is gone. out. we are on the programme.
+    // all clients."*
+    //
+    // 🛑 AND A PROGRAMME CLIENT QUALIFIES FOR IT TODAY. The sweep selects everybody with an
+    // active ICP and no legacy `credit_transactions` row — which is every programme customer
+    // who has ever had targeting, because they never buy a pack. Their phone was the one
+    // surface the retired economics could still reach.
+    //
+    // ⚠️ ONE READ FOR THE WHOLE SWEEP, like the zero-credits job above: a per-client query
+    // inside the loop is the same decision made once per client, and a second copy of the
+    // rule is how two copies drift.
+    const chaseProgrammes = await programmeClientIds([...icpByClient.keys()])
+
     const now = Date.now()
     let reminded = 0
     for (const [cid, at] of icpByClient) {
       if (paid.has(cid)) continue
+      // ⚠️ `mayNotify` WITHHOLDS ON `null` — an unreadable programme table is not permission
+      // to quote a retired price at somebody. Same refusal as every other retired-wallet
+      // notification, from the same function, so there is one rule rather than two.
+      if (!mayNotify('zero_credits', { onProgramme: onProgramme(chaseProgrammes, cid) })) continue
       const days = Math.floor((now - new Date(at).getTime()) / 86_400_000)
       if (!REMIND_ON_DAYS.includes(days)) continue
       await sendPushToClient(cid, {
@@ -2572,10 +2594,16 @@ internalRouter.post('/figsy/ab-winner-check', async (_req: Request, res: Respons
 // it is safe to run repeatedly). Called hourly by cron.
 internalRouter.post('/figsy/rescore-stranded', async (_req: Request, res: Response) => {
   try {
+    // ⛓️ 18 Sep (J5-C8) — THE PATTERN IS DERIVED, NOT TYPED HERE.
+    // WHAT THIS REPLACED: ~~`.like('score_reasoning', 'SCORING_FAILED%')`~~ — a second,
+    // independent spelling of the marker `scoring-failure.ts` writes. Rewording the recorded
+    // sentence there would have unhooked this sweep silently, and this sweep is the only thing
+    // that ever retries a stranded lead. `SCORING_FAILED_LIKE` comes from the same constant.
+    const { SCORING_FAILED_LIKE } = await import('../lib/scoring-failure')
     const { data: stranded } = await db.from('leads')
       .select('id, icp_id')
       .is('score', null)
-      .like('score_reasoning', 'SCORING_FAILED%')
+      .like('score_reasoning', SCORING_FAILED_LIKE)
       .not('icp_id', 'is', null)
       .limit(500)
     if (!stranded || stranded.length === 0) {

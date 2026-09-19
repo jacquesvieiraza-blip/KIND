@@ -32,7 +32,11 @@ import { ValueCard, ProgressBar, Panel, StageRail, PreLiveState, ProgrammeHeader
 import { outreachHasRun } from '@/lib/programme-report'
 import { Users, MessageSquare, CalendarCheck } from 'lucide-react'
 
-type Outcomes = { replies_total: number; meetings_total: number; meetings_booked: number }
+// ⛓️ 18 Sep (J24-C1) — `number | null`. The server used to send 0 for a count it could not
+// read; it now sends `null`, and `ValueCard` has always rendered `null` as an em dash
+// ("`null` IS STILL A DASH … Every figure here distinguishes 'we could not read it' from
+// zero"). The type was the last place still claiming a number was always available.
+type Outcomes = { replies_total: number | null; meetings_total: number | null; meetings_booked: number | null }
 
 async function token(): Promise<string | undefined> {
   try { const { data } = await createClient().auth.getSession(); return data.session?.access_token } catch { return undefined }
@@ -120,7 +124,11 @@ export default function MillaAnalyticsPage() {
                 {p.progress.authorised > 0 && (
                   <ProgressBar label="People sourced" value={p.progress.delivered} max={p.progress.authorised} />
                 )}
-                {o !== null && p.progress.delivered > 0 && (
+                {/* ⛓️ 18 Sep (J24-C1) — `o.replies_total` MAY NOW BE `null` ON ITS OWN, and a
+                    bar drawn from a placeholder zero reads as "no replies" rather than as "we
+                    could not count them". A bar has no way to say unreadable, so it is simply
+                    not drawn — the same answer the whole-outcomes-null case already gave. */}
+                {o?.replies_total != null && p.progress.delivered > 0 && (
                   <ProgressBar label="Replies" value={o.replies_total} max={p.progress.delivered} color="bg-amber-400" />
                 )}
                 {p.progress.outcomesAchieved !== null && p.progress.delivered > 0 && (

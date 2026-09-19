@@ -197,7 +197,13 @@ describe('USAGE — PROGRAMME DELIVERY, NOT A SECOND BILLING PAGE', () => {
     // "the outreach is failing" when the truth is it has not been authorised.
     expect(USAGE).toContain('Outreach has not started, so there is no sending activity to show yet.')
     // …and being Live never manufactures a number: the counts still come from the read.
-    expect(USAGE).toMatch(/o === null \? '—'/)
+    // ⛓️ RE-POINTED 18 Sep (J24-C1) · THE DUTY IS UNCHANGED AND THE CHECK IS PER-FIELD NOW.
+    // WHAT THIS REPLACED: ~~`/o === null \? '—'/`~~ — it matched the WHOLE outcomes read
+    // failing, which was the only failure the page could express, because the server had
+    // already turned a single failed count into a confident `0`. Each count can now be `null`
+    // on its own, which is the ordinary case, and the em dash is asked per number.
+    expect(USAGE).toMatch(/o\?\.replies_total == null \? '—'/)
+    expect(USAGE).toMatch(/o\?\.meetings_total == null \? '—'/)
   })
 
   it('"0 of 0 authorised" is not shown as information', () => {

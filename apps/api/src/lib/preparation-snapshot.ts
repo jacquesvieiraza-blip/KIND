@@ -43,12 +43,18 @@ export interface PreparationSnapshot {
   /**
    * Bumped only if the CONTENT of the digest changes shape, which invalidates every hash.
    *
+   * ⛓️ 2 → 3 on 18 Sep (J13-C1 · FD-5): `sendable_count` joined the digest. Every hash frozen
+   * under v2 is stale by construction, which is again the intended outcome — a v2 freeze
+   * cannot prove how many of its prospects were reachable, and that is the number FD-5 makes
+   * the package state. `refreezeForReview` is what stops a mid-review programme being
+   * stranded by the bump.
+   *
    * ⛓️ 1 → 2 on 11 Sep (DAY 3): `meeting_target` joined the digest. Every hash frozen under v1
    * is therefore stale by construction, which is the correct and intended outcome — a v1 freeze
    * cannot prove what target it was taken against, and `refreezeForReview` exists so a
    * programme caught mid-review gets a new version rather than being stranded.
    */
-  v: 2
+  v: 3
   programme_id: string
   /**
    * ⚑ 11 Sep (DAY 3) — THE TARGET IS PART OF THE WORK, AND IT WAS NOT IN THE DIGEST.
@@ -91,6 +97,31 @@ export interface PreparationSnapshot {
   sender: string | null
   /** Sorted. Who would actually receive this. */
   enrolled_lead_ids: string[]
+  /**
+   * ── 🛑 ⚑ 18 Sep (J13-C1 · FD-5 · LR 13) — HOW MANY OF THEM WE MAY ACTUALLY EMAIL ──────
+   *
+   * FD-5: *"Verified business email required before send; QUALIFIED ≠ SENDABLE."* The package
+   * listed WHO would receive this and never said how many of them were reachable, so a client
+   * approved "40 prospects" when the number we could send to was eighteen. That is the single
+   * most consequential number on the screen they say yes to, and it was not on it.
+   *
+   * ⚠️ COUNTED FROM THE FACT, NEVER FROM A FLAG. `isSendable` reads `leads.email_status` —
+   * what the provider actually said — and the address itself. `apollo_consented` is set on a
+   * guess at insert and forced true at reveal (J12-C3), so a count taken from it would be a
+   * count of our own optimism.
+   *
+   * ⚠️ AND IT IS IN THE DIGEST, WHICH IS A DELIBERATE TRADE AND NOT AN OVERSIGHT. A reveal
+   * landing between the freeze and the approval moves this number without moving the
+   * enrolment set, so the hash changes and the freeze goes stale. That is the correct
+   * direction: "40 people, 18 reachable" and "40 people, 25 reachable" are different
+   * promises, and `refreezeForReview` exists precisely so a programme caught mid-review gets
+   * a new version rather than being stranded. The cost is more re-freezes; the alternative is
+   * a client approving a number that was true when nobody was looking.
+   *
+   * ⚠️ NULL WHEN IT COULD NOT BE COUNTED, never 0. A read failure that printed zero would tell
+   * a client nobody is reachable, which is a claim rather than an absence.
+   */
+  sendable_count: number | null
 }
 
 export type SnapshotResult =
@@ -171,8 +202,34 @@ export async function buildPreparationSnapshot(programmeId: string): Promise<Sna
     return { ok: false, degraded: `The sending mailbox for this client could not be checked (${err instanceof Error ? err.message : String(err)}).` }
   }
 
+  // ── ⚑ 18 Sep (J13-C1 · FD-5) — COUNT THE REACHABLE ONES, FROM THE FACT ───────────────
+  //
+  // ⚠️ OVER THE ENROLLED SET, because that is who the package says will receive this. Counting
+  // the batch instead would state a number about people this programme is not going to email.
+  //
+  // ⚠️ A FAILED READ IS `null`, NEVER 0, and it does NOT degrade the snapshot. The freeze must
+  // still be possible when one count could not be taken; what must not happen is a client
+  // reading "0 reachable" because a query failed.
+  let sendableCount: number | null = null
+  if (enrolledLeadIds.length === 0) {
+    sendableCount = 0
+  } else {
+    const { isSendable } = await import('./sendable')
+    let counted = 0
+    let unreadable = false
+    for (let i = 0; i < enrolledLeadIds.length; i += 500) {
+      const { data: rows, error: rowsErr } = await db.from('leads')
+        .select('id, email, email_status').in('id', enrolledLeadIds.slice(i, i + 500))
+      if (rowsErr) { unreadable = true; break }
+      for (const r of (rows ?? []) as { email?: string | null; email_status?: string | null }[]) {
+        if (isSendable(r)) counted++
+      }
+    }
+    sendableCount = unreadable ? null : counted
+  }
+
   const snapshot: PreparationSnapshot = {
-    v: 2,
+    v: 3,
     programme_id: programmeId,
     meeting_target: meetingTarget,
     batch_id: batchId,
@@ -184,6 +241,7 @@ export async function buildPreparationSnapshot(programmeId: string): Promise<Sna
     send_schedule: sendSchedule,
     sender,
     enrolled_lead_ids: enrolledLeadIds,
+    sendable_count: sendableCount,
   }
   return { ok: true, snapshot, hash: preparationHash(snapshot) }
 }

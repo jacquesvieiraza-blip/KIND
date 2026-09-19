@@ -73,7 +73,19 @@ export type SignupSubscriptionRow = {
   tier: 'starter'
   status: typeof SIGNUP_SUBSCRIPTION_STATUS
   billing_interval: 'monthly'
-  amount_usd: 0
+  // ⛓️ 18 Sep (P6 §8.2 · journey 1) — ~~`amount_usd: 0`~~ REMOVED, because the column does
+  // not exist. `20260525_fix_subscriptions_schema` DROPS `subscriptions.amount_usd`
+  // deliberately — "Live DB is missing amount_usd column" — and standardises on `amount_zar`,
+  // which that same migration gives a default and NOT NULL. The row shape here was written
+  // against `staging-schema.sql`, which still creates the column at line 40, so the two
+  // records of one table disagreed and the code followed the wrong one.
+  //
+  // 🛑 WHAT IT COST: PostgREST answered PGRST204 ("Could not find the 'amount_usd' column of
+  // 'subscriptions' in the schema cache"), `/auth/onboard` returned HTTP 500 — and it did so
+  // AFTER creating the client row, so a brand-new account was left half-made with no
+  // entitlement row and an error on screen. Found by walking journey 1 against a database
+  // built from this repo's own replay; every unit test passes either way, because a mocked
+  // client accepts any column name.
   amount_zar: 0
   /**
    * NULL on purpose. A trial end date on a row that is not a trial is the field that fed the
@@ -101,7 +113,6 @@ export function signupSubscriptionRow(clientId: string, nowIso: string): SignupS
     tier: 'starter',
     status: SIGNUP_SUBSCRIPTION_STATUS,
     billing_interval: 'monthly',
-    amount_usd: 0,
     amount_zar: 0,
     trial_ends_at: null,
     current_period_start: nowIso,

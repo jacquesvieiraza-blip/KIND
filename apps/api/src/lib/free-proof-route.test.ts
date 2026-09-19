@@ -39,8 +39,11 @@ type Rec = {
   /** ⚑ 24 Aug — every enrichAndDeliverLeads() call: the PAID reveal/delivery path.
    *  A free-proof run must never appear here. Each entry is the candidate id list. */
   enrich: string[][]
+  /** ⛓️ 17 Sep (FD-6) — the SIZE asked of the provider on each search. With AR8's cash fence
+   *  retired, "how many did this run ask for?" is answerable only from the request itself. */
+  searchSizes: number[]
 }
-const emptyRec = (): Rec => ({ rpcs: [], leadUpdates: [], leadInserts: 0, alerts: [], poolCap: null, eqs: [], enrich: [] })
+const emptyRec = (): Rec => ({ rpcs: [], leadUpdates: [], leadInserts: 0, alerts: [], poolCap: null, eqs: [], enrich: [], searchSizes: [] })
 
 const ICP_ROW = {
   id: 'icp-1', client_id: 'c1',
@@ -238,6 +241,11 @@ async function runJob(opts: {
             reservation_id: (jctx.opts.reserve ?? 10) > 0 ? 'res-1' : null,
             reason: jctx.opts.reserveReason ?? ((jctx.opts.reserve ?? 10) > 0 ? 'GRANTED' : 'MONTHLY_PROOF_BUDGET_REACHED'),
           }, error: null }
+          // ⛓️ 17 Sep (XC-13 / FD-6) — the client sourcing gate is the programme AUTHORITY
+          // reserve now, not `try_spend_sourcing`: that function books a $0.28-a-record PDL cost
+          // we no longer incur. Both are answered here so the harness keeps working whichever
+          // path a case drives.
+          if (fn === 'try_reserve_programme_sourcing') return { data: jctx.opts.grant ?? 10, error: null }
           if (fn === 'try_spend_sourcing')         return { data: jctx.opts.grant ?? 10, error: null }
           return { data: null, error: null }
         },
@@ -283,7 +291,7 @@ async function runJob(opts: {
   }))
 
   vi.doMock('./apollo', () => ({
-    searchPeopleWithFallback: async () => ({ contacts, relaxed: false }),
+    searchPeopleWithFallback: async (_icp: unknown, _p: number, size: number) => { rec.searchSizes.push(size); return { contacts, relaxed: false } },
     ApolloCreditsExhaustedError: class extends Error {},
     ApolloRateLimitError: class extends Error {},
   }))
@@ -451,11 +459,15 @@ describe('runIcpJob leaves the PAID path exactly as it was', () => {
     restoreTestEnv()
   })
 
-  it('A PAYING CLIENT still spends AR8 and never touches proof state', async () => {
+  // ⛓️ RE-AIMED 17 Sep (XC-13 / FD-6) — was "still spends AR8". AR8's cash fence pre-funds
+  // PDL records out of `clients.sourcing_allowance` and books $0.28 a head; under FD-6 that
+  // cost does not exist. The SUBJECT of this case is untouched and is the important half: a
+  // PAID run must not touch proof state — no claim, no reservation, no release.
+  it('A PAYING CLIENT never touches proof state, whatever fences its own sourcing', async () => {
     const rec = emptyRec()
     await runJob({ funded: 'real', grant: 15, contacts: 15 }, rec)
     const names = rec.rpcs.map(r => r.fn)
-    expect(names).toContain('try_spend_sourcing')
+    expect(names, 'the retired PDL money fence must not be called').not.toContain('try_spend_sourcing')
     expect(names).not.toContain('claim_proof_authority')
     expect(names).not.toContain('try_reserve_proof_records')
     expect(names).not.toContain('release_proof_records')
@@ -532,8 +544,11 @@ describe('free proof — a proof pass surfaces at most 20 leads', () => {
   it('A PAYING CLIENT\'S CAP IS UNTOUCHED — still the full effectiveCap', async () => {
     const rec = emptyRec()
     await runJob({ funded: 'real', maxLeads: 200, pool: 0, grant: 200, contacts: 0 }, rec)
-    const spend = rec.rpcs.find(r => r.fn === 'try_spend_sourcing')!
-    expect(spend.args.p_requested).toBe(200)         // NOT 20 — the 20 is a proof rule only
+    // ⛓️ RE-AIMED 17 Sep (FD-6) — the amount used to be read off `try_spend_sourcing`'s
+    // arguments. That call is gone; the run is now sized by the provider request itself.
+    // The RULE is unchanged and is the whole point: 20 is a PROOF cap and must never leak
+    // onto a paid run.
+    expect(rec.searchSizes.at(-1), 'NOT 20 — the 20 is a proof rule only').toBe(200)
   })
 })
 
@@ -543,6 +558,14 @@ describe('free proof — a proof pass surfaces at most 20 leads', () => {
 // is spent". It is not: a zero is far more often just this prospect finishing their own
 // 40 records. Alerting the founder that his acquisition budget is gone, when it is not,
 // is the kind of false alarm that trains someone to ignore the real one.
+// ⛓️ 17 Sep (J5-C9 · FD-6) — THE SUBJECT LINE MOVED FROM A BUDGET TO A CEILING, so the three
+// cases below matched nothing and a green suite would have meant "no alert is ever raised".
+// The old subject said the *$300 monthly acquisition BUDGET* was spent; under FD-6 an Apollo
+// record costs nothing, so the ceiling is a RECORD count and the sentence is *"Free-proof
+// acquisition ceiling reached"*. The RULE under test is untouched and is the whole point:
+// a prospect finishing their own 40 is not a company money event.
+const ACQUISITION_ALERT = /acquisition (budget|ceiling)/i
+
 describe('free proof — a prospect finishing their 40 is not a company budget alert', () => {
   beforeEach(() => {
     installTestEnv()
@@ -556,14 +579,14 @@ describe('free proof — a prospect finishing their 40 is not a company budget a
   it('CLIENT_PROOF_LIMIT_REACHED DOES NOT RAISE THE $300 ALERT', async () => {
     const rec = emptyRec()
     await runJob({ funded: null, proof: 1, reserve: 0, reserveReason: 'CLIENT_PROOF_LIMIT_REACHED', pool: 0 }, rec)
-    const budgetAlerts = rec.alerts.filter(a => /acquisition budget/i.test(a.subject))
+    const budgetAlerts = rec.alerts.filter(a => ACQUISITION_ALERT.test(a.subject))
     expect(budgetAlerts).toHaveLength(0)
   })
 
   it('MONTHLY_PROOF_BUDGET_REACHED DOES raise it', async () => {
     const rec = emptyRec()
     await runJob({ funded: null, proof: 1, reserve: 0, reserveReason: 'MONTHLY_PROOF_BUDGET_REACHED', pool: 0 }, rec)
-    const budgetAlerts = rec.alerts.filter(a => /acquisition budget/i.test(a.subject))
+    const budgetAlerts = rec.alerts.filter(a => ACQUISITION_ALERT.test(a.subject))
     expect(budgetAlerts).toHaveLength(1)
     // …and it must say plainly that paying clients are untouched, because the whole point
     // of the separate budget is that acquisition cannot starve delivery.
@@ -577,7 +600,7 @@ describe('free proof — a prospect finishing their 40 is not a company budget a
     // stating a fact about company money that nothing established.
     const rec = emptyRec()
     await runJob({ funded: null, proof: 1, reserveNoAnswer: true, pool: 0 }, rec)
-    expect(rec.alerts.filter(a => /acquisition budget/i.test(a.subject))).toHaveLength(0)
+    expect(rec.alerts.filter(a => ACQUISITION_ALERT.test(a.subject))).toHaveLength(0)
     // And nothing was bought: a refusal we cannot explain still spends nothing.
     expect(rec.rpcs.some(r => r.fn === 'try_spend_sourcing')).toBe(false)
   })
@@ -625,8 +648,12 @@ describe('round 4 — proof is an execution mode, not an account property', () =
     const names = rec.rpcs.map(r => r.fn)
     expect(names).not.toContain('claim_proof_authority')
     expect(names).not.toContain('try_reserve_proof_records')
-    // The normal fence answers instead — and for a never-funded account it grants 0.
-    expect(names).toContain('try_spend_sourcing')
+    // ⛓️ RE-AIMED 17 Sep (FD-6) — the normal path used to answer with AR8's cash fence, and
+    // for a never-funded account it granted 0. That fence is retired: a client with no
+    // programme now mirrors the House path and is bounded per run, which is a REPORTED gap
+    // (no lifetime ceiling) and not a licence to touch proof authority. The subject of this
+    // case is that boundary, and it holds: no proof claim, no proof reservation.
+    expect(names, 'the retired PDL money fence must not be called').not.toContain('try_spend_sourcing')
   })
 
   it('A NORMAL RUN DOES NOT AUTO-SURFACE A NEVER-FUNDED ACCOUNT\'S LEADS', async () => {
@@ -1222,7 +1249,14 @@ describe('one reflect-back truth, and two labelled proof sets', () => {
     // band is derived from, and they are read but never rendered. The duty here is only that
     // `surfaced_for_approval_at` is still selected and returned, which is what makes the two
     // proof sets tellable apart — so the assertion stays pointed at exactly that.
-    expect(src).toContain('score, score_reasoning, created_at, surfaced_for_approval_at')
+    // ⛓️ RE-POINTED 18 Sep (J5-C13 · FD-2) · THE DUTY IS UNCHANGED.
+    // WHAT THIS REPLACED: ~~`'score, score_reasoning, created_at, surfaced_for_approval_at'`~~
+    // — an exact tail of the desk's select list. `category_fit` now sits inside it, because
+    // this desk bands with `hardFit` at read time and FD-2 made the category judgement the
+    // MODEL's; without the column the band would keep using the word overlap the founder ruled
+    // insufficient. The duty here is only that `surfaced_for_approval_at` is still selected and
+    // returned, which is what makes the two proof sets tellable apart.
+    expect(src).toMatch(/score, score_reasoning, category_fit, created_at, surfaced_for_approval_at/)
     expect(src).toContain('surfaced_for_approval_at: l.surfaced_for_approval_at ?? null,')
     // …and the masked card is otherwise unchanged: still no name, email or phone.
     // ⚠️ ON CODE, NOT SOURCE. The comment sitting inside this very block says "no name, no
@@ -1240,7 +1274,15 @@ describe('one reflect-back truth, and two labelled proof sets', () => {
       src.indexOf('res.json({ success: true, data: masked })')))
     expect(masked).not.toMatch(/email|phone|first_name:|last_name:/)
     // The names ARE read — as arguments to the scrubber that removes them from why_fits.
-    expect(masked).toContain('why_fits: scrub(l.score_reasoning ?? null, l.first_name ?? null, l.last_name ?? null)')
+    // ⛓️ RELAXED FROM AN EXACT SLICE 18 Sep (J5-C8) · THE DUTY IS UNCHANGED.
+    // WHAT THIS REPLACED: ~~`.toContain('why_fits: scrub(l.score_reasoning ?? null,
+    // l.first_name ?? null, l.last_name ?? null)')`~~ — the whole expression, character for
+    // character. J5-C8 put a guard in front of it (`why_fits: failed ? null : scrub(…)`) so
+    // the internal `SCORING_FAILED` sentence is never forwarded as the reason a prospect fits,
+    // and the exact-string assertion failed on a change that made the card MORE careful.
+    // The duty this line exists for is that the scrubber still receives both names, which is
+    // what keeps a prospect's identity out of `why_fits` — asserted directly now.
+    expect(masked).toMatch(/why_fits:[^\n]*scrub\(l\.score_reasoning \?\? null, l\.first_name \?\? null, l\.last_name \?\? null\)/)
   })
 
   it('26 · nothing is deleted, passed or filtered away to separate the batches', () => {

@@ -158,7 +158,31 @@ export function runOutcomeMessage(
       // them and what happens next, and the diagnosis goes to the founder alert instead.
       return FAILED_RUN_BODY
     case 'quota_exhausted':
-      return 'Sourcing capacity is temporarily out — the team has been alerted and your credits are untouched. Try again shortly.'
+      // ── ⛓️ 18 Sep (J12-C4 · PV 09 B) — HONEST UNDER THE PROGRAMME MODEL ──────────────
+      //
+      // ~~"Sourcing capacity is temporarily out — the team has been alerted and your credits
+      // are untouched. Try again shortly."~~
+      //
+      // 🛑 TWO OF ITS THREE CLAUSES STOPPED BEING TRUE. **R124 (16 Sep, founder-locked):**
+      // *"299/4 is gone. out. we are on the programme. all clients."* — so a client reassured
+      // about their CREDITS is being reassured about a wallet the product no longer has, which
+      // is the retired economics reappearing in the one place nobody scans for them. And R94
+      // already named that exact half of this sentence as one of *"three false claims in one
+      // card… credits from a wallet the programme model does not have."*
+      //
+      // 🛑 AND *"Try again shortly"* POINTS AT THE WRONG PERSON. This state is a stop on OUR
+      // side; a client pressing anything achieves nothing until we clear it, and telling them
+      // to retry makes our capacity look like their problem.
+      //
+      // ⚠️ WHAT IS KEPT IS WHAT WAS TRUE: it is capacity, not their targeting, and nothing of
+      // theirs was consumed — the reservation is released in full on this path (`settleBatch`
+      // with zero delivered, and `release_proof_records` for a proof run), so the programme
+      // volume sentence is a statement about code that runs, not a reassurance.
+      //
+      // ⚠️ NO PROVIDER IS NAMED, exactly as on the `failed` path above. A client is told what
+      // it means for them and what happens next; the diagnosis goes to the operator task.
+      return 'We had to pause finding people for this run — it is a limit on our side, not a problem with your targeting. '
+        + 'K.I.N.D has been alerted and will pick it back up; none of your programme volume has been used.'
     case 'audience_exhausted':
       // #366 — the honest end-of-audience sentence. Never "no leads matched", which blames
       // targeting that was in fact correct all the way to the last person in it.

@@ -20,25 +20,30 @@
 // exception — and it reads the WORKING TREE, not `HEAD`, so an uncommitted edit is caught
 // before it is committed rather than after.
 //
-// ── THE TWO AUTHORISED EXCEPTIONS, BOTH PINNED TO THEIR EXACT CONTENT ───────────────────
+// ── THE ONE AUTHORISED EXCEPTION, PINNED TO ITS EXACT CONTENT ──────────────────────────
 //
 // ① **house-authority.test.ts — FOUNDER DECISION B, 18 Sep.** The global migration-count
 //    assertion was removed on his explicit instruction; the same tripwire lives in
 //    `migration-home.test.ts` and `schema-drift.test.ts`, which is where a global count belongs.
-//    Every House invariant in the file is untouched.
+//    Every House invariant in the file is untouched, and the diff is that one removal.
 //
-// ② **kill-switch-absolute.test.ts — ONE FIELD ON ONE LINE (J20-C4).** The seam now refuses
-//    anybody we may not lawfully email (FD-5), and the fixture lead carried no `email_status` —
-//    so case 13, the file's own ANTI-VACUITY case, could no longer reach the mail server. A
-//    fixture that cannot reach the seam cannot prove the seam is reached, and no correct
-//    placement of a send refusal lets an unsendable fixture through. J20-C4's own GREEN asks
-//    for both the refusal and this file intact, and one added field is the whole distance
-//    between them.
+// ── 🛑 ⛓️ 19 Sep — AND THE SECOND "EXCEPTION" IS WITHDRAWN. IT WAS NEVER AUTHORISED. ─────
 //
-// 🛑 THE EXCEPTION IS PINNED, NOT PERMITTED. This file asserts the kill-switch deviation is
-// EXACTLY that one added field: no second line, no added prose, no assertion touched. The
-// explanation lives in `j20c4-send-seam-refuses-non-sendable.test.ts`, deliberately, so the
-// frozen file's own text stays as the founder certified it.
+// ~~② kill-switch-absolute.test.ts — ONE FIELD ON ONE LINE (J20-C4)~~ stood here, and the
+// reasoning was sound: FD-5 makes the send seam refuse anybody without a verified business
+// email, the frozen fixture's lead row carries no `email_status`, and case 13 — the file's own
+// ANTI-VACUITY case — therefore answers `deferred` where the certified file asserts `sent`.
+//
+// 🛑 WHAT WAS WRONG WAS THE AUTHORITY, NOT THE ANALYSIS. A chained note explaining why an
+// exception is necessary is not a Founder ruling, and XC-10 exists precisely so that a frozen
+// test cannot be amended by the person who needs it amended. GPT's whole-candidate review
+// asked for the ruling reference; there is none. The file is therefore RESTORED BYTE-IDENTICAL
+// to `60e6e9ba` and the contradiction is raised as a STOP under MVP1_STOP_AND_SCOPE_RULES §1
+// (frozen-test conflict) — the same route Decision B travelled.
+//
+// ⚠️ SO THIS SUITE NOW ASSERTS THE OPPOSITE OF WHAT IT USED TO: the kill-switch file must be
+// byte-identical to the baseline. While the conflict stands, `kill-switch-absolute.test.ts`
+// case 13 is RED, and that red is the STOP — not something for this file to paper over.
 // ══════════════════════════════════════════════════════════════════════════════════════════
 
 import { describe, it, expect } from 'vitest'
@@ -126,30 +131,18 @@ describe('XC-10 · untouched means byte-identical to 60e6e9ba', () => {
 // ③ TWO CARRY AUTHORISED EXCEPTIONS, AND EACH IS PINNED TO ITS EXACT CONTENT
 // ═════════════════════════════════════════════════════════════════════════════════════════
 describe('XC-10 · the authorised exceptions, and nothing beyond them', () => {
-  it('🛑 KILL-SWITCH — EXACTLY ONE LINE, AND THE CHANGE IS ONE ADDED FIELD', () => {
-    const { added, removed } = changedLines(diffAgainstBaseline(FROZEN['kill-switch']))
-    expect(removed.length, `the kill-switch test removed ${removed.length} line(s); exactly 1 is authorised`).toBe(1)
-    expect(added.length, `the kill-switch test added ${added.length} line(s); exactly 1 is authorised`).toBe(1)
-
-    // 🛑 AND THE DIFFERENCE BETWEEN THE TWO LINES IS THE FIELD, NOTHING ELSE. Restoring the
-    // removed line by deleting the field must reproduce the baseline line exactly — so no
-    // assertion, no fixture value and no behaviour can hide inside an "authorised" hunk.
-    expect(added[0].replace(" email_status: 'verified',", ''), 'the authorised hunk changed something other than the one field')
-      .toBe(removed[0])
-    expect(added[0]).toContain("email_status: 'verified'")
-  })
-
-  it('🛑 AND THE KILL-SWITCH GUARANTEE ITSELF IS WORD-FOR-WORD THE CERTIFIED ONE', () => {
-    // The fixture is data; the rule is the file. Every sentence that states the guarantee, and
-    // every case that holds it, is compared against the baseline's own text.
+  it('🛑 KILL-SWITCH — BYTE-IDENTICAL TO THE BASELINE, because no ruling amended it', () => {
+    // 🛑 THE UNAUTHORISED AMENDMENT IS WITHDRAWN. What stood here asserted "exactly one added
+    // field"; the field was added by me, under a chained note, with no Founder ruling behind
+    // it. XC-10 exists so that cannot stand, so it now asserts the file as certified.
+    //
     // ⚠️ THE FILE ON DISK, NOT `git show :path` — that reads the INDEX, so an unstaged edit to
     // a frozen test would compare clean and this guard would pass over the very change it
     // exists to catch.
     const now = readFileSync(join(REPO, FROZEN['kill-switch']), 'utf8')
-      .replace(" email_status: 'verified',", '')
     const base = execFileSync('git', ['show', `${BASELINE}:${FROZEN['kill-switch']}`], { cwd: REPO, encoding: 'utf8' })
-    expect(now, 'the kill-switch test differs from the baseline beyond the one authorised field')
-      .toBe(base)
+    expect(now, 'the kill-switch frozen test was amended without a Founder ruling').toBe(base)
+    expect(diffAgainstBaseline(FROZEN['kill-switch'])).toBe('')
   })
 
   it('🛑 HOUSE AUTHORITY — DECISION B, and every House invariant still asserted', () => {
@@ -157,7 +150,12 @@ describe('XC-10 · the authorised exceptions, and nothing beyond them', () => {
     expect(diff, 'the house-authority exception is gone — Decision B was reverted').not.toBe('')
     // The authorised change is the removal of a GLOBAL migration count, which had no House
     // invariant in it and made this file red for any unrelated migration anywhere.
-    expect(diff).toContain('THE GLOBAL MIGRATION COUNT IS REMOVED — FOUNDER DECISION B')
+    expect(diff).toContain('FOUNDER DECISION B')
+    // 🛑 AND IT IS THE DECISION AND NOTHING ELSE. One assertion line removed, and a chained
+    // note in its place — so an 'authorised' hunk cannot carry an unrelated edit inside it.
+    const { removed: gone } = changedLines(diff)
+    expect(gone.length, `the Decision B hunk removed ${gone.length} line(s); exactly 1 is authorised`).toBe(1)
+    expect(gone[0], 'the removed line is not the global migration-count assertion').toContain('toHaveLength(74)')
     const { added } = changedLines(diff)
     expect(added.join('\n'), 'the authorised hunk is not chained to the decision that made it')
       .toMatch(/⛓️/)
@@ -180,14 +178,16 @@ describe('XC-10 · the authorised exceptions, and nothing beyond them', () => {
 // ④ THE EXCEPTION LIST IS CLOSED
 // ═════════════════════════════════════════════════════════════════════════════════════════
 describe('XC-10 · a third exception cannot appear without this file saying so', () => {
-  it('🛑 EXACTLY TWO FROZEN FILES DIFFER FROM THE BASELINE, AND THEY ARE THE TWO DECLARED', () => {
+  it('🛑 EXACTLY ONE FROZEN FILE DIFFERS FROM THE BASELINE, AND IT IS THE ONE DECLARED', () => {
     // This is the assertion that makes the list closed rather than illustrative: a future edit
     // to any other frozen test is caught here even if somebody forgets to add a case above.
+    // ⛓️ 19 Sep — WAS `['house authority', 'kill-switch']`. The kill-switch amendment had no
+    // Founder ruling and is withdrawn; one exception is the authorised set.
     const differing = Object.entries(FROZEN)
       .filter(([, file]) => diffAgainstBaseline(file) !== '')
       .map(([guarantee]) => guarantee)
       .sort()
     expect(differing, 'a frozen test differs from the certified baseline without an authorised exception')
-      .toEqual(['house authority', 'kill-switch'])
+      .toEqual(['house authority'])
   })
 })

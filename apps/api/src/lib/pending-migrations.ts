@@ -6166,6 +6166,59 @@ GRANT  EXECUTE ON FUNCTION public.release_proof_records(uuid, int) TO service_ro
 `.trim(),
   },
   {
+    key: '20260919_one_canonical_sequence_per_campaign',
+    title: 'ONE canonical sequence per campaign — the race that made a paid programme permanently unpreparable (MVP1 · J13)',
+    sql: `
+-- ── ONE CANONICAL SEQUENCE PER CAMPAIGN ───────────────────────────────────────────────
+--
+-- Canonical copy: supabase/migrations/20260919_one_canonical_sequence_per_campaign.sql
+--
+-- 🛑 MEASURED IN A CERTIFICATION RUN (19 Sep 2026). A programme settled its sourcing run, so
+-- \`advanceAfterSettlement\` began preparing it in the background; an operator pressed
+-- \`prepare-for-review\` in the same moment. Both call \`applyProgrammeSequence\`, which READS
+-- \`figsy_sequences\` for the campaign, finds none and INSERTS. Both found none. Both inserted.
+--
+-- From that instant the programme was PERMANENTLY UNPREPARABLE: \`resolveProgrammeChain\`
+-- refuses with "This campaign has 2 sequences, so the words the customer would approve are
+-- ambiguous" — correctly — and preparation, freeze, client approval, Make Live and Run are all
+-- closed behind it.
+--
+-- ⚠️ THE CODE ALREADY STATED THIS RULE AND COULD NOT KEEP IT: "EXACTLY ONE CANONICAL ROW PER
+-- CAMPAIGN … finding two is reported, never silently resolved by picking one." A
+-- read-then-insert cannot promise that. Same shape and same fix as \`clients_one_per_user\`,
+-- \`automatic_work_one_live_per_subject\` and \`programme_batches_one_running_uidx\`.
+--
+-- ⚠️ EXPAND ONLY: one partial unique index, no column, no default, no backfill.
+--
+-- 🛑 AND IT REFUSES TO CREATE ITSELF OVER EXISTING DUPLICATES. Which of two sequences a client
+-- would have approved is a decision about somebody's campaign, not a migration's.
+DO $$
+DECLARE
+  dupes text;
+BEGIN
+  SELECT string_agg(campaign_id::text, ', ')
+    INTO dupes
+    FROM (
+      SELECT campaign_id
+        FROM public.figsy_sequences
+       WHERE campaign_id IS NOT NULL
+       GROUP BY campaign_id
+      HAVING count(*) > 1
+       LIMIT 50
+    ) d;
+
+  IF dupes IS NOT NULL THEN
+    RAISE NOTICE 'figsy_sequences_one_per_campaign NOT created: these campaigns already carry more than one canonical sequence (%). Resolve them in Vida first.', dupes;
+  ELSE
+    CREATE UNIQUE INDEX IF NOT EXISTS figsy_sequences_one_per_campaign
+      ON public.figsy_sequences (campaign_id)
+      WHERE campaign_id IS NOT NULL;
+    RAISE NOTICE 'figsy_sequences_one_per_campaign is in place — a second canonical sequence for one campaign is now refused by the database.';
+  END IF;
+END $$;
+`.trim(),
+  },
+  {
     key: '20260918_clients_one_per_user',
     title: 'ONE client row per auth user — the fence J1-C1 found missing (MVP1 · J1-C1)',
     sql: `

@@ -156,7 +156,40 @@ export async function applyProgrammeSequence(
     .insert({ client_id: clientId, campaign_id: campaignId, name, steps: ordered })
     .select('id').single()
   if (error || !data) {
-    return { ok: false, reason: `The canonical sequence could not be created (${error?.message ?? 'no row returned'}). Nothing was changed.` }
+    // ── 🛑 ⚑ 19 Sep (J13) — THE LOSER OF A RACE COMPLETES AGAINST THE WINNER ──────────
+    //
+    // 🛑 WHAT THIS REPLACED, AND IT WAS MEASURED, NOT IMAGINED. The read fifteen lines above
+    // and this insert are a check-then-insert with nothing behind them. A sourcing run that
+    // settles calls `advanceAfterSettlement`, which prepares in the background; an operator
+    // pressing `prepare-for-review` in the same moment calls the same code. Both read zero
+    // rows. Both inserted. The campaign then carried TWO canonical sequences and
+    // `resolveProgrammeChain` refused it for ever — *"the words the customer would approve
+    // are ambiguous"* — closing preparation, freeze, approval, Make Live and Run behind it,
+    // on a programme the client had paid for.
+    //
+    // `figsy_sequences_one_per_campaign` (20260919) is now what refuses the second row, and a
+    // collision is not a failure: it is the winner telling us the work is already done.
+    //
+    // ⚠️ IT RE-READS RATHER THAN TRUSTING THE ERROR CODE, for the same reason the onboard race
+    // does: `23505` is the expected signal, but the only thing that settles the question is
+    // whether exactly one row is there now. An insert that failed for any other reason, and
+    // left nothing behind, must still be reported — which is what the refusal below does.
+    //
+    // ⚠️ AND IT TAKES THE WINNER'S ROW AS IT STANDS. Re-applying these steps over it would be
+    // this call overruling one that has already completed, with the same words either way.
+    const { data: winners, error: winnerErr } = await db.from('figsy_sequences')
+      .select('id').eq('campaign_id', campaignId)
+    const won = ((winners ?? []) as { id: string }[])
+    if (!winnerErr && won.length === 1) {
+      return { ok: true, sequenceId: String(won[0].id), campaignId, created: false, steps: ordered.length }
+    }
+    return {
+      ok: false,
+      reason: `The canonical sequence could not be created (${error?.message ?? 'no row returned'})`
+        + (winnerErr ? ` — and the winning-row check also failed (${winnerErr.message})` : '')
+        + (won.length > 1 ? ` — and the campaign now carries ${won.length} sequences, which must be resolved in Vida` : '')
+        + '. Nothing was changed.',
+    }
   }
   return { ok: true, sequenceId: String(data.id), campaignId, created: true, steps: ordered.length }
 }

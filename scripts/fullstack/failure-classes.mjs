@@ -356,7 +356,27 @@ export function makeFailureChecks(kit) {
       }
 
       const unclassified = kept.filter(r => !r.classification || r.classification === 'unclassified').length
-      ok(id, `a classifier failure RETAINS the reply (${kept.length} row(s), ${unclassified} unclassified) rather than dropping it · a malformed payload answered HTTP ${rBad.status} without losing anything`)
+
+      // ── 🛑 ⛓️ 19 Sep — THE TASK ROW, READ BACK. RETAINED IS NOT THE WHOLE REQUIREMENT ──
+      //
+      // The founder's requirement for this class is "classifier throw → reply retained
+      // unclassified + TASK". A reply kept in a table nobody is told about is a reply nobody
+      // reads: the unclassified row needs a person, and the person needs a row on their desk.
+      const inboundTasks = await sql(
+        `select id, kind, subject_id, status from public.operator_tasks
+          where created_at > now() - interval '3 minutes'
+            and (kind ilike '%repl%' or kind ilike '%classif%' or kind ilike '%inbound%' or client_id = $1)`, [fx.clientId])
+      if (inboundTasks.length === 0) {
+        return bad(id, `🛑 THE CLASSIFIER FAILED, THE REPLY WAS KEPT (${kept.length} row(s)) AND NOBODY WAS TOLD — "retained unclassified + task" is unmet (HTTP ${rThrow.status})`)
+      }
+      // ⚠️ AND THE PROVIDER MUST GET THE RIGHT ANSWER. Resend retries on a 5xx: answering
+      // anything but a 2xx here would have it redeliver a reply we have already retained,
+      // which is how one prospect's sentence becomes four rows on a client's desk.
+      if (rThrow.status < 200 || rThrow.status >= 300) {
+        return bad(id, `🛑 THE PROVIDER WAS ANSWERED HTTP ${rThrow.status} for a reply we RETAINED — Resend will redeliver it and the same sentence will land again`)
+      }
+
+      ok(id, `a classifier failure RETAINS the reply (${kept.length} row(s), ${unclassified} unclassified) AND raises ${inboundTasks.length} operator task(s) (${[...new Set(inboundTasks.map(t => t.kind))].join(', ')}) — read back from operator_tasks, not inferred · the provider was answered HTTP ${rThrow.status}, so it does not redeliver what we already hold · a malformed payload answered HTTP ${rBad.status} without losing anything`)
     } finally { await fakeMode('anthropic', 'ok'); await dropUser(fx.userId) }
   }
 
@@ -380,21 +400,66 @@ export function makeFailureChecks(kit) {
     const fx = await makeSendable({ prefix: 'pay' })
     try {
       await sql(`update public.programmes set status = 'APPROVED', first_authorised_at = null, run_at = null, went_live_at = null where id = $1`, [fx.programmeId])
+      const stamps = async () => (await sql(
+        'select first_authorised_at, first_paid_at, second_authorised_at from public.programmes where id = $1', [fx.programmeId]))[0]
+      const stamp = (r) => String(r.first_paid_at ?? r.first_authorised_at ?? '')
+
+      // ── ① MISSING programmeId — money we cannot attribute ────────────────────────────
+      //
+      // 🛑 IT MUST NOT BE QUIETLY ACCEPTED AND IT MUST NOT GRANT. The founder's requirement for
+      // this class is "exception/task where needed, nothing granted twice", and an event that
+      // names no programme is the case where an exception is the ONLY correct outcome.
+      const beforeOrphan = await stamps()
+      const orphan = await postStripe(stripeEvent(`evt_pay_noprog_${fx.tag}`, { metadata: { type: 'programme_first', clientId: fx.clientId } }))
+      const afterOrphan = await stamps()
+      if (stamp(afterOrphan) !== stamp(beforeOrphan)) {
+        return bad(id, `🛑 A PAYMENT EVENT WITH NO programmeId GRANTED AUTHORITY: the stamp moved ${stamp(beforeOrphan)} → ${stamp(afterOrphan)}`)
+      }
+      const orphanTasks = await sql(
+        `select id, kind from public.operator_tasks
+          where created_at > now() - interval '2 minutes'
+            and (kind ilike '%payment%' or kind ilike '%unattributab%' or kind ilike '%stripe%')`)
+      if (orphanTasks.length === 0) {
+        return bad(id, `🛑 A PAYMENT THAT NAMES NO PROGRAMME PRODUCED NO EXCEPTION (HTTP ${orphan.status}) — nobody is told that money arrived we cannot attribute`)
+      }
+
+      // ── ② THE ORDINARY EVENT, THEN ③ THE SAME EVENT AGAIN (Stripe retries) ───────────
       const evId = `evt_pay_${fx.tag}`
       const body = stripeEvent(evId, { metadata: { type: 'programme_first', programmeId: fx.programmeId, clientId: fx.clientId } })
 
       const first = await postStripe(body)
-      const afterFirst = (await sql('select first_authorised_at, first_paid_at from public.programmes where id = $1', [fx.programmeId]))[0]
-
-      // ── THE SAME EVENT AGAIN. Stripe retries; the product must grant once.
+      const afterFirst = await stamps()
       const second = await postStripe(body)
-      const afterSecond = (await sql('select first_authorised_at, first_paid_at from public.programmes where id = $1', [fx.programmeId]))[0]
-
-      const stamp = (r) => String(r.first_paid_at ?? r.first_authorised_at ?? '')
+      const afterSecond = await stamps()
       if (stamp(afterFirst) && stamp(afterSecond) && stamp(afterFirst) !== stamp(afterSecond)) {
         return bad(id, `🛑 A DUPLICATE STRIPE EVENT GRANTED TWICE: the payment stamp moved ${stamp(afterFirst)} → ${stamp(afterSecond)}`)
       }
-      ok(id, `a repeated checkout.session.completed is idempotent (HTTP ${first.status} then ${second.status}; the payment stamp did not move) · nothing granted twice`)
+
+      // ── ④ A DELAYED EVENT — THE SAME INTENT, A NEW EVENT ID, ARRIVING LATE ───────────
+      //
+      // 🛑 THIS IS THE CASE IDEMPOTENCY-BY-EVENT-ID DOES NOT COVER, and it is the one that
+      // actually happens: Stripe's delivery is delayed, the operator re-sends from the
+      // dashboard, or a replay lands after the programme has already moved on. The event id is
+      // NEW, so a dedupe keyed on it would let this through — and the programme must still
+      // grant Payment 1 exactly once. The state is advanced first so "late" is real rather
+      // than nominal.
+      await sql(`update public.programmes set status = 'LIVE', went_live_at = now() where id = $1`, [fx.programmeId])
+      const beforeLate = await stamps()
+      const late = await postStripe(JSON.stringify({
+        id: `evt_pay_late_${fx.tag}`, type: 'checkout.session.completed',
+        // `created` is Stripe's own clock: two hours ago, delivered now.
+        created: Math.floor(Date.now() / 1000) - 7200,
+        data: { object: { id: `cs_evt_pay_${fx.tag}`, metadata: { type: 'programme_first', programmeId: fx.programmeId, clientId: fx.clientId } } },
+      }))
+      const afterLate = await stamps()
+      if (stamp(beforeLate) && stamp(afterLate) && stamp(beforeLate) !== stamp(afterLate)) {
+        return bad(id, `🛑 A DELAYED DUPLICATE GRANTED AGAIN: the payment stamp moved ${stamp(beforeLate)} → ${stamp(afterLate)} for a second copy of one payment`)
+      }
+      if (String(afterLate.second_authorised_at ?? '') !== String(beforeLate.second_authorised_at ?? '')) {
+        return bad(id, `🛑 A DELAYED PAYMENT-1 EVENT MOVED PAYMENT 2's authority`)
+      }
+
+      ok(id, `missing programmeId → granted nothing and raised ${orphanTasks.length} exception task(s) (HTTP ${orphan.status}) · a repeated checkout.session.completed is idempotent (HTTP ${first.status} then ${second.status}; the stamp did not move) · a DELAYED copy of the same payment, new event id, Stripe-created 2h earlier, arriving after the programme went LIVE, granted nothing further (HTTP ${late.status}) · nothing granted twice`)
     } finally { await dropUser(fx.userId) }
   }
 
@@ -402,19 +467,62 @@ export function makeFailureChecks(kit) {
     const id = 'F-WEBHOOK'
     const fx = await makeSendable({ prefix: 'hook' })
     try {
-      // 🛑 STRIPPED METADATA — the founder's "tasked when attribution is impossible". A
-      // completed payment that names no programme is money we cannot attribute, and the one
-      // thing that must never happen is a silent 200 with no record anywhere.
+      const stamps = async () => (await sql(
+        'select first_authorised_at, first_paid_at, second_authorised_at, second_paid_at, status from public.programmes where id = $1', [fx.programmeId]))[0]
+      const p1 = (r) => String(r.first_paid_at ?? r.first_authorised_at ?? '')
+      const p2 = (r) => String(r.second_paid_at ?? r.second_authorised_at ?? '')
+
+      // ── ① OUT OF ORDER — PAYMENT 2 ARRIVES BEFORE PAYMENT 1 ─────────────────────────
+      //
+      // 🛑 THE ONE THING THAT MUST NOT HAPPEN IS P2 MANUFACTURING P1's AUTHORITY. Payment 1
+      // authorises sourcing and preparation; Payment 2 authorises sending. A webhook delivered
+      // out of order must never let the second grant the first, because that would put a
+      // client into outreach on a programme nobody paid to source.
+      await sql(`update public.programmes set status = 'APPROVED', first_authorised_at = null, first_paid_at = null,
+                        second_authorised_at = null, second_paid_at = null, run_at = null, went_live_at = null
+                  where id = $1`, [fx.programmeId])
+      const beforeOoo = await stamps()
+      const second = await postStripe(stripeEvent(`evt_ooo_second_${fx.tag}`, { metadata: { type: 'programme_second', programmeId: fx.programmeId, clientId: fx.clientId } }))
+      const afterSecondFirst = await stamps()
+      if (p1(afterSecondFirst) !== p1(beforeOoo)) {
+        return bad(id, `🛑 A PAYMENT-2 EVENT GRANTED PAYMENT 1's AUTHORITY (${p1(beforeOoo)} → ${p1(afterSecondFirst)}) — an out-of-order webhook authorised sourcing nobody paid for`)
+      }
+      // Then the one that should have come first. The end state must be correct, once each.
+      const firstLate = await postStripe(stripeEvent(`evt_ooo_first_${fx.tag}`, { metadata: { type: 'programme_first', programmeId: fx.programmeId, clientId: fx.clientId } }))
+      const afterBoth = await stamps()
+
+      // ── ② DELAYED — THE SAME PAYMENT-2 EVENT, REDELIVERED LATE ──────────────────────
+      const beforeDelay = await stamps()
+      const delayed = await postStripe(JSON.stringify({
+        id: `evt_ooo_second_delayed_${fx.tag}`, type: 'checkout.session.completed',
+        created: Math.floor(Date.now() / 1000) - 3600,
+        data: { object: { id: `cs_evt_ooo_second_${fx.tag}`, metadata: { type: 'programme_second', programmeId: fx.programmeId, clientId: fx.clientId } } },
+      }))
+      const afterDelay = await stamps()
+      if (p2(beforeDelay) && p2(afterDelay) && p2(beforeDelay) !== p2(afterDelay)) {
+        return bad(id, `🛑 A DELAYED REDELIVERY MOVED PAYMENT 2's stamp ${p2(beforeDelay)} → ${p2(afterDelay)} — one payment authorised twice`)
+      }
+
+      // ── ③ DUPLICATE — the identical event id, immediately ───────────────────────────
+      const dupBody = stripeEvent(`evt_hook_dup_${fx.tag}`, { metadata: { type: 'programme_first', programmeId: fx.programmeId, clientId: fx.clientId } })
+      await postStripe(dupBody)
+      const afterDup1 = await stamps()
+      await postStripe(dupBody)
+      const afterDup2 = await stamps()
+      if (p1(afterDup1) && p1(afterDup2) && p1(afterDup1) !== p1(afterDup2)) {
+        return bad(id, `🛑 A DUPLICATE EVENT ID GRANTED TWICE (${p1(afterDup1)} → ${p1(afterDup2)})`)
+      }
+
+      // ── ④ STRIPPED METADATA — "tasked when attribution is impossible" ───────────────
       const evId = `evt_orphan_${fx.tag}`
       const r = await postStripe(stripeEvent(evId, { metadata: {} }))
       const tasks = await sql(
         `select id, kind from public.operator_tasks where created_at > now() - interval '2 minutes'
           and (kind ilike '%payment%' or kind ilike '%unattributab%' or kind ilike '%stripe%')`)
       if (tasks.length === 0) {
-        note(`F-WEBHOOK: a metadata-less completed checkout answered HTTP ${r.status} and raised no operator task — the payment is unattributable and nothing surfaces it`)
         return bad(id, `🛑 AN UNATTRIBUTABLE PAYMENT PRODUCED NO TASK (HTTP ${r.status}) — "tasked when attribution is impossible" is unmet`)
       }
-      ok(id, `a completed checkout with stripped metadata is retained and TASKED (${tasks.length} task(s): ${[...new Set(tasks.map(t => t.kind))].join(', ')}) rather than silently accepted · HTTP ${r.status}`)
+      ok(id, `out-of-order: a programme_second delivered FIRST did not grant Payment 1 (HTTP ${second.status}; p1 stayed ${p1(beforeOoo) || 'null'}), and the late programme_first then settled it correctly (HTTP ${firstLate.status}; p1=${p1(afterBoth) ? 'set' : 'null'}, p2=${p2(afterBoth) ? 'set' : 'null'}) · delayed: a redelivery created 1h earlier moved nothing (HTTP ${delayed.status}) · duplicate: the identical event id granted once · stripped metadata: retained and TASKED (${tasks.length} task(s): ${[...new Set(tasks.map(t => t.kind))].join(', ')}) rather than silently accepted, HTTP ${r.status}`)
     } finally { await dropUser(fx.userId) }
   }
 
@@ -556,7 +664,47 @@ export function makeFailureChecks(kit) {
       const callsPerTurn = await fakeCount('anthropic')
       const refusal = observed.find(o => o.mode === 'refusal')
 
-      ok(id, `${observed.map(o => `${o.mode}→HTTP ${o.status}`).join(' · ')} · every customer turn stayed durable through the failure · the two genuine failures were reported as failures, and a refusal (a successful call with no answer) answered the client honestly at HTTP ${refusal?.status} rather than erroring · ${callsPerTurn} model call(s) recorded across ${observed.length} turns, so no silent retry loop`)
+      // ── 🛑 ⛓️ 19 Sep — THE FAILURE, PERSISTED AND READ BACK, THROUGH THE REAL API ───────
+      //
+      // An HTTP status and a durable turn are two of the founder's four requirements. The
+      // other two — "failure recorded" and "desk reflects the failure" — are claims about
+      // ROWS, and they are proven on the path that actually has to survive a dead model: the
+      // scoring of a client's own prospects.
+      //
+      // ⚠️ DRIVEN THROUGH THE API, NOT BY IMPORTING THE MODULE HERE. The first cut called
+      // `scoreLeadsForIcp` in this process; the failure WAS recorded, and the model fake
+      // counted ZERO calls — so the recorded failure could not be attributed to the injected
+      // one, and a provider call the harness cannot see is a provider call it cannot fence.
+      // `/internal/figsy/rescore-stranded` runs the same function inside the API process,
+      // whose provider base URLs are the harness's own.
+      const stranded = 'SCORING_FAILED: seeded by the walk so the sweep has something to re-score'
+      await sql(`update public.leads set score = null, score_reasoning = $2 where id = $1`, [fx.leadId, stranded])
+      note('F-MODEL: the lead was SEEDED as already-stranded so the hourly re-score sweep has something to pick up — its FIRST stranding is J5-C8 subject matter, not this class')
+
+      const scoreBefore = await fakeCount('anthropic')
+      await fakeMode('anthropic', 'provider_error')
+      const sweep = await armed('/internal/figsy/rescore-stranded', { method: 'POST', body: JSON.stringify({}), timeoutMs: 120000 })
+      await fakeMode('anthropic', 'ok')
+      const scoreCalls = (await fakeCount('anthropic')) - scoreBefore
+
+      const [scored] = await sql('select score, score_reasoning from public.leads where id = $1', [fx.leadId])
+      if (scored.score !== null && scored.score !== undefined) {
+        return bad(id, `🛑 A DEAD MODEL PRODUCED A SCORE (${scored.score}) — a number nobody computed is worse than no number`)
+      }
+      if (!String(scored.score_reasoning ?? '').startsWith('SCORING_FAILED')) {
+        return bad(id, `🛑 THE SCORING FAILURE WAS NOT RECORDED: score_reasoning is ${JSON.stringify(scored.score_reasoning)} — an unscored prospect is indistinguishable from one nobody has reached yet`)
+      }
+      // 🛑 AND THE CALL HAS TO HAVE REACHED THE FAKE, or this measures nothing: a seam that
+      // ignored the harness's provider base URL would leave this at 0, and a zero would read
+      // as "no retries" when it means "the harness never saw the call at all".
+      if (scoreCalls < 1) {
+        return bad(id, `🛑 THE SCORING SWEEP NEVER REACHED THE MODEL FAKE (${scoreCalls} call(s), HTTP ${sweep.status}) — the recorded failure cannot be attributed to the injected model failure`)
+      }
+      if (scoreCalls > 3) {
+        return bad(id, `🛑 A DEAD MODEL WAS CALLED ${scoreCalls} TIMES for one batch — a silent retry loop turns an outage into a bill`)
+      }
+
+      ok(id, `${observed.map(o => `${o.mode}→HTTP ${o.status}`).join(' · ')} · every customer turn stayed durable through the failure · the two genuine failures were reported as failures, and a refusal (a successful call with no answer) answered the client honestly at HTTP ${refusal?.status} rather than erroring · PERSISTED AND READ BACK: the hourly re-score sweep ran against a dead model through the real API (HTTP ${sweep.status}, ${scoreCalls} call(s) recorded BY THE FAKE) and left the prospect score=null with score_reasoning recorded as SCORING_FAILED — so the desk shows "Not scored" rather than a number nobody computed · ${callsPerTurn} model call(s) across ${observed.length} chat turns and ${scoreCalls} for the failed batch, so no silent retry loop`)
     } finally { await fakeMode('anthropic', 'ok'); await dropUser(fx.userId) }
   }
 

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { readFileSync, readdirSync } from 'fs'
 import { join } from 'path'
-import { PACK_LEADS, PACK_PRICE_USD, LEAD_PRICE_USD } from '@kind/shared'
+import { PACK_LEADS, PACK_PRICE_USD, LEAD_PRICE_USD, PROGRAMME_ANCHOR_1_USD, PROGRAMME_FLOOR_USD } from '@kind/shared'
 
 // #413 #410 #327 — THE PAPER MATCHES THE PRODUCT.
 //
@@ -70,20 +70,32 @@ describe('the signup modal tells the truth about money', () => {
   })
 })
 
-describe('#413 — the contract matches the charge path', () => {
+describe('#413 — the contract matches the payment path', () => {
   const terms = read('terms.html')
 
-  it('a low balance only pauses approvals AFTER the pack is used', () => {
-    // `approve-lead.ts` returns insufficient_funds ONLY in the else-branch, once pack.left
-    // reaches 0. The terms said approvals pause below $4 full stop, which is false for the
-    // first 100 — and it is the contract, so it has to be exact.
-    expect(terms).toMatch(/Once your 100 included approvals are used/)
-    expect(terms).toMatch(/a zero balance does not stop you approving/)
+  // ⛓️ RE-POINTED 19 Sep — THE CHARGE PATH THIS GUARDED NO LONGER EXISTS.
+  //
+  // It pinned the wallet: "approvals pause below $4", "your 100 included approvals", the $299
+  // pack. The product is now a programme paid in two halves around one approval — there is no
+  // balance to fall low and no per-approval charge to pause. Asserting the old sentences would
+  // force the contract to keep describing a charge path the code cannot make.
+  //
+  // The DUTY is unchanged and is what these now assert: the contract must state exactly when
+  // money is taken, and must never imply a charge that happens earlier than it does.
+  it('no outreach is paid for or sent before the client has approved', () => {
+    expect(terms).toMatch(/No outreach is sent until it is paid and you have instructed us to go live/)
+    expect(terms).toMatch(/falls due after you have approved the prepared programme/)
+  })
+
+  it('the two payments are stated as halves, and the second is escapable', () => {
+    expect(terms).toMatch(/50% of your programme price/)
+    expect(terms).toMatch(/If you pause before go-live, the second payment is never taken/)
   })
 
   it('and still states the model itself correctly', () => {
-    expect(terms).toContain(`$${PACK_PRICE_USD}`)
-    expect(terms).toMatch(new RegExp(`flat \\$${LEAD_PRICE_USD}`))
+    // Derived from the R81 curve, not typed: the rate and the floor.
+    expect(terms).toContain(`$${PROGRAMME_ANCHOR_1_USD}`)
+    expect(terms).toContain(`$${PROGRAMME_FLOOR_USD}`)
     expect(terms).toMatch(/reviewing is always free/i)
     expect(terms).toMatch(/no subscription to cancel/i)
   })

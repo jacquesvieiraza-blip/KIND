@@ -15,7 +15,7 @@
  "_redirects": "97adaf876ac46f760b5a40a1228e9408",
  "about.html": "373a6f8047593a27312121ab5167c849",
  "ai-agent.jpg": "389c06acc87ef8d581e7fe4ed08ca32a",
- "demo.html": "1674780cef174d52a7132dc7ea8bea80",
+ "demo.html": "5e736594fd34d01a726254097ad3ccf2",
  "denise-cut.png": "814b0d7211aae524d092cdd987cefbc8",
  "denise.png": "f6c0ae60636fa9888eb8573da5c512d6",
  "dpa-us.html": "d523746f6196b8f443aa7c37137e835b",
@@ -110,10 +110,10 @@
  "replieshandled.png": "d0b17e5e1c8ff07297aa2692284e1770",
  "reports.png": "f23920880624439e15931a15135b368d",
  "server.js": "486648d20fb9ac6e0bb45ee60192f081",
- "solutions.html": "9ac9ad7b40f6a97fcd5b0e804c054e1c",
+ "solutions.html": "af713a131c3dd0b3bb707e1211c1e279",
  "status.html": "b86c757123d2b6ba33f2a6e0cd783a3a",
  "support.html": "1aa513a77af43acfaa0de7166be7a77f",
- "terms.html": "266b23c6ad54eba4ed18548049c86ee1",
+ "terms.html": "8b863d2a9e52158754e23e608e53ca49",
  "the-drop.html": "58a42caee3a467706bc67382b0a4a2d8",
  "tony.png": "7330797c83f2eb6b4b3f580bca16eb63",
  "trust.html": "78686d45aabda5e18ca237a34ff45391",
@@ -122,5 +122,5 @@
  "vida-widget.js": "a3b1ecf286b46e3e9e017a0c8b4004cf",
  "vida.html": "92160d814f41926c4640a47a764316d0",
  "vida.png": "d9e5cc489b5423bb8328bfecf0110378",
- "vs-hiring-an-sdr.html": "73c460302d28409b87e8c265b67ba975"
+ "vs-hiring-an-sdr.html": "adf179503660933038330fc082d2fc11"
 }

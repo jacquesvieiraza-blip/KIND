@@ -30,7 +30,7 @@
 import { randomUUID } from 'node:crypto'
 
 export function makeJourneyChecks(kit) {
-  const { ENV, http, api, operator, sql, ok, bad, fakeCount, fakeMode, fakeRequests, mintJwt } = kit
+  const { ENV, http, api, operator, sql, ok, bad, note, fakeCount, fakeMode, fakeRequests, mintJwt } = kit
 
   /** The walk's shared state — each journey adds what it produced. */
   const W = { tag: null, userId: null, email: null, jwt: null, clientId: null, icpId: null, programmeId: null, campaignId: null, leadId: null, seeded: [] }
@@ -410,143 +410,185 @@ export function makeJourneyChecks(kit) {
     const id = 'J8'
     if (needs(id, 'icpId', 'ICP')) return
 
-    // ── 🛑 ⛓️ 19 Sep — THIS NOW DRIVES THE CANONICAL PATH, AND THE OLD ONE DID NOT ──────────
+    // ── 🛑 ⛓️ 19 Sep — THE CANONICAL PATH, AND NOTHING IS FABRICATED ─────────────────────
     //
-    // ⛓️ WHAT STOOD HERE: a POST to `/operator/icp/:id/calibrate` (no such route in this build),
-    // then a fallback that wrote the new targeting STRAIGHT INTO THE DATABASE, cleared
-    // `proof_review_requested_at` by hand and re-ran Proof. It produced leads, so it went green —
-    // and it proved nothing about Journey 8, because the calibrated restart is not "Proof ran
-    // again". It is one human-authorised authority: a resolution recorded FIRST, a grant that
-    // exists only once per client for ever (R119), a claim that spends it, provenance on the
-    // rows it bought, and a repeat that cannot spend a second one. Fabricating the state
-    // skipped every one of those.
+    // ⛓️ WHAT STOOD HERE FIRST: a POST to `/operator/icp/:id/calibrate` (no such route in this
+    // build), then a fallback that wrote the new targeting STRAIGHT INTO THE DATABASE, cleared
+    // `proof_review_requested_at` by hand and re-ran Proof. It produced leads, so it went green
+    // — and it proved nothing about Journey 8, because a calibrated restart is not "Proof ran
+    // again". It is ONE human-authorised authority: a resolution recorded FIRST, a grant that
+    // exists once per client for ever (R119), a claim that spends it, its own 20-record
+    // allowance (R134, founder-ruled 19 Sep), provenance on the rows it buys, and a repeat that
+    // cannot spend a second one.
     //
-    // The canonical chain, driven here over HTTP exactly as a person would:
-    //   resolution recorded first → Vida resolve → grant → POST /icps/:id/proof (which claims
-    //   `calibrated_restart` through `claim_proof_authority`) → exactly one audited restart →
-    //   repeat cannot consume a second.
+    // 🛑 AND DRIVING IT FOR REAL IS WHAT FOUND THE DEFECT R134 RESOLVES: the grant was made, the
+    // claim returned `kind = calibrated_restart`, and the run sourced NOTHING because the
+    // 40-record automatic fence was already spent. The founder ruled the restart its own 20.
+    // This check is the proof of that ruling end to end.
     const kindCount = async () => Number((await sql(
       `select count(*)::int as n from public.leads
         where client_id = $1 and proof_batch_kind = 'calibrated_restart'`, [W.clientId]))[0].n)
-    const claims = async () => await sql(
+    const claims = async (authority = 'calibrated_restart') => await sql(
       `select id, authority, status, restart_grant_at from public.proof_pass_claims
-        where client_id = $1 and authority = 'calibrated_restart'`, [W.clientId])
+        where client_id = $1 and authority = $2 order by claimed_at`, [W.clientId, authority])
     const audits = async (action) => await sql(
       `select id from public.operator_audit_log where client_id = $1 and action = $2`, [W.clientId, action])
+    const clientRow = async () => (await sql(
+      `select proof_passes_done, proof_records_committed, proof_calibrated_restart_at,
+              proof_review_requested_at, proof_review_resolved_at, proof_calibration_note,
+              proof_calibration_resolved_by
+         from public.clients where id = $1`, [W.clientId]))[0]
 
-    const before = await kindCount()
-    if (before !== 0) return bad(id, `the client already carries ${before} calibrated_restart lead(s) before the restart was ever granted`)
+    // ── ① BOTH AUTOMATIC ATTEMPTS ARE ALREADY SPENT, AND ② THE CLIENT ESCALATED ──────────
+    // Both are facts J5, J6 and J7 created by walking the product; nothing here creates them.
+    const before = await clientRow()
+    if (Number(before.proof_passes_done) !== 2) {
+      return bad(id, `the client has used ${before.proof_passes_done} of their two automatic attempts — the calibrated restart is for a client both attempts have already failed`)
+    }
+    if (!before.proof_review_requested_at) return bad(id, 'the client never escalated, so there is nothing to resolve and nothing to restart')
+    if (await kindCount() !== 0) return bad(id, 'the client already carries a calibrated_restart set before one was ever granted')
+    const automaticBefore = await claims('automatic_1')
+    const automatic2Before = await claims('automatic_2')
 
-    // ── ① THE GRANT IS REFUSED UNTIL A RESOLUTION IS RECORDED ─────────────────────────────
-    // The ordering IS the product rule: "Contact the client, correct the targeting and record
-    // what you agreed first." Proving it by refusal is stronger than reading two timestamps,
+    // ── ③ THE GRANT IS REFUSED UNTIL A RESOLUTION IS RECORDED ────────────────────────────
+    // The ordering IS the product rule — "contact the client, correct the targeting and record
+    // what you agreed first". Proving it by refusal is stronger than comparing two timestamps,
     // because a refusal cannot be satisfied by a write that happened to land in the right order.
     const early = await asOperator(`/operator/proof-review/${W.clientId}/restart`, {
       method: 'POST', body: JSON.stringify({}), timeoutMs: 60000 })
     if (early.status === 200) {
       return bad(id, 'a calibrated restart was GRANTED with no resolution recorded — the one human-authorised set was minted for a conversation nobody had')
     }
-    const [{ granted_before: grantedBefore }] = await sql(
-      'select proof_calibrated_restart_at as granted_before from public.clients where id = $1', [W.clientId])
-    if (grantedBefore) return bad(id, 'the refused grant wrote a grant stamp anyway')
+    if ((await clientRow()).proof_calibrated_restart_at) return bad(id, 'the refused grant wrote a grant stamp anyway')
 
-    // ── ② THE RESOLUTION, RECORDED FIRST ──────────────────────────────────────────────────
+    // ── ④ THE RESOLUTION, RECORDED FIRST, WITH ITS NOTE ──────────────────────────────────
     const NOTE = 'Called them. They want Operations Directors as well as Heads of Operations; targeting corrected and agreed on the call.'
     const resolve = await asOperator(`/operator/proof-review/${W.clientId}/resolve`, {
       method: 'POST', body: JSON.stringify({ note: NOTE }), timeoutMs: 60000 })
-    const [res1] = await sql(
-      `select proof_review_resolved_at as resolved, proof_calibration_note as note,
-              proof_calibration_resolved_by as by
-         from public.clients where id = $1`, [W.clientId])
-    if (!res1.resolved) return bad(id, `the resolution was not recorded (HTTP ${resolve.status}): ${String(resolve.text).slice(0, 200)}`)
-    if (String(res1.note ?? '').trim() !== NOTE) return bad(id, 'the resolution note was not persisted — a restart without one spends a pass on the targeting that already failed')
+    const res1 = await clientRow()
+    if (!res1.proof_review_resolved_at) return bad(id, `the resolution was not recorded (HTTP ${resolve.status}): ${String(resolve.text).slice(0, 200)}`)
+    if (String(res1.proof_calibration_note ?? '').trim() !== NOTE) {
+      return bad(id, 'the resolution note was not persisted — a restart without one spends a set on the targeting that already failed twice')
+    }
 
-    // A human corrects the targeting as part of that resolution. This is the one genuinely
-    // human act in the journey and it has no API in this build, so it is disclosed.
+    // The human corrects the targeting on that call. This is the one genuinely human act in the
+    // journey and it has no API in this build, so it is disclosed rather than hidden.
     await sql(`update public.icps set job_titles = '{"Head of Operations","Operations Director"}' where id = $1`, [W.icpId])
-    seeded('the operator typing corrected targeting during the calibration call (no API in this build; the RESOLUTION, GRANT, CLAIM and RESTART are all driven over HTTP)')
+    seeded('the operator typing corrected targeting during the calibration call (no API in this build; the RESOLUTION, GRANT, CLAIM, RESERVATION and RESTART RUN are all driven over HTTP)')
 
-    // ── ③ THE GRANT — ONE, AND ONLY AFTER THE RESOLUTION ──────────────────────────────────
+    // ── ⑤ EXACTLY ONE GRANT, AND IT IS AUDITED ───────────────────────────────────────────
     const grant = await asOperator(`/operator/proof-review/${W.clientId}/restart`, {
       method: 'POST', body: JSON.stringify({}), timeoutMs: 60000 })
-    const [res2] = await sql(
-      'select proof_calibrated_restart_at as granted from public.clients where id = $1', [W.clientId])
-    if (grant.status !== 200 || !res2.granted) {
+    const res2 = await clientRow()
+    if (grant.status !== 200 || !res2.proof_calibrated_restart_at) {
       return bad(id, `the calibrated restart was not granted after a recorded resolution (HTTP ${grant.status}): ${String(grant.text).slice(0, 220)}`)
     }
-    if (new Date(res2.granted) < new Date(res1.resolved)) {
-      return bad(id, `the grant (${res2.granted}) predates the resolution (${res1.resolved}) — the authority came before the conversation`)
+    if (new Date(res2.proof_calibrated_restart_at) < new Date(res1.proof_review_resolved_at)) {
+      return bad(id, `the grant (${res2.proof_calibrated_restart_at}) predates the resolution (${res1.proof_review_resolved_at}) — the authority came before the conversation`)
     }
     const grantAudit = await audits('proof_calibrated_restart_granted')
     if (grantAudit.length !== 1) return bad(id, `the grant left ${grantAudit.length} audit row(s) — a human authority that is not audited is not evidence`)
 
-    // ── ④ THE CLIENT SPENDS IT — THROUGH THE ONE LEDGER, WITH PROVENANCE ON THE ROWS ───────
+    // ⚠️ THE FENCE BEFORE THE RUN, SO THE NEXT ASSERTION MEANS SOMETHING. The two automatic
+    // attempts have committed the whole 40-record automatic allowance; anything the restart
+    // sources is R134's extra 20 and could not have come from the automatic fence.
+    const committedBefore = Number(res2.proof_records_committed ?? 0)
+    if (committedBefore < 40) {
+      note(`J8: the prospect has committed ${committedBefore} of the 40 automatic records, so the restart's own allowance is not the only thing that could fund this run`)
+    }
+
+    // ── ⑥ THE CLIENT SPENDS IT — ONE LEDGER, ONE KIND ────────────────────────────────────
     //
-    // ⚠️ THE PREVIOUS ATTEMPT'S CLAIM HAS TO HAVE SETTLED FIRST, and that is the product's
-    // rule rather than a harness convenience: `proof_pass_claims_one_open` allows ONE open
-    // claim per client, so a restart asked for while pass 2 is still in flight is answered
-    // `already_started` — correctly. The walk waits for the ledger to settle exactly as a
-    // person would wait for the screen to finish.
+    // ⚠️ THE PREVIOUS ATTEMPT'S CLAIM MUST HAVE SETTLED FIRST, and that is the product's rule:
+    // `proof_pass_claims_one_open` allows ONE open claim per client, so a restart asked for
+    // while pass 2 is still in flight is answered `already_started` — correctly. The walk waits
+    // for the ledger exactly as a person waits for the screen.
     const openClaims = async () => await sql(
       `select id, authority, status from public.proof_pass_claims where client_id = $1 and status = 'open'`, [W.clientId])
     const settled = await waitFor('the previous proof claim to settle', async () =>
       ((await openClaims()).length === 0 ? true : null))
     if (!settled) {
-      const stuck = await openClaims()
-      return bad(id, `a proof claim is still OPEN after the grant (${JSON.stringify(stuck)}) — the calibrated restart cannot be claimed while an earlier attempt holds the one open slot`)
+      return bad(id, `a proof claim is still OPEN after the grant (${JSON.stringify(await openClaims())}) — the calibrated restart cannot be claimed while an earlier attempt holds the one open slot`)
     }
+
     const run = await asClient(`/icps/${W.icpId}/proof`, {
       method: 'POST', body: JSON.stringify({}), timeoutMs: 180000 })
     if (run.status !== 200) {
       return bad(id, `the calibrated restart run answered HTTP ${run.status}: ${String(run.text).slice(0, 250)}`)
     }
+    let body = {}
+    try { body = JSON.parse(run.text)?.data ?? {} } catch { /* reported below by the row facts */ }
+    if (body.kind && body.kind !== 'calibrated_restart') {
+      return bad(id, `the run claimed authority '${body.kind}', not the calibrated restart the operator granted`)
+    }
+
+    // ── ⑦ + ⑧ A REAL SET, BOUGHT WITH THE RESTART'S OWN RECORDS ──────────────────────────
     const afterOne = await waitFor('the calibrated restart set', async () => (await kindCount()) > 0 ? await kindCount() : null)
     if (!afterOne) {
       const c = await sql(
         `select authority, status, restart_grant_at from public.proof_pass_claims where client_id = $1 order by claimed_at`, [W.clientId])
-      const [cal] = await sql(
-        `select proof_passes_done, proof_records_committed, proof_calibrated_restart_at,
-                proof_calibrated_restart_used_at, proof_review_resolved_at
-           from public.clients where id = $1`, [W.clientId])
+      const cal = await clientRow()
       const released = c.find(x => x.authority === 'calibrated_restart' && x.status === 'released')
-      const fenced = Number(cal?.proof_records_committed ?? 0) >= 40
-      // 🛑 NAME THE CAUSE, NOT THE SYMPTOM. The shape below is a specific, reportable defect:
-      // the restart WAS granted and WAS claimed (kind = calibrated_restart), the run then
-      // sourced nothing and the authority was correctly RETURNED — because the free-Proof
-      // ACQUISITION fence (AR17: 40 records per prospect, which its own wording scopes to
-      // "across BOTH passes") has already been spent by the two automatic attempts, and
-      // `try_reserve_proof_records` knows nothing about the third, human-authorised set that
-      // R119 grants. Seven layers enforce R119; none of them is the record fence.
-      if (released && fenced) {
-        return bad(id, `the calibrated restart was GRANTED and CLAIMED (kind=calibrated_restart) and then sourced NOTHING: the prospect has committed ${cal.proof_records_committed} of the 40-record acquisition fence, so try_reserve_proof_records refused with CLIENT_PROOF_LIMIT_REACHED and the authority was RETURNED (claim status=released, proof_calibrated_restart_used_at=null). The operator pressed a real button, an audit row was written, and the client cannot get a set — AR17's fence and R119's third set contradict each other. FOUNDER DECISION REQUIRED (§1).`)
+      if (released && Number(cal.proof_records_committed ?? 0) <= committedBefore) {
+        return bad(id, `the calibrated restart was GRANTED and CLAIMED and then sourced NOTHING: proof_records_committed stayed at ${cal.proof_records_committed} and the authority was RETURNED. R134 gives this restart its own 20 records — the reservation did not receive them (run ${String(run.text).slice(0, 160)})`)
       }
-      return bad(id, `the restart run produced NO lead stamped proof_batch_kind='calibrated_restart' — the one human-authorised set cannot be told apart from an automatic attempt. The run answered HTTP ${run.status} with ${String(run.text).slice(0, 200)} · claims=${JSON.stringify(c)} · client=${JSON.stringify(cal)}`)
+      return bad(id, `the restart run produced NO lead stamped proof_batch_kind='calibrated_restart'. HTTP ${run.status} ${String(run.text).slice(0, 180)} · claims=${JSON.stringify(c)} · client=${JSON.stringify(cal)}`)
     }
+    const afterRun = await clientRow()
+    const spent = Number(afterRun.proof_records_committed ?? 0) - committedBefore
+    if (spent <= 0) {
+      return bad(id, `the restart produced a set without reserving any records (committed ${committedBefore} → ${afterRun.proof_records_committed}) — the accounting does not describe what was bought`)
+    }
+    if (Number(afterRun.proof_records_committed ?? 0) > 60) {
+      return bad(id, `the acquisition ceiling was exceeded: proof_records_committed=${afterRun.proof_records_committed} — R134 allows 40 automatic + 20 for the one restart and no more`)
+    }
+
+    // ── ⑨ PROVENANCE, AND ⑩ THE RESTART IS CONSUMED ──────────────────────────────────────
     const c1 = await claims()
     if (c1.length !== 1) return bad(id, `the restart produced ${c1.length} calibrated_restart claim(s) in proof_pass_claims — it is one authority, claimed once`)
     if (!c1[0].restart_grant_at) return bad(id, 'the claim records no restart_grant_at — which grant it spent is unrecoverable')
-    // ⚠️ THE CLAIM'S PROVENANCE IS THE CLAIM ROW AND THE LEAD STAMP, not a second audit row.
-    // `proof_calibrated_restart_claimed` exists in the audit vocabulary and NOTHING WRITES IT
-    // (reported in the evidence package, not invented into a requirement here): what the
-    // contract asks for — "provenance is recorded" — is `proof_pass_claims.restart_grant_at`
-    // naming the grant this claim spent, and `leads.proof_batch_kind` on the rows it bought.
+    const consumed = await waitFor('the restart claim to settle', async () => {
+      const [c] = await claims()
+      return c && c.status !== 'open' ? c.status : null
+    })
+    if (consumed !== 'completed') {
+      return bad(id, `the restart run produced a set but its claim settled as '${consumed}' — a successful restart is CONSUMED, not returned`)
+    }
 
-    // ── ⑤ A REPEAT CANNOT CONSUME A SECOND RESTART (R119: one grant, per client, for ever) ──
+    // ── ⑪ + ⑫ THE TWO AUTOMATIC ATTEMPTS ARE UNTOUCHED, AND THE COUNTER IS STILL 2 ───────
+    if (Number(afterRun.proof_passes_done) !== 2) {
+      return bad(id, `proof_passes_done moved to ${afterRun.proof_passes_done} — the restart is not a third automatic pass and must not be counted as one`)
+    }
+    const a1 = await claims('automatic_1'); const a2 = await claims('automatic_2')
+    if (a1.length !== automaticBefore.length || a2.length !== automatic2Before.length) {
+      return bad(id, `the restart changed the automatic claim ledger (automatic_1 ${automaticBefore.length}→${a1.length}, automatic_2 ${automatic2Before.length}→${a2.length}) — the two attempts remain used and are not reset`)
+    }
+
+    // ── ⑬ + ⑭ A SECOND GRANT, A REPEAT RUN AND A CONCURRENT PAIR ALL GET NOTHING ─────────
     const regrant = await asOperator(`/operator/proof-review/${W.clientId}/restart`, {
       method: 'POST', body: JSON.stringify({}), timeoutMs: 60000 })
     if (regrant.status === 200) return bad(id, 'a SECOND calibrated restart was granted — R119 says one grant per client, whatever happens later')
-    const rerun = await asClient(`/icps/${W.icpId}/proof`, {
-      method: 'POST', body: JSON.stringify({}), timeoutMs: 180000 })
+
+    const committedAfterFirst = Number(afterRun.proof_records_committed ?? 0)
+    const [again1, again2] = await Promise.all([
+      asClient(`/icps/${W.icpId}/proof`, { method: 'POST', body: JSON.stringify({}), timeoutMs: 180000 }),
+      asClient(`/icps/${W.icpId}/proof`, { method: 'POST', body: JSON.stringify({}), timeoutMs: 180000 }),
+    ])
     const c2 = await claims()
     const afterTwo = await kindCount()
+    const afterRepeat = await clientRow()
     if (c2.length !== 1) {
-      return bad(id, `a repeat press produced ${c2.length} calibrated_restart claim(s) — the one restart was spent twice (rerun HTTP ${rerun.status})`)
+      return bad(id, `a repeat/concurrent press produced ${c2.length} calibrated_restart claim(s) — the one restart was spent twice (HTTP ${again1.status}/${again2.status})`)
     }
     if (afterTwo !== afterOne) {
       return bad(id, `a repeat press produced a second calibrated_restart set (${afterOne} → ${afterTwo} lead(s))`)
     }
+    // ⑮ And no extra allowance: a consumed restart's 20 are gone, so nothing further is reserved.
+    if (Number(afterRepeat.proof_records_committed ?? 0) !== committedAfterFirst) {
+      return bad(id, `a repeat press reserved MORE records (${committedAfterFirst} → ${afterRepeat.proof_records_committed}) — a consumed restart must not carry its allowance again`)
+    }
 
-    ok(id, `the canonical calibrated restart, end to end: a grant with no resolution was REFUSED (HTTP ${early.status}) · the resolution was recorded first (note persisted, resolved_by ${res1.by ?? 'null'}) · exactly ONE grant followed (audited) · the client's run claimed authority 'calibrated_restart' in proof_pass_claims (1 claim, grant recorded on it) and stamped ${afterOne} lead(s) proof_batch_kind='calibrated_restart' · a second grant was REFUSED (HTTP ${regrant.status}) and a repeat run consumed nothing (still 1 claim, still ${afterTwo} lead(s)) · HTTP ${run.status}`)
+    ok(id, `the canonical calibrated restart, end to end: both automatic attempts spent (proof_passes_done=2, still 2 afterwards) and the client escalated · a grant with NO resolution was REFUSED (HTTP ${early.status}) · the resolution was recorded first with its note (resolved_by ${res1.proof_calibration_resolved_by ?? 'null'}) · exactly ONE audited grant followed · the run claimed authority 'calibrated_restart' (1 claim, grant recorded on it) and reserved ${spent} record(s) of R134's own 20 DESPITE the 40-record automatic fence being spent (committed ${committedBefore}→${afterRun.proof_records_committed} of 60) · ${afterOne} lead(s) stamped proof_batch_kind='calibrated_restart' · the claim settled COMPLETED, so the one restart is consumed · the automatic ledger is unchanged (automatic_1 ${a1.length}, automatic_2 ${a2.length}) · a second grant was REFUSED (HTTP ${regrant.status}) and two CONCURRENT repeat runs produced no second claim, no second set and not one extra record · HTTP ${run.status}`)
   }
 
   // ════════════════════════════════════════════════════════════════════════════════════════

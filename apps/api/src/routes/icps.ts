@@ -1267,8 +1267,28 @@ export async function runIcpJob(
         console.log(`[icp] house run for client ${clientId} — Apollo remainder ${grantedSize}; no programme on this ICP, so there is no reservation to make. The PDL cash fence does not apply (AR5/AR8).`)
       }
     } else if (proofMode) {
+      // ── 🛑 ⚑ 19 Sep (J8 · FOUNDER RULING) — THE RESERVATION IS TOLD WHAT AUTHORITY IT IS ──
+      //
+      // 🛑 WHAT THIS FIXES, AND IT WAS MEASURED, NOT IMAGINED. The canonical Journey 8 walked
+      // the real chain — escalation, recorded resolution, one audited grant, a claim that
+      // returned `kind = calibrated_restart` — and then the run sourced NOTHING:
+      // `try_reserve_proof_records` refused with `CLIENT_PROOF_LIMIT_REACHED`, because the
+      // prospect had committed 40 of 40 records across their two AUTOMATIC attempts and the
+      // fence knew nothing about authority kind. The operator pressed a real button, an audit
+      // row was written, and the client could not get a set.
+      //
+      // ⛓️ AR17 scopes its 40 to *"across BOTH passes"*; R119 grants a THIRD, human-authorised
+      // set. Raising a founder-set funding fence is a founder decision, so it was raised as a
+      // §1 STOP and ruled on 19 Sep 2026: *"APPROVED: OPTION A. The ONE human-authorised
+      // calibrated restart receives its own additional allowance of: 20 RECORDS."*
+      //
+      // ⚠️ THE KIND IS THE ONE THE LEDGER GRANTED, NEVER ONE THIS RUN CHOSE. `opts.proofKind`
+      // is set by the proof route from `claimProofAuthority`'s own `authority.kind`, so an
+      // automatic pass cannot name itself a restart to reach the extra allowance — and the
+      // function checks the grant and the unconsumed claim itself besides.
       const { data: reserved } = await db.rpc('try_reserve_proof_records', {
         p_client_id: clientId, p_requested: pdlRemainder,
+        p_kind: opts?.proofKind ?? 'automatic',
       })
       const r = (reserved ?? {}) as { granted?: number; reservation_id?: string | null; reason?: string }
       proofReserved = typeof r.granted === 'number' ? r.granted : 0

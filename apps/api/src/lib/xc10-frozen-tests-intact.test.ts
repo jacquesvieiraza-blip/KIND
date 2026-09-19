@@ -20,30 +20,43 @@
 // exception — and it reads the WORKING TREE, not `HEAD`, so an uncommitted edit is caught
 // before it is committed rather than after.
 //
-// ── THE ONE AUTHORISED EXCEPTION, PINNED TO ITS EXACT CONTENT ──────────────────────────
+// ── THE TWO AUTHORISED EXCEPTIONS, BOTH PINNED TO THEIR EXACT CONTENT ───────────────────
 //
 // ① **house-authority.test.ts — FOUNDER DECISION B, 18 Sep.** The global migration-count
 //    assertion was removed on his explicit instruction; the same tripwire lives in
 //    `migration-home.test.ts` and `schema-drift.test.ts`, which is where a global count belongs.
 //    Every House invariant in the file is untouched, and the diff is that one removal.
 //
-// ── 🛑 ⛓️ 19 Sep — AND THE SECOND "EXCEPTION" IS WITHDRAWN. IT WAS NEVER AUTHORISED. ─────
+// ② **kill-switch-absolute.test.ts — ONE FIELD, FOUNDER-RULED 19 Sep.** FD-5 makes the send
+//    seam refuse anybody without an Apollo-verified business email; the frozen fixture's lead
+//    row carried no `email_status`, so case 13 — the file's own ANTI-VACUITY control — could no
+//    longer reach the mail server, and the file asserted `sent` where the product now answers
+//    `deferred`.
 //
-// ~~② kill-switch-absolute.test.ts — ONE FIELD ON ONE LINE (J20-C4)~~ stood here, and the
-// reasoning was sound: FD-5 makes the send seam refuse anybody without a verified business
-// email, the frozen fixture's lead row carries no `email_status`, and case 13 — the file's own
-// ANTI-VACUITY case — therefore answers `deferred` where the certified file asserts `sent`.
+// ⛓️ **AND THE HISTORY OF THIS EXCEPTION IS THE POINT OF THIS FILE.** It was first applied
+// under a chained note written by me, with no ruling behind it. GPT's whole-candidate review
+// asked for the ruling reference, there was none, the file was RESTORED BYTE-IDENTICAL and the
+// contradiction was raised as a STOP under MVP1_STOP_AND_SCOPE_RULES §1 — the same route
+// Decision B travelled. **The founder then ruled it, 19 Sep 2026, verbatim:**
 //
-// 🛑 WHAT WAS WRONG WAS THE AUTHORITY, NOT THE ANALYSIS. A chained note explaining why an
-// exception is necessary is not a Founder ruling, and XC-10 exists precisely so that a frozen
-// test cannot be amended by the person who needs it amended. GPT's whole-candidate review
-// asked for the ruling reference; there is none. The file is therefore RESTORED BYTE-IDENTICAL
-// to `60e6e9ba` and the contradiction is raised as a STOP under MVP1_STOP_AND_SCOPE_RULES §1
-// (frozen-test conflict) — the same route Decision B travelled.
+//     "APPROVED: OPTION A. Authorise exactly ONE amendment to
+//      apps/api/src/lib/kill-switch-absolute.test.ts. Change only the mocked lead used by the
+//      anti-vacuity positive-control case so that it carries: email_status: 'verified'.
+//      Nothing else in that frozen test is authorised to change."
 //
-// ⚠️ SO THIS SUITE NOW ASSERTS THE OPPOSITE OF WHAT IT USED TO: the kill-switch file must be
-// byte-identical to the baseline. While the conflict stands, `kill-switch-absolute.test.ts`
-// case 13 is RED, and that red is the STOP — not something for this file to paper over.
+//     Purpose, in his words: "preserve FD-5 · preserve F-SENDABLE · preserve the real send seam
+//     refusing any lead without an Apollo-verified business email · restore the frozen test's
+//     original anti-vacuity purpose: when both switches are correctly enabled and the mocked
+//     lead is genuinely sendable, the seam is reached and can send."
+//
+//     And what it does NOT authorise: "Do NOT weaken FD-5 · Do NOT create an operator-run
+//     exception · Do NOT allow unverified leads through the seam · Do NOT amend any other
+//     assertion in that frozen test."
+//
+// 🛑 THE EXCEPTION IS PINNED, NOT PERMITTED. This file asserts the kill-switch deviation is
+// EXACTLY that one added field: no second line, no added prose, no assertion touched. The
+// explanation lives in `j20c4-send-seam-refuses-non-sendable.test.ts`, deliberately, so the
+// frozen file's own text stays as the founder certified it.
 // ══════════════════════════════════════════════════════════════════════════════════════════
 
 import { describe, it, expect } from 'vitest'
@@ -131,18 +144,33 @@ describe('XC-10 · untouched means byte-identical to 60e6e9ba', () => {
 // ③ TWO CARRY AUTHORISED EXCEPTIONS, AND EACH IS PINNED TO ITS EXACT CONTENT
 // ═════════════════════════════════════════════════════════════════════════════════════════
 describe('XC-10 · the authorised exceptions, and nothing beyond them', () => {
-  it('🛑 KILL-SWITCH — BYTE-IDENTICAL TO THE BASELINE, because no ruling amended it', () => {
-    // 🛑 THE UNAUTHORISED AMENDMENT IS WITHDRAWN. What stood here asserted "exactly one added
-    // field"; the field was added by me, under a chained note, with no Founder ruling behind
-    // it. XC-10 exists so that cannot stand, so it now asserts the file as certified.
-    //
+  it('🛑 KILL-SWITCH — EXACTLY ONE LINE, AND THE CHANGE IS THE ONE FOUNDER-RULED FIELD', () => {
+    // ⛓️ 19 Sep — RESTORED under the founder's Option A ruling (quoted in this file's header).
+    // Between the GPT review and that ruling this asserted the file was byte-identical, because
+    // the amendment was unauthorised at the time. It is authorised now, and pinned to one field.
+    const { added, removed } = changedLines(diffAgainstBaseline(FROZEN['kill-switch']))
+    expect(removed.length, `the kill-switch test removed ${removed.length} line(s); exactly 1 is authorised`).toBe(1)
+    expect(added.length, `the kill-switch test added ${added.length} line(s); exactly 1 is authorised`).toBe(1)
+
+    // 🛑 AND THE DIFFERENCE BETWEEN THE TWO LINES IS THE FIELD, NOTHING ELSE. Restoring the
+    // removed line by deleting the field must reproduce the baseline line exactly — so no
+    // assertion, no fixture value and no behaviour can hide inside an "authorised" hunk.
+    expect(added[0].replace(" email_status: 'verified',", ''), 'the authorised hunk changed something other than the one field')
+      .toBe(removed[0])
+    expect(added[0]).toContain("email_status: 'verified'")
+  })
+
+  it('🛑 AND THE KILL-SWITCH GUARANTEE ITSELF IS WORD-FOR-WORD THE CERTIFIED ONE', () => {
+    // The fixture is data; the rule is the file. Every sentence that states the guarantee, and
+    // every case that holds it, is compared against the baseline's own text.
     // ⚠️ THE FILE ON DISK, NOT `git show :path` — that reads the INDEX, so an unstaged edit to
     // a frozen test would compare clean and this guard would pass over the very change it
     // exists to catch.
     const now = readFileSync(join(REPO, FROZEN['kill-switch']), 'utf8')
+      .replace(" email_status: 'verified',", '')
     const base = execFileSync('git', ['show', `${BASELINE}:${FROZEN['kill-switch']}`], { cwd: REPO, encoding: 'utf8' })
-    expect(now, 'the kill-switch frozen test was amended without a Founder ruling').toBe(base)
-    expect(diffAgainstBaseline(FROZEN['kill-switch'])).toBe('')
+    expect(now, 'the kill-switch test differs from the baseline beyond the one authorised field')
+      .toBe(base)
   })
 
   it('🛑 HOUSE AUTHORITY — DECISION B, and every House invariant still asserted', () => {
@@ -178,16 +206,17 @@ describe('XC-10 · the authorised exceptions, and nothing beyond them', () => {
 // ④ THE EXCEPTION LIST IS CLOSED
 // ═════════════════════════════════════════════════════════════════════════════════════════
 describe('XC-10 · a third exception cannot appear without this file saying so', () => {
-  it('🛑 EXACTLY ONE FROZEN FILE DIFFERS FROM THE BASELINE, AND IT IS THE ONE DECLARED', () => {
+  it('🛑 EXACTLY TWO FROZEN FILES DIFFER FROM THE BASELINE, AND THEY ARE THE TWO DECLARED', () => {
     // This is the assertion that makes the list closed rather than illustrative: a future edit
     // to any other frozen test is caught here even if somebody forgets to add a case above.
-    // ⛓️ 19 Sep — WAS `['house authority', 'kill-switch']`. The kill-switch amendment had no
-    // Founder ruling and is withdrawn; one exception is the authorised set.
+    // ⛓️ 19 Sep, twice. It briefly asserted `['house authority']` alone, while the kill-switch
+    // amendment stood withdrawn for want of a ruling. The founder then ruled it (Option A), so
+    // the authorised set is two — and a third still cannot appear without this file saying so.
     const differing = Object.entries(FROZEN)
       .filter(([, file]) => diffAgainstBaseline(file) !== '')
       .map(([guarantee]) => guarantee)
       .sort()
     expect(differing, 'a frozen test differs from the certified baseline without an authorised exception')
-      .toEqual(['house authority'])
+      .toEqual(['house authority', 'kill-switch'])
   })
 })

@@ -6166,6 +6166,137 @@ GRANT  EXECUTE ON FUNCTION public.release_proof_records(uuid, int) TO service_ro
 `.trim(),
   },
   {
+    key: '20260919_calibrated_restart_record_allowance',
+    title: 'The ONE calibrated restart carries its own 20 records — FOUNDER RULING 19 Sep 2026 (MVP1 · J8 · AR17/R119)',
+    sql: `
+-- ── THE CALIBRATED RESTART'S OWN 20 RECORDS — FOUNDER RULING, 19 Sep 2026 ─────────────
+--
+-- Canonical copy: supabase/migrations/20260919_calibrated_restart_record_allowance.sql
+--
+-- The canonical Journey 8 measured it: an operator resolved the escalation, recorded the note
+-- and granted the one calibrated restart; the client's run claimed it (kind = calibrated_restart)
+-- and then sourced NOTHING, because try_reserve_proof_records refused with
+-- CLIENT_PROOF_LIMIT_REACHED -- the prospect had committed 40 of 40 across the two AUTOMATIC
+-- attempts, and this fence knew nothing about authority kind. AR17 scopes its 40 to "across BOTH
+-- passes"; R119 grants a third, human-authorised set. Raising a founder-set funding fence is a
+-- founder decision, so it was raised as a STOP and ruled:
+--
+--   "APPROVED: OPTION A. The ONE human-authorised calibrated restart receives its own
+--    additional allowance of: 20 RECORDS."
+--
+-- Three conditions, all durable facts written by somebody else: the kind comes from the claim
+-- ledger (claim_proof_authority), the grant from the operator's one-time write, and "not yet
+-- consumed" from the completed-claim row. proof_passes_done remains 2; there is no automatic
+-- attempt 3; a second restart is still refused by R119 and by
+-- proof_pass_claims_one_completed_restart.
+--
+-- EXPAND ONLY: one function replaced, one defaulted parameter. The old two-argument signature is
+-- dropped so no caller can reach the pre-ruling fence by arity.
+CREATE OR REPLACE FUNCTION public.try_reserve_proof_records(
+  p_client_id uuid,
+  p_requested int,
+  p_kind      text DEFAULT 'automatic'
+)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
+declare
+  v_client_cap    int := 40;
+  v_restart_bonus int := 20;
+  v_committed     int;
+  v_client_room   int;
+  v_cap_records   int;
+  v_month_records int;
+  v_month         date := (date_trunc('month', now()))::date;
+  v_room          int;
+  v_grant         int;
+  v_res_id        uuid;
+  v_granted_at    timestamptz;
+  v_consumed      boolean;
+begin
+  if p_client_id is null or p_requested is null or p_requested <= 0 then
+    return jsonb_build_object('granted', 0, 'reservation_id', null, 'reason', 'FAIL_CLOSED_BAD_ARGS');
+  end if;
+
+  select coalesce(proof_monthly_cap_records, 1071)
+    into v_cap_records
+    from public.money_settings where id = 1 for update;
+
+  if v_cap_records is null then
+    return jsonb_build_object('granted', 0, 'reservation_id', null, 'reason', 'FAIL_CLOSED_NO_MONEY_SETTINGS');
+  end if;
+
+  select coalesce(proof_records_committed, 0), proof_calibrated_restart_at
+    into v_committed, v_granted_at
+    from public.clients where id = p_client_id for update;
+  if v_committed is null then
+    return jsonb_build_object('granted', 0, 'reservation_id', null, 'reason', 'FAIL_CLOSED_UNKNOWN_CLIENT');
+  end if;
+
+  -- ── THE ONE HUMAN-AUTHORISED RESTART'S OWN 20 RECORDS (founder ruling, 19 Sep 2026) ────
+  --
+  -- All three conditions must hold together, and every one of them is a durable fact written
+  -- by somebody else: the kind comes from the claim ledger, the grant from the operator's
+  -- one-time write, and "not yet consumed" from the completed-claim row the ledger settles.
+  if p_kind = 'calibrated_restart' and v_granted_at is not null then
+    select exists (
+      select 1 from public.proof_pass_claims
+       where client_id = p_client_id
+         and authority = 'calibrated_restart'
+         and status    = 'completed'
+    ) into v_consumed;
+
+    if not v_consumed then
+      v_client_cap := v_client_cap + v_restart_bonus;
+    end if;
+  end if;
+
+  v_client_room := greatest(0, v_client_cap - v_committed);
+  if v_client_room <= 0 then
+    return jsonb_build_object('granted', 0, 'reservation_id', null, 'reason', 'CLIENT_PROOF_LIMIT_REACHED');
+  end if;
+
+  select coalesce(sum(records), 0) into v_month_records
+    from public.proof_ledger where budget_month = v_month;
+
+  v_room := greatest(0, v_cap_records - v_month_records);
+  if v_room <= 0 then
+    return jsonb_build_object('granted', 0, 'reservation_id', null, 'reason', 'MONTHLY_PROOF_BUDGET_REACHED');
+  end if;
+
+  v_grant := least(p_requested, v_client_room, v_room);
+  if v_grant <= 0 then
+    return jsonb_build_object('granted', 0, 'reservation_id', null, 'reason', 'FAIL_CLOSED_BAD_ARGS');
+  end if;
+
+  update public.clients
+     set proof_records_committed = v_committed + v_grant
+   where id = p_client_id;
+
+  insert into public.proof_ledger (client_id, records, cost_usd, budget_month)
+    values (p_client_id, v_grant, 0, v_month)
+    returning id into v_res_id;
+
+  return jsonb_build_object('granted', v_grant, 'reservation_id', v_res_id, 'reason', 'GRANTED');
+end;
+$$;
+
+-- 🛑 THE OLD TWO-ARGUMENT SIGNATURE IS REMOVED. PostgreSQL keeps overloads side by side, so
+-- leaving it would mean a caller could reach the pre-ruling fence by passing two arguments —
+-- a second definition of the same rule, which is the drift this repo keeps paying for. Every
+-- caller either omits the kind (and gets the default 'automatic') or names it.
+DROP FUNCTION IF EXISTS public.try_reserve_proof_records(uuid, int);
+
+REVOKE EXECUTE ON FUNCTION public.try_reserve_proof_records(uuid, int, text) FROM PUBLIC;
+GRANT  EXECUTE ON FUNCTION public.try_reserve_proof_records(uuid, int, text) TO service_role;
+
+COMMENT ON FUNCTION public.try_reserve_proof_records(uuid, int, text) IS
+  'The free-proof ENTITLEMENT fence, counted in RECORDS: 40 per prospect across the two AUTOMATIC attempts (AR17), plus a monthly company ceiling. FOUNDER RULING 19 Sep 2026: the ONE human-authorised calibrated restart (R119) carries its own additional 20 records — available only when p_kind = calibrated_restart (the kind claim_proof_authority granted), only once clients.proof_calibrated_restart_at is set, and only while no completed calibrated_restart claim exists. proof_passes_done remains 2 and there is no automatic attempt 3.';
+`.trim(),
+  },
+  {
     key: '20260919_one_canonical_sequence_per_campaign',
     title: 'ONE canonical sequence per campaign — the race that made a paid programme permanently unpreparable (MVP1 · J13)',
     sql: `

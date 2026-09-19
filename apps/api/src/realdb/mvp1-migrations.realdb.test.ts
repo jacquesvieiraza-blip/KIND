@@ -160,6 +160,108 @@ describe('MVP1 · every migration in this wave, applied and exercised', () => {
     expect(Number(legacy[0].n)).toBe(2)
   })
 
+  // ── 20260919_calibrated_restart_record_allowance (J8 · FOUNDER RULING 19 Sep) ───────
+
+  describe('the ONE calibrated restart carries its own 20 records', () => {
+    const reserve = async (clientId: string, requested: number, kind?: string) => {
+      const r = await c.query<{ out: { granted: number; reason: string } }>(
+        kind === undefined
+          ? 'select public.try_reserve_proof_records($1::uuid, $2::int) as out'
+          : 'select public.try_reserve_proof_records($1::uuid, $2::int, $3::text) as out',
+        kind === undefined ? [clientId, requested] : [clientId, requested, kind])
+      return r.rows[0].out
+    }
+    /** The two automatic attempts, spent exactly as the product spends them. */
+    const spendTheForty = async (clientId: string) => {
+      expect((await reserve(clientId, 20)).granted).toBe(20)
+      expect((await reserve(clientId, 20)).granted).toBe(20)
+    }
+
+    it('🛑 the extra 20 is NOT available to ordinary automatic Proof — the 40 still binds', async () => {
+      const { clientId } = await newClient()
+      await spendTheForty(clientId)
+      const third = await reserve(clientId, 20)
+      expect(third.granted, 'an automatic attempt reached past the 40-record fence').toBe(0)
+      expect(third.reason).toBe('CLIENT_PROOF_LIMIT_REACHED')
+      // And naming the kind does not help while no grant exists.
+      const named = await reserve(clientId, 20, 'calibrated_restart')
+      expect(named.granted, 'the extra 20 was available BEFORE the restart was granted').toBe(0)
+      expect(named.reason).toBe('CLIENT_PROOF_LIMIT_REACHED')
+    })
+
+    it('🛑 once GRANTED, the calibrated restart may take its 20 — and only as that kind', async () => {
+      const { clientId } = await newClient()
+      await spendTheForty(clientId)
+      // The operator's one-time grant (R119): the column transitions from NULL exactly once.
+      await c.query(`update public.clients set proof_calibrated_restart_at = now() where id = $1`, [clientId])
+
+      // An AUTOMATIC reservation is still refused — the grant does not raise the automatic fence.
+      expect((await reserve(clientId, 20)).granted, 'the grant raised the AUTOMATIC ceiling too').toBe(0)
+
+      const restart = await reserve(clientId, 20, 'calibrated_restart')
+      expect(restart.granted, 'the granted calibrated restart could not reserve its own records').toBe(20)
+      expect(restart.reason).toBe('GRANTED')
+
+      const [row] = (await c.query(
+        'select proof_records_committed from public.clients where id = $1', [clientId])).rows as Array<Record<string, unknown>>
+      expect(Number(row.proof_records_committed), 'the lifetime ceiling is 40 + the one restart\'s 20').toBe(60)
+
+      // 🛑 AND IT IS 60, NOT 80: the restart's allowance is ONE extra 20, not an open door.
+      const more = await reserve(clientId, 20, 'calibrated_restart')
+      expect(more.granted, 'the restart kept taking records past its own 20').toBe(0)
+      expect(more.reason).toBe('CLIENT_PROOF_LIMIT_REACHED')
+    })
+
+    it('🛑 and it is NOT REUSABLE once the restart has been consumed', async () => {
+      const { clientId } = await newClient()
+      await c.query(`update public.clients set proof_calibrated_restart_at = now() where id = $1`, [clientId])
+      // The durable ledger's own definition of consumed: a COMPLETED calibrated_restart claim.
+      await c.query(
+        `insert into public.proof_pass_claims(client_id, authority, status, settled_at, restart_grant_at)
+         values ($1, 'calibrated_restart', 'completed', now(), now())`, [clientId])
+
+      const after = await reserve(clientId, 20, 'calibrated_restart')
+      expect(after.granted, 'a consumed restart could reserve records again').toBe(20)
+      // ⚠️ THE FIRST 40 ARE STILL FREE HERE — this client never spent them — so the assertion
+      // that matters is the CEILING, not this single call. Spend up to it and the extra 20 is
+      // demonstrably gone.
+      expect((await reserve(clientId, 20, 'calibrated_restart')).granted).toBe(20)
+      const past = await reserve(clientId, 20, 'calibrated_restart')
+      expect(past.granted, 'a consumed restart still carried its extra 20 — the ceiling was 60, not 40').toBe(0)
+      expect(past.reason).toBe('CLIENT_PROOF_LIMIT_REACHED')
+    })
+
+    it('🛑 a FAILED or RELEASED restart keeps its allowance — release semantics, not a second restart', async () => {
+      const { clientId } = await newClient()
+      await spendTheForty(clientId)
+      await c.query(`update public.clients set proof_calibrated_restart_at = now() where id = $1`, [clientId])
+      // The run claimed the restart and then failed: the ledger RELEASES rather than completes.
+      await c.query(
+        `insert into public.proof_pass_claims(client_id, authority, status, settled_at, restart_grant_at, release_reason)
+         values ($1, 'calibrated_restart', 'released', now(), now(), 'provider 503')`, [clientId])
+
+      const retry = await reserve(clientId, 20, 'calibrated_restart')
+      expect(retry.granted, 'a released restart lost the allowance it never spent').toBe(20)
+
+      // 🛑 AND A SECOND RESTART IS STILL IMPOSSIBLE: the completed-claim index is the ceiling.
+      await c.query(
+        `insert into public.proof_pass_claims(client_id, authority, status, settled_at, restart_grant_at)
+         values ($1, 'calibrated_restart', 'completed', now(), now())`, [clientId])
+      await expect(c.query(
+        `insert into public.proof_pass_claims(client_id, authority, status, settled_at, restart_grant_at)
+         values ($1, 'calibrated_restart', 'completed', now(), now())`, [clientId]))
+        .rejects.toThrow(/proof_pass_claims_one_completed_restart|duplicate key/i)
+    })
+
+    it('🛑 the pre-ruling two-argument signature is GONE — one definition of the fence', async () => {
+      // Leaving the overload in place would let a caller reach the old behaviour by arity.
+      const { rows } = await c.query<{ n: string }>(
+        `select count(*)::text as n from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+          where n.nspname = 'public' and p.proname = 'try_reserve_proof_records'`)
+      expect(Number(rows[0].n), 'two overloads of the proof fence exist — a caller can choose the old one').toBe(1)
+    })
+  })
+
   // ── 20260622_subscription_pause (the signup 500, and the shape-aware rewrite) ───────
 
   it('20260622_subscription_pause · a dormant signup subscription is ACCEPTED — the defect that 500\'d every signup', async () => {

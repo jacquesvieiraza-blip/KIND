@@ -36,7 +36,10 @@ const codeOf = (s: string) => s.replace(/<!--[\s\S]*?-->/g, '')
 describe('the guard is reading the real site', () => {
   it('finds all 29 pages', () => {
     // A moved directory would leave every assertion below iterating nothing and passing.
-    expect(PAGES.length).toBe(29)
+    // ⛓️ 20 Sep — 29 -> 35. The new site adds For Founders, For Enterprise, FAQs, Contact,
+    // Cookies and Get started. The number is pinned, not removed: a page count that drifts
+    // silently is how a guard ends up iterating nothing and passing.
+    expect(PAGES.length).toBe(35)
     expect(read('trust.html').length).toBeGreaterThan(5000)
   })
 })
@@ -87,12 +90,18 @@ describe('② "Cape Town" and "South Africa" are banned in a HOSTING sentence on
   for (const place of ['Cape Town', 'South Africa']) {
     it(`no page places our INFRASTRUCTURE in ${place}`, () => {
       const offenders: string[] = []
+      // ⛓️ 20 Sep — SPLIT ON SENTENCES, NOT ON NEWLINES.
+      // This walked the file line by line, which worked only because every page happened to be
+      // pretty-printed. The new site's pages are emitted as one long line, so "one line" became
+      // "the whole document" and every page mentioning POPIA (South Africa) as a JURISDICTION
+      // collided with the word "stored" somewhere else entirely. It reported three pages that
+      // make no hosting claim at all. A guard that cannot tell a hosting claim from a
+      // jurisdiction is the exact failure this describe block's own comment warns about.
       for (const f of PAGES) {
-        for (const line of codeOf(read(f)).split('\n')) {
-          if (!line.includes(place)) continue
-          // The sentence around the mention, tags stripped, is what a reader sees.
-          const text = line.replace(/<[^>]*>/g, ' ')
-          if (HOSTING.test(text)) offenders.push(`${f}: ${text.trim().slice(0, 90)}`)
+        const text = codeOf(read(f)).replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ')
+        for (const sentence of text.split(/(?<=[.!?])\s+/)) {
+          if (!sentence.includes(place)) continue
+          if (HOSTING.test(sentence)) offenders.push(`${f}: ${sentence.trim().slice(0, 90)}`)
         }
       }
       expect(offenders, `a hosting claim still names ${place}:\n${offenders.join('\n')}`).toEqual([])

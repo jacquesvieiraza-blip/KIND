@@ -1,7 +1,10 @@
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'fs'
 import { join } from 'path'
-import { PACK_LEADS, PACK_PRICE_USD, LEAD_PRICE_USD } from '@kind/shared'
+import {
+  PACK_LEADS, PACK_PRICE_USD, LEAD_PRICE_USD,
+  PROGRAMME_ANCHOR_1_USD, PROGRAMME_FLOOR_USD,
+} from '@kind/shared'
 
 // #413 / #327 — WHAT THE PUBLIC SITE AND THE CONTRACT SAY THE $99 BUYS.
 //
@@ -62,7 +65,18 @@ const PAGES: Array<[string, string]> = [['terms.html', terms], ['pricing.html', 
 // founder+legal territory (E35/E36), corrected deliberately and not by a marketing sweep.
 // The NEGATIVE assertions above still cover all three pages — a page that has moved on must
 // never reacquire the claim it dropped.
-const LEGACY_PAGES: Array<[string, string]> = [['terms.html', terms]]
+// ⛓️ 19 Sep, THIRD AND FINAL NARROWING — TERMS HAS MOVED, SO THE LEGACY SET IS EMPTY.
+//
+// The contract was the last page still describing $299 + $4-per-approved-lead, a wallet and
+// credits. It has now been rewritten onto the programme: booked meetings, $450 falling to a
+// $400 floor, paid 50/50 around one approval. "Booked meeting" appeared ZERO times in the
+// document governing a service sold on booked meetings; it now appears throughout.
+//
+// The positive legacy assertions have nothing left to assert, so — exactly as the homepage and
+// pricing.html did before it — the guard INVERTS. No page may carry the retired figures at
+// all, and terms gets its own programme assertions below. Deleting these tests instead would
+// leave the retired model free to reappear in the one document that is a contract.
+const LEGACY_PAGES: Array<[string, string]> = []
 
 /** The homepage pricing block alone — the footer is a 29-page shared string, swept separately. */
 const homePricing = homeRaw.slice(
@@ -93,43 +107,71 @@ describe('the site no longer calls the first purchase a wallet top-up', () => {
   })
 })
 
-describe('both pages disclose the included leads, with the real numbers', () => {
-  for (const [name, html] of LEGACY_PAGES) {
-    it(`${name} names the pack price from the constant (${PACK_PRICE_USD})`, () => {
-      expect(html).toContain(`$${PACK_PRICE_USD}`)
-    })
+describe('no page carries the retired per-lead model any more', () => {
+  // Bounded so "$450" and "$400" never satisfy a "$4" match — the exact mistake that let three
+  // live pages keep advertising a booked meeting at $4 for weeks.
+  //
+  // ⚠️ THE OBVIOUS BOUND IS WRONG, AND IT WAS CAUGHT BY RED-PROOFING THIS GUARD, NOT BY READING IT.
+  // /\$4(?![0-9,.])/ excludes a following comma or period outright, so it silently ignores
+  // "a flat $4, drawn from your wallet" and "costs $4." — the two shapes the retired contract
+  // actually used. A deliberately bad terms.html passed 26/26 against it.
+  // What must be excluded is a NUMBER continuing: a digit, or a separator followed by a digit.
+  //   $450     -> digit follows        -> not a match
+  //   $4,375   -> ",3" continues it    -> not a match
+  //   $4.00    -> ".0" continues it    -> not a match
+  //   "$4, "   -> comma then space     -> IS a match, and must be
+  const FLAT_FOUR = /\$4(?![\d]|[,.]\d)/
 
-    it(`${name} names the included count from the constant (${PACK_LEADS})`, () => {
-      expect(html).toContain(`${PACK_LEADS} approved leads`)
-    })
+  // A COMMENT RECORDING A REMOVED CLAIM IS NOT THE CLAIM — the same rule
+  // website-residency-claims.test.ts applies. pricing.html carries a CSS comment reading
+  // "the page moved from $4-per-approved-lead to the programme", which is the migration note,
+  // not a price. Strip comments, <style> and <script> so the guard reads what a client reads.
+  const visible = (html: string) =>
+    html
+      .replace(/<!--[\s\S]*?-->/g, '')
+      .replace(/<style[\s\S]*?<\/style>/gi, '')
+      .replace(/<script[\s\S]*?<\/script>/gi, '')
 
-    it(`${name} names the per-lead price from the constant ($${LEAD_PRICE_USD})`, () => {
-      expect(html).toContain(`$${LEAD_PRICE_USD}`)
+  for (const [name, html] of PAGES) {
+    it(`${name} names no pack price, included count or per-lead price`, () => {
+      const v = visible(html)
+      expect(v, `${name} still names the $${PACK_PRICE_USD} pack`).not.toContain(`$${PACK_PRICE_USD}`)
+      expect(v, `${name} still names ${PACK_LEADS} approved leads`).not.toContain(`${PACK_LEADS} approved leads`)
+      expect(FLAT_FOUR.test(v), `${name} still prices something at $${LEAD_PRICE_USD}`).toBe(false)
     })
   }
+
+  it('LEGACY_PAGES is empty — nothing is exempt from the above', () => {
+    // If a page is ever added back to this list, the inversion above stops covering it.
+    expect(LEGACY_PAGES).toEqual([])
+  })
 })
 
-describe('terms §5 and §6 describe the charge the code actually makes', () => {
-  it('§5 no longer implies every approval costs $4', () => {
-    // The omission that made §5 wrong: it described the post-pack behaviour as if it were the
-    // only behaviour, to a client whose first hundred are free.
-    expect(terms).not.toContain('Your wallet is charged the flat $4 only when')
-    expect(terms).toContain('100 included approvals')
+describe('the contract describes the programme the code actually prices', () => {
+  it(`§4 names the rate from the constants ($${PROGRAMME_ANCHOR_1_USD} down to $${PROGRAMME_FLOOR_USD})`, () => {
+    // Derived, never typed: if R81's curve moves, this fails rather than drifting quietly.
+    expect(terms).toContain(`$${PROGRAMME_ANCHOR_1_USD}`)
+    expect(terms).toContain(`$${PROGRAMME_FLOOR_USD}`)
   })
 
-  it('the never-charged list includes the pack approvals', () => {
-    // A client reading "the following never consume a credit" should find their first hundred
-    // there. That list is the one place in the contract they will look.
-    expect(terms).toContain('first 100 approvals included in your $299 onboarding pack')
+  it('§4 states the 50/50 split and denies the wallet outright', () => {
+    expect(terms).toContain('50% of your programme price')
+    expect(terms).toContain('not a wallet top-up')
   })
 
-  it('§6 no longer describes a flat $4 with no pack', () => {
-    expect(terms).not.toContain('charged a flat $4 per approved lead. Any wallet balance')
-    expect(terms).toContain('includes your first 100 approved leads; after those')
+  it('§5 defines a booked meeting — the thing actually being sold', () => {
+    // It appeared zero times in the previous contract.
+    expect(terms).toContain('booked meeting')
+    expect(terms).toContain('accepted in your calendar')
+  })
+
+  it('the contract states outreach is email only', () => {
+    // Trust, the FAQs and the approval screenshot all say email only; the contract must agree.
+    expect(terms).toContain('email only')
   })
 
   it('reviewing is still stated as free — the thing that was already right', () => {
-    // #541's model: leads arrive masked and only the 👍 ever spends. Correct before, kept.
+    // #541's model: nothing is charged for looking. Correct before, kept.
     expect(terms.toLowerCase()).toContain('reviewing is always free')
   })
 })

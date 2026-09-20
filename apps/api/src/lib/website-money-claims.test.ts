@@ -80,8 +80,13 @@ const LEGACY_PAGES: Array<[string, string]> = []
 
 /** The homepage pricing block alone — the footer is a 29-page shared string, swept separately. */
 const homePricing = homeRaw.slice(
-  homeRaw.indexOf('<section class="gp-section gp-pricing"'),
-  homeRaw.indexOf('<section class="gp-trust"'),
+  // ⛓️ 20 Sep — RE-POINTED, AND THIS MAKES THE GUARD STRICTER RATHER THAN LOOSER.
+  // The markers were the old homepage's class names. The new homepage names the same two
+  // sections `.price-section` and `.trust`. Left alone, indexOf returned -1 for both and the
+  // slice was an EMPTY STRING — so every assertion below passed against a homepage that said
+  // nothing at all. A guard that stops guarding without ever going red is the worst kind.
+  homeRaw.indexOf('<section class="price-section"'),
+  homeRaw.indexOf('<section class="trust"'),
 )
 
 describe('the site no longer calls the first purchase a wallet top-up', () => {

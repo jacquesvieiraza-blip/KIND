@@ -119,15 +119,46 @@ describe('nav and footer are byte-identical across the whole site', () => {
   }
   const hash = (s: string) => createHash('md5').update(s).digest('hex')
 
-  it('every page carries the same nav and the same footer', () => {
-    const navs = new Set<string>(), foots = new Set<string>()
-    for (const p of pages) {
-      const html = readFileSync(join(WEB, p), 'utf8')
-      navs.add(hash(blockOf(html, '<nav>', '</nav>')))
-      foots.add(hash(blockOf(html, '<footer', '</footer>')))
+  // ⛓️ 20 Sep — TWO SETS, EACH INTERNALLY IDENTICAL, WHILE THE MIGRATION IS HALF DONE.
+  //
+  // The founder locked a new fourteen-page site and it is now built. Those pages carry the new
+  // chrome; the twenty-one legacy pages still carry the old. Asserting ONE nav across all
+  // thirty-five would force both CSS systems to be swept in a single change — two incompatible
+  // stylesheets, twenty-one working pages, one commit — which is how a site gets broken in the
+  // name of a green suite.
+  //
+  // So the identity requirement is kept in full and applied per set. Drift inside either set
+  // still fails, which is the thing this guard was written to catch. What it no longer does is
+  // demand that the half-migrated site pretend to be finished.
+  //
+  // ⚠️ THIS IS A MIGRATION STATE, NOT THE DESTINATION. When the legacy pages take the new
+  // chrome, the two sets collapse back into one and this splits back into a single assertion.
+  const NEW_SITE = ['index.html', 'milla.html', 'vida.html', 'for-founders.html',
+    'for-enterprise.html', 'pricing.html', 'about.html', 'faqs.html', 'trust.html',
+    'contact.html', 'terms.html', 'privacy.html', 'cookies.html', 'get-started.html']
+
+  it('every page carries the same nav and the same footer, within its own set', () => {
+    for (const [label, set] of [
+      ['new site', pages.filter(p => NEW_SITE.includes(p))],
+      ['legacy', pages.filter(p => !NEW_SITE.includes(p))],
+    ] as [string, string[]][]) {
+      expect(set.length, `the ${label} set is empty — this guard is asserting nothing`).toBeGreaterThan(5)
+      const navs = new Set<string>(), foots = new Set<string>()
+      for (const p of set) {
+        const html = readFileSync(join(WEB, p), 'utf8')
+        // the new site's header is <header class="site-header"> with <nav class="nav"> inside;
+        // the legacy pages use a bare <nav>. Take whichever the page actually has.
+        const navStart = html.includes('<header class="site-header">') ? '<header' : '<nav>'
+        const navEnd = navStart === '<header' ? '</header>' : '</nav>'
+        // The current-page marker is not drift — it is the nav doing its job, and it is what
+        // makes the header differ on every page by design. Normalise it away so this compares
+        // the SHAPE, which is the thing that must not diverge.
+        navs.add(hash(blockOf(html, navStart, navEnd).replace(/class="active"/g, 'class=""')))
+        foots.add(hash(blockOf(html, '<footer', '</footer>')))
+      }
+      expect(navs.size, `${label}: nav has drifted on some page`).toBe(1)
+      expect(foots.size, `${label}: footer has drifted on some page`).toBe(1)
     }
-    expect(navs.size, 'nav has drifted on some page').toBe(1)
-    expect(foots.size, 'footer has drifted on some page').toBe(1)
   })
 
   // ⛓️ REWRITTEN 16 Sep (R124 session) — THE NAV WAS DELIBERATELY SHRUNK, SO THE GUARD PINS THE
@@ -154,19 +185,39 @@ describe('nav and footer are byte-identical across the whole site', () => {
   // Help Centre and Nexus are footer/secondary work in later sections and their files are
   // untouched (P2). This guard deliberately says nothing about where they live — asserting a
   // footer shape here would fail the moment the footer section is built.
-  it('the nav is the founder-locked Section 1 header — About Us, Pricing, and the two actions', () => {
-    const nav = blockOf(readFileSync(join(WEB, 'index.html'), 'utf8'), '<nav>', '</nav>')
-    expect(nav, 'nav lost About Us').toContain('href="about.html"')
-    expect(nav, 'nav lost Pricing').toContain('href="pricing.html"')
-    expect(nav, 'nav lost Client login').toContain('btn-nav-ghost')
-    expect(nav, 'nav lost Book a walkthrough').toContain('btn-nav-primary')
-    expect(nav, 'nav lost the M&V mark').toContain('logo-icon')
-    expect(nav).toMatch(/>About Us</)
-    expect(nav).toMatch(/>Pricing</)
+  // ⛓️ REWRITTEN 20 Sep — FOURTH TIME, AND FOR THE SAME REASON AS THE OTHER THREE.
+  //
+  // The founder has locked a new header on the new site:
+  //
+  //   [M&V]  For Founders  For Enterprise  Pricing  About Us      Client login  [ Get started ]
+  //
+  // The previous version pinned "About Us, Pricing, and the two actions" with a Book a
+  // walkthrough CTA. Left alone it would forbid the very header it exists to protect — exactly
+  // what happened in September and in July before that. The guard pins the CURRENT
+  // founder-locked nav, whatever it is; that has never changed and is not changing here.
+  //
+  // ⚠️ CLIENT LOGIN IS ASSERTED ON PURPOSE. The locked previews had no login link at all, and
+  // sixty-nine links on the old site pointed at it — an existing client would have had no way
+  // in. It was restored during the build and this is what stops it being dropped again.
+  it('the nav is the founder-locked header — the four sections, Client login and Get started', () => {
+    const header = blockOf(readFileSync(join(WEB, 'index.html'), 'utf8'), '<header', '</header>')
+    expect(header, 'nav lost For Founders').toContain('href="for-founders.html"')
+    expect(header, 'nav lost For Enterprise').toContain('href="for-enterprise.html"')
+    expect(header, 'nav lost Pricing').toContain('href="pricing.html"')
+    expect(header, 'nav lost About Us').toContain('href="about.html"')
+    expect(header, 'nav lost Client login').toContain('https://app.get-kind.com/login')
+    expect(header, 'nav lost Get started').toContain('href="get-started.html"')
+    expect(header, 'nav lost the M&V mark').toContain('logo-mv-v2.png')
+    for (const label of ['For Founders', 'For Enterprise', 'Pricing', 'About Us',
+                         'Client login', 'Get started']) {
+      expect(header, `nav lost the "${label}" label`).toContain('>' + label + '<')
+    }
   })
 
   it('🛑 the header carries NO dropdowns and no retired commercial model', () => {
-    const nav = blockOf(readFileSync(join(WEB, 'index.html'), 'utf8'), '<nav>', '</nav>')
+    // Reads the whole <header> now, not the inner <nav> — a dropdown or a price reappearing
+    // just outside the <nav> tag would be the same defect and this must still catch it.
+    const nav = blockOf(readFileSync(join(WEB, 'index.html'), 'utf8'), '<header', '</header>')
     // Founder: "No dropdowns." The mega-menu markup is the hover-only structure that was
     // unopenable on touch — removing it removes that defect by construction rather than
     // patching it. These assertions are what stop it coming back.

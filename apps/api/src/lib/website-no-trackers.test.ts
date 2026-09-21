@@ -99,20 +99,51 @@ describe('HC-6 — privacy.html describes the site that actually exists', () => 
   })
 
   it('discloses the embeds that ARE on the site', () => {
-    // Removing GA does not make the page complete. Calendly and YouTube set their own cookies
-    // when they load, and the old section listed neither — so it was wrong in two directions
-    // at once: denying what was there, and omitting what still is.
-    for (const name of ['Calendly', 'YouTube', 'Supabase']) {
+    // Removing GA does not make the page complete. These set their own cookies when they load,
+    // and the old section listed none of them — so it was wrong in two directions at once:
+    // denying what was there, and omitting what still is.
+    //
+    // ⛓️ 20 Sep — CALENDLY COMES OFF THIS LIST, because it came off the site. The booker only
+    // ever loaded on demo.html and support.html; both were retired when the old design was
+    // retired, so no page a visitor can reach embeds it any more. Leaving the name here would
+    // have kept the policy naming a vendor we no longer load — the exact fault the test below
+    // was written to catch, in the direction people forget to check.
+    for (const name of ['YouTube', 'Supabase']) {
       expect(privacy, `section 9 must disclose ${name}`).toContain(name)
     }
   })
 
-  it('every embed it claims is actually present somewhere on the site, and vice versa', () => {
+  // ⛓️ 20 Sep — "ON THE SITE" NOW MEANS PAGES A VISITOR CAN REACH.
+  //
+  // This joined EVERY .html on disk, which was the same thing as "the site" right up until
+  // pages started being retired rather than deleted (26-Jul lock: nothing gets deleted). With
+  // 18 files now 301'd at both front doors, `readdirSync` includes markup no visitor can load
+  // — so the check would have gone on passing for Calendly purely because demo.html still
+  // exists as a file. A guard that reads retired markup is a guard that cannot fail.
+  //
+  // The retired list is derived from server.js rather than restated, so this cannot drift
+  // away from the redirect map the way two hand-kept copies always do.
+  const RETIRED_FILES = (() => {
+    const src = readFileSync(join(WEB, 'server.js'), 'utf8')
+    const block = src.slice(src.indexOf('const RETIRED = {'), src.indexOf('\n}', src.indexOf('const RETIRED = {')))
+    return new Set([...block.matchAll(/'\/([a-z0-9-]+)':/g)].map(m => m[1] + '.html'))
+  })()
+  const livePages = pages.filter(f => !RETIRED_FILES.has(f))
+
+  it('the retired pages really are excluded, or this guard is reading dead markup', () => {
+    expect(RETIRED_FILES.size, 'no retirements parsed out of server.js').toBeGreaterThan(0)
+    expect(livePages.length).toBeLessThan(pages.length)
+    expect(livePages.length).toBeGreaterThan(10)
+  })
+
+  it('every embed it claims is actually present on a page a visitor can REACH, and vice versa', () => {
     // Both directions. A policy that lists a vendor we dropped is as wrong as one that hides a
     // vendor we use — and it is the failure mode a copy-paste rewrite produces.
-    const all = pages.map(read).join('\n')
-    expect(all.includes('calendly.com'), 'privacy names Calendly, so it must be on the site').toBe(true)
-    expect(all.includes('youtube'),      'privacy names YouTube, so it must be on the site').toBe(true)
+    const live = livePages.map(read).join('\n')
+    expect(live.includes('youtube'), 'privacy names YouTube, so it must be on a live page').toBe(true)
+    // …and the other direction: a vendor we stopped loading must not still be named.
+    expect(privacy.includes('Calendly'), 'Calendly is no longer embedded on any live page').toBe(false)
+    expect(live.includes('calendly.com'), 'a live page embeds Calendly but privacy no longer names it').toBe(false)
     for (const gone of ['Facebook Pixel is active', 'we use Google Analytics']) {
       expect(privacy.includes(gone)).toBe(false)
     }

@@ -415,6 +415,11 @@ textarea{min-height:130px;resize:vertical}
 .logo .logo-img{display:block;width:154px;max-height:62px;object-fit:contain;object-position:left center}
 .logo-mark,.logo-wording{display:none!important}
 @media(max-width:640px){.logo .logo-img{width:136px;max-height:54px}}
+
+.form-status{margin-top:12px;line-height:1.6}
+.form-status--sending{color:var(--muted)}
+.form-status--error{color:#C0272D;font-weight:600}
+.form-status--ok{background:#FAF8FF;border:1px solid var(--line);padding:16px 18px;color:#21103F;font-size:13px;line-height:1.7}
 </style>
 <style id="hb-banner-cutoff-fix">
 /* Banner cut-off fix only. No content, navigation, animation timing, forms or page structure changed. */
@@ -485,7 +490,7 @@ font-weight:500;letter-spacing:-.03em;margin:0 0 5px}
 @media(max-width:720px){.gs-form{padding:24px}.gs-step{grid-template-columns:38px 1fr;gap:16px}
 .gs-num{font-size:24px}}
 </style>
-</head><body><header class="site-header"><div class="wrap">
+</head><body data-form="get-started"><header class="site-header"><div class="wrap">
 <a aria-label="Milla &amp; Vida home" class="logo" href="/"><img alt="Milla &amp; Vida" class="logo-img" src="logo-mv-v2.png"/></a>
 <nav class="nav"><a class="" href="for-founders.html">For Founders</a><a class="" href="for-enterprise.html">For Enterprise</a><a class="" href="pricing.html">Pricing</a><a class="" href="about.html">About Us</a></nav>
 <a class="header-login" href="https://app.get-kind.com/login">Client login</a><a class="header-cta" href="get-started.html">Get started</a>
@@ -519,8 +524,8 @@ font-weight:500;letter-spacing:-.03em;margin:0 0 5px}
 <option>Just exploring</option>
 </select></div>
 <div class="field full">
-<button class="pill" type="button">Request Free Proof &rarr;</button>
-<div class="micro">Preview only &mdash; form delivery is not connected in this standalone design preview.</div>
+<button class="pill" type="submit">Request Free Proof &rarr;</button>
+<div class="form-status micro" role="status" aria-live="polite">We reply the same day. Or email hello@get-kind.com directly.</div>
 </div>
 </div>
 </form></div><div class="gs-safe"><div><b>Free Proof costs nothing</b><span>No card, no trial that converts into a charge, and no obligation to buy a programme after you have seen it.</span></div><div><b>Nothing sends without you</b><span>You see the prepared programme and approve it once. Until that approval, no message goes to anyone.</span></div><div><b>No subscription</b><span>You buy one programme at a time, priced on the booked-meeting target. There is no retainer and no per-seat licence.</span></div></div><div class="gs-alt"><p><b>Would rather just talk?</b>Service begins with a walkthrough anyway &mdash; there is no self-serve signup here. If it is easier to explain your market in a conversation, start there instead.</p><a class="pill" href="contact.html">Book a walkthrough &rarr;</a></div></div></section><section class="section alt"><div class="wrap"><div class="eyebrow">BEFORE YOU ASK</div><h2>The two questions everyone has.</h2><div class="faq-box"><div class="faq-item"><button class="faq-q" type="button">What does a booked meeting cost?</button><div class="faq-a">A single booked meeting is $450, and the per-meeting rate falls automatically as the programme grows, to a floor of $400 at fifty. Half the programme price starts the build; the other half is paid after you approve it and before it goes live.</div></div><div class="faq-item"><button class="faq-q" type="button">What counts as a booked meeting?</button><div class="faq-a">A confirmed slot accepted in your calendar by a real person at a company that matches the brief. A reply on its own is not a meeting. The meeting target is a target, not a guarantee.</div></div></div><div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:26px"><a class="outline" href="pricing.html">See full pricing</a><a class="outline" href="faqs.html">Read the FAQs</a></div></div></section></main><div class="footer-strip" style="height:5px;background:linear-gradient(90deg,#FFD4B2 0%,#F9C8FF 34%,#C4B5FD 68%,#7C3AED 100%)"></div><footer class="site-footer"><div class="wrap">
@@ -528,8 +533,8 @@ font-weight:500;letter-spacing:-.03em;margin:0 0 5px}
 <div><div class="footer-brand">Milla &amp; Vida</div><div class="footer-copy">Milla and Vida book your meetings. You choose the outcome, Milla prepares the whole programme, and you approve it once before anything is sent. Free Proof before you pay. No subscription.</div></div>
 <div><h4>Milla</h4><a href="/">Meet Milla</a><a href="for-founders.html">For Founders</a><a href="pricing.html">Pricing</a><a href="get-started.html">Get started</a></div>
 <div><h4>Vida</h4><a href="vida.html">Meet Vida</a><a href="for-enterprise.html">For Enterprise</a><a href="for-enterprise.html#how-matching-works">How it works</a></div>
-<div><h4>Company</h4><a href="mailto:hello@get-kind.com">hello@get-kind.com</a><a href="https://app.get-kind.com/login">Client login</a><a href="about.html">About Us</a><a href="trust.html">Trust &amp; Security</a><a href="contact.html">Contact</a><a href="faqs.html">FAQs</a></div>
-<div><h4>Legal</h4><a href="terms.html">Terms</a><a href="privacy.html">Privacy</a><a href="cookies.html">Cookies</a><a href="privacy.html#dpa">POPIA &amp; GDPR</a></div>
+<div><h4>Company</h4><a href="mailto:hello@get-kind.com">hello@get-kind.com</a><a href="https://app.get-kind.com/login">Client login</a><a href="about.html">About Us</a><a href="trust.html">Trust &amp; Security</a><a href="contact.html">Contact</a><a href="faqs.html">FAQs</a><a href="status.html">System status</a></div>
+<div><h4>Legal</h4><a href="terms.html">Terms</a><a href="privacy.html">Privacy</a><a href="cookies.html">Cookies</a><a href="privacy.html#dpa">POPIA &amp; GDPR</a><a href="dpa.html">DPA</a><a href="dpa-us.html">US Privacy Addendum</a></div>
 </div>
-<div class="footer-legal"><span>&copy; 2026 K.I.N.D. All rights reserved.</span><span>Milla &amp; Vida design preview.</span></div>
-</div></footer><script>document.querySelectorAll(".faq-q").forEach(btn=>btn.addEventListener("click",()=>btn.closest(".faq-item").classList.toggle("open")));</script></body></html>
+<div class="footer-legal"><span>&copy; 2026 K.I.N.D. All rights reserved.</span><span>Email only. No phone outreach, no paid media.</span></div>
+</div></footer><script>document.querySelectorAll(".faq-q").forEach(btn=>btn.addEventListener("click",()=>btn.closest(".faq-item").classList.toggle("open")));</script><script src="mv-forms.js"></script></body></html>

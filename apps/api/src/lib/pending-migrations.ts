@@ -6522,6 +6522,37 @@ COMMENT ON COLUMN public.clients.proof_stronger_set_unlocked_reason IS
   'MVP1 J6-C3 — the stable reason code behind that verdict: per_card_feedback | confirmed_refinement.';
 `,
   },
+  {
+    // ── THE WEBSITE FORMS NEED SOMEWHERE TO PUT THE ANSWERS ────────────────────────────
+    //
+    // `contact_requests` was created on 17 May 2026 and nothing has ever written to it: the
+    // two forms that should have filled it shipped with `<button type="button">` and no
+    // handler, so every submission was dropped in the browser and the table never saw a row.
+    // Wiring the forms is what makes this column matter.
+    //
+    // The Get Started form asks six questions the table has no column for — the website, the
+    // outcome they want, who to target, the volume, the timing — plus, on the contact form,
+    // the capacity they are writing in and the subject. Flattening those into `message`
+    // makes the row unreadable; six more columns ties the table to one version of one web
+    // page. One jsonb keeps every answer, labelled, and survives the next field being added.
+    //
+    // EXPAND ONLY: one nullable column, no default, NO BACKFILL — and no backfill is even
+    // possible, because there are no rows. The anon INSERT policy from 20260517 is left
+    // exactly as it is; the API writes with the service role, and removing a policy is a
+    // separate decision from adding a column.
+    key: '20260921_contact_requests_details',
+    title: 'contact_requests.details — the website form answers that have no column of their own (the two forms, finally wired)',
+    sql: `
+ALTER TABLE public.contact_requests
+  ADD COLUMN IF NOT EXISTS details jsonb;
+
+COMMENT ON COLUMN public.contact_requests.details IS
+  'Every answer from the website form that has no dedicated column, keyed by the label shown on the form.';
+
+COMMENT ON COLUMN public.contact_requests.type IS
+  'Where the enquiry came from: ''contact'' or ''get-started'' (the website forms). The older values ''demo'', ''general'' and ''enterprise'' were never written by anything.';
+`,
+  },
 ]// Runs the statements against DATABASE_URL. Uses node-postgres because the Supabase JS
 // client speaks PostgREST, which cannot execute DDL.
 //

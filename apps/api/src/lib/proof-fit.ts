@@ -44,7 +44,7 @@
 // ═══════════════════════════════════════════════════════════════════════════════════════
 
 import { canonicalLaunchCountry } from '@kind/shared'
-import { bandIndex, headcountBandIndex } from './lead-feedback'
+import { bandIndex, headcountBandIndex, headcountBandBounds } from './lead-feedback'
 
 /**
  * A CANDIDATE's size band, from either spelling of the same fact: a ladder label (portal,
@@ -254,8 +254,41 @@ export function statedSizeRange(
   const from = /\b(over|above|more than|at least|min|minimum|bigger than|plus|from)\b|\d\s*\+|>\s*\d/.test(raw)
   if (upTo && !from) return { min: 1, max: Math.max(1, n) }
   if (from && !upTo) return { min: Math.max(1, n), max: null }
-  // A bare number is that number — "about 50 people". Not a range invented around it.
-  return { min: Math.max(1, n), max: Math.max(1, n) }
+  // ── 🛑 ⚑ 21 Sep — A SINGLE SPOKEN NUMBER IS A BAND, NOT A PIN ──────────────────────────
+  //
+  // ⛓️ WHAT STOOD HERE, AND IT IS WHY NO CLIENT HAS EVER RECEIVED A LEAD:
+  //     ~~// A bare number is that number — "about 50 people". Not a range invented around it.~~
+  //     ~~return { min: Math.max(1, n), max: Math.max(1, n) }~~
+  // That comment names the exact phrasing a person uses and pins it to an exact match anyway.
+  //
+  // 🛑 MEASURED ON PRODUCTION. AAA Operations Studio reached Brief 11/11, the ICP was built,
+  // Proof ran, and Apollo returned TWENTY REAL PEOPLE — then Vida reported *"Every sourced
+  // prospect failed a hard criterion: size 20. Nothing was shown to the client."* GREAT Studio
+  // produced the identical 20 / 0 / 20 days earlier. The client had said something like
+  // "around 20 people"; `target_size` stores their words verbatim (`promotion.ts:178`,
+  // deliberately), this returned `{ 20, 20 }`, and a stated range OUTRANKS the band (J5-C4).
+  // So the SEARCH asked Apollo for 11–50, Apollo obliged, and the GATE then refused every
+  // in-band person who was not precisely twenty. Of ten in-band companies — 12, 15, 18, 19,
+  // 20, 21, 25, 30, 40, 50 — exactly ONE survived.
+  //
+  // ⚠️ AND IT WAS UNSATISFIABLE BY CONSTRUCTION. Apollo sends `estimated_num_employees`.
+  // Requiring an ESTIMATE to equal a number somebody said in conversation is not a strict
+  // filter, it is an impossible one.
+  //
+  // 🛑 SO A LONE NUMBER RESOLVES TO THE LADDER BAND THAT CONTAINS IT — which is the band we
+  // ALREADY asked the provider for, so the gate stops contradicting the search. This is R135
+  // applied to size: *"we then interpret the clients conversation and mould the icp to get
+  // them leads"*, and *"go with the best widest possible outcome"*.
+  //
+  // ⚠️ A STATED RANGE IS UNTOUCHED AND J5-C4 SURVIVES IN FULL. Two numbers are BOUNDS and are
+  // honoured exactly — "200 to 300" stays 200–300 and is never rounded out to 201–500. Their
+  // words still outrank our band; what changed is only what a LONE number means, because a
+  // lone number is a point estimate and never was a bound.
+  //
+  // ⚠️ AND IT NARROWS NOTHING. The band is wider than the pin in every case, so no prospect
+  // that used to qualify can stop qualifying here.
+  const band = headcountBandBounds(String(Math.max(1, n)))
+  return band ?? { min: Math.max(1, n), max: Math.max(1, n) }
 }
 
 /** A candidate's headcount as a NUMBER, when the row carries one. A ladder label is not one. */

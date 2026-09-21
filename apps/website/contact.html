@@ -415,6 +415,11 @@ textarea{min-height:130px;resize:vertical}
 .logo .logo-img{display:block;width:154px;max-height:62px;object-fit:contain;object-position:left center}
 .logo-mark,.logo-wording{display:none!important}
 @media(max-width:640px){.logo .logo-img{width:136px;max-height:54px}}
+
+.form-status{margin-top:12px;line-height:1.6}
+.form-status--sending{color:var(--muted)}
+.form-status--error{color:#C0272D;font-weight:600}
+.form-status--ok{background:#FAF8FF;border:1px solid var(--line);padding:16px 18px;color:#21103F;font-size:13px;line-height:1.7}
 </style>
 <style id="hb-banner-cutoff-fix">
 /* Banner cut-off fix only. No content, navigation, animation timing, forms or page structure changed. */
@@ -458,14 +463,14 @@ textarea{min-height:130px;resize:vertical}
 <meta content="mv-social-share.png" property="og:image"/>
 <meta content="website" property="og:type"/>
 <meta content="summary_large_image" name="twitter:card"/>
-</head><body><header class="site-header"><div class="wrap">
+</head><body data-form="contact"><header class="site-header"><div class="wrap">
 <a aria-label="Milla &amp; Vida home" class="logo" href="/"><img alt="Milla &amp; Vida" class="logo-img" src="logo-mv-v2.png"/></a>
 <nav class="nav"><a class="" href="for-founders.html">For Founders</a><a class="" href="for-enterprise.html">For Enterprise</a><a class="" href="pricing.html">Pricing</a><a class="" href="about.html">About Us</a></nav>
 <a class="header-login" href="https://app.get-kind.com/login">Client login</a><a class="header-cta" href="get-started.html">Get started</a>
 </div></header><main>
 <section class="page-hero"><div class="wrap"><div class="kicker-line">CONTACT</div><h1 class="motion-headline">Tell us what you want the pipeline to do.</h1><p>Prospective client, existing client, partner or general enquiry — give us the context and keep it simple.</p></div></section>
 <section class="section alt"><div class="wrap"><div class="cards3"><div class="card"><h3>Prospective clients</h3><p>Questions about Free Proof, programme design, pricing or how M&amp;V would work in your market.</p></div><div class="card"><h3>Existing clients</h3><p>Questions about an active programme, your Milla experience, Vida execution or billing.</p></div><div class="card"><h3>Partners &amp; general</h3><p>Partnership, referral, company, media or other Milla &amp; Vida enquiries.</p></div></div></div></section>
-<section class="section"><div class="wrap"><div class="form"><form action="#" method="post"><div class="form-grid"><div class="field"><label for="name">Name</label><input id="name" name="name" placeholder="Your name" type="text"/></div><div class="field"><label for="email">Work email</label><input id="email" name="email" placeholder="you@company.com" type="email"/></div><div class="field"><label for="i-am-contacting-as">I am contacting as</label><select id="i-am-contacting-as" name="i-am-contacting-as"><option>Prospective client</option><option>Existing client</option><option>Partner / other</option></select></div><div class="field"><label for="subject">Subject</label><input id="subject" name="subject" placeholder="What is this about?" type="text"/></div><div class="field full"><label for="message">Message</label><textarea id="message" name="message" placeholder="Tell us what you need."></textarea></div><div class="field full"><button class="pill" type="button">Send enquiry</button><div class="micro">This form is not connected yet — please email hello@get-kind.com and we will reply the same day.</div></div></div></form></div></div></section>
+<section class="section"><div class="wrap"><div class="form"><form action="#" method="post"><div class="form-grid"><div class="field"><label for="name">Name</label><input id="name" name="name" placeholder="Your name" type="text"/></div><div class="field"><label for="email">Work email</label><input id="email" name="email" placeholder="you@company.com" type="email"/></div><div class="field"><label for="i-am-contacting-as">I am contacting as</label><select id="i-am-contacting-as" name="i-am-contacting-as"><option>Prospective client</option><option>Existing client</option><option>Partner / other</option></select></div><div class="field"><label for="subject">Subject</label><input id="subject" name="subject" placeholder="What is this about?" type="text"/></div><div class="field full"><label for="message">Message</label><textarea id="message" name="message" placeholder="Tell us what you need."></textarea></div><div class="field full"><button class="pill" type="submit">Send enquiry</button><div class="form-status micro" role="status" aria-live="polite">We reply the same day. Or email hello@get-kind.com directly.</div></div></div></form></div></div></section>
 </main><div class="footer-strip" style="height:5px;background:linear-gradient(90deg,#FFD4B2 0%,#F9C8FF 34%,#C4B5FD 68%,#7C3AED 100%)"></div><footer class="site-footer"><div class="wrap">
 <div class="footer-top">
 <div><div class="footer-brand">Milla &amp; Vida</div><div class="footer-copy">Milla and Vida book your meetings. You choose the outcome, Milla prepares the whole programme, and you approve it once before anything is sent. Free Proof before you pay. No subscription.</div></div>
@@ -475,4 +480,4 @@ textarea{min-height:130px;resize:vertical}
 <div><h4>Legal</h4><a href="terms.html">Terms</a><a href="privacy.html">Privacy</a><a href="cookies.html">Cookies</a><a href="privacy.html#dpa">POPIA &amp; GDPR</a><a href="dpa.html">DPA</a><a href="dpa-us.html">US Privacy Addendum</a></div>
 </div>
 <div class="footer-legal"><span>&copy; 2026 K.I.N.D. All rights reserved.</span><span>Email only. No phone outreach, no paid media.</span></div>
-</div></footer><script>document.querySelectorAll('.faq-q').forEach(btn=>btn.addEventListener('click',()=>btn.closest('.faq-item').classList.toggle('open')));</script></body></html>
+</div></footer><script>document.querySelectorAll('.faq-q').forEach(btn=>btn.addEventListener('click',()=>btn.closest('.faq-item').classList.toggle('open')));</script><script src="mv-forms.js"></script></body></html>

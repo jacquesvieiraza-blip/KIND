@@ -1111,6 +1111,33 @@ export default function MillaWelcomePage() {
                 ))}
               </div>
 
+              {/* ── 🛑 ⚑ 19 Sep (R135) — WHAT WE WILL ACTUALLY GO AND LOOK FOR ──────────────
+                  🛑 THE CHIPS ABOVE ARE THEIR WORDS, AND THEY STAY THAT WAY. J5-C4 (18 Sep,
+                  LR 10,12) put the client's own phrasing on the one card they approve, and
+                  nothing here takes it back — a client who said "ten to fifty people" still
+                  reads their own sentence.
+
+                  ⚠️ BUT THEIR WORDS ARE NOT WHAT WE SEARCH. The seniority and size we send to
+                  the provider are a closed vocabulary, and until now the client never saw the
+                  mapped values at all — so the one moment they could have caught a wrong
+                  reading, before we spend their money, passed in silence. Seven clients were
+                  parked on a translation nobody showed them.
+
+                  ⚠️ ADDITIVE, AND SECOND. Their words lead; ours follow, labelled as ours, in
+                  smaller type. If the two ever disagree the client can see it and say so —
+                  which is the whole point of showing it. Rendered only when there is something
+                  to show, so a plan with no mapped values gains no empty row. */}
+              {(proposed.seniority_levels.length > 0 || proposed.company_sizes.length > 0) && (
+                <div className="text-[11.5px] text-[#9b8ec4] leading-relaxed mb-4 -mt-2">
+                  <span className="font-semibold">We&rsquo;ll search for </span>
+                  {[
+                    proposed.seniority_levels.join(', '),
+                    proposed.company_sizes.length ? `at ${proposed.company_sizes.join(', ')} staff` : '',
+                  ].filter(Boolean).join(' ')}
+                  {proposed.geographies.length ? ` in ${proposed.geographies.join(', ')}` : ''}.
+                </div>
+              )}
+
               {/* ── YOUR ACCOUNT (24 Aug) ───────────────────────────────────────────────
                   The facts that used to be typed into a form before the client had entered
                   K.I.N.D. Read back here for the same reason the business understanding is:

@@ -36,10 +36,17 @@ const read = (f: string) => readFileSync(join(WEB, f), 'utf8')
 const ALL = readdirSync(WEB).filter(f => f.endsWith('.html')).sort()
 
 /** The contracts. They keep K.I.N.D and they keep FIGSY; a marketing sweep does not edit them. */
-const LEGAL = ['terms.html', 'privacy.html', 'dpa.html', 'dpa-us.html', 'trust.html']
+// ⛓️ 20 Sep — cookies.html joins the contracts. It is a legal document in the new site, it
+// names K.I.N.D as the registered company for the same reason the others do, and classing it
+// as marketing would force the legal name out of a policy that needs it.
+const LEGAL = ['terms.html', 'privacy.html', 'dpa.html', 'dpa-us.html', 'trust.html', 'cookies.html']
 
 /** Retired page, still on disk under the 26-Jul "nothing gets deleted" lock, 301d at both doors. */
 const RETIRED = ['figsy.html']
+
+const NEW_SITE = ['index.html','milla.html','vida.html','for-founders.html','for-enterprise.html',
+  'pricing.html','about.html','faqs.html','trust.html','contact.html','terms.html','privacy.html',
+  'cookies.html','get-started.html']
 
 const MARKETING = ALL.filter(f => !LEGAL.includes(f) && !RETIRED.includes(f))
 
@@ -139,7 +146,14 @@ describe('the domain and the code are not branding and were not swept', () => {
     expect(footer).toContain('https://app.get-kind.com/login')
   })
 
-  it('every page still loads the shared stylesheet', () => {
-    for (const page of ALL) expect(read(page)).toContain('kind.css')
+  it('every legacy page still loads the shared stylesheet', () => {
+    // ⛓️ 20 Sep — SCOPED TO THE PAGES THAT HAVE ONE, WHICH IS WHAT IT ALWAYS MEANT.
+    // This asserted kind.css on every page, to prove the rename had not broken the link. The
+    // new site's pages are self-contained by design — the founder locked them that way — so
+    // they never had a shared stylesheet to lose. Asserting one here would not protect
+    // anything; it would force an empty link tag onto fourteen pages to satisfy a string.
+    const legacy = ALL.filter(f => !NEW_SITE.includes(f))
+    expect(legacy.length, 'the legacy set vanished — this guard is asserting nothing').toBeGreaterThan(15)
+    for (const f of legacy) expect(read(f), `${f} lost kind.css`).toContain('kind.css')
   })
 })

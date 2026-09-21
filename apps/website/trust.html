@@ -1,510 +1,474 @@
+<!doctype html>
 <!DOCTYPE html>
-<html lang="en">
-<head>
-  <!-- HC-6 (20 Aug 2026) — GOOGLE ANALYTICS REMOVED, FOUNDER-RULED.
-       GA4 (G-0BCMTW9HSK) loaded here on all 29 pages, unconditionally, with no consent
-       banner anywhere on the site — while privacy.html section 9 stated in writing:
-       "We do not use Google Analytics, Facebook Pixel, or any advertising cookies."
-       A page that denies, in text, what it is doing while you read it is worse than a gap:
-       it undermines every other claim in the same document. Removing the script was the
-       cheaper of the two fixes and the only one that makes that sentence true.
-       Do not re-add a tracker here without a consent gate AND a matching privacy.html edit. -->
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Trust &amp; Security &mdash; K.I.N.D</title>
-  <meta name="description" content="K.I.N.D is built with privacy, suppression and jurisdiction-aware controls from the start. Data stored in the EU (Dublin), processed in the US (Railway US West). Full audit trail on every campaign." />
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    :root { --blue: #7c3aed; --dark: #0a0a0a; --light: #f5f5f7; --border: rgba(0,0,0,0.08); --green: #059669; }
-    html { scroll-behavior: smooth; }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; background: #fff; color: var(--dark); line-height: 1.6; overflow-x: hidden; }
 
-    nav { display: flex; align-items: center; justify-content: space-between; padding: 0 48px; height: 64px; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: rgba(255,255,255,0.92); backdrop-filter: blur(16px); z-index: 200; }
-    .logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
-    .logo-icon { width: 30px; height: 30px; background: var(--blue); border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 15px; color: #fff; }
-    .logo-text { font-weight: 800; font-size: 1rem; color: var(--dark); letter-spacing: -0.01em; }
-    .nav-right { display: flex; align-items: center; gap: 10px; }
-    .back-link { font-size: 0.82rem; color: rgba(0,0,0,0.4); text-decoration: none; display: flex; align-items: center; gap: 6px; transition: color .2s; }
-    .back-link:hover { color: var(--dark); }
-    .btn-nav-primary { background: var(--dark); color: #fff; font-size: 0.85rem; font-weight: 600; text-decoration: none; padding: 8px 18px; border-radius: 20px; transition: opacity .2s; }
-    .btn-nav-primary:hover { opacity: 0.8; }
-    .nav-links { display: flex; align-items: center; gap: 2px; }
-    .nav-link { color: rgba(0,0,0,0.5); font-size: 0.875rem; text-decoration: none; padding: 6px 14px; border-radius: 8px; transition: all .2s; display: flex; align-items: center; gap: 4px; }
-    .nav-link:hover { color: var(--dark); background: rgba(0,0,0,0.04); }
-    .btn-nav-ghost { color: rgba(0,0,0,0.6); font-size: 0.85rem; text-decoration: none; padding: 7px 16px; border-radius: 20px; border: 1px solid rgba(0,0,0,0.15); transition: all .2s; }
-    .btn-nav-ghost:hover { color: var(--dark); border-color: rgba(0,0,0,0.3); }
-    .nav-item { position: relative; }
-    .chevron { font-size: 0.55rem; opacity: 0.4; transition: transform .2s, opacity .2s; display: inline-block; margin-top: 1px; }
-    .nav-item.is-open > .nav-link .chevron { transform: rotate(180deg); opacity: 0.8; }
-    .nav-item.is-open > .nav-link { color: var(--dark); background: rgba(0,0,0,0.04); }
-    .nav-dropdown { opacity: 0; visibility: hidden; pointer-events: none; position: absolute; top: calc(100% + 8px); left: 50%; transform: translateX(-50%); background: #fff; border: 1px solid rgba(0,0,0,0.1); border-radius: 16px; padding: 8px; min-width: 240px; box-shadow: 0 16px 48px rgba(0,0,0,0.12); z-index: 300; transition: opacity .15s, visibility .15s; }
-    .nav-item.is-open .nav-dropdown { opacity: 1; visibility: visible; pointer-events: auto; }
-    .dd-link { display: flex; align-items: flex-start; gap: 12px; padding: 10px 12px; border-radius: 10px; text-decoration: none; transition: background .15s; }
-    .dd-link:hover { background: rgba(0,0,0,0.04); }
-    .dd-icon { font-size: 1.05rem; line-height: 1; margin-top: 2px; flex-shrink: 0; }
-    .dd-title { font-size: 0.83rem; font-weight: 600; color: rgba(0,0,0,0.8); display: block; }
-    .dd-sub { font-size: 0.72rem; color: rgba(0,0,0,0.38); display: block; margin-top: 2px; line-height: 1.4; }
-    .dd-link:hover .dd-title { color: var(--dark); }
-    .dd-divider { height: 1px; background: rgba(0,0,0,0.06); margin: 6px 4px; }
-    .dd-promo { background: var(--dark); border-radius: 12px; padding: 14px 16px; margin: 4px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-    .dd-promo-text { font-size: 0.75rem; color: rgba(255,255,255,0.55); line-height: 1.5; }
-    .dd-promo-text strong { color: #fff; display: block; }
-    .dd-promo-cta { font-size: 0.72rem; font-weight: 700; color: #fff; background: rgba(255,255,255,0.12); padding: 7px 13px; border-radius: 8px; text-decoration: none; white-space: nowrap; transition: background .2s; flex-shrink: 0; }
-    .dd-promo-cta:hover { background: rgba(255,255,255,0.22); }
-    @media (max-width: 768px) { .nav-links { display: none; } }
+<html lang="en"><head><meta charset="utf-8"/><meta content="width=device-width,initial-scale=1" name="viewport"/><title>Milla &amp; Vida — Trust &amp; Security</title><meta content="How Milla &amp; Vida approaches client control, suppression, purposeful data use and human oversight - with security claims tied to verified production reality." name="description"/><style>
+:root{
+  --ink:#21103F;
+  --muted:#74746e;
+  --line:#E9E6F0;
+  --paper:#FFFFFF;
+  --soft:#FAF8FF;
+  --warm:#F3ECFF;
+  --orange:#FC2289;
+  --green:#D827BD;
+  --blue:#5931FC;
+  --gold:#D827BD;
+  --pink:#FC2289;
+  --max:1160px;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0;
+  background:var(--paper);
+  color:var(--ink);
+  font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+}
+a{text-decoration:none;color:inherit}
+.wrap{width:min(calc(100% - 48px),var(--max));margin:0 auto}
 
-    .trust-hero { background: var(--dark); padding: 80px 48px 72px; text-align: center; position: relative; overflow: hidden; }
-    .trust-hero::before { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 0%, rgba(5,150,105,0.12) 0%, transparent 60%); pointer-events: none; }
-    .trust-hero-inner { max-width: 800px; margin: 0 auto; position: relative; z-index: 1; }
-    .page-tag { display: inline-block; font-size: 0.65rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; padding: 4px 12px; border-radius: 100px; background: rgba(5,150,105,0.15); color: #34d399; margin-bottom: 28px; }
-    .trust-hero h1 { font-size: clamp(2.2rem, 4.5vw, 3.5rem); font-weight: 900; letter-spacing: -0.04em; color: #fff; line-height: 1.05; margin-bottom: 16px; }
-    .trust-hero p { font-size: 1rem; color: rgba(255,255,255,0.4); max-width: 560px; margin: 0 auto 48px; line-height: 1.75; }
+/* GLOBAL HEADER */
+.site-header{
+  height:76px;
+  border-bottom:1px solid var(--line);
+  background:rgba(255,255,255,.96);
+  position:sticky;
+  top:0;
+  z-index:50;
+  backdrop-filter:blur(10px);
+}
+.site-header .wrap{height:100%;display:flex;align-items:center;justify-content:space-between;gap:26px}
+.logo{display:inline-flex;align-items:center;gap:10px;font-family:Georgia,"Times New Roman",serif;font-size:21px;font-weight:700;letter-spacing:-.035em;white-space:nowrap}
+.logo-mark{width:34px;height:27px;display:inline-flex;flex:0 0 auto;color:var(--ink)}
+.logo-mark svg{width:100%;height:100%;display:block}
+.logo-wording{display:inline-block;white-space:nowrap}
+.nav{display:flex;gap:30px;font-size:12px;color:#777}
+.nav a.active{color:#21103F;font-weight:800}
+.header-login{font-size:13px;color:var(--ink);text-decoration:none;margin-right:18px;white-space:nowrap}
+@media(max-width:720px){.header-login{display:none}}.header-login:hover{text-decoration:underline}
+.header-cta{
+  display:inline-flex;align-items:center;justify-content:center;
+  min-height:40px;padding:0 18px;border-radius:999px;
+  background:#21103F;color:#fff;font-size:12px;font-weight:800;white-space:nowrap
+}
 
-    .badges { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
-    .badge { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 20px 28px; display: flex; flex-direction: column; align-items: center; gap: 8px; min-width: 140px; }
-    .badge-icon { font-size: 1.6rem; }
-    .badge-name { font-size: 0.72rem; font-weight: 700; color: #fff; text-align: center; }
-    .badge-status { font-size: 0.6rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #34d399; }
+/* CANONICAL MOTION SYSTEM
+   Entire headline participates in the same moving colour notion.
+   No per-letter spans => no broken kerning or p r e p a r e d spacing. */
+.motion-headline,
+.motion-statement{
+  color:var(--ink);
+  background-image:
+    linear-gradient(
+      100deg,
+      var(--ink) 0%,
+      var(--ink) 16%,
+      var(--blue) 23%,
+      var(--ink) 30%,
+      var(--ink) 43%,
+      var(--orange) 52%,
+      var(--ink) 61%,
+      var(--ink) 73%,
+      var(--green) 82%,
+      var(--ink) 91%,
+      var(--ink) 100%
+    );
+  background-size:220% 100%;
+  background-position:0% 50%;
+  -webkit-background-clip:text;
+  background-clip:text;
+  -webkit-text-fill-color:transparent;
+  animation:hbHeadlineFlow 11s ease-in-out infinite;
+}
+@keyframes hbHeadlineFlow{
+  0%,10%{background-position:0% 50%}
+  42%{background-position:55% 50%}
+  78%{background-position:100% 50%}
+  100%{background-position:0% 50%}
+}
+@media(prefers-reduced-motion:reduce){
+  .motion-headline,.motion-statement{
+    animation:none;
+    background:none;
+    -webkit-text-fill-color:var(--ink);
+    color:var(--ink)
+  }
+}
 
-    .trust-wrap { max-width: 1080px; margin: 0 auto; padding: 80px 48px; }
-    .trust-section { margin-bottom: 72px; padding-bottom: 72px; border-bottom: 1px solid var(--border); }
-    .trust-section:last-of-type { border-bottom: none; }
-    .s-label { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.14em; color: var(--green); margin-bottom: 12px; }
-    .trust-section h2 { font-size: clamp(1.5rem, 3vw, 2.2rem); font-weight: 900; letter-spacing: -0.03em; color: var(--dark); margin-bottom: 16px; }
-    .trust-section .intro { font-size: 1rem; color: rgba(0,0,0,0.45); line-height: 1.8; max-width: 680px; margin-bottom: 40px; }
+/* BUTTONS */
+.btn,.pill,.outline{
+  display:inline-flex;align-items:center;justify-content:center;
+  min-height:42px;padding:0 18px;border-radius:999px;
+  font-size:12px;font-weight:800
+}
+.btn,.pill{background:#21103F;color:#fff;border:1px solid #21103F}
+.btn.secondary,.outline{background:transparent;color:#21103F;border:1px solid #DDD8E8}
+.hero-actions,.page-actions,.bridge-actions,.band-actions,.actions{display:flex;gap:11px;flex-wrap:wrap}
 
-    .detail-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
-    .detail-card { background: var(--light); border-radius: 16px; padding: 28px; }
-    .detail-card h3 { font-size: 0.9rem; font-weight: 800; color: var(--dark); margin-bottom: 10px; }
-    .detail-card p { font-size: 0.82rem; color: rgba(0,0,0,0.45); line-height: 1.75; margin-bottom: 10px; }
-    .check-list { list-style: none; padding: 0; display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
-    .check-list li { font-size: 0.82rem; color: rgba(0,0,0,0.5); display: flex; align-items: flex-start; gap: 10px; line-height: 1.6; }
-    .check-list li::before { content: "✓"; color: var(--green); font-weight: 700; flex-shrink: 0; }
+/* HERO */
+.hero,.page-hero,.legal-head{
+  text-align:center;
+  padding:106px 0 76px;
+  background:var(--paper);
+  border:0;
+}
+.hero .wrap,.page-hero .wrap,.legal-head .wrap{max-width:970px}
+.hero-kicker,.kicker-line,.eyebrow{
+  font-size:10px;
+  color:#787783;
+  font-weight:800;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+  margin-bottom:16px;
+}
+.hero h1,.page-hero h1,.legal-head h1{
+  font-family:Georgia,"Times New Roman",serif;
+  font-weight:500;
+  font-size:clamp(46px,5vw,68px);
+  line-height:1.00;
+  letter-spacing:-.055em;
+  max-width:970px;
+  margin:0 auto;
+}
+.hero p,.page-hero p,.legal-head p{
+  max-width:690px;
+  margin:23px auto 0;
+  color:var(--muted);
+  font-size:16px;
+  line-height:1.62;
+}
+.hero-actions,.page-actions{justify-content:center;margin-top:26px}
+.micro,.legal-meta{font-size:10px;color:#8F8E98;margin-top:13px}
 
-    .sovereignty-block { background: var(--dark); border-radius: 20px; padding: 48px; display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: center; margin-bottom: 72px; }
-    .sb-label { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; color: #34d399; margin-bottom: 12px; }
-    .sb-title { font-size: 1.5rem; font-weight: 900; color: #fff; letter-spacing: -0.02em; margin-bottom: 16px; }
-    .sb-body { font-size: 0.85rem; color: rgba(255,255,255,0.4); line-height: 1.8; }
-    .sb-facts { display: flex; flex-direction: column; gap: 12px; }
-    .sb-fact { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 14px 18px; }
-    .sb-fact-label { font-size: 0.62rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: rgba(255,255,255,0.3); margin-bottom: 4px; }
-    .sb-fact-value { font-size: 0.85rem; font-weight: 700; color: #fff; }
+/* PRODUCT */
+.product{padding:0 0 126px}
+.product-shell,.product-frame{
+  max-width:1030px;
+  margin:0 auto;
+  border:1px solid var(--line);
+  background:#fff;
+  padding:14px;
+  box-shadow:none;
+}
+.product-shell img,.product-frame img{display:block;width:100%;height:auto}
+.product-caption{
+  max-width:1030px;
+  margin:16px auto 0;
+  display:flex;justify-content:space-between;gap:20px;
+  color:#86858F;font-size:10px
+}
+.product-caption strong{color:#555550}
 
-    .contact-block { background: var(--light); border-radius: 20px; padding: 40px 48px; display: flex; align-items: center; justify-content: space-between; gap: 24px; flex-wrap: wrap; }
-    .contact-block h3 { font-size: 1.1rem; font-weight: 800; color: var(--dark); margin-bottom: 6px; }
-    .contact-block p { font-size: 0.85rem; color: rgba(0,0,0,0.45); }
-    .contact-link { display: inline-block; background: var(--dark); color: #fff; font-size: 0.85rem; font-weight: 700; padding: 10px 24px; border-radius: 100px; text-decoration: none; white-space: nowrap; transition: opacity .2s; }
-    .contact-link:hover { opacity: 0.8; }
+/* SECTIONS */
+.section{padding:104px 0;border-top:1px solid var(--line)}
+.section.alt,.alt{background:var(--soft)}
+.section.warm,.warm{background:var(--warm)}
+.section.dark,.dark{background:#21103F;color:#fff}
+.section.dark p,.dark p,.section.dark .muted,.dark .muted{color:#b8b8b1}
+.section h2{
+  font-family:Georgia,"Times New Roman",serif;
+  font-size:42px;line-height:1.05;letter-spacing:-.04em;
+  font-weight:500;margin:0 0 14px
+}
+.lede{font-size:20px;line-height:1.55;color:#63626E;max-width:720px}
+.muted{color:var(--muted)}
 
-    footer { border-top: 1px solid var(--border); padding: 40px 48px; }
-    .footer-bottom { max-width: 1080px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
-    .footer-bottom p { font-size: 0.75rem; color: rgba(0,0,0,0.25); }
-    .footer-links { display: flex; gap: 20px; }
-    .footer-links a { font-size: 0.75rem; color: rgba(0,0,0,0.35); text-decoration: none; }
-    .footer-links a:hover { color: var(--dark); }
+/* EDITORIAL / SPLIT */
+.split-hero,.twocol{display:grid;grid-template-columns:1fr 1fr;gap:64px;align-items:center}
+.editorial{display:grid;grid-template-columns:280px 1fr;gap:90px}
+.side h2{font-size:16px;margin:0;font-weight:800;font-family:inherit;letter-spacing:0}
+.copy{max-width:690px}
+.copy .lead{font-family:Georgia,"Times New Roman",serif;font-size:31px;line-height:1.25;letter-spacing:-.025em;color:#5C5A66;margin:0 0 30px}
+.copy p{font-size:14px;line-height:1.75;color:#6E6D78;margin:0 0 18px}
 
-    .dont-section { background: var(--dark); padding: 80px 48px; }
-    .dont-inner { max-width: 1080px; margin: 0 auto; }
-    .dont-section .s-label { color: #f87171; }
-    .dont-section h2 { font-size: clamp(1.5rem, 3vw, 2.2rem); font-weight: 900; letter-spacing: -0.03em; color: #fff; margin-bottom: 16px; }
-    .dont-section .intro { font-size: 1rem; color: rgba(255,255,255,0.35); line-height: 1.8; max-width: 680px; margin-bottom: 40px; }
-    .dont-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
-    .dont-card { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.07); border-radius: 16px; padding: 24px; }
-    .dont-card h4 { font-size: 0.88rem; font-weight: 800; color: #fff; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
-    .dont-card p { font-size: 0.78rem; color: rgba(255,255,255,0.38); line-height: 1.65; }
+/* LIGHT FEATURE SYSTEM */
+.cards3,.category-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:28px}
+.card,.category,.match-box{
+  background:transparent;border:0;border-top:1px solid var(--line);
+  border-radius:0;padding:22px 0;box-shadow:none
+}
+.card h3,.category h3,.match-box h3{font-size:13px;margin:0 0 7px}
+.card p,.category p,.match-box p{font-size:12px;line-height:1.7;color:#777;margin:0}
+.icon{
+  width:38px;height:38px;border:1px solid var(--line);background:#fff;
+  display:grid;place-items:center;border-radius:50%;margin-bottom:15px
+}
+.feature-list,.number-list,.table-like{border-top:1px solid var(--line)}
+.feature-row,.number-item,.table-row{
+  display:grid;grid-template-columns:180px 1fr;gap:32px;
+  padding:23px 0;border-bottom:1px solid var(--line);background:transparent
+}
+.feature-row h3,.number-item h3,.table-row h3{font-size:13px;margin:0}
+.feature-row p,.number-item p,.table-row p{font-size:13px;color:#74746e;line-height:1.7;margin:0}
+.check{width:28px;height:28px;border-radius:50%;background:#F3ECFF;display:grid;place-items:center}
+.match-flow,.metric-strip{display:grid;grid-template-columns:repeat(3,1fr);gap:28px}
+.metric{border-top:1px solid var(--line);padding:22px 0}
+.metric strong,.metric .number{font-family:Georgia,"Times New Roman",serif;font-size:38px;font-weight:500}
 
-    @media (max-width: 768px) {
-      nav { padding: 0 24px; }
-      .trust-hero { padding: 64px 24px 56px; }
-      .trust-wrap { padding: 56px 24px; }
-      .detail-grid { grid-template-columns: 1fr; }
-      .sovereignty-block { grid-template-columns: 1fr; gap: 28px; padding: 32px 24px; }
-      .contact-block { padding: 28px 24px; }
-      .dont-section { padding: 56px 24px; }
-      .dont-grid { grid-template-columns: 1fr; }
-      footer { padding: 32px 24px; }
-    }
-  
-    /* canonical footer */
-    footer { border-top: 1px solid rgba(0,0,0,0.08); padding: 64px 48px 40px; background:#fff; }
-    .footer-inner { max-width: 1080px; margin: 0 auto; }
-    .footer-grid { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 1fr; gap: 48px; margin-bottom: 64px; }
-    .footer-brand p { font-size: 0.83rem; color: rgba(0,0,0,0.38); line-height: 1.7; margin-top: 14px; max-width: 260px; }
-    .footer-col h4 { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: rgba(0,0,0,0.3); margin-bottom: 16px; }
-    .footer-col a { display: block; font-size: 0.85rem; color: rgba(0,0,0,0.5); text-decoration: none; margin-bottom: 10px; transition: color .15s; }
-    .footer-col a:hover { color: var(--dark); }
-    .footer-bottom { display: flex; align-items: center; justify-content: space-between; padding-top: 32px; border-top: 1px solid var(--border); flex-wrap: wrap; gap: 12px; }
-    .footer-bottom p { font-size: 0.75rem; color: rgba(0,0,0,0.25); }
+/* STORY */
+.story{max-width:900px;margin:0 auto}
+.story-head{text-align:center;max-width:650px;margin:0 auto 66px}
+.story-head h2{font-family:Georgia,"Times New Roman",serif;font-size:42px;line-height:1.05;letter-spacing:-.04em;font-weight:500;margin:0}
+.story-head p{font-size:14px;color:#777;margin:14px auto 0;max-width:560px}
+.story-row{display:grid;grid-template-columns:1fr 1fr;gap:64px;align-items:center;padding:52px 0;border-top:1px solid var(--line)}
+.story-row:last-child{border-bottom:1px solid var(--line)}
+.story-num{font-size:10px;color:#999;margin-bottom:10px}
+.story-row h3{font-family:Georgia,"Times New Roman",serif;font-size:29px;line-height:1.08;letter-spacing:-.035em;font-weight:500;margin:0 0 12px}
+.story-row p{font-size:13px;color:#6E6D78;line-height:1.7;margin:0}
+.story-ui{padding:28px;background:#fff;border:1px solid var(--line);min-height:190px;display:flex;flex-direction:column;justify-content:center}
+.story-ui .prompt{font-size:13px;line-height:1.5;margin-bottom:14px}
+.story-ui .answer{font-size:11px;color:#777;line-height:1.6;border-top:1px solid var(--line);padding-top:14px}
 
+/* STATEMENT */
+.statement{padding:136px 0;border-top:1px solid var(--line)}
+.statement blockquote,.big-statement{
+  font-family:Georgia,"Times New Roman",serif;
+  font-size:clamp(38px,4vw,50px);
+  line-height:1.08;letter-spacing:-.045em;
+  max-width:930px;margin:0;font-weight:500
+}
+.statement p{font-size:12px;color:#777;line-height:1.7;max-width:470px;margin:26px 0 0 auto}
+.dark .big-statement{
+  background-image:
+    linear-gradient(100deg,#fff 0%,#fff 16%,#5931FC 24%,#fff 32%,#fff 45%,#FC2289 54%,#fff 63%,#fff 75%,#D827BD 84%,#fff 93%);
+  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+}
 
-    /* ============================================================
-       REBUILT SECTIONS — homepage design language (bands + tokens)
-       Alternating light / white / deep-violet bands, gradient eyebrows,
-       Outfit-900 display, gradient CTAs. (added in rebuild)
-       ============================================================ */
-    .k-band { padding: 96px 48px; position: relative; overflow: hidden; }
-    .k-inner { max-width: 1080px; margin: 0 auto; position: relative; z-index: 1; }
-    .k-inner.narrow { max-width: 820px; }
-    .k-light { background: linear-gradient(180deg,#F5F0FF 0%,#FBFAFF 100%); }
-    .k-white { background: #fff; }
-    .k-dark {
-      background-color:#0F0929;
-      background-image:
-        radial-gradient(60% 55% at 12% -8%, rgba(154,77,255,.22) 0%, transparent 60%),
-        radial-gradient(54% 50% at 104% 110%, rgba(54,197,240,.14) 0%, transparent 62%);
-      background-repeat:no-repeat; color:#fff;
-    }
-    .k-h1 { font-family:'Outfit',system-ui,sans-serif; font-size:clamp(2.6rem,6vw,5rem); font-weight:900; letter-spacing:-0.04em; line-height:1.02; margin-bottom:22px; color:var(--dark); }
-    .s-title { font-family:'Outfit',system-ui,sans-serif; font-size:clamp(1.8rem,4vw,2.6rem); font-weight:800; letter-spacing:-0.03em; line-height:1.1; margin-bottom:16px; color:var(--dark); }
-    .s-sub { font-size:0.98rem; color:rgba(0,0,0,0.5); max-width:600px; line-height:1.8; margin-bottom:0; }
-    .k-dark .s-title, .k-dark .k-h1 { color:#fff; }
-    .k-dark .s-sub { color:rgba(255,255,255,0.52); }
-    .k-lead { font-size:1.05rem; color:rgba(0,0,0,0.5); line-height:1.75; }
-    .k-prose { max-width:680px; }
-    .k-prose p { font-size:0.98rem; color:rgba(0,0,0,0.6); line-height:1.9; margin-bottom:20px; }
-    .k-prose p:last-child { margin-bottom:0; }
-    .k-prose strong { color:var(--dark); font-weight:600; }
-    .k-cards { display:grid; gap:16px; }
-    .k-cards.c3 { grid-template-columns:repeat(3,1fr); }
-    .k-cards.c2 { grid-template-columns:repeat(2,1fr); }
-    .k-card { background:#fff; border:1px solid var(--border); border-radius:20px; padding:30px 28px; }
-    .k-light .k-card { box-shadow:0 24px 55px -32px rgba(70,30,130,0.35); }
-    .k-card .k-ic { font-size:1.5rem; margin-bottom:14px; display:block; }
-    .k-card h3 { font-size:1rem; font-weight:700; color:var(--dark); margin-bottom:10px; }
-    .k-card p { font-size:0.87rem; color:rgba(0,0,0,0.55); line-height:1.7; }
-    .k-pill { display:inline-flex; align-items:center; gap:7px; font-size:0.8rem; font-weight:600; color:rgba(255,255,255,0.6); background:rgba(255,255,255,0.07); border:1px solid rgba(255,255,255,0.12); border-radius:100px; padding:7px 16px; }
-    @media(max-width:900px){ .k-cards.c3{ grid-template-columns:1fr 1fr; } }
-    @media(max-width:640px){ .k-band{ padding:60px 24px; } .k-cards.c3,.k-cards.c2{ grid-template-columns:1fr; } .k-dogfood{ grid-template-columns:1fr !important; } }
+/* PROOF + PRICING BAND */
+.proof-band{padding:96px 0;background:#21103F;color:#fff}
+.proof-inner{display:grid;grid-template-columns:1.3fr .7fr;gap:80px;align-items:end}
+.proof-inner h2{font-family:Georgia,"Times New Roman",serif;font-size:45px;line-height:1.03;letter-spacing:-.043em;font-weight:500;margin:0}
+.proof-inner p{font-size:13px;line-height:1.7;color:#B3B2BC;max-width:540px;margin:18px 0 0}
+.proof-side{border-top:1px solid #444;padding-top:18px}
+.proof-side .big{font-family:Georgia,"Times New Roman",serif;font-size:44px;letter-spacing:-.04em}
+.proof-side .small{font-size:11px;color:#A5A4AE;margin-top:5px}
+.proof-band .btn{background:#fff;color:#21103F}
+.price-section{padding:100px 0;border-top:1px solid var(--line)}
+.price-grid{display:grid;grid-template-columns:1.2fr .8fr;gap:80px;align-items:end}
+.price-grid h2{font-family:Georgia,"Times New Roman",serif;font-size:42px;line-height:1.05;letter-spacing:-.04em;font-weight:500;margin:0 0 14px}
+.price-grid p{font-size:13px;color:#777;line-height:1.7;max-width:520px}
+.price{font-family:Georgia,"Times New Roman",serif;font-size:65px;line-height:1;letter-spacing:-.05em;text-align:right}
+.price small{display:block;font-family:Inter,sans-serif;font-size:11px;color:#777;letter-spacing:0;margin-top:9px}
 
-  </style>
-  <!-- Shared K.I.N.D design system (loaded last so it wins) -->
-  <link rel="stylesheet" href="kind.css" />
-  <!-- W1 (21 Aug 2026) — the homepage's visual system, shared. Loaded LAST so it
-       wins the cascade without rewriting this page's markup. Two corrections to the
-       build brief are documented in that file: the content width is 1120px, not
-       1080px, and Inter never loads. index.html does NOT load it and is untouched. -->
-  <link rel="stylesheet" href="gp-system.css" />
-</head>
-<body class="gp-converged">
+/* BAND / BRIDGE / CALLOUT */
+.band,.bridge,.callout{
+  display:flex;justify-content:space-between;align-items:center;gap:34px;
+  padding:42px;background:#fff;border:1px solid var(--line)
+}
+.band h2,.bridge h3,.callout h2{font-family:Georgia,"Times New Roman",serif;font-size:32px;font-weight:500;letter-spacing:-.035em;margin:0}
+.band p,.bridge p,.callout p{font-size:12px;color:#777;line-height:1.65;margin:7px 0 0}
 
-<nav>
-  <a href="/" class="logo" aria-label="M&amp;V home">
-    <div class="logo-icon" style="height:34px;width:auto;background:none;border-radius:0;display:flex;align-items:center;flex-shrink:0;"><img src="logo-mv-v2.png" alt="M&amp;V" style="height:26px;width:auto;object-fit:contain;display:block;" /></div>
-  </a>
-  <div class="nav-links">
-    <a href="about.html" class="nav-link">About Us</a>
-    <a href="pricing.html" class="nav-link">Pricing</a>
-  </div>
-  <div class="nav-right">
-    <a href="https://app.get-kind.com/login" class="btn-nav-ghost">Client login</a>
-    <a href="demo.html" class="btn-nav-primary">Book a walkthrough</a>
-  </div>
-</nav>
+/* FAQ */
+.faq-layout{display:grid;grid-template-columns:260px 1fr;gap:70px}
+.faq-box{border-top:1px solid var(--line)}
+.faq-item{border-bottom:1px solid var(--line)}
+.faq-q{
+  width:100%;background:transparent;border:0;padding:21px 0;
+  display:flex;justify-content:space-between;gap:20px;
+  text-align:left;font-weight:800;font-size:13px;cursor:pointer
+}
+.faq-a{display:none;padding:0 0 22px;color:#74746e;font-size:13px;line-height:1.7}
+.faq-item.open .faq-a{display:block}
+.plus{font-size:18px;font-weight:400;transition:transform .2s ease}
+.faq-item.open .plus{transform:rotate(45deg)}
 
-<!-- HERO -->
-<section class="k-band k-dark" style="text-align:center;padding-top:88px;padding-bottom:80px">
-  <div class="k-inner reveal">
-    <span class="page-tag">Trust &amp; Security</span>
-    <h1 class="k-h1" style="font-size:clamp(2.2rem,4.5vw,3.5rem);color:#fff">Compliance isn&rsquo;t a feature.<br>It&rsquo;s the foundation.</h1>
-    <p style="font-size:1rem;color:rgba(255,255,255,0.45);max-width:560px;margin:0 auto 10px;line-height:1.75">K.I.N.D is built with privacy, suppression and jurisdiction-aware controls from the start. Every campaign, every consent signal, every suppression request is logged and auditable &mdash; automatically.</p>
-    <p style="font-size:0.82rem;color:rgba(255,255,255,0.32);margin-bottom:44px">Last updated: June 2026</p>
-    <div class="badges">
-      <div class="badge"><span class="badge-icon">&#x1F1EA;&#x1F1FA;</span><span class="badge-name">GDPR<br>Aligned</span><span class="badge-status">&#x25CF; Active</span></div>
-      <div class="badge"><span class="badge-icon">&#x1F1FF;&#x1F1E6;</span><span class="badge-name">POPIA<br>Compliant</span><span class="badge-status">&#x25CF; Active</span></div>
-      <div class="badge"><span class="badge-icon">&#x1F512;</span><span class="badge-name">Data<br>Encrypted</span><span class="badge-status">&#x25CF; TLS 1.3</span></div>
-      <div class="badge"><span class="badge-icon">&#x1F30D;</span><span class="badge-name">EU<br>Hosted</span><span class="badge-status">&#x25CF; Dublin (eu-west-1)</span></div>
-      <div class="badge"><span class="badge-icon">&#x1F9FE;</span><span class="badge-name">Audit<br>Trail</span><span class="badge-status">&#x25CF; Full log</span></div>
-      <div class="badge"><span class="badge-icon">&#x1F1FA;&#x1F1F8;</span><span class="badge-name">CAN-SPAM<br>Compliant</span><span class="badge-status">&#x25CF; Active</span></div>
-      <div class="badge"><span class="badge-icon">&#x1F3D6;</span><span class="badge-name">CCPA<br>Aligned</span><span class="badge-status">&#x25CF; Active</span></div>
-    </div>
-  </div>
-</section>
+/* FORMS */
+.form{max-width:820px;margin:0 auto}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.field.full{grid-column:1/-1}
+.field label{display:block;font-size:10px;font-weight:800;margin-bottom:7px;color:#666}
+.field input,.field textarea,.field select,
+form input,form textarea,form select{
+  width:100%;border:1px solid #DDD8E8;background:#fff;border-radius:0;
+  padding:14px 15px;font:inherit;color:#21103F
+}
+textarea{min-height:130px;resize:vertical}
 
-<!-- POPIA & GDPR BY DEFAULT -->
-<section class="k-band k-white">
-  <div class="k-inner reveal">
-    <div class="s-label">Protection of Personal Information Act</div>
-    <h2 class="s-title">Privacy controls,<br/>built in from the start.</h2>
-    <p class="s-sub" style="margin-bottom:40px">Modern data-protection law &mdash; GDPR, POPIA and CCPA &mdash; sets strict requirements for how personal information is collected, processed, and stored. K.I.N.D is built to meet these requirements automatically &mdash; not through configuration, but through architecture.</p>
-    <div class="detail-grid">
-      <div class="detail-card">
-        <h3>Consent management</h3>
-        <p>Every outreach interaction is recorded with consent basis, timestamp, and channel. You hold a compliance record for every contact Vida touches.</p>
-        <ul class="check-list"><li>Consent type logged per contact</li><li>Timestamp and channel recorded</li><li>Exportable consent records on request</li></ul>
-      </div>
-      <div class="detail-card">
-        <h3>Suppression &amp; opt-out</h3>
-        <p>Unsubscribe requests are honoured immediately and permanently. No contact is ever re-added to a campaign once suppressed.</p>
-        <ul class="check-list"><li>Instant suppression on unsubscribe</li><li>Suppression list synced across all campaigns</li><li>No re-activation without explicit re-consent</li></ul>
-      </div>
-      <div class="detail-card">
-        <h3>Right to access &amp; erasure</h3>
-        <p>Data subjects can request access to their information or deletion at any time.</p>
-        <ul class="check-list"><li>Access requests: privacy@get-kind.com</li><li>Erasure processed within 30 days</li><li>Deletion confirmation provided in writing</li></ul>
-      </div>
-      <div class="detail-card">
-        <h3>Data minimisation</h3>
-        <p>Vida only stores data required to run your campaigns. No surplus collection, no profiling beyond campaign relevance.</p>
-        <ul class="check-list"><li>Contact data scoped to campaign use only</li><li>Auto-expiry after 24 months inactive</li><li>No data sold or shared with third parties</li></ul>
-      </div>
-    </div>
-  </div>
-</section>
+/* LEGAL */
+.legal-head{border-bottom:1px solid var(--line)}
+.legal-copy{max-width:820px;margin:auto}
+.notice{background:#FAF8FF;border:1px solid var(--line);padding:16px 18px;font-size:11px;color:#6B6A76;margin-bottom:36px}
+.legal-copy h2{font-family:Georgia,"Times New Roman",serif;font-size:28px;font-weight:500;margin:38px 0 12px;letter-spacing:-.025em}
+.legal-copy h3{font-size:14px;margin:26px 0 8px}
+.legal-copy p,.legal-copy li{font-size:13px;line-height:1.75;color:#666}
 
-<!-- DATA SOVEREIGNTY (dark card on light band) -->
-<section class="k-band k-light">
-  <div class="k-inner reveal">
-    <div class="sovereignty-block" style="margin-bottom:0">
-      <div>
-        <div class="sb-label">Data sovereignty</div>
-        <div class="sb-title">Your data, hosted securely and compliantly.</div>
-        <div class="sb-body">Data is stored in Dublin, Ireland (Supabase, eu-west-1) on SOC 2 Type II-audited infrastructure. Application servers run in Railway&rsquo;s US West region. Where data crosses borders we apply appropriate safeguards.</div>
-      </div>
-      <div class="sb-facts">
-        <div class="sb-fact"><div class="sb-fact-label">Primary data centre</div><div class="sb-fact-value">Dublin, Ireland</div></div>
-        <div class="sb-fact"><div class="sb-fact-label">Data residency</div><div class="sb-fact-value">Stored: Dublin, Ireland (eu-west-1) &middot; Processed: Railway, US West</div></div>
-        <div class="sb-fact"><div class="sb-fact-label">Cross-border transfers</div><div class="sb-fact-value">Appropriate safeguards applied</div></div>
-        <div class="sb-fact"><div class="sb-fact-label">Backup location</div><div class="sb-fact-value">Same region as the database (Dublin, Ireland)</div></div>
-      </div>
-    </div>
-  </div>
-</section>
+/* ABOUT */
+.film-section{padding:0 0 105px}
+.film{
+  aspect-ratio:16/8.5;
+  background:linear-gradient(135deg,#4A4756,#A9A3BC 42%,#6d7468 100%);
+  position:relative;overflow:hidden
+}
+.film:before{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.05),rgba(0,0,0,.35))}
+.film-copy{position:absolute;left:6%;bottom:8%;color:#fff;z-index:2;max-width:560px}
+.film-kicker{font-size:10px;letter-spacing:.12em;font-weight:800}
+.film-title{font-family:Georgia,"Times New Roman",serif;font-size:42px;line-height:1.02;letter-spacing:-.04em;margin-top:9px}
+.play{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:66px;height:66px;border-radius:50%;background:#21103F;color:#fff;display:grid;place-items:center;z-index:3}
+.film-note{position:absolute;right:3%;bottom:4%;color:#fff;font-size:10px;z-index:2}
+.about-split{display:grid;grid-template-columns:280px 1fr;gap:90px}
+.about-copy{max-width:700px}
+.about-copy .lead{font-family:Georgia,"Times New Roman",serif;font-size:30px;line-height:1.3;color:#61606B;margin:0 0 25px}
+.about-copy p{font-size:14px;color:#6E6D78;line-height:1.75}
+.principles{display:grid;grid-template-columns:1fr 1fr;gap:34px 50px}
+.principle{display:grid;grid-template-columns:44px 1fr;gap:14px;border-top:1px solid var(--line);padding-top:18px}
+.principle-num{font-family:Georgia,"Times New Roman",serif;font-size:24px;color:#888}
+.principle h3{font-size:13px;margin:2px 0 5px}
+.principle p{font-size:12px;color:#777;line-height:1.65;margin:0}
 
-<!-- GDPR ALIGNED -->
-<section class="k-band k-white">
-  <div class="k-inner reveal">
-    <div class="s-label">General Data Protection Regulation</div>
-    <h2 class="s-title">GDPR-aligned for<br/>international prospects.</h2>
-    <p class="s-sub" style="margin-bottom:40px">If your outreach targets contacts in the EU or UK, GDPR applies. K.I.N.D&rsquo;s consent and suppression architecture is aligned with GDPR requirements, giving you a defensible compliance posture for cross-border campaigns.</p>
-    <div class="detail-grid">
-      <div class="detail-card">
-        <h3>Lawful basis for processing</h3>
-        <p>Outbound B2B email operates under legitimate interest. K.I.N.D logs the legitimate interest assessment for each campaign automatically.</p>
-        <ul class="check-list"><li>Legitimate interest basis documented per campaign</li><li>Balancing test logged at campaign creation</li><li>Opt-out mechanism present in every email</li></ul>
-      </div>
-      <div class="detail-card">
-        <h3>Data processor agreements</h3>
-        <p>K.I.N.D acts as a data processor on your behalf. A Data Processing Agreement (DPA) is available for all customers on request.</p>
-        <ul class="check-list"><li>DPA available on request</li><li>Sub-processor list maintained and current</li><li>Anthropic (Claude) DPA in place</li></ul>
-      </div>
-    </div>
-  </div>
-</section>
+/* PRICING PAGE */
+.pricing-page{padding:96px 0 110px}
+.pricing-intro{max-width:720px;margin-bottom:56px}
+.pricing-intro h1{font-family:Georgia,"Times New Roman",serif;font-size:58px;line-height:1.01;letter-spacing:-.05em;font-weight:500;margin:0 0 13px}
+.pricing-intro h2{font-family:Georgia,"Times New Roman",serif;font-size:36px;line-height:1.08;letter-spacing:-.04em;font-weight:500;margin:0 0 14px}
+.pricing-intro p{font-size:16px;color:#777;line-height:1.65}
+.pricing-top{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.pricing-choice{min-height:430px;display:flex;flex-direction:column;border:1px solid var(--line);background:#fff}
+.pricing-choice.buy{background:var(--soft)}
+.pricing-choice.includes{background:var(--warm)}
+.choice-main{padding:32px;flex:1;display:flex;flex-direction:column}
+.choice-main h2{font-family:Georgia,"Times New Roman",serif;font-size:30px;line-height:1.08;letter-spacing:-.035em;font-weight:500;margin:0}
+.choice-bottom{margin-top:auto;display:flex;align-items:end;justify-content:space-between;gap:15px}
+.choice-price{font-family:Georgia,"Times New Roman",serif;font-size:52px;line-height:1}
+.choice-price small{display:block;font-family:Inter,sans-serif;font-size:10px;text-transform:uppercase;letter-spacing:.09em;color:#666;margin-bottom:8px}
+.choice-price span{font-family:Inter,sans-serif;font-size:12px;color:#666;letter-spacing:0}
+.choice-foot{padding:24px 32px;border-top:1px solid rgba(0,0,0,.08)}
+.choice-foot b{font-size:12px;display:block;margin-bottom:3px}
+.choice-foot p{font-size:11px;color:#777;margin:0 0 13px;line-height:1.55}
+.plan-section{padding:100px 0 20px}
+.plan-head{max-width:690px;margin-bottom:34px}
+.plan-head h2{font-family:Georgia,"Times New Roman",serif;font-size:42px;font-weight:500;letter-spacing:-.04em;margin:0 0 10px}
+.plan-head p{font-size:14px;color:#777}
+.plan-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px}
+.plan{border-top:1px solid var(--line);padding:24px 0}
+.plan-label{font-size:10px;color:#888;text-transform:uppercase;letter-spacing:.08em}
+.plan h3{font-family:Georgia,"Times New Roman",serif;font-size:28px;font-weight:500;margin:7px 0 0}
+.plan-range{font-size:11px;color:#777;margin:5px 0 25px}
+.plan-price{font-family:Georgia,"Times New Roman",serif;font-size:36px;line-height:1}
+.plan-price small{font-family:Inter,sans-serif;font-size:10px;color:#777}
+.plan p{font-size:12px;color:#777;line-height:1.65}
+.preview-note{font-size:10px;color:#999;margin-top:18px}
 
-<!-- TECHNICAL SECURITY -->
-<section class="k-band k-light">
-  <div class="k-inner reveal">
-    <div class="s-label">Technical security</div>
-    <h2 class="s-title">Built securely<br/>at every layer.</h2>
-    <p class="s-sub" style="margin-bottom:40px">Security is not a compliance exercise. Every layer &mdash; data in transit, data at rest, access controls, API authentication &mdash; is hardened by default.</p>
-    <div class="detail-grid">
-      <div class="detail-card">
-        <h3>Encryption</h3>
-        <ul class="check-list"><li>All data in transit: TLS 1.3</li><li>All data at rest: AES-256</li><li>API keys: encrypted at rest, never logged</li><li>Email credentials: vault-stored, not accessible to staff</li></ul>
-      </div>
-      <div class="detail-card">
-        <h3>Access controls</h3>
-        <ul class="check-list"><li>Role-based access control (RBAC) on all accounts</li><li>MFA enforced for all admin access</li><li>Staff access to customer data: audit-logged</li><li>Zero standing access policy for production systems</li></ul>
-      </div>
-      <div class="detail-card">
-        <h3>Infrastructure</h3>
-        <ul class="check-list"><li>Application: Railway (runs on SOC 2-audited cloud infrastructure)</li><li>Database: Supabase &mdash; Dublin, eu-west-1</li><li>Application servers: Railway, US West</li><li>Daily automated database backups, retained for 7 days, held in the same region as the database (Dublin, Ireland)</li><li>Private repo, branch-protected &mdash; no direct pushes to production</li><li>Dependency vulnerability scanning (GitHub Dependabot)</li><li>ISO 27001 certification: Year 2 roadmap target</li></ul>
-      </div>
-      <div class="detail-card">
-        <h3>Incident response</h3>
-        <ul class="check-list"><li>Breach notification within 72 hours (UK GDPR, Kenya DPA)</li><li>POPIA: prompt notification to Information Regulator</li><li>Incident response plan documented and maintained</li><li>All incidents logged with root cause and remediation</li><li>Security contact: hello@get-kind.com</li></ul>
-      </div>
-    </div>
-  </div>
-</section>
+/* TRUST */
+.trust{padding:90px 0;border-top:1px solid var(--line)}
+.trust-title{font-family:Georgia,"Times New Roman",serif;font-size:38px;letter-spacing:-.04em;margin:0 0 38px;font-weight:500}
+.trust-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:42px}
+.trust-grid div{border-top:1px solid var(--line);padding-top:16px}
+.trust-grid h3{font-size:12px;margin:0 0 7px}
+.trust-grid p{font-size:11px;line-height:1.65;color:#777;margin:0}
 
-<!-- CAN-SPAM -->
-<section class="k-band k-white">
-  <div class="k-inner reveal">
-    <div class="s-label">CAN-SPAM Act &mdash; United States</div>
-    <h2 class="s-title">US email law.<br/>Met in full.</h2>
-    <p class="s-sub" style="margin-bottom:40px">If your outreach touches US-based contacts, the CAN-SPAM Act applies. K.I.N.D&rsquo;s email infrastructure is built to satisfy all FTC requirements automatically &mdash; no manual configuration required.</p>
-    <div class="detail-grid">
-      <div class="detail-card">
-        <h3>Sender identification</h3>
-        <p>Every email sent through K.I.N.D identifies the true sender clearly. No misleading headers, no deceptive subject lines.</p>
-        <ul class="check-list"><li>From name and domain match the sending account</li><li>Subject lines accurately reflect message content</li><li>No hidden or forged routing information</li></ul>
-      </div>
-      <div class="detail-card">
-        <h3>Physical address</h3>
-        <p>CAN-SPAM requires a valid physical postal address in every commercial email. K.I.N.D includes this in every outbound email.</p>
-        <ul class="check-list"><li>Physical address included in every email footer</li><li>Address verified at account setup</li><li>PO Boxes accepted under FTC guidance</li></ul>
-      </div>
-      <div class="detail-card">
-        <h3>Opt-out mechanism</h3>
-        <p>Every email includes a clear, working unsubscribe mechanism. Opt-out requests are processed within the FTC-mandated 10 business days.</p>
-        <ul class="check-list"><li>One-click unsubscribe link in every email</li><li>Opt-out processed within 10 business days</li><li>No fee or extra steps required to unsubscribe</li></ul>
-      </div>
-      <div class="detail-card">
-        <h3>Commercial email labelling</h3>
-        <p>Where required, K.I.N.D marks emails as commercial and ensures advertising content is clearly identified.</p>
-        <ul class="check-list"><li>Transactional vs commercial distinction maintained</li><li>ADV labelling applied where applicable</li><li>No misleading categorisation of email type</li></ul>
-      </div>
-    </div>
-  </div>
-</section>
+/* FINAL */
+.final{padding:82px 0;background:#21103F;color:#fff}
+.final .wrap{display:flex;align-items:center;justify-content:space-between;gap:30px}
+.final h2{font-family:Georgia,"Times New Roman",serif;font-size:40px;letter-spacing:-.04em;font-weight:500;margin:0}
+.final p{font-size:12px;color:#aaa;margin:7px 0 0}
+.final .btn{background:#fff;color:#21103F}
 
-<!-- CCPA -->
-<section class="k-band k-light">
-  <div class="k-inner reveal">
-    <div class="s-label">CCPA / CPRA &mdash; California</div>
-    <h2 class="s-title">California privacy rights.<br/>Respected by default.</h2>
-    <p class="s-sub" style="margin-bottom:40px">The California Consumer Privacy Act (and its 2023 update, CPRA) grants California residents rights over their personal information. K.I.N.D honours these rights without requiring manual workflows.</p>
-    <div class="detail-grid">
-      <div class="detail-card">
-        <h3>Right to know</h3>
-        <p>California residents can request details on what personal information K.I.N.D holds about them, where it came from, and how it is used.</p>
-        <ul class="check-list"><li>Data subject requests: privacy@get-kind.com</li><li>Response within 45 days as required</li><li>Full category and purpose disclosure provided</li></ul>
-      </div>
-      <div class="detail-card">
-        <h3>Right to delete</h3>
-        <p>Residents can request deletion of their personal information. K.I.N.D processes deletion requests and propagates suppression across all campaigns.</p>
-        <ul class="check-list"><li>Deletion request processed on receipt</li><li>Contact suppressed across all active campaigns</li><li>Deletion confirmed in writing within 45 days</li></ul>
-      </div>
-      <div class="detail-card">
-        <h3>No sale of personal information</h3>
-        <p>K.I.N.D does not sell, share, or rent personal information to third parties for monetary or other valuable consideration.</p>
-        <ul class="check-list"><li>No data sold to any third party &mdash; ever</li><li>No data sharing for cross-context behavioural advertising</li><li>Opt-out of sale: always active by default</li></ul>
-      </div>
-      <div class="detail-card">
-        <h3>Right to opt-out &amp; correct</h3>
-        <p>California residents can opt out of data processing and request corrections to inaccurate personal information at any time.</p>
-        <ul class="check-list"><li>Opt-out request honoured within 15 business days</li><li>Correction requests: privacy@get-kind.com</li><li>CPRA sensitive personal information protections applied</li></ul>
-      </div>
-    </div>
-  </div>
-</section>
+/* FOOTER */
+.site-footer{padding:52px 0 28px;background:#FAF8FF;border-top:1px solid #E9E6F0}
+.footer-top{display:grid;grid-template-columns:1.6fr repeat(4,1fr);gap:36px;padding-bottom:42px}
+.footer-brand{font-family:Georgia,"Times New Roman",serif;font-size:22px;font-weight:700;margin-bottom:13px}
+.footer-copy{color:#72717C;font-size:11px;max-width:260px;line-height:1.6}
+.site-footer h4{font-size:10px;text-transform:uppercase;letter-spacing:.1em;margin:0 0 13px;color:#777}
+.site-footer a{display:block;font-size:11px;color:#61615c;margin-bottom:8px}
+.footer-legal{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;padding-top:20px;border-top:1px solid #E9E6F0;font-size:9px;color:#89888F}
 
-<!-- EMAIL INFRASTRUCTURE -->
-<section class="k-band k-white">
-  <div class="k-inner reveal">
-    <div class="s-label">Email infrastructure</div>
-    <h2 class="s-title">Deliverability built<br/>on trust.</h2>
-    <p class="s-sub" style="margin-bottom:40px">Compliant email requires more than legal wording &mdash; it requires infrastructure that major providers trust. K.I.N.D&rsquo;s sending stack is built to land in the inbox, not the spam folder.</p>
-    <div class="detail-grid">
-      <div class="detail-card">
-        <h3>Sending infrastructure</h3>
-        <p>K.I.N.D sends via Resend with a dedicated custom domain. No shared IP pools that inherit other senders&rsquo; reputation problems.</p>
-        <ul class="check-list"><li>Dedicated sending domain: send.get-kind.com</li><li>Not a shared IP pool &mdash; isolated reputation</li><li>Bounce and complaint monitoring active</li></ul>
-      </div>
-      <div class="detail-card">
-        <h3>Authentication (SPF / DKIM / DMARC)</h3>
-        <p>Full email authentication stack in place. Major providers (Google, Microsoft, Yahoo) require these for bulk senders &mdash; K.I.N.D exceeds the minimum requirements.</p>
-        <ul class="check-list"><li>SPF record published and validated</li><li>DKIM signing on all outbound email</li><li>DMARC policy: quarantine / reject</li></ul>
-      </div>
-      <div class="detail-card">
-        <h3>Domain warming</h3>
-        <p>New customer domains are warmed gradually. Sending volume increases over time to build provider trust before high-volume campaigns start.</p>
-        <ul class="check-list"><li>Automated warmup schedule on new domains</li><li>Volume caps enforced during warmup period</li><li>Reputation score monitored throughout</li></ul>
-      </div>
-      <div class="detail-card">
-        <h3>List hygiene</h3>
-        <p>Vida validates contact data before sending. Unverified or high-risk addresses are flagged or removed before a single email goes out.</p>
-        <ul class="check-list"><li>Email validation on import</li><li>Hard bounces removed automatically</li><li>Catch-all domain flagging to protect sender score</li></ul>
-      </div>
-    </div>
-  </div>
-</section>
+/* REVIEW INDEX ONLY */
+.review{padding:72px 0 100px}
+.review h1{font-family:Georgia,"Times New Roman",serif;font-size:52px;letter-spacing:-.05em;font-weight:500;margin:0 0 12px}
+.review p{color:#777;max-width:680px}
+.review-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:40px}
+.review-card{border:1px solid var(--line);background:#fff;padding:24px;min-height:150px;display:flex;flex-direction:column}
+.review-card .n{font-size:10px;color:#999;margin-bottom:12px}
+.review-card h2{font-family:Georgia,"Times New Roman",serif;font-size:24px;font-weight:500;margin:0 0 8px}
+.review-card p{font-size:11px;line-height:1.6;color:#777;margin:0 0 18px}
+.review-card a{font-size:11px;font-weight:800;margin-top:auto}
 
-<!-- WHAT WE DON'T DO (dark band) -->
-<section class="k-band k-dark">
-  <div class="k-inner reveal">
-    <div class="s-label">Commitments</div>
-    <h2 class="s-title" style="color:#fff">What we don&rsquo;t do.</h2>
-    <p style="font-size:1rem;color:rgba(255,255,255,0.4);line-height:1.8;max-width:680px;margin-bottom:40px">Compliance is as much about what you refuse to do as what you do. These are hard limits &mdash; not guidelines, not suggestions.</p>
-    <div class="dont-grid">
-      <div class="dont-card"><h4>&#x274C; No scraped lists</h4><p>We do not purchase, scrape, or accept contact lists from third-party brokers. Every contact Vida reaches must be sourced through verified, lawful means.</p></div>
-      <div class="dont-card"><h4>&#x274C; No spam list re-use</h4><p>Suppressed contacts are permanently removed. We do not re-activate opted-out or bounced contacts under any circumstance, even under a new campaign or sender identity.</p></div>
-      <div class="dont-card"><h4>&#x274C; No data sold &mdash; ever</h4><p>Your campaign data, contact records, and conversation history are yours. We do not sell, rent, or share personal information with any third party for commercial gain.</p></div>
-      <div class="dont-card"><h4>&#x274C; No indefinite retention</h4><p>Data is not held indefinitely. Contact records are reviewed and removed when a client closes their account, or on request. Deletion requests are actioned within 30 days.</p></div>
-      <div class="dont-card"><h4>&#x274C; No hidden sub-processors</h4><p>Our full sub-processor list is available on request. We do not introduce new sub-processors without notifying affected customers and updating our DPA.</p></div>
-      <div class="dont-card"><h4>&#x274C; No cold calls &mdash; ever</h4><p>Milla&amp;Vida is email-only outreach. We do not do phone or voice outreach at all.</p></div>
-    </div>
-  </div>
-</section>
+@media(max-width:900px){
+  .editorial,.story-row,.proof-inner,.price-grid,.split-hero,.twocol,.about-split,.faq-layout{grid-template-columns:1fr;gap:36px}
+  .cards3,.category-grid,.match-flow,.metric-strip,.pricing-top,.plan-grid,.trust-grid,.review-grid{grid-template-columns:1fr}
+  .feature-row,.number-item,.table-row{grid-template-columns:1fr;gap:8px}
+  .price{text-align:left}
+  .principles{grid-template-columns:1fr}
+  .footer-top{grid-template-columns:1fr 1fr}
+}
+@media(max-width:720px){
+  .wrap{width:min(calc(100% - 30px),var(--max))}
+  .nav{display:none}
+  .hero,.page-hero,.legal-head{padding:76px 0 58px}
+  .hero h1,.page-hero h1,.legal-head h1{font-size:42px}
+  .section{padding:76px 0}
+  .section h2,.story-head h2,.plan-head h2{font-size:35px}
+  .statement{padding:96px 0}
+  .statement blockquote,.big-statement{font-size:37px}
+  .band,.bridge,.callout{padding:28px;align-items:flex-start;flex-direction:column}
+  .form-grid{grid-template-columns:1fr}
+  .field.full{grid-column:auto}
+  .choice-bottom{align-items:flex-start;flex-direction:column}
+  .final .wrap{align-items:flex-start;flex-direction:column}
+  .footer-top{grid-template-columns:1fr 1fr}
+}
 
-<!-- CONTACT -->
-<section class="k-band k-light">
-  <div class="k-inner reveal">
-    <div class="contact-block">
-      <div>
-        <h3>Compliance queries &amp; DPA requests</h3>
-        <p>For data subject access requests, DPA agreements, or any compliance question, contact our team directly.</p>
-      </div>
-      <a href="mailto:privacy@get-kind.com" class="contact-link">privacy@get-kind.com &rarr;</a>
-    </div>
-  </div>
-</section>
+/* M&V logo treatment */
+.logo{display:inline-flex;align-items:center;height:64px;white-space:nowrap;gap:0!important;font-size:0!important;line-height:0!important}
+.logo .logo-img{display:block;width:154px;max-height:62px;object-fit:contain;object-position:left center}
+.logo-mark,.logo-wording{display:none!important}
+@media(max-width:640px){.logo .logo-img{width:136px;max-height:54px}}
+</style>
+<style id="hb-banner-cutoff-fix">
+/* Banner cut-off fix only. No content, navigation, animation timing, forms or page structure changed. */
+.hero,
+.page-hero,
+.legal-head,
+.pricing-intro {
+  overflow: visible !important;
+}
 
-<footer>
-  <div class="footer-strip" style="height:5px;background:linear-gradient(90deg,#FFD4B2 0%,#F9C8FF 34%,#C4B5FD 68%,#7C3AED 100%)"></div>
-  <div class="footer-inner">
-    <div class="footer-grid">
-      <div class="footer-brand">
-        <a href="/" class="logo">
-          <div class="logo-icon" style="height:34px;width:auto;background:none;border-radius:0;display:flex;align-items:center;flex-shrink:0;"><img src="logo-mv-v2.png" alt="M&amp;V" style="height:26px;width:auto;object-fit:contain;display:block;" /></div>
-          
-        </a>
-        <p>Milla and Vida book your meetings. You choose the outcome, Milla prepares the whole programme, and you approve it once before anything is sent. Free Proof before you pay. No subscription.</p>
-      </div>
-      <div class="footer-col">
-        <h4>Product</h4>
-        <a href="milla.html">Milla</a>
-        <a href="vida.html">Vida</a>
-        <a href="pricing.html">Pricing</a>
-      </div>
-      <div class="footer-col">
-        <h4>Explore</h4>
-        <a href="solutions.html">Solutions</a>
-        <a href="the-drop.html">The Drop</a>
-        <a href="pricing.html">Programme Calculator</a>
-        <a href="vs-hiring-an-sdr.html">vs. hiring an SDR</a>
-      </div>
-      <div class="footer-col">
-        <h4>Company</h4>
-        <a href="about.html">About</a>
-        <a href="trust.html">Trust &amp; Security</a>
-        <a href="help-centre.html">Help Centre</a>
-        <a href="status.html">System status</a>
-      </div>
-      <div class="footer-col">
-        <h4>Get in touch</h4>
-        <a href="mailto:hello@get-kind.com">hello@get-kind.com</a>
-        <a href="https://app.get-kind.com/login">Client login</a>
-        <a href="support.html">Support</a>
-        <!-- SOCIAL:START (scripts/add-social-footer.sh — R28) -->
-        <a href="https://www.linkedin.com/company/millaandvida" target="_blank" rel="noopener">LinkedIn</a>
-        <!-- SOCIAL:END -->
-      </div>
-    </div>
-    <div class="footer-bottom">
-      <p>&copy; 2026 K.I.N.D. All rights reserved.</p>
-      <div class="footer-legal">
-        <a href="terms.html">Terms of Service</a>
-        <a href="privacy.html">Privacy Policy</a>
-        <a href="dpa.html">POPIA &amp; GDPR</a>
-      </div>
-    </div>
-  </div>
-</footer>
+.motion-headline {
+  overflow: visible !important;
+  line-height: 1.08 !important;
+  padding-top: .07em;
+  padding-bottom: .13em;
+  margin-top: -.07em;
+  margin-bottom: -.13em;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
 
-<script>
-  document.querySelectorAll('.nav-item').forEach(function(item) {
-    var timer;
-    item.addEventListener('mouseenter', function() { clearTimeout(timer); item.classList.add('is-open'); });
-    item.addEventListener('mouseleave', function() { timer = setTimeout(function() { item.classList.remove('is-open'); }, 200); });
-  });
-</script>
-<script>
-/* Auth buttons redirect to the portal login (the auth modal on index/about/
-   pricing/support ends here too). Fixes dead Log in / Get started free
-   buttons on pages without the modal. */
-function openAuth(){location.href='https://app.get-kind.com/login'}
-</script>
-</body>
-</html>
+@media (max-width: 720px) {
+  .motion-headline {
+    line-height: 1.10 !important;
+  }
+}
+</style>
+<style id="mv-brand-translation">
+:root{--mv-pink:#FC2289;--mv-magenta:#D827BD;--mv-violet:#5931FC;--mv-plum:#21103F;--mv-soft:#F3ECFF;--mv-paper:#FAF8FF}
+::selection{background:#F3ECFF;color:#21103F}
+.logo-img,.logo img{object-fit:contain!important;object-position:left center!important}
+.motion-headline,.motion-statement{color:#21103F;background-image:linear-gradient(100deg,#21103F 0%,#21103F 16%,#FC2289 27%,#D827BD 39%,#5931FC 51%,#21103F 64%,#21103F 100%)!important;background-size:220% 100%!important;-webkit-background-clip:text!important;background-clip:text!important;-webkit-text-fill-color:transparent!important;animation:mvHeadlineFlow 11s ease-in-out infinite!important}
+@keyframes mvHeadlineFlow{0%,10%{background-position:0% 50%}42%{background-position:55% 50%}78%{background-position:100% 50%}100%{background-position:0% 50%}}
+@media(prefers-reduced-motion:reduce){.motion-headline,.motion-statement{animation:none!important;background:none!important;-webkit-text-fill-color:#21103F!important;color:#21103F!important}}
+.preview-label{display:inline-flex;align-items:center;gap:6px;font-size:9px;font-weight:900;letter-spacing:.11em;text-transform:uppercase;color:#746B82;border:1px solid #E5E0EC;border-radius:999px;padding:5px 8px;background:#fff}
+</style>
+<link href="mv-favicon-32.png" rel="icon" type="image/png"/>
+<link href="mv-icon-180.png" rel="apple-touch-icon"/>
+<meta content="Milla &amp; Vida — Trust &amp; Security" property="og:title"/>
+<meta content="Useful outbound without giving up control." property="og:description"/>
+<meta content="mv-social-share.png" property="og:image"/>
+<meta content="website" property="og:type"/>
+<meta content="summary_large_image" name="twitter:card"/>
+</head><body><header class="site-header"><div class="wrap">
+<a aria-label="Milla &amp; Vida home" class="logo" href="/"><img alt="Milla &amp; Vida" class="logo-img" src="logo-mv-v2.png"/></a>
+<nav class="nav"><a class="" href="for-founders.html">For Founders</a><a class="" href="for-enterprise.html">For Enterprise</a><a class="" href="pricing.html">Pricing</a><a class="" href="about.html">About Us</a></nav>
+<a class="header-login" href="https://app.get-kind.com/login">Client login</a><a class="header-cta" href="get-started.html">Get started</a>
+</div></header><main><section class="page-hero center"><div class="wrap"><div class="kicker-line">TRUST &amp; SECURITY</div><h1 class="motion-headline">Outbound should be useful without giving up control.</h1><p>Client approval before anything sends, suppression written the moment it arrives, purposeful data use, human judgement on real conversations, and no claim we cannot show you.</p></div></section><section class="section alt"><div class="wrap"><div class="cards3"><div class="card"><h3>Client control</h3><p>Nothing is sent until the programme has been prepared and you have approved it.</p></div><div class="card"><h3>Suppression by design</h3><p>An unsubscribe is written to the suppression list at the moment it arrives, not on a later sweep.</p></div><div class="card"><h3>Data is not a product</h3><p>We do not sell, rent or share personal information with any third party for commercial gain.</p></div></div></div></section><section class="section "><div class="wrap"><div class="eyebrow">WHERE YOUR DATA LIVES</div><h2>Hosting, stated plainly.</h2><p class="lede">Two regions, named. An EU client&rsquo;s first question is who touches the data, and a US compute tier is exactly what they are asking about — so we say it first.</p><div class="table-like"><div class="table-row"><b>Database</b><span>Supabase, eu-west-1 — Dublin, Ireland. Our database provider is SOC 2 Type II audited.</span></div><div class="table-row"><b>Application servers</b><span>Railway, US West — United States. Railway operates on SOC 2-audited infrastructure.</span></div><div class="table-row"><b>Backups</b><span>Daily automated database backups, retained for 7 days, held in the same region as the database (Dublin, Ireland).</span></div><div class="table-row"><b>Cross-border transfers</b><span>Where data crosses borders we apply appropriate safeguards. We do not claim paper we have not produced.</span></div><div class="table-row"><b>Certification</b><span>We are not ISO 27001 certified. It is a roadmap target, and we will say so until it is not.</span></div></div></div></section><section class="section alt"><div class="wrap"><div class="eyebrow">SUPPRESSION &amp; OPT-OUT</div><h2>An opt-out is a write, not a queue.</h2><p class="lede">Every programme email carries a working unsubscribe. Clicking it, or replying to ask, does the same thing.</p><div class="table-like"><div class="table-row"><b>Written on receipt</b><span>The unsubscribe link and a reply asking for removal run the identical code path. The blocklist entry is written on the request, not on a nightly job.</span></div><div class="table-row"><b>Checked before send</b><span>Suppression is checked inside the execution flow, before a message goes out — not as a configuration step somebody has to remember.</span></div><div class="table-row"><b>Permanently retained</b><span>Opt-out records are kept permanently. That is the one category we never delete, because deleting it would lose the instruction.</span></div><div class="table-row"><b>No re-activation</b><span>A suppressed contact is not returned to a programme.</span></div><div class="table-row"><b>Removal by email</b><span>Anyone can ask directly: privacy@get-kind.com with &ldquo;Unsubscribe&rdquo; in the subject.</span></div></div></div></section><section class="section "><div class="wrap"><div class="eyebrow">HOW WE CONTACT PEOPLE</div><h2>Legitimate interest, and we say which.</h2><p class="lede">Outbound B2B email under GDPR Article 6(1)(f) operates on a legitimate interest basis. That is the basis we use, and it is not the same thing as consent — so we do not describe it as consent.</p><div class="table-like"><div class="table-row"><b>GDPR (EU and UK)</b><span>Legitimate interest under Article 6(1)(f). An opt-out is treated as a withdrawal and actioned immediately.</span></div><div class="table-row"><b>POPIA (South Africa)</b><span>The outreach sequence model constitutes a legitimate interest basis for initial contact. Opt-outs are honoured immediately and permanently.</span></div><div class="table-row"><b>CAN-SPAM (United States)</b><span>Every email carries accurate sender identification, a valid physical postal address and a working unsubscribe that is honoured on receipt.</span></div><div class="table-row"><b>CCPA / CPRA (California)</b><span>Right to know, right to delete and right to opt out are honoured. We do not sell personal information, so the opt-out of sale is always active.</span></div><div class="table-row"><b>Email-only</b><span>We do not make phone or voice outreach at all.</span></div></div></div></section><section class="section alt"><div class="wrap"><div class="eyebrow">YOUR RIGHTS</div><h2>Asking us to stop, or to hand it over.</h2><p class="lede">One address handles all of it — privacy@get-kind.com. We aim to respond within 5 business days and resolve within 30 days.</p><div class="table-like"><div class="table-row"><b>Access</b><span>Request a copy of the personal data we hold about you.</span></div><div class="table-row"><b>Erasure</b><span>Request deletion. We action deletion within 30 days.</span></div><div class="table-row"><b>Rectification</b><span>Correct anything inaccurate.</span></div><div class="table-row"><b>Portability</b><span>Receive your data in a machine-readable format.</span></div><div class="table-row"><b>Objection</b><span>Object to processing carried out on a legitimate-interest basis.</span></div><div class="table-row"><b>Complaint</b><span>The ICO at ico.org.uk/make-a-complaint, or the Information Regulator at inforegulator.org.za.</span></div></div></div></section><section class="section "><div class="wrap"><div class="eyebrow">TECHNICAL SECURITY</div><h2>Hardened at each layer.</h2><div class="table-like"><div class="table-row"><b>Encryption</b><span>TLS 1.3 in transit. AES-256 at rest. API keys encrypted at rest and never logged. Email credentials vault-stored and not accessible to staff.</span></div><div class="table-row"><b>Access control</b><span>Role-based access on all accounts. MFA enforced for admin access. Staff access to customer data is audit-logged. Zero standing access to production.</span></div><div class="table-row"><b>Code and dependencies</b><span>Private repository, branch-protected, no direct pushes to production. Dependency vulnerability scanning enabled.</span></div><div class="table-row"><b>Incident response</b><span>A documented plan: contain within 0–2 hours, assess within 24, notify within 72 hours where required, then recover and review within 7 days. Every incident is logged with root cause and remediation.</span></div><div class="table-row"><b>Security contact</b><span>hello@get-kind.com</span></div></div></div></section><section class="section alt"><div class="wrap"><div class="eyebrow">EMAIL INFRASTRUCTURE</div><h2>Deliverability is a trust problem too.</h2><p class="lede">Landing in the inbox rather than the spam folder is not a growth trick — it is what stops a programme becoming a nuisance.</p><div class="table-like"><div class="table-row"><b>Dedicated sending domain</b><span>send.get-kind.com. Not a shared IP pool, so we do not inherit another sender&rsquo;s reputation problems.</span></div><div class="table-row"><b>Authentication</b><span>SPF published and validated, DKIM signing on all outbound mail, DMARC policy set to quarantine or reject.</span></div><div class="table-row"><b>Domain warming</b><span>New sending domains are warmed gradually with volume caps enforced through the warm-up period.</span></div><div class="table-row"><b>List hygiene</b><span>Vida validates contact data before sending. Addresses are verified before sending. Hard bounces are removed automatically and catch-all domains are flagged.</span></div><div class="table-row"><b>No open tracking</b><span>We removed the open-tracking pixel from sequence email on 20 August 2026. We do not record whether you opened a message.</span></div></div></div></section><section class="section dark"><div class="wrap"><div class="eyebrow">COMMITMENTS</div><h2>What we don&rsquo;t do.</h2><div class="table-like"><div class="table-row"><b>No scraped lists</b><span>We do not purchase, scrape or accept contact lists from third-party brokers.</span></div><div class="table-row"><b>No re-use of opt-outs</b><span>A suppressed contact is not re-activated under a new programme or a new sender identity.</span></div><div class="table-row"><b>No data sold — ever</b><span>Your programme data, contact records and conversation history are yours. We do not sell, rent or share them.</span></div><div class="table-row"><b>No indefinite retention</b><span>Records are removed when a client closes their account, or on request. Deletion is actioned within 30 days.</span></div><div class="table-row"><b>No hidden sub-processors</b><span>The full list is published in our Privacy Policy and our Data Processing Agreement. We do not add one without notifying affected clients.</span></div><div class="table-row"><b>No cold calls — ever</b><span>Milla &amp; Vida is email-only outreach.</span></div><div class="table-row"><b>No claim we cannot show</b><span>No invented traction, no fake statistics, and no certification we do not hold.</span></div></div></div></section><section class="section "><div class="wrap"><div class="eyebrow">DESIGN BOUNDARIES</div><h2>What M&amp;V should and should not do.</h2><div class="table-like"><div class="table-row"><b>Prepare the programme context</b><span>Yes — make the outcome, audience and programme visible before go-live.</span></div><div class="table-row"><b>Check suppression before send</b><span>Yes — suppression and opt-out controls belong inside the execution flow.</span></div><div class="table-row"><b>Guarantee a sales outcome</b><span>No — meeting targets are targets, not guarantees of meetings, revenue or closed business.</span></div><div class="table-row"><b>Expose unrestricted client data</b><span>No — client information is used only for the service and access stays controlled.</span></div><div class="table-row"><b>Escalate judgement to a human</b><span>Yes — a reply that needs judgement is answered by a person, not forced through automation.</span></div></div></div></section><section class="section dark"><div class="wrap"><div class="motion-statement big-statement">No mystery automation. The useful workflow is the one that shows what was approved, what is running, what has changed and when a human should take over.</div></div></section><section class="section"><div class="wrap"><div class="eyebrow">THE PAPER</div><h2>Everything above is written down.</h2><p class="lede">The Privacy Policy carries the full sub-processor list with locations. The Terms carry the programme, the payment timing and the liability position. A Data Processing Agreement is available for every client.</p><div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:24px"><a class="pill" href="privacy.html">Read the Privacy Policy</a><a class="outline" href="terms.html">Read the Terms</a><a class="outline" href="contact.html">Request the DPA</a></div></div></section></main><div class="footer-strip" style="height:5px;background:linear-gradient(90deg,#FFD4B2 0%,#F9C8FF 34%,#C4B5FD 68%,#7C3AED 100%)"></div><footer class="site-footer"><div class="wrap">
+<div class="footer-top">
+<div><div class="footer-brand">Milla &amp; Vida</div><div class="footer-copy">Milla and Vida book your meetings. You choose the outcome, Milla prepares the whole programme, and you approve it once before anything is sent. Free Proof before you pay. No subscription.</div></div>
+<div><h4>Milla</h4><a href="/">Meet Milla</a><a href="for-founders.html">For Founders</a><a href="pricing.html">Pricing</a><a href="get-started.html">Get started</a></div>
+<div><h4>Vida</h4><a href="vida.html">Meet Vida</a><a href="for-enterprise.html">For Enterprise</a><a href="for-enterprise.html#how-matching-works">How it works</a></div>
+<div><h4>Company</h4><a href="mailto:hello@get-kind.com">hello@get-kind.com</a><a href="https://app.get-kind.com/login">Client login</a><a href="about.html">About Us</a><a href="trust.html">Trust &amp; Security</a><a href="contact.html">Contact</a><a href="faqs.html">FAQs</a></div>
+<div><h4>Legal</h4><a href="terms.html">Terms</a><a href="privacy.html">Privacy</a><a href="cookies.html">Cookies</a><a href="privacy.html#dpa">POPIA &amp; GDPR</a></div>
+</div>
+<div class="footer-legal"><span>&copy; 2026 K.I.N.D. All rights reserved.</span><span>Milla &amp; Vida design preview.</span></div>
+</div></footer><script>document.querySelectorAll('.faq-q').forEach(btn=>btn.addEventListener('click',()=>btn.closest('.faq-item').classList.toggle('open')));</script></body></html>

@@ -1,494 +1,592 @@
+<!doctype html>
 <!DOCTYPE html>
-<html lang="en">
-<head>
-  <!-- HC-6 (20 Aug 2026) — GOOGLE ANALYTICS REMOVED, FOUNDER-RULED.
-       GA4 (G-0BCMTW9HSK) loaded here on all 29 pages, unconditionally, with no consent
-       banner anywhere on the site — while privacy.html section 9 stated in writing:
-       "We do not use Google Analytics, Facebook Pixel, or any advertising cookies."
-       A page that denies, in text, what it is doing while you read it is worse than a gap:
-       it undermines every other claim in the same document. Removing the script was the
-       cheaper of the two fixes and the only one that makes that sentence true.
-       Do not re-add a tracker here without a consent gate AND a matching privacy.html edit. -->
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>About Milla &amp; Vida &mdash; why we built it</title>
-  <meta name="description" content="Why Milla and Vida exist. Built by a sales rep who spent half his week hunting for people to sell to instead of selling. You say what you want to achieve; the meetings arrive." />
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    :root {
-      --blue: #7c3aed;
-      --dark: #0a0a0a;
-      --mid: #444;
-      --light: #f5f5f7;
-      --border: rgba(0,0,0,0.08);
-    }
-    html { scroll-behavior: smooth; }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; background: #fff; color: var(--dark); line-height: 1.6; overflow-x: hidden; }
 
-    /* ── NAV ── */
-    nav {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 0 48px; height: 64px;
-      border-bottom: 1px solid var(--border);
-      position: sticky; top: 0;
-      background: rgba(255,255,255,0.92); backdrop-filter: blur(16px); z-index: 200;
-    }
-    .logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
-    .logo-icon { width: 30px; height: 30px; background: var(--blue); border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 15px; }
-    .logo-text { font-weight: 800; font-size: 1rem; color: var(--dark); letter-spacing: -0.01em; }
-    .nav-links { display: flex; align-items: center; gap: 2px; }
-    .nav-link { color: rgba(0,0,0,0.5); font-size: 0.875rem; text-decoration: none; padding: 6px 14px; border-radius: 8px; transition: all .2s; display: flex; align-items: center; gap: 4px; }
-    .nav-link:hover { color: var(--dark); background: rgba(0,0,0,0.04); }
-    .nav-right { display: flex; align-items: center; gap: 10px; }
-    .btn-nav-ghost { color: rgba(0,0,0,0.6); font-size: 0.85rem; text-decoration: none; padding: 7px 16px; border-radius: 20px; border: 1px solid rgba(0,0,0,0.15); transition: all .2s; cursor: pointer; background: none; }
-    .btn-nav-ghost:hover { color: var(--dark); border-color: rgba(0,0,0,0.3); }
-    .btn-nav-primary { background: var(--dark); color: #fff; font-size: 0.85rem; font-weight: 600; text-decoration: none; padding: 8px 18px; border-radius: 20px; transition: opacity .2s; border: none; cursor: pointer; }
-    .btn-nav-primary:hover { opacity: 0.8; }
+<html lang="en"><head><meta charset="utf-8"/><meta content="width=device-width,initial-scale=1" name="viewport"/>
+<title>Milla &amp; Vida — About Us</title><meta content="Why we are building Milla &amp; Vida - give senior people their selling time back by letting AI carry the repetitive pipeline work and people carry the relationship." name="description"/><style>
+:root{
+  --ink:#21103F;
+  --muted:#74746e;
+  --line:#E9E6F0;
+  --paper:#FFFFFF;
+  --soft:#FAF8FF;
+  --warm:#F3ECFF;
+  --orange:#FC2289;
+  --green:#D827BD;
+  --blue:#5931FC;
+  --gold:#D827BD;
+  --pink:#FC2289;
+  --max:1160px;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0;
+  background:var(--paper);
+  color:var(--ink);
+  font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+}
+a{text-decoration:none;color:inherit}
+.wrap{width:min(calc(100% - 48px),var(--max));margin:0 auto}
 
-    /* ── NAV DROPDOWNS ── */
-    .nav-item { position: relative; }
-    .chevron { font-size: 0.55rem; opacity: 0.4; transition: transform .2s, opacity .2s; display: inline-block; margin-top: 1px; }
-    .nav-item.is-open > .nav-link .chevron { transform: rotate(180deg); opacity: 0.8; }
-    .nav-item.is-open > .nav-link { color: var(--dark); background: rgba(0,0,0,0.04); }
-    .nav-dropdown {
-      opacity: 0; visibility: hidden; pointer-events: none;
-      position: absolute; top: calc(100% + 8px); left: 50%; transform: translateX(-50%);
-      background: #fff; border: 1px solid rgba(0,0,0,0.1); border-radius: 16px;
-      padding: 8px; min-width: 240px; box-shadow: 0 16px 48px rgba(0,0,0,0.12);
-      z-index: 300; transition: opacity .15s, visibility .15s;
-    }
-    .nav-item.is-open .nav-dropdown { opacity: 1; visibility: visible; pointer-events: auto; }
-    .dd-link { display: flex; align-items: flex-start; gap: 12px; padding: 10px 12px; border-radius: 10px; text-decoration: none; transition: background .15s; }
-    .dd-link:hover { background: rgba(0,0,0,0.04); }
-    .dd-icon { font-size: 1.05rem; line-height: 1; margin-top: 2px; flex-shrink: 0; }
-    .dd-title { font-size: 0.83rem; font-weight: 600; color: rgba(0,0,0,0.8); display: block; }
-    .dd-sub { font-size: 0.72rem; color: rgba(0,0,0,0.38); display: block; margin-top: 2px; line-height: 1.4; }
-    .dd-link:hover .dd-title { color: var(--dark); }
-    .dd-divider { height: 1px; background: rgba(0,0,0,0.06); margin: 6px 4px; }
-    .dd-promo { background: var(--dark); border-radius: 12px; padding: 14px 16px; margin: 4px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-    .dd-promo-text { font-size: 0.75rem; color: rgba(255,255,255,0.55); line-height: 1.5; }
-    .dd-promo-text strong { color: #fff; display: block; }
-    .dd-promo-cta { font-size: 0.72rem; font-weight: 700; color: #fff; background: rgba(255,255,255,0.12); padding: 7px 13px; border-radius: 8px; text-decoration: none; white-space: nowrap; transition: background .2s; flex-shrink: 0; }
-    .dd-promo-cta:hover { background: rgba(255,255,255,0.22); }
+/* GLOBAL HEADER */
+.site-header{
+  height:76px;
+  border-bottom:1px solid var(--line);
+  background:rgba(255,255,255,.96);
+  position:sticky;
+  top:0;
+  z-index:50;
+  backdrop-filter:blur(10px);
+}
+.site-header .wrap{height:100%;display:flex;align-items:center;justify-content:space-between;gap:26px}
+.logo{display:inline-flex;align-items:center;gap:10px;font-family:Georgia,"Times New Roman",serif;font-size:21px;font-weight:700;letter-spacing:-.035em;white-space:nowrap}
+.logo-mark{width:34px;height:27px;display:inline-flex;flex:0 0 auto;color:var(--ink)}
+.logo-mark svg{width:100%;height:100%;display:block}
+.logo-wording{display:inline-block;white-space:nowrap}
+.nav{display:flex;gap:30px;font-size:12px;color:#777}
+.nav a.active{color:#21103F;font-weight:800}
+.header-login{font-size:13px;color:var(--ink);text-decoration:none;margin-right:18px;white-space:nowrap}
+@media(max-width:720px){.header-login{display:none}}.header-login:hover{text-decoration:underline}
+.header-cta{
+  display:inline-flex;align-items:center;justify-content:center;
+  min-height:40px;padding:0 18px;border-radius:999px;
+  background:#21103F;color:#fff;font-size:12px;font-weight:800;white-space:nowrap
+}
 
-    /* ── AUTH MODAL ── */
-    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(8px); z-index: 999; align-items: center; justify-content: center; }
-    .modal-overlay.open { display: flex; }
-    .modal { background: #fff; border-radius: 24px; padding: 40px; width: 100%; max-width: 420px; margin: 24px; box-shadow: 0 32px 80px rgba(0,0,0,0.2); position: relative; }
-    .modal-close { position: absolute; top: 16px; right: 16px; background: none; border: none; font-size: 1.2rem; cursor: pointer; color: rgba(0,0,0,0.3); line-height: 1; padding: 4px; }
-    .modal-close:hover { color: var(--dark); }
-    .modal h2 { font-size: 1.4rem; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 6px; color: var(--dark); }
-    .modal-sub { font-size: 0.85rem; color: rgba(0,0,0,0.4); margin-bottom: 28px; }
-    .modal-tabs { display: flex; gap: 4px; background: rgba(0,0,0,0.04); border-radius: 10px; padding: 3px; margin-bottom: 24px; }
-    .modal-tab { flex: 1; padding: 8px; border: none; background: none; border-radius: 8px; font-size: 0.85rem; font-weight: 600; cursor: pointer; color: rgba(0,0,0,0.4); transition: all .15s; }
-    .modal-tab.active { background: #fff; color: var(--dark); box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-    .form-group { margin-bottom: 16px; }
-    .form-group label { display: block; font-size: 0.8rem; font-weight: 600; color: rgba(0,0,0,0.5); margin-bottom: 6px; }
-    .form-group input { width: 100%; padding: 11px 14px; border: 1.5px solid rgba(0,0,0,0.12); border-radius: 10px; font-size: 0.9rem; outline: none; transition: border-color .15s; color: var(--dark); background: #fff; }
-    .form-group input:focus { border-color: var(--blue); }
-    .btn-form { width: 100%; padding: 13px; background: var(--dark); color: #fff; border: none; border-radius: 10px; font-size: 0.9rem; font-weight: 700; cursor: pointer; transition: opacity .2s; margin-top: 8px; }
-    .btn-form:hover { opacity: 0.85; }
-    .modal-msg { font-size: 0.82rem; text-align: center; margin-top: 14px; color: rgba(0,0,0,0.4); display: none; }
-    .modal-msg.err { color: #dc2626; display: block; }
-    .modal-msg.ok { color: #059669; display: block; }
-    .modal-forgot { font-size: 0.78rem; color: rgba(0,0,0,0.35); text-align: right; margin-top: -8px; margin-bottom: 16px; cursor: pointer; text-decoration: underline; }
-    .modal-footer { text-align: center; margin-top: 20px; font-size: 0.8rem; color: rgba(0,0,0,0.35); }
-    .modal-footer a { color: var(--blue); text-decoration: none; }
-
-    /* ── HERO ── */
-    .page-hero {
-      max-width: 760px; margin: 0 auto;
-      padding: 100px 24px 72px; text-align: center;
-      position: relative; overflow: hidden;
-    }
-    .hero-canvas-wrap {
-      position: absolute; inset: 0; pointer-events: none; z-index: 0;
-    }
-    .hero-canvas-wrap canvas { width: 100%; height: 100%; }
-    .page-hero-inner { position: relative; z-index: 1; }
-    .eyebrow { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: var(--blue); margin-bottom: 28px; }
-    .page-hero h1 {
-      font-size: clamp(2.8rem, 6vw, 5rem); font-weight: 900; letter-spacing: -0.04em;
-      line-height: 1; margin-bottom: 28px; color: var(--dark);
-    }
-    .page-hero p { font-size: 1.05rem; color: rgba(0,0,0,0.45); line-height: 1.75; max-width: 580px; margin: 0 auto; }
-
-    /* ── CONTENT ── */
-    .content { max-width: 800px; margin: 0 auto; padding: 0 24px 120px; }
-    .divider { height: 1px; background: var(--border); margin: 72px 0; }
-    .s-label { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.14em; color: var(--blue); margin-bottom: 20px; }
-
-    /* ── ACRONYM BLOCK ── */
-    .acronym { display: grid; grid-template-columns: 48px 1fr; gap: 0; margin: 56px 0; }
-    .ac-letter { font-size: 2.8rem; font-weight: 900; color: var(--blue); letter-spacing: -0.04em; line-height: 1.15; padding: 8px 0; }
-    .ac-text { padding: 8px 0 8px 20px; border-left: 1px solid rgba(124,58,237,0.25); }
-    .ac-text strong { font-size: 1rem; font-weight: 700; color: var(--dark); display: block; }
-    .ac-text span { font-size: 0.85rem; color: rgba(0,0,0,0.45); }
-
-    /* ── STORY ── */
-    .story h2 { font-size: clamp(1.6rem, 3vw, 2.4rem); font-weight: 900; letter-spacing: -0.03em; line-height: 1.15; margin-bottom: 28px; color: var(--dark); }
-    .story p { font-size: 0.95rem; color: rgba(0,0,0,0.55); line-height: 1.85; margin-bottom: 20px; }
-    .story p strong { color: var(--dark); font-weight: 600; }
-
-    /* ── VALUES GRID ── */
-    .values-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 48px; }
-    .value-card { background: var(--light); border: 1px solid var(--border); border-radius: 16px; padding: 28px 24px; }
-    .value-card .vi { font-size: 1.4rem; margin-bottom: 14px; }
-    .value-card h3 { font-size: 0.95rem; font-weight: 700; margin-bottom: 8px; color: var(--dark); }
-    .value-card p { font-size: 0.82rem; color: rgba(0,0,0,0.45); line-height: 1.65; }
-
-    /* ── COMPLIANCE ── */
-    .compliance { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 20px; }
-    .c-badge { font-size: 0.78rem; color: rgba(0,0,0,0.55); background: var(--light); border: 1px solid var(--border); padding: 8px 16px; border-radius: 100px; }
-
-    /* ── CTA ── */
-    .cta-section { padding: 0 0 80px; }
-    .cta-banner {
-      background: var(--dark);
-      border-radius: 32px;
-      padding: 80px 64px;
-      text-align: center;
-      position: relative;
-      overflow: hidden;
-    }
-    .cta-banner::before {
-      content: '';
-      position: absolute; inset: 0;
-      background: radial-gradient(ellipse at 50% 0%, rgba(124,58,237,0.15) 0%, transparent 60%);
-      pointer-events: none;
-    }
-    .cta-banner h2 { font-size: clamp(1.8rem, 3vw, 2.6rem); font-weight: 900; letter-spacing: -0.03em; color: #fff; margin-bottom: 14px; position: relative; }
-    .cta-banner p { font-size: 0.95rem; color: rgba(255,255,255,0.42); margin-bottom: 32px; position: relative; }
-    .cta-row { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; position: relative; }
-    .btn-cta-primary { background: #fff; color: var(--dark); font-size: 0.95rem; font-weight: 700; text-decoration: none; padding: 13px 28px; border-radius: 100px; transition: opacity .2s; border: none; cursor: pointer; }
-    .btn-cta-primary:hover { opacity: 0.88; }
-    .btn-cta-ghost { color: rgba(255,255,255,0.7); font-size: 0.95rem; text-decoration: none; padding: 13px 28px; border-radius: 100px; border: 1px solid rgba(255,255,255,0.16); transition: all .2s; }
-    .btn-cta-ghost:hover { color: #fff; border-color: rgba(255,255,255,0.35); }
-
-    /* ── FOOTER ── */
-    footer { border-top: 1px solid var(--border); padding: 64px 48px 40px; }
-    .footer-inner { max-width: 1080px; margin: 0 auto; }
-    .footer-grid { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 1fr; gap: 48px; margin-bottom: 64px; }
-    .footer-brand p { font-size: 0.83rem; color: rgba(0,0,0,0.38); line-height: 1.7; margin-top: 14px; max-width: 260px; }
-    .footer-col h4 { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: rgba(0,0,0,0.3); margin-bottom: 16px; }
-    .footer-col a { display: block; font-size: 0.85rem; color: rgba(0,0,0,0.5); text-decoration: none; margin-bottom: 10px; transition: color .15s; }
-    .footer-col a:hover { color: var(--dark); }
-    .footer-bottom { display: flex; align-items: center; justify-content: space-between; padding-top: 32px; border-top: 1px solid var(--border); flex-wrap: wrap; gap: 12px; }
-    .footer-bottom p { font-size: 0.75rem; color: rgba(0,0,0,0.25); }
-    .footer-legal { display: flex; gap: 20px; }
-    .footer-legal a { font-size: 0.75rem; color: rgba(0,0,0,0.28); text-decoration: none; }
-    .footer-legal a:hover { color: var(--dark); }
-
-    /* ── SCROLL REVEAL ── */
-    .reveal {
-      opacity: 0;
-      transform: translateY(32px);
-      transition: opacity 0.7s cubic-bezier(0.22,1,0.36,1), transform 0.7s cubic-bezier(0.22,1,0.36,1);
-    }
-    .reveal.visible { opacity: 1; transform: none; }
-    .reveal-delay-1 { transition-delay: 0.1s; }
-    .reveal-delay-2 { transition-delay: 0.2s; }
-    .reveal-delay-3 { transition-delay: 0.3s; }
-
-    /* ── RESPONSIVE ── */
-    @media (max-width: 900px) {
-      nav { padding: 0 24px; }
-      .nav-links { display: none; }
-      .values-grid { grid-template-columns: 1fr; }
-      .footer-grid { grid-template-columns: 1fr 1fr; gap: 32px; }
-    }
-    @media (max-width: 600px) {
-      .cta-banner { padding: 44px 24px; }
-      .acronym { grid-template-columns: 40px 1fr; }
-      .footer-grid { grid-template-columns: 1fr; }
-    }
-
-    /* ============================================================
-       REBUILT SECTIONS — homepage design language (bands + tokens)
-       Alternating light / white / deep-violet bands, gradient eyebrows,
-       Outfit-900 display, gradient CTAs. (added in rebuild)
-       ============================================================ */
-    .k-band { padding: 96px 48px; position: relative; overflow: hidden; }
-    .k-inner { max-width: 1080px; margin: 0 auto; position: relative; z-index: 1; }
-    .k-inner.narrow { max-width: 820px; }
-    .k-light { background: linear-gradient(180deg,#F5F0FF 0%,#FBFAFF 100%); }
-    .k-white { background: #fff; }
-    .k-dark {
-      background-color:#0F0929;
-      background-image:
-        radial-gradient(60% 55% at 12% -8%, rgba(154,77,255,.22) 0%, transparent 60%),
-        radial-gradient(54% 50% at 104% 110%, rgba(54,197,240,.14) 0%, transparent 62%);
-      background-repeat:no-repeat; color:#fff;
-    }
-    .k-h1 { font-family:'Outfit',system-ui,sans-serif; font-size:clamp(2.6rem,6vw,5rem); font-weight:900; letter-spacing:-0.04em; line-height:1.02; margin-bottom:22px; color:var(--dark); }
-    .s-title { font-family:'Outfit',system-ui,sans-serif; font-size:clamp(1.8rem,4vw,2.6rem); font-weight:800; letter-spacing:-0.03em; line-height:1.1; margin-bottom:16px; color:var(--dark); }
-    .s-sub { font-size:0.98rem; color:rgba(0,0,0,0.5); max-width:600px; line-height:1.8; margin-bottom:0; }
-    .k-dark .s-title, .k-dark .k-h1 { color:#fff; }
-    .k-dark .s-sub { color:rgba(255,255,255,0.52); }
-    .k-lead { font-size:1.05rem; color:rgba(0,0,0,0.5); line-height:1.75; }
-    .k-prose { max-width:680px; }
-    .k-prose p { font-size:0.98rem; color:rgba(0,0,0,0.6); line-height:1.9; margin-bottom:20px; }
-    .k-prose p:last-child { margin-bottom:0; }
-    .k-prose strong { color:var(--dark); font-weight:600; }
-    .k-cards { display:grid; gap:16px; }
-    .k-cards.c3 { grid-template-columns:repeat(3,1fr); }
-    .k-cards.c2 { grid-template-columns:repeat(2,1fr); }
-    .k-card { background:#fff; border:1px solid var(--border); border-radius:20px; padding:30px 28px; }
-    .k-light .k-card { box-shadow:0 24px 55px -32px rgba(70,30,130,0.35); }
-    .k-card .k-ic { font-size:1.5rem; margin-bottom:14px; display:block; }
-    .k-card h3 { font-size:1rem; font-weight:700; color:var(--dark); margin-bottom:10px; }
-    .k-card p { font-size:0.87rem; color:rgba(0,0,0,0.55); line-height:1.7; }
-    .k-pill { display:inline-flex; align-items:center; gap:7px; font-size:0.8rem; font-weight:600; color:rgba(255,255,255,0.6); background:rgba(255,255,255,0.07); border:1px solid rgba(255,255,255,0.12); border-radius:100px; padding:7px 16px; }
-    @media(max-width:900px){ .k-cards.c3{ grid-template-columns:1fr 1fr; } }
-    @media(max-width:640px){ .k-band{ padding:60px 24px; } .k-cards.c3,.k-cards.c2{ grid-template-columns:1fr; } .k-dogfood{ grid-template-columns:1fr !important; } }
-
-  </style>
-  <!-- Shared M&amp;V design system (loaded last so it wins) -->
-  <link rel="stylesheet" href="kind.css" />
-</head>
-<body>
-
-<!-- AUTH MODAL -->
-<!-- auth modal removed (#482 audit) — managed service has no self-serve signup -->
-
-<!-- NAV -->
-<nav>
-  <a href="/" class="logo" aria-label="M&amp;V home">
-    <div class="logo-icon" style="height:34px;width:auto;background:none;border-radius:0;display:flex;align-items:center;flex-shrink:0;"><img src="logo-mv-v2.png" alt="M&amp;V" style="height:26px;width:auto;object-fit:contain;display:block;" /></div>
-  </a>
-  <div class="nav-links">
-    <a href="about.html" class="nav-link">About Us</a>
-    <a href="pricing.html" class="nav-link">Pricing</a>
-  </div>
-  <div class="nav-right">
-    <a href="https://app.get-kind.com/login" class="btn-nav-ghost">Client login</a>
-    <a href="demo.html" class="btn-nav-primary">Book a walkthrough</a>
-  </div>
-</nav>
-
-<!-- HERO -->
-<section class="k-band k-light" style="padding-top:104px;padding-bottom:84px;text-align:center">
-  <div class="k-inner narrow reveal">
-    <div class="s-label">About M&amp;V</div>
-    <h1 class="k-h1">We built the tool<br/>we wished we had.</h1>
-    <p class="k-lead" style="max-width:560px;margin:0 auto">Great salespeople spend half their week hunting for people to sell to. Not selling &mdash; hunting. We built <strong>Milla and Vida</strong> so that work is simply done: you say what you want to achieve, and the meetings arrive.</p>
-  </div>
-</section>
-
-<!-- STORY -->
-<section class="k-band k-white">
-  <div class="k-inner narrow reveal">
-    <div class="s-label">The story</div>
-    <h2 class="s-title">A sales rep who got<br/>tired of the noise.</h2>
-    <div class="k-prose" style="margin-top:28px">
-      <p>Before building M&amp;V, our founder was an Account Executive. The job description said &ldquo;close deals.&rdquo; The reality was spending more time building prospect lists than actually selling &mdash; scrubbing spreadsheets, cold-calling directories, chasing leads that had nothing to do with what the company actually sold.</p>
-      <p>The problem wasn&rsquo;t effort. <strong>The problem was signal.</strong> Pipeline quality was buried under volume. The whole model assumed that if you spray enough emails, something sticks. It does &mdash; but at a cost. Wasted hours. Burned relationships. Reps demoralised before they pick up the phone.</p>
-      <p>So the question became: <strong>what if the filtering happened before the outreach?</strong> What if every lead you spoke to was already a qualified fit &mdash; right industry, right title, right company size, right moment?</p>
-      <p>That question became a tool. The tool became M&amp;V.</p>
-      <p>We didn&rsquo;t build M&amp;V to replace salespeople. The conversation, the relationship, the close &mdash; that&rsquo;s irreplaceable. <strong>We built M&amp;V to give reps their time back</strong> &mdash; to do the one thing AI still can&rsquo;t: show up, listen, and earn trust.</p>
-    </div>
-  </div>
-</section>
-
-<!-- FOUNDER QUOTE -->
-<section class="k-band k-dark">
-  <div class="k-inner narrow reveal">
-    <div class="s-label">Founder</div>
-    <blockquote style="font-family:'Outfit',system-ui,sans-serif;font-size:clamp(1.3rem,2.6vw,1.9rem);font-weight:600;color:#fff;line-height:1.5;letter-spacing:-0.02em;margin:14px 0 32px;border:none;padding:0">&ldquo;I built M&amp;V because I was tired of spending half my week hunting leads instead of closing them. The best salespeople spend less than half their time actually selling &mdash; the rest is admin, prospecting and follow-up, work an AI can do faster and cheaper. Vida is the AI sales rep I wish I&rsquo;d had from day one. This is the teammate you deserve.&rdquo;</blockquote>
-    <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
-      <div style="width:44px;height:44px;border-radius:50%;background:var(--grad);flex-shrink:0"></div>
-      <div>
-        <div style="font-size:0.9rem;font-weight:700;color:#fff">The Founder</div>
-        <div style="font-size:0.8rem;color:rgba(255,255,255,0.45)">Founder &amp; CEO, M&amp;V</div>
-      </div>
-      <a href="mailto:hello@get-kind.com" style="margin-left:auto;font-size:0.8rem;color:rgba(255,255,255,0.6);text-decoration:none;border:1px solid rgba(255,255,255,0.18);border-radius:100px;padding:8px 18px;white-space:nowrap">Get in touch &rarr;</a>
-    </div>
-  </div>
-</section>
-
-<!-- THE FAMILY / TRADE NAME -->
-<section class="k-band k-white">
-  <div class="k-inner narrow reveal">
-    <div class="s-label">The family</div>
-    <h2 class="s-title">We trade as Milla &amp; Vida.</h2>
-    <div class="k-prose" style="margin-top:22px">
-      <p><strong>K.I.N.D</strong> is the registered company. <strong>Milla &amp; Vida</strong> is the name we trade under. <strong>Milla is where you approve; Vida is where it gets done.</strong> Three parts do the work:</p>
-    </div>
-    <div class="k-cards c2" style="margin-top:36px">
-      <div class="k-card"><span class="k-ic">&#x1F4E5;</span><h3>Milla &mdash; where you approve</h3><p>You tell her what you want to achieve. She prepares the whole programme and you approve it once, before anything is sent.</p></div>
-      <div class="k-card"><span class="k-ic">&#x1F9D1;&#x200D;&#x1F4BC;</span><h3>Vida &mdash; where it gets done</h3><p>The moment you approve, Vida builds the audience, prepares every message, sends, follows up, handles the replies and books the meeting. Our team drives her — you never touch it.</p></div>
-      <div class="k-card"><span class="k-ic">&#x1F9E0;</span><h3>Nexus &mdash; your private brain</h3><p>A private per-client brain that learns from your results only &mdash; never shared with another client. Every approval sharpens your outreach.</p></div>
-    </div>
-  </div>
-</section>
-
-<!-- DOGFOOD -->
-<section class="k-band k-light">
-  <div class="k-inner narrow reveal">
-    <div class="k-dogfood" style="display:grid;grid-template-columns:1fr 1fr;gap:32px;align-items:center">
-      <div>
-        <div class="s-label">We eat our own cooking</div>
-        <h2 class="s-title" style="margin-bottom:0">We found our first<br/>clients with Vida.</h2>
-      </div>
-      <div class="k-card" style="background:#fff;box-shadow:none">
-        <p style="font-size:0.95rem;color:rgba(0,0,0,0.6);line-height:1.8;margin-bottom:14px">Not &ldquo;we used our platform&rdquo; in theory. Vida ran outreach to our own ICP, scored the replies, followed up automatically, and booked the calls. <strong style="color:var(--dark)">The same engine you get from day one.</strong></p>
-        <p style="font-size:0.875rem;color:rgba(0,0,0,0.45);line-height:1.75;margin:0">Every campaign we run for you is built on the same stack we use every day to grow M&amp;V.</p>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- VALUES -->
-<section class="k-band k-white">
-  <div class="k-inner reveal">
-    <div class="s-label">Our values</div>
-    <h2 class="s-title">What we believe in.</h2>
-    <p class="s-sub">The principles behind every product decision we make.</p>
-    <div class="k-cards c2" style="margin-top:40px">
-      <div class="k-card"><span class="k-ic">&#x1F3AF;</span><h3>Quality over quantity</h3><p>One well-matched conversation is worth more than a hundred cold contacts. We optimise for fit, not volume &mdash; and you see the whole programme before any of it runs.</p></div>
-      <div class="k-card"><span class="k-ic">&#x1F91D;</span><h3>Humans close deals</h3><p>Milla and Vida handle the pipeline. People handle the relationship. Built to give a rep their time back, not to replace them.</p></div>
-      <div class="k-card"><span class="k-ic">&#x1F512;</span><h3>Privacy is non-negotiable</h3><p>GDPR, POPIA, and CAN-SPAM compliance is built into the product &mdash; not bolted on. We contact people on a legitimate-interest basis, and every message carries a one-click unsubscribe and our postal address. Opt-outs are respected globally and immediately.</p></div>
-      <div class="k-card"><span class="k-ic">&#x1F30D;</span><h3>Built global from day one</h3><p>We started where the gap was biggest and built to run anywhere &mdash; with the US and Africa as our first target markets, with Europe next.</p></div>
-    </div>
-  </div>
-</section>
-
-<!-- MISSION -->
-<section class="k-band k-dark" style="text-align:center">
-  <div class="k-inner narrow reveal">
-    <div class="s-label">Our mission</div>
-    <p style="font-family:'Outfit',system-ui,sans-serif;font-size:clamp(1.35rem,2.8vw,2rem);font-weight:700;color:#fff;line-height:1.4;letter-spacing:-0.02em;max-width:660px;margin:14px auto 28px">Give every ambitious business the outbound team it deserves &mdash; not just the ones who can afford a ten-person sales floor.</p>
-    <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
-      <span class="k-pill">Global</span>
-      <span class="k-pill">World-ready</span>
-      <span class="k-pill" style="color:rgba(52,211,153,0.9);background:rgba(16,185,129,0.1);border-color:rgba(16,185,129,0.25)">Privacy controls built in</span>
-    </div>
-  </div>
-</section>
-
-<!-- CTA -->
-<section class="k-band k-white">
-  <div class="k-inner reveal">
-    <div class="cta-banner">
-      <h2>Ready to see it in action?</h2>
-      <p>Book a walkthrough on your own market. Free Proof comes first &mdash; you see the work before you pay us anything.</p>
-      <div class="cta-row">
-        <a href="demo.html" class="btn-cta-primary">Book a walkthrough</a>
-        <a href="https://app.get-kind.com/login" class="btn-cta-ghost">Client login &rarr;</a>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- FOOTER -->
-<footer>
-  <div class="footer-strip" style="height:5px;background:linear-gradient(90deg,#FFD4B2 0%,#F9C8FF 34%,#C4B5FD 68%,#7C3AED 100%)"></div>
-  <div class="footer-inner">
-    <div class="footer-grid">
-      <div class="footer-brand">
-        <a href="/" class="logo">
-          <div class="logo-icon" style="height:34px;width:auto;background:none;border-radius:0;display:flex;align-items:center;flex-shrink:0;"><img src="logo-mv-v2.png" alt="M&amp;V" style="height:26px;width:auto;object-fit:contain;display:block;" /></div>
-          
-        </a>
-        <p>Milla and Vida book your meetings. You choose the outcome, Milla prepares the whole programme, and you approve it once before anything is sent. Free Proof before you pay. No subscription.</p>
-      </div>
-      <div class="footer-col">
-        <h4>Product</h4>
-        <a href="milla.html">Milla</a>
-        <a href="vida.html">Vida</a>
-        <a href="pricing.html">Pricing</a>
-      </div>
-      <div class="footer-col">
-        <h4>Explore</h4>
-        <a href="solutions.html">Solutions</a>
-        <a href="the-drop.html">The Drop</a>
-        <a href="pricing.html">Programme Calculator</a>
-        <a href="vs-hiring-an-sdr.html">vs. hiring an SDR</a>
-      </div>
-      <div class="footer-col">
-        <h4>Company</h4>
-        <a href="about.html">About</a>
-        <a href="trust.html">Trust &amp; Security</a>
-        <a href="help-centre.html">Help Centre</a>
-        <a href="status.html">System status</a>
-      </div>
-      <div class="footer-col">
-        <h4>Get in touch</h4>
-        <a href="mailto:hello@get-kind.com">hello@get-kind.com</a>
-        <a href="https://app.get-kind.com/login">Client login</a>
-        <a href="support.html">Support</a>
-        <!-- SOCIAL:START (scripts/add-social-footer.sh — R28) -->
-        <a href="https://www.linkedin.com/company/millaandvida" target="_blank" rel="noopener">LinkedIn</a>
-        <!-- SOCIAL:END -->
-      </div>
-    </div>
-    <div class="footer-bottom">
-      <p>&copy; 2026 K.I.N.D. All rights reserved.</p>
-      <div class="footer-legal">
-        <a href="terms.html">Terms of Service</a>
-        <a href="privacy.html">Privacy Policy</a>
-        <a href="dpa.html">POPIA &amp; GDPR</a>
-      </div>
-    </div>
-  </div>
-</footer>
-
-<script>
-  const PORTAL = 'https://app.get-kind.com'
-  const SUPABASE_URL = 'https://lwtadfdaoyvjmjhrfkgs.supabase.co'
-  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx3dGFkZmRhb3l2am1qaHJma2dzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYyMDUxNDksImV4cCI6MjA2MTc4MTE0OX0.U-3J1JxkFH8Kgg3xMzN3NJgCVSutXGXEITJHMmPCIPM'
-  let authMode = 'signup'
-  function openAuth(mode) { authMode = mode; switchTab(mode); document.getElementById('auth-modal').classList.add('open') }
-  function closeAuth() { document.getElementById('auth-modal').classList.remove('open') }
-  function switchTab(mode) {
-    authMode = mode
-    document.getElementById('tab-signup').classList.toggle('active', mode === 'signup')
-    document.getElementById('tab-login').classList.toggle('active', mode === 'login')
-    document.getElementById('auth-title').textContent = mode === 'signup' ? 'Welcome to M&amp;V' : 'Welcome back'
-    document.getElementById('auth-sub').textContent = mode === 'signup' ? 'Free Proof before you pay. You choose the outcome, Milla prepares the programme, and you approve it once before anything is sent.' : 'Log in to your dashboard.'
-    document.getElementById('auth-submit').textContent = mode === 'signup' ? 'Create account' : 'Log in'
-    document.getElementById('forgot-link').style.display = mode === 'login' ? 'block' : 'none'
-    document.getElementById('auth-msg').className = 'modal-msg'
+/* CANONICAL MOTION SYSTEM
+   Entire headline participates in the same moving colour notion.
+   No per-letter spans => no broken kerning or p r e p a r e d spacing. */
+.motion-headline,
+.motion-statement{
+  color:var(--ink);
+  background-image:
+    linear-gradient(
+      100deg,
+      var(--ink) 0%,
+      var(--ink) 16%,
+      var(--blue) 23%,
+      var(--ink) 30%,
+      var(--ink) 43%,
+      var(--orange) 52%,
+      var(--ink) 61%,
+      var(--ink) 73%,
+      var(--green) 82%,
+      var(--ink) 91%,
+      var(--ink) 100%
+    );
+  background-size:220% 100%;
+  background-position:0% 50%;
+  -webkit-background-clip:text;
+  background-clip:text;
+  -webkit-text-fill-color:transparent;
+  animation:hbHeadlineFlow 11s ease-in-out infinite;
+}
+@keyframes hbHeadlineFlow{
+  0%,10%{background-position:0% 50%}
+  42%{background-position:55% 50%}
+  78%{background-position:100% 50%}
+  100%{background-position:0% 50%}
+}
+@media(prefers-reduced-motion:reduce){
+  .motion-headline,.motion-statement{
+    animation:none;
+    background:none;
+    -webkit-text-fill-color:var(--ink);
+    color:var(--ink)
   }
-  var _authModal = document.getElementById('auth-modal'); if (_authModal) _authModal.addEventListener('click', function(e) { if (e.target === this) closeAuth() })
-  async function submitAuth(e) {
-    e.preventDefault()
-    const email = document.getElementById('auth-email').value
-    const password = document.getElementById('auth-password').value
-    const btn = document.getElementById('auth-submit'); const msg = document.getElementById('auth-msg')
-    btn.textContent = '...'; btn.disabled = true; msg.className = 'modal-msg'
-    if (authMode === 'signup') {
-      const res = await fetch(`${SUPABASE_URL}/auth/v1/signup`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_ANON_KEY }, body: JSON.stringify({ email, password, options: { emailRedirectTo: `${PORTAL}/auth/callback` } }) })
-      const data = await res.json()
-      if (data.error) { msg.className = 'modal-msg err'; msg.textContent = data.error.message; btn.textContent = 'Create account'; btn.disabled = false }
-      else { msg.className = 'modal-msg ok'; msg.textContent = 'Check your email to confirm ✓'; btn.textContent = 'Check your email ✓' }
-    } else { closeAuth(); window.location.href = PORTAL + '/login' }
+}
+
+/* BUTTONS */
+.btn,.pill,.outline{
+  display:inline-flex;align-items:center;justify-content:center;
+  min-height:42px;padding:0 18px;border-radius:999px;
+  font-size:12px;font-weight:800
+}
+.btn,.pill{background:#21103F;color:#fff;border:1px solid #21103F}
+.btn.secondary,.outline{background:transparent;color:#21103F;border:1px solid #DDD8E8}
+.hero-actions,.page-actions,.bridge-actions,.band-actions,.actions{display:flex;gap:11px;flex-wrap:wrap}
+
+/* HERO */
+.hero,.page-hero,.legal-head{
+  text-align:center;
+  padding:106px 0 76px;
+  background:var(--paper);
+  border:0;
+}
+.hero .wrap,.page-hero .wrap,.legal-head .wrap{max-width:970px}
+.hero-kicker,.kicker-line,.eyebrow{
+  font-size:10px;
+  color:#787783;
+  font-weight:800;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+  margin-bottom:16px;
+}
+.hero h1,.page-hero h1,.legal-head h1{
+  font-family:Georgia,"Times New Roman",serif;
+  font-weight:500;
+  font-size:clamp(46px,5vw,68px);
+  line-height:1.00;
+  letter-spacing:-.055em;
+  max-width:970px;
+  margin:0 auto;
+}
+.hero p,.page-hero p,.legal-head p{
+  max-width:690px;
+  margin:23px auto 0;
+  color:var(--muted);
+  font-size:16px;
+  line-height:1.62;
+}
+.hero-actions,.page-actions{justify-content:center;margin-top:26px}
+.micro,.legal-meta{font-size:10px;color:#8F8E98;margin-top:13px}
+
+/* PRODUCT */
+.product{padding:0 0 126px}
+.product-shell,.product-frame{
+  max-width:1030px;
+  margin:0 auto;
+  border:1px solid var(--line);
+  background:#fff;
+  padding:14px;
+  box-shadow:none;
+}
+.product-shell img,.product-frame img{display:block;width:100%;height:auto}
+.product-caption{
+  max-width:1030px;
+  margin:16px auto 0;
+  display:flex;justify-content:space-between;gap:20px;
+  color:#86858F;font-size:10px
+}
+.product-caption strong{color:#555550}
+
+/* SECTIONS */
+.section{padding:104px 0;border-top:1px solid var(--line)}
+.section.alt,.alt{background:var(--soft)}
+.section.warm,.warm{background:var(--warm)}
+.section.dark,.dark{background:#21103F;color:#fff}
+.section.dark p,.dark p,.section.dark .muted,.dark .muted{color:#b8b8b1}
+.section h2{
+  font-family:Georgia,"Times New Roman",serif;
+  font-size:42px;line-height:1.05;letter-spacing:-.04em;
+  font-weight:500;margin:0 0 14px
+}
+.lede{font-size:20px;line-height:1.55;color:#63626E;max-width:720px}
+.muted{color:var(--muted)}
+
+/* EDITORIAL / SPLIT */
+.split-hero,.twocol{display:grid;grid-template-columns:1fr 1fr;gap:64px;align-items:center}
+.editorial{display:grid;grid-template-columns:280px 1fr;gap:90px}
+.side h2{font-size:16px;margin:0;font-weight:800;font-family:inherit;letter-spacing:0}
+.copy{max-width:690px}
+.copy .lead{font-family:Georgia,"Times New Roman",serif;font-size:31px;line-height:1.25;letter-spacing:-.025em;color:#5C5A66;margin:0 0 30px}
+.copy p{font-size:14px;line-height:1.75;color:#6E6D78;margin:0 0 18px}
+
+/* LIGHT FEATURE SYSTEM */
+.cards3,.category-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:28px}
+.card,.category,.match-box{
+  background:transparent;border:0;border-top:1px solid var(--line);
+  border-radius:0;padding:22px 0;box-shadow:none
+}
+.card h3,.category h3,.match-box h3{font-size:13px;margin:0 0 7px}
+.card p,.category p,.match-box p{font-size:12px;line-height:1.7;color:#777;margin:0}
+.icon{
+  width:38px;height:38px;border:1px solid var(--line);background:#fff;
+  display:grid;place-items:center;border-radius:50%;margin-bottom:15px
+}
+.feature-list,.number-list,.table-like{border-top:1px solid var(--line)}
+.feature-row,.number-item,.table-row{
+  display:grid;grid-template-columns:180px 1fr;gap:32px;
+  padding:23px 0;border-bottom:1px solid var(--line);background:transparent
+}
+.feature-row h3,.number-item h3,.table-row h3{font-size:13px;margin:0}
+.feature-row p,.number-item p,.table-row p{font-size:13px;color:#74746e;line-height:1.7;margin:0}
+.check{width:28px;height:28px;border-radius:50%;background:#F3ECFF;display:grid;place-items:center}
+.match-flow,.metric-strip{display:grid;grid-template-columns:repeat(3,1fr);gap:28px}
+.metric{border-top:1px solid var(--line);padding:22px 0}
+.metric strong,.metric .number{font-family:Georgia,"Times New Roman",serif;font-size:38px;font-weight:500}
+
+/* STORY */
+.story{max-width:900px;margin:0 auto}
+.story-head{text-align:center;max-width:650px;margin:0 auto 66px}
+.story-head h2{font-family:Georgia,"Times New Roman",serif;font-size:42px;line-height:1.05;letter-spacing:-.04em;font-weight:500;margin:0}
+.story-head p{font-size:14px;color:#777;margin:14px auto 0;max-width:560px}
+.story-row{display:grid;grid-template-columns:1fr 1fr;gap:64px;align-items:center;padding:52px 0;border-top:1px solid var(--line)}
+.story-row:last-child{border-bottom:1px solid var(--line)}
+.story-num{font-size:10px;color:#999;margin-bottom:10px}
+.story-row h3{font-family:Georgia,"Times New Roman",serif;font-size:29px;line-height:1.08;letter-spacing:-.035em;font-weight:500;margin:0 0 12px}
+.story-row p{font-size:13px;color:#6E6D78;line-height:1.7;margin:0}
+.story-ui{padding:28px;background:#fff;border:1px solid var(--line);min-height:190px;display:flex;flex-direction:column;justify-content:center}
+.story-ui .prompt{font-size:13px;line-height:1.5;margin-bottom:14px}
+.story-ui .answer{font-size:11px;color:#777;line-height:1.6;border-top:1px solid var(--line);padding-top:14px}
+
+/* STATEMENT */
+.statement{padding:136px 0;border-top:1px solid var(--line)}
+.statement blockquote,.big-statement{
+  font-family:Georgia,"Times New Roman",serif;
+  font-size:clamp(38px,4vw,50px);
+  line-height:1.08;letter-spacing:-.045em;
+  max-width:930px;margin:0;font-weight:500
+}
+.statement p{font-size:12px;color:#777;line-height:1.7;max-width:470px;margin:26px 0 0 auto}
+.dark .big-statement{
+  background-image:
+    linear-gradient(100deg,#fff 0%,#fff 16%,#5931FC 24%,#fff 32%,#fff 45%,#FC2289 54%,#fff 63%,#fff 75%,#D827BD 84%,#fff 93%);
+  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+}
+
+/* PROOF + PRICING BAND */
+.proof-band{padding:96px 0;background:#21103F;color:#fff}
+.proof-inner{display:grid;grid-template-columns:1.3fr .7fr;gap:80px;align-items:end}
+.proof-inner h2{font-family:Georgia,"Times New Roman",serif;font-size:45px;line-height:1.03;letter-spacing:-.043em;font-weight:500;margin:0}
+.proof-inner p{font-size:13px;line-height:1.7;color:#B3B2BC;max-width:540px;margin:18px 0 0}
+.proof-side{border-top:1px solid #444;padding-top:18px}
+.proof-side .big{font-family:Georgia,"Times New Roman",serif;font-size:44px;letter-spacing:-.04em}
+.proof-side .small{font-size:11px;color:#A5A4AE;margin-top:5px}
+.proof-band .btn{background:#fff;color:#21103F}
+.price-section{padding:100px 0;border-top:1px solid var(--line)}
+.price-grid{display:grid;grid-template-columns:1.2fr .8fr;gap:80px;align-items:end}
+.price-grid h2{font-family:Georgia,"Times New Roman",serif;font-size:42px;line-height:1.05;letter-spacing:-.04em;font-weight:500;margin:0 0 14px}
+.price-grid p{font-size:13px;color:#777;line-height:1.7;max-width:520px}
+.price{font-family:Georgia,"Times New Roman",serif;font-size:65px;line-height:1;letter-spacing:-.05em;text-align:right}
+.price small{display:block;font-family:Inter,sans-serif;font-size:11px;color:#777;letter-spacing:0;margin-top:9px}
+
+/* BAND / BRIDGE / CALLOUT */
+.band,.bridge,.callout{
+  display:flex;justify-content:space-between;align-items:center;gap:34px;
+  padding:42px;background:#fff;border:1px solid var(--line)
+}
+.band h2,.bridge h3,.callout h2{font-family:Georgia,"Times New Roman",serif;font-size:32px;font-weight:500;letter-spacing:-.035em;margin:0}
+.band p,.bridge p,.callout p{font-size:12px;color:#777;line-height:1.65;margin:7px 0 0}
+
+/* FAQ */
+.faq-layout{display:grid;grid-template-columns:260px 1fr;gap:70px}
+.faq-box{border-top:1px solid var(--line)}
+.faq-item{border-bottom:1px solid var(--line)}
+.faq-q{
+  width:100%;background:transparent;border:0;padding:21px 0;
+  display:flex;justify-content:space-between;gap:20px;
+  text-align:left;font-weight:800;font-size:13px;cursor:pointer
+}
+.faq-a{display:none;padding:0 0 22px;color:#74746e;font-size:13px;line-height:1.7}
+.faq-item.open .faq-a{display:block}
+.plus{font-size:18px;font-weight:400;transition:transform .2s ease}
+.faq-item.open .plus{transform:rotate(45deg)}
+
+/* FORMS */
+.form{max-width:820px;margin:0 auto}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.field.full{grid-column:1/-1}
+.field label{display:block;font-size:10px;font-weight:800;margin-bottom:7px;color:#666}
+.field input,.field textarea,.field select,
+form input,form textarea,form select{
+  width:100%;border:1px solid #DDD8E8;background:#fff;border-radius:0;
+  padding:14px 15px;font:inherit;color:#21103F
+}
+textarea{min-height:130px;resize:vertical}
+
+/* LEGAL */
+.legal-head{border-bottom:1px solid var(--line)}
+.legal-copy{max-width:820px;margin:auto}
+.notice{background:#FAF8FF;border:1px solid var(--line);padding:16px 18px;font-size:11px;color:#6B6A76;margin-bottom:36px}
+.legal-copy h2{font-family:Georgia,"Times New Roman",serif;font-size:28px;font-weight:500;margin:38px 0 12px;letter-spacing:-.025em}
+.legal-copy h3{font-size:14px;margin:26px 0 8px}
+.legal-copy p,.legal-copy li{font-size:13px;line-height:1.75;color:#666}
+
+/* ABOUT */
+.film-section{padding:0 0 105px}
+.film{
+  aspect-ratio:16/8.5;
+  background:linear-gradient(135deg,#4A4756,#A9A3BC 42%,#6d7468 100%);
+  position:relative;overflow:hidden
+}
+.film:before{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.05),rgba(0,0,0,.35))}
+.film-copy{position:absolute;left:6%;bottom:8%;color:#fff;z-index:2;max-width:560px}
+.film-kicker{font-size:10px;letter-spacing:.12em;font-weight:800}
+.film-title{font-family:Georgia,"Times New Roman",serif;font-size:42px;line-height:1.02;letter-spacing:-.04em;margin-top:9px}
+.play{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:66px;height:66px;border-radius:50%;background:#21103F;color:#fff;display:grid;place-items:center;z-index:3}
+.film-note{position:absolute;right:3%;bottom:4%;color:#fff;font-size:10px;z-index:2}
+.about-split{display:grid;grid-template-columns:280px 1fr;gap:90px}
+.about-copy{max-width:700px}
+.about-copy .lead{font-family:Georgia,"Times New Roman",serif;font-size:30px;line-height:1.3;color:#61606B;margin:0 0 25px}
+.about-copy p{font-size:14px;color:#6E6D78;line-height:1.75}
+.principles{display:grid;grid-template-columns:1fr 1fr;gap:34px 50px}
+.principle{display:grid;grid-template-columns:44px 1fr;gap:14px;border-top:1px solid var(--line);padding-top:18px}
+.principle-num{font-family:Georgia,"Times New Roman",serif;font-size:24px;color:#888}
+.principle h3{font-size:13px;margin:2px 0 5px}
+.principle p{font-size:12px;color:#777;line-height:1.65;margin:0}
+
+/* PRICING PAGE */
+.pricing-page{padding:96px 0 110px}
+.pricing-intro{max-width:720px;margin-bottom:56px}
+.pricing-intro h1{font-family:Georgia,"Times New Roman",serif;font-size:58px;line-height:1.01;letter-spacing:-.05em;font-weight:500;margin:0 0 13px}
+.pricing-intro h2{font-family:Georgia,"Times New Roman",serif;font-size:36px;line-height:1.08;letter-spacing:-.04em;font-weight:500;margin:0 0 14px}
+.pricing-intro p{font-size:16px;color:#777;line-height:1.65}
+.pricing-top{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.pricing-choice{min-height:430px;display:flex;flex-direction:column;border:1px solid var(--line);background:#fff}
+.pricing-choice.buy{background:var(--soft)}
+.pricing-choice.includes{background:var(--warm)}
+.choice-main{padding:32px;flex:1;display:flex;flex-direction:column}
+.choice-main h2{font-family:Georgia,"Times New Roman",serif;font-size:30px;line-height:1.08;letter-spacing:-.035em;font-weight:500;margin:0}
+.choice-bottom{margin-top:auto;display:flex;align-items:end;justify-content:space-between;gap:15px}
+.choice-price{font-family:Georgia,"Times New Roman",serif;font-size:52px;line-height:1}
+.choice-price small{display:block;font-family:Inter,sans-serif;font-size:10px;text-transform:uppercase;letter-spacing:.09em;color:#666;margin-bottom:8px}
+.choice-price span{font-family:Inter,sans-serif;font-size:12px;color:#666;letter-spacing:0}
+.choice-foot{padding:24px 32px;border-top:1px solid rgba(0,0,0,.08)}
+.choice-foot b{font-size:12px;display:block;margin-bottom:3px}
+.choice-foot p{font-size:11px;color:#777;margin:0 0 13px;line-height:1.55}
+.plan-section{padding:100px 0 20px}
+.plan-head{max-width:690px;margin-bottom:34px}
+.plan-head h2{font-family:Georgia,"Times New Roman",serif;font-size:42px;font-weight:500;letter-spacing:-.04em;margin:0 0 10px}
+.plan-head p{font-size:14px;color:#777}
+.plan-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px}
+.plan{border-top:1px solid var(--line);padding:24px 0}
+.plan-label{font-size:10px;color:#888;text-transform:uppercase;letter-spacing:.08em}
+.plan h3{font-family:Georgia,"Times New Roman",serif;font-size:28px;font-weight:500;margin:7px 0 0}
+.plan-range{font-size:11px;color:#777;margin:5px 0 25px}
+.plan-price{font-family:Georgia,"Times New Roman",serif;font-size:36px;line-height:1}
+.plan-price small{font-family:Inter,sans-serif;font-size:10px;color:#777}
+.plan p{font-size:12px;color:#777;line-height:1.65}
+.preview-note{font-size:10px;color:#999;margin-top:18px}
+
+/* TRUST */
+.trust{padding:90px 0;border-top:1px solid var(--line)}
+.trust-title{font-family:Georgia,"Times New Roman",serif;font-size:38px;letter-spacing:-.04em;margin:0 0 38px;font-weight:500}
+.trust-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:42px}
+.trust-grid div{border-top:1px solid var(--line);padding-top:16px}
+.trust-grid h3{font-size:12px;margin:0 0 7px}
+.trust-grid p{font-size:11px;line-height:1.65;color:#777;margin:0}
+
+/* FINAL */
+.final{padding:82px 0;background:#21103F;color:#fff}
+.final .wrap{display:flex;align-items:center;justify-content:space-between;gap:30px}
+.final h2{font-family:Georgia,"Times New Roman",serif;font-size:40px;letter-spacing:-.04em;font-weight:500;margin:0}
+.final p{font-size:12px;color:#aaa;margin:7px 0 0}
+.final .btn{background:#fff;color:#21103F}
+
+/* FOOTER */
+.site-footer{padding:52px 0 28px;background:#FAF8FF;border-top:1px solid #E9E6F0}
+.footer-top{display:grid;grid-template-columns:1.6fr repeat(4,1fr);gap:36px;padding-bottom:42px}
+.footer-brand{font-family:Georgia,"Times New Roman",serif;font-size:22px;font-weight:700;margin-bottom:13px}
+.footer-copy{color:#72717C;font-size:11px;max-width:260px;line-height:1.6}
+.site-footer h4{font-size:10px;text-transform:uppercase;letter-spacing:.1em;margin:0 0 13px;color:#777}
+.site-footer a{display:block;font-size:11px;color:#61615c;margin-bottom:8px}
+.footer-legal{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;padding-top:20px;border-top:1px solid #E9E6F0;font-size:9px;color:#89888F}
+
+/* REVIEW INDEX ONLY */
+.review{padding:72px 0 100px}
+.review h1{font-family:Georgia,"Times New Roman",serif;font-size:52px;letter-spacing:-.05em;font-weight:500;margin:0 0 12px}
+.review p{color:#777;max-width:680px}
+.review-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:40px}
+.review-card{border:1px solid var(--line);background:#fff;padding:24px;min-height:150px;display:flex;flex-direction:column}
+.review-card .n{font-size:10px;color:#999;margin-bottom:12px}
+.review-card h2{font-family:Georgia,"Times New Roman",serif;font-size:24px;font-weight:500;margin:0 0 8px}
+.review-card p{font-size:11px;line-height:1.6;color:#777;margin:0 0 18px}
+.review-card a{font-size:11px;font-weight:800;margin-top:auto}
+
+@media(max-width:900px){
+  .editorial,.story-row,.proof-inner,.price-grid,.split-hero,.twocol,.about-split,.faq-layout{grid-template-columns:1fr;gap:36px}
+  .cards3,.category-grid,.match-flow,.metric-strip,.pricing-top,.plan-grid,.trust-grid,.review-grid{grid-template-columns:1fr}
+  .feature-row,.number-item,.table-row{grid-template-columns:1fr;gap:8px}
+  .price{text-align:left}
+  .principles{grid-template-columns:1fr}
+  .footer-top{grid-template-columns:1fr 1fr}
+}
+@media(max-width:720px){
+  .wrap{width:min(calc(100% - 30px),var(--max))}
+  .nav{display:none}
+  .hero,.page-hero,.legal-head{padding:76px 0 58px}
+  .hero h1,.page-hero h1,.legal-head h1{font-size:42px}
+  .section{padding:76px 0}
+  .section h2,.story-head h2,.plan-head h2{font-size:35px}
+  .statement{padding:96px 0}
+  .statement blockquote,.big-statement{font-size:37px}
+  .band,.bridge,.callout{padding:28px;align-items:flex-start;flex-direction:column}
+  .form-grid{grid-template-columns:1fr}
+  .field.full{grid-column:auto}
+  .choice-bottom{align-items:flex-start;flex-direction:column}
+  .final .wrap{align-items:flex-start;flex-direction:column}
+  .footer-top{grid-template-columns:1fr 1fr}
+}
+
+/* M&V logo treatment */
+.logo{display:inline-flex;align-items:center;height:64px;white-space:nowrap;gap:0!important;font-size:0!important;line-height:0!important}
+.logo .logo-img{display:block;width:154px;max-height:62px;object-fit:contain;object-position:left center}
+.logo-mark,.logo-wording{display:none!important}
+@media(max-width:640px){.logo .logo-img{width:136px;max-height:54px}}
+</style>
+<style id="hb-banner-cutoff-fix">
+/* Banner cut-off fix only. No content, navigation, animation timing, forms or page structure changed. */
+.hero,
+.page-hero,
+.legal-head,
+.pricing-intro {
+  overflow: visible !important;
+}
+
+.motion-headline {
+  overflow: visible !important;
+  line-height: 1.08 !important;
+  padding-top: .07em;
+  padding-bottom: .13em;
+  margin-top: -.07em;
+  margin-bottom: -.13em;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+
+@media (max-width: 720px) {
+  .motion-headline {
+    line-height: 1.10 !important;
   }
-  const canvas = document.getElementById('node-canvas')
-  if (canvas) {
-    const ctx = canvas.getContext('2d'); let nodes = [], W, H
-    function resize() { W = canvas.width = canvas.offsetWidth; H = canvas.height = canvas.offsetHeight }
-    function initNodes() { nodes = []; const count = Math.floor(W/60); for(let i=0;i<count;i++) nodes.push({x:Math.random()*W,y:Math.random()*H,vx:(Math.random()-.5)*.4,vy:(Math.random()-.5)*.4,r:Math.random()*2.5+1.5,pulse:Math.random()*Math.PI*2}) }
-    function draw() {
-      ctx.clearRect(0,0,W,H)
-      for(let i=0;i<nodes.length;i++) for(let j=i+1;j<nodes.length;j++){const dx=nodes[i].x-nodes[j].x,dy=nodes[i].y-nodes[j].y,dist=Math.sqrt(dx*dx+dy*dy);if(dist<160){ctx.beginPath();ctx.strokeStyle=`rgba(124,58,237,${0.06*(1-dist/160)})`;ctx.lineWidth=0.8;ctx.moveTo(nodes[i].x,nodes[i].y);ctx.lineTo(nodes[j].x,nodes[j].y);ctx.stroke()}}
-      nodes.forEach(n=>{n.pulse+=.02;const glow=(Math.sin(n.pulse)+1)/2;ctx.beginPath();ctx.arc(n.x,n.y,n.r+glow,0,Math.PI*2);ctx.fillStyle=`rgba(124,58,237,${.25+glow*.35})`;ctx.fill();n.x+=n.vx;n.y+=n.vy;if(n.x<0||n.x>W)n.vx*=-1;if(n.y<0||n.y>H)n.vy*=-1})
-      requestAnimationFrame(draw)
-    }
-    window.addEventListener('resize',()=>{resize();initNodes()});resize();initNodes();draw()
-  }
-  const ro = new IntersectionObserver(e=>e.forEach(x=>{if(x.isIntersecting){x.target.classList.add('visible');ro.unobserve(x.target)}}),{threshold:0.12})
-  document.querySelectorAll('.reveal').forEach(el=>ro.observe(el))
-  document.querySelectorAll('.nav-item').forEach(function(item){var timer;item.addEventListener('mouseenter',function(){clearTimeout(timer);item.classList.add('is-open')});item.addEventListener('mouseleave',function(){timer=setTimeout(function(){item.classList.remove('is-open')},200)})})
-</script>
-<script>
-(function(){
-  fetch('https://kindapi-production-e64c.up.railway.app/track/visit', {
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({page_url:location.href, referrer:document.referrer, user_agent:navigator.userAgent})
-  }).catch(function(){})
-})()
-</script>
-</body>
-</html>
+}
+</style>
+<style id="mv-brand-translation">
+:root{--mv-pink:#FC2289;--mv-magenta:#D827BD;--mv-violet:#5931FC;--mv-plum:#21103F;--mv-soft:#F3ECFF;--mv-paper:#FAF8FF}
+::selection{background:#F3ECFF;color:#21103F}
+.logo-img,.logo img{object-fit:contain!important;object-position:left center!important}
+.motion-headline,.motion-statement{color:#21103F;background-image:linear-gradient(100deg,#21103F 0%,#21103F 16%,#FC2289 27%,#D827BD 39%,#5931FC 51%,#21103F 64%,#21103F 100%)!important;background-size:220% 100%!important;-webkit-background-clip:text!important;background-clip:text!important;-webkit-text-fill-color:transparent!important;animation:mvHeadlineFlow 11s ease-in-out infinite!important}
+@keyframes mvHeadlineFlow{0%,10%{background-position:0% 50%}42%{background-position:55% 50%}78%{background-position:100% 50%}100%{background-position:0% 50%}}
+@media(prefers-reduced-motion:reduce){.motion-headline,.motion-statement{animation:none!important;background:none!important;-webkit-text-fill-color:#21103F!important;color:#21103F!important}}
+.preview-label{display:inline-flex;align-items:center;gap:6px;font-size:9px;font-weight:900;letter-spacing:.11em;text-transform:uppercase;color:#746B82;border:1px solid #E5E0EC;border-radius:999px;padding:5px 8px;background:#fff}
+</style>
+<style>
+/* ── WHY M&V EXISTS ───────────────────────────────────────────────────── */
+.why{padding:82px 0 88px;background:var(--soft);border-top:1px solid var(--line);
+border-bottom:1px solid var(--line)}
+.why-head{text-align:center;max-width:900px;margin:0 auto 52px}
+.why-head h2{font-family:Georgia,"Times New Roman",serif;font-weight:500;
+font-size:clamp(34px,4vw,52px);line-height:1.04;letter-spacing:-.045em;margin:10px 0 0}
+.why-head h2 .m{color:var(--pink)}
+.why-head h2 .v{color:var(--mv-violet)}
+.why-head p{max-width:720px;margin:20px auto 0;color:var(--muted);font-size:16px;line-height:1.62}
+.why-cols{display:grid;grid-template-columns:1fr 150px 1fr;gap:0;align-items:stretch}
+.why-col{text-align:center}
+.why-col h3{font-family:Georgia,"Times New Roman",serif;font-size:36px;font-weight:500;
+letter-spacing:-.04em;margin:0 0 6px}
+.why-col.milla h3{color:var(--pink)}
+.why-col.vida h3{color:var(--mv-violet)}
+.why-col .claim{font-size:15px;font-weight:700;color:var(--ink);margin:0 0 8px}
+.why-col .sub{font-size:13.5px;line-height:1.65;color:var(--muted);margin:0 auto 26px;max-width:340px}
+.why-shot{border:1px solid var(--line);background:#fff;overflow:hidden;aspect-ratio:4/3;display:flex;align-items:flex-start}
+.why-shot img{width:100%;height:100%;object-fit:contain;object-position:top center;display:block}
+.why-mid{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:0 10px}
+.why-mid p{font-family:Georgia,"Times New Roman",serif;font-size:18px;line-height:1.32;
+letter-spacing:-.02em;color:var(--ink);text-align:center;margin:0}
+.why-arrow{width:44px;height:44px;border:1px solid var(--line);border-radius:50%;
+background:#fff;display:flex;align-items:center;justify-content:center;color:var(--mv-violet);
+font-size:17px;flex:none}
+.why-steps{display:grid;grid-template-columns:1fr 150px 1fr;margin-top:46px}
+.why-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.why-step{text-align:center}
+.why-ico{width:44px;height:44px;margin:0 auto 10px;border-radius:50%;display:flex;
+align-items:center;justify-content:center}
+.why-step.m .why-ico{background:#FDE3F1;color:var(--pink)}
+.why-step.v .why-ico{background:#EDE7FF;color:var(--mv-violet)}
+.why-step span{font-size:12px;font-weight:600;color:var(--ink)}
+.why-divide{border-left:1px solid var(--line);margin:0 auto;width:1px;height:100%}
+.why-foot{text-align:center;margin:56px auto 0;max-width:900px}
+.why-foot .big{font-family:Georgia,"Times New Roman",serif;font-size:clamp(24px,2.8vw,34px);
+line-height:1.2;letter-spacing:-.035em;font-weight:500;color:var(--ink);margin:0}
+.why-foot .kiss{font-size:10px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;
+color:#89888F;margin:18px 0 0}
+@media(max-width:900px){
+ .why{padding:58px 0 62px}
+ .why-cols,.why-steps{grid-template-columns:1fr}
+ .why-mid{padding:30px 0;flex-direction:row;gap:14px}
+ .why-mid p{font-size:15px;text-align:left}
+ .why-arrow{transform:rotate(90deg)}
+ .why-steps{gap:26px;margin-top:30px}
+ .why-divide{display:none}
+ .why-col h3{font-size:30px}
+}
+
+</style>
+
+<link href="mv-favicon-32.png" rel="icon" type="image/png"/>
+<link href="mv-icon-180.png" rel="apple-touch-icon"/>
+<meta content="Milla &amp; Vida — About Us" property="og:title"/>
+<meta content="Give senior people their selling time back." property="og:description"/>
+<meta content="mv-social-share.png" property="og:image"/>
+<meta content="website" property="og:type"/>
+<meta content="summary_large_image" name="twitter:card"/>
+</head><body>
+<header class="site-header"><div class="wrap">
+<a aria-label="Milla &amp; Vida home" class="logo" href="/"><img alt="Milla &amp; Vida" class="logo-img" src="logo-mv-v2.png"/></a>
+<nav class="nav"><a class="" href="for-founders.html">For Founders</a><a class="" href="for-enterprise.html">For Enterprise</a><a class="" href="pricing.html">Pricing</a><a class="active" href="about.html">About Us</a></nav>
+<a class="header-login" href="https://app.get-kind.com/login">Client login</a><a class="header-cta" href="get-started.html">Get started</a>
+</div></header>
+<main>
+<section class="hero"><div class="wrap"><div class="hero-kicker">ABOUT MILLA &amp; VIDA</div><h1 class="motion-headline">Give senior people their selling time back.</h1><p>We built M&amp;V around one simple idea: AI should take on the repetitive pipeline work so people can spend more time in the conversations that require judgement, trust and a relationship.</p></div></section>
+<section class="why"><div class="wrap">
+<div class="why-head">
+<div class="eyebrow">ABOUT US</div>
+<h2>Why <span class="m">Milla</span> &amp; <span class="v">Vida</span> exists.</h2>
+<p>Senior people should be spending their time with customers, on product and closing business
+&mdash; not building lists, chasing replies and managing outbound.</p>
+</div>
+
+<div class="why-cols">
+<div class="why-col milla">
+<h3>Milla</h3>
+<p class="claim">You stay in control.</p>
+<p class="sub">Set the brief, review the targets, approve before anything runs.</p>
+<div class="why-shot"><img alt="Milla — the client control layer" loading="lazy" src="mv-milla-sm.webp"/></div>
+</div>
+
+<div class="why-mid">
+<p>One pipeline.<br/>Two parts.<br/>A simpler way to grow.</p>
+<div class="why-arrow">&rarr;</div>
+</div>
+
+<div class="why-col vida">
+<h3>Vida</h3>
+<p class="claim">We handle the work behind the scenes.</p>
+<p class="sub">We find the right people, send the emails, manage the replies and get meetings booked.</p>
+<div class="why-shot"><img alt="Vida — the internal operating system" loading="lazy" src="mv-vida-sm.webp"/></div>
+</div>
+</div>
+
+<div class="why-steps">
+<div class="why-row"><div class="why-step m"><div class="why-ico"><svg fill="none" height="19" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.7" viewBox="0 0 24 24" width="19"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg></div><span>Brief</span></div><div class="why-step m"><div class="why-ico"><svg fill="none" height="19" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.7" viewBox="0 0 24 24" width="19"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg></div><span>Qualify</span></div><div class="why-step m"><div class="why-ico"><svg fill="none" height="19" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.7" viewBox="0 0 24 24" width="19"><path d="M3 20h18"/><path d="M7 20v-7"/><path d="M12 20V6"/><path d="M17 20v-11"/></svg></div><span>Score</span></div><div class="why-step m"><div class="why-ico"><svg fill="none" height="19" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.7" viewBox="0 0 24 24" width="19"><path d="M20 6 9 17l-5-5"/></svg></div><span>Approve</span></div></div>
+<div><div class="why-divide"></div></div>
+<div class="why-row"><div class="why-step v"><div class="why-ico"><svg fill="none" height="19" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.7" viewBox="0 0 24 24" width="19"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg></div><span>Outreach</span></div><div class="why-step v"><div class="why-ico"><svg fill="none" height="19" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.7" viewBox="0 0 24 24" width="19"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div><span>Replies</span></div><div class="why-step v"><div class="why-ico"><svg fill="none" height="19" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.7" viewBox="0 0 24 24" width="19"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.9"/><path d="M16 3.1a4 4 0 0 1 0 7.8"/></svg></div><span>Progression</span></div><div class="why-step v"><div class="why-ico"><svg fill="none" height="19" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.7" viewBox="0 0 24 24" width="19"><rect height="18" rx="2" width="18" x="3" y="4"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></div><span>Meetings</span></div></div>
+</div>
+
+<div class="why-foot">
+<p class="big">We build your pipeline so your senior people don&rsquo;t have to.</p>
+<p class="kiss">KISS. Keep it simple. Make life easy, not hard.</p><p style="font-size:11px;line-height:1.7;color:#8F8E98;margin:22px auto 0;max-width:640px"><strong>Milla &amp; Vida</strong> is the name we trade under.</p><p><strong>K.I.N.D</strong> is the registered company.</p>
+</div>
+</div></section>
+<section class="section"><div class="wrap about-split"><div><div class="eyebrow">WHY WE’RE BUILDING THIS</div><h2 style="font-size:16px;font-family:inherit;letter-spacing:0">Why we’re building this</h2></div><div class="about-copy">
+<p class="lead">Prospecting creates a long tail of research, list work, writing, follow-up and inbox checking before a good sales conversation even begins.</p>
+<p>M&amp;V is being built to remove that operational load without removing client control. The work should be visible, simple to approve and easy to stop.</p>
+<p>Milla is the client-control layer: outcome, programme context, Free Proof and approval. Vida is the execution layer: audience, outreach, replies and meeting progression.</p>
+<p>When a conversation becomes genuinely valuable, the human seller should be the one who shows up, listens and earns the trust.</p>
+<p>That is the loop: choose the outcome → see the proof → approve once → run the programme → show up to the conversation.</p>
+</div></div></section>
+<section class="statement"><div class="wrap"><blockquote class="motion-statement">Build the thing you would actually want to use.</blockquote><p>Let AI handle the pipeline work. Let people handle the relationship. Keep the client in control and make the process simpler than doing it manually.</p></div></section>
+<section class="section alt"><div class="wrap"><div class="eyebrow">HOW WE WORK</div><h2>How we work</h2><p class="lede">KISS. Make life easy, not hard. The product should remove work instead of becoming another system to operate.</p>
+<div class="principles">
+<div class="principle"><div class="principle-num">01</div><div><h3>Start with proof</h3><p>Show useful work before asking the client to buy the programme.</p></div></div>
+<div class="principle"><div class="principle-num">02</div><div><h3>Keep it simple</h3><p>If a workflow needs explaining twice, the product should do more of the work.</p></div></div>
+<div class="principle"><div class="principle-num">03</div><div><h3>One clear approval</h3><p>Put the programme in front of the client once, before anything is sent.</p></div></div>
+<div class="principle"><div class="principle-num">04</div><div><h3>Humans close deals</h3><p>M&amp;V handles pipeline operations; people own relationships, judgement and the close.</p></div></div>
+<div class="principle"><div class="principle-num">05</div><div><h3>Protect trust</h3><p><strong>Privacy controls built in.</strong> Outreach runs on a legitimate-interest basis, never on a claim that every prospect consented, and every message carries a one-click unsubscribe and our postal address. Suppression, privacy controls and client authority belong inside the operating model.</p></div></div>
+<div class="principle"><div class="principle-num">06</div><div><h3>Earn claims with evidence</h3><p>No invented traction, fake statistics or vague promises. Show verified proof when it exists.</p></div></div>
+</div></div></section>
+<section class="final"><div class="wrap"><div><h2>Tell Milla what you want to achieve.</h2><p>See the client experience, then see the operating system behind it.</p></div><a class="btn" href="get-started.html">Get started →</a></div></section>
+</main>
+<div class="footer-strip" style="height:5px;background:linear-gradient(90deg,#FFD4B2 0%,#F9C8FF 34%,#C4B5FD 68%,#7C3AED 100%)"></div><footer class="site-footer"><div class="wrap">
+<div class="footer-top">
+<div><div class="footer-brand">Milla &amp; Vida</div><div class="footer-copy">Milla and Vida book your meetings. You choose the outcome, Milla prepares the whole programme, and you approve it once before anything is sent. Free Proof before you pay. No subscription.</div></div>
+<div><h4>Milla</h4><a href="/">Meet Milla</a><a href="for-founders.html">For Founders</a><a href="pricing.html">Pricing</a><a href="get-started.html">Get started</a></div>
+<div><h4>Vida</h4><a href="vida.html">Meet Vida</a><a href="for-enterprise.html">For Enterprise</a><a href="for-enterprise.html#how-matching-works">How it works</a></div>
+<div><h4>Company</h4><a href="mailto:hello@get-kind.com">hello@get-kind.com</a><a href="https://app.get-kind.com/login">Client login</a><a href="about.html">About Us</a><a href="trust.html">Trust &amp; Security</a><a href="contact.html">Contact</a><a href="faqs.html">FAQs</a></div>
+<div><h4>Legal</h4><a href="terms.html">Terms</a><a href="privacy.html">Privacy</a><a href="cookies.html">Cookies</a><a href="privacy.html#dpa">POPIA &amp; GDPR</a></div>
+</div>
+<div class="footer-legal"><span>&copy; 2026 K.I.N.D. All rights reserved.</span><span>Milla &amp; Vida design preview.</span></div>
+</div></footer>
+</body></html>

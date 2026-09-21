@@ -44,9 +44,12 @@ const LEGAL = ['terms.html', 'privacy.html', 'dpa.html', 'dpa-us.html', 'trust.h
 /** Retired page, still on disk under the 26-Jul "nothing gets deleted" lock, 301d at both doors. */
 const RETIRED = ['figsy.html']
 
+// ⛓️ 20 Sep — seventeen. The founder kept three of the legacy pages and had them rebuilt on
+// the new design (the two DPAs and the status page), so they are self-contained like the rest
+// of the new site and have no kind.css to lose.
 const NEW_SITE = ['index.html','milla.html','vida.html','for-founders.html','for-enterprise.html',
   'pricing.html','about.html','faqs.html','trust.html','contact.html','terms.html','privacy.html',
-  'cookies.html','get-started.html']
+  'cookies.html','get-started.html','status.html','dpa.html','dpa-us.html']
 
 const MARKETING = ALL.filter(f => !LEGAL.includes(f) && !RETIRED.includes(f))
 
@@ -97,9 +100,32 @@ describe('FIGSY is gone from every page that is still served', () => {
     expect(read('trust.html')).toContain('Vida validates contact data')
   })
 
-  it('privacy no longer points visitors at the retired page', () => {
-    expect(read('privacy.html')).not.toContain('Demo, FIGSY and Support pages')
-    expect(read('privacy.html')).toContain('Demo and Support pages')
+  // ⛓️ 20 Sep — THE SAME FAULT, A SECOND TIME, SO THE ASSERTION STOPS NAMING PAGES.
+  //
+  // This pinned the literal string "Demo and Support pages" — the fix applied on 16 Sep when
+  // privacy.html was still sending readers to the retired FIGSY page. Then Demo and Support
+  // were retired too, and the pin was holding a sentence that had become false in exactly the
+  // way the test exists to prevent: the policy told a reader the booker runs on two pages they
+  // can no longer reach. (It is moot either way now — Calendly loads on no live page at all,
+  // so the clause is gone rather than reworded.)
+  //
+  // Pinning one hand-typed sentence could only ever catch the version of the bug already
+  // fixed. So the rule is derived from the retirement map instead: privacy.html may not send a
+  // reader to ANY retired page, whichever pages those turn out to be next time.
+  it('privacy points no reader at a retired page — whichever pages are retired', () => {
+    const src = readFileSync(join(WEB, 'server.js'), 'utf8')
+    const block = src.slice(src.indexOf('const RETIRED = {'), src.indexOf('\n}', src.indexOf('const RETIRED = {')))
+    const retired = [...block.matchAll(/'\/([a-z0-9-]+)':/g)].map(m => m[1])
+    expect(retired.length, 'no retirements parsed — this guard is asserting nothing').toBeGreaterThan(0)
+
+    const privacy = read('privacy.html')
+    for (const slug of retired) {
+      expect(privacy, `privacy.html links to retired /${slug}`).not.toContain(`href="${slug}.html"`)
+      expect(privacy, `privacy.html links to retired /${slug}`).not.toContain(`href="/${slug}"`)
+    }
+    // The specific sentence that was wrong twice must not come back in either shape.
+    expect(privacy).not.toContain('Demo, FIGSY and Support pages')
+    expect(privacy).not.toContain('Demo and Support pages')
   })
 })
 

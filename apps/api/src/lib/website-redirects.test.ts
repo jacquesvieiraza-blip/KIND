@@ -35,7 +35,45 @@ const redirectPairs = [...redirects.matchAll(/^(\/[a-z0-9-]+)(?:\.html)?\s+(\/[a
 // agreeing. Asserting length 0 only ever encoded "nothing is retired TODAY"; the real defect
 // #560 found was a page retired at one door and reachable at the other, and that is what is
 // asserted below. The 1-Aug restore is still guarded, by name, in RESTORED_1_AUG.
-const RETIRED_NOW = [{ from: '/figsy', to: '/vida' }]
+// ⛓️ 20 Sep — THE OLD SITE IS RETIRED, AND THIS LIST IS NOW 18 LONG.
+//
+// The site was rebuilt on a new founder-locked design (14 pages). 21 pages survived the
+// rebuild still wearing the OLD chrome, and not one of them was linked from any new page.
+// The founder ruled: "Makes no sense to have two types of websites in one." Three were kept
+// and REBUILT on the new design (status, dpa, dpa-us) and are linked from every footer;
+// the other 18 are retired here.
+//
+// This reverses the 1-Aug restore for `/nexus` specifically (#603/#604). That is deliberate
+// and founder-ordered on 20 Sep — recorded here because this file has now asserted Nexus
+// present AND absent, and a future reader must be able to see which ruling is the latest.
+// RESTORED_1_AUG below is untouched: every one of those files is still on disk, because
+// retiring a page has never meant deleting it.
+const RETIRED_NOW = [
+  { from: '/the-drop', to: '/for-founders' },
+  { from: '/drop-01', to: '/for-founders' },
+  { from: '/drop-02', to: '/for-founders' },
+  { from: '/drop-03', to: '/pricing' },
+  { from: '/drop-04', to: '/for-founders' },
+  { from: '/drop-05', to: '/for-founders' },
+  { from: '/drop-06', to: '/for-founders' },
+  { from: '/drop-07', to: '/for-founders' },
+  { from: '/drop-08', to: '/trust' },
+  { from: '/drop-09', to: '/for-founders' },
+  { from: '/solutions', to: '/for-enterprise' },
+  { from: '/vs-hiring-an-sdr', to: '/pricing' },
+  { from: '/pipeline-calculator', to: '/pricing' },
+  { from: '/demo', to: '/get-started' },
+  { from: '/help-centre', to: '/faqs' },
+  { from: '/support', to: '/contact' },
+  { from: '/nexus', to: '/vida' },
+  { from: '/figsy', to: '/vida' },
+]
+
+// The pages still SERVED — every .html on disk that is not retired. "Live" is what matters
+// for the linking rule below: a retired page linking to another retired page is unreachable
+// and harmless, but a LIVE page linking to one sends a real visitor through a 301 for no
+// reason, which is the defect worth guarding.
+const RETIRED_FILES = new Set(RETIRED_NOW.map(r => r.from.slice(1) + '.html'))
 
 describe('retirements are the same at both front doors', () => {
   it('server.js retires exactly what we expect', () => {
@@ -49,14 +87,69 @@ describe('retirements are the same at both front doors', () => {
     expect(uniq).toEqual(RETIRED_NOW)
   })
 
-  it('no retired page is still linked from any page on the site', () => {
-    const pages = readdirSync(WEB).filter(f => f.endsWith('.html'))
+  // ⛓️ 20 Sep — ADDED AFTER A RED-PROOF DID NOT GO RED.
+  //
+  // Deleting the `/demo` line from `_redirects` and leaving `/demo.html` left the assertion
+  // above GREEN, because its regex treats `.html` as optional and both lines collapse to the
+  // same key. So "the sets agree" could be true while half of each retirement was missing —
+  // and `/demo` would have fallen through to the `/*` catch-all and served the homepage with
+  // a 200 instead of 301'ing to `/get-started`. A search result pointing at the clean URL
+  // would have quietly stopped working.
+  //
+  // The site answers on both forms (`extensions: ['html']`), so both must be listed. This is
+  // the assertion the earlier one only looked like it was making.
+  it('both the clean URL and the .html form are listed for every retirement', () => {
+    for (const { from, to } of RETIRED_NOW) {
+      const clean = new RegExp(`^${from}\\s+${to}\\s+301$`, 'm')
+      const dotHtml = new RegExp(`^${from}\\.html\\s+${to}\\s+301$`, 'm')
+      expect(redirects, `_redirects is missing the clean URL rule for ${from}`).toMatch(clean)
+      expect(redirects, `_redirects is missing the .html rule for ${from}`).toMatch(dotHtml)
+    }
+  })
+
+  // ⛓️ 20 Sep — SCOPED TO LIVE PAGES, AND THE NARROWING IS THE POINT, NOT A WEAKENING.
+  //
+  // This asserted that NO page on disk links to a retired page. With one retirement that was
+  // the same statement; with 18 it is not, because the retired pages link to EACH OTHER —
+  // every Drop episode links to the Drop index, and the old shared footer on all 18 carries
+  // Solutions, The Drop and Help Centre. Those links are unreachable by construction: you
+  // cannot land on drop-04 to click them, because /drop-04 is a 301.
+  //
+  // The defect worth guarding is a LIVE page pointing at a retired one — that sends a real
+  // visitor through a needless 301, and it is exactly how a retirement silently half-happens.
+  // So the rule is now: no live page may link to a retired page. Retired-to-retired is
+  // ignored, because the files stay on disk forever (nothing gets deleted, 26 Jul) and
+  // rewriting 18 dead pages' footers would be churn that protects nobody.
+  it('no LIVE page links to a retired page', () => {
+    const live = readdirSync(WEB).filter(f => f.endsWith('.html') && !RETIRED_FILES.has(f))
     for (const { from } of RETIRED_NOW) {
       const file = from.slice(1) + '.html'
-      for (const page of pages) {
-        if (page === file) continue
-        expect(readFileSync(join(WEB, page), 'utf8')).not.toContain(`href="${file}"`)
+      const clean = from.slice(1)
+      for (const page of live) {
+        const html = readFileSync(join(WEB, page), 'utf8')
+        expect(html, `${page} links to retired ${file}`).not.toContain(`href="${file}"`)
+        expect(html, `${page} links to retired ${from}`).not.toContain(`href="${from}"`)
+        expect(html, `${page} links to retired ${clean}`).not.toContain(`href="${clean}"`)
       }
+    }
+  })
+
+  it('every retired page is STILL ON DISK — retiring has never meant deleting', () => {
+    const onDisk = new Set(readdirSync(WEB).filter(f => f.endsWith('.html')))
+    for (const file of RETIRED_FILES) {
+      expect(onDisk.has(file), `${file} was DELETED — the 26-Jul lock says nothing gets deleted`).toBe(true)
+    }
+  })
+
+  // The three pages the founder kept out of the 21 and had rebuilt on the new design. They
+  // are the reason this retirement is not just a cull: each one is reachable from the footer
+  // of every live page, which is what stops the "nothing points to them" rot recurring.
+  it('the three KEPT pages are live, not retired, and reachable from the footer', () => {
+    for (const kept of ['status.html', 'dpa.html', 'dpa-us.html']) {
+      expect(RETIRED_FILES.has(kept), `${kept} must stay live`).toBe(false)
+      const live = readdirSync(WEB).filter(f => f.endsWith('.html') && !RETIRED_FILES.has(f))
+      const linkedFrom = live.filter(p => readFileSync(join(WEB, p), 'utf8').includes(`href="${kept}"`))
+      expect(linkedFrom.length, `${kept} is orphaned — nothing links to it`).toBeGreaterThan(0)
     }
   })
 
@@ -133,9 +226,13 @@ describe('nav and footer are byte-identical across the whole site', () => {
   //
   // ⚠️ THIS IS A MIGRATION STATE, NOT THE DESTINATION. When the legacy pages take the new
   // chrome, the two sets collapse back into one and this splits back into a single assertion.
+  // ⛓️ 20 Sep — seventeen, not fourteen. The founder kept three pages out of the legacy
+  // twenty-one and had them rebuilt on the new design: the two DPAs and the status page.
+  // They carry the new chrome, so they belong in the new set and are held to its identity.
   const NEW_SITE = ['index.html', 'milla.html', 'vida.html', 'for-founders.html',
     'for-enterprise.html', 'pricing.html', 'about.html', 'faqs.html', 'trust.html',
-    'contact.html', 'terms.html', 'privacy.html', 'cookies.html', 'get-started.html']
+    'contact.html', 'terms.html', 'privacy.html', 'cookies.html', 'get-started.html',
+    'status.html', 'dpa.html', 'dpa-us.html']
 
   it('every page carries the same nav and the same footer, within its own set', () => {
     for (const [label, set] of [

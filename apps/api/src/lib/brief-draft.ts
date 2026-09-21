@@ -368,7 +368,23 @@ export async function rememberCustomerTurn(
 export type ConfirmOutcome =
   | { ok: true; draft: BriefDraft }
   | {
-      ok: false; reason: 'no_draft' | 'promoted' | 'incomplete' | 'unstorable'
+      /**
+       * ⚑ 19 Sep — `store_unavailable` IS SPLIT OUT OF `unstorable`, AND THE SPLIT IS THE FIX.
+       *
+       * 🛑 THEY ARE NOT THE SAME FAILURE. `unstorable` now means only *"the row is right there
+       * and the stamp would not write"* — a genuine transient on a record we can see, where a
+       * retry can succeed and 503-retryable is the honest answer. `store_unavailable` means
+       * the draft store itself could not be READ: most often
+       * `20260911_onboarding_brief_drafts` was never applied. That one is permanent, identical
+       * for every client and every retry, and answering it 503-retryable told the client to
+       * try again forever — the same dead end the chat had, one click further along.
+       *
+       * ⚠️ AND THE PORTAL ALREADY EXPECTED THIS. `welcome/page.tsx` says it in as many words:
+       * *"A client whose draft predates this table, OR WHOSE DRAFT COULD NOT BE STORED, has
+       * nothing to confirm; promotion then behaves exactly as it did before drafts existed."*
+       * It was the SERVER sending a status the portal could not act on.
+       */
+      ok: false; reason: 'no_draft' | 'promoted' | 'incomplete' | 'unstorable' | 'store_unavailable'
       /** The canonical eleven only, as ids. */
       missing?: string[]
       /** ⚑ 16 Sep — BOTH CLASSES, sentence-ready. `missing` alone cannot name the account
@@ -407,7 +423,10 @@ export type ConfirmOutcome =
  */
 export async function confirmBriefDraft(userId: string): Promise<ConfirmOutcome> {
   const read = await readDraft(userId)
-  if (!read.ok) return { ok: false, reason: 'unstorable' }
+  // ⛓️ 19 Sep — WAS `reason: 'unstorable'`, which the route answered 503-retryable. If the
+  // draft store is not there, that refusal is identical on every retry and for every client:
+  // the journey simply ends. It is now its own reason and degrades to the pre-draft path.
+  if (!read.ok) return { ok: false, reason: 'store_unavailable' }
   if (!read.draft) return { ok: false, reason: 'no_draft' }
 
   // Authority first, exactly as the write path asks it: reality, not the flag.

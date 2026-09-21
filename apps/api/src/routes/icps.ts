@@ -5093,19 +5093,17 @@ result or a number. "permitted" is false unless they explicitly said we may use 
     // sample alone. Worse, but never a reason to refuse the client's turn.
     let held: Record<string, unknown> = {}
     let heldReadable = true
-    // ── 🛑 ⚑ 16 Sep (S1-ONB-003) — THE WRITE-SIDE TWIN OF `heldReadable` ───────────────
+    // ── ⛓️ 19 Sep — THE WRITE-SIDE TWIN OF `heldReadable` IS GONE ──────────────────────
     //
-    // 🛑 NO DURABLE WRITE = NO NEW FACT AUTHORITY = NO READY ADVANCEMENT. An UNREADABLE
-    // record has withheld a completion since S1-RT-009; an UNWRITEABLE one did not, and the
-    // gap was reachable in one turn. `held` is correctly held back when the save fails — but
-    // the gate does not count `held`, it counts the RESOLUTION: the record UNIONED WITH THIS
-    // TURN'S REPLY. That union is right while the write lands, because the
-    // write stored exactly the same projection. When the write FAILS the reply half still
-    // carries the final fact, so the last missing item could satisfy the gate while reaching
-    // no database — `type: 'complete'`, `onboarding_state: 'ready'` and a plan to Confirm,
-    // built on a fact the record does not hold. The client's next act is CONFIRM, which
-    // PROMOTES the draft: they would approve a plan their Brief cannot honour.
-    let heldWritable = true
+    // ⛓️ ~~`let heldWritable = true`~~ STOOD HERE (16 Sep, S1-ONB-003/004) and carried a
+    // failed `saveBriefDraft` down to `mustNotConfirm`. It silenced fifty-two valid
+    // completions in production and not one client was protected by it, because none of them
+    // got past it. The founder reversed the rule on 19 Sep — the full account is at the write
+    // site below, and the register entry is PRODUCT-RULES AR24 (chained, not deleted).
+    //
+    // ⚠️ THE READ-SIDE TWIN BELOW IS UNTOUCHED AND STAYS. Not knowing what the client told us
+    // is a genuinely different thing from knowing and failing to keep a copy: the first must
+    // not present a plan assembled from one model sample, the second is our filing problem.
     if (req.userId) {
       try {
         const { briefDraftFor } = await import('../lib/brief-draft')
@@ -5201,41 +5199,90 @@ result or a number. "permitted" is false unless they explicitly said we may use 
       const toStore = { ...resolvedForDraft, ...(snapshot.success ? (snapshot.data ?? {}) : {}), ...ops }
       if (Object.keys(toStore).length > 0) {
         const { saveBriefDraft } = await import('../lib/brief-draft')
-        const saved = await saveBriefDraft(req.userId, toStore)
+        // ⚑ 19 Sep — WRAPPED, BECAUSE THE ONE PATH THAT THROWS MUST NOT BE THE ONE DEAD END
+        // LEFT. `saveBriefDraft` RETURNS its failures by contract, but an unexpected throw
+        // here would escape to the route's outer catch and answer 500 — the same stranding
+        // this build exists to end, wearing a different status code.
+        let saved: Awaited<ReturnType<typeof saveBriefDraft>>
+        try {
+          saved = await saveBriefDraft(req.userId, toStore)
+        } catch {
+          saved = { ok: false, reason: 'unstorable' }
+        }
         if (!saved.ok && saved.reason === 'unstorable') {
           console.warn('[icps/builder/chat] brief draft not stored (run 20260911_onboarding_brief_drafts)')
         }
-        // 🛑 ⚑ 16 Sep (S1-ONB-003) — THE WRITE OUTCOME IS ACTED ON, NOT ONLY LOGGED.
-        // Every `SaveOutcome` failure — `unstorable`, `unverifiable`, `promoted` — means the
-        // same thing to this turn: the record does not hold what we just resolved. A turn may
-        // still ANSWER on a failed write; it may not CONFIRM.
+        // ── 🛑 ⚑ 19 Sep — A FAILED BRIEF WRITE ALERTS US AND NEVER SILENCES MILLA ────────
         //
-        // ── 🛑 ⚑ 16 Sep (S1-ONB-004) — AND IT IS UNCONDITIONAL (founder-locked) ──────────
+        // ⛓️ WHAT STOOD HERE, AND IT IS THE MOST EXPENSIVE BLOCK THIS FILE HAS EVER CARRIED:
+        // ~~`if (!saved.ok) { heldWritable = false; … }`~~ — 16 Sep, S1-ONB-003/004,
+        // founder-locked as *"NO DURABLE WRITE = NO NEW FACT AUTHORITY = NO READY
+        // ADVANCEMENT"*, unconditional. Its reasoning was sound: a finished plan with a live
+        // "Confirm my brief" is one click from PROMOTION, and a promotion whose Brief was
+        // never written is a client whose targeting exists nowhere.
         //
-        // ⛓️ ~~`if (!saved.ok && Object.keys(held).length > 0)`~~ STOOD HERE and is gone. That
-        // exception spared the case where NO durable record had been read — either a genuinely
-        // new client or the draft store being unavailable altogether — because the gate had
-        // counted the model sample alone in that state since long before this build, by the
-        // best-effort degradation a few lines above. I scoped it there deliberately and
-        // reported it as the founder's to decide rather than deciding it myself.
+        // 🛑 WHAT IT ACTUALLY DID, MEASURED ON PRODUCTION, AND THE FOUNDER COUNTED FIFTY-TWO:
         //
-        // 🛑 THE FOUNDER RULED: FAIL CLOSED UNIVERSALLY. **NO DURABLE CANONICAL BRIEF = NO
-        // READY ADVANCEMENT.** The old degradation is SUPERSEDED, and the reason is that the
-        // two states are indistinguishable to the person on the screen: a client shown a
-        // finished plan and a live "Confirm my brief" is one click from PROMOTION, and a
-        // promotion whose Brief was never written is a client whose targeting exists nowhere.
-        // "We could not keep what you told us" is not a worse outcome than that — it is the
-        // only honest one.
+        //     [icps/builder/chat] unusable model reply —
+        //       {"stage":"reply","category":"INVALID_SHAPE","stop_reason":"tool_use",
+        //        "content_blocks":1,"input_key_count":5,"zod_paths":[]}
         //
-        // ⚠️ IT IS ADVANCEMENT THAT FAILS CLOSED, NOT THE CONVERSATION. This flag only ever
-        // reaches `mustNotConfirm`, which is gated on `declaredType === 'complete'`. A question
-        // turn still answers in Milla's own words through a wholly unavailable draft store.
+        // `zod_paths: []` means the reply VALIDATED — Milla understood the client perfectly
+        // and produced a well-formed complete Brief. The only code that can null a validated
+        // completion is `mustNotConfirm` below, reached because this flag went false. So a
+        // good answer was thrown away and the client was told *"Milla didn't catch that —
+        // just try again in a moment."* The retry re-posted the same conversation into the
+        // same refusal. **It could never succeed**, and each occurrence looked like a fresh
+        // transient hiccup because eight refusals share that one sentence.
+        //
+        // 🛑 AND NOT ONE OF THE THREE REFUSALS IS THE CLIENT'S DOING:
+        //   · `promoted`     — the draft is SEALED because the client is already real. Their
+        //                      targeting lives on `clients` + `icps`, a better home than this.
+        //   · `unstorable`   — the upsert errored; most often the migration is not applied.
+        //   · `unverifiable` — the row could not be read first, so the write fails closed.
+        //
+        // 🛑 THE FOUNDER REVERSED IT ON 19 Sep. On the proposal *"if the notebook write fails,
+        // we alert you and let the client carry on — the way it worked before"*: **"yes
+        // agreed."** Before 16 Sep a failed draft write was logged and the journey continued;
+        // every client this product has ever created was created that way, and the promotion
+        // path still stands aside cleanly when there is no draft (`auth.ts:252`, the override
+        // at `POST /icps`). That behaviour is RESTORED — with the one thing it never had.
+        //
+        // ⚠️ THE ALERT IS THE POINT, NOT DECORATION. The old best-effort degradation was
+        // SILENT, which is the property S1-ONB-004 was right to hate. A failed write is now a
+        // founder alert and a Vida `brief_write_failed` task, deduped per (reason, user) so
+        // fifty-two turns file ONE row.
+        //
+        // ⚠️ AND IT IS NEVER AWAITED INTO THE CLIENT'S TURN. `void` + `.catch` keeps our email
+        // vendor out of somebody's answer — an alert failing must never cost a conversation.
+        //
+        // ⚠️ WHAT IS NOT WEAKENED: `held` is still advanced ONLY on a successful save (below),
+        // so a failed write still grants NO fact authority — the gate simply no longer refuses
+        // on it. Nothing is fabricated, no write is reported as succeeding, and the UNREADABLE
+        // case (S1-RT-009) is byte-unchanged: not knowing what a client told us is a different
+        // thing from knowing and failing to keep a copy.
         if (!saved.ok) {
-          heldWritable = false
           console.error('[icps/builder/chat] durable brief not written —', JSON.stringify({
             stage: 'brief_write', reason: saved.reason,
-            consequence: 'no completion may be presented this turn',
+            consequence: 'the founder is alerted; the client is carried through',
           }))
+          const reason = saved.reason
+          void import('../lib/alerts')
+            .then(({ sendFounderAlert }) => sendFounderAlert(
+              'brief_write_failed',
+              'A client’s brief could not be saved',
+              [
+                `Reason: ${reason}.`,
+                'The client was NOT stopped — they carried on and may have completed onboarding.',
+                reason === 'promoted'
+                  ? 'This client is already promoted, so their targeting lives on their ICP and this draft is sealed by design.'
+                  : 'Check that 20260911_onboarding_brief_drafts is applied (Vida → Engine → Run).',
+                `User: ${req.userId}`,
+              ],
+              // One condition, one row. Without an explicit key every turn files its own task.
+              { dedupeKey: `brief_write_failed:${reason}:${req.userId}` },
+            ))
+            .catch(() => {})
         }
         // 🛑 `held` IS BROUGHT UP TO DATE WITHOUT READING THE ROW AGAIN — and it is computed
         // from the same two things the store merged, not from the store's reply. `saveBriefDraft`
@@ -5285,34 +5332,30 @@ result or a number. "permitted" is false unless they explicitly said we may use 
     // was unreachable. So a completion is demoted to the conversation exactly as a premature
     // one is: Milla's own sentence if she wrote one, and a plain retryable refusal if she did
     // not. No promotion, no invented replacement state, nothing marked finished.
-    // ── 🛑 ⚑ 16 Sep (S1-ONB-003) — AND NEITHER CAN A RECORD WE FAILED TO WRITE ─────────
+    // ── ⛓️ 19 Sep — THE UNWRITEABLE HALF OF THIS GATE IS GONE; THE UNREADABLE HALF STAYS ─
     //
-    // 🛑 THE TWO CASES SHARE A RULE AND SPLIT ON THE SENTENCE, and the split is the whole
-    // care in this fix:
+    // ⛓️ WAS: ~~`const mustNotConfirm = (!heldReadable || !heldWritable) && …`~~ (16 Sep,
+    // S1-ONB-003/004). The second clause is what turned every failed `saveBriefDraft` into
+    // *"Milla didn't catch that"* — fifty-two times, deterministically, on completions that
+    // had VALIDATED. The founder reversed it (*"yes agreed"*, 19 Sep); a failed write is now
+    // alerted at the write site and the client is carried through.
     //
-    //   · UNREADABLE (S1-RT-009) — we do not know what the client has told us, so a
+    // 🛑 THE TWO CASES ALWAYS SPLIT ON WHAT WE KNOW, AND ONLY ONE OF THEM MOVED:
+    //
+    //   · UNREADABLE (S1-RT-009, THIS) — we do not know what the client has told us, so a
     //     completion is DEMOTED TO THE CONVERSATION and Milla's own sentence carries the turn.
-    //     Byte-for-byte the behaviour that shipped; nothing here weakens or reshapes it.
+    //     Byte-for-byte the behaviour that shipped. Presenting a plan to APPROVE that was
+    //     assembled from one model sample, while the record they actually built was
+    //     unreachable, is still forbidden.
     //
-    //   · UNWRITEABLE (this) — we know exactly what they told us and we FAILED TO KEEP IT.
-    //     Demoting would deliver a sentence written to CLOSE the conversation ("that's
-    //     everything I need") as the turn meant to CONTINUE it — the Cedar Peak stranding
-    //     S1-RT-010/AR22 exists to stop. And the S1-RT-010 recovery is equally wrong here:
-    //     it would name an outstanding fact the customer HAS ALREADY GIVEN, which is false.
-    //     So this is an HONEST SYSTEM FAILURE (`parsed = null` → `millaReplyFailed`): a
-    //     retryable error the portal renders as an error, with NOTHING attributed to Milla.
-    //     It is our failure and it reads as one.
-    //
-    // ⚠️ NOTHING IS LOST AND NOTHING IS RETYPED. The portal keeps the client's turn in its own
-    // transcript and re-sends the whole history on the next attempt, which is exactly what
-    // `MILLA_RETRY_ERROR` already promises — and the next save merges, so the fact lands then.
+    //   · UNWRITEABLE — we know exactly what they told us and merely failed to keep a copy.
+    //     Their words are in the browser transcript, the promotion path stands aside cleanly
+    //     when there is no draft, and stopping them protected nobody. Carried, and alerted.
     //
     // ⚠️ NO SECOND PROVIDER CALL. One turn, one request, unchanged.
     //
-    // ⚠️ A QUESTION TURN IS UNTOUCHED BY EITHER CASE. `declaredType === 'complete'` is the
-    // whole scope: a client may keep talking through a failed write, which is what makes this
-    // fail closed on AUTHORITY without failing closed on the conversation.
-    const mustNotConfirm = (!heldReadable || !heldWritable) && declaredType === 'complete'
+    // ⚠️ A QUESTION TURN IS UNTOUCHED. `declaredType === 'complete'` is still the whole scope.
+    const mustNotConfirm = !heldReadable && declaredType === 'complete'
     if (mustNotConfirm) {
       // ⚠️ REGARDLESS OF WHETHER THE COMPLETION WAS OTHERWISE VALID. A premature completion
       // and a well-formed one are demoted the same way here: neither may be presented as a
@@ -5322,9 +5365,9 @@ result or a number. "permitted" is false unless they explicitly said we may use 
       })
       console.log('[icps/builder/chat] withholding completion —', JSON.stringify({
         stage: 'reply', model: BUILDER_MODEL,
-        category: heldReadable ? 'BRIEF_UNWRITTEN_NO_CONFIRMATION' : 'BRIEF_UNREADABLE_NO_CONFIRMATION',
+        category: 'BRIEF_UNREADABLE_NO_CONFIRMATION',
       }))
-      parsed = heldReadable ? null : (asQuestion.success ? asQuestion.data : null)
+      parsed = asQuestion.success ? asQuestion.data : null
     }
     // ── 🛑 ⚑ 16 Sep (S1-RT-010) — THE VETOED SENTENCE IS NOT SHOWN TO THE CUSTOMER ──────
     //

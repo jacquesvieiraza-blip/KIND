@@ -76,8 +76,31 @@ describe('J5-C4 · the range the client actually stated', () => {
     }
   })
 
-  it('a single number is that number, not a range around it', () => {
-    expect(statedSizeRange('about 50 people')).toEqual({ min: 50, max: 50 })
+  it('⛓️ a single number is the LADDER BAND around it — reversed 21 Sep, and it cost every client', () => {
+    // ⛓️ WAS: ~~`expect(statedSizeRange('about 50 people')).toEqual({ min: 50, max: 50 })`~~
+    //
+    // 🛑 THAT PIN IS WHY NO CLIENT HAD EVER RECEIVED A LEAD. `target_size` stores the client's
+    // words verbatim, and a stated range OUTRANKS the band (this file's own ② above). So
+    // "around 20 people" became `{20,20}`, the SEARCH asked Apollo for 11–50, Apollo returned
+    // genuinely in-band people, and the GATE then set aside every one of them that was not
+    // precisely twenty. AAA Operations Studio: 20 sourced, 0 eligible, 20 set aside on size.
+    // GREAT Studio: identical. Of ten in-band companies, exactly one survived.
+    //
+    // ⚠️ IT WAS ALSO UNSATISFIABLE BY CONSTRUCTION — Apollo sends `estimated_num_employees`,
+    // and requiring an ESTIMATE to equal a conversational number is not strictness.
+    //
+    // ⚠️ J5-C4's OWN COMPLAINT IS UNTOUCHED, and the tests above still assert it. This item was
+    // about a client who *"stated precisely"* — "fifty to a hundred" snapped to bands that
+    // admitted an 11-person and a 190-person company. A RANGE is still honoured exactly and is
+    // never rounded out to our ladder. What changed is only what a LONE number means, because
+    // a lone number is a point estimate and never was a bound. Founder, 19 Sep: *"go with the
+    // best widest possible outcome."*
+    expect(statedSizeRange('about 50 people')).toEqual({ min: 11, max: 50 })
+    // And the band is genuinely wider than the pin — nothing that qualified can stop qualifying.
+    const icp: FitIcp = { company_sizes: ['11–50'], target_size: 'about 50 people' }
+    expect(hardFit({ company_size: '50' }, icp).size, 'the number they said must still match').toBe('yes')
+    expect(hardFit({ company_size: '20' }, icp).size, 'an in-band company was set aside').toBe('yes')
+    expect(hardFit({ company_size: '400' }, icp).size, 'the band must still refuse what is outside it').toBe('no')
   })
 
   it('🛑 the client who said "50 to 100" no longer matches an 11-person company', () => {

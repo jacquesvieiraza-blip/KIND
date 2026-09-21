@@ -153,6 +153,33 @@ export function headcountBandIndex(companySize: string | null | undefined): numb
   return LADDER_MAX.findIndex(max => n <= max)
 }
 
+/**
+ * ⚑ 21 Sep — THE BOUNDS OF THE LADDER BAND A HEADCOUNT FALLS IN. `20` → `{ min: 11, max: 50 }`.
+ *
+ * 🛑 WHY THIS EXISTS, AND IT IS WHY NO CLIENT HAD EVER RECEIVED A LEAD. `statedSizeRange` read
+ * a client's single spoken number as an EXACT match — *"around 20 people"* became
+ * `{ min: 20, max: 20 }` — and that range OUTRANKS the band we actually searched (J5-C4). So
+ * Apollo was asked for 11–50, returned genuinely in-band people, and our own gate set aside
+ * every one of them that was not precisely twenty. AAA Operations Studio: 20 sourced, 0
+ * eligible, 20 set aside on size. GREAT Studio: identical.
+ *
+ * ⚠️ IT LIVES HERE BECAUSE THE LADDER LIVES HERE. `LADDER_MAX` has one owner, and a second
+ * copy of these bounds in `proof-fit` is how two functions come to disagree about one fact —
+ * the defect class this repository has paid for more than once.
+ *
+ * ⚠️ THE OPEN-ENDED TOP BAND ANSWERS `max: null`, which every caller already reads as "no
+ * ceiling". `null` for a value that is not a plain headcount, so nothing is guessed.
+ */
+export function headcountBandBounds(
+  companySize: string | null | undefined,
+): { min: number; max: number | null } | null {
+  const i = headcountBandIndex(companySize)
+  if (i < 0) return null
+  const min = i === 0 ? 1 : LADDER_MAX[i - 1] + 1
+  const max = Number.isFinite(LADDER_MAX[i]) ? LADDER_MAX[i] : null
+  return { min, max }
+}
+
 export type SizedFeedback = { reason_code: ReasonCode | null; company_size?: string | null }
 
 /**

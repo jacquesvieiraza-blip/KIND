@@ -440,6 +440,17 @@ export function MillaShell({ children }: { children: React.ReactNode }) {
         <MillaConversationProvider
           handleOpen={() => setCover(true)}
           handleHidden={covering}
+          // ── 🛑 ⚑ 22 Sep — ONE MILLA ON THE FIRST SCREEN, NOT TWO ────────────────────
+          //
+          // 🛑 THE DEFECT THIS FIXES, AND IT WAS MINE. Bringing the first run inside this
+          // shell left the provider drawing its own 600px conversation beside the onboarding
+          // page's — two Millas, two composers, two greetings, and only one of them actually
+          // collecting the Brief. A client's first screen asked them to choose.
+          //
+          // ⚠️ THE COLUMN STANDS DOWN, THE CONVERSATION DOES NOT. Still one provider, one
+          // session, one transcript; on this route the page is the thing drawing her, because
+          // there she IS the screen rather than a companion to it.
+          chatHidden={isOnboarding}
         >
           {/* ── ⚑ 4 Sep (UI-008) — ON A PHONE THE SECTION COVERS HER ────────────────────
               🛑 IT USED TO BE A COLUMN AT EVERY WIDTH, so on a 390px screen `flex-1` beside

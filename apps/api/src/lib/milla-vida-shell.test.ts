@@ -58,6 +58,36 @@ describe('MILLA — ONE INSTANCE, ONE TRANSCRIPT, ONE COMPOSER', () => {
     expect(code).toMatch(/<MillaConversationProvider[\s\S]{0,400}?<main[\s\S]*?\{children\}[\s\S]*?<\/main>\s*<\/MillaConversationProvider>/)
   })
 
+  it('🛑 and the first screen shows ONE Milla — the provider\'s column stands down there', () => {
+    // ── THE DEFECT THIS PINS, AND IT REACHED THE FOUNDER'S SCREEN ────────────────────────
+    //
+    // Bringing the first run inside the shell (22 Sep) left `MillaConversationProvider`
+    // drawing its own 600px conversation BESIDE the onboarding page's own. Two Millas, two
+    // composers, two greetings — "Hi, I'm Milla, tell me what you're trying to achieve" next
+    // to "Welcome back, let's sharpen the same targeting" — and only the second one collecting
+    // the Brief. A client's first screen asked them to choose which Milla to talk to.
+    //
+    // ⚠️ THE COLUMN, NOT THE CONVERSATION. One provider, one session, one transcript — the
+    // assertion above still holds. On this one route the PAGE draws her, because there she is
+    // the screen rather than a companion to it.
+    const conv = strip(readFileSync(
+      join(__dirname, '../../../portal/src/components/milla/MillaConversation.tsx'), 'utf8'))
+    // ⚠️ NOT RENDERED, NEVER `hidden`. The sibling test above forbids a hiding attribute on
+    // this column at any width — `hidden` gives it `scrollHeight` 0 and silently breaks the
+    // scroll-to-bottom the transcript depends on. That rule protects a conversation the
+    // client is USING. Here there is nothing to protect: they have never typed into this
+    // column, because the route drew its own. So it is absent, not crippled.
+    expect(conv, 'the provider cannot be told to stand its column down')
+      .toContain('{chatHidden ? null : (')
+    expect(conv, 'the column was given a hiding attribute instead of being left unrendered')
+      .not.toMatch(/<section data-tour="chat"[^>]*\bhidden\b/)
+    const shell = strip(MILLA_SHELL)
+    expect(shell, 'the shell no longer stands the column down on the first run')
+      .toMatch(/chatHidden=\{isOnboarding\}/)
+    expect(shell, 'and it is keyed on the route, not on a guess')
+      .toContain("const isOnboarding = pathname === '/milla/welcome'")
+  })
+
   it('the onboarding screen reaches the shell like every other route — there is no bypass', () => {
     // ⛓️ 22 Sep — WAS: *"the onboarding screen is still bare — the shell returns before the
     // conversation"*, which asserted the early return existed and sat ABOVE the provider so
@@ -166,7 +196,11 @@ describe('MILLA · PHONE — the section covers her, and never unmounts her', ()
     expect(shell).toContain('<Link href="/milla" aria-label="Back to Milla"')
     // 🛑 THE STRUCTURAL FACT THAT MAKES ANY OF IT TRUE: the conversation is a SIBLING of the
     // route's workspace inside the provider, so covering it cannot unmount it.
-    expect(chat).toMatch(/<\/section>\s*\{children\}/)
+    // ⛓️ 22 Sep — the conversation is still a SIBLING of the route's workspace inside the
+    // provider; what sits between them now is the close of the one conditional that leaves
+    // the column unrendered on the route that draws its own. The structural fact this asserts
+    // is unchanged: covering the conversation cannot unmount the workspace, or the reverse.
+    expect(chat).toMatch(/<\/section>\s*\)\}\s*\{children\}/)
   })
 
   it('PROGRAMME AND MY ICP ARE BOTH REACHABLE ON A PHONE', () => {

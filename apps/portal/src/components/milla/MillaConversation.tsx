@@ -205,12 +205,33 @@ export function useMillaConversation(): MillaConversationApi {
 const INERT: MillaConversationApi = { focus: () => {}, publishDeskSet: () => {}, icpRevision: 0 }
 
 export function MillaConversationProvider(
-  { children, handleOpen, handleHidden }: {
+  { children, handleOpen, handleHidden, chatHidden }: {
     children: React.ReactNode
     /** Phone only — raise Home's own workspace over this conversation. */
     handleOpen?: () => void
     /** Phone only — the workspace is already covering, so the handle has nothing to offer. */
     handleHidden?: boolean
+    /**
+     * ── 🛑 ⚑ 22 Sep — THE ROUTE ALREADY HAS A CONVERSATION, SO THIS ONE STANDS DOWN ──────
+     *
+     * 🛑 TWO MILLAS AND TWO COMPOSERS, ON THE FIRST SCREEN A CLIENT EVER SEES. Bringing the
+     * first run inside the shell put this provider's own 600px column beside the onboarding
+     * page's — one saying "Hi, I'm Milla, tell me what you're trying to achieve", the other
+     * "Welcome back, let's sharpen the same targeting", each with its own Send button, and
+     * only the second one actually collecting the Brief.
+     *
+     * ⚠️ NOT RENDERED, NEVER `hidden`, AND THE DISTINCTION IS LOAD-BEARING.
+     * `milla-vida-shell.test.ts` forbids giving this column a hiding attribute at any width:
+     * a covering LAYER keeps it laid out so the transcript, the session and anything
+     * half-typed survive, whereas `hidden` gives it `scrollHeight` 0 and silently breaks the
+     * scroll-to-bottom the transcript depends on. That rule is about COVERING a conversation
+     * the client is using. Here there is nothing to preserve — the client has never typed
+     * into this column, because the route drew its own and that is the one collecting their
+     * Brief. So it is absent rather than crippled.
+     *
+     * ⚠️ AND THE CONTEXT IS UNAFFECTED: one provider, one session, one transcript.
+     */
+    chatHidden?: boolean
   },
 ) {
   const [sessionId, setSessionId] = useState<string | null>(null)
@@ -622,6 +643,7 @@ export function MillaConversationProvider(
       {/* ⚠️ FULL WIDTH ON A PHONE, 600px ABOVE THE BREAKPOINT. `w-[600px] shrink-0` at every
           width is what left `<main>` with zero pixels on a 390px screen. The desktop number is
           unchanged: a conversation column past ~600px is 170+ characters a line. */}
+      {chatHidden ? null : (
       <section data-tour="chat" className="w-full md:w-[600px] shrink-0 border-r border-[#eee7f7] bg-white flex flex-col min-h-0">
         <div className="flex items-center gap-2.5 px-4 py-3 border-b border-[#eee7f7] shrink-0">
           <span className="w-7 h-7 rounded-lg bg-gradient-to-br from-[#7C3AED] to-[#EC4899] text-white font-extrabold text-[13px] flex items-center justify-center">M</span>
@@ -749,6 +771,7 @@ export function MillaConversationProvider(
           )
         )}
       </section>
+      )}
       {children}
     </Ctx.Provider>
   )

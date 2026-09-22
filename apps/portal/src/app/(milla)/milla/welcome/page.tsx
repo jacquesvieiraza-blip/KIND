@@ -218,7 +218,19 @@ export default function MillaWelcomePage() {
   // change. ⚠️ REPORTED, NOT FIXED HERE: that means /icps/preview-count now has no consumer
   // on this page. Whether it should still run at all is a provider-boundary question, and
   // this build is copy-only.
+  // ⚑ 22 Sep — STILL NO READER, AND NOW THE REASON IS RECORDED RATHER THAN OPEN. The founder
+  // asked for a live count beside the targeting panel. It is not built, because the gated
+  // single call site above may not run before the account row exists and this screen is
+  // exactly the moment before it does — see `refreshTargeting` for the decision that is owed.
   const [, setMatchCount] = useState<number | null>(null)
+  /**
+   * What Milla has understood, as the SERVER renders it: each fact in the client's own words
+   * beside the provider value it produces. Finished render objects — this app learns nothing
+   * about our fact vocabulary and derives none of it.
+   */
+  const [targeting, setTargeting] = useState<Array<{
+    id: string; label: string; said: string; sending: string[]; note?: string
+  }>>([])
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   // ⚑ 14 Sep (S1-RT-003/004) — the server's own eleven-fact progress, held so the resume
@@ -403,7 +415,59 @@ export default function MillaWelcomePage() {
     } catch { /* silent — a client with no saved draft simply gets the normal greeting */ }
   }, [])
 
+  /**
+   * ── 🛑 ⚑ 22 Sep — WHAT MILLA HAS UNDERSTOOD, RE-READ AFTER EVERY TURN ─────────────────
+   *
+   * 🛑 FOUNDER-LOCKED 22 Sep: *"they speak there and see there."* The panel used to say
+   * nothing until a finished ICP arrived at the end of the conversation, so a misread fact
+   * was discovered after a run rather than corrected in the sentence after it was misread.
+   *
+   * ⚠️ DELIBERATELY NOT `loadStatus`. That callback also resolves the account, the existing
+   * ICPs and the resume greeting; running it per turn could replace a transcript the client
+   * is mid-sentence in. This asks one question and sets two pieces of state.
+   *
+   * ⚠️ THE VALUES ARE THE SERVER'S, AND THEY ARE `icpFromDraft`'S — the same function the
+   * confirm persists from. So the panel cannot show one thing and the search send another.
+   *
+   * ⚠️ AND IT FAILS SILENT. A failed read leaves the panel exactly as it was; it never blanks
+   * what the client has already been shown, and it never claims a count it did not receive.
+   */
+  const refreshTargeting = useCallback(async () => {
+    const tk = await token()
+    try {
+      const d = await api.get<{ data: {
+        onboarding_targeting?: Array<{ id: string; label: string; said: string; sending: string[]; note?: string }>
+        onboarding_search?: Record<string, string[]> | null
+      } }>('/milla/brief-draft', tk)
+      setTargeting(d.data?.onboarding_targeting ?? [])
+      // ── 🛑 ⚑ 22 Sep — THE LIVE COUNT IS NOT HERE, AND THAT IS A FOUNDER DECISION OWED ───
+      //
+      // The founder asked for a live match count beside this panel, and the server already
+      // sends `onboarding_search` for it. It is NOT called here, because doing so would break
+      // a lock this file carries for a reason:
+      //
+      //   · `preview-count` is gated on `hasClient === true` — no provider call before the
+      //     account row exists — and pinned to EXACTLY ONE call site "so the gate cannot be
+      //     bypassed". A second call site here is precisely the bypass that pin forbids.
+      //   · during the first run `hasClient` is false until `/auth/onboard`, so the gated call
+      //     would answer nothing anyway for the client who most needs the number.
+      //   · the route is rate-limited to ten calls a minute per user; once per turn would
+      //     exhaust it inside a brisk conversation.
+      //
+      // The question is the founder's, not mine: may the FREE search run before the account
+      // row exists? People Search spends no credits — the reveal is the cost — so the lock's
+      // "paid preview" framing predates Apollo-only sourcing. But it is a lock, and the panel
+      // above is useful without the number.
+    } catch { /* silent — the panel keeps whatever it last showed */ }
+  }, [])
+
   useEffect(() => { void loadStatus() }, [loadStatus])
+
+  // ⚠️ ITS OWN EFFECT, NOT A SECOND STATEMENT IN `loadStatus`'s. That one is pinned by
+  // `first-run-milla.test.ts` as the shape that makes a failed account lookup RETRYABLE —
+  // a callback an effect re-runs, rather than a one-shot. Folding this into it would have
+  // changed a line whose exact form is the guarantee.
+  useEffect(() => { void refreshTargeting() }, [refreshTargeting])
 
   useEffect(() => { const el = bodyRef.current; if (el) el.scrollTop = el.scrollHeight }, [messages, proposed])
 
@@ -612,7 +676,14 @@ export default function MillaWelcomePage() {
       setError(e instanceof Error ? e.message : 'Milla hit a snag — please try again')
       setCanRetry(true)
     }
-    finally { setThinking(false) }
+    finally {
+      setThinking(false)
+      // ⚑ 22 Sep — AFTER EVERY TURN, INCLUDING A FAILED ONE. The customer's message is durable
+      // the moment it is sent (J5-C11), so a turn that errored on the way back may still have
+      // moved the Brief. Re-reading here is how the panel stays the truth rather than an
+      // optimistic echo of the last reply this tab happened to parse.
+      void refreshTargeting()
+    }
   }
 
   /** Re-deliver the transcript exactly as it stands. Appends NOTHING. */
@@ -1060,7 +1131,48 @@ export default function MillaWelcomePage() {
                   product, before they had seen a single person.
                   ⚠️ `&rsquo;` not a literal ’ — this is a JSX text node and every other
                   apostrophe in this file is written the same way. */}
-              As we chat, Milla builds your <b>ICP</b> (who to target) and a recommended <b>programme</b> here. You&rsquo;ll review it before anything starts.
+              {targeting.length === 0 ? (
+                <>As we chat, Milla builds your <b>ICP</b> (who to target) and a recommended <b>programme</b> here. You&rsquo;ll review it before anything starts.</>
+              ) : (
+                <>
+                  {/* ── 🛑 ⚑ 22 Sep — WHAT SHE UNDERSTOOD, AND WHAT WE WILL ACTUALLY SEARCH ON ──
+                      🛑 FOUNDER-LOCKED 22 Sep: *"they speak there and see there."* Every row is
+                      the client's own words with the provider value they produced underneath —
+                      the same bytes the confirm will persist, because the server derived both
+                      from `icpFromDraft` rather than describing them a second time.
+
+                      ⚠️ THE POINT IS THE CORRECTION, NOT THE DISPLAY. A client who sees
+                      "around twenty to fifty" resolve to two bands can say so in the next
+                      sentence; the same mistake found after a run has already shaped a
+                      search and cost a pass. */}
+                  <div className="mb-3">So far, in your words — and what I&rsquo;ll search on:</div>
+                  <div className="flex flex-col gap-2.5">
+                    {targeting.map(t => (
+                      <div key={t.id} className="rounded-[10px] border border-[#eee7f7] bg-[#faf8ff] px-3 py-2.5">
+                        <div className="text-[10px] font-extrabold uppercase tracking-[0.09em] text-[#9b8ec4]">{t.label}</div>
+                        {t.said ? <div className="text-[13px] text-[#1f1235] mt-0.5">{t.said}</div> : null}
+                        {t.sending.length > 0 ? (
+                          <div className="flex flex-wrap gap-1 mt-1.5">
+                            {t.sending.map(v => (
+                              <span key={v} className="text-[11px] font-semibold text-[#5b21b6] bg-[#f3ecff] rounded-md px-1.5 py-0.5">{v}</span>
+                            ))}
+                          </div>
+                        ) : null}
+                        {t.note ? <div className="text-[11px] text-[#9b8ec4] mt-1.5 leading-snug">{t.note}</div> : null}
+                      </div>
+                    ))}
+                  </div>
+                  {/* ⚠️ NOTHING IS CHARGED AND NOTHING IS BOUGHT TO SHOW THIS. Every value here
+                      is derived from what the client already told Milla — no provider has been
+                      asked anything. The live match count the founder asked for belongs in this
+                      space and is not here yet; `refreshTargeting` above records exactly which
+                      lock it waits on. */}
+                  <div className="mt-4 pt-3 border-t border-[#eee7f7] text-[12px] text-[#9b8ec4] leading-snug">
+                    Nothing has been bought and nobody has been contacted — this is just me
+                    showing you what I&rsquo;ve understood.
+                  </div>
+                </>
+              )}
             </div>
           ) : (
             <div className="p-6">

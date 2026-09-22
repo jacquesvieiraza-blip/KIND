@@ -695,8 +695,11 @@ async function briefReadModel(userId: string): Promise<Record<string, unknown>> 
   const { briefDraftFor, draftProgress } = await import('../lib/brief-draft')
   const { onboardingState } = await import('../lib/onboarding-state')
   const { BRIEF_FACT_LABEL } = await import('@kind/shared')
+  const { icpFromDraft } = await import('../lib/promotion')
   const draft = await briefDraftFor(userId)
-  return briefReadModelFrom(draft, draftProgress(draft), onboardingState(draft?.facts ?? null), BRIEF_FACT_LABEL)
+  return briefReadModelFrom(
+    draft, draftProgress(draft), onboardingState(draft?.facts ?? null), BRIEF_FACT_LABEL, icpFromDraft,
+  )
 }
 
 /** The shape, from facts already in hand — so a writer that just saved need not re-read. */
@@ -705,7 +708,13 @@ function briefReadModelFrom(
   progress: { missing: string[] } & Record<string, unknown>,
   onboarding: { state: unknown; unresolvedLabels: unknown },
   labels: Record<string, string>,
+  // ⚑ 22 Sep — PASSED IN, LIKE `labels`, FOR THE REASON THIS FUNCTION ALREADY EXISTS. It is
+  // promotion's own `icpFromDraft`; handing it in keeps this builder synchronous and keeps
+  // both verbs on one function, so the panel cannot describe a draft differently depending on
+  // which verb asked.
+  icpFrom: (d: NonNullable<Parameters<typeof briefReadModelFrom>[0]>) => Record<string, unknown>,
 ): Record<string, unknown> {
+  const targetingFromDraft = (d: typeof draft) => (d ? icpFrom(d) : null)
   const onboardingFacts = (draft?.facts ?? {}) as Record<string, unknown>
   const onboardingText = (k: string): string =>
     typeof onboardingFacts[k] === 'string' ? (onboardingFacts[k] as string).trim() : ''
@@ -728,6 +737,53 @@ function briefReadModelFrom(
       product: onboardingText('what_they_do'),
       bad_fit: onboardingText('exclusions'),
     },
+    // ── 🛑 ⚑ 22 Sep — WHAT THEY SAID, AND WHAT WE WILL ACTUALLY SEARCH ON ────────────────
+    //
+    // 🛑 FOUNDER-LOCKED 22 Sep: *"they speak there and see there."* A client could talk to
+    // Milla and see nothing of what she had understood until she proposed a finished ICP at
+    // the end — so a misread fact was discovered after a run, by which time it had already
+    // shaped a search. This puts each fact on the panel AS IT LANDS, beside the provider
+    // value it produces, while the client is still in the conversation to correct it.
+    //
+    // 🛑 AND IT IS `icpFromDraft`, NOT A SECOND DERIVATION. That function is promotion's own
+    // — *"the one server-side derivation"* — so what this panel shows is the same bytes the
+    // confirm will persist and the search will send. A display-only copy of the same rules
+    // would agree today and drift on the first change to either; this cannot drift, because
+    // there is only one of it.
+    //
+    // ⚠️ FINISHED RENDER OBJECTS, so the portal still learns nothing about our vocabulary —
+    // the rule this read model already follows for the profile and business cards.
+    // `sending: []` is a real and meaningful state, not a gap: a category we could not place
+    // in the provider's closed list is used to ORDER results rather than to filter them, and
+    // exclusions never reach a search at all because they remove people rather than find any.
+    ...(() => {
+      const icp = targetingFromDraft(draft)
+      if (!icp) return { onboarding_targeting: [], onboarding_search: null }
+      const list = (k: string): string[] =>
+        Array.isArray(icp[k]) ? (icp[k] as unknown[]).filter((x): x is string => typeof x === 'string') : []
+      const row = (id: string, label: string, said: string, sending: string[], note?: string) =>
+        ({ id, label, said, sending, ...(note ? { note } : {}) })
+      return {
+        onboarding_targeting: [
+          row('target_roles',    'Job titles',   onboardingText('target_roles'),    list('job_titles')),
+          row('seniority',       'Seniority',    onboardingText('target_roles'),    list('seniority_levels')),
+          row('company_size',    'Employees',    onboardingText('company_size'),    list('company_sizes')),
+          row('geography',       'Location',     onboardingText('geography'),       list('geographies')),
+          row('target_category', 'Kind of company', onboardingText('target_category'), list('industries'),
+            list('industries').length === 0 && onboardingText('target_category')
+              ? 'used to order the results — it never leaves anybody out' : undefined),
+          row('exclusions',      'Never contact', onboardingText('exclusions'),     [],
+            onboardingText('exclusions') ? 'the only thing that removes anybody' : undefined),
+        ].filter(r => r.said !== '' || r.sending.length > 0),
+        // The canonical arrays, for the free live count. People Search costs nothing; the
+        // reveal is the cost, and nothing here reveals anybody.
+        onboarding_search: {
+          job_titles: list('job_titles'), seniority_levels: list('seniority_levels'),
+          company_sizes: list('company_sizes'), geographies: list('geographies'),
+          industries: list('industries'),
+        },
+      }
+    })(),
     conversation: draft?.conversation ?? [],
   }
 }
@@ -1010,6 +1066,7 @@ millaRouter.put('/brief-draft', async (req: AuthRequest, res) => {
       draftProgress(r.draft),
       onboardingState(r.draft?.facts ?? null),
       BRIEF_FACT_LABEL,
+      (await import('../lib/promotion')).icpFromDraft,
     ),
   })
 })

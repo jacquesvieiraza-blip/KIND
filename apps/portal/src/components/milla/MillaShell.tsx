@@ -316,7 +316,24 @@ export function MillaShell({ children }: { children: React.ReactNode }) {
           // the journey without claiming where the client is in it.
           // ⛓️ 16 Sep (B1) — PROJECTED, NOT LOOKED UP. The transport is still the engine's
           // seven; the position is the canonical six, so this ribbon and Vida's agree.
-          const at = stage ? arr.indexOf(mvp1MillaStageFromLegacy(stage)) : -1
+          // ── 🛑 ⚑ 22 Sep — THE FIRST RUN IS BRIEF, AND IT IS THE ROUTE THAT SAYS SO ──────
+          //
+          // 🛑 FOUNDER-LOCKED 22 Sep, on the question asked directly: *may the ribbon mark
+          // Brief during the first run?* — **yes**. A client who has just arrived would
+          // otherwise see all six stages with none of them marked: the journey, without
+          // where they are in it, on the one screen where they have no other bearings.
+          //
+          // ⚠️ AND IT DOES NOT TOUCH THE RULE UNDERNEATH IT. ⑨'s concern is exact and still
+          // absolute: *"an unknown stage marks nothing current — defaulting to index 0 would
+          // tell every client whose read failed that they are at Brief, a claim about their
+          // programme made from a network error."* That is a FAILED READ. This is a ROUTE on
+          // which there is definitionally no programme to read yet, and onboarding is not
+          // *probably* Brief — collecting the brief is the only thing it does.
+          //
+          // ⚠️ SO THE EXCEPTION IS KEYED ON `isOnboarding`, NEVER ON A NULL STAGE. Off this
+          // route a null `stage` still marks nothing, exactly as before — which is what keeps
+          // a network error from becoming a claim.
+          const at = isOnboarding ? 0 : stage ? arr.indexOf(mvp1MillaStageFromLegacy(stage)) : -1
           const isCurrent = at >= 0 && i === at
           const isDone    = at >= 0 && i < at
           return (

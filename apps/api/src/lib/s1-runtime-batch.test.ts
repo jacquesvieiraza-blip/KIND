@@ -450,23 +450,36 @@ const welcomeSrc = readFileSync(join(PORTAL, 'app', '(milla)', 'milla', 'welcome
 const shellSrc = readFileSync(join(PORTAL, 'components', 'milla', 'MillaShell.tsx'), 'utf8')
 
 describe('🛑 S1-RT-001 · there is a way out of onboarding', () => {
-  it('🛑 the onboarding screen carries a Sign out control', () => {
-    expect(welcomeSrc).toContain('Sign out')
-    expect(welcomeSrc).toContain('void signOut()')
+  // ── ⛓️ 22 Sep — THE GAP THIS ITEM CLOSED IS CLOSED AT ITS SOURCE INSTEAD ───────────────
+  //
+  // This item added a SECOND Sign out to the onboarding page, and said exactly why: *"the
+  // only other Sign out lives in chrome that is not rendered here"* — and then named its own
+  // exit condition: *"If that early return is ever removed this guard is free to go with it."*
+  //
+  // 🛑 IT HAS BEEN REMOVED (founder-locked 22 Sep: the first run happens inside the portal).
+  // So the requirement — a signed-in person mid-Brief can leave their own account — is met by
+  // the product's ONE sign-out, and the duplicate is gone. That is the outcome this item
+  // wanted and could not have while the shell stepped aside here.
+  //
+  // ⚠️ SO THE GUARD IS NOT DELETED, IT IS REPOINTED, AND IT IS STRICTER. It used to accept a
+  // second mechanism; it now requires that no second mechanism exists AND that onboarding
+  // genuinely reaches the one that does.
+  it('🛑 onboarding reaches the shell, so the canonical Sign out is on the screen', () => {
+    // ⚠️ ANCHORED TO A STATEMENT. The shell's tombstone comment quotes the removed line
+    // verbatim, so a plain `toContain` would match the history and call the fix a failure.
+    expect(shellSrc, 'the first run is outside the portal again — and with it, the only Sign out')
+      .not.toMatch(/^\s*if \(pathname === '\/milla\/welcome'\) return/m)
+    expect(shellSrc, 'the shell no longer carries a Sign out').toContain('await createClient().auth.signOut()')
+    expect(shellSrc).toContain("window.location.href = '/login'")
   })
 
-  it('🛑 and it is the CANONICAL mechanism, not a parallel one', () => {
-    // Byte-for-byte the two lines `MillaShell.signOut` uses. A second way to end a session is
-    // a second thing that can be wrong about what a session is.
-    expect(welcomeSrc).toContain('await createClient().auth.signOut()')
-    expect(welcomeSrc).toContain("window.location.href = '/login'")
-    expect(shellSrc).toContain('await createClient().auth.signOut()')
-  })
-
-  it('it needs no client row — the shell hides its own chrome on this route', () => {
-    // This is WHY the gap existed: the only other Sign out lives in chrome that is not
-    // rendered here. If that early return is ever removed this guard is free to go with it.
-    expect(shellSrc).toContain("if (pathname === '/milla/welcome') return <>{children}</>")
+  it('🛑 and there is exactly ONE of it — the duplicate did not survive the move', () => {
+    // A second way to end a session is a second thing that can be wrong about what a session
+    // is. The onboarding page must no longer define or call its own.
+    expect(welcomeSrc, 'onboarding grew a second sign-out again')
+      .not.toMatch(/^\s*async function signOut\(/m)
+    expect(welcomeSrc, 'onboarding still calls a sign-out of its own')
+      .not.toContain('void signOut()')
   })
 })
 

@@ -512,8 +512,21 @@ describe('Ⓔ the portal gates on the server’s state, not on `proposed`', () =
   it('the plan and the CTA require serverReady AND the plan content', () => {
     expect(PORTAL, 'the old gate is gone').not.toContain('{!proposed ? (')
     expect(PORTAL).toContain('{!(serverReady && proposed) ? (')
-    expect(PORTAL, 'and the step dots follow the same authority')
-      .toContain("stepDot(2, 'Your target', serverReady && proposed ? 'done' : 'on')")
+    // ⛓️ 22 Sep — WAS: *"and the step dots follow the same authority"*, pinning
+    // ~~`stepDot(2, 'Your target', serverReady && proposed ? 'done' : 'on')`~~.
+    //
+    // 🛑 THE STEP DOTS NO LONGER EXIST. Welcome · Your target · Your plan · Go live was a
+    // fifth stage vocabulary that predates MVP1; when the first run moved inside the portal
+    // (founder-locked 22 Sep) it would have sat directly under the shell's FLOW ribbon — two
+    // progress indicators, counting different things, on a client's first screen. The ribbon
+    // reads the canonical six from `@kind/shared/mvp1-stage`, which is the same constant
+    // Vida's reads.
+    //
+    // ⚠️ THE AUTHORITY RULE THIS ASSERTED IS UNTOUCHED AND STILL PROVEN ABOVE: the plan and
+    // the CTA gate on `serverReady && proposed`, never on `proposed` alone. What is gone is a
+    // second surface that had to be kept in step with it.
+    expect(PORTAL, 'the retired four-step vocabulary is back on the first-run screen')
+      .not.toContain('stepDot(')
   })
 
   it('serverReady comes only from the server, and a question turn closes it', () => {

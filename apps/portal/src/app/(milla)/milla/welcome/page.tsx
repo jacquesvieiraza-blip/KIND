@@ -461,17 +461,11 @@ export default function MillaWelcomePage() {
   // so a failed escalation told the client K.I.N.D had been told.
   const [helpState, setHelpState] = useState<HelpState>('idle')
 
-  /**
-   * ⚑ 14 Sep (S1-RT-001) — the product's canonical sign-out, reached from onboarding.
-   *
-   * ⚠️ IDENTICAL TO `MillaShell.signOut`, deliberately. A second way to end a session is a
-   * second thing that can be wrong about what a session is; this is the same two lines.
-   * `window.location.href` rather than the router, so no React state outlives the sign-out.
-   */
-  async function signOut() {
-    try { await createClient().auth.signOut() } catch { /* ignore — leaving is not blocked */ }
-    window.location.href = '/login'
-  }
+  // ⛓️ 22 Sep — S1-RT-001's DUPLICATE SIGN-OUT IS GONE, AND ITS REQUIREMENT IS STRONGER FOR IT.
+  // ~~`async function signOut() { … }`~~ existed only because `MillaShell` hid its rail on this
+  // route, taking the product's one Sign out with it. The rail is present from the first second
+  // now, so a person mid-Brief leaves their account by the canonical control — one sign-out
+  // path, which is what that item wanted and could not have while the shell was hidden here.
 
   /**
    * 🛑 ⚑ 14 Sep (S1-RT-004) — A HUMAN, WHEN MILLA CANNOT RECOVER.
@@ -908,53 +902,40 @@ export default function MillaWelcomePage() {
   const chips = (arr: string[]) => arr.filter(Boolean)
   const showProfile = hasClient === false && profile && Object.values(profile).some(Boolean)
 
-  const stepDot = (n: number, label: string, state: 'done' | 'on' | 'todo') => (
-    <span className="flex items-center gap-1.5 text-[12px] font-bold shrink-0" style={{ color: state === 'todo' ? '#9b8ec4' : '#7C3AED' }}>
-      <span className="w-[22px] h-[22px] rounded-full text-[11px] font-extrabold flex items-center justify-center text-white"
-        style={{ background: state === 'done' ? '#059669' : state === 'on' ? '#7C3AED' : '#e7ddf7', color: state === 'todo' ? '#9b8ec4' : '#fff' }}>
-        {state === 'done' ? '✓' : n}
-      </span>{label}
-    </span>
-  )
+  // ⛓️ 22 Sep — ~~`const stepDot = …`~~ REMOVED WITH THE FOUR-STEP BAR IT DREW. Welcome · Your
+  // target · Your plan · Go live was a fifth stage vocabulary, older than MVP1 and disagreeing
+  // with the canonical six. The shell's FLOW ribbon reads `MVP1_MILLA_STAGES` from
+  // `@kind/shared/mvp1-stage` — the same constant Vida's ribbon reads — and marks Brief current
+  // here. One vocabulary, two views, and a client's first screen no longer carries two
+  // progress indicators counting different things.
 
   return (
-    <div className="h-screen flex flex-col bg-[#faf8ff] text-[#1f1235] overflow-hidden">
-      <header className="h-[54px] shrink-0 flex items-center gap-3 px-6 border-b border-[#eee7f7] bg-white">
-        {/* ⚑ 24 Aug — MILLA'S OWN FACE. This was a gradient "M" tile, and the page a client
-            reached BEFORE it showed FIGSY's photo over copy that said "I'm Milla". Milla has
-            a canonical identity already — Milla · The Brain · /agents/milla.png, the same
-            asset the agent gallery and the marketplace use — so it is used here rather than
-            anything new being drawn. FIGSY's own surfaces are untouched. */}
-        <img src="/agents/milla.png" alt="Milla" className="w-8 h-8 rounded-[10px] object-cover object-top" />
-        <b className="text-[15px]">Milla</b><span className="text-[#9b8ec4] text-[12.5px] font-semibold">· let&rsquo;s set up your campaign</span>
-        {/* ── 🛑 ⚑ 14 Sep (S1-RT-001) — THERE WAS NO WAY OUT OF ONBOARDING ────────────────
-            `MillaShell` returns `<>{children}</>` for /milla/welcome — onboarding is
-            deliberately full-screen, with no rail and no top bar. That is also where the
-            product's only Sign out lives, so a signed-in person mid-Brief had no normal way
-            to leave their own account. On a shared machine that is not a cosmetic gap.
-
-            ⚠️ THE CANONICAL MECHANISM, NOT A SECOND ONE. Byte-for-byte the same act as
-            `MillaShell.signOut` — `createClient().auth.signOut()` then a hard navigation to
-            /login. No new auth path, no new session concept, and it needs no client row, so
-            it works from the first second of onboarding.
-
-            ⚠️ AND IT LOSES NOTHING. The Brief lives in `onboarding_brief_drafts`, keyed on
-            the USER, so signing back in resumes the same draft — facts and conversation. */}
-        <button
-          onClick={() => void signOut()}
-          className="ml-auto shrink-0 text-[12.5px] font-semibold text-[#9b8ec4] hover:text-[#1f1235] underline underline-offset-2"
-        >
-          Sign out
-        </button>
-      </header>
-
-      <div className="shrink-0 flex items-center gap-3 px-6 py-3 bg-white border-b border-[#eee7f7] overflow-x-auto">
-        {stepDot(1, 'Welcome', 'done')}<span className="w-8 h-0.5 bg-[#e7ddf7]" />
-        {stepDot(2, 'Your target', serverReady && proposed ? 'done' : 'on')}<span className="w-8 h-0.5 bg-[#e7ddf7]" />
-        {stepDot(3, 'Your plan', serverReady && proposed ? 'on' : 'todo')}<span className="w-8 h-0.5 bg-[#e7ddf7]" />
-        {stepDot(4, 'Go live', 'todo')}
-      </div>
-
+    // ── 🛑 ⚑ 22 Sep — THIS IS A PANEL NOW, NOT A SCREEN ──────────────────────────────────
+    //
+    // 🛑 FOUNDER-LOCKED 22 Sep: *"the client lands after sign up and lands in Milla portal.
+    // they speak there and see there."* `MillaShell` no longer strips its chrome for this
+    // route, so the rail, the account bar and the FLOW ribbon are around this conversation
+    // from the first second. Three things therefore came OUT of this file, and each was
+    // removed because the shell already renders it — never because it stopped mattering:
+    //
+    //   ① `h-screen` → `h-full`. The page no longer owns the viewport; it fills the shell's
+    //      content area, which is what makes the rail and ribbon visible beside it.
+    //   ② Its own 54px header — Milla's face and name. The shell's account bar is the one
+    //      header, and two stacked would be the "second, independent vocabulary" defect the
+    //      ribbon comment below already warns about.
+    //   ③ Its Sign out button, added by S1-RT-001 *because* the shell used to be hidden here.
+    //      The rail carries the canonical `MillaShell.signOut` again, so that item's actual
+    //      requirement — a signed-in person mid-Brief can leave — is satisfied by the product's
+    //      one sign-out path instead of a duplicate. **The requirement is met more strongly,
+    //      not dropped.** The Brief still lives in `onboarding_brief_drafts` keyed on the USER,
+    //      so signing back in still resumes the same draft.
+    //
+    // ⚠️ AND THE FOUR-STEP DOTS WENT WITH THE HEADER (Welcome · Your target · Your plan · Go
+    // live). They are a FIFTH stage vocabulary that predates MVP1 and disagrees with the
+    // canonical six the shell's ribbon reads from `@kind/shared/mvp1-stage`. Two progress
+    // indicators stacked, counting different things, on a client's first screen. The ribbon
+    // now marks **Brief** current during onboarding, which is where this client actually is.
+    <div className="h-full flex flex-col bg-[#faf8ff] text-[#1f1235] overflow-hidden">
       <div className="flex-1 flex overflow-hidden">
         {/* conversation */}
         <section className="flex-1 min-w-0 flex flex-col">

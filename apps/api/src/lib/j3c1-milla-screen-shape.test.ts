@@ -171,15 +171,20 @@ describe('J3-C1 · the stage bar is the canonical six, on every screen that draw
 describe('J3-C1 · the onboarding exception is deliberate and is the only one', () => {
   const shell = codeOf(join(__dirname, '../../../portal/src/components/milla/MillaShell.tsx'))
 
-  it('🛑 exactly ONE path returns bare, and it is /milla/welcome', () => {
-    // #513: onboarding is full-screen until the client's ICP is live. It is stage 1 of the
-    // six and the client is being walked through it in conversation; the ribbon would be
-    // chrome around a screen that is deliberately chrome-free.
+  it('🛑 NO path returns bare — the exception list is empty, and it stays empty', () => {
+    // ⛓️ 22 Sep — WAS: *"exactly ONE path returns bare, and it is /milla/welcome"*, pinning
+    // #513's rule that onboarding is full-screen until the client's ICP is live.
     //
-    // ⚠️ PINNED SO IT STAYS ONE. An exception list is how "every screen" quietly becomes
-    // "most screens": a second early return here takes the bar off a screen nobody checked.
+    // 🛑 FOUNDER-LOCKED 22 Sep: *"the client lands after sign up and lands in Milla portal.
+    // they speak there and see there."* The first run is a conversation INSIDE the portal, so
+    // the one exception is gone and there is no longer a screen the shell steps aside for.
+    //
+    // ⚠️ THE GUARD IS UNCHANGED IN PURPOSE AND STRICTER IN EFFECT. Its own reason — *"an
+    // exception list is how 'every screen' quietly becomes 'most screens'"* — is why this now
+    // asserts EMPTY rather than a different single entry. One is a list; zero is a rule. Any
+    // future early return here, for any route, fails this immediately.
     const bares = shell.match(/if \(pathname === '[^']+'\) return <>\{children\}<\/>/g) ?? []
-    expect(bares).toEqual(["if (pathname === '/milla/welcome') return <>{children}</>"])
+    expect(bares, 'a route was given a way to drop the portal chrome').toEqual([])
   })
 
   it('and that screen still tells the client where they are, in words', () => {

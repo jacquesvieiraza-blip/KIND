@@ -504,8 +504,27 @@ describe('Milla wears her own face, and FIGSY is nowhere in her first run', () =
     expect(existsSync(join(PORTAL, '../public/agents/milla.png'))).toBe(true)
   })
 
-  it('the first-run surface uses it', () => {
-    expect(welcomeCode).toContain('/agents/milla.png')
+  it('the first-run surface uses it — now through the shell that wraps it', () => {
+    // ⛓️ 22 Sep — WAS: `expect(welcomeCode).toContain('/agents/milla.png')`, when the first-run
+    // page drew its own 54px header because `MillaShell` stepped aside for that one route.
+    //
+    // 🛑 FOUNDER-LOCKED 22 Sep: the first run happens INSIDE the portal. The page's duplicate
+    // header went with the bypass — and this asset went with it, which would have been a
+    // silent regression of the 24-Aug fix on the exact screen that fix was for. So her face
+    // moved into the shell's one account bar, where it is also true on the other nine routes
+    // instead of only this one.
+    //
+    // ⚠️ ASSERTED ON BOTH, SO NEITHER CAN LOSE HER. The shell must carry the canonical asset,
+    // and onboarding must reach the shell — which is the same bypass this file's sibling in
+    // `milla-vida-shell.test.ts` pins to absent. Her face on the first screen is the
+    // requirement; which file draws it is not.
+    const shellCode = readFileSync(join(PORTAL, 'components/milla/MillaShell.tsx'), 'utf8')
+    expect(shellCode, "the shell lost Milla's canonical face").toContain('/agents/milla.png')
+    // ⚠️ ANCHORED TO A STATEMENT, NOT TO THE TEXT. The shell's own tombstone comment quotes
+    // the removed line verbatim — a plain `toContain` matches the history and reports the
+    // fix as the defect.
+    expect(shellCode, 'onboarding was given a way back out of the portal chrome')
+      .not.toMatch(/^\s*if \(pathname === '\/milla\/welcome'\) return/m)
   })
 
   it("FIGSY's face and name appear NOWHERE in the first-run code", () => {

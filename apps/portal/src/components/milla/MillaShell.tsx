@@ -123,9 +123,28 @@ export function MillaShell({ children }: { children: React.ReactNode }) {
     window.location.href = '/login'
   }
 
-  // #513 — onboarding is full-screen (no rail/top bar) until the client's ICP is live.
-  if (pathname === '/milla/welcome') return <>{children}</>
-
+  // ── 🛑 ⚑ 22 Sep — THE CLIENT LANDS IN THE PORTAL, AND THE FIRST RUN HAPPENS INSIDE IT ──
+  //
+  // ⛓️ WAS: ~~`if (pathname === '/milla/welcome') return <>{children}</>`~~ — #513's rule that
+  // *"onboarding is full-screen (no rail/top bar) until the client's ICP is live"*.
+  //
+  // 🛑 FOUNDER-LOCKED 22 Sep: *"the client lands after sign up and lands in Milla portal. they
+  // speak there and see there."* The first run was already a Milla CONVERSATION — that part
+  // was right and is untouched — but it took the whole screen, so a client talking to her had
+  // nothing beside her: no rail, no flow ribbon, and **no workspace filling as she understood
+  // them**. Seeing what she has understood, while they are still there to correct it, is the
+  // point of the panel; a full-screen conversation cannot show it.
+  //
+  // ⚠️ THIS ALSO CLOSES S1-RT-001 AT ITS SOURCE. That item added a second Sign out to the
+  // onboarding header *because* this early return hid the product's only one. The rail is now
+  // present from the first second, so the canonical control is back and the duplicate is gone
+  // — one sign-out path again, which is what the item wanted and could not have while this
+  // line existed.
+  //
+  // ⚠️ THE ROUTE IS UNCHANGED. `/milla/welcome` still owns the first-run conversation and all
+  // of its logic; what changed is the frame around it. Nothing about WHERE the brief is
+  // collected, stored or promoted moved.
+  const isOnboarding = pathname === '/milla/welcome'
   const isLeads = pathname === '/milla'
   const link = (href: string, label: string, Icon: React.ElementType, active: boolean, badge?: number) => (
     <Link key={label} href={href} className={`flex items-center gap-2.5 px-3 py-2 rounded-[10px] text-[14.5px] font-semibold mb-0.5 transition-colors ${
@@ -187,7 +206,22 @@ export function MillaShell({ children }: { children: React.ReactNode }) {
             to their main screen (new leads + Milla). It used to be static text, so deeper
             pages had no obvious way back. */}
         <Link href="/milla" className="flex items-center gap-3 rounded-lg -mx-1 px-1 py-0.5 hover:opacity-80 transition-opacity" title="Back to your leads">
-          <span className="w-8 h-8 rounded-[10px] bg-gradient-to-br from-[#7C3AED] to-[#EC4899] text-white flex items-center justify-center text-[15px] font-extrabold">M</span>
+          {/* ── 🛑 ⚑ 22 Sep — MILLA'S OWN FACE, AND THIS IS A RESTORATION, NOT A FLOURISH ───
+              ⛓️ WAS: ~~a gradient tile with the letter "M"~~.
+
+              🛑 IT WOULD OTHERWISE HAVE BEEN A REGRESSION ON THE ONE SCREEN THAT MATTERS.
+              The first-run page carried `/agents/milla.png` because of the 24-Aug fix: the
+              screen a client reached before it showed FIGSY's photo over copy saying "I'm
+              Milla", and the founder had her canonical identity put on it — the same asset
+              the agent gallery and the marketplace use. Bringing that page inside this shell
+              removed its header, and with it her face; a letter in a box is not the identity
+              that fix established.
+
+              ⚠️ SO IT MOVES HERE, WHERE IT IS ALSO MORE TRUE. One header, her real face, on
+              every route she appears on — rather than her photo on one screen and an initial
+              on the other nine. `first-run-milla.test.ts` asserts the first run carries this
+              asset; it now does so through the shell that wraps it. */}
+          <img src="/agents/milla.png" alt="Milla" className="w-8 h-8 rounded-[10px] object-cover object-top" />
           <span className="text-[16px] font-extrabold">Milla<span className="text-[#9b8ec4] font-semibold text-[13.5px]">&amp;Vida</span></span>
         </Link>
         {/* ⚑ 4 Sep (UI-008) — THE PHONE'S WAY INTO THE NINE SECTIONS, and into the account.

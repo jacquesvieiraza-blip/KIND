@@ -1008,10 +1008,39 @@ export default function MillaWelcomePage() {
     // now marks **Brief** current during onboarding, which is where this client actually is.
     <div className="h-full flex flex-col bg-[#faf8ff] text-[#1f1235] overflow-hidden">
       <div className="flex-1 flex overflow-hidden">
-        {/* conversation */}
-        <section className="flex-1 min-w-0 flex flex-col">
-          <div ref={bodyRef} className="flex-1 overflow-y-auto px-6 py-5">
-            <div className="max-w-2xl mx-auto space-y-3">
+        {/* ── 🛑 ⚑ 22 Sep — MILLA IS A COLUMN, THE WORKSPACE IS THE SCREEN ────────────────
+             ⛓️ WAS: ~~`<section className="flex-1 min-w-0 flex flex-col">`~~ beside a 420px
+             panel — which was right while this page owned the whole viewport and wrong the
+             moment it became a panel inside the shell. The conversation took every spare
+             pixel, so one message floated at the top of a vast empty field with the composer
+             stranded at the bottom of the screen, and the targeting panel was a narrow strip.
+
+             🛑 THE APPROVED PORTAL IS THE OTHER WAY ROUND, and it is the same shape the
+             shell's own conversation has always used: Milla is a FIXED 600px column with her
+             own header, and the working area beside her is what grows. A conversation column
+             past ~600px is 170+ characters a line, which reads badly however full it is.
+
+             ⚠️ FULL WIDTH ON A PHONE, 600px ABOVE THE BREAKPOINT — byte-identical to
+             `MillaConversation`'s own column, so the first run and every later screen are the
+             same object at every width rather than two things that resemble each other. */}
+        <section className="w-full md:w-[600px] shrink-0 border-r border-[#eee7f7] bg-white flex flex-col min-h-0">
+          {/* ⚑ 22 Sep — HER HEADER, RESTORED WHERE IT BELONGS. The page's own 54px header went
+              when the shell's account bar took over, and it took this with it: the client was
+              left talking to an unlabelled box. This is the conversation's header, not the
+              page's — the same one `MillaConversation` draws, so she is introduced the same
+              way on the first screen as on the other nine. */}
+          <div className="flex items-center gap-2.5 px-4 py-3 border-b border-[#eee7f7] shrink-0">
+            <img src="/agents/milla.png" alt="" className="w-7 h-7 rounded-lg object-cover object-top" />
+            <div className="min-w-0 truncate">
+              <b className="text-[15px]">Milla</b>
+              <span className="text-[#9b8ec4] text-[12.5px]"> · conversational &amp; strategic</span>
+            </div>
+            <span className="ml-auto shrink-0 text-[12.5px] font-semibold text-[#9b8ec4] inline-flex items-center gap-1.5 whitespace-nowrap">
+              <span className="w-2 h-2 rounded-full bg-[#c9bee6]" /> Outreach hasn&rsquo;t started
+            </span>
+          </div>
+          <div ref={bodyRef} className="flex-1 overflow-y-auto px-4 py-4">
+            <div className="space-y-3">
               {messages.map((m, i) => (
                 <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                   <div className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-[13.5px] leading-relaxed ${m.role === 'user' ? 'bg-[#1f1235] text-white' : 'bg-white border border-[#eee7f7]'}`}>{m.content}</div>
@@ -1114,15 +1143,24 @@ export default function MillaWelcomePage() {
         </section>
 
         {/* proposal */}
-        <aside className="w-[420px] shrink-0 border-l border-[#eee7f7] bg-white overflow-y-auto">
+        {/* ⚑ 22 Sep — THE WORKSPACE IS THE SCREEN, not a 420px strip beside a conversation
+             that had taken everything. `flex-1` here and a fixed column to its left is the
+             approved portal shape, and the same one Home uses. */}
+        <aside className="flex-1 min-w-0 bg-[#faf8ff] overflow-y-auto">
           {/* ── 🛑 ⚑ 16 Sep (S1-ONB-001) — THE SERVER'S STATE GATES THE PANEL ────────────
                `proposed` is the plan's CONTENT — the provider-translated arrays, which exist
                nowhere but a completion reply. `serverReady` is the AUTHORITY. Both are
                required: content without authority is what rendered a finished plan and a live
                Confirm button above "Based in — still needed". */}
           {!(serverReady && proposed) ? (
-            <div className="p-6 text-[13px] text-[#9b8ec4] leading-relaxed">
-              <div className="text-[15px] font-bold text-[#1f1235] mb-2">Your targeting plan</div>
+            /* ⚑ 22 Sep — A WORKSPACE CARD, NOT A SIDEBAR. Styled for a 420px strip, this read
+               as a column of notes; on the approved portal the working area is the screen, so
+               it is a bordered card on the panel ground — the same shape Home's workspace and
+               the Complete screen's "Final programme" use. */
+            <div className="p-5 text-[13px] text-[#5c5279] leading-relaxed">
+              <div className="bg-white border border-[#eee7f7] rounded-xl">
+              <div className="px-5 py-4 border-b border-[#eee7f7]">
+                <div className="text-[15px] font-bold text-[#1f1235]">Your targeting plan</div>
               {/* ⛓️ 30 Aug (BUILD-004A-1 live-walk, FOUNDER DECISION 4) — FOUNDER'S EXACT
                   WORDS. This read: "a recommended **credit plan** here. You approve before
                   anything starts." Retired on both counts — "credit plan" is the wallet/pack
@@ -1131,8 +1169,10 @@ export default function MillaWelcomePage() {
                   product, before they had seen a single person.
                   ⚠️ `&rsquo;` not a literal ’ — this is a JSX text node and every other
                   apostrophe in this file is written the same way. */}
+              </div>
+              <div className="px-5 py-4">
               {targeting.length === 0 ? (
-                <>As we chat, Milla builds your <b>ICP</b> (who to target) and a recommended <b>programme</b> here. You&rsquo;ll review it before anything starts.</>
+                <span className="text-[#9b8ec4]">As we chat, Milla builds your <b>ICP</b> (who to target) and a recommended <b>programme</b> here. You&rsquo;ll review it before anything starts.</span>
               ) : (
                 <>
                   {/* ── 🛑 ⚑ 22 Sep — WHAT SHE UNDERSTOOD, AND WHAT WE WILL ACTUALLY SEARCH ON ──
@@ -1145,8 +1185,10 @@ export default function MillaWelcomePage() {
                       "around twenty to fifty" resolve to two bands can say so in the next
                       sentence; the same mistake found after a run has already shaped a
                       search and cost a pass. */}
-                  <div className="mb-3">So far, in your words — and what I&rsquo;ll search on:</div>
-                  <div className="flex flex-col gap-2.5">
+                  <div className="mb-3 text-[#9b8ec4]">So far, in your words — and what I&rsquo;ll search on:</div>
+                  {/* ⚠️ TWO COLUMNS ABOVE THE BREAKPOINT. The panel is the working area now, so
+                      a single stack of cards left two thirds of it empty. */}
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-2.5">
                     {targeting.map(t => (
                       <div key={t.id} className="rounded-[10px] border border-[#eee7f7] bg-[#faf8ff] px-3 py-2.5">
                         <div className="text-[10px] font-extrabold uppercase tracking-[0.09em] text-[#9b8ec4]">{t.label}</div>
@@ -1173,6 +1215,8 @@ export default function MillaWelcomePage() {
                   </div>
                 </>
               )}
+              </div>
+              </div>
             </div>
           ) : (
             <div className="p-6">

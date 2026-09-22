@@ -3377,15 +3377,31 @@ icpRouter.get('/:id/capacity', async (req: AuthRequest, res) => {
       .eq('client_id', clientId).eq('icp_id', icp.id)
       .like('set_aside_reason', 'excluded:%')
 
+    // ── 🛑 ⚑ 22 Sep — EVERYONE WE HAVE ALREADY SOURCED FOR THEM IS OUT OF THE POOL ──────
+    //
+    // 🛑 FOUNDER-LOCKED: *"we only count the unworked amount."* And it is harder than a
+    // conversion argument: the sourcing loop REFUSES a contact it already holds a lead row
+    // for — `leads` keyed on `(client_id, apollo_id)`, logged as "already owned by this
+    // client" — so these people cannot be served again at all. Counting them would promise
+    // meetings against humans the product will decline to hand over.
+    //
+    // ⚠️ CLIENT-WIDE, NOT ICP-SCOPED. The dedupe is `(client_id, apollo_id)` with no ICP in
+    // it, so a person sourced under an older targeting is still unavailable under this one.
+    // Scoping this count to `icp_id` would count them as fresh and re-create the gap.
+    const { count: worked } = await db.from('leads')
+      .select('id', { count: 'exact', head: true })
+      .eq('client_id', clientId)
+
     const preview = await previewCount(icp as Parameters<typeof previewCount>[0], 'client')
     const matched = typeof preview?.count === 'number' ? preview.count : 0
-    const cap = poolCapacity(matched, excluded ?? 0)
+    const cap = poolCapacity(matched, excluded ?? 0, worked ?? 0)
 
     res.json({
       success: true,
       data: {
         matched,
         excluded: excluded ?? 0,
+        already_worked: worked ?? 0,
         workable: cap.workable,
         committed: cap.committed,
         // ⚠️ AN HONEST NULL, NEVER A ZERO DRESSED AS AN ANSWER. If the provider could not be

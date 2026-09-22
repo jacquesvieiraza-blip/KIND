@@ -601,6 +601,30 @@ export async function markBriefDraftPromoted(
  * ⚠️ AND NEVER ONE PERSON TWICE. A promoted draft is excluded by the same condition that makes
  * it evidence, so the moment a draft becomes a client it stops being a draft row on the rail.
  */
+/**
+ * One draft by its id — the operator's read.
+ *
+ * ⚑ 22 Sep. Vida's Brief panel is per-draft, and the facts it needs (the derived targeting,
+ * the provisional cap) are one provider round trip each — so they cannot ride on the LIST
+ * without firing one per open draft every time an operator opens the page.
+ *
+ * ⚠️ IT DOES NOT FILTER ON `promoted_client_id`. `openBriefDrafts` shows the operator the
+ * queue, which is legitimately the unpromoted ones; asked for a SPECIFIC draft, refusing to
+ * return a promoted one would render as "unknown draft" for a client who simply confirmed
+ * while the panel was open. The caller decides what a sealed draft means.
+ *
+ * ⚠️ FAILS TO `null`, LIKE ITS SIBLING. An unreadable row is not a missing one, but every
+ * caller here renders a read failure as "nothing to show" rather than acting on it.
+ */
+export async function briefDraftById(id: string): Promise<BriefDraft | null> {
+  try {
+    const { data, error } = await db.from('onboarding_brief_drafts')
+      .select(COLUMNS).eq('id', id).maybeSingle()
+    if (error || !data) return null
+    return toDraft(data as unknown as Row)
+  } catch { return null }
+}
+
 export async function openBriefDrafts(limit = 50): Promise<BriefDraft[]> {
   try {
     const { data, error } = await db.from('onboarding_brief_drafts')

@@ -106,6 +106,91 @@ operatorRouter.get('/brief-drafts', async (_req: Request, res: Response) => {
   })
 })
 
+// ══════════════════════════════════════════════════════════════════════════════════════════
+// 🛑 ONE DRAFT'S FACTS — what will be sent, and what the pool would carry, BEFORE they confirm
+//
+// ── WHY THIS IS KEYED ON THE DRAFT AND NOT ON A CLIENT ──────────────────────────────────
+//
+// 🛑 AT BRIEF THERE IS NO CLIENT ROW. It is written at CONFIRM, so `/operator/clients/:id/...`
+// cannot answer anything about a client mid-Brief — and the locked Vida panel for that exact
+// moment shows both the provider fields and a provisional cap. Keying this on the draft is
+// the only way those panels can exist at the stage they were drawn for.
+//
+// ⚠️ IT IS PER-DRAFT, NOT ON THE LIST. `previewCount` is one provider round trip; putting it
+// in `/brief-drafts` would fire one per open draft every time an operator opened Vida. Free
+// is not the same as free to abuse, and the route is rate-limited for the client's side too.
+//
+// ⚠️ THE DERIVATION IS PROMOTION'S OWN. `icpFromDraft` is what the confirm will persist, so
+// the operator is looking at the targeting that is ACTUALLY about to be stored — not a second
+// reading of the same facts that agrees today and drifts later.
+operatorRouter.get('/brief-drafts/:id/facts', async (req: Request, res: Response) => {
+  try {
+    const { briefDraftById } = await import('../lib/brief-draft')
+    const draft = await briefDraftById(req.params.id)
+    if (!draft) { res.status(404).json({ success: false, error: 'Unknown draft' }); return }
+
+    const { icpFromDraft } = await import('../lib/promotion')
+    const { buildSearchBody, previewCount } = await import('../lib/apollo')
+    const { poolCapacity } = await import('@kind/shared')
+
+    const icp = icpFromDraft(draft)
+    const list = (k: string): string[] =>
+      Array.isArray(icp[k]) ? (icp[k] as unknown[]).filter((x): x is string => typeof x === 'string') : []
+
+    const sent = buildSearchBody({
+      job_titles: list('job_titles'), seniority_levels: list('seniority_levels'),
+      company_sizes: list('company_sizes'), geographies: list('geographies'),
+      industries: [], tech_stack: [], keywords: [], apollo_only_consented: true,
+    }, 1)
+    const body = sent as unknown as Record<string, unknown>
+    const at = (k: string): string[] => (Array.isArray(body[k]) ? (body[k] as string[]) : [])
+
+    // ⚠️ NO SEARCH IS RUN ON AN EMPTY TARGETING. "Everybody" is not a fact about this client,
+    // and a provisional cap derived from it would be a number that means nothing.
+    const hasTargeting = ['person_titles', 'person_seniorities',
+      'organization_num_employees_ranges', 'person_locations'].some(k => at(k).length > 0)
+    const preview = hasTargeting
+      ? await previewCount(icp as Parameters<typeof previewCount>[0], 'house')
+      : null
+    const matched = typeof preview?.count === 'number' ? preview.count : 0
+
+    // 🛑 NOTHING HAS BEEN SOURCED FOR A DRAFT, BY DEFINITION — no client row means no leads,
+    // so both subtractions are zero here and the cap is PROVISIONAL in the honest sense: it
+    // is the whole market, before their exclusions have been applied to real companies.
+    const cap = poolCapacity(matched, 0, 0)
+
+    res.json({
+      success: true,
+      data: {
+        provider: [
+          { field: 'person_titles', values: at('person_titles') },
+          { field: 'person_seniorities', values: at('person_seniorities') },
+          { field: 'organization_num_employees_ranges', values: at('organization_num_employees_ranges') },
+          { field: 'person_locations', values: at('person_locations') },
+          { field: 'ranking signal (not sent as a filter)', values: list('industries').length
+            ? list('industries')
+            : (typeof icp.name === 'string' && icp.name && icp.name !== 'Core ICP' ? [icp.name] : []) },
+          { field: 'client exclusions', values: typeof icp.exclusions === 'string' && icp.exclusions
+            ? [icp.exclusions] : [] },
+        ],
+        matched,
+        // The operator half — the buffer is visible to us and never to them.
+        committed: cap.committed,
+        benchmark: cap.benchmark,
+        headroom: cap.headroom,
+        known: hasTargeting && preview?.error == null,
+        // ⚠️ AT BRIEF THESE ARE ZERO AS A FACT, not as an absence of instrumentation. Apollo's
+        // People Search is free and ledgers nothing; the first ledger row is the paid reveal.
+        spend: { batches: 0, records: 0, usd: 0 },
+      },
+    })
+  } catch (err) {
+    console.error('[operator/brief-draft-facts]', err)
+    res.status(500).json({ success: false, error: 'Failed to load draft facts' })
+  }
+})
+
+
 operatorRouter.get('/clients', async (_req: Request, res: Response) => {
   try {
     // ⚑ MVP1 — `user_id` IS IN THE PROJECTION so the rail can reconcile the two sources it
@@ -630,6 +715,183 @@ operatorRouter.get('/clients/:id/recent-leads', async (req: Request, res: Respon
   } catch (err) {
     console.error('[operator/recent-leads]', err)
     res.status(500).json({ success: false, error: 'Failed to load leads' })
+  }
+})
+
+
+// ══════════════════════════════════════════════════════════════════════════════════════════
+// 🛑 THE OPERATOR'S VIEW OF THE POOL — including the two numbers a client may never see
+//
+//     "we do 400. but present 250 to the client. we build buffer only we know."
+//
+// ── WHY THIS IS A SEPARATE ROUTE FROM THE CLIENT'S ─────────────────────────────────────
+//
+// `GET /icps/:id/capacity` deliberately withholds `benchmark` and `headroom`; a guard asserts
+// they are not even in its response. That is the founder's buffer rule, and widening that
+// route with an `audience` flag would put the withheld numbers one boolean away from a client
+// screen. Two routes, two audiences, and the client's one cannot be made to leak by any
+// caller.
+//
+// ⚠️ THE ARITHMETIC IS THE SAME ARITHMETIC. `poolCapacity` in `@kind/shared` answers both, so
+// what Vida sees and what Milla sees are the same derivation on the same inputs — never two
+// readings of one pool that could disagree in front of an operator trying to explain it.
+//
+// ⚠️ AND IT COSTS NOTHING. People Search is free; the reveal is the cost and is not here.
+// ══════════════════════════════════════════════════════════════════════════════════════════
+// 🛑 WHAT VIDA SHOWS AT BRIEF — the facts, and what will actually be sent to the provider
+//
+// ── WHY THE OPERATOR NEEDS THE PROVIDER VALUES AND NOT OUR LABELS ───────────────────────
+//
+// The locked Vida panel prints `person_seniorities: c_suite · vp · director`, not "C-Suite".
+// That is the whole point of the panel: an operator asked *why did this client's search
+// return those people* needs to see the REQUEST, not a friendly restatement of it. So this
+// runs `buildSearchBody` — the actual request builder — exactly as the client's own Brief
+// panel does, and prints what comes out.
+//
+// ⚠️ IT MAKES NO NETWORK CALL. `buildSearchBody` is a pure object builder; `searchPeople` is
+// what talks to Apollo and is not here.
+//
+// ── SPEND AND RECORDS ARE THE LEDGER'S, NOT A COUNT OF ROWS ─────────────────────────────
+//
+// ⚠️ THE LOCKED TILE SAYS "PROVIDER CALLS". `sourcing_ledger` records GRANTED BATCHES with
+// their record count and cost — it does not count HTTP requests, and nothing in this codebase
+// does. So both numbers are returned under the names the data actually supports (`batches`,
+// `records`) and the panel labels them honestly. Reported rather than relabelled: calling a
+// batch count "provider calls" would be a number that looks precise and is not.
+//
+// ⚠️ AND APOLLO'S PEOPLE SEARCH IS NOT IN IT AT ALL, because it is free and ledgers nothing.
+// At Brief and Proof these read zero, which is the truth the preview shows — not an absence
+// of instrumentation.
+operatorRouter.get('/clients/:id/brief-facts', async (req: Request, res: Response) => {
+  try {
+    const client = await requireClient(req.params.id)
+    if (!client) { res.status(404).json({ success: false, error: 'Unknown client_id' }); return }
+
+    const { buildSearchBody } = await import('../lib/apollo')
+
+    const [icpRes, ledgerRes] = await Promise.all([
+      db.from('icps').select('*').eq('client_id', client.id)
+        .order('created_at', { ascending: false }).limit(1).maybeSingle(),
+      db.from('sourcing_ledger').select('records, cost_usd').eq('client_id', client.id),
+    ])
+    if (icpRes.error) {
+      res.status(500).json({ success: false, error: `Could not read targeting: ${icpRes.error.message}` })
+      return
+    }
+    // ⚠️ AN UNREADABLE LEDGER IS NOT "$0 SPENT". Answering zero for a failed read is the
+    // "no leads yet" defect this file already carries a note about, applied to money.
+    if (ledgerRes.error) {
+      res.status(500).json({ success: false, error: `Could not read spend: ${ledgerRes.error.message}` })
+      return
+    }
+    const rows = (ledgerRes.data ?? []) as { records: number | null; cost_usd: number | null }[]
+    const spend = {
+      batches: rows.length,
+      records: rows.reduce((n, r) => n + (Number(r.records) || 0), 0),
+      usd: rows.reduce((n, r) => n + (Number(r.cost_usd) || 0), 0),
+    }
+
+    const icp = icpRes.data as Record<string, unknown> | null
+    const list = (k: string): string[] =>
+      icp && Array.isArray(icp[k]) ? (icp[k] as unknown[]).filter((x): x is string => typeof x === 'string') : []
+
+    const sent = icp
+      ? buildSearchBody({
+        job_titles: list('job_titles'), seniority_levels: list('seniority_levels'),
+        company_sizes: list('company_sizes'), geographies: list('geographies'),
+        industries: [], tech_stack: [], keywords: [], apollo_only_consented: true,
+      }, 1)
+      : null
+    // ⚠️ `unknown` FIRST. `ApolloSearchBody` is a declared shape with no index signature, so
+    // a direct cast to a string-keyed record is the kind TypeScript rightly refuses.
+    const body = (sent ?? {}) as unknown as Record<string, unknown>
+    const at = (k: string): string[] =>
+      Array.isArray(body[k]) ? (body[k] as string[]) : []
+
+    res.json({
+      success: true,
+      data: {
+        // 🛑 THE FIELD NAMES ARE APOLLO'S, DELIBERATELY. This is an operator surface; the
+        // client's own panel gets plain English and the same values.
+        provider: [
+          { field: 'person_titles', values: at('person_titles') },
+          { field: 'person_seniorities', values: at('person_seniorities') },
+          { field: 'organization_num_employees_ranges', values: at('organization_num_employees_ranges') },
+          { field: 'person_locations', values: at('person_locations') },
+          // ⚠️ NOT SENT, AND SAYING SO IS THE POINT. The client's category ORDERS the results
+          // and never filters them (22 Sep); an operator reading this panel has to be able to
+          // see that it left the request rather than wonder where it went.
+          { field: 'ranking signal (not sent as a filter)', values: list('industries').length
+            ? list('industries')
+            : (typeof icp?.name === 'string' && icp.name ? [icp.name as string] : []) },
+          { field: 'client exclusions', values: typeof icp?.exclusions === 'string' && icp.exclusions
+            ? [icp.exclusions as string] : [] },
+        ],
+        spend,
+      },
+    })
+  } catch (err) {
+    console.error('[operator/brief-facts]', err)
+    res.status(500).json({ success: false, error: 'Failed to load brief facts' })
+  }
+})
+
+
+operatorRouter.get('/clients/:id/capacity', async (req: Request, res: Response) => {
+  try {
+    const client = await requireClient(req.params.id)
+    if (!client) { res.status(404).json({ success: false, error: 'Unknown client_id' }); return }
+
+    const { data: icp, error: icpErr } = await db.from('icps')
+      .select('*').eq('client_id', client.id)
+      .order('created_at', { ascending: false }).limit(1).maybeSingle()
+    if (icpErr) {
+      res.status(500).json({ success: false, error: `Could not read targeting: ${icpErr.message}` })
+      return
+    }
+    if (!icp) { res.json({ success: true, data: null }); return }
+
+    const { previewCount } = await import('../lib/apollo')
+    const { poolCapacity } = await import('@kind/shared')
+
+    // The same two subtractions the client's route makes, from the same columns.
+    const [{ count: excluded }, { count: worked }] = await Promise.all([
+      db.from('leads').select('id', { count: 'exact', head: true })
+        .eq('client_id', client.id).eq('icp_id', icp.id).like('set_aside_reason', 'excluded:%'),
+      db.from('leads').select('id', { count: 'exact', head: true }).eq('client_id', client.id),
+    ])
+
+    // ⚠️ SET ASIDE BY US, COUNTED SEPARATELY AND NOT SUBTRACTED. The locked Vida panel reads
+    // "SET ASIDE 0 · no one was removed by us", which is the operator's evidence that the
+    // product is not quietly shrinking a client's market on its own opinion. It is a DIFFERENT
+    // number from `excluded` — that one is the client's own instruction.
+    const { count: setAside } = await db.from('leads')
+      .select('id', { count: 'exact', head: true })
+      .eq('client_id', client.id).eq('icp_id', icp.id)
+      .not('set_aside_reason', 'is', null)
+
+    const preview = await previewCount(icp as Parameters<typeof previewCount>[0], 'house')
+    const matched = typeof preview?.count === 'number' ? preview.count : 0
+    const cap = poolCapacity(matched, excluded ?? 0, worked ?? 0)
+
+    res.json({
+      success: true,
+      data: {
+        matched,
+        excluded: excluded ?? 0,
+        already_worked: worked ?? 0,
+        set_aside: Math.max(0, (setAside ?? 0) - (excluded ?? 0)),
+        workable: cap.workable,
+        // 🛑 THE OPERATOR HALF. Never returned by the client's route.
+        committed: cap.committed,
+        benchmark: cap.benchmark,
+        headroom: cap.headroom,
+        known: preview?.error == null,
+      },
+    })
+  } catch (err) {
+    console.error('[operator/capacity]', err)
+    res.status(500).json({ success: false, error: 'Capacity could not be established' })
   }
 })
 

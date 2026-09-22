@@ -54,20 +54,37 @@ export const LEADS_PER_MEETING_WORST_CASE = 400
 
 /**
  * The workable pool: everyone the search matched, minus the companies the client told us to
- * leave out.
+ * leave out, minus everyone we have already sourced for this client.
  *
- * ⚠️ EXCLUSIONS ARE THE ONLY SUBTRACTION. Not people we judged a poor fit, not unknowns, not
- * a category mismatch — those are all still real people we can contact, ranked lower. The one
- * thing that genuinely removes somebody is an instruction the client gave us, which is the
- * same rule `removalCriterion` enforces on the row.
+ * ── 🛑 ⚑ 22 Sep — THE THIRD SUBTRACTION, AND IT WAS MISSING ──────────────────────────────
  *
- * ⚠️ CLAMPED AT ZERO. A larger exclusion count than matched count is nonsense rather than a
- * negative pool, and a negative pool would produce a negative capacity that reads as a number.
+ * ⛓️ WAS: ~~`workablePool(matched, excluded)`~~ — matched minus exclusions, full stop. That
+ * shipped, and it over-promises on a client's SECOND programme.
+ *
+ * 🛑 FOUNDER-LOCKED 22 Sep: *"we only count the unworked amount. and if we dont have enough
+ * we tll the client improve your ICP. Widen your target market."*
+ *
+ * 🛑 AND THE REASON IS HARDER THAN "THEY ALREADY HAD OUR EMAIL". The sourcing loop REFUSES a
+ * person it has already created a lead row for — `leads` keyed on `(client_id, apollo_id)`,
+ * counted as `removedByDedupe` and logged as *"already owned by this client"*. So those
+ * people are not merely less likely to convert the second time: **they cannot be served
+ * again at all.** Counting them would promise meetings against humans the product itself
+ * will decline to hand over — which is the precise failure the 400 exists to prevent.
+ *
+ * ⚠️ A SET-ASIDE ROW STILL COUNTS AS WORKED, because the dedupe does not care why the row
+ * exists. Anyone with a lead row is unavailable, refused or not.
+ *
+ * ⚠️ EXCLUSIONS AND ALREADY-WORKED ARE THE ONLY TWO SUBTRACTIONS. Not people we judged a poor
+ * fit, not unknowns, not a category mismatch — those are real people we can still contact,
+ * ranked lower. What removes somebody is an instruction the client gave us, or the fact that
+ * we have already used them.
+ *
+ * ⚠️ CLAMPED AT ZERO. Subtractions larger than the match are nonsense rather than a negative
+ * pool, and a negative pool would produce a negative capacity that reads as a number.
  */
-export function workablePool(matched: number, excluded = 0): number {
-  const m = Number.isFinite(matched) ? Math.max(0, Math.floor(matched)) : 0
-  const e = Number.isFinite(excluded) ? Math.max(0, Math.floor(excluded)) : 0
-  return Math.max(0, m - e)
+export function workablePool(matched: number, excluded = 0, alreadyWorked = 0): number {
+  const n = (v: number) => (Number.isFinite(v) ? Math.max(0, Math.floor(v)) : 0)
+  return Math.max(0, n(matched) - n(excluded) - n(alreadyWorked))
 }
 
 /**
@@ -104,8 +121,8 @@ export interface PoolCapacity {
   headroom: number
 }
 
-export function poolCapacity(matched: number, excluded = 0): PoolCapacity {
-  const workable = workablePool(matched, excluded)
+export function poolCapacity(matched: number, excluded = 0, alreadyWorked = 0): PoolCapacity {
+  const workable = workablePool(matched, excluded, alreadyWorked)
   const committed = committedCapacity(workable)
   const benchmark = benchmarkMeetings(workable)
   return { workable, committed, benchmark, headroom: Math.max(0, benchmark - committed) }

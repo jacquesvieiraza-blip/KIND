@@ -3,7 +3,6 @@ export const dynamic = 'force-dynamic'
 import { createClient } from '@/lib/supabase/server'
 import { api } from '@/lib/api'
 import { FirstRunChecklist } from '@/components/ui/FirstRunChecklist'
-import { OneWalletExplainer } from '@/components/ui/OneWalletExplainer'
 import { ActivityFeed, type ActivityEvent } from '@/components/ui/ActivityFeed'
 import { WelcomeVideoCard } from '@/components/onboarding/WelcomeVideoCard'
 import { LearningCentre } from '@/components/onboarding/LearningCentre'
@@ -182,10 +181,19 @@ export default async function DashboardPage() {
         />
       )}
 
-      {/* One-wallet explainer (#447) — shows until the first wallet top-up. */}
-      {clientId && (
-        <OneWalletExplainer clientId={clientId} hasPurchase={onboarding?.hasPurchase ?? false} />
-      )}
+      {/* ── 🛑 ⚑ 22 Sep — THE ONE-WALLET EXPLAINER IS GONE ───────────────────────────────
+          ⛓️ WAS: ~~`<OneWalletExplainer … />`~~ (#447), shown until the first wallet top-up.
+
+          🛑 IT WAS UNGATED, AND IT NAMED THE RETIRED PRICE. Its copy reads "One wallet. $299
+          to start, then free top-ups whenever you need them." Every other retired-model
+          element on this page obeys `retiredWalletChrome`; this one obeyed nothing, so it
+          taught the $299 pack to any client who reached this screen — including one who has
+          only ever been sold booked meetings. Founder-locked 22 Sep: "the last thing i need
+          is the 299 model stale in the background of the portals."
+
+          ⚠️ REMOVED RATHER THAN GATED. A gate would keep a component whose only purpose is to
+          explain economics the product no longer has; there is no state in which a client
+          should be told about a wallet. */}
 
       {/* FIGSY conversation — tour anchor: step 1 "Welcome" points here (#454). */}
       <div data-tour="figsy-card">

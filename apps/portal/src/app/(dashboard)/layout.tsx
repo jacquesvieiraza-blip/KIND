@@ -158,8 +158,26 @@ export default async function DashboardLayout({ children }: { children: React.Re
   try {
     const { data: modelRow, error: modelErr } = await supabase
       .from('clients').select('commercial_model').eq('user_id', user.id).maybeSingle()
-    retiredWalletChrome = !modelErr && !!modelRow
-      && (modelRow as { commercial_model: string | null }).commercial_model !== 'programme'
+    // ── 🛑 ⚑ 22 Sep — THE DEFAULT IS NOW SUPPRESS, AND THAT IS THE WHOLE CHANGE ──────────
+    //
+    // ⛓️ WAS: ~~`!!modelRow && commercial_model !== 'programme'`~~ — true for a NULL model,
+    // which the note above states plainly is *"the entire live book"*. So the retired
+    // economics were the DEFAULT and being on the programme was the exception you had to be
+    // declared into.
+    //
+    // 🛑 FOUNDER-LOCKED 22 Sep: *"the last thing i need is the 299 model stale in the
+    // background of the portals."* A client signing up today has a NULL `commercial_model`
+    // and was therefore shown a $299 wallet and a $4-per-lead tooltip for a model that no
+    // longer exists. Retired means retired: it now renders ONLY for a client somebody has
+    // explicitly declared into a non-programme model.
+    //
+    // ⚠️ AND AN UNREADABLE MODEL STILL SUPPRESSES — unchanged, and now the same direction as
+    // the default rather than the opposite of it. "We could not tell" was never permission to
+    // teach retired economics; it is no longer permission by omission either.
+    const declared = !modelErr
+      ? (modelRow as { commercial_model: string | null } | null)?.commercial_model ?? null
+      : null
+    retiredWalletChrome = declared !== null && declared !== 'programme'
   } catch { retiredWalletChrome = false }
 
   // Shared content (same for both layouts) — avoids duplication.

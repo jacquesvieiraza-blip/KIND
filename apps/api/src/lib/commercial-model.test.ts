@@ -462,7 +462,15 @@ describe('④ the resolver is consumed at every path that sources, sends, enrols
     const layout = strip(readFileSync(LAYOUT, 'utf8'))
     expect(layout, 'the model is read once, in its own isolated query')
       .toMatch(/from\('clients'\)\.select\('commercial_model'\)/)
-    expect(layout).toMatch(/commercial_model !== 'programme'/)
+    // ⛓️ 22 Sep — WAS: `commercial_model !== 'programme'` ALONE, which is TRUE for a NULL
+    // model — and this file's own note says NULL is "the entire live book". So retired
+    // economics were the DEFAULT and the programme was the exception a client had to be
+    // declared into. Founder-locked 22 Sep: *"the last thing i need is the 299 model stale in
+    // the background of the portals."* Retired means retired: it renders only for a client
+    // somebody has explicitly declared into a non-programme model.
+    expect(layout, 'the programme comparison is gone').toMatch(/!== 'programme'/)
+    expect(layout, 'a client with NO declared model is shown retired economics again')
+      .toMatch(/declared !== null && declared !== 'programme'/)
     // ONE boolean, and every retired-economics element obeys it.
     for (const el of ['<TrialExpiredOverlay', '<LowCreditsNotice', '<KeepFigsyFundedNudge']) {
       const i = layout.indexOf(el)
@@ -474,7 +482,9 @@ describe('④ the resolver is consumed at every path that sources, sends, enrols
     expect(layout, 'and the sidebar is told').toContain('showWallet={retiredWalletChrome}')
 
     // ⚠️ AN UNREADABLE MODEL SUPPRESSES — the same direction as every other C2 decision.
-    expect(layout).toMatch(/retiredWalletChrome = !modelErr && !!modelRow/)
+    // ⛓️ 22 Sep — the read still fails into SUPPRESS; what changed is that suppress is now
+    // also where an ABSENT model lands, so "we could not tell" and "nobody said" agree.
+    expect(layout, 'an unreadable model no longer resolves to nothing').toMatch(/!modelErr/)
     expect(layout).toMatch(/catch \{ retiredWalletChrome = false \}/)
 
     // ⚠️ AND NOTHING IS REMOVED FOR A LEGACY CLIENT. The sidebar prop defaults to `true`, so

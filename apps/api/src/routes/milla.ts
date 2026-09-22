@@ -702,8 +702,17 @@ async function briefReadModel(userId: string): Promise<Record<string, unknown>> 
   )
 }
 
-/** The shape, from facts already in hand — so a writer that just saved need not re-read. */
-function briefReadModelFrom(
+/**
+ * The shape, from facts already in hand — so a writer that just saved need not re-read.
+ *
+ * ⚑ 22 Sep — EXPORTED, AND ONLY SO THE PANEL CAN BE PROVED BY RUNNING IT. The defect this
+ * function carried for a month — an empty draft producing NO targeting rows, so the client's
+ * first screen had nothing on it — was invisible to every source-scanning guard in the repo,
+ * because the bug was in what the code DID, not in what it said. It is pure and synchronous
+ * (that is why `labels` and `icpFrom` are parameters), so a test can call it with a blank
+ * draft and count the rows. No route behaviour changes: both verbs still call it internally.
+ */
+export function briefReadModelFrom(
   draft: Awaited<ReturnType<typeof import('../lib/brief-draft')['briefDraftFor']>>,
   progress: { missing: string[] } & Record<string, unknown>,
   onboarding: { state: unknown; unresolvedLabels: unknown },
@@ -737,6 +746,11 @@ function briefReadModelFrom(
       product: onboardingText('what_they_do'),
       bad_fit: onboardingText('exclusions'),
     },
+    // ⚑ 22 Sep — THE OUTCOME TILE'S ONE SOURCE. The approved portal leads the workspace with
+    // what the client is trying to ACHIEVE, in their words, before any targeting detail —
+    // and it is the client's own `desired_outcome` fact, never a sentence we compose about
+    // them. Empty string is the locked empty state ("Not set yet"), not a missing field.
+    onboarding_outcome: onboardingText('desired_outcome'),
     // ── 🛑 ⚑ 22 Sep — WHAT THEY SAID, AND WHAT WE WILL ACTUALLY SEARCH ON ────────────────
     //
     // 🛑 FOUNDER-LOCKED 22 Sep: *"they speak there and see there."* A client could talk to
@@ -757,24 +771,63 @@ function briefReadModelFrom(
     // in the provider's closed list is used to ORDER results rather than to filter them, and
     // exclusions never reach a search at all because they remove people rather than find any.
     ...(() => {
-      const icp = targetingFromDraft(draft)
-      if (!icp) return { onboarding_targeting: [], onboarding_search: null }
+      // ── 🛑 ⚑ 22 Sep — THE SIX FIELDS ARE THE WORKSPACE, SO THEY ALWAYS EXIST ───────────
+      //
+      // ⛓️ WAS: ~~`if (!icp) return { onboarding_targeting: [] … }`~~ followed by
+      // ~~`.filter(r => r.said !== '' || r.sending.length > 0)`~~ — the two lines that made
+      // the locked landing screen impossible to render.
+      //
+      // 🛑 THE DEFECT THEY CAUSED, EXACTLY. A client who has just signed up has no draft, so
+      // the first branch returned an EMPTY LIST; a client three answers in had four empty
+      // rows, so the filter DROPPED them. Either way the panel could only ever show a field
+      // that was already answered — and the approved portal's first screen is six LABELLED,
+      // EMPTY fields reading "Milla will fill this". The workspace is the thing the client
+      // watches fill up. A workspace that does not exist until it is full cannot do that, and
+      // what the founder actually landed on was one sentence in a white box.
+      //
+      // ⚠️ SO THE LIST IS FIXED AND ITS LENGTH IS CONSTANT. Six rows, in the approved order,
+      // present before a single word has been spoken. `said`/`sending` empty is the EMPTY
+      // STATE — a real state the panel renders — never a reason to omit the field.
+      //
+      // ⚠️ `placeholder` IS THE SERVER'S, like every other word here. This read model's own
+      // rule is that the portal learns nothing about our vocabulary, so the copy for an
+      // unanswered field is sent rather than reconstructed from the row's id — otherwise the
+      // portal would need to know that `exclusions` is the one field Milla ASKS for rather
+      // than derives, which is exactly the knowledge this boundary exists to withhold.
+      const icp = (targetingFromDraft(draft) ?? {}) as Record<string, unknown>
       const list = (k: string): string[] =>
         Array.isArray(icp[k]) ? (icp[k] as unknown[]).filter((x): x is string => typeof x === 'string') : []
-      const row = (id: string, label: string, said: string, sending: string[], note?: string) =>
-        ({ id, label, said, sending, ...(note ? { note } : {}) })
+      const row = (id: string, label: string, said: string, sending: string[], placeholder: string, note?: string) =>
+        ({ id, label, said, sending, placeholder, ...(note ? { note } : {}) })
+      const FILL = 'Milla will fill this'
       return {
         onboarding_targeting: [
-          row('target_roles',    'Job titles',   onboardingText('target_roles'),    list('job_titles')),
-          row('seniority',       'Seniority',    onboardingText('target_roles'),    list('seniority_levels')),
-          row('company_size',    'Employees',    onboardingText('company_size'),    list('company_sizes')),
-          row('geography',       'Location',     onboardingText('geography'),       list('geographies')),
-          row('target_category', 'Kind of company', onboardingText('target_category'), list('industries'),
-            list('industries').length === 0 && onboardingText('target_category')
-              ? 'used to order the results — it never leaves anybody out' : undefined),
+          row('target_roles',    'Job titles',   onboardingText('target_roles'),    list('job_titles'),      FILL),
+          row('seniority',       'Seniority',    onboardingText('target_roles'),    list('seniority_levels'), FILL),
+          row('company_size',    'Employees',    onboardingText('company_size'),    list('company_sizes'),   FILL),
+          row('geography',       'Location',     onboardingText('geography'),       list('geographies'),     FILL),
+          // ── 🛑 ⚑ 22 Sep — IT ORDERS THE RESULTS. IT NEVER LEAVES ANYBODY OUT ────────────
+          //
+          // ⛓️ WAS: ~~`'Kind of company'`~~, with the "used to order" note attached ONLY when
+          // `industries` came back EMPTY — so the client was told it never excludes anyone in
+          // precisely the case where it excluded nobody, and told nothing at all in the case
+          // where it excluded thousands. The label and the note both described the failure
+          // mode rather than the rule.
+          //
+          // 🛑 THE APPROVED PORTAL NAMES THIS FIELD "Order by (never excludes)" AND MEANS IT
+          // UNCONDITIONALLY. `buildSearchBody` no longer sends the client's category to the
+          // provider as a filter at all (see `apollo.ts`), so the note is now simply TRUE
+          // rather than true-when-we-happened-to-fail — which is why it is no longer
+          // conditional. A sentence that is only accurate in the degraded case is the kind of
+          // copy that reads as reassurance and functions as a lie.
+          row('target_category', 'Order by (never excludes)', onboardingText('target_category'), list('industries'),
+            FILL, 'used to order the results — it never leaves anybody out'),
+          // ⚠️ THE ONE FIELD MILLA ASKS FOR. Exclusions are never derived from anything the
+          // client said about who they WANT — they are an instruction, which is why this is
+          // also the only row whose note claims to remove anybody.
           row('exclusions',      'Never contact', onboardingText('exclusions'),     [],
-            onboardingText('exclusions') ? 'the only thing that removes anybody' : undefined),
-        ].filter(r => r.said !== '' || r.sending.length > 0),
+            'Milla will ask', 'the only thing that removes anybody'),
+        ],
         // The canonical arrays, for the free live count. People Search costs nothing; the
         // reveal is the cost, and nothing here reveals anybody.
         onboarding_search: {

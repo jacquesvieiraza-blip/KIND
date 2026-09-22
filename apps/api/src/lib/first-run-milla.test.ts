@@ -2244,9 +2244,42 @@ describe('the Anthropic transcript begins with the client, not with our own copy
     expect(welcomeCode).toContain('messages: forModel,')
   })
 
+  // ⛓️ 22 Sep — THE OPENING IS THREE MESSAGES NOW, AND THAT MAKES THIS TEST MATTER MORE.
+  //
+  // ⛓️ WAS: ~~`expect(welcomeSrc).toContain('const GREETING = "Hi 👋 I\'m Milla, your campaign
+  // partner.')`~~ plus a seed of exactly one bubble. The approved portal opens with three —
+  // you're in · nothing to fill in · looking costs nothing — so both assertions named a shape
+  // the product no longer has.
+  //
+  // 🛑 THE RULE THIS TEST GUARDS IS UNCHANGED AND IS NOW LOAD-BEARING THREE TIMES OVER: the
+  // opening is PRESENTATION COPY and must never reach the model as conversation. One seeded
+  // assistant turn slipping into the payload was a single stray line; three would be a
+  // fabricated exchange we then ask the model to continue. The slice above drops every
+  // leading assistant turn, so the count does not matter to it — which is exactly why the
+  // seed is asserted by its SOURCE, `GREETING_LINES`, rather than by a hard-coded length.
   it('the greeting is still rendered — it was presentation copy all along', () => {
-    expect(welcomeSrc).toContain("const GREETING = \"Hi 👋 I'm Milla, your campaign partner.")
-    expect(welcomeCode).toContain("useState<Msg[]>([{ role: 'assistant', content: GREETING }])")
+    expect(welcomeSrc, 'the locked opening line changed').toContain('Hi, I’m Milla. Welcome — you’re in.')
+    expect(welcomeSrc, 'the "looking costs nothing" promise left the opening')
+      .toContain('Looking costs nothing.')
+    expect(welcomeCode, 'the opening is no longer seeded from GREETING_LINES')
+      .toContain("useState<Msg[]>(GREETING_LINES.map(content => ({ role: 'assistant', content })))")
+  })
+
+  // ⚠️ AND THE SLICE IS PROVED AGAINST THE REAL SHAPE, not a one-bubble stand-in. A rule that
+  // has only ever been executed against a single leading assistant turn proves nothing about
+  // the three the client now actually sees.
+  it('all three opening messages are dropped before the payload (executed)', () => {
+    type M = { role: 'user' | 'assistant'; content: string }
+    const slice = (h: M[]) => h.slice(h.findIndex(m => m.role === 'user'))
+    const history: M[] = [
+      { role: 'assistant', content: 'welcome' },
+      { role: 'assistant', content: 'nothing to fill in' },
+      { role: 'assistant', content: 'looking costs nothing' },
+      { role: 'user', content: 'We want MDs and COOs at UK professional-services firms.' },
+    ]
+    const out = slice(history)
+    expect(out).toHaveLength(1)
+    expect(out[0].role).toBe('user')
   })
 
   it('and the slice really does drop a leading assistant turn (executed, not asserted)', () => {

@@ -765,9 +765,38 @@ describe('THE WELCOME PANEL STATES THE PROGRAMME, NOT THE RETIRED CREDIT MODEL',
     expect(WELCOME_CODE).toContain('export default function')
   })
 
-  it('⑬ the approved sentence is present, word for word', () => {
-    expect(WELCOME_CODE, "the founder's approved welcome copy is not on the page").toContain(
-      'As we chat, Milla builds your <b>ICP</b> (who to target) and a recommended <b>programme</b> here. You&rsquo;ll review it before anything starts.')
+  // ── 🛑 ⚑ 22 Sep — FOUNDER DECISION 4's SENTENCE IS GONE, AND THIS IS THE RECORD OF WHY ──
+  //
+  // ⛓️ WAS: ~~`expect(WELCOME_CODE).toContain('As we chat, Milla builds your <b>ICP</b> (who
+  // to target) and a recommended <b>programme</b> here. You&rsquo;ll review it before
+  // anything starts.')`~~ — approved by the founder on 30 Aug, word for word, and asserted
+  // here ever since.
+  //
+  // 🛑 IT WAS THE EMPTY STATE OF A PANEL THAT NO LONGER EXISTS. That sentence was what filled
+  // the right-hand side until the first fact landed — and on 22 Sep the founder landed on it
+  // after signing up and called it a blank screen, correctly: one line of prose where the
+  // approved portal has a workspace. The locked MVP1 preview replaces the whole panel with
+  // four tiles, a named workspace and six labelled fields that exist before the client speaks.
+  //
+  // ⚠️ THE PROMISE THE SENTENCE MADE IS NOT DROPPED — IT IS KEPT MORE LITERALLY, which is the
+  // only reason removing founder-approved copy is defensible. "As we chat, Milla builds your
+  // ICP here" is now a thing the client WATCHES HAPPEN field by field, rather than a sentence
+  // telling them it will; "you'll review it before anything starts" is the standing
+  // "nothing charged" line plus the derived values printed as they will be sent. So this
+  // guard asserts the PROMISE rather than the wording.
+  //
+  // 🛑 REPORTED TO THE FOUNDER IN THE SAME SESSION, not resolved silently: a 30-Aug approved
+  // sentence was removed by a 22-Sep approved preview, and only he can retire his own copy.
+  it('⑬ the approved promise survives the panel that carried it', () => {
+    // ① The workspace exists and is named, so the client knows what they are looking at.
+    expect(WELCOME_CODE, 'the workspace lost its name').toContain('Your workspace')
+    // ② It fills as they talk — the six fields are present before anything is known.
+    expect(WELCOME_CODE, 'the empty-state copy for an unanswered field is gone')
+      .toContain('placeholder')
+    // ③ And nothing starts, or is charged, before they have reviewed it.
+    expect(WELCOME_CODE, '"nothing charged" left the first screen').toContain('nothing charged')
+    expect(WELCOME_CODE, 'the free-to-look promise left the first screen')
+      .toContain('free to look at')
   })
 
   it('⑭ the stale credit-plan copy cannot return', () => {

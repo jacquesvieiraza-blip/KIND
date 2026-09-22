@@ -15,6 +15,8 @@ import {
   fitBand, displayScore, isStarred, BAND_LABEL,
   START_HERE_MIN_SCORE, UNKNOWN_SCORE_CAP, NOT_A_FIT_SCORE_CAP,
   HARD_CRITERIA, type FitCandidate, type FitIcp,
+  // ⚑ 22 Sep — the removal rule, which is a different question from the fit rule.
+  removalCriterion, removalReason, REMOVING_CRITERIA, RANKING_ONLY_CRITERIA,
 } from './proof-fit'
 
 /** The founder's own canary targeting, 10 Sep. */
@@ -315,5 +317,64 @@ describe('⑥ the judgement is total — no input throws, nothing is silently ad
   it('null-ish ICP arrays behave exactly as absent ones', () => {
     const f = hardFit(GOOD, { geographies: null, industries: [], job_titles: null, company_sizes: [] })
     expect(structurallyEligible(f)).toBe(true)
+  })
+})
+
+// ══════════════════════════════════════════════════════════════════════════════════════
+// ⚑ 22 Sep — WHAT MAY *REMOVE* A CANDIDATE, AS OPPOSED TO WHAT MAY *RANK* THEM
+//
+// 🛑 THE DISTINCTION IS THE WHOLE POINT AND IT IS EASY TO COLLAPSE. The first attempt at this
+// change made `firstHardFailure` skip `industry`/`category`, which looked like the obvious
+// way to stop them removing anybody — and silently RE-CREATED THE CARD AT THE TOP OF THIS
+// FILE. `fitBand` and `displayScore` both read that function, so the management consultancy
+// stopped banding "Not a fit" and its cap rose from 30 to 74: a 72 beside a disqualifying
+// sentence, again. These tests exist so that mistake cannot be made twice.
+describe('🛑 ⑦ the category orders the results — it never removes anybody', () => {
+  it('the two ranking-only criteria are exactly industry and category', () => {
+    expect([...RANKING_ONLY_CRITERIA].sort()).toEqual(['category', 'industry'])
+    // ⚠️ AND THE OTHER FIVE STILL REMOVE — including `excluded`, the one refusal that is an
+    // instruction the client gave us rather than an opinion we formed.
+    expect([...REMOVING_CRITERIA].sort())
+      .toEqual(['company_type', 'excluded', 'geography', 'seniority', 'size'])
+  })
+
+  it('🛑 the C05 card is STILL "Not a fit", still capped at 30, still never starred', () => {
+    const f = hardFit({ ...GOOD, industry: 'Management Consulting' }, CANARY)
+    expect(f.industry).toBe('no')
+    expect(fitBand(f, 72)).toBe('not_a_fit')
+    expect(isStarred(fitBand(f, 72))).toBe(false)
+    expect(displayScore(f, 72)).toBeLessThanOrEqual(NOT_A_FIT_SCORE_CAP)
+  })
+
+  it('🛑 …but nothing removes it any more — it is shown at the bottom, not deleted', () => {
+    const f = hardFit({ ...GOOD, industry: 'Management Consulting' }, CANARY)
+    expect(removalCriterion(f), 'the category deleted a candidate again').toBeNull()
+    expect(removalReason(f)).toBeNull()
+  })
+
+  it('🛑 an unreadable category does not remove either — that was the EMPTY PROOF SCREEN', () => {
+    // No criterion ever said `no`: the client's words simply never canonicalised, every row
+    // answered `unknown`, and the gate removed all of them.
+    const f = hardFit({ ...GOOD, industry: null }, CANARY)
+    expect(f.industry).toBe('unknown')
+    expect(removalCriterion(f)).toBeNull()
+  })
+
+  it('the five that DO remove still remove, by name', () => {
+    expect(removalCriterion(hardFit({ ...GOOD, country: 'Germany' }, CANARY))).toBe('geography')
+    expect(removalCriterion(hardFit({ ...GOOD, company_size: '5001–10000' }, CANARY))).toBe('size')
+    expect(removalCriterion(hardFit({ ...GOOD, job_title: 'Intern', seniority: 'intern' }, CANARY)))
+      .toBe('seniority')
+  })
+
+  it('🛑 the stamped sentence names the criterion that ACTUALLY removed them', () => {
+    // A row wrong on the category AND unreadable on headcount is removed for the headcount.
+    // `setAsideReason` would have said "industry: not the kind of company you asked for" —
+    // an operator answering the wrong question and a client told a falsehood about their own
+    // targeting.
+    const f = hardFit(
+      { ...GOOD, industry: 'Management Consulting', company_size: null }, CANARY)
+    expect(removalCriterion(f)).toBe('size')
+    expect(removalReason(f)).toBe('size: their headcount could not be confirmed')
   })
 })

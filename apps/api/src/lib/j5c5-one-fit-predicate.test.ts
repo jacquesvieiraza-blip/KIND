@@ -57,13 +57,36 @@ describe('J5-C5 · every criterion can refuse a provider contact before its slot
     ['geography', { ...MATCH, country: 'Germany' }],
     ['size', { ...MATCH, organization: { ...MATCH.organization, num_employees: 4000 } }],
     ['seniority', { ...MATCH, seniority: 'entry' }],
-    ['category', { ...MATCH, organization: { name: 'Brick & Co', industry: 'Construction', num_employees: 24 } }],
   ] as [string, ProviderContact][]) {
     it(`🛑 ${criterion} REFUSES before a slot is consumed — it is not decorative here either`, () => {
       expect(preSpendRefusal(contact, ICP), `${criterion} cannot refuse a provider contact`)
         .toBe(criterion)
     })
   }
+
+  // ── 🛑 ⚑ 22 Sep — AND `category` HAS LEFT THAT TABLE, DELIBERATELY ─────────────────────
+  //
+  // ⛓️ WAS: a fourth row — ~~`['category', { ...MATCH, organization: { name: 'Brick & Co',
+  // industry: 'Construction', num_employees: 24 } }]`~~ — asserting that a construction firm
+  // against a marketing-agency ICP is refused before its slot is spent.
+  //
+  // 🛑 THE APPROVED PORTAL NAMES THE CLIENT'S CATEGORY FIELD "Order by (never excludes)".
+  // The client never types the provider's vocabulary, so judging their category against our
+  // sixteen-word list emptied the Proof screen from both directions: a listed word narrowed
+  // the search in our terms against Apollo's taxonomy, and an unlisted one produced an empty
+  // list, `unknown` everywhere, and deletion without a single `no`.
+  //
+  // ⚠️ THE CONTACT IS NOT LOST AND IS NOT PRETENDED TO FIT. `hardFit` still answers `no` on
+  // the category, `fitBand` still bands it "Not a fit", and `displayScore` still caps it at
+  // 30 — the C05 card stays impossible. It is shown at the bottom of the list with its reason
+  // printed, instead of being deleted before anybody saw it.
+  it('🛑 the category does NOT cost a contact its slot — it orders, it never removes', () => {
+    const wrongCategory: ProviderContact = {
+      ...MATCH,
+      organization: { name: 'Brick & Co', industry: 'Construction', num_employees: 24 },
+    }
+    expect(preSpendRefusal(wrongCategory, ICP), 'the category deleted a contact again').toBeNull()
+  })
 
   it('🛑 the client\'s EXCLUSIONS refuse too — FD-1 said "in every path" and this is a path', () => {
     // The company NAME is where an exclusion is usually recognisable, and it is the field the
@@ -189,8 +212,13 @@ describe('J5-C5 · the provider path asks it, and asks it first', () => {
 
   it('🛑 BOTH PATHS ASK THE SAME PREDICATE — not two matchers that agree today', () => {
     for (const p of ['./pool-sourcing.ts', './pre-spend-fit.ts']) {
+      // ⛓️ 22 Sep — `pre-spend-fit.ts` now asks `REMOVING_CRITERIA` over `hardFit`'s verdicts
+      // rather than `structurallyAdmissible`, because the gate it must agree with stopped
+      // removing on the two ranking-only criteria. The RULE this guard exists for is
+      // unchanged: neither path may decide fit with a matcher of its own.
       expect(code(p), `${p} decides fit without the one canonical predicate`)
-        .toMatch(/structurallyAdmissible\(\s*(hardFit\(|fit\))/)
+        .toMatch(/structurallyAdmissible\(\s*(hardFit\(|fit\))|REMOVING_CRITERIA\.find/)
+      expect(code(p), `${p} stopped calling hardFit`).toMatch(/hardFit\(/)
     }
   })
 

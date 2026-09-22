@@ -54,9 +54,26 @@ export const ICP_CRITERION_OWNERS: Record<string, CriterionCoverage> = {
     owners: ['apollo_search', 'lead_scoring'],
     note: 'Mapped through SENIORITY_MAP to `person_seniorities`, and re-read by the scorer on the delivered lead.',
   },
+  // ── 🛑 ⚑ 22 Sep — NO LONGER AN APOLLO SEARCH CRITERION. IT RANKS, IT DOES NOT FILTER ───
+  //
+  // ⛓️ WAS: ~~`owners: ['apollo_search', 'lead_scoring']`~~ with the note *"Sent as
+  // `q_organization_keyword_tags` (an OR over tags)"*. Both halves of that are now false:
+  // `buildSearchBody` does not put the client's category on the request at all.
+  //
+  // 🛑 AND THIS FILE IS EXACTLY WHERE THAT HAD TO BE RECORDED. Its own header says *"'we sent
+  // it to Apollo' is not proof a criterion survived"* and that the opposite failure is
+  // SILENCE — a criterion nothing owns quietly meaning less than the customer wrote. Leaving
+  // `apollo_search` declared here would have been the inverse: a criterion claiming an owner
+  // that no longer does anything, which `icp-coverage.test.ts` catches by reading the request
+  // builder rather than this map. It caught it.
+  //
+  // ⚠️ IT IS STILL OWNED, AND BY THE OWNER THAT MAKES "ORDER BY" TRUE. `scoreLeadsForIcp`
+  // judges the industry actually returned and writes `category_fit`; `fitBand` then keeps a
+  // mismatched company off the star and `displayScore` caps its number. The customer's
+  // category still shapes what they see first — it just no longer decides who exists.
   industries: {
-    owners: ['apollo_search', 'lead_scoring'],
-    note: 'Sent as `q_organization_keyword_tags` (an OR over tags), and the scorer judges the industry actually returned.',
+    owners: ['lead_scoring'],
+    note: 'NOT sent to Apollo. The approved portal names this field "Order by (never excludes)": the scorer judges the industry actually returned and ranks on it, so a mismatched company is shown lower rather than filtered out of the search or set aside.',
   },
   company_sizes: {
     owners: ['apollo_search', 'lead_scoring'],

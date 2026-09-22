@@ -127,9 +127,19 @@ describe('J12-C2 · the same suppression, the same predicate', () => {
     expect(String(setAsideReason(f))).toMatch(/asked us to leave/)
   })
 
+  // ⛓️ 22 Sep — REPOINTED, NOT WEAKENED. ~~`/setAsideReason\(hardFit\(row, icp\)\)/`~~ named
+  // the exact expression the gate used to remove on. The gate now asks `removalCriterion`,
+  // because two of the seven criteria order the results rather than remove anybody — but the
+  // thing THIS test guards is unchanged and is asserted more precisely than before: the
+  // programme path decides nothing itself and reads the one canonical predicate.
+  //
+  // ⚠️ AND EXCLUSIONS ARE STILL A REMOVING CRITERION, which is what J12-C2 is actually about.
+  // The assertion above proves the verdict; this one proves the gate acts on it.
   it('and the gate the programme path now consults is that predicate', () => {
     const gateSrc = code('./proof-gate.ts')
-    expect(gateSrc).toMatch(/setAsideReason\(hardFit\(row, icp\)\)/)
+    expect(gateSrc, 'the gate stopped reading the canonical predicate').toMatch(/hardFit\(row, icp\)/)
+    expect(gateSrc, 'the gate decides removal by some rule of its own').toMatch(/removalCriterion\(fit\)/)
+    expect(gateSrc, 'the stamped sentence is no longer the predicate\'s').toMatch(/removalReason\(fit\)/)
   })
 
   it('🛑 qualification itself still judges only deliverability — it was never the fit gate', () => {

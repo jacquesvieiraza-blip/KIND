@@ -33,7 +33,7 @@
 
 import { db } from '@kind/db'
 import { classifyProbeError } from './schema-probe'
-import { hardFit, setAsideReason, type FitCandidate, type FitIcp } from './proof-fit'
+import { hardFit, removalCriterion, removalReason, type FitCandidate, type FitIcp } from './proof-fit'
 
 /** The migration this gate cannot work without. Named in every refusal, so the fix is obvious. */
 export const SET_ASIDE_MIGRATION = '20260910_lead_set_aside_reason'
@@ -126,10 +126,38 @@ export async function applyStructuralGate(
   const eligible: string[] = []
   const setAside: { id: string; reason: string }[] = []
 
+  // ── 🛑 ⚑ 22 Sep — THE CLIENT'S CATEGORY ORDERS THE RESULTS. IT NEVER REMOVES ANYBODY ───
+  //
+  // ⛓️ WAS: ~~`const reason = setAsideReason(hardFit(row, icp)); if (reason) setAside…`~~ —
+  // remove on ANY criterion that answered `no`, and on any that answered `unknown`.
+  //
+  // 🛑 TWO OF THE SEVEN WERE RE-DECIDING WHAT THE SEARCH HAD ALREADY DECIDED, IN OUR WORDS
+  // AGAINST THE PROVIDER'S. The client never types Apollo's vocabulary, so their category was
+  // forced into a sixteen-word list we invented — and then judged against it here. Both
+  // outcomes emptied the screen: a category that matched a listed word killed every row that
+  // Apollo's own taxonomy phrased differently, and a category that matched nothing produced
+  // an empty list, `unknown` on every row, and the same deletion without one criterion ever
+  // saying `no`. `buildSearchBody` has now stopped sending the category as a filter at all;
+  // leaving this half unchanged would simply have moved the deletion one step later.
+  //
+  // ⚠️ THE JUDGEMENT IS UNTOUCHED AND SO IS THE CARD. `hardFit` still answers all seven,
+  // `fitBand` still bands a mismatched company "Not a fit", and `displayScore` still caps it
+  // at 30 — the C05 card the founder caught stays impossible. What changed is that the card
+  // is SHOWN, at the bottom, with its reason printed, instead of deleted.
+  //
+  // ⚠️ THE OTHER FIVE STILL REMOVE, including the client's own exclusions — the one refusal
+  // that is an instruction we were given rather than an opinion we formed.
   for (const row of rows) {
-    const reason = setAsideReason(hardFit(row, icp))
-    if (reason) setAside.push({ id: row.id, reason })
-    else eligible.push(row.id)
+    const fit = hardFit(row, icp)
+    if (removalCriterion(fit)) {
+      // ⚠️ `removalReason`, NOT `setAsideReason`. The stamped sentence has to name the
+      // criterion that actually removed them — see its own note for the row that would
+      // otherwise be dropped for an unreadable headcount and stamped "not the kind of
+      // company you asked for".
+      setAside.push({ id: row.id, reason: removalReason(fit)! })
+    } else {
+      eligible.push(row.id)
+    }
   }
 
   // ⚠️ ONE STATEMENT PER REASON, and the reason is the same for every row in it — so this is

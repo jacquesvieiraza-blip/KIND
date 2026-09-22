@@ -409,13 +409,26 @@ describe('③ what the pool will and will not serve', () => {
         poolRow(5),                                   // this client already holds it
         poolRow(6, { country: 'Ukraine' }),           // wrong geography
         poolRow(7, { company_size: '1,000+' }),       // wrong size — hard fit
-        poolRow(8, { industry: 'Management Consulting' }), // wrong industry — hard fit
+        // ⛓️ 22 Sep — ~~"wrong industry — hard fit"~~. IT IS REUSABLE NOW, AND DELIBERATELY.
+        // The client's category stopped removing anybody on 22 Sep (`RANKING_ONLY_CRITERIA`),
+        // because judging their words against a vocabulary we invented is what emptied the
+        // Proof screen. The founder then ruled the pool must work the same way — *"Treat our
+        // Pool as Apollo way always"* — so a company Apollo's copy of would be KEPT and ranked
+        // can no longer be thrown away just because we happen to own it already.
+        //
+        // ⚠️ IT IS NOT PRETENDED TO FIT. `hardFit` still answers `no` on its industry,
+        // `fitBand` still bands it "Not a fit" and `displayScore` still caps it at 30 — it is
+        // served, ranked to the bottom, and the client sees why.
+        poolRow(8, { industry: 'Management Consulting' }), // wrong industry — RANKED, not removed
       ],
       blocklist: ['pool2@agency.co.uk'],
       owned:     ['pool5@agency.co.uk'],
       provider:  [],
     })
-    expect(res.body?.from_pool, 'exactly one of the eight is reusable').toBe(1)
+    // ⛓️ 22 Sep — 1 → 2. Rows 2–7 are all still refused, and each for a reason that genuinely
+    // removes somebody: opted out, no source rights, untagged, already held, wrong country,
+    // wrong size. Only the industry row moved, which is the whole of the change.
+    expect(res.body?.from_pool, 'the reusable set changed beyond the industry row').toBe(2)
   })
 
   it('🛑 R73 is decided in JS too — a row the database prefilter never saw is still refused', async () => {

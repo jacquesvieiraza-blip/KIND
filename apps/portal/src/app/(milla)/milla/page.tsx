@@ -293,17 +293,48 @@ export default function MillaHomePage() {
   // panel, but which BATCH CONTROLS exist — and whether the improved-set control may be
   // pressed at all — is decided by `GET /leads/proof/calibration`. A spend rule this browser
   // computes is a spend rule anybody with devtools can satisfy.
+  // ── 🛑 ⚑ 22 Sep — WHAT THIS POOL CAN CARRY, READ FROM THE SERVER ──────────────────────
+  //
+  // 🛑 NOT DERIVED HERE, for the same reason `calib` is not: the number of meetings we can
+  // commit to is a COMMITMENT, and a commitment this browser computes is a commitment anybody
+  // with devtools can change. `GET /icps/:id/capacity` owns the arithmetic and the founder's
+  // 400/250 split lives behind it, in `@kind/shared`, where the Brief bar and the Programme
+  // slider read the same pair.
+  //
+  // ⚠️ IT COSTS NOTHING TO ASK. Apollo's People Search is free; the reveal is the cost, and
+  // the reveal is not on this screen.
+  const [capacity, setCapacity] = useState<{
+    matched: number; excluded: number; workable: number; committed: number; known: boolean
+  } | null>(null)
+  const loadCapacity = useCallback(async (icpId: string | null | undefined) => {
+    if (!icpId) { setCapacity(null); return }
+    try {
+      const j = await api.get<{ data: {
+        matched: number; excluded: number; workable: number; committed: number; known: boolean
+      } }>(`/icps/${icpId}/capacity`, await token())
+      setCapacity(j.data ?? null)
+    } catch {
+      // ⚠️ NOTHING RATHER THAN ZERO. A failed read is not a small pool, and the tiles that
+      // read this are a promise about how many meetings we can deliver.
+      setCapacity(null)
+    }
+  }, [])
   const [calib, setCalib] = useState<ProofCalibrationState | null>(null)
   const loadCalibration = useCallback(async () => {
     try {
       const j = await api.get<{ data: ProofCalibrationState }>('/leads/proof/calibration', await token())
       setCalib(j.data)
+      // ⚑ 22 Sep — the capacity tiles hang off the SAME ICP this calibration state names, so
+      // they are loaded from it rather than from a second lookup that could name a different
+      // one. A client whose targeting has moved gets the capacity of the targeting on screen.
+      void loadCapacity(j.data?.core_icp_id)
     } catch {
       // ⚠️ DRAW NOTHING RATHER THAN EVERYTHING. Falling back to the attempt-1 shape would put
       // a spend control in front of a client who may already have been handed to a person.
       setCalib(null)
+      setCapacity(null)
     }
-  }, [])
+  }, [loadCapacity])
   const [refineOpen, setRefineOpen]   = useState(false)
   const [refineText, setRefineText]   = useState('')
   /** ⚑ 25 Aug — THE ONE FINAL OBJECT. Built once, rendered, then sent unchanged. See below. */
@@ -1456,6 +1487,72 @@ export default function MillaHomePage() {
             </div>
           ) : (
           <div className="px-3.5 py-3 overflow-y-auto grid gap-2.5 grid-cols-1 [@media(min-width:1100px)]:grid-cols-2 [@media(min-width:1600px)]:grid-cols-3 items-start content-start">
+            {/* ── 🛑 ⚑ 22 Sep — WHAT THIS POOL CAN CARRY, BEFORE ANYBODY PAYS ─────────────
+                 🛑 FOUNDER-LOCKED: *"we would not offer 10 meetings when we can only deliver
+                 6. so our calulator presented to the client in the portal says. we can get you
+                 10. we best have the amount of people to do so."*
+
+                 🛑 AND IT BELONGS HERE, AT PROOF, RATHER THAN AT THE CALCULATOR. The locked
+                 preview puts WE CAN COMMIT TO on the Proof screen precisely because this is
+                 where the client is still shaping the targeting: narrowing costs them
+                 headroom, and they have to see that while it is still free to change. A cap
+                 that first appears on the slider is a cap that appears after they have decided.
+
+                 ⚠️ THE POOL SIZE AND THE RATE ARE NOT ON THIS SCREEN. "we build buffer only we
+                 know" — the client is shown WORKABLE POOL and what we can commit to; the 400,
+                 the 250 view and the headroom between them stay ours and are not even in the
+                 route's response.
+
+                 ⚠️ AND IT SAYS NOTHING RATHER THAN ZERO WHEN THE PROVIDER COULD NOT BE ASKED.
+                 `known: false` means we do not know the pool size; rendering "0 people · 0
+                 meetings" would be a claim about this client's market instead of about our
+                 connection, and it is the claim that would make them leave. */}
+            {proofMode && capacity && capacity.known && (
+              <div className="[@media(min-width:1100px)]:col-span-2 [@media(min-width:1600px)]:col-span-3 grid grid-cols-2 [@media(min-width:1100px)]:grid-cols-4 gap-2.5">
+                <div className="rounded-2xl bg-[#7C3AED] text-white px-4 py-3 min-w-0">
+                  <div className="text-[9px] font-extrabold uppercase tracking-[0.11em] text-[#d8c8f8]">We can commit to</div>
+                  <div className="text-[21px] font-extrabold tracking-[-0.02em] mt-1 tabular-nums">{capacity.committed}</div>
+                  <div className="text-[10.5px] leading-snug text-[#f0e6ff] mt-1">
+                    {capacity.committed > 0
+                      ? 'booked meetings — what this pool can carry, before you pay anything'
+                      : 'not enough people at this targeting yet — tell Milla and we’ll widen it'}
+                  </div>
+                </div>
+                <div className="rounded-2xl bg-white border border-[#eee7f7] px-4 py-3 min-w-0">
+                  <div className="text-[9px] font-extrabold uppercase tracking-[0.11em] text-[#9b8ec4]">Workable pool</div>
+                  <div className="text-[21px] font-extrabold tracking-[-0.02em] mt-1 tabular-nums">{capacity.workable.toLocaleString()}</div>
+                  {/* ⚠️ THE SUBTRACTION IS SHOWN because it is the client's OWN instruction
+                      doing the removing, and they should see it working. Nothing else on this
+                      screen removes anybody. */}
+                  <div className="text-[10.5px] text-[#5c5279] mt-1">
+                    {capacity.excluded > 0
+                      ? `${capacity.matched.toLocaleString()} matched − ${capacity.excluded.toLocaleString()} excluded`
+                      : 'nobody excluded yet'}
+                  </div>
+                </div>
+                <div className="rounded-2xl bg-white border border-[#eee7f7] px-4 py-3 min-w-0">
+                  <div className="text-[9px] font-extrabold uppercase tracking-[0.11em] text-[#9b8ec4]">Charged so far</div>
+                  <div className="text-[21px] font-extrabold tracking-[-0.02em] mt-1 tabular-nums">$0</div>
+                  <div className="text-[10.5px] text-[#5c5279] mt-1">nothing bought</div>
+                </div>
+                <div className="rounded-2xl bg-white border border-[#eee7f7] px-4 py-3 min-w-0">
+                  <div className="text-[9px] font-extrabold uppercase tracking-[0.11em] text-[#9b8ec4]">Next</div>
+                  <div className="text-[13px] font-extrabold leading-snug mt-1">Say whether these are your people</div>
+                  <div className="text-[10.5px] text-[#5c5279] mt-1">then the programme</div>
+                </div>
+              </div>
+            )}
+            {/* ⚠️ THEY ARE A SAMPLE, AND SAYING SO IS THE POINT. The locked preview heads this
+                list "Twenty of your 4,317" and has Milla say it out loud: *"You're not choosing
+                from these twenty. They're a sample of the four thousand."* A client who thinks
+                twenty people IS the pool reads a weak card as evidence the whole market is
+                weak — which is the wrong conclusion drawn from the right screen. */}
+            {proofMode && capacity && capacity.known && leads && leads.length > 0 && (
+              <div className="[@media(min-width:1100px)]:col-span-2 [@media(min-width:1600px)]:col-span-3 text-[12.5px] text-[#5c5279]">
+                <b className="text-[#17101f]">{leads.length} of your {capacity.workable.toLocaleString()}</b>
+                {' '}· masked · free · nobody has been contacted — these are a sample, not the whole list.
+              </div>
+            )}
             {/* the wallet top-up banner is gone with the paid desk */}
             {/* ⛓️ 3 Sep — THIS SET IS NOT A PROGRAMME, AND IT NOW SAYS SO.
                 This branch is reached ONLY when no programme row exists, and the list beneath

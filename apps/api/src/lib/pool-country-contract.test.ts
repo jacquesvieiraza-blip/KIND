@@ -199,8 +199,19 @@ describe('EXECUTED · geography-targeted serving', () => {
     const icp = { geographies: ['United Kingdom'], job_titles: ['CTO'], industries: ['SaaS'], seniority_levels: ['cxo'] }
     // Everything they asked for → reused.
     expect(poolRecordMatchesIcp(rec({ country: 'UK', title: 'CTO', industry: 'SaaS' }), icp)).toBe(true)
-    // One criterion wrong → refused, whichever one it is.
-    expect(poolRecordMatchesIcp(rec({ country: 'UK', title: 'CTO', industry: 'Hospitality' }), icp)).toBe(false)
+    // ── ⛓️ 22 Sep — INDUSTRY MOVED OUT OF "ALL OF THEM MUST HOLD" ────────────────────
+    //
+    // ⛓️ WAS: ~~`industry: 'Hospitality'` → `toBe(false)`~~, alongside title and seniority.
+    //
+    // 🛑 THE CLIENT'S CATEGORY NO LONGER REMOVES ANYBODY, on the provider path or this one —
+    // judging their own words against a vocabulary we invented is what emptied the Proof
+    // screen, and the founder ruled the pool must match Apollo. What this test is really
+    // about is that the OLD `containsAny` OR-generosity is gone, and that is unchanged: title
+    // and seniority below still each refuse on their own.
+    //
+    // ⚠️ THE VERDICT IS STILL `no`. Only its CONSEQUENCE changed: ranked to the bottom of the
+    // client's list instead of never reaching it.
+    expect(poolRecordMatchesIcp(rec({ country: 'UK', title: 'CTO', industry: 'Hospitality' }), icp)).toBe(true)
     expect(poolRecordMatchesIcp(rec({ country: 'UK', title: 'Barista', industry: 'SaaS', seniority: 'entry' }), icp)).toBe(false)
     expect(poolRecordMatchesIcp(rec({ country: 'UK', title: 'Barista' }), icp)).toBe(false)
   })
@@ -977,9 +988,13 @@ describe('A3 mirrors the deployed Pass-1 matcher — no invented synonyms', () =
     expect(roleOk({ industry: 'B2B SaaS Platform' })).toBe(true)
   })
 
-  it('6 · industry "Software" does NOT match — the saved industry is SaaS', () => {
-    expect(roleOk({ industry: 'Software' })).toBe(false)
-    expect(roleOk({ industry: 'Computer Software' })).toBe(false)
+  // ⛓️ 22 Sep — the word-wise comparison is unchanged and still answers `no` for "Software"
+  // against "SaaS"; what changed is that the category ranks rather than removes, so the row
+  // is reusable. The synonym-invention this case guards against has not returned — nothing
+  // here decided "Software" MEANS "SaaS".
+  it('6 · industry "Software" is still not SaaS — but it no longer costs the record its place', () => {
+    expect(roleOk({ industry: 'Software' })).toBe(true)
+    expect(roleOk({ industry: 'Computer Software' })).toBe(true)
   })
 
   it('7 · seniority "C-Suite" matches', () => expect(roleOk({ seniority: 'C-Suite' })).toBe(true))

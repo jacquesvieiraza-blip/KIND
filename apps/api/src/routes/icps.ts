@@ -3328,6 +3328,78 @@ icpRouter.post('/preview-count', rateLimit({ limit: 10, windowMs: 60_000, key: '
   }
 })
 
+// ══════════════════════════════════════════════════════════════════════════════════════════
+// 🛑 HOW MANY MEETINGS THIS CLIENT'S POOL CAN CARRY — founder-locked 22 Sep
+//
+//     "well we would not offer 10 meetings when we can only deliver 6. so our calulator
+//      presented to the client in the portal says. we can get you 10. we best have the
+//      amount of people to do so. this is not in code cause it is new"
+//
+// ── WHY IT IS ITS OWN ROUTE ─────────────────────────────────────────────────────────────
+//
+// The Proof screen needs three facts that live in two different places: what the provider
+// matched (Apollo), and how many of those the client's own exclusions removed (our rows). No
+// existing endpoint holds both, and bolting them onto `/leads/for-approval` would change a
+// response shape several surfaces already read for something else entirely.
+//
+// ⚠️ IT COSTS NOTHING. People Search is free — the reveal is the cost — and the exclusion
+// count is a `head: true` count over rows we already own. Nothing is bought to answer it and
+// nothing is written.
+//
+// ⚠️ THE ARITHMETIC IS NOT HERE. `poolCapacity` is in `@kind/shared` and every surface that
+// states a meeting count reads it, because the number is a COMMITMENT: the figure a client is
+// given at Brief, at Proof and at the Programme slider has to be one derivation or the slider
+// will eventually stop at a number Milla never promised.
+//
+// 🛑 `benchmark` AND `headroom` ARE NOT RETURNED. Founder-locked — *"we build buffer only we
+// know"* — so the client's own route cannot leak the 250 view or the pool arithmetic behind
+// it. An operator surface that wants them calls `poolCapacity` itself.
+icpRouter.get('/:id/capacity', async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+
+    const { data: icp, error: icpErr } = await db.from('icps')
+      .select('*').eq('id', req.params.id).eq('client_id', clientId).maybeSingle()
+    if (icpErr) throw icpErr
+    if (!icp) { res.status(404).json({ success: false, error: 'Targeting not found' }); return }
+
+    const { previewCount } = await import('../lib/apollo')
+    const { poolCapacity } = await import('@kind/shared')
+
+    // ⚠️ THE EXCLUSION COUNT IS THE ONE SUBTRACTION, and it is anchored to the stamped
+    // sentence rather than to a band or a score. `removalReason` writes `excluded: …` for
+    // exactly the criterion that is an instruction from the client; everything else the gate
+    // sets aside is a person we could still contact and must not be subtracted from a pool we
+    // are making a promise against.
+    const { count: excluded } = await db.from('leads')
+      .select('id', { count: 'exact', head: true })
+      .eq('client_id', clientId).eq('icp_id', icp.id)
+      .like('set_aside_reason', 'excluded:%')
+
+    const preview = await previewCount(icp as Parameters<typeof previewCount>[0], 'client')
+    const matched = typeof preview?.count === 'number' ? preview.count : 0
+    const cap = poolCapacity(matched, excluded ?? 0)
+
+    res.json({
+      success: true,
+      data: {
+        matched,
+        excluded: excluded ?? 0,
+        workable: cap.workable,
+        committed: cap.committed,
+        // ⚠️ AN HONEST NULL, NEVER A ZERO DRESSED AS AN ANSWER. If the provider could not be
+        // reached we do not know the pool size, and "0 people · 0 meetings" would read as a
+        // fact about this client's market rather than about our connection.
+        known: preview?.error == null,
+      },
+    })
+  } catch (err) {
+    console.error('[icps/capacity]', err)
+    res.status(500).json({ success: false, error: 'Capacity could not be established' })
+  }
+})
+
 icpRouter.get('/', async (req: AuthRequest, res) => {
   try {
     const clientId = await getClientId(req.userId!)

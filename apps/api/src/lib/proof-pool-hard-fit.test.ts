@@ -21,7 +21,7 @@ import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { poolRecordMatchesIcp, splitPoolAndRemainder, type PoolRecord } from './pool-sourcing'
-import { hardFit, structurallyAdmissible } from './proof-fit'
+import { hardFit, removalCriterion } from './proof-fit'
 
 // ⛓️ 12 Sep — THE SERVE PATH IS NOW TWO FILES, AND THIS GUARD READS BOTH.
 //
@@ -60,8 +60,21 @@ describe('🛑 ① an eligible owned row is reused; every near-miss is not', () 
     expect(poolRecordMatchesIcp(GOOD, CANARY)).toBe(true)
   })
 
-  it('🛑 country-only with the wrong industry is NOT reused', () => {
-    expect(poolRecordMatchesIcp({ ...GOOD, industry: 'Management Consulting' }, CANARY)).toBe(false)
+  // ── 🛑 ⚑ 22 Sep — THE WRONG INDUSTRY IS NOW REUSED, AND RANKED ─────────────────────
+  //
+  // ⛓️ WAS: ~~"country-only with the wrong industry is NOT reused"~~ → `toBe(false)`.
+  //
+  // 🛑 THE CLIENT'S CATEGORY STOPPED REMOVING ANYBODY on 22 Sep — judging their own words
+  // against a sixteen-value vocabulary WE invented is what emptied the Proof screen — and the
+  // founder then ruled the pool must work the same way: *"Treat our Pool as Apollo way
+  // always."* A company Apollo's copy of would be kept can no longer be thrown away for free
+  // just because we already own it.
+  //
+  // ⚠️ IT IS NOT PRETENDED TO FIT. `hardFit` still answers `no`, `fitBand` still bands it
+  // "Not a fit", `displayScore` still caps it at 30. Served, ranked to the bottom, reason
+  // printed — the C05 card the founder caught stays impossible.
+  it('🛑 the wrong industry IS reused now — it ranks, it does not remove', () => {
+    expect(poolRecordMatchesIcp({ ...GOOD, industry: 'Management Consulting' }, CANARY)).toBe(true)
   })
 
   it('🛑 the right industry at the wrong SIZE is NOT reused — the criterion that did not exist', () => {
@@ -75,8 +88,13 @@ describe('🛑 ① an eligible owned row is reused; every near-miss is not', () 
     expect(poolRecordMatchesIcp({ ...GOOD, title: 'Marketing Intern', seniority: 'entry' }, CANARY)).toBe(false)
   })
 
-  it('🛑 "marketing" alone does not satisfy "digital marketing"', () => {
-    expect(poolRecordMatchesIcp({ ...GOOD, industry: 'Marketing Technology' }, CANARY)).toBe(false)
+  // ⛓️ 22 Sep — same ruling. The WORD-WISE comparison is unchanged and still answers `no`
+  // (see `hardFit` below); what changed is that answering `no` on the category no longer
+  // costs the record its place.
+  it('"marketing" alone still does not SATISFY "digital marketing" — it just no longer removes', () => {
+    const fit = hardFit({ ...GOOD, industry: 'Marketing Technology', job_title: GOOD.title }, CANARY)
+    expect(fit.industry, 'the word-wise industry comparison went soft').toBe('no')
+    expect(poolRecordMatchesIcp({ ...GOOD, industry: 'Marketing Technology' }, CANARY)).toBe(true)
   })
 
   it('and the geography contract is unchanged — Ukraine is not the UK, GB is', () => {
@@ -111,10 +129,16 @@ describe('🛑 ① an eligible owned row is reused; every near-miss is not', () 
       // said no". Eligibility has since been tightened to exclude UNKNOWN — an unknown row is
       // still surfaced, as a set-aside — so the refusal question now has its own name and the
       // assertion uses it. The claim is unchanged; the function that expresses it is correct.
-      const refused = !structurallyAdmissible(hardFit({
+      // ⛓️ 22 Sep — ASKS THE FUNCTION THE GATE ACTUALLY USES, which is the same correction
+      // this assertion's own 11-Sep note made once already. `structurallyAdmissible` stopped
+      // being the refusal rule when two of the seven criteria became ranking-only; comparing
+      // the pool's new answer against the gate's OLD one would be testing a disagreement
+      // neither side has. THE CLAIM IS UNCHANGED: a row the pool serves must not then be
+      // refused by the gate for a reason the pool never asked about.
+      const refused = removalCriterion(hardFit({
         country: r.country, company_size: r.company_size, industry: r.industry,
         job_title: r.title, seniority: r.seniority,
-      }, CANARY))
+      }, CANARY)) !== null
       if (pool) {
         expect(refused, `the pool served ${r.industry ?? 'a row'} that the surfacing gate refuses`).toBe(false)
       }
@@ -253,7 +277,7 @@ describe('④ the operator counters — and no invented cost', () => {
 describe('⑤ one matcher, and it is the shared one', () => {
   it('the pool delegates to proof-fit and re-implements nothing', () => {
     const c = code(POOL)
-    expect(c).toContain("import { hardFit, structurallyAdmissible } from './proof-fit'")
+    expect(c).toContain("import { hardFit, REMOVING_CRITERIA } from './proof-fit'")
     // 🛑 THE LOOSE SUBSTRING HELPER IS GONE. Keeping it would leave the old test one edit
     // from returning.
     expect(c.includes('function containsAny'), 'the loose substring helper is back').toBe(false)

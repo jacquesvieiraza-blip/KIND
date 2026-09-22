@@ -18,7 +18,7 @@ import { canonicalLaunchCountry } from '@kind/shared'
 // ⚑ 10 Sep (C02) — the ONE hard-fit rule. Statically imported: `proof-fit` pulls only
 // `@kind/shared` and `lead-feedback`, both pure, so this module stays testable with no
 // environment. (An earlier lazy `require` here could not resolve a .ts sibling under Vitest.)
-import { hardFit, structurallyAdmissible } from './proof-fit'
+import { hardFit, REMOVING_CRITERIA } from './proof-fit'
 import { isPlaceholderEmail } from './email-hygiene'
 
 /** A row from the `lead_pool` table (only the fields the matcher reads). */
@@ -205,7 +205,42 @@ export function poolRecordMatchesIcp(rec: PoolRecord, icp: PoolMatchIcp): boolea
   // question. Refusing to reuse a free row we already hold because its industry column is
   // blank would spend provider money to replace a candidate that gets surfaced anyway, as a
   // set-aside, for nothing. The geography refusal above is untouched and is still stricter.
-  return structurallyAdmissible(hardFit({
+  // ── 🛑 ⚑ 22 Sep — THE POOL IS TREATED APOLLO'S WAY, WHICH IS WHAT IT WAS NOT ──────────
+  //
+  // ⛓️ WAS: ~~`structurallyAdmissible(hardFit(…))`~~ — refuse a reusable record on any of the
+  // seven criteria that answers a definite `no`.
+  //
+  // 🛑 AND IT WENT OUT OF STEP WITH THE PROVIDER PATH THE MOMENT THAT PATH CHANGED. On 22 Sep
+  // the client's category stopped removing anybody bought from Apollo (`removalCriterion`),
+  // because judging their words against a vocabulary we invented is what emptied the Proof
+  // screen. This file kept the old rule — so the two paths disagreed about the SAME COMPANY:
+  // Apollo's copy was kept and ranked, our own free copy of it was thrown away.
+  //
+  // 🛑 THE FOUNDER RULED ON EXACTLY THIS: *"we need the same way we do Apollo with our Pooled
+  // leads. Treat our Pool as Apollo way always. so the same code gets built there."* This is
+  // that ruling — literally the same predicate, not a second matcher that agrees today.
+  //
+  // ⚠️ WHAT IT COST WHILE IT WAS WRONG IS MONEY, NOT A CLIENT SEEING THE WRONG PERSON. The
+  // pool served fewer free records than it should have, so `splitPoolAndRemainder` asked
+  // Apollo for more than it needed to. Nobody was shown anybody they should not have been.
+  //
+  // ⚠️ ONLY A DEFINITE `no`, WHICH IS EXACTLY WHAT `preSpendRefusal` ASKS AT THE PROVIDER
+  // BOUNDARY — the two paths are now one question asked twice, which is the ruling.
+  //
+  // 🛑 AND AN `unknown` MUST NEVER REFUSE HERE. The first version of this change used
+  // `removalCriterion`, which asks both states, and it emptied the pool: owned records carry
+  // thin data by nature — a blank headcount, a missing seniority — and refusing them would
+  // spend provider money to re-buy a person we already hold. That is the exact inversion the
+  // old `structurallyAdmissible` note warned about, reintroduced while trying to honour a
+  // ruling about something else. `structurallyAdmissible` treated unknown as admissible for
+  // this reason and that half was right; what was wrong was only WHICH criteria may refuse.
+  const fitOf = poolFit(rec, icp)
+  return REMOVING_CRITERIA.every(k => fitOf[k] !== 'no')
+}
+
+/** The verdicts, computed once so the refusal rule above reads as one line. */
+function poolFit(rec: PoolRecord, icp: PoolMatchIcp) {
+  return hardFit({
     // Decided above, and handed over as "nothing asked" so the shared rule cannot re-open it
     // with its own softer answer for an unknown country.
     country: null,
@@ -233,7 +268,7 @@ export function poolRecordMatchesIcp(rec: PoolRecord, icp: PoolMatchIcp): boolea
     // company bought from Apollo, and costs the client the same relationship — so the same
     // suppression applies. It is also the cheapest possible place to apply it.
     exclusions: icp.exclusions ?? null,
-  }))
+  })
 }
 
 

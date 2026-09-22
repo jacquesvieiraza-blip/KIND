@@ -280,3 +280,98 @@ describe('🛑 refinement is unlimited, and nothing tells the client otherwise',
       .not.toContain('Never offer a third')
   })
 })
+
+// ══════════════════════════════════════════════════════════════════════════════════════════
+// ⚑ 22 Sep — THE UNWORKED AMOUNT, AND THE OPERATOR'S HALF OF THE BUFFER
+//
+//     "we only count the unworked amount. and if we dont have enough we tll the client
+//      improve your ICP. Widen your target market."
+//
+// 🛑 AND THE REASON IS HARDER THAN "THEY ALREADY HAD OUR EMAIL". The sourcing loop REFUSES a
+// contact it already holds a lead row for — `leads` keyed on `(client_id, apollo_id)`, logged
+// as "already owned by this client". Those people cannot be served again at all, so counting
+// them promises meetings against humans the product will decline to hand over.
+// ══════════════════════════════════════════════════════════════════════════════════════════
+describe('🛑 a second programme counts only the people we have not used', () => {
+  it('the first programme is unaffected — nothing has been worked yet', () => {
+    expect(poolCapacity(4_380, 63, 0).workable).toBe(4_317)
+    expect(poolCapacity(4_380, 63, 0).committed).toBe(10)
+  })
+
+  it('🛑 coming back after 2,500 worked leaves 1,817 — and four meetings, not ten', () => {
+    // The exact case: they bought ten, we contacted 2,500 of the 4,317 to get them. The
+    // second programme is sized on what is left.
+    const again = poolCapacity(4_380, 63, 2_500)
+    expect(again.workable).toBe(1_817)
+    expect(again.committed, 'the second programme re-sold people we cannot source again').toBe(4)
+  })
+
+  it('🛑 and when it is not enough we say so rather than quoting zero', () => {
+    // Founder's route for this: improve the ICP, widen the market. The sentence must not be
+    // a number pretending to be an offer.
+    const spent = poolCapacity(4_380, 63, 4_300)
+    expect(spent.committed).toBe(0)
+    expect(capacitySentence(spent.committed))
+      .toBe('not enough people yet for a programme at this targeting')
+  })
+
+  it('a set-aside row still counts as worked — the dedupe does not care why it exists', () => {
+    // Anyone with a lead row is unavailable, refused or not. Proved as arithmetic: the caller
+    // passes a count of ROWS, and this never second-guesses which of them "really" count.
+    expect(workablePool(100, 0, 40)).toBe(60)
+  })
+
+  it('the subtractions cannot drive it negative', () => {
+    expect(workablePool(100, 60, 60)).toBe(0)
+    expect(poolCapacity(100, 60, 60).committed).toBe(0)
+  })
+})
+
+describe('🛑 the operator sees both numbers; the client still sees one', () => {
+  const OPERATOR = live(src('../routes/operator.ts'))
+
+  it('the operator route returns committed, benchmark AND headroom', () => {
+    for (const route of ["'/clients/:id/capacity'", "'/brief-drafts/:id/facts'"]) {
+      const at = OPERATOR.indexOf(`operatorRouter.get(${route}`)
+      expect(at, `${route} is gone`).toBeGreaterThan(-1)
+      const body = OPERATOR.slice(at, at + 4_000)
+      for (const k of ['committed:', 'benchmark:', 'headroom:']) {
+        expect(body, `${route} withholds ${k} from the operator`).toContain(k)
+      }
+    }
+  })
+
+  it('🛑 …and the CLIENT route still returns neither — the guard from #1718 still holds', () => {
+    const at = ROUTE.indexOf("icpRouter.get('/:id/capacity'")
+    const body = ROUTE.slice(at, at + 4_000)
+    expect(body, 'the benchmark reached a client route').not.toContain('benchmark')
+    expect(body, 'the headroom reached a client route').not.toContain('headroom')
+  })
+
+  it('🛑 both routes subtract the already-worked count, from the same column', () => {
+    // A client-side pool that disagreed with the operator's would be two answers about one
+    // market, in front of the person trying to explain it to them.
+    const client = ROUTE.slice(ROUTE.indexOf("icpRouter.get('/:id/capacity'"),
+      ROUTE.indexOf("icpRouter.get('/:id/capacity'") + 4_000)
+    expect(client).toContain('already_worked')
+    expect(OPERATOR).toContain('already_worked')
+  })
+
+  it('the operator is shown the provider’s own field names, not our labels', () => {
+    // "c_suite", not "C-Suite". An operator asked why a search returned those people needs
+    // the request, not a friendly restatement of it.
+    for (const f of ['person_titles', 'person_seniorities',
+      'organization_num_employees_ranges', 'person_locations']) {
+      expect(OPERATOR, `${f} is not on an operator surface`).toContain(f)
+    }
+    // ⚠️ AND THE CATEGORY IS NAMED AS NOT SENT, so an operator can see it left the request
+    // rather than wonder where it went.
+    expect(OPERATOR).toContain('ranking signal (not sent as a filter)')
+  })
+
+  it('an unreadable ledger is never rendered as $0 spent', () => {
+    const at = OPERATOR.indexOf("operatorRouter.get('/clients/:id/brief-facts'")
+    const body = OPERATOR.slice(at, at + 4_000)
+    expect(body, 'a failed spend read answers zero').toContain('Could not read spend')
+  })
+})

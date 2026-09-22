@@ -49,9 +49,32 @@ type Reading =
   | { kind: 'gone' }
   | null
 
+/**
+ * ⚑ 22 Sep — WHAT WILL BE SENT, AND WHAT THE POOL WOULD CARRY.
+ *
+ * 🛑 THE OPERATOR SEES THE PROVIDER'S OWN FIELD NAMES AND VALUES — `person_seniorities:
+ * c_suite · vp · director`, not "C-Suite". An operator asked *why did this search return
+ * those people* needs the REQUEST, not a friendly restatement of it. The server runs the real
+ * request builder, so this cannot drift from the search.
+ *
+ * 🛑 AND THE OPERATOR SEES BOTH CAPACITY NUMBERS (founder-ruled 22 Sep). The client is told
+ * what we can commit to at the worst case; Vida also gets the benchmark and the headroom
+ * between them, because the buffer is only useful to the people who can act on it.
+ */
+type DraftFacts = {
+  provider: { field: string; values: string[] }[]
+  matched: number
+  committed: number
+  benchmark: number
+  headroom: number
+  known: boolean
+  spend: { batches: number; records: number; usd: number }
+}
+
 export function BriefPanel({ draftId }: { draftId: string }) {
   const [reading, setReading] = useState<Reading>(null)
   const [error, setError] = useState<string | null>(null)
+  const [facts, setFacts] = useState<DraftFacts | null>(null)
 
   const load = useCallback(async (alive: () => boolean) => {
     try {
@@ -64,6 +87,19 @@ export function BriefPanel({ draftId }: { draftId: string }) {
       // became a client. That must reach the screen; it is the outcome the panel is waiting for.
       setReading(prev => nextRailValue<Reading>(prev, { ok: true, value: row ? { kind: 'draft', row } : { kind: 'gone' } }))
       setError(null)
+      // ⚠️ SECOND READ, AND ONLY WHILE THE DRAFT IS STILL A DRAFT. It runs a free provider
+      // count; there is nothing to count for somebody who has already become a client, and
+      // their own client-scoped panels answer from then on.
+      if (row) {
+        try {
+          const f = await fetch(`/api/proxy/operator/brief-drafts/${draftId}/facts`).then(r => r.json())
+          if (!alive()) return
+          // ⚠️ A FAILED FACTS READ LEAVES THE PANEL AS IT WAS. The brief counts above are the
+          // panel's job; these are additional evidence, and blanking them on a transient 500
+          // would read as "nothing is being sent", which is a different and alarming claim.
+          if (f?.success) setFacts(f.data ?? null)
+        } catch { /* silent — the panel keeps whatever it last showed */ }
+      }
     } catch (e) {
       if (!alive()) return
       // ⚠️ A FAILED READ CHANGES NOTHING. Blanking the panel on a transient 500 would read as
@@ -120,11 +156,61 @@ export function BriefPanel({ draftId }: { draftId: string }) {
     confirmedAt: d.confirmed_at,
   })
 
+  // ── 🛑 ⚑ 22 Sep — THE OPERATOR'S THREE EXTRA CARDS, APPENDED NEVER SUBSTITUTED ────────
+  //
+  // ⚠️ `copy.cards` COMES FIRST AND IS UNTOUCHED. The brief count and its subtitle are what
+  // this panel has always been for; these are evidence added beneath, and a future change to
+  // `briefPanelCopy` must not have to know they exist.
+  //
+  // ⚠️ AND THEY ONLY APPEAR WHEN THERE IS SOMETHING TO SAY. A draft with no targeting yet
+  // renders the brief count alone, rather than three cards of zeros that read as a broken
+  // panel rather than an early one.
+  const extra: typeof copy.cards = []
+  if (facts) {
+    // 🛑 BOTH CAPACITY NUMBERS, WHICH IS THE WHOLE POINT OF SHOWING THEM HERE. The client is
+    // told what we can commit to at the worst case; the operator also gets the benchmark and
+    // the gap between them, because the buffer is only useful to the people who can act on it.
+    if (facts.known) {
+      extra.push({
+        kind: 'stats',
+        label: 'Provisional cap',
+        stats: [
+          { value: `~${facts.committed}`, label: 'sellable · worst case' },
+          { value: String(facts.benchmark), label: 'at the benchmark' },
+          { value: String(facts.headroom), label: 'headroom' },
+          { value: facts.matched.toLocaleString(), label: 'returned by People Search · free' },
+        ],
+      })
+    }
+    // ⚠️ PROVIDER FIELD NAMES, DELIBERATELY. `c_suite`, not "C-Suite" — this is the request,
+    // and the client's own panel carries the same values in plain English.
+    const sent = facts.provider.filter(f => f.values.length > 0)
+    if (sent.length > 0) {
+      extra.push({
+        kind: 'note',
+        label: 'What will be sent to the provider',
+        body: sent.map(f => `${f.field}: ${f.values.join(' · ')}`).join('\n'),
+      })
+    }
+    extra.push({
+      kind: 'stats',
+      label: 'Spend',
+      stats: [
+        { value: `$${facts.spend.usd.toFixed(2)}`, label: 'sourcing spend' },
+        { value: String(facts.spend.records), label: 'records bought' },
+        // ⚠️ "BATCHES", NOT "PROVIDER CALLS". `sourcing_ledger` records granted batches, not
+        // HTTP requests, and nothing in the codebase counts the latter. Naming it for what it
+        // is beats a number that looks precise and is not.
+        { value: String(facts.spend.batches), label: 'ledgered batches' },
+      ],
+    })
+  }
+
   return (
     <LifecyclePanel
       clientName={d.company_name || d.contact_name || 'Signed up'}
       subtitle={copy.subtitle}
-      cards={copy.cards}
+      cards={[...copy.cards, ...extra]}
       actions={[]}
       busy={null}
       message={null}

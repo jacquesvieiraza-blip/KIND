@@ -88,6 +88,33 @@ describe('MILLA — ONE INSTANCE, ONE TRANSCRIPT, ONE COMPOSER', () => {
       .toContain("const isOnboarding = pathname === '/milla/welcome'")
   })
 
+  it('🛑 and the first screen is the PORTAL shape — Milla a column, the workspace the screen', () => {
+    // ── THE DEFECT THIS PINS, AND IT ALSO REACHED THE FOUNDER'S SCREEN ──────────────────
+    //
+    // Standing the shell's column down left the onboarding page's own conversation as
+    // `flex-1` beside a 420px panel — a layout that was right while this page owned the whole
+    // viewport and wrong the moment it became a panel inside the shell. The conversation took
+    // every spare pixel: one message floated at the top of a vast empty field, the composer
+    // was stranded at the bottom of the screen, and the targeting panel was a narrow strip.
+    //
+    // 🛑 THE APPROVED PORTAL IS THE OTHER WAY ROUND, and it is the shape the shell's own
+    // conversation has always used: Milla is a FIXED 600px column and the working area beside
+    // her is what grows. Asserted against the same class string, so the first run and every
+    // later screen stay one object rather than two that resemble each other.
+    const welcome = strip(readFileSync(
+      join(PORTAL, 'app/(milla)/milla/welcome/page.tsx'), 'utf8'))
+    expect(welcome, 'the first-run conversation is not the portal column')
+      .toContain('w-full md:w-[600px] shrink-0')
+    expect(welcome, 'the conversation took the working area again')
+      .not.toMatch(/<section className="flex-1 min-w-0 flex flex-col">/)
+    expect(welcome, 'the working area is a strip beside the conversation again')
+      .toMatch(/<aside className="flex-1 min-w-0/)
+    // ⚠️ AND SHE IS INTRODUCED. The page's own 54px header went when the shell's account bar
+    // took over, and the conversation's header went with it — leaving the client talking to an
+    // unlabelled box. This is the conversation's header, the same one MillaConversation draws.
+    expect(welcome, 'the conversation lost its header').toContain('conversational &amp; strategic')
+  })
+
   it('the onboarding screen reaches the shell like every other route — there is no bypass', () => {
     // ⛓️ 22 Sep — WAS: *"the onboarding screen is still bare — the shell returns before the
     // conversation"*, which asserted the early return existed and sat ABOVE the provider so

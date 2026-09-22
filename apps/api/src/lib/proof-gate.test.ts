@@ -172,11 +172,33 @@ describe('⑥ the provider is asked strictly where it can be, and generously onl
     }
   })
 
-  it('⚠️ industry stays a keyword tag ON PURPOSE, and the gate is why that is safe', () => {
-    // The strict industry field is documented in apollo.ts as returning ~1 result where tags
-    // return 65k. Narrowing it would zero the search; re-deciding industry on the ROW is the
-    // correct fix, and that is what `proof-fit.ts` does.
-    expect(code(APOLLO)).toContain('body.q_organization_keyword_tags = icp.industries')
-    expect(APOLLO).toContain('refuse precisely')
+  // ── 🛑 ⚑ 22 Sep — THE BARGAIN THIS TEST DEFENDED IS OVER, AND BOTH HALVES OF IT FAILED ──
+  //
+  // ⛓️ WAS: ~~"⚠️ industry stays a keyword tag ON PURPOSE, and the gate is why that is safe"~~,
+  // asserting `body.q_organization_keyword_tags = icp.industries` and the phrase "refuse
+  // precisely". The reasoning was *fetch generously, refuse precisely* — send a loose OR over
+  // tags, then re-decide industry deterministically on the row.
+  //
+  // 🛑 IT WAS SAFE ONLY IF THE CLIENT SPOKE OUR VOCABULARY, AND THE CLIENT NEVER DOES. Their
+  // category was first forced into a sixteen-word list we invented, and then judged against
+  // that same list. A word that fitted narrowed the search in our terms against Apollo's
+  // taxonomy; a word that did not fit produced an empty list, `unknown` on every row, and a
+  // gate that removed all of them without one criterion ever saying `no`. Both roads ended at
+  // an empty Proof screen.
+  //
+  // ⚠️ THE STRICT-FIELD FACT IT CITED IS STILL TRUE AND STILL RECORDED IN `apollo.ts`:
+  // Apollo's strict industry field returns ~1 result where tags return 65k. That is why the
+  // answer was never "narrow it" — it is that the client's category is not a filter at all.
+  it('🛑 the client’s category is NOT sent to the provider — it orders, it never filters', () => {
+    expect(code(APOLLO), 'the category is being sent as a search filter again')
+      .not.toContain('body.q_organization_keyword_tags = icp.industries')
+    // ⚠️ THE FIELD ITSELF IS NOT BANNED. Intent signals still OR into it, and those are OUR
+    // signals about a company's moment rather than the client's description of a market.
+    expect(code(APOLLO), 'intent signals lost their tag field').toContain('orgKwTags')
+    // And the four that DO reach the request are unchanged.
+    for (const strict of [
+      'body.person_titles', 'body.person_seniorities',
+      'body.organization_num_employees_ranges', 'body.person_locations',
+    ]) expect(code(APOLLO), `${strict} stopped reaching the request`).toContain(strict)
   })
 })

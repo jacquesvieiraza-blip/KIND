@@ -39,7 +39,7 @@
 // ══════════════════════════════════════════════════════════════════════════════════════════
 
 import {
-  hardFit, structurallyAdmissible, firstHardFailure,
+  hardFit, REMOVING_CRITERIA,
   type FitCandidate, type FitIcp, type HardCriterion,
 } from './proof-fit'
 
@@ -92,7 +92,27 @@ export function providerContactAsCandidate(c: ProviderContact): FitCandidate {
  */
 export function preSpendRefusal(c: ProviderContact, icp: FitIcp): HardCriterion | null {
   const fit = hardFit(providerContactAsCandidate(c), icp)
-  return structurallyAdmissible(fit) ? null : firstHardFailure(fit)
+  // ── 🛑 ⚑ 22 Sep — IT HAD TO MOVE WITH THE GATE, OR THE FIX WOULD HAVE BEEN INVISIBLE ───
+  //
+  // ⛓️ WAS: ~~`structurallyAdmissible(fit) ? null : firstHardFailure(fit)`~~ — a definite
+  // `no` on any of the seven, including the client's category.
+  //
+  // 🛑 THIS RUNS FIRST IN THE SOURCING LOOP and drops a contact BEFORE it is inserted, so a
+  // person refused here never reaches `applyStructuralGate` at all. Relaxing only the gate
+  // would have left exactly the same people deleted one step earlier, the run still
+  // reporting an empty page, and the gate looking innocent.
+  //
+  // ⚠️ AND THE HEADER'S OWN SAFETY ARGUMENT DEPENDS ON THE TWO AGREEING. It calls this
+  // *"strictly weaker than the gate — every candidate refused here would have been set aside
+  // there"*, which INVERTS the moment the gate stops removing on a criterion this one still
+  // spends a slot on. `removalCriterion` is the single definition of what may remove, so the
+  // invariant is restored rather than broken.
+  //
+  // ⚠️ `unknown` STILL DOES NOT COST A SLOT HERE. `removalCriterion` prefers a definite `no`,
+  // and this asks only for that: an unknown is a real candidate — surfaced, banded "Worth a
+  // look", capped at 74 — and refusing it before the spend would delete that state before it
+  // could exist. That is the lenient reading this file has always deliberately taken.
+  return REMOVING_CRITERIA.find(k => fit[k] === 'no') ?? null
 }
 
 /** Per-criterion refusal counts, for the one log line and the one alert line. */

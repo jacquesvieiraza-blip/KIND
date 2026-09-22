@@ -35,6 +35,18 @@ import { join } from 'path'
 // rather than quietly start proving something else.
 vi.mock('@kind/db', () => ({ db: {} }))
 
+// ⚑ 22 Sep — `routes/milla.ts` reaches `middleware/auth`, which builds a Supabase client at
+// module scope, so importing the route at all needs a URL to exist. Same stand-in
+// `kill-switch-absolute.test.ts` uses, and for the same reason.
+//
+// ⚠️ NOTHING BELOW TALKS TO IT. `briefReadModelFrom` takes its facts, its labels and its
+// derivation as arguments precisely so it can be RUN without a database — which is the
+// property that makes the panel provable rather than merely greppable, and the property the
+// month-long blank-screen defect slipped through for want of.
+process.env.SUPABASE_URL = process.env.SUPABASE_URL || 'http://localhost:54321'
+process.env.SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || 'test-key'
+process.env.SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || 'test-key'
+
 const { icpFromDraft } = await import('./promotion')
 type BriefDraft = Awaited<ReturnType<typeof import('./brief-draft')['briefDraftFor']>>
 
@@ -124,6 +136,97 @@ describe('what the client will see is what the search will send', () => {
     for (const k of ['job_titles', 'seniority_levels', 'company_sizes', 'geographies', 'industries']) {
       expect(icp[k], `${k} invented a value from an empty brief`).toEqual([])
     }
+  })
+})
+
+// ══════════════════════════════════════════════════════════════════════════════════════
+// ⚑ 22 Sep — THE WORKSPACE EXISTS BEFORE IT IS FULL, AND THIS IS THE GUARD THAT WAS MISSING
+//
+// 🛑 WHAT ACTUALLY HAPPENED. `onboarding_targeting` returned `[]` for a draft-less client and
+// then `.filter(r => r.said !== '' || r.sending.length > 0)` dropped every unanswered row from
+// the ones that did exist. So the approved portal's first screen — six labelled fields reading
+// "Milla will fill this" — was structurally impossible to render, and what a client actually
+// landed on after signing up was one sentence in a white box. The founder called it a blank
+// screen and he was right.
+//
+// 🛑 EVERY EXISTING GUARD IN THIS FILE STAYED GREEN THROUGH ALL OF IT, because every one of
+// them reads the SOURCE. `toContain('onboarding_targeting:')` is true of a field that always
+// returns nothing. The rule being broken was behavioural, so the test has to RUN the thing.
+//
+// ⚠️ THE SIX ARE ASSERTED BY NAME AND BY COUNT. A future edit that drops a field, reorders
+// them, or reintroduces a filter fails here rather than on a founder's screenshot.
+describe('the workspace is six fields before the client has said a word', () => {
+  const EXPECTED = [
+    ['target_roles', 'Job titles'],
+    ['seniority', 'Seniority'],
+    ['company_size', 'Employees'],
+    ['geography', 'Location'],
+    ['target_category', 'Order by (never excludes)'],
+    ['exclusions', 'Never contact'],
+  ] as const
+
+  type Row = { id: string; label: string; said: string; sending: string[]; placeholder: string; note?: string }
+  const panel = async (facts: Record<string, unknown> | null): Promise<Row[]> => {
+    const { briefReadModelFrom } = await import('../routes/milla')
+    const { BRIEF_FACT_LABEL, briefDraftFacts } = await import('@kind/shared')
+    const d = facts === null ? null : draft(facts)
+    const model = briefReadModelFrom(
+      d, briefDraftFacts(facts ?? null), { state: 'conversing', unresolvedLabels: [] },
+      BRIEF_FACT_LABEL as Record<string, string>,
+      icpFromDraft as never,
+    )
+    return model.onboarding_targeting as Row[]
+  }
+
+  it('🛑 a client who has JUST SIGNED UP gets all six fields, not an empty list', async () => {
+    // The exact state the founder landed in: authenticated, no draft row, nothing said.
+    const rows = await panel(null)
+    expect(rows, 'the landing screen has no workspace — this is the blank screen').toHaveLength(6)
+    expect(rows.map(r => r.id)).toEqual(EXPECTED.map(([id]) => id))
+    expect(rows.map(r => r.label)).toEqual(EXPECTED.map(([, label]) => label))
+  })
+
+  it('🛑 every unanswered field carries its own placeholder, from the server', async () => {
+    const rows = await panel(null)
+    for (const r of rows) {
+      expect(r.said, `${r.id} invented words the client never said`).toBe('')
+      expect(r.placeholder, `${r.id} has no empty-state copy`).not.toBe('')
+    }
+    // ⚠️ EXCLUSIONS IS THE ONE MILLA ASKS FOR rather than derives, and the locked copy says so.
+    // If the portal had to work this out from the row id, the vocabulary boundary this read
+    // model exists to hold would be broken by its own empty state.
+    expect(rows.find(r => r.id === 'exclusions')!.placeholder).toBe('Milla will ask')
+    for (const r of rows.filter(r => r.id !== 'exclusions')) {
+      expect(r.placeholder).toBe('Milla will fill this')
+    }
+  })
+
+  it('🛑 a HALF-ANSWERED brief still returns six — the unanswered ones keep their place', async () => {
+    // The pre-22-Sep filter dropped exactly these. A client three answers in watched fields
+    // appear one at a time out of nowhere instead of filling in.
+    const rows = await panel({ target_roles: 'MDs and COOs', geography: 'United Kingdom' })
+    expect(rows, 'unanswered fields were filtered out again').toHaveLength(6)
+    expect(rows.find(r => r.id === 'target_roles')!.said).toBe('MDs and COOs')
+    expect(rows.find(r => r.id === 'company_size')!.said).toBe('')
+  })
+
+  it('🛑 the category NEVER claims to remove anybody, answered or not', async () => {
+    // ⛓️ The note used to be attached only when `industries` came back EMPTY — so the client
+    // was reassured precisely when it excluded nobody and told nothing when it excluded
+    // thousands. The lock names the field "Order by (never excludes)" unconditionally.
+    for (const facts of [null, { target_category: 'professional-services firms' }, { target_category: 'SaaS' }]) {
+      const row = (await panel(facts))!.find(r => r.id === 'target_category')!
+      expect(row.label).toBe('Order by (never excludes)')
+      expect(row.note, `the ordering promise vanished for ${JSON.stringify(facts)}`)
+        .toBe('used to order the results — it never leaves anybody out')
+    }
+  })
+
+  it('the count the workspace header prints is the server\'s, with its own denominator', async () => {
+    const { briefDraftFacts } = await import('@kind/shared')
+    const empty = briefDraftFacts(null)
+    expect(empty.count).toBe(0)
+    expect(empty.total, 'the eleven is no longer stated by the server').toBe(11)
   })
 })
 

@@ -154,7 +154,53 @@ function firstUrl(text: string): string | null {
   return normalizeWebsite(host) || null
 }
 
-const GREETING = "Hi 👋 I'm Milla, your campaign partner. Let's get you set up — tell me a bit about your company and who your best customers are, and I'll build your targeting plan. No forms."
+// ── 🛑 ⚑ 22 Sep — THE LOCKED OPENING, WHICH IS THREE MESSAGES, NOT ONE ──────────────────
+//
+// ⛓️ WAS: ~~"Hi 👋 I'm Milla, your campaign partner. Let's get you set up — tell me a bit
+// about your company and who your best customers are, and I'll build your targeting plan. No
+// forms."~~ — one paragraph carrying four jobs at once.
+//
+// 🛑 THE APPROVED PORTAL SPLITS IT DELIBERATELY, and each part earns its place: you are IN
+// (nothing is pending), there is NOTHING TO FILL IN (no wizard is coming), and — the one a
+// first-time client most needs — LOOKING COSTS NOTHING, with the panel beside them named as
+// the thing that shows her working. A client who does not know the right-hand side is a
+// live read-out has no reason to look at it, and correcting Milla while she is still here is
+// the entire point of the screen.
+//
+// ⚠️ THE FINAL LINE IS A COMMERCIAL PROMISE AND IT IS TRUE TODAY. Brief and Proof spend
+// nothing: Apollo's People Search costs no credits and the pool is free. The first money is
+// P1 at Programme, after the client has seen real people.
+const GREETING_LINES = [
+  "Hi, I’m Milla. Welcome — you’re in.",
+  "There’s nothing to fill in and nothing to set up. Tell me what you’re trying to achieve and who you want in front of, in whatever words you’d use, and I’ll shape the rest from there.",
+  "Everything I understand appears on the right as we talk, so you can see me getting it right — or tell me when I’ve got it wrong.\n\nLooking costs nothing. You don’t pay for anything until you’ve seen real people and decided how many meetings you want.",
+]
+
+/**
+ * The first line, kept as its own constant — three resume paths still name it.
+ */
+const GREETING = GREETING_LINES[0]
+
+/**
+ * 🛑 IS THIS TRANSCRIPT STILL THE UNTOUCHED OPENING?
+ *
+ * ⛓️ 22 Sep — REPLACES ~~`m.length === 1 && m[0].content === GREETING`~~ AT ALL THREE RESUME
+ * CALL SITES, and the change is forced rather than stylistic: the opening is three messages
+ * now, so a length-1 test would have answered `false` for every brand-new client and the
+ * resume greeting would have been appended BELOW the welcome instead of replacing it.
+ *
+ * ⚠️ IT STILL PROTECTS THE THING THOSE CHECKS EXIST FOR. The moment the client has said
+ * anything — or Milla has answered — the array is longer or its contents differ, and a real
+ * transcript is never overwritten. One definition, so the three call sites cannot drift.
+ */
+const isUntouchedGreeting = (m: Msg[]): boolean =>
+  m.length === GREETING_LINES.length && m.every((x, i) => x.role === 'assistant' && x.content === GREETING_LINES[i])
+
+/**
+ * ⚑ 22 Sep — the locked starter chips. Not suggestions we invented: they are the three
+ * openings the approved portal offers, and each is a sentence a client can send as-is.
+ */
+const STARTERS = ['We want more meetings', "Here’s who we sell to", 'What do you need from me?']
 // ⚠️ REFINING IS NOT STARTING AGAIN (22 Aug, integration fix). A prospect who says "not
 // these people" after their first proof batch arrives back on this page — and it greeted
 // them as a stranger and saved as if it were building something new. The server now keeps
@@ -188,7 +234,7 @@ function resumeGreeting(count: number, total: number, nextLabel: string | null):
 
 export default function MillaWelcomePage() {
   const router = useRouter()
-  const [messages, setMessages] = useState<Msg[]>([{ role: 'assistant', content: GREETING }])
+  const [messages, setMessages] = useState<Msg[]>(GREETING_LINES.map(content => ({ role: 'assistant', content })))
   const [input, setInput] = useState('')
   const [thinking, setThinking] = useState(false)
   const [proposed, setProposed] = useState<IcpDraft | null>(null)
@@ -222,15 +268,24 @@ export default function MillaWelcomePage() {
   // asked for a live count beside the targeting panel. It is not built, because the gated
   // single call site above may not run before the account row exists and this screen is
   // exactly the moment before it does — see `refreshTargeting` for the decision that is owed.
-  const [, setMatchCount] = useState<number | null>(null)
+  // ⛓️ 22 Sep — READ AGAIN. ~~`const [, setMatchCount]`~~ was bound write-only on 24 Aug when
+  // the plan card that displayed it was deleted, and the 22 Sep note above recorded the count
+  // as "not built". The locked workspace has a match-count bar, so the value has a reader
+  // again — from the SAME single gated call site, with no second call added and the account
+  // gate untouched. What is still owed is the founder's decision on whether the free People
+  // Search may run BEFORE the account row exists; until then the bar shows the locked em-dash.
+  const [matchCount, setMatchCount] = useState<number | null>(null)
   /**
    * What Milla has understood, as the SERVER renders it: each fact in the client's own words
    * beside the provider value it produces. Finished render objects — this app learns nothing
    * about our fact vocabulary and derives none of it.
    */
   const [targeting, setTargeting] = useState<Array<{
-    id: string; label: string; said: string; sending: string[]; note?: string
+    id: string; label: string; said: string; sending: string[]; placeholder: string; note?: string
   }>>([])
+  // ⚑ 22 Sep — the client's own outcome sentence, for the workspace's lead tile. Server's
+  // `desired_outcome` fact verbatim; this file composes no sentence about their business.
+  const [outcome, setOutcome] = useState('')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   // ⚑ 14 Sep (S1-RT-003/004) — the server's own eleven-fact progress, held so the resume
@@ -307,7 +362,7 @@ export default function MillaWelcomePage() {
       const r = await api.get<{ data: Array<{ id: string }> }>('/icps', tk)
       if ((r.data ?? []).length > 0) {
         setRefining(true)
-        setMessages(m => (m.length === 1 && m[0].content === GREETING)
+        setMessages(m => isUntouchedGreeting(m)
           ? [{ role: 'assistant', content: REFINING_GREETING }] : m)
         return
       }
@@ -401,7 +456,7 @@ export default function MillaWelcomePage() {
       // their answers survived and what is still needed — the count is the server's, and
       // there is no eleven-fact list in this app.
       if (convo.length > 0) {
-        setMessages(m => (m.length === 1 && m[0].content === GREETING)
+        setMessages(m => isUntouchedGreeting(m)
           ? [...convo, ...(p && p.count > 0
               ? [{ role: 'assistant' as const, content: resumeGreeting(p.count, p.total, next?.label ?? null) }]
               : [])]
@@ -409,7 +464,7 @@ export default function MillaWelcomePage() {
       } else if (p && p.count > 0) {
         // No stored transcript (a Brief begun before this existed, or an unreadable value):
         // exactly the previous behaviour, which is still strictly better than a bare greeting.
-        setMessages(m => (m.length === 1 && m[0].content === GREETING)
+        setMessages(m => isUntouchedGreeting(m)
           ? [{ role: 'assistant', content: resumeGreeting(p.count, p.total, next?.label ?? null) }] : m)
       }
     } catch { /* silent — a client with no saved draft simply gets the normal greeting */ }
@@ -436,10 +491,19 @@ export default function MillaWelcomePage() {
     const tk = await token()
     try {
       const d = await api.get<{ data: {
-        onboarding_targeting?: Array<{ id: string; label: string; said: string; sending: string[]; note?: string }>
+        onboarding_targeting?: Array<{ id: string; label: string; said: string; sending: string[]; placeholder: string; note?: string }>
         onboarding_search?: Record<string, string[]> | null
+        onboarding_outcome?: string
+        progress?: { count: number; total: number }
       } }>('/milla/brief-draft', tk)
       setTargeting(d.data?.onboarding_targeting ?? [])
+      setOutcome(d.data?.onboarding_outcome ?? '')
+      // ⚑ 22 Sep — the workspace header's "n of 11 understood" reads the SERVER'S count and
+      // its SERVER'S denominator, the same verdict that decides what Milla still has to ask
+      // for. A count derived in this file could disagree with the question she asks next.
+      // ⚠️ The fact vocabulary and the counting rule both stay on the server — this file
+      // holds two numbers it was handed and names neither of the eleven.
+      if (d.data?.progress) setBriefProgress({ count: d.data.progress.count, total: d.data.progress.total })
       // ── 🛑 ⚑ 22 Sep — THE LIVE COUNT IS NOT HERE, AND THAT IS A FOUNDER DECISION OWED ───
       //
       // The founder asked for a live match count beside this panel, and the server already
@@ -1043,7 +1107,12 @@ export default function MillaWelcomePage() {
             <div className="space-y-3">
               {messages.map((m, i) => (
                 <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                  <div className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-[13.5px] leading-relaxed ${m.role === 'user' ? 'bg-[#1f1235] text-white' : 'bg-white border border-[#eee7f7]'}`}>{m.content}</div>
+                  {/* ⚑ 22 Sep — `whitespace-pre-line`, because the locked opening's third
+                      message carries a real paragraph break before "Looking costs nothing"
+                      and the default collapse ran the commercial promise onto the end of the
+                      sentence above it. Applies to every bubble: Milla's own replies already
+                      contained blank lines that were being flattened the same way. */}
+                  <div className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-[13.5px] leading-relaxed whitespace-pre-line ${m.role === 'user' ? 'bg-[#1f1235] text-white' : 'bg-white border border-[#eee7f7]'}`}>{m.content}</div>
                 </div>
               ))}
               {thinking && <div className="flex justify-start"><div className="bg-white border border-[#eee7f7] rounded-2xl px-4 py-2.5 text-[#9b8ec4] text-[13px]">Milla is thinking…</div></div>}
@@ -1125,6 +1194,28 @@ export default function MillaWelcomePage() {
                 </span>
               </div>
             )}
+            {/* ── ⚑ 22 Sep — THE LOCKED STARTER CHIPS ──────────────────────────────────
+                 🛑 They exist because "tell me what you're trying to achieve" is a blank page,
+                 and a blank page is where a first-time client stalls. Each chip is a whole
+                 sentence they can send as-is.
+
+                 ⚠️ THEY SEND, THEY DO NOT PREFILL. `send()` is the same path the composer
+                 uses, so a chip is an ordinary client turn — there is no second way into the
+                 conversation and nothing here is attributed to Milla.
+
+                 ⚠️ AND THEY RETIRE THE MOMENT THE CLIENT SPEAKS. Once the transcript is no
+                 longer the untouched opening, Milla is asking her own questions and a row of
+                 generic openers beneath them would be competing with her. */}
+            {isUntouchedGreeting(messages) && status === 'ready' && !thinking && (
+              <div className="max-w-2xl mx-auto mb-2 flex flex-wrap gap-1.5">
+                {STARTERS.map(s => (
+                  <button key={s} type="button" onClick={() => send(s)}
+                    className="text-[11.5px] text-[#4c4459] bg-white border border-[#ded8e8] rounded-full px-3 py-1.5 hover:border-[#7C3AED] hover:text-[#5b21b6]">
+                    {s}
+                  </button>
+                ))}
+              </div>
+            )}
             {status === 'error' ? (
               <div className="max-w-2xl mx-auto flex items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
                 <span className="text-[12.5px] text-[#7a6a3a]">I couldn&rsquo;t load your account just now, so I&rsquo;d rather not start until I can.</span>
@@ -1157,65 +1248,145 @@ export default function MillaWelcomePage() {
                as a column of notes; on the approved portal the working area is the screen, so
                it is a bordered card on the panel ground — the same shape Home's workspace and
                the Complete screen's "Final programme" use. */
-            <div className="p-5 text-[13px] text-[#5c5279] leading-relaxed">
-              <div className="bg-white border border-[#eee7f7] rounded-xl">
-              <div className="px-5 py-4 border-b border-[#eee7f7]">
-                <div className="text-[15px] font-bold text-[#1f1235]">Your targeting plan</div>
-              {/* ⛓️ 30 Aug (BUILD-004A-1 live-walk, FOUNDER DECISION 4) — FOUNDER'S EXACT
-                  WORDS. This read: "a recommended **credit plan** here. You approve before
-                  anything starts." Retired on both counts — "credit plan" is the wallet/pack
-                  economics the programme model removed, and "You approve" is the per-lead
-                  approval it also removed. A prospect met both on the FIRST screen of the
-                  product, before they had seen a single person.
-                  ⚠️ `&rsquo;` not a literal ’ — this is a JSX text node and every other
-                  apostrophe in this file is written the same way. */}
+            // ── 🛑 ⚑ 22 Sep — THE WORKSPACE, AS THE APPROVED PORTAL DRAWS IT ─────────────
+            //
+            // ⛓️ WAS: one white card headed "Your targeting plan", whose body was a single
+            // sentence until the first fact landed — ~~`{targeting.length === 0 ? <span>As we
+            // chat, Milla builds your ICP…</span> : …}`~~.
+            //
+            // 🛑 THAT SENTENCE IS WHAT THE FOUNDER ACTUALLY LANDED ON AFTER SIGNING UP, and he
+            // described it as a blank screen, correctly. The locked preview's first screen is
+            // a WORKSPACE: four tiles across the top, a bordered box headed "Your workspace ·
+            // 0 of 11 understood · nothing charged", six labelled fields already present and
+            // reading "Milla will fill this", and a bar along the bottom holding the match
+            // count. Every one of those exists before the client has said a word — because
+            // watching them fill is the product, and a panel that appears only once it is
+            // full cannot be watched filling.
+            //
+            // ⚠️ SECTIONS 0 AND 1 ARE THE SAME SCREEN, which is why they are one build. There
+            // is no empty-state component and no filled-state component: there is this, with
+            // `said`/`sending` empty or not. The server now guarantees all six rows exist in
+            // both states (`routes/milla.ts`), so this file never has to invent a field.
+            <div className="p-4 flex flex-col gap-3 min-h-full">
+              {/* ── THE FOUR TILES ── the locked order: OUTCOME · STAGE · PROGRESS · NEXT. */}
+              <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
+                {/* ⚠️ THE OUTCOME IS THEIRS, WORD FOR WORD, or it is honestly absent. The tile
+                    never paraphrases and never guesses from the targeting — "Book meetings with
+                    MDs and COOs" composed from job titles would be us putting a goal in their
+                    mouth on the first screen of the product. */}
+                <div className="rounded-xl bg-[#7C3AED] text-white px-3.5 py-3 min-w-0">
+                  <div className="text-[9px] font-extrabold uppercase tracking-[0.11em] text-[#d8c8f8]">Outcome</div>
+                  {outcome ? (
+                    <>
+                      <div className="text-[15px] font-extrabold mt-1">✓</div>
+                      <div className="text-[11px] leading-snug text-[#f0e6ff] mt-1">{outcome}</div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="text-[15px] font-extrabold mt-1">—</div>
+                      <div className="text-[11px] leading-snug text-[#f0e6ff] mt-1">Not set yet. Milla writes this from what you tell her, in your words.</div>
+                    </>
+                  )}
+                </div>
+                <div className="rounded-xl bg-white border border-[#e7e3ec] px-3.5 py-3 min-w-0">
+                  <div className="text-[9px] font-extrabold uppercase tracking-[0.11em] text-[#9b8ec4]">Stage</div>
+                  <div className="text-[17px] font-extrabold tracking-[-0.02em] mt-1">Brief</div>
+                  <div className="text-[10.5px] text-[#5c5279] mt-0.5">current</div>
+                </div>
+                {/* ⚠️ A HARD ZERO, NOT A PLACEHOLDER. Nobody has been contacted and nothing has
+                    been booked; the tile states that rather than hiding until there is news. */}
+                <div className="rounded-xl bg-white border border-[#e7e3ec] px-3.5 py-3 min-w-0">
+                  <div className="text-[9px] font-extrabold uppercase tracking-[0.11em] text-[#9b8ec4]">Progress</div>
+                  <div className="text-[21px] font-extrabold tracking-[-0.02em] tabular-nums mt-1">0</div>
+                  <div className="text-[10.5px] text-[#5c5279] mt-0.5">meetings booked</div>
+                </div>
+                {/* ⚠️ NEXT IS THE SERVER'S `next.label` — the same fact `briefNext` already
+                    holds and the same one Milla will actually ask for. Deriving "what's
+                    missing" here would be a second answer to a question the server owns, and
+                    the two would disagree the moment a fact is answered in words we cannot
+                    use. Before anything is known there is nothing to ask FOR yet, so the tile
+                    carries the locked opening instruction instead. */}
+                <div className="rounded-xl bg-white border border-[#e7e3ec] px-3.5 py-3 min-w-0">
+                  <div className="text-[9px] font-extrabold uppercase tracking-[0.11em] text-[#9b8ec4]">Next</div>
+                  <div className="text-[13px] font-extrabold leading-snug mt-1">
+                    {briefNext ?? 'Tell Milla what you’re trying to achieve'}
+                  </div>
+                  <div className="text-[10.5px] text-[#5c5279] mt-1">
+                    {briefNext ? 'what Milla needs' : 'one message is enough to start'}
+                  </div>
+                </div>
               </div>
-              <div className="px-5 py-4">
-              {targeting.length === 0 ? (
-                <span className="text-[#9b8ec4]">As we chat, Milla builds your <b>ICP</b> (who to target) and a recommended <b>programme</b> here. You&rsquo;ll review it before anything starts.</span>
-              ) : (
-                <>
-                  {/* ── 🛑 ⚑ 22 Sep — WHAT SHE UNDERSTOOD, AND WHAT WE WILL ACTUALLY SEARCH ON ──
-                      🛑 FOUNDER-LOCKED 22 Sep: *"they speak there and see there."* Every row is
-                      the client's own words with the provider value they produced underneath —
-                      the same bytes the confirm will persist, because the server derived both
-                      from `icpFromDraft` rather than describing them a second time.
 
-                      ⚠️ THE POINT IS THE CORRECTION, NOT THE DISPLAY. A client who sees
-                      "around twenty to fifty" resolve to two bands can say so in the next
-                      sentence; the same mistake found after a run has already shaped a
-                      search and cost a pass. */}
-                  <div className="mb-3 text-[#9b8ec4]">So far, in your words — and what I&rsquo;ll search on:</div>
-                  {/* ⚠️ TWO COLUMNS ABOVE THE BREAKPOINT. The panel is the working area now, so
-                      a single stack of cards left two thirds of it empty. */}
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-2.5">
-                    {targeting.map(t => (
-                      <div key={t.id} className="rounded-[10px] border border-[#eee7f7] bg-[#faf8ff] px-3 py-2.5">
-                        <div className="text-[10px] font-extrabold uppercase tracking-[0.09em] text-[#9b8ec4]">{t.label}</div>
-                        {t.said ? <div className="text-[13px] text-[#1f1235] mt-0.5">{t.said}</div> : null}
-                        {t.sending.length > 0 ? (
-                          <div className="flex flex-wrap gap-1 mt-1.5">
-                            {t.sending.map(v => (
-                              <span key={v} className="text-[11px] font-semibold text-[#5b21b6] bg-[#f3ecff] rounded-md px-1.5 py-0.5">{v}</span>
-                            ))}
+              {/* ── THE WORKSPACE BOX ── */}
+              <div className="bg-white border border-[#e7e3ec] rounded-xl flex-1 flex flex-col min-h-0">
+                <div className="px-4 py-3 border-b border-[#e7e3ec] flex items-baseline gap-3 flex-wrap">
+                  <b className="text-[12.5px]">Your workspace</b>
+                  {/* ⚠️ THE COUNT AND ITS DENOMINATOR ARE BOTH THE SERVER'S. `briefProgress`
+                      carries `{count, total}` as the server sent them; hard-coding "11" would
+                      be a second definition of the Brief, and the eleven has already changed
+                      once. Until the first read lands there is no count to state, so the line
+                      says only what is true — nothing has been charged. */}
+                  <span className="text-[10.5px] text-[#5c5279] ml-auto">
+                    {briefProgress ? `${briefProgress.count} of ${briefProgress.total} understood · ` : ''}
+                    nothing charged
+                  </span>
+                </div>
+                <div className="p-4 flex-1">
+                  {/* ── THE SIX FIELDS ── three across above the breakpoint, as the lock draws
+                      them. `targeting` is a fixed six from the server, so this maps rather than
+                      branching on emptiness: an unanswered field renders its own placeholder
+                      and keeps its place in the grid. */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                    {targeting.map(t => {
+                      const answered = t.said !== '' || t.sending.length > 0
+                      return (
+                        <div key={t.id} className="min-w-0">
+                          <label className="block text-[10px] font-bold text-[#4c4459] mb-1">{t.label}</label>
+                          <div className={`border border-[#ded8e8] rounded-[9px] px-2.5 py-1.5 bg-white flex flex-wrap gap-1 items-center min-h-[34px] ${answered ? '' : 'text-[#9b8ec4] text-[11.5px]'}`}>
+                            {answered ? (
+                              <>
+                                {/* THEIR WORDS FIRST — the chips beneath are what those words
+                                    became. A client who reads "around twenty to fifty" turn
+                                    into two bands can correct it in the next sentence. */}
+                                {t.said ? <span className="text-[11.5px] text-[#17101f] w-full">{t.said}</span> : null}
+                                {t.sending.map(v => (
+                                  <span key={v} className="bg-[#f3ecff] text-[#5b21b6] rounded-md px-1.5 py-0.5 text-[10.5px] font-semibold">{v}</span>
+                                ))}
+                              </>
+                            ) : t.placeholder}
                           </div>
-                        ) : null}
-                        {t.note ? <div className="text-[11px] text-[#9b8ec4] mt-1.5 leading-snug">{t.note}</div> : null}
-                      </div>
-                    ))}
+                          {/* ⚠️ THE PROVIDER VALUES, PRINTED AS SENT. The lock puts
+                              "stored & sent as: c_suite, vp, director" under the field in mono,
+                              and it is the whole point of the panel: the client is looking at
+                              the exact bytes the search will carry, not a friendly restatement
+                              of them. */}
+                          {t.sending.length > 0 ? (
+                            <div className="text-[9px] text-[#9b8ec4] font-semibold mt-1 font-mono">stored &amp; sent as: {t.sending.join(' · ')}</div>
+                          ) : null}
+                          {t.note ? <div className="text-[9px] text-[#9b8ec4] font-semibold mt-1">{t.note}</div> : null}
+                        </div>
+                      )
+                    })}
                   </div>
-                  {/* ⚠️ NOTHING IS CHARGED AND NOTHING IS BOUGHT TO SHOW THIS. Every value here
-                      is derived from what the client already told Milla — no provider has been
-                      asked anything. The live match count the founder asked for belongs in this
-                      space and is not here yet; `refreshTargeting` above records exactly which
-                      lock it waits on. */}
-                  <div className="mt-4 pt-3 border-t border-[#eee7f7] text-[12px] text-[#9b8ec4] leading-snug">
-                    Nothing has been bought and nobody has been contacted — this is just me
-                    showing you what I&rsquo;ve understood.
+
+                  {/* ── THE BAR ── the match count, and what it costs: nothing.
+                      ⚠️ THE NUMBER IS ONLY SHOWN WHEN WE HAVE ONE. `matchCount` is set by the
+                      SINGLE gated `preview-count` call site this file is pinned to — see
+                      `refreshTargeting` for the lock and the founder decision still owed about
+                      running the free search before the account row exists. Until then the bar
+                      holds the locked em-dash, which is the honest state: we have not asked. */}
+                  <div className="mt-4 pt-3.5 border-t border-[#e7e3ec] flex items-center gap-3.5 flex-wrap">
+                    <b className="text-[23px] font-extrabold tracking-[-0.02em] tabular-nums">
+                      {matchCount === null ? '—' : matchCount.toLocaleString()}
+                    </b>
+                    <span className="text-[11px] text-[#5c5279] leading-snug">
+                      people match this so far<br />free to look at · nothing bought
+                    </span>
+                    <span className="ml-auto text-[12px] font-bold text-[#4c4459] bg-white border border-[#ded8e8] rounded-[10px] px-4 py-2">
+                      Milla is listening
+                    </span>
                   </div>
-                </>
-              )}
-              </div>
+                </div>
               </div>
             </div>
           ) : (

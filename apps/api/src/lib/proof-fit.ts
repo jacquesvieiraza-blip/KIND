@@ -645,7 +645,48 @@ export function hardFit(candidate: FitCandidate, icp: FitIcp): HardFit {
   }
 }
 
-/** The first criterion the candidate actually FAILS, or null. Order is the founder's list. */
+// ── 🛑 ⚑ 22 Sep — TWO CRITERIA ORDER THE RESULTS. THEY NEVER REMOVE ANYBODY ─────────────
+//
+// 🛑 THE APPROVED PORTAL NAMES THE CLIENT'S CATEGORY FIELD "Order by (never excludes)" and
+// prints beneath it *"ranking signal — not a filter"*. `buildSearchBody` already stopped
+// sending it to the provider — but that alone would have been a HALF FIX and a worse one
+// than doing nothing, because the judgement below would then have removed, on our reading of
+// an industry tag, exactly the people the search had deliberately stopped narrowing. The
+// client would have been shown a field promising it leaves nobody out, beside a Proof screen
+// that had left out thousands.
+//
+// ⚠️ THE VERDICTS ARE STILL COMPUTED AND STILL RECORDED. `hardFit` answers all seven
+// criteria exactly as before and `HARD_CRITERIA` is unchanged — this is about what a verdict
+// is ALLOWED TO DO, not about knowing less. `industry` and `category` keep their verdicts as
+// EVIDENCE: `fitBand` reads them to rank a mismatched company down to "Worth a look" so it
+// can never be starred, and `displayScore` caps its number to agree. Shown, ordered lower,
+// never deleted.
+//
+// ⚠️ AND IT IS THE `unknown` HALF THAT MATTERED MOST IN PRACTICE. A client whose category
+// never canonicalised produced an empty industry list, every row answered `unknown`, and
+// `setAsideReason` removed the lot — the empty Proof screen, reached without a single
+// criterion ever saying `no`. "Never leaves anybody out" has to cover the company we could
+// not read, or it is not a promise about anything.
+export const RANKING_ONLY_CRITERIA: readonly HardCriterion[] = ['industry', 'category'] as const
+
+/** The criteria that may actually cost a candidate their place. Everything except the two above. */
+export const REMOVING_CRITERIA: readonly HardCriterion[] =
+  HARD_CRITERIA.filter(k => !RANKING_ONLY_CRITERIA.includes(k))
+
+/**
+ * The first criterion the candidate actually FAILS, or null. Order is the founder's list.
+ *
+ * 🛑 THIS READS ALL SEVEN, AND AN EARLIER VERSION OF THE 22-SEP CHANGE GOT THAT WRONG. Making
+ * it skip `industry`/`category` looked like the obvious way to stop them removing anybody —
+ * and it silently RE-CREATED THE C05 CARD. `fitBand` and `displayScore` both read this
+ * function, so a management consultancy against a digital-marketing ICP stopped banding
+ * "Not a fit" and its cap rose from 30 to 74: a **72 printed beside a disqualifying
+ * sentence**, which is the precise card the founder caught and the reason this file exists.
+ *
+ * ⚠️ RANKING AND REMOVAL ARE DIFFERENT QUESTIONS, and only the second one moved. The
+ * judgement stays total: every criterion is answered, banded and captioned exactly as before.
+ * What may no longer cost a candidate their PLACE is decided by `removalCriterion` below.
+ */
 export function firstHardFailure(f: HardFit): HardCriterion | null {
   return HARD_CRITERIA.find(k => f[k] === 'no') ?? null
 }
@@ -653,6 +694,23 @@ export function firstHardFailure(f: HardFit): HardCriterion | null {
 /** Any criterion the row is silent on. Admissible, but never starred. */
 export function unknownCriteria(f: HardFit): HardCriterion[] {
   return HARD_CRITERIA.filter(k => f[k] === 'unknown')
+}
+
+/**
+ * 🛑 MAY THIS CANDIDATE BE REMOVED, AND BY WHICH CRITERION? — the only question that deletes.
+ *
+ * ⚑ 22 Sep. `firstHardFailure` says what is WRONG with a candidate; this says whether being
+ * wrong in that way is allowed to take them off the client's screen. Two questions that were
+ * one function, which is how "order the results" and "delete the row" ended up inseparable.
+ *
+ * ⚠️ IT ASKS BOTH VERDICT STATES, because the empty Proof screen was reached WITHOUT a single
+ * criterion ever saying `no`: a client whose category never canonicalised produced an empty
+ * industry list, every row answered `unknown`, and the gate removed the lot.
+ */
+export function removalCriterion(f: HardFit): HardCriterion | null {
+  return REMOVING_CRITERIA.find(k => f[k] === 'no')
+    ?? REMOVING_CRITERIA.find(k => f[k] === 'unknown')
+    ?? null
 }
 
 /**
@@ -747,6 +805,27 @@ const UNKNOWN_COPY: Record<HardCriterion, string> = {
  * is answerable by an operator; "score too low" is not, and would be the same unfalsifiable
  * shape as the card this whole change exists to remove.
  */
+/**
+ * 🛑 THE SENTENCE FOR A CANDIDATE THAT IS ACTUALLY BEING REMOVED — and it names the criterion
+ * that removed them, not merely the first thing wrong with them.
+ *
+ * ⚑ 22 Sep. `setAsideReason` reports the first failure across ALL SEVEN criteria, which was
+ * the right answer while all seven could remove. Now that `industry` and `category` only
+ * ORDER, that function can name a criterion which did not cost the candidate anything: a row
+ * whose industry says `no` and whose headcount is merely unreadable would be removed for the
+ * headcount and stamped *"not the kind of company you asked for"*. An operator reading Vida's
+ * exception panel would then answer the wrong question, and the client would be told
+ * something about their targeting that was not why anybody went missing.
+ *
+ * ⚠️ SAME COPY, SAME SHAPE, SAME ORDER — only the set of criteria considered differs, so the
+ * two sentences can never describe one candidate in two vocabularies.
+ */
+export function removalReason(f: HardFit): string | null {
+  const k = removalCriterion(f)
+  if (!k) return null
+  return f[k] === 'no' ? `${k}: ${FAILURE_COPY[k]}` : `${k}: ${UNKNOWN_COPY[k]}`
+}
+
 export function setAsideReason(f: HardFit): string | null {
   const failed = firstHardFailure(f)
   if (failed) return `${failed}: ${FAILURE_COPY[failed]}`

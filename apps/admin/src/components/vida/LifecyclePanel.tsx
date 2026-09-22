@@ -24,13 +24,30 @@
 // ═══════════════════════════════════════════════════════════════════════════════════════
 
 import { useState } from 'react'
+import { OPERATOR_RAIL, type OperatorRailStep, type StageChip } from '@/lib/vida-stage-copy'
 import type { PanelCard, PanelAction } from '@/lib/vida-lifecycle-copy'
 
 export function LifecyclePanel({
-  clientName, subtitle, cards, actions, busy, message, onAction,
+  clientName, subtitle, chips, rail, cards, actions, busy, message, onAction,
 }: {
   clientName: string
   subtitle: string
+  /**
+   * ⚑ 22 Sep — the header chips: where the brief is, whether anything is owed, what has been
+   * spent. Built by `stageChips`, never here — they are claims about a client and belong
+   * somewhere a test can run them.
+   */
+  chips?: StageChip[]
+  /**
+   * ⚑ 22 Sep — the operator's work rail, and which step we are on.
+   *
+   * 🛑 IT IS NOT THE CLIENT'S JOURNEY. The six-stage FLOW ribbon above this panel answers
+   * *where is the client*; this answers *what do we still owe them*, and it deliberately
+   * starts at Inbox+people so the two never count the same ground twice — the defect that
+   * cost us Section 0. `null` renders nothing, which is right for a client who has not
+   * reached operator work yet.
+   */
+  rail?: { at: OperatorRailStep | null } | null
   cards: PanelCard[]
   actions: PanelAction[]
   busy: string | null
@@ -47,7 +64,30 @@ export function LifecyclePanel({
   return (
     <div className="flex-1 min-h-0 overflow-y-auto px-5 py-4">
       <h1 className="text-[22px] font-extrabold text-[#1f1235] leading-tight">{clientName}</h1>
-      <p className="text-[13px] text-[#9b8ec4] mb-4">{subtitle}</p>
+      <p className="text-[13px] text-[#9b8ec4] mb-3">{subtitle}</p>
+
+      {chips && chips.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 mb-3">
+          {chips.map((c, i) => (
+            <span key={i} className={`text-[10.5px] font-bold rounded-full px-2.5 py-1 border ${
+              c.tone === 'ok'   ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+              : c.tone === 'warn' ? 'bg-amber-50 border-amber-300 text-amber-800'
+              : c.tone === 'stop' ? 'bg-red-50 border-red-200 text-red-700'
+              : 'bg-white border-[#ded8e8] text-[#4c4459]'}`}>{c.text}</span>
+          ))}
+        </div>
+      )}
+
+      {rail && (
+        <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1 mb-4 text-[10.5px] text-[#9b8ec4]">
+          {OPERATOR_RAIL.map((step, i) => (
+            <span key={step} className="inline-flex items-center gap-1.5">
+              {i > 0 && <span className="text-[#ded8e8]">›</span>}
+              <span className={step === rail.at ? 'font-extrabold text-[#5b21b6]' : ''}>{step}</span>
+            </span>
+          ))}
+        </div>
+      )}
 
       <div className="space-y-2.5">
         {cards.map((card, i) => {

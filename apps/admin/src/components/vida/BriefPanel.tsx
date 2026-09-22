@@ -26,6 +26,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { LifecyclePanel } from '@/components/vida/LifecyclePanel'
 import { briefPanelCopy } from '@/lib/vida-brief-copy'
+import { stageChips, nextActionCard, signUpRecordCard } from '@/lib/vida-stage-copy'
 import { nextRailValue, shouldPollNow, RAIL_REFRESH_MS } from '@/lib/vida-rail-refresh'
 
 /** The projection `/operator/brief-drafts` returns. Never a client — see `VidaClients.tsx`. */
@@ -165,7 +166,39 @@ export function BriefPanel({ draftId }: { draftId: string }) {
   // ⚠️ AND THEY ONLY APPEAR WHEN THERE IS SOMETHING TO SAY. A draft with no targeting yet
   // renders the brief count alone, rather than three cards of zeros that read as a broken
   // panel rather than an early one.
-  const extra: typeof copy.cards = []
+  // ── 🛑 ⚑ 22 Sep — THE LOCKED OPERATOR HEADER ────────────────────────────────────────
+  //
+  // 🛑 NORMAL IS SILENT. A signed-up client and a healthy Brief are both states where an
+  // operator has nothing to do, and the preview says so at both — "NEXT ACTION · NONE". A
+  // Needs-You list with everybody on it is read exactly as often as one with nobody on it.
+  //
+  // ⚠️ A DRAFT NEVER NEEDS AN OPERATOR, and that is a fact rather than an optimistic default:
+  // there is no control on this panel, because the brief is Milla's to collect and the
+  // confirmation is the client's to give. `needsYou: false` is therefore correct by
+  // construction here — the escalation paths live on CLIENT rows, which a draft is not.
+  const stage = d.brief.collected > 0 ? 'brief' : 'signup'
+  const chips = stageChips({
+    brief: { collected: d.brief.collected, total: d.brief.total },
+    spendUsd: facts ? facts.spend.usd : null,
+    records: facts ? facts.spend.records : null,
+    batches: facts ? facts.spend.batches : null,
+    needsYou: false,
+  })
+
+  const extra: typeof copy.cards = [
+    nextActionCard(stage, { needsYou: false }),
+    // ⚠️ PROOF IS ZERO HERE BY DEFINITION. A draft has no client row, so no pass can have
+    // been claimed against it — the step reads "not yet" as a fact, not as a missing read.
+    signUpRecordCard(
+      {
+        brief: { collected: d.brief.collected, total: d.brief.total },
+        spendUsd: facts ? facts.spend.usd : null,
+        records: null, batches: null, needsYou: false,
+      },
+      typeof d.confirmed_at === 'string' && d.confirmed_at.trim() !== '',
+      0,
+    ),
+  ]
   if (facts) {
     // 🛑 BOTH CAPACITY NUMBERS, WHICH IS THE WHOLE POINT OF SHOWING THEM HERE. The client is
     // told what we can commit to at the worst case; the operator also gets the benchmark and
@@ -210,6 +243,7 @@ export function BriefPanel({ draftId }: { draftId: string }) {
     <LifecyclePanel
       clientName={d.company_name || d.contact_name || 'Signed up'}
       subtitle={copy.subtitle}
+      chips={chips}
       cards={[...copy.cards, ...extra]}
       actions={[]}
       busy={null}

@@ -21,6 +21,10 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { readFileSync } from 'fs'
 import { join } from 'path'
 
+/** ⚑ 22 Sep — JSX copy wraps across lines; a sentence is asserted as a sentence. */
+const oneLine = (t: string) => t.replace(/\s+/g, ' ')
+
+
 // ⛓️ 12 Sep (S2-AUDIT-001) — RETARGETED, NOT WEAKENED. Every assertion below keeps its
 // exact meaning; only the NAME of the claim changed. `try_claim_proof_pass` incremented a
 // counter nothing could release, so a run that crashed at the PDL boundary consumed the
@@ -974,19 +978,27 @@ describe('batch refinement — pass 1 → refine → pass 2, then a human', () =
     // Both conditions. `proofMode` is the authoritative unpaid signal (has_funded = real
     // purchases); the pass count alone is NOT one, because a client who later paid still
     // carries proof_passes_done = 1 forever.
-    expect(d).toContain('const canRefine       = proofMode && proofPassesDone === 1')
-    expect(d).toContain('const proofExhausted  = proofMode && proofPassesDone >= 2')
+    // ⛓️ 22 Sep — ~~`proofPassesDone === 1`~~ and ~~`proofExhausted = proofMode &&
+    // proofPassesDone >= 2`~~. Refinement is unlimited (founder-locked, "2. unlimited now"),
+    // so the ceiling is gone from the database and a browser-side `=== 1` would be a second,
+    // STRICTER rule hiding a control the server grants. THE DUTY THIS CASE IS ABOUT IS
+    // UNCHANGED and is asserted below exactly as before: the control is PROOF-ONLY.
+    expect(d).toContain('const canRefine       = proofMode && proofPassesDone >= 1')
+    expect(d).toContain('const proofExhausted  = false')
     expect(d).toContain('const proofMode = needsGoLive')
     expect(d).toContain('const needsGoLive = !!summary && summary.icp_versions.length > 0 && !summary.has_funded')
     // …and never inferred from anything else.
     expect(d).not.toMatch(/canRefine\s*=\s*[^&]*wallet_balance|canRefine\s*=\s*[^&]*company_name/)
   })
 
-  it('pass 0 and pass 2 do NOT offer another automatic run', () => {
+  // ⛓️ 22 Sep — ~~"pass 0 and pass 2 do NOT offer another automatic run"~~. Pass 2 offers one
+  // now, and every pass after it: that is the ruling. PASS 0 STILL DOES NOT, and that half was
+  // always the real guard — there is nothing to improve on before a first set exists.
+  it('pass 0 does NOT offer a run — but every pass after the first does', () => {
     const d = desk()
-    // `=== 1` is the whole point: not `>= 1`, which would offer a third after pass 2.
-    expect(d).toContain('proofPassesDone === 1')
-    expect(d).not.toContain('proofPassesDone >= 1')
+    expect(d).toContain('proofPassesDone >= 1')
+    expect(d, 'the browser re-introduced a ceiling the server does not have')
+      .not.toContain('proofPassesDone === 1')
     // ⛓️ RETARGETED 10 Sep (C07) — THE ONE BUTTON BECAME TWO LOCKED CONTROLS.
     //
     // This pinned "These aren't right" — the single control that opened the refine panel and
@@ -997,8 +1009,14 @@ describe('batch refinement — pass 1 → refine → pass 2, then a human', () =
     // around this one check.
     expect(d).toContain('const calibrationControl =')
     expect(d).toContain('onRequestStronger={openRefine}')
-    // The exhausted state is a STATEMENT, with no action attached.
-    expect(d).toContain('We&rsquo;ve used both proof passes. K.I.N.D will review this with you.')
+    // ⛓️ 22 Sep — ~~"We've used both proof passes. K.I.N.D will review this with you."~~ was
+    // founder-approved on 30 Aug and is false in both halves now: no pass is spent for ever,
+    // and nobody is queued for a review they did not ask for. Replaced under the 22-Sep
+    // ruling — *"if Milla cant answer we then say to the client please use drop down boxes on
+    // right mannually"* — so the dead end becomes a route the client can take themselves.
+    expect(d, 'the two-pass wall came back').not.toContain('used both proof passes')
+    expect(oneLine(d), 'the client is no longer pointed at the fields they can set themselves')
+      .toContain('set the targeting yourself in the fields on your Brief')
   })
 
   it('the wording is the founder\'s, verbatim', () => {
@@ -1380,20 +1398,33 @@ describe('one reflect-back truth, and two labelled proof sets', () => {
     expect(d).toContain('as 0 and the control is HIDDEN')
     expect(s).toContain('The desk gates on')
     expect(s).toContain('so 0 HIDES the control')
-    // The BEHAVIOUR is unchanged — the gate is still `=== 1` and the fallback still 0.
+    // ⛓️ 22 Sep — the FALLBACK is what this case is about and it is unchanged: a missing
+    // count reads as 0 and HIDES the control, which is the direction that cannot spend
+    // anything by accident. The gate itself moved from `=== 1` to `>= 1` with the ruling.
     expect(d).toContain('const proofPassesDone = summary?.proof_passes_done ?? 0')
-    expect(d).toContain('const canRefine       = proofMode && proofPassesDone === 1')
+    expect(d).toContain('const canRefine       = proofMode && proofPassesDone >= 1')
   })
 
-  it('34/35 · after both passes the desk states the stop and offers no third action', () => {
+  // ── 🛑 ⚑ 22 Sep — THE STOP IS GONE BECAUSE THERE IS NOTHING TO STOP AT ────────────────
+  //
+  // ⛓️ WAS: ~~"34/35 · after both passes the desk states the stop and offers no third
+  // action"~~, pinning the exhausted sentence and asserting the block held no control.
+  //
+  // 🛑 FOUNDER-LOCKED 22 Sep: *"2. unlimited now."* There is no "after both passes" — and a
+  // client who has told us twice what is wrong is the last person who should be stopped.
+  //
+  // ⚠️ WHAT REPLACES IT IS NOT NOTHING, which is why this case survives rather than being
+  // deleted. The desk must still make no CLAIM it cannot support and must point the client at
+  // the one thing that always works: the fields they can set themselves.
+  it('34/35 · the desk offers the fields rather than a stop', () => {
     const d = desk()
     const icps = readFileSync(join(__dirname, '../routes/icps.ts'), 'utf8')
-    expect(d).toContain('We&rsquo;ve used both proof passes. K.I.N.D will review this with you.')
-    // The exhausted block carries no control of any kind.
-    const exhausted = d.slice(d.indexOf('{proofExhausted && ('), d.indexOf('{proofExhausted && (') + 400)
-    expect(exhausted).not.toMatch(/<button|onClick|api\.post/)
-    // And the server's own fence is exactly as it was.
-    expect(icps).toContain('We have shown you two sets of leads.')
+    expect(d, 'the two-pass wall came back').not.toContain('used both proof passes')
+    expect(oneLine(d), 'the client is not pointed at the fields')
+      .toContain('set the targeting yourself in the fields on your Brief')
+    // ⚠️ AND A PERSON IS AN OFFER, NEVER A STAGE THEY ARE PUT INTO.
+    expect(oneLine(d)).toContain('If you&rsquo;d rather a person looked at it with you, just say so.')
+    // The server still owns the authority — the desk grants nothing.
     expect(icps).toContain("await claimProofAuthority(clientId, req.params.id)")
   })
 

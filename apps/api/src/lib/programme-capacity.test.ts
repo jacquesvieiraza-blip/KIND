@@ -129,9 +129,30 @@ import { readFileSync } from 'fs'
 import { join } from 'path'
 
 const src = (p: string) => readFileSync(join(__dirname, p), 'utf8')
-const live = (t: string) => t.split('\n')
-  .filter(l => { const x = l.trim(); return !x.startsWith('//') && !x.startsWith('*') && !x.startsWith('/*') })
-  .join('\n')
+/**
+ * Executable code only — TS, JSX and SQL comments removed.
+ *
+ * ⛓️ REWRITTEN AFTER MY OWN COMMENTS FAILED MY OWN GUARDS, which `milla-programme.test.ts`
+ * records as having happened SEVEN times in this repo already. A line-prefix filter cannot
+ * see inside a `{/* … *\/}` block, so a tombstone that quotes the thing it removed — the
+ * word "Ireland", the old `v_auto_used < 2` ceiling — reads as the violation itself. Prose
+ * ABOUT a rule is not a breach of it, and a guard that cannot tell them apart reports
+ * failures that are not there: exactly as useless as one that misses failures that are.
+ *
+ * Line-anchored, because a non-greedy block regex over a whole file eats real code.
+ */
+const live = (t: string): string => {
+  let inBlock = false
+  return t.split('\n').map(l => {
+    const x = l.trim()
+    if (inBlock) { if (x.endsWith('*/') || x.endsWith('*/}')) inBlock = false; return '' }
+    if (x.startsWith('/*')) { if (!x.endsWith('*/')) inBlock = true; return '' }
+    if (x.startsWith('{/*')) { if (!x.endsWith('*/}')) inBlock = true; return '' }
+    if (x.startsWith('--')) return ''
+    const i = l.search(/(?<!:)\/\//)
+    return i >= 0 ? l.slice(0, i) : l
+  }).join('\n')
+}
 
 const ROUTE   = live(src('../routes/icps.ts'))
 const WELCOME = live(readFileSync(join(__dirname, '../../../portal/src/app/(milla)/milla/welcome/page.tsx'), 'utf8'))
@@ -196,5 +217,66 @@ describe('🛑 the exclusion subtraction is the client’s own instruction, noth
     expect(body).toContain("'excluded:%'")
     expect(body, 'the count widened beyond the client’s exclusions')
       .not.toMatch(/set_aside_reason.{0,40}not\.is|is\(.set_aside_reason., null\)/)
+  })
+})
+
+// ══════════════════════════════════════════════════════════════════════════════════════════
+// ⚑ 22 Sep — WHEN WE CANNOT ANSWER, WE HAND THEM THE FIELDS. WE NEVER GUESS.
+//
+//     "if Milla cant answer we then say to the client please use drop down boxes on right
+//      mannually. we never assume."
+//     "we cant guess peoples way of speaking ever"
+//
+// 🛑 THE LOCKED PREVIEW HAS MILLA SAY *"Ireland is the closest fit to what you described"* —
+// a judgement about which country resembles a market. That is the same class of guess that
+// produced the invented sixteen-word industry vocabulary, and it is the class the founder
+// ruled out. So the widen ROUTE is built and the OPINION is not: the client is told what
+// their pool carries, told re-counting is free, and handed the controls.
+// ══════════════════════════════════════════════════════════════════════════════════════════
+describe('🛑 the widen route is offered without an opinion attached', () => {
+  it('the Proof desk states the capacity and points at the fields', () => {
+    const flat = DESK.replace(/\s+/g, ' ')
+    expect(flat, 'the capacity is not stated on the desk').toContain('Your targeting carries')
+    expect(flat, 'the client is not handed the controls')
+      .toContain('Widen it yourself in the targeting fields on your Brief')
+    expect(flat, 're-counting is not promised as free').toContain('looking is free')
+    expect(DESK, 'there is no route to the fields').toContain('/milla/welcome')
+  })
+
+  it('🛑 and it proposes no geography, industry or size of its own', () => {
+    // The specific guess the preview contained, and the shape of every guess like it. If a
+    // future edit reintroduces "we suggest adding X", this is what should stop it.
+    const flat = DESK.replace(/\s+/g, ' ')
+    for (const guess of ['Ireland', 'closest fit', 'we suggest adding', 'we recommend widening to']) {
+      expect(flat, `the desk guessed on the client's behalf: "${guess}"`).not.toContain(guess)
+    }
+  })
+
+  it('a pool too small says so and still offers the same route', () => {
+    const flat = DESK.replace(/\s+/g, ' ')
+    expect(flat).toContain('There aren&rsquo;t enough people at this targeting for a programme yet.')
+  })
+})
+
+describe('🛑 refinement is unlimited, and nothing tells the client otherwise', () => {
+  it('the migration exists and removes the ceiling rather than raising it', () => {
+    const sql = live(readFileSync(
+      join(__dirname, '../../../../supabase/migrations/20260922_unlimited_proof_refinement.sql'), 'utf8'))
+    expect(sql).toContain('create or replace function public.claim_proof_authority')
+    expect(sql, 'a numeric ceiling is still in the claim function').not.toMatch(/v_auto_used\s*<\s*\d/)
+    // ⚠️ AND SEQUENTIALITY IS WHAT REPLACES THE COUNT AS THE SAFETY PROPERTY.
+    expect(sql).toContain('proof_pass_claims_one_open')
+  })
+
+  it('the runner carries it too — a .sql on disk LOOKS applied and runs nothing', () => {
+    const runner = readFileSync(join(__dirname, 'pending-migrations.ts'), 'utf8')
+    expect(runner).toContain("key: '20260922_unlimited_proof_refinement'")
+  })
+
+  it('🛑 her prompt no longer counts down, and no longer refuses a third', () => {
+    const ctx = live(readFileSync(join(__dirname, 'milla-proof-context.ts'), 'utf8'))
+    expect(ctx).toContain('There is NO limit')
+    expect(ctx, 'she is still told to refuse a set the server would grant')
+      .not.toContain('Never offer a third')
   })
 })

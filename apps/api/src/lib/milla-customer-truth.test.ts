@@ -430,7 +430,11 @@ describe('EVERYTHING 4A-1 FIXED IS STILL FIXED', () => {
     for (const control of ['👍 Looks right', 'Not a fit', 'Tell Milla why']) {
       expect(HOME, `the calibration control "${control}" is gone`).toContain(control)
     }
-    expect(HOME).toContain('proofExhausted &&')
+    // ⛓️ 22 Sep — ~~`expect(HOME).toContain('proofExhausted &&')`~~. Refinement is unlimited
+    // (founder-locked, "2. unlimited now"), so there is no exhausted state to render. What
+    // this case is about — the calibration controls are still there and no PAID path came
+    // back with them — is asserted above and below, unchanged.
+    expect(HOME, 'a proof-exhausted wall came back').not.toContain('proofExhausted &&')
     expect(HOME, 'a paid approve path is back on the home').not.toContain('/leads/approve-batch')
   })
 

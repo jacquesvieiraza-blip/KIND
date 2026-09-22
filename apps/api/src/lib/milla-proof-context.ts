@@ -140,10 +140,32 @@ export function describeProofContext(ctx: ProofChatContext | null): string {
     )
   }
 
-  // ── WHERE THEY ARE IN THE TWO ATTEMPTS ───────────────────────────────────────────────
+  // ── 🛑 ⚑ 22 Sep — THERE IS NO LIMIT TO REACH, AND SHE MUST NOT INVENT ONE ────────────
+  //
+  // ⛓️ WAS: ~~`- Automatic attempts used: ${ctx.attempt} of 2. There are exactly two, then a
+  // person takes over. Never offer a third.`~~
+  //
+  // 🛑 FOUNDER-LOCKED 22 Sep: *"2. unlimited now."* `claim_proof_authority` no longer has a
+  // ceiling, so every clause of that instruction became false at once — and the LAST one was
+  // the dangerous half. "Never offer a third" told the model to refuse something the server
+  // now grants, which is how a client gets talked out of a control that is sitting there
+  // working.
+  //
+  // 🛑 AND THE REPLACEMENT CARRIES THE OTHER RULING: *"if Milla cant answer we then say to
+  // the client please use drop down boxes on right mannually. we never assume."* She is told
+  // where the fields are and told to point at them, rather than left to improvise a rescue —
+  // which is the same reason the category stopped being guessed at.
+  //
+  // ⚠️ THE ATTEMPT NUMBER STAYS, WITHOUT A DENOMINATOR. Knowing this is their fourth go is
+  // real context for how to answer; "of 2" was the part that was a rule rather than a fact.
   lines.push(
-    `- Automatic attempts used: ${ctx.attempt} of 2. There are exactly two, then a person ` +
-      'takes over. Never offer a third.',
+    `- Refinement attempts so far: ${ctx.attempt}. There is NO limit — never tell them they ` +
+      'have run out, never count down, and never refuse another set.',
+    '- If you cannot work out what they mean, say so plainly and ask them to set it in the ' +
+      'targeting fields on their Brief. Never guess at their meaning and never assume a ' +
+      'value they did not give you.',
+    '- A person can look at it with them whenever they ask. That is an offer, never a stage ' +
+      'they are forced into.',
   )
   if (!ctx.escalated) {
     lines.push(ctx.strongerAvailable

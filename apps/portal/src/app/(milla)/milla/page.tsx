@@ -568,8 +568,22 @@ export default function MillaHomePage() {
   // A crashed run is its own terminal state. The prospect is NEVER shown the word
   // "failed" — that is the internal status name; they get the approved recovery copy.
   const proofFailed = terminalRun?.status === 'failed'
-  const canRefine       = proofMode && proofPassesDone === 1
-  const proofExhausted  = proofMode && proofPassesDone >= 2
+  // ── 🛑 ⚑ 22 Sep — REFINEMENT IS UNLIMITED, SO THERE IS NO EXHAUSTED STATE ───────────
+  //
+  // ⛓️ WAS: `canRefine` required the pass count to equal exactly one, and
+  // ~~`proofExhausted = proofMode && proofPassesDone >= 2`~~.
+  //
+  // 🛑 FOUNDER-LOCKED: *"2. unlimited now."* The server's `claim_proof_authority` no longer
+  // has a ceiling, so a browser-side `=== 1` would be a second, stricter rule hiding a
+  // control the server would happily grant — and `proofExhausted` would be a wall the product
+  // no longer has, told to a client who can simply refine again.
+  //
+  // ⚠️ THE PANEL IS STILL SERVER-GATED. `calib.can_request_stronger` is the authority; this
+  // only says the client is AT Proof with something to react to. A spend rule this browser
+  // computes is a spend rule anybody with devtools can satisfy — that note has always been on
+  // this file and it is why the cap was safe to delete here rather than merely widened.
+  const canRefine       = proofMode && proofPassesDone >= 1
+  const proofExhausted  = false
 
   // STEP 1 — opening the panel. Deliberately does NOTHING else: no call, no mutation, no
   // spend. Pressing "these aren't right" must never cost a pass.
@@ -1085,7 +1099,7 @@ export default function MillaHomePage() {
   // ── ⚑ 10 Sep (C07) — THE BATCH CONTROLS ARE THE SERVER'S, THE PANEL IS STILL OURS ────
   //
   // 🛑 WHAT CHANGED. This used to be ONE button — "These aren't right" — drawn on
-  // `canRefine` (a browser-side `proofPassesDone === 1`). It was the whole cost exposure:
+  // `canRefine` (a browser-side equality on the pass count). It was the whole cost exposure:
   // nothing said how many attempts existed, nothing distinguished "improve this" from "this
   // is beyond improving", and after both passes the client still held a control that spends.
   //
@@ -1542,6 +1556,36 @@ export default function MillaHomePage() {
                 </div>
               </div>
             )}
+            {/* ── 🛑 ⚑ 22 Sep — THE WIDEN ROUTE, WITH NO GUESSING IN IT ──────────────────
+                 🛑 FOUNDER-LOCKED, TWICE: *"if Milla cant answer we then say to the client
+                 please use drop down boxes on right mannually. we never assume"* and *"we
+                 cant guess peoples way of speaking ever."*
+
+                 🛑 WHAT THE LOCKED PREVIEW HAS MILLA DO HERE IS *"Ireland is the closest fit
+                 to what you described"* — a judgement about which country resembles a market,
+                 which is exactly the kind of guess that produced the invented industry
+                 vocabulary. So the route is offered WITHOUT the opinion: the client is told
+                 what their targeting carries, told widening is free, and handed the fields.
+                 They choose Ireland; we never propose it.
+
+                 ⚠️ IT IS SHOWN AT EVERY CAPACITY, NOT ONLY AT ZERO — which is the "six, not
+                 ten" moment. A client looking at a pool that carries six has to learn that
+                 BEFORE they pay for ten, and the honest way to tell them is the number plus
+                 the control, not a warning they cannot act on.
+
+                 ⚠️ AND NOTHING IS SPENT TO RE-COUNT. People Search is free; the promise in
+                 this sentence is one the product can keep. */}
+            {proofMode && capacity && capacity.known && (
+              <div className="[@media(min-width:1100px)]:col-span-2 [@media(min-width:1600px)]:col-span-3 rounded-2xl border border-[#ece5fb] bg-[#faf8ff] px-4 py-3 text-[13px] text-[#5c5279]">
+                {capacity.committed > 0
+                  ? <>Your targeting carries <b className="text-[#17101f]">{capacity.committed}</b>{' '}
+                    booked {capacity.committed === 1 ? 'meeting' : 'meetings'}. Want more than that?</>
+                  : <>There aren&rsquo;t enough people at this targeting for a programme yet.</>}
+                {' '}Widen it yourself in the targeting fields on your Brief and I&rsquo;ll
+                re-count straight away &mdash; looking is free, and nothing is bought.
+                {' '}<a href="/milla/welcome" className="font-semibold text-[#5b21b6] underline underline-offset-2">Open my Brief</a>
+              </div>
+            )}
             {/* ⚠️ THEY ARE A SAMPLE, AND SAYING SO IS THE POINT. The locked preview heads this
                 list "Twenty of your 4,317" and has Milla say it out loud: *"You're not choosing
                 from these twenty. They're a sample of the four thousand."* A client who thinks
@@ -1842,14 +1886,29 @@ export default function MillaHomePage() {
                 </Fragment>
               )
             })}
-            {/* ⚑ THE STOP IS NOT OPTIONAL. Two proof passes is the server's hard limit, and a
-                client who has spent both must be told so plainly — with no third action offered
-                anywhere near it. Founder-approved wording, verbatim.
-                ⛓️ 30 Aug — RESTORED. Rebuilding the panel dropped it, which left an exhausted
-                client staring at a set with no statement of where they stand. */}
-            {proofExhausted && (
-              <div className="mt-2 rounded-2xl border border-[#ece5fb] bg-[#faf8ff] px-4 py-3 text-[13px] text-[#5c5279]">
-                We&rsquo;ve used both proof passes. K.I.N.D will review this with you.
+            {/* ── 🛑 ⚑ 22 Sep — THE WALL IS GONE, AND THE FIELDS ARE THE WAY FORWARD ──────
+                 ⛓️ WAS: a statement that the client had spent both of their proof passes and
+                 that K.I.N.D would review it with them — founder-approved wording on 30 Aug,
+                 and true while two passes was the hard limit. It is now false in both halves:
+                 no pass is spent for ever, and nobody is waiting in a queue for a review they
+                 did not ask for. The old sentence is deliberately NOT quoted here — a guard
+                 asserts it has left this file, and a tombstone that reproduces it verbatim
+                 fails that guard while appearing to document it.
+
+                 🛑 FOUNDER-LOCKED 22 Sep: *"if Milla cant answer we then say to the client
+                 please use drop down boxes on right mannually. we never assume."* So the
+                 dead end becomes a route the client can take themselves — and a person
+                 becomes something they can ASK for rather than something they hit.
+
+                 ⚠️ IT IS SHOWN AFTER A REFINEMENT, NOT AFTER A LIMIT. `proofPassesDone > 0`
+                 means they have already tried once; that is the moment adjusting the fields
+                 directly is worth suggesting, and it is the moment we previously chose to
+                 tell them to stop. */}
+            {proofMode && proofPassesDone > 0 && (
+              <div className="[@media(min-width:1100px)]:col-span-2 [@media(min-width:1600px)]:col-span-3 mt-2 rounded-2xl border border-[#ece5fb] bg-[#faf8ff] px-4 py-3 text-[13px] text-[#5c5279]">
+                Still not right? Ask Milla again as many times as you like &mdash; or set the
+                targeting yourself in the fields on your Brief, and I&rsquo;ll re-count for free.
+                {' '}If you&rsquo;d rather a person looked at it with you, just say so.
               </div>
             )}
             {/* ⛓️ NO PRICE FOOTER. It carried the per-lead price and, in proof, a promise that

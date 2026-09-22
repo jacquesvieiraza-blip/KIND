@@ -197,7 +197,7 @@ describe('J5-C4 · the stated size survives the write and reaches every judge', 
 
   it('🛑 the POOL path passes it too — J5-C5 made one predicate for both paths', () => {
     const src = code('./pool-sourcing.ts')
-    const at = src.indexOf('structurallyAdmissible(hardFit(')
+    const at = src.indexOf('function poolFit(')
     expect(at, 'the pool match moved — this guard must be repointed').toBeGreaterThan(-1)
     expect(src.slice(at, at + 900), 'a reused pool record is judged on the band while the provider path uses the stated range')
       .toMatch(/target_size:/)

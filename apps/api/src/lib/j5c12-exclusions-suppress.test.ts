@@ -145,7 +145,7 @@ describe('J5-C12 · in every path', () => {
 
   it('🛑 the POOL REUSE path suppresses them too — the free path is still a path', () => {
     const src = code('./pool-sourcing.ts')
-    const at = src.indexOf('structurallyAdmissible(hardFit(')
+    const at = src.indexOf('function poolFit(')
     expect(at, 'the pool match moved — this guard must be repointed').toBeGreaterThan(-1)
     const call = src.slice(at, at + 900)
     expect(call, 'a reused pool record is never checked against the exclusions').toMatch(/exclusions:/)

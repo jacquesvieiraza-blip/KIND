@@ -216,8 +216,13 @@ describe('J5-C5 · the provider path asks it, and asks it first', () => {
       // rather than `structurallyAdmissible`, because the gate it must agree with stopped
       // removing on the two ranking-only criteria. The RULE this guard exists for is
       // unchanged: neither path may decide fit with a matcher of its own.
+      // ⛓️ 22 Sep — BOTH PATHS MOVED TOGETHER, WHICH IS THE POINT OF THIS GUARD. Neither
+      // asks `structurallyAdmissible` any more: the gate stopped removing on the two
+      // ranking-only criteria, so the provider boundary and the pool had to stop too or the
+      // three would disagree about the same company. They now ask ONE question —
+      // "does a REMOVING criterion say no?" — in one vocabulary, from one module.
       expect(code(p), `${p} decides fit without the one canonical predicate`)
-        .toMatch(/structurallyAdmissible\(\s*(hardFit\(|fit\))|REMOVING_CRITERIA\.find/)
+        .toMatch(/REMOVING_CRITERIA\.(find|every)/)
       expect(code(p), `${p} stopped calling hardFit`).toMatch(/hardFit\(/)
     }
   })

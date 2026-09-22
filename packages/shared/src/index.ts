@@ -18,6 +18,11 @@ export * from './programme-pricing'
 // ⚑ 10 Sep — the CLIENT-FACING calculator. Derives no money of its own: every price, split and
 // volume comes from `programme-pricing`. See its header for the committed/illustrative split.
 export * from './programme-calculator'
+// ⚑ 22 Sep — CAPACITY IS NOT PRICING AND NOT THE CALCULATOR, which is why it is its own
+// module. Pricing answers what a meeting costs; the calculator answers what a programme comes
+// to. This answers whether the pool can carry the meetings at all — the question that has to
+// be settled BEFORE either of the other two is allowed to quote a number.
+export * from './programme-capacity'
 export * from './programme-stage'
 // ⚑ MVP1 — the SIX visible stages per console, projected from the engine truth above. One
 // vocabulary for both apps (C41); it decides nothing and stores nothing. See its header.

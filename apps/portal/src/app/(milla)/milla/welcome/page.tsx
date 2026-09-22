@@ -4,6 +4,11 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { api } from '@/lib/api'
 import { createClient } from '@/lib/supabase/client'
+// ⚑ 22 Sep — THE CAPACITY MODEL, IMPORTED RATHER THAN RE-DERIVED. Method rule 7 applied to
+// meetings instead of money: the number of meetings a client is promised is a commitment, so
+// it derives from the shared constants at every surface that states it. A `Math.floor(n/400)`
+// written here would be a second definition of the promise, and the first one to drift.
+import { capacitySentence, committedCapacity, workablePool } from '@kind/shared'
 // ⚑ 14 Sep (S1-PD-08) — the Get Help state machine. Pure, executed by the gate, and the one
 // place that decides what this screen is allowed to claim happened.
 import {
@@ -1637,8 +1642,27 @@ export default function MillaWelcomePage() {
                     <b className="text-[23px] font-extrabold tracking-[-0.02em] tabular-nums">
                       {matchCount === null ? '—' : matchCount.toLocaleString()}
                     </b>
+                    {/* ── 🛑 ⚑ 22 Sep — "around ten meetings at this size" ──────────────────
+                         🛑 THE LOCKED BRIEF BAR, AND THE HALF THAT WAS MISSING. The count has
+                         been live since the gate came off; this is what the count MEANS to the
+                         client, which is the only part of it they actually care about.
+
+                         ⚠️ THE NUMBER OF PEOPLE IS NOT A PROMISE AND THE MEETINGS ARE. Founder-
+                         locked: we size against a worst case of 400 people per meeting and
+                         plan against 250, and *"we build buffer only we know"* — so this line
+                         states the meetings and never the rate, never the headroom, never the
+                         pool arithmetic behind it.
+
+                         ⚠️ AND IT IS DERIVED, NEVER TYPED. `capacitySentence(committedCapacity(…))`
+                         is the same pair the Proof tiles and the Programme slider read, so the
+                         number a client is told at Brief cannot disagree with the number the
+                         slider later stops at. */}
                     <span className="text-[11px] text-[#5c5279] leading-snug">
-                      people match this so far<br />free to look at · nothing bought
+                      people match this so far
+                      {matchCount === null ? null : (
+                        <> &mdash; <b className="text-[#17101f]">{capacitySentence(committedCapacity(workablePool(matchCount)))}</b></>
+                      )}
+                      <br />free to look at · nothing bought
                     </span>
                     {/* ── ⚑ 22 Sep — "Two more answers, then Proof" ──────────────────────
                          🛑 THE LOCKED BAR CHANGES ITS LABEL AS THE BRIEF FILLS: "Milla is

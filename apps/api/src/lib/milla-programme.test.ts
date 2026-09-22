@@ -602,8 +602,19 @@ describe('THE MILLA SHELL CARRIES NO RETIRED COMMERCIAL TRUTH', () => {
       expect(SHELL_CODE, 'the shell no longer reads the programme stage').toContain("'/my/programme'")
       // ⛓️ 16 Sep (B1) — the live stage still drives the current step; it is now PROJECTED
       // into the canonical six on the way in, so this ribbon and Vida's cannot disagree.
+      // ⛓️ 22 Sep — the derivation is unchanged off the first-run route, and is now preceded
+      // by ONE route-keyed exception (founder-locked: the ribbon marks Brief during
+      // onboarding, where there is definitionally no programme to read). Asserted as the tail
+      // of the expression so the live-stage derivation itself still cannot be replaced.
       expect(SHELL_CODE, 'the current step is not derived from the live stage')
-        .toContain('const at = stage ? arr.indexOf(mvp1MillaStageFromLegacy(stage)) : -1')
+        .toContain('stage ? arr.indexOf(mvp1MillaStageFromLegacy(stage)) : -1')
+      // 🛑 AND THE EXCEPTION IS KEYED ON THE ROUTE, NEVER ON AN ABSENT STAGE. `isOnboarding`
+      // is a pathname test; a null stage anywhere else still marks nothing current, which is
+      // what stops a failed read from becoming a claim about a client's programme.
+      expect(SHELL_CODE, 'the first-run exception is no longer keyed on the route')
+        .toContain('const at = isOnboarding ? 0 :')
+      expect(SHELL_CODE, 'isOnboarding is derived from something other than the pathname')
+        .toContain("const isOnboarding = pathname === '/milla/welcome'")
       expect(SHELL_CODE).toContain('const isCurrent = at >= 0 && i === at')
       // 🛑 AN UNKNOWN STAGE MARKS NOTHING CURRENT. Defaulting to index 0 would tell every
       // client whose read failed that they are at Proof — a claim about their programme made

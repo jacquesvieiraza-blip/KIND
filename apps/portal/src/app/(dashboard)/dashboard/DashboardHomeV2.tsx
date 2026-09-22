@@ -8,7 +8,6 @@ import Link from 'next/link'
 import { ArrowRight, BadgeCheck, Target, Inbox, LineChart, Search } from 'lucide-react'
 import { CopyShareLink } from '@/components/ui/CopyShareLink'
 import { FirstRunChecklist } from '@/components/ui/FirstRunChecklist'
-import { OneWalletExplainer } from '@/components/ui/OneWalletExplainer'
 import { WelcomeVideoCard } from '@/components/onboarding/WelcomeVideoCard'
 import { LearningCentre } from '@/components/onboarding/LearningCentre'
 
@@ -88,7 +87,8 @@ export function DashboardHomeV2({
           topLeadId={topLeadId}
         />
       )}
-      {clientId && <OneWalletExplainer clientId={clientId} hasPurchase={!!hasPurchase} />}
+      {/* ⛓️ 22 Sep — ~~`<OneWalletExplainer … />`~~ REMOVED, ungated, named the retired $299
+          pack. Same removal as the v1 home beside it; see its note for the reasoning. */}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
 

@@ -101,7 +101,12 @@ export interface PromotionResult {
  * Dropping them would be the other way to be wrong: the column would be EMPTY, and empty
  * downstream means unconstrained.
  */
-function icpFromDraft(d: BriefDraft): Record<string, unknown> {
+// ⚑ 22 Sep — EXPORTED SO THE BRIEF SCREEN CAN SHOW WHAT THIS WILL STORE, not a second
+// derivation that agrees with it today. The founder's requirement is that a client watches
+// their own targeting resolve while they are still there to correct it; the only honest way
+// to render that is to call the function that does the storing. It is pure and it writes
+// nothing, so a read path may call it freely.
+export function icpFromDraft(d: BriefDraft): Record<string, unknown> {
   const f = (d.facts ?? {}) as Record<string, unknown>
   const arr = (v: unknown): string[] =>
     Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string' && x.trim() !== '') : []

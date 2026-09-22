@@ -58,12 +58,20 @@ describe('MILLA — ONE INSTANCE, ONE TRANSCRIPT, ONE COMPOSER', () => {
     expect(code).toMatch(/<MillaConversationProvider[\s\S]{0,400}?<main[\s\S]*?\{children\}[\s\S]*?<\/main>\s*<\/MillaConversationProvider>/)
   })
 
-  it('the onboarding screen is still bare — the shell returns before the conversation', () => {
+  it('the onboarding screen reaches the shell like every other route — there is no bypass', () => {
+    // ⛓️ 22 Sep — WAS: *"the onboarding screen is still bare — the shell returns before the
+    // conversation"*, which asserted the early return existed and sat ABOVE the provider so
+    // onboarding could not mount a second conversation.
+    //
+    // 🛑 FOUNDER-LOCKED 22 Sep: *"they speak there and see there."* Onboarding renders inside
+    // the shell now, so the bypass is gone — and the thing that assertion was protecting is
+    // asserted directly instead: ONE provider, and the first run inside it rather than
+    // outside it.
     const code = strip(MILLA_SHELL)
-    const welcome = code.indexOf("if (pathname === '/milla/welcome') return <>{children}</>")
-    expect(welcome, '/milla/welcome no longer bypasses the shell').toBeGreaterThan(-1)
-    expect(code.indexOf('<MillaConversationProvider'), 'the conversation is mounted above the welcome bypass')
-      .toBeGreaterThan(welcome)
+    expect(code.indexOf("if (pathname === '/milla/welcome') return <>{children}</>"),
+      'the onboarding bypass is back — the first run is outside the portal again').toBe(-1)
+    expect(code.match(/<MillaConversationProvider[\s>]/g) ?? [],
+      'the conversation is mounted more than once').toHaveLength(1)
   })
 
   it('ALL NINE RAIL ROUTES still reach the shell, so all nine keep the assistant', () => {

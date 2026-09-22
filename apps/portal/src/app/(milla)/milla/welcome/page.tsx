@@ -218,7 +218,19 @@ export default function MillaWelcomePage() {
   // change. ⚠️ REPORTED, NOT FIXED HERE: that means /icps/preview-count now has no consumer
   // on this page. Whether it should still run at all is a provider-boundary question, and
   // this build is copy-only.
+  // ⚑ 22 Sep — STILL NO READER, AND NOW THE REASON IS RECORDED RATHER THAN OPEN. The founder
+  // asked for a live count beside the targeting panel. It is not built, because the gated
+  // single call site above may not run before the account row exists and this screen is
+  // exactly the moment before it does — see `refreshTargeting` for the decision that is owed.
   const [, setMatchCount] = useState<number | null>(null)
+  /**
+   * What Milla has understood, as the SERVER renders it: each fact in the client's own words
+   * beside the provider value it produces. Finished render objects — this app learns nothing
+   * about our fact vocabulary and derives none of it.
+   */
+  const [targeting, setTargeting] = useState<Array<{
+    id: string; label: string; said: string; sending: string[]; note?: string
+  }>>([])
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   // ⚑ 14 Sep (S1-RT-003/004) — the server's own eleven-fact progress, held so the resume
@@ -403,7 +415,59 @@ export default function MillaWelcomePage() {
     } catch { /* silent — a client with no saved draft simply gets the normal greeting */ }
   }, [])
 
+  /**
+   * ── 🛑 ⚑ 22 Sep — WHAT MILLA HAS UNDERSTOOD, RE-READ AFTER EVERY TURN ─────────────────
+   *
+   * 🛑 FOUNDER-LOCKED 22 Sep: *"they speak there and see there."* The panel used to say
+   * nothing until a finished ICP arrived at the end of the conversation, so a misread fact
+   * was discovered after a run rather than corrected in the sentence after it was misread.
+   *
+   * ⚠️ DELIBERATELY NOT `loadStatus`. That callback also resolves the account, the existing
+   * ICPs and the resume greeting; running it per turn could replace a transcript the client
+   * is mid-sentence in. This asks one question and sets two pieces of state.
+   *
+   * ⚠️ THE VALUES ARE THE SERVER'S, AND THEY ARE `icpFromDraft`'S — the same function the
+   * confirm persists from. So the panel cannot show one thing and the search send another.
+   *
+   * ⚠️ AND IT FAILS SILENT. A failed read leaves the panel exactly as it was; it never blanks
+   * what the client has already been shown, and it never claims a count it did not receive.
+   */
+  const refreshTargeting = useCallback(async () => {
+    const tk = await token()
+    try {
+      const d = await api.get<{ data: {
+        onboarding_targeting?: Array<{ id: string; label: string; said: string; sending: string[]; note?: string }>
+        onboarding_search?: Record<string, string[]> | null
+      } }>('/milla/brief-draft', tk)
+      setTargeting(d.data?.onboarding_targeting ?? [])
+      // ── 🛑 ⚑ 22 Sep — THE LIVE COUNT IS NOT HERE, AND THAT IS A FOUNDER DECISION OWED ───
+      //
+      // The founder asked for a live match count beside this panel, and the server already
+      // sends `onboarding_search` for it. It is NOT called here, because doing so would break
+      // a lock this file carries for a reason:
+      //
+      //   · `preview-count` is gated on `hasClient === true` — no provider call before the
+      //     account row exists — and pinned to EXACTLY ONE call site "so the gate cannot be
+      //     bypassed". A second call site here is precisely the bypass that pin forbids.
+      //   · during the first run `hasClient` is false until `/auth/onboard`, so the gated call
+      //     would answer nothing anyway for the client who most needs the number.
+      //   · the route is rate-limited to ten calls a minute per user; once per turn would
+      //     exhaust it inside a brisk conversation.
+      //
+      // The question is the founder's, not mine: may the FREE search run before the account
+      // row exists? People Search spends no credits — the reveal is the cost — so the lock's
+      // "paid preview" framing predates Apollo-only sourcing. But it is a lock, and the panel
+      // above is useful without the number.
+    } catch { /* silent — the panel keeps whatever it last showed */ }
+  }, [])
+
   useEffect(() => { void loadStatus() }, [loadStatus])
+
+  // ⚠️ ITS OWN EFFECT, NOT A SECOND STATEMENT IN `loadStatus`'s. That one is pinned by
+  // `first-run-milla.test.ts` as the shape that makes a failed account lookup RETRYABLE —
+  // a callback an effect re-runs, rather than a one-shot. Folding this into it would have
+  // changed a line whose exact form is the guarantee.
+  useEffect(() => { void refreshTargeting() }, [refreshTargeting])
 
   useEffect(() => { const el = bodyRef.current; if (el) el.scrollTop = el.scrollHeight }, [messages, proposed])
 
@@ -461,17 +525,11 @@ export default function MillaWelcomePage() {
   // so a failed escalation told the client K.I.N.D had been told.
   const [helpState, setHelpState] = useState<HelpState>('idle')
 
-  /**
-   * ⚑ 14 Sep (S1-RT-001) — the product's canonical sign-out, reached from onboarding.
-   *
-   * ⚠️ IDENTICAL TO `MillaShell.signOut`, deliberately. A second way to end a session is a
-   * second thing that can be wrong about what a session is; this is the same two lines.
-   * `window.location.href` rather than the router, so no React state outlives the sign-out.
-   */
-  async function signOut() {
-    try { await createClient().auth.signOut() } catch { /* ignore — leaving is not blocked */ }
-    window.location.href = '/login'
-  }
+  // ⛓️ 22 Sep — S1-RT-001's DUPLICATE SIGN-OUT IS GONE, AND ITS REQUIREMENT IS STRONGER FOR IT.
+  // ~~`async function signOut() { … }`~~ existed only because `MillaShell` hid its rail on this
+  // route, taking the product's one Sign out with it. The rail is present from the first second
+  // now, so a person mid-Brief leaves their account by the canonical control — one sign-out
+  // path, which is what that item wanted and could not have while the shell was hidden here.
 
   /**
    * 🛑 ⚑ 14 Sep (S1-RT-004) — A HUMAN, WHEN MILLA CANNOT RECOVER.
@@ -618,7 +676,14 @@ export default function MillaWelcomePage() {
       setError(e instanceof Error ? e.message : 'Milla hit a snag — please try again')
       setCanRetry(true)
     }
-    finally { setThinking(false) }
+    finally {
+      setThinking(false)
+      // ⚑ 22 Sep — AFTER EVERY TURN, INCLUDING A FAILED ONE. The customer's message is durable
+      // the moment it is sent (J5-C11), so a turn that errored on the way back may still have
+      // moved the Brief. Re-reading here is how the panel stays the truth rather than an
+      // optimistic echo of the last reply this tab happened to parse.
+      void refreshTargeting()
+    }
   }
 
   /** Re-deliver the transcript exactly as it stands. Appends NOTHING. */
@@ -908,53 +973,40 @@ export default function MillaWelcomePage() {
   const chips = (arr: string[]) => arr.filter(Boolean)
   const showProfile = hasClient === false && profile && Object.values(profile).some(Boolean)
 
-  const stepDot = (n: number, label: string, state: 'done' | 'on' | 'todo') => (
-    <span className="flex items-center gap-1.5 text-[12px] font-bold shrink-0" style={{ color: state === 'todo' ? '#9b8ec4' : '#7C3AED' }}>
-      <span className="w-[22px] h-[22px] rounded-full text-[11px] font-extrabold flex items-center justify-center text-white"
-        style={{ background: state === 'done' ? '#059669' : state === 'on' ? '#7C3AED' : '#e7ddf7', color: state === 'todo' ? '#9b8ec4' : '#fff' }}>
-        {state === 'done' ? '✓' : n}
-      </span>{label}
-    </span>
-  )
+  // ⛓️ 22 Sep — ~~`const stepDot = …`~~ REMOVED WITH THE FOUR-STEP BAR IT DREW. Welcome · Your
+  // target · Your plan · Go live was a fifth stage vocabulary, older than MVP1 and disagreeing
+  // with the canonical six. The shell's FLOW ribbon reads `MVP1_MILLA_STAGES` from
+  // `@kind/shared/mvp1-stage` — the same constant Vida's ribbon reads — and marks Brief current
+  // here. One vocabulary, two views, and a client's first screen no longer carries two
+  // progress indicators counting different things.
 
   return (
-    <div className="h-screen flex flex-col bg-[#faf8ff] text-[#1f1235] overflow-hidden">
-      <header className="h-[54px] shrink-0 flex items-center gap-3 px-6 border-b border-[#eee7f7] bg-white">
-        {/* ⚑ 24 Aug — MILLA'S OWN FACE. This was a gradient "M" tile, and the page a client
-            reached BEFORE it showed FIGSY's photo over copy that said "I'm Milla". Milla has
-            a canonical identity already — Milla · The Brain · /agents/milla.png, the same
-            asset the agent gallery and the marketplace use — so it is used here rather than
-            anything new being drawn. FIGSY's own surfaces are untouched. */}
-        <img src="/agents/milla.png" alt="Milla" className="w-8 h-8 rounded-[10px] object-cover object-top" />
-        <b className="text-[15px]">Milla</b><span className="text-[#9b8ec4] text-[12.5px] font-semibold">· let&rsquo;s set up your campaign</span>
-        {/* ── 🛑 ⚑ 14 Sep (S1-RT-001) — THERE WAS NO WAY OUT OF ONBOARDING ────────────────
-            `MillaShell` returns `<>{children}</>` for /milla/welcome — onboarding is
-            deliberately full-screen, with no rail and no top bar. That is also where the
-            product's only Sign out lives, so a signed-in person mid-Brief had no normal way
-            to leave their own account. On a shared machine that is not a cosmetic gap.
-
-            ⚠️ THE CANONICAL MECHANISM, NOT A SECOND ONE. Byte-for-byte the same act as
-            `MillaShell.signOut` — `createClient().auth.signOut()` then a hard navigation to
-            /login. No new auth path, no new session concept, and it needs no client row, so
-            it works from the first second of onboarding.
-
-            ⚠️ AND IT LOSES NOTHING. The Brief lives in `onboarding_brief_drafts`, keyed on
-            the USER, so signing back in resumes the same draft — facts and conversation. */}
-        <button
-          onClick={() => void signOut()}
-          className="ml-auto shrink-0 text-[12.5px] font-semibold text-[#9b8ec4] hover:text-[#1f1235] underline underline-offset-2"
-        >
-          Sign out
-        </button>
-      </header>
-
-      <div className="shrink-0 flex items-center gap-3 px-6 py-3 bg-white border-b border-[#eee7f7] overflow-x-auto">
-        {stepDot(1, 'Welcome', 'done')}<span className="w-8 h-0.5 bg-[#e7ddf7]" />
-        {stepDot(2, 'Your target', serverReady && proposed ? 'done' : 'on')}<span className="w-8 h-0.5 bg-[#e7ddf7]" />
-        {stepDot(3, 'Your plan', serverReady && proposed ? 'on' : 'todo')}<span className="w-8 h-0.5 bg-[#e7ddf7]" />
-        {stepDot(4, 'Go live', 'todo')}
-      </div>
-
+    // ── 🛑 ⚑ 22 Sep — THIS IS A PANEL NOW, NOT A SCREEN ──────────────────────────────────
+    //
+    // 🛑 FOUNDER-LOCKED 22 Sep: *"the client lands after sign up and lands in Milla portal.
+    // they speak there and see there."* `MillaShell` no longer strips its chrome for this
+    // route, so the rail, the account bar and the FLOW ribbon are around this conversation
+    // from the first second. Three things therefore came OUT of this file, and each was
+    // removed because the shell already renders it — never because it stopped mattering:
+    //
+    //   ① `h-screen` → `h-full`. The page no longer owns the viewport; it fills the shell's
+    //      content area, which is what makes the rail and ribbon visible beside it.
+    //   ② Its own 54px header — Milla's face and name. The shell's account bar is the one
+    //      header, and two stacked would be the "second, independent vocabulary" defect the
+    //      ribbon comment below already warns about.
+    //   ③ Its Sign out button, added by S1-RT-001 *because* the shell used to be hidden here.
+    //      The rail carries the canonical `MillaShell.signOut` again, so that item's actual
+    //      requirement — a signed-in person mid-Brief can leave — is satisfied by the product's
+    //      one sign-out path instead of a duplicate. **The requirement is met more strongly,
+    //      not dropped.** The Brief still lives in `onboarding_brief_drafts` keyed on the USER,
+    //      so signing back in still resumes the same draft.
+    //
+    // ⚠️ AND THE FOUR-STEP DOTS WENT WITH THE HEADER (Welcome · Your target · Your plan · Go
+    // live). They are a FIFTH stage vocabulary that predates MVP1 and disagrees with the
+    // canonical six the shell's ribbon reads from `@kind/shared/mvp1-stage`. Two progress
+    // indicators stacked, counting different things, on a client's first screen. The ribbon
+    // now marks **Brief** current during onboarding, which is where this client actually is.
+    <div className="h-full flex flex-col bg-[#faf8ff] text-[#1f1235] overflow-hidden">
       <div className="flex-1 flex overflow-hidden">
         {/* conversation */}
         <section className="flex-1 min-w-0 flex flex-col">
@@ -1079,7 +1131,48 @@ export default function MillaWelcomePage() {
                   product, before they had seen a single person.
                   ⚠️ `&rsquo;` not a literal ’ — this is a JSX text node and every other
                   apostrophe in this file is written the same way. */}
-              As we chat, Milla builds your <b>ICP</b> (who to target) and a recommended <b>programme</b> here. You&rsquo;ll review it before anything starts.
+              {targeting.length === 0 ? (
+                <>As we chat, Milla builds your <b>ICP</b> (who to target) and a recommended <b>programme</b> here. You&rsquo;ll review it before anything starts.</>
+              ) : (
+                <>
+                  {/* ── 🛑 ⚑ 22 Sep — WHAT SHE UNDERSTOOD, AND WHAT WE WILL ACTUALLY SEARCH ON ──
+                      🛑 FOUNDER-LOCKED 22 Sep: *"they speak there and see there."* Every row is
+                      the client's own words with the provider value they produced underneath —
+                      the same bytes the confirm will persist, because the server derived both
+                      from `icpFromDraft` rather than describing them a second time.
+
+                      ⚠️ THE POINT IS THE CORRECTION, NOT THE DISPLAY. A client who sees
+                      "around twenty to fifty" resolve to two bands can say so in the next
+                      sentence; the same mistake found after a run has already shaped a
+                      search and cost a pass. */}
+                  <div className="mb-3">So far, in your words — and what I&rsquo;ll search on:</div>
+                  <div className="flex flex-col gap-2.5">
+                    {targeting.map(t => (
+                      <div key={t.id} className="rounded-[10px] border border-[#eee7f7] bg-[#faf8ff] px-3 py-2.5">
+                        <div className="text-[10px] font-extrabold uppercase tracking-[0.09em] text-[#9b8ec4]">{t.label}</div>
+                        {t.said ? <div className="text-[13px] text-[#1f1235] mt-0.5">{t.said}</div> : null}
+                        {t.sending.length > 0 ? (
+                          <div className="flex flex-wrap gap-1 mt-1.5">
+                            {t.sending.map(v => (
+                              <span key={v} className="text-[11px] font-semibold text-[#5b21b6] bg-[#f3ecff] rounded-md px-1.5 py-0.5">{v}</span>
+                            ))}
+                          </div>
+                        ) : null}
+                        {t.note ? <div className="text-[11px] text-[#9b8ec4] mt-1.5 leading-snug">{t.note}</div> : null}
+                      </div>
+                    ))}
+                  </div>
+                  {/* ⚠️ NOTHING IS CHARGED AND NOTHING IS BOUGHT TO SHOW THIS. Every value here
+                      is derived from what the client already told Milla — no provider has been
+                      asked anything. The live match count the founder asked for belongs in this
+                      space and is not here yet; `refreshTargeting` above records exactly which
+                      lock it waits on. */}
+                  <div className="mt-4 pt-3 border-t border-[#eee7f7] text-[12px] text-[#9b8ec4] leading-snug">
+                    Nothing has been bought and nobody has been contacted — this is just me
+                    showing you what I&rsquo;ve understood.
+                  </div>
+                </>
+              )}
             </div>
           ) : (
             <div className="p-6">

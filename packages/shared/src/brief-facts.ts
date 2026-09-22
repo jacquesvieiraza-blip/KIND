@@ -178,10 +178,37 @@ export function briefFactLines(input: BriefFactInput): { id: BriefFactId; label:
     .map(id => ({ id, label: BRIEF_FACT_LABEL[id], value: values[id] }))
 }
 
-export function briefFacts(input: BriefFactInput): BriefFactsResult {
+export function briefFacts(
+  input: BriefFactInput,
+  /**
+   * ── 🛑 ⚑ 22 Sep — FACTS THE CLIENT ANSWERED IN WORDS WE COULD NOT USE ─────────────────
+   *
+   * 🛑 A VALUE IS NOT THE SAME THING AS AN ANSWER. A fact was held the moment it was a
+   * non-empty string, so *"a few dozen people"* completed the Brief — and then
+   * `deriveProviderReview` placed it on no band, `icp_review` was set, and `runIcpJob`
+   * THROWS while a review is outstanding: *"nothing may be sourced against it until an
+   * operator has reviewed it."* No provider call, no leads, no Proof. The client finished
+   * talking to Milla and nothing ever happened.
+   *
+   * 🛑 AND THAT EXACT SHAPE ALREADY COST SEVEN CLIENTS IN A ROW in the industry field — see
+   * `icp-provider-translation.ts`. Teaching the translator real words shortened that queue;
+   * it did not abolish it, and seniority and size still reach it from an ordinary sentence.
+   *
+   * ⚠️ SO THE CALLER MAY SAY "I COULD NOT USE THAT", AND THE FACT GOES BACK TO MISSING —
+   * which puts it back in Milla's hands, in the conversation the client is still in. The
+   * person who can fix "a few dozen people" in one sentence is the client, not an operator
+   * tomorrow, from a queue with no screen.
+   *
+   * ⚠️ THIS MODULE STAYS IGNORANT OF THE VOCABULARIES, DELIBERATELY. It is shared and pure;
+   * the closed lists live in the API. Passing the verdict in keeps the vocabularies in one
+   * place and the eleven-fact rule in another, rather than teaching this file to translate.
+   */
+  unmappable: readonly BriefFactId[] = [],
+): BriefFactsResult {
   const values = briefFactValues(input)
+  const unusable = new Set<BriefFactId>(unmappable)
   const held: Record<BriefFactId, boolean> = Object.fromEntries(
-    BRIEF_FACTS.map(id => [id, values[id] !== '']),
+    BRIEF_FACTS.map(id => [id, values[id] !== '' && !unusable.has(id)]),
   ) as Record<BriefFactId, boolean>
 
   const collected = BRIEF_FACTS.filter(id => held[id])
@@ -303,6 +330,10 @@ export function briefFactsFromDraft(d: BriefDraftFacts | null | undefined): Brie
 }
 
 /** How complete is a stored draft? The canonical answer, for every surface. */
-export function briefDraftFacts(d: BriefDraftFacts | null | undefined): BriefFactsResult {
-  return briefFacts(briefFactsFromDraft(d))
+export function briefDraftFacts(
+  d: BriefDraftFacts | null | undefined,
+  /** ⚑ 22 Sep — see `briefFacts`. Facts the caller could not turn into a provider value. */
+  unmappable: readonly BriefFactId[] = [],
+): BriefFactsResult {
+  return briefFacts(briefFactsFromDraft(d), unmappable)
 }

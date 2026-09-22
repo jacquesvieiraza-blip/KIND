@@ -415,7 +415,10 @@ describe('required client data is never fabricated or defaulted', () => {
     const onb = readFileSync(join(process.cwd(), 'apps/api/src/lib/onboarding-state.ts'), 'utf8')
     expect(onb, 'and the requirement lives in the one authority').toContain("ACCOUNT_FACTS = ['country']")
     expect(onb, 'company name is still one of the canonical eleven, counted there')
-      .toContain('briefDraftFacts(facts ?? null)')
+      // ⛓️ 22 Sep — same shared counter, called once, now with a second argument naming the
+      // facts answered in words we could not use. Company name is unaffected by that rule and
+      // is still one of the canonical eleven, counted here and nowhere else.
+      .toContain('briefDraftFacts(facts ?? null,')
   })
 
   it('no placeholder value is hard-coded anywhere in the new first-run path', () => {
@@ -2989,15 +2992,24 @@ describe('an all-invalid closed list can NEVER silently broaden the targeting', 
     expect(d.icp_review.requirements).toEqual([{ field: 'seniority_levels', said: ['MD and above'] }])
   })
 
-  it('🛑 AN UNREADABLE company size → still flagged, nothing invented', async () => {
+  it('🛑 AN UNREADABLE company size → asked again, nothing invented', async () => {
     // ⛓️ 19 Sep (R135) — the fixture was `'50 - 500'`, a span we now read. This case is about
     // what happens when we genuinely cannot place the answer, so it carries a phrase we cannot.
+    //
+    // ⛓️ 22 Sep — WAS: *"still flagged"* — the turn COMPLETED and carried an `icp_review`.
+    // Founder-locked: a review is the wrong mechanism for "say that again a different way".
+    // `runIcpJob` throws while one is outstanding, so completing here meant the client
+    // finished their Brief and then every sourcing run was refused, silently, behind a queue
+    // with no screen in Vida. Milla asks instead, of the person who can answer in a sentence.
     anthropicBox.reply = withIcp2({ company_sizes: ['whatever size feels right to you'] })
     const out = await run2()
-    expect(out.code).toBe(200)
+    expect(out.code, 'the client was refused rather than asked').toBe(200)
     const d = out.payload.data as Record<string, any>
-    expect(d.icp.company_sizes).toEqual([])
-    expect(d.icp_review.requirements).toEqual([{ field: 'company_sizes', said: ['whatever size feels right to you'] }])
+    expect(d.type, 'the Brief completed on a size that maps to no band').toBe('outstanding')
+    expect(d.brief_outstanding.next.id).toBe('company_size')
+    // 🛑 NOTHING INVENTED — unchanged, and now unreachable rather than merely absent: an
+    // outstanding turn proposes no targeting, so the phrase has nowhere to become a filter.
+    expect(d.icp, 'an outstanding turn proposed targeting').toBeUndefined()
   })
 
   it('🛑 a clean completion carries NO review — the normal path is untouched', async () => {
@@ -3117,13 +3129,22 @@ describe('EXECUTED · discriminated validation — questions survive junk target
   // is no longer refused because OUR provider vocabulary could not take the client's words.
   // Each of the three now completes, carries an empty provider column (never a broadened
   // one) and names the field a human must translate.
-  it('🛑 F–H · complete + all-invalid industries / seniority / sizes → completes, flagged, each', async () => {
+  it('🛑 F–G · an off-vocabulary INDUSTRY or SENIORITY still completes, flagged, per field', async () => {
+    // ⛓️ 22 Sep — company_sizes SPLIT OUT OF THIS CASE and asserted below, because the founder
+    // ruled these two classes apart:
+    //
+    //   · INDUSTRY is never re-asked. `promotion.ts`: almost no client's own category is one
+    //     of our sixteen, so owing a review on it would make "every single signup become an
+    //     operator task". It is canonicalised where it can be and orders results where it
+    //     cannot — re-asking would teach the client our vocabulary.
+    //   · SENIORITY here is carried alongside `job_titles` in `VALID_ICP`, and a job title
+    //     answers "who to reach" on its own — Apollo takes free text, so there is nothing to
+    //     fail to map and nothing to re-ask.
+    //
+    // Both therefore still COMPLETE and still carry their flag, exactly as before.
     for (const [field, icp] of [
       ['industries', { industries: ['IT Solutions'] }],
       ['seniority_levels', { seniority_levels: ['MD and above'] }],
-      // ⛓️ 19 Sep (R135) — a readable span is no longer a flag, so this case carries one we
-      // genuinely cannot place; the F–H rule (complete + flagged, per field) is unchanged.
-      ['company_sizes', { company_sizes: ['whatever size feels right to you'] }],
     ] as Array<[string, Record<string, unknown>]>) {
       anthropicBox.reply = toolReply({
         type: 'complete', summary: 's',
@@ -3137,6 +3158,25 @@ describe('EXECUTED · discriminated validation — questions survive junk target
       expect(d.icp[field], `${field} must not carry an off-vocabulary value`).toEqual([])
       expect(d.icp_review.requirements.map((r: { field: string }) => r.field)).toEqual([field])
     }
+  })
+
+  it('🛑 H · an off-vocabulary SIZE is asked again instead — it is the fact nothing else answers', async () => {
+    // ⛓️ 22 Sep — WAS part of F–H, completing with a flag. A size we cannot place is the one
+    // of the three with no second home: there is no free-text equivalent that still searches,
+    // the way a job title covers seniority. Completing meant an `icp_review`, and `runIcpJob`
+    // throws while one is outstanding — so the client finished and nothing ever ran.
+    anthropicBox.reply = toolReply({
+      type: 'complete', summary: 's',
+      profile: BRIEF_PROFILE,
+      icp: { ...VALID_ICP, company_sizes: ['whatever size feels right to you'] },
+      business: BRIEF_BUSINESS, campaign_intent: BRIEF_INTENT,
+    })
+    const out = await ask()
+    expect(out.code, 'the client was refused rather than asked').toBe(200)
+    const d = out.payload.data as Record<string, any>
+    expect(d.type).toBe('outstanding')
+    expect(d.brief_outstanding.next.id).toBe('company_size')
+    expect(d.icp, 'an outstanding turn proposed targeting').toBeUndefined()
   })
 
   it('I · complete + mixed → 200 with the canonical valid value only', async () => {

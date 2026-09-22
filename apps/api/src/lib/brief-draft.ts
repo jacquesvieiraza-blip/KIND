@@ -29,7 +29,7 @@ import { db } from '@kind/db'
 // vocabulary problem: no human can translate a country we do not operate in.
 import { splitGeographies, unsupportedGeographyAsk } from '@kind/shared'
 import { briefDraftFacts, type BriefDraftFacts, type BriefFactsResult } from '@kind/shared'
-import { onboardingState } from './onboarding-state'
+import { onboardingState, unmappableTargetingFacts } from './onboarding-state'
 
 export type BriefDraft = {
   id: string
@@ -500,7 +500,11 @@ export async function confirmBriefDraft(userId: string): Promise<ConfirmOutcome>
 
 /** How complete is this draft? The canonical answer, through the shared eleven-fact counter. */
 export function draftProgress(d: BriefDraft | null): BriefFactsResult {
-  return briefDraftFacts(d?.facts ?? null)
+  // ⚑ 22 Sep — THE COUNT AND THE STATE MUST AGREE, OR THE SCREEN CONTRADICTS ITSELF. If
+  // progress said "11 of 11" while `onboardingState` said "conversing", Milla would have
+  // nothing left to ask for and no way to finish — `next` comes from `missing`. One verdict
+  // feeds both, so a fact answered in words we cannot use is outstanding everywhere.
+  return briefDraftFacts(d?.facts ?? null, unmappableTargetingFacts(d?.facts ?? null))
 }
 
 // ⛓️ 16 Sep (S1-ONB-001) — THE AUTHORITY LIVES IN `onboarding-state.ts`, AND THE MOVE IS

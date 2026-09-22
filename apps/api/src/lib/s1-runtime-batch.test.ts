@@ -270,10 +270,34 @@ describe('🛑 S1-RT-002 · a completion whose facts live where the PROMPT put t
       'the account country, counted apart').toBe(1)
   })
 
-  it('🛑 THE CLIENT NEVER SPEAKS APOLLO — an un-normalisable company size still completes', async () => {
+  it('🛑 THE CLIENT NEVER SPEAKS APOLLO — but a size we cannot use is asked again, not completed', async () => {
+    // ── ⛓️ 22 Sep — AMENDED BY THE FOUNDER, AND THE PURPOSE IS KEPT ────────────────────
+    //
+    // ⛓️ WAS: *"an un-normalisable company size still completes"* — fact #8 held in the
+    // client's own words, on the reasoning that *"our provider vocabulary must not refuse the
+    // client their Brief"*.
+    //
+    // 🛑 IT DID NOT REFUSE THEM THEIR BRIEF. IT REFUSED THEM EVERYTHING AFTER IT. An empty
+    // `company_sizes` means `deriveProviderReview` owed an `icp_review`, and `runIcpJob`
+    // THROWS while one is outstanding — *"nothing may be sourced against it until an operator
+    // has reviewed it"* — above the reservation, the ledger and the lead. So the client
+    // finished the Brief, and then there was no provider call, no leads and no Proof, with
+    // nothing on their screen to say why. The `icp_review_pending` task that is meant to
+    // rescue them is, in `programme-lifecycle.ts`'s own words, *"read by no surface in Vida"*.
+    //
+    // 🛑 AND THE SAME SHAPE ALREADY COST SEVEN CLIENTS IN A ROW in the industry field
+    // (`icp-provider-translation.ts`). Refusing their Proof for our vocabulary's sake is the
+    // same refusal this test was written to prevent, wearing a later timestamp.
+    //
+    // ⚠️ SO THE PURPOSE SURVIVES AND THE MECHANISM MOVES: Milla asks once more, of the only
+    // person who can answer, while they are still in the conversation. The client still never
+    // speaks Apollo — they say "about forty people" and she maps it.
+    //
+    // ⚠️ THE OTHER HALF IS UNTOUCHED AND IS STILL ASSERTED BELOW: their phrase is never
+    // smuggled into a provider filter. `company_sizes` stays EMPTY.
+    //
     // The client said "small to mid-sized agencies". `ICP_SIZES` is a closed provider list and
-    // nothing they said maps onto it, so `icp.company_sizes` comes back EMPTY. Fact #8 is
-    // still held — in their own words, in the snapshot — and that must be enough.
+    // nothing they said maps onto it, so `icp.company_sizes` comes back EMPTY.
     anthropicBox.reply = toolReply({
       type: 'complete', summary: 's',
       profile: NINE.profile,
@@ -282,12 +306,27 @@ describe('🛑 S1-RT-002 · a completion whose facts live where the PROMPT put t
       brief_so_far: { company_sizes: ['small to mid-sized'] },
     })
     const r = await callBuilderChat({ messages: [{ role: 'user', content: 'x' }], profile_required: true })
+
+    // ⚠️ STILL 200. The client is never refused, never shown an error and never told to try
+    // again — that half of this test is exactly as it was, and it is the half that matters.
     expect(r.code, 'our provider vocabulary must not refuse the client their Brief').toBe(200)
-    // 🛑 AND IT IS NOT SMUGGLED INTO A PROVIDER FILTER. `company_sizes` is read directly by
-    // the PDL/Apollo bodies; putting "small to mid-sized" there would send the client's
-    // phrase to a provider as if it were a filter value.
-    const d = (r.payload.data as Record<string, unknown>).icp as Record<string, unknown>
-    expect(d.company_sizes).toEqual([])
+
+    // 🛑 BUT THE TURN IS OUTSTANDING, NOT COMPLETE. Company size is the fact still owed, so
+    // Milla asks it again — rather than declaring the Brief finished and handing the client
+    // to a review queue that blocks every sourcing run and has no screen in Vida.
+    const d = r.payload.data as Record<string, unknown>
+    expect(d.type, 'the Brief completed on a size that maps to no band').toBe('outstanding')
+    const out = d.brief_outstanding as { remaining: number; next: { id: string; label: string } }
+    expect(out.next.id, 'and the fact she asks for is the one we could not use').toBe('company_size')
+    expect(out.remaining, 'exactly one fact is owed').toBe(1)
+
+    // 🛑 AND NOTHING IS SMUGGLED INTO A PROVIDER FILTER — the other half of this lock, intact.
+    // `company_sizes` is read directly by the Apollo body; putting "small to mid-sized" there
+    // would send the client's phrase to a provider as if it were a filter value. An
+    // outstanding turn proposes no targeting at all, so there is nowhere for it to land.
+    expect(d.icp, 'an outstanding turn proposed targeting').toBeUndefined()
+    expect(JSON.stringify(r.payload), "the client's phrase reached a provider field")
+      .not.toContain('"company_sizes":["small to mid-sized"]')
   })
 })
 
@@ -579,8 +618,13 @@ describe('🛑 the existing authorities are untouched', () => {
     expect(src).toContain('onboardingState(draftFactsFromResolved(resolved))')
     expect(src).toContain('resolveBriefFacts')
     const onb = readFileSync(join(__dirname, 'onboarding-state.ts'), 'utf8')
+    // ⛓️ 22 Sep — still the shared counter, still called exactly once; it now takes a second
+    // argument naming the facts answered in words we could not use (founder-locked: Milla
+    // asks again rather than the client being stranded behind a review that blocks sourcing).
     expect(onb, 'and the counter is still the shared eleven-fact one')
-      .toContain('briefDraftFacts(facts ?? null)')
+      .toContain('briefDraftFacts(facts ?? null,')
+    expect((onb.match(/briefDraftFacts\(/g) ?? []).length,
+      'the authority counts the eleven more than once').toBe(1)
   })
 
   it('confirmation is still a separate act, not an inference from eleven', async () => {

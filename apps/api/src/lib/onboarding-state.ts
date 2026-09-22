@@ -17,7 +17,19 @@
 // for one function, never a second answer.
 // ═══════════════════════════════════════════════════════════════════════════════════════
 
-import { briefDraftFacts, BRIEF_FACT_LABEL, type BriefDraftFacts, type BriefFactsResult } from '@kind/shared'
+import {
+  briefDraftFacts, BRIEF_FACT_LABEL,
+  type BriefDraftFacts, type BriefFactsResult, type BriefFactId,
+} from '@kind/shared'
+// ⚠️ PURE, AND THAT IS WHY IT MAY BE IMPORTED HERE. This module has to stay statically
+// importable by `routes/icps.ts` — the eleven-fact gate is a Zod refinement and cannot await
+// — so nothing it imports may reach the database client. `icp-provider-translation` has no
+// imports at all: it is the closed vocabularies and a matcher, nothing else.
+//
+// ⚠️ AND THE PACKAGE NAME IS NOT WRITTEN OUT ABOVE ON PURPOSE. `s1-onb-001` asserts this
+// FILE's source does not contain it, reading the raw text — so naming it even in a comment
+// about not importing it is enough to fail the guard that keeps this module importable.
+import { translateProviderList, PROVIDER_VOCABULARIES } from './icp-provider-translation'
 
 // ═══════════════════════════════════════════════════════════════════════════════════════
 // 🛑 ⚑ 16 Sep (S1-ONB-001) — THE ONE ONBOARDING READINESS AUTHORITY.
@@ -84,8 +96,81 @@ export type OnboardingState = {
   targeting: BriefFactsResult
 }
 
+/**
+ * ── 🛑 ⚑ 22 Sep — THE FACTS A CLIENT ANSWERED IN WORDS WE CANNOT USE (founder-locked) ───
+ *
+ * 🛑 THE DEFECT THIS CLOSES, AND IT IS SILENT. A fact was held the moment it was a non-empty
+ * string, so *"a few dozen people"* or *"whoever runs ops"* finished the Brief at eleven of
+ * eleven. `deriveProviderReview` could place neither on a closed list, so `icp_review` was
+ * set — and `runIcpJob` THROWS while a review is outstanding: *"nothing may be sourced
+ * against it until an operator has reviewed it."* No provider call, no leads, no Proof. The
+ * client finished talking to Milla and nothing ever happened, with nothing on their screen
+ * to say why.
+ *
+ * 🛑 AND NOBODY IS TOLD. Promotion writes an `icp_review_pending` operator task, and Vida has
+ * no surface that lists it — `programme-lifecycle.ts` says so in its own words: the task is
+ * *"read by no surface in Vida"*. So the queue that is supposed to rescue this client is one
+ * nobody opens.
+ *
+ * 🛑 THIS IS A KNOWN KILLER IN THE NEIGHBOURING FIELD. `icp-provider-translation`'s note:
+ * Northstar Operations Studio said *"professional services"*, a review was owed, **no search
+ * was ever made**, and seven of the last seven attempts ended the same way.
+ *
+ * ── THE RULING (founder, 22 Sep) ────────────────────────────────────────────────────────
+ *
+ * ⛓️ IT AMENDS `s1-runtime-batch.test.ts`'s *"THE CLIENT NEVER SPEAKS APOLLO — an
+ * un-normalisable company size still completes"*, whose stated purpose is that *"our provider
+ * vocabulary must not refuse the client their Brief"*. That purpose is kept and honoured
+ * better: refusing their PROOF for the same reason, silently, is the same refusal wearing a
+ * later timestamp. Milla asking one clarifying question is not our vocabulary refusing them;
+ * it is her doing her job, with the only person who can answer, while they are still there.
+ *
+ * ⚠️ AND THE OTHER HALF OF THAT LOCK IS UNTOUCHED: the client's phrase must never be smuggled
+ * into a provider filter. Nothing here writes a value anywhere. It reports which facts could
+ * not be used and translates nothing itself.
+ *
+ * ⚠️ TWO FACTS, NOT THREE, AND THE THIRD IS DELIBERATE. `target_category` is NOT here:
+ * `promotion.ts` already ruled that owing a review on it would make *"every single signup
+ * become an operator task — a Needs-you list with everybody on it"*, because almost no
+ * client's own category is one of our sixteen. It is canonicalised where it can be and used
+ * to ORDER results where it cannot. Re-asking for it would be teaching a client our words.
+ *
+ * ⚠️ AND A PARTIAL ANSWER IS AN ANSWER. `translateProviderList` keeps what it could place, so
+ * "11–50 and a few bigger ones" is searchable and is left alone. Only a value that maps to
+ * NOTHING sends the question back.
+ */
+export function unmappableTargetingFacts(
+  facts: BriefDraftFacts | null | undefined,
+): BriefFactId[] {
+  const f = (facts ?? {}) as Record<string, unknown>
+  const list = (v: unknown): string[] =>
+    Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string' && x.trim() !== '') : []
+  const placeable = (said: string[], vocabulary: readonly string[]): boolean =>
+    translateProviderList(said, vocabulary, 6).canonical.length > 0
+
+  const out: BriefFactId[] = []
+
+  const sizes = list(f.company_sizes)
+  if (sizes.length > 0 && !placeable(sizes, PROVIDER_VOCABULARIES.company_sizes)) {
+    out.push('company_size')
+  }
+
+  // ⚠️ ONLY WHEN SENIORITY IS CARRYING THE FACT. `target_roles` is satisfied by titles OR
+  // seniority, and Apollo takes free-text titles — "Managing Director" is already the thing
+  // we send, so there is nothing to fail to map and nothing to re-ask. A client who gave a
+  // title has answered, whatever words their seniority arrived in.
+  const titles = list(f.job_titles)
+  const seniority = list(f.seniority_levels)
+  if (titles.length === 0 && seniority.length > 0
+      && !placeable(seniority, PROVIDER_VOCABULARIES.seniority_levels)) {
+    out.push('target_roles')
+  }
+
+  return out
+}
+
 export function onboardingState(facts: BriefDraftFacts | null | undefined): OnboardingState {
-  const targeting = briefDraftFacts(facts ?? null)
+  const targeting = briefDraftFacts(facts ?? null, unmappableTargetingFacts(facts))
   const said = (v: unknown): boolean => typeof v === 'string' && v.trim() !== ''
   const unresolvedAccount = ACCOUNT_FACTS.filter(id => !said((facts ?? {})[id]))
   return {

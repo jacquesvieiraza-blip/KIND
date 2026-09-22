@@ -321,6 +321,19 @@ const LANGUAGE_HITS: Array<{ file: string; what: string; klass: 'A' | 'B'; why: 
   // and the browser is where they type it. Every hit below was found by sweeping the UI
   // that sends to, or renders, a Milla or Vida conversation.
   { file: 'apps/portal/src/app/(milla)/milla/welcome/page.tsx', what: 'normalizeWebsite / firstUrl — 8 URL-shape operations (whitespace, @, scheme, hostname, domain match, lowercase host, @host)', klass: 'B', why: 'spots a DOMAIN so Milla can offer to read their site; a miss costs nothing because she asks in words' },
+  // ── ⚑ 22 Sep — THE WORKSPACE'S EDITABLE FIELDS ─────────────────────────────────────
+  //
+  // 🛑 CLASS B, AND THE REASON IS THE STRONGEST ONE IN THIS TABLE: the subject of every one of
+  // these `.includes` is a value THE CLIENT PICKED FROM A LIST WE SHOWED THEM — "C-Suite",
+  // "11–50", or a title they typed into their own chip box. Nothing here reads a sentence,
+  // infers an intent or decides what anybody meant. `chosen.includes(v)` asks "is this chip
+  // already on?", which is the question a toggle has to answer to be a toggle.
+  //
+  // ⚠️ AND THIS IS THE OPPOSITE OF THE RULE'S TARGET. M5 exists because deterministic code
+  // was deciding what a customer meant; the dropdowns exist so the client can say what they
+  // meant WITHOUT anything having to interpret them. A pick is the one input on this screen
+  // that cannot be misread.
+  { file: 'apps/portal/src/app/(milla)/milla/welcome/page.tsx', what: 'PickField/savePick — 3 `chosen.includes(v)` membership checks on the client\'s own picked chips', klass: 'B', why: 'asks whether a chip the client selected is already selected; no sentence is read and no meaning is inferred' },
   { file: 'apps/portal/src/components/milla/MillaConversation.tsx', what: 'PAUSE_STAGES / ROI_STAGES / OUTREACH_STAGES .includes(prog.stage)', klass: 'B', why: 'membership on a STAGE ENUM the server issued, never on what the client typed' },
   { file: 'apps/portal/src/app/(milla)/milla/page.tsx', what: 'OUTREACH_STAGES.includes(prog.stage)', klass: 'B', why: 'same stage enum, a render gate' },
   { file: 'apps/portal/src/app/(dashboard)/AgentColumn.tsx', what: 'pathname regexes ×3', klass: 'B', why: 'URL routing; the subject is the address bar, not a sentence' },
@@ -367,7 +380,9 @@ describe('M5 — no deterministic code decides what a customer meant', () => {
       // ── THE BROWSER HALF (O3) ─────────────────────────────────────────────────────
       // ⚠️ THESE FILES SEND TO, OR RENDER, A MILLA OR VIDA CONVERSATION. A new regex over a
       // customer's words would land in one of them and push its count past the pin.
-      'apps/portal/src/app/(milla)/milla/welcome/page.tsx': 8,
+      // ⛓️ 22 Sep — 8 → 11. The three new hits are the editable workspace fields; see the
+      // LANGUAGE_HITS entry above for why a pick is the one input here that cannot be misread.
+      'apps/portal/src/app/(milla)/milla/welcome/page.tsx': 11,
       'apps/portal/src/components/milla/MillaConversation.tsx': 3,
       'apps/portal/src/app/(milla)/milla/page.tsx': 1,
       'apps/portal/src/app/(dashboard)/AgentColumn.tsx': 3,

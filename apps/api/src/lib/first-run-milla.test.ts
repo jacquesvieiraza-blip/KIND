@@ -596,20 +596,47 @@ describe('the website read moved inside Milla, and its output is evidence — no
 })
 
 // ─────────────────────────────────────────────────────────────────────────────────────────
-describe('paid preview cannot run before the account exists', () => {
-  it('preview-count is gated on a confirmed client row', () => {
-    expect(welcomeCode).toMatch(/if \(hasClient !== true\) \{ setMatchCount\(null\); return \}/)
-  })
-
-  it('the gate sits BEFORE the call, not after it', () => {
-    const gate = welcomeCode.indexOf('if (hasClient !== true) { setMatchCount(null); return }')
-    const call = welcomeCode.indexOf("'/icps/preview-count'")
-    expect(gate).toBeGreaterThan(-1)
-    expect(call).toBeGreaterThan(gate)
-  })
-
-  it('there is exactly ONE preview-count call site, so the gate cannot be bypassed', () => {
+// ══════════════════════════════════════════════════════════════════════════════════════
+// ⛓️ 22 Sep — THE ACCOUNT GATE IS LIFTED, BY THE FOUNDER, AND THIS RECORDS WHAT REPLACED IT
+//
+// ⛓️ WAS: ~~`describe('paid preview cannot run before the account exists')`~~ — four
+// assertions pinning `if (hasClient !== true) { setMatchCount(null); return }` ABOVE the one
+// `/icps/preview-count` call site. Founder-ruled 24 Aug, on the reasoning that signup landing
+// straight into Milla would otherwise make that route *"the normal way a brand-new visitor
+// reached a PAID PROVIDER — before we knew who they were."*
+//
+// 🛑 THE SPEND IT GUARDED AGAINST HAD ALREADY MOVED. Apollo's People Search is free —
+// `routes/icps.ts` states it three separate times — and PDL, the paid half of the original
+// "PDL/Apollo" framing, stopped being a provider of ours at FD-6. So the gate was protecting
+// a cost that lives at the REVEAL, which waits for a great deal more than an account row.
+//
+// 🛑 AND IT WAS BLOCKING THE NUMBER THE APPROVED PORTAL IS BUILT AROUND. The locked Brief
+// screen shows *"4,120 people match this so far — around ten meetings at this size"* while
+// the client is still talking; that figure is what makes the targeting real and the capacity
+// promise honest. The account row is written at CONFIRM, after the Brief, so the gate made
+// the number impossible in exactly the place it was specified. Founder, 22 Sep: yes, lift it.
+//
+// ⚠️ WHAT DID NOT CHANGE IS WHAT THESE TESTS NOW GUARD. One call site, the provider path
+// untouched, and no number on screen that no preview produced.
+describe('the free count may run during the Brief — but only through one door', () => {
+  it('🛑 there is still exactly ONE preview-count call site', () => {
+    // The pin was the real protection all along: a second call site is how any future gate,
+    // rate limit or audience rule gets bypassed without anybody noticing.
     expect(welcomeCode.match(/'\/icps\/preview-count'/g) ?? []).toHaveLength(1)
+  })
+
+  it('🛑 both callers go through `countFor` — the proposal and the live panel', () => {
+    expect(welcomeCode, 'the single door is gone').toMatch(/const countFor = useCallback/)
+    expect(welcomeCode, 'the proposal stopped using it').toMatch(/void countFor\(icp\)/)
+    expect(welcomeCode, 'the live panel stopped using it').toMatch(/void countFor\(search/)
+  })
+
+  it('🛑 the live panel does not ask on every turn — the route allows ten a minute', () => {
+    // This refresh runs after EVERY turn, including failed ones. Asking each time would spend
+    // the budget on turns that moved nothing, and the turn that finally completed the
+    // targeting is the one that would be refused.
+    expect(welcomeCode, 'the unchanged-search guard is gone').toMatch(/key !== lastCountKey\.current/)
+    expect(welcomeCode, 'an empty search is being counted').toMatch(/hasTargeting && key !== lastCountKey/)
   })
 
   it('the provider path itself is UNCHANGED — this is when, not how', () => {
@@ -618,16 +645,14 @@ describe('paid preview cannot run before the account exists', () => {
     expect(icpsSrc).toContain('const previewAudience = await audienceForUser(req.userId)')
   })
 
-  it('and no count is RENDERED at all now — the tile that showed it is gone', () => {
-    // ⚑ 24 Aug (free-proof copy) — this required the "Matches found" tile to fall back to an
-    // em dash. That tile lived inside the plan card the founder removed, so there is no
-    // longer anywhere on this screen for a count, invented or real, to appear. Stronger than
-    // the guarantee it replaces: a tile that does not exist cannot show a wrong number.
+  it('🛑 no number is shown that no preview produced', () => {
+    // The em-dash is the locked empty state, and a FAILED count must return to it rather than
+    // leave the previous answer standing beside changed targeting.
+    expect(welcomeCode, 'the bar stopped falling back to the locked em-dash')
+      .toMatch(/matchCount === null \? '—'/)
+    expect(welcomeCode, 'a failed count no longer clears the number')
+      .toMatch(/catch \{[\s\S]{0,400}?setMatchCount\(null\)/)
     expect(welcomeCode).not.toContain('Matches found')
-    expect(welcomeCode).not.toContain("matchCount == null ? '—'")
-    // The preview CALL is untouched — only its display went. Still one gated call site.
-    expect(welcomeCode.match(/'\/icps\/preview-count'/g) ?? []).toHaveLength(1)
-    expect(welcomeCode).toMatch(/if \(hasClient !== true\) \{ setMatchCount\(null\); return \}/)
   })
 })
 
@@ -1438,9 +1463,15 @@ describe('no number is shown that no preview produced', () => {
     expect(read(join(REPO, 'packages/shared/src/constants/index.ts'))).toContain('export const PACK_PRICE_USD = 299')
   })
 
+  // ⛓️ 22 Sep — the account gate came out (founder-ruled; the reasoning is on the
+  // `countFor` describe above). The half of this that was actually about "no provider call
+  // was ADDED" is the call-site count, and it is unchanged and still one.
   it('and no provider call was added to fill the gap', () => {
     expect(welcomeCode.match(/'\/icps\/preview-count'/g) ?? []).toHaveLength(1)
-    expect(welcomeCode).toMatch(/if \(hasClient !== true\) \{ setMatchCount\(null\); return \}/)
+    // ⚠️ AND NOTHING THAT SPENDS APPEARED BESIDE IT. People Search is free; the reveal is the
+    // cost, and no first-run screen may reach it.
+    expect(welcomeCode, 'the first run reached the paid reveal').not.toContain('bulk_match')
+    expect(welcomeCode, 'the first run reached the paid reveal').not.toContain('/leads/reveal')
   })
 })
 

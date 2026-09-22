@@ -134,7 +134,7 @@ export type StrongerSetVerdict = {
     | 'confirmed_refinement'   // they confirmed a targeting change, which IS the instruction
     | 'no_usable_feedback'     // nothing said that could shape the next attempt
     | 'refinement_in_flight'   // a proposal is waiting on their word
-    | 'not_on_pass_one'        // 0 sets, or both automatic attempts already used
+    | 'not_on_pass_one'        // no set exists yet (pre-22-Sep rows: or both attempts used)
     | 'escalated'              // the loop is closed; a person has it
 }
 
@@ -144,13 +144,31 @@ export const STRONGER_SET_REASON_COPY: Record<StrongerSetVerdict['because'], str
   confirmed_refinement: 'They confirmed a targeting change, which is the instruction itself.',
   no_usable_feedback:   'Nothing they have said yet could shape a second attempt — no reason and no note.',
   refinement_in_flight: 'A targeting proposal is waiting on their word; sourcing would spend their last automatic attempt on our reading of it.',
-  not_on_pass_one:      'They are not between the two automatic attempts — either no set exists yet, or both are used.',
+  // ⛓️ 22 Sep — THE KEY IS KEPT, THE MEANING NARROWED. It is persisted on historical verdict
+  // rows, where it still means "either no set exists yet, or both automatic attempts are
+  // used". With refinement unlimited it can now only ever mean the first of those, and the
+  // copy says so. Renaming it would have rewritten what past records claim to have decided.
+  not_on_pass_one:      'No set exists yet, so there is nothing to improve on. (On rows written before 22 Sep this also covered a client who had used both automatic attempts, back when there were two.)',
   escalated:            'The automatic loop is closed and a person has this client.',
 }
 
 export function strongerSetVerdict(s: CalibrationState): StrongerSetVerdict {
   if (s.escalated) return { unlocked: false, because: 'escalated' }
-  if (s.passesDone !== 1) return { unlocked: false, because: 'not_on_pass_one' }
+  // ── 🛑 ⚑ 22 Sep — UNLIMITED, SO THE ONLY COUNT THAT MATTERS IS "HAS ONE HAPPENED" ────
+  //
+  // ⛓️ WAS: ~~`if (s.passesDone !== 1)`~~ — unlocked strictly BETWEEN the two automatic
+  // attempts, which is exactly what made it the last one.
+  //
+  // 🛑 FOUNDER-LOCKED 22 Sep: *"2. unlimited now."* `claim_proof_authority` has no ceiling
+  // any more, so a client on their third set would have been refused here by a rule the
+  // database would happily have granted — the browser cap and the server cap disagreeing,
+  // with the stricter one winning silently.
+  //
+  // ⚠️ THE OTHER GATES ARE UNTOUCHED AND THEY ARE THE ONES THAT MATTER. A set still cannot
+  // be asked for with nothing to change, with a proposal in flight, or after escalation.
+  // Those are about HAVING AN INSTRUCTION, not about how many turns have been spent — and
+  // removing the count leaves them doing the whole job, which is what they were always for.
+  if (s.passesDone < 1) return { unlocked: false, because: 'not_on_pass_one' }
   // ── 🛑 ⚑ 11 Sep (C23) — AN INTERPRETED REFINEMENT IS NOT A MANDATE TO SPEND ──────────
   //
   // Attempt 2 is real paid sourcing against a target the client is supposed to have
@@ -170,8 +188,11 @@ export function strongerSetVerdict(s: CalibrationState): StrongerSetVerdict {
 /**
  * May the client ask for an improved set right now?
  *
- * ⚠️ THREE CONDITIONS, ALL NECESSARY: they are on pass 1 (not 2, not 0), they have said
- * something usable, and the loop is not already closed. Every one of them is a spend gate.
+ * ⚠️ THREE CONDITIONS, ALL NECESSARY: at least one set exists, they have said something
+ * usable, and the loop is not already closed. Every one of them is a spend gate.
+ *
+ * ⛓️ 22 Sep — the first condition was "on pass 1, not 2, not 0" while there were exactly two
+ * attempts. Refinement is unlimited now, so what remains of it is "not zero".
  *
  * ⛓️ 18 Sep (J6-C3) — the conditions now live in `strongerSetVerdict`, which answers the same
  * question WITH its reason. This is kept as the name every caller already uses, and delegates

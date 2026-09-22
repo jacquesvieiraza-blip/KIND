@@ -489,13 +489,22 @@ describe('🛑 NO LEGACY MONEY TRUTH SURVIVES ON THE MILLA HOME', () => {
         .not.toMatch(/sendNote[\s\S]{0,600}catch\s*\{[^}]*setError/)
     })
 
-    it('the two-pass stop is stated, and offers no third action', () => {
-      // The server grants exactly two proof passes. A client who has spent both is told so
-      // here — rebuilding the panel dropped this once already.
-      expect(HOME_CODE).toContain('proofExhausted &&')
-      expect(strip(HOME).includes('We’ve used both proof passes. K.I.N.D will review this with you.')
-          || HOME.includes('We&rsquo;ve used both proof passes. K.I.N.D will review this with you.'))
-        .toBe(true)
+    // ── 🛑 ⚑ 22 Sep — THERE IS NO STOP TO STATE ──────────────────────────────────────
+    //
+    // ⛓️ WAS: "the two-pass stop is stated, and offers no third action" — the server granted
+    // exactly two passes and a client who had spent both was told so here.
+    //
+    // 🛑 FOUNDER-LOCKED 22 Sep: *"2. unlimited now."* `claim_proof_authority` has no ceiling,
+    // so stating a stop would be telling a client they have run out of something they have
+    // not. The duty that survives is the one this case was really protecting: the desk must
+    // not leave them with nothing — so it points at the fields they can set themselves, per
+    // the same day's ruling that Milla never guesses and hands them the controls instead.
+    it('the desk offers the fields rather than a stop', () => {
+      expect(HOME_CODE, 'a proof-exhausted wall came back').not.toContain('proofExhausted &&')
+      const flat = HOME.replace(/\s+/g, ' ')
+      expect(flat, 'the client is not pointed at the fields they can set themselves')
+        .toContain('set the targeting yourself in the fields on your Brief')
+      expect(flat, 'a person is no longer offered').toContain('rather a person looked at it with you')
     })
 
     it('the terminal and recovery states still win over the calibration set', () => {

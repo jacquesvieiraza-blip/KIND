@@ -88,10 +88,35 @@ describe('🛑 ① she is given the desk, card by card', () => {
     expect(b).toContain('no reasons given')
   })
 
-  it('the attempt they are on, out of the two that exist', () => {
-    expect(describeProofContext(CTX())).toContain('Automatic attempts used: 1 of 2')
-    expect(describeProofContext(CTX({ attempt: 2 }))).toContain('Automatic attempts used: 2 of 2')
-    expect(describeProofContext(CTX())).toContain('Never offer a third')
+  // ── 🛑 ⚑ 22 Sep — THERE IS NO DENOMINATOR, AND SHE MUST NOT INVENT ONE ───────────────
+  //
+  // ⛓️ WAS: "Automatic attempts used: 1 of 2" / "2 of 2" / "Never offer a third".
+  //
+  // 🛑 FOUNDER-LOCKED 22 Sep: *"2. unlimited now."* Every clause of that instruction became
+  // false at once — and "Never offer a third" was the dangerous half, because it told the
+  // model to refuse something the server now grants. A client talked out of a working control
+  // is worse than one who never saw it.
+  //
+  // ⚠️ THE ATTEMPT NUMBER SURVIVES, because knowing this is their fourth go is real context
+  // for how to answer. What is gone is the part that was a RULE wearing a fact's clothes.
+  it('the attempt they are on — a count, never an allowance', () => {
+    const one = describeProofContext(CTX())
+    expect(one).toContain('Refinement attempts so far: 1')
+    expect(describeProofContext(CTX({ attempt: 4 }))).toContain('Refinement attempts so far: 4')
+    expect(one, 'a limit came back').not.toMatch(/of 2\b/)
+    expect(one, 'she was told to refuse a set the server would grant')
+      .not.toContain('Never offer a third')
+    expect(one).toContain('There is NO limit')
+  })
+
+  it('🛑 and when she cannot read them, she hands them the fields — she never guesses', () => {
+    // Founder-locked 22 Sep, twice over: *"if Milla cant answer we then say to the client
+    // please use drop down boxes on right mannually. we never assume"* and *"we cant guess
+    // peoples way of speaking ever"*. Without this she improvises a rescue, which is exactly
+    // how the invented category vocabulary happened.
+    const b = describeProofContext(CTX())
+    expect(b).toContain('targeting fields on their Brief')
+    expect(b).toContain('Never guess at their meaning')
   })
 
   it('what changed for attempt 2, in the words already on their screen', () => {

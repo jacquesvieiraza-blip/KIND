@@ -69,15 +69,41 @@ describe('🛑 ② "Show me stronger examples" is a spend gate, not a button', (
     expect(hasMeaningfulFeedback(attempt(1, { notes: ['   ', ''] }))).toBe(false)
   })
 
-  it('🛑 NEVER enabled after pass 2, however much feedback there is', () => {
-    // ⚠️ ATTEMPT 1 CARRIES FEEDBACK TOO, AND THAT IS THE POINT. An earlier version of this
-    // case left attempt 1 empty, so it passed because there was nothing to learn from —
-    // not because the ceiling refused. Removing the `passesDone !== 1` guard left it GREEN.
-    // With both attempts richly annotated, the ONLY thing that can refuse is the ceiling.
+  // ── 🛑 ⚑ 22 Sep — THE CEILING IS GONE, AND THIS TEST WAS THE CEILING ─────────────────
+  //
+  // ⛓️ WAS: ~~"🛑 NEVER enabled after pass 2, however much feedback there is"~~ →
+  // `toBe(false)` with both attempts richly annotated, so that the ONLY thing which could
+  // refuse was the count.
+  //
+  // 🛑 FOUNDER-LOCKED 22 Sep: *"2. unlimited now."* A client who has told us twice what is
+  // wrong and still has not been shown the right people is the LAST client who should be
+  // stopped. The count was the refusal; there is no count any more.
+  //
+  // ⚠️ THE GATES THAT REMAIN ARE THE ONES WORTH HAVING, and the case below proves that by
+  // flipping only the feedback: the same client, on the same pass, is refused when they have
+  // said nothing that could shape another attempt. What unlocks a set is an INSTRUCTION, not
+  // a turn allowance.
+  it('🛑 enabled after pass 2 and beyond — the refusal is silence, never a count', () => {
     const first = attempt(1, { notAFit: 8, reasons: { wrong_industry: 8 }, notes: ['all consultancies'] })
     const rich = attempt(2, { notAFit: 20, reasons: { wrong_industry: 20 }, notes: ['still wrong'] })
-    expect(mayRequestStrongerSet(state({ passesDone: 2, attempts: [first, rich] }))).toBe(false)
-    expect(spendDoors(state({ passesDone: 2, attempts: [first, rich] })).strongerExamplesControl).toBe(false)
+    const said = state({ passesDone: 2, attempts: [first, rich] })
+    expect(mayRequestStrongerSet(said), 'a client who told us twice was refused a third').toBe(true)
+    expect(spendDoors(said).strongerExamplesControl).toBe(true)
+
+    // ⚠️ AND IT KEEPS GOING. Nothing about the fifth attempt is different from the third.
+    expect(mayRequestStrongerSet(state({ passesDone: 5, attempts: [first, rich] }))).toBe(true)
+  })
+
+  it('🛑 …but silence still refuses, at every pass', () => {
+    // The feedback gate is now doing the whole job, so it is proved on its own.
+    const quiet1 = attempt(1, {})
+    const quiet2 = attempt(2, {})
+    expect(mayRequestStrongerSet(state({ passesDone: 2, attempts: [quiet1, quiet2] }))).toBe(false)
+  })
+
+  it('🛑 and a client with NO set yet has nothing to improve on', () => {
+    // What `not_on_pass_one` now means, and the one count that survives: zero.
+    expect(mayRequestStrongerSet(state({ passesDone: 0, attempts: [] }))).toBe(false)
   })
 
   it('🛑 …and never before a first set exists, feedback or not', () => {

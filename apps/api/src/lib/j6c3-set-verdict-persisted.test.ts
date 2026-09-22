@@ -62,7 +62,9 @@ describe('J6-C3 · the set-level verdict answers WHY, not just whether', () => {
   it('🛑 every REFUSAL is named too — "the button is not there" was the whole of it before', () => {
     const cases: [Partial<CalibrationState>, string][] = [
       [{ escalated: true }, 'escalated'],
-      [{ passesDone: 2 }, 'not_on_pass_one'],
+      // ⛓️ 22 Sep — ~~`[{ passesDone: 2 }, 'not_on_pass_one']`~~ IS GONE, not moved. Refinement
+      // is unlimited (founder-locked, "2. unlimited now"), so a client on pass 2 is refused by
+      // NOTHING here — which is the change. The zero case below is what the reason means now.
       [{ passesDone: 0 }, 'not_on_pass_one'],
       [{ refinement: { proposedAt: 'x', confirmedAt: null } as never }, 'refinement_in_flight'],
       [{ attempts: [{ pass: 1, kind: 'automatic', surfaced: 20, looksRight: 0, notAFit: 4, reasons: {}, notes: [] }] as never }, 'no_usable_feedback'],
@@ -173,7 +175,10 @@ describe('J6-C3 · the verdict is recorded where it changes, exactly once', () =
 
   it('a REFUSED verdict records nothing — the column is not a running state', async () => {
     const { recordStrongerSetVerdict } = await import('./proof-calibration-io')
-    const r = await recordStrongerSetVerdict('c1', { ...BASE, passesDone: 2 } as CalibrationState)
+    // ⛓️ 22 Sep — ~~`passesDone: 2`~~ is no longer a refusal; refinement is unlimited. The
+    // rule this case is about — a REFUSED verdict writes nothing — is unchanged, so it is
+    // proved with a state that is still genuinely refused.
+    const r = await recordStrongerSetVerdict('c1', { ...BASE, passesDone: 0 } as CalibrationState)
     expect(r).toEqual({ recorded: false, why: 'not_unlocked' })
     expect(updates).toHaveLength(0)
   })

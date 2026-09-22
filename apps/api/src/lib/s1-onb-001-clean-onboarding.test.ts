@@ -463,7 +463,15 @@ describe('Ⓓ there is ONE readiness definition, and everything calls it', () =>
     // `briefFactsFor` is deleted: a route that cannot count cannot disagree about the count.
     expect(ICPS).not.toContain('function briefFactsFor')
     expect(ICPS, 'the route no longer counts the eleven itself').not.toContain('briefFacts({')
-    expect(ONB, 'the counter is the shared one').toContain('briefDraftFacts(facts ?? null)')
+    // ⛓️ 22 Sep — the counter is still the shared one and is still called exactly once here;
+    // it now receives a second argument (founder-locked: a fact answered in words we cannot
+    // turn into a provider value is outstanding, so Milla asks again rather than the client
+    // being stranded behind a review that blocks all sourcing). Asserted as the call and its
+    // first argument, so a LOCAL count reappearing here still fails.
+    expect(ONB, 'the counter is the shared one').toContain('briefDraftFacts(facts ?? null,')
+    expect((ONB.match(/briefDraftFacts\(/g) ?? []).length,
+      'onboarding-state counts the eleven more than once — a second call is a second answer')
+      .toBe(1)
     expect(ONB, 'and no fact list lives here').not.toContain("'target_category'")
     expect(DRAFT, 'nor here').not.toContain("'target_category'")
   })

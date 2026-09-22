@@ -17,6 +17,8 @@
 // ══════════════════════════════════════════════════════════════════════════════════════════
 
 import { describe, it, expect } from 'vitest'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import {
   stageChips, nextActionCard, signUpRecordCard, provenanceCard, workablePoolCard,
   OPERATOR_RAIL, type StageFacts,
@@ -172,5 +174,71 @@ describe('🛑 "0 set aside by us" is a promise, and it stops being reassuring t
   it('an unknown pool serve says nothing rather than claiming zero were ours', () => {
     expect(JSON.stringify(provenanceCard({ ...P, fromPool: null })))
       .not.toContain('0 already ours')
+  })
+})
+
+// ══════════════════════════════════════════════════════════════════════════════════════════
+// ⚑ 22 Sep — AND THE CARDS ARE ACTUALLY ON THE STAGE-2 PANEL
+//
+// 🛑 A PURE MODULE NOBODY CALLS IS A TEST SUITE PROVING NOTHING. Everything above runs the
+// copy functions directly, which is the right way to check what they SAY — and says nothing
+// about whether an operator ever sees them. The Brief panel wired stages 0 and 1; stage 2
+// lives in a 4,900-line page component this suite cannot execute, so the call site is
+// asserted by reading it.
+//
+// ⚠️ COMMENTS ARE STRIPPED FIRST. Asserting on raw source means a tombstone that names what
+// it removed reads as the violation — a shape `milla-programme.test.ts` records as having
+// bitten seven times in this repo, and which cost four rounds in this session alone.
+describe('🛑 the stage-2 panel actually renders them', () => {
+  const PAGE = (() => {
+    const raw = readFileSync(
+      join(__dirname, '../../../admin/src/app/vida/page.tsx'), 'utf8')
+    let inBlock = false
+    return raw.split('\n').map(l => {
+      const x = l.trim()
+      if (inBlock) { if (x.endsWith('*/') || x.endsWith('*/}')) inBlock = false; return '' }
+      if (x.startsWith('/*')) { if (!x.endsWith('*/')) inBlock = true; return '' }
+      if (x.startsWith('{/*')) { if (!x.endsWith('*/}')) inBlock = true; return '' }
+      const i = l.search(/(?<!:)\/\//)
+      return i >= 0 ? l.slice(0, i) : l
+    }).join('\n')
+  })()
+
+  it('the page is the real file and not an empty read', () => {
+    expect(PAGE.length, 'the Vida page could not be read').toBeGreaterThan(50_000)
+  })
+
+  it('🛑 the Proof cards are built and passed to the panel', () => {
+    expect(PAGE, 'the stage-2 NEXT ACTION card is not built')
+      .toMatch(/nextActionCard\('proof'/)
+    expect(PAGE, 'the workable pool card is not built').toContain('workablePoolCard(')
+    expect(PAGE, 'the provenance card is not built').toContain('provenanceCard(')
+    expect(PAGE, 'the cards are built and never handed to the panel')
+      .toMatch(/cards=\{\[[^}]*lcProofCards/)
+  })
+
+  it('🛑 …only at Proof — every other stage is unchanged', () => {
+    // A panel that grew four cards at every stage would be the "eleven permanent doors"
+    // defect this page's own commentary describes, rebuilt.
+    expect(PAGE).toMatch(/lc\.verdict\.stage !== 'proof'\) return \[\]/)
+  })
+
+  it('the header chips come from the SERVER’s needs-you verdict', () => {
+    // The whole value of "normal is silent" is that the quiet state can be trusted. A second
+    // opinion computed in the browser is exactly how that trust goes.
+    expect(PAGE).toMatch(/needsYou: lc\.verdict\.needsYou === true/)
+    expect(PAGE, 'the chips are built and never handed to the panel').toContain('chips={lcChips}')
+  })
+
+  it('🛑 a capacity read that failed renders nothing, never zeros', () => {
+    // "0 people · 0 meetings" about a client's market is a claim about them rather than about
+    // our connection, and it is the claim that would make an operator act on nothing.
+    expect(PAGE).toMatch(/lcCapacity\?\.known/)
+    expect(PAGE).toMatch(/catch \{ \/\* silent/)
+  })
+
+  it('the capacity read is per selection, not per rail refresh', () => {
+    // It costs a provider round trip. Free is not the same as free to abuse.
+    expect(PAGE).toMatch(/\}, \[selected\]\)/)
   })
 })

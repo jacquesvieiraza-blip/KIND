@@ -141,11 +141,41 @@ export function icpFromDraft(d: BriefDraft): Record<string, unknown> {
   const category = translateProviderList(
     str(f.target_category) ? [str(f.target_category)] : [], PROVIDER_VOCABULARIES.industries, 6,
   )
+
+  // ── 🛑 ⚑ 22 Sep — WHAT THE CLIENT PICKED THEMSELVES, AND WHY IT OUTRANKS WHAT WE HEARD ──
+  //
+  // 🛑 FOUNDER-LOCKED: the approved portal's workspace is *"you either talk to Milla or drop
+  // them down"*. `facts.picked` is the second half of that — the values the client chose
+  // directly from the field, as opposed to the ones we derived from their sentence.
+  //
+  // ⚠️ A PICK IS ALREADY CANONICAL, WHICH IS THE WHOLE REASON IT MAY WIN. Every option in a
+  // dropdown comes from `PROVIDER_VOCABULARIES` (seniority, size) or is free text the provider
+  // takes as typed (titles, locations). There is nothing to translate and therefore nothing
+  // that can be mistranslated — which is exactly the failure mode the conversation has and a
+  // pick does not.
+  //
+  // 🛑 SO A PICK ALSO *RESOLVES* THE REVIEW, and this is the part that matters most. Until
+  // now, a client who said "a few dozen people" produced an untranslatable size, owed an
+  // operator review, and their Proof was blocked behind a human — the silent stranding. If
+  // that same client opens the Employees field and picks "11–50", they have just answered the
+  // question the operator was going to be asked. Feeding the pick into `deriveProviderReview`
+  // rather than around it means the review is never raised in the first place. The client
+  // resolved it themselves, which is better for them and cheaper for us.
+  //
+  // ⚠️ AND IT NEVER ERASES WHAT THEY SAID. Their sentence stays in `facts` untouched and the
+  // panel keeps showing it above the chips — the client sees "around twenty to fifty" AND the
+  // bands they chose, so a pick made by accident is visible rather than silent.
+  const picks = (f.picked ?? {}) as Record<string, unknown>
+  const pick = (k: string): string[] | null => {
+    const v = arr(picks[k])
+    return v.length > 0 ? v : null
+  }
+
   const decided = deriveProviderReview(
     {
       industries:       category.canonical,
-      seniority_levels: arr(f.seniority_levels),
-      company_sizes:    arr(f.company_sizes),
+      seniority_levels: pick('seniority_levels') ?? arr(f.seniority_levels),
+      company_sizes:    pick('company_sizes') ?? arr(f.company_sizes),
     },
     PROVIDER_VOCABULARIES,
   )
@@ -160,7 +190,10 @@ export function icpFromDraft(d: BriefDraft): Record<string, unknown> {
     // ⚠️ `job_titles` IS NOT A CLOSED VOCABULARY and is deliberately absent from the
     // derivation. Apollo takes free-text titles; "Managing Director" needs no translation and
     // there is nothing for a review to be owed about.
-    job_titles: arr(f.job_titles),
+    // ⚑ 22 Sep — a picked title list wins. Apollo takes titles as typed, so the field is an
+    // add/remove chip box rather than a closed list, and a pick here is simply a tidier
+    // version of the same free text.
+    job_titles: pick('job_titles') ?? arr(f.job_titles),
     seniority_levels: decided.values.seniority_levels,
     company_sizes: decided.values.company_sizes,
     // ── ⚑ 18 Sep (J5-C4 · LR 10,12) — AND HOW BIG THEY SAID, IN THEIR OWN WORDS ─────────
@@ -182,7 +215,8 @@ export function icpFromDraft(d: BriefDraft): Record<string, unknown> {
     ...(arr(f.company_sizes).length > 0
       ? { target_size: str(arr(f.company_sizes).join(', ')) }
       : {}),
-    geographies: arr(f.geographies),
+    // ⚑ 22 Sep — same for location: `person_locations` is free-text place names at Apollo.
+    geographies: pick('geographies') ?? arr(f.geographies),
     tech_stack: [],
     keywords: [],
     // ⚠️ FD-6: Apollo is the only provider, so the consent the schema asks for is given by

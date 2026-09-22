@@ -201,6 +201,124 @@ const isUntouchedGreeting = (m: Msg[]): boolean =>
  * openings the approved portal offers, and each is a sentence a client can send as-is.
  */
 const STARTERS = ['We want more meetings', "Here’s who we sell to", 'What do you need from me?']
+
+// ══════════════════════════════════════════════════════════════════════════════════════
+// ⚑ 22 Sep — WHAT A CLIENT MAY PICK, AND WHY THE SIX FIELDS ARE NOT ALIKE
+//
+// 🛑 APOLLO IS NOT UNIFORM, AND PRETENDING OTHERWISE IS HOW THE LAST VOCABULARY GOT INVENTED.
+// Only two of the six are genuine closed lists at the provider. Two more are free text it
+// takes as typed. The last two are not filters at all — the locked preview draws no caret on
+// either, which is the drawing being faithful rather than incomplete:
+//
+//   · Seniority  — CLOSED. `person_seniorities`. Our six labels map to Apollo's own values.
+//   · Employees  — CLOSED. `organization_num_employees_ranges`, via the six-band ladder.
+//   · Job titles — FREE TEXT. `person_titles` takes "Operations Director" as typed, so this
+//                  is an add/remove chip box. Offering a closed list here would be us
+//                  inventing a title vocabulary Apollo does not have — the exact mistake the
+//                  sixteen-word industry list was.
+//   · Location   — FREE TEXT. `person_locations` takes place names.
+//   · Order by   — not sent to the provider at all. It ranks. Nothing to choose from.
+//   · Never contact — an instruction the client gives Milla, not a list we hold.
+//
+// ⚠️ THE OPTIONS ARE THE STORED VOCABULARY, NOT APOLLO'S WIRE VALUES. A client picks
+// "C-Suite"; `icps.seniority_levels` holds "C-Suite"; `buildSearchBody` turns it into
+// `c_suite` at the boundary, and the panel prints that underneath. One translation, in the
+// one place that has always done it.
+const SENIORITY_OPTIONS = ['C-Suite', 'VP / Director', 'Head of', 'Manager', 'Senior', 'Individual Contributor']
+const SIZE_OPTIONS = ['1–10', '11–50', '51–200', '201–500', '501–1,000', '1,000+']
+
+const FIELD_OPTIONS: Record<string, { options: string[]; free: boolean }> = {
+  target_roles: { options: [], free: true },
+  seniority:    { options: SENIORITY_OPTIONS, free: false },
+  company_size: { options: SIZE_OPTIONS, free: false },
+  geography:    { options: [], free: true },
+}
+
+/** Which draft key each editable field writes to. The server reads these names, not the row ids. */
+const PICK_KEY: Record<string, string> = {
+  target_roles: 'job_titles',
+  seniority:    'seniority_levels',
+  company_size: 'company_sizes',
+  geography:    'geographies',
+}
+
+/**
+ * One editable targeting field — a closed list of toggles, or an add/remove chip box.
+ *
+ * ⚠️ NOT A `<select>`. Every one of these is multi-value (a client wants C-Suite AND
+ * VP/Director), and a native multi-select is close to unusable on a phone. Toggling chips is
+ * the same interaction in both modes, which is why the closed and free variants share a
+ * component rather than looking like two different ideas on one panel.
+ */
+function PickField({ options, free, chosen, placeholder, onChange }: {
+  options: string[]
+  free: boolean
+  chosen: string[]
+  placeholder: string
+  onChange: (next: string[]) => void
+}) {
+  const [open, setOpen] = useState(false)
+  const [draft, setDraft] = useState('')
+  const toggle = (v: string) =>
+    onChange(chosen.includes(v) ? chosen.filter(x => x !== v) : [...chosen, v])
+  const add = () => {
+    const v = draft.trim()
+    // ⚠️ A DUPLICATE IS NOT AN ERROR, IT IS A NO-OP. Telling a client they already added
+    // "COO" is noise; quietly not adding it twice is the behaviour they expected anyway.
+    if (v && !chosen.includes(v)) onChange([...chosen, v])
+    setDraft('')
+  }
+  return (
+    <div className="relative">
+      <div
+        onClick={() => setOpen(o => !o)}
+        className="border border-[#ded8e8] rounded-[9px] px-2.5 py-1.5 bg-white flex flex-wrap gap-1 items-center min-h-[34px] cursor-pointer">
+        {chosen.length === 0
+          ? <span className="text-[#9b8ec4] text-[11.5px]">{placeholder}</span>
+          : chosen.map(v => (
+            <span key={v} className="bg-[#f3ecff] text-[#5b21b6] rounded-md px-1.5 py-0.5 text-[10.5px] font-semibold">{v}</span>
+          ))}
+        <span className="ml-auto text-[#9b8ec4] text-[12px] leading-none">⌄</span>
+      </div>
+      {open ? (
+        <div className="absolute z-20 mt-1 left-0 right-0 bg-white border border-[#ded8e8] rounded-[9px] shadow-lg p-2">
+          {free ? (
+            <div className="flex gap-1.5 mb-1.5">
+              <input
+                value={draft}
+                onChange={e => setDraft(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); add() } }}
+                placeholder="Type and press enter"
+                className="flex-1 min-w-0 text-[11.5px] border border-[#ded8e8] rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-[#7C3AED]/25" />
+              <button type="button" onClick={add}
+                className="text-[11px] font-bold text-white bg-[#7C3AED] rounded-md px-2.5 shrink-0">Add</button>
+            </div>
+          ) : null}
+          <div className="flex flex-wrap gap-1">
+            {/* A closed field lists its vocabulary; a free one lists what the client has
+                already given us, so removing is the same gesture as adding. */}
+            {(free ? chosen : options).map(v => {
+              const on = chosen.includes(v)
+              return (
+                <button key={v} type="button" onClick={() => toggle(v)}
+                  className={`text-[10.5px] font-semibold rounded-md px-1.5 py-0.5 border ${on
+                    ? 'bg-[#f3ecff] text-[#5b21b6] border-[#ddcdf7]'
+                    : 'bg-white text-[#5c5279] border-[#ded8e8]'}`}>
+                  {v}{on ? ' ×' : ''}
+                </button>
+              )
+            })}
+            {free && chosen.length === 0
+              ? <span className="text-[10.5px] text-[#9b8ec4]">Nothing yet — type above, or just tell Milla.</span>
+              : null}
+          </div>
+          <button type="button" onClick={() => setOpen(false)}
+            className="mt-2 w-full text-[10.5px] font-semibold text-[#5c5279] py-1">Done</button>
+        </div>
+      ) : null}
+    </div>
+  )
+}
 // ⚠️ REFINING IS NOT STARTING AGAIN (22 Aug, integration fix). A prospect who says "not
 // these people" after their first proof batch arrives back on this page — and it greeted
 // them as a stranger and saved as if it were building something new. The server now keeps
@@ -281,11 +399,23 @@ export default function MillaWelcomePage() {
    * about our fact vocabulary and derives none of it.
    */
   const [targeting, setTargeting] = useState<Array<{
-    id: string; label: string; said: string; sending: string[]; placeholder: string; note?: string
+    id: string; label: string; said: string; sending: string[]; placeholder: string
+    /** The values Apollo actually receives, from the server's own request builder. */
+    provider: string[]
+    note?: string
   }>>([])
   // ⚑ 22 Sep — the client's own outcome sentence, for the workspace's lead tile. Server's
   // `desired_outcome` fact verbatim; this file composes no sentence about their business.
   const [outcome, setOutcome] = useState('')
+  /**
+   * What the client picked in the workspace, keyed by ROW id.
+   *
+   * ⚠️ HELD SEPARATELY FROM `targeting` FOR ONE REASON: the save is a round trip, and a field
+   * that snaps back to its old chips for 300ms while the server answers reads as the product
+   * losing the click. This is the optimistic value; the server's is authoritative and arrives
+   * on the next refresh.
+   */
+  const [picked, setPicked] = useState<Record<string, string[]>>({})
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   // ⚑ 14 Sep (S1-RT-003/004) — the server's own eleven-fact progress, held so the resume
@@ -340,6 +470,10 @@ export default function MillaWelcomePage() {
    *  website, and another only if the client explicitly changes it to a different one. */
   const readSites = useRef<Set<string>>(new Set())
   const bodyRef = useRef<HTMLDivElement>(null)
+  // ⚑ 22 Sep — the last targeting we actually counted, so an unchanged search is not asked
+  // again. A ref rather than state: it must not cause a render, and it must be readable by
+  // the callback that sets it without re-creating that callback on every turn.
+  const lastCountKey = useRef<string>('')
 
   /** Resolve "does this person already have an account?" — the question every first-run
    *  rule below keys off. Separate and retryable, because it is now a hard prerequisite
@@ -491,13 +625,36 @@ export default function MillaWelcomePage() {
     const tk = await token()
     try {
       const d = await api.get<{ data: {
-        onboarding_targeting?: Array<{ id: string; label: string; said: string; sending: string[]; placeholder: string; note?: string }>
+        onboarding_targeting?: Array<{ id: string; label: string; said: string; sending: string[]; placeholder: string; provider: string[]; note?: string }>
         onboarding_search?: Record<string, string[]> | null
         onboarding_outcome?: string
         progress?: { count: number; total: number }
       } }>('/milla/brief-draft', tk)
       setTargeting(d.data?.onboarding_targeting ?? [])
       setOutcome(d.data?.onboarding_outcome ?? '')
+      // ── 🛑 ⚑ 22 Sep — AND THE LIVE COUNT, WHICH THE LOCK ABOVE USED TO FORBID ──────────
+      //
+      // ⛓️ The long note that stood here recorded the decision as OWED: the count was not
+      // built because `preview-count` was gated on the account row and pinned to one call
+      // site. The founder lifted the gate on 22 Sep (`countFor` carries the reasoning); the
+      // pin is honoured by going THROUGH `countFor` rather than adding a second call site.
+      //
+      // ⚠️ IT ONLY ASKS WHEN THE SEARCH ACTUALLY CHANGED, and that is a real constraint
+      // rather than caution: the route is rate-limited to TEN CALLS A MINUTE PER USER, and
+      // this refresh runs after every turn including failed ones. A brisk conversation would
+      // exhaust the budget on turns that moved nothing — and the eleventh turn, the one that
+      // finally completed the targeting, is the one that would be refused.
+      //
+      // ⚠️ AN EMPTY SEARCH IS NOT ASKED AT ALL. Before any targeting exists the answer would
+      // be "everybody", which is not a fact about this client and would replace the locked
+      // em-dash with a number that means nothing.
+      const search = d.data?.onboarding_search ?? null
+      const key = search ? JSON.stringify(search) : ''
+      const hasTargeting = !!search && Object.values(search).some(v => Array.isArray(v) && v.length > 0)
+      if (hasTargeting && key !== lastCountKey.current) {
+        lastCountKey.current = key
+        void countFor(search as unknown as IcpDraft)
+      }
       // ⚑ 22 Sep — the workspace header's "n of 11 understood" reads the SERVER'S count and
       // its SERVER'S denominator, the same verdict that decides what Milla still has to ask
       // for. A count derived in this file could disagree with the question she asks next.
@@ -535,26 +692,82 @@ export default function MillaWelcomePage() {
 
   useEffect(() => { const el = bodyRef.current; if (el) el.scrollTop = el.scrollHeight }, [messages, proposed])
 
-  const propose = useCallback(async (icp: IcpDraft) => {
-    setProposed(icp)
-    // ── PAID PREVIEW WAITS FOR THE ACCOUNT (founder-ruled 24 Aug) ─────────────────────
-    // /icps/preview-count runs real PDL/Apollo calls and needs no client row, so once
-    // signup landed straight here it would have become the normal way a brand-new visitor
-    // reached a paid provider — before we knew who they were. The founder's sequencing
-    // ruling: confirm, create the client row, persist the understanding, and only THEN may
-    // normal preview/proof/provider behaviour occur.
-    //
-    // Nothing about the provider path itself changes — not the cache, not the rate limit,
-    // not `audienceForUser`, not the boundary. This is WHEN it may be called, not HOW.
-    // The panel already renders a null count as "—" (that has always been the path when a
-    // preview fails), so a first-run client sees the recommended starter plan and no
-    // invented number.
-    if (hasClient !== true) { setMatchCount(null); return }
+  // ── 🛑 ⚑ 22 Sep — THE COUNT IS LIVE DURING THE BRIEF (founder-ruled) ──────────────────
+  //
+  // ⛓️ WAS: ~~`if (hasClient !== true) { setMatchCount(null); return }`~~ — "PAID PREVIEW
+  // WAITS FOR THE ACCOUNT", founder-ruled 24 Aug. The reasoning was that signup landing
+  // straight here would make `/icps/preview-count` *"the normal way a brand-new visitor
+  // reached a PAID PROVIDER — before we knew who they were."*
+  //
+  // 🛑 THE COST THAT RULING PROTECTED AGAINST DOES NOT EXIST. Apollo's People Search is free
+  // — `icps.ts` says it in three places (*"Apollo search costs nothing"*, *"the search
+  // endpoint is Apollo's no-credit api_search"*, *"This route spends no Apollo CREDITS —
+  // People Search is free; the credit is the reveal"*) — and PDL, the paid half of the
+  // original "PDL/Apollo" framing, has not been a provider of ours since FD-6. The rule was
+  // guarding a spend that moved to the reveal, which still waits for far more than an account.
+  //
+  // 🛑 AND IT WAS COSTING THE THING THE APPROVED PORTAL IS BUILT AROUND. The locked Brief
+  // screen shows *"4,120 people match this so far — around ten meetings at this size"* WHILE
+  // the client is still talking, because that number is what makes the targeting real and the
+  // capacity promise honest. The account row is created at CONFIRM — after the Brief — so the
+  // gate made the number impossible exactly where it was specified. Founder, 22 Sep: yes.
+  //
+  // ⚠️ STILL ONE CALL SITE, AND MORE STRICTLY SO THAN BEFORE. Both the proposal and the live
+  // panel come through this function; `first-run-milla.test.ts` counts the string and the
+  // count is one. What changed is WHEN it may run, not HOW — cache, rate limit, audience and
+  // provider boundary are all untouched.
+  const countFor = useCallback(async (icp: IcpDraft) => {
     try {
       const r = await api.post<{ data: { count: number } }>('/icps/preview-count', icp, await token())
       setMatchCount(typeof r.data?.count === 'number' ? r.data.count : null)
-    } catch { setMatchCount(null) }
-  }, [hasClient])
+    } catch {
+      // ⚠️ A FAILED COUNT IS "—", NEVER A STALE NUMBER. The bar has always rendered null as an
+      // em-dash; showing the previous answer beside changed targeting would be a figure
+      // nobody computed about a search nobody ran.
+      setMatchCount(null)
+    }
+  }, [])
+
+  const propose = useCallback(async (icp: IcpDraft) => {
+    setProposed(icp)
+    void countFor(icp)
+  }, [countFor])
+
+  /**
+   * 🛑 SAVE ONE FIELD THE CLIENT PICKED — the other half of "talk to Milla or drop them down".
+   *
+   * ⚠️ IT SENDS ALL FOUR, EVERY TIME. `saveBriefDraft` merges at the top level only, so a body
+   * carrying just the field that changed would REPLACE the whole `picked` object and silently
+   * drop a size the client chose a minute earlier. The route's own note says so; this is the
+   * caller honouring it rather than asking the server for a deeper merge nobody would find.
+   *
+   * ⚠️ AND IT NEVER TOUCHES WHAT THEY SAID. The eleven spoken facts are not in this body, so a
+   * pick cannot overwrite a sentence — which is what keeps "you said: around twenty to fifty"
+   * visible underneath a field the client has since changed to 201–500.
+   *
+   * ⚠️ A FAILED SAVE PUTS THE FIELD BACK. Showing the new chips over a value the server never
+   * received is the worst of both: the client believes they changed the targeting, and the
+   * search disagrees. `refreshTargeting` then re-reads the truth either way.
+   */
+  const savePick = useCallback(async (rowId: string, next: string[]) => {
+    const key = PICK_KEY[rowId]
+    if (!key) return
+    const before = picked
+    const merged = { ...picked, [rowId]: next }
+    setPicked(merged)
+    try {
+      const body: Record<string, string[]> = {}
+      for (const [id, k] of Object.entries(PICK_KEY)) {
+        const v = merged[id]
+        if (Array.isArray(v)) body[k] = v
+      }
+      await api.put('/milla/brief-draft', { picked: body }, await token())
+    } catch {
+      setPicked(before)
+      setError('That change could not be saved just now — nothing else you told Milla is affected.')
+    }
+    await refreshTargeting()
+  }, [picked, refreshTargeting])
 
   /** The existing BASIC website read, moved inside Milla. Returns evidence to be CONFIRMED,
    *  never targeting to be applied. First-run only, once per distinct website. */
@@ -1336,32 +1549,77 @@ export default function MillaWelcomePage() {
                       them. `targeting` is a fixed six from the server, so this maps rather than
                       branching on emptiness: an unanswered field renders its own placeholder
                       and keeps its place in the grid. */}
+                  {/* ── ⚑ 22 Sep — THE WARM LINE, WHILE THERE IS NOTHING HERE YET ──────────
+                       🛑 FOUNDER-ASKED, 22 Sep: *"we need a welcome message of some sort. this
+                       helps the client. like say hello. its warm."* — and he chose the panel
+                       over the chat, because Milla already says hello and the WORKSPACE was the
+                       cold half: six empty boxes and no word about what they are for.
+
+                       ⚠️ IT IS ALSO WHERE HIS 30-AUG SENTENCE USED TO LIVE, which is the other
+                       half of why it belongs here. *"As we chat, Milla builds your ICP here"*
+                       was removed with the panel that carried it; this says the same thing in
+                       the same place, above a workspace that now actually exists to fill.
+
+                       ⚠️ IT LEAVES THE MOMENT THE FIRST FIELD FILLS. An encouragement to start
+                       is help; the same sentence still sitting there over a filled workspace is
+                       clutter, and the client has visibly already started. */}
+                  {targeting.every(t => t.said === '' && t.sending.length === 0) ? (
+                    <div className="mb-3.5 text-[11.5px] text-[#5c5279] leading-relaxed">
+                      Nothing here yet. Tell Milla what you&rsquo;re after and this fills in as
+                      you talk &mdash; nothing is charged and nobody is contacted.
+                    </div>
+                  ) : null}
                   <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
                     {targeting.map(t => {
                       const answered = t.said !== '' || t.sending.length > 0
+                      const opts = FIELD_OPTIONS[t.id]
+                      const chosen = picked[t.id] ?? t.sending
                       return (
                         <div key={t.id} className="min-w-0">
                           <label className="block text-[10px] font-bold text-[#4c4459] mb-1">{t.label}</label>
-                          <div className={`border border-[#ded8e8] rounded-[9px] px-2.5 py-1.5 bg-white flex flex-wrap gap-1 items-center min-h-[34px] ${answered ? '' : 'text-[#9b8ec4] text-[11.5px]'}`}>
-                            {answered ? (
-                              <>
-                                {/* THEIR WORDS FIRST — the chips beneath are what those words
-                                    became. A client who reads "around twenty to fifty" turn
-                                    into two bands can correct it in the next sentence. */}
-                                {t.said ? <span className="text-[11.5px] text-[#17101f] w-full">{t.said}</span> : null}
-                                {t.sending.map(v => (
-                                  <span key={v} className="bg-[#f3ecff] text-[#5b21b6] rounded-md px-1.5 py-0.5 text-[10.5px] font-semibold">{v}</span>
-                                ))}
-                              </>
-                            ) : t.placeholder}
-                          </div>
-                          {/* ⚠️ THE PROVIDER VALUES, PRINTED AS SENT. The lock puts
-                              "stored & sent as: c_suite, vp, director" under the field in mono,
-                              and it is the whole point of the panel: the client is looking at
-                              the exact bytes the search will carry, not a friendly restatement
-                              of them. */}
-                          {t.sending.length > 0 ? (
-                            <div className="text-[9px] text-[#9b8ec4] font-semibold mt-1 font-mono">stored &amp; sent as: {t.sending.join(' · ')}</div>
+                          {/* ── 🛑 ⚑ 22 Sep — "YOU EITHER TALK TO MILLA OR DROP THEM DOWN" ───
+                              🛑 FOUNDER-LOCKED. Four of the six are editable here; the other two
+                              are not, and that is the approved preview's own drawing rather than
+                              an omission — "Order by" and "Never contact" carry no caret in it,
+                              because neither is a list to choose from. Which four are editable
+                              and WHAT KIND of control each gets is decided by `FIELD_OPTIONS`,
+                              from Apollo's actual vocabularies. */}
+                          {opts ? (
+                            <PickField
+                              options={opts.options}
+                              free={opts.free}
+                              chosen={chosen}
+                              placeholder={t.placeholder}
+                              onChange={next => savePick(t.id, next)}
+                            />
+                          ) : (
+                            <div className={`border border-[#ded8e8] rounded-[9px] px-2.5 py-1.5 bg-white flex flex-wrap gap-1 items-center min-h-[34px] ${answered ? '' : 'text-[#9b8ec4] text-[11.5px]'}`}>
+                              {answered ? (
+                                <>
+                                  {t.said ? <span className="text-[11.5px] text-[#17101f] w-full">{t.said}</span> : null}
+                                  {t.sending.map(v => (
+                                    <span key={v} className="bg-[#f3ecff] text-[#5b21b6] rounded-md px-1.5 py-0.5 text-[10.5px] font-semibold">{v}</span>
+                                  ))}
+                                </>
+                              ) : t.placeholder}
+                            </div>
+                          )}
+                          {/* ⚠️ THEIR WORDS STAY VISIBLE UNDER AN EDITED FIELD, and this is the
+                              point of storing a pick beside the sentence rather than over it: a
+                              client who said "around twenty to fifty" and then picked 201–500 by
+                              accident can SEE the disagreement. Overwriting the sentence would
+                              have hidden exactly the mistake the panel exists to catch. */}
+                          {opts && t.said ? (
+                            <div className="text-[9.5px] text-[#9b8ec4] mt-1 leading-snug">you said: {t.said}</div>
+                          ) : null}
+                          {/* ⚠️ THE PROVIDER VALUES, PRINTED AS APOLLO RECEIVES THEM. The lock
+                              puts "stored & sent as: c_suite, vp, director" under the field, and
+                              `c_suite` is not what we store — we store "C-Suite". The server
+                              runs the real request builder so this line cannot drift from the
+                              search; printing our own label under this caption would make the
+                              one claim the panel exists for false. */}
+                          {t.provider.length > 0 ? (
+                            <div className="text-[9px] text-[#9b8ec4] font-semibold mt-1 font-mono">stored &amp; sent as: {t.provider.join(' · ')}</div>
                           ) : null}
                           {t.note ? <div className="text-[9px] text-[#9b8ec4] font-semibold mt-1">{t.note}</div> : null}
                         </div>
@@ -1382,8 +1640,27 @@ export default function MillaWelcomePage() {
                     <span className="text-[11px] text-[#5c5279] leading-snug">
                       people match this so far<br />free to look at · nothing bought
                     </span>
+                    {/* ── ⚑ 22 Sep — "Two more answers, then Proof" ──────────────────────
+                         🛑 THE LOCKED BAR CHANGES ITS LABEL AS THE BRIEF FILLS: "Milla is
+                         listening" at stage 0, "Two more answers, then Proof" at stage 1. It
+                         is the only place on the screen that tells the client how close they
+                         are to seeing real people, which is the thing they are actually here
+                         for.
+
+                         ⚠️ THE NUMBER IS THE SERVER'S REMAINDER, never a count this file
+                         keeps. `briefProgress` is the server's own verdict, so the label
+                         and the question Milla asks next can never disagree about how much is
+                         left — the "0 things still needed" beside a request for a fact defect
+                         this page already carries a note about. */}
                     <span className="ml-auto text-[12px] font-bold text-[#4c4459] bg-white border border-[#ded8e8] rounded-[10px] px-4 py-2">
-                      Milla is listening
+                      {!briefProgress || briefProgress.count === 0
+                        ? 'Milla is listening'
+                        : briefProgress.count >= briefProgress.total
+                          ? 'Ready for Proof'
+                          : (() => {
+                            const left = briefProgress.total - briefProgress.count
+                            return left === 1 ? 'One more answer, then Proof' : `${left} more answers, then Proof`
+                          })()}
                     </span>
                   </div>
                 </div>

@@ -255,3 +255,121 @@ describe('the first run shows it, and pays nothing for it', () => {
     expect(WELCOME).toMatch(/catch \{ \/\* silent — the panel keeps whatever it last showed \*\/ \}/)
   })
 })
+
+// ══════════════════════════════════════════════════════════════════════════════════════
+// ⚑ 22 Sep — "YOU EITHER TALK TO MILLA OR DROP THEM DOWN" (founder-locked)
+//
+// 🛑 The conversation is the primary path and is unchanged. This is the second one: values the
+// client chose directly in the workspace. They are stored BESIDE what the client said, never
+// over it, and they win when the search is built.
+describe('what the client picked beats what we heard — and resolves the review', () => {
+  it('a picked size wins over the sentence we could not translate', () => {
+    // "a few dozen people" is the founder's own example of an untranslatable answer, and it is
+    // the one that stranded a live client: unusable size → operator review → Proof blocked.
+    const spoken = icpFromDraft(draft({ company_sizes: ['a few dozen people'] }))
+    expect(spoken.company_sizes, 'an untranslatable size somehow produced a band').toEqual([])
+
+    const withPick = icpFromDraft(draft({
+      company_sizes: ['a few dozen people'],
+      picked: { company_sizes: ['11–50'] },
+    }))
+    expect(withPick.company_sizes).toEqual(['11–50'])
+  })
+
+  it('🛑 AND THE PICK RESOLVES THE REVIEW — the client answered the operator’s question', () => {
+    // This is the point of feeding the pick INTO `deriveProviderReview` rather than around it.
+    // Without it the ICP is born flagged, Proof waits for a human, and the client is stranded
+    // behind a queue with no screen — having already told us the exact canonical value.
+    const stranded = icpFromDraft(draft({ company_sizes: ['a few dozen people'] }))
+    expect(stranded.icp_review, 'an untranslatable size no longer owes a review').toBeTruthy()
+
+    const resolved = icpFromDraft(draft({
+      company_sizes: ['a few dozen people'],
+      picked: { company_sizes: ['11–50'] },
+    }))
+    expect(resolved.icp_review, 'the client resolved it themselves and a review was raised anyway')
+      .toBeUndefined()
+  })
+
+  it('a picked seniority wins, and it is canonical vocabulary', () => {
+    const icp = icpFromDraft(draft({
+      seniority_levels: ['whoever owns the P&L'],
+      picked: { seniority_levels: ['C-Suite', 'VP / Director'] },
+    }))
+    expect(icp.seniority_levels).toEqual(['C-Suite', 'VP / Director'])
+    expect(icp.icp_review).toBeUndefined()
+  })
+
+  it('picked titles and locations win too — both are free text at the provider', () => {
+    const icp = icpFromDraft(draft({
+      job_titles: ['founders'], geographies: ['England'],
+      picked: { job_titles: ['Managing Director', 'COO'], geographies: ['United Kingdom'] },
+    }))
+    expect(icp.job_titles).toEqual(['Managing Director', 'COO'])
+    expect(icp.geographies).toEqual(['United Kingdom'])
+  })
+
+  it('🛑 an EMPTY pick is not a pick — clearing a field falls back to what they said', () => {
+    // Otherwise unticking the last chip would silently empty the criterion, and an empty
+    // closed list means UNCONSTRAINED downstream: the client would have widened their own
+    // search to everybody by tidying up a field.
+    const icp = icpFromDraft(draft({
+      company_sizes: ['11–50'], picked: { company_sizes: [] },
+    }))
+    expect(icp.company_sizes).toEqual(['11–50'])
+  })
+
+  it('🛑 a pick NEVER erases what the client said — the panel must show the disagreement', () => {
+    const rows = icpFromDraft(draft({
+      company_sizes: ['around twenty to fifty'],
+      picked: { company_sizes: ['201–500'] },
+    }))
+    // Their phrase survives as the ICP's own size text, so "you said: around twenty to fifty"
+    // can sit under a field now reading 201–500 and an accidental pick is visible.
+    expect(rows.target_size).toBe('around twenty to fifty')
+    expect(rows.company_sizes).toEqual(['201–500'])
+  })
+})
+
+// ── ⚑ 22 Sep — "stored & sent as" MEANS WHAT APOLLO RECEIVES ─────────────────────────
+describe('the panel prints the provider’s own values, not our labels', () => {
+  type Row = { id: string; provider: string[] }
+  const panel = async (facts: Record<string, unknown>): Promise<Row[]> => {
+    const { briefReadModelFrom } = await import('../routes/milla')
+    const { BRIEF_FACT_LABEL, briefDraftFacts } = await import('@kind/shared')
+    return briefReadModelFrom(
+      draft(facts), briefDraftFacts(facts), { state: 'conversing', unresolvedLabels: [] },
+      BRIEF_FACT_LABEL as Record<string, string>, icpFromDraft as never,
+    ).onboarding_targeting as Row[]
+  }
+
+  it('🛑 seniority prints c_suite / vp / director — not "C-Suite"', () => {
+    // We STORE "C-Suite". Apollo receives `c_suite`. A caption reading "stored & sent as" that
+    // shows the first is the panel's one claim — that no later comparison can disagree with
+    // what was searched — being false on the screen that makes it.
+    return panel({ picked: { seniority_levels: ['C-Suite', 'VP / Director'] } }).then(rows => {
+      expect(rows.find(r => r.id === 'seniority')!.provider).toEqual(['c_suite', 'vp', 'director'])
+    })
+  })
+
+  it('🛑 employees prints Apollo’s ranges — 11,50 · 51,200', () => {
+    return panel({ picked: { company_sizes: ['11–50', '51–200'] } }).then(rows => {
+      expect(rows.find(r => r.id === 'company_size')!.provider).toEqual(['11,50', '51,200'])
+    })
+  })
+
+  it('titles and locations travel as typed — there is nothing to translate', () => {
+    return panel({ picked: { job_titles: ['Managing Director'], geographies: ['United Kingdom'] } })
+      .then(rows => {
+        expect(rows.find(r => r.id === 'target_roles')!.provider).toEqual(['Managing Director'])
+        expect(rows.find(r => r.id === 'geography')!.provider).toEqual(['United Kingdom'])
+      })
+  })
+
+  it('🛑 the category reaches the provider as NOTHING — it orders, it never filters', () => {
+    return panel({ target_category: 'SaaS' }).then(rows => {
+      const row = rows.find(r => r.id === 'target_category')!
+      expect(row.provider, 'the client’s category is being sent to Apollo again').toEqual([])
+    })
+  })
+})

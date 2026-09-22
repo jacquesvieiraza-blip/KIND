@@ -10,6 +10,10 @@ import { processDocument, chat } from '../lib/milla'
 import { ensureTodaysBrief } from '../lib/morning-brief-deliver'
 import { ensureBrief, approveBrief, editBrief } from '../lib/meeting-brief-deliver'
 import { BACKGROUND_MODEL } from '../lib/models'
+// ⚑ 22 Sep — THE REQUEST BUILDER, so the Brief panel's "stored & sent as" line can print what
+// Apollo actually receives rather than our own stored labels. Pure, spends nothing, makes no
+// network call — the panel reads the search instead of describing it.
+import { buildSearchBody } from '../lib/apollo'
 
 // ⛓️ 18 Sep (D-63) — ~~`const anthropic = new Anthropic(…)`~~ AND THE PERSONA NOTE THAT STOOD
 // HERE WENT WITH THE STATELESS DOOR. The module-level client had exactly one reader, the
@@ -797,15 +801,43 @@ export function briefReadModelFrom(
       const icp = (targetingFromDraft(draft) ?? {}) as Record<string, unknown>
       const list = (k: string): string[] =>
         Array.isArray(icp[k]) ? (icp[k] as unknown[]).filter((x): x is string => typeof x === 'string') : []
-      const row = (id: string, label: string, said: string, sending: string[], placeholder: string, note?: string) =>
-        ({ id, label, said, sending, placeholder, ...(note ? { note } : {}) })
+
+      // ── 🛑 ⚑ 22 Sep — "stored & sent as" NOW MEANS WHAT IT SAYS ────────────────────────
+      //
+      // ⛓️ WAS: the panel printed `sending` — our OWN stored labels, `'C-Suite'` and
+      // `'11–50'` — under a line reading *"stored & sent as"*. Stored, yes. Sent, no: Apollo
+      // receives `c_suite` and `11,50`, and the locked preview prints exactly those.
+      //
+      // 🛑 THE LINE IS THE WHOLE CLAIM OF THIS PANEL — *"no later comparison can disagree with
+      // what was searched"* — so a caption that names the request and shows something else is
+      // worse than no caption. `buildSearchBody` IS the request builder; calling it means the
+      // panel cannot drift from the search, because it is reading the search.
+      //
+      // ⚠️ IT TOUCHES NO PROVIDER AND SPENDS NOTHING. It is a pure object builder; the network
+      // call is `searchPeople`, which is not here.
+      const sent = buildSearchBody({
+        job_titles: list('job_titles'), seniority_levels: list('seniority_levels'),
+        company_sizes: list('company_sizes'), geographies: list('geographies'),
+        industries: [], tech_stack: [], keywords: [], apollo_only_consented: true,
+      }, 1)
+      const asSent = (k: 'person_titles' | 'person_seniorities' | 'organization_num_employees_ranges' | 'person_locations'): string[] =>
+        Array.isArray(sent[k]) ? (sent[k] as string[]) : []
+
+      const row = (
+        id: string, label: string, said: string, sending: string[], placeholder: string,
+        note?: string, provider?: string[],
+      ) => ({ id, label, said, sending, placeholder, provider: provider ?? [], ...(note ? { note } : {}) })
       const FILL = 'Milla will fill this'
       return {
         onboarding_targeting: [
-          row('target_roles',    'Job titles',   onboardingText('target_roles'),    list('job_titles'),      FILL),
-          row('seniority',       'Seniority',    onboardingText('target_roles'),    list('seniority_levels'), FILL),
-          row('company_size',    'Employees',    onboardingText('company_size'),    list('company_sizes'),   FILL),
-          row('geography',       'Location',     onboardingText('geography'),       list('geographies'),     FILL),
+          row('target_roles',    'Job titles',   onboardingText('target_roles'),    list('job_titles'),      FILL,
+            undefined, asSent('person_titles')),
+          row('seniority',       'Seniority',    onboardingText('target_roles'),    list('seniority_levels'), FILL,
+            undefined, asSent('person_seniorities')),
+          row('company_size',    'Employees',    onboardingText('company_size'),    list('company_sizes'),   FILL,
+            undefined, asSent('organization_num_employees_ranges')),
+          row('geography',       'Location',     onboardingText('geography'),       list('geographies'),     FILL,
+            undefined, asSent('person_locations')),
           // ── 🛑 ⚑ 22 Sep — IT ORDERS THE RESULTS. IT NEVER LEAVES ANYBODY OUT ────────────
           //
           // ⛓️ WAS: ~~`'Kind of company'`~~, with the "used to order" note attached ONLY when
@@ -1076,6 +1108,28 @@ millaRouter.put('/brief-draft', async (req: AuthRequest, res) => {
     desired_outcome_kind: z.string().max(20).nullish(),
     country:             z.string().max(120).nullish(),
     phone:               z.string().max(60).nullish(),
+    // ── 🛑 ⚑ 22 Sep — WHAT THE CLIENT PICKED IN THE WORKSPACE, AS OPPOSED TO SAID ────────
+    //
+    // 🛑 FOUNDER-LOCKED: *"you either talk to Milla or drop them down."* This is the second
+    // half. `icpFromDraft` prefers these over what it derived from the conversation, and a
+    // pick also RESOLVES the provider review — see its own note for why that is the point
+    // rather than a side effect.
+    //
+    // ⚠️ SENT WHOLE, NEVER PATCHED. `saveBriefDraft` merges at the TOP level, so a body
+    // carrying `picked: { seniority_levels: [...] }` would replace the entire object and
+    // silently drop a size the client chose a minute earlier. The portal holds the full set
+    // and sends all four every time; asking for a deep merge here would be a second merge
+    // rule living somewhere nobody would look for it.
+    //
+    // ⚠️ THE BOUNDS ARE THE VOCABULARIES' OWN. Seniority and size are closed lists of six, so
+    // six is every option at once. Titles and locations are free text at Apollo and keep the
+    // same limits the spoken facts above already carry.
+    picked: z.object({
+      job_titles:       z.array(z.string().max(80)).max(10).nullish(),
+      seniority_levels: z.array(z.string().max(40)).max(6).nullish(),
+      company_sizes:    z.array(z.string().max(40)).max(6).nullish(),
+      geographies:      z.array(z.string().max(80)).max(8).nullish(),
+    }).nullish(),
   }).parse(req.body ?? {})
 
   const { saveBriefDraft, draftProgress } = await import('../lib/brief-draft')

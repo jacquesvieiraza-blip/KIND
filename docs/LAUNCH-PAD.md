@@ -25,7 +25,7 @@
 
 *Settled 23 Sep by R141 — no longer on the list: the website may show $450, and "qualified meeting" has its rule.*
 
-**Board:** 🟢106 · 🩷318 · 🟣2 · 🟡51 · 🔴190 · ⏸7 · **Σ674** · live count: `scripts/count-inventory.sh`
+**Board:** 🟢106 · 🩷357 · 🟣2 · 🟡23 · 🔴179 · ⏸7 · **Σ674** · live count: `scripts/count-inventory.sh`
 
 ---
 

@@ -537,7 +537,9 @@ describe('🛑 NO LEGACY MONEY TRUTH SURVIVES ON THE MILLA HOME', () => {
       // would otherwise render. Deleting these is how a client gets a spinner forever.
       expect(HOME_CODE).toContain('terminalRun ?')
       expect(HOME_CODE).toContain('proofAwaiting ?')
-      expect(HOME_CODE).toContain('We hit a snag confirming your matches')
+      // ⛓️ 23 Sep — the founder superseded the 26 Aug recovery copy: *"the i hit a snag is bulsshit. it is so customer unfriendly."*
+      expect(HOME_CODE).toContain('Your first examples are on their way')
+      expect(HOME_CODE).not.toContain("'We hit a snag confirming your matches'")
     })
   })
 

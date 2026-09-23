@@ -398,8 +398,9 @@ describe('E · the desk is bounded — a wait that never resolves ends in recove
     // ⛓️ 26 Aug (correction pass) — the flag is now `proofWaitEnded`, which is TRUE for an
     // exhausted poll AND for a reopen whose durable stamp is already past the bound. Same
     // copy, same bound, one more way of reaching it honestly.
-    expect(portal).toContain("{proofWaitEnded ? 'We hit a snag confirming your matches' : 'Finding your matches now…'}")
-    expect(portal).toContain('Your setup is saved and has been flagged for K.I.N.D review.')
+    // ⛓️ 23 Sep — the founder superseded the 26 Aug recovery copy: *"the i hit a snag is bulsshit. it is so customer unfriendly."*
+    expect(portal).toContain("{proofWaitEnded ? 'Your first examples are on their way' : 'Finding your matches now…'}")
+    expect(portal).toContain('Your brief is saved and K.I.N.D is finishing your first examples. You do not need to do anything or start again — they will appear here as soon as they are ready.')
     // The old sentence claimed a search was still running when nothing was.
     expect(portal).not.toContain('We’re still finding your matches. You can come back to this page shortly.')
   })
@@ -686,9 +687,10 @@ describe('G · a clean URL cannot strand the first client — and cannot cry fai
     // absence: one behind `proofFailed` (the SERVER recorded a crash) and one behind
     // `proofWaitEnded` (the justified bound has passed). A third would be a new way to
     // claim failure, and this count is what makes adding one impossible to do quietly.
-    const headlines = portalSrc.split('We hit a snag confirming your matches').length - 1
+    // ⛓️ 23 Sep — the founder superseded the 26 Aug recovery copy: *"the i hit a snag is bulsshit. it is so customer unfriendly."* The count is unchanged: still exactly two, now of the new headline.
+    const headlines = portalSrc.split("'Your first examples are on their way'").length - 1
     expect(headlines, 'one server-recorded failure headline + one bounded-wait headline').toBe(2)
-    expect(portalSrc).toContain("{proofWaitEnded ? 'We hit a snag confirming your matches' : 'Finding your matches now…'}")
+    expect(portalSrc).toContain("{proofWaitEnded ? 'Your first examples are on their way' : 'Finding your matches now…'}")
     expect(portalSrc).toContain('{proofFailed')
   })
 
@@ -723,8 +725,11 @@ describe('G · a clean URL cannot strand the first client — and cannot cry fai
     const welcome = codeOnly(readFileSync(
       join(__dirname, '..', '..', '..', 'portal', 'src', 'app', '(milla)', 'milla', 'welcome', 'page.tsx'), 'utf8'))
     for (const [name, src] of [['desk', portalSrc], ['welcome', welcome]] as const) {
-      // `?finding=1` survives as a HINT covering the moment before the first summary lands.
-      expect(src, name).toContain("router.push('/milla?finding=1')")
+      // ⛓️ 23 Sep — WAS: both files contained `router.push('/milla?finding=1')`. The welcome
+      // page no longer navigates when the run STARTS — the founder's rule holds the client in
+      // the Brief until their people are ready — so it carries no finding hint at all. The
+      // property this test exists for (no clock travels or is stored) is asserted unchanged.
+      if (name === 'welcome') expect(src, name).not.toContain('finding=1')
       // But no timestamp travels with it, and none is stored: the run's START was recorded
       // by the claim itself, so there is no browser value left to be lost, missing on
       // another device, or stale from an older pass.

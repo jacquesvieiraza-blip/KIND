@@ -16,8 +16,7 @@ import {
   START_HERE_MIN_SCORE, UNKNOWN_SCORE_CAP, NOT_A_FIT_SCORE_CAP,
   HARD_CRITERIA, type FitCandidate, type FitIcp,
   // ⚑ 22 Sep — the removal rule, which is a different question from the fit rule.
-  removalCriterion, removalReason, REMOVING_CRITERIA, RANKING_ONLY_CRITERIA,
-} from './proof-fit'
+  removalCriterion, removalReason, REMOVING_CRITERIA, RANKING_ONLY_CRITERIA, POOL_SELECTION_CRITERIA, structuralVerdict } from './proof-fit'
 
 /** The founder's own canary targeting, 10 Sep. */
 const CANARY: FitIcp = {
@@ -330,12 +329,16 @@ describe('⑥ the judgement is total — no input throws, nothing is silently ad
 // stopped banding "Not a fit" and its cap rose from 30 to 74: a 72 beside a disqualifying
 // sentence, again. These tests exist so that mistake cannot be made twice.
 describe('🛑 ⑦ the category orders the results — it never removes anybody', () => {
-  it('the two ranking-only criteria are exactly industry and category', () => {
-    expect([...RANKING_ONLY_CRITERIA].sort()).toEqual(['category', 'industry'])
-    // ⚠️ AND THE OTHER FIVE STILL REMOVE — including `excluded`, the one refusal that is an
-    // instruction the client gave us rather than an opinion we formed.
-    expect([...REMOVING_CRITERIA].sort())
-      .toEqual(['company_type', 'excluded', 'geography', 'seniority', 'size'])
+  it('🛑 ONLY THE CLIENT\'S EXCLUSIONS REMOVE — everything else ranks (23 Sep)', () => {
+    // ⛓️ 23 Sep — WAS `'the two ranking-only criteria are exactly industry and category'`, with
+    // geography, size, seniority and company type still removing. Blackburne (production, 23
+    // Sep): 20 found by Apollo, 20 set aside on size. Founder, MVP1 record: *"You set filters. Apollo returns the people who match. It does not then go back through its own results and throw people out."* · *"Only the client's exclusions remove anybody."*
+    expect([...RANKING_ONLY_CRITERIA].sort())
+      .toEqual(['category', 'company_type', 'geography', 'industry', 'seniority', 'size'])
+    // ⚠️ AND THE ONE THAT STILL REMOVES IS THE INSTRUCTION THE CLIENT GAVE US.
+    expect([...REMOVING_CRITERIA]).toEqual(['excluded'])
+    // ⚠️ OUR POOL STILL SELECTS on the three filters Apollo applies — it has no provider filter.
+    expect([...POOL_SELECTION_CRITERIA].sort()).toEqual(['excluded', 'geography', 'seniority', 'size'])
   })
 
   it('🛑 the C05 card is STILL "Not a fit", still capped at 30, still never starred', () => {
@@ -360,11 +363,26 @@ describe('🛑 ⑦ the category orders the results — it never removes anybody'
     expect(removalCriterion(f)).toBeNull()
   })
 
-  it('the five that DO remove still remove, by name', () => {
-    expect(removalCriterion(hardFit({ ...GOOD, country: 'Germany' }, CANARY))).toBe('geography')
-    expect(removalCriterion(hardFit({ ...GOOD, company_size: '5001–10000' }, CANARY))).toBe('size')
-    expect(removalCriterion(hardFit({ ...GOOD, job_title: 'Intern', seniority: 'intern' }, CANARY)))
-      .toBe('seniority')
+  it('🛑 a wrong country, size or seniority is SHOWN LOWER, never removed — and still never starred (23 Sep)', () => {
+    // ⛓️ 23 Sep — WAS `'the five that DO remove still remove, by name'`, asserting geography,
+    // size and seniority removed. The search already filtered on all three; judging them again
+    // is what emptied Blackburne's Proof. The verdict is KEPT — it bands the card down.
+    for (const cand of [
+      { ...GOOD, country: 'Germany' },
+      { ...GOOD, company_size: '5001–10000' },
+      { ...GOOD, job_title: 'Intern', seniority: 'intern' },
+    ]) {
+      const f = hardFit(cand, CANARY)
+      expect(structuralVerdict(f), 'the verdict is still recorded — not a pass').not.toBe('pass')
+      expect(removalCriterion(f), 'a provider-filtered criterion removed somebody again').toBeNull()
+      expect(isStarred(fitBand(f, 90)), 'a mismatch is never starred').toBe(false)
+    }
+  })
+
+  it('🛑 the client\'s EXCLUSIONS still remove, by name', () => {
+    const icp: FitIcp = { ...CANARY, exclusions: 'no recruitment agencies' }
+    const f = hardFit({ ...GOOD, company: 'Apex Recruitment Agencies', industry: 'Digital Marketing' }, icp)
+    expect(removalCriterion(f)).toBe('excluded')
   })
 
   it('🛑 the stamped sentence names the criterion that ACTUALLY removed them', () => {
@@ -372,9 +390,16 @@ describe('🛑 ⑦ the category orders the results — it never removes anybody'
     // `setAsideReason` would have said "industry: not the kind of company you asked for" —
     // an operator answering the wrong question and a client told a falsehood about their own
     // targeting.
+    // ⛓️ 23 Sep — WAS: the unreadable headcount removed them (`size: their headcount could not be
+    // confirmed`). Size no longer removes, so the only removal left to name is an exclusion — the
+    // property (the sentence names what ACTUALLY removed them) is asserted on that instead.
     const f = hardFit(
       { ...GOOD, industry: 'Management Consulting', company_size: null }, CANARY)
-    expect(removalCriterion(f)).toBe('size')
-    expect(removalReason(f)).toBe('size: their headcount could not be confirmed')
+    expect(removalCriterion(f), 'an unreadable headcount no longer removes').toBeNull()
+    expect(removalReason(f)).toBeNull()
+    const icp: FitIcp = { ...CANARY, exclusions: 'no recruitment agencies' }
+    const g = hardFit({ ...GOOD, company: 'Apex Recruitment Agencies', company_size: null, industry: 'Management Consulting' }, icp)
+    expect(removalCriterion(g)).toBe('excluded')
+    expect(removalReason(g)).toMatch(/^excluded:/)
   })
 })

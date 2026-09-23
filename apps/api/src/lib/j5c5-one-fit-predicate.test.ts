@@ -53,14 +53,18 @@ describe('J5-C5 · every criterion can refuse a provider contact before its slot
     expect(preSpendRefusal(MATCH, ICP)).toBeNull()
   })
 
+  // ⛓️ 23 Sep — INVERTED. WAS: geography, size and seniority each REFUSED a provider contact
+  // before its slot was spent. Those three are Apollo's own search filters — the founder's rule:
+  // *"You set filters. Apollo returns the people who match. It does not then go back through its
+  // own results and throw people out."* Re-judging them is what emptied Blackburne's Proof
+  // (23 Sep, 20 found, 20 set aside on size). A mismatch is now KEPT and ranked lower by the gate.
   for (const [criterion, contact] of [
     ['geography', { ...MATCH, country: 'Germany' }],
     ['size', { ...MATCH, organization: { ...MATCH.organization, num_employees: 4000 } }],
     ['seniority', { ...MATCH, seniority: 'entry' }],
   ] as [string, ProviderContact][]) {
-    it(`🛑 ${criterion} REFUSES before a slot is consumed — it is not decorative here either`, () => {
-      expect(preSpendRefusal(contact, ICP), `${criterion} cannot refuse a provider contact`)
-        .toBe(criterion)
+    it(`🛑 ${criterion} no longer refuses a provider contact — the search already filtered it (23 Sep)`, () => {
+      expect(preSpendRefusal(contact, ICP), `${criterion} re-judged what Apollo filtered`).toBeNull()
     })
   }
 
@@ -174,13 +178,18 @@ describe('J5-C5 · every criterion can refuse a provider contact before its slot
       { ...MATCH, seniority: 'intern' },
       { ...MATCH, country: 'Germany' },
     ]
-    const split = splitPreSpendFit(page, ICP)
-    expect(split.admissible).toEqual([MATCH])
-    expect(split.refused).toHaveLength(3)
-    expect(split.counts).toEqual({ seniority: 2, geography: 1 })
-    expect(describePreSpendRefusals(split.counts)).toBe('seniority 2 · geography 1')
+    // ⛓️ 23 Sep — the page WAS split 1 admissible / 3 refused on seniority and geography. Those
+    // no longer refuse (see above); an EXCLUDED company still does, and the counts still name it.
+    const icpX = { ...ICP, exclusions: 'no recruitment agencies' }
+    const excludedContact: ProviderContact = { ...MATCH, organization: { ...MATCH.organization, name: 'Apex Recruitment Agencies' } }
+    page.push(excludedContact)
+    const split = splitPreSpendFit(page, icpX)
+    expect(split.admissible).toHaveLength(4)
+    expect(split.refused).toHaveLength(1)
+    expect(split.counts).toEqual({ excluded: 1 })
+    expect(describePreSpendRefusals(split.counts)).toBe('excluded 1')
     // The input is not mutated — the caller still owes `acquisition_memory` the whole page.
-    expect(page).toHaveLength(4)
+    expect(page).toHaveLength(5)
   })
 
   it('the contact is mapped to the SAME fields the lead row is written from', () => {
@@ -221,8 +230,12 @@ describe('J5-C5 · the provider path asks it, and asks it first', () => {
       // ranking-only criteria, so the provider boundary and the pool had to stop too or the
       // three would disagree about the same company. They now ask ONE question —
       // "does a REMOVING criterion say no?" — in one vocabulary, from one module.
+      // ⛓️ 23 Sep — the pool now asks `POOL_SELECTION_CRITERIA` (it has no provider filter in
+      // front of it, so it must still select on geography, size and seniority); the provider
+      // boundary asks `REMOVING_CRITERIA` (exclusions only). Both are named lists in
+      // `proof-fit.ts` — still one module, still no matcher of their own.
       expect(code(p), `${p} decides fit without the one canonical predicate`)
-        .toMatch(/REMOVING_CRITERIA\.(find|every)/)
+        .toMatch(/(REMOVING_CRITERIA|POOL_SELECTION_CRITERIA)\.(find|every)/)
       expect(code(p), `${p} stopped calling hardFit`).toMatch(/hardFit\(/)
     }
   })

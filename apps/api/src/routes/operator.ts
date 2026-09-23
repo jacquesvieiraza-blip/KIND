@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express'
 import { db } from '@kind/db'
+import { partnersFrozenGate } from '../middleware/partners-frozen'
 import { normalizeRevealEmails } from '../lib/billing-rules'
 import { adminKeyValid } from './admin'
 import { getExcludedClientIds } from '../lib/real-clients'
@@ -1656,7 +1657,9 @@ operatorRouter.post('/sequence/suggest', async (req: Request, res: Response) => 
 // The seat carries its OWN retain rate (R40 = 8%) because the comp engine reads the rate
 // from the seat rather than hard-coding a person's pay, and `seat_type = 'client_partner'`
 // is what every access check keys on: this seat can never reach sourcing or lead tools.
-operatorRouter.post('/seats/client-partner', async (req: Request, res: Response) => {
+// ⚑ 23 Sep — frozen with the rest of the partner programme: the gate answers 410 before the
+// handler runs, so no partner seat can be created while `PARTNERS_FROZEN` is true.
+operatorRouter.post('/seats/client-partner', partnersFrozenGate, async (req: Request, res: Response) => {
   try {
     // ⛓️ 16 Aug — CREATION IS NOW AN INVITE, NOT A COMPLETED RECORD (R42). It used to demand
     // address, country and mobile here, which meant the OPERATOR typed a person's own details

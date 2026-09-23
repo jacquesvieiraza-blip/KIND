@@ -26,7 +26,6 @@ import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'fs'
 import { join } from 'path'
 import { PACK_PRICE_USD, PACK_LEADS, LEAD_PRICE_USD } from '@kind/shared'
-import { checkoutLineName } from './stripe'
 
 const src = (f: string) => readFileSync(join(__dirname, '..', f), 'utf8')
 
@@ -52,9 +51,15 @@ describe('the money constants are the founder-locked ones', () => {
 })
 
 describe('both sides of the till derive the price — neither types it', () => {
-  it('the API first-purchase gate derives from PACK_PRICE_USD', () => {
+  // ⛓️ RE-AIMED 23 Sep (R137 · old-code removal). WAS: 'the API first-purchase gate derives from
+  // PACK_PRICE_USD' (`const FIRST_PURCHASE_USD = PACK_PRICE_USD` in routes/stripe.ts). The $299
+  // pack is retired (founder: *"the 299/4 is retired/ this must go"*) and the `/checkout`
+  // handler that held the gate is deleted, so there is no API till left to disagree with the
+  // portal. The stronger state is pinned instead: no first-purchase gate exists at all.
+  it('the API first-purchase gate is gone — the retired till has no price to disagree about', () => {
     const code = stripComments(src('routes/stripe.ts'))
-    expect(code).toContain('const FIRST_PURCHASE_USD = PACK_PRICE_USD')
+    expect(code).not.toContain('FIRST_PURCHASE_USD')
+    expect(code).not.toContain('isFirstPurchase')
   })
 
   it('and the API gate never re-hardcodes a number', () => {
@@ -93,26 +98,22 @@ describe('both sides of the till derive the price — neither types it', () => {
 })
 
 describe('the line the client reads on the Stripe payment page itself', () => {
-  // Found 4 Aug by the FOUNDER, from the dashboard: the catalogue has nine products and none
-  // is the pack, because this checkout builds its line item inline — and the inline name was
-  // 'K.I.N.D wallet top-up' for every purchase INCLUDING the first. The first purchase is the
-  // one thing that is NOT a wallet top-up (#562), and website-money-claims.test.ts forces the
-  // site and the Terms to say so in those words. The payment page was the last copy of the lie
-  // and the only surface no test pinned.
-  it('the first purchase is named as the pack, never as a top-up', () => {
-    const first = checkoutLineName(true, PACK_LEADS)
-    expect(first).toContain('onboarding pack')
-    expect(first).toContain(String(PACK_LEADS))
-    expect(first.toLowerCase()).not.toContain('top-up')
-  })
-  it('later purchases really are top-ups and say so', () => {
-    expect(checkoutLineName(false, PACK_LEADS)).toBe('K.I.N.D wallet top-up')
-  })
-  it('and the route passes isFirst through — the label cannot fork from the gate', () => {
-    // The defect was not the function (it did not exist); it was that the route KNEW isFirst
-    // and never told the checkout. Pin the wiring, not just the words.
-    const code = stripComments(src('routes/stripe.ts'))
-    expect(code).toContain('isFirstPurchase: isFirst')
+  // Found 4 Aug by the FOUNDER, from the dashboard: the inline line-item name was
+  // 'K.I.N.D wallet top-up' for every purchase INCLUDING the first, so `checkoutLineName` named
+  // the first purchase as the pack.
+  //
+  // ⛓️ RE-AIMED 23 Sep (R137 · old-code removal). WAS three tests: 'the first purchase is named
+  // as the pack, never as a top-up', 'later purchases really are top-ups and say so', and 'and
+  // the route passes isFirst through — the label cannot fork from the gate'. The pack and the
+  // top-ups are retired, and `checkoutLineName` and the wallet session that used it are DELETED,
+  // so no Stripe payment page can show either line again. Pinned instead: nothing mints it.
+  it('no code can mint a pack or top-up line item any more', () => {
+    for (const f of ['lib/stripe.ts', 'routes/stripe.ts']) {
+      const code = stripComments(src(f))
+      expect(code, `${f} still names a checkout line`).not.toContain('checkoutLineName')
+      expect(code, `${f} still mints a wallet top-up line`).not.toContain("'K.I.N.D wallet top-up'")
+      expect(code, `${f} still builds an inline line item`).not.toContain('line_items')
+    }
   })
 })
 

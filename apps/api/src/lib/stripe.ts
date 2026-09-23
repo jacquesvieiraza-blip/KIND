@@ -1,6 +1,6 @@
 import Stripe from 'stripe'
 import { stripeSdkHostOptions } from './provider-hosts'
-import { PRICING, PACK_LEADS } from '@kind/shared'
+import { PRICING } from '@kind/shared'
 
 // ⛓️ 18 Sep (Batch 1b) — `stripeSdkHostOptions()` SPREADS TO `{}` WHEN UNSET, so this client is
 // byte-identical to today's in production. The SDK takes host/port/protocol rather than a URL,
@@ -127,166 +127,17 @@ export async function listRecentSettlements(limit: number): Promise<Array<{ sess
 
 export type SubscriptionProduct = keyof typeof STRIPE_SUBSCRIPTIONS
 
-export function getStripePriceId(creditType: 'lead_gen' | 'figsy', credits: number): string | null {
-  const bundle = STRIPE_BUNDLES[creditType].find(b => b.credits === credits)
-  if (!bundle) return null
-  return process.env[bundle.priceEnvVar] || null
-}
-
-export function getStripeSubscriptionPriceId(product: SubscriptionProduct): string | null {
-  return process.env[STRIPE_SUBSCRIPTIONS[product].priceEnvVar] || null
-}
-
 export function isStripeConfigured(): boolean {
   return stripe !== null
 }
 
-// Pull a human-readable reason out of a Stripe error so the founder/customer can
-// SEE why checkout failed (e.g. "No such price: price_xxx" = test/live mismatch,
-// or "price is recurring" = bundle created with the wrong type) instead of a
-// generic "Failed to create…". Stripe SDK errors carry .message and .code.
-function stripeErrorMessage(err: unknown): string {
-  if (err && typeof err === 'object') {
-    const e = err as { message?: unknown; code?: unknown }
-    const msg = typeof e.message === 'string' ? e.message : ''
-    const code = typeof e.code === 'string' ? ` (${e.code})` : ''
-    if (msg) return `Stripe: ${msg}${code}`
-  }
-  return 'Stripe rejected the request for an unknown reason'
-}
-
-// ── One-time credit purchase checkout ────────────────────────────────────────
-export async function createCheckoutSession(params: {
-  clientId:    string
-  priceId:     string
-  credits:     number
-  creditType:  'lead_gen' | 'figsy'
-  successUrl:  string
-  cancelUrl:   string
-  clientEmail: string
-}): Promise<{ url: string | null; error?: string }> {
-  if (!stripe) return { url: null, error: 'Stripe not configured' }
-  try {
-    const session = await stripe.checkout.sessions.create({
-      mode:                 'payment',
-      payment_method_types: ['card'],
-      customer_email:       params.clientEmail,
-      line_items:           [{ price: params.priceId, quantity: 1 }],
-      success_url:          params.successUrl,
-      cancel_url:           params.cancelUrl,
-      metadata: {
-        clientId:   params.clientId,
-        credits:    String(params.credits),
-        creditType: params.creditType,
-        type:       'credit_purchase',
-      },
-    })
-    return { url: session.url }
-  } catch (err) {
-    console.error('[Stripe] createCheckoutSession error:', err)
-    return { url: null, error: stripeErrorMessage(err) }
-  }
-}
-
-// ── ONE WALLET top-up checkout (dynamic amount, no pre-made SKU) ──────────────
-// The work model: a single dollar wallet. First purchase is $99; later top-ups are
-// any amount. We use Stripe price_data so we never need per-amount price IDs.
-/**
- * What the client reads on the Stripe page, one click before their card is charged.
- *
- * ⚠️ THIS STRING WAS `'K.I.N.D wallet top-up'` FOR EVERY PURCHASE INCLUDING THE FIRST, and it
- * was the last surviving copy of the #562 lie. The first purchase does NOT credit the wallet —
- * it buys the included approvals outright — and `website-money-claims.test.ts` FORCES the
- * website and the Terms to say *"not a wallet top-up"* in those words. So the site was guarded
- * into honesty while the checkout, the very next screen, called it the one thing it is not.
- *
- * ⚠️ AND IT CORRECTS #414's PREMISE. #414 is filed as *"no code change can reach the checkout —
- * it renders the Stripe dashboard product"*. That is true of `createSubscriptionCheckoutSession`
- * below, which passes a dashboard `priceId`. **It is not true here.** This function builds the
- * line item with inline `price_data`, so the name is ours and always was. Confirmed 4 Aug
- * against the live dashboard: the catalogue holds nine products and **not one of them is the
- * onboarding pack** — there is no dashboard product to edit, because this path never used one.
- */
-export function checkoutLineName(isFirstPurchase: boolean, packLeads: number): string {
-  return isFirstPurchase
-    ? `K.I.N.D onboarding pack — ${packLeads} approved leads included`
-    : 'K.I.N.D wallet top-up'
-}
-
-export async function createWalletCheckoutSession(params: {
-  clientId:    string
-  amountUsd:   number
-  successUrl:  string
-  cancelUrl:   string
-  clientEmail: string
-  /** First purchase buys the pack; later ones really are wallet top-ups. Changes the line name. */
-  isFirstPurchase?: boolean
-}): Promise<{ url: string | null; error?: string }> {
-  if (!stripe) return { url: null, error: 'Stripe not configured' }
-  try {
-    const session = await stripe.checkout.sessions.create({
-      mode:                 'payment',
-      payment_method_types: ['card'],
-      customer_email:       params.clientEmail,
-      line_items: [{
-        quantity: 1,
-        price_data: {
-          currency:     'usd',
-          unit_amount:  Math.round(params.amountUsd * 100), // dollars → cents
-          product_data: { name: checkoutLineName(params.isFirstPurchase === true, PACK_LEADS) },
-        },
-      }],
-      success_url: params.successUrl,
-      cancel_url:  params.cancelUrl,
-      metadata: {
-        clientId:  params.clientId,
-        amountUsd: String(params.amountUsd),
-        type:      'wallet_topup',
-      },
-    })
-    return { url: session.url }
-  } catch (err) {
-    console.error('[Stripe] createWalletCheckoutSession error:', err)
-    return { url: null, error: stripeErrorMessage(err) }
-  }
-}
-
-// ── Recurring subscription checkout ──────────────────────────────────────────
-export async function createSubscriptionCheckoutSession(params: {
-  clientId:    string
-  product:     SubscriptionProduct
-  priceId:     string
-  clientEmail: string
-  successUrl:  string
-  cancelUrl:   string
-}): Promise<{ url: string | null; error?: string }> {
-  if (!stripe) return { url: null, error: 'Stripe not configured' }
-  try {
-    const session = await stripe.checkout.sessions.create({
-      mode:                 'subscription',
-      payment_method_types: ['card'],
-      customer_email:       params.clientEmail,
-      line_items:           [{ price: params.priceId, quantity: 1 }],
-      success_url:          params.successUrl,
-      cancel_url:           params.cancelUrl,
-      metadata: {
-        clientId: params.clientId,
-        product:  params.product,
-        type:     'subscription',
-      },
-      subscription_data: {
-        metadata: {
-          clientId: params.clientId,
-          product:  params.product,
-        },
-      },
-    })
-    return { url: session.url }
-  } catch (err) {
-    console.error('[Stripe] createSubscriptionCheckoutSession error:', err)
-    return { url: null, error: stripeErrorMessage(err) }
-  }
-}
+// ⚑ 23 Sep (R137) — THE THREE CHECKOUT SESSION CREATORS ARE DELETED: the credit-bundle
+// session (`createCheckoutSession`), the $299 pack / wallet top-up session
+// (`createWalletCheckoutSession`, with `checkoutLineName`) and the monthly subscription session
+// (`createSubscriptionCheckoutSession`). Every product they sold is retired; nothing in the
+// repository may mint one of those sessions again. Programme payments (P1/P2) are created by
+// `lib/programme-checkout.ts` and are untouched. The constants below the webhook still reads —
+// `STRIPE_SUBSCRIPTIONS`, `STRIPE_BUNDLES` — stay, so a late event from the old model reconciles.
 
 // ── Client invoices (#136a) ──────────────────────────────────────────────────
 // Stripe ISSUES the receipt; we only pull & display it. USD billing, no VAT until

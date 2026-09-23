@@ -364,16 +364,20 @@ describe('④ the resolver is consumed at every path that sources, sends, enrols
     expect(fn.slice(model, wallet)).toMatch(/if \(!mayUseLegacyCommercialPath\(model\)\) \{[\s\S]{0,300}return\b/)
   })
 
-  it('🛑 CHARGING — the $299 pack checkout refuses a non-legacy client before Stripe', () => {
+  // ⛓️ RE-AIMED 23 Sep (R137 · old-code removal). WAS: '🛑 CHARGING — the $299 pack checkout
+  // refuses a non-legacy client before Stripe', which pinned `if (!mayUseLegacyCommercialPath(model))
+  // { … return }` ahead of `createWalletCheckoutSession(` in `POST /stripe/checkout`. The pack is
+  // retired and that handler and session creator are DELETED — the route answers 410 for every
+  // caller, before any read, so there is no model to consult and no session to reach.
+  it('🛑 CHARGING — the retired $299 pack checkout is a 410 for everyone, with no session behind it', () => {
     const stripe = strip(raw('routes/stripe.ts'))
-    const fn = stripe.slice(stripe.indexOf("stripeRouter.post('/checkout'"))
-    const model = fn.indexOf('mayUseLegacyCommercialPath(model)')
-    expect(model).toBeGreaterThan(-1)
-    expect(model, 'the refusal precedes the Stripe session').toBeLessThan(fn.indexOf('createWalletCheckoutSession('))
-    // ⚠️ AND THE CONDITION IS THE BARE NEGATION, WITH A RETURN. Asserting only that the call
-    // APPEARS would pass against `if (false && !mayUse…)` — a guard that is present, correctly
-    // ordered, and does nothing. The literal shape and the return are what make it a fence.
-    expect(fn.slice(model - 40)).toMatch(/if \(!mayUseLegacyCommercialPath\(model\)\) \{[\s\S]{0,800}return\b/)
+    const at = stripe.indexOf("stripeRouter.post('/checkout'")
+    expect(at).toBeGreaterThan(-1)
+    const fn = stripe.slice(at, stripe.indexOf('\n})', at))
+    expect(fn).toContain('res.status(410)')
+    expect(fn, 'the retired checkout reads the client again').not.toContain('db.from')
+    expect(stripe).not.toMatch(/[^a-zA-Z]createWalletCheckoutSession\(/)
+    expect(strip(raw('lib/stripe.ts'))).not.toMatch(/function\s+createWalletCheckoutSession\s*\(/)
   })
 
   it('🛑 SENDING — send-due selects nothing for a programme client with no programme', () => {

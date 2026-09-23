@@ -251,6 +251,21 @@
 > TWO DOCS ONLY"* — five weeks stale and wrong on all three counts, in the one block a fresh
 > session is told to trust before anything else.
 
+**📅 23 SEP 2026 — WHERE WE ACTUALLY ARE** *(checked against the code, not remembered)*
+
+- **Live = commit `6a93c77`** on the API, Milla, Vida and the website (each `/health`, 23 Sep). `main` is `83e9c1b` — one merge ahead (#1738, R142 Apollo seniority values), not yet shipped at the time of the check. `scripts/ship.sh` is still the only deploy; merging alone does not deploy.
+- **Real clients are in production** — signing up and moving through Brief and Proof (named in R135, R138). Whether any has paid is not recorded here.
+- **Money: the programme only.** $450 per *qualified* meeting on the R81 curve ($450 → $437.50 → $400 floor), 50/50 — P1 at start, P2 at approval (R141, 23 Sep). The meeting count is a target, the 400 limit is never shown, a short programme credits the wallet (R136). $299 / $4 / top-ups / subscriptions / trials are retired by decision (R124, 16 Sep) and in the code (R137, 23 Sep).
+- **The product is six stages:** Brief · Proof · Programme · Approval · Results · Complete (R127, 16 Sep). Milla and Vida are conversations (R121). Vida is two workspaces — Clients and the Command Centre (R116).
+- **Sourcing: Apollo only** (FD-6, 17 Sep — PDL retired; ⚠️ FD-6 has no PRODUCT-RULES row). Proof opens when 20 people are ready (R138). Senders come from an env-backed pool (R129 — `POOLED_SENDERS_JSON` must be set on Railway; not verified). Make Live is not Run (R130). The kill switch is absolute (R114).
+- **Partners are frozen** — switched off, nothing deleted (R139, 23 Sep).
+- **Migrations run** — from Vida → Engine; the founder confirmed all applied on 23 Sep. *(The 2 Aug "migrations cannot run" below is history.)*
+- **The gate:** `scripts/check.sh` passes (499 files · 10,524 tests) — but only once `@kind/db` is built; on a fresh clone it fails, because the gate builds `@kind/shared` and never `@kind/db` (GitHub #1548). CI is still dead (since 3 Jul).
+- **Preview is not in use:** `staging` is 741 commits behind `main`; every change since 20 Aug went straight to live.
+- **Where status lives now:** PRODUCT-INVENTORY (dots) + the `kind-inventory` GitHub issues (R85), both reconciled to the code on 23 Sep. Much of the MVP1 work since 16 Sep is labelled with J/XC IDs from a contract that is not in the repo (`scripts/fullstack/coverage.mjs` holds the 26 journeys).
+
+> ⛓️ **The 2 Aug block below is HISTORY — superseded 23 Sep by the block above.** Kept verbatim.
+
 **📅 2 AUG 2026 — WHERE WE ACTUALLY ARE.**
 
 - **Pre-revenue. ZERO paying clients.** The product was never "launched" in the commercial sense; it has been live on `main` since June and has never delivered a lead to a paying customer. The founder's outside edge is **31 Aug**.

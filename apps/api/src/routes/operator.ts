@@ -2127,6 +2127,48 @@ operatorRouter.get('/alerts', async (_req: Request, res: Response) => {
           severity: 'high',
         })
       }
+      // ── 🛑 ⚑ 23 Sep (Section 4 #18) — A CLIENT OBJECTED AT APPROVAL ───────────────────
+      //
+      // 🛑 THE HALF THAT MAKES THE BUTTON REAL. Recording their words and pausing the programme
+      // is not a feature until somebody is told — `founder_alerts` has no reader anywhere in
+      // the product (R132 records that), so an alert email alone is a concern nobody sees.
+      // This is the feed Vida already reads.
+      //
+      // ⚠️ IT SHOWS THEIR OWN SENTENCE, not a category. An exception that says "client raised a
+      // concern" tells an operator to go and find out what it was, which is the shape that gets
+      // deferred. Truncated only so one long message cannot push every other exception off the
+      // rail — the whole of it is on the programme.
+      //
+      // ⚠️ AND IT CLEARS WHEN THE PROGRAMME RESUMES. The concern is read alongside `paused_at`,
+      // so resuming the programme — the operator act that resolves this — takes the row off the
+      // rail without a second "mark resolved" step that could be forgotten.
+      try {
+        const { data: concerns } = await db.from('programmes')
+          .select('id, client_id, approval_concern, approval_concern_at, paused_at')
+          .not('approval_concern', 'is', null)
+          .not('paused_at', 'is', null)
+          .limit(100)
+        for (const c of (concerns ?? []) as Record<string, unknown>[]) {
+          const cid = String(c.client_id ?? '')
+          if (!cid || excluded.has(cid)) continue
+          const words = String(c.approval_concern ?? '').trim()
+          const shown = words.length > 240 ? `${words.slice(0, 240)}…` : words
+          programmeOut.push({
+            client_id: cid,
+            company_name: null,
+            kind: 'approval_concern',
+            label: `The client said something is wrong at Approval and the programme is HELD — “${shown}” Nothing will be sent until it is resolved and the programme resumed.`,
+            severity: 'high',
+          })
+        }
+      } catch (err) {
+        // ⚠️ AN UNREADABLE CONCERN LIST IS SAID OUT LOUD, never a silently shorter rail. Before
+        // the migration runs this column does not exist, and "no concerns" would be a lie.
+        programmeDegraded.push(
+          `Approval concerns could not be read (${err instanceof Error ? err.message : String(err)}) — if a client has objected, it is NOT on this list.`,
+        )
+      }
+
       for (const e of evictions.rows) {
         if (e.client_id && excluded.has(e.client_id)) continue
         programmeOut.push({

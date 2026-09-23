@@ -31,6 +31,10 @@
 // ═══════════════════════════════════════════════════════════════════════════════════════
 
 import { useState } from 'react'
+import {
+  APPROVAL_CONCERN_LABEL, APPROVAL_CONCERN_PROMPT, APPROVAL_CONCERN_ACKNOWLEDGED,
+  PROGRAMME_BEST_EFFORTS,
+} from '@kind/shared'
 
 export type ApprovalProspect = {
   id: string
@@ -166,6 +170,10 @@ export default function ProgrammeApproval({
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [open, setOpen] = useState<number | null>(0)
+  // ⚑ 23 Sep (Section 4 #18) — the client's way of saying no.
+  const [concernOpen, setConcernOpen] = useState(false)
+  const [concern, setConcern] = useState('')
+  const [held, setHeld] = useState<string | null>(null)
 
   const p = data.programme
   if (!p) return null
@@ -194,6 +202,31 @@ export default function ProgrammeApproval({
       setError(e instanceof Error && e.message && e.message.length < 240
         ? e.message
         : 'That did not go through. Nothing was approved — please try again.')
+    } finally { setBusy(false) }
+  }
+
+  /**
+   * 🛑 SAY SOMETHING IS WRONG — founder-approved 23 Sep (Section 4 #18).
+   *
+   * ⚠️ IT IS NOT A REJECTION. The programme is HELD: the freeze, the approval state and the
+   * money all stay where they are, and a person picks it up. Nothing the client can press here
+   * loses them their own programme.
+   */
+  async function raiseConcern() {
+    setBusy(true); setError(null)
+    try {
+      const { createClient } = await import('@/lib/supabase/client')
+      const { api } = await import('@/lib/api')
+      const supabase = createClient()
+      const { data: { session } } = await supabase.auth.getSession()
+      const r = await api.post<{ data: { message: string } }>(
+        '/my/programme/concern', { words: concern }, session?.access_token)
+      // ⚠️ THE SERVER'S SENTENCE, so the promise on screen is the one the server actually kept.
+      setHeld(r.data?.message ?? APPROVAL_CONCERN_ACKNOWLEDGED)
+    } catch (e) {
+      setError(e instanceof Error && e.message && e.message.length < 240
+        ? e.message
+        : 'That did not go through. Nothing was changed — please try again.')
     } finally { setBusy(false) }
   }
 
@@ -391,6 +424,72 @@ export default function ProgrammeApproval({
               ? 'Approving starts your programme. Nothing has been sent yet.'
               : 'Approving confirms this work. The second half is due afterwards, and outreach starts after that.'}
           </p>
+
+          {/* ── 🛑 ⚑ 23 Sep (R136 ②) — THE DISCLAIMER, AT THE SECOND PLACE THEY COMMIT ────
+              The screen already says "a target, not a guarantee" beside the number. This says
+              the half that does not: that there is a point at which we STOP. Founder-locked:
+              *"we have to add a disclaimer to the client we do our best. this is not a
+              guarentee."* Interpolated, never typed here, and it names no number. */}
+          <p className="text-[11.5px] text-[#5c5279] mt-3 leading-relaxed rounded-xl bg-[#faf8ff] border border-[#ece5fb] px-3 py-2.5">
+            {PROGRAMME_BEST_EFFORTS}
+          </p>
+
+          {/* ── 🛑 ⚑ 23 Sep (Section 4 #18) — AND THE WAY TO SAY NO ──────────────────────
+              🛑 THIS SCREEN HAD ONE CONTROL AND IT WAS APPROVE. If the people were wrong or the
+              emails were wrong there was nothing to press — on the one screen where a client
+              approves real outreach to real people.
+
+              ⚠️ IT IS DELIBERATELY QUIETER THAN THE APPROVE BUTTON. Two equal buttons would
+              read as a fork in the road; this is the exception, and it should look like one.
+
+              ⚠️ AND IT IS NOT A REJECTION. The programme is HELD — nothing is cancelled and
+              nothing is lost. The acknowledgement says only what the server actually did. */}
+          {held ? (
+            <div className="mt-4 rounded-xl border border-[#d9c4fb] bg-[#fcfaff] px-3.5 py-3">
+              <p className="text-[12.5px] text-[#4c4368] leading-relaxed">{held}</p>
+            </div>
+          ) : concernOpen ? (
+            <div className="mt-4 rounded-xl border border-[#ece5fb] bg-[#faf8ff] px-3.5 py-3">
+              <label htmlFor="approval-concern" className="text-[12.5px] text-[#5c5279] leading-relaxed block">
+                {APPROVAL_CONCERN_PROMPT}
+              </label>
+              <textarea
+                id="approval-concern"
+                value={concern}
+                onChange={e => setConcern(e.target.value)}
+                rows={3}
+                className="w-full mt-2 text-[13px] rounded-xl border border-[#e4dcf7] px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-[#7C3AED]/30"
+                placeholder="In your own words…"
+              />
+              <div className="flex items-center gap-3 mt-2">
+                <button
+                  type="button"
+                  data-testid="raise-concern"
+                  onClick={raiseConcern}
+                  disabled={busy || concern.trim() === ''}
+                  className="text-[13px] font-bold rounded-xl px-4 py-2 bg-[#4c4368] text-white disabled:opacity-40"
+                >
+                  {busy ? 'Sending…' : 'Send this and hold the programme'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setConcernOpen(false); setConcern('') }}
+                  className="text-[12.5px] text-[#9b8ec4] underline underline-offset-2"
+                >
+                  Never mind
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button
+              type="button"
+              data-testid="open-concern"
+              onClick={() => setConcernOpen(true)}
+              className="mt-3 text-[12.5px] text-[#5c5279] underline underline-offset-2"
+            >
+              {APPROVAL_CONCERN_LABEL}
+            </button>
+          )}
         </>
       ) : (
         <p className="text-[12.5px] text-[#9b8ec4]">

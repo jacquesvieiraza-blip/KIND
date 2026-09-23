@@ -688,6 +688,51 @@ myProgrammeRouter.post('/checkout/second', async (req: AuthRequest, res) => {
   }
 })
 
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// 🛑 ⚑ 23 Sep (Section 4 #18) — THE CLIENT SAYS SOMETHING IS WRONG
+//
+// The Approval screen had exactly one control and it was Approve. If the people were wrong, or
+// the emails were wrong, there was no reject, no "ask for changes" and no box to say why — on
+// the one screen where a client approves real outreach to real people.
+//
+// ⚠️ IT PAUSES, IT DOES NOT CANCEL. Pause is orthogonal to status by design, so the freeze, the
+// approval state and the money stay exactly where they were. A client must not be able to lose
+// their own programme by objecting to it.
+//
+// ⚠️ AND IT TAKES THEIR WORDS, NOT A CATEGORY. Founder-locked 22 Sep at the equivalent moment:
+// *"we cant guess peoples way of speaking ever."*
+// ═══════════════════════════════════════════════════════════════════════════════════════
+myProgrammeRouter.post('/concern', async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+
+    const p = await openProgrammeForSession(clientId)
+    if (!p) { res.status(404).json({ success: false, error: 'not_found', message: 'No such programme.' }); return }
+
+    const { raiseApprovalConcern } = await import('../lib/programme')
+    const r = await raiseApprovalConcern({
+      programmeId: p.id, clientId, words: String(req.body?.words ?? ''),
+    })
+
+    if (!r.ok) {
+      // ⚠️ `unpaused` IS A 503, NOT A 409. The words were recorded and the hold was not — that
+      // is our failure and it is retryable, and the client was promised nothing would be sent.
+      const code = r.code === 'not_found' ? 404
+        : r.code === 'unwritable' || r.code === 'unpaused' ? 503
+        : r.code === 'empty' || r.code === 'too_long' ? 400
+        : 409
+      res.status(code).json({ success: false, error: r.code, message: r.reason })
+      return
+    }
+    const { APPROVAL_CONCERN_ACKNOWLEDGED } = await import('@kind/shared')
+    res.json({ success: true, data: { held: true, message: APPROVAL_CONCERN_ACKNOWLEDGED } })
+  } catch (err) {
+    console.error('[programme/me/concern]', err)
+    res.status(503).json({ success: false, error: MILLA_FAILURE_COPY.pipelineFailed })
+  }
+})
+
 myProgrammeRouter.post('/approve', async (req: AuthRequest, res) => {
   try {
     const clientId = await getClientId(req.userId!)

@@ -118,6 +118,13 @@ export interface ProgrammeRow {
   shortfall_credit_cents?: number
   /** Meetings actually delivered when the programme stopped. Persisted, never re-derived. */
   delivered_meetings?: number | null
+  // ── ⚑ 23 Sep · THE CLIENT'S OBJECTION AT APPROVAL (20260923_programme_approval_concern) ─
+  //
+  // Their own words, not a category — `pause_reason` records WHICH KIND of pause this is and
+  // could never hold a sentence. Optional for the same reason as the columns above: every
+  // `select('*')` predating the migration returns rows without them.
+  approval_concern?: string | null
+  approval_concern_at?: string | null
   contribution_cents: number | null
   contribution_finalised_at: string | null
   disputed_at: string | null
@@ -1521,6 +1528,93 @@ export async function pauseProgramme(programmeId: string, reason: PauseReason): 
   await db.from('programmes').update({
     paused_at: new Date().toISOString(), pause_reason: reason, updated_at: new Date().toISOString(),
   }).eq('id', programmeId)
+  return { ok: true }
+}
+
+/**
+ * 🛑 THE CLIENT SAYS SOMETHING IS WRONG AT APPROVAL — founder-approved 23 Sep (Section 4 #18).
+ *
+ * ── WHAT THIS CLOSES ────────────────────────────────────────────────────────────────────
+ *
+ * The Approval screen let a client APPROVE and nothing else. If the people were wrong, or the
+ * emails were wrong, there was no control at all — no reject, no "ask for changes", no box to
+ * say why. Every stage upstream lets them push back; the one where they approve real outreach
+ * to real people did not.
+ *
+ * ── IT PAUSES, IT DOES NOT CANCEL ───────────────────────────────────────────────────────
+ *
+ * 🛑 NOTHING IS DESTROYED AND NOTHING IS REFUSED. `pauseProgramme` keeps the status a programme
+ * must return to — pause is orthogonal to status, deliberately — so the freeze, the approval
+ * state and the money are all exactly where they were. A client objecting must not be able to
+ * lose their own programme by objecting to it.
+ *
+ * ⚠️ AND IT IS THEIR WORDS, NOT A CATEGORY. Founder-locked 22 Sep for the equivalent moment at
+ * Proof: *"we cant guess peoples way of speaking ever."* `pause_reason` records WHICH KIND of
+ * pause this is and could never hold a sentence; a dropdown of reasons would make them pick our
+ * word for their objection.
+ *
+ * ⚠️ ONLY FROM READY_FOR_APPROVAL. You cannot object to something you have not been shown, and
+ * an "objection" on a programme already live would read as a stop order this does not implement.
+ * An APPROVED programme is refused too — they already said yes, and the way back from that is a
+ * person, not this button.
+ */
+export async function raiseApprovalConcern(params: {
+  programmeId: string
+  clientId: string
+  words: string
+}): Promise<ProgrammeResult & { code?: string }> {
+  const words = String(params.words ?? '').trim()
+  if (!words) {
+    return { ok: false, code: 'empty', reason: 'Tell us what is wrong and we will hold the programme while we look.' }
+  }
+  // A sentence, not an essay — and the cap is generous enough that nobody hits it by saying
+  // what they mean. Truncating silently would edit a client's own words.
+  if (words.length > 4_000) {
+    return { ok: false, code: 'too_long', reason: 'That is longer than we can record here — please send the detail by email and put the short version in the box.' }
+  }
+
+  const p = await getProgramme(params.programmeId)
+  if (!p || p.client_id !== params.clientId) return { ok: false, code: 'not_found', reason: 'No such programme.' }
+  if (TERMINAL_STATUSES.includes(p.status)) {
+    return { ok: false, code: 'terminal', reason: `This programme is ${p.status}.` }
+  }
+  if (p.status !== 'READY_FOR_APPROVAL') {
+    return {
+      ok: false, code: 'wrong_state',
+      reason: p.status === 'APPROVED'
+        ? 'You have already approved this programme. Tell us what has changed and a person will pick it up.'
+        : 'There is nothing to review on this programme yet.',
+    }
+  }
+
+  const now = new Date().toISOString()
+  // ⚠️ THE WORDS FIRST, THEN THE PAUSE. A pause with no reason attached is an operator alert
+  // that says "client paused" and nothing else — the shape that makes an exception rail stop
+  // being read. If the write fails, nothing is paused and the client is told to try again.
+  const { error } = await db.from('programmes').update({
+    approval_concern: words, approval_concern_at: now, updated_at: now,
+  }).eq('id', params.programmeId)
+  if (error) {
+    return { ok: false, code: 'unwritable', reason: `We could not record that (${error.message}). Nothing was changed — please try again.` }
+  }
+
+  const paused = await pauseProgramme(params.programmeId, 'client')
+  if (!paused.ok) {
+    // The words are recorded and the hold is not. Say so rather than reporting success: the
+    // client was promised that nothing would be sent, and that promise is the pause.
+    void sendFounderAlert('churn_risk', 'Programme concern recorded but NOT paused', [
+      `Programme ${params.programmeId} (client ${p.client_id}) raised a concern and the pause FAILED: ${paused.reason}`,
+      `Their words: ${words}`,
+      'The programme is NOT held. Pause it by hand before anything is sent.',
+    ])
+    return { ok: false, code: 'unpaused', reason: 'We recorded that but could not hold the programme automatically — we have alerted a person. Nothing is scheduled to send right now.' }
+  }
+
+  void sendFounderAlert('churn_risk', 'Client raised a concern at Approval', [
+    `Programme ${params.programmeId} (client ${p.client_id}) is HELD at Approval on the client's own objection.`,
+    `Their words: ${words}`,
+    'Nothing will be sent while it is paused. Resolve it with them and resume the programme.',
+  ])
   return { ok: true }
 }
 

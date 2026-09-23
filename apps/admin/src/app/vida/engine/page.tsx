@@ -302,7 +302,13 @@ export default function VidaEnginePage() {
       if (!j?.success) throw new Error(j?.error || 'Migration failed')
       await loadMigState()
       const failed = (j.data.results ?? []).filter((r: { ok: boolean }) => !r.ok)
-      const ran = (j.data.results ?? []).filter((r: { ok: boolean }) => r.ok).length
+      // ⚑ 23 Sep — A SKIP IS NOT AN APPLY. The runner now leaves out keys the ledger already
+      // records as applied, because replaying all of them no longer finished inside the request
+      // and the newest entries never landed. Counting a skip as "applied" would report 84
+      // applied on a run that applied three — the opposite of the honesty this card exists for.
+      const skipped = (j.data.results ?? []).filter((r: { skipped?: boolean }) => r.skipped).length
+      const ran = (j.data.results ?? []).filter((r: { ok: boolean; skipped?: boolean }) => r.ok && !r.skipped).length
+      const alreadyThere = skipped > 0 ? ` ${skipped} were already applied and were skipped.` : ''
       // Say WHERE it connected. The first run died with ENETUNREACH because Supabase's direct
       // host is IPv6-only and Railway has no IPv6 route; the runner now falls back to the IPv4
       // pooler, and the founder should know that so DATABASE_URL can be fixed for good.
@@ -319,7 +325,7 @@ export default function VidaEnginePage() {
         // Same defect class as #565 and the leads-page banner: a real outcome collapsed into
         // the scariest available word.
         setMigMsg(
-          `${ran} of ${ran + failed.length} applied${via}. ` +
+          `${ran} of ${ran + failed.length} applied${via}.${alreadyThere} ` +
           `FAILED: ${failed.map((f: { key: string; error: string }) => `${f.key} — ${f.error}`).join('; ')}. ` +
           `The rest DID apply — each migration runs on its own connection, so one failure does not stop the others.`,
         )
@@ -330,7 +336,13 @@ export default function VidaEnginePage() {
         const ledger = typeof j.data.ledger_recorded === 'number' && j.data.ledger_recorded < ran
           ? ` ⚠️ Only ${j.data.ledger_recorded} of ${ran} outcomes were RECORDED${j.data.ledger_note ? ` — ${j.data.ledger_note}` : '.'}`
           : ''
-        setMigMsg(`${ran} migration${ran === 1 ? '' : 's'} applied${via}.${j.data.hint ? ` — ${j.data.hint}` : ''}${ledger}`)
+        setMigMsg(
+          ran === 0 && skipped > 0
+            // Nothing outstanding. Saying "0 migrations applied" of a healthy database reads
+            // as a failure, and it is the most reassuring outcome there is.
+            ? `Nothing to apply — all ${skipped} migrations are already in this database${via}.`
+            : `${ran} migration${ran === 1 ? '' : 's'} applied${via}.${alreadyThere}${j.data.hint ? ` — ${j.data.hint}` : ''}${ledger}`,
+        )
         setNeedsPw(false); setDbPw('')
         await load()
       }

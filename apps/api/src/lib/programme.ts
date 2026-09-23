@@ -15,7 +15,7 @@ import { db } from '@kind/db'
 import { sendFounderAlert } from './alerts'
 import { DEFAULT_PROGRAMME_SEND_SCHEDULE } from './programme-sequence'
 import {
-  quoteProgramme, recommendedVolume, partnerCommissionCents,
+  quoteProgramme, recommendedVolume, partnerCommissionCents, sourcingCeiling,
   type ProgrammeStage,
 } from '@kind/shared'
 
@@ -438,32 +438,36 @@ export async function authoriseFirstInternal(programmeId: string): Promise<Progr
   if (p.first_paid_at || p.first_payment_ref || p.first_payment_intent_id) {
     return { ok: false, reason: 'This programme already has P1 PAYMENT evidence. A stage cannot hold both a payment and internal authority.' }
   }
-  // 🛑 NEVER OPEN A CEILING FROM A FIGURE THAT ISN'T ONE. The next statement writes
-  // `sourcing_ceiling = recommended_volume`, so a row carrying 0 — or anything non-positive —
+  // 🛑 NEVER OPEN A CEILING FROM A FIGURE THAT ISN'T ONE. The next statement derives
+  // `sourcing_ceiling` from `meeting_target`, so a row carrying 0 — or anything non-positive —
   // would transition to SOURCING_AUTHORISED with no authority to source at all: a programme
   // that reads as authorised and can deliver nothing, which is worse than one that refuses.
   //
   // ⚠️ THIS SHOULD BE UNREACHABLE, AND IS GUARDED ANYWAY. `createProgramme` is the only writer
-  // and derives the value through `assertMeetings` (whole number ≥ 1) × 250, and the column is
+  // and derives the value through `assertMeetings` (whole number ≥ 1), and the column is
   // `int NOT NULL`, so neither NULL nor 0 can be produced by the product today. The guard costs
   // one comparison and covers hand-written rows, a future writer, and any relaxation of the
   // curve — none of which the paid path would catch either (it is noted as a shared, currently
   // theoretical exposure rather than silently fixed here, because changing `recordFirstPayment`
   // changes paying-client behaviour).
-  if (!Number.isInteger(p.recommended_volume) || p.recommended_volume <= 0) {
+  //
+  // ⛓️ 23 Sep — THE GUARD MOVED FROM `recommended_volume` TO `meeting_target`, because the
+  // ceiling is no longer derived from the former. A valid recommended volume no longer implies
+  // a valid ceiling, so guarding the old field would have left the new derivation unchecked.
+  if (!Number.isInteger(p.meeting_target) || p.meeting_target <= 0) {
     return {
       ok: false,
-      reason: `This programme has no valid recommended volume (${p.recommended_volume}), so there is no ceiling to authorise. Nothing was changed.`,
+      reason: `This programme has no valid meeting target (${p.meeting_target}), so there is no ceiling to authorise. Nothing was changed.`,
     }
   }
 
   // Compare-and-set on the column itself: two concurrent presses cannot both win.
   const { error } = await db.from('programmes').update({
     first_authorised_at: new Date().toISOString(),
-    // ⚠️ THE CEILING COMES FROM recommended_volume, exactly as the paid path does it — the
+    // ⚠️ THE CEILING IS THE LIMIT, NOT THE PLAN — exactly as the paid path does it. The
     // internal route must authorise the same volume a payment would, or House is not walking
     // the customer's lifecycle at all.
-    sourcing_ceiling: p.recommended_volume,
+    sourcing_ceiling: sourcingCeiling(p.meeting_target),
     status: 'SOURCING_AUTHORISED',
     updated_at: new Date().toISOString(),
   }).eq('id', programmeId).is('first_authorised_at', null).select()
@@ -718,10 +722,16 @@ export async function recordFirstPayment(params: {
     first_payment_ref: params.sessionId,
     first_payment_intent_id: params.paymentIntentId ?? null,
     first_paid_at: new Date().toISOString(),
-    // ⚠️ THE CEILING IS SET FROM recommended_volume, NOT FROM THE PAYMENT AMOUNT. The first
-    // 50% authorises sourcing up to the FULL recommended volume (founder lock 4) — half the
-    // money, all of the authority. Execution is then rationed by batch size, not by ceiling.
-    sourcing_ceiling: p.recommended_volume,
+    // ⚠️ THE CEILING IS DERIVED FROM THE MEETING TARGET, NOT FROM THE PAYMENT AMOUNT. The
+    // first 50% authorises sourcing up to the FULL limit (founder lock 4) — half the money,
+    // all of the authority. Execution is then rationed by batch size, not by ceiling.
+    //
+    // ⛓️ 23 Sep — WAS `p.recommended_volume` (meetings × 250). That made the LIMIT and the
+    // EXPECTATION the same number, so a programme stopped sourcing at exactly the volume the
+    // plan said it needed to land its meetings — no room to keep trying on the ones that were
+    // running long. Founder-locked: *"the limit is 400 not 250. if we hit the 400 we stop."*
+    // `recommended_volume` is untouched and still sizes and prices the programme.
+    sourcing_ceiling: sourcingCeiling(p.meeting_target),
     status: 'SOURCING_AUTHORISED',
     updated_at: new Date().toISOString(),
   }).eq('id', params.programmeId).is('first_payment_ref', null).select()

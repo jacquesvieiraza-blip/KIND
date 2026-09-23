@@ -2649,9 +2649,13 @@ export default function VidaConsolePage() {
   // ⚑ 22 Sep — THE POOL THIS CLIENT'S TARGETING CARRIES, AND HOW IT WAS ARRIVED AT
   //
   // 🛑 THE OPERATOR GETS BOTH CAPACITY NUMBERS (founder-ruled 22 Sep). The client is told what
-  // we can commit to at the worst case; Vida also gets the benchmark and the headroom between
-  // them, because the buffer is only useful to the people who can act on it. The client's own
-  // route returns neither, and a guard asserts that.
+  // we can commit to at the limit; Vida also gets the benchmark and the gap between them,
+  // because the distance between the rate we expect and the point we stop is only useful to
+  // the people who can act on it. The client's own route returns neither, and a guard asserts
+  // that — reaffirmed 23 Sep: *"i said 400 internally. we dont disclose this."*
+  //
+  // ⛓️ 23 Sep — THAT GAP IS NOT A BUFFER. It used to name work we would absorb past the plan;
+  // the founder removed that promise, so it now only says how much further a programme may run.
   //
   // ⚠️ IT IS ITS OWN READ, DELIBERATELY. `lifecycle` is the panel's spine and is fetched on a
   // rail refresh; this costs a free provider round trip and belongs on selection rather than

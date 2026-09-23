@@ -277,7 +277,8 @@ describe('② internal P1 may only be recorded from AWAITING_FIRST_PAYMENT', () 
     const r = await authoriseFirstInternal('prog-1')
     expect(r.ok).toBe(true)
     const patch = dbState.writes[0].patch
-    expect(patch).toMatchObject({ sourcing_ceiling: 1000, status: 'SOURCING_AUTHORISED' })
+    // ⛓️ 23 Sep (R136) — 4 meetings × 400, not the 1,000 recommended volume.
+    expect(patch).toMatchObject({ sourcing_ceiling: 1_600, status: 'SOURCING_AUTHORISED' })
     expect(patch.first_authorised_at).toBeTruthy()
     for (const money of ['first_paid_at', 'first_payment_ref', 'first_payment_intent_id']) {
       expect(patch, `internal authority must never write ${money}`).not.toHaveProperty(money)
@@ -543,7 +544,8 @@ describe('④ the Stripe writers refuse when internal authority already exists',
     expect(r1.ok).toBe(true)
     expect(dbState.writes[0].patch).toMatchObject({
       first_payment_ref: 'cs_1', first_payment_intent_id: 'pi_1',
-      sourcing_ceiling: 1000, status: 'SOURCING_AUTHORISED',
+      // ⛓️ 23 Sep (R136) — 4 meetings × 400, not the 1,000 recommended volume.
+      sourcing_ceiling: 1_600, status: 'SOURCING_AUTHORISED',
     })
 
     dbState.programme = asRow(P({ status: 'APPROVED', approved_at: 'a' })); dbState.writes = []
@@ -1394,7 +1396,8 @@ describe('⑰ nothing House needed altered what a paying client experiences', ()
     const patch = dbState.writes[0].patch
     expect(patch).toMatchObject({
       first_payment_ref: 'cs_1', first_payment_intent_id: 'pi_1',
-      sourcing_ceiling: 1000, status: 'SOURCING_AUTHORISED',
+      // ⛓️ 23 Sep (R136) — 4 meetings × 400, not the 1,000 recommended volume.
+      sourcing_ceiling: 1_600, status: 'SOURCING_AUTHORISED',
     })
     expect(patch.first_paid_at).toBeTruthy()
     expect(patch, 'the paid path never writes internal authority').not.toHaveProperty('first_authorised_at')
@@ -1455,39 +1458,52 @@ describe('⑰ nothing House needed altered what a paying client experiences', ()
 // ═══════════════════════════════════════════════════════════════════════════════════════
 // ⑱ THE P1 CEILING INVARIANT
 // ═══════════════════════════════════════════════════════════════════════════════════════
+// ⛓️ 23 Sep (R136) — THIS BLOCK GUARDED `recommended_volume` AND NOW GUARDS `meeting_target`.
+// The ceiling is no longer `meetings × 250`; it is `meetings × 400` (`sourcingCeiling`), so the
+// field the guard has to protect moved with the derivation. Guarding the old one would have
+// left the new one unchecked — a valid recommended volume no longer implies a valid ceiling.
 describe('⑱ internal P1 never opens a ceiling from a figure that is not one', () => {
   for (const bad of [0, -1, -250]) {
-    it(`refuses recommended_volume = ${bad}`, async () => {
-      dbState.programme = asRow(P({ status: 'AWAITING_FIRST_PAYMENT', recommended_volume: bad }))
+    it(`refuses meeting_target = ${bad}`, async () => {
+      dbState.programme = asRow(P({ status: 'AWAITING_FIRST_PAYMENT', meeting_target: bad }))
       const r = await authoriseFirstInternal('prog-1')
       expect(r.ok).toBe(false)
-      expect(r.reason).toMatch(/no valid recommended volume/)
+      expect(r.reason).toMatch(/no valid meeting target/)
       expect(dbState.writes, 'a refused authorisation must not write').toHaveLength(0)
     })
   }
 
-  it('refuses a NULL/absent recommended_volume', async () => {
+  it('refuses a NULL/absent meeting_target', async () => {
     // The column is `int NOT NULL`, so this is defence against a future writer rather than a
     // state the product can reach today — which is why it is a guard and not a migration.
-    dbState.programme = asRow(P({ status: 'AWAITING_FIRST_PAYMENT', recommended_volume: null as unknown as number }))
+    dbState.programme = asRow(P({ status: 'AWAITING_FIRST_PAYMENT', meeting_target: null as unknown as number }))
     const r = await authoriseFirstInternal('prog-1')
     expect(r.ok).toBe(false)
     expect(dbState.writes).toHaveLength(0)
   })
 
-  it('allows a positive volume, and the ceiling is that number', async () => {
-    dbState.programme = asRow(P({ status: 'AWAITING_FIRST_PAYMENT', recommended_volume: 750 }))
+  it('allows a positive target, and the ceiling is the LIMIT it implies', async () => {
+    dbState.programme = asRow(P({ status: 'AWAITING_FIRST_PAYMENT', meeting_target: 3, recommended_volume: 750 }))
     const r = await authoriseFirstInternal('prog-1')
     expect(r.ok).toBe(true)
-    expect(dbState.writes[0].patch).toMatchObject({ sourcing_ceiling: 750, status: 'SOURCING_AUTHORISED' })
+    expect(dbState.writes[0].patch).toMatchObject({ sourcing_ceiling: 1_200, status: 'SOURCING_AUTHORISED' })
+  })
+
+  it('🛑 and House opens the LIMIT, not the plan — the two must not agree', async () => {
+    // The whole of R136 at the internal door: if this ever equals `recommended_volume` again,
+    // a House programme stops sourcing at exactly the volume the plan said it needed.
+    dbState.programme = asRow(P({ status: 'AWAITING_FIRST_PAYMENT', meeting_target: 3, recommended_volume: 750 }))
+    await authoriseFirstInternal('prog-1')
+    expect(dbState.writes[0].patch.sourcing_ceiling,
+      'the ceiling fell back to the 250 plan').not.toBe(750)
   })
 
   it('and the figure is never re-derived here — it comes off the row', () => {
     const src = strip(raw(join(API, 'lib/programme.ts')))
     const at = src.indexOf('export async function authoriseFirstInternal')
     const f = src.slice(at, at + 2600)
-    expect(f).toContain('sourcing_ceiling: p.recommended_volume')
-    expect(f, 'no second copy of the R77 curve').not.toMatch(/\*\s*250|LEADS_PER_TARGETED_MEETING/)
+    expect(f).toContain('sourcing_ceiling: sourcingCeiling(p.meeting_target)')
+    expect(f, 'no second copy of either rate').not.toMatch(/\*\s*250|\*\s*400|LEADS_PER_/)
   })
 })
 

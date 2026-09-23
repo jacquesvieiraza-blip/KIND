@@ -12,26 +12,47 @@
 //
 // ── TWO NUMBERS, TWO DIFFERENT JOBS, AND CONFLATING THEM IS THE WHOLE RISK ───────────────
 //
-// `LEADS_PER_TARGETED_MEETING` (250) is the PLANNING benchmark. It is what the programme is
-// sized and priced at, what the client sees in the calculator, and what `recommendedVolume`
-// already derives. It answers *how much work do we expect this to take*.
+// `LEADS_PER_TARGETED_MEETING` (250) is the PLANNING benchmark — the rate we EXPECT. It is
+// what the programme is sized and priced at and what `recommendedVolume` derives. It answers
+// *how much work do we expect this to take*.
 //
-// `LEADS_PER_MEETING_WORST_CASE` (400) is the CAPACITY divisor, and it is ours. It answers a
-// different and much harsher question: *if everything goes badly, is there enough humanity in
-// this pool to still owe them what we sold?* Planning at 250 and SELLING at 250 are not the
-// same act — the second one spends the buffer before the programme has started.
+// `LEADS_PER_MEETING_WORST_CASE` (400) is the LIMIT. It answers a different question: *how far
+// do we keep going before we stop?* Selling against it also answers *is there enough humanity
+// in this pool to spend the full effort on every meeting we sold?*
 //
-// 🛑 WHY THE GAP IS THE PRODUCT AND NOT PADDING. The commercial promise is that ten bought is
-// ten owed: if the planned volume runs out at eight meetings we keep working at our cost. That
-// promise is only safe to make because we sold against 400 and plan against 250 — a pool of
-// 4,317 carries **ten** at the worst case and **seventeen** at the benchmark, and those seven
-// meetings of headroom are the room to keep going. Sell the seventeen and the guarantee
-// becomes a hope.
+// ── 🛑 ⚑ 23 Sep — THE OVERRUN PROMISE IS GONE. READ THIS BEFORE THE STRUCK TEXT BELOW ─────
 //
-// ⚠️ THE CLIENT IS NEVER SHOWN THE POOL SIZE OR THE 400. Founder-locked: *"we build buffer
-// only we know."* They are shown what we can commit to. `benchmarkMeetings` exists for the
-// OPERATOR view, where the difference between the two is the headroom an operator is
-// deliberately being shown.
+// 🛑 FOUNDER-LOCKED 23 Sep, verbatim: *"we dont promise 10 if we cant deliver 10. so the limit
+// is 400 not 250. if we hit the 400 we stop. and we have to add a disclaimer to the client we
+// do our best. this is not a guarentee."*
+//
+// ⛓️ WAS: ~~*"WHY THE GAP IS THE PRODUCT AND NOT PADDING. The commercial promise is that ten
+// bought is ten owed: if the planned volume runs out at eight meetings we keep working at our
+// cost… those seven meetings of headroom are the room to keep going. Sell the seventeen and
+// the guarantee becomes a hope."*~~ — struck 23 Sep, kept because it is the reasoning every
+// surface was built from, and a reader who meets only the new rule will not know why the old
+// shape is still visible in the code around it.
+//
+// **THE MEETING COUNT IS A TARGET, NOT AN OBLIGATION.** We work to `meetings × 400` and then we
+// stop. Nothing is absorbed at our cost beyond that line. What the client is told instead is a
+// disclaimer — *we do our best, this is not a guarantee* — and a shortfall is settled as
+// WALLET CREDIT toward another ICP run, never as money back (founder, 23 Sep: *"we dont give
+// money back. we refund credits to their wallet internally to use towards another icp run."*).
+//
+// ⚠️ THE GAP BETWEEN 250 AND 400 IS THEREFORE NO LONGER A FUNDED PROMISE. It is the range
+// between what we expect and where we stop — nothing more. Do not describe it as headroom we
+// have set aside to keep working, because we have not.
+//
+// ⚠️ AND IT COSTS MARGIN, KNOWINGLY. Working to 400 instead of 250 takes worst-case programme
+// contribution from ~76% to ~65%, below the ~70% target in R74. Founder-locked 23 Sep: *"i
+// would rather get clients meetings with lessor margin than nothing… and 65% i can live with."*
+// That is a decision, not a drift — do not "fix" the ceiling back to 250 on margin grounds.
+//
+// ⚠️ THE CLIENT IS NEVER SHOWN THE POOL SIZE OR THE 400. Founder-locked, and REAFFIRMED
+// 23 Sep — *"i said 400 internally. we dont disclose this."* (originally *"we build buffer
+// only we know"*). They are shown what we can commit to, and the disclaimer. `benchmarkMeetings`
+// exists for the OPERATOR view, where the distance between the expected rate and the limit is
+// how far a programme may still have to run.
 //
 // ⚠️ EVERYTHING ROUNDS DOWN, AND THAT IS A COMMERCIAL RULE RATHER THAN A ROUNDING STYLE. A
 // pool that carries 10.9 meetings carries TEN meetings we can promise; selling the eleventh
@@ -43,14 +64,32 @@
 import { LEADS_PER_TARGETED_MEETING } from './programme-pricing'
 
 /**
- * 🛑 THE WORST-CASE PEOPLE-PER-MEETING RATE. Internal. Never shown to a client.
+ * 🛑 THE LIMIT: people worked per meeting before we stop. Internal. Never shown to a client.
  *
  * ⚠️ IT MUST STAY ABOVE THE BENCHMARK, and `capacityInvariant` below proves it rather than
- * trusting it. If this ever fell to or below 250 the headroom would vanish silently: the
- * product would keep working, the numbers would keep rendering, and the overrun promise would
- * quietly have nothing behind it.
+ * trusting it. If this ever fell to or below 250 we would stop at or before the point we
+ * EXPECTED to succeed — every programme would down tools exactly when the plan said it should
+ * be working — and nothing would fail loudly: the product would keep running and the numbers
+ * would keep rendering. That is the state the repo was actually in until 23 Sep, when the
+ * sourcing ceiling was still being opened at the 250 benchmark.
  */
 export const LEADS_PER_MEETING_WORST_CASE = 400
+
+/**
+ * 🛑 HOW MANY PEOPLE A PROGRAMME MAY WORK BEFORE IT STOPS — `meetings × 400`.
+ *
+ * This is the programme's `sourcing_ceiling`, and it is the whole of the 23 Sep ruling in one
+ * line. Until then the ceiling was opened at `recommendedVolume` (meetings × 250), so the
+ * LIMIT and the EXPECTATION were the same number and a programme gave up at precisely the
+ * point the plan said it should be landing its meetings.
+ *
+ * ⚠️ NOT `recommendedVolume`, AND THE TWO MUST NOT BE MERGED BACK. 250 still sizes and prices
+ * the programme; 400 decides when we stop. One is a plan, the other is a boundary.
+ */
+export function sourcingCeiling(meetings: number): number {
+  const m = Number.isFinite(meetings) ? Math.max(0, Math.floor(meetings)) : 0
+  return m * LEADS_PER_MEETING_WORST_CASE
+}
 
 /**
  * The workable pool: everyone the search matched, minus the companies the client told us to
@@ -117,7 +156,15 @@ export interface PoolCapacity {
   committed: number
   /** What it would carry at the benchmark. Operator only. */
   benchmark: number
-  /** The meetings we chose not to sell — the room the overrun promise is paid for out of. */
+  /**
+   * The distance between what we expect and where we stop, in meetings.
+   *
+   * ⛓️ 23 Sep — THE NAME IS OLDER THAN THE MEANING. ~~*"the meetings we chose not to sell — the
+   * room the overrun promise is paid for out of"*~~. There is no overrun promise any more, so
+   * this is no longer work we have set aside to absorb: it is simply how much further than the
+   * plan a programme may still have to run before it hits the limit. The FIELD keeps its name
+   * because it is in a live response shape; the operator LABEL does not (see `operator.ts`).
+   */
   headroom: number
 }
 
@@ -131,9 +178,10 @@ export function poolCapacity(matched: number, excluded = 0, alreadyWorked = 0): 
 /**
  * 🛑 THE INVARIANT THIS MODULE EXISTS TO HOLD, ASSERTABLE AT RUNTIME.
  *
- * The worst case must be strictly harsher than the benchmark, or there is no headroom and the
- * "ten bought is ten owed" promise has nothing behind it. Exported so a test proves it by
- * RUNNING it rather than by reading the two constants and agreeing with itself.
+ * The limit must be strictly harsher than the benchmark, or we stop at — or before — the point
+ * we expected to succeed, and every programme gives up exactly when the plan says it should be
+ * landing meetings. Exported so a test proves it by RUNNING it rather than by reading the two
+ * constants and agreeing with itself.
  */
 export function capacityInvariant(): boolean {
   return LEADS_PER_MEETING_WORST_CASE > LEADS_PER_TARGETED_MEETING

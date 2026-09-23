@@ -9,8 +9,14 @@
 // Every number here is a division. What is NOT obvious is which divisor belongs to which
 // question, and getting that backwards does not throw, does not fail a type check and does
 // not look wrong on screen — it quietly sells seventeen meetings out of a pool that can
-// account for ten, and the "ten bought is ten owed" guarantee loses the headroom it is paid
-// for out of. So the tests below pin the two rates to the two QUESTIONS, not to each other.
+// account for ten. So the tests below pin the two rates to the two QUESTIONS, not to each other.
+//
+// ⛓️ 23 Sep — THE STAKE CHANGED, THE ARITHMETIC DID NOT. ~~*"…and the 'ten bought is ten owed'
+// guarantee loses the headroom it is paid for out of"*~~. There is no such guarantee any more:
+// founder-locked 23 Sep, *"we dont promise 10 if we cant deliver 10. so the limit is 400 not
+// 250. if we hit the 400 we stop."* Overselling is still the failure this file guards; what it
+// costs is now a client who was targeted a number we quietly could not reach, rather than free
+// work we had promised to absorb.
 //
 // ⚠️ THE FOUNDER'S OWN PREVIEW IS THE FIXTURE. 4,120 at Brief and 4,317 workable at Proof are
 // his numbers, and his preview states the answers: ten, ten, and seventeen at the benchmark.
@@ -22,7 +28,7 @@ import { describe, it, expect } from 'vitest'
 import {
   LEADS_PER_MEETING_WORST_CASE, LEADS_PER_TARGETED_MEETING,
   workablePool, committedCapacity, benchmarkMeetings, poolCapacity,
-  capacityInvariant, capacitySentence,
+  capacityInvariant, capacitySentence, sourcingCeiling, recommendedVolume,
 } from '@kind/shared'
 
 describe('🛑 the capacity model is the founder’s, checked against his own preview', () => {
@@ -373,5 +379,54 @@ describe('🛑 the operator sees both numbers; the client still sees one', () =>
     const at = OPERATOR.indexOf("operatorRouter.get('/clients/:id/brief-facts'")
     const body = OPERATOR.slice(at, at + 4_000)
     expect(body, 'a failed spend read answers zero').toContain('Could not read spend')
+  })
+})
+
+// ══════════════════════════════════════════════════════════════════════════════════════════
+// 🛑 ⚑ 23 Sep — WHERE A PROGRAMME STOPS, WHICH IS NOT WHERE THE PLAN ENDS
+//
+// Founder-locked, verbatim: *"we dont promise 10 if we cant deliver 10. so the limit is 400 not
+// 250. if we hit the 400 we stop."*
+//
+// ⚠️ THE BUG THIS CLOSES SHIPPED AND LOOKED FINE. The sourcing ceiling was opened at
+// `recommendedVolume` — meetings × 250 — so the LIMIT and the EXPECTATION were the same number.
+// A programme stopped buying people at precisely the volume the plan said it needed in order to
+// land its meetings, which means every programme that ran even slightly below the benchmark
+// simply gave up, on schedule, with no error anywhere. The two numbers have to be different or
+// there is no room to keep trying at all.
+// ══════════════════════════════════════════════════════════════════════════════════════════
+describe('🛑 the limit is 400, and it is not the plan', () => {
+  it('a ten-meeting programme may work four thousand people, not two and a half', () => {
+    expect(sourcingCeiling(10)).toBe(4_000)
+    expect(recommendedVolume(10)).toBe(2_500)
+  })
+
+  it('🛑 the ceiling and the recommended volume never agree for a real programme', () => {
+    // The regression this file exists for: if someone re-merges the two, every one of these
+    // fails rather than only the arithmetic example above.
+    for (const m of [1, 3, 7, 10, 25, 50]) {
+      expect(sourcingCeiling(m), `${m} meetings: the limit collapsed onto the plan`)
+        .toBeGreaterThan(recommendedVolume(m))
+    }
+  })
+
+  it('the limit is exactly the worst-case rate, never a second literal', () => {
+    // A hand-typed 400 here would drift the day the constant moves — the R68 shape.
+    expect(sourcingCeiling(6)).toBe(6 * LEADS_PER_MEETING_WORST_CASE)
+  })
+
+  it('a nonsense meeting count opens no authority rather than a negative one', () => {
+    expect(sourcingCeiling(0)).toBe(0)
+    expect(sourcingCeiling(-4)).toBe(0)
+    expect(sourcingCeiling(Number.NaN)).toBe(0)
+    expect(sourcingCeiling(2.9), 'a fractional target bought more than it paid for').toBe(800)
+  })
+
+  it('🛑 and the invariant still has something behind it', () => {
+    // `capacityInvariant` used to justify itself with the overrun promise, which is gone. It
+    // still matters, for a harder reason: if the limit fell to the benchmark we would stop at
+    // the exact point we expected to succeed.
+    expect(capacityInvariant()).toBe(true)
+    expect(LEADS_PER_MEETING_WORST_CASE).toBeGreaterThan(LEADS_PER_TARGETED_MEETING)
   })
 })

@@ -59,8 +59,13 @@ type Reading =
  * request builder, so this cannot drift from the search.
  *
  * 🛑 AND THE OPERATOR SEES BOTH CAPACITY NUMBERS (founder-ruled 22 Sep). The client is told
- * what we can commit to at the worst case; Vida also gets the benchmark and the headroom
- * between them, because the buffer is only useful to the people who can act on it.
+ * what we can commit to at the limit; Vida also gets the benchmark and the gap between them,
+ * because the distance between the rate we expect and the point we stop is only useful to the
+ * people who can act on it.
+ *
+ * ⛓️ 23 Sep — THE GAP IS NOT A BUFFER ANY MORE. It used to be work we would absorb past the
+ * plan; the founder removed that promise, so it now only tells an operator how much further a
+ * programme may still have to run before it stops.
  */
 type DraftFacts = {
   provider: { field: string; values: string[] }[]
@@ -208,9 +213,12 @@ export function BriefPanel({ draftId }: { draftId: string }) {
         kind: 'stats',
         label: 'Provisional cap',
         stats: [
-          { value: `~${facts.committed}`, label: 'sellable · worst case' },
+          { value: `~${facts.committed}`, label: 'sellable · at the limit' },
           { value: String(facts.benchmark), label: 'at the benchmark' },
-          { value: String(facts.headroom), label: 'headroom' },
+          // ⛓️ 23 Sep — LABEL WAS 'headroom'. It named work we would absorb past the plan, and
+          // the founder removed that promise. The number is unchanged; it is now simply the
+          // distance between the rate we expect and the point we stop.
+          { value: String(facts.headroom), label: 'gap · plan vs limit' },
           { value: facts.matched.toLocaleString(), label: 'returned by People Search · free' },
         ],
       })

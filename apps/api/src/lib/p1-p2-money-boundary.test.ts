@@ -147,9 +147,15 @@ describe('🛑 R3.1 · P1 AUTHORISES SOURCING AND PREPARATION — AND NOTHING EL
     expect(row().status).toBe('SOURCING_AUTHORISED')
     expect(row().first_payment_ref).toBe('cs_1')
     expect(row().first_paid_at).toBeTruthy()
-    // The ceiling comes from the recommended volume, not the payment amount — half the money,
+    // The ceiling comes from the meeting target, not the payment amount — half the money,
     // all of the authority (founder lock 4).
-    expect(row().sourcing_ceiling).toBe(400)
+    //
+    // ⛓️ 23 Sep (R136) — WAS `recommended_volume` (400 here). It is now the LIMIT: 10 meetings
+    // × 400 = 4,000. The two numbers happening to collide in this fixture is exactly why the
+    // assertion names the derivation as well as the figure.
+    expect(row().sourcing_ceiling).toBe(4_000)
+    expect(row().sourcing_ceiling, 'the ceiling fell back to the plan')
+      .not.toBe(row().recommended_volume)
   })
 
   it('🛑 it grants NO approval, NO live and NO run authority — asserted on the persisted row', async () => {

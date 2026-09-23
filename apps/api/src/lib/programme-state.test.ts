@@ -215,15 +215,36 @@ describe('① the lifecycle has no PAUSED status — pause is orthogonal', () =>
 })
 
 describe('② first payment — replay, ceiling, and NOT starting work', () => {
-  it('records the payment, sets the ceiling to the FULL recommended volume, authorises sourcing', () => {
+  it('records the payment, opens the ceiling to the FULL LIMIT, authorises sourcing', () => {
     const p = seed({ status: 'AWAITING_FIRST_PAYMENT', first_payment_ref: null, first_paid_at: null, sourcing_ceiling: 0 })
     return recordFirstPayment({ programmeId: p.id, sessionId: 'cs_1' }).then(r => {
       expect(r.ok).toBe(true)
       const after = state.programmes[0]
       // Half the money, ALL the authority (founder lock 4).
-      expect(after.sourcing_ceiling).toBe(2500)
+      //
+      // 🛑 23 Sep — AND THE AUTHORITY IS THE LIMIT, NOT THE PLAN. 10 meetings × 400 = 4,000.
+      // Founder-locked: *"the limit is 400 not 250. if we hit the 400 we stop."*
+      expect(after.sourcing_ceiling).toBe(4000)
       expect(after.status).toBe('SOURCING_AUTHORISED')
       expect(after.first_payment_ref).toBe('cs_1')
+    })
+  })
+
+  it('🛑 the ceiling is NOT recommended_volume — the limit and the plan are different numbers', () => {
+    // ⚠️ THIS IS THE REGRESSION GUARD, AND IT IS THE POINT OF THE 23 Sep CHANGE. Until then the
+    // ceiling WAS `recommended_volume`, so a programme stopped sourcing at exactly the volume
+    // the plan said it needed to land its meetings — no room to keep trying on the ones running
+    // long. Asserting `!== recommended_volume` fails on a revert even if someone also edits the
+    // literal above; asserting 4000 alone would not.
+    const p = seed({
+      status: 'AWAITING_FIRST_PAYMENT', first_payment_ref: null, first_paid_at: null,
+      sourcing_ceiling: 0, meeting_target: 7, recommended_volume: 1750,
+    })
+    return recordFirstPayment({ programmeId: p.id, sessionId: 'cs_7' }).then(() => {
+      const after = state.programmes[0]
+      expect(after.sourcing_ceiling, 'the ceiling fell back to the 250 plan').toBe(2800)
+      expect(after.sourcing_ceiling).not.toBe(after.recommended_volume)
+      expect(after.recommended_volume, 'the plan must be left alone').toBe(1750)
     })
   })
 
@@ -233,7 +254,7 @@ describe('② first payment — replay, ceiling, and NOT starting work', () => {
       .then(() => recordFirstPayment({ programmeId: p.id, sessionId: 'cs_1' }))
       .then(r => {
         expect(r.alreadyRecorded).toBe(true)
-        expect(state.programmes[0].sourcing_ceiling, 'ceiling must not double').toBe(2500)
+        expect(state.programmes[0].sourcing_ceiling, 'ceiling must not double').toBe(4000)
       })
   })
 

@@ -1509,8 +1509,13 @@ export default function MillaHomePage() {
                  🛑 AND IT BELONGS HERE, AT PROOF, RATHER THAN AT THE CALCULATOR. The locked
                  preview puts WE CAN COMMIT TO on the Proof screen precisely because this is
                  where the client is still shaping the targeting: narrowing costs them
-                 headroom, and they have to see that while it is still free to change. A cap
-                 that first appears on the slider is a cap that appears after they have decided.
+                 meetings we can commit to, and they have to see that while it is still free to
+                 change. A cap that first appears on the slider is a cap that appears after they
+                 have decided.
+
+                 ⛓️ 23 Sep — WAS *"narrowing costs them headroom"*. Headroom used to mean work
+                 we would absorb past the plan; the founder removed that promise, so narrowing
+                 now costs them the only thing it ever really cost them — meetings.
 
                  ⚠️ THE POOL SIZE AND THE RATE ARE NOT ON THIS SCREEN. "we build buffer only we
                  know" — the client is shown WORKABLE POOL and what we can commit to; the 400,

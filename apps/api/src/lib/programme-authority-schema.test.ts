@@ -311,7 +311,11 @@ describe('④ the currently deployed application behaves exactly as before', () 
   it('recordFirstPayment works with first_authorised_at NULL, and never writes it', async () => {
     dbState.programme = {
       id: 'prog-1', client_id: 'c1', status: 'AWAITING_FIRST_PAYMENT',
-      recommended_volume: 1000, first_payment_ref: null, first_authorised_at: null,
+      // ⛓️ 23 Sep (R136) — `meeting_target` is what opens the ceiling now, not
+      // `recommended_volume`. Both are seeded so this test keeps proving what it is about
+      // (authority columns are untouched by a payment) rather than the ceiling derivation.
+      meeting_target: 4, recommended_volume: 1000,
+      first_payment_ref: null, first_authorised_at: null,
     }
     const r = await recordFirstPayment({ programmeId: 'prog-1', sessionId: 'cs_1', paymentIntentId: 'pi_1' })
     expect(r.ok).toBe(true)
@@ -319,7 +323,7 @@ describe('④ the currently deployed application behaves exactly as before', () 
     // the unchanged old behaviour, asserted by field so a silent narrowing shows up here
     expect(patch).toMatchObject({
       first_payment_ref: 'cs_1', first_payment_intent_id: 'pi_1',
-      sourcing_ceiling: 1000, status: 'SOURCING_AUTHORISED',
+      sourcing_ceiling: 1_600, status: 'SOURCING_AUTHORISED',
     })
     expect(patch.first_paid_at).toBeTruthy()
     expect(patch, 'a payment must never write internal authority').not.toHaveProperty('first_authorised_at')

@@ -732,6 +732,12 @@ operatorRouter.get('/clients/:id/recent-leads', async (req: Request, res: Respon
 // screen. Two routes, two audiences, and the client's one cannot be made to leak by any
 // caller.
 //
+// ⛓️ 23 Sep — THE WITHHOLDING RULE IS UNCHANGED AND REAFFIRMED: *"i said 400 internally. we
+// dont disclose this."* What DID change is what the withheld gap means. It is no longer a
+// buffer of work we would absorb past the plan — that promise was removed — it is now only the
+// distance between the rate we expect and the point we stop. Same numbers, same secrecy,
+// different meaning; see `programme-capacity.ts`.
+//
 // ⚠️ THE ARITHMETIC IS THE SAME ARITHMETIC. `poolCapacity` in `@kind/shared` answers both, so
 // what Vida sees and what Milla sees are the same derivation on the same inputs — never two
 // readings of one pool that could disagree in front of an operator trying to explain it.

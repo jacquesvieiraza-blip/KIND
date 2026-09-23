@@ -1647,11 +1647,18 @@ export default function MillaWelcomePage() {
                          been live since the gate came off; this is what the count MEANS to the
                          client, which is the only part of it they actually care about.
 
-                         ⚠️ THE NUMBER OF PEOPLE IS NOT A PROMISE AND THE MEETINGS ARE. Founder-
-                         locked: we size against a worst case of 400 people per meeting and
-                         plan against 250, and *"we build buffer only we know"* — so this line
-                         states the meetings and never the rate, never the headroom, never the
-                         pool arithmetic behind it.
+                         ⚠️ NEITHER NUMBER IS A PROMISE — AND THAT CHANGED ON 23 Sep.
+                         ⛓️ WAS: ~~*"THE NUMBER OF PEOPLE IS NOT A PROMISE AND THE MEETINGS
+                         ARE"*~~. Founder-locked 23 Sep: *"we dont promise 10 if we cant deliver
+                         10… we have to add a disclaimer to the client we do our best. this is
+                         not a guarentee."* The meeting count is now a best-efforts TARGET; we
+                         work to the limit and stop. So this line must never harden into a
+                         commitment, and `capacitySentence` keeps its *"around"* for exactly
+                         that reason.
+
+                         ⚠️ IT STILL STATES THE MEETINGS AND NEVER THE ARITHMETIC. Founder,
+                         reaffirmed 23 Sep: *"i said 400 internally. we dont disclose this."* —
+                         so no rate, no limit, no pool size on this line.
 
                          ⚠️ AND IT IS DERIVED, NEVER TYPED. `capacitySentence(committedCapacity(…))`
                          is the same pair the Proof tiles and the Programme slider read, so the

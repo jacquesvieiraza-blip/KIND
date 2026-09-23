@@ -40,7 +40,7 @@ The final clause is the whole point: Hunter is not declining to answer, they are
 | Persistence | **None.** Nothing is written for this identity |
 | Fall-through | None. No further provider is asked for the same identity |
 | Visibility | `console.warn` with `provider_refusal:hunter:claimed_email`, the reason, and the source URL — the `enrol_skips` shape an operator already reads |
-| The client's money | Unchanged and correct: `approve-lead.ts` sees "no email", **reverses the $4** and returns `no_email`. A client is never charged for a lead nobody may contact |
+| The client's money | ⛓️ **23 Sep (checked against main `83e9c1b`):** the $4 per approved lead is retired (R124 · R137); clients pay per programme. ~~Unchanged and correct: `approve-lead.ts` sees "no email", **reverses the $4** and returns `no_email`.~~ A client is never charged for a lead nobody may contact |
 
 **What it does NOT do:** it does not write to `opt_out_blocklist` (that register is *our sending* suppression, a different meaning), and it does not touch `lead_pool`.
 
@@ -66,7 +66,7 @@ No changelog, no webhook, no bulk suppression feed. A person who objects to Hunt
 
 This is the same treatment **R49** and **F15** give PDL's and Apollo's contract terms, and for the same reason: a compliance page that states an unchecked vendor fact confidently is worse than one that admits the gap.
 
-**PDL is our PRIMARY sourcing provider and the only writer into `lead_pool`** (`routes/icps.ts` tags every pooled record `source: 'pdl'`). So this is the gap that matters most, and it is the one we cannot close from here.
+⛓️ **23 Sep (checked against main `83e9c1b`):** PDL is retired (FD-6, 17 Sep) and Apollo is the only data provider. Since R73 (27 Aug) Apollo records also enter `lead_pool`. PDL records already in the pool are still the gap below. ~~**PDL is our PRIMARY sourcing provider and the only writer into `lead_pool`** (`routes/icps.ts` tags every pooled record `source: 'pdl'`). So this is the gap that matters most, and it is the one we cannot close from here.~~
 
 ### 🧍 What has to be answered — against the founder's own Order Form, not the public docs
 
@@ -92,6 +92,8 @@ A scheduled job pulls the delta, and for each withdrawn identity: mark the `lead
 ---
 
 ## 3 · Apollo — not in the day-to-day stack
+
+⛓️ **23 Sep (checked against main `83e9c1b`):** **the opposite is now true.** Apollo is the **only** data provider (FD-6, 17 Sep); `APOLLO_API_KEY` is graded `important` in `apps/api/src/lib/startup-check.ts:97` as *"THE ONLY lead source"*. PDL and Hunter are retired (`apps/api/src/lib/retired-providers.ts`), so §1's Hunter signal and §2's PDL gap now concern records already held, not new sourcing. Since **R73** (27 Aug) Apollo records may enter `lead_pool` (`apps/api/src/lib/pool-sourcing.ts:333`). **The manual rule below says this section must be completed before Apollo is revived. Apollo is live, and it has not been completed.**
 
 `APOLLO_API_KEY` is graded **`optional`** in `startup-check.ts`, and the live stack is **PDL + Hunter**. The 166 legacy Client-Zero leads came through Apollo's search API (see R50), so Apollo data **is** in the book, but nothing sources from it today.
 

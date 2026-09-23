@@ -1,5 +1,7 @@
 # 🔑 UNLOCK-DAY RUNBOOK — the day a client is in the works
 
+> ⛓️ ⚠️ **HISTORICAL (23 Sep, checked against main `83e9c1b`): written 12–13 Aug for the per-lead model. Its month-one path — the Smartlead push at approval (`apps/api/src/lib/approve-lead.ts:614`) — sits behind `approveLead`'s legacy fence, which refuses every account since R137 (`programme-authority.ts` `checkLegacyPerLeadAuthority` → `mayUseLegacyCommercialPath` always false, `commercial-model.ts:99`). MVP1 sends from the env-backed pooled SMTP senders (R129 — *"Do NOT invent another provider abstraction"*). The Smartlead code and the Vida backfill are still in the repo. Kept as a record, not current instructions.**
+
 > **Open this the day a client is in the works — BEFORE they pay, not after.** That timing is the ruling, not a preference: **R25** (12 Aug) — *"day 1 a client needs to use the system. full stop. so whatever is needed to unlock the smartlead connection is needed."* Buying on the day a client is *in the works* means month one can send at all, and buying no earlier means nothing leaks pre-revenue (R7 intact).
 >
 > **Two purchases, one key, four checks. Roughly 30 minutes, most of it waiting for a signup form.**

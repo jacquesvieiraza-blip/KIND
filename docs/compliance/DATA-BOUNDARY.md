@@ -42,14 +42,16 @@ $ grep -rn "from('lead_pool')" apps/api/src
   routes/operator.ts:2807  .select('email_norm') ← READ (operator view)
 ```
 
-**Three sites. Exactly ONE writes.** That write is the PDL-purchase upsert at
+⛓️ **23 Sep (checked against main `83e9c1b`):** the grep above is the 20-Aug result and no longer matches `main`: `from('lead_pool')` now appears at 8 non-test sites, with writes at `apps/api/src/lib/cmo.ts:179`, `apps/api/src/routes/lookalike.ts:369` and `apps/api/src/routes/icps.ts:2372` (plus a country backfill at `:2402`). Since **R73** (27 Aug) the pool allowlist is `['pdl', 'apollo']` (`apps/api/src/lib/pool-sourcing.ts:333`); customer data and untagged records stay out. Apollo is the only data provider (FD-6, 17 Sep); PDL and Hunter are retired in `apps/api/src/lib/retired-providers.ts`.
+
+~~**Three sites. Exactly ONE writes.**~~ That write is the PDL-purchase upsert at
 **`apps/api/src/routes/icps.ts:606`**, and **two guards** sit in front of it:
 
 1. **`poolWriteAllowed(isDemo, count)`** — `apps/api/src/lib/pool-sourcing.ts:96`. Its own comment:
    *"the pool holds ONLY genuinely bought records"*. A demo run is pool-**read**-only and can
    never write back.
 2. **`splitPoolEligible(records)`** — same file, added 20 Aug. Per-record provenance tripwire:
-   only `source: 'pdl'` may enter. Apollo-sourced or **untagged** records are refused and named
+   ⛓️ **23 Sep (checked against main `83e9c1b`):** `pdl` and `apollo` may enter (R73); **untagged** and customer records are refused. ~~only `source: 'pdl'` may enter. Apollo-sourced or **untagged** records are refused~~ and named
    in the log, and the refusal skips the pool write **only** — leads already bought, delivered
    and charged are untouched, because a licensing precaution must never become an outage.
 

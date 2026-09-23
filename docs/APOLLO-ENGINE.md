@@ -1,5 +1,7 @@
 # ⚙️ K.I.N.D — THE APOLLO ENGINE (outbound OS → FIGSY)
 
+> ⛓️ **23 Sep (checked against main `83e9c1b`):** **Apollo is now the ONLY lead provider — for us, for clients and for Proof.** FD-6 (17 Sep): *"PDL IS NOT A PAID/ACTIVE PROVIDER FOR MVP1. We are not paying for PDL."* `apps/api/src/lib/provider-boundary.ts` returns `'apollo'` for every audience (`MVP1_SEARCH_PROVIDER`, line 73) with no fallback; Hunter is locked off (FD-5, `startup-check.ts:92`). Every "PDL Full + Hunter = live stack" line below is the 25 Jun – 21 Aug state and is struck where it claims to be current. Mail goes out over SMTP from env-backed pooled senders (R129), not a single Resend path.
+>
 > **🎯 BANNER — CORRECTED 21 Aug. Apollo is OURS. `[OUR HUNTING]`**
 > This banner previously read *"Apollo retired from the data path… Apollo is no longer a live vendor."* **That is the exact conclusion the founder overruled**, and re-asserting it here is the mistake his ruling exists to stop: **PRODUCT-RULES AR5** (locked 30 Jul, re-affirmed 1 Aug, #606) — *"**Apollo is OURS. PDL + Hunter are the CLIENTS'.** The same mirror as Instantly/Smartlead. A 1-Aug audit tagged Apollo 'retired' and he **overruled it** — rows relabelled **[OUR HUNTING]** so no future audit repeats the mistake."*
 > **So, plainly:** Apollo is **our own hunting stack** — how *we* find *our* clients. **PDL Full (sourcing) + Hunter (reveal) are the CLIENTS' stack** — what we run *for* a paying client. Two different jobs; neither retires the other. The 6-stage OS below stays the spec for how FIGSY sources, sequences, sends and optimises, and is vendor-agnostic by design. *(Filename is accurate, not historical.)*
@@ -13,8 +15,8 @@
 ---
 
 ## 0. THE DECISION CONTEXT (24 Jun · updated post-8-Jul)
-- **Apollo reseller = RETIRED from the data path.** The old ~$7,500/yr starter-pack path was dropped; Apollo is not a live vendor.
-- **How we run NOW:** data via **PDL Full** (sourcing) **+ Hunter** (reveal) — **live and working** (verified, item 244). The **playbook below is adopted into FIGSY regardless** of vendor.
+- **Apollo reseller = RETIRED from the data path.** The old ~$7,500/yr starter-pack path was dropped. ~~Apollo is not a live vendor.~~ ⛓️ **23 Sep (checked against main `83e9c1b`):** Apollo (direct, not the reseller) is the only live lead vendor (FD-6).
+- ⛓️ **23 Sep (checked against main `83e9c1b`):** **How we run NOW:** data via **Apollo** only (FD-6, `provider-boundary.ts`). ~~**How we run NOW:** data via **PDL Full** (sourcing) **+ Hunter** (reveal) — **live and working** (verified, item 244).~~ The **playbook below is adopted into FIGSY regardless** of vendor.
 - **Source-labeling (Ali's reseller term):** *if* we activate the reseller, leads surfaced under a client must show their data source (PDL/Hunter/Apollo). **Disintermediation risk** (clients can go direct). **DECISION:** we are **not** required to expose source for PDL/Hunter (Apollo-only obligation) → **keep the source server-side, never shown to clients.** `enrichment.ts` already stamps a `source` field internally — we control its visibility. Revisit only if Apollo is activated (a reason to keep Apollo BYOK/optional, not our default surface).
 
 ---
@@ -55,7 +57,7 @@ Apollo's sequence engine ships their best practice as defaults:
 
 ### ④ SEND — *deliverability is operational, not magic*
 - **Multi-mailbox rotation** · **send-schedules** (business-hours/weekday windows, timezone) · **per-mailbox daily caps** (`email_daily_limit`) · verify-before-enroll.
-- **K.I.N.D today:** single Resend path; in-app "warmup" is only a send-cap.
+- ⛓️ **23 Sep (checked against main `83e9c1b`):** **K.I.N.D today:** SMTP via `lib/mailer.ts` from env-backed pooled senders (`POOLED_SENDERS_JSON`, R129) behind the absolute kill-switch (R114). ~~**K.I.N.D today:** single Resend path; in-app "warmup" is only a send-cap.~~
 - **→ build:** the **211 Engine** (Smartlead) adopts rotation + schedules + per-mailbox caps as first-class. Apollo confirms the pattern.
 
 ### ⑤ MEASURE — *the analytics engine we don't have*
@@ -87,15 +89,15 @@ Apollo exposes **55+ dimensions**: reply rate **by step, by A/B variant, by send
 
 ---
 
-## 3. THE DATA ARCHITECTURE — live stack = PDL Full + Hunter
+## 3. THE DATA ARCHITECTURE — ~~live stack = PDL Full + Hunter~~ ⛓️ **23 Sep (checked against main `83e9c1b`):** live stack = Apollo only (FD-6)
 | Layer | Data | Sending engine |
 |---|---|---|
 | **Discovery (sourcing)** | **PDL Full** (`pdl-search.ts`; returns the person + company website) | **Smartlead** (211, managed mailboxes) |
 | **Reveal (email)** | **Hunter** (`email-finder`; needs name+domain — enrichment-only, cannot discover) | — |
 | **Widen (FUTURE / V2)** | aggregator waterfall — Cognism / Clay / BetterContact — see §3A/§3B | — |
 
-- **PDL Full** = the live **discovery** source. **Hunter** = the live **reveal** source. This is the whole live data path — no Apollo, no BYOK-Apollo tier.
-- **Data-source router (item 243, FUTURE):** would route across the wider waterfall once V2 sources are wired. Today the path is fixed: PDL Full → Hunter.
+- ⛓️ **23 Sep (checked against main `83e9c1b`):** **Apollo** is the whole live data path — search and reveal (`apollo.ts`, `provider-boundary.ts`). ~~**PDL Full** = the live **discovery** source. **Hunter** = the live **reveal** source. This is the whole live data path — no Apollo, no BYOK-Apollo tier.~~
+- **Data-source router (item 243, FUTURE):** would route across the wider waterfall once V2 sources are wired. ~~Today the path is fixed: PDL Full → Hunter.~~ ⛓️ **23 Sep (checked against main `83e9c1b`):** today the path is fixed: Apollo, no fallback.
 
 ---
 
@@ -144,7 +146,7 @@ Africa is the **worst-covered region in sales intelligence** — single-provider
 **Africa is no longer partners-only.** Stacking **every** data source in a waterfall is the lever that lets us run **our OWN outbound into Africa** — partners then cover relationships + whatever data can't reach. So the data layer powers **direct outreach everywhere** (US/EMEA *and* Africa) and is specifically the **Africa-direct unlock.** Honest ceiling: most providers are US/EU-weighted, so even fully stacked Africa stays thinner than the US — **go as far as data takes us direct, partners pick up the residual.** (244 proved African data is real, not empty: 1,360 SA founders on PDL alone.)
 
 ### Where we are
-- **Live stack = 2, working:** **PDL Full** (discovery — verified working, 244) · **Hunter** (email reveal). *(Apollo is retired from the data path — see top banner.)*
+- ⛓️ **23 Sep (checked against main `83e9c1b`):** **Live stack = 1: Apollo** (FD-6). ~~**Live stack = 2, working:** **PDL Full** (discovery — verified working, 244) · **Hunter** (email reveal). *(Apollo is retired from the data path — see top banner.)*~~
 - **Coverage math (sourced):** a single source covers ~40–60% of a list; a **waterfall** of several pushes it to **80%+**. With 3 we leave a lot on the table — and risk drying up per-ICP, exactly the founder's worry.
 
 ### Use ALL — the source list + how each comes in
@@ -201,4 +203,4 @@ The 244 test proved **discovery works (PDL), email-reveal is the gap**. So the p
 6. **242 optimise loop** = recency-sort + A/B-winner promotion + job-change re-engagement.
 7. **243 data-source router (FUTURE / V2 waterfall)**; **244 PDL Full/Hunter test** — done, live stack verified.
 
-*(The old Apollo reseller / $7,500 starter-pack decision is retired — Apollo is off the data path. PDL Full + Hunter is the live stack.)*
+*(The old Apollo reseller / $7,500 starter-pack decision is retired. ~~— Apollo is off the data path. PDL Full + Hunter is the live stack.~~ ⛓️ **23 Sep (checked against main `83e9c1b`):** Apollo direct is the only live stack, FD-6.)*

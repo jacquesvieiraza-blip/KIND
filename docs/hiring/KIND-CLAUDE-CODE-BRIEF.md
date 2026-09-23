@@ -1,4 +1,6 @@
 # K.I.N.D — Build Brief for Claude Code (the live Comp Engine + P&L + portals)
+
+> ⚠️ **HISTORICAL — the founder's verbatim 19-Jun brief, kept as the record. Its partner half is frozen and its seat and subscription revenue model is retired.** ⛓️ **23 Sep (checked against main `83e9c1b`):** Partners are frozen (**R139**, 23 Sep — `packages/shared/src/partners-frozen.ts`): every partner door is switched off and nothing is deleted. The live model is the **programme, for every account** — **$450 per qualified meeting** on the R81 curve ($450 → $437.50 at 10 → $400 floor from 50), paid 50/50, P1 at start and P2 at approval (**R141**; `packages/shared/src/programme-pricing.ts`); the $299 pack, $4 per approved lead, top-ups, subscriptions and trials are retired in code (**R124 · R137**). Kept as the record, not as current truth.
 > **Provenance:** authored by the founder, pasted 19 Jun 2026. The full artifact set (this brief + the xlsx tracker + ~15 HTML calculators + diagram + playbook + written docs) lives in the **`kind handoff` zip in the founder's Documents** — NOT yet in any repo. This file captures the brief text so the spec isn't lost. **STATUS: logged for the NEXT-WEEK build — do NOT build yet (founder: "don't build, just add to our list").** Tracked as PRODUCT-INVENTORY item **203**.
 
 ---

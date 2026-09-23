@@ -1,4 +1,7 @@
 # Portal V2 Layout — Month 2 Upgrade
+
+> ⛓️ ⚠️ **HISTORICAL (23 Sep, checked against main `83e9c1b`): a 25 Jun "Month 2" plan for the old `/dashboard` portal. Clients no longer reach that portal — the portal middleware redirects every signed-in `/dashboard/*` (except the partner/developer personas) to Milla at `/milla` (`apps/portal/src/middleware.ts`), and the client product is the six MVP1 stages, Brief → Proof → Programme → Approval → Results → Complete (R127). Kept as a record, not current instructions.**
+
 `Last-checked: 25 Jun 2026`
 
 Inspired by ClickUp Super Agents UX. All items below are post-launch (week 5+).

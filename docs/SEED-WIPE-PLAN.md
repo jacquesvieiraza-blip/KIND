@@ -57,7 +57,7 @@ edits; on a destructive path, matching one deletes the wrong account.
 
 ## The arming gate
 
-Execution is impossible unless **both** are true:
+⛓️ **23 Sep (checked against main `83e9c1b`):** **this gate is not wired.** `armingCheck` (`apps/api/src/lib/seed-wipe.ts:138`) has no caller and no code reads `SEED_WIPE_ARMED` (it is absent from the env sweep). The delete that exists is **`POST /operator/seed-data/wipe-client`** (`apps/api/src/routes/operator.ts:7692`) — **one client at a time**, refused unless ① the `seed-wipe.ts` classification allows it (real payment, then real leads outrank every label), ② it is not the house account (by id), ③ it is not an `is_demo` row (by id), and ④ the operator types that **client's company name** (not the phrase below). The Engine page copy that still names `SEED_WIPE_ARMED` is out of date. ~~Execution is impossible unless **both** are true:~~
 
 1. `SEED_WIPE_ARMED` is set on `@kind/api` to **today's UTC date** (e.g. `2026-08-14`), and
 2. the phrase **`WIPE THE SEED DATA`** is typed exactly.
@@ -82,8 +82,8 @@ and that is a bug to fix, not a judgement call to override.
 
 **Step 3 — if it says `clean`, you are finished.** Most likely outcome. Nothing to run.
 
-**Step 4 — only if there is genuine residue:** set `SEED_WIPE_ARMED` to today's UTC date in
-Railway, type the confirmation, run it. **Remove the variable immediately afterwards.**
+**Step 4 — only if there is genuine residue:** ⛓️ **23 Sep (checked against main `83e9c1b`):** press delete on that one row in `Vida → Engine → Seed data` and type its company name (see the gate note above). ~~set `SEED_WIPE_ARMED` to today's UTC date in
+Railway, type the confirmation, run it. **Remove the variable immediately afterwards.**~~
 
 **Step 5 — re-read the report** to confirm the result, then run `Vida → System → Run full
 check` to confirm nothing else moved.

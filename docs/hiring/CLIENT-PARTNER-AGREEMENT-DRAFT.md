@@ -3,6 +3,8 @@
 > **This file is a pointer, not a copy.** The agreement now lives in code, with the rest of the
 > document pack, at **`apps/api/src/lib/partner-documents.ts`**.
 
+⛓️ **23 Sep (checked against main `83e9c1b`):** partners are frozen (**R139**, 23 Sep — `packages/shared/src/partners-frozen.ts`): every partner door is switched off and nothing is deleted. The pack below stays in code, unserved while the freeze holds. `PACK_PRICE_USD` ($299) is still a constant, but the pack it prices is retired (**R124 · R137**).
+
 ## Why it moved
 
 The founder asked for the contracts to be reachable in Vida under Partners (16 Aug). Her vault

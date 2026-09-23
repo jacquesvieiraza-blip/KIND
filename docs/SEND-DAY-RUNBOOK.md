@@ -1,5 +1,7 @@
 # 🚀 SEND-DAY RUNBOOK — you run this alone
 
+> ⛓️ ⚠️ **HISTORICAL (23 Sep, checked against main `83e9c1b`): written for the ~25 Aug send day, which has passed. Sending has since been rebuilt around the programme: the kill-switch is absolute with no operator/canary exception (R114, `lib/outreach-kill-switch.ts`), senders come from the env-backed pool (`POOLED_SENDERS_JSON`, R129), and Make Live is not Run (R130). Kept as a record, not current instructions.**
+
 > **Why this exists.** The plan used to be "we write the steps near the date, with the agent watching." **Claude access ends 18 Aug and send-day is ~25 Aug**, so that plan died. Everything below was read out of the actual code before it was written down, and it is written to be followed by one person with no agent.
 >
 > **How to read it.** One action per line. Tick it, then do the next. Anything the code could not confirm is marked **`CHECK:`** — that means *go look, do not assume*. Nothing here asserts a clock time; do the steps in order, not by the hour.

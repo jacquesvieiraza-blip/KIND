@@ -33,7 +33,7 @@ code writes to it, with two guards in front.
 ## 4. Who are your sub-processors?
 
 Supabase (database) · Railway (hosting) · Resend (email delivery) · Anthropic (AI) · Stripe
-(payments) · PeopleDataLabs and Hunter (lead data) · Google (calendar, with your consent) ·
+(payments) · ⛓️ **23 Sep (checked against main `83e9c1b`):** Apollo (lead data — Apollo is the only data provider (FD-6, 17 Sep); PDL and Hunter are retired in `apps/api/src/lib/retired-providers.ts`) ~~PeopleDataLabs and Hunter (lead data)~~ · Google (calendar, with your consent) ·
 Smartlead (sending).
 
 The list is published at `apps/website/dpa.html`.

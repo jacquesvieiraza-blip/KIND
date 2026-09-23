@@ -36,8 +36,8 @@
 
 ## 🗂️ Supporting files (not daily reading)
 - [`DOC-MAP.md`](./DOC-MAP.md) — **the freshness index: every doc in the repo, what it's for, and whether it's current/archived.** Open this to find anything that isn't one of the four.
-- [`client-flow-sop.md`](./client-flow-sop.md) — **THE SOP:** the locked Sending & Onboarding Model (M1/M2/M3) + the 7 client paths.
-- [`admin-centre-spec.md`](./admin-centre-spec.md) — **Admin Centre spec (M3):** the cockpit build spec — Pulse + Action Queue + sections · Command Centre (per-AE + per-partner) · Nora (admin co-pilot) · builds LIVE.
+- [`client-flow-sop.md`](./client-flow-sop.md) — **THE SOP:** the locked Sending & Onboarding Model (M1/M2/M3) + the 7 client paths. ⛓️ **23 Sep (checked against main `83e9c1b`):** M1/M2/M3 are no longer current commercial truth — R137 superseded them; every account is on the programme, and the product is the six MVP1 stages (R127).
+- [`admin-centre-spec.md`](./admin-centre-spec.md) — ⛓️ **23 Sep (checked against main `83e9c1b`):** **historical** 1 Jul spec; the admin app is Vida, two workspaces (R116, `apps/admin/src/lib/vida-nav.ts`). ~~**Admin Centre spec (M3):** the cockpit build spec — Pulse + Action Queue + sections · Command Centre (per-AE + per-partner) · Nora (admin co-pilot) · builds LIVE.~~
 - [`../CLAUDE.md`](../CLAUDE.md) — agent config: how the assistant operates this repo. Not a tracker.
 - [`RULEBOOK.md`](./RULEBOOK.md) — detailed working rules (PRs, merge discipline, the stranded-commit gate, the script-counted board).
 - [`TECH-STACK.md`](./TECH-STACK.md) — the tools/vendors register (Railway, Supabase, Resend, **Zoho Mail**, Stripe…) + the email architecture. Seeds the Notion Tools page.

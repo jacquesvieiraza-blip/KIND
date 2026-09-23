@@ -4,6 +4,8 @@
 
 > **Locked scenario:** Base **$67,500** · Variable **$45,000** · **OTE $112,500** (60/40) · target ARPU **$1,500** (multi-seat company deals) · hired at **~$10k/mo collected revenue** ("first hire possible"). Dollar figures below are the working model — localize the base to the hiring market before issuing.
 
+> ⛓️ **23 Sep (checked against main `83e9c1b`):** the deal economics below (seats, monthly ARPU, collected subscription revenue) predate the programme. Clients now buy a programme priced per qualified meeting (**R141**, `packages/shared/src/programme-pricing.ts`), and subscriptions are retired (**R137**). The partner-recruiting half of the role is frozen (**R139**). The comp mechanics have not been re-ruled for the programme, so read the numbers as the June working model.
+
 ---
 
 ## 1. Role & scope

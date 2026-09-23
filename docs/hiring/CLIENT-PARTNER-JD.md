@@ -1,5 +1,7 @@
 # Client Partner — role description
 
+> ⚠️ **HISTORICAL — the Client Partner role (R40) is frozen with the rest of the partner channel, and this page prices the offer and her pay on the retired $299 pack and $4 per lead.** ⛓️ **23 Sep (checked against main `83e9c1b`):** Partners are frozen (**R139**, 23 Sep — `packages/shared/src/partners-frozen.ts`): every partner door is switched off and nothing is deleted. The live model is the **programme, for every account** — **$450 per qualified meeting** on the R81 curve ($450 → $437.50 at 10 → $400 floor from 50), paid 50/50, P1 at start and P2 at approval (**R141**; `packages/shared/src/programme-pricing.ts`); the $299 pack, $4 per approved lead, top-ups, subscriptions and trials are retired in code (**R124 · R137**). Kept as the record, not as current truth.
+
 > **Status: R40 (15 Aug 2026).** Commission-only independent contractor. The seat is built and
 > turn-key; the founder creates it the day she starts. Nothing about this role appears on the
 > public site until the founder says so.

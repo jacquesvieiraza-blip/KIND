@@ -62,6 +62,8 @@ to Render and pages the founder (optional: configure Cloudflare notification).
    | `PORTAL_URL` | `https://app.get-kind.com` |
    | `NEXT_PUBLIC_APP_URL` | `https://app.get-kind.com` |
 
+   > ⛓️ **23 Sep (checked against main `83e9c1b`):** **this list would not boot today's API.** `startup-check.ts` refuses to start without its 🔴 critical variables, and three are missing above: **`SUPABASE_ANON_KEY`**, **`UNSUBSCRIBE_SECRET`**, **`FIGSY_COLD_FROM`**. Also needed for the standby to do real work: `APOLLO_API_KEY` (the only lead provider, FD-6), `INBOX_SECRET_KEY` + `POOLED_SENDERS_JSON` (the sender pool, R129), `PAID_PROVIDERS_ENABLED`. `JWT_SECRET` and `SUPABASE_JWT_SECRET` are read by no code. `render.yaml` has not changed since 2 Jun and carries the same gaps. Whether a Render standby is deployed at all is RUNTIME UNVERIFIED. [`ENVIRONMENT.md`](./ENVIRONMENT.md) is the one home.
+
    Optional (add if set in Railway):
    `PHANTOMBUSTER_API_KEY`, `PHANTOMBUSTER_LINKEDIN_AGENT_ID`,
    `FLUTTERWAVE_SECRET_KEY`, `EXTRA_ALLOWED_ORIGINS` *(PAYSTACK_SECRET_KEY removed — Paystack killed 25 Jun)*
@@ -69,7 +71,7 @@ to Render and pages the founder (optional: configure Cloudflare notification).
 5. **Deploy** → wait for first build (~4 min). Confirm:
    ```
    GET https://kind-api-standby.onrender.com/health
-   → {"status":"ok","service":"kind-api"}
+   → {"status":"ok","service":"kind-api"}   ⛓️ 23 Sep: body is now status + commit + commitSource (index.ts:173); /health answers 200 even when degraded
    ```
 
 6. **Note the Render URL** — you'll need it in Step 2.

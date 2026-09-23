@@ -60,6 +60,8 @@ export type CustomerProgramme = {
   }
   // ⛓️ 23 Sep (R136 ③) — `authorised: number` (the sourcing ceiling) is gone from the wire.
   progress: { delivered: number; sourcingAuthorised: boolean; outcomesAchieved: number | null }
+  /** ⚑ 23 Sep (Stage 6 · R136 ④) — set once the programme has been settled. */
+  settlement?: { deliveredMeetings: number | null; creditCents: number } | null
   /**
    * ⚑ 16 Sep (MVP1 · D2) — ARMED OR ACTUALLY RUNNING.
    *
@@ -260,11 +262,30 @@ export default function ProgrammeWorkspace({ p }: { p: CustomerProgramme }) {
             <p className="text-[12px] text-[#9b8ec4] mt-2.5">{PROGRAMME_BEST_EFFORTS}</p>
           )}
           {/* ⛓️ 23 Sep (R136 ③ · ④) — REMOVED: the terminal "N qualified prospects unused — This
-              stays on your account and never expires" block (16 Sep, E2). N was
+              stays on your account [with no expiry]" block (16 Sep, E2). N was
               `sourcing_ceiling − sourced_used`, so it disclosed the internal limit by
               subtraction, and R136 ④ replaced "unused value stays on account" with a wallet
-              CREDIT for meetings not delivered — a different number, in money, settled by us.
-              What a finished programme shows now is added with the Stage 6 settlement. */}
+              CREDIT for meetings not delivered — a different number, in money, settled by us. */}
+          {/* ── ⚑ 23 Sep (MVP1 Stage 6 · R136 ④ ⑤) — HOW IT WAS SETTLED ─────────────────────
+              The meetings delivered against the target they bought, and — only when it is more
+              than zero — the wallet credit for the shortfall, exactly as credited. Founder:
+              "we refund credits to their wallet internally to use towards another icp run." */}
+          {p.settlement && (
+            <div className="mt-3 pt-3 border-t border-[#f2ecfb]">
+              {p.settlement.deliveredMeetings !== null && p.outcome.target ? (
+                <div className="text-[13px] font-extrabold">
+                  {p.settlement.deliveredMeetings} of {p.outcome.target} meetings delivered
+                </div>
+              ) : null}
+              {p.settlement.creditCents > 0 ? (
+                <div className="text-[12px] text-[#6b5f8c] mt-0.5">
+                  {programmeMoney(p.settlement.creditCents)} has been credited to your account toward your next programme. It is not refunded to your card.
+                </div>
+              ) : (
+                <div className="text-[12px] text-[#9b8ec4] mt-0.5">Settled — nothing is owed either way.</div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* ── WHAT HAS BEEN PAID ──────────────────────────────────────────────────────

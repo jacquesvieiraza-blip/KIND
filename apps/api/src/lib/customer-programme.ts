@@ -185,6 +185,19 @@ export type CustomerProgramme = {
    * `null` for every live programme.
    */
   terminal: 'completed' | 'cancelled' | null
+  /**
+   * ⚑ 23 Sep (MVP1 Stage 6 · R136 ④ ⑤) — HOW THE PROGRAMME WAS SETTLED, once it has been.
+   *
+   * Founder: *"they pay for what they recieve"* and *"we dont give money back. we refund credits
+   * to their wallet internally to use towards another icp run."* So a finished client is told
+   * the meetings delivered against their target, and the wallet credit for any shortfall —
+   * the figure `settleProgrammeShortfall` actually credited, never recomputed here.
+   *
+   * ⛓️ REPLACES the 16 Sep (E2) "N qualified prospects unused — stays on your account and never
+   * expires", which was derived from the sourcing ceiling (R136 ③) and described value in
+   * prospects rather than the credit R136 ④ owes. `null` = not settled yet.
+   */
+  settlement?: { deliveredMeetings: number | null; creditCents: number } | null
 }
 
 /** No programme row is a REAL answer, not a failure: this client is at Proof. */
@@ -269,7 +282,9 @@ export async function readCustomerProgramme(clientId: string): Promise<CustomerP
             // ⚑ 16 Sep (MVP1 · D2) — `run_at` IS THE AUTHORITY, and it was never selected. Without it the
             // client's screen could not tell an armed programme from a started one.
             'approved_at, went_live_at, run_at, paused_at, ' +
-            'review_required_at, review_resolved_at, created_at')
+            'review_required_at, review_resolved_at, created_at, ' +
+            // ⚑ 23 Sep (MVP1 Stage 6) — the R136 ④ settlement, shown on a finished programme.
+            'shortfall_credited_at, shortfall_credit_cents, delivered_meetings')
     .eq('client_id', clientId)
     // ── 🛑 ⚑ 10 Sep (I5) — THE TERMINAL FILTER IS GONE, AND THE ORDER IS NEW ─────────────
     //
@@ -481,5 +496,10 @@ export async function readCustomerProgramme(clientId: string): Promise<CustomerP
     terminal: p.status === 'COMPLETED' ? 'completed'
       : p.status === 'CANCELLED' ? 'cancelled'
         : null,
+    // ⚑ 23 Sep (MVP1 Stage 6) — see the type. The credited figure, straight off the row.
+    settlement: p.shortfall_credited_at
+      ? { deliveredMeetings: p.delivered_meetings == null ? null : Number(p.delivered_meetings),
+          creditCents: Number(p.shortfall_credit_cents ?? 0) }
+      : null,
   }
 }

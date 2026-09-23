@@ -372,6 +372,10 @@ export default function VidaConsolePage() {
        */
       may_complete?: boolean
       complete_blocked_reason?: string | null
+      /** ⚑ 23 Sep (Stage 6 · R136 ④) — meetings attributed to this programme; null = unreadable. */
+      meetings_booked?: number | null
+      /** ⚑ 23 Sep (Stage 6 · R136 ④) — set once the programme has been settled. */
+      settlement?: { settled_at: string; delivered_meetings: number | null; credit_cents: number } | null
       paused_at: string | null; pause_reason: string | null
       approved_at: string | null; second_paid_at: string | null
       review_required_at: string | null; review_reason: string | null; review_resolved_at: string | null
@@ -1091,7 +1095,10 @@ export default function VidaConsolePage() {
     const say = forThisProgramme(setLcMsg)
     const settleBusy = forThisProgramme(setLcBusy)
     const who = (clients ?? []).find(c => c.id === selected)?.company_name ?? 'this client'
-    if (!confirm(`Complete ${who}'s programme?\n\nThis CLOSES it: all future sending for this programme stops permanently, and the results and open replies are kept intact.\n\nAny unused programme value stays on their account and never expires. This cannot be undone.`)) return
+    // ⛓️ 23 Sep (R136 ④) — the confirmation WAS "…Any unused programme value stays on their
+    // account and never expires." Not what happens now: the programme is SETTLED before it can
+    // complete, and any meetings shortfall is already credited to their wallet by then.
+    if (!confirm(`Complete ${who}'s programme?\n\nThis CLOSES it: all future sending for this programme stops permanently, and the results and open replies are kept intact.\n\nIt has already been settled — any shortfall in meetings was credited to their wallet toward another run. This cannot be undone.`)) return
     setLcBusy('complete'); setLcMsg(null)
     try {
       const j = await fetch(`/api/proxy/programmes/${encodeURIComponent(id)}/complete`, {
@@ -1104,6 +1111,47 @@ export default function VidaConsolePage() {
       say(e instanceof Error ? e.message : 'The programme was not completed.')
     } finally { settleBusy(null) }
   }, [programmeActionId, forThisProgramme, selected, clients, loadProgramme])
+
+  // ── ⚑ 23 Sep (MVP1 Stage 6 · R136 ④) — SETTLE, THEN COMPLETE ─────────────────────────
+  //
+  // 🛑 `POST /programmes/:id/settle-shortfall` EXISTED AND NOTHING IN VIDA CALLED IT, so the
+  // wallet credit R136 ④ owes a short programme could only be granted by hand-crafted request —
+  // and `mayComplete` let a programme close at the sourcing limit without it. Completion now
+  // requires settlement, so this is the control that makes Stage 6 reachable.
+  //
+  // ⚠️ THE OPERATOR STATES THE DELIVERED COUNT. It is prefilled from the meetings attributed to
+  // this programme — the figure the client can see — but never submitted on its own: a settled
+  // figure is persisted and may not move afterwards, so a person confirms it.
+  const [settleMeetings, setSettleMeetings] = useState('')
+  const settleProgramme = useCallback(async () => {
+    const id = programmeActionId()
+    if (!id) { setLcMsg(PROGRAMME_MISMATCH_COPY); return }
+    const say = forThisProgramme(setLcMsg)
+    const settleBusy = forThisProgramme(setLcBusy)
+    const delivered = Number(settleMeetings)
+    if (!Number.isInteger(delivered) || delivered < 0 || settleMeetings.trim() === '') {
+      setLcMsg('Enter the number of meetings this programme delivered — a whole number, 0 or more.'); return
+    }
+    const who = (clients ?? []).find(c => c.id === selected)?.company_name ?? 'this client'
+    if (!confirm(`Settle ${who}'s programme at ${delivered} meeting${delivered === 1 ? '' : 's'} delivered?\n\nAnything short of the target is credited to their WALLET toward another run, at the price they bought at — nothing is refunded to their card. The figure is recorded permanently.`)) return
+    setLcBusy('settle'); setLcMsg(null)
+    try {
+      const j = await fetch(`/api/proxy/programmes/${encodeURIComponent(id)}/settle-shortfall`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ deliveredMeetings: delivered, note: `Settled from Vida at ${delivered} delivered` }),
+      }).then(r => r.json())
+      if (!j?.success) throw new Error(j?.error || 'The programme was not settled.')
+      const credit = Number(j?.creditCents ?? 0)
+      say(j?.alreadySettled
+        ? 'This programme was already settled — nothing changed.'
+        : credit > 0
+          ? `Settled. $${(credit / 100).toFixed(2)} credited to their wallet toward another run. It can now be completed.`
+          : 'Settled — nothing was owed. It can now be completed.')
+      if (selected) await loadProgramme(selected)
+    } catch (e) {
+      say(e instanceof Error ? e.message : 'The programme was not settled.')
+    } finally { settleBusy(null) }
+  }, [programmeActionId, forThisProgramme, settleMeetings, selected, clients, loadProgramme])
 
   const lifecycle = useCallback(async (action: string, label: string) => {
     // ── 🛑 ⚑ 13 Sep (BL-1) — OWNERSHIP FIRST, ABOVE THE CONFIRMATIONS BELOW ──────────────
@@ -4827,8 +4875,48 @@ export default function VidaConsolePage() {
                       <span className="text-[12.5px] text-[#6b5f8c]">
                         {prog.programme.sourced_used} used · {prog.programme.sourced_reserved} reserved · {prog.programme.room_remaining} left of {prog.programme.sourcing_ceiling}
                       </span>
-                      <p className="text-[11.5px] text-[#9b8ec4] mt-1">Unused value never expires. Opening more is a human decision.</p>
+                      {/* ⛓️ 23 Sep (R136 ①④) — WAS "Unused value never expires. Opening more is a human
+                          decision." Reaching the limit is where we stop, and what is owed for a
+                          shortfall is wallet credit, settled below. */}
+                      <p className="text-[11.5px] text-[#9b8ec4] mt-1">At the limit sourcing stops. A meetings shortfall is settled as wallet credit, below.</p>
                     </div>
+
+                    {/* ── ⚑ 23 Sep (MVP1 Stage 6 · R136 ④) — SETTLE ─────────────────────────────
+                        Completion requires this. Shown for a programme that has gone live and is
+                        not yet settled; once settled it states the figure and the credit. */}
+                    {prog.programme.settlement ? (
+                      <div className="border border-[#eee7f7] rounded-xl px-3 py-2.5 mb-3">
+                        <b className="text-[13px] block mb-1">Settled</b>
+                        <span className="text-[12.5px] text-[#6b5f8c]">
+                          {prog.programme.settlement.delivered_meetings ?? '—'} of {prog.programme.meeting_target} meetings delivered
+                          {' · '}{prog.programme.settlement.credit_cents > 0
+                            ? `$${(prog.programme.settlement.credit_cents / 100).toFixed(2)} credited to their wallet`
+                            : 'nothing owed'}
+                        </span>
+                      </div>
+                    ) : prog.programme.went_live_at && prog.programme.status !== 'COMPLETED' && prog.programme.status !== 'CANCELLED' ? (
+                      <div className="border border-[#eee7f7] rounded-xl px-3 py-2.5 mb-3">
+                        <b className="text-[13px] block mb-1">Settle this programme</b>
+                        <p className="text-[12px] text-[#6b5f8c] mb-2">
+                          {prog.programme.meetings_booked == null
+                            ? 'The meetings for this programme could not be counted — enter the delivered figure yourself.'
+                            : `${prog.programme.meetings_booked} of ${prog.programme.meeting_target} meetings are attributed to this programme.`}
+                          {' '}Anything short of the target is credited to their wallet. Completion needs this first.
+                        </p>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <input value={settleMeetings}
+                            onChange={e => setSettleMeetings(e.target.value)}
+                            onFocus={() => { if (settleMeetings === '' && prog.programme?.meetings_booked != null) setSettleMeetings(String(prog.programme.meetings_booked)) }}
+                            placeholder={prog.programme.meetings_booked == null ? 'delivered' : String(prog.programme.meetings_booked)}
+                            inputMode="numeric"
+                            className="w-24 text-[12.5px] border border-[#e6dcf7] rounded-lg px-2 py-1.5" />
+                          <button onClick={() => void settleProgramme()} disabled={lcBusy !== null}
+                            className="text-[12.5px] font-bold text-white bg-[#7C3AED] rounded-lg px-2.5 py-1.5 disabled:opacity-40">
+                            Settle
+                          </button>
+                        </div>
+                      </div>
+                    ) : null}
 
                     {prog.blockers.length > 0 && (
                       <div className="border border-red-200 bg-red-50/50 rounded-xl px-3 py-2.5 mb-3">

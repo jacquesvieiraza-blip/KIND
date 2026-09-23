@@ -497,19 +497,41 @@ describe('⑥ batches reserve and release — paid entitlement is never stranded
 })
 
 describe('⑦ unused value never expires', () => {
-  it('⚠️ A PROGRAMME WITH UNDELIVERED AUTHORISED VOLUME CANNOT COMPLETE', () => {
+  it('⚠️ AN UNSETTLED PROGRAMME CANNOT COMPLETE', () => {
+    // ⛓️ 23 Sep (MVP1 Stage 6 · R136 ④) — the reason WAS "1600 of 2500 authorised leads are
+    // undelivered… Unused programme value never expires". The refusal is now about SETTLEMENT:
+    // the meetings delivered must be recorded, and a shortfall is wallet credit.
     const p = seed({ status: 'LIVE', sourcing_ceiling: 2500, sourced_used: 900 })
     const g = mayComplete(p as ProgrammeRow)
     expect(g.allowed).toBe(false)
-    expect(g.reason).toMatch(/1600 of 2500 authorised leads are undelivered/)
+    expect(g.reason).toMatch(/Settle this programme first/)
+    expect(g.reason).toMatch(/credited to the client.s wallet/)
     return completeProgramme(p.id).then(r => {
       expect(r.ok).toBe(false)
       expect(state.programmes[0].status, 'must not silently complete').toBe('LIVE')
     })
   })
 
-  it('it CAN complete once the volume is delivered', () => {
+  it('🛑 REACHING THE SOURCING LIMIT IS NOT A SETTLEMENT — it cannot complete on that alone (R136)', () => {
+    // ⛓️ INVERTED 23 Sep (MVP1 Stage 6). WAS `'it CAN complete once the volume is delivered'`
+    // (sourced_used = ceiling → COMPLETED). Since R136 the ceiling is where we STOP — founder:
+    // *"if we hit the 400 we stop."* — not where the client got what they bought, so a programme
+    // at the limit with meetings short would have closed with the R136 ④ credit never computed.
     const p = seed({ status: 'LIVE', sourcing_ceiling: 2500, sourced_used: 2500 })
+    expect(mayComplete(p as ProgrammeRow).allowed).toBe(false)
+    return completeProgramme(p.id).then(r => {
+      expect(r.ok).toBe(false)
+      expect(state.programmes[0].status, 'must not silently complete').toBe('LIVE')
+    })
+  })
+
+  it('it CAN complete once the programme is SETTLED — shortfall credited (or nothing owed)', () => {
+    // ⚑ 23 Sep — the settlement `settleProgrammeShortfall` stamps. A programme that delivered
+    // everything is settled too; it simply owes nothing.
+    const p = seed({ status: 'LIVE', sourcing_ceiling: 2500, sourced_used: 2500 })
+    ;(state.programmes[0] as Record<string, unknown>).shortfall_credited_at = '2026-09-23T00:00:00Z'
+    ;(state.programmes[0] as Record<string, unknown>).shortfall_credit_cents = 0
+    expect(mayComplete(state.programmes[0] as unknown as ProgrammeRow).allowed).toBe(true)
     return completeProgramme(p.id).then(r => {
       expect(r.ok).toBe(true)
       expect(state.programmes[0].status).toBe('COMPLETED')

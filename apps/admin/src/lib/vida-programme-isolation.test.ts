@@ -664,11 +664,15 @@ describe('§E · SOURCE-PINNED WIRING — the page actually applies those decisi
       // exact mismatch this gate exists to refuse.
       'const runProgramme = useCallback(async () => {',
       'const completeProgramme = useCallback(async () => {',
+      // ⛓️ 23 Sep (MVP1 Stage 6 · R136 ④) — A NINTH, REGISTERED HERE. `settleProgramme` posts
+      // `POST /programmes/:id/settle-shortfall`, which credits a wallet — so it is a programme-id
+      // action whose confirmation names the SELECTED client, and it passes the same gate.
+      'const settleProgramme = useCallback(async () => {',
     ]) {
       expect(fnBody(code, fn), `no ownership gate in: ${fn}`).toContain('programmeActionId()')
     }
-    // Eight call sites, and no ninth action left outside them.
-    expect(code.split('programmeActionId()').length - 1).toBe(8)
+    // Nine call sites, and no tenth action left outside them. ⛓️ 8 → 9 on 23 Sep (settle).
+    expect(code.split('programmeActionId()').length - 1).toBe(9)
   })
 
   it('🛑 the gate runs BEFORE the confirmation dialog, so no dialog can name the wrong client', () => {
@@ -730,8 +734,10 @@ describe('§E · SOURCE-PINNED WIRING — the page actually applies those decisi
     // new programme-id actions and each carries the generation-scoped finalizer for the same
     // reason the other five do — an unconditional `finally` lets a stale response for client A
     // clear client B's busy flag mid-flight.
+    // ⛓️ 23 Sep (MVP1 Stage 6) — EIGHT: `settleProgramme` credits a wallet on a programme id and
+    // carries the same generation-scoped finalizer.
     expect(settlers.filter(x => x === 'settleBusy'),
-      'a programme-id action lost its generation-scoped finalizer').toHaveLength(7)
+      'a programme-id action lost its generation-scoped finalizer').toHaveLength(8)
     // ⚠️ AND EXACTLY THREE THAT ARE NOT, EACH NAMED. `run` and the commercial model own their
     // own busy surfaces and are not programme-id actions. `createProgrammeNow` SHARES `lcBusy`
     // with the guarded four but is likewise not a programme-id action — it posts

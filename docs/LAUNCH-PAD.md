@@ -21,7 +21,7 @@
 | W1 | Pooled senders: in Railway → **@kind/api** → Variables, is there a variable named exactly `POOLED_SENDERS_JSON`? Yes / no is enough. Unset, every programme stops at Prepare (GitHub #1484 · inventory #710) | 🧍 |
 | W2 | 🔨 **GO given 23 Sep — being built, one PR each:** a) stop sending when campaign settings can't be read (GitHub #1527) · b) `check.sh` builds `@kind/db` (GitHub #1548) · c) PDL fully off in code (R143) · d) the old drip and cold-client pause skip shortfall-credit programme clients · e) trial wording out of the Vida playbook (#706 · GitHub #1494) · f) the test that pins inventory #700 | 🤖 |
 
-*Settled 23 Sep: the website may show $450 and "qualified meeting" has its rule (R141) · Apollo is the only provider (R143) · retention is 90 days, other surfaces updated later (R144) · `PDL_API_KEY` deleted from Railway (founder).*
+*Settled 23 Sep: the website may show $450 and "qualified meeting" has its rule (R141) · Apollo is the only provider (R143) · retention is 90 days, other surfaces updated later (R145) · `PDL_API_KEY` deleted from Railway (founder).*
 
 **Board:** 🟢106 · 🩷356 · 🟣2 · 🟡24 · 🔴180 · ⏸6 · **Σ674** · live count: `scripts/count-inventory.sh`
 

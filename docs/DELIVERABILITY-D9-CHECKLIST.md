@@ -13,14 +13,14 @@ items you must verify.
 - **Plain-text MIME alternative** (HTML-only mail reads as spam). ✓
 - **Tracking pixel refuses bare platform hosts** (railway/onrender/vercel) — anti-phishing. ✓
 - **Signed, stateless unsubscribe tokens** (timing-safe verify). ✓
-- **Dedicated cold-FROM** support, with a loud prod warning if it's unset. ✓
+- **Dedicated cold-FROM** support — ⛓️ **23 Sep (checked against main `83e9c1b`):** unset now **refuses to boot**: `FIGSY_COLD_FROM` is 🔴 critical since HC-4, 20 Aug (`apps/api/src/lib/startup-check.ts:78`). ~~with a loud prod warning if it's unset.~~ ✓
 
 ## 🧍 You must verify before the mail-tester run
 
 ### Railway env (api service)
 - [ ] **`FIGSY_COLD_FROM`** is set to a **dedicated, separately-warmed cold domain**
-      (NOT `get-kind.com`). If unset, cold mail sends from the transactional domain and
-      poisons its reputation — the code logs a warning but still sends. **This is the
+      (NOT `get-kind.com`). ⛓️ **23 Sep (checked against main `83e9c1b`):** if unset, the API refuses to start (`startup-check.ts:78`). ~~If unset, cold mail sends from the transactional domain and
+      poisons its reputation — the code logs a warning but still sends.~~ **This is the
       single most important env item.**
 - [ ] **`FIGSY_COLD_REPLY_TO`** points to a monitored inbox on the cold domain.
 - [ ] **`TRACKING_URL`** is a branded domain (e.g. `track.get-kind.com`) — otherwise

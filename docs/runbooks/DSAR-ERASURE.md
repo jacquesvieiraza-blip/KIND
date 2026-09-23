@@ -38,6 +38,8 @@ Every table below was confirmed by reading `supabase/migrations/*.sql` and the l
 | **`opt_out_blocklist`** | `email`, `full_name`, `whatsapp_number`, `reason`, `opted_back_in_at` | ⚠️ **KEPT on erasure — see §4.3** |
 | **`lead_enrichment`** | `lead_id`, `recent_signal`, `company_context`, `opening_line`, `enrichment_score` | Derived profile text about them |
 
+> ⛓️ **23 Sep (checked against main `83e9c1b`):** **three tables created after this list also hold a prospect's data** — search them too: **`acquisition_memory`** (`email_norm`, `first_name`, `last_name`, `title`, `company`, `linkedin_url`, … — cross-client, like `lead_pool`; `supabase/migrations/20260826_acquisition_memory.sql`) · **`unattributed_replies`** (`from_email`, `from_name`, `subject`, `body`, `raw_payload`, `candidate_lead_ids`; `20260917_unattributed_replies.sql`) · **`meetings`** (`lead_id` + `google_event_id` only; a trigger nulls both before a lead is deleted — `20260829_meetings.sql:145`). Still no DSAR tooling in the code.
+
 ### 1.2 Keyed on `lead_id`
 
 | Table | Columns |

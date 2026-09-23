@@ -1,5 +1,7 @@
 # 🗺️ K.I.N.D — THE SYSTEM FLOW (one page to see the whole machine)
 
+> ⛓️ ⚠️ **HISTORICAL (23 Sep, checked against main `83e9c1b`): this is the 25 Jun – 9 Jul machine — PDL + Hunter data, Resend / Instantly / Smartlead sending, trial-era status table — and none of it is how the product runs now. Today: Apollo is the only lead provider (FD-6, `apps/api/src/lib/provider-boundary.ts`); mail goes out over SMTP via `lib/mailer.ts` from env-backed pooled senders (`POOLED_SENDERS_JSON`, R129) behind an absolute kill-switch (R114, `lib/outreach-kill-switch.ts`); the product is the six MVP1 stages (R127). Kept as a record, not current instructions.**
+
 > **What this is:** the plain-English picture of how the whole thing fits together — where leads come from, how they're processed, how they're sent, and the two *planned* sending engines (Instantly vs Smartlead). Built 25 Jun because the moving parts got hard to hold in one head.
 > **Status of record → PRODUCT-INVENTORY** (item IDs in brackets) · **strategy → KIND-MASTER** · **data detail → APOLLO-ENGINE.md** · this is the orientation map only.
 > **Last-checked: 9 Jul 2026 (reconciled to the per-qualified-lead model).** Reconcile when the engine (211), data layer (243), or GTM changes.

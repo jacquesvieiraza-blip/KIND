@@ -1,5 +1,7 @@
 # 🌍 K.I.N.D — THE AFRICA PLAYBOOK (the one-click Africa GTM)
 
+> ⚠️ **HISTORICAL — built on retired vendors (PDL, Hunter, Clearbit) and the partner route, which is frozen.** ⛓️ **23 Sep (checked against main `83e9c1b`):** Sourcing is **Apollo only** (FD-6, 17 Sep — `apps/api/src/lib/retired-providers.ts`). Partners are frozen (**R139**). Sends go to the **US, UK and South Africa** only; other countries are held (`packages/shared/src/launch-countries.ts`). Kept as the record, not as current truth.
+
 > **What this is:** the single home for *how we win Africa* — the thesis, the two routes (direct-data + partners), how we source African leads, and the stealth-safe partner motion. Consolidates what was scattered across V2 / APOLLO-ENGINE / PARTNER-BRIEF.
 > **One-fact-one-home:** **status → PRODUCT-INVENTORY** (item IDs in brackets) · **strategy/decisions → KIND-MASTER** · **future detail → V2-TRACKER "🌍 MARKET STRATEGY"** · **partner pitch/economics → `PARTNER-BRIEF.md`** · **data engine → `APOLLO-ENGINE.md §3B`**. This doc *consolidates + points*; it does not own status.
 > **Last-checked: 25 Jun 2026.** Reconcile when the two-track strategy, the data layer (243), the partner motion (233), or the stealth constraint changes.

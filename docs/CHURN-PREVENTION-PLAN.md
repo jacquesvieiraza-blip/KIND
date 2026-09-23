@@ -7,7 +7,7 @@
 
 ## The one-line thesis
 **Acquisition is the accelerator. Retention is the brakes + steering.**
-A new-logo machine with a leaky bucket doesn't grow — it runs a treadmill. At ~$4/fully-worked lead and ~91–92% gross margin, a *saved* client is worth a new-logo win **without paying CAC again**. Every point of churn we remove makes every sales effort compound instead of replace.
+A new-logo machine with a leaky bucket doesn't grow — it runs a treadmill. ⛓️ **23 Sep (checked against main `83e9c1b`):** clients now buy a programme priced per qualified meeting ($450 on the R81 curve, R141 — `packages/shared/src/programme-pricing.ts`); the per-lead model is retired (R124 · R137). ~~At ~$4/fully-worked lead and ~91–92% gross margin,~~ A *saved* client is worth a new-logo win **without paying CAC again**. Every point of churn we remove makes every sales effort compound instead of replace.
 
 ### Why this is *the* growth lever (be honest about the maths)
 - To net **+10 clients/month** at 5% monthly churn with 50 clients, you must win ~12–13 just to clear the 2–3 you lose. At 10% churn you're winning to stand still.
@@ -50,7 +50,7 @@ The cheapest churn to prevent is the bad-fit client you never sign. Keep ICP dis
 ---
 
 ## Sequence (no client churns before they exist — so build with the funnel)
-- **Pre-launch (now):** ✅ the **193 credibility fix** SHIPPED (item 193, 17 Jun) — the `× 0.28` guess was removed; analytics now reads real `opened_at`. Lever 2 (deliverability) is already a launch gate.
+- ⛓️ **23 Sep (checked against main `83e9c1b`):** launch (4 Sep) has passed and production clients are live (R135, R138), so the pre-launch step is history. The activation path is now the six stages Brief / Proof / Programme / Approval / Results / Complete (R127). ~~**Pre-launch (now):**~~ **Pre-launch (then):** ✅ the **193 credibility fix** SHIPPED (item 193, 17 Jun) — the `× 0.28` guess was removed; analytics now reads real `opened_at`. Lever 2 (deliverability) is already a launch gate.
 - **First clients land (Wk 1–2 post-launch):** turn on **192** activation tracking + nudges and the **at-risk triggers** feeding Lena. This is when the data starts to exist.
 - **Month 1:** **191** value dashboard (REAL data) + **190** save/pause/win-back path.
 - **As retention data matures:** pull **Lena (145)** forward ahead of the rest of the Month-3 agent family — she is the durable owner of this whole stack.

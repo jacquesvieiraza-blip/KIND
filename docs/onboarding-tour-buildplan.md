@@ -1,5 +1,7 @@
 # Onboarding Tour System — Build Plan
 
+> ⛓️ ⚠️ **HISTORICAL (23 Sep, checked against main `83e9c1b`): the "PLAN ONLY — nothing built" line below stopped being true on 10–11 Jul — the tour was built (#454: `apps/portal/src/components/onboarding/*`, `supabase/migrations/20260714_onboarding_state.sql`) and is mounted in `(dashboard)/layout.tsx`, a tree the portal middleware now redirects clients away from, to `/milla`. The plan also explains the retired $1/$3 charges (R124 · R137 — the programme is the only model). Kept as a record, not current instructions.**
+
 `Status: PLAN ONLY — nothing built. For Fable review before any code starts.`
 `Not a core doc (see CLAUDE.md — LAUNCH-PAD/PRODUCT-INVENTORY/KIND-MASTER/V2-TRACKER stay the four). This is a scoped feature spec, same shelf as RULEBOOK.md / MILESTONE-0-CHECKLIST.md.`
 

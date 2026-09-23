@@ -43,7 +43,7 @@ silently, and the first symptom is a booking that does not appear.
 
 **On 27 Aug**, and every Monday until the app is verified:
 
-1. 🧍 Open **`https://app.get-kind.com/dashboard/settings`** → the Calendar section.
+1. 🧍 ⛓️ **23 Sep (checked against main `83e9c1b`):** open **`https://app.get-kind.com/milla/settings`** — the portal middleware redirects every signed-in `/dashboard/settings` to it (`apps/portal/src/middleware.ts`). ~~Open **`https://app.get-kind.com/dashboard/settings`**~~ → the Calendar section.
 2. Does it still say **connected**? If it says error or disconnected, the refresh token expired.
 3. 🧍 If expired: reconnect (10 seconds), and **write the new date here**. That date + 7 is the
    next deadline.
@@ -118,7 +118,7 @@ mismatch.
 
 | | |
 |---|---|
-| **The code** 🤖 | **Already done — nothing to change.** `GOOGLE_REDIRECT_URI` is read from the environment (`lib/gcal.ts:13`) and every callback redirect follows `PORTAL_URL` (`routes/calendar.ts`). **No host is hardcoded anywhere in the calendar path**, and `calendar-host-portability.test.ts` fails the build if one ever appears. This move is a Railway variable edit and a deploy — not a code change. |
+| **The code** 🤖 | **Already done — nothing to change.** `GOOGLE_REDIRECT_URI` is read from the environment (⛓️ **23 Sep (checked against main `83e9c1b`):** `lib/gcal.ts:25` ~~`lib/gcal.ts:13`~~) and every callback redirect follows `PORTAL_URL` (`routes/calendar.ts`). **No host is hardcoded anywhere in the calendar path**, and `calendar-host-portability.test.ts` fails the build if one ever appears. This move is a Railway variable edit and a deploy — not a code change. |
 | **Prove it** | Paste the Railway value and the console value into a plain-text editor on two lines and look at them. They must be identical. Then connect a calendar: a mismatch fails with **`redirect_uri_mismatch`** on Google's own error page, which is unambiguous — you will know immediately. |
 
 ### Stage 4 — domain ownership verification 🧍
@@ -150,7 +150,7 @@ mismatch.
 |---|---|
 | 🤖 **Scopes narrowed** | 20 Aug (#683): `calendar.readonly` removed — we no longer ask to read event contents. Pinned by `gcal-scopes.test.ts`. |
 | 🤖 **No hardcoded host** | Verified 21 Aug and guarded: `calendar-host-portability.test.ts`. |
-| 🤖 **Redirect URI is env-only** | `lib/gcal.ts:13`. The domain move needs no deploy of changed code. |
+| 🤖 **Redirect URI is env-only** | ⛓️ **23 Sep (checked against main `83e9c1b`):** `lib/gcal.ts:25` ~~`lib/gcal.ts:13`~~. The domain move needs no deploy of changed code. |
 | 🧍 **Still to do** | Stages 1–5 above. Nothing in stages 1–5 can be done from a codebase. |
 
 ---

@@ -5,6 +5,8 @@
 > clients. **When anything returns, it must render with THIS look.** This doc + the screenshots beside
 > it + the museum commit are the source of truth for that look. The UI look & feel never changes in
 > the cut — we remove surfaces and fix words only.
+>
+> ⛓️ **23 Sep (checked against main `83e9c1b`):** Milla and Vida have returned, in new roles rather than as sold agents: **Milla is the client's conversation** (R121) through six stages, Brief / Proof / Programme / Approval / Results / Complete (R127), and **Vida is the operator console** with two workspaces, Clients and Command Centre (R116). The "returns after 3 months of paid clients" line above is history. This page still records the 9-Jul look; it does not describe the current Milla/Vida screens.
 
 ## 🏛 The museum commit — every deleted page is one command away
 Everything (all 62 website pages, every portal screen, all components) exists intact at:

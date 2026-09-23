@@ -1,6 +1,6 @@
 # 🎬 K.I.N.D — Master Recording Bible (capture once → cut everything)
 
-> ⚠️ **HISTORICAL — this script says "Start free" and predates the 1-Aug retirement of the trial (#607).** Signup now writes `paused` with a $0 wallet; nothing runs until the $299 pack lands. Re-shoot before any use. *(Banner added 6 Aug, R11.)*
+> ⚠️ **HISTORICAL — this script says "Start free" and predates the 1-Aug retirement of the trial (#607).** Signup now writes `paused` with a $0 wallet. ⛓️ **23 Sep (checked against main `83e9c1b`):** there is no $299 pack any more — the programme, for every account — $450 per qualified meeting on the R81 curve, 50/50 (R141; `packages/shared/src/programme-pricing.ts`); the $299 pack and $4 per approved lead are retired in code (R124 · R137). Free Proof comes before any payment. ~~nothing runs until the $299 pack lands.~~ Re-shoot before any use. *(Banner added 6 Aug, R11.)*
 `Last-checked: 25 Jun 2026`
 
 **The method:** record the **whole platform once**, screen by screen, in the order a real client lives it (login → finish), every screen framed **PAIN → SOLUTION** (Drop-style). That single master capture **is Recording 1 (the full demo)** *and* the source footage for every other cut (Drop 01, Looms, social, per-agent, per-vertical, vs-competitor). **Capture once → cut everything.**

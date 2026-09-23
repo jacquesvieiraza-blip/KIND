@@ -1,5 +1,7 @@
 > # ⚠️ DRAFT FOR COUNSEL — NOT SERVED, NOT SIGNED, NOT IN THE PACK YET
 >
+> ⛓️ **23 Sep (checked against main `83e9c1b`):** partners are frozen (**R139**, 23 Sep — `packages/shared/src/partners-frozen.ts`): every partner door is switched off and nothing is deleted. Nothing here is served while the freeze holds.
+>
 > **Counsel blesses this before it is served to anybody.** It is written in plain words on
 > purpose: a partner has to understand it without a lawyer present, because they sign it and are
 > then bound by it.

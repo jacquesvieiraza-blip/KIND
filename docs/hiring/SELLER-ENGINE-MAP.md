@@ -3,6 +3,8 @@
 
 > ⚠️ **CORRECTION (23 Jun): there is NO `kind-ops` repo — it was never created (verified: the account has one repo, KIND).** Everywhere below that says "→ `kind-ops` repo" actually means → **Notion** (item 204 — the human/ops layer: SOPs · Business Command Centre · finance/compliance · training). The product (portals, code) stays in **this KIND repo**. All `kind-ops` mentions below are superseded by this note.
 
+> ⛓️ **23 Sep (checked against main `83e9c1b`):** partners are frozen (**R139**, 23 Sep — `packages/shared/src/partners-frozen.ts`): every partner door is switched off and nothing is deleted. Every "superseded by R47" line below points at a rule that is history too: R47's per-lead commission has nothing left to apply to, because the $4 per approved lead is retired (**R137**); the programme's partner rule is **R78** (25% of programme contribution), and it is frozen too. Clients now buy a programme priced per qualified meeting (**R141**), not seats.
+
 ---
 
 ## 1. The vision (founder, 18 Jun)

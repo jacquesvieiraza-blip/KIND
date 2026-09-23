@@ -19,7 +19,7 @@
 |---|---|---|
 | **`error_events`** | Every unhandled API error is written here by the error middleware | `apps/api/src/middleware/error.ts:47` and `:83` · table from `20260703_error_events.sql` |
 | **Founder alerts** | Push to the founder by email, plus Slack if `SLACK_WEBHOOK_URL` is set. Best-effort by design: never throws into the caller it rides on. ⚠️ Checks the Resend result rather than only catching throws (#339) — an API-level failure used to be swallowed | `apps/api/src/lib/alerts.ts` |
-| **Vendor notices** | Supabase, Railway, Resend, Anthropic, Smartlead, PDL, Hunter status pages and breach notifications to us | External — see §5 |
+| **Vendor notices** | ⛓️ **23 Sep (checked against main `83e9c1b`):** add **Apollo**, now the only data provider (FD-6, 17 Sep). PDL and Hunter are retired, but records they supplied before that may still be held. · Supabase, Railway, Resend, Anthropic, Smartlead, PDL, Hunter status pages and breach notifications to us | External — see §5 |
 | **Operator audit gaps** | A persistent audit-write outage now raises a throttled alert (Prompt 11, 20 Aug) | `apps/api/src/lib/operator-audit.ts` |
 | **A person telling us** | A client, a prospect, or a researcher | privacy@get-kind.com |
 
@@ -50,6 +50,8 @@ that when advising on how quickly the clock could start.
 agent or automated process notifies a regulator, a client or a data subject.
 
 ## 5. Vendor incident — the branch
+
+⛓️ **23 Sep (checked against main `83e9c1b`):** **Apollo** belongs in this list and in the step below ("yes: sourced prospect records") — it is now the only data provider (FD-6, 17 Sep); PDL and Hunter are retired vendors whose past records may still be held.
 
 ⚠️ **This is a chain, not a policy paragraph.** When **Supabase · Railway · Resend · Anthropic ·
 Smartlead · PDL · Hunter** reports an incident, the questions run in this order and each one

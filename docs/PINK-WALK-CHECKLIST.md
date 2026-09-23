@@ -1,6 +1,6 @@
 # 🩷 PINK WALK — self-walk checklist
 
-> ⚠️ **HISTORICAL — rows here quote the RETIRED per-qualified-lead ladder ($1 reveal + $3 work).** Current model: the **$299 pack, then $4 per approved lead**. Kept as the record of the walk, not as current pricing. *(Banner added 6 Aug, R11.)*
+> ⚠️ **HISTORICAL — rows here quote the RETIRED per-qualified-lead ladder ($1 reveal + $3 work).** Current model: ⛓️ **23 Sep (checked against main `83e9c1b`):** the programme, for every account — $450 per qualified meeting on the R81 curve, 50/50 (R141; `packages/shared/src/programme-pricing.ts`); the $299 pack and $4 per approved lead are retired in code (R124 · R137). Sourcing is Apollo only (FD-6), so the PDL rows are history too. ~~the **$299 pack, then $4 per approved lead**.~~ Kept as the record of the walk, not as current pricing. *(Banner added 6 Aug, R11.)*
 `Last-checked: 2 Jul 2026`
 
 Pink = **live but not verified.** For each: walk it → if it works it's 🟢, if it's broken it's 🔴 (note it, I'll fix). Make notes in the right column. Come back to me with anything stuck or broken.

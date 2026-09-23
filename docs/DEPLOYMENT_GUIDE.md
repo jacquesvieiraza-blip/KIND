@@ -7,8 +7,8 @@
 > **The facts that override anything below:**
 > | Topic | THE TRUTH (source of record) |
 > |---|---|
-> | **Price** | **$299** first purchase = the onboarding pack, **100 approved leads included**, then **$4 per approved lead**. Reviewing is FREE. → `packages/shared/src/constants/index.ts` |
-> | **No trial, no freebies** | Signup writes `paused` with a **$0 wallet and $0 sourcing allowance**. Nothing sources, approves or sends until the $299 lands. There is **no "free to start"**, no card-free trial, no 14-day clock. → `auth.ts` (#607, 1 Aug) |
+> | **Price** | ⛓️ **23 Sep (checked against main `83e9c1b`):** **the programme is the only model** — $299/$4 retired by decision (R124, 16 Sep) and in the code (R137, 23 Sep: `mayUseLegacyCommercialPath` always answers no, `apps/api/src/lib/commercial-model.ts:99`; `/stripe/checkout` answers 410). The website price is **$450 per qualified meeting** (R141, 23 Sep); the curve is `packages/shared/src/programme-pricing.ts` ($450 → $437.50 at 10 → $400 at 50). ~~**$299** first purchase = the onboarding pack, **100 approved leads included**, then **$4 per approved lead**. Reviewing is FREE. → `packages/shared/src/constants/index.ts`~~ |
+> | **No trial, no freebies** | Signup writes `paused` with a **$0 wallet and $0 sourcing allowance**. ⛓️ **23 Sep (checked against main `83e9c1b`):** signup inserts the client with `commercial_model: 'programme'` (`routes/auth.ts:492`); nothing runs outside a programme except the free Proof (R137 ⑤). ~~Nothing sources, approves or sends until the $299 lands.~~ There is **no "free to start"**, no card-free trial, no 14-day clock. → `auth.ts` (#607, 1 Aug) |
 > | **The retired ladder** | *$1 reveal → +$3 FIGSY → +$1 Milla → +$1 Denise → Vida $3* is **DEAD** (superseded 24 Jul, price re-locked 3 Aug). Any page still quoting it is describing a model we do not sell. |
 > | **Who sends** | **OUR OWN ENGINE**, over SMTP — `figsy.ts` → `lib/mailer.ts` → the inbox from `lib/sending-inbox.ts`. **Instantly = warm-up utility only** (Growth tier). **Smartlead = client sending, deferred and unproven** (key 401s). Resend now carries system mail + the inbound reply webhook only. |
 > | **Flutterwave / Paystack** | **Never wired / removed.** Stripe only. |
@@ -16,7 +16,9 @@
 > **Why this banner exists.** The founder, 6 Aug: *"i have not read a doc for 2 weeks because i dont trust it… things slip far to often."* He was right. Locks and rulings now live in **[`PRODUCT-RULES.md`](./PRODUCT-RULES.md)** — read that first, always.
 
 
-`Last-checked: 24 Jun 2026`
+> ⛓️ **23 Sep (checked against main `83e9c1b`):** **how production is deployed today:** `bash scripts/ship.sh` — pulls `main`, runs the `scripts/check.sh` gate, stamps each app, then `railway up` for @kind/api, @kind/portal, @kind/admin and the website (`scripts/ship.sh:138`); every service reports its commit on `/health`. The preview `staging` branch is **743 commits behind `main`** (`git rev-list --count origin/staging..origin/main`, 23 Sep) and is not in use. The steps below are the **June first-time setup**; lines marked ⛓️ were corrected, the rest is unverified against Railway. For variables, [`ENVIRONMENT.md`](./ENVIRONMENT.md) is the one home.
+
+~~`Last-checked: 24 Jun 2026`~~
 
 > 🟢 **22 JUN CORRECTIONS (current stack — `docs/TECH-STACK.md` is the source of truth):**
 > - **Email:** **Resend** sends (system + FIGSY cold, `RESEND_API_KEY` + `FIGSY_COLD_FROM`); **Zoho Mail** hosts the company mailboxes (replies/webmail). *(Not Google Workspace.)*
@@ -28,7 +30,7 @@
 
 **Version:** 2.1 · **Date:** June 2026  
 **Time required:** ~90 minutes end-to-end (first time)  
-**Prerequisites:** Accounts on Supabase, Railway, Stripe, Anthropic, PDL, Hunter, Resend
+**Prerequisites:** ⛓️ **23 Sep (checked against main `83e9c1b`):** Supabase, Railway, Stripe, Anthropic, **Apollo** (the only lead provider — FD-6), Resend. ~~Accounts on Supabase, Railway, Stripe, Anthropic, PDL, Hunter, Resend~~
 
 > ⚠️ **HOSTING: Railway ONLY.** Portal, Admin, API, and Website are all deployed as separate Railway services from the same monorepo (each with its own Root Directory). There is NO Vercel. If any older copy of this guide mentions Vercel, it is stale — follow the Railway steps below.
 
@@ -46,8 +48,8 @@ Open a temporary notepad. Collect all keys before starting, then follow the step
 | Stripe Secret Key | Stripe dashboard → Developers → API Keys → Secret key | `STRIPE_SECRET_KEY` |
 | Stripe Webhook Secret | Stripe dashboard → Developers → Webhooks → signing secret | `STRIPE_WEBHOOK_SECRET` |
 | Anthropic API Key | console.anthropic.com → API Keys | `ANTHROPIC_API_KEY` |
-| PDL API Key | peopledatalabs.com → Settings → API | `PDL_API_KEY` |
-| Hunter API Key | hunter.io → API → API Keys | `HUNTER_API_KEY` |
+| ⛓️ **23 Sep (checked against main `83e9c1b`):** **not needed** — PDL retired (FD-6, 17 Sep); collect the **Apollo** key (`APOLLO_API_KEY`) instead. ~~PDL API Key~~ | ~~peopledatalabs.com → Settings → API~~ | ~~`PDL_API_KEY`~~ |
+| ⛓️ **23 Sep (checked against main `83e9c1b`):** **not needed** — Hunter is locked off (FD-5, 17 Sep; `startup-check.ts:92`). ~~Hunter API Key~~ | ~~hunter.io → API → API Keys~~ | ~~`HUNTER_API_KEY`~~ |
 | Resend API Key | resend.com → API Keys | `RESEND_API_KEY` |
 | Admin Secret Key | Generate a random string (use `openssl rand -hex 32`) | `ADMIN_SECRET_KEY` |
 | Railway API URL | After deploying API — Railway → service → Settings → Domain | `NEXT_PUBLIC_API_URL` |
@@ -70,7 +72,7 @@ Open a temporary notepad. Collect all keys before starting, then follow the step
 
 ### 1b. Run all migrations (in order)
 
-In Supabase SQL Editor, run each file in order:
+⛓️ **23 Sep (checked against main `83e9c1b`):** a fresh project needs **every** file in `supabase/migrations/` (200 `.sql` files), not the four below; production gets migrations through the runner — `apps/api/src/lib/pending-migrations.ts` (88 entries), run from Vida → Command Centre → System → **Engine**. ~~In Supabase SQL Editor, run each file in order:~~
 
 ```
 supabase/migrations/20260518_enable_rls.sql
@@ -127,6 +129,8 @@ In Supabase → **Table Editor**, confirm you can see:
 
 In Railway → API service → **Variables** tab, add every variable below:
 
+> ⛓️ **23 Sep (checked against main `83e9c1b`):** the block below is the June set and is wrong in places: the **lead engine** is **Apollo only** (`APOLLO_API_KEY` 🟠, FD-6) — `PDL_API_KEY` is retired and `HUNTER_API_KEY` locked off; the six `STRIPE_PRICE_*` IDs sell nothing (`/stripe/checkout` answers 410, R137). Missing from it: `POOLED_SENDERS_JSON` + `INBOX_SECRET_KEY` (the env-backed sender pool, R129), `PAID_PROVIDERS_ENABLED`, `UNSUBSCRIBE_SECRET`, `AUTO_OUTREACH_ENABLED` (the absolute kill-switch, R114). Use [`ENVIRONMENT.md`](./ENVIRONMENT.md).
+
 ```
 PORT=4000
 PORTAL_URL=https://app.get-kind.com
@@ -162,7 +166,7 @@ STRIPE_PRICE_FIGSY_100=price_xxxxx
 ```
 
 > **⚠️ Silent-failure warning (hard-code audit 28 Jun):** the app boots fine even when the Stripe price IDs, `STRIPE_WEBHOOK_SECRET`, `ADMIN_SECRET_KEY`, or `FIGSY_COLD_FROM` are missing — it just quietly doesn't charge / doesn't send / poisons the domain. Confirm every var above on the live deploy; cross-check the **🔑 GO-LIVE CONFIG** section in LAUNCH-PAD.
-> **Stripe note:** the **API** needs `STRIPE_PRICE_*` (above) to build checkout; the **portal** needs the matching `NEXT_PUBLIC_STRIPE_PRICE_*` (Step 3b) to enable the Buy button. Both sets, same price IDs.
+> ⛓️ **23 Sep (checked against main `83e9c1b`):** checkout and subscribe are retired — both answer 410 and their session creators are deleted (`routes/stripe.ts:158-179`, R137). ~~**Stripe note:** the **API** needs `STRIPE_PRICE_*` (above) to build checkout;~~ the **portal** needs the matching `NEXT_PUBLIC_STRIPE_PRICE_*` (Step 3b) to enable the Buy button. Both sets, same price IDs.
 
 ### 2c. Get your Railway API URL
 
@@ -176,7 +180,7 @@ Copy the URL — it will look like `https://kindapi-production-xxxx.up.railway.a
 
 Open: `https://your-railway-url.up.railway.app/health`
 
-You should see: `{"status":"ok"}`.
+⛓️ **23 Sep (checked against main `83e9c1b`):** you should see a JSON body with `status` (`ok` or `degraded`), `commit` and `commitSource` (`apps/api/src/index.ts:173`). ~~You should see: `{"status":"ok"}`.~~
 
 ---
 
@@ -193,6 +197,8 @@ You should see: `{"status":"ok"}`.
 ### 3b. Set environment variables
 
 Railway → portal service → **Variables**:
+
+> ⛓️ **23 Sep (checked against main `83e9c1b`):** the three `NEXT_PUBLIC_STRIPE_PRICE_LEADGEN_*` lines below are read by no code (see ENVIRONMENT.md), and the FIGSY Buy button they feed posts to `/stripe/checkout`, which answers 410 (R137).
 
 ```
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
@@ -284,7 +290,7 @@ Go to `https://get-kind.com` → you should see the marketing homepage.
 
 ### 6a. Create products in Stripe
 
-Pricing is **per qualified lead — no subscriptions.** Create the pay-per-lead / credit products only, not monthly agent plans:
+⛓️ **23 Sep (checked against main `83e9c1b`):** **do not create credit products** — the programme is the only model (R124 · R137) and pack/top-up/subscription checkout answers 410. ~~Pricing is **per qualified lead — no subscriptions.** Create the pay-per-lead / credit products only, not monthly agent plans:~~
 
 1. Stripe → **Products** → **Add product** — create the **Lead-gen** (reveal) and **FIGSY** credit bundles (20 / 40 / 100).
 2. After creating each product, copy the **Price ID** (`price_xxx...`).
@@ -293,13 +299,13 @@ Pricing is **per qualified lead — no subscriptions.** Create the pay-per-lead 
 ### 6b. Set the webhook URL
 
 1. Stripe → **Developers** → **Webhooks** → **Add endpoint**
-2. URL: `https://kindapi-production-e64c.up.railway.app/webhooks/stripe`
+2. ⛓️ **23 Sep (checked against main `83e9c1b`):** the only webhook handler is **`POST /stripe/webhook`** (`routes/stripe.ts:183`, mounted at `index.ts:267`); `/webhooks/stripe` has a raw-body parser but no route (`index.ts:105`). Which URL Stripe actually calls is RUNTIME UNVERIFIED. ~~URL: `https://kindapi-production-e64c.up.railway.app/webhooks/stripe`~~
 3. Events to listen for: `checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted` (legacy until #431 — per-lead needs only checkout.session.completed + invoice events), `invoice.payment_succeeded`, `invoice.payment_failed`
 4. Click **Add endpoint** → copy the **Signing secret** (`whsec_xxx...`) → add to Railway as `STRIPE_WEBHOOK_SECRET`
 
 ### 6c. Test the webhook
 
-Use Stripe test card `4242 4242 4242 4242`, any future expiry, any CVV. Make a test checkout from the portal billing page. Check Railway logs — you should see the webhook arrive.
+Use Stripe test card `4242 4242 4242 4242`, any future expiry, any CVV. ~~Make a test checkout from the portal billing page.~~ ⛓️ **23 Sep (checked against main `83e9c1b`):** there is no checkout to test — it answers 410 (R137). Check Railway logs — you should see the webhook arrive.
 
 ---
 
@@ -319,7 +325,7 @@ This is required to send and receive email from hello@get-kind.com. **(We use Zo
 
 **After Zoho is live:** Update `FOUNDER_EMAIL` in Railway to `hello@get-kind.com`.
 
-> **Note:** FIGSY cold outreach goes through Resend (from the `gettingkind.com` cold domain), NOT Zoho. Keep them separate to protect the `get-kind.com` reputation.
+> ⛓️ **23 Sep (checked against main `83e9c1b`):** cold outreach goes out over **SMTP from the env-backed pooled senders** (`POOLED_SENDERS_JSON`, R129; `lib/sender-pool.ts` → `lib/mailer.ts`), behind the absolute kill-switch (R114). ~~**Note:** FIGSY cold outreach goes through Resend (from the `gettingkind.com` cold domain), NOT Zoho.~~ Keep them separate to protect the `get-kind.com` reputation.
 
 ---
 
@@ -347,7 +353,7 @@ PDFs are stored in the Supabase `agreement-templates` bucket.
 
 **Time: ~5 minutes**
 
-Set up these 6 cron jobs in Railway → API service → **Cron**. All need the header `x-admin-key: {ADMIN_SECRET_KEY}`.
+⛓️ **23 Sep (checked against main `83e9c1b`):** **there is nothing to set up in Railway.** The API schedules its own jobs in-process (`apps/api/src/cron.ts`, `node-cron`), gated by `RUN_CRONS` (unset = on) with a per-job claim so replicas do not double-run; the trial nurture and trial-expiry jobs were retired 1 Aug (#607) and `/figsy/send-due-all` runs every 2 hours. ~~Set up these 6 cron jobs in Railway → API service → **Cron**. All need the header `x-admin-key: {ADMIN_SECRET_KEY}`.~~
 
 | Schedule | Endpoint | Purpose |
 |----------|----------|---------|
@@ -368,7 +374,7 @@ Run through this checklist before going live with a real client.
 - [ ] Sign up at `app.get-kind.com` with a test email
 - [ ] **No confirmation email required** — lands directly on /onboard
 - [ ] Complete onboarding: company name, industry, country, phone, website
-- [ ] Dashboard loads with trial banner (14 days)
+- [ ] ⛓️ **23 Sep (checked against main `83e9c1b`):** there is no trial (#607) — signup creates a `commercial_model: 'programme'` client (`routes/auth.ts:492`). ~~Dashboard loads with trial banner (14 days)~~
 
 ### AI ICP Suggest
 - [ ] Go to Lead Gen → ICP Builder
@@ -376,12 +382,12 @@ Run through this checklist before going live with a real client.
 - [ ] Manually adjust if needed → Save ICP
 
 ### Lead Generation
-- [ ] Build ICP → Save → PDL + Hunter search fires automatically
+- [ ] ⛓️ **23 Sep (checked against main `83e9c1b`):** sourcing is **Apollo** (FD-6). ~~Build ICP → Save → PDL + Hunter search fires automatically~~
 - [ ] Leads appear within minutes to 2 hours
 - [ ] All leads have AI scores (0–100) with reasoning
 
 ### Billing
-- [ ] Go to Billing → select a plan → Stripe checkout opens
+- [ ] ⛓️ **23 Sep (checked against main `83e9c1b`):** plan checkout is retired (410, R137) — the programme is bought through the programme flow. ~~Go to Billing → select a plan → Stripe checkout opens~~
 - [ ] Test payment completes (card: 4242 4242 4242 4242) → subscription flips to `active`
 - [ ] Trial overlay gone → full access
 
@@ -394,7 +400,7 @@ Run through this checklist before going live with a real client.
 ### Demo Environments
 - [ ] Admin → Demo Environments → create new demo
 - [ ] Fill in prospect name, company, industry, AE name, expiry
-- [ ] System creates user + runs the PDL + Hunter ICP → leads appear
+- [ ] ⛓️ **23 Sep (checked against main `83e9c1b`):** sourcing is Apollo (FD-6). ~~System creates user + runs the PDL + Hunter ICP → leads appear~~
 - [ ] "Open Demo" → portal opens in new tab as demo client
 
 ### Settings
@@ -417,7 +423,7 @@ Run through this checklist before going live with a real client.
 | Webhook not arriving | Wrong URL, no events, or missing signing secret | Re-check Stripe → Webhooks URL, event list, and STRIPE_WEBHOOK_SECRET value |
 | Admin proxy 403 | ADMIN_SECRET_KEY mismatch | Confirm same value in the API service and Admin service (both on Railway) |
 | AI ICP Suggest returns error | Missing Anthropic key | Check `ANTHROPIC_API_KEY` is set in Railway |
-| Demo leads not appearing | PDL / Hunter rate limit or quota | Check Railway logs for PDL / Hunter errors |
+| Demo leads not appearing | ⛓️ **23 Sep (checked against main `83e9c1b`):** Apollo key, credits, or `PAID_PROVIDERS_ENABLED` unset ~~PDL / Hunter rate limit or quota~~ | Check Railway logs for Apollo errors ~~for PDL / Hunter errors~~ |
 | Terms Library shows upload errors | Bucket missing or not public | Create `agreement-templates` bucket in Supabase Storage (public) |
 
 ---
@@ -443,7 +449,7 @@ Run through this checklist before going live with a real client.
 6. Zoho Mail                                               ← needs domain DNS access
 7. Stripe products + webhook                               ← needs Railway URL for webhook
 8. Upload 5 PDFs via Admin → Terms Library                 ← needs Admin deployed + Storage bucket
-9. Set up 6 Railway cron jobs                              ← needs API deployed
+9. ~~Set up 6 Railway cron jobs~~ (nothing to do — crons run in-process, `cron.ts`)   ← ⛓️ 23 Sep
 10. Smoke test                                             ← all systems must be live
 ```
 

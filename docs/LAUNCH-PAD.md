@@ -2,14 +2,37 @@
 
 > **This page is a LIST, not a book** (founder, 21 Aug: *"tracking docs need to be like lists… i cant read 60 000 words in 5 minutes"*). Item · one line · owner. **Why** lives in KIND-MASTER · **status** in PRODUCT-INVENTORY · **later** in V2-TRACKER · **rulings** in PRODUCT-RULES.
 > **🆕 28 Aug —** *what needs the founder right now* lives in [`FOUNDER-OPERATING-TRUTH.md`](./FOUNDER-OPERATING-TRUTH.md) (blockers · decisions required · the **two-level task state**, R83) · *where a given truth lives* in [`FOUNDER-TRUTH-REGISTER.md`](./FOUNDER-TRUTH-REGISTER.md) (194 subjects by CMP ID) · *a fresh chat starts at* [`SESSION-BOOTSTRAP.md`](./SESSION-BOOTSTRAP.md). **None of them own status — this page and PRODUCT-INVENTORY still do.**
-> **🚀 R76: WE LAUNCH FRIDAY 4 SEPTEMBER 2026 REGARDLESS OF STATE.** ⛓️ *Supersedes R57's 25 August, which is now history — only the date moved; the slip stays on the record and the date is still unconditional.* **R65:** pause is the default — silence is never a go; a build starts only on the founder's "go". Anything that does not aid the live state moves post-live to V2-TRACKER.
+> ⛓️ **PASSED — the launch day below is history (23 Sep): production has live clients (R135, R138).** ~~**🚀 R76: WE LAUNCH FRIDAY 4 SEPTEMBER 2026 REGARDLESS OF STATE.**~~ ⛓️ *Supersedes R57's 25 August, which is now history — only the date moved; the slip stays on the record and the date is still unconditional.* **R65:** pause is the default — silence is never a go; a build starts only on the founder's "go". Anything that does not aid the live state moves post-live to V2-TRACKER.
 > The full pre-surgery page is kept verbatim at [`archive/LAUNCH-PAD-2026-08-21.md`](./archive/LAUNCH-PAD-2026-08-21.md).
 
-**Board:** 🟢106 · 🩷309 · 🟣2 · 🟡52 · 🔴191 · ⏸7 · **Σ667** · live count: `scripts/count-inventory.sh`
+## ✅ VERIFIED STATE — 23 Sep 2026 (`origin/main` = `83e9c1b` · live = `6a93c77`)
+
+- **Live = `6a93c77`.** The API, Milla, Vida and the website all report it from their health endpoints (checked 23 Sep). `main` is one merge ahead — #1738 (R142, Apollo seniority values) is merged but not yet shipped; merging does not deploy, `scripts/ship.sh` does. *RUNTIME VERIFIED.*
+- **Database matches the code.** All migrations applied, founder-checked in Vida → Engine, 23 Sep. *RUNTIME VERIFIED (founder).*
+- **Gate.** `check.sh` passes on `main` `83e9c1b` + this docs change (500 test files · 10,533 tests) **once `@kind/db` is built**; on a fresh clone it fails the type-check and 34 tests because the gate builds `@kind/shared` but never `@kind/db`. *CODE VERIFIED.*
+- **Money.** Programme only — **$450 per *qualified* meeting**, 50/50 (R141, 23 Sep) — $299 / $4 retired (R124 16 Sep · R137 23 Sep). **Partners frozen** (R139, 23 Sep).
+- **Preview site not in use.** `staging` is 743 commits behind `main`; every change since 20 Aug went straight to live (RULEBOOK §11).
+- **GitHub caught up 23 Sep.** 71 obsolete audit issues and 15 finished/superseded inventory issues closed; every remaining open issue (114) carries a dated "where this stands" comment; PRs #1665–#1668 closed as already in `main`.
+
+## ▶️ THIS WEEK — runlist
+
+| # | Action *(GitHub # = issue on github.com · inventory # = PRODUCT-INVENTORY row)* | Owner |
+|---|---|---|
+| W1 | Confirm `POOLED_SENDERS_JSON` is set on Railway — unset, every programme stops at Prepare (GitHub #1484 · inventory #710) | 🧍 |
+| W2 | GO / no-GO: a sequence keeps sending if its campaign settings can't be read (GitHub #1527) | 🧍 |
+| W3 | GO / no-GO: `check.sh` must build `@kind/db` so it passes on any machine (GitHub #1548) | 🧍 |
+| W4 | GO / no-GO on three code risks found 23 Sep (CODE VERIFIED, RUNTIME UNVERIFIED): ① PDL is only half off — `pdl-search.ts:405-408` checks just the key, so client preview samples (`icps.ts:3296`) and `/engine/leads/test` still call PDL if `PDL_API_KEY` is set · ② the old `/leads/drip` cron still delivers pool leads to any client with a wallet balance, which a programme shortfall credit creates (`internal.ts:1856`) · ③ the cold-client pause counts a shortfall credit as "paid" (`onboarding-pack.ts:41`, `programme.ts:1915`) | 🧍 |
+| W6 | Retention-clock ruling (GitHub #1472 · inventory #704) · engage the accountant before revenue (GitHub #1600) | 🧍 |
+
+*Settled 23 Sep by R141 — no longer on the list: the website may show $450, and "qualified meeting" has its rule.*
+
+**Board:** 🟢106 · 🩷356 · 🟣2 · 🟡24 · 🔴179 · ⏸7 · **Σ674** · live count: `scripts/count-inventory.sh`
 
 ---
 
 ## 🛑 THE CUT — the only work between here and live
+
+> ⛓️ **HISTORY (23 Sep): the launch day has passed — the cut below is kept verbatim, not current work.** C2f merged as #1701 / #1702 · C3's $4 money walk is retired (R137) · C6's partner work is frozen (R139) · C9's send day was 4 Sep. Current work is the runlist above.
 
 > ⛓️ **RE-DATED 28 Aug (R76): this was "THE 25TH CUT". The launch day is now FRIDAY 4 SEPTEMBER 2026.** The list below is unchanged in content — the same work, against a new day. Rows still reading "pre-25" mean **pre-launch**; C9's send day moves to 4 Sep.
 
@@ -36,6 +59,8 @@
 
 ## 🔴 25 AUG — THE PROOF JOURNEY IS NOT DONE, AND THIS IS THE PLAN TO FINISH IT
 
+> ⛓️ **HISTORY (23 Sep, checked against main `83e9c1b`): this was the plan for a 4 Sep launch.** The Proof journey has since been rebuilt on Apollo — client Proof sources through Apollo (AR19, 15 Sep), PDL is retired (FD-6, 17 Sep), the one calibrated restart carries its own 20 records (R134, 19 Sep) and Proof opens only when 20 people are ready (R138, 23 Sep; inventory #709). The PDL-era steps below (T1, T2, T9, T11) are moot. Kept verbatim.
+
 > Founder-set 25 Aug, after the live pass-1 attempt. ⛓️ **28 Aug: the DATE moved to Friday 4 September (R76) — the discipline did not. The date still does not bend.** What this section records is that the free-proof journey itself is not complete, and the exact order it is being finished in. Rulings behind it: **R66** (paid testing freeze) · **R67** (retention ≠ contactability) · **R79** (the launch experience must be finished, not merely working).
 
 | # | Action | Owner | When |
@@ -58,6 +83,8 @@
 ---
 
 ## 🧭 28 AUG — THE FOUNDER TRUTH RESET: THE FOUR DECISIONS AND WHAT THEY CHANGE
+
+> ⛓️ **23 Sep (checked against main `83e9c1b`):** D1's launch date has passed. D6's curve is **built** and is the only live price (`packages/shared/src/programme-pricing.ts`; R137, R141 — sold per *qualified* meeting). D3's partner share is frozen with partners (R139). D2 is re-set by R136 (250 expected, 400 limit, never shown to the client). #706 (trial copy in the Vida playbook) is **still true** — 7 lines in `apps/admin/src/app/playbook/page.tsx` (GitHub #1494). Kept as the record of 28 Aug.
 
 > The founder ran an eight-step reconciliation of the whole repo. Evidence chain (frozen, do not edit): [`FOUNDER-TRUTH-INVENTORY-2026-08-28.md`](./FOUNDER-TRUTH-INVENTORY-2026-08-28.md) · [`FOUNDER-TRUTH-COMPARISON-2026-08-28.md`](./FOUNDER-TRUTH-COMPARISON-2026-08-28.md) · [`FOUNDER-TRUTH-CLASSIFICATION-2026-08-28.md`](./FOUNDER-TRUTH-CLASSIFICATION-2026-08-28.md). Rulings: **R76 … R81** in PRODUCT-RULES.
 > ⚠️ **A DECISION RECORDED IS NOT A BUILD AUTHORISED (R75/R65).** Everything below marked UNBUILT stays unbuilt until the founder says go.
@@ -85,13 +112,15 @@
 
 ## 💰 BEFORE FRIDAY'S PARTNER MEETING — the commercial pack
 
+> ⛓️ **HISTORY (23 Sep): the meeting date has passed and partners are frozen (R139, 23 Sep), so M4 is moot. M5's "$299 + $4" review is overtaken — R124 (16 Sep) and R137 (23 Sep) retired that model; the price is R141's $450 per qualified meeting on the R81 curve.** Any per-client economics now start from the programme. Kept verbatim.
+
 > Model of record stays [`CASHFLOW-LAB.html`](./CASHFLOW-LAB.html); partner maths stays [`hiring/KIND-partner-calculator.html`](./hiring/KIND-partner-calculator.html). **Nothing here changes pricing** — PR1's $299 lock stands until the founder rules otherwise after reading the evidence.
 > ⛓️ **28 Aug — READ THIS BEFORE THE TABLE. The founder HAS since ruled on the direction, and it does not change what is live.** The **programme model** is the approved commercial destination with an exact locked curve (**R81**) and a defined contribution basis (**R78**) — **and none of it is built.** **The live commercial truth this pack must model is unchanged: $299 pack · first 100 approvals included · $4 per approved lead.** M5 below is therefore no longer *"the founder decides any change"* — the direction is decided; what M5 still owes is the **evidence** that the curve and the ~70% contribution target survive real unit economics. **M7 and M8 remain UNRESOLVED and still block M2.**
 
 | # | The question to answer | Owner |
 |---|---|---|
 | M1 | **Worst-case client acquisition cost** on conservative outbound run rates, response/conversion rates and win rates | 🤖 |
-| M2 | **Per-client economics** — $299 · first 100 approved included · $4 after · provider/data cost · mailbox + domain · warm-up allocation · known AI/provider cost · gross profit · gross margin · contribution margin · CAC payback · LTV/CAC · cash to sustain growth | 🤖 |
+| M2 | **Per-client economics** — ⛓️ *re-base on the programme (R137, 23 Sep); the $299/$4 inputs are retired* · ~~$299 · first 100 approved included · $4 after~~ · provider/data cost · mailbox + domain · warm-up allocation · known AI/provider cost · gross profit · gross margin · contribution margin · CAC payback · LTV/CAC · cash to sustain growth | 🤖 |
 | M3 | **5 new clients per month** planning scenario | 🤖 |
 | M4 | **Partner channel** — economics where a partner introduces and scales clients without K.I.N.D running its own outbound engine. ⚠️ **CAC is never described as zero** unless the model states the partner/channel cost, the servicing cost and the commercial share | 🤖 |
 | M5 | **Pricing-model review** — $299 + $4/approved-lead against real unit economics, margin, value perception and willingness-to-pay evidence. **Evidence only; the founder decides any change** | 🤖 |
@@ -109,7 +138,7 @@
 
 | Fact | The number / the order |
 |---|---|
-| Cost floor | The cost floor is **$352/mo all-in** — $146 platform + $206 company. At $4/approved lead the platform half alone is ~37 approvals a month, roughly one client. *(Model of record: [`CASHFLOW-LAB.html`](./CASHFLOW-LAB.html).)* |
+| Cost floor | The cost floor is **$352/mo all-in** — $146 platform + $206 company. ⛓️ *23 Sep: the $4 per lead is retired (R137) — the programme now carries this floor, and a per-client break-even needs re-basing on it.* ~~At $4/approved lead the platform half alone is ~37 approvals a month, roughly one client.~~ *(Model of record: [`CASHFLOW-LAB.html`](./CASHFLOW-LAB.html).)* |
 | A12 · Failover teardown | Failover teardown ($12/mo back) — **DNS repoint FIRST**, then tear down; the order is in [`render-cloudflare-failover.md`](./render-cloudflare-failover.md) and getting it backwards breaks production. 🧍 |
 
 ---
@@ -118,16 +147,16 @@
 
 | # | The question |
 |---|---|
-| F1 | `pdl_cursor` retry — can a retried sourcing run charge twice? |
+| F1 | ⛓️ **Moot 23 Sep — PDL retired (FD-6, 17 Sep).** ~~`pdl_cursor` retry — can a retried sourcing run charge twice?~~ |
 | F2 | Does an opt-out stop us re-SCORING that person, or only stop the sends? (GDPR Art. 21) |
 | F3 | Booking path: timezone-mismatch behaviour still unverified (the rest was line-read and proved live) |
-| F4 | `pending-migrations.ts` header claims the Supabase dashboard cannot be opened — no longer true |
+| F4 | ⛓️ **Closed — fixed in `f9e89d56` (19 Aug); the header now says the dashboard is reachable.** ~~`pending-migrations.ts` header claims the Supabase dashboard cannot be opened — no longer true~~ |
 | F5 | Residency — is `aws-0-eu-west-1` the only place client data lives? (backups · PITR · vendor sub-regions) |
 | F9 | `opted_back_in_at` applied to 10 of 13 blocklist probes — fails closed, but inconsistent |
-| F10 | `suppressOptOut` writes a normalised blocklist row but updates `leads` with the raw address |
-| F11 | `figsy.ts:463` drops a read error on the on-reply path — an unreadable campaign keeps sending |
+| F10 | `suppressOptOut` writes a normalised blocklist row but updates `leads` with the raw address — ⛓️ **still true 23 Sep** (`apps/api/src/lib/reply-ingest.ts:183-196`) |
+| F11 | `figsy.ts:463` drops a read error on the on-reply path — an unreadable campaign keeps sending — ⛓️ **still true 23 Sep; the code is now at `apps/api/src/lib/figsy.ts:520-533`** (GitHub #1527) |
 | F12 | Nothing refuses a secret that is obviously not a secret (`UNSUBSCRIBE_SECRET` held a sentence) |
-| F13 | PDL licence — cross-client reuse unconfirmed against the Order Form (counsel, W18) |
+| F13 | ⛓️ **Moot 23 Sep — PDL retired (FD-6, 17 Sep); the Apollo half is F15.** ~~PDL licence — cross-client reuse unconfirmed against the Order Form (counsel, W18)~~ |
 | F15 | Apollo terms — no Apollo-sourced record delivered to any paying client without a written right |
 | F17 | Does any compliance document still rest on the SA precondition R45 invented? |
 
@@ -139,12 +168,12 @@
 
 | Rule | In one line |
 |---|---|
-| R76 | **Friday 4 September 2026** is unconditional — nothing moves the date *(supersedes R57's 25 Aug)* |
+| R76 | ⛓️ **Passed — history.** ~~**Friday 4 September 2026** is unconditional — nothing moves the date *(supersedes R57's 25 Aug)*~~ |
 | R82 | The **repo** is the durable source of truth and execution evidence — material history is chained or appended, never silently deleted |
 | R83 | A task carries **two** states: founder attention (NOW/NEXT/WAITING/PARKED/RESEARCH/DONE) **and** the Scout/Builder conveyor. **Merged ≠ deployed ≠ proved** |
 | R84 | Notion is an **interface**, never canonical and never the only copy |
 | R79 | Milla + Vida + website launch as ONE finished, premium, conversational experience — **quality is not V2** |
-| R81 | The programme curve is locked and **unbuilt** — the live commercial truth is still $299 + 100 included + $4 |
+| R81 | The programme curve is locked — ⛓️ **built and the only live model since 23 Sep (R137); sold per *qualified* meeting (R141)**; ~~unbuilt — the live commercial truth is still $299 + 100 included + $4~~ |
 | R65 | Pause is the default · silence is never a go · not-live-aiding → V2 · LAUNCH-PAD updated in the same PR as every merge |
 | R64 | Prove which route renders a surface before building into it (`scripts/dead-surfaces.sh`) |
 | R62 | The product keeps UK time — Europe/London |

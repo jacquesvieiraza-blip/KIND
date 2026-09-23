@@ -1,4 +1,6 @@
 # 💷 Salary & Break-Even Plan — ~£75k / ~$95k a year (You vs a Partner)
+
+> ⚠️ **HISTORICAL — every revenue figure in this plan is a retired per-lead model (£ ladder, $1→$6 ladder, $299 + $4), and the partner half is frozen (R139).** ⛓️ **23 Sep (checked against main `83e9c1b`):** the live model is the **programme, for every account** — **$450 per qualified meeting** on the R81 curve ($450 → $437.50 at 10 → $400 floor from 50), paid 50/50, P1 at start and P2 at approval (**R141**; `packages/shared/src/programme-pricing.ts`); the $299 pack, $4 per approved lead, top-ups, subscriptions and trials are retired in code (**R124 · R137**). Kept as the record, not as current truth.
 > ⚠️ Re-based 9 Jul to the per-qualified-lead model (no subscriptions/MRR) — mechanics kept, denominations changed. ⛓️ **15 Aug (docs audit): the £-ladder figures in the body below are the RETIRED pricing — price of record is $299 pack + $4 per approved lead (24 Jul, re-locked 3 Aug). Read the shape of the plan here, never a number.**
 `Last-checked: 24 Jun 2026` _(audit: comp model verified vs `comp-engine.ts` 20%/5% — clean)_
 

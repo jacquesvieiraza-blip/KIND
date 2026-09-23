@@ -1,7 +1,7 @@
 # 🧬 K.I.N.D — SCHEMA DRIFT (#558)
 
 > **What the repo can PROVE about the database, and what it cannot.**
-> `Last-checked: 30 Jul 2026` — derived from source by `apps/api/src/lib/schema-drift.ts`, not from memory.
+> ⛓️ **23 Sep (checked against main `83e9c1b`):** counts re-read from the code and the guard (`schema-drift.test.ts:343/359/392`): **200** `.sql` files in `supabase/migrations`, **88** runner entries in `PENDING_MIGRATIONS`, tombstoned 19 + 13 unchanged, and the migrations declare **85** tables. The per-table findings below are the 30 Jul – 6 Aug record. ~~`Last-checked: 30 Jul 2026`~~ — derived from source by `apps/api/src/lib/schema-drift.ts`, not from memory.
 > ⚠️ ~~**Nothing here was checked against production.**~~ **CORRECTED 6 Aug — production HAS now answered, twice.** A15 fixed `DATABASE_URL` (session pooler) and the founder pressed **Vida → Engine → Schema probe**: ten named questions answered from the live database — `leads.source` and all five audit columns EXIST (created by the 6-Aug migrations, 16/16 applied), **`whatsapp_messages` and `subscribers` EXIST** (hand-created in the SQL-editor era — the ❓ on both resolves to a fact), and exactly ONE row could not be answered (`opt_out_blocklist.whatsapp_number` — an error with no message, honestly NOT read as absence). Claims below not covered by those ten rows remain claims about the **repo**.
 
 ## The finding, in one paragraph
@@ -14,16 +14,16 @@
 
 | Directory | Files | Applied by |
 |---|--:|---|
-| **`supabase/migrations`** | **128** (94 + 32 consolidated + 1 recovered + 1 added since: #607) | nothing — there is **no `supabase/config.toml`**, so the Supabase CLI was never wired up |
+| **`supabase/migrations`** | ⛓️ **23 Sep (checked against main `83e9c1b`):** **200** · ~~**128** (94 + 32 consolidated + 1 recovered + 1 added since: #607)~~ | nothing — there is **no `supabase/config.toml`**, so the Supabase CLI was never wired up |
 | `apps/api/src/migrations` | 19 · 🪦 tombstoned | nothing, ever |
 | `packages/db/src/migrations` | 13 · 🪦 tombstoned | nothing, ever |
-| **`PENDING_MIGRATIONS`** (a TypeScript constant) | **12** | **Vida → Engine → Run migrations** — the only mechanism the product has |
+| **`PENDING_MIGRATIONS`** (a TypeScript constant) | ⛓️ **23 Sep (checked against main `83e9c1b`):** **88** · ~~**12**~~ | **Vida → Engine → Run migrations** — the only mechanism the product has |
 
 ⚠️ **Consolidating fixes *where things live*, not *what production has*.** Recording a migration and running one are still two different acts: the runner reads the constant, never the directory.
 
 The other **114 were pasted into the Supabase SQL editor by hand**, in an unrecorded order, at unrecorded times, with no record of which ones took. That is the drift. **It is not that a column is wrong — it is that nothing in the repo knows what ran**, and now the editor that did the running cannot be opened.
 
-On top of that, **three files each claim to be the schema**: `packages/db/src/schema.sql` (10 tables), `supabase/staging-schema.sql` (54), `supabase/MASTER_SCHEMA.sql` (13, "Last updated: 2026-05-27"). The migrations create **68**; the code writes to **61**.
+On top of that, **three files each claim to be the schema**: `packages/db/src/schema.sql` (10 tables), `supabase/staging-schema.sql` (54), `supabase/MASTER_SCHEMA.sql` (13, "Last updated: 2026-05-27"). ~~The migrations create **68**~~ ⛓️ **23 Sep (checked against main `83e9c1b`):** the migrations declare **85** tables (`schema-drift.test.ts:392`); the code writes to **61** (30 Jul count, not re-measured).
 
 ## The three verdicts, and why the third is not a hedge
 
@@ -321,5 +321,5 @@ Those are the money column, the demo flag, and the timestamps the entire approve
 ## Related
 
 - **`apps/api/src/lib/schema-drift.ts`** — the derivation. `schema-drift.test.ts` fails the gate if `schema.sql` falls behind its own migrations again, or if a new undeclared column appears in a write path.
-- **`apps/api/src/lib/pending-migrations.ts`** — the twelve statements the product can actually run.
+- **`apps/api/src/lib/pending-migrations.ts`** — ⛓️ **23 Sep (checked against main `83e9c1b`):** the **88** entries the product can actually run. ~~the twelve statements the product can actually run.~~
 - **`docs/ENVIRONMENT.md`** (#561) — the same discipline for the environment.

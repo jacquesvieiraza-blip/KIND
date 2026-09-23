@@ -21,7 +21,7 @@ That loop, working reliably, for 20+ paying clients, is the foundation everythin
 | Gate | Why |
 |------|-----|
 | 20+ paying clients | Real usage data. Features built on assumptions are wrong features. |
-| PDL Full + Hunter data live | No data = no patterns to learn from |
+| ⛓️ **23 Sep (checked against main `83e9c1b`):** Apollo data live (Apollo is the only data provider (FD-6, 17 Sep — PDL, Hunter and Clearbit retired in `apps/api/src/lib/retired-providers.ts`).) ~~PDL Full + Hunter data live~~ | No data = no patterns to learn from |
 | FIGSY reply classification running cleanly | Entire self-improving loop depends on this |
 | `figsy_memory` table populated (3 months) | ICP learning engine has nothing until then |
 | Resend inbound routing live | Reply data is lost without this |
@@ -102,7 +102,7 @@ Lemlist combines email + LinkedIn connection + LinkedIn message in one sequence.
 Apollo is the most important company in K.I.N.D's world — simultaneously the data source powering the product, a partial competitor, and the most instructive product to study at scale.
 
 **What Apollo actually is:**
-- Contact database — 275M+ professional contacts. (K.I.N.D's own sourcing is PDL Full + Hunter; Apollo is optional BYOK.)
+- Contact database — 275M+ professional contacts. (⛓️ **23 Sep (checked against main `83e9c1b`):** Apollo is the only data provider (FD-6, 17 Sep — PDL, Hunter and Clearbit retired in `apps/api/src/lib/retired-providers.ts`). ~~K.I.N.D's own sourcing is PDL Full + Hunter; Apollo is optional BYOK.~~)
 - Sequences — DIY outreach automation. This is where Apollo overlaps with FIGSY.
 - CRM / pipeline — Deals, calls, Salesforce sync. K.I.N.D doesn't play here yet.
 
@@ -409,7 +409,7 @@ That content drives SEO, builds trust, and positions K.I.N.D as the category aut
 - Standard published pricing (no custom deals)
 - Commission-based referral programme
 - Partners positioned as trusted resellers, not order-takers
-→ **Built:** Partners page rebuilt on ClickUp/the founder's employer model (apps/website/partners.html)
+→ **Built:** Partners page rebuilt on ClickUp/the founder's employer model (apps/website/partners.html) · ⛓️ **23 Sep (checked against main `83e9c1b`):** partners are frozen (R139, `packages/shared/src/partners-frozen.ts`) — the channel is switched off, nothing deleted.
 
 **UI Patterns (to build in portal — see Pieces 1-5 above)**
 - Command palette (Cmd+K)
@@ -442,7 +442,7 @@ That content drives SEO, builds trust, and positions K.I.N.D as the category aut
 ### What We Exploit (Their Gap)
 - Lemlist is a tool — you still have to write the emails and manage replies manually
 - FIGSY writes the emails AND drafts the replies for approval
-- Lemlist = $59/mo just for the sending tool. KIND = per qualified lead (from $1 reveal), full AI SDR included
+- Lemlist = $59/mo just for the sending tool. KIND = ⛓️ **23 Sep (checked against main `83e9c1b`):** the per-lead and credit pricing is retired (R124 · R137); clients buy a programme at $450 per qualified meeting on the R81 curve (R141). ~~per qualified lead (from $1 reveal), full AI SDR included~~
 - No African contact coverage. No POPIA compliance. *(Note: we bill USD — "ZAR billing" is no longer a KIND advantage.)*
 
 ### What We Don't Build (Their Feature)
@@ -486,7 +486,7 @@ That content drives SEO, builds trust, and positions K.I.N.D as the category aut
 ### What We Exploit (Their Gap)
 - Clay is a power-user tool — requires technical knowledge to set up
 - $149–800/mo just for enrichment. KIND includes enrichment + outreach + management.
-- No African contact coverage. Our multi-source waterfall (PDL discovery + Hunter + stack; Apollo BYOK) covers Africa — 244 verified real data (1,360 SA founders).
+- No African contact coverage. ⛓️ **23 Sep (checked against main `83e9c1b`):** Apollo is the only data provider (FD-6, 17 Sep — PDL, Hunter and Clearbit retired in `apps/api/src/lib/retired-providers.ts`). ~~Our multi-source waterfall (PDL discovery + Hunter + stack; Apollo BYOK) covers Africa — 244 verified real data (1,360 SA founders).~~
 
 ---
 
@@ -494,12 +494,12 @@ That content drives SEO, builds trust, and positions K.I.N.D as the category aut
 
 **URL:** https://app.apollo.io
 **Category:** Lead data + sequences
-**Studied:** Ongoing — Apollo is an optional BYOK source (primary sourcing = PDL Full + Hunter)
+**Studied:** Ongoing — ⛓️ **23 Sep (checked against main `83e9c1b`):** Apollo is the only data provider (FD-6, 17 Sep — PDL, Hunter and Clearbit retired in `apps/api/src/lib/retired-providers.ts`). ~~Apollo is an optional BYOK source (primary sourcing = PDL Full + Hunter)~~
 **Status:** ✅ Integrated (free plan → upgrade after client 1)
 
 ### Our Relationship with Apollo
 
-Apollo is a partial competitor and the most instructive product to study at scale. K.I.N.D's own sourcing runs on PDL Full (sourcing) + Hunter (reveal); Apollo is an optional BYOK source, not the primary database.
+Apollo is a partial competitor and the most instructive product to study at scale. ⛓️ **23 Sep (checked against main `83e9c1b`):** Apollo is now K.I.N.D's only data provider (FD-6, 17 Sep). ~~K.I.N.D's own sourcing runs on PDL Full (sourcing) + Hunter (reveal); Apollo is an optional BYOK source, not the primary database.~~
 
 Where we compete: FIGSY vs Apollo Sequences. Non-overlapping buyers — Apollo sells toolboxes to in-house SDR teams. K.I.N.D sells managed outcomes to founders.
 
@@ -549,7 +549,7 @@ Unlike chatbots (respond) or automation (follow rules) — Apex **acts**.
 | Target customer | African B2B SMBs (5–50 people) | Global SaaS founders |
 | Core job | Find leads, run outreach, book meetings | Run founder's entire workflow |
 | Delivery model | SaaS (we run everything) | Self-hosted (they run it) |
-| Price point | $1–3/credit + from $20/mo | ~$500–1,000+/mo (est.) |
+| Price point | ⛓️ **23 Sep (checked against main `83e9c1b`):** $450 per qualified meeting, programme pricing (R141) ~~$1–3/credit + from $20/mo~~ | ~$500–1,000+/mo (est.) |
 | Barrier to entry | Low — signup today | High — waitlist + technical setup |
 | African market | ✅ Built for it | ❌ No African focus |
 | Lead generation | ✅ Core product | ❌ Not a lead gen tool |

@@ -1,5 +1,7 @@
 # 🖥️ K.I.N.D — Admin Centre spec (Milestone 3)
 
+> ⛓️ ⚠️ **HISTORICAL (23 Sep, checked against main `83e9c1b`): the 1 Jul Admin Centre build spec. The admin app is now Vida — root `/` redirects to `/vida` (`apps/admin/src/app/page.tsx`), legacy pages redirect into `/vida/*` (`apps/admin/src/middleware.ts`), and the console is two workspaces, CLIENTS and COMMAND CENTRE (Cockpit · Delivery · Clients · Money · System · Growth · Company), per R116 (9 Sep; `apps/admin/src/lib/vida-nav.ts`). Partners are frozen (R139). Kept as a record, not current instructions.**
+
 > **What this doc is:** the build spec for the rebuilt Admin Centre — the cockpit WE run the business from. **Status of record lives in PRODUCT-INVENTORY** (#270–#284); **daily execution lives in LAUNCH-PAD**; this doc is the *shape we build to*. Locked 1 Jul 2026.
 > **Build mode: LIVE.** The Admin Centre is internal (founder + staff only), not client-facing → the preview-first gate (RULEBOOK §11) does **not** apply. We build → push live → founder beta-tests in the live system → verify → next.
 

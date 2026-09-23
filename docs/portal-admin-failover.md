@@ -85,6 +85,8 @@ Both services are already defined in `render.yaml` at the repo root
    | `ADMIN_SECRET_KEY` | Railway → admin → Variables (server-side only) |
    | `RESEND_API_KEY` | same (admin sends email via Resend) |
 
+   > ⛓️ **23 Sep (checked against main `83e9c1b`):** **the admin table above is missing two variables the admin app requires** (ENVIRONMENT.md 🔴): **`ADMIN_ALLOWED_EMAILS`** (unset = every Vida page 401s) and **`NEXT_PUBLIC_SUPABASE_ANON_KEY`** (build-time); neither is in `render.yaml`'s `kind-admin-standby` either. On the portal side the three `NEXT_PUBLIC_STRIPE_PRICE_LEADGEN_*` rows are read by no code, and the FIGSY ones feed a Buy button whose checkout answers 410 (R137). The portal login page is `apps/portal/src/app/(auth)/login`, still served at `/login`. Whether either standby is deployed is RUNTIME UNVERIFIED.
+
    > ⚠️ **Do NOT set `NEXT_PUBLIC_ADMIN_KEY` on the standby — or anywhere.** It was
    > removed in the 8-Jun security fix: the `NEXT_PUBLIC_` prefix baked the admin secret
    > into the browser bundle (a full auth-bypass). The admin proxy authenticates

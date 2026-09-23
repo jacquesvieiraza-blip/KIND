@@ -115,7 +115,14 @@ describe('activating an ICP is K.I.N.D\'s decision, not the client\'s', () => {
     process.env.SUPABASE_URL = 'http://localhost:54321'
     process.env.SUPABASE_ANON_KEY = 'test-anon-key'
   })
-  afterEach(() => {
+  // ⚑ 23 Sep — LET THE FIRE-AND-FORGET RUN SETTLE BEFORE THE RESET. Activation starts the first
+  // sourcing run without awaiting it (that is the product's design). If it is still in flight
+  // when this hook resets the module registry and restores the env, its next dynamic import
+  // loads the REAL database client, which throws "Missing SUPABASE_URL" as an unhandled error
+  // that vitest pins on whichever test runs next — about one run in five since #1728 made the
+  // commercial-model resolver in these tests a few awaits slower. No assertion is touched.
+  afterEach(async () => {
+    await new Promise(r => setTimeout(r, 50))
     vi.doUnmock('./start-work'); vi.doUnmock('../routes/admin'); vi.resetModules()
     process.env.ANTHROPIC_API_KEY = prev.anthropic
     process.env.SUPABASE_URL = prev.url
@@ -307,7 +314,14 @@ describe('activation runs as the CLIENT, once, behind the campaign invariant', (
     process.env.SUPABASE_URL = 'http://localhost:54321'
     process.env.SUPABASE_ANON_KEY = 'test-anon-key'
   })
-  afterEach(() => {
+  // ⚑ 23 Sep — LET THE FIRE-AND-FORGET RUN SETTLE BEFORE THE RESET. Activation starts the first
+  // sourcing run without awaiting it (that is the product's design). If it is still in flight
+  // when this hook resets the module registry and restores the env, its next dynamic import
+  // loads the REAL database client, which throws "Missing SUPABASE_URL" as an unhandled error
+  // that vitest pins on whichever test runs next — about one run in five since #1728 made the
+  // commercial-model resolver in these tests a few awaits slower. No assertion is touched.
+  afterEach(async () => {
+    await new Promise(r => setTimeout(r, 50))
     vi.doUnmock('./start-work'); vi.doUnmock('../routes/admin')
     vi.doUnmock('./apollo'); vi.doUnmock('./provider-boundary')
     vi.resetModules()

@@ -6863,7 +6863,7 @@ END $$;
 // the configured URL first, then those, and report which host actually worked so DATABASE_URL
 // can be set to it permanently.
 export type MigrationRunResult = {
-  results: { key: string; ok: boolean; error?: string }[]
+  results: { key: string; ok: boolean; error?: string; skipped?: boolean }[]
   host: string
   usedFallback: boolean
   hint?: string
@@ -6880,7 +6880,10 @@ export type MigrationRunResult = {
   ledgerNote: string | null
 }
 
-export async function runPendingMigrations(passwordOverride?: string | null): Promise<MigrationRunResult> {
+export async function runPendingMigrations(
+  passwordOverride?: string | null,
+  opts?: { force?: boolean },
+): Promise<MigrationRunResult> {
   const url = process.env.DATABASE_URL
   if (!url) throw new Error('DATABASE_URL is not set on this service — add it in Railway → @kind/api → Variables.')
 
@@ -6942,7 +6945,7 @@ export async function runPendingMigrations(passwordOverride?: string | null): Pr
   }
 
   const usedFallback = working !== url
-  const results: { key: string; ok: boolean; error?: string }[] = []
+  const results: { key: string; ok: boolean; error?: string; skipped?: boolean }[] = []
 
   // ── ⚑ 17 Sep (XC-3) — EVERY OUTCOME IS RECORDED AS IT HAPPENS ──────────────────────────
   //
@@ -6959,7 +6962,61 @@ export async function runPendingMigrations(passwordOverride?: string | null): Pr
   let ledgerRecorded = 0
   let ledgerNote: string | null = null
 
+  // ── 🛑 ⚑ 23 Sep — ALREADY-APPLIED KEYS ARE SKIPPED, AND THAT IS WHY THE RUN FINISHES ────
+  //
+  // 🛑 WHAT WAS WRONG, AND IT HAD ALREADY STRANDED TWO MIGRATIONS. This loop ran EVERY key on
+  // its own fresh connection, every time, whatever the ledger said. At 84 keys the run no
+  // longer reached the end of its own array before the request died, so the newest entries
+  // never landed — and the newest entries are, by definition, the ones somebody is waiting for.
+  // `20260922_unlimited_proof_refinement` sat unapplied on production for a day for exactly
+  // this reason, with the screen honestly reporting "not run" and nobody able to change it:
+  // pressing the button again restarted the same 84 and died in the same place.
+  //
+  // ⚠️ THE COMMENT BELOW THIS ONE IS THE HALF-FIX THAT CAME FIRST. Recording each outcome as it
+  // happens made the progress VISIBLE, which was right and is untouched. It did not make the
+  // run finish, and a visible stall is still a stall.
+  //
+  // 🛑 SKIP ONLY WHAT WE POSITIVELY KNOW SUCCEEDED. `never_run`, a recorded FAILURE, and an
+  // unreadable ledger all still run. Re-running an idempotent migration costs a connection;
+  // skipping one we were not sure about leaves a column missing and every reader of it broken,
+  // which is the asymmetry this rule is built around.
+  //
+  // ⚠️ AND THE LEDGER IS READ ON THE RUNNER'S OWN CONNECTION, not through PostgREST. This
+  // function talks to DATABASE_URL directly and may reach a different database than the API
+  // client does; asking one database what to skip and then writing to another is how a
+  // migration gets skipped on the box that never had it.
+  const skip = new Set<string>()
+  if (!opts?.force) {
+    const probe = new Client({ connectionString: working, ssl: { rejectUnauthorized: false }, connectionTimeoutMillis: 8000 })
+    try {
+      await probe.connect()
+      let rows: Array<Record<string, unknown>> = []
+      try {
+        rows = (await probe.query('select key, applied_at, last_outcome from public.app_migrations_applied')).rows
+      } catch {
+        // The outcome columns are newer than the table. Two columns still mean one thing:
+        // this key succeeded once.
+        rows = (await probe.query('select key, applied_at from public.app_migrations_applied')).rows
+      }
+      for (const r of rows) {
+        const outcome = r.last_outcome == null ? null : String(r.last_outcome)
+        const applied = outcome === 'ok' || (outcome === null && r.applied_at != null)
+        if (applied && typeof r.key === 'string') skip.add(r.key)
+      }
+    } catch {
+      // No ledger, or it could not be read: skip NOTHING and run the lot, exactly as before.
+      skip.clear()
+    } finally {
+      await probe.end().catch(() => {})
+    }
+  }
+
   for (const m of PENDING_MIGRATIONS) {
+    // 🛑 A SKIP IS REPORTED, NEVER SILENT. It reads `ok` because the migration IS applied —
+    // that is what the ledger said — and `skipped` so the screen can tell "ran now" from
+    // "already there". A skip that looked identical to a fresh apply would hide the fact that
+    // this run did almost nothing, which is the state an operator most needs to see.
+    if (skip.has(m.key)) { results.push({ key: m.key, ok: true, skipped: true }); continue }
     // A fresh connection per migration so one failure cannot poison the next.
     const client = new Client({ connectionString: working, ssl: { rejectUnauthorized: false }, connectionTimeoutMillis: 8000 })
     let outcome: { ok: boolean; error?: string }

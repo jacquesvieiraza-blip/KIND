@@ -4425,14 +4425,23 @@ operatorRouter.post('/migrations/run', async (req: Request, res: Response) => {
     // never stored, never logged and never written to the audit row. Still not SQL: the only
     // statements that can run are the reviewed, committed ones in pending-migrations.ts.
     const dbPassword = typeof (req.body ?? {}).db_password === 'string' ? (req.body as { db_password: string }).db_password : null
-    const run = await runPendingMigrations(dbPassword)
+    // ⚑ 23 Sep — `force` replays keys the ledger already records as applied. The default is to
+    // skip them, because running all 84 on their own connections no longer finished inside the
+    // request and the newest entries — the ones somebody is waiting for — never landed. Force
+    // exists for the one case skipping is wrong: a migration whose BODY changed after it ran.
+    const force = (req.body ?? {}).force === true
+    const run = await runPendingMigrations(dbPassword, { force })
     const results = run.results
     await writeOperatorAudit({
       operatorEmail: operatorEmail(req), clientId: null, action: 'run_migration',
       subjectType: 'migration', subjectId: null,
       detail: {
-        ran: results.filter(r => r.ok).map(r => r.key),
+        // ⚑ 23 Sep — SKIPPED IS ITS OWN LIST. Folding an already-applied key into `ran` would
+        // make the audit row claim this run applied 84 migrations when it applied three.
+        ran: results.filter(r => r.ok && !r.skipped).map(r => r.key),
+        skipped: results.filter(r => r.skipped).length,
         failed: results.filter(r => !r.ok).map(r => r.key),
+        forced: force,
         host: run.host, used_pooler_fallback: run.usedFallback,
       },
     })

@@ -334,6 +334,11 @@ const LANGUAGE_HITS: Array<{ file: string; what: string; klass: 'A' | 'B'; why: 
   // meant WITHOUT anything having to interpret them. A pick is the one input on this screen
   // that cannot be misread.
   { file: 'apps/portal/src/app/(milla)/milla/welcome/page.tsx', what: 'PickField/savePick — 3 `chosen.includes(v)` membership checks on the client\'s own picked chips', klass: 'B', why: 'asks whether a chip the client selected is already selected; no sentence is read and no meaning is inferred' },
+  // ⚑ 23 Sep (R142 · A2a) — FOUR MORE, ALL IN THE INDUSTRY PICKER'S FILTER BOX. Apollo's list is
+  // ~150 entries, so the closed dropdown gets a "type to find" box: `draft.trim().toLowerCase()`,
+  // `o.toLowerCase().includes(q)`, and `!chosen.includes(o)`. It narrows which LIST ENTRIES are
+  // shown; it decides nothing, stores nothing, and the client still clicks the entry they mean.
+  { file: 'apps/portal/src/app/(milla)/milla/welcome/page.tsx', what: 'PickField industry filter — 4 ops (`draft.trim().toLowerCase()`, `o.toLowerCase().includes(q)`, `!chosen.includes(o)`) narrowing the visible entries of Apollo\'s closed list', klass: 'B', why: 'filters which dropdown entries are SHOWN; the client still picks one — nothing is inferred or stored from what they type' },
   { file: 'apps/portal/src/components/milla/MillaConversation.tsx', what: 'PAUSE_STAGES / ROI_STAGES / OUTREACH_STAGES .includes(prog.stage)', klass: 'B', why: 'membership on a STAGE ENUM the server issued, never on what the client typed' },
   { file: 'apps/portal/src/app/(milla)/milla/page.tsx', what: 'OUTREACH_STAGES.includes(prog.stage)', klass: 'B', why: 'same stage enum, a render gate' },
   { file: 'apps/portal/src/app/(dashboard)/AgentColumn.tsx', what: 'pathname regexes ×3', klass: 'B', why: 'URL routing; the subject is the address bar, not a sentence' },
@@ -382,7 +387,8 @@ describe('M5 — no deterministic code decides what a customer meant', () => {
       // customer's words would land in one of them and push its count past the pin.
       // ⛓️ 22 Sep — 8 → 11. The three new hits are the editable workspace fields; see the
       // LANGUAGE_HITS entry above for why a pick is the one input here that cannot be misread.
-      'apps/portal/src/app/(milla)/milla/welcome/page.tsx': 11,
+      // ⛓️ 23 Sep (R142 · A2a) — 11 → 15: the industry picker's filter box, classified above.
+      'apps/portal/src/app/(milla)/milla/welcome/page.tsx': 15,
       'apps/portal/src/components/milla/MillaConversation.tsx': 3,
       'apps/portal/src/app/(milla)/milla/page.tsx': 1,
       'apps/portal/src/app/(dashboard)/AgentColumn.tsx': 3,

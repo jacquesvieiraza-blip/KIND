@@ -161,7 +161,10 @@ describe('the workspace is six fields before the client has said a word', () => 
     ['seniority', 'Seniority'],
     ['company_size', 'Employees'],
     ['geography', 'Location'],
-    ['target_category', 'Order by (never excludes)'],
+    // ⛓️ 23 Sep (R142 · A2a) — WAS `'Order by (never excludes)'`. The client now picks their
+    // industry from Apollo's own list here (founder: *"milla must say please look to the right and
+    // drop down and choose"*). Still six fields, same order, same ids.
+    ['target_category', 'Industry'],
     ['exclusions', 'Never contact'],
   ] as const
 
@@ -196,7 +199,10 @@ describe('the workspace is six fields before the client has said a word', () => 
     // If the portal had to work this out from the row id, the vocabulary boundary this read
     // model exists to hold would be broken by its own empty state.
     expect(rows.find(r => r.id === 'exclusions')!.placeholder).toBe('Milla will ask')
-    for (const r of rows.filter(r => r.id !== 'exclusions')) {
+    // ⛓️ 23 Sep (R142 · A2a) — Industry joins exclusions as a field Milla does NOT fill: the client
+    // chooses it from Apollo's list, so its empty state says so.
+    expect(rows.find(r => r.id === 'target_category')!.placeholder).toBe('Choose from the list')
+    for (const r of rows.filter(r => r.id !== 'exclusions' && r.id !== 'target_category')) {
       expect(r.placeholder).toBe('Milla will fill this')
     }
   })
@@ -210,15 +216,16 @@ describe('the workspace is six fields before the client has said a word', () => 
     expect(rows.find(r => r.id === 'company_size')!.said).toBe('')
   })
 
-  it('🛑 the category NEVER claims to remove anybody, answered or not', async () => {
-    // ⛓️ The note used to be attached only when `industries` came back EMPTY — so the client
-    // was reassured precisely when it excluded nobody and told nothing when it excluded
-    // thousands. The lock names the field "Order by (never excludes)" unconditionally.
+  // ⛓️ 23 Sep (R142 · A2a) — INVERTED. WAS: '🛑 the category NEVER claims to remove anybody,
+  // answered or not' — label "Order by (never excludes)" and note "used to order the results — it
+  // never leaves anybody out", unconditionally. Founder, 23 Sep: *"this is why we use apollo drop
+  // downs and make sure we do not assume."* The field is now the client's Industry pick from
+  // Apollo's own list, and it says where its values come from — whatever they said about it.
+  it('🛑 the industry field says it is Apollo\'s list, answered or not', async () => {
     for (const facts of [null, { target_category: 'professional-services firms' }, { target_category: 'SaaS' }]) {
       const row = (await panel(facts))!.find(r => r.id === 'target_category')!
-      expect(row.label).toBe('Order by (never excludes)')
-      expect(row.note, `the ordering promise vanished for ${JSON.stringify(facts)}`)
-        .toBe('used to order the results — it never leaves anybody out')
+      expect(row.label).toBe('Industry')
+      expect(row.note, `the source line vanished for ${JSON.stringify(facts)}`).toBe('from Apollo’s own industry list')
     }
   })
 

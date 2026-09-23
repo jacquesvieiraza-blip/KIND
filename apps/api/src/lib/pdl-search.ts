@@ -208,7 +208,7 @@ export function buildPdlBody(icp: IcpQuery, size: number, scrollToken?: string |
 export async function pdlSearchDiagnostic(
   icp: IcpQuery,
 ): Promise<{ configured: boolean; ok: boolean; status: number | null; count: number; error: string | null; rawFirst?: unknown }> {
-  // ⛓️ R143 (23 Sep) / FD-6 (17 Sep) — PDL IS RETIRED, IN CODE, BEFORE THE KEY IS READ. See
+  // ⛓️ R146 (23 Sep) / FD-6 (17 Sep) — PDL IS RETIRED, IN CODE, BEFORE THE KEY IS READ. See
   // `pdlSearchPage` below: a key being present must not turn a retired vendor back on.
   if (refuseRetiredProvider('pdl', 'pdlSearchDiagnostic')) {
     return { configured: false, ok: false, status: null, count: 0, error: 'PDL is RETIRED (FD-6) — not called' }
@@ -408,7 +408,7 @@ export type PdlPage = {
  * ladder costs nothing extra.
  */
 export async function pdlSearchPage(icp: IcpQuery, size = 50, scrollToken: string | null = null, opts?: PdlSearchOptions): Promise<PdlPage> {
-  // ⛓️ R143 (23 Sep, founder): *"Apollo is it for now. we will add once we get one provider
+  // ⛓️ R146 (23 Sep, founder): *"Apollo is it for now. we will add once we get one provider
   // right."* FD-6 (17 Sep) retired PDL, and `enrichment.ts` refuses it through the lock — but
   // THIS function, the one every PDL search goes through, gated on nothing but the key. So
   // the client ICP preview's samples and `/engine/leads/test` would call PDL again the moment

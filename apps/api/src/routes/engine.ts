@@ -67,7 +67,7 @@ engineRouter.get('/leads/test', async (req: Request, res: Response) => {
       industries:       csv(req.query.industry,   []),
     }
 
-    // ⛓️ R143 (23 Sep) / FD-6 — a key does not make PDL a source. `pdl-search` refuses it
+    // ⛓️ R146 (23 Sep) / FD-6 — a key does not make PDL a source. `pdl-search` refuses it
     // anyway; this keeps the report from claiming a source that was never asked.
     const pdlConfigured = !!process.env.PDL_API_KEY && !providerRetired('pdl')
     const hunterConfigured = !!process.env.HUNTER_API_KEY
@@ -117,7 +117,7 @@ engineRouter.get('/leads/test', async (req: Request, res: Response) => {
       enrichmentWaterfall,
       note: pdlConfigured
         ? 'PDL discovery + Hunter/Clearbit enrichment — Apollo NOT used. Source label shown per lead.'
-        : 'PDL is RETIRED (FD-6 / R143) — PDL discovery is off in code and a key does not re-enable it.',
+        : 'PDL is RETIRED (FD-6 / R146) — PDL discovery is off in code and a key does not re-enable it.',
     })
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : 'leads test failed'

@@ -43,7 +43,7 @@ import { join } from 'path'
 // Part 1 can import the real search module without a database.
 vi.mock('./alerts', () => ({ sendFounderAlert: async () => undefined }))
 
-// ⛓️ R143 (23 Sep) — `pdlSearchPage` now refuses PDL through the retired-provider lock, WITH A
+// ⛓️ R146 (23 Sep) — `pdlSearchPage` now refuses PDL through the retired-provider lock, WITH A
 // KEY SET, before any request is built. The cases below drive the RETAINED PDL response
 // handling with a mocked `fetch`; that knowledge is kept (retire, don't delete), so the lock
 // is lifted for PDL ONLY, in this file only — Hunter and Clearbit stay refused. The same

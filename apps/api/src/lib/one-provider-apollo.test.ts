@@ -266,9 +266,9 @@ describe('XC-13 · the operator-facing copy names Apollo, not PDL', () => {
   })
 })
 
-// ── ④ R143 · THE PDL SEARCH MODULE ITSELF REFUSES, WITH THE KEY SET ──────────────
+// ── ④ R146 · THE PDL SEARCH MODULE ITSELF REFUSES, WITH THE KEY SET ──────────────
 //
-// R143 (23 Sep, founder): "Apollo is it for now. we will add once we get one provider right."
+// R146 (23 Sep, founder): "Apollo is it for now. we will add once we get one provider right."
 //
 // ② proves the SOURCING paths do not call `pdl-search`. It does so by mocking the module,
 // which is exactly why it could not see the two callers that were left: the client ICP
@@ -278,7 +278,7 @@ describe('XC-13 · the operator-facing copy names Apollo, not PDL', () => {
 //
 // These cases use the REAL module with the key PRESENT and a spy on `fetch`. The only
 // assertion that matters is that no request leaves for peopledatalabs.com.
-describe('R143 · with PDL_API_KEY SET, the PDL search module never leaves the building', () => {
+describe('R146 · with PDL_API_KEY SET, the PDL search module never leaves the building', () => {
   const saved = { ...process.env }
   let urls: string[]
 
@@ -367,7 +367,7 @@ describe('R143 · with PDL_API_KEY SET, the PDL search module never leaves the b
     const { icpRouter } = await import('../routes/icps')
     const handler = lastHandler(icpRouter, 'post', '/preview-count')
     const res = mockRes()
-    await handler({ body: { job_titles: ['R143-client-preview'], geographies: ['United Kingdom'] }, userId: 'u1', headers: {} }, res)
+    await handler({ body: { job_titles: ['R146-client-preview'], geographies: ['United Kingdom'] }, userId: 'u1', headers: {} }, res)
     expect(res.body?.success, 'the preview handler did not complete').toBe(true)
     expect(pdlUrls(), 'the client preview sampled from PDL').toEqual([])
   })

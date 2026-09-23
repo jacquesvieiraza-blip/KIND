@@ -1,7 +1,7 @@
 # ⚙️ K.I.N.D — THE ENVIRONMENT (#561)
 
 > **Every environment variable the three deployed apps read, what breaks without it, and which Railway service holds it.**
-> `Last-checked: 30 Jul 2026` — swept from source, not from memory.
+> ⛓️ **23 Sep (checked against main `83e9c1b`):** re-swept with `env-inventory.ts` — the 114 / 96 / 18 count below still holds; the rows marked ⛓️ were corrected. ~~`Last-checked: 30 Jul 2026`~~ — swept from source, not from memory.
 > **This doc and `apps/api/src/lib/startup-check.ts` are two views of one fact.** The doc is what you read while deciding what to set; the startup check is what the running process says about what it actually found. `env-doc-drift.test.ts` fails the gate when either drifts from the source.
 
 ## The number
@@ -41,7 +41,7 @@ The second was subtler and worth recording, because it is the same defect this r
 - **`INSTANTLY_API_KEY` — idle, not wrong.** Since the #577 amendment Instantly is a **warmup utility only** and the API is never called. A key sitting there does nothing.
 - **`SUPABASE_ANON_KEY` was effectively required and listed nowhere.** `middleware/auth.ts` calls `createClient(url!, process.env.SUPABASE_ANON_KEY!)` at module scope and supabase-js **throws** on an undefined key — so the API does not boot without it. It is 🔴 now.
 - **`PAYSTACK_SECRET_KEY`, `FLUTTERWAVE_SECRET_KEY`, `FLUTTERWAVE_WEBHOOK_HASH` are dead.** Paystack was removed in #352 and Flutterwave was never wired. Nothing reads them but the `/engine/env` probe. Delete them from Railway.
-- **`DATABASE_URL` is currently mangled** (#558) — a placeholder reference was pasted in. It breaks *Run migrations*, *RLS audit* and *Backup manifest*. Nothing client-facing.
+- ⛓️ **23 Sep (checked against main `83e9c1b`):** whether `DATABASE_URL` is still mangled is a runtime fact this sweep cannot see (RUNTIME UNVERIFIED); it is what the migration runner (`apps/api/src/lib/pending-migrations.ts`, 88 entries) connects with. ~~**`DATABASE_URL` is currently mangled** (#558)~~ — a placeholder reference was pasted in. It breaks *Run migrations*, *RLS audit* and *Backup manifest*. Nothing client-facing.
 
 ### 🔴 Required — the API does not start without these
 
@@ -74,18 +74,18 @@ Every row here fails **quietly**. Nothing throws; a feature just does not happen
 | `FIGSY_UNSUB_MAILTO` | api | 🟠 important | List-Unsubscribe mailto — unset = the one-click header is absent and Gmail penalises the domain | Railway → **@kind/api** |
 | `FOUNDER_EMAIL` | api | 🟠 important | Where every alert goes — unset falls back to hello@get-kind.com | Railway → **@kind/api** |
 | `HOUSE_LAUNCH_PROGRAMME_ID` | api | 🟠 important | The uuid of the ONE programme the approved five-step House launch sequence may be seeded into. **Unset = nothing is seeded anywhere**, which is the safe default and the state every deployment starts in — preparation then refuses to enrol rather than enrolling against words nobody approved. It is not `audience === 'house'`: that classification matches every House programme ever created, including next month's. A wrong uuid cannot seed a customer either — the named programme must ALSO belong to a proved House client | Railway → **@kind/api** |
-| `HUNTER_API_KEY` | api | 🟠 important | Hunter.io — email reveal in the enrichment waterfall | Railway → **@kind/api** |
+| `HUNTER_API_KEY` | api | ⛓️ **23 Sep (checked against main `83e9c1b`):** ⚪ optional (`startup-check.ts:92`) ~~🟠 important~~ | ⛓️ **23 Sep (checked against main `83e9c1b`):** **LOCKED OFF (FD-5, 17 Sep)** — unset is the correct state; the only reader is the `lead-delivery.ts:126` reveal step, a no-op without it. ~~Hunter.io — email reveal in the enrichment waterfall~~ | Railway → **@kind/api** |
 | `INBOX_SECRET_KEY` | api | 🟠 important | Mailbox password key (64 hex) — unset = saved SMTP passwords cannot be read, so NOTHING sends and the add-mailbox form refuses | Railway → **@kind/api** |
-| `PDL_API_KEY` | api | 🟠 important | People Data Labs — PRIMARY lead sourcing; unset (with no Apollo) = zero leads | Railway → **@kind/api** |
+| `PDL_API_KEY` | api | ⛓️ **23 Sep (checked against main `83e9c1b`):** ⚪ optional (`startup-check.ts:86`) ~~🟠 important~~ | ⛓️ **23 Sep (checked against main `83e9c1b`):** **RETIRED (FD-6, 17 Sep)** — Apollo is the only provider (`provider-boundary.ts` `MVP1_SEARCH_PROVIDER`); unset is the correct state. ~~People Data Labs — PRIMARY lead sourcing; unset (with no Apollo) = zero leads~~ | Railway → **@kind/api** |
 | `PORTAL_URL` | api | 🟠 important | Portal URL — used in email links and CORS | Railway → **@kind/api** |
 | `ADMIN_URL` | api | ⚪ optional | Vida console URL, used only for the "counter-sign this partner" link in the R42 alert email. Unset falls back to the production console — the email still works, it just always points at production, which is why staging should set it. | Railway → **@kind/api** |
 | `RESEND_WEBHOOK_SECRET` | api | 🟠 important | Resend inbound webhook — unset = client replies rejected (no reply capture) | Railway → **@kind/api** |
-| `STRIPE_PRICE_FIGSY_100` | api | 🟠 important | Stripe price ID — FIGSY 100 bundle | Railway → **@kind/api** |
-| `STRIPE_PRICE_FIGSY_20` | api | 🟠 important | Stripe price ID — FIGSY 20 bundle | Railway → **@kind/api** |
-| `STRIPE_PRICE_FIGSY_40` | api | 🟠 important | Stripe price ID — FIGSY 40 bundle | Railway → **@kind/api** |
-| `STRIPE_PRICE_LEADGEN_100` | api | 🟠 important | Stripe price ID — Lead Gen 100 bundle | Railway → **@kind/api** |
-| `STRIPE_PRICE_LEADGEN_20` | api | 🟠 important | Stripe price ID — Lead Gen 20 bundle (checkout fails without it) | Railway → **@kind/api** |
-| `STRIPE_PRICE_LEADGEN_40` | api | 🟠 important | Stripe price ID — Lead Gen 40 bundle | Railway → **@kind/api** |
+| `STRIPE_PRICE_FIGSY_100` | api | 🟠 important | ⛓️ **23 Sep (checked against main `83e9c1b`):** nothing sells with it — `POST /stripe/checkout` answers 410 for every account (`routes/stripe.ts:175`, R137). ~~Stripe price ID — FIGSY 100 bundle~~ | Railway → **@kind/api** |
+| `STRIPE_PRICE_FIGSY_20` | api | 🟠 important | ⛓️ **23 Sep (checked against main `83e9c1b`):** same — checkout is 410 (R137). ~~Stripe price ID — FIGSY 20 bundle~~ | Railway → **@kind/api** |
+| `STRIPE_PRICE_FIGSY_40` | api | 🟠 important | ⛓️ **23 Sep (checked against main `83e9c1b`):** same — checkout is 410 (R137). ~~Stripe price ID — FIGSY 40 bundle~~ | Railway → **@kind/api** |
+| `STRIPE_PRICE_LEADGEN_100` | api | 🟠 important | ⛓️ **23 Sep (checked against main `83e9c1b`):** same — checkout is 410 (R137). ~~Stripe price ID — Lead Gen 100 bundle~~ | Railway → **@kind/api** |
+| `STRIPE_PRICE_LEADGEN_20` | api | 🟠 important | ⛓️ **23 Sep (checked against main `83e9c1b`):** same — checkout is 410 whether or not it is set (R137). ~~Stripe price ID — Lead Gen 20 bundle (checkout fails without it)~~ | Railway → **@kind/api** |
+| `STRIPE_PRICE_LEADGEN_40` | api | 🟠 important | ⛓️ **23 Sep (checked against main `83e9c1b`):** same — checkout is 410 (R137). ~~Stripe price ID — Lead Gen 40 bundle~~ | Railway → **@kind/api** |
 | `STRIPE_SECRET_KEY` | api | 🟠 important | Stripe — unset = no checkout, customers cannot pay | Railway → **@kind/api** |
 | `STRIPE_WEBHOOK_SECRET` | api | 🟠 important | Stripe webhook — unset = customer charged but NEVER credited | Railway → **@kind/api** |
 | `TRACKING_URL` | api | 🟠 important | Base URL for the tracking pixel and click links — unset falls back to API_URL, then to nothing (no opens, no clicks) | Railway → **@kind/api** |
@@ -95,9 +95,9 @@ Every row here fails **quietly**. Nothing throws; a feature just does not happen
 | Variable | Apps | Tier | What breaks when unset | Where it is set |
 |---|---|---|---|---|
 | `API_INTERNAL_URL` | api | ⚪ optional | Loopback base for cron self-calls; falls back to localhost:PORT | Railway → **@kind/api** |
-| `APOLLO_API_KEY` | api | ⚪ optional | Apollo — optional / BYO-key; not used in the day-to-day PDL+Hunter stack | Railway → **@kind/api** |
+| `APOLLO_API_KEY` | api | ⛓️ **23 Sep (checked against main `83e9c1b`):** 🟠 important (`startup-check.ts:97`) ~~⚪ optional~~ | ⛓️ **23 Sep (checked against main `83e9c1b`):** **Apollo is THE ONLY lead source (FD-6)** — unset = nothing can be sourced, for Proof or any programme. ~~Apollo — optional / BYO-key; not used in the day-to-day PDL+Hunter stack~~ | Railway → **@kind/api** |
 | `AUTO_OUTREACH_ENABLED` | api | ⚪ optional | The kill-switch. Unset/false = nothing sends automatically — the correct state until the #553 ladder passes | Railway → **@kind/api** |
-| `FIGSY_OPERATOR_SEND_ENABLED` | api | ⚪ optional | Arms the Vida **Run one send now** control only. Unset/false = the operator route refuses. ⚠️ It authorises nothing by itself — a founder must still press the button for one named client with an explicit `max_sends`, and `AUTO_OUTREACH_ENABLED` stays off. Set it deliberately for a controlled run, then unset it | Railway → **@kind/api** |
+| `FIGSY_OPERATOR_SEND_ENABLED` | api | ⚪ optional | Arms the Vida **Run one send now** control only. Unset/false = the operator route refuses. ⚠️ It authorises nothing by itself — a founder must still press the button for one named client with an explicit `max_sends`. ⛓️ **23 Sep (checked against main `83e9c1b`):** **the kill-switch is absolute (R114, 9 Sep)** — with `AUTO_OUTREACH_ENABLED` off, this send is refused too, at `mailer.sendAs` (`lib/outreach-kill-switch.ts`). ~~and `AUTO_OUTREACH_ENABLED` stays off.~~ Set it deliberately for a controlled run, then unset it | Railway → **@kind/api** |
 | `SAFE_TEST_MODE` | api | ⚪ optional | 🛑 **THE ZERO-SPEND GUARD (R66).** Set to `1` and every paid provider call — PDL, Apollo, Hunter, Clearbit — **throws instead of spending**. Launch testing runs on mocks, fixtures or existing pooled contacts only; when safe data runs out the run FAILS LOUDLY rather than quietly buying more. ⚠️ **Fails closed:** any value other than an explicit off-value (`0`/`false`/`no`/`off`/empty) keeps it ON, so a typo cannot re-enable spending. **Unset = normal production behaviour.** | Railway → @kind/api → Variables |
 | `PAID_PROVIDERS_ENABLED` | api | 🔴 **required in production** | 🛑 **THE DELIBERATE PATH TO PROVIDER SPEND (R66).** Paid providers are **OFF by default** — PDL, Apollo, Hunter and Clearbit all refuse unless this is exactly `true`/`1`/`yes`/`on`. ⚠️ **Forgetting it costs a refused call, never money**, which is the direction R66 requires; but it also means **live sourcing does not run until it is set**. Set it in Railway → @kind/api once, on purpose. ⚠️ **A test runner ignores it entirely** — `VITEST`/`NODE_ENV=test` are always safe and cannot be overridden. | Railway → @kind/api → Variables |
 | `VITEST` | api | ⚪ set by the test runner | **Never set by hand, never set in Railway.** Vitest sets it to `true` inside its own process; the zero-spend guard reads it so a test run can **never** reach a paid provider, whatever `PAID_PROVIDERS_ENABLED` says (R66). Listed because the code reads it — it is not configuration. | *(set automatically by vitest)* |
@@ -129,8 +129,8 @@ Every row here fails **quietly**. Nothing throws; a feature just does not happen
 | `SMARTLEAD_API_KEY` | api | ⚪ optional | Smartlead — CLIENT sending. Deferred until a client exists; key currently 401s | Railway → **@kind/api** |
 | `SMARTLEAD_BASE_URL` | api | ⚪ optional | Smartlead API base; defaults in code | Railway → **@kind/api** |
 | `SMARTLEAD_WEBHOOK_SECRET` | api | ⚪ optional | Verifies Smartlead inbound. Unset until a client sends through Smartlead — but it MUST be set before the first campaign, or inbound replies arrive unverified | Railway → **@kind/api** |
-| `STRIPE_PRICE_DENISE_MONTHLY` | api | ⚪ optional | Stripe price ID — Denise AE $39/mo | Railway → **@kind/api** |
-| `STRIPE_PRICE_MILLA_MONTHLY` | api | ⚪ optional | Stripe price ID — Milla VA $49/mo. ⚠️ **NOT SOLD** — the subscription ladder was retired for the one-wallet model (24–25 Jul); the var is kept because the code path still reads it. | Railway → **@kind/api** |
+| `STRIPE_PRICE_DENISE_MONTHLY` | api | ⚪ optional | ⛓️ **23 Sep (checked against main `83e9c1b`):** retired — `POST /stripe/subscribe` answers 410 (`routes/stripe.ts:178`, R137 ④). ~~Stripe price ID — Denise AE $39/mo~~ | Railway → **@kind/api** |
+| `STRIPE_PRICE_MILLA_MONTHLY` | api | ⚪ optional | Stripe price ID — Milla VA $49/mo. ⚠️ **NOT SOLD** — the subscription ladder was retired for the one-wallet model (24–25 Jul). ⛓️ **23 Sep (checked against main `83e9c1b`):** `/stripe/subscribe` answers 410 and its session creator is deleted (R137). ~~the var is kept because the code path still reads it.~~ | Railway → **@kind/api** |
 | `STRIPE_PRICE_VIDA_MONTHLY` | api | ⚪ optional | Stripe price ID — Vida chatbot $29/mo. ⚠️ **NOT SOLD** — same retirement as Milla above. | Railway → **@kind/api** |
 | `SUPPRESSED_DOMAINS` | api | ⚪ optional | EXTRA do-not-contact domains. The employer floor is hard-coded and cannot be switched off from here | Railway → **@kind/api** |
 | `TEST_INBOX_EMAIL` | api | ⚪ optional | Destination for the #553 ladder test send | Railway → **@kind/api** |
@@ -184,9 +184,9 @@ For these five, the startup check reports them when they **are** set. See the no
 | `MILLA_DEV_PREVIEW` | portal | ⚪ optional | Milla preview mode off. Local only — never set in production. | local only |
 | `NEXT_PUBLIC_FEATURE_V2_SCREENS` | portal | ⚪ optional | Same switch as seen by the browser (build-time). | Railway → **@kind/portal** (build) |
 | `NEXT_PUBLIC_SOCIAL_LOGIN` | portal | ⚪ optional | Social login buttons hidden. | Railway → **@kind/portal** (build) |
-| `NEXT_PUBLIC_STRIPE_PRICE_FIGSY_100` | portal | 🟠 important | The 100-credit Buy button has no price. | Railway → **@kind/portal** (build) |
-| `NEXT_PUBLIC_STRIPE_PRICE_FIGSY_20` | portal | 🟠 important | The 20-credit Buy button has no price to send to Stripe. | Railway → **@kind/portal** (build) |
-| `NEXT_PUBLIC_STRIPE_PRICE_FIGSY_40` | portal | 🟠 important | The 40-credit Buy button has no price. | Railway → **@kind/portal** (build) |
+| `NEXT_PUBLIC_STRIPE_PRICE_FIGSY_100` | portal | 🟠 important | ⛓️ **23 Sep (checked against main `83e9c1b`):** the Buy button posts to `/stripe/checkout`, which answers 410 (R137) — nothing sells either way. ~~The 100-credit Buy button has no price.~~ | Railway → **@kind/portal** (build) |
+| `NEXT_PUBLIC_STRIPE_PRICE_FIGSY_20` | portal | 🟠 important | ⛓️ **23 Sep (checked against main `83e9c1b`):** same — checkout is 410 (R137). ~~The 20-credit Buy button has no price to send to Stripe.~~ | Railway → **@kind/portal** (build) |
+| `NEXT_PUBLIC_STRIPE_PRICE_FIGSY_40` | portal | 🟠 important | ⛓️ **23 Sep (checked against main `83e9c1b`):** same — checkout is 410 (R137). ~~The 40-credit Buy button has no price.~~ | Railway → **@kind/portal** (build) |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | admin·portal | 🔴 **required** | **No client can sign in.** The browser Supabase client cannot be built. | Railway → **@kind/portal** + **@kind/admin** (build) |
 | `NEXT_PUBLIC_TRAINING_LIVE` | portal | ⚪ optional | The training surface reads as not-live. | Railway → **@kind/portal** (build) |
 | `NEXT_PUBLIC_VAPI_PUBLIC_KEY` | portal | ⚪ optional | In-browser voice widget off. | Railway → **@kind/portal** (build) |

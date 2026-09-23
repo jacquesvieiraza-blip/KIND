@@ -1,6 +1,8 @@
 # K.I.N.D — Run Costs & Cashflow Model
 `Rebuilt clean 10 Jul 2026 — every number ties to code (packages/shared pricing · sourcing-fences rate · stripe bundles) or a verified live provider dashboard. One truth per figure; no stale layers.`
 
+> ⛓️ **23 Sep (checked against main `83e9c1b`):** **§1–§12 below are built on a retired model and retired vendors — read them as history.** The **$299 pack, $4 per approved lead, top-ups, subscriptions and trials are retired in code** (**R124** 16 Sep · **R137** 23 Sep — `apps/api/src/lib/commercial-model.ts:99` refuses every legacy money path; Stripe `/checkout` and `/subscribe` return 410). **PDL and Hunter are retired** (FD-6 / FD-5, 17 Sep — `apps/api/src/lib/retired-providers.ts`); **Apollo is the only data provider.** **The live model is the programme, for every account:** **$450 per QUALIFIED meeting** (**R141**) on the **R81** curve $450 → $437.50 at 10 → $400 floor from 50, paid **50/50 — P1 at start, P2 at approval** (`packages/shared/src/programme-pricing.ts`); the meeting count is a target and a shortfall is credited to the wallet (**R136**). The 27–28 Aug sections at the foot are that model's workings. Partners are frozen (**R139**).
+
 > ## 💰 THE MODEL OF RECORD IS [`CASHFLOW-LAB.html`](./CASHFLOW-LAB.html) *(founder-locked 25 Jul · inventory #556)*
 > **Open the lab first.** Two needles at the top (clients · average approvals per client per month), every cost line an editable box, and it recomputes live — the layout the founder locked: *"we can refine numbers but the layout I understand."* **This markdown doc is the workings** — where each figure comes from, what it ties to in code, and the scenario envelope. If the two ever disagree, **the lab is the model and this doc is the bug.**
 >
@@ -17,6 +19,8 @@
 ---
 
 ## 1. THE MONEY MODEL — one wallet · $299 onboarding pack · then $4 a lead (PRICE RE-LOCKED 3 AUG)
+
+⛓️ **23 Sep (checked against main `83e9c1b`):** **retired** (R124 · R137) — every account is on the programme; see the note at the top.
 
 > ⚠️ **This section was stale until 25 Jul** — it still described the retired two-wallet model ($1 reveal into `credit_balance` + $3 work into `figsy_credits_remaining`). That was superseded by **#492 ONE WALLET** on 24 Jul and the doc never caught up. Corrected here; this is the pricing home, so nothing else should restate it.
 
@@ -49,6 +53,8 @@ Leads arrive **masked** — browsing and building the plan are free. There is **
 
 ## 2. WHAT IT COSTS US — per lead (verified live 10 Jul)
 
+⛓️ **23 Sep (checked against main `83e9c1b`):** the **PDL** and **Hunter** rows are retired vendors (FD-6 / FD-5, 17 Sep); **Apollo is the only data provider**, and its unit cost is not restated here.
+
 *Every rate re-checked against the real provider dashboards + code on the first funded run.*
 
 | Cost line | When | Rate | Basis (verified) |
@@ -75,6 +81,8 @@ Leads arrive **masked** — browsing and building the plan are free. There is **
 ---
 
 ## 3. PRICING (from `packages/shared/src/constants/index.ts` — the source of truth)
+
+⛓️ **23 Sep (checked against main `83e9c1b`):** these packs are retired; the price source of truth is now `packages/shared/src/programme-pricing.ts`.
 
 | Product | Pack | Price | Per-lead |
 |---|---|---|---|
@@ -536,7 +544,7 @@ Superseded by this rebuild; kept only in git history (`git log docs/run-costs-an
 
 # 📥 27 AUG — PROGRAMME-MODEL ECONOMICS (planning only · NOT current pricing)
 
-⛓️ **NOT YET IMPLEMENTED — but this IS the current founder-approved commercial direction.** Three registers, never collapsed: **LIVE NOW (legacy runtime)** = **$299 pack · first 100 approvals included · $4 per approved lead** (§0, mirrored from `@kind/shared`), operational and unchanged · **SUPERSEDED HISTORY** = R68's $4→$8 migration · **CURRENT DIRECTION, UNIMPLEMENTED** = everything below. Legacy runtime stays operational until the coordinated programme migration is built, tested, founder-approved and deployed. Master backlog: **V2 §Founder Idea Bank FI-06, FI-26 … FI-29**. Rule: **PRODUCT-RULES R74**. **Nothing here may be quoted to a client.**
+⛓️ **23 Sep (checked against main `83e9c1b`):** **implemented and live for every account** (R124 · R137); $450 per qualified meeting is published (R141). The legacy register below is retired. ~~⛓️ **NOT YET IMPLEMENTED — but this IS the current founder-approved commercial direction.** Three registers, never collapsed: **LIVE NOW (legacy runtime)** = **$299 pack · first 100 approvals included · $4 per approved lead** (§0, mirrored from `@kind/shared`), operational and unchanged · **SUPERSEDED HISTORY** = R68's $4→$8 migration · **CURRENT DIRECTION, UNIMPLEMENTED** = everything below. Legacy runtime stays operational until the coordinated programme migration is built, tested, founder-approved and deployed. Master backlog: **V2 §Founder Idea Bank FI-06, FI-26 … FI-29**. Rule: **PRODUCT-RULES R74**. **Nothing here may be quoted to a client.**~~
 
 ## The Apollo economics planning case (FI-06)
 
@@ -582,7 +590,7 @@ At the founder's stated anchor of **~$450 per targeted booked meeting** and a **
 
 ## 📥 28 AUG — THE FOUNDER TRUTH RESET SETTLED THE TWO OPEN QUESTIONS (planning only · NOT current pricing)
 
-⛓️ **Still NOT implemented. The live commercial truth is unchanged and is still $299 pack · first 100 approvals included · $4 per approved lead** (§0/§1, mirrored from `@kind/shared`). Rulings: **R76 · R77 · R78 · R81**. **Nothing here may be quoted to a client or a partner.**
+⛓️ **23 Sep (checked against main `83e9c1b`):** **implemented and live** — the programme is the only commercial model (R124 · R137), and $450 may be quoted (R141). ~~⛓️ **Still NOT implemented. The live commercial truth is unchanged and is still $299 pack · first 100 approvals included · $4 per approved lead** (§0/§1, mirrored from `@kind/shared`). Rulings: **R76 · R77 · R78 · R81**. **Nothing here may be quoted to a client or a partner.**~~
 
 ### FD-01 — the benchmark is 250, and the review trigger survives (R77)
 
@@ -608,9 +616,9 @@ At the founder's stated anchor of **~$450 per targeted booked meeting** and a **
 
 ⚠️ **CONTRIBUTION IS NOT NET PROFIT, and must never be called *"net margin"*.** Overhead is excluded by definition, so a healthy contribution figure says nothing about whether the company made money that month — **§6 break-even against the $352 floor is still the number that governs that**, and it is unchanged.
 
-⚠️ **THE ~70% TARGET IS NOW MEASURABLE AGAINST A DEFINITION, AND THE ARITHMETIC ABOVE IS UNCHANGED BY IT.** At $450/meeting and 70% contribution the COGS ceiling is still **~$135**, of which PDL at 250×$0.28 is **~$70 (~52%)**. FD-02 does not relieve that pressure — it just means the denominator is now defined rather than assumed.
+⚠️ **THE ~70% TARGET IS NOW MEASURABLE AGAINST A DEFINITION, AND THE ARITHMETIC ABOVE IS UNCHANGED BY IT.** At $450/meeting and 70% contribution the COGS ceiling is still **~$135**, of which ⛓️ **23 Sep (checked against main `83e9c1b`):** PDL is retired (FD-6), so this share no longer applies; the data cost is now Apollo's, not restated here. ~~PDL at 250×$0.28 is **~$70 (~52%)**.~~ FD-02 does not relieve that pressure — it just means the denominator is now defined rather than assumed.
 
-⚠️ **LIVE LEGACY, FENCED:** partner commission today is **R47's 25% of approved-lead spend**, computed from `PARTNER_COMMISSION_PER_LEAD_USD` (derived from `LEAD_PRICE_USD = 4` in `@kind/shared`). **That is today's runtime truth and it keeps running.** It is **superseded as the destination**, replaced — not amended — when the programme model ships. `PARTNER_COMMISSION_PCT = 25` does not change; **what it is 25% *of* does.**
+⛓️ **23 Sep (checked against main `83e9c1b`):** the legacy per-lead model is retired (R137) and **partners are frozen** (R139, `packages/shared/src/partners-frozen.ts`) — no commission runs while the freeze holds. ~~⚠️ **LIVE LEGACY, FENCED:** partner commission today is **R47's 25% of approved-lead spend**, computed from `PARTNER_COMMISSION_PER_LEAD_USD` (derived from `LEAD_PRICE_USD = 4` in `@kind/shared`). **That is today's runtime truth and it keeps running.** It is **superseded as the destination**, replaced — not amended — when the programme model ships. `PARTNER_COMMISSION_PCT = 25` does not change; **what it is 25% *of* does.**~~
 
 ### The locked programme price curve (R81)
 
@@ -627,4 +635,4 @@ At the founder's stated anchor of **~$450 per targeted booked meeting** and a **
 
 **The discount is automatic — no negotiation in the normal flow** (R74). ⛓️ This is the one place the 3-Aug *"discounts never in code"* lock (**PR2**) is superseded, and **only** for the programme model; PR2 still governs the legacy per-lead model while that runs.
 
-⚠️ **WHEN THIS IS BUILT, THE CURVE BECOMES CONSTANTS IN `@kind/shared`, NOT COPY** — money sentences are interpolated, never typed (the working method, rule 7). Until then: **UNBUILT · UNQUOTABLE · the live model is $299 + 100 included + $4.**
+⛓️ **23 Sep (checked against main `83e9c1b`):** built — the curve is constants in `packages/shared/src/programme-pricing.ts` (`PROGRAMME_ANCHOR_1_USD = 450` · `PROGRAMME_ANCHOR_10_USD = 437.5` · `PROGRAMME_ANCHOR_50_USD = 400`). ~~⚠️ **WHEN THIS IS BUILT, THE CURVE BECOMES CONSTANTS IN `@kind/shared`, NOT COPY** — money sentences are interpolated, never typed (the working method, rule 7). Until then: **UNBUILT · UNQUOTABLE · the live model is $299 + 100 included + $4.**~~

@@ -8,12 +8,14 @@
 
 ## The numbers
 
+⛓️ **23 Sep (checked against main `83e9c1b`):** re-measured by running `scripts/build-core-map.py` on a scratch copy of the tracked `apps/` + `packages/` tree: **64 seeds · 439 core files · 148,946 core lines · 0 unresolved imports**. The committed manifest `scripts/core-files.txt` still says 255 / 61,089 — it was not regenerated in this doc pass. The struck figures below are the 2 Aug run.
+
 | | Files | Lines | Share |
 |---|---:|---:|---:|
-| **CORE — reachable from an entry point** | **255** | **61,089** | **45%** |
-| FENCED — `.ts`/`.tsx` not reachable | 182 | 36,727 | 27% |
-| *(remainder: `.sql`, `.html`, and test files)* | 165 | 36,569 | 27% |
-| **Repo total (ts/tsx/sql/html under `apps/` + `packages/`)** | 602 | **134,385** | 100% |
+| **CORE — reachable from an entry point** | ~~**255**~~ **439** | ~~**61,089**~~ **148,946** | ~~**45%**~~ **41%** |
+| FENCED — `.ts`/`.tsx` not reachable | ~~182~~ 202 | ~~36,727~~ 42,654 | ~~27%~~ 12% |
+| *(remainder: `.sql`, `.html`, and test files)* | ~~165~~ 586 | ~~36,569~~ 168,921 | ~~27%~~ 47% |
+| **Repo total (ts/tsx/sql/html under `apps/` + `packages/`)** | ~~602~~ 1,227 | ~~**134,385**~~ **360,521** | 100% |
 
 **— THE 27 JUL REGENERATION, KEPT AS ITS OWN RECORD (everything from here to the ⚠️ total note below describes THAT run, not the current table) —**
 
@@ -72,11 +74,13 @@
 
 **Direct SMTP** — live today: `lib/sending-inbox.ts` (which mailbox, or refuse) → `lib/mailer.ts` (nodemailer) → `lib/inbox-secret.ts` (AES-256-GCM at rest), called from `lib/figsy.ts`.
 
-**Provider API** — not built; both vendors confirmed in writing (26 Jul) that they do **not** release SMTP credentials, so our product will instruct their senders instead. When built, `lib/instantly.ts` (ours) and `lib/smartlead-send.ts` (clients') join the core beside the SMTP pair, and this map is regenerated. The integration points already exist: `lib/figsy.ts` (the send decision) and `lib/sending-inbox.ts` (which sender, and the refusal when there is none).
+**Provider API** — ⛓️ **23 Sep (checked against main `83e9c1b`):** `lib/instantly.ts`, `lib/smartlead.ts` and `lib/smartlead-send.ts` **are now in the core** (import-reachable); whether any mail actually leaves through them is RUNTIME UNVERIFIED, and every provider push sits behind the absolute kill-switch (R114, `lib/outreach-kill-switch.ts`). ~~not built;~~ both vendors confirmed in writing (26 Jul) that they do **not** release SMTP credentials, so our product will instruct their senders instead. When built, `lib/instantly.ts` (ours) and `lib/smartlead-send.ts` (clients') join the core beside the SMTP pair, and this map is regenerated. The integration points already exist: `lib/figsy.ts` (the send decision) and `lib/sending-inbox.ts` (which sender, and the refusal when there is none).
 
 ---
 
 # THE CORE, FILE BY FILE
+
+> ⛓️ **23 Sep (checked against main `83e9c1b`):** every table below is the **2 Aug** run (255 files). The current core is 439 files — e.g. **47** mounted route files, not 44 — so line counts and membership below are stale; regenerate before relying on them.
 
 ## API ROUTES — every mounted endpoint — 44 files, 21,353 lines
 

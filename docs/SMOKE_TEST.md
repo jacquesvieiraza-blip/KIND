@@ -1,4 +1,7 @@
 # K.I.N.D — End-to-End Smoke Test (prove the money path)
+
+> ⛓️ ⚠️ **HISTORICAL (23 Sep, checked against main `83e9c1b`): the 25 Jun smoke test for the credit-era product — the $1 reveal, credit bundles and Stripe checkout (`/stripe/checkout` now answers 410, R137), a 20-credit signup, Milla as a paid layer, and partner onboarding (partners are frozen, R139: `/partners` answers 410). The product is now the programme (R124 · R137 · R141) and the six MVP1 stages (R127). Kept as a record, not current instructions.**
+
 `Last-checked: 25 Jun 2026`
 
 **Purpose:** verify a real client can sign up → build an ICP → GET leads → run FIGSY → get a reply → record a booking (booking link / mark-booked), with money charged correctly and nothing silently broken. Run this AFTER the pre-flight below. Report failures as `T#-Step# — what I saw` and Claude fixes.

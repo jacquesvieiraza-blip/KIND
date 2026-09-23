@@ -1,5 +1,7 @@
 # KIND Sales Playbook
 
+> ⚠️ **HISTORICAL — this sales manual is built on retired models: per-lead pricing, the $299 pack, a trial, and five agents sold separately.** ⛓️ **23 Sep (checked against main `83e9c1b`):** the live model is the **programme, for every account** — **$450 per qualified meeting** on the R81 curve ($450 → $437.50 at 10 → $400 floor from 50), paid 50/50, P1 at start and P2 at approval (**R141**; `packages/shared/src/programme-pricing.ts`); the $299 pack, $4 per approved lead, top-ups, subscriptions and trials are retired in code (**R124 · R137**). The meeting count is a target, and a shortfall is credited to the wallet (**R136**). Sourcing is Apollo only (FD-6, 17 Sep). Kept as the record, not as current truth.
+
 > # ⚠️ TRUTH BANNER — 6 Aug 2026 (#629). READ BEFORE YOU QUOTE ANYTHING FROM THIS PAGE.
 >
 > A full sweep of this document against the code on 6 Aug found **15 of 22 factual claims FALSE**. They are being corrected in place, but **this page has been wrong for weeks and may still be wrong in places the sweep missed.**

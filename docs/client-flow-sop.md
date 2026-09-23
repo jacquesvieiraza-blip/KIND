@@ -7,8 +7,8 @@
 > **The facts that override anything below:**
 > | Topic | THE TRUTH (source of record) |
 > |---|---|
-> | **Price** | **$299** first purchase = the onboarding pack, **100 approved leads included**, then **$4 per approved lead**. Reviewing is FREE. → `packages/shared/src/constants/index.ts` |
-> | **No trial, no freebies** | Signup writes `paused` with a **$0 wallet and $0 sourcing allowance**. Nothing sources, approves or sends until the $299 lands. There is **no "free to start"**, no card-free trial, no 14-day clock. → `auth.ts` (#607, 1 Aug) |
+> | **Price** | ⛓️ **23 Sep (checked against main `83e9c1b`):** every account is on the **programme** — **$450 per qualified meeting** on the R81 curve ($450 → $437.50 at 10 → $400 floor from 50), paid **50/50: P1 at start, P2 at approval** (**R141**; `packages/shared/src/programme-pricing.ts`). The $299 pack, $4 per approved lead, top-ups, subscriptions and trials are retired in code (**R124 · R137**; `apps/api/src/lib/commercial-model.ts:99`; Stripe `/checkout` + `/subscribe` → 410). ~~**$299** first purchase = the onboarding pack, **100 approved leads included**, then **$4 per approved lead**. Reviewing is FREE. → `packages/shared/src/constants/index.ts`~~ |
+> | **No trial, no freebies** | Signup writes `paused` with a **$0 wallet and $0 sourcing allowance**. ⛓️ **23 Sep (checked against main `83e9c1b`):** Free Proof comes before any payment; a programme sources only after P1. ~~Nothing sources, approves or sends until the $299 lands.~~ There is **no "free to start"**, no card-free trial, no 14-day clock. → `auth.ts` (#607, 1 Aug) |
 > | **The retired ladder** | *$1 reveal → +$3 FIGSY → +$1 Milla → +$1 Denise → Vida $3* is **DEAD** (superseded 24 Jul, price re-locked 3 Aug). Any page still quoting it is describing a model we do not sell. |
 > | **Who sends** | **OUR OWN ENGINE**, over SMTP — `figsy.ts` → `lib/mailer.ts` → the inbox from `lib/sending-inbox.ts`. **Instantly = warm-up utility only** (Growth tier). **Smartlead = client sending, deferred and unproven** (key 401s). Resend now carries system mail + the inbound reply webhook only. |
 > | **Flutterwave / Paystack** | **Never wired / removed.** Stripe only. |
@@ -21,9 +21,9 @@
 > ⛓️ **CORRECTED 28 Aug (Founder Truth Reset, Step 6). The struck line above stated the DEAD $1/+$3 ladder in the PRESENT TENSE — *"pricing is now"* — directly contradicting the truth banner four lines higher, which has called that ladder dead since 6 Aug.** One document, two prices, one of them written as current. That is the exact defect the banner exists to catch, and the banner did not reach it because it sits above the line rather than through it.
 >
 > **The current commercial truth, in three registers — never collapse them:**
-> - **LIVE NOW:** **$299 first purchase = the onboarding pack · 100 approved leads included · then $4 per approved lead.** Reviewing is free. Source of truth: `packages/shared/src/constants/index.ts`.
+> - ⛓️ **23 Sep (checked against main `83e9c1b`):** **LIVE NOW:** every account is on the **programme** — **$450 per qualified meeting** on the R81 curve ($450 → $437.50 at 10 → $400 floor from 50), paid **50/50: P1 at start, P2 at approval** (**R141**; `packages/shared/src/programme-pricing.ts`). The $299 pack, $4 per approved lead, top-ups, subscriptions and trials are retired in code (**R124 · R137**; `apps/api/src/lib/commercial-model.ts:99`; Stripe `/checkout` + `/subscribe` → 410). ~~**LIVE NOW:** **$299 first purchase = the onboarding pack · 100 approved leads included · then $4 per approved lead.** Reviewing is free. Source of truth: `packages/shared/src/constants/index.ts`.~~
 > - **SUPERSEDED HISTORY:** the *$1 reveal → +$3 FIGSY → +$1 Milla → +$1 Denise → Vida $3* ladder (dead 24 Jul) **and** R68's $4→$8 migration (superseded 27 Aug). Preserved, not deleted; **neither is pending work.**
-> - **CURRENT DIRECTION, UNBUILT:** the **programme model** — priced on targeted booked meetings against the locked curve in **R81**, contribution defined in **R78**, 250 leads per targeted meeting in **R77**. **Not implemented, and nothing in it may be quoted to a client.**
+> - ⛓️ **23 Sep (checked against main `83e9c1b`):** the programme model is **built and live** (see LIVE NOW). ~~**CURRENT DIRECTION, UNBUILT:** the **programme model** — priced on targeted booked meetings against the locked curve in **R81**, contribution defined in **R78**, 250 leads per targeted meeting in **R77**. **Not implemented, and nothing in it may be quoted to a client.**~~
 >
 > ⚠️ **Paths 1–7 below still describe a TRIAL and a SUBSCRIPTION.** Both are superseded — signup writes `paused` with a **$0 wallet and $0 sourcing allowance** (#607, 1 Aug) and **there is no trial**. The paths are **retained as procedure history** and are being reconciled item by item; **read the banner and this note before quoting any of them.** ⚠️ The same contradiction is live in a **client-facing legal document** — `apps/portal/public/terms.html` §3 still promises a 14-day free trial — recorded as item **#705** and awaiting the founder and counsel.
 
@@ -48,7 +48,7 @@
 >
 > **What still holds:** pooled pre-warmed inbox → client's own branded inbox → pooled released. That model is real and it is in the schema (`client_inboxes`: `kind IN ('pooled','branded')`, `status IN ('assigned','warming','active','released','retired')`, unique `client_inboxes_one_live_per_kind`).
 >
-> **What does NOT hold:** steps 1–5 are written around a **14-day trial that no longer exists**. The founder tombstoned it on 1 Aug (**#606**, PRODUCT-INVENTORY items 270/271: *"no trial exists in the $99 model"*), and the price it names is two moves out of date — the model is now **$299 · first 100 approved leads included · $4 after**, with a **free real-lead proof** before payment (**AR17/AR18**). So *"Trial signup"*, *"Trial Day 0–14"* and *"Convert (pays)"* below map onto a journey the product does not run.
+> **What does NOT hold:** steps 1–5 are written around a **14-day trial that no longer exists**. The founder tombstoned it on 1 Aug (**#606**, PRODUCT-INVENTORY items 270/271: *"no trial exists in the $99 model"*), and the price it names is two moves out of date — the model is now ⛓️ **23 Sep (checked against main `83e9c1b`):** **the programme** (R124 · R137) ~~**$299 · first 100 approved leads included · $4 after**~~, with a **free real-lead proof** before payment (**AR17/AR18**). So *"Trial signup"*, *"Trial Day 0–14"* and *"Convert (pays)"* below map onto a journey the product does not run.
 >
 > ⚠️ **AND THE WARM-UP CLOCK IS A REMINDER, NOT A GATE.** `warmup_ready_at` is written by `/inboxes/add` and `operator.ts`, and every reader of it — the Vida Engine board, `AddMailbox`, `system-probes` — **displays** it. Nothing in the send path refuses to send because a date has not passed. `house-client.ts` says so in its own words: *"It is still only a REMINDER. #553's ladder decides when a mailbox sends."* What **is** enforced in code is the **domain-level ramp cap** (`figsy.ts` → `warmupRampCap`), which limits daily cold volume. Do not read "~14 days" here as an enforced hold. 🏷️ CODE VERIFIED (25 Aug, baseline `e62c6c8c`).
 >
@@ -99,10 +99,12 @@ flowchart TD
 - **Pool management:** pre-warmed inboxes (~$45 each). Two options (decide Thu): **on-demand** (buy one per trial signup — leanest, zero idle spend, if Smartlead has stock instantly) or a **small standing buffer** (2–3) for safety. **Monitor concurrent trials; never run dry.** Released inboxes recycle.
 - **The two triggers live in the Admin Centre + email alert** — this is the M3 rebuild: *signup → assign*, *payment → buy + schedule switch*, all visible in admin and wired to the business backend.
 - **Financial flow:** Xero · banking · HMRC — the admin cockpit ties billing → accounting.
-- **Command Centre + Nora:** the admin also gives **read+manage oversight of every AE** and **read-only oversight of every partner** (book/targets/pipeline/mini-CRM/contracts), with **Nora** the all-round admin co-pilot on the right rail. Detail in the spec.
+- **Command Centre + Nora:** ⛓️ **23 Sep (checked against main `83e9c1b`):** partners are frozen (**R139**, `packages/shared/src/partners-frozen.ts`) — Vida's partner pages are switched off, nothing deleted. · the admin also gives **read+manage oversight of every AE** and **read-only oversight of every partner** (book/targets/pipeline/mini-CRM/contracts), with **Nora** the all-round admin co-pilot on the right rail. Detail in the spec.
 - **Future:** each AE / staff hire gets **their own** role-scoped admin access.
 
 ---
+
+⛓️ **23 Sep (checked against main `83e9c1b`):** **Paths 1–7, the summary table and the flowchart below are retired procedure.** There is no trial, no credit pack and no subscription (**R124 · R137**), and sourcing is **Apollo only** — PDL is retired (FD-6, 17 Sep; `apps/api/src/lib/retired-providers.ts`). The client journey now runs through six stages — **Brief / Proof / Programme / Approval / Results / Complete** (**R127**, `packages/shared/src/mvp1-stage.ts`) — in a conversation with Milla (**R121**); Vida is the operator console (**R116**). Proof opens only when 20 people are ready (**R138**). The paths are kept as history.
 
 ## Path 1 — Self-service trial (most common)
 
@@ -187,7 +189,7 @@ flowchart TD
 
 1. AE goes to admin.get-kind.com → Demo Environments
 2. Fills in: prospect name, company name, industry, country, expiry date, AE name
-3. System creates: real Supabase user + client + FIGSY + Lead-Gen active (Milla/Vida/Denise coming soon) + runs a real ICP (PDL discovery)
+3. ⛓️ **23 Sep (checked against main `83e9c1b`):** sourcing is Apollo only (FD-6); PDL is retired. ~~System creates: real Supabase user + client + FIGSY + Lead-Gen active (Milla/Vida/Denise coming soon) + runs a real ICP (PDL discovery)~~
 4. Leads start appearing within minutes
 5. AE clicks "Open Demo" → portal opens in new tab, logged in as the demo client
 6. AE walks the prospect through the live platform — real leads, real scores

@@ -3,6 +3,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import SequenceQuality, { type Quality } from '@/components/SequenceQuality'
 import { useVidaConversation } from '@/components/vida/VidaConversation'
+// ⚑ 22 Sep — the operator's own claims about a client, built where they can be RUN rather
+// than read. See `vida-stage-copy.ts` for why every sentence in it is a pure function.
+import {
+  stageChips, nextActionCard, workablePoolCard, provenanceCard,
+} from '@/lib/vida-stage-copy'
 import { loadError, panelView, notice, noticeClass, noticeText, vatBadge, PACK_PRICE_USD, MAX_SEQUENCE_STEPS, type Notice } from '@kind/shared'
 import { programmeSourcingAction } from '@/lib/programme-sourcing-action'
 import { LifecycleRibbon } from '@/components/vida/LifecycleRibbon'
@@ -2640,6 +2645,93 @@ export default function VidaConsolePage() {
    * every state that the founder previewed looks exactly as previewed; the card is an
    * exception surface, not a permanent panel.
    */
+  // ══════════════════════════════════════════════════════════════════════════════════════
+  // ⚑ 22 Sep — THE POOL THIS CLIENT'S TARGETING CARRIES, AND HOW IT WAS ARRIVED AT
+  //
+  // 🛑 THE OPERATOR GETS BOTH CAPACITY NUMBERS (founder-ruled 22 Sep). The client is told what
+  // we can commit to at the worst case; Vida also gets the benchmark and the headroom between
+  // them, because the buffer is only useful to the people who can act on it. The client's own
+  // route returns neither, and a guard asserts that.
+  //
+  // ⚠️ IT IS ITS OWN READ, DELIBERATELY. `lifecycle` is the panel's spine and is fetched on a
+  // rail refresh; this costs a free provider round trip and belongs on selection rather than
+  // on every poll. A failed read leaves the cards out rather than rendering zeros — "0 people,
+  // 0 meetings" about a client's market is a much worse sentence than saying nothing.
+  const [lcCapacity, setLcCapacity] = useState<{
+    matched: number; excluded: number; already_worked: number; set_aside: number
+    workable: number; committed: number; benchmark: number; headroom: number; known: boolean
+  } | null>(null)
+  useEffect(() => {
+    let alive = true
+    setLcCapacity(null)
+    if (!selected) return
+    void (async () => {
+      try {
+        const j = await fetch(`/api/proxy/operator/clients/${selected}/capacity`).then(r => r.json())
+        if (!alive) return
+        setLcCapacity(j?.success ? (j.data ?? null) : null)
+      } catch { /* silent — the cards simply do not render */ }
+    })()
+    return () => { alive = false }
+  }, [selected])
+
+  /**
+   * ⚑ 22 Sep — the locked Vida header for this client: where the brief is, whether anything is
+   * owed, what has been spent.
+   *
+   * ⚠️ THE `needsYou` HERE IS THE SERVER'S VERDICT, not a local reading. The whole point of
+   * "normal is silent" is that an operator can trust the quiet state, and a second opinion
+   * computed in the browser is exactly how that trust goes.
+   */
+  const lcChips = useMemo(() => {
+    if (!lc) return undefined
+    return stageChips({
+      // ⚠️ A CLIENT ROW HAS NO BRIEF DRAFT — the eleven facts belong to the pre-confirm stage
+      // and the Brief panel shows them there. `null` means "not applicable here", and the chip
+      // reads as unread rather than as zero, which is the honest shape for a fact this surface
+      // genuinely does not hold.
+      brief: null,
+      spendUsd: null, records: null, batches: null,
+      needsYou: lc.verdict.needsYou === true,
+    }).filter(c => !c.text.startsWith('Brief'))
+  }, [lc])
+
+  /**
+   * ⚑ 22 Sep — the Proof-stage evidence: what the pool carries and how it got there.
+   *
+   * 🛑 "SET ASIDE" IS THE LINE THAT MATTERS AND IT IS EXPECTED TO READ ZERO. Seniority, size
+   * and geography are enforced by the provider filter and never re-judged; category and
+   * company type are judged but only RANK. A non-zero means something started removing people
+   * again — the defect that emptied the Proof screen — and `workablePoolCard` renders it as an
+   * exception rather than a footnote.
+   */
+  const lcProofCards = useMemo(() => {
+    if (!lc || lc.verdict.stage !== 'proof') return []
+    const cards = [nextActionCard('proof', { needsYou: lc.verdict.needsYou === true })]
+    if (lcCapacity?.known) {
+      const p = {
+        matched: lcCapacity.matched, excluded: lcCapacity.excluded,
+        alreadyWorked: lcCapacity.already_worked, setAside: lcCapacity.set_aside,
+        workable: lcCapacity.workable, committed: lcCapacity.committed,
+        // ⚠️ NOT SUPPLIED RATHER THAN GUESSED. How many of this pool we already own is a real
+        // number the sourcing path knows and this route does not return; `null` prints nothing
+        // instead of claiming none were ours.
+        fromPool: null,
+      }
+      cards.push(workablePoolCard(p), provenanceCard(p))
+      cards.push({
+        kind: 'stats' as const,
+        label: 'Sellable cap',
+        stats: [
+          { value: String(lcCapacity.committed), label: 'committed · worst case' },
+          { value: String(lcCapacity.benchmark), label: 'at the benchmark' },
+          { value: String(lcCapacity.headroom), label: 'headroom — ours, never theirs' },
+        ],
+      })
+    }
+    return cards
+  }, [lc, lcCapacity])
+
   const accountCard = useMemo(() => {
     if (!selectedClient) return null
     const vat = vatBadge({ vat_number: selectedClient.vat_number ?? null })
@@ -3445,7 +3537,8 @@ export default function VidaConsolePage() {
                 <LifecyclePanel
                   clientName={selectedName || selectedClient?.company_name || 'This client'}
                   subtitle={lcCopy.subtitle}
-                  cards={accountCard ? [...lcCopy.cards, accountCard] : lcCopy.cards}
+                  chips={lcChips}
+                  cards={[...lcCopy.cards, ...lcProofCards, ...(accountCard ? [accountCard] : [])]}
                   actions={lcCopy.actions}
                   busy={lcBusy ?? calBusy ?? (runBusy ? 'run' : null)}
                   message={runMsg

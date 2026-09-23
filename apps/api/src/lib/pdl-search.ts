@@ -18,6 +18,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 import type { ApolloContact } from './apollo'
 import { assertPaidProviderAllowed } from './paid-provider-guard'
+import { refuseRetiredProvider } from './retired-providers'
 import { sendFounderAlert } from './alerts'
 // The SAME alias knowledge the launch send fence uses — imported, never re-declared here.
 import { canonicalLaunchCountry } from '@kind/shared'
@@ -207,6 +208,11 @@ export function buildPdlBody(icp: IcpQuery, size: number, scrollToken?: string |
 export async function pdlSearchDiagnostic(
   icp: IcpQuery,
 ): Promise<{ configured: boolean; ok: boolean; status: number | null; count: number; error: string | null; rawFirst?: unknown }> {
+  // ⛓️ R143 (23 Sep) / FD-6 (17 Sep) — PDL IS RETIRED, IN CODE, BEFORE THE KEY IS READ. See
+  // `pdlSearchPage` below: a key being present must not turn a retired vendor back on.
+  if (refuseRetiredProvider('pdl', 'pdlSearchDiagnostic')) {
+    return { configured: false, ok: false, status: null, count: 0, error: 'PDL is RETIRED (FD-6) — not called' }
+  }
   const key = process.env.PDL_API_KEY
   if (!key) return { configured: false, ok: false, status: null, count: 0, error: 'PDL_API_KEY not set' }
   try {
@@ -402,6 +408,20 @@ export type PdlPage = {
  * ladder costs nothing extra.
  */
 export async function pdlSearchPage(icp: IcpQuery, size = 50, scrollToken: string | null = null, opts?: PdlSearchOptions): Promise<PdlPage> {
+  // ⛓️ R143 (23 Sep, founder): *"Apollo is it for now. we will add once we get one provider
+  // right."* FD-6 (17 Sep) retired PDL, and `enrichment.ts` refuses it through the lock — but
+  // THIS function, the one every PDL search goes through, gated on nothing but the key. So
+  // the client ICP preview's samples and `/engine/leads/test` would call PDL again the moment
+  // anybody pasted a key back into Railway. The lock is checked here, at the boundary, so
+  // every caller (`pdlSearchPeople` included) is covered without editing each one.
+  //
+  // The shape is the no-key shape below, deliberately: we never asked, so nothing may be
+  // claimed about the audience — not `exhausted`, not `matchedNothing`, and `completed:
+  // false` so an empty page cannot be read as "no matches". Mirrors retired Hunter, which
+  // returns the same `null` its no-key branch does.
+  if (refuseRetiredProvider('pdl', 'pdlSearchPage')) {
+    return { contacts: [], scrollToken, exhausted: false, matchedNothing: false, error: null, completed: false }
+  }
   const key = process.env.PDL_API_KEY
   // Dormant until a key is configured. NOT `exhausted` — we never asked, so we cannot claim
   // the audience is finished; that would tell a client to widen an ICP that is fine.

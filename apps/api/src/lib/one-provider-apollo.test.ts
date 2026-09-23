@@ -265,3 +265,122 @@ describe('XC-13 · the operator-facing copy names Apollo, not PDL', () => {
     expect(src).toMatch(/We are not paying for PDL/)
   })
 })
+
+// ── ④ R143 · THE PDL SEARCH MODULE ITSELF REFUSES, WITH THE KEY SET ──────────────
+//
+// R143 (23 Sep, founder): "Apollo is it for now. we will add once we get one provider right."
+//
+// ② proves the SOURCING paths do not call `pdl-search`. It does so by mocking the module,
+// which is exactly why it could not see the two callers that were left: the client ICP
+// preview's samples (`routes/icps.ts`) and the admin `/engine/leads/test` diagnostic. Both
+// still called `pdlSearchPeople` / `pdlSearchDiagnostic`, and those gated on nothing but
+// `process.env.PDL_API_KEY` — so the retirement held only while Railway had no key.
+//
+// These cases use the REAL module with the key PRESENT and a spy on `fetch`. The only
+// assertion that matters is that no request leaves for peopledatalabs.com.
+describe('R143 · with PDL_API_KEY SET, the PDL search module never leaves the building', () => {
+  const saved = { ...process.env }
+  let urls: string[]
+
+  const ICP = {
+    job_titles: ['CEO'], seniority_levels: ['C-Suite'], company_sizes: ['11–50'],
+    geographies: ['United Kingdom'], industries: ['software'], tech_stack: [],
+    keywords: [], apollo_only_consented: false, intent_signals: [],
+  }
+
+  const pdlUrls = () => urls.filter(u => u.includes('peopledatalabs'))
+
+  beforeEach(() => {
+    // ② mocks `./pdl-search` with `vi.doMock`, which outlives its describe. Unmock it, or
+    // these cases would exercise ②'s stub and prove nothing about the real module.
+    vi.doUnmock('./pdl-search')
+    vi.resetModules()
+    process.env.PDL_API_KEY = 'pdl-key-present'
+    process.env.APOLLO_API_KEY = 'apollo-key-present'
+    process.env.PAID_PROVIDERS_ENABLED = 'true'
+    // `middleware/auth.ts` builds a supabase client at module scope; dummies, never called.
+    process.env.SUPABASE_URL = 'http://localhost:54321'
+    process.env.SUPABASE_ANON_KEY = 'test-anon-key'
+    process.env.ANTHROPIC_API_KEY = 'test-key'
+    process.env.ADMIN_SECRET_KEY = 'admin-secret'
+    urls = []
+    // A PDL-shaped success: if the fence is missing, the search "works" and says so.
+    vi.stubGlobal('fetch', vi.fn(async (url: unknown) => {
+      urls.push(String(url))
+      return {
+        ok: true, status: 200,
+        text: async () => '',
+        json: async () => ({
+          total: 1, scroll_token: null, people: [], pagination: { total_entries: 0 },
+          data: [{ first_name: 'Ada', last_name: 'L', job_title: 'CEO', work_email: 'ada@example.com' }],
+        }),
+      } as never
+    }))
+  })
+
+  afterEach(() => {
+    process.env = { ...saved }
+    vi.doUnmock('./provider-boundary')
+    vi.resetModules()
+    vi.restoreAllMocks()
+    vi.unstubAllGlobals()
+  })
+
+  function mockRes() {
+    const r: Record<string, unknown> = { code: 200 }
+    r.status = (c: number) => { r.code = c; return r }
+    r.json   = (b: unknown) => { r.body = b; return r }
+    return r as { code: number; body?: Record<string, unknown> }
+  }
+
+  function lastHandler(router: unknown, method: string, path: string) {
+    const stack = (router as { stack: Array<{ route?: { path: string; methods: Record<string, boolean>; stack: Array<{ handle: unknown }> } }> }).stack
+    const layer = stack.find(l => l.route?.path === path && l.route.methods[method])
+    if (!layer?.route) throw new Error(`no ${method.toUpperCase()} route at ${path}`)
+    return layer.route.stack[layer.route.stack.length - 1].handle as (req: unknown, res: unknown) => Promise<void>
+  }
+
+  it('pdlSearchPage does not call fetch and returns the not-asked shape', async () => {
+    const { pdlSearchPage } = await import('./pdl-search')
+    const page = await pdlSearchPage(ICP as never, 20, 'resume-token')
+    expect(pdlUrls(), 'pdlSearchPage called PDL with the key set').toEqual([])
+    // NOT exhausted and NOT matchedNothing: we never asked, so nothing may be claimed about
+    // the audience. `completed: false` is what stops an empty page reading as "no matches".
+    expect(page).toEqual({ contacts: [], scrollToken: 'resume-token', exhausted: false, matchedNothing: false, error: null, completed: false })
+  })
+
+  it('pdlSearchPeople and pdlSearchDiagnostic do not call fetch', async () => {
+    const { pdlSearchPeople, pdlSearchDiagnostic } = await import('./pdl-search')
+    expect(await pdlSearchPeople(ICP as never, 3)).toEqual([])
+    const diag = await pdlSearchDiagnostic(ICP as never)
+    expect(pdlUrls(), 'a PDL diagnostic/search called PDL with the key set').toEqual([])
+    expect(diag.configured).toBe(false)
+    expect(diag.count).toBe(0)
+    expect(String(diag.error)).toMatch(/retired/i)
+  })
+
+  it('the CLIENT ICP preview samples never reach PDL', async () => {
+    vi.doMock('./provider-boundary', async () => {
+      const real = await vi.importActual<typeof import('./provider-boundary')>('./provider-boundary')
+      return { ...real, audienceForUser: async () => 'client' as const }
+    })
+    const { icpRouter } = await import('../routes/icps')
+    const handler = lastHandler(icpRouter, 'post', '/preview-count')
+    const res = mockRes()
+    await handler({ body: { job_titles: ['R143-client-preview'], geographies: ['United Kingdom'] }, userId: 'u1', headers: {} }, res)
+    expect(res.body?.success, 'the preview handler did not complete').toBe(true)
+    expect(pdlUrls(), 'the client preview sampled from PDL').toEqual([])
+  })
+
+  it('/engine/leads/test never reaches PDL', async () => {
+    const { engineRouter } = await import('../routes/engine')
+    const handler = lastHandler(engineRouter, 'get', '/leads/test')
+    const res = mockRes()
+    await handler({ query: {}, headers: { 'x-admin-key': 'admin-secret' } }, res)
+    expect(res.code).toBe(200)
+    expect(pdlUrls(), '/engine/leads/test called PDL').toEqual([])
+    const body = res.body as { sources: { pdl: boolean }; pdl: { count: number } }
+    expect(body.sources.pdl, 'PDL must not be reported as an available source').toBe(false)
+    expect(body.pdl.count).toBe(0)
+  })
+})

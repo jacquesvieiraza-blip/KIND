@@ -149,12 +149,15 @@ describe('② no legacy money module reads the programme curve', () => {
     })
   }
 
-  it('⚠️ lib/stripe.ts stays legacy-only — which is WHY programme checkout is its own module', () => {
-    // `lib/stripe.ts` imports PACK_LEADS. Putting programme checkout in it would have forced
-    // an exception into this fence, and a partition with an exception is not a partition.
-    // `programme-checkout.ts` exists for exactly this reason.
+  // ⛓️ RE-AIMED 23 Sep (R137 · old-code removal). WAS: 'lib/stripe.ts stays legacy-only', which
+  // also asserted that `lib/stripe.ts` still imported PACK_LEADS. The only user of PACK_LEADS
+  // there was the retired wallet session (`checkoutLineName`), now DELETED — so the module no
+  // longer carries the legacy constant at all. What this test protects is unchanged: programme
+  // checkout keeps its own module and never moves into `lib/stripe.ts`.
+  it('⚠️ programme checkout stays in its own module, never in lib/stripe.ts', () => {
+    // `programme-checkout.ts` exists so the programme partition never needs an exception.
     const legacyStripe = readIf(join(LIB, 'stripe.ts'))!
-    expect(code(legacyStripe)).toContain('PACK_LEADS')
+    expect(code(legacyStripe), 'the retired pack constant is back in lib/stripe.ts').not.toContain('PACK_LEADS')
     expect(code(legacyStripe), 'programme checkout must not live in the legacy Stripe module')
       .not.toMatch(/createProgrammeCheckoutSession/)
     expect(readIf(join(LIB, 'programme-checkout.ts')), 'programme-checkout.ts must exist').not.toBeNull()

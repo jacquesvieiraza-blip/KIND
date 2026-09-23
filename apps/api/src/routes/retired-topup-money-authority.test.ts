@@ -22,6 +22,8 @@
 //   • programme · unreadable → refused, zero calls
 //   • ~~legacy → allowed, a URL, one call — the model is preserved, not deleted~~
 //     ⛓️ 23 Sep (R137): legacy and NULL are refused too — the model is retired for every account
+//     ⛓️ 23 Sep (R137 · old-code removal): the handler and its session creators are DELETED;
+//        every caller now gets 410 `retired`, and ④ proves the creators no longer exist
 //   • P1 and P2 go through a DIFFERENT route, module and session creator, and are untouched
 //
 // 🛑 NO REAL STRIPE CALL IS MADE AND NO PAYMENT IS SIMULATED. Every session creator is mocked;
@@ -141,93 +143,46 @@ beforeEach(() => {
 })
 
 // ═══════════════════════════════════════════════════════════════════════════════════════
-// ① THE RETIRED TOP-UP INTENT, CALLED DIRECTLY
-// ═══════════════════════════════════════════════════════════════════════════════════════
-describe('① a direct authenticated retired top-up request', () => {
-  it('🛑 PROGRAMME — refused, and Stripe is never reached', async () => {
-    client('programme')
-    const r = await postCheckout()
-    expect(r.status).toBe(409)
-    expect(r.payload.error).toBe('not_on_this_model')
-    expect(r.payload.message, 'and it says nothing was charged').toContain('Nothing has been charged')
-    expect(walletSession, 'REJECTED BEFORE ANY SESSION IS CREATED').not.toHaveBeenCalled()
-    expect(r.payload.url, 'no checkout URL of any kind').toBeUndefined()
-  })
-
-  it('🛑 UNREADABLE — fails closed, and Stripe is never reached', async () => {
-    // The row carries NO `commercial_model` field at all.
-    client(undefined)
-    const r = await postCheckout()
-    expect(r.status).toBe(409)
-    expect(r.payload.error).toBe('not_on_this_model')
-    expect(r.payload.message, 'the honest answer, not a charge').toContain('could not confirm your plan')
-    expect(walletSession).not.toHaveBeenCalled()
-  })
-
-  it('🛑 A MISSING CLIENT IS NOT A LEGACY CLIENT', async () => {
-    const r = await postCheckout(40, 'nobody')
-    expect(r.status).toBe(404)
-    expect(walletSession).not.toHaveBeenCalled()
-  })
-
-  it('🛑 AND THE REFUSAL IS NOT AN AMOUNT RULE — every preset is refused the same way', async () => {
-    client('programme')
-    for (const amount of [40, 100, 200]) {
-      walletSession.mockClear()
-      const r = await postCheckout(amount)
-      expect(r.status, `$${amount}`).toBe(409)
-      expect(walletSession).not.toHaveBeenCalled()
-    }
-  })
-})
-
-// ═══════════════════════════════════════════════════════════════════════════════════════
-// ② NOBODY BUYS THE RETIRED PACK OR A TOP-UP ANY MORE (R137)
+// ① + ② THE RETIRED PACK / TOP-UP DOOR, CALLED DIRECTLY — IT IS GONE, NOT FENCED
 //
-// ⛓️ INVERTED 23 Sep (R137). WAS: `② LEGACY IS PRESERVED — the fence must not be satisfiable by
-// breaking the paying model` / `describe('② legacy still buys')`, asserting that NULL and
-// 'legacy' clients got a real checkout URL. Founder, verbatim: *"the 299/4 is retired/ this
-// must go. everything must be updated to new programme pricing model."* There is no paying
-// legacy model left to preserve, so the same fence now refuses every account — and it is still
-// proved by CALLING the handler and counting Stripe calls, not by reading it.
+// ⛓️ RE-AIMED 23 Sep (R137 · old-code removal). WAS: ① refused a programme / unreadable /
+// missing client with a 409 `not_on_this_model` (404 for a missing client), and ② (itself
+// inverted earlier the same day from "legacy still buys") refused NULL and 'legacy' with the
+// same 409, ahead of the amount rules and inside a mixed company. Founder, verbatim, for this
+// removal: *"create its own PR to remove old code"*. The handler and the wallet / bundle /
+// subscription session creators are DELETED, so there is no model check left to prove — the
+// route answers 410 `retired` for every caller, whatever the row says or whether a row exists.
+// Still proved the same way: by CALLING the handler and counting Stripe session calls.
 // ═══════════════════════════════════════════════════════════════════════════════════════
-describe('② nobody buys the retired pack or a top-up (R137)', () => {
-  for (const model of [null, 'legacy'] as const) {
-    it(`🛑 commercial_model ${String(model)} → refused, and Stripe is never reached`, async () => {
-      // ⛓️ WAS: `…→ a real checkout URL, exactly as today` (200, one wallet session).
-      client(model)
-      const r = await postCheckout(100)
-      expect(r.status).toBe(409)
-      expect(r.payload.error).toBe('not_on_this_model')
-      expect(r.payload.message).toContain('Nothing has been charged')
-      expect(walletSession, 'REJECTED BEFORE ANY SESSION IS CREATED').not.toHaveBeenCalled()
-      expect(r.payload.url).toBeUndefined()
+describe('① + ② a direct authenticated pack / top-up request — retired for everyone (R137)', () => {
+  const cases: Array<[string, () => void, string]> = [
+    ['programme',              () => client('programme'), USER],
+    ['unreadable (no column)', () => client(undefined),   USER],
+    ['commercial_model null',  () => client(null),        USER],
+    ['legacy',                 () => client('legacy'),    USER],
+    ['no client row at all',   () => {},                  'nobody'],
+  ]
+  for (const [label, seed, userId] of cases) {
+    it(`🛑 ${label} → 410 retired, nothing charged, Stripe never reached`, async () => {
+      seed()
+      const { CHECKOUT_RETIRED_MESSAGE } = await import('./stripe')
+      for (const amount of [40, 77, 100, 200, 299]) {
+        const r = await postCheckout(amount, userId)
+        expect(r.status, `$${amount}`).toBe(410)
+        expect(r.payload.error).toBe('retired')
+        expect(r.payload.message).toBe(CHECKOUT_RETIRED_MESSAGE)
+        expect(r.payload.message, 'and it says nothing was charged').toContain('Nothing has been charged')
+        expect(r.payload.url, 'no checkout URL of any kind').toBeUndefined()
+      }
+      expect(walletSession, 'NO SESSION IS EVER CREATED').not.toHaveBeenCalled()
+      expect(subSession).not.toHaveBeenCalled()
+      expect(progSession, 'and the programme door is not borrowed').not.toHaveBeenCalled()
     })
   }
 
-  it('🛑 the refusal lands BEFORE the amount rules — an off-preset top-up gets the model answer', async () => {
-    // ⛓️ WAS: `'the existing amount rules are untouched — an off-preset top-up is still
-    // refused'` (400 invalid_topup_amount, for a legacy client). No client reaches the amount
-    // rules now, so the answer is the model refusal, not a price lecture.
-    client('legacy')
-    const r = await postCheckout(77)
-    expect(r.status).toBe(409)
-    expect(r.payload.error).toBe('not_on_this_model')
-    expect(walletSession).not.toHaveBeenCalled()
-  })
-
-  it('🛑 a formerly-legacy seat inside a MIXED company is refused too', async () => {
-    // ⛓️ WAS: `'a legacy seat inside a MIXED company still buys its OWN wallet'` (200).
-    client('legacy')
-    state.clients.push({ id: 'c-2', user_id: 'u-2', commercial_model: 'programme', company_id: 'co-1' })
-    const r = await postCheckout(40)
-    expect(r.status).toBe(409)
-    expect(walletSession).not.toHaveBeenCalled()
-  })
-
   it('🛑 /stripe/subscribe is RETIRED — 410 for every account, and no subscription session', async () => {
-    // ⚑ 23 Sep (R137) — NEW. The monthly Milla / Vida / Denise subscriptions minted a live
-    // session with no model check at all. Called directly, as a client with a token could.
+    // ⚑ 23 Sep (R137). The monthly Milla / Vida / Denise subscriptions. Called directly, as a
+    // client with a token could.
     for (const model of [null, 'legacy', 'programme'] as const) {
       state.clients = []; client(model); subSession.mockClear()
       const { stripeRouter, SUBSCRIBE_RETIRED_MESSAGE } = await import('./stripe')
@@ -295,21 +250,32 @@ describe('④ every retired money entry point is accounted for', () => {
   const stripeLib   = src('lib/stripe.ts')
   const companyRoute = src('routes/company.ts')
 
-  it('🛑 THE ONLY CALLER OF THE WALLET SESSION IS THE GATED ROUTE', () => {
-    const callers = stripeRoute.split('\n').filter(l => l.includes('createWalletCheckoutSession(') && !l.trim().startsWith('*'))
-    expect(callers, 'one call site, inside /checkout').toHaveLength(1)
-    const fn = stripeRoute.slice(stripeRoute.indexOf("stripeRouter.post('/checkout'"))
-    expect(fn.indexOf('mayUseLegacyCommercialPath(model)'))
-      .toBeLessThan(fn.indexOf('createWalletCheckoutSession('))
+  // ⛓️ RE-AIMED 23 Sep (R137 · old-code removal). WAS: '🛑 THE ONLY CALLER OF THE WALLET
+  // SESSION IS THE GATED ROUTE' (one `createWalletCheckoutSession(` call site, after
+  // `mayUseLegacyCommercialPath(model)`) and '🛑 THE CREDIT-BUNDLE SESSION CREATOR HAS NO CALLER AT
+  // ALL' (the creator exported, never called). Both creators are now DELETED — the stronger state.
+  it('🛑 THE RETIRED SESSION CREATORS NO LONGER EXIST — not exported, not called, not defined', () => {
+    for (const name of ['createWalletCheckoutSession', 'createCheckoutSession', 'createSubscriptionCheckoutSession', 'checkoutLineName']) {
+      expect(stripeLib, `lib/stripe.ts must not define ${name}`).not.toMatch(new RegExp(`function\\s+${name}\\s*\\(`))
+      expect(stripeRoute, `routes/stripe.ts must not call ${name}`).not.toMatch(new RegExp(`[^a-zA-Z]${name}\\(`))
+    }
   })
 
-  it('🛑 THE CREDIT-BUNDLE SESSION CREATOR HAS NO CALLER AT ALL', () => {
-    // `createCheckoutSession` mints a `type: 'credit_purchase'` session with `credits` /
-    // `creditType` metadata — the retired PACK door. It is exported and, in the whole
-    // repository, never called. The webhook branches that GRANT those credits are therefore
-    // reachable only by an inbound signature-verified Stripe event, never by a client.
-    expect(stripeLib).toContain('export async function createCheckoutSession(')
-    expect(stripeRoute, 'no route mints a credit-bundle session').not.toMatch(/[^a-zA-Z]createCheckoutSession\(/)
+  it('🛑 BOTH RETIRED ROUTES ARE ONE-LINE 410s — no body read, no db read, no Stripe', () => {
+    for (const path of ['/checkout', '/subscribe']) {
+      const start = stripeRoute.indexOf(`stripeRouter.post('${path}'`)
+      expect(start, `${path} still answers`).toBeGreaterThan(-1)
+      const fn = stripeRoute.slice(start, stripeRoute.indexOf('\n})', start))
+      expect(fn).toContain('res.status(410)')
+      for (const banned of ['db.from', 'req.body', 'stripe.', 'Session(']) {
+        expect(fn, `${path} must not touch ${banned}`).not.toContain(banned)
+      }
+    }
+  })
+
+  it('🛑 AND THE WEBHOOK IS KEPT — it reconciles money paid before the retirement', () => {
+    expect(stripeRoute).toContain("stripeRouter.post('/webhook'")
+    expect(stripeLib).toContain('export function constructWebhookEvent(')
   })
 
   it('🛑 NOTHING IN THE STRIPE PATH CAN REACH THE COMPANY CREDIT POOL', () => {
@@ -325,6 +291,9 @@ describe('④ every retired money entry point is accounted for', () => {
       .toBeLessThan(fn.indexOf("db.from('companies')"))
   })
 
+  // ⛓️ 23 Sep (R137 · old-code removal): this read the `/subscribe` handler body between its own
+  // line and the webhook's. That body is now a one-line 410, covered above — the check still
+  // runs against the same slice and still holds.
   it('🛑 SUBSCRIPTIONS ARE A DIFFERENT PRODUCT — they mint no credits, wallet or pool', () => {
     const fn = stripeRoute.slice(
       stripeRoute.indexOf("stripeRouter.post('/subscribe'"),

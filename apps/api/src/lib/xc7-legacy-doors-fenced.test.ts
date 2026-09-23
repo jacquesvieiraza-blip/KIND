@@ -67,9 +67,14 @@ function handler(source: string, marker: string, stopAt = 6000): string {
 // ① THE SEVEN DOORS, NAMED
 // ═════════════════════════════════════════════════════════════════════════════════════════
 describe('XC-7 · every named legacy door asks who the client is', () => {
-  it('🛑 ① AUTO-RUN ON WALLET — a top-up does not start legacy work for a programme client', () => {
-    const block = handler(STRIPE, "const { clientCommercialModel, mayUseLegacyCommercialPath }", 1200)
-    expect(block).toContain('if (!mayUseLegacyCommercialPath(model))')
+  // ⛓️ RE-AIMED 23 Sep (R137 · old-code removal). WAS: this door was the model check inside
+  // `POST /stripe/checkout` (`if (!mayUseLegacyCommercialPath(model))`), which refused to mint a
+  // top-up for a programme client. The handler and `createWalletCheckoutSession` are now DELETED
+  // — no top-up can be bought by anyone, so the door is shut at its source rather than fenced.
+  it('🛑 ① AUTO-RUN ON WALLET — no top-up can be bought at all, so none can start legacy work', () => {
+    const block = handler(STRIPE, "stripeRouter.post('/checkout'", 200)
+    expect(block).toContain('res.status(410)')
+    expect(STRIPE, 'the wallet session creator is called again').not.toMatch(/[^a-zA-Z]createWalletCheckoutSession\(/)
   })
 
   it('🛑 ② /icps/:id/run — the welcome credits and the legacy run', () => {

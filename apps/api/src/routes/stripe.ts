@@ -2,17 +2,13 @@
 // Also add: app.use('/webhooks/stripe', express.raw({ type: 'application/json' })) BEFORE app.use(express.json())
 
 import { Router, Request, Response } from 'express'
-import { z } from 'zod'
 import { db } from '@kind/db'
 import { requireAuth, AuthRequest } from '../middleware/auth'
 import {
   isStripeConfigured,
   listInvoicesByEmail,
-  createWalletCheckoutSession,
-  createSubscriptionCheckoutSession,
   constructWebhookEvent,
   getSessionMetaByPaymentIntent,
-  getStripeSubscriptionPriceId,
   annotateSettlement,
   STRIPE_SUBSCRIPTIONS,
   STRIPE_BUNDLES,
@@ -159,187 +155,28 @@ stripeRouter.get('/invoices', requireAuth, async (req: AuthRequest, res: Respons
   }
 })
 
-// ── POST /stripe/checkout — one-time credit purchase ─────────────────────────
-stripeRouter.post('/checkout', requireAuth, async (req: AuthRequest, res: Response) => {
-  if (!isStripeConfigured()) {
-    res.status(200).json({ error: 'Stripe not configured', configured: false })
-    return
-  }
-
-  try {
-    // ONE WALLET — a single dollar top-up. First purchase must be $99; later top-ups
-    // are any of the presets. Server enforces both (never trust the client).
-    const { amount_usd } = z.object({
-      amount_usd: z.number().positive(),
-    }).parse(req.body)
-
-    const { data: client } = await db.from('clients')
-      .select('id').eq('user_id', req.userId!).single()
-    if (!client) { res.status(404).json({ success: false, error: 'Client not found' }); return }
-
-    // ── 🛑 3 Sep (C2) · THE RETIRED PACK IS NOT SOLD TO A PROGRAMME CLIENT ────────────────
-    //
-    // This route sells the LEGACY commercial model and nothing else: the $299 onboarding pack
-    // with its included approvals, and the $40/$100/$200 wallet top-ups that feed the $4
-    // per-approved-lead charge. A programme client pays for a programme, at P1 and P2, through
-    // its own route — so a checkout here would take real money for a product they are not on
-    // and cannot use. The retired `/dashboard/billing` page still renders these buttons, and a
-    // page is not a gate: the fence has to be here, where the money is.
-    //
-    // ⚠️ AND IT REFUSES ON `unreadable` TOO. If we cannot resolve which model governs this
-    // client, the honest answer is not to take their card. Charging is the one act where
-    // "we could not tell" must never resolve in our favour.
-    const { clientCommercialModel, mayUseLegacyCommercialPath } = await import('../lib/commercial-model')
-    const model = await clientCommercialModel(client.id)
-    if (!mayUseLegacyCommercialPath(model)) {
-      res.status(409).json({
-        success: false,
-        error: 'not_on_this_model',
-        message: model.model === 'unreadable'
-          ? 'We could not confirm your plan, so nothing has been charged. Please contact us and we will sort it out.'
-          : 'Your programme is paid for separately — there is no pack or top-up to buy on your plan. Nothing has been charged.',
-      })
-      return
-    }
-
-    // Has this client PAID US before? PURCHASE_TX_TYPES deliberately, not PAID_TX_TYPES: a
-    // manual grant unlocks a client but is not money in, and if it counted here a comped
-    // account could skip the $99 pack entirely and start on a $40 top-up.
-    const { count: priorPurchases } = await db.from('credit_transactions')
-      .select('id', { count: 'exact', head: true })
-      .eq('client_id', client.id).in('type', PURCHASE_TX_TYPES)
-    const isFirst = (priorPurchases ?? 0) === 0
-
-    // ⚠️ DERIVED FROM THE CONSTANT, NEVER TYPED — and this line is why the guard exists.
-    // It read `const FIRST_PURCHASE_USD = 99` while the portal's button already derived its
-    // amount from `PACK_PRICE_USD` (#563 fixed the client side and left the server side
-    // hardcoded). So the 3-Aug move to $299 would have had the portal POST 299 and this
-    // route reject it as `first_purchase_must_be_99`: **every first payment would have
-    // failed at the till**, on the one request that starts a client, and the only symptom
-    // would have been a 400 nobody was watching for. `pack-price-single-source.test.ts`
-    // now fails if either side is re-hardcoded.
-    const FIRST_PURCHASE_USD = PACK_PRICE_USD
-    const TOPUP_PRESETS = [40, 100, 200]
-    if (isFirst && amount_usd !== FIRST_PURCHASE_USD) {
-      // The code is generic on purpose: `first_purchase_must_be_99` baked a price into an
-      // error name, so the name itself went stale the day the price moved.
-      res.status(400).json({
-        success: false,
-        error: 'first_purchase_amount_required',
-        // NOT "to load your wallet" — that was false after #562. The pack BUYS the included
-        // approvals; it does not credit the wallet.
-        message: `Your first purchase is $${FIRST_PURCHASE_USD} — the onboarding pack, which includes your first ${PACK_LEADS} approved leads.`,
-      })
-      return
-    }
-    if (!isFirst && !TOPUP_PRESETS.includes(amount_usd) && amount_usd !== FIRST_PURCHASE_USD) {
-      res.status(400).json({ success: false, error: 'invalid_topup_amount', message: 'Top up $40, $100, or $200.' })
-      return
-    }
-
-    const token = req.headers.authorization?.replace('Bearer ', '') || ''
-    const { data: { user } } = await db.auth.getUser(token)
-    const clientEmail = user?.email || ''
-
-    const portalUrl = process.env.PORTAL_URL || 'https://app.get-kind.com'
-    const { url, error } = await createWalletCheckoutSession({
-      clientId:   client.id,
-      amountUsd:  amount_usd,
-      clientEmail,
-      // The route already knew this and simply never passed it, which is how the first
-      // purchase came to be labelled a wallet top-up on the payment page.
-      isFirstPurchase: isFirst,
-      successUrl: `${portalUrl}/milla/billing?stripe=success`,
-      cancelUrl:  `${portalUrl}/milla/billing?stripe=cancelled`,
-    })
-
-    if (!url) { res.status(500).json({ success: false, error: error || 'Failed to create Stripe Checkout session' }); return }
-    res.json({ success: true, url })
-  } catch (err) {
-    if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: err.errors }); return }
-    console.error('[Stripe] /checkout error:', err)
-    res.status(500).json({ success: false, error: 'Internal server error' })
-  }
-})
-
-// ── POST /stripe/subscribe — recurring subscription (Milla / Vida) ────────────
+// ── POST /stripe/checkout · POST /stripe/subscribe — RETIRED, AND THEIR CODE IS GONE ──────
 //
-// 🛑 ⚑ 23 Sep (R137) — RETIRED. NO SESSION IS MINTED FOR ANYONE. Founder, verbatim: *"the 299/4
-// is retired/ this must go. everything must be updated to new programme pricing model."* The
-// monthly Milla / Vida / Denise subscriptions are not programme pricing, and `pricing-copy.ts`
-// already records that none of those four products is sold — yet this route still minted a
-// live Stripe subscription session for any authenticated client who posted to it, with no model
-// check at all (its only caller, the old `/dashboard/billing` page, is bounced; a page is not a
-// gate). It now refuses first, before Stripe, before the client read.
+// ⚑ 23 Sep (R137 · founder: *"the 299/4 is retired/ this must go"* — and, for this removal,
+// *"create its own PR to remove old code"*). `/checkout` sold the $299 pack and the $40/$100/$200
+// wallet top-ups behind the $4-per-lead charge; `/subscribe` sold the monthly Milla/Vida/Denise
+// subscriptions. R137 fenced both (409 for every account, then 410). This deletes what stood
+// behind the fences — the handlers and the three session creators in `lib/stripe.ts` — so no
+// code path in the repository can mint a pack, top-up or subscription Stripe session again.
 //
-// ⚠️ THE BODY BELOW IS KEPT, UNREACHABLE, AND IS DELETED WITH THE REST OF THE RETIRED BILLING CODE
-// IN ITS OWN FOLLOW-UP PR — not here, so this change stays the size of the decision. The
-// subscription WEBHOOK is untouched: it only acts on an inbound, signature-verified Stripe event.
+// ⚠️ THE ROUTES STILL ANSWER, WITH A 410 AND A SENTENCE. A stale tab or a bookmarked page that
+// posts here is told plainly that nothing was charged, rather than meeting a bare 404.
+// ⚠️ THE WEBHOOK BELOW IS KEPT. It only acts on inbound, signature-verified Stripe events, and
+// it is what reconciles any payment made under the old model before it was retired.
+export const CHECKOUT_RETIRED_MESSAGE =
+  'The onboarding pack and wallet top-ups are no longer sold — everything now runs through your programme. Nothing has been charged.'
 export const SUBSCRIBE_RETIRED_MESSAGE =
   'Monthly subscriptions are no longer sold — everything now runs through your programme. Nothing has been charged.'
-const SUBSCRIBE_RETIRED = true as boolean
-stripeRouter.post('/subscribe', requireAuth, async (req: AuthRequest, res: Response) => {
-  if (SUBSCRIBE_RETIRED) {
-    res.status(410).json({ success: false, error: 'retired', message: SUBSCRIBE_RETIRED_MESSAGE })
-    return
-  }
-  if (!isStripeConfigured()) {
-    res.status(200).json({ error: 'Stripe not configured', configured: false })
-    return
-  }
-
-  try {
-    const { product } = z.object({
-      product: z.enum(['milla', 'vida', 'denise']),
-    }).parse(req.body)
-
-    const priceId = getStripeSubscriptionPriceId(product)
-    if (!priceId) {
-      res.status(400).json({ success: false, error: `Stripe price not configured for ${product}. Add ${STRIPE_SUBSCRIPTIONS[product].priceEnvVar} to Railway.` })
-      return
-    }
-
-    const { data: client } = await db.from('clients')
-      .select('id').eq('user_id', req.userId!).single()
-    if (!client) { res.status(404).json({ success: false, error: 'Client not found' }); return }
-
-    // Check if already subscribed
-    const dbProduct = STRIPE_SUBSCRIPTIONS[product].product
-    const { data: existing } = await db.from('subscriptions')
-      .select('id, status')
-      .eq('client_id', client.id)
-      .eq('product', dbProduct)
-      .in('status', ['active', 'trialing'])
-      .maybeSingle()
-
-    if (existing) {
-      res.status(400).json({ success: false, error: `Already subscribed to ${product}` })
-      return
-    }
-
-    const token = req.headers.authorization?.replace('Bearer ', '') || ''
-    const { data: { user } } = await db.auth.getUser(token)
-    const clientEmail = user?.email || ''
-
-    const portalUrl = process.env.PORTAL_URL || 'https://app.get-kind.com'
-    const successPage = product === 'milla' ? 'assistant' : product === 'denise' ? 'denise' : 'chatbot'
-
-    const { url, error } = await createSubscriptionCheckoutSession({
-      clientId:   client.id,
-      product,
-      priceId,
-      clientEmail,
-      successUrl: `${portalUrl}/dashboard/${successPage}?subscribed=1`,
-      cancelUrl:  `${portalUrl}/dashboard/${successPage}`,
-    })
-
-    if (!url) { res.status(500).json({ success: false, error: error || 'Failed to create subscription checkout' }); return }
-    res.json({ success: true, url })
-  } catch (err) {
-    if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: err.errors }); return }
-    console.error('[Stripe] /subscribe error:', err)
-    res.status(500).json({ success: false, error: 'Internal server error' })
-  }
+stripeRouter.post('/checkout', requireAuth, (_req: AuthRequest, res: Response) => {
+  res.status(410).json({ success: false, error: 'retired', message: CHECKOUT_RETIRED_MESSAGE })
+})
+stripeRouter.post('/subscribe', requireAuth, (_req: AuthRequest, res: Response) => {
+  res.status(410).json({ success: false, error: 'retired', message: SUBSCRIBE_RETIRED_MESSAGE })
 })
 
 // ── POST /stripe/webhook — raw body, public endpoint ─────────────────────────

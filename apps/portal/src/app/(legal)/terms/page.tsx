@@ -14,7 +14,7 @@ export default function TermsPage() {
       </header>
       <main className="max-w-3xl mx-auto px-6 py-12">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">Terms of Service</h1>
-        <p className="text-gray-500 text-sm mb-8">Last updated: May 2026 · Full version at <a href="https://get-kind.com/terms" className="text-[#7C3AED] hover:underline" target="_blank" rel="noopener noreferrer">get-kind.com/terms</a></p>
+        <p className="text-gray-500 text-sm mb-8">Last updated: 23 September 2026 · Full version at <a href="/terms.html" className="text-[#7C3AED] hover:underline">the full terms</a></p>
 
         <div className="prose prose-gray max-w-none space-y-8 text-sm text-gray-700 leading-relaxed">
           <section>
@@ -24,12 +24,13 @@ export default function TermsPage() {
 
           <section>
             <h2 className="text-lg font-semibold text-gray-900 mb-3">2. Services</h2>
-            <p>K.I.N.D provides AI-powered outbound sales services including lead generation, ICP profiling, 3-sequence email outreach, and the FIGSY AI SDR. The specific services and pricing for your account are set out in your Order Form.</p>
+            <p>K.I.N.D runs outbound programmes for businesses that sell to other businesses. You tell Milla the outcome you want and who you want to reach; we find real people who match, show you a free Proof sample before you pay, prepare the outreach, and &mdash; once you approve the exact package &mdash; send it on your behalf and work towards booked meetings.</p>
           </section>
 
           <section>
-            <h2 className="text-lg font-semibold text-gray-900 mb-3">3. Credits & Billing</h2>
-            <p>There is <strong>no free trial</strong>. A new account starts paused, with a zero balance and no sourcing allowance — nothing is sourced, approved or sent until your first purchase completes. Your first purchase is the onboarding pack, which includes your first 100 approved leads; after those, you are charged per approved lead from a single account balance. Reviewing prospects is free, and you are only charged when you approve a lead. Purchases are non-refundable, a lead is charged at most once, and outreach pauses when the balance reaches zero. Accounts with outstanding balances have 7 days before suspension.</p>
+            <h2 className="text-lg font-semibold text-gray-900 mb-3">3. Programmes &amp; Billing</h2>
+            <p>There is <strong>no free trial</strong>, and there is <strong>no subscription</strong>. Your Brief and your Proof &mdash; up to 20 real people who match your targeting, shown masked &mdash; are free. You choose the number of booked meetings your programme aims for, and its price is shown before you commit. It is paid in two halves: <strong>Payment 1</strong> authorises sourcing and preparation only, and <strong>Payment 2</strong> is taken when you approve the prepared package and authorises outreach. If you pause before your programme goes live, Payment 2 is never charged.</p>
+            <p className="mt-2">If your programme ends having delivered fewer booked meetings than your target, the difference, at the price per meeting you bought at, is <strong>credited to your K.I.N.D account</strong> towards the first payment of a future programme. Account credit is not paid back to your card and does not expire. Programme payments are non-refundable.</p>
             <p className="mt-2">K.I.N.D makes <strong>no guarantee</strong> of meetings booked, replies, conversion rates or sales outcomes. Any figure we give for expected prospects or results is a planning estimate based on our current experience, not a promise.</p>
           </section>
 

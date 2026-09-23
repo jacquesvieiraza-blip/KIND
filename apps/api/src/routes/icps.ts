@@ -54,7 +54,7 @@ import { onboardingState, ACCOUNT_FACT_LABEL } from '../lib/onboarding-state'
 // rather than the client.
 import {
   translateProviderList, buildIcpReview, icpNeedsReview, deriveProviderReview,
-  PROVIDER_VOCABULARIES,
+  PROVIDER_VOCABULARIES, WRITE_VOCABULARIES,
   ICP_REVIEW_PROOF_REFUSAL as PROOF_PREPARING_COPY, type ProviderField,
 } from '../lib/icp-provider-translation'
 // ⚑ 14 Sep (S1-RT-007 / S1-RT-009) — the model interprets language; it is not the canonical
@@ -6613,7 +6613,10 @@ icpRouter.post('/', async (req: AuthRequest, res) => {
         seniority_levels: body.seniority_levels,
         company_sizes:    body.company_sizes,
       },
-      { industries: ICP_INDUSTRIES, seniority_levels: ICP_SENIORITY, company_sizes: ICP_SIZES },
+      // ⛓️ 23 Sep (R142 · A2a) — WAS `{ industries: ICP_INDUSTRIES, seniority_levels: ICP_SENIORITY,
+      // company_sizes: ICP_SIZES }`. An industry the client PICKED from Apollo's list must not be
+      // flagged as untranslatable at the write and park their Proof behind a review.
+      WRITE_VOCABULARIES,
     )
     body.industries       = decided.values.industries
     body.seniority_levels = decided.values.seniority_levels

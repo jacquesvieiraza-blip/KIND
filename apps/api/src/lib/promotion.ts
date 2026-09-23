@@ -48,6 +48,7 @@ import { db } from '@kind/db'
 import type { BriefDraft } from './brief-draft'
 // J5-C10: the row cannot be born unflagged (S1-PD-03). One derivation, one vocabulary.
 import { deriveProviderReview, translateProviderList, PROVIDER_VOCABULARIES } from './icp-provider-translation'
+import { apolloIndustriesOnly } from '@kind/shared'
 
 export type PromotionFailure =
   /** A decisive read failed. Nothing was written; the draft is untouched and still writable. */
@@ -180,13 +181,22 @@ export function icpFromDraft(d: BriefDraft): Record<string, unknown> {
     PROVIDER_VOCABULARIES,
   )
 
+  // ── ⚑ 23 Sep (R142 · A2a) — A PICKED INDUSTRY IS APOLLO'S OWN VALUE, AND IT WINS ──────────
+  //
+  // Founder: *"this is why we use apollo drop downs and make sure we do not assume."* The client
+  // chooses their industries from Apollo's list in the Brief; those are stored as they are.
+  // Anything not on the list is DROPPED, never translated — a word we do not recognise is
+  // Milla's question to ask, not ours to guess. With no pick, the old derivation stands, so an
+  // ICP built before this change is unchanged.
+  const pickedIndustries = apolloIndustriesOnly(pick('industries') ?? [])
+
   return {
     // ⚠️ THE NAME IS THE CLIENT'S CATEGORY, NOT A GENERATED LABEL. J5-C4's rule — the
     // client's words on the card — starts at the write, not at the render. It is the NAME,
     // which is copy, never a provider filter — so it keeps their exact phrasing while the
     // three provider columns below carry canonical values only.
     name: str(f.target_category) || 'Core ICP',
-    industries: decided.values.industries,
+    industries: pickedIndustries.length > 0 ? pickedIndustries : decided.values.industries,
     // ⚠️ `job_titles` IS NOT A CLOSED VOCABULARY and is deliberately absent from the
     // derivation. Apollo takes free-text titles; "Managing Director" needs no translation and
     // there is nothing for a review to be owed about.

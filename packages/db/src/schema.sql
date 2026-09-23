@@ -964,6 +964,13 @@ create table if not exists public.programmes (
   -- Reading the column alone counts those cents twice and pays a partner 25% of the difference.
   -- Founder-ruled 23 Sep: commission follows CASH RECEIVED, not price.
   wallet_applied_cents      int  not null default 0,
+  -- ── ⚑ 23 Sep · THE CLIENT'S OBJECTION AT APPROVAL (20260923_programme_approval_concern) ─
+  -- Their own words, not a category. `pause_reason` records WHICH KIND of pause this is and
+  -- could never hold a sentence; a dropdown of reasons would make them pick our word for their
+  -- objection. The programme is HELD, never cancelled — pause is orthogonal to status, so the
+  -- freeze, the approval state and the money all stay where they were.
+  approval_concern          text,
+  approval_concern_at       timestamptz,
   shortfall_credited_at     timestamptz,
   shortfall_credit_cents    int  not null default 0,
   delivered_meetings        int,                  -- persisted, never re-derived: a settled figure may not move

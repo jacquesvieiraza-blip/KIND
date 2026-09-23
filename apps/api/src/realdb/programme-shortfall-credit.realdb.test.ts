@@ -187,6 +187,37 @@ describe('R136 ④ · a programme can record what it credited, and cannot lie ab
         .then(r => expect(Number(r.rows[0].wallet_applied_cents)).toBe(0)))
   })
 
+  // ── ⚑ 23 Sep · THE CLIENT'S OBJECTION (20260923_programme_approval_concern · Section 4) ─
+  it('🛑 AN OBJECTION MUST CARRY THE MOMENT IT WAS RAISED', async () => {
+    // The freeze it objects to is versioned; words with no timestamp cannot be ordered against
+    // the version they were about.
+    const id = await newProgramme()
+    const r = await c.query(
+      `update public.programmes set approval_concern = 'these are all agencies' where id = $1`, [id],
+    ).then(() => ({ ok: true }), (e: unknown) => ({ ok: false, error: String(e) }))
+    expect(r.ok, 'a concern was recorded with no moment attached to it').toBe(false)
+    expect(String((r as { error?: string }).error)).toMatch(/approval_concern_dated/)
+  })
+
+  it('a dated objection is accepted, and the words are stored whole', async () => {
+    const id = await newProgramme()
+    const words = 'These are all agencies. We sell to manufacturers — I said that in the brief.'
+    await expect(c.query(
+      `update public.programmes set approval_concern = $2, approval_concern_at = now() where id = $1`,
+      [id, words])).resolves.toBeDefined()
+    const back = await c.query('select approval_concern from public.programmes where id = $1', [id])
+    expect(back.rows[0].approval_concern, 'the client’s words were altered on the way in').toBe(words)
+  })
+
+  it('a programme with no objection is the normal state, not a violation', async () => {
+    return newProgramme().then(id =>
+      c.query('select approval_concern, approval_concern_at from public.programmes where id = $1', [id])
+        .then(r => {
+          expect(r.rows[0].approval_concern).toBeNull()
+          expect(r.rows[0].approval_concern_at).toBeNull()
+        }))
+  })
+
   it('the migration is idempotent — re-running it changes nothing and throws nothing', async () => {
     // Every statement is `IF NOT EXISTS` or wrapped in a duplicate_object handler, and the
     // runner may legitimately replay it. A second application that threw would strand the

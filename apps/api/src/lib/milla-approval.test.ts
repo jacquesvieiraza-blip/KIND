@@ -201,9 +201,22 @@ describe('④ approving spends nothing and sends nothing', () => {
     }
   })
 
-  it('the only write it makes is the approval itself', () => {
+  it('the only writes it makes are the two client decisions, and neither spends or sends', () => {
+    // ⛓️ 23 Sep (Section 4 #18) — WAS `toEqual(['/my/programme/approve'])`. The screen gained a
+    // SECOND client decision: saying something is wrong, which HOLDS the programme. That is a
+    // different act from approving, not a part of it, and the flat "exactly one post" check
+    // could not tell the two apart.
+    //
+    // 🛑 SO THE GUARD ASSERTS WHAT IT ALWAYS MEANT. This section is "approving spends nothing
+    // and sends nothing": what matters is that every write this screen can make is a client
+    // DECISION, and that none of them is a payment, a checkout or a send. A third route, or
+    // either of these being swapped for something that moves money, still fails here.
     const posts = [...code(APPROVAL).matchAll(/api\.post<[^>]*>\(\s*'([^']+)'/g)].map(m => m[1])
-    expect(posts).toEqual(['/my/programme/approve'])
+    expect([...posts].sort()).toEqual(['/my/programme/approve', '/my/programme/concern'])
+    for (const path of posts) {
+      expect(path, `the approval screen can now reach a spending or sending route: ${path}`)
+        .not.toMatch(/checkout|stripe|pay|send|run|live/i)
+    }
   })
 
   it('the approve route is the customer-scoped one, resolved from the SESSION', () => {

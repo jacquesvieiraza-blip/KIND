@@ -80,6 +80,34 @@ export const WIDEN_TO_GO_FURTHER =
   'That is as far as your current targeting reaches. To aim higher, widen it — job titles, ' +
   'seniority, company size or location — and this will move with it.'
 
+/**
+ * 🛑 THE CLIENT'S WAY OF SAYING NO AT APPROVAL — founder-approved 23 Sep (Section 4 #18).
+ *
+ * The Approval screen let them approve and nothing else. If the people were wrong or the emails
+ * were wrong there was no control at all — every stage upstream lets them push back, and the
+ * one where they approve real outreach to real people did not.
+ *
+ * ⚠️ IT IS NOT A REJECTION AND MUST NOT READ AS ONE. Nothing is cancelled and nothing is lost:
+ * the programme pauses, keeping the state it returns to, and a person picks it up. "Reject"
+ * would describe a door closing, which is not what happens.
+ */
+export const APPROVAL_CONCERN_LABEL = 'Something\u2019s not right'
+
+/** What the control asks for. Their words, never a category of ours. */
+export const APPROVAL_CONCERN_PROMPT =
+  'Tell us what is wrong in your own words — the people, the wording, the timing, anything. ' +
+  'Nothing is sent while we look at it.'
+
+/**
+ * What they are told once it is raised.
+ *
+ * ⚠️ IT PROMISES ONLY WHAT THE CODE DOES: the programme is held and a person will come back. It
+ * does not promise a fix, a timescale, or that we agree — none of which this act decides.
+ */
+export const APPROVAL_CONCERN_ACKNOWLEDGED =
+  'Thank you — the programme is on hold and nothing will be sent. A person is looking at it and ' +
+  'will come back to you.'
+
 /** Illustrative outputs carry this, always. They are arithmetic on the client's own numbers. */
 export const ILLUSTRATIVE_LABEL =
   'Your own figures, worked through — an illustration, not a forecast or a promise from us.'

@@ -2,14 +2,37 @@
 
 > **This page is a LIST, not a book** (founder, 21 Aug: *"tracking docs need to be like lists… i cant read 60 000 words in 5 minutes"*). Item · one line · owner. **Why** lives in KIND-MASTER · **status** in PRODUCT-INVENTORY · **later** in V2-TRACKER · **rulings** in PRODUCT-RULES.
 > **🆕 28 Aug —** *what needs the founder right now* lives in [`FOUNDER-OPERATING-TRUTH.md`](./FOUNDER-OPERATING-TRUTH.md) (blockers · decisions required · the **two-level task state**, R83) · *where a given truth lives* in [`FOUNDER-TRUTH-REGISTER.md`](./FOUNDER-TRUTH-REGISTER.md) (194 subjects by CMP ID) · *a fresh chat starts at* [`SESSION-BOOTSTRAP.md`](./SESSION-BOOTSTRAP.md). **None of them own status — this page and PRODUCT-INVENTORY still do.**
-> **🚀 R76: WE LAUNCH FRIDAY 4 SEPTEMBER 2026 REGARDLESS OF STATE.** ⛓️ *Supersedes R57's 25 August, which is now history — only the date moved; the slip stays on the record and the date is still unconditional.* **R65:** pause is the default — silence is never a go; a build starts only on the founder's "go". Anything that does not aid the live state moves post-live to V2-TRACKER.
+> ⛓️ **PASSED — the launch day below is history (23 Sep): production has live clients (R135, R138).** ~~**🚀 R76: WE LAUNCH FRIDAY 4 SEPTEMBER 2026 REGARDLESS OF STATE.**~~ ⛓️ *Supersedes R57's 25 August, which is now history — only the date moved; the slip stays on the record and the date is still unconditional.* **R65:** pause is the default — silence is never a go; a build starts only on the founder's "go". Anything that does not aid the live state moves post-live to V2-TRACKER.
 > The full pre-surgery page is kept verbatim at [`archive/LAUNCH-PAD-2026-08-21.md`](./archive/LAUNCH-PAD-2026-08-21.md).
 
-**Board:** 🟢106 · 🩷309 · 🟣2 · 🟡52 · 🔴191 · ⏸7 · **Σ667** · live count: `scripts/count-inventory.sh`
+## ✅ VERIFIED STATE — 23 Sep 2026 (`origin/main` = `e1ac1cb`)
+
+- **Live = `main`.** The API, Milla, Vida and the website all report commit `e1ac1cb` from their health endpoints (checked 23 Sep). *RUNTIME VERIFIED.*
+- **Database matches the code.** All migrations applied, founder-checked in Vida → Engine, 23 Sep. *RUNTIME VERIFIED (founder).*
+- **Gate.** `check.sh` passes on `e1ac1cb` (498 test files · 10,502 tests) **once `@kind/db` is built**; on a fresh clone it fails the type-check and 34 tests because the gate builds `@kind/shared` but never `@kind/db`. *CODE VERIFIED.*
+- **Money.** Programme only — $299 / $4 retired (R124 16 Sep · R137 23 Sep). **Partners frozen** (R139, 23 Sep).
+- **Preview site not in use.** `staging` is 738 commits behind `main`; every change since 20 Aug went straight to live (RULEBOOK §11).
+- **GitHub caught up 23 Sep.** 71 obsolete audit issues and 15 finished/superseded inventory issues closed; every remaining open issue (114) carries a dated "where this stands" comment; PRs #1665–#1668 closed as already in `main`.
+
+## ▶️ THIS WEEK — runlist
+
+| # | Action *(GitHub # = issue on github.com · inventory # = PRODUCT-INVENTORY row)* | Owner |
+|---|---|---|
+| W1 | Walk the programme money path live — P1 50% → sourcing → P2 → Make Live → Run → settle (GitHub #1468, #1495) | 🧍 |
+| W2 | Confirm `POOLED_SENDERS_JSON` is set on Railway — unset, every programme stops at Prepare (GitHub #1484 · inventory #710) | 🧍 |
+| W3 | GO / no-GO: a sequence keeps sending if its campaign settings can't be read (GitHub #1527) | 🧍 |
+| W4 | GO / no-GO: `check.sh` must build `@kind/db` so it passes on any machine (GitHub #1548) | 🧍 |
+| W5 | Ruling: website pages type $450 / $437.50 / $400 while R124 says the curve is not published (GitHub #1493, #1502) | 🧍 |
+| W6 | Ruling: "qualified meeting" (draft GitHub PR #1737) is a new term — it needs a PRODUCT-RULES row before it ships | 🧍 |
+| W7 | Retention-clock ruling (GitHub #1472 · inventory #704) · engage the accountant before revenue (GitHub #1600) | 🧍 |
+
+**Board:** 🟢106 · 🩷318 · 🟣2 · 🟡51 · 🔴190 · ⏸7 · **Σ674** · live count: `scripts/count-inventory.sh`
 
 ---
 
 ## 🛑 THE CUT — the only work between here and live
+
+> ⛓️ **HISTORY (23 Sep): the launch day has passed — the cut below is kept verbatim, not current work.** C2f merged as #1701 / #1702 · C3's $4 money walk is retired (R137) · C6's partner work is frozen (R139) · C9's send day was 4 Sep. Current work is the runlist above.
 
 > ⛓️ **RE-DATED 28 Aug (R76): this was "THE 25TH CUT". The launch day is now FRIDAY 4 SEPTEMBER 2026.** The list below is unchanged in content — the same work, against a new day. Rows still reading "pre-25" mean **pre-launch**; C9's send day moves to 4 Sep.
 
@@ -91,7 +114,7 @@
 | # | The question to answer | Owner |
 |---|---|---|
 | M1 | **Worst-case client acquisition cost** on conservative outbound run rates, response/conversion rates and win rates | 🤖 |
-| M2 | **Per-client economics** — $299 · first 100 approved included · $4 after · provider/data cost · mailbox + domain · warm-up allocation · known AI/provider cost · gross profit · gross margin · contribution margin · CAC payback · LTV/CAC · cash to sustain growth | 🤖 |
+| M2 | **Per-client economics** — ⛓️ *re-base on the programme (R137, 23 Sep); the $299/$4 inputs are retired* · ~~$299 · first 100 approved included · $4 after~~ · provider/data cost · mailbox + domain · warm-up allocation · known AI/provider cost · gross profit · gross margin · contribution margin · CAC payback · LTV/CAC · cash to sustain growth | 🤖 |
 | M3 | **5 new clients per month** planning scenario | 🤖 |
 | M4 | **Partner channel** — economics where a partner introduces and scales clients without K.I.N.D running its own outbound engine. ⚠️ **CAC is never described as zero** unless the model states the partner/channel cost, the servicing cost and the commercial share | 🤖 |
 | M5 | **Pricing-model review** — $299 + $4/approved-lead against real unit economics, margin, value perception and willingness-to-pay evidence. **Evidence only; the founder decides any change** | 🤖 |
@@ -144,7 +167,7 @@
 | R83 | A task carries **two** states: founder attention (NOW/NEXT/WAITING/PARKED/RESEARCH/DONE) **and** the Scout/Builder conveyor. **Merged ≠ deployed ≠ proved** |
 | R84 | Notion is an **interface**, never canonical and never the only copy |
 | R79 | Milla + Vida + website launch as ONE finished, premium, conversational experience — **quality is not V2** |
-| R81 | The programme curve is locked and **unbuilt** — the live commercial truth is still $299 + 100 included + $4 |
+| R81 | The programme curve is locked — ⛓️ **built and the only live model since 23 Sep (R137)**; ~~unbuilt — the live commercial truth is still $299 + 100 included + $4~~ |
 | R65 | Pause is the default · silence is never a go · not-live-aiding → V2 · LAUNCH-PAD updated in the same PR as every merge |
 | R64 | Prove which route renders a surface before building into it (`scripts/dead-surfaces.sh`) |
 | R62 | The product keeps UK time — Europe/London |

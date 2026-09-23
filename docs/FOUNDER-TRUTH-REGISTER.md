@@ -26,7 +26,7 @@
 | OBSERVATIONAL / UNVERIFIED | 4 |  |  |  |
 | **CONFLICT** | **0** |  | **Total** | **194** |
 
-⚠️ **ZERO CONFLICTS MEANS THE FOUNDER HAS RULED ON EVERY RECORDED CONTRADICTION. IT DOES NOT MEAN ANYTHING IS BUILT.** 57 of 194 subjects are **UNBUILT**. The live commercial truth is still **$299 pack · first 100 approvals included · $4 per approved lead**.
+⚠️ **ZERO CONFLICTS MEANS THE FOUNDER HAS RULED ON EVERY RECORDED CONTRADICTION. IT DOES NOT MEAN ANYTHING IS BUILT.** 57 of 194 subjects are **UNBUILT**. ⛓️ **23 Sep: the programme is the only live commercial model — R124 (16 Sep) retired $299/$4 by decision and R137 (23 Sep) in the code.** ~~The live commercial truth is still **$299 pack · first 100 approvals included · $4 per approved lead**.~~
 
 ## The seven subjects that needed a founder decision — all now answered
 

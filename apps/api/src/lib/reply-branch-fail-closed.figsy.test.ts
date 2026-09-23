@@ -132,3 +132,25 @@ describe('#1527 · applyReplyBranching fails closed on a read it could not compl
     expect(state.campaignReads).toBe(0)
   })
 })
+
+// ── #1527, second route — a THROWN branching check must also hold the step ──────────────────
+// Both callers wrap `applyReplyBranching` in try/catch. The catch used to log and fall through
+// to the send, so a read that THREW (rather than returning an error) still sent the next step.
+// Pinned at the source: the catch after each call must end the iteration.
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
+
+describe('#1527 — a thrown branching check holds the step in both callers', () => {
+  const callers = [
+    join(__dirname, 'send-due.ts'),
+    join(__dirname, '..', 'routes', 'figsy.ts'),
+  ]
+  for (const file of callers) {
+    it(`${file.split('/src/')[1]} — the catch after applyReplyBranching continues, never falls through`, () => {
+      const src = readFileSync(file, 'utf8')
+      const m = src.match(/applyReplyBranching\(enrollment, stepsCache\)[^\n]*\n\s*\}\s*catch\s*\(err\)\s*\{([\s\S]*?)\n\s*\}/)
+      expect(m, 'the branching call and its catch must exist').toBeTruthy()
+      expect(m![1]).toMatch(/\bcontinue\b/)
+    })
+  }
+})

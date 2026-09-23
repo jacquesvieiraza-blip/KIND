@@ -13,9 +13,9 @@
 //   4 the client is picking people · 5 approve the sequence · 6 run it
 //   7 answer replies · 8 qualify + hand over · 9 live, nothing owed
 
-// The ONLY import, and it is a constant, not a dependency: `@kind/shared` is pure data, so
-// this module stays synchronous and DB-free while the price it quotes can never go stale.
-import { PACK_PRICE_USD } from '@kind/shared'
+// ⛓️ 23 Sep (R137) — NO IMPORTS NOW. The one it had was `PACK_PRICE_USD`, for the "Waiting on
+// their $299" row; the retired pack is quoted nowhere in the worklist any more. Still synchronous
+// and DB-free.
 
 export type Actor = 'you' | 'them' | 'engine'
 
@@ -201,7 +201,10 @@ export function nextAction(f: ClientFacts): NextAction {
     // Money gates everything. We don't source and we don't buy them an inbox until it lands.
     return {
       step: 2, actor: 'them', urgency: 40,
-      label: `Waiting on their $${PACK_PRICE_USD}`,
+      // ⛓️ 23 Sep (R137) — WAS `Waiting on their $${PACK_PRICE_USD}`. There is no pack to wait on:
+      // founder, *"the 299/4 is retired/ this must go."* This fallback row is only reached when
+      // a client's lifecycle could not be read, and then the honest sentence names no price.
+      label: 'Waiting on their first payment',
       cta: { kind: 'chase', label: 'Remind them' },
     }
   }

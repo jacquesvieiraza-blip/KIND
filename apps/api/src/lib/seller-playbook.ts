@@ -1,4 +1,4 @@
-import { PACK_PRICE_USD } from '@kind/shared'
+// ⛓️ 23 Sep (R137) — `PACK_PRICE_USD` is no longer imported: the playbook quotes no price at all.
 
 // ── THE WORDS (#654) — ONE HOME ─────────────────────────────────────────────────────────
 //
@@ -27,8 +27,6 @@ export type PlaybookEntry = {
 }
 
 export function sellerPlaybook(): PlaybookEntry[] {
-  const pack = `$${PACK_PRICE_USD.toFixed(0)}`
-
   return [
     {
       id: 'who-to-name',
@@ -112,8 +110,12 @@ export function sellerPlaybook(): PlaybookEntry[] {
         '"Now that you have seen it work — is there one person you know who has the same',
         'problem you had? I would rather come to them through you than cold."',
         '',
-        `One introduction. Not a list, not a favour, one name — and the ${pack} starting pack`,
-        'means it is an easy thing for them to recommend.',
+        // ⛓️ 23 Sep (R137) — WAS "…and the ${pack} starting pack means it is an easy thing for
+        // them to recommend." The pack is retired (founder: *"the 299/4 is retired/ this must
+        // go."*). The replacement is R124's structure-only wording — Free Proof before you pay —
+        // and names no price, because the programme curve is still not published (R124/R81).
+        'One introduction. Not a list, not a favour, one name — and because they see a free',
+        'Proof of who we would reach before they pay anything, it is an easy thing to recommend.',
       ].join('\n'),
       watchOut: 'Everyone knows to do this and almost nobody does. Your own network is finite: about twenty to fifty names. This ask is what refills it, and the month you stop doing it is the month your pipeline stops.',
     },

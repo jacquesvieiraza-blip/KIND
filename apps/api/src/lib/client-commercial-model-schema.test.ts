@@ -172,11 +172,17 @@ describe('④ the runner entry, the canonical file and schema.sql all agree', ()
 
   it('🛑 schema.sql declares the column, so the drift guard can see it', () => {
     expect(SCHEMA).toContain('add column if not exists commercial_model')
-    // Declared WITHOUT a default there too — the snapshot must not claim more than the
-    // migration does, or the two records disagree about the book.
-    const line = SCHEMA.split('\n').find(l => l.includes('add column if not exists commercial_model'))!
-    expect(line.toLowerCase(), 'schema.sql must not add a default the migration does not have').not.toContain('default')
-    expect(line.toLowerCase()).not.toContain('not null')
+    // ⛓️ RE-AIMED 23 Sep (R137). WAS: declared WITHOUT a default and WITHOUT NOT NULL, because
+    // "the snapshot must not claim more than the migration does". That principle is kept and is
+    // exactly why this moved: `20260923_all_clients_programme` now DOES set DEFAULT 'programme'
+    // and NOT NULL, so a snapshot without them would claim LESS than the migrations do — the
+    // same disagreement about the book, in the other direction. C1's own SQL (asserted above)
+    // is untouched: it still adds the column bare, and R137 contracts it afterwards.
+    const line = SCHEMA.split('\n').find(l => l.includes('add column if not exists commercial_model '))!
+    expect(line, 'schema.sql states the post-R137 shape').toContain("text NOT NULL DEFAULT 'programme'")
+    const r137 = readFileSync(join(REPO, 'supabase/migrations/20260923_all_clients_programme.sql'), 'utf8')
+    expect(r137, 'and it is claimed because the migration does it').toContain("ALTER COLUMN commercial_model SET DEFAULT 'programme'")
+    expect(r137).toContain('ALTER COLUMN commercial_model SET NOT NULL')
   })
 
   it('🛑 THE COLUMN IS NAMED IN A KNOWN, REVIEWED SET OF FILES — AND NOWHERE ELSE', () => {

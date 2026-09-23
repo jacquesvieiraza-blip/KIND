@@ -17,11 +17,15 @@ describe('the setup path, in order', () => {
     expect(n.actor).toBe('them')
   })
 
-  it('ICP but no money — waiting on the $299, and it is THEIR move', () => {
+  it('ICP but no money — waiting on their first payment, and it is THEIR move', () => {
+    // ⛓️ 23 Sep (R137) — WAS `'…waiting on the $299…'`, asserting the label contained `$299`.
+    // The pack is retired (founder: *"the 299/4 is retired/ this must go."*); the step, the actor
+    // and the chase are unchanged, and the label now names no price.
     const n = nextAction(f({ hasFunded: false, hasInbox: false, sourced: 0, approved: 0, withClient: 0 }))
     expect(n.step).toBe(2)
     expect(n.actor).toBe('them')
-    expect(n.label).toContain('$299')
+    expect(n.label).toBe('Waiting on their first payment')
+    expect(n.label).not.toMatch(/\$\d/)
     expect(n.cta?.kind).toBe('chase')
   })
 
@@ -241,11 +245,13 @@ describe('⚑ I3 · the canonical verdict answers for programme clients', () => 
     expect(n.step).not.toBe(7)
   })
 
-  it('a legacy client is completely unaffected — the $299 book is what is selling', () => {
-    // ⚠️ THE COMPLEMENT, and it matters more than any case above: deleting the legacy steps to
-    // fix a vocabulary problem on a different set of accounts would have broken the live console.
+  it('a client with no readable lifecycle keeps its step — and is never asked for $299 (R137)', () => {
+    // ⛓️ 23 Sep (R137) — WAS `'a legacy client is completely unaffected — the $299 book is what is
+    // selling'`, asserting `$299`. Nothing sells the $299 book now. THE COMPLEMENT STILL HOLDS
+    // and is what is kept: the fallback steps are not deleted, so a client whose lifecycle
+    // could not be read still gets a row and a step — it just names no retired price.
     const n = nextAction(f({ lifecycle: null, hasFunded: false, hasInbox: false, sourced: 0, approved: 0, withClient: 0 }))
     expect(n.step).toBe(2)
-    expect(n.label).toContain('$299')
+    expect(n.label).not.toContain('$299')
   })
 })

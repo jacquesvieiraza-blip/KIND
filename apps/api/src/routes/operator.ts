@@ -2438,10 +2438,9 @@ operatorRouter.get('/programme', async (req: Request, res: Response) => {
 //   · AUDITED, with `from` and `to`, because this field is a switch between two commercial
 //     models and the log is the only record of who moved it.
 //
-// ⚠️ AND IT REFUSES TO CREATE THE CONFLICT. Declaring `legacy` on a client who holds an OPEN
-// programme produces the exact state `clientCommercialModel` fails closed on — every
-// consequential path would then refuse for that client until a human undid it. The operator is
-// told that here, before the write, rather than discovering it as an outage.
+// ⛓️ ~~⚠️ AND IT REFUSES TO CREATE THE CONFLICT. Declaring `legacy` on a client who holds an
+// OPEN programme…~~ SUPERSEDED 23 Sep by R137: `legacy` is no longer a target at all, so the
+// conflict cannot be created. The only value this route writes is 'programme'.
 operatorRouter.post('/clients/:id/commercial-model', async (req: Request, res: Response) => {
   try {
     if (!adminKeyValid(req.headers['x-admin-key'])) {
@@ -2453,36 +2452,29 @@ operatorRouter.post('/clients/:id/commercial-model', async (req: Request, res: R
     const client = await requireClient(clientId)
     if (!client) { res.status(404).json({ success: false, error: 'No such client' }); return }
 
-    // `null` is a real, deliberate target: it returns the client to UNCLASSIFIED, which is the
-    // compatibility state — exactly the behaviour the product had before the column existed.
-    // It is not "clear the field and hope"; it is a third choice with a defined meaning.
+    // 🛑 ⚑ 23 Sep (R137) — 'programme' IS THE ONLY TARGET. Founder, verbatim: *"the 299/4 is
+    // retired/ this must go. everything must be updated to new programme pricing model."*
+    //
+    // ⛓️ WAS: 'programme' | 'legacy' | null — `legacy` declared the retired per-lead model, and
+    // `null` returned a client to UNCLASSIFIED, which for an account with no programme meant the
+    // $299 pack + $4 per approved lead. Neither model exists any more, so neither may be written
+    // (and `20260923_all_clients_programme` makes the column NOT NULL with a CHECK that says so).
+    // The route stays — BY CLIENT ID, ONE CLIENT, AUDITED — so an operator can still record the
+    // programme on an account the migration has not reached yet. The old legacy-with-an-open-
+    // programme refusal went with the `legacy` target: that conflict can no longer be created.
     const raw = (req.body ?? {}).model
-    if (raw !== 'programme' && raw !== 'legacy' && raw !== null) {
-      res.status(400).json({ success: false, error: 'model must be "programme", "legacy" or null' })
+    if (raw !== 'programme') {
+      res.status(400).json({
+        success: false,
+        error: 'The only commercial model is the programme — the $299 pack and per-lead pricing are retired.',
+      })
       return
     }
-    const target: 'programme' | 'legacy' | null = raw
+    const target: 'programme' = raw
 
     const { clientCommercialModel, storedModelFor } = await import('../lib/commercial-model')
     const before = await clientCommercialModel(clientId)
     const from = storedModelFor(before)
-
-    // 🛑 THE CONFLICT IS REFUSED AT THE DOOR. `before.openProgramme` is null on an unreadable
-    // resolution, so this asks the question directly rather than through the resolution.
-    if (target === 'legacy') {
-      const { openProgrammeFor } = await import('../lib/programme-authority')
-      const open = await openProgrammeFor(clientId)
-      if (open) {
-        res.status(409).json({
-          success: false,
-          error: `${client.company_name ?? 'This client'} holds an open programme (${open.status}). `
-            + 'Declaring them legacy would put the account into a state where sourcing, sending, '
-            + 'enrolment and charging all refuse until it is undone. Complete or cancel the '
-            + 'programme first if this client really is on the legacy per-lead model.',
-        })
-        return
-      }
-    }
 
     const { error } = await db.from('clients').update({ commercial_model: target }).eq('id', clientId)
     if (error) { res.status(500).json({ success: false, error: `Could not set the commercial model: ${error.message}` }); return }

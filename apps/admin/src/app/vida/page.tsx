@@ -766,12 +766,15 @@ export default function VidaConsolePage() {
   // instead of the state they created.
   const [cmBusy, setCmBusy] = useState(false)
   const [cmMsg, setCmMsg] = useState<string | null>(null)
-  const setCommercialModel = useCallback(async (clientId: string, name: string, model: 'programme' | 'legacy' | null) => {
-    const target = model === null ? 'UNCLASSIFIED (compatibility)' : model.toUpperCase()
+  // ⚑ 23 Sep (R137) — 'programme' is the only target the API accepts now. Founder: *"the 299/4
+  // is retired/ this must go."* ⛓️ WAS: 'programme' | 'legacy' | null, with Set legacy and
+  // Unclassify buttons below; both are gone because the route refuses them (400).
+  const setCommercialModel = useCallback(async (clientId: string, name: string, model: 'programme') => {
+    const target = model.toUpperCase()
     if (!window.confirm(
       `Set the commercial model for ${name} to ${target}?\n\n`
-      + 'This decides whether the wallet, the per-lead approve/reveal routes and the low-credit '
-      + 'emails apply to this account. It moves no money and sends nothing.',
+      + 'This records on the account that the programme governs it — which it already does, '
+      + 'since the per-lead model is retired. It moves no money and sends nothing.',
     )) return
     setCmBusy(true); setCmMsg(null)
     try {
@@ -4428,10 +4431,14 @@ export default function VidaConsolePage() {
                       {prog.commercial.reason && (
                         <p className="text-[12px] text-red-700 mt-1 font-semibold">{prog.commercial.reason}</p>
                       )}
+                      {/* ⛓️ 23 Sep (R137) — WAS: "Nobody has declared this. The account behaves as it
+                          did before the model existed — which for a client with no programme means
+                          legacy per-lead economics." Not true any more: every account is on the
+                          programme whatever the row says, and the R137 migration writes it. */}
                       {!prog.commercial.declared && prog.commercial.resolved !== 'unreadable' && (
                         <p className="text-[12px] text-[#92400e] mt-1">
-                          Nobody has declared this. The account behaves as it did before the model existed —
-                          which for a client with no programme means legacy per-lead economics. Declare it if that is wrong.
+                          Not yet recorded on the account. The programme applies regardless — the per-lead
+                          model is retired — and the all-clients migration records it. Set it here to record it now.
                         </p>
                       )}
                       <div className="flex items-center gap-2 mt-2 flex-wrap">
@@ -4439,16 +4446,6 @@ export default function VidaConsolePage() {
                           disabled={cmBusy || prog.commercial.stored === 'programme'}
                           className="text-[12.5px] font-bold text-white bg-[#7C3AED] rounded-lg px-2.5 py-1.5 disabled:opacity-40">
                           Set programme
-                        </button>
-                        <button onClick={() => setCommercialModel(selectedClient.id, selectedClient.company_name || 'this client', 'legacy')}
-                          disabled={cmBusy || prog.commercial.stored === 'legacy'}
-                          className="text-[12.5px] font-bold text-[#4c4368] bg-white border border-[#e6dcf7] rounded-lg px-2.5 py-1.5 disabled:opacity-40">
-                          Set legacy
-                        </button>
-                        <button onClick={() => setCommercialModel(selectedClient.id, selectedClient.company_name || 'this client', null)}
-                          disabled={cmBusy || prog.commercial.stored === null}
-                          className="text-[12.5px] font-semibold text-[#6b5f8c] bg-white border border-[#e6dcf7] rounded-lg px-2.5 py-1.5 disabled:opacity-40">
-                          Unclassify
                         </button>
                       </div>
                       {cmMsg && <p className="text-[12px] text-[#6b5f8c] mt-2">{cmMsg}</p>}
@@ -4472,7 +4469,12 @@ export default function VidaConsolePage() {
                             control that was not rendered. Founder-ruled: a MISSING FIELD IS NOT
                             NULL. `compat_legacy` is an explicit database NULL and keeps its own
                             sentence, named; absence of the field is an absence of truth. */}
-                        {prog.commercial?.resolved === 'programme'
+                        {/* ⚑ 23 Sep (R137) — `compat_programme` IS NOW WHAT EVERY UNRECORDED ACCOUNT
+                            RESOLVES TO (NULL or a stored 'legacy'). Without its own branch here it fell
+                            through to the "could not be resolved" sentence, which is false. The
+                            `legacy` / `compat_legacy` branches below are no longer produced by the
+                            API and go with the retired code's own removal PR. */}
+                        {prog.commercial?.resolved === 'programme' || prog.commercial?.resolved === 'compat_programme'
                           ? 'No active programme for this client. They are a PROGRAMME client — programme economics apply, and none of the legacy per-lead charging does.'
                          : prog.commercial?.resolved === 'legacy'
                           ? 'No programme for this client. They are declared legacy ($299 pack · 100 included · $4 per approved lead), which is unaffected by programme controls.'

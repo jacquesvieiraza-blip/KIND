@@ -324,31 +324,42 @@ describe('③ only the current programme contributes', () => {
 })
 
 // ═══════════════════════════════════════════════════════════════════════════════════════
-// ④ LEGACY / COMPAT_LEGACY — UNCHANGED
+// ④ LEGACY / UNCLASSIFIED — PROGRAMME COMPANIES NOW (R137)
+//
+// ⛓️ INVERTED 23 Sep (R137). WAS: `④ LEGACY / COMPAT_LEGACY — UNCHANGED` /
+// `describe('④ the retired book keeps its economics and its numbers')`, asserting credits
+// visible, the 5,000 pool shown and the historical book counted. Founder, verbatim: *"the 299/4 is retired/ this must go. everything must be updated to new programme pricing model."*
+// A NULL or stored-'legacy' company is a programme company now, so it reads exactly as ① does.
+// ⚠️ NOTHING IS DELETED — the credit columns and the historical rows are untouched.
 // ═══════════════════════════════════════════════════════════════════════════════════════
-describe('④ the retired book keeps its economics and its numbers', () => {
+describe('④ a formerly legacy / unclassified company reads as a programme company (R137)', () => {
   for (const model of [null, 'legacy'] as const) {
-    it(`🛑 commercial_model ${String(model)} → credits visible and history counted, exactly as before`, async () => {
+    it(`🛑 commercial_model ${String(model)} → no retired economics and no historical book as current work`, async () => {
+      // ⛓️ WAS: `…→ credits visible and history counted, exactly as before`.
       company(model, model); repHistory()
+      expect(state.leads, 'the history exists — this fixture is not vacuous').toHaveLength(3)
       const p = await overview()
       const seat = repSeat(p)
-      expect(seat.economics_visible).toBe(true)
-      expect(seat.credit_budget).toBe(500)
-      expect(seat.credits_used).toBe(300)
-      expect(p.payload.data.totals.economics_visible).toBe(true)
-      expect(p.payload.data.totals.company_pool).toBe(5000)
-      expect(seat.leads).toBe(3)
-      expect(seat.deduped).toBe(1)
-      expect(seat.replies).toBe(1)
-      expect(seat.contacted).toBe(1)
-      expect(seat.booked).toBe(1)
+      expect(seat.economics_visible).toBe(false)
+      expect(seat.credit_budget, 'absent, never zero').toBeNull()
+      expect(seat.credits_used).toBeNull()
+      expect(p.payload.data.totals.economics_visible).toBe(false)
+      expect(p.payload.data.totals.company_pool).toBeNull()
+      expect(p.payload.data.totals.economics_hidden_reason).toBe('programme')
+      expect(seat.leads).toBe(0)
+      expect(seat.replies).toBe(0)
+      expect(seat.contacted).toBe(0)
+      expect(seat.booked).toBe(0)
     })
   }
 
-  it('a legacy company keeps its Winning Plays reply badge', async () => {
+  it('🛑 a formerly legacy company carries no inherited Winning Plays reply claim', async () => {
+    // ⛓️ WAS: `'a legacy company keeps its Winning Plays reply badge'` (14.5).
     company('legacy', 'legacy')
     state.plays.push({ id: 'p1', company_id: CO, name: 'Fintech opener', reply_rate: 14.5, pushed_to_all: true, created_at: '2026-02-01' })
-    expect((await plays()).payload.data[0].reply_rate).toBe(14.5)
+    const out = (await plays()).payload.data
+    expect(out[0].name, 'the play itself is kept — only the claim goes').toBe('Fintech opener')
+    expect(out[0].reply_rate).toBeNull()
   })
 })
 
@@ -491,17 +502,16 @@ describe('⑨ the seat drill-down agrees with the row above it', () => {
     expect(JSON.stringify(d.payload), 'no historical fallback rides along').not.toContain('Retired Q1 blast')
   })
 
-  it('🛑 LEGACY IS UNCHANGED — the whole book still opens, exactly as today', async () => {
+  it('🛑 A FORMERLY LEGACY SEAT READS LIKE ANY PROGRAMME SEAT — the retired book is not current (R137)', async () => {
+    // ⛓️ INVERTED 23 Sep (R137). WAS: `'🛑 LEGACY IS UNCHANGED — the whole book still opens,
+    // exactly as today'`, asserting the retired campaign, its 900 sends and the historical
+    // meeting all showed. Founder: *"the 299/4 is retired/ this must go. everything must be updated to new programme pricing model."*
     company('legacy', 'legacy'); repHistory()
     const d = await detail()
-    expect(d.status).toBe(200)
-    const camps = d.payload.data.campaigns as Row[]
-    expect(camps).toHaveLength(1)
-    expect(camps[0].name).toBe('Retired Q1 blast')
-    expect(camps[0].emails_sent).toBe(900)
-    const acts = (d.payload.data.activity as Array<Record<string, string>>)
-    expect(acts.map(a => a.title).join(' | ')).toContain('Retired Prospect')
-    expect(acts.filter(a => a.type === 'meeting'), 'the legacy meeting still shows').toHaveLength(1)
+    expect(d.status, 'a resolved scope is not an error').toBe(200)
+    expect(d.payload.data.campaigns, 'the retired campaign is not current work').toHaveLength(0)
+    expect(d.payload.data.activity, 'no retired sends, replies or meetings').toHaveLength(0)
+    expect(JSON.stringify(d.payload)).not.toContain('Retired Q1 blast')
   })
 
   it('🛑 TENANCY — another company’s seat cannot be drilled into', async () => {
@@ -554,9 +564,12 @@ describe('⑩ a mixed-model company makes no shared-credit claim', () => {
     expect(t.used).toBeNull()
   })
 
-  it('🛑 AND IT SAYS WHICH ABSENCE THIS IS, so the page cannot claim one model for both', async () => {
+  it('🛑 AND IT SAYS WHICH ABSENCE THIS IS — there is no "mixed" company any more (R137)', async () => {
+    // ⛓️ 23 Sep (R137). WAS: `'…so the page cannot claim one model for both'`, expecting
+    // `'mixed'`. The stored-'legacy' seat is a programme seat now, so the company is uniformly
+    // programme and says so.
     const t = (await overview()).payload.data.totals
-    expect(t.economics_hidden_reason).toBe('mixed')
+    expect(t.economics_hidden_reason).toBe('programme')
   })
 
   it('🛑 THE PROGRAMME SEAT CARRIES NO CREDIT FIGURES — never a 0, never an inherited 700', async () => {
@@ -567,18 +580,24 @@ describe('⑩ a mixed-model company makes no shared-credit claim', () => {
     expect(s2.credit_balance).toBeNull()
   })
 
-  it('🛑 THE LEGACY SEAT KEEPS ITS OWN VALUES ON THE WIRE — nothing is destroyed', async () => {
+  it('🛑 THE FORMERLY LEGACY SEAT CARRIES NO CREDIT FIGURES EITHER — and nothing is destroyed (R137)', async () => {
+    // ⛓️ INVERTED 23 Sep (R137). WAS: `'🛑 THE LEGACY SEAT KEEPS ITS OWN VALUES ON THE WIRE —
+    // nothing is destroyed'` (500 / 300 visible). The values stay in the ROW; they are no
+    // longer presented, because nothing on the programme spends them.
     const s1 = seatOf(await overview(), REP)
-    expect(s1.economics_visible).toBe(true)
-    expect(s1.credit_budget).toBe(500)
-    expect(s1.credits_used).toBe(300)
+    expect(s1.economics_visible).toBe(false)
+    expect(s1.credit_budget).toBeNull()
+    expect(s1.credits_used).toBeNull()
+    expect(state.clients.find(c => c.id === REP)!.seat_budget, 'the stored value is untouched').toBe(500)
   })
 
-  it('🛑 ACTIVITY STAYS PER SEAT — the legacy book counts, the programme seat counts nothing', async () => {
+  it('🛑 ACTIVITY STAYS PER SEAT — and neither seat has current work without a programme (R137)', async () => {
+    // ⛓️ INVERTED 23 Sep (R137). WAS: `'…the legacy book counts, the programme seat counts
+    // nothing'` (REP 3, total 3). The retired book is history for both seats now.
     const p = await overview()
-    expect(seatOf(p, REP).leads, 'the legacy seat is untouched').toBe(3)
+    expect(seatOf(p, REP).leads, 'the formerly legacy seat has no current work').toBe(0)
     expect(seatOf(p, REP2).leads, 'the programme seat has no current work').toBe(0)
-    expect(p.payload.data.totals.total_leads, 'the roll-up is the sum of the truths').toBe(3)
+    expect(p.payload.data.totals.total_leads, 'the roll-up is the sum of the truths').toBe(0)
   })
 
   it('🛑 A UNIFORMLY PROGRAMME COMPANY IS A DIFFERENT ABSENCE, and says so', async () => {
@@ -593,12 +612,14 @@ describe('⑩ a mixed-model company makes no shared-credit claim', () => {
     expect(t.economics_hidden_reason).toBe('programme')
   })
 
-  it('🛑 AN ALL-LEGACY COMPANY IS UNCHANGED — the pool and the reason both stay', async () => {
+  it('🛑 AN ALL-LEGACY COMPANY IS A PROGRAMME COMPANY NOW — the pool is hidden, and says why (R137)', async () => {
+    // ⛓️ INVERTED 23 Sep (R137). WAS: `'🛑 AN ALL-LEGACY COMPANY IS UNCHANGED — the pool and
+    // the reason both stay'` (visible, reason null, pool 5000).
     state.clients.find(c => c.id === REP2)!.commercial_model = 'legacy'
     const t = (await overview()).payload.data.totals
-    expect(t.economics_visible).toBe(true)
-    expect(t.economics_hidden_reason).toBeNull()
-    expect(t.company_pool).toBe(5000)
+    expect(t.economics_visible).toBe(false)
+    expect(t.economics_hidden_reason).toBe('programme')
+    expect(t.company_pool).toBeNull()
   })
 })
 
@@ -675,37 +696,45 @@ describe('⑪ a programme company has no credit verbs, not just no credit figure
     })
   })
 
-  describe('C · legacy is unchanged, end to end', () => {
+  // ⛓️ INVERTED 23 Sep (R137). WAS: `describe('C · legacy is unchanged, end to end')`, asserting
+  // a legacy company still saw its pending request, a rep could still ask, the owner could still
+  // approve (credits moved), and allocate / seat budget / pool top-up / invite-with-budget all
+  // returned 200. Founder, verbatim: *"the 299/4 is retired/ this must go. everything must be updated to new programme pricing model."*
+  // A formerly legacy company now gets exactly what ⑪A gets.
+  describe('C · a formerly legacy company has no credit verbs either (R137)', () => {
     beforeEach(() => { company('legacy', 'legacy'); repHistory(); pendingRequest() })
 
-    it('🛑 THE COUNT AND THE LIST ARE STILL THERE', async () => {
+    it('🛑 NO COUNT AND NO LIST — the historical request is not current state', async () => {
+      // ⛓️ WAS: `'🛑 THE COUNT AND THE LIST ARE STILL THERE'` (1 pending, amount 5000).
       const p = await overview()
-      expect(p.payload.data.totals.pending_requests).toBe(1)
-      expect(p.payload.data.pending_requests).toHaveLength(1)
-      expect((p.payload.data.pending_requests[0] as Row).amount).toBe(5000)
+      expect(state.requests, 'the request is still in the table — not vacuous').toHaveLength(1)
+      expect(p.payload.data.totals.pending_requests).toBe(0)
+      expect(p.payload.data.pending_requests).toEqual([])
     })
 
-    it('🛑 A LEGACY REP CAN STILL ASK', async () => {
+    it('🛑 A FORMERLY LEGACY REP CANNOT ASK', async () => {
+      // ⛓️ WAS: `'🛑 A LEGACY REP CAN STILL ASK'` (200 + an insert).
       const r = await callPost('/credit-requests', { amount: 100 }, {}, 'u-owner')
-      expect(r.status).toBe(200)
-      expect(writes.some(w => w.table === 'seat_credit_requests' && w.op === 'insert')).toBe(true)
+      expect(r.status).toBe(403)
+      expect(writes.some(w => w.table === 'seat_credit_requests' && w.op === 'insert')).toBe(false)
     })
 
-    it('🛑 AND THE OWNER CAN STILL APPROVE — credits still move', async () => {
+    it('🛑 AND THE OWNER CANNOT APPROVE — no credits move', async () => {
+      // ⛓️ WAS: `'🛑 AND THE OWNER CAN STILL APPROVE — credits still move'` (200 + an update).
       const r = await callPost('/credit-requests/:id/decide', { decision: 'approved' }, { id: REQ })
-      expect(r.status).toBe(200)
-      expect(writes.some(w => w.table === 'seat_credit_requests' && w.op === 'update')).toBe(true)
+      expect(r.status).toBe(403)
+      expect(writes).toHaveLength(0)
     })
 
-    it('🛑 ALLOCATE · SEAT BUDGET · TOP-UP · INVITE-WITH-BUDGET all still work', async () => {
-      expect((await callPost('/seats/:id/allocate', { amount: 100 }, { id: REP })).status).toBe(200)
-      expect((await callPatch('/seats/:id', { seat_budget: 900 }, { id: REP })).status).toBe(200)
+    it('🛑 ALLOCATE · SEAT BUDGET · TOP-UP · INVITE-WITH-BUDGET are all refused', async () => {
+      // ⛓️ WAS: `'🛑 ALLOCATE · SEAT BUDGET · TOP-UP · INVITE-WITH-BUDGET all still work'`.
+      expect((await callPost('/seats/:id/allocate', { amount: 100 }, { id: REP })).status).toBe(403)
+      expect((await callPatch('/seats/:id', { seat_budget: 900 }, { id: REP })).status).toBe(403)
       process.env.IS_STAGING = 'true'
-      expect((await callPost('/pool/topup', { amount: 100 })).status).toBe(200)
+      expect((await callPost('/pool/topup', { amount: 100 })).status).toBe(403)
       delete process.env.IS_STAGING
-      // LAST, because it adds a seat: a brand-new invited seat carries no `commercial_model`
-      // yet, which resolves UNREADABLE and correctly closes the company-wide gate behind it.
-      expect((await callPost('/seats', { email: 'new@rep.com', budget: 5000 })).status).not.toBe(403)
+      expect((await callPost('/seats', { email: 'new@rep.com', budget: 5000 })).status).toBe(403)
+      expect(writes).toHaveLength(0)
     })
   })
 
@@ -748,9 +777,12 @@ describe('⑪ a programme company has no credit verbs, not just no credit figure
       expect((await callPost('/credit-requests/:id/decide', { decision: 'approved' }, { id: 'cr-programme' })).status).toBe(403)
     })
 
-    it('🛑 THE LEGACY SEAT’S OWN REQUEST STAYS DECIDABLE — positive attribution, not invention', async () => {
+    it('🛑 THE FORMERLY LEGACY SEAT’S REQUEST IS NOT DECIDABLE EITHER — its seat is programme now (R137)', async () => {
+      // ⛓️ INVERTED 23 Sep (R137). WAS: `'🛑 THE LEGACY SEAT’S OWN REQUEST STAYS DECIDABLE —
+      // positive attribution, not invention'` (200). The gate is still the SEAT the request
+      // belongs to — and that seat no longer carries the retired model.
       const r = await callPost('/credit-requests/:id/decide', { decision: 'approved' }, { id: 'cr-legacy' })
-      expect(r.status, 'the gate is the SEAT the request belongs to').toBe(200)
+      expect(r.status, 'the gate is the SEAT the request belongs to').toBe(403)
     })
 
     it('🛑 AND A COMPANY-WIDE ACTION IS REFUSED — one programme seat retires the pool', async () => {
@@ -868,18 +900,21 @@ describe('⑫ a programme company with no rep seats', () => {
   })
 
   for (const model of [null, 'legacy'] as const) {
-    it(`🛑 A SOLO ${String(model)} COMPANY KEEPS EVERYTHING — the fix must not blank a paying owner`, async () => {
+    it(`🛑 A SOLO ${String(model)} COMPANY IS A PROGRAMME COMPANY — nothing retired is shown (R137)`, async () => {
+      // ⛓️ INVERTED 23 Sep (R137). WAS: `…COMPANY KEEPS EVERYTHING — the fix must not blank a
+      // paying owner` (1000 / 100 / 900, pool 5000, 1 pending). There is no paying legacy owner
+      // left to blank. Founder: *"the 299/4 is retired/ this must go. everything must be updated to new programme pricing model."*
       soloCompany(model); pendingRequest(OWNER, 'cr-owner')
       const p = await overview()
       const s = ownerSeat(p)
-      expect(s.economics_visible).toBe(true)
-      expect(s.credit_budget, 'THE OWNER’S OWN CREDITS — blanked by the first fix, restored here').toBe(1000)
-      expect(s.credits_used).toBe(100)
-      expect(s.credit_balance).toBe(900)
-      expect(p.payload.data.totals.economics_visible).toBe(true)
-      expect(p.payload.data.totals.company_pool).toBe(5000)
-      expect(p.payload.data.totals.pending_requests).toBe(1)
-      expect(p.payload.data.pending_requests).toHaveLength(1)
+      expect(s.economics_visible).toBe(false)
+      expect(s.credit_budget, 'absent, never zero').toBeNull()
+      expect(s.credits_used).toBeNull()
+      expect(s.credit_balance).toBeNull()
+      expect(p.payload.data.totals.economics_visible).toBe(false)
+      expect(p.payload.data.totals.company_pool).toBeNull()
+      expect(p.payload.data.totals.pending_requests).toBe(0)
+      expect(p.payload.data.pending_requests).toEqual([])
     })
   }
 
@@ -887,10 +922,14 @@ describe('⑫ a programme company with no rep seats', () => {
     // The mirror of the bug: a LEGACY company whose owner seat is the one carrying the
     // retired book. Before the fix the owner was `unreadable` by accident and their own
     // Credits left cell rendered blank beside every rep's.
+    // ⛓️ 23 Sep (R137) — WAS: economics visible, credit_budget 1000. The owner is still RESOLVED
+    // (not unreadable, the bug this test guards) — it now resolves to programme, like the reps.
     company('legacy', 'legacy'); repHistory(); repHistory(OWNER)
-    const s = ownerSeat(await overview())
-    expect(s.economics_visible).toBe(true)
-    expect(s.credit_budget).toBe(1000)
+    const p = await overview()
+    const s = ownerSeat(p)
+    expect(s.economics_visible).toBe(false)
+    expect(s.credit_budget).toBeNull()
+    expect(p.payload.data.totals.economics_hidden_reason, 'resolved, not unreadable').toBe('programme')
   })
 
   it('🛑 ONE PROGRAMME OWNER OVER LEGACY REPS STILL RETIRES THE SHARED POOL', async () => {
@@ -898,7 +937,8 @@ describe('⑫ a programme company with no rep seats', () => {
     repHistory(); repHistory(OWNER)
     const t = (await overview()).payload.data.totals
     expect(t.economics_visible).toBe(false)
-    expect(t.economics_hidden_reason).toBe('mixed')
+    // ⛓️ 23 Sep (R137) — WAS `'mixed'`. The stored-'legacy' reps are programme seats now.
+    expect(t.economics_hidden_reason).toBe('programme')
   })
 })
 

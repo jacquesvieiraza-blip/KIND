@@ -20,7 +20,8 @@
 //
 //   • the session creator is a spy, so "rejected before Stripe" is a CALL COUNT, not a comment
 //   • programme · unreadable → refused, zero calls
-//   • legacy → allowed, a URL, one call — the model is preserved, not deleted
+//   • ~~legacy → allowed, a URL, one call — the model is preserved, not deleted~~
+//     ⛓️ 23 Sep (R137): legacy and NULL are refused too — the model is retired for every account
 //   • P1 and P2 go through a DIFFERENT route, module and session creator, and are untouched
 //
 // 🛑 NO REAL STRIPE CALL IS MADE AND NO PAYMENT IS SIMULATED. Every session creator is mocked;
@@ -181,39 +182,67 @@ describe('① a direct authenticated retired top-up request', () => {
 })
 
 // ═══════════════════════════════════════════════════════════════════════════════════════
-// ② LEGACY IS PRESERVED — the fence must not be satisfiable by breaking the paying model
+// ② NOBODY BUYS THE RETIRED PACK OR A TOP-UP ANY MORE (R137)
+//
+// ⛓️ INVERTED 23 Sep (R137). WAS: `② LEGACY IS PRESERVED — the fence must not be satisfiable by
+// breaking the paying model` / `describe('② legacy still buys')`, asserting that NULL and
+// 'legacy' clients got a real checkout URL. Founder, verbatim: *"the 299/4 is retired/ this
+// must go. everything must be updated to new programme pricing model."* There is no paying
+// legacy model left to preserve, so the same fence now refuses every account — and it is still
+// proved by CALLING the handler and counting Stripe calls, not by reading it.
 // ═══════════════════════════════════════════════════════════════════════════════════════
-describe('② legacy still buys', () => {
+describe('② nobody buys the retired pack or a top-up (R137)', () => {
   for (const model of [null, 'legacy'] as const) {
-    it(`🛑 commercial_model ${String(model)} → a real checkout URL, exactly as today`, async () => {
+    it(`🛑 commercial_model ${String(model)} → refused, and Stripe is never reached`, async () => {
+      // ⛓️ WAS: `…→ a real checkout URL, exactly as today` (200, one wallet session).
       client(model)
       const r = await postCheckout(100)
-      expect(r.status).toBe(200)
-      expect(r.payload.url).toBe('https://stripe.test/wallet')
-      expect(walletSession).toHaveBeenCalledTimes(1)
-      expect(walletSession.mock.calls[0][0]).toMatchObject({ clientId: CLIENT, amountUsd: 100 })
+      expect(r.status).toBe(409)
+      expect(r.payload.error).toBe('not_on_this_model')
+      expect(r.payload.message).toContain('Nothing has been charged')
+      expect(walletSession, 'REJECTED BEFORE ANY SESSION IS CREATED').not.toHaveBeenCalled()
+      expect(r.payload.url).toBeUndefined()
     })
   }
 
-  it('the existing amount rules are untouched — an off-preset top-up is still refused', async () => {
+  it('🛑 the refusal lands BEFORE the amount rules — an off-preset top-up gets the model answer', async () => {
+    // ⛓️ WAS: `'the existing amount rules are untouched — an off-preset top-up is still
+    // refused'` (400 invalid_topup_amount, for a legacy client). No client reaches the amount
+    // rules now, so the answer is the model refusal, not a price lecture.
     client('legacy')
     const r = await postCheckout(77)
-    expect(r.status).toBe(400)
-    expect(r.payload.error).toBe('invalid_topup_amount')
+    expect(r.status).toBe(409)
+    expect(r.payload.error).toBe('not_on_this_model')
     expect(walletSession).not.toHaveBeenCalled()
   })
 
-  it('a legacy seat inside a MIXED company still buys its OWN wallet', async () => {
-    // ⚠️ THIS ENDPOINT IS PER-CLIENT, NOT PER-COMPANY: it tops up the caller's own wallet and
-    // cannot reach `companies.credit_pool` at all. The COMPANY-WIDE pool action is
-    // `POST /company/pool/topup`, which refuses a mixed company — proved in
-    // `command-centre-truth.test.ts` ⑪E. Suppressing this one too would take a legacy
-    // customer's own working wallet away because a colleague moved to a programme.
+  it('🛑 a formerly-legacy seat inside a MIXED company is refused too', async () => {
+    // ⛓️ WAS: `'a legacy seat inside a MIXED company still buys its OWN wallet'` (200).
     client('legacy')
     state.clients.push({ id: 'c-2', user_id: 'u-2', commercial_model: 'programme', company_id: 'co-1' })
     const r = await postCheckout(40)
-    expect(r.status).toBe(200)
-    expect(walletSession).toHaveBeenCalledTimes(1)
+    expect(r.status).toBe(409)
+    expect(walletSession).not.toHaveBeenCalled()
+  })
+
+  it('🛑 /stripe/subscribe is RETIRED — 410 for every account, and no subscription session', async () => {
+    // ⚑ 23 Sep (R137) — NEW. The monthly Milla / Vida / Denise subscriptions minted a live
+    // session with no model check at all. Called directly, as a client with a token could.
+    for (const model of [null, 'legacy', 'programme'] as const) {
+      state.clients = []; client(model); subSession.mockClear()
+      const { stripeRouter, SUBSCRIBE_RETIRED_MESSAGE } = await import('./stripe')
+      const layer = (stripeRouter as unknown as { stack: Array<Record<string, any>> }).stack
+        .find(l => l.route?.path === '/subscribe' && l.route?.methods.post)
+      if (!layer) throw new Error('POST /subscribe not found')
+      const handler = layer.route.stack[layer.route.stack.length - 1].handle
+      let payload: any = null; let status = 200
+      const res: any = { json: (b: unknown) => { payload = b }, status: (x: number) => { status = x; return res } }
+      await handler({ userId: USER, body: { product: 'milla' }, headers: { authorization: 'Bearer t' }, params: {}, query: {} }, res, () => {})
+      expect(status, String(model)).toBe(410)
+      expect(payload.error).toBe('retired')
+      expect(payload.message).toBe(SUBSCRIBE_RETIRED_MESSAGE)
+      expect(subSession, 'no subscription session is ever created').not.toHaveBeenCalled()
+    }
   })
 })
 

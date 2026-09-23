@@ -25,6 +25,17 @@
 // ═══════════════════════════════════════════════════════════════════════════════════════
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
+// ⚑ 23 Sep (R137) — 🧪 LEGACY-ERA FIXTURE. Production no longer resolves any client to the retired
+// per-lead model (founder: *"the 299/4 is retired/ this must go."*), so the code this file tests
+// is unreachable from production and is removed, with these tests, by its own follow-up PR.
+// Until then it runs against the resolver exactly as it stood before R137 — the only state in
+// which it was reachable — rather than being deleted or skipped (R131). See
+// `apps/api/test-support/legacy-era-commercial-model.ts`; production's behaviour is proven in
+// `commercial-model.test.ts`, which does not use it.
+vi.mock('./commercial-model', async (importOriginal) =>
+  (await import('../../test-support/legacy-era-commercial-model'))
+    .legacyEraCommercialModel(await importOriginal()))
+
 // ── FIXTURES ────────────────────────────────────────────────────────────────────────────
 //
 // The ICP and the pooled row are the SAME shapes `proof-pool-hard-fit.test.ts` uses, so a row

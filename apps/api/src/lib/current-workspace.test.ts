@@ -106,14 +106,20 @@ describe('① the boundary of a client\'s current work', () => {
     expect(s.kind === 'programme' && s.programmeId).toBe('p-new')
   })
 
-  it('a DECLARED LEGACY client → LEGACY — client-scoped, exactly as it always was', async () => {
+  it('🛑 a STORED-legacy client → PROOF scope, like any programme client with no programme (R137)', async () => {
+    // ⛓️ INVERTED 23 Sep (R137). WAS: `'a DECLARED LEGACY client → LEGACY — client-scoped,
+    // exactly as it always was'`. Founder, verbatim: *"the 299/4 is retired/ this must go. everything must be updated to new programme pricing model."*
+    // The history is not deleted; it is no longer presented as current work.
     state.client = { commercial_model: 'legacy', proof_passes_done: 0, proof_started_at: null }
-    expect((await currentWorkspaceScope('c1')).kind).toBe('legacy')
+    expect((await currentWorkspaceScope('c1')).kind).toBe('proof')
   })
 
-  it('⚠️ NON-VACUOUS: an UNCLASSIFIED client → LEGACY. This is the whole live book.', async () => {
-    // A change that fenced these accounts would blank every existing customer's desk on Friday.
-    expect((await currentWorkspaceScope('c1')).kind).toBe('legacy')
+  it('🛑 an UNCLASSIFIED client → PROOF scope; WITH a programme → scoped to it (R137)', async () => {
+    // ⛓️ INVERTED 23 Sep (R137). WAS: `'⚠️ NON-VACUOUS: an UNCLASSIFIED client → LEGACY. This
+    // is the whole live book.'` The whole live book is on the programme now. ⚠️ STATED PLAINLY:
+    // a formerly unclassified client with no open programme no longer sees their historical
+    // cards, replies or campaign in Milla — the rows stay, and Vida still reads them.
+    expect((await currentWorkspaceScope('c1')).kind).toBe('proof')
     state.programme = PROG
     expect((await currentWorkspaceScope('c1')).kind, 'unclassified WITH a programme is scoped to it')
       .toBe('programme')

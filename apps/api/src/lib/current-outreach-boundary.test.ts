@@ -292,20 +292,30 @@ describe('③ a calibration workspace', () => {
 })
 
 // ═══════════════════════════════════════════════════════════════════════════════════════
-// ④ LEGACY AND UNCLASSIFIED — THE RETIRED BOOK KEEPS EVERYTHING
+// ④ LEGACY AND UNCLASSIFIED — NOW PROGRAMME CLIENTS, SO NO RETIRED BOOK IS CURRENT WORK (R137)
+//
+// ⛓️ INVERTED 23 Sep (R137). WAS: `④ LEGACY AND UNCLASSIFIED — THE RETIRED BOOK KEEPS EVERYTHING`
+// / `describe('④ legacy / compat_legacy is untouched')`, asserting their historical replies,
+// pipeline, meetings and metrics all still rendered as current. Founder, verbatim: *"the 299/4
+// is retired/ this must go. everything must be updated to new programme pricing model."* A
+// NULL or stored-'legacy' client is a programme client now, so the historical book is treated
+// exactly as it is for a declared programme client with no programme open: kept in the
+// database, not presented as current work. ⚠️ NOTHING IS DELETED — the rows are untouched and
+// Vida still reads them; this is what Milla presents as CURRENT.
 // ═══════════════════════════════════════════════════════════════════════════════════════
-describe('④ legacy / compat_legacy is untouched', () => {
+describe('④ legacy / unclassified clients are programme clients now (R137)', () => {
   for (const model of [null, 'legacy'] as const) {
-    it(`🛑 commercial_model ${String(model)} → replies, pipeline, meetings and metrics all unchanged`, async () => {
+    it(`🛑 commercial_model ${String(model)} → no historical reply, meeting or metric presented as current`, async () => {
       client(model); legacyHistory()
-      expect((await repliesPage()).payload.data.map((r: Row) => r.id)).toEqual(['r-old'])
+      expect(state.replies.length, 'the history exists — this fixture is not vacuous').toBeGreaterThan(0)
+      expect((await repliesPage()).payload.data).toEqual([])
       const p = (await pipeline()).payload.data
-      expect(p.model).toBe('legacy')
-      expect(p.counts.contacted + p.counts.replied + p.counts.booked, 'the legacy pipeline still renders').toBeGreaterThan(0)
-      expect((await meetingsPage()).payload.data.map((m: Row) => m.id)).toEqual(['m-old'])
-      expect((await stats()).payload.data.total).toBe(3)
+      expect(p.model, 'the pipeline answers as a programme client').not.toBe('legacy')
+      expect(p.counts.contacted + p.counts.replied + p.counts.booked, 'no retired pipeline').toBe(0)
+      expect((await meetingsPage()).payload.data).toEqual([])
+      expect((await stats()).payload.data.total).toBe(0)
       const k = (await kpis()).payload.data
-      expect(k.totalSent).toBe(1); expect(k.totalReplied).toBe(1); expect(k.activeCampaigns).toBe(1)
+      expect(k.totalSent).toBe(0); expect(k.totalReplied).toBe(0); expect(k.activeCampaigns).toBe(0)
     })
   }
 })
@@ -545,9 +555,12 @@ describe('⑩ Emails sent is wired to the value the endpoint actually returns', 
     expect((await kpis()).payload.data.totalSent).toBe(0)
   })
 
-  it('legacy → the historical send count, unchanged', async () => {
+  it('🛑 stored legacy → 0, like any programme client with no programme (R137)', async () => {
+    // ⛓️ INVERTED 23 Sep (R137). WAS: `'legacy → the historical send count, unchanged'` (1).
+    // Founder: *"the 299/4 is retired/ this must go."* The stored word no longer makes the
+    // retired book current work.
     client('legacy'); legacyHistory()
-    expect((await kpis()).payload.data.totalSent).toBe(1)
+    expect((await kpis()).payload.data.totalSent).toBe(0)
   })
 
   it("🛑 another client's sends are excluded", async () => {

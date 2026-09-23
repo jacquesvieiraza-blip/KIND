@@ -263,7 +263,26 @@ stripeRouter.post('/checkout', requireAuth, async (req: AuthRequest, res: Respon
 })
 
 // ── POST /stripe/subscribe — recurring subscription (Milla / Vida) ────────────
+//
+// 🛑 ⚑ 23 Sep (R137) — RETIRED. NO SESSION IS MINTED FOR ANYONE. Founder, verbatim: *"the 299/4
+// is retired/ this must go. everything must be updated to new programme pricing model."* The
+// monthly Milla / Vida / Denise subscriptions are not programme pricing, and `pricing-copy.ts`
+// already records that none of those four products is sold — yet this route still minted a
+// live Stripe subscription session for any authenticated client who posted to it, with no model
+// check at all (its only caller, the old `/dashboard/billing` page, is bounced; a page is not a
+// gate). It now refuses first, before Stripe, before the client read.
+//
+// ⚠️ THE BODY BELOW IS KEPT, UNREACHABLE, AND IS DELETED WITH THE REST OF THE RETIRED BILLING CODE
+// IN ITS OWN FOLLOW-UP PR — not here, so this change stays the size of the decision. The
+// subscription WEBHOOK is untouched: it only acts on an inbound, signature-verified Stripe event.
+export const SUBSCRIBE_RETIRED_MESSAGE =
+  'Monthly subscriptions are no longer sold — everything now runs through your programme. Nothing has been charged.'
+const SUBSCRIBE_RETIRED = true as boolean
 stripeRouter.post('/subscribe', requireAuth, async (req: AuthRequest, res: Response) => {
+  if (SUBSCRIBE_RETIRED) {
+    res.status(410).json({ success: false, error: 'retired', message: SUBSCRIBE_RETIRED_MESSAGE })
+    return
+  }
   if (!isStripeConfigured()) {
     res.status(200).json({ error: 'Stripe not configured', configured: false })
     return

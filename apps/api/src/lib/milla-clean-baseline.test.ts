@@ -230,11 +230,17 @@ describe('C. a genuine failure is still reported', () => {
     expect(s.proof_run!.message).toContain('Sourcing capacity is temporarily out')
   })
 
-  it('🛑 A LEGACY CLIENT KEEPS ITS RUN OUTCOME EXACTLY AS BEFORE', async () => {
+  it('🛑 A STORED-LEGACY CLIENT IS A PROGRAMME CLIENT — a historical run outcome is not replayed (R137)', async () => {
+    // ⛓️ INVERTED 23 Sep (R137). WAS: `'🛑 A LEGACY CLIENT KEEPS ITS RUN OUTCOME EXACTLY AS
+    // BEFORE'`, asserting the historical outcome still surfaced. Founder, verbatim: *"the 299/4
+    // is retired/ this must go. everything must be updated to new programme pricing model."*
+    // A stored-'legacy' client with no session now reads exactly like a declared programme
+    // client with none — which is the case section A of this file exists for.
     state.clients.push({ id: C, user_id: 'u-1', commercial_model: 'legacy', proof_passes_done: 0, proof_started_at: null, wallet_balance_usd: 0 })
     historicalQuotaOutcome()
+    expect(state.outcomes.length, 'the historical outcome exists — not vacuous').toBeGreaterThan(0)
     const s = await buildMillaSummaryData(C)
-    expect(s.proof_run, 'legacy is untouched by this correction').not.toBeNull()
+    expect(s.proof_run, 'a historical outcome is not presented as a current run').toBeNull()
   })
 
   it('🛑 A CRASHED RUN STILL REACHES A PROSPECT WITH A SESSION', async () => {

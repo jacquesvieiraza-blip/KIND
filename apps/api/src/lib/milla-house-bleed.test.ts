@@ -311,12 +311,15 @@ describe('③ the rail shows the open programme\'s replies, and legacy keeps its
     expect(await railReplies(HOUSE)).toEqual([])
   })
 
-  it('🛑 A LEGACY CLIENT WITH NO PROGRAMME KEEPS EVERY REPLY — nothing was taken away', async () => {
-    // The $299 pack clients are what is actually selling. They have no programme, and their
-    // replies are their current activity.
+  it('🛑 A FORMERLY LEGACY CLIENT WITH NO PROGRAMME SHOWS NO HISTORICAL REPLY AS CURRENT (R137)', async () => {
+    // ⛓️ INVERTED 23 Sep (R137). WAS: `'🛑 A LEGACY CLIENT WITH NO PROGRAMME KEEPS EVERY REPLY —
+    // nothing was taken away'`, reasoning *"The $299 pack clients are what is actually
+    // selling."* That is no longer true — founder, verbatim: *"the 299/4 is retired/ this must go. everything must be updated to new programme pricing model."*
+    // The rows are untouched (asserted); they are simply not presented as current activity.
     historicalLead('L1'); reply('R1', 'L1')
     historicalLead('L2'); reply('R2', 'L2')
-    expect((await railReplies(HOUSE)).sort()).toEqual(['R1', 'R2'])
+    expect(state.replies, 'the replies are still stored').toHaveLength(2)
+    expect(await railReplies(HOUSE)).toEqual([])
   })
 
   it('🛑 AN UNREADABLE STATE SHOWS NOTHING — it does NOT fall back to the client-wide list', async () => {
@@ -423,13 +426,15 @@ describe('⑥ a historical campaign is never presented as current programme trut
   const attachedIcp = (id = 'ICP_NEW', programmeId = P_NEW, clientId = HOUSE) =>
     state.icps.push({ id, client_id: clientId, programme_id: programmeId })
 
-  it('🛑 NO PROGRAMME + a historical campaign → legacy truth is returned, and the WIDGET refuses to read it', async () => {
-    // The summary still answers honestly for a legacy client — their campaign is their
-    // campaign, and the $299 pack clients must keep it. What changed is that Milla will not
-    // render it as programme status: the widget is gated on the outreach stages AND on
-    // `hasProgramme`, both proved below against the real source.
+  it('🛑 NO PROGRAMME + a historical campaign → NO campaign status, and the WIDGET refuses too (R137)', async () => {
+    // ⛓️ INVERTED 23 Sep (R137). WAS: `'…→ legacy truth is returned, and the WIDGET refuses to
+    // read it'`, asserting `'paused'` because *"the $299 pack clients must keep it"*. There are
+    // no $299 pack clients now — founder: *"the 299/4 is retired/ this must go. everything must be updated to new programme pricing model."*
+    // So the summary shows none rather than a retired campaign, and the widget gate below stays
+    // as the second layer.
     legacyCampaign('C_OLD', 'paused')
-    expect(await campaignStatus(HOUSE), 'legacy is untouched').toBe('paused')
+    expect(await campaignStatus(HOUSE), 'no retired campaign is presented as current').toBeNull()
+    expect(state.campaigns, 'and the historical row is preserved').toHaveLength(1)
 
     // ⚑ 4 Sep — RETARGETED, NOT RELAXED. The send-state widget moved out of the home into
     // the ONE shell-owned `components/milla/MillaConversation.tsx`. Identical string, identical
